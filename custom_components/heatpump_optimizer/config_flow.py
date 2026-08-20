@@ -735,7 +735,26 @@ class HeatPumpOptimizerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
 
 class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
-    """Handle options flow for Heat Pump Optimizer."""
+    """Handle options flow for Heat Pump Optimizer.
+
+    The options are split into a menu of focused pages rather than one very
+    long form, so that changing a single setting does not mean scrolling past
+    forty unrelated fields.
+    """
+
+    # Entities the user may clear again. A cleared selector is simply absent
+    # from ``user_input``, and because options are merged on top of the
+    # original setup data, an absent key would silently restore the old entity.
+    # These are written back explicitly as ``None`` so clearing them sticks.
+    _OPTIONAL_ENTITY_KEYS = (
+        CONF_INDOOR_TEMP_ENTITY,
+        CONF_OUTDOOR_TEMP_ENTITY,
+        CONF_HEAT_PUMP_ENTITY,
+        CONF_HEAT_PUMP_SWITCH_ENTITY,
+        CONF_SOLAR_RADIATION_ENTITY,
+        CONF_FLOOR_RETURN_TEMP_ENTITY,
+        CONF_DHW_TEMP_ENTITY,
+    )
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         """Initialize options flow."""
@@ -745,24 +764,122 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
         # reference instead so the flow works on every supported version.
         self._entry = config_entry
 
+    @property
+    def _current(self) -> dict[str, Any]:
+        """Effective configuration: setup data with saved options applied."""
+        return {**self._entry.data, **self._entry.options}
+
+    def _save(self, user_input: dict[str, Any]) -> FlowResult:
+        """Persist one page without discarding settings from the other pages."""
+        return self.async_create_entry(
+            title="", data={**self._entry.options, **user_input}
+        )
+
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Manage the options."""
-        errors: dict[str, str] = {}
-        if user_input is not None:
-            if not is_valid_spec(user_input.get(CONF_DHW_WINDOWS, "")):
-                errors[CONF_DHW_WINDOWS] = "invalid_dhw_windows"
-            else:
-                return self.async_create_entry(title="", data=user_input)
+        """Show the options menu."""
+        return self.async_show_menu(
+            step_id="init",
+            menu_options=[
+                "entities",
+                "comfort",
+                "hot_water",
+                "building",
+                "tuning",
+                "heat_curve",
+            ],
+        )
 
-        current = {**self._entry.data, **self._entry.options}
+    async def async_step_entities(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Change which Home Assistant entities the optimizer reads."""
+        errors: dict[str, str] = {}
+        current = self._current
+
         if user_input is not None:
+            token = user_input.get(CONF_TIBBER_TOKEN)
+            if token and token != current.get(CONF_TIBBER_TOKEN):
+                if not await validate_tibber_token(token):
+                    errors[CONF_TIBBER_TOKEN] = "invalid_tibber_token"
+            if not errors:
+                cleaned = dict(user_input)
+                for key in self._OPTIONAL_ENTITY_KEYS:
+                    if not cleaned.get(key):
+                        cleaned[key] = None
+                return self._save(cleaned)
             current = {**current, **user_input}
 
+        def _entity(key: str) -> Any:
+            """Optional key that keeps the currently configured entity as default."""
+            existing = current.get(key)
+            if existing:
+                return vol.Optional(key, default=existing)
+            return vol.Optional(key)
+
         return self.async_show_form(
-            step_id="init",
+            step_id="entities",
             errors=errors,
+            data_schema=vol.Schema(
+                {
+                    vol.Required(
+                        CONF_TIBBER_TOKEN,
+                        default=current.get(CONF_TIBBER_TOKEN, ""),
+                    ): selector.TextSelector(
+                        selector.TextSelectorConfig(
+                            type=selector.TextSelectorType.PASSWORD
+                        )
+                    ),
+                    vol.Required(
+                        CONF_WEATHER_ENTITY,
+                        default=current.get(CONF_WEATHER_ENTITY, ""),
+                    ): selector.EntitySelector(
+                        selector.EntitySelectorConfig(domain="weather")
+                    ),
+                    _entity(CONF_INDOOR_TEMP_ENTITY): selector.EntitySelector(
+                        selector.EntitySelectorConfig(
+                            domain="sensor", device_class="temperature"
+                        )
+                    ),
+                    _entity(CONF_OUTDOOR_TEMP_ENTITY): selector.EntitySelector(
+                        selector.EntitySelectorConfig(
+                            domain="sensor", device_class="temperature"
+                        )
+                    ),
+                    _entity(CONF_SOLAR_RADIATION_ENTITY): selector.EntitySelector(
+                        selector.EntitySelectorConfig(domain="sensor")
+                    ),
+                    _entity(CONF_DHW_TEMP_ENTITY): selector.EntitySelector(
+                        selector.EntitySelectorConfig(
+                            domain="sensor", device_class="temperature"
+                        )
+                    ),
+                    _entity(CONF_FLOOR_RETURN_TEMP_ENTITY): selector.EntitySelector(
+                        selector.EntitySelectorConfig(
+                            domain="sensor", device_class="temperature"
+                        )
+                    ),
+                    _entity(CONF_HEAT_PUMP_ENTITY): selector.EntitySelector(
+                        selector.EntitySelectorConfig(domain="climate")
+                    ),
+                    _entity(CONF_HEAT_PUMP_SWITCH_ENTITY): selector.EntitySelector(
+                        selector.EntitySelectorConfig(domain="switch")
+                    ),
+                }
+            ),
+        )
+
+    async def async_step_comfort(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """How warm the house should be, and when."""
+        if user_input is not None:
+            return self._save(user_input)
+
+        current = self._current
+        return self.async_show_form(
+            step_id="comfort",
             data_schema=vol.Schema(
                 {
                     vol.Required(
@@ -821,7 +938,9 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
                     ),
                     vol.Required(
                         CONF_DAY_START_HOUR,
-                        default=current.get(CONF_DAY_START_HOUR, DEFAULT_DAY_START_HOUR),
+                        default=current.get(
+                            CONF_DAY_START_HOUR, DEFAULT_DAY_START_HOUR
+                        ),
                     ): selector.NumberSelector(
                         selector.NumberSelectorConfig(
                             min=0, max=12, step=1,
@@ -837,37 +956,160 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
                             mode=selector.NumberSelectorMode.SLIDER,
                         )
                     ),
-                    vol.Required(
-                        CONF_PRICE_WEIGHT,
-                        default=current.get(CONF_PRICE_WEIGHT, DEFAULT_PRICE_WEIGHT),
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=0.1, max=10, step=0.1,
-                            mode=selector.NumberSelectorMode.BOX,
-                        )
-                    ),
-                    vol.Required(
-                        CONF_COMFORT_WEIGHT,
-                        default=current.get(CONF_COMFORT_WEIGHT, DEFAULT_COMFORT_WEIGHT),
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=0.1, max=20, step=0.1,
-                            mode=selector.NumberSelectorMode.BOX,
-                        )
-                    ),
-                    vol.Required(
-                        CONF_OPTIMIZATION_INTERVAL,
+                }
+            ),
+        )
+
+    async def async_step_hot_water(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """When hot water is needed and how hot it has to be."""
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            if not is_valid_spec(user_input.get(CONF_DHW_WINDOWS, "")):
+                errors[CONF_DHW_WINDOWS] = "invalid_dhw_windows"
+            else:
+                return self._save(user_input)
+
+        current = self._current
+        if user_input is not None:
+            current = {**current, **user_input}
+
+        return self.async_show_form(
+            step_id="hot_water",
+            errors=errors,
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(
+                        CONF_DHW_SCHEDULE_ENABLED,
                         default=current.get(
-                            CONF_OPTIMIZATION_INTERVAL, DEFAULT_OPTIMIZATION_INTERVAL
+                            CONF_DHW_SCHEDULE_ENABLED, DEFAULT_DHW_SCHEDULE_ENABLED
                         ),
+                    ): selector.BooleanSelector(),
+                    vol.Optional(
+                        CONF_DHW_WINDOWS,
+                        default=current.get(CONF_DHW_WINDOWS, DEFAULT_DHW_WINDOWS),
+                    ): selector.TextSelector(
+                        selector.TextSelectorConfig(
+                            type=selector.TextSelectorType.TEXT,
+                        )
+                    ),
+                    vol.Optional(
+                        CONF_DHW_MIN_TEMP,
+                        default=current.get(CONF_DHW_MIN_TEMP, DEFAULT_DHW_MIN_TEMP),
                     ): selector.NumberSelector(
                         selector.NumberSelectorConfig(
-                            min=10, max=120, step=5,
-                            unit_of_measurement="min",
+                            min=35, max=55, step=1,
+                            unit_of_measurement="°C",
                             mode=selector.NumberSelectorMode.SLIDER,
                         )
                     ),
-                    # Zone / Solar options editable at runtime
+                    vol.Optional(
+                        CONF_DHW_IDLE_MIN_TEMP,
+                        default=current.get(
+                            CONF_DHW_IDLE_MIN_TEMP, DEFAULT_DHW_IDLE_MIN_TEMP
+                        ),
+                    ): selector.NumberSelector(
+                        selector.NumberSelectorConfig(
+                            min=10, max=55, step=1,
+                            unit_of_measurement="°C",
+                            mode=selector.NumberSelectorMode.SLIDER,
+                        )
+                    ),
+                    vol.Optional(
+                        CONF_DHW_SETPOINT,
+                        default=current.get(CONF_DHW_SETPOINT, DEFAULT_DHW_SETPOINT),
+                    ): selector.NumberSelector(
+                        selector.NumberSelectorConfig(
+                            min=40, max=65, step=1,
+                            unit_of_measurement="°C",
+                            mode=selector.NumberSelectorMode.SLIDER,
+                        )
+                    ),
+                    vol.Optional(
+                        CONF_DHW_TANK_VOLUME,
+                        default=current.get(
+                            CONF_DHW_TANK_VOLUME, DEFAULT_DHW_TANK_VOLUME
+                        ),
+                    ): selector.NumberSelector(
+                        selector.NumberSelectorConfig(
+                            min=50, max=1500, step=10,
+                            unit_of_measurement="L",
+                            mode=selector.NumberSelectorMode.BOX,
+                        )
+                    ),
+                    vol.Optional(
+                        CONF_DHW_DAILY_CONSUMPTION,
+                        default=current.get(
+                            CONF_DHW_DAILY_CONSUMPTION, DEFAULT_DHW_DAILY_CONSUMPTION
+                        ),
+                    ): selector.NumberSelector(
+                        selector.NumberSelectorConfig(
+                            min=50, max=1500, step=10,
+                            unit_of_measurement="L/day",
+                            mode=selector.NumberSelectorMode.BOX,
+                        )
+                    ),
+                    vol.Optional(
+                        CONF_DHW_LEGIONELLA_ENABLED,
+                        default=current.get(
+                            CONF_DHW_LEGIONELLA_ENABLED,
+                            DEFAULT_DHW_LEGIONELLA_ENABLED,
+                        ),
+                    ): selector.BooleanSelector(),
+                    vol.Optional(
+                        CONF_DHW_LEGIONELLA_TEMP,
+                        default=current.get(
+                            CONF_DHW_LEGIONELLA_TEMP, DEFAULT_DHW_LEGIONELLA_TEMP
+                        ),
+                    ): selector.NumberSelector(
+                        selector.NumberSelectorConfig(
+                            min=55, max=70, step=1,
+                            unit_of_measurement="°C",
+                            mode=selector.NumberSelectorMode.SLIDER,
+                        )
+                    ),
+                    vol.Optional(
+                        CONF_DHW_LEGIONELLA_INTERVAL_DAYS,
+                        default=current.get(
+                            CONF_DHW_LEGIONELLA_INTERVAL_DAYS,
+                            DEFAULT_DHW_LEGIONELLA_INTERVAL_DAYS,
+                        ),
+                    ): selector.NumberSelector(
+                        selector.NumberSelectorConfig(
+                            min=1, max=30, step=1,
+                            unit_of_measurement="days",
+                            mode=selector.NumberSelectorMode.SLIDER,
+                        )
+                    ),
+                }
+            ),
+        )
+
+    async def async_step_building(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Physical properties of the house and heating system."""
+        if user_input is not None:
+            return self._save(user_input)
+
+        current = self._current
+        return self.async_show_form(
+            step_id="building",
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(
+                        CONF_BUFFER_TANK_VOLUME,
+                        default=current.get(
+                            CONF_BUFFER_TANK_VOLUME, DEFAULT_BUFFER_TANK_VOLUME
+                        ),
+                    ): selector.NumberSelector(
+                        selector.NumberSelectorConfig(
+                            min=10, max=1500, step=5,
+                            unit_of_measurement="L",
+                            mode=selector.NumberSelectorMode.BOX,
+                        )
+                    ),
                     vol.Optional(
                         CONF_RADIATOR_POWER_FRACTION,
                         default=current.get(
@@ -903,120 +1145,6 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
                         )
                     ),
                     vol.Optional(
-                        CONF_BUFFER_TANK_VOLUME,
-                        default=current.get(
-                            CONF_BUFFER_TANK_VOLUME, DEFAULT_BUFFER_TANK_VOLUME
-                        ),
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=10, max=1500, step=5,
-                            unit_of_measurement="L",
-                            mode=selector.NumberSelectorMode.BOX,
-                        )
-                    ),
-                    # DHW options editable at runtime
-                    vol.Optional(
-                        CONF_DHW_TANK_VOLUME,
-                        default=current.get(CONF_DHW_TANK_VOLUME, DEFAULT_DHW_TANK_VOLUME),
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=50, max=1500, step=10,
-                            unit_of_measurement="L",
-                            mode=selector.NumberSelectorMode.BOX,
-                        )
-                    ),
-                    vol.Optional(
-                        CONF_DHW_DAILY_CONSUMPTION,
-                        default=current.get(
-                            CONF_DHW_DAILY_CONSUMPTION, DEFAULT_DHW_DAILY_CONSUMPTION
-                        ),
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=50, max=1500, step=10,
-                            unit_of_measurement="L/day",
-                            mode=selector.NumberSelectorMode.BOX,
-                        )
-                    ),
-                    vol.Optional(
-                        CONF_DHW_SETPOINT,
-                        default=current.get(CONF_DHW_SETPOINT, DEFAULT_DHW_SETPOINT),
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=40, max=65, step=1,
-                            unit_of_measurement="°C",
-                            mode=selector.NumberSelectorMode.SLIDER,
-                        )
-                    ),
-                    vol.Optional(
-                        CONF_DHW_MIN_TEMP,
-                        default=current.get(CONF_DHW_MIN_TEMP, DEFAULT_DHW_MIN_TEMP),
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=35, max=55, step=1,
-                            unit_of_measurement="°C",
-                            mode=selector.NumberSelectorMode.SLIDER,
-                        )
-                    ),
-                    vol.Optional(
-                        CONF_DHW_SCHEDULE_ENABLED,
-                        default=current.get(
-                            CONF_DHW_SCHEDULE_ENABLED, DEFAULT_DHW_SCHEDULE_ENABLED
-                        ),
-                    ): selector.BooleanSelector(),
-                    vol.Optional(
-                        CONF_DHW_WINDOWS,
-                        default=current.get(CONF_DHW_WINDOWS, DEFAULT_DHW_WINDOWS),
-                    ): selector.TextSelector(
-                        selector.TextSelectorConfig(
-                            type=selector.TextSelectorType.TEXT,
-                        )
-                    ),
-                    vol.Optional(
-                        CONF_DHW_IDLE_MIN_TEMP,
-                        default=current.get(
-                            CONF_DHW_IDLE_MIN_TEMP, DEFAULT_DHW_IDLE_MIN_TEMP
-                        ),
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=10, max=55, step=1,
-                            unit_of_measurement="°C",
-                            mode=selector.NumberSelectorMode.SLIDER,
-                        )
-                    ),
-                    vol.Optional(
-                        CONF_DHW_LEGIONELLA_ENABLED,
-                        default=current.get(
-                            CONF_DHW_LEGIONELLA_ENABLED,
-                            DEFAULT_DHW_LEGIONELLA_ENABLED,
-                        ),
-                    ): selector.BooleanSelector(),
-                    vol.Optional(
-                        CONF_DHW_LEGIONELLA_TEMP,
-                        default=current.get(
-                            CONF_DHW_LEGIONELLA_TEMP, DEFAULT_DHW_LEGIONELLA_TEMP
-                        ),
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=55, max=70, step=1,
-                            unit_of_measurement="°C",
-                            mode=selector.NumberSelectorMode.SLIDER,
-                        )
-                    ),
-                    vol.Optional(
-                        CONF_DHW_LEGIONELLA_INTERVAL_DAYS,
-                        default=current.get(
-                            CONF_DHW_LEGIONELLA_INTERVAL_DAYS,
-                            DEFAULT_DHW_LEGIONELLA_INTERVAL_DAYS,
-                        ),
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=1, max=30, step=1,
-                            unit_of_measurement="days",
-                            mode=selector.NumberSelectorMode.SLIDER,
-                        )
-                    ),
-                    # Weather sensitivity editable at runtime
-                    vol.Optional(
                         CONF_WIND_SENSITIVITY,
                         default=current.get(
                             CONF_WIND_SENSITIVITY, DEFAULT_WIND_SENSITIVITY
@@ -1039,7 +1167,70 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
                             mode=selector.NumberSelectorMode.BOX,
                         )
                     ),
-                    # ECL110 MQTT displace control options
+                }
+            ),
+        )
+
+    async def async_step_tuning(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Balance between saving money and holding the setpoint."""
+        if user_input is not None:
+            return self._save(user_input)
+
+        current = self._current
+        return self.async_show_form(
+            step_id="tuning",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(
+                        CONF_PRICE_WEIGHT,
+                        default=current.get(CONF_PRICE_WEIGHT, DEFAULT_PRICE_WEIGHT),
+                    ): selector.NumberSelector(
+                        selector.NumberSelectorConfig(
+                            min=0.1, max=10, step=0.1,
+                            mode=selector.NumberSelectorMode.BOX,
+                        )
+                    ),
+                    vol.Required(
+                        CONF_COMFORT_WEIGHT,
+                        default=current.get(
+                            CONF_COMFORT_WEIGHT, DEFAULT_COMFORT_WEIGHT
+                        ),
+                    ): selector.NumberSelector(
+                        selector.NumberSelectorConfig(
+                            min=0.1, max=20, step=0.1,
+                            mode=selector.NumberSelectorMode.BOX,
+                        )
+                    ),
+                    vol.Required(
+                        CONF_OPTIMIZATION_INTERVAL,
+                        default=current.get(
+                            CONF_OPTIMIZATION_INTERVAL, DEFAULT_OPTIMIZATION_INTERVAL
+                        ),
+                    ): selector.NumberSelector(
+                        selector.NumberSelectorConfig(
+                            min=10, max=120, step=5,
+                            unit_of_measurement="min",
+                            mode=selector.NumberSelectorMode.SLIDER,
+                        )
+                    ),
+                }
+            ),
+        )
+
+    async def async_step_heat_curve(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Danfoss ECL110 heat-curve offset control over MQTT."""
+        if user_input is not None:
+            return self._save(user_input)
+
+        current = self._current
+        return self.async_show_form(
+            step_id="heat_curve",
+            data_schema=vol.Schema(
+                {
                     vol.Optional(
                         CONF_ECL110_DISPLACE_SET_TOPIC,
                         default=current.get(

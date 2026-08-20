@@ -3,39 +3,68 @@
     "step": {
       "user": {
         "title": "Värmepumpsoptimering - Konfiguration",
-        "description": "Konfigurera din värmepumpsoptimering. Du behöver en Tibber API-nyckel (hämta på https://developer.tibber.com) och en väderentitet. Valfritt: lägg till solstrålnings-, golvvärme-returtemperatur- och varmvattensensorer.",
+        "description": "Välj vilka entiteter i Home Assistant som optimeringen läser. Töm ett fält för att sluta använda den givaren. Endast pris-token och väderprognos krävs; övriga givare gör modellen mer exakt men är valfria.",
         "data": {
-          "name": "Integrationsnamn",
-          "tibber_token": "Tibber API-nyckel",
-          "weather_entity": "Väderentitet (för prognoser)",
-          "indoor_temp_entity": "Inomhustemperatursensor (valfritt)",
-          "outdoor_temp_entity": "Utomhustemperatursensor (valfritt)",
-          "heat_pump_entity": "Värmepump klimatentitet (valfritt)",
-          "heat_pump_switch_entity": "Värmepump strömbrytare (valfritt)",
-          "solar_radiation_entity": "Solstrålningssensor (valfritt, W/m²)",
-          "floor_return_temp_entity": "Golvvärme returtemperatursensor (valfritt)",
-          "dhw_temp_entity": "Varmvattentemperatursensor (valfritt)",
-          "ecl110_displace_set_topic": "ECL110 direkt displace-/set-topic",
-          "ecl110_command_topic": "ECL110 äldre JSON-kommandotopic",
-          "ecl110_state_topic": "ECL110 MQTT statustopic",
-          "ecl110_mqtt_qos": "ECL110 MQTT QoS",
-          "ecl110_mqtt_retain": "Behåll ECL110 MQTT-meddelanden",
-          "ecl110_displace_min": "ECL110 displace minimum (°C)",
-          "ecl110_displace_max": "ECL110 displace maximum (°C)",
-          "ecl110_pid_time_constant_hours": "ECL110 PI/PID tidskonstant (timmar)"
+          "name": "Namn på den här integrationen",
+          "tibber_token": "Tibber API-token",
+          "weather_entity": "Väderprognos",
+          "indoor_temp_entity": "Inomhusgivare",
+          "outdoor_temp_entity": "Utomhusgivare",
+          "heat_pump_entity": "Värmepumpens termostat",
+          "heat_pump_switch_entity": "Strömbrytare för värmepumpen",
+          "solar_radiation_entity": "Solinstrålningsgivare",
+          "floor_return_temp_entity": "Givare för golvvärmens returtemperatur",
+          "dhw_temp_entity": "Givare för varmvattenberedarens temperatur",
+          "ecl110_displace_set_topic": "Topic för förskjutningskommando",
+          "ecl110_command_topic": "Äldre JSON-kommandotopic",
+          "ecl110_state_topic": "Statustopic",
+          "ecl110_mqtt_qos": "MQTT quality of service",
+          "ecl110_mqtt_retain": "Behåll MQTT-meddelanden",
+          "ecl110_displace_min": "Största nedåtförskjutning",
+          "ecl110_displace_max": "Största uppåtförskjutning",
+          "ecl110_pid_time_constant_hours": "Regulatorns svarstid"
+        },
+        "data_description": {
+          "name": "Visas framför alla sensorer som integrationen skapar.",
+          "tibber_token": "Används för att läsa dina timpriser på el. Skapa en på developer.tibber.com. Lämna som den är om den inte har ändrats.",
+          "weather_entity": "Härifrån hämtas prognos för utomhustemperatur, vind och regn. Optimeringen planerar 24 timmar framåt och kräver därför en prognos.",
+          "indoor_temp_entity": "Valfritt. Den verkliga rumstemperaturen. Utan den litar optimeringen på sin egen modell, som glider med tiden.",
+          "outdoor_temp_entity": "Valfritt. En egen utegivare är mer exakt än prognosen för den aktuella timmen.",
+          "heat_pump_entity": "Valfritt. En climate-entitet som optimeringen kan ställa en temperatur på.",
+          "heat_pump_switch_entity": "Valfritt. En strömbrytare som används för att stänga av värmepumpen under dyra timmar.",
+          "solar_radiation_entity": "Valfritt. Solinstrålning i W/m2. Gör att optimeringen kan avstå från att värma före en solig eftermiddag som värmer huset gratis.",
+          "floor_return_temp_entity": "Valfritt. Vattentemperaturen tillbaka från golvslingorna, används för att bedöma hur mycket värme plattan lagrar.",
+          "dhw_temp_entity": "Valfritt men rekommenderas. Beredarens verkliga temperatur. Gör också att en manuell varmvattenkörning nollställer legionellatimern.",
+          "ecl110_displace_set_topic": "MQTT-topic dit parallellförskjutningen av värmekurvan publiceras. Lämna tomt om du inte har en Danfoss ECL110.",
+          "ecl110_command_topic": "Behövs bara för äldre installationer som förväntar sig JSON i stället.",
+          "ecl110_state_topic": "MQTT-topic där regulatorn rapporterar sitt tillstånd.",
+          "ecl110_mqtt_qos": "0 räcker för de allra flesta.",
+          "ecl110_mqtt_retain": "Sparar den senaste förskjutningen på mäklaren så att regulatorn hämtar den efter en omstart.",
+          "ecl110_displace_min": "Hur långt ned värmekurvan får förskjutas under dyra timmar.",
+          "ecl110_displace_max": "Hur långt upp värmekurvan får förskjutas när billig värme lagras.",
+          "ecl110_pid_time_constant_hours": "Ungefär hur lång tid regulatorn behöver för att verkställa en ny förskjutning. Används så att optimeringen inte begär snabbare ändringar än systemet hinner följa."
         }
       },
       "temperature": {
         "title": "Temperaturinställningar",
-        "description": "Konfigurera önskat temperaturintervall och komfortinställningar.",
+        "description": "Hur varmt du vill ha huset, och hur långt optimeringen får avvika för att spara pengar. Avståndet mellan önskad och lägsta temperatur är det som gör besparingar möjliga: ju större det är, desto mer kan huset rida ut dyra timmar.",
         "data": {
-          "target_temperature": "Måltemperatur",
-          "min_temperature": "Lägsta tillåtna temperatur",
-          "max_temperature": "Högsta tillåtna temperatur",
-          "comfort_temp_day": "Komforttemperatur dag",
-          "comfort_temp_night": "Komforttemperatur natt",
-          "day_start_hour": "Dag börjar (timme)",
-          "day_end_hour": "Dag slutar (timme)"
+          "target_temperature": "Önskad inomhustemperatur",
+          "min_temperature": "Kallaste acceptabla temperatur",
+          "max_temperature": "Varmaste acceptabla temperatur",
+          "comfort_temp_day": "Komforttemperatur dagtid",
+          "comfort_temp_night": "Komforttemperatur nattetid",
+          "day_start_hour": "Dagen börjar",
+          "day_end_hour": "Dagen slutar"
+        },
+        "data_description": {
+          "target_temperature": "Vad du faktiskt vill att huset ska ligga på. Optimeringen siktar hit och avviker bara för att undvika dyra timmar.",
+          "min_temperature": "En hård gräns. Huset tillåts aldrig under den här temperaturen, hur dyr elen än blir. Ett större avstånd till önskad temperatur ger mer utrymme att spara.",
+          "max_temperature": "En hård övre gräns. Styr hur mycket optimeringen får förvärma huset under billiga timmar.",
+          "comfort_temp_day": "Önskad temperatur under vakna timmar.",
+          "comfort_temp_night": "Önskad temperatur nattetid. Ett par grader lägre sparar pengar och ger oftast bättre sömn.",
+          "day_start_hour": "Timmen på morgonen då dagtemperaturen tar över.",
+          "day_end_hour": "Timmen på kvällen då nattemperaturen tar över."
         }
       },
       "thermal": {
@@ -49,9 +78,14 @@
           "heat_pump_cop_nominal": "Värmepumpens nominella COP",
           "heat_pump_max_power": "Värmepump max effekt (kW)",
           "heat_pump_min_power": "Värmepump min effekt (kW)",
-          "optimization_interval": "Optimeringsintervall (min)",
-          "price_weight": "Prisvikt",
-          "comfort_weight": "Komfortvikt"
+          "optimization_interval": "Räkna om var",
+          "price_weight": "Hur hårt billiga timmar ska jagas",
+          "comfort_weight": "Hur strikt temperaturen ska hållas"
+        },
+        "data_description": {
+          "price_weight": "Högre värde gör att optimeringen jobbar hårdare för att flytta värmen till billiga timmar, till priset av större temperatursvängningar.",
+          "comfort_weight": "Motvikten till inställningen ovan, och det mest effektiva reglaget du har. Den vägs mot intervallet du tillåter, så ett bredare intervall gör optimeraren djärvare. Runt 5 låter huset röra sig fritt inom ditt tillåtna intervall för störst besparing; 10 håller det märkbart närmare målet; 20 eller mer beter sig nästan som en vanlig termostat.",
+          "optimization_interval": "Hur ofta planen räknas om mot färska priser och väder. Oftare reagerar snabbare men kräver mer arbete."
         }
       },
       "zones": {
@@ -63,92 +97,221 @@
           "upper_floor_heat_loss": "Övervåning värmeförlust (kW/°C)",
           "lower_floor_heat_loss": "Nedervåning värmeförlust (kW/°C)",
           "inter_zone_heat_transfer": "Värmeöverföring mellan zoner (kW/°C)",
-          "radiator_power_fraction": "Radiatoreffektandel",
+          "radiator_power_fraction": "Andel värme till radiatorer",
           "upper_floor_area_ratio": "Övervåning ytförhållande",
-          "buffer_tank_volume": "Buffertankvolym (L)",
-          "window_area": "Fönsterarea (m²)",
+          "buffer_tank_volume": "Ackumulatortankens volym",
+          "window_area": "Fönsteryta mot solen",
           "solar_orientation_factor": "Solorientering (1.0=full söder)",
-          "solar_heat_gain_coefficient": "SHGC (solvärmekoefficient)"
+          "solar_heat_gain_coefficient": "Hur mycket solljus fönstren släpper in"
+        },
+        "data_description": {
+          "buffer_tank_volume": "Liter. Tanken mellan värmepumpen och värmekretsarna. Större tank lagrar mer billig värme.",
+          "radiator_power_fraction": "Gäller endast tvåzonssystem. 0 betyder att all värme går till golvplattan, 1 att allt går till radiatorerna. 0,4 betyder 40 procent till radiatorer.",
+          "window_area": "Kvadratmeter glas som får direkt sol. Används för att förutse gratis solvärme.",
+          "solar_heat_gain_coefficient": "0,6 är typiskt för modern treglasruta. Högre värde ger mer gratis värme soliga dagar."
         }
       },
       "dhw": {
         "title": "Varmvattenkonfiguration (VVB)",
-        "description": "Valfritt: Konfigurera varmvattenberedaren. Ange tidsintervall då varmvatten måste finnas tillgängligt — optimeraren garanterar då en användbar tanktemperatur under dessa intervall och värmer vattnet under de billigaste timmarna dessförinnan. Utanför intervallen får tanken svalna, så ingen el går åt till att hålla vatten varmt som ingen använder. Ange tider i 24-timmarsformat separerade med komma, till exempel \"06:00-08:30, 17:00-22:00\". Lämna tomt för att kräva varmvatten dygnet runt.",
+        "description": "Tala om när du faktiskt behöver varmvatten. Optimeringen garanterar då en användbar temperatur under de perioderna och värmer vattnet under de billigaste timmarna innan. Utanför perioderna får beredaren svalna, så inget läggs på att hålla vatten varmt som ingen använder.",
         "data": {
-          "dhw_tank_volume": "VVB-tankvolym (L)",
-          "dhw_setpoint": "VVB måltemperatur (°C)",
-          "dhw_min_temperature": "VVB minimiutemperatur (°C)",
-          "dhw_daily_consumption": "Daglig varmvattenförbrukning (L/dag)",
-          "dhw_schedule_enabled": "Garantera bara varmvatten under valda tidsintervall",
-          "dhw_windows": "Tidsintervall för varmvatten (t.ex. 06:00-08:30, 17:00-22:00)",
-          "dhw_legionella_enabled": "Legionellakörning",
-          "dhw_legionella_interval_days": "Legionellaintervall (dygn)",
-          "dhw_idle_min_temperature": "Lägsta tanktemperatur utanför intervallen (°C)",
-          "dhw_legionella_temperature": "Legionellatemperatur (°C)"
+          "dhw_tank_volume": "Varmvattenberedarens volym",
+          "dhw_setpoint": "Högsta temperatur att ladda till",
+          "dhw_min_temperature": "Varmvattentemperatur du behöver",
+          "dhw_daily_consumption": "Varmvatten per dygn",
+          "dhw_schedule_enabled": "Garantera varmvatten endast vid valda tider",
+          "dhw_windows": "När du behöver varmvatten",
+          "dhw_legionella_enabled": "Kör legionellaskydd",
+          "dhw_legionella_interval_days": "Intervall för legionellaskydd",
+          "dhw_idle_min_temperature": "Låt beredaren svalna till",
+          "dhw_legionella_temperature": "Legionellatemperatur"
+        },
+        "data_description": {
+          "dhw_schedule_enabled": "På: varmvatten garanteras bara under tiderna nedan, och beredaren får svalna däremellan. Av: beredaren hålls varm dygnet runt, vilket kostar märkbart mer.",
+          "dhw_windows": "Tider i 24-timmarsformat separerade med komma, till exempel 06:00-08:30, 17:00-22:00. Beredaren laddas under de billigaste timmarna före varje period. Lämna tomt så lär sig integrationen dina vanor från faktisk användning.",
+          "dhw_min_temperature": "Temperaturen beredaren garanterat når under perioderna ovan. Runt 45 C räcker för en vanlig dusch.",
+          "dhw_idle_min_temperature": "Hur kall beredaren får bli utanför dessa perioder. Lägre sparar mer. Standardvärdet motsvarar ungefär rumstemperatur, alltså att ingen energi alls läggs på beredaren.",
+          "dhw_setpoint": "En övre gräns för laddning, inte ett mål. Beredaren fylls bara så här högt när det lönar sig att lagra extra billig värme. Den värms aldrig hit bara för sakens skull.",
+          "dhw_tank_volume": "Liter. En större beredare lagrar mer billig el och kan hoppa över fler dyra timmar.",
+          "dhw_daily_consumption": "Ungefär hur många liter varmvatten hushållet använder per dygn. Används för att räkna ut hur mycket som behöver lagras före varje period.",
+          "dhw_legionella_enabled": "Eftersom beredaren nu får stå sval under långa perioder värms den regelbundet tillräckligt hett för att döda legionellabakterier. Rekommenderas starkt.",
+          "dhw_legionella_temperature": "60 C är den vanliga rekommendationen.",
+          "dhw_legionella_interval_days": "Hur ofta desinficeringen körs. Den läggs på den billigaste timmen före varje deadline."
         }
       },
       "weather_sensitivity": {
         "title": "Väderkänslighetsparametrar",
         "description": "Konfigurera hur vind och regn påverkar värmeförlustprognoser. Högre vindkänslighet = mer förvärming innan blåsiga perioder.",
         "data": {
-          "wind_sensitivity_factor": "Vindkänslighet (värmeförlustökning per m/s)",
-          "rain_heat_loss_multiplier": "Regn värmeförlustmultiplikator"
+          "wind_sensitivity_factor": "Vindkänslighet",
+          "rain_heat_loss_multiplier": "Regnkänslighet"
+        },
+        "data_description": {
+          "wind_sensitivity_factor": "Hur mycket extra värme huset förlorar per m/s vind. Höj den om huset märkbart kyls ned blåsiga dagar, så förvärmer optimeringen i förväg.",
+          "rain_heat_loss_multiplier": "Extra värmeförlust när det regnar. 1,0 betyder att regn inte spelar någon roll."
         }
       }
     },
     "error": {
-      "invalid_tibber_token": "Ogiltig Tibber API-nyckel. Kontrollera och försök igen.",
-      "invalid_dhw_windows": "Ogiltiga tidsintervall för varmvatten. Använd 24-timmarsformat, t.ex. \"06:00-08:30, 17:00-22:00\"."
+      "invalid_tibber_token": "Tibber-token accepterades inte. Kontrollera den på developer.tibber.com och försök igen.",
+      "invalid_dhw_windows": "Tiderna kunde inte tolkas. Använd 24-timmarsformat separerat med komma, till exempel \"06:00-08:30, 17:00-22:00\"."
     },
     "abort": {
-      "already_configured": "Denna integration är redan konfigurerad."
+      "already_configured": "Den här integrationen är redan konfigurerad."
     }
   },
   "options": {
     "step": {
       "init": {
-        "title": "Värmepumpsoptimering - Alternativ",
-        "description": "Justera temperaturmål, optimeringsvikter, zon-/solparametrar, VVB-inställningar och väderkänslighet.",
+        "title": "Inställningar för Heat Pump Optimizer",
+        "description": "Välj vilken grupp av inställningar du vill ändra.",
+        "menu_options": {
+          "entities": "Givare och entiteter",
+          "comfort": "Komfort och temperaturer",
+          "hot_water": "Varmvatten",
+          "building": "Hus och värmesystem",
+          "tuning": "Besparing kontra komfort",
+          "heat_curve": "Värmekurvestyrning (ECL110)"
+        }
+      },
+      "entities": {
+        "title": "Givare och entiteter",
+        "description": "Välj vilka entiteter i Home Assistant som optimeringen läser. Töm ett fält för att sluta använda den givaren. Endast pris-token och väderprognos krävs; övriga givare gör modellen mer exakt men är valfria.",
         "data": {
-          "target_temperature": "Måltemperatur (°C)",
-          "min_temperature": "Lägsta temperatur (°C)",
-          "max_temperature": "Högsta temperatur (°C)",
-          "comfort_temp_day": "Komforttemperatur dag (°C)",
-          "comfort_temp_night": "Komforttemperatur natt (°C)",
-          "day_start_hour": "Dag starttimme",
-          "day_end_hour": "Dag sluttimme",
-          "price_weight": "Prisvikt",
-          "comfort_weight": "Komfortvikt",
-          "optimization_interval": "Optimeringsintervall (min)",
-          "radiator_power_fraction": "Radiatoreffektandel",
-          "window_area": "Fönsterarea (m²)",
-          "solar_heat_gain_coefficient": "SHGC (solvärmekoefficient)",
-          "dhw_tank_volume": "VVB tankvolym (L)",
-          "dhw_daily_consumption": "Daglig varmvattenförbrukning (L/dag)",
-          "dhw_setpoint": "VVB måltemperatur (°C)",
-          "dhw_min_temperature": "VVB minimiutemperatur (°C)",
+          "tibber_token": "Tibber API-token",
+          "weather_entity": "Väderprognos",
+          "indoor_temp_entity": "Inomhusgivare",
+          "outdoor_temp_entity": "Utomhusgivare",
+          "solar_radiation_entity": "Solinstrålningsgivare",
+          "dhw_temp_entity": "Givare för varmvattenberedarens temperatur",
+          "floor_return_temp_entity": "Givare för golvvärmens returtemperatur",
+          "heat_pump_entity": "Värmepumpens termostat",
+          "heat_pump_switch_entity": "Strömbrytare för värmepumpen"
+        },
+        "data_description": {
+          "tibber_token": "Används för att läsa dina timpriser på el. Skapa en på developer.tibber.com. Lämna som den är om den inte har ändrats.",
+          "weather_entity": "Härifrån hämtas prognos för utomhustemperatur, vind och regn. Optimeringen planerar 24 timmar framåt och kräver därför en prognos.",
+          "indoor_temp_entity": "Valfritt. Den verkliga rumstemperaturen. Utan den litar optimeringen på sin egen modell, som glider med tiden.",
+          "outdoor_temp_entity": "Valfritt. En egen utegivare är mer exakt än prognosen för den aktuella timmen.",
+          "solar_radiation_entity": "Valfritt. Solinstrålning i W/m2. Gör att optimeringen kan avstå från att värma före en solig eftermiddag som värmer huset gratis.",
+          "dhw_temp_entity": "Valfritt men rekommenderas. Beredarens verkliga temperatur. Gör också att en manuell varmvattenkörning nollställer legionellatimern.",
+          "floor_return_temp_entity": "Valfritt. Vattentemperaturen tillbaka från golvslingorna, används för att bedöma hur mycket värme plattan lagrar.",
+          "heat_pump_entity": "Valfritt. En climate-entitet som optimeringen kan ställa en temperatur på.",
+          "heat_pump_switch_entity": "Valfritt. En strömbrytare som används för att stänga av värmepumpen under dyra timmar."
+        }
+      },
+      "comfort": {
+        "title": "Komfort och temperaturer",
+        "description": "Hur varmt du vill ha huset, och hur långt optimeringen får avvika för att spara pengar. Avståndet mellan önskad och lägsta temperatur är det som gör besparingar möjliga: ju större det är, desto mer kan huset rida ut dyra timmar.",
+        "data": {
+          "target_temperature": "Önskad inomhustemperatur",
+          "min_temperature": "Kallaste acceptabla temperatur",
+          "max_temperature": "Varmaste acceptabla temperatur",
+          "comfort_temp_day": "Komforttemperatur dagtid",
+          "comfort_temp_night": "Komforttemperatur nattetid",
+          "day_start_hour": "Dagen börjar",
+          "day_end_hour": "Dagen slutar"
+        },
+        "data_description": {
+          "target_temperature": "Vad du faktiskt vill att huset ska ligga på. Optimeringen siktar hit och avviker bara för att undvika dyra timmar.",
+          "min_temperature": "En hård gräns. Huset tillåts aldrig under den här temperaturen, hur dyr elen än blir. Ett större avstånd till önskad temperatur ger mer utrymme att spara.",
+          "max_temperature": "En hård övre gräns. Styr hur mycket optimeringen får förvärma huset under billiga timmar.",
+          "comfort_temp_day": "Önskad temperatur under vakna timmar.",
+          "comfort_temp_night": "Önskad temperatur nattetid. Ett par grader lägre sparar pengar och ger oftast bättre sömn.",
+          "day_start_hour": "Timmen på morgonen då dagtemperaturen tar över.",
+          "day_end_hour": "Timmen på kvällen då nattemperaturen tar över."
+        }
+      },
+      "hot_water": {
+        "title": "Varmvatten",
+        "description": "Tala om när du faktiskt behöver varmvatten. Optimeringen garanterar då en användbar temperatur under de perioderna och värmer vattnet under de billigaste timmarna innan. Utanför perioderna får beredaren svalna, så inget läggs på att hålla vatten varmt som ingen använder.",
+        "data": {
+          "dhw_schedule_enabled": "Garantera varmvatten endast vid valda tider",
+          "dhw_windows": "När du behöver varmvatten",
+          "dhw_min_temperature": "Varmvattentemperatur du behöver",
+          "dhw_idle_min_temperature": "Låt beredaren svalna till",
+          "dhw_setpoint": "Högsta temperatur att ladda till",
+          "dhw_tank_volume": "Varmvattenberedarens volym",
+          "dhw_daily_consumption": "Varmvatten per dygn",
+          "dhw_legionella_enabled": "Kör legionellaskydd",
+          "dhw_legionella_temperature": "Legionellatemperatur",
+          "dhw_legionella_interval_days": "Intervall för legionellaskydd"
+        },
+        "data_description": {
+          "dhw_schedule_enabled": "På: varmvatten garanteras bara under tiderna nedan, och beredaren får svalna däremellan. Av: beredaren hålls varm dygnet runt, vilket kostar märkbart mer.",
+          "dhw_windows": "Tider i 24-timmarsformat separerade med komma, till exempel 06:00-08:30, 17:00-22:00. Beredaren laddas under de billigaste timmarna före varje period. Lämna tomt så lär sig integrationen dina vanor från faktisk användning.",
+          "dhw_min_temperature": "Temperaturen beredaren garanterat når under perioderna ovan. Runt 45 C räcker för en vanlig dusch.",
+          "dhw_idle_min_temperature": "Hur kall beredaren får bli utanför dessa perioder. Lägre sparar mer. Standardvärdet motsvarar ungefär rumstemperatur, alltså att ingen energi alls läggs på beredaren.",
+          "dhw_setpoint": "En övre gräns för laddning, inte ett mål. Beredaren fylls bara så här högt när det lönar sig att lagra extra billig värme. Den värms aldrig hit bara för sakens skull.",
+          "dhw_tank_volume": "Liter. En större beredare lagrar mer billig el och kan hoppa över fler dyra timmar.",
+          "dhw_daily_consumption": "Ungefär hur många liter varmvatten hushållet använder per dygn. Används för att räkna ut hur mycket som behöver lagras före varje period.",
+          "dhw_legionella_enabled": "Eftersom beredaren nu får stå sval under långa perioder värms den regelbundet tillräckligt hett för att döda legionellabakterier. Rekommenderas starkt.",
+          "dhw_legionella_temperature": "60 C är den vanliga rekommendationen.",
+          "dhw_legionella_interval_days": "Hur ofta desinficeringen körs. Den läggs på den billigaste timmen före varje deadline."
+        }
+      },
+      "building": {
+        "title": "Hus och värmesystem",
+        "description": "Husets fysiska egenskaper. Standardvärdena passar ett välisolerat skandinaviskt hus med golvvärme i platta. De påverkar hur modellen förutser värmeförluster, så justera dem bara om prognoserna ser fel ut.",
+        "data": {
+          "buffer_tank_volume": "Ackumulatortankens volym",
+          "radiator_power_fraction": "Andel värme till radiatorer",
+          "window_area": "Fönsteryta mot solen",
+          "solar_heat_gain_coefficient": "Hur mycket solljus fönstren släpper in",
           "wind_sensitivity_factor": "Vindkänslighet",
-          "rain_heat_loss_multiplier": "Regn värmeförlustmultiplikator",
-          "ecl110_displace_set_topic": "ECL110 direkt displace-/set-topic",
-          "ecl110_command_topic": "ECL110 äldre JSON-kommandotopic",
-          "ecl110_state_topic": "ECL110 MQTT statustopic",
-          "ecl110_mqtt_qos": "ECL110 MQTT QoS",
-          "ecl110_mqtt_retain": "Behåll ECL110 MQTT-meddelanden",
-          "ecl110_displace_min": "ECL110 displace minimum (°C)",
-          "ecl110_displace_max": "ECL110 displace maximum (°C)",
-          "ecl110_pid_time_constant_hours": "ECL110 PI/PID tidskonstant (timmar)",
-          "dhw_schedule_enabled": "Garantera bara varmvatten under valda tidsintervall",
-          "dhw_windows": "Tidsintervall för varmvatten (t.ex. 06:00-08:30, 17:00-22:00)",
-          "dhw_legionella_enabled": "Legionellakörning",
-          "dhw_legionella_interval_days": "Legionellaintervall (dygn)",
-          "dhw_idle_min_temperature": "Lägsta tanktemperatur utanför intervallen (°C)",
-          "dhw_legionella_temperature": "Legionellatemperatur (°C)",
-          "buffer_tank_volume": "Buffertankvolym (L)"
+          "rain_heat_loss_multiplier": "Regnkänslighet"
+        },
+        "data_description": {
+          "buffer_tank_volume": "Liter. Tanken mellan värmepumpen och värmekretsarna. Större tank lagrar mer billig värme.",
+          "radiator_power_fraction": "Gäller endast tvåzonssystem. 0 betyder att all värme går till golvplattan, 1 att allt går till radiatorerna. 0,4 betyder 40 procent till radiatorer.",
+          "window_area": "Kvadratmeter glas som får direkt sol. Används för att förutse gratis solvärme.",
+          "solar_heat_gain_coefficient": "0,6 är typiskt för modern treglasruta. Högre värde ger mer gratis värme soliga dagar.",
+          "wind_sensitivity_factor": "Hur mycket extra värme huset förlorar per m/s vind. Höj den om huset märkbart kyls ned blåsiga dagar, så förvärmer optimeringen i förväg.",
+          "rain_heat_loss_multiplier": "Extra värmeförlust när det regnar. 1,0 betyder att regn inte spelar någon roll."
+        }
+      },
+      "tuning": {
+        "title": "Besparing kontra komfort",
+        "description": "Avvägningen mellan låg elräkning och stabil temperatur. Om huset känns för svalt under pristoppar, höj hur strikt temperaturen hålls. Vill du spara mer och tål större variation, sänk den.",
+        "data": {
+          "price_weight": "Hur hårt billiga timmar ska jagas",
+          "comfort_weight": "Hur strikt temperaturen ska hållas",
+          "optimization_interval": "Räkna om var"
+        },
+        "data_description": {
+          "price_weight": "Högre värde gör att optimeringen jobbar hårdare för att flytta värmen till billiga timmar, till priset av större temperatursvängningar.",
+          "comfort_weight": "Motvikten till inställningen ovan, och det mest effektiva reglaget du har. Den vägs mot intervallet du tillåter, så ett bredare intervall gör optimeraren djärvare. Runt 5 låter huset röra sig fritt inom ditt tillåtna intervall för störst besparing; 10 håller det märkbart närmare målet; 20 eller mer beter sig nästan som en vanlig termostat.",
+          "optimization_interval": "Hur ofta planen räknas om mot färska priser och väder. Oftare reagerar snabbare men kräver mer arbete."
+        }
+      },
+      "heat_curve": {
+        "title": "Värmekurvestyrning (ECL110)",
+        "description": "För Danfoss ECL110-regulatorer som styrs via MQTT. Optimeringen förskjuter värmekurvan uppåt under billiga timmar och nedåt under dyra. Lämna tomt om du inte har en sådan.",
+        "data": {
+          "ecl110_displace_set_topic": "Topic för förskjutningskommando",
+          "ecl110_command_topic": "Äldre JSON-kommandotopic",
+          "ecl110_state_topic": "Statustopic",
+          "ecl110_mqtt_qos": "MQTT quality of service",
+          "ecl110_mqtt_retain": "Behåll MQTT-meddelanden",
+          "ecl110_displace_min": "Största nedåtförskjutning",
+          "ecl110_displace_max": "Största uppåtförskjutning",
+          "ecl110_pid_time_constant_hours": "Regulatorns svarstid"
+        },
+        "data_description": {
+          "ecl110_displace_set_topic": "MQTT-topic dit parallellförskjutningen av värmekurvan publiceras. Lämna tomt om du inte har en Danfoss ECL110.",
+          "ecl110_command_topic": "Behövs bara för äldre installationer som förväntar sig JSON i stället.",
+          "ecl110_state_topic": "MQTT-topic där regulatorn rapporterar sitt tillstånd.",
+          "ecl110_mqtt_qos": "0 räcker för de allra flesta.",
+          "ecl110_mqtt_retain": "Sparar den senaste förskjutningen på mäklaren så att regulatorn hämtar den efter en omstart.",
+          "ecl110_displace_min": "Hur långt ned värmekurvan får förskjutas under dyra timmar.",
+          "ecl110_displace_max": "Hur långt upp värmekurvan får förskjutas när billig värme lagras.",
+          "ecl110_pid_time_constant_hours": "Ungefär hur lång tid regulatorn behöver för att verkställa en ny förskjutning. Används så att optimeringen inte begär snabbare ändringar än systemet hinner följa."
         }
       }
     },
     "error": {
-      "invalid_dhw_windows": "Ogiltiga tidsintervall för varmvatten. Använd 24-timmarsformat, t.ex. \"06:00-08:30, 17:00-22:00\"."
+      "invalid_tibber_token": "Tibber-token accepterades inte. Kontrollera den på developer.tibber.com och försök igen.",
+      "invalid_dhw_windows": "Tiderna kunde inte tolkas. Använd 24-timmarsformat separerat med komma, till exempel \"06:00-08:30, 17:00-22:00\"."
     }
   }
 }

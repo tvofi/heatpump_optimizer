@@ -3,39 +3,68 @@
     "step": {
       "user": {
         "title": "Heat Pump Optimizer Setup",
-        "description": "Configure your heat pump optimizer. You need a Tibber API token (get one at https://developer.tibber.com) and a weather entity. Optionally add solar radiation, floor heating return temperature, and DHW temperature sensors.",
+        "description": "Choose which Home Assistant entities the optimizer reads. Clear a field to stop using that sensor. Only the price token and weather forecast are required; every other sensor makes the model more accurate but is optional.",
         "data": {
-          "name": "Integration name",
+          "name": "Name for this integration",
           "tibber_token": "Tibber API token",
-          "weather_entity": "Weather entity (for forecasts)",
-          "indoor_temp_entity": "Indoor temperature sensor (optional)",
-          "outdoor_temp_entity": "Outdoor temperature sensor (optional)",
-          "heat_pump_entity": "Heat pump climate entity (optional)",
-          "heat_pump_switch_entity": "Heat pump switch entity (optional)",
-          "solar_radiation_entity": "Solar radiation sensor (optional, W/m²)",
-          "floor_return_temp_entity": "Floor heating return temperature sensor (optional)",
-          "dhw_temp_entity": "DHW (hot water) temperature sensor (optional)",
-          "ecl110_displace_set_topic": "ECL110 direct displace /set topic",
-          "ecl110_command_topic": "ECL110 legacy JSON command topic",
-          "ecl110_state_topic": "ECL110 MQTT state topic",
-          "ecl110_mqtt_qos": "ECL110 MQTT QoS",
-          "ecl110_mqtt_retain": "Retain ECL110 MQTT messages",
-          "ecl110_displace_min": "ECL110 displace minimum (°C)",
-          "ecl110_displace_max": "ECL110 displace maximum (°C)",
-          "ecl110_pid_time_constant_hours": "ECL110 PI/PID time constant (hours)"
+          "weather_entity": "Weather forecast",
+          "indoor_temp_entity": "Indoor temperature sensor",
+          "outdoor_temp_entity": "Outdoor temperature sensor",
+          "heat_pump_entity": "Heat pump thermostat",
+          "heat_pump_switch_entity": "Heat pump on/off switch",
+          "solar_radiation_entity": "Solar radiation sensor",
+          "floor_return_temp_entity": "Floor heating return temperature sensor",
+          "dhw_temp_entity": "Hot water tank temperature sensor",
+          "ecl110_displace_set_topic": "Offset command topic",
+          "ecl110_command_topic": "Legacy JSON command topic",
+          "ecl110_state_topic": "Status topic",
+          "ecl110_mqtt_qos": "MQTT quality of service",
+          "ecl110_mqtt_retain": "Retain MQTT messages",
+          "ecl110_displace_min": "Largest downward offset",
+          "ecl110_displace_max": "Largest upward offset",
+          "ecl110_pid_time_constant_hours": "Controller response time"
+        },
+        "data_description": {
+          "name": "Shown in front of every sensor this integration creates.",
+          "tibber_token": "Used to read your hourly electricity prices. Create one at developer.tibber.com. Leave as-is unless it has changed.",
+          "weather_entity": "Where the outdoor temperature, wind and rain forecast comes from. The optimizer plans 24 hours ahead, so a forecast is required.",
+          "indoor_temp_entity": "Optional. The actual room temperature. Without it the optimizer trusts its own model, which drifts over time.",
+          "outdoor_temp_entity": "Optional. A local outdoor thermometer is more accurate than the forecast for the current hour.",
+          "heat_pump_entity": "Optional. A climate entity the optimizer can set a temperature on.",
+          "heat_pump_switch_entity": "Optional. A switch used to turn the heat pump off during expensive hours.",
+          "solar_radiation_entity": "Optional. Sunshine in W/m2. Lets the optimizer skip heating before a sunny afternoon that will warm the house for free.",
+          "floor_return_temp_entity": "Optional. Water temperature coming back from the floor loops, used to gauge how much heat the slab is holding.",
+          "dhw_temp_entity": "Optional but recommended. The real tank temperature. Also lets a manual hot water boost reset the anti-legionella timer.",
+          "ecl110_displace_set_topic": "MQTT topic the parallel heat-curve offset is published to. Leave blank if you do not have a Danfoss ECL110.",
+          "ecl110_command_topic": "Only needed for older setups that expect a JSON payload instead.",
+          "ecl110_state_topic": "MQTT topic the controller reports its current state on.",
+          "ecl110_mqtt_qos": "0 is fine for almost everyone.",
+          "ecl110_mqtt_retain": "Keeps the last offset on the broker so the controller picks it up after a restart.",
+          "ecl110_displace_min": "How far the heat curve may be shifted down during expensive hours.",
+          "ecl110_displace_max": "How far the heat curve may be shifted up when storing cheap heat.",
+          "ecl110_pid_time_constant_hours": "Roughly how long the controller takes to act on a new offset. Used so the optimizer does not ask for changes faster than the system can follow."
         }
       },
       "temperature": {
         "title": "Temperature Settings",
-        "description": "Configure your desired temperature range and comfort settings.",
+        "description": "How warm you want the house, and how far the optimizer may drift from that to save money. The gap between the target and the minimum is what makes savings possible: the wider it is, the more the house can coast through expensive hours.",
         "data": {
-          "target_temperature": "Target temperature",
-          "min_temperature": "Minimum allowed temperature",
-          "max_temperature": "Maximum allowed temperature",
+          "target_temperature": "Target indoor temperature",
+          "min_temperature": "Coldest acceptable temperature",
+          "max_temperature": "Warmest acceptable temperature",
           "comfort_temp_day": "Daytime comfort temperature",
-          "comfort_temp_night": "Nighttime comfort temperature",
-          "day_start_hour": "Day starts at (hour)",
-          "day_end_hour": "Day ends at (hour)"
+          "comfort_temp_night": "Night-time comfort temperature",
+          "day_start_hour": "Day starts at",
+          "day_end_hour": "Day ends at"
+        },
+        "data_description": {
+          "target_temperature": "What you actually want the house to sit at. The optimizer aims for this and only drifts away from it to avoid expensive hours.",
+          "min_temperature": "A hard floor. The house is never allowed below this, no matter how expensive electricity gets. A wider gap to the target means more room to save.",
+          "max_temperature": "A hard ceiling. Caps how far ahead the optimizer may pre-heat the house during cheap hours.",
+          "comfort_temp_day": "Preferred temperature during waking hours.",
+          "comfort_temp_night": "Preferred temperature overnight. Setting this a degree or two lower saves money and usually improves sleep.",
+          "day_start_hour": "Hour of the morning when the daytime temperature takes over.",
+          "day_end_hour": "Hour of the evening when the night-time temperature takes over."
         }
       },
       "thermal": {
@@ -49,9 +78,14 @@
           "heat_pump_cop_nominal": "Heat pump nominal COP",
           "heat_pump_max_power": "Heat pump max power (kW)",
           "heat_pump_min_power": "Heat pump min power (kW)",
-          "optimization_interval": "Optimization interval (min)",
-          "price_weight": "Price weight",
-          "comfort_weight": "Comfort weight"
+          "optimization_interval": "Recalculate every",
+          "price_weight": "How hard to chase low prices",
+          "comfort_weight": "How strictly to hold the temperature"
+        },
+        "data_description": {
+          "price_weight": "Higher means the optimizer works harder to move heating into cheap hours, at the cost of letting the temperature swing more.",
+          "comfort_weight": "The counterweight to the setting above, and the most effective knob you have. It is measured against the range you allow, so widening that range makes the optimizer bolder. Around 5 lets the house drift freely inside your allowed range for the biggest savings; 10 keeps it noticeably closer to target; 20 or more behaves almost like an ordinary thermostat.",
+          "optimization_interval": "How often the plan is recalculated against fresh prices and weather. More often reacts quicker but does more work."
         }
       },
       "zones": {
@@ -63,92 +97,221 @@
           "upper_floor_heat_loss": "Upper floor heat loss (kW/°C)",
           "lower_floor_heat_loss": "Lower floor heat loss (kW/°C)",
           "inter_zone_heat_transfer": "Inter-zone heat transfer (kW/°C)",
-          "radiator_power_fraction": "Radiator power fraction",
+          "radiator_power_fraction": "Share of heat going to radiators",
           "upper_floor_area_ratio": "Upper floor area ratio",
-          "buffer_tank_volume": "Buffer tank volume (L)",
-          "window_area": "Window area (m²)",
+          "buffer_tank_volume": "Buffer tank size",
+          "window_area": "Window area facing the sun",
           "solar_orientation_factor": "Solar orientation factor",
-          "solar_heat_gain_coefficient": "Solar heat gain coefficient (SHGC)"
+          "solar_heat_gain_coefficient": "How much sunlight the windows let through"
+        },
+        "data_description": {
+          "buffer_tank_volume": "Litres. The tank between the heat pump and the heating circuits. Larger tanks store more cheap heat.",
+          "radiator_power_fraction": "Two-zone systems only. 0 means all heat goes to the floor slab, 1 means all of it goes to the radiators. 0.4 means 40 percent to radiators.",
+          "window_area": "Square metres of glazing that gets direct sun. Used to predict free solar heating.",
+          "solar_heat_gain_coefficient": "0.6 is typical for modern triple glazing. Higher means more free heat on sunny days."
         }
       },
       "dhw": {
         "title": "Domestic Hot Water (DHW) Configuration",
-        "description": "Optional: Configure the DHW tank. Set the time frames when hot water must be available — the optimizer then guarantees a usable tank temperature during those frames and produces the water in the cheapest hours leading up to them. Outside the time frames the tank is allowed to cool, so no electricity is spent keeping water hot that nobody uses. Use 24-hour times separated by commas, for example \"06:00-08:30, 17:00-22:00\". Leave empty to require hot water around the clock.",
+        "description": "Tell the optimizer when you actually need hot water. It then guarantees a usable tank temperature during those periods and heats the water in the cheapest hours beforehand. Outside those periods the tank may cool, so nothing is spent keeping water hot that nobody uses.",
         "data": {
-          "dhw_tank_volume": "DHW tank volume (L)",
-          "dhw_setpoint": "DHW target temperature (°C)",
-          "dhw_min_temperature": "DHW minimum temperature (°C)",
-          "dhw_daily_consumption": "Daily hot water consumption (L/day)",
-          "dhw_schedule_enabled": "Only guarantee hot water during set time frames",
-          "dhw_windows": "Hot water time frames (e.g. 06:00-08:30, 17:00-22:00)",
-          "dhw_legionella_enabled": "Anti-legionella cycle",
-          "dhw_legionella_interval_days": "Anti-legionella interval (days)",
-          "dhw_idle_min_temperature": "Tank minimum outside the time frames (°C)",
-          "dhw_legionella_temperature": "Anti-legionella temperature (°C)"
+          "dhw_tank_volume": "Hot water tank size",
+          "dhw_setpoint": "Highest tank temperature to charge to",
+          "dhw_min_temperature": "Hot water temperature you need",
+          "dhw_daily_consumption": "Hot water used per day",
+          "dhw_schedule_enabled": "Only guarantee hot water at set times",
+          "dhw_windows": "When you need hot water",
+          "dhw_legionella_enabled": "Run an anti-legionella cycle",
+          "dhw_legionella_interval_days": "Anti-legionella interval",
+          "dhw_idle_min_temperature": "Let the tank cool to",
+          "dhw_legionella_temperature": "Anti-legionella temperature"
+        },
+        "data_description": {
+          "dhw_schedule_enabled": "On: hot water is guaranteed only during the times below, and the tank may cool down in between. Off: the tank is kept hot around the clock, which costs noticeably more.",
+          "dhw_windows": "24-hour times separated by commas, for example 06:00-08:30, 17:00-22:00. The tank is heated in the cheapest hours before each period. Leave empty to let the integration learn your habits from actual usage.",
+          "dhw_min_temperature": "The temperature the tank is guaranteed to reach during the periods above. Around 45 C is enough for a normal shower.",
+          "dhw_idle_min_temperature": "How cold the tank is allowed to get outside those periods. Lower saves more. The default is roughly room temperature, meaning no energy is spent at all.",
+          "dhw_setpoint": "An upper limit on charging, not a target. The tank is only filled this high when storing extra cheap heat pays off. It is never heated to this just for the sake of it.",
+          "dhw_tank_volume": "Litres. A larger tank stores more cheap electricity and can skip more expensive hours.",
+          "dhw_daily_consumption": "Roughly how many litres of hot water your household uses per day. Used to work out how much to store before each period.",
+          "dhw_legionella_enabled": "Because the tank is now allowed to stay cool for long stretches, it is periodically heated hot enough to kill legionella bacteria. Strongly recommended.",
+          "dhw_legionella_temperature": "60 C is the usual recommendation.",
+          "dhw_legionella_interval_days": "How often the disinfection heat-up runs. It is placed in the cheapest hour before each deadline."
         }
       },
       "weather_sensitivity": {
         "title": "Weather Sensitivity Parameters",
         "description": "Configure how wind and rain affect heat loss predictions. Higher wind sensitivity = more pre-heating before windy periods.",
         "data": {
-          "wind_sensitivity_factor": "Wind sensitivity (heat loss increase per m/s)",
-          "rain_heat_loss_multiplier": "Rain heat loss multiplier"
+          "wind_sensitivity_factor": "Wind sensitivity",
+          "rain_heat_loss_multiplier": "Rain sensitivity"
+        },
+        "data_description": {
+          "wind_sensitivity_factor": "How much extra heat the house loses per m/s of wind. Raise it if the house noticeably cools down on windy days, so the optimizer pre-heats beforehand.",
+          "rain_heat_loss_multiplier": "Extra heat loss while it is raining. 1.0 means rain makes no difference."
         }
       }
     },
     "error": {
-      "invalid_tibber_token": "Invalid Tibber API token. Please check and try again.",
-      "invalid_dhw_windows": "Invalid hot water time frames. Use 24-hour times like \"06:00-08:30, 17:00-22:00\"."
+      "invalid_tibber_token": "That Tibber token was not accepted. Check it at developer.tibber.com and try again.",
+      "invalid_dhw_windows": "Those time frames could not be read. Use 24-hour times separated by commas, for example \"06:00-08:30, 17:00-22:00\"."
     },
     "abort": {
-      "already_configured": "This integration is already configured."
+      "already_configured": "This integration is already set up."
     }
   },
   "options": {
     "step": {
       "init": {
-        "title": "Heat Pump Optimizer Options",
-        "description": "Adjust temperature targets, optimization weights, zone/solar parameters, DHW settings, and weather sensitivity.",
+        "title": "Heat Pump Optimizer options",
+        "description": "Pick the group of settings you want to change.",
+        "menu_options": {
+          "entities": "Sensors and entities",
+          "comfort": "Comfort and temperatures",
+          "hot_water": "Hot water",
+          "building": "House and heating system",
+          "tuning": "Savings vs comfort",
+          "heat_curve": "Heat curve control (ECL110)"
+        }
+      },
+      "entities": {
+        "title": "Sensors and entities",
+        "description": "Choose which Home Assistant entities the optimizer reads. Clear a field to stop using that sensor. Only the price token and weather forecast are required; every other sensor makes the model more accurate but is optional.",
         "data": {
-          "target_temperature": "Target temperature (°C)",
-          "min_temperature": "Minimum temperature (°C)",
-          "max_temperature": "Maximum temperature (°C)",
-          "comfort_temp_day": "Day comfort temperature (°C)",
-          "comfort_temp_night": "Night comfort temperature (°C)",
-          "day_start_hour": "Day start hour",
-          "day_end_hour": "Day end hour",
-          "price_weight": "Price weight",
-          "comfort_weight": "Comfort weight",
-          "optimization_interval": "Optimization interval (min)",
-          "radiator_power_fraction": "Radiator power fraction",
-          "window_area": "Window area (m²)",
-          "solar_heat_gain_coefficient": "Solar heat gain coefficient (SHGC)",
-          "dhw_tank_volume": "DHW tank volume (L)",
-          "dhw_daily_consumption": "Daily hot water consumption (L/day)",
-          "dhw_setpoint": "DHW target temperature (°C)",
-          "dhw_min_temperature": "DHW minimum temperature (°C)",
-          "wind_sensitivity_factor": "Wind sensitivity factor",
-          "rain_heat_loss_multiplier": "Rain heat loss multiplier",
-          "ecl110_displace_set_topic": "ECL110 direct displace /set topic",
-          "ecl110_command_topic": "ECL110 legacy JSON command topic",
-          "ecl110_state_topic": "ECL110 MQTT state topic",
-          "ecl110_mqtt_qos": "ECL110 MQTT QoS",
-          "ecl110_mqtt_retain": "Retain ECL110 MQTT messages",
-          "ecl110_displace_min": "ECL110 displace minimum (°C)",
-          "ecl110_displace_max": "ECL110 displace maximum (°C)",
-          "ecl110_pid_time_constant_hours": "ECL110 PI/PID time constant (hours)",
-          "dhw_schedule_enabled": "Only guarantee hot water during set time frames",
-          "dhw_windows": "Hot water time frames (e.g. 06:00-08:30, 17:00-22:00)",
-          "dhw_legionella_enabled": "Anti-legionella cycle",
-          "dhw_legionella_interval_days": "Anti-legionella interval (days)",
-          "dhw_idle_min_temperature": "Tank minimum outside the time frames (°C)",
-          "dhw_legionella_temperature": "Anti-legionella temperature (°C)",
-          "buffer_tank_volume": "Buffer tank volume (L)"
+          "tibber_token": "Tibber API token",
+          "weather_entity": "Weather forecast",
+          "indoor_temp_entity": "Indoor temperature sensor",
+          "outdoor_temp_entity": "Outdoor temperature sensor",
+          "solar_radiation_entity": "Solar radiation sensor",
+          "dhw_temp_entity": "Hot water tank temperature sensor",
+          "floor_return_temp_entity": "Floor heating return temperature sensor",
+          "heat_pump_entity": "Heat pump thermostat",
+          "heat_pump_switch_entity": "Heat pump on/off switch"
+        },
+        "data_description": {
+          "tibber_token": "Used to read your hourly electricity prices. Create one at developer.tibber.com. Leave as-is unless it has changed.",
+          "weather_entity": "Where the outdoor temperature, wind and rain forecast comes from. The optimizer plans 24 hours ahead, so a forecast is required.",
+          "indoor_temp_entity": "Optional. The actual room temperature. Without it the optimizer trusts its own model, which drifts over time.",
+          "outdoor_temp_entity": "Optional. A local outdoor thermometer is more accurate than the forecast for the current hour.",
+          "solar_radiation_entity": "Optional. Sunshine in W/m2. Lets the optimizer skip heating before a sunny afternoon that will warm the house for free.",
+          "dhw_temp_entity": "Optional but recommended. The real tank temperature. Also lets a manual hot water boost reset the anti-legionella timer.",
+          "floor_return_temp_entity": "Optional. Water temperature coming back from the floor loops, used to gauge how much heat the slab is holding.",
+          "heat_pump_entity": "Optional. A climate entity the optimizer can set a temperature on.",
+          "heat_pump_switch_entity": "Optional. A switch used to turn the heat pump off during expensive hours."
+        }
+      },
+      "comfort": {
+        "title": "Comfort and temperatures",
+        "description": "How warm you want the house, and how far the optimizer may drift from that to save money. The gap between the target and the minimum is what makes savings possible: the wider it is, the more the house can coast through expensive hours.",
+        "data": {
+          "target_temperature": "Target indoor temperature",
+          "min_temperature": "Coldest acceptable temperature",
+          "max_temperature": "Warmest acceptable temperature",
+          "comfort_temp_day": "Daytime comfort temperature",
+          "comfort_temp_night": "Night-time comfort temperature",
+          "day_start_hour": "Day starts at",
+          "day_end_hour": "Day ends at"
+        },
+        "data_description": {
+          "target_temperature": "What you actually want the house to sit at. The optimizer aims for this and only drifts away from it to avoid expensive hours.",
+          "min_temperature": "A hard floor. The house is never allowed below this, no matter how expensive electricity gets. A wider gap to the target means more room to save.",
+          "max_temperature": "A hard ceiling. Caps how far ahead the optimizer may pre-heat the house during cheap hours.",
+          "comfort_temp_day": "Preferred temperature during waking hours.",
+          "comfort_temp_night": "Preferred temperature overnight. Setting this a degree or two lower saves money and usually improves sleep.",
+          "day_start_hour": "Hour of the morning when the daytime temperature takes over.",
+          "day_end_hour": "Hour of the evening when the night-time temperature takes over."
+        }
+      },
+      "hot_water": {
+        "title": "Hot water",
+        "description": "Tell the optimizer when you actually need hot water. It then guarantees a usable tank temperature during those periods and heats the water in the cheapest hours beforehand. Outside those periods the tank may cool, so nothing is spent keeping water hot that nobody uses.",
+        "data": {
+          "dhw_schedule_enabled": "Only guarantee hot water at set times",
+          "dhw_windows": "When you need hot water",
+          "dhw_min_temperature": "Hot water temperature you need",
+          "dhw_idle_min_temperature": "Let the tank cool to",
+          "dhw_setpoint": "Highest tank temperature to charge to",
+          "dhw_tank_volume": "Hot water tank size",
+          "dhw_daily_consumption": "Hot water used per day",
+          "dhw_legionella_enabled": "Run an anti-legionella cycle",
+          "dhw_legionella_temperature": "Anti-legionella temperature",
+          "dhw_legionella_interval_days": "Anti-legionella interval"
+        },
+        "data_description": {
+          "dhw_schedule_enabled": "On: hot water is guaranteed only during the times below, and the tank may cool down in between. Off: the tank is kept hot around the clock, which costs noticeably more.",
+          "dhw_windows": "24-hour times separated by commas, for example 06:00-08:30, 17:00-22:00. The tank is heated in the cheapest hours before each period. Leave empty to let the integration learn your habits from actual usage.",
+          "dhw_min_temperature": "The temperature the tank is guaranteed to reach during the periods above. Around 45 C is enough for a normal shower.",
+          "dhw_idle_min_temperature": "How cold the tank is allowed to get outside those periods. Lower saves more. The default is roughly room temperature, meaning no energy is spent at all.",
+          "dhw_setpoint": "An upper limit on charging, not a target. The tank is only filled this high when storing extra cheap heat pays off. It is never heated to this just for the sake of it.",
+          "dhw_tank_volume": "Litres. A larger tank stores more cheap electricity and can skip more expensive hours.",
+          "dhw_daily_consumption": "Roughly how many litres of hot water your household uses per day. Used to work out how much to store before each period.",
+          "dhw_legionella_enabled": "Because the tank is now allowed to stay cool for long stretches, it is periodically heated hot enough to kill legionella bacteria. Strongly recommended.",
+          "dhw_legionella_temperature": "60 C is the usual recommendation.",
+          "dhw_legionella_interval_days": "How often the disinfection heat-up runs. It is placed in the cheapest hour before each deadline."
+        }
+      },
+      "building": {
+        "title": "House and heating system",
+        "description": "Physical properties of your house. The defaults suit a well-insulated Scandinavian house with slab floor heating. These change how the model predicts heat loss, so only adjust them if the predictions look wrong.",
+        "data": {
+          "buffer_tank_volume": "Buffer tank size",
+          "radiator_power_fraction": "Share of heat going to radiators",
+          "window_area": "Window area facing the sun",
+          "solar_heat_gain_coefficient": "How much sunlight the windows let through",
+          "wind_sensitivity_factor": "Wind sensitivity",
+          "rain_heat_loss_multiplier": "Rain sensitivity"
+        },
+        "data_description": {
+          "buffer_tank_volume": "Litres. The tank between the heat pump and the heating circuits. Larger tanks store more cheap heat.",
+          "radiator_power_fraction": "Two-zone systems only. 0 means all heat goes to the floor slab, 1 means all of it goes to the radiators. 0.4 means 40 percent to radiators.",
+          "window_area": "Square metres of glazing that gets direct sun. Used to predict free solar heating.",
+          "solar_heat_gain_coefficient": "0.6 is typical for modern triple glazing. Higher means more free heat on sunny days.",
+          "wind_sensitivity_factor": "How much extra heat the house loses per m/s of wind. Raise it if the house noticeably cools down on windy days, so the optimizer pre-heats beforehand.",
+          "rain_heat_loss_multiplier": "Extra heat loss while it is raining. 1.0 means rain makes no difference."
+        }
+      },
+      "tuning": {
+        "title": "Savings vs comfort",
+        "description": "The trade-off between a cheap bill and a rock-steady temperature. If the house feels too cool during price peaks, raise how strictly the temperature is held. If you want bigger savings and can live with more variation, lower it.",
+        "data": {
+          "price_weight": "How hard to chase low prices",
+          "comfort_weight": "How strictly to hold the temperature",
+          "optimization_interval": "Recalculate every"
+        },
+        "data_description": {
+          "price_weight": "Higher means the optimizer works harder to move heating into cheap hours, at the cost of letting the temperature swing more.",
+          "comfort_weight": "The counterweight to the setting above, and the most effective knob you have. It is measured against the range you allow, so widening that range makes the optimizer bolder. Around 5 lets the house drift freely inside your allowed range for the biggest savings; 10 keeps it noticeably closer to target; 20 or more behaves almost like an ordinary thermostat.",
+          "optimization_interval": "How often the plan is recalculated against fresh prices and weather. More often reacts quicker but does more work."
+        }
+      },
+      "heat_curve": {
+        "title": "Heat curve control (ECL110)",
+        "description": "For Danfoss ECL110 controllers driven over MQTT. The optimizer shifts the heat curve up in cheap hours and down in expensive ones. Leave these blank if you do not have one.",
+        "data": {
+          "ecl110_displace_set_topic": "Offset command topic",
+          "ecl110_command_topic": "Legacy JSON command topic",
+          "ecl110_state_topic": "Status topic",
+          "ecl110_mqtt_qos": "MQTT quality of service",
+          "ecl110_mqtt_retain": "Retain MQTT messages",
+          "ecl110_displace_min": "Largest downward offset",
+          "ecl110_displace_max": "Largest upward offset",
+          "ecl110_pid_time_constant_hours": "Controller response time"
+        },
+        "data_description": {
+          "ecl110_displace_set_topic": "MQTT topic the parallel heat-curve offset is published to. Leave blank if you do not have a Danfoss ECL110.",
+          "ecl110_command_topic": "Only needed for older setups that expect a JSON payload instead.",
+          "ecl110_state_topic": "MQTT topic the controller reports its current state on.",
+          "ecl110_mqtt_qos": "0 is fine for almost everyone.",
+          "ecl110_mqtt_retain": "Keeps the last offset on the broker so the controller picks it up after a restart.",
+          "ecl110_displace_min": "How far the heat curve may be shifted down during expensive hours.",
+          "ecl110_displace_max": "How far the heat curve may be shifted up when storing cheap heat.",
+          "ecl110_pid_time_constant_hours": "Roughly how long the controller takes to act on a new offset. Used so the optimizer does not ask for changes faster than the system can follow."
         }
       }
     },
     "error": {
-      "invalid_dhw_windows": "Invalid hot water time frames. Use 24-hour times like \"06:00-08:30, 17:00-22:00\"."
+      "invalid_tibber_token": "That Tibber token was not accepted. Check it at developer.tibber.com and try again.",
+      "invalid_dhw_windows": "Those time frames could not be read. Use 24-hour times separated by commas, for example \"06:00-08:30, 17:00-22:00\"."
     }
   }
 }

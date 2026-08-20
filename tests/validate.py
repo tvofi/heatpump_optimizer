@@ -1,0 +1,126 @@
+import os, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "custom_components"))
+import numpy as np
+from datetime import datetime, timedelta
+from profiles import prices, weather, house, DT, N
+from heatpump_optimizer.thermal_model import (
+    ThermalModel, ThermalParameters, ThermalState)
+from heatpump_optimizer.optimizer import (
+    HeatPumpOptimizer, OptimizationConfig)
+from heatpump_optimizer.dhw_schedule import parse_windows, hour_in_windows
+
+START = datetime(2026,1,15,0,0)
+ISSUES=[]
+def issue(scen,msg):
+    ISSUES.append(f"[{scen}] {msg}")
+
+def run(scen, price_p, weather_p, two_zone=False, dhw=True, start=START, **over):
+    cfg = house(two_zone=two_zone, dhw=dhw, **over)
+    p = ThermalParameters.from_config(cfg); p.dhw_enabled = dhw
+    m = ThermalModel(p)
+    oc = OptimizationConfig(
+        horizon_hours=24, time_step_minutes=15,
+        target_temp=cfg["target_temperature"], min_temp=cfg["min_temperature"],
+        max_temp=cfg["max_temperature"])
+    opt = HeatPumpOptimizer(m, oc)
+    pr = prices(price_p, start)
+    ot, wind, rain, sol = weather(weather_p, start)
+    st = ThermalState(room_temperature=21.0, slab_temperature=22.0,
+        outdoor_temperature=float(ot[0]), dhw_temperature=50.0,
+        dhw_hours_since_legionella=20.0,
+        upper_floor_temperature=21.0, lower_floor_temperature=21.0,
+        buffer_tank_temperature=40.0)
+    r = opt.optimize(st, pr, ot, wind, rain, sol, start)
+
+    pw = np.asarray(r.power_schedule)
+    room = np.asarray(r.room_temp_trajectory[1:])
+    kwh = pw.sum()*DT
+
+    # ---- invariants ----
+    if r.status not in ("optimal","success"): issue(scen,f"solver status {r.status!r}")
+    if pw.min() < -1e-6: issue(scen,f"negative power {pw.min():.3f} kW")
+    if pw.max() > p.max_electrical_power+1e-6:
+        issue(scen,f"power {pw.max():.2f} kW exceeds pump max {p.max_electrical_power}")
+    if not np.all(np.isfinite(pw)): issue(scen,"non-finite power")
+    # Per-step bounds: the optimizer allows a 0.5C setback outside day hours,
+    # so a blanket floor is both too lenient by day and wrong by night.
+    _worst = 0.0; _at = None
+    for _i in range(len(pw)):
+        _t = start + timedelta(hours=_i*DT); _h = _t.hour + _t.minute/60
+        _lo = oc.get_temp_bounds(_h)[0]
+        _d = _lo - room[_i]
+        if _d > _worst: _worst, _at = _d, (_h, room[_i], _lo)
+    if _worst > 0.05:
+        issue(scen,f"room {_at[1]:.2f}C below bound {_at[2]:.1f} at h={_at[0]:.2f}")
+    if room.max() > cfg["max_temperature"]+0.5 and kwh > 0.5:
+        issue(scen,f"room {room.max():.1f}C above max {cfg['max_temperature']}")
+    if not (-100 <= r.savings_percentage <= 100):
+        issue(scen,f"savings {r.savings_percentage}% out of range")
+    if r.predicted_cost < -1e-6 and pr.min() >= 0:
+        issue(scen,f"negative predicted cost {r.predicted_cost} with non-negative prices")
+    if r.baseline_cost < 0: issue(scen,f"negative baseline {r.baseline_cost}")
+
+    # ---- DHW availability during demand windows ----
+    dhw_ok = "-"
+    if dhw and r.dhw_temp_trajectory:
+        dt_traj = np.asarray(r.dhw_temp_trajectory[1:])
+        wins = parse_windows(cfg["dhw_windows"])
+        hrs = [(start.hour + i*DT) % 24 for i in range(N)]
+        inw = np.array([hour_in_windows(h, wins) for h in hrs])
+        if inw.any():
+            worst = dt_traj[inw].min()
+            dhw_ok = f"{worst:.1f}"
+            if worst < cfg["dhw_min_temperature"] - 2.0:
+                issue(scen,f"DHW only {worst:.1f}C during demand window "
+                           f"(need {cfg['dhw_min_temperature']})")
+        if dt_traj.max() > 70.5:
+            issue(scen,f"DHW overshoot {dt_traj.max():.1f}C")
+
+    # ---- did it actually avoid the expensive hours? ----
+    if pr.max()/max(pr.min(),0.01) > 2.0 and kwh > 0.5:
+        exp = pr >= np.percentile(pr, 75)
+        share_peak = pw[exp].sum()*DT/kwh
+        share_slots = exp.mean()
+        if share_peak > share_slots:
+            issue(scen,f"uses {share_peak:.0%} of energy in the most expensive "
+                       f"{share_slots:.0%} of slots (price-blind)")
+    else:
+        share_peak = float("nan")
+
+    print(f"{scen:<34} {r.status[:7]:<7} {kwh:6.2f}kWh base={r.baseline_cost:7.2f} "
+          f"cost={r.predicted_cost:7.2f} sav={r.savings_percentage:5.1f}% "
+          f"room {room.min():4.1f}-{room.max():4.1f} dhw>={dhw_ok:>5} "
+          f"peak%={share_peak:.2f} {r.solve_time_ms:5.0f}ms")
+    return r
+
+print("=== WINTER, single zone, space + DHW ===")
+run("winter typical, cold",      "winter_typical","winter_cold")
+run("winter extreme prices",     "winter_extreme","winter_cold")
+run("winter mild, windy+rain",   "winter_typical","winter_mild")
+run("winter flat price (control)","flat",         "winter_cold")
+
+print("=== WINTER, TWO ZONE, space + DHW ===")
+run("2zone winter typical",      "winter_typical","winter_cold", two_zone=True)
+run("2zone winter extreme",      "winter_extreme","winter_cold", two_zone=True)
+run("2zone winter mild",         "winter_typical","winter_mild", two_zone=True)
+run("2zone flat price (control)","flat",          "winter_cold", two_zone=True)
+
+print("=== SUMMER, DHW only (no space heating demand) ===")
+run("summer warm, DHW only",     "summer_typical","summer_warm")
+run("summer negative prices",    "summer_negative","summer_warm")
+run("summer cool rainy",         "summer_typical","summer_cool")
+run("summer flat price (control)","flat",         "summer_warm")
+run("2zone summer warm",         "summer_typical","summer_warm", two_zone=True)
+
+print("=== SHOULDER SEASON ===")
+run("april shoulder",            "shoulder",      "shoulder")
+run("2zone april shoulder",      "shoulder",      "shoulder", two_zone=True)
+
+print("=== SPACE HEATING ONLY (DHW disabled) ===")
+run("winter, no DHW",            "winter_typical","winter_cold", dhw=False)
+run("summer, no DHW",            "summer_typical","summer_warm", dhw=False)
+run("2zone winter, no DHW",      "winter_typical","winter_cold", two_zone=True, dhw=False)
+
+print("\n" + ("NO ISSUES" if not ISSUES else f"{len(ISSUES)} ISSUES:\n  " + "\n  ".join(ISSUES)))

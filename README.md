@@ -392,6 +392,46 @@ custom_components/heatpump_optimizer/
 - Weather integration with hourly forecasts (recommended: Met.no or similar)
 - Python packages: `numpy`, `scipy`
 
+## Changing settings after setup
+
+Open the integration and choose **Configure**. Instead of one long form you get
+a menu, and each page can be edited independently:
+
+| Page | What it covers |
+|---|---|
+| Sensors and connection | Tibber token, weather entity, and every optional sensor |
+| Comfort | Target, minimum and maximum temperature, day/night hours |
+| Hot water | Tank size, temperatures, demand time frames, anti-legionella |
+| Building | Heat loss, thermal mass, windows, two-zone settings |
+| Tuning | Price weight, comfort weight, horizon, forecast handling |
+| Heat curve | Heat curve points and offsets |
+
+Every sensor you picked during setup can be re-pointed here, including the
+solar radiance sensor. Clearing a field genuinely clears it. Every field has a
+plain-language description, so you should not need this table to understand
+what a setting does.
+
+### How hard the optimizer chases low prices
+
+The single most useful setting is **How strictly to hold the temperature**
+(`comfort_weight`), on the Tuning page. It is weighed against the range you
+allow, so it interacts directly with your minimum temperature: a wide range
+gives the optimizer room to shift heating into cheap hours, and a narrow one
+keeps it near the setpoint.
+
+Measured on a cold January day in SE3 with a target of 21 °C and a minimum
+of 17 °C:
+
+| Comfort weight | Average room temp | Savings |
+|---|---|---|
+| 5 (default) | 19.1 °C | 45% |
+| 10 | 19.5 °C | 42% |
+| 20 | 19.9 °C | 38% |
+| 40 | 20.1 °C | 36% |
+
+If the house feels cooler than you want, raise this value or raise your minimum
+temperature. Both work, and both trade savings for warmth.
+
 ## Installation
 
 ### HACS (Recommended)
