@@ -38,6 +38,12 @@ from .const import (
     CONF_SOLAR_RADIATION_ENTITY,
     CONF_FLOOR_RETURN_TEMP_ENTITY,
     CONF_DHW_TEMP_ENTITY,
+    CONF_DHW_SCHEDULE_ENABLED,
+    CONF_DHW_WINDOWS,
+    CONF_DHW_IDLE_MIN_TEMP,
+    CONF_DHW_LEGIONELLA_ENABLED,
+    CONF_DHW_LEGIONELLA_TEMP,
+    CONF_DHW_LEGIONELLA_INTERVAL_DAYS,
     CONF_ECL110_COMMAND_TOPIC,
     CONF_ECL110_DISPLACE_SET_TOPIC,
     CONF_ECL110_STATE_TOPIC,
@@ -95,6 +101,13 @@ from .const import (
     UPDATE_INTERVAL_OPTIMIZATION,
 )
 from .thermal_model import ThermalModel, ThermalParameters, ThermalState
+from .dhw_schedule import (
+    DHWWindowError,
+    format_windows,
+    hour_in_windows,
+    hours_until_next_window,
+    parse_windows,
+)
 from .optimizer import HeatPumpOptimizer, OptimizationConfig, OptimizationResult
 
 _LOGGER = logging.getLogger(__name__)
@@ -214,6 +227,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             DHW_PROFILE_STORE_VERSION,
             f"{DOMAIN}_{entry.entry_id}_dhw_profile",
         )
+        self._dhw_last_legionella: datetime | None = None
+        self._dhw_legionella_store: Store = Store(
+            hass,
+            DHW_PROFILE_STORE_VERSION,
+            f"{DOMAIN}_{entry.entry_id}_dhw_legionella",
+        )
 
         # ECL110 MQTT state
         self._ecl110_command_topic: str = self._config.get(
@@ -242,6 +261,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
         # Load learned DHW usage profile (persisted across restarts)
         hass.async_create_task(self._async_load_dhw_profile())
+        hass.async_create_task(self._async_load_dhw_legionella())
 
     @property
     def mode(self) -> str:
@@ -378,6 +398,101 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             )
         except Exception as err:
             _LOGGER.debug("Could not persist DHW profile: %s", err)
+
+    async def _async_load_dhw_legionella(self) -> None:
+        """Load the timestamp of the last completed anti-legionella cycle.
+
+        A fresh install has no record. It is initialised to "now" rather than
+        "never" so a brand-new setup does not immediately blast the tank to the
+        legionella temperature.
+        """
+        try:
+            stored = await self._dhw_legionella_store.async_load()
+            raw = (stored or {}).get("last_cycle")
+            parsed = dt_util.parse_datetime(raw) if isinstance(raw, str) else None
+            if parsed is not None:
+                self._dhw_last_legionella = parsed
+                return
+        except Exception as err:
+            _LOGGER.debug("Could not load DHW legionella timestamp: %s", err)
+
+        self._dhw_last_legionella = dt_util.now()
+        await self._async_save_dhw_legionella()
+
+    async def _async_save_dhw_legionella(self) -> None:
+        """Persist the timestamp of the last completed anti-legionella cycle."""
+        if self._dhw_last_legionella is None:
+            return
+        try:
+            await self._dhw_legionella_store.async_save(
+                {"last_cycle": self._dhw_last_legionella.isoformat()}
+            )
+        except Exception as err:
+            _LOGGER.debug("Could not persist DHW legionella timestamp: %s", err)
+
+    async def _async_track_dhw_legionella(self, dhw_temp: float) -> None:
+        """Reset the anti-legionella timer whenever the tank actually gets hot.
+
+        Any reason for the tank reaching the disinfection temperature counts —
+        a planned cycle, a manual boost, or an immersion heater.
+        """
+        target = float(self._thermal_params.dhw_legionella_temp)
+        if dhw_temp < target - 1.0:
+            return
+        now = dt_util.now()
+        previous = self._dhw_last_legionella
+        if previous is not None and (now - previous).total_seconds() < 3600:
+            return
+        self._dhw_last_legionella = now
+        _LOGGER.info(
+            "DHW anti-legionella cycle observed at %.1f°C, timer reset", dhw_temp
+        )
+        await self._async_save_dhw_legionella()
+
+    def _dhw_hours_since_legionella(self) -> float | None:
+        """Hours since the last anti-legionella cycle, or None if unknown."""
+        if self._dhw_last_legionella is None:
+            return None
+        delta = (dt_util.now() - self._dhw_last_legionella).total_seconds() / 3600.0
+        return max(0.0, delta)
+
+    def _dhw_legionella_due_in_hours(self) -> float | None:
+        """Hours left before the next anti-legionella cycle is required."""
+        params = self._thermal_params
+        if not params.dhw_legionella_enabled:
+            return None
+        since = self._dhw_hours_since_legionella()
+        if since is None:
+            return None
+        return round(params.dhw_legionella_interval_days * 24.0 - since, 1)
+
+    def _dhw_current_hour(self) -> float:
+        now = dt_util.now()
+        return now.hour + now.minute / 60.0
+
+    def _dhw_effective_windows(self) -> list:
+        """Demand windows the optimizer is actually planning against."""
+        result = self._optimization_result
+        planned = (result.predictive_info or {}).get("dhw_windows") if result else None
+        if planned:
+            try:
+                return parse_windows(planned)
+            except DHWWindowError:
+                pass
+        return self._thermal_params.dhw_demand_windows
+
+    def _dhw_in_demand_window(self) -> bool:
+        """Whether hot water is required right now."""
+        return hour_in_windows(
+            self._dhw_current_hour(), self._dhw_effective_windows()
+        )
+
+    def _dhw_next_window_in_hours(self) -> float | None:
+        """Hours until the next DHW demand window opens (0 if inside one)."""
+        hours = hours_until_next_window(
+            self._dhw_current_hour(), self._dhw_effective_windows()
+        )
+        return round(hours, 2) if hours is not None else None
 
     async def _async_learn_dhw_usage(self, dhw_temp: float) -> None:
         """Learn hourly DHW usage profile from observed temperature drops."""
@@ -604,6 +719,33 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._thermal_params.dhw_min_temp = params["dhw_min_temperature"]
         if "dhw_daily_consumption" in params:
             self._thermal_params.dhw_daily_consumption = params["dhw_daily_consumption"]
+        if CONF_DHW_SCHEDULE_ENABLED in params:
+            self._thermal_params.dhw_schedule_enabled = bool(
+                params[CONF_DHW_SCHEDULE_ENABLED]
+            )
+        if CONF_DHW_WINDOWS in params:
+            try:
+                self._thermal_params.dhw_windows = parse_windows(
+                    params[CONF_DHW_WINDOWS]
+                )
+            except DHWWindowError as err:
+                _LOGGER.warning("Ignoring invalid DHW demand windows: %s", err)
+        if CONF_DHW_IDLE_MIN_TEMP in params:
+            self._thermal_params.dhw_idle_min_temp = float(
+                params[CONF_DHW_IDLE_MIN_TEMP]
+            )
+        if CONF_DHW_LEGIONELLA_ENABLED in params:
+            self._thermal_params.dhw_legionella_enabled = bool(
+                params[CONF_DHW_LEGIONELLA_ENABLED]
+            )
+        if CONF_DHW_LEGIONELLA_TEMP in params:
+            self._thermal_params.dhw_legionella_temp = float(
+                params[CONF_DHW_LEGIONELLA_TEMP]
+            )
+        if CONF_DHW_LEGIONELLA_INTERVAL_DAYS in params:
+            self._thermal_params.dhw_legionella_interval_days = float(
+                params[CONF_DHW_LEGIONELLA_INTERVAL_DAYS]
+            )
         # Weather sensitivity params
         if "wind_sensitivity_factor" in params:
             self._thermal_params.wind_sensitivity = params["wind_sensitivity_factor"]
@@ -692,8 +834,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     self._dhw_temperature = float(state.state)
                     self._current_state.dhw_temperature = self._dhw_temperature
                     await self._async_learn_dhw_usage(self._dhw_temperature)
+                    await self._async_track_dhw_legionella(self._dhw_temperature)
                 except (ValueError, TypeError):
                     pass
+
+        self._current_state.dhw_hours_since_legionella = (
+            self._dhw_hours_since_legionella()
+        )
 
         # Update ECL110 effective displace state (PID/PI lag approximation)
         if "displace_value" in self._current_action:
@@ -1081,6 +1228,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._solar_radiation
         )
 
+        # The optimizer may derive demand windows from the learned usage profile
+        # when the user has not configured any, so prefer what it actually
+        # planned against.
+        planned_windows = (
+            (result.predictive_info or {}).get("dhw_windows") if result else None
+        )
         data = {
             "mode": self._mode,
             "current_action": self._current_action,
@@ -1100,6 +1253,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             "dhw_setpoint": self._thermal_params.dhw_setpoint,
             "dhw_min_temperature": self._thermal_params.dhw_min_temp,
             "dhw_usage_profile": self._dhw_hourly_profile,
+            "dhw_windows": planned_windows
+            or format_windows(self._thermal_params.dhw_demand_windows),
+            "dhw_schedule_enabled": self._thermal_params.dhw_schedule_enabled,
+            "dhw_in_demand_window": self._dhw_in_demand_window(),
+            "dhw_next_window_in_hours": self._dhw_next_window_in_hours(),
+            "dhw_idle_min_temperature": self._thermal_params.dhw_idle_min_temp,
+            "dhw_legionella_enabled": self._thermal_params.dhw_legionella_enabled,
+            "dhw_legionella_due_in_hours": self._dhw_legionella_due_in_hours(),
             "last_optimization": self._last_optimization,
             "next_optimization": self._next_optimization,
             "prices_available": len(self._prices),

@@ -40,6 +40,14 @@ import numpy as np
 from scipy.optimize import minimize
 
 from .thermal_model import ThermalModel, ThermalParameters, ThermalState
+from .dhw_schedule import (
+    FULL_DAY,
+    Window,
+    format_windows,
+    hour_in_windows,
+    hours_until_next_window,
+    parse_windows,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -553,7 +561,7 @@ class HeatPumpOptimizer:
                 initial_power,
                 method="L-BFGS-B",
                 bounds=bounds,
-                options={"maxiter": 200, "ftol": 1e-6, "disp": False},
+                options={"maxiter": 200, "ftol": 1e-6},
             )
             optimal_power = result.x
             status = "optimal" if result.success else f"suboptimal ({result.message})"
@@ -648,6 +656,316 @@ class HeatPumpOptimizer:
             lower_setpoints=lower_setpoints,
         )
 
+    # ------------------------------------------------------------------
+    # DHW demand-window planning
+    # ------------------------------------------------------------------
+
+    def _effective_dhw_windows(self) -> tuple[list[Window], bool]:
+        """Return the demand windows to plan against and whether they're learned.
+
+        When the user configured explicit windows those are authoritative. When
+        the schedule is switched off, hot water is required around the clock —
+        the pre-2.3 behaviour. In between (schedule on but no windows entered)
+        the windows are derived from the learned hourly usage profile, so the
+        optimizer still avoids keeping the tank hot when nobody draws water.
+        """
+        params = self.model.params
+        if params.dhw_windows_active:
+            return list(params.dhw_windows), False
+        if not params.dhw_schedule_enabled:
+            return [FULL_DAY], False
+
+        pattern = params.effective_dhw_draw_pattern()
+        threshold = max(1.0, float(np.percentile(pattern, 60)))
+        busy_hours = [h for h in range(24) if pattern[h] >= threshold]
+        if not busy_hours:
+            return [FULL_DAY], True
+
+        learned: list[Window] = []
+        run_start = busy_hours[0]
+        prev = busy_hours[0]
+        for hour in busy_hours[1:]:
+            if hour == prev + 1:
+                prev = hour
+                continue
+            learned.append((float(run_start), float(prev + 1)))
+            run_start = hour
+            prev = hour
+        learned.append((float(run_start), float(prev + 1)))
+        return parse_windows(format_windows(learned)) or [FULL_DAY], True
+
+    def _build_dhw_requirements(
+        self,
+        initial_state: ThermalState,
+        prices: np.ndarray,
+        outdoor_temps: np.ndarray,
+        step_hours: np.ndarray,
+        n_steps: int,
+        dt: float,
+        p_max: float,
+    ) -> dict[str, Any]:
+        """Build the DHW availability requirements and a cheapest-first plan.
+
+        The requirement is a per-step temperature *floor*, not a target to
+        track:
+
+        * inside a demand window the tank must stay at or above the usable
+          minimum temperature, and it must be "ready" (hot enough to cover the
+          window's expected draw) when the window opens;
+        * outside the windows only the idle floor applies, which defaults to
+          the tank's ambient temperature, i.e. no requirement at all.
+
+        Because nothing rewards a hot tank per se, the electricity cost term is
+        the only thing left to decide *when* the pump runs — so it runs at the
+        cheapest hours that still satisfy the windows.
+        """
+        params = self.model.params
+        windows, learned_windows = self._effective_dhw_windows()
+
+        dhw_min_temp = params.dhw_min_temp
+        dhw_setpoint = params.dhw_setpoint
+        idle_min_temp = min(params.dhw_idle_min_temp, dhw_min_temp)
+        c_dhw = max(params.dhw_tank_thermal_mass, 0.05)
+
+        hours_mod = np.asarray(step_hours, dtype=float) % 24.0
+        in_window = np.array(
+            [hour_in_windows(float(h), windows) for h in hours_mod], dtype=bool
+        )
+        prev_in_window = np.array(
+            [hour_in_windows(float(h) - dt, windows) for h in hours_mod], dtype=bool
+        )
+        window_starts = np.where(in_window & ~prev_in_window)[0].tolist()
+
+        draw_rates = self.model.dhw_draw_rates(hours_mod)
+
+        floor_temps = np.where(in_window, dhw_min_temp, idle_min_temp).astype(float)
+        ready_temps = np.zeros(n_steps)
+
+        # "Ready" temperature per window: only as hot as the window's expected
+        # draw actually requires, capped at the configured setpoint.
+        for start_idx in window_starts:
+            end_idx = start_idx
+            while end_idx < n_steps and in_window[end_idx]:
+                end_idx += 1
+            window_hours = max((end_idx - start_idx) * dt, dt)
+            draw_energy = float(np.sum(draw_rates[start_idx:end_idx])) * dt
+            standby_energy = (
+                params.dhw_tank_heat_loss_coefficient
+                * max(0.5 * (dhw_setpoint + dhw_min_temp) - 20.0, 0.0)
+                * window_hours
+            )
+            needed_delta = (draw_energy + standby_energy) / c_dhw
+            required_ready = float(
+                np.clip(dhw_min_temp + needed_delta, dhw_min_temp, dhw_setpoint)
+            )
+            # The tank must be ready by the END of the step before the window.
+            ready_idx = max(0, start_idx - 1)
+            ready_temps[ready_idx] = max(ready_temps[ready_idx], required_ready)
+
+        # --- Anti-legionella cycle ---
+        legionella_due = False
+        legionella_hour: float | None = None
+        interval_hours = float(params.dhw_legionella_interval_days) * 24.0
+        hours_since = initial_state.dhw_hours_since_legionella
+        if (
+            params.dhw_legionella_enabled
+            and interval_hours > 0
+            and hours_since is not None
+            and n_steps > 0
+        ):
+            hours_remaining = interval_hours - float(hours_since)
+            deadline_step = int(np.floor(hours_remaining / dt))
+            if deadline_step < n_steps:
+                limit = max(1, min(deadline_step + 1, n_steps))
+                idx = int(np.argmin(prices[:limit]))
+                ready_temps[idx] = max(ready_temps[idx], params.dhw_legionella_temp)
+                legionella_due = True
+                legionella_hour = float(hours_mod[idx])
+
+        max_temp = params.dhw_max_temp
+        max_lead_hours = self.model.dhw_hold_hours()
+        requirement = np.maximum(floor_temps, ready_temps)
+
+        # The pump serves DHW as an on/off block, not a trickle, so the planner
+        # allocates at a realistic run power and never below the level at which
+        # the pump would actually be considered running.
+        p_dhw_run = max(0.1, min(p_max * 0.8, p_max))
+        min_run_power = min(p_dhw_run, max(0.15, self.model.params.min_electrical_power * 0.6))
+
+        schedule = self._plan_dhw_cheapest_first(
+            initial_temp=initial_state.dhw_temperature,
+            requirement=requirement,
+            prices=prices,
+            outdoor_temps=outdoor_temps,
+            draw_rates=draw_rates,
+            n_steps=n_steps,
+            dt=dt,
+            p_dhw_max=p_dhw_run,
+            min_run_power=min_run_power,
+            max_lead_steps=max(1, int(np.ceil(max_lead_hours / dt))),
+            c_dhw=c_dhw,
+            max_temp=max_temp,
+        )
+
+        next_window = hours_until_next_window(
+            float(hours_mod[0]) if n_steps else 0.0, windows
+        )
+
+        return {
+            "floor_temps": floor_temps,
+            "ready_temps": ready_temps,
+            "draw_rates": draw_rates,
+            "in_window": in_window,
+            "max_temp": max_temp,
+            "schedule": schedule,
+            "windows_text": format_windows(windows),
+            "windows_learned": learned_windows,
+            "next_window_in_hours": (
+                round(next_window, 2) if next_window is not None else None
+            ),
+            "legionella_due": legionella_due,
+            "legionella_hour": (
+                round(legionella_hour, 2) if legionella_hour is not None else None
+            ),
+            "max_lead_hours": max_lead_hours,
+        }
+
+    def _plan_dhw_cheapest_first(
+        self,
+        initial_temp: float,
+        requirement: np.ndarray,
+        prices: np.ndarray,
+        outdoor_temps: np.ndarray,
+        draw_rates: np.ndarray,
+        n_steps: int,
+        dt: float,
+        p_dhw_max: float,
+        min_run_power: float,
+        max_lead_steps: int,
+        c_dhw: float,
+        max_temp: float,
+    ) -> np.ndarray:
+        """Greedily schedule DHW heating into the cheapest feasible hours.
+
+        Repeatedly simulates the tank, finds the first step where the
+        availability requirement would be missed, and buys the missing energy
+        from the cheapest steps that precede it (within the tank's heat-holding
+        time, so the plan never pre-heats so early that standby losses dominate).
+
+        Slots are ranked by *effective* price, i.e. the raw price inflated by
+        the standby energy that would be lost while the heat waits in the tank.
+        Storing early is therefore only chosen when it is genuinely cheaper than
+        heating closer to the moment the water is needed.
+
+        Because DHW production is a deferrable, essentially on/off load, this
+        cheapest-first allocation is the cost-optimal strategy for it — and,
+        unlike a gradient solve, it produces blocks the heat pump can actually
+        run.
+        """
+        plan = np.zeros(n_steps)
+        if n_steps == 0:
+            return plan
+
+        # A requirement above the tank's rated maximum can never be met; asking
+        # for it would only make the planner give up.
+        requirement = np.minimum(np.asarray(requirement, dtype=float), max_temp)
+
+        # Fraction of stored heat lost per hour of storage: raising the tank by
+        # ΔT stores C·ΔT kWh but adds U·ΔT kW of standby loss.
+        loss_rate_per_hour = (
+            self.model.params.dhw_tank_heat_loss_coefficient / max(c_dhw, 0.05)
+        )
+
+        tolerance = 0.05  # °C
+        unreachable: set[int] = set()
+        for _ in range(400):
+            temps = self.model.simulate_dhw_only(
+                initial_temp=initial_temp,
+                dhw_power_schedule=plan,
+                outdoor_temps=outdoor_temps,
+                draw_rates=draw_rates,
+                dt_hours=dt,
+            )
+            gaps = requirement - temps[1:]
+            violations = [
+                int(i) for i in np.where(gaps > tolerance)[0] if int(i) not in unreachable
+            ]
+            if not violations:
+                break
+
+            k = violations[0]
+            needed_kwh = float(gaps[k]) * c_dhw
+
+            # The tank may not be planned above its rating, except that a
+            # requirement (an anti-legionella cycle, typically) always has to
+            # remain reachable.
+            temp_ceiling = max(max_temp - 1.0, float(requirement[k]))
+
+            candidates = [
+                j
+                for j in range(max(0, k - max_lead_steps), k + 1)
+                if plan[j] < p_dhw_max - 1e-6 and temps[j + 1] < temp_ceiling - 0.1
+            ]
+            if not candidates:
+                candidates = [
+                    j
+                    for j in range(0, k + 1)
+                    if plan[j] < p_dhw_max - 1e-6 and temps[j + 1] < temp_ceiling - 0.1
+                ]
+            if not candidates:
+                # Nothing can fix this step; move on rather than abandoning the
+                # rest of the horizon.
+                unreachable.add(k)
+                continue
+
+            def retained_fraction(j: int) -> float:
+                return max(0.15, 1.0 - loss_rate_per_hour * (k - j) * dt)
+
+            # Cheapest first, where "cheap" accounts for the heat lost while
+            # stored; on a tie prefer the latest slot so the heat is stored for
+            # as short a time as possible and blocks stay contiguous.
+            candidates.sort(
+                key=lambda j: (float(prices[j]) / retained_fraction(j), -j)
+            )
+
+            added = 0.0
+            for j in candidates:
+                cop = max(
+                    1.0,
+                    self.model.compute_cop_dhw(
+                        float(outdoor_temps[j]), float(requirement[k])
+                    ),
+                )
+                spare_thermal_kwh = (p_dhw_max - plan[j]) * cop * dt
+                # Heat added at step j raises every later tank temperature, so
+                # the ceiling has to be respected across the whole stretch the
+                # heat is stored for — not just at step j.
+                peak_ahead = float(np.max(temps[j + 1 : k + 2]))
+                headroom_kwh = max(0.0, (temp_ceiling - peak_ahead) * c_dhw)
+                take = min(
+                    needed_kwh / retained_fraction(j),
+                    spare_thermal_kwh,
+                    headroom_kwh,
+                )
+                if take <= 1e-6:
+                    continue
+                plan[j] += take / (cop * dt)
+                # Never plan a run below the pump's practical minimum: a
+                # fraction of a kW cannot be delivered by an on/off DHW valve.
+                if 0.0 < plan[j] < min_run_power:
+                    plan[j] = min_run_power
+                added = take
+                # Charging one slot changes every later tank temperature, so
+                # re-simulate before choosing the next one. This is what keeps
+                # the plan from overshooting the tank's maximum temperature.
+                break
+
+            if added <= 1e-9:
+                # No candidate could absorb energy for this step either.
+                unreachable.add(k)
+
+        return np.clip(plan, 0.0, p_dhw_max)
+
     def _optimize_with_dhw(
         self,
         initial_state: ThermalState,
@@ -698,68 +1016,67 @@ class HeatPumpOptimizer:
                 if future_loss > 1.1:
                     anticipatory_weights[i] *= min(1.5, future_loss)
 
-        # Learned usage-based DHW demand prediction (0-24h trajectory)
+        # ----------------------------------------------------------------
+        # DHW demand model
+        # ----------------------------------------------------------------
+        # The DHW requirement is expressed as a per-step temperature floor
+        # rather than a target trajectory. Inside a configured demand window
+        # hot water must be available; outside it there is no requirement, so
+        # the only reason to run the pump is to be ready for the *next* window
+        # — and the energy-cost term then decides *when* that happens.
+        dhw_plan = self._build_dhw_requirements(
+            initial_state=initial_state,
+            prices=prices,
+            outdoor_temps=outdoor_temps,
+            step_hours=step_hours,
+            n_steps=n_steps,
+            dt=dt,
+            p_max=p_max,
+        )
+
+        dhw_floor_temps = dhw_plan["floor_temps"]
+        dhw_ready_temps = dhw_plan["ready_temps"]
+        dhw_draw_rates = dhw_plan["draw_rates"]
+        in_demand_window = dhw_plan["in_window"]
+        optimal_dhw = dhw_plan["schedule"]
+
+        # Kept for reporting/back-compat: which hours the learned profile still
+        # considers high-usage (restricted to the configured windows).
         usage_intensity = np.array([
             self.model.dhw_usage_intensity(h) for h in step_hours
         ])
-        usage_peak_threshold = max(1.1, float(np.percentile(usage_intensity, 70)))
-        high_usage_mask = usage_intensity >= usage_peak_threshold
-
-        # Estimate required lead time to heat from minimum to setpoint.
-        c_dhw = max(self.model.params.dhw_tank_thermal_mass, 0.05)
-        cop_dhw_est = max(
-            1.0,
-            self.model.compute_cop_dhw(float(np.mean(outdoor_temps)), dhw_setpoint),
+        high_usage_mask = in_demand_window & (
+            usage_intensity >= max(1.0, float(np.percentile(usage_intensity, 70)))
         )
-        max_dhw_thermal_power = max(0.1, cop_dhw_est * (p_max * 0.7))
-        heating_rate_c_per_hour = max_dhw_thermal_power / c_dhw
-        lead_hours = float(np.clip((dhw_setpoint - dhw_min_temp) / max(heating_rate_c_per_hour, 0.2), 0.5, 4.0))
-        lead_steps = max(1, int(np.ceil(lead_hours / dt)))
 
-        # Dynamic DHW comfort trajectory: stay near minimum except before predicted use.
-        dhw_target_temps = np.full(n_steps, dhw_min_temp)
-        dhw_target_weights = np.full(n_steps, 0.08)
-        for idx in np.where(high_usage_mask)[0]:
-            window_start = max(0, idx - lead_steps)
-            window_len = max(1, idx - window_start + 1)
-            ramp = np.linspace(dhw_min_temp + 0.3, dhw_setpoint, window_len)
-            dhw_target_temps[window_start:idx + 1] = np.maximum(
-                dhw_target_temps[window_start:idx + 1],
-                ramp,
-            )
-            dhw_target_weights[window_start:idx + 1] = np.maximum(
-                dhw_target_weights[window_start:idx + 1],
-                np.linspace(0.4, 1.2, window_len),
-            )
-            dhw_target_weights[idx] = max(dhw_target_weights[idx], 2.0)
+        # DHW is a deferrable, effectively on/off load, so it is scheduled by
+        # the cheapest-first planner above rather than by the gradient solver
+        # (which would smear it into an unrealizable trickle). Space heating is
+        # then optimized *around* the fixed DHW blocks: the pump's remaining
+        # capacity during a DHW block is what bounds space heating power.
+        dhw_energy_cost = float(
+            np.sum(prices * optimal_dhw * dt) * self.config.price_weight
+        )
+        space_power_headroom = np.maximum(0.0, p_max - optimal_dhw)
 
-        cheap_price_threshold = float(np.percentile(prices, 35))
-        expensive_price_threshold = float(np.percentile(prices, 70))
-
-        def objective(x: np.ndarray) -> float:
-            """Joint space + DHW optimization objective."""
-            space_power = x[:n_steps]
-            dhw_power = x[n_steps:]
-
-            # Simulate space heating trajectory
-            room_temps, slab_temps, upper_temps, lower_temps, dhw_temps = (
-                self.model.simulate_trajectory_with_dhw(
+        def objective(space_power: np.ndarray) -> float:
+            """Space heating objective given the fixed DHW schedule."""
+            room_temps, slab_temps, upper_temps, lower_temps = (
+                self.model.simulate_trajectory(
                     initial_state=initial_state,
-                    space_power_schedule=space_power,
-                    dhw_power_schedule=dhw_power,
+                    power_schedule=space_power,
                     outdoor_temps=outdoor_temps,
                     wind_speeds=wind_speeds,
                     precipitation=precipitation,
                     solar_radiation=solar_radiation,
-                    start_hour=start_hour,
                     dt_hours=dt,
                 )
             )
 
             # --- Electricity cost (total: space + DHW) ---
-            total_power = space_power + dhw_power
             energy_cost = (
-                np.sum(prices * total_power * dt) * self.config.price_weight
+                np.sum(prices * space_power * dt) * self.config.price_weight
+                + dhw_energy_cost
             )
 
             # --- Space heating comfort penalty ---
@@ -794,41 +1111,10 @@ class HeatPumpOptimizer:
                     comfort_deviation ** 2
                 )
 
-            # --- DHW temperature penalty ---
-            # Hard safety limit at configured minimum temperature.
-            dhw_t = dhw_temps[1:]
-            dhw_undershoot = np.maximum(0, dhw_min_temp - dhw_t)
-            dhw_penalty = 25.0 * self.config.comfort_weight * np.sum(
-                dhw_undershoot ** 2
-            )
-
-            # Predictive comfort: only require high temp before predicted usage.
-            dhw_target_gap = np.maximum(0, dhw_target_temps - dhw_t)
-            dhw_comfort = np.sum(dhw_target_weights * (dhw_target_gap ** 2))
-
-            # Cost-priority: penalize expensive DHW heating unless demand window is near.
-            expensive_mask = prices >= expensive_price_threshold
-            no_near_demand_mask = dhw_target_weights < 0.6
-            dhw_expensive_penalty = 0.04 * np.sum(
-                dhw_power * expensive_mask * no_near_demand_mask * dt
-            )
-
-            # Prefer pre-heating in cheap periods when demand is coming.
-            upcoming_demand_mask = dhw_target_weights >= 0.6
-            dhw_cheap_bonus = -0.03 * np.sum(
-                dhw_power * (prices <= cheap_price_threshold) * upcoming_demand_mask * dt
-            )
-
-            # --- Capacity constraint penalty ---
-            # Total power must not exceed max capacity
-            over_capacity = np.maximum(0, total_power - p_max)
-            capacity_penalty = 50.0 * np.sum(over_capacity ** 2)
-
             # Smoothness
             smoothness = 0.0
             if n_steps > 1:
                 smoothness += 0.01 * np.sum(np.diff(space_power) ** 2)
-                smoothness += 0.01 * np.sum(np.diff(dhw_power) ** 2)
 
             # Solar anticipation cost (same as space-only)
             solar_anticipation_cost = 0.0
@@ -846,56 +1132,35 @@ class HeatPumpOptimizer:
 
             return (
                 energy_cost + space_penalty + comfort_cost
-                + dhw_penalty + dhw_comfort + dhw_cheap_bonus + dhw_expensive_penalty
-                + capacity_penalty + smoothness + solar_anticipation_cost
+                + smoothness + solar_anticipation_cost
             )
 
-        # Initial guess
+        # Initial guess: space heating inversely proportional to price.
         price_normalized = prices / (np.mean(prices) + 1e-6)
-
-        # Space heating: inversely proportional to price
         init_space = p_max * 0.6 * np.clip(1.5 - price_normalized, 0.2, 1.0)
         for i in range(n_steps):
             init_space[i] *= anticipatory_weights[i]
         init_space = np.clip(init_space, p_min * 0.5, p_max * 0.8)
+        init_space = np.minimum(init_space, space_power_headroom)
 
-        # DHW initial plan: keep near minimum, pre-heat before predicted usage,
-        # and prioritize the cheapest hours in those windows.
-        init_dhw = np.zeros(n_steps)
-        preheat_mask = dhw_target_weights >= 0.6
-        if np.any(preheat_mask):
-            cheap_preheat_mask = preheat_mask & (prices <= cheap_price_threshold)
-            init_dhw[cheap_preheat_mask] = p_max * 0.35
-            init_dhw[preheat_mask & ~cheap_preheat_mask] = p_max * 0.18
-
-        if initial_state.dhw_temperature <= dhw_min_temp + 0.4:
-            immediate_slots = min(max(1, int(np.ceil(1.0 / dt))), n_steps)
-            init_dhw[:immediate_slots] = np.maximum(init_dhw[:immediate_slots], p_max * 0.4)
-
-        init_dhw = np.clip(init_dhw, 0.0, p_max * 0.6)
-
-        x0 = np.concatenate([init_space, init_dhw])
-
-        # Bounds: space [0, p_max], dhw [0, p_max]
-        bounds = [(0.0, p_max)] * n_steps + [(0.0, p_max)] * n_steps
+        # The heat pump serves one circuit at a time, so a DHW block eats into
+        # the capacity available for space heating during that step.
+        bounds = [(0.0, float(space_power_headroom[i])) for i in range(n_steps)]
 
         try:
             result = minimize(
                 objective,
-                x0,
+                init_space,
                 method="L-BFGS-B",
                 bounds=bounds,
-                options={"maxiter": 300, "ftol": 1e-6, "disp": False},
+                options={"maxiter": 300, "ftol": 1e-6},
             )
-            optimal_x = result.x
+            optimal_space = np.clip(result.x, 0.0, space_power_headroom)
             status = "optimal" if result.success else f"suboptimal ({result.message})"
         except Exception as e:
-            _LOGGER.error("DHW optimization failed: %s", e)
-            optimal_x = x0
+            _LOGGER.error("Space heating optimization (with DHW) failed: %s", e)
+            optimal_space = init_space
             status = f"failed ({e})"
-
-        optimal_space = optimal_x[:n_steps]
-        optimal_dhw = optimal_x[n_steps:]
 
         # Simulate with optimal schedule
         room_temps, slab_temps, upper_temps, lower_temps, dhw_temps = (
@@ -909,6 +1174,7 @@ class HeatPumpOptimizer:
                 solar_radiation=solar_radiation,
                 start_hour=start_hour,
                 dt_hours=dt,
+                dhw_draw_rates=dhw_draw_rates,
             )
         )
 
@@ -961,11 +1227,13 @@ class HeatPumpOptimizer:
 
         t_elapsed = (time.monotonic() - t_start) * 1000
 
+        dhw_active_steps = int(np.sum(optimal_dhw > 0.1))
         _LOGGER.info(
-            "DHW+Space optimization completed in %.0fms: cost=%.2f (DHW=%.2f), "
-            "baseline=%.2f, savings=%.1f%%",
-            t_elapsed, predicted_cost, dhw_cost, baseline_cost,
+            "DHW+Space optimization completed in %.0fms: cost=%.2f (DHW=%.2f in "
+            "%d steps), baseline=%.2f, savings=%.1f%%, windows=%s",
+            t_elapsed, predicted_cost, dhw_cost, dhw_active_steps, baseline_cost,
             (savings / baseline_cost * 100) if baseline_cost > 0 else 0,
+            dhw_plan["windows_text"] or "always",
         )
 
         return OptimizationResult(
@@ -998,10 +1266,27 @@ class HeatPumpOptimizer:
                     int(step_hours[idx]) % 24
                     for idx in np.where(high_usage_mask)[0][:24].tolist()
                 ],
-                "dhw_preheat_lead_hours": round(lead_hours, 2),
+                "dhw_preheat_lead_hours": round(dhw_plan["max_lead_hours"], 2),
                 "dhw_min_temperature": float(dhw_min_temp),
                 "dhw_target_temperature": float(dhw_setpoint),
                 "dhw_usage_intensity_now": float(usage_intensity[0]) if len(usage_intensity) else 1.0,
+                "dhw_windows": dhw_plan["windows_text"],
+                "dhw_in_demand_window": bool(in_demand_window[0]) if n_steps else False,
+                "dhw_next_window_in_hours": dhw_plan["next_window_in_hours"],
+                "dhw_required_temperature_now": (
+                    float(max(dhw_floor_temps[0], dhw_ready_temps[0]))
+                    if n_steps
+                    else float(dhw_min_temp)
+                ),
+                "dhw_idle_min_temperature": float(
+                    self.model.params.dhw_idle_min_temp
+                ),
+                "dhw_legionella_due": dhw_plan["legionella_due"],
+                "dhw_legionella_step_hour": dhw_plan["legionella_hour"],
+                "dhw_planned_heating_hours": [
+                    round(float(step_hours[idx]), 2)
+                    for idx in np.where(optimal_dhw > 0.1)[0][:48].tolist()
+                ],
             },
         )
 

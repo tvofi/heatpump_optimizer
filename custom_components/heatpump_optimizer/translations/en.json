@@ -73,12 +73,18 @@
       },
       "dhw": {
         "title": "Domestic Hot Water (DHW) Configuration",
-        "description": "Optional: Configure DHW tank parameters. The optimizer coordinates DHW heating with space heating, heating water during cheap electricity while maintaining minimum temperature.",
+        "description": "Optional: Configure the DHW tank. Set the time frames when hot water must be available — the optimizer then guarantees a usable tank temperature during those frames and produces the water in the cheapest hours leading up to them. Outside the time frames the tank is allowed to cool, so no electricity is spent keeping water hot that nobody uses. Use 24-hour times separated by commas, for example \"06:00-08:30, 17:00-22:00\". Leave empty to require hot water around the clock.",
         "data": {
           "dhw_tank_volume": "DHW tank volume (L)",
           "dhw_setpoint": "DHW target temperature (°C)",
           "dhw_min_temperature": "DHW minimum temperature (°C)",
-          "dhw_daily_consumption": "Daily hot water consumption (L/day)"
+          "dhw_daily_consumption": "Daily hot water consumption (L/day)",
+          "dhw_schedule_enabled": "Only guarantee hot water during set time frames",
+          "dhw_windows": "Hot water time frames (e.g. 06:00-08:30, 17:00-22:00)",
+          "dhw_legionella_enabled": "Anti-legionella cycle",
+          "dhw_legionella_interval_days": "Anti-legionella interval (days)",
+          "dhw_idle_min_temperature": "Tank minimum outside the time frames (°C)",
+          "dhw_legionella_temperature": "Anti-legionella temperature (°C)"
         }
       },
       "weather_sensitivity": {
@@ -91,7 +97,8 @@
       }
     },
     "error": {
-      "invalid_tibber_token": "Invalid Tibber API token. Please check and try again."
+      "invalid_tibber_token": "Invalid Tibber API token. Please check and try again.",
+      "invalid_dhw_windows": "Invalid hot water time frames. Use 24-hour times like \"06:00-08:30, 17:00-22:00\"."
     },
     "abort": {
       "already_configured": "This integration is already configured."
@@ -129,9 +136,19 @@
           "ecl110_mqtt_retain": "Retain ECL110 MQTT messages",
           "ecl110_displace_min": "ECL110 displace minimum (°C)",
           "ecl110_displace_max": "ECL110 displace maximum (°C)",
-          "ecl110_pid_time_constant_hours": "ECL110 PI/PID time constant (hours)"
+          "ecl110_pid_time_constant_hours": "ECL110 PI/PID time constant (hours)",
+          "dhw_schedule_enabled": "Only guarantee hot water during set time frames",
+          "dhw_windows": "Hot water time frames (e.g. 06:00-08:30, 17:00-22:00)",
+          "dhw_legionella_enabled": "Anti-legionella cycle",
+          "dhw_legionella_interval_days": "Anti-legionella interval (days)",
+          "dhw_idle_min_temperature": "Tank minimum outside the time frames (°C)",
+          "dhw_legionella_temperature": "Anti-legionella temperature (°C)",
+          "buffer_tank_volume": "Buffer tank volume (L)"
         }
       }
+    },
+    "error": {
+      "invalid_dhw_windows": "Invalid hot water time frames. Use 24-hour times like \"06:00-08:30, 17:00-22:00\"."
     }
   }
 }

@@ -182,7 +182,7 @@ set_thermal_parameters:
       selector:
         number:
           min: 50
-          max: 500
+          max: 1500
           step: 10
           unit_of_measurement: "L"
     dhw_setpoint:
@@ -200,8 +200,8 @@ set_thermal_parameters:
     dhw_min_temperature:
       name: DHW Minimum Temperature
       description: >-
-        Minimum acceptable DHW tank temperature in °C.
-        Below this, DHW heating is prioritized.
+        Minimum acceptable DHW tank temperature in °C, enforced during the
+        configured hot water time frames.
       required: false
       example: 45
       selector:
@@ -219,9 +219,73 @@ set_thermal_parameters:
       selector:
         number:
           min: 50
-          max: 500
+          max: 1500
           step: 10
           unit_of_measurement: "L/day"
+    dhw_schedule_enabled:
+      name: DHW Time Frames Enabled
+      description: >-
+        When on, hot water is only guaranteed during the configured time
+        frames. When off, hot water is required around the clock.
+      required: false
+      example: true
+      selector:
+        boolean:
+    dhw_windows:
+      name: DHW Demand Time Frames
+      description: >-
+        Time frames when hot water must be available, as 24-hour times
+        separated by commas. Frames may wrap past midnight. Leave empty to
+        derive them from the learned usage profile.
+      required: false
+      example: "06:00-08:30, 17:00-22:00"
+      selector:
+        text:
+    dhw_idle_min_temperature:
+      name: DHW Idle Minimum Temperature
+      description: >-
+        Lowest tank temperature the optimizer will plan for outside the
+        demand time frames.
+      required: false
+      example: 20
+      selector:
+        number:
+          min: 10
+          max: 55
+          step: 1
+          unit_of_measurement: "°C"
+    dhw_legionella_enabled:
+      name: Anti-Legionella Cycle
+      description: >-
+        Periodically heat the tank to the disinfection temperature.
+      required: false
+      example: true
+      selector:
+        boolean:
+    dhw_legionella_temperature:
+      name: Anti-Legionella Temperature
+      description: >-
+        Tank temperature reached during an anti-legionella cycle.
+      required: false
+      example: 60
+      selector:
+        number:
+          min: 55
+          max: 70
+          step: 1
+          unit_of_measurement: "°C"
+    dhw_legionella_interval_days:
+      name: Anti-Legionella Interval
+      description: >-
+        Maximum number of days between anti-legionella cycles.
+      required: false
+      example: 7
+      selector:
+        number:
+          min: 1
+          max: 30
+          step: 1
+          unit_of_measurement: "days"
     wind_sensitivity_factor:
       name: Wind Sensitivity Factor
       description: >-
