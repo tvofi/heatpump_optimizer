@@ -1,5 +1,82 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v2.3.0
+
+### Summary
+This release reworks domestic hot water (DHW) optimization. Hot water is now
+required only during time frames you configure, and it is produced with a
+cheapest-first schedule instead of a target temperature the optimizer tried to
+track regardless of price.
+
+### Fixed
+- **DHW no longer heats to high setpoints during price peaks.** The objective
+  previously contained a "comfort" term that penalised any deviation from a
+  ramped DHW target temperature. Its weight was orders of magnitude larger than
+  the electricity cost term, so the solver effectively ignored price and heated
+  the tank to setpoint whenever it drifted — including in the most expensive
+  hours and while space heating was idle. DHW is now penalised only for
+  *violating an availability requirement*, never rewarded for being hot, which
+  leaves electricity cost as the only thing deciding when the pump runs.
+- **DHW plans are now physically realizable.** The gradient solver used to smear
+  DHW across many steps at 0.1–0.5 kW, below the level at which the heat pump is
+  considered to be running. DHW is now scheduled as discrete on/off blocks.
+- **The 45 °C floor no longer applies around the clock.** It applies inside the
+  demand time frames; outside them the tank may cool to the idle minimum.
+
+### Added
+- **Hot water demand time frames.** Configure when hot water must be available,
+  e.g. `06:00-08:30, 17:00-22:00`. Frames may wrap past midnight and are
+  editable from both the setup dialog and the options dialog.
+  - Inside a frame the tank is guaranteed at or above the DHW minimum
+    temperature.
+  - At the start of a frame the tank is pre-heated only as far as that frame's
+    expected draw requires, capped at the DHW setpoint — small consumers are no
+    longer heated to full setpoint for no reason.
+  - Outside the frames there is no availability requirement.
+  - Leave the field empty to derive the frames from the learned usage profile,
+    or switch the schedule off to require hot water around the clock.
+- **Anti-legionella cycle**, enabled by default: the tank is heated to 60 °C
+  every 7 days, scheduled at the cheapest hour before the deadline. The timer
+  resets whenever the tank is observed at the disinfection temperature for any
+  reason, so manual boosts and immersion heaters count. Temperature and interval
+  are configurable, and the cycle can be turned off.
+- **Idle minimum temperature** (default 20 °C) — the floor that applies outside
+  the demand time frames.
+- New DHW sensor attributes: `dhw_windows`, `dhw_in_demand_window`,
+  `dhw_next_window_in_hours`, `dhw_required_temperature`,
+  `dhw_idle_min_temperature`, `dhw_legionella_due_in_hours` and
+  `dhw_planned_heating_hours`.
+
+### Changed
+- **Two-stage solve.** DHW is scheduled by a cheapest-first planner, then space
+  heating is optimized around the fixed DHW blocks with the pump's remaining
+  capacity as a hard per-step bound. This replaces the joint solve and its soft
+  capacity penalty, so the capacity limit can no longer be violated.
+- Slot ranking uses an *effective* price that includes the standby heat lost
+  while water waits in the tank, so pre-heating many hours ahead is only chosen
+  when it is genuinely cheaper.
+- The tank is never planned above `min(70 °C, max(setpoint, legionella temp))`.
+- The learned hourly draw pattern is masked by the configured time frames while
+  preserving the total daily volume.
+- Typical solve time with DHW enabled dropped from roughly 6 s to under 1 s, and
+  the solver no longer hits its iteration limit.
+
+### Configuration options
+| Option | Default |
+|---|---|
+| `dhw_schedule_enabled` | `true` |
+| `dhw_windows` | `06:00-08:30, 17:00-22:00` |
+| `dhw_idle_min_temperature` | `20` °C |
+| `dhw_legionella_enabled` | `true` |
+| `dhw_legionella_temperature` | `60` °C |
+| `dhw_legionella_interval_days` | `7` |
+
+### Upgrade notes
+Existing installations pick up the default time frames on upgrade. If your
+household draws hot water at other times, set `dhw_windows` in the integration
+options. To keep the previous always-hot behaviour, turn off *Only guarantee hot
+water during set time frames*.
+
 ## v2.2.0
 **Release date:** 2026-04-27
 

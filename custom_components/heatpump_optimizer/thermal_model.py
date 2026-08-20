@@ -62,6 +62,12 @@ from .const import (
     DEFAULT_DHW_SETPOINT,
     DEFAULT_DHW_MIN_TEMP,
     DEFAULT_DHW_DAILY_CONSUMPTION,
+    DEFAULT_DHW_SCHEDULE_ENABLED,
+    DEFAULT_DHW_WINDOWS,
+    DEFAULT_DHW_IDLE_MIN_TEMP,
+    DEFAULT_DHW_LEGIONELLA_ENABLED,
+    DEFAULT_DHW_LEGIONELLA_TEMP,
+    DEFAULT_DHW_LEGIONELLA_INTERVAL_DAYS,
     DEFAULT_WIND_SENSITIVITY,
     DEFAULT_RAIN_HEAT_LOSS_MULTIPLIER,
     DEFAULT_ECL110_DISPLACE_MIN,
@@ -69,6 +75,13 @@ from .const import (
     DEFAULT_ECL110_PID_TIME_CONSTANT,
     WIND_CHILL_FACTOR,
     RAIN_COOLING_FACTOR,
+)
+from .dhw_schedule import (
+    DHWWindowError,
+    FULL_DAY,
+    Window,
+    overlap_fraction,
+    parse_windows,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -107,10 +120,20 @@ class ThermalParameters:
 
     # DHW tank parameters
     dhw_tank_volume: float = DEFAULT_DHW_TANK_VOLUME  # liters
-    dhw_setpoint: float = DEFAULT_DHW_SETPOINT  # °C
-    dhw_min_temp: float = DEFAULT_DHW_MIN_TEMP  # °C
+    dhw_setpoint: float = DEFAULT_DHW_SETPOINT  # °C "ready" temp at window start
+    dhw_min_temp: float = DEFAULT_DHW_MIN_TEMP  # °C usable min inside windows
     dhw_daily_consumption: float = DEFAULT_DHW_DAILY_CONSUMPTION  # liters/day
     dhw_tank_heat_loss_coefficient: float = 0.005  # kW/°C standby loss
+
+    # DHW demand windows (time frames where hot water must be available)
+    dhw_schedule_enabled: bool = DEFAULT_DHW_SCHEDULE_ENABLED
+    dhw_windows: list[Window] = field(default_factory=list)
+    dhw_idle_min_temp: float = DEFAULT_DHW_IDLE_MIN_TEMP  # °C outside windows
+
+    # Anti-legionella cycle
+    dhw_legionella_enabled: bool = DEFAULT_DHW_LEGIONELLA_ENABLED
+    dhw_legionella_temp: float = DEFAULT_DHW_LEGIONELLA_TEMP  # °C
+    dhw_legionella_interval_days: float = DEFAULT_DHW_LEGIONELLA_INTERVAL_DAYS
 
     # Weather sensitivity parameters (configurable)
     wind_sensitivity: float = DEFAULT_WIND_SENSITIVITY  # fraction per m/s
@@ -165,6 +188,53 @@ class ThermalParameters:
         # Power = volume_flow * Cp * delta_T
         return liters_per_hour * WATER_SPECIFIC_HEAT * delta_t
 
+    @property
+    def dhw_windows_active(self) -> bool:
+        """True when user-configured DHW demand windows should be honoured."""
+        return bool(self.dhw_schedule_enabled and self.dhw_windows)
+
+    @property
+    def dhw_demand_windows(self) -> list[Window]:
+        """Windows during which hot water must be available.
+
+        Falls back to the whole day when the schedule is off or unset, which
+        reproduces the previous "hot water always available" behaviour.
+        """
+        if not self.dhw_windows_active:
+            return [FULL_DAY]
+        return list(self.dhw_windows)
+
+    @property
+    def dhw_max_temp(self) -> float:
+        """Highest tank temperature the optimizer is allowed to plan for."""
+        top = self.dhw_setpoint
+        if self.dhw_legionella_enabled:
+            top = max(top, self.dhw_legionella_temp)
+        return min(70.0, top)
+
+    def effective_dhw_draw_pattern(self) -> list[float]:
+        """Hourly draw multipliers restricted to the configured demand windows.
+
+        The daily hot water volume is preserved: when windows are configured the
+        learned pattern is masked by the window coverage of each hour and then
+        re-scaled so the 24-hour sum stays at 24 (average multiplier 1.0).
+        """
+        base = list(self.dhw_hourly_draw_pattern)
+        if len(base) != 24:
+            base = DHW_HOURLY_DRAW_PATTERN.copy()
+        if not self.dhw_windows_active:
+            return base
+
+        masked = [
+            value * overlap_fraction(float(hour), float(hour) + 1.0, self.dhw_windows)
+            for hour, value in enumerate(base)
+        ]
+        total = sum(masked)
+        if total <= 1e-6:
+            return base
+        scale = 24.0 / total
+        return [value * scale for value in masked]
+
     @classmethod
     def from_config(cls, config: dict[str, Any]) -> ThermalParameters:
         """Create ThermalParameters from a config dictionary."""
@@ -192,6 +262,12 @@ class ThermalParameters:
             CONF_DHW_SETPOINT,
             CONF_DHW_MIN_TEMP,
             CONF_DHW_DAILY_CONSUMPTION,
+            CONF_DHW_SCHEDULE_ENABLED,
+            CONF_DHW_WINDOWS,
+            CONF_DHW_IDLE_MIN_TEMP,
+            CONF_DHW_LEGIONELLA_ENABLED,
+            CONF_DHW_LEGIONELLA_TEMP,
+            CONF_DHW_LEGIONELLA_INTERVAL_DAYS,
             CONF_WIND_SENSITIVITY,
             CONF_RAIN_HEAT_LOSS_MULTIPLIER,
             CONF_ECL110_DISPLACE_MIN,
@@ -214,8 +290,22 @@ class ThermalParameters:
         # Detect if DHW config is provided
         dhw_enabled = any(
             k in config
-            for k in (CONF_DHW_TANK_VOLUME, CONF_DHW_TEMP_ENTITY)
+            for k in (CONF_DHW_TANK_VOLUME, CONF_DHW_TEMP_ENTITY, CONF_DHW_WINDOWS)
         )
+
+        # DHW demand windows: fall back to the default schedule when the stored
+        # value is missing, and to "always available" when it cannot be parsed.
+        windows_spec = config.get(CONF_DHW_WINDOWS, DEFAULT_DHW_WINDOWS)
+        try:
+            dhw_windows = parse_windows(windows_spec)
+        except DHWWindowError as err:
+            _LOGGER.warning(
+                "Invalid DHW window configuration %r (%s); falling back to "
+                "always-available hot water",
+                windows_spec,
+                err,
+            )
+            dhw_windows = []
 
         return cls(
             # Legacy
@@ -280,6 +370,25 @@ class ThermalParameters:
             ),
             dhw_daily_consumption=config.get(
                 CONF_DHW_DAILY_CONSUMPTION, DEFAULT_DHW_DAILY_CONSUMPTION
+            ),
+            dhw_schedule_enabled=bool(
+                config.get(CONF_DHW_SCHEDULE_ENABLED, DEFAULT_DHW_SCHEDULE_ENABLED)
+            ),
+            dhw_windows=dhw_windows,
+            dhw_idle_min_temp=config.get(
+                CONF_DHW_IDLE_MIN_TEMP, DEFAULT_DHW_IDLE_MIN_TEMP
+            ),
+            dhw_legionella_enabled=bool(
+                config.get(
+                    CONF_DHW_LEGIONELLA_ENABLED, DEFAULT_DHW_LEGIONELLA_ENABLED
+                )
+            ),
+            dhw_legionella_temp=config.get(
+                CONF_DHW_LEGIONELLA_TEMP, DEFAULT_DHW_LEGIONELLA_TEMP
+            ),
+            dhw_legionella_interval_days=config.get(
+                CONF_DHW_LEGIONELLA_INTERVAL_DAYS,
+                DEFAULT_DHW_LEGIONELLA_INTERVAL_DAYS,
             ),
             # Weather sensitivity
             wind_sensitivity=config.get(
@@ -346,6 +455,9 @@ class ThermalState:
 
     # DHW state
     dhw_temperature: float = 55.0  # °C current DHW tank temperature
+    # Hours since the tank was last known to be at anti-legionella temperature.
+    # None means "unknown" and is treated as not due.
+    dhw_hours_since_legionella: float | None = None
 
     # ECL110 control state
     ecl110_displace_command: float = 0.0  # °C requested parallel shift
@@ -500,15 +612,37 @@ class ThermalModel:
     def dhw_draw_rate(self, hour_of_day: float) -> float:
         """Get DHW draw rate in kW for a given hour of day.
 
-        Uses a time-of-day pattern multiplied by average draw power.
+        Uses a time-of-day pattern multiplied by average draw power. When the
+        user configured DHW demand windows, draws only occur inside them.
         """
         hour_idx = int(hour_of_day) % 24
-        pattern_multiplier = self.params.dhw_hourly_draw_pattern[hour_idx]
-        return self.params.dhw_draw_power * pattern_multiplier
+        pattern = self.params.effective_dhw_draw_pattern()
+        return self.params.dhw_draw_power * pattern[hour_idx]
+
+    def dhw_draw_rates(self, step_hours: np.ndarray) -> np.ndarray:
+        """Vectorized draw rates (kW) for a sequence of hour-of-day values."""
+        pattern = np.asarray(self.params.effective_dhw_draw_pattern(), dtype=float)
+        indices = (np.asarray(step_hours, dtype=float).astype(int)) % 24
+        return self.params.dhw_draw_power * pattern[indices]
 
     def dhw_usage_intensity(self, hour_of_day: float) -> float:
         """Return normalized DHW usage intensity for a given hour (avg ~= 1.0)."""
-        return self.params.dhw_hourly_draw_pattern[int(hour_of_day) % 24]
+        return self.params.effective_dhw_draw_pattern()[int(hour_of_day) % 24]
+
+    def dhw_hold_hours(self) -> float:
+        """Estimated hours a full tank can coast before dropping to the min temp.
+
+        Used to bound how far ahead pre-heating may be scheduled: heating too
+        early simply burns the extra energy as standby loss.
+        """
+        p = self.params
+        c_dhw = max(p.dhw_tank_thermal_mass, 0.01)
+        span = max(p.dhw_setpoint - p.dhw_min_temp, 1.0)
+        avg_temp = 0.5 * (p.dhw_setpoint + p.dhw_min_temp)
+        loss_kw = max(
+            p.dhw_tank_heat_loss_coefficient * max(avg_temp - 20.0, 1.0), 1e-3
+        )
+        return float(np.clip(c_dhw * span / loss_kw, 2.0, 18.0))
 
     def simulate_dhw_step(
         self,
@@ -517,6 +651,7 @@ class ThermalModel:
         hour_of_day: float,
         ambient_temp: float = 20.0,
         dt_hours: float = 0.25,
+        draw_power: float | None = None,
     ) -> float:
         """Simulate one time step of DHW tank dynamics.
 
@@ -526,6 +661,8 @@ class ThermalModel:
             hour_of_day: Current hour (0-24) for draw pattern
             ambient_temp: Ambient temperature near the tank (°C)
             dt_hours: Time step (hours)
+            draw_power: Pre-computed draw power (kW); avoids recomputing the
+                hourly pattern inside hot optimization loops.
 
         Returns:
             New DHW tank temperature (°C)
@@ -539,7 +676,9 @@ class ThermalModel:
         q_in = dhw_power_thermal
 
         # Heat drawn by consumption
-        q_draw = self.dhw_draw_rate(hour_of_day)
+        q_draw = (
+            self.dhw_draw_rate(hour_of_day) if draw_power is None else draw_power
+        )
 
         # Standby heat loss to ambient
         q_loss = p.dhw_tank_heat_loss_coefficient * (dhw_temp - ambient_temp)
@@ -552,6 +691,34 @@ class ThermalModel:
         new_temp = max(10.0, new_temp)
 
         return new_temp
+
+    def simulate_dhw_only(
+        self,
+        initial_temp: float,
+        dhw_power_schedule: np.ndarray,
+        outdoor_temps: np.ndarray,
+        draw_rates: np.ndarray,
+        dt_hours: float = 0.25,
+    ) -> np.ndarray:
+        """Simulate the DHW tank alone (used for fast schedule planning).
+
+        Returns an array of length ``n_steps + 1`` starting at ``initial_temp``.
+        """
+        n_steps = len(dhw_power_schedule)
+        temps = np.zeros(n_steps + 1)
+        temps[0] = initial_temp
+        temp = initial_temp
+        for i in range(n_steps):
+            cop = self.compute_cop_dhw(float(outdoor_temps[i]), temp)
+            temp = self.simulate_dhw_step(
+                dhw_temp=temp,
+                dhw_power_thermal=cop * float(dhw_power_schedule[i]),
+                hour_of_day=0.0,
+                dt_hours=dt_hours,
+                draw_power=float(draw_rates[i]),
+            )
+            temps[i + 1] = temp
+        return temps
 
     # ------------------------------------------------------------------
     # Single-zone simulation (backward compatible)
@@ -790,8 +957,15 @@ class ThermalModel:
         solar_radiation: np.ndarray | None = None,
         start_hour: float = 0.0,
         dt_hours: float = 0.25,
+        dhw_draw_rates: np.ndarray | None = None,
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Simulate full trajectory with coordinated space + DHW heating.
+
+        Args:
+            dhw_draw_rates: Optional pre-computed per-step DHW draw power (kW).
+                Passing it avoids re-deriving the hourly pattern on every call,
+                which matters because the optimizer evaluates this thousands of
+                times per solve.
 
         Returns:
             Tuple of (room_temps, slab_temps, upper_temps, lower_temps, dhw_temps)
@@ -804,6 +978,9 @@ class ThermalModel:
             precipitation = np.zeros(n_steps)
         if solar_radiation is None:
             solar_radiation = np.zeros(n_steps)
+        if dhw_draw_rates is None:
+            hours = (start_hour + np.arange(n_steps) * dt_hours) % 24.0
+            dhw_draw_rates = self.dhw_draw_rates(hours)
 
         room_temps = np.zeros(n_steps + 1)
         slab_temps = np.zeros(n_steps + 1)
@@ -842,6 +1019,7 @@ class ThermalModel:
                 hour_of_day=current_hour % 24.0,
                 ambient_temp=20.0,  # indoor ambient near tank
                 dt_hours=dt_hours,
+                draw_power=float(dhw_draw_rates[i]),
             )
             state.dhw_temperature = new_dhw
 

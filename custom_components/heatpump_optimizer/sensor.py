@@ -603,11 +603,23 @@ class DHWTemperatureSensor(HeatPumpOptimizerSensorBase):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         if self.coordinator.data:
+            data = self.coordinator.data
+            info = data.get("predictive_info", {})
             return {
-                "dhw_setpoint": self.coordinator.data.get("dhw_setpoint"),
-                "dhw_min_temperature": self.coordinator.data.get("dhw_min_temperature"),
-                "dhw_heating_active": self.coordinator.data.get("dhw_heating_active", False),
-                "dhw_enabled": self.coordinator.data.get("dhw_enabled", False),
+                "dhw_setpoint": data.get("dhw_setpoint"),
+                "dhw_min_temperature": data.get("dhw_min_temperature"),
+                "dhw_heating_active": data.get("dhw_heating_active", False),
+                "dhw_enabled": data.get("dhw_enabled", False),
+                "dhw_windows": data.get("dhw_windows"),
+                "dhw_in_demand_window": data.get("dhw_in_demand_window"),
+                "dhw_next_window_in_hours": data.get("dhw_next_window_in_hours"),
+                "dhw_required_temperature": info.get(
+                    "dhw_required_temperature_now", data.get("dhw_min_temperature")
+                ),
+                "dhw_idle_min_temperature": data.get("dhw_idle_min_temperature"),
+                "dhw_legionella_due_in_hours": data.get(
+                    "dhw_legionella_due_in_hours"
+                ),
             }
         return {}
 
@@ -635,8 +647,20 @@ class DHWScheduleSensor(HeatPumpOptimizerSensorBase):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         if self.coordinator.data:
+            data = self.coordinator.data
+            info = data.get("predictive_info", {})
             return {
-                "dhw_schedule": self.coordinator.data.get("dhw_schedule", []),
+                "dhw_schedule": data.get("dhw_schedule", []),
+                "dhw_windows": data.get("dhw_windows"),
+                "dhw_schedule_enabled": data.get("dhw_schedule_enabled"),
+                "dhw_in_demand_window": data.get("dhw_in_demand_window"),
+                "dhw_next_window_in_hours": data.get("dhw_next_window_in_hours"),
+                "dhw_planned_heating_hours": info.get("dhw_planned_heating_hours", []),
+                "dhw_legionella_due": info.get("dhw_legionella_due"),
+                "dhw_legionella_step_hour": info.get("dhw_legionella_step_hour"),
+                "dhw_legionella_due_in_hours": data.get(
+                    "dhw_legionella_due_in_hours"
+                ),
             }
         return {}
 
@@ -717,6 +741,15 @@ class PredictiveInsightSensor(HeatPumpOptimizerSensorBase):
                 "dhw_peak_usage_hours": info.get("dhw_peak_usage_hours"),
                 "dhw_min_temperature": info.get("dhw_min_temperature"),
                 "dhw_target_temperature": info.get("dhw_target_temperature"),
+                "dhw_windows": info.get("dhw_windows"),
+                "dhw_in_demand_window": info.get("dhw_in_demand_window"),
+                "dhw_next_window_in_hours": info.get("dhw_next_window_in_hours"),
+                "dhw_required_temperature_now": info.get(
+                    "dhw_required_temperature_now"
+                ),
+                "dhw_idle_min_temperature": info.get("dhw_idle_min_temperature"),
+                "dhw_legionella_due": info.get("dhw_legionella_due"),
+                "dhw_planned_heating_hours": info.get("dhw_planned_heating_hours"),
                 "dhw_usage_profile": self.coordinator.data.get("dhw_usage_profile", []),
             }
         return {}

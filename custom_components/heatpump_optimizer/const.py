@@ -73,6 +73,16 @@ CONF_DHW_SETPOINT: Final = "dhw_setpoint"  # °C
 CONF_DHW_MIN_TEMP: Final = "dhw_min_temperature"  # °C
 CONF_DHW_DAILY_CONSUMPTION: Final = "dhw_daily_consumption"  # liters/day
 
+# DHW demand windows — the time frames where hot water must be available
+CONF_DHW_SCHEDULE_ENABLED: Final = "dhw_schedule_enabled"
+CONF_DHW_WINDOWS: Final = "dhw_windows"  # "06:00-08:30, 17:00-22:00"
+CONF_DHW_IDLE_MIN_TEMP: Final = "dhw_idle_min_temperature"  # °C outside windows
+
+# DHW anti-legionella cycle
+CONF_DHW_LEGIONELLA_ENABLED: Final = "dhw_legionella_enabled"
+CONF_DHW_LEGIONELLA_TEMP: Final = "dhw_legionella_temperature"  # °C
+CONF_DHW_LEGIONELLA_INTERVAL_DAYS: Final = "dhw_legionella_interval_days"
+
 # Weather sensitivity parameters
 CONF_WIND_SENSITIVITY: Final = "wind_sensitivity_factor"  # fraction per m/s
 CONF_RAIN_HEAT_LOSS_MULTIPLIER: Final = "rain_heat_loss_multiplier"  # multiplier
@@ -120,9 +130,21 @@ DEFAULT_SOLAR_UPPER_FRACTION: Final = 0.4  # 40% upper, 60% lower (open layout, 
 
 # DHW defaults
 DEFAULT_DHW_TANK_VOLUME: Final = 200.0  # liters
-DEFAULT_DHW_SETPOINT: Final = 55.0  # °C
-DEFAULT_DHW_MIN_TEMP: Final = 45.0  # °C - legionella safety
+DEFAULT_DHW_SETPOINT: Final = 55.0  # °C - "ready" temperature at window start
+DEFAULT_DHW_MIN_TEMP: Final = 45.0  # °C - usable minimum inside demand windows
 DEFAULT_DHW_DAILY_CONSUMPTION: Final = 150.0  # liters/day average household
+
+# DHW demand window defaults
+DEFAULT_DHW_SCHEDULE_ENABLED: Final = True
+DEFAULT_DHW_WINDOWS: Final = "06:00-08:30, 17:00-22:00"
+# Outside the demand windows there is no availability requirement. The default
+# equals the tank ambient temperature, i.e. "let it coast".
+DEFAULT_DHW_IDLE_MIN_TEMP: Final = 20.0  # °C
+
+# DHW anti-legionella defaults
+DEFAULT_DHW_LEGIONELLA_ENABLED: Final = True
+DEFAULT_DHW_LEGIONELLA_TEMP: Final = 60.0  # °C
+DEFAULT_DHW_LEGIONELLA_INTERVAL_DAYS: Final = 7.0
 
 # Weather sensitivity defaults
 DEFAULT_WIND_SENSITIVITY: Final = 0.15  # 15% heat loss increase per m/s wind
@@ -198,6 +220,11 @@ ATTR_DHW_SETPOINT: Final = "dhw_setpoint"
 ATTR_DHW_HEATING_ACTIVE: Final = "dhw_heating_active"
 ATTR_DHW_HEATING_SCHEDULE: Final = "dhw_heating_schedule"
 ATTR_DHW_HEATING_COST: Final = "dhw_heating_cost"
+ATTR_DHW_WINDOWS: Final = "dhw_windows"
+ATTR_DHW_IN_DEMAND_WINDOW: Final = "dhw_in_demand_window"
+ATTR_DHW_NEXT_WINDOW_IN_HOURS: Final = "dhw_next_window_in_hours"
+ATTR_DHW_REQUIRED_TEMP: Final = "dhw_required_temperature"
+ATTR_DHW_LEGIONELLA_DUE_IN_HOURS: Final = "dhw_legionella_due_in_hours"
 
 # Wind chill factor (additional heat loss per m/s wind) — legacy, now configurable
 WIND_CHILL_FACTOR: Final = 0.005  # kW/°C per m/s

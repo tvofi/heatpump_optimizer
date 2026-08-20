@@ -73,12 +73,18 @@
       },
       "dhw": {
         "title": "Varmvattenkonfiguration (VVB)",
-        "description": "Valfritt: Konfigurera varmvattenberedare. Optimeraren samordnar varmvattenuppvärmning med rumsuppvärmning och värmer vatten under billiga elperioder med bibehållen minimiuttemperatur.",
+        "description": "Valfritt: Konfigurera varmvattenberedaren. Ange tidsintervall då varmvatten måste finnas tillgängligt — optimeraren garanterar då en användbar tanktemperatur under dessa intervall och värmer vattnet under de billigaste timmarna dessförinnan. Utanför intervallen får tanken svalna, så ingen el går åt till att hålla vatten varmt som ingen använder. Ange tider i 24-timmarsformat separerade med komma, till exempel \"06:00-08:30, 17:00-22:00\". Lämna tomt för att kräva varmvatten dygnet runt.",
         "data": {
           "dhw_tank_volume": "VVB-tankvolym (L)",
           "dhw_setpoint": "VVB måltemperatur (°C)",
           "dhw_min_temperature": "VVB minimiutemperatur (°C)",
-          "dhw_daily_consumption": "Daglig varmvattenförbrukning (L/dag)"
+          "dhw_daily_consumption": "Daglig varmvattenförbrukning (L/dag)",
+          "dhw_schedule_enabled": "Garantera bara varmvatten under valda tidsintervall",
+          "dhw_windows": "Tidsintervall för varmvatten (t.ex. 06:00-08:30, 17:00-22:00)",
+          "dhw_legionella_enabled": "Legionellakörning",
+          "dhw_legionella_interval_days": "Legionellaintervall (dygn)",
+          "dhw_idle_min_temperature": "Lägsta tanktemperatur utanför intervallen (°C)",
+          "dhw_legionella_temperature": "Legionellatemperatur (°C)"
         }
       },
       "weather_sensitivity": {
@@ -91,7 +97,8 @@
       }
     },
     "error": {
-      "invalid_tibber_token": "Ogiltig Tibber API-nyckel. Kontrollera och försök igen."
+      "invalid_tibber_token": "Ogiltig Tibber API-nyckel. Kontrollera och försök igen.",
+      "invalid_dhw_windows": "Ogiltiga tidsintervall för varmvatten. Använd 24-timmarsformat, t.ex. \"06:00-08:30, 17:00-22:00\"."
     },
     "abort": {
       "already_configured": "Denna integration är redan konfigurerad."
@@ -129,9 +136,18 @@
           "ecl110_mqtt_retain": "Behåll ECL110 MQTT-meddelanden",
           "ecl110_displace_min": "ECL110 displace minimum (°C)",
           "ecl110_displace_max": "ECL110 displace maximum (°C)",
-          "ecl110_pid_time_constant_hours": "ECL110 PI/PID tidskonstant (timmar)"
+          "ecl110_pid_time_constant_hours": "ECL110 PI/PID tidskonstant (timmar)",
+          "dhw_schedule_enabled": "Garantera bara varmvatten under valda tidsintervall",
+          "dhw_windows": "Tidsintervall för varmvatten (t.ex. 06:00-08:30, 17:00-22:00)",
+          "dhw_legionella_enabled": "Legionellakörning",
+          "dhw_legionella_interval_days": "Legionellaintervall (dygn)",
+          "dhw_idle_min_temperature": "Lägsta tanktemperatur utanför intervallen (°C)",
+          "dhw_legionella_temperature": "Legionellatemperatur (°C)"
         }
       }
+    },
+    "error": {
+      "invalid_dhw_windows": "Ogiltiga tidsintervall för varmvatten. Använd 24-timmarsformat, t.ex. \"06:00-08:30, 17:00-22:00\"."
     }
   }
 }

@@ -72,6 +72,12 @@ SERVICE_SCHEMA_SET_THERMAL_PARAMS = vol.Schema(
         vol.Optional("dhw_setpoint"): vol.Coerce(float),
         vol.Optional("dhw_min_temperature"): vol.Coerce(float),
         vol.Optional("dhw_daily_consumption"): vol.Coerce(float),
+        vol.Optional("dhw_schedule_enabled"): cv.boolean,
+        vol.Optional("dhw_windows"): cv.string,
+        vol.Optional("dhw_idle_min_temperature"): vol.Coerce(float),
+        vol.Optional("dhw_legionella_enabled"): cv.boolean,
+        vol.Optional("dhw_legionella_temperature"): vol.Coerce(float),
+        vol.Optional("dhw_legionella_interval_days"): vol.Coerce(float),
         # Weather sensitivity parameters
         vol.Optional("wind_sensitivity_factor"): vol.Coerce(float),
         vol.Optional("rain_heat_loss_multiplier"): vol.Coerce(float),
