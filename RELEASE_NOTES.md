@@ -1,5 +1,72 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v2.4.0
+
+### Summary
+Two things: the options flow is now a proper menu where every setting,
+including the sensor entities, can be changed after setup and every field is
+explained in plain language. And the optimizer got substantially cheaper to
+run, because the term that pulls the house toward the target temperature was
+drowning out the electricity price.
+
+### Changed
+- **The comfort pull is now measured against the range you allow.** The
+  pull-to-target penalty was a fixed quadratic, which at a typical winter
+  setting was roughly 2.4x the entire electricity bill for the day. The
+  optimizer therefore behaved like an ordinary thermostat and the minimum
+  temperature you configured had almost no effect. It is now scaled by the gap
+  between your target and your minimum, so widening that range genuinely buys
+  cheaper operation and narrowing it holds the setpoint tighter. Winter savings
+  went from ~35% to ~45% in a single-zone house and from ~15% to ~36% in a
+  two-zone house.
+
+  If you prefer the previous, warmer behaviour, raise "How strictly to hold the
+  temperature". Around 5 lets the house use the full range you allow, 10 keeps
+  it noticeably closer to target, and 20 or more behaves much like a thermostat.
+
+- **Reconfiguration is now a menu.** Instead of one long form, the options flow
+  opens on a menu with separate pages for sensors, comfort, hot water, the
+  building, tuning and the heat curve. Editing one page leaves the others
+  untouched.
+
+### Added
+- **Sensor entities can be changed after setup.** Indoor and outdoor
+  temperature, solar radiance, wind, precipitation, power and energy meters and
+  the Tibber token can all be re-pointed from the options flow. Previously they
+  were fixed at initial setup. Clearing a field now genuinely clears it.
+- **Every setting is explained.** All options pages and all setup steps have
+  friendly labels and a per-field description, in English and Swedish, instead
+  of raw parameter names.
+- **A terminal cost on the planning horizon.** Nothing beyond the horizon was
+  scored, so the optimizer reliably dumped the last couple of hours of every
+  plan: it coasted the house down because the resulting cold never appeared in
+  the objective. End-of-horizon shortfall is now priced using the same
+  reference the savings settle-up uses, so the plan and the reported savings
+  agree.
+
+### Fixed
+- **Two-zone houses were applying the comfort weight twice.** The penalty
+  summed both zones, so a two-zone house behaved as if the setting were double
+  what was configured. It hugged the setpoint and gave up most of the available
+  savings, and used 22% of its energy in the most expensive quarter of the day
+  against 3% now. The penalty is averaged across zones, so the setting means
+  the same thing in both modes.
+- **Savings could be reported as strongly negative in summer.** The settle-up
+  charged the optimizer for ending *less* overheated than the baseline: in July
+  both end up well above target from solar gain, and stored heat above what is
+  actually useful was still being valued. Stored heat is now capped at what the
+  comfort target and hot water requirement genuinely call for, and only real
+  shortfalls are charged.
+- **Two-zone end-of-horizon state was partly fabricated.** The end state was
+  built from the room and slab only, so in two-zone mode the floor and buffer
+  tank temperatures silently fell back to their defaults and were compared
+  against the baseline's real values. The schedule is now replayed through the
+  model to get a consistent end state.
+- **"Suboptimal" was reported for perfectly good plans.** On a flat price curve
+  the cost surface is genuinely degenerate, so the solver's line search aborts
+  even though the result is fine. That is no longer surfaced as suboptimal
+  unless the solver actually failed to improve on its starting point.
+
 ## v2.3.1
 
 ### Summary
