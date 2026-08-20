@@ -23,6 +23,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.helpers import config_validation as cv
+from homeassistant.loader import async_get_integration
 
 from .const import (
     DOMAIN,
@@ -122,6 +123,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.setdefault(DOMAIN, {})
 
     coordinator = HeatPumpOptimizerCoordinator(hass, entry)
+    try:
+        integration = await async_get_integration(hass, DOMAIN)
+        coordinator.integration_version = str(integration.version)
+    except Exception:  # noqa: BLE001 - version is cosmetic, never block setup
+        _LOGGER.debug("Could not resolve integration version", exc_info=True)
     await coordinator.async_config_entry_first_refresh()
 
     hass.data[DOMAIN][entry.entry_id] = coordinator

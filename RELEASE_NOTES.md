@@ -1,5 +1,57 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v2.4.1
+
+### Summary
+A QA pass against a real Home Assistant instance found two ways an ordinary
+weather forecast could quietly ruin a day's heating plan, plus a handful of
+smaller defects. If your house has been running warmer and more expensively
+than the savings figures suggested, this release is likely the reason why.
+
+### Fixed
+- **Wind speed is no longer guessed from its magnitude.** The forecast wind was
+  assumed to be km/h whenever it exceeded 30, and m/s otherwise. Home Assistant
+  hands the forecast over in whichever unit you have configured, so an ordinary
+  20 km/h breeze fell under that threshold and was used as 20 m/s, a severe
+  storm. For anyone whose units are km/h that inflated the predicted heat loss
+  2.17x, the scheduled energy by 128% and the predicted cost by 211%. The
+  correction applied above the threshold was the km/h factor, so it was wrong
+  for mph as well. The unit is now read from the weather entity, and m/s, km/h,
+  mph and knots all produce the same plan.
+
+- **A single missing value in the forecast no longer disables the optimizer.**
+  Weather integrations are allowed to report a field as empty. An empty wind
+  speed raised an error that was caught and discarded, so the integration went
+  on looking perfectly healthy while silently never producing a plan again. An
+  empty temperature was worse: it spread through the prediction until most of
+  the 24-hour trajectory was invalid, the solver gave up, and the savings
+  sensors either disappeared at startup or froze at their last value while
+  logging an error every cycle. Unusable values now fall back to a sane default.
+
+- **Missing electricity prices are reported instead of invented.** When prices
+  could not be fetched, a flat 0.5 SEK/kWh curve was substituted and the
+  optimizer still published a savings figure that no price data supported. It
+  now says so in the log and skips the run, leaving the cost sensors unknown.
+
+- **The hot water slab thermal mass could not be set.** The `slab_thermal_mass`
+  field of the `set_thermal_parameters` service was documented and accepted but
+  silently did nothing.
+
+- **The target temperature on the thermostat card is yours again.** It used to
+  show the optimizer's own setpoint for the current 15-minute step, so the card
+  drifted away from whatever you had just dialled in, and your change was lost
+  on the next reload. The card now shows and remembers your target; the
+  optimizer's current setpoint is available as the "Optimal Setpoint" sensor and
+  as an `optimizer_setpoint` attribute.
+
+- **The current price sensor records history again.** It declared itself a
+  monetary sensor while reporting a continuous measurement, a combination Home
+  Assistant rejects, so it warned on every startup and stored no statistics.
+
+- **Turning the optimizer off no longer reports an unknown preset**, and the
+  three platforms no longer disagree about the device's model and version. The
+  device now reports the real version from the manifest.
+
 ## v2.4.0
 
 ### Summary
