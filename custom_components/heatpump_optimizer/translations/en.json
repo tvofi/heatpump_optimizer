@@ -83,9 +83,16 @@
           "comfort_weight": "How strictly to hold the temperature"
         },
         "data_description": {
+          "house_thermal_mass": "How much heat the building fabric stores per degree. Higher means the house holds its temperature longer and can coast further through expensive hours. Roughly 3 kWh/°C for a light timber house, 8 or more for heavy masonry.",
+          "house_heat_loss_coefficient": "How fast the house loses heat per degree of difference to outside. Multiply by the indoor-outdoor gap to get the heating power needed: 0.25 kW/°C at 20 degrees difference means about 5 kW.",
+          "slab_thermal_mass": "Heat stored in the concrete slab per degree. This is the buffer that lets floor heating be switched off during price peaks without the room getting cold.",
+          "slab_heat_transfer": "How quickly heat moves from the slab into the room. Lower values mean a slow, sluggish floor that has to be charged further in advance.",
+          "heat_pump_cop_nominal": "Units of heat produced per unit of electricity under normal conditions. Check the data sheet; 3 to 4 is typical for air-to-water, 4 to 5 for ground source.",
+          "heat_pump_max_power": "Electrical input at full output. Caps how much cheap electricity can be stored per hour.",
+          "heat_pump_min_power": "Lowest electrical input the pump can run at without cycling on and off.",
+          "optimization_interval": "How often the plan is recalculated against fresh prices and weather. More often reacts quicker but does more work.",
           "price_weight": "Higher means the optimizer works harder to move heating into cheap hours, at the cost of letting the temperature swing more.",
-          "comfort_weight": "The counterweight to the setting above, and the most effective knob you have. It is measured against the range you allow, so widening that range makes the optimizer bolder. Around 5 lets the house drift freely inside your allowed range for the biggest savings; 10 keeps it noticeably closer to target; 20 or more behaves almost like an ordinary thermostat.",
-          "optimization_interval": "How often the plan is recalculated against fresh prices and weather. More often reacts quicker but does more work."
+          "comfort_weight": "The counterweight to the setting above, and the most effective knob you have. It is measured against the range you allow, so widening that range makes the optimizer bolder. Around 5 lets the house drift freely inside your allowed range for the biggest savings; 10 keeps it noticeably closer to target; 20 or more behaves almost like an ordinary thermostat."
         }
       },
       "zones": {
@@ -105,9 +112,16 @@
           "solar_heat_gain_coefficient": "How much sunlight the windows let through"
         },
         "data_description": {
-          "buffer_tank_volume": "Litres. The tank between the heat pump and the heating circuits. Larger tanks store more cheap heat.",
+          "upper_floor_thermal_mass": "Two-zone systems only. Heat stored per degree in the radiator-heated upper floor. Usually much lower than the slab, so this zone reacts faster.",
+          "lower_floor_thermal_mass": "Two-zone systems only. Heat stored per degree in the slab-heated lower floor.",
+          "upper_floor_heat_loss": "Two-zone systems only. How fast the upper floor loses heat per degree of difference to outside.",
+          "lower_floor_heat_loss": "Two-zone systems only. How fast the lower floor loses heat per degree of difference to outside.",
+          "inter_zone_heat_transfer": "How much heat drifts between the two floors. Higher values mean heating one floor warms the other as well, typical for an open stairwell.",
           "radiator_power_fraction": "Two-zone systems only. 0 means all heat goes to the floor slab, 1 means all of it goes to the radiators. 0.4 means 40 percent to radiators.",
+          "upper_floor_area_ratio": "Share of the total floor area that sits upstairs. 0.5 means the two floors are the same size.",
+          "buffer_tank_volume": "Litres. The tank between the heat pump and the heating circuits. Larger tanks store more cheap heat.",
           "window_area": "Square metres of glazing that gets direct sun. Used to predict free solar heating.",
+          "solar_orientation_factor": "How well the windows face the sun over a day. 1.0 suits mostly south-facing glazing; lower it for east or west facing windows that only catch part of the day.",
           "solar_heat_gain_coefficient": "0.6 is typical for modern triple glazing. Higher means more free heat on sunny days."
         }
       },
