@@ -184,6 +184,18 @@ class SavingsPercentageSensor(HeatPumpOptimizerSensorBase):
             return round(val, 1) if val is not None else None
         return None
 
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        data = self.coordinator.data or {}
+        return {
+            "baseline_cost": data.get("baseline_cost"),
+            "predicted_cost": data.get("predicted_cost"),
+            # Heat the plan leaves unstored at the end of the horizon has to be
+            # bought back later, so it is charged against the savings even
+            # though it is not part of predicted_cost.
+            "deferred_energy_cost": data.get("deferred_energy_cost"),
+        }
+
 
 class PredictedCostSensor(HeatPumpOptimizerSensorBase):
     _attr_icon = "mdi:currency-usd"
