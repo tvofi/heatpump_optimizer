@@ -1,5 +1,52 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v2.3.1
+
+### Summary
+Fixes the savings sensors, which routinely reported implausible numbers (often
+above 90%). The reported figure is the gap between an optimized plan and a
+"what a normal thermostat would have done" baseline, and the baseline was
+burning far more energy than any real thermostat would.
+
+### Fixed
+- **The baseline no longer burns minimum power around the clock.** Baseline
+  power was clipped to a *minimum* of the heat pump's minimum modulation power,
+  so the reference schedule consumed at least `min_power x 24 h` every day even
+  in weather that needs no heating at all. On a mild day that was a flat
+  ~24 kWh against an optimized 0.16 kWh, which by itself produced the >90%
+  readings. It also drove the baseline house to 25.3 °C, which no thermostat
+  would do. Minimum modulation power is the lowest the pump can run *while
+  running*; a pump that cannot go lower cycles instead, so 0 is now allowed.
+- **The same floor applied to the optimizer itself.** With DHW disabled, space
+  heating power was bounded below by the minimum modulation power, so the pump
+  was forced on every single step. In warm weather this heated the house to
+  25.3 °C and cost 40 SEK/day where the correct answer was to stay off.
+- **The baseline is now a real thermostat.** It used a heuristic proportional
+  term that over-delivered heat. It is now a cascade controller derived from
+  the thermal model's own steady state, so the comparison is like-for-like. It
+  holds the setpoint within 0.02–0.5 °C and its energy balance closes exactly.
+- **End-of-horizon borrowed heat is no longer counted as savings.** Nothing
+  past the optimization window is penalised, so the plan coasts the building
+  and tank down as the window closes. That heat has to be bought back in the
+  next window. The difference in stored thermal energy is now settled up at the
+  25th-percentile price and charged against the reported savings. It is
+  published separately as a `deferred_energy_cost` attribute on the savings
+  percentage sensor, so `predicted_cost` remains the actual expected spend.
+- **Savings percentage is clamped and guarded.** Baselines at or near zero no
+  longer turn rounding noise into huge percentages.
+- **Two-zone simulation lost the slab temperature every step.** The two-zone
+  step function computed the new slab temperature and then dropped it when
+  building the next state, so the slab was pinned at its default value forever
+  and the lower floor could never be charged. Outdoor temperature and the
+  anti-legionella timer were dropped the same way, which broke legionella
+  tracking in two-zone mode.
+
+### Effect on reported numbers
+A control scenario with a completely flat electricity price, where there is
+nothing to arbitrage and correct savings are therefore near zero, previously
+reported 27%. It now reports 3.1%. Realistic scenarios with a 10x daily price
+spread report 43–50% instead of up to 93%.
+
 ## v2.3.0
 
 ### Summary

@@ -39,7 +39,12 @@ from typing import Any
 import numpy as np
 from scipy.optimize import minimize
 
-from .thermal_model import ThermalModel, ThermalParameters, ThermalState
+from .thermal_model import (
+    DHW_AMBIENT_TEMP,
+    ThermalModel,
+    ThermalParameters,
+    ThermalState,
+)
 from .dhw_schedule import (
     FULL_DAY,
     Window,
@@ -50,6 +55,17 @@ from .dhw_schedule import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _savings_percentage(savings: float, baseline_cost: float) -> float:
+    """Savings as a percentage of the baseline, clamped to a sensible range.
+
+    A baseline at or near zero (a warm day where a thermostat would barely run)
+    would otherwise turn rounding noise into a huge percentage.
+    """
+    if baseline_cost <= 0.01:
+        return 0.0
+    return float(np.clip(savings / baseline_cost * 100.0, -100.0, 100.0))
 
 
 @dataclass
@@ -68,6 +84,11 @@ class OptimizationResult:
     optimal_setpoints: list[float]  # recommended setpoints per step
     status: str  # optimization status
     solve_time_ms: float = 0.0
+    # Cost of restoring heat the plan left unstored at the end of the horizon.
+    # Excluded from predicted_cost (which is what will actually be spent in the
+    # window) but charged against the savings so borrowed heat is not counted
+    # as a saving.
+    deferred_energy_cost: float = 0.0
 
     # ECL110-oriented control outputs
     displace_schedule: list[float] = field(default_factory=list)
@@ -553,7 +574,10 @@ class HeatPumpOptimizer:
             initial_power[i] *= anticipatory_weights[i]
 
         initial_power = np.clip(initial_power, p_min, p_max)
-        bounds = [(p_min, p_max)] * n_steps
+        # A heat pump can be off. min_electrical_power is the lowest it can
+        # modulate to while running, not a floor it must burn every step, so
+        # allow 0 and read sub-minimum values as duty cycling within the step.
+        bounds = [(0.0, p_max)] * n_steps
 
         try:
             result = minimize(
@@ -586,13 +610,22 @@ class HeatPumpOptimizer:
         solar_gains = [self.model.compute_solar_gain(sr) for sr in solar_radiation]
 
         # Compute baseline cost
-        baseline_power = self._compute_baseline_power(
+        baseline_power, baseline_end = self._compute_baseline_power(
             initial_state, outdoor_temps, wind_speeds, precipitation,
             solar_radiation, dt,
         )
         baseline_cost = float(np.sum(prices * baseline_power * dt))
         predicted_cost = float(np.sum(prices * optimal_power * dt))
-        savings = baseline_cost - predicted_cost
+
+        optimized_end = ThermalState(
+            room_temperature=float(room_temps[-1]),
+            slab_temperature=float(slab_temps[-1]),
+            outdoor_temperature=float(outdoor_temps[-1]),
+        )
+        deferred_cost = self._deferred_energy_cost(
+            baseline_end, optimized_end, prices, outdoor_temps,
+        )
+        savings = baseline_cost - predicted_cost - deferred_cost
 
         timestamps = [
             start_time + timedelta(hours=i * dt) for i in range(n_steps)
@@ -627,7 +660,7 @@ class HeatPumpOptimizer:
             "Optimization completed in %.0fms: cost=%.2f, baseline=%.2f, savings=%.1f%%, "
             "solar_reduction=%.2f, wind_factor=%.2f",
             t_elapsed, predicted_cost, baseline_cost,
-            (savings / baseline_cost * 100) if baseline_cost > 0 else 0,
+            _savings_percentage(savings, baseline_cost),
             forecast_analysis["solar_reduction_factor"],
             forecast_analysis["wind_anticipation_factor"],
         )
@@ -641,9 +674,8 @@ class HeatPumpOptimizer:
             predicted_cost=predicted_cost,
             baseline_cost=baseline_cost,
             predicted_savings=savings,
-            savings_percentage=(
-                (savings / baseline_cost * 100) if baseline_cost > 0 else 0
-            ),
+            savings_percentage=_savings_percentage(savings, baseline_cost),
+            deferred_energy_cost=deferred_cost,
             optimal_setpoints=optimal_setpoints,
             status=status,
             solve_time_ms=t_elapsed,
@@ -1181,19 +1213,42 @@ class HeatPumpOptimizer:
         solar_gains = [self.model.compute_solar_gain(sr) for sr in solar_radiation]
 
         # Baseline cost
-        baseline_power = self._compute_baseline_power(
+        baseline_power, baseline_end = self._compute_baseline_power(
             initial_state, outdoor_temps, wind_speeds, precipitation,
             solar_radiation, dt,
         )
-        # Add baseline DHW power (constant)
-        baseline_dhw = np.full(n_steps, self.model.params.dhw_draw_power / max(
-            self.model.compute_cop_dhw(np.mean(outdoor_temps), dhw_setpoint), 1.0
-        ))
+        # Baseline DHW: an always-hot tank held at the setpoint. That costs the
+        # energy drawn off as hot water plus the standby loss of keeping a tank
+        # at setpoint around the clock, which is exactly the behaviour the
+        # demand time frames exist to avoid.
+        p = self.model.params
+        cop_dhw = max(
+            self.model.compute_cop_dhw(float(np.mean(outdoor_temps)), dhw_setpoint),
+            1e-3,
+        )
+        standby_loss = p.dhw_tank_heat_loss_coefficient * max(
+            dhw_setpoint - DHW_AMBIENT_TEMP, 0.0
+        )
+        baseline_dhw = np.full(n_steps, (p.dhw_draw_power + standby_loss) / cop_dhw)
         baseline_cost = float(np.sum(prices * (baseline_power + baseline_dhw) * dt))
         total_optimal_power = optimal_space + optimal_dhw
         predicted_cost = float(np.sum(prices * total_optimal_power * dt))
         dhw_cost = float(np.sum(prices * optimal_dhw * dt))
-        savings = baseline_cost - predicted_cost
+
+        # Settle up the heat the optimized plan left unstored at the horizon end.
+        # The baseline reference ends with a tank at setpoint, so compare against
+        # that rather than against the optimized tank's own starting point.
+        baseline_end.dhw_temperature = dhw_setpoint
+        optimized_end = ThermalState(
+            room_temperature=float(room_temps[-1]),
+            slab_temperature=float(slab_temps[-1]),
+            outdoor_temperature=float(outdoor_temps[-1]),
+            dhw_temperature=float(dhw_temps[-1]),
+        )
+        deferred_cost = self._deferred_energy_cost(
+            baseline_end, optimized_end, prices, outdoor_temps, include_dhw=True,
+        )
+        savings = baseline_cost - predicted_cost - deferred_cost
 
         timestamps = [
             start_time + timedelta(hours=i * dt) for i in range(n_steps)
@@ -1232,7 +1287,7 @@ class HeatPumpOptimizer:
             "DHW+Space optimization completed in %.0fms: cost=%.2f (DHW=%.2f in "
             "%d steps), baseline=%.2f, savings=%.1f%%, windows=%s",
             t_elapsed, predicted_cost, dhw_cost, dhw_active_steps, baseline_cost,
-            (savings / baseline_cost * 100) if baseline_cost > 0 else 0,
+            _savings_percentage(savings, baseline_cost),
             dhw_plan["windows_text"] or "always",
         )
 
@@ -1245,9 +1300,8 @@ class HeatPumpOptimizer:
             predicted_cost=predicted_cost,
             baseline_cost=baseline_cost,
             predicted_savings=savings,
-            savings_percentage=(
-                (savings / baseline_cost * 100) if baseline_cost > 0 else 0
-            ),
+            savings_percentage=_savings_percentage(savings, baseline_cost),
+            deferred_energy_cost=deferred_cost,
             optimal_setpoints=optimal_setpoints,
             status=status,
             solve_time_ms=t_elapsed,
@@ -1290,6 +1344,36 @@ class HeatPumpOptimizer:
             },
         )
 
+    def _deferred_energy_cost(
+        self,
+        baseline_end: ThermalState,
+        optimized_end: ThermalState,
+        prices: np.ndarray,
+        outdoor_temps: np.ndarray,
+        include_dhw: bool = False,
+    ) -> float:
+        """Cost of restoring the heat the optimized plan left unstored.
+
+        Nothing beyond the horizon is penalised, so the optimizer will happily
+        coast the house (and tank) down as the window closes. That heat is
+        borrowed, not saved, and counting it as a saving is what makes the
+        savings figure drift upwards. Value the difference at the price the
+        heat would actually be bought back at, which is the cheapest part of the
+        upcoming window rather than the average.
+        """
+        stored_gap = self._stored_thermal_energy(
+            baseline_end, include_dhw
+        ) - self._stored_thermal_energy(optimized_end, include_dhw)
+        if abs(stored_gap) < 1e-9:
+            return 0.0
+
+        cop = max(self.model.compute_cop(float(np.mean(outdoor_temps))), 1e-3)
+        # Heat is topped up when it is cheap, so settle at a low percentile
+        # rather than the mean; using the mean would over-charge the optimizer
+        # for heat it would obviously buy back in a cheap hour.
+        refill_price = float(np.percentile(prices, 25))
+        return stored_gap / cop * refill_price
+
     def _compute_baseline_power(
         self,
         initial_state: ThermalState,
@@ -1298,39 +1382,201 @@ class HeatPumpOptimizer:
         precipitation: np.ndarray,
         solar_radiation: np.ndarray,
         dt: float,
-    ) -> np.ndarray:
-        """Compute baseline power schedule (constant temperature strategy)."""
+    ) -> tuple[np.ndarray, ThermalState]:
+        """Simulate a conventional thermostat holding ``target_temp``.
+
+        This is the reference the reported savings are measured against, so it
+        has to behave like a real thermostat in the same physics as the
+        optimized schedule. Anything it wastes is reported to the user as a
+        saving, so the controller is built from the model's own steady state
+        rather than from a heuristic.
+
+        Heat is delivered to the slab and only reaches the room on the
+        following step, so power is set by a cascade: the slab is driven to the
+        temperature that sustains the setpoint, with a proportional term that
+        pulls the room back if it has drifted.
+
+        Returns the power schedule and the final state, the latter so the
+        caller can account for the thermal energy left stored at the end of the
+        horizon.
+        """
         n_steps = len(outdoor_temps)
         target = self.config.target_temp
         p = self.model.params
+        k_slab = max(p.slab_heat_transfer, 1e-6)
 
         baseline_power = np.zeros(n_steps)
         state = initial_state
 
         for i in range(n_steps):
-            u_eff = self.model.effective_heat_loss_coefficient(
-                p.heat_loss_coefficient, wind_speeds[i], precipitation[i]
-            )
-            heat_loss = u_eff * (state.room_temperature - outdoor_temps[i])
+            if p.two_zone_enabled:
+                required_thermal = self._baseline_thermal_demand_two_zone(
+                    state, target, outdoor_temps[i], wind_speeds[i],
+                    precipitation[i], solar_radiation[i], dt,
+                )
+            else:
+                required_thermal = self._baseline_thermal_demand_single(
+                    state, target, outdoor_temps[i], wind_speeds[i],
+                    precipitation[i], solar_radiation[i], dt,
+                )
+
             cop = self.model.compute_cop(outdoor_temps[i])
-            q_solar = self.model.compute_solar_gain(solar_radiation[i])
-
-            thermal_need = max(0, heat_loss - p.internal_gains - q_solar)
-            temp_error = target - state.room_temperature
-            correction = p.slab_heat_transfer * temp_error * 0.5
-
-            electrical_power = max(0, (thermal_need + correction) / cop)
-            electrical_power = np.clip(
-                electrical_power, p.min_electrical_power, p.max_electrical_power
+            # No lower clamp to ``min_electrical_power``: a pump that cannot
+            # modulate that low cycles on and off, and over a step the average
+            # power is what determines energy use. Forcing the baseline up to
+            # the minimum modulation power made it burn a constant
+            # min_power * 24 h per day even when the house needed no heat at
+            # all, which inflated both the baseline and the savings.
+            power = float(
+                np.clip(required_thermal / cop, 0.0, p.max_electrical_power)
             )
-            baseline_power[i] = electrical_power
+            baseline_power[i] = power
 
             state = self.model.simulate_step(
-                state, electrical_power, outdoor_temps[i],
+                state, power, outdoor_temps[i],
                 wind_speeds[i], precipitation[i], solar_radiation[i], dt,
             )
 
-        return baseline_power
+        return baseline_power, state
+
+    def _baseline_thermal_demand_single(
+        self,
+        state: ThermalState,
+        target: float,
+        outdoor_temp: float,
+        wind_speed: float,
+        precipitation: float,
+        solar_radiation: float,
+        dt: float,
+    ) -> float:
+        """Thermal power a thermostat needs this step in the single-zone model."""
+        p = self.model.params
+        k_slab = max(p.slab_heat_transfer, 1e-6)
+
+        u_eff = self.model.effective_heat_loss_coefficient(
+            p.heat_loss_coefficient, wind_speed, precipitation
+        )
+        q_solar = self.model.compute_solar_gain(solar_radiation)
+
+        # Thermal power the room needs to sit at the setpoint.
+        q_demand = u_eff * (target - outdoor_temp) - p.internal_gains - q_solar
+        # Slab temperature that delivers exactly that, plus a pull-back term
+        # if the room has drifted away from the setpoint.
+        slab_target = (
+            target
+            + max(0.0, q_demand) / k_slab
+            + 2.0 * (target - state.room_temperature)
+        )
+
+        q_slab_to_room = k_slab * (state.slab_temperature - state.room_temperature)
+        # Replace what the slab gives up to the room, and move the slab to
+        # where it needs to be.
+        return q_slab_to_room + p.slab_thermal_mass * (
+            slab_target - state.slab_temperature
+        ) / dt
+
+    def _baseline_thermal_demand_two_zone(
+        self,
+        state: ThermalState,
+        target: float,
+        outdoor_temp: float,
+        wind_speed: float,
+        precipitation: float,
+        solar_radiation: float,
+        dt: float,
+    ) -> float:
+        """Thermal power a thermostat needs this step in the two-zone model.
+
+        The upper floor is fed directly by radiators while the lower floor is
+        fed through the slab, and the split between them is fixed by
+        ``radiator_power_fraction``. One control cannot hold both zones exactly,
+        which is also true of the real system being modelled, so the demand of
+        the two zones is summed the way an outdoor-reset curve on a single
+        mixing valve would.
+        """
+        p = self.model.params
+        k_slab = max(p.slab_heat_transfer, 1e-6)
+
+        u_upper = self.model.effective_heat_loss_coefficient(
+            p.upper_floor_heat_loss, wind_speed, precipitation
+        )
+        u_lower = self.model.effective_heat_loss_coefficient(
+            p.lower_floor_heat_loss, wind_speed * 0.5, precipitation * 0.5
+        )
+        q_solar_upper, q_solar_lower = self.model.solar_gain_per_zone(solar_radiation)
+        area_ratio = getattr(p, "upper_floor_area_ratio", 0.5)
+        q_int_upper = p.internal_gains * area_ratio
+        q_int_lower = p.internal_gains * (1.0 - area_ratio)
+
+        t_upper = state.upper_floor_temperature
+        t_lower = state.lower_floor_temperature
+        q_inter = p.inter_zone_transfer * (t_lower - t_upper)
+
+        # Radiators reach the upper floor within the step, so its demand is
+        # met directly, including the pull-back on any drift.
+        q_upper = (
+            u_upper * (target - outdoor_temp)
+            - q_solar_upper
+            - q_int_upper
+            - q_inter
+            + p.upper_floor_thermal_mass * (target - t_upper) / dt
+        )
+        q_upper = max(0.0, q_upper)
+
+        # The lower floor is heated through the slab, so drive the slab to the
+        # temperature that sustains it and charge it over this step.
+        q_lower = (
+            u_lower * (target - outdoor_temp) - q_solar_lower - q_int_lower + q_inter
+        )
+        slab_target = (
+            target + max(0.0, q_lower) / k_slab + 2.0 * (target - t_lower)
+        )
+        q_slab_to_lower = k_slab * (state.slab_temperature - t_lower)
+        q_floor = q_slab_to_lower + p.slab_thermal_mass * (
+            slab_target - state.slab_temperature
+        ) / dt
+        q_floor = max(0.0, q_floor)
+
+        # The heat pump makes one water temperature and the split between
+        # radiators and floor is fixed, so total output is sized to total
+        # demand the way an outdoor-reset curve does. The zones then settle at
+        # slightly different temperatures, which is what the real system does
+        # too, and inter-zone transfer pulls them back together.
+        thermal = q_upper + q_floor
+
+        # Replace what the buffer tank leaks so it does not sag over the day.
+        thermal += p.buffer_tank_heat_loss * max(
+            0.0, state.buffer_tank_temperature - 20.0
+        )
+        return thermal
+
+    def _stored_thermal_energy(
+        self, state: ThermalState, include_dhw: bool = False
+    ) -> float:
+        """Thermal energy stored in the building mass (and optionally the tank).
+
+        Used to settle up at the end of the horizon. The optimizer is free to
+        run the house and tank down towards the end of the window because
+        nothing past the horizon is penalised, and without this correction that
+        borrowed heat is reported as a saving even though it has to be paid back
+        in the next window.
+        """
+        p = self.model.params
+        if p.two_zone_enabled:
+            stored = (
+                p.slab_thermal_mass * state.slab_temperature
+                + p.upper_floor_thermal_mass * state.upper_floor_temperature
+                + p.lower_floor_thermal_mass * state.lower_floor_temperature
+                + p.buffer_tank_thermal_mass * state.buffer_tank_temperature
+            )
+        else:
+            stored = (
+                p.slab_thermal_mass * state.slab_temperature
+                + p.room_thermal_mass * state.room_temperature
+            )
+        if include_dhw:
+            stored += p.dhw_tank_thermal_mass * state.dhw_temperature
+        return float(stored)
 
     def _power_to_setpoints(
         self,

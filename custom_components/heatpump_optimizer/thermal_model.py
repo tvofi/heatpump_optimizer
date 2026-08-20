@@ -89,6 +89,9 @@ _LOGGER = logging.getLogger(__name__)
 # Specific heat capacity of water: ~0.00116 kWh/(liter·°C)
 WATER_SPECIFIC_HEAT: float = 0.00116
 
+# Air temperature around the storage tanks; they are assumed to stand indoors.
+DHW_AMBIENT_TEMP: float = 20.0
+
 
 @dataclass
 class ThermalParameters:
@@ -640,7 +643,7 @@ class ThermalModel:
         span = max(p.dhw_setpoint - p.dhw_min_temp, 1.0)
         avg_temp = 0.5 * (p.dhw_setpoint + p.dhw_min_temp)
         loss_kw = max(
-            p.dhw_tank_heat_loss_coefficient * max(avg_temp - 20.0, 1.0), 1e-3
+            p.dhw_tank_heat_loss_coefficient * max(avg_temp - DHW_AMBIENT_TEMP, 1.0), 1e-3
         )
         return float(np.clip(c_dhw * span / loss_kw, 2.0, 18.0))
 
@@ -649,7 +652,7 @@ class ThermalModel:
         dhw_temp: float,
         dhw_power_thermal: float,
         hour_of_day: float,
-        ambient_temp: float = 20.0,
+        ambient_temp: float = DHW_AMBIENT_TEMP,
         dt_hours: float = 0.25,
         draw_power: float | None = None,
     ) -> float:
@@ -858,12 +861,15 @@ class ThermalModel:
 
         return ThermalState(
             room_temperature=avg_room,
+            slab_temperature=new_slab,
+            outdoor_temperature=outdoor_temp,
             upper_floor_temperature=new_upper,
             lower_floor_temperature=new_lower,
             buffer_tank_temperature=new_buf,
             floor_return_temperature=state.floor_return_temperature,
             solar_radiation=solar_radiation,
             dhw_temperature=state.dhw_temperature,
+            dhw_hours_since_legionella=state.dhw_hours_since_legionella,
             ecl110_displace_command=state.ecl110_displace_command,
             ecl110_effective_displace=state.ecl110_effective_displace,
         )
@@ -1017,7 +1023,7 @@ class ThermalModel:
                 dhw_temp=state.dhw_temperature,
                 dhw_power_thermal=dhw_thermal_power,
                 hour_of_day=current_hour % 24.0,
-                ambient_temp=20.0,  # indoor ambient near tank
+                ambient_temp=DHW_AMBIENT_TEMP,
                 dt_hours=dt_hours,
                 draw_power=float(dhw_draw_rates[i]),
             )
