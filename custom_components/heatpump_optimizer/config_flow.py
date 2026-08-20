@@ -12,6 +12,7 @@ from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import selector
+from homeassistant.helpers.translation import async_get_translations
 
 from .const import (
     DOMAIN,
@@ -756,6 +757,17 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
         CONF_DHW_TEMP_ENTITY,
     )
 
+    # Fallback labels for the menu, used when the frontend has no translation
+    # to show. They double as the definition of which pages the menu offers.
+    _MENU_LABELS = {
+        "entities": "Sensors and entities",
+        "comfort": "Comfort and temperatures",
+        "hot_water": "Hot water",
+        "building": "House and heating system",
+        "tuning": "Savings vs comfort",
+        "heat_curve": "Heat curve control (ECL110)",
+    }
+
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         """Initialize options flow."""
         # Assigning to ``self.config_entry`` goes through a property setter that
@@ -781,15 +793,33 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
         """Show the options menu."""
         return self.async_show_menu(
             step_id="init",
-            menu_options=[
-                "entities",
-                "comfort",
-                "hot_water",
-                "building",
-                "tuning",
-                "heat_curve",
-            ],
+            menu_options=await self._menu_options(),
         )
+
+    async def _menu_options(self) -> dict[str, str]:
+        """Menu entries as explicit ``step id -> label`` pairs.
+
+        Passing plain step ids instead would leave the frontend to translate
+        them, and it renders an empty row when that lookup comes back empty,
+        which shows up as a menu of unreadable blank lines. Supplying the label
+        ourselves means the menu is always legible; the translation is still
+        used whenever it resolves.
+        """
+        labels = dict(self._MENU_LABELS)
+        try:
+            translations = await async_get_translations(
+                self.hass, self.hass.config.language, "options", {DOMAIN}
+            )
+        except Exception:  # noqa: BLE001 - a menu must never fail to render
+            _LOGGER.debug("Could not load option menu translations", exc_info=True)
+            return labels
+
+        prefix = f"component.{DOMAIN}.options.step.init.menu_options."
+        for step_id in labels:
+            translated = translations.get(f"{prefix}{step_id}")
+            if translated:
+                labels[step_id] = translated
+        return labels
 
     async def async_step_entities(
         self, user_input: dict[str, Any] | None = None
