@@ -52,13 +52,7 @@ class OptimizerEnableSwitch(CoordinatorEntity, SwitchEntity):
     @property
     def device_info(self) -> DeviceInfo:
         """Return device info."""
-        return DeviceInfo(
-            identifiers={(DOMAIN, self._entry.entry_id)},
-            name="Heat Pump Optimizer",
-            manufacturer="Custom",
-            model="MPC Optimizer v1.0",
-            sw_version="1.0.0",
-        )
+        return self.coordinator.device_info
 
     @property
     def is_on(self) -> bool:

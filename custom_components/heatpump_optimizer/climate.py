@@ -98,20 +98,11 @@ class HeatPumpOptimizerClimate(CoordinatorEntity, ClimateEntity):
         self._attr_unique_id = f"{entry.entry_id}_climate"
         self._attr_min_temp = self._config.get(CONF_MIN_TEMP, DEFAULT_MIN_TEMP) - 1
         self._attr_max_temp = self._config.get(CONF_MAX_TEMP, DEFAULT_MAX_TEMP) + 1
-        self._target_temperature = self._config.get(
-            CONF_TARGET_TEMP, DEFAULT_TARGET_TEMP
-        )
 
     @property
     def device_info(self) -> DeviceInfo:
         """Return device info."""
-        return DeviceInfo(
-            identifiers={(DOMAIN, self._entry.entry_id)},
-            name="Heat Pump Optimizer",
-            manufacturer="Custom",
-            model="MPC Optimizer v2.0",
-            sw_version="2.0.0",
-        )
+        return self.coordinator.device_info
 
     @property
     def current_temperature(self) -> float | None:
@@ -122,13 +113,14 @@ class HeatPumpOptimizerClimate(CoordinatorEntity, ClimateEntity):
 
     @property
     def target_temperature(self) -> float | None:
-        """Return the target temperature."""
-        if self.coordinator.data:
-            action = self.coordinator.data.get("current_action", {})
-            setpoint = action.get("setpoint")
-            if setpoint is not None:
-                return setpoint
-        return self._target_temperature
+        """Return the comfort target the user asked for.
+
+        The optimizer's own per-step setpoint is deliberately not reported
+        here: it moves every 15 minutes, so showing it made the thermostat
+        card drift away from whatever the user had just dialled in. It stays
+        available as the "Optimal Setpoint" sensor and the attribute below.
+        """
+        return self.coordinator.target_temperature
 
     @property
     def hvac_mode(self) -> HVACMode:
@@ -153,8 +145,11 @@ class HeatPumpOptimizerClimate(CoordinatorEntity, ClimateEntity):
 
     @property
     def preset_mode(self) -> str | None:
+        # "off" is a mode but not a preset, and reporting a preset outside
+        # _attr_preset_modes leaves the frontend selector in an invalid state.
         if self.coordinator.data:
-            return self.coordinator.data.get("mode", MODE_AUTO)
+            mode = self.coordinator.data.get("mode", MODE_AUTO)
+            return mode if mode in self._attr_preset_modes else None
         return PRESET_AUTO
 
     @property
@@ -164,6 +159,7 @@ class HeatPumpOptimizerClimate(CoordinatorEntity, ClimateEntity):
         if self.coordinator.data:
             action = self.coordinator.data.get("current_action", {})
             attrs["optimizer_mode"] = action.get("mode", "unknown")
+            attrs["optimizer_setpoint"] = action.get("setpoint")
             attrs["recommended_power_kw"] = action.get("power")
             attrs["current_price"] = self.coordinator.data.get("current_price")
             attrs["predicted_savings"] = self.coordinator.data.get("predicted_savings")
@@ -257,11 +253,10 @@ class HeatPumpOptimizerClimate(CoordinatorEntity, ClimateEntity):
     async def async_set_temperature(self, **kwargs: Any) -> None:
         temp = kwargs.get(ATTR_TEMPERATURE)
         if temp is not None:
-            self._target_temperature = temp
-            self.coordinator._opt_config.target_temp = temp
             _LOGGER.info("Target temperature set to %.1f°C", temp)
-            await self.coordinator.async_request_refresh()
-            await self._async_publish_displace_from_current_action("manual_target_temp")
+            # Persisting the option reloads the entry, which re-optimizes and
+            # re-applies the plan, so no manual refresh/publish is needed.
+            await self.coordinator.async_set_target_temperature(float(temp))
 
     async def async_set_preset_mode(self, preset_mode: str) -> None:
         mode_map = {

@@ -96,13 +96,7 @@ class HeatPumpOptimizerSensorBase(CoordinatorEntity, SensorEntity):
     @property
     def device_info(self) -> DeviceInfo:
         """Return device info."""
-        return DeviceInfo(
-            identifiers={(DOMAIN, self._entry.entry_id)},
-            name="Heat Pump Optimizer",
-            manufacturer="Custom",
-            model="MPC Optimizer v2.0",
-            sw_version="2.0.0",
-        )
+        return self.coordinator.device_info
 
 
 # ---------------------------------------------------------------------------
@@ -233,7 +227,9 @@ class CurrentPriceSensor(HeatPumpOptimizerSensorBase):
     _attr_icon = "mdi:flash"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = "SEK/kWh"
-    _attr_device_class = SensorDeviceClass.MONETARY
+    # No device_class: this is a unit price, not a monetary total. Home
+    # Assistant only accepts state_class "total" for device_class "monetary",
+    # so declaring it here made HA reject the sensor's statistics.
 
     def __init__(self, coordinator, entry):
         super().__init__(coordinator, entry, "current_price", "Current Electricity Price")

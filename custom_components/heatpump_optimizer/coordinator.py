@@ -20,8 +20,9 @@ import numpy as np
 
 from homeassistant.components import mqtt
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_NAME
+from homeassistant.const import CONF_NAME, UnitOfSpeed
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.storage import Store
@@ -114,6 +115,53 @@ _LOGGER = logging.getLogger(__name__)
 
 TIBBER_API_URL = "https://api.tibber.com/v1-beta/gql"
 
+# Forecast wind speed arrives in whatever unit the user's Home Assistant is
+# configured for, so it has to be converted explicitly rather than guessed.
+_WIND_UNIT_TO_MS = {
+    UnitOfSpeed.METERS_PER_SECOND: 1.0,
+    UnitOfSpeed.KILOMETERS_PER_HOUR: 1.0 / 3.6,
+    UnitOfSpeed.MILES_PER_HOUR: 1.0 / 2.236936,
+    UnitOfSpeed.FEET_PER_SECOND: 0.3048,
+    UnitOfSpeed.KNOTS: 1.0 / 1.943844,
+}
+
+
+def _plain_types(value: Any) -> Any:
+    """Recursively convert numpy scalars/arrays into plain Python types.
+
+    Entity attributes have to survive Home Assistant's JSON serialization, and
+    orjson rejects numpy types such as ``float32``, ``int64`` and ``ndarray``.
+    """
+    if isinstance(value, dict):
+        return {k: _plain_types(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_plain_types(v) for v in value]
+    if isinstance(value, np.ndarray):
+        return [_plain_types(v) for v in value.tolist()]
+    if isinstance(value, np.generic):
+        return value.item()
+    return value
+
+
+def _as_float(value: Any, default: float) -> float:
+    """Coerce a forecast/sensor value to a finite float.
+
+    Weather integrations are free to report a key as ``None`` (Home Assistant's
+    own ``Forecast`` type allows it) or as a non-numeric string. Letting either
+    through produces a ``TypeError`` on the next comparison, or a silent NaN
+    that poisons the whole optimization horizon, so anything that is not a
+    finite number falls back to ``default``.
+    """
+    if value is None:
+        return default
+    try:
+        result = float(value)
+    except (TypeError, ValueError):
+        return default
+    if not np.isfinite(result):
+        return default
+    return result
+
 DHW_PROFILE_STORE_VERSION = 1
 DHW_PROFILE_EWMA_ALPHA = 0.12
 DHW_PROFILE_MIN_INTENSITY = 0.2
@@ -201,6 +249,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
         # State
         self._mode: str = MODE_AUTO
+        # Populated during setup from the manifest so the device registry
+        # reports the real integration version.
+        self.integration_version: str | None = None
         self._optimization_result: OptimizationResult | None = None
         self._last_optimization: datetime | None = None
         self._next_optimization: datetime | None = None
@@ -330,6 +381,40 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         except Exception:
             # Ignore malformed payloads
             return
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Device registry entry shared by every platform of this entry.
+
+        All three platforms previously declared their own model and version,
+        which disagreed with each other and with the manifest; whichever
+        entity registered last silently won.
+        """
+        return DeviceInfo(
+            identifiers={(DOMAIN, self.entry.entry_id)},
+            name="Heat Pump Optimizer",
+            manufacturer="Custom",
+            model="MPC Optimizer",
+            sw_version=self.integration_version,
+        )
+
+    @property
+    def target_temperature(self) -> float:
+        """The comfort target the user configured."""
+        return self._opt_config.target_temp
+
+    async def async_set_target_temperature(self, temperature: float) -> None:
+        """Change the comfort target and persist it across restarts.
+
+        Writing it back to the entry options is what makes the change survive
+        a reload; updating only the in-memory optimizer config meant the value
+        silently reverted the next time the entry was reloaded.
+        """
+        self._opt_config.target_temp = temperature
+        self.hass.config_entries.async_update_entry(
+            self.entry,
+            options={**self.entry.options, CONF_TARGET_TEMP: temperature},
+        )
 
     @property
     def current_state(self) -> ThermalState:
@@ -678,6 +763,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if "ecl110_displace_max" in params:
             self._thermal_params.ecl110_displace_max = params["ecl110_displace_max"]
             self._ecl110_displace_max = params["ecl110_displace_max"]
+        if "slab_thermal_mass" in params:
             self._thermal_params.slab_thermal_mass = params["slab_thermal_mass"]
         if "slab_heat_transfer" in params:
             self._thermal_params.slab_heat_transfer = params["slab_heat_transfer"]
@@ -987,8 +1073,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             state = self.hass.states.get(weather_entity)
             if state:
                 try:
-                    temp = float(state.attributes.get("temperature", 5.0))
-                    wind = float(state.attributes.get("wind_speed", 0.0))
+                    temp = _as_float(state.attributes.get("temperature"), 5.0)
+                    wind = _as_float(
+                        state.attributes.get("wind_speed"), 0.0
+                    ) * self._wind_speed_scale()
                     self._weather_forecast = [
                         {
                             "datetime": (
@@ -1003,6 +1091,32 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     self._solar_radiation_forecast = [0.0] * 48
                 except (ValueError, TypeError):
                     pass
+
+    def _wind_speed_scale(self) -> float:
+        """Factor converting the weather entity's wind unit into m/s.
+
+        Home Assistant converts forecast wind speed into whichever unit the
+        user has configured, and reports that unit on the weather entity as
+        ``wind_speed_unit``. An unrecognised unit falls back to 1.0 (m/s),
+        which is the Home Assistant metric default.
+        """
+        entity_id = self._config.get(CONF_WEATHER_ENTITY)
+        if not entity_id:
+            return 1.0
+        state = self.hass.states.get(entity_id)
+        if state is None:
+            return 1.0
+        unit = state.attributes.get("wind_speed_unit")
+        scale = _WIND_UNIT_TO_MS.get(unit)
+        if scale is None:
+            if unit:
+                _LOGGER.debug(
+                    "Unknown wind speed unit %r on %s; assuming m/s",
+                    unit,
+                    entity_id,
+                )
+            return 1.0
+        return scale
 
     def _prepare_forecast_data(
         self,
@@ -1023,11 +1137,20 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         prices_15min = []
         if self._prices:
             for price_entry in self._prices:
-                total = price_entry.get("total", 0)
+                total = _as_float(price_entry.get("total"), 0.0)
                 for _ in range(4):
                     prices_15min.append(total)
         else:
-            prices_15min = [0.5] * (n_steps + 10)
+            # Without real prices there is nothing to arbitrage against.
+            # Inventing a flat curve here used to let the optimizer run and
+            # report a savings figure that no price data supported, so the
+            # caller is left to skip the run instead.
+            _LOGGER.warning(
+                "No electricity price data available; skipping optimization "
+                "until prices can be fetched"
+            )
+            empty = np.array([], dtype=float)
+            return (empty, empty, empty, empty, empty)
 
         midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
         minutes_since_midnight = (now - midnight).total_seconds() / 60
@@ -1048,23 +1171,26 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         solar_rad = []
 
         if self._weather_forecast:
+            wind_scale = self._wind_speed_scale()
             for idx, fc in enumerate(self._weather_forecast):
-                temp = fc.get("temperature", 5.0)
-                wind = fc.get("wind_speed", 0.0)
-                if wind > 30:
-                    wind = wind / 3.6  # Convert km/h to m/s
-                precip = fc.get("precipitation", 0.0) or 0.0
+                temp = _as_float(fc.get("temperature"), 5.0)
+                # Convert using the unit the weather entity actually reports in.
+                # Guessing from the magnitude misreads a moderate 20 km/h breeze
+                # as a 20 m/s storm and inflates predicted heat loss twofold.
+                wind = max(0.0, _as_float(fc.get("wind_speed"), 0.0) * wind_scale)
+                precip = max(0.0, _as_float(fc.get("precipitation"), 0.0))
 
                 # Solar radiation: from forecast or from separate list
                 sr = 0.0
                 if idx < len(self._solar_radiation_forecast):
-                    sr = self._solar_radiation_forecast[idx]
+                    sr = _as_float(self._solar_radiation_forecast[idx], 0.0)
                 if sr == 0.0:
-                    sr = float(
+                    sr = _as_float(
                         fc.get("solar_irradiance")
-                        or fc.get("native_solar_irradiance", 0.0)
-                        or 0.0
+                        or fc.get("native_solar_irradiance"),
+                        0.0,
                     )
+                sr = max(0.0, sr)
 
                 # Interpolate hourly forecast to 15-min steps
                 for _ in range(4):
@@ -1299,8 +1425,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     "dhw_heating_cost": result.dhw_heating_cost,
                     "dhw_heating_active": self._current_action.get("dhw_heating_active", False),
                     "dhw_schedule": dhw_schedule,
-                    # Predictive info
-                    "predictive_info": result.predictive_info,
+                    # Predictive info. Numpy scalars are converted to plain
+                    # Python types because these values end up in entity
+                    # attributes, which Home Assistant must serialize.
+                    "predictive_info": _plain_types(result.predictive_info),
                     "schedule": [
                         {
                             "time": ts.isoformat(),
