@@ -239,7 +239,7 @@ When two-zone parameters are not configured, the model falls back to single-zone
 | Lower floor heat loss | 0.07 | kW/°C |
 | Inter-zone transfer | 0.5 | kW/°C |
 | Radiator power fraction | 0.4 | 0-1 |
-| Buffer tank volume | 35 | L |
+| Buffer tank volume | 35 | L (10–1500) |
 | Window area | 10 | m² |
 | Solar orientation factor | 0.7 | 0-1 |
 | SHGC | 0.7 | 0-1 |
@@ -247,7 +247,7 @@ When two-zone parameters are not configured, the model falls back to single-zone
 ### Step 5: DHW Configuration (Optional)
 | Parameter | Default | Unit |
 |---|---|---|
-| DHW tank volume | 200 | L |
+| DHW tank volume | 200 | L (50–1500) |
 | DHW setpoint | 55 | °C |
 | DHW minimum temperature | 45 | °C |
 | Daily consumption | 150 | L/day |

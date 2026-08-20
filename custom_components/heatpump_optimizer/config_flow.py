@@ -15,6 +15,7 @@ from homeassistant.helpers import selector
 
 from .const import (
     DOMAIN,
+    CONFIG_ENTRY_VERSION,
     CONF_TIBBER_TOKEN,
     CONF_WEATHER_ENTITY,
     CONF_INDOOR_TEMP_ENTITY,
@@ -156,7 +157,7 @@ async def validate_tibber_token(token: str) -> bool:
 class HeatPumpOptimizerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Heat Pump Optimizer."""
 
-    VERSION = 6  # bumped for ECL110 direct /set topic configuration
+    VERSION = CONFIG_ENTRY_VERSION
 
     def __init__(self) -> None:
         """Initialize the config flow."""
@@ -544,7 +545,7 @@ class HeatPumpOptimizerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         default=DEFAULT_BUFFER_TANK_VOLUME,
                     ): selector.NumberSelector(
                         selector.NumberSelectorConfig(
-                            min=10, max=500, step=5,
+                            min=10, max=1500, step=5,
                             unit_of_measurement="L",
                             mode=selector.NumberSelectorMode.BOX,
                         )
@@ -602,7 +603,7 @@ class HeatPumpOptimizerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         default=DEFAULT_DHW_TANK_VOLUME,
                     ): selector.NumberSelector(
                         selector.NumberSelectorConfig(
-                            min=50, max=500, step=10,
+                            min=50, max=1500, step=10,
                             unit_of_measurement="L",
                             mode=selector.NumberSelectorMode.BOX,
                         )
@@ -632,7 +633,7 @@ class HeatPumpOptimizerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         default=DEFAULT_DHW_DAILY_CONSUMPTION,
                     ): selector.NumberSelector(
                         selector.NumberSelectorConfig(
-                            min=50, max=500, step=10,
+                            min=50, max=1500, step=10,
                             unit_of_measurement="L/day",
                             mode=selector.NumberSelectorMode.BOX,
                         )
@@ -738,7 +739,11 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         """Initialize options flow."""
-        self.config_entry = config_entry
+        # Assigning to ``self.config_entry`` goes through a property setter that
+        # Home Assistant deprecated in 2024.11 and removed in 2025.12, which makes
+        # the options flow raise and the frontend report a 500 error. Keep our own
+        # reference instead so the flow works on every supported version.
+        self._entry = config_entry
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
@@ -751,7 +756,7 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
             else:
                 return self.async_create_entry(title="", data=user_input)
 
-        current = {**self.config_entry.data, **self.config_entry.options}
+        current = {**self._entry.data, **self._entry.options}
         if user_input is not None:
             current = {**current, **user_input}
 
@@ -897,13 +902,25 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
                             mode=selector.NumberSelectorMode.SLIDER,
                         )
                     ),
+                    vol.Optional(
+                        CONF_BUFFER_TANK_VOLUME,
+                        default=current.get(
+                            CONF_BUFFER_TANK_VOLUME, DEFAULT_BUFFER_TANK_VOLUME
+                        ),
+                    ): selector.NumberSelector(
+                        selector.NumberSelectorConfig(
+                            min=10, max=1500, step=5,
+                            unit_of_measurement="L",
+                            mode=selector.NumberSelectorMode.BOX,
+                        )
+                    ),
                     # DHW options editable at runtime
                     vol.Optional(
                         CONF_DHW_TANK_VOLUME,
                         default=current.get(CONF_DHW_TANK_VOLUME, DEFAULT_DHW_TANK_VOLUME),
                     ): selector.NumberSelector(
                         selector.NumberSelectorConfig(
-                            min=50, max=500, step=10,
+                            min=50, max=1500, step=10,
                             unit_of_measurement="L",
                             mode=selector.NumberSelectorMode.BOX,
                         )
@@ -915,7 +932,7 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
                         ),
                     ): selector.NumberSelector(
                         selector.NumberSelectorConfig(
-                            min=50, max=500, step=10,
+                            min=50, max=1500, step=10,
                             unit_of_measurement="L/day",
                             mode=selector.NumberSelectorMode.BOX,
                         )

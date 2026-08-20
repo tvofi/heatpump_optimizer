@@ -142,7 +142,8 @@
           "dhw_legionella_enabled": "Legionellakörning",
           "dhw_legionella_interval_days": "Legionellaintervall (dygn)",
           "dhw_idle_min_temperature": "Lägsta tanktemperatur utanför intervallen (°C)",
-          "dhw_legionella_temperature": "Legionellatemperatur (°C)"
+          "dhw_legionella_temperature": "Legionellatemperatur (°C)",
+          "buffer_tank_volume": "Buffertankvolym (L)"
         }
       }
     },

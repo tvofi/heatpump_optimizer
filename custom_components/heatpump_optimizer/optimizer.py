@@ -561,7 +561,7 @@ class HeatPumpOptimizer:
                 initial_power,
                 method="L-BFGS-B",
                 bounds=bounds,
-                options={"maxiter": 200, "ftol": 1e-6, "disp": False},
+                options={"maxiter": 200, "ftol": 1e-6},
             )
             optimal_power = result.x
             status = "optimal" if result.success else f"suboptimal ({result.message})"
@@ -1153,7 +1153,7 @@ class HeatPumpOptimizer:
                 init_space,
                 method="L-BFGS-B",
                 bounds=bounds,
-                options={"maxiter": 300, "ftol": 1e-6, "disp": False},
+                options={"maxiter": 300, "ftol": 1e-6},
             )
             optimal_space = np.clip(result.x, 0.0, space_power_headroom)
             status = "optimal" if result.success else f"suboptimal ({result.message})"

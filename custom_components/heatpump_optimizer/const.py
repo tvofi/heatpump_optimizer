@@ -7,6 +7,10 @@ from typing import Final
 DOMAIN: Final = "heatpump_optimizer"
 PLATFORMS: Final = ["sensor", "climate", "switch"]
 
+# Schema version of the config entry. Bump when stored keys change in a way
+# that needs migrating, and handle it in ``async_migrate_entry``.
+CONFIG_ENTRY_VERSION: Final = 6
+
 # Configuration keys
 CONF_TIBBER_TOKEN: Final = "tibber_token"
 CONF_WEATHER_ENTITY: Final = "weather_entity"

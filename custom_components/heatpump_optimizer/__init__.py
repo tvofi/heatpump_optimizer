@@ -26,6 +26,7 @@ from homeassistant.helpers import config_validation as cv
 
 from .const import (
     DOMAIN,
+    CONFIG_ENTRY_VERSION,
     PLATFORMS,
     SERVICE_RUN_OPTIMIZATION,
     SERVICE_SET_MODE,
@@ -85,6 +86,35 @@ SERVICE_SCHEMA_SET_THERMAL_PARAMS = vol.Schema(
         vol.Optional("ecl110_pid_time_constant_hours"): vol.Coerce(float),
     }
 )
+
+
+async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Migrate a config entry created by an older version of the integration.
+
+    Every option the integration reads is looked up with a default, so older
+    entries only need their version stamped forward. Without this handler Home
+    Assistant refuses to load entries created before the current
+    ``ConfigFlow.VERSION`` and the integration appears broken after an upgrade.
+    """
+    if entry.version > CONFIG_ENTRY_VERSION:
+        # Downgrade: the entry was written by a newer release than this one.
+        _LOGGER.error(
+            "Config entry version %s is newer than the supported version %s; "
+            "downgrade is not supported",
+            entry.version,
+            CONFIG_ENTRY_VERSION,
+        )
+        return False
+
+    if entry.version < CONFIG_ENTRY_VERSION:
+        _LOGGER.info(
+            "Migrating Heat Pump Optimizer config entry from version %s to %s",
+            entry.version,
+            CONFIG_ENTRY_VERSION,
+        )
+        hass.config_entries.async_update_entry(entry, version=CONFIG_ENTRY_VERSION)
+
+    return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

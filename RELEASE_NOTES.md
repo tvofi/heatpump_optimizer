@@ -22,6 +22,18 @@ track regardless of price.
   considered to be running. DHW is now scheduled as discrete on/off blocks.
 - **The 45 °C floor no longer applies around the clock.** It applies inside the
   demand time frames; outside them the tank may cool to the idle minimum.
+- **The options dialog no longer fails with a 500 error.** Reconfiguring an
+  already-configured device returned *"Config flow could not be loaded: 500
+  Internal Server Error"*. The options flow assigned to `self.config_entry`,
+  which goes through a property setter Home Assistant deprecated in 2024.11 and
+  removed in 2025.12. The flow now keeps its own reference to the entry.
+- **Config entries from older releases now migrate.** The config flow declared
+  schema version 6 without an `async_migrate_entry` handler, so Home Assistant
+  refused to load entries written by earlier releases. Entries are now migrated
+  forward; a newer entry is refused with a clear log message instead of failing
+  obscurely.
+- **Removed an invalid SciPy solver option** (`disp`) that produced an
+  `OptimizeWarning` on every optimization run with recent SciPy versions.
 
 ### Added
 - **Hot water demand time frames.** Configure when hot water must be available,
@@ -60,6 +72,12 @@ track regardless of price.
   preserving the total daily volume.
 - Typical solve time with DHW enabled dropped from roughly 6 s to under 1 s, and
   the solver no longer hits its iteration limit.
+
+### Changed limits
+- Buffer tank volume now accepts up to **1500 L** (was 500 L), and is editable
+  from the options dialog instead of setup only.
+- DHW tank volume and daily hot water consumption now accept up to **1500 L**
+  and **1500 L/day** (both were 500).
 
 ### Configuration options
 | Option | Default |

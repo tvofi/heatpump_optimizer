@@ -182,7 +182,7 @@ set_thermal_parameters:
       selector:
         number:
           min: 50
-          max: 500
+          max: 1500
           step: 10
           unit_of_measurement: "L"
     dhw_setpoint:
@@ -219,7 +219,7 @@ set_thermal_parameters:
       selector:
         number:
           min: 50
-          max: 500
+          max: 1500
           step: 10
           unit_of_measurement: "L/day"
     dhw_schedule_enabled:

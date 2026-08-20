@@ -142,7 +142,8 @@
           "dhw_legionella_enabled": "Anti-legionella cycle",
           "dhw_legionella_interval_days": "Anti-legionella interval (days)",
           "dhw_idle_min_temperature": "Tank minimum outside the time frames (°C)",
-          "dhw_legionella_temperature": "Anti-legionella temperature (°C)"
+          "dhw_legionella_temperature": "Anti-legionella temperature (°C)",
+          "buffer_tank_volume": "Buffer tank volume (L)"
         }
       }
     },
