@@ -628,6 +628,10 @@ class DHWTemperatureSensor(HeatPumpOptimizerSensorBase):
                 "dhw_legionella_due_in_hours": data.get(
                     "dhw_legionella_due_in_hours"
                 ),
+                "dhw_cooling_rate": data.get("dhw_cooling_rate"),
+                "dhw_cooling_rate_learned": data.get("dhw_cooling_rate_learned"),
+                "dhw_cooling_samples": data.get("dhw_cooling_samples"),
+                "dhw_hold_hours": data.get("dhw_hold_hours"),
             }
         return {}
 
@@ -664,6 +668,7 @@ class DHWScheduleSensor(HeatPumpOptimizerSensorBase):
                 "dhw_in_demand_window": data.get("dhw_in_demand_window"),
                 "dhw_next_window_in_hours": data.get("dhw_next_window_in_hours"),
                 "dhw_planned_heating_hours": info.get("dhw_planned_heating_hours", []),
+                "dhw_preheat_hours": info.get("dhw_preheat_hours"),
                 "dhw_legionella_due": info.get("dhw_legionella_due"),
                 "dhw_legionella_step_hour": info.get("dhw_legionella_step_hour"),
                 "dhw_legionella_due_in_hours": data.get(

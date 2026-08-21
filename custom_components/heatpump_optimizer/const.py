@@ -76,6 +76,10 @@ CONF_DHW_TANK_VOLUME: Final = "dhw_tank_volume"  # liters
 CONF_DHW_SETPOINT: Final = "dhw_setpoint"  # °C
 CONF_DHW_MIN_TEMP: Final = "dhw_min_temperature"  # °C
 CONF_DHW_DAILY_CONSUMPTION: Final = "dhw_daily_consumption"  # liters/day
+# How fast the tank cools when nothing is drawn, expressed at a reference
+# condition so it stays meaningful regardless of tank size. Self-learned at
+# runtime from observed standby decay.
+CONF_DHW_COOLING_RATE: Final = "dhw_cooling_rate"  # °C/h at reference conditions
 
 # DHW demand windows — the time frames where hot water must be available
 CONF_DHW_SCHEDULE_ENABLED: Final = "dhw_schedule_enabled"
@@ -137,6 +141,21 @@ DEFAULT_DHW_TANK_VOLUME: Final = 200.0  # liters
 DEFAULT_DHW_SETPOINT: Final = 55.0  # °C - "ready" temperature at window start
 DEFAULT_DHW_MIN_TEMP: Final = 45.0  # °C - usable minimum inside demand windows
 DEFAULT_DHW_DAILY_CONSUMPTION: Final = 150.0  # liters/day average household
+
+# Standby cooling of the DHW tank, stated at a reference condition: a tank at
+# 45 °C surrounded by 20 °C air loses 0.3 °C per hour. The optimizer converts
+# this into a UA value (kW/°C) using the tank's thermal mass, and the
+# coordinator refines it from measured decay.
+DEFAULT_DHW_COOLING_RATE: Final = 0.3  # °C/h
+DHW_COOLING_REFERENCE_TANK_TEMP: Final = 45.0  # °C
+DHW_COOLING_REFERENCE_AMBIENT_TEMP: Final = 20.0  # °C
+DHW_COOLING_REFERENCE_DELTA: Final = (
+    DHW_COOLING_REFERENCE_TANK_TEMP - DHW_COOLING_REFERENCE_AMBIENT_TEMP
+)
+# Plausible bounds for the learned rate — a tank that appears to cool outside
+# these is being contaminated by draws or a bad sensor reading.
+DHW_COOLING_RATE_MIN: Final = 0.05  # °C/h
+DHW_COOLING_RATE_MAX: Final = 3.0  # °C/h
 
 # DHW demand window defaults
 DEFAULT_DHW_SCHEDULE_ENABLED: Final = True
@@ -229,6 +248,11 @@ ATTR_DHW_IN_DEMAND_WINDOW: Final = "dhw_in_demand_window"
 ATTR_DHW_NEXT_WINDOW_IN_HOURS: Final = "dhw_next_window_in_hours"
 ATTR_DHW_REQUIRED_TEMP: Final = "dhw_required_temperature"
 ATTR_DHW_LEGIONELLA_DUE_IN_HOURS: Final = "dhw_legionella_due_in_hours"
+ATTR_DHW_COOLING_RATE: Final = "dhw_cooling_rate"
+ATTR_DHW_COOLING_RATE_LEARNED: Final = "dhw_cooling_rate_learned"
+ATTR_DHW_COOLING_SAMPLES: Final = "dhw_cooling_samples"
+ATTR_DHW_HOLD_HOURS: Final = "dhw_hold_hours"
+ATTR_DHW_PREHEAT_HOURS: Final = "dhw_preheat_hours"
 
 # Wind chill factor (additional heat loss per m/s wind) — legacy, now configurable
 WIND_CHILL_FACTOR: Final = 0.005  # kW/°C per m/s

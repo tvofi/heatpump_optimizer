@@ -64,8 +64,10 @@ def run(scen, price_p, weather_p, two_zone=False, dhw=True, start=START, **over)
 
     # ---- DHW availability during demand windows ----
     dhw_ok = "-"
+    dhw_peak = float("nan")
     if dhw and r.dhw_temp_trajectory:
         dt_traj = np.asarray(r.dhw_temp_trajectory[1:])
+        dhw_pw = np.asarray(r.dhw_power_schedule)
         wins = parse_windows(cfg["dhw_windows"])
         hrs = [(start.hour + i*DT) % 24 for i in range(N)]
         inw = np.array([hour_in_windows(h, wins) for h in hrs])
@@ -77,6 +79,25 @@ def run(scen, price_p, weather_p, two_zone=False, dhw=True, start=START, **over)
                            f"(need {cfg['dhw_min_temperature']})")
         if dt_traj.max() > 70.5:
             issue(scen,f"DHW overshoot {dt_traj.max():.1f}C")
+
+        # Hot water is a deferrable load: the tank can be charged at any hour
+        # and coast into the demand window, so heating it during the priciest
+        # slots means the planner failed to shift it.
+        dhw_kwh = dhw_pw.sum()*DT
+        if dhw_kwh > 0.2 and pr.max()/max(pr.min(), 0.01) > 2.0:
+            exp_slots = pr >= np.percentile(pr, 75)
+            dhw_peak = dhw_pw[exp_slots].sum()*DT/dhw_kwh
+            if dhw_peak > exp_slots.mean():
+                issue(scen,f"DHW uses {dhw_peak:.0%} of its energy in the most "
+                           f"expensive {exp_slots.mean():.0%} of slots")
+            # It should also be willing to charge ahead of the window rather
+            # than only inside it.
+            if inw.any() and not inw.all():
+                outside = dhw_pw[~inw].sum()*DT/dhw_kwh
+                cheapest_outside = pr[~inw].min() < pr[inw].min() - 1e-9
+                if cheapest_outside and outside < 0.2:
+                    issue(scen,f"DHW heats only {outside:.0%} outside the demand "
+                               f"windows although cheaper hours exist there")
 
     # ---- did it actually avoid the expensive hours? ----
     if pr.max()/max(pr.min(),0.01) > 2.0 and kwh > 0.5:
@@ -92,7 +113,7 @@ def run(scen, price_p, weather_p, two_zone=False, dhw=True, start=START, **over)
     print(f"{scen:<34} {r.status[:7]:<7} {kwh:6.2f}kWh base={r.baseline_cost:7.2f} "
           f"cost={r.predicted_cost:7.2f} sav={r.savings_percentage:5.1f}% "
           f"room {room.min():4.1f}-{room.max():4.1f} dhw>={dhw_ok:>5} "
-          f"peak%={share_peak:.2f} {r.solve_time_ms:5.0f}ms")
+          f"peak%={share_peak:.2f} dhwpeak%={dhw_peak:.2f} {r.solve_time_ms:5.0f}ms")
     return r
 
 print("=== WINTER, single zone, space + DHW ===")

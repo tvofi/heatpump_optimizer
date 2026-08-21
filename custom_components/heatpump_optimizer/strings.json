@@ -133,6 +133,7 @@
           "dhw_setpoint": "Highest tank temperature to charge to",
           "dhw_min_temperature": "Hot water temperature you need",
           "dhw_daily_consumption": "Hot water used per day",
+          "dhw_cooling_rate": "Tank heat loss (learned)",
           "dhw_schedule_enabled": "Only guarantee hot water at set times",
           "dhw_windows": "When you need hot water",
           "dhw_legionella_enabled": "Run an anti-legionella cycle",
@@ -148,6 +149,7 @@
           "dhw_setpoint": "An upper limit on charging, not a target. The tank is only filled this high when storing extra cheap heat pays off. It is never heated to this just for the sake of it.",
           "dhw_tank_volume": "Litres. A larger tank stores more cheap electricity and can skip more expensive hours.",
           "dhw_daily_consumption": "Roughly how many litres of hot water your household uses per day. Used to work out how much to store before each period.",
+          "dhw_cooling_rate": "How fast the tank cools when nobody uses hot water, measured at 45 C in a 20 C room. This is only a starting point: the integration measures your tank's actual cooling and refines it automatically. A tank that holds heat well can be charged further ahead of time, so more of the heating lands in cheap hours.",
           "dhw_legionella_enabled": "Because the tank is now allowed to stay cool for long stretches, it is periodically heated hot enough to kill legionella bacteria. Strongly recommended.",
           "dhw_legionella_temperature": "60 C is the usual recommendation.",
           "dhw_legionella_interval_days": "How often the disinfection heat-up runs. It is placed in the cheapest hour before each deadline."
@@ -247,6 +249,7 @@
           "dhw_setpoint": "Highest tank temperature to charge to",
           "dhw_tank_volume": "Hot water tank size",
           "dhw_daily_consumption": "Hot water used per day",
+          "dhw_cooling_rate": "Tank heat loss (learned)",
           "dhw_legionella_enabled": "Run an anti-legionella cycle",
           "dhw_legionella_temperature": "Anti-legionella temperature",
           "dhw_legionella_interval_days": "Anti-legionella interval"
@@ -259,6 +262,7 @@
           "dhw_setpoint": "An upper limit on charging, not a target. The tank is only filled this high when storing extra cheap heat pays off. It is never heated to this just for the sake of it.",
           "dhw_tank_volume": "Litres. A larger tank stores more cheap electricity and can skip more expensive hours.",
           "dhw_daily_consumption": "Roughly how many litres of hot water your household uses per day. Used to work out how much to store before each period.",
+          "dhw_cooling_rate": "How fast the tank cools when nobody uses hot water, measured at 45 C in a 20 C room. This is only a starting point: the integration measures your tank's actual cooling and refines it automatically. A tank that holds heat well can be charged further ahead of time, so more of the heating lands in cheap hours.",
           "dhw_legionella_enabled": "Because the tank is now allowed to stay cool for long stretches, it is periodically heated hot enough to kill legionella bacteria. Strongly recommended.",
           "dhw_legionella_temperature": "60 C is the usual recommendation.",
           "dhw_legionella_interval_days": "How often the disinfection heat-up runs. It is placed in the cheapest hour before each deadline."

@@ -74,6 +74,7 @@ SERVICE_SCHEMA_SET_THERMAL_PARAMS = vol.Schema(
         vol.Optional("dhw_setpoint"): vol.Coerce(float),
         vol.Optional("dhw_min_temperature"): vol.Coerce(float),
         vol.Optional("dhw_daily_consumption"): vol.Coerce(float),
+        vol.Optional("dhw_cooling_rate"): vol.Coerce(float),
         vol.Optional("dhw_schedule_enabled"): cv.boolean,
         vol.Optional("dhw_windows"): cv.string,
         vol.Optional("dhw_idle_min_temperature"): vol.Coerce(float),

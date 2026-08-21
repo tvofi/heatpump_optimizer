@@ -86,23 +86,60 @@ midnight (`22:00-02:00`). Leave the field empty and the optimizer derives the
 frames from the *learned* hourly usage profile instead. Switch the schedule off
 entirely to require hot water around the clock (the pre-2.3 behaviour).
 
-#### Cheapest-first production
+#### Minimum-cost production
 
-DHW is a deferrable on/off load, so it is scheduled separately from the
-gradient-based space-heating solve:
+DHW is a deferrable, essentially on/off load: the tank is a battery, and heat
+put in at any hour is still there later, minus standby loss. It is therefore
+scheduled separately from the gradient-based space-heating solve:
 
-1. A cheapest-first planner walks the horizon, finds the first moment the
-   requirement would be missed, and buys the missing energy from the cheapest
-   preceding hours. Slot ranking uses an *effective* price that includes the
-   standby heat lost while the water waits in the tank, so pre-heating very
-   early is only chosen when it is genuinely cheaper.
-2. Space heating is then optimized around that fixed DHW schedule, with the
+1. **A linear program plans the tank over the whole horizon.** The tank is a
+   linear store, so its temperature at any step is an affine function of the
+   heat put in earlier — a kWh delivered `k` steps ago still contributes
+   `(1 - UA·Δt/C)^k / C` degrees today. Minimising `Σ price·energy/COP` under
+   the availability floors and the tank's maximum temperature gives the
+   genuinely cheapest feasible plan. The decay factor *is* the standby loss, so
+   buying heat early is automatically priced above buying it late, and no
+   artificial "don't pre-heat more than N hours ahead" cap is needed — none is
+   applied. Heating can land at 02:00 for a 17:00 demand frame whenever that is
+   cheaper, subject only to how much the tank can hold.
+2. **A cheapest-first pass repairs the remainder.** The linear model ignores the
+   COP's dependence on tank temperature and the cold-water floor, so a greedy
+   top-up fixes any residual shortfall — and takes over entirely if the solve
+   is unavailable.
+3. **Space heating is then optimized around that fixed DHW schedule,** with the
    pump's remaining capacity during a DHW block bounding space heating power.
 
 Because nothing in the objective rewards a hot tank for its own sake, price is
 the only thing deciding *when* the pump runs for hot water. The result is
 discrete heating blocks the pump can actually deliver, concentrated in the
-cheapest hours, and no more heating to high setpoints during price peaks.
+cheapest hours, and no heating during price peaks that could have been done
+earlier and stored.
+
+#### Self-learning tank cooling
+
+How far ahead pre-heating pays off depends entirely on how well the tank holds
+heat, so that is measured rather than assumed. The parameter is stated as a
+**cooling rate in °C per hour at 45 °C tank temperature in a 20 °C room**,
+defaulting to 0.3 °C/h, and converted to a UA value using the tank's volume.
+
+Every time the tank temperature is sampled across an interval in which the heat
+pump did not run, the standby time constant follows from the decay itself:
+
+```
+UA/C = -ln((T_end - T_ambient) / (T_start - T_ambient)) / Δt
+```
+
+Hot water drawn during the interval can only make the tank *look* leakier than
+it is, never tighter, so observations are folded in as a **lower envelope**: the
+estimate moves quickly towards a quieter reading and only creeps upward. One
+shower therefore cannot convince the model that the tank is badly insulated,
+while a genuinely deteriorating tank is still learned within a few days. The
+result is clamped to 0.05–3.0 °C/h and persisted across restarts.
+
+A tank that holds heat well earns a longer pre-heating horizon and more of its
+heating in cheap hours; a leaky one is heated closer to when the water is
+needed. The learned value, its sample count and the resulting hold time are
+exposed as attributes on the **DHW Temperature** sensor.
 
 #### Anti-legionella
 
@@ -251,6 +288,7 @@ When two-zone parameters are not configured, the model falls back to single-zone
 | DHW setpoint | 55 | °C |
 | DHW minimum temperature | 45 | °C |
 | Daily consumption | 150 | L/day |
+| Tank cooling rate | 0.3 | °C/h at 45 °C tank, 20 °C room (0.05–3.0) |
 | Only guarantee hot water during set time frames | on | — |
 | Hot water time frames | `06:00-08:30, 17:00-22:00` | HH:MM-HH:MM, comma separated |
 | Tank minimum outside the time frames | 20 | °C |
@@ -327,6 +365,7 @@ data:
   rain_heat_loss_multiplier: 1.20
   dhw_setpoint: 55
   dhw_min_temperature: 45
+  dhw_cooling_rate: 0.3
   window_area: 15.0
   solar_heat_gain_coefficient: 0.65
 ```
@@ -356,6 +395,11 @@ data:
 - The `DHW Temperature` sensor exposes `dhw_in_demand_window`,
   `dhw_next_window_in_hours` and `dhw_required_temperature` so you can see
   exactly what the optimizer is being asked to deliver right now
+- It also exposes `dhw_cooling_rate` (°C/h at 45/20 °C),
+  `dhw_cooling_rate_learned`, `dhw_cooling_samples` and `dhw_hold_hours`. If the
+  learned rate looks far too high, the tank sensor is probably seeing draws that
+  the model reads as standby loss; set the rate explicitly with
+  `set_thermal_parameters` (`dhw_cooling_rate`) to reset the estimate.
 
 ### Predictive optimization not working
 - Check that your weather entity provides hourly forecasts

@@ -42,6 +42,7 @@ from .const import (
     CONF_DHW_SCHEDULE_ENABLED,
     CONF_DHW_WINDOWS,
     CONF_DHW_IDLE_MIN_TEMP,
+    CONF_DHW_COOLING_RATE,
     CONF_DHW_LEGIONELLA_ENABLED,
     CONF_DHW_LEGIONELLA_TEMP,
     CONF_DHW_LEGIONELLA_INTERVAL_DAYS,
@@ -86,6 +87,10 @@ from .const import (
     DEFAULT_COMFORT_WEIGHT,
     DEFAULT_DHW_SETPOINT,
     DEFAULT_DHW_MIN_TEMP,
+    DEFAULT_DHW_COOLING_RATE,
+    DHW_COOLING_RATE_MIN,
+    DHW_COOLING_RATE_MAX,
+    DHW_COOLING_REFERENCE_DELTA,
     DEFAULT_ECL110_COMMAND_TOPIC,
     DEFAULT_ECL110_DISPLACE_SET_TOPIC,
     DEFAULT_ECL110_STATE_TOPIC,
@@ -101,7 +106,12 @@ from .const import (
     MODE_BOOST,
     UPDATE_INTERVAL_OPTIMIZATION,
 )
-from .thermal_model import ThermalModel, ThermalParameters, ThermalState
+from .thermal_model import (
+    DHW_AMBIENT_TEMP,
+    ThermalModel,
+    ThermalParameters,
+    ThermalState,
+)
 from .dhw_schedule import (
     DHWWindowError,
     format_windows,
@@ -166,6 +176,22 @@ DHW_PROFILE_STORE_VERSION = 1
 DHW_PROFILE_EWMA_ALPHA = 0.12
 DHW_PROFILE_MIN_INTENSITY = 0.2
 DHW_PROFILE_MAX_INTENSITY = 3.5
+
+# Learning rates for the tank cooling model. Every observation is an upper
+# bound on the true standby loss — an unnoticed draw can only make the tank
+# look leakier than it is, never tighter. So the estimate follows the lower
+# envelope of what is observed: it drops quickly towards a quieter reading and
+# only creeps upward, which keeps a single shower from convincing the model
+# that the tank is badly insulated.
+DHW_COOLING_ALPHA_DOWN = 0.25
+DHW_COOLING_ALPHA_UP = 0.02
+# Sample intervals outside this range are useless: too short and sensor
+# quantisation dominates, too long and the tank was almost certainly used.
+DHW_COOLING_MIN_SAMPLE_HOURS = 0.25
+DHW_COOLING_MAX_SAMPLE_HOURS = 6.0
+# The tank has to be meaningfully warmer than its surroundings for the decay
+# to carry any information about the loss coefficient.
+DHW_COOLING_MIN_DELTA = 5.0
 
 # Tibber GraphQL query for price data
 TIBBER_PRICE_QUERY = """
@@ -273,6 +299,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._dhw_hourly_profile: list[float] = (
             self._thermal_params.dhw_hourly_draw_pattern.copy()
         )
+        # Self-learned standby cooling of the tank, in °C/h at the reference
+        # condition (45 °C tank, 20 °C ambient). Seeded from the configured
+        # default until enough quiet decay has been observed.
+        self._dhw_cooling_rate: float = float(
+            self._thermal_params.dhw_cooling_rate
+        )
+        self._dhw_cooling_samples: int = 0
+        self._dhw_heating_since_sample: bool = False
         self._dhw_profile_store: Store = Store(
             hass,
             DHW_PROFILE_STORE_VERSION,
@@ -456,21 +490,42 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         return normalized
 
     async def _async_load_dhw_profile(self) -> None:
-        """Load persisted DHW usage profile and apply it to the thermal model."""
+        """Load the persisted DHW usage profile and tank cooling rate."""
         try:
-            stored = await self._dhw_profile_store.async_load()
-            if not stored:
-                return
-
-            profile = stored.get("hourly_profile")
-            if not isinstance(profile, list) or len(profile) != 24:
-                return
-
-            self._dhw_hourly_profile = self._normalize_dhw_profile(profile)
-            self._thermal_params.dhw_hourly_draw_pattern = self._dhw_hourly_profile.copy()
-            _LOGGER.info("Loaded learned DHW usage profile from storage")
+            stored = await self._dhw_profile_store.async_load() or {}
         except Exception as err:
             _LOGGER.debug("Could not load learned DHW profile: %s", err)
+            return
+
+        profile = stored.get("hourly_profile")
+        if isinstance(profile, list) and len(profile) == 24:
+            self._dhw_hourly_profile = self._normalize_dhw_profile(profile)
+            self._thermal_params.dhw_hourly_draw_pattern = (
+                self._dhw_hourly_profile.copy()
+            )
+            _LOGGER.info("Loaded learned DHW usage profile from storage")
+
+        rate = stored.get("cooling_rate")
+        if rate is None:
+            return
+        try:
+            self._apply_dhw_cooling_rate(float(rate))
+            self._dhw_cooling_samples = int(stored.get("cooling_samples", 0))
+        except (TypeError, ValueError) as err:
+            _LOGGER.debug("Could not load learned DHW cooling rate: %s", err)
+            return
+        _LOGGER.info(
+            "Loaded learned DHW tank cooling rate %.2f °C/h (%d samples)",
+            self._dhw_cooling_rate,
+            self._dhw_cooling_samples,
+        )
+
+    def _apply_dhw_cooling_rate(self, rate: float) -> None:
+        """Clamp a cooling rate to a plausible range and push it to the model."""
+        self._dhw_cooling_rate = float(
+            np.clip(rate, DHW_COOLING_RATE_MIN, DHW_COOLING_RATE_MAX)
+        )
+        self._thermal_params.dhw_cooling_rate = self._dhw_cooling_rate
 
     async def _async_save_dhw_profile(self) -> None:
         """Persist learned DHW profile to Home Assistant storage."""
@@ -478,6 +533,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             await self._dhw_profile_store.async_save(
                 {
                     "hourly_profile": self._dhw_hourly_profile,
+                    "cooling_rate": self._dhw_cooling_rate,
+                    "cooling_samples": self._dhw_cooling_samples,
                     "updated_at": dt_util.now().isoformat(),
                 }
             )
@@ -579,33 +636,106 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         )
         return round(hours, 2) if hours is not None else None
 
-    async def _async_learn_dhw_usage(self, dhw_temp: float) -> None:
-        """Learn hourly DHW usage profile from observed temperature drops."""
+    async def _async_learn_dhw_dynamics(self, dhw_temp: float) -> None:
+        """Learn the tank's usage profile and its standby cooling rate.
+
+        Both models are fed by the same observation — how far the tank
+        temperature moved since the previous sample — so they are derived
+        together from a single consistent measurement.
+        """
         now = dt_util.now()
+        heating = bool(self._current_action.get("dhw_heating_active", False))
 
-        if self._last_dhw_temp_sample is None or self._last_dhw_sample_time is None:
-            self._last_dhw_temp_sample = dhw_temp
-            self._last_dhw_sample_time = now
-            return
+        previous_temp = self._last_dhw_temp_sample
+        previous_time = self._last_dhw_sample_time
+        heated_during_interval = self._dhw_heating_since_sample or heating
 
-        dt_h = (now - self._last_dhw_sample_time).total_seconds() / 3600.0
-        if dt_h <= 0.02 or dt_h > 6.0:
-            self._last_dhw_temp_sample = dhw_temp
-            self._last_dhw_sample_time = now
-            return
-
-        temp_drop = self._last_dhw_temp_sample - dhw_temp
         self._last_dhw_temp_sample = dhw_temp
         self._last_dhw_sample_time = now
+        self._dhw_heating_since_sample = heating
 
-        # Learn only on meaningful drops while DHW is not actively heated.
-        if temp_drop < 0.15:
+        if previous_temp is None or previous_time is None:
             return
-        if bool(self._current_action.get("dhw_heating_active", False)):
+
+        dt_h = (now - previous_time).total_seconds() / 3600.0
+        if dt_h <= 0.02 or dt_h > DHW_COOLING_MAX_SAMPLE_HOURS:
+            return
+
+        temp_drop = previous_temp - dhw_temp
+
+        if not heated_during_interval:
+            await self._async_learn_dhw_cooling(previous_temp, dhw_temp, dt_h)
+        await self._async_learn_dhw_usage(
+            temp_drop, dt_h, now.hour, heated_during_interval
+        )
+
+    async def _async_learn_dhw_cooling(
+        self, previous_temp: float, dhw_temp: float, dt_h: float
+    ) -> None:
+        """Refine the tank cooling model from an interval with no heating.
+
+        Standby decay follows ``C·dT/dt = -UA·(T - T_ambient)``, so a pair of
+        temperatures bracketing an idle interval pins down the time constant:
+
+            UA/C = -ln((T_end - T_amb) / (T_start - T_amb)) / Δt
+
+        Scaled to the reference condition that gives a cooling rate in °C/h
+        directly comparable to the configured default.
+
+        Any hot water drawn during the interval inflates the estimate, which is
+        why the result is folded in as a lower envelope rather than a plain
+        average — see the alpha constants.
+        """
+        if dt_h < DHW_COOLING_MIN_SAMPLE_HOURS:
+            return
+        # A rise means the tank was heated or refilled from a hotter source;
+        # either way it says nothing about standby loss.
+        if dhw_temp > previous_temp:
+            return
+
+        start_delta = previous_temp - DHW_AMBIENT_TEMP
+        end_delta = dhw_temp - DHW_AMBIENT_TEMP
+        if start_delta < DHW_COOLING_MIN_DELTA or end_delta < DHW_COOLING_MIN_DELTA:
+            return
+
+        time_constant = -np.log(end_delta / start_delta) / dt_h  # 1/h
+        observed = float(time_constant * DHW_COOLING_REFERENCE_DELTA)
+        if not np.isfinite(observed):
+            return
+        if observed < DHW_COOLING_RATE_MIN or observed > DHW_COOLING_RATE_MAX:
+            return
+
+        alpha = (
+            DHW_COOLING_ALPHA_DOWN
+            if observed < self._dhw_cooling_rate
+            else DHW_COOLING_ALPHA_UP
+        )
+        self._apply_dhw_cooling_rate(
+            (1.0 - alpha) * self._dhw_cooling_rate + alpha * observed
+        )
+        self._dhw_cooling_samples += 1
+
+        _LOGGER.debug(
+            "Learned DHW cooling: %.2f°C→%.2f°C over %.2fh gives %.2f °C/h, "
+            "model now %.2f °C/h (%d samples)",
+            previous_temp,
+            dhw_temp,
+            dt_h,
+            observed,
+            self._dhw_cooling_rate,
+            self._dhw_cooling_samples,
+        )
+        await self._async_save_dhw_profile()
+
+    async def _async_learn_dhw_usage(
+        self, temp_drop: float, dt_h: float, hour: int, heated: bool
+    ) -> None:
+        """Learn hourly DHW usage profile from observed temperature drops."""
+        # Learn only on meaningful drops while DHW is not actively heated.
+        if temp_drop < 0.15 or heated:
             return
 
         draw_intensity = temp_drop / dt_h
-        hour = now.hour
 
         profile = self._dhw_hourly_profile.copy()
         profile[hour] = (
@@ -805,6 +935,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._thermal_params.dhw_min_temp = params["dhw_min_temperature"]
         if "dhw_daily_consumption" in params:
             self._thermal_params.dhw_daily_consumption = params["dhw_daily_consumption"]
+        if CONF_DHW_COOLING_RATE in params:
+            # An explicit value replaces the learned one and resets the sample
+            # count, so the learner treats it as the new starting point.
+            self._apply_dhw_cooling_rate(float(params[CONF_DHW_COOLING_RATE]))
+            self._dhw_cooling_samples = 0
+            await self._async_save_dhw_profile()
         if CONF_DHW_SCHEDULE_ENABLED in params:
             self._thermal_params.dhw_schedule_enabled = bool(
                 params[CONF_DHW_SCHEDULE_ENABLED]
@@ -919,7 +1055,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 try:
                     self._dhw_temperature = float(state.state)
                     self._current_state.dhw_temperature = self._dhw_temperature
-                    await self._async_learn_dhw_usage(self._dhw_temperature)
+                    await self._async_learn_dhw_dynamics(self._dhw_temperature)
                     await self._async_track_dhw_legionella(self._dhw_temperature)
                 except (ValueError, TypeError):
                     pass
@@ -1379,6 +1515,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             "dhw_setpoint": self._thermal_params.dhw_setpoint,
             "dhw_min_temperature": self._thermal_params.dhw_min_temp,
             "dhw_usage_profile": self._dhw_hourly_profile,
+            "dhw_cooling_rate": round(self._dhw_cooling_rate, 3),
+            "dhw_cooling_samples": self._dhw_cooling_samples,
+            "dhw_cooling_rate_learned": self._dhw_cooling_samples > 0,
+            "dhw_hold_hours": round(self._thermal_model.dhw_hold_hours(), 1),
             "dhw_windows": planned_windows
             or format_windows(self._thermal_params.dhw_demand_windows),
             "dhw_schedule_enabled": self._thermal_params.dhw_schedule_enabled,

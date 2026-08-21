@@ -1,5 +1,75 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v2.5.0
+
+### Summary
+Hot water is now planned as what it actually is — a battery. Previously the
+tank was only heated shortly before the water was needed, which meant a
+17:00–22:00 demand window was largely paid for at 17:00–22:00 prices. The
+planner can now buy hot water at *any* hour of the horizon and store it, and it
+learns how quickly your particular tank loses that stored heat instead of
+assuming it. In the validation scenarios hot water costs 10–15% less, uses less
+energy, and the tank runs slightly warmer at its lowest point.
+
+### Changed
+- **Hot water is scheduled by a minimum-cost plan over the full horizon.** The
+  old planner walked forward, found the first moment the tank would fall short,
+  and bought the missing energy from the cheapest *preceding* hours — subject to
+  a hard cap of at most 18 hours of lead time, and to a headroom rule that let a
+  single already-scheduled slot block every cheaper slot before it. In practice
+  that pinned heating to the demand windows themselves. The tank is a linear
+  store, so the whole schedule is now solved as one linear program: heat
+  delivered `k` steps early still contributes `(1 - UA·Δt/C)^k / C` degrees when
+  it is needed, and minimising `Σ price·energy/COP` under the availability
+  floors and the tank ceiling gives the genuinely cheapest feasible plan. That
+  decay factor *is* the standby loss, so pre-heating is priced correctly by
+  construction and the artificial lead-time cap has been removed entirely.
+  Heating now lands in the cheap night block and holds, rather than running
+  through the evening peak.
+
+  The previous cheapest-first planner is still there, seeded with that solution,
+  as a repair pass: it re-simulates with the true non-linear tank (temperature
+  dependent COP, cold-water floor) and tops up any residual shortfall. If the
+  solve is unavailable for any reason it takes over completely, so the
+  integration cannot lose hot water to a solver failure.
+
+### Added
+- **The tank's standby loss is learned instead of assumed.** How far ahead
+  pre-heating pays off depends entirely on how well the tank holds heat, so it
+  is now measured. The parameter has been restated in terms you can actually
+  check — **°C lost per hour at 45 °C tank temperature in a 20 °C room**,
+  defaulting to 0.3 °C/h — and is converted to a heat loss coefficient using
+  your tank volume. The previous fixed coefficient implied 0.36–0.65 °C/h
+  depending on tank size, i.e. a leakier tank than most, which made the
+  optimizer needlessly reluctant to store heat.
+
+  Whenever the tank temperature is sampled across an interval in which the heat
+  pump did not run, the decay itself gives the answer:
+  `UA/C = -ln((T_end - T_ambient)/(T_start - T_ambient)) / Δt`. Water drawn
+  during the interval can only make the tank look leakier than it is, never
+  tighter, so readings are folded in as a lower envelope — the estimate moves
+  quickly towards a quieter observation and only creeps upward. One unnoticed
+  shower therefore cannot convince the model that the tank is badly insulated,
+  while a genuinely deteriorating tank is still learned within days. Samples
+  shorter than 15 minutes or longer than 6 hours, and tanks within 5 °C of room
+  temperature, are ignored; the result is clamped to 0.05–3.0 °C/h and survives
+  restarts.
+
+- **Tank cooling rate is configurable.** It appears in the DHW step of both the
+  setup and options flows, and as `dhw_cooling_rate` on the
+  `set_thermal_parameters` service. Setting it explicitly resets the learned
+  estimate to your value.
+
+- **New attributes on the DHW sensors.** `dhw_cooling_rate`,
+  `dhw_cooling_rate_learned`, `dhw_cooling_samples`, `dhw_hold_hours` and
+  `dhw_preheat_hours` show what the model believes about your tank and how far
+  ahead it is willing to plan.
+
+### Upgrading
+No action required. Existing installations pick up the 0.3 °C/h default and
+start refining it from the next quiet period onwards; the value only affects
+*when* hot water is heated, never whether it is available.
+
 ## v2.4.1
 
 ### Summary

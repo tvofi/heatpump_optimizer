@@ -62,6 +62,11 @@ from .const import (
     DEFAULT_DHW_SETPOINT,
     DEFAULT_DHW_MIN_TEMP,
     DEFAULT_DHW_DAILY_CONSUMPTION,
+    DEFAULT_DHW_COOLING_RATE,
+    DHW_COOLING_REFERENCE_DELTA,
+    DHW_COOLING_REFERENCE_AMBIENT_TEMP,
+    DHW_COOLING_RATE_MIN,
+    DHW_COOLING_RATE_MAX,
     DEFAULT_DHW_SCHEDULE_ENABLED,
     DEFAULT_DHW_WINDOWS,
     DEFAULT_DHW_IDLE_MIN_TEMP,
@@ -90,7 +95,8 @@ _LOGGER = logging.getLogger(__name__)
 WATER_SPECIFIC_HEAT: float = 0.00116
 
 # Air temperature around the storage tanks; they are assumed to stand indoors.
-DHW_AMBIENT_TEMP: float = 20.0
+# This is the reference ambient the learned DHW cooling rate is stated against.
+DHW_AMBIENT_TEMP: float = DHW_COOLING_REFERENCE_AMBIENT_TEMP
 
 
 @dataclass
@@ -126,7 +132,10 @@ class ThermalParameters:
     dhw_setpoint: float = DEFAULT_DHW_SETPOINT  # °C "ready" temp at window start
     dhw_min_temp: float = DEFAULT_DHW_MIN_TEMP  # °C usable min inside windows
     dhw_daily_consumption: float = DEFAULT_DHW_DAILY_CONSUMPTION  # liters/day
-    dhw_tank_heat_loss_coefficient: float = 0.005  # kW/°C standby loss
+    # Standby cooling in °C/h at the reference condition (45 °C tank, 20 °C
+    # ambient). This is the parameter the coordinator learns; the UA value the
+    # simulation needs is derived from it and the tank's thermal mass.
+    dhw_cooling_rate: float = DEFAULT_DHW_COOLING_RATE  # °C/h
 
     # DHW demand windows (time frames where hot water must be available)
     dhw_schedule_enabled: bool = DEFAULT_DHW_SCHEDULE_ENABLED
@@ -176,6 +185,25 @@ class ThermalParameters:
     def dhw_tank_thermal_mass(self) -> float:
         """Thermal mass of DHW tank in kWh/°C."""
         return self.dhw_tank_volume * WATER_SPECIFIC_HEAT
+
+    @property
+    def dhw_tank_heat_loss_coefficient(self) -> float:
+        """Standby loss of the DHW tank in kW/°C.
+
+        Derived from the observable cooling rate rather than configured
+        directly: a tank that drops ``dhw_cooling_rate`` °C per hour while
+        sitting ``DHW_COOLING_REFERENCE_DELTA`` °C above its surroundings has
+
+            UA = rate * C_tank / ΔT_reference
+
+        Stating the parameter as a cooling rate is what makes it learnable —
+        it is exactly what a temperature sensor measures when nobody is
+        drawing water.
+        """
+        rate = float(
+            np.clip(self.dhw_cooling_rate, DHW_COOLING_RATE_MIN, DHW_COOLING_RATE_MAX)
+        )
+        return rate * self.dhw_tank_thermal_mass / DHW_COOLING_REFERENCE_DELTA
 
     @property
     def dhw_draw_power(self) -> float:
@@ -265,6 +293,7 @@ class ThermalParameters:
             CONF_DHW_SETPOINT,
             CONF_DHW_MIN_TEMP,
             CONF_DHW_DAILY_CONSUMPTION,
+            CONF_DHW_COOLING_RATE,
             CONF_DHW_SCHEDULE_ENABLED,
             CONF_DHW_WINDOWS,
             CONF_DHW_IDLE_MIN_TEMP,
@@ -373,6 +402,9 @@ class ThermalParameters:
             ),
             dhw_daily_consumption=config.get(
                 CONF_DHW_DAILY_CONSUMPTION, DEFAULT_DHW_DAILY_CONSUMPTION
+            ),
+            dhw_cooling_rate=config.get(
+                CONF_DHW_COOLING_RATE, DEFAULT_DHW_COOLING_RATE
             ),
             dhw_schedule_enabled=bool(
                 config.get(CONF_DHW_SCHEDULE_ENABLED, DEFAULT_DHW_SCHEDULE_ENABLED)
@@ -633,19 +665,46 @@ class ThermalModel:
         return self.params.effective_dhw_draw_pattern()[int(hour_of_day) % 24]
 
     def dhw_hold_hours(self) -> float:
-        """Estimated hours a full tank can coast before dropping to the min temp.
+        """Hours a fully charged tank can coast before dropping to the min temp.
 
-        Used to bound how far ahead pre-heating may be scheduled: heating too
-        early simply burns the extra energy as standby loss.
+        Purely standby-driven, i.e. how long stored heat survives when nobody
+        draws water. It is reported for diagnostics and used as a fallback
+        pre-heating horizon; the cost planner itself does not need a lead-time
+        cap because it prices the storage losses directly.
         """
         p = self.params
+        top = max(p.dhw_max_temp, p.dhw_min_temp + 1.0)
+        floor = p.dhw_min_temp
+        return self.dhw_coast_hours(top, floor)
+
+    def dhw_coast_hours(
+        self,
+        from_temp: float,
+        to_temp: float,
+        ambient_temp: float = DHW_AMBIENT_TEMP,
+    ) -> float:
+        """Hours of pure standby decay between two tank temperatures.
+
+        Exact solution of ``C·dT/dt = -UA·(T - T_ambient)``:
+
+            t = (C / UA) · ln((T_from - T_amb) / (T_to - T_amb))
+
+        Returns 0 when the tank is already at or below the target, and the
+        model's horizon cap when the tank barely loses heat at all.
+        """
+        p = self.params
+        if to_temp >= from_temp:
+            return 0.0
         c_dhw = max(p.dhw_tank_thermal_mass, 0.01)
-        span = max(p.dhw_setpoint - p.dhw_min_temp, 1.0)
-        avg_temp = 0.5 * (p.dhw_setpoint + p.dhw_min_temp)
-        loss_kw = max(
-            p.dhw_tank_heat_loss_coefficient * max(avg_temp - DHW_AMBIENT_TEMP, 1.0), 1e-3
-        )
-        return float(np.clip(c_dhw * span / loss_kw, 2.0, 18.0))
+        ua = max(p.dhw_tank_heat_loss_coefficient, 1e-5)
+        hot = from_temp - ambient_temp
+        cold = to_temp - ambient_temp
+        if hot <= 0.0:
+            return 0.0
+        if cold <= 0.0:
+            # The target is at or below ambient; the tank never gets there.
+            return 168.0
+        return float(np.clip((c_dhw / ua) * np.log(hot / cold), 0.0, 168.0))
 
     def simulate_dhw_step(
         self,
