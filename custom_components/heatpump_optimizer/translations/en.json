@@ -23,7 +23,9 @@
           "ecl110_mqtt_retain": "Retain MQTT messages",
           "ecl110_displace_min": "Largest downward offset",
           "ecl110_displace_max": "Largest upward offset",
-          "ecl110_pid_time_constant_hours": "Controller response time"
+          "ecl110_pid_time_constant_hours": "Controller response time",
+          "solar_forecast_source": "Solar irradiance source",
+          "solar_location": "Solar irradiance location"
         },
         "data_description": {
           "name": "Shown in front of every sensor this integration creates.",
@@ -44,7 +46,9 @@
           "ecl110_mqtt_retain": "Keeps the last offset on the broker so the controller picks it up after a restart.",
           "ecl110_displace_min": "How far the heat curve may be shifted down during expensive hours.",
           "ecl110_displace_max": "How far the heat curve may be shifted up when storing cheap heat.",
-          "ecl110_pid_time_constant_hours": "Roughly how long the controller takes to act on a new offset. Used so the optimizer does not ask for changes faster than the system can follow."
+          "ecl110_pid_time_constant_hours": "Roughly how long the controller takes to act on a new offset. Used so the optimizer does not ask for changes faster than the system can follow.",
+          "solar_forecast_source": "Where to get solar irradiance from. \"Weather entity\" uses your weather integration, which often does not publish irradiance at all. \"Open-Meteo\" fetches a free forecast for the location below; no account is needed.",
+          "solar_location": "Coordinate used for the Open-Meteo irradiance forecast. Defaults to your Home Assistant home location. Only used when the source is Open-Meteo."
         }
       },
       "temperature": {
@@ -205,7 +209,9 @@
           "buffer_tank_temp_entity": "Buffer tank temperature sensor",
           "floor_return_temp_entity": "Floor heating return temperature sensor",
           "heat_pump_entity": "Heat pump thermostat",
-          "heat_pump_switch_entity": "Heat pump on/off switch"
+          "heat_pump_switch_entity": "Heat pump on/off switch",
+          "solar_forecast_source": "Solar irradiance source",
+          "solar_location": "Solar irradiance location"
         },
         "data_description": {
           "tibber_token": "Used to read your hourly electricity prices. Create one at developer.tibber.com. Leave as-is unless it has changed.",
@@ -217,7 +223,9 @@
           "buffer_tank_temp_entity": "Optional. When set, the integration learns how fast the buffer tank loses heat instead of relying on the configured estimate.",
           "floor_return_temp_entity": "Optional. Water temperature coming back from the floor loops, used to gauge how much heat the slab is holding.",
           "heat_pump_entity": "Optional. A climate entity the optimizer can set a temperature on.",
-          "heat_pump_switch_entity": "Optional. A switch used to turn the heat pump off during expensive hours."
+          "heat_pump_switch_entity": "Optional. A switch used to turn the heat pump off during expensive hours.",
+          "solar_forecast_source": "Where to get solar irradiance from. \"Weather entity\" uses your weather integration, which often does not publish irradiance at all. \"Open-Meteo\" fetches a free forecast for the location below; no account is needed.",
+          "solar_location": "Coordinate used for the Open-Meteo irradiance forecast. Defaults to your Home Assistant home location. Only used when the source is Open-Meteo."
         }
       },
       "comfort": {
@@ -334,6 +342,14 @@
     "error": {
       "invalid_tibber_token": "That Tibber token was not accepted. Check it at developer.tibber.com and try again.",
       "invalid_dhw_windows": "Those time frames could not be read. Use 24-hour times separated by commas, for example \"06:00-08:30, 17:00-22:00\"."
+    }
+  },
+  "selector": {
+    "solar_forecast_source": {
+      "options": {
+        "weather": "Weather entity",
+        "open_meteo": "Open-Meteo"
+      }
     }
   }
 }

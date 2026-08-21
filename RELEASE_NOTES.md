@@ -1,5 +1,56 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v2.7.0
+
+### Added
+- **Solar irradiance can now come from Open-Meteo.** Solar gain was only as good
+  as the irradiance behind it, and most weather integrations never publish a
+  `solar_irradiance` field, so for many installs the term silently evaluated to
+  zero and the optimizer could not anticipate a sunny afternoon. Set *Solar
+  forecast source* to `Open-Meteo` and pick the location on the map in the
+  configurator. No API key or account is needed.
+- **A new Solar Irradiance sensor** exposes the current value, with the full
+  horizon and source diagnostics in its attributes.
+
+### How it works
+- Two endpoints are used because they do different jobs. The forecast API
+  supplies the planning horizon and supports `minutely_15`, matching the
+  optimizer's 15-minute grid exactly. The satellite archive supplies *current*
+  irradiance: it is observed rather than modelled and current to roughly ten
+  minutes, so the house heat-loss learner trains against what actually happened.
+  The satellite endpoint is archive-only, with no forecast route, so it cannot
+  serve the horizon by itself.
+- The request is for `shortwave_radiation` (global horizontal irradiance) rather
+  than `direct_radiation`. The window-gain calculation applies its own
+  orientation factor, and direct-beam alone omits the diffuse component, which
+  on an overcast day is essentially all the light there is.
+- Open-Meteo timestamps mark the **end** of the averaging interval. This was
+  verified against sunrise and sunset rather than assumed; reading them as
+  interval starts shifts all solar gain by one interval, which at dawn and dusk
+  is the difference between darkness and full sun.
+- Values are resampled by overlap-weighted averaging, so the API resolution need
+  not match the step length, and a window with less than half coverage returns
+  no value instead of a figure derived from almost no data.
+
+### Precedence and safety
+- A configured local irradiance sensor still wins outright: a real measurement
+  at the site beats any model.
+- Steps the Open-Meteo data does not cover fall back to the weather entity
+  rather than to zero, since "no data" is not "no sun". Missing samples are
+  dropped rather than coerced to `0.0` for the same reason.
+- Existing installs are unaffected. The default source remains the weather
+  entity, and the feature is entirely opt-in.
+
+### Fixed
+- **A naive datetime could crash the update loop.** `dt_util.now()` returns a
+  naive datetime when no timezone is configured, and comparing it against the
+  timezone-aware API timestamps raised `TypeError` inside
+  `_prepare_forecast_data`, taking the whole optimization down over a timezone
+  detail. Instants are now normalised to UTC at the boundary.
+- **`strings.json` had drifted from `translations/en.json`**, so several
+  configuration fields, including the buffer tank sensor added earlier, showed
+  raw keys instead of labels.
+
 ## v2.6.1
 
 ### Fixed

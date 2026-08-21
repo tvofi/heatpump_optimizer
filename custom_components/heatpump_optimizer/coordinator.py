@@ -113,7 +113,12 @@ from .const import (
     MODE_OFF,
     MODE_BOOST,
     UPDATE_INTERVAL_OPTIMIZATION,
+    CONF_SOLAR_FORECAST_SOURCE,
+    CONF_SOLAR_LOCATION,
+    DEFAULT_SOLAR_FORECAST_SOURCE,
+    SOLAR_SOURCE_OPEN_METEO,
 )
+from .open_meteo import OpenMeteoSolar
 from .thermal_model import (
     DHW_AMBIENT_TEMP,
     ThermalModel,
@@ -338,6 +343,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._solar_radiation: float = 0.0
         self._floor_return_temp: float | None = None
         self._solar_radiation_forecast: list[float] = []
+        self._open_meteo: OpenMeteoSolar | None = None
 
         # DHW state
         self._dhw_temperature: float | None = None
@@ -1260,6 +1266,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             # Fetch weather forecast (full 24h for solar, wind, rain, temp)
             await self._fetch_weather_forecast()
 
+            # Refresh Open-Meteo irradiance, if that is the selected source.
+            # Deliberately after the weather fetch: it overrides whatever
+            # irradiance the weather entity did or did not supply.
+            await self._fetch_solar_forecast()
+
             # Run optimization if in auto mode
             if self._mode in (MODE_AUTO, MODE_ECONOMY):
                 await self.async_run_optimization()
@@ -1539,16 +1550,26 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 except (ValueError, TypeError):
                     pass
 
-        # Solar radiation sensor
+        # Solar radiation: a local pyranometer measures this house, so it wins
+        # over any remote estimate. Open-Meteo fills in when no sensor is
+        # configured or the sensor is not reporting.
         solar_entity = self._config.get(CONF_SOLAR_RADIATION_ENTITY)
+        solar_from_sensor = False
         if solar_entity:
             state = self.hass.states.get(solar_entity)
             if state and state.state not in ("unknown", "unavailable"):
                 try:
                     self._solar_radiation = float(state.state)
                     self._current_state.solar_radiation = self._solar_radiation
+                    solar_from_sensor = True
                 except (ValueError, TypeError):
                     pass
+
+        if not solar_from_sensor and self._open_meteo is not None:
+            observed = self._open_meteo.current_irradiance(dt_util.utcnow())
+            if observed is not None:
+                self._solar_radiation = observed
+                self._current_state.solar_radiation = observed
 
         # DHW temperature sensor
         dhw_entity = self._config.get(CONF_DHW_TEMP_ENTITY)
@@ -1747,6 +1768,85 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 except (ValueError, TypeError):
                     pass
 
+    def _solar_forecast_source(self) -> str:
+        """Configured irradiance source."""
+        return self._config.get(
+            CONF_SOLAR_FORECAST_SOURCE, DEFAULT_SOLAR_FORECAST_SOURCE
+        )
+
+    def _solar_location(self) -> tuple[float, float] | None:
+        """Coordinate to request irradiance for.
+
+        Falls back to the Home Assistant home location so the option works
+        without picking a point on the map; a heat pump is nearly always at
+        the same place as the installation it belongs to.
+        """
+        location = self._config.get(CONF_SOLAR_LOCATION)
+        if isinstance(location, dict):
+            lat = location.get("latitude")
+            lon = location.get("longitude")
+            if lat is not None and lon is not None:
+                try:
+                    return float(lat), float(lon)
+                except (TypeError, ValueError):
+                    _LOGGER.warning(
+                        "Ignoring malformed solar location %s", location
+                    )
+
+        lat = getattr(self.hass.config, "latitude", None)
+        lon = getattr(self.hass.config, "longitude", None)
+        if lat is None or lon is None:
+            return None
+        return float(lat), float(lon)
+
+    async def _fetch_solar_forecast(self) -> None:
+        """Refresh Open-Meteo irradiance when that source is selected."""
+        if self._solar_forecast_source() != SOLAR_SOURCE_OPEN_METEO:
+            self._open_meteo = None
+            return
+
+        location = self._solar_location()
+        if location is None:
+            _LOGGER.warning(
+                "Open-Meteo solar is selected but no coordinate is available; "
+                "set one in the integration options or configure the Home "
+                "Assistant home location"
+            )
+            self._open_meteo = None
+            return
+
+        latitude, longitude = location
+        # Rebuild on a coordinate change so an edited location takes effect
+        # instead of serving cached irradiance for the previous place.
+        if self._open_meteo is None or not self._open_meteo.matches(
+            latitude, longitude
+        ):
+            self._open_meteo = OpenMeteoSolar(self.hass, latitude, longitude)
+
+        await self._open_meteo.async_refresh(dt_util.utcnow())
+
+    def _solar_forecast_view(self, hours: int = 48) -> list[dict[str, Any]]:
+        """Upcoming irradiance as timestamped points, for sensor attributes."""
+        if self._open_meteo is None or not self._open_meteo.forecast:
+            return []
+
+        series = self._open_meteo.forecast
+        now = dt_util.utcnow()
+        horizon = now + timedelta(hours=hours)
+        points: list[dict[str, Any]] = []
+        for t, value in zip(series.times, series.values):
+            if t < now or t > horizon:
+                continue
+            points.append(
+                {
+                    # Timestamps mark the end of each averaging interval, so
+                    # report the interval start, which is what a chart wants.
+                    "t": (t - series.resolution).isoformat(),
+                    "ghi": round(value, 1),
+                }
+            )
+        return points
+
     def _wind_speed_scale(self) -> float:
         """Factor converting the weather entity's wind unit into m/s.
 
@@ -1866,6 +1966,35 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 wind_speeds.append(0.0)
                 precipitation_rates.append(0.0)
                 solar_rad.append(current_sr)
+
+        # Open-Meteo irradiance, aligned by wall-clock time rather than by
+        # position in the weather forecast list. The positional path above
+        # assumes the weather entity's first forecast entry is the current
+        # hour, which is not guaranteed; an irradiance series carries its own
+        # timestamps, so match on those instead.
+        if self._open_meteo is not None and self._open_meteo.available:
+            step = timedelta(minutes=dt_minutes)
+            aligned: list[float] = []
+            missing = 0
+            for i in range(n_steps):
+                step_start = midnight + timedelta(
+                    minutes=dt_minutes * (step_offset + i)
+                )
+                value = self._open_meteo.irradiance_for(step_start, step)
+                if value is None:
+                    # Past the end of the published horizon: keep whatever the
+                    # weather entity offered rather than asserting darkness.
+                    missing += 1
+                    value = solar_rad[i] if i < len(solar_rad) else 0.0
+                aligned.append(max(0.0, value))
+            solar_rad = aligned
+            if missing:
+                _LOGGER.debug(
+                    "Open-Meteo irradiance covered %d/%d steps; the rest fell "
+                    "back to the weather entity",
+                    n_steps - missing,
+                    n_steps,
+                )
 
         # Pad to ensure we have enough data points
         for arr in [outdoor_temps, wind_speeds, precipitation_rates, solar_rad]:
@@ -2028,6 +2157,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             "floor_return_temperature": self._floor_return_temp,
             "solar_radiation": self._solar_radiation,
             "solar_heat_gain": current_solar_gain,
+            "solar_source": self._solar_forecast_source(),
+            "solar_forecast": self._solar_forecast_view(),
+            "solar_diagnostics": (
+                self._open_meteo.diagnostics() if self._open_meteo else None
+            ),
             "two_zone_enabled": self._thermal_params.two_zone_enabled,
             "dhw_enabled": self._thermal_params.dhw_enabled,
             "dhw_temperature": self._dhw_temperature or self._current_state.dhw_temperature,

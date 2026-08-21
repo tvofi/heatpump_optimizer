@@ -23,6 +23,34 @@ CONF_HEAT_PUMP_SWITCH_ENTITY: Final = "heat_pump_switch_entity"
 CONF_SOLAR_RADIATION_ENTITY: Final = "solar_radiation_entity"
 CONF_FLOOR_RETURN_TEMP_ENTITY: Final = "floor_return_temp_entity"
 
+# Solar irradiance forecast source.
+#
+# Most Home Assistant weather integrations do not publish irradiance at all, so
+# the default path leaves the model with no solar gain to plan against. Open-
+# Meteo exposes a free global horizontal irradiance forecast that needs only a
+# coordinate, so it can be used instead of (or alongside) a local sensor.
+CONF_SOLAR_FORECAST_SOURCE: Final = "solar_forecast_source"
+CONF_SOLAR_LOCATION: Final = "solar_location"
+
+SOLAR_SOURCE_WEATHER: Final = "weather"
+SOLAR_SOURCE_OPEN_METEO: Final = "open_meteo"
+SOLAR_SOURCES: Final = (SOLAR_SOURCE_WEATHER, SOLAR_SOURCE_OPEN_METEO)
+DEFAULT_SOLAR_FORECAST_SOURCE: Final = SOLAR_SOURCE_WEATHER
+
+# Forward-looking irradiance. The satellite API is archive-only, so a forecast
+# horizon can only come from the regular forecast endpoint.
+OPEN_METEO_FORECAST_URL: Final = "https://api.open-meteo.com/v1/forecast"
+# Observed (satellite-derived) irradiance for the recent past, which is more
+# accurate than the modelled forecast for "what is the sun doing right now".
+OPEN_METEO_SATELLITE_URL: Final = "https://satellite-api.open-meteo.com/v1/archive"
+OPEN_METEO_SATELLITE_MODEL: Final = "satellite_radiation_seamless"
+# Open-Meteo publishes new forecast runs hourly; refreshing faster than this
+# spends API quota re-fetching identical numbers.
+OPEN_METEO_MIN_REFRESH_MINUTES: Final = 20
+OPEN_METEO_TIMEOUT_SECONDS: Final = 15
+# How stale an observed satellite sample may be and still count as "now".
+OPEN_METEO_OBSERVED_MAX_AGE_MINUTES: Final = 90
+
 # DHW sensor configuration
 CONF_DHW_TEMP_ENTITY: Final = "dhw_temp_entity"
 

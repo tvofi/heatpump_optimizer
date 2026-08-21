@@ -23,7 +23,9 @@
           "ecl110_mqtt_retain": "Behåll MQTT-meddelanden",
           "ecl110_displace_min": "Största nedåtförskjutning",
           "ecl110_displace_max": "Största uppåtförskjutning",
-          "ecl110_pid_time_constant_hours": "Regulatorns svarstid"
+          "ecl110_pid_time_constant_hours": "Regulatorns svarstid",
+          "solar_forecast_source": "Källa för solinstrålning",
+          "solar_location": "Plats för solinstrålning"
         },
         "data_description": {
           "name": "Visas framför alla sensorer som integrationen skapar.",
@@ -44,7 +46,9 @@
           "ecl110_mqtt_retain": "Sparar den senaste förskjutningen på mäklaren så att regulatorn hämtar den efter en omstart.",
           "ecl110_displace_min": "Hur långt ned värmekurvan får förskjutas under dyra timmar.",
           "ecl110_displace_max": "Hur långt upp värmekurvan får förskjutas när billig värme lagras.",
-          "ecl110_pid_time_constant_hours": "Ungefär hur lång tid regulatorn behöver för att verkställa en ny förskjutning. Används så att optimeringen inte begär snabbare ändringar än systemet hinner följa."
+          "ecl110_pid_time_constant_hours": "Ungefär hur lång tid regulatorn behöver för att verkställa en ny förskjutning. Används så att optimeringen inte begär snabbare ändringar än systemet hinner följa.",
+          "solar_forecast_source": "Var solinstrålningen ska hämtas ifrån. \"Väderentitet\" använder din väderintegration, som ofta inte publicerar solinstrålning alls. \"Open-Meteo\" hämtar en kostnadsfri prognos för platsen nedan; inget konto behövs.",
+          "solar_location": "Koordinat som används för Open-Meteos solinstrålningsprognos. Utgår från Home Assistants hemposition. Används bara när källan är Open-Meteo."
         }
       },
       "temperature": {
@@ -205,7 +209,9 @@
           "buffer_tank_temp_entity": "Temperaturgivare för buffertank",
           "floor_return_temp_entity": "Givare för golvvärmens returtemperatur",
           "heat_pump_entity": "Värmepumpens termostat",
-          "heat_pump_switch_entity": "Strömbrytare för värmepumpen"
+          "heat_pump_switch_entity": "Strömbrytare för värmepumpen",
+          "solar_forecast_source": "Källa för solinstrålning",
+          "solar_location": "Plats för solinstrålning"
         },
         "data_description": {
           "tibber_token": "Används för att läsa dina timpriser på el. Skapa en på developer.tibber.com. Lämna som den är om den inte har ändrats.",
@@ -217,7 +223,9 @@
           "buffer_tank_temp_entity": "Valfritt. När den anges lär sig integrationen hur snabbt buffertanken svalnar i stället för att förlita sig på det konfigurerade värdet.",
           "floor_return_temp_entity": "Valfritt. Vattentemperaturen tillbaka från golvslingorna, används för att bedöma hur mycket värme plattan lagrar.",
           "heat_pump_entity": "Valfritt. En climate-entitet som optimeringen kan ställa en temperatur på.",
-          "heat_pump_switch_entity": "Valfritt. En strömbrytare som används för att stänga av värmepumpen under dyra timmar."
+          "heat_pump_switch_entity": "Valfritt. En strömbrytare som används för att stänga av värmepumpen under dyra timmar.",
+          "solar_forecast_source": "Var solinstrålningen ska hämtas ifrån. \"Väderentitet\" använder din väderintegration, som ofta inte publicerar solinstrålning alls. \"Open-Meteo\" hämtar en kostnadsfri prognos för platsen nedan; inget konto behövs.",
+          "solar_location": "Koordinat som används för Open-Meteos solinstrålningsprognos. Utgår från Home Assistants hemposition. Används bara när källan är Open-Meteo."
         }
       },
       "comfort": {
@@ -334,6 +342,14 @@
     "error": {
       "invalid_tibber_token": "Tibber-token accepterades inte. Kontrollera den på developer.tibber.com och försök igen.",
       "invalid_dhw_windows": "Tiderna kunde inte tolkas. Använd 24-timmarsformat separerat med komma, till exempel \"06:00-08:30, 17:00-22:00\"."
+    }
+  },
+  "selector": {
+    "solar_forecast_source": {
+      "options": {
+        "weather": "Väderentitet",
+        "open_meteo": "Open-Meteo"
+      }
     }
   }
 }
