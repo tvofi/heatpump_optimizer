@@ -10,12 +10,16 @@
  */
 
 const CARD_TAG = "heatpump-optimizer-card";
-const CARD_VERSION = "2.6.0";
+const CARD_VERSION = "2.6.1";
 
 const DEFAULTS = {
   title: "Heat pump plan",
-  space_entity: "sensor.space_heating_plan",
-  dhw_entity: "sensor.dhw_heating_plan",
+  // Entity ids are derived from the device name ("Heat Pump Optimizer"), since
+  // the plan sensors use has_entity_name. These are the ids a default install
+  // produces; if they are absent the card auto-discovers by the `plan_kind`
+  // attribute, so a renamed entity still works with no config change.
+  space_entity: "sensor.heat_pump_optimizer_space_heating_plan",
+  dhw_entity: "sensor.heat_pump_optimizer_dhw_heating_plan",
   hours: 24,
 };
 
@@ -306,6 +310,44 @@ class HeatpumpOptimizerCard extends HTMLElement {
 
   // ---- data extraction ---------------------------------------------------
 
+  // Resolve which entity to read for a plan kind ("space" | "dhw").
+  //
+  // Entity ids are not a stable contract: they are derived from the device
+  // name and the user can rename them. So the configured id wins if it exists,
+  // otherwise fall back to discovering the sensor that advertises the matching
+  // `plan_kind` attribute, and finally to a naming-convention match for
+  // integration versions predating that attribute.
+  _resolveEntity(kind) {
+    const cfg = this._config;
+    const configured = kind === "space" ? cfg.space_entity : cfg.dhw_entity;
+    if (!this._hass || !this._hass.states) return configured;
+    const states = this._hass.states;
+    if (states[configured]) return configured;
+
+    if (!this._resolvedCache) this._resolvedCache = {};
+    const cached = this._resolvedCache[kind];
+    if (cached && states[cached]) return cached;
+
+    const suffix = kind === "space" ? "space_heating_plan" : "dhw_heating_plan";
+    let byMarker = null;
+    let bySuffix = null;
+    for (const id of Object.keys(states).sort()) {
+      if (!id.startsWith("sensor.")) continue;
+      const attrs = states[id].attributes || {};
+      if (attrs.plan_kind === kind) {
+        byMarker = id;
+        break;
+      }
+      if (bySuffix === null && id.endsWith(suffix)) bySuffix = id;
+    }
+    const found = byMarker || bySuffix;
+    if (found) {
+      this._resolvedCache[kind] = found;
+      return found;
+    }
+    return configured;
+  }
+
   _stateOf(entityId) {
     if (!this._hass || !this._hass.states) return undefined;
     return this._hass.states[entityId];
@@ -329,13 +371,15 @@ class HeatpumpOptimizerCard extends HTMLElement {
 
   _signature() {
     const cfg = this._config;
-    const space = this._stateOf(cfg.space_entity);
-    const dhw = this._stateOf(cfg.dhw_entity);
-    const spFc = this._forecast(cfg.space_entity);
-    const dhwFc = this._forecast(cfg.dhw_entity);
+    const spId = this._resolveEntity("space");
+    const dhwId = this._resolveEntity("dhw");
+    const space = this._stateOf(spId);
+    const dhw = this._stateOf(dhwId);
+    const spFc = this._forecast(spId);
+    const dhwFc = this._forecast(dhwId);
     return [
-      cfg.space_entity,
-      cfg.dhw_entity,
+      spId,
+      dhwId,
       cfg.hours,
       cfg.title,
       space ? space.last_updated : "-",
@@ -359,8 +403,8 @@ class HeatpumpOptimizerCard extends HTMLElement {
   // Build this._series from the current forecasts.
   _buildSeries() {
     const cfg = this._config;
-    const spFc = this._forecast(cfg.space_entity) || [];
-    const dhwFc = this._forecast(cfg.dhw_entity) || [];
+    const spFc = this._forecast(this._resolveEntity("space")) || [];
+    const dhwFc = this._forecast(this._resolveEntity("dhw")) || [];
 
     const now = Date.now();
     let windowStart = now;
@@ -433,6 +477,33 @@ class HeatpumpOptimizerCard extends HTMLElement {
 
   // ---- rendering ---------------------------------------------------------
 
+  // Explain precisely why a plan is missing. "Waiting for an entity" is not
+  // actionable when the real problem is that the entity is named something
+  // else, so distinguish not-found from present-but-empty.
+  _diagnose(kind) {
+    const id = this._resolveEntity(kind);
+    const label = kind === "space" ? "Space heating" : "DHW";
+    const st = this._stateOf(id);
+    if (!st) {
+      return `${label}: no entity found. Looked for <code>${esc(id)}</code>.
+        Check the entity id in Developer Tools &gt; States and set
+        <code>${kind}_entity</code> in the card config.`;
+    }
+    if (st.state === "unavailable" || st.state === "unknown") {
+      return `${label}: <code>${esc(id)}</code> is ${esc(st.state)}.`;
+    }
+    const fc = this._forecast(id);
+    if (!fc) {
+      return `${label}: <code>${esc(id)}</code> has no forecast attribute yet.
+        It appears after the first optimization run.`;
+    }
+    if (!fc.length) {
+      return `${label}: <code>${esc(id)}</code> published an empty forecast.`;
+    }
+    return `${label}: <code>${esc(id)}</code> has ${fc.length} points, but none
+      fall in the selected window.`;
+  }
+
   _render() {
     const cfg = this._config;
     const built = this._buildSeries();
@@ -446,8 +517,8 @@ class HeatpumpOptimizerCard extends HTMLElement {
     let body;
     if (!anyData) {
       body = `<div class="empty">No plan data available yet.<br>
-        Waiting for <code>${esc(cfg.space_entity)}</code> /
-        <code>${esc(cfg.dhw_entity)}</code> to publish a forecast.</div>`;
+        ${this._diagnose("space")}<br>
+        ${this._diagnose("dhw")}</div>`;
       this._plot = null;
     } else {
       const chart = this._chartSvg(built);

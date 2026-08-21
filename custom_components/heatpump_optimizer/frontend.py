@@ -112,7 +112,11 @@ async def _register_lovelace_resource(hass: HomeAssistant, url: str) -> None:
             await resources.async_load()
             resources.loaded = True
 
-        # Skip if a resource with the same base URL already exists.
+        # Skip if a resource with the same base URL already exists. If it does
+        # but the cache-busting query differs, update it in place: leaving the
+        # stale ?v= means browsers keep serving the previously cached card
+        # after an upgrade, which looks exactly like the new version not
+        # working.
         base = url.split("?")[0]
         existing = []
         if hasattr(resources, "async_items"):
@@ -121,9 +125,26 @@ async def _register_lovelace_resource(hass: HomeAssistant, url: str) -> None:
             existing = resources.data or []
         for item in existing:
             item_url = item.get("url") if isinstance(item, dict) else None
-            if item_url and item_url.split("?")[0] == base:
+            if not item_url or item_url.split("?")[0] != base:
+                continue
+            if item_url == url:
                 _LOGGER.debug("Card resource already registered: %s", item_url)
                 return
+            item_id = item.get("id")
+            if item_id is None or not hasattr(resources, "async_update_item"):
+                _LOGGER.debug(
+                    "Card resource %s is stale but cannot be updated", item_url
+                )
+                return
+            await resources.async_update_item(
+                item_id, {"res_type": "module", "url": url}
+            )
+            _LOGGER.info(
+                "Updated Heat Pump Optimizer card resource %s -> %s",
+                item_url,
+                url,
+            )
+            return
 
         await resources.async_create_item({"res_type": "module", "url": url})
         _LOGGER.info("Registered Heat Pump Optimizer card resource: %s", url)
