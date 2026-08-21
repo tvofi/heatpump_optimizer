@@ -64,8 +64,8 @@ Restart or reload the dashboard afterwards.
 ```yaml
 type: custom:heatpump-optimizer-card
 title: Heat pump plan                    # optional, default "Heat pump plan"
-space_entity: sensor.space_heating_plan  # optional, default sensor.space_heating_plan
-dhw_entity: sensor.dhw_heating_plan      # optional, default sensor.dhw_heating_plan
+space_entity: sensor.heat_pump_optimizer_space_heating_plan  # optional, auto-detected
+dhw_entity: sensor.heat_pump_optimizer_dhw_heating_plan      # optional, auto-detected
 hours: 24                                # optional, hours forward to plot, default 24 (1–168)
 series:                                  # optional, initial per-series visibility
   price: true
@@ -80,14 +80,30 @@ series:                                  # optional, initial per-series visibili
 |----------------|---------|--------------------------------|-------------|
 | `type`         | string  | —                              | Must be `custom:heatpump-optimizer-card`. |
 | `title`        | string  | `Heat pump plan`               | Card header text. |
-| `space_entity` | string  | `sensor.space_heating_plan`    | Entity id of the space-heating plan sensor (its `forecast` attribute supplies `price`, `outdoor`, `space_power`, `room`, `upper`, `lower`). |
-| `dhw_entity`   | string  | `sensor.dhw_heating_plan`      | Entity id of the DHW plan sensor (its `forecast` attribute supplies `dhw_power`, `dhw_temp`, and `price`/`outdoor` fallbacks). |
+| `space_entity` | string  | auto-detected                  | Entity id of the space-heating plan sensor (its `forecast` attribute supplies `price`, `outdoor`, `space_power`, `room`, `upper`, `lower`). |
+| `dhw_entity`   | string  | auto-detected                  | Entity id of the DHW plan sensor (its `forecast` attribute supplies `dhw_power`, `dhw_temp`, and `price`/`outdoor` fallbacks). |
 | `hours`        | number  | `24`                           | How many hours forward to plot. Must be `1`–`168`. |
 | `series`       | map     | all `true`                     | Initial visibility per series key. Keys: `price`, `dhw_slots`, `space_slots`, `outdoor`, `dhw_temp`, `house_temp`. |
 
-> **Note:** Your real entity ids depend on the config entry title (for example
-> `sensor.<title>_space_heating_plan`). Check **Developer Tools → States** and
-> set `space_entity` / `dhw_entity` accordingly if the defaults don't match.
+### Entity discovery
+
+The plan sensors use `has_entity_name`, so Home Assistant prefixes them with the
+device name. A stock install produces
+`sensor.heat_pump_optimizer_space_heating_plan` and
+`sensor.heat_pump_optimizer_dhw_heating_plan`.
+
+You normally do not need to configure either option. The card resolves entities
+in this order:
+
+1. The id you configured, if that entity exists.
+2. Any `sensor` whose `plan_kind` attribute is `space` or `dhw`. This is a
+   stable marker published by the integration, so renaming an entity does not
+   break the card.
+3. Any `sensor` whose id ends in `space_heating_plan` / `dhw_heating_plan`,
+   for integration versions older than 2.6.1.
+
+If nothing is found the card names the id it looked for, so check
+**Developer Tools → States** and set the option explicitly.
 
 Toggle state is remembered in the browser's `localStorage`, keyed by the two
 entity ids, so it survives page reloads. The `series` option only sets the

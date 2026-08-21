@@ -1,5 +1,28 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v2.6.1
+
+### Fixed
+- **The dashboard card showed "No plan data available yet" on a stock install.**
+  The plan sensors use `has_entity_name`, so Home Assistant prefixes them with
+  the device name and the real ids are
+  `sensor.heat_pump_optimizer_space_heating_plan` /
+  `sensor.heat_pump_optimizer_dhw_heating_plan`. The card defaulted to the
+  unprefixed ids, which never exist, so a default configuration could not work.
+- **The card no longer depends on entity ids being stable.** The plan sensors
+  publish a `plan_kind` attribute (`space` / `dhw`) and the card discovers them
+  by that marker when the configured id is absent, so renaming an entity no
+  longer breaks it. A name-suffix match keeps older setups working.
+- **Upgrades kept serving the cached old card.** The Lovelace resource is
+  registered with a `?v=<version>` cache-buster, but the existing-resource check
+  matched on the base URL only and left the stale query in place, so browsers
+  reused the previously cached JavaScript after every upgrade. The resource is
+  now updated in place when the version changes.
+- **The empty-state message is now actionable.** Instead of naming two entities
+  it was only guessing at, the card reports per circuit whether the entity was
+  not found, is unavailable, has no forecast yet, or has data outside the
+  selected window.
+
 ## v2.6.0
 
 ### Summary

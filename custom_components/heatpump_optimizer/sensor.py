@@ -832,6 +832,10 @@ class _PlanSensorBase(HeatPumpOptimizerSensorBase):
 
     _unrecorded_attributes = frozenset({"forecast", "slots"})
     _plan_key: str = ""
+    # Stable machine-readable marker. Entity ids depend on the device name and
+    # can be renamed by the user, so the dashboard card discovers these sensors
+    # by this attribute rather than by guessing at an entity id.
+    _plan_kind: str = ""
 
     @property
     def _plan(self) -> dict[str, Any]:
@@ -855,8 +859,10 @@ class _PlanSensorBase(HeatPumpOptimizerSensorBase):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         plan = self._plan
+        # plan_kind is emitted even with no plan yet so the card can still find
+        # the entity and report *why* it is empty rather than "not found".
         if not plan:
-            return {}
+            return {"plan_kind": self._plan_kind}
         slots = plan.get("slots", [])
         next_slot = None
         if not plan.get("active_now") and slots:
@@ -864,6 +870,7 @@ class _PlanSensorBase(HeatPumpOptimizerSensorBase):
         elif plan.get("active_now") and len(slots) > 1:
             next_slot = slots[1].get("start")
         return {
+            "plan_kind": self._plan_kind,
             "forecast": plan.get("forecast", []),
             "slots": slots,
             "slot_count": len(slots),
@@ -879,6 +886,7 @@ class SpaceHeatingPlanSensor(_PlanSensorBase):
 
     _attr_icon = "mdi:radiator"
     _plan_key = "space_plan"
+    _plan_kind = "space"
 
     def __init__(self, coordinator, entry):
         super().__init__(
@@ -891,6 +899,7 @@ class DHWHeatingPlanSensor(_PlanSensorBase):
 
     _attr_icon = "mdi:water-boiler"
     _plan_key = "dhw_plan"
+    _plan_kind = "dhw"
 
     def __init__(self, coordinator, entry):
         super().__init__(coordinator, entry, "dhw_heating_plan", "DHW Heating Plan")

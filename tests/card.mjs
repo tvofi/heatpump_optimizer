@@ -62,37 +62,48 @@ console.log("customCards:", JSON.stringify(ctx.window.customCards));
 const Card = ctx.customElements.get("heatpump-optimizer-card");
 if (!Card) { console.error("FAIL: card not registered"); process.exit(1); }
 
-const hass = { states: {
-  "sensor.space_heating_plan": { state:"3 slots planned", attributes:{
+const mkStates = (spaceId, dhwId, withMarker) => ({
+  [spaceId]: { state:"3 slots planned", attributes:{
     forecast: plan.space_plan.forecast, slots: plan.space_plan.slots,
     total_energy_kwh: plan.space_plan.total_energy_kwh, total_cost: plan.space_plan.total_cost,
-    active_now: plan.space_plan.active_now, friendly_name:"Space Heating Plan" } },
-  "sensor.dhw_heating_plan": { state:"4 slots planned", attributes:{
+    active_now: plan.space_plan.active_now, friendly_name:"Space Heating Plan",
+    ...(withMarker ? { plan_kind: "space" } : {}) } },
+  [dhwId]: { state:"4 slots planned", attributes:{
     forecast: plan.dhw_plan.forecast, slots: plan.dhw_plan.slots,
     total_energy_kwh: plan.dhw_plan.total_energy_kwh, total_cost: plan.dhw_plan.total_cost,
-    active_now: plan.dhw_plan.active_now, friendly_name:"DHW Heating Plan" } },
-}};
+    active_now: plan.dhw_plan.active_now, friendly_name:"DHW Heating Plan",
+    ...(withMarker ? { plan_kind: "dhw" } : {}) } },
+});
 
-const card = new Card();
-card.setConfig({ type:"custom:heatpump-optimizer-card" });
-card.hass = hass;
-if (card.connectedCallback) card.connectedCallback();
-card.hass = hass;
+// The plan sensors use has_entity_name, so a default install prefixes the
+// device name. These are the ids a real Home Assistant actually creates.
+const DEFAULT_SPACE = "sensor.heat_pump_optimizer_space_heating_plan";
+const DEFAULT_DHW = "sensor.heat_pump_optimizer_dhw_heating_plan";
 
-const root = card.shadowRoot;
-const html = JSON.stringify(root, (k,v)=> k==="_listeners"?undefined:v);
-const dump = collect(root).join("\n");
 function collect(n, out=[]) { if(n._html) out.push(n._html); n.children.forEach(c=>collect(c,out)); return out; }
+
+function build(states, config) {
+  const card = new Card();
+  card.setConfig({ type:"custom:heatpump-optimizer-card", ...(config||{}) });
+  card.hass = { states };
+  if (card.connectedCallback) card.connectedCallback();
+  card.hass = { states };
+  return card;
+}
 
 let fails = 0;
 function check(name, cond) { console.log((cond?"  ok  ":"  FAIL") + "  " + name); if(!cond) fails++; }
+
+// --- Scenario 1: stock install, real (device-prefixed) entity ids ----------
+const card = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
+const dump = collect(card.shadowRoot).join("\n");
 
 check("renders an <svg>", /<svg/.test(dump));
 check("draws polyline/path data", /(<polyline|<path)/.test(dump));
 check("draws heating bars", /<rect/.test(dump));
 check("legend has all six series", ["Electricity price","DHW heating","Space heating","Outdoor temperature","DHW tank temperature","House temperature"].every(l=>dump.includes(l)));
 check("shows a cost or energy summary", /kWh|SEK/.test(dump));
-check("no 'no data' placeholder", !/publish a forecast/.test(dump));
+check("default entity ids match a real install", !/No plan data available yet/.test(dump));
 
 // Toggling a series off must change the rendered output.
 const before = dump;
@@ -100,6 +111,28 @@ card._onLegendClick({ currentTarget: { getAttribute: (k) => (k === "data-key" ? 
 const after = collect(card.shadowRoot).join("\n");
 check("toggling a series changes the chart", after !== before);
 check("toggle persisted to localStorage", Object.keys(store).length > 0);
+
+// --- Scenario 2: user renamed the entities; discovery via plan_kind --------
+const renamed = build(mkStates("sensor.my_heat_plan", "sensor.my_water_plan", true));
+const renamedDump = collect(renamed.shadowRoot).join("\n");
+check("discovers renamed entities by plan_kind", !/No plan data available yet/.test(renamedDump) && /<svg/.test(renamedDump));
+
+// --- Scenario 3: older integration without plan_kind; suffix fallback ------
+const legacy = build(mkStates("sensor.space_heating_plan", "sensor.dhw_heating_plan", false));
+const legacyDump = collect(legacy.shadowRoot).join("\n");
+check("falls back to name-suffix discovery", !/No plan data available yet/.test(legacyDump) && /<svg/.test(legacyDump));
+
+// --- Scenario 4: nothing published; message must be actionable -------------
+const empty = build({});
+const emptyDump = collect(empty.shadowRoot).join("\n");
+check("reports missing entities clearly", /no entity found/.test(emptyDump) && /Developer Tools/.test(emptyDump));
+
+// --- Scenario 5: explicit config overrides discovery -----------------------
+const explicit = build(
+  { ...mkStates("sensor.a_plan", "sensor.b_plan", true), ...mkStates(DEFAULT_SPACE, DEFAULT_DHW, true) },
+  { space_entity: "sensor.a_plan", dhw_entity: "sensor.b_plan" }
+);
+check("explicit config is honoured", explicit._resolveEntity("space") === "sensor.a_plan");
 
 console.log(fails ? `\n${fails} CARD CHECK(S) FAILED` : "\nALL CARD CHECKS PASSED");
 process.exit(fails?1:0);
