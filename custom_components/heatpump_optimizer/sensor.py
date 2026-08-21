@@ -49,6 +49,7 @@ async def async_setup_entry(
         CurrentCOPSensor(coordinator, entry),
         IndoorTempSensor(coordinator, entry),
         OutdoorTempSensor(coordinator, entry),
+        SolarIrradianceSensor(coordinator, entry),
         SlabTempSensor(coordinator, entry),
         NextOptimizationSensor(coordinator, entry),
         LastOptimizationSensor(coordinator, entry),
@@ -340,6 +341,46 @@ class OutdoorTempSensor(HeatPumpOptimizerSensorBase):
             val = self.coordinator.data.get("outdoor_temperature")
             return round(val, 1) if val is not None else None
         return None
+
+
+class SolarIrradianceSensor(HeatPumpOptimizerSensorBase):
+    """Global horizontal irradiance the optimizer is currently planning with.
+
+    Publishing this makes an otherwise invisible input checkable: if the
+    forecast source is misconfigured the value sits at zero in daylight, which
+    is immediately obvious here and very hard to spot in the schedule.
+    """
+
+    _attr_icon = "mdi:weather-sunny"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_native_unit_of_measurement = "W/m²"
+    _attr_device_class = SensorDeviceClass.IRRADIANCE
+    # The forecast series is far too large to write to the recorder on every
+    # update, and its history is of no interest once superseded.
+    _unrecorded_attributes = frozenset({"forecast"})
+
+    def __init__(self, coordinator, entry):
+        super().__init__(coordinator, entry, "solar_irradiance", "Solar Irradiance")
+
+    @property
+    def native_value(self) -> float | None:
+        if self.coordinator.data:
+            val = self.coordinator.data.get("solar_radiation")
+            return round(val, 1) if val is not None else None
+        return None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        data = self.coordinator.data or {}
+        attrs: dict[str, Any] = {
+            "source": data.get("solar_source"),
+            "solar_heat_gain_kw": round(data.get("solar_heat_gain", 0.0) or 0.0, 3),
+            "forecast": data.get("solar_forecast", []),
+        }
+        diagnostics = data.get("solar_diagnostics")
+        if diagnostics:
+            attrs.update(diagnostics)
+        return attrs
 
 
 class SlabTempSensor(HeatPumpOptimizerSensorBase):

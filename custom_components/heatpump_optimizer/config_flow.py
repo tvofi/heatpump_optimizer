@@ -24,6 +24,10 @@ from .const import (
     CONF_HEAT_PUMP_ENTITY,
     CONF_HEAT_PUMP_SWITCH_ENTITY,
     CONF_SOLAR_RADIATION_ENTITY,
+    CONF_SOLAR_FORECAST_SOURCE,
+    CONF_SOLAR_LOCATION,
+    DEFAULT_SOLAR_FORECAST_SOURCE,
+    SOLAR_SOURCES,
     CONF_FLOOR_RETURN_TEMP_ENTITY,
     CONF_BUFFER_TANK_TEMP_ENTITY,
     CONF_DHW_TEMP_ENTITY,
@@ -158,6 +162,38 @@ async def validate_tibber_token(token: str) -> bool:
         return False
 
 
+def _solar_source_selector() -> selector.SelectSelector:
+    """Where irradiance comes from.
+
+    Kept as an explicit choice rather than "use Open-Meteo when no sensor
+    exists": silently calling an external API on a user's behalf is not a
+    decision an integration should make for them.
+    """
+    return selector.SelectSelector(
+        selector.SelectSelectorConfig(
+            options=list(SOLAR_SOURCES),
+            translation_key="solar_forecast_source",
+            mode=selector.SelectSelectorMode.DROPDOWN,
+        )
+    )
+
+
+def _solar_location_selector() -> selector.LocationSelector:
+    """Map picker for the irradiance coordinate."""
+    return selector.LocationSelector(selector.LocationSelectorConfig(radius=False))
+
+
+def _default_location(hass: HomeAssistant, current: dict[str, Any]) -> dict[str, float]:
+    """Pre-fill the map with the configured point, else the HA home location."""
+    existing = current.get(CONF_SOLAR_LOCATION)
+    if isinstance(existing, dict) and "latitude" in existing:
+        return existing
+    return {
+        "latitude": hass.config.latitude,
+        "longitude": hass.config.longitude,
+    }
+
+
 class HeatPumpOptimizerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Heat Pump Optimizer."""
 
@@ -208,6 +244,14 @@ class HeatPumpOptimizerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Optional(CONF_SOLAR_RADIATION_ENTITY): selector.EntitySelector(
                         selector.EntitySelectorConfig(domain="sensor")
                     ),
+                    vol.Optional(
+                        CONF_SOLAR_FORECAST_SOURCE,
+                        default=DEFAULT_SOLAR_FORECAST_SOURCE,
+                    ): _solar_source_selector(),
+                    vol.Optional(
+                        CONF_SOLAR_LOCATION,
+                        default=_default_location(self.hass, {}),
+                    ): _solar_location_selector(),
                     vol.Optional(CONF_FLOOR_RETURN_TEMP_ENTITY): selector.EntitySelector(
                         selector.EntitySelectorConfig(
                             domain="sensor", device_class="temperature"
@@ -901,6 +945,17 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
                     _entity(CONF_SOLAR_RADIATION_ENTITY): selector.EntitySelector(
                         selector.EntitySelectorConfig(domain="sensor")
                     ),
+                    vol.Optional(
+                        CONF_SOLAR_FORECAST_SOURCE,
+                        default=current.get(
+                            CONF_SOLAR_FORECAST_SOURCE,
+                            DEFAULT_SOLAR_FORECAST_SOURCE,
+                        ),
+                    ): _solar_source_selector(),
+                    vol.Optional(
+                        CONF_SOLAR_LOCATION,
+                        default=_default_location(self.hass, current),
+                    ): _solar_location_selector(),
                     _entity(CONF_DHW_TEMP_ENTITY): selector.EntitySelector(
                         selector.EntitySelectorConfig(
                             domain="sensor", device_class="temperature"

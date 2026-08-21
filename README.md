@@ -288,6 +288,46 @@ Solar gains are split between zones:
 - Upper floor: 40% (default) — light reaches upper level
 - Lower floor: 60% (default) — sun hits lower floor through large windows
 
+#### Where the irradiance comes from
+
+Solar gain is only as good as the irradiance behind it, and most weather
+integrations never publish a `solar_irradiance` field, so the term silently
+evaluated to zero for many installs. There are now three sources, tried in this
+order:
+
+1. **A local irradiance sensor**, if configured. A real measurement at the
+   actual site always beats a model, so this wins outright.
+2. **Open-Meteo**, if *Solar forecast source* is set to `Open-Meteo`. Pick the
+   location on the map in the configurator. No API key or account is needed.
+3. **The weather entity's forecast**, which is the previous behaviour and stays
+   the default.
+
+Open-Meteo is used through two endpoints because they do different jobs:
+
+| Endpoint | Role | Why |
+|---|---|---|
+| `api.open-meteo.com/v1/forecast` | The planning horizon | Supports `minutely_15`, which matches the optimizer's 15-minute grid exactly |
+| `satellite-api.open-meteo.com/v1/archive` | Current irradiance | Observed rather than modelled, current to ~10 minutes, so the heat-loss learner trains against what actually happened |
+
+The satellite endpoint is archive-only and has no forecast route, which is why
+it cannot serve the horizon on its own.
+
+Two details worth knowing if you compare the numbers against the API by hand:
+
+- The optimizer requests **`shortwave_radiation`** (global horizontal
+  irradiance), not `direct_radiation`. The window-gain formula above applies its
+  own orientation factor, and direct-beam alone omits the diffuse component,
+  which on an overcast day is essentially all the light there is.
+- **Open-Meteo timestamps mark the end of the averaging interval**, so the
+  sample stamped `04:00` covers `03:00-04:00`. Reading them as interval starts
+  shifts every value by one interval, which around dawn and dusk is the
+  difference between darkness and full sun.
+
+Values are resampled by overlap-weighted averaging, so the API's resolution does
+not have to match the optimizer's step length. A step that Open-Meteo does not
+cover falls back to the weather entity rather than to zero, because "no data" is
+not the same as "no sun".
+
 ### Floor Return Temperature Feedback
 
 When a floor heating return temperature sensor is configured, the optimizer uses it to correct the slab temperature model:
@@ -311,6 +351,8 @@ When two-zone parameters are not configured, the model falls back to single-zone
 | Heat pump climate entity | To control the heat pump | No |
 | Heat pump switch | On/off switch for heat pump | No |
 | Solar radiation sensor | W/m² irradiance sensor | No |
+| Solar forecast source | `Weather entity` or `Open-Meteo`; see below | No |
+| Solar location | Map coordinate used when the source is Open-Meteo | No |
 | Floor return temp sensor | Floor heating return temp | No |
 | DHW temp sensor | Hot water tank temperature | No |
 | Buffer tank temp sensor | Buffer tank temperature; enables cooling-rate learning | No |
@@ -403,6 +445,7 @@ turn the toggle off to require hot water around the clock.
 | Lower Floor Temperature | Lower floor (slab zone) temp |
 | Floor Heating Return Temp | Floor return sensor reading |
 | Solar Radiation | Current solar radiation (W/m²) |
+| Solar Irradiance (Open-Meteo) | Open-Meteo irradiance, with the horizon in attributes |
 | Solar Heat Gain | Current solar gain (kW) |
 | Buffer Tank Temperature | Modeled buffer tank temp |
 | **Space Heating Plan** | Planned space heating slots + full-horizon forecast |
