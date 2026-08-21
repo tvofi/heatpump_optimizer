@@ -8,6 +8,8 @@ Home Assistant environment without extra tooling. They need `numpy` and
 python tests/validate.py     # 19 seasonal scenarios, asserts invariants
 python tests/edge.py         # degenerate inputs and boundary conditions
 python tests/optimality.py   # checks the solver against cheaper challengers
+python tests/plan_view.py    # plan sensor payloads, also writes /tmp/plandata.json
+node   tests/card.mjs        # renders the dashboard card against that payload
 ```
 
 `profiles.py` holds Nord Pool SE3 price curves and Swedish weather profiles for
@@ -25,3 +27,12 @@ winter, summer and shoulder season, used by all three.
   test. It compares the optimizer against a greedy cheapest-hours schedule and
   against random perturbations, and reports whether either beats it while
   still respecting comfort.
+
+- **plan_view.py** runs a winter scenario and builds the payloads the two plan
+  sensors publish, checking that the slot summaries reconcile with the raw
+  step schedule. It writes the result to `/tmp/plandata.json`.
+- **card.mjs** loads the Lovelace card in Node against a minimal DOM stub and
+  the payload written by `plan_view.py`, so the card is exercised against real
+  optimizer output rather than a fixture. It checks that the SVG renders, that
+  all six series appear in the legend, and that toggling a series changes the
+  chart and persists. Run `plan_view.py` first.

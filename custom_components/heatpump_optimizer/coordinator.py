@@ -12,6 +12,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -88,7 +89,14 @@ from .const import (
     DEFAULT_DHW_SETPOINT,
     DEFAULT_DHW_MIN_TEMP,
     DEFAULT_DHW_COOLING_RATE,
+    BUFFER_COOLING_RATE_MAX,
+    BUFFER_COOLING_RATE_MIN,
+    CONF_BUFFER_COOLING_RATE,
+    CONF_BUFFER_TANK_TEMP_ENTITY,
+    DEFAULT_HOUSE_HEAT_LOSS_SCALE,
     DHW_COOLING_RATE_MIN,
+    HOUSE_HEAT_LOSS_SCALE_MAX,
+    HOUSE_HEAT_LOSS_SCALE_MIN,
     DHW_COOLING_RATE_MAX,
     DHW_COOLING_REFERENCE_DELTA,
     DEFAULT_ECL110_COMMAND_TOPIC,
@@ -192,6 +200,45 @@ DHW_COOLING_MAX_SAMPLE_HOURS = 6.0
 # The tank has to be meaningfully warmer than its surroundings for the decay
 # to carry any information about the loss coefficient.
 DHW_COOLING_MIN_DELTA = 5.0
+
+# The buffer tank is learned with the same lower-envelope estimator as the DHW
+# tank, but it is a much smaller vessel that is charged frequently, so quiet
+# intervals are shorter and rarer. The window is therefore tighter and the
+# minimum useful ΔT lower.
+BUFFER_COOLING_ALPHA_DOWN = 0.25
+BUFFER_COOLING_ALPHA_UP = 0.02
+BUFFER_COOLING_MIN_SAMPLE_HOURS = 0.15
+BUFFER_COOLING_MAX_SAMPLE_HOURS = 3.0
+BUFFER_COOLING_MIN_DELTA = 4.0
+BUFFER_AMBIENT_TEMP = 20.0
+
+# House heat loss learning.
+#
+# The estimator is a one-step model correction: simulate the interval that just
+# elapsed with the power that was actually applied, compare the predicted
+# indoor temperature to the measured one, and attribute the residual to the
+# heat loss coefficient. The sensitivity of the predicted change to UA is
+#
+#     d(ΔT_room)/dUA = -(T_room - T_out) * Δt / C_room
+#
+# so a Newton step gives the correction directly. Unlike the tank, the bias
+# here is two-sided (unmodelled solar and occupancy gains push it down, an open
+# window or a draughty day pushes it up), so a symmetric EWMA is correct and
+# the lower-envelope trick from the DHW learner deliberately does *not* apply.
+HOUSE_LOSS_ALPHA = 0.02
+# Below this indoor/outdoor difference the residual says almost nothing about
+# UA and dividing by it amplifies sensor noise without limit.
+HOUSE_LOSS_MIN_DELTA = 6.0
+HOUSE_LOSS_MIN_SAMPLE_HOURS = 0.15
+HOUSE_LOSS_MAX_SAMPLE_HOURS = 1.5
+# A single interval may never move the estimate more than this fraction; real
+# building fabric does not change, so anything larger is a disturbance.
+HOUSE_LOSS_MAX_STEP = 0.05
+# Residuals beyond this are a door left open, a wood stove, or a sensor glitch
+# rather than a heat loss error.
+HOUSE_LOSS_MAX_RESIDUAL = 1.0  # °C
+
+THERMAL_LEARNING_STORE_VERSION = 1
 
 # Tibber GraphQL query for price data
 TIBBER_PRICE_QUERY = """
@@ -319,6 +366,33 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             f"{DOMAIN}_{entry.entry_id}_dhw_legionella",
         )
 
+        # Self-learned buffer tank standby cooling, in °C/h at the same
+        # reference ΔT as the DHW rate. Only learned when a buffer tank
+        # temperature sensor is configured.
+        self._buffer_cooling_rate: float = float(
+            self._thermal_params.buffer_cooling_rate
+        )
+        self._buffer_cooling_samples: int = 0
+        self._last_buffer_temp_sample: float | None = None
+        self._last_buffer_sample_time: datetime | None = None
+        self._buffer_heating_since_sample: bool = False
+
+        # Self-learned correction to the configured house heat loss
+        # coefficients. 1.0 means the configuration is taken at face value.
+        self._house_heat_loss_scale: float = float(
+            self._thermal_params.house_heat_loss_scale
+        )
+        self._house_heat_loss_samples: int = 0
+        self._last_house_sample: ThermalState | None = None
+        self._last_house_sample_time: datetime | None = None
+        self._last_house_sample_power: float = 0.0
+
+        self._thermal_learning_store: Store = Store(
+            hass,
+            THERMAL_LEARNING_STORE_VERSION,
+            f"{DOMAIN}_{entry.entry_id}_thermal_learning",
+        )
+
         # ECL110 MQTT state
         self._ecl110_command_topic: str = self._config.get(
             CONF_ECL110_COMMAND_TOPIC, DEFAULT_ECL110_COMMAND_TOPIC
@@ -347,6 +421,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # Load learned DHW usage profile (persisted across restarts)
         hass.async_create_task(self._async_load_dhw_profile())
         hass.async_create_task(self._async_load_dhw_legionella())
+        hass.async_create_task(self._async_load_thermal_learning())
 
     @property
     def mode(self) -> str:
@@ -540,6 +615,425 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             )
         except Exception as err:
             _LOGGER.debug("Could not persist DHW profile: %s", err)
+
+    # ------------------------------------------------------------------
+    # Buffer tank and building fabric learning
+    # ------------------------------------------------------------------
+
+    async def _async_load_thermal_learning(self) -> None:
+        """Load the learned buffer cooling rate and house heat loss scale."""
+        try:
+            stored = await self._thermal_learning_store.async_load() or {}
+        except Exception as err:
+            _LOGGER.debug("Could not load learned thermal parameters: %s", err)
+            return
+
+        rate = stored.get("buffer_cooling_rate")
+        if rate is not None:
+            try:
+                self._apply_buffer_cooling_rate(float(rate))
+                self._buffer_cooling_samples = int(
+                    stored.get("buffer_cooling_samples", 0)
+                )
+                _LOGGER.info(
+                    "Loaded learned buffer tank cooling rate %.2f °C/h (%d samples)",
+                    self._buffer_cooling_rate,
+                    self._buffer_cooling_samples,
+                )
+            except (TypeError, ValueError) as err:
+                _LOGGER.debug("Could not load buffer cooling rate: %s", err)
+
+        scale = stored.get("house_heat_loss_scale")
+        if scale is not None:
+            try:
+                self._apply_house_heat_loss_scale(float(scale))
+                self._house_heat_loss_samples = int(
+                    stored.get("house_heat_loss_samples", 0)
+                )
+                _LOGGER.info(
+                    "Loaded learned house heat loss scale %.3f (%d samples)",
+                    self._house_heat_loss_scale,
+                    self._house_heat_loss_samples,
+                )
+            except (TypeError, ValueError) as err:
+                _LOGGER.debug("Could not load house heat loss scale: %s", err)
+
+    async def _async_save_thermal_learning(self) -> None:
+        """Persist the learned buffer and building parameters."""
+        try:
+            await self._thermal_learning_store.async_save(
+                {
+                    "buffer_cooling_rate": self._buffer_cooling_rate,
+                    "buffer_cooling_samples": self._buffer_cooling_samples,
+                    "house_heat_loss_scale": self._house_heat_loss_scale,
+                    "house_heat_loss_samples": self._house_heat_loss_samples,
+                    "updated_at": dt_util.now().isoformat(),
+                }
+            )
+        except Exception as err:
+            _LOGGER.debug("Could not persist learned thermal parameters: %s", err)
+
+    @staticmethod
+    def _plan_slots(
+        timestamps: list[datetime],
+        powers: list[float],
+        prices: list[float],
+        dt_hours: float,
+        threshold: float = 0.05,
+    ) -> list[dict[str, Any]]:
+        """Collapse a per-step power schedule into contiguous heating slots.
+
+        The step schedule is what the optimizer produces, but what a person
+        wants to see is "the pump runs from 02:00 to 04:30 and that costs 4.20".
+        Consecutive steps above ``threshold`` kW are merged into one slot and
+        summarised with their energy, average price and cost.
+        """
+        slots: list[dict[str, Any]] = []
+        start_idx: int | None = None
+
+        def close(end_idx: int) -> None:
+            assert start_idx is not None
+            span = list(range(start_idx, end_idx))
+            energy = sum(powers[i] for i in span) * dt_hours
+            cost = sum(powers[i] * prices[i] for i in span) * dt_hours
+            end_ts = (
+                timestamps[end_idx]
+                if end_idx < len(timestamps)
+                else timestamps[-1] + timedelta(hours=dt_hours)
+            )
+            duration = len(span) * dt_hours
+            slots.append(
+                {
+                    "start": timestamps[start_idx].isoformat(),
+                    "end": end_ts.isoformat(),
+                    "duration_hours": round(duration, 2),
+                    "avg_power_kw": round(energy / duration, 2) if duration else 0.0,
+                    "energy_kwh": round(energy, 3),
+                    "avg_price": (round(cost / energy, 4) if energy > 1e-9 else 0.0),
+                    "cost": round(cost, 2),
+                }
+            )
+
+        for i, power in enumerate(powers):
+            if power > threshold:
+                if start_idx is None:
+                    start_idx = i
+            elif start_idx is not None:
+                close(i)
+                start_idx = None
+        if start_idx is not None:
+            close(len(powers))
+        return slots
+
+    def _build_plan_views(self, result) -> dict[str, Any]:
+        """Full-resolution space heating and DHW plans for the plan sensors.
+
+        Deliberately separate from the ``schedule`` / ``dhw_schedule`` keys,
+        which are truncated to 24 steps (only six hours at the default 15
+        minute resolution) for the legacy sensors. Charting the plan needs the
+        whole horizon.
+        """
+        dt_hours = self._opt_config.dt_hours
+        timestamps = result.timestamps
+        n = len(timestamps)
+        if not n:
+            return {"space_plan": {}, "dhw_plan": {}}
+
+        def series(values, offset: int = 0, fill: float | None = None):
+            out: list[float | None] = []
+            for i in range(n):
+                idx = i + offset
+                if values and idx < len(values):
+                    out.append(round(float(values[idx]), 2))
+                else:
+                    out.append(fill)
+            return out
+
+        prices = series(result.prices)
+        outdoor = series(result.outdoor_temps)
+        space_power = series(result.power_schedule)
+        # Trajectories carry the initial state at index 0, so the value that
+        # belongs to step i is at i + 1.
+        room = series(result.room_temp_trajectory, offset=1)
+        two_zone = bool(
+            result.upper_temp_trajectory and result.lower_temp_trajectory
+        )
+        upper = series(result.upper_temp_trajectory, offset=1) if two_zone else [None] * n
+        lower = series(result.lower_temp_trajectory, offset=1) if two_zone else [None] * n
+        dhw_power = series(result.dhw_power_schedule)
+        dhw_temp = series(result.dhw_temp_trajectory, offset=1)
+
+        raw_prices = [p if p is not None else 0.0 for p in prices]
+        raw_space = [p if p is not None else 0.0 for p in space_power]
+        raw_dhw = [p if p is not None else 0.0 for p in dhw_power]
+
+        space_slots = self._plan_slots(timestamps, raw_space, raw_prices, dt_hours)
+        dhw_slots = self._plan_slots(timestamps, raw_dhw, raw_prices, dt_hours)
+
+        space_forecast = [
+            {
+                "t": timestamps[i].isoformat(),
+                "price": prices[i],
+                "outdoor": outdoor[i],
+                "space_power": space_power[i],
+                "room": room[i],
+                "upper": upper[i],
+                "lower": lower[i],
+            }
+            for i in range(n)
+        ]
+        dhw_forecast = [
+            {
+                "t": timestamps[i].isoformat(),
+                "price": prices[i],
+                "outdoor": outdoor[i],
+                "dhw_power": dhw_power[i],
+                "dhw_temp": dhw_temp[i],
+            }
+            for i in range(n)
+        ]
+
+        return {
+            "space_plan": {
+                "forecast": space_forecast,
+                "slots": space_slots,
+                "total_energy_kwh": round(sum(raw_space) * dt_hours, 2),
+                "total_cost": round(
+                    sum(p * pr for p, pr in zip(raw_space, raw_prices)) * dt_hours, 2
+                ),
+                "active_now": bool(raw_space and raw_space[0] > 0.05),
+            },
+            "dhw_plan": {
+                "forecast": dhw_forecast,
+                "slots": dhw_slots,
+                "total_energy_kwh": round(sum(raw_dhw) * dt_hours, 2),
+                "total_cost": round(
+                    sum(p * pr for p, pr in zip(raw_dhw, raw_prices)) * dt_hours, 2
+                ),
+                "active_now": bool(raw_dhw and raw_dhw[0] > 0.05),
+            },
+        }
+
+    def _effective_house_heat_loss(self) -> float:
+        """Configured heat loss coefficient after the learned correction, kW/°C."""
+        params = self._thermal_params
+        if params.two_zone_enabled:
+            base = params.upper_floor_heat_loss + params.lower_floor_heat_loss
+        else:
+            base = params.heat_loss_coefficient
+        return round(base * self._house_heat_loss_scale, 4)
+
+    def _current_weather(self) -> tuple[float, float]:
+        """Current wind speed (m/s) and precipitation (mm/h) for simulation."""
+        if self._weather_forecast:
+            first = self._weather_forecast[0]
+            return (
+                max(0.0, _as_float(first.get("wind_speed"), 0.0)),
+                max(0.0, _as_float(first.get("precipitation"), 0.0)),
+            )
+        return 0.0, 0.0
+
+    def _apply_buffer_cooling_rate(self, rate: float) -> None:
+        """Clamp a buffer cooling rate to a plausible range and push it out."""
+        self._buffer_cooling_rate = float(
+            np.clip(rate, BUFFER_COOLING_RATE_MIN, BUFFER_COOLING_RATE_MAX)
+        )
+        self._thermal_params.buffer_cooling_rate = self._buffer_cooling_rate
+
+    def _apply_house_heat_loss_scale(self, scale: float) -> None:
+        """Clamp the house heat loss correction and push it to the model."""
+        self._house_heat_loss_scale = float(
+            np.clip(scale, HOUSE_HEAT_LOSS_SCALE_MIN, HOUSE_HEAT_LOSS_SCALE_MAX)
+        )
+        self._thermal_params.house_heat_loss_scale = self._house_heat_loss_scale
+
+    async def _async_learn_buffer_cooling(self, buffer_temp: float) -> None:
+        """Refine the buffer tank standby loss from quiet decay.
+
+        Identical in form to the DHW cooling learner: an idle interval pins the
+        time constant through ``UA/C = -ln(ΔT_end / ΔT_start) / Δt``, and the
+        result is folded in as a lower envelope because every contaminating
+        effect (a space heating call drawing from the tank) can only make the
+        tank look leakier than it is.
+        """
+        now = dt_util.now()
+        heating = float(self._current_action.get("power", 0.0)) > 0.05
+
+        previous_temp = self._last_buffer_temp_sample
+        previous_time = self._last_buffer_sample_time
+        heated = self._buffer_heating_since_sample or heating
+
+        self._last_buffer_temp_sample = buffer_temp
+        self._last_buffer_sample_time = now
+        self._buffer_heating_since_sample = heating
+
+        if previous_temp is None or previous_time is None or heated:
+            return
+
+        dt_h = (now - previous_time).total_seconds() / 3600.0
+        if dt_h < BUFFER_COOLING_MIN_SAMPLE_HOURS:
+            return
+        if dt_h > BUFFER_COOLING_MAX_SAMPLE_HOURS:
+            return
+        if buffer_temp > previous_temp:
+            return
+
+        start_delta = previous_temp - BUFFER_AMBIENT_TEMP
+        end_delta = buffer_temp - BUFFER_AMBIENT_TEMP
+        if start_delta < BUFFER_COOLING_MIN_DELTA:
+            return
+        if end_delta < BUFFER_COOLING_MIN_DELTA:
+            return
+
+        observed = float(
+            -np.log(end_delta / start_delta) / dt_h * DHW_COOLING_REFERENCE_DELTA
+        )
+        if not np.isfinite(observed):
+            return
+        if observed < BUFFER_COOLING_RATE_MIN or observed > BUFFER_COOLING_RATE_MAX:
+            return
+
+        alpha = (
+            BUFFER_COOLING_ALPHA_DOWN
+            if observed < self._buffer_cooling_rate
+            else BUFFER_COOLING_ALPHA_UP
+        )
+        self._apply_buffer_cooling_rate(
+            (1.0 - alpha) * self._buffer_cooling_rate + alpha * observed
+        )
+        self._buffer_cooling_samples += 1
+
+        _LOGGER.debug(
+            "Learned buffer cooling: %.2f°C→%.2f°C over %.2fh gives %.2f °C/h, "
+            "model now %.2f °C/h (%d samples)",
+            previous_temp,
+            buffer_temp,
+            dt_h,
+            observed,
+            self._buffer_cooling_rate,
+            self._buffer_cooling_samples,
+        )
+        await self._async_save_thermal_learning()
+
+    async def _async_learn_house_heat_loss(self) -> None:
+        """Correct the house heat loss coefficient from prediction error.
+
+        Rather than trying to isolate a coasting period — a heated house rarely
+        has one — this replays the interval that just elapsed through the very
+        model the optimizer uses, with the electrical power that was actually
+        applied, and compares the predicted indoor temperature to the measured
+        one. Everything the model already knows about (slab transfer, solar
+        gain, internal gains, wind and rain) is therefore accounted for, and
+        what is left over is attributed to the heat loss coefficient.
+
+        The Newton step follows from the single-zone dynamics: predicted room
+        change is linear in UA with slope ``-(T_room - T_out)·Δt / C_room``, so
+        a residual of ``e`` degrees implies ``ΔUA = -e·C_room / (ΔT·Δt)``.
+        Expressed as a correction to the configured coefficient this becomes a
+        multiplicative scale, which is also the right shape for the two-zone
+        model where only one indoor sensor is available and the two floors
+        cannot be identified separately.
+        """
+        now = dt_util.now()
+        observed = self._current_state.room_temperature
+        previous_state = self._last_house_sample
+        previous_time = self._last_house_sample_time
+        previous_power = self._last_house_sample_power
+
+        # Snapshot for the next interval before any early return, so a rejected
+        # sample does not poison the following one with a stale baseline.
+        self._last_house_sample = replace(self._current_state)
+        self._last_house_sample_time = now
+        self._last_house_sample_power = float(self._current_action.get("power", 0.0))
+
+        if previous_state is None or previous_time is None or observed is None:
+            return
+
+        dt_h = (now - previous_time).total_seconds() / 3600.0
+        if dt_h < HOUSE_LOSS_MIN_SAMPLE_HOURS:
+            return
+        if dt_h > HOUSE_LOSS_MAX_SAMPLE_HOURS:
+            return
+
+        outdoor = previous_state.outdoor_temperature
+        delta_t = previous_state.room_temperature - outdoor
+        if delta_t < HOUSE_LOSS_MIN_DELTA:
+            return
+
+        try:
+            wind_speed, precipitation = self._current_weather()
+            predicted_state = self._thermal_model.simulate_step(
+                previous_state,
+                previous_power,
+                outdoor,
+                wind_speed=wind_speed,
+                precipitation=precipitation,
+                solar_radiation=previous_state.solar_radiation,
+                dt_hours=dt_h,
+            )
+        except Exception as err:
+            _LOGGER.debug("House heat loss learning simulation failed: %s", err)
+            return
+
+        residual = observed - predicted_state.room_temperature
+        if not np.isfinite(residual):
+            return
+        if abs(residual) > HOUSE_LOSS_MAX_RESIDUAL:
+            _LOGGER.debug(
+                "Ignoring house heat loss sample: residual %.2f°C is too large "
+                "to be a heat loss error",
+                residual,
+            )
+            return
+
+        # Current effective coefficient, i.e. what actually produced the
+        # prediction, so the Newton step is taken about the right point.
+        params = self._thermal_params
+        if params.two_zone_enabled:
+            base_u = params.upper_floor_heat_loss + params.lower_floor_heat_loss
+            capacity = (
+                params.upper_floor_thermal_mass + params.lower_floor_thermal_mass
+            )
+        else:
+            base_u = params.heat_loss_coefficient
+            capacity = params.room_thermal_mass
+        if base_u <= 1e-6 or capacity <= 1e-6:
+            return
+
+        current_u = base_u * self._house_heat_loss_scale
+        # Warmer than predicted means the model is over-estimating the loss.
+        delta_u = -residual * capacity / (delta_t * dt_h)
+        target_scale = (current_u + delta_u) / base_u
+        if not np.isfinite(target_scale) or target_scale <= 0.0:
+            return
+
+        new_scale = (
+            1.0 - HOUSE_LOSS_ALPHA
+        ) * self._house_heat_loss_scale + HOUSE_LOSS_ALPHA * target_scale
+        # Rate-limit so a single odd interval cannot jump the model.
+        max_step = self._house_heat_loss_scale * HOUSE_LOSS_MAX_STEP
+        new_scale = float(
+            np.clip(
+                new_scale,
+                self._house_heat_loss_scale - max_step,
+                self._house_heat_loss_scale + max_step,
+            )
+        )
+        self._apply_house_heat_loss_scale(new_scale)
+        self._house_heat_loss_samples += 1
+
+        _LOGGER.debug(
+            "Learned house heat loss: residual %.3f°C over %.2fh at ΔT=%.1f°C "
+            "suggests scale %.3f, model now %.3f (%d samples)",
+            residual,
+            dt_h,
+            delta_t,
+            target_scale,
+            self._house_heat_loss_scale,
+            self._house_heat_loss_samples,
+        )
+        if self._house_heat_loss_samples % 10 == 0:
+            await self._async_save_thermal_learning()
 
     async def _async_load_dhw_legionella(self) -> None:
         """Load the timestamp of the last completed anti-legionella cycle.
@@ -887,6 +1381,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._thermal_params.heat_loss_coefficient = params[
                 "house_heat_loss_coefficient"
             ]
+            # A new nameplate value invalidates the correction learned against
+            # the old one, so start over from "trust the configuration".
+            self._apply_house_heat_loss_scale(DEFAULT_HOUSE_HEAT_LOSS_SCALE)
+            self._house_heat_loss_samples = 0
+            await self._async_save_thermal_learning()
+        if CONF_BUFFER_COOLING_RATE in params:
+            self._apply_buffer_cooling_rate(float(params[CONF_BUFFER_COOLING_RATE]))
+            self._buffer_cooling_samples = 0
+            await self._async_save_thermal_learning()
         if "ecl110_displace_min" in params:
             self._thermal_params.ecl110_displace_min = params["ecl110_displace_min"]
             self._ecl110_displace_min = params["ecl110_displace_min"]
@@ -1063,6 +1566,22 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._current_state.dhw_hours_since_legionella = (
             self._dhw_hours_since_legionella()
         )
+
+        # Buffer tank temperature sensor (optional; enables cooling learning)
+        buffer_entity = self._config.get(CONF_BUFFER_TANK_TEMP_ENTITY)
+        if buffer_entity:
+            state = self.hass.states.get(buffer_entity)
+            if state and state.state not in ("unknown", "unavailable"):
+                try:
+                    buffer_temp = float(state.state)
+                    self._current_state.buffer_tank_temperature = buffer_temp
+                    await self._async_learn_buffer_cooling(buffer_temp)
+                except (ValueError, TypeError):
+                    pass
+
+        # Refine the building fabric model from how the last interval actually
+        # went. Runs last so it sees the fully populated state.
+        await self._async_learn_house_heat_loss()
 
         # Update ECL110 effective displace state (PID/PI lag approximation)
         if "displace_value" in self._current_action:
@@ -1518,6 +2037,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             "dhw_cooling_rate": round(self._dhw_cooling_rate, 3),
             "dhw_cooling_samples": self._dhw_cooling_samples,
             "dhw_cooling_rate_learned": self._dhw_cooling_samples > 0,
+            "buffer_cooling_rate": self._buffer_cooling_rate,
+            "buffer_cooling_samples": self._buffer_cooling_samples,
+            "buffer_cooling_rate_learned": self._buffer_cooling_samples > 0,
+            "house_heat_loss_scale": self._house_heat_loss_scale,
+            "house_heat_loss_samples": self._house_heat_loss_samples,
+            "house_heat_loss_learned": self._house_heat_loss_samples > 0,
+            "house_heat_loss_effective": self._effective_house_heat_loss(),
             "dhw_hold_hours": round(self._thermal_model.dhw_hold_hours(), 1),
             "dhw_windows": planned_windows
             or format_windows(self._thermal_params.dhw_demand_windows),
@@ -1569,6 +2095,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     # Python types because these values end up in entity
                     # attributes, which Home Assistant must serialize.
                     "predictive_info": _plain_types(result.predictive_info),
+                    **self._build_plan_views(result),
                     "schedule": [
                         {
                             "time": ts.isoformat(),
@@ -1630,6 +2157,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     "dhw_schedule": [],
                     "predictive_info": {},
                     "schedule": [],
+                    "space_plan": {},
+                    "dhw_plan": {},
                 }
             )
 

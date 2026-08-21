@@ -69,6 +69,9 @@ async def async_setup_entry(
         PredictiveInsightSensor(coordinator, entry),
         ECL110DisplaceSensor(coordinator, entry),
         ECL110EffectiveDisplaceSensor(coordinator, entry),
+        # Plan sensors backing the dashboard card
+        SpaceHeatingPlanSensor(coordinator, entry),
+        DHWHeatingPlanSensor(coordinator, entry),
     ]
 
     async_add_entities(entities)
@@ -816,3 +819,78 @@ class ECL110EffectiveDisplaceSensor(HeatPumpOptimizerSensorBase):
                 "state_topic": self.coordinator.data.get("ecl110_state_topic"),
             }
         return {}
+
+class _PlanSensorBase(HeatPumpOptimizerSensorBase):
+    """Shared behaviour for the two full-horizon plan sensors.
+
+    These carry the whole optimization horizon (96 points at the default 15
+    minute resolution) so the dashboard card can chart it. That is far too much
+    data to write to the recorder database every update, so the bulky series
+    are declared unrecorded; the state and the small summary attributes are
+    still recorded and remain usable in history and automations.
+    """
+
+    _unrecorded_attributes = frozenset({"forecast", "slots"})
+    _plan_key: str = ""
+
+    @property
+    def _plan(self) -> dict[str, Any]:
+        if not self.coordinator.data:
+            return {}
+        plan = self.coordinator.data.get(self._plan_key)
+        return plan if isinstance(plan, dict) else {}
+
+    @property
+    def native_value(self) -> str | None:
+        plan = self._plan
+        if not plan:
+            return "no plan"
+        slots = plan.get("slots", [])
+        if not slots:
+            return "no heating planned"
+        if plan.get("active_now"):
+            return "heating now"
+        return f"{len(slots)} slots planned"
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        plan = self._plan
+        if not plan:
+            return {}
+        slots = plan.get("slots", [])
+        next_slot = None
+        if not plan.get("active_now") and slots:
+            next_slot = slots[0].get("start")
+        elif plan.get("active_now") and len(slots) > 1:
+            next_slot = slots[1].get("start")
+        return {
+            "forecast": plan.get("forecast", []),
+            "slots": slots,
+            "slot_count": len(slots),
+            "total_energy_kwh": plan.get("total_energy_kwh", 0.0),
+            "total_cost": plan.get("total_cost", 0.0),
+            "active_now": plan.get("active_now", False),
+            "next_slot_start": next_slot,
+        }
+
+
+class SpaceHeatingPlanSensor(_PlanSensorBase):
+    """Planned space heating slots for the full optimization horizon."""
+
+    _attr_icon = "mdi:radiator"
+    _plan_key = "space_plan"
+
+    def __init__(self, coordinator, entry):
+        super().__init__(
+            coordinator, entry, "space_heating_plan", "Space Heating Plan"
+        )
+
+
+class DHWHeatingPlanSensor(_PlanSensorBase):
+    """Planned DHW heating slots for the full optimization horizon."""
+
+    _attr_icon = "mdi:water-boiler"
+    _plan_key = "dhw_plan"
+
+    def __init__(self, coordinator, entry):
+        super().__init__(coordinator, entry, "dhw_heating_plan", "DHW Heating Plan")

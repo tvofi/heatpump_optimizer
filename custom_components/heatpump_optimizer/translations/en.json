@@ -15,6 +15,7 @@
           "solar_radiation_entity": "Solar radiation sensor",
           "floor_return_temp_entity": "Floor heating return temperature sensor",
           "dhw_temp_entity": "Hot water tank temperature sensor",
+          "buffer_tank_temp_entity": "Buffer tank temperature sensor",
           "ecl110_displace_set_topic": "Offset command topic",
           "ecl110_command_topic": "Legacy JSON command topic",
           "ecl110_state_topic": "Status topic",
@@ -35,6 +36,7 @@
           "solar_radiation_entity": "Optional. Sunshine in W/m2. Lets the optimizer skip heating before a sunny afternoon that will warm the house for free.",
           "floor_return_temp_entity": "Optional. Water temperature coming back from the floor loops, used to gauge how much heat the slab is holding.",
           "dhw_temp_entity": "Optional but recommended. The real tank temperature. Also lets a manual hot water boost reset the anti-legionella timer.",
+          "buffer_tank_temp_entity": "Optional. When set, the integration learns how fast the buffer tank loses heat instead of relying on the configured estimate.",
           "ecl110_displace_set_topic": "MQTT topic the parallel heat-curve offset is published to. Leave blank if you do not have a Danfoss ECL110.",
           "ecl110_command_topic": "Only needed for older setups that expect a JSON payload instead.",
           "ecl110_state_topic": "MQTT topic the controller reports its current state on.",
@@ -200,6 +202,7 @@
           "outdoor_temp_entity": "Outdoor temperature sensor",
           "solar_radiation_entity": "Solar radiation sensor",
           "dhw_temp_entity": "Hot water tank temperature sensor",
+          "buffer_tank_temp_entity": "Buffer tank temperature sensor",
           "floor_return_temp_entity": "Floor heating return temperature sensor",
           "heat_pump_entity": "Heat pump thermostat",
           "heat_pump_switch_entity": "Heat pump on/off switch"
@@ -211,6 +214,7 @@
           "outdoor_temp_entity": "Optional. A local outdoor thermometer is more accurate than the forecast for the current hour.",
           "solar_radiation_entity": "Optional. Sunshine in W/m2. Lets the optimizer skip heating before a sunny afternoon that will warm the house for free.",
           "dhw_temp_entity": "Optional but recommended. The real tank temperature. Also lets a manual hot water boost reset the anti-legionella timer.",
+          "buffer_tank_temp_entity": "Optional. When set, the integration learns how fast the buffer tank loses heat instead of relying on the configured estimate.",
           "floor_return_temp_entity": "Optional. Water temperature coming back from the floor loops, used to gauge how much heat the slab is holding.",
           "heat_pump_entity": "Optional. A climate entity the optimizer can set a temperature on.",
           "heat_pump_switch_entity": "Optional. A switch used to turn the heat pump off during expensive hours."

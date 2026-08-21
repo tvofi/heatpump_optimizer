@@ -41,6 +41,7 @@ from .const import (
     MODE_BOOST,
 )
 from .coordinator import HeatPumpOptimizerCoordinator
+from .frontend import async_register_frontend
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -75,6 +76,7 @@ SERVICE_SCHEMA_SET_THERMAL_PARAMS = vol.Schema(
         vol.Optional("dhw_min_temperature"): vol.Coerce(float),
         vol.Optional("dhw_daily_consumption"): vol.Coerce(float),
         vol.Optional("dhw_cooling_rate"): vol.Coerce(float),
+        vol.Optional("buffer_cooling_rate"): vol.Coerce(float),
         vol.Optional("dhw_schedule_enabled"): cv.boolean,
         vol.Optional("dhw_windows"): cv.string,
         vol.Optional("dhw_idle_min_temperature"): vol.Coerce(float),
@@ -132,6 +134,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await coordinator.async_config_entry_first_refresh()
 
     hass.data[DOMAIN][entry.entry_id] = coordinator
+
+    # Serve and register the Lovelace dashboard card (idempotent; runs once).
+    await async_register_frontend(hass)
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORM_LIST)
 

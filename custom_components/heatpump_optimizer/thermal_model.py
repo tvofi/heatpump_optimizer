@@ -53,7 +53,11 @@ from .const import (
     DEFAULT_INTER_ZONE_TRANSFER,
     DEFAULT_RADIATOR_POWER_FRACTION,
     DEFAULT_BUFFER_TANK_VOLUME,
+    BUFFER_COOLING_RATE_MAX,
+    BUFFER_COOLING_RATE_MIN,
+    DEFAULT_BUFFER_COOLING_RATE,
     DEFAULT_BUFFER_TANK_LOSS,
+    DEFAULT_HOUSE_HEAT_LOSS_SCALE,
     DEFAULT_WINDOW_AREA,
     DEFAULT_SOLAR_ORIENTATION_FACTOR,
     DEFAULT_SOLAR_HEAT_GAIN_COEFF,
@@ -107,6 +111,11 @@ class ThermalParameters:
     room_thermal_mass: float = DEFAULT_HOUSE_THERMAL_MASS
     slab_thermal_mass: float = DEFAULT_SLAB_THERMAL_MASS
     heat_loss_coefficient: float = DEFAULT_HOUSE_HEAT_LOSS_COEFFICIENT
+    # Learned dimensionless correction applied to every house heat loss
+    # coefficient (single-zone and both two-zone floors). The configured
+    # coefficients stay as the user entered them; this carries what the
+    # coordinator has observed about the real building.
+    house_heat_loss_scale: float = DEFAULT_HOUSE_HEAT_LOSS_SCALE
     slab_heat_transfer: float = DEFAULT_SLAB_HEAT_TRANSFER
 
     # --- Two-zone parameters ---
@@ -119,7 +128,13 @@ class ThermalParameters:
 
     # Buffer tank
     buffer_tank_volume: float = DEFAULT_BUFFER_TANK_VOLUME  # liters
-    buffer_tank_heat_loss: float = DEFAULT_BUFFER_TANK_LOSS  # kW/°C
+    buffer_tank_heat_loss: float = DEFAULT_BUFFER_TANK_LOSS  # kW/°C, legacy
+    # Standby cooling in °C/h at the same reference ΔT used for the DHW tank.
+    # Like the DHW rate this is stated as an observable so it can be learned
+    # from a buffer tank temperature sensor; the UA the simulation needs is
+    # derived from it. When ``buffer_cooling_rate`` is set the derived UA wins
+    # over the legacy ``buffer_tank_heat_loss``.
+    buffer_cooling_rate: float = DEFAULT_BUFFER_COOLING_RATE  # °C/h
 
     # Solar gain parameters
     window_area: float = DEFAULT_WINDOW_AREA  # m²
@@ -180,6 +195,23 @@ class ThermalParameters:
     def buffer_tank_thermal_mass(self) -> float:
         """Thermal mass of buffer tank in kWh/°C."""
         return self.buffer_tank_volume * WATER_SPECIFIC_HEAT
+
+    @property
+    def buffer_tank_heat_loss_coefficient(self) -> float:
+        """Standby loss of the buffer tank in kW/°C.
+
+        Derived from ``buffer_cooling_rate`` exactly as the DHW tank UA is
+        derived from ``dhw_cooling_rate``, so both tanks can be learned by the
+        same estimator.
+        """
+        rate = float(
+            np.clip(
+                self.buffer_cooling_rate,
+                BUFFER_COOLING_RATE_MIN,
+                BUFFER_COOLING_RATE_MAX,
+            )
+        )
+        return rate * self.buffer_tank_thermal_mass / DHW_COOLING_REFERENCE_DELTA
 
     @property
     def dhw_tank_thermal_mass(self) -> float:
@@ -294,6 +326,8 @@ class ThermalParameters:
             CONF_DHW_MIN_TEMP,
             CONF_DHW_DAILY_CONSUMPTION,
             CONF_DHW_COOLING_RATE,
+            CONF_BUFFER_COOLING_RATE,
+            CONF_HOUSE_HEAT_LOSS_SCALE,
             CONF_DHW_SCHEDULE_ENABLED,
             CONF_DHW_WINDOWS,
             CONF_DHW_IDLE_MIN_TEMP,
@@ -405,6 +439,12 @@ class ThermalParameters:
             ),
             dhw_cooling_rate=config.get(
                 CONF_DHW_COOLING_RATE, DEFAULT_DHW_COOLING_RATE
+            ),
+            buffer_cooling_rate=config.get(
+                CONF_BUFFER_COOLING_RATE, DEFAULT_BUFFER_COOLING_RATE
+            ),
+            house_heat_loss_scale=config.get(
+                CONF_HOUSE_HEAT_LOSS_SCALE, DEFAULT_HOUSE_HEAT_LOSS_SCALE
             ),
             dhw_schedule_enabled=bool(
                 config.get(CONF_DHW_SCHEDULE_ENABLED, DEFAULT_DHW_SCHEDULE_ENABLED)
@@ -564,6 +604,9 @@ class ThermalModel:
         U_eff = U_wind_adjusted * rain_multiplier (when precipitation > 0)
         """
         p = self.params
+        # The configured coefficient is a nameplate estimate; the learned scale
+        # corrects it towards what this house actually does.
+        base_u = base_u * p.house_heat_loss_scale
         # Wind-enhanced convective loss
         wind_factor = 1.0 + p.wind_sensitivity * wind_speed
         u_wind = base_u * wind_factor
@@ -886,7 +929,7 @@ class ThermalModel:
         q_floor_from_buf = (1.0 - rad_fraction) * thermal_power
 
         # Buffer tank loss to ambient (assume ~20°C ambient indoors)
-        q_buf_loss = p.buffer_tank_heat_loss * (T_buf - 20.0)
+        q_buf_loss = p.buffer_tank_heat_loss_coefficient * (T_buf - 20.0)
 
         dT_buf = (thermal_power - q_rad_from_buf - q_floor_from_buf - q_buf_loss) / max(C_buf, 0.01)
 
@@ -1181,7 +1224,7 @@ class ThermalModel:
 
         k_inter = p.inter_zone_transfer
         k_slab = p.slab_heat_transfer
-        k_buf = p.buffer_tank_heat_loss
+        k_buf = p.buffer_tank_heat_loss_coefficient
         f_rad = p.radiator_power_fraction
 
         A_cont = np.zeros((4, 4))

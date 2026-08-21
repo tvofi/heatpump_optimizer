@@ -8,7 +8,7 @@ A custom Home Assistant integration that uses **Model Predictive Control (MPC)**
 - **Solar Anticipation** — reduces pre-heating when sunny weather is forecasted (the sun will heat for free)
 - **Wind/Rain Anticipation** — increases pre-heating before forecasted bad weather (higher heat loss coming)
 - **Two-zone thermal model** — separately models upper floor (radiators) and lower floor (slab floor heating)
-- **DHW (Domestic Hot Water) optimization** — coordinates hot water heating with space heating
+- **Joint DHW and space heating optimization** — the two circuits share one compressor and are planned against each other, not one after the other
 - **Enhanced heat loss model** — wind speed increases convective loss, rain increases envelope U-value
 - **Solar heat gain calculation** — accounts for passive solar gains through windows
 - **Buffer tank dynamics** — models the heat pump buffer tank coupling both heating circuits
@@ -16,7 +16,9 @@ A custom Home Assistant integration that uses **Model Predictive Control (MPC)**
 - **COP modeling** — adjusts for outdoor temperature–dependent heat pump efficiency
 - **Real sensor feedback** — uses floor heating return temperature for slab state estimation
 - **Multiple operation modes** — Auto, Comfort, Economy, Boost, Off
-- **Rich sensor entities** — 27 sensors including DHW, predictive insights, per-zone temperatures
+- **Self-learning thermal parameters** — tank cooling rates and house heat loss are estimated from your own house
+- **Rich sensor entities** — 29 sensors including full heating plans, DHW, predictive insights, per-zone temperatures
+- **Dashboard card** — plots price, planned heating slots and predicted temperatures on one graph with per-series toggles
 - **Climate entity** — virtual thermostat with full HA climate integration
 - **Service calls** — manual optimization, mode changes, runtime parameter tuning
 
@@ -37,7 +39,16 @@ THIS optimizer: REDUCE slab pre-heating because solar will heat it for free! �
 Result: Less overnight heating → sun heats the slab tomorrow → SAVINGS
 ```
 
-The optimizer analyzes the solar radiation forecast for the next 6-12 hours. If significant solar gain is expected (>200 W/m²), it reduces slab pre-heating by up to 40% because the sun will provide free heat.
+This falls out of the physics rather than from a bonus term. Solar gain is
+applied to the simulated trajectory at every future step, so a plan that
+pre-heats the slab before a sunny morning simply predicts an overheated house
+and gets charged for the electricity it wasted. The optimizer avoids it because
+it is genuinely more expensive, not because it is told to.
+
+Earlier versions also added an explicit "heating before sun is bad" cost on top.
+That double-counted physics the simulation already had, and removing it made
+shoulder-season plans 4-6% cheaper with identical comfort. The solar forecast
+still shapes the solver's initial guess, where a wrong hunch costs nothing.
 
 #### Wind/Rain Anticipation Strategy
 ```
@@ -50,10 +61,27 @@ THIS optimizer: INCREASE pre-heating NOW while electricity is cheaper! 🏠
 Result: Thermal mass pre-charged → house stays warm through bad weather → COMFORT
 ```
 
-The optimizer analyzes wind speed and precipitation forecasts. When bad weather is coming:
+Again this is emergent. The forecast heat loss factors are applied to the real
+dynamics at each step:
 - **Wind effect**: Convective heat loss increases by `wind_sensitivity × wind_speed` (default 15% per m/s)
 - **Rain effect**: Wet building envelope U-value increases by `rain_multiplier` (default 15%)
-- Pre-heating is prioritized during cheap periods before the bad weather arrives
+
+so coasting into a windy night predicts a cold house and a comfort penalty. The
+cheapest way to avoid that penalty is to pre-charge the thermal mass while
+electricity is cheap, which is exactly what the plan does.
+
+#### Joint hot water and space heating planning
+
+The two circuits share one compressor, so they are planned against each other
+rather than one after the other. Hot water is scheduled first as a minimum-cost
+linear program, but that program is charged a **congestion premium**: taking
+compressor capacity in a step where space heating also wants it costs the extra
+price of buying the displaced space heating elsewhere, using the cheapest slot
+within a 6 hour window. A second pass then re-plans hot water against the
+resulting space heating profile and keeps it only if it scores strictly better.
+
+Without this, hot water filled the cheapest hours to the ceiling and pushed
+2.6-4.7 kWh of space heating out into dearer ones.
 
 ### DHW (Domestic Hot Water) Optimization
 
@@ -157,6 +185,47 @@ Other behaviour:
 - DHW tank thermal dynamics include standby losses and consumption draws.
 - The tank is never planned above `min(70 °C, max(setpoint, legionella temp))`.
 
+### Self-Learning Model Parameters
+
+Three parameters are estimated from your own house instead of being taken on
+faith from configuration. All three are clamped to plausible ranges, persisted
+across restarts, and exposed as sensor attributes.
+
+| Parameter | Learned from | Estimator |
+|---|---|---|
+| Hot water tank cooling rate | Tank temperature decay with no heating | Lower envelope |
+| Buffer tank cooling rate | Buffer temperature decay with the pump off | Lower envelope |
+| House heat loss coefficient | Predicted vs. measured indoor temperature | Symmetric average |
+
+**Why the estimators differ.** For a tank, every source of error points the same
+way: an unnoticed draw can only make it look leakier than it is. So the estimate
+tracks the *lower envelope* of what is observed, dropping quickly towards a
+quieter reading and creeping upward only slowly. One shower cannot convince the
+model that the tank is badly insulated.
+
+The house is not like that. Unmodelled gains (an oven, a full room of people)
+bias the estimate down, while an open window or a draughty day biases it up, so
+a lower envelope would be systematically wrong. It uses a slow symmetric average
+instead, with a per-interval rate limit and a residual cutoff so a single
+anomaly cannot move the model far.
+
+**How the house estimate works.** Rather than waiting for a coasting period —
+a heated house in winter rarely has one — each update replays the interval that
+just elapsed through the same model the optimizer uses, with the electrical
+power that was actually applied. Slab transfer, solar gain, internal gains, wind
+and rain are therefore already accounted for, and the leftover difference
+between predicted and measured indoor temperature is attributed to heat loss.
+Predicted room change is linear in the heat loss coefficient with slope
+`-(T_room - T_out)·Δt / C_room`, so a Newton step on the residual gives the
+correction directly.
+
+It is learned as a dimensionless scale on whatever you configured, which keeps
+your entered value meaningful and also handles the two-zone case, where a single
+indoor sensor cannot identify the upper and lower floor coefficients separately.
+
+The buffer tank rate is only learned when a **Buffer tank temperature sensor**
+is configured; without one the configured default is used unchanged.
+
 ### Two-Zone Thermal Model
 
 The house is modeled as two thermal zones served by a single air-to-water heat pump with a buffer tank:
@@ -244,6 +313,7 @@ When two-zone parameters are not configured, the model falls back to single-zone
 | Solar radiation sensor | W/m² irradiance sensor | No |
 | Floor return temp sensor | Floor heating return temp | No |
 | DHW temp sensor | Hot water tank temperature | No |
+| Buffer tank temp sensor | Buffer tank temperature; enables cooling-rate learning | No |
 
 ### Step 2: Temperature Settings
 | Parameter | Default | Range |
@@ -309,7 +379,7 @@ turn the toggle off to require hot water around the clock.
 
 ## Entities Created
 
-### Sensors (27 total)
+### Sensors (29 total)
 | Sensor | Description |
 |---|---|
 | Optimization Mode | Current mode (auto/comfort/economy/boost/off) |
@@ -335,10 +405,25 @@ turn the toggle off to require hot water around the clock.
 | Solar Radiation | Current solar radiation (W/m²) |
 | Solar Heat Gain | Current solar gain (kW) |
 | Buffer Tank Temperature | Modeled buffer tank temp |
+| **Space Heating Plan** | Planned space heating slots + full-horizon forecast |
+| **DHW Heating Plan** | Planned hot water slots + full-horizon forecast |
 | **DHW Temperature** | Current hot water temperature |
 | **DHW Heating Schedule** | Planned DHW heating periods |
 | **DHW Heating Cost** | Estimated DHW heating cost |
 | **Predictive Insight** | Anticipatory control status |
+
+### Dashboard Card
+
+`custom:heatpump-optimizer-card` charts electricity price, planned hot water
+slots, planned space heating slots, outdoor temperature, predicted tank
+temperature and predicted house temperature on one shared time axis. Each series
+has a legend chip that toggles it on and off, and the choice is remembered. The
+integration serves and registers the card automatically. See
+[docs/dashboard-card.md](docs/dashboard-card.md).
+
+```yaml
+type: custom:heatpump-optimizer-card
+```
 
 ### Climate Entity
 - Virtual thermostat with HVAC modes and presets
