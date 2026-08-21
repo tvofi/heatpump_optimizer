@@ -80,6 +80,9 @@ CONF_DHW_DAILY_CONSUMPTION: Final = "dhw_daily_consumption"  # liters/day
 # condition so it stays meaningful regardless of tank size. Self-learned at
 # runtime from observed standby decay.
 CONF_DHW_COOLING_RATE: Final = "dhw_cooling_rate"  # °C/h at reference conditions
+CONF_BUFFER_COOLING_RATE: Final = "buffer_cooling_rate"  # °C/h at reference
+CONF_BUFFER_TANK_TEMP_ENTITY: Final = "buffer_tank_temp_entity"
+CONF_HOUSE_HEAT_LOSS_SCALE: Final = "house_heat_loss_scale"  # dimensionless
 
 # DHW demand windows — the time frames where hot water must be available
 CONF_DHW_SCHEDULE_ENABLED: Final = "dhw_schedule_enabled"
@@ -156,6 +159,25 @@ DHW_COOLING_REFERENCE_DELTA: Final = (
 # these is being contaminated by draws or a bad sensor reading.
 DHW_COOLING_RATE_MIN: Final = 0.05  # °C/h
 DHW_COOLING_RATE_MAX: Final = 3.0  # °C/h
+
+# Standby cooling of the buffer tank, stated the same way as the DHW tank so it
+# can be learned by the same estimator. A buffer tank holds very little water,
+# so even a modest heat loss moves its temperature quickly: 6 °C/h at 25 °C
+# above ambient. That is chosen to reproduce the previous fixed 0.01 kW/°C,
+# since UA = rate * C / 25 and a 35 L tank has C = 0.0407 kWh/°C.
+DEFAULT_BUFFER_COOLING_RATE: Final = 6.0  # °C/h
+BUFFER_COOLING_RATE_MIN: Final = 0.5  # °C/h
+BUFFER_COOLING_RATE_MAX: Final = 30.0  # °C/h
+
+# The house heat loss coefficient the user configures is a nameplate estimate.
+# What the optimizer actually needs is how fast *this* house loses heat, so the
+# coordinator learns a dimensionless correction factor from the error between
+# predicted and observed indoor temperature. 1.0 means the configured value is
+# exactly right; the bounds stop a bad sensor or an open window from running
+# away with the model.
+DEFAULT_HOUSE_HEAT_LOSS_SCALE: Final = 1.0
+HOUSE_HEAT_LOSS_SCALE_MIN: Final = 0.3
+HOUSE_HEAT_LOSS_SCALE_MAX: Final = 3.0
 
 # DHW demand window defaults
 DEFAULT_DHW_SCHEDULE_ENABLED: Final = True
@@ -253,6 +275,13 @@ ATTR_DHW_COOLING_RATE_LEARNED: Final = "dhw_cooling_rate_learned"
 ATTR_DHW_COOLING_SAMPLES: Final = "dhw_cooling_samples"
 ATTR_DHW_HOLD_HOURS: Final = "dhw_hold_hours"
 ATTR_DHW_PREHEAT_HOURS: Final = "dhw_preheat_hours"
+ATTR_BUFFER_COOLING_RATE: Final = "buffer_cooling_rate"
+ATTR_BUFFER_COOLING_RATE_LEARNED: Final = "buffer_cooling_rate_learned"
+ATTR_BUFFER_COOLING_SAMPLES: Final = "buffer_cooling_samples"
+ATTR_HOUSE_HEAT_LOSS_SCALE: Final = "house_heat_loss_scale"
+ATTR_HOUSE_HEAT_LOSS_LEARNED: Final = "house_heat_loss_learned"
+ATTR_HOUSE_HEAT_LOSS_SAMPLES: Final = "house_heat_loss_samples"
+ATTR_HOUSE_HEAT_LOSS_EFFECTIVE: Final = "house_heat_loss_effective"
 
 # Wind chill factor (additional heat loss per m/s wind) — legacy, now configurable
 WIND_CHILL_FACTOR: Final = 0.005  # kW/°C per m/s

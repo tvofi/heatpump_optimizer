@@ -25,6 +25,7 @@ from .const import (
     CONF_HEAT_PUMP_SWITCH_ENTITY,
     CONF_SOLAR_RADIATION_ENTITY,
     CONF_FLOOR_RETURN_TEMP_ENTITY,
+    CONF_BUFFER_TANK_TEMP_ENTITY,
     CONF_DHW_TEMP_ENTITY,
     CONF_ECL110_COMMAND_TOPIC,
     CONF_ECL110_DISPLACE_SET_TOPIC,
@@ -213,6 +214,13 @@ class HeatPumpOptimizerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         )
                     ),
                     vol.Optional(CONF_DHW_TEMP_ENTITY): selector.EntitySelector(
+                        selector.EntitySelectorConfig(
+                            domain="sensor", device_class="temperature"
+                        )
+                    ),
+                    vol.Optional(
+                        CONF_BUFFER_TANK_TEMP_ENTITY
+                    ): selector.EntitySelector(
                         selector.EntitySelectorConfig(
                             domain="sensor", device_class="temperature"
                         )
@@ -767,6 +775,7 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
         CONF_SOLAR_RADIATION_ENTITY,
         CONF_FLOOR_RETURN_TEMP_ENTITY,
         CONF_DHW_TEMP_ENTITY,
+        CONF_BUFFER_TANK_TEMP_ENTITY,
     )
 
     # Fallback labels for the menu, used when the frontend has no translation
@@ -893,6 +902,11 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
                         selector.EntitySelectorConfig(domain="sensor")
                     ),
                     _entity(CONF_DHW_TEMP_ENTITY): selector.EntitySelector(
+                        selector.EntitySelectorConfig(
+                            domain="sensor", device_class="temperature"
+                        )
+                    ),
+                    _entity(CONF_BUFFER_TANK_TEMP_ENTITY): selector.EntitySelector(
                         selector.EntitySelectorConfig(
                             domain="sensor", device_class="temperature"
                         )

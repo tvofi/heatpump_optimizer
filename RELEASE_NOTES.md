@@ -1,5 +1,102 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v2.6.0
+
+### Summary
+Follow-up to the hot water rework in 2.5.0. Space heating gets the same
+scrutiny, the two circuits are now planned against each other instead of one
+after the other, three invented cost terms that were distorting the objective
+are gone, and the model learns two more of its own parameters. There are also
+two new sensors that publish the full heating plan and a dashboard card that
+charts it.
+
+### Changed
+- **Hot water and space heating are now co-optimized.** They share one
+  compressor, so the old sequential decomposition — plan hot water first, then
+  give space heating whatever capacity is left — let hot water fill the cheapest
+  hours to the ceiling and push space heating into dearer ones. Measured on the
+  winter scenarios that displaced 2.6 kWh (typical) to 4.7 kWh (extreme prices)
+  of space heating out of the cheap block. The hot water LP now carries a
+  congestion premium: taking capacity in a contended step is charged the extra
+  cost of buying the displaced space heating at the cheapest price within a
+  6 hour window instead. Because the displacement is piecewise-linear in hot
+  water power this stays an exact linear program. A second pass then re-plans
+  hot water against the space heating profile that resulted, and adopts it only
+  if it scores strictly better on the same objective. Contended steps drop from
+  22 to 4 and winter cost falls about 0.6%.
+
+- **Three heuristic cost terms have been removed from the space heating
+  objective.** `solar_anticipation_cost` and `pre_heat_incentive` were invented
+  currency layered on top of physics the simulation already models: the
+  trajectory itself shows that heating before sunshine is wasted and that
+  coasting into a windy night is expensive, because solar gain and the weather
+  heat loss factors are applied to the real dynamics. Restating that as an extra
+  cost double-counted it, and `pre_heat_incentive` was worse than redundant — it
+  was a *negative* cost, effectively paying the plan to burn electricity.
+  `pre_heat_incentive` also existed only on the no-hot-water code path, so
+  simply enabling hot water silently changed the space heating objective.
+  Removing them cuts cost 1.1% (mild windy winter) and 4.3-5.6% (shoulder
+  season) with no change in comfort. The anticipatory weighting still shapes the
+  solver's initial guess, where being wrong costs nothing; it no longer
+  discounts real minimum-temperature breaches.
+
+- **The comfort floor is now enforced with an exact penalty.** A purely
+  quadratic undershoot penalty has vanishing gradient at the boundary, so the
+  solver would park a few hundredths of a degree below the configured minimum
+  where the electricity saved outweighed the penalty. A small linear term
+  restores a non-zero slope at the bound. Residual violations across the
+  validation scenarios go to zero.
+
+- **The solver starts from several candidate schedules instead of one.** The
+  space heating objective is not convex, and from a single starting guess the
+  two-zone model settled on schedules that random perturbation could beat by
+  around 3%. Candidates are scored on the objective first, which is cheap, and
+  only the two most promising are actually optimized, so this costs roughly one
+  extra solve. Two-zone winter cost falls 2.2%.
+
+- **Buffer tank standby loss is stated as a cooling rate.** Like the hot water
+  tank in 2.5.0 it is now expressed in °C/h at a reference temperature
+  difference and the UA value is derived from it, which is what makes it
+  observable and therefore learnable. The default reproduces the previous fixed
+  coefficient.
+
+### Added
+- **Self-learning buffer tank cooling rate.** If you point the new *Buffer tank
+  temperature sensor* option at a sensor, the integration estimates the tank's
+  standby loss from quiet decay, using the same lower-envelope estimator as the
+  hot water tank: every contaminating effect can only make a tank look leakier
+  than it is, so the estimate drops quickly towards a quieter reading and only
+  creeps upward.
+
+- **Self-learning house heat transfer.** The configured heat loss coefficient is
+  a nameplate estimate; what the optimizer needs is how fast *your* house loses
+  heat. Each update replays the interval that just elapsed through the same
+  model the optimizer uses, with the power that was actually applied, and
+  attributes the difference between predicted and measured indoor temperature to
+  the heat loss coefficient. Everything the model already accounts for — slab
+  transfer, solar gain, internal gains, wind, rain — is therefore excluded, and
+  a Newton step on the remaining residual gives the correction directly. Unlike
+  the tanks the bias here is two-sided, so this uses a symmetric slow average
+  rather than a lower envelope, plus a per-interval rate limit and a residual
+  cutoff so an open window or a wood stove cannot run away with the model. It
+  is learned as a dimensionless scale, which also handles the two-zone case
+  where a single indoor sensor cannot identify the two floors separately.
+
+- **Two plan sensors: `Space Heating Plan` and `DHW Heating Plan`.** Each
+  publishes the contiguous heating slots the optimizer intends to run, with
+  start, end, duration, energy, average price and cost, plus a step-by-step
+  `forecast` covering the whole horizon. The existing schedule attributes are
+  truncated to 24 steps, which at the default 15 minute resolution is only the
+  first six hours; these sensors carry the full 24 hours. The bulky series are
+  declared unrecorded so they do not bloat the recorder database.
+
+- **A dashboard card.** `custom:heatpump-optimizer-card` plots electricity
+  price, planned hot water slots, planned space heating slots, outdoor
+  temperature, predicted tank temperature and predicted house temperature on one
+  shared time axis, with per-series legend toggles that persist across reloads.
+  It is hand-written inline SVG with no external chart dependency, and the
+  integration registers it automatically. See `docs/dashboard-card.md`.
+
 ## v2.5.0
 
 ### Summary

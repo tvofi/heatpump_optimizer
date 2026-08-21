@@ -15,6 +15,7 @@
           "solar_radiation_entity": "Solinstrålningsgivare",
           "floor_return_temp_entity": "Givare för golvvärmens returtemperatur",
           "dhw_temp_entity": "Givare för varmvattenberedarens temperatur",
+          "buffer_tank_temp_entity": "Temperaturgivare för buffertank",
           "ecl110_displace_set_topic": "Topic för förskjutningskommando",
           "ecl110_command_topic": "Äldre JSON-kommandotopic",
           "ecl110_state_topic": "Statustopic",
@@ -35,6 +36,7 @@
           "solar_radiation_entity": "Valfritt. Solinstrålning i W/m2. Gör att optimeringen kan avstå från att värma före en solig eftermiddag som värmer huset gratis.",
           "floor_return_temp_entity": "Valfritt. Vattentemperaturen tillbaka från golvslingorna, används för att bedöma hur mycket värme plattan lagrar.",
           "dhw_temp_entity": "Valfritt men rekommenderas. Beredarens verkliga temperatur. Gör också att en manuell varmvattenkörning nollställer legionellatimern.",
+          "buffer_tank_temp_entity": "Valfritt. När den anges lär sig integrationen hur snabbt buffertanken svalnar i stället för att förlita sig på det konfigurerade värdet.",
           "ecl110_displace_set_topic": "MQTT-topic dit parallellförskjutningen av värmekurvan publiceras. Lämna tomt om du inte har en Danfoss ECL110.",
           "ecl110_command_topic": "Behövs bara för äldre installationer som förväntar sig JSON i stället.",
           "ecl110_state_topic": "MQTT-topic där regulatorn rapporterar sitt tillstånd.",
@@ -200,6 +202,7 @@
           "outdoor_temp_entity": "Utomhusgivare",
           "solar_radiation_entity": "Solinstrålningsgivare",
           "dhw_temp_entity": "Givare för varmvattenberedarens temperatur",
+          "buffer_tank_temp_entity": "Temperaturgivare för buffertank",
           "floor_return_temp_entity": "Givare för golvvärmens returtemperatur",
           "heat_pump_entity": "Värmepumpens termostat",
           "heat_pump_switch_entity": "Strömbrytare för värmepumpen"
@@ -211,6 +214,7 @@
           "outdoor_temp_entity": "Valfritt. En egen utegivare är mer exakt än prognosen för den aktuella timmen.",
           "solar_radiation_entity": "Valfritt. Solinstrålning i W/m2. Gör att optimeringen kan avstå från att värma före en solig eftermiddag som värmer huset gratis.",
           "dhw_temp_entity": "Valfritt men rekommenderas. Beredarens verkliga temperatur. Gör också att en manuell varmvattenkörning nollställer legionellatimern.",
+          "buffer_tank_temp_entity": "Valfritt. När den anges lär sig integrationen hur snabbt buffertanken svalnar i stället för att förlita sig på det konfigurerade värdet.",
           "floor_return_temp_entity": "Valfritt. Vattentemperaturen tillbaka från golvslingorna, används för att bedöma hur mycket värme plattan lagrar.",
           "heat_pump_entity": "Valfritt. En climate-entitet som optimeringen kan ställa en temperatur på.",
           "heat_pump_switch_entity": "Valfritt. En strömbrytare som används för att stänga av värmepumpen under dyra timmar."
