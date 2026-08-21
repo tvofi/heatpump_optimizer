@@ -63,6 +63,7 @@ from .const import (
     CONF_DHW_SETPOINT,
     CONF_DHW_MIN_TEMP,
     CONF_DHW_DAILY_CONSUMPTION,
+    CONF_DHW_COOLING_RATE,
     CONF_DHW_SCHEDULE_ENABLED,
     CONF_DHW_WINDOWS,
     CONF_DHW_IDLE_MIN_TEMP,
@@ -105,6 +106,7 @@ from .const import (
     DEFAULT_DHW_SETPOINT,
     DEFAULT_DHW_MIN_TEMP,
     DEFAULT_DHW_DAILY_CONSUMPTION,
+    DEFAULT_DHW_COOLING_RATE,
     DEFAULT_DHW_SCHEDULE_ENABLED,
     DEFAULT_DHW_WINDOWS,
     DEFAULT_DHW_IDLE_MIN_TEMP,
@@ -640,6 +642,16 @@ class HeatPumpOptimizerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         )
                     ),
                     vol.Optional(
+                        CONF_DHW_COOLING_RATE,
+                        default=DEFAULT_DHW_COOLING_RATE,
+                    ): selector.NumberSelector(
+                        selector.NumberSelectorConfig(
+                            min=0.05, max=3.0, step=0.05,
+                            unit_of_measurement="°C/h",
+                            mode=selector.NumberSelectorMode.BOX,
+                        )
+                    ),
+                    vol.Optional(
                         CONF_DHW_SCHEDULE_ENABLED,
                         default=DEFAULT_DHW_SCHEDULE_ENABLED,
                     ): selector.BooleanSelector(),
@@ -1077,6 +1089,18 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
                         selector.NumberSelectorConfig(
                             min=50, max=1500, step=10,
                             unit_of_measurement="L/day",
+                            mode=selector.NumberSelectorMode.BOX,
+                        )
+                    ),
+                    vol.Optional(
+                        CONF_DHW_COOLING_RATE,
+                        default=current.get(
+                            CONF_DHW_COOLING_RATE, DEFAULT_DHW_COOLING_RATE
+                        ),
+                    ): selector.NumberSelector(
+                        selector.NumberSelectorConfig(
+                            min=0.05, max=3.0, step=0.05,
+                            unit_of_measurement="°C/h",
                             mode=selector.NumberSelectorMode.BOX,
                         )
                     ),

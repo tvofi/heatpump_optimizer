@@ -133,6 +133,7 @@
           "dhw_setpoint": "Högsta temperatur att ladda till",
           "dhw_min_temperature": "Varmvattentemperatur du behöver",
           "dhw_daily_consumption": "Varmvatten per dygn",
+          "dhw_cooling_rate": "Beredarens värmeförlust (inlärd)",
           "dhw_schedule_enabled": "Garantera varmvatten endast vid valda tider",
           "dhw_windows": "När du behöver varmvatten",
           "dhw_legionella_enabled": "Kör legionellaskydd",
@@ -148,6 +149,7 @@
           "dhw_setpoint": "En övre gräns för laddning, inte ett mål. Beredaren fylls bara så här högt när det lönar sig att lagra extra billig värme. Den värms aldrig hit bara för sakens skull.",
           "dhw_tank_volume": "Liter. En större beredare lagrar mer billig el och kan hoppa över fler dyra timmar.",
           "dhw_daily_consumption": "Ungefär hur många liter varmvatten hushållet använder per dygn. Används för att räkna ut hur mycket som behöver lagras före varje period.",
+          "dhw_cooling_rate": "Hur snabbt beredaren svalnar när ingen använder varmvatten, mätt vid 45 C i ett 20-gradigt rum. Detta är bara en startpunkt: integrationen mäter beredarens faktiska avsvalning och justerar värdet automatiskt. En beredare som håller värmen väl kan laddas längre i förväg, så att mer av uppvärmningen hamnar på billiga timmar.",
           "dhw_legionella_enabled": "Eftersom beredaren nu får stå sval under långa perioder värms den regelbundet tillräckligt hett för att döda legionellabakterier. Rekommenderas starkt.",
           "dhw_legionella_temperature": "60 C är den vanliga rekommendationen.",
           "dhw_legionella_interval_days": "Hur ofta desinficeringen körs. Den läggs på den billigaste timmen före varje deadline."
@@ -247,6 +249,7 @@
           "dhw_setpoint": "Högsta temperatur att ladda till",
           "dhw_tank_volume": "Varmvattenberedarens volym",
           "dhw_daily_consumption": "Varmvatten per dygn",
+          "dhw_cooling_rate": "Beredarens värmeförlust (inlärd)",
           "dhw_legionella_enabled": "Kör legionellaskydd",
           "dhw_legionella_temperature": "Legionellatemperatur",
           "dhw_legionella_interval_days": "Intervall för legionellaskydd"
@@ -259,6 +262,7 @@
           "dhw_setpoint": "En övre gräns för laddning, inte ett mål. Beredaren fylls bara så här högt när det lönar sig att lagra extra billig värme. Den värms aldrig hit bara för sakens skull.",
           "dhw_tank_volume": "Liter. En större beredare lagrar mer billig el och kan hoppa över fler dyra timmar.",
           "dhw_daily_consumption": "Ungefär hur många liter varmvatten hushållet använder per dygn. Används för att räkna ut hur mycket som behöver lagras före varje period.",
+          "dhw_cooling_rate": "Hur snabbt beredaren svalnar när ingen använder varmvatten, mätt vid 45 C i ett 20-gradigt rum. Detta är bara en startpunkt: integrationen mäter beredarens faktiska avsvalning och justerar värdet automatiskt. En beredare som håller värmen väl kan laddas längre i förväg, så att mer av uppvärmningen hamnar på billiga timmar.",
           "dhw_legionella_enabled": "Eftersom beredaren nu får stå sval under långa perioder värms den regelbundet tillräckligt hett för att döda legionellabakterier. Rekommenderas starkt.",
           "dhw_legionella_temperature": "60 C är den vanliga rekommendationen.",
           "dhw_legionella_interval_days": "Hur ofta desinficeringen körs. Den läggs på den billigaste timmen före varje deadline."

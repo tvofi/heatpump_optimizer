@@ -37,7 +37,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 import numpy as np
-from scipy.optimize import minimize
+from scipy.optimize import linprog, minimize
 
 from .thermal_model import (
     DHW_AMBIENT_TEMP,
@@ -889,6 +889,9 @@ class HeatPumpOptimizer:
                 legionella_hour = float(hours_mod[idx])
 
         max_temp = params.dhw_max_temp
+        # How long stored heat actually survives in this tank. The learned
+        # cooling rate drives it, so a well-insulated tank is allowed to
+        # pre-heat much further ahead than a leaky one.
         max_lead_hours = self.model.dhw_hold_hours()
         requirement = np.maximum(floor_temps, ready_temps)
 
@@ -897,6 +900,28 @@ class HeatPumpOptimizer:
         # the pump would actually be considered running.
         p_dhw_run = max(0.1, min(p_max * 0.8, p_max))
         min_run_power = min(p_dhw_run, max(0.15, self.model.params.min_electrical_power * 0.6))
+
+        # Pre-heating is allowed anywhere in the horizon: the planners price the
+        # standby losses of storing heat, so an early cheap hour wins only when
+        # it is still cheaper after those losses. Capping the lead time instead
+        # of pricing it is what used to pin heating to the demand windows.
+        max_lead_steps = max(1, min(n_steps, int(np.ceil(max_lead_hours / dt))))
+
+        # Stage 1: a linear program over the whole horizon finds the truly
+        # cheapest feasible allocation. Stage 2 repairs whatever the linear
+        # approximation got wrong against the real tank simulation.
+        seed = self._plan_dhw_min_cost(
+            initial_temp=initial_state.dhw_temperature,
+            requirement=requirement,
+            prices=prices,
+            outdoor_temps=outdoor_temps,
+            draw_rates=draw_rates,
+            n_steps=n_steps,
+            dt=dt,
+            p_dhw_max=p_dhw_run,
+            c_dhw=c_dhw,
+            max_temp=max_temp,
+        )
 
         schedule = self._plan_dhw_cheapest_first(
             initial_temp=initial_state.dhw_temperature,
@@ -908,8 +933,20 @@ class HeatPumpOptimizer:
             dt=dt,
             p_dhw_max=p_dhw_run,
             min_run_power=min_run_power,
-            max_lead_steps=max(1, int(np.ceil(max_lead_hours / dt))),
+            max_lead_steps=max_lead_steps,
             c_dhw=c_dhw,
+            max_temp=max_temp,
+            initial_plan=seed,
+        )
+
+        schedule = self._apply_dhw_min_run(
+            plan=schedule,
+            initial_temp=initial_state.dhw_temperature,
+            outdoor_temps=outdoor_temps,
+            draw_rates=draw_rates,
+            dt=dt,
+            p_dhw_max=p_dhw_run,
+            min_run_power=min_run_power,
             max_temp=max_temp,
         )
 
@@ -936,6 +973,193 @@ class HeatPumpOptimizer:
             "max_lead_hours": max_lead_hours,
         }
 
+    def _dhw_cop_profile(
+        self,
+        outdoor_temps: np.ndarray,
+        tank_temps: np.ndarray,
+    ) -> np.ndarray:
+        """Per-step DHW COP for a given assumed tank temperature trajectory."""
+        return np.array(
+            [
+                max(
+                    1.0,
+                    self.model.compute_cop_dhw(
+                        float(outdoor_temps[i]), float(tank_temps[i])
+                    ),
+                )
+                for i in range(len(outdoor_temps))
+            ]
+        )
+
+    def _plan_dhw_min_cost(
+        self,
+        initial_temp: float,
+        requirement: np.ndarray,
+        prices: np.ndarray,
+        outdoor_temps: np.ndarray,
+        draw_rates: np.ndarray,
+        n_steps: int,
+        dt: float,
+        p_dhw_max: float,
+        c_dhw: float,
+        max_temp: float,
+    ) -> np.ndarray | None:
+        """Minimum-cost DHW schedule over the whole horizon, as a linear program.
+
+        The tank is a linear store. Writing its dynamics out,
+
+            T[m+1] = a·T[m] + (E[m] - D[m])/C + b
+            a = 1 - UA·dt/C,  b = UA·T_ambient·dt/C
+
+        makes the temperature at any step an affine function of the heat put
+        in earlier: a kWh delivered at step ``j`` still contributes
+        ``a^(m-1-j)/C`` degrees at step ``m``. The ``a^(m-1-j)`` factor *is*
+        the standby loss, so buying heat early is automatically priced higher
+        than buying it late — no artificial "don't pre-heat more than N hours
+        ahead" cap is needed, and none is applied.
+
+        Minimising ``Σ price[j]·E[j]/COP[j]`` subject to the availability
+        floors and the tank's maximum temperature therefore yields the
+        genuinely cheapest way to have hot water when the demand windows need
+        it, whether that means heating inside the window or twelve hours
+        earlier at the night tariff.
+
+        Returns ``None`` when the solve fails, so the caller can fall back to
+        the greedy planner.
+        """
+        if n_steps == 0:
+            return None
+
+        requirement = np.minimum(np.asarray(requirement, dtype=float), max_temp)
+        params = self.model.params
+        ua = max(params.dhw_tank_heat_loss_coefficient, 1e-6)
+        c = max(c_dhw, 0.05)
+
+        # Per-step decay of stored heat. Guarded so an absurdly leaky tank or a
+        # long time step cannot produce a negative (unstable) factor.
+        decay = float(np.clip(1.0 - ua * dt / c, 0.0, 1.0))
+        gain = ua * DHW_AMBIENT_TEMP * dt / c
+
+        # Free trajectory: what the tank does with no heating at all.
+        free = np.zeros(n_steps + 1)
+        free[0] = initial_temp
+        for i in range(n_steps):
+            free[i + 1] = (
+                decay * free[i] - float(draw_rates[i]) * dt / c + gain
+            )
+
+        # Influence matrix: A[m, j] = degrees at step m+1 per thermal kWh at j.
+        idx = np.arange(n_steps)
+        lag = idx[:, None] - idx[None, :]
+        influence = np.where(lag >= 0, np.power(decay, np.maximum(lag, 0)) / c, 0.0)
+
+        # COP is temperature dependent; solve once against the requirement
+        # level, then re-solve against the trajectory the first pass produced.
+        cop = self._dhw_cop_profile(
+            outdoor_temps, np.maximum(requirement, params.dhw_min_temp)
+        )
+
+        best: np.ndarray | None = None
+        for _ in range(2):
+            energy_max = np.maximum(p_dhw_max * cop * dt, 1e-9)
+            # Shortfall slack keeps the program feasible when the requirement
+            # simply cannot be met (cold start, undersized pump); it is priced
+            # far above any real electricity cost so it is only ever used as a
+            # last resort.
+            shortfall_price = 1000.0 * (float(np.max(np.abs(prices))) + 1.0)
+            objective = np.concatenate(
+                [prices / cop, np.full(n_steps, shortfall_price)]
+            )
+
+            zeros = np.zeros((n_steps, n_steps))
+            eye = np.eye(n_steps)
+            a_ub = np.vstack(
+                [
+                    np.hstack([-influence, -eye]),  # availability floor
+                    np.hstack([influence, zeros]),  # tank maximum temperature
+                ]
+            )
+            b_ub = np.concatenate(
+                [
+                    -(requirement - free[1:]),
+                    np.maximum(0.0, max_temp - free[1:]),
+                ]
+            )
+
+            bounds = [(0.0, float(energy_max[j])) for j in range(n_steps)] + [
+                (0.0, None)
+            ] * n_steps
+
+            try:
+                result = linprog(
+                    objective, A_ub=a_ub, b_ub=b_ub, bounds=bounds, method="highs"
+                )
+            except Exception as err:  # pragma: no cover - solver availability
+                _LOGGER.debug("DHW cost LP raised %s; using greedy planner", err)
+                return best
+
+            if not result.success:
+                _LOGGER.debug(
+                    "DHW cost LP did not solve (%s); using greedy planner",
+                    result.message,
+                )
+                return best
+
+            energy = np.asarray(result.x[:n_steps], dtype=float)
+            best = np.clip(energy / (cop * dt), 0.0, p_dhw_max)
+
+            # Refine the COP estimate against the tank temperatures this plan
+            # actually produces, so the cost ranking reflects reality.
+            temps = self.model.simulate_dhw_only(
+                initial_temp=initial_temp,
+                dhw_power_schedule=best,
+                outdoor_temps=outdoor_temps,
+                draw_rates=draw_rates,
+                dt_hours=dt,
+            )
+            refined = self._dhw_cop_profile(outdoor_temps, temps[:-1])
+            if np.allclose(refined, cop, rtol=0.02):
+                break
+            cop = refined
+
+        return best
+
+    def _apply_dhw_min_run(
+        self,
+        plan: np.ndarray,
+        initial_temp: float,
+        outdoor_temps: np.ndarray,
+        draw_rates: np.ndarray,
+        dt: float,
+        p_dhw_max: float,
+        min_run_power: float,
+        max_temp: float,
+    ) -> np.ndarray:
+        """Round sub-minimum runs up to a power the pump can actually deliver.
+
+        A DHW valve is on or off; a planned 0.05 kW trickle is not something
+        the hardware can do. Slots below the practical minimum are raised to
+        it, but only while the tank stays within its rating — otherwise the
+        rounding would boil the plan over.
+        """
+        plan = np.array(plan, dtype=float)
+        weak = np.where((plan > 1e-6) & (plan < min_run_power))[0]
+        if weak.size == 0:
+            return np.clip(plan, 0.0, p_dhw_max)
+
+        candidate = plan.copy()
+        candidate[weak] = min(min_run_power, p_dhw_max)
+        temps = self.model.simulate_dhw_only(
+            initial_temp=initial_temp,
+            dhw_power_schedule=candidate,
+            outdoor_temps=outdoor_temps,
+            draw_rates=draw_rates,
+            dt_hours=dt,
+        )
+        if float(np.max(temps)) <= max_temp + 0.5:
+            return np.clip(candidate, 0.0, p_dhw_max)
+        return np.clip(plan, 0.0, p_dhw_max)
+
     def _plan_dhw_cheapest_first(
         self,
         initial_temp: float,
@@ -950,13 +1174,18 @@ class HeatPumpOptimizer:
         max_lead_steps: int,
         c_dhw: float,
         max_temp: float,
+        initial_plan: np.ndarray | None = None,
     ) -> np.ndarray:
-        """Greedily schedule DHW heating into the cheapest feasible hours.
+        """Greedily top up a DHW plan in the cheapest feasible hours.
+
+        Used to repair whatever the linear cost program left short — the linear
+        tank model ignores the COP's dependence on tank temperature and the
+        10 °C cold-water floor — and as a complete fallback when that solve is
+        unavailable.
 
         Repeatedly simulates the tank, finds the first step where the
         availability requirement would be missed, and buys the missing energy
-        from the cheapest steps that precede it (within the tank's heat-holding
-        time, so the plan never pre-heats so early that standby losses dominate).
+        from the cheapest steps that precede it.
 
         Slots are ranked by *effective* price, i.e. the raw price inflated by
         the standby energy that would be lost while the heat waits in the tank.
@@ -968,7 +1197,12 @@ class HeatPumpOptimizer:
         unlike a gradient solve, it produces blocks the heat pump can actually
         run.
         """
-        plan = np.zeros(n_steps)
+        if initial_plan is None:
+            plan = np.zeros(n_steps)
+        else:
+            plan = np.clip(
+                np.array(initial_plan, dtype=float), 0.0, p_dhw_max
+            )
         if n_steps == 0:
             return plan
 
@@ -1473,6 +1707,16 @@ class HeatPumpOptimizer:
                     round(float(step_hours[idx]), 2)
                     for idx in np.where(optimal_dhw > 0.1)[0][:48].tolist()
                 ],
+                # Hours of planned heating that happen ahead of a demand
+                # window rather than inside it — the visible sign that the
+                # tank is being charged when electricity is cheap.
+                "dhw_preheat_hours": round(
+                    float(np.sum((optimal_dhw > 0.1) & ~in_demand_window) * dt), 2
+                ),
+                "dhw_cooling_rate": round(
+                    float(self.model.params.dhw_cooling_rate), 3
+                ),
+                "dhw_hold_hours": round(float(self.model.dhw_hold_hours()), 1),
             },
         )
 

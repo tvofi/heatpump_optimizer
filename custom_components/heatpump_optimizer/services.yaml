@@ -222,6 +222,20 @@ set_thermal_parameters:
           max: 1500
           step: 10
           unit_of_measurement: "L/day"
+    dhw_cooling_rate:
+      name: DHW Tank Cooling Rate
+      description: >-
+        How fast the tank cools with no draw, in °C per hour at 45 °C tank
+        temperature and 20 °C ambient. Normally learned automatically from
+        observed standby decay; set it to seed or override the learned value.
+      required: false
+      example: 0.3
+      selector:
+        number:
+          min: 0.05
+          max: 3.0
+          step: 0.05
+          unit_of_measurement: "°C/h"
     dhw_schedule_enabled:
       name: DHW Time Frames Enabled
       description: >-
