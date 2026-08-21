@@ -19,6 +19,23 @@ A vertical "now" marker is drawn at the current time, and hovering (or touching)
 the plot shows a crosshair and a tooltip with the value of every visible series
 at the nearest sample.
 
+## Enlarging the chart
+
+A dashboard card is usually too small to read a 48-hour plan comfortably.
+Clicking anywhere on the card, or the expand button in its header, opens the
+same chart in a large modal overlay. The enlarged view labels the time axis
+every hour instead of every third hour, since it has the room for it.
+
+Clicking a legend chip only toggles that series; it does not open the overlay.
+Toggles work inside the overlay too, and the visibility state is shared with the
+card underneath. Close it with the X, the Escape key, or by clicking outside it.
+
+The overlay is a native `<dialog>` shown with `showModal()`, so it renders in
+the browser's top layer and cannot be clipped by a dashboard column or hidden
+behind another card. Its width is capped so the chart's aspect ratio still fits
+the viewport height, because stretching the box instead would distort the axis
+labels.
+
 ## Installation
 
 ### Automatic (recommended)
