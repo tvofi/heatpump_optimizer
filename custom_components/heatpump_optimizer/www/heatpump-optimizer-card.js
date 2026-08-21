@@ -93,6 +93,15 @@ const SERIES_DEFS = [
 
 const VIEW_W = 900;
 const VIEW_H = 380;
+// Aspect ratio of the plot, used to size the dialog so the chart fills it
+// without the non-uniform scaling that would distort the axis labels.
+const VIEW_RATIO = VIEW_W / VIEW_H;
+const EXPAND_ICON =
+  '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">' +
+  '<path fill="currentColor" d="M10 21v-2H6.4l4.5-4.5-1.4-1.4L5 17.6V14H3v7h7zm4-18v2h3.6l-4.5 4.5 1.4 1.4L19 6.4V10h2V3h-7z"/></svg>';
+const CLOSE_ICON =
+  '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">' +
+  '<path fill="currentColor" d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>';
 const MARGIN = { top: 16, right: 62, bottom: 34, left: 92 };
 
 function esc(str) {
@@ -156,9 +165,14 @@ class HeatpumpOptimizerCard extends HTMLElement {
     this._series = [];
     this._plot = null;
     this._resizeObserver = null;
+    this._expanded = false;
     this._onLegendClick = this._onLegendClick.bind(this);
     this._onPointerMove = this._onPointerMove.bind(this);
     this._onPointerLeave = this._onPointerLeave.bind(this);
+    this._onCardClick = this._onCardClick.bind(this);
+    this._onExpandClick = this._onExpandClick.bind(this);
+    this._onDialogClick = this._onDialogClick.bind(this);
+    this._onDialogClose = this._onDialogClose.bind(this);
   }
 
   // ---- Lovelace contract -------------------------------------------------
@@ -250,6 +264,8 @@ class HeatpumpOptimizerCard extends HTMLElement {
   }
 
   disconnectedCallback() {
+    // A modal dialog left open would outlive the card in the top layer.
+    if (this._expanded) this._closeExpandedQuietly();
     if (this._resizeObserver) {
       try {
         this._resizeObserver.disconnect();
@@ -521,42 +537,129 @@ class HeatpumpOptimizerCard extends HTMLElement {
         ${this._diagnose("dhw")}</div>`;
       this._plot = null;
     } else {
-      const chart = this._chartSvg(built);
-      body = `<div class="chartwrap">${chart}</div>`;
+      body = this._chartBlock(built, false);
     }
 
+    // The dialog is a sibling of ha-card, not a child, so a click inside it
+    // never bubbles into the card's own open-on-click handler.
+    const dialog = this._expanded && anyData ? this._dialogHtml(built) : "";
+
     this.shadowRoot.innerHTML = `
-      <ha-card>
+      <ha-card class="${anyData ? "clickable" : ""}">
         ${style}
-        <div class="header">${esc(cfg.title)}</div>
+        <div class="header">
+          <span class="title">${esc(cfg.title)}</span>
+          ${
+            anyData
+              ? `<button type="button" class="expand" title="Enlarge"
+                   aria-label="Enlarge chart">${EXPAND_ICON}</button>`
+              : ""
+          }
+        </div>
         ${legend}
         ${body}
-        <div class="tooltip" id="tt" hidden></div>
       </ha-card>
+      ${dialog}
     `;
 
-    // Attach interactions
-    this.shadowRoot
+    this._attachChartEvents(this.shadowRoot);
+
+    const expandBtn = this.shadowRoot.querySelector(".expand");
+    if (expandBtn) expandBtn.addEventListener("click", this._onExpandClick);
+
+    const card = this.shadowRoot.querySelector("ha-card");
+    if (card && anyData) card.addEventListener("click", this._onCardClick);
+
+    this._syncDialog();
+    this._cacheRect();
+  }
+
+  /** Chart markup plus the tooltip that belongs to it.
+   *
+   * The tooltip lives inside the wrapper rather than beside it so that the two
+   * copies of the chart, inline and expanded, each own theirs. Positioning it
+   * against the wrapper also removes a dependency on `ha-card` happening to be
+   * a positioned ancestor.
+   */
+  _chartBlock(built, expanded) {
+    const chart = this._chartSvg(built, expanded);
+    return `<div class="chartwrap${expanded ? " big" : ""}">${chart}
+      <div class="tooltip" hidden></div></div>`;
+  }
+
+  _dialogHtml(built) {
+    const cfg = this._config;
+    return `
+      <dialog class="expanded" aria-label="${esc(cfg.title)}">
+        <div class="dlg-head">
+          <span class="title">${esc(cfg.title)}</span>
+          <button type="button" class="close" title="Close"
+            aria-label="Close">${CLOSE_ICON}</button>
+        </div>
+        ${this._legendHtml()}
+        ${this._chartBlock(built, true)}
+      </dialog>
+    `;
+  }
+
+  /** Wire hover and legend handling for every chart in a root. */
+  _attachChartEvents(root) {
+    root
       .querySelectorAll(".chip")
       .forEach((el) => el.addEventListener("click", this._onLegendClick));
 
-    const svg = this.shadowRoot.querySelector("svg");
-    if (svg) {
+    root.querySelectorAll("svg").forEach((svg) => {
       svg.addEventListener("mousemove", this._onPointerMove);
       svg.addEventListener("mouseleave", this._onPointerLeave);
       svg.addEventListener("touchmove", this._onPointerMove, { passive: true });
       svg.addEventListener("touchend", this._onPointerLeave);
+    });
+  }
+
+  /** Bring the dialog element in the DOM into line with `_expanded`.
+   *
+   * `_render` rebuilds the shadow root wholesale, so on every data refresh the
+   * open dialog is replaced by a fresh element that has to be shown again.
+   */
+  _syncDialog() {
+    const dlg = this.shadowRoot.querySelector("dialog");
+    if (!dlg) return;
+
+    dlg.addEventListener("click", this._onDialogClick);
+    dlg.addEventListener("close", this._onDialogClose);
+    dlg.addEventListener("cancel", this._onDialogClose);
+    const closeBtn = dlg.querySelector(".close");
+    if (closeBtn) closeBtn.addEventListener("click", this._onDialogClick);
+
+    if (this._expanded && !dlg.open) {
+      // showModal promotes the dialog to the top layer, which is what keeps it
+      // clear of the dashboard's stacking contexts and any clipping ancestor.
+      if (typeof dlg.showModal === "function") dlg.showModal();
+      else dlg.setAttribute("open", "");
     }
-    this._cacheRect();
   }
 
   _styleBlock() {
     return `
       <style>
         ha-card { padding: 12px 12px 8px 12px; }
+        ha-card.clickable { cursor: pointer; }
         .header {
           font-size: 1.15em; font-weight: 500; padding: 2px 4px 8px 4px;
           color: var(--primary-text-color);
+          display: flex; align-items: center; gap: 8px;
+        }
+        .header .title { flex: 1 1 auto; min-width: 0; }
+        .expand, .close {
+          flex: 0 0 auto; display: inline-flex; align-items: center;
+          justify-content: center; background: transparent; border: none;
+          padding: 4px; margin: -4px; border-radius: 50%; cursor: pointer;
+          color: var(--secondary-text-color); font: inherit;
+        }
+        .expand:hover, .close:hover { color: var(--primary-text-color); }
+        .expand:focus-visible, .close:focus-visible,
+        .chip:focus-visible {
+          outline: 2px solid var(--primary-color, #03a9f4); outline-offset: 2px;
         }
         .legend {
           display: flex; flex-wrap: wrap; gap: 6px; padding: 0 2px 8px 2px;
@@ -594,6 +697,34 @@ class HeatpumpOptimizerCard extends HTMLElement {
         .tooltip .dot {
           width: 8px; height: 8px; border-radius: 50%; display: inline-block;
         }
+
+        /* Expanded view. The dialog width is capped so that the chart's own
+           aspect ratio still fits the viewport height; sizing by width alone
+           would overflow on short windows, and forcing the height instead
+           would stretch the labels. */
+        dialog.expanded {
+          box-sizing: border-box;
+          width: min(96vw, calc((100vh - 168px) * ${VIEW_RATIO}));
+          max-width: 96vw;
+          border: none; border-radius: 12px; padding: 16px;
+          background: var(--card-background-color, #fff);
+          color: var(--primary-text-color);
+          box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+          overflow: visible;
+        }
+        dialog.expanded::backdrop {
+          background: rgba(0, 0, 0, 0.55);
+        }
+        .dlg-head {
+          display: flex; align-items: center; gap: 8px;
+          font-size: 1.25em; font-weight: 500; padding: 0 2px 10px 2px;
+        }
+        .dlg-head .title { flex: 1 1 auto; min-width: 0; }
+        .chartwrap.big { aspect-ratio: ${VIEW_W} / ${VIEW_H}; }
+        .chartwrap.big svg { height: 100%; }
+        @media (max-width: 600px) {
+          dialog.expanded { width: 96vw; padding: 12px; }
+        }
       </style>
     `;
   }
@@ -613,7 +744,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     return `<div class="legend">${chips}</div>`;
   }
 
-  _chartSvg(built) {
+  _chartSvg(built, expanded) {
     const { windowStart, windowEnd } = built;
     const visible = this._series.filter((s) => s.visible && s.hasData);
 
@@ -674,7 +805,10 @@ class HeatpumpOptimizerCard extends HTMLElement {
     );
 
     // Time gridlines + labels (hour grid, label every 3h)
-    parts.push(this._timeAxis(scaleX, plotT, plotB, windowStart, windowEnd));
+    // The expanded view has room to label every hour instead of every third.
+    parts.push(
+      this._timeAxis(scaleX, plotT, plotB, windowStart, windowEnd, expanded ? 1 : 3)
+    );
 
     // Value axes
     if (axes.temp)
@@ -713,7 +847,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
 
     // Crosshair placeholder (updated on hover)
     parts.push(
-      `<line id="crosshair" x1="0" y1="${plotT}" x2="0" y2="${plotB}" stroke="var(--secondary-text-color,#888)" stroke-width="1" visibility="hidden"/>`
+      `<line class="crosshair" x1="0" y1="${plotT}" x2="0" y2="${plotB}" stroke="var(--secondary-text-color,#888)" stroke-width="1" visibility="hidden"/>`
     );
 
     return `<svg viewBox="0 0 ${VIEW_W} ${VIEW_H}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${esc(
@@ -721,7 +855,8 @@ class HeatpumpOptimizerCard extends HTMLElement {
     )}">${parts.join("")}</svg>`;
   }
 
-  _timeAxis(scaleX, plotT, plotB, windowStart, windowEnd) {
+  _timeAxis(scaleX, plotT, plotB, windowStart, windowEnd, labelEvery) {
+    const every = labelEvery || 3;
     const out = [];
     const first = new Date(windowStart);
     first.setMinutes(0, 0, 0);
@@ -729,7 +864,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     for (let t = first.getTime(); t <= windowEnd; t += 3600 * 1000) {
       const x = scaleX(t);
       const d = new Date(t);
-      const label3h = d.getHours() % 3 === 0;
+      const label3h = d.getHours() % every === 0;
       out.push(
         `<line x1="${x}" y1="${plotT}" x2="${x}" y2="${plotB}" stroke="var(--divider-color,#eee)" stroke-width="${
           label3h ? 1 : 0.5
@@ -848,6 +983,9 @@ class HeatpumpOptimizerCard extends HTMLElement {
   // ---- interaction -------------------------------------------------------
 
   _onLegendClick(ev) {
+    // A legend click must not also count as a click on the card, or toggling a
+    // series would open the expanded view every time.
+    if (ev && typeof ev.stopPropagation === "function") ev.stopPropagation();
     const el = ev.currentTarget;
     const key = el.getAttribute("data-key");
     if (!key) return;
@@ -857,6 +995,73 @@ class HeatpumpOptimizerCard extends HTMLElement {
     this._render();
   }
 
+  _onCardClick(ev) {
+    // Ignore clicks that a control has already handled, and text selection.
+    if (ev && ev.defaultPrevented) return;
+    const sel = this.shadowRoot && this.shadowRoot.getSelection
+      ? this.shadowRoot.getSelection()
+      : null;
+    if (sel && String(sel).length) return;
+    this._openExpanded();
+  }
+
+  _onExpandClick(ev) {
+    if (ev && typeof ev.stopPropagation === "function") ev.stopPropagation();
+    this._openExpanded();
+  }
+
+  _onDialogClick(ev) {
+    const dlg = this.shadowRoot && this.shadowRoot.querySelector("dialog");
+    if (!dlg) return;
+    // A click on the dialog element itself is a click on the backdrop: the
+    // content sits in child elements, so anything else has a deeper target.
+    const onBackdrop = ev && ev.target === dlg;
+    const onClose =
+      ev &&
+      ev.currentTarget &&
+      ev.currentTarget.classList &&
+      ev.currentTarget.classList.contains("close");
+    if (onBackdrop || onClose) this._closeExpanded();
+  }
+
+  _onDialogClose() {
+    // Fires for Escape and for close() alike, so this is the single place the
+    // flag is cleared and the two cannot drift apart.
+    this._expanded = false;
+  }
+
+  _openExpanded() {
+    if (this._expanded) return;
+    this._expanded = true;
+    this._sig = null; // force
+    this._render();
+  }
+
+  _closeExpanded() {
+    this._closeExpandedQuietly();
+    this._sig = null;
+    this._render();
+  }
+
+  /** Dismiss the dialog without re-rendering, for teardown paths. */
+  _closeExpandedQuietly() {
+    const dlg = this.shadowRoot && this.shadowRoot.querySelector("dialog");
+    this._expanded = false;
+    if (dlg && dlg.open && typeof dlg.close === "function") {
+      dlg.close(); // triggers _onDialogClose, which is idempotent
+    }
+  }
+
+  /** The chart wrapper owning an element, so each copy finds its own parts. */
+  _wrapOf(el) {
+    let node = el;
+    while (node && node !== this.shadowRoot) {
+      if (node.classList && node.classList.contains("chartwrap")) return node;
+      node = node.parentNode;
+    }
+    return null;
+  }
+
   _cacheRect() {
     const svg = this.shadowRoot && this.shadowRoot.querySelector("svg");
     if (svg && typeof svg.getBoundingClientRect === "function") {
@@ -864,20 +1069,24 @@ class HeatpumpOptimizerCard extends HTMLElement {
     }
   }
 
-  _onPointerLeave() {
-    const cross = this.shadowRoot.querySelector("#crosshair");
-    if (cross) cross.setAttribute("visibility", "hidden");
-    const tt = this.shadowRoot.querySelector("#tt");
-    if (tt) tt.hidden = true;
+  _onPointerLeave(ev) {
+    const wrap = ev && ev.currentTarget ? this._wrapOf(ev.currentTarget) : null;
+    const roots = wrap ? [wrap] : [this.shadowRoot];
+    for (const root of roots) {
+      if (!root) continue;
+      const cross = root.querySelector(".crosshair");
+      if (cross) cross.setAttribute("visibility", "hidden");
+      const tt = root.querySelector(".tooltip");
+      if (tt) tt.hidden = true;
+    }
   }
 
   _onPointerMove(ev) {
     if (!this._plot) return;
-    const svg = this.shadowRoot.querySelector("svg");
-    if (!svg) return;
-    const rect =
-      (svg.getBoundingClientRect && svg.getBoundingClientRect()) ||
-      this._svgRect;
+    const svg = ev && ev.currentTarget;
+    if (!svg || typeof svg.getBoundingClientRect !== "function") return;
+    const wrap = this._wrapOf(svg);
+    const rect = svg.getBoundingClientRect() || this._svgRect;
     if (!rect || !rect.width) return;
 
     let clientX;
@@ -930,7 +1139,8 @@ class HeatpumpOptimizerCard extends HTMLElement {
       return;
     }
 
-    const cross = this.shadowRoot.querySelector("#crosshair");
+    const scope = wrap || this.shadowRoot;
+    const cross = scope.querySelector(".crosshair");
     if (cross) {
       cross.setAttribute("x1", snapX);
       cross.setAttribute("x2", snapX);
@@ -939,7 +1149,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
       cross.setAttribute("visibility", "visible");
     }
 
-    const tt = this.shadowRoot.querySelector("#tt");
+    const tt = scope.querySelector(".tooltip");
     if (tt) {
       const time = new Date(rows[0].t).toLocaleString([], {
         hour: "2-digit",
@@ -960,7 +1170,9 @@ class HeatpumpOptimizerCard extends HTMLElement {
       const leftPx = clientX - rect.left;
       const place = leftPx > rect.width * 0.6 ? leftPx - 160 : leftPx + 14;
       tt.style.left = `${Math.max(0, place)}px`;
-      tt.style.top = `44px`;
+      // The tooltip is positioned against its own chart wrapper, so a
+      // small inset keeps it clear of the plot frame in both views.
+      tt.style.top = `8px`;
     }
   }
 }

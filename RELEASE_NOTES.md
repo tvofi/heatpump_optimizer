@@ -3,6 +3,14 @@
 ## v2.7.0
 
 ### Added
+- **Clicking the dashboard card opens a large version of the chart.** A card in
+  a dashboard column is too small to read a 48-hour plan comfortably. Clicking
+  anywhere on the card, or the new expand button in its header, opens the same
+  chart in a modal overlay that labels the time axis every hour instead of every
+  third. Clicking a legend chip still only toggles that series. Close with the
+  X, Escape, or a click outside. The overlay is a native `<dialog>` shown with
+  `showModal()`, so it renders in the browser's top layer and cannot be clipped
+  by a dashboard column or hidden behind another card.
 - **Solar irradiance can now come from Open-Meteo.** Solar gain was only as good
   as the irradiance behind it, and most weather integrations never publish a
   `solar_irradiance` field, so for many installs the term silently evaluated to
@@ -47,6 +55,9 @@
   timezone-aware API timestamps raised `TypeError` inside
   `_prepare_forecast_data`, taking the whole optimization down over a timezone
   detail. Instants are now normalised to UTC at the boundary.
+- **The chart tooltip is now anchored to its own chart** rather than to the
+  card, which it only positioned correctly because `ha-card` happens to be a
+  positioned ancestor.
 - **`strings.json` had drifted from `translations/en.json`**, so several
   configuration fields, including the buffer tank sensor added earlier, showed
   raw keys instead of labels.

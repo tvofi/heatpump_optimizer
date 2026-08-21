@@ -134,5 +134,59 @@ const explicit = build(
 );
 check("explicit config is honoured", explicit._resolveEntity("space") === "sensor.a_plan");
 
+// --- Scenario 6: click to expand ------------------------------------------
+const exp = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
+const collapsed = collect(exp.shadowRoot).join("\n");
+check("collapsed card offers an expand affordance",
+  /class="expand"/.test(collapsed) && /ha-card class="clickable"/.test(collapsed));
+check("no dialog is rendered until asked for", !/<dialog/.test(collapsed));
+
+exp._onCardClick({});
+const opened = collect(exp.shadowRoot).join("\n");
+check("clicking the card opens a dialog", exp._expanded && /<dialog/.test(opened));
+check("the dialog uses showModal-capable markup", /dialog class="expanded"/.test(opened));
+check("the dialog carries its own chart", (opened.match(/<svg/g) || []).length >
+  (collapsed.match(/<svg/g) || []).length);
+// data-key also appears on series paths, so count the legend containers.
+check("the dialog carries its own legend and close button",
+  /class="close"/.test(opened) && (opened.match(/class="legend"/g) || []).length === 2);
+
+// The enlarged chart has room for an hourly time axis rather than every third
+// hour, so it must not be a pixel-identical copy of the inline one.
+const svgs = opened.split("<svg").slice(1);
+const labelCount = (s) => (s.match(/text-anchor="middle"/g) || []).length;
+check("the enlarged chart labels more of the time axis",
+  labelCount(svgs[svgs.length - 1]) > labelCount(svgs[0]));
+
+// --- Scenario 7: toggles must not open the popup ---------------------------
+const tog = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
+let stopped = false;
+tog._onLegendClick({
+  stopPropagation: () => { stopped = true; },
+  currentTarget: { getAttribute: (k) => (k === "data-key" ? "price" : null) },
+});
+check("a legend click stops propagating to the card", stopped);
+check("a legend click does not expand the card", tog._expanded === false);
+
+// Toggling while expanded must keep the popup open, not dismiss it.
+tog._onCardClick({});
+tog._onLegendClick({
+  stopPropagation: () => {},
+  currentTarget: { getAttribute: (k) => (k === "data-key" ? "price" : null) },
+});
+check("toggling inside the popup keeps it open",
+  tog._expanded && /<dialog/.test(collect(tog.shadowRoot).join("\n")));
+
+tog._closeExpanded();
+check("closing removes the dialog",
+  !tog._expanded && !/<dialog/.test(collect(tog.shadowRoot).join("\n")));
+
+// --- Scenario 8: nothing to show, nothing to expand ------------------------
+const emptyExp = build({});
+const emptyExpDump = collect(emptyExp.shadowRoot).join("\n");
+// "clickable" also occurs in the stylesheet, so check the element's attribute.
+check("the empty state is not clickable",
+  !/class="expand"/.test(emptyExpDump) && !/<ha-card class="clickable"/.test(emptyExpDump));
+
 console.log(fails ? `\n${fails} CARD CHECK(S) FAILED` : "\nALL CARD CHECKS PASSED");
 process.exit(fails?1:0);
