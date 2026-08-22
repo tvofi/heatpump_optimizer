@@ -43,6 +43,7 @@ run "$PYTHON" tests/golden.py
 run "$PYTHON" tests/validate.py
 run "$PYTHON" tests/edge.py
 run "$PYTHON" tests/backtest.py
+run "$PYTHON" tests/stress.py
 
 # Plan payloads, then the card that renders them.
 run "$PYTHON" tests/plan_view.py

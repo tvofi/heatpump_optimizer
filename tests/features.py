@@ -51,7 +51,12 @@ from heatpump_optimizer.sysid import (
     SysIdConfig,
     SystemIdentification,
 )
-from heatpump_optimizer.tariff import CapacityTariff, PeakTracker, peak_penalty
+from heatpump_optimizer.tariff import (
+    CapacityTariff,
+    PeakTracker,
+    peak_cost,
+    peak_penalty,
+)
 from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator as Coord
 from heatpump_optimizer.thermal_model import ThermalModel, ThermalParameters, ThermalState
 
@@ -406,9 +411,9 @@ new_month = PeakTracker()
 new_month.observe(datetime(2026, 4, 1, 0, 0), 3.0, tariff)
 new_month._close_window(tariff)
 R.check(
-    "early in the month every kW is chargeable",
-    new_month.threshold_kw(tariff) == 0.0,
-    "there is no free headroom until the billed set is full",
+    "early in the month the threshold is what has actually been seen",
+    new_month.threshold_kw(tariff) == 3.0,
+    "not zero: charging for every kW makes the term dwarf the energy bill",
 )
 tracker.observe(datetime(2026, 4, 1, 0, 0), 1.0, tariff)
 R.check("a new month resets the peaks", tracker.month == "2026-04")
@@ -417,11 +422,62 @@ R.check(
     "staying under the threshold costs nothing",
     peak_penalty(np.full(8, 2.0), np.full(8, 1.0), 5.0, tariff, 0.25) == 0.0,
 )
+
+# The bill is full_price x mean(top-k peaks), which rearranges exactly to
+# marginal_price x sum(top-k excesses). Charging only the single largest, as
+# this originally did, under-states a plan with several high hours -- the very
+# plan a capacity tariff exists to discourage.
+hourly = np.array([8.0, 7.9, 7.8, 5.5, 5.1] + [3.0] * 19)
+charged = peak_cost(hourly, np.zeros(24), 6.0, 20.0, 60, 1.0, 3)
+top3 = np.sort(np.maximum(0.0, hourly - 6.0))[-3:]
 R.check(
-    "exceeding it is priced at the marginal rate",
-    abs(peak_penalty(np.full(8, 5.0), np.full(8, 2.0), 5.0, tariff, 0.25) - 40.0)
-    < 1e-6,
-    "2 kW over at 20/kW",
+    "the peak charge equals the bill it models",
+    abs(charged - 60.0 * float(np.mean(top3))) < 1e-6,
+    f"charged {charged:.2f}, bill {60.0 * float(np.mean(top3)):.2f}",
+)
+R.check(
+    "several high hours cost more than one",
+    peak_cost(np.array([8.0] * 3 + [3.0] * 21), np.zeros(24), 6.0, 20.0, 60, 1.0, 3)
+    > peak_cost(np.array([8.0] + [3.0] * 23), np.zeros(24), 6.0, 20.0, 60, 1.0, 3),
+)
+
+# The solver reaches this through numerical gradients, so a term that is flat
+# almost everywhere is invisible to it. Measured: with a plain ``max`` the
+# tariff had gradient at 1 step in 96 and enabling it *raised* the peak.
+flat = np.full(96, 3.0)
+base_cost = peak_cost(flat, np.full(96, 1.5), 3.0, 20.0, 60, 0.25, 3)
+gradients = []
+for index in (5, 50, 90, 95):
+    probe = flat.copy()
+    probe[index] += 1e-4
+    gradients.append(
+        (peak_cost(probe, np.full(96, 1.5), 3.0, 20.0, 60, 0.25, 3) - base_cost) / 1e-4
+    )
+R.check(
+    "the peak charge has a gradient the solver can follow",
+    sum(1 for g in gradients if abs(g) > 1e-6) >= 3,
+    f"only {sum(1 for g in gradients if abs(g) > 1e-6)} of 4 probes moved it",
+)
+
+# With no history there is no reference, and treating every kW as a brand-new
+# peak makes the term dwarf the whole energy bill.
+fresh = PeakTracker()
+R.check(
+    "a month with no recorded peaks disables the charge",
+    not np.isfinite(fresh.threshold_kw(tariff))
+    and peak_cost(
+        np.full(96, 6.0), np.zeros(96),
+        fresh.threshold_kw(tariff), 20.0, 60, 0.25, 3,
+    )
+    == 0.0,
+    "otherwise a normal day is charged ~9x its own energy cost",
+)
+partial = PeakTracker()
+partial.peaks = [5.5]
+partial.month = "2026-03"
+R.check(
+    "a partial month measures against what has actually been seen",
+    partial.threshold_kw(tariff) == 5.5,
 )
 # A short burst inside an hourly-metered tariff barely moves the hourly mean.
 burst = np.zeros(8)
@@ -432,13 +488,17 @@ R.check(
     < peak_penalty(np.full(8, 8.0), np.zeros(8), 1.0, tariff, 0.25),
     "penalising the instantaneous step would give away real savings",
 )
+# Not one charge per hour -- that would price a whole month's tariff into
+# every busy hour of one day -- but not only the single largest either, since
+# the bill averages the month's top few.
 R.check(
-    "only the largest excess counts, not one per hour",
+    "the charge covers exactly the peaks the bill averages",
     abs(
         peak_penalty(np.full(8, 7.0), np.zeros(8), 5.0, tariff, 1.0)
-        - 2.0 * tariff.marginal_price_per_kw
+        - tariff.peaks_averaged * 2.0 * tariff.marginal_price_per_kw
     )
     < 1e-6,
+    "three hours 2 kW over, averaged, at the full 60/kW = 120",
 )
 
 

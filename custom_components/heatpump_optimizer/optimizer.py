@@ -44,6 +44,7 @@ from .thermal_model import (
     ThermalModel,
     ThermalState,
 )
+from .tariff import peak_cost, realised_peak
 from .dhw_schedule import (
     FULL_DAY,
     Window,
@@ -205,44 +206,6 @@ def cycling_penalty(
         return 0.0
     swing = float(np.sum(np.abs(np.diff(np.asarray(power, dtype=float)))))
     return cost_per_cycle * swing / (2.0 * p_max)
-
-
-def capacity_penalty(
-    total_power: np.ndarray,
-    baseline_load: np.ndarray,
-    threshold_kw: float,
-    price_per_kw: float,
-    window_minutes: int,
-    dt_hours: float,
-) -> float:
-    """Cost of the new monthly peak this plan would set.
-
-    Only the single largest metering-window excess counts. Charging per hour
-    would price a whole month's tariff into every busy hour of one day.
-    """
-    if price_per_kw <= 0:
-        return 0.0
-    house = np.asarray(total_power, dtype=float) + np.asarray(
-        baseline_load, dtype=float
-    )
-    if house.size == 0:
-        return 0.0
-    per_window = max(1, int(round(window_minutes / max(dt_hours * 60.0, 1e-6))))
-    if per_window > 1:
-        n_full = house.size // per_window
-        if n_full:
-            windows = house[: n_full * per_window].reshape(n_full, per_window).mean(
-                axis=1
-            )
-            tail = house[n_full * per_window :]
-            if tail.size:
-                windows = np.append(windows, tail.mean())
-        else:
-            windows = np.array([house.mean()])
-    else:
-        windows = house
-    excess = float(np.max(windows) - threshold_kw)
-    return price_per_kw * max(0.0, excess)
 
 
 # ---------------------------------------------------------------------------
@@ -457,6 +420,8 @@ class OptimizationConfig:
     peak_threshold_kw: float = 0.0
     #: Metering window of the tariff, in minutes.
     peak_window_minutes: int = 60
+    #: How many of the month's highest peaks the DSO averages for the bill.
+    peak_count: int = 3
     #: Whole-house load excluding the heat pump, per step, in kW.
     baseline_load_kw: Any = None
 
@@ -916,13 +881,14 @@ class HeatPumpOptimizer:
             return cycling_penalty(power, cfg.cycling_cost, p_max)
 
         def capacity(total_power: np.ndarray) -> float:
-            return capacity_penalty(
+            return peak_cost(
                 total_power,
                 baseline,
                 cfg.peak_threshold_kw,
                 cfg.peak_price_per_kw,
                 cfg.peak_window_minutes,
                 dt,
+                cfg.peak_count,
             )
 
         return cycling, capacity, baseline
@@ -1375,28 +1341,22 @@ class HeatPumpOptimizer:
     ) -> dict[str, Any]:
         """Peak and cycling figures for the solved plan."""
         cfg = self.config
-        house = np.asarray(total_power, dtype=float) + baseline_load
-        per_window = max(
-            1, int(round(cfg.peak_window_minutes / max(dt * 60.0, 1e-6)))
-        )
-        if per_window > 1 and house.size >= per_window:
-            n_full = house.size // per_window
-            windows = house[: n_full * per_window].reshape(
-                n_full, per_window
-            ).mean(axis=1)
-        else:
-            windows = house
-        peak = float(np.max(windows)) if windows.size else 0.0
         return {
-            "peak_kw": round(peak, 3),
+            "peak_kw": round(
+                realised_peak(
+                    total_power, baseline_load, cfg.peak_window_minutes, dt
+                ),
+                3,
+            ),
             "peak_cost": round(
-                capacity_penalty(
+                peak_cost(
                     total_power,
                     baseline_load,
                     cfg.peak_threshold_kw,
                     cfg.peak_price_per_kw,
                     cfg.peak_window_minutes,
                     dt,
+                    cfg.peak_count,
                 ),
                 3,
             ),
@@ -1615,6 +1575,17 @@ class HeatPumpOptimizer:
             dt=dt,
             p_dhw_max=p_dhw_run,
             min_run_power=min_run_power,
+            max_temp=max_temp,
+        )
+
+        # The tank's rating is physics, not preference, so it is enforced after
+        # the economics rather than inside them.
+        schedule = self._clamp_dhw_to_capacity(
+            plan=schedule,
+            initial_temp=initial_state.dhw_temperature,
+            outdoor_temps=outdoor_temps,
+            draw_rates=draw_rates,
+            dt=dt,
             max_temp=max_temp,
         )
 
@@ -1880,6 +1851,67 @@ class HeatPumpOptimizer:
             cop = refined
 
         return best
+
+    def _clamp_dhw_to_capacity(
+        self,
+        plan: np.ndarray,
+        initial_temp: float,
+        outdoor_temps: np.ndarray,
+        draw_rates: np.ndarray,
+        dt: float,
+        max_temp: float,
+    ) -> np.ndarray:
+        """Never deliver more heat than the tank has room for.
+
+        The planners work against a linearised tank and a fixed run power, and
+        both approximations can overshoot the tank's rating:
+
+        * the minimum-run rounding raises a sub-minimum slot to a power the
+          hardware can actually deliver, which on a small tank is an enormous
+          step — a 20 L tank gains nearly 20 °C from one 15-minute block;
+        * with negative prices the cost term *rewards* consumption, so the LP
+          pushes against its temperature ceiling and the linearisation's error
+          lands on the wrong side of it.
+
+        This walks the plan through the real tank simulation and truncates any
+        step that would exceed the rating. It is a physical bound rather than a
+        preference, so it belongs after the economics rather than inside them:
+        no plan may boil the tank, however cheap the electricity.
+        """
+        plan = np.array(plan, dtype=float)
+        if plan.size == 0:
+            return plan
+
+        params = self.model.params
+        capacity = max(params.dhw_tank_thermal_mass, 1e-6)
+        temp = float(initial_temp)
+
+        for i in range(len(plan)):
+            cop = max(
+                self.model.compute_cop_dhw(float(outdoor_temps[i]), temp), 0.1
+            )
+            # Headroom in kW electrical: how much may be delivered this step
+            # before the tank passes its rating. Negative when the tank is
+            # already over, which happens when it *starts* over — heating is
+            # then simply forbidden rather than reversed, because the plan
+            # cannot un-heat water.
+            headroom_c = max_temp - temp
+            allowed = headroom_c * capacity / (cop * dt) if headroom_c > 0 else 0.0
+            plan[i] = float(np.clip(plan[i], 0.0, max(0.0, allowed)))
+
+            # Stepped through the same simulation the planners use, so the
+            # clamp cannot disagree with the trajectory it is protecting.
+            temp = float(
+                self.model.simulate_dhw_step(
+                    dhw_temp=temp,
+                    dhw_power_thermal=cop * plan[i],
+                    hour_of_day=0.0,
+                    dt_hours=dt,
+                    draw_power=float(draw_rates[i]),
+                )
+            )
+
+        return plan
 
     def _apply_dhw_min_run(
         self,

@@ -222,7 +222,11 @@ SCENARIOS: dict[str, dict] = {
     "capacity_tariff": dict(
         opt_overrides={
             "peak_price_per_kw": 20.0,
-            "peak_threshold_kw": 3.0,
+            # Near what this house actually draws, which is where a real peak
+            # tracker puts it. A threshold far below the house's demand asks
+            # the plan to avoid an unavoidable peak, which is not a case any
+            # user has and tells us nothing useful.
+            "peak_threshold_kw": 6.5,
             "peak_window_minutes": 60,
             "baseline_load_kw": 1.5,
         }
@@ -230,7 +234,7 @@ SCENARIOS: dict[str, dict] = {
     "capacity_tariff_15min": dict(
         opt_overrides={
             "peak_price_per_kw": 20.0,
-            "peak_threshold_kw": 2.0,
+            "peak_threshold_kw": 6.0,
             "peak_window_minutes": 15,
             "baseline_load_kw": 1.0,
         }
@@ -261,7 +265,7 @@ SCENARIOS: dict[str, dict] = {
         two_zone=True,
         opt_overrides={
             "peak_price_per_kw": 25.0,
-            "peak_threshold_kw": 4.0,
+            "peak_threshold_kw": 7.0,
             "baseline_load_kw": 2.0,
         },
     ),
@@ -269,7 +273,7 @@ SCENARIOS: dict[str, dict] = {
         two_zone=True,
         opt_overrides={
             "peak_price_per_kw": 15.0,
-            "peak_threshold_kw": 4.0,
+            "peak_threshold_kw": 7.0,
             "baseline_load_kw": 1.2,
             "cycling_cost": 0.5,
         },

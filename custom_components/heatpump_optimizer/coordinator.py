@@ -1856,6 +1856,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 tariff
             )
             self._opt_config.peak_window_minutes = tariff.window_minutes
+            self._opt_config.peak_count = tariff.peaks_averaged
             self._opt_config.baseline_load_kw = self._baseline_house_load(
                 len(prices)
             )

@@ -169,7 +169,7 @@
   "outdoor_temperature": 5.0,
   "peak_month": "",
   "peak_tariff_enabled": false,
-  "peak_threshold_kw": 0.0,
+  "peak_threshold_kw": Infinity,
   "plan_price_known": [],
   "predicted_cost": null,
   "predicted_savings": null,
