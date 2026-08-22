@@ -142,6 +142,103 @@ ATTR_EXTERNAL_HEAT_ACTIVE: Final = "external_heat_active"
 ATTR_EXTERNAL_HEAT_CONFIDENCE: Final = "external_heat_confidence"
 ATTR_EXTERNAL_HEAT_EVIDENCE: Final = "external_heat_evidence"
 
+# --- Unknown price horizon (item 7) ----------------------------------------
+#
+# Prices past the published horizon used to be a flat repeat of the last known
+# value. A flat tail has no trough, so the optimizer could not see a cheap
+# period ahead worth waiting for and systematically under-deferred load.
+CONF_PRICE_PRIOR_ENABLED: Final = "price_prior_enabled"
+DEFAULT_PRICE_PRIOR_ENABLED: Final = True
+PRICE_MODEL_STORE_VERSION: Final = 1
+
+ATTR_PRICE_KNOWN_STEPS: Final = "price_known_steps"
+ATTR_PRICE_PRIOR_DAYS: Final = "price_prior_days"
+
+# --- Capacity (peak power) tariff, item 8 ----------------------------------
+CONF_PEAK_TARIFF_ENABLED: Final = "peak_tariff_enabled"
+CONF_PEAK_TARIFF_PRICE: Final = "peak_tariff_price_per_kw"
+CONF_PEAK_TARIFF_COUNT: Final = "peak_tariff_peaks_averaged"
+CONF_PEAK_TARIFF_WINDOW: Final = "peak_tariff_window_minutes"
+
+DEFAULT_PEAK_TARIFF_ENABLED: Final = False
+# A representative Swedish effekttariff. Only used as the form default; the
+# real figure is on the user's grid invoice.
+DEFAULT_PEAK_TARIFF_PRICE: Final = 45.0  # currency per kW per month
+DEFAULT_PEAK_TARIFF_COUNT: Final = 3
+DEFAULT_PEAK_TARIFF_WINDOW: Final = 60  # minutes
+
+ATTR_PEAK_BILLED_KW: Final = "billed_peak_kw"
+ATTR_PEAK_THRESHOLD_KW: Final = "peak_threshold_kw"
+ATTR_PEAK_PROJECTED_KW: Final = "projected_peak_kw"
+
+# --- Compressor cycling, item 10 -------------------------------------------
+#
+# Defaults to zero so the shipped behaviour is unchanged until a user decides
+# their compressor's start cost is worth paying for. ``tests/validate.py``
+# reports the start count per scenario, which is how that decision gets made
+# from evidence rather than from assumption.
+CONF_CYCLING_COST: Final = "compressor_cycling_cost"
+DEFAULT_CYCLING_COST: Final = 0.0
+ATTR_COMPRESSOR_STARTS: Final = "compressor_starts"
+
+# --- PV self-consumption, item 9 -------------------------------------------
+CONF_PV_ENABLED: Final = "pv_enabled"
+CONF_PV_PEAK_KW: Final = "pv_peak_kw"
+CONF_PV_EFFICIENCY: Final = "pv_system_efficiency"
+CONF_PV_EXPORT_PRICE: Final = "pv_export_price"
+CONF_PV_EXPORT_PRICE_ENTITY: Final = "pv_export_price_entity"
+CONF_PV_PRODUCTION_ENTITY: Final = "pv_production_entity"
+
+DEFAULT_PV_ENABLED: Final = False
+DEFAULT_PV_PEAK_KW: Final = 0.0
+DEFAULT_PV_EFFICIENCY: Final = 0.80
+DEFAULT_PV_EXPORT_PRICE: Final = 0.0
+
+# --- Away / holiday mode, item 13 ------------------------------------------
+CONF_AWAY_ENABLED: Final = "away_enabled"
+CONF_AWAY_PRESENCE_ENTITY: Final = "away_presence_entity"
+CONF_AWAY_RETURN_ENTITY: Final = "away_return_entity"
+CONF_AWAY_TEMPERATURE: Final = "away_temperature"
+CONF_AWAY_DHW_MIN_TEMP: Final = "away_dhw_min_temperature"
+
+DEFAULT_AWAY_ENABLED: Final = False
+DEFAULT_AWAY_TEMPERATURE: Final = 16.0
+DEFAULT_AWAY_DHW_MIN_TEMP: Final = 20.0
+
+# --- Active system identification, item 18 ---------------------------------
+CONF_SYSID_ENABLED: Final = "system_identification_enabled"
+DEFAULT_SYSID_ENABLED: Final = False
+
+# --- Revealed-preference comfort tuning, item 19 ---------------------------
+CONF_COMFORT_LEARNING_ENABLED: Final = "comfort_learning_enabled"
+DEFAULT_COMFORT_LEARNING_ENABLED: Final = False
+ATTR_COMFORT_WEIGHT_LEARNED: Final = "comfort_weight_learned"
+
+# --- Building presets, item 17 ---------------------------------------------
+CONF_BUILDING_PRESET_ENABLED: Final = "building_preset_enabled"
+CONF_BUILDING_STRUCTURE: Final = "building_structure"
+CONF_BUILDING_ERA: Final = "building_era"
+CONF_BUILDING_FOUNDATION: Final = "building_foundation"
+CONF_HEATED_AREA: Final = "heated_area_m2"
+CONF_UPPER_EMITTER: Final = "upper_floor_emitter"
+CONF_LOWER_EMITTER: Final = "lower_floor_emitter"
+
+DEFAULT_BUILDING_PRESET_ENABLED: Final = False
+DEFAULT_HEATED_AREA: Final = 140.0
+
+# --- Closed-loop accuracy and energy statistics, items 11 and 15 -----------
+ACCURACY_STORE_VERSION: Final = 1
+ENERGY_STORE_VERSION: Final = 1
+
+ATTR_TEMPERATURE_MAE: Final = "temperature_mae"
+ATTR_COST_ERROR_PERCENT: Final = "cost_error_percent"
+
+# Service for the card's what-if simulator (item 21).
+SERVICE_SIMULATE_PLAN: Final = "simulate_plan"
+# A full solve is seconds of CPU. Dragging a slider must not trigger one per
+# pixel, so simulation requests are rate-limited to this interval.
+SIMULATE_MIN_INTERVAL_SECONDS: Final = 3.0
+
 # ECL110 / MQTT configuration
 CONF_ECL110_COMMAND_TOPIC: Final = "ecl110_command_topic"  # legacy JSON command topic
 CONF_ECL110_DISPLACE_SET_TOPIC: Final = "ecl110_displace_set_topic"
@@ -407,6 +504,7 @@ RAIN_COOLING_FACTOR: Final = 0.01  # kW/°C per mm/h
 # The buffer tank key is defined after the staleness table above, so its age
 # limit is registered here rather than inline.
 INPUT_MAX_AGE_MINUTES[CONF_BUFFER_TANK_TEMP_ENTITY] = 60.0
+INPUT_MAX_AGE_MINUTES[CONF_PV_PRODUCTION_ENTITY] = 30.0
 
 # Attributes for the measured power / COP feature
 ATTR_MEASURED_POWER: Final = "measured_power"

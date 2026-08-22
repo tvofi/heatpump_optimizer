@@ -254,6 +254,11 @@ class HeatPumpOptimizerClimate(CoordinatorEntity, ClimateEntity):
         temp = kwargs.get(ATTR_TEMPERATURE)
         if temp is not None:
             _LOGGER.info("Target temperature set to %.1f°C", temp)
+            # A manual override is the user telling us the plan went too far in
+            # one direction, which is the only evidence anyone ever produces
+            # about what ``comfort_weight`` should be. Recorded before the
+            # option write, since that reloads the entry.
+            self.coordinator.record_setpoint_override(float(temp))
             # Persisting the option reloads the entry, which re-optimizes and
             # re-applies the plan, so no manual refresh/publish is needed.
             await self.coordinator.async_set_target_temperature(float(temp))

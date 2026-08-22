@@ -21,6 +21,7 @@ import numpy as np
 from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator as Coord
 from heatpump_optimizer.open_meteo import IrradianceSeries, OpenMeteoSolar
 from heatpump_optimizer.optimizer import OptimizationConfig
+from heatpump_optimizer.price_model import PriceShapeModel
 from heatpump_optimizer.thermal_model import ThermalState
 
 try:
@@ -41,7 +42,7 @@ def check(name: str, cond: bool, detail: str = "") -> None:
 
 
 def make_coordinator(open_meteo, weather_solar: float = 0.0, n_steps: int = 96):
-    """A coordinator with only the fields ``_prepare_forecast_data`` touches."""
+    """A coordinator with only the fields ``_forecast_arrays`` touches."""
     c = object.__new__(Coord)
     c._opt_config = OptimizationConfig(
         horizon_hours=n_steps // 4, time_step_minutes=15
@@ -52,6 +53,14 @@ def make_coordinator(open_meteo, weather_solar: float = 0.0, n_steps: int = 96):
     c._solar_radiation = 0.0
     c._solar_radiation_forecast = []
     c._open_meteo = open_meteo
+    # Added in v2.8.0: the learned price prior (item 7) and the PV surplus
+    # model (item 9) are both consulted while the forecast arrays are built.
+    c._price_model = PriceShapeModel()
+    c._price_known_steps = 0
+    c._pv_surplus = None
+    c._pv_summary = {}
+    c._measured_power = None
+    c._measured_house_power = None
 
     now = dt_util.now()
     midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)

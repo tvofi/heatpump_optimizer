@@ -352,3 +352,69 @@ set_thermal_parameters:
           max: 6.0
           step: 0.25
           unit_of_measurement: "h"
+simulate_plan:
+  name: Simulate a plan
+  description: >-
+    Price a hypothetical comfort choice against the current forecast without
+    disturbing operation. Returns the cost difference against the live plan.
+    Backs the dashboard card's what-if simulator; the underlying solve is
+    rate-limited, so rapid repeat calls return the previous answer.
+  fields:
+    target_temp:
+      name: Target temperature
+      description: Comfort target to test, in °C.
+      selector:
+        number:
+          min: 5
+          max: 30
+          step: 0.5
+          unit_of_measurement: "°C"
+    min_temp:
+      name: Minimum temperature
+      description: Lowest acceptable temperature to test, in °C.
+      selector:
+        number:
+          min: 5
+          max: 30
+          step: 0.5
+          unit_of_measurement: "°C"
+    max_temp:
+      name: Maximum temperature
+      description: Highest acceptable temperature to test, in °C.
+      selector:
+        number:
+          min: 5
+          max: 35
+          step: 0.5
+          unit_of_measurement: "°C"
+    comfort_weight:
+      name: Comfort weight
+      description: How hard to chase price versus hold temperature.
+      selector:
+        number:
+          min: 1
+          max: 40
+          step: 0.5
+    dhw_setpoint:
+      name: Hot water setpoint
+      description: Tank setpoint to test, in °C.
+      selector:
+        number:
+          min: 30
+          max: 75
+          step: 1
+          unit_of_measurement: "°C"
+    dhw_min_temperature:
+      name: Hot water minimum
+      description: Usable minimum inside demand windows, in °C.
+      selector:
+        number:
+          min: 20
+          max: 70
+          step: 1
+          unit_of_measurement: "°C"
+    dhw_windows:
+      name: Hot water demand windows
+      description: 'Time frames to test, e.g. "06:00-08:30, 17:00-22:00".'
+      selector:
+        text:

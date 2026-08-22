@@ -21,7 +21,7 @@ import voluptuous as vol
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 from homeassistant.helpers import config_validation as cv
 from homeassistant.loader import async_get_integration
 
@@ -32,6 +32,7 @@ from .const import (
     SERVICE_RUN_OPTIMIZATION,
     SERVICE_SET_MODE,
     SERVICE_SET_THERMAL_PARAMS,
+    SERVICE_SIMULATE_PLAN,
     CONF_TIBBER_TOKEN,
     CONF_WEATHER_ENTITY,
     MODE_AUTO,
@@ -45,9 +46,31 @@ from .frontend import async_register_frontend
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORM_LIST = [Platform.SENSOR, Platform.CLIMATE, Platform.SWITCH]
+PLATFORM_LIST = [
+    Platform.SENSOR,
+    Platform.BINARY_SENSOR,
+    Platform.BUTTON,
+    Platform.CLIMATE,
+    Platform.SWITCH,
+]
 
 SERVICE_SCHEMA_RUN_OPTIMIZATION = vol.Schema({})
+
+# What-if simulator (item 21). Every field is optional: the card sends only the
+# one the user is dragging, and anything absent keeps its configured value.
+SERVICE_SCHEMA_SIMULATE_PLAN = vol.Schema(
+    {
+        vol.Optional("target_temp"): vol.Coerce(float),
+        vol.Optional("min_temp"): vol.Coerce(float),
+        vol.Optional("max_temp"): vol.Coerce(float),
+        vol.Optional("comfort_temp_day"): vol.Coerce(float),
+        vol.Optional("comfort_temp_night"): vol.Coerce(float),
+        vol.Optional("comfort_weight"): vol.Coerce(float),
+        vol.Optional("dhw_setpoint"): vol.Coerce(float),
+        vol.Optional("dhw_min_temperature"): vol.Coerce(float),
+        vol.Optional("dhw_windows"): cv.string,
+    }
+)
 
 SERVICE_SCHEMA_SET_MODE = vol.Schema(
     {
@@ -164,6 +187,21 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             if isinstance(coord, HeatPumpOptimizerCoordinator):
                 await coord.async_update_thermal_params(params)
 
+    async def handle_simulate_plan(call: ServiceCall) -> dict[str, Any]:
+        """Price a hypothetical comfort choice without disturbing operation.
+
+        Backs the dashboard card's what-if simulator. Returns a response rather
+        than firing an event so the card can await the answer directly, and the
+        coordinator rate-limits the underlying solve so that dragging a slider
+        cannot trigger one solve per pixel.
+        """
+        overrides = {k: v for k, v in call.data.items() if v is not None}
+        results: dict[str, Any] = {}
+        for entry_id, coord in hass.data[DOMAIN].items():
+            if isinstance(coord, HeatPumpOptimizerCoordinator):
+                results[entry_id] = await coord.async_simulate(overrides)
+        return {"results": results}
+
     hass.services.async_register(
         DOMAIN,
         SERVICE_RUN_OPTIMIZATION,
@@ -181,6 +219,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         SERVICE_SET_THERMAL_PARAMS,
         handle_set_thermal_params,
         schema=SERVICE_SCHEMA_SET_THERMAL_PARAMS,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_SIMULATE_PLAN,
+        handle_simulate_plan,
+        schema=SERVICE_SCHEMA_SIMULATE_PLAN,
+        supports_response=SupportsResponse.ONLY,
     )
 
     entry.async_on_unload(entry.add_update_listener(async_update_options))
@@ -206,5 +251,6 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass.services.async_remove(DOMAIN, SERVICE_RUN_OPTIMIZATION)
         hass.services.async_remove(DOMAIN, SERVICE_SET_MODE)
         hass.services.async_remove(DOMAIN, SERVICE_SET_THERMAL_PARAMS)
+        hass.services.async_remove(DOMAIN, SERVICE_SIMULATE_PLAN)
 
     return unload_ok

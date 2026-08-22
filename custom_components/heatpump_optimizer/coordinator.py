@@ -135,6 +135,44 @@ from .const import (
     DEFAULT_EXTERNAL_HEAT_ENABLED,
     DEFAULT_EXTERNAL_HEAT_MIN_RISE,
     DEFAULT_EXTERNAL_HEAT_DECAY_MINUTES,
+    CONF_PRICE_PRIOR_ENABLED,
+    DEFAULT_PRICE_PRIOR_ENABLED,
+    PRICE_MODEL_STORE_VERSION,
+    CONF_PEAK_TARIFF_ENABLED,
+    CONF_PEAK_TARIFF_PRICE,
+    CONF_PEAK_TARIFF_COUNT,
+    CONF_PEAK_TARIFF_WINDOW,
+    DEFAULT_PEAK_TARIFF_ENABLED,
+    DEFAULT_PEAK_TARIFF_PRICE,
+    DEFAULT_PEAK_TARIFF_COUNT,
+    DEFAULT_PEAK_TARIFF_WINDOW,
+    CONF_CYCLING_COST,
+    DEFAULT_CYCLING_COST,
+    CONF_PV_ENABLED,
+    CONF_PV_PEAK_KW,
+    CONF_PV_EFFICIENCY,
+    CONF_PV_EXPORT_PRICE,
+    CONF_PV_EXPORT_PRICE_ENTITY,
+    CONF_PV_PRODUCTION_ENTITY,
+    DEFAULT_PV_ENABLED,
+    DEFAULT_PV_PEAK_KW,
+    DEFAULT_PV_EFFICIENCY,
+    DEFAULT_PV_EXPORT_PRICE,
+    CONF_AWAY_ENABLED,
+    CONF_AWAY_PRESENCE_ENTITY,
+    CONF_AWAY_RETURN_ENTITY,
+    CONF_AWAY_TEMPERATURE,
+    CONF_AWAY_DHW_MIN_TEMP,
+    DEFAULT_AWAY_ENABLED,
+    DEFAULT_AWAY_TEMPERATURE,
+    DEFAULT_AWAY_DHW_MIN_TEMP,
+    CONF_SYSID_ENABLED,
+    DEFAULT_SYSID_ENABLED,
+    CONF_COMFORT_LEARNING_ENABLED,
+    DEFAULT_COMFORT_LEARNING_ENABLED,
+    ACCURACY_STORE_VERSION,
+    ENERGY_STORE_VERSION,
+    SIMULATE_MIN_INTERVAL_SECONDS,
 )
 from .inputs import InputHealth, InputReader, stale_summary
 from .external_heat import (
@@ -142,6 +180,19 @@ from .external_heat import (
     ExternalHeatDetector,
     ExternalHeatObservation,
 )
+from . import away as away_mode
+from . import battery as battery_view
+from . import pv as pv_model
+from .accuracy import AccuracySample, AccuracyTracker, delivered_ratio
+from .comfort_learning import ComfortLearner, OverrideEvent
+from .defrost import DefrostDerate
+from .price_model import (
+    PriceShapeModel,
+    extend_price_series,
+    hourly_from_entries,
+)
+from .sysid import SysIdConfig, SystemIdentification
+from .tariff import CapacityTariff, PeakTracker
 from .open_meteo import OpenMeteoSolar
 from .thermal_model import (
     DHW_AMBIENT_TEMP,
@@ -455,6 +506,81 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # on top of each other; a run is not instantaneous.
         self._optimization_running: bool = False
 
+        # --- Unknown price horizon (item 7) --------------------------------
+        self._price_model = PriceShapeModel()
+        self._price_days_seen: set[str] = set()
+        self._price_known_steps: int = 0
+        self._price_model_store: Store = Store(
+            hass,
+            PRICE_MODEL_STORE_VERSION,
+            f"{DOMAIN}_{entry.entry_id}_price_model",
+        )
+
+        # --- Capacity tariff (item 8) --------------------------------------
+        self._peak_tracker = PeakTracker()
+
+        # --- PV self-consumption (item 9) ----------------------------------
+        self._pv_surplus: np.ndarray | None = None
+        self._pv_summary: dict[str, Any] = {}
+        self._pv_production: float | None = None
+
+        # --- Away mode (item 13) -------------------------------------------
+        self._away_state = away_mode.AwayState()
+
+        # --- Closed-loop accuracy (item 11) --------------------------------
+        self._accuracy = AccuracyTracker()
+        self._pending_prediction: dict[str, Any] | None = None
+        self._accuracy_store: Store = Store(
+            hass,
+            ACCURACY_STORE_VERSION,
+            f"{DOMAIN}_{entry.entry_id}_accuracy",
+        )
+
+        # --- Defrost derate (item 14) --------------------------------------
+        self._defrost = DefrostDerate()
+        self._thermal_params.defrost_derate = self._defrost
+
+        # --- Energy dashboard statistics (item 15) -------------------------
+        # Monotonic accumulators, so Home Assistant's Energy dashboard can pick
+        # them up as TOTAL_INCREASING.
+        self._energy_totals: dict[str, float] = {
+            "space_energy_kwh": 0.0,
+            "dhw_energy_kwh": 0.0,
+            "total_energy_kwh": 0.0,
+            "space_cost": 0.0,
+            "dhw_cost": 0.0,
+            "total_cost": 0.0,
+        }
+        self._last_energy_sample: datetime | None = None
+        self._energy_store: Store = Store(
+            hass,
+            ENERGY_STORE_VERSION,
+            f"{DOMAIN}_{entry.entry_id}_energy",
+        )
+
+        # --- Active system identification (item 18) ------------------------
+        self._sysid = SystemIdentification(
+            SysIdConfig(
+                enabled=bool(
+                    self._config.get(CONF_SYSID_ENABLED, DEFAULT_SYSID_ENABLED)
+                )
+            )
+        )
+
+        # --- Revealed-preference comfort tuning (item 19) ------------------
+        configured_weight = _as_float(
+            self._config.get(CONF_COMFORT_WEIGHT), DEFAULT_COMFORT_WEIGHT
+        )
+        self._comfort_learner = ComfortLearner(
+            configured_weight=configured_weight,
+            learned_weight=configured_weight,
+        )
+        self._last_manual_setpoint: float | None = None
+
+        # --- What-if simulator (item 21) -----------------------------------
+        self._last_simulation: datetime | None = None
+        self._simulation_cache: dict[str, Any] = {}
+
         # ECL110 MQTT state
         self._ecl110_command_topic: str = self._config.get(
             CONF_ECL110_COMMAND_TOPIC, DEFAULT_ECL110_COMMAND_TOPIC
@@ -484,6 +610,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         hass.async_create_task(self._async_load_dhw_profile())
         hass.async_create_task(self._async_load_dhw_legionella())
         hass.async_create_task(self._async_load_thermal_learning())
+        hass.async_create_task(self._async_load_price_model())
+        hass.async_create_task(self._async_load_accuracy())
+        hass.async_create_task(self._async_load_energy_totals())
 
     @property
     def mode(self) -> str:
@@ -742,6 +871,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         prices: list[float],
         dt_hours: float,
         threshold: float = 0.05,
+        reasons: list[str] | None = None,
     ) -> list[dict[str, Any]]:
         """Collapse a per-step power schedule into contiguous heating slots.
 
@@ -749,6 +879,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         wants to see is "the pump runs from 02:00 to 04:30 and that costs 4.20".
         Consecutive steps above ``threshold`` kW are merged into one slot and
         summarised with their energy, average price and cost.
+
+        Each slot also carries the reason code that dominates it, so an
+        unexpected slot is no longer indistinguishable from a bug.
         """
         slots: list[dict[str, Any]] = []
         start_idx: int | None = None
@@ -764,17 +897,27 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 else timestamps[-1] + timedelta(hours=dt_hours)
             )
             duration = len(span) * dt_hours
-            slots.append(
-                {
-                    "start": timestamps[start_idx].isoformat(),
-                    "end": end_ts.isoformat(),
-                    "duration_hours": round(duration, 2),
-                    "avg_power_kw": round(energy / duration, 2) if duration else 0.0,
-                    "energy_kwh": round(energy, 3),
-                    "avg_price": (round(cost / energy, 4) if energy > 1e-9 else 0.0),
-                    "cost": round(cost, 2),
-                }
-            )
+            slot = {
+                "start": timestamps[start_idx].isoformat(),
+                "end": end_ts.isoformat(),
+                "duration_hours": round(duration, 2),
+                "avg_power_kw": round(energy / duration, 2) if duration else 0.0,
+                "energy_kwh": round(energy, 3),
+                "avg_price": (round(cost / energy, 4) if energy > 1e-9 else 0.0),
+                "cost": round(cost, 2),
+            }
+            if reasons:
+                codes = [
+                    reasons[i]
+                    for i in span
+                    if i < len(reasons) and reasons[i] != "idle"
+                ]
+                if codes:
+                    # The most frequent code within the slot, which reads
+                    # better than a list when a slot spans two motivations.
+                    slot["reason"] = max(set(codes), key=codes.count)
+                    slot["reasons"] = sorted(set(codes))
+            slots.append(slot)
 
         for i, power in enumerate(powers):
             if power > threshold:
@@ -829,18 +972,48 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         raw_space = [p if p is not None else 0.0 for p in space_power]
         raw_dhw = [p if p is not None else 0.0 for p in dhw_power]
 
-        space_slots = self._plan_slots(timestamps, raw_space, raw_prices, dt_hours)
-        dhw_slots = self._plan_slots(timestamps, raw_dhw, raw_prices, dt_hours)
+        space_slots = self._plan_slots(
+            timestamps,
+            raw_space,
+            raw_prices,
+            dt_hours,
+            reasons=result.space_reasons,
+        )
+        dhw_slots = self._plan_slots(
+            timestamps,
+            raw_dhw,
+            raw_prices,
+            dt_hours,
+            reasons=result.dhw_reasons,
+        )
+
+        def reason_at(codes: list[str], index: int) -> str | None:
+            return codes[index] if codes and index < len(codes) else None
+
+        known = result.price_known or []
+
+        def price_known_at(index: int) -> bool:
+            return bool(known[index]) if index < len(known) else True
+
+        surplus = result.pv_surplus or []
+
+        def surplus_at(index: int) -> float | None:
+            return surplus[index] if index < len(surplus) else None
 
         space_forecast = [
             {
                 "t": timestamps[i].isoformat(),
                 "price": prices[i],
+                # Marks where the plan rests on the learned diurnal prior
+                # rather than on published market data.
+                "price_known": price_known_at(i),
                 "outdoor": outdoor[i],
                 "space_power": space_power[i],
                 "room": room[i],
                 "upper": upper[i],
                 "lower": lower[i],
+                "reason": reason_at(result.space_reasons, i),
+                "pv_surplus": surplus_at(i),
             }
             for i in range(n)
         ]
@@ -848,9 +1021,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             {
                 "t": timestamps[i].isoformat(),
                 "price": prices[i],
+                "price_known": price_known_at(i),
                 "outdoor": outdoor[i],
                 "dhw_power": dhw_power[i],
                 "dhw_temp": dhw_temp[i],
+                "reason": reason_at(result.dhw_reasons, i),
             }
             for i in range(n)
         ]
@@ -1522,6 +1697,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             # irradiance the weather entity did or did not supply.
             await self._fetch_solar_forecast()
 
+            # Fold any newly complete price day into the learned diurnal shape,
+            # which is what fills the horizon past the published data.
+            await self._async_learn_price_shape()
+
             # Run optimization if in auto mode
             if self._mode in (MODE_AUTO, MODE_ECONOMY):
                 await self.async_run_optimization()
@@ -1559,6 +1738,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             # Apply current action to heat pump
             await self._apply_action()
 
+            # Close the loop: pair the previous interval's prediction with what
+            # actually happened, accumulate energy, and train the derate.
+            self._record_accuracy()
+            self._track_realised_peak()
+            await self._async_save_accuracy()
+            await self._async_save_energy_totals()
+
             self._next_optimization = dt_util.now() + timedelta(
                 minutes=self._config.get(
                     CONF_OPTIMIZATION_INTERVAL, DEFAULT_OPTIMIZATION_INTERVAL
@@ -1577,10 +1763,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         """Run the MPC optimization."""
         _LOGGER.info("Running heat pump optimization (predictive MPC)")
 
+        if self._optimization_running:
+            _LOGGER.debug("An optimization is already in flight; skipping")
+            return
+
+        self._optimization_running = True
+        away_original: dict[str, float] | None = None
         try:
-            prices, outdoor_temps, wind_speeds, precipitation, solar_rad = (
-                self._prepare_forecast_data()
-            )
+            prices, outdoor_temps, wind_speeds, precipitation, solar_rad, \
+                price_known, pv_surplus = self._forecast_arrays()
 
             if len(prices) < 4:
                 _LOGGER.warning(
@@ -1590,12 +1781,45 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 return
 
             _LOGGER.debug(
-                "Forecast data: %d steps, wind range=%.1f-%.1f m/s, "
-                "precip range=%.1f-%.1f mm/h, solar range=%.0f-%.0f W/m²",
+                "Forecast data: %d steps (%d from published prices), wind "
+                "range=%.1f-%.1f m/s, precip range=%.1f-%.1f mm/h, solar "
+                "range=%.0f-%.0f W/m²",
                 len(prices),
+                int(np.sum(price_known)),
                 float(np.min(wind_speeds)), float(np.max(wind_speeds)),
                 float(np.min(precipitation)), float(np.max(precipitation)),
                 float(np.min(solar_rad)), float(np.max(solar_rad)),
+            )
+
+            # Push the grid-cost settings into the optimizer configuration
+            # immediately before the solve, so an options change takes effect
+            # on the next run rather than on the next restart.
+            tariff = self._capacity_tariff()
+            self._opt_config.peak_price_per_kw = tariff.marginal_price_per_kw
+            self._opt_config.peak_threshold_kw = self._peak_tracker.threshold_kw(
+                tariff
+            )
+            self._opt_config.peak_window_minutes = tariff.window_minutes
+            self._opt_config.baseline_load_kw = self._baseline_house_load(
+                len(prices)
+            )
+            self._opt_config.cycling_cost = _as_float(
+                self._config.get(CONF_CYCLING_COST), DEFAULT_CYCLING_COST
+            )
+            self._apply_comfort_weight()
+
+            # Away mode is applied around the solve and unwound afterwards, so
+            # a setback can never leak past the end of the holiday.
+            self._resolve_away()
+            away_original = self._apply_away_setback()
+
+            self._current_state.external_heat_active = self._external_heat_active
+
+            humidity = self._current_humidity()
+            humidity_array = (
+                np.full(len(prices), humidity, dtype=float)
+                if humidity is not None
+                else None
             )
 
             # Run optimization in executor to avoid blocking
@@ -1608,6 +1832,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 precipitation,
                 solar_rad,
                 dt_util.now(),
+                price_known,
+                pv_surplus,
+                humidity_array,
             )
 
             self._optimization_result = result
@@ -1617,17 +1844,29 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 result, dt_util.now()
             )
 
+            # A step-response experiment overrides the plan for its duration.
+            self._run_system_identification(prices)
+            self._adopt_system_identification()
+
+            self._record_quiet_comfort_period()
+
             _LOGGER.info(
                 "Optimization complete: savings=%.1f%%, cost=%.2f, status=%s, "
-                "dhw_enabled=%s",
+                "dhw_enabled=%s, starts=%d, peak=%.1f kW",
                 result.savings_percentage,
                 result.predicted_cost,
                 result.status,
                 self._thermal_params.dhw_enabled,
+                result.compressor_starts,
+                result.projected_peak_kw,
             )
 
         except Exception as err:
             _LOGGER.error("Optimization failed: %s", err, exc_info=True)
+        finally:
+            if away_original is not None:
+                self._restore_away_setback(away_original)
+            self._optimization_running = False
 
     async def async_set_mode(self, mode: str) -> None:
         """Set the operation mode."""
@@ -2166,6 +2405,28 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
         Returns: (prices, outdoor_temps, wind_speeds, precipitation, solar_radiation)
         """
+        return self._forecast_arrays()[:5]
+
+    def _forecast_arrays(
+        self,
+    ) -> tuple[
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+    ]:
+        """Everything the optimizer needs about the horizon.
+
+        Beyond the five weather/price series, this also returns the
+        published-price mask (item 7) and the forecast PV surplus (item 9).
+        Kept as one function because the surplus depends on the irradiance
+        series built here, and recomputing it elsewhere is how the two would
+        drift apart.
+        """
+        empty = np.array([], dtype=float)
         dt_minutes = 15
         n_steps = self._opt_config.n_steps
         now = dt_util.now()
@@ -2186,8 +2447,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 "No electricity price data available; skipping optimization "
                 "until prices can be fetched"
             )
-            empty = np.array([], dtype=float)
-            return (empty, empty, empty, empty, empty)
+            return (empty, empty, empty, empty, empty, empty, empty)
 
         midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
         minutes_since_midnight = (now - midnight).total_seconds() / 60
@@ -2198,8 +2458,20 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         else:
             prices = prices_15min[:n_steps]
 
-        while len(prices) < n_steps:
-            prices.append(prices[-1] if prices else 0.5)
+        # --- Model the unknown tail rather than repeating the last price ----
+        # A flat repeat has no trough, so the optimizer cannot see a cheap
+        # period ahead worth waiting for. The learned diurnal shape gives the
+        # tail a plausible profile, and the mask records which steps rest on
+        # published data so that is visible downstream.
+        step_starts = [
+            midnight + timedelta(minutes=dt_minutes * (step_offset + i))
+            for i in range(n_steps)
+        ]
+        price_array, price_known = extend_price_series(
+            prices, n_steps, step_starts, self._price_prior()
+        )
+        prices = price_array.tolist()
+        self._price_known_steps = int(np.sum(price_known))
 
         # --- Weather forecast (FULL 24h trajectories) ---
         outdoor_temps = []
@@ -2283,12 +2555,30 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             while len(arr) < n_steps:
                 arr.append(arr[-1] if arr else 0.0)
 
+        solar_array = np.array(solar_rad[:n_steps], dtype=float)
+
+        # --- PV self-consumption ------------------------------------------
+        # Where the array is in surplus, an extra kWh consumed by the heat pump
+        # does not cost the import price: it costs the export compensation that
+        # was foregone. Substituting the marginal price here means every
+        # downstream consumer (the hot-water LP, the space objective, the
+        # savings settle-up) gets it right without any structural change.
+        surplus, _ = self._pv_forecast(solar_array, n_steps)
+        price_array = np.array(prices[:n_steps], dtype=float)
+        if np.any(surplus > 1e-6):
+            price_array = pv_model.effective_prices(
+                price_array, surplus, self._pv_export_price()
+            )
+        self._pv_surplus = surplus
+
         return (
-            np.array(prices[:n_steps], dtype=float),
+            price_array,
             np.array(outdoor_temps[:n_steps], dtype=float),
             np.array(wind_speeds[:n_steps], dtype=float),
             np.array(precipitation_rates[:n_steps], dtype=float),
-            np.array(solar_rad[:n_steps], dtype=float),
+            solar_array,
+            price_known,
+            surplus,
         )
 
     def _get_current_price(self) -> float:
@@ -2480,6 +2770,62 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             "ecl110_last_payload": self._ecl110_last_payload,
         }
 
+        # --- New feature state -------------------------------------------
+        tariff = self._capacity_tariff()
+        data.update(self._input_health_view())
+        data.update(self._away_state.as_dict())
+        data.update(
+            {
+                # Measured draw (item 6)
+                "measured_power": self._measured_power,
+                "measured_house_power": self._measured_house_power,
+                "measured_energy": self._measured_energy,
+                "measured_power_available": self._measured_power is not None,
+                "cop_scale": round(self._cop_scale, 3),
+                "cop_samples": self._cop_samples,
+                "measured_cop": self._last_measured_cop,
+                # External heat source (item 5)
+                "external_heat_active": self._external_heat.state.active,
+                "external_heat_suppressing": self._external_heat.suppressing,
+                "external_heat": self._external_heat.state.as_dict(),
+                # Learned price horizon (item 7)
+                "price_known_steps": self._price_known_steps,
+                "price_prior": self._price_model.summary(),
+                # Capacity tariff (item 8)
+                "peak_tariff_enabled": tariff.enabled,
+                "billed_peak_kw": round(
+                    self._peak_tracker.billed_peak_kw(tariff), 2
+                ),
+                "peak_threshold_kw": round(
+                    self._peak_tracker.threshold_kw(tariff), 2
+                ),
+                "peak_month": self._peak_tracker.month,
+                # PV (item 9)
+                "pv_enabled": bool(
+                    self._config.get(CONF_PV_ENABLED, DEFAULT_PV_ENABLED)
+                ),
+                "pv": self._pv_summary,
+                # Closed-loop accuracy (item 11)
+                "accuracy": self._accuracy.summary(),
+                # Defrost derate (item 14)
+                "defrost_derate": self._defrost.factor(
+                    self._current_state.outdoor_temperature,
+                    self._current_humidity(),
+                ),
+                "defrost_samples": self._defrost.total_samples,
+                "defrost_buckets": self._defrost.summary(),
+                # Energy statistics (item 15)
+                **{k: round(v, 4) for k, v in self._energy_totals.items()},
+                # Comfort learning (item 19)
+                "comfort_weight": self._opt_config.comfort_weight,
+                "comfort_learning": self._comfort_learner.summary(),
+                # System identification (item 18)
+                "system_identification": self._sysid.as_dict(),
+                # Virtual battery (item 20)
+                "battery": self._battery_view(),
+            }
+        )
+
         if result:
             # DHW schedule data
             dhw_schedule = []
@@ -2511,6 +2857,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     # Python types because these values end up in entity
                     # attributes, which Home Assistant must serialize.
                     "predictive_info": _plain_types(result.predictive_info),
+                    # Grid-cost and provenance figures (items 7, 8, 10, 9)
+                    "projected_peak_kw": result.projected_peak_kw,
+                    "projected_peak_cost": result.peak_cost,
+                    "compressor_starts": result.compressor_starts,
+                    "pv_self_consumed_kwh": result.pv_self_consumed_kwh,
+                    "plan_price_known": result.price_known,
                     **self._build_plan_views(result),
                     "schedule": [
                         {
@@ -2575,7 +2927,769 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     "schedule": [],
                     "space_plan": {},
                     "dhw_plan": {},
+                    "projected_peak_kw": 0.0,
+                    "projected_peak_cost": 0.0,
+                    "compressor_starts": 0,
+                    "pv_self_consumed_kwh": 0.0,
+                    "plan_price_known": [],
                 }
             )
 
         return data
+
+    # ==================================================================
+    # Persistence for the new learners
+    # ==================================================================
+
+    async def _async_load_price_model(self) -> None:
+        """Restore the learned diurnal price shape."""
+        try:
+            stored = await self._price_model_store.async_load()
+        except Exception as err:  # noqa: BLE001 - never block setup on storage
+            _LOGGER.debug("Could not load price model: %s", err)
+            return
+        if not stored:
+            return
+        self._price_model = PriceShapeModel.from_dict(stored.get("model"))
+        days = stored.get("days_seen")
+        if isinstance(days, list):
+            self._price_days_seen = {str(d) for d in days}
+
+    async def _async_save_price_model(self) -> None:
+        try:
+            await self._price_model_store.async_save(
+                {
+                    "model": self._price_model.as_dict(),
+                    # Only recent days matter for de-duplication, and an
+                    # unbounded set would grow forever.
+                    "days_seen": sorted(self._price_days_seen)[-90:],
+                }
+            )
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.debug("Could not persist price model: %s", err)
+
+    async def _async_load_accuracy(self) -> None:
+        try:
+            stored = await self._accuracy_store.async_load()
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.debug("Could not load accuracy history: %s", err)
+            return
+        if not stored:
+            return
+        self._accuracy = AccuracyTracker.from_dict(stored.get("accuracy"))
+        self._defrost = DefrostDerate.from_dict(stored.get("defrost"))
+        self._thermal_params.defrost_derate = self._defrost
+        self._peak_tracker = PeakTracker.from_dict(stored.get("peaks"))
+        self._comfort_learner = ComfortLearner.from_dict(
+            stored.get("comfort"),
+            _as_float(self._config.get(CONF_COMFORT_WEIGHT), DEFAULT_COMFORT_WEIGHT),
+        )
+        self._apply_comfort_weight()
+
+    async def _async_save_accuracy(self) -> None:
+        try:
+            await self._accuracy_store.async_save(
+                {
+                    "accuracy": self._accuracy.as_dict(),
+                    "defrost": self._defrost.as_dict(),
+                    "peaks": self._peak_tracker.as_dict(),
+                    "comfort": self._comfort_learner.as_dict(),
+                }
+            )
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.debug("Could not persist accuracy history: %s", err)
+
+    async def _async_load_energy_totals(self) -> None:
+        try:
+            stored = await self._energy_store.async_load()
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.debug("Could not load energy totals: %s", err)
+            return
+        if not stored:
+            return
+        for key in list(self._energy_totals):
+            value = stored.get(key)
+            if isinstance(value, (int, float)) and np.isfinite(value):
+                # Accumulators must never go backwards, or Home Assistant reads
+                # the drop as a meter reset and creates a spurious spike.
+                self._energy_totals[key] = max(
+                    self._energy_totals[key], float(value)
+                )
+
+    async def _async_save_energy_totals(self) -> None:
+        try:
+            await self._energy_store.async_save(dict(self._energy_totals))
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.debug("Could not persist energy totals: %s", err)
+
+    # ==================================================================
+    # Price horizon modelling (item 7)
+    # ==================================================================
+
+    async def _async_learn_price_shape(self) -> None:
+        """Fold any newly complete price days into the learned shape."""
+        if not self._config.get(
+            CONF_PRICE_PRIOR_ENABLED, DEFAULT_PRICE_PRIOR_ENABLED
+        ):
+            return
+        days = hourly_from_entries(self._prices)
+        learned = False
+        for day, hours in days.items():
+            if day in self._price_days_seen:
+                continue
+            try:
+                when = datetime.fromisoformat(f"{day}T12:00:00")
+            except ValueError:
+                continue
+            if self._price_model.observe_day(when, hours):
+                self._price_days_seen.add(day)
+                learned = True
+        if learned:
+            await self._async_save_price_model()
+
+    def _price_prior(self) -> PriceShapeModel | None:
+        if not self._config.get(
+            CONF_PRICE_PRIOR_ENABLED, DEFAULT_PRICE_PRIOR_ENABLED
+        ):
+            return None
+        return self._price_model
+
+    # ==================================================================
+    # Capacity tariff (item 8)
+    # ==================================================================
+
+    def _capacity_tariff(self) -> CapacityTariff:
+        return CapacityTariff(
+            enabled=bool(
+                self._config.get(
+                    CONF_PEAK_TARIFF_ENABLED, DEFAULT_PEAK_TARIFF_ENABLED
+                )
+            ),
+            price_per_kw=_as_float(
+                self._config.get(CONF_PEAK_TARIFF_PRICE),
+                DEFAULT_PEAK_TARIFF_PRICE,
+            ),
+            peaks_averaged=int(
+                _as_float(
+                    self._config.get(CONF_PEAK_TARIFF_COUNT),
+                    DEFAULT_PEAK_TARIFF_COUNT,
+                )
+            ),
+            window_minutes=int(
+                _as_float(
+                    self._config.get(CONF_PEAK_TARIFF_WINDOW),
+                    DEFAULT_PEAK_TARIFF_WINDOW,
+                )
+            ),
+        )
+
+    def _track_realised_peak(self) -> None:
+        """Fold the current whole-house draw into this month's peaks.
+
+        Without a house power entity, the heat pump's own draw is all that can
+        be seen. That under-states the real peak, so the threshold it produces
+        is conservative in the wrong direction — which is why the config flow
+        asks for a house meter and says why.
+        """
+        tariff = self._capacity_tariff()
+        if not tariff.enabled:
+            return
+        house = self._measured_house_power
+        if house is None:
+            house = self._measured_power
+        if house is None:
+            house = float(self._current_action.get("power", 0.0))
+        self._peak_tracker.observe(dt_util.now(), float(house), tariff)
+
+    def _baseline_house_load(self, n_steps: int) -> np.ndarray:
+        """Whole-house load excluding the heat pump, per step, in kW."""
+        heat_pump = self._measured_power
+        house = self._measured_house_power
+        if house is None:
+            return np.zeros(n_steps, dtype=float)
+        baseline = max(0.0, house - (heat_pump or 0.0))
+        return np.full(n_steps, baseline, dtype=float)
+
+    # ==================================================================
+    # PV self-consumption (item 9)
+    # ==================================================================
+
+    def _pv_config(self) -> pv_model.PVConfig:
+        return pv_model.PVConfig(
+            enabled=bool(self._config.get(CONF_PV_ENABLED, DEFAULT_PV_ENABLED)),
+            peak_kw=_as_float(
+                self._config.get(CONF_PV_PEAK_KW), DEFAULT_PV_PEAK_KW
+            ),
+            system_efficiency=_as_float(
+                self._config.get(CONF_PV_EFFICIENCY), DEFAULT_PV_EFFICIENCY
+            ),
+            export_price=self._pv_export_price(),
+            export_price_entity=self._config.get(CONF_PV_EXPORT_PRICE_ENTITY),
+            production_entity=self._config.get(CONF_PV_PRODUCTION_ENTITY),
+        )
+
+    def _pv_export_price(self) -> float:
+        """Export compensation, preferring a live entity over the static value."""
+        entity_id = self._config.get(CONF_PV_EXPORT_PRICE_ENTITY)
+        if entity_id:
+            state = self.hass.states.get(entity_id)
+            if state is not None and str(state.state).lower() not in (
+                "unknown",
+                "unavailable",
+                "",
+            ):
+                try:
+                    return float(state.state)
+                except (TypeError, ValueError):
+                    pass
+        return _as_float(
+            self._config.get(CONF_PV_EXPORT_PRICE), DEFAULT_PV_EXPORT_PRICE
+        )
+
+    def _pv_forecast(
+        self, solar_rad: np.ndarray, n_steps: int
+    ) -> tuple[np.ndarray, dict[str, Any]]:
+        """Forecast PV surplus over the horizon."""
+        config = self._pv_config()
+        if not config.enabled or config.peak_kw <= 0:
+            self._pv_summary = {}
+            return np.zeros(n_steps, dtype=float), {}
+        production = pv_model.forecast_production_kw(solar_rad[:n_steps], config)
+        baseline = self._baseline_house_load(n_steps)
+        if not np.any(baseline > 0):
+            baseline = np.full(n_steps, config.default_baseline_kw, dtype=float)
+        surplus = pv_model.surplus_kw(production, baseline)
+        summary = pv_model.summarize(production, surplus, self._opt_config.dt_hours)
+        summary["export_price"] = round(config.export_price, 4)
+        self._pv_summary = summary
+        return surplus, summary
+
+    # ==================================================================
+    # Away / holiday mode (item 13)
+    # ==================================================================
+
+    def _away_config(self) -> away_mode.AwayConfig:
+        return away_mode.AwayConfig(
+            enabled=bool(
+                self._config.get(CONF_AWAY_ENABLED, DEFAULT_AWAY_ENABLED)
+            ),
+            presence_entity=self._config.get(CONF_AWAY_PRESENCE_ENTITY),
+            return_entity=self._config.get(CONF_AWAY_RETURN_ENTITY),
+            away_temperature=_as_float(
+                self._config.get(CONF_AWAY_TEMPERATURE), DEFAULT_AWAY_TEMPERATURE
+            ),
+            away_dhw_min_temperature=_as_float(
+                self._config.get(CONF_AWAY_DHW_MIN_TEMP),
+                DEFAULT_AWAY_DHW_MIN_TEMP,
+            ),
+        )
+
+    def _entity_state(self, entity_id: str | None) -> tuple[str | None, dict]:
+        if not entity_id:
+            return None, {}
+        state = self.hass.states.get(entity_id)
+        if state is None:
+            return None, {}
+        attributes = getattr(state, "attributes", None) or {}
+        try:
+            attributes = dict(attributes)
+        except (TypeError, ValueError):  # pragma: no cover - defensive
+            attributes = {}
+        return getattr(state, "state", None), attributes
+
+    def _resolve_away(self) -> away_mode.AwayState:
+        """Work out whether the house is empty, and when it must be warm again."""
+        config = self._away_config()
+        if not config.enabled:
+            self._away_state = away_mode.AwayState()
+            return self._away_state
+
+        presence_raw, presence_attrs = self._entity_state(config.presence_entity)
+        return_raw, _ = self._entity_state(config.return_entity)
+
+        params = self._thermal_params
+        if params.two_zone_enabled:
+            capacity = (
+                params.upper_floor_thermal_mass + params.lower_floor_thermal_mass
+            )
+        else:
+            capacity = params.room_thermal_mass
+
+        cop = self._thermal_model.compute_cop(
+            self._current_state.outdoor_temperature
+        )
+        now = dt_util.now()
+        self._away_state = away_mode.resolve(
+            config,
+            now=now,
+            presence_raw=presence_raw,
+            presence_attributes=presence_attrs,
+            return_raw=return_raw,
+            current_temp=self._current_state.room_temperature,
+            comfort_temp=self._opt_config.get_comfort_temp(
+                now.hour + now.minute / 60.0
+            ),
+            heat_capacity_kwh_per_c=capacity,
+            available_thermal_kw=params.max_electrical_power * max(cop, 1.0),
+            heat_loss_kw_per_c=self._effective_house_heat_loss(),
+            outdoor_temp=self._current_state.outdoor_temperature,
+        )
+        return self._away_state
+
+    def _apply_away_setback(self) -> dict[str, float]:
+        """Temporarily lower the comfort targets while away.
+
+        Returns the original values so they can be restored, because the
+        optimizer config is shared state and a setback that leaked past the
+        end of the holiday would be a comfort failure nobody would connect
+        back to this feature.
+        """
+        state = self._away_state
+        original = {
+            "min_temp": self._opt_config.min_temp,
+            "comfort_temp_day": self._opt_config.comfort_temp_day,
+            "comfort_temp_night": self._opt_config.comfort_temp_night,
+            "dhw_min_temp": self._thermal_params.dhw_min_temp,
+            "dhw_idle_min_temp": self._thermal_params.dhw_idle_min_temp,
+        }
+        if not state.active or state.recovery_active:
+            return original
+
+        target = state.target_temperature or DEFAULT_AWAY_TEMPERATURE
+        self._opt_config.min_temp = min(original["min_temp"], target)
+        self._opt_config.comfort_temp_day = target
+        self._opt_config.comfort_temp_night = target
+        dhw_floor = state.dhw_min_temperature or DEFAULT_AWAY_DHW_MIN_TEMP
+        self._thermal_params.dhw_min_temp = min(original["dhw_min_temp"], dhw_floor)
+        self._thermal_params.dhw_idle_min_temp = min(
+            original["dhw_idle_min_temp"], dhw_floor
+        )
+        return original
+
+    def _restore_away_setback(self, original: dict[str, float]) -> None:
+        self._opt_config.min_temp = original["min_temp"]
+        self._opt_config.comfort_temp_day = original["comfort_temp_day"]
+        self._opt_config.comfort_temp_night = original["comfort_temp_night"]
+        self._thermal_params.dhw_min_temp = original["dhw_min_temp"]
+        self._thermal_params.dhw_idle_min_temp = original["dhw_idle_min_temp"]
+
+    # ==================================================================
+    # Closed-loop accuracy and the defrost derate (items 11, 14)
+    # ==================================================================
+
+    def _current_humidity(self) -> float | None:
+        """Outdoor relative humidity, if the weather entity reports it."""
+        if not self._weather_forecast:
+            return None
+        raw = self._weather_forecast[0].get("humidity")
+        if raw is None:
+            return None
+        try:
+            value = float(raw)
+        except (TypeError, ValueError):
+            return None
+        return value if 0.0 <= value <= 100.0 else None
+
+    def _record_accuracy(self) -> None:
+        """Close the loop on the prediction made at the previous interval."""
+        pending = self._pending_prediction
+        now = dt_util.now()
+
+        if pending is not None:
+            elapsed = (now - pending["when"]).total_seconds() / 3600.0
+            # Only pair up predictions with the interval they were actually
+            # about; a restart or a long gap makes the pairing meaningless.
+            if 0.05 <= elapsed <= 2.0:
+                sample = AccuracySample(
+                    when=now,
+                    predicted_power_kw=pending.get("power"),
+                    actual_power_kw=self._measured_power,
+                    predicted_temp=pending.get("predicted_temp"),
+                    actual_temp=self._current_state.room_temperature,
+                    predicted_cost=(
+                        (pending.get("power") or 0.0)
+                        * elapsed
+                        * (pending.get("price") or 0.0)
+                    ),
+                    actual_cost=(
+                        self._measured_power * elapsed * (pending.get("price") or 0.0)
+                        if self._measured_power is not None
+                        else None
+                    ),
+                    outdoor_temp=pending.get("outdoor"),
+                    humidity=pending.get("humidity"),
+                )
+                self._accuracy.record(sample)
+                self._accumulate_energy(sample, elapsed, pending)
+
+                # The delivered-versus-predicted ratio is exactly what the
+                # defrost derate learns from, and it is only meaningful while
+                # the learners are not frozen for some other reason.
+                if not self._learning_frozen(CONF_POWER_ENTITY):
+                    ratio = delivered_ratio(sample)
+                    if ratio is not None and sample.outdoor_temp is not None:
+                        self._defrost.observe(
+                            sample.outdoor_temp, sample.humidity, ratio
+                        )
+
+        self._pending_prediction = {
+            "when": now,
+            "power": float(self._current_action.get("power", 0.0)),
+            "dhw_power": float(self._current_action.get("dhw_power", 0.0)),
+            "price": self._get_current_price(),
+            "predicted_temp": self._predicted_next_room_temp(),
+            "outdoor": self._current_state.outdoor_temperature,
+            "humidity": self._current_humidity(),
+        }
+
+    def _predicted_next_room_temp(self) -> float | None:
+        """What the plan says the room will be at the next interval."""
+        result = self._optimization_result
+        if result is None or not result.room_temp_trajectory:
+            return None
+        steps = max(
+            1,
+            int(
+                round(
+                    self._config.get(
+                        CONF_OPTIMIZATION_INTERVAL, DEFAULT_OPTIMIZATION_INTERVAL
+                    )
+                    / max(self._opt_config.time_step_minutes, 1.0)
+                )
+            ),
+        )
+        trajectory = (
+            result.upper_temp_trajectory
+            if self._thermal_params.two_zone_enabled
+            and result.upper_temp_trajectory
+            else result.room_temp_trajectory
+        )
+        idx = min(steps, len(trajectory) - 1)
+        return float(trajectory[idx])
+
+    # ==================================================================
+    # Energy dashboard statistics (item 15)
+    # ==================================================================
+
+    def _accumulate_energy(
+        self, sample: AccuracySample, elapsed_hours: float, pending: dict[str, Any]
+    ) -> None:
+        """Accumulate realised energy and cost, split DHW versus space.
+
+        Uses the *measured* draw when one exists so the totals reflect reality
+        rather than the commanded plan; that distinction is the whole reason
+        the Energy dashboard is worth feeding.
+
+        The DHW/space split cannot be measured — one meter, two circuits — so
+        it is apportioned by what the plan asked each circuit to draw. That is
+        stated in the sensor attributes rather than presented as measured.
+        """
+        price = pending.get("price") or 0.0
+        planned_space = float(pending.get("power") or 0.0)
+        planned_dhw = float(pending.get("dhw_power") or 0.0)
+        planned_total = planned_space + planned_dhw
+
+        actual = sample.actual_power_kw
+        if actual is None:
+            actual = planned_total
+        energy = max(0.0, actual * elapsed_hours)
+        if energy <= 0:
+            return
+
+        if planned_total > 1e-6:
+            dhw_share = planned_dhw / planned_total
+        else:
+            dhw_share = 0.0
+        dhw_energy = energy * dhw_share
+        space_energy = energy - dhw_energy
+
+        self._energy_totals["space_energy_kwh"] += space_energy
+        self._energy_totals["dhw_energy_kwh"] += dhw_energy
+        self._energy_totals["total_energy_kwh"] += energy
+        self._energy_totals["space_cost"] += space_energy * price
+        self._energy_totals["dhw_cost"] += dhw_energy * price
+        self._energy_totals["total_cost"] += energy * price
+
+    # ==================================================================
+    # Revealed-preference comfort tuning (item 19)
+    # ==================================================================
+
+    def _apply_comfort_weight(self) -> None:
+        """Push the learned comfort weight into the optimizer configuration."""
+        if not self._config.get(
+            CONF_COMFORT_LEARNING_ENABLED, DEFAULT_COMFORT_LEARNING_ENABLED
+        ):
+            self._opt_config.comfort_weight = self._comfort_learner.configured_weight
+            return
+        self._opt_config.comfort_weight = self._comfort_learner.effective_weight
+
+    def record_setpoint_override(self, requested: float) -> None:
+        """Note that the user overrode the plan's setpoint.
+
+        Called from the climate entity. Every override is the user saying the
+        plan went too far in one direction, which is the only evidence anyone
+        ever produces about what ``comfort_weight`` should be.
+        """
+        if not self._config.get(
+            CONF_COMFORT_LEARNING_ENABLED, DEFAULT_COMFORT_LEARNING_ENABLED
+        ):
+            return
+        planned = float(self._current_action.get("setpoint", requested))
+        delta = float(requested) - planned
+        prices = [p.get("total", 0.0) for p in self._prices] or [1.0]
+        mean_price = float(np.mean([_as_float(p, 0.0) for p in prices])) or 1.0
+        relative = self._get_current_price() / mean_price if mean_price else 1.0
+        self._comfort_learner.record_override(
+            OverrideEvent(
+                when=dt_util.now(),
+                delta_c=delta,
+                indoor_temp=self._current_state.room_temperature,
+                planned_setpoint=planned,
+                relative_price=relative,
+            )
+        )
+        self._apply_comfort_weight()
+        self._last_manual_setpoint = float(requested)
+
+    def _record_quiet_comfort_period(self) -> None:
+        """Feed the learner the "nobody complained" half of the signal."""
+        if not self._config.get(
+            CONF_COMFORT_LEARNING_ENABLED, DEFAULT_COMFORT_LEARNING_ENABLED
+        ):
+            return
+        result = self._optimization_result
+        if result is None or not result.room_temp_trajectory:
+            return
+        trajectory = np.asarray(result.room_temp_trajectory, dtype=float)
+        span = float(np.max(trajectory) - np.min(trajectory))
+        band = max(
+            0.5, self._opt_config.comfort_temp_day - self._opt_config.min_temp
+        )
+        interval_days = (
+            self._config.get(
+                CONF_OPTIMIZATION_INTERVAL, DEFAULT_OPTIMIZATION_INTERVAL
+            )
+            / 1440.0
+        )
+        self._comfort_learner.record_quiet_period(
+            dt_util.now(), span, band, days=interval_days
+        )
+        self._apply_comfort_weight()
+
+    async def async_reset_comfort_weight(self) -> None:
+        """Return the comfort weight to the configured value."""
+        self._comfort_learner.reset()
+        self._apply_comfort_weight()
+        await self._async_save_accuracy()
+        await self.async_request_refresh()
+
+    # ==================================================================
+    # Active system identification (item 18)
+    # ==================================================================
+
+    @property
+    def system_identification_active(self) -> bool:
+        return self._sysid.active
+
+    async def async_arm_system_identification(self) -> None:
+        """Arm a step-response experiment for the next suitable moment."""
+        self._sysid.config.enabled = bool(
+            self._config.get(CONF_SYSID_ENABLED, DEFAULT_SYSID_ENABLED)
+        )
+        if self._sysid.arm(dt_util.now()):
+            _LOGGER.info(
+                "System identification armed; it will start at the next mild, "
+                "cheap night hour"
+            )
+        await self.async_request_refresh()
+
+    def _run_system_identification(self, prices: np.ndarray) -> None:
+        """Advance the experiment and override the plan if it wants the pump."""
+        if not self._sysid.active:
+            return
+        override = self._sysid.step(
+            now=dt_util.now(),
+            room_temp=self._current_state.room_temperature,
+            outdoor_temp=self._current_state.outdoor_temperature,
+            price=self._get_current_price(),
+            price_horizon=prices,
+            learner_samples=self._house_heat_loss_samples,
+            max_power_kw=self._thermal_params.max_electrical_power,
+        )
+        if override is None:
+            return
+        self._current_action = {
+            **self._current_action,
+            "power": float(override),
+            "power_normalized": float(
+                override / max(self._thermal_params.max_electrical_power, 0.1)
+            ),
+            "heat_pump_on": override > 0.05,
+            "mode": "system_identification",
+        }
+
+    def _adopt_system_identification(self) -> None:
+        """Seed the passive learners from a completed experiment."""
+        result = self._sysid.result
+        if not result.completed or result.confidence < 0.3:
+            return
+        params = self._thermal_params
+        if params.two_zone_enabled:
+            base_u = params.upper_floor_heat_loss + params.lower_floor_heat_loss
+        else:
+            base_u = params.heat_loss_coefficient
+        if base_u <= 1e-6 or result.heat_loss_kw_per_c is None:
+            return
+        scale = result.heat_loss_kw_per_c / base_u
+        # A high-confidence experiment is a much better prior than weeks of
+        # ambiguous passive samples, but it is still one experiment: blend
+        # rather than overwrite, weighted by the fit quality.
+        blended = (
+            1.0 - result.confidence
+        ) * self._house_heat_loss_scale + result.confidence * scale
+        self._apply_house_heat_loss_scale(blended)
+        self._house_heat_loss_samples = max(
+            self._house_heat_loss_samples, int(20 * result.confidence)
+        )
+        self._sysid.result = replace(result, completed=False, reason="adopted")
+        _LOGGER.info(
+            "Adopted system identification result: heat loss scale now %.3f",
+            self._house_heat_loss_scale,
+        )
+
+    # ==================================================================
+    # Virtual battery view (item 20)
+    # ==================================================================
+
+    def _battery_view(self) -> dict[str, Any]:
+        """Publish the thermal stores as a battery."""
+        params = self._thermal_params
+        cop = self._thermal_model.compute_cop(
+            self._current_state.outdoor_temperature
+        )
+        view = battery_view.build(
+            params,
+            self._current_state,
+            comfort_min=self._opt_config.min_temp,
+            comfort_max=self._opt_config.max_temp,
+            dhw_min=params.dhw_min_temp,
+            dhw_max=params.dhw_max_temp,
+            cop=cop,
+        )
+        return view.as_dict()
+
+    # ==================================================================
+    # Forcing a run, and the what-if simulator (items 3, 21)
+    # ==================================================================
+
+    @property
+    def optimization_running(self) -> bool:
+        return self._optimization_running
+
+    async def async_force_optimization(self) -> None:
+        """Run the optimization now, ignoring the schedule."""
+        if self._optimization_running:
+            _LOGGER.debug("Optimization already running; ignoring the request")
+            return
+        await self.async_request_refresh()
+
+    async def async_simulate(
+        self, overrides: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Price a hypothetical comfort choice against the current forecast.
+
+        Backs the card's what-if simulator. Two things matter here:
+
+        * it runs off a **copy** of the configuration, so an exploratory drag
+          can never disturb actual operation;
+        * it is **rate-limited**, because a full solve is seconds of CPU and
+          dragging a slider would otherwise trigger one per pixel.
+        """
+        now = dt_util.now()
+        if (
+            self._last_simulation is not None
+            and (now - self._last_simulation).total_seconds()
+            < SIMULATE_MIN_INTERVAL_SECONDS
+        ):
+            return {
+                **self._simulation_cache,
+                "rate_limited": True,
+            }
+
+        result = self._optimization_result
+        if result is None:
+            return {"error": "no_plan", "rate_limited": False}
+
+        prices, outdoor_temps, wind, precip, solar, known, surplus = (
+            self._forecast_arrays()
+        )
+        if len(prices) < 4:
+            return {"error": "no_prices", "rate_limited": False}
+
+        scratch_config = replace(self._opt_config)
+        for key in (
+            "target_temp",
+            "min_temp",
+            "max_temp",
+            "comfort_temp_day",
+            "comfort_temp_night",
+            "comfort_weight",
+        ):
+            if key in overrides:
+                setattr(scratch_config, key, float(overrides[key]))
+
+        scratch_params = replace(self._thermal_params)
+        if "dhw_setpoint" in overrides:
+            scratch_params.dhw_setpoint = float(overrides["dhw_setpoint"])
+        if "dhw_min_temperature" in overrides:
+            scratch_params.dhw_min_temp = float(overrides["dhw_min_temperature"])
+        if "dhw_windows" in overrides:
+            try:
+                scratch_params.dhw_windows = parse_windows(
+                    str(overrides["dhw_windows"])
+                )
+            except DHWWindowError as err:
+                return {"error": f"invalid_windows: {err}", "rate_limited": False}
+
+        scratch = HeatPumpOptimizer(ThermalModel(scratch_params), scratch_config)
+        try:
+            simulated = await self.hass.async_add_executor_job(
+                lambda: scratch.optimize(
+                    replace(self._current_state),
+                    prices,
+                    outdoor_temps,
+                    wind,
+                    precip,
+                    solar,
+                    now,
+                    known,
+                    surplus,
+                )
+            )
+        except Exception as err:  # noqa: BLE001 - a what-if must never break ops
+            _LOGGER.warning("What-if simulation failed: %s", err)
+            return {"error": str(err), "rate_limited": False}
+
+        horizon_hours = max(self._opt_config.horizon_hours, 1.0)
+        days_per_month = 30.4
+        scale = days_per_month * 24.0 / horizon_hours
+        delta = simulated.predicted_cost - result.predicted_cost
+        payload = {
+            "baseline_cost": round(result.predicted_cost, 2),
+            "simulated_cost": round(simulated.predicted_cost, 2),
+            "cost_delta": round(delta, 2),
+            "monthly_cost_delta": round(delta * scale, 2),
+            "savings_percentage": round(simulated.savings_percentage, 1),
+            "min_room_temperature": (
+                round(float(min(simulated.room_temp_trajectory)), 2)
+                if simulated.room_temp_trajectory
+                else None
+            ),
+            "compressor_starts": simulated.compressor_starts,
+            "projected_peak_kw": simulated.projected_peak_kw,
+            "overrides": overrides,
+            "rate_limited": False,
+        }
+        self._last_simulation = now
+        self._simulation_cache = payload
+        return payload
