@@ -3515,6 +3515,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             price_horizon=prices,
             learner_samples=self._house_heat_loss_samples,
             max_power_kw=self._thermal_params.max_electrical_power,
+            cop=self._thermal_model.compute_cop(
+                self._current_state.outdoor_temperature
+            ),
         )
         if override is None:
             return

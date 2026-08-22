@@ -72,7 +72,15 @@ class SysIdConfig:
 
 @dataclass
 class SysIdSample:
-    """One observation during an experiment."""
+    """One observation during an experiment.
+
+    ``power_kw`` is *thermal* output, not electrical draw. The fit below
+    regresses the room's energy balance, in which the input is heat delivered
+    into the building; using electrical draw instead would scale both
+    identified parameters by the COP, and the error would look entirely
+    plausible because the ratio between them — the time constant — stays
+    correct.
+    """
 
     when: datetime
     room_temp: float
@@ -210,11 +218,15 @@ class SystemIdentification:
         price_horizon: np.ndarray,
         learner_samples: int,
         max_power_kw: float,
+        cop: float = 1.0,
     ) -> float | None:
         """Advance the experiment; returns a power override, or ``None``.
 
         ``None`` means "the optimizer's plan stands". A number overrides it for
-        this interval, which is how the step is actually injected.
+        this interval, which is how the step is actually injected. The returned
+        value is electrical power, because that is what the rest of the
+        integration speaks; ``cop`` converts it to the thermal quantity the fit
+        needs.
         """
         cfg = self.config
         if not self.active:
@@ -263,7 +275,7 @@ class SystemIdentification:
             return None
 
         if self.phase == PHASE_STEP:
-            self.samples[-1].power_kw = self._step_power
+            self.samples[-1].power_kw = self._step_power * max(cop, 0.1)
             if elapsed >= cfg.step_hours:
                 self.phase = PHASE_RELAX
                 self.phase_started = now
