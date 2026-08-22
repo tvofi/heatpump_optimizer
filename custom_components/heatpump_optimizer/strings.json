@@ -193,7 +193,12 @@
           "hot_water": "Hot water",
           "building": "House and heating system",
           "tuning": "Savings vs comfort",
-          "heat_curve": "Heat curve control (ECL110)"
+          "heat_curve": "Heat curve control (ECL110)",
+          "building_preset": "Building type and emitters",
+          "grid": "Grid costs and cycling",
+          "solar_pv": "Solar panels",
+          "away": "Away and holiday mode",
+          "learning": "Self-learning and diagnostics"
         }
       },
       "entities": {
@@ -211,7 +216,10 @@
           "heat_pump_entity": "Heat pump thermostat",
           "heat_pump_switch_entity": "Heat pump on/off switch",
           "solar_forecast_source": "Solar irradiance source",
-          "solar_location": "Solar irradiance location"
+          "solar_location": "Solar irradiance location",
+          "heat_pump_power_entity": "Heat pump power meter (optional)",
+          "heat_pump_energy_entity": "Heat pump energy meter (optional)",
+          "house_power_entity": "Whole-house power meter (optional)"
         },
         "data_description": {
           "tibber_token": "Used to read your hourly electricity prices. Create one at developer.tibber.com. Leave as-is unless it has changed.",
@@ -225,7 +233,10 @@
           "heat_pump_entity": "Optional. A climate entity the optimizer can set a temperature on.",
           "heat_pump_switch_entity": "Optional. A switch used to turn the heat pump off during expensive hours.",
           "solar_forecast_source": "Where to get solar irradiance from. \"Weather entity\" uses your weather integration, which often does not publish irradiance at all. \"Open-Meteo\" fetches a free forecast for the location below; no account is needed.",
-          "solar_location": "Coordinate used for the Open-Meteo irradiance forecast. Defaults to your Home Assistant home location. Only used when the source is Open-Meteo."
+          "solar_location": "Coordinate used for the Open-Meteo irradiance forecast. Defaults to your Home Assistant home location. Only used when the source is Open-Meteo.",
+          "heat_pump_power_entity": "Actual electrical draw. Without it the integration only knows what it asked the pump to do. With it, efficiency becomes measurable, predicted costs get a real counterpart to check against, and a wood furnace can be detected reliably. Watts or kilowatts both work.",
+          "heat_pump_energy_entity": "A cumulative kWh meter, if you have one. More accurate than adding up power readings between updates, which misses short compressor runs.",
+          "house_power_entity": "Total consumption at the meter. A capacity tariff is billed on the whole house, not on the heat pump alone, so without this the peak the optimizer avoids is only part of the real one."
         }
       },
       "comfort": {
@@ -337,6 +348,102 @@
           "ecl110_displace_max": "How far the heat curve may be shifted up when storing cheap heat.",
           "ecl110_pid_time_constant_hours": "Roughly how long the controller takes to act on a new offset. Used so the optimizer does not ask for changes faster than the system can follow."
         }
+      },
+      "building_preset": {
+        "title": "Building type and emitters",
+        "description": "Answer three questions about the building and the thermal figures on the previous page are worked out for you. These are starting values only — the self-learning model refines them from how your house actually behaves, so they do not have to be exact. Leave this off if you have real values from an energy declaration and prefer to enter them directly.",
+        "data": {
+          "building_preset_enabled": "Derive thermal values from the building type",
+          "building_structure": "What the house is built from",
+          "building_era": "Roughly when it was built",
+          "building_foundation": "Foundation",
+          "heated_area_m2": "Heated floor area",
+          "upper_floor_emitter": "Upper floor heating",
+          "lower_floor_emitter": "Lower floor heating"
+        },
+        "data_description": {
+          "building_preset_enabled": "Turning this on overwrites the thermal mass and heat loss values on the House and heating system page.",
+          "building_structure": "Heavy materials inside the insulation store heat, which is what lets the optimizer buy it cheaply and use it later.",
+          "building_era": "Construction era is a good proxy for insulation standard, and a far better starting point than a single default.",
+          "heated_area_m2": "Everything is scaled by this, so it is the number worth getting closest to right.",
+          "upper_floor_emitter": "Radiators respond in minutes, floor heating in hours. That sets how far ahead heating can usefully be shifted.",
+          "lower_floor_emitter": "A heated slab is a large store that gets actively charged, so it makes pre-heating both more valuable and more necessary."
+        }
+      },
+      "grid": {
+        "title": "Grid costs and cycling",
+        "description": "Costs that are not simply the price per kWh. Many Swedish grid companies also bill a monthly capacity charge based on your highest hours — which means stacking hot water and heating into the same cheap hour can cost more than it saves.",
+        "data": {
+          "peak_tariff_enabled": "My grid bill has a capacity charge",
+          "peak_tariff_price_per_kw": "Capacity charge per kW per month",
+          "peak_tariff_peaks_averaged": "Number of peak hours averaged",
+          "peak_tariff_window_minutes": "Measurement window",
+          "compressor_cycling_cost": "Cost of one compressor start",
+          "price_prior_enabled": "Estimate prices past the published horizon"
+        },
+        "data_description": {
+          "peak_tariff_price_per_kw": "Take this from your grid invoice — it varies a lot between grid companies.",
+          "peak_tariff_peaks_averaged": "Most Swedish tariffs average the three highest hours of the month. Check your invoice.",
+          "peak_tariff_window_minutes": "Hourly for most tariffs. Some newer ones measure every 15 minutes, which is much less forgiving.",
+          "compressor_cycling_cost": "Discourages plans that switch on and off repeatedly. Leave at 0 unless you have reason to think your unit is cycling too much; the planned start count is published on the plan sensors so you can look before deciding.",
+          "price_prior_enabled": "Tomorrow's prices arrive around 13:00. Before then the rest of the horizon used to be a flat repeat of the last price, which hides every cheap hour ahead. This learns your typical daily price shape and uses it instead, and the plan marks which hours are estimated."
+        }
+      },
+      "solar_pv": {
+        "title": "Solar panels",
+        "description": "If you have solar, heating hot water or the buffer from surplus production beats exporting it at the compensation rate. Tell the optimizer about the array and it prices each hour at what consuming actually costs you.",
+        "data": {
+          "pv_enabled": "I have solar panels",
+          "pv_peak_kw": "Installed capacity",
+          "pv_system_efficiency": "Overall system efficiency",
+          "pv_export_price": "Export compensation per kWh",
+          "pv_export_price_entity": "Export compensation entity (optional)",
+          "pv_production_entity": "Solar production sensor (optional)"
+        },
+        "data_description": {
+          "pv_system_efficiency": "Everything between sunlight and the meter: inverter losses, panel temperature, dirt, orientation. 0.8 is typical.",
+          "pv_export_price": "What you are paid for an exported kWh. While you have surplus, that is what an extra kWh of heating really costs.",
+          "pv_export_price_entity": "Use this instead if your compensation follows the spot price."
+        }
+      },
+      "away": {
+        "title": "Away and holiday mode",
+        "description": "A week away is the biggest single saving a heating system can offer. If you also say when you are coming back, the heat needed to warm the house again is bought in the cheapest hours beforehand instead of at whatever the price happens to be when you walk in.",
+        "data": {
+          "away_enabled": "Enable away mode",
+          "away_presence_entity": "Away indicator",
+          "away_return_entity": "Expected return time (optional)",
+          "away_temperature": "Temperature while away",
+          "away_dhw_min_temperature": "Hot water minimum while away"
+        },
+        "data_description": {
+          "away_presence_entity": "A holiday toggle, a person or device tracker, or a calendar. The polarity is handled for you: a person being 'not home' and a holiday toggle being 'on' both mean away.",
+          "away_return_entity": "Without this the house stays at the setback until you manually switch back, and warming up then costs whatever the current price is.",
+          "away_dhw_min_temperature": "The anti-legionella cycle still runs, and is timed to finish before you get back."
+        }
+      },
+      "learning": {
+        "title": "Self-learning and diagnostics",
+        "description": "Watchdogs and optional learning features. The sensor watchdog is on by default and protects everything else; the rest are off until you turn them on.",
+        "data": {
+          "staleness_watchdog_enabled": "Ignore sensors that stop updating",
+          "staleness_max_age_scale": "Allow this much extra age",
+          "external_heat_detection_enabled": "Detect a wood furnace or other heat source",
+          "external_heat_entity": "Stove or flue sensor (optional)",
+          "external_heat_min_rise": "Temperature rise that counts as evidence",
+          "external_heat_decay_minutes": "How long to keep assuming it after it stops",
+          "comfort_learning_enabled": "Learn my comfort preference from overrides",
+          "system_identification_enabled": "Allow a one-off measurement experiment"
+        },
+        "data_description": {
+          "staleness_watchdog_enabled": "A dead battery leaves a perfectly normal-looking value in place forever. Left alone, the model learns from that flatline and the damage survives a restart. With this on, an old value is treated as missing and learning pauses instead.",
+          "staleness_max_age_scale": "Raise this if you have sensors that deliberately report rarely and are being flagged unnecessarily.",
+          "external_heat_detection_enabled": "Spots the tanks warming up when the heat pump is not running. While that is happening, planned electric hot water is held back — paying to heat water that is already being heated for free is the most expensive mistake available.",
+          "external_heat_entity": "If you have a flue thermostat or a stove switch, use it. It is trusted over the automatic detection.",
+          "external_heat_min_rise": "Raise this if normal operation triggers it. Missing a fire costs one unnecessary heating cycle; wrongly assuming one can leave you without hot water.",
+          "comfort_learning_enabled": "Every time you override the temperature, you are saying the plan went too far in one direction. This slowly adjusts the comfort setting from that. The learned value is shown on its own sensor and there is a button to reset it.",
+          "system_identification_enabled": "Lets the optimizer run a small deliberate heating step on a mild, cheap night to measure your house directly, instead of waiting weeks to infer it. The change is kept too small to notice and it stops if the temperature drifts."
+        }
       }
     },
     "error": {
@@ -349,6 +456,42 @@
       "options": {
         "weather": "Weather entity",
         "open_meteo": "Open-Meteo"
+      }
+    },
+    "building_structure": {
+      "options": {
+        "timber_crawlspace": "Timber frame, crawl space or suspended floor",
+        "timber_slab": "Timber frame on a concrete slab",
+        "concrete_slab": "Concrete or brick on a slab",
+        "masonry": "Stone or masonry"
+      }
+    },
+    "building_era": {
+      "options": {
+        "pre_1960": "Before 1960",
+        "1960_1980": "1960–1980",
+        "1980_2005": "1980–2005",
+        "post_2005": "After 2005",
+        "low_energy": "Low-energy or passive house"
+      }
+    },
+    "building_foundation": {
+      "options": {
+        "none": "Slab on ground",
+        "crawlspace": "Crawl space",
+        "heated_basement": "Heated basement"
+      }
+    },
+    "emitter": {
+      "options": {
+        "floor": "Floor heating",
+        "radiators": "Radiators"
+      }
+    },
+    "peak_window": {
+      "options": {
+        "15": "15 minutes",
+        "60": "1 hour"
       }
     }
   }
