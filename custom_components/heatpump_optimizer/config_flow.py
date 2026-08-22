@@ -219,6 +219,53 @@ async def validate_tibber_token(token: str) -> bool:
         return False
 
 
+def _number(
+    minimum: float,
+    maximum: float,
+    step: float,
+    unit: str | None = None,
+    *,
+    slider: bool = False,
+) -> selector.NumberSelector:
+    """A numeric field.
+
+    The nested ``NumberSelector(NumberSelectorConfig(...))`` construction
+    appeared eighty-two times in this file; collapsing it makes each field one
+    readable line, so a form reads as a list of settings rather than as a wall
+    of constructor calls.
+    """
+    config: dict[str, Any] = {
+        "min": minimum,
+        "max": maximum,
+        "step": step,
+        "mode": (
+            selector.NumberSelectorMode.SLIDER
+            if slider
+            else selector.NumberSelectorMode.BOX
+        ),
+    }
+    if unit is not None:
+        config["unit_of_measurement"] = unit
+    return selector.NumberSelector(selector.NumberSelectorConfig(**config))
+
+
+def _temperature(
+    minimum: float, maximum: float, step: float = 0.5, *, slider: bool = True
+) -> selector.NumberSelector:
+    """A temperature in degrees Celsius."""
+    return _number(minimum, maximum, step, "°C", slider=slider)
+
+
+def _entity_of(
+    domain: str | list[str], device_class: str | None = None
+) -> selector.EntitySelector:
+    """An entity picker, optionally narrowed to a device class."""
+    config: dict[str, Any] = {"domain": domain}
+    if device_class is not None:
+        config["device_class"] = device_class
+    return selector.EntitySelector(selector.EntitySelectorConfig(**config))
+
+
 def _select(options: list[str], translation_key: str) -> selector.SelectSelector:
     """A dropdown of fixed options with a translation key for its labels."""
     return selector.SelectSelector(
@@ -290,28 +337,12 @@ class HeatPumpOptimizerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 {
                     vol.Required(CONF_NAME, default="Heat Pump Optimizer"): str,
                     vol.Required(CONF_TIBBER_TOKEN): str,
-                    vol.Required(CONF_WEATHER_ENTITY): selector.EntitySelector(
-                        selector.EntitySelectorConfig(domain="weather")
-                    ),
-                    vol.Optional(CONF_INDOOR_TEMP_ENTITY): selector.EntitySelector(
-                        selector.EntitySelectorConfig(
-                            domain="sensor", device_class="temperature"
-                        )
-                    ),
-                    vol.Optional(CONF_OUTDOOR_TEMP_ENTITY): selector.EntitySelector(
-                        selector.EntitySelectorConfig(
-                            domain="sensor", device_class="temperature"
-                        )
-                    ),
-                    vol.Optional(CONF_HEAT_PUMP_ENTITY): selector.EntitySelector(
-                        selector.EntitySelectorConfig(domain="climate")
-                    ),
-                    vol.Optional(CONF_HEAT_PUMP_SWITCH_ENTITY): selector.EntitySelector(
-                        selector.EntitySelectorConfig(domain="switch")
-                    ),
-                    vol.Optional(CONF_SOLAR_RADIATION_ENTITY): selector.EntitySelector(
-                        selector.EntitySelectorConfig(domain="sensor")
-                    ),
+                    vol.Required(CONF_WEATHER_ENTITY): _entity_of("weather"),
+                    vol.Optional(CONF_INDOOR_TEMP_ENTITY): _entity_of("sensor", "temperature"),
+                    vol.Optional(CONF_OUTDOOR_TEMP_ENTITY): _entity_of("sensor", "temperature"),
+                    vol.Optional(CONF_HEAT_PUMP_ENTITY): _entity_of("climate"),
+                    vol.Optional(CONF_HEAT_PUMP_SWITCH_ENTITY): _entity_of("switch"),
+                    vol.Optional(CONF_SOLAR_RADIATION_ENTITY): _entity_of("sensor"),
                     vol.Optional(
                         CONF_SOLAR_FORECAST_SOURCE,
                         default=DEFAULT_SOLAR_FORECAST_SOURCE,
@@ -320,23 +351,11 @@ class HeatPumpOptimizerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         CONF_SOLAR_LOCATION,
                         default=_default_location(self.hass, {}),
                     ): _solar_location_selector(),
-                    vol.Optional(CONF_FLOOR_RETURN_TEMP_ENTITY): selector.EntitySelector(
-                        selector.EntitySelectorConfig(
-                            domain="sensor", device_class="temperature"
-                        )
-                    ),
-                    vol.Optional(CONF_DHW_TEMP_ENTITY): selector.EntitySelector(
-                        selector.EntitySelectorConfig(
-                            domain="sensor", device_class="temperature"
-                        )
-                    ),
+                    vol.Optional(CONF_FLOOR_RETURN_TEMP_ENTITY): _entity_of("sensor", "temperature"),
+                    vol.Optional(CONF_DHW_TEMP_ENTITY): _entity_of("sensor", "temperature"),
                     vol.Optional(
                         CONF_BUFFER_TANK_TEMP_ENTITY
-                    ): selector.EntitySelector(
-                        selector.EntitySelectorConfig(
-                            domain="sensor", device_class="temperature"
-                        )
-                    ),
+                    ): _entity_of("sensor", "temperature"),
                     vol.Optional(
                         CONF_ECL110_DISPLACE_SET_TOPIC,
                         default=DEFAULT_ECL110_DISPLACE_SET_TOPIC,
@@ -352,12 +371,7 @@ class HeatPumpOptimizerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Optional(
                         CONF_ECL110_QOS,
                         default=DEFAULT_ECL110_QOS,
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=0, max=2, step=1,
-                            mode=selector.NumberSelectorMode.SLIDER,
-                        )
-                    ),
+                    ): _number(0, 2, 1, slider=True),
                     vol.Optional(
                         CONF_ECL110_RETAIN,
                         default=DEFAULT_ECL110_RETAIN,
@@ -365,33 +379,15 @@ class HeatPumpOptimizerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Optional(
                         CONF_ECL110_DISPLACE_MIN,
                         default=DEFAULT_ECL110_DISPLACE_MIN,
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=-30, max=0, step=0.5,
-                            unit_of_measurement="°C",
-                            mode=selector.NumberSelectorMode.BOX,
-                        )
-                    ),
+                    ): _number(-30, 0, 0.5, "°C"),
                     vol.Optional(
                         CONF_ECL110_DISPLACE_MAX,
                         default=DEFAULT_ECL110_DISPLACE_MAX,
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=0, max=30, step=0.5,
-                            unit_of_measurement="°C",
-                            mode=selector.NumberSelectorMode.BOX,
-                        )
-                    ),
+                    ): _number(0, 30, 0.5, "°C"),
                     vol.Optional(
                         CONF_ECL110_PID_TIME_CONSTANT,
                         default=DEFAULT_ECL110_PID_TIME_CONSTANT,
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=0.25, max=6.0, step=0.25,
-                            unit_of_measurement="h",
-                            mode=selector.NumberSelectorMode.BOX,
-                        )
-                    ),
+                    ): _number(0.25, 6.0, 0.25, "h"),
                 }
             ),
             errors=errors,
@@ -414,65 +410,25 @@ class HeatPumpOptimizerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 {
                     vol.Required(
                         CONF_TARGET_TEMP, default=DEFAULT_TARGET_TEMP
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=15, max=28, step=0.5,
-                            unit_of_measurement="°C",
-                            mode=selector.NumberSelectorMode.SLIDER,
-                        )
-                    ),
+                    ): _number(15, 28, 0.5, "°C", slider=True),
                     vol.Required(
                         CONF_MIN_TEMP, default=DEFAULT_MIN_TEMP
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=14, max=25, step=0.5,
-                            unit_of_measurement="°C",
-                            mode=selector.NumberSelectorMode.SLIDER,
-                        )
-                    ),
+                    ): _number(14, 25, 0.5, "°C", slider=True),
                     vol.Required(
                         CONF_MAX_TEMP, default=DEFAULT_MAX_TEMP
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=18, max=28, step=0.5,
-                            unit_of_measurement="°C",
-                            mode=selector.NumberSelectorMode.SLIDER,
-                        )
-                    ),
+                    ): _number(18, 28, 0.5, "°C", slider=True),
                     vol.Required(
                         CONF_COMFORT_TEMP_DAY, default=DEFAULT_COMFORT_TEMP_DAY
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=16, max=26, step=0.5,
-                            unit_of_measurement="°C",
-                            mode=selector.NumberSelectorMode.SLIDER,
-                        )
-                    ),
+                    ): _number(16, 26, 0.5, "°C", slider=True),
                     vol.Required(
                         CONF_COMFORT_TEMP_NIGHT, default=DEFAULT_COMFORT_TEMP_NIGHT
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=15, max=24, step=0.5,
-                            unit_of_measurement="°C",
-                            mode=selector.NumberSelectorMode.SLIDER,
-                        )
-                    ),
+                    ): _number(15, 24, 0.5, "°C", slider=True),
                     vol.Required(
                         CONF_DAY_START_HOUR, default=DEFAULT_DAY_START_HOUR
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=0, max=12, step=1,
-                            mode=selector.NumberSelectorMode.SLIDER,
-                        )
-                    ),
+                    ): _number(0, 12, 1, slider=True),
                     vol.Required(
                         CONF_DAY_END_HOUR, default=DEFAULT_DAY_END_HOUR
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=18, max=23, step=1,
-                            mode=selector.NumberSelectorMode.SLIDER,
-                        )
-                    ),
+                    ): _number(18, 23, 1, slider=True),
                 }
             ),
         )
@@ -491,94 +447,37 @@ class HeatPumpOptimizerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 {
                     vol.Required(
                         CONF_HOUSE_THERMAL_MASS, default=DEFAULT_HOUSE_THERMAL_MASS
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=2, max=50, step=0.5,
-                            unit_of_measurement="kWh/°C",
-                            mode=selector.NumberSelectorMode.BOX,
-                        )
-                    ),
+                    ): _number(2, 50, 0.5, "kWh/°C"),
                     vol.Required(
                         CONF_HOUSE_HEAT_LOSS_COEFFICIENT,
                         default=DEFAULT_HOUSE_HEAT_LOSS_COEFFICIENT,
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=0.05, max=1.0, step=0.01,
-                            unit_of_measurement="kW/°C",
-                            mode=selector.NumberSelectorMode.BOX,
-                        )
-                    ),
+                    ): _number(0.05, 1.0, 0.01, "kW/°C"),
                     vol.Required(
                         CONF_SLAB_THERMAL_MASS, default=DEFAULT_SLAB_THERMAL_MASS
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=1, max=30, step=0.5,
-                            unit_of_measurement="kWh/°C",
-                            mode=selector.NumberSelectorMode.BOX,
-                        )
-                    ),
+                    ): _number(1, 30, 0.5, "kWh/°C"),
                     vol.Required(
                         CONF_SLAB_HEAT_TRANSFER, default=DEFAULT_SLAB_HEAT_TRANSFER
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=0.1, max=5.0, step=0.1,
-                            unit_of_measurement="kW/°C",
-                            mode=selector.NumberSelectorMode.BOX,
-                        )
-                    ),
+                    ): _number(0.1, 5.0, 0.1, "kW/°C"),
                     vol.Required(
                         CONF_HEAT_PUMP_COP_NOMINAL,
                         default=DEFAULT_HEAT_PUMP_COP_NOMINAL,
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=1.5, max=6.0, step=0.1,
-                            mode=selector.NumberSelectorMode.BOX,
-                        )
-                    ),
+                    ): _number(1.5, 6.0, 0.1),
                     vol.Required(
                         CONF_HEAT_PUMP_MAX_POWER, default=DEFAULT_HEAT_PUMP_MAX_POWER
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=1, max=20, step=0.5,
-                            unit_of_measurement="kW",
-                            mode=selector.NumberSelectorMode.BOX,
-                        )
-                    ),
+                    ): _number(1, 20, 0.5, "kW"),
                     vol.Required(
                         CONF_HEAT_PUMP_MIN_POWER, default=DEFAULT_HEAT_PUMP_MIN_POWER
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=0, max=10, step=0.5,
-                            unit_of_measurement="kW",
-                            mode=selector.NumberSelectorMode.BOX,
-                        )
-                    ),
+                    ): _number(0, 10, 0.5, "kW"),
                     vol.Required(
                         CONF_OPTIMIZATION_INTERVAL,
                         default=DEFAULT_OPTIMIZATION_INTERVAL,
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=10, max=120, step=5,
-                            unit_of_measurement="min",
-                            mode=selector.NumberSelectorMode.SLIDER,
-                        )
-                    ),
+                    ): _number(10, 120, 5, "min", slider=True),
                     vol.Required(
                         CONF_PRICE_WEIGHT, default=DEFAULT_PRICE_WEIGHT
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=0.1, max=10, step=0.1,
-                            mode=selector.NumberSelectorMode.BOX,
-                        )
-                    ),
+                    ): _number(0.1, 10, 0.1),
                     vol.Required(
                         CONF_COMFORT_WEIGHT, default=DEFAULT_COMFORT_WEIGHT
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=0.1, max=20, step=0.1,
-                            mode=selector.NumberSelectorMode.BOX,
-                        )
-                    ),
+                    ): _number(0.1, 20, 0.1),
                 }
             ),
         )
@@ -598,108 +497,46 @@ class HeatPumpOptimizerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Optional(
                         CONF_UPPER_FLOOR_THERMAL_MASS,
                         default=DEFAULT_UPPER_FLOOR_THERMAL_MASS,
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=1, max=20, step=0.5,
-                            unit_of_measurement="kWh/°C",
-                            mode=selector.NumberSelectorMode.BOX,
-                        )
-                    ),
+                    ): _number(1, 20, 0.5, "kWh/°C"),
                     vol.Optional(
                         CONF_LOWER_FLOOR_THERMAL_MASS,
                         default=DEFAULT_LOWER_FLOOR_THERMAL_MASS,
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=1, max=30, step=0.5,
-                            unit_of_measurement="kWh/°C",
-                            mode=selector.NumberSelectorMode.BOX,
-                        )
-                    ),
+                    ): _number(1, 30, 0.5, "kWh/°C"),
                     vol.Optional(
                         CONF_UPPER_FLOOR_HEAT_LOSS,
                         default=DEFAULT_UPPER_FLOOR_HEAT_LOSS,
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=0.01, max=0.5, step=0.01,
-                            unit_of_measurement="kW/°C",
-                            mode=selector.NumberSelectorMode.BOX,
-                        )
-                    ),
+                    ): _number(0.01, 0.5, 0.01, "kW/°C"),
                     vol.Optional(
                         CONF_LOWER_FLOOR_HEAT_LOSS,
                         default=DEFAULT_LOWER_FLOOR_HEAT_LOSS,
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=0.01, max=0.5, step=0.01,
-                            unit_of_measurement="kW/°C",
-                            mode=selector.NumberSelectorMode.BOX,
-                        )
-                    ),
+                    ): _number(0.01, 0.5, 0.01, "kW/°C"),
                     vol.Optional(
                         CONF_INTER_ZONE_TRANSFER,
                         default=DEFAULT_INTER_ZONE_TRANSFER,
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=0.0, max=3.0, step=0.1,
-                            unit_of_measurement="kW/°C",
-                            mode=selector.NumberSelectorMode.BOX,
-                        )
-                    ),
+                    ): _number(0.0, 3.0, 0.1, "kW/°C"),
                     vol.Optional(
                         CONF_RADIATOR_POWER_FRACTION,
                         default=DEFAULT_RADIATOR_POWER_FRACTION,
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=0.0, max=1.0, step=0.05,
-                            mode=selector.NumberSelectorMode.SLIDER,
-                        )
-                    ),
+                    ): _number(0.0, 1.0, 0.05, slider=True),
                     vol.Optional(
                         CONF_UPPER_FLOOR_AREA_RATIO,
                         default=DEFAULT_UPPER_FLOOR_AREA_RATIO,
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=0.1, max=0.9, step=0.05,
-                            mode=selector.NumberSelectorMode.SLIDER,
-                        )
-                    ),
+                    ): _number(0.1, 0.9, 0.05, slider=True),
                     vol.Optional(
                         CONF_BUFFER_TANK_VOLUME,
                         default=DEFAULT_BUFFER_TANK_VOLUME,
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=10, max=1500, step=5,
-                            unit_of_measurement="L",
-                            mode=selector.NumberSelectorMode.BOX,
-                        )
-                    ),
+                    ): _number(10, 1500, 5, "L"),
                     vol.Optional(
                         CONF_WINDOW_AREA, default=DEFAULT_WINDOW_AREA
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=0, max=50, step=0.5,
-                            unit_of_measurement="m²",
-                            mode=selector.NumberSelectorMode.BOX,
-                        )
-                    ),
+                    ): _number(0, 50, 0.5, "m²"),
                     vol.Optional(
                         CONF_SOLAR_ORIENTATION_FACTOR,
                         default=DEFAULT_SOLAR_ORIENTATION_FACTOR,
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=0.0, max=1.0, step=0.05,
-                            mode=selector.NumberSelectorMode.SLIDER,
-                        )
-                    ),
+                    ): _number(0.0, 1.0, 0.05, slider=True),
                     vol.Optional(
                         CONF_SOLAR_HEAT_GAIN_COEFF,
                         default=DEFAULT_SOLAR_HEAT_GAIN_COEFF,
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=0.1, max=1.0, step=0.05,
-                            mode=selector.NumberSelectorMode.SLIDER,
-                        )
-                    ),
+                    ): _number(0.1, 1.0, 0.05, slider=True),
                 }
             ),
         )
@@ -724,53 +561,23 @@ class HeatPumpOptimizerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Optional(
                         CONF_DHW_TANK_VOLUME,
                         default=DEFAULT_DHW_TANK_VOLUME,
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=50, max=1500, step=10,
-                            unit_of_measurement="L",
-                            mode=selector.NumberSelectorMode.BOX,
-                        )
-                    ),
+                    ): _number(50, 1500, 10, "L"),
                     vol.Optional(
                         CONF_DHW_SETPOINT,
                         default=DEFAULT_DHW_SETPOINT,
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=40, max=65, step=1,
-                            unit_of_measurement="°C",
-                            mode=selector.NumberSelectorMode.SLIDER,
-                        )
-                    ),
+                    ): _number(40, 65, 1, "°C", slider=True),
                     vol.Optional(
                         CONF_DHW_MIN_TEMP,
                         default=DEFAULT_DHW_MIN_TEMP,
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=35, max=55, step=1,
-                            unit_of_measurement="°C",
-                            mode=selector.NumberSelectorMode.SLIDER,
-                        )
-                    ),
+                    ): _number(35, 55, 1, "°C", slider=True),
                     vol.Optional(
                         CONF_DHW_DAILY_CONSUMPTION,
                         default=DEFAULT_DHW_DAILY_CONSUMPTION,
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=50, max=1500, step=10,
-                            unit_of_measurement="L/day",
-                            mode=selector.NumberSelectorMode.BOX,
-                        )
-                    ),
+                    ): _number(50, 1500, 10, "L/day"),
                     vol.Optional(
                         CONF_DHW_COOLING_RATE,
                         default=DEFAULT_DHW_COOLING_RATE,
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=0.05, max=3.0, step=0.05,
-                            unit_of_measurement="°C/h",
-                            mode=selector.NumberSelectorMode.BOX,
-                        )
-                    ),
+                    ): _number(0.05, 3.0, 0.05, "°C/h"),
                     vol.Optional(
                         CONF_DHW_SCHEDULE_ENABLED,
                         default=DEFAULT_DHW_SCHEDULE_ENABLED,
@@ -786,13 +593,7 @@ class HeatPumpOptimizerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Optional(
                         CONF_DHW_IDLE_MIN_TEMP,
                         default=DEFAULT_DHW_IDLE_MIN_TEMP,
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=10, max=55, step=1,
-                            unit_of_measurement="°C",
-                            mode=selector.NumberSelectorMode.SLIDER,
-                        )
-                    ),
+                    ): _number(10, 55, 1, "°C", slider=True),
                     vol.Optional(
                         CONF_DHW_LEGIONELLA_ENABLED,
                         default=DEFAULT_DHW_LEGIONELLA_ENABLED,
@@ -800,23 +601,11 @@ class HeatPumpOptimizerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Optional(
                         CONF_DHW_LEGIONELLA_TEMP,
                         default=DEFAULT_DHW_LEGIONELLA_TEMP,
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=55, max=70, step=1,
-                            unit_of_measurement="°C",
-                            mode=selector.NumberSelectorMode.SLIDER,
-                        )
-                    ),
+                    ): _number(55, 70, 1, "°C", slider=True),
                     vol.Optional(
                         CONF_DHW_LEGIONELLA_INTERVAL_DAYS,
                         default=DEFAULT_DHW_LEGIONELLA_INTERVAL_DAYS,
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=1, max=30, step=1,
-                            unit_of_measurement="days",
-                            mode=selector.NumberSelectorMode.SLIDER,
-                        )
-                    ),
+                    ): _number(1, 30, 1, "days", slider=True),
                 }
             ),
         )
@@ -839,21 +628,11 @@ class HeatPumpOptimizerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Optional(
                         CONF_WIND_SENSITIVITY,
                         default=DEFAULT_WIND_SENSITIVITY,
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=0.0, max=0.5, step=0.01,
-                            mode=selector.NumberSelectorMode.BOX,
-                        )
-                    ),
+                    ): _number(0.0, 0.5, 0.01),
                     vol.Optional(
                         CONF_RAIN_HEAT_LOSS_MULTIPLIER,
                         default=DEFAULT_RAIN_HEAT_LOSS_MULTIPLIER,
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=1.0, max=1.5, step=0.01,
-                            mode=selector.NumberSelectorMode.BOX,
-                        )
-                    ),
+                    ): _number(1.0, 1.5, 0.01),
                 }
             ),
         )
@@ -1010,22 +789,10 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
                     vol.Required(
                         CONF_WEATHER_ENTITY,
                         default=current.get(CONF_WEATHER_ENTITY, ""),
-                    ): selector.EntitySelector(
-                        selector.EntitySelectorConfig(domain="weather")
-                    ),
-                    _entity(CONF_INDOOR_TEMP_ENTITY): selector.EntitySelector(
-                        selector.EntitySelectorConfig(
-                            domain="sensor", device_class="temperature"
-                        )
-                    ),
-                    _entity(CONF_OUTDOOR_TEMP_ENTITY): selector.EntitySelector(
-                        selector.EntitySelectorConfig(
-                            domain="sensor", device_class="temperature"
-                        )
-                    ),
-                    _entity(CONF_SOLAR_RADIATION_ENTITY): selector.EntitySelector(
-                        selector.EntitySelectorConfig(domain="sensor")
-                    ),
+                    ): _entity_of("weather"),
+                    _entity(CONF_INDOOR_TEMP_ENTITY): _entity_of("sensor", "temperature"),
+                    _entity(CONF_OUTDOOR_TEMP_ENTITY): _entity_of("sensor", "temperature"),
+                    _entity(CONF_SOLAR_RADIATION_ENTITY): _entity_of("sensor"),
                     vol.Optional(
                         CONF_SOLAR_FORECAST_SOURCE,
                         default=current.get(
@@ -1037,50 +804,22 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
                         CONF_SOLAR_LOCATION,
                         default=_default_location(self.hass, current),
                     ): _solar_location_selector(),
-                    _entity(CONF_DHW_TEMP_ENTITY): selector.EntitySelector(
-                        selector.EntitySelectorConfig(
-                            domain="sensor", device_class="temperature"
-                        )
-                    ),
-                    _entity(CONF_BUFFER_TANK_TEMP_ENTITY): selector.EntitySelector(
-                        selector.EntitySelectorConfig(
-                            domain="sensor", device_class="temperature"
-                        )
-                    ),
-                    _entity(CONF_FLOOR_RETURN_TEMP_ENTITY): selector.EntitySelector(
-                        selector.EntitySelectorConfig(
-                            domain="sensor", device_class="temperature"
-                        )
-                    ),
-                    _entity(CONF_HEAT_PUMP_ENTITY): selector.EntitySelector(
-                        selector.EntitySelectorConfig(domain="climate")
-                    ),
-                    _entity(CONF_HEAT_PUMP_SWITCH_ENTITY): selector.EntitySelector(
-                        selector.EntitySelectorConfig(domain="switch")
-                    ),
+                    _entity(CONF_DHW_TEMP_ENTITY): _entity_of("sensor", "temperature"),
+                    _entity(CONF_BUFFER_TANK_TEMP_ENTITY): _entity_of("sensor", "temperature"),
+                    _entity(CONF_FLOOR_RETURN_TEMP_ENTITY): _entity_of("sensor", "temperature"),
+                    _entity(CONF_HEAT_PUMP_ENTITY): _entity_of("climate"),
+                    _entity(CONF_HEAT_PUMP_SWITCH_ENTITY): _entity_of("switch"),
                     # Measured electrical draw. Optional, and everything that
                     # uses it degrades cleanly without it — but with it, COP
                     # becomes observable, predicted cost gets a realised
                     # counterpart, and the external-heat detector gets its
                     # cleanest signal.
-                    _entity(CONF_POWER_ENTITY): selector.EntitySelector(
-                        selector.EntitySelectorConfig(
-                            domain="sensor", device_class="power"
-                        )
-                    ),
-                    _entity(CONF_ENERGY_ENTITY): selector.EntitySelector(
-                        selector.EntitySelectorConfig(
-                            domain="sensor", device_class="energy"
-                        )
-                    ),
+                    _entity(CONF_POWER_ENTITY): _entity_of("sensor", "power"),
+                    _entity(CONF_ENERGY_ENTITY): _entity_of("sensor", "energy"),
                     # Whole-house load. The capacity tariff is metered at the
                     # connection point, not at the heat pump, so without this
                     # the peak model only sees part of the picture.
-                    _entity(CONF_HOUSE_POWER_ENTITY): selector.EntitySelector(
-                        selector.EntitySelectorConfig(
-                            domain="sensor", device_class="power"
-                        )
-                    ),
+                    _entity(CONF_HOUSE_POWER_ENTITY): _entity_of("sensor", "power"),
                 }
             ),
         )
@@ -1100,77 +839,37 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
                     vol.Required(
                         CONF_TARGET_TEMP,
                         default=current.get(CONF_TARGET_TEMP, DEFAULT_TARGET_TEMP),
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=15, max=28, step=0.5,
-                            unit_of_measurement="°C",
-                            mode=selector.NumberSelectorMode.SLIDER,
-                        )
-                    ),
+                    ): _number(15, 28, 0.5, "°C", slider=True),
                     vol.Required(
                         CONF_MIN_TEMP,
                         default=current.get(CONF_MIN_TEMP, DEFAULT_MIN_TEMP),
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=14, max=25, step=0.5,
-                            unit_of_measurement="°C",
-                            mode=selector.NumberSelectorMode.SLIDER,
-                        )
-                    ),
+                    ): _number(14, 25, 0.5, "°C", slider=True),
                     vol.Required(
                         CONF_MAX_TEMP,
                         default=current.get(CONF_MAX_TEMP, DEFAULT_MAX_TEMP),
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=18, max=28, step=0.5,
-                            unit_of_measurement="°C",
-                            mode=selector.NumberSelectorMode.SLIDER,
-                        )
-                    ),
+                    ): _number(18, 28, 0.5, "°C", slider=True),
                     vol.Required(
                         CONF_COMFORT_TEMP_DAY,
                         default=current.get(
                             CONF_COMFORT_TEMP_DAY, DEFAULT_COMFORT_TEMP_DAY
                         ),
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=16, max=26, step=0.5,
-                            unit_of_measurement="°C",
-                            mode=selector.NumberSelectorMode.SLIDER,
-                        )
-                    ),
+                    ): _number(16, 26, 0.5, "°C", slider=True),
                     vol.Required(
                         CONF_COMFORT_TEMP_NIGHT,
                         default=current.get(
                             CONF_COMFORT_TEMP_NIGHT, DEFAULT_COMFORT_TEMP_NIGHT
                         ),
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=15, max=24, step=0.5,
-                            unit_of_measurement="°C",
-                            mode=selector.NumberSelectorMode.SLIDER,
-                        )
-                    ),
+                    ): _number(15, 24, 0.5, "°C", slider=True),
                     vol.Required(
                         CONF_DAY_START_HOUR,
                         default=current.get(
                             CONF_DAY_START_HOUR, DEFAULT_DAY_START_HOUR
                         ),
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=0, max=12, step=1,
-                            mode=selector.NumberSelectorMode.SLIDER,
-                        )
-                    ),
+                    ): _number(0, 12, 1, slider=True),
                     vol.Required(
                         CONF_DAY_END_HOUR,
                         default=current.get(CONF_DAY_END_HOUR, DEFAULT_DAY_END_HOUR),
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=18, max=23, step=1,
-                            mode=selector.NumberSelectorMode.SLIDER,
-                        )
-                    ),
+                    ): _number(18, 23, 1, slider=True),
                 }
             ),
         )
@@ -1212,71 +911,35 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
                     vol.Optional(
                         CONF_DHW_MIN_TEMP,
                         default=current.get(CONF_DHW_MIN_TEMP, DEFAULT_DHW_MIN_TEMP),
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=35, max=55, step=1,
-                            unit_of_measurement="°C",
-                            mode=selector.NumberSelectorMode.SLIDER,
-                        )
-                    ),
+                    ): _number(35, 55, 1, "°C", slider=True),
                     vol.Optional(
                         CONF_DHW_IDLE_MIN_TEMP,
                         default=current.get(
                             CONF_DHW_IDLE_MIN_TEMP, DEFAULT_DHW_IDLE_MIN_TEMP
                         ),
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=10, max=55, step=1,
-                            unit_of_measurement="°C",
-                            mode=selector.NumberSelectorMode.SLIDER,
-                        )
-                    ),
+                    ): _number(10, 55, 1, "°C", slider=True),
                     vol.Optional(
                         CONF_DHW_SETPOINT,
                         default=current.get(CONF_DHW_SETPOINT, DEFAULT_DHW_SETPOINT),
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=40, max=65, step=1,
-                            unit_of_measurement="°C",
-                            mode=selector.NumberSelectorMode.SLIDER,
-                        )
-                    ),
+                    ): _number(40, 65, 1, "°C", slider=True),
                     vol.Optional(
                         CONF_DHW_TANK_VOLUME,
                         default=current.get(
                             CONF_DHW_TANK_VOLUME, DEFAULT_DHW_TANK_VOLUME
                         ),
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=50, max=1500, step=10,
-                            unit_of_measurement="L",
-                            mode=selector.NumberSelectorMode.BOX,
-                        )
-                    ),
+                    ): _number(50, 1500, 10, "L"),
                     vol.Optional(
                         CONF_DHW_DAILY_CONSUMPTION,
                         default=current.get(
                             CONF_DHW_DAILY_CONSUMPTION, DEFAULT_DHW_DAILY_CONSUMPTION
                         ),
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=50, max=1500, step=10,
-                            unit_of_measurement="L/day",
-                            mode=selector.NumberSelectorMode.BOX,
-                        )
-                    ),
+                    ): _number(50, 1500, 10, "L/day"),
                     vol.Optional(
                         CONF_DHW_COOLING_RATE,
                         default=current.get(
                             CONF_DHW_COOLING_RATE, DEFAULT_DHW_COOLING_RATE
                         ),
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=0.05, max=3.0, step=0.05,
-                            unit_of_measurement="°C/h",
-                            mode=selector.NumberSelectorMode.BOX,
-                        )
-                    ),
+                    ): _number(0.05, 3.0, 0.05, "°C/h"),
                     vol.Optional(
                         CONF_DHW_LEGIONELLA_ENABLED,
                         default=current.get(
@@ -1289,26 +952,14 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
                         default=current.get(
                             CONF_DHW_LEGIONELLA_TEMP, DEFAULT_DHW_LEGIONELLA_TEMP
                         ),
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=55, max=70, step=1,
-                            unit_of_measurement="°C",
-                            mode=selector.NumberSelectorMode.SLIDER,
-                        )
-                    ),
+                    ): _number(55, 70, 1, "°C", slider=True),
                     vol.Optional(
                         CONF_DHW_LEGIONELLA_INTERVAL_DAYS,
                         default=current.get(
                             CONF_DHW_LEGIONELLA_INTERVAL_DAYS,
                             DEFAULT_DHW_LEGIONELLA_INTERVAL_DAYS,
                         ),
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=1, max=30, step=1,
-                            unit_of_measurement="days",
-                            mode=selector.NumberSelectorMode.SLIDER,
-                        )
-                    ),
+                    ): _number(1, 30, 1, "days", slider=True),
                 }
             ),
         )
@@ -1330,70 +981,38 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
                         default=current.get(
                             CONF_BUFFER_TANK_VOLUME, DEFAULT_BUFFER_TANK_VOLUME
                         ),
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=10, max=1500, step=5,
-                            unit_of_measurement="L",
-                            mode=selector.NumberSelectorMode.BOX,
-                        )
-                    ),
+                    ): _number(10, 1500, 5, "L"),
                     vol.Optional(
                         CONF_RADIATOR_POWER_FRACTION,
                         default=current.get(
                             CONF_RADIATOR_POWER_FRACTION,
                             DEFAULT_RADIATOR_POWER_FRACTION,
                         ),
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=0.0, max=1.0, step=0.05,
-                            mode=selector.NumberSelectorMode.SLIDER,
-                        )
-                    ),
+                    ): _number(0.0, 1.0, 0.05, slider=True),
                     vol.Optional(
                         CONF_WINDOW_AREA,
                         default=current.get(CONF_WINDOW_AREA, DEFAULT_WINDOW_AREA),
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=0, max=50, step=0.5,
-                            unit_of_measurement="m²",
-                            mode=selector.NumberSelectorMode.BOX,
-                        )
-                    ),
+                    ): _number(0, 50, 0.5, "m²"),
                     vol.Optional(
                         CONF_SOLAR_HEAT_GAIN_COEFF,
                         default=current.get(
                             CONF_SOLAR_HEAT_GAIN_COEFF,
                             DEFAULT_SOLAR_HEAT_GAIN_COEFF,
                         ),
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=0.1, max=1.0, step=0.05,
-                            mode=selector.NumberSelectorMode.SLIDER,
-                        )
-                    ),
+                    ): _number(0.1, 1.0, 0.05, slider=True),
                     vol.Optional(
                         CONF_WIND_SENSITIVITY,
                         default=current.get(
                             CONF_WIND_SENSITIVITY, DEFAULT_WIND_SENSITIVITY
                         ),
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=0.0, max=0.5, step=0.01,
-                            mode=selector.NumberSelectorMode.BOX,
-                        )
-                    ),
+                    ): _number(0.0, 0.5, 0.01),
                     vol.Optional(
                         CONF_RAIN_HEAT_LOSS_MULTIPLIER,
                         default=current.get(
                             CONF_RAIN_HEAT_LOSS_MULTIPLIER,
                             DEFAULT_RAIN_HEAT_LOSS_MULTIPLIER,
                         ),
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=1.0, max=1.5, step=0.01,
-                            mode=selector.NumberSelectorMode.BOX,
-                        )
-                    ),
+                    ): _number(1.0, 1.5, 0.01),
                 }
             ),
         )
@@ -1413,35 +1032,19 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
                     vol.Required(
                         CONF_PRICE_WEIGHT,
                         default=current.get(CONF_PRICE_WEIGHT, DEFAULT_PRICE_WEIGHT),
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=0.1, max=10, step=0.1,
-                            mode=selector.NumberSelectorMode.BOX,
-                        )
-                    ),
+                    ): _number(0.1, 10, 0.1),
                     vol.Required(
                         CONF_COMFORT_WEIGHT,
                         default=current.get(
                             CONF_COMFORT_WEIGHT, DEFAULT_COMFORT_WEIGHT
                         ),
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=0.1, max=20, step=0.1,
-                            mode=selector.NumberSelectorMode.BOX,
-                        )
-                    ),
+                    ): _number(0.1, 20, 0.1),
                     vol.Required(
                         CONF_OPTIMIZATION_INTERVAL,
                         default=current.get(
                             CONF_OPTIMIZATION_INTERVAL, DEFAULT_OPTIMIZATION_INTERVAL
                         ),
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=10, max=120, step=5,
-                            unit_of_measurement="min",
-                            mode=selector.NumberSelectorMode.SLIDER,
-                        )
-                    ),
+                    ): _number(10, 120, 5, "min", slider=True),
                 }
             ),
         )
@@ -1480,12 +1083,7 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
                     vol.Optional(
                         CONF_ECL110_QOS,
                         default=current.get(CONF_ECL110_QOS, DEFAULT_ECL110_QOS),
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=0, max=2, step=1,
-                            mode=selector.NumberSelectorMode.SLIDER,
-                        )
-                    ),
+                    ): _number(0, 2, 1, slider=True),
                     vol.Optional(
                         CONF_ECL110_RETAIN,
                         default=current.get(CONF_ECL110_RETAIN, DEFAULT_ECL110_RETAIN),
@@ -1495,38 +1093,20 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
                         default=current.get(
                             CONF_ECL110_DISPLACE_MIN, DEFAULT_ECL110_DISPLACE_MIN
                         ),
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=-30, max=0, step=0.5,
-                            unit_of_measurement="°C",
-                            mode=selector.NumberSelectorMode.BOX,
-                        )
-                    ),
+                    ): _number(-30, 0, 0.5, "°C"),
                     vol.Optional(
                         CONF_ECL110_DISPLACE_MAX,
                         default=current.get(
                             CONF_ECL110_DISPLACE_MAX, DEFAULT_ECL110_DISPLACE_MAX
                         ),
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=0, max=30, step=0.5,
-                            unit_of_measurement="°C",
-                            mode=selector.NumberSelectorMode.BOX,
-                        )
-                    ),
+                    ): _number(0, 30, 0.5, "°C"),
                     vol.Optional(
                         CONF_ECL110_PID_TIME_CONSTANT,
                         default=current.get(
                             CONF_ECL110_PID_TIME_CONSTANT,
                             DEFAULT_ECL110_PID_TIME_CONSTANT,
                         ),
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=0.25, max=6.0, step=0.25,
-                            unit_of_measurement="h",
-                            mode=selector.NumberSelectorMode.BOX,
-                        )
-                    ),
+                    ): _number(0.25, 6.0, 0.25, "h"),
                 }
             ),
         )
@@ -1604,13 +1184,7 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
                     vol.Optional(
                         CONF_HEATED_AREA,
                         default=current.get(CONF_HEATED_AREA, DEFAULT_HEATED_AREA),
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=20, max=1000, step=5,
-                            unit_of_measurement="m²",
-                            mode=selector.NumberSelectorMode.BOX,
-                        )
-                    ),
+                    ): _number(20, 1000, 5, "m²"),
                     vol.Optional(
                         CONF_UPPER_EMITTER,
                         default=current.get(
@@ -1648,23 +1222,13 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
                         default=current.get(
                             CONF_PEAK_TARIFF_PRICE, DEFAULT_PEAK_TARIFF_PRICE
                         ),
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=0, max=500, step=1,
-                            mode=selector.NumberSelectorMode.BOX,
-                        )
-                    ),
+                    ): _number(0, 500, 1),
                     vol.Optional(
                         CONF_PEAK_TARIFF_COUNT,
                         default=current.get(
                             CONF_PEAK_TARIFF_COUNT, DEFAULT_PEAK_TARIFF_COUNT
                         ),
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=1, max=10, step=1,
-                            mode=selector.NumberSelectorMode.SLIDER,
-                        )
-                    ),
+                    ): _number(1, 10, 1, slider=True),
                     vol.Optional(
                         CONF_PEAK_TARIFF_WINDOW,
                         default=current.get(
@@ -1674,12 +1238,7 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
                     vol.Optional(
                         CONF_CYCLING_COST,
                         default=current.get(CONF_CYCLING_COST, DEFAULT_CYCLING_COST),
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=0, max=10, step=0.05,
-                            mode=selector.NumberSelectorMode.BOX,
-                        )
-                    ),
+                    ): _number(0, 10, 0.05),
                     vol.Optional(
                         CONF_PRICE_PRIOR_ENABLED,
                         default=current.get(
@@ -1720,43 +1279,21 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
                     vol.Optional(
                         CONF_PV_PEAK_KW,
                         default=current.get(CONF_PV_PEAK_KW, DEFAULT_PV_PEAK_KW),
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=0, max=100, step=0.1,
-                            unit_of_measurement="kWp",
-                            mode=selector.NumberSelectorMode.BOX,
-                        )
-                    ),
+                    ): _number(0, 100, 0.1, "kWp"),
                     vol.Optional(
                         CONF_PV_EFFICIENCY,
                         default=current.get(
                             CONF_PV_EFFICIENCY, DEFAULT_PV_EFFICIENCY
                         ),
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=0.3, max=1.0, step=0.01,
-                            mode=selector.NumberSelectorMode.SLIDER,
-                        )
-                    ),
+                    ): _number(0.3, 1.0, 0.01, slider=True),
                     vol.Optional(
                         CONF_PV_EXPORT_PRICE,
                         default=current.get(
                             CONF_PV_EXPORT_PRICE, DEFAULT_PV_EXPORT_PRICE
                         ),
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=0, max=10, step=0.01,
-                            mode=selector.NumberSelectorMode.BOX,
-                        )
-                    ),
-                    _entity(CONF_PV_EXPORT_PRICE_ENTITY): selector.EntitySelector(
-                        selector.EntitySelectorConfig(domain="sensor")
-                    ),
-                    _entity(CONF_PV_PRODUCTION_ENTITY): selector.EntitySelector(
-                        selector.EntitySelectorConfig(
-                            domain="sensor", device_class="power"
-                        )
-                    ),
+                    ): _number(0, 10, 0.01),
+                    _entity(CONF_PV_EXPORT_PRICE_ENTITY): _entity_of("sensor"),
+                    _entity(CONF_PV_PRODUCTION_ENTITY): _entity_of("sensor", "power"),
                 }
             ),
         )
@@ -1788,46 +1325,20 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
                         CONF_AWAY_ENABLED,
                         default=current.get(CONF_AWAY_ENABLED, DEFAULT_AWAY_ENABLED),
                     ): bool,
-                    _entity(CONF_AWAY_PRESENCE_ENTITY): selector.EntitySelector(
-                        selector.EntitySelectorConfig(
-                            domain=[
-                                "input_boolean",
-                                "person",
-                                "device_tracker",
-                                "calendar",
-                                "binary_sensor",
-                            ]
-                        )
-                    ),
-                    _entity(CONF_AWAY_RETURN_ENTITY): selector.EntitySelector(
-                        selector.EntitySelectorConfig(
-                            domain=["input_datetime", "sensor"]
-                        )
-                    ),
+                    _entity(CONF_AWAY_PRESENCE_ENTITY): _entity_of([ "input_boolean", "person", "device_tracker", "calendar", "binary_sensor", ]),
+                    _entity(CONF_AWAY_RETURN_ENTITY): _entity_of(["input_datetime", "sensor"]),
                     vol.Optional(
                         CONF_AWAY_TEMPERATURE,
                         default=current.get(
                             CONF_AWAY_TEMPERATURE, DEFAULT_AWAY_TEMPERATURE
                         ),
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=5, max=21, step=0.5,
-                            unit_of_measurement="°C",
-                            mode=selector.NumberSelectorMode.SLIDER,
-                        )
-                    ),
+                    ): _number(5, 21, 0.5, "°C", slider=True),
                     vol.Optional(
                         CONF_AWAY_DHW_MIN_TEMP,
                         default=current.get(
                             CONF_AWAY_DHW_MIN_TEMP, DEFAULT_AWAY_DHW_MIN_TEMP
                         ),
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=10, max=55, step=1,
-                            unit_of_measurement="°C",
-                            mode=selector.NumberSelectorMode.SLIDER,
-                        )
-                    ),
+                    ): _number(10, 55, 1, "°C", slider=True),
                 }
             ),
         )
@@ -1865,13 +1376,7 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
                         default=current.get(
                             CONF_STALENESS_SCALE, DEFAULT_STALENESS_SCALE
                         ),
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=STALENESS_SCALE_MIN, max=STALENESS_SCALE_MAX,
-                            step=0.5,
-                            mode=selector.NumberSelectorMode.SLIDER,
-                        )
-                    ),
+                    ): _number(STALENESS_SCALE_MIN, STALENESS_SCALE_MAX, 0.5, slider=True),
                     vol.Optional(
                         CONF_EXTERNAL_HEAT_ENABLED,
                         default=current.get(
@@ -1879,37 +1384,21 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
                             DEFAULT_EXTERNAL_HEAT_ENABLED,
                         ),
                     ): bool,
-                    _entity(CONF_EXTERNAL_HEAT_ENTITY): selector.EntitySelector(
-                        selector.EntitySelectorConfig(
-                            domain=["binary_sensor", "switch", "input_boolean", "sensor"]
-                        )
-                    ),
+                    _entity(CONF_EXTERNAL_HEAT_ENTITY): _entity_of(["binary_sensor", "switch", "input_boolean", "sensor"]),
                     vol.Optional(
                         CONF_EXTERNAL_HEAT_MIN_RISE,
                         default=current.get(
                             CONF_EXTERNAL_HEAT_MIN_RISE,
                             DEFAULT_EXTERNAL_HEAT_MIN_RISE,
                         ),
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=0.5, max=10, step=0.1,
-                            unit_of_measurement="°C/h",
-                            mode=selector.NumberSelectorMode.BOX,
-                        )
-                    ),
+                    ): _number(0.5, 10, 0.1, "°C/h"),
                     vol.Optional(
                         CONF_EXTERNAL_HEAT_DECAY_MINUTES,
                         default=current.get(
                             CONF_EXTERNAL_HEAT_DECAY_MINUTES,
                             DEFAULT_EXTERNAL_HEAT_DECAY_MINUTES,
                         ),
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=15, max=360, step=15,
-                            unit_of_measurement="min",
-                            mode=selector.NumberSelectorMode.SLIDER,
-                        )
-                    ),
+                    ): _number(15, 360, 15, "min", slider=True),
                     vol.Optional(
                         CONF_COMFORT_LEARNING_ENABLED,
                         default=current.get(

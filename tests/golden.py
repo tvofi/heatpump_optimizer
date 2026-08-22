@@ -490,6 +490,49 @@ def _capture_coordinator(config: dict) -> dict:
     }
 
 
+def capture_config_flow() -> dict:
+    """Every option page's schema, field by field.
+
+    The config flow has no runtime behaviour to pin — it is a declaration —
+    but that makes it *more* worth fingerprinting, not less: a selector whose
+    bounds or default silently change produces a form that still works and
+    quietly means something different.
+    """
+    import asyncio
+
+    from harness import FakeEntry, FakeHass
+    from heatpump_optimizer.config_flow import HeatPumpOptimizerOptionsFlow as Flow
+
+    flow = Flow(
+        FakeEntry(data={"tibber_token": "x", "weather_entity": "weather.home"})
+    )
+    flow.hass = FakeHass()
+
+    pages = {}
+    for step in Flow._MENU_LABELS:
+        result = asyncio.run(getattr(flow, f"async_step_{step}")())
+        schema = result.get("data_schema")
+        fields = {}
+        for key, value in (schema.schema.items() if schema else []):
+            config = getattr(value, "config", None)
+            try:
+                default = repr(key.default())
+            except Exception:
+                default = None
+            fields[str(key)] = {
+                "selector": type(value).__name__,
+                "config": (
+                    {k: repr(v) for k, v in sorted(dict(config).items())}
+                    if config
+                    else None
+                ),
+                "default": default,
+                "required": type(key).__name__,
+            }
+        pages[step] = fields
+    return pages
+
+
 def record_all() -> None:
     GOLDEN_DIR.mkdir(parents=True, exist_ok=True)
     for name, spec in SCENARIOS.items():
@@ -502,7 +545,10 @@ def record_all() -> None:
         path = GOLDEN_DIR / f"{name}.json"
         path.write_text(json.dumps(payload, indent=1, sort_keys=True) + "\n")
         print(f"  recorded {name} ({path.stat().st_size // 1024} KB)")
-    total = len(SCENARIOS) + len(coordinator_scenarios())
+    path = GOLDEN_DIR / "config_flow.json"
+    path.write_text(json.dumps(capture_config_flow(), indent=1, sort_keys=True) + "\n")
+    print(f"  recorded config_flow ({path.stat().st_size // 1024} KB)")
+    total = len(SCENARIOS) + len(coordinator_scenarios()) + 1
     print(f"\nRecorded {total} golden fixtures in {GOLDEN_DIR}/")
 
 
@@ -570,6 +616,7 @@ def check_all(only: str | None = None) -> int:
         (name, ("coordinator", config))
         for name, config in coordinator_scenarios().items()
     ]
+    cases.append(("config_flow", ("config_flow", None)))
 
     for name, (kind, spec) in cases:
         if only and only not in name:
@@ -580,7 +627,12 @@ def check_all(only: str | None = None) -> int:
             continue
 
         expected = json.loads(path.read_text())
-        actual = capture(name, spec) if kind == "plan" else capture_coordinator(spec)
+        if kind == "plan":
+            actual = capture(name, spec)
+        elif kind == "coordinator":
+            actual = capture_coordinator(spec)
+        else:
+            actual = capture_config_flow()
         checked += 1
 
         diffs = []
