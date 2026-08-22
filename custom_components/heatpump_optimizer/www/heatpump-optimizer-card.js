@@ -10,7 +10,7 @@
  */
 
 const CARD_TAG = "heatpump-optimizer-card";
-const CARD_VERSION = "2.9.0";
+const CARD_VERSION = "3.0.0";
 
 const DEFAULTS = {
   title: "Heat pump plan",

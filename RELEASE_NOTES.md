@@ -1,175 +1,60 @@
 # Heat Pump Cost Optimizer — Release Notes
 
-## v2.9.0
+## v3.0.0
 
-A refactoring release with three real bug fixes, and the test infrastructure
-that made both safe to attempt.
+The three releases developed since v2.6.1 — v2.7.0, v2.8.0 and v2.9.0 —
+collected into one major release. Everything below is included.
 
-### Fixed
+The theme across all three is the same. The optimizer used to reason about a
+*model* of the house and a *plan* for the heat pump, with almost no way to find
+out whether either was true, and no way for a user to see why it had decided
+anything. Most of what follows closes those two gaps.
 
-All three were found by a new combinatorial stress sweep rather than by
-inspection, and all three produced plans that looked entirely reasonable.
+Upgrading is safe: every new capability is off or neutral by default, and an
+existing config entry migrates without a behaviour change.
 
-- **The capacity tariff raised the peak it was supposed to lower.** The charge
-  was modelled as the marginal price times the single largest excess. That is
-  wrong twice over. It under-states the bill, which averages the month's top
-  few peaks, so a plan with several high hours — exactly what the tariff exists
-  to discourage — was charged as if it had one. And `max` has zero gradient
-  everywhere except at that one window, so a gradient-based solver saw the term
-  at 1 step in 96 and it was effectively inert; measured, enabling the tariff
-  moved the projected peak *up*.
+---
 
-  The charge is now the marginal price times the sum of the top-k excesses,
-  which is algebraically identical to the bill and gives every one of those
-  windows a gradient.
+## Added
 
-- **On a fresh install the tariff dwarfed the entire energy cost.** With no
-  peaks yet recorded the threshold was zero, so every kilowatt counted as a
-  brand-new monthly peak. A normal 6 kW day was charged around nine times its
-  own energy cost, which would have contorted the plan to avoid a peak the
-  house sets on any ordinary day regardless. The threshold now measures against
-  what has actually been observed, and the charge stays off until there is
-  something real to compare against.
-
-- **The hot water planners could push the tank past its rating.** The
-  minimum-run rounding, which raises a sub-minimum slot to a power the hardware
-  can really deliver, overshot a 20 litre tank by 28 °C; and with negative
-  prices the cost term rewards consumption, so the linearised planner pushed
-  through its own temperature ceiling. A capacity clamp now runs after the
-  economics, walking the plan through the real tank simulation and truncating
-  any step that would exceed the rating. The tank's rating is physics rather
-  than a preference, so it belongs outside the trade-offs.
-
-### Changed
-
-- **The what-if simulator can edit time slots.** It could previously only move
-  the comfort temperature. It now also edits the heating hours and the hot
-  water demand windows — add, remove or retime a window and price the result.
-
-  It reports the comfort consequence next to the money, because a plan is
-  always cheaper if it is allowed to be colder or to let the tank run down, and
-  a simulator that showed only the saving would be inviting exactly that
-  mistake. The plan sensors publish the schedule they were made against so the
-  editor pre-fills from what is really in force; starting from defaults would
-  silently propose a change the user never made.
-
-### Refactored
-
-The backlog's own precondition for this was a characterization harness, on the
-grounds that the existing tests would not catch a refactor that quietly shifts
-a plan by one interval or drops a constraint in a rare branch. That harness was
-built first, and every change below was made with its diffs empty.
-
-- **The two optimizer paths shared 162 lines across 17 contiguous runs**, and
-  that divergence had already caused one real bug: enabling hot water silently
-  changed the space-heating objective. The comfort terms, terminal cost,
-  anticipatory weights, zone setpoints and result construction are now shared,
-  and two eighteen-parameter signatures became one `_Horizon` context — so
-  adding a per-solve input is one edit instead of four. 345 → 175 and 514 → 362
-  lines; duplication 162 → 37.
-- **`coordinator.__init__` was 254 lines of uninterrupted assignment** in which
-  nothing had a natural home. It is now 41, delegating to one method per
-  concern.
-- **The 235-line published data dictionary** is composed from per-domain views.
-- **`ThermalParameters.from_config`** is a table rather than ninety
-  near-identical lookups, with a test that probes every declared field for a
-  config key that actually reaches it — a forgotten row silently ignores a
-  user's setting forever.
-- **Runtime parameter updates** are table-driven, with the handful that
-  invalidate a learned value kept explicit.
-- **Forecast assembly** is split into named parts and returns a `NamedTuple`;
-  callers were unpacking a bare seven-tuple positionally.
-- **108 nested selector constructions in the config flow** became one readable
-  line each, taking the file from 1,932 to 1,417 lines.
-- Every import `pyflakes` can prove unused is gone.
-
-### Tests
-
-- **`tests/golden.py`** records the complete output of 37 scenarios — every
-  schedule, trajectory, setpoint, cost, reason code and option-flow field — and
-  diffs byte for byte. Its own sensitivity is demonstrated rather than assumed:
-  shifting a fixture by one interval makes it fail and say so.
-- **`tests/stress.py`** sweeps 48 combinations of season, building archetype,
-  zoning and feature flags, plus 17 edge conditions, checking physical,
-  economic and comfort invariants. It found all three bugs above. Its comfort
-  check compares against what running flat out would achieve, because an
-  undersized pump in a leaky house cannot hold the floor and calling that a
-  planning bug would be blaming the optimizer for physics.
-- **`tests/rolling.py`** drives the real re-planning cycle for several
-  simulated days against a plant deliberately mismatched from the model. It is
-  the only test that exercises the self-learning heat-loss correction against a
-  house that genuinely differs from its model: given a 35% error it recovers
-  99% of it within two simulated days, converges rather than oscillating, and
-  leaves an already-correct model alone. Opt-in via `SLOW=1`, because a
-  fifteen-minute test in the default path would simply stop being run.
-- The README's comfort-weight table and entity counts are now asserted, so the
-  documentation cannot drift from the code unnoticed. Both had.
-
-### Notes
-
-Two things were investigated and deliberately left alone.
-
-Adjacent comfort weights can invert on cost by around a percent. The objective
-is non-convex — the comfort penalty is one-sided, and the price signal creates
-several distinct "charge here, coast there" patterns that are each locally
-optimal — so two nearby settings can land in different basins. Neither a third
-multi-start solve nor a polishing pass closed the gap, and both cost 25–30%
-more time. The user-facing contract, which is the README's published table of
-what comfort weight buys, holds exactly and is now tested.
-
-Attribute names inside the coordinator were left as they are. Grouping forty
-private attributes into dataclasses was suggested in the backlog, but it is a
-large mechanical diff across a 3,700-line file for no functional gain, and the
-readability it would buy was obtained by splitting the constructor instead.
-
-
-## v2.8.0
-
-Twenty features from the backlog, in one release. The through-line is that the
-optimizer previously reasoned about a *model* of the house and a *plan* for the
-heat pump, and had almost no way to find out whether either was true. Most of
-what follows closes that loop.
-
-### Added
-
-#### Knowing when an input has gone bad
+### Knowing when an input has gone bad
 
 - **An input staleness watchdog.** Every sensor read was guarded against
-  `unavailable` and `unknown`, which are the easy failures — they are visible
-  and every call site handled them. The dangerous failure is a sensor that
-  stops updating while continuing to report its last value. A dead battery in a
-  tank probe or a dropped Zigbee room sensor leaves a perfectly valid-looking
-  constant in the state machine indefinitely.
+  `unavailable` and `unknown` — the visible failures, which every call site
+  already handled. The dangerous failure is a sensor that stops updating while
+  still reporting its last value. A dead battery in a tank probe or a dropped
+  Zigbee room sensor leaves a perfectly valid-looking constant in the state
+  machine indefinitely.
 
   The optimizer then plans against a fiction, but the worse consequence is that
   the learners observe a flatline, attribute it to thermal behaviour, and
-  persist a corrupted parameter that survives a restart. So over-age values are
+  persist a corrupted parameter that survives a restart. Over-age values are
   now treated as *missing*, learning freezes rather than training on them, and
-  a new **Input Problem** binary sensor names which inputs are stale and why the
-  learners paused. Limits are per input, because a room temperature may
-  reasonably be minutes old and an outdoor forecast hours.
+  a new **Input Problem** binary sensor names which inputs are stale and why
+  the learners paused. Limits are per input: a room temperature may reasonably
+  be minutes old, an outdoor forecast hours.
 
-- **An optional measured power entity.** `CONF_HEAT_PUMP_MAX_POWER` is a
-  nameplate limit and "Recommended Power" is what the optimizer is *commanding*;
-  neither is a measurement. With a real power meter configured, COP becomes
-  observable rather than assumed — and since every plan is priced through COP,
-  an error there was an error in every cost the integration reported. New
-  **Measured Power** and **Observed COP** sensors, plus optional whole-house
-  power and cumulative energy entities. Watts, kilowatts and megawatts are all
-  accepted and normalised; an unrecognised unit is refused rather than guessed,
-  because a wrongly scaled power value is worse than none.
+- **An optional measured power entity**, plus whole-house power and a
+  cumulative energy meter. `CONF_HEAT_PUMP_MAX_POWER` is a nameplate limit and
+  "Recommended Power" is what the optimizer is *commanding*; neither is a
+  measurement. With a real meter, COP becomes observable rather than assumed —
+  and since every plan is priced through COP, an error there was an error in
+  every cost reported. New **Measured Power** and **Observed COP** sensors.
+  Watts, kilowatts and megawatts are all accepted and normalised; an
+  unrecognised unit is refused rather than guessed, because a wrongly scaled
+  power value is worse than none.
 
 - **Closed-loop accuracy reporting.** Predicted versus realised temperature,
-  power and cost are recorded per interval and published on a new **Prediction
-  Accuracy** sensor. The signed bias is published alongside the magnitude,
+  power and cost are recorded per interval and published on a **Prediction
+  Accuracy** sensor. The *signed* bias is published alongside the magnitude,
   because a mean absolute error cannot distinguish random noise from a model
   that is consistently half a degree optimistic — and it is the second that
   indicates drift.
 
-#### Costs the optimizer could not previously see
+### Costs the optimizer could not previously see
 
-- **Capacity (peak power) tariff awareness.** Swedish and increasingly Nordic
-  DSOs bill a monthly *effekttariff*, typically the mean of the three highest
+- **Capacity (effekt) tariff awareness.** Swedish and increasingly Nordic DSOs
+  bill a monthly capacity charge, typically the mean of the three highest
   hourly peaks. Nothing modelled this, so the optimizer would happily stack hot
   water and space heating into the same cheap hour — and one new monthly peak
   can easily cost more than the energy that stacking saved.
@@ -177,44 +62,43 @@ what follows closes that loop.
   The penalty is soft rather than a hard cap, so it trades off against comfort
   like everything else, and it charges only for exceeding the peak *already
   billed this month*: if the month has a 9 kW peak, an 8 kW hour is free, and
-  modelling it as "keep power low" would give away savings for nothing. A new
+  modelling it as "keep power low" would give away savings for nothing. A
   **Monthly Peak Power** sensor shows the billed peak and the free headroom.
 
 - **PV self-consumption.** For a house with solar, heating hot water or the
   buffer from surplus beats exporting it. While the array is in surplus, an
   extra kWh does not cost the import price — it costs the export compensation
-  foregone. Substituting that marginal price is all that is needed: the hot
-  water LP, the space-heating objective and the savings settle-up all keep
+  foregone. Substituting that marginal price is all that is needed: the
+  hot-water LP, the space-heating objective and the savings settle-up all keep
   working unchanged.
 
-- **Compressor cycling cost.** An optional per-start cost, expressed as a smooth
-  L1 term on the step-to-step power difference. That keeps the problem
+- **Compressor cycling cost.** An optional per-start cost, expressed as a
+  smooth term on the step-to-step power difference. That keeps the problem
   continuous; a true minimum-runtime constraint would make it a MILP, which is
   not affordable inside a Home Assistant update cycle. It defaults to **zero**,
-  because measurement came first: `tests/backtest.py` shows realistic plans
-  making 2–4 compressor starts a day, so most installs have nothing to fix and
-  should not pay savings for smoothness they do not need. The start count is now
-  published so that decision can be made from evidence.
+  because the measurement came first: realistic plans make two to four starts a
+  day, so most installs have nothing to fix and should not pay savings for
+  smoothness they do not need. The planned start count is published so the
+  decision can be made from evidence.
 
-- **The unknown price horizon is modelled instead of repeated.** Prices past the
-  published horizon were filled with a flat repeat of the last known value.
+- **The unknown price horizon is modelled instead of repeated.** Prices past
+  the published horizon were filled with a flat repeat of the last known value.
   Nord Pool and Tibber publish tomorrow around 13:00, so before then a large
   part of the horizon was a constant — and a flat tail has no trough, so the
   optimizer could not see a cheap period worth waiting for and systematically
   under-deferred load in the morning.
 
-  A normalised diurnal shape is now learned from the prices actually seen, split
-  weekday/weekend, and scaled to the recent price level. It never displaces real
-  data, it is heavily damped until several days have been observed, and the plan
-  marks which steps rest on it — the dashboard card shades that stretch. A plan
-  that looks identical whether or not it rests on published prices cannot be
-  audited.
+  A normalised diurnal shape is now learned from the prices actually seen,
+  split weekday/weekend, and scaled to the recent price level. It never
+  displaces real data, it is heavily damped until several days have been
+  observed, and the plan marks which steps rest on it — the dashboard card
+  shades that stretch.
 
-#### Understanding the house
+### Understanding the house
 
 - **Building type presets.** The thermal page asked for `house_thermal_mass` in
-  kWh/°C, which no homeowner knows, and the shipped defaults quietly encoded one
-  specific house. Every other building started from a wrong prior, and the
+  kWh/°C, which no homeowner knows, and the shipped defaults quietly encoded
+  one specific house. Every other building started from a wrong prior, and the
   learners then spent weeks walking away from it. Three answerable questions —
   what the house is built from, roughly when, and what the heat comes out of —
   now derive the physics, scaled by heated floor area. Presets set *starting
@@ -224,56 +108,56 @@ what follows closes that loop.
 - **Active system identification.** Every learner was passive: each waited for
   the house to happen to do something informative, which is why parameters took
   weeks and why the guard thresholds had to be so conservative. Opt-in, the
-  optimizer will now run a deliberate step change on a mild, cheap night and fit
-  the response, getting the time constant and loss coefficient in days rather
-  than weeks. Comfort is a hard constraint on the experiment rather than a cost
-  term: it aborts if the room drifts past the allowed excursion, and it will not
-  repeat on a house that has already converged.
+  optimizer will now run a deliberate step change on a mild, cheap night and
+  fit the response. Comfort is a hard constraint on the experiment rather than
+  a cost term: it aborts if the room drifts past the allowed excursion, and it
+  will not repeat on a house that has already converged.
 
 - **A learned defrost and cold-humid derate.** Air-source units lose real
   capacity between roughly 0 and +5 °C in humid air, which is precisely the
   Swedish shoulder season and precisely where the plan is most aggressive about
   coasting. Plans made there quietly under-delivered. The derate is *learned*
   per temperature and humidity bucket from the closed-loop accuracy signal, not
-  taken from a datasheet, because between-unit spread is larger than the effect.
-  With no evidence it is exactly 1.0 and changes nothing.
+  taken from a datasheet, because between-unit spread is larger than the effect
+  being modelled. With no evidence it is exactly 1.0.
 
 - **Revealed-preference comfort tuning.** `comfort_weight` is the most
   consequential number in the configuration and the least knowable; it has no
   intuitive units. But users reveal the answer constantly — every manual
-  override says the plan went too far in one direction. Opt-in, the value is now
-  nudged from that evidence, slowly, only on consistent signals, and with a
-  quiet-period signal so it can come *down* as well as up. The learned value has
-  its own sensor and a reset button, because an invisible self-adjusting
+  override says the plan went too far in one direction. Opt-in, the value is
+  now nudged from that evidence, slowly, only on consistent signals, and with a
+  quiet-period signal so it can come *down* as well as up. The learned value
+  has its own sensor and a reset button, because an invisible self-adjusting
   objective would be alarming.
 
-#### Reacting to the world
+### Reacting to the world
 
 - **External heat source detection.** A wood furnace tied into the same buffer
   heats the tanks for free, and burning electricity to heat water that is
-  already being heated is the single most expensive mistake available. Detection
-  is inferred from sensors that already exist: a tank warming while the
-  compressor is off, or warming faster than the compressor could manage. An
+  already being heated is the single most expensive mistake available.
+  Detection is inferred from sensors that already exist: a tank warming while
+  the compressor is off, or warming faster than the compressor could manage. An
   explicit stove or flue entity overrides the inference.
 
   The detector is deliberately reluctant, because the costs are asymmetric:
-  wrongly believing a fire is lit means skipping a cheap-hours charge and either
-  paying peak prices later or running out of hot water, while missing one costs
-  a single unnecessary charge. So it needs consecutive confirmations, and a
-  decay window keeps it from flapping as a fire dies down. While active,
-  discretionary electric hot water is suppressed — but only while coasting still
-  meets the requirement — and the learners freeze with the reason recorded.
+  wrongly believing a fire is lit means skipping a cheap-hours charge and
+  either paying peak prices later or running out of hot water, while missing
+  one costs a single unnecessary charge. So it needs consecutive
+  confirmations, and a decay window keeps it from flapping as a fire dies down.
+  While active, discretionary electric hot water is suppressed — but only while
+  coasting still meets the requirement — and the learners freeze with the
+  reason recorded.
 
 - **Away and holiday mode.** A week away is the largest single saving a heating
   system can offer. What makes this more than an `input_number` is the *return
-  time*: knowing when the house must be comfortable again lets the recovery heat
-  be bought in the cheapest hours beforehand instead of panic-heating on arrival.
-  Away state can come from a person, device tracker, calendar or plain toggle —
-  the polarity differs by domain and is handled for you. Recovery starts
-  deliberately early, because a wrong return time is a comfort failure the user
-  will notice.
+  time*: knowing when the house must be comfortable again lets the recovery
+  heat be bought in the cheapest hours beforehand instead of panic-heating on
+  arrival. Away state can come from a person, device tracker, calendar or plain
+  toggle — the polarity differs by domain and is handled for you. Recovery
+  starts deliberately early, because a wrong return time is a comfort failure
+  the user will notice.
 
-#### Seeing what it is doing
+### Seeing what it is doing
 
 - **Plan reason codes.** The plan sensors published which slots were chosen but
   never why. A slot could be cheapest-price, deadline-driven, legionella,
@@ -284,9 +168,9 @@ what follows closes that loop.
 
 - **Energy dashboard and long-term cost statistics.** Every monetary sensor was
   `MEASUREMENT`, so none of it reached Home Assistant's Energy dashboard and
-  there was no long-term cost history. The integration's central claim — that it
-  saves money — was invisible in the one place users look for exactly that.
-  There are now `TOTAL_INCREASING` energy and cost accumulators, split DHW
+  there was no long-term cost history. The integration's central claim — that
+  it saves money — was invisible in the one place users look for exactly that.
+  There are now `TOTAL_INCREASING` energy and cost accumulators, split hot water
   versus space heating. The split is apportioned from the planned power split
   and says so in its attributes, because one meter cannot separate two circuits
   and pretending otherwise would be worse.
@@ -295,186 +179,223 @@ what follows closes that loop.
   capacity, charge and discharge rates and round-trip efficiency, so other Home
   Assistant energy automations can reason about the heat pump alongside a real
   battery. State of charge is measured against the comfort band, since energy
-  below the minimum acceptable temperature is not actually available. Round-trip
-  efficiency is reported in thermal terms; an electrical figure would exceed
-  100% because charging happens at COP > 1, and would mean nothing to anyone
-  reading it as a battery specification.
+  below the minimum acceptable temperature is not actually available.
+  Round-trip efficiency is reported in thermal terms; an electrical figure
+  would exceed 100% because charging happens at COP > 1.
 
-- **A button to force an optimization run**, plus buttons to arm the
-  identification experiment and reset the learned comfort weight. A button
-  rather than a switch, because forcing a run is a momentary action with no
-  lasting state; a toggle would have to bounce itself back and until it did the
-  UI would imply a state that does not exist. The run button goes unavailable
-  while a solve is in flight, so a control that appears to do nothing for
-  several seconds does not invite repeated presses.
+- **Buttons**: force an optimization run, arm the identification experiment,
+  and reset the learned comfort weight. Buttons rather than switches, because
+  these are momentary actions with no lasting state; a toggle would have to
+  bounce itself back and until it did the UI would imply a state that does not
+  exist. The run button goes unavailable while a solve is in flight, so a
+  control that appears to do nothing for several seconds does not invite
+  repeated presses.
+
+### Solar forecasting
+
+- **Solar irradiance can come from Open-Meteo.** Solar gain was only as good as
+  the irradiance behind it, and most weather integrations never publish a
+  `solar_irradiance` field, so for many installs the term silently evaluated to
+  zero and the optimizer could not anticipate a sunny afternoon. Set *Solar
+  forecast source* to Open-Meteo and pick the location on the map. No API key
+  or account is needed.
+
+  Two endpoints are used because they do different jobs: the forecast API
+  supplies the planning horizon at 15-minute resolution, matching the
+  optimizer's grid exactly, while the satellite archive supplies *observed*
+  current irradiance so the house heat-loss learner trains against what
+  actually happened. Open-Meteo timestamps mark the **end** of the averaging
+  interval — verified against sunrise and sunset rather than assumed, since
+  reading them as starts shifts all solar gain by one interval, which at dawn
+  and dusk is the difference between darkness and full sun.
+
+- **A Solar Irradiance sensor** exposes the current value, with the full
+  horizon and source diagnostics in its attributes.
 
 ### Dashboard card
 
+- **Clicking the card opens a large version of the chart.** A card in a
+  dashboard column is too small to read a 48-hour plan comfortably. Clicking
+  anywhere, or the expand button, opens the same chart in a modal that labels
+  the time axis every hour instead of every third. It is a native `<dialog>`
+  shown with `showModal()`, so it renders in the browser's top layer and cannot
+  be clipped by a dashboard column or hidden behind another card.
+
 - **A solar irradiance series**, discovered by the same `plan_kind` marker the
   plan sensors use rather than by a hardcoded entity id — that exact mistake
-  caused the v2.6.1 bug where the card never found its sensors. W/m² is a fourth
-  unit and both plot edges were already occupied, so it gets an inner right-hand
-  axis that only appears when the series is on; scaling it into the power axis
-  would have put a 0.8 kW/m² line on the same scale as a 5 kW compressor.
-- **The popup legend is legible.** It is plain HTML sized in `em` against the
-  card's font, which does not grow with the dialog, so at a much larger chart
-  size it stayed at card size and read as cramped and low-resolution. The dialog
-  now sets a base font so the `em` units cascade properly, and the chart's
-  in-viewBox font size scales up too — SVG text is sized in viewBox units, so
-  the same nominal size across a larger area has the same effect.
+  caused the v2.6.1 bug where the card never found its sensors. W/m² is a
+  fourth unit and both plot edges were already occupied, so it gets an inner
+  right-hand axis that only appears when the series is on.
+
 - **Reason codes in the tooltip**, and the estimated-price stretch of the
-  horizon is shaded and labelled.
-- **A what-if simulator** in the expanded view, off by default. Drag the comfort
-  temperature and see the monthly cost difference. It runs against a copy of the
-  configuration so an exploratory drag never disturbs operation, and it is
-  debounced in the card and rate-limited in the coordinator so dragging a slider
-  cannot trigger a solve per pixel.
+  horizon shaded and labelled.
 
-### Fixed
+- **A what-if simulator** in the expanded view, off by default. Drag the
+  comfort temperature, edit the heating hours, and add, remove or retime the
+  hot water demand windows — then see what each would cost per month. It
+  reports the comfort consequence next to the money, because a plan is always
+  cheaper if it is allowed to be colder or to let the tank run down, and a
+  simulator showing only the saving would invite exactly that mistake. It runs
+  against a *copy* of the configuration, so an exploratory drag never disturbs
+  operation, and it is debounced in the card and rate-limited in the
+  integration.
 
-All of these were found while building the release, by tests written to check
-the mechanism rather than the outcome. Each produced entirely plausible output.
+---
+
+## Fixed
+
+Most of these were found by tests written to check a mechanism rather than an
+outcome. Every one produced output that looked entirely plausible.
+
+- **The capacity tariff raised the peak it was supposed to lower.** The charge
+  was the marginal price times the single largest excess. That is wrong twice:
+  it under-states a bill that averages the month's top few peaks, so a plan
+  with several high hours — exactly what the tariff exists to discourage — was
+  charged as if it had one; and `max` has zero gradient everywhere except at
+  that one window, so a gradient-based solver saw the term at 1 step in 96 and
+  it was effectively inert. It is now the marginal price times the sum of the
+  top-k excesses, which is algebraically identical to the bill and gives every
+  one of those windows a gradient.
+
+- **On a fresh install the capacity tariff dwarfed the entire energy cost.**
+  With no peaks yet recorded the threshold was zero, so every kilowatt counted
+  as a brand-new monthly peak — a normal 6 kW day was charged around nine times
+  its own energy cost, which would have contorted the plan to avoid a peak the
+  house sets on any ordinary day regardless. The threshold now measures against
+  what has actually been observed, and the charge stays off until there is
+  something real to compare against.
+
+- **The hot water planners could push the tank past its rating.** The
+  minimum-run rounding, which raises a sub-minimum slot to a power the hardware
+  can really deliver, overshot a 20 litre tank by 28 °C; and with negative
+  prices the cost term rewards consumption, so the linearised planner pushed
+  through its own temperature ceiling. A capacity clamp now runs after the
+  economics, because the tank's rating is physics rather than a preference.
 
 - **System identification fitted the wrong quantity.** The step-response fit
   regressed the room's energy balance against *electrical* draw rather than
   thermal output. Both identified parameters came out scaled by the COP while
-  their ratio — the time constant — stayed correct, which is exactly the kind of
-  error that looks entirely plausible. Caught by the test that drives a
-  synthetic house with known parameters through a whole experiment.
+  their ratio — the time constant — stayed correct, which is exactly the kind
+  of error that looks entirely plausible.
 
 - **The COP learner erased its own learning.** `cop_scale` multiplies the
   nameplate curve, but the modelled COP it was compared against already had the
   current scale folded in, so the update used a *relative* correction as an
   *absolute* target. That makes 1.0 the only fixed point: a sample that
   perfectly confirmed the model still dragged the learned value back towards
-  "trust the nameplate". Since the result is persisted and every plan is priced
-  through COP, the feature silently undid itself.
+  "trust the nameplate".
 
 - **Space-only power was compared against a whole-pump meter.** The current
-  action carries the space heating allocation in `power` and hot water in
-  `dhw_power`, but an electricity meter sees only their sum. Three places
-  compared the space figure alone against the measured total, so a perfectly
-  ordinary planned hot-water charge looked like the pump drawing power nobody
-  asked for. That registered as an external heat source (freezing every learner
-  and suppressing hot water for the decay window), as a collapsed COP, and as a
-  defrost derate — all at once, all wrong.
+  action carries space heating in `power` and hot water in `dhw_power`, but an
+  electricity meter sees only their sum. Three places compared the space figure
+  alone against the measured total, so an ordinary planned hot-water charge
+  looked like the pump drawing power nobody asked for — registering as an
+  external heat source (freezing every learner and suppressing hot water for
+  the decay window), as a collapsed COP, and as a defrost derate, all at once.
 
 - **The defrost derate's humidity dimension was never applied.** The learner
-  recorded observations against the real humidity, but every lookup fell back to
-  a default that landed in the dry bucket. Everything observed in humid frosting
-  conditions — the conditions the whole feature exists for — was written down and
-  then never used.
+  recorded observations against the real humidity, but every lookup fell back
+  to a default that landed in the dry bucket. Everything observed in humid
+  frosting conditions — the conditions the feature exists for — was written
+  down and then never used.
 
 - **A heated basement's thermal mass was inflated by 25%.** The foundation
   adjustment was applied twice to the lower floor's slow store, in the branch
   used by the most common Swedish two-zone layout.
 
-- **The what-if debounce timer survived card removal.** Dragging the slider and
-  then navigating away left a pending solve that still fired, spending seconds
-  of coordinator CPU to write into a DOM nobody was looking at.
-
-### Tests
-
-The suite is substantially larger, and the Home Assistant stub is now
-version-controlled in `tests/hastub/` instead of living in `/tmp` and vanishing
-on reboot. `./tests/run.sh` runs everything in dependency order.
-
-- **`tests/features.py`** (155 checks) drives each feature module directly.
-  These needed mechanism-level tests because their failure mode is a *plausible*
-  plan: a detector that never fires or a watchdog that lets a flatline through
-  produces output that looks completely normal.
-- **`tests/entities.py`** (89 checks) constructs every entity through the real
-  `async_setup_entry`, so an entity that is written but never registered shows
-  up as missing. It also catches a platform in `PLATFORMS` but not
-  `PLATFORM_LIST`, an options menu row with no handler behind it, `strings.json`
-  drifting from the translations (which had already happened twice by v2.7.0),
-  and an accumulator declared `MEASUREMENT` — all failures that produce no error
-  anywhere.
-- **`tests/backtest.py`** replays the optimizer against an always-on thermostat,
-  a hand-written night-tariff schedule and a price-only greedy schedule, scoring
-  each on cost *and* on degree-hours below the comfort floor. A cheaper strategy
-  only counts as a competitor if it is also comfortable. It also reconciles the
-  savings the integration reports against the savings the replay measures.
-- **`tests/card.mjs`** grew from 23 to 51 checks, and its DOM stub now *parses*
-  `innerHTML`. The card queries its own output for the controls it wires up, so
-  a stub that stored the markup as an opaque string was silently skipping every
-  one of those code paths.
-- `validate.py` now also reports compressor starts and projected peak per
-  scenario, and fails a plan that chatters or that has a heating step with no
-  reason code.
-
-### Notes on what was left out
-
-The backlog's refactoring item is not included. Its own precondition was that a
-characterization harness should exist first, since the current tests would not
-catch a refactor that quietly shifts a plan by one interval or drops a
-constraint in a rare branch. That harness is closer now — `backtest.py` and the
-expanded scenario reporting pin considerably more behaviour than before — but
-the refactor itself remains outstanding, and doing it in the same release as
-twenty features would have made any regression impossible to bisect.
-
-
-## v2.7.0
-
-### Added
-- **Clicking the dashboard card opens a large version of the chart.** A card in
-  a dashboard column is too small to read a 48-hour plan comfortably. Clicking
-  anywhere on the card, or the new expand button in its header, opens the same
-  chart in a modal overlay that labels the time axis every hour instead of every
-  third. Clicking a legend chip still only toggles that series. Close with the
-  X, Escape, or a click outside. The overlay is a native `<dialog>` shown with
-  `showModal()`, so it renders in the browser's top layer and cannot be clipped
-  by a dashboard column or hidden behind another card.
-- **Solar irradiance can now come from Open-Meteo.** Solar gain was only as good
-  as the irradiance behind it, and most weather integrations never publish a
-  `solar_irradiance` field, so for many installs the term silently evaluated to
-  zero and the optimizer could not anticipate a sunny afternoon. Set *Solar
-  forecast source* to `Open-Meteo` and pick the location on the map in the
-  configurator. No API key or account is needed.
-- **A new Solar Irradiance sensor** exposes the current value, with the full
-  horizon and source diagnostics in its attributes.
-
-### How it works
-- Two endpoints are used because they do different jobs. The forecast API
-  supplies the planning horizon and supports `minutely_15`, matching the
-  optimizer's 15-minute grid exactly. The satellite archive supplies *current*
-  irradiance: it is observed rather than modelled and current to roughly ten
-  minutes, so the house heat-loss learner trains against what actually happened.
-  The satellite endpoint is archive-only, with no forecast route, so it cannot
-  serve the horizon by itself.
-- The request is for `shortwave_radiation` (global horizontal irradiance) rather
-  than `direct_radiation`. The window-gain calculation applies its own
-  orientation factor, and direct-beam alone omits the diffuse component, which
-  on an overcast day is essentially all the light there is.
-- Open-Meteo timestamps mark the **end** of the averaging interval. This was
-  verified against sunrise and sunset rather than assumed; reading them as
-  interval starts shifts all solar gain by one interval, which at dawn and dusk
-  is the difference between darkness and full sun.
-- Values are resampled by overlap-weighted averaging, so the API resolution need
-  not match the step length, and a window with less than half coverage returns
-  no value instead of a figure derived from almost no data.
-
-### Precedence and safety
-- A configured local irradiance sensor still wins outright: a real measurement
-  at the site beats any model.
-- Steps the Open-Meteo data does not cover fall back to the weather entity
-  rather than to zero, since "no data" is not "no sun". Missing samples are
-  dropped rather than coerced to `0.0` for the same reason.
-- Existing installs are unaffected. The default source remains the weather
-  entity, and the feature is entirely opt-in.
-
-### Fixed
 - **A naive datetime could crash the update loop.** `dt_util.now()` returns a
-  naive datetime when no timezone is configured, and comparing it against the
-  timezone-aware API timestamps raised `TypeError` inside
-  `_prepare_forecast_data`, taking the whole optimization down over a timezone
-  detail. Instants are now normalised to UTC at the boundary.
+  timezone-aware value, and comparing it against a naive one raises.
+
 - **The chart tooltip is now anchored to its own chart** rather than to the
-  card, which it only positioned correctly because `ha-card` happens to be a
-  positioned ancestor.
-- **`strings.json` had drifted from `translations/en.json`**, so several
-  configuration fields, including the buffer tank sensor added earlier, showed
-  raw keys instead of labels.
+  card, so it positions correctly in the expanded view.
+
+- **`strings.json` had drifted from the translations**, so several settings
+  showed raw keys instead of labels. All three files are now generated from one
+  source and their keys are asserted equal by a test.
+
+- **The what-if debounce timer survived card removal**, firing a multi-second
+  solve into a detached DOM after the user had navigated away.
+
+---
+
+## Refactored
+
+The backlog's precondition for this work was a characterization harness, on the
+grounds that the existing tests assert on outcomes and would not catch a change
+that quietly shifts a plan by one interval or drops a constraint in a rare
+branch. That harness was built first, and every change below was made with its
+diffs empty.
+
+| | before | after |
+|---|---|---|
+| `_optimize_with_dhw` / `_optimize_space_only` | 514 / 345 lines | 362 / 175 |
+| duplication between them | 162 lines in 17 runs | 37 lines |
+| `coordinator.__init__` | 254 lines | 41 |
+| `_build_data_dict` | 235 lines | composed from domain views |
+| `ThermalParameters.from_config` | 196 lines | a table |
+| `config_flow.py` | 1,932 lines | 1,417 |
+
+The optimizer duplication had already caused a real bug — enabling hot water
+silently changed the space-heating objective — so the shared cost terms are now
+shared in fact. Two eighteen-parameter signatures became one `_Horizon`
+context, so adding a per-solve input is one edit instead of four. The config
+mapping is a table with a test that probes every declared field for a config
+key that actually reaches it, since a forgotten row silently ignores a user's
+setting forever.
+
+---
+
+## Tests
+
+- **`tests/golden.py`** records the complete output of 37 scenarios — every
+  schedule, trajectory, setpoint, cost, reason code and option-flow field — and
+  diffs byte for byte. Its sensitivity is demonstrated rather than assumed:
+  shifting a fixture by one interval makes it fail and say so.
+- **`tests/stress.py`** sweeps 48 combinations of season, building archetype,
+  zoning and feature flags, plus 17 edge conditions, checking physical,
+  economic and comfort invariants. It found three of the bugs above. Its
+  comfort check compares against what running flat out would achieve, because
+  an undersized pump in a leaky house cannot hold the floor and calling that a
+  planning bug would be blaming the optimizer for physics.
+- **`tests/rolling.py`** drives the real re-planning cycle for several
+  simulated days against a plant deliberately mismatched from the model — the
+  only test that exercises the self-learning heat-loss correction against a
+  house that genuinely differs from its model. Given a 35% error it recovers
+  99% of it within two simulated days, converges rather than oscillating, and
+  leaves an already-correct model alone. Opt-in via `SLOW=1`.
+- **`tests/features.py`** and **`tests/entities.py`** drive the feature modules
+  and every entity directly, catching failures that produce no error anywhere:
+  a platform registered in one list but not the other, an options menu row with
+  no handler, a translation file drifting from `strings.json`, an accumulator
+  declared `MEASUREMENT` and therefore invisible to the Energy dashboard.
+- The Home Assistant stub is version-controlled in `tests/hastub/` instead of
+  living in `/tmp` and vanishing on reboot, and the card's DOM stub now
+  *parses* `innerHTML` — storing it as a string was silently skipping every
+  path where the card wires up its own controls.
+- The README's comfort-weight table and entity counts are asserted, so the
+  documentation cannot drift from the code unnoticed. Both had.
+
+---
+
+## Notes
+
+**Attribution.** This project is a fork of
+[strutsfarm/heatpump_optimizer](https://github.com/strutsfarm/heatpump_optimizer)
+at v2.2.0. The MPC formulation, two-zone thermal model, Tibber and weather
+integration, config flow and ECL110 control path are originally strutsfarm's
+work, and the upstream copyright is now recorded in `LICENSE`. The README
+carries a full acknowledgement and a disclaimer covering warranty, safety,
+legionella, savings claims, equipment responsibility and third-party services.
+
+**Two things deliberately left alone.** Adjacent comfort weights can invert on
+cost by around a percent, because the objective is non-convex and two nearby
+settings can land in different basins; neither a third multi-start solve nor a
+polishing pass closed the gap, and both cost 25–30% more time. The user-facing
+contract — the README's published table of what comfort weight buys — holds
+exactly and is tested. Separately, the coordinator's private attribute names
+were left as they are: grouping forty of them into dataclasses is a large
+mechanical diff across 3,700 lines for no functional gain, and the readability
+was obtained by splitting the constructor instead.
 
 ## v2.6.1
 

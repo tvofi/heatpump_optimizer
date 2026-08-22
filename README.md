@@ -2,6 +2,77 @@
 
 A custom Home Assistant integration that uses **Model Predictive Control (MPC)** to optimize heat pump operation and minimize electricity costs, while maintaining indoor comfort and domestic hot water availability. Integrates with **Tibber** for dynamic electricity prices and Home Assistant weather entities for temperature, wind, rain, and solar forecasts.
 
+## Acknowledgement
+
+This project began as a fork of
+[**strutsfarm/heatpump_optimizer**](https://github.com/strutsfarm/heatpump_optimizer)
+at version 2.2.0, and everything it does rests on that foundation: the MPC
+formulation, the two-zone thermal model with its slab and buffer tank, the
+Tibber and weather integration, the config flow, and the ECL110 heat-curve
+control path are all originally strutsfarm's work. The companion
+[**strutsfarm/ecl110**](https://github.com/strutsfarm/ecl110) project provides
+the MQTT interface this integration drives.
+
+Versions 2.3.0 onward were developed in this fork. Both projects are MIT
+licensed. Thank you to strutsfarm for the original code and for releasing it
+under a licence that made this possible.
+
+## Disclaimer
+
+**Read this before installing.** This software controls real heating equipment
+and makes claims about money. Both deserve care.
+
+**No warranty.** This project is provided "as is" under the MIT licence, with
+no warranty of any kind, express or implied, and no liability for any claim,
+damage or other liability arising from its use. See [LICENSE](LICENSE) for the
+full text. You install and run it at your own risk.
+
+**It is not a safety device.** Do not rely on it for frost protection, for
+keeping pipes from freezing, for legionella control, or for anything else where
+failure has consequences. It can stop working for many ordinary reasons — a
+lost network connection, an expired API token, a Home Assistant upgrade, a
+crashed process, a dead sensor — and when it does, your heat pump is left
+wherever it was last told to be. Keep your heat pump's own thermostats,
+limits and safety controls active and correctly configured. They, not this
+integration, are what protect your home.
+
+**Anti-legionella is a convenience, not a compliance feature.** The cycle
+scheduled here is a best effort based on a modelled tank temperature at one
+sensor. It is not a substitute for following your local regulations and your
+tank manufacturer's guidance on hot water hygiene, and it cannot detect
+stratification, dead legs or a mis-sited sensor. If in doubt, keep an
+independent legionella cycle configured on the tank itself.
+
+**Savings figures are estimates.** Every cost, saving and percentage this
+integration reports is the output of a model, computed against forecast prices
+and forecast weather. Real savings depend on your building, your tariff, your
+heat pump, your habits and the weather actually occurring. Nothing here is a
+guarantee or a financial projection, and the baseline it compares against is a
+simulated always-on thermostat rather than a measurement of what you would
+otherwise have spent. Treat the numbers as a guide to relative decisions, not
+as an accounting record.
+
+**The model learns, and can be wrong.** Several parameters are estimated from
+your own house over time. A faulty or mis-configured sensor can push those
+estimates somewhere unhelpful, and the optimizer will then plan confidently
+against a wrong model. The input watchdog and the guard thresholds exist to
+limit that, but they cannot eliminate it. Check the diagnostic sensors
+occasionally, especially in the first weeks.
+
+**Your equipment, your responsibility.** Driving a heat pump or an external
+controller over MQTT may affect its warranty, may interact badly with its own
+internal logic, and may be subject to local regulation. Confirm that what you
+are doing is permitted and sensible for your specific hardware before enabling
+control features. Cycling a compressor more than its manufacturer intends can
+shorten its life.
+
+**No affiliation.** This project is not affiliated with, endorsed by, or
+supported by Home Assistant, Nabu Casa, Tibber, Nord Pool, Danfoss, Open-Meteo,
+or any heat pump manufacturer. Product and company names are used only to
+describe what the integration interoperates with. Use of third-party APIs is
+subject to those providers' own terms, and their availability, accuracy and
+pricing are outside this project's control.
+
 ## Features
 
 - **True Predictive MPC** — uses FULL 24-hour weather forecast trajectories for anticipatory control
@@ -915,7 +986,13 @@ temperature. Both work, and both trade savings for warmth.
 
 ## License
 
-MIT
+MIT. See [LICENSE](LICENSE).
+
+This project is a fork of
+[strutsfarm/heatpump_optimizer](https://github.com/strutsfarm/heatpump_optimizer),
+which is also MIT licensed; the upstream copyright is retained alongside this
+project's own. See the [Acknowledgement](#acknowledgement) and
+[Disclaimer](#disclaimer) at the top of this file.
 
 ## ECL110 MQTT Control (Heat Pump ON/OFF + Displace)
 
