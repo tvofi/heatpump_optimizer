@@ -72,11 +72,38 @@ clamped at both ends. Container query units would say this in CSS alone, but
 `container-type: inline-size` also applies inline-axis containment, which is a
 large side effect for a font size.
 
+### Rearranging today's slots
+
+The enlarged view draws today's plan a second time as two editable lanes, hot
+water above heating. Drag a block to move it, drag either edge to stretch it,
+and right-click the lane to add a slot there or remove the one under the
+pointer. The past is shaded and locked, because it cannot be rescheduled, and so
+is anything beyond tonight's midnight, because an override never outlives the
+day it was made.
+
+Underneath, a running total prices the arrangement against the plan currently in
+force, in your Home Assistant currency (or `currency:` if you set it). It
+updates as you drag, so the cost of moving the tank reheat out of the evening
+peak is visible before you commit to it.
+
+**Apply this plan** sends the arrangement to `apply_manual_plan`, which pins it
+until midnight: the optimizer keeps re-solving as prices and weather move, but
+it must schedule around your slots rather than through them. **Undo** throws the
+draft away, and once an override is in force a banner reports when it expires
+and offers **Back to automatic**.
+
+One thing the card is deliberately honest about: applying a plan does not
+guarantee every slot runs exactly as drawn. You control *timing*; the safety
+limits still win. If your arrangement would let the tank fall below its minimum,
+miss a legionella cycle, or take the house under its comfort floor, the
+integration releases just the slots it has to and says so in the banner. Silently
+freezing the house to honour a drag would be the wrong trade.
+
 ### Schedule editor and what-if simulator
 
-The enlarged view carries an editor for the comfort temperature, the heating day
-and the hot water windows. It is shown by default and hidden with
-`what_if: false`.
+The enlarged view also carries an editor for the comfort temperature, the
+heating day and the hot water windows. It is shown by default and hidden with
+`what_if: false`, which hides the slot lanes too.
 
 Editing only builds a draft inside the card. Two buttons act on it: **Simulate
 these slots** prices the draft against the plan currently in force, and **Save
@@ -187,7 +214,8 @@ series:                                  # optional, initial per-series visibili
 | `dhw_entity`   | string  | auto-detected                  | Entity id of the DHW plan sensor (its `forecast` attribute supplies `dhw_power`, `dhw_temp`, and `price`/`outdoor` fallbacks). |
 | `solar_entity` | string  | auto-detected                  | Entity id of the solar irradiance sensor (its `forecast` attribute supplies `ghi`). |
 | `hours`        | number  | `24`                           | How many hours forward to plot. Must be `1`–`168`. |
-| `what_if`      | boolean | `true`                         | Show the schedule editor in the enlarged view. Editing is local to the card; only the Simulate and Save buttons reach Home Assistant. |
+| `what_if`      | boolean | `true`                         | Show the slot lanes and schedule editor in the enlarged view. Editing is local to the card; only the Simulate, Save and Apply buttons reach Home Assistant. |
+| `currency`     | string  | Home Assistant's currency      | Unit shown next to the slot editor's cost delta. Only override this if your price sensor is not in the currency Home Assistant is configured for. |
 | `series`       | map     | all `true`                     | Initial visibility per series key. Keys: `price`, `dhw_slots`, `space_slots`, `outdoor`, `dhw_temp`, `house_temp`, `solar`. |
 
 ### Entity discovery

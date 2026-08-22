@@ -929,7 +929,10 @@ class _PlanSensorBase(HeatPumpOptimizerSensorBase):
         # plan_kind is emitted even with no plan yet so the card can still find
         # the entity and report *why* it is empty rather than "not found".
         if not plan:
-            return {"plan_kind": self._plan_kind}
+            return {
+                "plan_kind": self._plan_kind,
+                "manual_override": (self.coordinator.data or {}).get("manual_plan"),
+            }
         slots = plan.get("slots", [])
         next_slot = None
         if not plan.get("active_now") and slots:
@@ -954,6 +957,9 @@ class _PlanSensorBase(HeatPumpOptimizerSensorBase):
             "comfort_temp_day": data.get("comfort_temp_day"),
             "comfort_temp_night": data.get("comfort_temp_night"),
             "dhw_windows": data.get("dhw_windows"),
+            # The active manual override (or None). The card reads this to show
+            # which slots are pinned and which pins safety had to release.
+            "manual_override": data.get("manual_plan"),
         }
 
 

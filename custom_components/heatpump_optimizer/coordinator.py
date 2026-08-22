@@ -152,6 +152,7 @@ from .const import (
     DEFAULT_COMFORT_LEARNING_ENABLED,
     ACCURACY_STORE_VERSION,
     ENERGY_STORE_VERSION,
+    MANUAL_PLAN_STORE_VERSION,
     SIMULATE_MIN_INTERVAL_SECONDS,
 )
 from .inputs import InputHealth, InputReader, stale_summary
@@ -166,6 +167,12 @@ from . import pv as pv_model
 from .accuracy import AccuracySample, AccuracyTracker, delivered_ratio
 from .comfort_learning import ComfortLearner, OverrideEvent
 from .defrost import DefrostDerate
+from .manual_plan import (
+    CHANNEL_DHW,
+    CHANNEL_SPACE,
+    ManualOverride,
+    ManualPlanError,
+)
 from .price_model import (
     PriceShapeModel,
     extend_price_series,
@@ -410,6 +417,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._async_load_price_model,
             self._async_load_accuracy,
             self._async_load_energy_totals,
+            self._async_load_manual_plan,
         ):
             hass.async_create_task(load())
 
@@ -600,6 +608,18 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             hass,
             ENERGY_STORE_VERSION,
             f"{DOMAIN}_{entry.entry_id}_energy",
+        )
+
+        # --- Manual plan override -----------------------------------------
+        # The active hand-arranged plan, if any. Persisted through its own Store
+        # (never config options: an override changes far too often, and writing
+        # options reloads the whole entry) so a plan survives a restart within
+        # the day it was set for.
+        self._manual_override: ManualOverride | None = None
+        self._manual_plan_store: Store = Store(
+            hass,
+            MANUAL_PLAN_STORE_VERSION,
+            f"{DOMAIN}_{entry.entry_id}_manual_plan",
         )
 
         # --- Active system identification (item 18) ------------------------
@@ -1872,6 +1892,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
             self._current_state.external_heat_active = self._external_heat_active
 
+            # Manual plan: build the per-step pin arrays aligned to the exact
+            # horizon this solve will use. An expired override is dropped here so
+            # it can never influence planning, and the solve timestamp is taken
+            # once and reused so the pins line up with the steps the optimizer
+            # builds from the same instant.
+            solve_now = dt_util.now()
+            space_pins, dhw_pins = self._manual_pins(solve_now, len(prices))
+
             # Run optimization in executor to avoid blocking
             result = await self.hass.async_add_executor_job(
                 self._optimizer.optimize,
@@ -1881,10 +1909,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 horizon.wind_speeds,
                 horizon.precipitation,
                 horizon.solar_radiation,
-                dt_util.now(),
+                solve_now,
                 horizon.price_known,
                 horizon.pv_surplus,
+                space_pins,
+                dhw_pins,
             )
+
+            self._record_manual_release(result)
 
             self._optimization_result = result
             self._last_optimization = dt_util.now()
@@ -2935,6 +2967,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         data.update({k: round(v, 4) for k, v in self._energy_totals.items()})
         data["battery"] = self._battery_view()
 
+        # Only surface the manual-plan key while an override is actually active,
+        # so a plan-free solve (the golden fixtures included) is byte-for-byte
+        # unchanged from before this feature existed.
+        manual_state = self._manual_plan_state()
+        if manual_state is not None:
+            data["manual_plan"] = manual_state
+
         if result:
             # DHW schedule data
             dhw_schedule = []
@@ -3130,6 +3169,143 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             await self._energy_store.async_save(dict(self._energy_totals))
         except Exception as err:  # noqa: BLE001
             _LOGGER.debug("Could not persist energy totals: %s", err)
+
+    # ==================================================================
+    # Manual plan override
+    # ==================================================================
+
+    async def _async_load_manual_plan(self) -> None:
+        """Restore a persisted override, discarding it if already expired.
+
+        A plan set at 18:00 must still hold after a restart at 19:00 on the same
+        day; one whose expiry has already passed is dropped on restore so it can
+        never resurrect stale pins into a fresh horizon.
+        """
+        try:
+            stored = await self._manual_plan_store.async_load()
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.debug("Could not load manual plan: %s", err)
+            return
+        if not stored:
+            return
+        try:
+            override = ManualOverride.from_dict(stored)
+        except (ManualPlanError, AttributeError, TypeError) as err:
+            # from_dict expects a mapping, so a corrupted or hand-edited
+            # .storage file holding a list or a bare string raises something
+            # other than ManualPlanError. A bad file must cost the user their
+            # override, not their whole integration setup.
+            _LOGGER.warning("Discarding unreadable stored manual plan: %s", err)
+            await self._manual_plan_store.async_save({})
+            return
+        if override.is_expired(dt_util.now()):
+            await self._manual_plan_store.async_save({})
+            return
+        self._manual_override = override
+
+    async def _async_save_manual_plan(self) -> None:
+        try:
+            payload = (
+                self._manual_override.to_dict()
+                if self._manual_override is not None
+                else {}
+            )
+            await self._manual_plan_store.async_save(payload)
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.debug("Could not persist manual plan: %s", err)
+
+    def _horizon_step_starts(self, solve_now: datetime, n_steps: int) -> list[datetime]:
+        """The instant each solved step begins, matching the optimizer's own."""
+        dt_hours = self._opt_config.dt_hours
+        return [solve_now + timedelta(hours=i * dt_hours) for i in range(n_steps)]
+
+    def _manual_pins(
+        self, solve_now: datetime, n_steps: int
+    ) -> tuple[np.ndarray | None, np.ndarray | None]:
+        """Per-step pin arrays for the active override, or ``(None, None)``.
+
+        Returns ``None`` for a channel left automatic (or when no override is in
+        force / it has expired), so a solve with no manual plan is byte-for-byte
+        identical to one from before this feature existed.
+        """
+        override = self._manual_override
+        if override is None:
+            return None, None
+        if override.is_expired(solve_now):
+            # Drop it eagerly; the next save persists the cleared state.
+            self._manual_override = None
+            self.hass.async_create_task(self._async_save_manual_plan())
+            return None, None
+        step_starts = self._horizon_step_starts(solve_now, n_steps)
+        space = override.channel_pins(CHANNEL_SPACE, step_starts)
+        dhw = override.channel_pins(CHANNEL_DHW, step_starts)
+        return (
+            np.array(space, dtype=float) if space is not None else None,
+            np.array(dhw, dtype=float) if dhw is not None else None,
+        )
+
+    def _record_manual_release(self, result: "OptimizationResult") -> None:
+        """Fold the solve's safety releases back onto the override for display."""
+        override = self._manual_override
+        if override is None:
+            return
+        override.released_space = [
+            {"step": i, "reason": "safety"} for i in result.manual_released_space
+        ]
+        override.released_dhw = [
+            {"step": i, "reason": "safety"} for i in result.manual_released_dhw
+        ]
+
+    def _manual_plan_state(self) -> dict[str, Any] | None:
+        """The override state the plan sensors expose, or ``None`` when inactive."""
+        override = self._manual_override
+        if override is None or override.is_expired(dt_util.now()):
+            return None
+        return {
+            "active": True,
+            "expires_at": override.expires_at.isoformat(),
+            "space_slots": override.normalized_slots(CHANNEL_SPACE),
+            "dhw_slots": override.normalized_slots(CHANNEL_DHW),
+            "released_space": list(override.released_space),
+            "released_dhw": list(override.released_dhw),
+        }
+
+    async def async_apply_manual_plan(
+        self, override: ManualOverride
+    ) -> dict[str, Any]:
+        """Store a validated override, persist it, and re-solve immediately.
+
+        The override arrives already validated (the service layer builds it via
+        ``manual_plan.build_override`` so a rejected call never reaches here),
+        so this only has to adopt it, persist it and trigger a refresh. Returns
+        the stored summary for the service response.
+        """
+        self._manual_override = override
+        await self._async_save_manual_plan()
+        await self.async_request_refresh()
+        # The solver's own horizon length. `len(self._prices)` counts *hourly*
+        # price entries, so using it would measure a 15-minute-step horizon in
+        # hours and under-report the pins -- reporting zero for an evening plan
+        # that had in fact applied perfectly well.
+        step_starts = self._horizon_step_starts(
+            dt_util.now(), self._opt_config.n_steps
+        )
+        return {
+            "expires_at": override.expires_at.isoformat(),
+            "space_slots": override.normalized_slots(CHANNEL_SPACE),
+            "dhw_slots": override.normalized_slots(CHANNEL_DHW),
+            "pinned_space_steps": override.pinned_step_count(
+                CHANNEL_SPACE, step_starts
+            ),
+            "pinned_dhw_steps": override.pinned_step_count(CHANNEL_DHW, step_starts),
+        }
+
+    async def async_clear_manual_plan(self) -> None:
+        """Remove any override and re-solve so the plan reverts to automatic."""
+        self._manual_override = None
+        await self._async_save_manual_plan()
+        await self.async_request_refresh()
+
 
     # ==================================================================
     # Price horizon modelling (item 7)

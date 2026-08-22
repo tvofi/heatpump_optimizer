@@ -21,8 +21,10 @@ import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
+from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.loader import async_get_integration
+from homeassistant.util import dt as dt_util
 
 from .const import (
     DOMAIN,
@@ -32,6 +34,8 @@ from .const import (
     CONF_DAY_START_HOUR,
     CONF_DHW_WINDOWS,
     SERVICE_APPLY_SCHEDULE,
+    SERVICE_APPLY_MANUAL_PLAN,
+    SERVICE_CLEAR_MANUAL_PLAN,
     SERVICE_RUN_OPTIMIZATION,
     SERVICE_SET_MODE,
     SERVICE_SET_THERMAL_PARAMS,
@@ -45,6 +49,7 @@ from .const import (
 from .coordinator import HeatPumpOptimizerCoordinator
 from .dhw_schedule import DHWWindowError, format_windows, parse_windows
 from .frontend import async_register_frontend
+from .manual_plan import ManualPlanError, build_override, next_local_midnight
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -115,6 +120,28 @@ SERVICE_SCHEMA_APPLY_SCHEDULE = vol.Schema(
         # Restrict the write to one config entry. Omitted means every entry,
         # which matches how simulate_plan behaves and is what the card wants
         # on a single-heat-pump install.
+        vol.Optional("entry_id"): cv.string,
+    }
+)
+
+# A slot is one contiguous run the user pinned; the deep validation (parseable
+# datetimes, end > start, no overlap) lives in ``manual_plan`` so it stays
+# unit-testable, and the schema only guarantees the coarse shape. ``vol.Any``
+# with ``None`` keeps the "omitted / null means automatic" distinction the
+# handler relies on — an explicit empty list still arrives as ``[]``.
+_MANUAL_SLOT_LIST = vol.Any(None, [dict])
+
+SERVICE_SCHEMA_APPLY_MANUAL_PLAN = vol.Schema(
+    {
+        vol.Optional("dhw_slots"): _MANUAL_SLOT_LIST,
+        vol.Optional("space_slots"): _MANUAL_SLOT_LIST,
+        vol.Optional("expires_at"): cv.string,
+        vol.Optional("entry_id"): cv.string,
+    }
+)
+
+SERVICE_SCHEMA_CLEAR_MANUAL_PLAN = vol.Schema(
+    {
         vol.Optional("entry_id"): cv.string,
     }
 )
@@ -310,6 +337,84 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER.info("Applied schedule to %d entry(ies): %s", len(updated), updates)
         return {"updated": updated}
 
+    def _manual_targets(target_entry: str | None):
+        """Loaded coordinators the manual-plan services should act on."""
+        for entry in hass.config_entries.async_entries(DOMAIN):
+            if target_entry is not None and entry.entry_id != target_entry:
+                continue
+            coord = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+            if coord is not None:
+                yield entry.entry_id, coord
+
+    async def handle_apply_manual_plan(call: ServiceCall) -> dict[str, Any]:
+        """Pin *when* space heating and hot water run for the rest of the day.
+
+        Unlike apply_schedule, which only shifts the envelope the optimizer
+        keeps re-deciding inside, this fixes the actual run slots until
+        ``expires_at`` (next local midnight by default). The pins are validated
+        in full *before* any coordinator is touched, so a rejected call leaves an
+        existing override completely untouched. Safety still wins: the optimizer
+        releases a forced-off slot if the house or tank would breach a hard
+        floor — see the coordinator and optimizer for how.
+        """
+        data = dict(call.data)
+        target_entry = data.pop("entry_id", None)
+        now = dt_util.now()
+
+        raw_expires = data.get("expires_at")
+        if raw_expires is None:
+            expires_at = next_local_midnight(now)
+        else:
+            expires_at = dt_util.parse_datetime(raw_expires)
+            if expires_at is None:
+                raise ServiceValidationError(
+                    f"Invalid expires_at {raw_expires!r}: not an ISO 8601 datetime"
+                )
+
+        # Validate once, up front. build_override raises for a past expiry, an
+        # unparseable slot, an end at or before its start, or overlapping slots.
+        try:
+            override = build_override(
+                dhw_slots=data.get("dhw_slots"),
+                space_slots=data.get("space_slots"),
+                expires_at=expires_at,
+                now=now,
+            )
+        except ManualPlanError as err:
+            raise ServiceValidationError(str(err)) from err
+
+        applied: dict[str, Any] = {}
+        first = True
+        for entry_id, coord in _manual_targets(target_entry):
+            # Reuse the already-validated override for the first (usually only)
+            # entry; give any further entries their own copy so the transient
+            # safety-release annotations of one never bleed into another.
+            this_override = override if first else build_override(
+                dhw_slots=data.get("dhw_slots"),
+                space_slots=data.get("space_slots"),
+                expires_at=expires_at,
+                now=now,
+            )
+            first = False
+            applied[entry_id] = await coord.async_apply_manual_plan(this_override)
+
+        if not applied:
+            raise ServiceValidationError(
+                "No loaded Heat Pump Optimizer config entry matched this call"
+            )
+
+        _LOGGER.info("Applied manual plan to %d entry(ies)", len(applied))
+        return {"applied": applied}
+
+    async def handle_clear_manual_plan(call: ServiceCall) -> dict[str, Any]:
+        """Remove any manual override so planning reverts to fully automatic."""
+        target_entry = dict(call.data).get("entry_id")
+        cleared: list[str] = []
+        for entry_id, coord in _manual_targets(target_entry):
+            await coord.async_clear_manual_plan()
+            cleared.append(entry_id)
+        return {"cleared": cleared}
+
     hass.services.async_register(
         DOMAIN,
         SERVICE_RUN_OPTIMIZATION,
@@ -342,6 +447,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         schema=SERVICE_SCHEMA_APPLY_SCHEDULE,
         supports_response=SupportsResponse.OPTIONAL,
     )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_APPLY_MANUAL_PLAN,
+        handle_apply_manual_plan,
+        schema=SERVICE_SCHEMA_APPLY_MANUAL_PLAN,
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_CLEAR_MANUAL_PLAN,
+        handle_clear_manual_plan,
+        schema=SERVICE_SCHEMA_CLEAR_MANUAL_PLAN,
+        supports_response=SupportsResponse.OPTIONAL,
+    )
 
     entry.async_on_unload(entry.add_update_listener(async_update_options))
 
@@ -367,5 +486,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass.services.async_remove(DOMAIN, SERVICE_SET_MODE)
         hass.services.async_remove(DOMAIN, SERVICE_SET_THERMAL_PARAMS)
         hass.services.async_remove(DOMAIN, SERVICE_SIMULATE_PLAN)
+        hass.services.async_remove(DOMAIN, SERVICE_APPLY_MANUAL_PLAN)
+        hass.services.async_remove(DOMAIN, SERVICE_CLEAR_MANUAL_PLAN)
 
     return unload_ok

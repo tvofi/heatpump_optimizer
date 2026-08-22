@@ -10,7 +10,7 @@
  */
 
 const CARD_TAG = "heatpump-optimizer-card";
-const CARD_VERSION = "3.1.2";
+const CARD_VERSION = "3.2.0";
 
 const DEFAULTS = {
   title: "Heat pump plan",
@@ -151,6 +151,17 @@ const CHAR_WIDTH_EM = 0.55;
 // day instead of drifting across midnight.
 const TIME_LABEL_STEPS = [1, 2, 3, 4, 6, 8, 12, 24];
 
+// The editable lanes along the bottom of the plot, in viewBox units. Slots are
+// dragged here rather than on the power bars themselves: the bars vary in
+// height with power, which makes them an awkward and inconsistent hit target,
+// whereas a lane is a constant band that reads as a timeline.
+const LANE_H = 15;
+const LANE_GAP = 3;
+const LANE_BOTTOM_INSET = 3;
+// How close to an edge a grab counts as a resize rather than a move.
+const LANE_EDGE_GRAB = 6;
+const PLAN_STEP_MS = 15 * 60000;
+
 // The expanded dialog's chrome is sized from one font size, set from the
 // dialog's measured width so it grows with the chart it sits beside.
 const DIALOG_FONT_RATIO = 0.0105;
@@ -171,6 +182,7 @@ const REASON_LABELS = {
   dhw_preheat: "Charging the tank while electricity is cheap",
   legionella: "Anti-legionella cycle",
   peak_avoidance: "Staying under the capacity tariff peak",
+  manual_plan: "You scheduled this",
   idle: "Not heating",
 };
 
@@ -273,6 +285,166 @@ function fmtTick(v) {
   if (Number.isInteger(v)) return String(v);
   return v.toFixed(1);
 }
+
+/** Editing model for hand-arranged run slots.
+ *
+ * The plan is published per timestep, but nobody thinks in timesteps: a user
+ * thinks "hot water runs from 04:00 to 06:00". So the steps are collapsed into
+ * runs, all editing happens on runs, and the result is only ever expanded back
+ * to steps when a cost is needed.
+ *
+ * Everything here is pure and knows nothing about the DOM or the chart, which
+ * is what makes the dragging logic testable at all -- the geometry can be
+ * exercised without a browser, and a pointer event ends up being nothing more
+ * than a delta in milliseconds.
+ *
+ * Times are epoch milliseconds throughout. Runs are always kept sorted, gap-
+ * free of overlaps, and inside the horizon, so no caller has to defend itself
+ * against a half-edited arrangement.
+ */
+const SlotModel = {
+  /** Collapse per-step power into contiguous runs of "on". */
+  runsFrom(forecast, field, threshold = 0.05, stepMs = 15 * 60000) {
+    const runs = [];
+    let open = null;
+    for (const point of forecast || []) {
+      const t = Date.parse(point.t);
+      if (!Number.isFinite(t)) continue;
+      const on = Number(point[field]) > threshold;
+      if (on && !open) open = { start: t, end: t + stepMs };
+      else if (on && open) open.end = t + stepMs;
+      else if (!on && open) {
+        runs.push(open);
+        open = null;
+      }
+    }
+    if (open) runs.push(open);
+    return runs;
+  },
+
+  /** Round to the planning grid. Anything finer cannot be acted on anyway. */
+  snap(ms, stepMs) {
+    return Math.round(ms / stepMs) * stepMs;
+  },
+
+  /** Sort, drop empties and merge what now touches.
+   *
+   * Dragging one run across another is a normal gesture, not an error, so
+   * overlaps are resolved by merging rather than by refusing the move.
+   *
+   * This deliberately does *not* clamp to the editable range. That range
+   * begins at the present, so clamping every run to it would haul slots that
+   * have already run forward into the future and merge them together --
+   * rewriting history to make room for an edit. Only the run being edited is
+   * constrained, by the caller that knows which one that is.
+   */
+  normalize(runs, stepMs) {
+    const clean = (runs || [])
+      .map((r) => ({ start: r.start, end: r.end }))
+      .filter((r) => r.end - r.start >= stepMs)
+      .sort((a, b) => a.start - b.start);
+
+    const out = [];
+    for (const run of clean) {
+      const last = out[out.length - 1];
+      if (last && run.start <= last.end) last.end = Math.max(last.end, run.end);
+      else out.push({ ...run });
+    }
+    return out;
+  },
+
+  /** Slide a whole run, keeping its length. */
+  move(runs, index, deltaMs, stepMs, bounds) {
+    const run = runs[index];
+    if (!run) return runs;
+    const length = run.end - run.start;
+    const [lo, hi] = bounds;
+    let start = this.snap(run.start + deltaMs, stepMs);
+    // Clamp the run as a unit; letting the start clamp alone would silently
+    // stretch or shrink it at the horizon edges.
+    start = Math.max(lo, Math.min(hi - length, start));
+    const moved = runs.map((r, i) =>
+      i === index ? { start, end: start + length } : r
+    );
+    return this.normalize(moved, stepMs);
+  },
+
+  /** Drag one end of a run. The other end stays put. */
+  resize(runs, index, edge, deltaMs, stepMs, bounds) {
+    const run = runs[index];
+    if (!run) return runs;
+    const next = { ...run };
+    const [lo, hi] = bounds;
+    if (edge === "start") {
+      next.start = Math.max(
+        lo,
+        Math.min(this.snap(run.start + deltaMs, stepMs), run.end - stepMs)
+      );
+    } else {
+      next.end = Math.min(
+        hi,
+        Math.max(this.snap(run.end + deltaMs, stepMs), run.start + stepMs)
+      );
+    }
+    const resized = runs.map((r, i) => (i === index ? next : r));
+    return this.normalize(resized, stepMs);
+  },
+
+  /** Add a run at a point, sized to fit whatever gap it lands in. */
+  add(runs, atMs, stepMs, bounds, preferredMs = 60 * 60000) {
+    const [lo, hi] = bounds;
+    const at = Math.max(lo, Math.min(hi - stepMs, this.snap(atMs, stepMs)));
+    // Grow up to the preferred length but stop at the next run, so adding
+    // between two runs does not silently swallow the one after it.
+    const following = runs.find((r) => r.start >= at);
+    const limit = following ? following.start : hi;
+    const end = Math.min(at + preferredMs, limit, hi);
+    if (end - at < stepMs) return runs;
+    return this.normalize([...runs, { start: at, end }], stepMs);
+  },
+
+  remove(runs, index) {
+    return runs.filter((_, i) => i !== index);
+  },
+
+  /** Index of the run containing a time, or -1. */
+  indexAt(runs, ms) {
+    return runs.findIndex((r) => ms >= r.start && ms < r.end);
+  },
+
+  /** Typical power of a channel while it is running.
+   *
+   * The arrangement says when to run, not how hard; the optimizer still picks
+   * the magnitude. For an estimate, what the plan already does while running
+   * is a far better guide than a nameplate rating.
+   */
+  typicalPower(forecast, field, threshold = 0.05) {
+    const on = (forecast || [])
+      .map((p) => Number(p[field]))
+      .filter((v) => Number.isFinite(v) && v > threshold);
+    if (!on.length) return 0;
+    return on.reduce((a, b) => a + b, 0) / on.length;
+  },
+
+  /** Cost of running a channel over these runs, at the horizon's prices. */
+  cost(runs, forecast, powerKw, stepMs) {
+    if (!powerKw) return 0;
+    const dtHours = stepMs / 3600000;
+    let total = 0;
+    for (const point of forecast || []) {
+      const t = Date.parse(point.t);
+      const price = Number(point.price);
+      if (!Number.isFinite(t) || !Number.isFinite(price)) continue;
+      // A step counts when its midpoint is covered, so a run that starts
+      // mid-step is not double-counted at both ends.
+      const mid = t + stepMs / 2;
+      if (runs.some((r) => mid >= r.start && mid < r.end)) {
+        total += powerKw * dtHours * price;
+      }
+    }
+    return total;
+  },
+};
 
 class HeatpumpOptimizerCard extends HTMLElement {
   constructor() {
@@ -582,6 +754,13 @@ class HeatpumpOptimizerCard extends HTMLElement {
     if (!this._config || !this._hass) return;
     const sig = this._signature();
     if (!force && sig === this._sig) return;
+    // A newly published plan replaces the slot draft, unless the user is part
+    // way through rearranging it. Their edits have to survive a refresh -- but
+    // an untouched draft must not survive one, or the lanes would keep showing
+    // an arrangement the optimizer has already moved on from, the cost delta
+    // would compare against a plan that no longer exists, and Apply would pin
+    // something the user is not looking at.
+    if (!this._runsDirty) this._runs = null;
     this._sig = sig;
     this._render();
   }
@@ -784,24 +963,25 @@ class HeatpumpOptimizerCard extends HTMLElement {
     `;
   }
 
-  /** The what-if simulator, shown in the expanded view only.
+  /** The what-if panel, shown in the expanded view only.
    *
-   * Setpoints and time slots are normally chosen blind: the optimizer can
-   * price a plan, but the user never sees the price of their own comfort
-   * choices. Here they can change the comfort temperature, the hours the house
-   * is heated to it, and the hot water demand windows, and see what each would
-   * cost per month.
+   * Two different questions live here, so they are kept visibly apart.
    *
-   * Everything runs against a *copy* of the configuration on the coordinator
-   * side, so exploring here cannot disturb actual operation. The temperature
-   * slider is debounced; the slot editors are applied on an explicit button,
-   * because editing a time range is not a drag gesture and half-typed times
-   * should not trigger a solve.
+   * "Today's slots" is about *this* day. The plan is drawn as draggable slots
+   * on their own lanes under the chart, and moving them re-prices the day
+   * against the published plan so the cost of the change is visible before it
+   * is made. "Apply for the rest of today" pins the arrangement through the
+   * `apply_manual_plan` service; the optimizer then keeps the timing but is
+   * still free to choose how hard to run, and safety limits still override it.
    *
-   * Saving is a separate, deliberate step. Once a user has found a schedule
-   * they prefer, "Save as my schedule" writes it into the config entry through
-   * the `apply_schedule` service — the only way anything here reaches real
-   * configuration, and it asks for confirmation first.
+   * "My usual schedule" is about *every* day: the comfort temperature, the
+   * hours the house is heated to it, and the hot water demand windows. These
+   * are priced per month against a copy of the configuration on the
+   * coordinator side, so exploring cannot disturb operation. The temperature
+   * slider is debounced; the time fields apply on an explicit button, because
+   * editing a time range is not a drag gesture and half-typed times should not
+   * trigger a solve. "Save as my schedule" writes them into the config entry
+   * through `apply_schedule`, and asks for confirmation first.
    */
   _whatIfHtml() {
     if (!this._config.what_if) return "";
@@ -809,6 +989,33 @@ class HeatpumpOptimizerCard extends HTMLElement {
     const windows = draft.dhwWindows;
     return `
       <div class="whatif">
+        <div class="wi-section">
+          <div class="wi-group-title">Today's slots</div>
+          <div class="wi-hint">
+            Drag a slot along its lane at the bottom of the chart to move it,
+            drag either edge to resize it, or right-click a lane to add and
+            remove slots. Applying pins them for the rest of today.
+          </div>
+          ${this._overrideHtml()}
+          <div class="wi-row wi-delta">${this._deltaHtml()}</div>
+          <div class="wi-row wi-actions">
+            <button type="button" class="wi-pin">Apply for the rest of today</button>
+            <button type="button" class="wi-revert">Undo my changes</button>
+            ${
+              this._manualOverride()
+                ? `<button type="button" class="wi-auto">Back to automatic</button>`
+                : ""
+            }
+          </div>
+          <div class="wi-pin-result" role="status"></div>
+        </div>
+
+        <div class="wi-section">
+          <div class="wi-group-title">My usual schedule</div>
+          <div class="wi-hint">
+            These are the recurring hours the optimizer plans against every
+            day, not just today.
+          </div>
         <div class="wi-row">
           <label class="wi-field">
             <span>Comfort temperature</span>
@@ -870,6 +1077,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
           Change a setting to see what it would cost. Simulating changes
           nothing; saving replaces your configured schedule.
         </div>
+        </div>
       </div>
     `;
   }
@@ -907,11 +1115,172 @@ class HeatpumpOptimizerCard extends HTMLElement {
     return Number.isFinite(value) ? value : fallback;
   }
 
+  /** The manual override the integration is currently honouring, if any.
+   *
+   * Published by both plan sensors, so either will do; the space sensor is the
+   * one the rest of the card already resolves.
+   */
+  _manualOverride() {
+    for (const which of ["space", "dhw"]) {
+      const st = this._stateOf(this._resolveEntity(which));
+      const info = ((st && st.attributes) || {}).manual_override;
+      if (info && info.active) return info;
+    }
+    return null;
+  }
+
+  /** How the override is going, in the user's terms.
+   *
+   * A pinned slot is not a guarantee: the optimizer releases pins that would
+   * take the house below its comfort floor or the tank below its minimum. That
+   * has to be said out loud, because the whole point of pinning is that the
+   * user believes the plan they see is the plan that will run.
+   */
+  _overrideHtml() {
+    const info = this._manualOverride();
+    if (!info) return "";
+    const until = info.expires_at ? new Date(info.expires_at) : null;
+    const when =
+      until && !Number.isNaN(until.getTime()) ? ` until ${until.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : "";
+    const released =
+      (info.released_space || []).length + (info.released_dhw || []).length;
+    const note = released
+      ? ` <span class="dearer">${released} slot${
+          released === 1 ? " was" : "s were"
+        } released to protect the house or the tank.</span>`
+      : "";
+    return `<div class="wi-row wi-override" role="status">Your slots are pinned${esc(
+      when
+    )}.${note}</div>`;
+  }
+
   /** Demand windows the DHW plan sensor is currently planning against. */
   _currentDhwWindows() {
     const st = this._stateOf(this._resolveEntity("dhw"));
     const spec = ((st && st.attributes) || {}).dhw_windows;
     return parseWindows(spec);
+  }
+
+  /** Wire the buttons that act on today's hand-arranged slots. */
+  _attachSlotActions(root) {
+    const pin = root.querySelector(".wi-pin");
+    if (pin) {
+      pin.addEventListener("click", (ev) => {
+        stop(ev);
+        this._applyManualPlan();
+      });
+    }
+    const revert = root.querySelector(".wi-revert");
+    if (revert) {
+      revert.addEventListener("click", (ev) => {
+        stop(ev);
+        this._resetRuns();
+        this._render();
+      });
+    }
+    const auto = root.querySelector(".wi-auto");
+    if (auto) {
+      auto.addEventListener("click", (ev) => {
+        stop(ev);
+        this._clearManualPlan();
+      });
+    }
+  }
+
+  _slotResult(message, cls) {
+    const box = this.shadowRoot && this.shadowRoot.querySelector(".wi-pin-result");
+    if (box) box.innerHTML = `<span class="${cls || ""}">${esc(message)}</span>`;
+  }
+
+  /** Pin the current arrangement for the rest of today.
+   *
+   * Only the editable part of the horizon is sent: the past cannot be
+   * rescheduled, and pinning a slot that has already happened would be
+   * meaningless.
+   */
+  _applyManualPlan() {
+    if (!this._hass || !this._hass.callService) return;
+    const [lo] = this._editBounds();
+    const runs = this._draftRuns();
+    const payload = {};
+    for (const spec of this._laneSpecs()) {
+      // Omitting a channel leaves it automatic; sending an empty list means
+      // "off until the override expires". A channel whose plan sensor is
+      // missing or has not published yet has an empty draft that means neither
+      // of those things, so it must be left out rather than silently switched
+      // off for the rest of the day.
+      if (!this._forecastOf(spec.channel).length) continue;
+      payload[`${spec.channel}_slots`] = (runs[spec.channel] || [])
+        .filter((r) => r.end > lo)
+        .map((r) => ({
+          start: new Date(Math.max(r.start, lo)).toISOString(),
+          end: new Date(r.end).toISOString(),
+        }));
+    }
+    if (!Object.keys(payload).length) {
+      this._slotResult("No plan to pin yet.", "dearer");
+      return;
+    }
+    this._slotResult("Applying…");
+    Promise.resolve(
+      this._hass.callService(
+        "heatpump_optimizer",
+        "apply_manual_plan",
+        payload,
+        undefined,
+        false,
+        true
+      )
+    )
+      .then((response) => {
+        this._runsDirty = false;
+        const applied = Object.values(
+          (response && response.response && response.response.applied) || {}
+        )[0];
+        const until = applied && applied.expires_at
+          ? new Date(applied.expires_at)
+          : null;
+        const when =
+          until && !Number.isNaN(until.getTime())
+            ? ` until ${until.toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}`
+            : " for the rest of today";
+        // Deliberately not a promise that these slots will run: the optimizer
+        // releases a pin that would take the house or the tank below its
+        // limits, and saying otherwise would be a lie the user acts on.
+        this._slotResult(
+          `Pinned${when}. These slots will be kept unless doing so would take` +
+            ` the house or the tank below its limits.`,
+          "cheaper"
+        );
+      })
+      .catch((err) => {
+        this._slotResult(
+          `Could not apply: ${(err && err.message) || err}`,
+          "dearer"
+        );
+      });
+  }
+
+  _clearManualPlan() {
+    if (!this._hass || !this._hass.callService) return;
+    this._slotResult("Clearing…");
+    Promise.resolve(
+      this._hass.callService("heatpump_optimizer", "clear_manual_plan", {})
+    )
+      .then(() => {
+        this._resetRuns();
+        this._slotResult("Back to automatic planning.");
+        this._render();
+      })
+      .catch((err) => {
+        this._slotResult(
+          `Could not clear: ${(err && err.message) || err}`,
+          "dearer"
+        );
+      });
   }
 
   /** Wire the what-if controls, if the panel is present. */
@@ -1249,7 +1618,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
       .querySelectorAll(".chip")
       .forEach((el) => el.addEventListener("click", this._onLegendClick));
 
-    root.querySelectorAll("svg").forEach((svg) => {
+    this._chartSvgs(root).forEach((svg) => {
       svg.addEventListener("mousemove", this._onPointerMove);
       svg.addEventListener("mouseleave", this._onPointerLeave);
       svg.addEventListener("touchmove", this._onPointerMove, { passive: true });
@@ -1257,6 +1626,8 @@ class HeatpumpOptimizerCard extends HTMLElement {
     });
 
     this._attachWhatIf(root);
+    this._attachSlotActions(root);
+    this._attachSlotEditing(root);
   }
 
   /** Bring the dialog element in the DOM into line with `_expanded`.
@@ -1398,6 +1769,45 @@ class HeatpumpOptimizerCard extends HTMLElement {
         dialog.expanded .tooltip .dot { width: 0.6em; height: 0.6em; }
         dialog.expanded .whatif { font-size: 1em; }
         dialog.expanded .close svg { width: 1.4em; height: 1.4em; }
+
+        /* Editable slot lanes */
+        .slot { cursor: grab; }
+        .slot.locked { cursor: not-allowed; }
+        .slot-handle { cursor: ew-resize; }
+        .lane { cursor: context-menu; }
+        /* A drag that selects the chart's text instead of moving the slot is
+           the single most common way this kind of editor feels broken. */
+        .lanes { user-select: none; }
+        .slot-menu {
+          position: absolute; z-index: 5;
+          background: var(--card-background-color, #fff);
+          border: 1px solid var(--divider-color, #ccc);
+          border-radius: 0.4em; padding: 0.2em;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        .slot-menu button {
+          display: block; width: 100%; text-align: left;
+          font: inherit; border: none; background: none; cursor: pointer;
+          padding: 0.4em 0.7em; border-radius: 0.3em;
+          color: var(--primary-text-color);
+        }
+        .slot-menu button:hover {
+          background: var(--secondary-background-color, #eee);
+        }
+        .whatif .wi-section + .wi-section {
+          margin-top: 0.9em; padding-top: 0.7em;
+          border-top: 1px solid var(--divider-color, #e0e0e0);
+        }
+        .whatif .wi-delta { align-items: baseline; gap: 0.6em; }
+        .whatif .delta {
+          font-size: 1.25em; font-weight: 600;
+          font-variant-numeric: tabular-nums;
+        }
+        .whatif .wi-pin {
+          border-color: var(--primary-color, #03a9f4);
+          color: var(--primary-color, #03a9f4);
+        }
+        .whatif .wi-pin-result { margin-top: 0.4em; min-height: 1.2em; }
 
         /* What-if simulator */
         .whatif {
@@ -1628,6 +2038,17 @@ class HeatpumpOptimizerCard extends HTMLElement {
       );
     }
 
+    // Editable slot lanes, and the geometry a pointer event needs to turn a
+    // screen coordinate back into a time.
+    if (this._editingEnabled()) {
+      this._geom = {
+        windowStart, windowEnd, plotL, plotW, plotR, plotB, font,
+      };
+      parts.push(`<g class="lanes">${this._laneGroupInner()}</g>`);
+    } else {
+      this._geom = null;
+    }
+
     // Series paths (filled/area series first, lines on top)
     const order = ["stepArea", "stepBars", "smooth"];
     for (const st of order) {
@@ -1645,6 +2066,399 @@ class HeatpumpOptimizerCard extends HTMLElement {
     return `<svg viewBox="0 0 ${VIEW_W} ${VIEW_H}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${esc(
       this._config.title
     )}">${parts.join("")}</svg>`;
+  }
+
+  /** The right-click menu for a lane.
+   *
+   * Rendered as plain HTML positioned over the card rather than as SVG, so it
+   * is not clipped by the chart and inherits the dialog's font.
+   */
+  _openSlotMenu(channel, at, clientX, clientY, svg) {
+    const root = this.shadowRoot;
+    if (!root) return;
+    this._closeSlotMenu();
+    const runs = this._draftRuns()[channel] || [];
+    const index = SlotModel.indexAt(runs, at);
+    const [lo] = this._editBounds();
+    const editable = index >= 0 && runs[index].end > lo;
+
+    // Anchored to the chart it was opened from: when the card is expanded
+    // there are two, and the menu must not land on the wrong one.
+    const host = this._wrapOf(svg);
+    if (!host) return;
+    const rect = host.getBoundingClientRect
+      ? host.getBoundingClientRect()
+      : { left: 0, top: 0 };
+    const menu = document.createElement("div");
+    menu.className = "slot-menu";
+    menu.style.left = `${clientX - (rect.left || 0)}px`;
+    menu.style.top = `${clientY - (rect.top || 0)}px`;
+    const label = channel === "dhw" ? "hot water" : "heating";
+    menu.innerHTML = editable
+      ? `<button type="button" data-act="remove">Remove this ${esc(label)} slot</button>`
+      : `<button type="button" data-act="add">Add a ${esc(label)} slot here</button>`;
+
+    menu.addEventListener("click", (ev) => {
+      const act = ((ev.target || {}).dataset || {}).act;
+      stop(ev);
+      if (act === "add") {
+        this._commitRuns(
+          channel,
+          SlotModel.add(runs, at, PLAN_STEP_MS, this._editBounds())
+        );
+      } else if (act === "remove") {
+        this._commitRuns(channel, SlotModel.remove(runs, index));
+      }
+      this._closeSlotMenu();
+      this._render();
+    });
+    host.appendChild(menu);
+    this._slotMenu = menu;
+  }
+
+  _closeSlotMenu() {
+    const menu = this._slotMenu;
+    if (menu && menu.parentNode && menu.parentNode.removeChild) {
+      menu.parentNode.removeChild(menu);
+    }
+    this._slotMenu = null;
+  }
+
+  /** What the current arrangement would cost against the published plan.
+   *
+   * Both sides are priced over the same horizon at the same prices, so the
+   * difference isolates the effect of moving the slots. It is an estimate:
+   * the arrangement fixes when the pump runs, not how hard, and the optimizer
+   * still chooses the power within each slot.
+   */
+  _costDelta() {
+    let planned = 0;
+    let edited = 0;
+    const runs = this._draftRuns();
+    for (const spec of this._laneSpecs()) {
+      const forecast = this._forecastOf(spec.channel);
+      if (!forecast.length) continue;
+      const power = SlotModel.typicalPower(forecast, spec.field);
+      const base = SlotModel.runsFrom(
+        forecast, spec.field, 0.05, PLAN_STEP_MS
+      );
+      planned += SlotModel.cost(base, forecast, power, PLAN_STEP_MS);
+      edited += SlotModel.cost(
+        runs[spec.channel] || [], forecast, power, PLAN_STEP_MS
+      );
+    }
+    return { planned, edited, delta: edited - planned };
+  }
+
+  /** The currency to price the delta in.
+   *
+   * The plan carries prices but not a currency, so take Home Assistant's own
+   * configured currency rather than assuming the author's. `currency:` in the
+   * card config still wins, for installs where the two disagree.
+   */
+  _currency() {
+    const hass = this._hass || {};
+    return (
+      this._config.currency ||
+      (hass.config && hass.config.currency) ||
+      "SEK"
+    );
+  }
+
+  _deltaHtml() {
+    const { planned, edited, delta } = this._costDelta();
+    if (!Number.isFinite(delta) || (!planned && !edited)) {
+      return `<span class="wi-hint">No plan data to compare against yet.</span>`;
+    }
+    const cur = this._currency();
+    const cls = delta < -0.005 ? "cheaper" : delta > 0.005 ? "dearer" : "";
+    const sign = delta > 0 ? "+" : "";
+    const verdict =
+      cls === "cheaper" ? "cheaper" : cls === "dearer" ? "dearer" : "the same";
+    return `
+      <span class="delta ${cls}">${sign}${delta.toFixed(2)}&nbsp;${esc(cur)}</span>
+      <span class="wi-hint">${verdict} than the saved plan
+        (${planned.toFixed(2)} → ${edited.toFixed(2)}&nbsp;${esc(cur)}, estimated)</span>`;
+  }
+
+  _updateDelta() {
+    const root = this.shadowRoot;
+    const box = root && root.querySelector(".wi-delta");
+    if (box) box.innerHTML = this._deltaHtml();
+  }
+
+  /** Turn a screen x into a time on the chart's axis.
+   *
+   * The chart is drawn in a fixed viewBox and stretched to fit, so screen
+   * pixels and viewBox units are not interchangeable; the measured width is
+   * the only thing that relates them.
+   */
+  _timeAtClientX(svg, clientX) {
+    const geom = this._geom;
+    if (!geom || !svg) return null;
+    const rect = svg.getBoundingClientRect ? svg.getBoundingClientRect() : null;
+    if (!rect || !rect.width) return null;
+    const vx = ((clientX - rect.left) / rect.width) * VIEW_W;
+    return geom.windowStart + ((vx - geom.plotL) / geom.plotW) *
+      (geom.windowEnd - geom.windowStart);
+  }
+
+  /** Drag to move a slot, drag its edge to resize, right-click to add or
+   * remove. Wired by delegation on the svg, because the chart markup is
+   * rebuilt wholesale on every refresh and per-rect listeners would not
+   * survive it.
+   */
+  _attachSlotEditing(root) {
+    if (!this._editingEnabled()) return;
+    const svgs = this._chartSvgs(root);
+    if (!svgs.length) return;
+
+    const onDown = (svg, ev) => {
+      const target = ev.target || {};
+      const data = target.dataset || {};
+      if (!data.channel) return;
+      const at = this._timeAtClientX(svg, ev.clientX);
+      if (at === null) return;
+      const channel = data.channel;
+      const runs = this._draftRuns()[channel] || [];
+      let index = data.index === undefined ? -1 : Number(data.index);
+      if (index < 0) index = SlotModel.indexAt(runs, at);
+      if (index < 0) return;
+      // A slot outside the editable range -- already run, or beyond the point
+      // where the override expires -- must not be draggable.
+      const [lo, hi] = this._editBounds();
+      const run = runs[index];
+      if (run && (run.end <= lo || run.start >= hi)) return;
+
+      this._drag = {
+        channel,
+        index,
+        edge: data.edge || null,
+        from: at,
+        // Edits apply to the arrangement as it was when the drag began, so a
+        // slow drag does not compound its own deltas.
+        original: runs.map((r) => ({ ...r })),
+      };
+      stop(ev);
+      if (ev.preventDefault) ev.preventDefault();
+    };
+
+    const onMove = (svg, ev) => {
+      const drag = this._drag;
+      if (!drag) return;
+      const at = this._timeAtClientX(svg, ev.clientX);
+      if (at === null) return;
+      const delta = at - drag.from;
+      const bounds = this._editBounds();
+      const next = drag.edge
+        ? SlotModel.resize(
+            drag.original, drag.index, drag.edge, delta, PLAN_STEP_MS, bounds
+          )
+        : SlotModel.move(
+            drag.original, drag.index, delta, PLAN_STEP_MS, bounds
+          );
+      this._commitRuns(drag.channel, next);
+    };
+
+    const onUp = () => {
+      if (!this._drag) return;
+      this._drag = null;
+      this._render();
+    };
+
+    const onContext = (svg, ev) => {
+      const data = (ev.target || {}).dataset || {};
+      if (!data.channel) return;
+      const at = this._timeAtClientX(svg, ev.clientX);
+      if (at === null) return;
+      if (ev.preventDefault) ev.preventDefault();
+      stop(ev);
+      this._openSlotMenu(data.channel, at, ev.clientX, ev.clientY, svg);
+    };
+
+    for (const svg of svgs) {
+      svg.addEventListener("pointerdown", (ev) => onDown(svg, ev));
+      svg.addEventListener("pointermove", (ev) => onMove(svg, ev));
+      svg.addEventListener("pointerup", onUp);
+      svg.addEventListener("pointerleave", onUp);
+      svg.addEventListener("contextmenu", (ev) => onContext(svg, ev));
+    }
+  }
+
+  _commitRuns(channel, runs) {
+    this._draftRuns();
+    this._runs[channel] = runs;
+    this._runsDirty = true;
+    this._refreshLanes();
+  }
+
+  /** Redraw only what a drag changes.
+   *
+   * A full re-render on every pointer move would rebuild the shadow root
+   * dozens of times a second and lose the drag with it.
+   */
+  _refreshLanes() {
+    const root = this.shadowRoot;
+    if (!root) return;
+    if (this._geom) {
+      const inner = this._laneGroupInner();
+      root.querySelectorAll(".lanes").forEach((group) => {
+        group.innerHTML = inner;
+      });
+    }
+    this._updateDelta();
+  }
+
+  /** Whether the on-chart schedule editor is available. */
+  _editingEnabled() {
+    return !!this._config.what_if;
+  }
+
+  /** The two editable channels, in the order they are drawn. */
+  _laneSpecs() {
+    return [
+      { channel: "dhw", label: "Hot water", field: "dhw_power", color: "#e0544e" },
+      { channel: "space", label: "Heating", field: "space_power", color: "#4a90e2" },
+    ];
+  }
+
+  /** Earliest time a slot may be edited.
+   *
+   * The past cannot be rescheduled, and an override only ever applies from now
+   * on, so editing has to stop at the current step boundary rather than at the
+   * start of the horizon.
+   */
+  _editFloor() {
+    const start = this._geom ? this._geom.windowStart : Date.now();
+    return Math.max(start, SlotModel.snap(Date.now(), PLAN_STEP_MS));
+  }
+
+  /** The last instant a hand-arranged slot can reach.
+   *
+   * The override runs out at the next local midnight, so the chart must not
+   * let a slot be dragged past it: the button promises the rest of today, and
+   * anything beyond that would be shown as pinned while quietly having no
+   * effect. The chart's own horizon still wins when it is shorter.
+   */
+  _editCeiling() {
+    const end = this._geom ? this._geom.windowEnd : Date.now();
+    const midnight = new Date();
+    midnight.setHours(0, 0, 0, 0);
+    midnight.setDate(midnight.getDate() + 1);
+    return Math.min(end, midnight.getTime());
+  }
+
+  _editBounds() {
+    return [this._editFloor(), this._editCeiling()];
+  }
+
+  /** The arrangement being edited, seeded from the published plan.
+   *
+   * Held on the instance because a data refresh rebuilds the whole shadow
+   * root; without this, an incoming plan update would throw away a drag the
+   * user was halfway through.
+   */
+  _draftRuns() {
+    if (!this._runs) {
+      this._runs = {};
+      for (const spec of this._laneSpecs()) {
+        this._runs[spec.channel] = SlotModel.runsFrom(
+          this._forecastOf(spec.channel), spec.field, 0.05, PLAN_STEP_MS
+        );
+      }
+      this._runsDirty = false;
+    }
+    return this._runs;
+  }
+
+  /** Discard local edits and follow the published plan again. */
+  _resetRuns() {
+    this._runs = null;
+    this._runsDirty = false;
+  }
+
+  _forecastOf(channel) {
+    const st = this._stateOf(this._resolveEntity(channel));
+    const fc = ((st && st.attributes) || {}).forecast;
+    return Array.isArray(fc) ? fc : [];
+  }
+
+  /** The lanes, their slots and the grab handles, as SVG.
+   *
+   * Rebuilt from the recorded geometry rather than from the chart's locals, so
+   * a drag can redraw the lanes alone without re-rendering the whole card.
+   */
+  _laneGroupInner() {
+    const geom = this._geom;
+    if (!geom) return "";
+    const { windowStart, windowEnd, plotL, plotW, plotR, plotB, font } = geom;
+    const span = windowEnd - windowStart || 1;
+    const scaleX = (t) => plotL + ((t - windowStart) / span) * plotW;
+    const runs = this._draftRuns();
+    const [lo, hi] = this._editBounds();
+    const specs = this._laneSpecs();
+    const out = [];
+    const clampX = (t) => Math.max(plotL, Math.min(plotR, scaleX(t)));
+
+    specs.forEach((spec, row) => {
+      const y =
+        plotB - LANE_BOTTOM_INSET - (specs.length - row) * (LANE_H + LANE_GAP);
+      // The track, so an empty lane is still an obvious drop target.
+      out.push(
+        `<rect class="lane" data-channel="${spec.channel}" x="${plotL}" y="${y}" width="${
+          plotR - plotL
+        }" height="${LANE_H}" rx="2" fill="var(--secondary-text-color,#888)" fill-opacity="0.07"/>`
+      );
+      out.push(
+        `<text class="lane-label" x="${plotL + 4}" y="${
+          y + LANE_H - 4
+        }" font-size="${font * 0.8}" fill="var(--secondary-text-color,#888)">${esc(
+          spec.label
+        )}</text>`
+      );
+      // The parts of the lane that cannot be changed: what has already run,
+      // and what lies beyond the point where the override expires.
+      const floorX = clampX(lo);
+      if (floorX > plotL) {
+        out.push(
+          `<rect class="lane-past" x="${plotL}" y="${y}" width="${
+            floorX - plotL
+          }" height="${LANE_H}" fill="var(--secondary-text-color,#888)" fill-opacity="0.12"/>`
+        );
+      }
+      const ceilX = clampX(hi);
+      if (ceilX < plotR) {
+        out.push(
+          `<rect class="lane-past" x="${ceilX}" y="${y}" width="${
+            plotR - ceilX
+          }" height="${LANE_H}" fill="var(--secondary-text-color,#888)" fill-opacity="0.12"/>`
+        );
+      }
+
+      (runs[spec.channel] || []).forEach((run, index) => {
+        const x1 = clampX(run.start);
+        const x2 = clampX(run.end);
+        const w = Math.max(1, x2 - x1);
+        const locked = run.end <= lo || run.start >= hi;
+        out.push(
+          `<rect class="slot${locked ? " locked" : ""}" data-channel="${
+            spec.channel
+          }" data-index="${index}" x="${x1}" y="${y}" width="${w}" height="${LANE_H}" rx="2" fill="${
+            spec.color
+          }" fill-opacity="${locked ? 0.35 : 0.85}"/>`
+        );
+        if (locked) return;
+        // Explicit edge handles: without them a narrow slot is impossible to
+        // resize, because the whole rect reads as "move".
+        for (const edge of ["start", "end"]) {
+          const ex = edge === "start" ? x1 : x2 - LANE_EDGE_GRAB;
+          out.push(
+            `<rect class="slot-handle" data-channel="${spec.channel}" data-index="${index}" data-edge="${edge}" x="${ex}" y="${y}" width="${LANE_EDGE_GRAB}" height="${LANE_H}" fill="#fff" fill-opacity="0.001"/>`
+          );
+        }
+      });
+    });
+    return out.join("");
   }
 
   /** Hourly gridlines, labelled as often as the width actually allows.
@@ -1901,8 +2715,20 @@ class HeatpumpOptimizerCard extends HTMLElement {
     return null;
   }
 
+  /** The chart svgs, and only those.
+   *
+   * The expand button carries an inline `<svg>` icon and sits above the chart
+   * in the markup, so `querySelector("svg")` returns an 18px icon rather than
+   * the plot. Every chart is wrapped in a `.chartwrap`; the icon is not.
+   */
+  _chartSvgs(root) {
+    const scope = root || this.shadowRoot;
+    if (!scope) return [];
+    return [...scope.querySelectorAll(".chartwrap svg")];
+  }
+
   _cacheRect() {
-    const svg = this.shadowRoot && this.shadowRoot.querySelector("svg");
+    const svg = this._chartSvgs()[0];
     if (svg && typeof svg.getBoundingClientRect === "function") {
       this._svgRect = svg.getBoundingClientRect();
     }
@@ -2085,6 +2911,9 @@ class HeatpumpOptimizerCard extends HTMLElement {
 // claims the name first and this file is then loaded but ignored. That failure
 // is completely silent, and looks exactly like an upgrade that did nothing, so
 // say so loudly and record which version actually won.
+// Exposed so the editing model can be exercised without a browser.
+HeatpumpOptimizerCard.slots = SlotModel;
+
 const previous = customElements.get(CARD_TAG);
 if (previous) {
   if (previous.cardVersion !== CARD_VERSION) {

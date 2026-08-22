@@ -646,5 +646,51 @@ R.check(
     "the card sends only what the user actually changed",
 )
 
+# --- Manual plan override services -----------------------------------------
+R.check("apply_manual_plan is documented", "apply_manual_plan" in services)
+R.check(
+    "apply_manual_plan is registered under the name the card calls",
+    const.SERVICE_APPLY_MANUAL_PLAN == "apply_manual_plan",
+)
+R.check(
+    "its schema covers both channels, the expiry and the entry filter",
+    {"space_slots", "dhw_slots", "expires_at", "entry_id"}
+    <= {
+        str(getattr(k, "schema", k))
+        for k in integration.SERVICE_SCHEMA_APPLY_MANUAL_PLAN.schema
+    },
+)
+R.check(
+    "every documented apply_manual_plan field exists in the schema",
+    set(services["apply_manual_plan"]["fields"])
+    <= {
+        str(getattr(k, "schema", k))
+        for k in integration.SERVICE_SCHEMA_APPLY_MANUAL_PLAN.schema
+    },
+)
+R.check(
+    "apply_manual_plan takes no required field, so an omitted channel is allowed",
+    not [
+        k
+        for k in integration.SERVICE_SCHEMA_APPLY_MANUAL_PLAN.schema
+        if type(k).__name__ == "Required"
+    ],
+    "omitting a channel entirely must stay a legal call (leave it automatic)",
+)
+
+R.check("clear_manual_plan is documented", "clear_manual_plan" in services)
+R.check(
+    "clear_manual_plan is registered under the name the card calls",
+    const.SERVICE_CLEAR_MANUAL_PLAN == "clear_manual_plan",
+)
+R.check(
+    "clear_manual_plan takes no required field",
+    not [
+        k
+        for k in integration.SERVICE_SCHEMA_CLEAR_MANUAL_PLAN.schema
+        if type(k).__name__ == "Required"
+    ],
+)
+
 
 sys.exit(R.close("ENTITY CHECKS"))
