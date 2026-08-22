@@ -384,8 +384,11 @@ setting forever.
 at v2.2.0. The MPC formulation, two-zone thermal model, Tibber and weather
 integration, config flow and ECL110 control path are originally strutsfarm's
 work, and the upstream copyright is now recorded in `LICENSE`. The README
-carries a full acknowledgement and a disclaimer covering warranty, safety,
-legionella, savings claims, equipment responsibility and third-party services.
+carries a full acknowledgement and a disclaimer: no warranty, no
+responsibility or liability of any kind for any effect, behaviour, function,
+failure or damage arising from use of the software, plus specific notes on
+safety, legionella, savings claims, equipment responsibility and third-party
+services.
 
 **Two things deliberately left alone.** Adjacent comfort weights can invert on
 cost by around a percent, because the objective is non-convex and two nearby

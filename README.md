@@ -22,10 +22,47 @@ under a licence that made this possible.
 **Read this before installing.** This software controls real heating equipment
 and makes claims about money. Both deserve care.
 
-**No warranty.** This project is provided "as is" under the MIT licence, with
-no warranty of any kind, express or implied, and no liability for any claim,
-damage or other liability arising from its use. See [LICENSE](LICENSE) for the
-full text. You install and run it at your own risk.
+**No warranty.** This project is provided "as is" and "as available" under the
+MIT licence, with no warranty or condition of any kind, express or implied,
+including but not limited to warranties of merchantability, fitness for a
+particular purpose, title, accuracy, and non-infringement. There is no
+guarantee that it works at all, that it works as described, that it will
+continue to work, or that any defect will ever be corrected. See
+[LICENSE](LICENSE) for the full text.
+
+**Any use of this software is entirely at your own risk.** You accept that risk
+in full, and in its entirety, the moment you install or run it.
+
+**No responsibility, no liability.** The authors and contributors accept **no
+responsibility whatsoever** for anything arising out of, or in any way
+connected with, this software — its use, its misuse, its inability to be used,
+its effects, its behaviour, its functions or its failure to function.
+
+This exclusion is intended to be as broad as the law allows. It covers every
+kind of loss or damage, whether direct, indirect, incidental, special,
+exemplary, punitive or consequential, and regardless of the legal theory
+advanced — contract, tort, negligence, strict liability, statute or otherwise —
+and applies even if the possibility of such damage was known or foreseeable. It
+includes, without limitation: damage to your heat pump, boiler, tanks, pipes,
+controller, sensors, wiring or any other equipment; damage to your building or
+its contents, including from freezing, overheating, condensation, water or
+fire; loss of heating or hot water, and any discomfort, disruption or
+displacement resulting from it; injury or illness, including any arising from
+water temperature or hygiene; excessive electricity consumption, unexpected
+bills, missed savings, tariff penalties or peak charges; wear, shortened
+service life, or voided warranties on your equipment; corrupted or lost
+configuration, history or data; time and cost spent installing, diagnosing,
+repairing or removing it; and any decision you make in reliance on anything
+this software calculates, predicts, reports or displays.
+
+**It is your decision and your risk.** Any use of this software, and anything
+you do with it or because of it, is entirely and exclusively at your own risk.
+You alone are responsible for deciding whether to install it, for how you
+configure it, for what you allow it to control, for supervising what it does,
+and for making sure independent protections remain in place. Nobody is obliged
+to provide support, fixes, updates or maintenance of any kind. If any part of
+this exclusion is held unenforceable, the remainder continues to apply and
+liability is limited to the smallest amount permitted by law.
 
 **It is not a safety device.** Do not rely on it for frost protection, for
 keeping pipes from freezing, for legionella control, or for anything else where
