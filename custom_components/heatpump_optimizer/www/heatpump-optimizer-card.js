@@ -10,7 +10,7 @@
  */
 
 const CARD_TAG = "heatpump-optimizer-card";
-const CARD_VERSION = "3.0.0";
+const CARD_VERSION = "3.1.0";
 
 const DEFAULTS = {
   title: "Heat pump plan",
@@ -127,12 +127,24 @@ const MARGIN = { top: 16, right: 62, bottom: 34, left: 92 };
 const SOLAR_AXIS_INSET = 46;
 const MARGIN_RIGHT_WITH_SOLAR = MARGIN.right + SOLAR_AXIS_INSET;
 
-// SVG text is sized in viewBox units, so a chart scaled up to fill a dialog
-// renders the same nominal glyph size across a much larger area — which reads
-// as cramped and low-resolution even though the text is still vector. Scaling
-// the in-viewBox size back down keeps the *apparent* size constant.
+// SVG text is sized in viewBox units, and the chart is stretched from a fixed
+// viewBox to whatever width it is given. A size in viewBox units therefore
+// renders at a different pixel size for every container width: the same value
+// that is legible in a dashboard column is either microscopic or enormous once
+// the chart fills a dialog.
+//
+// So the target is expressed in CSS pixels and converted through the measured
+// rendered width. The expanded chart is given a larger target because it is
+// read from further back and has room for it, not because the units differ.
+const FONT_PX_BASE = 11;
+const FONT_PX_EXPANDED = 16;
+// Used for the very first paint, before anything has been measured, and as a
+// floor and ceiling on the conversion so a bogus measurement cannot produce
+// invisible or screen-filling labels.
 const FONT_BASE = 10;
 const FONT_EXPANDED = 15;
+const FONT_UNITS_MIN = 5;
+const FONT_UNITS_MAX = 40;
 
 // Human-readable labels for the plan reason codes the optimizer publishes.
 // Without these an unexpected slot is indistinguishable from a bug.
@@ -154,6 +166,17 @@ const REASON_LABELS = {
 /** Stop a click inside the panel from reaching the card's expand handler. */
 function stop(ev) {
   if (ev && typeof ev.stopPropagation === "function") ev.stopPropagation();
+}
+
+/** True when two measured widths differ enough to be worth re-rendering for.
+ *
+ * Sub-pixel jitter from fractional layout would otherwise re-render on every
+ * resize callback for no visible gain.
+ */
+function significantlyDifferent(next, previous) {
+  if (!next) return false;
+  if (!previous) return true;
+  return Math.abs(next - previous) > 1.5;
 }
 
 /** "7" -> "07:00", for a time input. */
@@ -256,6 +279,11 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // triggered by a data refresh does not reset the slider under the user.
     this._whatIf = null;
     this._whatIfTimer = null;
+    this._pendingSave = false;
+    this._saveTimer = null;
+    this._chartWidth = 0;
+    this._bigChartWidth = 0;
+    this._measuring = false;
     this._onLegendClick = this._onLegendClick.bind(this);
     this._onPointerMove = this._onPointerMove.bind(this);
     this._onPointerLeave = this._onPointerLeave.bind(this);
@@ -268,6 +296,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     this._onAddWindow = this._onAddWindow.bind(this);
     this._onRemoveWindow = this._onRemoveWindow.bind(this);
     this._onApplySlots = this._onApplySlots.bind(this);
+    this._onSaveSchedule = this._onSaveSchedule.bind(this);
     this._onResetWhatIf = this._onResetWhatIf.bind(this);
   }
 
@@ -376,6 +405,12 @@ class HeatpumpOptimizerCard extends HTMLElement {
       clearTimeout(this._whatIfTimer);
       this._whatIfTimer = null;
     }
+    // Likewise an armed save confirmation: it must not survive the card.
+    if (this._saveTimer) {
+      clearTimeout(this._saveTimer);
+      this._saveTimer = null;
+    }
+    this._pendingSave = false;
     if (this._resizeObserver) {
       try {
         this._resizeObserver.disconnect();
@@ -749,10 +784,15 @@ class HeatpumpOptimizerCard extends HTMLElement {
    * cost per month.
    *
    * Everything runs against a *copy* of the configuration on the coordinator
-   * side, so nothing here can disturb actual operation. The temperature slider
-   * is debounced; the slot editors are applied on an explicit button, because
-   * editing a time range is not a drag gesture and half-typed times should not
-   * trigger a solve.
+   * side, so exploring here cannot disturb actual operation. The temperature
+   * slider is debounced; the slot editors are applied on an explicit button,
+   * because editing a time range is not a drag gesture and half-typed times
+   * should not trigger a solve.
+   *
+   * Saving is a separate, deliberate step. Once a user has found a schedule
+   * they prefer, "Save as my schedule" writes it into the config entry through
+   * the `apply_schedule` service — the only way anything here reaches real
+   * configuration, and it asks for confirmation first.
    */
   _whatIfHtml() {
     if (!this._config.what_if) return "";
@@ -813,11 +853,13 @@ class HeatpumpOptimizerCard extends HTMLElement {
 
         <div class="wi-row wi-actions">
           <button type="button" class="wi-apply">Simulate these slots</button>
+          <button type="button" class="wi-save">Save as my schedule</button>
           <button type="button" class="wi-reset">Reset</button>
         </div>
 
         <div class="wi-result" role="status">
-          Change a setting to see what it would cost. Nothing here is saved.
+          Change a setting to see what it would cost. Simulating changes
+          nothing; saving replaces your configured schedule.
         </div>
       </div>
     `;
@@ -887,6 +929,8 @@ class HeatpumpOptimizerCard extends HTMLElement {
       .forEach((el) => el.addEventListener("click", this._onRemoveWindow));
     const apply = root.querySelector(".wi-apply");
     if (apply) apply.addEventListener("click", this._onApplySlots);
+    const save = root.querySelector(".wi-save");
+    if (save) save.addEventListener("click", this._onSaveSchedule);
     const reset = root.querySelector(".wi-reset");
     if (reset) reset.addEventListener("click", this._onResetWhatIf);
   }
@@ -911,6 +955,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     stop(ev);
     const root = this.shadowRoot;
     const draft = this._whatIfDraft();
+    const before = this._draftSignature();
 
     const dayStart = root.querySelector(".wi-day-start");
     const dayEnd = root.querySelector(".wi-day-end");
@@ -921,6 +966,25 @@ class HeatpumpOptimizerCard extends HTMLElement {
       start: (row.querySelector(".wi-win-start") || {}).value || "00:00",
       end: (row.querySelector(".wi-win-end") || {}).value || "00:00",
     }));
+
+    // An armed confirmation refers to the values that were on screen when it
+    // was armed. Only disarm if they actually changed — the save handler
+    // itself calls this to flush the editors, and that must not cancel the
+    // confirmation it is in the middle of.
+    if (this._pendingSave && this._draftSignature() !== before) {
+      this._cancelPendingSave();
+    }
+  }
+
+  /** A comparable summary of the draft, for spotting real edits. */
+  _draftSignature() {
+    const d = this._whatIfDraft();
+    return JSON.stringify([
+      d.comfort,
+      d.dayStart,
+      d.dayEnd,
+      d.dhwWindows.map((w) => `${w.start}-${w.end}`),
+    ]);
   }
 
   _onAddWindow(ev) {
@@ -952,7 +1016,102 @@ class HeatpumpOptimizerCard extends HTMLElement {
     stop(ev);
     this._whatIf = null;
     this._sig = null;
+    this._pendingSave = false;
     this._render();
+  }
+
+  /** Persist the edited schedule, on a deliberate second press.
+   *
+   * Simulating is free and reversible, so it happens on one click. Saving
+   * replaces the schedule the house actually runs on and reloads the
+   * integration, so it asks first. The confirmation lives in the button label
+   * rather than a `confirm()` dialog because the card is already inside a
+   * modal, and a nested browser prompt inside a `showModal()` dialog is easy
+   * to miss behind the backdrop.
+   */
+  async _onSaveSchedule(ev) {
+    stop(ev);
+    this._onSlotEdit(ev);
+
+    const root = this.shadowRoot;
+    const out = root && root.querySelector(".wi-result");
+    const button = root && root.querySelector(".wi-save");
+    if (!out || !button) return;
+
+    if (!this._hass || typeof this._hass.callService !== "function") {
+      out.className = "wi-result dearer";
+      out.textContent = "Not connected to Home Assistant.";
+      return;
+    }
+
+    const draft = this._whatIfDraft();
+    const invalid = draft.dhwWindows.find(
+      (w) => hourOf(w.start, null) === null || hourOf(w.end, null) === null
+    );
+    if (invalid) {
+      out.className = "wi-result dearer";
+      out.textContent = "One of the hot water windows is not a valid time.";
+      return;
+    }
+    if (draft.dayStart === draft.dayEnd) {
+      out.className = "wi-result dearer";
+      out.textContent =
+        "The heating day starts and ends at the same hour, which would " +
+        "leave no comfort period at all.";
+      return;
+    }
+
+    if (!this._pendingSave) {
+      this._pendingSave = true;
+      button.textContent = "Confirm: overwrite my schedule";
+      button.classList.add("confirm");
+      out.className = "wi-result";
+      out.textContent =
+        "This replaces your configured heating hours and hot water windows, " +
+        "and reloads the integration. Press again to confirm.";
+      // Let the decision lapse rather than sit armed indefinitely: a stray
+      // click minutes later should not rewrite the configuration.
+      clearTimeout(this._saveTimer);
+      this._saveTimer = setTimeout(() => this._cancelPendingSave(), 8000);
+      return;
+    }
+
+    this._cancelPendingSave();
+    out.className = "wi-result";
+    out.textContent = "Saving…";
+    button.disabled = true;
+    try {
+      await this._hass.callService("heatpump_optimizer", "apply_schedule", {
+        day_start_hour: draft.dayStart,
+        day_end_hour: draft.dayEnd,
+        dhw_windows: formatWindows(draft.dhwWindows),
+        comfort_temp_day: draft.comfort,
+      });
+      out.className = "wi-result cheaper";
+      out.textContent =
+        "Saved. The optimizer is reloading and will plan against the new " +
+        "schedule.";
+      // The draft has become the configuration, so drop it: keeping it would
+      // leave the editor showing an "unsaved" copy of what is now saved.
+      this._whatIf = null;
+    } catch (err) {
+      out.className = "wi-result dearer";
+      out.textContent = `Could not save: ${(err && err.message) || err}`;
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  _cancelPendingSave() {
+    clearTimeout(this._saveTimer);
+    this._saveTimer = null;
+    this._pendingSave = false;
+    const button =
+      this.shadowRoot && this.shadowRoot.querySelector(".wi-save");
+    if (button) {
+      button.textContent = "Save as my schedule";
+      button.classList.remove("confirm");
+    }
   }
 
   /** Everything the draft changes, as service call arguments. */
@@ -1204,12 +1363,16 @@ class HeatpumpOptimizerCard extends HTMLElement {
         .chartwrap.big { aspect-ratio: ${VIEW_W} / ${VIEW_H}; }
         .chartwrap.big svg { height: 100%; }
 
-        /* The legend is plain HTML, so it does not scale with the chart. Its
-           chips are sized in em against the inherited card font, which stays
-           at card size no matter how large the dialog gets — that is what made
-           them look cramped and low-resolution next to a much bigger chart.
-           Setting an explicit base font on the dialog lets the em units
-           cascade to a size that matches. */
+        /* The legend, header and what-if panel are plain HTML, so unlike the
+           chart they do not scale with the dialog: sized in em against the
+           inherited card font they stay at card size no matter how large the
+           dialog gets, which is what made them look cramped beside a chart
+           three times their size.
+
+           The rem values below are a floor for browsers without container
+           queries. The cqw block that follows overrides them with sizes that
+           track the dialog's actual width, so the chrome grows with the chart
+           instead of standing still. */
         dialog.expanded .legend {
           font-size: 1.15rem; gap: 10px; padding: 0 2px 14px 2px;
         }
@@ -1221,23 +1384,49 @@ class HeatpumpOptimizerCard extends HTMLElement {
         dialog.expanded .tooltip { font-size: 0.95rem; padding: 8px 11px; }
         dialog.expanded .tooltip .dot { width: 10px; height: 10px; }
 
+        @supports (width: 1cqw) {
+          dialog.expanded { container-type: inline-size; }
+          /* Clamped at both ends: a phone-width dialog must stay legible and a
+             very wide monitor must not turn the legend into a headline. */
+          dialog.expanded .dlg-head {
+            font-size: clamp(15px, 1.45cqw, 30px);
+            padding: 0 2px 0.55em 2px; gap: 0.45em;
+          }
+          dialog.expanded .legend {
+            font-size: clamp(12px, 1.05cqw, 21px);
+            gap: 0.5em; padding: 0 2px 0.75em 2px;
+          }
+          dialog.expanded .chip {
+            font-size: 1em; padding: 0.32em 0.85em; border-radius: 1.3em;
+            gap: 0.45em;
+          }
+          dialog.expanded .chip .dot { width: 0.72em; height: 0.72em; }
+          dialog.expanded .tooltip {
+            font-size: clamp(11px, 0.92cqw, 18px);
+            padding: 0.5em 0.7em; border-radius: 0.4em;
+          }
+          dialog.expanded .tooltip .dot { width: 0.6em; height: 0.6em; }
+          dialog.expanded .whatif { font-size: clamp(12px, 1cqw, 20px); }
+          dialog.expanded .close svg { width: 1.4em; height: 1.4em; }
+        }
+
         /* What-if simulator */
         .whatif {
-          padding: 12px 4px 2px 4px; margin-top: 10px;
+          padding: 0.8em 0.3em 0.15em 0.3em; margin-top: 0.7em;
           border-top: 1px solid var(--divider-color, #e0e0e0);
           font-size: 0.95rem; color: var(--primary-text-color);
         }
         .whatif .wi-row {
-          display: flex; flex-wrap: wrap; align-items: flex-start; gap: 18px;
-          margin-bottom: 10px;
+          display: flex; flex-wrap: wrap; align-items: flex-start; gap: 1.2em;
+          margin-bottom: 0.7em;
         }
         .whatif .wi-field {
-          display: flex; align-items: center; gap: 8px;
+          display: flex; align-items: center; gap: 0.55em;
         }
         .whatif .wi-field > span { white-space: nowrap; }
-        .whatif input[type="range"] { width: 150px; }
+        .whatif input[type="range"] { width: 10em; max-width: 100%; }
         .whatif input[type="time"] {
-          font: inherit; padding: 3px 6px; border-radius: 6px;
+          font: inherit; padding: 0.2em 0.4em; border-radius: 0.4em;
           border: 1px solid var(--divider-color, #ccc);
           background: var(--card-background-color, #fff);
           color: var(--primary-text-color);
@@ -1247,8 +1436,8 @@ class HeatpumpOptimizerCard extends HTMLElement {
           font-weight: 600;
         }
         .whatif .wi-group {
-          flex: 1 1 240px; min-width: 220px;
-          display: flex; flex-direction: column; gap: 6px;
+          flex: 1 1 16em; min-width: 14em;
+          display: flex; flex-direction: column; gap: 0.4em;
         }
         .whatif .wi-group-title {
           font-weight: 600; font-size: 0.9em;
@@ -1260,20 +1449,20 @@ class HeatpumpOptimizerCard extends HTMLElement {
           line-height: 1.35em;
         }
         .whatif .wi-windows {
-          display: flex; flex-direction: column; gap: 6px;
+          display: flex; flex-direction: column; gap: 0.4em;
         }
         .whatif .wi-window {
-          display: flex; align-items: center; gap: 6px;
+          display: flex; align-items: center; gap: 0.4em;
         }
         .whatif button {
-          font: inherit; cursor: pointer; border-radius: 16px;
+          font: inherit; cursor: pointer; border-radius: 1.1em;
           border: 1px solid var(--divider-color, #ccc);
           background: transparent; color: var(--primary-text-color);
-          padding: 5px 12px;
+          padding: 0.35em 0.8em;
         }
         .whatif button:hover { border-color: var(--primary-color, #03a9f4); }
         .whatif .wi-remove {
-          border: none; padding: 0 6px; font-size: 1.1em; line-height: 1;
+          border: none; padding: 0 0.4em; font-size: 1.1em; line-height: 1;
           color: var(--secondary-text-color);
         }
         .whatif .wi-remove:hover { color: var(--error-color, #e0544e); }
@@ -1282,6 +1471,16 @@ class HeatpumpOptimizerCard extends HTMLElement {
           border-color: var(--primary-color, #03a9f4);
           color: var(--primary-color, #03a9f4); font-weight: 600;
         }
+        .whatif .wi-save {
+          border-color: var(--primary-color, #03a9f4);
+          background: var(--primary-color, #03a9f4);
+          color: var(--text-primary-color, #fff); font-weight: 600;
+        }
+        .whatif .wi-save.confirm {
+          border-color: var(--error-color, #e0544e);
+          background: var(--error-color, #e0544e);
+        }
+        .whatif .wi-save[disabled] { opacity: 0.6; cursor: default; }
         .whatif .wi-result {
           flex: 1 1 100%; min-height: 1.4em; line-height: 1.5em;
           color: var(--secondary-text-color);
@@ -1321,7 +1520,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
   _chartSvg(built, expanded) {
     const { windowStart, windowEnd } = built;
     const visible = this._series.filter((s) => s.visible && s.hasData);
-    const font = expanded ? FONT_EXPANDED : FONT_BASE;
+    const font = this._fontUnits(expanded);
 
     // Axis domains from visible series grouped by axis.
     const groups = { temp: [], power: [], price: [], solar: [] };
@@ -1691,6 +1890,58 @@ class HeatpumpOptimizerCard extends HTMLElement {
     if (svg && typeof svg.getBoundingClientRect === "function") {
       this._svgRect = svg.getBoundingClientRect();
     }
+    this._measureChartWidths();
+  }
+
+  /** Record how wide each chart actually rendered, and re-draw if it matters.
+   *
+   * The font conversion needs a pixel width, which only exists after layout.
+   * The first paint therefore uses the fallback constants and this corrects
+   * it. Re-rendering cannot change the width — the SVG fills its container
+   * whatever size its text is — so this settles in one pass rather than
+   * oscillating.
+   */
+  _measureChartWidths() {
+    const root = this.shadowRoot;
+    if (!root || this._measuring) return;
+    const widthOf = (selector) => {
+      const el = root.querySelector(selector);
+      if (!el || typeof el.getBoundingClientRect !== "function") return 0;
+      const rect = el.getBoundingClientRect();
+      return (rect && Number(rect.width)) || 0;
+    };
+
+    const inline = widthOf(".chartwrap:not(.big) svg");
+    const big = widthOf(".chartwrap.big svg");
+    const changed =
+      significantlyDifferent(inline, this._chartWidth) ||
+      significantlyDifferent(big, this._bigChartWidth);
+    if (inline) this._chartWidth = inline;
+    if (big) this._bigChartWidth = big;
+
+    if (changed && this._sig !== null) {
+      // _render re-enters here through _cacheRect. The flag makes that pass a
+      // no-op, which is correct: the widths it would measure are the ones just
+      // recorded.
+      this._measuring = true;
+      try {
+        this._sig = null;
+        this._render();
+      } finally {
+        this._measuring = false;
+      }
+    }
+  }
+
+  /** Font size in viewBox units that renders at the wanted pixel size. */
+  _fontUnits(expanded) {
+    const targetPx = expanded ? FONT_PX_EXPANDED : FONT_PX_BASE;
+    const width = expanded ? this._bigChartWidth : this._chartWidth;
+    if (!Number.isFinite(width) || width <= 0) {
+      return expanded ? FONT_EXPANDED : FONT_BASE;
+    }
+    const units = (targetPx * VIEW_W) / width;
+    return Math.min(FONT_UNITS_MAX, Math.max(FONT_UNITS_MIN, units));
   }
 
   _onPointerLeave(ev) {

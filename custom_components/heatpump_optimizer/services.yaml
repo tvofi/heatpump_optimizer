@@ -438,3 +438,54 @@ simulate_plan:
         simulates having no demand windows at all.
       selector:
         text:
+
+apply_schedule:
+  name: Apply Schedule
+  description: >-
+    Save a heating and hot water schedule into the integration's configuration,
+    so the optimizer plans against it from now on. This is the deliberate
+    counterpart to simulate_plan, which only prices a schedule without keeping
+    it. Changing the configuration reloads the integration.
+  fields:
+    day_start_hour:
+      name: Heating day starts
+      description: >-
+        Hour at which the daytime comfort temperature takes over from the
+        night one.
+      selector:
+        number:
+          min: 0
+          max: 23
+          step: 1
+    day_end_hour:
+      name: Heating day ends
+      description: Hour at which the night setback begins.
+      selector:
+        number:
+          min: 0
+          max: 24
+          step: 1
+    dhw_windows:
+      name: Hot water demand windows
+      description: >-
+        Time frames when hot water must be available, e.g.
+        "06:00-08:30, 17:00-22:00". An empty string removes all demand windows,
+        leaving the tank only at its idle minimum.
+      selector:
+        text:
+    comfort_temp_day:
+      name: Daytime comfort temperature
+      description: Target indoor temperature during the heating day.
+      selector:
+        number:
+          min: 5
+          max: 30
+          step: 0.5
+          unit_of_measurement: "°C"
+    entry_id:
+      name: Config entry
+      description: >-
+        Restrict the change to one config entry. Leave empty to apply to every
+        configured heat pump, which is what a single-heat-pump install wants.
+      selector:
+        text:

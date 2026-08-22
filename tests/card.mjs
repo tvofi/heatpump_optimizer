@@ -411,7 +411,9 @@ check("the panel offers heating hour editors",
   /class="wi-day-start"/.test(whatIfDump) && /class="wi-day-end"/.test(whatIfDump));
 check("the panel offers hot water window editors",
   /class="wi-win-start"/.test(whatIfDump) && /class="wi-add"/.test(whatIfDump));
-check("it says nothing is saved", /Nothing here is saved/.test(whatIfDump));
+check("it distinguishes simulating from saving",
+  /Simulating changes\s+nothing/.test(whatIfDump) &&
+  /saving replaces your configured schedule/.test(whatIfDump));
 
 // Pre-filling from the live plan matters: an editor that starts from defaults
 // would silently propose changes the user never asked for.
@@ -539,6 +541,117 @@ editor._hass = { states: editor._hass.states, callService: async () => { throw n
 await editor._runWhatIf();
 check("a failed simulation is reported, not swallowed",
   /Could not simulate: boom/.test(editor.shadowRoot.querySelector(".wi-result").textContent));
+
+// ---------------------------------------------------------------------------
+// Saving the edited schedule
+// ---------------------------------------------------------------------------
+// Simulating is reversible; saving rewrites the schedule the house runs on, so
+// it takes two deliberate presses and must not fire on the first one.
+const saver = build(slotStates, { what_if: true });
+saver._openExpanded();
+saver._hass = mkHass(saver._hass.states, () => ({}));
+called = null;
+
+const saveRoot = saver.shadowRoot;
+check("the expanded card offers a save button",
+  !!saveRoot.querySelector(".wi-save"));
+
+await saver._onSaveSchedule({ stopPropagation: () => {} });
+check("the first press does not call the service", called === null);
+check("the first press asks for confirmation",
+  /Confirm/i.test(saveRoot.querySelector(".wi-save").textContent));
+check("the first press says what saving will do",
+  /replaces your configured/i.test(saveRoot.querySelector(".wi-result").textContent));
+
+await saver._onSaveSchedule({ stopPropagation: () => {} });
+check("the second press calls apply_schedule",
+  called && called.domain === "heatpump_optimizer" && called.service === "apply_schedule");
+check("it sends the whole schedule, not a fragment",
+  called && ["day_start_hour", "day_end_hour", "dhw_windows", "comfort_temp_day"]
+    .every((k) => called.data[k] !== undefined));
+check("the button returns to its resting label",
+  !/Confirm/i.test(saveRoot.querySelector(".wi-save").textContent));
+
+// An edit between the two presses invalidates the confirmation: the user would
+// otherwise confirm one schedule and save a different one.
+const armed = build(slotStates, { what_if: true });
+armed._openExpanded();
+armed._hass = mkHass(armed._hass.states, () => ({}));
+called = null;
+await armed._onSaveSchedule({ stopPropagation: () => {} });
+check("the confirmation is armed", armed._pendingSave === true);
+armed.shadowRoot.querySelector(".wi-day-start").value = "04:00";
+armed._onSlotEdit({ stopPropagation: () => {} });
+check("editing a slot disarms the confirmation", armed._pendingSave === false);
+await armed._onSaveSchedule({ stopPropagation: () => {} });
+check("so the next press only re-arms, it does not save", called === null);
+
+// Pressing save twice with no edit in between must still save: `_onSaveSchedule`
+// runs `_onSlotEdit` itself, and an unchanged draft is not an edit.
+called = null;
+await armed._onSaveSchedule({ stopPropagation: () => {} });
+check("an unchanged draft still confirms on the second press",
+  called && called.service === "apply_schedule");
+
+// Nonsense must be caught here rather than written to the configuration, where
+// it would fail on every subsequent load.
+const bad = build(slotStates, { what_if: true });
+bad._openExpanded();
+bad._hass = mkHass(bad._hass.states, () => ({}));
+called = null;
+bad.shadowRoot.querySelector(".wi-day-start").value = "07:00";
+bad.shadowRoot.querySelector(".wi-day-end").value = "07:00";
+await bad._onSaveSchedule({ stopPropagation: () => {} });
+check("an empty comfort period is refused before it is saved",
+  called === null && /no comfort period/i.test(bad.shadowRoot.querySelector(".wi-result").textContent));
+
+const boom = build(slotStates, { what_if: true });
+boom._openExpanded();
+boom._hass = { states: boom._hass.states, callService: async () => { throw new Error("nope"); } };
+await boom._onSaveSchedule({ stopPropagation: () => {} });
+await boom._onSaveSchedule({ stopPropagation: () => {} });
+check("a failed save is reported, not swallowed",
+  /Could not save: nope/.test(boom.shadowRoot.querySelector(".wi-result").textContent));
+check("and the button is usable again afterwards",
+  boom.shadowRoot.querySelector(".wi-save").disabled === false);
+
+// ---------------------------------------------------------------------------
+// Chart text scaling
+// ---------------------------------------------------------------------------
+// The chart has a fixed viewBox and `preserveAspectRatio="none"`, so text sized
+// in viewBox units renders at wildly different pixel sizes depending on how
+// wide the chart happens to be. `_fontUnits` inverts that: it converts a pixel
+// target back through the measured width, so the text lands at the same
+// apparent size in a narrow card and a full-width dialog.
+const scaler = build(slotStates, {});
+const pxOf = (units, width) => (units * width) / 900;
+
+scaler._chartWidth = 500;
+scaler._bigChartWidth = 1843;
+const smallPx = pxOf(scaler._fontUnits(false), 500);
+const bigPx = pxOf(scaler._fontUnits(true), 1843);
+check("text in a narrow card lands near its pixel target",
+  Math.abs(smallPx - 11) < 0.5, `got ${smallPx.toFixed(1)}px`);
+check("text in a wide dialog lands near its pixel target",
+  Math.abs(bigPx - 16) < 0.5, `got ${bigPx.toFixed(1)}px`);
+check("the expanded view is bigger, not smaller",
+  bigPx > smallPx);
+
+// A pathological width must not produce unreadable or absurd text.
+scaler._chartWidth = 40;
+check("an absurdly narrow chart is clamped",
+  scaler._fontUnits(false) <= 40 + 1e-9);
+scaler._chartWidth = 20000;
+check("an absurdly wide chart is clamped",
+  scaler._fontUnits(false) >= 5 - 1e-9);
+
+// Before the first measurement there is no width to divide by, and the card
+// still has to draw something.
+scaler._chartWidth = 0;
+scaler._bigChartWidth = NaN;
+check("an unmeasured chart falls back to a usable size",
+  Number.isFinite(scaler._fontUnits(false)) && scaler._fontUnits(false) > 0 &&
+  Number.isFinite(scaler._fontUnits(true)) && scaler._fontUnits(true) > 0);
 
 console.log(fails ? `\n${fails} CARD CHECK(S) FAILED` : "\nALL CARD CHECKS PASSED");
 process.exit(fails?1:0);

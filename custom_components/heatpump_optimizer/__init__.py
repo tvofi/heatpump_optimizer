@@ -27,6 +27,11 @@ from homeassistant.loader import async_get_integration
 from .const import (
     DOMAIN,
     CONFIG_ENTRY_VERSION,
+    CONF_COMFORT_TEMP_DAY,
+    CONF_DAY_END_HOUR,
+    CONF_DAY_START_HOUR,
+    CONF_DHW_WINDOWS,
+    SERVICE_APPLY_SCHEDULE,
     SERVICE_RUN_OPTIMIZATION,
     SERVICE_SET_MODE,
     SERVICE_SET_THERMAL_PARAMS,
@@ -38,6 +43,7 @@ from .const import (
     MODE_BOOST,
 )
 from .coordinator import HeatPumpOptimizerCoordinator
+from .dhw_schedule import DHWWindowError, format_windows, parse_windows
 from .frontend import async_register_frontend
 
 _LOGGER = logging.getLogger(__name__)
@@ -83,6 +89,33 @@ SERVICE_SCHEMA_SET_MODE = vol.Schema(
         vol.Required("mode"): vol.In(
             [MODE_AUTO, MODE_COMFORT, MODE_ECONOMY, MODE_OFF, MODE_BOOST]
         ),
+    }
+)
+
+# Persist a schedule the user arrived at in the what-if simulator.
+#
+# This is the only service that writes to the config entry, so it is
+# deliberately narrow: it accepts the three fields the card can edit and
+# nothing else. Ranges are enforced here rather than in the handler so a bad
+# call is rejected before it can touch stored configuration.
+SERVICE_SCHEMA_APPLY_SCHEDULE = vol.Schema(
+    {
+        vol.Optional("day_start_hour"): vol.All(
+            vol.Coerce(int), vol.Range(min=0, max=23)
+        ),
+        vol.Optional("day_end_hour"): vol.All(
+            vol.Coerce(int), vol.Range(min=0, max=24)
+        ),
+        # An empty string is meaningful: it means "no guaranteed hot water
+        # windows at all", so it must not be filtered out as a blank.
+        vol.Optional("dhw_windows"): cv.string,
+        vol.Optional("comfort_temp_day"): vol.All(
+            vol.Coerce(float), vol.Range(min=5, max=30)
+        ),
+        # Restrict the write to one config entry. Omitted means every entry,
+        # which matches how simulate_plan behaves and is what the card wants
+        # on a single-heat-pump install.
+        vol.Optional("entry_id"): cv.string,
     }
 )
 
@@ -210,6 +243,73 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 results[entry_id] = await coord.async_simulate(overrides)
         return {"results": results}
 
+    async def handle_apply_schedule(call: ServiceCall) -> dict[str, Any]:
+        """Persist a schedule the user built in the what-if simulator.
+
+        The simulator deliberately runs against a copy of the configuration, so
+        nothing it does survives. This is the deliberate second step: it writes
+        the same fields into the config entry's options, where they become the
+        schedule the optimizer actually plans against.
+
+        Writing options triggers ``async_update_options``, which reloads the
+        entry — so the next plan is computed from the new schedule without the
+        user restarting anything.
+        """
+        data = dict(call.data)
+        target_entry = data.pop("entry_id", None)
+
+        updates: dict[str, Any] = {}
+        for key in (CONF_DAY_START_HOUR, CONF_DAY_END_HOUR, CONF_COMFORT_TEMP_DAY):
+            if data.get(key) is not None:
+                updates[key] = data[key]
+
+        # Validate and normalise the windows before storing them. A malformed
+        # spec written to options would fail on every subsequent load, turning
+        # a mistyped time into a broken integration; parsing here converts that
+        # into a rejected service call instead. Round-tripping through the
+        # parser also canonicalises the format, so what is stored is what the
+        # optimizer will read back.
+        if data.get(CONF_DHW_WINDOWS) is not None:
+            raw = data[CONF_DHW_WINDOWS]
+            try:
+                updates[CONF_DHW_WINDOWS] = format_windows(parse_windows(raw))
+            except DHWWindowError as err:
+                raise vol.Invalid(
+                    f"Invalid hot water windows {raw!r}: {err}"
+                ) from err
+
+        if not updates:
+            return {"updated": {}, "reason": "nothing to apply"}
+
+        # A day window that starts and ends at the same hour would leave the
+        # house with no comfort period at all, which is far more likely to be a
+        # slip than an intention.
+        start = updates.get(CONF_DAY_START_HOUR)
+        end = updates.get(CONF_DAY_END_HOUR)
+        if start is not None and end is not None and start == end:
+            raise vol.Invalid(
+                "The heating day starts and ends at the same hour, which "
+                "would leave no comfort period at all"
+            )
+
+        updated: dict[str, Any] = {}
+        for entry in hass.config_entries.async_entries(DOMAIN):
+            if target_entry is not None and entry.entry_id != target_entry:
+                continue
+            if entry.entry_id not in hass.data.get(DOMAIN, {}):
+                continue
+            options = {**dict(entry.options), **updates}
+            hass.config_entries.async_update_entry(entry, options=options)
+            updated[entry.entry_id] = dict(updates)
+
+        if not updated:
+            raise vol.Invalid(
+                "No loaded Heat Pump Optimizer config entry matched this call"
+            )
+
+        _LOGGER.info("Applied schedule to %d entry(ies): %s", len(updated), updates)
+        return {"updated": updated}
+
     hass.services.async_register(
         DOMAIN,
         SERVICE_RUN_OPTIMIZATION,
@@ -234,6 +334,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         handle_simulate_plan,
         schema=SERVICE_SCHEMA_SIMULATE_PLAN,
         supports_response=SupportsResponse.ONLY,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_APPLY_SCHEDULE,
+        handle_apply_schedule,
+        schema=SERVICE_SCHEMA_APPLY_SCHEDULE,
+        supports_response=SupportsResponse.OPTIONAL,
     )
 
     entry.async_on_unload(entry.add_update_listener(async_update_options))
