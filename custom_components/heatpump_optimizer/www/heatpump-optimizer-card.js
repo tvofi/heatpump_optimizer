@@ -10,7 +10,7 @@
  */
 
 const CARD_TAG = "heatpump-optimizer-card";
-const CARD_VERSION = "3.1.0";
+const CARD_VERSION = "3.1.1";
 
 const DEFAULTS = {
   title: "Heat pump plan",
@@ -22,9 +22,11 @@ const DEFAULTS = {
   dhw_entity: "sensor.heat_pump_optimizer_dhw_heating_plan",
   solar_entity: "sensor.heat_pump_optimizer_solar_irradiance",
   hours: 24,
-  // The what-if simulator lives in the expanded view. Off by default because
-  // it calls a service that runs a real solve on the Home Assistant host.
-  what_if: false,
+  // The schedule editor lives in the expanded view. On by default: opening it
+  // and editing costs nothing, because the draft is held in the card. Only the
+  // "Simulate" button runs a solve on the Home Assistant host, and only "Save"
+  // changes any configuration. Set `what_if: false` to hide the panel entirely.
+  what_if: true,
 };
 
 // Series metadata. `axis` selects one of four value axes: temp / power / price
@@ -127,24 +129,25 @@ const MARGIN = { top: 16, right: 62, bottom: 34, left: 92 };
 const SOLAR_AXIS_INSET = 46;
 const MARGIN_RIGHT_WITH_SOLAR = MARGIN.right + SOLAR_AXIS_INSET;
 
-// SVG text is sized in viewBox units, and the chart is stretched from a fixed
-// viewBox to whatever width it is given. A size in viewBox units therefore
-// renders at a different pixel size for every container width: the same value
-// that is legible in a dashboard column is either microscopic or enormous once
-// the chart fills a dialog.
+// The chart is drawn in a fixed 900x380 coordinate system and stretched to
+// whatever width it is given, so text sized in these units already grows with
+// the chart: the same label renders around 6px in a dashboard column and around
+// 20px once the chart fills a dialog. That scaling is wanted and is not what
+// these constants control.
 //
-// So the target is expressed in CSS pixels and converted through the measured
-// rendered width. The expanded chart is given a larger target because it is
-// read from further back and has room for it, not because the units differ.
-const FONT_PX_BASE = 11;
-const FONT_PX_EXPANDED = 16;
-// Used for the very first paint, before anything has been measured, and as a
-// floor and ceiling on the conversion so a bogus measurement cannot produce
-// invisible or screen-filling labels.
+// What they must respect is the layout. Every position in the chart -- the
+// margins above, the axis tick spacing, the legend rows -- is authored in the
+// same units against a font of roughly this size. Raising the font without
+// moving everything else makes labels collide, so treat these as part of the
+// geometry rather than as a free preference.
 const FONT_BASE = 10;
 const FONT_EXPANDED = 15;
-const FONT_UNITS_MIN = 5;
-const FONT_UNITS_MAX = 40;
+
+// The expanded dialog's chrome is sized from one font size, set from the
+// dialog's measured width so it grows with the chart it sits beside.
+const DIALOG_FONT_RATIO = 0.0105;
+const DIALOG_FONT_PX_MIN = 12;
+const DIALOG_FONT_PX_MAX = 21;
 
 // Human-readable labels for the plan reason codes the optimizer publishes.
 // Without these an unexpected slot is indistinguishable from a bug.
@@ -281,9 +284,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     this._whatIfTimer = null;
     this._pendingSave = false;
     this._saveTimer = null;
-    this._chartWidth = 0;
-    this._bigChartWidth = 0;
-    this._measuring = false;
+    this._dialogFontPx = 0;
     this._onLegendClick = this._onLegendClick.bind(this);
     this._onPointerMove = this._onPointerMove.bind(this);
     this._onPointerLeave = this._onPointerLeave.bind(this);
@@ -1364,51 +1365,32 @@ class HeatpumpOptimizerCard extends HTMLElement {
         .chartwrap.big svg { height: 100%; }
 
         /* The legend, header and what-if panel are plain HTML, so unlike the
-           chart they do not scale with the dialog: sized in em against the
-           inherited card font they stay at card size no matter how large the
-           dialog gets, which is what made them look cramped beside a chart
-           three times their size.
+           chart they do not scale with the dialog: left alone they stay at card
+           size no matter how large the dialog gets, which is what made them
+           look cramped beside a chart three times their size.
 
-           The rem values below are a floor for browsers without container
-           queries. The cqw block that follows overrides them with sizes that
-           track the dialog's actual width, so the chrome grows with the chart
-           instead of standing still. */
+           Everything below is therefore in em, and _scaleDialogFont sets the
+           one font size they all derive from once the dialog has been laid
+           out. Container query units would express this in CSS alone, but
+           container-type: inline-size also applies inline-axis containment,
+           and a dialog sized by its contents then has nothing to size from. */
         dialog.expanded .legend {
-          font-size: 1.15rem; gap: 10px; padding: 0 2px 14px 2px;
+          font-size: 1em; gap: 0.5em; padding: 0 2px 0.75em 2px;
+        }
+        dialog.expanded .dlg-head {
+          font-size: 1.4em; padding: 0 2px 0.55em 2px; gap: 0.45em;
         }
         dialog.expanded .chip {
-          font-size: 0.8em; padding: 6px 14px; border-radius: 20px;
-          border-width: 1.5px;
+          font-size: 1em; padding: 0.32em 0.85em; border-radius: 1.3em;
+          gap: 0.45em; border-width: 1.5px;
         }
-        dialog.expanded .chip .dot { width: 14px; height: 14px; }
-        dialog.expanded .tooltip { font-size: 0.95rem; padding: 8px 11px; }
-        dialog.expanded .tooltip .dot { width: 10px; height: 10px; }
-
-        @supports (width: 1cqw) {
-          dialog.expanded { container-type: inline-size; }
-          /* Clamped at both ends: a phone-width dialog must stay legible and a
-             very wide monitor must not turn the legend into a headline. */
-          dialog.expanded .dlg-head {
-            font-size: clamp(15px, 1.45cqw, 30px);
-            padding: 0 2px 0.55em 2px; gap: 0.45em;
-          }
-          dialog.expanded .legend {
-            font-size: clamp(12px, 1.05cqw, 21px);
-            gap: 0.5em; padding: 0 2px 0.75em 2px;
-          }
-          dialog.expanded .chip {
-            font-size: 1em; padding: 0.32em 0.85em; border-radius: 1.3em;
-            gap: 0.45em;
-          }
-          dialog.expanded .chip .dot { width: 0.72em; height: 0.72em; }
-          dialog.expanded .tooltip {
-            font-size: clamp(11px, 0.92cqw, 18px);
-            padding: 0.5em 0.7em; border-radius: 0.4em;
-          }
-          dialog.expanded .tooltip .dot { width: 0.6em; height: 0.6em; }
-          dialog.expanded .whatif { font-size: clamp(12px, 1cqw, 20px); }
-          dialog.expanded .close svg { width: 1.4em; height: 1.4em; }
+        dialog.expanded .chip .dot { width: 0.72em; height: 0.72em; }
+        dialog.expanded .tooltip {
+          font-size: 0.92em; padding: 0.5em 0.7em; border-radius: 0.4em;
         }
+        dialog.expanded .tooltip .dot { width: 0.6em; height: 0.6em; }
+        dialog.expanded .whatif { font-size: 1em; }
+        dialog.expanded .close svg { width: 1.4em; height: 1.4em; }
 
         /* What-if simulator */
         .whatif {
@@ -1520,7 +1502,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
   _chartSvg(built, expanded) {
     const { windowStart, windowEnd } = built;
     const visible = this._series.filter((s) => s.visible && s.hasData);
-    const font = this._fontUnits(expanded);
+    const font = expanded ? FONT_EXPANDED : FONT_BASE;
 
     // Axis domains from visible series grouped by axis.
     const groups = { temp: [], power: [], price: [], solar: [] };
@@ -1890,58 +1872,43 @@ class HeatpumpOptimizerCard extends HTMLElement {
     if (svg && typeof svg.getBoundingClientRect === "function") {
       this._svgRect = svg.getBoundingClientRect();
     }
-    this._measureChartWidths();
+    this._scaleDialogFont();
   }
 
-  /** Record how wide each chart actually rendered, and re-draw if it matters.
+  /** Size the dialog's own text from how wide the dialog actually is.
    *
-   * The font conversion needs a pixel width, which only exists after layout.
-   * The first paint therefore uses the fallback constants and this corrects
-   * it. Re-rendering cannot change the width — the SVG fills its container
-   * whatever size its text is — so this settles in one pass rather than
-   * oscillating.
+   * The chart scales itself, because it is stretched from a fixed coordinate
+   * system. The chrome around it -- header, legend, tooltip, what-if panel --
+   * is ordinary HTML inheriting the card's font, so it stays at card size no
+   * matter how large the dialog gets, which is what made it look cramped
+   * beside a chart three times its size.
+   *
+   * Setting one font size on the dialog fixes all of it at once, because every
+   * measurement in the chrome is expressed in `em`. This is done here rather
+   * than with container query units because `container-type: inline-size`
+   * applies inline-axis containment, and a dialog sized by its own contents
+   * then has nothing to size itself from.
    */
-  _measureChartWidths() {
+  _scaleDialogFont() {
     const root = this.shadowRoot;
-    if (!root || this._measuring) return;
-    const widthOf = (selector) => {
-      const el = root.querySelector(selector);
-      if (!el || typeof el.getBoundingClientRect !== "function") return 0;
-      const rect = el.getBoundingClientRect();
-      return (rect && Number(rect.width)) || 0;
-    };
+    if (!root || !this._expanded) return;
+    const dlg = root.querySelector("dialog");
+    if (!dlg || typeof dlg.getBoundingClientRect !== "function") return;
+    const rect = dlg.getBoundingClientRect();
+    const width = (rect && Number(rect.width)) || 0;
+    if (!Number.isFinite(width) || width <= 0) return;
 
-    const inline = widthOf(".chartwrap:not(.big) svg");
-    const big = widthOf(".chartwrap.big svg");
-    const changed =
-      significantlyDifferent(inline, this._chartWidth) ||
-      significantlyDifferent(big, this._bigChartWidth);
-    if (inline) this._chartWidth = inline;
-    if (big) this._bigChartWidth = big;
-
-    if (changed && this._sig !== null) {
-      // _render re-enters here through _cacheRect. The flag makes that pass a
-      // no-op, which is correct: the widths it would measure are the ones just
-      // recorded.
-      this._measuring = true;
-      try {
-        this._sig = null;
-        this._render();
-      } finally {
-        this._measuring = false;
-      }
+    // Clamped at both ends: a phone-width dialog has to stay legible, and a
+    // very wide monitor must not turn the legend into a headline.
+    const px = Math.min(
+      DIALOG_FONT_PX_MAX,
+      Math.max(DIALOG_FONT_PX_MIN, width * DIALOG_FONT_RATIO)
+    );
+    // Writing an unchanged value would dirty style on every pointer move.
+    if (significantlyDifferent(px, this._dialogFontPx)) {
+      this._dialogFontPx = px;
+      dlg.style.fontSize = `${px.toFixed(2)}px`;
     }
-  }
-
-  /** Font size in viewBox units that renders at the wanted pixel size. */
-  _fontUnits(expanded) {
-    const targetPx = expanded ? FONT_PX_EXPANDED : FONT_PX_BASE;
-    const width = expanded ? this._bigChartWidth : this._chartWidth;
-    if (!Number.isFinite(width) || width <= 0) {
-      return expanded ? FONT_EXPANDED : FONT_BASE;
-    }
-    const units = (targetPx * VIEW_W) / width;
-    return Math.min(FONT_UNITS_MAX, Math.max(FONT_UNITS_MIN, units));
   }
 
   _onPointerLeave(ev) {

@@ -55,18 +55,33 @@ Clicking a legend chip only toggles that series; it does not open the overlay.
 Toggles work inside the overlay too, and the visibility state is shared with the
 card underneath. Close it with the X, the Escape key, or by clicking outside it.
 
-The legend and the chart text are both scaled up in the overlay. The legend is
-plain HTML sized in `em` against the card's font, which does not grow with the
-dialog, so without that it stayed at card size next to a much larger chart and
-read as cramped. SVG text has the same problem for a different reason: it is
-sized in viewBox units, so the same nominal size spread across a larger area
-looks smaller even though it is still vector.
+The chart and the chrome around it scale differently, because they are
+different kinds of thing.
 
-### What-if simulator
+The chart is drawn in a fixed 900x380 coordinate system and stretched to fill
+whatever space it is given, so its text grows with it for free — the same label
+renders around 6px in a dashboard column and around 20px in a dialog. Its size
+is *not* a free preference, though: the margins, tick spacing and legend rows
+are authored in those same units against a font of about 10, so raising the
+font without moving everything else makes labels collide.
 
-Setting `what_if: true` adds a comfort-temperature slider to the enlarged view.
-Dragging it shows what that temperature would cost per month, against the plan
-currently in force.
+The header, legend, tooltip and schedule editor are plain HTML and cannot scale
+by themselves. They are sized in `em`, and the card sets the single font size
+they derive from once the dialog has been laid out, from its measured width and
+clamped at both ends. Container query units would say this in CSS alone, but
+`container-type: inline-size` also applies inline-axis containment, which is a
+large side effect for a font size.
+
+### Schedule editor and what-if simulator
+
+The enlarged view carries an editor for the comfort temperature, the heating day
+and the hot water windows. It is shown by default and hidden with
+`what_if: false`.
+
+Editing only builds a draft inside the card. Two buttons act on it: **Simulate
+these slots** prices the draft against the plan currently in force, and **Save
+as my schedule** writes it into the configuration through `apply_schedule`,
+after a confirming second press.
 
 Setpoints are otherwise chosen blind: the optimizer can price a plan, but you
 never see the price of your own comfort choices. This turns "I set 21 because it
@@ -133,7 +148,7 @@ space_entity: sensor.heat_pump_optimizer_space_heating_plan  # optional, auto-de
 dhw_entity: sensor.heat_pump_optimizer_dhw_heating_plan      # optional, auto-detected
 solar_entity: sensor.heat_pump_optimizer_solar_irradiance    # optional, auto-detected
 hours: 24                                # optional, hours forward to plot, default 24 (1–168)
-what_if: false                           # optional, comfort slider in the enlarged view
+what_if: true                            # optional, schedule editor in the enlarged view
 series:                                  # optional, initial per-series visibility
   price: true
   dhw_slots: true
@@ -152,7 +167,7 @@ series:                                  # optional, initial per-series visibili
 | `dhw_entity`   | string  | auto-detected                  | Entity id of the DHW plan sensor (its `forecast` attribute supplies `dhw_power`, `dhw_temp`, and `price`/`outdoor` fallbacks). |
 | `solar_entity` | string  | auto-detected                  | Entity id of the solar irradiance sensor (its `forecast` attribute supplies `ghi`). |
 | `hours`        | number  | `24`                           | How many hours forward to plot. Must be `1`–`168`. |
-| `what_if`      | boolean | `false`                        | Show the comfort-temperature what-if slider in the enlarged view. Each drag triggers a real optimization solve, so this is opt-in. |
+| `what_if`      | boolean | `true`                         | Show the schedule editor in the enlarged view. Editing is local to the card; only the Simulate and Save buttons reach Home Assistant. |
 | `series`       | map     | all `true`                     | Initial visibility per series key. Keys: `price`, `dhw_slots`, `space_slots`, `outdoor`, `dhw_temp`, `house_temp`, `solar`. |
 
 ### Entity discovery

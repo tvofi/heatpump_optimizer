@@ -1,5 +1,55 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v3.1.1
+
+Fixes for three things v3.1.0 got wrong or left hidden.
+
+### The schedule editor is now visible without extra configuration
+
+The editor added in v3.1.0 was gated behind `what_if: true` in the card's YAML,
+off by default and documented as a comfort-temperature slider. Several people
+looked for it and concluded it did not exist.
+
+It is now shown by default. The reasoning that made it opt-in does not hold:
+holding a draft costs nothing, because the draft lives in the card. Only
+**Simulate these slots** runs a solve, and only **Save as my schedule** changes
+any configuration. `what_if: false` still hides the panel.
+
+### Chart labels no longer overlap
+
+v3.1.0 tried to make chart text render at a constant pixel size by converting a
+pixel target through the chart's measured width. That was the wrong model. The
+chart's whole geometry — the 92-unit left margin, the 34-unit bottom margin, the
+tick spacing, the legend rows — is authored in the same coordinate units as the
+font, against a font of about 10. Converting for pixel size pushed it to about
+20 units in a typical dashboard column, so labels ran into each other.
+
+The font is part of that geometry and is fixed again. Nothing is lost: the chart
+is stretched from a fixed coordinate system, so its text already grew roughly
+3.5× when the card was enlarged. That was never the part that failed to scale.
+
+### The enlarged view's chrome scales without side effects
+
+The header, legend, tooltip and editor are plain HTML and do need help scaling.
+v3.1.0 did that with container query units, which required
+`container-type: inline-size` on the dialog — and that also applies inline-axis
+containment, a large and easily-missed side effect for a font size.
+
+The dialog's font size is now set directly from its measured width, clamped so a
+phone-width dialog stays legible and a very wide one does not turn the legend
+into a headline. Everything in the chrome is in `em`, so one value sizes all of
+it. The dialog's width comes from the viewport rather than its contents, so this
+cannot feed back into a resize loop.
+
+### Not fixed: creating a helper from an entity picker
+
+Creating an `input_datetime` helper from the away page's picker can still fail
+with `required key not provided @ data['name']`. This is in Home Assistant's own
+helper dialog rather than in this integration — the create request is sent with
+no name, and `input_datetime` requires one. Until it is fixed upstream, create
+the helper from **Settings → Devices & services → Helpers** and then select it
+in the away page.
+
 ## v3.1.0
 
 Edit your schedule from the card, and two fixes in the configuration pages.
