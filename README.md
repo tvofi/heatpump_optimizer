@@ -30,6 +30,9 @@ guarantee that it works at all, that it works as described, that it will
 continue to work, or that any defect will ever be corrected. See
 [LICENSE](LICENSE) for the full text.
 
+**Any use of this software is entirely at your own risk.** You accept that risk
+in full, and in its entirety, the moment you install or run it.
+
 **No responsibility, no liability.** The authors and contributors accept **no
 responsibility whatsoever** for anything arising out of, or in any way
 connected with, this software — its use, its misuse, its inability to be used,
@@ -52,13 +55,14 @@ configuration, history or data; time and cost spent installing, diagnosing,
 repairing or removing it; and any decision you make in reliance on anything
 this software calculates, predicts, reports or displays.
 
-**It is your decision and your risk.** You alone are responsible for deciding
-whether to install this software, for how you configure it, for what you allow
-it to control, for supervising what it does, and for making sure independent
-protections remain in place. Nobody is obliged to provide support, fixes,
-updates or maintenance of any kind. If any part of this exclusion is held
-unenforceable, the remainder continues to apply and liability is limited to the
-smallest amount permitted by law.
+**It is your decision and your risk.** Any use of this software, and anything
+you do with it or because of it, is entirely and exclusively at your own risk.
+You alone are responsible for deciding whether to install it, for how you
+configure it, for what you allow it to control, for supervising what it does,
+and for making sure independent protections remain in place. Nobody is obliged
+to provide support, fixes, updates or maintenance of any kind. If any part of
+this exclusion is held unenforceable, the remainder continues to apply and
+liability is limited to the smallest amount permitted by law.
 
 **It is not a safety device.** Do not rely on it for frost protection, for
 keeping pipes from freezing, for legionella control, or for anything else where
