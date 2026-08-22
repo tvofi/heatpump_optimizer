@@ -367,47 +367,178 @@ check("the tooltip says a price is estimated",
 check("a fully published horizon is not shaded",
   !/class="estimated"/.test(collect(build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true)).shadowRoot).join("\n")));
 
-// --- Scenario 13: what-if simulator (item 21) ------------------------------
+// --- Scenario 13: what-if simulator ---------------------------------------
 const offCard = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
 offCard._onCardClick({});
 check("the what-if panel is off by default",
   !/class="whatif"/.test(collect(offCard.shadowRoot).join("\n")));
 
 let called = null;
-const whatIf = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), { what_if: true });
-whatIf._hass = {
-  states: whatIf._hass.states,
+const simResult = {
+  monthly_cost_delta: -42.5,
+  min_room_temperature: 19.4,
+  baseline_min_room_temperature: 20.1,
+  min_dhw_temperature: 46.0,
+  baseline_min_dhw_temperature: 45.8,
+  compressor_starts: 4,
+  rate_limited: false,
+};
+const mkHass = (states, respond) => ({
+  states,
   callService: async (domain, service, data) => {
     called = { domain, service, data };
-    return { response: { results: { abc: { monthly_cost_delta: -42.5, rate_limited: false } } } };
+    return respond ? respond() : { response: { results: { abc: simResult } } };
   },
-};
+});
+
+// The plan sensors advertise the schedule the plan was made against, which is
+// what the editor pre-fills from.
+const slotStates = (() => {
+  const st = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  st[DEFAULT_SPACE].attributes.day_start_hour = 7;
+  st[DEFAULT_SPACE].attributes.day_end_hour = 22;
+  st[DEFAULT_DHW].attributes.dhw_windows = "06:00-08:30, 17:00-22:00";
+  return st;
+})();
+
+const whatIf = build(slotStates, { what_if: true });
+whatIf._hass = mkHass(whatIf._hass.states);
 whatIf._onCardClick({});
 const whatIfDump = collect(whatIf.shadowRoot).join("\n");
 check("the what-if panel appears when enabled",
   /class="whatif"/.test(whatIfDump) && /class="wi-temp"/.test(whatIfDump));
+check("the panel offers heating hour editors",
+  /class="wi-day-start"/.test(whatIfDump) && /class="wi-day-end"/.test(whatIfDump));
+check("the panel offers hot water window editors",
+  /class="wi-win-start"/.test(whatIfDump) && /class="wi-add"/.test(whatIfDump));
+check("it says nothing is saved", /Nothing here is saved/.test(whatIfDump));
 
-// A drag must not fire a solve per pixel, so input is debounced rather than
-// dispatched immediately.
+// Pre-filling from the live plan matters: an editor that starts from defaults
+// would silently propose changes the user never asked for.
+check("the heating hours are pre-filled from the plan",
+  /value="07:00"/.test(whatIfDump) && /value="22:00"/.test(whatIfDump));
+check("the hot water windows are pre-filled from the plan",
+  whatIf._whatIfDraft().dhwWindows.length === 2 &&
+  whatIf._whatIfDraft().dhwWindows[0].start === "06:00" &&
+  whatIf._whatIfDraft().dhwWindows[1].end === "22:00");
+
+// Temperature: debounced, then reported.
 whatIf._onWhatIfInput({ stopPropagation(){}, target:{ value:"19.5" } });
 check("dragging does not call the service immediately", called === null);
 check("the label follows the slider straight away",
   /19\.5/.test(whatIf.shadowRoot.querySelector(".wi-value").textContent));
 
-await whatIf._runWhatIf(19.5);
+await whatIf._runWhatIf();
 check("the simulator calls the right service",
   called && called.domain === "heatpump_optimizer" && called.service === "simulate_plan");
 check("the simulator sends the dragged temperature",
   called && called.data.target_temp === 19.5);
-const resultEl = whatIf.shadowRoot.querySelector(".wi-result");
-check("a cheaper answer is reported as a monthly saving",
-  /43 less per month/.test(resultEl.textContent) && resultEl.className.includes("cheaper"));
+check("the simulator sends the heating hours",
+  called && called.data.day_start_hour === 7 && called.data.day_end_hour === 22);
+check("the simulator sends the hot water windows",
+  called && called.data.dhw_windows === "06:00-08:30, 17:00-22:00");
 
-// An exploratory drag must never leave the card broken when the solve fails.
-whatIf._hass = { states: whatIf._hass.states, callService: async () => { throw new Error("boom"); } };
-await whatIf._runWhatIf(22);
+const resultText = whatIf.shadowRoot.querySelector(".wi-result").textContent;
+check("a cheaper answer is reported as a monthly saving",
+  /43 less per month/.test(resultText));
+// Reporting only the saving would invite the obvious mistake: a plan is always
+// cheaper if it is allowed to be colder.
+check("the comfort consequence is reported alongside the money",
+  /Coldest the house gets: 19\.4/.test(resultText) && /-0\.7/.test(resultText));
+check("the hot water consequence is reported too",
+  /Lowest tank temperature: 46\.0/.test(resultText));
+
+// --- Scenario 14: editing the slots ---------------------------------------
+const editor = build(slotStates, { what_if: true });
+editor._hass = mkHass(editor._hass.states);
+editor._onCardClick({});
+
+// Editing a time field updates the draft without triggering a solve: a
+// half-typed time should not cost a multi-second optimization.
+const root = editor.shadowRoot;
+root.querySelector(".wi-day-start").value = "05:00";
+called = null;
+editor._onSlotEdit({ stopPropagation(){} });
+check("editing an hour does not simulate on its own", called === null);
+check("editing an hour updates the draft", editor._whatIfDraft().dayStart === 5);
+
+editor._onAddWindow({ stopPropagation(){} });
+check("a window can be added", editor._whatIfDraft().dhwWindows.length === 3);
+check("the added window is rendered",
+  (collect(editor.shadowRoot).join("\n").match(/class="wi-window"/g) || []).length === 3);
+
+editor._onRemoveWindow({
+  stopPropagation(){},
+  currentTarget: { getAttribute: (k) => (k === "data-index" ? "0" : null) },
+});
+const remaining = editor._whatIfDraft().dhwWindows;
+check("a window can be removed", remaining.length === 2);
+check("the right window was removed", remaining[0].start === "17:00");
+
+await editor._onApplySlots({ stopPropagation(){} });
+check("applying sends the edited hours",
+  called && called.data.day_start_hour === 5);
+check("applying sends the edited windows",
+  called && called.data.dhw_windows === "17:00-22:00, 06:00-08:00",
+  );
+
+// Removing every window is a legitimate thing to price ("what if I stopped
+// guaranteeing hot water at fixed times?"), so it must be sent as an explicit
+// empty schedule rather than omitted. Driven through the UI, because the
+// editors are the source of truth on apply.
+while (editor._whatIfDraft().dhwWindows.length) {
+  editor._onRemoveWindow({
+    stopPropagation(){},
+    currentTarget: { getAttribute: (k) => (k === "data-index" ? "0" : null) },
+  });
+}
+check("all windows can be removed",
+  !/class="wi-window"/.test(collect(editor.shadowRoot).join("\n")));
+called = null;
+await editor._onApplySlots({ stopPropagation(){} });
+check("an empty schedule is sent explicitly, not omitted",
+  called && called.data.dhw_windows === "" && "dhw_windows" in called.data);
+
+// A malformed time must be caught before a solve is spent on it.
+editor._whatIfDraft().dhwWindows = [{ start: "notatime", end: "08:00" }];
+called = null;
+await editor._runWhatIf();
+check("an invalid window is rejected without calling the service",
+  called === null &&
+  /not a valid time/.test(editor.shadowRoot.querySelector(".wi-result").textContent));
+
+// Reset must restore the plan's own schedule, not a hardcoded default.
+editor._onResetWhatIf({ stopPropagation(){} });
+check("reset restores the live schedule",
+  editor._whatIfDraft().dayStart === 7 &&
+  editor._whatIfDraft().dhwWindows.length === 2);
+
+// Controls must not reach the card's expand handler underneath.
+// Without this, a click anywhere in the panel reaches the card handler and
+// collapses the dialog the panel lives in.
+for (const [name, handler] of [
+  ["add", editor._onAddWindow],
+  ["reset", editor._onResetWhatIf],
+  ["apply", editor._onApplySlots],
+  ["edit", editor._onSlotEdit],
+]) {
+  let stopCount = 0;
+  handler.call(editor, { stopPropagation: () => { stopCount++; } });
+  check(`the ${name} control stops propagating to the card`, stopCount > 0);
+}
+
+// An error from the service must be shown, not swallowed.
+editor._hass = mkHass(editor._hass.states, () => ({
+  response: { results: { abc: { error: "invalid_windows: bad" } } },
+}));
+await editor._runWhatIf();
+check("a rejected simulation reports why",
+  /invalid_windows: bad/.test(editor.shadowRoot.querySelector(".wi-result").textContent));
+
+editor._hass = { states: editor._hass.states, callService: async () => { throw new Error("boom"); } };
+await editor._runWhatIf();
 check("a failed simulation is reported, not swallowed",
-  /Could not simulate: boom/.test(whatIf.shadowRoot.querySelector(".wi-result").textContent));
+  /Could not simulate: boom/.test(editor.shadowRoot.querySelector(".wi-result").textContent));
 
 console.log(fails ? `\n${fails} CARD CHECK(S) FAILED` : "\nALL CARD CHECKS PASSED");
 process.exit(fails?1:0);

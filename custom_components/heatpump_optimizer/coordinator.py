@@ -2786,6 +2786,16 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 self._open_meteo.diagnostics() if self._open_meteo else None
             ),
             "two_zone_enabled": self._thermal_params.two_zone_enabled,
+            # The comfort schedule the plan was actually made against. The
+            # card's what-if editor pre-fills from this: an editor that
+            # started from defaults would silently propose a change the user
+            # never made.
+            "comfort_temp_day": self._opt_config.comfort_temp_day,
+            "comfort_temp_night": self._opt_config.comfort_temp_night,
+            "day_start_hour": self._opt_config.day_start_hour,
+            "day_end_hour": self._opt_config.day_end_hour,
+            "min_temperature": self._opt_config.min_temp,
+            "max_temperature": self._opt_config.max_temp,
         }
 
     def _dhw_view(self) -> dict[str, Any]:
@@ -3741,6 +3751,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         ):
             if key in overrides:
                 setattr(scratch_config, key, float(overrides[key]))
+        # The heating schedule: which hours count as "day" and therefore get
+        # the day comfort temperature. Integers, because they index hours.
+        for key in ("day_start_hour", "day_end_hour"):
+            if key in overrides:
+                setattr(scratch_config, key, int(overrides[key]))
 
         scratch_params = replace(self._thermal_params)
         if "dhw_setpoint" in overrides:
@@ -3748,12 +3763,20 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if "dhw_min_temperature" in overrides:
             scratch_params.dhw_min_temp = float(overrides["dhw_min_temperature"])
         if "dhw_windows" in overrides:
-            try:
-                scratch_params.dhw_windows = parse_windows(
-                    str(overrides["dhw_windows"])
-                )
-            except DHWWindowError as err:
-                return {"error": f"invalid_windows: {err}", "rate_limited": False}
+            spec = str(overrides["dhw_windows"]).strip()
+            if not spec:
+                # An explicitly empty schedule means "no demand windows", which
+                # is a legitimate thing to simulate: it is what the plan looks
+                # like with hot water availability unconstrained.
+                scratch_params.dhw_windows = []
+            else:
+                try:
+                    scratch_params.dhw_windows = parse_windows(spec)
+                except DHWWindowError as err:
+                    return {
+                        "error": f"invalid_windows: {err}",
+                        "rate_limited": False,
+                    }
 
         scratch = HeatPumpOptimizer(ThermalModel(scratch_params), scratch_config)
         try:
@@ -3778,16 +3801,54 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         days_per_month = 30.4
         scale = days_per_month * 24.0 / horizon_hours
         delta = simulated.predicted_cost - result.predicted_cost
+
+        def coldest(plan) -> float | None:
+            """Lowest temperature the plan actually reaches, in either zone."""
+            series = [
+                s
+                for s in (
+                    plan.upper_temp_trajectory,
+                    plan.lower_temp_trajectory,
+                    plan.room_temp_trajectory,
+                )
+                if s
+            ]
+            return round(min(min(s) for s in series), 2) if series else None
+
+        def dhw_low(plan) -> float | None:
+            if not plan.dhw_temp_trajectory:
+                return None
+            return round(float(min(plan.dhw_temp_trajectory)), 2)
+
         payload = {
             "baseline_cost": round(result.predicted_cost, 2),
             "simulated_cost": round(simulated.predicted_cost, 2),
             "cost_delta": round(delta, 2),
             "monthly_cost_delta": round(delta * scale, 2),
             "savings_percentage": round(simulated.savings_percentage, 1),
-            "min_room_temperature": (
-                round(float(min(simulated.room_temp_trajectory)), 2)
-                if simulated.room_temp_trajectory
-                else None
+            "min_room_temperature": coldest(simulated),
+            # The comfort consequence, alongside the money. A cheaper plan that
+            # is colder or leaves the tank short is not the same trade, and a
+            # simulator that reported only the saving would be inviting the
+            # user to make exactly that mistake.
+            "baseline_min_room_temperature": coldest(result),
+            "min_dhw_temperature": dhw_low(simulated),
+            "baseline_min_dhw_temperature": dhw_low(result),
+            "dhw_slots": len(
+                self._plan_slots(
+                    simulated.timestamps,
+                    list(simulated.dhw_power_schedule or []),
+                    list(simulated.prices),
+                    self._opt_config.dt_hours,
+                )
+            ),
+            "space_slots": len(
+                self._plan_slots(
+                    simulated.timestamps,
+                    list(simulated.power_schedule),
+                    list(simulated.prices),
+                    self._opt_config.dt_hours,
+                )
             ),
             "compressor_starts": simulated.compressor_starts,
             "projected_peak_kw": simulated.projected_peak_kw,
