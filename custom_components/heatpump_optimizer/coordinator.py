@@ -340,27 +340,54 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     """Coordinator for Heat Pump Cost Optimizer."""
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
-        """Initialize the coordinator."""
+        """Initialize the coordinator.
+
+        The list below is the whole story: what state this object owns, in the
+        order it comes into existence. Previously this was two hundred and
+        fifty lines of uninterrupted assignment in which nothing had a natural
+        home, so a new attribute went wherever the last one happened to end.
+        """
         self.entry = entry
         self._config = {**entry.data, **entry.options}
-
-        # Get optimization interval
-        interval_min = self._config.get(
-            CONF_OPTIMIZATION_INTERVAL, DEFAULT_OPTIMIZATION_INTERVAL
-        )
 
         super().__init__(
             hass,
             _LOGGER,
             name=DOMAIN,
-            update_interval=timedelta(minutes=interval_min),
+            update_interval=timedelta(
+                minutes=self._config.get(
+                    CONF_OPTIMIZATION_INTERVAL, DEFAULT_OPTIMIZATION_INTERVAL
+                )
+            ),
         )
 
-        # Initialize thermal model
+        self._init_model()
+        self._init_runtime_state()
+        self._init_dhw_learning(hass, entry)
+        self._init_measurements()
+        self._init_grid(hass, entry)
+        self._init_features(hass, entry)
+        self._init_ecl110()
+
+        # Deferred: MQTT may not be up yet, and the stores are on disk.
+        hass.async_create_task(self._async_setup_ecl110_state_subscription())
+        for load in (
+            self._async_load_dhw_profile,
+            self._async_load_dhw_legionella,
+            self._async_load_thermal_learning,
+            self._async_load_price_model,
+            self._async_load_accuracy,
+            self._async_load_energy_totals,
+        ):
+            hass.async_create_task(load())
+
+    # -- construction, one concern at a time ---------------------------------
+
+    def _init_model(self) -> None:
+        """The thermal model, the optimizer, and the configuration between."""
         self._thermal_params = ThermalParameters.from_config(self._config)
         self._thermal_model = ThermalModel(self._thermal_params)
 
-        # Initialize optimizer config
         self._opt_config = OptimizationConfig(
             target_temp=self._config.get(CONF_TARGET_TEMP, DEFAULT_TARGET_TEMP),
             min_temp=self._config.get(CONF_MIN_TEMP, DEFAULT_MIN_TEMP),
@@ -382,11 +409,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 CONF_COMFORT_WEIGHT, DEFAULT_COMFORT_WEIGHT
             ),
         )
-
-        # Initialize optimizer
         self._optimizer = HeatPumpOptimizer(self._thermal_model, self._opt_config)
 
-        # State
+    def _init_runtime_state(self) -> None:
+        """What the current update cycle is working with."""
         self._mode: str = MODE_AUTO
         # Populated during setup from the manifest so the device registry
         # reports the real integration version.
@@ -400,12 +426,18 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._current_action: dict[str, Any] = {}
         self._unsub_timer: Any = None
 
-        # Solar / return temp state
+        # Solar irradiance and the floor return temperature sensor.
         self._solar_radiation: float = 0.0
         self._floor_return_temp: float | None = None
         self._solar_radiation_forecast: list[float] = []
         self._open_meteo: OpenMeteoSolar | None = None
 
+        # A run takes seconds, so a user tapping the button repeatedly must not
+        # be able to stack solves on top of each other.
+        self._optimization_running: bool = False
+
+    def _init_dhw_learning(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+        """Hot water: usage profile, cooling rate and the legionella timer."""
         # DHW state
         self._dhw_temperature: float | None = None
         self._last_dhw_temp_sample: float | None = None
@@ -460,6 +492,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             f"{DOMAIN}_{entry.entry_id}_thermal_learning",
         )
 
+    def _init_measurements(self) -> None:
+        """Optional measured inputs and the COP correction they feed."""
         # --- Measured electrical draw (optional) -------------------------
         # Absent on most installs, so every consumer must degrade cleanly.
         self._measured_power: float | None = None
@@ -478,14 +512,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._input_health: InputHealth | None = None
         self._learner_freeze_reason: str | None = None
 
-        # --- External heat source detection --------------------------------
-        self._external_heat = ExternalHeatDetector(self._external_heat_config())
-        self._external_heat_active: bool = False
-
-        # Guard so a user tapping the run button repeatedly cannot stack solves
-        # on top of each other; a run is not instantaneous.
-        self._optimization_running: bool = False
-
+    def _init_grid(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+        """Price modelling, the capacity tariff and PV surplus."""
         # --- Unknown price horizon (item 7) --------------------------------
         self._price_model = PriceShapeModel()
         self._price_days_seen: set[str] = set()
@@ -504,6 +532,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._pv_summary: dict[str, Any] = {}
         self._pv_production: float | None = None
 
+    def _init_features(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+        """Away mode, accuracy tracking, learning experiments and totals."""
+        self._external_heat = ExternalHeatDetector(self._external_heat_config())
+        self._external_heat_active: bool = False
         # --- Away mode (item 13) -------------------------------------------
         self._away_state = away_mode.AwayState()
 
@@ -561,7 +593,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._last_simulation: datetime | None = None
         self._simulation_cache: dict[str, Any] = {}
 
-        # ECL110 MQTT state
+    def _init_ecl110(self) -> None:
+        """MQTT heat-curve control state."""
         self._ecl110_command_topic: str = self._config.get(
             CONF_ECL110_COMMAND_TOPIC, DEFAULT_ECL110_COMMAND_TOPIC
         )
@@ -582,17 +615,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._ecl110_current_displace: float = 0.0
         self._ecl110_last_payload: dict[str, Any] = {}
         self._unsub_ecl110_state: Any = None
-
-        # Subscribe to ECL110 state topic if MQTT is available
-        hass.async_create_task(self._async_setup_ecl110_state_subscription())
-
-        # Load learned DHW usage profile (persisted across restarts)
-        hass.async_create_task(self._async_load_dhw_profile())
-        hass.async_create_task(self._async_load_dhw_legionella())
-        hass.async_create_task(self._async_load_thermal_learning())
-        hass.async_create_task(self._async_load_price_model())
-        hass.async_create_task(self._async_load_accuracy())
-        hass.async_create_task(self._async_load_energy_totals())
 
     @property
     def mode(self) -> str:
