@@ -125,6 +125,10 @@ model. Drift, oscillation and learner divergence only appear there.
   sensors publish, checking that the slot summaries reconcile with the raw step
   schedule and that every heating step carries a reason code and price
   provenance. It writes the result to `/tmp/plandata.json`.
+- **frontend.py** checks how the card reaches the browser: that a missing
+  resource is created, a stale cache-busting query is refreshed rather than
+  left to serve a cached card, a duplicate copy installed elsewhere is
+  reported, and YAML mode is left alone.
 - **card.mjs** loads the Lovelace card in Node against a DOM stub and the
   payload written by `plan_view.py`. The stub *parses* `innerHTML` rather than
   merely storing it: the card queries its own output for the controls it then

@@ -139,6 +139,26 @@ lovelace:
 
 Restart or reload the dashboard afterwards.
 
+### If an upgrade seems to change nothing
+
+Only one copy of the card can be active: a custom element name can be claimed
+once per page, and the first copy to load keeps it. A second copy — usually a
+manual install left under `/local/` from an earlier version — therefore wins
+permanently, and every upgrade after it loads and is ignored. New features
+appear to be missing even though the files on disk are current.
+
+To check, open the browser console and reload the dashboard. The card prints
+its version on load:
+
+```
+ heatpump-optimizer-card  v3.1.2
+```
+
+If that version is older than the one you installed, or an error mentions a
+duplicate registration, go to Settings → Dashboards → ⋮ → Resources and remove
+every entry for this card except the one under `/heatpump_optimizer_static/`.
+Home Assistant also logs a warning when it spots such a duplicate.
+
 ## Configuration options
 
 ```yaml

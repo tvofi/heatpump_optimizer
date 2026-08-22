@@ -48,18 +48,26 @@ def _card_version(hass: HomeAssistant) -> str:
 
 
 async def _register_static_path(hass: HomeAssistant, www_dir: str) -> None:
-    """Register the static path, preferring the modern async API."""
+    """Register the static path, preferring the modern async API.
+
+    Caching is deliberately left off. The cache-busting ``?v=`` query only
+    helps when we own the resource entry, which is not the case in YAML mode
+    or for a hand-added resource, and a browser holding a long-cached copy of
+    an old card is indistinguishable from an upgrade that did nothing. The
+    file is small and served locally, so revalidating it costs nothing worth
+    having.
+    """
     try:
         from homeassistant.components.http import StaticPathConfig
 
         await hass.http.async_register_static_paths(
-            [StaticPathConfig(URL_BASE, www_dir, True)]
+            [StaticPathConfig(URL_BASE, www_dir, False)]
         )
         return
     except (ImportError, AttributeError):
         # Older Home Assistant: fall back to the deprecated sync call.
         try:
-            hass.http.register_static_path(URL_BASE, www_dir, True)
+            hass.http.register_static_path(URL_BASE, www_dir, False)
         except Exception:  # noqa: BLE001
             _LOGGER.warning(
                 "Could not register static path %s for the Heat Pump "
@@ -123,6 +131,26 @@ async def _register_lovelace_resource(hass: HomeAssistant, url: str) -> None:
             existing = resources.async_items() or []
         elif hasattr(resources, "data"):
             existing = resources.data or []
+
+        # A second resource pointing at another copy of the same file (usually
+        # a leftover manual install under /local/) loads first and claims the
+        # custom element, so ours is ignored and upgrades appear to do nothing.
+        # We must not delete a user's resource, but we can name the problem.
+        for item in existing:
+            item_url = item.get("url") if isinstance(item, dict) else None
+            if not item_url:
+                continue
+            other = item_url.split("?")[0]
+            if other != base and other.endswith(f"/{CARD_FILENAME}"):
+                _LOGGER.warning(
+                    "Another copy of the Heat Pump Optimizer card is "
+                    "registered at %s. It may load instead of the bundled "
+                    "card, leaving you on an old version. Remove it under "
+                    "Settings > Dashboards > Resources and keep only %s",
+                    item_url,
+                    base,
+                )
+
         for item in existing:
             item_url = item.get("url") if isinstance(item, dict) else None
             if not item_url or item_url.split("?")[0] != base:
