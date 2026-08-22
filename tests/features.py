@@ -1433,4 +1433,106 @@ R.check(
     == [],
 )
 
+
+# ===========================================================================
+# Runtime parameter updates
+# ===========================================================================
+R.section("Runtime parameter updates")
+
+import asyncio
+
+from harness import FakeEntry, FakeHass
+from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator
+
+param_coord = HeatPumpOptimizerCoordinator(
+    FakeHass(),
+    FakeEntry(
+        data={
+            "tibber_token": "x",
+            "weather_entity": "weather.home",
+            "dhw_tank_volume": 200.0,
+            "upper_floor_thermal_mass": 3.0,
+        }
+    ),
+)
+
+# The table covers plain assignments; every one has to actually land.
+asyncio.run(
+    param_coord.async_update_thermal_params(
+        {
+            "house_thermal_mass": 14.0,
+            "slab_thermal_mass": 9.0,
+            "heat_pump_cop_nominal": 4.2,
+            "dhw_setpoint": 60.0,
+            "dhw_min_temperature": 48.0,
+            "window_area": 22.0,
+            "wind_sensitivity_factor": 0.3,
+            "radiator_power_fraction": 0.55,
+        }
+    )
+)
+params = param_coord._thermal_params
+R.check("a mapped parameter is applied", params.room_thermal_mass == 14.0)
+R.check("a renamed parameter is applied", params.dhw_min_temp == 48.0)
+R.check("COP nominal is applied", params.cop_nominal == 4.2)
+R.check("a two-zone parameter is applied", params.radiator_power_fraction == 0.55)
+R.check(
+    "the model is rebuilt against the new parameters",
+    param_coord._thermal_model.params is params
+    and param_coord._optimizer.model is param_coord._thermal_model,
+    "the model holds the parameters by reference at construction",
+)
+
+# The special cases exist because each has a consequence beyond itself.
+param_coord._house_heat_loss_samples = 50
+param_coord._apply_house_heat_loss_scale(1.8)
+asyncio.run(
+    param_coord.async_update_thermal_params({"house_heat_loss_coefficient": 0.3})
+)
+R.check(
+    "a new nameplate heat loss resets what was learned against the old one",
+    param_coord._house_heat_loss_scale == 1.0
+    and param_coord._house_heat_loss_samples == 0,
+)
+
+asyncio.run(
+    param_coord.async_update_thermal_params({"ecl110_displace_max": 14.0})
+)
+R.check(
+    "the displace limit is mirrored where the publisher clamps against it",
+    param_coord._ecl110_displace_max == 14.0
+    and params.ecl110_displace_max == 14.0,
+)
+
+asyncio.run(
+    param_coord.async_update_thermal_params({"dhw_windows": "07:00-09:00"})
+)
+R.check(
+    "a valid window spec is parsed",
+    param_coord._thermal_params.dhw_windows == [(7.0, 9.0)],
+    str(param_coord._thermal_params.dhw_windows),
+)
+before = list(param_coord._thermal_params.dhw_windows)
+asyncio.run(param_coord.async_update_thermal_params({"dhw_windows": "garbage"}))
+R.check(
+    "an invalid window spec is ignored rather than clearing the schedule",
+    param_coord._thermal_params.dhw_windows == before,
+)
+
+param_coord._dhw_cooling_samples = 30
+asyncio.run(param_coord.async_update_thermal_params({"dhw_cooling_rate": 0.5}))
+R.check(
+    "an explicit cooling rate restarts the learner from it",
+    abs(param_coord._dhw_cooling_rate - 0.5) < 1e-9
+    and param_coord._dhw_cooling_samples == 0,
+)
+
+R.check(
+    "an unknown parameter is ignored, not fatal",
+    asyncio.run(
+        param_coord.async_update_thermal_params({"not_a_parameter": 1})
+    )
+    is None,
+)
+
 sys.exit(R.close("FEATURE CHECKS"))

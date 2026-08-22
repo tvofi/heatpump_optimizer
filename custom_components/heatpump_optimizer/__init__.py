@@ -14,7 +14,6 @@ The optimization accounts for:
 from __future__ import annotations
 
 import logging
-from datetime import timedelta
 from typing import Any
 
 import voluptuous as vol
@@ -28,13 +27,10 @@ from homeassistant.loader import async_get_integration
 from .const import (
     DOMAIN,
     CONFIG_ENTRY_VERSION,
-    PLATFORMS,
     SERVICE_RUN_OPTIMIZATION,
     SERVICE_SET_MODE,
     SERVICE_SET_THERMAL_PARAMS,
     SERVICE_SIMULATE_PLAN,
-    CONF_TIBBER_TOKEN,
-    CONF_WEATHER_ENTITY,
     MODE_AUTO,
     MODE_COMFORT,
     MODE_ECONOMY,

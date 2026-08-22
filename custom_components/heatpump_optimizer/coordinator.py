@@ -9,7 +9,6 @@ The coordinator manages:
 """
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
 from dataclasses import replace
@@ -21,11 +20,10 @@ import numpy as np
 
 from homeassistant.components import mqtt
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_NAME, UnitOfSpeed
+from homeassistant.const import UnitOfSpeed
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
@@ -35,7 +33,6 @@ from .const import (
     CONF_WEATHER_ENTITY,
     CONF_INDOOR_TEMP_ENTITY,
     CONF_OUTDOOR_TEMP_ENTITY,
-    CONF_HEAT_PUMP_ENTITY,
     CONF_HEAT_PUMP_SWITCH_ENTITY,
     CONF_SOLAR_RADIATION_ENTITY,
     CONF_FLOOR_RETURN_TEMP_ENTITY,
@@ -54,7 +51,6 @@ from .const import (
     CONF_ECL110_RETAIN,
     CONF_ECL110_DISPLACE_MIN,
     CONF_ECL110_DISPLACE_MAX,
-    CONF_ECL110_PID_TIME_CONSTANT,
     CONF_TARGET_TEMP,
     CONF_MIN_TEMP,
     CONF_MAX_TEMP,
@@ -62,20 +58,9 @@ from .const import (
     CONF_COMFORT_TEMP_NIGHT,
     CONF_DAY_START_HOUR,
     CONF_DAY_END_HOUR,
-    CONF_HOUSE_THERMAL_MASS,
-    CONF_HOUSE_HEAT_LOSS_COEFFICIENT,
-    CONF_SLAB_THERMAL_MASS,
-    CONF_SLAB_HEAT_TRANSFER,
-    CONF_HEAT_PUMP_COP_NOMINAL,
-    CONF_HEAT_PUMP_MAX_POWER,
-    CONF_HEAT_PUMP_MIN_POWER,
     CONF_OPTIMIZATION_INTERVAL,
     CONF_PRICE_WEIGHT,
     CONF_COMFORT_WEIGHT,
-    CONF_DHW_SETPOINT,
-    CONF_DHW_MIN_TEMP,
-    CONF_WIND_SENSITIVITY,
-    CONF_RAIN_HEAT_LOSS_MULTIPLIER,
     DEFAULT_TARGET_TEMP,
     DEFAULT_MIN_TEMP,
     DEFAULT_MAX_TEMP,
@@ -86,9 +71,6 @@ from .const import (
     DEFAULT_OPTIMIZATION_INTERVAL,
     DEFAULT_PRICE_WEIGHT,
     DEFAULT_COMFORT_WEIGHT,
-    DEFAULT_DHW_SETPOINT,
-    DEFAULT_DHW_MIN_TEMP,
-    DEFAULT_DHW_COOLING_RATE,
     BUFFER_COOLING_RATE_MAX,
     BUFFER_COOLING_RATE_MIN,
     CONF_BUFFER_COOLING_RATE,
@@ -106,13 +88,11 @@ from .const import (
     DEFAULT_ECL110_RETAIN,
     DEFAULT_ECL110_DISPLACE_MIN,
     DEFAULT_ECL110_DISPLACE_MAX,
-    DEFAULT_ECL110_PID_TIME_CONSTANT,
     MODE_AUTO,
     MODE_COMFORT,
     MODE_ECONOMY,
     MODE_OFF,
     MODE_BOOST,
-    UPDATE_INTERVAL_OPTIMIZATION,
     CONF_SOLAR_FORECAST_SOURCE,
     CONF_SOLAR_LOCATION,
     DEFAULT_SOLAR_FORECAST_SOURCE,
@@ -1885,10 +1865,40 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         _LOGGER.info("Operation mode set to: %s", mode)
         await self.async_request_refresh()
 
+    # Service parameter name -> thermal parameter attribute. Plain assignments
+    # only; anything with a side effect is handled explicitly below.
+    _THERMAL_PARAM_FIELDS = {
+        "house_thermal_mass": "room_thermal_mass",
+        "slab_thermal_mass": "slab_thermal_mass",
+        "slab_heat_transfer": "slab_heat_transfer",
+        "heat_pump_cop_nominal": "cop_nominal",
+        "upper_floor_thermal_mass": "upper_floor_thermal_mass",
+        "lower_floor_thermal_mass": "lower_floor_thermal_mass",
+        "inter_zone_heat_transfer": "inter_zone_transfer",
+        "radiator_power_fraction": "radiator_power_fraction",
+        "window_area": "window_area",
+        "solar_heat_gain_coefficient": "solar_heat_gain_coefficient",
+        "dhw_tank_volume": "dhw_tank_volume",
+        "dhw_setpoint": "dhw_setpoint",
+        "dhw_min_temperature": "dhw_min_temp",
+        "dhw_daily_consumption": "dhw_daily_consumption",
+        "ecl110_pid_time_constant_hours": "ecl110_pid_time_constant_hours",
+        "wind_sensitivity_factor": "wind_sensitivity",
+        "rain_heat_loss_multiplier": "rain_heat_loss_multiplier",
+    }
+
     async def async_update_thermal_params(self, params: dict[str, Any]) -> None:
-        """Update thermal model parameters."""
-        if "house_thermal_mass" in params:
-            self._thermal_params.room_thermal_mass = params["house_thermal_mass"]
+        """Apply a runtime parameter change from the service call.
+
+        Most parameters are a plain assignment and live in the table above.
+        The rest are here because they have a consequence beyond themselves —
+        a learned correction to invalidate, a mirrored attribute to keep in
+        step, or a value that has to be parsed and may fail.
+        """
+        for name, attribute in self._THERMAL_PARAM_FIELDS.items():
+            if name in params:
+                setattr(self._thermal_params, attribute, params[name])
+
         if "house_heat_loss_coefficient" in params:
             self._thermal_params.heat_loss_coefficient = params[
                 "house_heat_loss_coefficient"
@@ -1898,64 +1908,29 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._apply_house_heat_loss_scale(DEFAULT_HOUSE_HEAT_LOSS_SCALE)
             self._house_heat_loss_samples = 0
             await self._async_save_thermal_learning()
+
         if CONF_BUFFER_COOLING_RATE in params:
             self._apply_buffer_cooling_rate(float(params[CONF_BUFFER_COOLING_RATE]))
             self._buffer_cooling_samples = 0
             await self._async_save_thermal_learning()
-        if "ecl110_displace_min" in params:
-            self._thermal_params.ecl110_displace_min = params["ecl110_displace_min"]
-            self._ecl110_displace_min = params["ecl110_displace_min"]
-        if "ecl110_displace_max" in params:
-            self._thermal_params.ecl110_displace_max = params["ecl110_displace_max"]
-            self._ecl110_displace_max = params["ecl110_displace_max"]
-        if "slab_thermal_mass" in params:
-            self._thermal_params.slab_thermal_mass = params["slab_thermal_mass"]
-        if "slab_heat_transfer" in params:
-            self._thermal_params.slab_heat_transfer = params["slab_heat_transfer"]
-        if "heat_pump_cop_nominal" in params:
-            self._thermal_params.cop_nominal = params["heat_pump_cop_nominal"]
-        # Two-zone params
-        if "upper_floor_thermal_mass" in params:
-            self._thermal_params.upper_floor_thermal_mass = params[
-                "upper_floor_thermal_mass"
-            ]
-        if "lower_floor_thermal_mass" in params:
-            self._thermal_params.lower_floor_thermal_mass = params[
-                "lower_floor_thermal_mass"
-            ]
-        if "inter_zone_heat_transfer" in params:
-            self._thermal_params.inter_zone_transfer = params[
-                "inter_zone_heat_transfer"
-            ]
-        if "radiator_power_fraction" in params:
-            self._thermal_params.radiator_power_fraction = params[
-                "radiator_power_fraction"
-            ]
-        if "window_area" in params:
-            self._thermal_params.window_area = params["window_area"]
-        if "solar_heat_gain_coefficient" in params:
-            self._thermal_params.solar_heat_gain_coefficient = params[
-                "solar_heat_gain_coefficient"
-            ]
-        # DHW params
-        if "dhw_tank_volume" in params:
-            self._thermal_params.dhw_tank_volume = params["dhw_tank_volume"]
-        if "dhw_setpoint" in params:
-            self._thermal_params.dhw_setpoint = params["dhw_setpoint"]
-        if "ecl110_pid_time_constant_hours" in params:
-            self._thermal_params.ecl110_pid_time_constant_hours = params[
-                "ecl110_pid_time_constant_hours"
-            ]
-        if "dhw_min_temperature" in params:
-            self._thermal_params.dhw_min_temp = params["dhw_min_temperature"]
-        if "dhw_daily_consumption" in params:
-            self._thermal_params.dhw_daily_consumption = params["dhw_daily_consumption"]
+
         if CONF_DHW_COOLING_RATE in params:
             # An explicit value replaces the learned one and resets the sample
             # count, so the learner treats it as the new starting point.
             self._apply_dhw_cooling_rate(float(params[CONF_DHW_COOLING_RATE]))
             self._dhw_cooling_samples = 0
             await self._async_save_dhw_profile()
+
+        # The displace limits are mirrored on the coordinator because the MQTT
+        # publisher clamps against them without going through the model.
+        for name, attribute in (
+            ("ecl110_displace_min", "_ecl110_displace_min"),
+            ("ecl110_displace_max", "_ecl110_displace_max"),
+        ):
+            if name in params:
+                setattr(self._thermal_params, name, params[name])
+                setattr(self, attribute, params[name])
+
         if CONF_DHW_SCHEDULE_ENABLED in params:
             self._thermal_params.dhw_schedule_enabled = bool(
                 params[CONF_DHW_SCHEDULE_ENABLED]
@@ -1983,14 +1958,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._thermal_params.dhw_legionella_interval_days = float(
                 params[CONF_DHW_LEGIONELLA_INTERVAL_DAYS]
             )
-        # Weather sensitivity params
-        if "wind_sensitivity_factor" in params:
-            self._thermal_params.wind_sensitivity = params["wind_sensitivity_factor"]
-        if "rain_heat_loss_multiplier" in params:
-            self._thermal_params.rain_heat_loss_multiplier = params[
-                "rain_heat_loss_multiplier"
-            ]
 
+        # The model and optimizer hold the parameters by reference at
+        # construction, so both are rebuilt rather than mutated in place.
         self._thermal_model = ThermalModel(self._thermal_params)
         self._optimizer = HeatPumpOptimizer(self._thermal_model, self._opt_config)
 
@@ -2716,45 +2686,74 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
         # 2) Publish ECL110 displace command
         await self.async_publish_current_action(reason="scheduled_update")
-    def _build_data_dict(self) -> dict[str, Any]:
-        """Build the data dictionary for the coordinator."""
-        result = self._optimization_result
+    # ------------------------------------------------------------------
+    # Published state
+    # ------------------------------------------------------------------
+    #
+    # ``_build_data_dict`` composes these. Each returns one domain, so a new
+    # field is added next to its siblings rather than appended to a
+    # two-hundred-line literal where nothing has a natural home.
 
-        # Compute current solar gain
-        current_solar_gain = self._thermal_model.compute_solar_gain(
-            self._solar_radiation
-        )
-
-        # The optimizer may derive demand windows from the learned usage profile
-        # when the user has not configured any, so prefer what it actually
-        # planned against.
-        planned_windows = (
-            (result.predictive_info or {}).get("dhw_windows") if result else None
-        )
-        data = {
-            "mode": self._mode,
-            "current_action": self._current_action,
-            "current_price": self._get_current_price(),
-            "indoor_temperature": self._current_state.room_temperature,
-            "outdoor_temperature": self._current_state.outdoor_temperature,
-            "slab_temperature": self._current_state.slab_temperature,
-            "upper_floor_temperature": self._current_state.upper_floor_temperature,
-            "lower_floor_temperature": self._current_state.lower_floor_temperature,
-            "buffer_tank_temperature": self._current_state.buffer_tank_temperature,
+    def _thermal_view(self) -> dict[str, Any]:
+        """Measured and modelled temperatures, and the solar input."""
+        state = self._current_state
+        return {
+            "indoor_temperature": state.room_temperature,
+            "outdoor_temperature": state.outdoor_temperature,
+            "slab_temperature": state.slab_temperature,
+            "upper_floor_temperature": state.upper_floor_temperature,
+            "lower_floor_temperature": state.lower_floor_temperature,
+            "buffer_tank_temperature": state.buffer_tank_temperature,
             "floor_return_temperature": self._floor_return_temp,
             "solar_radiation": self._solar_radiation,
-            "solar_heat_gain": current_solar_gain,
+            "solar_heat_gain": self._thermal_model.compute_solar_gain(
+                self._solar_radiation
+            ),
             "solar_source": self._solar_forecast_source(),
             "solar_forecast": self._solar_forecast_view(),
             "solar_diagnostics": (
                 self._open_meteo.diagnostics() if self._open_meteo else None
             ),
             "two_zone_enabled": self._thermal_params.two_zone_enabled,
-            "dhw_enabled": self._thermal_params.dhw_enabled,
-            "dhw_temperature": self._dhw_temperature or self._current_state.dhw_temperature,
-            "dhw_setpoint": self._thermal_params.dhw_setpoint,
-            "dhw_min_temperature": self._thermal_params.dhw_min_temp,
+        }
+
+    def _dhw_view(self) -> dict[str, Any]:
+        """Hot water configuration and current demand state."""
+        params = self._thermal_params
+        result = self._optimization_result
+        # The optimizer may derive demand windows from the learned usage
+        # profile when the user configured none, so prefer what it actually
+        # planned against over what the configuration says.
+        planned_windows = (
+            (result.predictive_info or {}).get("dhw_windows") if result else None
+        )
+        return {
+            "dhw_enabled": params.dhw_enabled,
+            "dhw_temperature": (
+                self._dhw_temperature or self._current_state.dhw_temperature
+            ),
+            "dhw_setpoint": params.dhw_setpoint,
+            "dhw_min_temperature": params.dhw_min_temp,
             "dhw_usage_profile": self._dhw_hourly_profile,
+            "dhw_hold_hours": round(self._thermal_model.dhw_hold_hours(), 1),
+            "dhw_windows": planned_windows
+            or format_windows(params.dhw_demand_windows),
+            "dhw_schedule_enabled": params.dhw_schedule_enabled,
+            "dhw_in_demand_window": self._dhw_in_demand_window(),
+            "dhw_next_window_in_hours": self._dhw_next_window_in_hours(),
+            "dhw_idle_min_temperature": params.dhw_idle_min_temp,
+            "dhw_legionella_enabled": params.dhw_legionella_enabled,
+            "dhw_legionella_due_in_hours": self._dhw_legionella_due_in_hours(),
+        }
+
+    def _learning_view(self) -> dict[str, Any]:
+        """What the self-learning estimators currently believe.
+
+        ``*_learned`` flags say whether a value is still the configured prior
+        or has moved, which is the difference between "the default is wrong"
+        and "the house really is like this".
+        """
+        return {
             "dhw_cooling_rate": round(self._dhw_cooling_rate, 3),
             "dhw_cooling_samples": self._dhw_cooling_samples,
             "dhw_cooling_rate_learned": self._dhw_cooling_samples > 0,
@@ -2765,81 +2764,94 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             "house_heat_loss_samples": self._house_heat_loss_samples,
             "house_heat_loss_learned": self._house_heat_loss_samples > 0,
             "house_heat_loss_effective": self._effective_house_heat_loss(),
-            "dhw_hold_hours": round(self._thermal_model.dhw_hold_hours(), 1),
-            "dhw_windows": planned_windows
-            or format_windows(self._thermal_params.dhw_demand_windows),
-            "dhw_schedule_enabled": self._thermal_params.dhw_schedule_enabled,
-            "dhw_in_demand_window": self._dhw_in_demand_window(),
-            "dhw_next_window_in_hours": self._dhw_next_window_in_hours(),
-            "dhw_idle_min_temperature": self._thermal_params.dhw_idle_min_temp,
-            "dhw_legionella_enabled": self._thermal_params.dhw_legionella_enabled,
-            "dhw_legionella_due_in_hours": self._dhw_legionella_due_in_hours(),
-            "last_optimization": self._last_optimization,
-            "next_optimization": self._next_optimization,
+            "cop_scale": round(self._cop_scale, 3),
+            "cop_samples": self._cop_samples,
+            "measured_cop": self._last_measured_cop,
+            "defrost_derate": self._defrost.factor(
+                self._current_state.outdoor_temperature, self._current_humidity()
+            ),
+            "defrost_samples": self._defrost.total_samples,
+            "defrost_buckets": self._defrost.summary(),
+            "comfort_weight": self._opt_config.comfort_weight,
+            "comfort_learning": self._comfort_learner.summary(),
+            "system_identification": self._sysid.as_dict(),
+            "accuracy": self._accuracy.summary(),
+        }
+
+    def _measurement_view(self) -> dict[str, Any]:
+        """Optional measured inputs. All ``None`` on an install without them."""
+        return {
+            "measured_power": self._measured_power,
+            "measured_house_power": self._measured_house_power,
+            "measured_energy": self._measured_energy,
+            "measured_power_available": self._measured_power is not None,
+        }
+
+    def _grid_view(self) -> dict[str, Any]:
+        """Prices, the capacity tariff and PV, i.e. what a kWh actually costs."""
+        tariff = self._capacity_tariff()
+        return {
+            "current_price": self._get_current_price(),
             "prices_available": len(self._prices),
             "weather_forecast_available": len(self._weather_forecast),
+            "price_known_steps": self._price_known_steps,
+            "price_prior": self._price_model.summary(),
+            "peak_tariff_enabled": tariff.enabled,
+            "billed_peak_kw": round(self._peak_tracker.billed_peak_kw(tariff), 2),
+            "peak_threshold_kw": round(self._peak_tracker.threshold_kw(tariff), 2),
+            "peak_month": self._peak_tracker.month,
+            "pv_enabled": bool(
+                self._config.get(CONF_PV_ENABLED, DEFAULT_PV_ENABLED)
+            ),
+            "pv": self._pv_summary,
+        }
+
+    def _ecl110_view(self) -> dict[str, Any]:
+        """Heat-curve control state for the ECL110 integration."""
+        return {
             "ecl110_command_topic": self._ecl110_command_topic,
             "ecl110_state_topic": self._ecl110_state_topic,
-            "ecl110_displace": self._current_action.get("displace_value", self._ecl110_current_displace),
-            "ecl110_effective_displace": self._current_state.ecl110_effective_displace,
+            "ecl110_displace": self._current_action.get(
+                "displace_value", self._ecl110_current_displace
+            ),
+            "ecl110_effective_displace": (
+                self._current_state.ecl110_effective_displace
+            ),
             "ecl110_last_payload": self._ecl110_last_payload,
         }
 
-        # --- New feature state -------------------------------------------
-        tariff = self._capacity_tariff()
-        data.update(self._input_health_view())
+    def _external_heat_view(self) -> dict[str, Any]:
+        """Whether something other than the heat pump is charging the tanks."""
+        return {
+            "external_heat_active": self._external_heat.state.active,
+            "external_heat_suppressing": self._external_heat.suppressing,
+            "external_heat": self._external_heat.state.as_dict(),
+        }
+
+    def _build_data_dict(self) -> dict[str, Any]:
+        """Everything the entities read, assembled from the domain views."""
+        result = self._optimization_result
+
+        data: dict[str, Any] = {
+            "mode": self._mode,
+            "current_action": self._current_action,
+            "last_optimization": self._last_optimization,
+            "next_optimization": self._next_optimization,
+        }
+        for view in (
+            self._thermal_view,
+            self._dhw_view,
+            self._learning_view,
+            self._measurement_view,
+            self._grid_view,
+            self._ecl110_view,
+            self._external_heat_view,
+            self._input_health_view,
+        ):
+            data.update(view())
         data.update(self._away_state.as_dict())
-        data.update(
-            {
-                # Measured draw (item 6)
-                "measured_power": self._measured_power,
-                "measured_house_power": self._measured_house_power,
-                "measured_energy": self._measured_energy,
-                "measured_power_available": self._measured_power is not None,
-                "cop_scale": round(self._cop_scale, 3),
-                "cop_samples": self._cop_samples,
-                "measured_cop": self._last_measured_cop,
-                # External heat source (item 5)
-                "external_heat_active": self._external_heat.state.active,
-                "external_heat_suppressing": self._external_heat.suppressing,
-                "external_heat": self._external_heat.state.as_dict(),
-                # Learned price horizon (item 7)
-                "price_known_steps": self._price_known_steps,
-                "price_prior": self._price_model.summary(),
-                # Capacity tariff (item 8)
-                "peak_tariff_enabled": tariff.enabled,
-                "billed_peak_kw": round(
-                    self._peak_tracker.billed_peak_kw(tariff), 2
-                ),
-                "peak_threshold_kw": round(
-                    self._peak_tracker.threshold_kw(tariff), 2
-                ),
-                "peak_month": self._peak_tracker.month,
-                # PV (item 9)
-                "pv_enabled": bool(
-                    self._config.get(CONF_PV_ENABLED, DEFAULT_PV_ENABLED)
-                ),
-                "pv": self._pv_summary,
-                # Closed-loop accuracy (item 11)
-                "accuracy": self._accuracy.summary(),
-                # Defrost derate (item 14)
-                "defrost_derate": self._defrost.factor(
-                    self._current_state.outdoor_temperature,
-                    self._current_humidity(),
-                ),
-                "defrost_samples": self._defrost.total_samples,
-                "defrost_buckets": self._defrost.summary(),
-                # Energy statistics (item 15)
-                **{k: round(v, 4) for k, v in self._energy_totals.items()},
-                # Comfort learning (item 19)
-                "comfort_weight": self._opt_config.comfort_weight,
-                "comfort_learning": self._comfort_learner.summary(),
-                # System identification (item 18)
-                "system_identification": self._sysid.as_dict(),
-                # Virtual battery (item 20)
-                "battery": self._battery_view(),
-            }
-        )
+        data.update({k: round(v, 4) for k, v in self._energy_totals.items()})
+        data["battery"] = self._battery_view()
 
         if result:
             # DHW schedule data
