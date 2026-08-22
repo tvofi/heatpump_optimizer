@@ -10,6 +10,7 @@ optimizer's planning series on a single shared time axis:
 - **DHW tank temperature** (°C, left temperature axis, smooth line)
 - **House temperature** (°C, left temperature axis; upper/lower zones drawn as
   dashed lines when the house is configured as two-zone)
+- **Solar irradiance** (W/m², inner right axis, stepped filled area)
 
 Every series has a clickable legend chip. Toggling a chip hides/shows the series
 and rescales the axes to the visible data. The chart is drawn as hand-written
@@ -17,7 +18,31 @@ inline SVG — there is **no** dependency on Chart.js, ApexCharts, npm or any CD
 
 A vertical "now" marker is drawn at the current time, and hovering (or touching)
 the plot shows a crosshair and a tooltip with the value of every visible series
-at the nearest sample.
+at the nearest sample, plus **why** the plan is heating at that moment.
+
+### The solar irradiance axis
+
+W/m² is a fourth unit and both plot edges were already occupied by the
+temperature/power axes on the left and the price axis on the right. Irradiance
+therefore gets its own axis just inside the price one, and the plot only gives
+up that width when the series is actually visible — a permanently narrower chart
+would be a real cost to everyone who does not use it.
+
+Scaling irradiance into the existing power axis as kW/m² was the alternative,
+but a 0.8 kW/m² line sharing a scale with a 5 kW compressor is unreadable.
+
+### Reason codes and estimated prices
+
+Hovering a planned slot shows why it was chosen: cheapest hours, holding the
+minimum temperature, pre-heating before colder weather, using solar surplus, the
+anti-legionella cycle, and so on. Without this an unexpected slot is
+indistinguishable from a bug.
+
+The stretch of the horizon whose prices have not been published yet — Nord Pool
+and Tibber release tomorrow around 13:00 — is shaded and labelled *estimated
+prices*. Those hours rest on the integration's learned daily price shape rather
+than on market data, and a plan that looks identical either way cannot be
+audited.
 
 ## Enlarging the chart
 
@@ -29,6 +54,29 @@ every hour instead of every third hour, since it has the room for it.
 Clicking a legend chip only toggles that series; it does not open the overlay.
 Toggles work inside the overlay too, and the visibility state is shared with the
 card underneath. Close it with the X, the Escape key, or by clicking outside it.
+
+The legend and the chart text are both scaled up in the overlay. The legend is
+plain HTML sized in `em` against the card's font, which does not grow with the
+dialog, so without that it stayed at card size next to a much larger chart and
+read as cramped. SVG text has the same problem for a different reason: it is
+sized in viewBox units, so the same nominal size spread across a larger area
+looks smaller even though it is still vector.
+
+### What-if simulator
+
+Setting `what_if: true` adds a comfort-temperature slider to the enlarged view.
+Dragging it shows what that temperature would cost per month, against the plan
+currently in force.
+
+Setpoints are otherwise chosen blind: the optimizer can price a plan, but you
+never see the price of your own comfort choices. This turns "I set 21 because it
+sounds about right" into an informed decision.
+
+It is off by default because each answer is a real optimization solve on the
+Home Assistant host. The slider is debounced in the card and the solve is
+rate-limited in the integration, so dragging cannot trigger one per pixel, and
+it runs against a *copy* of your configuration — an exploratory drag never
+disturbs actual operation.
 
 The overlay is a native `<dialog>` shown with `showModal()`, so it renders in
 the browser's top layer and cannot be clipped by a dashboard column or hidden
@@ -83,7 +131,9 @@ type: custom:heatpump-optimizer-card
 title: Heat pump plan                    # optional, default "Heat pump plan"
 space_entity: sensor.heat_pump_optimizer_space_heating_plan  # optional, auto-detected
 dhw_entity: sensor.heat_pump_optimizer_dhw_heating_plan      # optional, auto-detected
+solar_entity: sensor.heat_pump_optimizer_solar_irradiance    # optional, auto-detected
 hours: 24                                # optional, hours forward to plot, default 24 (1–168)
+what_if: false                           # optional, comfort slider in the enlarged view
 series:                                  # optional, initial per-series visibility
   price: true
   dhw_slots: true
@@ -91,6 +141,7 @@ series:                                  # optional, initial per-series visibili
   outdoor: true
   dhw_temp: true
   house_temp: true
+  solar: true
 ```
 
 | Option         | Type    | Default                        | Description |
@@ -99,8 +150,10 @@ series:                                  # optional, initial per-series visibili
 | `title`        | string  | `Heat pump plan`               | Card header text. |
 | `space_entity` | string  | auto-detected                  | Entity id of the space-heating plan sensor (its `forecast` attribute supplies `price`, `outdoor`, `space_power`, `room`, `upper`, `lower`). |
 | `dhw_entity`   | string  | auto-detected                  | Entity id of the DHW plan sensor (its `forecast` attribute supplies `dhw_power`, `dhw_temp`, and `price`/`outdoor` fallbacks). |
+| `solar_entity` | string  | auto-detected                  | Entity id of the solar irradiance sensor (its `forecast` attribute supplies `ghi`). |
 | `hours`        | number  | `24`                           | How many hours forward to plot. Must be `1`–`168`. |
-| `series`       | map     | all `true`                     | Initial visibility per series key. Keys: `price`, `dhw_slots`, `space_slots`, `outdoor`, `dhw_temp`, `house_temp`. |
+| `what_if`      | boolean | `false`                        | Show the comfort-temperature what-if slider in the enlarged view. Each drag triggers a real optimization solve, so this is opt-in. |
+| `series`       | map     | all `true`                     | Initial visibility per series key. Keys: `price`, `dhw_slots`, `space_slots`, `outdoor`, `dhw_temp`, `house_temp`, `solar`. |
 
 ### Entity discovery
 
@@ -113,11 +166,11 @@ You normally do not need to configure either option. The card resolves entities
 in this order:
 
 1. The id you configured, if that entity exists.
-2. Any `sensor` whose `plan_kind` attribute is `space` or `dhw`. This is a
-   stable marker published by the integration, so renaming an entity does not
-   break the card.
-3. Any `sensor` whose id ends in `space_heating_plan` / `dhw_heating_plan`,
-   for integration versions older than 2.6.1.
+2. Any `sensor` whose `plan_kind` attribute is `space`, `dhw` or `solar`. This
+   is a stable marker published by the integration, so renaming an entity does
+   not break the card.
+3. Any `sensor` whose id ends in `space_heating_plan` / `dhw_heating_plan` /
+   `solar_irradiance`, for integration versions older than 2.6.1.
 
 If nothing is found the card names the id it looked for, so check
 **Developer Tools → States** and set the option explicitly.
