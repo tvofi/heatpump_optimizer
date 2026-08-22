@@ -422,7 +422,25 @@ def coordinator_scenarios() -> dict[str, dict]:
 
 
 def capture_coordinator(config: dict) -> dict:
-    """Everything the coordinator assembles and publishes, for one config."""
+    """Everything the coordinator assembles and publishes, for one config.
+
+    The clock is frozen for the duration: the coordinator publishes
+    time-derived values such as "hours until the next hot water window", so
+    without this every replay would differ from the recording by however long
+    the two runs were apart, and the fixture would be pure noise.
+    """
+    from harness import FakeEntry, FakeHass
+    from homeassistant.util import dt as dt_util
+    from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator
+
+    dt_util.freeze(START)
+    try:
+        return _capture_coordinator(config)
+    finally:
+        dt_util.freeze(None)
+
+
+def _capture_coordinator(config: dict) -> dict:
     from harness import FakeEntry, FakeHass
     from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator
 
@@ -495,6 +513,21 @@ def record_all() -> None:
 
 def describe_diff(name: str, key: str, expected, actual) -> str:
     """A diff a human can act on, not a wall of numbers."""
+    if isinstance(expected, dict) and isinstance(actual, dict):
+        # Recurse to the leaf that actually changed. Printing two whole
+        # dictionaries names nothing and buries the one field that moved.
+        sub = []
+        for k in sorted(set(expected) | set(actual)):
+            if k not in expected:
+                sub.append(f"{key}.{k}: new")
+            elif k not in actual:
+                sub.append(f"{key}.{k}: removed")
+            elif expected[k] != actual[k]:
+                sub.append(describe_diff(name, f"{key}.{k}", expected[k], actual[k]))
+        if not sub:
+            return f"{key}: differs but no leaf found"
+        head = "; ".join(sub[:3])
+        return head + (f"; (+{len(sub) - 3} more)" if len(sub) > 3 else "")
     if isinstance(expected, list) and isinstance(actual, list):
         if len(expected) != len(actual):
             return f"{key}: length {len(expected)} -> {len(actual)}"
