@@ -10,7 +10,7 @@
  */
 
 const CARD_TAG = "heatpump-optimizer-card";
-const CARD_VERSION = "3.1.1";
+const CARD_VERSION = "3.1.2";
 
 const DEFAULTS = {
   title: "Heat pump plan",
@@ -142,6 +142,14 @@ const MARGIN_RIGHT_WITH_SOLAR = MARGIN.right + SOLAR_AXIS_INSET;
 // geometry rather than as a free preference.
 const FONT_BASE = 10;
 const FONT_EXPANDED = 15;
+
+// Estimating how wide a rendered label will be, so labels can be thinned out
+// before they collide. Characters of the default sans-serif face average a
+// little over half an em at the sizes this chart uses.
+const CHAR_WIDTH_EM = 0.55;
+// Label intervals that divide 24, so labels fall on the same clock times every
+// day instead of drifting across midnight.
+const TIME_LABEL_STEPS = [1, 2, 3, 4, 6, 8, 12, 24];
 
 // The expanded dialog's chrome is sized from one font size, set from the
 // dialog's measured width so it grows with the chart it sits beside.
@@ -883,15 +891,14 @@ class HeatpumpOptimizerCard extends HTMLElement {
     return this._whatIf;
   }
 
-  /** Current comfort target, read from the climate entity when there is one. */
+  /** Current comfort target, as the optimizer itself is planning against.
+   *
+   * This has to come from our own plan sensor. Scanning `climate.*` picks an
+   * arbitrary thermostat -- a frost-protection TRV, an AC, a towel rail --
+   * whose setpoint has nothing to do with the space-heating plan.
+   */
   _currentComfortTemp() {
-    const states = (this._hass && this._hass.states) || {};
-    for (const id of Object.keys(states)) {
-      if (!id.startsWith("climate.")) continue;
-      const temp = Number((states[id].attributes || {}).temperature);
-      if (Number.isFinite(temp)) return temp;
-    }
-    return 21;
+    return this._planAttr("comfort_temp_day", 21);
   }
 
   _planAttr(name, fallback) {
@@ -1565,12 +1572,10 @@ class HeatpumpOptimizerCard extends HTMLElement {
       `<rect x="${plotL}" y="${plotT}" width="${plotW}" height="${plotH}" fill="none" stroke="var(--divider-color,#e0e0e0)" stroke-width="1"/>`
     );
 
-    // Time gridlines + labels (hour grid, label every 3h)
-    // The expanded view has room to label every hour instead of every third.
+    // Hourly gridlines. How often they are labelled is worked out from the
+    // space available, so a wider chart or a shorter horizon labels more.
     parts.push(
-      this._timeAxis(
-        scaleX, plotT, plotB, windowStart, windowEnd, expanded ? 1 : 3, font
-      )
+      this._timeAxis(scaleX, plotT, plotB, windowStart, windowEnd, font)
     );
 
     // Value axes
@@ -1642,30 +1647,59 @@ class HeatpumpOptimizerCard extends HTMLElement {
     )}">${parts.join("")}</svg>`;
   }
 
-  _timeAxis(scaleX, plotT, plotB, windowStart, windowEnd, labelEvery, font) {
-    const every = labelEvery || 3;
+  /** Hourly gridlines, labelled as often as the width actually allows.
+   *
+   * Label density cannot be a fixed choice. The horizon is configurable, the
+   * chart is drawn in a fixed coordinate system, and the labels are formatted
+   * for the user's locale, so their width is not known in advance either --
+   * "13:00" is five characters but "12:00 AM" is eight. Build the labels
+   * first, measure the widest, and only then decide how many to show.
+   */
+  _timeAxis(scaleX, plotT, plotB, windowStart, windowEnd, font) {
     const size = font || FONT_BASE;
-    const out = [];
+    const hour = 3600 * 1000;
+
     const first = new Date(windowStart);
     first.setMinutes(0, 0, 0);
     if (first.getTime() < windowStart) first.setHours(first.getHours() + 1);
-    for (let t = first.getTime(); t <= windowEnd; t += 3600 * 1000) {
-      const x = scaleX(t);
+
+    const ticks = [];
+    for (let t = first.getTime(); t <= windowEnd; t += hour) {
       const d = new Date(t);
-      const label3h = d.getHours() % every === 0;
+      ticks.push({
+        t,
+        x: scaleX(t),
+        hours: d.getHours(),
+        label: d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      });
+    }
+    if (!ticks.length) return "";
+
+    // Widest rendered label, plus a gap, in viewBox units. The chart uses the
+    // default sans-serif face, whose characters average a little over half an
+    // em at these sizes.
+    const widest = ticks.reduce((n, tick) => Math.max(n, tick.label.length), 0);
+    const labelWidth = size * widest * CHAR_WIDTH_EM + size * 0.6;
+    const unitsPerHour = Math.abs(scaleX(windowStart + hour) - scaleX(windowStart));
+    const needed = unitsPerHour > 0 ? Math.ceil(labelWidth / unitsPerHour) : 3;
+    // Intervals that divide the day, so labels land on the same clock times
+    // each day rather than drifting across midnight.
+    const every =
+      TIME_LABEL_STEPS.find((step) => step >= Math.max(1, needed)) ||
+      TIME_LABEL_STEPS[TIME_LABEL_STEPS.length - 1];
+
+    const out = [];
+    for (const tick of ticks) {
+      const labelled = tick.hours % every === 0;
       out.push(
-        `<line x1="${x}" y1="${plotT}" x2="${x}" y2="${plotB}" stroke="var(--divider-color,#eee)" stroke-width="${
-          label3h ? 1 : 0.5
-        }" opacity="${label3h ? 0.7 : 0.35}"/>`
+        `<line x1="${tick.x}" y1="${plotT}" x2="${tick.x}" y2="${plotB}" stroke="var(--divider-color,#eee)" stroke-width="${
+          labelled ? 1 : 0.5
+        }" opacity="${labelled ? 0.7 : 0.35}"/>`
       );
-      if (label3h) {
-        const lbl = d.toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        });
+      if (labelled) {
         out.push(
-          `<text x="${x}" y="${plotB + size + 4}" font-size="${size}" text-anchor="middle" fill="var(--secondary-text-color,#888)">${esc(
-            lbl
+          `<text x="${tick.x}" y="${plotB + size + 4}" font-size="${size}" text-anchor="middle" fill="var(--secondary-text-color,#888)">${esc(
+            tick.label
           )}</text>`
         );
       }
@@ -2045,7 +2079,26 @@ class HeatpumpOptimizerCard extends HTMLElement {
   }
 }
 
-if (!customElements.get(CARD_TAG)) {
+// A custom element name can only be claimed once per page. If an older copy of
+// this card is still registered as a Lovelace resource -- typically a manual
+// install left behind under /local/, or a browser holding a cached file -- it
+// claims the name first and this file is then loaded but ignored. That failure
+// is completely silent, and looks exactly like an upgrade that did nothing, so
+// say so loudly and record which version actually won.
+const previous = customElements.get(CARD_TAG);
+if (previous) {
+  if (previous.cardVersion !== CARD_VERSION) {
+    // eslint-disable-next-line no-console
+    console.error(
+      `[${CARD_TAG}] v${CARD_VERSION} was loaded but v${
+        previous.cardVersion || "unknown"
+      } is already registered and stays in use. A duplicate copy of this card ` +
+        "is installed. Remove the extra resource under Settings > Dashboards > " +
+        "Resources (keep only the /heatpump_optimizer_static/ one), then reload."
+    );
+  }
+} else {
+  HeatpumpOptimizerCard.cardVersion = CARD_VERSION;
   customElements.define(CARD_TAG, HeatpumpOptimizerCard);
 }
 

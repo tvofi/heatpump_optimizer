@@ -1,5 +1,44 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v3.1.2
+
+Three real bugs behind the symptoms reported against v3.1.0 and v3.1.1.
+
+### Chart labels no longer overlap in the enlarged view
+
+The enlarged chart labelled the time axis every hour. Over a 48-hour horizon
+that puts labels about 15 units apart in a chart whose labels are 40 units
+wide, so they simply ran into each other. Label spacing is now worked out from
+the room available and the width of the labels themselves, which also fixes
+12-hour locales, where `12:00 AM` is over half again as wide as `13:00`.
+
+### The comfort slider showed an unrelated thermostat's setpoint
+
+The what-if panel picked the first `climate.*` entity it found and used its
+target temperature. In a home with more than one thermostat that is an
+arbitrary choice, and a valve sitting on frost protection made the slider open
+at 5 °C. It now reads the comfort temperature from the optimizer's own plan,
+as the heating-hour and hot-water fields already did.
+
+### An old copy of the card could silently keep running
+
+If a second copy of the card was installed — usually a leftover manual install
+under `/local/` — it claimed the custom element first, and every later version
+loaded and did nothing at all. There was no error and no clue: upgrades simply
+appeared to have no effect, and the schedule editor added in v3.0.0 stayed
+invisible. Now:
+
+- a duplicate registration logs a clear console error naming both versions and
+  where to remove the extra resource;
+- Home Assistant warns in the log when it finds another resource pointing at a
+  different copy of the card;
+- the card is served without long-lived cache headers, so a browser cannot hold
+  an old copy after an upgrade. This matters most in YAML dashboard mode, where
+  the integration cannot refresh the resource's cache-busting query itself.
+
+If you are affected, check Settings → Dashboards → Resources and keep only the
+entry under `/heatpump_optimizer_static/`.
+
 ## v3.1.1
 
 Fixes for three things v3.1.0 got wrong or left hidden.

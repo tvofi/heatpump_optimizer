@@ -127,7 +127,8 @@ const ctx = {
 };
 ctx.globalThis = ctx; ctx.self = ctx; ctx.window.document = document;
 vm.createContext(ctx);
-vm.runInContext(fs.readFileSync("custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js","utf8"), ctx);
+const cardSrc = fs.readFileSync("custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js","utf8");
+vm.runInContext(cardSrc, ctx);
 
 const names = Object.keys(ctx.customElements._d);
 console.log("defined elements:", names.join(", "));
@@ -178,7 +179,13 @@ function build(states, config) {
 }
 
 let fails = 0;
-function check(name, cond) { console.log((cond?"  ok  ":"  FAIL") + "  " + name); if(!cond) fails++; }
+function check(name, cond, detail) {
+  console.log((cond ? "  ok  " : "  FAIL") + "  " + name);
+  if (!cond) {
+    if (detail) console.log("        " + detail);
+    fails++;
+  }
+}
 
 // --- Scenario 1: stock install, real (device-prefixed) entity ids ----------
 const card = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
@@ -424,6 +431,25 @@ check("it distinguishes simulating from saving",
   /Simulating changes\s+nothing/.test(whatIfDump) &&
   /saving replaces your configured schedule/.test(whatIfDump));
 
+// The comfort target must come from our own plan, not from whatever climate
+// entity happens to be enumerated first. A frost-protection valve, an air
+// conditioner or a towel rail would otherwise pin the slider to its setpoint,
+// which is where the mystery "5" came from.
+const strayStates = (() => {
+  const st = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  st[DEFAULT_SPACE].attributes.comfort_temp_day = 19.5;
+  st["climate.frost_protection_valve"] = {
+    state: "heat",
+    attributes: { temperature: 5 },
+  };
+  return st;
+})();
+const strayCard = build(strayStates, { what_if: true });
+strayCard._hass = mkHass(strayCard._hass.states);
+check("the comfort target comes from the plan, not a stray thermostat",
+  strayCard._whatIfDraft().comfort === 19.5,
+  `got ${strayCard._whatIfDraft().comfort}`);
+
 // Pre-filling from the live plan matters: an editor that starts from defaults
 // would silently propose changes the user never asked for.
 check("the heating hours are pre-filled from the plan",
@@ -641,6 +667,57 @@ const svgFont = (expanded) => {
   const m = wrap.match(/font-size="([\d.]+)"/);
   return m ? Number(m[1]) : null;
 };
+
+// The real constraint is that labels must not run into each other. Label
+// density used to be a fixed choice -- every hour when expanded -- which is
+// comfortable over 12 hours and unreadable over 48, where labels sit 15 units
+// apart and are 40 units wide. Measure the rendered labels instead of trusting
+// the setting.
+const timeLabels = (svg) => {
+  const out = [];
+  const re = /<text x="([-\d.]+)"[^>]*font-size="([\d.]+)"[^>]*text-anchor="middle"[^>]*>(\d{1,2}[:.]\d{2}[^<]*)<\/text>/g;
+  let m;
+  while ((m = re.exec(svg))) out.push({ x: Number(m[1]), size: Number(m[2]), text: m[3] });
+  return out.sort((a, b) => a.x - b.x);
+};
+
+const collisions = (labels) => {
+  const bad = [];
+  for (let i = 1; i < labels.length; i++) {
+    const prev = labels[i - 1];
+    const cur = labels[i];
+    // Centred labels, so each occupies half its width either side of x.
+    const halfPrev = (prev.text.length * prev.size * 0.55) / 2;
+    const halfCur = (cur.text.length * cur.size * 0.55) / 2;
+    const gap = cur.x - prev.x - halfPrev - halfCur;
+    if (gap < 0) bad.push(`${prev.text}/${cur.text} overlap by ${(-gap).toFixed(1)}u`);
+  }
+  return bad;
+};
+
+for (const expanded of [false, true]) {
+  const c = build(slotStates, {});
+  if (expanded) c._openExpanded();
+  const dump = collect(c.shadowRoot).join("\n");
+  // The shadow root holds the inline chart and, once opened, the expanded one
+  // too. Compare labels within a single chart, or every label pairs with its
+  // twin in the other chart at the same coordinate.
+  const cut = dump.indexOf("chartwrap big");
+  const scoped = expanded ? dump.slice(cut) : dump.slice(0, cut === -1 ? dump.length : cut);
+  const labels = timeLabels(scoped);
+  const where = expanded ? "expanded" : "inline";
+  check(`the ${where} chart labels its time axis`, labels.length > 1,
+    `found ${labels.length} time labels`);
+  const bad = collisions(labels);
+  check(`the ${where} time axis labels do not overlap`, bad.length === 0,
+    bad.join("; "));
+}
+
+// Density must follow the space available, not a hardcoded interval, so the
+// same code stays readable at any horizon.
+check("label density is derived, not hardcoded",
+  !/expanded \? 1 : 3/.test(cardSrc),
+  "the time axis still picks a fixed label interval");
 
 const inlineFont = svgFont(false);
 check("chart text is sized in the units its layout was authored in",

@@ -56,8 +56,9 @@ else
   echo "SKIP: tests/rolling.py (set SLOW=1 to include the closed-loop simulation)"
 fi
 
-# Plan payloads, then the card that renders them.
+# Plan payloads, then the card that renders them, and how it reaches the page.
 run "$PYTHON" tests/plan_view.py
+run "$PYTHON" tests/frontend.py
 if command -v node >/dev/null 2>&1; then
   run node tests/card.mjs
 else
