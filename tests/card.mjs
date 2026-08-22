@@ -74,8 +74,11 @@ class Node {
     this.classList._s = new Set(String(v).split(/\s+/).filter(Boolean));
   }
   get className(){ return [...this.classList._s].join(" "); }
-  appendChild(c){ this.children.push(c); return c; }
-  removeChild(c){ this.children=this.children.filter(x=>x!==c); }
+  appendChild(c){ this.children.push(c); c.parentNode = this; return c; }
+  removeChild(c){
+    this.children=this.children.filter(x=>x!==c);
+    if (c) c.parentNode = null;
+  }
   setAttribute(k,v){ this[k]=v; }
   getAttribute(k){ return this[k]; }
   addEventListener(t,f){ (this._listeners[t] ||= []).push(f); }
@@ -84,6 +87,17 @@ class Node {
   querySelectorAll(sel){ const out=[]; this._findAll(sel,out); return out; }
   _find(sel){ const a=[]; this._findAll(sel,a); return a[0]||null; }
   _findAll(sel,out){
+    // Descendant selectors: the card scopes its chart lookups with
+    // ".chartwrap svg", because the header's expand icon is an <svg> too.
+    const sp = sel.indexOf(" ");
+    if (sp > 0) {
+      const head = sel.slice(0, sp).trim();
+      const rest = sel.slice(sp + 1).trim();
+      const hosts = [];
+      this._findAll(head, hosts);
+      for (const h of hosts) h._findAll(rest, out);
+      return;
+    }
     for(const c of this.children){
       if (matches(c, sel)) out.push(c);
       c._findAll(sel,out);
@@ -750,6 +764,485 @@ check("a very wide dialog does not turn the legend into a headline",
   dlgOf(4000) <= 21 + 1e-9);
 check("an unmeasured dialog is left alone rather than sized from zero",
   dlgOf(0) === 0);
+
+
+// ---------------------------------------------------------------------------
+// The slot model itself
+// ---------------------------------------------------------------------------
+// The editing rules are pure functions on plain arrays, exposed as a static so
+// they can be exercised without a pointer, a chart or a clock.
+{
+  const S = Card.slots;
+  const t0 = Date.parse("2026-08-22T00:00:00Z");
+  const STEP = 15 * 60000;
+  const H = (h) => t0 + h * 3600000;
+  const bounds = [t0, H(24)];
+
+  const fc = [];
+  for (let i = 0; i < 96; i++) {
+    fc.push({
+      t: new Date(t0 + i * STEP).toISOString(),
+      dhw_power: (i >= 8 && i < 12) || (i >= 40 && i < 44) ? 2 : 0,
+      price: 1,
+    });
+  }
+  const runs = S.runsFrom(fc, "dhw_power", 0.05, STEP);
+  check("consecutive running steps collapse into one slot",
+    runs.length === 2 && runs[0].start === H(2) && runs[0].end === H(3),
+    JSON.stringify(runs));
+
+  let r = S.move(runs, 0, 3600000, STEP, bounds);
+  check("a slot moves without changing length",
+    r[0].start === H(3) && r[0].end === H(4), JSON.stringify(r[0]));
+  r = S.move(runs, 0, 1000 * 3600000, STEP, bounds);
+  check("a slot pushed past the horizon stops there, unstretched",
+    r[r.length - 1].end - r[r.length - 1].start === 3600000, JSON.stringify(r));
+  r = S.move(runs, 0, 9 * 3600000, STEP, bounds);
+  check("dragging a slot onto another merges them", r.length === 1, JSON.stringify(r));
+
+  r = S.resize(runs, 0, "end", 3600000, STEP, bounds);
+  check("resizing the end leaves the start alone",
+    r[0].start === H(2) && r[0].end === H(4), JSON.stringify(r[0]));
+  r = S.resize(runs, 0, "start", -3600000, STEP, bounds);
+  check("resizing the start leaves the end alone",
+    r[0].start === H(1) && r[0].end === H(3), JSON.stringify(r[0]));
+  r = S.resize(runs, 0, "end", -99 * 3600000, STEP, bounds);
+  check("a slot never collapses below one timestep",
+    r[0].end - r[0].start === STEP, JSON.stringify(r[0]));
+  r = S.resize(runs, 0, "start", -99 * 3600000, STEP, bounds);
+  check("resizing cannot reach back before the editable range",
+    r[0].start >= t0, JSON.stringify(r[0]));
+
+  r = S.add(runs, H(20), STEP, bounds);
+  check("a slot can be added in free space", r.length === 3, JSON.stringify(r));
+  // Adding next to an existing slot must not swallow it: the new slot stops at
+  // its neighbour, and the two then merge into one continuous block.
+  r = S.add(runs, H(9), STEP, bounds, 4 * 3600000);
+  const added = r.find((x) => x.start === H(9));
+  check("a slot added beside another merges rather than swallowing it",
+    r.length === 2 && added && added.end === H(11), JSON.stringify(r));
+  r = S.add(runs, H(24), STEP, bounds);
+  const last = r[r.length - 1];
+  check("adding at the far edge still gives a usable slot",
+    r.length === 3 && last.end === H(24) && last.end - last.start === STEP,
+    JSON.stringify(last));
+
+  check("a slot can be removed", S.remove(runs, 0).length === 1);
+  check("a time resolves to the slot covering it",
+    S.indexAt(runs, H(2) + 60000) === 0 && S.indexAt(runs, H(5)) === -1);
+
+  const power = S.typicalPower(fc, "dhw_power");
+  check("typical power is the mean of the running steps", power === 2, String(power));
+  check("cost is power x time x price",
+    Math.abs(S.cost(runs, fc, power, STEP) - 4) < 1e-9);
+}
+
+// ---------------------------------------------------------------------------
+// Direct manipulation of today's slots
+// ---------------------------------------------------------------------------
+// The slots are edited by dragging them on the chart, so the interesting logic
+// is geometric: a pointer position has to become a time, and a drag has to
+// become a new arrangement. The stub reports the svg as 900px wide against a
+// 900-unit viewBox, so a client x and a viewBox x coincide here; the card is
+// still asked for the geometry it recorded rather than told what it should be.
+const HOUR = 3600000;
+
+// The captured plan is dated to the day it was recorded, so the clock has to
+// be moved to the plan rather than the plan to the clock. Re-dating the plan
+// against the real clock made these checks depend on what time of day the
+// suite happened to run: the edit floor is "now", so the set of slots still in
+// the future changed from one run to the next. Freeze time six hours into the
+// captured day instead, which always leaves both a locked past and an
+// editable future.
+const RealDate = Date;
+const FROZEN = Date.parse(plan.dhw_plan.forecast[0].t) + 6 * HOUR;
+class FrozenDate extends RealDate {
+  constructor(...a) { super(...(a.length ? a : [FROZEN])); }
+  static now() { return FROZEN; }
+}
+ctx.Date = FrozenDate;
+
+const drag = build(slotStates, { what_if: true });
+drag._hass = mkHass(drag._hass.states);
+drag._onCardClick({});
+
+const laneDump = collect(drag.shadowRoot).join("\n");
+check("the chart grows editable lanes", /class="lane"/.test(laneDump));
+check("both channels get a lane",
+  /data-channel="dhw"/.test(laneDump) && /data-channel="space"/.test(laneDump));
+check("the plan is drawn as draggable slots", /class="slot"/.test(laneDump));
+check("slots carry resize handles", /class="slot-handle"/.test(laneDump));
+
+const svgOf = (card) => card.shadowRoot.querySelector(".chartwrap svg");
+const fire = (el, type, ev) => (el._listeners[type] || []).forEach((f) => f(ev));
+
+const geom = drag._geom;
+check("the card records the geometry a pointer needs",
+  !!geom && Number.isFinite(geom.plotL) && geom.plotW > 0);
+
+const xOf = (t) =>
+  geom.plotL + ((t - geom.windowStart) / (geom.windowEnd - geom.windowStart)) * geom.plotW;
+
+// Round-tripping a time through the geometry is the whole basis of dragging.
+const probe = geom.windowStart + 5 * HOUR;
+check("a screen position maps back to the time under it",
+  Math.abs(drag._timeAtClientX(svgOf(drag), xOf(probe)) - probe) < 60000);
+
+const evAt = (t, target) => ({
+  clientX: xOf(t), clientY: 0, target,
+  stopPropagation() {}, preventDefault() {},
+});
+
+// A slot that is entirely in the past cannot be rescheduled, so pick one that
+// the editor will actually let us move.
+const editable = () => {
+  const runs = drag._draftRuns().dhw;
+  const [lo] = drag._editBounds();
+  const i = runs.findIndex((r) => r.end > lo && r.start >= lo);
+  return { runs, i };
+};
+
+{
+  const { runs, i } = editable();
+  check("there is a future hot water slot to edit", i >= 0);
+  if (i >= 0) {
+    const before = { ...runs[i] };
+    const [lo0] = drag._editBounds();
+    const pastBefore = JSON.stringify(runs.filter((r) => r.end <= lo0));
+    const svg = svgOf(drag);
+    const target = { dataset: { channel: "dhw", index: String(i) } };
+    fire(svg, "pointerdown", evAt(before.start + 60000, target));
+    fire(svg, "pointermove", evAt(before.start + 60000 + HOUR, target));
+    const moved = drag._draftRuns().dhw[i];
+    check("dragging a slot moves it",
+      moved && moved.start === before.start + HOUR,
+      `${before.start} -> ${moved && moved.start}`);
+    check("and keeps its length",
+      moved && moved.end - moved.start === before.end - before.start);
+    // Making room for an edit must not rewrite what already happened: the
+    // editable range starts at the present, and clamping every slot into it
+    // would haul this morning's runs forward and merge them together.
+    const history = drag._draftRuns().dhw.filter((r) => r.end <= lo0);
+    check("editing leaves slots that have already run untouched",
+      JSON.stringify(history) === pastBefore,
+      `${pastBefore} -> ${JSON.stringify(history)}`);
+    fire(svg, "pointerup", {});
+  }
+}
+
+{
+  // Re-seed from the plan so the resize starts from a known arrangement.
+  drag._resetRuns();
+  drag._render();
+  const { runs, i } = editable();
+  if (i >= 0) {
+    const before = { ...runs[i] };
+    const svg = svgOf(drag);
+    const target = { dataset: { channel: "dhw", index: String(i), edge: "end" } };
+    fire(svg, "pointerdown", evAt(before.end, target));
+    fire(svg, "pointermove", evAt(before.end + HOUR, target));
+    const sized = drag._draftRuns().dhw[i];
+    check("dragging an edge resizes the slot",
+      sized && sized.end === before.end + HOUR && sized.start === before.start,
+      JSON.stringify(sized));
+    fire(svg, "pointerup", {});
+  }
+}
+
+// Editing must never rewrite history.
+{
+  drag._resetRuns();
+  const [lo] = drag._editBounds();
+  const past = drag._draftRuns().dhw.findIndex((r) => r.end <= lo);
+  if (past >= 0) {
+    const before = JSON.stringify(drag._draftRuns().dhw[past]);
+    const svg = svgOf(drag);
+    const target = { dataset: { channel: "dhw", index: String(past) } };
+    fire(svg, "pointerdown", evAt(lo - HOUR, target));
+    fire(svg, "pointermove", evAt(lo, target));
+    check("a slot that has already happened cannot be dragged",
+      JSON.stringify(drag._draftRuns().dhw[past]) === before);
+    fire(svg, "pointerup", {});
+  } else {
+    check("a slot that has already happened cannot be dragged", true);
+  }
+}
+
+// Right-click: add where there is nothing, remove where there is something.
+{
+  drag._resetRuns();
+  drag._render();
+  const svg = svgOf(drag);
+  const runs = drag._draftRuns().space;
+  const [lo, hi] = drag._editBounds();
+  // A time inside the editable range that no slot covers, and that is clear of
+  // its neighbours: a slot added flush against another correctly merges with
+  // it, which is a different behaviour and is covered by the model checks.
+  let gap = null;
+  for (let t = lo + HOUR; t < hi - HOUR; t += 15 * 60000) {
+    if ([-HOUR, 0, HOUR].every((d) => slotFree(runs, t + d))) { gap = t; break; }
+  }
+  function slotFree(list, t) { return !list.some((r) => t >= r.start && t < r.end); }
+
+  check("there is a free stretch to add into", gap !== null);
+  if (gap !== null) {
+    fire(svg, "contextmenu", evAt(gap, { dataset: { channel: "space" } }));
+    const menu = drag.shadowRoot.querySelector(".slot-menu");
+    check("right-clicking an empty lane offers to add a slot",
+      !!menu && /Add a heating slot here/.test(collect(menu).join("")));
+    if (menu) {
+      const n = drag._draftRuns().space.length;
+      fire(menu, "click", { target: { dataset: { act: "add" } }, stopPropagation() {} });
+      check("choosing add creates a slot",
+        drag._draftRuns().space.length === n + 1,
+        JSON.stringify(drag._draftRuns().space));
+      check("and the menu closes", !drag.shadowRoot.querySelector(".slot-menu"));
+    }
+  }
+}
+
+{
+  drag._resetRuns();
+  drag._render();
+  const svg = svgOf(drag);
+  const { runs, i } = (() => {
+    const list = drag._draftRuns().space;
+    const [lo] = drag._editBounds();
+    return { runs: list, i: list.findIndex((r) => r.end > lo) };
+  })();
+  if (i >= 0) {
+    fire(svg, "contextmenu",
+      evAt(runs[i].start + 60000, { dataset: { channel: "space" } }));
+    const menu = drag.shadowRoot.querySelector(".slot-menu");
+    check("right-clicking a slot offers to remove it",
+      !!menu && /Remove this heating slot/.test(collect(menu).join("")));
+    if (menu) {
+      const n = drag._draftRuns().space.length;
+      fire(menu, "click", { target: { dataset: { act: "remove" } }, stopPropagation() {} });
+      check("choosing remove deletes it", drag._draftRuns().space.length === n - 1);
+    }
+  }
+}
+
+// The price delta is the point of the exercise: it has to move, and in the
+// right direction, when the arrangement changes.
+{
+  drag._resetRuns();
+  const base = drag._costDelta();
+  check("an untouched arrangement costs the same as the plan",
+    Math.abs(base.delta) < 1e-9, JSON.stringify(base));
+
+  const runs = drag._draftRuns().dhw;
+  const [lo] = drag._editBounds();
+  const i = runs.findIndex((r) => r.end > lo);
+  if (i >= 0) {
+    drag._commitRuns("dhw", SlotModelOf(drag).remove(runs, i));
+    const less = drag._costDelta();
+    check("removing a slot is reported as cheaper", less.delta < 0,
+      JSON.stringify(less));
+  }
+  function SlotModelOf(card) { return card.constructor.slots; }
+}
+
+// Applying pins the arrangement through the service the backend exposes.
+{
+  drag._resetRuns();
+  drag._render();
+  called = null;
+  drag._applyManualPlan();
+  check("applying calls the manual plan service",
+    called && called.domain === "heatpump_optimizer" &&
+    called.service === "apply_manual_plan",
+    JSON.stringify(called && { d: called.domain, s: called.service }));
+  const sent = (called && called.data) || {};
+  check("it sends both channels",
+    Array.isArray(sent.dhw_slots) && Array.isArray(sent.space_slots));
+  const [lo] = drag._editBounds();
+  const allFuture = [...(sent.dhw_slots || []), ...(sent.space_slots || [])]
+    .every((s) => Date.parse(s.end) > lo && Date.parse(s.start) >= lo);
+  check("it never tries to reschedule the past", allFuture,
+    JSON.stringify(sent.dhw_slots || []));
+  const iso = (sent.dhw_slots || [])[0];
+  check("slots are sent as ISO timestamps",
+    !iso || (!Number.isNaN(Date.parse(iso.start)) && /T/.test(iso.start)),
+    JSON.stringify(iso));
+}
+
+// Prices are shown in the user's currency, not the author's.
+{
+  const saved = drag._hass;
+  drag._hass = { ...saved, config: { currency: "EUR" } };
+  check("Home Assistant's configured currency is used",
+    /EUR/.test(drag._deltaHtml()), drag._deltaHtml());
+  drag._config = { ...drag._config, currency: "NOK" };
+  check("an explicit card setting still wins",
+    /NOK/.test(drag._deltaHtml()), drag._deltaHtml());
+  drag._config = { ...drag._config, currency: undefined };
+  drag._hass = saved;
+  check("with neither, it falls back rather than showing nothing",
+    /SEK/.test(drag._deltaHtml()), drag._deltaHtml());
+}
+
+// Every reason the optimizer can emit needs a human label, or the tooltip
+// falls back to showing a raw identifier.
+check("the hand-scheduled reason has a label",
+  /You scheduled this/.test(cardSrc) && /manual_plan:/.test(cardSrc));
+
+// The plan is re-optimised every few minutes. The draft has to follow it,
+// except where the user has said otherwise by editing.
+{
+  const fresh = build(slotStates, { what_if: true });
+  fresh._hass = mkHass(slotStates);
+  fresh._onCardClick({});
+  const seeded = JSON.stringify(fresh._draftRuns().dhw);
+
+  // A refresh carrying a different plan must be picked up.
+  const moved = JSON.parse(JSON.stringify(slotStates));
+  const fc = moved[DEFAULT_DHW].attributes.forecast;
+  fc.forEach((f) => { f.dhw_power = 0; });
+  for (let i = 60; i < 66; i++) fc[i].dhw_power = 3;
+  fresh.hass = { ...mkHass(moved), states: moved };
+  const followed = JSON.stringify(fresh._draftRuns().dhw);
+  check("an untouched draft follows a newly published plan",
+    followed !== seeded, followed);
+
+  // But an edit in progress must not be thrown away by a refresh landing
+  // mid-drag: that would discard work the user can see themselves doing.
+  const edited = fresh._draftRuns().dhw;
+  const [lo] = fresh._editBounds();
+  const i = edited.findIndex((r) => r.end > lo && r.start >= lo);
+  if (i >= 0) {
+    fresh._commitRuns("dhw", Card.slots.move(
+      edited, i, HOUR, 15 * 60000, fresh._editBounds()
+    ));
+    const mine = JSON.stringify(fresh._draftRuns().dhw);
+    const again = JSON.parse(JSON.stringify(moved));
+    again[DEFAULT_DHW].attributes.forecast[70].dhw_power = 2;
+    fresh.hass = { ...mkHass(again), states: again };
+    check("but edits in progress survive a refresh",
+      JSON.stringify(fresh._draftRuns().dhw) === mine);
+  }
+}
+
+// A channel with no plan data means "we do not know", which is not the same as
+// "the user wants it off": sending [] would switch hot water off until midnight.
+{
+  const partial = JSON.parse(JSON.stringify(slotStates));
+  partial[DEFAULT_DHW].attributes.forecast = [];
+  const c = build(partial, { what_if: true });
+  c._hass = mkHass(partial);
+  c._onCardClick({});
+  called = null;
+  c._applyManualPlan();
+  check("a channel with no plan data is left automatic",
+    called && called.data && !("dhw_slots" in called.data),
+    JSON.stringify(called && called.data));
+  check("while the channel that does have a plan is still pinned",
+    called && Array.isArray(called.data.space_slots));
+
+  const blank = JSON.parse(JSON.stringify(slotStates));
+  blank[DEFAULT_DHW].attributes.forecast = [];
+  blank[DEFAULT_SPACE].attributes.forecast = [];
+  const empty = build(blank, { what_if: true });
+  empty._hass = mkHass(blank);
+  empty._onCardClick({});
+  called = null;
+  empty._applyManualPlan();
+  check("with no plan at all, nothing is pinned", called === null);
+}
+
+// The override expires at midnight, so the chart must not let a slot be
+// dragged past it: a slot shown as pinned that quietly does nothing after
+// midnight would be worse than not offering the gesture at all.
+{
+  const [, hi] = drag._editBounds();
+  const midnight = new Date(FROZEN);
+  midnight.setHours(0, 0, 0, 0);
+  midnight.setDate(midnight.getDate() + 1);
+  check("editing stops at the point the override expires",
+    hi <= midnight.getTime(),
+    `${new Date(hi).toISOString()} vs ${midnight.toISOString()}`);
+
+  // Dragging hard to the right must stop there rather than run past it.
+  drag._resetRuns();
+  const runs = drag._draftRuns().dhw;
+  const [lo] = drag._editBounds();
+  const i = runs.findIndex((r) => r.end > lo && r.start >= lo);
+  if (i >= 0) {
+    const pushed = Card.slots.move(
+      runs, i, 72 * HOUR, 15 * 60000, drag._editBounds()
+    );
+    check("a slot cannot be dragged past the expiry",
+      pushed.every((r) => r.end <= hi), JSON.stringify(pushed));
+  }
+
+  // And nothing sent to the backend may reach past it either, since the
+  // backend frees every step at or beyond the expiry.
+  drag._resetRuns();
+  called = null;
+  drag._applyManualPlan();
+  const sent = [
+    ...((called && called.data && called.data.dhw_slots) || []),
+    ...((called && called.data && called.data.space_slots) || []),
+  ];
+  check("there are slots to send in the first place", sent.length > 0);
+  check("no slot is sent past the expiry",
+    sent.every((sl) => Date.parse(sl.end) <= hi),
+    JSON.stringify(sent.filter((sl) => Date.parse(sl.end) > hi)));
+}
+
+// An override is a state the user is in, not just an action they took, so the
+// card has to show it -- including when the optimizer overruled part of it.
+{
+  check("with no override there is nothing to go back from",
+    !drag.shadowRoot.querySelector(".wi-auto"));
+  check("and no override banner", !drag.shadowRoot.querySelector(".wi-override"));
+
+  const withOverride = (info) => {
+    const states = JSON.parse(JSON.stringify(slotStates));
+    for (const id of [DEFAULT_SPACE, DEFAULT_DHW]) {
+      states[id].attributes.manual_override = info;
+    }
+    const c = build(states, { what_if: true });
+    c._hass = mkHass(states);
+    c._onCardClick({});
+    return c;
+  };
+
+  const pinned = withOverride({
+    active: true,
+    expires_at: new Date(FROZEN + 6 * HOUR).toISOString(),
+    space_slots: [], dhw_slots: [], released_space: [], released_dhw: [],
+  });
+  const banner = pinned.shadowRoot.querySelector(".wi-override");
+  check("an active override is announced", !!banner);
+  check("and says how long it lasts",
+    !!banner && /pinned until \d/i.test(banner.textContent),
+    banner && banner.textContent);
+  check("and offers a way back to automatic",
+    !!pinned.shadowRoot.querySelector(".wi-auto"));
+
+  // The optimizer releases pins that would breach a safety limit. Staying
+  // quiet about that would leave the user believing a plan that is not running.
+  const released = withOverride({
+    active: true,
+    expires_at: new Date(FROZEN + 6 * HOUR).toISOString(),
+    space_slots: [], dhw_slots: [],
+    released_space: [{ start: "x", end: "y" }],
+    released_dhw: [],
+  });
+  const note = released.shadowRoot.querySelector(".wi-override");
+  check("a pin released for safety is reported, not hidden",
+    !!note && /released to protect/i.test(note.textContent),
+    note && note.textContent);
+}
+
+{
+  called = null;
+  drag._clearManualPlan();
+  check("going back to automatic clears the override",
+    called && called.service === "clear_manual_plan");
+}
 
 console.log(fails ? `\n${fails} CARD CHECK(S) FAILED` : "\nALL CARD CHECKS PASSED");
 process.exit(fails?1:0);

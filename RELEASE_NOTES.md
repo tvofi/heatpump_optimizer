@@ -1,5 +1,76 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v3.2.0
+
+You can now rearrange today's plan by hand, and the optimizer will work around
+you.
+
+### Rearranging slots on the card
+
+The enlarged card draws today's plan a second time as two editable lanes, hot
+water above heating. Drag a block to move it, drag an edge to stretch it, and
+right-click a lane to add a slot or remove the one under the pointer. A running
+total at the bottom prices your arrangement against the plan in force, in the
+currency Home Assistant is configured for, and updates as you drag — so the cost
+of moving the tank reheat out of the evening peak is visible before you commit
+to it.
+
+**Apply this plan** pins the arrangement until midnight. The optimizer keeps
+re-solving every few minutes as prices and weather move, but it now has to
+schedule around your slots rather than through them. **Back to automatic**
+releases it, and the pins are persisted, so they survive a restart.
+
+The past is shaded and locked, because it cannot be rescheduled, and so is
+anything beyond tonight's midnight, because the override does not outlive the
+day it was made.
+
+Until now the card could show you the plan and simulate a different *comfort
+setting*, but the plan's shape was not yours to touch. If you knew something the
+optimizer did not — a guest arriving, a bath at four, a car to charge — there
+was no way to say so.
+
+### Timing is yours; safety is not
+
+Applying a plan does not promise every slot runs exactly as drawn, and the card
+says so rather than pretending otherwise. If your arrangement would let the tank
+fall below its minimum, miss a legionella cycle, or take the house under its
+comfort floor, the integration releases just the slots it has to, re-solves, and
+names them in the banner and in the `manual_override` sensor attribute.
+
+This matters more than it might look. Comfort and tank limits are *penalties* in
+the objective, not hard constraints, so pinning heating off does not make the
+solver find another way — it makes it accept a cold house. Every release is
+therefore followed by a fresh solve, and if a channel still cannot be made safe
+after several rounds its forced-off pins are abandoned wholesale and the channel
+is planned freely. Only the breaching channel is given up; an arrangement that
+was never unsafe is kept, so an impossible hot water request cannot quietly
+discard your heating plan and let the pump run in the hours you excluded.
+
+### New services
+
+* `heatpump_optimizer.apply_manual_plan` — pin `space_slots` and/or `dhw_slots`
+  until `expires_at` (default: next local midnight). A channel you omit stays
+  automatic; an explicit `[]` means "off until this expires". Returns the
+  applied plan and how many horizon steps it pinned.
+* `heatpump_optimizer.clear_manual_plan` — drop the override and re-solve.
+
+Both plan sensors gain a `manual_override` attribute describing the active plan,
+its expiry, and any slots released for safety.
+
+### Fixes
+
+* An `expires_at` without a timezone — exactly what the service UI's free-text
+  field produces — crashed with an opaque `TypeError` instead of being handled.
+* The applied-step counts were measured in hourly price entries against a
+  15-minute horizon, so they covered only a quarter of the day and reported zero
+  for an evening plan that had in fact applied perfectly well.
+* A corrupt or hand-edited stored plan could raise during setup rather than
+  simply being discarded.
+* The card's chart lookup matched the header's expand-button icon instead of the
+  chart itself, which mis-measured the plot area used for hit-testing.
+* An untouched slot draft no longer goes stale when a new plan is published: the
+  lanes follow the refresh, while an edit in progress survives it.
+
 ## v3.1.2
 
 Three real bugs behind the symptoms reported against v3.1.0 and v3.1.1.

@@ -32,6 +32,7 @@ run() {
 # end-to-end failure that follows.
 run "$PYTHON" tests/features.py
 run "$PYTHON" tests/entities.py
+run "$PYTHON" tests/manual_plan.py
 run "$PYTHON" tests/open_meteo.py
 run "$PYTHON" tests/solar_alignment.py
 

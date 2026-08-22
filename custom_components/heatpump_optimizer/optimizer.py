@@ -307,6 +307,87 @@ def classify_dhw_steps(
     return reasons
 
 
+# ---------------------------------------------------------------------------
+# Manual plan override (pinning when the pump runs)
+# ---------------------------------------------------------------------------
+#
+# A user who hand-arranges their day pins individual steps on or off. The pin
+# arrays are floats — NaN means "leave it to the optimizer", 0 forces the step
+# off, 1 forces it on — so a whole channel is a single array the solver bounds
+# can be built from directly. See ``manual_plan.py`` for how they are produced.
+
+#: A step ran because the manual plan said so, not because the optimizer chose
+#: it. Kept distinct from the automatic reasons so a pinned slot is never
+#: mistaken for the solver's own decision.
+REASON_MANUAL = "manual_plan"
+
+#: How many times a manual plan may be repaired before its forced-off slots are
+#: abandoned entirely. Each round costs a full solve, so this trades run time
+#: against how precisely an unsafe plan can be salvaged.
+_SAFETY_REPAIR_ROUNDS = 3
+
+#: Reasons a pinned-on step keeps rather than being relabelled manual: they are
+#: hard requirements it would have run for regardless of the pin.
+_MANUAL_KEEP_REASONS = frozenset(
+    {REASON_IDLE, REASON_COMFORT_FLOOR, REASON_LEGIONELLA}
+)
+
+
+def _pin_is_free(pin: float) -> bool:
+    """True when a pin leaves the step to the optimizer (NaN)."""
+    return pin != pin
+
+
+def _apply_pins_to_bounds(
+    bounds: list[tuple[float, float]],
+    pins: np.ndarray | None,
+    min_on_power: float,
+) -> list[tuple[float, float]]:
+    """Rewrite per-step solver bounds so pinned steps run or stay off.
+
+    A forced-off step is clamped shut. A forced-on step has its *lower* bound
+    raised to ``min_on_power`` so L-BFGS-B must actually run it, while its upper
+    bound is left alone — the user pinned *when* the pump runs, not *how hard*,
+    so the magnitude is still the optimizer's to choose. The lower bound is
+    clamped to the existing upper bound because that upper bound can legitimately
+    be zero (the other channel has taken all the capacity), and a lower bound
+    above the upper bound makes the solve diverge.
+    """
+    if pins is None:
+        return bounds
+    out = list(bounds)
+    for i in range(min(len(out), len(pins))):
+        pin = float(pins[i])
+        if _pin_is_free(pin):
+            continue
+        _low, high = out[i]
+        if pin >= 0.5:
+            out[i] = (min(min_on_power, high), high)
+        else:
+            out[i] = (0.0, 0.0)
+    return out
+
+
+def _mark_manual_reasons(
+    reasons: list[str], pins: np.ndarray | None
+) -> list[str]:
+    """Relabel steps the manual plan forced on, unless a hard reason applies.
+
+    A forced-on step that would have run anyway — because it is at the comfort
+    floor or is the legionella cycle — keeps that more specific reason; every
+    other running forced-on step is attributed to the manual plan.
+    """
+    if pins is None:
+        return reasons
+    out = list(reasons)
+    for i in range(min(len(out), len(pins))):
+        pin = float(pins[i])
+        if _pin_is_free(pin) or pin < 0.5:
+            continue
+        if out[i] not in _MANUAL_KEEP_REASONS:
+            out[i] = REASON_MANUAL
+    return out
+
 
 @dataclass
 class OptimizationResult:
@@ -377,6 +458,14 @@ class OptimizationResult:
     pv_surplus: list[float] = field(default_factory=list)
     #: Heat pump energy served from surplus rather than imported, kWh.
     pv_self_consumed_kwh: float = 0.0
+
+    # --- Manual plan override ------------------------------------------
+    #: True when a manual plan pinned any step in this solve.
+    manual_pins_active: bool = False
+    #: Steps whose forced-off pin had to be released for safety (comfort floor,
+    #: tank minimum or legionella), so the UI can show where the plan yielded.
+    manual_released_space: list[int] = field(default_factory=list)
+    manual_released_dhw: list[int] = field(default_factory=list)
 
 
 @dataclass
@@ -517,6 +606,10 @@ class _Horizon:
     forecast: dict
     #: ``time.monotonic()`` at the start of the solve, for the timing report.
     t_start: float
+    #: Optional per-step manual pins, one array per channel, or ``None`` when
+    #: that channel is fully automatic. Encoding: NaN free, 0 off, 1 on.
+    space_pins: np.ndarray | None = None
+    dhw_pins: np.ndarray | None = None
 
     @property
     def timestamps(self) -> list[datetime]:
@@ -552,6 +645,11 @@ class HeatPumpOptimizer:
         # through their already long signatures.
         self._price_known: np.ndarray | None = None
         self._pv_surplus: np.ndarray | None = None
+        # Stashed by ``_build_dhw_requirements`` for the safety-release loop:
+        # the tank temperature the plan must keep the DHW trajectory above, and
+        # which step (if any) carries the legionella cycle.
+        self._dhw_requirement: np.ndarray | None = None
+        self._dhw_legionella_step: int | None = None
 
     # ------------------------------------------------------------------
     # Shared cost terms
@@ -789,14 +887,17 @@ class HeatPumpOptimizer:
                 dhw_temps.tolist() if dhw_temps is not None else []
             ),
             dhw_heating_cost=dhw_cost,
-            space_reasons=classify_space_steps(
-                space_power,
-                h.prices,
-                upper_temps if two_zone else room_temps,
-                h.temp_min_bounds,
-                h.heat_loss_factors,
-                self._pv_surplus,
-                h.n_steps,
+            space_reasons=_mark_manual_reasons(
+                classify_space_steps(
+                    space_power,
+                    h.prices,
+                    upper_temps if two_zone else room_temps,
+                    h.temp_min_bounds,
+                    h.heat_loss_factors,
+                    self._pv_surplus,
+                    h.n_steps,
+                ),
+                h.space_pins,
             ),
             dhw_reasons=[],
             price_known=self._price_known_list(h.n_steps),
@@ -850,6 +951,7 @@ class HeatPumpOptimizer:
                 dt=h.dt,
                 p_max=p_max,
                 space_demand=np.where(pinned, p_max, space_power),
+                dhw_pins=h.dhw_pins,
             )["schedule"]
             if np.allclose(replanned, dhw_power, atol=1e-4):
                 return space_power, dhw_power, status
@@ -1016,6 +1118,8 @@ class HeatPumpOptimizer:
         start_time: datetime | None = None,
         price_known: np.ndarray | None = None,
         pv_surplus: np.ndarray | None = None,
+        space_pins: np.ndarray | None = None,
+        dhw_pins: np.ndarray | None = None,
     ) -> OptimizationResult:
         """Run the MPC optimization with predictive weather anticipation.
 
@@ -1127,34 +1231,223 @@ class HeatPumpOptimizer:
             for i in range(n_steps)
         ])
 
-        horizon = _Horizon(
-            initial_state=initial_state,
-            prices=prices,
-            outdoor_temps=outdoor_temps,
-            wind_speeds=wind_speeds,
-            precipitation=precipitation,
-            solar_radiation=solar_radiation,
-            start_time=start_time,
-            n_steps=n_steps,
-            dt=dt,
-            comfort_targets=comfort_targets,
-            temp_min_bounds=temp_min_bounds,
-            temp_max_bounds=temp_max_bounds,
-            step_hours=step_hours,
-            solar_gains=solar_gains_per_step,
-            heat_loss_factors=forecast_heat_loss_factors,
-            forecast=forecast_analysis,
-            t_start=t_start,
-        )
+        # --- Manual plan pins ------------------------------------------
+        # Normalise both channels to writable float arrays of horizon length so
+        # the safety-release loop below can relax individual steps in place. A
+        # channel left ``None`` stays fully automatic and costs nothing.
+        space_pins = self._normalise_pins(space_pins, n_steps)
+        dhw_pins = self._normalise_pins(dhw_pins, n_steps)
+        self._dhw_requirement = None
+        self._dhw_legionella_step = None
+        released_space: set[int] = set()
+        released_dhw: set[int] = set()
 
-        if dhw_enabled:
-            result = self._optimize_with_dhw(horizon)
-        else:
-            result = self._optimize_space_only(horizon)
+        # Solve, then check the solved trajectory against the hard safety lines,
+        # release any forced-off pin that would breach one, and solve again.
+        # The comfort and tank floors are *soft* penalties in the objective, so
+        # clamping a step off does not actually protect the house or tank — only
+        # re-solving with the offending pin freed does.
+        def _solve() -> OptimizationResult:
+            horizon = _Horizon(
+                initial_state=initial_state,
+                prices=prices,
+                outdoor_temps=outdoor_temps,
+                wind_speeds=wind_speeds,
+                precipitation=precipitation,
+                solar_radiation=solar_radiation,
+                start_time=start_time,
+                n_steps=n_steps,
+                dt=dt,
+                comfort_targets=comfort_targets,
+                temp_min_bounds=temp_min_bounds,
+                temp_max_bounds=temp_max_bounds,
+                step_hours=step_hours,
+                solar_gains=solar_gains_per_step,
+                heat_loss_factors=forecast_heat_loss_factors,
+                forecast=forecast_analysis,
+                t_start=t_start,
+                space_pins=space_pins,
+                dhw_pins=dhw_pins,
+            )
+            if dhw_enabled:
+                return self._optimize_with_dhw(horizon)
+            return self._optimize_space_only(horizon)
+
+        result = _solve()
+
+        if space_pins is not None or dhw_pins is not None:
+            # Every release must be followed by a re-solve: releasing a pin and
+            # then returning the plan that was built *with* it would hand back a
+            # schedule already known to be unsafe, while reporting the step as
+            # released. Bounded so a physically infeasible plan cannot spin.
+            for _ in range(_SAFETY_REPAIR_ROUNDS):
+                rel_s, rel_d = self._safety_release_steps(
+                    result, temp_min_bounds, space_pins, dhw_pins
+                )
+                if not rel_s and not rel_d:
+                    break
+                for i in rel_s:
+                    space_pins[i] = float("nan")
+                    released_space.add(i)
+                for i in rel_d:
+                    dhw_pins[i] = float("nan")
+                    released_dhw.add(i)
+                result = _solve()
+            else:
+                # Out of repair rounds. If anything is still breaching, abandon
+                # the forced-off pins wholesale rather than return a plan that
+                # leaves the house or the tank below its limit: the user asked
+                # for timing, not for the heating to be unsafe.
+                rel_s, rel_d = self._safety_release_steps(
+                    result, temp_min_bounds, space_pins, dhw_pins
+                )
+                if rel_s or rel_d:
+                    # Only the channel that is actually breaching is abandoned.
+                    # Discarding the other one as well would throw away an
+                    # arrangement that was never unsafe -- letting the pump heat
+                    # in exactly the expensive hours the user excluded -- and
+                    # then report those slots as released for safety, which
+                    # would not be true.
+                    for name, pins, released, breaching in (
+                        ("space", space_pins, released_space, bool(rel_s)),
+                        ("hot water", dhw_pins, released_dhw, bool(rel_d)),
+                    ):
+                        if pins is None or not breaching:
+                            continue
+                        for i in range(len(pins)):
+                            value = float(pins[i])
+                            if not _pin_is_free(value) and value < 0.5:
+                                pins[i] = float("nan")
+                                released.add(i)
+                        _LOGGER.warning(
+                            "Manual %s plan could not be made safe in %d "
+                            "rounds; releasing every forced-off slot on that "
+                            "channel and planning it freely",
+                            name,
+                            _SAFETY_REPAIR_ROUNDS,
+                        )
+                    result = _solve()
+
+        result.manual_pins_active = space_pins is not None or dhw_pins is not None
+        result.manual_released_space = sorted(released_space)
+        result.manual_released_dhw = sorted(released_dhw)
 
         existing_info = result.predictive_info if result.predictive_info else {}
         result.predictive_info = {**forecast_analysis, **existing_info}
         return result
+
+    @staticmethod
+    def _normalise_pins(
+        pins: np.ndarray | None, n_steps: int
+    ) -> np.ndarray | None:
+        """Copy pins to a float array of horizon length, or pass ``None`` on.
+
+        A copy because the safety-release loop frees individual steps in place
+        and must not mutate the caller's array; padded or truncated to the
+        horizon so a stale-length override cannot misalign the schedule.
+        """
+        if pins is None:
+            return None
+        arr = np.full(n_steps, float("nan"), dtype=float)
+        src = np.asarray(pins, dtype=float)
+        take = min(n_steps, src.size)
+        arr[:take] = src[:take]
+        return arr
+
+    def _safety_release_steps(
+        self,
+        result: OptimizationResult,
+        temp_min_bounds: np.ndarray,
+        space_pins: np.ndarray | None,
+        dhw_pins: np.ndarray | None,
+    ) -> tuple[list[int], list[int]]:
+        """Which forced-off steps must be released so safety is not breached.
+
+        Reads the solved trajectories against the same hard lines the plan
+        classifiers use — the comfort floor for space heating, and the DHW
+        requirement (which already folds in the usable minimum, the idle floor
+        and any due legionella cycle) for hot water. A forced-off step whose
+        trajectory sits below its floor is releasing; the whole contiguous
+        off-block leading up to it is released with it, because a tank or slab
+        that is already cold needs the run-up freed, not just the final step.
+        """
+        release_space: list[int] = []
+        if space_pins is not None:
+            two_zone = self.model.params.two_zone_enabled
+            room = (
+                result.upper_temp_trajectory
+                if two_zone and result.upper_temp_trajectory
+                else result.room_temp_trajectory
+            )
+            for i in range(len(result.power_schedule)):
+                if i >= len(space_pins):
+                    break
+                pin = float(space_pins[i])
+                if _pin_is_free(pin) or pin >= 0.5:
+                    continue
+                temp = room[i + 1] if i + 1 < len(room) else room[-1]
+                floor = (
+                    temp_min_bounds[i]
+                    if i < len(temp_min_bounds)
+                    else temp_min_bounds[-1]
+                )
+                if temp <= floor + 0.15:
+                    release_space.append(i)
+
+        release_dhw: list[int] = []
+        if dhw_pins is not None and self._dhw_requirement is not None:
+            traj = result.dhw_temp_trajectory
+            req = self._dhw_requirement
+            for i in range(len(result.dhw_power_schedule)):
+                if i >= len(dhw_pins) or i >= len(req):
+                    break
+                pin = float(dhw_pins[i])
+                if _pin_is_free(pin) or pin >= 0.5:
+                    continue
+                temp = traj[i + 1] if traj and i + 1 < len(traj) else 0.0
+                if temp < float(req[i]) - 0.5:
+                    release_dhw.append(i)
+
+        return (
+            self._expand_off_blocks(space_pins, release_space),
+            self._expand_off_blocks(dhw_pins, release_dhw),
+        )
+
+    @staticmethod
+    def _expand_off_blocks(
+        pins: np.ndarray | None, breaches: list[int]
+    ) -> list[int]:
+        """Grow each breach back over its contiguous forced-off run."""
+        if pins is None or not breaches:
+            return []
+        out: set[int] = set()
+        for i in breaches:
+            j = i
+            while j >= 0 and not _pin_is_free(float(pins[j])) and float(pins[j]) < 0.5:
+                out.add(j)
+                j -= 1
+        return sorted(out)
+
+    def _pin_on_power(self, upper: float) -> float:
+        """Lower bound for a forced-on step: the pump's minimum running power.
+
+        Kept a touch above the classifier's idle threshold so a pinned-on step
+        is unambiguously "running", but never above the capacity actually
+        available, which the bounds helper clamps to.
+        """
+        floor = max(float(self.model.params.min_electrical_power), 0.1)
+        return min(floor, upper)
+
+    @staticmethod
+    def _seed_pinned_guess(
+        guess: np.ndarray, bounds: list[tuple[float, float]]
+    ) -> np.ndarray:
+        """Clamp a starting guess inside the (possibly pinned) bounds."""
+        out = np.array(guess, dtype=float)
+        for i in range(min(len(out), len(bounds))):
+            low, high = bounds[i]
+            out[i] = min(max(out[i], low), high)
+        return out
 
     def _optimize_space_only(self, h: _Horizon) -> OptimizationResult:
         """Optimize space heating only (no DHW)."""
@@ -1254,6 +1547,12 @@ class HeatPumpOptimizer:
         # modulate to while running, not a floor it must burn every step, so
         # allow 0 and read sub-minimum values as duty cycling within the step.
         bounds = [(0.0, p_max)] * n_steps
+        # A manual plan pins individual steps on or off. Forcing on raises the
+        # lower bound to the pump's minimum running power so the step must run
+        # without fixing how hard; the initial guess is nudged into the pinned
+        # band so the solver starts feasible.
+        bounds = _apply_pins_to_bounds(bounds, h.space_pins, self._pin_on_power(p_max))
+        initial_power = self._seed_pinned_guess(initial_power, bounds)
 
         # Multiple starting points: the smooth price-weighted guess above, a
         # bang-bang schedule that buys the cheapest steps first, and a flat
@@ -1433,6 +1732,7 @@ class HeatPumpOptimizer:
         dt: float,
         p_max: float,
         space_demand: np.ndarray | None = None,
+        dhw_pins: np.ndarray | None = None,
     ) -> dict[str, Any]:
         """Build the DHW availability requirements and a cheapest-first plan.
 
@@ -1625,6 +1925,26 @@ class HeatPumpOptimizer:
         next_window = hours_until_next_window(
             float(hours_mod[0]) if n_steps else 0.0, windows
         )
+
+        # A manual plan overrides *timing* last, after the economics and the
+        # external-heat suppression, because it expresses the user's explicit
+        # intent: force-off zeroes the step, force-on gives it at least a run's
+        # worth of power. The rating clamp is re-applied so a pinned-on step can
+        # never be asked to boil an already-hot tank; the safety-release loop in
+        # ``optimize`` handles the opposite risk, a force-off that would empty
+        # it. The requirement is stashed for that loop to check against.
+        if dhw_pins is not None:
+            schedule = self._apply_dhw_pins(schedule, dhw_pins, min_run_power)
+            schedule = self._clamp_dhw_to_capacity(
+                plan=schedule,
+                initial_temp=initial_state.dhw_temperature,
+                outdoor_temps=outdoor_temps,
+                draw_rates=draw_rates,
+                dt=dt,
+                max_temp=max_temp,
+            )
+        self._dhw_requirement = requirement
+        self._dhw_legionella_step = legionella_step
 
         return {
             "floor_temps": floor_temps,
@@ -1851,6 +2171,28 @@ class HeatPumpOptimizer:
             cop = refined
 
         return best
+
+    @staticmethod
+    def _apply_dhw_pins(
+        plan: np.ndarray, dhw_pins: np.ndarray, min_run_power: float
+    ) -> np.ndarray:
+        """Overlay manual hot-water pins on a planned schedule.
+
+        Force-off zeroes the step. Force-on guarantees at least a run's worth of
+        power without capping how much more the planner already allocated, so
+        the tank rating — re-applied by the caller — remains the only ceiling.
+        Free steps (NaN) keep whatever the economics chose.
+        """
+        out = np.array(plan, dtype=float)
+        for i in range(min(len(out), len(dhw_pins))):
+            pin = float(dhw_pins[i])
+            if _pin_is_free(pin):
+                continue
+            if pin >= 0.5:
+                out[i] = max(out[i], min_run_power)
+            else:
+                out[i] = 0.0
+        return out
 
     def _clamp_dhw_to_capacity(
         self,
@@ -2145,6 +2487,7 @@ class HeatPumpOptimizer:
             n_steps=n_steps,
             dt=dt,
             p_max=p_max,
+            dhw_pins=h.dhw_pins,
         )
 
         dhw_floor_temps = dhw_plan["floor_temps"]
@@ -2256,6 +2599,14 @@ class HeatPumpOptimizer:
             guess = np.minimum(np.clip(guess, 0.0, p_max), headroom)
             cost_dhw = dhw_cost_of(dhw_plan)
             bounds = [(0.0, float(headroom[i])) for i in range(n_steps)]
+            # Manual space pins apply here just as in the DHW-free path. Forcing
+            # a step on raises its lower bound, but only as far as the headroom
+            # the DHW block left it — a slot the user pinned for both channels
+            # cannot demand more than the compressor has.
+            bounds = _apply_pins_to_bounds(
+                bounds, h.space_pins, self._pin_on_power(p_max)
+            )
+            guess = self._seed_pinned_guess(guess, bounds)
             # A warm start is a genuinely good lead, so keep it first; the
             # extra structural candidates only matter on the initial solve.
             starts = [guess]
@@ -2422,12 +2773,15 @@ class HeatPumpOptimizer:
         )
         # The only reason codes the shared builder cannot produce: they depend
         # on the demand windows and legionella deadline this path computed.
-        result.dhw_reasons = classify_dhw_steps(
-            optimal_dhw,
-            in_demand_window,
-            dhw_ready_temps,
-            dhw_plan.get("legionella_step"),
-            n_steps,
+        result.dhw_reasons = _mark_manual_reasons(
+            classify_dhw_steps(
+                optimal_dhw,
+                in_demand_window,
+                dhw_ready_temps,
+                dhw_plan.get("legionella_step"),
+                n_steps,
+            ),
+            h.dhw_pins,
         )
         return result
 

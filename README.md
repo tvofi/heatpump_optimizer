@@ -809,9 +809,19 @@ type: custom:heatpump-optimizer-card
 what_if: true
 ```
 
-**Click the card to enlarge it.** The enlarged view has a panel where you can
-drag the comfort temperature, move the heating day, and add or remove hot water
-windows:
+**Click the card to enlarge it.** The enlarged view draws today's plan again as
+two editable lanes. Drag a block to move it, drag an edge to resize it, and
+right-click a lane to add or remove one. A running total prices your arrangement
+against the plan in force, and **Apply this plan** pins it until midnight — the
+optimizer keeps re-solving, but has to schedule around your slots.
+
+Timing is yours; safety is not. If an arrangement would let the tank fall below
+its minimum, skip a legionella cycle or take the house under its comfort floor,
+the integration releases only the slots it must and tells you which. The past,
+and anything past midnight, is locked.
+
+Below that is a panel where you can drag the comfort temperature, move the
+heating day, and add or remove hot water windows:
 
 * **Simulate these slots** prices the change against the current forecast and
   reports the difference. Nothing is applied, and nothing is saved.
@@ -820,8 +830,8 @@ windows:
   second press first, because it replaces what the house actually runs on.
 * **Reset** discards the draft and returns to the schedule now in force.
 
-The panel is shown by default: holding a draft costs nothing, and only those two
-buttons reach Home Assistant. Set `what_if: false` to hide it.
+Both are shown by default: holding a draft costs nothing, and only the buttons
+reach Home Assistant. Set `what_if: false` to hide them.
 
 ### Climate Entity
 - Virtual thermostat with HVAC modes and presets
@@ -860,6 +870,34 @@ data:
 
 The windows are validated and canonicalised before they are stored, so a
 malformed schedule is rejected here rather than failing on every later reload.
+
+### `heatpump_optimizer.apply_manual_plan`
+Pins today's heating and hot water slots, so the optimizer plans around them
+instead of choosing them. This is what the card's **Apply this plan** button
+calls.
+
+```yaml
+service: heatpump_optimizer.apply_manual_plan
+data:
+  dhw_slots:
+    - start: "2026-01-15T13:00:00+01:00"
+      end: "2026-01-15T14:30:00+01:00"
+  expires_at: "2026-01-16T00:00:00+01:00"   # optional, defaults to next midnight
+```
+
+A channel you leave out stays fully automatic. Passing an explicit empty list is
+different, and means "do not run this at all until the override expires" — so
+`dhw_slots: []` switches hot water off for the rest of the day.
+
+The pins constrain *timing only*. Tank minimums, legionella and the house
+comfort floor still override them: if your slots cannot be made safe, the
+integration releases the ones it has to, re-solves, and reports them in the
+`manual_override` attribute of the plan sensors. The plan is persisted, so it
+survives a restart, and it is dropped once it expires.
+
+### `heatpump_optimizer.clear_manual_plan`
+Removes the override and re-solves, returning to fully automatic planning. This
+is the card's **Back to automatic** button.
 
 ### `heatpump_optimizer.set_thermal_parameters`
 Runtime parameter tuning:

@@ -489,3 +489,63 @@ apply_schedule:
         configured heat pump, which is what a single-heat-pump install wants.
       selector:
         text:
+
+apply_manual_plan:
+  name: Apply Manual Plan
+  description: >-
+    Pin exactly when space heating and hot water run for the rest of the day.
+    Unlike apply_schedule, which only shifts the envelope the optimizer keeps
+    re-deciding inside, this fixes the actual run slots until the override
+    expires. Safety still wins: if the tank falls below its minimum, a
+    legionella cycle is due, or the house drops below its comfort floor, the
+    pinned-off slot is released and the system runs anyway.
+  fields:
+    space_slots:
+      name: Space heating slots
+      description: >-
+        When space heating should run, as a list of {start, end} objects with
+        ISO 8601 datetimes. An empty list forces space heating off for the whole
+        period; omit the field entirely to leave space heating fully automatic.
+      example: >-
+        [{"start": "2024-01-01T06:00:00+01:00", "end": "2024-01-01T08:00:00+01:00"}]
+      selector:
+        object:
+    dhw_slots:
+      name: Hot water slots
+      description: >-
+        When hot water should run, as a list of {start, end} objects with ISO
+        8601 datetimes. An empty list forces hot water off for the whole period;
+        omit the field entirely to leave hot water fully automatic.
+      example: >-
+        [{"start": "2024-01-01T17:00:00+01:00", "end": "2024-01-01T18:30:00+01:00"}]
+      selector:
+        object:
+    expires_at:
+      name: Expires at
+      description: >-
+        ISO 8601 datetime when the override stops applying and planning reverts
+        to automatic. Defaults to the next local midnight.
+      example: "2024-01-02T00:00:00+01:00"
+      selector:
+        text:
+    entry_id:
+      name: Config entry
+      description: >-
+        Restrict the override to one config entry. Leave empty to apply to every
+        configured heat pump.
+      selector:
+        text:
+
+clear_manual_plan:
+  name: Clear Manual Plan
+  description: >-
+    Remove any manual plan override immediately, so planning reverts to fully
+    automatic.
+  fields:
+    entry_id:
+      name: Config entry
+      description: >-
+        Restrict the clear to one config entry. Leave empty to clear every
+        configured heat pump.
+      selector:
+        text:
