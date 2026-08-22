@@ -17,7 +17,7 @@ from homeassistant.const import (
     UnitOfTemperature,
     PERCENTAGE,
 )
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import DeviceInfo, EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -936,6 +936,7 @@ class _PlanSensorBase(HeatPumpOptimizerSensorBase):
             next_slot = slots[0].get("start")
         elif plan.get("active_now") and len(slots) > 1:
             next_slot = slots[1].get("start")
+        data = self.coordinator.data or {}
         return {
             "plan_kind": self._plan_kind,
             "forecast": plan.get("forecast", []),
@@ -945,6 +946,14 @@ class _PlanSensorBase(HeatPumpOptimizerSensorBase):
             "total_cost": plan.get("total_cost", 0.0),
             "active_now": plan.get("active_now", False),
             "next_slot_start": next_slot,
+            # The schedule this plan was made against, so the card's what-if
+            # editor can pre-fill from what is really in force rather than
+            # from a default that would propose an unasked-for change.
+            "day_start_hour": data.get("day_start_hour"),
+            "day_end_hour": data.get("day_end_hour"),
+            "comfort_temp_day": data.get("comfort_temp_day"),
+            "comfort_temp_night": data.get("comfort_temp_night"),
+            "dhw_windows": data.get("dhw_windows"),
         }
 
 

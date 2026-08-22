@@ -413,8 +413,28 @@ simulate_plan:
           max: 70
           step: 1
           unit_of_measurement: "°C"
+    day_start_hour:
+      name: Heating day starts
+      description: >-
+        Hour at which the daytime comfort temperature takes over from the
+        night one.
+      selector:
+        number:
+          min: 0
+          max: 23
+          step: 1
+    day_end_hour:
+      name: Heating day ends
+      description: Hour at which the night setback begins.
+      selector:
+        number:
+          min: 0
+          max: 24
+          step: 1
     dhw_windows:
       name: Hot water demand windows
-      description: 'Time frames to test, e.g. "06:00-08:30, 17:00-22:00".'
+      description: >-
+        Time frames to test, e.g. "06:00-08:30, 17:00-22:00". An empty string
+        simulates having no demand windows at all.
       selector:
         text:

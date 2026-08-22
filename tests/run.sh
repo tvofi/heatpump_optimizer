@@ -35,10 +35,26 @@ run "$PYTHON" tests/entities.py
 run "$PYTHON" tests/open_meteo.py
 run "$PYTHON" tests/solar_alignment.py
 
+# The characterization harness: exact behaviour, pinned. Runs before the
+# outcome-based scripts because when both fail, this one says *what* changed.
+run "$PYTHON" tests/golden.py
+
 # End-to-end optimizer behaviour.
 run "$PYTHON" tests/validate.py
 run "$PYTHON" tests/edge.py
 run "$PYTHON" tests/backtest.py
+run "$PYTHON" tests/stress.py
+
+# The closed-loop simulation runs hundreds of solves and takes about a quarter
+# of an hour, so it is opt-in: a test that slow would simply stop being run if
+# it sat in the default path. Run it before a release, or after touching the
+# optimizer or the learners.
+if [ "${SLOW:-0}" = "1" ]; then
+  run "$PYTHON" tests/rolling.py
+else
+  echo
+  echo "SKIP: tests/rolling.py (set SLOW=1 to include the closed-loop simulation)"
+fi
 
 # Plan payloads, then the card that renders them.
 run "$PYTHON" tests/plan_view.py

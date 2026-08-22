@@ -130,15 +130,28 @@ class PeakTracker:
         return float(sum(top) / len(top))
 
     def threshold_kw(self, tariff: CapacityTariff) -> float:
-        """Above what level a new hour would raise the bill.
+        """Above what level a new hour would raise the bill, in kW.
 
-        Until the month has ``peaks_averaged`` peaks recorded, *any* hour joins
-        the billed set, so the threshold is zero and every kW is chargeable.
-        That is correct: early in the month there is no free headroom.
+        Once the month has ``peaks_averaged`` peaks recorded, this is the
+        lowest of them: anything under it displaces nothing and is free.
+
+        Before that there is no reference, and the honest answer is *not*
+        zero. Treating every kW as a brand-new peak makes the capacity term
+        dwarf the entire energy cost — measured at roughly nine times it for a
+        normal 6 kW day — so a fresh install, or the first days of any month,
+        would contort the plan to avoid a peak the house sets on any ordinary
+        day regardless.
+
+        So with too little history the threshold is the lowest peak actually
+        seen, and with none at all the term is disabled entirely by returning
+        infinity. The tariff starts biting once there is something real to
+        compare against, which is also when its answer starts being right.
         """
+        if not self.peaks:
+            return float("inf")
         n = max(1, tariff.peaks_averaged)
         if len(self.peaks) < n:
-            return 0.0
+            return float(self.peaks[-1])
         return float(self.peaks[n - 1])
 
     def as_dict(self) -> dict:
@@ -172,6 +185,32 @@ class PeakTracker:
         return tracker
 
 
+def metering_windows(
+    house_power_kw: np.ndarray, window_minutes: int, dt_hours: float
+) -> np.ndarray:
+    """Box-average a per-step series into the tariff's metering windows.
+
+    A 15-minute burst inside an hourly-metered tariff only raises the hourly
+    average by a quarter of its excess, so penalising the instantaneous step
+    would give away real savings to avoid a peak that is never billed.
+    """
+    house = np.asarray(house_power_kw, dtype=float)
+    if house.size == 0:
+        return house
+    per_window = max(1, int(round(window_minutes / max(dt_hours * 60.0, 1e-6))))
+    if per_window <= 1:
+        return house
+
+    full = house.size // per_window
+    if not full:
+        return np.array([house.mean()])
+    windows = house[: full * per_window].reshape(full, per_window).mean(axis=1)
+    tail = house[full * per_window :]
+    if tail.size:
+        windows = np.append(windows, tail.mean())
+    return windows
+
+
 def peak_penalty(
     total_power_kw: np.ndarray,
     baseline_load_kw: np.ndarray,
@@ -179,42 +218,79 @@ def peak_penalty(
     tariff: CapacityTariff,
     dt_hours: float,
 ) -> float:
-    """Cost of the peak this plan would create, above what is already billed.
+    """Cost of the new monthly peak this plan would create."""
+    return peak_cost(
+        total_power_kw,
+        baseline_load_kw,
+        threshold_kw,
+        tariff.marginal_price_per_kw,
+        tariff.window_minutes,
+        dt_hours,
+        tariff.peaks_averaged,
+    )
 
-    Averaged over the metering window rather than applied per optimizer step:
-    a 15-minute burst inside an hourly-metered tariff only raises the hourly
-    average by a quarter of its excess, and penalising the instantaneous step
-    would give away real savings to avoid a peak that is never billed.
+
+def peak_cost(
+    total_power_kw: np.ndarray,
+    baseline_load_kw: np.ndarray,
+    threshold_kw: float,
+    price_per_kw: float,
+    window_minutes: int,
+    dt_hours: float,
+    peaks_averaged: int = 3,
+) -> float:
+    """What this plan would add to the monthly capacity charge.
+
+    The bill is ``full_price × mean(top-k window peaks)``. Rearranged, that is
+    ``(full_price / k) × sum(top-k)`` — and ``full_price / k`` is exactly
+    ``marginal_price_per_kw``. So the cost of a plan is the marginal price
+    times the sum of its top-k excesses above what the month already commits
+    to, which is what this computes.
+
+    Two things fall out of getting the algebra right rather than approximating:
+
+    * **It is exact.** Charging only the single largest excess, as this
+      previously did, under-states a plan with several high hours — precisely
+      the plan a capacity tariff exists to discourage.
+    * **The solver can see it.** ``max`` has zero gradient everywhere except at
+      one window, so a gradient-based optimizer got a signal at 1 step in 96
+      and the term was effectively inert; the measured result was that enabling
+      the tariff *raised* the peak. Summing the top k gives every one of those
+      k windows a gradient.
+
+    Only the excess above the threshold is charged: if the month already has a
+    9 kW peak recorded, an 8 kW hour changes nothing and costs nothing.
     """
-    marginal = tariff.marginal_price_per_kw
-    if marginal <= 0:
+    if price_per_kw <= 0 or not np.isfinite(threshold_kw):
         return 0.0
-
     house = np.asarray(total_power_kw, dtype=float) + np.asarray(
         baseline_load_kw, dtype=float
     )
-    steps_per_window = max(
-        1, int(round(tariff.window_minutes / max(dt_hours * 60.0, 1e-6)))
-    )
-    if steps_per_window > 1:
-        # Box-average into metering windows, keeping any short tail.
-        n_full = len(house) // steps_per_window
-        if n_full:
-            head = house[: n_full * steps_per_window].reshape(
-                n_full, steps_per_window
-            )
-            windows = head.mean(axis=1)
-            tail = house[n_full * steps_per_window :]
-            if tail.size:
-                windows = np.append(windows, tail.mean())
-        else:
-            windows = np.array([house.mean()])
-    else:
-        windows = house
-
+    if house.size == 0:
+        return 0.0
+    windows = metering_windows(house, window_minutes, dt_hours)
     excess = np.maximum(0.0, windows - threshold_kw)
     if not np.any(excess > 0):
         return 0.0
-    # Only the single largest excess in the horizon actually sets a new peak;
-    # summing them would charge the tariff once per hour, which is nonsense.
-    return float(marginal * np.max(excess))
+    k = max(1, min(int(peaks_averaged), excess.size))
+    top_k = np.sort(excess)[-k:]
+    return float(price_per_kw * np.sum(top_k))
+
+
+def realised_peak(
+    total_power_kw: np.ndarray,
+    baseline_load_kw: np.ndarray,
+    window_minutes: int,
+    dt_hours: float,
+) -> float:
+    """The peak a plan would actually be billed on, in kW.
+
+    The true maximum, not the smoothed one: the smoothing exists to give the
+    solver a gradient, and reporting it to the user would overstate the peak.
+    """
+    house = np.asarray(total_power_kw, dtype=float) + np.asarray(
+        baseline_load_kw, dtype=float
+    )
+    if house.size == 0:
+        return 0.0
+    return float(np.max(metering_windows(house, window_minutes, dt_hours)))

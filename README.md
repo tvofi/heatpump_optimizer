@@ -2,6 +2,77 @@
 
 A custom Home Assistant integration that uses **Model Predictive Control (MPC)** to optimize heat pump operation and minimize electricity costs, while maintaining indoor comfort and domestic hot water availability. Integrates with **Tibber** for dynamic electricity prices and Home Assistant weather entities for temperature, wind, rain, and solar forecasts.
 
+## Acknowledgement
+
+This project began as a fork of
+[**strutsfarm/heatpump_optimizer**](https://github.com/strutsfarm/heatpump_optimizer)
+at version 2.2.0, and everything it does rests on that foundation: the MPC
+formulation, the two-zone thermal model with its slab and buffer tank, the
+Tibber and weather integration, the config flow, and the ECL110 heat-curve
+control path are all originally strutsfarm's work. The companion
+[**strutsfarm/ecl110**](https://github.com/strutsfarm/ecl110) project provides
+the MQTT interface this integration drives.
+
+Versions 2.3.0 onward were developed in this fork. Both projects are MIT
+licensed. Thank you to strutsfarm for the original code and for releasing it
+under a licence that made this possible.
+
+## Disclaimer
+
+**Read this before installing.** This software controls real heating equipment
+and makes claims about money. Both deserve care.
+
+**No warranty.** This project is provided "as is" under the MIT licence, with
+no warranty of any kind, express or implied, and no liability for any claim,
+damage or other liability arising from its use. See [LICENSE](LICENSE) for the
+full text. You install and run it at your own risk.
+
+**It is not a safety device.** Do not rely on it for frost protection, for
+keeping pipes from freezing, for legionella control, or for anything else where
+failure has consequences. It can stop working for many ordinary reasons — a
+lost network connection, an expired API token, a Home Assistant upgrade, a
+crashed process, a dead sensor — and when it does, your heat pump is left
+wherever it was last told to be. Keep your heat pump's own thermostats,
+limits and safety controls active and correctly configured. They, not this
+integration, are what protect your home.
+
+**Anti-legionella is a convenience, not a compliance feature.** The cycle
+scheduled here is a best effort based on a modelled tank temperature at one
+sensor. It is not a substitute for following your local regulations and your
+tank manufacturer's guidance on hot water hygiene, and it cannot detect
+stratification, dead legs or a mis-sited sensor. If in doubt, keep an
+independent legionella cycle configured on the tank itself.
+
+**Savings figures are estimates.** Every cost, saving and percentage this
+integration reports is the output of a model, computed against forecast prices
+and forecast weather. Real savings depend on your building, your tariff, your
+heat pump, your habits and the weather actually occurring. Nothing here is a
+guarantee or a financial projection, and the baseline it compares against is a
+simulated always-on thermostat rather than a measurement of what you would
+otherwise have spent. Treat the numbers as a guide to relative decisions, not
+as an accounting record.
+
+**The model learns, and can be wrong.** Several parameters are estimated from
+your own house over time. A faulty or mis-configured sensor can push those
+estimates somewhere unhelpful, and the optimizer will then plan confidently
+against a wrong model. The input watchdog and the guard thresholds exist to
+limit that, but they cannot eliminate it. Check the diagnostic sensors
+occasionally, especially in the first weeks.
+
+**Your equipment, your responsibility.** Driving a heat pump or an external
+controller over MQTT may affect its warranty, may interact badly with its own
+internal logic, and may be subject to local regulation. Confirm that what you
+are doing is permitted and sensible for your specific hardware before enabling
+control features. Cycling a compressor more than its manufacturer intends can
+shorten its life.
+
+**No affiliation.** This project is not affiliated with, endorsed by, or
+supported by Home Assistant, Nabu Casa, Tibber, Nord Pool, Danfoss, Open-Meteo,
+or any heat pump manufacturer. Product and company names are used only to
+describe what the integration interoperates with. Use of third-party APIs is
+subject to those providers' own terms, and their availability, accuracy and
+pricing are outside this project's control.
+
 ## Features
 
 - **True Predictive MPC** — uses FULL 24-hour weather forecast trajectories for anticipatory control
@@ -28,7 +99,7 @@ A custom Home Assistant integration that uses **Model Predictive Control (MPC)**
 - **Plan reason codes** — every planned slot says *why* it was chosen
 - **Energy dashboard integration** — accumulating energy and cost totals, split hot water versus space heating
 - **The house as a virtual battery** — state of charge, capacity and rates published so other automations can use it
-- **Rich sensor entities** — 43 sensors including full heating plans, DHW, predictive insights, per-zone temperatures
+- **Rich sensor entities** — 46 sensors including full heating plans, DHW, predictive insights, per-zone temperatures
 - **Dashboard card** — plots price, planned heating slots, irradiance and predicted temperatures on one graph, with per-series toggles, reason codes and a what-if simulator
 - **Climate entity** — virtual thermostat with full HA climate integration
 - **Buttons and binary sensors** — force a run, arm a measurement experiment, and see input health, external heat and away state at a glance
@@ -483,6 +554,28 @@ This is a small change with a disproportionate effect: without it, an unexpected
 slot is indistinguishable from a bug, which makes the optimizer hard to trust
 and bug reports much weaker than they could be.
 
+### Grid costs beyond the price per kWh
+
+Two things cost money that the spot price does not describe.
+
+**A capacity tariff** is billed as the price per kW times the mean of the
+month's highest few hourly peaks. The cost of a plan is therefore the marginal
+price times the sum of its top-k excesses above what the month has already
+committed to — charging only the single largest, which is the obvious
+simplification, under-states exactly the plan a capacity tariff exists to
+discourage. Below the running threshold, an hour changes nothing and costs
+nothing; and until the month has recorded some peaks there is no reference at
+all, so the charge stays switched off rather than treating every kW as new.
+
+**A compressor start** costs oil dilution, wear, and the loss while the system
+re-establishes steady state. It is modelled as a smooth term on the
+step-to-step power difference, which keeps the problem continuous — a true
+minimum-runtime constraint would make it a MILP, which is not affordable inside
+a Home Assistant update. It defaults to zero because the measurement came
+first: realistic plans make two to four starts a day, so most installs have
+nothing to fix, and the planned start count is published so the decision can be
+made from evidence.
+
 ### Self-learning, and how to see it
 
 Beyond the tank cooling rates and house heat loss learned in earlier versions:
@@ -512,6 +605,11 @@ The **Prediction Accuracy** sensor publishes how far off the model currently is,
 including the *signed* bias — a mean absolute error cannot tell random noise from
 a model that is consistently half a degree optimistic, and it is the second that
 means the model is drifting.
+
+Measured end to end in `tests/rolling.py`: given a house that loses 35% more
+heat than its configuration says, the correction recovers 99% of that error
+within two simulated days, settles rather than oscillating, and leaves an
+already-correct model alone.
 
 ## Configuration
 
@@ -595,7 +693,7 @@ turn the toggle off to require hot water around the clock.
 
 ## Entities Created
 
-### Sensors (43 total)
+### Sensors (46 total)
 | Sensor | Description |
 |---|---|
 | Optimization Mode | Current mode (auto/comfort/economy/boost/off) |
@@ -775,7 +873,7 @@ custom_components/heatpump_optimizer/
 ├── comfort_learning.py  # Revealed-preference comfort weight tuning
 ├── battery.py           # The thermal stores, published as a battery
 │
-├── sensor.py            # 43 sensors
+├── sensor.py            # 46 sensors
 ├── binary_sensor.py     # Input health, external heat, away mode
 ├── button.py            # Optimize now, run identification, reset comfort weight
 ├── climate.py           # Virtual climate entity with DHW status
@@ -795,6 +893,31 @@ imports, so each can be driven directly by `tests/features.py`. That matters
 because their failure mode is a *plausible* plan: a detector that never fires or
 a watchdog that lets a flatline through produces output that looks entirely
 normal, and only a mechanism-level test will catch it.
+
+### How a plan is made
+
+```
+prices ─┐
+weather ┼─► coordinator._forecast_arrays()  ──► _Horizon  ──► optimizer.optimize()
+solar  ─┘        │                                                    │
+                 ├─ learned price shape fills the unpublished tail    ├─ with hot water:
+                 ├─ PV surplus replaces the import price              │    plan the tank by LP,
+                 └─ Open-Meteo overrides irradiance by timestamp      │    then solve space
+                                                                      │    around it, then
+                                                                      │    re-plan the tank
+                                                                      │    against contention
+                                                                      └─ without: solve directly
+                                                                             │
+   entities ◄── coordinator._build_data_dict() ◄── OptimizationResult ◄──────┘
+                     │
+                     └─ composed from per-domain views (thermal, dhw, learning,
+                        measurement, grid, ECL110, external heat, health)
+```
+
+Both optimizer paths share one set of cost terms — the comfort penalty, the
+terminal cost, the cycling and capacity charges — so enabling hot water cannot
+change the space-heating objective. That is not hypothetical tidiness: it used
+to, and the two objectives had silently drifted apart.
 
 ## Requirements
 
@@ -863,7 +986,13 @@ temperature. Both work, and both trade savings for warmth.
 
 ## License
 
-MIT
+MIT. See [LICENSE](LICENSE).
+
+This project is a fork of
+[strutsfarm/heatpump_optimizer](https://github.com/strutsfarm/heatpump_optimizer),
+which is also MIT licensed; the upstream copyright is retained alongside this
+project's own. See the [Acknowledgement](#acknowledgement) and
+[Disclaimer](#disclaimer) at the top of this file.
 
 ## ECL110 MQTT Control (Heat Pump ON/OFF + Displace)
 

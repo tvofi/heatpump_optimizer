@@ -27,8 +27,8 @@ handled here rather than left to the caller.
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from dataclasses import dataclass
+from datetime import datetime
 
 import numpy as np
 

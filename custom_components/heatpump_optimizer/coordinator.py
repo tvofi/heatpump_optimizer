@@ -9,23 +9,21 @@ The coordinator manages:
 """
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, NamedTuple
 
 import aiohttp
 import numpy as np
 
 from homeassistant.components import mqtt
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_NAME, UnitOfSpeed
+from homeassistant.const import UnitOfSpeed
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
@@ -35,7 +33,6 @@ from .const import (
     CONF_WEATHER_ENTITY,
     CONF_INDOOR_TEMP_ENTITY,
     CONF_OUTDOOR_TEMP_ENTITY,
-    CONF_HEAT_PUMP_ENTITY,
     CONF_HEAT_PUMP_SWITCH_ENTITY,
     CONF_SOLAR_RADIATION_ENTITY,
     CONF_FLOOR_RETURN_TEMP_ENTITY,
@@ -54,7 +51,6 @@ from .const import (
     CONF_ECL110_RETAIN,
     CONF_ECL110_DISPLACE_MIN,
     CONF_ECL110_DISPLACE_MAX,
-    CONF_ECL110_PID_TIME_CONSTANT,
     CONF_TARGET_TEMP,
     CONF_MIN_TEMP,
     CONF_MAX_TEMP,
@@ -62,20 +58,9 @@ from .const import (
     CONF_COMFORT_TEMP_NIGHT,
     CONF_DAY_START_HOUR,
     CONF_DAY_END_HOUR,
-    CONF_HOUSE_THERMAL_MASS,
-    CONF_HOUSE_HEAT_LOSS_COEFFICIENT,
-    CONF_SLAB_THERMAL_MASS,
-    CONF_SLAB_HEAT_TRANSFER,
-    CONF_HEAT_PUMP_COP_NOMINAL,
-    CONF_HEAT_PUMP_MAX_POWER,
-    CONF_HEAT_PUMP_MIN_POWER,
     CONF_OPTIMIZATION_INTERVAL,
     CONF_PRICE_WEIGHT,
     CONF_COMFORT_WEIGHT,
-    CONF_DHW_SETPOINT,
-    CONF_DHW_MIN_TEMP,
-    CONF_WIND_SENSITIVITY,
-    CONF_RAIN_HEAT_LOSS_MULTIPLIER,
     DEFAULT_TARGET_TEMP,
     DEFAULT_MIN_TEMP,
     DEFAULT_MAX_TEMP,
@@ -86,9 +71,6 @@ from .const import (
     DEFAULT_OPTIMIZATION_INTERVAL,
     DEFAULT_PRICE_WEIGHT,
     DEFAULT_COMFORT_WEIGHT,
-    DEFAULT_DHW_SETPOINT,
-    DEFAULT_DHW_MIN_TEMP,
-    DEFAULT_DHW_COOLING_RATE,
     BUFFER_COOLING_RATE_MAX,
     BUFFER_COOLING_RATE_MIN,
     CONF_BUFFER_COOLING_RATE,
@@ -106,13 +88,11 @@ from .const import (
     DEFAULT_ECL110_RETAIN,
     DEFAULT_ECL110_DISPLACE_MIN,
     DEFAULT_ECL110_DISPLACE_MAX,
-    DEFAULT_ECL110_PID_TIME_CONSTANT,
     MODE_AUTO,
     MODE_COMFORT,
     MODE_ECONOMY,
     MODE_OFF,
     MODE_BOOST,
-    UPDATE_INTERVAL_OPTIMIZATION,
     CONF_SOLAR_FORECAST_SOURCE,
     CONF_SOLAR_LOCATION,
     DEFAULT_SOLAR_FORECAST_SOURCE,
@@ -260,6 +240,38 @@ def _as_float(value: Any, default: float) -> float:
         return default
     return result
 
+#: Resolution the optimizer plans at, and therefore the resolution every
+#: forecast series is resampled to.
+FORECAST_STEP_MINUTES = 15
+
+
+class ForecastArrays(NamedTuple):
+    """The horizon, as the optimizer sees it.
+
+    A NamedTuple rather than a dataclass so the seven series stay indexable
+    for the callers that slice them, while everything else can use the names
+    instead of remembering that position five is the price provenance mask.
+    """
+
+    #: *Marginal* prices: the export compensation replaces the import price
+    #: wherever PV surplus exists, because that is what consuming costs there.
+    prices: np.ndarray
+    outdoor_temps: np.ndarray
+    wind_speeds: np.ndarray
+    precipitation: np.ndarray
+    solar_radiation: np.ndarray
+    #: True where the price came from published market data rather than the
+    #: learned diurnal prior.
+    price_known: np.ndarray
+    pv_surplus: np.ndarray
+
+    @classmethod
+    def empty(cls) -> "ForecastArrays":
+        """No usable horizon, so the caller should skip the run."""
+        blank = np.array([], dtype=float)
+        return cls(blank, blank, blank, blank, blank, blank, blank)
+
+
 DHW_PROFILE_STORE_VERSION = 1
 DHW_PROFILE_EWMA_ALPHA = 0.12
 DHW_PROFILE_MIN_INTENSITY = 0.2
@@ -360,27 +372,54 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     """Coordinator for Heat Pump Cost Optimizer."""
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
-        """Initialize the coordinator."""
+        """Initialize the coordinator.
+
+        The list below is the whole story: what state this object owns, in the
+        order it comes into existence. Previously this was two hundred and
+        fifty lines of uninterrupted assignment in which nothing had a natural
+        home, so a new attribute went wherever the last one happened to end.
+        """
         self.entry = entry
         self._config = {**entry.data, **entry.options}
-
-        # Get optimization interval
-        interval_min = self._config.get(
-            CONF_OPTIMIZATION_INTERVAL, DEFAULT_OPTIMIZATION_INTERVAL
-        )
 
         super().__init__(
             hass,
             _LOGGER,
             name=DOMAIN,
-            update_interval=timedelta(minutes=interval_min),
+            update_interval=timedelta(
+                minutes=self._config.get(
+                    CONF_OPTIMIZATION_INTERVAL, DEFAULT_OPTIMIZATION_INTERVAL
+                )
+            ),
         )
 
-        # Initialize thermal model
+        self._init_model()
+        self._init_runtime_state()
+        self._init_dhw_learning(hass, entry)
+        self._init_measurements()
+        self._init_grid(hass, entry)
+        self._init_features(hass, entry)
+        self._init_ecl110()
+
+        # Deferred: MQTT may not be up yet, and the stores are on disk.
+        hass.async_create_task(self._async_setup_ecl110_state_subscription())
+        for load in (
+            self._async_load_dhw_profile,
+            self._async_load_dhw_legionella,
+            self._async_load_thermal_learning,
+            self._async_load_price_model,
+            self._async_load_accuracy,
+            self._async_load_energy_totals,
+        ):
+            hass.async_create_task(load())
+
+    # -- construction, one concern at a time ---------------------------------
+
+    def _init_model(self) -> None:
+        """The thermal model, the optimizer, and the configuration between."""
         self._thermal_params = ThermalParameters.from_config(self._config)
         self._thermal_model = ThermalModel(self._thermal_params)
 
-        # Initialize optimizer config
         self._opt_config = OptimizationConfig(
             target_temp=self._config.get(CONF_TARGET_TEMP, DEFAULT_TARGET_TEMP),
             min_temp=self._config.get(CONF_MIN_TEMP, DEFAULT_MIN_TEMP),
@@ -402,11 +441,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 CONF_COMFORT_WEIGHT, DEFAULT_COMFORT_WEIGHT
             ),
         )
-
-        # Initialize optimizer
         self._optimizer = HeatPumpOptimizer(self._thermal_model, self._opt_config)
 
-        # State
+    def _init_runtime_state(self) -> None:
+        """What the current update cycle is working with."""
         self._mode: str = MODE_AUTO
         # Populated during setup from the manifest so the device registry
         # reports the real integration version.
@@ -420,12 +458,18 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._current_action: dict[str, Any] = {}
         self._unsub_timer: Any = None
 
-        # Solar / return temp state
+        # Solar irradiance and the floor return temperature sensor.
         self._solar_radiation: float = 0.0
         self._floor_return_temp: float | None = None
         self._solar_radiation_forecast: list[float] = []
         self._open_meteo: OpenMeteoSolar | None = None
 
+        # A run takes seconds, so a user tapping the button repeatedly must not
+        # be able to stack solves on top of each other.
+        self._optimization_running: bool = False
+
+    def _init_dhw_learning(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+        """Hot water: usage profile, cooling rate and the legionella timer."""
         # DHW state
         self._dhw_temperature: float | None = None
         self._last_dhw_temp_sample: float | None = None
@@ -480,6 +524,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             f"{DOMAIN}_{entry.entry_id}_thermal_learning",
         )
 
+    def _init_measurements(self) -> None:
+        """Optional measured inputs and the COP correction they feed."""
         # --- Measured electrical draw (optional) -------------------------
         # Absent on most installs, so every consumer must degrade cleanly.
         self._measured_power: float | None = None
@@ -498,14 +544,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._input_health: InputHealth | None = None
         self._learner_freeze_reason: str | None = None
 
-        # --- External heat source detection --------------------------------
-        self._external_heat = ExternalHeatDetector(self._external_heat_config())
-        self._external_heat_active: bool = False
-
-        # Guard so a user tapping the run button repeatedly cannot stack solves
-        # on top of each other; a run is not instantaneous.
-        self._optimization_running: bool = False
-
+    def _init_grid(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+        """Price modelling, the capacity tariff and PV surplus."""
         # --- Unknown price horizon (item 7) --------------------------------
         self._price_model = PriceShapeModel()
         self._price_days_seen: set[str] = set()
@@ -524,6 +564,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._pv_summary: dict[str, Any] = {}
         self._pv_production: float | None = None
 
+    def _init_features(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+        """Away mode, accuracy tracking, learning experiments and totals."""
+        self._external_heat = ExternalHeatDetector(self._external_heat_config())
+        self._external_heat_active: bool = False
         # --- Away mode (item 13) -------------------------------------------
         self._away_state = away_mode.AwayState()
 
@@ -581,7 +625,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._last_simulation: datetime | None = None
         self._simulation_cache: dict[str, Any] = {}
 
-        # ECL110 MQTT state
+    def _init_ecl110(self) -> None:
+        """MQTT heat-curve control state."""
         self._ecl110_command_topic: str = self._config.get(
             CONF_ECL110_COMMAND_TOPIC, DEFAULT_ECL110_COMMAND_TOPIC
         )
@@ -602,17 +647,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._ecl110_current_displace: float = 0.0
         self._ecl110_last_payload: dict[str, Any] = {}
         self._unsub_ecl110_state: Any = None
-
-        # Subscribe to ECL110 state topic if MQTT is available
-        hass.async_create_task(self._async_setup_ecl110_state_subscription())
-
-        # Load learned DHW usage profile (persisted across restarts)
-        hass.async_create_task(self._async_load_dhw_profile())
-        hass.async_create_task(self._async_load_dhw_legionella())
-        hass.async_create_task(self._async_load_thermal_learning())
-        hass.async_create_task(self._async_load_price_model())
-        hass.async_create_task(self._async_load_accuracy())
-        hass.async_create_task(self._async_load_energy_totals())
 
     @property
     def mode(self) -> str:
@@ -1789,8 +1823,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._optimization_running = True
         away_original: dict[str, float] | None = None
         try:
-            prices, outdoor_temps, wind_speeds, precipitation, solar_rad, \
-                price_known, pv_surplus = self._forecast_arrays()
+            horizon = self._forecast_arrays()
+            prices = horizon.prices
 
             if len(prices) < 4:
                 _LOGGER.warning(
@@ -1804,10 +1838,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 "range=%.1f-%.1f m/s, precip range=%.1f-%.1f mm/h, solar "
                 "range=%.0f-%.0f W/m²",
                 len(prices),
-                int(np.sum(price_known)),
-                float(np.min(wind_speeds)), float(np.max(wind_speeds)),
-                float(np.min(precipitation)), float(np.max(precipitation)),
-                float(np.min(solar_rad)), float(np.max(solar_rad)),
+                int(np.sum(horizon.price_known)),
+                float(np.min(horizon.wind_speeds)),
+                float(np.max(horizon.wind_speeds)),
+                float(np.min(horizon.precipitation)),
+                float(np.max(horizon.precipitation)),
+                float(np.min(horizon.solar_radiation)),
+                float(np.max(horizon.solar_radiation)),
             )
 
             # Push the grid-cost settings into the optimizer configuration
@@ -1819,6 +1856,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 tariff
             )
             self._opt_config.peak_window_minutes = tariff.window_minutes
+            self._opt_config.peak_count = tariff.peaks_averaged
             self._opt_config.baseline_load_kw = self._baseline_house_load(
                 len(prices)
             )
@@ -1838,14 +1876,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             result = await self.hass.async_add_executor_job(
                 self._optimizer.optimize,
                 self._current_state,
-                prices,
-                outdoor_temps,
-                wind_speeds,
-                precipitation,
-                solar_rad,
+                horizon.prices,
+                horizon.outdoor_temps,
+                horizon.wind_speeds,
+                horizon.precipitation,
+                horizon.solar_radiation,
                 dt_util.now(),
-                price_known,
-                pv_surplus,
+                horizon.price_known,
+                horizon.pv_surplus,
             )
 
             self._optimization_result = result
@@ -1885,10 +1923,40 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         _LOGGER.info("Operation mode set to: %s", mode)
         await self.async_request_refresh()
 
+    # Service parameter name -> thermal parameter attribute. Plain assignments
+    # only; anything with a side effect is handled explicitly below.
+    _THERMAL_PARAM_FIELDS = {
+        "house_thermal_mass": "room_thermal_mass",
+        "slab_thermal_mass": "slab_thermal_mass",
+        "slab_heat_transfer": "slab_heat_transfer",
+        "heat_pump_cop_nominal": "cop_nominal",
+        "upper_floor_thermal_mass": "upper_floor_thermal_mass",
+        "lower_floor_thermal_mass": "lower_floor_thermal_mass",
+        "inter_zone_heat_transfer": "inter_zone_transfer",
+        "radiator_power_fraction": "radiator_power_fraction",
+        "window_area": "window_area",
+        "solar_heat_gain_coefficient": "solar_heat_gain_coefficient",
+        "dhw_tank_volume": "dhw_tank_volume",
+        "dhw_setpoint": "dhw_setpoint",
+        "dhw_min_temperature": "dhw_min_temp",
+        "dhw_daily_consumption": "dhw_daily_consumption",
+        "ecl110_pid_time_constant_hours": "ecl110_pid_time_constant_hours",
+        "wind_sensitivity_factor": "wind_sensitivity",
+        "rain_heat_loss_multiplier": "rain_heat_loss_multiplier",
+    }
+
     async def async_update_thermal_params(self, params: dict[str, Any]) -> None:
-        """Update thermal model parameters."""
-        if "house_thermal_mass" in params:
-            self._thermal_params.room_thermal_mass = params["house_thermal_mass"]
+        """Apply a runtime parameter change from the service call.
+
+        Most parameters are a plain assignment and live in the table above.
+        The rest are here because they have a consequence beyond themselves —
+        a learned correction to invalidate, a mirrored attribute to keep in
+        step, or a value that has to be parsed and may fail.
+        """
+        for name, attribute in self._THERMAL_PARAM_FIELDS.items():
+            if name in params:
+                setattr(self._thermal_params, attribute, params[name])
+
         if "house_heat_loss_coefficient" in params:
             self._thermal_params.heat_loss_coefficient = params[
                 "house_heat_loss_coefficient"
@@ -1898,64 +1966,29 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._apply_house_heat_loss_scale(DEFAULT_HOUSE_HEAT_LOSS_SCALE)
             self._house_heat_loss_samples = 0
             await self._async_save_thermal_learning()
+
         if CONF_BUFFER_COOLING_RATE in params:
             self._apply_buffer_cooling_rate(float(params[CONF_BUFFER_COOLING_RATE]))
             self._buffer_cooling_samples = 0
             await self._async_save_thermal_learning()
-        if "ecl110_displace_min" in params:
-            self._thermal_params.ecl110_displace_min = params["ecl110_displace_min"]
-            self._ecl110_displace_min = params["ecl110_displace_min"]
-        if "ecl110_displace_max" in params:
-            self._thermal_params.ecl110_displace_max = params["ecl110_displace_max"]
-            self._ecl110_displace_max = params["ecl110_displace_max"]
-        if "slab_thermal_mass" in params:
-            self._thermal_params.slab_thermal_mass = params["slab_thermal_mass"]
-        if "slab_heat_transfer" in params:
-            self._thermal_params.slab_heat_transfer = params["slab_heat_transfer"]
-        if "heat_pump_cop_nominal" in params:
-            self._thermal_params.cop_nominal = params["heat_pump_cop_nominal"]
-        # Two-zone params
-        if "upper_floor_thermal_mass" in params:
-            self._thermal_params.upper_floor_thermal_mass = params[
-                "upper_floor_thermal_mass"
-            ]
-        if "lower_floor_thermal_mass" in params:
-            self._thermal_params.lower_floor_thermal_mass = params[
-                "lower_floor_thermal_mass"
-            ]
-        if "inter_zone_heat_transfer" in params:
-            self._thermal_params.inter_zone_transfer = params[
-                "inter_zone_heat_transfer"
-            ]
-        if "radiator_power_fraction" in params:
-            self._thermal_params.radiator_power_fraction = params[
-                "radiator_power_fraction"
-            ]
-        if "window_area" in params:
-            self._thermal_params.window_area = params["window_area"]
-        if "solar_heat_gain_coefficient" in params:
-            self._thermal_params.solar_heat_gain_coefficient = params[
-                "solar_heat_gain_coefficient"
-            ]
-        # DHW params
-        if "dhw_tank_volume" in params:
-            self._thermal_params.dhw_tank_volume = params["dhw_tank_volume"]
-        if "dhw_setpoint" in params:
-            self._thermal_params.dhw_setpoint = params["dhw_setpoint"]
-        if "ecl110_pid_time_constant_hours" in params:
-            self._thermal_params.ecl110_pid_time_constant_hours = params[
-                "ecl110_pid_time_constant_hours"
-            ]
-        if "dhw_min_temperature" in params:
-            self._thermal_params.dhw_min_temp = params["dhw_min_temperature"]
-        if "dhw_daily_consumption" in params:
-            self._thermal_params.dhw_daily_consumption = params["dhw_daily_consumption"]
+
         if CONF_DHW_COOLING_RATE in params:
             # An explicit value replaces the learned one and resets the sample
             # count, so the learner treats it as the new starting point.
             self._apply_dhw_cooling_rate(float(params[CONF_DHW_COOLING_RATE]))
             self._dhw_cooling_samples = 0
             await self._async_save_dhw_profile()
+
+        # The displace limits are mirrored on the coordinator because the MQTT
+        # publisher clamps against them without going through the model.
+        for name, attribute in (
+            ("ecl110_displace_min", "_ecl110_displace_min"),
+            ("ecl110_displace_max", "_ecl110_displace_max"),
+        ):
+            if name in params:
+                setattr(self._thermal_params, name, params[name])
+                setattr(self, attribute, params[name])
+
         if CONF_DHW_SCHEDULE_ENABLED in params:
             self._thermal_params.dhw_schedule_enabled = bool(
                 params[CONF_DHW_SCHEDULE_ENABLED]
@@ -1983,14 +2016,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._thermal_params.dhw_legionella_interval_days = float(
                 params[CONF_DHW_LEGIONELLA_INTERVAL_DAYS]
             )
-        # Weather sensitivity params
-        if "wind_sensitivity_factor" in params:
-            self._thermal_params.wind_sensitivity = params["wind_sensitivity_factor"]
-        if "rain_heat_loss_multiplier" in params:
-            self._thermal_params.rain_heat_loss_multiplier = params[
-                "rain_heat_loss_multiplier"
-            ]
 
+        # The model and optimizer hold the parameters by reference at
+        # construction, so both are rebuilt rather than mutated in place.
         self._thermal_model = ThermalModel(self._thermal_params)
         self._optimizer = HeatPumpOptimizer(self._thermal_model, self._opt_config)
 
@@ -2412,188 +2440,202 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     def _prepare_forecast_data(
         self,
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-        """Prepare full 24-hour forecast arrays for the optimizer.
-
-        CRITICAL: This provides the FORECAST TRAJECTORIES (not just current values)
-        that enable true predictive optimization. Each array contains per-step
-        forecasted values for the entire optimization horizon.
-
-        Returns: (prices, outdoor_temps, wind_speeds, precipitation, solar_radiation)
-        """
+        """The five weather/price series, for callers predating the rest."""
         return self._forecast_arrays()[:5]
 
-    def _forecast_arrays(
-        self,
-    ) -> tuple[
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-    ]:
-        """Everything the optimizer needs about the horizon.
+    def _price_series(
+        self, n_steps: int, midnight: datetime, step_offset: int
+    ) -> tuple[np.ndarray, np.ndarray] | None:
+        """Per-step prices, and a mask of which came from published data.
 
-        Beyond the five weather/price series, this also returns the
-        published-price mask (item 7) and the forecast PV surplus (item 9).
-        Kept as one function because the surplus depends on the irradiance
-        series built here, and recomputing it elsewhere is how the two would
-        drift apart.
+        Returns ``None`` when there are no prices at all. Inventing a flat
+        curve there used to let the optimizer run and report a savings figure
+        that no price data supported, so the caller skips the run instead.
         """
-        empty = np.array([], dtype=float)
-        dt_minutes = 15
-        n_steps = self._opt_config.n_steps
-        now = dt_util.now()
-
-        # --- Prices ---
-        prices_15min = []
-        if self._prices:
-            for price_entry in self._prices:
-                total = _as_float(price_entry.get("total"), 0.0)
-                for _ in range(4):
-                    prices_15min.append(total)
-        else:
-            # Without real prices there is nothing to arbitrage against.
-            # Inventing a flat curve here used to let the optimizer run and
-            # report a savings figure that no price data supported, so the
-            # caller is left to skip the run instead.
+        if not self._prices:
             _LOGGER.warning(
                 "No electricity price data available; skipping optimization "
                 "until prices can be fetched"
             )
-            return (empty, empty, empty, empty, empty, empty, empty)
+            return None
 
-        midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
-        minutes_since_midnight = (now - midnight).total_seconds() / 60
-        step_offset = int(minutes_since_midnight / dt_minutes)
+        # Tibber publishes hourly; the optimizer works in quarters.
+        quarters: list[float] = []
+        for entry in self._prices:
+            total = _as_float(entry.get("total"), 0.0)
+            quarters.extend([total] * 4)
 
-        if step_offset < len(prices_15min):
-            prices = prices_15min[step_offset : step_offset + n_steps]
+        if step_offset < len(quarters):
+            known = quarters[step_offset : step_offset + n_steps]
         else:
-            prices = prices_15min[:n_steps]
+            known = quarters[:n_steps]
 
-        # --- Model the unknown tail rather than repeating the last price ----
-        # A flat repeat has no trough, so the optimizer cannot see a cheap
-        # period ahead worth waiting for. The learned diurnal shape gives the
-        # tail a plausible profile, and the mask records which steps rest on
-        # published data so that is visible downstream.
+        # Past the published horizon, model the shape rather than repeating the
+        # last price. A flat tail has no trough, so the optimizer cannot see a
+        # cheap period ahead worth waiting for. The mask records which steps
+        # rest on the learned prior so that stays visible downstream.
         step_starts = [
-            midnight + timedelta(minutes=dt_minutes * (step_offset + i))
+            midnight + timedelta(minutes=FORECAST_STEP_MINUTES * (step_offset + i))
             for i in range(n_steps)
         ]
-        price_array, price_known = extend_price_series(
-            prices, n_steps, step_starts, self._price_prior()
+        prices, price_known = extend_price_series(
+            known, n_steps, step_starts, self._price_prior()
         )
-        prices = price_array.tolist()
         self._price_known_steps = int(np.sum(price_known))
+        return prices, price_known
 
-        # --- Weather forecast (FULL 24h trajectories) ---
-        outdoor_temps = []
-        wind_speeds = []
-        precipitation_rates = []
-        solar_rad = []
+    def _weather_series(
+        self, n_steps: int
+    ) -> tuple[list[float], list[float], list[float], list[float]]:
+        """Per-step outdoor temperature, wind, precipitation and irradiance.
 
-        if self._weather_forecast:
-            wind_scale = self._wind_speed_scale()
-            for idx, fc in enumerate(self._weather_forecast):
-                temp = _as_float(fc.get("temperature"), 5.0)
-                # Convert using the unit the weather entity actually reports in.
-                # Guessing from the magnitude misreads a moderate 20 km/h breeze
-                # as a 20 m/s storm and inflates predicted heat loss twofold.
-                wind = max(0.0, _as_float(fc.get("wind_speed"), 0.0) * wind_scale)
-                precip = max(0.0, _as_float(fc.get("precipitation"), 0.0))
+        These are *forecast trajectories*, not current conditions: using the
+        whole horizon is what makes the control anticipatory rather than
+        reactive.
+        """
+        outdoor: list[float] = []
+        wind: list[float] = []
+        precipitation: list[float] = []
+        solar: list[float] = []
 
-                # Solar radiation: from forecast or from separate list
-                sr = 0.0
-                if idx < len(self._solar_radiation_forecast):
-                    sr = _as_float(self._solar_radiation_forecast[idx], 0.0)
-                if sr == 0.0:
-                    sr = _as_float(
-                        fc.get("solar_irradiance")
-                        or fc.get("native_solar_irradiance"),
-                        0.0,
-                    )
-                sr = max(0.0, sr)
-
-                # Interpolate hourly forecast to 15-min steps
-                for _ in range(4):
-                    outdoor_temps.append(temp)
-                    wind_speeds.append(wind)
-                    precipitation_rates.append(precip)
-                    solar_rad.append(sr)
-        else:
-            # Fallback: use current conditions (NOT ideal for predictive MPC)
-            base_temp = self._current_state.outdoor_temperature
-            current_sr = self._solar_radiation
+        if not self._weather_forecast:
             _LOGGER.warning(
                 "No weather forecast available — using current conditions. "
                 "Predictive optimization will be limited."
             )
-            for _ in range(n_steps):
-                outdoor_temps.append(base_temp)
-                wind_speeds.append(0.0)
-                precipitation_rates.append(0.0)
-                solar_rad.append(current_sr)
+            return (
+                [self._current_state.outdoor_temperature] * n_steps,
+                [0.0] * n_steps,
+                [0.0] * n_steps,
+                [self._solar_radiation] * n_steps,
+            )
 
-        # Open-Meteo irradiance, aligned by wall-clock time rather than by
-        # position in the weather forecast list. The positional path above
-        # assumes the weather entity's first forecast entry is the current
-        # hour, which is not guaranteed; an irradiance series carries its own
-        # timestamps, so match on those instead.
-        if self._open_meteo is not None and self._open_meteo.available:
-            step = timedelta(minutes=dt_minutes)
-            aligned: list[float] = []
-            missing = 0
-            for i in range(n_steps):
-                step_start = midnight + timedelta(
-                    minutes=dt_minutes * (step_offset + i)
+        # Convert using the unit the weather entity actually reports in.
+        # Guessing from the magnitude misreads a moderate 20 km/h breeze as a
+        # 20 m/s storm and doubles the predicted heat loss.
+        wind_scale = self._wind_speed_scale()
+        for idx, entry in enumerate(self._weather_forecast):
+            temp = _as_float(entry.get("temperature"), 5.0)
+            gust = max(0.0, _as_float(entry.get("wind_speed"), 0.0) * wind_scale)
+            rain = max(0.0, _as_float(entry.get("precipitation"), 0.0))
+
+            irradiance = 0.0
+            if idx < len(self._solar_radiation_forecast):
+                irradiance = _as_float(self._solar_radiation_forecast[idx], 0.0)
+            if irradiance == 0.0:
+                irradiance = _as_float(
+                    entry.get("solar_irradiance")
+                    or entry.get("native_solar_irradiance"),
+                    0.0,
                 )
-                value = self._open_meteo.irradiance_for(step_start, step)
-                if value is None:
-                    # Past the end of the published horizon: keep whatever the
-                    # weather entity offered rather than asserting darkness.
-                    missing += 1
-                    value = solar_rad[i] if i < len(solar_rad) else 0.0
-                aligned.append(max(0.0, value))
-            solar_rad = aligned
-            if missing:
-                _LOGGER.debug(
-                    "Open-Meteo irradiance covered %d/%d steps; the rest fell "
-                    "back to the weather entity",
-                    n_steps - missing,
-                    n_steps,
-                )
+            irradiance = max(0.0, irradiance)
 
-        # Pad to ensure we have enough data points
-        for arr in [outdoor_temps, wind_speeds, precipitation_rates, solar_rad]:
-            while len(arr) < n_steps:
-                arr.append(arr[-1] if arr else 0.0)
+            # Hourly forecast held flat across the four quarters it covers.
+            for _ in range(4):
+                outdoor.append(temp)
+                wind.append(gust)
+                precipitation.append(rain)
+                solar.append(irradiance)
 
-        solar_array = np.array(solar_rad[:n_steps], dtype=float)
+        return outdoor, wind, precipitation, solar
 
-        # --- PV self-consumption ------------------------------------------
-        # Where the array is in surplus, an extra kWh consumed by the heat pump
-        # does not cost the import price: it costs the export compensation that
-        # was foregone. Substituting the marginal price here means every
-        # downstream consumer (the hot-water LP, the space objective, the
-        # savings settle-up) gets it right without any structural change.
-        surplus, _ = self._pv_forecast(solar_array, n_steps)
-        price_array = np.array(prices[:n_steps], dtype=float)
+    def _apply_open_meteo(
+        self,
+        solar: list[float],
+        n_steps: int,
+        midnight: datetime,
+        step_offset: int,
+    ) -> list[float]:
+        """Overlay Open-Meteo irradiance, aligned by wall-clock time.
+
+        The weather-entity path above aligns by *position*, which assumes its
+        first forecast entry is the current hour — not guaranteed. An
+        irradiance series carries its own timestamps, so match on those.
+        """
+        if self._open_meteo is None or not self._open_meteo.available:
+            return solar
+
+        step = timedelta(minutes=FORECAST_STEP_MINUTES)
+        aligned: list[float] = []
+        missing = 0
+        for i in range(n_steps):
+            step_start = midnight + timedelta(
+                minutes=FORECAST_STEP_MINUTES * (step_offset + i)
+            )
+            value = self._open_meteo.irradiance_for(step_start, step)
+            if value is None:
+                # Past the end of the published horizon: keep whatever the
+                # weather entity offered rather than asserting darkness.
+                missing += 1
+                value = solar[i] if i < len(solar) else 0.0
+            aligned.append(max(0.0, value))
+
+        if missing:
+            _LOGGER.debug(
+                "Open-Meteo irradiance covered %d/%d steps; the rest fell back "
+                "to the weather entity",
+                n_steps - missing,
+                n_steps,
+            )
+        return aligned
+
+    def _apply_pv_pricing(
+        self, prices: np.ndarray, solar: np.ndarray, n_steps: int
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """Replace the import price with the marginal cost of consuming.
+
+        While the array is in surplus, an extra kWh does not cost the import
+        price — it costs the export compensation foregone. Substituting it here
+        means every downstream consumer (the hot-water LP, the space objective,
+        the savings settle-up) is right without any structural change.
+        """
+        surplus, _ = self._pv_forecast(solar, n_steps)
         if np.any(surplus > 1e-6):
-            price_array = pv_model.effective_prices(
-                price_array, surplus, self._pv_export_price()
+            prices = pv_model.effective_prices(
+                prices, surplus, self._pv_export_price()
             )
         self._pv_surplus = surplus
+        return prices, surplus
 
-        return (
-            price_array,
-            np.array(outdoor_temps[:n_steps], dtype=float),
-            np.array(wind_speeds[:n_steps], dtype=float),
-            np.array(precipitation_rates[:n_steps], dtype=float),
-            solar_array,
-            price_known,
-            surplus,
+    def _forecast_arrays(self) -> ForecastArrays:
+        """Everything the optimizer needs to know about the horizon.
+
+        Assembled in one place because the pieces depend on each other: the PV
+        surplus is derived from the irradiance series, and the marginal price
+        from the surplus. Computing any of them elsewhere is how the three
+        would drift apart.
+        """
+        n_steps = self._opt_config.n_steps
+        now = dt_util.now()
+        midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        step_offset = int(
+            (now - midnight).total_seconds() / 60 / FORECAST_STEP_MINUTES
+        )
+
+        priced = self._price_series(n_steps, midnight, step_offset)
+        if priced is None:
+            return ForecastArrays.empty()
+        prices, price_known = priced
+
+        outdoor, wind, precipitation, solar = self._weather_series(n_steps)
+        solar = self._apply_open_meteo(solar, n_steps, midnight, step_offset)
+
+        # A forecast shorter than the horizon is held flat at its last value.
+        for series in (outdoor, wind, precipitation, solar):
+            while len(series) < n_steps:
+                series.append(series[-1] if series else 0.0)
+
+        solar_array = np.array(solar[:n_steps], dtype=float)
+        prices, surplus = self._apply_pv_pricing(prices, solar_array, n_steps)
+
+        return ForecastArrays(
+            prices=prices,
+            outdoor_temps=np.array(outdoor[:n_steps], dtype=float),
+            wind_speeds=np.array(wind[:n_steps], dtype=float),
+            precipitation=np.array(precipitation[:n_steps], dtype=float),
+            solar_radiation=solar_array,
+            price_known=price_known,
+            pv_surplus=surplus,
         )
 
     def _get_current_price(self) -> float:
@@ -2716,45 +2758,84 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
         # 2) Publish ECL110 displace command
         await self.async_publish_current_action(reason="scheduled_update")
-    def _build_data_dict(self) -> dict[str, Any]:
-        """Build the data dictionary for the coordinator."""
-        result = self._optimization_result
+    # ------------------------------------------------------------------
+    # Published state
+    # ------------------------------------------------------------------
+    #
+    # ``_build_data_dict`` composes these. Each returns one domain, so a new
+    # field is added next to its siblings rather than appended to a
+    # two-hundred-line literal where nothing has a natural home.
 
-        # Compute current solar gain
-        current_solar_gain = self._thermal_model.compute_solar_gain(
-            self._solar_radiation
-        )
-
-        # The optimizer may derive demand windows from the learned usage profile
-        # when the user has not configured any, so prefer what it actually
-        # planned against.
-        planned_windows = (
-            (result.predictive_info or {}).get("dhw_windows") if result else None
-        )
-        data = {
-            "mode": self._mode,
-            "current_action": self._current_action,
-            "current_price": self._get_current_price(),
-            "indoor_temperature": self._current_state.room_temperature,
-            "outdoor_temperature": self._current_state.outdoor_temperature,
-            "slab_temperature": self._current_state.slab_temperature,
-            "upper_floor_temperature": self._current_state.upper_floor_temperature,
-            "lower_floor_temperature": self._current_state.lower_floor_temperature,
-            "buffer_tank_temperature": self._current_state.buffer_tank_temperature,
+    def _thermal_view(self) -> dict[str, Any]:
+        """Measured and modelled temperatures, and the solar input."""
+        state = self._current_state
+        return {
+            "indoor_temperature": state.room_temperature,
+            "outdoor_temperature": state.outdoor_temperature,
+            "slab_temperature": state.slab_temperature,
+            "upper_floor_temperature": state.upper_floor_temperature,
+            "lower_floor_temperature": state.lower_floor_temperature,
+            "buffer_tank_temperature": state.buffer_tank_temperature,
             "floor_return_temperature": self._floor_return_temp,
             "solar_radiation": self._solar_radiation,
-            "solar_heat_gain": current_solar_gain,
+            "solar_heat_gain": self._thermal_model.compute_solar_gain(
+                self._solar_radiation
+            ),
             "solar_source": self._solar_forecast_source(),
             "solar_forecast": self._solar_forecast_view(),
             "solar_diagnostics": (
                 self._open_meteo.diagnostics() if self._open_meteo else None
             ),
             "two_zone_enabled": self._thermal_params.two_zone_enabled,
-            "dhw_enabled": self._thermal_params.dhw_enabled,
-            "dhw_temperature": self._dhw_temperature or self._current_state.dhw_temperature,
-            "dhw_setpoint": self._thermal_params.dhw_setpoint,
-            "dhw_min_temperature": self._thermal_params.dhw_min_temp,
+            # The comfort schedule the plan was actually made against. The
+            # card's what-if editor pre-fills from this: an editor that
+            # started from defaults would silently propose a change the user
+            # never made.
+            "comfort_temp_day": self._opt_config.comfort_temp_day,
+            "comfort_temp_night": self._opt_config.comfort_temp_night,
+            "day_start_hour": self._opt_config.day_start_hour,
+            "day_end_hour": self._opt_config.day_end_hour,
+            "min_temperature": self._opt_config.min_temp,
+            "max_temperature": self._opt_config.max_temp,
+        }
+
+    def _dhw_view(self) -> dict[str, Any]:
+        """Hot water configuration and current demand state."""
+        params = self._thermal_params
+        result = self._optimization_result
+        # The optimizer may derive demand windows from the learned usage
+        # profile when the user configured none, so prefer what it actually
+        # planned against over what the configuration says.
+        planned_windows = (
+            (result.predictive_info or {}).get("dhw_windows") if result else None
+        )
+        return {
+            "dhw_enabled": params.dhw_enabled,
+            "dhw_temperature": (
+                self._dhw_temperature or self._current_state.dhw_temperature
+            ),
+            "dhw_setpoint": params.dhw_setpoint,
+            "dhw_min_temperature": params.dhw_min_temp,
             "dhw_usage_profile": self._dhw_hourly_profile,
+            "dhw_hold_hours": round(self._thermal_model.dhw_hold_hours(), 1),
+            "dhw_windows": planned_windows
+            or format_windows(params.dhw_demand_windows),
+            "dhw_schedule_enabled": params.dhw_schedule_enabled,
+            "dhw_in_demand_window": self._dhw_in_demand_window(),
+            "dhw_next_window_in_hours": self._dhw_next_window_in_hours(),
+            "dhw_idle_min_temperature": params.dhw_idle_min_temp,
+            "dhw_legionella_enabled": params.dhw_legionella_enabled,
+            "dhw_legionella_due_in_hours": self._dhw_legionella_due_in_hours(),
+        }
+
+    def _learning_view(self) -> dict[str, Any]:
+        """What the self-learning estimators currently believe.
+
+        ``*_learned`` flags say whether a value is still the configured prior
+        or has moved, which is the difference between "the default is wrong"
+        and "the house really is like this".
+        """
+        return {
             "dhw_cooling_rate": round(self._dhw_cooling_rate, 3),
             "dhw_cooling_samples": self._dhw_cooling_samples,
             "dhw_cooling_rate_learned": self._dhw_cooling_samples > 0,
@@ -2765,81 +2846,94 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             "house_heat_loss_samples": self._house_heat_loss_samples,
             "house_heat_loss_learned": self._house_heat_loss_samples > 0,
             "house_heat_loss_effective": self._effective_house_heat_loss(),
-            "dhw_hold_hours": round(self._thermal_model.dhw_hold_hours(), 1),
-            "dhw_windows": planned_windows
-            or format_windows(self._thermal_params.dhw_demand_windows),
-            "dhw_schedule_enabled": self._thermal_params.dhw_schedule_enabled,
-            "dhw_in_demand_window": self._dhw_in_demand_window(),
-            "dhw_next_window_in_hours": self._dhw_next_window_in_hours(),
-            "dhw_idle_min_temperature": self._thermal_params.dhw_idle_min_temp,
-            "dhw_legionella_enabled": self._thermal_params.dhw_legionella_enabled,
-            "dhw_legionella_due_in_hours": self._dhw_legionella_due_in_hours(),
-            "last_optimization": self._last_optimization,
-            "next_optimization": self._next_optimization,
+            "cop_scale": round(self._cop_scale, 3),
+            "cop_samples": self._cop_samples,
+            "measured_cop": self._last_measured_cop,
+            "defrost_derate": self._defrost.factor(
+                self._current_state.outdoor_temperature, self._current_humidity()
+            ),
+            "defrost_samples": self._defrost.total_samples,
+            "defrost_buckets": self._defrost.summary(),
+            "comfort_weight": self._opt_config.comfort_weight,
+            "comfort_learning": self._comfort_learner.summary(),
+            "system_identification": self._sysid.as_dict(),
+            "accuracy": self._accuracy.summary(),
+        }
+
+    def _measurement_view(self) -> dict[str, Any]:
+        """Optional measured inputs. All ``None`` on an install without them."""
+        return {
+            "measured_power": self._measured_power,
+            "measured_house_power": self._measured_house_power,
+            "measured_energy": self._measured_energy,
+            "measured_power_available": self._measured_power is not None,
+        }
+
+    def _grid_view(self) -> dict[str, Any]:
+        """Prices, the capacity tariff and PV, i.e. what a kWh actually costs."""
+        tariff = self._capacity_tariff()
+        return {
+            "current_price": self._get_current_price(),
             "prices_available": len(self._prices),
             "weather_forecast_available": len(self._weather_forecast),
+            "price_known_steps": self._price_known_steps,
+            "price_prior": self._price_model.summary(),
+            "peak_tariff_enabled": tariff.enabled,
+            "billed_peak_kw": round(self._peak_tracker.billed_peak_kw(tariff), 2),
+            "peak_threshold_kw": round(self._peak_tracker.threshold_kw(tariff), 2),
+            "peak_month": self._peak_tracker.month,
+            "pv_enabled": bool(
+                self._config.get(CONF_PV_ENABLED, DEFAULT_PV_ENABLED)
+            ),
+            "pv": self._pv_summary,
+        }
+
+    def _ecl110_view(self) -> dict[str, Any]:
+        """Heat-curve control state for the ECL110 integration."""
+        return {
             "ecl110_command_topic": self._ecl110_command_topic,
             "ecl110_state_topic": self._ecl110_state_topic,
-            "ecl110_displace": self._current_action.get("displace_value", self._ecl110_current_displace),
-            "ecl110_effective_displace": self._current_state.ecl110_effective_displace,
+            "ecl110_displace": self._current_action.get(
+                "displace_value", self._ecl110_current_displace
+            ),
+            "ecl110_effective_displace": (
+                self._current_state.ecl110_effective_displace
+            ),
             "ecl110_last_payload": self._ecl110_last_payload,
         }
 
-        # --- New feature state -------------------------------------------
-        tariff = self._capacity_tariff()
-        data.update(self._input_health_view())
+    def _external_heat_view(self) -> dict[str, Any]:
+        """Whether something other than the heat pump is charging the tanks."""
+        return {
+            "external_heat_active": self._external_heat.state.active,
+            "external_heat_suppressing": self._external_heat.suppressing,
+            "external_heat": self._external_heat.state.as_dict(),
+        }
+
+    def _build_data_dict(self) -> dict[str, Any]:
+        """Everything the entities read, assembled from the domain views."""
+        result = self._optimization_result
+
+        data: dict[str, Any] = {
+            "mode": self._mode,
+            "current_action": self._current_action,
+            "last_optimization": self._last_optimization,
+            "next_optimization": self._next_optimization,
+        }
+        for view in (
+            self._thermal_view,
+            self._dhw_view,
+            self._learning_view,
+            self._measurement_view,
+            self._grid_view,
+            self._ecl110_view,
+            self._external_heat_view,
+            self._input_health_view,
+        ):
+            data.update(view())
         data.update(self._away_state.as_dict())
-        data.update(
-            {
-                # Measured draw (item 6)
-                "measured_power": self._measured_power,
-                "measured_house_power": self._measured_house_power,
-                "measured_energy": self._measured_energy,
-                "measured_power_available": self._measured_power is not None,
-                "cop_scale": round(self._cop_scale, 3),
-                "cop_samples": self._cop_samples,
-                "measured_cop": self._last_measured_cop,
-                # External heat source (item 5)
-                "external_heat_active": self._external_heat.state.active,
-                "external_heat_suppressing": self._external_heat.suppressing,
-                "external_heat": self._external_heat.state.as_dict(),
-                # Learned price horizon (item 7)
-                "price_known_steps": self._price_known_steps,
-                "price_prior": self._price_model.summary(),
-                # Capacity tariff (item 8)
-                "peak_tariff_enabled": tariff.enabled,
-                "billed_peak_kw": round(
-                    self._peak_tracker.billed_peak_kw(tariff), 2
-                ),
-                "peak_threshold_kw": round(
-                    self._peak_tracker.threshold_kw(tariff), 2
-                ),
-                "peak_month": self._peak_tracker.month,
-                # PV (item 9)
-                "pv_enabled": bool(
-                    self._config.get(CONF_PV_ENABLED, DEFAULT_PV_ENABLED)
-                ),
-                "pv": self._pv_summary,
-                # Closed-loop accuracy (item 11)
-                "accuracy": self._accuracy.summary(),
-                # Defrost derate (item 14)
-                "defrost_derate": self._defrost.factor(
-                    self._current_state.outdoor_temperature,
-                    self._current_humidity(),
-                ),
-                "defrost_samples": self._defrost.total_samples,
-                "defrost_buckets": self._defrost.summary(),
-                # Energy statistics (item 15)
-                **{k: round(v, 4) for k, v in self._energy_totals.items()},
-                # Comfort learning (item 19)
-                "comfort_weight": self._opt_config.comfort_weight,
-                "comfort_learning": self._comfort_learner.summary(),
-                # System identification (item 18)
-                "system_identification": self._sysid.as_dict(),
-                # Virtual battery (item 20)
-                "battery": self._battery_view(),
-            }
-        )
+        data.update({k: round(v, 4) for k, v in self._energy_totals.items()})
+        data["battery"] = self._battery_view()
 
         if result:
             # DHW schedule data
@@ -3643,10 +3737,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if result is None:
             return {"error": "no_plan", "rate_limited": False}
 
-        prices, outdoor_temps, wind, precip, solar, known, surplus = (
-            self._forecast_arrays()
-        )
-        if len(prices) < 4:
+        horizon = self._forecast_arrays()
+        if len(horizon.prices) < 4:
             return {"error": "no_prices", "rate_limited": False}
 
         scratch_config = replace(self._opt_config)
@@ -3660,6 +3752,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         ):
             if key in overrides:
                 setattr(scratch_config, key, float(overrides[key]))
+        # The heating schedule: which hours count as "day" and therefore get
+        # the day comfort temperature. Integers, because they index hours.
+        for key in ("day_start_hour", "day_end_hour"):
+            if key in overrides:
+                setattr(scratch_config, key, int(overrides[key]))
 
         scratch_params = replace(self._thermal_params)
         if "dhw_setpoint" in overrides:
@@ -3667,26 +3764,34 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if "dhw_min_temperature" in overrides:
             scratch_params.dhw_min_temp = float(overrides["dhw_min_temperature"])
         if "dhw_windows" in overrides:
-            try:
-                scratch_params.dhw_windows = parse_windows(
-                    str(overrides["dhw_windows"])
-                )
-            except DHWWindowError as err:
-                return {"error": f"invalid_windows: {err}", "rate_limited": False}
+            spec = str(overrides["dhw_windows"]).strip()
+            if not spec:
+                # An explicitly empty schedule means "no demand windows", which
+                # is a legitimate thing to simulate: it is what the plan looks
+                # like with hot water availability unconstrained.
+                scratch_params.dhw_windows = []
+            else:
+                try:
+                    scratch_params.dhw_windows = parse_windows(spec)
+                except DHWWindowError as err:
+                    return {
+                        "error": f"invalid_windows: {err}",
+                        "rate_limited": False,
+                    }
 
         scratch = HeatPumpOptimizer(ThermalModel(scratch_params), scratch_config)
         try:
             simulated = await self.hass.async_add_executor_job(
                 lambda: scratch.optimize(
                     replace(self._current_state),
-                    prices,
-                    outdoor_temps,
-                    wind,
-                    precip,
-                    solar,
+                    horizon.prices,
+                    horizon.outdoor_temps,
+                    horizon.wind_speeds,
+                    horizon.precipitation,
+                    horizon.solar_radiation,
                     now,
-                    known,
-                    surplus,
+                    horizon.price_known,
+                    horizon.pv_surplus,
                 )
             )
         except Exception as err:  # noqa: BLE001 - a what-if must never break ops
@@ -3697,16 +3802,54 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         days_per_month = 30.4
         scale = days_per_month * 24.0 / horizon_hours
         delta = simulated.predicted_cost - result.predicted_cost
+
+        def coldest(plan) -> float | None:
+            """Lowest temperature the plan actually reaches, in either zone."""
+            series = [
+                s
+                for s in (
+                    plan.upper_temp_trajectory,
+                    plan.lower_temp_trajectory,
+                    plan.room_temp_trajectory,
+                )
+                if s
+            ]
+            return round(min(min(s) for s in series), 2) if series else None
+
+        def dhw_low(plan) -> float | None:
+            if not plan.dhw_temp_trajectory:
+                return None
+            return round(float(min(plan.dhw_temp_trajectory)), 2)
+
         payload = {
             "baseline_cost": round(result.predicted_cost, 2),
             "simulated_cost": round(simulated.predicted_cost, 2),
             "cost_delta": round(delta, 2),
             "monthly_cost_delta": round(delta * scale, 2),
             "savings_percentage": round(simulated.savings_percentage, 1),
-            "min_room_temperature": (
-                round(float(min(simulated.room_temp_trajectory)), 2)
-                if simulated.room_temp_trajectory
-                else None
+            "min_room_temperature": coldest(simulated),
+            # The comfort consequence, alongside the money. A cheaper plan that
+            # is colder or leaves the tank short is not the same trade, and a
+            # simulator that reported only the saving would be inviting the
+            # user to make exactly that mistake.
+            "baseline_min_room_temperature": coldest(result),
+            "min_dhw_temperature": dhw_low(simulated),
+            "baseline_min_dhw_temperature": dhw_low(result),
+            "dhw_slots": len(
+                self._plan_slots(
+                    simulated.timestamps,
+                    list(simulated.dhw_power_schedule or []),
+                    list(simulated.prices),
+                    self._opt_config.dt_hours,
+                )
+            ),
+            "space_slots": len(
+                self._plan_slots(
+                    simulated.timestamps,
+                    list(simulated.power_schedule),
+                    list(simulated.prices),
+                    self._opt_config.dt_hours,
+                )
             ),
             "compressor_starts": simulated.compressor_starts,
             "projected_peak_kw": simulated.projected_peak_kw,

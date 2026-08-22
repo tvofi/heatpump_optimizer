@@ -14,7 +14,6 @@ The optimization accounts for:
 from __future__ import annotations
 
 import logging
-from datetime import timedelta
 from typing import Any
 
 import voluptuous as vol
@@ -28,13 +27,10 @@ from homeassistant.loader import async_get_integration
 from .const import (
     DOMAIN,
     CONFIG_ENTRY_VERSION,
-    PLATFORMS,
     SERVICE_RUN_OPTIMIZATION,
     SERVICE_SET_MODE,
     SERVICE_SET_THERMAL_PARAMS,
     SERVICE_SIMULATE_PLAN,
-    CONF_TIBBER_TOKEN,
-    CONF_WEATHER_ENTITY,
     MODE_AUTO,
     MODE_COMFORT,
     MODE_ECONOMY,
@@ -66,8 +62,18 @@ SERVICE_SCHEMA_SIMULATE_PLAN = vol.Schema(
         vol.Optional("comfort_temp_day"): vol.Coerce(float),
         vol.Optional("comfort_temp_night"): vol.Coerce(float),
         vol.Optional("comfort_weight"): vol.Coerce(float),
+        # The heating schedule: which hours get the day comfort temperature.
+        vol.Optional("day_start_hour"): vol.All(
+            vol.Coerce(int), vol.Range(min=0, max=23)
+        ),
+        vol.Optional("day_end_hour"): vol.All(
+            vol.Coerce(int), vol.Range(min=0, max=24)
+        ),
         vol.Optional("dhw_setpoint"): vol.Coerce(float),
         vol.Optional("dhw_min_temperature"): vol.Coerce(float),
+        # An empty string is meaningful here: it simulates having no demand
+        # windows at all, so it must survive the "drop empty values" filter in
+        # the handler below.
         vol.Optional("dhw_windows"): cv.string,
     }
 )
@@ -195,6 +201,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         coordinator rate-limits the underlying solve so that dragging a slider
         cannot trigger one solve per pixel.
         """
+        # ``None`` means "not supplied"; an empty string is a real value that
+        # simulates removing the hot water demand windows entirely.
         overrides = {k: v for k, v in call.data.items() if v is not None}
         results: dict[str, Any] = {}
         for entry_id, coord in hass.data[DOMAIN].items():

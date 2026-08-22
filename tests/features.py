@@ -51,7 +51,12 @@ from heatpump_optimizer.sysid import (
     SysIdConfig,
     SystemIdentification,
 )
-from heatpump_optimizer.tariff import CapacityTariff, PeakTracker, peak_penalty
+from heatpump_optimizer.tariff import (
+    CapacityTariff,
+    PeakTracker,
+    peak_cost,
+    peak_penalty,
+)
 from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator as Coord
 from heatpump_optimizer.thermal_model import ThermalModel, ThermalParameters, ThermalState
 
@@ -406,9 +411,9 @@ new_month = PeakTracker()
 new_month.observe(datetime(2026, 4, 1, 0, 0), 3.0, tariff)
 new_month._close_window(tariff)
 R.check(
-    "early in the month every kW is chargeable",
-    new_month.threshold_kw(tariff) == 0.0,
-    "there is no free headroom until the billed set is full",
+    "early in the month the threshold is what has actually been seen",
+    new_month.threshold_kw(tariff) == 3.0,
+    "not zero: charging for every kW makes the term dwarf the energy bill",
 )
 tracker.observe(datetime(2026, 4, 1, 0, 0), 1.0, tariff)
 R.check("a new month resets the peaks", tracker.month == "2026-04")
@@ -417,11 +422,62 @@ R.check(
     "staying under the threshold costs nothing",
     peak_penalty(np.full(8, 2.0), np.full(8, 1.0), 5.0, tariff, 0.25) == 0.0,
 )
+
+# The bill is full_price x mean(top-k peaks), which rearranges exactly to
+# marginal_price x sum(top-k excesses). Charging only the single largest, as
+# this originally did, under-states a plan with several high hours -- the very
+# plan a capacity tariff exists to discourage.
+hourly = np.array([8.0, 7.9, 7.8, 5.5, 5.1] + [3.0] * 19)
+charged = peak_cost(hourly, np.zeros(24), 6.0, 20.0, 60, 1.0, 3)
+top3 = np.sort(np.maximum(0.0, hourly - 6.0))[-3:]
 R.check(
-    "exceeding it is priced at the marginal rate",
-    abs(peak_penalty(np.full(8, 5.0), np.full(8, 2.0), 5.0, tariff, 0.25) - 40.0)
-    < 1e-6,
-    "2 kW over at 20/kW",
+    "the peak charge equals the bill it models",
+    abs(charged - 60.0 * float(np.mean(top3))) < 1e-6,
+    f"charged {charged:.2f}, bill {60.0 * float(np.mean(top3)):.2f}",
+)
+R.check(
+    "several high hours cost more than one",
+    peak_cost(np.array([8.0] * 3 + [3.0] * 21), np.zeros(24), 6.0, 20.0, 60, 1.0, 3)
+    > peak_cost(np.array([8.0] + [3.0] * 23), np.zeros(24), 6.0, 20.0, 60, 1.0, 3),
+)
+
+# The solver reaches this through numerical gradients, so a term that is flat
+# almost everywhere is invisible to it. Measured: with a plain ``max`` the
+# tariff had gradient at 1 step in 96 and enabling it *raised* the peak.
+flat = np.full(96, 3.0)
+base_cost = peak_cost(flat, np.full(96, 1.5), 3.0, 20.0, 60, 0.25, 3)
+gradients = []
+for index in (5, 50, 90, 95):
+    probe = flat.copy()
+    probe[index] += 1e-4
+    gradients.append(
+        (peak_cost(probe, np.full(96, 1.5), 3.0, 20.0, 60, 0.25, 3) - base_cost) / 1e-4
+    )
+R.check(
+    "the peak charge has a gradient the solver can follow",
+    sum(1 for g in gradients if abs(g) > 1e-6) >= 3,
+    f"only {sum(1 for g in gradients if abs(g) > 1e-6)} of 4 probes moved it",
+)
+
+# With no history there is no reference, and treating every kW as a brand-new
+# peak makes the term dwarf the whole energy bill.
+fresh = PeakTracker()
+R.check(
+    "a month with no recorded peaks disables the charge",
+    not np.isfinite(fresh.threshold_kw(tariff))
+    and peak_cost(
+        np.full(96, 6.0), np.zeros(96),
+        fresh.threshold_kw(tariff), 20.0, 60, 0.25, 3,
+    )
+    == 0.0,
+    "otherwise a normal day is charged ~9x its own energy cost",
+)
+partial = PeakTracker()
+partial.peaks = [5.5]
+partial.month = "2026-03"
+R.check(
+    "a partial month measures against what has actually been seen",
+    partial.threshold_kw(tariff) == 5.5,
 )
 # A short burst inside an hourly-metered tariff barely moves the hourly mean.
 burst = np.zeros(8)
@@ -432,13 +488,17 @@ R.check(
     < peak_penalty(np.full(8, 8.0), np.zeros(8), 1.0, tariff, 0.25),
     "penalising the instantaneous step would give away real savings",
 )
+# Not one charge per hour -- that would price a whole month's tariff into
+# every busy hour of one day -- but not only the single largest either, since
+# the bill averages the month's top few.
 R.check(
-    "only the largest excess counts, not one per hour",
+    "the charge covers exactly the peaks the bill averages",
     abs(
         peak_penalty(np.full(8, 7.0), np.zeros(8), 5.0, tariff, 1.0)
-        - 2.0 * tariff.marginal_price_per_kw
+        - tariff.peaks_averaged * 2.0 * tariff.marginal_price_per_kw
     )
     < 1e-6,
+    "three hours 2 kW over, averaged, at the full 60/kW = 120",
 )
 
 
@@ -1315,6 +1375,224 @@ R.check(
     "a heated basement scales the slow store once, not twice",
     ratio < 1.30,
     f"lower floor mass scaled by {ratio:.3f}; the adjustment is 1.25",
+)
+
+
+# ===========================================================================
+# Configuration mapping
+# ===========================================================================
+R.section("Configuration mapping")
+
+import dataclasses
+
+from heatpump_optimizer import const as hp_const
+
+# The table-driven ``from_config`` is only correct if it actually covers the
+# parameters. A field the table forgets keeps its dataclass default forever,
+# silently ignoring whatever the user configured — which is invisible until
+# someone wonders why a setting does nothing.
+declared = {f.name for f in dataclasses.fields(ThermalParameters)}
+# Fields that are deliberately not user-configurable.
+runtime_only = {
+    "dhw_hourly_draw_pattern",  # learned from observed draws
+    "defrost_derate",           # learned per temperature/humidity bucket
+    "ambient_humidity",         # current conditions, set per update
+    "cop_scale",                # learned from measured power
+    "cop_reference_temp",       # a property of the COP curve, not the house
+    "internal_gains",           # not exposed in the config flow
+    "dhw_windows",              # parsed separately from a string spec
+    "two_zone_enabled",         # inferred from which keys are present
+    "dhw_enabled",              # inferred from which keys are present
+}
+
+def reachable(name: str) -> str | None:
+    """Find a config key that actually changes ``name``, or None.
+
+    Booleans are probed by flipping them away from their default rather than
+    by a sentinel value: the mapping coerces with ``bool()``, so any sentinel
+    would come back as True and look like a match for every boolean field.
+    """
+    default_value = getattr(ThermalParameters.from_config({}), name)
+    if isinstance(default_value, bool):
+        sentinel = not default_value
+    else:
+        sentinel = 0.5 if default_value != 0.5 else 0.25
+    for candidate in dir(hp_const):
+        if not candidate.startswith("CONF_"):
+            continue
+        try:
+            built = ThermalParameters.from_config(
+                {getattr(hp_const, candidate): sentinel}
+            )
+        except Exception:
+            continue
+        if getattr(built, name, None) == sentinel:
+            return candidate
+    return None
+
+
+probe = {name: reachable(name) for name in declared - runtime_only}
+
+unreachable = sorted(n for n, k in probe.items() if k is None)
+R.check(
+    "every configurable parameter is reachable from a config key",
+    not unreachable,
+    ", ".join(unreachable),
+)
+
+# Round-tripping: a value set in the config must arrive in the parameters.
+sample = {
+    hp_const.CONF_HOUSE_THERMAL_MASS: 12.5,
+    hp_const.CONF_HOUSE_HEAT_LOSS_COEFFICIENT: 0.22,
+    hp_const.CONF_HEAT_PUMP_MAX_POWER: 9.0,
+    hp_const.CONF_DHW_SETPOINT: 58.0,
+    hp_const.CONF_DHW_TANK_VOLUME: 300.0,
+    hp_const.CONF_WIND_SENSITIVITY: 0.25,
+    hp_const.CONF_ECL110_DISPLACE_MAX: 12.0,
+}
+built = ThermalParameters.from_config(sample)
+R.check("configured thermal mass arrives", built.room_thermal_mass == 12.5)
+R.check("configured heat loss arrives", built.heat_loss_coefficient == 0.22)
+R.check("configured max power arrives", built.max_electrical_power == 9.0)
+R.check("configured DHW setpoint arrives", built.dhw_setpoint == 58.0)
+R.check("configured wind sensitivity arrives", built.wind_sensitivity == 0.25)
+R.check("configured displace limit arrives", built.ecl110_displace_max == 12.0)
+
+R.check(
+    "an empty config yields the documented defaults",
+    ThermalParameters.from_config({}).room_thermal_mass
+    == hp_const.DEFAULT_HOUSE_THERMAL_MASS,
+)
+R.check(
+    "two-zone is inferred from the presence of its keys",
+    ThermalParameters.from_config(
+        {hp_const.CONF_UPPER_FLOOR_THERMAL_MASS: 3.0}
+    ).two_zone_enabled
+    and not ThermalParameters.from_config({}).two_zone_enabled,
+    "an entry written before two-zone existed must keep working",
+)
+R.check(
+    "hot water is inferred from the presence of its keys",
+    ThermalParameters.from_config(
+        {hp_const.CONF_DHW_TANK_VOLUME: 200.0}
+    ).dhw_enabled
+    and not ThermalParameters.from_config({}).dhw_enabled,
+)
+R.check(
+    "a boolean stored as a string is still a boolean",
+    ThermalParameters.from_config(
+        {hp_const.CONF_DHW_LEGIONELLA_ENABLED: "yes"}
+    ).dhw_legionella_enabled
+    is True,
+)
+R.check(
+    "an unparseable window spec falls back rather than raising",
+    ThermalParameters.from_config(
+        {hp_const.CONF_DHW_WINDOWS: "not a time range"}
+    ).dhw_windows
+    == [],
+)
+
+
+# ===========================================================================
+# Runtime parameter updates
+# ===========================================================================
+R.section("Runtime parameter updates")
+
+import asyncio
+
+from harness import FakeEntry, FakeHass
+from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator
+
+param_coord = HeatPumpOptimizerCoordinator(
+    FakeHass(),
+    FakeEntry(
+        data={
+            "tibber_token": "x",
+            "weather_entity": "weather.home",
+            "dhw_tank_volume": 200.0,
+            "upper_floor_thermal_mass": 3.0,
+        }
+    ),
+)
+
+# The table covers plain assignments; every one has to actually land.
+asyncio.run(
+    param_coord.async_update_thermal_params(
+        {
+            "house_thermal_mass": 14.0,
+            "slab_thermal_mass": 9.0,
+            "heat_pump_cop_nominal": 4.2,
+            "dhw_setpoint": 60.0,
+            "dhw_min_temperature": 48.0,
+            "window_area": 22.0,
+            "wind_sensitivity_factor": 0.3,
+            "radiator_power_fraction": 0.55,
+        }
+    )
+)
+params = param_coord._thermal_params
+R.check("a mapped parameter is applied", params.room_thermal_mass == 14.0)
+R.check("a renamed parameter is applied", params.dhw_min_temp == 48.0)
+R.check("COP nominal is applied", params.cop_nominal == 4.2)
+R.check("a two-zone parameter is applied", params.radiator_power_fraction == 0.55)
+R.check(
+    "the model is rebuilt against the new parameters",
+    param_coord._thermal_model.params is params
+    and param_coord._optimizer.model is param_coord._thermal_model,
+    "the model holds the parameters by reference at construction",
+)
+
+# The special cases exist because each has a consequence beyond itself.
+param_coord._house_heat_loss_samples = 50
+param_coord._apply_house_heat_loss_scale(1.8)
+asyncio.run(
+    param_coord.async_update_thermal_params({"house_heat_loss_coefficient": 0.3})
+)
+R.check(
+    "a new nameplate heat loss resets what was learned against the old one",
+    param_coord._house_heat_loss_scale == 1.0
+    and param_coord._house_heat_loss_samples == 0,
+)
+
+asyncio.run(
+    param_coord.async_update_thermal_params({"ecl110_displace_max": 14.0})
+)
+R.check(
+    "the displace limit is mirrored where the publisher clamps against it",
+    param_coord._ecl110_displace_max == 14.0
+    and params.ecl110_displace_max == 14.0,
+)
+
+asyncio.run(
+    param_coord.async_update_thermal_params({"dhw_windows": "07:00-09:00"})
+)
+R.check(
+    "a valid window spec is parsed",
+    param_coord._thermal_params.dhw_windows == [(7.0, 9.0)],
+    str(param_coord._thermal_params.dhw_windows),
+)
+before = list(param_coord._thermal_params.dhw_windows)
+asyncio.run(param_coord.async_update_thermal_params({"dhw_windows": "garbage"}))
+R.check(
+    "an invalid window spec is ignored rather than clearing the schedule",
+    param_coord._thermal_params.dhw_windows == before,
+)
+
+param_coord._dhw_cooling_samples = 30
+asyncio.run(param_coord.async_update_thermal_params({"dhw_cooling_rate": 0.5}))
+R.check(
+    "an explicit cooling rate restarts the learner from it",
+    abs(param_coord._dhw_cooling_rate - 0.5) < 1e-9
+    and param_coord._dhw_cooling_samples == 0,
+)
+
+R.check(
+    "an unknown parameter is ignored, not fatal",
+    asyncio.run(
+        param_coord.async_update_thermal_params({"not_a_parameter": 1})
+    )
+    is None,
 )
 
 sys.exit(R.close("FEATURE CHECKS"))

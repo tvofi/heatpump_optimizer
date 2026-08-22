@@ -83,8 +83,6 @@ from .const import (
     DEFAULT_ECL110_DISPLACE_MIN,
     DEFAULT_ECL110_DISPLACE_MAX,
     DEFAULT_ECL110_PID_TIME_CONSTANT,
-    WIND_CHILL_FACTOR,
-    RAIN_COOLING_FACTOR,
 )
 from .dhw_schedule import (
     DHWWindowError,
@@ -319,70 +317,150 @@ class ThermalParameters:
 
     @classmethod
     def from_config(cls, config: dict[str, Any]) -> ThermalParameters:
-        """Create ThermalParameters from a config dictionary."""
-        from .const import (
-            CONF_HOUSE_THERMAL_MASS,
-            CONF_HOUSE_HEAT_LOSS_COEFFICIENT,
-            CONF_SLAB_THERMAL_MASS,
-            CONF_SLAB_HEAT_TRANSFER,
-            CONF_HEAT_PUMP_COP_NOMINAL,
-            CONF_HEAT_PUMP_MAX_POWER,
-            CONF_HEAT_PUMP_MIN_POWER,
-            CONF_UPPER_FLOOR_THERMAL_MASS,
-            CONF_LOWER_FLOOR_THERMAL_MASS,
-            CONF_UPPER_FLOOR_HEAT_LOSS,
-            CONF_LOWER_FLOOR_HEAT_LOSS,
-            CONF_INTER_ZONE_TRANSFER,
-            CONF_RADIATOR_POWER_FRACTION,
-            CONF_BUFFER_TANK_VOLUME,
-            CONF_BUFFER_TANK_LOSS,
-            CONF_WINDOW_AREA,
-            CONF_SOLAR_ORIENTATION_FACTOR,
-            CONF_SOLAR_HEAT_GAIN_COEFF,
-            CONF_SOLAR_UPPER_FRACTION,
-            CONF_DHW_TANK_VOLUME,
-            CONF_DHW_SETPOINT,
-            CONF_DHW_MIN_TEMP,
-            CONF_DHW_DAILY_CONSUMPTION,
-            CONF_DHW_COOLING_RATE,
-            CONF_BUFFER_COOLING_RATE,
-            CONF_HOUSE_HEAT_LOSS_SCALE,
-            CONF_DHW_SCHEDULE_ENABLED,
-            CONF_DHW_WINDOWS,
-            CONF_DHW_IDLE_MIN_TEMP,
-            CONF_DHW_LEGIONELLA_ENABLED,
-            CONF_DHW_LEGIONELLA_TEMP,
-            CONF_DHW_LEGIONELLA_INTERVAL_DAYS,
-            CONF_WIND_SENSITIVITY,
-            CONF_RAIN_HEAT_LOSS_MULTIPLIER,
-            CONF_ECL110_DISPLACE_MIN,
-            CONF_ECL110_DISPLACE_MAX,
-            CONF_ECL110_PID_TIME_CONSTANT,
-            CONF_DHW_TEMP_ENTITY,
-        )
+        """Create ThermalParameters from a config dictionary.
 
-        # Detect if two-zone config is provided
-        two_zone = any(
-            k in config
-            for k in (
-                CONF_UPPER_FLOOR_THERMAL_MASS,
-                CONF_LOWER_FLOOR_THERMAL_MASS,
-                CONF_INTER_ZONE_TRANSFER,
-                CONF_RADIATOR_POWER_FRACTION,
+        The mapping is a table rather than ninety lines of near-identical
+        ``config.get(KEY, DEFAULT)`` calls. Adding a parameter is one row, and
+        a typo in a key or a default is visible by comparison with its
+        neighbours instead of buried in prose.
+        """
+        from . import const
+
+        # field name -> (config key, default). Both are resolved from ``const``
+        # by name so the table stays readable and a missing constant fails
+        # loudly at import rather than silently substituting a default.
+        table = {
+            # Single-zone / legacy
+            "room_thermal_mass": ("HOUSE_THERMAL_MASS", "HOUSE_THERMAL_MASS"),
+            "slab_thermal_mass": ("SLAB_THERMAL_MASS", "SLAB_THERMAL_MASS"),
+            "heat_loss_coefficient": (
+                "HOUSE_HEAT_LOSS_COEFFICIENT", "HOUSE_HEAT_LOSS_COEFFICIENT"
+            ),
+            "slab_heat_transfer": ("SLAB_HEAT_TRANSFER", "SLAB_HEAT_TRANSFER"),
+            # Two-zone
+            "upper_floor_thermal_mass": (
+                "UPPER_FLOOR_THERMAL_MASS", "UPPER_FLOOR_THERMAL_MASS"
+            ),
+            "lower_floor_thermal_mass": (
+                "LOWER_FLOOR_THERMAL_MASS", "LOWER_FLOOR_THERMAL_MASS"
+            ),
+            "upper_floor_heat_loss": (
+                "UPPER_FLOOR_HEAT_LOSS", "UPPER_FLOOR_HEAT_LOSS"
+            ),
+            "lower_floor_heat_loss": (
+                "LOWER_FLOOR_HEAT_LOSS", "LOWER_FLOOR_HEAT_LOSS"
+            ),
+            "inter_zone_transfer": ("INTER_ZONE_TRANSFER", "INTER_ZONE_TRANSFER"),
+            "radiator_power_fraction": (
+                "RADIATOR_POWER_FRACTION", "RADIATOR_POWER_FRACTION"
+            ),
+            # Buffer tank
+            "buffer_tank_volume": ("BUFFER_TANK_VOLUME", "BUFFER_TANK_VOLUME"),
+            "buffer_tank_heat_loss": ("BUFFER_TANK_LOSS", "BUFFER_TANK_LOSS"),
+            # Solar gain
+            "window_area": ("WINDOW_AREA", "WINDOW_AREA"),
+            "solar_orientation_factor": (
+                "SOLAR_ORIENTATION_FACTOR", "SOLAR_ORIENTATION_FACTOR"
+            ),
+            "solar_heat_gain_coefficient": (
+                "SOLAR_HEAT_GAIN_COEFF", "SOLAR_HEAT_GAIN_COEFF"
+            ),
+            "solar_upper_fraction": (
+                "SOLAR_UPPER_FRACTION", "SOLAR_UPPER_FRACTION"
+            ),
+            # Hot water
+            "dhw_tank_volume": ("DHW_TANK_VOLUME", "DHW_TANK_VOLUME"),
+            "dhw_setpoint": ("DHW_SETPOINT", "DHW_SETPOINT"),
+            "dhw_min_temp": ("DHW_MIN_TEMP", "DHW_MIN_TEMP"),
+            "dhw_daily_consumption": (
+                "DHW_DAILY_CONSUMPTION", "DHW_DAILY_CONSUMPTION"
+            ),
+            "dhw_cooling_rate": ("DHW_COOLING_RATE", "DHW_COOLING_RATE"),
+            "dhw_idle_min_temp": ("DHW_IDLE_MIN_TEMP", "DHW_IDLE_MIN_TEMP"),
+            "dhw_legionella_temp": (
+                "DHW_LEGIONELLA_TEMP", "DHW_LEGIONELLA_TEMP"
+            ),
+            "dhw_legionella_interval_days": (
+                "DHW_LEGIONELLA_INTERVAL_DAYS", "DHW_LEGIONELLA_INTERVAL_DAYS"
+            ),
+            # Learned corrections
+            "buffer_cooling_rate": ("BUFFER_COOLING_RATE", "BUFFER_COOLING_RATE"),
+            "house_heat_loss_scale": (
+                "HOUSE_HEAT_LOSS_SCALE", "HOUSE_HEAT_LOSS_SCALE"
+            ),
+            # Weather sensitivity
+            "wind_sensitivity": ("WIND_SENSITIVITY", "WIND_SENSITIVITY"),
+            "rain_heat_loss_multiplier": (
+                "RAIN_HEAT_LOSS_MULTIPLIER", "RAIN_HEAT_LOSS_MULTIPLIER"
+            ),
+            # ECL110 heat curve control
+            "ecl110_displace_min": (
+                "ECL110_DISPLACE_MIN", "ECL110_DISPLACE_MIN"
+            ),
+            "ecl110_displace_max": (
+                "ECL110_DISPLACE_MAX", "ECL110_DISPLACE_MAX"
+            ),
+            "ecl110_pid_time_constant_hours": (
+                "ECL110_PID_TIME_CONSTANT", "ECL110_PID_TIME_CONSTANT"
+            ),
+            # Heat pump
+            "cop_nominal": ("HEAT_PUMP_COP_NOMINAL", "HEAT_PUMP_COP_NOMINAL"),
+            "max_electrical_power": (
+                "HEAT_PUMP_MAX_POWER", "HEAT_PUMP_MAX_POWER"
+            ),
+            "min_electrical_power": (
+                "HEAT_PUMP_MIN_POWER", "HEAT_PUMP_MIN_POWER"
+            ),
+        }
+
+        values = {
+            name: config.get(
+                getattr(const, f"CONF_{conf}"), getattr(const, f"DEFAULT_{default}")
+            )
+            for name, (conf, default) in table.items()
+        }
+
+        # Booleans are coerced because a config entry may carry a string.
+        for name, conf, default in (
+            ("dhw_schedule_enabled", "DHW_SCHEDULE_ENABLED", "DHW_SCHEDULE_ENABLED"),
+            (
+                "dhw_legionella_enabled",
+                "DHW_LEGIONELLA_ENABLED",
+                "DHW_LEGIONELLA_ENABLED",
+            ),
+        ):
+            values[name] = bool(
+                config.get(
+                    getattr(const, f"CONF_{conf}"), getattr(const, f"DEFAULT_{default}")
+                )
+            )
+
+        # Two-zone and DHW are inferred from whether their settings are present
+        # at all, rather than from a flag, so an entry written before either
+        # existed keeps working.
+        values["two_zone_enabled"] = any(
+            key in config
+            for key in (
+                const.CONF_UPPER_FLOOR_THERMAL_MASS,
+                const.CONF_LOWER_FLOOR_THERMAL_MASS,
+                const.CONF_INTER_ZONE_TRANSFER,
+                const.CONF_RADIATOR_POWER_FRACTION,
+            )
+        )
+        values["dhw_enabled"] = any(
+            key in config
+            for key in (
+                const.CONF_DHW_TANK_VOLUME,
+                const.CONF_DHW_TEMP_ENTITY,
+                const.CONF_DHW_WINDOWS,
             )
         )
 
-        # Detect if DHW config is provided
-        dhw_enabled = any(
-            k in config
-            for k in (CONF_DHW_TANK_VOLUME, CONF_DHW_TEMP_ENTITY, CONF_DHW_WINDOWS)
-        )
-
-        # DHW demand windows: fall back to the default schedule when the stored
+        # Demand windows: fall back to the default schedule when the stored
         # value is missing, and to "always available" when it cannot be parsed.
-        windows_spec = config.get(CONF_DHW_WINDOWS, DEFAULT_DHW_WINDOWS)
+        windows_spec = config.get(const.CONF_DHW_WINDOWS, DEFAULT_DHW_WINDOWS)
         try:
-            dhw_windows = parse_windows(windows_spec)
+            values["dhw_windows"] = parse_windows(windows_spec)
         except DHWWindowError as err:
             _LOGGER.warning(
                 "Invalid DHW window configuration %r (%s); falling back to "
@@ -390,130 +468,9 @@ class ThermalParameters:
                 windows_spec,
                 err,
             )
-            dhw_windows = []
+            values["dhw_windows"] = []
 
-        return cls(
-            # Legacy
-            room_thermal_mass=config.get(
-                CONF_HOUSE_THERMAL_MASS, DEFAULT_HOUSE_THERMAL_MASS
-            ),
-            slab_thermal_mass=config.get(
-                CONF_SLAB_THERMAL_MASS, DEFAULT_SLAB_THERMAL_MASS
-            ),
-            heat_loss_coefficient=config.get(
-                CONF_HOUSE_HEAT_LOSS_COEFFICIENT, DEFAULT_HOUSE_HEAT_LOSS_COEFFICIENT
-            ),
-            slab_heat_transfer=config.get(
-                CONF_SLAB_HEAT_TRANSFER, DEFAULT_SLAB_HEAT_TRANSFER
-            ),
-            # Two-zone
-            upper_floor_thermal_mass=config.get(
-                CONF_UPPER_FLOOR_THERMAL_MASS, DEFAULT_UPPER_FLOOR_THERMAL_MASS
-            ),
-            lower_floor_thermal_mass=config.get(
-                CONF_LOWER_FLOOR_THERMAL_MASS, DEFAULT_LOWER_FLOOR_THERMAL_MASS
-            ),
-            upper_floor_heat_loss=config.get(
-                CONF_UPPER_FLOOR_HEAT_LOSS, DEFAULT_UPPER_FLOOR_HEAT_LOSS
-            ),
-            lower_floor_heat_loss=config.get(
-                CONF_LOWER_FLOOR_HEAT_LOSS, DEFAULT_LOWER_FLOOR_HEAT_LOSS
-            ),
-            inter_zone_transfer=config.get(
-                CONF_INTER_ZONE_TRANSFER, DEFAULT_INTER_ZONE_TRANSFER
-            ),
-            radiator_power_fraction=config.get(
-                CONF_RADIATOR_POWER_FRACTION, DEFAULT_RADIATOR_POWER_FRACTION
-            ),
-            # Buffer tank
-            buffer_tank_volume=config.get(
-                CONF_BUFFER_TANK_VOLUME, DEFAULT_BUFFER_TANK_VOLUME
-            ),
-            buffer_tank_heat_loss=config.get(
-                CONF_BUFFER_TANK_LOSS, DEFAULT_BUFFER_TANK_LOSS
-            ),
-            # Solar
-            window_area=config.get(CONF_WINDOW_AREA, DEFAULT_WINDOW_AREA),
-            solar_orientation_factor=config.get(
-                CONF_SOLAR_ORIENTATION_FACTOR, DEFAULT_SOLAR_ORIENTATION_FACTOR
-            ),
-            solar_heat_gain_coefficient=config.get(
-                CONF_SOLAR_HEAT_GAIN_COEFF, DEFAULT_SOLAR_HEAT_GAIN_COEFF
-            ),
-            solar_upper_fraction=config.get(
-                CONF_SOLAR_UPPER_FRACTION, DEFAULT_SOLAR_UPPER_FRACTION
-            ),
-            # DHW
-            dhw_tank_volume=config.get(
-                CONF_DHW_TANK_VOLUME, DEFAULT_DHW_TANK_VOLUME
-            ),
-            dhw_setpoint=config.get(
-                CONF_DHW_SETPOINT, DEFAULT_DHW_SETPOINT
-            ),
-            dhw_min_temp=config.get(
-                CONF_DHW_MIN_TEMP, DEFAULT_DHW_MIN_TEMP
-            ),
-            dhw_daily_consumption=config.get(
-                CONF_DHW_DAILY_CONSUMPTION, DEFAULT_DHW_DAILY_CONSUMPTION
-            ),
-            dhw_cooling_rate=config.get(
-                CONF_DHW_COOLING_RATE, DEFAULT_DHW_COOLING_RATE
-            ),
-            buffer_cooling_rate=config.get(
-                CONF_BUFFER_COOLING_RATE, DEFAULT_BUFFER_COOLING_RATE
-            ),
-            house_heat_loss_scale=config.get(
-                CONF_HOUSE_HEAT_LOSS_SCALE, DEFAULT_HOUSE_HEAT_LOSS_SCALE
-            ),
-            dhw_schedule_enabled=bool(
-                config.get(CONF_DHW_SCHEDULE_ENABLED, DEFAULT_DHW_SCHEDULE_ENABLED)
-            ),
-            dhw_windows=dhw_windows,
-            dhw_idle_min_temp=config.get(
-                CONF_DHW_IDLE_MIN_TEMP, DEFAULT_DHW_IDLE_MIN_TEMP
-            ),
-            dhw_legionella_enabled=bool(
-                config.get(
-                    CONF_DHW_LEGIONELLA_ENABLED, DEFAULT_DHW_LEGIONELLA_ENABLED
-                )
-            ),
-            dhw_legionella_temp=config.get(
-                CONF_DHW_LEGIONELLA_TEMP, DEFAULT_DHW_LEGIONELLA_TEMP
-            ),
-            dhw_legionella_interval_days=config.get(
-                CONF_DHW_LEGIONELLA_INTERVAL_DAYS,
-                DEFAULT_DHW_LEGIONELLA_INTERVAL_DAYS,
-            ),
-            # Weather sensitivity
-            wind_sensitivity=config.get(
-                CONF_WIND_SENSITIVITY, DEFAULT_WIND_SENSITIVITY
-            ),
-            rain_heat_loss_multiplier=config.get(
-                CONF_RAIN_HEAT_LOSS_MULTIPLIER, DEFAULT_RAIN_HEAT_LOSS_MULTIPLIER
-            ),
-            # ECL110
-            ecl110_displace_min=config.get(
-                CONF_ECL110_DISPLACE_MIN, DEFAULT_ECL110_DISPLACE_MIN
-            ),
-            ecl110_displace_max=config.get(
-                CONF_ECL110_DISPLACE_MAX, DEFAULT_ECL110_DISPLACE_MAX
-            ),
-            ecl110_pid_time_constant_hours=config.get(
-                CONF_ECL110_PID_TIME_CONSTANT, DEFAULT_ECL110_PID_TIME_CONSTANT
-            ),
-            # Heat pump
-            cop_nominal=config.get(
-                CONF_HEAT_PUMP_COP_NOMINAL, DEFAULT_HEAT_PUMP_COP_NOMINAL
-            ),
-            max_electrical_power=config.get(
-                CONF_HEAT_PUMP_MAX_POWER, DEFAULT_HEAT_PUMP_MAX_POWER
-            ),
-            min_electrical_power=config.get(
-                CONF_HEAT_PUMP_MIN_POWER, DEFAULT_HEAT_PUMP_MIN_POWER
-            ),
-            two_zone_enabled=two_zone,
-            dhw_enabled=dhw_enabled,
-        )
+        return cls(**values)
 
 
 @dataclass

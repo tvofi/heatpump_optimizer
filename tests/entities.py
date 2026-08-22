@@ -161,6 +161,23 @@ R.section("Sensors")
 sensors = collect(sensor)
 by_name = {s._attr_name: s for s in sensors}
 R.check("all sensors are constructible", len(sensors) > 30, str(len(sensors)))
+
+# Entity counts are published in the README, so they are a claim rather than a
+# detail. A count that quietly drifts makes the documentation wrong in the one
+# place a user checks before installing.
+readme = Path("README.md").read_text()
+for label, count, pattern in (
+    ("sensors", len(sensors), r"### Sensors \((\d+) total\)"),
+    ("binary sensors", 3, r"### Binary Sensors \((\d+) total\)"),
+    ("buttons", 3, r"### Buttons \((\d+) total\)"),
+):
+    import re as _re
+    match = _re.search(pattern, readme)
+    R.check(
+        f"the README's {label} count is right",
+        match is not None and int(match.group(1)) == count,
+        f"README says {match.group(1) if match else '?'}, there are {count}",
+    )
 R.check(
     "unique ids are unique",
     len({s._attr_unique_id for s in sensors}) == len(sensors),

@@ -10,7 +10,7 @@
  */
 
 const CARD_TAG = "heatpump-optimizer-card";
-const CARD_VERSION = "2.8.0";
+const CARD_VERSION = "3.0.0";
 
 const DEFAULTS = {
   title: "Heat pump plan",
@@ -151,6 +151,45 @@ const REASON_LABELS = {
   idle: "Not heating",
 };
 
+/** Stop a click inside the panel from reaching the card's expand handler. */
+function stop(ev) {
+  if (ev && typeof ev.stopPropagation === "function") ev.stopPropagation();
+}
+
+/** "7" -> "07:00", for a time input. */
+function hhmm(hour) {
+  const h = Math.max(0, Math.min(23, Math.round(Number(hour) || 0)));
+  return `${String(h).padStart(2, "0")}:00`;
+}
+
+/** "07:30" -> 7.5, or `fallback` when it is not a time. */
+function hourOf(value, fallback) {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(String(value || "").trim());
+  if (!m) return fallback;
+  const h = Number(m[1]);
+  const min = Number(m[2]);
+  if (h > 23 || min > 59) return fallback;
+  return h + min / 60;
+}
+
+/** '06:00-08:30, 17:00-22:00' -> [{start,end}, ...] */
+function parseWindows(spec) {
+  if (typeof spec !== "string" || !spec.trim()) return [];
+  const out = [];
+  for (const part of spec.split(",")) {
+    const m = /^\s*(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})\s*$/.exec(part);
+    if (m) out.push({ start: m[1], end: m[2] });
+  }
+  return out;
+}
+
+/** The inverse, in the format the integration's parser expects. */
+function formatWindows(windows) {
+  return (windows || [])
+    .map((w) => `${w.start}-${w.end}`)
+    .join(", ");
+}
+
 function esc(str) {
   return String(str)
     .replace(/&/g, "&amp;")
@@ -215,7 +254,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     this._expanded = false;
     // What-if simulator state (item 21). Kept on the instance so a re-render
     // triggered by a data refresh does not reset the slider under the user.
-    this._whatIfValue = null;
+    this._whatIf = null;
     this._whatIfTimer = null;
     this._onLegendClick = this._onLegendClick.bind(this);
     this._onPointerMove = this._onPointerMove.bind(this);
@@ -225,6 +264,11 @@ class HeatpumpOptimizerCard extends HTMLElement {
     this._onDialogClick = this._onDialogClick.bind(this);
     this._onDialogClose = this._onDialogClose.bind(this);
     this._onWhatIfInput = this._onWhatIfInput.bind(this);
+    this._onSlotEdit = this._onSlotEdit.bind(this);
+    this._onAddWindow = this._onAddWindow.bind(this);
+    this._onRemoveWindow = this._onRemoveWindow.bind(this);
+    this._onApplySlots = this._onApplySlots.bind(this);
+    this._onResetWhatIf = this._onResetWhatIf.bind(this);
   }
 
   // ---- Lovelace contract -------------------------------------------------
@@ -698,117 +742,338 @@ class HeatpumpOptimizerCard extends HTMLElement {
 
   /** The what-if simulator, shown in the expanded view only.
    *
-   * Setpoints are normally chosen blind: the optimizer can price a plan, but
-   * the user never sees the price of their own comfort choices. Dragging a
-   * slider here re-solves against the current forecast and reports the monthly
-   * cost difference, which turns "I set 21 because it sounds about right" into
-   * an informed decision.
+   * Setpoints and time slots are normally chosen blind: the optimizer can
+   * price a plan, but the user never sees the price of their own comfort
+   * choices. Here they can change the comfort temperature, the hours the house
+   * is heated to it, and the hot water demand windows, and see what each would
+   * cost per month.
    *
-   * The evaluation runs off a copy of the configuration on the coordinator
-   * side, so an exploratory drag never disturbs actual operation, and the
-   * service call is both debounced here and rate-limited there.
+   * Everything runs against a *copy* of the configuration on the coordinator
+   * side, so nothing here can disturb actual operation. The temperature slider
+   * is debounced; the slot editors are applied on an explicit button, because
+   * editing a time range is not a drag gesture and half-typed times should not
+   * trigger a solve.
    */
   _whatIfHtml() {
     if (!this._config.what_if) return "";
-    const target = this._whatIfTarget();
+    const draft = this._whatIfDraft();
+    const windows = draft.dhwWindows;
     return `
       <div class="whatif">
-        <label>
-          Comfort temperature
-          <input type="range" class="wi-temp" min="16" max="24" step="0.5"
-            value="${target}" aria-label="Comfort temperature">
-          <span class="wi-value">${target.toFixed(1)}&nbsp;°C</span>
-        </label>
+        <div class="wi-row">
+          <label class="wi-field">
+            <span>Comfort temperature</span>
+            <input type="range" class="wi-temp" min="16" max="24" step="0.5"
+              value="${draft.comfort}" aria-label="Comfort temperature">
+            <span class="wi-value">${draft.comfort.toFixed(1)}&nbsp;°C</span>
+          </label>
+        </div>
+
+        <div class="wi-row wi-slots">
+          <div class="wi-group">
+            <div class="wi-group-title">Heating hours</div>
+            <label class="wi-field">
+              <span>Day from</span>
+              <input type="time" class="wi-day-start" step="3600"
+                value="${hhmm(draft.dayStart)}" aria-label="Heating day starts">
+            </label>
+            <label class="wi-field">
+              <span>to</span>
+              <input type="time" class="wi-day-end" step="3600"
+                value="${hhmm(draft.dayEnd)}" aria-label="Heating day ends">
+            </label>
+            <div class="wi-hint">Outside these hours the night setback applies.</div>
+          </div>
+
+          <div class="wi-group">
+            <div class="wi-group-title">Hot water windows</div>
+            <div class="wi-windows">
+              ${windows.length
+                ? windows
+                    .map(
+                      (w, i) => `
+                <div class="wi-window" data-index="${i}">
+                  <input type="time" class="wi-win-start" step="900"
+                    value="${esc(w.start)}" aria-label="Window ${i + 1} start">
+                  <span>–</span>
+                  <input type="time" class="wi-win-end" step="900"
+                    value="${esc(w.end)}" aria-label="Window ${i + 1} end">
+                  <button type="button" class="wi-remove" data-index="${i}"
+                    title="Remove" aria-label="Remove window ${i + 1}">×</button>
+                </div>`
+                    )
+                    .join("")
+                : `<div class="wi-hint">No windows: hot water is never
+                     required, so the tank is only kept above its idle
+                     minimum.</div>`}
+            </div>
+            <button type="button" class="wi-add">+ Add window</button>
+          </div>
+        </div>
+
+        <div class="wi-row wi-actions">
+          <button type="button" class="wi-apply">Simulate these slots</button>
+          <button type="button" class="wi-reset">Reset</button>
+        </div>
+
         <div class="wi-result" role="status">
-          Drag to see what a different comfort temperature would cost.
+          Change a setting to see what it would cost. Nothing here is saved.
         </div>
       </div>
     `;
   }
 
-  /** Current comfort target, read from the climate entity when there is one. */
-  _whatIfTarget() {
-    if (this._whatIfValue !== undefined && this._whatIfValue !== null) {
-      return this._whatIfValue;
+  /** The values the editor is currently showing.
+   *
+   * Held on the instance so a data refresh, which rebuilds the whole shadow
+   * root, does not throw away half-finished edits.
+   */
+  _whatIfDraft() {
+    if (!this._whatIf) {
+      this._whatIf = {
+        comfort: this._currentComfortTemp(),
+        dayStart: this._planAttr("day_start_hour", 7),
+        dayEnd: this._planAttr("day_end_hour", 22),
+        dhwWindows: this._currentDhwWindows(),
+      };
     }
+    return this._whatIf;
+  }
+
+  /** Current comfort target, read from the climate entity when there is one. */
+  _currentComfortTemp() {
     const states = (this._hass && this._hass.states) || {};
     for (const id of Object.keys(states)) {
       if (!id.startsWith("climate.")) continue;
-      const attrs = states[id].attributes || {};
-      const temp = Number(attrs.temperature);
+      const temp = Number((states[id].attributes || {}).temperature);
       if (Number.isFinite(temp)) return temp;
     }
     return 21;
   }
 
-  /** Wire the what-if slider, if it is present. */
+  _planAttr(name, fallback) {
+    const st = this._stateOf(this._resolveEntity("space"));
+    const value = Number(((st && st.attributes) || {})[name]);
+    return Number.isFinite(value) ? value : fallback;
+  }
+
+  /** Demand windows the DHW plan sensor is currently planning against. */
+  _currentDhwWindows() {
+    const st = this._stateOf(this._resolveEntity("dhw"));
+    const spec = ((st && st.attributes) || {}).dhw_windows;
+    return parseWindows(spec);
+  }
+
+  /** Wire the what-if controls, if the panel is present. */
   _attachWhatIf(root) {
+    const panel = root.querySelector(".whatif");
+    if (!panel) return;
+
+    // Every control stops propagation: without it, a click inside the panel
+    // reaches the card handler and toggles the expanded view underneath.
     const slider = root.querySelector(".wi-temp");
-    if (!slider) return;
-    slider.addEventListener("input", this._onWhatIfInput);
-    slider.addEventListener("click", (ev) => ev.stopPropagation());
+    if (slider) {
+      slider.addEventListener("input", this._onWhatIfInput);
+      slider.addEventListener("click", stop);
+    }
+    root.querySelectorAll("input[type=time]").forEach((el) => {
+      el.addEventListener("click", stop);
+      el.addEventListener("change", this._onSlotEdit);
+    });
+    const add = root.querySelector(".wi-add");
+    if (add) add.addEventListener("click", this._onAddWindow);
+    root
+      .querySelectorAll(".wi-remove")
+      .forEach((el) => el.addEventListener("click", this._onRemoveWindow));
+    const apply = root.querySelector(".wi-apply");
+    if (apply) apply.addEventListener("click", this._onApplySlots);
+    const reset = root.querySelector(".wi-reset");
+    if (reset) reset.addEventListener("click", this._onResetWhatIf);
   }
 
   _onWhatIfInput(ev) {
-    if (ev && typeof ev.stopPropagation === "function") ev.stopPropagation();
+    stop(ev);
     const value = Number(ev.target.value);
     if (!Number.isFinite(value)) return;
-    this._whatIfValue = value;
+    this._whatIfDraft().comfort = value;
 
-    const scope = this.shadowRoot;
-    const label = scope.querySelector(".wi-value");
+    const label = this.shadowRoot.querySelector(".wi-value");
     if (label) label.textContent = `${value.toFixed(1)}\u00a0°C`;
 
     // Debounce so a drag does not fire a solve per pixel. The coordinator
     // rate-limits as well, but sending the calls at all is wasteful.
     if (this._whatIfTimer) clearTimeout(this._whatIfTimer);
-    this._whatIfTimer = setTimeout(() => this._runWhatIf(value), 400);
+    this._whatIfTimer = setTimeout(() => this._runWhatIf(), 400);
   }
 
-  async _runWhatIf(value) {
+  /** Read the editors back into the draft, without simulating. */
+  _onSlotEdit(ev) {
+    stop(ev);
+    const root = this.shadowRoot;
+    const draft = this._whatIfDraft();
+
+    const dayStart = root.querySelector(".wi-day-start");
+    const dayEnd = root.querySelector(".wi-day-end");
+    if (dayStart) draft.dayStart = hourOf(dayStart.value, draft.dayStart);
+    if (dayEnd) draft.dayEnd = hourOf(dayEnd.value, draft.dayEnd);
+
+    draft.dhwWindows = [...root.querySelectorAll(".wi-window")].map((row) => ({
+      start: (row.querySelector(".wi-win-start") || {}).value || "00:00",
+      end: (row.querySelector(".wi-win-end") || {}).value || "00:00",
+    }));
+  }
+
+  _onAddWindow(ev) {
+    stop(ev);
+    this._onSlotEdit(ev);
+    this._whatIfDraft().dhwWindows.push({ start: "06:00", end: "08:00" });
+    this._sig = null;
+    this._render();
+  }
+
+  _onRemoveWindow(ev) {
+    stop(ev);
+    this._onSlotEdit(ev);
+    const index = Number(ev.currentTarget.getAttribute("data-index"));
+    const draft = this._whatIfDraft();
+    if (Number.isFinite(index)) draft.dhwWindows.splice(index, 1);
+    this._sig = null;
+    this._render();
+  }
+
+  _onApplySlots(ev) {
+    stop(ev);
+    this._onSlotEdit(ev);
+    if (this._whatIfTimer) clearTimeout(this._whatIfTimer);
+    this._runWhatIf();
+  }
+
+  _onResetWhatIf(ev) {
+    stop(ev);
+    this._whatIf = null;
+    this._sig = null;
+    this._render();
+  }
+
+  /** Everything the draft changes, as service call arguments. */
+  _whatIfOverrides() {
+    const draft = this._whatIfDraft();
+    return {
+      target_temp: draft.comfort,
+      comfort_temp_day: draft.comfort,
+      day_start_hour: draft.dayStart,
+      day_end_hour: draft.dayEnd,
+      // Deliberately sent even when empty: an empty schedule is a legitimate
+      // thing to price, and it is how a user asks "what if I stopped
+      // guaranteeing hot water at fixed times?"
+      dhw_windows: formatWindows(draft.dhwWindows),
+    };
+  }
+
+  async _runWhatIf() {
     const out = this.shadowRoot && this.shadowRoot.querySelector(".wi-result");
     if (!out || !this._hass || typeof this._hass.callService !== "function") {
       return;
     }
+    const draft = this._whatIfDraft();
+    const invalid = draft.dhwWindows.find(
+      (w) => hourOf(w.start, null) === null || hourOf(w.end, null) === null
+    );
+    if (invalid) {
+      out.className = "wi-result dearer";
+      out.textContent = "One of the hot water windows is not a valid time.";
+      return;
+    }
+
     out.className = "wi-result";
     out.textContent = "Working out what that would cost…";
     try {
       const response = await this._hass.callService(
         "heatpump_optimizer",
         "simulate_plan",
-        { target_temp: value, comfort_temp_day: value },
+        this._whatIfOverrides(),
         undefined,
         false,
         true
       );
-      const results = (response && response.response &&
-        response.response.results) || {};
+      const results =
+        (response && response.response && response.response.results) || {};
       const first = Object.values(results)[0];
       if (!first || first.error) {
+        out.className = "wi-result dearer";
         out.textContent = first && first.error
           ? `Could not simulate: ${first.error}`
           : "No answer from the optimizer.";
         return;
       }
-      const delta = Number(first.monthly_cost_delta);
-      if (!Number.isFinite(delta)) {
-        out.textContent = "No answer from the optimizer.";
-        return;
-      }
-      if (Math.abs(delta) < 0.5) {
-        out.textContent = `${value.toFixed(1)} °C costs about the same as now.`;
-        return;
-      }
-      const cheaper = delta < 0;
-      out.className = `wi-result ${cheaper ? "cheaper" : "dearer"}`;
-      out.textContent =
-        `${value.toFixed(1)} °C would cost about ` +
-        `${Math.abs(delta).toFixed(0)} ${cheaper ? "less" : "more"} per month` +
-        (first.rate_limited ? " (using the previous estimate)" : "") +
-        ".";
+      out.className = "wi-result";
+      out.innerHTML = this._whatIfSummary(first);
     } catch (err) {
-      out.textContent = `Could not simulate: ${err && err.message ? err.message : err}`;
+      out.className = "wi-result dearer";
+      out.textContent = `Could not simulate: ${
+        err && err.message ? err.message : err
+      }`;
     }
+  }
+
+  /** Money first, then what it costs in comfort.
+   *
+   * Reporting only the saving would invite the obvious mistake: a plan is
+   * always cheaper if it is allowed to be colder, or to let the tank run down.
+   */
+  _whatIfSummary(result) {
+    const delta = Number(result.monthly_cost_delta);
+    const parts = [];
+
+    if (!Number.isFinite(delta)) {
+      return "No answer from the optimizer.";
+    }
+    if (Math.abs(delta) < 0.5) {
+      parts.push(`<b>About the same cost</b> as the current plan.`);
+    } else {
+      const cheaper = delta < 0;
+      parts.push(
+        `<b class="${cheaper ? "cheaper" : "dearer"}">` +
+          `${Math.abs(delta).toFixed(0)} ${cheaper ? "less" : "more"} per month` +
+          `</b> than the current plan.`
+      );
+    }
+
+    const room = Number(result.min_room_temperature);
+    const roomBase = Number(result.baseline_min_room_temperature);
+    if (Number.isFinite(room)) {
+      const drop = Number.isFinite(roomBase) ? room - roomBase : null;
+      parts.push(
+        `Coldest the house gets: ${room.toFixed(1)} °C` +
+          (drop !== null && Math.abs(drop) >= 0.1
+            ? ` (${drop > 0 ? "+" : ""}${drop.toFixed(1)})`
+            : "")
+      );
+    }
+
+    const dhw = Number(result.min_dhw_temperature);
+    const dhwBase = Number(result.baseline_min_dhw_temperature);
+    if (Number.isFinite(dhw)) {
+      const drop = Number.isFinite(dhwBase) ? dhw - dhwBase : null;
+      parts.push(
+        `Lowest tank temperature: ${dhw.toFixed(1)} °C` +
+          (drop !== null && Math.abs(drop) >= 0.1
+            ? ` (${drop > 0 ? "+" : ""}${drop.toFixed(1)})`
+            : "")
+      );
+    }
+
+    if (Number.isFinite(Number(result.compressor_starts))) {
+      parts.push(`${result.compressor_starts} compressor starts`);
+    }
+    if (result.rate_limited) {
+      parts.push("<i>(previous estimate; simulations are rate-limited)</i>");
+    }
+
+    return (
+      `<div>${parts[0]}</div>` +
+      `<div class="wi-detail">${parts.slice(1).join(" · ")}</div>`
+    );
   }
 
   /** Wire hover and legend handling for every chart in a root. */
@@ -956,27 +1221,80 @@ class HeatpumpOptimizerCard extends HTMLElement {
         dialog.expanded .tooltip { font-size: 0.95rem; padding: 8px 11px; }
         dialog.expanded .tooltip .dot { width: 10px; height: 10px; }
 
-        /* What-if simulator (item 21) */
+        /* What-if simulator */
         .whatif {
-          display: flex; flex-wrap: wrap; align-items: center; gap: 14px;
-          padding: 12px 4px 2px 4px; border-top: 1px solid
-          var(--divider-color, #e0e0e0); margin-top: 10px;
+          padding: 12px 4px 2px 4px; margin-top: 10px;
+          border-top: 1px solid var(--divider-color, #e0e0e0);
+          font-size: 0.95rem; color: var(--primary-text-color);
         }
-        .whatif label {
-          display: flex; align-items: center; gap: 8px; font-size: 0.95rem;
+        .whatif .wi-row {
+          display: flex; flex-wrap: wrap; align-items: flex-start; gap: 18px;
+          margin-bottom: 10px;
+        }
+        .whatif .wi-field {
+          display: flex; align-items: center; gap: 8px;
+        }
+        .whatif .wi-field > span { white-space: nowrap; }
+        .whatif input[type="range"] { width: 150px; }
+        .whatif input[type="time"] {
+          font: inherit; padding: 3px 6px; border-radius: 6px;
+          border: 1px solid var(--divider-color, #ccc);
+          background: var(--card-background-color, #fff);
           color: var(--primary-text-color);
         }
-        .whatif input[type="range"] { width: 150px; }
         .whatif .wi-value {
           min-width: 3.5em; font-variant-numeric: tabular-nums;
           font-weight: 600;
         }
-        .whatif .wi-result {
-          flex: 1 1 100%; font-size: 0.95rem;
-          color: var(--secondary-text-color); min-height: 1.4em;
+        .whatif .wi-group {
+          flex: 1 1 240px; min-width: 220px;
+          display: flex; flex-direction: column; gap: 6px;
         }
-        .whatif .wi-result.cheaper { color: var(--success-color, #2fae7a); }
-        .whatif .wi-result.dearer { color: var(--error-color, #e0544e); }
+        .whatif .wi-group-title {
+          font-weight: 600; font-size: 0.9em;
+          color: var(--secondary-text-color);
+          text-transform: uppercase; letter-spacing: 0.04em;
+        }
+        .whatif .wi-hint {
+          font-size: 0.85em; color: var(--secondary-text-color);
+          line-height: 1.35em;
+        }
+        .whatif .wi-windows {
+          display: flex; flex-direction: column; gap: 6px;
+        }
+        .whatif .wi-window {
+          display: flex; align-items: center; gap: 6px;
+        }
+        .whatif button {
+          font: inherit; cursor: pointer; border-radius: 16px;
+          border: 1px solid var(--divider-color, #ccc);
+          background: transparent; color: var(--primary-text-color);
+          padding: 5px 12px;
+        }
+        .whatif button:hover { border-color: var(--primary-color, #03a9f4); }
+        .whatif .wi-remove {
+          border: none; padding: 0 6px; font-size: 1.1em; line-height: 1;
+          color: var(--secondary-text-color);
+        }
+        .whatif .wi-remove:hover { color: var(--error-color, #e0544e); }
+        .whatif .wi-add { align-self: flex-start; font-size: 0.9em; }
+        .whatif .wi-apply {
+          border-color: var(--primary-color, #03a9f4);
+          color: var(--primary-color, #03a9f4); font-weight: 600;
+        }
+        .whatif .wi-result {
+          flex: 1 1 100%; min-height: 1.4em; line-height: 1.5em;
+          color: var(--secondary-text-color);
+        }
+        .whatif .wi-result .wi-detail {
+          font-size: 0.88em; margin-top: 2px;
+        }
+        .whatif .wi-result.cheaper, .whatif .cheaper {
+          color: var(--success-color, #2fae7a);
+        }
+        .whatif .wi-result.dearer, .whatif .dearer {
+          color: var(--error-color, #e0544e);
+        }
         @media (max-width: 600px) {
           dialog.expanded { width: 96vw; padding: 12px; }
           dialog.expanded .legend { font-size: 1rem; }

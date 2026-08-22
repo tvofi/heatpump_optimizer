@@ -20,7 +20,7 @@ from homeassistant.components.climate import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -32,10 +32,8 @@ from .const import (
     MODE_ECONOMY,
     MODE_OFF,
     MODE_BOOST,
-    CONF_TARGET_TEMP,
     CONF_MIN_TEMP,
     CONF_MAX_TEMP,
-    DEFAULT_TARGET_TEMP,
     DEFAULT_MIN_TEMP,
     DEFAULT_MAX_TEMP,
 )
