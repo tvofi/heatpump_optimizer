@@ -368,6 +368,110 @@ def capture(name: str, spec: dict) -> dict:
     }
 
 
+# ---------------------------------------------------------------------------
+# Coordinator-level captures
+# ---------------------------------------------------------------------------
+#
+# The optimizer captures above protect the plan. They say nothing about the
+# layer that assembles the optimizer's inputs and publishes its outputs — which
+# is where the config plumbing, the learners and the entity payloads live, and
+# which is just as easy to break silently. So the forecast assembly and the
+# published data dictionary get pinned too.
+
+
+def coordinator_scenarios() -> dict[str, dict]:
+    """Configurations exercising the coordinator's own branches."""
+    base = {
+        "tibber_token": "x",
+        "weather_entity": "weather.home",
+        "target_temperature": 21.0,
+        "min_temperature": 17.0,
+        "max_temperature": 23.0,
+    }
+    return {
+        "coord_minimal": base,
+        "coord_dhw": {
+            **base,
+            "dhw_tank_volume": 200.0,
+            "dhw_setpoint": 55.0,
+            "dhw_min_temperature": 45.0,
+            "dhw_windows": "06:00-08:30, 17:00-22:00",
+        },
+        "coord_two_zone": {
+            **base,
+            "upper_floor_thermal_mass": 3.0,
+            "lower_floor_thermal_mass": 8.0,
+            "upper_floor_heat_loss": 0.08,
+            "lower_floor_heat_loss": 0.07,
+        },
+        "coord_all_features": {
+            **base,
+            "dhw_tank_volume": 200.0,
+            "peak_tariff_enabled": True,
+            "peak_tariff_price_per_kw": 45.0,
+            "pv_enabled": True,
+            "pv_peak_kw": 8.0,
+            "pv_export_price": 0.3,
+            "away_enabled": True,
+            "external_heat_detection_enabled": True,
+            "comfort_learning_enabled": True,
+            "system_identification_enabled": True,
+            "compressor_cycling_cost": 0.5,
+        },
+    }
+
+
+def capture_coordinator(config: dict) -> dict:
+    """Everything the coordinator assembles and publishes, for one config."""
+    from harness import FakeEntry, FakeHass
+    from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator
+
+    hass = FakeHass()
+    entry = FakeEntry(data=config)
+    coord = HeatPumpOptimizerCoordinator(hass, entry)
+
+    # Deterministic inputs: real Tibber-shaped prices for a fixed day, so the
+    # published dict does not depend on when the test runs.
+    coord._prices = [
+        {
+            "total": round(0.6 + 0.5 * (h % 12) / 12.0, 4),
+            "starts_at": (START + timedelta(hours=h)).isoformat(),
+            "level": "NORMAL",
+        }
+        for h in range(48)
+    ]
+    coord._weather_forecast = [
+        {
+            "datetime": (START + timedelta(hours=h)).isoformat(),
+            "temperature": -5.0 + 3.0 * (h % 24) / 24.0,
+            "wind_speed": 3.0,
+            "precipitation": 0.0,
+            "humidity": 85.0,
+        }
+        for h in range(48)
+    ]
+    coord._solar_radiation_forecast = [
+        max(0.0, 200.0 * (1 - abs(12 - (h % 24)) / 12.0)) for h in range(48)
+    ]
+
+    arrays = coord._forecast_arrays()
+    data = coord._build_data_dict()
+
+    # ``last_optimization``/``next_optimization`` are wall-clock and would make
+    # every diff noise; the rest of the dictionary is a pure function of state.
+    volatile = {"last_optimization", "next_optimization", "solve_time_ms"}
+    return {
+        "forecast_prices": r(arrays[0]),
+        "forecast_outdoor": r(arrays[1]),
+        "forecast_wind": r(arrays[2]),
+        "forecast_rain": r(arrays[3]),
+        "forecast_solar": r(arrays[4]),
+        "forecast_price_known": r(arrays[5]),
+        "forecast_pv_surplus": r(arrays[6]),
+        "data": r({k: v for k, v in data.items() if k not in volatile}),
+    }
+
+
 def record_all() -> None:
     GOLDEN_DIR.mkdir(parents=True, exist_ok=True)
     for name, spec in SCENARIOS.items():
@@ -375,7 +479,13 @@ def record_all() -> None:
         path = GOLDEN_DIR / f"{name}.json"
         path.write_text(json.dumps(payload, indent=1, sort_keys=True) + "\n")
         print(f"  recorded {name} ({path.stat().st_size // 1024} KB)")
-    print(f"\nRecorded {len(SCENARIOS)} golden fixtures in {GOLDEN_DIR}/")
+    for name, config in coordinator_scenarios().items():
+        payload = capture_coordinator(config)
+        path = GOLDEN_DIR / f"{name}.json"
+        path.write_text(json.dumps(payload, indent=1, sort_keys=True) + "\n")
+        print(f"  recorded {name} ({path.stat().st_size // 1024} KB)")
+    total = len(SCENARIOS) + len(coordinator_scenarios())
+    print(f"\nRecorded {total} golden fixtures in {GOLDEN_DIR}/")
 
 
 # ---------------------------------------------------------------------------
@@ -422,7 +532,13 @@ def check_all(only: str | None = None) -> int:
     checked = 0
     missing = []
 
-    for name, spec in SCENARIOS.items():
+    cases = [(name, ("plan", spec)) for name, spec in SCENARIOS.items()]
+    cases += [
+        (name, ("coordinator", config))
+        for name, config in coordinator_scenarios().items()
+    ]
+
+    for name, (kind, spec) in cases:
         if only and only not in name:
             continue
         path = GOLDEN_DIR / f"{name}.json"
@@ -431,7 +547,7 @@ def check_all(only: str | None = None) -> int:
             continue
 
         expected = json.loads(path.read_text())
-        actual = capture(name, spec)
+        actual = capture(name, spec) if kind == "plan" else capture_coordinator(spec)
         checked += 1
 
         diffs = []
