@@ -805,18 +805,23 @@ integration serves and registers the card automatically. See
 
 ```yaml
 type: custom:heatpump-optimizer-card
-# Optional: an editor in the enlarged view that prices a different comfort
-# temperature, heating hours or hot water windows, and can save the result as
-# your schedule. Off by default because simulating runs a real solve.
+# Optional: set to false to hide the schedule editor in the enlarged view.
 what_if: true
 ```
 
-Click the card to enlarge it. With `what_if: true` the enlarged view gains a
-panel where you can drag the comfort temperature, move the heating day, and add
-or remove hot water windows. **Simulate these slots** prices the change against
-the current forecast and reports the difference; nothing is applied. **Save as
-my schedule** writes the edited schedule into your configuration — it asks for
-a second press first, because it replaces what the house actually runs on.
+**Click the card to enlarge it.** The enlarged view has a panel where you can
+drag the comfort temperature, move the heating day, and add or remove hot water
+windows:
+
+* **Simulate these slots** prices the change against the current forecast and
+  reports the difference. Nothing is applied, and nothing is saved.
+* **Save as my schedule** writes the edited schedule into your configuration and
+  reloads the integration, so the next plan is made against it. It asks for a
+  second press first, because it replaces what the house actually runs on.
+* **Reset** discards the draft and returns to the schedule now in force.
+
+The panel is shown by default: holding a draft costs nothing, and only those two
+buttons reach Home Assistant. Set `what_if: false` to hide it.
 
 ### Climate Entity
 - Virtual thermostat with HVAC modes and presets

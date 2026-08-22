@@ -368,9 +368,18 @@ check("a fully published horizon is not shaded",
   !/class="estimated"/.test(collect(build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true)).shadowRoot).join("\n")));
 
 // --- Scenario 13: what-if simulator ---------------------------------------
-const offCard = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
+// The panel is on by default: editing a draft costs nothing, and only the
+// Simulate and Save buttons reach Home Assistant. It can still be turned off.
+const onCard = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
+onCard._onCardClick({});
+check("the schedule editor is available without extra configuration",
+  /class="whatif"/.test(collect(onCard.shadowRoot).join("\n")));
+check("and it is reachable in the expanded view specifically",
+  /class="whatif"/.test(collect(onCard.shadowRoot).join("\n")) && onCard._expanded === true);
+
+const offCard = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), { what_if: false });
 offCard._onCardClick({});
-check("the what-if panel is off by default",
+check("what_if: false still hides the panel",
   !/class="whatif"/.test(collect(offCard.shadowRoot).join("\n")));
 
 let called = null;
@@ -616,42 +625,54 @@ check("and the button is usable again afterwards",
   boom.shadowRoot.querySelector(".wi-save").disabled === false);
 
 // ---------------------------------------------------------------------------
-// Chart text scaling
+// Chart text sizing
 // ---------------------------------------------------------------------------
-// The chart has a fixed viewBox and `preserveAspectRatio="none"`, so text sized
-// in viewBox units renders at wildly different pixel sizes depending on how
-// wide the chart happens to be. `_fontUnits` inverts that: it converts a pixel
-// target back through the measured width, so the text lands at the same
-// apparent size in a narrow card and a full-width dialog.
-const scaler = build(slotStates, {});
-const pxOf = (units, width) => (units * width) / 900;
+// Chart text is sized in viewBox units, and the whole chart geometry -- margins,
+// tick spacing, legend rows -- is authored in those same units against a font of
+// roughly that size. Sizing the font independently of the geometry is what made
+// labels overlap, so the sizes are pinned here as part of the layout.
+const svgFont = (expanded) => {
+  const c = build(slotStates, {});
+  if (expanded) c._openExpanded();
+  const dump = collect(c.shadowRoot).join("\n");
+  const wrap = expanded
+    ? dump.slice(dump.indexOf('chartwrap big'))
+    : dump.slice(0, dump.indexOf('chartwrap big') === -1 ? dump.length : dump.indexOf('chartwrap big'));
+  const m = wrap.match(/font-size="([\d.]+)"/);
+  return m ? Number(m[1]) : null;
+};
 
-scaler._chartWidth = 500;
-scaler._bigChartWidth = 1843;
-const smallPx = pxOf(scaler._fontUnits(false), 500);
-const bigPx = pxOf(scaler._fontUnits(true), 1843);
-check("text in a narrow card lands near its pixel target",
-  Math.abs(smallPx - 11) < 0.5, `got ${smallPx.toFixed(1)}px`);
-check("text in a wide dialog lands near its pixel target",
-  Math.abs(bigPx - 16) < 0.5, `got ${bigPx.toFixed(1)}px`);
-check("the expanded view is bigger, not smaller",
-  bigPx > smallPx);
+const inlineFont = svgFont(false);
+check("chart text is sized in the units its layout was authored in",
+  inlineFont !== null && inlineFont <= 12,
+  `got ${inlineFont} units; the 92-unit left margin and 34-unit bottom margin ` +
+  `are sized for about 10, so a larger font collides with its neighbours`);
 
-// A pathological width must not produce unreadable or absurd text.
-scaler._chartWidth = 40;
-check("an absurdly narrow chart is clamped",
-  scaler._fontUnits(false) <= 40 + 1e-9);
-scaler._chartWidth = 20000;
-check("an absurdly wide chart is clamped",
-  scaler._fontUnits(false) >= 5 - 1e-9);
+// The chart is stretched from a fixed viewBox, so a given size in those units
+// already renders larger in a wider container. That is the scaling; it does not
+// need help from a larger unit count.
+check("the chart scales by being stretched, not by inflating its font",
+  /preserveAspectRatio="none"/.test(collect(build(slotStates, {}).shadowRoot).join("\n")));
 
-// Before the first measurement there is no width to divide by, and the card
-// still has to draw something.
-scaler._chartWidth = 0;
-scaler._bigChartWidth = NaN;
-check("an unmeasured chart falls back to a usable size",
-  Number.isFinite(scaler._fontUnits(false)) && scaler._fontUnits(false) > 0 &&
-  Number.isFinite(scaler._fontUnits(true)) && scaler._fontUnits(true) > 0);
+// The chrome around the chart is plain HTML and cannot scale by itself, so the
+// dialog font is set from the measured width. Clamped at both ends.
+const fontCard = build(slotStates, {});
+fontCard._openExpanded();
+const dlgOf = (w) => {
+  const d = fontCard.shadowRoot.querySelector("dialog");
+  d.getBoundingClientRect = () => ({ width: w });
+  if (!d.style) d.style = {};
+  fontCard._dialogFontPx = 0;
+  fontCard._scaleDialogFont();
+  return fontCard._dialogFontPx;
+};
+check("a wide dialog gets larger chrome than a narrow one",
+  dlgOf(1800) > dlgOf(700));
+check("a phone-width dialog stays legible", dlgOf(320) >= 12 - 1e-9);
+check("a very wide dialog does not turn the legend into a headline",
+  dlgOf(4000) <= 21 + 1e-9);
+check("an unmeasured dialog is left alone rather than sized from zero",
+  dlgOf(0) === 0);
 
 console.log(fails ? `\n${fails} CARD CHECK(S) FAILED` : "\nALL CARD CHECKS PASSED");
 process.exit(fails?1:0);
