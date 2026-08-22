@@ -5,11 +5,11 @@ from datetime import timedelta
 from typing import Final
 
 DOMAIN: Final = "heatpump_optimizer"
-PLATFORMS: Final = ["sensor", "climate", "switch"]
+PLATFORMS: Final = ["sensor", "binary_sensor", "button", "climate", "switch"]
 
 # Schema version of the config entry. Bump when stored keys change in a way
 # that needs migrating, and handle it in ``async_migrate_entry``.
-CONFIG_ENTRY_VERSION: Final = 6
+CONFIG_ENTRY_VERSION: Final = 7
 
 # Configuration keys
 CONF_TIBBER_TOKEN: Final = "tibber_token"
@@ -53,6 +53,191 @@ OPEN_METEO_OBSERVED_MAX_AGE_MINUTES: Final = 90
 
 # DHW sensor configuration
 CONF_DHW_TEMP_ENTITY: Final = "dhw_temp_entity"
+
+# --- Measured electrical draw (item 6) -------------------------------------
+#
+# ``CONF_HEAT_PUMP_MAX_POWER`` / ``MIN_POWER`` are nameplate limits, and the
+# "Recommended Power" sensor publishes what the optimizer is *commanding*.
+# Neither is a measurement. An optional real power entity closes that gap: it
+# makes COP observable, lets predicted cost be checked against reality, and
+# gives the external-heat-source detector its cleanest signal ("the tank is
+# heating while the compressor draws nothing").
+CONF_POWER_ENTITY: Final = "heat_pump_power_entity"
+# Optional cumulative energy meter (kWh). Integrating power over a coarse
+# polling interval loses short compressor runs entirely, so a real meter is
+# preferred for cost accounting when one exists.
+CONF_ENERGY_ENTITY: Final = "heat_pump_energy_entity"
+# Whole-house load, needed for a capacity tariff (the peak is metered at the
+# house connection, not at the heat pump) and for PV surplus.
+CONF_HOUSE_POWER_ENTITY: Final = "house_power_entity"
+
+# Power units the optional entities may report in, normalised to kW. Assuming
+# kW because the internal model uses kW misreads a 3000 W draw as 3000 kW.
+POWER_UNIT_TO_KW: Final = {
+    "W": 0.001,
+    "kW": 1.0,
+    "MW": 1000.0,
+    "mW": 1e-6,
+}
+
+# Learned correction to the modelled COP, from measured electrical input
+# against modelled thermal output. 1.0 means the COP curve is taken at face
+# value. The bounds stop a mis-scaled power entity from destroying the model.
+CONF_COP_SCALE: Final = "cop_scale"
+DEFAULT_COP_SCALE: Final = 1.0
+COP_SCALE_MIN: Final = 0.5
+COP_SCALE_MAX: Final = 1.6
+
+# --- Input staleness watchdog (item 12) ------------------------------------
+#
+# Every sensor read is guarded against ``unavailable``/``unknown``, but a dead
+# battery or a dropped radio leaves a perfectly valid-looking constant in the
+# state machine forever. The optimizer then plans against a fiction, and worse,
+# the learners observe a flatline, attribute it to thermal behaviour, and
+# persist a corrupted parameter that survives a restart. Fail closed: an
+# over-age value is treated as missing, not as data.
+CONF_STALENESS_ENABLED: Final = "staleness_watchdog_enabled"
+DEFAULT_STALENESS_ENABLED: Final = True
+# How much slack to allow on top of the per-input limits, for installs with
+# deliberately slow-reporting sensors.
+CONF_STALENESS_SCALE: Final = "staleness_max_age_scale"
+DEFAULT_STALENESS_SCALE: Final = 1.0
+STALENESS_SCALE_MIN: Final = 0.5
+STALENESS_SCALE_MAX: Final = 10.0
+
+# Per-input age limits in minutes. A room temperature may reasonably be minutes
+# old; an outdoor forecast, hours. These are deliberately generous multiples of
+# a normal reporting interval so that a healthy sensor never trips them.
+INPUT_MAX_AGE_MINUTES: Final = {
+    CONF_INDOOR_TEMP_ENTITY: 60.0,
+    CONF_OUTDOOR_TEMP_ENTITY: 180.0,
+    CONF_DHW_TEMP_ENTITY: 60.0,
+    CONF_FLOOR_RETURN_TEMP_ENTITY: 60.0,
+    CONF_SOLAR_RADIATION_ENTITY: 90.0,
+    CONF_POWER_ENTITY: 30.0,
+    CONF_ENERGY_ENTITY: 180.0,
+    CONF_HOUSE_POWER_ENTITY: 30.0,
+}
+# Buffer tank and other keys defined later in this module are added to the map
+# at the bottom of the file, where their names exist.
+
+ATTR_STALE_INPUTS: Final = "stale_inputs"
+ATTR_INPUT_AGES: Final = "input_ages_minutes"
+ATTR_LEARNERS_FROZEN: Final = "learners_frozen"
+
+# --- External heat source detection (item 5) -------------------------------
+#
+# Defaults to off. Most users have no wood furnace, and a feature that cannot
+# save them anything should not be able to cost them anything either.
+CONF_EXTERNAL_HEAT_ENABLED: Final = "external_heat_detection_enabled"
+CONF_EXTERNAL_HEAT_ENTITY: Final = "external_heat_entity"
+CONF_EXTERNAL_HEAT_MIN_RISE: Final = "external_heat_min_rise"  # °C/h
+CONF_EXTERNAL_HEAT_DECAY_MINUTES: Final = "external_heat_decay_minutes"
+
+DEFAULT_EXTERNAL_HEAT_ENABLED: Final = False
+DEFAULT_EXTERNAL_HEAT_MIN_RISE: Final = 1.5  # °C/h
+DEFAULT_EXTERNAL_HEAT_DECAY_MINUTES: Final = 90.0
+
+ATTR_EXTERNAL_HEAT_ACTIVE: Final = "external_heat_active"
+ATTR_EXTERNAL_HEAT_CONFIDENCE: Final = "external_heat_confidence"
+ATTR_EXTERNAL_HEAT_EVIDENCE: Final = "external_heat_evidence"
+
+# --- Unknown price horizon (item 7) ----------------------------------------
+#
+# Prices past the published horizon used to be a flat repeat of the last known
+# value. A flat tail has no trough, so the optimizer could not see a cheap
+# period ahead worth waiting for and systematically under-deferred load.
+CONF_PRICE_PRIOR_ENABLED: Final = "price_prior_enabled"
+DEFAULT_PRICE_PRIOR_ENABLED: Final = True
+PRICE_MODEL_STORE_VERSION: Final = 1
+
+ATTR_PRICE_KNOWN_STEPS: Final = "price_known_steps"
+ATTR_PRICE_PRIOR_DAYS: Final = "price_prior_days"
+
+# --- Capacity (peak power) tariff, item 8 ----------------------------------
+CONF_PEAK_TARIFF_ENABLED: Final = "peak_tariff_enabled"
+CONF_PEAK_TARIFF_PRICE: Final = "peak_tariff_price_per_kw"
+CONF_PEAK_TARIFF_COUNT: Final = "peak_tariff_peaks_averaged"
+CONF_PEAK_TARIFF_WINDOW: Final = "peak_tariff_window_minutes"
+
+DEFAULT_PEAK_TARIFF_ENABLED: Final = False
+# A representative Swedish effekttariff. Only used as the form default; the
+# real figure is on the user's grid invoice.
+DEFAULT_PEAK_TARIFF_PRICE: Final = 45.0  # currency per kW per month
+DEFAULT_PEAK_TARIFF_COUNT: Final = 3
+DEFAULT_PEAK_TARIFF_WINDOW: Final = 60  # minutes
+
+ATTR_PEAK_BILLED_KW: Final = "billed_peak_kw"
+ATTR_PEAK_THRESHOLD_KW: Final = "peak_threshold_kw"
+ATTR_PEAK_PROJECTED_KW: Final = "projected_peak_kw"
+
+# --- Compressor cycling, item 10 -------------------------------------------
+#
+# Defaults to zero so the shipped behaviour is unchanged until a user decides
+# their compressor's start cost is worth paying for. ``tests/validate.py``
+# reports the start count per scenario, which is how that decision gets made
+# from evidence rather than from assumption.
+CONF_CYCLING_COST: Final = "compressor_cycling_cost"
+DEFAULT_CYCLING_COST: Final = 0.0
+ATTR_COMPRESSOR_STARTS: Final = "compressor_starts"
+
+# --- PV self-consumption, item 9 -------------------------------------------
+CONF_PV_ENABLED: Final = "pv_enabled"
+CONF_PV_PEAK_KW: Final = "pv_peak_kw"
+CONF_PV_EFFICIENCY: Final = "pv_system_efficiency"
+CONF_PV_EXPORT_PRICE: Final = "pv_export_price"
+CONF_PV_EXPORT_PRICE_ENTITY: Final = "pv_export_price_entity"
+CONF_PV_PRODUCTION_ENTITY: Final = "pv_production_entity"
+
+DEFAULT_PV_ENABLED: Final = False
+DEFAULT_PV_PEAK_KW: Final = 0.0
+DEFAULT_PV_EFFICIENCY: Final = 0.80
+DEFAULT_PV_EXPORT_PRICE: Final = 0.0
+
+# --- Away / holiday mode, item 13 ------------------------------------------
+CONF_AWAY_ENABLED: Final = "away_enabled"
+CONF_AWAY_PRESENCE_ENTITY: Final = "away_presence_entity"
+CONF_AWAY_RETURN_ENTITY: Final = "away_return_entity"
+CONF_AWAY_TEMPERATURE: Final = "away_temperature"
+CONF_AWAY_DHW_MIN_TEMP: Final = "away_dhw_min_temperature"
+
+DEFAULT_AWAY_ENABLED: Final = False
+DEFAULT_AWAY_TEMPERATURE: Final = 16.0
+DEFAULT_AWAY_DHW_MIN_TEMP: Final = 20.0
+
+# --- Active system identification, item 18 ---------------------------------
+CONF_SYSID_ENABLED: Final = "system_identification_enabled"
+DEFAULT_SYSID_ENABLED: Final = False
+
+# --- Revealed-preference comfort tuning, item 19 ---------------------------
+CONF_COMFORT_LEARNING_ENABLED: Final = "comfort_learning_enabled"
+DEFAULT_COMFORT_LEARNING_ENABLED: Final = False
+ATTR_COMFORT_WEIGHT_LEARNED: Final = "comfort_weight_learned"
+
+# --- Building presets, item 17 ---------------------------------------------
+CONF_BUILDING_PRESET_ENABLED: Final = "building_preset_enabled"
+CONF_BUILDING_STRUCTURE: Final = "building_structure"
+CONF_BUILDING_ERA: Final = "building_era"
+CONF_BUILDING_FOUNDATION: Final = "building_foundation"
+CONF_HEATED_AREA: Final = "heated_area_m2"
+CONF_UPPER_EMITTER: Final = "upper_floor_emitter"
+CONF_LOWER_EMITTER: Final = "lower_floor_emitter"
+
+DEFAULT_BUILDING_PRESET_ENABLED: Final = False
+DEFAULT_HEATED_AREA: Final = 140.0
+
+# --- Closed-loop accuracy and energy statistics, items 11 and 15 -----------
+ACCURACY_STORE_VERSION: Final = 1
+ENERGY_STORE_VERSION: Final = 1
+
+ATTR_TEMPERATURE_MAE: Final = "temperature_mae"
+ATTR_COST_ERROR_PERCENT: Final = "cost_error_percent"
+
+# Service for the card's what-if simulator (item 21).
+SERVICE_SIMULATE_PLAN: Final = "simulate_plan"
+# A full solve is seconds of CPU. Dragging a slider must not trigger one per
+# pixel, so simulation requests are rate-limited to this interval.
+SIMULATE_MIN_INTERVAL_SECONDS: Final = 3.0
 
 # ECL110 / MQTT configuration
 CONF_ECL110_COMMAND_TOPIC: Final = "ecl110_command_topic"  # legacy JSON command topic
@@ -315,3 +500,15 @@ ATTR_HOUSE_HEAT_LOSS_EFFECTIVE: Final = "house_heat_loss_effective"
 WIND_CHILL_FACTOR: Final = 0.005  # kW/°C per m/s
 # Rain cooling factor — legacy, now configurable
 RAIN_COOLING_FACTOR: Final = 0.01  # kW/°C per mm/h
+
+# The buffer tank key is defined after the staleness table above, so its age
+# limit is registered here rather than inline.
+INPUT_MAX_AGE_MINUTES[CONF_BUFFER_TANK_TEMP_ENTITY] = 60.0
+INPUT_MAX_AGE_MINUTES[CONF_PV_PRODUCTION_ENTITY] = 30.0
+
+# Attributes for the measured power / COP feature
+ATTR_MEASURED_POWER: Final = "measured_power"
+ATTR_MEASURED_POWER_AVAILABLE: Final = "measured_power_available"
+ATTR_COP_SCALE: Final = "cop_scale"
+ATTR_COP_SAMPLES: Final = "cop_samples"
+ATTR_COP_MEASURED: Final = "measured_cop"

@@ -18,7 +18,7 @@ from homeassistant.const import (
     PERCENTAGE,
 )
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.entity import DeviceInfo
+from homeassistant.helpers.entity import DeviceInfo, EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -73,6 +73,27 @@ async def async_setup_entry(
         # Plan sensors backing the dashboard card
         SpaceHeatingPlanSensor(coordinator, entry),
         DHWHeatingPlanSensor(coordinator, entry),
+        # Measured draw and observed efficiency (items 6, 14)
+        MeasuredPowerSensor(coordinator, entry),
+        ObservedCOPSensor(coordinator, entry),
+        # Long-term energy and cost statistics (item 15)
+        SpaceEnergySensor(coordinator, entry),
+        DHWEnergySensor(coordinator, entry),
+        TotalEnergySensor(coordinator, entry),
+        SpaceCostSensor(coordinator, entry),
+        DHWCostSensor(coordinator, entry),
+        TotalCostSensor(coordinator, entry),
+        # Closed-loop accuracy (item 11)
+        PredictionAccuracySensor(coordinator, entry),
+        # Capacity tariff (item 8)
+        MonthlyPeakSensor(coordinator, entry),
+        # PV self-consumption (item 9)
+        PVSurplusSensor(coordinator, entry),
+        # The house as a virtual battery (item 20)
+        ThermalBatterySensor(coordinator, entry),
+        ThermalBatteryEnergySensor(coordinator, entry),
+        # Learned comfort weight (item 19)
+        ComfortWeightSensor(coordinator, entry),
     ]
 
     async_add_entities(entities)
@@ -373,6 +394,11 @@ class SolarIrradianceSensor(HeatPumpOptimizerSensorBase):
     def extra_state_attributes(self) -> dict[str, Any]:
         data = self.coordinator.data or {}
         attrs: dict[str, Any] = {
+            # A stable marker the dashboard card discovers this sensor by.
+            # Entity ids are derived from the device name, so they are not a
+            # contract — hardcoding one is what caused the v2.6.1 bug where the
+            # card never found its plan sensors.
+            "plan_kind": "solar",
             "source": data.get("solar_source"),
             "solar_heat_gain_kw": round(data.get("solar_heat_gain", 0.0) or 0.0, 3),
             "forecast": data.get("solar_forecast", []),
@@ -944,3 +970,379 @@ class DHWHeatingPlanSensor(_PlanSensorBase):
 
     def __init__(self, coordinator, entry):
         super().__init__(coordinator, entry, "dhw_heating_plan", "DHW Heating Plan")
+
+
+# ---------------------------------------------------------------------------
+# Measured electrical draw and observed COP (item 6)
+# ---------------------------------------------------------------------------
+
+
+class MeasuredPowerSensor(HeatPumpOptimizerSensorBase):
+    """The heat pump's actual electrical draw.
+
+    Deliberately named to contrast with "Recommended Power", which is what the
+    optimizer is *commanding*. Two sensors on one device that differ only in
+    whether they are a plan or a measurement will be confused constantly unless
+    the names say which is which.
+    """
+
+    _attr_icon = "mdi:flash"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_native_unit_of_measurement = UnitOfPower.KILO_WATT
+    _attr_device_class = SensorDeviceClass.POWER
+
+    def __init__(self, coordinator, entry):
+        super().__init__(coordinator, entry, "measured_power", "Measured Power")
+
+    @property
+    def available(self) -> bool:
+        data = self.coordinator.data or {}
+        return bool(data.get("measured_power_available"))
+
+    @property
+    def native_value(self) -> float | None:
+        data = self.coordinator.data or {}
+        value = data.get("measured_power")
+        return round(value, 3) if value is not None else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        data = self.coordinator.data or {}
+        return {
+            "recommended_power": (data.get("current_action") or {}).get("power"),
+            "house_power": data.get("measured_house_power"),
+            "energy_meter": data.get("measured_energy"),
+        }
+
+
+class ObservedCOPSensor(HeatPumpOptimizerSensorBase):
+    """COP derived from measured electrical input, not from the nameplate curve.
+
+    Every plan is priced through COP, so an error here is an error in every
+    cost the integration reports. With a measured power entity it stops being
+    an assumption and becomes an observable.
+    """
+
+    _attr_icon = "mdi:gauge-full"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+
+    def __init__(self, coordinator, entry):
+        super().__init__(coordinator, entry, "observed_cop", "Observed COP")
+
+    @property
+    def available(self) -> bool:
+        return bool((self.coordinator.data or {}).get("measured_power_available"))
+
+    @property
+    def native_value(self) -> float | None:
+        data = self.coordinator.data or {}
+        return data.get("measured_cop")
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        data = self.coordinator.data or {}
+        return {
+            "cop_scale": data.get("cop_scale"),
+            "cop_samples": data.get("cop_samples"),
+            "modelled_cop": data.get("current_action", {}).get("cop"),
+            "defrost_derate": data.get("defrost_derate"),
+            "defrost_samples": data.get("defrost_samples"),
+            "defrost_buckets": data.get("defrost_buckets", []),
+        }
+
+
+# ---------------------------------------------------------------------------
+# Energy dashboard statistics (item 15)
+# ---------------------------------------------------------------------------
+
+
+class _AccumulatingSensor(HeatPumpOptimizerSensorBase):
+    """Base for the TOTAL_INCREASING accumulators.
+
+    Every monetary sensor in the integration was ``MEASUREMENT``, so none of it
+    reached Home Assistant's Energy dashboard and there was no long-term cost
+    history. The result was that the integration's central claim — that it
+    saves money — was invisible in the one place users look for exactly that.
+    """
+
+    _attr_state_class = SensorStateClass.TOTAL_INCREASING
+    _data_key: str = ""
+
+    @property
+    def native_value(self) -> float | None:
+        data = self.coordinator.data or {}
+        value = data.get(self._data_key)
+        return round(value, 3) if isinstance(value, (int, float)) else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return {
+            # Stated rather than implied: one meter cannot separate two
+            # circuits, so the split is apportioned by what the plan asked each
+            # circuit to draw.
+            "split_method": (
+                "apportioned from the planned space/DHW power split; the "
+                "total is measured when a power entity is configured"
+            ),
+            "measured": bool(
+                (self.coordinator.data or {}).get("measured_power_available")
+            ),
+        }
+
+
+class SpaceEnergySensor(_AccumulatingSensor):
+    _attr_icon = "mdi:radiator"
+    _attr_native_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
+    _attr_device_class = SensorDeviceClass.ENERGY
+    _data_key = "space_energy_kwh"
+
+    def __init__(self, coordinator, entry):
+        super().__init__(
+            coordinator, entry, "space_energy", "Space Heating Energy"
+        )
+
+
+class DHWEnergySensor(_AccumulatingSensor):
+    _attr_icon = "mdi:water-boiler"
+    _attr_native_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
+    _attr_device_class = SensorDeviceClass.ENERGY
+    _data_key = "dhw_energy_kwh"
+
+    def __init__(self, coordinator, entry):
+        super().__init__(coordinator, entry, "dhw_energy", "Hot Water Energy")
+
+
+class TotalEnergySensor(_AccumulatingSensor):
+    _attr_icon = "mdi:counter"
+    _attr_native_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
+    _attr_device_class = SensorDeviceClass.ENERGY
+    _data_key = "total_energy_kwh"
+
+    def __init__(self, coordinator, entry):
+        super().__init__(coordinator, entry, "total_energy", "Total Energy")
+
+
+class SpaceCostSensor(_AccumulatingSensor):
+    _attr_icon = "mdi:cash"
+    _attr_device_class = SensorDeviceClass.MONETARY
+    _data_key = "space_cost"
+
+    def __init__(self, coordinator, entry):
+        super().__init__(coordinator, entry, "space_cost", "Space Heating Cost")
+
+
+class DHWCostSensor(_AccumulatingSensor):
+    _attr_icon = "mdi:cash"
+    _attr_device_class = SensorDeviceClass.MONETARY
+    _data_key = "dhw_cost"
+
+    def __init__(self, coordinator, entry):
+        super().__init__(coordinator, entry, "dhw_cost_total", "Hot Water Cost")
+
+
+class TotalCostSensor(_AccumulatingSensor):
+    _attr_icon = "mdi:cash-multiple"
+    _attr_device_class = SensorDeviceClass.MONETARY
+    _data_key = "total_cost"
+
+    def __init__(self, coordinator, entry):
+        super().__init__(coordinator, entry, "total_cost", "Total Heating Cost")
+
+
+# ---------------------------------------------------------------------------
+# Closed-loop accuracy (item 11)
+# ---------------------------------------------------------------------------
+
+
+class PredictionAccuracySensor(HeatPumpOptimizerSensorBase):
+    """Mean absolute error of the predicted indoor temperature.
+
+    Publishing the *bias* alongside it matters more than the magnitude: an
+    absolute error cannot distinguish random noise from a model that is
+    consistently half a degree optimistic, and it is the second that indicates
+    drift.
+    """
+
+    _attr_icon = "mdi:target"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator, entry):
+        super().__init__(
+            coordinator, entry, "prediction_accuracy", "Prediction Accuracy"
+        )
+
+    @property
+    def native_value(self) -> float | None:
+        return (self.coordinator.data or {}).get("accuracy", {}).get(
+            "temperature_mae"
+        )
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return dict((self.coordinator.data or {}).get("accuracy", {}) or {})
+
+
+# ---------------------------------------------------------------------------
+# Capacity tariff (item 8)
+# ---------------------------------------------------------------------------
+
+
+class MonthlyPeakSensor(HeatPumpOptimizerSensorBase):
+    """The peak level this month's capacity tariff is currently based on."""
+
+    _attr_icon = "mdi:chart-bell-curve"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_native_unit_of_measurement = UnitOfPower.KILO_WATT
+    _attr_device_class = SensorDeviceClass.POWER
+
+    def __init__(self, coordinator, entry):
+        super().__init__(coordinator, entry, "monthly_peak", "Monthly Peak Power")
+
+    @property
+    def available(self) -> bool:
+        return bool((self.coordinator.data or {}).get("peak_tariff_enabled"))
+
+    @property
+    def native_value(self) -> float | None:
+        return (self.coordinator.data or {}).get("billed_peak_kw")
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        data = self.coordinator.data or {}
+        return {
+            "month": data.get("peak_month"),
+            # Below this a new hour is free: the bill is already set by the
+            # peaks already recorded, so keeping power low buys nothing.
+            "free_headroom_threshold_kw": data.get("peak_threshold_kw"),
+            "projected_peak_kw": data.get("projected_peak_kw"),
+            "projected_peak_cost": data.get("projected_peak_cost"),
+        }
+
+
+# ---------------------------------------------------------------------------
+# PV self-consumption (item 9)
+# ---------------------------------------------------------------------------
+
+
+class PVSurplusSensor(HeatPumpOptimizerSensorBase):
+    """Forecast solar surplus available to the heat pump."""
+
+    _attr_icon = "mdi:solar-power-variant"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_native_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
+
+    def __init__(self, coordinator, entry):
+        super().__init__(coordinator, entry, "pv_surplus", "Solar Surplus Forecast")
+
+    @property
+    def available(self) -> bool:
+        return bool((self.coordinator.data or {}).get("pv_enabled"))
+
+    @property
+    def native_value(self) -> float | None:
+        return (self.coordinator.data or {}).get("pv", {}).get(
+            "forecast_surplus_kwh"
+        )
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        data = self.coordinator.data or {}
+        attrs = dict(data.get("pv", {}) or {})
+        attrs["self_consumed_kwh"] = data.get("pv_self_consumed_kwh")
+        return attrs
+
+
+# ---------------------------------------------------------------------------
+# The house as a virtual battery (item 20)
+# ---------------------------------------------------------------------------
+
+
+class ThermalBatterySensor(HeatPumpOptimizerSensorBase):
+    """State of charge of the building fabric and tanks, as a battery.
+
+    Reported against the comfort band rather than against absolute zero:
+    energy stored above the minimum acceptable temperature is what is actually
+    available, and counting the rest would overstate the asset.
+    """
+
+    _attr_icon = "mdi:home-battery"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_native_unit_of_measurement = PERCENTAGE
+    _attr_device_class = SensorDeviceClass.BATTERY
+
+    def __init__(self, coordinator, entry):
+        super().__init__(
+            coordinator, entry, "thermal_battery", "Thermal Battery Charge"
+        )
+
+    @property
+    def native_value(self) -> float | None:
+        return (self.coordinator.data or {}).get("battery", {}).get(
+            "state_of_charge_percent"
+        )
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return dict((self.coordinator.data or {}).get("battery", {}) or {})
+
+
+class ThermalBatteryEnergySensor(HeatPumpOptimizerSensorBase):
+    """Stored thermal energy available above the comfort floor."""
+
+    _attr_icon = "mdi:battery-charging"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_native_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
+
+    def __init__(self, coordinator, entry):
+        super().__init__(
+            coordinator, entry, "thermal_battery_energy", "Thermal Battery Energy"
+        )
+
+    @property
+    def native_value(self) -> float | None:
+        return (self.coordinator.data or {}).get("battery", {}).get(
+            "stored_energy_kwh"
+        )
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        battery = (self.coordinator.data or {}).get("battery", {}) or {}
+        return {
+            "usable_capacity_kwh": battery.get("usable_capacity_kwh"),
+            "charge_rate_kw": battery.get("charge_rate_kw"),
+            "discharge_rate_kw": battery.get("discharge_rate_kw"),
+            "hours_of_autonomy": battery.get("hours_of_autonomy"),
+            "round_trip_efficiency_6h": battery.get("round_trip_efficiency_6h"),
+        }
+
+
+# ---------------------------------------------------------------------------
+# Learned comfort weight (item 19)
+# ---------------------------------------------------------------------------
+
+
+class ComfortWeightSensor(HeatPumpOptimizerSensorBase):
+    """The comfort weight actually in force, learned or configured.
+
+    An invisible self-adjusting objective would be alarming, so the learned
+    value, the configured value and the evidence behind the difference are all
+    published, and a button resets it.
+    """
+
+    _attr_icon = "mdi:scale-balance"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator, entry):
+        super().__init__(coordinator, entry, "comfort_weight", "Comfort Weight")
+
+    @property
+    def native_value(self) -> float | None:
+        value = (self.coordinator.data or {}).get("comfort_weight")
+        return round(value, 2) if isinstance(value, (int, float)) else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return dict((self.coordinator.data or {}).get("comfort_learning", {}) or {})

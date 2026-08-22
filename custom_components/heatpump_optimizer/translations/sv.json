@@ -193,7 +193,12 @@
           "hot_water": "Varmvatten",
           "building": "Hus och värmesystem",
           "tuning": "Besparing kontra komfort",
-          "heat_curve": "Värmekurvestyrning (ECL110)"
+          "heat_curve": "Värmekurvestyrning (ECL110)",
+          "building_preset": "Hustyp och värmesystem",
+          "grid": "Nätkostnader och kompressorstarter",
+          "solar_pv": "Solceller",
+          "away": "Bortaläge och semester",
+          "learning": "Självlärande och diagnostik"
         }
       },
       "entities": {
@@ -211,7 +216,10 @@
           "heat_pump_entity": "Värmepumpens termostat",
           "heat_pump_switch_entity": "Strömbrytare för värmepumpen",
           "solar_forecast_source": "Källa för solinstrålning",
-          "solar_location": "Plats för solinstrålning"
+          "solar_location": "Plats för solinstrålning",
+          "heat_pump_power_entity": "Effektmätare för värmepumpen (valfritt)",
+          "heat_pump_energy_entity": "Energimätare för värmepumpen (valfritt)",
+          "house_power_entity": "Effektmätare för hela huset (valfritt)"
         },
         "data_description": {
           "tibber_token": "Används för att läsa dina timpriser på el. Skapa en på developer.tibber.com. Lämna som den är om den inte har ändrats.",
@@ -225,7 +233,10 @@
           "heat_pump_entity": "Valfritt. En climate-entitet som optimeringen kan ställa en temperatur på.",
           "heat_pump_switch_entity": "Valfritt. En strömbrytare som används för att stänga av värmepumpen under dyra timmar.",
           "solar_forecast_source": "Var solinstrålningen ska hämtas ifrån. \"Väderentitet\" använder din väderintegration, som ofta inte publicerar solinstrålning alls. \"Open-Meteo\" hämtar en kostnadsfri prognos för platsen nedan; inget konto behövs.",
-          "solar_location": "Koordinat som används för Open-Meteos solinstrålningsprognos. Utgår från Home Assistants hemposition. Används bara när källan är Open-Meteo."
+          "solar_location": "Koordinat som används för Open-Meteos solinstrålningsprognos. Utgår från Home Assistants hemposition. Används bara när källan är Open-Meteo.",
+          "heat_pump_power_entity": "Faktisk elförbrukning. Utan den vet integrationen bara vad den bad pumpen om. Med den blir verkningsgraden mätbar, de beräknade kostnaderna får något att stämmas av mot, och en vedpanna kan upptäckas säkert. Både watt och kilowatt fungerar.",
+          "heat_pump_energy_entity": "En ackumulerande kWh-mätare, om du har en. Noggrannare än att summera effektavläsningar mellan uppdateringar, vilket missar korta kompressorkörningar.",
+          "house_power_entity": "Total förbrukning vid mätaren. Effekttariff debiteras på hela huset, inte bara på värmepumpen, så utan denna är den topp optimeraren undviker bara en del av den verkliga."
         }
       },
       "comfort": {
@@ -337,6 +348,102 @@
           "ecl110_displace_max": "Hur långt upp värmekurvan får förskjutas när billig värme lagras.",
           "ecl110_pid_time_constant_hours": "Ungefär hur lång tid regulatorn behöver för att verkställa en ny förskjutning. Används så att optimeringen inte begär snabbare ändringar än systemet hinner följa."
         }
+      },
+      "building_preset": {
+        "title": "Hustyp och värmesystem",
+        "description": "Svara på tre frågor om huset så räknas de tekniska värdena på föregående sida ut åt dig. Det är bara startvärden — den självlärande modellen finjusterar dem utifrån hur ditt hus faktiskt beter sig, så de behöver inte vara exakta. Lämna av om du har riktiga värden från en energideklaration och hellre matar in dem själv.",
+        "data": {
+          "building_preset_enabled": "Härled värden från hustypen",
+          "building_structure": "Vad huset är byggt av",
+          "building_era": "Ungefär när det byggdes",
+          "building_foundation": "Grundläggning",
+          "heated_area_m2": "Uppvärmd golvyta",
+          "upper_floor_emitter": "Värme på övervåningen",
+          "lower_floor_emitter": "Värme på nedervåningen"
+        },
+        "data_description": {
+          "building_preset_enabled": "Slår du på detta skrivs värmekapacitet och värmeförlust på sidan Hus och värmesystem över.",
+          "building_structure": "Tunga material innanför isoleringen lagrar värme, och det är just det som gör att optimeraren kan köpa värmen billigt och använda den senare.",
+          "building_era": "Byggår är ett bra mått på isoleringsstandard och en betydligt bättre utgångspunkt än ett enda standardvärde.",
+          "heated_area_m2": "Allt skalas efter denna, så det är siffran det är värt att få närmast rätt.",
+          "upper_floor_emitter": "Radiatorer svarar på minuter, golvvärme på timmar. Det avgör hur långt i förväg värmen kan flyttas.",
+          "lower_floor_emitter": "En värmd platta är ett stort lager som laddas aktivt, vilket gör förvärmning både mer värdefull och mer nödvändig."
+        }
+      },
+      "grid": {
+        "title": "Nätkostnader och kompressorstarter",
+        "description": "Kostnader som inte bara är priset per kWh. Många elnätsbolag tar också ut en effekttariff baserad på dina högsta timmar — vilket gör att varmvatten och husvärme i samma billiga timme kan kosta mer än det sparar.",
+        "data": {
+          "peak_tariff_enabled": "Min nätfaktura har en effektavgift",
+          "peak_tariff_price_per_kw": "Effektavgift per kW och månad",
+          "peak_tariff_peaks_averaged": "Antal topptimmar som medelvärdesbildas",
+          "peak_tariff_window_minutes": "Mätperiod",
+          "compressor_cycling_cost": "Kostnad för en kompressorstart",
+          "price_prior_enabled": "Uppskatta priser bortom publicerad horisont"
+        },
+        "data_description": {
+          "peak_tariff_price_per_kw": "Hämta siffran från din nätfaktura — den varierar kraftigt mellan nätbolag.",
+          "peak_tariff_peaks_averaged": "De flesta svenska tariffer tar medel av månadens tre högsta timmar. Kontrollera din faktura.",
+          "peak_tariff_window_minutes": "Per timme för de flesta tariffer. Vissa nyare mäter var 15:e minut, vilket är betydligt mindre förlåtande.",
+          "compressor_cycling_cost": "Motverkar planer som slår på och av upprepade gånger. Lämna på 0 om du inte har skäl att tro att din pump startar för ofta; antalet planerade starter publiceras på plansensorerna så du kan titta först.",
+          "price_prior_enabled": "Morgondagens priser kommer runt kl. 13. Dessförinnan var resten av horisonten en platt upprepning av senaste priset, vilket döljer alla billiga timmar framåt. Detta lär sig din typiska prisprofil över dygnet och använder den i stället, och planen märker ut vilka timmar som är uppskattade."
+        }
+      },
+      "solar_pv": {
+        "title": "Solceller",
+        "description": "Har du solceller är det bättre att värma varmvatten eller ackumulatortanken med överskottet än att sälja det till ersättningspriset. Berätta om anläggningen så prissätter optimeraren varje timme efter vad förbrukningen faktiskt kostar dig.",
+        "data": {
+          "pv_enabled": "Jag har solceller",
+          "pv_peak_kw": "Installerad effekt",
+          "pv_system_efficiency": "Systemets totala verkningsgrad",
+          "pv_export_price": "Ersättning per såld kWh",
+          "pv_export_price_entity": "Entitet för ersättning (valfritt)",
+          "pv_production_entity": "Sensor för solproduktion (valfritt)"
+        },
+        "data_description": {
+          "pv_system_efficiency": "Allt mellan solljus och mätare: växelriktarförluster, panelernas temperatur, smuts, väderstreck. 0,8 är typiskt.",
+          "pv_export_price": "Vad du får betalt för en såld kWh. När du har överskott är det vad en extra kWh värme egentligen kostar.",
+          "pv_export_price_entity": "Använd denna i stället om din ersättning följer spotpriset."
+        }
+      },
+      "away": {
+        "title": "Bortaläge och semester",
+        "description": "En vecka borta är den största enskilda besparing ett värmesystem kan ge. Anger du dessutom när du kommer hem köps värmen som behövs för att värma upp huset igen under de billigaste timmarna i förväg, i stället för till vad priset råkar vara när du kliver in.",
+        "data": {
+          "away_enabled": "Aktivera bortaläge",
+          "away_presence_entity": "Indikator för bortavaro",
+          "away_return_entity": "Förväntad hemkomst (valfritt)",
+          "away_temperature": "Temperatur när ingen är hemma",
+          "away_dhw_min_temperature": "Lägsta varmvattentemperatur vid bortavaro"
+        },
+        "data_description": {
+          "away_presence_entity": "En semesterbrytare, en person eller enhetsspårare, eller en kalender. Polariteten sköts åt dig: att en person är 'inte hemma' och att en semesterbrytare är 'på' betyder båda bortavaro.",
+          "away_return_entity": "Utan denna ligger huset kvar på sänkningen tills du själv slår om, och uppvärmningen kostar då vad priset råkar vara.",
+          "away_dhw_min_temperature": "Legionellacykeln körs fortfarande, och tidsätts så att den hinner bli klar innan du är tillbaka."
+        }
+      },
+      "learning": {
+        "title": "Självlärande och diagnostik",
+        "description": "Vakthundar och valfria självlärande funktioner. Sensorvakten är på som standard och skyddar allt annat; resten är avstängda tills du slår på dem.",
+        "data": {
+          "staleness_watchdog_enabled": "Ignorera sensorer som slutat uppdatera",
+          "staleness_max_age_scale": "Tillåt så här mycket extra ålder",
+          "external_heat_detection_enabled": "Upptäck vedpanna eller annan värmekälla",
+          "external_heat_entity": "Givare för panna eller rökgas (valfritt)",
+          "external_heat_min_rise": "Temperaturökning som räknas som bevis",
+          "external_heat_decay_minutes": "Hur länge det antas kvarstå efteråt",
+          "comfort_learning_enabled": "Lär dig min komfortnivå av mina justeringar",
+          "system_identification_enabled": "Tillåt ett engångsförsök för att mäta huset"
+        },
+        "data_description": {
+          "staleness_watchdog_enabled": "Ett dött batteri lämnar ett helt normalt utseende värde kvar för alltid. Utan åtgärd lär sig modellen av den platta kurvan, och skadan överlever en omstart. Med detta på behandlas ett gammalt värde som saknat och inlärningen pausas i stället.",
+          "staleness_max_age_scale": "Höj om du har sensorer som avsiktligt rapporterar sällan och flaggas i onödan.",
+          "external_heat_detection_enabled": "Upptäcker att tankarna blir varmare utan att värmepumpen går. Under tiden hålls planerad eldriven varmvattenberedning tillbaka — att betala för att värma vatten som redan värms gratis är det dyraste misstag som finns.",
+          "external_heat_entity": "Har du en rökgastermostat eller en brytare på pannan, använd den. Den litas på framför den automatiska upptäckten.",
+          "external_heat_min_rise": "Höj om normal drift utlöser den. Att missa en brasa kostar en onödig uppvärmningscykel; att felaktigt anta en kan lämna dig utan varmvatten.",
+          "comfort_learning_enabled": "Varje gång du justerar temperaturen säger du att planen gick för långt åt ett håll. Detta justerar långsamt komfortinställningen utifrån det. Det inlärda värdet visas på en egen sensor och det finns en knapp för att nollställa.",
+          "system_identification_enabled": "Låter optimeraren göra ett litet avsiktligt värmesteg en mild och billig natt för att mäta huset direkt, i stället för att vänta veckor på att härleda det. Steget hålls så litet att det inte märks och avbryts om temperaturen driver."
+        }
       }
     },
     "error": {
@@ -349,6 +456,42 @@
       "options": {
         "weather": "Väderentitet",
         "open_meteo": "Open-Meteo"
+      }
+    },
+    "building_structure": {
+      "options": {
+        "timber_crawlspace": "Regelstomme med krypgrund eller torpargrund",
+        "timber_slab": "Regelstomme på platta på mark",
+        "concrete_slab": "Betong eller tegel på platta",
+        "masonry": "Sten eller murverk"
+      }
+    },
+    "building_era": {
+      "options": {
+        "pre_1960": "Före 1960",
+        "1960_1980": "1960–1980",
+        "1980_2005": "1980–2005",
+        "post_2005": "Efter 2005",
+        "low_energy": "Lågenergi- eller passivhus"
+      }
+    },
+    "building_foundation": {
+      "options": {
+        "none": "Platta på mark",
+        "crawlspace": "Krypgrund",
+        "heated_basement": "Uppvärmd källare"
+      }
+    },
+    "emitter": {
+      "options": {
+        "floor": "Golvvärme",
+        "radiators": "Radiatorer"
+      }
+    },
+    "peak_window": {
+      "options": {
+        "15": "15 minuter",
+        "60": "1 timme"
       }
     }
   }

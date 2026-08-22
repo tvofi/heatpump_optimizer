@@ -10,7 +10,7 @@
  */
 
 const CARD_TAG = "heatpump-optimizer-card";
-const CARD_VERSION = "2.7.0";
+const CARD_VERSION = "2.8.0";
 
 const DEFAULTS = {
   title: "Heat pump plan",
@@ -20,13 +20,18 @@ const DEFAULTS = {
   // attribute, so a renamed entity still works with no config change.
   space_entity: "sensor.heat_pump_optimizer_space_heating_plan",
   dhw_entity: "sensor.heat_pump_optimizer_dhw_heating_plan",
+  solar_entity: "sensor.heat_pump_optimizer_solar_irradiance",
   hours: 24,
+  // The what-if simulator lives in the expanded view. Off by default because
+  // it calls a service that runs a real solve on the Home Assistant host.
+  what_if: false,
 };
 
-// Series metadata. `axis` selects one of three value axes: temp / power / price.
-// `sensor` selects which forecast the values come from ("space", "dhw" or
-// "either" meaning prefer space then fall back to dhw). `field` is the forecast
-// attribute key. Colours are fixed and chosen to read on light + dark themes.
+// Series metadata. `axis` selects one of four value axes: temp / power / price
+// / solar. `sensor` selects which forecast the values come from ("space",
+// "dhw", "solar", or "either" meaning prefer space then fall back to dhw).
+// `field` is the forecast attribute key. Colours are fixed and chosen to read
+// on light + dark themes.
 const SERIES_DEFS = [
   {
     key: "price",
@@ -89,6 +94,20 @@ const SERIES_DEFS = [
     extra: ["upper", "lower"],
     style: "smooth",
   },
+  {
+    // W/m² is a fourth unit, and both plot edges were already occupied, so it
+    // gets an inner right-hand axis that only appears when the series is on.
+    // Scaling it into the power axis as kW/m² was the alternative, but a
+    // 0.8 kW/m² line sharing a scale with a 5 kW compressor is unreadable.
+    key: "solar",
+    label: "Solar irradiance",
+    axis: "solar",
+    unit: "W/m\u00b2",
+    color: "#f2c94c",
+    sensor: "solar",
+    field: "ghi",
+    style: "stepArea",
+  },
 ];
 
 const VIEW_W = 900;
@@ -103,6 +122,34 @@ const CLOSE_ICON =
   '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">' +
   '<path fill="currentColor" d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>';
 const MARGIN = { top: 16, right: 62, bottom: 34, left: 92 };
+// When the irradiance series is on, the right margin has to make room for a
+// second axis inside the price one.
+const SOLAR_AXIS_INSET = 46;
+const MARGIN_RIGHT_WITH_SOLAR = MARGIN.right + SOLAR_AXIS_INSET;
+
+// SVG text is sized in viewBox units, so a chart scaled up to fill a dialog
+// renders the same nominal glyph size across a much larger area — which reads
+// as cramped and low-resolution even though the text is still vector. Scaling
+// the in-viewBox size back down keeps the *apparent* size constant.
+const FONT_BASE = 10;
+const FONT_EXPANDED = 15;
+
+// Human-readable labels for the plan reason codes the optimizer publishes.
+// Without these an unexpected slot is indistinguishable from a bug.
+const REASON_LABELS = {
+  comfort_floor: "Holding the minimum temperature",
+  cheap_price: "Cheapest hours",
+  preheat_weather: "Pre-heating before colder weather",
+  terminal_value: "Leaving the house warm past the horizon",
+  solar_surplus: "Using solar surplus",
+  recovery: "Warming up before you return",
+  dhw_window: "Hot water needed now",
+  dhw_ready: "Getting the tank ready for a demand window",
+  dhw_preheat: "Charging the tank while electricity is cheap",
+  legionella: "Anti-legionella cycle",
+  peak_avoidance: "Staying under the capacity tariff peak",
+  idle: "Not heating",
+};
 
 function esc(str) {
   return String(str)
@@ -166,6 +213,10 @@ class HeatpumpOptimizerCard extends HTMLElement {
     this._plot = null;
     this._resizeObserver = null;
     this._expanded = false;
+    // What-if simulator state (item 21). Kept on the instance so a re-render
+    // triggered by a data refresh does not reset the slider under the user.
+    this._whatIfValue = null;
+    this._whatIfTimer = null;
     this._onLegendClick = this._onLegendClick.bind(this);
     this._onPointerMove = this._onPointerMove.bind(this);
     this._onPointerLeave = this._onPointerLeave.bind(this);
@@ -173,6 +224,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     this._onExpandClick = this._onExpandClick.bind(this);
     this._onDialogClick = this._onDialogClick.bind(this);
     this._onDialogClose = this._onDialogClose.bind(this);
+    this._onWhatIfInput = this._onWhatIfInput.bind(this);
   }
 
   // ---- Lovelace contract -------------------------------------------------
@@ -192,6 +244,14 @@ class HeatpumpOptimizerCard extends HTMLElement {
       throw new Error(
         "heatpump-optimizer-card: 'dhw_entity' must be an entity id string"
       );
+    }
+    if (typeof cfg.solar_entity !== "string" || !cfg.solar_entity.includes(".")) {
+      throw new Error(
+        "heatpump-optimizer-card: 'solar_entity' must be an entity id string"
+      );
+    }
+    if (typeof cfg.what_if !== "boolean") {
+      throw new Error("heatpump-optimizer-card: 'what_if' must be true or false");
     }
     const hours = Number(cfg.hours);
     if (!Number.isFinite(hours) || hours <= 0 || hours > 168) {
@@ -266,6 +326,12 @@ class HeatpumpOptimizerCard extends HTMLElement {
   disconnectedCallback() {
     // A modal dialog left open would outlive the card in the top layer.
     if (this._expanded) this._closeExpandedQuietly();
+    // A pending what-if solve would otherwise fire after the card is gone,
+    // spending seconds of coordinator CPU to write into a detached DOM.
+    if (this._whatIfTimer) {
+      clearTimeout(this._whatIfTimer);
+      this._whatIfTimer = null;
+    }
     if (this._resizeObserver) {
       try {
         this._resizeObserver.disconnect();
@@ -335,7 +401,12 @@ class HeatpumpOptimizerCard extends HTMLElement {
   // integration versions predating that attribute.
   _resolveEntity(kind) {
     const cfg = this._config;
-    const configured = kind === "space" ? cfg.space_entity : cfg.dhw_entity;
+    const configured =
+      kind === "space"
+        ? cfg.space_entity
+        : kind === "dhw"
+        ? cfg.dhw_entity
+        : cfg.solar_entity;
     if (!this._hass || !this._hass.states) return configured;
     const states = this._hass.states;
     if (states[configured]) return configured;
@@ -344,7 +415,12 @@ class HeatpumpOptimizerCard extends HTMLElement {
     const cached = this._resolvedCache[kind];
     if (cached && states[cached]) return cached;
 
-    const suffix = kind === "space" ? "space_heating_plan" : "dhw_heating_plan";
+    const suffix =
+      kind === "space"
+        ? "space_heating_plan"
+        : kind === "dhw"
+        ? "dhw_heating_plan"
+        : "solar_irradiance";
     let byMarker = null;
     let bySuffix = null;
     for (const id of Object.keys(states).sort()) {
@@ -389,21 +465,27 @@ class HeatpumpOptimizerCard extends HTMLElement {
     const cfg = this._config;
     const spId = this._resolveEntity("space");
     const dhwId = this._resolveEntity("dhw");
+    const solarId = this._resolveEntity("solar");
     const space = this._stateOf(spId);
     const dhw = this._stateOf(dhwId);
+    const solar = this._stateOf(solarId);
     const spFc = this._forecast(spId);
     const dhwFc = this._forecast(dhwId);
+    const solarFc = this._forecast(solarId);
     return [
       spId,
       dhwId,
+      solarId,
       cfg.hours,
       cfg.title,
       space ? space.last_updated : "-",
       space ? space.state : "-",
       dhw ? dhw.last_updated : "-",
       dhw ? dhw.state : "-",
+      solar ? solar.last_updated : "-",
       spFc ? spFc.length : -1,
       dhwFc ? dhwFc.length : -1,
+      solarFc ? solarFc.length : -1,
       JSON.stringify(this._hidden),
     ].join("|");
   }
@@ -421,6 +503,10 @@ class HeatpumpOptimizerCard extends HTMLElement {
     const cfg = this._config;
     const spFc = this._forecast(this._resolveEntity("space")) || [];
     const dhwFc = this._forecast(this._resolveEntity("dhw")) || [];
+    // The irradiance sensor publishes its own horizon. Its timestamps are
+    // already interval *starts* — `_solar_forecast_view` converts Open-Meteo's
+    // end-of-interval stamps on the way out — so they must not be shifted again.
+    const solarFc = this._forecast(this._resolveEntity("solar")) || [];
 
     const now = Date.now();
     let windowStart = now;
@@ -452,7 +538,8 @@ class HeatpumpOptimizerCard extends HTMLElement {
       );
     }
 
-    const pick = (sensor) => (sensor === "dhw" ? dhwFc : spFc);
+    const pick = (sensor) =>
+      sensor === "dhw" ? dhwFc : sensor === "solar" ? solarFc : spFc;
     const either = (field) => {
       // prefer space forecast, fall back to dhw
       if (spFc.some((p) => p[field] !== undefined && p[field] !== null))
@@ -473,7 +560,14 @@ class HeatpumpOptimizerCard extends HTMLElement {
           if (t < windowStart || t > windowEnd) continue;
           const v = p[field];
           if (v === null || v === undefined || Number.isNaN(Number(v))) continue;
-          pts.push({ t, v: Number(v) });
+          pts.push({
+            t,
+            v: Number(v),
+            // Reason codes and price provenance ride along on the point so the
+            // tooltip can explain a slot without a second lookup.
+            reason: p.reason,
+            priceKnown: p.price_known,
+          });
         }
         pts.sort((a, b) => a.t - b.t);
         if (pts.length) {
@@ -573,7 +667,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
     this._syncDialog();
     this._cacheRect();
   }
-
   /** Chart markup plus the tooltip that belongs to it.
    *
    * The tooltip lives inside the wrapper rather than beside it so that the two
@@ -598,8 +691,124 @@ class HeatpumpOptimizerCard extends HTMLElement {
         </div>
         ${this._legendHtml()}
         ${this._chartBlock(built, true)}
+        ${this._whatIfHtml()}
       </dialog>
     `;
+  }
+
+  /** The what-if simulator, shown in the expanded view only.
+   *
+   * Setpoints are normally chosen blind: the optimizer can price a plan, but
+   * the user never sees the price of their own comfort choices. Dragging a
+   * slider here re-solves against the current forecast and reports the monthly
+   * cost difference, which turns "I set 21 because it sounds about right" into
+   * an informed decision.
+   *
+   * The evaluation runs off a copy of the configuration on the coordinator
+   * side, so an exploratory drag never disturbs actual operation, and the
+   * service call is both debounced here and rate-limited there.
+   */
+  _whatIfHtml() {
+    if (!this._config.what_if) return "";
+    const target = this._whatIfTarget();
+    return `
+      <div class="whatif">
+        <label>
+          Comfort temperature
+          <input type="range" class="wi-temp" min="16" max="24" step="0.5"
+            value="${target}" aria-label="Comfort temperature">
+          <span class="wi-value">${target.toFixed(1)}&nbsp;°C</span>
+        </label>
+        <div class="wi-result" role="status">
+          Drag to see what a different comfort temperature would cost.
+        </div>
+      </div>
+    `;
+  }
+
+  /** Current comfort target, read from the climate entity when there is one. */
+  _whatIfTarget() {
+    if (this._whatIfValue !== undefined && this._whatIfValue !== null) {
+      return this._whatIfValue;
+    }
+    const states = (this._hass && this._hass.states) || {};
+    for (const id of Object.keys(states)) {
+      if (!id.startsWith("climate.")) continue;
+      const attrs = states[id].attributes || {};
+      const temp = Number(attrs.temperature);
+      if (Number.isFinite(temp)) return temp;
+    }
+    return 21;
+  }
+
+  /** Wire the what-if slider, if it is present. */
+  _attachWhatIf(root) {
+    const slider = root.querySelector(".wi-temp");
+    if (!slider) return;
+    slider.addEventListener("input", this._onWhatIfInput);
+    slider.addEventListener("click", (ev) => ev.stopPropagation());
+  }
+
+  _onWhatIfInput(ev) {
+    if (ev && typeof ev.stopPropagation === "function") ev.stopPropagation();
+    const value = Number(ev.target.value);
+    if (!Number.isFinite(value)) return;
+    this._whatIfValue = value;
+
+    const scope = this.shadowRoot;
+    const label = scope.querySelector(".wi-value");
+    if (label) label.textContent = `${value.toFixed(1)}\u00a0°C`;
+
+    // Debounce so a drag does not fire a solve per pixel. The coordinator
+    // rate-limits as well, but sending the calls at all is wasteful.
+    if (this._whatIfTimer) clearTimeout(this._whatIfTimer);
+    this._whatIfTimer = setTimeout(() => this._runWhatIf(value), 400);
+  }
+
+  async _runWhatIf(value) {
+    const out = this.shadowRoot && this.shadowRoot.querySelector(".wi-result");
+    if (!out || !this._hass || typeof this._hass.callService !== "function") {
+      return;
+    }
+    out.className = "wi-result";
+    out.textContent = "Working out what that would cost…";
+    try {
+      const response = await this._hass.callService(
+        "heatpump_optimizer",
+        "simulate_plan",
+        { target_temp: value, comfort_temp_day: value },
+        undefined,
+        false,
+        true
+      );
+      const results = (response && response.response &&
+        response.response.results) || {};
+      const first = Object.values(results)[0];
+      if (!first || first.error) {
+        out.textContent = first && first.error
+          ? `Could not simulate: ${first.error}`
+          : "No answer from the optimizer.";
+        return;
+      }
+      const delta = Number(first.monthly_cost_delta);
+      if (!Number.isFinite(delta)) {
+        out.textContent = "No answer from the optimizer.";
+        return;
+      }
+      if (Math.abs(delta) < 0.5) {
+        out.textContent = `${value.toFixed(1)} °C costs about the same as now.`;
+        return;
+      }
+      const cheaper = delta < 0;
+      out.className = `wi-result ${cheaper ? "cheaper" : "dearer"}`;
+      out.textContent =
+        `${value.toFixed(1)} °C would cost about ` +
+        `${Math.abs(delta).toFixed(0)} ${cheaper ? "less" : "more"} per month` +
+        (first.rate_limited ? " (using the previous estimate)" : "") +
+        ".";
+    } catch (err) {
+      out.textContent = `Could not simulate: ${err && err.message ? err.message : err}`;
+    }
   }
 
   /** Wire hover and legend handling for every chart in a root. */
@@ -614,6 +823,8 @@ class HeatpumpOptimizerCard extends HTMLElement {
       svg.addEventListener("touchmove", this._onPointerMove, { passive: true });
       svg.addEventListener("touchend", this._onPointerLeave);
     });
+
+    this._attachWhatIf(root);
   }
 
   /** Bring the dialog element in the DOM into line with `_expanded`.
@@ -694,6 +905,11 @@ class HeatpumpOptimizerCard extends HTMLElement {
         }
         .tooltip .tt-row { display: flex; align-items: center; gap: 6px; }
         .tooltip .tt-time { font-weight: 600; margin-bottom: 3px; }
+        .tooltip .tt-reason {
+          margin-top: 4px; padding-top: 4px; font-style: italic;
+          border-top: 1px solid var(--divider-color, #eee);
+          color: var(--secondary-text-color);
+        }
         .tooltip .dot {
           width: 8px; height: 8px; border-radius: 50%; display: inline-block;
         }
@@ -722,8 +938,48 @@ class HeatpumpOptimizerCard extends HTMLElement {
         .dlg-head .title { flex: 1 1 auto; min-width: 0; }
         .chartwrap.big { aspect-ratio: ${VIEW_W} / ${VIEW_H}; }
         .chartwrap.big svg { height: 100%; }
+
+        /* The legend is plain HTML, so it does not scale with the chart. Its
+           chips are sized in em against the inherited card font, which stays
+           at card size no matter how large the dialog gets — that is what made
+           them look cramped and low-resolution next to a much bigger chart.
+           Setting an explicit base font on the dialog lets the em units
+           cascade to a size that matches. */
+        dialog.expanded .legend {
+          font-size: 1.15rem; gap: 10px; padding: 0 2px 14px 2px;
+        }
+        dialog.expanded .chip {
+          font-size: 0.8em; padding: 6px 14px; border-radius: 20px;
+          border-width: 1.5px;
+        }
+        dialog.expanded .chip .dot { width: 14px; height: 14px; }
+        dialog.expanded .tooltip { font-size: 0.95rem; padding: 8px 11px; }
+        dialog.expanded .tooltip .dot { width: 10px; height: 10px; }
+
+        /* What-if simulator (item 21) */
+        .whatif {
+          display: flex; flex-wrap: wrap; align-items: center; gap: 14px;
+          padding: 12px 4px 2px 4px; border-top: 1px solid
+          var(--divider-color, #e0e0e0); margin-top: 10px;
+        }
+        .whatif label {
+          display: flex; align-items: center; gap: 8px; font-size: 0.95rem;
+          color: var(--primary-text-color);
+        }
+        .whatif input[type="range"] { width: 150px; }
+        .whatif .wi-value {
+          min-width: 3.5em; font-variant-numeric: tabular-nums;
+          font-weight: 600;
+        }
+        .whatif .wi-result {
+          flex: 1 1 100%; font-size: 0.95rem;
+          color: var(--secondary-text-color); min-height: 1.4em;
+        }
+        .whatif .wi-result.cheaper { color: var(--success-color, #2fae7a); }
+        .whatif .wi-result.dearer { color: var(--error-color, #e0544e); }
         @media (max-width: 600px) {
           dialog.expanded { width: 96vw; padding: 12px; }
+          dialog.expanded .legend { font-size: 1rem; }
         }
       </style>
     `;
@@ -747,9 +1003,10 @@ class HeatpumpOptimizerCard extends HTMLElement {
   _chartSvg(built, expanded) {
     const { windowStart, windowEnd } = built;
     const visible = this._series.filter((s) => s.visible && s.hasData);
+    const font = expanded ? FONT_EXPANDED : FONT_BASE;
 
     // Axis domains from visible series grouped by axis.
-    const groups = { temp: [], power: [], price: [] };
+    const groups = { temp: [], power: [], price: [], solar: [] };
     for (const s of visible) {
       for (const line of s.lines) {
         for (const p of line.points) groups[s.axis].push(p.v);
@@ -766,10 +1023,15 @@ class HeatpumpOptimizerCard extends HTMLElement {
       temp: axisRange(groups.temp, false),
       power: axisRange(groups.power, true),
       price: axisRange(groups.price, true),
+      solar: axisRange(groups.solar, true),
     };
 
     const plotL = MARGIN.left;
-    const plotR = VIEW_W - MARGIN.right;
+    // Only pay for the solar axis's width when it is actually drawn; a
+    // permanently narrower plot would be a real cost to every user who does
+    // not use the series.
+    const rightMargin = axes.solar ? MARGIN_RIGHT_WITH_SOLAR : MARGIN.right;
+    const plotR = VIEW_W - rightMargin;
     const plotT = MARGIN.top;
     const plotB = VIEW_H - MARGIN.bottom;
     const plotW = plotR - plotL;
@@ -807,21 +1069,30 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // Time gridlines + labels (hour grid, label every 3h)
     // The expanded view has room to label every hour instead of every third.
     parts.push(
-      this._timeAxis(scaleX, plotT, plotB, windowStart, windowEnd, expanded ? 1 : 3)
+      this._timeAxis(
+        scaleX, plotT, plotB, windowStart, windowEnd, expanded ? 1 : 3, font
+      )
     );
 
     // Value axes
     if (axes.temp)
       parts.push(
-        this._valueAxis(axes.temp, plotL, plotB, plotH, "left", 0, scaleY, "temp", "\u00b0C")
+        this._valueAxis(axes.temp, plotL, plotB, plotH, "left", 0, scaleY, "temp", "\u00b0C", font)
       );
     if (axes.power)
       parts.push(
-        this._valueAxis(axes.power, plotL, plotB, plotH, "left", 44, scaleY, "power", "kW")
+        this._valueAxis(axes.power, plotL, plotB, plotH, "left", 44, scaleY, "power", "kW", font)
       );
     if (axes.price)
       parts.push(
-        this._valueAxis(axes.price, plotR, plotB, plotH, "right", 0, scaleY, "price", "SEK/kWh")
+        this._valueAxis(axes.price, plotR, plotB, plotH, "right", 0, scaleY, "price", "SEK/kWh", font)
+      );
+    if (axes.solar)
+      parts.push(
+        this._valueAxis(
+          axes.solar, plotR, plotB, plotH, "right", SOLAR_AXIS_INSET,
+          scaleY, "solar", "W/m\u00b2", font
+        )
       );
 
     // Now marker
@@ -832,7 +1103,24 @@ class HeatpumpOptimizerCard extends HTMLElement {
         `<line x1="${nx}" y1="${plotT}" x2="${nx}" y2="${plotB}" stroke="var(--primary-color,#03a9f4)" stroke-width="1.5" stroke-dasharray="4 3"/>`
       );
       parts.push(
-        `<text x="${nx + 3}" y="${plotT + 11}" font-size="10" fill="var(--primary-color,#03a9f4)">now</text>`
+        `<text x="${nx + 3}" y="${plotT + font + 1}" font-size="${font}" fill="var(--primary-color,#03a9f4)">now</text>`
+      );
+    }
+
+    // Shade the stretch of the horizon whose prices are the learned diurnal
+    // prior rather than published market data. A plan that looks identical
+    // whether or not it rests on real prices cannot be audited.
+    const estimatedFrom = this._estimatedPricesFrom();
+    if (estimatedFrom !== null && estimatedFrom < windowEnd) {
+      const ex = Math.max(plotL, scaleX(Math.max(estimatedFrom, windowStart)));
+      parts.push(
+        `<rect class="estimated" x="${ex}" y="${plotT}" width="${Math.max(
+          0,
+          plotR - ex
+        )}" height="${plotH}" fill="var(--secondary-text-color,#888)" fill-opacity="0.07"/>`
+      );
+      parts.push(
+        `<text x="${ex + 4}" y="${plotB - 5}" font-size="${font}" fill="var(--secondary-text-color,#888)">estimated prices</text>`
       );
     }
 
@@ -855,8 +1143,9 @@ class HeatpumpOptimizerCard extends HTMLElement {
     )}">${parts.join("")}</svg>`;
   }
 
-  _timeAxis(scaleX, plotT, plotB, windowStart, windowEnd, labelEvery) {
+  _timeAxis(scaleX, plotT, plotB, windowStart, windowEnd, labelEvery, font) {
     const every = labelEvery || 3;
+    const size = font || FONT_BASE;
     const out = [];
     const first = new Date(windowStart);
     first.setMinutes(0, 0, 0);
@@ -876,7 +1165,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
           minute: "2-digit",
         });
         out.push(
-          `<text x="${x}" y="${plotB + 14}" font-size="10" text-anchor="middle" fill="var(--secondary-text-color,#888)">${esc(
+          `<text x="${x}" y="${plotB + size + 4}" font-size="${size}" text-anchor="middle" fill="var(--secondary-text-color,#888)">${esc(
             lbl
           )}</text>`
         );
@@ -885,7 +1174,10 @@ class HeatpumpOptimizerCard extends HTMLElement {
     return out.join("");
   }
 
-  _valueAxis(axis, xBase, plotB, plotH, side, inset, scaleY, axisName, unit) {
+  _valueAxis(
+    axis, xBase, plotB, plotH, side, inset, scaleY, axisName, unit, font
+  ) {
+    const size = font || FONT_BASE;
     const out = [];
     const x = side === "left" ? xBase - inset : xBase + inset;
     const anchor = side === "left" ? "end" : "start";
@@ -893,7 +1185,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     for (const tick of axis.ticks) {
       const y = scaleY(tick, axisName);
       out.push(
-        `<text x="${tx}" y="${y + 3}" font-size="10" text-anchor="${anchor}" fill="var(--secondary-text-color,#888)">${esc(
+        `<text x="${tx}" y="${y + size / 3}" font-size="${size}" text-anchor="${anchor}" fill="var(--secondary-text-color,#888)">${esc(
           fmtTick(tick)
         )}</text>`
       );
@@ -904,11 +1196,25 @@ class HeatpumpOptimizerCard extends HTMLElement {
     }
     const uy = MARGIN.top - 4;
     out.push(
-      `<text x="${tx}" y="${uy}" font-size="10" text-anchor="${anchor}" fill="var(--secondary-text-color,#888)">${esc(
+      `<text x="${tx}" y="${uy}" font-size="${size}" text-anchor="${anchor}" fill="var(--secondary-text-color,#888)">${esc(
         unit
       )}</text>`
     );
     return out.join("");
+  }
+
+  /** Timestamp from which the plan's prices are the learned prior, or null. */
+  _estimatedPricesFrom() {
+    const spFc = this._forecast(this._resolveEntity("space")) || [];
+    const dhwFc = this._forecast(this._resolveEntity("dhw")) || [];
+    const fc = spFc.length ? spFc : dhwFc;
+    for (const p of fc) {
+      if (p.price_known === false) {
+        const t = Date.parse(p.t);
+        return Number.isNaN(t) ? null : t;
+      }
+    }
+    return null;
   }
 
   _seriesPath(s, scaleX, scaleY, plotB) {
@@ -1081,6 +1387,29 @@ class HeatpumpOptimizerCard extends HTMLElement {
     }
   }
 
+  /** Why the plan is heating at the hovered step, plus price provenance.
+   *
+   * Only reasons for steps that are actually heating are shown; "not heating"
+   * is not an explanation anyone needs, and printing it for every idle hour
+   * would bury the ones that matter.
+   */
+  _reasonHtml(rows) {
+    const out = [];
+    const seen = new Set();
+    for (const r of rows) {
+      if (!r.reason || r.reason === "idle" || seen.has(r.reason)) continue;
+      seen.add(r.reason);
+      const label = REASON_LABELS[r.reason] || r.reason;
+      out.push(`<div class="tt-reason">${esc(label)}</div>`);
+    }
+    if (rows.some((r) => r.priceKnown === false)) {
+      out.push(
+        `<div class="tt-reason">Price is estimated, not published yet</div>`
+      );
+    }
+    return out.join("");
+  }
+
   _onPointerMove(ev) {
     if (!this._plot) return;
     const svg = ev && ev.currentTarget;
@@ -1131,6 +1460,8 @@ class HeatpumpOptimizerCard extends HTMLElement {
           value: best.v,
           unit: s.unit,
           t: best.t,
+          reason: best.reason,
+          priceKnown: best.priceKnown,
         });
       }
     }
@@ -1164,7 +1495,8 @@ class HeatpumpOptimizerCard extends HTMLElement {
                 r.label
               )}: ${esc(fmtTick(r.value))} ${esc(r.unit)}</div>`
           )
-          .join("");
+          .join("") +
+        this._reasonHtml(rows);
       tt.innerHTML = bodyHtml;
       tt.hidden = false;
       const leftPx = clientX - rect.left;

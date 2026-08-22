@@ -8,7 +8,7 @@ from profiles import prices, weather, house, DT, N
 from heatpump_optimizer.thermal_model import (
     ThermalModel, ThermalParameters, ThermalState)
 from heatpump_optimizer.optimizer import (
-    HeatPumpOptimizer, OptimizationConfig)
+    HeatPumpOptimizer, OptimizationConfig, count_compressor_starts)
 from heatpump_optimizer.dhw_schedule import parse_windows, hour_in_windows
 
 START = datetime(2026,1,15,0,0)
@@ -110,10 +110,46 @@ def run(scen, price_p, weather_p, two_zone=False, dhw=True, start=START, **over)
     else:
         share_peak = float("nan")
 
+    # ---- compressor cycling ----
+    #
+    # Reported rather than asserted on, because the point of measuring it is to
+    # decide whether a cycling penalty is worth paying for at all. A plan that
+    # does not chatter does not need one, and the penalty is not free: it buys
+    # smoothness with savings.
+    starts = r.compressor_starts
+    total_starts = starts + count_compressor_starts(
+        np.asarray(r.dhw_power_schedule or [])
+    )
+    if total_starts > N * DT:  # more than one start per hour of horizon
+        issue(scen, f"plan chatters: {total_starts} compressor starts in "
+                    f"{N*DT:.0f} h")
+
+    # ---- plan reason codes ----
+    #
+    # Every heating step must carry an explanation. Without one an unexpected
+    # slot is indistinguishable from a bug, which is what makes bug reports
+    # against this optimizer so weak.
+    if r.space_reasons:
+        unexplained = sum(
+            1 for i, p in enumerate(r.power_schedule)
+            if p > 0.05 and (i >= len(r.space_reasons)
+                             or r.space_reasons[i] == "idle")
+        )
+        if unexplained:
+            issue(scen, f"{unexplained} heating steps carry no reason code")
+    elif kwh > 0.5:
+        issue(scen, "plan publishes no reason codes at all")
+
+    # ---- price provenance ----
+    if len(r.price_known) != len(r.prices):
+        issue(scen, "price provenance mask does not cover the horizon")
+
     print(f"{scen:<34} {r.status[:7]:<7} {kwh:6.2f}kWh base={r.baseline_cost:7.2f} "
           f"cost={r.predicted_cost:7.2f} sav={r.savings_percentage:5.1f}% "
           f"room {room.min():4.1f}-{room.max():4.1f} dhw>={dhw_ok:>5} "
-          f"peak%={share_peak:.2f} dhwpeak%={dhw_peak:.2f} {r.solve_time_ms:5.0f}ms")
+          f"peak%={share_peak:.2f} dhwpeak%={dhw_peak:.2f} "
+          f"starts={total_starts:2d} kW={r.projected_peak_kw:4.1f} "
+          f"{r.solve_time_ms:5.0f}ms")
     return r
 
 print("=== WINTER, single zone, space + DHW ===")
