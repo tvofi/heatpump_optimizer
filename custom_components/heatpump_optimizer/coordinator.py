@@ -117,6 +117,30 @@ from .const import (
     CONF_SOLAR_LOCATION,
     DEFAULT_SOLAR_FORECAST_SOURCE,
     SOLAR_SOURCE_OPEN_METEO,
+    CONF_POWER_ENTITY,
+    CONF_ENERGY_ENTITY,
+    CONF_HOUSE_POWER_ENTITY,
+    CONF_COP_SCALE,
+    COP_SCALE_MAX,
+    COP_SCALE_MIN,
+    DEFAULT_COP_SCALE,
+    CONF_STALENESS_ENABLED,
+    CONF_STALENESS_SCALE,
+    DEFAULT_STALENESS_ENABLED,
+    DEFAULT_STALENESS_SCALE,
+    CONF_EXTERNAL_HEAT_ENABLED,
+    CONF_EXTERNAL_HEAT_ENTITY,
+    CONF_EXTERNAL_HEAT_MIN_RISE,
+    CONF_EXTERNAL_HEAT_DECAY_MINUTES,
+    DEFAULT_EXTERNAL_HEAT_ENABLED,
+    DEFAULT_EXTERNAL_HEAT_MIN_RISE,
+    DEFAULT_EXTERNAL_HEAT_DECAY_MINUTES,
+)
+from .inputs import InputHealth, InputReader, stale_summary
+from .external_heat import (
+    ExternalHeatConfig,
+    ExternalHeatDetector,
+    ExternalHeatObservation,
 )
 from .open_meteo import OpenMeteoSolar
 from .thermal_model import (
@@ -244,6 +268,12 @@ HOUSE_LOSS_MAX_STEP = 0.05
 HOUSE_LOSS_MAX_RESIDUAL = 1.0  # °C
 
 THERMAL_LEARNING_STORE_VERSION = 1
+
+# COP learning. Slower than the house-loss learner because a single interval's
+# ratio of commanded to measured power is noisy: compressor start transients,
+# defrost cycles and any auxiliary heater all land in the measurement.
+COP_LEARNING_ALPHA = 0.03
+COP_LEARNING_MAX_STEP = 0.05
 
 # Tibber GraphQL query for price data
 TIBBER_PRICE_QUERY = """
@@ -398,6 +428,32 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             THERMAL_LEARNING_STORE_VERSION,
             f"{DOMAIN}_{entry.entry_id}_thermal_learning",
         )
+
+        # --- Measured electrical draw (optional) -------------------------
+        # Absent on most installs, so every consumer must degrade cleanly.
+        self._measured_power: float | None = None
+        self._measured_house_power: float | None = None
+        self._measured_energy: float | None = None
+        # Learned correction to the modelled COP, from measured input against
+        # modelled thermal output. Only moves when a power entity exists.
+        self._cop_scale: float = float(
+            self._config.get(CONF_COP_SCALE, DEFAULT_COP_SCALE)
+        )
+        self._cop_samples: int = 0
+        self._last_measured_cop: float | None = None
+        self._apply_cop_scale(self._cop_scale)
+
+        # --- Input health -------------------------------------------------
+        self._input_health: InputHealth | None = None
+        self._learner_freeze_reason: str | None = None
+
+        # --- External heat source detection --------------------------------
+        self._external_heat = ExternalHeatDetector(self._external_heat_config())
+        self._external_heat_active: bool = False
+
+        # Guard so a user tapping the run button repeatedly cannot stack solves
+        # on top of each other; a run is not instantaneous.
+        self._optimization_running: bool = False
 
         # ECL110 MQTT state
         self._ecl110_command_topic: str = self._config.get(
@@ -820,6 +876,180 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             },
         }
 
+    # ------------------------------------------------------------------
+    # Measured power, COP learning and external heat detection
+    # ------------------------------------------------------------------
+
+    def _external_heat_config(self) -> ExternalHeatConfig:
+        """Build the detector configuration from the config entry."""
+        return ExternalHeatConfig(
+            enabled=bool(
+                self._config.get(
+                    CONF_EXTERNAL_HEAT_ENABLED, DEFAULT_EXTERNAL_HEAT_ENABLED
+                )
+            ),
+            min_rise_c_per_h=_as_float(
+                self._config.get(CONF_EXTERNAL_HEAT_MIN_RISE),
+                DEFAULT_EXTERNAL_HEAT_MIN_RISE,
+            ),
+            decay_minutes=_as_float(
+                self._config.get(CONF_EXTERNAL_HEAT_DECAY_MINUTES),
+                DEFAULT_EXTERNAL_HEAT_DECAY_MINUTES,
+            ),
+        )
+
+    def _apply_cop_scale(self, scale: float) -> None:
+        """Clamp the learned COP correction and push it to the model."""
+        self._cop_scale = float(np.clip(scale, COP_SCALE_MIN, COP_SCALE_MAX))
+        self._thermal_params.cop_scale = self._cop_scale
+
+    def _max_pump_rise(self, tank: str) -> float | None:
+        """Fastest the heat pump alone could warm a tank, °C/h.
+
+        Used to recognise an external source even while the compressor runs:
+        no heat pump can outrun its own thermal output into a known volume.
+        """
+        params = self._thermal_params
+        cop = self._thermal_model.compute_cop(
+            self._current_state.outdoor_temperature
+        )
+        thermal_kw = params.max_electrical_power * max(cop, 1.0)
+        if tank == "dhw":
+            capacity = params.dhw_tank_thermal_mass
+        else:
+            capacity = params.buffer_tank_thermal_mass
+        if capacity <= 1e-6:
+            return None
+        return thermal_kw / capacity
+
+    def _external_heat_override(self) -> bool | None:
+        """State of a user-provided stove/flue entity, if one is configured."""
+        entity_id = self._config.get(CONF_EXTERNAL_HEAT_ENTITY)
+        if not entity_id:
+            return None
+        state = self.hass.states.get(entity_id)
+        if state is None:
+            return None
+        raw = str(getattr(state, "state", "")).lower()
+        if raw in ("unknown", "unavailable", ""):
+            return None
+        if raw in ("on", "true", "home", "open", "heat", "detected"):
+            return True
+        if raw in ("off", "false", "not_home", "closed", "clear"):
+            return False
+        # A numeric entity (a flue temperature, say) counts as active when it
+        # reads above freezing-ish; anything else is not interpretable.
+        try:
+            return float(raw) > 30.0
+        except ValueError:
+            return None
+
+    def _update_external_heat_detection(self) -> None:
+        """Fold this interval's observation into the external-heat detector."""
+        self._external_heat.config = self._external_heat_config()
+        observation = ExternalHeatObservation(
+            now=dt_util.now(),
+            dhw_temp=self._current_state.dhw_temperature,
+            buffer_temp=self._current_state.buffer_tank_temperature,
+            commanded_power_kw=float(self._current_action.get("power", 0.0)),
+            measured_power_kw=self._measured_power,
+            dhw_max_rise_c_per_h=self._max_pump_rise("dhw"),
+            buffer_max_rise_c_per_h=self._max_pump_rise("buffer"),
+            override=self._external_heat_override(),
+        )
+        state = self._external_heat.update(observation)
+        self._external_heat_active = self._external_heat.suppressing
+        if state.active:
+            _LOGGER.debug(
+                "External heat source active (%s): %s",
+                state.source,
+                "; ".join(state.evidence),
+            )
+
+    def _learn_measured_cop(self) -> None:
+        """Compare measured electrical input with modelled thermal output.
+
+        Without a power entity the COP is a curve fitted to a nameplate figure,
+        and since every plan is priced through it, an error there is an error
+        in every cost the integration reports. With one, COP becomes an
+        observable and can join the other learners.
+
+        Only intervals where the pump is genuinely running carry information;
+        at low duty the measured average is dominated by standby draw.
+        """
+        if self._measured_power is None:
+            return
+        if self._learning_frozen(CONF_POWER_ENTITY, CONF_OUTDOOR_TEMP_ENTITY):
+            return
+
+        commanded = float(self._current_action.get("power", 0.0))
+        params = self._thermal_params
+        # Below a third of nameplate the reading is mostly auxiliaries and the
+        # ratio says little about compressor efficiency.
+        floor = max(0.3 * params.max_electrical_power, 0.2)
+        if commanded < floor or self._measured_power < floor:
+            return
+
+        modelled_cop = self._thermal_model.compute_cop(
+            self._current_state.outdoor_temperature
+        )
+        if modelled_cop <= 0.1:
+            return
+
+        # The thermal output the plan intended is commanded power times the
+        # modelled COP; delivering that with a different electrical input means
+        # the real COP differs by the ratio of the two inputs.
+        observed_cop = modelled_cop * commanded / self._measured_power
+        if not np.isfinite(observed_cop) or observed_cop <= 0.1:
+            return
+        self._last_measured_cop = round(float(observed_cop), 2)
+
+        target_scale = observed_cop / modelled_cop
+        alpha = COP_LEARNING_ALPHA
+        new_scale = (1.0 - alpha) * self._cop_scale + alpha * target_scale
+        max_step = self._cop_scale * COP_LEARNING_MAX_STEP
+        new_scale = float(
+            np.clip(
+                new_scale,
+                self._cop_scale - max_step,
+                self._cop_scale + max_step,
+            )
+        )
+        self._apply_cop_scale(new_scale)
+        self._cop_samples += 1
+        _LOGGER.debug(
+            "Learned COP: commanded %.2f kW drew %.2f kW, implying COP %.2f "
+            "against a modelled %.2f; scale now %.3f (%d samples)",
+            commanded,
+            self._measured_power,
+            observed_cop,
+            modelled_cop,
+            self._cop_scale,
+            self._cop_samples,
+        )
+
+    def _input_health_view(self) -> dict[str, Any]:
+        """Diagnostics for the input watchdog, published as entity attributes."""
+        health = self._input_health
+        if health is None:
+            return {
+                "input_health": "unknown",
+                "stale_inputs": [],
+                "input_problems": [],
+                "input_ages_minutes": {},
+                "learners_frozen": False,
+                "learner_freeze_reason": None,
+            }
+        reason = self._learner_freeze_reason
+        return {
+            "input_health": stale_summary(health),
+            "stale_inputs": health.stale_keys,
+            "input_problems": health.details(),
+            "input_ages_minutes": health.ages(),
+            "learners_frozen": reason is not None,
+            "learner_freeze_reason": reason,
+        }
+
     def _effective_house_heat_loss(self) -> float:
         """Configured heat loss coefficient after the learned correction, kW/°C."""
         params = self._thermal_params
@@ -872,6 +1102,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._last_buffer_temp_sample = buffer_temp
         self._last_buffer_sample_time = now
         self._buffer_heating_since_sample = heating
+
+        # An interval that is only *partly* externally heated does not look
+        # like an outlier — it looks like a tank that cooled unusually slowly,
+        # and BUFFER_COOLING_ALPHA_UP absorbs it rather than rejecting it. So
+        # this learner in particular has to be told, not left to infer.
+        frozen = self._learning_frozen(CONF_BUFFER_TANK_TEMP_ENTITY)
+        if frozen:
+            self._learner_freeze_reason = frozen
+            return
 
         if previous_temp is None or previous_time is None or heated:
             return
@@ -951,6 +1190,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._last_house_sample = replace(self._current_state)
         self._last_house_sample_time = now
         self._last_house_sample_power = float(self._current_action.get("power", 0.0))
+
+        frozen = self._learning_frozen(
+            CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY
+        )
+        if frozen:
+            self._learner_freeze_reason = frozen
+            return
 
         if previous_state is None or previous_time is None or observed is None:
             return
@@ -1153,6 +1399,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._last_dhw_temp_sample = dhw_temp
         self._last_dhw_sample_time = now
         self._dhw_heating_since_sample = heating
+
+        frozen = self._learning_frozen(CONF_DHW_TEMP_ENTITY)
+        if frozen:
+            self._learner_freeze_reason = frozen
+            return
 
         if previous_temp is None or previous_time is None:
             return
@@ -1506,64 +1757,71 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._unsub_ecl110_state = None
 
     async def _update_current_state(self) -> None:
-        """Update current thermal state from HA entities."""
+        """Update current thermal state from HA entities.
+
+        Every read goes through :class:`InputReader`, which rejects values that
+        are too old as well as ones that are unavailable. That distinction
+        matters: a sensor that has silently stopped updating still returns a
+        plausible number, and feeding that to the learners corrupts parameters
+        that are then persisted.
+        """
+        reader = InputReader(
+            self.hass,
+            self._config,
+            enabled=bool(
+                self._config.get(CONF_STALENESS_ENABLED, DEFAULT_STALENESS_ENABLED)
+            ),
+            scale=_as_float(
+                self._config.get(CONF_STALENESS_SCALE, DEFAULT_STALENESS_SCALE),
+                DEFAULT_STALENESS_SCALE,
+            ),
+        )
+
         # Indoor temperature
-        indoor_entity = self._config.get(CONF_INDOOR_TEMP_ENTITY)
-        if indoor_entity:
-            state = self.hass.states.get(indoor_entity)
-            if state and state.state not in ("unknown", "unavailable"):
-                try:
-                    self._current_state.room_temperature = float(state.state)
-                    # For two-zone: indoor sensor is typically upper floor
-                    self._current_state.upper_floor_temperature = float(state.state)
-                except (ValueError, TypeError):
-                    pass
+        indoor = reader.read(CONF_INDOOR_TEMP_ENTITY)
+        if indoor.ok:
+            self._current_state.room_temperature = indoor.value
+            # For two-zone: indoor sensor is typically upper floor
+            self._current_state.upper_floor_temperature = indoor.value
 
         # Outdoor temperature
-        outdoor_entity = self._config.get(CONF_OUTDOOR_TEMP_ENTITY)
-        if outdoor_entity:
-            state = self.hass.states.get(outdoor_entity)
-            if state and state.state not in ("unknown", "unavailable"):
-                try:
-                    self._current_state.outdoor_temperature = float(state.state)
-                except (ValueError, TypeError):
-                    pass
+        outdoor = reader.read(CONF_OUTDOOR_TEMP_ENTITY)
+        if outdoor.ok:
+            self._current_state.outdoor_temperature = outdoor.value
 
         # Floor heating return temperature sensor
         floor_return_entity = self._config.get(CONF_FLOOR_RETURN_TEMP_ENTITY)
-        if floor_return_entity:
-            state = self.hass.states.get(floor_return_entity)
-            if state and state.state not in ("unknown", "unavailable"):
-                try:
-                    self._floor_return_temp = float(state.state)
-                    self._current_state.floor_return_temperature = (
-                        self._floor_return_temp
-                    )
-                    # Update slab temperature estimate from return temp
-                    self._thermal_model.update_slab_from_return_temp(
-                        self._current_state, self._floor_return_temp
-                    )
-                    # Lower floor temp ~ return temp (rough estimate)
-                    self._current_state.lower_floor_temperature = (
-                        self._floor_return_temp + 0.5
-                    )
-                except (ValueError, TypeError):
-                    pass
+        floor_return = reader.read(CONF_FLOOR_RETURN_TEMP_ENTITY)
+        if floor_return.ok:
+            self._floor_return_temp = floor_return.value
+            self._current_state.floor_return_temperature = self._floor_return_temp
+            # Update slab temperature estimate from return temp
+            self._thermal_model.update_slab_from_return_temp(
+                self._current_state, self._floor_return_temp
+            )
+            # Lower floor temp ~ return temp (rough estimate)
+            self._current_state.lower_floor_temperature = (
+                self._floor_return_temp + 0.5
+            )
+
+        # Measured electrical draw. Optional, and everything downstream has to
+        # degrade cleanly without it, because most installs will not have one.
+        power_reading = reader.read_power_kw(CONF_POWER_ENTITY)
+        self._measured_power = power_reading.value if power_reading.ok else None
+        house_power = reader.read_power_kw(CONF_HOUSE_POWER_ENTITY)
+        self._measured_house_power = house_power.value if house_power.ok else None
+        energy_reading = reader.read(CONF_ENERGY_ENTITY)
+        self._measured_energy = energy_reading.value if energy_reading.ok else None
 
         # Solar radiation: a local pyranometer measures this house, so it wins
         # over any remote estimate. Open-Meteo fills in when no sensor is
         # configured or the sensor is not reporting.
-        solar_entity = self._config.get(CONF_SOLAR_RADIATION_ENTITY)
+        solar = reader.read(CONF_SOLAR_RADIATION_ENTITY)
         solar_from_sensor = False
-        if solar_entity:
-            state = self.hass.states.get(solar_entity)
-            if state and state.state not in ("unknown", "unavailable"):
-                try:
-                    self._solar_radiation = float(state.state)
-                    self._current_state.solar_radiation = self._solar_radiation
-                    solar_from_sensor = True
-                except (ValueError, TypeError):
-                    pass
+        if solar.ok:
+            self._solar_radiation = solar.value
+            self._current_state.solar_radiation = self._solar_radiation
+            solar_from_sensor = True
 
         if not solar_from_sensor and self._open_meteo is not None:
             observed = self._open_meteo.current_irradiance(dt_util.utcnow())
@@ -1572,37 +1830,43 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 self._current_state.solar_radiation = observed
 
         # DHW temperature sensor
-        dhw_entity = self._config.get(CONF_DHW_TEMP_ENTITY)
-        if dhw_entity:
-            state = self.hass.states.get(dhw_entity)
-            if state and state.state not in ("unknown", "unavailable"):
-                try:
-                    self._dhw_temperature = float(state.state)
-                    self._current_state.dhw_temperature = self._dhw_temperature
-                    await self._async_learn_dhw_dynamics(self._dhw_temperature)
-                    await self._async_track_dhw_legionella(self._dhw_temperature)
-                except (ValueError, TypeError):
-                    pass
+        dhw = reader.read(CONF_DHW_TEMP_ENTITY)
+        if dhw.ok:
+            self._dhw_temperature = dhw.value
+            self._current_state.dhw_temperature = self._dhw_temperature
+
+        # Buffer tank temperature sensor (optional; enables cooling learning)
+        buffer_reading = reader.read(CONF_BUFFER_TANK_TEMP_ENTITY)
+        if buffer_reading.ok:
+            self._current_state.buffer_tank_temperature = buffer_reading.value
+
+        # The health snapshot has to be complete before any learner runs, since
+        # each one consults it to decide whether to freeze.
+        self._input_health = reader.health
+        self._learner_freeze_reason = None
+
+        # Detect an external heat source before the learners run: while one is
+        # active every thermal observation is contaminated, and the learners
+        # need to know that rather than quietly absorbing it.
+        self._update_external_heat_detection()
+
+        if dhw.ok:
+            await self._async_learn_dhw_dynamics(dhw.value)
+            await self._async_track_dhw_legionella(dhw.value)
 
         self._current_state.dhw_hours_since_legionella = (
             self._dhw_hours_since_legionella()
         )
 
-        # Buffer tank temperature sensor (optional; enables cooling learning)
-        buffer_entity = self._config.get(CONF_BUFFER_TANK_TEMP_ENTITY)
-        if buffer_entity:
-            state = self.hass.states.get(buffer_entity)
-            if state and state.state not in ("unknown", "unavailable"):
-                try:
-                    buffer_temp = float(state.state)
-                    self._current_state.buffer_tank_temperature = buffer_temp
-                    await self._async_learn_buffer_cooling(buffer_temp)
-                except (ValueError, TypeError):
-                    pass
+        if buffer_reading.ok:
+            await self._async_learn_buffer_cooling(buffer_reading.value)
 
         # Refine the building fabric model from how the last interval actually
         # went. Runs last so it sees the fully populated state.
         await self._async_learn_house_heat_loss()
+
+        # Observed COP, which is only possible with a measured power entity.
+        self._learn_measured_cop()
 
         # Update ECL110 effective displace state (PID/PI lag approximation)
         if "displace_value" in self._current_action:
@@ -1625,6 +1889,24 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     self._current_state.room_temperature
                 )
                 self._slab_temp_initialized = True
+
+    def _learning_frozen(self, *keys: str) -> str | None:
+        """Why learning should be skipped this interval, or ``None``.
+
+        Fail closed. A learner that pauses for an hour loses an hour of
+        convergence; a learner that trains on a flatline or on heat it did not
+        supply corrupts a parameter that is persisted to disk.
+        """
+        if self._external_heat_active:
+            return "external_heat_source"
+        health = self._input_health
+        if health is None:
+            return None
+        for key in keys:
+            reading = health.readings.get(key)
+            if reading is not None and reading.stale:
+                return f"stale:{key}"
+        return None
 
     async def _fetch_tibber_prices(self) -> None:
         """Fetch electricity prices from Tibber API."""

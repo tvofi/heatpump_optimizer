@@ -171,6 +171,181 @@ def _savings_percentage(savings: float, baseline_cost: float) -> float:
     return float(np.clip(savings / baseline_cost * 100.0, -100.0, 100.0))
 
 
+# ---------------------------------------------------------------------------
+# Compressor cycling and capacity tariff
+# ---------------------------------------------------------------------------
+
+
+def count_compressor_starts(power: np.ndarray, threshold: float = 0.1) -> int:
+    """Number of off→on transitions in a schedule.
+
+    Measurement first: the backlog note for this feature was explicit that a
+    cycling penalty should only be paid for if realistic plans actually
+    chatter. This is what the validation harness reports, and it is published
+    on the result so the question stays answerable after the fact.
+    """
+    running = np.asarray(power, dtype=float) > threshold
+    if running.size == 0:
+        return 0
+    starts = int(running[0])
+    starts += int(np.sum(running[1:] & ~running[:-1]))
+    return starts
+
+
+def cycling_penalty(
+    power: np.ndarray, cost_per_cycle: float, p_max: float
+) -> float:
+    """Smooth stand-in for a per-start cost.
+
+    ``sum |ΔP|`` over the schedule counts total power swing. One complete
+    start-stop cycle at full power contributes ``2·p_max``, so dividing by that
+    expresses the L1 term in units of whole cycles and makes ``cost_per_cycle``
+    mean what its name says.
+    """
+    if cost_per_cycle <= 0 or p_max <= 0 or len(power) < 2:
+        return 0.0
+    swing = float(np.sum(np.abs(np.diff(np.asarray(power, dtype=float)))))
+    return cost_per_cycle * swing / (2.0 * p_max)
+
+
+def capacity_penalty(
+    total_power: np.ndarray,
+    baseline_load: np.ndarray,
+    threshold_kw: float,
+    price_per_kw: float,
+    window_minutes: int,
+    dt_hours: float,
+) -> float:
+    """Cost of the new monthly peak this plan would set.
+
+    Only the single largest metering-window excess counts. Charging per hour
+    would price a whole month's tariff into every busy hour of one day.
+    """
+    if price_per_kw <= 0:
+        return 0.0
+    house = np.asarray(total_power, dtype=float) + np.asarray(
+        baseline_load, dtype=float
+    )
+    if house.size == 0:
+        return 0.0
+    per_window = max(1, int(round(window_minutes / max(dt_hours * 60.0, 1e-6))))
+    if per_window > 1:
+        n_full = house.size // per_window
+        if n_full:
+            windows = house[: n_full * per_window].reshape(n_full, per_window).mean(
+                axis=1
+            )
+            tail = house[n_full * per_window :]
+            if tail.size:
+                windows = np.append(windows, tail.mean())
+        else:
+            windows = np.array([house.mean()])
+    else:
+        windows = house
+    excess = float(np.max(windows) - threshold_kw)
+    return price_per_kw * max(0.0, excess)
+
+
+# ---------------------------------------------------------------------------
+# Plan reason codes (item 16)
+# ---------------------------------------------------------------------------
+
+REASON_COMFORT_FLOOR = "comfort_floor"
+REASON_CHEAP_PRICE = "cheap_price"
+REASON_PREHEAT_WEATHER = "preheat_weather"
+REASON_TERMINAL_VALUE = "terminal_value"
+REASON_SOLAR_SURPLUS = "solar_surplus"
+REASON_RECOVERY = "recovery"
+REASON_DHW_WINDOW = "dhw_window"
+REASON_DHW_READY = "dhw_ready"
+REASON_DHW_PREHEAT = "dhw_preheat"
+REASON_LEGIONELLA = "legionella"
+REASON_PEAK_AVOIDANCE = "peak_avoidance"
+REASON_IDLE = "idle"
+
+
+def classify_space_steps(
+    power: np.ndarray,
+    prices: np.ndarray,
+    room_temps: np.ndarray,
+    temp_min_bounds: np.ndarray,
+    heat_loss_factors: np.ndarray,
+    surplus: np.ndarray | None,
+    n_steps: int,
+    threshold: float = 0.05,
+) -> list[str]:
+    """Why each space-heating step is where it is.
+
+    The plan sensors published *which* slots were chosen but never *why*. A
+    slot could be cheapest-price, comfort-floor, weather pre-heat, terminal
+    value or solar self-consumption, and nothing distinguished them — so an
+    unexpected slot was indistinguishable from a bug. That makes the optimizer
+    hard to trust and hard to support, and it makes bug reports much weaker
+    than they could be.
+
+    The classification is a post-hoc reading of the solved plan rather than
+    something the solver emits, because the objective is a single scalar and
+    there is no point in the LP at which one term "wins". Ranked, so the most
+    specific explanation is the one reported.
+    """
+    reasons: list[str] = []
+    if n_steps == 0:
+        return reasons
+    cheap_cut = float(np.percentile(prices, 35)) if len(prices) else 0.0
+    for i in range(n_steps):
+        if power[i] <= threshold:
+            reasons.append(REASON_IDLE)
+            continue
+        # Closest to a hard requirement wins: at or below the comfort floor,
+        # the plan has no choice.
+        room = room_temps[i + 1] if i + 1 < len(room_temps) else room_temps[-1]
+        if room <= temp_min_bounds[i] + 0.15:
+            reasons.append(REASON_COMFORT_FLOOR)
+            continue
+        if surplus is not None and i < len(surplus) and surplus[i] > 1e-6:
+            reasons.append(REASON_SOLAR_SURPLUS)
+            continue
+        if i >= n_steps - max(1, int(0.08 * n_steps)):
+            reasons.append(REASON_TERMINAL_VALUE)
+            continue
+        if i < len(heat_loss_factors) and heat_loss_factors[i] > 1.1:
+            reasons.append(REASON_PREHEAT_WEATHER)
+            continue
+        if prices[i] <= cheap_cut:
+            reasons.append(REASON_CHEAP_PRICE)
+            continue
+        reasons.append(REASON_PREHEAT_WEATHER)
+    return reasons
+
+
+def classify_dhw_steps(
+    power: np.ndarray,
+    in_window: np.ndarray,
+    ready_temps: np.ndarray,
+    legionella_step: int | None,
+    n_steps: int,
+    threshold: float = 0.05,
+) -> list[str]:
+    """Why each hot-water step is where it is."""
+    reasons: list[str] = []
+    for i in range(n_steps):
+        if power[i] <= threshold:
+            reasons.append(REASON_IDLE)
+            continue
+        if legionella_step is not None and i == legionella_step:
+            reasons.append(REASON_LEGIONELLA)
+            continue
+        if i < len(ready_temps) and ready_temps[i] > 0:
+            reasons.append(REASON_DHW_READY)
+            continue
+        if i < len(in_window) and in_window[i]:
+            reasons.append(REASON_DHW_WINDOW)
+            continue
+        reasons.append(REASON_DHW_PREHEAT)
+    return reasons
+
+
+
 @dataclass
 class OptimizationResult:
     """Result of the MPC optimization."""
@@ -216,6 +391,31 @@ class OptimizationResult:
     # Predictive insights
     predictive_info: dict[str, Any] = field(default_factory=dict)
 
+    # --- Plan reason codes (item 16) -----------------------------------
+    #: Per-step explanation of why the plan does what it does.
+    space_reasons: list[str] = field(default_factory=list)
+    dhw_reasons: list[str] = field(default_factory=list)
+
+    # --- Price provenance (item 7) -------------------------------------
+    #: True where the price came from the published market data, False where
+    #: it came from the learned diurnal prior. A plan that looks identical
+    #: whether or not it rests on real prices cannot be audited.
+    price_known: list[bool] = field(default_factory=list)
+
+    # --- Capacity tariff and cycling (items 8, 10) ---------------------
+    #: Peak the plan would set, in kW at the house connection.
+    projected_peak_kw: float = 0.0
+    #: Cost of that peak above what the month has already committed to.
+    peak_cost: float = 0.0
+    #: Off→on transitions in the space heating schedule.
+    compressor_starts: int = 0
+
+    # --- PV self-consumption (item 9) ----------------------------------
+    #: Forecast surplus (production minus baseline load) per step, kW.
+    pv_surplus: list[float] = field(default_factory=list)
+    #: Heat pump energy served from surplus rather than imported, kWh.
+    pv_self_consumed_kwh: float = 0.0
+
 
 @dataclass
 class OptimizationConfig:
@@ -235,6 +435,31 @@ class OptimizationConfig:
     time_step_minutes: float = 15.0
     price_weight: float = 1.0
     comfort_weight: float = 5.0
+
+    # --- Compressor cycling (item 10) ---------------------------------
+    # Every compressor start has real costs: oil dilution and wear, the loss
+    # while the system re-establishes steady state, and on some units a
+    # defrost penalty. Nothing in either optimizer path used to stop a plan
+    # from chattering between steps.
+    #
+    # Modelled as a smooth L1 term on the step-to-step power difference rather
+    # than a true minimum-runtime constraint. The L1 keeps the problem
+    # continuous and cheap; a minimum-runtime constraint would make it a MILP,
+    # which is not affordable inside a 30-second Home Assistant update on the
+    # hardware this usually runs on.
+    #: Currency cost attributed to one full start-stop cycle.
+    cycling_cost: float = 0.0
+
+    # --- Capacity tariff (item 8) --------------------------------------
+    #: Currency per kW of new monthly peak, already divided by the number of
+    #: peaks the DSO averages. Zero disables the term entirely.
+    peak_price_per_kw: float = 0.0
+    #: The level above which a new peak would raise the bill, in kW.
+    peak_threshold_kw: float = 0.0
+    #: Metering window of the tariff, in minutes.
+    peak_window_minutes: int = 60
+    #: Whole-house load excluding the heat pump, per step, in kW.
+    baseline_load_kw: Any = None
 
     @property
     def n_steps(self) -> int:
@@ -257,6 +482,19 @@ class OptimizationConfig:
         if self.day_start_hour <= hour < self.day_end_hour:
             return (self.min_temp, self.max_temp)
         return (self.min_temp - 0.5, self.max_temp)
+
+    def baseline_load_array(self, n_steps: int) -> np.ndarray:
+        """Per-step whole-house baseline load, padded or truncated to fit."""
+        if self.baseline_load_kw is None:
+            return np.zeros(n_steps, dtype=float)
+        values = np.asarray(self.baseline_load_kw, dtype=float).ravel()
+        if values.size == 0:
+            return np.zeros(n_steps, dtype=float)
+        if values.size >= n_steps:
+            return values[:n_steps]
+        return np.concatenate(
+            [values, np.full(n_steps - values.size, float(values[-1]))]
+        )
 
 
 def _solver_status(result, objective, initial_guess) -> str:
@@ -290,6 +528,43 @@ class HeatPumpOptimizer:
         """Initialize the optimizer."""
         self.model = thermal_model
         self.config = config
+        # Populated per solve by ``optimize``; kept as attributes so the two
+        # solve paths can reach them without threading five more parameters
+        # through their already long signatures.
+        self._price_known: np.ndarray | None = None
+        self._pv_surplus: np.ndarray | None = None
+        self._humidity: np.ndarray | None = None
+
+    # ------------------------------------------------------------------
+    # Shared cost terms
+    # ------------------------------------------------------------------
+
+    def _grid_terms(self, n_steps: int, dt: float):
+        """Closures for the cycling and capacity-tariff penalties.
+
+        Both are shared between the space-only and DHW paths. Keeping them in
+        one place is not just tidiness: the previous divergence between the two
+        objectives meant that simply enabling hot water changed the space
+        heating objective, which is a class of bug worth designing out.
+        """
+        cfg = self.config
+        p_max = self.model.params.max_electrical_power
+        baseline = cfg.baseline_load_array(n_steps)
+
+        def cycling(power: np.ndarray) -> float:
+            return cycling_penalty(power, cfg.cycling_cost, p_max)
+
+        def capacity(total_power: np.ndarray) -> float:
+            return capacity_penalty(
+                total_power,
+                baseline,
+                cfg.peak_threshold_kw,
+                cfg.peak_price_per_kw,
+                cfg.peak_window_minutes,
+                dt,
+            )
+
+        return cycling, capacity, baseline
 
     # ------------------------------------------------------------------
     # Predictive weather analysis
@@ -412,6 +687,9 @@ class HeatPumpOptimizer:
         precipitation: np.ndarray | None = None,
         solar_radiation: np.ndarray | None = None,
         start_time: datetime | None = None,
+        price_known: np.ndarray | None = None,
+        pv_surplus: np.ndarray | None = None,
+        humidity: np.ndarray | None = None,
     ) -> OptimizationResult:
         """Run the MPC optimization with predictive weather anticipation.
 
@@ -423,6 +701,12 @@ class HeatPumpOptimizer:
         - Reduces pre-heating before forecasted sunny periods
         - Increases pre-heating before forecasted windy/rainy periods
         - Coordinates DHW heating with space heating and electricity prices
+
+        ``prices`` are *marginal* prices: where PV surplus exists the caller
+        substitutes the export compensation, because that is what consuming a
+        kWh actually costs there. ``price_known`` marks which steps rest on
+        published market data rather than on the learned diurnal prior, and
+        ``pv_surplus`` is carried through for reporting and reason codes.
         """
         import time
 
@@ -437,6 +721,10 @@ class HeatPumpOptimizer:
             precipitation = np.zeros(n_steps)
         if solar_radiation is None:
             solar_radiation = np.zeros(n_steps)
+        if price_known is None:
+            price_known = np.ones(n_steps, dtype=bool)
+        if pv_surplus is None:
+            pv_surplus = np.zeros(n_steps)
 
         if start_time is None:
             start_time = datetime.now()
@@ -447,6 +735,24 @@ class HeatPumpOptimizer:
         wind_speeds = wind_speeds[:n_steps]
         precipitation = precipitation[:n_steps]
         solar_radiation = solar_radiation[:n_steps]
+        price_known = np.asarray(price_known, dtype=bool)[:n_steps]
+        pv_surplus = np.asarray(pv_surplus, dtype=float)[:n_steps]
+        if price_known.size < n_steps:
+            price_known = np.concatenate(
+                [price_known, np.zeros(n_steps - price_known.size, dtype=bool)]
+            )
+        if pv_surplus.size < n_steps:
+            pv_surplus = np.concatenate(
+                [pv_surplus, np.zeros(n_steps - pv_surplus.size)]
+            )
+
+        self._price_known = price_known
+        self._pv_surplus = pv_surplus
+        self._humidity = (
+            np.asarray(humidity, dtype=float)[:n_steps]
+            if humidity is not None
+            else None
+        )
 
         # --- Analyze forecast trajectory for predictive signals ---
         forecast_analysis = self._analyze_forecast_trajectory(
@@ -634,6 +940,8 @@ class HeatPumpOptimizer:
                 deficit += mass * max(0.0, cap - ends[name])
             return _refill_price * deficit / max(_cop_end, 1e-6)
 
+        _cycling, _capacity, _baseline_load = self._grid_terms(n_steps, dt)
+
         def objective(power_schedule: np.ndarray) -> float:
             """Compute the total cost with predictive weather anticipation."""
             room_temps, slab_temps, upper_temps, lower_temps = (
@@ -720,6 +1028,8 @@ class HeatPumpOptimizer:
 
             return (
                 energy_cost + penalty + comfort_cost + smoothness
+                + _cycling(power_schedule)
+                + _capacity(power_schedule)
                 + terminal_cost(
                     _ends(room_temps, slab_temps, upper_temps, lower_temps)
                 )
@@ -836,6 +1146,17 @@ class HeatPumpOptimizer:
             forecast_analysis["wind_anticipation_factor"],
         )
 
+        grid = self._grid_report(optimal_power, _baseline_load, dt)
+        reasons = classify_space_steps(
+            optimal_power,
+            prices,
+            room_temps if not two_zone else upper_temps,
+            temp_min_bounds,
+            forecast_heat_loss_factors,
+            self._pv_surplus,
+            n_steps,
+        )
+
         return OptimizationResult(
             power_schedule=optimal_power.tolist(),
             room_temp_trajectory=room_temps.tolist(),
@@ -858,7 +1179,74 @@ class HeatPumpOptimizer:
             solar_gain_trajectory=solar_gains,
             upper_setpoints=upper_setpoints,
             lower_setpoints=lower_setpoints,
+            space_reasons=reasons,
+            dhw_reasons=[],
+            price_known=self._price_known_list(n_steps),
+            projected_peak_kw=grid["peak_kw"],
+            peak_cost=grid["peak_cost"],
+            compressor_starts=grid["starts"],
+            pv_surplus=self._pv_surplus_list(n_steps),
+            pv_self_consumed_kwh=self._pv_self_consumed(optimal_power, dt),
         )
+
+    # ------------------------------------------------------------------
+    # Reporting helpers shared by both solve paths
+    # ------------------------------------------------------------------
+
+    def _grid_report(
+        self, total_power: np.ndarray, baseline_load: np.ndarray, dt: float
+    ) -> dict[str, Any]:
+        """Peak and cycling figures for the solved plan."""
+        cfg = self.config
+        house = np.asarray(total_power, dtype=float) + baseline_load
+        per_window = max(
+            1, int(round(cfg.peak_window_minutes / max(dt * 60.0, 1e-6)))
+        )
+        if per_window > 1 and house.size >= per_window:
+            n_full = house.size // per_window
+            windows = house[: n_full * per_window].reshape(
+                n_full, per_window
+            ).mean(axis=1)
+        else:
+            windows = house
+        peak = float(np.max(windows)) if windows.size else 0.0
+        return {
+            "peak_kw": round(peak, 3),
+            "peak_cost": round(
+                capacity_penalty(
+                    total_power,
+                    baseline_load,
+                    cfg.peak_threshold_kw,
+                    cfg.peak_price_per_kw,
+                    cfg.peak_window_minutes,
+                    dt,
+                ),
+                3,
+            ),
+            "starts": count_compressor_starts(total_power),
+        }
+
+    def _price_known_list(self, n_steps: int) -> list[bool]:
+        if self._price_known is None:
+            return [True] * n_steps
+        return [bool(v) for v in self._price_known[:n_steps]]
+
+    def _pv_surplus_list(self, n_steps: int) -> list[float]:
+        if self._pv_surplus is None:
+            return []
+        if not np.any(self._pv_surplus > 1e-6):
+            return []
+        return [round(float(v), 3) for v in self._pv_surplus[:n_steps]]
+
+    def _pv_self_consumed(self, power: np.ndarray, dt: float) -> float:
+        """Heat pump energy that lands inside forecast surplus, kWh."""
+        if self._pv_surplus is None or not np.any(self._pv_surplus > 1e-6):
+            return 0.0
+        n = min(len(power), len(self._pv_surplus))
+        served = np.minimum(
+            np.asarray(power[:n], dtype=float), self._pv_surplus[:n]
+        )
+        return round(float(np.sum(served) * dt), 3)
 
     # ------------------------------------------------------------------
     # DHW demand-window planning
@@ -970,6 +1358,7 @@ class HeatPumpOptimizer:
         # --- Anti-legionella cycle ---
         legionella_due = False
         legionella_hour: float | None = None
+        legionella_step: int | None = None
         interval_hours = float(params.dhw_legionella_interval_days) * 24.0
         hours_since = initial_state.dhw_hours_since_legionella
         if (
@@ -986,6 +1375,7 @@ class HeatPumpOptimizer:
                 ready_temps[idx] = max(ready_temps[idx], params.dhw_legionella_temp)
                 legionella_due = True
                 legionella_hour = float(hours_mod[idx])
+                legionella_step = idx
 
         max_temp = params.dhw_max_temp
         # How long stored heat actually survives in this tank. The learned
@@ -1051,6 +1441,39 @@ class HeatPumpOptimizer:
             max_temp=max_temp,
         )
 
+        # --- External heat source (item 5) ---------------------------------
+        # While something else is charging the tank for free, buying electric
+        # hot water is the most expensive mistake available. Suppress the
+        # planned slots that are *discretionary* — pre-heating ahead of a
+        # window, and the topping-up inside one — for as long as the tank is
+        # actually above the floor it has to meet.
+        #
+        # The legionella cycle is deliberately not suppressed by removing it:
+        # instead, if the external source gets the tank to the disinfection
+        # temperature on its own, the coordinator's existing observer resets
+        # the timer and the requirement disappears by itself. That is a real
+        # saving and an easy one to miss.
+        suppress_steps = 0
+        if getattr(initial_state, "external_heat_active", False):
+            free_temps = self.model.simulate_dhw_only(
+                initial_temp=initial_state.dhw_temperature,
+                dhw_power_schedule=np.zeros(n_steps),
+                outdoor_temps=outdoor_temps,
+                draw_rates=draw_rates,
+                dt_hours=dt,
+            )
+            # Only suppress while coasting still meets the requirement. Running
+            # out of hot water because a fire was assumed to keep burning is
+            # exactly the asymmetric failure the detector is biased against.
+            covered = free_temps[1:] >= requirement - 0.5
+            horizon = min(n_steps, max(1, int(round(2.0 / max(dt, 1e-6)))))
+            mask = np.zeros(n_steps, dtype=bool)
+            mask[:horizon] = covered[:horizon]
+            if legionella_step is not None:
+                mask[legionella_step] = False
+            suppress_steps = int(np.sum(mask & (schedule > 1e-6)))
+            schedule = np.where(mask, 0.0, schedule)
+
         next_window = hours_until_next_window(
             float(hours_mod[0]) if n_steps else 0.0, windows
         )
@@ -1071,6 +1494,8 @@ class HeatPumpOptimizer:
             "legionella_hour": (
                 round(legionella_hour, 2) if legionella_hour is not None else None
             ),
+            "legionella_step": legionella_step,
+            "external_heat_suppressed_steps": suppress_steps,
             "max_lead_hours": max_lead_hours,
         }
 
@@ -1603,7 +2028,13 @@ class HeatPumpOptimizer:
                 deficit += mass * max(0.0, cap - ends[name])
             return _refill_price * deficit / max(_cop_end, 1e-6)
 
-        def objective(space_power: np.ndarray, dhw_energy_cost: float = 0.0) -> float:
+        _cycling, _capacity, _baseline_load = self._grid_terms(n_steps, dt)
+
+        def objective(
+            space_power: np.ndarray,
+            dhw_energy_cost: float = 0.0,
+            dhw_plan_power: np.ndarray | None = None,
+        ) -> float:
             """Space heating objective given the fixed DHW schedule."""
             room_temps, slab_temps, upper_temps, lower_temps = (
                 self.model.simulate_trajectory(
@@ -1672,9 +2103,19 @@ class HeatPumpOptimizer:
             # space-only objective for why the extra heuristic terms were
             # removed.
 
+            # The compressor is one machine, so cycling and the house peak are
+            # properties of the *combined* draw, not of space heating alone.
+            combined = (
+                space_power
+                if dhw_plan_power is None
+                else space_power + dhw_plan_power
+            )
+
             return (
                 energy_cost + space_penalty + comfort_cost
                 + smoothness
+                + _cycling(combined)
+                + _capacity(combined)
                 + terminal_cost(
                     _ends(room_temps, slab_temps, upper_temps, lower_temps)
                 )
@@ -1711,19 +2152,23 @@ class HeatPumpOptimizer:
                 starts.append(headroom * 0.5)
             try:
                 res = _multi_start_minimize(
-                    objective, starts, bounds, args=(cost_dhw,), maxiter=300
+                    objective, starts, bounds, args=(cost_dhw, dhw_plan), maxiter=300
                 )
                 power = np.clip(res.x, 0.0, headroom)
                 return (
                     power,
                     _solver_status(
-                        res, lambda x: objective(x, cost_dhw), guess
+                        res, lambda x: objective(x, cost_dhw, dhw_plan), guess
                     ),
-                    float(objective(power, cost_dhw)),
+                    float(objective(power, cost_dhw, dhw_plan)),
                 )
             except Exception as e:
                 _LOGGER.error("Space heating optimization (with DHW) failed: %s", e)
-                return guess, f"failed ({e})", float(objective(guess, cost_dhw))
+                return (
+                    guess,
+                    f"failed ({e})",
+                    float(objective(guess, cost_dhw, dhw_plan)),
+                )
 
         optimal_space, status, best_score = solve_space(optimal_dhw, None)
 
@@ -1866,6 +2311,24 @@ class HeatPumpOptimizer:
             dhw_plan["windows_text"] or "always",
         )
 
+        grid = self._grid_report(total_optimal_power, _baseline_load, dt)
+        space_reason_codes = classify_space_steps(
+            optimal_space,
+            prices,
+            room_temps if not two_zone else upper_temps,
+            temp_min_bounds,
+            forecast_heat_loss_factors,
+            self._pv_surplus,
+            n_steps,
+        )
+        dhw_reason_codes = classify_dhw_steps(
+            optimal_dhw,
+            in_demand_window,
+            dhw_ready_temps,
+            dhw_plan.get("legionella_step"),
+            n_steps,
+        )
+
         return OptimizationResult(
             power_schedule=optimal_space.tolist(),
             room_temp_trajectory=room_temps.tolist(),
@@ -1928,6 +2391,14 @@ class HeatPumpOptimizer:
                 ),
                 "dhw_hold_hours": round(float(self.model.dhw_hold_hours()), 1),
             },
+            space_reasons=space_reason_codes,
+            dhw_reasons=dhw_reason_codes,
+            price_known=self._price_known_list(n_steps),
+            projected_peak_kw=grid["peak_kw"],
+            peak_cost=grid["peak_cost"],
+            compressor_starts=grid["starts"],
+            pv_surplus=self._pv_surplus_list(n_steps),
+            pv_self_consumed_kwh=self._pv_self_consumed(total_optimal_power, dt),
         )
 
     def _settlement_caps(

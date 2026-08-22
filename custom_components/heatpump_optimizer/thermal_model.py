@@ -46,6 +46,7 @@ from .const import (
     DEFAULT_HEAT_PUMP_COP_NOMINAL,
     DEFAULT_HEAT_PUMP_MAX_POWER,
     DEFAULT_HEAT_PUMP_MIN_POWER,
+    DEFAULT_COP_SCALE,
     DEFAULT_UPPER_FLOOR_THERMAL_MASS,
     DEFAULT_LOWER_FLOOR_THERMAL_MASS,
     DEFAULT_UPPER_FLOOR_HEAT_LOSS,
@@ -176,6 +177,13 @@ class ThermalParameters:
     cop_reference_temp: float = 7.0  # °C
     max_electrical_power: float = DEFAULT_HEAT_PUMP_MAX_POWER  # kW
     min_electrical_power: float = DEFAULT_HEAT_PUMP_MIN_POWER  # kW
+    # Learned multiplicative correction to the modelled COP curve. 1.0 leaves
+    # the nameplate-derived curve untouched; the coordinator moves it only when
+    # a measured power entity makes real efficiency observable.
+    cop_scale: float = DEFAULT_COP_SCALE
+    # Learned capacity/efficiency derate as a function of outdoor temperature
+    # and humidity — see ``defrost.py``. ``None`` means no derate is applied.
+    defrost_derate: Any = None
 
     # Internal gains (kW) - baseline heat from occupancy, appliances, etc.
     internal_gains: float = 0.3
@@ -538,6 +546,11 @@ class ThermalState:
     ecl110_displace_command: float = 0.0  # °C requested parallel shift
     ecl110_effective_displace: float = 0.0  # °C filtered PI/PID effect
 
+    # Whether something other than the heat pump (typically a wood furnace) is
+    # currently charging the tanks. Set by the coordinator's detector; the
+    # optimizer reads it to suppress discretionary electric hot water.
+    external_heat_active: bool = False
+
 
 # DHW draw pattern: normalized hourly multipliers (24 values, sum=24)
 # Morning peak (6-9), evening peak (17-21), low overnight
@@ -563,14 +576,26 @@ class ThermalModel:
     # Common helpers
     # ------------------------------------------------------------------
 
-    def compute_cop(self, outdoor_temp: float) -> float:
+    def compute_cop(
+        self, outdoor_temp: float, humidity: float | None = None
+    ) -> float:
         """Compute heat pump COP as function of outdoor temperature.
 
         COP ≈ COP_nominal * (1 + 0.025 * (T_outdoor - T_ref))
+
+        Two learned corrections are applied on top of the nameplate curve:
+        ``cop_scale``, a single multiplier fitted from measured electrical
+        input, and the defrost derate, which is a function of outdoor
+        temperature and humidity and captures the frosting band the smooth
+        curve cannot represent. Both default to no change.
         """
         delta = outdoor_temp - self.params.cop_reference_temp
         factor = max(0.3, 1.0 + 0.025 * delta)
-        return self.params.cop_nominal * min(factor, 1.5)
+        cop = self.params.cop_nominal * min(factor, 1.5) * self.params.cop_scale
+        derate = self.params.defrost_derate
+        if derate is not None:
+            cop *= derate.factor(outdoor_temp, humidity)
+        return max(cop, 0.5)
 
     def compute_cop_dhw(self, outdoor_temp: float, dhw_temp: float) -> float:
         """Compute heat pump COP for DHW mode.
