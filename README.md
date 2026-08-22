@@ -805,10 +805,18 @@ integration serves and registers the card automatically. See
 
 ```yaml
 type: custom:heatpump-optimizer-card
-# Optional: a slider in the enlarged view that shows what a different comfort
-# temperature would cost per month. Off by default because it runs a real solve.
+# Optional: an editor in the enlarged view that prices a different comfort
+# temperature, heating hours or hot water windows, and can save the result as
+# your schedule. Off by default because simulating runs a real solve.
 what_if: true
 ```
+
+Click the card to enlarge it. With `what_if: true` the enlarged view gains a
+panel where you can drag the comfort temperature, move the heating day, and add
+or remove hot water windows. **Simulate these slots** prices the change against
+the current forecast and reports the difference; nothing is applied. **Save as
+my schedule** writes the edited schedule into your configuration — it asks for
+a second press first, because it replaces what the house actually runs on.
 
 ### Climate Entity
 - Virtual thermostat with HVAC modes and presets
@@ -830,6 +838,23 @@ Prices a hypothetical comfort choice against the current forecast without
 disturbing operation, and returns the cost difference against the live plan.
 This is what the card's what-if simulator calls. The solve is rate-limited, so
 rapid repeat calls return the previous answer rather than queueing work.
+
+### `heatpump_optimizer.apply_schedule`
+Writes a schedule into your configuration and reloads the integration, so the
+next plan is made against it. This is what the card's **Save as my schedule**
+button calls. Every field is optional; only what you pass is changed.
+
+```yaml
+service: heatpump_optimizer.apply_schedule
+data:
+  day_start_hour: 6          # comfort period starts
+  day_end_hour: 22           # comfort period ends
+  dhw_windows: "06:00-08:30, 17:00-22:00"
+  comfort_temp_day: 21.0
+```
+
+The windows are validated and canonicalised before they are stored, so a
+malformed schedule is rejected here rather than failing on every later reload.
 
 ### `heatpump_optimizer.set_thermal_parameters`
 Runtime parameter tuning:

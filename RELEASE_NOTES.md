@@ -1,5 +1,69 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v3.1.0
+
+Edit your schedule from the card, and two fixes in the configuration pages.
+
+### Change the schedule from the card, not just simulate it
+
+The what-if panel could already move the heating day and the hot water windows
+and tell you what the change would cost — but there was no way to keep the
+answer. You had to read the number, close the card, and retype the same
+schedule in the options pages.
+
+The panel now has a **Save as my schedule** button next to **Simulate these
+slots**, backed by a new `heatpump_optimizer.apply_schedule` service. Saving
+writes the schedule into your configuration and reloads the integration, so the
+next plan is made against it.
+
+Because saving replaces what the house actually runs on, it asks first: the
+button turns into *Confirm: overwrite my schedule* and only saves on a second
+press. Editing anything in between disarms it, so you cannot confirm one
+schedule and save another, and an armed confirmation lapses after a few seconds
+rather than sitting waiting for a stray click. Windows are validated before they
+are stored, so a malformed schedule is refused at the button instead of failing
+on every later reload.
+
+The README now says how to reach the panel: it lives in the enlarged card and
+needs `what_if: true`, which was documented only as a comfort-temperature
+slider and was easy to miss.
+
+### Chart text no longer changes size when you enlarge the card
+
+The chart is drawn in a fixed coordinate system and stretched to fit its
+container, so text sized in those coordinates renders at whatever pixel size the
+stretch happens to produce — around 5 px in a narrow card and around 30 px in a
+full-width dialog. Enlarging the card did not scale the text so much as distort
+it, and the surrounding labels, legend and tooltip did not follow at all,
+because they are ordinary HTML sized against the card's own font.
+
+Both halves now aim at a pixel size instead of a coordinate size. The chart
+measures its own width and converts the target back through it, clamped so a
+pathologically narrow or wide chart still produces readable text. The HTML
+chrome uses container-query units so it tracks the dialog's width, with the
+previous fixed sizes kept as a fallback for browsers without them.
+
+### Fixes
+
+* **The capacity tariff window could not be submitted.** Choosing *1 hour* on
+  the grid page failed with `expected str`. The dropdown's options are strings
+  but its default was the number `60`, and leaving the already-selected option
+  untouched submits that default — so the one option most people want was the
+  one that could not be saved.
+* **Creating a helper from an entity picker failed.** Adding a return-time
+  helper from the away page failed with
+  `required key not provided @ data['name']`. The pickers declared their domains
+  using Home Assistant's legacy top-level `domain` key; the frontend reads only
+  the newer `filter` key when it works out which helper type to create, so it
+  had no type to create and submitted the new helper without a name. All entity
+  pickers now use `filter`, which also restores domain filtering in the picker
+  itself.
+
+Both failures were invisible to the test suite because its Home Assistant stub
+accepted any value a selector was given. The stub now enforces the same rule the
+real one does, and the suite renders every options page and submits it back
+untouched — the cheapest thing a user can do, and the case that broke.
+
 ## v3.0.0
 
 The three releases developed since v2.6.1 — v2.7.0, v2.8.0 and v2.9.0 —

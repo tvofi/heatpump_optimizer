@@ -235,6 +235,7 @@ ATTR_COST_ERROR_PERCENT: Final = "cost_error_percent"
 
 # Service for the card's what-if simulator (item 21).
 SERVICE_SIMULATE_PLAN: Final = "simulate_plan"
+SERVICE_APPLY_SCHEDULE: Final = "apply_schedule"
 # A full solve is seconds of CPU. Dragging a slider must not trigger one per
 # pixel, so simulation requests are rate-limited to this interval.
 SIMULATE_MIN_INTERVAL_SECONDS: Final = 3.0

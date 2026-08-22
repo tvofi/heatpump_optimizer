@@ -434,6 +434,45 @@ R.check(
 R.section("Options flow")
 
 options = config_flow.HeatPumpOptimizerOptionsFlow
+
+
+def _render_option_pages(flow_cls) -> dict:
+    """Return ``{step: data_schema}`` for every page in the options menu."""
+    pages = {}
+    for step in flow_cls._MENU_LABELS:
+        handler = getattr(flow_cls, f"async_step_{step}", None)
+        if handler is None:
+            continue
+        flow = flow_cls(FakeEntry())
+        flow.hass = FakeHass()
+        result = asyncio.run(handler(flow, None))
+        schema = result.get("data_schema")
+        if schema is not None:
+            pages[step] = schema
+    return pages
+
+
+def _defaults_survive_their_own_selectors(schema) -> tuple[bool, str]:
+    """Submit a page untouched and report the first field that rejects itself.
+
+    Voluptuous substitutes each field's default when the key is absent, then
+    validates it like any other value -- so an empty payload exercises exactly
+    the defaults, and nothing else.
+    """
+    try:
+        schema({})
+    except Exception as err:  # noqa: BLE001 - any rejection is a failure
+        return False, f"{type(err).__name__}: {err}"
+    return True, ""
+
+
+def _entity_selectors(schema):
+    """Yield ``(field, selector)`` for every entity picker on a page."""
+    for key, value in schema.schema.items():
+        if isinstance(value, config_flow.selector.EntitySelector):
+            yield getattr(key, "schema", key), value
+
+
 missing = [
     step
     for step in options._MENU_LABELS
@@ -461,6 +500,57 @@ for key in (
         key in options._OPTIONAL_ENTITY_KEYS,
         "options merge over setup data, so an absent key restores the old value",
     )
+
+
+# ===========================================================================
+# Option page schemas
+# ===========================================================================
+R.section("Option page schemas")
+
+# Render every options page and submit it back untouched. That is the cheapest
+# thing a user can do — open a page, press Submit — and it is the case that
+# broke: a field whose default does not satisfy its own selector fails only
+# when the user leaves it alone, so clicking through the flow by hand can miss
+# it entirely.
+_pages = _render_option_pages(options)
+
+R.check(
+    "every menu page renders a schema",
+    set(_pages) == set(options._MENU_LABELS),
+    str(set(_pages) ^ set(options._MENU_LABELS)),
+)
+
+for step, schema in sorted(_pages.items()):
+    ok, detail = _defaults_survive_their_own_selectors(schema)
+    R.check(f"the {step} page can be submitted untouched", ok, detail)
+
+# Entity pickers must use the modern ``filter`` key. With the legacy top-level
+# ``domain`` the frontend cannot work out which helper type its "create helper"
+# shortcut should make, and creates one with no name -- which the user sees as
+# "required key not provided @ data['name']".
+_legacy = sorted(
+    f"{step}.{key}"
+    for step, schema in _pages.items()
+    for key, sel in _entity_selectors(schema)
+    if "domain" in sel.config or "device_class" in sel.config
+)
+R.check(
+    "entity pickers use filter= rather than the legacy domain key",
+    not _legacy,
+    ", ".join(_legacy),
+)
+
+_unfiltered = sorted(
+    f"{step}.{key}"
+    for step, schema in _pages.items()
+    for key, sel in _entity_selectors(schema)
+    if not sel.config.get("filter")
+)
+R.check(
+    "every entity picker is narrowed to a domain",
+    not _unfiltered,
+    ", ".join(_unfiltered),
+)
 
 
 # ===========================================================================
@@ -529,6 +619,31 @@ R.check(
 R.check(
     "the service schema accepts what the card sends",
     "target_temp" in integration.SERVICE_SCHEMA_SIMULATE_PLAN.schema.__str__(),
+)
+
+R.check("apply_schedule is documented", "apply_schedule" in services)
+R.check(
+    "apply_schedule is registered under the name the card calls",
+    const.SERVICE_APPLY_SCHEDULE == "apply_schedule",
+)
+R.check(
+    "its schema covers both schedules and the comfort window",
+    {"dhw_windows", "day_start_hour", "day_end_hour"}
+    <= {str(getattr(k, "schema", k)) for k in integration.SERVICE_SCHEMA_APPLY_SCHEDULE.schema},
+)
+R.check(
+    "every documented apply_schedule field exists in the schema",
+    set(services["apply_schedule"]["fields"])
+    <= {str(getattr(k, "schema", k)) for k in integration.SERVICE_SCHEMA_APPLY_SCHEDULE.schema},
+)
+R.check(
+    "apply_schedule takes no required field, so a partial edit is allowed",
+    not [
+        k
+        for k in integration.SERVICE_SCHEMA_APPLY_SCHEDULE.schema
+        if type(k).__name__ == "Required"
+    ],
+    "the card sends only what the user actually changed",
 )
 
 

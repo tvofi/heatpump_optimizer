@@ -259,11 +259,24 @@ def _temperature(
 def _entity_of(
     domain: str | list[str], device_class: str | None = None
 ) -> selector.EntitySelector:
-    """An entity picker, optionally narrowed to a device class."""
-    config: dict[str, Any] = {"domain": domain}
+    """An entity picker, optionally narrowed to a device class.
+
+    The filter is expressed under ``filter`` rather than as top-level
+    ``domain``/``device_class`` keys. Those top-level keys are the legacy form:
+    Home Assistant still accepts them, but the frontend reads only ``filter``
+    when it decides which entities match and which helper types the picker may
+    offer to create. With the legacy form the "create helper" shortcut cannot
+    resolve a single helper domain, and submits the creation without a name —
+    which surfaces to the user as "required key not provided @ data['name']".
+    """
+    entity_filter: dict[str, Any] = {
+        "domain": [domain] if isinstance(domain, str) else list(domain)
+    }
     if device_class is not None:
-        config["device_class"] = device_class
-    return selector.EntitySelector(selector.EntitySelectorConfig(**config))
+        entity_filter["device_class"] = [device_class]
+    return selector.EntitySelector(
+        selector.EntitySelectorConfig(filter=[entity_filter])
+    )
 
 
 def _select(options: list[str], translation_key: str) -> selector.SelectSelector:
@@ -1204,7 +1217,17 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
     ) -> FlowResult:
         """Capacity tariff, compressor cycling and the price prior."""
         if user_input is not None:
-            return self._save(user_input)
+            cleaned = dict(user_input)
+            # The dropdown speaks strings; everything downstream treats the
+            # window as a number of minutes. Convert once, here, so the stored
+            # value has the type the rest of the integration expects.
+            window = cleaned.get(CONF_PEAK_TARIFF_WINDOW)
+            if window is not None:
+                try:
+                    cleaned[CONF_PEAK_TARIFF_WINDOW] = int(window)
+                except (TypeError, ValueError):
+                    cleaned[CONF_PEAK_TARIFF_WINDOW] = DEFAULT_PEAK_TARIFF_WINDOW
+            return self._save(cleaned)
 
         current = self._current
         return self.async_show_form(
@@ -1231,8 +1254,16 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
                     ): _number(1, 10, 1, slider=True),
                     vol.Optional(
                         CONF_PEAK_TARIFF_WINDOW,
-                        default=current.get(
-                            CONF_PEAK_TARIFF_WINDOW, DEFAULT_PEAK_TARIFF_WINDOW
+                        # The selector's options are strings, so the default
+                        # must be one too. An int default is returned verbatim
+                        # when the field is left untouched, and SelectSelector
+                        # rejects it with "expected str" — which made the
+                        # already-selected option the one that could not be
+                        # submitted.
+                        default=str(
+                            current.get(
+                                CONF_PEAK_TARIFF_WINDOW, DEFAULT_PEAK_TARIFF_WINDOW
+                            )
                         ),
                     ): _select(["15", "60"], "peak_window"),
                     vol.Optional(

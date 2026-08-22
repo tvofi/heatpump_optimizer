@@ -20,7 +20,7 @@
   },
   "away_presence_entity": {
    "config": {
-    "domain": "['input_boolean', 'person', 'device_tracker', 'calendar', 'binary_sensor']"
+    "filter": "[{'domain': ['input_boolean', 'person', 'device_tracker', 'calendar', 'binary_sensor']}]"
    },
    "default": null,
    "required": "Optional",
@@ -28,7 +28,7 @@
   },
   "away_return_entity": {
    "config": {
-    "domain": "['input_datetime', 'sensor']"
+    "filter": "[{'domain': ['input_datetime', 'sensor']}]"
    },
    "default": null,
    "required": "Optional",
@@ -274,8 +274,7 @@
  "entities": {
   "buffer_tank_temp_entity": {
    "config": {
-    "device_class": "'temperature'",
-    "domain": "'sensor'"
+    "filter": "[{'domain': ['sensor'], 'device_class': ['temperature']}]"
    },
    "default": null,
    "required": "Optional",
@@ -283,8 +282,7 @@
   },
   "dhw_temp_entity": {
    "config": {
-    "device_class": "'temperature'",
-    "domain": "'sensor'"
+    "filter": "[{'domain': ['sensor'], 'device_class': ['temperature']}]"
    },
    "default": null,
    "required": "Optional",
@@ -292,8 +290,7 @@
   },
   "floor_return_temp_entity": {
    "config": {
-    "device_class": "'temperature'",
-    "domain": "'sensor'"
+    "filter": "[{'domain': ['sensor'], 'device_class': ['temperature']}]"
    },
    "default": null,
    "required": "Optional",
@@ -301,8 +298,7 @@
   },
   "heat_pump_energy_entity": {
    "config": {
-    "device_class": "'energy'",
-    "domain": "'sensor'"
+    "filter": "[{'domain': ['sensor'], 'device_class': ['energy']}]"
    },
    "default": null,
    "required": "Optional",
@@ -310,7 +306,7 @@
   },
   "heat_pump_entity": {
    "config": {
-    "domain": "'climate'"
+    "filter": "[{'domain': ['climate']}]"
    },
    "default": null,
    "required": "Optional",
@@ -318,8 +314,7 @@
   },
   "heat_pump_power_entity": {
    "config": {
-    "device_class": "'power'",
-    "domain": "'sensor'"
+    "filter": "[{'domain': ['sensor'], 'device_class': ['power']}]"
    },
    "default": null,
    "required": "Optional",
@@ -327,7 +322,7 @@
   },
   "heat_pump_switch_entity": {
    "config": {
-    "domain": "'switch'"
+    "filter": "[{'domain': ['switch']}]"
    },
    "default": null,
    "required": "Optional",
@@ -335,8 +330,7 @@
   },
   "house_power_entity": {
    "config": {
-    "device_class": "'power'",
-    "domain": "'sensor'"
+    "filter": "[{'domain': ['sensor'], 'device_class': ['power']}]"
    },
    "default": null,
    "required": "Optional",
@@ -344,8 +338,7 @@
   },
   "indoor_temp_entity": {
    "config": {
-    "device_class": "'temperature'",
-    "domain": "'sensor'"
+    "filter": "[{'domain': ['sensor'], 'device_class': ['temperature']}]"
    },
    "default": null,
    "required": "Optional",
@@ -353,8 +346,7 @@
   },
   "outdoor_temp_entity": {
    "config": {
-    "device_class": "'temperature'",
-    "domain": "'sensor'"
+    "filter": "[{'domain': ['sensor'], 'device_class': ['temperature']}]"
    },
    "default": null,
    "required": "Optional",
@@ -380,7 +372,7 @@
   },
   "solar_radiation_entity": {
    "config": {
-    "domain": "'sensor'"
+    "filter": "[{'domain': ['sensor']}]"
    },
    "default": null,
    "required": "Optional",
@@ -396,7 +388,7 @@
   },
   "weather_entity": {
    "config": {
-    "domain": "'weather'"
+    "filter": "[{'domain': ['weather']}]"
    },
    "default": "'weather.home'",
    "required": "Required",
@@ -449,7 +441,7 @@
     "options": "['15', '60']",
     "translation_key": "'peak_window'"
    },
-   "default": "60",
+   "default": "'60'",
    "required": "Optional",
    "selector": "SelectSelector"
   },
@@ -678,7 +670,7 @@
   },
   "external_heat_entity": {
    "config": {
-    "domain": "['binary_sensor', 'switch', 'input_boolean', 'sensor']"
+    "filter": "[{'domain': ['binary_sensor', 'switch', 'input_boolean', 'sensor']}]"
    },
    "default": null,
    "required": "Optional",
@@ -740,7 +732,7 @@
   },
   "pv_export_price_entity": {
    "config": {
-    "domain": "'sensor'"
+    "filter": "[{'domain': ['sensor']}]"
    },
    "default": null,
    "required": "Optional",
@@ -760,8 +752,7 @@
   },
   "pv_production_entity": {
    "config": {
-    "device_class": "'power'",
-    "domain": "'sensor'"
+    "filter": "[{'domain': ['sensor'], 'device_class': ['power']}]"
    },
    "default": null,
    "required": "Optional",
