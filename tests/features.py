@@ -1317,4 +1317,120 @@ R.check(
     f"lower floor mass scaled by {ratio:.3f}; the adjustment is 1.25",
 )
 
+
+# ===========================================================================
+# Configuration mapping
+# ===========================================================================
+R.section("Configuration mapping")
+
+import dataclasses
+
+from heatpump_optimizer import const as hp_const
+
+# The table-driven ``from_config`` is only correct if it actually covers the
+# parameters. A field the table forgets keeps its dataclass default forever,
+# silently ignoring whatever the user configured — which is invisible until
+# someone wonders why a setting does nothing.
+declared = {f.name for f in dataclasses.fields(ThermalParameters)}
+# Fields that are deliberately not user-configurable.
+runtime_only = {
+    "dhw_hourly_draw_pattern",  # learned from observed draws
+    "defrost_derate",           # learned per temperature/humidity bucket
+    "ambient_humidity",         # current conditions, set per update
+    "cop_scale",                # learned from measured power
+    "cop_reference_temp",       # a property of the COP curve, not the house
+    "internal_gains",           # not exposed in the config flow
+    "dhw_windows",              # parsed separately from a string spec
+    "two_zone_enabled",         # inferred from which keys are present
+    "dhw_enabled",              # inferred from which keys are present
+}
+
+def reachable(name: str) -> str | None:
+    """Find a config key that actually changes ``name``, or None.
+
+    Booleans are probed by flipping them away from their default rather than
+    by a sentinel value: the mapping coerces with ``bool()``, so any sentinel
+    would come back as True and look like a match for every boolean field.
+    """
+    default_value = getattr(ThermalParameters.from_config({}), name)
+    if isinstance(default_value, bool):
+        sentinel = not default_value
+    else:
+        sentinel = 0.5 if default_value != 0.5 else 0.25
+    for candidate in dir(hp_const):
+        if not candidate.startswith("CONF_"):
+            continue
+        try:
+            built = ThermalParameters.from_config(
+                {getattr(hp_const, candidate): sentinel}
+            )
+        except Exception:
+            continue
+        if getattr(built, name, None) == sentinel:
+            return candidate
+    return None
+
+
+probe = {name: reachable(name) for name in declared - runtime_only}
+
+unreachable = sorted(n for n, k in probe.items() if k is None)
+R.check(
+    "every configurable parameter is reachable from a config key",
+    not unreachable,
+    ", ".join(unreachable),
+)
+
+# Round-tripping: a value set in the config must arrive in the parameters.
+sample = {
+    hp_const.CONF_HOUSE_THERMAL_MASS: 12.5,
+    hp_const.CONF_HOUSE_HEAT_LOSS_COEFFICIENT: 0.22,
+    hp_const.CONF_HEAT_PUMP_MAX_POWER: 9.0,
+    hp_const.CONF_DHW_SETPOINT: 58.0,
+    hp_const.CONF_DHW_TANK_VOLUME: 300.0,
+    hp_const.CONF_WIND_SENSITIVITY: 0.25,
+    hp_const.CONF_ECL110_DISPLACE_MAX: 12.0,
+}
+built = ThermalParameters.from_config(sample)
+R.check("configured thermal mass arrives", built.room_thermal_mass == 12.5)
+R.check("configured heat loss arrives", built.heat_loss_coefficient == 0.22)
+R.check("configured max power arrives", built.max_electrical_power == 9.0)
+R.check("configured DHW setpoint arrives", built.dhw_setpoint == 58.0)
+R.check("configured wind sensitivity arrives", built.wind_sensitivity == 0.25)
+R.check("configured displace limit arrives", built.ecl110_displace_max == 12.0)
+
+R.check(
+    "an empty config yields the documented defaults",
+    ThermalParameters.from_config({}).room_thermal_mass
+    == hp_const.DEFAULT_HOUSE_THERMAL_MASS,
+)
+R.check(
+    "two-zone is inferred from the presence of its keys",
+    ThermalParameters.from_config(
+        {hp_const.CONF_UPPER_FLOOR_THERMAL_MASS: 3.0}
+    ).two_zone_enabled
+    and not ThermalParameters.from_config({}).two_zone_enabled,
+    "an entry written before two-zone existed must keep working",
+)
+R.check(
+    "hot water is inferred from the presence of its keys",
+    ThermalParameters.from_config(
+        {hp_const.CONF_DHW_TANK_VOLUME: 200.0}
+    ).dhw_enabled
+    and not ThermalParameters.from_config({}).dhw_enabled,
+)
+R.check(
+    "a boolean stored as a string is still a boolean",
+    ThermalParameters.from_config(
+        {hp_const.CONF_DHW_LEGIONELLA_ENABLED: "yes"}
+    ).dhw_legionella_enabled
+    is True,
+)
+R.check(
+    "an unparseable window spec falls back rather than raising",
+    ThermalParameters.from_config(
+        {hp_const.CONF_DHW_WINDOWS: "not a time range"}
+    ).dhw_windows
+    == [],
+)
+
 sys.exit(R.close("FEATURE CHECKS"))
