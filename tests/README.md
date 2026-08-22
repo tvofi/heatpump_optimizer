@@ -5,7 +5,8 @@ Home Assistant environment without extra tooling. They need `numpy`, `scipy`,
 `voluptuous` and `pyyaml`.
 
 ```bash
-./tests/run.sh          # everything, in dependency order
+./tests/run.sh          # everything except the slow closed-loop simulation
+SLOW=1 ./tests/run.sh   # including it (adds about fifteen minutes)
 ```
 
 Or individually:
@@ -17,9 +18,12 @@ python tests/features.py     # the feature modules, driven directly
 python tests/entities.py     # entities, platforms, options pages, translations
 python tests/open_meteo.py   # the irradiance client
 python tests/solar_alignment.py  # irradiance lands on the right optimizer steps
+python tests/golden.py       # exact behaviour, pinned (--record to re-record)
 python tests/validate.py     # 19 seasonal scenarios, asserts invariants
 python tests/edge.py         # degenerate inputs and boundary conditions
 python tests/backtest.py     # replay against alternative strategies
+python tests/stress.py       # 48 combinations, 17 edge cases, economics
+python tests/rolling.py      # days of re-planning against a mismatched house
 python tests/optimality.py   # checks the solver against cheaper challengers
 python tests/plan_view.py    # plan sensor payloads, writes /tmp/plandata.json
 node   tests/card.mjs        # renders the dashboard card against that payload
@@ -39,6 +43,28 @@ which made the suite unreproducible.
 It is deliberately small. A fuller stub would drift from the real thing without
 anyone noticing, and the job here is to let the integration *import* and its
 entities be *constructed*, not to reimplement Home Assistant.
+
+## The two guards
+
+Most of these scripts ask "is the answer good?". Two ask something different,
+and between them they cover the failures that are otherwise invisible.
+
+**`golden.py` asks "has the answer changed?"** It records the complete output of
+37 scenarios — every schedule, trajectory, setpoint, cost, reason code and
+option-page field — and diffs byte for byte. The optimizer is deterministic, so
+any difference is real. This is what makes a refactor safe: the outcome-based
+scripts would happily pass a change that shifts a plan by one interval or drops
+a constraint in a rare branch, and this will not.
+
+`--record` re-records from current behaviour. **Read the diff before doing
+that.** A change here is either a bug or a deliberate decision that belongs in
+a commit message; the whole value of the file is that re-recording is a choice
+rather than a reflex.
+
+**`rolling.py` asks "does it hold up in the loop?"** Everything else solves
+once. The integration re-plans every half hour against a house that never quite
+matches its model, and feeds the outcome into learners that then change the
+model. Drift, oscillation and learner divergence only appear there.
 
 ## What each script is for
 
@@ -66,6 +92,25 @@ entities be *constructed*, not to reimplement Home Assistant.
 - **edge.py** covers single-step and 48 hour horizons, flat/zero/negative
   prices, -25 °C and storm conditions, starting outside the comfort band, an
   overdue legionella cycle, a 1500 L tank, and a collapsed comfort range.
+- **golden.py** pins exact behaviour; see above.
+- **stress.py** sweeps 48 combinations of season, building archetype, zoning
+  and feature flags, plus 17 edge conditions, and checks three families of
+  invariant: physical (power in bounds, tank not boiled, energy conserved),
+  economic (cheaper than a thermostat where there is spread to exploit, costs
+  reconcile with the schedule, the README's comfort-weight table still holds)
+  and comfort (the floor respected to within what the soft penalty allows, and
+  never worse than running flat out would achieve — an undersized pump in a
+  leaky house cannot hold the floor, and blaming the optimizer for that would
+  be blaming it for physics). This sweep found three real defects: a capacity
+  tariff that raised the peak it was meant to lower, a tariff term that dwarfed
+  the energy cost on a fresh install, and DHW planners that could push the tank
+  past its rating.
+- **rolling.py** drives the real re-planning cycle for several simulated days
+  against a plant deliberately mismatched from the optimizer's model, and is
+  the only test that exercises the self-learning heat-loss correction against a
+  house that genuinely differs from its model. It drives the coordinator's own
+  estimator rather than a copy of its arithmetic, because a test that
+  reimplements a learner only proves the reimplementation works.
 - **backtest.py** replays the same house, prices and weather through the
   optimizer, an always-on thermostat, a hand-written night-tariff schedule and
   a price-only greedy schedule, and scores each on cost *and* on degree-hours

@@ -1,5 +1,128 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v2.9.0
+
+A refactoring release with three real bug fixes, and the test infrastructure
+that made both safe to attempt.
+
+### Fixed
+
+All three were found by a new combinatorial stress sweep rather than by
+inspection, and all three produced plans that looked entirely reasonable.
+
+- **The capacity tariff raised the peak it was supposed to lower.** The charge
+  was modelled as the marginal price times the single largest excess. That is
+  wrong twice over. It under-states the bill, which averages the month's top
+  few peaks, so a plan with several high hours — exactly what the tariff exists
+  to discourage — was charged as if it had one. And `max` has zero gradient
+  everywhere except at that one window, so a gradient-based solver saw the term
+  at 1 step in 96 and it was effectively inert; measured, enabling the tariff
+  moved the projected peak *up*.
+
+  The charge is now the marginal price times the sum of the top-k excesses,
+  which is algebraically identical to the bill and gives every one of those
+  windows a gradient.
+
+- **On a fresh install the tariff dwarfed the entire energy cost.** With no
+  peaks yet recorded the threshold was zero, so every kilowatt counted as a
+  brand-new monthly peak. A normal 6 kW day was charged around nine times its
+  own energy cost, which would have contorted the plan to avoid a peak the
+  house sets on any ordinary day regardless. The threshold now measures against
+  what has actually been observed, and the charge stays off until there is
+  something real to compare against.
+
+- **The hot water planners could push the tank past its rating.** The
+  minimum-run rounding, which raises a sub-minimum slot to a power the hardware
+  can really deliver, overshot a 20 litre tank by 28 °C; and with negative
+  prices the cost term rewards consumption, so the linearised planner pushed
+  through its own temperature ceiling. A capacity clamp now runs after the
+  economics, walking the plan through the real tank simulation and truncating
+  any step that would exceed the rating. The tank's rating is physics rather
+  than a preference, so it belongs outside the trade-offs.
+
+### Changed
+
+- **The what-if simulator can edit time slots.** It could previously only move
+  the comfort temperature. It now also edits the heating hours and the hot
+  water demand windows — add, remove or retime a window and price the result.
+
+  It reports the comfort consequence next to the money, because a plan is
+  always cheaper if it is allowed to be colder or to let the tank run down, and
+  a simulator that showed only the saving would be inviting exactly that
+  mistake. The plan sensors publish the schedule they were made against so the
+  editor pre-fills from what is really in force; starting from defaults would
+  silently propose a change the user never made.
+
+### Refactored
+
+The backlog's own precondition for this was a characterization harness, on the
+grounds that the existing tests would not catch a refactor that quietly shifts
+a plan by one interval or drops a constraint in a rare branch. That harness was
+built first, and every change below was made with its diffs empty.
+
+- **The two optimizer paths shared 162 lines across 17 contiguous runs**, and
+  that divergence had already caused one real bug: enabling hot water silently
+  changed the space-heating objective. The comfort terms, terminal cost,
+  anticipatory weights, zone setpoints and result construction are now shared,
+  and two eighteen-parameter signatures became one `_Horizon` context — so
+  adding a per-solve input is one edit instead of four. 345 → 175 and 514 → 362
+  lines; duplication 162 → 37.
+- **`coordinator.__init__` was 254 lines of uninterrupted assignment** in which
+  nothing had a natural home. It is now 41, delegating to one method per
+  concern.
+- **The 235-line published data dictionary** is composed from per-domain views.
+- **`ThermalParameters.from_config`** is a table rather than ninety
+  near-identical lookups, with a test that probes every declared field for a
+  config key that actually reaches it — a forgotten row silently ignores a
+  user's setting forever.
+- **Runtime parameter updates** are table-driven, with the handful that
+  invalidate a learned value kept explicit.
+- **Forecast assembly** is split into named parts and returns a `NamedTuple`;
+  callers were unpacking a bare seven-tuple positionally.
+- **108 nested selector constructions in the config flow** became one readable
+  line each, taking the file from 1,932 to 1,417 lines.
+- Every import `pyflakes` can prove unused is gone.
+
+### Tests
+
+- **`tests/golden.py`** records the complete output of 37 scenarios — every
+  schedule, trajectory, setpoint, cost, reason code and option-flow field — and
+  diffs byte for byte. Its own sensitivity is demonstrated rather than assumed:
+  shifting a fixture by one interval makes it fail and say so.
+- **`tests/stress.py`** sweeps 48 combinations of season, building archetype,
+  zoning and feature flags, plus 17 edge conditions, checking physical,
+  economic and comfort invariants. It found all three bugs above. Its comfort
+  check compares against what running flat out would achieve, because an
+  undersized pump in a leaky house cannot hold the floor and calling that a
+  planning bug would be blaming the optimizer for physics.
+- **`tests/rolling.py`** drives the real re-planning cycle for several
+  simulated days against a plant deliberately mismatched from the model. It is
+  the only test that exercises the self-learning heat-loss correction against a
+  house that genuinely differs from its model: given a 35% error it recovers
+  99% of it within two simulated days, converges rather than oscillating, and
+  leaves an already-correct model alone. Opt-in via `SLOW=1`, because a
+  fifteen-minute test in the default path would simply stop being run.
+- The README's comfort-weight table and entity counts are now asserted, so the
+  documentation cannot drift from the code unnoticed. Both had.
+
+### Notes
+
+Two things were investigated and deliberately left alone.
+
+Adjacent comfort weights can invert on cost by around a percent. The objective
+is non-convex — the comfort penalty is one-sided, and the price signal creates
+several distinct "charge here, coast there" patterns that are each locally
+optimal — so two nearby settings can land in different basins. Neither a third
+multi-start solve nor a polishing pass closed the gap, and both cost 25–30%
+more time. The user-facing contract, which is the README's published table of
+what comfort weight buys, holds exactly and is now tested.
+
+Attribute names inside the coordinator were left as they are. Grouping forty
+private attributes into dataclasses was suggested in the backlog, but it is a
+large mechanical diff across a 3,700-line file for no functional gain, and the
+readability it would buy was obtained by splitting the constructor instead.
+
+
 ## v2.8.0
 
 Twenty features from the backlog, in one release. The through-line is that the

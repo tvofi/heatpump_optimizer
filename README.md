@@ -28,7 +28,7 @@ A custom Home Assistant integration that uses **Model Predictive Control (MPC)**
 - **Plan reason codes** — every planned slot says *why* it was chosen
 - **Energy dashboard integration** — accumulating energy and cost totals, split hot water versus space heating
 - **The house as a virtual battery** — state of charge, capacity and rates published so other automations can use it
-- **Rich sensor entities** — 43 sensors including full heating plans, DHW, predictive insights, per-zone temperatures
+- **Rich sensor entities** — 46 sensors including full heating plans, DHW, predictive insights, per-zone temperatures
 - **Dashboard card** — plots price, planned heating slots, irradiance and predicted temperatures on one graph, with per-series toggles, reason codes and a what-if simulator
 - **Climate entity** — virtual thermostat with full HA climate integration
 - **Buttons and binary sensors** — force a run, arm a measurement experiment, and see input health, external heat and away state at a glance
@@ -483,6 +483,28 @@ This is a small change with a disproportionate effect: without it, an unexpected
 slot is indistinguishable from a bug, which makes the optimizer hard to trust
 and bug reports much weaker than they could be.
 
+### Grid costs beyond the price per kWh
+
+Two things cost money that the spot price does not describe.
+
+**A capacity tariff** is billed as the price per kW times the mean of the
+month's highest few hourly peaks. The cost of a plan is therefore the marginal
+price times the sum of its top-k excesses above what the month has already
+committed to — charging only the single largest, which is the obvious
+simplification, under-states exactly the plan a capacity tariff exists to
+discourage. Below the running threshold, an hour changes nothing and costs
+nothing; and until the month has recorded some peaks there is no reference at
+all, so the charge stays switched off rather than treating every kW as new.
+
+**A compressor start** costs oil dilution, wear, and the loss while the system
+re-establishes steady state. It is modelled as a smooth term on the
+step-to-step power difference, which keeps the problem continuous — a true
+minimum-runtime constraint would make it a MILP, which is not affordable inside
+a Home Assistant update. It defaults to zero because the measurement came
+first: realistic plans make two to four starts a day, so most installs have
+nothing to fix, and the planned start count is published so the decision can be
+made from evidence.
+
 ### Self-learning, and how to see it
 
 Beyond the tank cooling rates and house heat loss learned in earlier versions:
@@ -512,6 +534,11 @@ The **Prediction Accuracy** sensor publishes how far off the model currently is,
 including the *signed* bias — a mean absolute error cannot tell random noise from
 a model that is consistently half a degree optimistic, and it is the second that
 means the model is drifting.
+
+Measured end to end in `tests/rolling.py`: given a house that loses 35% more
+heat than its configuration says, the correction recovers 99% of that error
+within two simulated days, settles rather than oscillating, and leaves an
+already-correct model alone.
 
 ## Configuration
 
@@ -595,7 +622,7 @@ turn the toggle off to require hot water around the clock.
 
 ## Entities Created
 
-### Sensors (43 total)
+### Sensors (46 total)
 | Sensor | Description |
 |---|---|
 | Optimization Mode | Current mode (auto/comfort/economy/boost/off) |
@@ -775,7 +802,7 @@ custom_components/heatpump_optimizer/
 ├── comfort_learning.py  # Revealed-preference comfort weight tuning
 ├── battery.py           # The thermal stores, published as a battery
 │
-├── sensor.py            # 43 sensors
+├── sensor.py            # 46 sensors
 ├── binary_sensor.py     # Input health, external heat, away mode
 ├── button.py            # Optimize now, run identification, reset comfort weight
 ├── climate.py           # Virtual climate entity with DHW status
@@ -795,6 +822,31 @@ imports, so each can be driven directly by `tests/features.py`. That matters
 because their failure mode is a *plausible* plan: a detector that never fires or
 a watchdog that lets a flatline through produces output that looks entirely
 normal, and only a mechanism-level test will catch it.
+
+### How a plan is made
+
+```
+prices ─┐
+weather ┼─► coordinator._forecast_arrays()  ──► _Horizon  ──► optimizer.optimize()
+solar  ─┘        │                                                    │
+                 ├─ learned price shape fills the unpublished tail    ├─ with hot water:
+                 ├─ PV surplus replaces the import price              │    plan the tank by LP,
+                 └─ Open-Meteo overrides irradiance by timestamp      │    then solve space
+                                                                      │    around it, then
+                                                                      │    re-plan the tank
+                                                                      │    against contention
+                                                                      └─ without: solve directly
+                                                                             │
+   entities ◄── coordinator._build_data_dict() ◄── OptimizationResult ◄──────┘
+                     │
+                     └─ composed from per-domain views (thermal, dhw, learning,
+                        measurement, grid, ECL110, external heat, health)
+```
+
+Both optimizer paths share one set of cost terms — the comfort penalty, the
+terminal cost, the cycling and capacity charges — so enabling hot water cannot
+change the space-heating objective. That is not hypothetical tidiness: it used
+to, and the two objectives had silently drifted apart.
 
 ## Requirements
 
