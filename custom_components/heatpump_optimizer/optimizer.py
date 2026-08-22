@@ -843,6 +843,63 @@ class HeatPumpOptimizer:
             predictive_info=predictive_info or {},
         )
 
+    def _co_optimize(
+        self,
+        h: _Horizon,
+        *,
+        dhw_plan: dict,
+        space_power: np.ndarray,
+        dhw_power: np.ndarray,
+        status: str,
+        best_score: float,
+        solve_space,
+        p_max: float,
+    ) -> tuple[np.ndarray, np.ndarray, str]:
+        """Re-plan hot water against the space heating it competes with.
+
+        The first DHW plan is made in ignorance of space heating, so it fills
+        the cheapest hours to the compressor ceiling and pushes space heating
+        into dearer ones. Now that the space profile is known, that contention
+        can be priced and the tank re-planned around it.
+
+        The second plan is adopted **only if it scores better on the same
+        objective**, so this pass can never make the plan worse — which is what
+        makes a single extra iteration safe rather than something that needs to
+        run to convergence.
+        """
+        try:
+            headroom = np.maximum(0.0, p_max - dhw_power)
+            # Where space heating sits hard against the ceiling hot water left
+            # it, it wanted more power than it could have; its unconstrained
+            # demand there is at least the full compressor.
+            pinned = (dhw_power > 1e-6) & (space_power >= headroom - 1e-3)
+            if not bool(np.any(pinned)):
+                return space_power, dhw_power, status
+
+            replanned = self._build_dhw_requirements(
+                initial_state=h.initial_state,
+                prices=h.prices,
+                outdoor_temps=h.outdoor_temps,
+                step_hours=h.step_hours,
+                n_steps=h.n_steps,
+                dt=h.dt,
+                p_max=p_max,
+                space_demand=np.where(pinned, p_max, space_power),
+            )["schedule"]
+            if np.allclose(replanned, dhw_power, atol=1e-4):
+                return space_power, dhw_power, status
+
+            candidate_space, candidate_status, score = solve_space(
+                replanned, space_power
+            )
+            if score < best_score - 1e-9:
+                dhw_plan["schedule"] = replanned
+                return candidate_space, replanned, candidate_status
+        except Exception as err:  # pragma: no cover - defensive
+            _LOGGER.debug("DHW/space co-optimization pass skipped: %s", err)
+
+        return space_power, dhw_power, status
+
     def _grid_terms(self, n_steps: int, dt: float):
         """Closures for the cycling and capacity-tariff penalties.
 
@@ -1069,51 +1126,38 @@ class HeatPumpOptimizer:
 
         dhw_enabled = self.model.params.dhw_enabled
 
-        # Compute comfort targets for each time step
-        comfort_targets = np.array([
-            self.config.get_comfort_temp(
+        # Hour of day at each step. Computed once: the comfort target, both
+        # temperature bounds and the DHW draw pattern all key off it, and it
+        # was previously rebuilt from scratch for each of the four.
+        step_hours = np.array([
+            (
                 (start_time + timedelta(hours=i * dt)).hour
                 + (start_time + timedelta(hours=i * dt)).minute / 60.0
             )
             for i in range(n_steps)
         ])
 
-        temp_min_bounds = np.array([
-            self.config.get_temp_bounds(
-                (start_time + timedelta(hours=i * dt)).hour
-                + (start_time + timedelta(hours=i * dt)).minute / 60.0
-            )[0]
-            for i in range(n_steps)
-        ])
+        comfort_targets = np.array(
+            [self.config.get_comfort_temp(hour) for hour in step_hours]
+        )
+        bounds = [self.config.get_temp_bounds(hour) for hour in step_hours]
+        temp_min_bounds = np.array([low for low, _ in bounds])
+        temp_max_bounds = np.array([high for _, high in bounds])
 
-        temp_max_bounds = np.array([
-            self.config.get_temp_bounds(
-                (start_time + timedelta(hours=i * dt)).hour
-                + (start_time + timedelta(hours=i * dt)).minute / 60.0
-            )[1]
-            for i in range(n_steps)
-        ])
-
-        # Hours for each time step (for DHW draw pattern)
-        step_hours = np.array([
-            ((start_time + timedelta(hours=i * dt)).hour
-             + (start_time + timedelta(hours=i * dt)).minute / 60.0)
-            for i in range(n_steps)
-        ])
-
-        # --- Precompute per-step solar gains for the cost function ---
+        # Per-step solar gain, and the wind/rain multiplier on heat loss. Both
+        # use the *forecast* at each future step rather than current
+        # conditions, which is what makes the control anticipatory.
         solar_gains_per_step = np.array([
             self.model.compute_solar_gain(sr) for sr in solar_radiation
         ])
-
-        # --- Precompute per-step effective heat loss (using FORECAST data) ---
-        # This is critical: use forecasted wind and rain at EACH future step
+        base_loss = max(self.model.params.heat_loss_coefficient, 0.001)
         forecast_heat_loss_factors = np.array([
             self.model.effective_heat_loss_coefficient(
                 self.model.params.heat_loss_coefficient,
                 wind_speeds[i],
                 precipitation[i],
-            ) / max(self.model.params.heat_loss_coefficient, 0.001)
+            )
+            / base_loss
             for i in range(n_steps)
         ])
 
@@ -2212,43 +2256,16 @@ class HeatPumpOptimizer:
                 )
 
         optimal_space, status, best_score = solve_space(optimal_dhw, None)
-
-        # --- Re-plan DHW against the space heating it competes with ---------
-        # The first DHW plan was made in ignorance of space heating, so it
-        # tends to fill the cheapest hours to the compressor ceiling and push
-        # space heating into dearer ones. Now that the space-heating profile is
-        # known, price that contention and re-plan. The result is only adopted
-        # if it actually scores better on the same objective, so this can never
-        # make the plan worse.
-        try:
-            headroom_1 = np.maximum(0.0, p_max - optimal_dhw)
-            # Where space heating sits hard against the ceiling that DHW left
-            # it, it wanted more power than it could have. Its unconstrained
-            # demand there is at least the full compressor.
-            pinned = (optimal_dhw > 1e-6) & (optimal_space >= headroom_1 - 1e-3)
-            if bool(np.any(pinned)):
-                space_demand = np.where(pinned, p_max, optimal_space)
-                dhw_plan_2 = self._build_dhw_requirements(
-                    initial_state=initial_state,
-                    prices=prices,
-                    outdoor_temps=outdoor_temps,
-                    step_hours=step_hours,
-                    n_steps=n_steps,
-                    dt=dt,
-                    p_max=p_max,
-                    space_demand=space_demand,
-                )["schedule"]
-                if not np.allclose(dhw_plan_2, optimal_dhw, atol=1e-4):
-                    space_2, status_2, score_2 = solve_space(
-                        dhw_plan_2, optimal_space
-                    )
-                    if score_2 < best_score - 1e-9:
-                        optimal_dhw = dhw_plan_2
-                        optimal_space = space_2
-                        status, best_score = status_2, score_2
-                        dhw_plan["schedule"] = dhw_plan_2
-        except Exception as err:  # pragma: no cover - defensive
-            _LOGGER.debug("DHW/space co-optimization pass skipped: %s", err)
+        optimal_space, optimal_dhw, status = self._co_optimize(
+            h,
+            dhw_plan=dhw_plan,
+            space_power=optimal_space,
+            dhw_power=optimal_dhw,
+            status=status,
+            best_score=best_score,
+            solve_space=solve_space,
+            p_max=p_max,
+        )
 
         # Simulate with optimal schedule
         room_temps, slab_temps, upper_temps, lower_temps, dhw_temps = (
