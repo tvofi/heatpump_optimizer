@@ -42,7 +42,6 @@ from scipy.optimize import linprog, minimize
 from .thermal_model import (
     DHW_AMBIENT_TEMP,
     ThermalModel,
-    ThermalParameters,
     ThermalState,
 )
 from .dhw_schedule import (
@@ -517,6 +516,61 @@ def _solver_status(result, objective, initial_guess) -> str:
     return f"suboptimal ({result.message})"
 
 
+@dataclass(frozen=True)
+class _Horizon:
+    """Everything about one solve that both optimization paths need.
+
+    These eighteen values were previously threaded through two near-identical
+    eighteen-parameter signatures. Collecting them removes that duplication,
+    but the real benefit is that adding a new per-solve input is now a single
+    edit instead of four (two signatures, two call sites) — which is exactly
+    the kind of divergence that let the two objectives drift apart before.
+
+    Frozen because nothing downstream should be rewriting the horizon it was
+    handed; a path that wants a variation makes its own.
+    """
+
+    initial_state: ThermalState
+    prices: np.ndarray
+    outdoor_temps: np.ndarray
+    wind_speeds: np.ndarray
+    precipitation: np.ndarray
+    solar_radiation: np.ndarray
+    start_time: datetime
+    n_steps: int
+    dt: float
+    #: Per-step comfort target and the bounds either side of it.
+    comfort_targets: np.ndarray
+    temp_min_bounds: np.ndarray
+    temp_max_bounds: np.ndarray
+    #: Hour-of-day per step, for the DHW draw pattern and demand windows.
+    step_hours: np.ndarray
+    #: Solar gain in kW, and the wind/rain multiplier on heat loss, per step.
+    solar_gains: np.ndarray
+    heat_loss_factors: np.ndarray
+    #: Output of ``_analyze_forecast_trajectory``.
+    forecast: dict
+    #: ``time.monotonic()`` at the start of the solve, for the timing report.
+    t_start: float
+
+    @property
+    def timestamps(self) -> list[datetime]:
+        return [
+            self.start_time + timedelta(hours=i * self.dt)
+            for i in range(self.n_steps)
+        ]
+
+    @property
+    def weather(self) -> dict[str, np.ndarray]:
+        """Keyword arguments the simulation and baseline calls share."""
+        return {
+            "outdoor_temps": self.outdoor_temps,
+            "wind_speeds": self.wind_speeds,
+            "precipitation": self.precipitation,
+            "solar_radiation": self.solar_radiation,
+        }
+
+
 class HeatPumpOptimizer:
     """MPC-based heat pump cost optimizer with predictive weather anticipation and DHW."""
 
@@ -537,6 +591,257 @@ class HeatPumpOptimizer:
     # ------------------------------------------------------------------
     # Shared cost terms
     # ------------------------------------------------------------------
+
+    def _anticipatory_weights(
+        self,
+        n_steps: int,
+        dt: float,
+        solar_gains: np.ndarray,
+        heat_loss_factors: np.ndarray,
+    ) -> np.ndarray:
+        """Warm-start shaping for the *initial guess* only.
+
+        A cheap forecast-aware nudge: start the solver lower where sun is
+        coming and higher where the weather is about to turn, so L-BFGS-B
+        begins near the shape of the answer.
+
+        These weights used to scale the comfort-violation penalty as well,
+        which discounted a real breach of the user's minimum temperature
+        because the sun might come out later. That is backwards — if the sun
+        does arrive, the simulated trajectory is not cold and no penalty arises
+        anyway, so the discount could only ever buy under-heating.
+        """
+        weights = np.ones(n_steps)
+        lookahead = int(8 / dt)
+        for i in range(n_steps):
+            end = min(i + lookahead, n_steps)
+            if end <= i:
+                continue
+            future_solar = np.mean(solar_gains[i:end])
+            if future_solar > 0.5:  # > 0.5 kW solar gain is significant
+                weights[i] *= max(0.6, 1.0 - future_solar * 0.3)
+            future_loss = np.mean(heat_loss_factors[i:end])
+            if future_loss > 1.1:
+                weights[i] *= min(1.5, future_loss)
+        return weights
+
+    def _comfort_terms(
+        self,
+        room_temps: np.ndarray,
+        upper_temps: np.ndarray,
+        lower_temps: np.ndarray,
+        comfort_targets: np.ndarray,
+        temp_min_bounds: np.ndarray,
+        temp_max_bounds: np.ndarray,
+        comfort_band: np.ndarray,
+    ) -> tuple[float, float]:
+        """The comfort penalty and the pull-to-target cost.
+
+        Returns them separately because they mean different things: the first
+        is the price of breaching the user's bounds, the second is a mild
+        preference for sitting near the target inside them.
+
+        Two-zone penalties are *averaged* over the zones rather than summed.
+        Summing made a two-zone house behave as if ``comfort_weight`` were set
+        twice as high as configured, so it hugged the setpoint and gave up most
+        of the available savings.
+        """
+        weight = self.config.comfort_weight
+
+        if self.model.params.two_zone_enabled:
+            upper_t = upper_temps[1:]
+            lower_t = lower_temps[1:]
+
+            undershoot_u = np.maximum(0, temp_min_bounds - upper_t)
+            overshoot_u = np.maximum(0, upper_t - temp_max_bounds)
+            undershoot_l = np.maximum(0, temp_min_bounds - lower_t)
+            overshoot_l = np.maximum(0, lower_t - temp_max_bounds)
+
+            penalty = 0.5 * weight * (
+                np.sum(undershoot_u ** 2) * 10.0
+                + np.sum(overshoot_u ** 2) * 5.0
+                + np.sum(undershoot_l ** 2) * 10.0
+                + np.sum(overshoot_l ** 2) * 5.0
+                + (np.sum(undershoot_u) + np.sum(undershoot_l)) * _COMFORT_FLOOR_L1
+            )
+
+            comfort_dev_u = upper_t - comfort_targets
+            comfort_dev_l = lower_t - comfort_targets
+            comfort_cost = 0.025 * weight * (
+                np.sum((comfort_dev_u / comfort_band) ** 2)
+                + np.sum((comfort_dev_l / comfort_band) ** 2)
+            )
+            return penalty, comfort_cost
+
+        room_t = room_temps[1:]
+        undershoot = np.maximum(0, temp_min_bounds - room_t)
+        overshoot = np.maximum(0, room_t - temp_max_bounds)
+
+        penalty = weight * (
+            np.sum(undershoot ** 2) * 10.0
+            + np.sum(overshoot ** 2) * 5.0
+            + np.sum(undershoot) * _COMFORT_FLOOR_L1
+        )
+        deviation = room_t - comfort_targets
+        comfort_cost = 0.05 * weight * np.sum((deviation / comfort_band) ** 2)
+        return penalty, comfort_cost
+
+    def _terminal_cost(self, prices: np.ndarray, outdoor_temps: np.ndarray):
+        """Price the heat the plan leaves unstored at the end of the horizon.
+
+        Nothing beyond the horizon is scored, so without this the optimizer
+        always dumps the last couple of hours: it coasts the house down because
+        the resulting cold never appears in the objective. That both breaches
+        the comfort floor at the tail of the plan and reports a saving that was
+        really borrowed heat.
+
+        The shortfall is priced against the same reference the savings
+        settle-up uses, so the plan and the reported savings agree.
+        """
+        caps = self._settlement_caps(outdoor_temps)
+        refill_price = float(np.percentile(prices, 25))
+        cop_end = self.model.compute_cop(float(outdoor_temps[-1]))
+        params = self.model.params
+
+        if params.two_zone_enabled:
+            stores = (
+                (params.upper_floor_thermal_mass, "upper", caps["room"]),
+                (params.lower_floor_thermal_mass, "lower", caps["room"]),
+                (params.slab_thermal_mass, "slab", caps["slab"]),
+            )
+        else:
+            stores = (
+                (params.room_thermal_mass, "room", caps["room"]),
+                (params.slab_thermal_mass, "slab", caps["slab"]),
+            )
+
+        def cost(room_temps, slab_temps, upper_temps, lower_temps) -> float:
+            ends = {
+                "room": float(room_temps[-1]),
+                "slab": float(slab_temps[-1]),
+                "upper": float(upper_temps[-1]),
+                "lower": float(lower_temps[-1]),
+            }
+            deficit = sum(
+                mass * max(0.0, cap - ends[name]) for mass, name, cap in stores
+            )
+            return refill_price * deficit / max(cop_end, 1e-6)
+
+        return cost
+
+    def _zone_setpoints(
+        self, power: np.ndarray
+    ) -> tuple[list[float], list[float]]:
+        """Per-zone setpoints implied by a power schedule.
+
+        Empty in single-zone mode, where there is only one setpoint series.
+        """
+        if not self.model.params.two_zone_enabled:
+            return [], []
+
+        p_min = self.model.params.min_electrical_power
+        p_max = self.model.params.max_electrical_power
+        span = self.config.max_temp - self.config.min_temp
+
+        upper: list[float] = []
+        lower: list[float] = []
+        for value in power:
+            p_norm = np.clip((value - p_min) / max(p_max - p_min, 0.1), 0, 1)
+            upper.append(round(float(self.config.min_temp + p_norm * span), 1))
+            lower.append(
+                round(float(self.config.min_temp + p_norm * (span + 1.0)), 1)
+            )
+        return upper, lower
+
+    def _build_result(
+        self,
+        h: _Horizon,
+        *,
+        space_power: np.ndarray,
+        trajectories: tuple,
+        status: str,
+        predicted_cost: float,
+        baseline_cost: float,
+        savings: float,
+        deferred_cost: float,
+        dhw_power: np.ndarray | None = None,
+        dhw_temps: np.ndarray | None = None,
+        dhw_cost: float = 0.0,
+        predictive_info: dict | None = None,
+    ) -> OptimizationResult:
+        """Assemble the result both solve paths return.
+
+        Roughly thirty field assignments that were previously written out twice
+        and had already begun to diverge — the DHW path was carrying fields the
+        space-only path had quietly stopped setting. Anything genuinely
+        specific to hot water arrives through the optional arguments.
+        """
+        import time
+
+        room_temps, slab_temps, upper_temps, lower_temps = trajectories
+        total_power = (
+            space_power if dhw_power is None else space_power + dhw_power
+        )
+        _, _, baseline_load = self._grid_terms(h.n_steps, h.dt)
+        grid = self._grid_report(total_power, baseline_load, h.dt)
+        upper_setpoints, lower_setpoints = self._zone_setpoints(space_power)
+        two_zone = self.model.params.two_zone_enabled
+
+        return OptimizationResult(
+            power_schedule=space_power.tolist(),
+            room_temp_trajectory=room_temps.tolist(),
+            slab_temp_trajectory=slab_temps.tolist(),
+            timestamps=h.timestamps,
+            prices=h.prices.tolist(),
+            outdoor_temps=h.outdoor_temps.tolist(),
+            predicted_cost=predicted_cost,
+            baseline_cost=baseline_cost,
+            predicted_savings=savings,
+            savings_percentage=_savings_percentage(savings, baseline_cost),
+            deferred_energy_cost=deferred_cost,
+            optimal_setpoints=self._power_to_setpoints(
+                space_power, room_temps[:-1], h.outdoor_temps
+            ),
+            status=status,
+            solve_time_ms=(time.monotonic() - h.t_start) * 1000,
+            displace_schedule=self._power_to_displace_schedule(
+                space_power, h.outdoor_temps, h.forecast
+            ),
+            heat_pump_on_schedule=self._power_to_heat_pump_schedule(
+                space_power, dhw_power
+            ),
+            upper_temp_trajectory=upper_temps.tolist(),
+            lower_temp_trajectory=lower_temps.tolist(),
+            solar_gain_trajectory=[
+                self.model.compute_solar_gain(sr) for sr in h.solar_radiation
+            ],
+            upper_setpoints=upper_setpoints,
+            lower_setpoints=lower_setpoints,
+            dhw_power_schedule=(
+                dhw_power.tolist() if dhw_power is not None else []
+            ),
+            dhw_temp_trajectory=(
+                dhw_temps.tolist() if dhw_temps is not None else []
+            ),
+            dhw_heating_cost=dhw_cost,
+            space_reasons=classify_space_steps(
+                space_power,
+                h.prices,
+                upper_temps if two_zone else room_temps,
+                h.temp_min_bounds,
+                h.heat_loss_factors,
+                self._pv_surplus,
+                h.n_steps,
+            ),
+            dhw_reasons=[],
+            price_known=self._price_known_list(h.n_steps),
+            projected_peak_kw=grid["peak_kw"],
+            peak_cost=grid["peak_cost"],
+            compressor_starts=grid["starts"],
+            pv_surplus=self._pv_surplus_list(h.n_steps),
+            pv_self_consumed_kwh=self._pv_self_consumed(total_power, h.dt),
+            predictive_info=predictive_info or {},
+        )
 
     def _grid_terms(self, n_steps: int, dt: float):
         """Closures for the cycling and capacity-tariff penalties.
@@ -762,9 +1067,6 @@ class HeatPumpOptimizer:
             forecast_analysis["future_solar_energy_kwh"],
         )
 
-        p_min = self.model.params.min_electrical_power
-        p_max = self.model.params.max_electrical_power
-        two_zone = self.model.params.two_zone_enabled
         dhw_enabled = self.model.params.dhw_enabled
 
         # Compute comfort targets for each time step
@@ -815,125 +1117,66 @@ class HeatPumpOptimizer:
             for i in range(n_steps)
         ])
 
+        horizon = _Horizon(
+            initial_state=initial_state,
+            prices=prices,
+            outdoor_temps=outdoor_temps,
+            wind_speeds=wind_speeds,
+            precipitation=precipitation,
+            solar_radiation=solar_radiation,
+            start_time=start_time,
+            n_steps=n_steps,
+            dt=dt,
+            comfort_targets=comfort_targets,
+            temp_min_bounds=temp_min_bounds,
+            temp_max_bounds=temp_max_bounds,
+            step_hours=step_hours,
+            solar_gains=solar_gains_per_step,
+            heat_loss_factors=forecast_heat_loss_factors,
+            forecast=forecast_analysis,
+            t_start=t_start,
+        )
+
         if dhw_enabled:
-            result = self._optimize_with_dhw(
-                initial_state, prices, outdoor_temps, wind_speeds,
-                precipitation, solar_radiation, start_time, n_steps, dt,
-                comfort_targets, temp_min_bounds, temp_max_bounds,
-                step_hours, solar_gains_per_step, forecast_heat_loss_factors,
-                forecast_analysis, t_start,
-            )
+            result = self._optimize_with_dhw(horizon)
         else:
-            result = self._optimize_space_only(
-                initial_state, prices, outdoor_temps, wind_speeds,
-                precipitation, solar_radiation, start_time, n_steps, dt,
-                comfort_targets, temp_min_bounds, temp_max_bounds,
-                solar_gains_per_step, forecast_heat_loss_factors,
-                forecast_analysis, t_start,
-            )
+            result = self._optimize_space_only(horizon)
 
         existing_info = result.predictive_info if result.predictive_info else {}
         result.predictive_info = {**forecast_analysis, **existing_info}
         return result
 
-    def _optimize_space_only(
-        self,
-        initial_state: ThermalState,
-        prices: np.ndarray,
-        outdoor_temps: np.ndarray,
-        wind_speeds: np.ndarray,
-        precipitation: np.ndarray,
-        solar_radiation: np.ndarray,
-        start_time: datetime,
-        n_steps: int,
-        dt: float,
-        comfort_targets: np.ndarray,
-        temp_min_bounds: np.ndarray,
-        temp_max_bounds: np.ndarray,
-        solar_gains_per_step: np.ndarray,
-        forecast_heat_loss_factors: np.ndarray,
-        forecast_analysis: dict,
-        t_start: float,
-    ) -> OptimizationResult:
+    def _optimize_space_only(self, h: _Horizon) -> OptimizationResult:
         """Optimize space heating only (no DHW)."""
         import time
 
+        # Unpacked rather than accessed through ``h`` throughout: the body is
+        # dense numpy, and ``h.prices * h.dt`` forty times over reads far worse
+        # than the equations it is meant to express.
+        initial_state, prices, dt, n_steps = (
+            h.initial_state, h.prices, h.dt, h.n_steps
+        )
+        outdoor_temps, wind_speeds = h.outdoor_temps, h.wind_speeds
+        precipitation, solar_radiation = h.precipitation, h.solar_radiation
+        comfort_targets = h.comfort_targets
+        temp_min_bounds, temp_max_bounds = h.temp_min_bounds, h.temp_max_bounds
+        solar_gains_per_step = h.solar_gains
+        forecast_heat_loss_factors = h.heat_loss_factors
+        forecast_analysis, t_start = h.forecast, h.t_start
+
         p_min = self.model.params.min_electrical_power
         p_max = self.model.params.max_electrical_power
-        two_zone = self.model.params.two_zone_enabled
 
-        # --- Warm-start shaping --------------------------------------------
-        # A cheap forecast-aware nudge for the *initial guess* only: start the
-        # solver lower where sun is coming and higher where the weather is
-        # about to turn, so L-BFGS-B begins near the shape of the answer.
-        #
-        # These weights used to scale the comfort-violation penalty as well,
-        # which discounted a real breach of the user's minimum temperature
-        # because the sun might come out later. That is backwards: if the sun
-        # does arrive, the simulated trajectory is not cold and no penalty
-        # arises anyway, so the discount could only ever buy under-heating.
-        # The penalty now means exactly what it says.
-        anticipatory_weights = np.ones(n_steps)
-        for i in range(n_steps):
-            lookahead_end = min(i + int(8 / dt), n_steps)
-            if lookahead_end > i:
-                future_solar = np.mean(solar_gains_per_step[i:lookahead_end])
-                if future_solar > 0.5:  # > 0.5 kW solar gain is significant
-                    anticipatory_weights[i] *= max(0.6, 1.0 - future_solar * 0.3)
-
-                future_loss_factor = np.mean(
-                    forecast_heat_loss_factors[i:lookahead_end]
-                )
-                if future_loss_factor > 1.1:
-                    anticipatory_weights[i] *= min(1.5, future_loss_factor)
-
-        # How far the user is willing to let the house drift below target.
-        # The pull-to-target term is normalised by this so that widening the
-        # allowed band actually buys cheaper operation instead of being
-        # overwhelmed by a fixed quadratic penalty. With a wide band (target
-        # 21, min 17) the optimizer is free to coast; narrowing the band makes
-        # it hold the setpoint more tightly.
+        anticipatory_weights = self._anticipatory_weights(
+            n_steps, dt, solar_gains_per_step, forecast_heat_loss_factors
+        )
+        # How far the user is willing to let the house drift below target. The
+        # pull-to-target term is normalised by this, so widening the allowed
+        # band actually buys cheaper operation instead of being overwhelmed by
+        # a fixed quadratic penalty.
         comfort_band = np.maximum(comfort_targets - temp_min_bounds, 1.0)
-
-        # --- Terminal cost -------------------------------------------------
-        # Nothing beyond the horizon is scored, so without a terminal term the
-        # optimizer always dumps the last couple of hours: it coasts the house
-        # down because the resulting cold never shows up in the objective. That
-        # both breaches the comfort floor at the tail of the plan and reports a
-        # saving that was really borrowed heat. Price the end-of-horizon
-        # shortfall using the same reference the savings settle-up uses, so the
-        # plan and the reported savings agree.
-        _caps = self._settlement_caps(outdoor_temps)
-        _refill_price = float(np.percentile(prices, 25))
-        _cop_end = self.model.compute_cop(float(outdoor_temps[-1]))
-        _mp = self.model.params
-        if _mp.two_zone_enabled:
-            _stores = (
-                (_mp.upper_floor_thermal_mass, "upper", _caps["room"]),
-                (_mp.lower_floor_thermal_mass, "lower", _caps["room"]),
-                (_mp.slab_thermal_mass, "slab", _caps["slab"]),
-            )
-        else:
-            _stores = (
-                (_mp.room_thermal_mass, "room", _caps["room"]),
-                (_mp.slab_thermal_mass, "slab", _caps["slab"]),
-            )
-
-        def _ends(room_temps, slab_temps, upper_temps, lower_temps):
-            return {
-                "room": float(room_temps[-1]),
-                "slab": float(slab_temps[-1]),
-                "upper": float(upper_temps[-1]),
-                "lower": float(lower_temps[-1]),
-            }
-
-        def terminal_cost(ends: dict[str, float]) -> float:
-            deficit = 0.0
-            for mass, name, cap in _stores:
-                deficit += mass * max(0.0, cap - ends[name])
-            return _refill_price * deficit / max(_cop_end, 1e-6)
-
-        _cycling, _capacity, _baseline_load = self._grid_terms(n_steps, dt)
+        terminal_cost = self._terminal_cost(prices, outdoor_temps)
+        cycling, capacity, baseline_load = self._grid_terms(n_steps, dt)
 
         def objective(power_schedule: np.ndarray) -> float:
             """Compute the total cost with predictive weather anticipation."""
@@ -954,51 +1197,10 @@ class HeatPumpOptimizer:
                 np.sum(prices * power_schedule * dt) * self.config.price_weight
             )
 
-            if two_zone:
-                upper_t = upper_temps[1:]
-                lower_t = lower_temps[1:]
-
-                undershoot_u = np.maximum(0, temp_min_bounds - upper_t)
-                overshoot_u = np.maximum(0, upper_t - temp_max_bounds)
-                undershoot_l = np.maximum(0, temp_min_bounds - lower_t)
-                overshoot_l = np.maximum(0, lower_t - temp_max_bounds)
-
-                # Weight comfort penalties by anticipatory weights
-                # During periods before sunny weather, allow slightly lower temps
-                # Averaged over the two zones, not summed. Summing made a
-                # two-zone house behave as if ``comfort_weight`` were set twice
-                # as high as configured, so it hugged the setpoint and gave up
-                # most of the available savings.
-                penalty = 0.5 * self.config.comfort_weight * (
-                    np.sum(undershoot_u ** 2) * 10.0
-                    + np.sum(overshoot_u ** 2) * 5.0
-                    + np.sum(undershoot_l ** 2) * 10.0
-                    + np.sum(overshoot_l ** 2) * 5.0
-                    + (np.sum(undershoot_u) + np.sum(undershoot_l))
-                    * _COMFORT_FLOOR_L1
-                )
-
-                comfort_dev_u = upper_t - comfort_targets
-                comfort_dev_l = lower_t - comfort_targets
-                comfort_cost = 0.025 * self.config.comfort_weight * (
-                    np.sum((comfort_dev_u / comfort_band) ** 2)
-                    + np.sum((comfort_dev_l / comfort_band) ** 2)
-                )
-            else:
-                room_t = room_temps[1:]
-                undershoot = np.maximum(0, temp_min_bounds - room_t)
-                overshoot = np.maximum(0, room_t - temp_max_bounds)
-
-                penalty = self.config.comfort_weight * (
-                    np.sum(undershoot ** 2) * 10.0
-                    + np.sum(overshoot ** 2) * 5.0
-                    + np.sum(undershoot) * _COMFORT_FLOOR_L1
-                )
-
-                comfort_deviation = room_t - comfort_targets
-                comfort_cost = 0.05 * self.config.comfort_weight * np.sum(
-                    (comfort_deviation / comfort_band) ** 2
-                )
+            penalty, comfort_cost = self._comfort_terms(
+                room_temps, upper_temps, lower_temps,
+                comfort_targets, temp_min_bounds, temp_max_bounds, comfort_band,
+            )
 
             # Smoothness penalty
             if len(power_schedule) > 1:
@@ -1021,10 +1223,10 @@ class HeatPumpOptimizer:
 
             return (
                 energy_cost + penalty + comfort_cost + smoothness
-                + _cycling(power_schedule)
-                + _capacity(power_schedule)
+                + cycling(power_schedule)
+                + capacity(power_schedule)
                 + terminal_cost(
-                    _ends(room_temps, slab_temps, upper_temps, lower_temps)
+                    room_temps, slab_temps, upper_temps, lower_temps
                 )
             )
 
@@ -1081,8 +1283,6 @@ class HeatPumpOptimizer:
             )
         )
 
-        solar_gains = [self.model.compute_solar_gain(sr) for sr in solar_radiation]
-
         # Compute baseline cost
         baseline_power, baseline_end = self._compute_baseline_power(
             initial_state, outdoor_temps, wind_speeds, precipitation,
@@ -1101,85 +1301,25 @@ class HeatPumpOptimizer:
         )
         savings = baseline_cost - predicted_cost - deferred_cost
 
-        timestamps = [
-            start_time + timedelta(hours=i * dt) for i in range(n_steps)
-        ]
-
-        optimal_setpoints = self._power_to_setpoints(
-            optimal_power, room_temps[:-1], outdoor_temps
-        )
-        displace_schedule = self._power_to_displace_schedule(
-            optimal_power, outdoor_temps, forecast_analysis
-        )
-        heat_pump_schedule = self._power_to_heat_pump_schedule(optimal_power)
-
-        upper_setpoints = []
-        lower_setpoints = []
-        if two_zone:
-            for i, power in enumerate(optimal_power):
-                p_norm = (power - p_min) / max(p_max - p_min, 0.1)
-                p_norm = np.clip(p_norm, 0, 1)
-                upper_sp = self.config.min_temp + p_norm * (
-                    self.config.max_temp - self.config.min_temp
-                )
-                lower_sp = self.config.min_temp + p_norm * (
-                    self.config.max_temp - self.config.min_temp + 1.0
-                )
-                upper_setpoints.append(round(float(upper_sp), 1))
-                lower_setpoints.append(round(float(lower_sp), 1))
-
         t_elapsed = (time.monotonic() - t_start) * 1000
-
         _LOGGER.info(
-            "Optimization completed in %.0fms: cost=%.2f, baseline=%.2f, savings=%.1f%%, "
-            "solar_reduction=%.2f, wind_factor=%.2f",
+            "Optimization completed in %.0fms: cost=%.2f, baseline=%.2f, "
+            "savings=%.1f%%, solar_reduction=%.2f, wind_factor=%.2f",
             t_elapsed, predicted_cost, baseline_cost,
             _savings_percentage(savings, baseline_cost),
             forecast_analysis["solar_reduction_factor"],
             forecast_analysis["wind_anticipation_factor"],
         )
 
-        grid = self._grid_report(optimal_power, _baseline_load, dt)
-        reasons = classify_space_steps(
-            optimal_power,
-            prices,
-            room_temps if not two_zone else upper_temps,
-            temp_min_bounds,
-            forecast_heat_loss_factors,
-            self._pv_surplus,
-            n_steps,
-        )
-
-        return OptimizationResult(
-            power_schedule=optimal_power.tolist(),
-            room_temp_trajectory=room_temps.tolist(),
-            slab_temp_trajectory=slab_temps.tolist(),
-            timestamps=timestamps,
-            prices=prices.tolist(),
-            outdoor_temps=outdoor_temps.tolist(),
+        return self._build_result(
+            h,
+            space_power=optimal_power,
+            trajectories=(room_temps, slab_temps, upper_temps, lower_temps),
+            status=status,
             predicted_cost=predicted_cost,
             baseline_cost=baseline_cost,
-            predicted_savings=savings,
-            savings_percentage=_savings_percentage(savings, baseline_cost),
-            deferred_energy_cost=deferred_cost,
-            optimal_setpoints=optimal_setpoints,
-            status=status,
-            solve_time_ms=t_elapsed,
-            displace_schedule=displace_schedule,
-            heat_pump_on_schedule=heat_pump_schedule,
-            upper_temp_trajectory=upper_temps.tolist(),
-            lower_temp_trajectory=lower_temps.tolist(),
-            solar_gain_trajectory=solar_gains,
-            upper_setpoints=upper_setpoints,
-            lower_setpoints=lower_setpoints,
-            space_reasons=reasons,
-            dhw_reasons=[],
-            price_known=self._price_known_list(n_steps),
-            projected_peak_kw=grid["peak_kw"],
-            peak_cost=grid["peak_cost"],
-            compressor_starts=grid["starts"],
-            pv_surplus=self._pv_surplus_list(n_steps),
-            pv_self_consumed_kwh=self._pv_self_consumed(optimal_power, dt),
+            savings=savings,
+            deferred_cost=deferred_cost,
         )
 
     # ------------------------------------------------------------------
@@ -1879,26 +2019,7 @@ class HeatPumpOptimizer:
 
         return np.clip(plan, 0.0, p_dhw_max)
 
-    def _optimize_with_dhw(
-        self,
-        initial_state: ThermalState,
-        prices: np.ndarray,
-        outdoor_temps: np.ndarray,
-        wind_speeds: np.ndarray,
-        precipitation: np.ndarray,
-        solar_radiation: np.ndarray,
-        start_time: datetime,
-        n_steps: int,
-        dt: float,
-        comfort_targets: np.ndarray,
-        temp_min_bounds: np.ndarray,
-        temp_max_bounds: np.ndarray,
-        step_hours: np.ndarray,
-        solar_gains_per_step: np.ndarray,
-        forecast_heat_loss_factors: np.ndarray,
-        forecast_analysis: dict,
-        t_start: float,
-    ) -> OptimizationResult:
+    def _optimize_with_dhw(self, h: _Horizon) -> OptimizationResult:
         """Optimize coordinated space heating + DHW heating.
 
         Decision variables: [P_space[0..n-1], P_dhw[0..n-1]]
@@ -1907,9 +2028,20 @@ class HeatPumpOptimizer:
         """
         import time
 
+        # See ``_optimize_space_only`` for why the context is unpacked.
+        initial_state, prices, dt, n_steps = (
+            h.initial_state, h.prices, h.dt, h.n_steps
+        )
+        outdoor_temps, wind_speeds = h.outdoor_temps, h.wind_speeds
+        precipitation, solar_radiation = h.precipitation, h.solar_radiation
+        comfort_targets = h.comfort_targets
+        temp_min_bounds, temp_max_bounds = h.temp_min_bounds, h.temp_max_bounds
+        step_hours, solar_gains_per_step = h.step_hours, h.solar_gains
+        forecast_heat_loss_factors = h.heat_loss_factors
+        start_time, t_start = h.start_time, h.t_start
+
         p_min = self.model.params.min_electrical_power
         p_max = self.model.params.max_electrical_power
-        two_zone = self.model.params.two_zone_enabled
         dhw_min_temp = self.model.params.dhw_min_temp
         dhw_setpoint = self.model.params.dhw_setpoint
 
@@ -1917,17 +2049,9 @@ class HeatPumpOptimizer:
             start_time.hour + start_time.minute / 60.0
         )
 
-        # Anticipatory weights (same as space-only)
-        anticipatory_weights = np.ones(n_steps)
-        for i in range(n_steps):
-            lookahead_end = min(i + int(8 / dt), n_steps)
-            if lookahead_end > i:
-                future_solar = np.mean(solar_gains_per_step[i:lookahead_end])
-                if future_solar > 0.5:
-                    anticipatory_weights[i] *= max(0.6, 1.0 - future_solar * 0.3)
-                future_loss = np.mean(forecast_heat_loss_factors[i:lookahead_end])
-                if future_loss > 1.1:
-                    anticipatory_weights[i] *= min(1.5, future_loss)
+        anticipatory_weights = self._anticipatory_weights(
+            n_steps, dt, solar_gains_per_step, forecast_heat_loss_factors
+        )
 
         # ----------------------------------------------------------------
         # DHW demand model
@@ -1975,53 +2099,11 @@ class HeatPumpOptimizer:
         def dhw_cost_of(plan: np.ndarray) -> float:
             return float(np.sum(prices * plan * dt) * self.config.price_weight)
 
-        # How far the user is willing to let the house drift below target.
-        # The pull-to-target term is normalised by this so that widening the
-        # allowed band actually buys cheaper operation instead of being
-        # overwhelmed by a fixed quadratic penalty. With a wide band (target
-        # 21, min 17) the optimizer is free to coast; narrowing the band makes
-        # it hold the setpoint more tightly.
+        # See ``_optimize_space_only`` for why the band normalises the
+        # pull-to-target term.
         comfort_band = np.maximum(comfort_targets - temp_min_bounds, 1.0)
-
-        # --- Terminal cost -------------------------------------------------
-        # Nothing beyond the horizon is scored, so without a terminal term the
-        # optimizer always dumps the last couple of hours: it coasts the house
-        # down because the resulting cold never shows up in the objective. That
-        # both breaches the comfort floor at the tail of the plan and reports a
-        # saving that was really borrowed heat. Price the end-of-horizon
-        # shortfall using the same reference the savings settle-up uses, so the
-        # plan and the reported savings agree.
-        _caps = self._settlement_caps(outdoor_temps)
-        _refill_price = float(np.percentile(prices, 25))
-        _cop_end = self.model.compute_cop(float(outdoor_temps[-1]))
-        _mp = self.model.params
-        if _mp.two_zone_enabled:
-            _stores = (
-                (_mp.upper_floor_thermal_mass, "upper", _caps["room"]),
-                (_mp.lower_floor_thermal_mass, "lower", _caps["room"]),
-                (_mp.slab_thermal_mass, "slab", _caps["slab"]),
-            )
-        else:
-            _stores = (
-                (_mp.room_thermal_mass, "room", _caps["room"]),
-                (_mp.slab_thermal_mass, "slab", _caps["slab"]),
-            )
-
-        def _ends(room_temps, slab_temps, upper_temps, lower_temps):
-            return {
-                "room": float(room_temps[-1]),
-                "slab": float(slab_temps[-1]),
-                "upper": float(upper_temps[-1]),
-                "lower": float(lower_temps[-1]),
-            }
-
-        def terminal_cost(ends: dict[str, float]) -> float:
-            deficit = 0.0
-            for mass, name, cap in _stores:
-                deficit += mass * max(0.0, cap - ends[name])
-            return _refill_price * deficit / max(_cop_end, 1e-6)
-
-        _cycling, _capacity, _baseline_load = self._grid_terms(n_steps, dt)
+        terminal_cost = self._terminal_cost(prices, outdoor_temps)
+        cycling, capacity, baseline_load = self._grid_terms(n_steps, dt)
 
         def objective(
             space_power: np.ndarray,
@@ -2047,44 +2129,10 @@ class HeatPumpOptimizer:
                 + dhw_energy_cost
             )
 
-            # --- Space heating comfort penalty ---
-            if two_zone:
-                upper_t = upper_temps[1:]
-                lower_t = lower_temps[1:]
-                undershoot_u = np.maximum(0, temp_min_bounds - upper_t)
-                overshoot_u = np.maximum(0, upper_t - temp_max_bounds)
-                undershoot_l = np.maximum(0, temp_min_bounds - lower_t)
-                overshoot_l = np.maximum(0, lower_t - temp_max_bounds)
-                # Averaged over the two zones so that ``comfort_weight`` means
-                # the same thing as in single-zone mode; see the space-only
-                # objective for the reasoning.
-                space_penalty = 0.5 * self.config.comfort_weight * (
-                    np.sum(undershoot_u ** 2) * 10.0
-                    + np.sum(overshoot_u ** 2) * 5.0
-                    + np.sum(undershoot_l ** 2) * 10.0
-                    + np.sum(overshoot_l ** 2) * 5.0
-                    + (np.sum(undershoot_u) + np.sum(undershoot_l))
-                    * _COMFORT_FLOOR_L1
-                )
-                comfort_dev_u = upper_t - comfort_targets
-                comfort_dev_l = lower_t - comfort_targets
-                comfort_cost = 0.025 * self.config.comfort_weight * (
-                    np.sum((comfort_dev_u / comfort_band) ** 2)
-                    + np.sum((comfort_dev_l / comfort_band) ** 2)
-                )
-            else:
-                room_t = room_temps[1:]
-                undershoot = np.maximum(0, temp_min_bounds - room_t)
-                overshoot = np.maximum(0, room_t - temp_max_bounds)
-                space_penalty = self.config.comfort_weight * (
-                    np.sum(undershoot ** 2) * 10.0
-                    + np.sum(overshoot ** 2) * 5.0
-                    + np.sum(undershoot) * _COMFORT_FLOOR_L1
-                )
-                comfort_deviation = room_t - comfort_targets
-                comfort_cost = 0.05 * self.config.comfort_weight * np.sum(
-                    (comfort_deviation / comfort_band) ** 2
-                )
+            space_penalty, comfort_cost = self._comfort_terms(
+                room_temps, upper_temps, lower_temps,
+                comfort_targets, temp_min_bounds, temp_max_bounds, comfort_band,
+            )
 
             # Smoothness
             smoothness = 0.0
@@ -2107,10 +2155,10 @@ class HeatPumpOptimizer:
             return (
                 energy_cost + space_penalty + comfort_cost
                 + smoothness
-                + _cycling(combined)
-                + _capacity(combined)
+                + cycling(combined)
+                + capacity(combined)
                 + terminal_cost(
-                    _ends(room_temps, slab_temps, upper_temps, lower_temps)
+                    room_temps, slab_temps, upper_temps, lower_temps
                 )
             )
 
@@ -2218,8 +2266,6 @@ class HeatPumpOptimizer:
             )
         )
 
-        solar_gains = [self.model.compute_solar_gain(sr) for sr in solar_radiation]
-
         # Baseline cost
         baseline_power, baseline_end = self._compute_baseline_power(
             initial_state, outdoor_temps, wind_speeds, precipitation,
@@ -2263,35 +2309,6 @@ class HeatPumpOptimizer:
         )
         savings = baseline_cost - predicted_cost - deferred_cost
 
-        timestamps = [
-            start_time + timedelta(hours=i * dt) for i in range(n_steps)
-        ]
-
-        optimal_setpoints = self._power_to_setpoints(
-            optimal_space, room_temps[:-1], outdoor_temps
-        )
-        displace_schedule = self._power_to_displace_schedule(
-            optimal_space, outdoor_temps, forecast_analysis
-        )
-        heat_pump_schedule = self._power_to_heat_pump_schedule(
-            optimal_space,
-            optimal_dhw,
-        )
-
-        upper_setpoints = []
-        lower_setpoints = []
-        if two_zone:
-            for i, power in enumerate(optimal_space):
-                p_norm = (power - p_min) / max(p_max - p_min, 0.1)
-                p_norm = np.clip(p_norm, 0, 1)
-                upper_sp = self.config.min_temp + p_norm * (
-                    self.config.max_temp - self.config.min_temp
-                )
-                lower_sp = self.config.min_temp + p_norm * (
-                    self.config.max_temp - self.config.min_temp + 1.0
-                )
-                upper_setpoints.append(round(float(upper_sp), 1))
-                lower_setpoints.append(round(float(lower_sp), 1))
 
         t_elapsed = (time.monotonic() - t_start) * 1000
 
@@ -2304,49 +2321,18 @@ class HeatPumpOptimizer:
             dhw_plan["windows_text"] or "always",
         )
 
-        grid = self._grid_report(total_optimal_power, _baseline_load, dt)
-        space_reason_codes = classify_space_steps(
-            optimal_space,
-            prices,
-            room_temps if not two_zone else upper_temps,
-            temp_min_bounds,
-            forecast_heat_loss_factors,
-            self._pv_surplus,
-            n_steps,
-        )
-        dhw_reason_codes = classify_dhw_steps(
-            optimal_dhw,
-            in_demand_window,
-            dhw_ready_temps,
-            dhw_plan.get("legionella_step"),
-            n_steps,
-        )
-
-        return OptimizationResult(
-            power_schedule=optimal_space.tolist(),
-            room_temp_trajectory=room_temps.tolist(),
-            slab_temp_trajectory=slab_temps.tolist(),
-            timestamps=timestamps,
-            prices=prices.tolist(),
-            outdoor_temps=outdoor_temps.tolist(),
+        result = self._build_result(
+            h,
+            space_power=optimal_space,
+            trajectories=(room_temps, slab_temps, upper_temps, lower_temps),
+            status=status,
             predicted_cost=predicted_cost,
             baseline_cost=baseline_cost,
-            predicted_savings=savings,
-            savings_percentage=_savings_percentage(savings, baseline_cost),
-            deferred_energy_cost=deferred_cost,
-            optimal_setpoints=optimal_setpoints,
-            status=status,
-            solve_time_ms=t_elapsed,
-            displace_schedule=displace_schedule,
-            heat_pump_on_schedule=heat_pump_schedule,
-            upper_temp_trajectory=upper_temps.tolist(),
-            lower_temp_trajectory=lower_temps.tolist(),
-            solar_gain_trajectory=solar_gains,
-            upper_setpoints=upper_setpoints,
-            lower_setpoints=lower_setpoints,
-            dhw_power_schedule=optimal_dhw.tolist(),
-            dhw_temp_trajectory=dhw_temps.tolist(),
-            dhw_heating_cost=dhw_cost,
+            savings=savings,
+            deferred_cost=deferred_cost,
+            dhw_power=optimal_dhw,
+            dhw_temps=dhw_temps,
+            dhw_cost=dhw_cost,
             predictive_info={
                 "dhw_peak_usage_hours": [
                     int(step_hours[idx]) % 24
@@ -2384,15 +2370,17 @@ class HeatPumpOptimizer:
                 ),
                 "dhw_hold_hours": round(float(self.model.dhw_hold_hours()), 1),
             },
-            space_reasons=space_reason_codes,
-            dhw_reasons=dhw_reason_codes,
-            price_known=self._price_known_list(n_steps),
-            projected_peak_kw=grid["peak_kw"],
-            peak_cost=grid["peak_cost"],
-            compressor_starts=grid["starts"],
-            pv_surplus=self._pv_surplus_list(n_steps),
-            pv_self_consumed_kwh=self._pv_self_consumed(total_optimal_power, dt),
         )
+        # The only reason codes the shared builder cannot produce: they depend
+        # on the demand windows and legionella deadline this path computed.
+        result.dhw_reasons = classify_dhw_steps(
+            optimal_dhw,
+            in_demand_window,
+            dhw_ready_temps,
+            dhw_plan.get("legionella_step"),
+            n_steps,
+        )
+        return result
 
     def _settlement_caps(
         self, outdoor_temps: np.ndarray, dhw_cap: float | None = None
@@ -2487,7 +2475,6 @@ class HeatPumpOptimizer:
         n_steps = len(outdoor_temps)
         target = self.config.target_temp
         p = self.model.params
-        k_slab = max(p.slab_heat_transfer, 1e-6)
 
         baseline_power = np.zeros(n_steps)
         state = initial_state
