@@ -35,6 +35,10 @@ run "$PYTHON" tests/entities.py
 run "$PYTHON" tests/open_meteo.py
 run "$PYTHON" tests/solar_alignment.py
 
+# The characterization harness: exact behaviour, pinned. Runs before the
+# outcome-based scripts because when both fail, this one says *what* changed.
+run "$PYTHON" tests/golden.py
+
 # End-to-end optimizer behaviour.
 run "$PYTHON" tests/validate.py
 run "$PYTHON" tests/edge.py
