@@ -533,7 +533,6 @@ class HeatPumpOptimizer:
         # through their already long signatures.
         self._price_known: np.ndarray | None = None
         self._pv_surplus: np.ndarray | None = None
-        self._humidity: np.ndarray | None = None
 
     # ------------------------------------------------------------------
     # Shared cost terms
@@ -689,7 +688,6 @@ class HeatPumpOptimizer:
         start_time: datetime | None = None,
         price_known: np.ndarray | None = None,
         pv_surplus: np.ndarray | None = None,
-        humidity: np.ndarray | None = None,
     ) -> OptimizationResult:
         """Run the MPC optimization with predictive weather anticipation.
 
@@ -748,11 +746,6 @@ class HeatPumpOptimizer:
 
         self._price_known = price_known
         self._pv_surplus = pv_surplus
-        self._humidity = (
-            np.asarray(humidity, dtype=float)[:n_steps]
-            if humidity is not None
-            else None
-        )
 
         # --- Analyze forecast trajectory for predictive signals ---
         forecast_analysis = self._analyze_forecast_trajectory(

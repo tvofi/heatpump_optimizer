@@ -209,12 +209,46 @@ what follows closes that loop.
 
 ### Fixed
 
+All of these were found while building the release, by tests written to check
+the mechanism rather than the outcome. Each produced entirely plausible output.
+
 - **System identification fitted the wrong quantity.** The step-response fit
   regressed the room's energy balance against *electrical* draw rather than
   thermal output. Both identified parameters came out scaled by the COP while
   their ratio — the time constant — stayed correct, which is exactly the kind of
-  error that looks entirely plausible. Caught by the new test that drives a
+  error that looks entirely plausible. Caught by the test that drives a
   synthetic house with known parameters through a whole experiment.
+
+- **The COP learner erased its own learning.** `cop_scale` multiplies the
+  nameplate curve, but the modelled COP it was compared against already had the
+  current scale folded in, so the update used a *relative* correction as an
+  *absolute* target. That makes 1.0 the only fixed point: a sample that
+  perfectly confirmed the model still dragged the learned value back towards
+  "trust the nameplate". Since the result is persisted and every plan is priced
+  through COP, the feature silently undid itself.
+
+- **Space-only power was compared against a whole-pump meter.** The current
+  action carries the space heating allocation in `power` and hot water in
+  `dhw_power`, but an electricity meter sees only their sum. Three places
+  compared the space figure alone against the measured total, so a perfectly
+  ordinary planned hot-water charge looked like the pump drawing power nobody
+  asked for. That registered as an external heat source (freezing every learner
+  and suppressing hot water for the decay window), as a collapsed COP, and as a
+  defrost derate — all at once, all wrong.
+
+- **The defrost derate's humidity dimension was never applied.** The learner
+  recorded observations against the real humidity, but every lookup fell back to
+  a default that landed in the dry bucket. Everything observed in humid frosting
+  conditions — the conditions the whole feature exists for — was written down and
+  then never used.
+
+- **A heated basement's thermal mass was inflated by 25%.** The foundation
+  adjustment was applied twice to the lower floor's slow store, in the branch
+  used by the most common Swedish two-zone layout.
+
+- **The what-if debounce timer survived card removal.** Dragging the slider and
+  then navigating away left a pending solve that still fired, spending seconds
+  of coordinator CPU to write into a DOM nobody was looking at.
 
 ### Tests
 

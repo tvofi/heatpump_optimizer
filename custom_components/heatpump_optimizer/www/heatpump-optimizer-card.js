@@ -326,6 +326,12 @@ class HeatpumpOptimizerCard extends HTMLElement {
   disconnectedCallback() {
     // A modal dialog left open would outlive the card in the top layer.
     if (this._expanded) this._closeExpandedQuietly();
+    // A pending what-if solve would otherwise fire after the card is gone,
+    // spending seconds of coordinator CPU to write into a detached DOM.
+    if (this._whatIfTimer) {
+      clearTimeout(this._whatIfTimer);
+      this._whatIfTimer = null;
+    }
     if (this._resizeObserver) {
       try {
         this._resizeObserver.disconnect();

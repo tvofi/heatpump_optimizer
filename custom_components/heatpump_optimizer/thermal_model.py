@@ -184,6 +184,17 @@ class ThermalParameters:
     # Learned capacity/efficiency derate as a function of outdoor temperature
     # and humidity — see ``defrost.py``. ``None`` means no derate is applied.
     defrost_derate: Any = None
+    # Current outdoor relative humidity, used to select the derate bucket when
+    # a caller does not pass one explicitly.
+    #
+    # Carried on the parameters rather than threaded through every
+    # ``compute_cop`` call because the humidity dimension of the derate is a
+    # single coarse split (dry versus humid), and a 24-hour horizon rarely
+    # crosses it. Threading a per-step array through the whole simulation to
+    # resolve a binary bucket would be a lot of plumbing for no accuracy. The
+    # learner records the humidity that was actually present when it observed
+    # an interval, so lookup and learning agree on what "now" means.
+    ambient_humidity: Any = None
 
     # Internal gains (kW) - baseline heat from occupancy, appliances, etc.
     internal_gains: float = 0.3
@@ -588,12 +599,21 @@ class ThermalModel:
         input, and the defrost derate, which is a function of outdoor
         temperature and humidity and captures the frosting band the smooth
         curve cannot represent. Both default to no change.
+
+        ``humidity`` falls back to ``params.ambient_humidity`` so that the
+        derate's humidity dimension is actually used. Without that fallback
+        every lookup landed in the dry bucket while learning wrote into
+        whichever bucket was real, so everything observed in humid frosting
+        conditions — the conditions the derate exists for — was recorded and
+        then never applied.
         """
         delta = outdoor_temp - self.params.cop_reference_temp
         factor = max(0.3, 1.0 + 0.025 * delta)
         cop = self.params.cop_nominal * min(factor, 1.5) * self.params.cop_scale
         derate = self.params.defrost_derate
         if derate is not None:
+            if humidity is None:
+                humidity = self.params.ambient_humidity
             cop *= derate.factor(outdoor_temp, humidity)
         return max(cop, 0.5)
 

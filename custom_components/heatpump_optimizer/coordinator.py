@@ -1055,6 +1055,19 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     # Measured power, COP learning and external heat detection
     # ------------------------------------------------------------------
 
+    def _commanded_power(self) -> float:
+        """Total electrical draw the plan is asking of the heat pump, kW.
+
+        ``current_action["power"]`` is the *space heating* allocation and
+        ``dhw_power`` is the hot water one; the compressor serves them one at a
+        time but a meter sees only their sum. Comparing the space figure alone
+        against a measured total makes a planned hot-water charge look like the
+        pump drawing power it was never asked for — which reads as an external
+        heat source, as a collapsed COP, and as a defrost derate, all at once.
+        """
+        action = self._current_action
+        return float(action.get("power", 0.0)) + float(action.get("dhw_power", 0.0))
+
     def _external_heat_config(self) -> ExternalHeatConfig:
         """Build the detector configuration from the config entry."""
         return ExternalHeatConfig(
@@ -1126,7 +1139,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             now=dt_util.now(),
             dhw_temp=self._current_state.dhw_temperature,
             buffer_temp=self._current_state.buffer_tank_temperature,
-            commanded_power_kw=float(self._current_action.get("power", 0.0)),
+            commanded_power_kw=self._commanded_power(),
             measured_power_kw=self._measured_power,
             dhw_max_rise_c_per_h=self._max_pump_rise("dhw"),
             buffer_max_rise_c_per_h=self._max_pump_rise("buffer"),
@@ -1157,7 +1170,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if self._learning_frozen(CONF_POWER_ENTITY, CONF_OUTDOOR_TEMP_ENTITY):
             return
 
-        commanded = float(self._current_action.get("power", 0.0))
+        commanded = self._commanded_power()
         params = self._thermal_params
         # Below a third of nameplate the reading is mostly auxiliaries and the
         # ratio says little about compressor efficiency.
@@ -1179,7 +1192,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             return
         self._last_measured_cop = round(float(observed_cop), 2)
 
-        target_scale = observed_cop / modelled_cop
+        # ``cop_scale`` multiplies the *nameplate* curve, and ``modelled_cop``
+        # already has the current scale folded in. So the new absolute scale is
+        # the current one times the observed correction, not the correction on
+        # its own — using the ratio alone makes 1.0 the only fixed point, and a
+        # sample that perfectly confirms the model would still drag the learned
+        # value back towards "trust the nameplate".
+        target_scale = self._cop_scale * commanded / self._measured_power
         alpha = COP_LEARNING_ALPHA
         new_scale = (1.0 - alpha) * self._cop_scale + alpha * target_scale
         max_step = self._cop_scale * COP_LEARNING_MAX_STEP
@@ -1815,13 +1834,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
             self._current_state.external_heat_active = self._external_heat_active
 
-            humidity = self._current_humidity()
-            humidity_array = (
-                np.full(len(prices), humidity, dtype=float)
-                if humidity is not None
-                else None
-            )
-
             # Run optimization in executor to avoid blocking
             result = await self.hass.async_add_executor_job(
                 self._optimizer.optimize,
@@ -1834,7 +1846,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 dt_util.now(),
                 price_known,
                 pv_surplus,
-                humidity_array,
             )
 
             self._optimization_result = result
@@ -2083,6 +2094,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # each one consults it to decide whether to freeze.
         self._input_health = reader.health
         self._learner_freeze_reason = None
+
+        # The defrost derate's humidity bucket is resolved from this, so it has
+        # to be current before anything calls compute_cop.
+        self._thermal_params.ambient_humidity = self._current_humidity()
 
         # Detect an external heat source before the learners run: while one is
         # active every thermal observation is contaminated, and the learners
@@ -3334,7 +3349,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
         self._pending_prediction = {
             "when": now,
-            "power": float(self._current_action.get("power", 0.0)),
+            # The meter sees the whole heat pump, so the prediction it is
+            # compared against has to be the whole plan. Recording space
+            # heating alone made every hot-water charge look like the unit
+            # under-delivering, which fed straight into the defrost derate.
+            "power": self._commanded_power(),
+            "space_power": float(self._current_action.get("power", 0.0)),
             "dhw_power": float(self._current_action.get("dhw_power", 0.0)),
             "price": self._get_current_price(),
             "predicted_temp": self._predicted_next_room_temp(),
@@ -3385,7 +3405,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         stated in the sensor attributes rather than presented as measured.
         """
         price = pending.get("price") or 0.0
-        planned_space = float(pending.get("power") or 0.0)
+        planned_space = float(pending.get("space_power") or 0.0)
         planned_dhw = float(pending.get("dhw_power") or 0.0)
         planned_total = planned_space + planned_dhw
 

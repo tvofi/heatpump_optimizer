@@ -208,7 +208,9 @@ def derive(preset: BuildingPreset) -> dict[str, Any]:
         if preset.upper_emitter == EMITTER_FLOOR:
             upper_mass += _EMITTER_SLAB_MASS_PER_M2 * area * upper_ratio
         if preset.lower_emitter == EMITTER_FLOOR:
-            lower_mass += slow_mass * adjust["mass"]
+            # ``slow_mass`` already carries the foundation adjustment; applying
+            # it twice inflated a heated basement's slow store by 25%.
+            lower_mass += slow_mass
         else:
             upper_mass += slow_mass * 0.5
             lower_mass += slow_mass * 0.5

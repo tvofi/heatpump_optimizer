@@ -32,6 +32,7 @@ from heatpump_optimizer.comfort_learning import (
     ComfortLearner,
     OverrideEvent,
 )
+from heatpump_optimizer.const import COP_SCALE_MAX, COP_SCALE_MIN
 from heatpump_optimizer.defrost import DefrostDerate
 from heatpump_optimizer.external_heat import (
     ExternalHeatConfig,
@@ -51,6 +52,7 @@ from heatpump_optimizer.sysid import (
     SystemIdentification,
 )
 from heatpump_optimizer.tariff import CapacityTariff, PeakTracker, peak_penalty
+from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator as Coord
 from heatpump_optimizer.thermal_model import ThermalModel, ThermalParameters, ThermalState
 
 R = Results("Feature modules")
@@ -1142,5 +1144,177 @@ below = battery_view.StorageComponent(
 )
 R.check("a store below its floor never reports negative energy", below.stored_kwh == 0.0)
 
+
+
+# ===========================================================================
+# Regressions found in review
+# ===========================================================================
+R.section("Regressions")
+
+# --- The COP learner must not erase its own learning ----------------------
+#
+# ``cop_scale`` multiplies the *nameplate* curve, and the modelled COP already
+# has the current scale folded in. Using the observed correction as the new
+# absolute scale makes 1.0 the only fixed point, so a sample that perfectly
+# confirms the model still drags the parameter back to "trust the nameplate".
+def cop_update(scale, commanded, measured, alpha=0.03, max_step=0.05):
+    """The coordinator's update rule, extracted so it can be driven directly."""
+    target = scale * commanded / measured
+    updated = (1.0 - alpha) * scale + alpha * target
+    updated = float(
+        np.clip(updated, scale - scale * max_step, scale + scale * max_step)
+    )
+    return float(np.clip(updated, COP_SCALE_MIN, COP_SCALE_MAX))
+
+
+scale = 1.4
+for _ in range(60):
+    # A perfectly confirming sample: the pump draws exactly what was asked.
+    scale = cop_update(scale, 3.0, 3.0)
+R.check(
+    "a confirming sample leaves the learned COP scale alone",
+    abs(scale - 1.4) < 1e-6,
+    f"drifted to {scale:.4f}",
+)
+
+# Driven in closed loop, which is how it actually runs: the optimizer sizes the
+# command from the *modelled* COP, so a wrong model produces a mismatch that
+# shrinks as the model is corrected. The learned scale must converge on the
+# real efficiency, not chase the residual to zero.
+NAMEPLATE_COP = 3.0
+TRUE_COP = 3.75          # the unit is 25% better than its nameplate curve
+HEAT_DEMAND_KW = 7.5     # thermal output the house needs
+
+scale = 1.0
+for _ in range(400):
+    modelled_cop = NAMEPLATE_COP * scale
+    commanded = HEAT_DEMAND_KW / modelled_cop
+    measured = HEAT_DEMAND_KW / TRUE_COP
+    scale = cop_update(scale, commanded, measured)
+
+R.check(
+    "closed-loop learning converges on the real efficiency",
+    abs(NAMEPLATE_COP * scale - TRUE_COP) < 0.05,
+    f"learned COP {NAMEPLATE_COP * scale:.3f}, truth {TRUE_COP}",
+)
+R.check(
+    "and then stays there",
+    abs(cop_update(scale, HEAT_DEMAND_KW / (NAMEPLATE_COP * scale),
+                   HEAT_DEMAND_KW / TRUE_COP) - scale) < 1e-3,
+    "a correct model must be a fixed point of the update",
+)
+
+# The bound exists because a mis-scaled power entity, or a plan the user is
+# overriding, breaks the closed loop the convergence above relies on.
+runaway = 1.0
+for _ in range(500):
+    runaway = cop_update(runaway, 1.0, 4.0)
+R.check(
+    "a persistently broken feedback loop is bounded, not unbounded",
+    runaway >= COP_SCALE_MIN - 1e-9,
+    f"{runaway:.4f}",
+)
+
+# --- Space-only power must not be compared against a whole-pump meter -----
+#
+# ``current_action["power"]`` is the space heating allocation; ``dhw_power`` is
+# separate. A meter sees only the sum, so comparing the space figure alone
+# makes a planned hot-water charge look like the pump drawing power nobody
+# asked for.
+class _Coord:
+    _commanded_power = Coord._commanded_power
+
+
+c = _Coord()
+c._current_action = {"power": 1.2, "dhw_power": 4.8}
+R.check(
+    "the commanded total includes hot water",
+    c._commanded_power() == 6.0,
+    "otherwise a DHW charge reads as an external heat source, a collapsed COP "
+    "and a defrost derate, all at once",
+)
+c._current_action = {"power": 2.0}
+R.check("a plan with no hot water still works", c._commanded_power() == 2.0)
+c._current_action = {}
+R.check("an empty action is zero, not an error", c._commanded_power() == 0.0)
+
+# The concrete symptom: a normal DHW charge with space heating idle must not
+# be mistaken for a wood fire.
+charge = ExternalHeatDetector(ExternalHeatConfig(enabled=True))
+charge_state = None
+charge_start = datetime(2026, 1, 12, 2, 0, tzinfo=UTC)
+for i in range(4):
+    # 10 °C/h rise, well inside what the pump itself can deliver.
+    charge_state = charge.update(
+        ExternalHeatObservation(
+            now=charge_start + timedelta(minutes=30 * i),
+            dhw_temp=45.0 + i * 5.0,
+            commanded_power_kw=4.8,   # the DHW allocation, correctly included
+            dhw_max_rise_c_per_h=12.0,
+        )
+    )
+R.check(
+    "a planned hot-water charge is not mistaken for a wood fire",
+    not charge_state.active,
+    "; ".join(charge_state.evidence),
+)
+
+# --- The defrost derate's humidity bucket must actually be consulted ------
+#
+# The derate learns per (temperature, humidity) bucket. If lookup always lands
+# in the dry bucket, everything observed in humid frosting conditions — the
+# conditions it exists for — is recorded and then never applied.
+humid = DefrostDerate()
+for _ in range(60):
+    humid.observe(2.0, 90.0, 0.75)
+
+humid_params = ThermalParameters()
+humid_model = ThermalModel(humid_params)
+nominal = humid_model.compute_cop(2.0)
+humid_params.defrost_derate = humid
+
+humid_params.ambient_humidity = 30.0
+R.check(
+    "a dry cold day does not inherit the humid derate",
+    abs(humid_model.compute_cop(2.0) - nominal) < 1e-9,
+)
+humid_params.ambient_humidity = 90.0
+R.check(
+    "the ambient humidity selects the bucket that was learned",
+    humid_model.compute_cop(2.0) < nominal * 0.98,
+    f"{humid_model.compute_cop(2.0):.3f} vs {nominal:.3f}",
+)
+humid_params.ambient_humidity = None
+R.check(
+    "an explicit humidity still wins over the ambient default",
+    humid_model.compute_cop(2.0, 90.0) < nominal * 0.98,
+)
+
+# --- The foundation mass adjustment must be applied once ------------------
+basement_two_zone = presets.derive(
+    presets.BuildingPreset(
+        two_zone=True,
+        foundation=presets.FOUNDATION_BASEMENT,
+        lower_emitter=presets.EMITTER_FLOOR,
+        upper_emitter=presets.EMITTER_RADIATORS,
+    )
+)
+plain_two_zone = presets.derive(
+    presets.BuildingPreset(
+        two_zone=True,
+        foundation=presets.FOUNDATION_NONE,
+        lower_emitter=presets.EMITTER_FLOOR,
+        upper_emitter=presets.EMITTER_RADIATORS,
+    )
+)
+ratio = (
+    basement_two_zone["lower_floor_thermal_mass"]
+    / plain_two_zone["lower_floor_thermal_mass"]
+)
+R.check(
+    "a heated basement scales the slow store once, not twice",
+    ratio < 1.30,
+    f"lower floor mass scaled by {ratio:.3f}; the adjustment is 1.25",
+)
 
 sys.exit(R.close("FEATURE CHECKS"))
