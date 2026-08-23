@@ -457,6 +457,33 @@ When a floor heating return temperature sensor is configured, the optimizer uses
 T_slab_estimated = 0.7 × (T_return + 1°C) + 0.3 × T_slab_model
 ```
 
+### Learning how the heat loss splits between the floors
+
+Once a real lower-floor sensor exists, the model can stop taking the *split*
+between the two zones on trust as well.
+
+The catch is that `house_heat_loss_scale`, the correction learned from
+prediction error, multiplies **both** zone losses. It can move the total but
+never the split, so learning both zone losses independently alongside it would
+be three parameters chasing two degrees of freedom — they trade off against each
+other and drift without ever making the fit worse.
+
+So the two are given separate jobs. The scale owns the **level** and is fitted
+from the upper floor. A new ratio owns the **split** and is fitted from the
+lower floor, which the scale's own fit does not touch. Two parameters, two
+independent measurements.
+
+It only moves when a real lower-floor sensor is configured. Without one the
+lower zone is inferred from the floor return water — an estimate derived from
+the same sensor as the slab — so there is nothing independent to fit against.
+Watch `lower_floor_loss_ratio` and `lower_floor_loss_samples` on the learning
+sensor; the ratio stays at 1.0, the configured split, until it has evidence.
+
+Deliberately **not** learned: the inter-zone transfer coefficient. One pump, one
+water temperature and a fixed radiator/floor split mean the two zones are driven
+together and rarely diverge, so there is very little to learn from and a passive
+fit would mostly track noise. It stays at its configured value.
+
 ### Knowing the lower floor, rather than guessing it
 
 Two-zone mode plans against two room temperatures, but only the upper one has

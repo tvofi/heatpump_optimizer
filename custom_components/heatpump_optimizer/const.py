@@ -309,6 +309,7 @@ CONF_DHW_COOLING_RATE: Final = "dhw_cooling_rate"  # °C/h at reference conditio
 CONF_BUFFER_COOLING_RATE: Final = "buffer_cooling_rate"  # °C/h at reference
 CONF_BUFFER_TANK_TEMP_ENTITY: Final = "buffer_tank_temp_entity"
 CONF_HOUSE_HEAT_LOSS_SCALE: Final = "house_heat_loss_scale"  # dimensionless
+CONF_LOWER_FLOOR_LOSS_RATIO: Final = "lower_floor_loss_ratio"  # dimensionless
 
 # DHW demand windows — the time frames where hot water must be available
 CONF_DHW_SCHEDULE_ENABLED: Final = "dhw_schedule_enabled"
@@ -412,6 +413,25 @@ BUFFER_COOLING_RATE_MAX: Final = 30.0  # °C/h
 DEFAULT_HOUSE_HEAT_LOSS_SCALE: Final = 1.0
 HOUSE_HEAT_LOSS_SCALE_MIN: Final = 0.3
 HOUSE_HEAT_LOSS_SCALE_MAX: Final = 3.0
+
+# How much of the total loss belongs to the lower zone, relative to the
+# configured split (item 31).
+#
+# `house_heat_loss_scale` multiplies *both* zone losses, so it can move the
+# total but never the split. Learning both zone losses independently alongside
+# it would give three parameters for two degrees of freedom -- they would trade
+# off against each other and drift without ever hurting the fit. So the two are
+# given separate jobs: the scale owns the level and is fitted from the upper
+# zone, which this ratio does not touch; the ratio owns the split and is fitted
+# from the lower zone, given the scale. Two parameters, two independent
+# measurements, no collinearity.
+#
+# It stays at 1.0 unless a real lower-floor sensor is configured. Without one the
+# lower zone is an estimate derived from the floor return water, and fitting
+# against it would be fitting against a fabricated target.
+DEFAULT_LOWER_FLOOR_LOSS_RATIO: Final = 1.0
+LOWER_FLOOR_LOSS_RATIO_MIN: Final = 0.3
+LOWER_FLOOR_LOSS_RATIO_MAX: Final = 3.0
 
 # DHW demand window defaults
 DEFAULT_DHW_SCHEDULE_ENABLED: Final = True
@@ -529,6 +549,8 @@ ATTR_BUFFER_COOLING_RATE: Final = "buffer_cooling_rate"
 ATTR_BUFFER_COOLING_RATE_LEARNED: Final = "buffer_cooling_rate_learned"
 ATTR_BUFFER_COOLING_SAMPLES: Final = "buffer_cooling_samples"
 ATTR_HOUSE_HEAT_LOSS_SCALE: Final = "house_heat_loss_scale"
+ATTR_LOWER_FLOOR_LOSS_RATIO: Final = "lower_floor_loss_ratio"
+ATTR_LOWER_FLOOR_LOSS_SAMPLES: Final = "lower_floor_loss_samples"
 ATTR_HOUSE_HEAT_LOSS_LEARNED: Final = "house_heat_loss_learned"
 ATTR_HOUSE_HEAT_LOSS_SAMPLES: Final = "house_heat_loss_samples"
 ATTR_HOUSE_HEAT_LOSS_EFFECTIVE: Final = "house_heat_loss_effective"

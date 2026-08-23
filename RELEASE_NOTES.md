@@ -1,5 +1,45 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v3.6.0
+
+The two-zone model now learns how your heat loss actually splits between the
+floors, and a long-standing bias in the existing learner is fixed.
+
+### Learning the split, not just the level
+
+The correction the integration learns from prediction error multiplies *both*
+zone losses, so it could move the total but never the balance between the
+floors. If your lower floor loses more heat than the configured split assumes,
+nothing could ever discover that.
+
+There is now a second learned value that owns the split, fitted from the lower
+floor while the existing one is fitted from the upper. Two numbers, two
+independent measurements, so neither can quietly absorb the other's error.
+
+It only moves when a **real lower-floor sensor** is configured (added in v3.4.0).
+Without one the lower zone is inferred from the floor return water, and that
+inference comes from the same sensor as the slab estimate — so there is nothing
+independent to learn from. Watch `lower_floor_loss_ratio` and
+`lower_floor_loss_samples` on the learning sensor.
+
+Deliberately not learned: the inter-zone transfer coefficient. One pump, one
+water temperature and a fixed radiator/floor split mean the two floors move
+together and rarely diverge, so a passive fit would mostly track noise. It stays
+where you configured it.
+
+### Fixed: the heat loss learner was comparing two different things
+
+On a two-zone system the learner compared the indoor sensor — which is the
+*upper* floor — against the model's average of both floors. The difference
+between your two floors was therefore being read as heat-loss error.
+
+It is a systematic offset, not noise, so it did not average out: measured
+against the real model, floors 1.5 °C apart injected about 0.53 °C into every
+sample, more than half the point at which a sample is rejected as implausible.
+Houses with a larger difference between floors had their samples thrown away
+entirely and learned nothing at all.
+
+The learner now compares the upper floor against the predicted upper floor.
 ## v3.5.0
 
 A pinned plan now lasts 20 hours from when you apply it, instead of expiring at

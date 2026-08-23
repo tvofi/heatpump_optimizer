@@ -2975,7 +2975,7 @@ class HeatPumpOptimizer:
             p.upper_floor_heat_loss, wind_speed, precipitation
         )
         u_lower = self.model.effective_heat_loss_coefficient(
-            p.lower_floor_heat_loss, wind_speed * 0.5, precipitation * 0.5
+            p.lower_floor_heat_loss_learned, wind_speed * 0.5, precipitation * 0.5
         )
         q_solar_upper, q_solar_lower = self.model.solar_gain_per_zone(solar_radiation)
         area_ratio = getattr(p, "upper_floor_area_ratio", 0.5)
