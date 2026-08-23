@@ -169,12 +169,22 @@ DEFAULT_PEAK_TARIFF_WINDOW: Final = 60  # minutes
 
 # --- Compressor cycling, item 10 -------------------------------------------
 #
-# Defaults to zero so the shipped behaviour is unchanged until a user decides
-# their compressor's start cost is worth paying for. ``tests/validate.py``
-# reports the start count per scenario, which is how that decision gets made
-# from evidence rather than from assumption.
+# This used to default to zero, on the reasoning that the shipped behaviour
+# should not change until a user decided their compressor's start cost was
+# worth paying for. That reasoning was sound but the premise was not: chatter
+# was in fact being discouraged all along, by a `0.01 * sum(dP^2)` term in the
+# objective that was priced in no units at all. v3.9.0 removed that term and
+# moved the job here, where it is denominated in currency and the user can
+# read the trade.
+#
+# The value is the restart transient rather than an estimate of compressor
+# wear: a unit re-establishing steady state runs inefficiently for a few
+# minutes, worth roughly 0.05-0.1 kWh, which at ordinary Swedish prices is
+# 0.10-0.15 SEK per full start-stop cycle. Wear is real but far harder to
+# price honestly, so it is left as headroom for anyone who wants to raise
+# this. ``tests/validate.py`` reports the start count per scenario.
 CONF_CYCLING_COST: Final = "compressor_cycling_cost"
-DEFAULT_CYCLING_COST: Final = 0.0
+DEFAULT_CYCLING_COST: Final = 0.10
 
 # --- PV self-consumption, item 9 -------------------------------------------
 CONF_PV_ENABLED: Final = "pv_enabled"

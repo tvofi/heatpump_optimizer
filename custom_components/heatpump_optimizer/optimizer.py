@@ -16,9 +16,15 @@ for the compressor.
 
     grid_cost(P_space + P_dhw)        piecewise in PV surplus, × price_weight
     + comfort terms                   pull-to-target, floor/ceiling penalties
-    + smoothness                      0.01 · Σ ΔP²
     + (cycling + capacity tariff)     × price_weight
     + terminal cost                   value of heat stored at the horizon end
+
+Every term but the comfort penalties is in currency. There used to be one more
+— a `0.01 · Σ ΔP²` smoothness regulariser — and it was removed in v3.9.0
+because it was priced in invented units and cost real money: about 5 % of the
+two-zone winter bill, at no reduction in compressor starts. Discouraging
+chatter is `cycling_cost`'s job, and that is denominated in currency per
+start-stop cycle, so the trade against electricity is one the user can read.
 
 subject to 0 ≤ P_space[k] ≤ P_max − P_dhw[k] (the pump can be off; values
 below its modulation floor read as duty cycling within the step) and the
@@ -74,6 +80,18 @@ _DHW_REFILL_WINDOW_HOURS = 6.0
 # violations across the validation scenarios; larger values buy nothing and
 # start holding a wasteful margin above the floor.
 _COMFORT_FLOOR_L1 = 2.0
+
+# Strength of the pull towards the comfort *target*, as distinct from the
+# penalty for breaching the user's *bounds*. Halved in v3.9.0 after measuring
+# what the old strength cost: on the winter scenario the plan spent 28.55 SEK
+# instead of 23.28 -- 18 % of the bill -- buying an average 0.32 K of warmth
+# above what the band required, while never coming near the floor. Below half
+# the saving plateaus (23.28 at every lower value tested), so this is the point
+# where the money stops improving and a real preference for the setpoint is
+# still expressed. The two-zone figure is half again because that branch
+# averages two zones rather than summing them.
+_COMFORT_PULL_SINGLE_ZONE = 0.025
+_COMFORT_PULL_TWO_ZONE = 0.0125
 
 # How many of the candidate starting points are actually optimized. Going from
 # one to two removes most of the local-optimum gap in the two-zone model
@@ -714,6 +732,14 @@ class HeatPumpOptimizer:
         Summing made a two-zone house behave as if ``comfort_weight`` were set
         twice as high as configured, so it hugged the setpoint and gave up most
         of the available savings.
+
+        **The pull is deliberately weak.** The user states a *band*, and the
+        band is what the plan owes them; the target is a preference inside it.
+        At twice the current strength the pull was quietly expensive: measured
+        on the winter scenario it cost 28.55 SEK against 23.28 -- 18 % of the
+        bill -- to hold the house 0.32 K warmer on average while never
+        approaching the floor. Nobody asked for that trade, and
+        ``comfort_weight`` is the knob for anyone who wants it back.
         """
         weight = self.config.comfort_weight
 
@@ -736,7 +762,7 @@ class HeatPumpOptimizer:
 
             comfort_dev_u = upper_t - comfort_targets
             comfort_dev_l = lower_t - comfort_targets
-            comfort_cost = 0.025 * weight * (
+            comfort_cost = _COMFORT_PULL_TWO_ZONE * weight * (
                 np.sum((comfort_dev_u / comfort_band) ** 2)
                 + np.sum((comfort_dev_l / comfort_band) ** 2)
             )
@@ -752,7 +778,11 @@ class HeatPumpOptimizer:
             + np.sum(undershoot) * _COMFORT_FLOOR_L1
         )
         deviation = room_t - comfort_targets
-        comfort_cost = 0.05 * weight * np.sum((deviation / comfort_band) ** 2)
+        comfort_cost = (
+            _COMFORT_PULL_SINGLE_ZONE
+            * weight
+            * np.sum((deviation / comfort_band) ** 2)
+        )
         return penalty, comfort_cost
 
     def _terminal_cost(self, prices: np.ndarray, outdoor_temps: np.ndarray):
@@ -1625,11 +1655,6 @@ class HeatPumpOptimizer:
                 comfort_targets, temp_min_bounds, temp_max_bounds, comfort_band,
             )
 
-            # Smoothness penalty
-            if len(power_schedule) > 1:
-                smoothness = 0.01 * np.sum(np.diff(power_schedule) ** 2)
-            else:
-                smoothness = 0.0
 
             # --- Weather anticipation is the simulation's job ----------------
             # ``simulate_trajectory`` already applies the solar gain and the
@@ -1645,7 +1670,7 @@ class HeatPumpOptimizer:
             # shoulder season 4-6% cheaper at identical comfort.
 
             return (
-                energy_cost + penalty + comfort_cost + smoothness
+                energy_cost + penalty + comfort_cost
                 # Currency terms scale with price_weight as the energy cost
                 # does, or a non-default weight silently re-prices starts and
                 # peaks relative to the electricity they trade against.
@@ -2771,10 +2796,6 @@ class HeatPumpOptimizer:
                 comfort_targets, temp_min_bounds, temp_max_bounds, comfort_band,
             )
 
-            # Smoothness
-            smoothness = 0.0
-            if n_steps > 1:
-                smoothness += 0.01 * np.sum(np.diff(space_power) ** 2)
 
             # Weather anticipation is left to the simulation, which already
             # applies solar gain and the wind/rain loss factors; see the
@@ -2783,7 +2804,6 @@ class HeatPumpOptimizer:
 
             return (
                 energy_cost + space_penalty + comfort_cost
-                + smoothness
                 # Same price_weight scaling as the space-only objective.
                 + (cycling(combined) + capacity(combined))
                 * self.config.price_weight
