@@ -155,9 +155,20 @@ disturbs actual operation.
 
 The overlay is a native `<dialog>` shown with `showModal()`, so it renders in
 the browser's top layer and cannot be clipped by a dashboard column or hidden
-behind another card. Its width is capped so the chart's aspect ratio still fits
-the viewport height, because stretching the box instead would distort the axis
-labels.
+behind another card.
+
+It is laid out as a column bounded by the viewport: the title and legend keep
+their place, and everything below them scrolls when it does not fit. The chart
+keeps its exact aspect ratio rather than being squeezed to fill the space, since
+it is drawn with `preserveAspectRatio="none"` and constraining its height would
+stretch every axis label sideways.
+
+Earlier versions sized the dialog from a fixed guess at how tall the surrounding
+chrome would be. That guess stopped being true as the editor grew, and the extra
+content rendered outside the dialog's own background — worse on short, wide
+desktop windows, because that is where the height-derived branch of the old
+formula won. Nothing depends on guessing the chrome now, so a panel added later
+costs a scrollbar rather than spilled content.
 
 ## Installation
 

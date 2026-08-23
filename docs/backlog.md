@@ -2,11 +2,14 @@
 
 Started at the end of the v2.7.0 release session, kept up to date since.
 
-**Status as of v3.2.0. Items 1-21 are all done**, released across v2.8.0,
-v2.9.0 and v3.0.0. **Items 22 and 23 are now done too** (see the notes appended
-to each). **Items 24-31 are open**, none started. Items 24 and 25 are one job
-and are written up together; item 26 is a visible layout bug and is probably
-the first thing to fix.
+**Status as of v3.3.0. Items 1-21 are all done**, released across v2.8.0,
+v2.9.0 and v3.0.0. **Items 22, 23 and 26 are now done too** (see the notes
+appended to each). **Items 24-25 and 27-31 are open**, none started. Items 24
+and 25 are one job and are written up together.
+
+Scope decision (user, 2026-08-23): 26, 24+25, 30 and 31 are being done now, one
+PR each. The wood-furnace cluster (27-29) is deferred and will be re-planned
+once item 27's modelling fork is settled -- see the note under item 27.
 
 Items 27-31 are one cluster, added 2026-08-23, about a house with a wood
 furnace, a second buffer tank and a mixing valve. **Item 27 is a modelling bug
@@ -1084,7 +1087,79 @@ regression**: replacing the formula with a flex column changes the branch the
 phone was silently relying on, so the case that was never broken is the one most
 likely to break.
 
+**Done.** The height budget is gone; the dialog is a bounded flex column.
+
+- **Reproduced first, measured in a real browser.** At 1400x700 with an override
+  active, the what-if panel rendered **449px below the dialog's painted bottom
+  edge**. After the fix, -16px (contained, with padding to spare).
+- The width no longer encodes a chrome guess. `dialog.expanded` is
+  `width: min(96vw, calc(78vh * VIEW_RATIO), 1700px)`, `max-height: 92dvh`
+  (with a `92vh` fallback), `display: flex; flex-direction: column`. A new
+  `.dlg-body` wraps chart + panel and carries `overflow-y: auto`; the header and
+  legend are `flex: 0 0 auto`.
+- **The chart keeps its exact aspect ratio deliberately.** Verified isotropic on
+  screen (scaleX == scaleY == 1.4013). Bounding the chart's *height* instead
+  would have been the obvious move and is wrong: `preserveAspectRatio="none"`
+  means it stretches every axis label sideways.
+- **Scroll survives a re-render**, which it had to: `_syncDialog` re-runs
+  `showModal()` on every `_render()`, and `_render` fires on the coordinator's
+  schedule, so the panel would otherwise jump to the top by itself every few
+  minutes mid-edit. `_render` captures `.dlg-body` scrollTop, `_syncDialog`
+  restores it after `showModal`, `_onDialogClose` resets it.
+- **The ResizeObserver bug this item sat next to is gone as a side effect.** It
+  observes the host card, not the dialog or viewport, so a height-only resize
+  changed `100vh` -> dialog width -> the font `_scaleDialogFont` derives, with no
+  observer firing. Nothing is sized from `100vh` any more.
+- **Phone checked for regression, since the fix changed the branch it relied on.**
+  Still on the `96vw` branch (360px at a 375px layout viewport), aspect exact, no
+  horizontal overflow. Note `vw`/`vh` resolve against the *layout* viewport, not
+  `innerWidth` -- an early measurement using `innerWidth` looked like a
+  regression and was not one.
+- **Pagination was not done**, per this item's own sequencing argument. The
+  height bound removes the failure mode outright; pagination only makes it rarer.
+
+**Found while verifying, not fixed here (out of scope):** the two right-hand
+axis titles collide in the expanded view when the solar series is on --
+"SEK/kWh" at viewBox x=797 and "W/m2" at x=843 are 46 units apart while the
+expanded font needs ~58. Confirmed pre-existing by reproducing it identically
+(22.5px vs 23.1px) under the old width formula.
+
 ## 27. The buffer tank is in the state vector but is not a store
+
+> **Decision and verification, 2026-08-23. Read this before the item text.**
+>
+> **User decision:** make the tank a real store *when it is large enough to be
+> one*, and behave appropriately when it is configured too small to be viable.
+> The user notes **most installs run >500 L**.
+>
+> **That conflicts with what ships.** `DEFAULT_BUFFER_TANK_VOLUME` is **35 L** --
+> worth ~0.81 kWh thermal over a 20 K swing, which is below the resolution of one
+> 15-minute optimizer step. So the default is probably wrong for the actual user
+> base, and `BUFFER_COOLING_RATE_MAX = 30 °C/h` is likewise a clamp sized for
+> 35 L and absurd for a 500 L store. Revisit both alongside the model change.
+>
+> **The item's central claim is confirmed exactly**, by reading rather than
+> inference: in `_simulate_step_two_zone`,
+> `q_rad_from_buf + q_floor_from_buf == thermal_power` identically for *any*
+> `rad_fraction`, so the supply term cancels and `dT_buf = -q_buf_loss / C_buf`.
+> `electrical_power` has no path to the buffer at all. Two additions to what the
+> item says: the tank is fully **decoupled** from the other three states in both
+> directions (removing it from the nonlinear step would not change the house
+> trajectory at all), and the coordinator's re-seed only fires when the optional
+> sensor is configured -- without it the value is a frozen 40.0 forever, which is
+> the default install.
+>
+> **Both optimizer readers are effectively inert today.** The heat-loss makeup
+> term is a state-dependent constant the optimizer cannot steer, and the
+> end-of-horizon credit nets to ~0 because baseline and optimized end-states
+> decay identically. The credit also borrows the *slab's* settlement cap key,
+> which is a number computed for a concrete floor, not a 40-60 °C water tank.
+>
+> **For item 28:** external-heat suppression currently affects **DHW only**.
+> There is no space-heating suppression path at all, so a wood furnace feeding
+> the space-heating buffer gets no space-heating response today. That is likely a
+> large part of item 28's real work, and the item does not say so.
+
 
 **Found while assessing item 28, 2026-08-23. This is a real modelling bug and it
 is item 28's prerequisite.**

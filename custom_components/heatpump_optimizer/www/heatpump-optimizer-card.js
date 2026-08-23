@@ -10,7 +10,7 @@
  */
 
 const CARD_TAG = "heatpump-optimizer-card";
-const CARD_VERSION = "3.3.0";
+const CARD_VERSION = "3.3.1";
 
 const DEFAULTS = {
   title: "Heat pump plan",
@@ -493,6 +493,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     this._pendingSave = false;
     this._saveTimer = null;
     this._dialogFontPx = 0;
+    this._dialogScroll = 0;
     // Pan/zoom window (item 23). `null` means "the default window", so an
     // untouched card behaves exactly as it did before this existed.
     this._view = null;
@@ -933,6 +934,12 @@ class HeatpumpOptimizerCard extends HTMLElement {
 
   _render() {
     const cfg = this._config;
+    // The dialog body scrolls now, and `_render` replaces the whole shadow root
+    // on every plan refresh -- which happens on the coordinator's schedule, not
+    // the user's. Without carrying the offset across the rebuild the panel would
+    // jump back to the top by itself every few minutes, mid-edit.
+    const openBody = this.shadowRoot.querySelector("dialog.expanded .dlg-body");
+    this._dialogScroll = openBody ? openBody.scrollTop : this._dialogScroll || 0;
     const built = this._buildSeries();
     this._series = built.series;
 
@@ -1012,8 +1019,10 @@ class HeatpumpOptimizerCard extends HTMLElement {
             aria-label="Close">${CLOSE_ICON}</button>
         </div>
         ${this._legendHtml()}
-        ${this._chartBlock(built, true)}
-        ${this._whatIfHtml()}
+        <div class="dlg-body">
+          ${this._chartBlock(built, true)}
+          ${this._whatIfHtml()}
+        </div>
       </dialog>
     `;
   }
@@ -1814,6 +1823,11 @@ class HeatpumpOptimizerCard extends HTMLElement {
       if (typeof dlg.showModal === "function") dlg.showModal();
       else dlg.setAttribute("open", "");
     }
+
+    // Restore where the user was. Done after showModal, because a dialog that
+    // is not yet in the top layer has no laid-out scroll height to set against.
+    const body = dlg.querySelector(".dlg-body");
+    if (body && this._dialogScroll) body.scrollTop = this._dialogScroll;
   }
 
   _styleBlock() {
@@ -1904,19 +1918,58 @@ class HeatpumpOptimizerCard extends HTMLElement {
           width: 8px; height: 8px; border-radius: 50%; display: inline-block;
         }
 
-        /* Expanded view. The dialog width is capped so that the chart's own
-           aspect ratio still fits the viewport height; sizing by width alone
-           would overflow on short windows, and forcing the height instead
-           would stretch the labels. */
+        /* Expanded view.
+
+           The width used to be min(96vw, calc((100vh - 168px) * RATIO)), where
+           168px was a hardcoded guess at how tall the chrome around the chart
+           would be. That guess was made when the dialog was a header, a legend
+           and a chart; it never grew with the override banner, the delta row,
+           the third button, the status line or the Temperatures section. Once
+           the real chrome passed the budget the content ran past the dialog's
+           painted background instead of being contained -- 449px past it at
+           1400x700, measured.
+
+           Worse than a stale number, it was a feedback loop: a shorter viewport
+           made the dialog *wider*, and _scaleDialogFont derives the font every
+           piece of chrome is sized from off the measured width, so the chrome
+           grew in the same direction as the overflow.
+
+           So the height budget is gone. The dialog is a flex column bounded by
+           the viewport; the header and legend keep their natural height and
+           everything below them scrolls. The width is still tied to viewport
+           height, but only to keep the chart a sensible size -- nothing depends
+           on guessing the chrome, and being wrong now costs a scrollbar rather
+           than spilled content.
+
+           The chart keeps its exact aspect ratio deliberately. It is drawn with
+           preserveAspectRatio="none", so constraining its height instead would
+           stretch every axis label horizontally. */
         dialog.expanded {
           box-sizing: border-box;
-          width: min(96vw, calc((100vh - 168px) * ${VIEW_RATIO}));
+          width: min(96vw, calc(78vh * ${VIEW_RATIO}), 1700px);
           max-width: 96vw;
+          /* vh is the *large* viewport: on a phone it includes the strip behind
+             a retracted URL bar, so a dialog sized in vh can sit partly under
+             browser chrome. dvh tracks what is actually visible. The vh line is
+             the fallback for engines without dvh, and is no worse than the
+             unbounded height this replaced. */
+          max-height: 92vh;
+          max-height: 92dvh;
+          display: flex;
+          flex-direction: column;
           border: none; border-radius: 12px; padding: 16px;
           background: var(--card-background-color, #fff);
           color: var(--primary-text-color);
           box-shadow: 0 8px 32px rgba(0,0,0,0.35);
-          overflow: visible;
+          overflow: hidden;
+        }
+        .dlg-body {
+          flex: 1 1 auto;
+          min-height: 0;
+          overflow-y: auto;
+          overflow-x: hidden;
+          /* Room for the scrollbar so it never lands on top of the chart. */
+          scrollbar-gutter: stable;
         }
         dialog.expanded::backdrop {
           background: rgba(0, 0, 0, 0.55);
@@ -1926,6 +1979,8 @@ class HeatpumpOptimizerCard extends HTMLElement {
           font-size: 1.25em; font-weight: 500; padding: 0 2px 10px 2px;
         }
         .dlg-head .title { flex: 1 1 auto; min-width: 0; }
+        dialog.expanded .dlg-head,
+        dialog.expanded .legend { flex: 0 0 auto; }
         .chartwrap.big { aspect-ratio: ${VIEW_W} / ${VIEW_H}; }
         .chartwrap.big svg { height: 100%; }
 
@@ -3138,6 +3193,9 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // Fires for Escape and for close() alike, so this is the single place the
     // flag is cleared and the two cannot drift apart.
     this._expanded = false;
+    // Reopening should start at the top rather than resuming a scroll position
+    // from a session the user has already dismissed.
+    this._dialogScroll = 0;
   }
 
   _openExpanded() {
