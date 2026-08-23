@@ -174,7 +174,7 @@ from . import mixing_valve
 from . import pv as pv_model
 from .accuracy import AccuracySample, AccuracyTracker, delivered_ratio
 from .comfort_learning import ComfortLearner, OverrideEvent
-from .defrost import DefrostDerate
+from .defrost import DefrostDerate, in_frost_band
 from .manual_plan import (
     CHANNEL_DHW,
     CHANNEL_SPACE,
@@ -344,6 +344,12 @@ HOUSE_LOSS_MAX_STEP = 0.05
 # Residuals beyond this are a door left open, a wood stove, or a sensor glitch
 # rather than a heat loss error.
 HOUSE_LOSS_MAX_RESIDUAL = 1.0  # °C
+# Symmetric bound on how far one sample's Newton target may sit from the
+# *current* estimate before it is clipped. Centred on the current value,
+# zero-mean noise has zero-mean effect after clipping; rejecting or clamping
+# against fixed global bounds does not have that property, because the
+# midpoint of a fixed range is not the current estimate.
+_LEARNER_TRUST_REGION = 0.5
 
 THERMAL_LEARNING_STORE_VERSION = 1
 
@@ -537,7 +543,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._house_heat_loss_samples: int = 0
         self._last_house_sample: ThermalState | None = None
         self._last_house_sample_time: datetime | None = None
-        self._last_house_sample_power: float = 0.0
         self._lower_floor_loss_ratio: float = DEFAULT_LOWER_FLOOR_LOSS_RATIO
         self._lower_floor_loss_samples: int = 0
 
@@ -933,6 +938,19 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             except (TypeError, ValueError) as err:
                 _LOGGER.debug("Could not load lower floor loss ratio: %s", err)
 
+        cop_scale = stored.get("cop_scale")
+        if cop_scale is not None:
+            try:
+                self._apply_cop_scale(float(cop_scale))
+                self._cop_samples = int(stored.get("cop_samples", 0))
+                _LOGGER.info(
+                    "Loaded learned COP scale %.3f (%d samples)",
+                    self._cop_scale,
+                    self._cop_samples,
+                )
+            except (TypeError, ValueError) as err:
+                _LOGGER.debug("Could not load COP scale: %s", err)
+
     async def _async_save_thermal_learning(self) -> None:
         """Persist the learned buffer and building parameters."""
         try:
@@ -944,6 +962,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     "house_heat_loss_samples": self._house_heat_loss_samples,
                     "lower_floor_loss_ratio": self._lower_floor_loss_ratio,
                     "lower_floor_loss_samples": self._lower_floor_loss_samples,
+                    # Every plan is priced through the COP curve, so a learned
+                    # correction that evaporated on restart silently re-based
+                    # all costs on the nameplate figure.
+                    "cop_scale": self._cop_scale,
+                    "cop_samples": self._cop_samples,
                     "updated_at": dt_util.now().isoformat(),
                 }
             )
@@ -1274,6 +1297,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if commanded < floor or self._measured_power < floor:
             return
 
+        # In the frosting band the shortfall belongs to the defrost derate,
+        # which learns from the same signal; letting both learners fold in the
+        # same interval corrects one shortfall twice. See defrost.in_frost_band.
+        if in_frost_band(self._current_state.outdoor_temperature):
+            return
+
         modelled_cop = self._thermal_model.compute_cop(
             self._current_state.outdoor_temperature
         )
@@ -1505,13 +1534,19 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         observed = self._current_state.room_temperature
         previous_state = self._last_house_sample
         previous_time = self._last_house_sample_time
-        previous_power = self._last_house_sample_power
+        # The action that governed the elapsed interval is the one in
+        # ``_current_action`` *right now*: the learners run before this cycle's
+        # optimization replaces it, so it still holds what the pump was told at
+        # the previous cycle — exactly the interval being replayed. The old
+        # snapshot taken a cycle earlier was one action further back, and under
+        # bang-bang price scheduling that off-by-one injected a spurious
+        # residual an order of magnitude above the learning signal.
+        previous_power = float(self._current_action.get("power", 0.0))
 
         # Snapshot for the next interval before any early return, so a rejected
         # sample does not poison the following one with a stale baseline.
         self._last_house_sample = replace(self._current_state)
         self._last_house_sample_time = now
-        self._last_house_sample_power = float(self._current_action.get("power", 0.0))
 
         frozen = self._learning_frozen(
             CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY
@@ -1604,8 +1639,25 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # Warmer than predicted means the model is over-estimating the loss.
         delta_u = -residual * capacity / (delta_t * dt_h)
         target_scale = (current_u + delta_u) / base_u
-        if not np.isfinite(target_scale) or target_scale <= 0.0:
+        if not np.isfinite(target_scale):
             return
+        # Bound the target symmetrically about the current value rather than
+        # discarding or globally clamping it. Discarding was one-sided: a
+        # warm-side residual of just +0.13 °C (inside sensor noise) drove the
+        # target non-positive and threw the sample away, while cold-side
+        # residuals were kept to the full 1.0 °C guard — pure zero-mean noise
+        # ratcheted the scale upward, measured at 1.0 → 1.2 in 60 days at
+        # σ=0.1 °C. A clamp to fixed global bounds merely slows the same drift,
+        # because their midpoint is not the current value; a symmetric trust
+        # region makes noise-dominated samples exactly zero-mean, and the EWMA
+        # and step limit below still decide how fast genuine signal moves it.
+        target_scale = float(
+            np.clip(
+                target_scale,
+                self._house_heat_loss_scale - _LEARNER_TRUST_REGION,
+                self._house_heat_loss_scale + _LEARNER_TRUST_REGION,
+            )
+        )
 
         new_scale = (
             1.0 - HOUSE_LOSS_ALPHA
@@ -1657,7 +1709,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         params = self._thermal_params
         previous_state = self._last_house_sample
         previous_time = self._last_house_sample_time
-        previous_power = self._last_house_sample_power
+        # See the house learner: the current action is the one that governed
+        # the elapsed interval.
+        previous_power = float(self._current_action.get("power", 0.0))
         observed = self._current_state.lower_floor_temperature
 
         if not params.two_zone_enabled:
@@ -1736,11 +1790,18 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # are exactly the intervals where the house lost less heat than
         # predicted. Rejecting them while accepting the cold-side ones -- whose
         # targets stay positive -- would let the ratio ratchet upward on noise
-        # alone. Clamping keeps both sides, and the EWMA and step limit below
-        # are what actually decide how fast it moves.
+        # alone. And the clamp must be centred on the *current* estimate, not
+        # on the fixed [MIN, MAX] range: with the estimate sitting off-centre
+        # in that range, symmetric noise clips asymmetrically and drifts the
+        # ratio toward the range's midpoint. The trust region keeps both sides
+        # equally, and the EWMA and step limit below are what actually decide
+        # how fast the estimate moves. `_apply_lower_floor_loss_ratio` still
+        # holds the final value inside the global bounds.
         target_ratio = float(
             np.clip(
-                target_ratio, LOWER_FLOOR_LOSS_RATIO_MIN, LOWER_FLOOR_LOSS_RATIO_MAX
+                target_ratio,
+                self._lower_floor_loss_ratio - _LEARNER_TRUST_REGION,
+                self._lower_floor_loss_ratio + _LEARNER_TRUST_REGION,
             )
         )
 
@@ -1901,7 +1962,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if not heated_during_interval:
             await self._async_learn_dhw_cooling(previous_temp, dhw_temp, dt_h)
         await self._async_learn_dhw_usage(
-            temp_drop, dt_h, now.hour, heated_during_interval
+            previous_temp, temp_drop, dt_h, now.hour, heated_during_interval
         )
 
     async def _async_learn_dhw_cooling(
@@ -1963,14 +2024,30 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         await self._async_save_dhw_profile()
 
     async def _async_learn_dhw_usage(
-        self, temp_drop: float, dt_h: float, hour: int, heated: bool
+        self,
+        previous_temp: float,
+        temp_drop: float,
+        dt_h: float,
+        hour: int,
+        heated: bool,
     ) -> None:
         """Learn hourly DHW usage profile from observed temperature drops."""
-        # Learn only on meaningful drops while DHW is not actively heated.
+        # Learn only while DHW is not actively heated, and only from the part
+        # of the drop that standby loss cannot explain. The tank cools all the
+        # time — roughly 0.4 °C/h for a 55 °C tank at the default rate — and
+        # attributing that to usage taught a phantom draw into every idle
+        # hour, washing the real morning/evening pattern towards flat.
         if temp_drop < 0.15 or heated:
             return
 
-        draw_intensity = temp_drop / dt_h
+        standby_rate = (
+            self._dhw_cooling_rate
+            * max(0.0, previous_temp - DHW_AMBIENT_TEMP)
+            / DHW_COOLING_REFERENCE_DELTA
+        )
+        draw_intensity = temp_drop / dt_h - standby_rate
+        if draw_intensity <= 0.05:
+            return
 
         profile = self._dhw_hourly_profile.copy()
         profile[hour] = (
@@ -2442,7 +2519,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         await self._async_learn_house_heat_loss()
 
         # Observed COP, which is only possible with a measured power entity.
+        # Persisted on the same every-10-samples cadence as the house learner;
+        # both share the thermal learning store.
+        cop_samples_before = self._cop_samples
         self._learn_measured_cop()
+        if self._cop_samples != cop_samples_before and self._cop_samples % 10 == 0:
+            await self._async_save_thermal_learning()
 
         # Update ECL110 effective displace state (PID/PI lag approximation)
         if "displace_value" in self._current_action:
@@ -3884,10 +3966,17 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
                 # The delivered-versus-predicted ratio is exactly what the
                 # defrost derate learns from, and it is only meaningful while
-                # the learners are not frozen for some other reason.
+                # the learners are not frozen for some other reason. Outside
+                # the frosting band the same shortfall is the COP scale
+                # learner's to explain, and exactly one of the two may see any
+                # given interval. See defrost.in_frost_band.
                 if not self._learning_frozen(CONF_POWER_ENTITY):
                     ratio = delivered_ratio(sample)
-                    if ratio is not None and sample.outdoor_temp is not None:
+                    if (
+                        ratio is not None
+                        and sample.outdoor_temp is not None
+                        and in_frost_band(sample.outdoor_temp)
+                    ):
                         self._defrost.observe(
                             sample.outdoor_temp, sample.humidity, ratio
                         )
@@ -3908,7 +3997,16 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         }
 
     def _predicted_next_room_temp(self) -> float | None:
-        """What the plan says the room will be at the next interval."""
+        """What the plan says the room will be at the next interval.
+
+        Only meaningful while the plan is what is actually running. In
+        comfort, boost and off modes `_optimization_result` still holds the
+        *last* auto-mode plan, whose trajectory assumed powers the fixed-rule
+        action is not applying — pairing that stale prediction against reality
+        would charge the model with errors it never made.
+        """
+        if self._mode not in (MODE_AUTO, MODE_ECONOMY):
+            return None
         result = self._optimization_result
         if result is None or not result.room_temp_trajectory:
             return None
@@ -4142,6 +4240,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._house_heat_loss_samples, int(20 * result.confidence)
         )
         self._sysid.result = replace(result, completed=False, reason="adopted")
+        # Persist immediately: the whole point of an experiment is a result
+        # good enough to outlive a restart, and the passive learner's periodic
+        # save may be many samples away.
+        self.hass.async_create_task(self._async_save_thermal_learning())
         _LOGGER.info(
             "Adopted system identification result: heat loss scale now %.3f",
             self._house_heat_loss_scale,

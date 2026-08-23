@@ -1390,6 +1390,195 @@ R.check(
     humid_model.compute_cop(2.0, 90.0) < nominal * 0.98,
 )
 
+# --- One shortfall, one learner -------------------------------------------
+#
+# The COP scale and the defrost derate watch the same commanded-versus-
+# measured signal, so attribution is split by the frosting band: inside it
+# only the derate learns, outside it only the COP scale does. Without the
+# split, one frost cycle was corrected twice — as a permanently collapsed
+# COP *and* as a derate — and plans in the band overcompensated.
+from heatpump_optimizer.defrost import in_frost_band
+
+R.check(
+    "the frosting band covers the frosting temperatures",
+    in_frost_band(0.0) and in_frost_band(2.0) and in_frost_band(4.9),
+)
+R.check(
+    "dry deep cold is not frost, and mild air is not frost",
+    not in_frost_band(-2.0) and not in_frost_band(5.0) and not in_frost_band(8.0),
+)
+
+
+class _CopGate:
+    _learn_measured_cop = Coord._learn_measured_cop
+    _commanded_power = Coord._commanded_power
+    _apply_cop_scale = Coord._apply_cop_scale
+
+    def __init__(self, outdoor: float) -> None:
+        self._measured_power = 2.0
+        self._current_action = {"power": 3.0}
+        self._thermal_params = ThermalParameters()
+        self._thermal_model = ThermalModel(self._thermal_params)
+        self._current_state = ThermalState(
+            room_temperature=21.0, outdoor_temperature=outdoor
+        )
+        self._cop_scale = 1.0
+        self._cop_samples = 0
+        self._last_measured_cop = None
+
+    def _learning_frozen(self, *entities):
+        return None
+
+
+_in_band = _CopGate(outdoor=2.0)
+_in_band._learn_measured_cop()
+R.check(
+    "the COP scale does not learn inside the frosting band",
+    _in_band._cop_samples == 0 and _in_band._cop_scale == 1.0,
+    "that shortfall is the defrost derate's to explain",
+)
+_out_band = _CopGate(outdoor=8.0)
+_out_band._learn_measured_cop()
+R.check(
+    "outside the band the same sample still teaches the COP scale",
+    _out_band._cop_samples == 1 and _out_band._cop_scale > 1.0,
+)
+
+# --- Standby loss is not hot water usage ----------------------------------
+#
+# The tank cools all the time — about 0.42 °C/h for a 55 °C tank at the
+# default rate — and a drop of that size passed the raw 0.15 °C gate every
+# idle hour, teaching a phantom draw into all 24 slots and washing the real
+# morning/evening pattern towards flat. Only the drop *beyond* expected
+# standby decay is usage.
+import asyncio as _aio
+
+
+class _DhwUsage:
+    _async_learn_dhw_usage = Coord._async_learn_dhw_usage
+    _normalize_dhw_profile = Coord._normalize_dhw_profile
+
+    def __init__(self) -> None:
+        self._dhw_cooling_rate = 0.3
+        self._dhw_hourly_profile = [1.0] * 24
+        self._thermal_params = ThermalParameters()
+
+    async def _async_save_dhw_profile(self) -> None:
+        pass
+
+
+_standby_only = _DhwUsage()
+_aio.run(
+    _standby_only._async_learn_dhw_usage(
+        55.0, 0.42, 1.0, 3, False  # exactly the expected standby drop at 55 °C
+    )
+)
+R.check(
+    "a pure standby drop teaches no draw",
+    _standby_only._dhw_hourly_profile == [1.0] * 24,
+    "0.42 °C/h at 55 °C is the tank cooling, not a shower at 3 am",
+)
+_real_draw = _DhwUsage()
+_aio.run(_real_draw._async_learn_dhw_usage(55.0, 2.0, 1.0, 7, False))
+R.check(
+    "a genuine draw still reinforces its hour",
+    _real_draw._dhw_hourly_profile[7] > 1.0
+    and _real_draw._dhw_hourly_profile[7] > _real_draw._dhw_hourly_profile[3],
+)
+
+# --- A stale plan is not a prediction -------------------------------------
+#
+# In comfort, boost and off modes the optimizer does not run, but
+# `_optimization_result` still holds the *last* auto-mode plan. Its
+# trajectory assumed powers the fixed-rule action is not applying, so pairing
+# it against the measured room temperature charges the model with errors it
+# never made.
+from heatpump_optimizer.const import MODE_AUTO as _MODE_AUTO
+from heatpump_optimizer.const import MODE_BOOST as _MODE_BOOST
+
+
+class _PredGate:
+    _predicted_next_room_temp = Coord._predicted_next_room_temp
+
+    def __init__(self, mode: str) -> None:
+        self._mode = mode
+        self._config = {}
+        self._thermal_params = ThermalParameters()
+
+        class _Res:
+            room_temp_trajectory = [21.0, 21.4, 21.8]
+            upper_temp_trajectory = []
+
+        class _OptCfg:
+            time_step_minutes = 30.0
+
+        self._optimization_result = _Res()
+        self._opt_config = _OptCfg()
+
+
+R.check(
+    "a stale plan trajectory is not offered as a prediction in boost mode",
+    _PredGate(_MODE_BOOST)._predicted_next_room_temp() is None,
+)
+R.check(
+    "in auto mode the plan is what runs, so it is the prediction",
+    _PredGate(_MODE_AUTO)._predicted_next_room_temp() == 21.4,
+)
+
+# --- The learned COP survives a restart -----------------------------------
+#
+# Every plan is priced through the COP curve; a learned correction that
+# evaporated on restart silently re-based all costs on the nameplate figure.
+class _FakeLearnStore:
+    def __init__(self) -> None:
+        self.saved = None
+
+    async def async_save(self, data) -> None:
+        self.saved = data
+
+    async def async_load(self):
+        return self.saved
+
+
+class _LearnPersist:
+    _async_save_thermal_learning = Coord._async_save_thermal_learning
+    _async_load_thermal_learning = Coord._async_load_thermal_learning
+    _apply_cop_scale = Coord._apply_cop_scale
+
+    def __init__(self, store) -> None:
+        self._thermal_learning_store = store
+        self._thermal_params = ThermalParameters()
+        self._buffer_cooling_rate = 6.0
+        self._buffer_cooling_samples = 3
+        self._house_heat_loss_scale = 1.1
+        self._house_heat_loss_samples = 12
+        self._lower_floor_loss_ratio = 1.05
+        self._lower_floor_loss_samples = 4
+        self._cop_scale = 0.85
+        self._cop_samples = 20
+
+    def _apply_buffer_cooling_rate(self, rate: float) -> None:
+        self._buffer_cooling_rate = float(rate)
+
+    def _apply_house_heat_loss_scale(self, scale: float) -> None:
+        self._house_heat_loss_scale = float(scale)
+
+    def _apply_lower_floor_loss_ratio(self, ratio: float) -> None:
+        self._lower_floor_loss_ratio = float(ratio)
+
+
+_learn_store = _FakeLearnStore()
+_aio.run(_LearnPersist(_learn_store)._async_save_thermal_learning())
+_restarted = _LearnPersist(_learn_store)
+_restarted._cop_scale = 1.0
+_restarted._cop_samples = 0
+_aio.run(_restarted._async_load_thermal_learning())
+R.check(
+    "the learned COP scale is saved and restored",
+    abs(_restarted._cop_scale - 0.85) < 1e-9 and _restarted._cop_samples == 20,
+    f"restored scale {_restarted._cop_scale}, {_restarted._cop_samples} samples",
+)
+
 # --- The foundation mass adjustment must be applied once ------------------
 basement_two_zone = presets.derive(
     presets.BuildingPreset(
@@ -2092,7 +2281,6 @@ def _drive_lower(coord, *, observed_lower, hours=0.5, power=2.0):
     now = _lz_dt.now()
     coord._last_house_sample = base
     coord._last_house_sample_time = now - _timedelta(hours=hours)
-    coord._last_house_sample_power = power
     coord._current_state = replace(base, lower_floor_temperature=observed_lower)
     coord._current_action = {"power": power}
     _asyncio.run(coord._async_learn_lower_floor_loss())
@@ -2167,6 +2355,15 @@ R.check(
     "and they move the split in opposite directions",
     _rc > 1.0 > _rw,
     f"cold {_rc:.4f}, warm {_rw:.4f}",
+)
+# Both saturating targets must be clipped the same distance from the current
+# estimate. A clamp to the fixed global bounds is off-centre — from a ratio of
+# 1.0 the ceiling is +2.0 away but the floor only -0.7 — so equal noise on the
+# two sides moved the ratio by unequal amounts and it still drifted upward.
+R.check(
+    "and by exactly the same amount, or noise still ratchets the split",
+    abs((_rc - 1.0) + (_rw - 1.0)) < 1e-9,
+    f"cold moved {_rc - 1.0:+.4f}, warm moved {_rw - 1.0:+.4f}",
 )
 
 # A residual too large to be a loss error is something else -- a window opened,
