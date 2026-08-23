@@ -39,6 +39,7 @@ from typing import Any
 import numpy as np
 from scipy.optimize import linprog, minimize
 
+from . import mixing_valve
 from .thermal_model import (
     DHW_AMBIENT_TEMP,
     ThermalModel,
@@ -772,18 +773,35 @@ class HeatPumpOptimizer:
                 (params.lower_floor_thermal_mass, "lower", caps["room"]),
                 (params.slab_thermal_mass, "slab", caps["slab"]),
             )
+            if mixing_valve.is_throttling(params.mixing_valve_mode):
+                # Only with a valve. Without one the tank cannot be charged, so
+                # adding it here would put a constant in the objective -- it
+                # would not change which plan wins, but it would move every
+                # reported number for no reason.
+                stores = stores + (
+                    (params.buffer_tank_thermal_mass, "buffer", caps["buffer"]),
+                )
         else:
             stores = (
                 (params.room_thermal_mass, "room", caps["room"]),
                 (params.slab_thermal_mass, "slab", caps["slab"]),
             )
 
-        def cost(room_temps, slab_temps, upper_temps, lower_temps) -> float:
+        def cost(
+            room_temps, slab_temps, upper_temps, lower_temps, buffer_temps=None
+        ) -> float:
             ends = {
                 "room": float(room_temps[-1]),
                 "slab": float(slab_temps[-1]),
                 "upper": float(upper_temps[-1]),
                 "lower": float(lower_temps[-1]),
+                # A tank left cold is heat that has to be bought back, exactly
+                # like a cold slab. Leaving it out is what made charging look
+                # like pure cost with no benefit, so no starting point could
+                # ever descend towards storing anything.
+                "buffer": (
+                    float(buffer_temps[-1]) if buffer_temps is not None else 0.0
+                ),
             }
             deficit = sum(
                 mass * max(0.0, cap - ends[name]) for mass, name, cap in stores
@@ -1529,7 +1547,13 @@ class HeatPumpOptimizer:
                 + cycling(power_schedule)
                 + capacity(power_schedule)
                 + terminal_cost(
-                    room_temps, slab_temps, upper_temps, lower_temps
+                    room_temps,
+                    slab_temps,
+                    upper_temps,
+                    lower_temps,
+                    # Recorded by the call above rather than returned, because
+                    # nine call sites unpack a four-tuple.
+                    self.model.last_buffer_trajectory,
                 )
             )
 
@@ -2577,7 +2601,13 @@ class HeatPumpOptimizer:
                 + cycling(combined)
                 + capacity(combined)
                 + terminal_cost(
-                    room_temps, slab_temps, upper_temps, lower_temps
+                    room_temps,
+                    slab_temps,
+                    upper_temps,
+                    lower_temps,
+                    # Recorded by the call above rather than returned, because
+                    # nine call sites unpack a four-tuple.
+                    self.model.last_buffer_trajectory,
                 )
             )
 
@@ -2809,6 +2839,27 @@ class HeatPumpOptimizer:
         q_demand = max(0.0, u_eff * (target - out_mean) - p.internal_gains)
         slab_cap = target + q_demand / max(p.slab_heat_transfer, 1e-6)
         caps = {"room": target, "slab": slab_cap}
+        # The buffer tank needs its own ceiling, and it is much higher than the
+        # slab's.
+        #
+        # The cap exists to stop *passive* overheating being counted as charge:
+        # a house at 25 C in July is not holding useful heat. That reasoning does
+        # not transfer to a tank. A tank only gets hot because the pump
+        # deliberately heated it, and the valve stops it overheating anything, so
+        # every degree in it is heat that will genuinely be used.
+        #
+        # Sharing the slab's cap made the tank invisible as a store: with a slab
+        # ceiling near 28 C, charging a tank from 45 C to 70 C was credited with
+        # 0.0 kWh of the 21.8 kWh actually stored. Charging was pure cost with no
+        # modelled benefit, which is why every starting point descended to the
+        # same no-storage plan.
+        if mixing_valve.is_throttling(p.mixing_valve_mode):
+            caps["buffer"] = p.buffer_max_temp
+        else:
+            # Without a valve the tank cannot be charged at all, so its cap
+            # cannot change any decision. Left alone so this path stays
+            # byte-for-byte identical.
+            caps["buffer"] = slab_cap
         if dhw_cap is not None:
             caps["dhw"] = dhw_cap
         return caps
@@ -3056,7 +3107,7 @@ class HeatPumpOptimizer:
                 + p.lower_floor_thermal_mass
                 * _t(state.lower_floor_temperature, "room")
                 + p.buffer_tank_thermal_mass
-                * _t(state.buffer_tank_temperature, "slab")
+                * _t(state.buffer_tank_temperature, "buffer")
             )
         else:
             stored = (

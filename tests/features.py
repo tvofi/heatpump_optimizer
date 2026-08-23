@@ -1692,6 +1692,109 @@ R.check(
 )
 
 
+R.section("The optimizer can see the buffer tank (item 29)")
+
+# Two defects meant a charged tank was worth exactly nothing to the optimizer,
+# so charging could only ever look like cost. Neither was the seeding problem
+# the backlog predicted -- a storage-aware seed and even a full-power seed
+# descend to the same plan as the existing ones.
+
+from heatpump_optimizer.optimizer import (  # noqa: E402
+    HeatPumpOptimizer as _Opt,
+    OptimizationConfig as _OptCfg,
+)
+
+
+def _optimizer_for(mode):
+    p = ThermalParameters(
+        two_zone_enabled=True, buffer_tank_volume=750.0,
+        mixing_valve_mode=mode, buffer_max_temp=70.0,
+    )
+    cfg = _OptCfg(horizon_hours=24, time_step_minutes=15,
+                  target_temp=21.0, min_temp=19.0, max_temp=23.0)
+    return ThermalModel(p), cfg, _Opt(ThermalModel(p), cfg)
+
+
+_outdoor = np.full(96, -5.0)
+_m_valve, _cfg, _opt_valve = _optimizer_for("manual")
+_m_none, _, _opt_none = _optimizer_for("none")
+
+# 1. The tank borrowed the *slab's* settlement ceiling, which sits near the
+#    temperature that sustains the comfort target -- around 28 C. Every degree
+#    of tank above that counted for nothing, so charging 45 -> 70 C was credited
+#    with 0.0 kWh of the 21.8 kWh actually stored.
+_caps_valve = _opt_valve._settlement_caps(_outdoor)
+_caps_none = _opt_none._settlement_caps(_outdoor)
+R.check(
+    "the tank has its own settlement ceiling, not the slab's",
+    _caps_valve["buffer"] > _caps_valve["slab"] + 20.0,
+    f"buffer {_caps_valve['buffer']:.1f} C vs slab {_caps_valve['slab']:.1f} C",
+)
+R.check(
+    "which is the tank's own maximum",
+    _caps_valve["buffer"] == 70.0,
+    f"got {_caps_valve['buffer']}",
+)
+R.check(
+    "and without a valve nothing changes, since the tank cannot be charged",
+    _caps_none["buffer"] == _caps_none["slab"],
+    "this path must stay byte-for-byte identical",
+)
+
+# 2. Stored energy has to respond to the tank at all.
+_st = lambda t: ThermalState(
+    room_temperature=21.0, upper_floor_temperature=21.0,
+    lower_floor_temperature=20.5, slab_temperature=25.0,
+    buffer_tank_temperature=t, outdoor_temperature=-5.0,
+)
+_cold = _opt_valve._stored_thermal_energy(_st(45.0), caps=_caps_valve)
+_hot = _opt_valve._stored_thermal_energy(_st(70.0), caps=_caps_valve)
+R.check(
+    "a charged tank counts as stored energy",
+    _hot - _cold > 15.0,
+    f"45 -> 70 C is worth {_hot - _cold:.1f} kWh",
+)
+
+# 3. And the *objective* has to see it, which is the half that was missing:
+#    `_terminal_cost` listed upper, lower and slab, and `simulate_trajectory`
+#    computed the buffer trajectory and then discarded it.
+_prices = np.full(96, 1.0)
+_term = _opt_valve._terminal_cost(_prices, _outdoor)
+_flat = lambda v: np.full(97, v)
+_cost_cold = _term(_flat(21.0), _flat(25.0), _flat(21.0), _flat(20.5), _flat(45.0))
+_cost_hot = _term(_flat(21.0), _flat(25.0), _flat(21.0), _flat(20.5), _flat(70.0))
+R.check(
+    "the objective prices a tank left cold",
+    _cost_cold > _cost_hot,
+    f"cold {_cost_cold:.2f} vs charged {_cost_hot:.2f}",
+)
+R.check(
+    "and omitting the tank entirely is treated as the worst case, not ignored",
+    _term(_flat(21.0), _flat(25.0), _flat(21.0), _flat(20.5)) >= _cost_cold,
+    "a missing trajectory must not silently score as a full tank",
+)
+
+# 4. Inert without a valve.
+_term_none = _opt_none._terminal_cost(_prices, _outdoor)
+R.check(
+    "without a valve the terminal cost ignores the tank",
+    _term_none(_flat(21.0), _flat(25.0), _flat(21.0), _flat(20.5), _flat(45.0))
+    == _term_none(_flat(21.0), _flat(25.0), _flat(21.0), _flat(20.5), _flat(70.0)),
+    "the tank cannot be charged there, so it must not enter the objective",
+)
+
+# 5. The trajectory the objective needs must actually be recorded.
+_m_valve.simulate_trajectory(
+    _st(45.0), np.full(96, 3.0), _outdoor, dt_hours=0.25
+)
+R.check(
+    "the buffer trajectory is available after a simulation",
+    _m_valve.last_buffer_trajectory is not None
+    and len(_m_valve.last_buffer_trajectory) == 97,
+    "the objective reads it from here rather than from a return value",
+)
+
+
 R.section("Mixing valve and the buffer tank as a store (items 27/29)")
 
 from heatpump_optimizer import mixing_valve as _mv  # noqa: E402
