@@ -1795,6 +1795,41 @@ R.check(
     f"restored scale {_restarted._cop_scale}, {_restarted._cop_samples} samples",
 )
 
+# --- The savings baseline follows the comfort schedule ---------------------
+#
+# The reference thermostat used to hold the flat day target around the clock,
+# so a configured night setback was booked as optimizer savings — value any
+# programmable thermostat delivers without an optimizer.
+_bl_state = ThermalState(
+    room_temperature=21.0, slab_temperature=26.0, outdoor_temperature=-5.0
+)
+_bl_opt = _PvOpt(_PvModel(_PvParams()), _PvOptCfg(target_temp=21.0))
+_bl_n = 16
+_bl_out = np.full(_bl_n, -5.0)
+_bl_zero = np.zeros(_bl_n)
+_bl_flat, _ = _bl_opt._compute_baseline_power(
+    _bl_state, _bl_out, _bl_zero, _bl_zero, _bl_zero, 0.25
+)
+_bl_setback, _ = _bl_opt._compute_baseline_power(
+    _bl_state,
+    _bl_out,
+    _bl_zero,
+    _bl_zero,
+    _bl_zero,
+    0.25,
+    np.array([21.0] * 8 + [17.0] * 8),
+)
+R.check(
+    "a night setback lowers the reference, not the reported savings",
+    float(np.sum(_bl_setback[8:])) < float(np.sum(_bl_flat[8:])) - 0.5,
+    f"setback half {np.sum(_bl_setback[8:]):.2f} kW-steps vs flat "
+    f"{np.sum(_bl_flat[8:]):.2f}",
+)
+R.check(
+    "while the schedule agrees, so do the baselines",
+    np.allclose(_bl_setback[:8], _bl_flat[:8]),
+)
+
 # --- The foundation mass adjustment must be applied once ------------------
 basement_two_zone = presets.derive(
     presets.BuildingPreset(

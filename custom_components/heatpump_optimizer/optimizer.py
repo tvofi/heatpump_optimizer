@@ -1693,15 +1693,17 @@ class HeatPumpOptimizer:
         # Multiple starting points: the smooth price-weighted guess above, a
         # bang-bang schedule that buys the cheapest steps first, and a flat
         # schedule. See _multi_start_minimize for why one guess is not enough.
-        baseline_guess, _ = self._compute_baseline_power(
+        # Computed once and reused below for the savings reference; the same
+        # simulation also makes a good solver start.
+        baseline_power, baseline_end = self._compute_baseline_power(
             initial_state, outdoor_temps, wind_speeds, precipitation,
-            solar_radiation, dt,
+            solar_radiation, dt, comfort_targets,
         )
-        baseline_energy = float(np.sum(baseline_guess) * dt)
+        baseline_energy = float(np.sum(baseline_power) * dt)
         starts = [
             initial_power,
             _price_ranked_start(prices, baseline_energy, p_max, dt),
-            np.clip(baseline_guess, 0.0, p_max),
+            np.clip(baseline_power, 0.0, p_max),
         ]
 
         try:
@@ -1728,11 +1730,6 @@ class HeatPumpOptimizer:
             )
         )
 
-        # Compute baseline cost
-        baseline_power, baseline_end = self._compute_baseline_power(
-            initial_state, outdoor_temps, wind_speeds, precipitation,
-            solar_radiation, dt,
-        )
         baseline_cost = energy_cost_of(baseline_power)
         predicted_cost = energy_cost_of(optimal_power)
 
@@ -2895,7 +2892,7 @@ class HeatPumpOptimizer:
         # Baseline cost
         baseline_power, baseline_end = self._compute_baseline_power(
             initial_state, outdoor_temps, wind_speeds, precipitation,
-            solar_radiation, dt,
+            solar_radiation, dt, comfort_targets,
         )
         # Baseline DHW: an always-hot tank held at the setpoint. That costs the
         # energy drawn off as hot water plus the standby loss of keeping a tank
@@ -3109,14 +3106,21 @@ class HeatPumpOptimizer:
         precipitation: np.ndarray,
         solar_radiation: np.ndarray,
         dt: float,
+        comfort_targets: np.ndarray | None = None,
     ) -> tuple[np.ndarray, ThermalState]:
-        """Simulate a conventional thermostat holding ``target_temp``.
+        """Simulate a conventional thermostat following the comfort schedule.
 
         This is the reference the reported savings are measured against, so it
         has to behave like a real thermostat in the same physics as the
         optimized schedule. Anything it wastes is reported to the user as a
         saving, so the controller is built from the model's own steady state
         rather than from a heuristic.
+
+        The thermostat tracks the same per-step comfort targets the plan is
+        held to. Holding the flat ``target_temp`` around the clock instead
+        made the reference heat to the *day* temperature all night, and a
+        configured night setback was then booked as optimizer savings — value
+        any ordinary programmable thermostat delivers.
 
         Heat is delivered to the slab and only reaches the room on the
         following step, so power is set by a cascade: the slab is driven to the
@@ -3128,13 +3132,17 @@ class HeatPumpOptimizer:
         horizon.
         """
         n_steps = len(outdoor_temps)
-        target = self.config.target_temp
         p = self.model.params
 
         baseline_power = np.zeros(n_steps)
         state = initial_state
 
         for i in range(n_steps):
+            target = (
+                float(comfort_targets[i])
+                if comfort_targets is not None and i < len(comfort_targets)
+                else self.config.target_temp
+            )
             if p.two_zone_enabled:
                 required_thermal = self._baseline_thermal_demand_two_zone(
                     state, target, outdoor_temps[i], wind_speeds[i],
