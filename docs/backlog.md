@@ -1376,6 +1376,13 @@ which is worth knowing before, not after.
 
 ## 29. The buffer tank as a controllable thermal battery (mixing valve setups)
 
+> **Blocker 2 is fixed (v3.6.1).** The standby loss now follows surface area
+> rather than volume, and the learner's clamp is derived from how well a tank of
+> that size could plausibly be insulated, so a real accumulator (~2 W/K at
+> 750 L) is reachable instead of being floored around 17 W/K. The prior is
+> derived the same way; the old flat 6 C/h worked out at 9.7 W/K on a 35 L tank,
+> which is worse than a bare uninsulated cylinder. Blockers 1 and 3 remain.
+
 > **Sizing spike, 2026-08-23. Read this before the item text — it corrects two
 > things below and answers the "measure before building" question.**
 >

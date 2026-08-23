@@ -1659,6 +1659,76 @@ R.check(
 )
 
 
+R.section("Buffer tank standby loss scales with the tank (items 27/29)")
+
+# UA follows the tank's *surface area*, which grows as volume^(2/3), while the
+# cooling rate is UA/C and so falls as volume^(-1/3). Holding the rate flat
+# across every size made UA scale linearly with volume, which modelled a large
+# accumulator as losing an order of magnitude more than it does -- enough on its
+# own to make storing heat never pay.
+
+_ua = lambda v, **kw: ThermalParameters(
+    buffer_tank_volume=float(v), **kw
+).buffer_tank_heat_loss_coefficient
+
+_ua35, _ua750 = _ua(35), _ua(750)
+R.check(
+    "a bigger tank loses more in absolute terms",
+    _ua750 > _ua35,
+    f"{_ua35*1000:.2f} vs {_ua750*1000:.2f} W/K",
+)
+R.check(
+    "but far less than in proportion to its volume",
+    _ua750 < _ua35 * (750 / 35) * 0.5,
+    f"{_ua750*1000:.2f} W/K vs {_ua35*1000*750/35:.1f} if it scaled with volume",
+)
+# Surface area grows as volume^(2/3), so UA should too, within a little slack.
+_expected = _ua35 * (750 / 35) ** (2.0 / 3.0)
+R.check(
+    "UA grows with surface area, not with volume",
+    abs(_ua750 - _expected) < 0.02 * _expected,
+    f"{_ua750*1000:.2f} W/K, area-scaled prediction {_expected*1000:.2f}",
+)
+
+# The prior has to be physically possible. The old flat 6 C/h came out at
+# 9.7 W/K on a 35 L tank -- worse than a bare uncovered cylinder.
+_area35 = hp_const.buffer_tank_surface_area(35)
+R.check(
+    "the prior is no worse than an uninsulated tank",
+    _ua35 * 1000 <= hp_const.BUFFER_INSULATION_U_WORST * _area35,
+    f"{_ua35*1000:.2f} W/K vs bare-cylinder {hp_const.BUFFER_INSULATION_U_WORST*_area35:.2f}",
+)
+
+# The clamp is the half that mattered most: it decides what the learner is
+# *allowed* to conclude. A real 750 L accumulator is around 2 W/K, and the flat
+# 0.5 C/h floor put a hard stop several times above that.
+_lo, _hi = hp_const.buffer_cooling_rate_bounds(750)
+_real = _ua(750, buffer_cooling_rate=0.06)
+R.check(
+    "the learner may reach a real accumulator's standby loss",
+    _lo <= 0.06 <= _hi and 1.0 < _real * 1000 < 4.0,
+    f"bounds {_lo:.3f}-{_hi:.2f} C/h, 0.06 C/h -> {_real*1000:.2f} W/K",
+)
+R.check(
+    "which the old flat floor would have forbidden",
+    0.06 < hp_const.BUFFER_COOLING_RATE_MIN,
+    "if this ever passes trivially the floor has been changed too",
+)
+
+# A rate someone configured explicitly must still win over the derived prior.
+R.check(
+    "an explicitly configured rate is honoured",
+    _ua(750, buffer_cooling_rate=0.5) > _ua(750),
+    "the derived prior should only apply when nothing is set",
+)
+R.check(
+    "and from_config leaves it unset rather than injecting a 35 L number",
+    ThermalParameters.from_config({"buffer_tank_volume": 750.0}).buffer_cooling_rate
+    == 0.0,
+    "0.0 is the sentinel meaning 'derive a prior from the volume'",
+)
+
+
 R.section("Two-zone loss split learning (item 31)")
 
 # `house_heat_loss_scale` multiplies BOTH zone losses, so it can move the total

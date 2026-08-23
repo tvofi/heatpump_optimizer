@@ -39,6 +39,7 @@ from typing import Any
 import numpy as np
 
 from .const import (
+    WATER_SPECIFIC_HEAT as _WATER_SPECIFIC_HEAT,
     DEFAULT_HOUSE_THERMAL_MASS,
     DEFAULT_HOUSE_HEAT_LOSS_COEFFICIENT,
     DEFAULT_SLAB_THERMAL_MASS,
@@ -58,6 +59,8 @@ from .const import (
     BUFFER_COOLING_RATE_MAX,
     BUFFER_COOLING_RATE_MIN,
     DEFAULT_BUFFER_COOLING_RATE,
+    buffer_cooling_rate_bounds,
+    default_buffer_cooling_rate,
     DEFAULT_BUFFER_TANK_LOSS,
     DEFAULT_HOUSE_HEAT_LOSS_SCALE,
     DEFAULT_WINDOW_AREA,
@@ -95,8 +98,10 @@ from .dhw_schedule import (
 
 _LOGGER = logging.getLogger(__name__)
 
-# Specific heat capacity of water: ~0.00116 kWh/(liter·°C)
-WATER_SPECIFIC_HEAT: float = 0.00116
+# Specific heat capacity of water: ~0.00116 kWh/(liter·°C).
+# Defined in `const` because the tank-geometry helpers there need it too, and
+# re-exported here so the many uses below read unchanged.
+WATER_SPECIFIC_HEAT: float = _WATER_SPECIFIC_HEAT
 
 # Air temperature around the storage tanks; they are assumed to stand indoors.
 # This is the reference ambient the learned DHW cooling rate is stated against.
@@ -137,7 +142,12 @@ class ThermalParameters:
     # from a buffer tank temperature sensor; the UA the simulation needs is
     # derived from it. When ``buffer_cooling_rate`` is set the derived UA wins
     # over the legacy ``buffer_tank_heat_loss``.
-    buffer_cooling_rate: float = DEFAULT_BUFFER_COOLING_RATE  # °C/h
+    #
+    # 0.0 means "not known yet, derive a prior from the tank's size". It cannot
+    # be a fixed default because the right rate depends on the volume, and it is
+    # resolved in the property rather than in __post_init__ so that changing the
+    # volume at runtime still produces a sensible prior.
+    buffer_cooling_rate: float = 0.0  # °C/h
 
     # Solar gain parameters
     window_area: float = DEFAULT_WINDOW_AREA  # m²
@@ -235,13 +245,15 @@ class ThermalParameters:
         derived from ``dhw_cooling_rate``, so both tanks can be learned by the
         same estimator.
         """
-        rate = float(
-            np.clip(
-                self.buffer_cooling_rate,
-                BUFFER_COOLING_RATE_MIN,
-                BUFFER_COOLING_RATE_MAX,
-            )
-        )
+        # Bounds depend on the tank: UA follows surface area, which grows as
+        # volume^(2/3), while the rate is UA/C and so falls as volume^(-1/3).
+        # Clamping every size against a 35 L tank's numbers is what floored a
+        # large accumulator an order of magnitude above its real standby loss.
+        low, high = buffer_cooling_rate_bounds(self.buffer_tank_volume)
+        rate = self.buffer_cooling_rate
+        if rate <= 0.0:
+            rate = default_buffer_cooling_rate(self.buffer_tank_volume)
+        rate = float(np.clip(rate, low, high))
         return rate * self.buffer_tank_thermal_mass / DHW_COOLING_REFERENCE_DELTA
 
     @property
@@ -451,6 +463,14 @@ class ThermalParameters:
                     getattr(const, f"CONF_{conf}"), getattr(const, f"DEFAULT_{default}")
                 )
             )
+
+        # The buffer cooling rate has no single right default: it depends on the
+        # tank's size. Leave it unset when the user has not configured one, so
+        # the prior is derived from the volume instead of from a 35 L tank's
+        # number. `DEFAULT_BUFFER_COOLING_RATE` is kept only so an existing
+        # entry that stored it explicitly keeps working.
+        if const.CONF_BUFFER_COOLING_RATE not in config:
+            values["buffer_cooling_rate"] = 0.0
 
         # Two-zone and DHW are inferred from whether their settings are present
         # at all, rather than from a flag, so an entry written before either
