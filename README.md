@@ -1024,6 +1024,13 @@ terminal cost, the cycling and capacity charges — so enabling hot water cannot
 change the space-heating objective. That is not hypothetical tidiness: it used
 to, and the two objectives had silently drifted apart.
 
+## Roadmap
+
+Known bugs and planned work are tracked in
+[docs/backlog.md](docs/backlog.md), which records each item together with the
+investigation behind it — the code that causes it, what was measured, and what
+a fix has to be careful of. Items 1-21 are released; 22-31 are open.
+
 ## Requirements
 
 - Home Assistant 2024.1.0 or newer
