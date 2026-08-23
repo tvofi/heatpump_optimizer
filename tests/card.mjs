@@ -132,7 +132,8 @@ const store={};
 const ctx = {
   HTMLElement, document, console,
   window:{ customCards:[], localStorage:{ getItem:k=>store[k]??null, setItem:(k,v)=>{store[k]=String(v);}, removeItem:k=>{delete store[k];} },
-           addEventListener(){}, matchMedia:()=>({matches:false,addEventListener(){}}) },
+           addEventListener(){}, removeEventListener(){},
+           matchMedia:()=>({matches:false,addEventListener(){}}) },
   localStorage:{ getItem:k=>store[k]??null, setItem:(k,v)=>{store[k]=String(v);}, removeItem:k=>{delete store[k];} },
   customElements:{ _d:{}, define(n,c){ this._d[n]=c; }, get(n){ return this._d[n]; } },
   ResizeObserver: class { observe(){} unobserve(){} disconnect(){} },
@@ -445,6 +446,88 @@ check("it distinguishes simulating from saving",
   /Simulating changes\s+nothing/.test(whatIfDump) &&
   /saving replaces your configured schedule/.test(whatIfDump));
 
+// Item 22. The comfort slider used to sit alone in the scheduling section with
+// no context, which is what made it read as a stray control. It now shares a
+// "Temperatures" section with the hot water minimum.
+check("the temperature sliders have a section of their own",
+  /Temperatures/.test(whatIfDump) && /class="wi-dhw-min"/.test(whatIfDump));
+check("each slider has its own readout",
+  /wi-comfort-value/.test(whatIfDump) && /wi-dhw-value/.test(whatIfDump));
+
+// The two sliders deliberately share one debounce timer: independent timers
+// racing on one service call is how the delta ends up pricing the *previous*
+// drag rather than the current one.
+{
+  const comfortBefore = whatIf._whatIfDraft().comfort;
+  const timerBefore = whatIf._whatIfTimer;
+  whatIf._onWhatIfInput({
+    stopPropagation(){},
+    target:{ value:"42", classList:{ contains:(c)=>c === "wi-dhw-min" } },
+  });
+  check("the hot water slider writes its own draft field, not the comfort one",
+    whatIf._whatIfDraft().dhwMin === 42 &&
+    whatIf._whatIfDraft().comfort === comfortBefore);
+  check("moving either slider uses the one shared debounce",
+    whatIf._whatIfTimer !== timerBefore && whatIf._whatIfTimer !== null);
+  check("the hot water readout follows its own slider",
+    /42/.test(whatIf.shadowRoot.querySelector(".wi-dhw-value").textContent) &&
+    !/42/.test(whatIf.shadowRoot.querySelector(".wi-comfort-value").textContent));
+  // Leave no armed timer behind: it would fire mid-await further down and
+  // overwrite `called` with a simulate the next assertion never asked for.
+  clearTimeout(whatIf._whatIfTimer);
+  whatIf._whatIfTimer = null;
+  whatIf._whatIfDraft().dhwMin = 45;
+}
+
+// The ceiling is published by the integration rather than recomputed here, so
+// the card and the backend validator cannot drift apart. A stored minimum that
+// the setpoint no longer allows is lowered *and* said out loud -- silently
+// reducing someone's hot water is exactly the kind of quiet correction that
+// gets reported as a bug months later.
+{
+  const clampStates = (() => {
+    const st = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+    st[DEFAULT_SPACE].attributes.dhw_setpoint = 52;
+    st[DEFAULT_SPACE].attributes.dhw_min_temperature_max = 47;
+    st[DEFAULT_SPACE].attributes.dhw_min_temperature = 50;
+    return st;
+  })();
+  const clamped = build(clampStates, { what_if: true });
+  clamped._hass = mkHass(clamped._hass.states);
+  clamped._onCardClick({});
+  const dump = collect(clamped.shadowRoot).join("\n");
+  check("a stored minimum above the ceiling is clamped to it",
+    clamped._whatIfDraft().dhwMin === 47,
+    `got ${clamped._whatIfDraft().dhwMin}`);
+  check("and the clamp is visible rather than silent",
+    /wi-warn/.test(dump) && /50/.test(dump));
+  check("the slider's maximum comes from the published ceiling",
+    /class="wi-dhw-min"[^>]*max="47"/.test(dump) ||
+    /max="47"[^>]*class="wi-dhw-min"/.test(dump));
+  check("the deadband is described from the setpoint actually in force",
+    /52/.test(dump) && /5\s*&nbsp;°C band/.test(dump));
+}
+
+// Before the first plan arrives there is no setpoint to clamp against. The
+// attribute is published as null in that case, and `Number(null)` is 0 -- a
+// finite value that would sail through a naive isFinite guard and cap the
+// slider at nothing.
+{
+  const blankStates = (() => {
+    const st = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+    st[DEFAULT_SPACE].attributes.dhw_min_temperature_max = null;
+    st[DEFAULT_SPACE].attributes.comfort_temp_day = null;
+    return st;
+  })();
+  const blank = build(blankStates, { what_if: true });
+  blank._hass = mkHass(blank._hass.states);
+  check("a null ceiling falls back instead of collapsing to zero",
+    blank._dhwMinCeiling() === 45, `got ${blank._dhwMinCeiling()}`);
+  check("a null comfort target falls back instead of reading as 0 °C",
+    blank._whatIfDraft().comfort === 21,
+    `got ${blank._whatIfDraft().comfort}`);
+}
+
 // The comfort target must come from our own plan, not from whatever climate
 // entity happens to be enumerated first. A frost-protection valve, an air
 // conditioner or a towel rail would otherwise pin the slider to its setpoint,
@@ -616,7 +699,8 @@ await saver._onSaveSchedule({ stopPropagation: () => {} });
 check("the second press calls apply_schedule",
   called && called.domain === "heatpump_optimizer" && called.service === "apply_schedule");
 check("it sends the whole schedule, not a fragment",
-  called && ["day_start_hour", "day_end_hour", "dhw_windows", "comfort_temp_day"]
+  called && ["day_start_hour", "day_end_hour", "dhw_windows", "comfort_temp_day",
+             "dhw_min_temperature"]
     .every((k) => called.data[k] !== undefined));
 check("the button returns to its resting label",
   !/Confirm/i.test(saveRoot.querySelector(".wi-save").textContent));
@@ -1242,6 +1326,119 @@ check("the hand-scheduled reason has a label",
   drag._clearManualPlan();
   check("going back to automatic clears the override",
     called && called.service === "clear_manual_plan");
+}
+
+// ---------------------------------------------------------------------------
+// Item 23: pan and zoom the plan window
+// ---------------------------------------------------------------------------
+{
+  const zoom = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), { what_if: true });
+  zoom._hass = mkHass(zoom._hass.states);
+
+  const windowOf = (card) => {
+    const b = card._buildSeries();
+    return { start: b.windowStart, end: b.windowEnd, span: b.windowEnd - b.windowStart };
+  };
+
+  const base = windowOf(zoom);
+  check("an untouched card renders the default window",
+    zoom._view === null && base.span > 0);
+
+  // Zooming has to hold the pointed-at time still. Zooming about the centre
+  // walks whatever the user is looking at off the edge, so repeated zooming
+  // feels like it is fighting back.
+  const anchor = base.start + base.span / 4;
+  zoom._zoomView(1 / 4, anchor);
+  const zoomed = windowOf(zoom);
+  check("zooming in narrows the window", zoomed.span < base.span,
+    `${zoomed.span} vs ${base.span}`);
+  check("the anchored time stays inside the new window",
+    anchor >= zoomed.start - 1 && anchor <= zoomed.end + 1,
+    `anchor ${anchor} not within ${zoomed.start}..${zoomed.end}`);
+  check("zooming never starts before the default window does",
+    zoomed.start >= base.start - 1, `${zoomed.start} < ${base.start}`);
+
+  // Forward-only: there is no recorded history to scroll back into, so the
+  // window must not be draggable to before the start of the plan.
+  zoom._panView(-base.span * 10);
+  check("panning backwards stops at the start of the plan",
+    windowOf(zoom).start >= base.start - 1);
+
+  zoom._panView(base.span * 10);
+  const far = windowOf(zoom);
+  check("panning forwards stops at the end of the plan",
+    far.end <= base.end + 1, `${far.end} > ${base.end}`);
+  check("and panning never changes the span it is panning",
+    Math.abs(far.span - zoomed.span) < 2, `${far.span} vs ${zoomed.span}`);
+
+  // Zooming out is bounded by the plan, not by the configured plot width: past
+  // the optimizer's horizon there is empty chart, not more plan.
+  zoom._zoomView(1000, null);
+  const out = windowOf(zoom);
+  check("zooming out stops at the extent of the plan",
+    out.span <= base.span + 1, `${out.span} > ${base.span}`);
+
+  zoom._resetView();
+  const back = windowOf(zoom);
+  check("reset restores the default window exactly",
+    zoom._view === null &&
+    back.start === base.start && back.end === base.end);
+
+  // The controls are the only route for touch and keyboard users; a gesture
+  // nobody can perform is not an affordance.
+  const dump = collect(zoom.shadowRoot).join("\n");
+  check("the chart offers zoom controls",
+    /class="vc-in"/.test(dump) && /class="vc-out"/.test(dump) &&
+    /class="vc-reset"/.test(dump));
+  check("reset is disabled while the view is already the default",
+    /vc-reset[^>]*disabled/.test(dump));
+}
+
+// A drag that starts on a lane belongs to the slot editor. If panning stole it
+// the slots would stop being draggable, which is the entire point of the lanes.
+{
+  const guard = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), { what_if: true });
+  guard._hass = mkHass(guard._hass.states);
+  guard._buildSeries();
+  const before = guard._view;
+  guard._onPanDown({
+    stopPropagation(){}, clientX: 400,
+    target: { dataset: { channel: "space" } },
+    currentTarget: { getBoundingClientRect: () => ({ width: 900, left: 0 }) },
+  });
+  check("a pointerdown on a lane does not start a pan",
+    guard._pan === null && guard._view === before);
+
+  // A pan finishes with a click on the chart, and a click on the chart opens
+  // the expanded view. Without suppression, every drag would pop the dialog.
+  const svgRect = { getBoundingClientRect: () => ({ width: 900, left: 0 }) };
+  guard._onPanDown({
+    stopPropagation(){}, preventDefault(){}, clientX: 400,
+    target: { dataset: {} }, currentTarget: svgRect,
+  });
+  check("a pointerdown on the background does start a pan", guard._pan !== null);
+  const pan = guard._pan;
+  pan.move({ clientX: 340 });
+  pan.up();
+  check("a drag suppresses the click that ends it", guard._suppressClick === true);
+  guard._expanded = false;
+  guard._onCardClick({});
+  check("so the drag does not open the expanded view", guard._expanded === false);
+  check("and the suppression is spent, not sticky", guard._suppressClick === false);
+  guard._onCardClick({});
+  check("a real click still opens the expanded view", guard._expanded === true);
+
+  // A click with no movement is not a pan and must stay a click.
+  const still = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), { what_if: true });
+  still._hass = mkHass(still._hass.states);
+  still._buildSeries();
+  still._onPanDown({
+    stopPropagation(){}, preventDefault(){}, clientX: 400,
+    target: { dataset: {} }, currentTarget: svgRect,
+  });
+  if (still._pan) still._pan.up();
+  check("a click that never moved is not treated as a pan",
+    still._suppressClick === false);
 }
 
 console.log(fails ? `\n${fails} CARD CHECK(S) FAILED` : "\nALL CARD CHECKS PASSED");

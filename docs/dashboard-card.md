@@ -72,6 +72,29 @@ clamped at both ends. Container query units would say this in CSS alone, but
 `container-type: inline-size` also applies inline-axis containment, which is a
 large side effect for a font size.
 
+### Panning and zooming the plan window
+
+Pinch to zoom, or hold Ctrl and scroll. Swipe sideways with two fingers to pan,
+or drag the chart background. The small row of buttons above the chart does the
+same, and exists because neither gesture is available on a phone or to someone
+tabbing through the card.
+
+A plain vertical scroll is deliberately left alone. The card sits in a dashboard
+people scroll, and a chart that swallowed the wheel would trap the page the
+moment the pointer crossed it.
+
+It is **forward-only**. There is no history to scroll back into: both plan
+sensors keep their `forecast` attribute out of the recorder, so nothing stores
+what the plan used to say. The window therefore stays between now and the end of
+the plan, and zooming out stops at the plan's real extent rather than at the
+configured plot width — past the optimizer's horizon there is empty chart, not
+more plan. The reset button returns to the window the card was configured for.
+
+Zooming changes the axis the lanes are drawn against, not just their appearance,
+so dragging a slot keeps hitting the time under the pointer at any zoom level.
+Your draft arrangement is read from the published plan rather than from what is
+on screen, so zooming in cannot quietly drop the slots you cannot see.
+
 ### Rearranging today's slots
 
 The enlarged view draws today's plan a second time as two editable lanes, hot
@@ -101,9 +124,18 @@ freezing the house to honour a drag would be the wrong trade.
 
 ### Schedule editor and what-if simulator
 
-The enlarged view also carries an editor for the comfort temperature, the
-heating day and the hot water windows. It is shown by default and hidden with
+The enlarged view also carries an editor for the heating day, the hot water
+windows and two temperatures. It is shown by default and hidden with
 `what_if: false`, which hides the slot lanes too.
+
+The temperatures live in a section of their own: the **comfort temperature** the
+house is held at during the heating day, and the **minimum hot water**
+temperature the tank may fall to inside a demand window. They are grouped because
+a lone temperature slider inside a section about scheduling reads as a stray
+control with no context. The hot water minimum is capped a few degrees below your
+setpoint so the tank keeps a band to work in — the cap moves on its own when you
+change the setpoint, and a saved value above it is lowered with a visible note
+rather than silently.
 
 Editing only builds a draft inside the card. Two buttons act on it: **Simulate
 these slots** prices the draft against the plan currently in force, and **Save
@@ -114,10 +146,11 @@ Setpoints are otherwise chosen blind: the optimizer can price a plan, but you
 never see the price of your own comfort choices. This turns "I set 21 because it
 sounds about right" into an informed decision.
 
-It is off by default because each answer is a real optimization solve on the
-Home Assistant host. The slider is debounced in the card and the solve is
-rate-limited in the integration, so dragging cannot trigger one per pixel, and
-it runs against a *copy* of your configuration — an exploratory drag never
+Each answer is a real optimization solve on the Home Assistant host. Both
+temperature sliders are debounced in the card — sharing one timer, so two drags
+cannot race and report the price of the previous one — and the solve is
+rate-limited in the integration, so dragging cannot trigger one per pixel. It
+runs against a *copy* of your configuration, so an exploratory drag never
 disturbs actual operation.
 
 The overlay is a native `<dialog>` shown with `showModal()`, so it renders in

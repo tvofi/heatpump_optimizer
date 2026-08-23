@@ -22,7 +22,7 @@ from homeassistant.helpers.entity import DeviceInfo, EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN
+from .const import DHW_MIN_TEMP_SETPOINT_MARGIN, DOMAIN
 from .coordinator import HeatPumpOptimizerCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -887,6 +887,18 @@ class ECL110EffectiveDisplaceSensor(HeatPumpOptimizerSensorBase):
             }
         return {}
 
+def _dhw_min_ceiling(setpoint: Any) -> float | None:
+    """Highest usable minimum that still leaves a deadband below the setpoint.
+
+    Returns ``None`` when the setpoint is not known yet, so the card can tell
+    "no answer" from a real limit and fall back rather than clamp to zero.
+    """
+    try:
+        return round(float(setpoint) - DHW_MIN_TEMP_SETPOINT_MARGIN, 1)
+    except (TypeError, ValueError):
+        return None
+
+
 class _PlanSensorBase(HeatPumpOptimizerSensorBase):
     """Shared behaviour for the two full-horizon plan sensors.
 
@@ -957,6 +969,15 @@ class _PlanSensorBase(HeatPumpOptimizerSensorBase):
             "comfort_temp_day": data.get("comfort_temp_day"),
             "comfort_temp_night": data.get("comfort_temp_night"),
             "dhw_windows": data.get("dhw_windows"),
+            "dhw_min_temperature": data.get("dhw_min_temperature"),
+            "dhw_setpoint": data.get("dhw_setpoint"),
+            # The ceiling the hot water minimum has to stay under, computed
+            # here rather than in the card so the margin lives in exactly one
+            # place and the card's slider re-clamps on its own whenever the
+            # setpoint is reconfigured -- a slider whose maximum was fixed at
+            # render time against a stale setpoint is the same class of bug
+            # `_draftRuns` had in v3.2.0.
+            "dhw_min_temperature_max": _dhw_min_ceiling(data.get("dhw_setpoint")),
             # The active manual override (or None). The card reads this to show
             # which slots are pinned and which pins safety had to release.
             "manual_override": data.get("manual_plan"),

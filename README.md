@@ -817,6 +817,14 @@ right-click a lane to add or remove one. A running total prices your arrangement
 against the plan in force, and **Apply this plan** pins it until midnight — the
 optimizer keeps re-solving, but has to schedule around your slots.
 
+**Pan and zoom the plan window.** Pinch to zoom (or hold Ctrl and scroll), swipe
+sideways with two fingers to pan, or drag the chart background. The buttons above
+the chart do the same for touch and keyboard. It is forward-only — there is no
+stored history to scroll back into, because plan forecasts are deliberately kept
+out of the recorder — so the window stays between now and the end of the plan,
+and zooming out stops at the plan's real extent rather than showing empty chart.
+A plain scroll is left alone so the dashboard still scrolls under the pointer.
+
 Timing is yours; safety is not. If an arrangement would let the tank fall below
 its minimum, skip a legionella cycle or take the house under its comfort floor,
 the integration releases only the slots it must and tells you which. The past,
@@ -868,10 +876,17 @@ data:
   day_end_hour: 22           # comfort period ends
   dhw_windows: "06:00-08:30, 17:00-22:00"
   comfort_temp_day: 21.0
+  dhw_min_temperature: 45.0  # lowest usable tank temperature in a window
 ```
 
 The windows are validated and canonicalised before they are stored, so a
 malformed schedule is rejected here rather than failing on every later reload.
+
+`dhw_min_temperature` must stay a few degrees below your hot water setpoint. A
+minimum equal to the setpoint leaves the tank no band to work in, so the pump
+would short-cycle against its own hysteresis; a value that close is rejected
+rather than quietly accepted. The limit is checked per heat pump, because the
+setpoint is configured per heat pump.
 
 ### `heatpump_optimizer.apply_manual_plan`
 Pins today's heating and hot water slots, so the optimizer plans around them

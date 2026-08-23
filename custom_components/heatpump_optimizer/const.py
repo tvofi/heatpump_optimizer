@@ -361,6 +361,14 @@ DEFAULT_SOLAR_UPPER_FRACTION: Final = 0.4  # 40% upper, 60% lower (open layout, 
 DEFAULT_DHW_TANK_VOLUME: Final = 200.0  # liters
 DEFAULT_DHW_SETPOINT: Final = 55.0  # °C - "ready" temperature at window start
 DEFAULT_DHW_MIN_TEMP: Final = 45.0  # °C - usable minimum inside demand windows
+
+# How far below the setpoint the usable minimum is allowed to sit. A minimum
+# equal to the setpoint leaves no deadband at all: the tank would have to hold
+# exactly its target, so the pump would short-cycle against its own hysteresis
+# chasing a band of zero width. The card clamps its slider to the ceiling this
+# implies, but the ceiling is enforced in ``apply_schedule`` too, because both
+# it and ``simulate_plan`` can be called straight from an automation.
+DHW_MIN_TEMP_SETPOINT_MARGIN: Final = 5.0  # °C
 DEFAULT_DHW_DAILY_CONSUMPTION: Final = 150.0  # liters/day average household
 
 # Standby cooling of the DHW tank, stated at a reference condition: a tank at

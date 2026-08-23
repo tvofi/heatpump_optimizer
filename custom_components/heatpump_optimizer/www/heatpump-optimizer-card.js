@@ -10,7 +10,7 @@
  */
 
 const CARD_TAG = "heatpump-optimizer-card";
-const CARD_VERSION = "3.2.0";
+const CARD_VERSION = "3.3.0";
 
 const DEFAULTS = {
   title: "Heat pump plan",
@@ -162,6 +162,25 @@ const LANE_BOTTOM_INSET = 3;
 const LANE_EDGE_GRAB = 6;
 const PLAN_STEP_MS = 15 * 60000;
 
+// Range of the hot water minimum slider. The floor matches the options flow so
+// the two editors of the same setting agree. There is deliberately no margin
+// constant here: the *ceiling* is computed by the integration and published as
+// `dhw_min_temperature_max`, because the backend has to validate against the
+// same number and a copy in the card would be free to drift from it. The
+// fallback is only reached before the first plan is published.
+const DHW_MIN_FLOOR = 35;
+const DHW_MIN_FALLBACK = 45;
+
+// Pan and zoom over the plan window (item 23).
+//
+// Forward-only, deliberately: there is no history to scroll back into, because
+// both plan sensors declare `forecast` unrecorded, so nothing stores what the
+// plan used to say. The window is therefore confined to [now, end of plan], and
+// zooming out stops at the plan's real extent rather than at the configured
+// plot width -- past the horizon there is empty space, not more plan.
+const VIEW_MIN_SPAN_MS = 2 * 3600 * 1000;
+const VIEW_ZOOM_STEP = 1.4;
+
 // The expanded dialog's chrome is sized from one font size, set from the
 // dialog's measured width so it grows with the chart it sits beside.
 const DIALOG_FONT_RATIO = 0.0105;
@@ -278,6 +297,15 @@ function niceAxis(lo, hi, maxTicks) {
     ticks.push(Math.round(v * 1e6) / 1e6);
   }
   return { min: niceMin, max: niceMax, ticks };
+}
+
+function clampNum(v, lo, hi) {
+  return v < lo ? lo : v > hi ? hi : v;
+}
+
+/** A temperature for prose: no trailing ".0" on whole degrees. */
+function fmtTemp(v) {
+  return Number.isInteger(v) ? String(v) : v.toFixed(1);
 }
 
 function fmtTick(v) {
@@ -465,7 +493,16 @@ class HeatpumpOptimizerCard extends HTMLElement {
     this._pendingSave = false;
     this._saveTimer = null;
     this._dialogFontPx = 0;
+    // Pan/zoom window (item 23). `null` means "the default window", so an
+    // untouched card behaves exactly as it did before this existed.
+    this._view = null;
+    this._viewLimits = null;
+    this._viewFrame = 0;
+    this._pan = null;
+    this._suppressClick = false;
     this._onLegendClick = this._onLegendClick.bind(this);
+    this._onChartWheel = this._onChartWheel.bind(this);
+    this._onPanDown = this._onPanDown.bind(this);
     this._onPointerMove = this._onPointerMove.bind(this);
     this._onPointerLeave = this._onPointerLeave.bind(this);
     this._onCardClick = this._onCardClick.bind(this);
@@ -805,6 +842,19 @@ class HeatpumpOptimizerCard extends HTMLElement {
       );
     }
 
+    // Everything above is the default window. `_applyView` narrows it to
+    // whatever the user has panned or zoomed to, and is a no-op until they
+    // touch a control -- so the untouched card renders exactly as before.
+    // Filtering below this point then happens against the visible window, which
+    // is what keeps the value axis scaled to what is actually on screen.
+    const view = this._applyView(
+      windowStart,
+      windowEnd,
+      allTimes.length ? Math.max(...allTimes) : windowEnd
+    );
+    windowStart = view.start;
+    windowEnd = view.end;
+
     const pick = (sensor) =>
       sensor === "dhw" ? dhwFc : sensor === "solar" ? solarFc : spFc;
     const either = (field) => {
@@ -849,7 +899,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
       });
     }
 
-    return { series, windowStart, windowEnd };
+    return { series, windowStart, windowEnd, zoomed: this._view !== null };
   }
 
   // ---- rendering ---------------------------------------------------------
@@ -943,7 +993,12 @@ class HeatpumpOptimizerCard extends HTMLElement {
    */
   _chartBlock(built, expanded) {
     const chart = this._chartSvg(built, expanded);
-    return `<div class="chartwrap${expanded ? " big" : ""}">${chart}
+    // The controls overlay the chart rather than sitting under it: the expanded
+    // dialog budgets its height from a fixed guess at how tall the chrome is
+    // (item 26), and a new row of buttons would eat straight into that budget.
+    const pannable = this._viewAdjustable() ? " pannable" : "";
+    return `<div class="chartwrap${expanded ? " big" : ""}${pannable}">${chart}
+      ${this._viewControlsHtml()}
       <div class="tooltip" hidden></div></div>`;
   }
 
@@ -974,19 +1029,39 @@ class HeatpumpOptimizerCard extends HTMLElement {
    * `apply_manual_plan` service; the optimizer then keeps the timing but is
    * still free to choose how hard to run, and safety limits still override it.
    *
-   * "My usual schedule" is about *every* day: the comfort temperature, the
-   * hours the house is heated to it, and the hot water demand windows. These
-   * are priced per month against a copy of the configuration on the
-   * coordinator side, so exploring cannot disturb operation. The temperature
-   * slider is debounced; the time fields apply on an explicit button, because
-   * editing a time range is not a drag gesture and half-typed times should not
-   * trigger a solve. "Save as my schedule" writes them into the config entry
-   * through `apply_schedule`, and asks for confirmation first.
+   * "My usual schedule" is about *every* day: the hours the house is heated
+   * and the hot water demand windows. "Temperatures" holds the two setpoints
+   * those hours are measured against -- the comfort target and the usable hot
+   * water minimum. They are split because a lone temperature slider inside a
+   * section about scheduling reads as a stray control with no context; paired
+   * under a heading of their own, both are obviously the same kind of setting.
+   *
+   * All of it is priced per month against a copy of the configuration on the
+   * coordinator side, so exploring cannot disturb operation. Both temperature
+   * sliders are debounced, and deliberately share one timer: two independent
+   * debounces racing on one service call is how the delta ends up showing the
+   * price of the previous drag. The time fields apply on an explicit button,
+   * because editing a time range is not a drag gesture and half-typed times
+   * should not trigger a solve. "Save as my schedule" writes all of it into the
+   * config entry through `apply_schedule`, and asks for confirmation first.
    */
   _whatIfHtml() {
     if (!this._config.what_if) return "";
     const draft = this._whatIfDraft();
     const windows = draft.dhwWindows;
+    const setpoint = this._planAttr("dhw_setpoint", null);
+    const ceiling = this._dhwMinCeiling();
+    // Re-clamp on every render rather than only when the draft is seeded: the
+    // setpoint is configurable and may have moved since, and a slider whose
+    // maximum was computed against a stale setpoint is precisely the bug this
+    // item warns about. `clamped` is the value the user had *before* the clamp,
+    // and is non-null only when it genuinely had to be lowered -- silently
+    // reducing someone's hot water minimum deserves saying so out loud.
+    let clamped = null;
+    if (draft.dhwMin > ceiling) {
+      clamped = draft.dhwMin;
+      draft.dhwMin = ceiling;
+    }
     return `
       <div class="whatif">
         <div class="wi-section">
@@ -1016,15 +1091,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
             These are the recurring hours the optimizer plans against every
             day, not just today.
           </div>
-        <div class="wi-row">
-          <label class="wi-field">
-            <span>Comfort temperature</span>
-            <input type="range" class="wi-temp" min="16" max="24" step="0.5"
-              value="${draft.comfort}" aria-label="Comfort temperature">
-            <span class="wi-value">${draft.comfort.toFixed(1)}&nbsp;°C</span>
-          </label>
-        </div>
-
         <div class="wi-row wi-slots">
           <div class="wi-group">
             <div class="wi-group-title">Heating hours</div>
@@ -1078,6 +1144,51 @@ class HeatpumpOptimizerCard extends HTMLElement {
           nothing; saving replaces your configured schedule.
         </div>
         </div>
+
+        <div class="wi-section">
+          <div class="wi-group-title">Temperatures</div>
+          <div class="wi-hint">
+            How warm the house is kept during the heating day, and how cool the
+            hot water tank is allowed to get inside a demand window. Both are
+            priced the same way as the schedule above.
+          </div>
+          <div class="wi-row">
+            <label class="wi-field">
+              <span>Comfort temperature</span>
+              <input type="range" class="wi-temp" min="16" max="24" step="0.5"
+                value="${draft.comfort}" aria-label="Comfort temperature">
+              <span class="wi-value wi-comfort-value">${draft.comfort.toFixed(1)}&nbsp;°C</span>
+            </label>
+          </div>
+          <div class="wi-row">
+            <label class="wi-field">
+              <span>Minimum hot water</span>
+              <input type="range" class="wi-dhw-min" min="${DHW_MIN_FLOOR}"
+                max="${ceiling}" step="0.5" value="${draft.dhwMin}"
+                aria-label="Minimum hot water temperature">
+              <span class="wi-value wi-dhw-value">${draft.dhwMin.toFixed(1)}&nbsp;°C</span>
+            </label>
+          </div>
+          <div class="wi-hint">
+            ${
+              setpoint === null
+                ? `Capped at ${fmtTemp(ceiling)}&nbsp;°C, far enough below the
+                   hot water setpoint to leave the tank a band to work in.`
+                : `Capped at ${fmtTemp(ceiling)}&nbsp;°C: a
+                   ${fmtTemp(setpoint - ceiling)}&nbsp;°C band below the
+                   ${fmtTemp(setpoint)}&nbsp;°C setpoint, so the tank has room
+                   to work in instead of chasing its target.`
+            }
+          </div>
+          ${
+            clamped
+              ? `<div class="wi-hint wi-warn">Your saved minimum of
+                   ${fmtTemp(clamped)}&nbsp;°C is above that limit, so the
+                   slider shows ${fmtTemp(draft.dhwMin)}&nbsp;°C. Saving will
+                   store the lower value.</div>`
+              : ""
+          }
+        </div>
       </div>
     `;
   }
@@ -1091,6 +1202,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     if (!this._whatIf) {
       this._whatIf = {
         comfort: this._currentComfortTemp(),
+        dhwMin: this._currentDhwMin(),
         dayStart: this._planAttr("day_start_hour", 7),
         dayEnd: this._planAttr("day_end_hour", 22),
         dhwWindows: this._currentDhwWindows(),
@@ -1109,9 +1221,35 @@ class HeatpumpOptimizerCard extends HTMLElement {
     return this._planAttr("comfort_temp_day", 21);
   }
 
+  /** Current usable hot water minimum, as configured. */
+  _currentDhwMin() {
+    return Math.min(
+      this._planAttr("dhw_min_temperature", DHW_MIN_FALLBACK),
+      this._dhwMinCeiling()
+    );
+  }
+
+  /** Highest hot water minimum that still leaves a deadband under the setpoint.
+   *
+   * Computed by the integration and published on the plan sensor, so the margin
+   * exists in one place: the backend validates `apply_schedule` against the same
+   * number, and the card cannot drift away from it. The fallback only matters
+   * before the first plan arrives, when no setpoint has been published yet.
+   */
+  _dhwMinCeiling() {
+    const published = this._planAttr("dhw_min_temperature_max", null);
+    return published === null ? DHW_MIN_FALLBACK : published;
+  }
+
   _planAttr(name, fallback) {
     const st = this._stateOf(this._resolveEntity("space"));
-    const value = Number(((st && st.attributes) || {})[name]);
+    const raw = ((st && st.attributes) || {})[name];
+    // `Number(null)` is 0, and 0 is finite -- so without this guard an
+    // attribute the coordinator published as None would read as a real
+    // measurement of zero rather than "not known", silently producing a 0 °C
+    // comfort target or a hot water ceiling of nothing.
+    if (raw === null || raw === undefined || raw === "") return fallback;
+    const value = Number(raw);
     return Number.isFinite(value) ? value : fallback;
   }
 
@@ -1290,11 +1428,16 @@ class HeatpumpOptimizerCard extends HTMLElement {
 
     // Every control stops propagation: without it, a click inside the panel
     // reaches the card handler and toggles the expanded view underneath.
-    const slider = root.querySelector(".wi-temp");
-    if (slider) {
-      slider.addEventListener("input", this._onWhatIfInput);
-      slider.addEventListener("click", stop);
-    }
+    // Both temperature sliders share this handler, and therefore share the
+    // single debounce timer it sets. Giving each its own timer would let two
+    // solves race on one service call, and the delta would end up reporting the
+    // price of whichever drag happened to land second.
+    [".wi-temp", ".wi-dhw-min"].forEach((sel) => {
+      root.querySelectorAll(sel).forEach((slider) => {
+        slider.addEventListener("input", this._onWhatIfInput);
+        slider.addEventListener("click", stop);
+      });
+    });
     root.querySelectorAll("input[type=time]").forEach((el) => {
       el.addEventListener("click", stop);
       el.addEventListener("change", this._onSlotEdit);
@@ -1316,9 +1459,22 @@ class HeatpumpOptimizerCard extends HTMLElement {
     stop(ev);
     const value = Number(ev.target.value);
     if (!Number.isFinite(value)) return;
-    this._whatIfDraft().comfort = value;
+    const draft = this._whatIfDraft();
+    const target = ev.target || {};
+    const isDhw = !!(
+      target.classList &&
+      target.classList.contains &&
+      target.classList.contains("wi-dhw-min")
+    );
+    if (isDhw) draft.dhwMin = value;
+    else draft.comfort = value;
 
-    const label = this.shadowRoot.querySelector(".wi-value");
+    // Each readout carries its own class. There are two `.wi-value` spans now,
+    // so a lookup on the shared class would keep rewriting whichever came
+    // first regardless of which slider actually moved.
+    const label = this.shadowRoot.querySelector(
+      isDhw ? ".wi-dhw-value" : ".wi-comfort-value"
+    );
     if (label) label.textContent = `${value.toFixed(1)}\u00a0°C`;
 
     // Debounce so a drag does not fire a solve per pixel. The coordinator
@@ -1358,6 +1514,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     const d = this._whatIfDraft();
     return JSON.stringify([
       d.comfort,
+      d.dhwMin,
       d.dayStart,
       d.dayEnd,
       d.dhwWindows.map((w) => `${w.start}-${w.end}`),
@@ -1444,8 +1601,8 @@ class HeatpumpOptimizerCard extends HTMLElement {
       button.classList.add("confirm");
       out.className = "wi-result";
       out.textContent =
-        "This replaces your configured heating hours and hot water windows, " +
-        "and reloads the integration. Press again to confirm.";
+        "This replaces your configured heating hours, hot water windows and " +
+        "temperatures, and reloads the integration. Press again to confirm.";
       // Let the decision lapse rather than sit armed indefinitely: a stray
       // click minutes later should not rewrite the configuration.
       clearTimeout(this._saveTimer);
@@ -1463,6 +1620,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
         day_end_hour: draft.dayEnd,
         dhw_windows: formatWindows(draft.dhwWindows),
         comfort_temp_day: draft.comfort,
+        dhw_min_temperature: draft.dhwMin,
       });
       out.className = "wi-result cheaper";
       out.textContent =
@@ -1497,6 +1655,10 @@ class HeatpumpOptimizerCard extends HTMLElement {
     return {
       target_temp: draft.comfort,
       comfort_temp_day: draft.comfort,
+      // Already accepted by SERVICE_SCHEMA_SIMULATE_PLAN and applied to the
+      // scratch parameters by the coordinator, so pricing this needs no
+      // backend change; only the save path below did.
+      dhw_min_temperature: draft.dhwMin,
       day_start_hour: draft.dayStart,
       day_end_hour: draft.dayEnd,
       // Deliberately sent even when empty: an empty schedule is a legitimate
@@ -1625,6 +1787,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
       svg.addEventListener("touchend", this._onPointerLeave);
     });
 
+    this._attachViewControls(root);
     this._attachWhatIf(root);
     this._attachSlotActions(root);
     this._attachSlotEditing(root);
@@ -1692,6 +1855,30 @@ class HeatpumpOptimizerCard extends HTMLElement {
         .chip.off { opacity: 0.4; text-decoration: line-through; }
         .chip.nodata { cursor: not-allowed; opacity: 0.3; }
         .chartwrap { position: relative; width: 100%; }
+        /* Overlaid on the chart so the row costs no layout height -- the
+           expanded dialog's height budget is already the tight one. Kept out of
+           the top-right corner, which the solar axis uses. */
+        .viewctl {
+          position: absolute; top: 4px; left: 50%; transform: translateX(-50%);
+          display: flex; gap: 2px; z-index: 4;
+          opacity: 0; transition: opacity 120ms ease-in-out;
+        }
+        .chartwrap:hover .viewctl,
+        .viewctl:focus-within { opacity: 1; }
+        /* No hover on touch, so the controls have to be permanently visible
+           there: they are the only way to zoom without a trackpad. */
+        @media (hover: none) {
+          .viewctl { opacity: 1; }
+        }
+        .viewctl button {
+          width: 1.7em; height: 1.7em; padding: 0; line-height: 1;
+          font: inherit; font-size: 0.85em; cursor: pointer;
+          border: 1px solid var(--divider-color, #ccc); border-radius: 0.35em;
+          background: var(--card-background-color, #fff);
+          color: var(--primary-text-color);
+        }
+        .viewctl button:disabled { opacity: 0.4; cursor: default; }
+        .chartwrap.pannable svg { cursor: grab; }
         svg { width: 100%; height: auto; display: block; touch-action: none; }
         .empty {
           padding: 28px 12px; text-align: center;
@@ -1846,6 +2033,12 @@ class HeatpumpOptimizerCard extends HTMLElement {
         .whatif .wi-hint {
           font-size: 0.85em; color: var(--secondary-text-color);
           line-height: 1.35em;
+        }
+        /* A stored value the setpoint no longer allows. Warning rather than
+           error: nothing is broken, but the number on screen is not the number
+           that was saved, and that must not pass unremarked. */
+        .whatif .wi-hint.wi-warn {
+          color: var(--warning-color, #d98e00);
         }
         .whatif .wi-windows {
           display: flex; flex-direction: column; gap: 0.4em;
@@ -2187,6 +2380,259 @@ class HeatpumpOptimizerCard extends HTMLElement {
     if (box) box.innerHTML = this._deltaHtml();
   }
 
+  /** Wheel over the chart: pinch to zoom, two fingers sideways to pan.
+   *
+   * A plain vertical wheel is deliberately left alone. The card sits in a
+   * dashboard the user scrolls, and a chart that swallowed the scroll wheel
+   * would trap the page the moment the pointer crossed it. Trackpad pinch
+   * arrives as a wheel with `ctrlKey` set, which is the gesture people already
+   * expect to zoom.
+   */
+  _onChartWheel(ev) {
+    if (!this._viewAdjustable()) return;
+    const zooming = ev.ctrlKey || ev.metaKey;
+    const sideways = Math.abs(ev.deltaX) > Math.abs(ev.deltaY);
+    const panning = !zooming && (ev.shiftKey || sideways);
+    if (!zooming && !panning) return;
+    if (ev.preventDefault) ev.preventDefault();
+    stop(ev);
+
+    if (zooming) {
+      const at = this._timeAtClientX(ev.currentTarget, ev.clientX);
+      this._zoomView(ev.deltaY > 0 ? VIEW_ZOOM_STEP : 1 / VIEW_ZOOM_STEP, at);
+      return;
+    }
+    const span = this._viewSpan();
+    const delta = sideways ? ev.deltaX : ev.deltaY;
+    this._panView((delta / 600) * span);
+  }
+
+  /** The span currently on screen, view or default. */
+  _viewSpan() {
+    if (this._view) return this._view.span;
+    const lim = this._viewLimits;
+    return lim ? lim.defaultEnd - lim.floor : 1;
+  }
+
+  /** The window currently on screen, as the zoom and pan maths sees it. */
+  _viewCurrent() {
+    const lim = this._viewLimits;
+    if (this._view) return this._view;
+    return { start: lim.floor, span: lim.defaultEnd - lim.floor };
+  }
+
+  /** Drag the chart background sideways to pan.
+   *
+   * Only the background: a pointerdown that landed on a lane belongs to the
+   * slot editor, and stealing it would make slots undraggable. The move and up
+   * handlers go on `window` rather than the svg because panning re-renders,
+   * which replaces the element the gesture started on -- listeners bound to it
+   * would stop firing halfway through the drag.
+   */
+  _onPanDown(ev) {
+    if (!this._viewAdjustable()) return;
+    if (((ev.target || {}).dataset || {}).channel) return;
+    const svg = ev.currentTarget;
+    const rect = svg && svg.getBoundingClientRect ? svg.getBoundingClientRect() : null;
+    if (!rect || !rect.width) return;
+    // `_geom` only exists while the lanes do (what_if enabled). Without it,
+    // fall back to the nominal plot width rather than the whole viewBox, or a
+    // drag would track noticeably slower than the pointer.
+    const plotW = this._geom
+      ? this._geom.plotW
+      : VIEW_W - MARGIN.left - MARGIN.right;
+    const pxPerViewUnit = rect.width / VIEW_W;
+    const plotPx = plotW * pxPerViewUnit;
+    if (!plotPx) return;
+
+    // Without this the drag selects the axis labels and, on some browsers,
+    // starts a native image drag of the svg.
+    if (ev.preventDefault) ev.preventDefault();
+    const pan = {
+      last: ev.clientX,
+      perPx: this._viewSpan() / plotPx,
+      moved: false,
+      move: null,
+      up: null,
+    };
+    pan.move = (moveEv) => {
+      const dx = moveEv.clientX - pan.last;
+      if (!dx) return;
+      pan.last = moveEv.clientX;
+      // A drag only counts as a pan once it has actually moved, so a plain
+      // click on the chart still opens the expanded view.
+      pan.moved = true;
+      // Drag left to move forward in time: the content follows the pointer.
+      this._panView(-dx * pan.perPx);
+    };
+    pan.up = () => {
+      if (pan.moved) this._suppressClick = true;
+      this._pan = null;
+      if (typeof window === "undefined") return;
+      window.removeEventListener("pointermove", pan.move);
+      window.removeEventListener("pointerup", pan.up);
+      window.removeEventListener("pointercancel", pan.up);
+    };
+    this._pan = pan;
+    if (typeof window !== "undefined") {
+      window.addEventListener("pointermove", pan.move);
+      window.addEventListener("pointerup", pan.up);
+      window.addEventListener("pointercancel", pan.up);
+    }
+  }
+
+  /** Zoom and reset buttons: the keyboard- and touch-reachable path.
+   *
+   * Wheel and drag cover a trackpad, but neither is available to someone on a
+   * phone or tabbing through the card, and a zoom that only exists as a gesture
+   * is a zoom half the users never find.
+   */
+  _viewControlsHtml() {
+    if (!this._viewAdjustable()) return "";
+    const zoomed = this._view !== null;
+    return `
+      <div class="viewctl">
+        <button type="button" class="vc-out" title="Zoom out"
+          aria-label="Zoom out">&minus;</button>
+        <button type="button" class="vc-in" title="Zoom in"
+          aria-label="Zoom in">+</button>
+        <button type="button" class="vc-reset" title="Show the whole plan"
+          aria-label="Show the whole plan"${zoomed ? "" : " disabled"}>&#8634;</button>
+      </div>`;
+  }
+
+  _attachViewControls(root) {
+    this._chartSvgs(root).forEach((svg) => {
+      svg.addEventListener("wheel", this._onChartWheel, { passive: false });
+      svg.addEventListener("pointerdown", this._onPanDown);
+    });
+    const wire = (sel, fn) =>
+      root.querySelectorAll(sel).forEach((el) =>
+        el.addEventListener("click", (ev) => {
+          stop(ev);
+          fn();
+        })
+      );
+    wire(".vc-in", () => this._zoomView(1 / VIEW_ZOOM_STEP, null));
+    wire(".vc-out", () => this._zoomView(VIEW_ZOOM_STEP, null));
+    wire(".vc-reset", () => this._resetView());
+  }
+
+  /** Narrow the default window to the panned/zoomed view, and record its limits.
+   *
+   * Called on every build so the limits track incoming data: the plan's extent
+   * moves forward as new forecasts arrive, and a view clamped against the
+   * extent of ten minutes ago would slowly drift out of range.
+   *
+   * Returns the default window untouched while `_view` is null, so a card
+   * nobody has interacted with renders exactly as it did before this existed.
+   */
+  _applyView(defaultStart, defaultEnd, dataEnd) {
+    const defaultSpan = Math.max(defaultEnd - defaultStart, 1);
+    // Zooming out stops at the plan, not at the configured plot width:
+    // `cfg.hours` goes up to a week, while the optimizer's horizon defaults to
+    // 24 h, and the difference is empty chart.
+    const maxSpan = Math.max(
+      Math.min(defaultSpan, Math.max(dataEnd - defaultStart, VIEW_MIN_SPAN_MS)),
+      VIEW_MIN_SPAN_MS
+    );
+    const minSpan = Math.min(VIEW_MIN_SPAN_MS, maxSpan);
+    // The right edge the window may not pass: the plan's end, and never beyond
+    // the configured plot width.
+    const rightBound = Math.max(
+      Math.min(dataEnd, defaultEnd),
+      defaultStart + minSpan
+    );
+    // `defaultEnd` is kept as well as `rightBound`: the two differ whenever the
+    // configured plot window is wider than the plan, and a zoom that mistook
+    // the plan's extent for what is currently on screen would compute its
+    // anchor against a window the user is not looking at.
+    this._viewLimits = {
+      floor: defaultStart,
+      defaultEnd,
+      rightBound,
+      minSpan,
+      maxSpan,
+    };
+
+    if (!this._view) return { start: defaultStart, end: defaultEnd };
+
+    const span = clampNum(this._view.span, minSpan, maxSpan);
+    const maxStart = Math.max(defaultStart, rightBound - span);
+    const start = clampNum(this._view.start, defaultStart, maxStart);
+    this._view = { start, span };
+    return { start, end: start + span };
+  }
+
+  /** Whether panning and zooming can do anything at all.
+   *
+   * With a plan no longer than the minimum span there is nothing to pan across
+   * and nothing to zoom out to, and controls that cannot move are worse than
+   * no controls.
+   */
+  _viewAdjustable() {
+    const lim = this._viewLimits;
+    return !!lim && lim.rightBound - lim.floor > lim.minSpan * 1.05;
+  }
+
+  /** Zoom by `factor`, holding the time under `anchorT` still.
+   *
+   * Anchoring matters: zooming around the window centre walks whatever the user
+   * is pointing at off the screen, which makes repeated zooming feel like it is
+   * fighting back.
+   */
+  _zoomView(factor, anchorT) {
+    const lim = this._viewLimits;
+    if (!lim) return;
+    const current = this._viewCurrent();
+    const span = clampNum(current.span * factor, lim.minSpan, lim.maxSpan);
+    const anchor =
+      anchorT === undefined || anchorT === null
+        ? current.start + current.span / 2
+        : clampNum(anchorT, current.start, current.start + current.span);
+    // Keep the anchor at the same fraction across the window.
+    const frac = (anchor - current.start) / (current.span || 1);
+    this._view = { start: anchor - frac * span, span };
+    this._renderView();
+  }
+
+  /** Slide the window by `deltaMs`, without changing its span. */
+  _panView(deltaMs) {
+    const lim = this._viewLimits;
+    if (!lim) return;
+    const current = this._viewCurrent();
+    this._view = { start: current.start + deltaMs, span: current.span };
+    this._renderView();
+  }
+
+  _resetView() {
+    if (!this._view) return;
+    this._view = null;
+    this._renderView();
+  }
+
+  /** Redraw after a view change, at most once per frame.
+   *
+   * A view change moves every series, not just the lanes, so unlike a slot drag
+   * there is nothing narrower to refresh. `_render` replaces the shadow root,
+   * which is why the pan gesture listens on the window rather than on the svg:
+   * the element under the pointer is gone by the next event.
+   */
+  _renderView() {
+    if (this._viewFrame) return;
+    const run = () => {
+      this._viewFrame = 0;
+      // Deliberately not clearing `_sig`: it is what stops the next data
+      // refresh from throwing away an in-progress slot edit, and a view change
+      // is not a reason to discard the draft the user is arranging.
+      this._render();
+    };
+    this._viewFrame =
+      typeof requestAnimationFrame === "function"
+        ? requestAnimationFrame(run)
+        : setTimeout(run, 16);
+  }
+
   /** Turn a screen x into a time on the chart's axis.
    *
    * The chart is drawn in a fixed viewBox and stretched to fit, so screen
@@ -2436,6 +2882,11 @@ class HeatpumpOptimizerCard extends HTMLElement {
       }
 
       (runs[spec.channel] || []).forEach((run, index) => {
+        // Zooming can put a run wholly outside the window. Clamping alone would
+        // collapse it onto the edge and leave a one-pixel sliver pretending to
+        // be a slot, so drop it instead. `index` still refers to its place in
+        // the full array, which is what hit-testing and editing use.
+        if (run.end <= windowStart || run.start >= windowEnd) return;
         const x1 = clampX(run.start);
         const x2 = clampX(run.end);
         const w = Math.max(1, x2 - x1);
@@ -2651,6 +3102,12 @@ class HeatpumpOptimizerCard extends HTMLElement {
   _onCardClick(ev) {
     // Ignore clicks that a control has already handled, and text selection.
     if (ev && ev.defaultPrevented) return;
+    // A pan ends with a click on the chart. Without this, dragging the plan
+    // sideways would open the expanded view every time the drag finished.
+    if (this._suppressClick) {
+      this._suppressClick = false;
+      return;
+    }
     const sel = this.shadowRoot && this.shadowRoot.getSelection
       ? this.shadowRoot.getSelection()
       : null;
