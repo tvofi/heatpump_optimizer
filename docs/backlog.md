@@ -1515,6 +1515,39 @@ which is worth knowing before, not after.
 > 6.7 kW house load. Pump capacity is configurable and 14 kW is ordinary
 > (the user's own). Re-tested at 14 kW the tank still never charges.
 >
+> ### Answered (audit, 2026-08-23): the discharge law is why
+>
+> The audit ran the gradient instrumentation suggested above and found the
+> answer, in two parts.
+>
+> **Part one, fixed on the audit branch.** With no valve target configured the
+> fallback target was `house_temp + 1.0` — a *receding* target. As the house
+> warms toward it, it moves up in step, so delivery never falls below demand
+> and the surplus never diverts to the tank. The default target is now the
+> comfort ceiling (`ThermalParameters.comfort_ceiling`), which is what
+> `recommend_target()` recommends and what makes a dumb valve store at all.
+>
+> **Part two, still open, and the real answer.** The model *discharges* the
+> tank with the valve wide open at the raw tank temperature: emitter delivery
+> is computed from the tank temperature itself, not from the mixed flow
+> temperature the valve produces. A 40-45 °C tank against 21 °C rooms then
+> dumps on the order of 26 kW, so anything the plan stores is gone within a
+> step or two of the pump stopping — and, decisively, the tank's end state is
+> nearly plan-independent: every candidate trajectory relaxes to the same
+> discharged tank well before the horizon ends. The terminal credit therefore
+> has ~zero gradient with respect to charging power, and L-BFGS-B correctly
+> concludes that charging buys nothing. The optimizer is not refusing to
+> charge; the model is telling it storage does not work.
+>
+> **Suggested fix.** Bound discharge by what the emitters can actually accept
+> at the *mixed* flow temperature — `q_discharge ≤ emitter_output(T_mix)`,
+> with `T_mix` set by the valve target — so stored heat leaves the tank at
+> house-demand rate, survives to the terminal state, and the credit gets a
+> gradient. While in there, make the valve P-gain dt-invariant: the current
+> `DEFAULT_VALVE_GAIN = 0.5` closes half the remaining gap per *step*, so the
+> effective control bandwidth silently changes with `time_step_minutes`;
+> express it per hour instead.
+>
 > ### Outstanding pieces of this item
 >
 > - **`smart_write` mode.** Not shipped: it needs an actuation path to command
