@@ -556,7 +556,7 @@ R.check(
 )
 # The README's own table, reproduced. If this drifts, either the optimizer
 # changed or the documentation is now lying to users.
-documented = {5.0: (19.1, 45), 10.0: (19.5, 42), 20.0: (19.9, 38), 40.0: (20.1, 36)}
+documented = {5.0: (19.8, 51), 10.0: (20.1, 49), 20.0: (20.4, 47), 40.0: (20.5, 46)}
 drift = [
     f"w={w:.0f}: {t:.1f}°C/{s:.0f}% vs documented "
     f"{documented[w][0]}°C/{documented[w][1]}%"

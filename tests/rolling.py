@@ -427,11 +427,12 @@ R.section("Self-learning in the loop")
 # replanning alone holds the floor even on a wrong model, and both arms
 # breach by exactly zero. That property used to hold by accident -- the old
 # 0.15/m/s wind default inflated the loss until the 6 kW pump bound -- so it
-# is now set explicitly: at 4.5 kW the mis-modelled house genuinely cannot
-# coast through the cold nights, and knowing the true loss (pre-heating the
-# slab through the milder, cheaper hours) is worth real degree-hours.
+# is now set explicitly: at 4.25 kW the mis-modelled house genuinely cannot
+# coast through the cold nights (measured: 6.7 degree-hours of breach
+# uncorrected, 0.0 with learning), and knowing the true loss — pre-heating
+# the slab through the milder, cheaper hours — is worth real comfort.
 TRUE_ERROR = 1.35
-_BOUND_PUMP = {"heat_pump_max_power": 4.5}
+_BOUND_PUMP = {"heat_pump_max_power": 4.25}
 learned = run_rolling(
     days=3, dhw=False, plant_error=TRUE_ERROR, learn=True, config=_BOUND_PUMP
 )

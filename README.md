@@ -1200,10 +1200,10 @@ of 17 °C:
 
 | Comfort weight | Average room temp | Savings |
 |---|---|---|
-| 5 (default) | 19.1 °C | 45% |
-| 10 | 19.5 °C | 42% |
-| 20 | 19.9 °C | 38% |
-| 40 | 20.1 °C | 36% |
+| 5 (default) | 19.8 °C | 51% |
+| 10 | 20.1 °C | 49% |
+| 20 | 20.4 °C | 47% |
+| 40 | 20.5 °C | 46% |
 
 If the house feels cooler than you want, raise this value or raise your minimum
 temperature. Both work, and both trade savings for warmth.
