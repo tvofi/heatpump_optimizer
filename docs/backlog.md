@@ -2,22 +2,45 @@
 
 Started at the end of the v2.7.0 release session, kept up to date since.
 
-**Status as of v3.6.0. Items 1-21 are all done**, released across v2.8.0,
-v2.9.0 and v3.0.0. **Items 22-26 and 30-31 are now done too** (see the notes
-appended to each). **Items 27-29 are open** -- the deferred wood-furnace
-cluster, plus **items 32 and 33**, two visual-setup features added 2026-08-23.
+**Status as of v3.7.1.** Items 1-26 and 30-31 are done, released across v2.8.0
+through v3.6.0. See the notes appended to each item for what was actually built
+and what was found along the way.
 
-Scope decision (user, 2026-08-23): 26, 24+25, 30 and 31 are being done now, one
-PR each. The wood-furnace cluster (27-29) is deferred and will be re-planned
-once item 27's modelling fork is settled -- the decision and the verification
-are recorded under item 27.
+### What is actually left, shortest first
+
+- **Delete `get_state_matrices`** (item 27). Dead code, zero callers, and now
+  inconsistent with the model it shadows.
+- **Surface the dumb-valve recommendation** (item 29).
+  `mixing_valve.recommend_target()` exists and nothing calls it.
+- **A tank size threshold** (item 27). Small tanks should stop being treated as
+  stores.
+- **`buffer_max_temp` as a hard constraint in the solve** (item 29). Latent
+  today; a real hole once the optimizer charges.
+- **Find out why the optimizer will not charge** (item 29). Open question, and
+  the one the whole feature turns on.
+- **`smart_write` valve mode** (item 29). Needs an actuation path.
+- **Item 28**, the wood furnace, in full. Independent of the above.
+- **Items 32 and 33**, the setup diagram and the card page.
+
+**Item 29 is partly built** and has a status block below: the mixing valve, the
+chargeable tank and the COP flow term all shipped in v3.6.1-v3.7.1, but the
+optimizer still does not deliberately charge, and several pieces of the item are
+outstanding. **Item 27 is partly built** through the same work. **Item 28 has not
+been started.** **Items 32 and 33** were added 2026-08-23 and are planned but not
+built.
+
+Scope decision (user, 2026-08-23): 26, 24+25, 30 and 31 were done first, one PR
+each, and all shipped. The wood-furnace cluster (27-29) was deferred, re-planned
+once item 27's modelling fork was settled, and then partly built -- see the
+status blocks on 27 and 29.
 
 Items 27-31 are one cluster, added 2026-08-23, about a house with a wood
-furnace, a second buffer tank and a mixing valve. **Item 27 is a modelling bug
-and blocks 28 and 29.** Read them in order: 27 is why the tank cannot store
-anything today, 29 is why a mixing valve means it could, and 28 is the sensors
-that would tell it what the furnace is doing. Together they are a release of
-their own, not an afternoon.
+furnace, a second buffer tank and a mixing valve. **Item 27 was a modelling bug
+blocking 28 and 29**, and its physics half is now fixed. Read them in order: 27
+is why the tank could not store anything, 29 is why a mixing valve means it can,
+and 28 is the sensors that would tell it what the furnace is doing. They were
+correctly judged a release of their own rather than an afternoon -- 27 and 29
+together took five releases (v3.6.1 through v3.7.1) and are still not finished.
 
 **Items 30 and 31 are a chain and should be done first.** Item 30 is a second
 modelling bug in the two-zone lower floor; item 31 adds learning for the
@@ -1194,6 +1217,28 @@ Two notes for whoever touches the chart tests next:
 
 ## 27. The buffer tank is in the state vector but is not a store
 
+> ## Status, 2026-08-23 (v3.7.1). Partly built.
+>
+> **Done.** The tank is a real store when a mixing valve exists: draw is
+> decoupled from supply, the standby loss is physical at any size, and the
+> optimizer can see stored tank heat. See item 29's status block for the detail
+> and for what is still unexplained.
+>
+> **Outstanding, and both are things this item specifically asked for:**
+>
+> - **No size threshold.** The user's decision was "make it a real store when the
+>   tank is large enough, and behave appropriately when it is configured so small
+>   it is not a viable store". Only the first half exists. A 35 L tank is
+>   currently treated exactly like a 750 L one, despite being worth about 0.8 kWh
+>   over a 20 K swing -- below the resolution of a single 15-minute step. The
+>   honest behaviour at that size is to stop pretending it is a store.
+> - **`get_state_matrices` is still dead and still contradictory.** This item says
+>   plainly: reconcile both models or delete the dead one, and do not fix one and
+>   leave the other. That is exactly what happened -- `_simulate_step_two_zone`
+>   was fixed and `_get_state_matrices_two_zone` was not, so the two now disagree
+>   more than before. It has zero callers repo-wide. Deleting it is the cheaper
+>   half of the choice.
+>
 > **Decision and verification, 2026-08-23. Read this before the item text.**
 >
 > **User decision:** make the tank a real store *when it is large enough to be
@@ -1290,6 +1335,33 @@ need reviewing rather than re-baselining blind.**
 
 ## 28. Wood furnace: a second buffer tank and a mixing valve
 
+> **Status, 2026-08-23: not started.** Nothing in this item has been built. It is
+> independent of items 27 and 29 -- its value does not depend on the charging
+> problem being solved -- so it can be picked up on its own.
+>
+> Two corrections to the item text, from reading the code while working on 29:
+>
+> - **It undercounts the consumers of `external_heat_active`.** The item says
+>   "exactly one consumer". There are five, and the largest by reach is
+>   `_learning_frozen`, which freezes **six** learners whenever a fire is active
+>   *or fading* -- for the full 90-minute decay, not just while burning.
+> - **That creates a conflict worth planning for.** On a house that fires
+>   regularly -- exactly this topology -- the COP learner is frozen precisely when
+>   the interesting tank temperatures occur. Fitting anything from this house's
+>   own data is therefore partly blocked by this item's own detector.
+>
+> Also note `confidence` on `ExternalHeatState` must **not** be repurposed as the
+> displacement factor. It is continuous in type but means "how recently", not
+> "how much": `_activate` sets it to exactly 1.0 regardless of fire intensity and
+> `_decay` overwrites it on every non-confirming sample. Add a separate field.
+>
+> And `tests/backtest.py` cannot represent a fire at all today:
+> `external_heat_active` is a scalar bool on the *initial state*, not a per-step
+> array, and `simulate_trajectory` has no free-heat injection input. Sizing this
+> item needs a per-step `external_thermal_kw` threaded through the model, which
+> is a bigger harness change than anything item 29 needed.
+
+
 Asked by the user, 2026-08-23: *"I have a wood furnace heating a separate buffer
 tank. Water from both tanks is mixed by an automatic valve, wood prioritised,
 gradually switching to 100% heat pump tank as the wood tank cools. I have a
@@ -1376,70 +1448,93 @@ which is worth knowing before, not after.
 
 ## 29. The buffer tank as a controllable thermal battery (mixing valve setups)
 
-> **Blocker 3 was misdiagnosed, and the real defects are fixed (v3.7.1) --
-> but the optimizer still does not charge.** Read this before trusting the
-> blocker list.
+> ## Status, 2026-08-23 (v3.7.1). Read this before the item text.
 >
-> The predicted cause was seeding: `_price_ranked_start` budgets exactly
-> baseline energy, so no seed can express buying above it. **That is not the
-> blocker.** Measured: a storage-aware seed, a double-capacity seed, and even
-> full power throughout all descend to the same plan as the existing seeds
-> (88.49 / 88.66 / 89.23 / 88.75 on the same objective). Adding seeds does
-> nothing.
+> **Shipped.** The mixing valve and its control law (v3.7.0), the buffer tank's
+> standby loss (v3.6.1), the Carnot COP flow-temperature term (v3.7.0), and the
+> optimizer's ability to see stored tank heat (v3.7.1).
 >
-> Two real defects were found instead, both now fixed:
+> **The headline goal is not met: the optimizer still does not deliberately
+> charge the tank.** Everything below is either a step towards that or a thing
+> ruled out on the way.
 >
-> 1. **The tank was credited against the *slab's* settlement cap.** With a slab
->    ceiling near 28 C, charging a tank from 45 C to 70 C was credited with
->    **0.0 kWh of the 21.8 kWh actually stored**. The tank now has its own cap,
->    its `buffer_max_temp`, since the reasoning behind the slab cap -- that
->    passive overheating is not charge -- does not transfer to a tank that only
->    gets hot deliberately and cannot overheat anything through the valve.
-> 2. **The objective's terminal cost never saw the tank at all.**
->    `_terminal_cost` listed upper, lower and slab; `simulate_trajectory`
->    computed the buffer trajectory and discarded it. So charging was pure cost
->    with no modelled benefit no matter what the settlement cap said.
+> ### The three blockers this item recorded
 >
-> Both fixes are measurable -- plans now end with the tank at 26-28 C instead of
-> 18-21 C -- and both are inert without a valve, so golden is unchanged.
+> **Blocker 1 -- no valve, so surplus cannot reach the tank. FIXED (v3.7.0).**
+> `mixing_valve.py` holds the control law: delivery is what the house asks for,
+> and the surplus goes to the tank. Measured at 750 L over 6 h at -5 C with a
+> 23 C target: at 9 kW the tank charges 45 -> 70 C (its cap) while the house is
+> held at 23.2 C. Without a valve the same power leaves the tank at 44.2 C
+> regardless and drives the house to 30.3 C instead. Modes shipped: `none`
+> (default, unchanged), `manual`, `smart_read`.
 >
-> **It still never charges above its starting temperature.** Checked across
-> winter_cold / winter_mild / shoulder, winter_typical / winter_extreme, and with
-> the comfort band squeezed to 0.2 K so the slab has no headroom left. Charging is
-> physically reachable: sustained full power takes the tank to 60.8 C. So the
-> optimizer is choosing not to, and at least one mechanism remains unidentified.
+> **Blocker 2 -- standby loss wrong by 30x for a large tank. FIXED (v3.6.1).**
+> UA follows surface area (volume^(2/3)), so the cooling rate falls as
+> volume^(-1/3). Both the prior and the learner's clamp are now derived from tank
+> geometry and a plausible insulation range, so a real accumulator (~2 W/K at
+> 750 L) is reachable instead of floored around 17 W/K.
 >
-> **A retracted claim.** An earlier note here blamed limited pump capacity -- at
-> -12 C the fixture's 6 kW pump gives 9.4 kW thermal against a 6.7 kW house load.
-> That was an artefact of the test fixture. Pump capacity is configurable and 14
-> kW is ordinary; re-tested at 14 kW the tank still never charges, so capacity is
-> not the explanation.
-
-> **Blocker 1 is fixed (v3.7.0).** `mixing_valve.py` adds the control law: with
-> a valve, delivery is what the house asks for and the surplus goes to the tank.
-> Measured in the model at 750 L, 6 h, -5 C outdoor, target 23 C: at 9 kW the
-> tank charges 45 -> 70 C (the cap) while the house is held at 23.2 C. Without a
-> valve the same power leaves the tank at 44.2 C regardless and drives the house
-> to 30.3 C instead. Modes shipped: `none` (default, unchanged), `manual`,
-> `smart_read`. `smart_write` needs an actuation path and lands with it -- a mode
-> that cannot do what its name says is worse than one that is absent.
+> **Blocker 3 -- seeding. MISDIAGNOSED.** `_price_ranked_start` does budget
+> exactly baseline energy, and that is *not* what stops charging. Measured on the
+> same objective, a storage-aware seed, a double-capacity seed and full power
+> throughout all descend to the same plan as the existing seeds: 88.49 / 88.66 /
+> 89.23 / 88.75. Adding seeds changes nothing.
 >
-> The COP flow-temperature term ships with it, Carnot-derived, and follows the
-> mode rather than being separately switched: it only means anything when a valve
-> can actually charge the tank.
+> **Two real defects were found in its place, both fixed (v3.7.1):**
 >
-> **Blocker 3 remains:** `_price_ranked_start` budgets exactly baseline energy,
-> so no seed can express buying above what a thermostat would use -- which is
-> what charging is. The physics now permits storage; the solver still has to be
-> given a way to find it.
-
-> **Blocker 2 is fixed (v3.6.1).** The standby loss now follows surface area
-> rather than volume, and the learner's clamp is derived from how well a tank of
-> that size could plausibly be insulated, so a real accumulator (~2 W/K at
-> 750 L) is reachable instead of being floored around 17 W/K. The prior is
-> derived the same way; the old flat 6 C/h worked out at 9.7 W/K on a 35 L tank,
-> which is worse than a bare uninsulated cylinder. Blockers 1 and 3 remain.
-
+> - The tank was credited against the *slab's* settlement cap. With a slab
+>   ceiling near 28 C, charging 45 -> 70 C was credited with **0.0 kWh of the
+>   21.8 kWh actually stored**. The tank now has its own cap. The slab cap exists
+>   to stop passive overheating counting as charge; that reasoning does not
+>   transfer to a tank that only gets hot deliberately and cannot overheat
+>   anything through the valve.
+> - The objective's terminal cost never saw the tank at all. `_terminal_cost`
+>   listed upper, lower and slab; `simulate_trajectory` computed the buffer
+>   trajectory and discarded it. So charging was pure cost with no modelled
+>   benefit *whatever the cap said* -- fixing the cap alone would have achieved
+>   nothing.
+>
+> Both are measurable: plans now end with the tank at 26-28 C instead of 18-21 C.
+> Both are gated on a valve existing, so golden is unchanged.
+>
+> ### Still unexplained
+>
+> The tank never charges above its starting temperature. Ruled out: seeding,
+> settlement caps, terminal cost, comfort headroom (checked down to a 0.2 K
+> band), weather (winter_cold / winter_mild / shoulder), price profile
+> (winter_typical / winter_extreme), and pump capacity. Charging is physically
+> reachable -- sustained full power takes the tank to 60.8 C -- so the optimizer
+> is choosing not to.
+>
+> Suggested next step, which is a different kind of investigation from the ones
+> already run: instrument the objective's gradient with respect to power at the
+> chosen operating point and find which term opposes the terminal credit.
+>
+> **A retracted claim.** Limited pump capacity was blamed at one point, on the
+> basis that at -12 C the fixture's 6 kW pump gives 9.4 kW thermal against a
+> 6.7 kW house load. Pump capacity is configurable and 14 kW is ordinary
+> (the user's own). Re-tested at 14 kW the tank still never charges.
+>
+> ### Outstanding pieces of this item
+>
+> - **`smart_write` mode.** Not shipped: it needs an actuation path to command
+>   the valve's controller. A mode that cannot do what its name says is worse
+>   than one that is absent, and adding the option later needs no migration.
+> - **The dumb-valve recommendation is not surfaced.**
+>   `mixing_valve.recommend_target()` computes it and explains the trade-off, and
+>   nothing calls it. The item asks for the integration to *recommend* a setting;
+>   right now it can and tells nobody. A diagnostic sensor is the obvious home.
+> - **`buffer_max_temp` is not a hard constraint in the solve.** It clamps the
+>   model and caps the settlement, but this item is explicit that it must not be
+>   a soft penalty and should follow the `_SAFETY_REPAIR_ROUNDS`
+>   release-and-re-solve pattern. It does not yet. Latent while nothing charges;
+>   a real hole the moment that changes. Note the existing loop only ever
+>   *relaxes* bounds and the pin encoding cannot express "cap this step".
+> - **Empirical sizing.** Deferred to after implementation, and still blocked on
+>   the charging problem. `tests/profiles.py` gained `winter_moderate` (0.51) and
+>   `winter_narrow` (0.70) so that a future measurement straddles the 0.75
+>   break-even instead of sitting far inside it like every other profile.
+>
 > **Sizing spike, 2026-08-23. Read this before the item text — it corrects two
 > things below and answers the "measure before building" question.**
 >
@@ -2077,6 +2172,9 @@ which is the check that the ratio really is identity at its default.
 
 ## 32. "Easy mode": a visual setup diagram in the config flow
 
+> **Status, 2026-08-23: planned, not built.**
+
+
 Asked by the user, 2026-08-23: *"Create an intuitive easy mode in the config
 flow, where a graphic element shows a stylized version of your configured setup.
 House type, one/two-zone, DHW tank or not, buffer tank or not, external heat
@@ -2118,6 +2216,9 @@ worse than no diagram, because it looks complete. Show the *slots* a setup could
 have and mark the empty ones -- the point is to reveal what is missing.
 
 ## 33. The same diagram on the card, with live values
+
+> **Status, 2026-08-23: planned, not built.**
+
 
 Asked by the user, 2026-08-23: *"Add a similar graphic element to a new page in
 the card, where you can view your setup and read live values off all sensors
