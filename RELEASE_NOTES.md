@@ -1,5 +1,19 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v3.4.1
+
+### Fixed: two axis labels ran into each other
+
+In the enlarged chart, with solar irradiance switched on, the electricity price
+axis is labelled **SEK/kWh** and the solar axis **W/m²** — and the two ran
+through each other, overlapping by about a fifth of the price label.
+
+The space between those two axes is a fixed width, but the text is not: the
+enlarged view uses a larger font, and at that size the price label no longer
+fits the gap. The label is now measured, and when it will not fit it is placed
+on the other side of its own axis line, where there is empty space above the
+chart. Nothing moves when there is room, and the solar label never moves at all.
+
 ## v3.4.0
 
 Two-zone houses can now tell the optimizer what the lower floor is actually

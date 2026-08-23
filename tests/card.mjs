@@ -811,6 +811,91 @@ for (const expanded of [false, true]) {
     bad.join("; "));
 }
 
+// The value-axis titles have the same problem as the time labels, in the one
+// place the chart puts two axes on one side. The gap between the price axis and
+// the solar axis is a fixed 46 viewBox units and does not grow with the font, so
+// at the expanded size "SEK/kWh" is wider than the space it has and used to run
+// straight through "W/m2".
+const axisTitles = (svg) => {
+  const out = [];
+  const re =
+    /<text x="([-\d.]+)" y="([-\d.]+)" font-size="([\d.]+)" text-anchor="(\w+)"[^>]*>([^<]*)<\/text>/g;
+  let m;
+  while ((m = re.exec(svg))) {
+    const [, x, y, size, anchor, text] = m;
+    if (!/^(kW|°C|SEK\/kWh|W\/m²)$/.test(text)) continue;
+    const w = text.length * Number(size) * 0.55;
+    const left = anchor === "end" ? Number(x) - w : Number(x);
+    out.push({ text, anchor, x: Number(x), y: Number(y), left, right: left + w });
+  }
+  return out.sort((a, b) => a.left - b.left);
+};
+
+// `_hidden` is persisted in localStorage, which the stub shares across every
+// build in this file. Force the series on: with solar hidden there is no second
+// right-hand axis and this stops testing the case it exists for.
+const withAllSeries = (config) => {
+  const c = build(slotStates, config || {});
+  c._hidden = {};
+  c._sig = null;
+  return c;
+};
+
+for (const expanded of [false, true]) {
+  const c = withAllSeries();
+  if (expanded) c._openExpanded();
+  else c._render();
+  const dump = collect(c.shadowRoot).join("\n");
+  const cut = dump.indexOf("chartwrap big");
+  const scoped = expanded ? dump.slice(cut) : dump.slice(0, cut === -1 ? dump.length : cut);
+  const titles = axisTitles(scoped);
+  const where = expanded ? "expanded" : "inline";
+  check(`the ${where} chart titles its value axes`, titles.length >= 3,
+    `found ${titles.map((t) => t.text).join(", ")}`);
+  check(`the ${where} chart really is showing both right-hand axes`,
+    titles.some((t) => t.text === "W/m²") && titles.some((t) => t.text === "SEK/kWh"),
+    "otherwise this is not testing the crowded case at all");
+  const bad = [];
+  for (let i = 1; i < titles.length; i++) {
+    if (Math.abs(titles[i].y - titles[i - 1].y) > 1) continue;
+    const gap = titles[i].left - titles[i - 1].right;
+    if (gap < 0)
+      bad.push(`${titles[i - 1].text}/${titles[i].text} overlap by ${(-gap).toFixed(1)}u`);
+  }
+  check(`the ${where} value axis titles do not overlap`, bad.length === 0, bad.join("; "));
+}
+
+// The flip is conditional, not unconditional: with no solar series there is no
+// second right-hand axis, so the price title must stay where it always sat.
+{
+  const expandedTitles = (card) => {
+    const dump = collect(card.shadowRoot).join("\n");
+    return axisTitles(dump.slice(dump.indexOf("chartwrap big")));
+  };
+
+  const withSolar = withAllSeries();
+  withSolar._openExpanded();
+  const a = expandedTitles(withSolar);
+  const priceWith = a.find((t) => t.text === "SEK/kWh");
+
+  const noSolar = withAllSeries();
+  noSolar._hidden = { solar: true };
+  noSolar._sig = null;
+  noSolar._openExpanded();
+  const b = expandedTitles(noSolar);
+  const priceWithout = b.find((t) => t.text === "SEK/kWh");
+
+  check("the price title is pushed aside when the solar axis crowds it",
+    priceWith && priceWith.anchor === "end",
+    priceWith && `anchor ${priceWith.anchor}`);
+  check("and left exactly where it was when nothing crowds it",
+    priceWithout && priceWithout.anchor === "start",
+    priceWithout && `anchor ${priceWithout.anchor}`);
+  check("the solar title itself never moves",
+    !b.some((t) => t.text === "W/m²") &&
+      a.some((t) => t.text === "W/m²" && t.anchor === "start"));
+}
+
 // Density must follow the space available, not a hardcoded interval, so the
 // same code stays readable at any horizon.
 check("label density is derived, not hardcoded",
