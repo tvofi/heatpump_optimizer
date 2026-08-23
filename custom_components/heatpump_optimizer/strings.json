@@ -453,7 +453,7 @@
       },
       "mixing_valve": {
         "title": "Mixing valve and heat storage",
-        "description": "A mixing valve throttles how much heat reaches the house, which is what lets surplus go into the buffer tank instead. Leave this at \"No mixing valve\" if you do not have one - the model is already correct for that case.",
+        "description": "A mixing valve throttles how much heat reaches the house, which is what lets surplus go into the buffer tank instead. Leave this at \"No mixing valve\" if you do not have one - the model is already correct for that case. These settings only take effect with the two-zone model configured; without it the valve model is not part of the simulation.",
         "data": {
           "mixing_valve_mode": "Mixing valve",
           "mixing_valve_target": "Valve target temperature",

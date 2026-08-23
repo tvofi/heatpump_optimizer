@@ -2355,14 +2355,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # constant 0.5 K whatever the sensor reads. So the main heat path into
         # the lower zone is both wrong and unresponsive, and the error is judged
         # against the same comfort bounds as the upper floor.
-        # A smart valve's target, when the integration can see it. Knowing where
-        # the valve regulates to is what tells the model whether it is
-        # throttling -- and therefore whether surplus heat can reach the tank at
-        # all -- so charging cannot be planned without it.
-        valve_target = reader.read(CONF_MIXING_VALVE_TARGET_ENTITY)
-        if valve_target.ok:
-            self._thermal_params.mixing_valve_target = float(valve_target.value)
-
         lower_floor = reader.read(CONF_LOWER_FLOOR_TEMP_ENTITY)
         if lower_floor.ok:
             self._current_state.lower_floor_temperature = lower_floor.value
@@ -2370,6 +2362,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._current_state.lower_floor_temperature = (
                 self._floor_return_temp + 0.5
             )
+
+        # A smart valve's target, when the integration can see it. Knowing
+        # where the valve regulates to is what tells the model whether it is
+        # throttling -- and therefore whether surplus heat can reach the tank
+        # at all -- so charging cannot be planned without it.
+        valve_target = reader.read(CONF_MIXING_VALVE_TARGET_ENTITY)
+        if valve_target.ok:
+            self._thermal_params.mixing_valve_target = float(valve_target.value)
 
         # Measured electrical draw. Optional, and everything downstream has to
         # degrade cleanly without it, because most installs will not have one.
@@ -4232,6 +4232,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 setattr(scratch_config, key, int(overrides[key]))
 
         scratch_params = replace(self._thermal_params)
+        if "max_temp" in overrides:
+            # The valve's default target is the comfort ceiling, so a
+            # simulated ceiling change has to reach the model too.
+            scratch_params.comfort_ceiling = float(overrides["max_temp"])
         if "dhw_setpoint" in overrides:
             scratch_params.dhw_setpoint = float(overrides["dhw_setpoint"])
         if "dhw_min_temperature" in overrides:

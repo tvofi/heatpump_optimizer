@@ -112,7 +112,6 @@ def recommend_target(
     comfort_min: float,
     comfort_max: float,
     price_ratio: float | None = None,
-    tank_is_useful: bool = False,
 ) -> TargetRecommendation:
     """What to set a dumb valve to.
 

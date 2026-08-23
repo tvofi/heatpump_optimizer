@@ -1902,6 +1902,46 @@ R.check(
     f"got {_charged.buffer_tank_temperature:.2f} C against a 70 C cap",
 )
 
+# The shipped default target of 0 means "the top of the comfort band", as the
+# option describes everywhere. The previous fallback was house_temp + 1.0 — a
+# target that recedes above wherever the house currently is — so the default
+# valve never throttled: the house overheated and the tank could not charge.
+_default_target = _tank_run(_mv.MODE_MANUAL, 9.0, target=0.0)
+R.check(
+    "an unconfigured valve target throttles at the comfort ceiling",
+    _default_target.upper_floor_temperature < 24.5,
+    f"house reached {_default_target.upper_floor_temperature:.1f} C on the "
+    "default target; the receding fallback drove it past 29 C",
+)
+R.check(
+    "and the tank still charges on the default target",
+    _default_target.buffer_tank_temperature > 60.0,
+    f"got {_default_target.buffer_tank_temperature:.1f} C from 45 C",
+)
+
+# A tank read above its cap must cool at its physical rate. The unconditional
+# min() clamp teleported it down to the cap within one step, deleting the
+# excess stored energy from the model entirely.
+_over = ThermalState(
+    room_temperature=21.0, upper_floor_temperature=21.0,
+    lower_floor_temperature=20.5, slab_temperature=25.0,
+    buffer_tank_temperature=75.0, outdoor_temperature=-5.0,
+)
+_over_m = ThermalModel(
+    ThermalParameters(
+        two_zone_enabled=True, buffer_tank_volume=750.0,
+        mixing_valve_mode=_mv.MODE_MANUAL, mixing_valve_target=21.0,
+        buffer_max_temp=60.0, cop_flow_carnot=True,
+    )
+)
+_after_over = _over_m.simulate_step(_over, 0.0, -5.0, dt_hours=0.25)
+R.check(
+    "a tank read above its cap cools physically, not by teleport",
+    _after_over.buffer_tank_temperature > 65.0,
+    f"75 C against a 60 C cap left {_after_over.buffer_tank_temperature:.2f} C "
+    "after one 15-minute step; the old clamp forced exactly 60.0",
+)
+
 # Storing hot has to cost something, or the optimizer will store on every cheap
 # hour whether or not it pays. Carnot-derived, because a linear %/K collapses to
 # the floor at the temperatures storage actually reaches.

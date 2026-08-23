@@ -140,9 +140,17 @@ class ThermalParameters:
     # which is *correct* for a system with no valve: whatever the pump makes
     # goes straight to the emitters. This is an added branch, not a fix.
     mixing_valve_mode: str = MIXING_VALVE_MODE_NONE
-    # Indoor temperature the valve regulates to. 0.0 means "not configured";
-    # the caller supplies the comfort ceiling instead.
+    # Indoor temperature the valve regulates to. 0.0 means "not configured",
+    # and the comfort ceiling below is used instead — which is also what the
+    # dumb-valve recommendation says to set a real valve to.
     mixing_valve_target: float = 0.0  # °C
+    # The user's configured comfort maximum, carried here so the valve target
+    # can genuinely default to "the top of the comfort band" as documented.
+    # The previous fallback was `house_temp + 1.0` — a target that recedes
+    # 1 K above wherever the house currently is, so the default valve never
+    # throttled: the house overheated (29 °C in the release-notes scenario)
+    # and the tank could not charge at all.
+    comfort_ceiling: float = 23.0  # °C
     # Flow-to-zone difference the emitters are sized for, used to back an
     # emitter UA out of the nameplate output so the throttled branch reproduces
     # today's delivery at the design point rather than inventing a new balance.
@@ -513,6 +521,9 @@ class ThermalParameters:
         values["buffer_max_temp"] = float(
             config.get(const.CONF_BUFFER_MAX_TEMP, const.DEFAULT_BUFFER_MAX_TEMP)
         )
+        values["comfort_ceiling"] = float(
+            config.get(const.CONF_MAX_TEMP, const.DEFAULT_MAX_TEMP)
+        )
         # The COP penalty only means anything when a valve can actually charge
         # the tank, so it follows the mode rather than being separately switched.
         values["cop_flow_carnot"] = mixing_valve.is_throttling(
@@ -618,10 +629,10 @@ DHW_HOURLY_DRAW_PATTERN = [x * 24.0 / _DHW_SUM for x in DHW_HOURLY_DRAW_PATTERN]
 
 
 class ThermalModel:
+    """Thermal model supporting single-zone, two-zone, and DHW operation."""
+
     #: Buffer trajectory of the last `simulate_trajectory` call.
     last_buffer_trajectory: np.ndarray | None = None
-
-    """Thermal model supporting single-zone, two-zone, and DHW operation."""
 
     def __init__(self, params: ThermalParameters) -> None:
         """Initialize the thermal model."""
@@ -1068,7 +1079,9 @@ class ThermalModel:
             # tank. This is the line that makes the tank a store.
             area_ratio = getattr(p, "upper_floor_area_ratio", 0.5)
             house_temp = T_upper * area_ratio + T_lower * (1.0 - area_ratio)
-            target = p.mixing_valve_target or (house_temp + 1.0)
+            # An unconfigured target means the top of the comfort band, as
+            # documented everywhere the option is described.
+            target = p.mixing_valve_target or p.comfort_ceiling
             demand = mixing_valve.delivery_demand(
                 indoor_temp=house_temp,
                 target_temp=target,
@@ -1098,7 +1111,16 @@ class ThermalModel:
         if throttled:
             # Physical ceiling: heat that would push the tank past its safe
             # temperature cannot go there.
-            dT_buf = min(dT_buf, (p.buffer_max_temp - T_buf) / max(dt_hours, 1e-6))
+            # Charging must not push past the cap — but only the charging
+            # direction is clamped. An unconditional min() forced a tank read
+            # *above* the cap down to it within one step, deleting the excess
+            # stored energy from the model (13.4 kWh in a 15-minute step for a
+            # 75 °C reading against a 60 °C cap) instead of letting it cool at
+            # its physical rate.
+            dT_buf = min(
+                dT_buf,
+                max(0.0, p.buffer_max_temp - T_buf) / max(dt_hours, 1e-6),
+            )
 
         # --- Slab dynamics ---
         q_slab_to_lower = p.slab_heat_transfer * (T_slab - T_lower)

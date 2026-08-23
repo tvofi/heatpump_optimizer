@@ -453,7 +453,7 @@
       },
       "mixing_valve": {
         "title": "Shuntventil och värmelagring",
-        "description": "En shuntventil styr hur mycket värme som når huset, vilket är det som gör att överskottet kan gå till ackumulatortanken i stället. Lämna på \"Ingen shuntventil\" om du inte har någon - modellen är redan korrekt för det fallet.",
+        "description": "En shuntventil styr hur mycket värme som når huset, vilket är det som gör att överskottet kan gå till ackumulatortanken i stället. Lämna på \"Ingen shuntventil\" om du inte har någon - modellen är redan korrekt för det fallet. Inställningarna har bara effekt när tvåzonsmodellen är konfigurerad; utan den ingår ventilmodellen inte i simuleringen.",
         "data": {
           "mixing_valve_mode": "Shuntventil",
           "mixing_valve_target": "Ventilens börvärde",
