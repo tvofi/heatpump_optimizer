@@ -37,6 +37,7 @@ from harness import Results
 import numpy as np
 
 from profiles import DT, house, prices, weather
+from heatpump_optimizer import pv as pv_model
 from heatpump_optimizer.dhw_schedule import hour_in_windows, parse_windows
 from heatpump_optimizer.optimizer import HeatPumpOptimizer, OptimizationConfig
 from heatpump_optimizer.presets import (
@@ -152,8 +153,12 @@ def build(
     if pv:
         production = np.clip(solar / 1000.0 * 8.0 * 0.8, 0, 8.0)
         surplus = np.clip(production - 1.0, 0.0, None)
-        # The marginal price where surplus exists, as the coordinator does.
-        price_series = np.where(surplus > 1e-6, np.minimum(0.25, price_series), price_series)
+        # Prices stay the raw import series. Since v3.8.0 the optimizer
+        # prices the surplus-covered energy at the export compensation
+        # itself, piecewise per step, exactly as the coordinator wires it —
+        # substituting a cliff price into the series here would double-count
+        # the discount.
+        opt_cfg.pv_export_price = 0.25
 
     initial = ThermalState(
         room_temperature=21.0,
@@ -186,6 +191,7 @@ def build(
         "solar": solar,
         "initial": initial,
         "optimizer": optimizer,
+        "surplus": surplus,
         "n": n,
     }
 
@@ -255,7 +261,20 @@ def check_invariants(label: str, run: dict) -> list[str]:
             )
 
     # --- accounting -------------------------------------------------------
-    recomputed = float(np.sum(np.asarray(result.prices) * combined * DT))
+    # With PV surplus the cost is piecewise — covered energy at the export
+    # compensation, the rest at import — so the plain price-times-power sum
+    # is only the right reference when there is no surplus.
+    surplus = run.get("surplus")
+    if surplus is not None:
+        recomputed = pv_model.piecewise_cost(
+            np.asarray(result.prices),
+            np.asarray(surplus)[: combined.size],
+            run["config"].pv_export_price,
+            combined,
+            DT,
+        )
+    else:
+        recomputed = float(np.sum(np.asarray(result.prices) * combined * DT))
     if abs(recomputed - result.predicted_cost) > max(0.05, abs(recomputed) * 0.01):
         problems.append(
             f"predicted cost {result.predicted_cost:.2f} does not match the "
