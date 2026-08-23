@@ -1,5 +1,56 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v3.3.0
+
+The schedule editor gained a hot water minimum, and the plan chart can be panned
+and zoomed.
+
+### A home for the temperatures
+
+The comfort slider used to sit on its own in the middle of a section about
+scheduling, with nothing around it to say what it was. It now shares a
+**Temperatures** section with a second slider, **minimum hot water** — the lowest
+the tank may fall to inside a demand window. Both are priced the same way as the
+rest of the editor, so the cost of asking for warmer water is visible before you
+save it, and **Save as my schedule** stores them along with your heating hours.
+
+The hot water minimum is capped a few degrees below your hot water setpoint. A
+minimum equal to the setpoint would leave the tank no band to work in and the
+pump would short-cycle against its own hysteresis. The cap follows the setpoint
+if you change it, and a stored value above the cap is lowered with a note on
+screen rather than quietly corrected.
+
+The same limit is enforced in `apply_schedule`, which now accepts
+`dhw_min_temperature`, because an automation can call the service directly. It is
+checked per heat pump, before anything is written, so a call covering two heat
+pumps either applies to both or fails whole. This matters more than it sounds:
+the solver treats tank limits as *soft* penalties, so an impossible minimum is
+not refused downstream — the plan would simply sit in permanent slight violation,
+which is close to undiagnosable from the outside.
+
+### Panning and zooming the plan
+
+Pinch to zoom, hold Ctrl and scroll, swipe sideways to pan, or drag the chart
+background. There are buttons too, for touch and for the keyboard. A plain scroll
+still scrolls the dashboard — a chart that swallowed the wheel would trap the
+page under the pointer.
+
+It only goes forward. Plan forecasts are deliberately kept out of the recorder,
+so there is no history to scroll back into; the window stays between now and the
+end of the plan, and zooming out stops where the plan does instead of showing
+empty chart. Zooming moves the axis the slot lanes are drawn against rather than
+just their appearance, so dragging a slot still lands on the time under your
+pointer at any zoom level.
+
+### Fixed
+
+- A plan attribute the integration published as "unknown" was read by the card as
+  a real measurement of zero, because `Number(null)` is `0` and zero is a finite
+  number. This could show a 0 °C comfort target, and would have capped the new
+  hot water slider at nothing.
+- Dragging the chart to pan no longer opens the enlarged view when the drag ends.
+  A click that never moved still opens it.
+
 ## v3.2.0
 
 You can now rearrange today's plan by hand, and the optimizer will work around

@@ -3,9 +3,10 @@
 Started at the end of the v2.7.0 release session, kept up to date since.
 
 **Status as of v3.2.0. Items 1-21 are all done**, released across v2.8.0,
-v2.9.0 and v3.0.0. **Items 22-31 are open**, none started. Items 24 and 25 are
-one job and are written up together; item 26 is a visible layout bug and is
-probably the first thing to fix.
+v2.9.0 and v3.0.0. **Items 22 and 23 are now done too** (see the notes appended
+to each). **Items 24-31 are open**, none started. Items 24 and 25 are one job
+and are written up together; item 26 is a visible layout bug and is probably
+the first thing to fix.
 
 Items 27-31 are one cluster, added 2026-08-23, about a house with a wood
 furnace, a second buffer tank and a mixing valve. **Item 27 is a modelling bug
@@ -857,6 +858,28 @@ that can never be reached and the plan simply sits permanently in slight
 violation, which is very hard to diagnose from the outside. This is the same
 soft-constraint trap as everywhere else in this codebase.
 
+**Done.** A "Temperatures" section now holds the comfort slider and a new
+minimum-hot-water slider, and "My usual schedule" keeps the heating hours and
+hot water windows. Notes for whoever touches this next:
+
+- `dhw_min_temperature` was added to `SERVICE_SCHEMA_APPLY_SCHEDULE`, to the
+  handler's update loop and to `services.yaml`, as this item required. The
+  simulate side needed nothing, exactly as predicted.
+- The deadband margin is `DHW_MIN_TEMP_SETPOINT_MARGIN` (5 °C) in `const.py`.
+  **The card does not have a copy of it.** The plan sensors publish
+  `dhw_min_temperature_max`, the already-computed ceiling, and the slider clamps
+  to that. This is what makes the clamp dynamic for free: the sensor republishes
+  when the setpoint changes, so there is no render-time staleness to get wrong.
+- The backend validates per config entry *before* writing to any of them, since
+  `dhw_setpoint` is per entry. A call spanning two heat pumps now fails whole
+  rather than half.
+- A stored value above the ceiling is clamped for display and the card says so
+  in a `wi-warn` note; saving stores the clamped value.
+- Found and fixed in passing: `_planAttr` used `Number(raw)` and an `isFinite`
+  guard, so an attribute published as `None` became a real `0` rather than
+  falling back. That would have capped the new slider at zero, and was already
+  capable of showing a 0 °C comfort target.
+
 ## 23. Zoom and scroll the slot lanes
 
 Requested after v3.2.0: the lanes should be zoomable and scrollable sideways.
@@ -887,6 +910,31 @@ space, not more plan.
 
 `windowStart` stays pinned at now, so the existing locked-past shading
 (`_editFloor`) has nothing new to handle.
+
+**Done.** Forward-only pan and zoom, as scoped above.
+
+- `_applyView` narrows the default window and is a **no-op until the user
+  touches a control**, so an untouched card renders exactly as before — which is
+  why the 37 golden scenarios and the existing card tests did not move.
+- Zoom-out is bounded by the plan's real extent, not by `cfg.hours`. Note the
+  consequence: with `hours` set wider than the horizon, the default view is
+  wider than the plan, so the first zoom-out snaps in to the plan's extent.
+  Reset returns to the configured window.
+- Panning listens on `window`, not on the svg, because a view change re-renders
+  and replaces the element the gesture started on.
+- A plain vertical wheel is deliberately ignored so the dashboard still scrolls
+  under the pointer; pinch (wheel + ctrl) zooms, sideways wheel pans. The
+  `.viewctl` buttons exist because neither gesture is available on a phone or to
+  a keyboard user, and they stay visible under `@media (hover: none)`.
+- `_draftRuns` reads the raw sensor forecast rather than the windowed series, so
+  zooming cannot truncate the draft or make Apply pin a subset. Verified, not
+  assumed. Runs entirely outside the window are skipped rather than clamped, or
+  they collapse into a one-pixel sliver at the plot edge.
+- **Not done:** touch pinch-to-zoom. Touch users get the buttons. If it is
+  added, note that `svg` already sets `touch-action: none`.
+- `_editFloor`/`_editCeiling` derive from the *visible* window, so while zoomed
+  a slot cannot be dragged outside it. That is a behaviour change from this
+  item, and item 24+25 rewrites `_editCeiling` anyway — reconcile the two there.
 
 ## 24 + 25. A 20-hour editable window, measured from the last apply
 

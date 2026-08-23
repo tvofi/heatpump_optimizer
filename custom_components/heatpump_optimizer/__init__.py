@@ -32,7 +32,11 @@ from .const import (
     CONF_COMFORT_TEMP_DAY,
     CONF_DAY_END_HOUR,
     CONF_DAY_START_HOUR,
+    CONF_DHW_MIN_TEMP,
+    CONF_DHW_SETPOINT,
     CONF_DHW_WINDOWS,
+    DEFAULT_DHW_SETPOINT,
+    DHW_MIN_TEMP_SETPOINT_MARGIN,
     SERVICE_APPLY_SCHEDULE,
     SERVICE_APPLY_MANUAL_PLAN,
     SERVICE_CLEAR_MANUAL_PLAN,
@@ -116,6 +120,12 @@ SERVICE_SCHEMA_APPLY_SCHEDULE = vol.Schema(
         vol.Optional("dhw_windows"): cv.string,
         vol.Optional("comfort_temp_day"): vol.All(
             vol.Coerce(float), vol.Range(min=5, max=30)
+        ),
+        # The coarse range matches the options flow; the real ceiling depends
+        # on the entry's own ``dhw_setpoint`` and so is checked per entry in
+        # the handler, where that setpoint is in hand.
+        vol.Optional("dhw_min_temperature"): vol.All(
+            vol.Coerce(float), vol.Range(min=35, max=55)
         ),
         # Restrict the write to one config entry. Omitted means every entry,
         # which matches how simulate_plan behaves and is what the card wants
@@ -286,7 +296,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         target_entry = data.pop("entry_id", None)
 
         updates: dict[str, Any] = {}
-        for key in (CONF_DAY_START_HOUR, CONF_DAY_END_HOUR, CONF_COMFORT_TEMP_DAY):
+        for key in (
+            CONF_DAY_START_HOUR,
+            CONF_DAY_END_HOUR,
+            CONF_COMFORT_TEMP_DAY,
+            CONF_DHW_MIN_TEMP,
+        ):
             if data.get(key) is not None:
                 updates[key] = data[key]
 
@@ -319,20 +334,49 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 "would leave no comfort period at all"
             )
 
-        updated: dict[str, Any] = {}
-        for entry in hass.config_entries.async_entries(DOMAIN):
-            if target_entry is not None and entry.entry_id != target_entry:
-                continue
-            if entry.entry_id not in hass.data.get(DOMAIN, {}):
-                continue
-            options = {**dict(entry.options), **updates}
-            hass.config_entries.async_update_entry(entry, options=options)
-            updated[entry.entry_id] = dict(updates)
-
-        if not updated:
+        targets = [
+            entry
+            for entry in hass.config_entries.async_entries(DOMAIN)
+            if (target_entry is None or entry.entry_id == target_entry)
+            and entry.entry_id in hass.data.get(DOMAIN, {})
+        ]
+        if not targets:
             raise vol.Invalid(
                 "No loaded Heat Pump Optimizer config entry matched this call"
             )
+
+        # The hot water minimum has to clear a deadband below the setpoint, and
+        # the setpoint is per entry, so this cannot live in the schema. Check
+        # every target before writing to any of them: a call that fails halfway
+        # would leave two heat pumps on different schedules with no indication
+        # of which ones took.
+        #
+        # The solver treats the tank limits as *soft* penalties, so an
+        # impossible minimum is not rejected downstream -- the plan would simply
+        # sit in permanent slight violation, which is close to undiagnosable
+        # from the outside. Hence a hard failure here.
+        if CONF_DHW_MIN_TEMP in updates:
+            wanted = float(updates[CONF_DHW_MIN_TEMP])
+            for entry in targets:
+                setpoint = float(
+                    entry.options.get(
+                        CONF_DHW_SETPOINT,
+                        entry.data.get(CONF_DHW_SETPOINT, DEFAULT_DHW_SETPOINT),
+                    )
+                )
+                ceiling = setpoint - DHW_MIN_TEMP_SETPOINT_MARGIN
+                if wanted > ceiling:
+                    raise vol.Invalid(
+                        f"A hot water minimum of {wanted:g} °C leaves no "
+                        f"deadband below the {setpoint:g} °C setpoint; it must "
+                        f"be at most {ceiling:g} °C"
+                    )
+
+        updated: dict[str, Any] = {}
+        for entry in targets:
+            options = {**dict(entry.options), **updates}
+            hass.config_entries.async_update_entry(entry, options=options)
+            updated[entry.entry_id] = dict(updates)
 
         _LOGGER.info("Applied schedule to %d entry(ies): %s", len(updated), updates)
         return {"updated": updated}

@@ -636,6 +636,33 @@ R.check(
     set(services["apply_schedule"]["fields"])
     <= {str(getattr(k, "schema", k)) for k in integration.SERVICE_SCHEMA_APPLY_SCHEDULE.schema},
 )
+# Item 22: the card grew a hot water minimum slider beside the comfort one.
+# The save path is the half that needed a backend change -- vol.Schema rejects
+# unknown keys, so a card sending dhw_min_temperature against the old schema
+# would have failed the *whole* call and taken the user's heating-hours edit
+# down with it.
+R.check(
+    "apply_schedule accepts the hot water minimum the card now sends",
+    "dhw_min_temperature"
+    in {str(getattr(k, "schema", k)) for k in integration.SERVICE_SCHEMA_APPLY_SCHEDULE.schema},
+    "without it vol.Schema rejects the entire save, not just this field",
+)
+R.check(
+    "the hot water minimum is documented for the UI form too",
+    "dhw_min_temperature" in services["apply_schedule"]["fields"],
+)
+R.check(
+    "the deadband margin is a named constant, not a literal",
+    isinstance(getattr(const, "DHW_MIN_TEMP_SETPOINT_MARGIN", None), (int, float))
+    and const.DHW_MIN_TEMP_SETPOINT_MARGIN > 0,
+    "the card clamps against a ceiling derived from it, so it lives in one place",
+)
+R.check(
+    "the default minimum still clears the default setpoint's deadband",
+    const.DEFAULT_DHW_MIN_TEMP
+    <= const.DEFAULT_DHW_SETPOINT - const.DHW_MIN_TEMP_SETPOINT_MARGIN,
+    "a shipped default that violated its own rule would be rejected on save",
+)
 R.check(
     "apply_schedule takes no required field, so a partial edit is allowed",
     not [
