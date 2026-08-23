@@ -10,7 +10,7 @@
  */
 
 const CARD_TAG = "heatpump-optimizer-card";
-const CARD_VERSION = "3.4.1";
+const CARD_VERSION = "3.5.0";
 
 const DEFAULTS = {
   title: "Heat pump plan",
@@ -162,6 +162,12 @@ const LANE_BOTTOM_INSET = 3;
 const LANE_EDGE_GRAB = 6;
 const PLAN_STEP_MS = 15 * 60000;
 
+// How far ahead a hand-arranged plan may be pinned. The integration owns this
+// number and publishes it as `manual_plan_window_hours`; this is only the value
+// used before the first plan has been received. A copy that could drift from the
+// service's expiry default is exactly the bug the published attribute prevents.
+const MANUAL_PLAN_WINDOW_FALLBACK_H = 20;
+
 // Range of the hot water minimum slider. The floor matches the options flow so
 // the two editors of the same setting agree. There is deliberately no margin
 // constant here: the *ceiling* is computed by the integration and published as
@@ -301,6 +307,31 @@ function niceAxis(lo, hi, maxTicks) {
 
 function clampNum(v, lo, hi) {
   return v < lo ? lo : v > hi ? hi : v;
+}
+
+/** An expiry for prose.
+ *
+ * A pinned plan now lasts 20 hours from the moment it is applied, so the expiry
+ * usually falls on the following day. Under the old midnight rule the day was
+ * implicit and a bare "until 08:30" was unambiguous; it no longer is, so say
+ * which day whenever it is not today.
+ */
+function fmtExpiry(when) {
+  const time = when.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const today = new Date();
+  const sameDay =
+    when.getFullYear() === today.getFullYear() &&
+    when.getMonth() === today.getMonth() &&
+    when.getDate() === today.getDate();
+  if (sameDay) return time;
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const isTomorrow =
+    when.getFullYear() === tomorrow.getFullYear() &&
+    when.getMonth() === tomorrow.getMonth() &&
+    when.getDate() === tomorrow.getDate();
+  if (isTomorrow) return `${time} tomorrow`;
+  return `${time} on ${when.toLocaleDateString([], { weekday: "long" })}`;
 }
 
 /** A temperature for prose: no trailing ".0" on whole degrees. */
@@ -1039,7 +1070,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
    * "Today's slots" is about *this* day. The plan is drawn as draggable slots
    * on their own lanes under the chart, and moving them re-prices the day
    * against the published plan so the cost of the change is visible before it
-   * is made. "Apply for the rest of today" pins the arrangement through the
+   * is made. "Apply this plan" pins the arrangement through the
    * `apply_manual_plan` service; the optimizer then keeps the timing but is
    * still free to choose how hard to run, and safety limits still override it.
    *
@@ -1083,12 +1114,12 @@ class HeatpumpOptimizerCard extends HTMLElement {
           <div class="wi-hint">
             Drag a slot along its lane at the bottom of the chart to move it,
             drag either edge to resize it, or right-click a lane to add and
-            remove slots. Applying pins them for the rest of today.
+            remove slots. Applying pins them for the next 20 hours.
           </div>
           ${this._overrideHtml()}
           <div class="wi-row wi-delta">${this._deltaHtml()}</div>
           <div class="wi-row wi-actions">
-            <button type="button" class="wi-pin">Apply for the rest of today</button>
+            <button type="button" class="wi-pin">Apply this plan</button>
             <button type="button" class="wi-revert">Undo my changes</button>
             ${
               this._manualOverride()
@@ -1293,7 +1324,9 @@ class HeatpumpOptimizerCard extends HTMLElement {
     if (!info) return "";
     const until = info.expires_at ? new Date(info.expires_at) : null;
     const when =
-      until && !Number.isNaN(until.getTime()) ? ` until ${until.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : "";
+      until && !Number.isNaN(until.getTime())
+        ? ` until ${fmtExpiry(until)}`
+        : "";
     const released =
       (info.released_space || []).length + (info.released_dhw || []).length;
     const note = released
@@ -1344,7 +1377,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     if (box) box.innerHTML = `<span class="${cls || ""}">${esc(message)}</span>`;
   }
 
-  /** Pin the current arrangement for the rest of today.
+  /** Pin the current arrangement for the manual-plan window.
    *
    * Only the editable part of the horizon is sent: the past cannot be
    * rescheduled, and pinning a slot that has already happened would be
@@ -1394,11 +1427,8 @@ class HeatpumpOptimizerCard extends HTMLElement {
           : null;
         const when =
           until && !Number.isNaN(until.getTime())
-            ? ` until ${until.toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}`
-            : " for the rest of today";
+            ? ` until ${fmtExpiry(until)}`
+            : "";
         // Deliberately not a promise that these slots will run: the optimizer
         // releases a pin that would take the house or the tank below its
         // limits, and saying otherwise would be a lie the user acts on.
@@ -2864,17 +2894,44 @@ class HeatpumpOptimizerCard extends HTMLElement {
 
   /** The last instant a hand-arranged slot can reach.
    *
-   * The override runs out at the next local midnight, so the chart must not
-   * let a slot be dragged past it: the button promises the rest of today, and
-   * anything beyond that would be shown as pinned while quietly having no
-   * effect. The chart's own horizon still wins when it is shorter.
+   * Three separate limits, and the smallest wins:
+   *
+   * 1. **The expiry this card would send if the user applied right now** --
+   *    `now + MANUAL_PLAN_WINDOW_HOURS`, published by the integration rather
+   *    than copied here so the two cannot drift. Deliberately *not* the expiry
+   *    of the override currently in force: an override applied 15 hours ago
+   *    expires in 5, but the user editing now is composing a new plan that will
+   *    last the full window from this moment. Deriving the ceiling from the
+   *    active override would shrink the editable window as the day wore on and
+   *    stop the user extending their own plan.
+   * 2. **The end of the plan.** Past it there is nothing to pin.
+   * 3. **The visible window**, which pan and zoom can narrow. Without this a
+   *    slot could be dragged out of the region the pointer can actually reach.
+   *
+   * Beyond the first of these, `manual_plan.channel_pins` frees every step at or
+   * after the expiry, so a slot shown as pinned there would quietly do nothing.
    */
   _editCeiling() {
-    const end = this._geom ? this._geom.windowEnd : Date.now();
-    const midnight = new Date();
-    midnight.setHours(0, 0, 0, 0);
-    midnight.setDate(midnight.getDate() + 1);
-    return Math.min(end, midnight.getTime());
+    const visibleEnd = this._geom ? this._geom.windowEnd : Infinity;
+    const windowHours = this._planAttr(
+      "manual_plan_window_hours",
+      MANUAL_PLAN_WINDOW_FALLBACK_H
+    );
+    const applyEnd = Date.now() + windowHours * 3600 * 1000;
+    const planEnd = this._planEnd();
+    return Math.min(visibleEnd, applyEnd, planEnd);
+  }
+
+  /** The last timestamp the published plan covers. */
+  _planEnd() {
+    let end = -Infinity;
+    for (const channel of ["space", "dhw"]) {
+      const fc = this._forecastOf(channel);
+      if (!fc.length) continue;
+      const t = Date.parse(fc[fc.length - 1].t);
+      if (Number.isFinite(t)) end = Math.max(end, t + PLAN_STEP_MS);
+    }
+    return end === -Infinity ? Infinity : end;
   }
 
   _editBounds() {

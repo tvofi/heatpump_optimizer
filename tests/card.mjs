@@ -1320,17 +1320,51 @@ check("the hand-scheduled reason has a label",
   check("with no plan at all, nothing is pinned", called === null);
 }
 
-// The override expires at midnight, so the chart must not let a slot be
-// dragged past it: a slot shown as pinned that quietly does nothing after
-// midnight would be worse than not offering the gesture at all.
+// An override now lasts a fixed window from the moment it is applied, so the
+// chart must not let a slot be dragged past that: a slot shown as pinned that
+// quietly does nothing would be worse than not offering the gesture at all.
+//
+// This used to recompute midnight by hand and assert the ceiling was below it,
+// which said nothing once the rule changed. The ceiling is now clock-independent
+// -- it is measured from `now` -- so it can be asserted directly.
 {
   const [, hi] = drag._editBounds();
-  const midnight = new Date(FROZEN);
-  midnight.setHours(0, 0, 0, 0);
-  midnight.setDate(midnight.getDate() + 1);
-  check("editing stops at the point the override expires",
-    hi <= midnight.getTime(),
-    `${new Date(hi).toISOString()} vs ${midnight.toISOString()}`);
+  const WINDOW_H = 20;
+  const applyEnd = FROZEN + WINDOW_H * HOUR;
+  check("editing stops at the window the card would actually send",
+    hi <= applyEnd + 1000,
+    `${new Date(hi).toISOString()} vs ${new Date(applyEnd).toISOString()}`);
+
+  // The ceiling has to come from the integration, not from a literal in the
+  // card, or the chart and the service's expiry default could drift apart and
+  // the chart would show slots as pinned past the point the backend frees them.
+  check("the window is read from the plan, not hardcoded in the card",
+    /manual_plan_window_hours/.test(cardSrc),
+    "the card should read the published window");
+
+  // Deliberately not the active override's expiry. One applied 15 hours ago has
+  // 5 left, but the user editing now is composing a new plan that will last the
+  // full window from this moment -- deriving the ceiling from the old expiry
+  // would shrink the editable window through the day.
+  {
+    // An override applied 15 hours ago, with 5 left to run.
+    const stale = build((() => {
+      const st = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+      const info = {
+        active: true,
+        expires_at: new Date(FROZEN + 5 * HOUR).toISOString(),
+        space_slots: [], dhw_slots: [], released_space: [], released_dhw: [],
+      };
+      st[DEFAULT_SPACE].attributes.manual_override = info;
+      st[DEFAULT_DHW].attributes.manual_override = info;
+      return st;
+    })(), { what_if: true });
+    stale._openExpanded();
+    const [, staleHi] = stale._editBounds();
+    check("the ceiling ignores the expiry already in force",
+      staleHi > FROZEN + 5 * HOUR,
+      `ceiling ${new Date(staleHi).toISOString()} would shrink to the old expiry`);
+  }
 
   // Dragging hard to the right must stop there rather than run past it.
   drag._resetRuns();

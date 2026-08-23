@@ -440,6 +440,22 @@ DEFAULT_ECL110_DISPLACE_MAX: Final = 20.0
 DEFAULT_ECL110_PID_TIME_CONSTANT: Final = 1.5  # hours, first-order approximation
 
 DEFAULT_OPTIMIZATION_HORIZON: Final = 24  # hours
+
+# How long a hand-arranged plan stays pinned, measured from the moment it is
+# applied. Applying again restarts the clock.
+#
+# 20 rather than 24 is load-bearing, so do not quietly round it up. The
+# optimizer's horizon is 24 h, so a 24-hour override would cover the whole
+# horizon at every moment and leave no free step -- re-applying daily would
+# switch the optimizer off while appearing to leave it on. At 20 there is always
+# a tail of about four hours it still owns. The invariant is *override shorter
+# than horizon*, not the number 20.
+#
+# Both sides obey this one constant: the service uses it as the `expires_at`
+# default, and the card publishes it to the chart as the ceiling a slot may be
+# dragged to. If they drifted apart, the card would show slots as pinned past
+# the point where `channel_pins` frees them, which is the bug this replaced.
+MANUAL_PLAN_WINDOW_HOURS: Final = 20
 DEFAULT_OPTIMIZATION_INTERVAL: Final = 30  # minutes
 DEFAULT_TIME_STEP: Final = 15  # minutes
 DEFAULT_PRICE_WEIGHT: Final = 1.0

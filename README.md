@@ -839,7 +839,8 @@ what_if: true
 **Click the card to enlarge it.** The enlarged view draws today's plan again as
 two editable lanes. Drag a block to move it, drag an edge to resize it, and
 right-click a lane to add or remove one. A running total prices your arrangement
-against the plan in force, and **Apply this plan** pins it until midnight — the
+against the plan in force, and **Apply this plan** pins it for the next 20
+hours — the
 optimizer keeps re-solving, but has to schedule around your slots.
 
 **Pan and zoom the plan window.** Pinch to zoom (or hold Ctrl and scroll), swipe
@@ -924,12 +925,12 @@ data:
   dhw_slots:
     - start: "2026-01-15T13:00:00+01:00"
       end: "2026-01-15T14:30:00+01:00"
-  expires_at: "2026-01-16T00:00:00+01:00"   # optional, defaults to next midnight
+  expires_at: "2026-01-16T00:00:00+01:00"   # optional, defaults to 20 hours from now
 ```
 
 A channel you leave out stays fully automatic. Passing an explicit empty list is
 different, and means "do not run this at all until the override expires" — so
-`dhw_slots: []` switches hot water off for the rest of the day.
+`dhw_slots: []` switches hot water off for the whole pinned window.
 
 The pins constrain *timing only*. Tank minimums, legionella and the house
 comfort floor still override them: if your slots cannot be made safe, the

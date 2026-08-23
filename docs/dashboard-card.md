@@ -110,10 +110,21 @@ updates as you drag, so the cost of moving the tank reheat out of the evening
 peak is visible before you commit to it.
 
 **Apply this plan** sends the arrangement to `apply_manual_plan`, which pins it
-until midnight: the optimizer keeps re-solving as prices and weather move, but
-it must schedule around your slots rather than through them. **Undo** throws the
-draft away, and once an override is in force a banner reports when it expires
-and offers **Back to automatic**.
+for the next 20 hours. The optimizer keeps re-solving as prices and weather
+move, but it must schedule around your slots rather than through them. **Undo**
+throws the draft away, and once an override is in force a banner reports when it
+expires and offers **Back to automatic**.
+
+The 20 hours run from the moment you apply, and applying again restarts them —
+so a plan made at nine in the evening lasts until five the next afternoon rather
+than expiring three hours later. That is why the chart stops you dragging a slot
+beyond the window: past it the pin has no effect, and showing a slot as pinned
+when it does nothing would be worse than not offering the gesture.
+
+It is deliberately 20 rather than 24. The optimizer plans 24 hours ahead, so a
+full-day override would cover every step it was looking at, and re-applying each
+day would leave it nothing to decide — switching it off while appearing to leave
+it on. At 20 there is always a few hours' tail the optimizer still owns.
 
 One thing the card is deliberately honest about: applying a plan does not
 guarantee every slot runs exactly as drawn. You control *timing*; the safety

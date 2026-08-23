@@ -26,7 +26,7 @@ Three things carry subtle intent and are worth stating once here:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any
 
 # Pin encoding shared with the optimizer's bounds construction. The optimizer
@@ -271,11 +271,3 @@ def build_override(
         expires_at=expires_ref,
         created_at=now,
     )
-
-
-def next_local_midnight(now: datetime) -> datetime:
-    """The next midnight after ``now``, preserving its timezone awareness."""
-    start_of_day = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    # Advancing the date rather than adding 86400 seconds keeps the result on
-    # the day boundary even across a DST change.
-    return start_of_day + timedelta(days=1)

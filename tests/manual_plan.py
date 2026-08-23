@@ -36,6 +36,7 @@ from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers.storage import _reset_store_disk
 from homeassistant.util import dt as _dt_stub
 
+from heatpump_optimizer.const import MANUAL_PLAN_WINDOW_HOURS
 from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator
 from heatpump_optimizer.manual_plan import (
     CHANNEL_DHW,
@@ -44,7 +45,6 @@ from heatpump_optimizer.manual_plan import (
     ManualOverride,
     ManualPlanError,
     build_override,
-    next_local_midnight,
     parse_channel,
 )
 from heatpump_optimizer.optimizer import (
@@ -568,7 +568,7 @@ def test_no_override_identical(R: Results) -> None:
 def test_coordinator(R: Results) -> None:
     R.section("Coordinator wiring, persistence and expiry")
     now = dt_util.now()
-    expires = next_local_midnight(now)
+    expires = now + timedelta(hours=MANUAL_PLAN_WINDOW_HOURS)
 
     _reset_store_disk()
     coord = _mk_coordinator()
@@ -583,14 +583,18 @@ def test_coordinator(R: Results) -> None:
 
     # The step count has to be measured over the whole optimisation horizon.
     # Measuring it in price entries instead -- which are hourly, not per step --
-    # covers only a quarter of the day, so an evening slot is reported as
-    # pinning nothing at all and the user is told their plan did not take.
+    # covers only a quarter of the day, so a late slot is reported as pinning
+    # nothing at all and the user is told their plan did not take.
+    #
+    # "Late" now means late *within the manual-plan window*. This used to sit at
+    # 20-22 h against a 26 h expiry, which the 20 h window would free -- so the
+    # check would have gone on passing for entirely the wrong reason.
     late = asyncio.run(
         coord.async_apply_manual_plan(
             build_override(
-                dhw_slots=[_slot(20, 22, base=now)],
+                dhw_slots=[_slot(17, 19, base=now)],
                 space_slots=None,
-                expires_at=now + timedelta(hours=26),
+                expires_at=now + timedelta(hours=MANUAL_PLAN_WINDOW_HOURS),
                 now=now,
             )
         )
@@ -599,6 +603,41 @@ def test_coordinator(R: Results) -> None:
         "a slot late in the horizon is still counted",
         late["pinned_dhw_steps"] == 8,
         f"reported {late['pinned_dhw_steps']} steps",
+    )
+
+    # And the other side of that boundary: past the window nothing is pinned,
+    # because `channel_pins` frees every step at or after the expiry. The card's
+    # edit ceiling exists to stop a user arranging slots there and being shown
+    # them as pinned while they quietly do nothing.
+    beyond = asyncio.run(
+        coord.async_apply_manual_plan(
+            build_override(
+                dhw_slots=[
+                    _slot(
+                        MANUAL_PLAN_WINDOW_HOURS,
+                        MANUAL_PLAN_WINDOW_HOURS + 2,
+                        base=now,
+                    )
+                ],
+                space_slots=None,
+                expires_at=now + timedelta(hours=MANUAL_PLAN_WINDOW_HOURS),
+                now=now,
+            )
+        )
+    )
+    R.check(
+        "a slot past the window pins nothing, rather than pretending to",
+        beyond["pinned_dhw_steps"] == 0,
+        f"reported {beyond['pinned_dhw_steps']} steps",
+    )
+
+    # The window has to stay shorter than the horizon, or an override re-applied
+    # each day would cover every step at every moment and leave the optimizer
+    # nothing to decide -- switching it off while appearing to leave it on.
+    R.check(
+        "the manual-plan window is shorter than the optimisation horizon",
+        MANUAL_PLAN_WINDOW_HOURS < 24,
+        f"window {MANUAL_PLAN_WINDOW_HOURS} h",
     )
     asyncio.run(coord.async_apply_manual_plan(ov))
 
@@ -716,11 +755,12 @@ def test_coordinator(R: Results) -> None:
     )
 
 
-#: Overrides expire at the next local midnight, so a test that pins "two hours
-#: from now" quietly means something different when the suite happens to run in
-#: the evening -- at 22:30 the same slot is truncated to 90 minutes. Pinning the
-#: clock mid-morning keeps the day boundary far away in both directions, so the
-#: results say something about the code rather than about the hour.
+#: Overrides now expire a fixed number of hours from the moment they are
+#: applied, so the old reason for freezing the clock -- a midnight cap that
+#: silently truncated "two hours from now" when the suite ran at 22:30 -- no
+#: longer applies. The clock stays frozen anyway: several checks below assert on
+#: hour-of-day arithmetic, and a frozen clock keeps a failure meaning the code
+#: changed rather than that the suite ran at an awkward time.
 _TEST_CLOCK = datetime(2026, 1, 15, 9, 0, 0)
 
 

@@ -506,7 +506,7 @@ apply_schedule:
 apply_manual_plan:
   name: Apply Manual Plan
   description: >-
-    Pin exactly when space heating and hot water run for the rest of the day.
+    Pin exactly when space heating and hot water run for the next 20 hours.
     Unlike apply_schedule, which only shifts the envelope the optimizer keeps
     re-deciding inside, this fixes the actual run slots until the override
     expires. Safety still wins: if the tank falls below its minimum, a
@@ -537,7 +537,9 @@ apply_manual_plan:
       name: Expires at
       description: >-
         ISO 8601 datetime when the override stops applying and planning reverts
-        to automatic. Defaults to the next local midnight.
+        to automatic. Defaults to 20 hours from now, restarted each time you
+        apply. It is deliberately shorter than the optimizer's 24-hour horizon,
+        so there is always a tail the optimizer still owns.
       example: "2024-01-02T00:00:00+01:00"
       selector:
         text:
