@@ -185,7 +185,7 @@ Result: Thermal mass pre-charged → house stays warm through bad weather → CO
 
 Again this is emergent. The forecast heat loss factors are applied to the real
 dynamics at each step:
-- **Wind effect**: Convective heat loss increases by `wind_sensitivity × wind_speed` (default 15% per m/s)
+- **Wind effect**: Infiltration/convective heat loss increases by `wind_sensitivity × wind_speed` (default 3% per m/s)
 - **Rain effect**: Wet building envelope U-value increases by `rain_multiplier` (default 15%)
 
 so coasting into a windy night predicts a cold house and a comfort penalty. The
@@ -392,13 +392,24 @@ The house is modeled as two thermal zones served by a single air-to-water heat p
 
 The heat loss model accounts for forecasted weather at EACH time step:
 
-**Wind effect** (convective heat transfer):
+**Wind effect** (infiltration and convective heat transfer):
 ```
 U_effective = U_base × (1 + wind_sensitivity × wind_speed)
 ```
-- Default: 15% increase per m/s wind speed
-- Example: 5 m/s wind → 75% higher heat loss coefficient
+- Default: 3% increase per m/s wind speed
+- Example: 5 m/s wind → 15% higher heat loss coefficient
 - Uses FORECASTED wind speed at each future time step
+- Only the infiltration/convective share of the loss responds to wind, so the
+  whole-house sensitivity is small. Raise it toward 0.05-0.08 for a draughty
+  or very exposed house; measured infiltration studies put a 10 m/s wind at
+  roughly +20-40% for typical tightness.
+
+| House | Suggested wind sensitivity |
+|---|---|
+| Modern, tight, sheltered | 0.01-0.02 |
+| Typical (default) | 0.03 |
+| Older or exposed site | 0.04-0.06 |
+| Draughty, coastal/open field | 0.06-0.08 |
 
 **Rain effect** (wet building envelope):
 ```
@@ -823,7 +834,7 @@ turn the toggle off to require hot water around the clock.
 ### Step 6: Weather Sensitivity
 | Parameter | Default | Description |
 |---|---|---|
-| Wind sensitivity | 0.15 | 15% heat loss increase per m/s wind |
+| Wind sensitivity | 0.03 | 3% heat loss increase per m/s wind |
 | Rain multiplier | 1.15 | 15% heat loss increase when raining |
 
 ## Entities Created

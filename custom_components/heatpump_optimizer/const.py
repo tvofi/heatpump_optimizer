@@ -537,8 +537,19 @@ DEFAULT_DHW_LEGIONELLA_ENABLED: Final = True
 DEFAULT_DHW_LEGIONELLA_TEMP: Final = 60.0  # °C
 DEFAULT_DHW_LEGIONELLA_INTERVAL_DAYS: Final = 7.0
 
-# Weather sensitivity defaults
-DEFAULT_WIND_SENSITIVITY: Final = 0.15  # 15% heat loss increase per m/s wind
+# Weather sensitivity defaults.
+#
+# Wind: heat loss scales as (1 + sensitivity × wind speed). Only the
+# infiltration and convective-film share of the loss responds to wind at all —
+# transmission through the insulated envelope does not — so for a reasonably
+# tight house the whole-house effect is a few percent per m/s. Measured
+# infiltration studies put a 10 m/s wind at roughly +20-40% loss, i.e. a
+# sensitivity of 0.02-0.04. The previous default of 0.15 claimed +150% at
+# 10 m/s: a physically implausible figure that made every windy forecast
+# panic-charge the house, and the passive learner then spent weeks walking the
+# overall loss scale back down to compensate. Existing installations keep
+# whatever value is stored in their config entry; only new setups see this.
+DEFAULT_WIND_SENSITIVITY: Final = 0.03  # 3% heat loss increase per m/s wind
 DEFAULT_RAIN_HEAT_LOSS_MULTIPLIER: Final = 1.15  # 15% increase when raining
 
 # ECL110 defaults (manual "Displace" = parallel heat-curve shift in °C)
