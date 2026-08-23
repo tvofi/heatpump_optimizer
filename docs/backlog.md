@@ -1376,6 +1376,70 @@ which is worth knowing before, not after.
 
 ## 29. The buffer tank as a controllable thermal battery (mixing valve setups)
 
+> **Blocker 3 was misdiagnosed, and the real defects are fixed (v3.7.1) --
+> but the optimizer still does not charge.** Read this before trusting the
+> blocker list.
+>
+> The predicted cause was seeding: `_price_ranked_start` budgets exactly
+> baseline energy, so no seed can express buying above it. **That is not the
+> blocker.** Measured: a storage-aware seed, a double-capacity seed, and even
+> full power throughout all descend to the same plan as the existing seeds
+> (88.49 / 88.66 / 89.23 / 88.75 on the same objective). Adding seeds does
+> nothing.
+>
+> Two real defects were found instead, both now fixed:
+>
+> 1. **The tank was credited against the *slab's* settlement cap.** With a slab
+>    ceiling near 28 C, charging a tank from 45 C to 70 C was credited with
+>    **0.0 kWh of the 21.8 kWh actually stored**. The tank now has its own cap,
+>    its `buffer_max_temp`, since the reasoning behind the slab cap -- that
+>    passive overheating is not charge -- does not transfer to a tank that only
+>    gets hot deliberately and cannot overheat anything through the valve.
+> 2. **The objective's terminal cost never saw the tank at all.**
+>    `_terminal_cost` listed upper, lower and slab; `simulate_trajectory`
+>    computed the buffer trajectory and discarded it. So charging was pure cost
+>    with no modelled benefit no matter what the settlement cap said.
+>
+> Both fixes are measurable -- plans now end with the tank at 26-28 C instead of
+> 18-21 C -- and both are inert without a valve, so golden is unchanged.
+>
+> **It still never charges above its starting temperature.** Checked across
+> winter_cold / winter_mild / shoulder, winter_typical / winter_extreme, and with
+> the comfort band squeezed to 0.2 K so the slab has no headroom left. Charging is
+> physically reachable: sustained full power takes the tank to 60.8 C. So the
+> optimizer is choosing not to, and at least one mechanism remains unidentified.
+>
+> **A retracted claim.** An earlier note here blamed limited pump capacity -- at
+> -12 C the fixture's 6 kW pump gives 9.4 kW thermal against a 6.7 kW house load.
+> That was an artefact of the test fixture. Pump capacity is configurable and 14
+> kW is ordinary; re-tested at 14 kW the tank still never charges, so capacity is
+> not the explanation.
+
+> **Blocker 1 is fixed (v3.7.0).** `mixing_valve.py` adds the control law: with
+> a valve, delivery is what the house asks for and the surplus goes to the tank.
+> Measured in the model at 750 L, 6 h, -5 C outdoor, target 23 C: at 9 kW the
+> tank charges 45 -> 70 C (the cap) while the house is held at 23.2 C. Without a
+> valve the same power leaves the tank at 44.2 C regardless and drives the house
+> to 30.3 C instead. Modes shipped: `none` (default, unchanged), `manual`,
+> `smart_read`. `smart_write` needs an actuation path and lands with it -- a mode
+> that cannot do what its name says is worse than one that is absent.
+>
+> The COP flow-temperature term ships with it, Carnot-derived, and follows the
+> mode rather than being separately switched: it only means anything when a valve
+> can actually charge the tank.
+>
+> **Blocker 3 remains:** `_price_ranked_start` budgets exactly baseline energy,
+> so no seed can express buying above what a thermostat would use -- which is
+> what charging is. The physics now permits storage; the solver still has to be
+> given a way to find it.
+
+> **Blocker 2 is fixed (v3.6.1).** The standby loss now follows surface area
+> rather than volume, and the learner's clamp is derived from how well a tank of
+> that size could plausibly be insulated, so a real accumulator (~2 W/K at
+> 750 L) is reachable instead of being floored around 17 W/K. The prior is
+> derived the same way; the old flat 6 C/h worked out at 9.7 W/K on a 35 L tank,
+> which is worse than a bare uninsulated cylinder. Blockers 1 and 3 remain.
+
 > **Sizing spike, 2026-08-23. Read this before the item text — it corrects two
 > things below and answers the "measure before building" question.**
 >

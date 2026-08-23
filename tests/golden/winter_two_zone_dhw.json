@@ -1,7 +1,7 @@
 {
- "baseline_cost": 173.464992,
+ "baseline_cost": 173.49582,
  "compressor_starts": 4,
- "deferred_energy_cost": 20.239614,
+ "deferred_energy_cost": 20.249914,
  "dhw_heating_cost": 6.888816,
  "dhw_power_schedule": [
   4.8,
@@ -987,7 +987,7 @@
   4.9678
  ],
  "predicted_cost": 90.781519,
- "predicted_savings": 62.443858,
+ "predicted_savings": 62.464387,
  "predictive_info": {
   "avg_future_precip_mmh": 0.0,
   "avg_future_wind_ms": 2.0,
@@ -1368,7 +1368,7 @@
   17.957257,
   18.026246
  ],
- "savings_percentage": 35.99796,
+ "savings_percentage": 36.003396,
  "slab_temp_trajectory": [
   22.0,
   22.03245,

@@ -346,7 +346,16 @@ your entered value meaningful and also handles the two-zone case, where a single
 indoor sensor cannot identify the upper and lower floor coefficients separately.
 
 The buffer tank rate is only learned when a **Buffer tank temperature sensor**
-is configured; without one the configured default is used unchanged.
+is configured; without one a prior derived from the tank's size is used.
+
+That prior, and the range the learning is allowed to move within, both follow
+the tank's **surface area** rather than its volume. Heat escapes through a
+tank's skin, and a large tank has far less skin for the water it holds — a
+750-litre accumulator loses proportionally much less than a 35-litre buffer, so
+a single "degrees per hour" figure cannot describe both. If you have an
+accumulator this matters a great deal: applied unscaled, a small tank's figure
+models more heat lost in six hours than the tank can physically hold, which
+makes storing heat in it look pointless when it is not.
 
 ### Two-Zone Thermal Model
 
@@ -483,6 +492,41 @@ Deliberately **not** learned: the inter-zone transfer coefficient. One pump, one
 water temperature and a fixed radiator/floor split mean the two zones are driven
 together and rarely diverge, so there is very little to learn from and a passive
 fit would mostly track noise. It stays at its configured value.
+
+### Using the buffer tank as a store (mixing valve required)
+
+Without a mixing valve, everything the heat pump makes goes straight to your
+radiators and floor loops. The buffer tank is then just a hydraulic separator
+that happens to lose a little heat — whatever enters it leaves immediately, so it
+can never be charged. That is the default and it is a correct model.
+
+A mixing valve changes this. It limits how much heat reaches the house, so once
+the house has what it needs the surplus has nowhere to go but the tank. Set
+**Mixing valve and heat storage** in the options:
+
+| Setting | Meaning |
+|---|---|
+| No mixing valve | Default. Nothing changes. |
+| Set by hand | A fixed valve you adjust yourself; tell the integration what you set it to. |
+| Read from a sensor | The integration reads the valve's target but cannot change it. |
+
+**What to set a hand-adjusted valve to.** The top of your comfort band, in
+almost every case. A high setting keeps the valve open until the house reaches
+its ceiling, so the building charges first — and building storage is free,
+because the heat sits at room temperature. Only then does the valve throttle and
+the tank take the surplus, which is stored hot and does cost efficiency.
+Building first, tank second, is the cheap order; a low setting reverses it and
+fills the expensive store while the free one sits empty.
+
+The cost of that choice is that the valve is no longer what prevents your house
+overheating — the optimizer's comfort limits are.
+
+**Storing hot is not free.** A heat pump loses efficiency the hotter it must
+push water, and that penalty is the whole economics of a thermal store: it
+decides whether moving heat into a cheap hour actually pays. The model accounts
+for it, so the tank is only charged when the price difference covers the loss.
+On a flat-price day it will leave the tank alone. The tank is also never charged
+past the maximum you configure, however cheap electricity gets.
 
 ### Knowing the lower floor, rather than guessing it
 

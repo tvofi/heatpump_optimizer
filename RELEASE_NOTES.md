@@ -1,5 +1,112 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v3.7.1
+
+### Fixed: heat left in the buffer tank was treated as worthless
+
+If you have a mixing valve configured, the planner now understands that heat
+sitting in your buffer tank is heat you do not have to buy again.
+
+It did not before, in two separate ways. The tank's stored heat was measured
+against the ceiling used for the concrete slab — around 28 °C, because a slab any
+hotter than that would overheat the house. A tank does not work that way: it is
+insulated, and the valve decides how much of it reaches the rooms. Judged against
+the slab's ceiling, a tank at 70 °C counted for no more than one at 45 °C, so
+filling it appeared to achieve nothing at all.
+
+Separately, the tank was left out of the end-of-day accounting entirely, so a
+plan that ran it down to nothing looked as good as one that left it full.
+
+Both are fixed, and the effect is visible: plans now leave the tank meaningfully
+warmer at the end of the day rather than draining it, which is heat carried into
+tomorrow instead of bought again.
+
+**Being straight about the limits.** This does not yet make the planner
+deliberately fill the tank during cheap hours. It has stopped treating a full
+tank as worthless, which was a prerequisite, but something still prevents it
+choosing to charge — that is being investigated. Nothing changes at all unless
+you have a mixing valve configured.
+
+## v3.7.0
+
+If you have a mixing valve, the optimizer can now use your buffer tank as a
+store — charging it when electricity is cheap and drawing it down when it is
+expensive.
+
+### Why a valve is what makes this possible
+
+Until now the model assumed everything the heat pump produced went straight to
+your radiators and floor loops. For a system without a mixing valve that is
+exactly right, and it stays the default.
+
+But it also means the buffer tank could never fill: whatever went in came
+straight back out, so the tank only ever cooled. A mixing valve is precisely the
+part that changes this. It limits how much heat reaches the house, and once the
+house has what it needs the surplus has nowhere to go but the tank.
+
+Set **Mixing valve and heat storage** in the options to match your system.
+Leaving it at *No mixing valve* changes nothing at all.
+
+### Setting a valve you adjust by hand
+
+If your valve is a fixed one you set yourself, the recommendation is to set it to
+the **top of your comfort band**, and the reasoning is worth knowing.
+
+A high setting keeps the valve open until the house reaches its ceiling, so the
+building itself charges first. That storage is free: the building holds heat at
+room temperature, so there is no efficiency penalty. Only once the house is
+satisfied does the valve begin to throttle, and only then does the tank take the
+surplus — which is stored hot, and does cost efficiency.
+
+Building first, tank second, is the cheap order. Setting the valve low reverses
+it, filling the expensive store while the free one sits empty.
+
+One thing you give up: at that setting the valve is no longer what stops your
+house overheating. The optimizer's own comfort limits do that instead.
+
+### Storing hot costs efficiency, and the model now knows
+
+A heat pump is less efficient the hotter it has to push water. Charging a tank to
+60 °C costs noticeably more per unit of heat than running a floor loop at 35 °C,
+and that penalty is the entire economics of storage: it is what decides whether
+shifting heat into a cheap hour is actually worth it.
+
+The model now accounts for it, so it will only fill the tank when the price
+difference genuinely pays for the loss. On a day with little variation, it will
+leave the tank alone.
+
+The tank is also never charged above the maximum you set, however cheap
+electricity happens to be.
+
+## v3.6.1
+
+### Fixed: large buffer tanks were modelled as losing far more heat than they do
+
+If you have an accumulator rather than a small buffer, the model believed it
+leaked roughly ten times as fast as it really does — and the correction the
+integration learns from your own tank sensor was not allowed to find the truth
+either.
+
+The standby loss was described as a cooling rate in degrees per hour, and the
+same rate was applied at every tank size. But heat escapes through a tank's
+*surface*, and a big tank has far less surface for the water it holds. A
+750-litre accumulator loses proportionally much less than a 35-litre buffer, so
+one rate cannot describe both. Applied to 750 litres, the old number modelled
+more heat lost in six hours than the tank can hold.
+
+The loss now follows the tank's size the way the physics does, and the limits
+the learning is allowed to move between are derived from how well a tank of that
+size could plausibly be insulated. A well-insulated accumulator now sits
+comfortably inside that range instead of being pinned several times above it.
+
+The prior itself is also more honest. The old default worked out worse than an
+uninsulated bare cylinder, at any size.
+
+**What you will see.** If you have a buffer tank configured, its standing loss
+drops and its hours of autonomy rise on the battery view. If you have a *large*
+tank the change is substantial. Nothing changes if you never configured one.
+A rate you set yourself is still respected.
+
 ## v3.6.0
 
 The two-zone model now learns how your heat loss actually splits between the

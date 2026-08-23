@@ -38,7 +38,10 @@ from typing import Any
 
 import numpy as np
 
+from . import mixing_valve
+from .mixing_valve import MODE_NONE as MIXING_VALVE_MODE_NONE
 from .const import (
+    WATER_SPECIFIC_HEAT as _WATER_SPECIFIC_HEAT,
     DEFAULT_HOUSE_THERMAL_MASS,
     DEFAULT_HOUSE_HEAT_LOSS_COEFFICIENT,
     DEFAULT_SLAB_THERMAL_MASS,
@@ -58,6 +61,8 @@ from .const import (
     BUFFER_COOLING_RATE_MAX,
     BUFFER_COOLING_RATE_MIN,
     DEFAULT_BUFFER_COOLING_RATE,
+    buffer_cooling_rate_bounds,
+    default_buffer_cooling_rate,
     DEFAULT_BUFFER_TANK_LOSS,
     DEFAULT_HOUSE_HEAT_LOSS_SCALE,
     DEFAULT_WINDOW_AREA,
@@ -95,8 +100,10 @@ from .dhw_schedule import (
 
 _LOGGER = logging.getLogger(__name__)
 
-# Specific heat capacity of water: ~0.00116 kWh/(liter·°C)
-WATER_SPECIFIC_HEAT: float = 0.00116
+# Specific heat capacity of water: ~0.00116 kWh/(liter·°C).
+# Defined in `const` because the tank-geometry helpers there need it too, and
+# re-exported here so the many uses below read unchanged.
+WATER_SPECIFIC_HEAT: float = _WATER_SPECIFIC_HEAT
 
 # Air temperature around the storage tanks; they are assumed to stand indoors.
 # This is the reference ambient the learned DHW cooling rate is stated against.
@@ -126,6 +133,29 @@ class ThermalParameters:
     # Learned redistribution between the zones (item 31). 1.0 is the configured
     # split; the learner only moves it when a real lower-floor sensor exists.
     lower_floor_loss_ratio: float = DEFAULT_LOWER_FLOOR_LOSS_RATIO
+
+    # --- Mixing valve and the buffer tank as a store (items 27/29) ---------
+    #
+    # `none` is the default and keeps the existing `draw == supply` identity,
+    # which is *correct* for a system with no valve: whatever the pump makes
+    # goes straight to the emitters. This is an added branch, not a fix.
+    mixing_valve_mode: str = MIXING_VALVE_MODE_NONE
+    # Indoor temperature the valve regulates to. 0.0 means "not configured";
+    # the caller supplies the comfort ceiling instead.
+    mixing_valve_target: float = 0.0  # °C
+    # Flow-to-zone difference the emitters are sized for, used to back an
+    # emitter UA out of the nameplate output so the throttled branch reproduces
+    # today's delivery at the design point rather than inventing a new balance.
+    emitter_design_delta_t: float = 15.0  # K
+    # The tank's safe ceiling. In the model this clamps the state; in the
+    # optimizer it must become a hard constraint, because comfort and tank
+    # limits there are soft penalties and the solver would plan to boil it.
+    buffer_max_temp: float = 70.0  # °C
+    # Carnot-derived COP penalty for charging hot. Off keeps `compute_cop`
+    # exactly as it was. Without it, storing heat at 70 °C appears to cost the
+    # same per kWh as delivering it at 35 °C, so storage looks free.
+    cop_flow_carnot: bool = False
+    cop_flow_reference_temp: float = 35.0  # °C
     inter_zone_transfer: float = DEFAULT_INTER_ZONE_TRANSFER  # kW/°C
     radiator_power_fraction: float = DEFAULT_RADIATOR_POWER_FRACTION  # 0-1
 
@@ -137,7 +167,12 @@ class ThermalParameters:
     # from a buffer tank temperature sensor; the UA the simulation needs is
     # derived from it. When ``buffer_cooling_rate`` is set the derived UA wins
     # over the legacy ``buffer_tank_heat_loss``.
-    buffer_cooling_rate: float = DEFAULT_BUFFER_COOLING_RATE  # °C/h
+    #
+    # 0.0 means "not known yet, derive a prior from the tank's size". It cannot
+    # be a fixed default because the right rate depends on the volume, and it is
+    # resolved in the property rather than in __post_init__ so that changing the
+    # volume at runtime still produces a sensible prior.
+    buffer_cooling_rate: float = 0.0  # °C/h
 
     # Solar gain parameters
     window_area: float = DEFAULT_WINDOW_AREA  # m²
@@ -235,13 +270,15 @@ class ThermalParameters:
         derived from ``dhw_cooling_rate``, so both tanks can be learned by the
         same estimator.
         """
-        rate = float(
-            np.clip(
-                self.buffer_cooling_rate,
-                BUFFER_COOLING_RATE_MIN,
-                BUFFER_COOLING_RATE_MAX,
-            )
-        )
+        # Bounds depend on the tank: UA follows surface area, which grows as
+        # volume^(2/3), while the rate is UA/C and so falls as volume^(-1/3).
+        # Clamping every size against a 35 L tank's numbers is what floored a
+        # large accumulator an order of magnitude above its real standby loss.
+        low, high = buffer_cooling_rate_bounds(self.buffer_tank_volume)
+        rate = self.buffer_cooling_rate
+        if rate <= 0.0:
+            rate = default_buffer_cooling_rate(self.buffer_tank_volume)
+        rate = float(np.clip(rate, low, high))
         return rate * self.buffer_tank_thermal_mass / DHW_COOLING_REFERENCE_DELTA
 
     @property
@@ -452,6 +489,36 @@ class ThermalParameters:
                 )
             )
 
+        # The buffer cooling rate has no single right default: it depends on the
+        # tank's size. Leave it unset when the user has not configured one, so
+        # the prior is derived from the volume instead of from a 35 L tank's
+        # number. `DEFAULT_BUFFER_COOLING_RATE` is kept only so an existing
+        # entry that stored it explicitly keeps working.
+        if const.CONF_BUFFER_COOLING_RATE not in config:
+            values["buffer_cooling_rate"] = 0.0
+
+        # Mixing valve. The mode is validated here rather than trusted, because
+        # an unknown string would silently fall through to the unthrottled
+        # branch and the user would see no valve behaviour with no explanation.
+        mode = config.get(const.CONF_MIXING_VALVE_MODE, mixing_valve.MODE_NONE)
+        values["mixing_valve_mode"] = (
+            mode if mode in mixing_valve.MODES else mixing_valve.MODE_NONE
+        )
+        values["mixing_valve_target"] = float(
+            config.get(
+                const.CONF_MIXING_VALVE_TARGET, const.DEFAULT_MIXING_VALVE_TARGET
+            )
+            or 0.0
+        )
+        values["buffer_max_temp"] = float(
+            config.get(const.CONF_BUFFER_MAX_TEMP, const.DEFAULT_BUFFER_MAX_TEMP)
+        )
+        # The COP penalty only means anything when a valve can actually charge
+        # the tank, so it follows the mode rather than being separately switched.
+        values["cop_flow_carnot"] = mixing_valve.is_throttling(
+            values["mixing_valve_mode"]
+        )
+
         # Two-zone and DHW are inferred from whether their settings are present
         # at all, rather than from a flag, so an entry written before either
         # existed keeps working.
@@ -551,6 +618,9 @@ DHW_HOURLY_DRAW_PATTERN = [x * 24.0 / _DHW_SUM for x in DHW_HOURLY_DRAW_PATTERN]
 
 
 class ThermalModel:
+    #: Buffer trajectory of the last `simulate_trajectory` call.
+    last_buffer_trajectory: np.ndarray | None = None
+
     """Thermal model supporting single-zone, two-zone, and DHW operation."""
 
     def __init__(self, params: ThermalParameters) -> None:
@@ -562,7 +632,10 @@ class ThermalModel:
     # ------------------------------------------------------------------
 
     def compute_cop(
-        self, outdoor_temp: float, humidity: float | None = None
+        self,
+        outdoor_temp: float,
+        humidity: float | None = None,
+        flow_temp: float | None = None,
     ) -> float:
         """Compute heat pump COP as function of outdoor temperature.
 
@@ -589,6 +662,23 @@ class ThermalModel:
             if humidity is None:
                 humidity = self.params.ambient_humidity
             cop *= derate.factor(outdoor_temp, humidity)
+        # Lifting water to a higher flow temperature costs COP. Carnot-derived
+        # rather than a fitted %/K: a linear term is fine over the 5-15 K a
+        # weather curve moves through, but storage deliberately goes far beyond
+        # that, and at 2 %/K a 70 °C flow costs 70 % of COP and hits the floor.
+        # A real unit manages 1.5-2.0 there, which the Carnot ratio reproduces
+        # because it is the actual shape of the physics.
+        if flow_temp is not None and self.params.cop_flow_carnot:
+            ref = self.params.cop_flow_reference_temp
+            if flow_temp > ref:
+                t_out = outdoor_temp + 273.15
+                # A minimum lift keeps this finite as outdoor approaches flow.
+                carnot_flow = (flow_temp + 273.15) / max(
+                    flow_temp + 273.15 - t_out, 1.0
+                )
+                carnot_ref = (ref + 273.15) / max(ref + 273.15 - t_out, 1.0)
+                if carnot_ref > 1e-9:
+                    cop *= max(0.25, carnot_flow / carnot_ref)
         return max(cop, 0.5)
 
     def compute_cop_dhw(self, outdoor_temp: float, dhw_temp: float) -> float:
@@ -912,7 +1002,14 @@ class ThermalModel:
         State vector: [T_upper, T_lower, T_slab, T_buffer]
         """
         p = self.params
-        cop = self.compute_cop(outdoor_temp)
+        throttled = mixing_valve.is_throttling(p.mixing_valve_mode)
+        # With a valve the pump is charging the tank, so the tank temperature is
+        # the flow temperature and charging it hotter costs COP. That coupling is
+        # the entire economics of storing heat; without it storage looks free.
+        cop = self.compute_cop(
+            outdoor_temp,
+            flow_temp=state.buffer_tank_temperature if throttled else None,
+        )
         thermal_power = cop * electrical_power  # total heat from HP to buffer
 
         # Weather-adjusted heat loss using configurable sensitivity
@@ -942,15 +1039,66 @@ class ThermalModel:
         if C_buf < 1e-6:
             C_buf = 0.04  # fallback for 35L
 
-        # Heat drawn from buffer to radiators (upper floor)
         rad_fraction = p.radiator_power_fraction
-        q_rad_from_buf = rad_fraction * thermal_power
-        q_floor_from_buf = (1.0 - rad_fraction) * thermal_power
 
         # Buffer tank loss to ambient (assume ~20°C ambient indoors)
         q_buf_loss = p.buffer_tank_heat_loss_coefficient * (T_buf - 20.0)
 
+        if throttled:
+            # --- A valve exists, so delivery is decided by the house ---------
+            #
+            # Emitter capacity at the current tank temperature. The UA is backed
+            # out of the nameplate output at a design flow-to-zone difference,
+            # so at that design point this reproduces the delivery the
+            # unthrottled branch would give rather than inventing a new balance.
+            design_power = p.max_electrical_power * max(p.cop_nominal, 1.0)
+            design_dt = max(p.emitter_design_delta_t, 1.0)
+            cap_rad = max(
+                0.0,
+                rad_fraction * design_power / design_dt * (T_buf - T_upper),
+            )
+            cap_floor = max(
+                0.0,
+                (1.0 - rad_fraction) * design_power / design_dt * (T_buf - T_slab),
+            )
+            capacity = cap_rad + cap_floor
+
+            # What the valve will actually pass, which is what the house is
+            # asking for -- and the surplus above it has nowhere to go but the
+            # tank. This is the line that makes the tank a store.
+            area_ratio = getattr(p, "upper_floor_area_ratio", 0.5)
+            house_temp = T_upper * area_ratio + T_lower * (1.0 - area_ratio)
+            target = p.mixing_valve_target or (house_temp + 1.0)
+            demand = mixing_valve.delivery_demand(
+                indoor_temp=house_temp,
+                target_temp=target,
+                outdoor_temp=outdoor_temp,
+                heat_loss_coefficient=u_upper + u_lower,
+                thermal_mass=(
+                    p.upper_floor_thermal_mass + p.lower_floor_thermal_mass
+                ),
+                dt_hours=dt_hours,
+            )
+            delivered = min(capacity, demand)
+            if capacity > 1e-9:
+                q_rad_from_buf = delivered * cap_rad / capacity
+                q_floor_from_buf = delivered * cap_floor / capacity
+            else:
+                q_rad_from_buf = 0.0
+                q_floor_from_buf = 0.0
+        else:
+            # No valve: whatever the pump makes reaches the emitters. These two
+            # sum to `thermal_power` identically, so the tank is a pass-through
+            # with a standing loss -- which is a fair model of this topology and
+            # remains the default.
+            q_rad_from_buf = rad_fraction * thermal_power
+            q_floor_from_buf = (1.0 - rad_fraction) * thermal_power
+
         dT_buf = (thermal_power - q_rad_from_buf - q_floor_from_buf - q_buf_loss) / max(C_buf, 0.01)
+        if throttled:
+            # Physical ceiling: heat that would push the tank past its safe
+            # temperature cannot go there.
+            dT_buf = min(dT_buf, (p.buffer_max_temp - T_buf) / max(dt_hours, 1e-6))
 
         # --- Slab dynamics ---
         q_slab_to_lower = p.slab_heat_transfer * (T_slab - T_lower)
@@ -1054,6 +1202,8 @@ class ThermalModel:
         slab_temps[0] = initial_state.slab_temperature
         upper_temps[0] = initial_state.upper_floor_temperature
         lower_temps[0] = initial_state.lower_floor_temperature
+        buffer_temps = np.zeros(n_steps + 1)
+        buffer_temps[0] = initial_state.buffer_tank_temperature
 
         state = initial_state
         for i in range(n_steps):
@@ -1070,7 +1220,13 @@ class ThermalModel:
             slab_temps[i + 1] = state.slab_temperature
             upper_temps[i + 1] = state.upper_floor_temperature
             lower_temps[i + 1] = state.lower_floor_temperature
+            buffer_temps[i + 1] = state.buffer_tank_temperature
 
+        # Recorded rather than returned: nine call sites unpack a four-tuple,
+        # and the buffer is only wanted by the terminal-cost term. Without this
+        # the tank's end state is invisible to the objective, so charging it can
+        # only ever look like cost.
+        self.last_buffer_trajectory = buffer_temps
         return room_temps, slab_temps, upper_temps, lower_temps
 
     def simulate_trajectory_with_dhw(

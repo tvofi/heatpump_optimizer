@@ -201,7 +201,8 @@
           "grid": "Nätkostnader och kompressorstarter",
           "solar_pv": "Solceller",
           "away": "Bortaläge och semester",
-          "learning": "Självlärande och diagnostik"
+          "learning": "Självlärande och diagnostik",
+          "mixing_valve": "Shuntventil och värmelagring"
         }
       },
       "entities": {
@@ -449,6 +450,22 @@
           "comfort_learning_enabled": "Varje gång du justerar temperaturen säger du att planen gick för långt åt ett håll. Detta justerar långsamt komfortinställningen utifrån det. Det inlärda värdet visas på en egen sensor och det finns en knapp för att nollställa.",
           "system_identification_enabled": "Låter optimeraren göra ett litet avsiktligt värmesteg en mild och billig natt för att mäta huset direkt, i stället för att vänta veckor på att härleda det. Steget hålls så litet att det inte märks och avbryts om temperaturen driver."
         }
+      },
+      "mixing_valve": {
+        "title": "Shuntventil och värmelagring",
+        "description": "En shuntventil styr hur mycket värme som når huset, vilket är det som gör att överskottet kan gå till ackumulatortanken i stället. Lämna på \"Ingen shuntventil\" om du inte har någon - modellen är redan korrekt för det fallet.",
+        "data": {
+          "mixing_valve_mode": "Shuntventil",
+          "mixing_valve_target": "Ventilens börvärde",
+          "mixing_valve_target_entity": "Givare för ventilens börvärde",
+          "buffer_max_temperature": "Högsta temperatur i ackumulatortanken"
+        },
+        "data_description": {
+          "mixing_valve_mode": "\"Ställs in för hand\" är en ventil du själv ställer in; ange nedan vad du ställde den på. \"Läs från givare\" innebär att integrationen kan se börvärdet men inte ändra det.",
+          "mixing_valve_target": "Inomhustemperaturen ventilen håller. Lämna på 0 för att använda toppen av ditt komfortintervall, vilket är den rekommenderade inställningen: byggnaden laddas först utan verkningsgradsförlust, och tanken tar bara överskottet.",
+          "mixing_valve_target_entity": "Valfritt. Läser ventilens börvärde i stället för det fasta värdet ovan.",
+          "buffer_max_temperature": "Tanken laddas aldrig över detta, hur billig elen än är."
+        }
       }
     },
     "error": {
@@ -498,6 +515,13 @@
       "options": {
         "15": "15 minuter",
         "60": "1 timme"
+      }
+    },
+    "mixing_valve_mode": {
+      "options": {
+        "none": "Ingen shuntventil",
+        "manual": "Ställs in för hand",
+        "smart_read": "Läs från givare"
       }
     }
   }

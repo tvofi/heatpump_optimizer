@@ -307,6 +307,18 @@ CONF_DHW_DAILY_CONSUMPTION: Final = "dhw_daily_consumption"  # liters/day
 # runtime from observed standby decay.
 CONF_DHW_COOLING_RATE: Final = "dhw_cooling_rate"  # °C/h at reference conditions
 CONF_BUFFER_COOLING_RATE: Final = "buffer_cooling_rate"  # °C/h at reference
+
+# Mixing valve (item 29). Defaults to "none", which keeps the existing
+# behaviour exactly: with no valve, whatever the pump makes goes straight to
+# the emitters, and that is a correct model rather than a bug.
+CONF_MIXING_VALVE_MODE: Final = "mixing_valve_mode"
+CONF_MIXING_VALVE_TARGET: Final = "mixing_valve_target"  # °C indoor
+CONF_MIXING_VALVE_TARGET_ENTITY: Final = "mixing_valve_target_entity"
+CONF_BUFFER_MAX_TEMP: Final = "buffer_max_temperature"  # °C
+DEFAULT_BUFFER_MAX_TEMP: Final = 70.0  # °C
+# 0.0 means "not set": the comfort ceiling is used instead, which is the
+# recommended setting for a dumb valve anyway.
+DEFAULT_MIXING_VALVE_TARGET: Final = 0.0  # °C
 CONF_BUFFER_TANK_TEMP_ENTITY: Final = "buffer_tank_temp_entity"
 CONF_HOUSE_HEAT_LOSS_SCALE: Final = "house_heat_loss_scale"  # dimensionless
 CONF_LOWER_FLOOR_LOSS_RATIO: Final = "lower_floor_loss_ratio"  # dimensionless
@@ -403,6 +415,86 @@ DHW_COOLING_RATE_MAX: Final = 3.0  # °C/h
 DEFAULT_BUFFER_COOLING_RATE: Final = 6.0  # °C/h
 BUFFER_COOLING_RATE_MIN: Final = 0.5  # °C/h
 BUFFER_COOLING_RATE_MAX: Final = 30.0  # °C/h
+
+# ...and all three of those numbers are for a 35 L tank. They cannot be applied
+# unscaled to a larger one.
+#
+# The UA is derived as `rate * C / 25`, and C scales with volume -- so holding
+# the rate fixed makes UA scale with volume too. Physically UA follows the tank's
+# *surface area*, which grows as volume^(2/3). Cooling rate is UA/C, so it falls
+# as volume^(-1/3): a bigger tank has proportionally less skin to lose heat
+# through, which is why large accumulators hold their charge overnight and a
+# small buffer does not.
+#
+# Left unscaled the error is severe and it silently kills the case for storing
+# anything. A 750 L tank at the 35 L rate is modelled as losing 43.8 kWh over
+# six hours from a 26.1 kWh charge -- 168 % of the charge. The clamp floor is
+# worse than the default, because it stops the *learner* from ever finding the
+# truth: at 0.5 °C/h a 750 L tank still models 17 W/K against a real ~2 W/K.
+BUFFER_COOLING_REFERENCE_VOLUME: Final = 35.0  # L, the volume the rates describe
+# Canonical home for this: the tank-geometry helpers below need it, and
+# `thermal_model` imports from here rather than the reverse.
+WATER_SPECIFIC_HEAT: Final = 0.00116  # kWh per litre per K
+
+
+# Bounds on how well or badly a tank can physically be insulated, in W/m2K.
+# Scaling the legacy rate geometrically is the right *shape* but keeps its
+# magnitude, and that magnitude is not physical: 6 C/h at 35 L works out at
+# 9.7 W/K, which for a tank of roughly 0.64 m2 implies no insulation at all.
+# Deriving the clamp from surface area and an insulation quality instead means
+# the learner can reach what a real accumulator actually does -- around
+# 2 W/K for 750 L -- rather than being floored several times above it.
+BUFFER_INSULATION_U_BEST: Final = 0.2  # W/m2K, thick modern insulation
+BUFFER_INSULATION_U_TYPICAL: Final = 1.0  # W/m2K, an ordinary insulated tank
+BUFFER_INSULATION_U_WORST: Final = 8.0  # W/m2K, effectively a bare cylinder
+
+
+def buffer_tank_surface_area(volume_litres: float) -> float:
+    """Outer area of a tank of this volume, m2.
+
+    Assumes an upright cylinder about two and a half times as tall as it is
+    wide, which is what accumulators of every size look like. Exactness does not
+    matter here; the volume^(2/3) growth does.
+    """
+    try:
+        volume_m3 = max(float(volume_litres), 1e-6) / 1000.0
+    except (TypeError, ValueError):
+        return 0.0
+    diameter = (volume_m3 / 1.963) ** (1.0 / 3.0)  # H = 2.5 D
+    return 9.42 * diameter * diameter  # side + both ends
+
+
+def buffer_cooling_rate_bounds(volume_litres: float) -> tuple[float, float]:
+    """Clamp range for the learned cooling rate at a given tank volume, C/h.
+
+    Converted from the insulation bounds above through this tank's own geometry
+    and thermal mass, since the learner speaks in C/h while the physics is a UA.
+    """
+    area = buffer_tank_surface_area(volume_litres)
+    capacity = max(float(volume_litres), 1e-6) * WATER_SPECIFIC_HEAT
+    if area <= 0.0 or capacity <= 0.0:
+        return BUFFER_COOLING_RATE_MIN, BUFFER_COOLING_RATE_MAX
+    # rate = UA * reference_delta / C, with UA in kW/K.
+    to_rate = DHW_COOLING_REFERENCE_DELTA / capacity / 1000.0
+    return (
+        BUFFER_INSULATION_U_BEST * area * to_rate,
+        BUFFER_INSULATION_U_WORST * area * to_rate,
+    )
+
+
+def default_buffer_cooling_rate(volume_litres: float) -> float:
+    """Prior for the cooling rate at a given volume, before anything is learned.
+
+    Derived the same way as the bounds, from an ordinarily-insulated tank. The
+    old flat 6 C/h came out at 9.7 W/K on a 35 L tank -- above the bare-cylinder
+    ceiling above, i.e. a prior that assumed *worse* than no insulation at all,
+    and 30x too lossy by the time it was applied to an accumulator.
+    """
+    area = buffer_tank_surface_area(volume_litres)
+    capacity = max(float(volume_litres), 1e-6) * WATER_SPECIFIC_HEAT
+    if area <= 0.0 or capacity <= 0.0:
+        return DEFAULT_BUFFER_COOLING_RATE
+    return BUFFER_INSULATION_U_TYPICAL * area * DHW_COOLING_REFERENCE_DELTA / capacity / 1000.0
 
 # The house heat loss coefficient the user configures is a nameplate estimate.
 # What the optimizer actually needs is how fast *this* house loses heat, so the
@@ -568,6 +660,9 @@ INPUT_MAX_AGE_MINUTES[CONF_PV_PRODUCTION_ENTITY] = 30.0
 # same cycle. A key missing from this table gets no age limit at all, which
 # silently disables the staleness watchdog for it.
 INPUT_MAX_AGE_MINUTES[CONF_LOWER_FLOOR_TEMP_ENTITY] = 60.0
+# A stale valve target would have the model believe the house is being held
+# somewhere it is not, and plan charging around it.
+INPUT_MAX_AGE_MINUTES[CONF_MIXING_VALVE_TARGET_ENTITY] = 60.0
 
 # Attributes for the measured power / COP feature
 ATTR_MEASURED_POWER: Final = "measured_power"

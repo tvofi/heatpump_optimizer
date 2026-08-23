@@ -720,6 +720,50 @@
    "selector": "type"
   }
  },
+ "mixing_valve": {
+  "buffer_max_temperature": {
+   "config": {
+    "max": "90",
+    "min": "40",
+    "mode": "'slider'",
+    "step": "1",
+    "unit_of_measurement": "'\u00b0C'"
+   },
+   "default": "70.0",
+   "required": "Optional",
+   "selector": "NumberSelector"
+  },
+  "mixing_valve_mode": {
+   "config": {
+    "mode": "'dropdown'",
+    "options": "['none', 'manual', 'smart_read']",
+    "translation_key": "'mixing_valve_mode'"
+   },
+   "default": "'none'",
+   "required": "Optional",
+   "selector": "SelectSelector"
+  },
+  "mixing_valve_target": {
+   "config": {
+    "max": "30",
+    "min": "0",
+    "mode": "'box'",
+    "step": "0.5",
+    "unit_of_measurement": "'\u00b0C'"
+   },
+   "default": "0.0",
+   "required": "Optional",
+   "selector": "NumberSelector"
+  },
+  "mixing_valve_target_entity": {
+   "config": {
+    "filter": "[{'domain': ['sensor'], 'device_class': ['temperature']}]"
+   },
+   "default": null,
+   "required": "Optional",
+   "selector": "EntitySelector"
+  }
+ },
  "solar_pv": {
   "pv_enabled": {
    "config": null,
