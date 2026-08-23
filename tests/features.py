@@ -56,6 +56,7 @@ from heatpump_optimizer.tariff import (
     PeakTracker,
     peak_cost,
     peak_penalty,
+    realised_peak,
 )
 from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator as Coord
 from heatpump_optimizer.thermal_model import ThermalModel, ThermalParameters, ThermalState
@@ -374,6 +375,110 @@ R.check(
     hourly_from_entries([{"total": None}, {"starts_at": "nonsense"}]) == {},
 )
 
+# --- The shape's level must be calibrated to the known window --------------
+#
+# The learned shape has mean 1.0 over a whole day, but the known window
+# rarely covers one. Scaling by the raw mean of a window that sits on the
+# expensive half of the day overprices the entire guessed tail by the same
+# ratio.
+_lvl_model = PriceShapeModel()
+_lvl_model.shapes[0] = [1.5] * 12 + [0.5] * 12  # expensive night, cheap day
+_lvl_model.days = [10, 10]
+_lvl_steps = [datetime(2026, 1, 7, h, 0) for h in range(24)]  # a Wednesday
+_lvl_prices, _lvl_mask = extend_price_series(
+    [3.0] * 4, 24, _lvl_steps, _lvl_model
+)
+R.check(
+    "the guessed tail is scaled by the true daily level",
+    abs(_lvl_prices[12] - 1.0) < 1e-6,
+    f"known 3.0 sits on shape 1.5 → level 2.0; hour 12 at shape 0.5 must be "
+    f"1.0, not {3.0 * 0.5}, got {_lvl_prices[12]}",
+)
+R.check(
+    "and reproduces the known window at its own hours",
+    abs(2.0 * 1.5 - 3.0) < 1e-9 and bool(_lvl_mask[3]) and not bool(_lvl_mask[4]),
+)
+
+# --- Prices align by their own timestamps, not by list position ------------
+#
+# Position assumed the first entry is *today's* midnight. A stale list — the
+# fetch failing since yesterday — then shifts the whole horizon a day, and
+# quarter-hour entries (Tibber's 15-minute pricing) are each stretched to a
+# full hour.
+_pa = type(
+    "_PriceAlign",
+    (),
+    {
+        "_known_prices_for": Coord._known_prices_for,
+        "_comparable_ts": staticmethod(Coord._comparable_ts),
+    },
+)()
+_pa_mid = datetime(2026, 1, 6, 0, 0)
+_pa_steps = [_pa_mid + timedelta(minutes=15 * i) for i in range(8)]
+
+_pa._prices = [
+    {
+        "total": 1.0 + h,
+        "starts_at": (_pa_mid - timedelta(hours=24) + timedelta(hours=h)).isoformat(),
+    }
+    for h in range(24)
+]
+R.check(
+    "a stale price list is not read as today's prices",
+    _pa._known_prices_for(_pa_steps) == [],
+    "yesterday's midnight in position 0 must not become today's midnight",
+)
+_pa._prices = [
+    {"total": float(h), "starts_at": (_pa_mid + timedelta(hours=h)).isoformat()}
+    for h in range(2)
+]
+R.check(
+    "hourly entries cover their own four quarters",
+    _pa._known_prices_for(_pa_steps) == [0.0] * 4 + [1.0] * 4,
+)
+_pa._prices = [
+    {
+        "total": float(i),
+        "starts_at": (_pa_mid + timedelta(minutes=15 * i)).isoformat(),
+    }
+    for i in range(4)
+]
+R.check(
+    "quarter-hour entries are not stretched to hours",
+    _pa._known_prices_for(_pa_steps) == [0.0, 1.0, 2.0, 3.0],
+    "15-minute Tibber pricing maps one entry to one step",
+)
+
+# --- Weather aligns by entry timestamps too --------------------------------
+_wa = type(
+    "_WeatherAlign",
+    (),
+    {
+        "_weather_series": Coord._weather_series,
+        "_comparable_ts": staticmethod(Coord._comparable_ts),
+        "_wind_speed_scale": lambda self: 1.0,
+    },
+)()
+_wa._solar_radiation_forecast = []
+_wa._solar_radiation = 0.0
+# Forecast fetched two hours ago: entry 0 describes 22:00 *yesterday*.
+_wa._weather_forecast = [
+    {
+        "datetime": (_pa_mid - timedelta(hours=2) + timedelta(hours=h)).isoformat(),
+        "temperature": -10.0 + h,
+        "wind_speed": 0.0,
+        "precipitation": 0.0,
+    }
+    for h in range(6)
+]
+_wa_outdoor, _, _, _ = _wa._weather_series(4, _pa_mid, 0)
+R.check(
+    "a stale weather forecast still lines up with the clock",
+    _wa_outdoor[0] == -8.0,
+    f"midnight must read the entry *for* midnight (-8), not the first entry "
+    f"(-10); got {_wa_outdoor[0]}",
+)
+
 
 # ===========================================================================
 # Item 8: capacity (peak power) tariff
@@ -499,6 +604,20 @@ R.check(
     )
     < 1e-6,
     "three hours 2 kW over, averaged, at the full 60/kW = 120",
+)
+
+# --- The metering windows sit on the DSO's clock, not the plan's -----------
+#
+# A solve at 12:30 used to fold hourly windows [12:30, 13:30), so a one-hour
+# burst that the meter bills inside a single window was split across two and
+# its priced excess halved. `offset_steps` says how many steps remain to the
+# real boundary.
+_dso_burst = np.array([0.0, 0.0, 8.0, 8.0, 8.0, 8.0, 0.0, 0.0])
+R.check(
+    "a burst inside one billed window is priced as one window",
+    realised_peak(_dso_burst, np.zeros(8), 60, 0.25, offset_steps=2) == 8.0
+    and realised_peak(_dso_burst, np.zeros(8), 60, 0.25) == 4.0,
+    "on the shifted fold the same burst averages into two half-windows of 4",
 )
 
 

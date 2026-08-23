@@ -178,12 +178,27 @@ def extend_price_series(
     if known_count == 0:
         return np.full(n_steps, fallback, dtype=float), mask
 
-    # The level to scale the shape by is the mean of the known window, which is
-    # the best available estimate of "how expensive electricity is at the
-    # moment" and is unaffected by where in the day the known window happens
-    # to end.
+    # The level to scale the shape by comes from the known window — but the
+    # shape is normalised to mean 1.0 over a whole *day*, and the known window
+    # rarely is one. Known prices ending at the evening peak average ~1.4× the
+    # daily level, and scaling by that raw mean overprices the entire guessed
+    # tail by the same 40%. Dividing by the shape's own mean over the known
+    # steps calibrates the level so shape × level reproduces the known window,
+    # and reduces to the raw mean when the window covers whole days.
     level = float(np.mean(prices))
     last_known = float(prices[-1])
+    if model is not None:
+        shape_values = [
+            float(
+                model.shape_for(step_start_times[i])[
+                    step_start_times[i].hour % HOURS_PER_DAY
+                ]
+            )
+            for i in range(min(known_count, len(step_start_times)))
+        ]
+        shape_mean = float(np.mean(shape_values)) if shape_values else 1.0
+        if shape_mean > 1e-6:
+            level /= shape_mean
 
     for i in range(known_count, n_steps):
         when = (

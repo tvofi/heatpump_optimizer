@@ -186,13 +186,24 @@ class PeakTracker:
 
 
 def metering_windows(
-    house_power_kw: np.ndarray, window_minutes: int, dt_hours: float
+    house_power_kw: np.ndarray,
+    window_minutes: int,
+    dt_hours: float,
+    offset_steps: int = 0,
 ) -> np.ndarray:
     """Box-average a per-step series into the tariff's metering windows.
 
     A 15-minute burst inside an hourly-metered tariff only raises the hourly
     average by a quarter of its excess, so penalising the instantaneous step
     would give away real savings to avoid a peak that is never billed.
+
+    ``offset_steps`` is how many steps remain until the DSO's next window
+    boundary. The plan rarely starts on one — a solve at 12:15 folded windows
+    [12:15, 13:15) while the meter bills [12:00, 13:00) — and on the shifted
+    grid a burst that really sits inside one billed window is split across
+    two, halving its priced excess. The leading partial window is averaged
+    over the steps it has; its already-elapsed consumption is unknowable here
+    and is what the peak tracker's threshold accounts for.
     """
     house = np.asarray(house_power_kw, dtype=float)
     if house.size == 0:
@@ -201,14 +212,22 @@ def metering_windows(
     if per_window <= 1:
         return house
 
-    full = house.size // per_window
-    if not full:
-        return np.array([house.mean()])
-    windows = house[: full * per_window].reshape(full, per_window).mean(axis=1)
-    tail = house[full * per_window :]
+    head_steps = int(offset_steps) % per_window
+    head = house[:head_steps]
+    rest = house[head_steps:]
+
+    pieces: list[np.ndarray] = []
+    if head.size:
+        pieces.append(np.array([head.mean()]))
+    full = rest.size // per_window
+    if full:
+        pieces.append(rest[: full * per_window].reshape(full, per_window).mean(axis=1))
+    tail = rest[full * per_window :]
     if tail.size:
-        windows = np.append(windows, tail.mean())
-    return windows
+        pieces.append(np.array([tail.mean()]))
+    if not pieces:
+        return np.array([house.mean()])
+    return np.concatenate(pieces)
 
 
 def peak_penalty(
@@ -238,6 +257,7 @@ def peak_cost(
     window_minutes: int,
     dt_hours: float,
     peaks_averaged: int = 3,
+    offset_steps: int = 0,
 ) -> float:
     """What this plan would add to the monthly capacity charge.
 
@@ -268,7 +288,7 @@ def peak_cost(
     )
     if house.size == 0:
         return 0.0
-    windows = metering_windows(house, window_minutes, dt_hours)
+    windows = metering_windows(house, window_minutes, dt_hours, offset_steps)
     excess = np.maximum(0.0, windows - threshold_kw)
     if not np.any(excess > 0):
         return 0.0
@@ -282,6 +302,7 @@ def realised_peak(
     baseline_load_kw: np.ndarray,
     window_minutes: int,
     dt_hours: float,
+    offset_steps: int = 0,
 ) -> float:
     """The peak a plan would actually be billed on, in kW.
 
@@ -293,4 +314,4 @@ def realised_peak(
     )
     if house.size == 0:
         return 0.0
-    return float(np.max(metering_windows(house, window_minutes, dt_hours)))
+    return float(np.max(metering_windows(house, window_minutes, dt_hours, offset_steps)))

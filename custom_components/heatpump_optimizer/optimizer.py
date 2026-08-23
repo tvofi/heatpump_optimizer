@@ -877,7 +877,7 @@ class HeatPumpOptimizer:
             space_power if dhw_power is None else space_power + dhw_power
         )
         _, _, baseline_load = self._grid_terms(h.n_steps, h.dt)
-        grid = self._grid_report(total_power, baseline_load, h.dt)
+        grid = self._grid_report(total_power, baseline_load, h.dt, h.start_time)
         upper_setpoints, lower_setpoints = self._zone_setpoints(space_power)
         two_zone = self.model.params.two_zone_enabled
 
@@ -1052,7 +1052,21 @@ class HeatPumpOptimizer:
             prices, surplus, self.config.pv_export_price, p_dhw_run
         )
 
-    def _grid_terms(self, n_steps: int, dt: float):
+    def _window_offset_steps(self, start_time: datetime | None, dt: float) -> int:
+        """Steps until the DSO's next metering-window boundary.
+
+        The plan rarely starts on one, and folding windows from step 0 splits
+        a burst across two billed windows; see ``metering_windows``.
+        """
+        if start_time is None:
+            return 0
+        window = max(1, int(self.config.peak_window_minutes))
+        phase = (start_time.hour * 60 + start_time.minute) % window
+        if phase == 0:
+            return 0
+        return max(0, int(round((window - phase) / max(dt * 60.0, 1e-6))))
+
+    def _grid_terms(self, n_steps: int, dt: float, start_time: datetime | None = None):
         """Closures for the cycling and capacity-tariff penalties.
 
         Both are shared between the space-only and DHW paths. Keeping them in
@@ -1063,6 +1077,7 @@ class HeatPumpOptimizer:
         cfg = self.config
         p_max = self.model.params.max_electrical_power
         baseline = cfg.baseline_load_array(n_steps)
+        offset_steps = self._window_offset_steps(start_time, dt)
 
         def cycling(power: np.ndarray) -> float:
             return cycling_penalty(power, cfg.cycling_cost, p_max)
@@ -1076,6 +1091,7 @@ class HeatPumpOptimizer:
                 cfg.peak_window_minutes,
                 dt,
                 cfg.peak_count,
+                offset_steps,
             )
 
         return cycling, capacity, baseline
@@ -1589,7 +1605,9 @@ class HeatPumpOptimizer:
         # a fixed quadratic penalty.
         comfort_band = np.maximum(comfort_targets - temp_min_bounds, 1.0)
         terminal_cost = self._terminal_cost(prices, outdoor_temps)
-        cycling, capacity, baseline_load = self._grid_terms(n_steps, dt)
+        cycling, capacity, baseline_load = self._grid_terms(
+            n_steps, dt, h.start_time
+        )
         energy_cost_of = self._energy_cost_fn(prices, dt)
 
         def objective(power_schedule: np.ndarray) -> float:
@@ -1754,14 +1772,23 @@ class HeatPumpOptimizer:
     # ------------------------------------------------------------------
 
     def _grid_report(
-        self, total_power: np.ndarray, baseline_load: np.ndarray, dt: float
+        self,
+        total_power: np.ndarray,
+        baseline_load: np.ndarray,
+        dt: float,
+        start_time: datetime | None = None,
     ) -> dict[str, Any]:
         """Peak and cycling figures for the solved plan."""
         cfg = self.config
+        offset_steps = self._window_offset_steps(start_time, dt)
         return {
             "peak_kw": round(
                 realised_peak(
-                    total_power, baseline_load, cfg.peak_window_minutes, dt
+                    total_power,
+                    baseline_load,
+                    cfg.peak_window_minutes,
+                    dt,
+                    offset_steps,
                 ),
                 3,
             ),
@@ -1774,6 +1801,7 @@ class HeatPumpOptimizer:
                     cfg.peak_window_minutes,
                     dt,
                     cfg.peak_count,
+                    offset_steps,
                 ),
                 3,
             ),
@@ -2713,7 +2741,9 @@ class HeatPumpOptimizer:
         # pull-to-target term.
         comfort_band = np.maximum(comfort_targets - temp_min_bounds, 1.0)
         terminal_cost = self._terminal_cost(prices, outdoor_temps)
-        cycling, capacity, baseline_load = self._grid_terms(n_steps, dt)
+        cycling, capacity, baseline_load = self._grid_terms(
+            n_steps, dt, start_time
+        )
         energy_cost_of = self._energy_cost_fn(prices, dt)
 
         def objective(

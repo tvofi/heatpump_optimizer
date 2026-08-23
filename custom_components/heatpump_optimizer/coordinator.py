@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import logging
+from bisect import bisect_right
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 from typing import Any, NamedTuple
@@ -2851,45 +2852,96 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             )
             return None
 
-        # Tibber publishes hourly; the optimizer works in quarters.
-        quarters: list[float] = []
-        for entry in self._prices:
-            total = _as_float(entry.get("total"), 0.0)
-            quarters.extend([total] * 4)
+        step_starts = [
+            midnight + timedelta(minutes=FORECAST_STEP_MINUTES * (step_offset + i))
+            for i in range(n_steps)
+        ]
 
-        if step_offset < len(quarters):
-            known = quarters[step_offset : step_offset + n_steps]
-        else:
-            known = quarters[:n_steps]
+        # Align by each entry's own timestamp, not by its position. Position
+        # assumed the first entry is *today's* midnight, which breaks two real
+        # ways: a stale list (fetch failing since yesterday) shifts the whole
+        # horizon a day, and quarter-hour entries — Tibber's 15-minute pricing
+        # — would each be stretched to a full hour. An entry covers from its
+        # start to the next entry's start; the last covers its predecessor's
+        # span. The known series stops at the first step no entry covers, and
+        # the learned prior fills the rest below.
+        known = self._known_prices_for(step_starts)
 
         # Past the published horizon, model the shape rather than repeating the
         # last price. A flat tail has no trough, so the optimizer cannot see a
         # cheap period ahead worth waiting for. The mask records which steps
         # rest on the learned prior so that stays visible downstream.
-        step_starts = [
-            midnight + timedelta(minutes=FORECAST_STEP_MINUTES * (step_offset + i))
-            for i in range(n_steps)
-        ]
         prices, price_known = extend_price_series(
             known, n_steps, step_starts, self._price_prior()
         )
         self._price_known_steps = int(np.sum(price_known))
         return prices, price_known
 
+    @staticmethod
+    def _comparable_ts(raw: Any, reference: datetime) -> datetime | None:
+        """Parse an entry timestamp so it can be ordered against the step grid.
+
+        A naive timestamp against an aware grid is taken as UTC, matching
+        ``_get_current_price``; an aware one against a naive grid keeps its
+        own wall clock.
+        """
+        try:
+            ts = datetime.fromisoformat(str(raw))
+        except (TypeError, ValueError):
+            return None
+        if ts.tzinfo is None and reference.tzinfo is not None:
+            return ts.replace(tzinfo=timezone.utc)
+        if ts.tzinfo is not None and reference.tzinfo is None:
+            return dt_util.as_local(ts).replace(tzinfo=None)
+        return ts
+
+    def _known_prices_for(self, step_starts: list[datetime]) -> list[float]:
+        """Published prices covering a leading run of the step grid."""
+        if not step_starts:
+            return []
+        entries: list[tuple[datetime, float]] = []
+        for entry in self._prices:
+            ts = self._comparable_ts(entry.get("starts_at"), step_starts[0])
+            if ts is not None:
+                entries.append((ts, _as_float(entry.get("total"), 0.0)))
+        if not entries:
+            # Data with no timestamps at all: keep the old positional
+            # assumption of hourly entries starting at the first step.
+            known: list[float] = []
+            for entry in self._prices:
+                known.extend([_as_float(entry.get("total"), 0.0)] * 4)
+            return known[: len(step_starts)]
+
+        entries.sort(key=lambda item: item[0])
+        starts = [ts for ts, _ in entries]
+        known = []
+        for step_start in step_starts:
+            idx = bisect_right(starts, step_start) - 1
+            if idx < 0:
+                break
+            if idx + 1 < len(starts):
+                end = starts[idx + 1]
+            elif idx > 0:
+                end = starts[idx] + (starts[idx] - starts[idx - 1])
+            else:
+                end = starts[idx] + timedelta(hours=1)
+            if step_start >= end:
+                break
+            known.append(entries[idx][1])
+        return known
+
     def _weather_series(
-        self, n_steps: int
+        self, n_steps: int, midnight: datetime, step_offset: int
     ) -> tuple[list[float], list[float], list[float], list[float]]:
         """Per-step outdoor temperature, wind, precipitation and irradiance.
 
         These are *forecast trajectories*, not current conditions: using the
         whole horizon is what makes the control anticipatory rather than
-        reactive.
+        reactive. Entries are matched to steps by their own timestamps where
+        they carry one — assuming the first entry is the current hour breaks
+        as soon as the forecast is stale or starts at the *next* hour, and
+        the whole horizon then reads a few hours out of phase.
         """
-        outdoor: list[float] = []
-        wind: list[float] = []
-        precipitation: list[float] = []
-        solar: list[float] = []
-
         if not self._weather_forecast:
             _LOGGER.warning(
                 "No weather forecast available — using current conditions. "
@@ -2906,6 +2958,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # Guessing from the magnitude misreads a moderate 20 km/h breeze as a
         # 20 m/s storm and doubles the predicted heat loss.
         wind_scale = self._wind_speed_scale()
+        step_starts = [
+            midnight + timedelta(minutes=FORECAST_STEP_MINUTES * (step_offset + i))
+            for i in range(n_steps)
+        ]
+
+        parsed: list[tuple[datetime | None, tuple[float, float, float, float]]] = []
         for idx, entry in enumerate(self._weather_forecast):
             temp = _as_float(entry.get("temperature"), 5.0)
             gust = max(0.0, _as_float(entry.get("wind_speed"), 0.0) * wind_scale)
@@ -2922,12 +2980,43 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 )
             irradiance = max(0.0, irradiance)
 
-            # Hourly forecast held flat across the four quarters it covers.
-            for _ in range(4):
+            ts = (
+                self._comparable_ts(entry.get("datetime"), step_starts[0])
+                if step_starts
+                else None
+            )
+            parsed.append((ts, (temp, gust, rain, irradiance)))
+
+        timed = sorted(
+            (item for item in parsed if item[0] is not None),
+            key=lambda item: item[0],
+        )
+        outdoor: list[float] = []
+        wind: list[float] = []
+        precipitation: list[float] = []
+        solar: list[float] = []
+
+        if timed:
+            starts = [ts for ts, _ in timed]
+            for step_start in step_starts:
+                # Each entry holds until the next one begins; before the first
+                # entry the first is the best information there is, and past
+                # the last the caller pads flat anyway.
+                idx = max(0, bisect_right(starts, step_start) - 1)
+                temp, gust, rain, irradiance = timed[idx][1]
                 outdoor.append(temp)
                 wind.append(gust)
                 precipitation.append(rain)
                 solar.append(irradiance)
+        else:
+            # No timestamps at all: the old positional assumption, hourly
+            # entries starting now.
+            for _, (temp, gust, rain, irradiance) in parsed:
+                for _ in range(4):
+                    outdoor.append(temp)
+                    wind.append(gust)
+                    precipitation.append(rain)
+                    solar.append(irradiance)
 
         return outdoor, wind, precipitation, solar
 
@@ -3004,7 +3093,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             return ForecastArrays.empty()
         prices, price_known = priced
 
-        outdoor, wind, precipitation, solar = self._weather_series(n_steps)
+        outdoor, wind, precipitation, solar = self._weather_series(
+            n_steps, midnight, step_offset
+        )
         solar = self._apply_open_meteo(solar, n_steps, midnight, step_offset)
 
         # A forecast shorter than the horizon is held flat at its last value.
