@@ -1,5 +1,32 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v3.3.1
+
+### Fixed: the enlarged card could render outside its own edge
+
+On a desktop browser, at some window sizes, everything below the chart — the
+delta calculator, the buttons, the schedule editor — was drawn past the bottom
+of the dialog's own background instead of inside it. At 1400x700 with a pinned
+plan active, the overflow measured 449 pixels.
+
+The dialog's width was derived from a fixed guess that the surrounding chrome
+needed 168 pixels of height. That guess was made when the enlarged view was just
+a title, a legend and a chart, and it never grew as the editor did. Worse, it
+fed back on itself: a shorter window made the dialog *wider*, and the text
+around the chart is sized from the dialog's width, so the chrome grew in the
+same direction as the overflow.
+
+The guess is gone. The dialog is now bounded by the window, and anything that
+does not fit scrolls, so a panel added later costs a scrollbar rather than
+spilled content. Your position in the panel is kept when the plan refreshes
+underneath you, which happens every few minutes.
+
+The chart still keeps its exact proportions rather than being squeezed to fit —
+squeezing it would stretch every axis label sideways.
+
+Phones were never affected and are unchanged: the narrow-window path never
+consulted the faulty budget.
+
 ## v3.3.0
 
 The schedule editor gained a hot water minimum, and the plan chart can be panned
