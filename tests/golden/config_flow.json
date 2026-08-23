@@ -100,7 +100,7 @@
     "mode": "'box'",
     "step": "0.01"
    },
-   "default": "0.15",
+   "default": "0.03",
    "required": "Optional",
    "selector": "NumberSelector"
   },
@@ -299,14 +299,6 @@
   "heat_pump_energy_entity": {
    "config": {
     "filter": "[{'domain': ['sensor'], 'device_class': ['energy']}]"
-   },
-   "default": null,
-   "required": "Optional",
-   "selector": "EntitySelector"
-  },
-  "heat_pump_entity": {
-   "config": {
-    "filter": "[{'domain': ['climate']}]"
    },
    "default": null,
    "required": "Optional",
