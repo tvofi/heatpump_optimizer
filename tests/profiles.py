@@ -46,6 +46,29 @@ def prices(profile, start):
         p[(h >= 1) & (h < 5)] = 0.40
         p[(h >= 7) & (h < 9)] = 1.60
         p[(h >= 17) & (h < 20)] = 1.90
+    elif profile == "winter_narrow":
+        # The case the existing profiles miss entirely.
+        #
+        # Every other curve here has a cheap:dear ratio of 0.12-0.25, which is
+        # far inside the break-even a thermal store needs (a 20 K lift at 2 %/K
+        # needs the cheap hour at or below 0.60 of the dear one). Measuring
+        # storage only against those profiles concludes "storage always pays"
+        # without ever touching the marginal case that actually decides it.
+        # Ratio here is 0.70.
+        p = np.full(N, 1.55)
+        p[(h >= 0) & (h < 5)] = 1.40
+        p[(h >= 7) & (h < 10)] = 1.95
+        p[(h >= 16) & (h < 20)] = 2.00
+        p[h >= 22] = 1.45
+    elif profile == "winter_moderate":
+        # Between narrow and typical: ratio 0.52, i.e. either side of break-even
+        # depending on how hard the tank is charged. This is where a storage
+        # feature has to make a genuinely correct call rather than a lucky one.
+        p = np.full(N, 1.30)
+        p[(h >= 0) & (h < 5)] = 0.95
+        p[(h >= 7) & (h < 10)] = 1.75
+        p[(h >= 16) & (h < 20)] = 1.85
+        p[h >= 22] = 1.05
     elif profile == "flat":
         p = np.full(N, 1.20)
     else:
