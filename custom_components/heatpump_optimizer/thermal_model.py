@@ -33,7 +33,7 @@ parameters are not provided.
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any
 
 import numpy as np
@@ -959,18 +959,17 @@ class ThermalModel:
         new_room = state.room_temperature + dT_room * dt_hours
         new_slab = state.slab_temperature + dT_slab * dt_hours
 
-        return ThermalState(
+        # ``replace`` carries every field not overridden — enumerating them
+        # here silently reset the legionella clock and the external-heat flag
+        # to their defaults on every simulated step.
+        return replace(
+            state,
             room_temperature=new_room,
             slab_temperature=new_slab,
             outdoor_temperature=outdoor_temp,
             upper_floor_temperature=new_room,
             lower_floor_temperature=new_room,
-            buffer_tank_temperature=state.buffer_tank_temperature,
-            floor_return_temperature=state.floor_return_temperature,
             solar_radiation=solar_radiation,
-            dhw_temperature=state.dhw_temperature,
-            ecl110_displace_command=state.ecl110_displace_command,
-            ecl110_effective_displace=state.ecl110_effective_displace,
         )
 
     # ------------------------------------------------------------------
@@ -1129,19 +1128,17 @@ class ThermalModel:
         # Weighted average for legacy room_temperature field
         avg_room = new_upper * area_ratio + new_lower * (1.0 - area_ratio)
 
-        return ThermalState(
+        # Same ``replace`` discipline as the single-zone step: fields not
+        # overridden are carried, not reset.
+        return replace(
+            state,
             room_temperature=avg_room,
             slab_temperature=new_slab,
             outdoor_temperature=outdoor_temp,
             upper_floor_temperature=new_upper,
             lower_floor_temperature=new_lower,
             buffer_tank_temperature=new_buf,
-            floor_return_temperature=state.floor_return_temperature,
             solar_radiation=solar_radiation,
-            dhw_temperature=state.dhw_temperature,
-            dhw_hours_since_legionella=state.dhw_hours_since_legionella,
-            ecl110_displace_command=state.ecl110_displace_command,
-            ecl110_effective_displace=state.ecl110_effective_displace,
         )
 
     # ------------------------------------------------------------------
