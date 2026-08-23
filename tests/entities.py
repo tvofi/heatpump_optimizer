@@ -219,13 +219,23 @@ for name in (
     "Space Heating Energy",
     "Hot Water Energy",
     "Total Energy",
+):
+    R.check(
+        f"{name} is TOTAL_INCREASING",
+        by_name[name]._attr_state_class == SensorStateClass.TOTAL_INCREASING,
+    )
+# Money is different: Home Assistant only accepts state class TOTAL for
+# device class MONETARY, and long-term statistics need a currency unit.
+# TOTAL_INCREASING here (as previously pinned) made HA reject the statistics.
+for name in (
     "Space Heating Cost",
     "Hot Water Cost",
     "Total Heating Cost",
 ):
     R.check(
-        f"{name} is TOTAL_INCREASING",
-        by_name[name]._attr_state_class == SensorStateClass.TOTAL_INCREASING,
+        f"{name} is a TOTAL in a currency",
+        by_name[name]._attr_state_class == SensorStateClass.TOTAL
+        and by_name[name]._attr_native_unit_of_measurement == "SEK",
     )
 R.check(
     "the DHW/space split is described rather than implied",
@@ -511,6 +521,34 @@ for key in (
         key in options._OPTIONAL_ENTITY_KEYS,
         "options merge over setup data, so an absent key restores the old value",
     )
+
+# Saving one page must not clear entities configured on another. The entities
+# page used to null the *whole* clearable roster, so any save of it silently
+# wiped the PV, away and external-heat entities — settings that live on other
+# pages and were not even on the submitted form.
+_cross_page = {
+    const.CONF_EXTERNAL_HEAT_ENTITY: "binary_sensor.furnace",
+    const.CONF_PV_PRODUCTION_ENTITY: "sensor.pv_power",
+    const.CONF_PV_EXPORT_PRICE_ENTITY: "sensor.export_price",
+    const.CONF_AWAY_PRESENCE_ENTITY: "person.someone",
+    const.CONF_AWAY_RETURN_ENTITY: "input_datetime.back",
+}
+_flow = options(FakeEntry(options={const.CONF_TIBBER_TOKEN: "t", **_cross_page}))
+_flow.hass = FakeHass()
+_form = asyncio.run(_flow.async_step_entities(None))
+_untouched = _form["data_schema"]({})  # defaults only, as a real untouched save
+_saved = asyncio.run(_flow.async_step_entities(_untouched))["data"]
+for key, value in _cross_page.items():
+    R.check(
+        f"saving the entities page leaves {key} alone",
+        _saved.get(key) == value,
+        f"stored {value!r}, page save produced {_saved.get(key)!r}",
+    )
+R.check(
+    "the entities page still clears its own absent fields",
+    _saved.get(const.CONF_POWER_ENTITY) is None,
+    "a cleared selector must be written back as None or clearing does not stick",
+)
 
 
 # ===========================================================================

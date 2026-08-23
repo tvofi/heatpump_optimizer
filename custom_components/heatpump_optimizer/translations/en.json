@@ -178,7 +178,8 @@
     },
     "error": {
       "invalid_tibber_token": "That Tibber token was not accepted. Check it at developer.tibber.com and try again.",
-      "invalid_dhw_windows": "Those time frames could not be read. Use 24-hour times separated by commas, for example \"06:00-08:30, 17:00-22:00\"."
+      "invalid_dhw_windows": "Those time frames could not be read. Use 24-hour times separated by commas, for example \"06:00-08:30, 17:00-22:00\".",
+      "dhw_min_too_close": "A hot water minimum this close to the setpoint leaves the tank no working band; keep it at least 5 \\u00b0C below the setpoint."
     },
     "abort": {
       "already_configured": "This integration is already set up."
@@ -452,7 +453,8 @@
     },
     "error": {
       "invalid_tibber_token": "That Tibber token was not accepted. Check it at developer.tibber.com and try again.",
-      "invalid_dhw_windows": "Those time frames could not be read. Use 24-hour times separated by commas, for example \"06:00-08:30, 17:00-22:00\"."
+      "invalid_dhw_windows": "Those time frames could not be read. Use 24-hour times separated by commas, for example \"06:00-08:30, 17:00-22:00\".",
+      "dhw_min_too_close": "A hot water minimum this close to the setpoint leaves the tank no working band; keep it at least 5 \\u00b0C below the setpoint."
     }
   },
   "selector": {

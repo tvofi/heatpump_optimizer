@@ -178,7 +178,8 @@
     },
     "error": {
       "invalid_tibber_token": "Tibber-token accepterades inte. Kontrollera den på developer.tibber.com och försök igen.",
-      "invalid_dhw_windows": "Tiderna kunde inte tolkas. Använd 24-timmarsformat separerat med komma, till exempel \"06:00-08:30, 17:00-22:00\"."
+      "invalid_dhw_windows": "Tiderna kunde inte tolkas. Använd 24-timmarsformat separerat med komma, till exempel \"06:00-08:30, 17:00-22:00\".",
+      "dhw_min_too_close": "Ett varmvattenminimum s\\u00e5 n\\u00e4ra b\\u00f6rv\\u00e4rdet l\\u00e4mnar tanken utan arbetsband; h\\u00e5ll det minst 5 \\u00b0C under b\\u00f6rv\\u00e4rdet."
     },
     "abort": {
       "already_configured": "Den här integrationen är redan konfigurerad."
@@ -452,7 +453,8 @@
     },
     "error": {
       "invalid_tibber_token": "Tibber-token accepterades inte. Kontrollera den på developer.tibber.com och försök igen.",
-      "invalid_dhw_windows": "Tiderna kunde inte tolkas. Använd 24-timmarsformat separerat med komma, till exempel \"06:00-08:30, 17:00-22:00\"."
+      "invalid_dhw_windows": "Tiderna kunde inte tolkas. Använd 24-timmarsformat separerat med komma, till exempel \"06:00-08:30, 17:00-22:00\".",
+      "dhw_min_too_close": "Ett varmvattenminimum s\\u00e5 n\\u00e4ra b\\u00f6rv\\u00e4rdet l\\u00e4mnar tanken utan arbetsband; h\\u00e5ll det minst 5 \\u00b0C under b\\u00f6rv\\u00e4rdet."
     }
   },
   "selector": {
