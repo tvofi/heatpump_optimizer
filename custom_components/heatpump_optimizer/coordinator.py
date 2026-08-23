@@ -74,6 +74,8 @@ from .const import (
     DEFAULT_COMFORT_WEIGHT,
     BUFFER_COOLING_RATE_MAX,
     BUFFER_COOLING_RATE_MIN,
+    buffer_cooling_rate_bounds,
+    default_buffer_cooling_rate,
     CONF_BUFFER_COOLING_RATE,
     CONF_BUFFER_TANK_TEMP_ENTITY,
     DEFAULT_HOUSE_HEAT_LOSS_SCALE,
@@ -513,8 +515,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # Self-learned buffer tank standby cooling, in °C/h at the same
         # reference ΔT as the DHW rate. Only learned when a buffer tank
         # temperature sensor is configured.
+        # 0.0 on the parameters means "no rate known yet"; the prior then comes
+        # from the tank's own size rather than from a 35 L tank's number.
         self._buffer_cooling_rate: float = float(
             self._thermal_params.buffer_cooling_rate
+            or default_buffer_cooling_rate(
+                self._thermal_params.buffer_tank_volume
+            )
         )
         self._buffer_cooling_samples: int = 0
         self._last_buffer_temp_sample: float | None = None
@@ -1343,11 +1350,23 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             )
         return 0.0, 0.0
 
+    def _buffer_cooling_bounds(self) -> tuple[float, float]:
+        """Plausible cooling-rate range for *this* tank, C/h.
+
+        Volume-dependent, because UA follows surface area while the rate is
+        UA/C: a big accumulator loses proportionally far less than a small
+        buffer. The flat bounds this replaced floored a 750 L tank around
+        17 W/K when a real one is nearer 2, so the learner could never reach
+        the truth however long it ran.
+        """
+        return buffer_cooling_rate_bounds(
+            self._thermal_params.buffer_tank_volume
+        )
+
     def _apply_buffer_cooling_rate(self, rate: float) -> None:
         """Clamp a buffer cooling rate to a plausible range and push it out."""
-        self._buffer_cooling_rate = float(
-            np.clip(rate, BUFFER_COOLING_RATE_MIN, BUFFER_COOLING_RATE_MAX)
-        )
+        low, high = self._buffer_cooling_bounds()
+        self._buffer_cooling_rate = float(np.clip(rate, low, high))
         self._thermal_params.buffer_cooling_rate = self._buffer_cooling_rate
 
     def _apply_house_heat_loss_scale(self, scale: float) -> None:
@@ -1416,7 +1435,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         )
         if not np.isfinite(observed):
             return
-        if observed < BUFFER_COOLING_RATE_MIN or observed > BUFFER_COOLING_RATE_MAX:
+        low, high = self._buffer_cooling_bounds()
+        if observed < low or observed > high:
             return
 
         alpha = (

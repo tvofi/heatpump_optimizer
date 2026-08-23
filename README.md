@@ -346,7 +346,16 @@ your entered value meaningful and also handles the two-zone case, where a single
 indoor sensor cannot identify the upper and lower floor coefficients separately.
 
 The buffer tank rate is only learned when a **Buffer tank temperature sensor**
-is configured; without one the configured default is used unchanged.
+is configured; without one a prior derived from the tank's size is used.
+
+That prior, and the range the learning is allowed to move within, both follow
+the tank's **surface area** rather than its volume. Heat escapes through a
+tank's skin, and a large tank has far less skin for the water it holds — a
+750-litre accumulator loses proportionally much less than a 35-litre buffer, so
+a single "degrees per hour" figure cannot describe both. If you have an
+accumulator this matters a great deal: applied unscaled, a small tank's figure
+models more heat lost in six hours than the tank can physically hold, which
+makes storing heat in it look pointless when it is not.
 
 ### Two-Zone Thermal Model
 

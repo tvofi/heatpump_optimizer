@@ -1,5 +1,34 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v3.6.1
+
+### Fixed: large buffer tanks were modelled as losing far more heat than they do
+
+If you have an accumulator rather than a small buffer, the model believed it
+leaked roughly ten times as fast as it really does — and the correction the
+integration learns from your own tank sensor was not allowed to find the truth
+either.
+
+The standby loss was described as a cooling rate in degrees per hour, and the
+same rate was applied at every tank size. But heat escapes through a tank's
+*surface*, and a big tank has far less surface for the water it holds. A
+750-litre accumulator loses proportionally much less than a 35-litre buffer, so
+one rate cannot describe both. Applied to 750 litres, the old number modelled
+more heat lost in six hours than the tank can hold.
+
+The loss now follows the tank's size the way the physics does, and the limits
+the learning is allowed to move between are derived from how well a tank of that
+size could plausibly be insulated. A well-insulated accumulator now sits
+comfortably inside that range instead of being pinned several times above it.
+
+The prior itself is also more honest. The old default worked out worse than an
+uninsulated bare cylinder, at any size.
+
+**What you will see.** If you have a buffer tank configured, its standing loss
+drops and its hours of autonomy rise on the battery view. If you have a *large*
+tank the change is substantial. Nothing changes if you never configured one.
+A rate you set yourself is still respected.
+
 ## v3.6.0
 
 The two-zone model now learns how your heat loss actually splits between the
