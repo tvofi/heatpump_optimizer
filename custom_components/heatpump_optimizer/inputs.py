@@ -171,9 +171,18 @@ class InputReader:
         return dt_util.utcnow()
 
     def _age_minutes(self, state: Any) -> float | None:
-        """Minutes since the state last changed, or ``None`` if not knowable."""
-        stamp = getattr(state, "last_updated", None) or getattr(
-            state, "last_changed", None
+        """Minutes since the sensor last reported, or ``None`` if not knowable.
+
+        ``last_reported`` is preferred where Home Assistant provides it:
+        ``last_updated`` only moves when the state *object* changes, so a live
+        sensor re-reporting an unchanged value — a stable tank overnight — was
+        flagged stale while a genuinely dead sensor looked no different. A dead
+        sensor stops reporting too, so the fail-closed intent is preserved.
+        """
+        stamp = (
+            getattr(state, "last_reported", None)
+            or getattr(state, "last_updated", None)
+            or getattr(state, "last_changed", None)
         )
         if not isinstance(stamp, datetime):
             return None

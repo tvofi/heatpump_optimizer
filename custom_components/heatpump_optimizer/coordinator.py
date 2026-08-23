@@ -170,6 +170,7 @@ from .external_heat import (
 )
 from . import away as away_mode
 from . import battery as battery_view
+from . import mixing_valve
 from . import pv as pv_model
 from .accuracy import AccuracySample, AccuracyTracker, delivered_ratio
 from .comfort_learning import ComfortLearner, OverrideEvent
@@ -1155,6 +1156,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
     def _external_heat_config(self) -> ExternalHeatConfig:
         """Build the detector configuration from the config entry."""
+        interval_hours = (
+            self._config.get(
+                CONF_OPTIMIZATION_INTERVAL, DEFAULT_OPTIMIZATION_INTERVAL
+            )
+            / 60.0
+        )
         return ExternalHeatConfig(
             enabled=bool(
                 self._config.get(
@@ -1169,6 +1176,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 self._config.get(CONF_EXTERNAL_HEAT_DECAY_MINUTES),
                 DEFAULT_EXTERNAL_HEAT_DECAY_MINUTES,
             ),
+            # Samples arrive once per update cycle, so the window has to
+            # outlast the interval or every pair is rejected and the detector
+            # is blind at exactly the 60-minute setting it appears to support.
+            max_sample_hours=max(1.0, 1.5 * interval_hours),
         )
 
     def _apply_cop_scale(self, scale: float) -> None:
@@ -1410,6 +1421,16 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         frozen = self._learning_frozen(CONF_BUFFER_TANK_TEMP_ENTITY)
         if frozen:
             self._learner_freeze_reason = frozen
+            return
+
+        # With a mixing valve the tank is a store the house draws on while the
+        # pump is off — that is the feature — so a pump-off interval is not
+        # quiet decay, and reading the draw as standby loss would creep the
+        # learned rate toward its ceiling and quietly price storage off the
+        # table. There is no interval this learner can trust in a throttling
+        # mode; the volume-derived prior (or an explicitly configured rate)
+        # stands instead.
+        if mixing_valve.is_throttling(self._thermal_params.mixing_valve_mode):
             return
 
         if previous_temp is None or previous_time is None or heated:
@@ -3747,17 +3768,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         presence_raw, presence_attrs = self._entity_state(config.presence_entity)
         return_raw, _ = self._entity_state(config.return_entity)
 
-        params = self._thermal_params
-        if params.two_zone_enabled:
-            capacity = (
-                params.upper_floor_thermal_mass + params.lower_floor_thermal_mass
-            )
-        else:
-            capacity = params.room_thermal_mass
-
-        cop = self._thermal_model.compute_cop(
-            self._current_state.outdoor_temperature
-        )
         now = dt_util.now()
         self._away_state = away_mode.resolve(
             config,
@@ -3765,13 +3775,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             presence_raw=presence_raw,
             presence_attributes=presence_attrs,
             return_raw=return_raw,
-            current_temp=self._current_state.room_temperature,
             comfort_temp=self._opt_config.get_comfort_temp(
                 now.hour + now.minute / 60.0
             ),
-            heat_capacity_kwh_per_c=capacity,
-            available_thermal_kw=params.max_electrical_power * max(cop, 1.0),
-            heat_loss_kw_per_c=self._effective_house_heat_loss(),
+            # The estimator ramps the real model at full power, so it sees the
+            # slab bottleneck the old lumped formula ignored.
+            model=self._thermal_model,
+            thermal_state=self._current_state,
             outdoor_temp=self._current_state.outdoor_temperature,
         )
         return self._away_state
@@ -3786,6 +3796,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         """
         state = self._away_state
         original = {
+            "target_temp": self._opt_config.target_temp,
             "min_temp": self._opt_config.min_temp,
             "comfort_temp_day": self._opt_config.comfort_temp_day,
             "comfort_temp_night": self._opt_config.comfort_temp_night,
@@ -3796,6 +3807,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             return original
 
         target = state.target_temperature or DEFAULT_AWAY_TEMPERATURE
+        # target_temp joins the setback: the terminal cost, the settlement
+        # caps and the baseline thermostat all anchor on it, so leaving it at
+        # full comfort kept the objective buying heat into the slab for a
+        # house nobody is in — measured at roughly 40% more energy per away
+        # day — and inflated the reported savings against a 21 °C baseline.
+        # min() so an away target configured above the normal one can never
+        # raise anything.
+        self._opt_config.target_temp = min(original["target_temp"], target)
         self._opt_config.min_temp = min(original["min_temp"], target)
         self._opt_config.comfort_temp_day = target
         self._opt_config.comfort_temp_night = target
@@ -3807,6 +3826,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         return original
 
     def _restore_away_setback(self, original: dict[str, float]) -> None:
+        self._opt_config.target_temp = original["target_temp"]
         self._opt_config.min_temp = original["min_temp"]
         self._opt_config.comfort_temp_day = original["comfort_temp_day"]
         self._opt_config.comfort_temp_night = original["comfort_temp_night"]
@@ -4005,6 +4025,28 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         result = self._optimization_result
         if result is None or not result.room_temp_trajectory:
             return
+
+        # Flatness only says the weight might be too high when swinging would
+        # actually have paid: with near-flat prices there is nothing to trade
+        # comfort against, and with no planned heating there is nothing being
+        # held flat at any cost. Counting those periods ratcheted the weight
+        # down to its floor over mild spells — every quiet day was read as
+        # evidence, even the ones where flatness was free.
+        prices = np.asarray(result.prices, dtype=float) if result.prices else None
+        if prices is None or prices.size == 0:
+            return
+        mean_price = float(np.mean(prices))
+        if mean_price <= 1e-6:
+            return
+        if float(np.max(prices) - np.min(prices)) / mean_price < 0.15:
+            return
+        heating_kwh = float(
+            np.sum(np.asarray(result.power_schedule, dtype=float))
+            * self._opt_config.dt_hours
+        )
+        if heating_kwh < 1.0:
+            return
+
         trajectory = np.asarray(result.room_temp_trajectory, dtype=float)
         span = float(np.max(trajectory) - np.min(trajectory))
         band = max(

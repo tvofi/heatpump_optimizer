@@ -566,6 +566,31 @@ R.check(
     "an unknown state means unknown, not away",
     away_mode.interpret_presence("unavailable", "person.alice") is None,
 )
+R.check(
+    "a presence-class binary sensor being on means home",
+    away_mode.interpret_presence(
+        "on", "binary_sensor.someone", {"device_class": "presence"}
+    )
+    is False,
+    "presence semantics are the inverse of a toggle; reading on as away "
+    "deep-setbacks an occupied house",
+)
+R.check(
+    "a presence-class binary sensor being off means away",
+    away_mode.interpret_presence(
+        "off", "binary_sensor.someone", {"device_class": "occupancy"}
+    )
+    is True,
+)
+R.check(
+    "a class-less binary sensor keeps toggle semantics",
+    away_mode.interpret_presence("on", "binary_sensor.holiday", {}) is True,
+)
+R.check(
+    "a template sensor speaking the person vocabulary reads correctly",
+    away_mode.interpret_presence("away", "sensor.presence_text") is True,
+    "these used to invert: 'away' fell into the toggle-off list",
+)
 
 AWAY_CFG = away_mode.AwayConfig(
     enabled=True,
@@ -573,6 +598,14 @@ AWAY_CFG = away_mode.AwayConfig(
     return_entity="input_datetime.back",
     away_temperature=16.0,
 )
+
+# A real model, so the recovery estimate sees the slab bottleneck the old
+# lumped formula ignored.
+_away_model = ThermalModel(ThermalParameters())
+
+
+def _away_house(current=16.0):
+    return ThermalState(room_temperature=current, slab_temperature=current + 1.0)
 
 
 def resolve_away(now, return_at, current=16.0):
@@ -582,11 +615,9 @@ def resolve_away(now, return_at, current=16.0):
         presence_raw="on",
         presence_attributes=None,
         return_raw=return_at,
-        current_temp=current,
         comfort_temp=21.0,
-        heat_capacity_kwh_per_c=10.0,
-        available_thermal_kw=12.0,
-        heat_loss_kw_per_c=0.15,
+        model=_away_model,
+        thermal_state=_away_house(current),
         outdoor_temp=0.0,
     )
 
@@ -598,7 +629,7 @@ R.check("the deep setback applies while away", far.target_temperature == 16.0)
 R.check("recovery is not started three days out", not far.recovery_active)
 R.check("the recovery estimate is published", far.recovery_hours is not None)
 
-near = resolve_away(now, (now + timedelta(hours=2)).isoformat())
+near = resolve_away(now, (now + timedelta(hours=6)).isoformat())
 R.check("recovery starts before the stated return", near.recovery_active)
 R.check(
     "the comfort target is restored during recovery",
@@ -617,11 +648,9 @@ home = away_mode.resolve(
     presence_raw="off",
     presence_attributes=None,
     return_raw=None,
-    current_temp=21.0,
     comfort_temp=21.0,
-    heat_capacity_kwh_per_c=10.0,
-    available_thermal_kw=12.0,
-    heat_loss_kw_per_c=0.15,
+    model=_away_model,
+    thermal_state=_away_house(21.0),
     outdoor_temp=0.0,
 )
 R.check("an occupied house is never set back", not home.active)
@@ -631,24 +660,37 @@ disabled_away = away_mode.resolve(
     presence_raw="on",
     presence_attributes=None,
     return_raw=None,
-    current_temp=16.0,
     comfort_temp=21.0,
-    heat_capacity_kwh_per_c=10.0,
-    available_thermal_kw=12.0,
-    heat_loss_kw_per_c=0.15,
+    model=_away_model,
+    thermal_state=_away_house(),
     outdoor_temp=0.0,
 )
 R.check("disabled means the feature cannot cost anything", not disabled_away.active)
 
 R.check(
     "a warm house needs no recovery time",
-    away_mode.estimate_recovery_hours(21.0, 21.0, 10.0, 12.0, 0.15, 0.0) == 0.0,
+    away_mode.estimate_recovery_hours(_away_model, _away_house(21.0), 21.0, 0.0)
+    == 0.0,
 )
+_weak_model = ThermalModel(ThermalParameters(max_electrical_power=0.2))
 R.check(
     "a pump that cannot reach the target starts as early as allowed",
-    away_mode.estimate_recovery_hours(10.0, 21.0, 10.0, 0.5, 0.5, -20.0)
+    away_mode.estimate_recovery_hours(_weak_model, _away_house(10.0), 21.0, -20.0)
     == away_mode.MAX_RECOVERY_HOURS,
     "refusing to plan recovery would be worse than starting early",
+)
+# The estimate has to see the slab bottleneck: all the pump's heat enters the
+# slab and reaches the room only through slab_heat_transfer, so a cold house
+# needs several hours even at full power. The lumped formula this replaced
+# said 4.4 h here; the real ramp needs roughly twice that.
+_cold_ramp = away_mode.estimate_recovery_hours(
+    _away_model, _away_house(16.0), 21.0, 0.0
+)
+R.check(
+    "a cold house's recovery estimate respects the slab bottleneck",
+    _cold_ramp >= 6.0,
+    f"got {_cold_ramp:.2f} h; the lumped estimate this replaced said 4.4 h "
+    "and left the house ~3 °C cold at the stated return",
 )
 
 cal = away_mode.resolve(
@@ -657,11 +699,9 @@ cal = away_mode.resolve(
     presence_raw="on",
     presence_attributes={"end_time": (now + timedelta(hours=1)).isoformat()},
     return_raw=None,
-    current_temp=16.0,
     comfort_temp=21.0,
-    heat_capacity_kwh_per_c=10.0,
-    available_thermal_kw=12.0,
-    heat_loss_kw_per_c=0.15,
+    model=_away_model,
+    thermal_state=_away_house(),
     outdoor_temp=0.0,
 )
 R.check(
