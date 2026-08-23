@@ -565,24 +565,30 @@ drift = [
 ]
 R.check("the README's comfort-weight table still holds", not drift, "; ".join(drift))
 
-# Adjacent comfort weights can invert on cost by around a percent. The
-# objective is non-convex -- the comfort penalty is one-sided and the price
-# signal creates several distinct "charge here, coast there" patterns that are
-# each locally optimal -- so two nearby weights can land in different basins.
-# Measured rather than assumed: neither a third multi-start solve nor a
-# polishing pass closed the gap, and both cost 25-30% more time.
+# Solver noise, measured directly. The objective is non-convex -- the
+# comfort penalty is one-sided and the price signal creates several distinct
+# "charge here, coast there" patterns that are each locally optimal -- so a
+# meaningless perturbation can in principle drop the solver into a different
+# basin. This used to be measured between comfort weights 2 and 5, on the
+# observation that nearby weights differ only by basin noise (~1%). The
+# v3.8.0 wind-default correction gave the comfort trade room to be real:
+# weight 2 vs 5 now buys 0.3 K of average warmth for 17% of cost, and even
+# 5 vs 5.25 moves 0.7 kWh of genuine energy, so no weight pair isolates
+# noise from signal any more. An economically nil perturbation does: a
+# ±1e-6 wobble on the prices changes the optimal cost by nothing a user
+# could ever see, so whatever it moves is pure solver instability.
 adjacent = []
-for weight in (2.0, 5.0):
+for scale in (0.0, 1.0):
     run = build(season="winter", two_zone=False, dhw=False)
-    run["config"].comfort_weight = weight
     optimizer = HeatPumpOptimizer(run["model"], run["config"])
+    wobble = np.where(np.arange(run["n"]) % 2 == 0, 1e-6, -1e-6) * scale
     result = optimizer.optimize(
-        run["initial"], run["prices"], run["outdoor"], run["wind"],
+        run["initial"], run["prices"] + wobble, run["outdoor"], run["wind"],
         run["rain"], run["solar"], START,
     )
     adjacent.append(result.predicted_cost)
 R.check(
-    "solver noise between adjacent comfort weights stays small",
+    "solver noise under an economically nil perturbation stays small",
     abs(adjacent[0] - adjacent[1]) / max(adjacent) < 0.02,
     f"{adjacent[0]:.2f} vs {adjacent[1]:.2f}",
 )
