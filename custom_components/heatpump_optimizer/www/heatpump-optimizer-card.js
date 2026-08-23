@@ -998,6 +998,11 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // never bubbles into the card's own open-on-click handler.
     const dialog = this._expanded && anyData ? this._dialogHtml(built) : "";
 
+    // The rebuild below replaces the <dialog> element wholesale, so the font
+    // memo must forget the old element's size or _scaleDialogFont will skip
+    // the write and leave the fresh dialog's chrome at card size.
+    this._dialogFontPx = 0;
+
     this.shadowRoot.innerHTML = `
       <ha-card class="${anyData ? "clickable" : ""}">
         ${style}
@@ -2807,6 +2812,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
       if (!drag) return;
       const at = this._timeAtClientX(svg, ev.clientX);
       if (at === null) return;
+      drag.moved = true;
       const delta = at - drag.from;
       const bounds = this._editBounds();
       const next = drag.edge
@@ -2821,6 +2827,13 @@ class HeatpumpOptimizerCard extends HTMLElement {
 
     const onUp = () => {
       if (!this._drag) return;
+      // The browser synthesises a click after pointerup — preventDefault on
+      // pointerdown suppresses compatibility mouse events but not click — and
+      // on the inline chart that click bubbles to ha-card and pops the
+      // expanded dialog open at the end of every drag. Same one-shot
+      // suppression the pan gesture uses; a drag ending off-svg spends it on
+      // nothing, which the pan path already accepts.
+      if (this._drag.moved) this._suppressClick = true;
       this._drag = null;
       this._render();
     };

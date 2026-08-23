@@ -1560,5 +1560,67 @@ check("the hand-scheduled reason has a label",
     still._suppressClick === false);
 }
 
+{
+  // The browser synthesises a click after a slot drag's pointerup —
+  // preventDefault on pointerdown suppresses compatibility mouse events but
+  // not click — and on the INLINE chart that click bubbles to ha-card.
+  // Without suppression, every drag ended by popping the expanded dialog open.
+  const inline = build(slotStates, { what_if: true });
+  inline._hass = mkHass(inline._hass.states);
+  inline._buildSeries();
+  const g = inline._geom;
+  const svg = svgOf(inline);
+  const runs = inline._draftRuns().dhw;
+  const [lo] = inline._editBounds();
+  const i = runs.findIndex((r) => r.end > lo && r.start >= lo);
+  check("the inline chart has an editable slot to drag", i >= 0 && !!g && !!svg);
+  if (i >= 0) {
+    const at = (t) => ({
+      clientX:
+        g.plotL +
+        ((t - g.windowStart) / (g.windowEnd - g.windowStart)) * g.plotW,
+      clientY: 0,
+      target: { dataset: { channel: "dhw", index: String(i) } },
+      stopPropagation() {},
+      preventDefault() {},
+    });
+    fire(svg, "pointerdown", at(runs[i].start + 60000));
+    fire(svg, "pointermove", at(runs[i].start + 60000 + HOUR));
+    fire(svg, "pointerup", {});
+    check("a slot drag suppresses the click that ends it",
+      inline._suppressClick === true);
+    inline._onCardClick({});
+    check("so the drag does not open the expanded view",
+      inline._expanded === false);
+    inline._onCardClick({});
+    check("a real click after the drag still opens it",
+      inline._expanded === true);
+  }
+}
+
+{
+  // A re-render replaces the <dialog> element wholesale, so the font memo has
+  // to be forgotten or _scaleDialogFont skips the write and the fresh
+  // dialog's chrome collapses back to card size mid-session.
+  const refont = build(slotStates, {});
+  refont._openExpanded();
+  // Measured at the stub's constant width, as a real browser would measure a
+  // constant viewport: a changed width would re-trigger the write and mask
+  // exactly the bug this guards against.
+  const size = (card) => {
+    const d = card.shadowRoot.querySelector("dialog");
+    if (!d.style) d.style = {};
+    card._scaleDialogFont();
+    return d.style.fontSize;
+  };
+  const first = size(refont);
+  check("the expanded dialog chrome is sized on open", !!first);
+  refont._sig = null;
+  refont._render();
+  const second = size(refont);
+  check("a re-render while the dialog is open re-applies its font",
+    second === first, `first ${first}, after re-render ${second}`);
+}
+
 console.log(fails ? `\n${fails} CARD CHECK(S) FAILED` : "\nALL CARD CHECKS PASSED");
 process.exit(fails?1:0);
