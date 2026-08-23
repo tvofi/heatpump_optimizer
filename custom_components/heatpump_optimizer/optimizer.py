@@ -760,11 +760,18 @@ class HeatPumpOptimizer:
         really borrowed heat.
 
         The shortfall is priced against the same reference the savings
-        settle-up uses, so the plan and the reported savings agree.
+        settle-up uses — the 25th-percentile price and the mean-outdoor COP,
+        exactly as ``_deferred_energy_cost`` prices it — so the plan and the
+        reported savings agree. Scaled by ``price_weight`` because the energy
+        term is: an unscaled terminal cost at a non-default weight changes the
+        exchange rate between buying heat now and buying it back later, which
+        re-creates the tail-dumping this term exists to prevent.
         """
         caps = self._settlement_caps(outdoor_temps)
-        refill_price = float(np.percentile(prices, 25))
-        cop_end = self.model.compute_cop(float(outdoor_temps[-1]))
+        refill_price = (
+            float(np.percentile(prices, 25)) * self.config.price_weight
+        )
+        cop_end = self.model.compute_cop(float(np.mean(outdoor_temps)))
         params = self.model.params
 
         if params.two_zone_enabled:
@@ -1384,11 +1391,29 @@ class HeatPumpOptimizer:
         Reads the solved trajectories against the same hard lines the plan
         classifiers use — the comfort floor for space heating, and the DHW
         requirement (which already folds in the usable minimum, the idle floor
-        and any due legionella cycle) for hot water. A forced-off step whose
-        trajectory sits below its floor is releasing; the whole contiguous
-        off-block leading up to it is released with it, because a tank or slab
-        that is already cold needs the run-up freed, not just the final step.
+        and any due legionella cycle) for hot water.
+
+        Every step is checked, not just the forced-off ones: an off-block's
+        deficit surfaces *later*, at free steps — typically in the demand
+        window just after the override expires — and checking only the pinned
+        steps let exactly those breaches through with nothing releasing
+        anything. A breach is attributed to the nearest preceding forced-off
+        step, and the whole contiguous off-block it belongs to is released,
+        because a tank or slab that is already cold needs the run-up freed,
+        not just the final step. A breach with no forced-off step before it
+        has nothing to release and is left to the ordinary penalties — that is
+        genuine infeasibility, not the pins' doing.
         """
+
+        def _preceding_off(pins: np.ndarray, i: int) -> int | None:
+            j = i
+            while j >= 0:
+                pin = float(pins[j]) if j < len(pins) else float("nan")
+                if not _pin_is_free(pin) and pin < 0.5:
+                    return j
+                j -= 1
+            return None
+
         release_space: list[int] = []
         if space_pins is not None:
             two_zone = self.model.params.two_zone_enabled
@@ -1398,33 +1423,39 @@ class HeatPumpOptimizer:
                 else result.room_temp_trajectory
             )
             for i in range(len(result.power_schedule)):
-                if i >= len(space_pins):
-                    break
-                pin = float(space_pins[i])
-                if _pin_is_free(pin) or pin >= 0.5:
-                    continue
                 temp = room[i + 1] if i + 1 < len(room) else room[-1]
                 floor = (
                     temp_min_bounds[i]
                     if i < len(temp_min_bounds)
                     else temp_min_bounds[-1]
                 )
-                if temp <= floor + 0.15:
-                    release_space.append(i)
+                pin = float(space_pins[i]) if i < len(space_pins) else float("nan")
+                pinned_off = not _pin_is_free(pin) and pin < 0.5
+                # At a forced-off step, sitting *at* the floor already means
+                # the pin is what is holding the house there. At a free step
+                # the solver legitimately rides the floor, so only a clear
+                # violation beyond its tolerance counts.
+                if pinned_off:
+                    breach = temp <= floor + 0.15
+                else:
+                    breach = temp < floor - 0.25
+                if not breach:
+                    continue
+                j = _preceding_off(space_pins, i)
+                if j is not None:
+                    release_space.append(j)
 
         release_dhw: list[int] = []
         if dhw_pins is not None and self._dhw_requirement is not None:
             traj = result.dhw_temp_trajectory
             req = self._dhw_requirement
-            for i in range(len(result.dhw_power_schedule)):
-                if i >= len(dhw_pins) or i >= len(req):
-                    break
-                pin = float(dhw_pins[i])
-                if _pin_is_free(pin) or pin >= 0.5:
-                    continue
+            for i in range(min(len(result.dhw_power_schedule), len(req))):
                 temp = traj[i + 1] if traj and i + 1 < len(traj) else 0.0
-                if temp < float(req[i]) - 0.5:
-                    release_dhw.append(i)
+                if temp >= float(req[i]) - 0.5:
+                    continue
+                j = _preceding_off(dhw_pins, i)
+                if j is not None:
+                    release_dhw.append(j)
 
         return (
             self._expand_off_blocks(space_pins, release_space),
@@ -1544,8 +1575,11 @@ class HeatPumpOptimizer:
 
             return (
                 energy_cost + penalty + comfort_cost + smoothness
-                + cycling(power_schedule)
-                + capacity(power_schedule)
+                # Currency terms scale with price_weight as the energy cost
+                # does, or a non-default weight silently re-prices starts and
+                # peaks relative to the electricity they trade against.
+                + (cycling(power_schedule) + capacity(power_schedule))
+                * self.config.price_weight
                 + terminal_cost(
                     room_temps,
                     slab_temps,
@@ -1845,6 +1879,21 @@ class HeatPumpOptimizer:
         max_lead_hours = self.model.dhw_hold_hours()
         requirement = np.maximum(floor_temps, ready_temps)
 
+        # Steps a manual plan forces off. The planners must know these up
+        # front: overlaying the pins on a finished schedule deleted the energy
+        # in those steps without moving it anywhere, so the tank simply missed
+        # its requirement — by several degrees in a demand window — and nothing
+        # re-bought the shortfall in the steps that remained free. Force-on
+        # stays an overlay below, because it adds energy rather than removing
+        # planned energy the tank was counting on.
+        forced_off: np.ndarray | None = None
+        if dhw_pins is not None:
+            pins_arr = np.asarray(dhw_pins, dtype=float)[:n_steps]
+            mask = np.zeros(n_steps, dtype=bool)
+            mask[: pins_arr.size] = ~np.isnan(pins_arr) & (pins_arr < 0.5)
+            if mask.any():
+                forced_off = mask
+
         # The pump serves DHW as an on/off block, not a trickle, so the planner
         # allocates at a realistic run power and never below the level at which
         # the pump would actually be considered running.
@@ -1873,6 +1922,7 @@ class HeatPumpOptimizer:
             max_temp=max_temp,
             space_demand=space_demand,
             p_total_max=p_max,
+            forced_off=forced_off,
         )
 
         schedule = self._plan_dhw_cheapest_first(
@@ -1889,6 +1939,7 @@ class HeatPumpOptimizer:
             c_dhw=c_dhw,
             max_temp=max_temp,
             initial_plan=seed,
+            forced_off=forced_off,
         )
 
         schedule = self._apply_dhw_min_run(
@@ -1902,8 +1953,31 @@ class HeatPumpOptimizer:
             max_temp=max_temp,
         )
 
+        # Rounding weak slots down leaves energy the tank was counting on
+        # unbought, so the greedy planner runs once more to re-buy any
+        # shortfall in steps that can still take a real block.
+        schedule = self._plan_dhw_cheapest_first(
+            initial_temp=initial_state.dhw_temperature,
+            requirement=requirement,
+            prices=prices,
+            outdoor_temps=outdoor_temps,
+            draw_rates=draw_rates,
+            n_steps=n_steps,
+            dt=dt,
+            p_dhw_max=p_dhw_run,
+            min_run_power=min_run_power,
+            max_lead_steps=max_lead_steps,
+            c_dhw=c_dhw,
+            max_temp=max_temp,
+            initial_plan=schedule,
+            forced_off=forced_off,
+        )
+
         # The tank's rating is physics, not preference, so it is enforced after
-        # the economics rather than inside them.
+        # the economics rather than inside them. A step the clamp truncates
+        # below the pump's practical minimum is then zeroed, never re-raised:
+        # the rating always wins, and a published trickle is a power level the
+        # on/off hardware cannot deliver.
         schedule = self._clamp_dhw_to_capacity(
             plan=schedule,
             initial_temp=initial_state.dhw_temperature,
@@ -1912,6 +1986,7 @@ class HeatPumpOptimizer:
             dt=dt,
             max_temp=max_temp,
         )
+        schedule = np.where(schedule < min_run_power - 1e-9, 0.0, schedule)
 
         # --- External heat source (item 5) ---------------------------------
         # While something else is charging the tank for free, buying electric
@@ -1967,6 +2042,9 @@ class HeatPumpOptimizer:
                 dt=dt,
                 max_temp=max_temp,
             )
+            # Same hygiene as the automatic path: a step the rating truncated
+            # below the pump's minimum cannot actually run, even a pinned one.
+            schedule = np.where(schedule < min_run_power - 1e-9, 0.0, schedule)
         self._dhw_requirement = requirement
         self._dhw_legionella_step = legionella_step
 
@@ -2023,8 +2101,14 @@ class HeatPumpOptimizer:
         max_temp: float,
         space_demand: np.ndarray | None = None,
         p_total_max: float | None = None,
+        forced_off: np.ndarray | None = None,
     ) -> np.ndarray | None:
         """Minimum-cost DHW schedule over the whole horizon, as a linear program.
+
+        ``forced_off`` marks steps a manual plan has pinned off. They enter as
+        bounds rather than as a post-overlay, so the program buys the energy
+        those steps would have carried in the free steps that remain instead of
+        silently under-delivering against the availability floors.
 
         The tank is a linear store. Writing its dynamics out,
 
@@ -2157,7 +2241,15 @@ class HeatPumpOptimizer:
             b_ub = np.concatenate(b_parts)
 
             bounds = (
-                [(0.0, float(energy_max[j])) for j in range(n_steps)]
+                [
+                    (
+                        0.0,
+                        0.0
+                        if forced_off is not None and forced_off[j]
+                        else float(energy_max[j]),
+                    )
+                    for j in range(n_steps)
+                ]
                 + [(0.0, None)] * n_steps
                 + [(0.0, None)] * n_extra
             )
@@ -2293,26 +2385,34 @@ class HeatPumpOptimizer:
         """Round sub-minimum runs up to a power the pump can actually deliver.
 
         A DHW valve is on or off; a planned 0.05 kW trickle is not something
-        the hardware can do. Slots below the practical minimum are raised to
-        it, but only while the tank stays within its rating — otherwise the
-        rounding would boil the plan over.
+        the hardware can do. Each slot below the practical minimum is raised to
+        it while the tank stays within its rating, and zeroed when raising it
+        would boil the plan over. Deciding per slot matters: the all-or-nothing
+        version of this repair gave up on *every* weak slot whenever raising
+        them all at once would overshoot, and published a plan full of powers
+        the hardware cannot run. The energy a zeroed slot was carrying is
+        re-bought by the greedy pass the caller runs after this.
         """
         plan = np.array(plan, dtype=float)
         weak = np.where((plan > 1e-6) & (plan < min_run_power))[0]
         if weak.size == 0:
             return np.clip(plan, 0.0, p_dhw_max)
 
-        candidate = plan.copy()
-        candidate[weak] = min(min_run_power, p_dhw_max)
-        temps = self.model.simulate_dhw_only(
-            initial_temp=initial_temp,
-            dhw_power_schedule=candidate,
-            outdoor_temps=outdoor_temps,
-            draw_rates=draw_rates,
-            dt_hours=dt,
-        )
-        if float(np.max(temps)) <= max_temp + 0.5:
-            return np.clip(candidate, 0.0, p_dhw_max)
+        run_power = min(min_run_power, p_dhw_max)
+        for i in weak:
+            raised = plan.copy()
+            raised[i] = run_power
+            temps = self.model.simulate_dhw_only(
+                initial_temp=initial_temp,
+                dhw_power_schedule=raised,
+                outdoor_temps=outdoor_temps,
+                draw_rates=draw_rates,
+                dt_hours=dt,
+            )
+            if float(np.max(temps)) <= max_temp + 0.5:
+                plan = raised
+            else:
+                plan[i] = 0.0
         return np.clip(plan, 0.0, p_dhw_max)
 
     def _plan_dhw_cheapest_first(
@@ -2330,8 +2430,12 @@ class HeatPumpOptimizer:
         c_dhw: float,
         max_temp: float,
         initial_plan: np.ndarray | None = None,
+        forced_off: np.ndarray | None = None,
     ) -> np.ndarray:
         """Greedily top up a DHW plan in the cheapest feasible hours.
+
+        Steps in ``forced_off`` are never candidates: a manual pin removed them
+        from play, and the shortfall they leave has to be bought elsewhere.
 
         Used to repair whatever the linear cost program left short — the linear
         tank model ignores the COP's dependence on tank temperature and the
@@ -2396,17 +2500,16 @@ class HeatPumpOptimizer:
             # remain reachable.
             temp_ceiling = max(max_temp - 1.0, float(requirement[k]))
 
+            def usable(j: int) -> bool:
+                if forced_off is not None and forced_off[j]:
+                    return False
+                return plan[j] < p_dhw_max - 1e-6 and temps[j + 1] < temp_ceiling - 0.1
+
             candidates = [
-                j
-                for j in range(max(0, k - max_lead_steps), k + 1)
-                if plan[j] < p_dhw_max - 1e-6 and temps[j + 1] < temp_ceiling - 0.1
+                j for j in range(max(0, k - max_lead_steps), k + 1) if usable(j)
             ]
             if not candidates:
-                candidates = [
-                    j
-                    for j in range(0, k + 1)
-                    if plan[j] < p_dhw_max - 1e-6 and temps[j + 1] < temp_ceiling - 0.1
-                ]
+                candidates = [j for j in range(0, k + 1) if usable(j)]
             if not candidates:
                 # Nothing can fix this step; move on rather than abandoning the
                 # rest of the horizon.
@@ -2598,8 +2701,9 @@ class HeatPumpOptimizer:
             return (
                 energy_cost + space_penalty + comfort_cost
                 + smoothness
-                + cycling(combined)
-                + capacity(combined)
+                # Same price_weight scaling as the space-only objective.
+                + (cycling(combined) + capacity(combined))
+                * self.config.price_weight
                 + terminal_cost(
                     room_temps,
                     slab_temps,
