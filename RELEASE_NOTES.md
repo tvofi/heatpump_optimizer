@@ -1,5 +1,32 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v3.7.1
+
+### Fixed: heat left in the buffer tank was treated as worthless
+
+If you have a mixing valve configured, the planner now understands that heat
+sitting in your buffer tank is heat you do not have to buy again.
+
+It did not before, in two separate ways. The tank's stored heat was measured
+against the ceiling used for the concrete slab — around 28 °C, because a slab any
+hotter than that would overheat the house. A tank does not work that way: it is
+insulated, and the valve decides how much of it reaches the rooms. Judged against
+the slab's ceiling, a tank at 70 °C counted for no more than one at 45 °C, so
+filling it appeared to achieve nothing at all.
+
+Separately, the tank was left out of the end-of-day accounting entirely, so a
+plan that ran it down to nothing looked as good as one that left it full.
+
+Both are fixed, and the effect is visible: plans now leave the tank meaningfully
+warmer at the end of the day rather than draining it, which is heat carried into
+tomorrow instead of bought again.
+
+**Being straight about the limits.** This does not yet make the planner
+deliberately fill the tank during cheap hours. It has stopped treating a full
+tank as worthless, which was a prerequisite, but something still prevents it
+choosing to charge — that is being investigated. Nothing changes at all unless
+you have a mixing valve configured.
+
 ## v3.7.0
 
 If you have a mixing valve, the optimizer can now use your buffer tank as a

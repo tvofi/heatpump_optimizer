@@ -618,6 +618,9 @@ DHW_HOURLY_DRAW_PATTERN = [x * 24.0 / _DHW_SUM for x in DHW_HOURLY_DRAW_PATTERN]
 
 
 class ThermalModel:
+    #: Buffer trajectory of the last `simulate_trajectory` call.
+    last_buffer_trajectory: np.ndarray | None = None
+
     """Thermal model supporting single-zone, two-zone, and DHW operation."""
 
     def __init__(self, params: ThermalParameters) -> None:
@@ -1199,6 +1202,8 @@ class ThermalModel:
         slab_temps[0] = initial_state.slab_temperature
         upper_temps[0] = initial_state.upper_floor_temperature
         lower_temps[0] = initial_state.lower_floor_temperature
+        buffer_temps = np.zeros(n_steps + 1)
+        buffer_temps[0] = initial_state.buffer_tank_temperature
 
         state = initial_state
         for i in range(n_steps):
@@ -1215,7 +1220,13 @@ class ThermalModel:
             slab_temps[i + 1] = state.slab_temperature
             upper_temps[i + 1] = state.upper_floor_temperature
             lower_temps[i + 1] = state.lower_floor_temperature
+            buffer_temps[i + 1] = state.buffer_tank_temperature
 
+        # Recorded rather than returned: nine call sites unpack a four-tuple,
+        # and the buffer is only wanted by the terminal-cost term. Without this
+        # the tank's end state is invisible to the objective, so charging it can
+        # only ever look like cost.
+        self.last_buffer_trajectory = buffer_temps
         return room_temps, slab_temps, upper_temps, lower_temps
 
     def simulate_trajectory_with_dhw(
