@@ -5,7 +5,7 @@ Started at the end of the v2.7.0 release session, kept up to date since.
 **Status as of v3.6.0. Items 1-21 are all done**, released across v2.8.0,
 v2.9.0 and v3.0.0. **Items 22-26 and 30-31 are now done too** (see the notes
 appended to each). **Items 27-29 are open** -- the deferred wood-furnace
-cluster, which is the whole of what is left.
+cluster, plus **items 32 and 33**, two visual-setup features added 2026-08-23.
 
 Scope decision (user, 2026-08-23): 26, 24+25, 30 and 31 are being done now, one
 PR each. The wood-furnace cluster (27-29) is deferred and will be re-planned
@@ -1376,6 +1376,68 @@ which is worth knowing before, not after.
 
 ## 29. The buffer tank as a controllable thermal battery (mixing valve setups)
 
+> **Sizing spike, 2026-08-23. Read this before the item text — it corrects two
+> things below and answers the "measure before building" question.**
+>
+> **The feature pays, and by a lot.** Storing 1 kWh thermal cheap and delivering
+> it at peak is worth `p_peak/COP_deliver − p_cheap/COP_charge`. With a
+> Carnot-derived flow-temperature COP term and realistic tank insulation:
+>
+> | profile | cheap:dear | SEK/kWh_th | 750 L/day | 2000 L/day |
+> |---|---|---|---|---|
+> | winter_extreme | 0.12 | 3.37 | **+75.7** | +201.8 |
+> | winter_typical | 0.22 | 1.10 | **+24.7** | +65.8 |
+> | winter_moderate | 0.51 | 0.32 | +7.1 | +18.8 |
+> | winter_narrow | 0.70 | 0.07 | +1.5 | +4.1 |
+> | flat | 1.00 | −0.22 | **−5.0** | −13.2 |
+>
+> A typical winter day costs ~145 SEK in these fixtures, so 750 L is worth
+> **~17 %** on a typical day. Break-even is a 0.75 price ratio. Flat prices come
+> out **negative**, which is the null control passing.
+>
+> **Three blockers, each of which alone makes the gain exactly zero:**
+>
+> 1. **Decoupling the draw is not sufficient — the valve is the feature.**
+>    Measured with a demand-driven draw and no valve: the optimizer used **0.00 K
+>    of 30 K** of headroom and the two arms produced **byte-identical** power
+>    schedules. With the tank at 40 °C and zones at 21–25 °C, emitter demand is
+>    ~23 kW against ~15 kW of pump output, so the tank always drains. What sends
+>    surplus to the tank is the valve *throttling delivery to what the house
+>    needs*.
+> 2. **The standing-loss default is wrong by 30× for a large tank.**
+>    `DEFAULT_BUFFER_COOLING_RATE` = 6.0 °C/h is tuned for 35 L. At 750 L that is
+>    **43.8 kWh lost from a 26.1 kWh charge (168 %)** and the sizing lands at
+>    exactly **0.0 SEK/day** — the feature appears worthless. Worse,
+>    `BUFFER_COOLING_RATE_MIN = 0.5` **clamps** the learner, so a well-insulated
+>    accumulator (~0.2 °C/h) cannot be represented at all. The clamp must scale
+>    with volume.
+> 3. **The optimizer cannot seed a charging plan.** `_price_ranked_start` budgets
+>    exactly `baseline_energy`, the energy a thermostat would use, while charging
+>    means buying *more* than baseline. None of the three seeds can express it.
+>
+> **A correction to the "three valve modes" section below.** It says target high
+> → valve open → the tank cannot charge. That holds only *while the house is
+> below target*. Set the target at the maximum permitted temperature and the slab
+> charges first; once it reaches the ceiling the valve throttles and surplus goes
+> to the tank — **both stores, cheapest first**. So mode 2 deserves real logic,
+> not just a recorded number.
+>
+> **Three ways the measurement went wrong, recorded so they are not repeated.**
+> Every sizing claim here needs a **null control at flat prices**; treat a
+> missing one as a bug.
+> - *Confounded A/B*: planning one arm against today's model and scoring both
+>   under chargeable physics measures model-mismatch, not storage — it reported
+>   a **20 % gain at flat prices**.
+> - *Unfair baseline*: a no-tank arm that buys full power and discards the
+>   surplus lets the tank "win" by recovering waste — **6.9 % at flat**.
+> - *A heuristic is not an optimizer*: a fixed "charge in the cheapest 35 %" rule
+>   charges constantly at flat prices and loses **37.6 %**.
+>
+> **So empirical sizing is blocked on the feature existing.** The analytical
+> table above is the go/no-go; the backtest comparison moves to *after*
+> implementation, with the real optimizer.
+
+
 Raised by the user, 2026-08-23: *"A setup with such a mixing valve means during
 cheap hours the heat pump buffer tank can be charged if economically feasible —
 the outgoing heat to the house is limited by the automatic mixing valve if the
@@ -1948,6 +2010,77 @@ against a possibly-changed nameplate. That gap already exists for
 **Golden churn was additive only:** the four `coord_*` fixtures gained the three
 new attributes and nothing else moved. All 33 plan scenarios are unchanged,
 which is the check that the ratio really is identity at its default.
+
+## 32. "Easy mode": a visual setup diagram in the config flow
+
+Asked by the user, 2026-08-23: *"Create an intuitive easy mode in the config
+flow, where a graphic element shows a stylized version of your configured setup.
+House type, one/two-zone, DHW tank or not, buffer tank or not, external heat
+buffer tank or not, mixing valve or not as well as all configured
+sensors/entities and their placement should be visible in the graphic. Ideally,
+it should be possible to configure entities and setups directly in the
+graphic."*
+
+**Why it is worth doing.** The options flow is now eleven pages of numeric
+fields, and nothing anywhere shows what the integration believes your system
+*is*. A user with a two-zone house, a wood furnace and a mixing valve has no way
+to confirm the model matches reality short of reading `const.py`. A picture is
+the shortest path to "no, my DHW sensor is on the wrong tank".
+
+**The hard part is Home Assistant, not the drawing.** Config flows render a
+`voluptuous` schema through HA's own frontend; there is no supported way to put
+an interactive SVG inside one. A genuinely clickable diagram therefore means
+either a **custom panel** (registered the way `frontend.py` already registers the
+card) or a config-flow step that shows a *picture* with ordinary selector fields
+beside it. Do not start by fighting this.
+
+**Recommended staging.** Ship a **read-only** diagram first, rendered from a
+single `describe_setup()` helper on the coordinator, and only pursue
+click-to-assign once the read-only version has proved it earns its place. Most of
+the value -- "is my system modelled correctly?" -- is in the read-only version.
+
+**Almost all of the topology is already derivable, so this needs no new
+configuration.** `two_zone_enabled` and `dhw_enabled` are inferred from the
+presence of their settings (`thermal_model.from_config`), the mixing-valve mode
+comes from item 29, and `_OPTIONAL_ENTITY_KEYS` (`config_flow.py`) is already the
+canonical list of assignable entities. The diagram is a *view* of existing state.
+
+**Build the renderer once.** Item 33 wants the same picture in the card. Two
+copies will diverge the first time a sensor is added; emit one topology
+description from the coordinator and let both consume it.
+
+**A trap worth stating.** A diagram that silently omits an unconfigured sensor is
+worse than no diagram, because it looks complete. Show the *slots* a setup could
+have and mark the empty ones -- the point is to reveal what is missing.
+
+## 33. The same diagram on the card, with live values
+
+Asked by the user, 2026-08-23: *"Add a similar graphic element to a new page in
+the card, where you can view your setup and read live values off all sensors
+directly in the graphic."*
+
+Each sensor shows its current reading at its physical place: tank temperatures on
+the tanks, flow temperature after the mixing valve, indoor temperatures in their
+zones. This is the diagnostic view the integration currently lacks -- today the
+numbers are spread across 46 sensor entities with no picture of how they relate.
+
+**Item 26 already paid for most of the structural work.** The expanded dialog is
+now a bounded flex column with a scrolling body, so adding a second page is far
+smaller than it would have been against the old fixed-height layout.
+
+**Two traps, both already recorded against item 26 and both still live:**
+
+- **The current page becomes state that must survive a re-render.** `_maybeRender`
+  rebuilds the shadow root on every plan refresh, and it has had exactly this
+  class of bug before (the memoised `_runs` in v3.2.0). Decide explicitly whether
+  a plan refresh resets the page.
+- **A hidden page must be genuinely unrendered, not `display: none`.**
+  `getBoundingClientRect()` returns zeroes for a hidden element, so
+  `_timeAtClientX` would compute garbage times rather than fail, and the slot
+  lanes would silently misbehave.
+
+**Prefer static SVG over anything interactive to begin with.** The card already
+hand-writes inline SVG with no build step and no dependencies; keep it that way.
 
 ## Reminders for whoever picks this up
 
