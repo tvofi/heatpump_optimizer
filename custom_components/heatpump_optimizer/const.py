@@ -307,6 +307,18 @@ CONF_DHW_DAILY_CONSUMPTION: Final = "dhw_daily_consumption"  # liters/day
 # runtime from observed standby decay.
 CONF_DHW_COOLING_RATE: Final = "dhw_cooling_rate"  # °C/h at reference conditions
 CONF_BUFFER_COOLING_RATE: Final = "buffer_cooling_rate"  # °C/h at reference
+
+# Mixing valve (item 29). Defaults to "none", which keeps the existing
+# behaviour exactly: with no valve, whatever the pump makes goes straight to
+# the emitters, and that is a correct model rather than a bug.
+CONF_MIXING_VALVE_MODE: Final = "mixing_valve_mode"
+CONF_MIXING_VALVE_TARGET: Final = "mixing_valve_target"  # °C indoor
+CONF_MIXING_VALVE_TARGET_ENTITY: Final = "mixing_valve_target_entity"
+CONF_BUFFER_MAX_TEMP: Final = "buffer_max_temperature"  # °C
+DEFAULT_BUFFER_MAX_TEMP: Final = 70.0  # °C
+# 0.0 means "not set": the comfort ceiling is used instead, which is the
+# recommended setting for a dumb valve anyway.
+DEFAULT_MIXING_VALVE_TARGET: Final = 0.0  # °C
 CONF_BUFFER_TANK_TEMP_ENTITY: Final = "buffer_tank_temp_entity"
 CONF_HOUSE_HEAT_LOSS_SCALE: Final = "house_heat_loss_scale"  # dimensionless
 CONF_LOWER_FLOOR_LOSS_RATIO: Final = "lower_floor_loss_ratio"  # dimensionless
@@ -648,6 +660,9 @@ INPUT_MAX_AGE_MINUTES[CONF_PV_PRODUCTION_ENTITY] = 30.0
 # same cycle. A key missing from this table gets no age limit at all, which
 # silently disables the staleness watchdog for it.
 INPUT_MAX_AGE_MINUTES[CONF_LOWER_FLOOR_TEMP_ENTITY] = 60.0
+# A stale valve target would have the model believe the house is being held
+# somewhere it is not, and plan charging around it.
+INPUT_MAX_AGE_MINUTES[CONF_MIXING_VALVE_TARGET_ENTITY] = 60.0
 
 # Attributes for the measured power / COP feature
 ATTR_MEASURED_POWER: Final = "measured_power"

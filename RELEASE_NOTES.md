@@ -1,5 +1,56 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v3.7.0
+
+If you have a mixing valve, the optimizer can now use your buffer tank as a
+store — charging it when electricity is cheap and drawing it down when it is
+expensive.
+
+### Why a valve is what makes this possible
+
+Until now the model assumed everything the heat pump produced went straight to
+your radiators and floor loops. For a system without a mixing valve that is
+exactly right, and it stays the default.
+
+But it also means the buffer tank could never fill: whatever went in came
+straight back out, so the tank only ever cooled. A mixing valve is precisely the
+part that changes this. It limits how much heat reaches the house, and once the
+house has what it needs the surplus has nowhere to go but the tank.
+
+Set **Mixing valve and heat storage** in the options to match your system.
+Leaving it at *No mixing valve* changes nothing at all.
+
+### Setting a valve you adjust by hand
+
+If your valve is a fixed one you set yourself, the recommendation is to set it to
+the **top of your comfort band**, and the reasoning is worth knowing.
+
+A high setting keeps the valve open until the house reaches its ceiling, so the
+building itself charges first. That storage is free: the building holds heat at
+room temperature, so there is no efficiency penalty. Only once the house is
+satisfied does the valve begin to throttle, and only then does the tank take the
+surplus — which is stored hot, and does cost efficiency.
+
+Building first, tank second, is the cheap order. Setting the valve low reverses
+it, filling the expensive store while the free one sits empty.
+
+One thing you give up: at that setting the valve is no longer what stops your
+house overheating. The optimizer's own comfort limits do that instead.
+
+### Storing hot costs efficiency, and the model now knows
+
+A heat pump is less efficient the hotter it has to push water. Charging a tank to
+60 °C costs noticeably more per unit of heat than running a floor loop at 35 °C,
+and that penalty is the entire economics of storage: it is what decides whether
+shifting heat into a cheap hour is actually worth it.
+
+The model now accounts for it, so it will only fill the tank when the price
+difference genuinely pays for the loss. On a day with little variation, it will
+leave the tank alone.
+
+The tank is also never charged above the maximum you set, however cheap
+electricity happens to be.
+
 ## v3.6.1
 
 ### Fixed: large buffer tanks were modelled as losing far more heat than they do
