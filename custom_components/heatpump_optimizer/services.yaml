@@ -352,6 +352,28 @@ set_thermal_parameters:
           max: 6.0
           step: 0.25
           unit_of_measurement: "h"
+    ecl110_displace_min:
+      name: ECL110 displace minimum
+      description: Lowest parallel shift the optimizer may command, in °C.
+      required: false
+      example: -20
+      selector:
+        number:
+          min: -30
+          max: 0
+          step: 1
+          unit_of_measurement: "°C"
+    ecl110_displace_max:
+      name: ECL110 displace maximum
+      description: Highest parallel shift the optimizer may command, in °C.
+      required: false
+      example: 20
+      selector:
+        number:
+          min: 0
+          max: 30
+          step: 1
+          unit_of_measurement: "°C"
 simulate_plan:
   name: Simulate a plan
   description: >-
@@ -395,6 +417,24 @@ simulate_plan:
           min: 1
           max: 40
           step: 0.5
+    comfort_temp_day:
+      name: Daytime comfort temperature
+      description: Comfort temperature during the heating day, in °C.
+      selector:
+        number:
+          min: 5
+          max: 30
+          step: 0.5
+          unit_of_measurement: "°C"
+    comfort_temp_night:
+      name: Night comfort temperature
+      description: Comfort temperature outside the heating day, in °C.
+      selector:
+        number:
+          min: 5
+          max: 30
+          step: 0.5
+          unit_of_measurement: "°C"
     dhw_setpoint:
       name: Hot water setpoint
       description: Tank setpoint to test, in °C.
