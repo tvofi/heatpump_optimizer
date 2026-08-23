@@ -51,6 +51,7 @@ from .const import (
     DEFAULT_LOWER_FLOOR_THERMAL_MASS,
     DEFAULT_UPPER_FLOOR_HEAT_LOSS,
     DEFAULT_LOWER_FLOOR_HEAT_LOSS,
+    DEFAULT_LOWER_FLOOR_LOSS_RATIO,
     DEFAULT_INTER_ZONE_TRANSFER,
     DEFAULT_RADIATOR_POWER_FRACTION,
     DEFAULT_BUFFER_TANK_VOLUME,
@@ -122,6 +123,9 @@ class ThermalParameters:
     lower_floor_thermal_mass: float = DEFAULT_LOWER_FLOOR_THERMAL_MASS  # kWh/°C
     upper_floor_heat_loss: float = DEFAULT_UPPER_FLOOR_HEAT_LOSS  # kW/°C
     lower_floor_heat_loss: float = DEFAULT_LOWER_FLOOR_HEAT_LOSS  # kW/°C
+    # Learned redistribution between the zones (item 31). 1.0 is the configured
+    # split; the learner only moves it when a real lower-floor sensor exists.
+    lower_floor_loss_ratio: float = DEFAULT_LOWER_FLOOR_LOSS_RATIO
     inter_zone_transfer: float = DEFAULT_INTER_ZONE_TRANSFER  # kW/°C
     radiator_power_fraction: float = DEFAULT_RADIATOR_POWER_FRACTION  # 0-1
 
@@ -207,6 +211,16 @@ class ThermalParameters:
     dhw_hourly_draw_pattern: list[float] = field(
         default_factory=lambda: DHW_HOURLY_DRAW_PATTERN.copy()
     )
+
+    @property
+    def lower_floor_heat_loss_learned(self) -> float:
+        """The lower zone's loss after the learned redistribution.
+
+        Every consumer of the *dynamics* must go through this rather than the
+        raw configured value, or the learner would fit a number the model never
+        actually uses.
+        """
+        return self.lower_floor_heat_loss * self.lower_floor_loss_ratio
 
     @property
     def buffer_tank_thermal_mass(self) -> float:
@@ -387,6 +401,9 @@ class ThermalParameters:
             "buffer_cooling_rate": ("BUFFER_COOLING_RATE", "BUFFER_COOLING_RATE"),
             "house_heat_loss_scale": (
                 "HOUSE_HEAT_LOSS_SCALE", "HOUSE_HEAT_LOSS_SCALE"
+            ),
+            "lower_floor_loss_ratio": (
+                "LOWER_FLOOR_LOSS_RATIO", "LOWER_FLOOR_LOSS_RATIO"
             ),
             # Weather sensitivity
             "wind_sensitivity": ("WIND_SENSITIVITY", "WIND_SENSITIVITY"),
@@ -904,7 +921,7 @@ class ThermalModel:
         )
         # Lower floor less exposed to wind (partially underground/sheltered)
         u_lower = self.effective_heat_loss_coefficient(
-            p.lower_floor_heat_loss, wind_speed * 0.5, precipitation * 0.5
+            p.lower_floor_heat_loss_learned, wind_speed * 0.5, precipitation * 0.5
         )
 
         # Solar gains per zone
@@ -1216,7 +1233,7 @@ class ThermalModel:
             p.upper_floor_heat_loss, wind_speed, precipitation
         )
         u_lower = self.effective_heat_loss_coefficient(
-            p.lower_floor_heat_loss, wind_speed * 0.5, precipitation * 0.5
+            p.lower_floor_heat_loss_learned, wind_speed * 0.5, precipitation * 0.5
         )
 
         C_u = p.upper_floor_thermal_mass

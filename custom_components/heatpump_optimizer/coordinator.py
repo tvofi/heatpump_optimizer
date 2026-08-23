@@ -80,6 +80,10 @@ from .const import (
     DHW_COOLING_RATE_MIN,
     HOUSE_HEAT_LOSS_SCALE_MAX,
     HOUSE_HEAT_LOSS_SCALE_MIN,
+    CONF_LOWER_FLOOR_TEMP_ENTITY,
+    DEFAULT_LOWER_FLOOR_LOSS_RATIO,
+    LOWER_FLOOR_LOSS_RATIO_MAX,
+    LOWER_FLOOR_LOSS_RATIO_MIN,
     DHW_COOLING_RATE_MAX,
     DHW_COOLING_REFERENCE_DELTA,
     DEFAULT_ECL110_COMMAND_TOPIC,
@@ -526,6 +530,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._last_house_sample: ThermalState | None = None
         self._last_house_sample_time: datetime | None = None
         self._last_house_sample_power: float = 0.0
+        self._lower_floor_loss_ratio: float = DEFAULT_LOWER_FLOOR_LOSS_RATIO
+        self._lower_floor_loss_samples: int = 0
 
         self._thermal_learning_store: Store = Store(
             hass,
@@ -904,6 +910,21 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             except (TypeError, ValueError) as err:
                 _LOGGER.debug("Could not load house heat loss scale: %s", err)
 
+        ratio = stored.get("lower_floor_loss_ratio")
+        if ratio is not None:
+            try:
+                self._apply_lower_floor_loss_ratio(float(ratio))
+                self._lower_floor_loss_samples = int(
+                    stored.get("lower_floor_loss_samples", 0)
+                )
+                _LOGGER.info(
+                    "Loaded learned lower floor loss ratio %.3f (%d samples)",
+                    self._lower_floor_loss_ratio,
+                    self._lower_floor_loss_samples,
+                )
+            except (TypeError, ValueError) as err:
+                _LOGGER.debug("Could not load lower floor loss ratio: %s", err)
+
     async def _async_save_thermal_learning(self) -> None:
         """Persist the learned buffer and building parameters."""
         try:
@@ -913,6 +934,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     "buffer_cooling_samples": self._buffer_cooling_samples,
                     "house_heat_loss_scale": self._house_heat_loss_scale,
                     "house_heat_loss_samples": self._house_heat_loss_samples,
+                    "lower_floor_loss_ratio": self._lower_floor_loss_ratio,
+                    "lower_floor_loss_samples": self._lower_floor_loss_samples,
                     "updated_at": dt_util.now().isoformat(),
                 }
             )
@@ -1303,7 +1326,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         """Configured heat loss coefficient after the learned correction, kW/°C."""
         params = self._thermal_params
         if params.two_zone_enabled:
-            base = params.upper_floor_heat_loss + params.lower_floor_heat_loss
+            # The learned split belongs in the total the diagnostic reports, or
+            # it would show a number the model does not actually use.
+            base = params.upper_floor_heat_loss + params.lower_floor_heat_loss_learned
         else:
             base = params.heat_loss_coefficient
         return round(base * self._house_heat_loss_scale, 4)
@@ -1331,6 +1356,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             np.clip(scale, HOUSE_HEAT_LOSS_SCALE_MIN, HOUSE_HEAT_LOSS_SCALE_MAX)
         )
         self._thermal_params.house_heat_loss_scale = self._house_heat_loss_scale
+
+    def _apply_lower_floor_loss_ratio(self, ratio: float) -> None:
+        """Clamp the learned zone split and push it to the model."""
+        self._lower_floor_loss_ratio = float(
+            np.clip(ratio, LOWER_FLOOR_LOSS_RATIO_MIN, LOWER_FLOOR_LOSS_RATIO_MAX)
+        )
+        self._thermal_params.lower_floor_loss_ratio = self._lower_floor_loss_ratio
 
     async def _async_learn_buffer_cooling(self, buffer_temp: float) -> None:
         """Refine the buffer tank standby loss from quiet decay.
@@ -1457,7 +1489,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             return
 
         outdoor = previous_state.outdoor_temperature
-        delta_t = previous_state.room_temperature - outdoor
+        # Same zone as the residual, or the Newton step is taken about a
+        # temperature difference the residual does not describe.
+        driving_temp = (
+            previous_state.upper_floor_temperature
+            if self._thermal_params.two_zone_enabled
+            else previous_state.room_temperature
+        )
+        delta_t = driving_temp - outdoor
         if delta_t < HOUSE_LOSS_MIN_DELTA:
             return
 
@@ -1476,7 +1515,22 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             _LOGGER.debug("House heat loss learning simulation failed: %s", err)
             return
 
-        residual = observed - predicted_state.room_temperature
+        # Compare like with like. `observed` is the indoor sensor, which in
+        # two-zone mode is the *upper* floor -- while `room_temperature` on the
+        # prediction is the area-weighted average of both zones. Differencing
+        # those two conflates the zone split with the heat-loss error: measured
+        # against the real model, a 1.5 K difference between the floors injects
+        # a systematic +0.53 K into the residual, over half the rejection
+        # threshold. It does not average out, so it accumulated into the learned
+        # scale, and at a 3 K split it exceeded the threshold and the sample was
+        # thrown away instead.
+        params = self._thermal_params
+        predicted_room = (
+            predicted_state.upper_floor_temperature
+            if params.two_zone_enabled
+            else predicted_state.room_temperature
+        )
+        residual = observed - predicted_room
         if not np.isfinite(residual):
             return
         if abs(residual) > HOUSE_LOSS_MAX_RESIDUAL:
@@ -1489,12 +1543,16 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
         # Current effective coefficient, i.e. what actually produced the
         # prediction, so the Newton step is taken about the right point.
-        params = self._thermal_params
+        #
+        # Two-zone fits from the upper zone alone, matching the residual above.
+        # The scale still multiplies both zones -- it owns the overall *level* --
+        # while `lower_floor_loss_ratio` owns the split and is fitted separately
+        # from the lower zone. Splitting the jobs this way is what keeps the two
+        # identifiable: the ratio does not touch the upper zone, so this fit is
+        # unaffected by it.
         if params.two_zone_enabled:
-            base_u = params.upper_floor_heat_loss + params.lower_floor_heat_loss
-            capacity = (
-                params.upper_floor_thermal_mass + params.lower_floor_thermal_mass
-            )
+            base_u = params.upper_floor_heat_loss
+            capacity = params.upper_floor_thermal_mass
         else:
             base_u = params.heat_loss_coefficient
             capacity = params.room_thermal_mass
@@ -1534,6 +1592,142 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._house_heat_loss_samples,
         )
         if self._house_heat_loss_samples % 10 == 0:
+            await self._async_save_thermal_learning()
+
+    async def _async_learn_lower_floor_loss(self) -> None:
+        """Redistribute the heat loss between the two zones (item 31).
+
+        Only reachable with a real lower-floor sensor. Without one the lower zone
+        is inferred from the floor return water, and the inference is derived
+        from the same sensor as the slab -- so the regressor has no independent
+        variance and fitting against it would be fitting against the model's own
+        prior. Item 30 is what makes this measurable at all.
+
+        The split, not the level. ``house_heat_loss_scale`` multiplies both zones
+        and is fitted from the upper one; this ratio multiplies only the lower.
+        Two parameters against two independent measurements, so neither can
+        absorb the other's error and drift.
+
+        Same Newton step as the house learner, taken about the lower zone:
+        predicted lower-zone change is linear in its own U with slope
+        ``-(T_lower - T_out)·Δt / C_lower``.
+        """
+        now = dt_util.now()
+        params = self._thermal_params
+        previous_state = self._last_house_sample
+        previous_time = self._last_house_sample_time
+        previous_power = self._last_house_sample_power
+        observed = self._current_state.lower_floor_temperature
+
+        if not params.two_zone_enabled:
+            return
+        # A configured sensor is the whole precondition. `_update_current_state`
+        # falls back to the return-temp estimate when it is missing or stale, and
+        # that estimate carries no information about this coefficient.
+        if not self._config.get(CONF_LOWER_FLOOR_TEMP_ENTITY):
+            return
+
+        frozen = self._learning_frozen(
+            CONF_INDOOR_TEMP_ENTITY,
+            CONF_OUTDOOR_TEMP_ENTITY,
+            CONF_LOWER_FLOOR_TEMP_ENTITY,
+        )
+        if frozen:
+            self._learner_freeze_reason = frozen
+            return
+
+        if previous_state is None or previous_time is None or observed is None:
+            return
+
+        dt_h = (now - previous_time).total_seconds() / 3600.0
+        if dt_h < HOUSE_LOSS_MIN_SAMPLE_HOURS or dt_h > HOUSE_LOSS_MAX_SAMPLE_HOURS:
+            return
+
+        outdoor = previous_state.outdoor_temperature
+        delta_t = previous_state.lower_floor_temperature - outdoor
+        if delta_t < HOUSE_LOSS_MIN_DELTA:
+            return
+
+        try:
+            wind_speed, precipitation = self._current_weather()
+            predicted_state = self._thermal_model.simulate_step(
+                previous_state,
+                previous_power,
+                outdoor,
+                wind_speed=wind_speed,
+                precipitation=precipitation,
+                solar_radiation=previous_state.solar_radiation,
+                dt_hours=dt_h,
+            )
+        except Exception as err:
+            _LOGGER.debug("Lower floor loss learning simulation failed: %s", err)
+            return
+
+        residual = observed - predicted_state.lower_floor_temperature
+        if not np.isfinite(residual):
+            return
+        if abs(residual) > HOUSE_LOSS_MAX_RESIDUAL:
+            _LOGGER.debug(
+                "Ignoring lower floor loss sample: residual %.2f°C is too large "
+                "to be a heat loss error",
+                residual,
+            )
+            return
+
+        base_u = params.lower_floor_heat_loss * self._house_heat_loss_scale
+        capacity = params.lower_floor_thermal_mass
+        if base_u <= 1e-6 or capacity <= 1e-6:
+            return
+
+        current_u = base_u * self._lower_floor_loss_ratio
+        delta_u = -residual * capacity / (delta_t * dt_h)
+        target_ratio = (current_u + delta_u) / base_u
+        if not np.isfinite(target_ratio):
+            return
+        # Clamp the target rather than discarding it when it comes out
+        # implausible, because discarding is not symmetric here and would bias
+        # the fit one way.
+        #
+        # The lower zone's standalone time constant is `C / u` = 8.0 / 0.07,
+        # over a hundred hours, so its temperature barely moves and the Newton
+        # step is correspondingly enormous: a residual of only +0.12 K implies a
+        # ΔU larger than the whole coefficient, i.e. a *negative* target. Those
+        # are exactly the intervals where the house lost less heat than
+        # predicted. Rejecting them while accepting the cold-side ones -- whose
+        # targets stay positive -- would let the ratio ratchet upward on noise
+        # alone. Clamping keeps both sides, and the EWMA and step limit below
+        # are what actually decide how fast it moves.
+        target_ratio = float(
+            np.clip(
+                target_ratio, LOWER_FLOOR_LOSS_RATIO_MIN, LOWER_FLOOR_LOSS_RATIO_MAX
+            )
+        )
+
+        new_ratio = (
+            1.0 - HOUSE_LOSS_ALPHA
+        ) * self._lower_floor_loss_ratio + HOUSE_LOSS_ALPHA * target_ratio
+        max_step = self._lower_floor_loss_ratio * HOUSE_LOSS_MAX_STEP
+        new_ratio = float(
+            np.clip(
+                new_ratio,
+                self._lower_floor_loss_ratio - max_step,
+                self._lower_floor_loss_ratio + max_step,
+            )
+        )
+        self._apply_lower_floor_loss_ratio(new_ratio)
+        self._lower_floor_loss_samples += 1
+
+        _LOGGER.debug(
+            "Learned lower floor loss split: residual %.3f°C over %.2fh at "
+            "ΔT=%.1f°C suggests ratio %.3f, model now %.3f (%d samples)",
+            residual,
+            dt_h,
+            delta_t,
+            target_ratio,
+            self._lower_floor_loss_ratio,
+            self._lower_floor_loss_samples,
+        )
+        if self._lower_floor_loss_samples % 10 == 0:
             await self._async_save_thermal_learning()
 
     async def _async_load_dhw_legionella(self) -> None:
@@ -2191,6 +2385,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
         # Refine the building fabric model from how the last interval actually
         # went. Runs last so it sees the fully populated state.
+        # Order matters, and not obviously. `_async_learn_house_heat_loss`
+        # overwrites `_last_house_sample` with the *current* state near its top,
+        # so anything reading that baseline has to run first or it silently
+        # compares the current state against itself and learns nothing.
+        await self._async_learn_lower_floor_loss()
         await self._async_learn_house_heat_loss()
 
         # Observed COP, which is only possible with a measured power entity.
@@ -2903,6 +3102,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             "house_heat_loss_samples": self._house_heat_loss_samples,
             "house_heat_loss_learned": self._house_heat_loss_samples > 0,
             "house_heat_loss_effective": self._effective_house_heat_loss(),
+            "lower_floor_loss_ratio": round(self._lower_floor_loss_ratio, 3),
+            "lower_floor_loss_samples": self._lower_floor_loss_samples,
+            "lower_floor_loss_learned": self._lower_floor_loss_samples > 0,
             "cop_scale": round(self._cop_scale, 3),
             "cop_samples": self._cop_samples,
             "measured_cop": self._last_measured_cop,

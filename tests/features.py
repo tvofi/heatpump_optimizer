@@ -1520,7 +1520,9 @@ def _zone_coord(states, **extra):
         "weather_entity": "weather.home",
         "indoor_temp_entity": "sensor.indoor",
         "outdoor_temp_entity": "sensor.outdoor",
-        "two_zone_enabled": True,
+        # Inferred from the presence of zone settings, not from a flag.
+        "upper_floor_thermal_mass": 3.0,
+        "lower_floor_thermal_mass": 8.0,
         **extra,
     }
     coord = _Coord(_FakeHass(states), _FakeEntry(data=cfg))
@@ -1654,6 +1656,173 @@ R.check(
     "the new sensor has a staleness limit like the other room sensors",
     hp_const.INPUT_MAX_AGE_MINUTES.get("lower_floor_temp_entity")
     == hp_const.INPUT_MAX_AGE_MINUTES.get("indoor_temp_entity"),
+)
+
+
+R.section("Two-zone loss split learning (item 31)")
+
+# `house_heat_loss_scale` multiplies BOTH zone losses, so it can move the total
+# but never the split. The ratio owns the split and is fitted from the lower
+# zone; the scale owns the level and is fitted from the upper. Two parameters,
+# two independent measurements.
+
+import inspect
+from dataclasses import replace
+from datetime import timedelta as _timedelta
+
+import homeassistant.util.dt as _lz_dt
+
+
+def _two_zone_learner(*, lower_entity=None, ratio=1.0):
+    cfg = {
+        "tibber_token": "x",
+        "weather_entity": "weather.home",
+        "indoor_temp_entity": "sensor.indoor",
+        "outdoor_temp_entity": "sensor.outdoor",
+        # Two-zone is inferred from the presence of zone settings rather than a
+        # flag, so a bare `two_zone_enabled` would silently do nothing.
+        "upper_floor_thermal_mass": 3.0,
+        "lower_floor_thermal_mass": 8.0,
+    }
+    if lower_entity:
+        cfg["lower_floor_temp_entity"] = lower_entity
+    c = _Coord(_FakeHass({}), _FakeEntry(data=cfg))
+    c._apply_lower_floor_loss_ratio(ratio)
+    return c
+
+
+def _drive_lower(coord, *, observed_lower, hours=0.5, power=2.0):
+    """One learning interval, with the plant landing on `observed_lower`."""
+    base = ThermalState(
+        room_temperature=21.0, upper_floor_temperature=21.0,
+        lower_floor_temperature=20.0, slab_temperature=27.0,
+        outdoor_temperature=-5.0,
+    )
+    now = _lz_dt.now()
+    coord._last_house_sample = base
+    coord._last_house_sample_time = now - _timedelta(hours=hours)
+    coord._last_house_sample_power = power
+    coord._current_state = replace(base, lower_floor_temperature=observed_lower)
+    coord._current_action = {"power": power}
+    _asyncio.run(coord._async_learn_lower_floor_loss())
+    return coord._lower_floor_loss_ratio, coord._lower_floor_loss_samples
+
+
+# Backward compatibility: untouched, the ratio is 1.0 and the model is exactly
+# what it was before this existed.
+R.check(
+    "the split defaults to the configured one",
+    ThermalParameters(two_zone_enabled=True).lower_floor_loss_ratio == 1.0,
+)
+_p = ThermalParameters(two_zone_enabled=True)
+R.check(
+    "and the learned lower loss is then just the configured value",
+    _p.lower_floor_heat_loss_learned == _p.lower_floor_heat_loss,
+)
+
+# Without a real sensor the lower zone is inferred from the floor return water,
+# and the inference is derived from the same sensor as the slab -- so it carries
+# no independent information. Fitting against it would fit the model's own prior.
+_no_sensor = _two_zone_learner()
+_r, _n = _drive_lower(_no_sensor, observed_lower=21.5)
+R.check(
+    "without a lower-floor sensor nothing is learned",
+    _r == 1.0 and _n == 0,
+    f"ratio {_r}, {_n} samples",
+)
+
+# With one, a house losing more heat than the model expects must push the ratio
+# up, and one losing less must push it down.
+_cold = _two_zone_learner(lower_entity="sensor.lower")
+_r_cold, _n_cold = _drive_lower(_cold, observed_lower=19.6)
+_warm = _two_zone_learner(lower_entity="sensor.lower")
+_r_warm, _n_warm = _drive_lower(_warm, observed_lower=20.4)
+R.check(
+    "a lower zone colder than predicted raises its share of the loss",
+    _r_cold > 1.0 and _n_cold == 1,
+    f"ratio {_r_cold:.4f} after {_n_cold} samples",
+)
+R.check(
+    "and a warmer one lowers it",
+    _r_warm < 1.0 and _n_warm == 1,
+    f"ratio {_r_warm:.4f} after {_n_warm} samples",
+)
+
+# The fit must not run away on one odd interval, exactly as the house scale
+# rate-limits itself.
+R.check(
+    "a single interval cannot move the split more than the step limit",
+    abs(_r_cold - 1.0) <= 0.05 + 1e-9 and abs(_r_warm - 1.0) <= 0.05 + 1e-9,
+    f"{_r_cold:.4f} / {_r_warm:.4f}",
+)
+
+# Symmetry, which is the subtle one. The lower zone's time constant is over a
+# hundred hours (C/u = 8.0/0.07), so its temperature barely moves and the Newton
+# step is huge: a fraction of a degree implies a ΔU larger than the whole
+# coefficient. On the warm side that makes the target *negative*. Discarding
+# those while keeping the cold-side ones lets the ratio ratchet upward on noise,
+# so the target is clamped rather than thrown away and both sides count.
+_pred_lower = 20.2812  # what the model predicts for this interval
+_sym_cold = _two_zone_learner(lower_entity="sensor.lower")
+_sym_warm = _two_zone_learner(lower_entity="sensor.lower")
+_rc, _nc = _drive_lower(_sym_cold, observed_lower=_pred_lower - 0.4)
+_rw, _nw = _drive_lower(_sym_warm, observed_lower=_pred_lower + 0.4)
+R.check(
+    "equal residuals either side of the prediction are both learned from",
+    _nc == 1 and _nw == 1,
+    f"cold {_nc} samples, warm {_nw} samples",
+)
+R.check(
+    "and they move the split in opposite directions",
+    _rc > 1.0 > _rw,
+    f"cold {_rc:.4f}, warm {_rw:.4f}",
+)
+
+# A residual too large to be a loss error is something else -- a window opened,
+# a sensor glitch -- and must be rejected rather than absorbed.
+_wild = _two_zone_learner(lower_entity="sensor.lower")
+_r_wild, _n_wild = _drive_lower(_wild, observed_lower=14.0)
+R.check(
+    "an implausible residual is rejected, not absorbed",
+    _n_wild == 0 and _r_wild == 1.0,
+    f"ratio {_r_wild}, {_n_wild} samples",
+)
+
+# Physical bounds, like every other learner here.
+_clamp = _two_zone_learner(lower_entity="sensor.lower", ratio=99.0)
+R.check(
+    "the split is clamped to a physical range",
+    _clamp._lower_floor_loss_ratio == hp_const.LOWER_FLOOR_LOSS_RATIO_MAX,
+    f"got {_clamp._lower_floor_loss_ratio}",
+)
+
+# External heat means the house is being warmed by something the model cannot
+# see, so every learner has to stop -- this one included.
+_ext = _two_zone_learner(lower_entity="sensor.lower")
+_ext._external_heat_active = True
+_r_ext, _n_ext = _drive_lower(_ext, observed_lower=19.6)
+R.check(
+    "external heat freezes the split learner too",
+    _n_ext == 0 and _ext._learner_freeze_reason == "external_heat_source",
+    f"{_n_ext} samples, reason {_ext._learner_freeze_reason}",
+)
+
+# The learned value has to survive a restart, or it re-converges from scratch
+# every time Home Assistant is restarted.
+R.check(
+    "the split is persisted alongside the other learned parameters",
+    "lower_floor_loss_ratio" in inspect.getsource(_Coord._async_save_thermal_learning),
+)
+
+# The two learners share one baseline snapshot, and the house one overwrites it
+# near its top. If the order were reversed the split learner would compare the
+# current state against itself and silently never learn.
+_src = inspect.getsource(_Coord)
+R.check(
+    "the split learner runs before the one that consumes the baseline",
+    _src.index("await self._async_learn_lower_floor_loss()")
+    < _src.index("await self._async_learn_house_heat_loss()"),
+    "reversing these makes the split learner a no-op",
 )
 
 

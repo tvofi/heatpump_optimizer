@@ -2,9 +2,10 @@
 
 Started at the end of the v2.7.0 release session, kept up to date since.
 
-**Status as of v3.4.0. Items 1-21 are all done**, released across v2.8.0,
-v2.9.0 and v3.0.0. **Items 22, 23, 24+25, 26 and 30 are now done too** (see the notes
-appended to each). **Items 27-29 and 31 are open.**
+**Status as of v3.6.0. Items 1-21 are all done**, released across v2.8.0,
+v2.9.0 and v3.0.0. **Items 22-26 and 30-31 are now done too** (see the notes
+appended to each). **Items 27-29 are open** -- the deferred wood-furnace
+cluster, which is the whole of what is left.
 
 Scope decision (user, 2026-08-23): 26, 24+25, 30 and 31 are being done now, one
 PR each. The wood-furnace cluster (27-29) is deferred and will be re-planned
@@ -1888,6 +1889,65 @@ behaves exactly as it does today.
 improves one-step prediction while degrading the plan is a real outcome; the
 rolling harness is what catches it. Mutation-test the guards, per the reminder
 below.
+
+**Done, in the scope this item recommends.** `lower_floor_heat_loss` is learned;
+`inter_zone_transfer` is deliberately left at its prior; the thermal masses are
+left to `sysid`.
+
+**How the collinearity was resolved.** This item says to decide which parameter
+owns the total -- retire the scale for two-zone, or constrain the pair to
+preserve their sum. Neither exactly: the two were given **separate jobs**.
+`house_heat_loss_scale` owns the *level* and is fitted from the upper zone; a new
+`lower_floor_loss_ratio` owns the *split* and is fitted from the lower zone.
+Because the ratio does not touch the upper zone, the scale's fit is unaffected by
+it -- two parameters against two independent measurements, so neither can absorb
+the other's error. The ratio stays at 1.0 without a real lower-floor sensor, so
+nothing changes for an install that does not have one.
+
+**A prerequisite this item does not mention, and it is a real bug.**
+`_async_learn_house_heat_loss` compared `observed` -- the indoor sensor, which in
+two-zone mode is the *upper* floor -- against `predicted_state.room_temperature`,
+which two-zone builds as the **area-weighted average of both zones**. Measured
+against the real model at 2 kW and -5 C over 30 minutes:
+
+| zone split | bias injected into the residual |
+|---|---|
+| 0.0 K | -0.10 K |
+| 0.6 K | +0.15 K |
+| 1.5 K | +0.53 K |
+| 3.0 K | +1.15 K -- past the 1.0 K rejection threshold |
+
+Systematic, so it did not average out: it accumulated into the learned scale,
+and a house with floors 3 K apart had every sample discarded. Fixed by comparing
+upper against predicted upper, with `delta_t` and the Newton step's capacity
+following the same zone.
+
+**The trap that the tests caught, and would not have without them.** The lower
+zone's standalone time constant is `C/u` = 8.0/0.07, over a hundred hours, so its
+temperature barely moves and the Newton step is enormous -- a residual of only
++0.12 K implies a ΔU larger than the whole coefficient, i.e. a **negative**
+target. The first implementation rejected those, exactly as the house learner
+does. But they are precisely the intervals where the house lost *less* heat than
+predicted, while the cold-side targets stay positive and were kept -- a
+one-sided learner that would ratchet upward on noise alone. The target is now
+clamped rather than discarded, and the EWMA and step limit decide the speed.
+
+**An ordering dependency worth knowing about.** `_async_learn_house_heat_loss`
+overwrites `_last_house_sample` with the current state near its top, so the split
+learner has to run *before* it or it compares the current state against itself
+and silently never learns. There is a test asserting the order.
+
+**Not carried over from the house learner:** the reset-on-nameplate-change hook.
+`async_update_thermal_params` resets the learned scale when the underlying
+coefficient is edited, but `upper_floor_heat_loss` and `lower_floor_heat_loss`
+are absent from `_THERMAL_PARAM_FIELDS` entirely -- they can only be changed
+through the options flow, which reloads the entry and reloads the stored ratio
+against a possibly-changed nameplate. That gap already exists for
+`house_heat_loss_scale`; this item did not widen it, and did not close it either.
+
+**Golden churn was additive only:** the four `coord_*` fixtures gained the three
+new attributes and nothing else moved. All 33 plan scenarios are unchanged,
+which is the check that the ratio really is identity at its default.
 
 ## Reminders for whoever picks this up
 
