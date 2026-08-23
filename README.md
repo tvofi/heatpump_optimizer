@@ -457,6 +457,30 @@ When a floor heating return temperature sensor is configured, the optimizer uses
 T_slab_estimated = 0.7 × (T_return + 1°C) + 0.3 × T_slab_model
 ```
 
+### Knowing the lower floor, rather than guessing it
+
+Two-zone mode plans against two room temperatures, but only the upper one has
+ever had a sensor. The lower zone was inferred from the floor return water as
+`T_return + 0.5 °C` — and that is a *water* temperature standing in for an air
+temperature. A floor loop returns at roughly 24–30 °C while the room it serves
+sits near 21, so the model believed the lower floor was several degrees warmer
+than it was. That value is judged against the same comfort band as the upper
+floor, so the zone read as permanently overshooting and the optimizer
+under-heated the one room it could not see.
+
+There was a second, quieter problem. The slab was derived from the *same* sensor
+as `T_return + 1 °C`, so the difference between slab and room was always exactly
+0.5 K no matter what the sensor read — which pinned the main heat path into the
+lower zone at a constant value, unable to respond to anything.
+
+**Configure `Lower floor temperature sensor`** (Step 1, or Options → Entities)
+and both problems go away: the zone is measured, and slab-to-room becomes a real
+difference again. It is optional and two-zone only. Without it the old estimate
+is still used, so nothing changes for existing installations until you add one.
+
+The order of preference is: a real sensor, then the floor return estimate, then
+the upper floor's temperature.
+
 ### Backward Compatibility
 
 When two-zone parameters are not configured, the model falls back to single-zone operation. DHW optimization is only active when a DHW temperature sensor or DHW tank volume is configured.
@@ -665,6 +689,7 @@ already-correct model alone.
 | Solar forecast source | `Weather entity` or `Open-Meteo`; see below | No |
 | Solar location | Map coordinate used when the source is Open-Meteo | No |
 | Floor return temp sensor | Floor heating return temp | No |
+| Lower floor temp sensor | Real thermometer on the lower floor (two-zone); without it the zone is inferred from the return water and reads several degrees too warm | No |
 | DHW temp sensor | Hot water tank temperature | No |
 | Buffer tank temp sensor | Buffer tank temperature; enables cooling-rate learning | No |
 

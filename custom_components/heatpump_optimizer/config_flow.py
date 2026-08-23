@@ -29,6 +29,7 @@ from .const import (
     DEFAULT_SOLAR_FORECAST_SOURCE,
     SOLAR_SOURCES,
     CONF_FLOOR_RETURN_TEMP_ENTITY,
+    CONF_LOWER_FLOOR_TEMP_ENTITY,
     CONF_BUFFER_TANK_TEMP_ENTITY,
     CONF_DHW_TEMP_ENTITY,
     CONF_ECL110_COMMAND_TOPIC,
@@ -365,6 +366,7 @@ class HeatPumpOptimizerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         default=_default_location(self.hass, {}),
                     ): _solar_location_selector(),
                     vol.Optional(CONF_FLOOR_RETURN_TEMP_ENTITY): _entity_of("sensor", "temperature"),
+                    vol.Optional(CONF_LOWER_FLOOR_TEMP_ENTITY): _entity_of("sensor", "temperature"),
                     vol.Optional(CONF_DHW_TEMP_ENTITY): _entity_of("sensor", "temperature"),
                     vol.Optional(
                         CONF_BUFFER_TANK_TEMP_ENTITY
@@ -678,6 +680,7 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
         CONF_HEAT_PUMP_SWITCH_ENTITY,
         CONF_SOLAR_RADIATION_ENTITY,
         CONF_FLOOR_RETURN_TEMP_ENTITY,
+        CONF_LOWER_FLOOR_TEMP_ENTITY,
         CONF_DHW_TEMP_ENTITY,
         CONF_BUFFER_TANK_TEMP_ENTITY,
         CONF_POWER_ENTITY,
@@ -820,6 +823,7 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
                     _entity(CONF_DHW_TEMP_ENTITY): _entity_of("sensor", "temperature"),
                     _entity(CONF_BUFFER_TANK_TEMP_ENTITY): _entity_of("sensor", "temperature"),
                     _entity(CONF_FLOOR_RETURN_TEMP_ENTITY): _entity_of("sensor", "temperature"),
+                    _entity(CONF_LOWER_FLOOR_TEMP_ENTITY): _entity_of("sensor", "temperature"),
                     _entity(CONF_HEAT_PUMP_ENTITY): _entity_of("climate"),
                     _entity(CONF_HEAT_PUMP_SWITCH_ENTITY): _entity_of("switch"),
                     # Measured electrical draw. Optional, and everything that

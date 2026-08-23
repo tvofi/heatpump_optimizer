@@ -1497,6 +1497,166 @@ R.check(
 # ===========================================================================
 # Runtime parameter updates
 # ===========================================================================
+R.section("Lower floor temperature sensor (item 30)")
+
+# Nothing in the suite drove `_update_current_state` before this. The optimizer
+# scenarios seed `ThermalState` directly and the coordinator golden captures call
+# only `_build_data_dict`, so the whole sensor-to-state path was untested -- and
+# an empty golden diff for this change is therefore expected, not evidence that
+# the sensor is wired up. These checks are that evidence.
+
+import asyncio as _asyncio
+
+from harness import FakeEntry as _FakeEntry, FakeHass as _FakeHass
+from heatpump_optimizer.coordinator import (
+    HeatPumpOptimizerCoordinator as _Coord,
+)
+
+
+def _zone_coord(states, **extra):
+    """A two-zone coordinator reading the given entity states."""
+    cfg = {
+        "tibber_token": "x",
+        "weather_entity": "weather.home",
+        "indoor_temp_entity": "sensor.indoor",
+        "outdoor_temp_entity": "sensor.outdoor",
+        "two_zone_enabled": True,
+        **extra,
+    }
+    coord = _Coord(_FakeHass(states), _FakeEntry(data=cfg))
+    return coord
+
+
+def _lower_after_update(states, **extra):
+    coord = _zone_coord(states, **extra)
+    _asyncio.run(coord._update_current_state())
+    return coord._current_state
+
+
+_BASE = {
+    "sensor.indoor": FakeState("21.0", unit="°C"),
+    "sensor.outdoor": FakeState("-5.0", unit="°C"),
+}
+
+# 1. The bug this item exists to fix. A floor return of 28 °C means a *water*
+#    temperature, and the room it serves is nowhere near that warm.
+st = _lower_after_update(
+    {**_BASE, "sensor.ret": FakeState("28.0", unit="°C")},
+    floor_return_temp_entity="sensor.ret",
+)
+R.check(
+    "without a lower-floor sensor the zone is still inferred from return water",
+    abs(st.lower_floor_temperature - 28.5) < 1e-6,
+    f"got {st.lower_floor_temperature}",
+)
+
+# 2. A real sensor must win. This is the whole feature.
+st = _lower_after_update(
+    {
+        **_BASE,
+        "sensor.ret": FakeState("28.0", unit="°C"),
+        "sensor.lower": FakeState("20.4", unit="°C"),
+    },
+    floor_return_temp_entity="sensor.ret",
+    lower_floor_temp_entity="sensor.lower",
+)
+R.check(
+    "a real lower-floor sensor takes precedence over the return-temp estimate",
+    abs(st.lower_floor_temperature - 20.4) < 1e-6,
+    f"got {st.lower_floor_temperature}",
+)
+
+# 3. And it must break the constant that made the main heat path useless.
+#
+#    `update_slab_from_return_temp` merges 0.7 sensor / 0.3 prior, so the slab
+#    only reaches its `return + 1.0` fixed point after several cycles. Converge
+#    it first: a single-cycle assertion here passes for the wrong reason -- the
+#    merge has not settled yet -- and would go on passing with the fix reverted.
+def _converged_delta(states, **extra):
+    coord = _zone_coord(states, **extra)
+    for _ in range(20):
+        _asyncio.run(coord._update_current_state())
+    cs = coord._current_state
+    return cs.slab_temperature - cs.lower_floor_temperature
+
+
+_ret_only = {**_BASE, "sensor.ret": FakeState("28.0", unit="°C")}
+_delta_inferred = _converged_delta(_ret_only, floor_return_temp_entity="sensor.ret")
+_delta_measured = _converged_delta(
+    {**_ret_only, "sensor.lower": FakeState("20.4", unit="°C")},
+    floor_return_temp_entity="sensor.ret",
+    lower_floor_temp_entity="sensor.lower",
+)
+R.check(
+    "the inferred path really does pin slab-to-room at 0.5 K",
+    abs(_delta_inferred - 0.5) < 0.01,
+    f"delta {_delta_inferred:.3f}",
+)
+R.check(
+    "and a real sensor unpins it, so the main heat path can vary at all",
+    _delta_measured > 5.0,
+    f"delta {_delta_measured:.3f} (was {_delta_inferred:.3f})",
+)
+
+# 4. With no floor return at all, the room temperature is the better estimate --
+#    and a real sensor still beats it.
+st = _lower_after_update({**_BASE, "sensor.lower": FakeState("19.2", unit="°C")},
+                         lower_floor_temp_entity="sensor.lower")
+R.check(
+    "the sensor is used even when there is no floor return sensor",
+    abs(st.lower_floor_temperature - 19.2) < 1e-6,
+    f"got {st.lower_floor_temperature}",
+)
+
+st = _lower_after_update(dict(_BASE))
+R.check(
+    "with neither sensor the lower zone falls back to room temperature",
+    abs(st.lower_floor_temperature - 21.0) < 1e-6,
+    f"got {st.lower_floor_temperature}",
+)
+
+# 5. The guard asymmetry. The two branches used to be gated on different things
+#    -- one on the reading being good, the other on the entity being unset -- so
+#    a configured-but-dead sensor satisfied neither and both values silently
+#    held. A stale reading must still land somewhere defensible.
+st = _lower_after_update(
+    {
+        **_BASE,
+        "sensor.ret": FakeState("28.0", unit="°C", last_updated=minutes_ago(600)),
+    },
+    floor_return_temp_entity="sensor.ret",
+)
+R.check(
+    "a configured but stale floor return still leaves a defensible lower zone",
+    abs(st.lower_floor_temperature - 21.0) < 1e-6,
+    f"got {st.lower_floor_temperature}",
+)
+
+# 6. An unavailable lower-floor sensor must fall back rather than poison state.
+st = _lower_after_update(
+    {
+        **_BASE,
+        "sensor.ret": FakeState("28.0", unit="°C"),
+        "sensor.lower": FakeState("unavailable"),
+    },
+    floor_return_temp_entity="sensor.ret",
+    lower_floor_temp_entity="sensor.lower",
+)
+R.check(
+    "an unavailable lower-floor sensor falls back to the return-temp estimate",
+    abs(st.lower_floor_temperature - 28.5) < 1e-6,
+    f"got {st.lower_floor_temperature}",
+)
+
+# 7. The watchdog has to cover it. A key absent from INPUT_MAX_AGE_MINUTES gets
+#    no age limit at all, which disables staleness detection silently.
+R.check(
+    "the new sensor has a staleness limit like the other room sensors",
+    hp_const.INPUT_MAX_AGE_MINUTES.get("lower_floor_temp_entity")
+    == hp_const.INPUT_MAX_AGE_MINUTES.get("indoor_temp_entity"),
+)
+
+
 R.section("Runtime parameter updates")
 
 import asyncio
