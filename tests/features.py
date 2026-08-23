@@ -981,13 +981,56 @@ two_zone = presets.derive(
         upper_area_ratio=0.5,
     )
 )
+# The heavy mass must live in exactly one store. The heated slab *is* the
+# building's heavy floor, and the model already couples it to the lower zone;
+# counting it in the lower zone as well doubled the downstairs store and let
+# plans coast on heat the building does not have.
 R.check(
-    "a slab-heated lower floor carries the heavy mass",
-    two_zone["lower_floor_thermal_mass"] > two_zone["upper_floor_thermal_mass"],
+    "the heavy mass lives in the heated slab, and only there",
+    two_zone["slab_thermal_mass"] > two_zone["lower_floor_thermal_mass"]
+    and abs(
+        two_zone["lower_floor_thermal_mass"]
+        - two_zone["upper_floor_thermal_mass"]
+    ) < 0.5,
+    f"slab {two_zone['slab_thermal_mass']}, lower "
+    f"{two_zone['lower_floor_thermal_mass']}, upper "
+    f"{two_zone['upper_floor_thermal_mass']}",
 )
 R.check(
     "the radiator power fraction follows the emitters",
     abs(two_zone["radiator_power_fraction"] - 0.5) < 1e-6,
+)
+
+# A radiator house pushes every watt through the same "slab" slot of the
+# model, so that store has to be the radiator loop: small, and coupled well
+# enough to deliver the design heat load at a sane flow temperature. Giving
+# it the building's slow mass behind the minimum 0.05 kW/°C transfer modelled
+# a house where 3 kW needs the emitter 60 °C above the room.
+_rad_house = presets.derive(
+    presets.BuildingPreset(lower_emitter=presets.EMITTER_RADIATORS)
+)
+_floor_house = presets.derive(
+    presets.BuildingPreset(lower_emitter=presets.EMITTER_FLOOR)
+)
+R.check(
+    "a radiator loop is a small store, not the building's slab",
+    _rad_house["slab_thermal_mass"] < 1.0
+    < _floor_house["slab_thermal_mass"],
+    f"radiators {_rad_house['slab_thermal_mass']} kWh/°C vs floor "
+    f"{_floor_house['slab_thermal_mass']} kWh/°C",
+)
+R.check(
+    "radiators can deliver the design heat load at a sane flow temperature",
+    _rad_house["slab_heat_transfer"]
+    >= _rad_house["house_heat_loss_coefficient"],
+    "at transfer >= loss, holding the house at ΔT 30 K outside needs the "
+    "emitter no more than 30 K above the room",
+)
+R.check(
+    "with radiators the heavy floor coasts as part of the room store",
+    _rad_house["house_thermal_mass"] > _floor_house["house_thermal_mass"] * 2,
+    f"{_rad_house['house_thermal_mass']} vs {_floor_house['house_thermal_mass']} "
+    "kWh/°C: the slow mass is passively coupled, not deleted",
 )
 
 R.check(
