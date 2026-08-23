@@ -200,7 +200,8 @@
           "grid": "Grid costs and cycling",
           "solar_pv": "Solar panels",
           "away": "Away and holiday mode",
-          "learning": "Self-learning and diagnostics"
+          "learning": "Self-learning and diagnostics",
+          "mixing_valve": "Mixing valve and heat storage"
         }
       },
       "entities": {
@@ -448,6 +449,22 @@
           "comfort_learning_enabled": "Every time you override the temperature, you are saying the plan went too far in one direction. This slowly adjusts the comfort setting from that. The learned value is shown on its own sensor and there is a button to reset it.",
           "system_identification_enabled": "Lets the optimizer run a small deliberate heating step on a mild, cheap night to measure your house directly, instead of waiting weeks to infer it. The change is kept too small to notice and it stops if the temperature drifts."
         }
+      },
+      "mixing_valve": {
+        "title": "Mixing valve and heat storage",
+        "description": "A mixing valve throttles how much heat reaches the house, which is what lets surplus go into the buffer tank instead. Leave this at \"No mixing valve\" if you do not have one - the model is already correct for that case.",
+        "data": {
+          "mixing_valve_mode": "Mixing valve",
+          "mixing_valve_target": "Valve target temperature",
+          "mixing_valve_target_entity": "Valve target sensor",
+          "buffer_max_temperature": "Maximum buffer tank temperature"
+        },
+        "data_description": {
+          "mixing_valve_mode": "\"Set by hand\" is a valve you configure yourself; tell the integration below what you set it to. \"Read from a sensor\" means the integration can see the target but not change it.",
+          "mixing_valve_target": "The indoor temperature the valve holds. Leave at 0 to use the top of your comfort band, which is the recommended setting: the building charges first at no efficiency cost, and the tank takes only the surplus.",
+          "mixing_valve_target_entity": "Optional. Reads the valve's target rather than using the fixed value above.",
+          "buffer_max_temperature": "The tank is never charged above this, however cheap electricity is."
+        }
       }
     },
     "error": {
@@ -496,6 +513,13 @@
       "options": {
         "15": "15 minutes",
         "60": "1 hour"
+      }
+    },
+    "mixing_valve_mode": {
+      "options": {
+        "none": "No mixing valve",
+        "manual": "Set by hand",
+        "smart_read": "Read from a sensor"
       }
     }
   }

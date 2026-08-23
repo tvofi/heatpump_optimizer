@@ -37,6 +37,7 @@ from .const import (
     CONF_SOLAR_RADIATION_ENTITY,
     CONF_FLOOR_RETURN_TEMP_ENTITY,
     CONF_LOWER_FLOOR_TEMP_ENTITY,
+    CONF_MIXING_VALVE_TARGET_ENTITY,
     CONF_DHW_TEMP_ENTITY,
     CONF_DHW_SCHEDULE_ENABLED,
     CONF_DHW_WINDOWS,
@@ -82,7 +83,6 @@ from .const import (
     DHW_COOLING_RATE_MIN,
     HOUSE_HEAT_LOSS_SCALE_MAX,
     HOUSE_HEAT_LOSS_SCALE_MIN,
-    CONF_LOWER_FLOOR_TEMP_ENTITY,
     DEFAULT_LOWER_FLOOR_LOSS_RATIO,
     LOWER_FLOOR_LOSS_RATIO_MAX,
     LOWER_FLOOR_LOSS_RATIO_MIN,
@@ -2334,6 +2334,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # constant 0.5 K whatever the sensor reads. So the main heat path into
         # the lower zone is both wrong and unresponsive, and the error is judged
         # against the same comfort bounds as the upper floor.
+        # A smart valve's target, when the integration can see it. Knowing where
+        # the valve regulates to is what tells the model whether it is
+        # throttling -- and therefore whether surplus heat can reach the tank at
+        # all -- so charging cannot be planned without it.
+        valve_target = reader.read(CONF_MIXING_VALVE_TARGET_ENTITY)
+        if valve_target.ok:
+            self._thermal_params.mixing_valve_target = float(valve_target.value)
+
         lower_floor = reader.read(CONF_LOWER_FLOOR_TEMP_ENTITY)
         if lower_floor.ok:
             self._current_state.lower_floor_temperature = lower_floor.value

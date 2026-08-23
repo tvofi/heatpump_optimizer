@@ -1403,7 +1403,15 @@ runtime_only = {
     "dhw_windows",              # parsed separately from a string spec
     "two_zone_enabled",         # inferred from which keys are present
     "dhw_enabled",              # inferred from which keys are present
+    "cop_flow_carnot",          # follows the mixing valve mode
+    "cop_flow_reference_temp",  # a property of the COP curve, not the house
+    "emitter_design_delta_t",   # a sizing convention, not a per-house setting
 }
+
+# Fields that *are* configurable but cannot be probed by substituting a
+# sentinel, because the mapping validates them. They get an explicit check
+# below instead of being quietly exempted.
+validated_enums = {"mixing_valve_mode"}
 
 def reachable(name: str) -> str | None:
     """Find a config key that actually changes ``name``, or None.
@@ -1431,13 +1439,38 @@ def reachable(name: str) -> str | None:
     return None
 
 
-probe = {name: reachable(name) for name in declared - runtime_only}
+probe = {name: reachable(name) for name in declared - runtime_only - validated_enums}
 
 unreachable = sorted(n for n, k in probe.items() if k is None)
 R.check(
     "every configurable parameter is reachable from a config key",
     not unreachable,
     ", ".join(unreachable),
+)
+
+# The enum the probe cannot express. It is validated on the way in, so an
+# unknown string must fall back rather than reaching the model -- otherwise the
+# user sees no valve behaviour and nothing explains why.
+_valve_set = ThermalParameters.from_config(
+    {hp_const.CONF_MIXING_VALVE_MODE: "manual"}
+)
+_valve_bad = ThermalParameters.from_config(
+    {hp_const.CONF_MIXING_VALVE_MODE: "nonsense"}
+)
+R.check(
+    "the mixing valve mode is reachable from its config key",
+    _valve_set.mixing_valve_mode == "manual",
+    f"got {_valve_set.mixing_valve_mode!r}",
+)
+R.check(
+    "and an unknown mode falls back rather than silently doing nothing",
+    _valve_bad.mixing_valve_mode == "none",
+    f"got {_valve_bad.mixing_valve_mode!r}",
+)
+R.check(
+    "the COP flow penalty follows the mode rather than being separate",
+    _valve_set.cop_flow_carnot and not _valve_bad.cop_flow_carnot,
+    "it only means anything when a valve can actually charge the tank",
 )
 
 # Round-tripping: a value set in the config must arrive in the parameters.
@@ -1656,6 +1689,111 @@ R.check(
     "the new sensor has a staleness limit like the other room sensors",
     hp_const.INPUT_MAX_AGE_MINUTES.get("lower_floor_temp_entity")
     == hp_const.INPUT_MAX_AGE_MINUTES.get("indoor_temp_entity"),
+)
+
+
+R.section("Mixing valve and the buffer tank as a store (items 27/29)")
+
+from heatpump_optimizer import mixing_valve as _mv  # noqa: E402
+
+
+def _tank_run(mode, power, *, target=23.0, hours=6.0, volume=750.0, start=45.0):
+    p = ThermalParameters(
+        two_zone_enabled=True, buffer_tank_volume=volume,
+        mixing_valve_mode=mode, mixing_valve_target=target,
+        cop_flow_carnot=True,
+    )
+    m = ThermalModel(p)
+    st = ThermalState(
+        room_temperature=21.0, upper_floor_temperature=21.0,
+        lower_floor_temperature=20.5, slab_temperature=25.0,
+        buffer_tank_temperature=start, outdoor_temperature=-5.0,
+    )
+    for _ in range(int(hours / 0.25)):
+        st = m.simulate_step(st, power, -5.0, dt_hours=0.25)
+    return st
+
+
+# The defect item 27 names: with no valve the draw is defined as a fixed share
+# of the supply, so the two cancel and the pump cannot touch the tank at all.
+_none = [_tank_run(_mv.MODE_NONE, pw).buffer_tank_temperature for pw in (0.0, 3.0, 9.0)]
+R.check(
+    "without a valve the tank ignores the heat pump entirely",
+    max(_none) - min(_none) < 1e-6,
+    f"0/3/9 kW all give {_none[0]:.3f} C -- the supply term cancels",
+)
+
+# And what the valve changes. Delivery becomes what the house asks for, so
+# surplus has somewhere to go.
+_charged = _tank_run(_mv.MODE_MANUAL, 9.0)
+_coasted = _tank_run(_mv.MODE_MANUAL, 0.0)
+R.check(
+    "with a valve, running the pump hard charges the tank",
+    _charged.buffer_tank_temperature > 60.0,
+    f"got {_charged.buffer_tank_temperature:.1f} C from 45 C",
+)
+R.check(
+    "and with the pump off the tank discharges into the house",
+    _coasted.buffer_tank_temperature < 30.0,
+    f"got {_coasted.buffer_tank_temperature:.1f} C",
+)
+
+# The point of the valve is that charging does *not* cost comfort: it throttles
+# delivery, so the surplus goes to the tank rather than overheating the house.
+_runaway = _tank_run(_mv.MODE_NONE, 9.0)
+R.check(
+    "charging hard does not overheat the house",
+    _charged.upper_floor_temperature < 24.5,
+    f"held at {_charged.upper_floor_temperature:.1f} C while charging",
+)
+R.check(
+    "which is exactly what an unvalved system fails to do",
+    _runaway.upper_floor_temperature > _charged.upper_floor_temperature + 3.0,
+    f"unvalved reaches {_runaway.upper_floor_temperature:.1f} C on the same power",
+)
+
+# The tank's safe ceiling is a physical limit, not a preference.
+R.check(
+    "the tank cannot be charged past its ceiling",
+    _charged.buffer_tank_temperature <= 70.0 + 1e-6,
+    f"got {_charged.buffer_tank_temperature:.2f} C against a 70 C cap",
+)
+
+# Storing hot has to cost something, or the optimizer will store on every cheap
+# hour whether or not it pays. Carnot-derived, because a linear %/K collapses to
+# the floor at the temperatures storage actually reaches.
+_m = ThermalModel(ThermalParameters(two_zone_enabled=True, cop_flow_carnot=True))
+_cold, _hot = _m.compute_cop(-5.0, flow_temp=35.0), _m.compute_cop(-5.0, flow_temp=70.0)
+R.check(
+    "charging the tank hot costs COP",
+    _hot < _cold * 0.75,
+    f"{_cold:.2f} at 35 C vs {_hot:.2f} at 70 C",
+)
+R.check(
+    "but stays physically plausible rather than collapsing to a floor",
+    _hot > 1.2,
+    f"a real unit manages 1.5-2.0 at 70 C flow; got {_hot:.2f}",
+)
+_off = ThermalModel(ThermalParameters(two_zone_enabled=True))
+R.check(
+    "and the penalty is inert unless it is switched on",
+    _off.compute_cop(-5.0, flow_temp=70.0) == _off.compute_cop(-5.0),
+    "a flow temperature must not change COP when the term is disabled",
+)
+
+# A dumb valve needs a number to set. The recommendation is the top of the
+# comfort band: the building stores at room temperature for no COP penalty, so
+# it should fill first and the tank should take only the surplus.
+_rec = _mv.recommend_target(comfort_min=19.0, comfort_max=23.0)
+R.check(
+    "a dumb valve is recommended the top of the comfort band",
+    _rec.target == 23.0 and "surplus" in _rec.reason,
+    f"got {_rec.target} -- {_rec.reason[:60]}",
+)
+R.check(
+    "and the recommendation says what it costs, not just what to set",
+    "comfort limits" in _rec.reason or "no longer limiting" in _rec.reason,
+    "a high target gives up the valve's own overshoot protection",
 )
 
 

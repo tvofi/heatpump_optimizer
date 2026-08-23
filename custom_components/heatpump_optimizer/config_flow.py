@@ -29,7 +29,13 @@ from .const import (
     DEFAULT_SOLAR_FORECAST_SOURCE,
     SOLAR_SOURCES,
     CONF_FLOOR_RETURN_TEMP_ENTITY,
+    CONF_BUFFER_MAX_TEMP,
     CONF_LOWER_FLOOR_TEMP_ENTITY,
+    CONF_MIXING_VALVE_MODE,
+    CONF_MIXING_VALVE_TARGET,
+    CONF_MIXING_VALVE_TARGET_ENTITY,
+    DEFAULT_BUFFER_MAX_TEMP,
+    DEFAULT_MIXING_VALVE_TARGET,
     CONF_BUFFER_TANK_TEMP_ENTITY,
     CONF_DHW_TEMP_ENTITY,
     CONF_ECL110_COMMAND_TOPIC,
@@ -191,7 +197,7 @@ from .const import (
     DEFAULT_BUILDING_PRESET_ENABLED,
     DEFAULT_HEATED_AREA,
 )
-from . import presets
+from . import mixing_valve, presets
 from .dhw_schedule import is_valid_spec
 
 _LOGGER = logging.getLogger(__name__)
@@ -681,6 +687,7 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
         CONF_SOLAR_RADIATION_ENTITY,
         CONF_FLOOR_RETURN_TEMP_ENTITY,
         CONF_LOWER_FLOOR_TEMP_ENTITY,
+        CONF_MIXING_VALVE_TARGET_ENTITY,
         CONF_DHW_TEMP_ENTITY,
         CONF_BUFFER_TANK_TEMP_ENTITY,
         CONF_POWER_ENTITY,
@@ -707,6 +714,7 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
         "away": "Away and holiday mode",
         "learning": "Self-learning and diagnostics",
         "heat_curve": "Heat curve control (ECL110)",
+        "mixing_valve": "Mixing valve and heat storage",
     }
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
@@ -1062,6 +1070,55 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
                             CONF_OPTIMIZATION_INTERVAL, DEFAULT_OPTIMIZATION_INTERVAL
                         ),
                     ): _number(10, 120, 5, "min", slider=True),
+                }
+            ),
+        )
+
+    async def async_step_mixing_valve(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Mixing valve, and whether the buffer tank can be used as a store."""
+        if user_input is not None:
+            return self._save(user_input)
+
+        current = self._current
+
+        def _entity(key: str) -> Any:
+            """Optional key that keeps the currently configured entity as default."""
+            existing = current.get(key)
+            if existing:
+                return vol.Optional(key, default=existing)
+            return vol.Optional(key)
+
+        return self.async_show_form(
+            step_id="mixing_valve",
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(
+                        CONF_MIXING_VALVE_MODE,
+                        default=current.get(
+                            CONF_MIXING_VALVE_MODE, mixing_valve.MODE_NONE
+                        ),
+                    ): _select(
+                        list(mixing_valve.SELECTABLE_MODES), "mixing_valve_mode"
+                    ),
+                    # 0 means "use the top of the comfort band", which is also
+                    # what a dumb valve is recommended to be set to.
+                    vol.Optional(
+                        CONF_MIXING_VALVE_TARGET,
+                        default=current.get(
+                            CONF_MIXING_VALVE_TARGET, DEFAULT_MIXING_VALVE_TARGET
+                        ),
+                    ): _number(0, 30, 0.5, "°C"),
+                    _entity(CONF_MIXING_VALVE_TARGET_ENTITY): _entity_of(
+                        "sensor", "temperature"
+                    ),
+                    vol.Optional(
+                        CONF_BUFFER_MAX_TEMP,
+                        default=current.get(
+                            CONF_BUFFER_MAX_TEMP, DEFAULT_BUFFER_MAX_TEMP
+                        ),
+                    ): _number(40, 90, 1, "°C", slider=True),
                 }
             ),
         )

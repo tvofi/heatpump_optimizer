@@ -1376,6 +1376,24 @@ which is worth knowing before, not after.
 
 ## 29. The buffer tank as a controllable thermal battery (mixing valve setups)
 
+> **Blocker 1 is fixed (v3.7.0).** `mixing_valve.py` adds the control law: with
+> a valve, delivery is what the house asks for and the surplus goes to the tank.
+> Measured in the model at 750 L, 6 h, -5 C outdoor, target 23 C: at 9 kW the
+> tank charges 45 -> 70 C (the cap) while the house is held at 23.2 C. Without a
+> valve the same power leaves the tank at 44.2 C regardless and drives the house
+> to 30.3 C instead. Modes shipped: `none` (default, unchanged), `manual`,
+> `smart_read`. `smart_write` needs an actuation path and lands with it -- a mode
+> that cannot do what its name says is worse than one that is absent.
+>
+> The COP flow-temperature term ships with it, Carnot-derived, and follows the
+> mode rather than being separately switched: it only means anything when a valve
+> can actually charge the tank.
+>
+> **Blocker 3 remains:** `_price_ranked_start` budgets exactly baseline energy,
+> so no seed can express buying above what a thermostat would use -- which is
+> what charging is. The physics now permits storage; the solver still has to be
+> given a way to find it.
+
 > **Blocker 2 is fixed (v3.6.1).** The standby loss now follows surface area
 > rather than volume, and the learner's clamp is derived from how well a tank of
 > that size could plausibly be insulated, so a real accumulator (~2 W/K at
