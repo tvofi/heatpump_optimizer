@@ -528,6 +528,7 @@ for key in (
 # pages and were not even on the submitted form.
 _cross_page = {
     const.CONF_EXTERNAL_HEAT_ENTITY: "binary_sensor.furnace",
+    const.CONF_MIXING_VALVE_TARGET_ENTITY: "sensor.valve_target",
     const.CONF_PV_PRODUCTION_ENTITY: "sensor.pv_power",
     const.CONF_PV_EXPORT_PRICE_ENTITY: "sensor.export_price",
     const.CONF_AWAY_PRESENCE_ENTITY: "person.someone",
@@ -548,6 +549,19 @@ R.check(
     "the entities page still clears its own absent fields",
     _saved.get(const.CONF_POWER_ENTITY) is None,
     "a cleared selector must be written back as None or clearing does not stick",
+)
+
+# The mixing valve page owns its target entity, so it has to clear it itself —
+# it used to lean on the entities page's global nulling, i.e. on the bug above.
+_vflow = options(
+    FakeEntry(options={const.CONF_MIXING_VALVE_TARGET_ENTITY: "sensor.tgt"})
+)
+_vflow.hass = FakeHass()
+_vsaved = asyncio.run(_vflow.async_step_mixing_valve({}))["data"]
+R.check(
+    "the mixing valve page clears its own absent entity",
+    _vsaved.get(const.CONF_MIXING_VALVE_TARGET_ENTITY) is None,
+    f"got {_vsaved.get(const.CONF_MIXING_VALVE_TARGET_ENTITY)!r}",
 )
 
 
