@@ -276,6 +276,17 @@ R.check(
     "hardcoding an entity id is what caused the v2.6.1 card bug",
 )
 
+# The chart's edit ceiling and the service's expiry default have to be the same
+# number, or the card shows slots as pinned past the point `channel_pins` frees
+# them. The integration owns it and publishes it; the card reads it.
+space_plan = by_name["Space Heating Plan"]
+R.check(
+    "the plan sensor publishes the manual-plan window for the card",
+    space_plan.extra_state_attributes.get("manual_plan_window_hours")
+    == const.MANUAL_PLAN_WINDOW_HOURS,
+    "a card with its own copy of this number could drift from the service",
+)
+
 # Optional inputs must degrade cleanly.
 no_power = FakeCoordinator({**DATA, "measured_power_available": False, "measured_power": None})
 R.check(

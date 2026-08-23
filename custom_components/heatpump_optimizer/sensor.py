@@ -22,7 +22,7 @@ from homeassistant.helpers.entity import DeviceInfo, EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DHW_MIN_TEMP_SETPOINT_MARGIN, DOMAIN
+from .const import DHW_MIN_TEMP_SETPOINT_MARGIN, DOMAIN, MANUAL_PLAN_WINDOW_HOURS
 from .coordinator import HeatPumpOptimizerCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -944,6 +944,10 @@ class _PlanSensorBase(HeatPumpOptimizerSensorBase):
             return {
                 "plan_kind": self._plan_kind,
                 "manual_override": (self.coordinator.data or {}).get("manual_plan"),
+                # Published here too: it is a fixed property of the integration,
+                # not something derived from a plan, and the card needs it to
+                # bound editing before the first plan has arrived.
+                "manual_plan_window_hours": MANUAL_PLAN_WINDOW_HOURS,
             }
         slots = plan.get("slots", [])
         next_slot = None
@@ -981,6 +985,12 @@ class _PlanSensorBase(HeatPumpOptimizerSensorBase):
             # The active manual override (or None). The card reads this to show
             # which slots are pinned and which pins safety had to release.
             "manual_override": data.get("manual_plan"),
+            # How far ahead a hand-arranged plan may be pinned, published rather
+            # than duplicated in the card so the chart's edit ceiling and the
+            # service's expiry default cannot drift apart. If they did, the card
+            # would show slots as pinned beyond the point `channel_pins` frees
+            # them -- which is the failure this number exists to prevent.
+            "manual_plan_window_hours": MANUAL_PLAN_WINDOW_HOURS,
         }
 
 

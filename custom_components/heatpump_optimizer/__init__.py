@@ -14,6 +14,7 @@ The optimization accounts for:
 from __future__ import annotations
 
 import logging
+from datetime import timedelta
 from typing import Any
 
 import voluptuous as vol
@@ -35,6 +36,7 @@ from .const import (
     CONF_DHW_MIN_TEMP,
     CONF_DHW_SETPOINT,
     CONF_DHW_WINDOWS,
+    MANUAL_PLAN_WINDOW_HOURS,
     DEFAULT_DHW_SETPOINT,
     DHW_MIN_TEMP_SETPOINT_MARGIN,
     SERVICE_APPLY_SCHEDULE,
@@ -53,7 +55,7 @@ from .const import (
 from .coordinator import HeatPumpOptimizerCoordinator
 from .dhw_schedule import DHWWindowError, format_windows, parse_windows
 from .frontend import async_register_frontend
-from .manual_plan import ManualPlanError, build_override, next_local_midnight
+from .manual_plan import ManualPlanError, build_override
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -395,7 +397,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         Unlike apply_schedule, which only shifts the envelope the optimizer
         keeps re-deciding inside, this fixes the actual run slots until
-        ``expires_at`` (next local midnight by default). The pins are validated
+        ``expires_at`` (20 hours from now by default). The pins are validated
         in full *before* any coordinator is touched, so a rejected call leaves an
         existing override completely untouched. Safety still wins: the optimizer
         releases a forced-off slot if the house or tank would breach a hard
@@ -407,7 +409,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         raw_expires = data.get("expires_at")
         if raw_expires is None:
-            expires_at = next_local_midnight(now)
+            # Measured from this moment, not from the end of the day. A midnight
+            # expiry shrank as the day wore on -- an override applied at 22:00
+            # lasted two hours -- and the card's edit ceiling had to track it,
+            # or slots showed as pinned past the point `channel_pins` frees them.
+            expires_at = now + timedelta(hours=MANUAL_PLAN_WINDOW_HOURS)
         else:
             expires_at = dt_util.parse_datetime(raw_expires)
             if expires_at is None:

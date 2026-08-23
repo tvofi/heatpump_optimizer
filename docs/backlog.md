@@ -3,9 +3,8 @@
 Started at the end of the v2.7.0 release session, kept up to date since.
 
 **Status as of v3.4.0. Items 1-21 are all done**, released across v2.8.0,
-v2.9.0 and v3.0.0. **Items 22, 23, 26 and 30 are now done too** (see the notes
-appended to each). **Items 24-25, 27-29 and 31 are open.** Items 24 and 25 are
-one job and are written up together, and are next.
+v2.9.0 and v3.0.0. **Items 22, 23, 24+25, 26 and 30 are now done too** (see the notes
+appended to each). **Items 27-29 and 31 are open.**
 
 Scope decision (user, 2026-08-23): 26, 24+25, 30 and 31 are being done now, one
 PR each. The wood-furnace cluster (27-29) is deferred and will be re-planned
@@ -990,6 +989,47 @@ the expiry cannot drift apart.
 Touch points: `build_override` (`manual_plan.py:240`) and its `expires_at`
 default (~269), the `apply_manual_plan` schema default in `services.yaml`,
 `_editCeiling` in the card, and the expiry wording in `_overrideHtml`.
+
+**Done.** `MANUAL_PLAN_WINDOW_HOURS = 20` in `const.py`, obeyed by both sides.
+
+- **A correction to this item.** It says `build_override` defaults `expires_at`
+  to `next_local_midnight(now)`. It does not -- `build_override` takes
+  `expires_at` as a **required** keyword with no default. The real default was a
+  single site in the `apply_manual_plan` handler, which is all that changed.
+- `next_local_midnight` is **deleted**, along with the now-unused `timedelta`
+  import it needed. Nothing else used it.
+- **The card does not hold a copy of the 20.** The plan sensors publish
+  `manual_plan_window_hours` and `_editCeiling` reads it, the same pattern item
+  22 used for `dhw_min_temperature_max`. A literal in the card that could drift
+  from the service's default is precisely the failure this item exists to
+  prevent, so it is asserted in `tests/entities.py` and in `tests/card.mjs`.
+- **`_editCeiling` now takes the smallest of three limits**, not two: the expiry
+  the card *would send if applied now*, the end of the plan, and the visible
+  window. That third term is new since item 23 made pan and zoom narrow the
+  visible window -- without it a slot could be dragged out of the region the
+  pointer can reach. Item 23's note asking for this to be reconciled here is
+  now settled.
+- **Expiry wording had to change and this item does not mention it.** Both the
+  banner and the apply result formatted `toLocaleTimeString` with hour and
+  minute only. Under the midnight rule the day was implicit; a 20-hour expiry
+  usually lands tomorrow, so "pinned until 08:30" became ambiguous. There is now
+  one `fmtExpiry` helper that adds "tomorrow" or a weekday when the expiry is
+  not today.
+
+Two tests were passing for reasons that would not survive the change:
+
+- `tests/manual_plan.py`'s "a slot late in the horizon is still counted" pinned
+  a slot at 20-22 h against a 26 h expiry. Under a 20 h window those steps are
+  freed, so the check reported 0 and would otherwise have been "fixed" by
+  loosening it. The slot moved to 17-19 h, which preserves what it was actually
+  testing -- that the count is measured per step over the horizon rather than
+  in hourly price entries -- and a new check asserts the other side of the
+  boundary, that a slot past the window pins nothing.
+- `tests/card.mjs` recomputed midnight by hand and asserted the ceiling was
+  below it, which says nothing once the rule changes. It now asserts against the
+  window directly, and a new check covers the subtle case: a card showing an
+  override applied 15 hours ago must still offer the *full* window, not the
+  5 hours left on the old one.
 
 ## 26. Expanded card overflows its own boundary at some window sizes
 

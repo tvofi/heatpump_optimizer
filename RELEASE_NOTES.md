@@ -1,5 +1,35 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v3.5.0
+
+A pinned plan now lasts 20 hours from when you apply it, instead of expiring at
+midnight.
+
+### Your plan no longer evaporates in the evening
+
+**Apply this plan** used to pin your arrangement until the next midnight. That
+made the feature least useful exactly when people reach for it: a plan made at
+nine in the evening lasted three hours, and one made at half past eleven barely
+survived the click. It now runs for **20 hours from the moment you apply**, and
+applying again restarts the clock — so an evening plan carries through the night
+and well into the next afternoon.
+
+The chart's editable region follows the same rule, which is the point: the
+backend releases every pinned step at or after the expiry, so a slot drawn
+beyond it would have been shown as pinned while quietly doing nothing. The two
+now read the same number from the same place rather than each keeping a copy.
+
+It is deliberately 20 rather than 24. The optimizer plans 24 hours ahead, so a
+full-day override would cover every step it was looking at, and re-applying each
+day would leave it nothing left to decide — switching it off while appearing to
+leave it on. At 20 there is always a few hours' tail the optimizer still owns.
+
+The expiry is now written with a day when it is not today. Under the midnight
+rule "pinned until 08:30" could only mean one thing; with a 20-hour window it
+usually means tomorrow, so it says so.
+
+The **Apply for the rest of today** button is now simply **Apply this plan**,
+which is what it does.
 ## v3.4.1
 
 ### Fixed: two axis labels ran into each other
