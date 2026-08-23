@@ -25,7 +25,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -53,6 +53,9 @@ class ExternalHeatConfig:
     #: Below this the compressor counts as off.
     idle_power_kw: float = 0.2
     #: Samples further apart than this say nothing about a rate of change.
+    #: Sized from the update interval by the caller: with a fixed 1.0 h window
+    #: and a 60-minute interval, every sample pair was rejected and the
+    #: detector was permanently blind while appearing configured.
     max_sample_hours: float = 1.0
     min_sample_hours: float = 0.05
 
@@ -297,11 +300,3 @@ class ExternalHeatDetector:
         exists to prevent.
         """
         return self.state.active or self.state.fading
-
-    def freeze_until(self) -> datetime | None:
-        """When the learners may resume, given the decay window."""
-        if self.state.last_active is None:
-            return None
-        return self.state.last_active + timedelta(
-            minutes=self.config.decay_minutes
-        )

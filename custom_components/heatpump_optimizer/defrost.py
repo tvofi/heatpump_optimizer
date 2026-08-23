@@ -30,6 +30,20 @@ TEMP_EDGES: tuple[float, ...] = (-30.0, -5.0, 0.0, 2.0, 5.0, 8.0, 40.0)
 # Humidity split. Frost needs moisture; dry cold air barely frosts at all.
 HUMIDITY_EDGES: tuple[float, ...] = (0.0, 70.0, 101.0)
 
+# The band whose under-delivery is attributed to frost. Two learners watch the
+# same commanded-versus-measured signal — the global COP scale and this derate —
+# and if both fold in the same interval, one shortfall is corrected twice and
+# plans in the band overshoot the compensation. So the attribution is disjoint:
+# inside the band the shortfall belongs to frost and only this module learns
+# from it; outside, frost is physically implausible and only the COP scale does.
+FROST_BAND_MIN_C = 0.0
+FROST_BAND_MAX_C = 5.0
+
+
+def in_frost_band(outdoor_temp: float) -> bool:
+    """Whether under-delivery at this outdoor temperature reads as frost."""
+    return FROST_BAND_MIN_C <= float(outdoor_temp) < FROST_BAND_MAX_C
+
 # Derate is bounded. A unit that appears to deliver less than half or more than
 # its rated output is telling us about a broken sensor, not about frost.
 DERATE_MIN = 0.55

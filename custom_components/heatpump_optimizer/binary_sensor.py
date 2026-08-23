@@ -141,9 +141,12 @@ class ExternalHeatBinarySensor(_OptimizerBinarySensorBase):
 
 
 class AwayModeBinarySensor(_OptimizerBinarySensorBase):
-    """On while the house is unoccupied and the deep setback applies."""
+    """On while the house is unoccupied and the deep setback applies.
 
-    _attr_device_class = BinarySensorDeviceClass.PRESENCE
+    Deliberately no device class: PRESENCE means on = somebody is home, which
+    is the inverse of this sensor, so the UI showed "Home" while away.
+    """
+
     _attr_icon = "mdi:home-export-outline"
 
     def __init__(self, coordinator, entry) -> None:

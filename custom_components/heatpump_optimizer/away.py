@@ -21,8 +21,9 @@ a margin before the stated return, and the estimate itself is rounded up.
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
+from typing import Any
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -92,17 +93,30 @@ class AwayState:
         }
 
 
-_AWAY_STATES = ("off", "not_home", "away", "false", "no")
-_HOME_STATES = ("on", "home", "true", "yes")
+# States that switch a toggle-style away entity OFF and ON respectively. Named
+# for the *toggle*, not the person: "on" for an ``input_boolean.away_mode``
+# means the house is empty.
+_TOGGLE_OFF_STATES = ("off", "false", "no")
+_TOGGLE_ON_STATES = ("on", "true", "yes")
+
+# Binary sensor device classes whose ON means "somebody is home" — the inverse
+# of a toggle. Motion is deliberately absent: a momentary motion sensor going
+# quiet is far too weak a signal to deep-setback a house on.
+_PRESENCE_DEVICE_CLASSES = ("presence", "occupancy")
 
 
-def interpret_presence(raw: str | None, entity_id: str | None) -> bool | None:
+def interpret_presence(
+    raw: str | None,
+    entity_id: str | None,
+    attributes: dict | None = None,
+) -> bool | None:
     """Map an entity state to "is the house empty?".
 
     The polarity depends on the domain, which is the whole reason this is not a
     one-liner at the call site: ``person.someone`` is ``not_home`` when away,
-    while an ``input_boolean.holiday_mode`` is ``on`` when away. Getting this
-    backwards would deep-setback an occupied house.
+    an ``input_boolean.holiday_mode`` is ``on`` when away, and a
+    ``binary_sensor`` with a presence device class is ``on`` when somebody is
+    *home*. Getting any of these backwards deep-setbacks an occupied house.
     """
     if raw is None:
         return None
@@ -124,42 +138,62 @@ def interpret_presence(raw: str | None, entity_id: str | None) -> bool | None:
         # A calendar event named "holiday" being *on* means away.
         return value == "on"
 
-    if value in _HOME_STATES:
+    if domain == "binary_sensor":
+        device_class = str((attributes or {}).get("device_class", "")).lower()
+        if device_class in _PRESENCE_DEVICE_CLASSES:
+            # Presence semantics: on = detected = home.
+            if value in _TOGGLE_ON_STATES:
+                return False
+            if value in _TOGGLE_OFF_STATES:
+                return True
+            return None
+
+    if value in _TOGGLE_ON_STATES:
         # An input_boolean called "away mode" is on when away.
         return True
-    if value in _AWAY_STATES:
+    if value in _TOGGLE_OFF_STATES:
+        return False
+    # A textual sensor may speak the person vocabulary instead.
+    if value in ("not_home", "away"):
+        return True
+    if value == "home":
         return False
     return None
 
 
 def estimate_recovery_hours(
-    current_temp: float,
+    model: Any,
+    thermal_state: Any,
     target_temp: float,
-    heat_capacity_kwh_per_c: float,
-    available_thermal_kw: float,
-    heat_loss_kw_per_c: float,
     outdoor_temp: float,
+    step_hours: float = 0.25,
 ) -> float:
-    """How long it takes to bring the house back up, in hours.
+    """How long full power takes to bring the house back up, in hours.
 
-    A lumped-capacity estimate: the pump's surplus over the standing loss at
-    the target temperature is what actually raises the temperature, and the
-    surplus shrinks as the house warms. Using the surplus at the *target*
-    rather than at the current temperature is the conservative choice, since it
-    is the smallest surplus of the whole ramp.
+    Simulated through the real thermal model rather than a lumped formula.
+    The heat has to pass through the slab — all of it in single-zone mode,
+    most of it in two-zone — and the slab must overshoot the room to push
+    heat into it at all. A lump over the room mass alone ignored both, and
+    under-estimated recovery by more than half: measured with the default
+    single-zone house, the lump said 4.4 h where the real ramp needs 10.3 h,
+    leaving the house about 3 °C cold at the stated return.
+
+    An underpowered pump never reaches the target and simply runs into the
+    ``MAX_RECOVERY_HOURS`` cap, which preserves the old behaviour of starting
+    as early as allowed and letting the comfort penalty do the rest.
     """
-    deficit = max(0.0, target_temp - current_temp)
-    if deficit <= 0.05:
+    if target_temp - float(thermal_state.room_temperature) <= 0.05:
         return 0.0
-    standing_loss = max(0.0, heat_loss_kw_per_c * (target_temp - outdoor_temp))
-    surplus = available_thermal_kw - standing_loss
-    if surplus <= 0.05:
-        # The pump cannot reach the target at this outdoor temperature at all.
-        # Start as early as the cap allows and let the comfort penalty do the
-        # rest; refusing to plan recovery would be worse.
-        return MAX_RECOVERY_HOURS
-    hours = deficit * heat_capacity_kwh_per_c / surplus
-    return float(min(MAX_RECOVERY_HOURS, hours))
+    sim = replace(thermal_state)
+    max_power = float(model.params.max_electrical_power)
+    steps = max(1, int(round(MAX_RECOVERY_HOURS / max(step_hours, 1e-3))))
+    for i in range(steps):
+        if sim.room_temperature >= target_temp:
+            return i * step_hours
+        sim = model.simulate_step(
+            sim, max_power, outdoor_temp, dt_hours=step_hours
+        )
+    return MAX_RECOVERY_HOURS
 
 
 def resolve(
@@ -169,11 +203,9 @@ def resolve(
     presence_raw: str | None,
     presence_attributes: dict | None,
     return_raw: str | None,
-    current_temp: float,
     comfort_temp: float,
-    heat_capacity_kwh_per_c: float,
-    available_thermal_kw: float,
-    heat_loss_kw_per_c: float,
+    model: Any,
+    thermal_state: Any,
     outdoor_temp: float,
 ) -> AwayState:
     """Work out whether we are away, and whether recovery should start."""
@@ -181,7 +213,9 @@ def resolve(
     if not config.enabled:
         return state
 
-    away = interpret_presence(presence_raw, config.presence_entity)
+    away = interpret_presence(
+        presence_raw, config.presence_entity, presence_attributes
+    )
     if not away:
         return state
 
@@ -212,11 +246,9 @@ def resolve(
     state.hours_until_return = hours_left
 
     recovery_hours = estimate_recovery_hours(
-        current_temp=current_temp,
+        model,
+        thermal_state,
         target_temp=comfort_temp,
-        heat_capacity_kwh_per_c=heat_capacity_kwh_per_c,
-        available_thermal_kw=available_thermal_kw,
-        heat_loss_kw_per_c=heat_loss_kw_per_c,
         outdoor_temp=outdoor_temp,
     )
     state.recovery_hours = recovery_hours

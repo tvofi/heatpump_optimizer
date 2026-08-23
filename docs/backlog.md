@@ -2,22 +2,26 @@
 
 Started at the end of the v2.7.0 release session, kept up to date since.
 
-**Status as of v3.7.1.** Items 1-26 and 30-31 are done, released across v2.8.0
+**Status as of v3.8.0.** Items 1-26 and 30-31 are done, released across v2.8.0
 through v3.6.0. See the notes appended to each item for what was actually built
-and what was found along the way.
+and what was found along the way. v3.8.0 is the audit release: no new items,
+but it clears two entries from the shortlist below (`get_state_matrices` is
+deleted, and the "why will it not charge" question is answered in item 29's
+status block), and `docs/audit-2026-08.md` records everything it fixed.
 
 ### What is actually left, shortest first
 
-- **Delete `get_state_matrices`** (item 27). Dead code, zero callers, and now
-  inconsistent with the model it shadows.
+- ~~**Delete `get_state_matrices`** (item 27).~~ Done in v3.8.0.
 - **Surface the dumb-valve recommendation** (item 29).
   `mixing_valve.recommend_target()` exists and nothing calls it.
 - **A tank size threshold** (item 27). Small tanks should stop being treated as
   stores.
 - **`buffer_max_temp` as a hard constraint in the solve** (item 29). Latent
   today; a real hole once the optimizer charges.
-- **Find out why the optimizer will not charge** (item 29). Open question, and
-  the one the whole feature turns on.
+- ~~**Find out why the optimizer will not charge** (item 29).~~ Answered in
+  v3.8.0 — see the "Answered" block in item 29's status. What is left is
+  *implementing* the discharge-law fix it prescribes, which is the piece the
+  whole feature now turns on.
 - **`smart_write` valve mode** (item 29). Needs an actuation path.
 - **Item 28**, the wood furnace, in full. Independent of the above.
 - **Items 32 and 33**, the setup diagram and the card page.
@@ -1514,6 +1518,39 @@ which is worth knowing before, not after.
 > basis that at -12 C the fixture's 6 kW pump gives 9.4 kW thermal against a
 > 6.7 kW house load. Pump capacity is configurable and 14 kW is ordinary
 > (the user's own). Re-tested at 14 kW the tank still never charges.
+>
+> ### Answered (audit, 2026-08-23): the discharge law is why
+>
+> The audit ran the gradient instrumentation suggested above and found the
+> answer, in two parts.
+>
+> **Part one — FIXED (v3.8.0).** With no valve target configured the
+> fallback target was `house_temp + 1.0` — a *receding* target. As the house
+> warms toward it, it moves up in step, so delivery never falls below demand
+> and the surplus never diverts to the tank. The default target is now the
+> comfort ceiling (`ThermalParameters.comfort_ceiling`), which is what
+> `recommend_target()` recommends and what makes a dumb valve store at all.
+>
+> **Part two, still open, and the real answer.** The model *discharges* the
+> tank with the valve wide open at the raw tank temperature: emitter delivery
+> is computed from the tank temperature itself, not from the mixed flow
+> temperature the valve produces. A 40-45 °C tank against 21 °C rooms then
+> dumps on the order of 26 kW, so anything the plan stores is gone within a
+> step or two of the pump stopping — and, decisively, the tank's end state is
+> nearly plan-independent: every candidate trajectory relaxes to the same
+> discharged tank well before the horizon ends. The terminal credit therefore
+> has ~zero gradient with respect to charging power, and L-BFGS-B correctly
+> concludes that charging buys nothing. The optimizer is not refusing to
+> charge; the model is telling it storage does not work.
+>
+> **Suggested fix.** Bound discharge by what the emitters can actually accept
+> at the *mixed* flow temperature — `q_discharge ≤ emitter_output(T_mix)`,
+> with `T_mix` set by the valve target — so stored heat leaves the tank at
+> house-demand rate, survives to the terminal state, and the credit gets a
+> gradient. While in there, make the valve P-gain dt-invariant: the current
+> `DEFAULT_VALVE_GAIN = 0.5` closes half the remaining gap per *step*, so the
+> effective control bandwidth silently changes with `time_step_minutes`;
+> express it per hour instead.
 >
 > ### Outstanding pieces of this item
 >

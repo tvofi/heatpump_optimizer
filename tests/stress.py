@@ -37,6 +37,7 @@ from harness import Results
 import numpy as np
 
 from profiles import DT, house, prices, weather
+from heatpump_optimizer import pv as pv_model
 from heatpump_optimizer.dhw_schedule import hour_in_windows, parse_windows
 from heatpump_optimizer.optimizer import HeatPumpOptimizer, OptimizationConfig
 from heatpump_optimizer.presets import (
@@ -152,8 +153,12 @@ def build(
     if pv:
         production = np.clip(solar / 1000.0 * 8.0 * 0.8, 0, 8.0)
         surplus = np.clip(production - 1.0, 0.0, None)
-        # The marginal price where surplus exists, as the coordinator does.
-        price_series = np.where(surplus > 1e-6, np.minimum(0.25, price_series), price_series)
+        # Prices stay the raw import series. Since v3.8.0 the optimizer
+        # prices the surplus-covered energy at the export compensation
+        # itself, piecewise per step, exactly as the coordinator wires it —
+        # substituting a cliff price into the series here would double-count
+        # the discount.
+        opt_cfg.pv_export_price = 0.25
 
     initial = ThermalState(
         room_temperature=21.0,
@@ -186,6 +191,7 @@ def build(
         "solar": solar,
         "initial": initial,
         "optimizer": optimizer,
+        "surplus": surplus,
         "n": n,
     }
 
@@ -255,7 +261,20 @@ def check_invariants(label: str, run: dict) -> list[str]:
             )
 
     # --- accounting -------------------------------------------------------
-    recomputed = float(np.sum(np.asarray(result.prices) * combined * DT))
+    # With PV surplus the cost is piecewise — covered energy at the export
+    # compensation, the rest at import — so the plain price-times-power sum
+    # is only the right reference when there is no surplus.
+    surplus = run.get("surplus")
+    if surplus is not None:
+        recomputed = pv_model.piecewise_cost(
+            np.asarray(result.prices),
+            np.asarray(surplus)[: combined.size],
+            run["config"].pv_export_price,
+            combined,
+            DT,
+        )
+    else:
+        recomputed = float(np.sum(np.asarray(result.prices) * combined * DT))
     if abs(recomputed - result.predicted_cost) > max(0.05, abs(recomputed) * 0.01):
         problems.append(
             f"predicted cost {result.predicted_cost:.2f} does not match the "
@@ -537,7 +556,7 @@ R.check(
 )
 # The README's own table, reproduced. If this drifts, either the optimizer
 # changed or the documentation is now lying to users.
-documented = {5.0: (19.1, 45), 10.0: (19.5, 42), 20.0: (19.9, 38), 40.0: (20.1, 36)}
+documented = {5.0: (19.8, 51), 10.0: (20.1, 49), 20.0: (20.4, 47), 40.0: (20.5, 46)}
 drift = [
     f"w={w:.0f}: {t:.1f}°C/{s:.0f}% vs documented "
     f"{documented[w][0]}°C/{documented[w][1]}%"
@@ -546,24 +565,30 @@ drift = [
 ]
 R.check("the README's comfort-weight table still holds", not drift, "; ".join(drift))
 
-# Adjacent comfort weights can invert on cost by around a percent. The
-# objective is non-convex -- the comfort penalty is one-sided and the price
-# signal creates several distinct "charge here, coast there" patterns that are
-# each locally optimal -- so two nearby weights can land in different basins.
-# Measured rather than assumed: neither a third multi-start solve nor a
-# polishing pass closed the gap, and both cost 25-30% more time.
+# Solver noise, measured directly. The objective is non-convex -- the
+# comfort penalty is one-sided and the price signal creates several distinct
+# "charge here, coast there" patterns that are each locally optimal -- so a
+# meaningless perturbation can in principle drop the solver into a different
+# basin. This used to be measured between comfort weights 2 and 5, on the
+# observation that nearby weights differ only by basin noise (~1%). The
+# v3.8.0 wind-default correction gave the comfort trade room to be real:
+# weight 2 vs 5 now buys 0.3 K of average warmth for 17% of cost, and even
+# 5 vs 5.25 moves 0.7 kWh of genuine energy, so no weight pair isolates
+# noise from signal any more. An economically nil perturbation does: a
+# ±1e-6 wobble on the prices changes the optimal cost by nothing a user
+# could ever see, so whatever it moves is pure solver instability.
 adjacent = []
-for weight in (2.0, 5.0):
+for scale in (0.0, 1.0):
     run = build(season="winter", two_zone=False, dhw=False)
-    run["config"].comfort_weight = weight
     optimizer = HeatPumpOptimizer(run["model"], run["config"])
+    wobble = np.where(np.arange(run["n"]) % 2 == 0, 1e-6, -1e-6) * scale
     result = optimizer.optimize(
-        run["initial"], run["prices"], run["outdoor"], run["wind"],
+        run["initial"], run["prices"] + wobble, run["outdoor"], run["wind"],
         run["rain"], run["solar"], START,
     )
     adjacent.append(result.predicted_cost)
 R.check(
-    "solver noise between adjacent comfort weights stays small",
+    "solver noise under an economically nil perturbation stays small",
     abs(adjacent[0] - adjacent[1]) / max(adjacent) < 0.02,
     f"{adjacent[0]:.2f} vs {adjacent[1]:.2f}",
 )

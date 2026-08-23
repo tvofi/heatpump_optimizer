@@ -37,6 +37,8 @@ from .const import (
     CONF_DHW_SETPOINT,
     CONF_DHW_WINDOWS,
     MANUAL_PLAN_WINDOW_HOURS,
+    DEFAULT_DAY_END_HOUR,
+    DEFAULT_DAY_START_HOUR,
     DEFAULT_DHW_SETPOINT,
     DHW_MIN_TEMP_SETPOINT_MARGIN,
     SERVICE_APPLY_SCHEDULE,
@@ -158,37 +160,71 @@ SERVICE_SCHEMA_CLEAR_MANUAL_PLAN = vol.Schema(
     }
 )
 
+# Ranges guard the physics, not just the UI: services.yaml selectors only
+# constrain the Developer Tools form, and an automation calling with a zero
+# thermal mass or a power fraction above 1 would otherwise flow straight into
+# the model as a division by zero or a heat flow with the wrong sign.
+def _positive(upper: float) -> vol.All:
+    return vol.All(vol.Coerce(float), vol.Range(min=0.01, max=upper))
+
+
 SERVICE_SCHEMA_SET_THERMAL_PARAMS = vol.Schema(
     {
-        vol.Optional("house_thermal_mass"): vol.Coerce(float),
-        vol.Optional("house_heat_loss_coefficient"): vol.Coerce(float),
-        vol.Optional("slab_thermal_mass"): vol.Coerce(float),
-        vol.Optional("slab_heat_transfer"): vol.Coerce(float),
-        vol.Optional("heat_pump_cop_nominal"): vol.Coerce(float),
-        vol.Optional("upper_floor_thermal_mass"): vol.Coerce(float),
-        vol.Optional("lower_floor_thermal_mass"): vol.Coerce(float),
-        vol.Optional("inter_zone_heat_transfer"): vol.Coerce(float),
-        vol.Optional("radiator_power_fraction"): vol.Coerce(float),
-        vol.Optional("window_area"): vol.Coerce(float),
-        vol.Optional("solar_heat_gain_coefficient"): vol.Coerce(float),
+        vol.Optional("house_thermal_mass"): _positive(200),
+        vol.Optional("house_heat_loss_coefficient"): _positive(10),
+        vol.Optional("slab_thermal_mass"): _positive(200),
+        vol.Optional("slab_heat_transfer"): _positive(50),
+        vol.Optional("heat_pump_cop_nominal"): vol.All(
+            vol.Coerce(float), vol.Range(min=1.0, max=8.0)
+        ),
+        vol.Optional("upper_floor_thermal_mass"): _positive(200),
+        vol.Optional("lower_floor_thermal_mass"): _positive(200),
+        vol.Optional("inter_zone_heat_transfer"): _positive(50),
+        vol.Optional("radiator_power_fraction"): vol.All(
+            vol.Coerce(float), vol.Range(min=0.0, max=1.0)
+        ),
+        vol.Optional("window_area"): _positive(500),
+        vol.Optional("solar_heat_gain_coefficient"): vol.All(
+            vol.Coerce(float), vol.Range(min=0.0, max=1.0)
+        ),
         # DHW parameters
-        vol.Optional("dhw_tank_volume"): vol.Coerce(float),
-        vol.Optional("dhw_setpoint"): vol.Coerce(float),
-        vol.Optional("dhw_min_temperature"): vol.Coerce(float),
-        vol.Optional("dhw_daily_consumption"): vol.Coerce(float),
-        vol.Optional("dhw_cooling_rate"): vol.Coerce(float),
-        vol.Optional("buffer_cooling_rate"): vol.Coerce(float),
+        vol.Optional("dhw_tank_volume"): _positive(2000),
+        vol.Optional("dhw_setpoint"): vol.All(
+            vol.Coerce(float), vol.Range(min=30, max=75)
+        ),
+        vol.Optional("dhw_min_temperature"): vol.All(
+            vol.Coerce(float), vol.Range(min=10, max=70)
+        ),
+        vol.Optional("dhw_daily_consumption"): _positive(2000),
+        vol.Optional("dhw_cooling_rate"): _positive(5),
+        vol.Optional("buffer_cooling_rate"): _positive(50),
         vol.Optional("dhw_schedule_enabled"): cv.boolean,
         vol.Optional("dhw_windows"): cv.string,
-        vol.Optional("dhw_idle_min_temperature"): vol.Coerce(float),
+        vol.Optional("dhw_idle_min_temperature"): vol.All(
+            vol.Coerce(float), vol.Range(min=5, max=60)
+        ),
         vol.Optional("dhw_legionella_enabled"): cv.boolean,
-        vol.Optional("dhw_legionella_temperature"): vol.Coerce(float),
-        vol.Optional("dhw_legionella_interval_days"): vol.Coerce(float),
+        vol.Optional("dhw_legionella_temperature"): vol.All(
+            vol.Coerce(float), vol.Range(min=55, max=75)
+        ),
+        vol.Optional("dhw_legionella_interval_days"): _positive(60),
         # Weather sensitivity parameters
-        vol.Optional("wind_sensitivity_factor"): vol.Coerce(float),
-        vol.Optional("rain_heat_loss_multiplier"): vol.Coerce(float),
-        # ECL110 dynamics parameter
-        vol.Optional("ecl110_pid_time_constant_hours"): vol.Coerce(float),
+        vol.Optional("wind_sensitivity_factor"): vol.All(
+            vol.Coerce(float), vol.Range(min=0.0, max=1.0)
+        ),
+        vol.Optional("rain_heat_loss_multiplier"): vol.All(
+            vol.Coerce(float), vol.Range(min=1.0, max=2.0)
+        ),
+        # ECL110 dynamics and displace limits. The coordinator has handled the
+        # two limit keys since the mirrors were added, but the schema never
+        # admitted them, so the handling was unreachable from the service.
+        vol.Optional("ecl110_pid_time_constant_hours"): _positive(24),
+        vol.Optional("ecl110_displace_min"): vol.All(
+            vol.Coerce(float), vol.Range(min=-30, max=0)
+        ),
+        vol.Optional("ecl110_displace_max"): vol.All(
+            vol.Coerce(float), vol.Range(min=0, max=30)
+        ),
     }
 )
 
@@ -260,6 +296,36 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     async def handle_set_thermal_params(call: ServiceCall) -> None:
         """Handle the set_thermal_parameters service call."""
         params = dict(call.data)
+
+        # Same deadband rule apply_schedule enforces, checked against the
+        # *effective* pair per coordinator before anything is written — the
+        # schema cannot express a cross-field rule, and a minimum at or above
+        # the setpoint is the one configuration the solver silently cannot
+        # satisfy.
+        wanted_min = params.get("dhw_min_temperature")
+        wanted_set = params.get("dhw_setpoint")
+        if wanted_min is not None or wanted_set is not None:
+            for coord in hass.data[DOMAIN].values():
+                if not isinstance(coord, HeatPumpOptimizerCoordinator):
+                    continue
+                setpoint = (
+                    wanted_set
+                    if wanted_set is not None
+                    else coord._thermal_params.dhw_setpoint
+                )
+                minimum = (
+                    wanted_min
+                    if wanted_min is not None
+                    else coord._thermal_params.dhw_min_temp
+                )
+                ceiling = float(setpoint) - DHW_MIN_TEMP_SETPOINT_MARGIN
+                if float(minimum) > ceiling:
+                    raise ServiceValidationError(
+                        f"A hot water minimum of {float(minimum):g} °C leaves "
+                        f"no deadband below the {float(setpoint):g} °C "
+                        f"setpoint; it must be at most {ceiling:g} °C"
+                    )
+
         _LOGGER.info("Updating thermal parameters: %s", params)
         for entry_id, coord in hass.data[DOMAIN].items():
             if isinstance(coord, HeatPumpOptimizerCoordinator):
@@ -318,23 +384,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             try:
                 updates[CONF_DHW_WINDOWS] = format_windows(parse_windows(raw))
             except DHWWindowError as err:
-                raise vol.Invalid(
+                raise ServiceValidationError(
                     f"Invalid hot water windows {raw!r}: {err}"
                 ) from err
 
         if not updates:
             return {"updated": {}, "reason": "nothing to apply"}
-
-        # A day window that starts and ends at the same hour would leave the
-        # house with no comfort period at all, which is far more likely to be a
-        # slip than an intention.
-        start = updates.get(CONF_DAY_START_HOUR)
-        end = updates.get(CONF_DAY_END_HOUR)
-        if start is not None and end is not None and start == end:
-            raise vol.Invalid(
-                "The heating day starts and ends at the same hour, which "
-                "would leave no comfort period at all"
-            )
 
         targets = [
             entry
@@ -343,9 +398,33 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             and entry.entry_id in hass.data.get(DOMAIN, {})
         ]
         if not targets:
-            raise vol.Invalid(
+            raise ServiceValidationError(
                 "No loaded Heat Pump Optimizer config entry matched this call"
             )
+
+        # A day window that never opens would leave the house on the night
+        # temperature around the clock, silently — get_comfort_temp only
+        # returns the day value for start <= hour < end. The call may update
+        # one bound and collide with the other bound already stored, so the
+        # check runs per entry against the *effective* pair, not just the
+        # call's own values.
+        if CONF_DAY_START_HOUR in updates or CONF_DAY_END_HOUR in updates:
+            for entry in targets:
+                stored = {**entry.data, **entry.options}
+                start = updates.get(
+                    CONF_DAY_START_HOUR,
+                    stored.get(CONF_DAY_START_HOUR, DEFAULT_DAY_START_HOUR),
+                )
+                end = updates.get(
+                    CONF_DAY_END_HOUR,
+                    stored.get(CONF_DAY_END_HOUR, DEFAULT_DAY_END_HOUR),
+                )
+                if int(start) >= int(end):
+                    raise ServiceValidationError(
+                        f"The heating day would start at {int(start)}:00 and "
+                        f"end at {int(end)}:00, leaving no comfort period "
+                        "at all"
+                    )
 
         # The hot water minimum has to clear a deadband below the setpoint, and
         # the setpoint is per entry, so this cannot live in the schema. Check
@@ -368,7 +447,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 )
                 ceiling = setpoint - DHW_MIN_TEMP_SETPOINT_MARGIN
                 if wanted > ceiling:
-                    raise vol.Invalid(
+                    raise ServiceValidationError(
                         f"A hot water minimum of {wanted:g} °C leaves no "
                         f"deadband below the {setpoint:g} °C setpoint; it must "
                         f"be at most {ceiling:g} °C"
@@ -530,13 +609,19 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         coordinator = hass.data[DOMAIN].pop(entry.entry_id)
         await coordinator.async_shutdown()
 
-    # Remove services if no more entries
+    # Remove services if no more entries. One list, so registration and
+    # removal cannot drift apart again — apply_schedule was registered but
+    # never removed, leaving a dead service behind after the last entry.
     if not hass.data[DOMAIN]:
-        hass.services.async_remove(DOMAIN, SERVICE_RUN_OPTIMIZATION)
-        hass.services.async_remove(DOMAIN, SERVICE_SET_MODE)
-        hass.services.async_remove(DOMAIN, SERVICE_SET_THERMAL_PARAMS)
-        hass.services.async_remove(DOMAIN, SERVICE_SIMULATE_PLAN)
-        hass.services.async_remove(DOMAIN, SERVICE_APPLY_MANUAL_PLAN)
-        hass.services.async_remove(DOMAIN, SERVICE_CLEAR_MANUAL_PLAN)
+        for service in (
+            SERVICE_RUN_OPTIMIZATION,
+            SERVICE_SET_MODE,
+            SERVICE_SET_THERMAL_PARAMS,
+            SERVICE_SIMULATE_PLAN,
+            SERVICE_APPLY_SCHEDULE,
+            SERVICE_APPLY_MANUAL_PLAN,
+            SERVICE_CLEAR_MANUAL_PLAN,
+        ):
+            hass.services.async_remove(DOMAIN, service)
 
     return unload_ok

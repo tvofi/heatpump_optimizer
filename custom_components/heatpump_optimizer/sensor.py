@@ -491,6 +491,10 @@ class HeatPumpActionSensor(HeatPumpOptimizerSensorBase):
 
 class ScheduleSensor(HeatPumpOptimizerSensorBase):
     _attr_icon = "mdi:calendar-clock"
+    # The schedule is re-published every update and superseded history is of
+    # no interest; recording it would write kilobytes per cycle, the same
+    # reason the plan sensors keep their forecasts out of the recorder.
+    _unrecorded_attributes = frozenset({"schedule"})
 
     def __init__(self, coordinator, entry):
         super().__init__(coordinator, entry, "schedule", "Optimization Schedule")
@@ -710,6 +714,8 @@ class DHWScheduleSensor(HeatPumpOptimizerSensorBase):
     """Sensor showing the planned DHW heating schedule for the next 24 hours."""
 
     _attr_icon = "mdi:water-boiler-auto"
+    # Superseded plans are of no interest; see ScheduleSensor.
+    _unrecorded_attributes = frozenset({"dhw_schedule"})
 
     def __init__(self, coordinator, entry):
         super().__init__(
@@ -1075,6 +1081,12 @@ class ObservedCOPSensor(HeatPumpOptimizerSensorBase):
     def __init__(self, coordinator, entry):
         super().__init__(coordinator, entry, "observed_cop", "Observed COP")
 
+    def _modelled_cop(self, data: dict[str, Any]) -> float | None:
+        model = getattr(self.coordinator, "_thermal_model", None)
+        if model is None:
+            return None
+        return round(model.compute_cop(data.get("outdoor_temperature", 5.0)), 2)
+
     @property
     def available(self) -> bool:
         return bool((self.coordinator.data or {}).get("measured_power_available"))
@@ -1090,7 +1102,10 @@ class ObservedCOPSensor(HeatPumpOptimizerSensorBase):
         return {
             "cop_scale": data.get("cop_scale"),
             "cop_samples": data.get("cop_samples"),
-            "modelled_cop": data.get("current_action", {}).get("cop"),
+            # The same curve the Estimated COP sensor publishes, so observed
+            # and modelled can be compared side by side. The previous source,
+            # current_action["cop"], is a key nothing ever writes.
+            "modelled_cop": self._modelled_cop(data),
             "defrost_derate": data.get("defrost_derate"),
             "defrost_samples": data.get("defrost_samples"),
             "defrost_buckets": data.get("defrost_buckets", []),
@@ -1168,27 +1183,38 @@ class TotalEnergySensor(_AccumulatingSensor):
         super().__init__(coordinator, entry, "total_energy", "Total Energy")
 
 
-class SpaceCostSensor(_AccumulatingSensor):
-    _attr_icon = "mdi:cash"
+class _AccumulatingCostSensor(_AccumulatingSensor):
+    """Monetary accumulator.
+
+    Home Assistant only accepts state class ``TOTAL`` for ``MONETARY`` (the
+    same rule the price sensor documents), and statistics require a currency
+    unit; ``TOTAL_INCREASING`` with no unit made HA reject these sensors'
+    long-term statistics — the exact feature the accumulators exist for.
+    """
+
     _attr_device_class = SensorDeviceClass.MONETARY
+    _attr_state_class = SensorStateClass.TOTAL
+    _attr_native_unit_of_measurement = "SEK"
+
+
+class SpaceCostSensor(_AccumulatingCostSensor):
+    _attr_icon = "mdi:cash"
     _data_key = "space_cost"
 
     def __init__(self, coordinator, entry):
         super().__init__(coordinator, entry, "space_cost", "Space Heating Cost")
 
 
-class DHWCostSensor(_AccumulatingSensor):
+class DHWCostSensor(_AccumulatingCostSensor):
     _attr_icon = "mdi:cash"
-    _attr_device_class = SensorDeviceClass.MONETARY
     _data_key = "dhw_cost"
 
     def __init__(self, coordinator, entry):
         super().__init__(coordinator, entry, "dhw_cost_total", "Hot Water Cost")
 
 
-class TotalCostSensor(_AccumulatingSensor):
+class TotalCostSensor(_AccumulatingCostSensor):
     _attr_icon = "mdi:cash-multiple"
-    _attr_device_class = SensorDeviceClass.MONETARY
     _data_key = "total_cost"
 
     def __init__(self, coordinator, entry):

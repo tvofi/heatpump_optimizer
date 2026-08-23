@@ -5,17 +5,20 @@ beats exporting it at spot-minus-fees. The v2.7.0 Open-Meteo work already
 supplies the irradiance forecast and aligns it to the optimizer's step grid;
 what was missing is a production model and the economics.
 
-The economics fall out of the existing cost formulation without any new
-optimizer structure, which is what makes this cheap. While the array is
-producing more than the house is using, an extra kWh consumed by the heat pump
-does not cost the import price — it costs the export compensation that was
-foregone. Below surplus, it costs the import price as usual. So:
+The economics are piecewise, and the pieces matter. While the array produces
+more than the house is using, an extra kWh consumed by the heat pump does not
+cost the import price — it costs the export compensation that was foregone.
+But only up to the surplus: every kWh beyond it is imported at the market
+price like any other. So the cost of drawing ``P`` in a step with surplus
+``s`` is
 
-    effective_price[k] = export_price[k]  while in surplus
-                       = import_price[k]  otherwise
+    export_price · min(P, s) + import_price · max(P - s, 0)
 
-and everything downstream (the LP hot-water planner, the space-heating
-objective, the savings settle-up) keeps working unchanged.
+An earlier formulation collapsed this to a single per-step price, substituting
+the export price for the whole step whenever *any* surplus existed. That made
+0.05 kW of winter sun reprice 6 kW of grid import to nearly free, and the plan
+piled consumption into steps with trivial surplus. The optimizer now charges
+the piecewise cost exactly; this module supplies the primitives.
 
 The production model is deliberately simple. A full plane-of-array transposition
 with incidence-angle modifiers is not justified when the irradiance forecast
@@ -86,34 +89,57 @@ def surplus_kw(
     )
 
 
-def effective_prices(
+def import_margin(
+    import_prices: np.ndarray, export_price: float
+) -> np.ndarray:
+    """What a self-consumed kWh saves over an imported one, per step.
+
+    Floored at zero: exporting can never be worth more than importing costs,
+    or the house would be better off never consuming anything — the floor
+    guards against a mis-configured export price inverting the objective.
+    """
+    return np.clip(np.asarray(import_prices, dtype=float) - float(export_price), 0.0, None)
+
+
+def piecewise_cost(
     import_prices: np.ndarray,
     surplus: np.ndarray,
-    export_price: float | np.ndarray,
-) -> np.ndarray:
-    """Marginal cost of consuming a kWh at each step.
+    export_price: float,
+    total_power_kw: np.ndarray,
+    dt_hours: float,
+) -> float:
+    """Exact grid cost of a total electrical draw across the horizon.
 
-    Note that this deliberately does *not* interpolate between the two prices
-    according to how much surplus there is. The optimizer decides the heat pump
-    power, so whether a given step is in surplus depends on the answer — a
-    circularity that a per-step blend would only hide. Using the marginal price
-    at zero heat pump draw makes self-consumption attractive exactly where
-    surplus exists, and the capacity and comfort constraints then bound how
-    much is actually taken.
+    Each step's energy up to the forecast surplus displaces an export and
+    costs the export compensation; everything beyond it is imported at the
+    market price.
     """
     prices = np.asarray(import_prices, dtype=float)
-    has_surplus = np.asarray(surplus, dtype=float) > 1e-6
-    export = np.asarray(
-        export_price
-        if isinstance(export_price, np.ndarray)
-        else np.full(len(prices), float(export_price)),
-        dtype=float,
+    power = np.asarray(total_power_kw, dtype=float)
+    covered = np.minimum(power, np.asarray(surplus, dtype=float))
+    margin = import_margin(prices, export_price)
+    return float((np.sum(prices * power) - np.sum(margin * covered)) * dt_hours)
+
+
+def blended_block_prices(
+    import_prices: np.ndarray,
+    surplus: np.ndarray,
+    export_price: float,
+    block_kw: float,
+) -> np.ndarray:
+    """Per-kWh price of running a fixed-power block at each step.
+
+    The hot-water planners schedule on/off blocks of a known power and rank
+    steps by a single per-step price, so the piecewise cost of one block is
+    folded into a blended rate: the surplus-covered fraction at the export
+    price, the rest at the import price. Exact for the full block the planner
+    actually schedules, which is the only thing it schedules.
+    """
+    prices = np.asarray(import_prices, dtype=float)
+    covered_fraction = np.minimum(
+        1.0, np.asarray(surplus, dtype=float) / max(float(block_kw), 1e-6)
     )
-    # Exporting can never be worth more than importing costs, or the house
-    # would be better off never consuming anything; guard against a
-    # mis-configured export price inverting the whole objective.
-    export = np.minimum(export, prices)
-    return np.where(has_surplus, export, prices)
+    return prices - import_margin(prices, export_price) * covered_fraction
 
 
 def summarize(

@@ -16,7 +16,6 @@ CONF_TIBBER_TOKEN: Final = "tibber_token"
 CONF_WEATHER_ENTITY: Final = "weather_entity"
 CONF_INDOOR_TEMP_ENTITY: Final = "indoor_temp_entity"
 CONF_OUTDOOR_TEMP_ENTITY: Final = "outdoor_temp_entity"
-CONF_HEAT_PUMP_ENTITY: Final = "heat_pump_entity"
 CONF_HEAT_PUMP_SWITCH_ENTITY: Final = "heat_pump_switch_entity"
 
 # Two-zone sensor configuration
@@ -129,9 +128,6 @@ INPUT_MAX_AGE_MINUTES: Final = {
 # Buffer tank and other keys defined later in this module are added to the map
 # at the bottom of the file, where their names exist.
 
-ATTR_STALE_INPUTS: Final = "stale_inputs"
-ATTR_INPUT_AGES: Final = "input_ages_minutes"
-ATTR_LEARNERS_FROZEN: Final = "learners_frozen"
 
 # --- External heat source detection (item 5) -------------------------------
 #
@@ -146,9 +142,6 @@ DEFAULT_EXTERNAL_HEAT_ENABLED: Final = False
 DEFAULT_EXTERNAL_HEAT_MIN_RISE: Final = 1.5  # °C/h
 DEFAULT_EXTERNAL_HEAT_DECAY_MINUTES: Final = 90.0
 
-ATTR_EXTERNAL_HEAT_ACTIVE: Final = "external_heat_active"
-ATTR_EXTERNAL_HEAT_CONFIDENCE: Final = "external_heat_confidence"
-ATTR_EXTERNAL_HEAT_EVIDENCE: Final = "external_heat_evidence"
 
 # --- Unknown price horizon (item 7) ----------------------------------------
 #
@@ -159,8 +152,6 @@ CONF_PRICE_PRIOR_ENABLED: Final = "price_prior_enabled"
 DEFAULT_PRICE_PRIOR_ENABLED: Final = True
 PRICE_MODEL_STORE_VERSION: Final = 1
 
-ATTR_PRICE_KNOWN_STEPS: Final = "price_known_steps"
-ATTR_PRICE_PRIOR_DAYS: Final = "price_prior_days"
 
 # --- Capacity (peak power) tariff, item 8 ----------------------------------
 CONF_PEAK_TARIFF_ENABLED: Final = "peak_tariff_enabled"
@@ -175,9 +166,6 @@ DEFAULT_PEAK_TARIFF_PRICE: Final = 45.0  # currency per kW per month
 DEFAULT_PEAK_TARIFF_COUNT: Final = 3
 DEFAULT_PEAK_TARIFF_WINDOW: Final = 60  # minutes
 
-ATTR_PEAK_BILLED_KW: Final = "billed_peak_kw"
-ATTR_PEAK_THRESHOLD_KW: Final = "peak_threshold_kw"
-ATTR_PEAK_PROJECTED_KW: Final = "projected_peak_kw"
 
 # --- Compressor cycling, item 10 -------------------------------------------
 #
@@ -187,7 +175,6 @@ ATTR_PEAK_PROJECTED_KW: Final = "projected_peak_kw"
 # from evidence rather than from assumption.
 CONF_CYCLING_COST: Final = "compressor_cycling_cost"
 DEFAULT_CYCLING_COST: Final = 0.0
-ATTR_COMPRESSOR_STARTS: Final = "compressor_starts"
 
 # --- PV self-consumption, item 9 -------------------------------------------
 CONF_PV_ENABLED: Final = "pv_enabled"
@@ -220,7 +207,6 @@ DEFAULT_SYSID_ENABLED: Final = False
 # --- Revealed-preference comfort tuning, item 19 ---------------------------
 CONF_COMFORT_LEARNING_ENABLED: Final = "comfort_learning_enabled"
 DEFAULT_COMFORT_LEARNING_ENABLED: Final = False
-ATTR_COMFORT_WEIGHT_LEARNED: Final = "comfort_weight_learned"
 
 # --- Building presets, item 17 ---------------------------------------------
 CONF_BUILDING_PRESET_ENABLED: Final = "building_preset_enabled"
@@ -238,8 +224,6 @@ DEFAULT_HEATED_AREA: Final = 140.0
 ACCURACY_STORE_VERSION: Final = 1
 ENERGY_STORE_VERSION: Final = 1
 
-ATTR_TEMPERATURE_MAE: Final = "temperature_mae"
-ATTR_COST_ERROR_PERCENT: Final = "cost_error_percent"
 
 # Service for the card's what-if simulator (item 21).
 SERVICE_SIMULATE_PLAN: Final = "simulate_plan"
@@ -338,9 +322,7 @@ CONF_WIND_SENSITIVITY: Final = "wind_sensitivity_factor"  # fraction per m/s
 CONF_RAIN_HEAT_LOSS_MULTIPLIER: Final = "rain_heat_loss_multiplier"  # multiplier
 
 # Optimization settings
-CONF_OPTIMIZATION_HORIZON: Final = "optimization_horizon"  # hours
 CONF_OPTIMIZATION_INTERVAL: Final = "optimization_interval"  # minutes
-CONF_TIME_STEP: Final = "time_step"  # minutes
 CONF_PRICE_WEIGHT: Final = "price_weight"
 CONF_COMFORT_WEIGHT: Final = "comfort_weight"
 
@@ -431,7 +413,6 @@ BUFFER_COOLING_RATE_MAX: Final = 30.0  # °C/h
 # six hours from a 26.1 kWh charge -- 168 % of the charge. The clamp floor is
 # worse than the default, because it stops the *learner* from ever finding the
 # truth: at 0.5 °C/h a 750 L tank still models 17 W/K against a real ~2 W/K.
-BUFFER_COOLING_REFERENCE_VOLUME: Final = 35.0  # L, the volume the rates describe
 # Canonical home for this: the tank-geometry helpers below need it, and
 # `thermal_model` imports from here rather than the reverse.
 WATER_SPECIFIC_HEAT: Final = 0.00116  # kWh per litre per K
@@ -537,8 +518,19 @@ DEFAULT_DHW_LEGIONELLA_ENABLED: Final = True
 DEFAULT_DHW_LEGIONELLA_TEMP: Final = 60.0  # °C
 DEFAULT_DHW_LEGIONELLA_INTERVAL_DAYS: Final = 7.0
 
-# Weather sensitivity defaults
-DEFAULT_WIND_SENSITIVITY: Final = 0.15  # 15% heat loss increase per m/s wind
+# Weather sensitivity defaults.
+#
+# Wind: heat loss scales as (1 + sensitivity × wind speed). Only the
+# infiltration and convective-film share of the loss responds to wind at all —
+# transmission through the insulated envelope does not — so for a reasonably
+# tight house the whole-house effect is a few percent per m/s. Measured
+# infiltration studies put a 10 m/s wind at roughly +20-40% loss, i.e. a
+# sensitivity of 0.02-0.04. The previous default of 0.15 claimed +150% at
+# 10 m/s: a physically implausible figure that made every windy forecast
+# panic-charge the house, and the passive learner then spent weeks walking the
+# overall loss scale back down to compensate. Existing installations keep
+# whatever value is stored in their config entry; only new setups see this.
+DEFAULT_WIND_SENSITIVITY: Final = 0.03  # 3% heat loss increase per m/s wind
 DEFAULT_RAIN_HEAT_LOSS_MULTIPLIER: Final = 1.15  # 15% increase when raining
 
 # ECL110 defaults (manual "Displace" = parallel heat-curve shift in °C)
@@ -551,7 +543,6 @@ DEFAULT_ECL110_DISPLACE_MIN: Final = -20.0
 DEFAULT_ECL110_DISPLACE_MAX: Final = 20.0
 DEFAULT_ECL110_PID_TIME_CONSTANT: Final = 1.5  # hours, first-order approximation
 
-DEFAULT_OPTIMIZATION_HORIZON: Final = 24  # hours
 
 # How long a hand-arranged plan stays pinned, measured from the moment it is
 # applied. Applying again restarts the clock.
@@ -569,14 +560,10 @@ DEFAULT_OPTIMIZATION_HORIZON: Final = 24  # hours
 # the point where `channel_pins` frees them, which is the bug this replaced.
 MANUAL_PLAN_WINDOW_HOURS: Final = 20
 DEFAULT_OPTIMIZATION_INTERVAL: Final = 30  # minutes
-DEFAULT_TIME_STEP: Final = 15  # minutes
 DEFAULT_PRICE_WEIGHT: Final = 1.0
 DEFAULT_COMFORT_WEIGHT: Final = 5.0
 
 # Update intervals
-UPDATE_INTERVAL_PRICES: Final = timedelta(minutes=15)
-UPDATE_INTERVAL_WEATHER: Final = timedelta(minutes=30)
-UPDATE_INTERVAL_OPTIMIZATION: Final = timedelta(minutes=30)
 
 # Optimization modes
 MODE_COMFORT: Final = "comfort"
@@ -591,66 +578,8 @@ SERVICE_SET_MODE: Final = "set_mode"
 SERVICE_SET_THERMAL_PARAMS: Final = "set_thermal_parameters"
 
 # Attributes
-ATTR_NEXT_OPTIMIZATION: Final = "next_optimization"
-ATTR_LAST_OPTIMIZATION: Final = "last_optimization"
-ATTR_CURRENT_SCHEDULE: Final = "current_schedule"
-ATTR_PREDICTED_SAVINGS: Final = "predicted_savings"
-ATTR_PREDICTED_COST: Final = "predicted_cost"
-ATTR_BASELINE_COST: Final = "baseline_cost"
-ATTR_OPTIMIZATION_STATUS: Final = "optimization_status"
-ATTR_CURRENT_PRICE: Final = "current_price"
-ATTR_AVG_PRICE_24H: Final = "average_price_24h"
-ATTR_INDOOR_TEMP: Final = "indoor_temperature"
-ATTR_OUTDOOR_TEMP: Final = "outdoor_temperature"
-ATTR_HEAT_PUMP_STATE: Final = "heat_pump_state"
-ATTR_HEAT_PUMP_SETPOINT: Final = "heat_pump_setpoint"
-ATTR_COP_CURRENT: Final = "current_cop"
-ATTR_HEAT_PUMP_ON: Final = "heat_pump_on"
-ATTR_ECL110_DISPLACE: Final = "ecl110_displace"
-ATTR_ECL110_EFFECTIVE_DISPLACE: Final = "ecl110_effective_displace"
-ATTR_ECL110_COMMAND_PAYLOAD: Final = "ecl110_command_payload"
-
-# Two-zone attributes
-ATTR_UPPER_FLOOR_TEMP: Final = "upper_floor_temperature"
-ATTR_LOWER_FLOOR_TEMP: Final = "lower_floor_temperature"
-ATTR_UPPER_FLOOR_SETPOINT: Final = "upper_floor_setpoint"
-ATTR_LOWER_FLOOR_SETPOINT: Final = "lower_floor_setpoint"
-ATTR_SLAB_TEMP: Final = "slab_temperature"
-ATTR_BUFFER_TANK_TEMP: Final = "buffer_tank_temperature"
-ATTR_SOLAR_GAIN: Final = "solar_heat_gain"
-ATTR_SOLAR_RADIATION: Final = "solar_radiation"
-ATTR_FLOOR_RETURN_TEMP: Final = "floor_return_temperature"
-
-# DHW attributes
-ATTR_DHW_TEMP: Final = "dhw_temperature"
-ATTR_DHW_SETPOINT: Final = "dhw_setpoint"
-ATTR_DHW_HEATING_ACTIVE: Final = "dhw_heating_active"
-ATTR_DHW_HEATING_SCHEDULE: Final = "dhw_heating_schedule"
-ATTR_DHW_HEATING_COST: Final = "dhw_heating_cost"
-ATTR_DHW_WINDOWS: Final = "dhw_windows"
-ATTR_DHW_IN_DEMAND_WINDOW: Final = "dhw_in_demand_window"
-ATTR_DHW_NEXT_WINDOW_IN_HOURS: Final = "dhw_next_window_in_hours"
-ATTR_DHW_REQUIRED_TEMP: Final = "dhw_required_temperature"
-ATTR_DHW_LEGIONELLA_DUE_IN_HOURS: Final = "dhw_legionella_due_in_hours"
 ATTR_DHW_COOLING_RATE: Final = "dhw_cooling_rate"
-ATTR_DHW_COOLING_RATE_LEARNED: Final = "dhw_cooling_rate_learned"
-ATTR_DHW_COOLING_SAMPLES: Final = "dhw_cooling_samples"
-ATTR_DHW_HOLD_HOURS: Final = "dhw_hold_hours"
-ATTR_DHW_PREHEAT_HOURS: Final = "dhw_preheat_hours"
 ATTR_BUFFER_COOLING_RATE: Final = "buffer_cooling_rate"
-ATTR_BUFFER_COOLING_RATE_LEARNED: Final = "buffer_cooling_rate_learned"
-ATTR_BUFFER_COOLING_SAMPLES: Final = "buffer_cooling_samples"
-ATTR_HOUSE_HEAT_LOSS_SCALE: Final = "house_heat_loss_scale"
-ATTR_LOWER_FLOOR_LOSS_RATIO: Final = "lower_floor_loss_ratio"
-ATTR_LOWER_FLOOR_LOSS_SAMPLES: Final = "lower_floor_loss_samples"
-ATTR_HOUSE_HEAT_LOSS_LEARNED: Final = "house_heat_loss_learned"
-ATTR_HOUSE_HEAT_LOSS_SAMPLES: Final = "house_heat_loss_samples"
-ATTR_HOUSE_HEAT_LOSS_EFFECTIVE: Final = "house_heat_loss_effective"
-
-# Wind chill factor (additional heat loss per m/s wind) — legacy, now configurable
-WIND_CHILL_FACTOR: Final = 0.005  # kW/°C per m/s
-# Rain cooling factor — legacy, now configurable
-RAIN_COOLING_FACTOR: Final = 0.01  # kW/°C per mm/h
 
 # The buffer tank key is defined after the staleness table above, so its age
 # limit is registered here rather than inline.
@@ -664,9 +593,3 @@ INPUT_MAX_AGE_MINUTES[CONF_LOWER_FLOOR_TEMP_ENTITY] = 60.0
 # somewhere it is not, and plan charging around it.
 INPUT_MAX_AGE_MINUTES[CONF_MIXING_VALVE_TARGET_ENTITY] = 60.0
 
-# Attributes for the measured power / COP feature
-ATTR_MEASURED_POWER: Final = "measured_power"
-ATTR_MEASURED_POWER_AVAILABLE: Final = "measured_power_available"
-ATTR_COP_SCALE: Final = "cop_scale"
-ATTR_COP_SAMPLES: Final = "cop_samples"
-ATTR_COP_MEASURED: Final = "measured_cop"

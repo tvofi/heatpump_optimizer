@@ -21,7 +21,6 @@ from .const import (
     CONF_WEATHER_ENTITY,
     CONF_INDOOR_TEMP_ENTITY,
     CONF_OUTDOOR_TEMP_ENTITY,
-    CONF_HEAT_PUMP_ENTITY,
     CONF_HEAT_PUMP_SWITCH_ENTITY,
     CONF_SOLAR_RADIATION_ENTITY,
     CONF_SOLAR_FORECAST_SOURCE,
@@ -115,6 +114,7 @@ from .const import (
     DEFAULT_DHW_TANK_VOLUME,
     DEFAULT_DHW_SETPOINT,
     DEFAULT_DHW_MIN_TEMP,
+    DHW_MIN_TEMP_SETPOINT_MARGIN,
     DEFAULT_DHW_DAILY_CONSUMPTION,
     DEFAULT_DHW_COOLING_RATE,
     DEFAULT_DHW_SCHEDULE_ENABLED,
@@ -263,6 +263,24 @@ def _temperature(
     return _number(minimum, maximum, step, "°C", slider=slider)
 
 
+def _dhw_min_too_close(candidate: dict[str, Any], current: dict[str, Any]) -> bool:
+    """Whether the effective DHW minimum leaves no deadband below the setpoint.
+
+    The apply_schedule service and the card already enforce this margin; a form
+    that lets the same pair through would store the one configuration the
+    solver cannot express — the tank limits are soft penalties, so an
+    impossible minimum is not rejected downstream, the plan just sits in
+    permanent slight violation.
+    """
+    setpoint = candidate.get(
+        CONF_DHW_SETPOINT, current.get(CONF_DHW_SETPOINT, DEFAULT_DHW_SETPOINT)
+    )
+    minimum = candidate.get(
+        CONF_DHW_MIN_TEMP, current.get(CONF_DHW_MIN_TEMP, DEFAULT_DHW_MIN_TEMP)
+    )
+    return float(minimum) > float(setpoint) - DHW_MIN_TEMP_SETPOINT_MARGIN
+
+
 def _entity_of(
     domain: str | list[str], device_class: str | None = None
 ) -> selector.EntitySelector:
@@ -360,7 +378,6 @@ class HeatPumpOptimizerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Required(CONF_WEATHER_ENTITY): _entity_of("weather"),
                     vol.Optional(CONF_INDOOR_TEMP_ENTITY): _entity_of("sensor", "temperature"),
                     vol.Optional(CONF_OUTDOOR_TEMP_ENTITY): _entity_of("sensor", "temperature"),
-                    vol.Optional(CONF_HEAT_PUMP_ENTITY): _entity_of("climate"),
                     vol.Optional(CONF_HEAT_PUMP_SWITCH_ENTITY): _entity_of("switch"),
                     vol.Optional(CONF_SOLAR_RADIATION_ENTITY): _entity_of("sensor"),
                     vol.Optional(
@@ -570,6 +587,8 @@ class HeatPumpOptimizerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             if not is_valid_spec(user_input.get(CONF_DHW_WINDOWS, "")):
                 errors[CONF_DHW_WINDOWS] = "invalid_dhw_windows"
+            elif _dhw_min_too_close(user_input, self._data):
+                errors[CONF_DHW_MIN_TEMP] = "dhw_min_too_close"
             else:
                 self._data.update(user_input)
                 return await self.async_step_weather_sensitivity()
@@ -675,25 +694,32 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
     forty unrelated fields.
     """
 
-    # Entities the user may clear again. A cleared selector is simply absent
-    # from ``user_input``, and because options are merged on top of the
-    # original setup data, an absent key would silently restore the old entity.
-    # These are written back explicitly as ``None`` so clearing them sticks.
-    _OPTIONAL_ENTITY_KEYS = (
+    # Entity fields on the "Sensors and entities" page. A cleared selector is
+    # simply absent from ``user_input``, and because options are merged on top
+    # of the original setup data, an absent key would silently restore the old
+    # entity. These are written back explicitly as ``None`` so clearing them
+    # sticks — but only for the fields this page actually renders: nulling the
+    # whole roster wiped the PV, away and external-heat entities configured on
+    # their own pages every time this one was saved.
+    _ENTITIES_PAGE_KEYS = (
         CONF_INDOOR_TEMP_ENTITY,
         CONF_OUTDOOR_TEMP_ENTITY,
-        CONF_HEAT_PUMP_ENTITY,
         CONF_HEAT_PUMP_SWITCH_ENTITY,
         CONF_SOLAR_RADIATION_ENTITY,
         CONF_FLOOR_RETURN_TEMP_ENTITY,
         CONF_LOWER_FLOOR_TEMP_ENTITY,
-        CONF_MIXING_VALVE_TARGET_ENTITY,
         CONF_DHW_TEMP_ENTITY,
         CONF_BUFFER_TANK_TEMP_ENTITY,
         CONF_POWER_ENTITY,
         CONF_ENERGY_ENTITY,
         CONF_HOUSE_POWER_ENTITY,
+    )
+
+    # Every clearable entity across all pages; the solar, away, learning and
+    # mixing-valve pages clear their own members in their own handlers.
+    _OPTIONAL_ENTITY_KEYS = _ENTITIES_PAGE_KEYS + (
         CONF_EXTERNAL_HEAT_ENTITY,
+        CONF_MIXING_VALVE_TARGET_ENTITY,
         CONF_PV_PRODUCTION_ENTITY,
         CONF_PV_EXPORT_PRICE_ENTITY,
         CONF_AWAY_PRESENCE_ENTITY,
@@ -784,7 +810,7 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
                     errors[CONF_TIBBER_TOKEN] = "invalid_tibber_token"
             if not errors:
                 cleaned = dict(user_input)
-                for key in self._OPTIONAL_ENTITY_KEYS:
+                for key in self._ENTITIES_PAGE_KEYS:
                     if not cleaned.get(key):
                         cleaned[key] = None
                 return self._save(cleaned)
@@ -832,7 +858,6 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
                     _entity(CONF_BUFFER_TANK_TEMP_ENTITY): _entity_of("sensor", "temperature"),
                     _entity(CONF_FLOOR_RETURN_TEMP_ENTITY): _entity_of("sensor", "temperature"),
                     _entity(CONF_LOWER_FLOOR_TEMP_ENTITY): _entity_of("sensor", "temperature"),
-                    _entity(CONF_HEAT_PUMP_ENTITY): _entity_of("climate"),
                     _entity(CONF_HEAT_PUMP_SWITCH_ENTITY): _entity_of("switch"),
                     # Measured electrical draw. Optional, and everything that
                     # uses it degrades cleanly without it — but with it, COP
@@ -907,6 +932,8 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
         if user_input is not None:
             if not is_valid_spec(user_input.get(CONF_DHW_WINDOWS, "")):
                 errors[CONF_DHW_WINDOWS] = "invalid_dhw_windows"
+            elif _dhw_min_too_close(user_input, self._current):
+                errors[CONF_DHW_MIN_TEMP] = "dhw_min_too_close"
             else:
                 return self._save(user_input)
 
@@ -1079,7 +1106,13 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
     ) -> FlowResult:
         """Mixing valve, and whether the buffer tank can be used as a store."""
         if user_input is not None:
-            return self._save(user_input)
+            cleaned = dict(user_input)
+            # This page's own clearable entity, mirroring the solar/away/
+            # learning pages: an absent selector must be written back as None
+            # or clearing it silently restores the old entity.
+            if not cleaned.get(CONF_MIXING_VALVE_TARGET_ENTITY):
+                cleaned[CONF_MIXING_VALVE_TARGET_ENTITY] = None
+            return self._save(cleaned)
 
         current = self._current
 

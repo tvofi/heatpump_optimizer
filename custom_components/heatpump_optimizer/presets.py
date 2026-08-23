@@ -116,6 +116,16 @@ _EMITTER_RESPONSE_HOURS = {EMITTER_FLOOR: 4.0, EMITTER_RADIATORS: 0.3}
 # Slab-to-room transfer, kW/°C per m² of floor-heated area.
 _EMITTER_SLAB_TRANSFER_PER_M2 = 0.010
 
+# A radiator circuit modelled in the same slot: the thermal model pushes every
+# watt of space heat through the "slab" store, so for a radiator house that
+# store has to *be* the radiators — a few litres of water and some steel, with
+# the good coupling radiators are sized for (0.002 kW/°C·m² is ~50 W/m² at a
+# 25 K flow-to-room difference). Giving it the building's slow mass instead,
+# behind the 0.05 kW/°C floor transfer, modelled a house where delivering 3 kW
+# needs the emitter 60 °C above the room — effectively unheatable.
+_EMITTER_RADIATOR_LOOP_MASS_PER_M2 = 0.002  # kWh/°C per m² served
+_EMITTER_RADIATOR_TRANSFER_PER_M2 = 0.002  # kW/°C per m² served
+
 
 @dataclass
 class BuildingPreset:
@@ -181,18 +191,42 @@ def derive(preset: BuildingPreset) -> dict[str, Any]:
     fast_mass = mass["fast"] * area * adjust["mass"]
     slow_mass = mass["slow"] * area * adjust["mass"]
 
-    # Floor heating adds an actively charged store on top of the structural
-    # slab mass, proportional to the area actually served by it.
-    slab_mass = slow_mass + _EMITTER_SLAB_MASS_PER_M2 * _floor_heated_area(preset)
-    slab_transfer = max(
-        0.05, _EMITTER_SLAB_TRANSFER_PER_M2 * max(_floor_heated_area(preset), 1.0)
-    )
+    # The model pushes every watt of space heat through the "slab" store, so
+    # these two keys describe the *emitter loop* — the slab circuit of the
+    # zone it serves, or the radiator circuit where there is no floor heating.
+    # In two-zone mode that store feeds the lower zone; in single-zone, the
+    # room. The structural slow mass goes to exactly one store, below.
+    if preset.two_zone:
+        emitter_area = area * (1.0 - preset.upper_area_ratio)
+        loop_emitter = preset.lower_emitter
+    else:
+        emitter_area = area
+        loop_emitter = preset.lower_emitter
+    if loop_emitter == EMITTER_FLOOR:
+        # An actively charged screed on top of the structural slow mass,
+        # which lives here: a heated slab *is* the building's heavy floor.
+        slab_mass = slow_mass + _EMITTER_SLAB_MASS_PER_M2 * emitter_area
+        slab_transfer = max(
+            0.05, _EMITTER_SLAB_TRANSFER_PER_M2 * emitter_area
+        )
+    else:
+        slab_mass = max(0.1, _EMITTER_RADIATOR_LOOP_MASS_PER_M2 * emitter_area)
+        slab_transfer = max(
+            0.05, _EMITTER_RADIATOR_TRANSFER_PER_M2 * emitter_area
+        )
 
     # W/(m²·K) → kW/°C
     loss = _ERA_LOSS_W_PER_M2K[preset.era] * area * adjust["loss"] / 1000.0
 
+    house_mass = fast_mass
+    if not preset.two_zone and preset.lower_emitter != EMITTER_FLOOR:
+        # With radiators the heavy floor is not the emitter, but it is still
+        # inside the envelope and coupled to the room air — it is what lets a
+        # radiator house coast at all, so it belongs to the room store.
+        house_mass += slow_mass
+
     result: dict[str, Any] = {
-        "house_thermal_mass": round(fast_mass, 2),
+        "house_thermal_mass": round(house_mass, 2),
         "house_heat_loss_coefficient": round(loss, 4),
         "slab_thermal_mass": round(slab_mass, 2),
         "slab_heat_transfer": round(slab_transfer, 3),
@@ -202,15 +236,17 @@ def derive(preset: BuildingPreset) -> dict[str, Any]:
         upper_ratio = preset.upper_area_ratio
         lower_ratio = 1.0 - upper_ratio
         # The upper floor carries the light mass; the slab mass belongs to
-        # whichever zone the floor heating actually serves.
+        # whichever store the floor heating actually charges.
         upper_mass = fast_mass * upper_ratio
         lower_mass = fast_mass * lower_ratio
         if preset.upper_emitter == EMITTER_FLOOR:
             upper_mass += _EMITTER_SLAB_MASS_PER_M2 * area * upper_ratio
         if preset.lower_emitter == EMITTER_FLOOR:
-            # ``slow_mass`` already carries the foundation adjustment; applying
-            # it twice inflated a heated basement's slow store by 25%.
-            lower_mass += slow_mass
+            # The slow mass is already in ``slab_thermal_mass`` above — the
+            # heated slab is the heavy floor. Counting it in the lower zone
+            # as well doubled the downstairs store and let plans coast on
+            # heat the building does not have.
+            pass
         else:
             upper_mass += slow_mass * 0.5
             lower_mass += slow_mass * 0.5

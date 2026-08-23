@@ -70,6 +70,7 @@ def run_rolling(
     weather_profile: str = "winter_cold",
     horizon_hours: int = 24,
     learn: bool = False,
+    config: dict | None = None,
 ):
     """Drive the optimizer round its own loop for ``days`` simulated days.
 
@@ -80,6 +81,7 @@ def run_rolling(
     self-learning correction exists for.
     """
     cfg = house(two_zone=two_zone, dhw=dhw)
+    cfg.update(config or {})
 
     # The optimizer's model.
     params = ThermalParameters.from_config(cfg)
@@ -419,9 +421,24 @@ R.section("Self-learning in the loop")
 # different from its model -- features.py tests the modules in isolation, and
 # every other suite hands the optimizer a model that is true by construction.
 # This is the only place the correction has to actually work.
+#
+# The comfort-breach comparison below only discriminates while the *real*
+# house's worst-hour demand exceeds the pump: with headroom, the 2-hourly
+# replanning alone holds the floor even on a wrong model, and both arms
+# breach by exactly zero. That property used to hold by accident -- the old
+# 0.15/m/s wind default inflated the loss until the 6 kW pump bound -- so it
+# is now set explicitly: at 4.25 kW the mis-modelled house genuinely cannot
+# coast through the cold nights (measured: 6.7 degree-hours of breach
+# uncorrected, 0.0 with learning), and knowing the true loss — pre-heating
+# the slab through the milder, cheaper hours — is worth real comfort.
 TRUE_ERROR = 1.35
-learned = run_rolling(days=3, dhw=False, plant_error=TRUE_ERROR, learn=True)
-uncorrected = run_rolling(days=3, dhw=False, plant_error=TRUE_ERROR)
+_BOUND_PUMP = {"heat_pump_max_power": 4.25}
+learned = run_rolling(
+    days=3, dhw=False, plant_error=TRUE_ERROR, learn=True, config=_BOUND_PUMP
+)
+uncorrected = run_rolling(
+    days=3, dhw=False, plant_error=TRUE_ERROR, config=_BOUND_PUMP
+)
 
 scale = learned["history"]["heat_loss_scale"]
 samples = learned["history"]["heat_loss_samples"]

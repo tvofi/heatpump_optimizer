@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import logging
+from bisect import bisect_right
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 from typing import Any, NamedTuple
@@ -162,7 +163,7 @@ from .const import (
     MANUAL_PLAN_STORE_VERSION,
     SIMULATE_MIN_INTERVAL_SECONDS,
 )
-from .inputs import InputHealth, InputReader, stale_summary
+from .inputs import InputHealth, InputReader, normalize_power_kw, stale_summary
 from .external_heat import (
     ExternalHeatConfig,
     ExternalHeatDetector,
@@ -170,10 +171,11 @@ from .external_heat import (
 )
 from . import away as away_mode
 from . import battery as battery_view
+from . import mixing_valve
 from . import pv as pv_model
 from .accuracy import AccuracySample, AccuracyTracker, delivered_ratio
 from .comfort_learning import ComfortLearner, OverrideEvent
-from .defrost import DefrostDerate
+from .defrost import DefrostDerate, in_frost_band
 from .manual_plan import (
     CHANNEL_DHW,
     CHANNEL_SPACE,
@@ -267,8 +269,9 @@ class ForecastArrays(NamedTuple):
     instead of remembering that position five is the price provenance mask.
     """
 
-    #: *Marginal* prices: the export compensation replaces the import price
-    #: wherever PV surplus exists, because that is what consuming costs there.
+    #: Raw import prices. The optimizer charges consumption piecewise against
+    #: ``pv_surplus`` — up to it at the export compensation, beyond it at
+    #: these — so no repricing happens here.
     prices: np.ndarray
     outdoor_temps: np.ndarray
     wind_speeds: np.ndarray
@@ -343,6 +346,12 @@ HOUSE_LOSS_MAX_STEP = 0.05
 # Residuals beyond this are a door left open, a wood stove, or a sensor glitch
 # rather than a heat loss error.
 HOUSE_LOSS_MAX_RESIDUAL = 1.0  # °C
+# Symmetric bound on how far one sample's Newton target may sit from the
+# *current* estimate before it is clipped. Centred on the current value,
+# zero-mean noise has zero-mean effect after clipping; rejecting or clamping
+# against fixed global bounds does not have that property, because the
+# midpoint of a fixed range is not the current estimate.
+_LEARNER_TRUST_REGION = 0.5
 
 THERMAL_LEARNING_STORE_VERSION = 1
 
@@ -536,7 +545,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._house_heat_loss_samples: int = 0
         self._last_house_sample: ThermalState | None = None
         self._last_house_sample_time: datetime | None = None
-        self._last_house_sample_power: float = 0.0
         self._lower_floor_loss_ratio: float = DEFAULT_LOWER_FLOOR_LOSS_RATIO
         self._lower_floor_loss_samples: int = 0
 
@@ -932,6 +940,19 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             except (TypeError, ValueError) as err:
                 _LOGGER.debug("Could not load lower floor loss ratio: %s", err)
 
+        cop_scale = stored.get("cop_scale")
+        if cop_scale is not None:
+            try:
+                self._apply_cop_scale(float(cop_scale))
+                self._cop_samples = int(stored.get("cop_samples", 0))
+                _LOGGER.info(
+                    "Loaded learned COP scale %.3f (%d samples)",
+                    self._cop_scale,
+                    self._cop_samples,
+                )
+            except (TypeError, ValueError) as err:
+                _LOGGER.debug("Could not load COP scale: %s", err)
+
     async def _async_save_thermal_learning(self) -> None:
         """Persist the learned buffer and building parameters."""
         try:
@@ -943,6 +964,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     "house_heat_loss_samples": self._house_heat_loss_samples,
                     "lower_floor_loss_ratio": self._lower_floor_loss_ratio,
                     "lower_floor_loss_samples": self._lower_floor_loss_samples,
+                    # Every plan is priced through the COP curve, so a learned
+                    # correction that evaporated on restart silently re-based
+                    # all costs on the nameplate figure.
+                    "cop_scale": self._cop_scale,
+                    "cop_samples": self._cop_samples,
                     "updated_at": dt_util.now().isoformat(),
                 }
             )
@@ -1155,6 +1181,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
     def _external_heat_config(self) -> ExternalHeatConfig:
         """Build the detector configuration from the config entry."""
+        interval_hours = (
+            self._config.get(
+                CONF_OPTIMIZATION_INTERVAL, DEFAULT_OPTIMIZATION_INTERVAL
+            )
+            / 60.0
+        )
         return ExternalHeatConfig(
             enabled=bool(
                 self._config.get(
@@ -1169,6 +1201,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 self._config.get(CONF_EXTERNAL_HEAT_DECAY_MINUTES),
                 DEFAULT_EXTERNAL_HEAT_DECAY_MINUTES,
             ),
+            # Samples arrive once per update cycle, so the window has to
+            # outlast the interval or every pair is rejected and the detector
+            # is blind at exactly the 60-minute setting it appears to support.
+            max_sample_hours=max(1.0, 1.5 * interval_hours),
         )
 
     def _apply_cop_scale(self, scale: float) -> None:
@@ -1261,6 +1297,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # ratio says little about compressor efficiency.
         floor = max(0.3 * params.max_electrical_power, 0.2)
         if commanded < floor or self._measured_power < floor:
+            return
+
+        # In the frosting band the shortfall belongs to the defrost derate,
+        # which learns from the same signal; letting both learners fold in the
+        # same interval corrects one shortfall twice. See defrost.in_frost_band.
+        if in_frost_band(self._current_state.outdoor_temperature):
             return
 
         modelled_cop = self._thermal_model.compute_cop(
@@ -1412,6 +1454,16 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._learner_freeze_reason = frozen
             return
 
+        # With a mixing valve the tank is a store the house draws on while the
+        # pump is off — that is the feature — so a pump-off interval is not
+        # quiet decay, and reading the draw as standby loss would creep the
+        # learned rate toward its ceiling and quietly price storage off the
+        # table. There is no interval this learner can trust in a throttling
+        # mode; the volume-derived prior (or an explicitly configured rate)
+        # stands instead.
+        if mixing_valve.is_throttling(self._thermal_params.mixing_valve_mode):
+            return
+
         if previous_temp is None or previous_time is None or heated:
             return
 
@@ -1484,13 +1536,19 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         observed = self._current_state.room_temperature
         previous_state = self._last_house_sample
         previous_time = self._last_house_sample_time
-        previous_power = self._last_house_sample_power
+        # The action that governed the elapsed interval is the one in
+        # ``_current_action`` *right now*: the learners run before this cycle's
+        # optimization replaces it, so it still holds what the pump was told at
+        # the previous cycle — exactly the interval being replayed. The old
+        # snapshot taken a cycle earlier was one action further back, and under
+        # bang-bang price scheduling that off-by-one injected a spurious
+        # residual an order of magnitude above the learning signal.
+        previous_power = float(self._current_action.get("power", 0.0))
 
         # Snapshot for the next interval before any early return, so a rejected
         # sample does not poison the following one with a stale baseline.
         self._last_house_sample = replace(self._current_state)
         self._last_house_sample_time = now
-        self._last_house_sample_power = float(self._current_action.get("power", 0.0))
 
         frozen = self._learning_frozen(
             CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY
@@ -1583,8 +1641,25 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # Warmer than predicted means the model is over-estimating the loss.
         delta_u = -residual * capacity / (delta_t * dt_h)
         target_scale = (current_u + delta_u) / base_u
-        if not np.isfinite(target_scale) or target_scale <= 0.0:
+        if not np.isfinite(target_scale):
             return
+        # Bound the target symmetrically about the current value rather than
+        # discarding or globally clamping it. Discarding was one-sided: a
+        # warm-side residual of just +0.13 °C (inside sensor noise) drove the
+        # target non-positive and threw the sample away, while cold-side
+        # residuals were kept to the full 1.0 °C guard — pure zero-mean noise
+        # ratcheted the scale upward, measured at 1.0 → 1.2 in 60 days at
+        # σ=0.1 °C. A clamp to fixed global bounds merely slows the same drift,
+        # because their midpoint is not the current value; a symmetric trust
+        # region makes noise-dominated samples exactly zero-mean, and the EWMA
+        # and step limit below still decide how fast genuine signal moves it.
+        target_scale = float(
+            np.clip(
+                target_scale,
+                self._house_heat_loss_scale - _LEARNER_TRUST_REGION,
+                self._house_heat_loss_scale + _LEARNER_TRUST_REGION,
+            )
+        )
 
         new_scale = (
             1.0 - HOUSE_LOSS_ALPHA
@@ -1636,7 +1711,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         params = self._thermal_params
         previous_state = self._last_house_sample
         previous_time = self._last_house_sample_time
-        previous_power = self._last_house_sample_power
+        # See the house learner: the current action is the one that governed
+        # the elapsed interval.
+        previous_power = float(self._current_action.get("power", 0.0))
         observed = self._current_state.lower_floor_temperature
 
         if not params.two_zone_enabled:
@@ -1715,11 +1792,18 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # are exactly the intervals where the house lost less heat than
         # predicted. Rejecting them while accepting the cold-side ones -- whose
         # targets stay positive -- would let the ratio ratchet upward on noise
-        # alone. Clamping keeps both sides, and the EWMA and step limit below
-        # are what actually decide how fast it moves.
+        # alone. And the clamp must be centred on the *current* estimate, not
+        # on the fixed [MIN, MAX] range: with the estimate sitting off-centre
+        # in that range, symmetric noise clips asymmetrically and drifts the
+        # ratio toward the range's midpoint. The trust region keeps both sides
+        # equally, and the EWMA and step limit below are what actually decide
+        # how fast the estimate moves. `_apply_lower_floor_loss_ratio` still
+        # holds the final value inside the global bounds.
         target_ratio = float(
             np.clip(
-                target_ratio, LOWER_FLOOR_LOSS_RATIO_MIN, LOWER_FLOOR_LOSS_RATIO_MAX
+                target_ratio,
+                self._lower_floor_loss_ratio - _LEARNER_TRUST_REGION,
+                self._lower_floor_loss_ratio + _LEARNER_TRUST_REGION,
             )
         )
 
@@ -1880,7 +1964,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if not heated_during_interval:
             await self._async_learn_dhw_cooling(previous_temp, dhw_temp, dt_h)
         await self._async_learn_dhw_usage(
-            temp_drop, dt_h, now.hour, heated_during_interval
+            previous_temp, temp_drop, dt_h, now.hour, heated_during_interval
         )
 
     async def _async_learn_dhw_cooling(
@@ -1942,14 +2026,30 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         await self._async_save_dhw_profile()
 
     async def _async_learn_dhw_usage(
-        self, temp_drop: float, dt_h: float, hour: int, heated: bool
+        self,
+        previous_temp: float,
+        temp_drop: float,
+        dt_h: float,
+        hour: int,
+        heated: bool,
     ) -> None:
         """Learn hourly DHW usage profile from observed temperature drops."""
-        # Learn only on meaningful drops while DHW is not actively heated.
+        # Learn only while DHW is not actively heated, and only from the part
+        # of the drop that standby loss cannot explain. The tank cools all the
+        # time — roughly 0.4 °C/h for a 55 °C tank at the default rate — and
+        # attributing that to usage taught a phantom draw into every idle
+        # hour, washing the real morning/evening pattern towards flat.
         if temp_drop < 0.15 or heated:
             return
 
-        draw_intensity = temp_drop / dt_h
+        standby_rate = (
+            self._dhw_cooling_rate
+            * max(0.0, previous_temp - DHW_AMBIENT_TEMP)
+            / DHW_COOLING_REFERENCE_DELTA
+        )
+        draw_intensity = temp_drop / dt_h - standby_rate
+        if draw_intensity <= 0.05:
+            return
 
         profile = self._dhw_hourly_profile.copy()
         profile[hour] = (
@@ -2056,6 +2156,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             return
 
         self._optimization_running = True
+        # Announce the flip: the Optimize Now button disables itself off this
+        # flag, and without a listener update the change is invisible until
+        # the next scheduled refresh — after the solve is already over.
+        self.async_update_listeners()
         away_original: dict[str, float] | None = None
         try:
             horizon = self._forecast_arrays()
@@ -2098,6 +2202,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._opt_config.cycling_cost = _as_float(
                 self._config.get(CONF_CYCLING_COST), DEFAULT_CYCLING_COST
             )
+            # The optimizer prices surplus consumption at this, so it has to
+            # travel with the same freshness as the tariff settings above —
+            # an entity-supplied compensation can change between runs.
+            self._opt_config.pv_export_price = self._pv_export_price()
             self._apply_comfort_weight()
 
             # Away mode is applied around the solve and unwound afterwards, so
@@ -2163,6 +2271,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             if away_original is not None:
                 self._restore_away_setback(away_original)
             self._optimization_running = False
+            self.async_update_listeners()
 
     async def async_set_mode(self, mode: str) -> None:
         """Set the operation mode."""
@@ -2334,14 +2443,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # constant 0.5 K whatever the sensor reads. So the main heat path into
         # the lower zone is both wrong and unresponsive, and the error is judged
         # against the same comfort bounds as the upper floor.
-        # A smart valve's target, when the integration can see it. Knowing where
-        # the valve regulates to is what tells the model whether it is
-        # throttling -- and therefore whether surplus heat can reach the tank at
-        # all -- so charging cannot be planned without it.
-        valve_target = reader.read(CONF_MIXING_VALVE_TARGET_ENTITY)
-        if valve_target.ok:
-            self._thermal_params.mixing_valve_target = float(valve_target.value)
-
         lower_floor = reader.read(CONF_LOWER_FLOOR_TEMP_ENTITY)
         if lower_floor.ok:
             self._current_state.lower_floor_temperature = lower_floor.value
@@ -2349,6 +2450,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._current_state.lower_floor_temperature = (
                 self._floor_return_temp + 0.5
             )
+
+        # A smart valve's target, when the integration can see it. Knowing
+        # where the valve regulates to is what tells the model whether it is
+        # throttling -- and therefore whether surplus heat can reach the tank
+        # at all -- so charging cannot be planned without it.
+        valve_target = reader.read(CONF_MIXING_VALVE_TARGET_ENTITY)
+        if valve_target.ok:
+            self._thermal_params.mixing_valve_target = float(valve_target.value)
 
         # Measured electrical draw. Optional, and everything downstream has to
         # degrade cleanly without it, because most installs will not have one.
@@ -2421,7 +2530,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         await self._async_learn_house_heat_loss()
 
         # Observed COP, which is only possible with a measured power entity.
+        # Persisted on the same every-10-samples cadence as the house learner;
+        # both share the thermal learning store.
+        cop_samples_before = self._cop_samples
         self._learn_measured_cop()
+        if self._cop_samples != cop_samples_before and self._cop_samples % 10 == 0:
+            await self._async_save_thermal_learning()
 
         # Update ECL110 effective displace state (PID/PI lag approximation)
         if "displace_value" in self._current_action:
@@ -2743,45 +2857,96 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             )
             return None
 
-        # Tibber publishes hourly; the optimizer works in quarters.
-        quarters: list[float] = []
-        for entry in self._prices:
-            total = _as_float(entry.get("total"), 0.0)
-            quarters.extend([total] * 4)
+        step_starts = [
+            midnight + timedelta(minutes=FORECAST_STEP_MINUTES * (step_offset + i))
+            for i in range(n_steps)
+        ]
 
-        if step_offset < len(quarters):
-            known = quarters[step_offset : step_offset + n_steps]
-        else:
-            known = quarters[:n_steps]
+        # Align by each entry's own timestamp, not by its position. Position
+        # assumed the first entry is *today's* midnight, which breaks two real
+        # ways: a stale list (fetch failing since yesterday) shifts the whole
+        # horizon a day, and quarter-hour entries — Tibber's 15-minute pricing
+        # — would each be stretched to a full hour. An entry covers from its
+        # start to the next entry's start; the last covers its predecessor's
+        # span. The known series stops at the first step no entry covers, and
+        # the learned prior fills the rest below.
+        known = self._known_prices_for(step_starts)
 
         # Past the published horizon, model the shape rather than repeating the
         # last price. A flat tail has no trough, so the optimizer cannot see a
         # cheap period ahead worth waiting for. The mask records which steps
         # rest on the learned prior so that stays visible downstream.
-        step_starts = [
-            midnight + timedelta(minutes=FORECAST_STEP_MINUTES * (step_offset + i))
-            for i in range(n_steps)
-        ]
         prices, price_known = extend_price_series(
             known, n_steps, step_starts, self._price_prior()
         )
         self._price_known_steps = int(np.sum(price_known))
         return prices, price_known
 
+    @staticmethod
+    def _comparable_ts(raw: Any, reference: datetime) -> datetime | None:
+        """Parse an entry timestamp so it can be ordered against the step grid.
+
+        A naive timestamp against an aware grid is taken as UTC, matching
+        ``_get_current_price``; an aware one against a naive grid keeps its
+        own wall clock.
+        """
+        try:
+            ts = datetime.fromisoformat(str(raw))
+        except (TypeError, ValueError):
+            return None
+        if ts.tzinfo is None and reference.tzinfo is not None:
+            return ts.replace(tzinfo=timezone.utc)
+        if ts.tzinfo is not None and reference.tzinfo is None:
+            return dt_util.as_local(ts).replace(tzinfo=None)
+        return ts
+
+    def _known_prices_for(self, step_starts: list[datetime]) -> list[float]:
+        """Published prices covering a leading run of the step grid."""
+        if not step_starts:
+            return []
+        entries: list[tuple[datetime, float]] = []
+        for entry in self._prices:
+            ts = self._comparable_ts(entry.get("starts_at"), step_starts[0])
+            if ts is not None:
+                entries.append((ts, _as_float(entry.get("total"), 0.0)))
+        if not entries:
+            # Data with no timestamps at all: keep the old positional
+            # assumption of hourly entries starting at the first step.
+            known: list[float] = []
+            for entry in self._prices:
+                known.extend([_as_float(entry.get("total"), 0.0)] * 4)
+            return known[: len(step_starts)]
+
+        entries.sort(key=lambda item: item[0])
+        starts = [ts for ts, _ in entries]
+        known = []
+        for step_start in step_starts:
+            idx = bisect_right(starts, step_start) - 1
+            if idx < 0:
+                break
+            if idx + 1 < len(starts):
+                end = starts[idx + 1]
+            elif idx > 0:
+                end = starts[idx] + (starts[idx] - starts[idx - 1])
+            else:
+                end = starts[idx] + timedelta(hours=1)
+            if step_start >= end:
+                break
+            known.append(entries[idx][1])
+        return known
+
     def _weather_series(
-        self, n_steps: int
+        self, n_steps: int, midnight: datetime, step_offset: int
     ) -> tuple[list[float], list[float], list[float], list[float]]:
         """Per-step outdoor temperature, wind, precipitation and irradiance.
 
         These are *forecast trajectories*, not current conditions: using the
         whole horizon is what makes the control anticipatory rather than
-        reactive.
+        reactive. Entries are matched to steps by their own timestamps where
+        they carry one — assuming the first entry is the current hour breaks
+        as soon as the forecast is stale or starts at the *next* hour, and
+        the whole horizon then reads a few hours out of phase.
         """
-        outdoor: list[float] = []
-        wind: list[float] = []
-        precipitation: list[float] = []
-        solar: list[float] = []
-
         if not self._weather_forecast:
             _LOGGER.warning(
                 "No weather forecast available — using current conditions. "
@@ -2798,6 +2963,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # Guessing from the magnitude misreads a moderate 20 km/h breeze as a
         # 20 m/s storm and doubles the predicted heat loss.
         wind_scale = self._wind_speed_scale()
+        step_starts = [
+            midnight + timedelta(minutes=FORECAST_STEP_MINUTES * (step_offset + i))
+            for i in range(n_steps)
+        ]
+
+        parsed: list[tuple[datetime | None, tuple[float, float, float, float]]] = []
         for idx, entry in enumerate(self._weather_forecast):
             temp = _as_float(entry.get("temperature"), 5.0)
             gust = max(0.0, _as_float(entry.get("wind_speed"), 0.0) * wind_scale)
@@ -2814,12 +2985,43 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 )
             irradiance = max(0.0, irradiance)
 
-            # Hourly forecast held flat across the four quarters it covers.
-            for _ in range(4):
+            ts = (
+                self._comparable_ts(entry.get("datetime"), step_starts[0])
+                if step_starts
+                else None
+            )
+            parsed.append((ts, (temp, gust, rain, irradiance)))
+
+        timed = sorted(
+            (item for item in parsed if item[0] is not None),
+            key=lambda item: item[0],
+        )
+        outdoor: list[float] = []
+        wind: list[float] = []
+        precipitation: list[float] = []
+        solar: list[float] = []
+
+        if timed:
+            starts = [ts for ts, _ in timed]
+            for step_start in step_starts:
+                # Each entry holds until the next one begins; before the first
+                # entry the first is the best information there is, and past
+                # the last the caller pads flat anyway.
+                idx = max(0, bisect_right(starts, step_start) - 1)
+                temp, gust, rain, irradiance = timed[idx][1]
                 outdoor.append(temp)
                 wind.append(gust)
                 precipitation.append(rain)
                 solar.append(irradiance)
+        else:
+            # No timestamps at all: the old positional assumption, hourly
+            # entries starting now.
+            for _, (temp, gust, rain, irradiance) in parsed:
+                for _ in range(4):
+                    outdoor.append(temp)
+                    wind.append(gust)
+                    precipitation.append(rain)
+                    solar.append(irradiance)
 
         return outdoor, wind, precipitation, solar
 
@@ -2863,31 +3065,26 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             )
         return aligned
 
-    def _apply_pv_pricing(
-        self, prices: np.ndarray, solar: np.ndarray, n_steps: int
-    ) -> tuple[np.ndarray, np.ndarray]:
-        """Replace the import price with the marginal cost of consuming.
+    def _pv_surplus_series(self, solar: np.ndarray, n_steps: int) -> np.ndarray:
+        """Forecast PV surplus per step, for the optimizer to price against.
 
-        While the array is in surplus, an extra kWh does not cost the import
-        price — it costs the export compensation foregone. Substituting it here
-        means every downstream consumer (the hot-water LP, the space objective,
-        the savings settle-up) is right without any structural change.
+        The prices themselves stay the raw import prices: the optimizer
+        charges consumption piecewise against this surplus (up to it at the
+        export compensation, beyond it at the import price), which is what an
+        extra kWh actually costs. Substituting the export price into the
+        series here — the old approach — repriced a whole step on any surplus
+        at all, however trivial.
         """
         surplus, _ = self._pv_forecast(solar, n_steps)
-        if np.any(surplus > 1e-6):
-            prices = pv_model.effective_prices(
-                prices, surplus, self._pv_export_price()
-            )
         self._pv_surplus = surplus
-        return prices, surplus
+        return surplus
 
     def _forecast_arrays(self) -> ForecastArrays:
         """Everything the optimizer needs to know about the horizon.
 
         Assembled in one place because the pieces depend on each other: the PV
-        surplus is derived from the irradiance series, and the marginal price
-        from the surplus. Computing any of them elsewhere is how the three
-        would drift apart.
+        surplus is derived from the irradiance series the weather assembly
+        produced. Computing them elsewhere is how they would drift apart.
         """
         n_steps = self._opt_config.n_steps
         now = dt_util.now()
@@ -2901,7 +3098,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             return ForecastArrays.empty()
         prices, price_known = priced
 
-        outdoor, wind, precipitation, solar = self._weather_series(n_steps)
+        outdoor, wind, precipitation, solar = self._weather_series(
+            n_steps, midnight, step_offset
+        )
         solar = self._apply_open_meteo(solar, n_steps, midnight, step_offset)
 
         # A forecast shorter than the horizon is held flat at its last value.
@@ -2910,7 +3109,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 series.append(series[-1] if series else 0.0)
 
         solar_array = np.array(solar[:n_steps], dtype=float)
-        prices, surplus = self._apply_pv_pricing(prices, solar_array, n_steps)
+        surplus = self._pv_surplus_series(solar_array, n_steps)
 
         return ForecastArrays(
             prices=prices,
@@ -3686,6 +3885,24 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._config.get(CONF_PV_EXPORT_PRICE), DEFAULT_PV_EXPORT_PRICE
         )
 
+    def _pv_measured_production(self, config: pv_model.PVConfig) -> float | None:
+        """Live production in kW from the configured entity, if readable."""
+        entity_id = config.production_entity
+        if not entity_id:
+            return None
+        state = self.hass.states.get(entity_id)
+        if state is None or str(state.state).lower() in ("unknown", "unavailable", ""):
+            return None
+        try:
+            value = float(state.state)
+        except (TypeError, ValueError):
+            return None
+        unit = state.attributes.get("unit_of_measurement")
+        converted = normalize_power_kw(value, unit)
+        if converted is None or not np.isfinite(converted):
+            return None
+        return max(0.0, converted)
+
     def _pv_forecast(
         self, solar_rad: np.ndarray, n_steps: int
     ) -> tuple[np.ndarray, dict[str, Any]]:
@@ -3693,14 +3910,23 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         config = self._pv_config()
         if not config.enabled or config.peak_kw <= 0:
             self._pv_summary = {}
+            self._pv_production = None
             return np.zeros(n_steps, dtype=float), {}
         production = pv_model.forecast_production_kw(solar_rad[:n_steps], config)
+        # A meter on the inverter beats the irradiance model for the step being
+        # acted on right now; the rest of the horizon stays modelled.
+        self._pv_production = self._pv_measured_production(config)
+        if self._pv_production is not None and len(production):
+            production = production.copy()
+            production[0] = min(self._pv_production, config.peak_kw)
         baseline = self._baseline_house_load(n_steps)
         if not np.any(baseline > 0):
             baseline = np.full(n_steps, config.default_baseline_kw, dtype=float)
         surplus = pv_model.surplus_kw(production, baseline)
         summary = pv_model.summarize(production, surplus, self._opt_config.dt_hours)
         summary["export_price"] = round(config.export_price, 4)
+        if self._pv_production is not None:
+            summary["measured_production_kw"] = round(self._pv_production, 3)
         self._pv_summary = summary
         return surplus, summary
 
@@ -3747,17 +3973,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         presence_raw, presence_attrs = self._entity_state(config.presence_entity)
         return_raw, _ = self._entity_state(config.return_entity)
 
-        params = self._thermal_params
-        if params.two_zone_enabled:
-            capacity = (
-                params.upper_floor_thermal_mass + params.lower_floor_thermal_mass
-            )
-        else:
-            capacity = params.room_thermal_mass
-
-        cop = self._thermal_model.compute_cop(
-            self._current_state.outdoor_temperature
-        )
         now = dt_util.now()
         self._away_state = away_mode.resolve(
             config,
@@ -3765,13 +3980,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             presence_raw=presence_raw,
             presence_attributes=presence_attrs,
             return_raw=return_raw,
-            current_temp=self._current_state.room_temperature,
             comfort_temp=self._opt_config.get_comfort_temp(
                 now.hour + now.minute / 60.0
             ),
-            heat_capacity_kwh_per_c=capacity,
-            available_thermal_kw=params.max_electrical_power * max(cop, 1.0),
-            heat_loss_kw_per_c=self._effective_house_heat_loss(),
+            # The estimator ramps the real model at full power, so it sees the
+            # slab bottleneck the old lumped formula ignored.
+            model=self._thermal_model,
+            thermal_state=self._current_state,
             outdoor_temp=self._current_state.outdoor_temperature,
         )
         return self._away_state
@@ -3786,6 +4001,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         """
         state = self._away_state
         original = {
+            "target_temp": self._opt_config.target_temp,
             "min_temp": self._opt_config.min_temp,
             "comfort_temp_day": self._opt_config.comfort_temp_day,
             "comfort_temp_night": self._opt_config.comfort_temp_night,
@@ -3796,6 +4012,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             return original
 
         target = state.target_temperature or DEFAULT_AWAY_TEMPERATURE
+        # target_temp joins the setback: the terminal cost, the settlement
+        # caps and the baseline thermostat all anchor on it, so leaving it at
+        # full comfort kept the objective buying heat into the slab for a
+        # house nobody is in — measured at roughly 40% more energy per away
+        # day — and inflated the reported savings against a 21 °C baseline.
+        # min() so an away target configured above the normal one can never
+        # raise anything.
+        self._opt_config.target_temp = min(original["target_temp"], target)
         self._opt_config.min_temp = min(original["min_temp"], target)
         self._opt_config.comfort_temp_day = target
         self._opt_config.comfort_temp_night = target
@@ -3807,6 +4031,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         return original
 
     def _restore_away_setback(self, original: dict[str, float]) -> None:
+        self._opt_config.target_temp = original["target_temp"]
         self._opt_config.min_temp = original["min_temp"]
         self._opt_config.comfort_temp_day = original["comfort_temp_day"]
         self._opt_config.comfort_temp_night = original["comfort_temp_night"]
@@ -3864,10 +4089,17 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
                 # The delivered-versus-predicted ratio is exactly what the
                 # defrost derate learns from, and it is only meaningful while
-                # the learners are not frozen for some other reason.
+                # the learners are not frozen for some other reason. Outside
+                # the frosting band the same shortfall is the COP scale
+                # learner's to explain, and exactly one of the two may see any
+                # given interval. See defrost.in_frost_band.
                 if not self._learning_frozen(CONF_POWER_ENTITY):
                     ratio = delivered_ratio(sample)
-                    if ratio is not None and sample.outdoor_temp is not None:
+                    if (
+                        ratio is not None
+                        and sample.outdoor_temp is not None
+                        and in_frost_band(sample.outdoor_temp)
+                    ):
                         self._defrost.observe(
                             sample.outdoor_temp, sample.humidity, ratio
                         )
@@ -3888,7 +4120,16 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         }
 
     def _predicted_next_room_temp(self) -> float | None:
-        """What the plan says the room will be at the next interval."""
+        """What the plan says the room will be at the next interval.
+
+        Only meaningful while the plan is what is actually running. In
+        comfort, boost and off modes `_optimization_result` still holds the
+        *last* auto-mode plan, whose trajectory assumed powers the fixed-rule
+        action is not applying — pairing that stale prediction against reality
+        would charge the model with errors it never made.
+        """
+        if self._mode not in (MODE_AUTO, MODE_ECONOMY):
+            return None
         result = self._optimization_result
         if result is None or not result.room_temp_trajectory:
             return None
@@ -4005,6 +4246,28 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         result = self._optimization_result
         if result is None or not result.room_temp_trajectory:
             return
+
+        # Flatness only says the weight might be too high when swinging would
+        # actually have paid: with near-flat prices there is nothing to trade
+        # comfort against, and with no planned heating there is nothing being
+        # held flat at any cost. Counting those periods ratcheted the weight
+        # down to its floor over mild spells — every quiet day was read as
+        # evidence, even the ones where flatness was free.
+        prices = np.asarray(result.prices, dtype=float) if result.prices else None
+        if prices is None or prices.size == 0:
+            return
+        mean_price = float(np.mean(prices))
+        if mean_price <= 1e-6:
+            return
+        if float(np.max(prices) - np.min(prices)) / mean_price < 0.15:
+            return
+        heating_kwh = float(
+            np.sum(np.asarray(result.power_schedule, dtype=float))
+            * self._opt_config.dt_hours
+        )
+        if heating_kwh < 1.0:
+            return
+
         trajectory = np.asarray(result.room_temp_trajectory, dtype=float)
         span = float(np.max(trajectory) - np.min(trajectory))
         band = max(
@@ -4100,6 +4363,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._house_heat_loss_samples, int(20 * result.confidence)
         )
         self._sysid.result = replace(result, completed=False, reason="adopted")
+        # Persist immediately: the whole point of an experiment is a result
+        # good enough to outlive a restart, and the passive learner's periodic
+        # save may be many samples away.
+        self.hass.async_create_task(self._async_save_thermal_learning())
         _LOGGER.info(
             "Adopted system identification result: heat loss scale now %.3f",
             self._house_heat_loss_scale,
@@ -4190,6 +4457,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 setattr(scratch_config, key, int(overrides[key]))
 
         scratch_params = replace(self._thermal_params)
+        if "max_temp" in overrides:
+            # The valve's default target is the comfort ceiling, so a
+            # simulated ceiling change has to reach the model too.
+            scratch_params.comfort_ceiling = float(overrides["max_temp"])
         if "dhw_setpoint" in overrides:
             scratch_params.dhw_setpoint = float(overrides["dhw_setpoint"])
         if "dhw_min_temperature" in overrides:

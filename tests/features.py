@@ -56,6 +56,7 @@ from heatpump_optimizer.tariff import (
     PeakTracker,
     peak_cost,
     peak_penalty,
+    realised_peak,
 )
 from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator as Coord
 from heatpump_optimizer.thermal_model import ThermalModel, ThermalParameters, ThermalState
@@ -374,6 +375,110 @@ R.check(
     hourly_from_entries([{"total": None}, {"starts_at": "nonsense"}]) == {},
 )
 
+# --- The shape's level must be calibrated to the known window --------------
+#
+# The learned shape has mean 1.0 over a whole day, but the known window
+# rarely covers one. Scaling by the raw mean of a window that sits on the
+# expensive half of the day overprices the entire guessed tail by the same
+# ratio.
+_lvl_model = PriceShapeModel()
+_lvl_model.shapes[0] = [1.5] * 12 + [0.5] * 12  # expensive night, cheap day
+_lvl_model.days = [10, 10]
+_lvl_steps = [datetime(2026, 1, 7, h, 0) for h in range(24)]  # a Wednesday
+_lvl_prices, _lvl_mask = extend_price_series(
+    [3.0] * 4, 24, _lvl_steps, _lvl_model
+)
+R.check(
+    "the guessed tail is scaled by the true daily level",
+    abs(_lvl_prices[12] - 1.0) < 1e-6,
+    f"known 3.0 sits on shape 1.5 → level 2.0; hour 12 at shape 0.5 must be "
+    f"1.0, not {3.0 * 0.5}, got {_lvl_prices[12]}",
+)
+R.check(
+    "and reproduces the known window at its own hours",
+    abs(2.0 * 1.5 - 3.0) < 1e-9 and bool(_lvl_mask[3]) and not bool(_lvl_mask[4]),
+)
+
+# --- Prices align by their own timestamps, not by list position ------------
+#
+# Position assumed the first entry is *today's* midnight. A stale list — the
+# fetch failing since yesterday — then shifts the whole horizon a day, and
+# quarter-hour entries (Tibber's 15-minute pricing) are each stretched to a
+# full hour.
+_pa = type(
+    "_PriceAlign",
+    (),
+    {
+        "_known_prices_for": Coord._known_prices_for,
+        "_comparable_ts": staticmethod(Coord._comparable_ts),
+    },
+)()
+_pa_mid = datetime(2026, 1, 6, 0, 0)
+_pa_steps = [_pa_mid + timedelta(minutes=15 * i) for i in range(8)]
+
+_pa._prices = [
+    {
+        "total": 1.0 + h,
+        "starts_at": (_pa_mid - timedelta(hours=24) + timedelta(hours=h)).isoformat(),
+    }
+    for h in range(24)
+]
+R.check(
+    "a stale price list is not read as today's prices",
+    _pa._known_prices_for(_pa_steps) == [],
+    "yesterday's midnight in position 0 must not become today's midnight",
+)
+_pa._prices = [
+    {"total": float(h), "starts_at": (_pa_mid + timedelta(hours=h)).isoformat()}
+    for h in range(2)
+]
+R.check(
+    "hourly entries cover their own four quarters",
+    _pa._known_prices_for(_pa_steps) == [0.0] * 4 + [1.0] * 4,
+)
+_pa._prices = [
+    {
+        "total": float(i),
+        "starts_at": (_pa_mid + timedelta(minutes=15 * i)).isoformat(),
+    }
+    for i in range(4)
+]
+R.check(
+    "quarter-hour entries are not stretched to hours",
+    _pa._known_prices_for(_pa_steps) == [0.0, 1.0, 2.0, 3.0],
+    "15-minute Tibber pricing maps one entry to one step",
+)
+
+# --- Weather aligns by entry timestamps too --------------------------------
+_wa = type(
+    "_WeatherAlign",
+    (),
+    {
+        "_weather_series": Coord._weather_series,
+        "_comparable_ts": staticmethod(Coord._comparable_ts),
+        "_wind_speed_scale": lambda self: 1.0,
+    },
+)()
+_wa._solar_radiation_forecast = []
+_wa._solar_radiation = 0.0
+# Forecast fetched two hours ago: entry 0 describes 22:00 *yesterday*.
+_wa._weather_forecast = [
+    {
+        "datetime": (_pa_mid - timedelta(hours=2) + timedelta(hours=h)).isoformat(),
+        "temperature": -10.0 + h,
+        "wind_speed": 0.0,
+        "precipitation": 0.0,
+    }
+    for h in range(6)
+]
+_wa_outdoor, _, _, _ = _wa._weather_series(4, _pa_mid, 0)
+R.check(
+    "a stale weather forecast still lines up with the clock",
+    _wa_outdoor[0] == -8.0,
+    f"midnight must read the entry *for* midnight (-8), not the first entry "
+    f"(-10); got {_wa_outdoor[0]}",
+)
+
 
 # ===========================================================================
 # Item 8: capacity (peak power) tariff
@@ -501,6 +606,20 @@ R.check(
     "three hours 2 kW over, averaged, at the full 60/kW = 120",
 )
 
+# --- The metering windows sit on the DSO's clock, not the plan's -----------
+#
+# A solve at 12:30 used to fold hourly windows [12:30, 13:30), so a one-hour
+# burst that the meter bills inside a single window was split across two and
+# its priced excess halved. `offset_steps` says how many steps remain to the
+# real boundary.
+_dso_burst = np.array([0.0, 0.0, 8.0, 8.0, 8.0, 8.0, 0.0, 0.0])
+R.check(
+    "a burst inside one billed window is priced as one window",
+    realised_peak(_dso_burst, np.zeros(8), 60, 0.25, offset_steps=2) == 8.0
+    and realised_peak(_dso_burst, np.zeros(8), 60, 0.25) == 4.0,
+    "on the shifted fold the same burst averages into two half-windows of 4",
+)
+
 
 # ===========================================================================
 # Item 9: PV self-consumption
@@ -524,19 +643,73 @@ R.check(
 surplus = pv.surplus_kw(np.array([0.0, 3.0, 6.0]), np.array([1.0, 1.0, 1.0]))
 R.check("surplus is net of the rest of the house", list(surplus) == [0.0, 2.0, 5.0])
 
-effective = pv.effective_prices(
-    np.array([1.5, 1.5, 1.5]), np.array([0.0, 2.0, 5.0]), 0.3
+# The cost of a draw is piecewise: surplus-covered energy at the export
+# price, the rest at the import price. The whole-step substitution this
+# replaced made 0.05 kW of sun reprice a full compressor draw.
+_pw_prices = np.array([1.5, 1.5, 1.5])
+_pw_surplus = np.array([0.0, 2.0, 5.0])
+R.check(
+    "a draw inside the surplus costs the export compensation",
+    abs(pv.piecewise_cost(_pw_prices, _pw_surplus, 0.3, np.array([0.0, 2.0, 4.0]), 1.0)
+        - (2.0 * 0.3 + 4.0 * 0.3)) < 1e-9,
 )
 R.check(
-    "surplus steps are priced at the export compensation",
-    list(effective) == [1.5, 0.3, 0.3],
-    "an extra kWh in surplus costs the export you gave up, not the import price",
+    "a draw beyond the surplus pays the import price for the excess",
+    abs(pv.piecewise_cost(_pw_prices, _pw_surplus, 0.3, np.array([3.0, 6.0, 5.0]), 1.0)
+        - (3.0 * 1.5 + (2.0 * 0.3 + 4.0 * 1.5) + 5.0 * 0.3)) < 1e-9,
+    "epsilon surplus must not reprice a full compressor draw",
 )
-inverted = pv.effective_prices(np.array([0.2]), np.array([5.0]), 0.9)
 R.check(
     "an export price above the import price is clamped",
-    inverted[0] == 0.2,
+    abs(pv.piecewise_cost(np.array([0.2]), np.array([5.0]), 0.9, np.array([2.0]), 1.0)
+        - 2.0 * 0.2) < 1e-9,
     "otherwise the objective would pay the house to consume",
+)
+_blend = pv.blended_block_prices(_pw_prices, _pw_surplus, 0.3, 4.0)
+R.check(
+    "a hot-water block's price blends by the covered fraction",
+    abs(_blend[0] - 1.5) < 1e-9
+    and abs(_blend[1] - (1.5 - 1.2 * 0.5)) < 1e-9
+    and abs(_blend[2] - 0.3) < 1e-9,
+    f"{[round(v, 3) for v in _blend]}",
+)
+
+# The optimizer's objective must charge that same piecewise cost. This is the
+# regression the old formulation failed: 0.05 kW of surplus made a full 6 kW
+# draw look like it cost the export price.
+from heatpump_optimizer.optimizer import HeatPumpOptimizer as _PvOpt
+from heatpump_optimizer.optimizer import OptimizationConfig as _PvOptCfg
+from heatpump_optimizer.thermal_model import ThermalModel as _PvModel
+from heatpump_optimizer.thermal_model import ThermalParameters as _PvParams
+
+_pv_opt = _PvOpt(_PvModel(_PvParams()), _PvOptCfg(pv_export_price=0.3))
+_pv_opt._pv_surplus = np.array([0.05, 4.0, 0.0])
+_pv_cost = _pv_opt._energy_cost_fn(np.array([1.5, 1.5, 1.5]), 1.0)
+_pv_draw = np.array([6.0, 4.0, 6.0])
+_pv_expected = (0.05 * 0.3 + 5.95 * 1.5) + 4.0 * 0.3 + 6.0 * 1.5
+R.check(
+    "the objective reprices the covered sliver, not the whole step",
+    abs(_pv_cost(_pv_draw) - _pv_expected) < 1e-9,
+    f"cost {_pv_cost(_pv_draw):.4f}, exact {_pv_expected:.4f}",
+)
+_pv_opt._pv_surplus = None
+R.check(
+    "without surplus the cost is the plain import bill",
+    abs(_pv_opt._energy_cost_fn(_pw_prices, 1.0)(_pv_draw) - 16.0 * 1.5) < 1e-9,
+)
+_pv_opt._pv_surplus = np.array([0.0, 4.0, 0.0])
+_ranked = _pv_opt._dhw_planning_prices(np.array([1.5, 1.5, 1.5]), 4.0)
+R.check(
+    "hot-water planning ranks a fully covered step at the export price",
+    abs(_ranked[1] - 0.3) < 1e-9 and abs(_ranked[0] - 1.5) < 1e-9,
+)
+_ranked_shared = _pv_opt._dhw_planning_prices(
+    np.array([1.5, 1.5, 1.5]), 4.0, space_demand=np.array([0.0, 2.0, 0.0])
+)
+R.check(
+    "on the replan, space heating takes its surplus share first",
+    abs(_ranked_shared[1] - (1.5 - 1.2 * 0.5)) < 1e-9,
+    f"{_ranked_shared[1]:.3f} should blend only the remaining 2 kW",
 )
 
 
@@ -566,6 +739,31 @@ R.check(
     "an unknown state means unknown, not away",
     away_mode.interpret_presence("unavailable", "person.alice") is None,
 )
+R.check(
+    "a presence-class binary sensor being on means home",
+    away_mode.interpret_presence(
+        "on", "binary_sensor.someone", {"device_class": "presence"}
+    )
+    is False,
+    "presence semantics are the inverse of a toggle; reading on as away "
+    "deep-setbacks an occupied house",
+)
+R.check(
+    "a presence-class binary sensor being off means away",
+    away_mode.interpret_presence(
+        "off", "binary_sensor.someone", {"device_class": "occupancy"}
+    )
+    is True,
+)
+R.check(
+    "a class-less binary sensor keeps toggle semantics",
+    away_mode.interpret_presence("on", "binary_sensor.holiday", {}) is True,
+)
+R.check(
+    "a template sensor speaking the person vocabulary reads correctly",
+    away_mode.interpret_presence("away", "sensor.presence_text") is True,
+    "these used to invert: 'away' fell into the toggle-off list",
+)
 
 AWAY_CFG = away_mode.AwayConfig(
     enabled=True,
@@ -573,6 +771,14 @@ AWAY_CFG = away_mode.AwayConfig(
     return_entity="input_datetime.back",
     away_temperature=16.0,
 )
+
+# A real model, so the recovery estimate sees the slab bottleneck the old
+# lumped formula ignored.
+_away_model = ThermalModel(ThermalParameters())
+
+
+def _away_house(current=16.0):
+    return ThermalState(room_temperature=current, slab_temperature=current + 1.0)
 
 
 def resolve_away(now, return_at, current=16.0):
@@ -582,11 +788,9 @@ def resolve_away(now, return_at, current=16.0):
         presence_raw="on",
         presence_attributes=None,
         return_raw=return_at,
-        current_temp=current,
         comfort_temp=21.0,
-        heat_capacity_kwh_per_c=10.0,
-        available_thermal_kw=12.0,
-        heat_loss_kw_per_c=0.15,
+        model=_away_model,
+        thermal_state=_away_house(current),
         outdoor_temp=0.0,
     )
 
@@ -598,7 +802,7 @@ R.check("the deep setback applies while away", far.target_temperature == 16.0)
 R.check("recovery is not started three days out", not far.recovery_active)
 R.check("the recovery estimate is published", far.recovery_hours is not None)
 
-near = resolve_away(now, (now + timedelta(hours=2)).isoformat())
+near = resolve_away(now, (now + timedelta(hours=6)).isoformat())
 R.check("recovery starts before the stated return", near.recovery_active)
 R.check(
     "the comfort target is restored during recovery",
@@ -617,11 +821,9 @@ home = away_mode.resolve(
     presence_raw="off",
     presence_attributes=None,
     return_raw=None,
-    current_temp=21.0,
     comfort_temp=21.0,
-    heat_capacity_kwh_per_c=10.0,
-    available_thermal_kw=12.0,
-    heat_loss_kw_per_c=0.15,
+    model=_away_model,
+    thermal_state=_away_house(21.0),
     outdoor_temp=0.0,
 )
 R.check("an occupied house is never set back", not home.active)
@@ -631,24 +833,37 @@ disabled_away = away_mode.resolve(
     presence_raw="on",
     presence_attributes=None,
     return_raw=None,
-    current_temp=16.0,
     comfort_temp=21.0,
-    heat_capacity_kwh_per_c=10.0,
-    available_thermal_kw=12.0,
-    heat_loss_kw_per_c=0.15,
+    model=_away_model,
+    thermal_state=_away_house(),
     outdoor_temp=0.0,
 )
 R.check("disabled means the feature cannot cost anything", not disabled_away.active)
 
 R.check(
     "a warm house needs no recovery time",
-    away_mode.estimate_recovery_hours(21.0, 21.0, 10.0, 12.0, 0.15, 0.0) == 0.0,
+    away_mode.estimate_recovery_hours(_away_model, _away_house(21.0), 21.0, 0.0)
+    == 0.0,
 )
+_weak_model = ThermalModel(ThermalParameters(max_electrical_power=0.2))
 R.check(
     "a pump that cannot reach the target starts as early as allowed",
-    away_mode.estimate_recovery_hours(10.0, 21.0, 10.0, 0.5, 0.5, -20.0)
+    away_mode.estimate_recovery_hours(_weak_model, _away_house(10.0), 21.0, -20.0)
     == away_mode.MAX_RECOVERY_HOURS,
     "refusing to plan recovery would be worse than starting early",
+)
+# The estimate has to see the slab bottleneck: all the pump's heat enters the
+# slab and reaches the room only through slab_heat_transfer, so a cold house
+# needs several hours even at full power. The lumped formula this replaced
+# said 4.4 h here; the real ramp needs roughly twice that.
+_cold_ramp = away_mode.estimate_recovery_hours(
+    _away_model, _away_house(16.0), 21.0, 0.0
+)
+R.check(
+    "a cold house's recovery estimate respects the slab bottleneck",
+    _cold_ramp >= 6.0,
+    f"got {_cold_ramp:.2f} h; the lumped estimate this replaced said 4.4 h "
+    "and left the house ~3 °C cold at the stated return",
 )
 
 cal = away_mode.resolve(
@@ -657,11 +872,9 @@ cal = away_mode.resolve(
     presence_raw="on",
     presence_attributes={"end_time": (now + timedelta(hours=1)).isoformat()},
     return_raw=None,
-    current_temp=16.0,
     comfort_temp=21.0,
-    heat_capacity_kwh_per_c=10.0,
-    available_thermal_kw=12.0,
-    heat_loss_kw_per_c=0.15,
+    model=_away_model,
+    thermal_state=_away_house(),
     outdoor_temp=0.0,
 )
 R.check(
@@ -887,13 +1100,56 @@ two_zone = presets.derive(
         upper_area_ratio=0.5,
     )
 )
+# The heavy mass must live in exactly one store. The heated slab *is* the
+# building's heavy floor, and the model already couples it to the lower zone;
+# counting it in the lower zone as well doubled the downstairs store and let
+# plans coast on heat the building does not have.
 R.check(
-    "a slab-heated lower floor carries the heavy mass",
-    two_zone["lower_floor_thermal_mass"] > two_zone["upper_floor_thermal_mass"],
+    "the heavy mass lives in the heated slab, and only there",
+    two_zone["slab_thermal_mass"] > two_zone["lower_floor_thermal_mass"]
+    and abs(
+        two_zone["lower_floor_thermal_mass"]
+        - two_zone["upper_floor_thermal_mass"]
+    ) < 0.5,
+    f"slab {two_zone['slab_thermal_mass']}, lower "
+    f"{two_zone['lower_floor_thermal_mass']}, upper "
+    f"{two_zone['upper_floor_thermal_mass']}",
 )
 R.check(
     "the radiator power fraction follows the emitters",
     abs(two_zone["radiator_power_fraction"] - 0.5) < 1e-6,
+)
+
+# A radiator house pushes every watt through the same "slab" slot of the
+# model, so that store has to be the radiator loop: small, and coupled well
+# enough to deliver the design heat load at a sane flow temperature. Giving
+# it the building's slow mass behind the minimum 0.05 kW/°C transfer modelled
+# a house where 3 kW needs the emitter 60 °C above the room.
+_rad_house = presets.derive(
+    presets.BuildingPreset(lower_emitter=presets.EMITTER_RADIATORS)
+)
+_floor_house = presets.derive(
+    presets.BuildingPreset(lower_emitter=presets.EMITTER_FLOOR)
+)
+R.check(
+    "a radiator loop is a small store, not the building's slab",
+    _rad_house["slab_thermal_mass"] < 1.0
+    < _floor_house["slab_thermal_mass"],
+    f"radiators {_rad_house['slab_thermal_mass']} kWh/°C vs floor "
+    f"{_floor_house['slab_thermal_mass']} kWh/°C",
+)
+R.check(
+    "radiators can deliver the design heat load at a sane flow temperature",
+    _rad_house["slab_heat_transfer"]
+    >= _rad_house["house_heat_loss_coefficient"],
+    "at transfer >= loss, holding the house at ΔT 30 K outside needs the "
+    "emitter no more than 30 K above the room",
+)
+R.check(
+    "with radiators the heavy floor coasts as part of the room store",
+    _rad_house["house_thermal_mass"] > _floor_house["house_thermal_mass"] * 2,
+    f"{_rad_house['house_thermal_mass']} vs {_floor_house['house_thermal_mass']} "
+    "kWh/°C: the slow mass is passively coupled, not deleted",
 )
 
 R.check(
@@ -1348,6 +1604,230 @@ humid_params.ambient_humidity = None
 R.check(
     "an explicit humidity still wins over the ambient default",
     humid_model.compute_cop(2.0, 90.0) < nominal * 0.98,
+)
+
+# --- One shortfall, one learner -------------------------------------------
+#
+# The COP scale and the defrost derate watch the same commanded-versus-
+# measured signal, so attribution is split by the frosting band: inside it
+# only the derate learns, outside it only the COP scale does. Without the
+# split, one frost cycle was corrected twice — as a permanently collapsed
+# COP *and* as a derate — and plans in the band overcompensated.
+from heatpump_optimizer.defrost import in_frost_band
+
+R.check(
+    "the frosting band covers the frosting temperatures",
+    in_frost_band(0.0) and in_frost_band(2.0) and in_frost_band(4.9),
+)
+R.check(
+    "dry deep cold is not frost, and mild air is not frost",
+    not in_frost_band(-2.0) and not in_frost_band(5.0) and not in_frost_band(8.0),
+)
+
+
+class _CopGate:
+    _learn_measured_cop = Coord._learn_measured_cop
+    _commanded_power = Coord._commanded_power
+    _apply_cop_scale = Coord._apply_cop_scale
+
+    def __init__(self, outdoor: float) -> None:
+        self._measured_power = 2.0
+        self._current_action = {"power": 3.0}
+        self._thermal_params = ThermalParameters()
+        self._thermal_model = ThermalModel(self._thermal_params)
+        self._current_state = ThermalState(
+            room_temperature=21.0, outdoor_temperature=outdoor
+        )
+        self._cop_scale = 1.0
+        self._cop_samples = 0
+        self._last_measured_cop = None
+
+    def _learning_frozen(self, *entities):
+        return None
+
+
+_in_band = _CopGate(outdoor=2.0)
+_in_band._learn_measured_cop()
+R.check(
+    "the COP scale does not learn inside the frosting band",
+    _in_band._cop_samples == 0 and _in_band._cop_scale == 1.0,
+    "that shortfall is the defrost derate's to explain",
+)
+_out_band = _CopGate(outdoor=8.0)
+_out_band._learn_measured_cop()
+R.check(
+    "outside the band the same sample still teaches the COP scale",
+    _out_band._cop_samples == 1 and _out_band._cop_scale > 1.0,
+)
+
+# --- Standby loss is not hot water usage ----------------------------------
+#
+# The tank cools all the time — about 0.42 °C/h for a 55 °C tank at the
+# default rate — and a drop of that size passed the raw 0.15 °C gate every
+# idle hour, teaching a phantom draw into all 24 slots and washing the real
+# morning/evening pattern towards flat. Only the drop *beyond* expected
+# standby decay is usage.
+import asyncio as _aio
+
+
+class _DhwUsage:
+    _async_learn_dhw_usage = Coord._async_learn_dhw_usage
+    _normalize_dhw_profile = Coord._normalize_dhw_profile
+
+    def __init__(self) -> None:
+        self._dhw_cooling_rate = 0.3
+        self._dhw_hourly_profile = [1.0] * 24
+        self._thermal_params = ThermalParameters()
+
+    async def _async_save_dhw_profile(self) -> None:
+        pass
+
+
+_standby_only = _DhwUsage()
+_aio.run(
+    _standby_only._async_learn_dhw_usage(
+        55.0, 0.42, 1.0, 3, False  # exactly the expected standby drop at 55 °C
+    )
+)
+R.check(
+    "a pure standby drop teaches no draw",
+    _standby_only._dhw_hourly_profile == [1.0] * 24,
+    "0.42 °C/h at 55 °C is the tank cooling, not a shower at 3 am",
+)
+_real_draw = _DhwUsage()
+_aio.run(_real_draw._async_learn_dhw_usage(55.0, 2.0, 1.0, 7, False))
+R.check(
+    "a genuine draw still reinforces its hour",
+    _real_draw._dhw_hourly_profile[7] > 1.0
+    and _real_draw._dhw_hourly_profile[7] > _real_draw._dhw_hourly_profile[3],
+)
+
+# --- A stale plan is not a prediction -------------------------------------
+#
+# In comfort, boost and off modes the optimizer does not run, but
+# `_optimization_result` still holds the *last* auto-mode plan. Its
+# trajectory assumed powers the fixed-rule action is not applying, so pairing
+# it against the measured room temperature charges the model with errors it
+# never made.
+from heatpump_optimizer.const import MODE_AUTO as _MODE_AUTO
+from heatpump_optimizer.const import MODE_BOOST as _MODE_BOOST
+
+
+class _PredGate:
+    _predicted_next_room_temp = Coord._predicted_next_room_temp
+
+    def __init__(self, mode: str) -> None:
+        self._mode = mode
+        self._config = {}
+        self._thermal_params = ThermalParameters()
+
+        class _Res:
+            room_temp_trajectory = [21.0, 21.4, 21.8]
+            upper_temp_trajectory = []
+
+        class _OptCfg:
+            time_step_minutes = 30.0
+
+        self._optimization_result = _Res()
+        self._opt_config = _OptCfg()
+
+
+R.check(
+    "a stale plan trajectory is not offered as a prediction in boost mode",
+    _PredGate(_MODE_BOOST)._predicted_next_room_temp() is None,
+)
+R.check(
+    "in auto mode the plan is what runs, so it is the prediction",
+    _PredGate(_MODE_AUTO)._predicted_next_room_temp() == 21.4,
+)
+
+# --- The learned COP survives a restart -----------------------------------
+#
+# Every plan is priced through the COP curve; a learned correction that
+# evaporated on restart silently re-based all costs on the nameplate figure.
+class _FakeLearnStore:
+    def __init__(self) -> None:
+        self.saved = None
+
+    async def async_save(self, data) -> None:
+        self.saved = data
+
+    async def async_load(self):
+        return self.saved
+
+
+class _LearnPersist:
+    _async_save_thermal_learning = Coord._async_save_thermal_learning
+    _async_load_thermal_learning = Coord._async_load_thermal_learning
+    _apply_cop_scale = Coord._apply_cop_scale
+
+    def __init__(self, store) -> None:
+        self._thermal_learning_store = store
+        self._thermal_params = ThermalParameters()
+        self._buffer_cooling_rate = 6.0
+        self._buffer_cooling_samples = 3
+        self._house_heat_loss_scale = 1.1
+        self._house_heat_loss_samples = 12
+        self._lower_floor_loss_ratio = 1.05
+        self._lower_floor_loss_samples = 4
+        self._cop_scale = 0.85
+        self._cop_samples = 20
+
+    def _apply_buffer_cooling_rate(self, rate: float) -> None:
+        self._buffer_cooling_rate = float(rate)
+
+    def _apply_house_heat_loss_scale(self, scale: float) -> None:
+        self._house_heat_loss_scale = float(scale)
+
+    def _apply_lower_floor_loss_ratio(self, ratio: float) -> None:
+        self._lower_floor_loss_ratio = float(ratio)
+
+
+_learn_store = _FakeLearnStore()
+_aio.run(_LearnPersist(_learn_store)._async_save_thermal_learning())
+_restarted = _LearnPersist(_learn_store)
+_restarted._cop_scale = 1.0
+_restarted._cop_samples = 0
+_aio.run(_restarted._async_load_thermal_learning())
+R.check(
+    "the learned COP scale is saved and restored",
+    abs(_restarted._cop_scale - 0.85) < 1e-9 and _restarted._cop_samples == 20,
+    f"restored scale {_restarted._cop_scale}, {_restarted._cop_samples} samples",
+)
+
+# --- The savings baseline follows the comfort schedule ---------------------
+#
+# The reference thermostat used to hold the flat day target around the clock,
+# so a configured night setback was booked as optimizer savings — value any
+# programmable thermostat delivers without an optimizer.
+_bl_state = ThermalState(
+    room_temperature=21.0, slab_temperature=26.0, outdoor_temperature=-5.0
+)
+_bl_opt = _PvOpt(_PvModel(_PvParams()), _PvOptCfg(target_temp=21.0))
+_bl_n = 16
+_bl_out = np.full(_bl_n, -5.0)
+_bl_zero = np.zeros(_bl_n)
+_bl_flat, _ = _bl_opt._compute_baseline_power(
+    _bl_state, _bl_out, _bl_zero, _bl_zero, _bl_zero, 0.25
+)
+_bl_setback, _ = _bl_opt._compute_baseline_power(
+    _bl_state,
+    _bl_out,
+    _bl_zero,
+    _bl_zero,
+    _bl_zero,
+    0.25,
+    np.array([21.0] * 8 + [17.0] * 8),
+)
+R.check(
+    "a night setback lowers the reference, not the reported savings",
+    float(np.sum(_bl_setback[8:])) < float(np.sum(_bl_flat[8:])) - 0.5,
+    f"setback half {np.sum(_bl_setback[8:]):.2f} kW-steps vs flat "
+    f"{np.sum(_bl_flat[8:]):.2f}",
+)
+R.check(
+    "while the schedule agrees, so do the baselines",
+    np.allclose(_bl_setback[:8], _bl_flat[:8]),
 )
 
 # --- The foundation mass adjustment must be applied once ------------------
@@ -1862,6 +2342,46 @@ R.check(
     f"got {_charged.buffer_tank_temperature:.2f} C against a 70 C cap",
 )
 
+# The shipped default target of 0 means "the top of the comfort band", as the
+# option describes everywhere. The previous fallback was house_temp + 1.0 — a
+# target that recedes above wherever the house currently is — so the default
+# valve never throttled: the house overheated and the tank could not charge.
+_default_target = _tank_run(_mv.MODE_MANUAL, 9.0, target=0.0)
+R.check(
+    "an unconfigured valve target throttles at the comfort ceiling",
+    _default_target.upper_floor_temperature < 24.5,
+    f"house reached {_default_target.upper_floor_temperature:.1f} C on the "
+    "default target; the receding fallback drove it past 29 C",
+)
+R.check(
+    "and the tank still charges on the default target",
+    _default_target.buffer_tank_temperature > 60.0,
+    f"got {_default_target.buffer_tank_temperature:.1f} C from 45 C",
+)
+
+# A tank read above its cap must cool at its physical rate. The unconditional
+# min() clamp teleported it down to the cap within one step, deleting the
+# excess stored energy from the model entirely.
+_over = ThermalState(
+    room_temperature=21.0, upper_floor_temperature=21.0,
+    lower_floor_temperature=20.5, slab_temperature=25.0,
+    buffer_tank_temperature=75.0, outdoor_temperature=-5.0,
+)
+_over_m = ThermalModel(
+    ThermalParameters(
+        two_zone_enabled=True, buffer_tank_volume=750.0,
+        mixing_valve_mode=_mv.MODE_MANUAL, mixing_valve_target=21.0,
+        buffer_max_temp=60.0, cop_flow_carnot=True,
+    )
+)
+_after_over = _over_m.simulate_step(_over, 0.0, -5.0, dt_hours=0.25)
+R.check(
+    "a tank read above its cap cools physically, not by teleport",
+    _after_over.buffer_tank_temperature > 65.0,
+    f"75 C against a 60 C cap left {_after_over.buffer_tank_temperature:.2f} C "
+    "after one 15-minute step; the old clamp forced exactly 60.0",
+)
+
 # Storing hot has to cost something, or the optimizer will store on every cheap
 # hour whether or not it pays. Carnot-derived, because a linear %/K collapses to
 # the floor at the temperatures storage actually reaches.
@@ -2012,7 +2532,6 @@ def _drive_lower(coord, *, observed_lower, hours=0.5, power=2.0):
     now = _lz_dt.now()
     coord._last_house_sample = base
     coord._last_house_sample_time = now - _timedelta(hours=hours)
-    coord._last_house_sample_power = power
     coord._current_state = replace(base, lower_floor_temperature=observed_lower)
     coord._current_action = {"power": power}
     _asyncio.run(coord._async_learn_lower_floor_loss())
@@ -2087,6 +2606,15 @@ R.check(
     "and they move the split in opposite directions",
     _rc > 1.0 > _rw,
     f"cold {_rc:.4f}, warm {_rw:.4f}",
+)
+# Both saturating targets must be clipped the same distance from the current
+# estimate. A clamp to the fixed global bounds is off-centre — from a ratio of
+# 1.0 the ceiling is +2.0 away but the floor only -0.7 — so equal noise on the
+# two sides moved the ratio by unequal amounts and it still drifted upward.
+R.check(
+    "and by exactly the same amount, or noise still ratchets the split",
+    abs((_rc - 1.0) + (_rw - 1.0)) < 1e-9,
+    f"cold moved {_rc - 1.0:+.4f}, warm moved {_rw - 1.0:+.4f}",
 )
 
 # A residual too large to be a loss error is something else -- a window opened,

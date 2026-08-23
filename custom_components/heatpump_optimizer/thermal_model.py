@@ -33,7 +33,7 @@ parameters are not provided.
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any
 
 import numpy as np
@@ -57,6 +57,7 @@ from .const import (
     DEFAULT_LOWER_FLOOR_LOSS_RATIO,
     DEFAULT_INTER_ZONE_TRANSFER,
     DEFAULT_RADIATOR_POWER_FRACTION,
+    DEFAULT_UPPER_FLOOR_AREA_RATIO,
     DEFAULT_BUFFER_TANK_VOLUME,
     BUFFER_COOLING_RATE_MAX,
     BUFFER_COOLING_RATE_MIN,
@@ -140,9 +141,17 @@ class ThermalParameters:
     # which is *correct* for a system with no valve: whatever the pump makes
     # goes straight to the emitters. This is an added branch, not a fix.
     mixing_valve_mode: str = MIXING_VALVE_MODE_NONE
-    # Indoor temperature the valve regulates to. 0.0 means "not configured";
-    # the caller supplies the comfort ceiling instead.
+    # Indoor temperature the valve regulates to. 0.0 means "not configured",
+    # and the comfort ceiling below is used instead — which is also what the
+    # dumb-valve recommendation says to set a real valve to.
     mixing_valve_target: float = 0.0  # °C
+    # The user's configured comfort maximum, carried here so the valve target
+    # can genuinely default to "the top of the comfort band" as documented.
+    # The previous fallback was `house_temp + 1.0` — a target that recedes
+    # 1 K above wherever the house currently is, so the default valve never
+    # throttled: the house overheated (29 °C in the release-notes scenario)
+    # and the tank could not charge at all.
+    comfort_ceiling: float = 23.0  # °C
     # Flow-to-zone difference the emitters are sized for, used to back an
     # emitter UA out of the nameplate output so the throttled branch reproduces
     # today's delivery at the design point rather than inventing a new balance.
@@ -158,6 +167,8 @@ class ThermalParameters:
     cop_flow_reference_temp: float = 35.0  # °C
     inter_zone_transfer: float = DEFAULT_INTER_ZONE_TRANSFER  # kW/°C
     radiator_power_fraction: float = DEFAULT_RADIATOR_POWER_FRACTION  # 0-1
+    #: Share of the heated area on the upper floor; splits internal gains.
+    upper_floor_area_ratio: float = DEFAULT_UPPER_FLOOR_AREA_RATIO
 
     # Buffer tank
     buffer_tank_volume: float = DEFAULT_BUFFER_TANK_VOLUME  # liters
@@ -405,6 +416,9 @@ class ThermalParameters:
             "radiator_power_fraction": (
                 "RADIATOR_POWER_FRACTION", "RADIATOR_POWER_FRACTION"
             ),
+            "upper_floor_area_ratio": (
+                "UPPER_FLOOR_AREA_RATIO", "UPPER_FLOOR_AREA_RATIO"
+            ),
             # Buffer tank
             "buffer_tank_volume": ("BUFFER_TANK_VOLUME", "BUFFER_TANK_VOLUME"),
             "buffer_tank_heat_loss": ("BUFFER_TANK_LOSS", "BUFFER_TANK_LOSS"),
@@ -513,6 +527,9 @@ class ThermalParameters:
         values["buffer_max_temp"] = float(
             config.get(const.CONF_BUFFER_MAX_TEMP, const.DEFAULT_BUFFER_MAX_TEMP)
         )
+        values["comfort_ceiling"] = float(
+            config.get(const.CONF_MAX_TEMP, const.DEFAULT_MAX_TEMP)
+        )
         # The COP penalty only means anything when a valve can actually charge
         # the tank, so it follows the mode rather than being separately switched.
         values["cop_flow_carnot"] = mixing_valve.is_throttling(
@@ -555,17 +572,6 @@ class ThermalParameters:
             values["dhw_windows"] = []
 
         return cls(**values)
-
-
-@dataclass
-class WeatherForecastPoint:
-    """A single point in the weather forecast."""
-
-    timestamp: float  # Unix timestamp
-    temperature: float  # °C
-    wind_speed: float = 0.0  # m/s
-    precipitation: float = 0.0  # mm/h
-    solar_radiation: float = 0.0  # W/m² (global horizontal irradiance)
 
 
 @dataclass
@@ -618,10 +624,10 @@ DHW_HOURLY_DRAW_PATTERN = [x * 24.0 / _DHW_SUM for x in DHW_HOURLY_DRAW_PATTERN]
 
 
 class ThermalModel:
+    """Thermal model supporting single-zone, two-zone, and DHW operation."""
+
     #: Buffer trajectory of the last `simulate_trajectory` call.
     last_buffer_trajectory: np.ndarray | None = None
-
-    """Thermal model supporting single-zone, two-zone, and DHW operation."""
 
     def __init__(self, params: ThermalParameters) -> None:
         """Initialize the thermal model."""
@@ -693,14 +699,6 @@ class ThermalModel:
         dhw_penalty = max(0.5, 1.0 - 0.008 * (dhw_temp - 35.0))
         return base_cop * dhw_penalty
 
-    def effective_outdoor_temp(
-        self, temp: float, wind_speed: float = 0.0, precipitation: float = 0.0
-    ) -> float:
-        """Compute effective outdoor temperature accounting for wind chill and rain."""
-        wind_effect = wind_speed * 0.3
-        rain_effect = precipitation * 0.5
-        return temp - wind_effect - rain_effect
-
     def effective_heat_loss_coefficient(
         self, base_u: float, wind_speed: float = 0.0, precipitation: float = 0.0
     ) -> float:
@@ -730,14 +728,6 @@ class ThermalModel:
             u_wind *= rain_factor
 
         return u_wind
-
-    def effective_heat_loss_coefficient_legacy(
-        self, wind_speed: float = 0.0, precipitation: float = 0.0
-    ) -> float:
-        """Compute effective heat loss coefficient (backward compat wrapper)."""
-        return self.effective_heat_loss_coefficient(
-            self.params.heat_loss_coefficient, wind_speed, precipitation
-        )
 
     def compute_solar_gain(self, solar_radiation: float) -> float:
         """Compute total solar heat gain in kW from solar radiation (W/m²).
@@ -969,18 +959,17 @@ class ThermalModel:
         new_room = state.room_temperature + dT_room * dt_hours
         new_slab = state.slab_temperature + dT_slab * dt_hours
 
-        return ThermalState(
+        # ``replace`` carries every field not overridden — enumerating them
+        # here silently reset the legionella clock and the external-heat flag
+        # to their defaults on every simulated step.
+        return replace(
+            state,
             room_temperature=new_room,
             slab_temperature=new_slab,
             outdoor_temperature=outdoor_temp,
             upper_floor_temperature=new_room,
             lower_floor_temperature=new_room,
-            buffer_tank_temperature=state.buffer_tank_temperature,
-            floor_return_temperature=state.floor_return_temperature,
             solar_radiation=solar_radiation,
-            dhw_temperature=state.dhw_temperature,
-            ecl110_displace_command=state.ecl110_displace_command,
-            ecl110_effective_displace=state.ecl110_effective_displace,
         )
 
     # ------------------------------------------------------------------
@@ -1025,7 +1014,7 @@ class ThermalModel:
         q_solar_upper, q_solar_lower = self.solar_gain_per_zone(solar_radiation)
 
         # Internal gains split proportional to area ratio
-        area_ratio = getattr(p, "upper_floor_area_ratio", 0.5) if hasattr(p, "upper_floor_area_ratio") else 0.5
+        area_ratio = p.upper_floor_area_ratio
         q_internal_upper = p.internal_gains * area_ratio
         q_internal_lower = p.internal_gains * (1.0 - area_ratio)
 
@@ -1066,9 +1055,11 @@ class ThermalModel:
             # What the valve will actually pass, which is what the house is
             # asking for -- and the surplus above it has nowhere to go but the
             # tank. This is the line that makes the tank a store.
-            area_ratio = getattr(p, "upper_floor_area_ratio", 0.5)
+            area_ratio = p.upper_floor_area_ratio
             house_temp = T_upper * area_ratio + T_lower * (1.0 - area_ratio)
-            target = p.mixing_valve_target or (house_temp + 1.0)
+            # An unconfigured target means the top of the comfort band, as
+            # documented everywhere the option is described.
+            target = p.mixing_valve_target or p.comfort_ceiling
             demand = mixing_valve.delivery_demand(
                 indoor_temp=house_temp,
                 target_temp=target,
@@ -1098,7 +1089,16 @@ class ThermalModel:
         if throttled:
             # Physical ceiling: heat that would push the tank past its safe
             # temperature cannot go there.
-            dT_buf = min(dT_buf, (p.buffer_max_temp - T_buf) / max(dt_hours, 1e-6))
+            # Charging must not push past the cap — but only the charging
+            # direction is clamped. An unconditional min() forced a tank read
+            # *above* the cap down to it within one step, deleting the excess
+            # stored energy from the model (13.4 kWh in a 15-minute step for a
+            # 75 °C reading against a 60 °C cap) instead of letting it cool at
+            # its physical rate.
+            dT_buf = min(
+                dT_buf,
+                max(0.0, p.buffer_max_temp - T_buf) / max(dt_hours, 1e-6),
+            )
 
         # --- Slab dynamics ---
         q_slab_to_lower = p.slab_heat_transfer * (T_slab - T_lower)
@@ -1128,19 +1128,17 @@ class ThermalModel:
         # Weighted average for legacy room_temperature field
         avg_room = new_upper * area_ratio + new_lower * (1.0 - area_ratio)
 
-        return ThermalState(
+        # Same ``replace`` discipline as the single-zone step: fields not
+        # overridden are carried, not reset.
+        return replace(
+            state,
             room_temperature=avg_room,
             slab_temperature=new_slab,
             outdoor_temperature=outdoor_temp,
             upper_floor_temperature=new_upper,
             lower_floor_temperature=new_lower,
             buffer_tank_temperature=new_buf,
-            floor_return_temperature=state.floor_return_temperature,
             solar_radiation=solar_radiation,
-            dhw_temperature=state.dhw_temperature,
-            dhw_hours_since_legionella=state.dhw_hours_since_legionella,
-            ecl110_displace_command=state.ecl110_displace_command,
-            ecl110_effective_displace=state.ecl110_effective_displace,
         )
 
     # ------------------------------------------------------------------
@@ -1315,127 +1313,6 @@ class ThermalModel:
             current_hour += dt_hours
 
         return room_temps, slab_temps, upper_temps, lower_temps, dhw_temps
-
-    def get_state_matrices(
-        self,
-        outdoor_temp: float,
-        wind_speed: float = 0.0,
-        precipitation: float = 0.0,
-        dt_hours: float = 0.25,
-    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-        """Get discrete-time state-space matrices for the thermal model.
-
-        For single-zone: State x = [T_room, T_slab], Input u = P_el
-        For two-zone: State x = [T_upper, T_lower, T_slab, T_buf], Input u = P_el
-
-        Returns: (A, B, E) for x[k+1] = A*x[k] + B*u[k] + E*d[k]
-        """
-        p = self.params
-
-        if not p.two_zone_enabled:
-            return self._get_state_matrices_single(
-                outdoor_temp, wind_speed, precipitation, dt_hours
-            )
-        return self._get_state_matrices_two_zone(
-            outdoor_temp, wind_speed, precipitation, dt_hours
-        )
-
-    def _get_state_matrices_single(
-        self,
-        outdoor_temp: float,
-        wind_speed: float,
-        precipitation: float,
-        dt_hours: float,
-    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-        """State-space matrices for the single-zone model."""
-        p = self.params
-        cop = self.compute_cop(outdoor_temp)
-        u_eff = self.effective_heat_loss_coefficient(
-            p.heat_loss_coefficient, wind_speed, precipitation
-        )
-
-        a11 = -(p.slab_heat_transfer + u_eff) / p.room_thermal_mass
-        a12 = p.slab_heat_transfer / p.room_thermal_mass
-        a21 = -p.slab_heat_transfer / p.slab_thermal_mass
-        a22 = -p.slab_heat_transfer / p.slab_thermal_mass
-
-        A_cont = np.array([[a11, a12], [a21, a22]])
-        B_cont = np.array([[0.0], [cop / p.slab_thermal_mass]])
-        E_cont = np.array([
-            [u_eff / p.room_thermal_mass, 1.0 / p.room_thermal_mass],
-            [0.0, 0.0],
-        ])
-
-        A = np.eye(2) + A_cont * dt_hours
-        B = B_cont * dt_hours
-        E = E_cont * dt_hours
-        return A, B, E
-
-    def _get_state_matrices_two_zone(
-        self,
-        outdoor_temp: float,
-        wind_speed: float,
-        precipitation: float,
-        dt_hours: float,
-    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-        """State-space matrices for the two-zone model.
-
-        State: [T_upper, T_lower, T_slab, T_buf]
-        """
-        p = self.params
-        cop = self.compute_cop(outdoor_temp)
-
-        u_upper = self.effective_heat_loss_coefficient(
-            p.upper_floor_heat_loss, wind_speed, precipitation
-        )
-        u_lower = self.effective_heat_loss_coefficient(
-            p.lower_floor_heat_loss_learned, wind_speed * 0.5, precipitation * 0.5
-        )
-
-        C_u = p.upper_floor_thermal_mass
-        C_l = p.lower_floor_thermal_mass
-        C_s = p.slab_thermal_mass
-        C_b = max(p.buffer_tank_thermal_mass, 0.01)
-
-        k_inter = p.inter_zone_transfer
-        k_slab = p.slab_heat_transfer
-        k_buf = p.buffer_tank_heat_loss_coefficient
-        f_rad = p.radiator_power_fraction
-
-        A_cont = np.zeros((4, 4))
-        # T_upper row
-        A_cont[0, 0] = -(u_upper + k_inter) / C_u
-        A_cont[0, 1] = k_inter / C_u
-        # T_lower row
-        A_cont[1, 0] = k_inter / C_l
-        A_cont[1, 1] = -(u_lower + k_inter) / C_l
-        A_cont[1, 2] = k_slab / C_l
-        # T_slab row
-        A_cont[2, 1] = -k_slab / C_s
-        A_cont[2, 2] = -k_slab / C_s
-        # T_buffer row
-        A_cont[3, 3] = -k_buf / C_b
-
-        # B (4x1) - input = P_electrical
-        B_cont = np.array([
-            [f_rad * cop / C_u],
-            [0.0],
-            [(1 - f_rad) * cop / C_s],
-            [cop / C_b],
-        ])
-
-        # E (4x2) - disturbance = [T_outdoor, Q_internal_total]
-        E_cont = np.array([
-            [u_upper / C_u, 0.5 / C_u],
-            [u_lower / C_l, 0.5 / C_l],
-            [0.0, 0.0],
-            [k_buf / C_b, 0.0],
-        ])
-
-        A = np.eye(4) + A_cont * dt_hours
-        B = B_cont * dt_hours
-        E = E_cont * dt_hours
-        return A, B, E
 
     def update_slab_from_return_temp(
         self, state: ThermalState, return_temp: float

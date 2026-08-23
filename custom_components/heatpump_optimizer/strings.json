@@ -10,7 +10,6 @@
           "weather_entity": "Weather forecast",
           "indoor_temp_entity": "Indoor temperature sensor",
           "outdoor_temp_entity": "Outdoor temperature sensor",
-          "heat_pump_entity": "Heat pump thermostat",
           "heat_pump_switch_entity": "Heat pump on/off switch",
           "solar_radiation_entity": "Solar radiation sensor",
           "floor_return_temp_entity": "Floor heating return temperature sensor",
@@ -34,7 +33,6 @@
           "weather_entity": "Where the outdoor temperature, wind and rain forecast comes from. The optimizer plans 24 hours ahead, so a forecast is required.",
           "indoor_temp_entity": "Optional. The actual room temperature. Without it the optimizer trusts its own model, which drifts over time.",
           "outdoor_temp_entity": "Optional. A local outdoor thermometer is more accurate than the forecast for the current hour.",
-          "heat_pump_entity": "Optional. A climate entity the optimizer can set a temperature on.",
           "heat_pump_switch_entity": "Optional. A switch used to turn the heat pump off during expensive hours.",
           "solar_radiation_entity": "Optional. Sunshine in W/m2. Lets the optimizer skip heating before a sunny afternoon that will warm the house for free.",
           "floor_return_temp_entity": "Optional. Water temperature coming back from the floor loops, used to gauge how much heat the slab is holding.",
@@ -178,7 +176,8 @@
     },
     "error": {
       "invalid_tibber_token": "That Tibber token was not accepted. Check it at developer.tibber.com and try again.",
-      "invalid_dhw_windows": "Those time frames could not be read. Use 24-hour times separated by commas, for example \"06:00-08:30, 17:00-22:00\"."
+      "invalid_dhw_windows": "Those time frames could not be read. Use 24-hour times separated by commas, for example \"06:00-08:30, 17:00-22:00\".",
+      "dhw_min_too_close": "A hot water minimum this close to the setpoint leaves the tank no working band; keep it at least 5 \\u00b0C below the setpoint."
     },
     "abort": {
       "already_configured": "This integration is already set up."
@@ -217,7 +216,6 @@
           "buffer_tank_temp_entity": "Buffer tank temperature sensor",
           "floor_return_temp_entity": "Floor heating return temperature sensor",
           "lower_floor_temp_entity": "Lower floor temperature sensor",
-          "heat_pump_entity": "Heat pump thermostat",
           "heat_pump_switch_entity": "Heat pump on/off switch",
           "solar_forecast_source": "Solar irradiance source",
           "solar_location": "Solar irradiance location",
@@ -235,7 +233,6 @@
           "buffer_tank_temp_entity": "Optional. When set, the integration learns how fast the buffer tank loses heat instead of relying on the configured estimate.",
           "floor_return_temp_entity": "Optional. Water temperature coming back from the floor loops, used to gauge how much heat the slab is holding.",
           "lower_floor_temp_entity": "Optional, two-zone only. A real thermometer in the lower zone. Without one the lower floor is inferred from the floor return water, which runs several degrees warmer than the room and makes the zone look warmer than it is.",
-          "heat_pump_entity": "Optional. A climate entity the optimizer can set a temperature on.",
           "heat_pump_switch_entity": "Optional. A switch used to turn the heat pump off during expensive hours.",
           "solar_forecast_source": "Where to get solar irradiance from. \"Weather entity\" uses your weather integration, which often does not publish irradiance at all. \"Open-Meteo\" fetches a free forecast for the location below; no account is needed.",
           "solar_location": "Coordinate used for the Open-Meteo irradiance forecast. Defaults to your Home Assistant home location. Only used when the source is Open-Meteo.",
@@ -452,7 +449,7 @@
       },
       "mixing_valve": {
         "title": "Mixing valve and heat storage",
-        "description": "A mixing valve throttles how much heat reaches the house, which is what lets surplus go into the buffer tank instead. Leave this at \"No mixing valve\" if you do not have one - the model is already correct for that case.",
+        "description": "A mixing valve throttles how much heat reaches the house, which is what lets surplus go into the buffer tank instead. Leave this at \"No mixing valve\" if you do not have one - the model is already correct for that case. These settings only take effect with the two-zone model configured; without it the valve model is not part of the simulation.",
         "data": {
           "mixing_valve_mode": "Mixing valve",
           "mixing_valve_target": "Valve target temperature",
@@ -469,7 +466,8 @@
     },
     "error": {
       "invalid_tibber_token": "That Tibber token was not accepted. Check it at developer.tibber.com and try again.",
-      "invalid_dhw_windows": "Those time frames could not be read. Use 24-hour times separated by commas, for example \"06:00-08:30, 17:00-22:00\"."
+      "invalid_dhw_windows": "Those time frames could not be read. Use 24-hour times separated by commas, for example \"06:00-08:30, 17:00-22:00\".",
+      "dhw_min_too_close": "A hot water minimum this close to the setpoint leaves the tank no working band; keep it at least 5 \\u00b0C below the setpoint."
     }
   },
   "selector": {

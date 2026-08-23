@@ -1,5 +1,162 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v3.8.0
+
+This is an audit release. The whole codebase — the planning economics, the
+thermal physics, the self-learning model and the timekeeping — was reviewed
+end to end, every finding was verified against the code and against
+simulation before being touched, and everything that survived verification is
+fixed here. There are no new features. What there is instead is a planner
+whose numbers you can trust further than before, and several long-standing
+errors that were quietly costing money or comfort.
+
+Some of the figures you are used to will change, and each case is explained
+below. The full technical record is in `docs/audit-2026-08.md` in the
+repository, with one commit per finding on the audit branch.
+
+### Fixed: a sliver of solar surplus made whole hours look free
+
+If you have solar panels configured, the planner priced any step with *any*
+forecast surplus — even 50 W of winter sun — as though the entire step cost
+only your export compensation. A full compressor draw in a barely-sunny
+quarter-hour looked nearly free, so plans piled consumption into exactly the
+wrong steps, and the cost figures were priced on the same fiction.
+
+Consuming is now priced the way your meter prices it: energy up to the
+forecast surplus costs the export compensation you give up, and everything
+beyond it costs the import price. That applies in the planning itself, in how
+hot water picks its hours (a genuinely sunny midday can now win a slot over a
+merely cheap night), and in every reported cost. A live production sensor, if
+you have configured one, is now actually used for the current step.
+
+### Your savings are now measured against your own schedule
+
+The savings figure compares the plan against a conventional thermostat. That
+thermostat used to hold your daytime temperature around the clock, even if
+you have a night setback configured — so whatever your setback was worth was
+silently mixed into the "savings".
+
+The reference now follows the same day and night schedule you gave the
+optimizer. Expect the percentage to change. In winter it often goes *up*:
+a conventional setback thermostat recovers at full power straight into the
+morning price peak, and dodging that peak is genuine value the old
+comparison hid. Either way, the number now answers the question you actually
+have — what does the optimizer save compared to a normal thermostat running
+my schedule.
+
+### Windy forecasts no longer panic the plan
+
+The default wind sensitivity claimed a 10 m/s wind raises your heat loss by
+150 %. Only the draught-driven share of a house's loss responds to wind at
+all; measured studies put that wind at roughly +20–40 % for typical houses.
+Every windy forecast therefore over-bought heat, and the self-learning model
+spent weeks slowly compensating for it.
+
+The default is now 3 % per m/s, and the README gains a table for choosing a
+value by how tight and how exposed your house is. If you ever saved the
+thermal options page, the old 0.15 is stored in your configuration — it is
+worth lowering it to about 0.03 yourself.
+
+### Fixed: radiator-heated houses were modelled as nearly unheatable
+
+The building presets gave a radiator house the thermal properties of a
+floor-heating loop: all the heat was routed through a huge, sluggish store
+that could barely pass it on, as though your radiators were a concrete slab
+with the circulation of a teacup. The model compensated in strange ways, and
+the plan inherited them. A radiator circuit is now modelled as what it is —
+a small, well-coupled loop — and the building's heavy structure contributes
+to coasting instead of blocking delivery.
+
+Separately, a floor-heated lower floor had its heavy mass counted twice, so
+plans coasted on stored heat the building does not have.
+
+Presets only apply when you run the building step, so an existing setup keeps
+its old numbers: if your house is radiator-heated, or two-zone with a heated
+floor downstairs, re-running the building preset in the options is worth
+doing.
+
+### The self-learning model stops drifting on sensor noise
+
+Several of the passive learners had asymmetries that turned pure sensor noise
+into slow, one-way drift — the heat-loss estimate ratcheted upward by about
+20 % over two simulated months on noise alone. All of them now treat both
+sides of a measurement equally. Alongside that: the learned efficiency
+correction now survives a restart instead of silently resetting to the
+nameplate figure, frost losses and efficiency losses are no longer both
+blamed for the same shortfall, and the hot-water usage pattern no longer
+mistakes the tank's ordinary standby cooling for someone showering at 3 am.
+
+### Prices, weather and the capacity tariff now follow the clock
+
+Data was matched to the plan by list position, which assumed everything was
+fresh and hourly. If a price fetch had been failing since yesterday, the
+whole plan silently ran on yesterday's prices; a weather forecast fetched two
+hours ago read the entire day two hours out of phase; and Tibber's 15-minute
+prices would each have been stretched to a full hour. Everything now aligns
+by its own timestamps — which also makes the integration ready for
+quarter-hourly pricing.
+
+The capacity tariff's metering windows now sit on your grid company's clock
+rather than the plan's. A one-hour burst that the meter bills inside a single
+window was previously split across two and half-forgiven, which under-priced
+exactly the plans a capacity tariff exists to discourage.
+
+### Hot water plans are deliverable, and pinned steps are honoured
+
+Steps you force off in a pinned plan now reach the hot-water planners as
+constraints, so the energy they displace is re-bought in the hours that
+remain instead of silently vanishing from the tank. Schedules no longer
+contain trickle steps below the power the pump can actually run at. And the
+safety check that releases a pin rather than let the tank or the house go
+cold now watches the whole day, not only the first hours.
+
+### Away mode plans with the house it actually has
+
+The time-to-warm estimate used a fixed rate; it is now a real simulation of
+your house recovering at full power, so returning to a warm home is planned
+with your building's actual sluggishness. Presence sensors that report the
+"wrong way round" (occupancy-style devices) are read correctly, and the
+setback now also lowers the temperature the plan aims for, not just the
+comfort floor.
+
+### Smaller fixes worth knowing about
+
+- The daily cost and savings sensors are now valid long-term statistics in
+  Home Assistant (they were silently rejected before).
+- The mixing-valve options page no longer resurrects a cleared valve entity,
+  and with no target set the valve now defaults to the top of your comfort
+  band — the setting that actually lets a tank charge.
+- An over-hot buffer tank no longer has its extra heat deleted by the
+  temperature cap in a single step.
+- The "Optimize now" button visibly disables while a solve is running.
+- Dragging a slot on the card no longer pops the slot dialog when you let
+  go, and the dialog's text no longer shrinks after re-renders.
+- Service calls from automations are validated with real bounds and real
+  error messages.
+- The external-heat detector was blind at 60-minute update intervals; it now
+  scales its sampling window with your update interval.
+- The two-zone floor-area split you configure is now actually used (it was
+  silently fixed at 50/50).
+- The "Heat pump thermostat" option is gone. It was collected and translated
+  and never read; nothing you configured there ever did anything.
+
+### Why the buffer tank still does not charge — answered
+
+The open question from v3.7.1 is answered, and the answer is recorded in the
+backlog. Half of it is fixed in this release: with no valve target configured
+the model chased a target that receded as the house warmed, so surplus never
+diverted to the tank. The decisive half remains and is now precisely
+understood: the model lets stored heat *leave* the tank far faster than the
+house can accept it, so every plan ends with the same empty tank and charging
+looks pointless to the solver. The fix is designed and written up in the
+backlog; it is the next piece of the storage work rather than part of an
+audit release.
+
+**Being straight about what changed under you.** Plans will differ from
+v3.7.1 — that is the point of most of the fixes above. If a number surprises
+you, `docs/audit-2026-08.md` names the change that moved it and the reasoning
+behind it.
+
 ## v3.7.1
 
 ### Fixed: heat left in the buffer tank was treated as worthless

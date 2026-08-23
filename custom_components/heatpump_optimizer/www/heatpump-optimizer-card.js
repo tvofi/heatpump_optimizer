@@ -10,7 +10,7 @@
  */
 
 const CARD_TAG = "heatpump-optimizer-card";
-const CARD_VERSION = "3.7.1";
+const CARD_VERSION = "3.8.0";
 
 const DEFAULTS = {
   title: "Heat pump plan",
@@ -201,12 +201,10 @@ const REASON_LABELS = {
   preheat_weather: "Pre-heating before colder weather",
   terminal_value: "Leaving the house warm past the horizon",
   solar_surplus: "Using solar surplus",
-  recovery: "Warming up before you return",
   dhw_window: "Hot water needed now",
   dhw_ready: "Getting the tank ready for a demand window",
   dhw_preheat: "Charging the tank while electricity is cheap",
   legionella: "Anti-legionella cycle",
-  peak_avoidance: "Staying under the capacity tariff peak",
   manual_plan: "You scheduled this",
   idle: "Not heating",
 };
@@ -997,6 +995,11 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // The dialog is a sibling of ha-card, not a child, so a click inside it
     // never bubbles into the card's own open-on-click handler.
     const dialog = this._expanded && anyData ? this._dialogHtml(built) : "";
+
+    // The rebuild below replaces the <dialog> element wholesale, so the font
+    // memo must forget the old element's size or _scaleDialogFont will skip
+    // the write and leave the fresh dialog's chrome at card size.
+    this._dialogFontPx = 0;
 
     this.shadowRoot.innerHTML = `
       <ha-card class="${anyData ? "clickable" : ""}">
@@ -2807,6 +2810,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
       if (!drag) return;
       const at = this._timeAtClientX(svg, ev.clientX);
       if (at === null) return;
+      drag.moved = true;
       const delta = at - drag.from;
       const bounds = this._editBounds();
       const next = drag.edge
@@ -2821,6 +2825,13 @@ class HeatpumpOptimizerCard extends HTMLElement {
 
     const onUp = () => {
       if (!this._drag) return;
+      // The browser synthesises a click after pointerup — preventDefault on
+      // pointerdown suppresses compatibility mouse events but not click — and
+      // on the inline chart that click bubbles to ha-card and pops the
+      // expanded dialog open at the end of every drag. Same one-shot
+      // suppression the pan gesture uses; a drag ending off-svg spends it on
+      // nothing, which the pan path already accepts.
+      if (this._drag.moved) this._suppressClick = true;
       this._drag = null;
       this._render();
     };
