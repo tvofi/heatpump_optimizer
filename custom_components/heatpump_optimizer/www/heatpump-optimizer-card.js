@@ -10,7 +10,7 @@
  */
 
 const CARD_TAG = "heatpump-optimizer-card";
-const CARD_VERSION = "3.4.0";
+const CARD_VERSION = "3.4.1";
 
 const DEFAULTS = {
   title: "Heat pump plan",
@@ -312,6 +312,11 @@ function fmtTick(v) {
   if (Math.abs(v) >= 10) return v.toFixed(0);
   if (Number.isInteger(v)) return String(v);
   return v.toFixed(1);
+}
+
+/** Rough rendered width of a label, in the chart's viewBox units. */
+function textWidth(str, size) {
+  return str.length * size * CHAR_WIDTH_EM;
 }
 
 /** Editing model for hand-arranged run slots.
@@ -2236,18 +2241,41 @@ class HeatpumpOptimizerCard extends HTMLElement {
       this._timeAxis(scaleX, plotT, plotB, windowStart, windowEnd, font)
     );
 
-    // Value axes
+    // Value axes. Where two axes share a side, the inner one's title has only
+    // the gap to the outer axis to live in, and that gap does not grow with
+    // the font: at the expanded size "SEK/kWh" is wider than the 46 units
+    // between the price and solar axes, so it used to run straight through
+    // "W/m2". Measure the title and, when it does not fit, hang it off the
+    // inside of its own axis line instead -- the strip above the plot frame
+    // is empty, so the title stays beside the axis it names either way.
+    const titleFits = (unit, room) =>
+      textWidth(unit, font) + font * 0.6 <= room;
+    const powerTitleInset = 44;
+    const tempAnchor =
+      axes.power && !titleFits("\u00b0C", powerTitleInset) ? "start" : "end";
+    const priceAnchor =
+      axes.solar && !titleFits("SEK/kWh", SOLAR_AXIS_INSET) ? "end" : "start";
+
     if (axes.temp)
       parts.push(
-        this._valueAxis(axes.temp, plotL, plotB, plotH, "left", 0, scaleY, "temp", "\u00b0C", font)
+        this._valueAxis(
+          axes.temp, plotL, plotB, plotH, "left", 0,
+          scaleY, "temp", "\u00b0C", font, tempAnchor
+        )
       );
     if (axes.power)
       parts.push(
-        this._valueAxis(axes.power, plotL, plotB, plotH, "left", 44, scaleY, "power", "kW", font)
+        this._valueAxis(
+          axes.power, plotL, plotB, plotH, "left", powerTitleInset,
+          scaleY, "power", "kW", font
+        )
       );
     if (axes.price)
       parts.push(
-        this._valueAxis(axes.price, plotR, plotB, plotH, "right", 0, scaleY, "price", "SEK/kWh", font)
+        this._valueAxis(
+          axes.price, plotR, plotB, plotH, "right", 0,
+          scaleY, "price", "SEK/kWh", font, priceAnchor
+        )
       );
     if (axes.solar)
       parts.push(
@@ -3028,7 +3056,8 @@ class HeatpumpOptimizerCard extends HTMLElement {
   }
 
   _valueAxis(
-    axis, xBase, plotB, plotH, side, inset, scaleY, axisName, unit, font
+    axis, xBase, plotB, plotH, side, inset, scaleY, axisName, unit, font,
+    titleAnchor
   ) {
     const size = font || FONT_BASE;
     const out = [];
@@ -3047,9 +3076,15 @@ class HeatpumpOptimizerCard extends HTMLElement {
         `<line x1="${x}" y1="${y}" x2="${t1}" y2="${y}" stroke="var(--secondary-text-color,#aaa)" stroke-width="0.75"/>`
       );
     }
+    // The title sits on the strip above the plot frame, normally running away
+    // from the chart like the tick labels do. When that would run it into the
+    // next axis out, the caller flips it to the other side of its own axis
+    // line, where the strip above the plot is empty.
     const uy = MARGIN.top - 4;
+    const ta = titleAnchor || anchor;
+    const ux = ta === "end" ? x - 5 : x + 5;
     out.push(
-      `<text x="${tx}" y="${uy}" font-size="${size}" text-anchor="${anchor}" fill="var(--secondary-text-color,#888)">${esc(
+      `<text x="${ux}" y="${uy}" font-size="${size}" text-anchor="${ta}" fill="var(--secondary-text-color,#888)">${esc(
         unit
       )}</text>`
     );

@@ -1125,6 +1125,32 @@ axis titles collide in the expanded view when the solar series is on --
 expanded font needs ~58. Confirmed pre-existing by reproducing it identically
 (22.5px vs 23.1px) under the old width formula.
 
+### Value axis titles collide when two axes share a side (found 2026-08-23)
+
+**Done.** Found while verifying item 26, deliberately not fixed there, and fixed
+separately here.
+
+The price axis title sits at viewBox x=797 and the solar axis title at x=843 --
+46 units apart, a gap that does not scale. `FONT_EXPANDED` is 15, so "SEK/kWh"
+needs roughly 58 units and overlapped "W/m2" by ~23px on screen.
+
+The fix measures the title with the same `length * size * CHAR_WIDTH_EM` model
+the time axis already uses for its own collision checks, and flips the anchor to
+the inside of its own axis line when it will not fit. **It reduces exactly to the
+old expression when no flip is needed** (`ux === tx` for the default anchor), so
+the uncrowded case is byte-identical and the solar title never moves.
+
+Two notes for whoever touches the chart tests next:
+
+- **`_hidden` is persisted in localStorage, and the `tests/card.mjs` stub shares
+  one store across every `build()` in the file.** An earlier test that hides a
+  series leaves it hidden for every later one. The first version of these tests
+  passed while silently not rendering the solar axis at all -- i.e. not testing
+  the crowded case. There is now an explicit `withAllSeries()` helper and a check
+  that both right-hand axes are actually present.
+- Mutation tested: reverting the flip fails the expanded overlap check while the
+  inline one still passes, which is correct -- at `FONT_BASE` 10 the titles fit.
+
 ## 27. The buffer tank is in the state vector but is not a store
 
 > **Decision and verification, 2026-08-23. Read this before the item text.**
