@@ -15,7 +15,9 @@ the MQTT interface this integration drives.
 
 Versions 2.3.0 onward were developed in this fork. Both projects are MIT
 licensed. Thank you to strutsfarm for the original code and for releasing it
-under a licence that made this possible.
+under a licence that made this possible. The formal attribution is recorded in
+[NOTICE](NOTICE); `LICENSE` is kept as the verbatim MIT text so that automated
+licence detection recognises it.
 
 ## Disclaimer
 

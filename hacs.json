@@ -1,6 +1,5 @@
 {
   "name": "Heat Pump Cost Optimizer",
   "render_readme": true,
-  "domains": ["heatpump_optimizer"],
   "homeassistant": "2024.1.0"
 }

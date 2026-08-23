@@ -1,9 +1,10 @@
 {
   "domain": "heatpump_optimizer",
   "name": "Heat Pump Cost Optimizer",
+  "after_dependencies": ["mqtt"],
   "codeowners": ["@heatpump-optimizer"],
   "config_flow": true,
-  "dependencies": [],
+  "dependencies": ["http"],
   "documentation": "https://github.com/heatpump-optimizer/ha-heatpump-optimizer",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/heatpump-optimizer/ha-heatpump-optimizer/issues",
