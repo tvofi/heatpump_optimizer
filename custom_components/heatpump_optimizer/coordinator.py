@@ -163,7 +163,7 @@ from .const import (
     MANUAL_PLAN_STORE_VERSION,
     SIMULATE_MIN_INTERVAL_SECONDS,
 )
-from .inputs import InputHealth, InputReader, stale_summary
+from .inputs import InputHealth, InputReader, normalize_power_kw, stale_summary
 from .external_heat import (
     ExternalHeatConfig,
     ExternalHeatDetector,
@@ -2156,6 +2156,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             return
 
         self._optimization_running = True
+        # Announce the flip: the Optimize Now button disables itself off this
+        # flag, and without a listener update the change is invisible until
+        # the next scheduled refresh — after the solve is already over.
+        self.async_update_listeners()
         away_original: dict[str, float] | None = None
         try:
             horizon = self._forecast_arrays()
@@ -2267,6 +2271,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             if away_original is not None:
                 self._restore_away_setback(away_original)
             self._optimization_running = False
+            self.async_update_listeners()
 
     async def async_set_mode(self, mode: str) -> None:
         """Set the operation mode."""
@@ -3880,6 +3885,24 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._config.get(CONF_PV_EXPORT_PRICE), DEFAULT_PV_EXPORT_PRICE
         )
 
+    def _pv_measured_production(self, config: pv_model.PVConfig) -> float | None:
+        """Live production in kW from the configured entity, if readable."""
+        entity_id = config.production_entity
+        if not entity_id:
+            return None
+        state = self.hass.states.get(entity_id)
+        if state is None or str(state.state).lower() in ("unknown", "unavailable", ""):
+            return None
+        try:
+            value = float(state.state)
+        except (TypeError, ValueError):
+            return None
+        unit = state.attributes.get("unit_of_measurement")
+        converted = normalize_power_kw(value, unit)
+        if converted is None or not np.isfinite(converted):
+            return None
+        return max(0.0, converted)
+
     def _pv_forecast(
         self, solar_rad: np.ndarray, n_steps: int
     ) -> tuple[np.ndarray, dict[str, Any]]:
@@ -3887,14 +3910,23 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         config = self._pv_config()
         if not config.enabled or config.peak_kw <= 0:
             self._pv_summary = {}
+            self._pv_production = None
             return np.zeros(n_steps, dtype=float), {}
         production = pv_model.forecast_production_kw(solar_rad[:n_steps], config)
+        # A meter on the inverter beats the irradiance model for the step being
+        # acted on right now; the rest of the horizon stays modelled.
+        self._pv_production = self._pv_measured_production(config)
+        if self._pv_production is not None and len(production):
+            production = production.copy()
+            production[0] = min(self._pv_production, config.peak_kw)
         baseline = self._baseline_house_load(n_steps)
         if not np.any(baseline > 0):
             baseline = np.full(n_steps, config.default_baseline_kw, dtype=float)
         surplus = pv_model.surplus_kw(production, baseline)
         summary = pv_model.summarize(production, surplus, self._opt_config.dt_hours)
         summary["export_price"] = round(config.export_price, 4)
+        if self._pv_production is not None:
+            summary["measured_production_kw"] = round(self._pv_production, 3)
         self._pv_summary = summary
         return surplus, summary
 

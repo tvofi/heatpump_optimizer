@@ -267,16 +267,23 @@ def peak_cost(
     times the sum of its top-k excesses above what the month already commits
     to, which is what this computes.
 
-    Two things fall out of getting the algebra right rather than approximating:
+    Two things fall out of that algebra:
 
-    * **It is exact.** Charging only the single largest excess, as this
-      previously did, under-states a plan with several high hours — precisely
-      the plan a capacity tariff exists to discourage.
+    * **Several high hours all count.** Charging only the single largest
+      excess, as this previously did, under-states a plan with several high
+      hours — precisely the plan a capacity tariff exists to discourage.
     * **The solver can see it.** ``max`` has zero gradient everywhere except at
       one window, so a gradient-based optimizer got a signal at 1 step in 96
       and the term was effectively inert; the measured result was that enabling
       the tariff *raised* the peak. Summing the top k gives every one of those
       k windows a gradient.
+
+    It is still an upper bound on the true marginal bill, not an exact figure:
+    each of the plan's top-k windows is charged as if it displaced a billed
+    peak, but only windows that end the *month* in the top k actually do.
+    Early in a month that is usually true; late in a high-peak month it
+    over-charges and the plan is more peak-shy than strictly necessary —
+    the conservative side of the error.
 
     Only the excess above the threshold is charged: if the month already has a
     9 kW peak recorded, an 8 kW hour changes nothing and costs nothing.
@@ -306,8 +313,9 @@ def realised_peak(
 ) -> float:
     """The peak a plan would actually be billed on, in kW.
 
-    The true maximum, not the smoothed one: the smoothing exists to give the
-    solver a gradient, and reporting it to the user would overstate the peak.
+    The highest metering-window average over the horizon — the quantity the
+    DSO meters — not the per-step maximum, which would overstate the peak by
+    however much of a burst the window average dilutes.
     """
     house = np.asarray(total_power_kw, dtype=float) + np.asarray(
         baseline_load_kw, dtype=float

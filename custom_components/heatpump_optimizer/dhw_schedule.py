@@ -212,17 +212,6 @@ def hours_until_next_window(hour: float, windows: list[Window]) -> float | None:
     return best
 
 
-def window_bounds_for(hour: float, windows: list[Window]) -> Window | None:
-    """Return the window containing ``hour``, if any."""
-    if not windows:
-        return None
-    h = hour % 24.0
-    for start, end in windows:
-        if start <= h < end or (end >= 24.0 and h >= start):
-            return (start, end)
-    return None
-
-
 def is_valid_spec(spec: str) -> bool:
     """Return True when the specification parses successfully."""
     try:

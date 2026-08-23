@@ -21,7 +21,6 @@ from .const import (
     CONF_WEATHER_ENTITY,
     CONF_INDOOR_TEMP_ENTITY,
     CONF_OUTDOOR_TEMP_ENTITY,
-    CONF_HEAT_PUMP_ENTITY,
     CONF_HEAT_PUMP_SWITCH_ENTITY,
     CONF_SOLAR_RADIATION_ENTITY,
     CONF_SOLAR_FORECAST_SOURCE,
@@ -379,7 +378,6 @@ class HeatPumpOptimizerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Required(CONF_WEATHER_ENTITY): _entity_of("weather"),
                     vol.Optional(CONF_INDOOR_TEMP_ENTITY): _entity_of("sensor", "temperature"),
                     vol.Optional(CONF_OUTDOOR_TEMP_ENTITY): _entity_of("sensor", "temperature"),
-                    vol.Optional(CONF_HEAT_PUMP_ENTITY): _entity_of("climate"),
                     vol.Optional(CONF_HEAT_PUMP_SWITCH_ENTITY): _entity_of("switch"),
                     vol.Optional(CONF_SOLAR_RADIATION_ENTITY): _entity_of("sensor"),
                     vol.Optional(
@@ -706,7 +704,6 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
     _ENTITIES_PAGE_KEYS = (
         CONF_INDOOR_TEMP_ENTITY,
         CONF_OUTDOOR_TEMP_ENTITY,
-        CONF_HEAT_PUMP_ENTITY,
         CONF_HEAT_PUMP_SWITCH_ENTITY,
         CONF_SOLAR_RADIATION_ENTITY,
         CONF_FLOOR_RETURN_TEMP_ENTITY,
@@ -861,7 +858,6 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
                     _entity(CONF_BUFFER_TANK_TEMP_ENTITY): _entity_of("sensor", "temperature"),
                     _entity(CONF_FLOOR_RETURN_TEMP_ENTITY): _entity_of("sensor", "temperature"),
                     _entity(CONF_LOWER_FLOOR_TEMP_ENTITY): _entity_of("sensor", "temperature"),
-                    _entity(CONF_HEAT_PUMP_ENTITY): _entity_of("climate"),
                     _entity(CONF_HEAT_PUMP_SWITCH_ENTITY): _entity_of("switch"),
                     # Measured electrical draw. Optional, and everything that
                     # uses it degrades cleanly without it — but with it, COP

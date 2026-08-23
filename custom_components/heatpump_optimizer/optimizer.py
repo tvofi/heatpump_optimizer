@@ -1,33 +1,34 @@
 """Model Predictive Control optimizer for heat pump cost minimization.
 
-This module implements a TRUE predictive MPC optimizer that determines the
-optimal heat pump power schedule over a 24-hour horizon to minimize electricity
-costs while maintaining indoor temperature and DHW within comfort bounds.
+Plans the heat pump's power schedule over the forecast horizon (24 h by
+default, 15-minute steps) against forecast prices and weather, re-solved every
+update interval with only the first step ever acted on.
 
-KEY PREDICTIVE FEATURES (anticipatory, not just reactive):
+**How the solve is structured.** Hot water is a deferrable on/off load, so it
+is planned first by a linear program plus a cheapest-first repair against the
+real tank simulation (`_build_dhw_requirements`); a gradient solver would
+smear it into an unrealizable trickle. Space heating is then optimized around
+the fixed DHW blocks by multi-start L-BFGS-B, and one co-optimization pass
+re-plans hot water against the solved space profile where the two competed
+for the compressor.
 
-1. **Solar Anticipation**: If high solar radiation is forecasted in next 12-24h,
-   REDUCE current slab pre-heating because solar will provide free heat later.
-   This saves money by not pre-heating what the sun will heat for free.
+**What the space objective actually minimizes:**
 
-2. **Wind/Rain Anticipation**: If high wind/rain is forecasted, INCREASE current
-   pre-heating during cheap electricity periods to buffer against upcoming
-   higher heat loss. The slab thermal mass stores this heat.
+    grid_cost(P_space + P_dhw)        piecewise in PV surplus, × price_weight
+    + comfort terms                   pull-to-target, floor/ceiling penalties
+    + smoothness                      0.01 · Σ ΔP²
+    + (cycling + capacity tariff)     × price_weight
+    + terminal cost                   value of heat stored at the horizon end
 
-3. **DHW Co-optimization**: Coordinate space heating and DHW heating to use
-   the heat pump capacity optimally. DHW is heated during cheap electricity
-   when possible, subject to minimum temperature constraints.
+subject to 0 ≤ P_space[k] ≤ P_max − P_dhw[k] (the pump can be off; values
+below its modulation floor read as duty cycling within the step) and the
+thermal dynamics of the configured model. Comfort bounds are soft penalties,
+not constraints — a hard band could make a cold morning infeasible.
 
-The optimization problem is:
-
-    minimize   Σ price[k] * (P_space[k] + P_dhw[k]) * dt
-             + comfort_weight * Σ penalty_space[k]
-             + dhw_weight * Σ penalty_dhw[k]
-    subject to T_min ≤ T_room[k] ≤ T_max  (soft constraint)
-               T_dhw[k] ≥ T_dhw_min  (hard-ish constraint)
-               P_space[k] + P_dhw[k] ≤ P_max  (capacity constraint)
-               P_min ≤ P_space[k], P_dhw[k] ≤ P_max
-               Thermal dynamics (two-zone + DHW state model)
+Weather anticipation is emergent rather than a separate term: the trajectory
+simulation applies forecast solar gain and wind/rain loss factors at each
+step, so heating before a sunny spell or coasting into a windy evening prices
+itself.
 """
 from __future__ import annotations
 
@@ -218,12 +219,10 @@ REASON_CHEAP_PRICE = "cheap_price"
 REASON_PREHEAT_WEATHER = "preheat_weather"
 REASON_TERMINAL_VALUE = "terminal_value"
 REASON_SOLAR_SURPLUS = "solar_surplus"
-REASON_RECOVERY = "recovery"
 REASON_DHW_WINDOW = "dhw_window"
 REASON_DHW_READY = "dhw_ready"
 REASON_DHW_PREHEAT = "dhw_preheat"
 REASON_LEGIONELLA = "legionella"
-REASON_PEAK_AVOIDANCE = "peak_avoidance"
 REASON_IDLE = "idle"
 
 
@@ -1108,18 +1107,12 @@ class HeatPumpOptimizer:
         outdoor_temps: np.ndarray,
         dt_hours: float,
     ) -> dict[str, Any]:
-        """Analyze the full 24-hour forecast for anticipatory control signals.
+        """Summarise the forecast into a few scalar anticipation signals.
 
-        This is the core of the PREDICTIVE optimization — looking ahead to
-        determine how current actions should be modified.
-
-        Returns a dict with anticipatory signals:
-        - future_solar_energy: total forecasted solar gain (kWh) over horizon
-        - solar_peak_hours: indices of high solar radiation periods
-        - future_wind_loss_factor: weighted future wind heat loss increase
-        - future_rain_loss_factor: weighted future rain heat loss increase
-        - pre_heat_urgency: 0-1 signal indicating how much to pre-heat now
-        - solar_savings_potential: how much the sun will heat for free
+        The real anticipation lives in the trajectory simulation, which
+        applies forecast solar gain and wind/rain loss factors step by step;
+        these scalars only shape the solver's *initial guess* and give the
+        log a one-line summary of what the horizon looks like.
         """
         n = len(solar_radiation)
         if n == 0:
@@ -3238,7 +3231,7 @@ class HeatPumpOptimizer:
             p.lower_floor_heat_loss_learned, wind_speed * 0.5, precipitation * 0.5
         )
         q_solar_upper, q_solar_lower = self.model.solar_gain_per_zone(solar_radiation)
-        area_ratio = getattr(p, "upper_floor_area_ratio", 0.5)
+        area_ratio = p.upper_floor_area_ratio
         q_int_upper = p.internal_gains * area_ratio
         q_int_lower = p.internal_gains * (1.0 - area_ratio)
 
@@ -3429,75 +3422,17 @@ class HeatPumpOptimizer:
         space_power_schedule: np.ndarray,
         dhw_power_schedule: np.ndarray | None = None,
     ) -> list[bool]:
-        """Convert optimized power to ON/OFF decisions for supply enable.
-
-        Heat pump is considered ON when either space heating power OR DHW power
-        is above the activation threshold.
-        """
+        """ON/OFF supply-enable decisions: ON when either circuit clears the
+        activation threshold."""
         p = self.model.params
         on_threshold = max(0.1, p.min_electrical_power * 0.5)
-
-        if dhw_power_schedule is None:
-            dhw_power_schedule = np.zeros_like(space_power_schedule)
-
-        schedule: list[bool] = []
-        for i, (space_power, dhw_power) in enumerate(
-            zip(space_power_schedule, dhw_power_schedule)
-        ):
-            space_on = bool(space_power >= on_threshold)
-            dhw_on = bool(dhw_power >= on_threshold)
-            heat_pump_on = space_on or dhw_on
-
-            reason = "off"
-            if space_on and dhw_on:
-                reason = "space_and_dhw"
-            elif space_on:
-                reason = "space_only"
-            elif dhw_on:
-                reason = "dhw_only"
-
-            _LOGGER.debug(
-                (
-                    "Heat pump decision step=%d: optimal_space=%.3f kW, "
-                    "optimal_dhw=%.3f kW, threshold=%.3f kW -> "
-                    "heat_pump_on=%s (%s)"
-                ),
-                i,
-                float(space_power),
-                float(dhw_power),
-                float(on_threshold),
-                heat_pump_on,
-                reason,
-            )
-            schedule.append(heat_pump_on)
-
-        if len(space_power_schedule) > 0:
-            first_space = float(space_power_schedule[0])
-            first_dhw = float(dhw_power_schedule[0])
-            first_space_on = first_space >= on_threshold
-            first_dhw_on = first_dhw >= on_threshold
-            first_on = first_space_on or first_dhw_on
-
-            first_reason = "off"
-            if first_space_on and first_dhw_on:
-                first_reason = "space_and_dhw"
-            elif first_space_on:
-                first_reason = "space_only"
-            elif first_dhw_on:
-                first_reason = "dhw_only"
-
-            _LOGGER.debug(
-                (
-                    "Heat pump first-step summary: optimal_space[0]=%.3f kW, "
-                    "optimal_dhw[0]=%.3f kW -> heat_pump_on=%s (%s)"
-                ),
-                first_space,
-                first_dhw,
-                first_on,
-                first_reason,
-            )
-
-        return schedule
+        space = np.asarray(space_power_schedule, dtype=float)
+        dhw = (
+            np.zeros_like(space)
+            if dhw_power_schedule is None
+            else np.asarray(dhw_power_schedule, dtype=float)
+        )
+        return (np.maximum(space, dhw) >= on_threshold).tolist()
 
     def get_current_action(
         self, result: OptimizationResult, current_time: datetime

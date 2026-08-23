@@ -19,7 +19,7 @@ python tests/entities.py     # entities, platforms, options pages, translations
 python tests/open_meteo.py   # the irradiance client
 python tests/solar_alignment.py  # irradiance lands on the right optimizer steps
 python tests/golden.py       # exact behaviour, pinned (--record to re-record)
-python tests/validate.py     # 19 seasonal scenarios, asserts invariants
+python tests/validate.py     # 18 seasonal scenarios, asserts invariants
 python tests/edge.py         # degenerate inputs and boundary conditions
 python tests/backtest.py     # replay against alternative strategies
 python tests/stress.py       # 48 combinations, 17 edge cases, economics

@@ -25,7 +25,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -300,11 +300,3 @@ class ExternalHeatDetector:
         exists to prevent.
         """
         return self.state.active or self.state.fading
-
-    def freeze_until(self) -> datetime | None:
-        """When the learners may resume, given the decay window."""
-        if self.state.last_active is None:
-            return None
-        return self.state.last_active + timedelta(
-            minutes=self.config.decay_minutes
-        )

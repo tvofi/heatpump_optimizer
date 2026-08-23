@@ -201,12 +201,10 @@ const REASON_LABELS = {
   preheat_weather: "Pre-heating before colder weather",
   terminal_value: "Leaving the house warm past the horizon",
   solar_surplus: "Using solar surplus",
-  recovery: "Warming up before you return",
   dhw_window: "Hot water needed now",
   dhw_ready: "Getting the tank ready for a demand window",
   dhw_preheat: "Charging the tank while electricity is cheap",
   legionella: "Anti-legionella cycle",
-  peak_avoidance: "Staying under the capacity tariff peak",
   manual_plan: "You scheduled this",
   idle: "Not heating",
 };
