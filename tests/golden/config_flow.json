@@ -344,6 +344,14 @@
    "required": "Optional",
    "selector": "EntitySelector"
   },
+  "lower_floor_temp_entity": {
+   "config": {
+    "filter": "[{'domain': ['sensor'], 'device_class': ['temperature']}]"
+   },
+   "default": null,
+   "required": "Optional",
+   "selector": "EntitySelector"
+  },
   "outdoor_temp_entity": {
    "config": {
     "filter": "[{'domain': ['sensor'], 'device_class': ['temperature']}]"

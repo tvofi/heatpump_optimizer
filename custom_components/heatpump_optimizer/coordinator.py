@@ -36,6 +36,7 @@ from .const import (
     CONF_HEAT_PUMP_SWITCH_ENTITY,
     CONF_SOLAR_RADIATION_ENTITY,
     CONF_FLOOR_RETURN_TEMP_ENTITY,
+    CONF_LOWER_FLOOR_TEMP_ENTITY,
     CONF_DHW_TEMP_ENTITY,
     CONF_DHW_SCHEDULE_ENABLED,
     CONF_DHW_WINDOWS,
@@ -2100,7 +2101,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._current_state.outdoor_temperature = outdoor.value
 
         # Floor heating return temperature sensor
-        floor_return_entity = self._config.get(CONF_FLOOR_RETURN_TEMP_ENTITY)
         floor_return = reader.read(CONF_FLOOR_RETURN_TEMP_ENTITY)
         if floor_return.ok:
             self._floor_return_temp = floor_return.value
@@ -2109,7 +2109,21 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._thermal_model.update_slab_from_return_temp(
                 self._current_state, self._floor_return_temp
             )
-            # Lower floor temp ~ return temp (rough estimate)
+
+        # The lower zone's room temperature, best source first.
+        #
+        # A real thermometer beats both estimates and is the only one that
+        # carries information. The return-temp estimate below is a *water*
+        # temperature standing in for an air temperature -- typically 3-9 K too
+        # warm -- and because the slab is derived from the same sensor as
+        # `return + 1.0`, the slab-to-room difference it produces is pinned at a
+        # constant 0.5 K whatever the sensor reads. So the main heat path into
+        # the lower zone is both wrong and unresponsive, and the error is judged
+        # against the same comfort bounds as the upper floor.
+        lower_floor = reader.read(CONF_LOWER_FLOOR_TEMP_ENTITY)
+        if lower_floor.ok:
+            self._current_state.lower_floor_temperature = lower_floor.value
+        elif floor_return.ok:
             self._current_state.lower_floor_temperature = (
                 self._floor_return_temp + 0.5
             )
@@ -2193,16 +2207,27 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             )
             self._ecl110_current_displace = self._current_state.ecl110_displace_command
 
-        # If no floor return sensor, estimate slab from room temp
-        if not floor_return_entity:
+        # Last resort: seed the slab, and the lower zone if nothing better has
+        # been read, from the room temperature.
+        #
+        # This used to be guarded on the floor-return *entity* being unset while
+        # the branch above is guarded on the *reading* being good. A sensor that
+        # was configured but stale or unavailable satisfied neither, so both
+        # values silently held whatever they were last set to, with nothing
+        # marking them as unfreshened. Guarding both on the reading closes that
+        # gap. The seed still happens once per process, because nothing else
+        # advances these fields between cycles -- but it now happens for a
+        # broken sensor as well as for an absent one.
+        if not floor_return.ok:
             if not hasattr(self, "_slab_temp_initialized"):
                 self._current_state.slab_temperature = (
                     self._current_state.room_temperature + 1.0
                 )
+                self._slab_temp_initialized = True
+            if not lower_floor.ok:
                 self._current_state.lower_floor_temperature = (
                     self._current_state.room_temperature
                 )
-                self._slab_temp_initialized = True
 
     def _learning_frozen(self, *keys: str) -> str | None:
         """Why learning should be skipped this interval, or ``None``.

@@ -22,6 +22,14 @@ CONF_HEAT_PUMP_SWITCH_ENTITY: Final = "heat_pump_switch_entity"
 # Two-zone sensor configuration
 CONF_SOLAR_RADIATION_ENTITY: Final = "solar_radiation_entity"
 CONF_FLOOR_RETURN_TEMP_ENTITY: Final = "floor_return_temp_entity"
+# A real thermometer in the lower zone, if the house has one.
+#
+# Without it the lower zone's *room* temperature is inferred as the floor return
+# temperature plus 0.5 K -- a water temperature standing in for an air
+# temperature, typically 3-9 K too warm. That value is judged against the same
+# comfort bounds as the upper floor, so the zone reads as permanently
+# overshooting and the optimizer under-heats the one room it cannot see.
+CONF_LOWER_FLOOR_TEMP_ENTITY: Final = "lower_floor_temp_entity"
 
 # Solar irradiance forecast source.
 #
@@ -518,6 +526,10 @@ RAIN_COOLING_FACTOR: Final = 0.01  # kW/°C per mm/h
 # limit is registered here rather than inline.
 INPUT_MAX_AGE_MINUTES[CONF_BUFFER_TANK_TEMP_ENTITY] = 60.0
 INPUT_MAX_AGE_MINUTES[CONF_PV_PRODUCTION_ENTITY] = 30.0
+# Matches the indoor sensor: it is the same kind of measurement, read on the
+# same cycle. A key missing from this table gets no age limit at all, which
+# silently disables the staleness watchdog for it.
+INPUT_MAX_AGE_MINUTES[CONF_LOWER_FLOOR_TEMP_ENTITY] = 60.0
 
 # Attributes for the measured power / COP feature
 ATTR_MEASURED_POWER: Final = "measured_power"

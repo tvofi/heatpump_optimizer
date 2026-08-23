@@ -2,14 +2,15 @@
 
 Started at the end of the v2.7.0 release session, kept up to date since.
 
-**Status as of v3.3.0. Items 1-21 are all done**, released across v2.8.0,
-v2.9.0 and v3.0.0. **Items 22, 23 and 26 are now done too** (see the notes
-appended to each). **Items 24-25 and 27-31 are open**, none started. Items 24
-and 25 are one job and are written up together.
+**Status as of v3.4.0. Items 1-21 are all done**, released across v2.8.0,
+v2.9.0 and v3.0.0. **Items 22, 23, 26 and 30 are now done too** (see the notes
+appended to each). **Items 24-25, 27-29 and 31 are open.** Items 24 and 25 are
+one job and are written up together, and are next.
 
 Scope decision (user, 2026-08-23): 26, 24+25, 30 and 31 are being done now, one
 PR each. The wood-furnace cluster (27-29) is deferred and will be re-planned
-once item 27's modelling fork is settled -- see the note under item 27.
+once item 27's modelling fork is settled -- the decision and the verification
+are recorded under item 27.
 
 Items 27-31 are one cluster, added 2026-08-23, about a house with a wood
 furnace, a second buffer tank and a mixing valve. **Item 27 is a modelling bug
@@ -1670,6 +1671,57 @@ empty for a two-zone scenario, the sensor is not actually being consumed.
 one optional sensor, one branch, and it makes the two-zone model honest. It is
 also a precondition for trusting anything measured about the lower zone, so if
 the wood-furnace cluster gets built, do this first.
+
+**Done.** `CONF_LOWER_FLOOR_TEMP_ENTITY`, optional, two-zone only. Precedence is
+real sensor > `return + 0.5` > `room_temperature`.
+
+- **This item's test guidance was wrong, and it matters.** It says to expect
+  golden churn and to treat an empty diff as proof the sensor is not consumed.
+  In fact **no golden scenario reaches this code at all**: the plan fixtures seed
+  `ThermalState` directly, and the coordinator captures call `_forecast_arrays`
+  and `_build_data_dict` but never `_update_current_state`. The only fixture that
+  moved was `config_flow.json`, from the new schema field. An empty plan diff was
+  the expected result.
+- **So the evidence had to be built.** `tests/features.py` gained a section that
+  drives the real coordinator's `_update_current_state` against `FakeHass`
+  states -- the first test in the suite to exercise the sensor-to-state path at
+  all. Nine checks: precedence, both fallbacks, an unavailable sensor, a stale
+  sensor, and the staleness-table registration.
+- **Two of those checks converge the slab first, deliberately.** The
+  `update_slab_from_return_temp` merge is 0.7 sensor / 0.3 prior, so the
+  `return + 1.0` fixed point takes several cycles. A single-cycle assertion on
+  "slab minus lower is pinned at 0.5 K" **passes for the wrong reason** and goes
+  on passing with the fix reverted -- it did, until it was strengthened. Mutation
+  tested: reverting the fix now fails three checks, one reporting
+  `delta 0.500 (was 0.500)`.
+- **Adjacent bug fixed here too.** The two branches were guarded on different
+  things -- one on `floor_return.ok`, the other on the *entity* being unset -- so
+  a sensor that was configured but stale or unavailable satisfied neither and
+  both `slab_temperature` and `lower_floor_temperature` silently held their last
+  values with nothing marking them unfreshened. Both are guarded on the reading
+  now.
+- Note for item 31: the item's claim that the inferred path pins slab-to-room at
+  0.5 K is **confirmed and now asserted in the suite** — so the regressor really
+  does have zero variance, and `slab_heat_transfer` really is unidentifiable
+  without this sensor.
+
+**This also repairs an existing learner that was silently dead.**
+`_async_learn_house_heat_loss` compares `self._current_state.room_temperature`
+— the *upper* sensor in two-zone mode — against `predicted_state.room_temperature`,
+which two-zone builds as the **area-weighted average of upper and lower**
+(`thermal_model.py:964`). Measured against the real model, one 30-minute step at
+2 kW and -5 °C outdoor:
+
+| lower-zone seed | predicted `avg_room` |
+|---|---|
+| 21.0 °C (real sensor) | 21.100 |
+| 28.5 °C (inferred from a 28 °C return) | 24.842 |
+
+That is a **+3.74 K structural residual** against
+`HOUSE_LOSS_MAX_RESIDUAL = 1.0`, so on any two-zone house with a floor-return
+sensor the learner rejected **every** sample and never learned at all — logged
+only at DEBUG. Worth checking `house_heat_loss_samples` on a real install before
+and after; if it was stuck near 0, that is this bug.
 
 ## 31. Learn the two-zone coupling coefficients
 

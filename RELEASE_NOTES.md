@@ -1,5 +1,47 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v3.4.0
+
+Two-zone houses can now tell the optimizer what the lower floor is actually
+doing, instead of having it guessed from the floor return water.
+
+### A real lower floor sensor
+
+Two-zone mode plans against two room temperatures, but only the upper one ever
+had a sensor. The lower zone was inferred as the floor return temperature plus
+half a degree — and that is a *water* temperature standing in for an air
+temperature. A floor loop returns at roughly 24–30 °C while the room it serves
+sits near 21, so the model believed the lower floor was several degrees warmer
+than it really was. Because both zones are judged against the same comfort band,
+the lower one looked like it was permanently overshooting, and the optimizer
+under-heated the room it could not see.
+
+There was a quieter problem underneath. The slab estimate came from the *same*
+sensor, as the return plus one degree, so the gap between slab and room was
+always exactly 0.5 K no matter what the sensor read. The main heat path into the
+lower zone was therefore stuck at a constant value and could not respond to
+anything.
+
+Set **Lower floor temperature sensor** in Step 1, or under Options → Entities,
+and both problems go away. It is optional and two-zone only; without it the old
+estimate is still used, so nothing changes until you add one. The order of
+preference is a real sensor, then the return-temperature estimate, then the
+upper floor's reading.
+
+### Fixed
+
+- **The house heat loss learner was silently dead on these houses.** It compares
+  the upper sensor against the model's area-weighted average of both zones, so
+  the inflated lower zone introduced a structural error of about 3.7 °C — well
+  past the 1 °C residual it refuses to learn from. On a two-zone install with a
+  floor return sensor it therefore rejected every sample and never learned
+  anything, with nothing but a debug log to say so. With a real sensor the
+  residual is back in range. If `house_heat_loss_samples` has been stuck near
+  zero on your system, this is why.
+- A floor return sensor that was configured but had gone stale or unavailable
+  used to leave both the slab and the lower floor holding whatever they were
+  last set to, with nothing marking them as unfreshened. Both now fall back
+  cleanly.
 ## v3.3.1
 
 ### Fixed: the enlarged card could render outside its own edge
