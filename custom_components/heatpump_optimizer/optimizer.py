@@ -39,7 +39,7 @@ from typing import Any
 import numpy as np
 from scipy.optimize import linprog, minimize
 
-from . import mixing_valve
+from . import mixing_valve, pv
 from .thermal_model import (
     DHW_AMBIENT_TEMP,
     ThermalModel,
@@ -514,6 +514,12 @@ class OptimizationConfig:
     peak_count: int = 3
     #: Whole-house load excluding the heat pump, per step, in kW.
     baseline_load_kw: Any = None
+
+    # --- PV self-consumption (item 9) -----------------------------------
+    #: What an exported kWh earns, in the currency of the import price. With
+    #: forecast surplus available, consumption up to it is priced at this
+    #: rather than at the import price; see `pv.piecewise_cost`.
+    pv_export_price: float = 0.0
 
     @property
     def n_steps(self) -> int:
@@ -992,6 +998,60 @@ class HeatPumpOptimizer:
 
         return space_power, dhw_power, status
 
+    def _energy_cost_fn(self, prices: np.ndarray, dt: float):
+        """Closure pricing a total electrical draw against the grid, exactly.
+
+        Piecewise in each step's PV surplus: energy up to it displaces an
+        export and costs the export compensation, everything beyond it is
+        imported at the market price. An earlier formulation substituted the
+        export price for the *whole* step whenever any surplus existed, so
+        0.05 kW of winter sun made 6 kW of grid import look nearly free and
+        the plan piled into steps with trivial surplus.
+
+        Inlined rather than delegated to `pv.piecewise_cost` because this
+        runs inside the objective, thousands of times per solve.
+        """
+        surplus = self._pv_surplus
+        if surplus is None or not np.any(surplus[: len(prices)] > 1e-6):
+            def energy_cost(total_power: np.ndarray) -> float:
+                return float(np.sum(prices * total_power) * dt)
+
+            return energy_cost
+
+        surplus = surplus[: len(prices)]
+        margin = pv.import_margin(prices, self.config.pv_export_price)
+
+        def energy_cost(total_power: np.ndarray) -> float:
+            covered = np.minimum(total_power, surplus)
+            return float(
+                (np.sum(prices * total_power) - np.sum(margin * covered)) * dt
+            )
+
+        return energy_cost
+
+    def _dhw_planning_prices(
+        self,
+        prices: np.ndarray,
+        p_dhw_run: float,
+        space_demand: np.ndarray | None = None,
+    ) -> np.ndarray:
+        """The per-step prices the hot-water planners rank steps by.
+
+        A DHW block draws a fixed power, so its piecewise PV cost folds into
+        one blended per-kWh rate per step (`pv.blended_block_prices`). On the
+        co-optimization replan the space profile is already known and takes
+        its share of the surplus first.
+        """
+        surplus = self._pv_surplus
+        if surplus is None or not np.any(surplus[: len(prices)] > 1e-6):
+            return prices
+        surplus = surplus[: len(prices)]
+        if space_demand is not None:
+            surplus = np.clip(surplus - space_demand[: len(prices)], 0.0, None)
+        return pv.blended_block_prices(
+            prices, surplus, self.config.pv_export_price, p_dhw_run
+        )
+
     def _grid_terms(self, n_steps: int, dt: float):
         """Closures for the cycling and capacity-tariff penalties.
 
@@ -1157,11 +1217,12 @@ class HeatPumpOptimizer:
         - Increases pre-heating before forecasted windy/rainy periods
         - Coordinates DHW heating with space heating and electricity prices
 
-        ``prices`` are *marginal* prices: where PV surplus exists the caller
-        substitutes the export compensation, because that is what consuming a
-        kWh actually costs there. ``price_known`` marks which steps rest on
-        published market data rather than on the learned diurnal prior, and
-        ``pv_surplus`` is carried through for reporting and reason codes.
+        ``prices`` are the raw import prices. Where ``pv_surplus`` forecasts
+        spare production, the objectives price consumption piecewise — the
+        surplus-covered energy at ``config.pv_export_price``, the rest at the
+        import price — so a step with trivial sun is not repriced wholesale.
+        ``price_known`` marks which steps rest on published market data rather
+        than on the learned diurnal prior.
         """
         import time
 
@@ -1529,6 +1590,7 @@ class HeatPumpOptimizer:
         comfort_band = np.maximum(comfort_targets - temp_min_bounds, 1.0)
         terminal_cost = self._terminal_cost(prices, outdoor_temps)
         cycling, capacity, baseline_load = self._grid_terms(n_steps, dt)
+        energy_cost_of = self._energy_cost_fn(prices, dt)
 
         def objective(power_schedule: np.ndarray) -> float:
             """Compute the total cost with predictive weather anticipation."""
@@ -1544,10 +1606,8 @@ class HeatPumpOptimizer:
                 )
             )
 
-            # Electricity cost
-            energy_cost = (
-                np.sum(prices * power_schedule * dt) * self.config.price_weight
-            )
+            # Electricity cost, piecewise in PV surplus
+            energy_cost = energy_cost_of(power_schedule) * self.config.price_weight
 
             penalty, comfort_cost = self._comfort_terms(
                 room_temps, upper_temps, lower_temps,
@@ -1655,8 +1715,8 @@ class HeatPumpOptimizer:
             initial_state, outdoor_temps, wind_speeds, precipitation,
             solar_radiation, dt,
         )
-        baseline_cost = float(np.sum(prices * baseline_power * dt))
-        predicted_cost = float(np.sum(prices * optimal_power * dt))
+        baseline_cost = energy_cost_of(baseline_power)
+        predicted_cost = energy_cost_of(optimal_power)
 
         optimized_end = self._replay_end_state(
             initial_state, optimal_power, outdoor_temps, wind_speeds,
@@ -1850,6 +1910,18 @@ class HeatPumpOptimizer:
             ready_idx = max(0, start_idx - 1)
             ready_temps[ready_idx] = max(ready_temps[ready_idx], required_ready)
 
+        # The pump serves DHW as an on/off block, not a trickle, so the planner
+        # allocates at a realistic run power and never below the level at which
+        # the pump would actually be considered running.
+        p_dhw_run = max(0.1, min(p_max * 0.8, p_max))
+        min_run_power = min(p_dhw_run, max(0.15, self.model.params.min_electrical_power * 0.6))
+
+        # What a DHW block actually costs per kWh at each step, with the
+        # surplus-covered fraction at the export price. Everything below that
+        # ranks or optimizes against these, so a sunny midday can win a slot
+        # over a merely cheap night without repricing the whole step.
+        dhw_prices = self._dhw_planning_prices(prices, p_dhw_run, space_demand)
+
         # --- Anti-legionella cycle ---
         legionella_due = False
         legionella_hour: float | None = None
@@ -1866,7 +1938,7 @@ class HeatPumpOptimizer:
             deadline_step = int(np.floor(hours_remaining / dt))
             if deadline_step < n_steps:
                 limit = max(1, min(deadline_step + 1, n_steps))
-                idx = int(np.argmin(prices[:limit]))
+                idx = int(np.argmin(dhw_prices[:limit]))
                 ready_temps[idx] = max(ready_temps[idx], params.dhw_legionella_temp)
                 legionella_due = True
                 legionella_hour = float(hours_mod[idx])
@@ -1894,12 +1966,6 @@ class HeatPumpOptimizer:
             if mask.any():
                 forced_off = mask
 
-        # The pump serves DHW as an on/off block, not a trickle, so the planner
-        # allocates at a realistic run power and never below the level at which
-        # the pump would actually be considered running.
-        p_dhw_run = max(0.1, min(p_max * 0.8, p_max))
-        min_run_power = min(p_dhw_run, max(0.15, self.model.params.min_electrical_power * 0.6))
-
         # Pre-heating is allowed anywhere in the horizon: the planners price the
         # standby losses of storing heat, so an early cheap hour wins only when
         # it is still cheaper after those losses. Capping the lead time instead
@@ -1912,7 +1978,7 @@ class HeatPumpOptimizer:
         seed = self._plan_dhw_min_cost(
             initial_temp=initial_state.dhw_temperature,
             requirement=requirement,
-            prices=prices,
+            prices=dhw_prices,
             outdoor_temps=outdoor_temps,
             draw_rates=draw_rates,
             n_steps=n_steps,
@@ -1928,7 +1994,7 @@ class HeatPumpOptimizer:
         schedule = self._plan_dhw_cheapest_first(
             initial_temp=initial_state.dhw_temperature,
             requirement=requirement,
-            prices=prices,
+            prices=dhw_prices,
             outdoor_temps=outdoor_temps,
             draw_rates=draw_rates,
             n_steps=n_steps,
@@ -1959,7 +2025,7 @@ class HeatPumpOptimizer:
         schedule = self._plan_dhw_cheapest_first(
             initial_temp=initial_state.dhw_temperature,
             requirement=requirement,
-            prices=prices,
+            prices=dhw_prices,
             outdoor_temps=outdoor_temps,
             draw_rates=draw_rates,
             n_steps=n_steps,
@@ -2642,18 +2708,16 @@ class HeatPumpOptimizer:
         # for the compressor. They do: both want the cheapest hours. So the
         # split is iterated below, re-planning DHW against the space-heating
         # profile it actually has to share the pump with.
-        def dhw_cost_of(plan: np.ndarray) -> float:
-            return float(np.sum(prices * plan * dt) * self.config.price_weight)
 
         # See ``_optimize_space_only`` for why the band normalises the
         # pull-to-target term.
         comfort_band = np.maximum(comfort_targets - temp_min_bounds, 1.0)
         terminal_cost = self._terminal_cost(prices, outdoor_temps)
         cycling, capacity, baseline_load = self._grid_terms(n_steps, dt)
+        energy_cost_of = self._energy_cost_fn(prices, dt)
 
         def objective(
             space_power: np.ndarray,
-            dhw_energy_cost: float = 0.0,
             dhw_plan_power: np.ndarray | None = None,
         ) -> float:
             """Space heating objective given the fixed DHW schedule."""
@@ -2669,11 +2733,18 @@ class HeatPumpOptimizer:
                 )
             )
 
-            # --- Electricity cost (total: space + DHW) ---
-            energy_cost = (
-                np.sum(prices * space_power * dt) * self.config.price_weight
-                + dhw_energy_cost
+            # The compressor is one machine: the grid sees the *combined*
+            # draw, so the energy cost, the PV surplus it may consume, the
+            # cycling term and the house peak are all properties of the sum,
+            # not of space heating alone.
+            combined = (
+                space_power
+                if dhw_plan_power is None
+                else space_power + dhw_plan_power
             )
+
+            # --- Electricity cost (total: space + DHW), piecewise in PV ---
+            energy_cost = energy_cost_of(combined) * self.config.price_weight
 
             space_penalty, comfort_cost = self._comfort_terms(
                 room_temps, upper_temps, lower_temps,
@@ -2689,14 +2760,6 @@ class HeatPumpOptimizer:
             # applies solar gain and the wind/rain loss factors; see the
             # space-only objective for why the extra heuristic terms were
             # removed.
-
-            # The compressor is one machine, so cycling and the house peak are
-            # properties of the *combined* draw, not of space heating alone.
-            combined = (
-                space_power
-                if dhw_plan_power is None
-                else space_power + dhw_plan_power
-            )
 
             return (
                 energy_cost + space_penalty + comfort_cost
@@ -2731,7 +2794,6 @@ class HeatPumpOptimizer:
             headroom = np.maximum(0.0, p_max - dhw_plan)
             guess = init_base if warm_start is None else warm_start
             guess = np.minimum(np.clip(guess, 0.0, p_max), headroom)
-            cost_dhw = dhw_cost_of(dhw_plan)
             bounds = [(0.0, float(headroom[i])) for i in range(n_steps)]
             # Manual space pins apply here just as in the DHW-free path. Forcing
             # a step on raises its lower bound, but only as far as the headroom
@@ -2754,22 +2816,22 @@ class HeatPumpOptimizer:
                 starts.append(headroom * 0.5)
             try:
                 res = _multi_start_minimize(
-                    objective, starts, bounds, args=(cost_dhw, dhw_plan), maxiter=300
+                    objective, starts, bounds, args=(dhw_plan,), maxiter=300
                 )
                 power = np.clip(res.x, 0.0, headroom)
                 return (
                     power,
                     _solver_status(
-                        res, lambda x: objective(x, cost_dhw, dhw_plan), guess
+                        res, lambda x: objective(x, dhw_plan), guess
                     ),
-                    float(objective(power, cost_dhw, dhw_plan)),
+                    float(objective(power, dhw_plan)),
                 )
             except Exception as e:
                 _LOGGER.error("Space heating optimization (with DHW) failed: %s", e)
                 return (
                     guess,
                     f"failed ({e})",
-                    float(objective(guess, cost_dhw, dhw_plan)),
+                    float(objective(guess, dhw_plan)),
                 )
 
         optimal_space, status, best_score = solve_space(optimal_dhw, None)
@@ -2818,10 +2880,15 @@ class HeatPumpOptimizer:
             dhw_setpoint - DHW_AMBIENT_TEMP, 0.0
         )
         baseline_dhw = np.full(n_steps, (p.dhw_draw_power + standby_loss) / cop_dhw)
-        baseline_cost = float(np.sum(prices * (baseline_power + baseline_dhw) * dt))
+        # All three figures are piecewise in the PV surplus, like the objective.
+        # The baseline house would self-consume the same sun, so pricing only
+        # the optimized plan that way would manufacture fictitious savings.
+        baseline_cost = energy_cost_of(baseline_power + baseline_dhw)
         total_optimal_power = optimal_space + optimal_dhw
-        predicted_cost = float(np.sum(prices * total_optimal_power * dt))
-        dhw_cost = float(np.sum(prices * optimal_dhw * dt))
+        predicted_cost = energy_cost_of(total_optimal_power)
+        # Hot water's share is its marginal cost on top of space heating, so
+        # the two attributions sum exactly to the total.
+        dhw_cost = predicted_cost - energy_cost_of(optimal_space)
 
         # Settle up the heat the optimized plan left unstored at the horizon end.
         # The baseline reference ends with a tank at setpoint, so compare against

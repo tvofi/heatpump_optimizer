@@ -268,8 +268,9 @@ class ForecastArrays(NamedTuple):
     instead of remembering that position five is the price provenance mask.
     """
 
-    #: *Marginal* prices: the export compensation replaces the import price
-    #: wherever PV surplus exists, because that is what consuming costs there.
+    #: Raw import prices. The optimizer charges consumption piecewise against
+    #: ``pv_surplus`` — up to it at the export compensation, beyond it at
+    #: these — so no repricing happens here.
     prices: np.ndarray
     outdoor_temps: np.ndarray
     wind_speeds: np.ndarray
@@ -2196,6 +2197,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._opt_config.cycling_cost = _as_float(
                 self._config.get(CONF_CYCLING_COST), DEFAULT_CYCLING_COST
             )
+            # The optimizer prices surplus consumption at this, so it has to
+            # travel with the same freshness as the tariff settings above —
+            # an entity-supplied compensation can change between runs.
+            self._opt_config.pv_export_price = self._pv_export_price()
             self._apply_comfort_weight()
 
             # Away mode is applied around the solve and unwound afterwards, so
@@ -2966,31 +2971,26 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             )
         return aligned
 
-    def _apply_pv_pricing(
-        self, prices: np.ndarray, solar: np.ndarray, n_steps: int
-    ) -> tuple[np.ndarray, np.ndarray]:
-        """Replace the import price with the marginal cost of consuming.
+    def _pv_surplus_series(self, solar: np.ndarray, n_steps: int) -> np.ndarray:
+        """Forecast PV surplus per step, for the optimizer to price against.
 
-        While the array is in surplus, an extra kWh does not cost the import
-        price — it costs the export compensation foregone. Substituting it here
-        means every downstream consumer (the hot-water LP, the space objective,
-        the savings settle-up) is right without any structural change.
+        The prices themselves stay the raw import prices: the optimizer
+        charges consumption piecewise against this surplus (up to it at the
+        export compensation, beyond it at the import price), which is what an
+        extra kWh actually costs. Substituting the export price into the
+        series here — the old approach — repriced a whole step on any surplus
+        at all, however trivial.
         """
         surplus, _ = self._pv_forecast(solar, n_steps)
-        if np.any(surplus > 1e-6):
-            prices = pv_model.effective_prices(
-                prices, surplus, self._pv_export_price()
-            )
         self._pv_surplus = surplus
-        return prices, surplus
+        return surplus
 
     def _forecast_arrays(self) -> ForecastArrays:
         """Everything the optimizer needs to know about the horizon.
 
         Assembled in one place because the pieces depend on each other: the PV
-        surplus is derived from the irradiance series, and the marginal price
-        from the surplus. Computing any of them elsewhere is how the three
-        would drift apart.
+        surplus is derived from the irradiance series the weather assembly
+        produced. Computing them elsewhere is how they would drift apart.
         """
         n_steps = self._opt_config.n_steps
         now = dt_util.now()
@@ -3013,7 +3013,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 series.append(series[-1] if series else 0.0)
 
         solar_array = np.array(solar[:n_steps], dtype=float)
-        prices, surplus = self._apply_pv_pricing(prices, solar_array, n_steps)
+        surplus = self._pv_surplus_series(solar_array, n_steps)
 
         return ForecastArrays(
             prices=prices,

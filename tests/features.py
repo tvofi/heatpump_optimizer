@@ -524,19 +524,73 @@ R.check(
 surplus = pv.surplus_kw(np.array([0.0, 3.0, 6.0]), np.array([1.0, 1.0, 1.0]))
 R.check("surplus is net of the rest of the house", list(surplus) == [0.0, 2.0, 5.0])
 
-effective = pv.effective_prices(
-    np.array([1.5, 1.5, 1.5]), np.array([0.0, 2.0, 5.0]), 0.3
+# The cost of a draw is piecewise: surplus-covered energy at the export
+# price, the rest at the import price. The whole-step substitution this
+# replaced made 0.05 kW of sun reprice a full compressor draw.
+_pw_prices = np.array([1.5, 1.5, 1.5])
+_pw_surplus = np.array([0.0, 2.0, 5.0])
+R.check(
+    "a draw inside the surplus costs the export compensation",
+    abs(pv.piecewise_cost(_pw_prices, _pw_surplus, 0.3, np.array([0.0, 2.0, 4.0]), 1.0)
+        - (2.0 * 0.3 + 4.0 * 0.3)) < 1e-9,
 )
 R.check(
-    "surplus steps are priced at the export compensation",
-    list(effective) == [1.5, 0.3, 0.3],
-    "an extra kWh in surplus costs the export you gave up, not the import price",
+    "a draw beyond the surplus pays the import price for the excess",
+    abs(pv.piecewise_cost(_pw_prices, _pw_surplus, 0.3, np.array([3.0, 6.0, 5.0]), 1.0)
+        - (3.0 * 1.5 + (2.0 * 0.3 + 4.0 * 1.5) + 5.0 * 0.3)) < 1e-9,
+    "epsilon surplus must not reprice a full compressor draw",
 )
-inverted = pv.effective_prices(np.array([0.2]), np.array([5.0]), 0.9)
 R.check(
     "an export price above the import price is clamped",
-    inverted[0] == 0.2,
+    abs(pv.piecewise_cost(np.array([0.2]), np.array([5.0]), 0.9, np.array([2.0]), 1.0)
+        - 2.0 * 0.2) < 1e-9,
     "otherwise the objective would pay the house to consume",
+)
+_blend = pv.blended_block_prices(_pw_prices, _pw_surplus, 0.3, 4.0)
+R.check(
+    "a hot-water block's price blends by the covered fraction",
+    abs(_blend[0] - 1.5) < 1e-9
+    and abs(_blend[1] - (1.5 - 1.2 * 0.5)) < 1e-9
+    and abs(_blend[2] - 0.3) < 1e-9,
+    f"{[round(v, 3) for v in _blend]}",
+)
+
+# The optimizer's objective must charge that same piecewise cost. This is the
+# regression the old formulation failed: 0.05 kW of surplus made a full 6 kW
+# draw look like it cost the export price.
+from heatpump_optimizer.optimizer import HeatPumpOptimizer as _PvOpt
+from heatpump_optimizer.optimizer import OptimizationConfig as _PvOptCfg
+from heatpump_optimizer.thermal_model import ThermalModel as _PvModel
+from heatpump_optimizer.thermal_model import ThermalParameters as _PvParams
+
+_pv_opt = _PvOpt(_PvModel(_PvParams()), _PvOptCfg(pv_export_price=0.3))
+_pv_opt._pv_surplus = np.array([0.05, 4.0, 0.0])
+_pv_cost = _pv_opt._energy_cost_fn(np.array([1.5, 1.5, 1.5]), 1.0)
+_pv_draw = np.array([6.0, 4.0, 6.0])
+_pv_expected = (0.05 * 0.3 + 5.95 * 1.5) + 4.0 * 0.3 + 6.0 * 1.5
+R.check(
+    "the objective reprices the covered sliver, not the whole step",
+    abs(_pv_cost(_pv_draw) - _pv_expected) < 1e-9,
+    f"cost {_pv_cost(_pv_draw):.4f}, exact {_pv_expected:.4f}",
+)
+_pv_opt._pv_surplus = None
+R.check(
+    "without surplus the cost is the plain import bill",
+    abs(_pv_opt._energy_cost_fn(_pw_prices, 1.0)(_pv_draw) - 16.0 * 1.5) < 1e-9,
+)
+_pv_opt._pv_surplus = np.array([0.0, 4.0, 0.0])
+_ranked = _pv_opt._dhw_planning_prices(np.array([1.5, 1.5, 1.5]), 4.0)
+R.check(
+    "hot-water planning ranks a fully covered step at the export price",
+    abs(_ranked[1] - 0.3) < 1e-9 and abs(_ranked[0] - 1.5) < 1e-9,
+)
+_ranked_shared = _pv_opt._dhw_planning_prices(
+    np.array([1.5, 1.5, 1.5]), 4.0, space_demand=np.array([0.0, 2.0, 0.0])
+)
+R.check(
+    "on the replan, space heating takes its surplus share first",
+    abs(_ranked_shared[1] - (1.5 - 1.2 * 0.5)) < 1e-9,
+    f"{_ranked_shared[1]:.3f} should blend only the remaining 2 kW",
 )
 
 
