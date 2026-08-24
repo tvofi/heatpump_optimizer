@@ -367,6 +367,17 @@ DEFAULT_UPPER_FLOOR_AREA_RATIO: Final = 0.5  # equal floors
 DEFAULT_BUFFER_TANK_VOLUME: Final = 35.0  # liters
 DEFAULT_BUFFER_TANK_LOSS: Final = 0.01  # kW/°C - small tank
 
+# Below this volume the buffer tank is not treated as a store, whatever the
+# valve mode: the physics (valve delivery, standing loss, the temperature cap)
+# stay modelled, but the terminal credit and the settlement cap ignore it, so
+# the optimizer cannot plan around charge it could never meaningfully hold.
+# The default 35 L tank is worth ~0.8 kWh over a 20 K swing -- below the
+# resolution of a single 15-minute step -- and the honest behaviour at that
+# size is to stop pretending (item 27). 100 L over a 30 K usable swing is
+# ~3.5 kWh, a couple of hours of winter house load, which is where a store
+# starts to be able to move money.
+BUFFER_STORE_MIN_VOLUME: Final = 100.0  # liters
+
 # Solar gain defaults
 DEFAULT_WINDOW_AREA: Final = 10.0  # m² total glazing area
 DEFAULT_SOLAR_ORIENTATION_FACTOR: Final = 0.7  # south-facing bias

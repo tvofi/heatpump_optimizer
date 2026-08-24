@@ -826,11 +826,14 @@ class HeatPumpOptimizer:
                 (params.lower_floor_thermal_mass, "lower", caps["room"]),
                 (params.slab_thermal_mass, "slab", caps["slab"]),
             )
-            if mixing_valve.is_throttling(params.mixing_valve_mode):
-                # Only with a valve. Without one the tank cannot be charged, so
-                # adding it here would put a constant in the objective -- it
-                # would not change which plan wins, but it would move every
-                # reported number for no reason.
+            if params.buffer_is_store:
+                # Only with a valve, and only a tank big enough to matter.
+                # Without a valve the tank cannot be charged, so adding it
+                # here would put a constant in the objective -- it would not
+                # change which plan wins, but it would move every reported
+                # number for no reason. A tiny tank (item 27) holds less than
+                # one step of heat, and crediting it has the solver planning
+                # around noise.
                 stores = stores + (
                     (params.buffer_tank_thermal_mass, "buffer", caps["buffer"]),
                 )
@@ -3167,11 +3170,12 @@ class HeatPumpOptimizer:
         # 0.0 kWh of the 21.8 kWh actually stored. Charging was pure cost with no
         # modelled benefit, which is why every starting point descended to the
         # same no-storage plan.
-        if mixing_valve.is_throttling(p.mixing_valve_mode):
+        if p.buffer_is_store:
             caps["buffer"] = p.buffer_max_temp
         else:
-            # Without a valve the tank cannot be charged at all, so its cap
-            # cannot change any decision. Left alone so this path stays
+            # Without a valve the tank cannot be charged at all, and below the
+            # store threshold (item 27) it holds too little to matter, so its
+            # cap cannot change any decision. Left alone so these paths stay
             # byte-for-byte identical.
             caps["buffer"] = slab_cap
         if dhw_cap is not None:

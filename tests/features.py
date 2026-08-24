@@ -2263,6 +2263,38 @@ R.check(
     "the tank cannot be charged there, so it must not enter the objective",
 )
 
+# 4b. And inert below the store threshold, valve or not. The default 35 L
+# tank holds ~0.8 kWh over a 20 K swing -- less than one optimizer step --
+# and crediting it would have the solver planning around noise (item 27).
+_p_tiny = ThermalParameters(
+    two_zone_enabled=True, buffer_tank_volume=35.0,
+    mixing_valve_mode="manual", buffer_max_temp=70.0,
+)
+_opt_tiny = _Opt(ThermalModel(_p_tiny), _cfg)
+R.check(
+    "a 35 L tank behind a valve is not a store",
+    not _p_tiny.buffer_is_store,
+    "the default volume must land below the threshold decisively",
+)
+_caps_tiny = _opt_tiny._settlement_caps(_outdoor)
+R.check(
+    "so its settlement cap stays the slab's",
+    _caps_tiny["buffer"] == _caps_tiny["slab"],
+    f"got {_caps_tiny['buffer']:.1f} C",
+)
+_term_tiny = _opt_tiny._terminal_cost(_prices, _outdoor)
+R.check(
+    "and the terminal cost ignores it",
+    _term_tiny(_flat(21.0), _flat(25.0), _flat(21.0), _flat(20.5), _flat(45.0))
+    == _term_tiny(_flat(21.0), _flat(25.0), _flat(21.0), _flat(20.5), _flat(70.0)),
+    "too small to matter must mean too small to plan around",
+)
+R.check(
+    "while a real accumulator on the same valve is one",
+    _opt_valve.model.params.buffer_is_store,
+    "750 L must clear the threshold",
+)
+
 # 5. The trajectory the objective needs must actually be recorded.
 _m_valve.simulate_trajectory(
     _st(45.0), np.full(96, 3.0), _outdoor, dt_hours=0.25

@@ -42,6 +42,7 @@ from . import mixing_valve
 from .mixing_valve import MODE_NONE as MIXING_VALVE_MODE_NONE
 from .const import (
     WATER_SPECIFIC_HEAT as _WATER_SPECIFIC_HEAT,
+    BUFFER_STORE_MIN_VOLUME,
     DEFAULT_HOUSE_THERMAL_MASS,
     DEFAULT_HOUSE_HEAT_LOSS_COEFFICIENT,
     DEFAULT_SLAB_THERMAL_MASS,
@@ -156,6 +157,20 @@ class ThermalParameters:
     # emitter UA out of the nameplate output so the throttled branch reproduces
     # today's delivery at the design point rather than inventing a new balance.
     emitter_design_delta_t: float = 15.0  # K
+
+    @property
+    def buffer_is_store(self) -> bool:
+        """Whether the buffer tank is worth planning around as a store.
+
+        Needs both a valve (or nothing can charge it) and enough volume to
+        matter: the default 35 L tank holds less than one optimizer step of
+        heat, and letting the terminal credit see it would have the solver
+        planning around noise. The physics stay modelled either way.
+        """
+        return (
+            mixing_valve.is_throttling(self.mixing_valve_mode)
+            and self.buffer_tank_volume >= BUFFER_STORE_MIN_VOLUME
+        )
     # The tank's safe ceiling. In the model this clamps the state; in the
     # optimizer it must become a hard constraint, because comfort and tank
     # limits there are soft penalties and the solver would plan to boil it.
