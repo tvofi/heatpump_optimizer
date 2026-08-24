@@ -139,7 +139,7 @@ pricing are outside this project's control.
 - **Energy dashboard integration** — accumulating energy and cost totals, split hot water versus space heating
 - **The house as a virtual battery** — state of charge, capacity and rates published so other automations can use it
 - **Rich sensor entities** — 47 sensors including full heating plans, DHW, predictive insights, per-zone temperatures
-- **Dashboard card** — plots price, planned heating slots, irradiance and predicted temperatures on one graph, with per-series toggles, reason codes and a what-if simulator
+- **Dashboard card** — plots price, planned heating slots, irradiance and predicted temperatures on one graph, with per-series toggles, reason codes, a what-if simulator, and a Setup page drawing your configured system with live sensor readings in place
 - **Climate entity** — virtual thermostat with full HA climate integration
 - **Buttons and binary sensors** — force a run, arm a measurement experiment, and see input health, external heat and away state at a glance
 - **Service calls** — manual optimization, mode changes, runtime parameter tuning, and what-if simulation

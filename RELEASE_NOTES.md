@@ -1,5 +1,34 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v3.12.0
+
+### A picture of your system, in two places
+
+The integration now shows you what it believes your system *is* — house,
+zones, tanks, valves, furnace, and every sensor at its physical place.
+
+**On the card**, the enlarged view gains a second page: next to the plan, a
+**Setup** tab draws the configured system as a diagram, with each sensor's
+live reading shown where the sensor sits — tank temperatures on their tanks,
+zone temperatures in their zones, the valve outlet on the valve. This is the
+diagnostic view the integration has lacked: until now those numbers were
+spread across 47 sensor entities with no picture of how they relate.
+
+**In the options**, a new first entry — *Your system, as configured* — shows
+the same description as a read-only overview, so a mis-assigned sensor ("no,
+my hot water sensor is on the wrong tank") is visible at a glance rather than
+found by reading eleven pages of settings.
+
+Both views are drawn from one description, emitted in one place, so they can
+never disagree about what the system looks like. And both show **empty slots
+as empty, on purpose**: a sensor this setup could use and does not have is
+exactly what the picture exists to reveal. A diagram that silently omits an
+unconfigured sensor merely looks complete.
+
+Clicking the diagram to assign entities is deliberately left for later, as
+the backlog records: the read-only view carries most of the value, and it
+should earn its place first.
+
 ## v3.11.0
 
 ### The wood furnace becomes a number, not a boolean

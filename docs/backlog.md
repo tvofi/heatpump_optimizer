@@ -2,8 +2,12 @@
 
 Started at the end of the v2.7.0 release session, kept up to date since.
 
-**Status as of v3.11.0.** Items 1-31 are done, released across v2.8.0
-through v3.11.0 (29 lacks only `smart_write`). See the notes appended to each item for what was
+**Status as of v3.12.0.** Every item, 1-33, is done, released across v2.8.0
+through v3.12.0 — with two recorded exceptions: item 29 lacks `smart_write`
+(needs an actuation path, and now carries the measured value case: a
+commandable valve could hold charge for the peak), and item 32's
+click-to-assign second stage is deferred until the read-only overview earns
+it. See the notes appended to each item for what was
 actually built and what was found along the way. v3.8.0 is the audit release
 (`docs/audit-2026-08.md` records everything it fixed); v3.10.0 is the release
 where the buffer tank finally charges — the discharge law, the hard
@@ -30,12 +34,14 @@ empirical sizing measured in `tests/backtest.py`.
 - ~~**Item 28**, the wood furnace, in full.~~ Done in v3.11.0 — the
   per-step free-heat harness, the measured payoff, the outlet-sensor
   displacement and the tank-pair decay cut-off. See its status block.
-- **Items 32 and 33**, the setup diagram and the card page.
+- ~~**Items 32 and 33**, the setup diagram and the card page.~~ Done in
+  v3.12.0 — one topology description, the options-flow overview and the
+  card's Setup page. Click-to-assign (32's second stage) remains deferred
+  until the read-only view earns it.
 
 **Item 29 is done except `smart_write`** — see its status blocks. **Item 27 is
-done** through the same work. **Item 28 is done as of v3.11.0** — see its
-status block. **Items 32 and 33** were added 2026-08-23 and are planned but
-not built.
+done** through the same work. **Item 28 is done as of v3.11.0** and **items 32
+and 33 as of v3.12.0** — see their status blocks.
 
 Scope decision (user, 2026-08-23): 26, 24+25, 30 and 31 were done first, one PR
 each, and all shipped. The wood-furnace cluster (27-29) was deferred, re-planned
@@ -2305,6 +2311,21 @@ which is the check that the ratio really is identity at its default.
 
 ## 32. "Easy mode": a visual setup diagram in the config flow
 
+> **Status, 2026-08-24 (v3.12.0): done, in the staged form this item
+> recommends.** One `describe_setup()` (topology.py, pure over config,
+> derived through `ThermalParameters.from_config` so it can never disagree
+> with the model) feeds a read-only "Your system, as configured" page at the
+> top of the options menu, rendered as a fenced monospaced block through
+> `description_placeholders`. Empty slots are listed as `not configured` on
+> purpose. Click-to-assign stays deferred, as recommended.
+>
+> **A finding for whoever attempts the clickable stage:** a generated SVG
+> served from the integration's static path was considered and rejected —
+> that path is unauthenticated (it serves the card JS to the login page),
+> and the topology plus entity ids should not be readable off the LAN. An
+> interactive diagram needs a custom panel with a real auth story, exactly
+> as this item's "where it is hard" paragraph predicted.
+
 > **Status, 2026-08-23: planned, not built.**
 
 
@@ -2349,6 +2370,17 @@ worse than no diagram, because it looks complete. Show the *slots* a setup could
 have and mark the empty ones -- the point is to reveal what is missing.
 
 ## 33. The same diagram on the card, with live values
+
+> **Status, 2026-08-24 (v3.12.0): done.** The expanded dialog gains
+> Plan/Setup tabs; the Setup page draws the system as hand-written inline
+> SVG from the `setup_topology` attribute the plan sensors publish, with
+> live readings straight from `hass.states`. Both traps recorded below were
+> honoured and are tested in `tests/card.mjs`: the current page is instance
+> state that survives `_maybeRender`, and the hidden page is genuinely
+> unrendered rather than `display: none`. Verified in a real browser, which
+> caught two things the stub cannot: same-column pipes must be vertical
+> rather than crossing curves, and long labels are trimmed with an ellipsis
+> instead of colliding with their right-anchored values.
 
 > **Status, 2026-08-23: planned, not built.**
 
