@@ -467,12 +467,14 @@
           "mixing_valve_mode": "Mixing valve",
           "mixing_valve_target": "Valve target temperature",
           "mixing_valve_target_entity": "Valve target sensor",
+          "mixing_valve_write_entity": "Valve control entity",
           "buffer_max_temperature": "Maximum buffer tank temperature"
         },
         "data_description": {
-          "mixing_valve_mode": "\"Set by hand\" is a valve you configure yourself; tell the integration below what you set it to. \"Read from a sensor\" means the integration can see the target but not change it.",
+          "mixing_valve_mode": "\"Set by hand\" is a valve you configure yourself; tell the integration below what you set it to. \"Read from a sensor\" means the integration can see the target but not change it. \"Commanded by the optimizer\" writes the recommended target to the valve's own controller through the control entity below.",
           "mixing_valve_target": "The indoor temperature the valve holds. Leave at 0 to use the top of your comfort band, which is the recommended setting: the building charges first at no efficiency cost, and the tank takes only the surplus.",
           "mixing_valve_target_entity": "Optional. Reads the valve's target rather than using the fixed value above.",
+          "mixing_valve_write_entity": "Required for \"Commanded by the optimizer\": the number or climate entity your valve's controller exposes. The optimizer writes its recommended target there after each planning cycle, and only when the answer changes.",
           "buffer_max_temperature": "The tank is never charged above this, however cheap electricity is."
         }
       }
@@ -530,7 +532,8 @@
       "options": {
         "none": "No mixing valve",
         "manual": "Set by hand",
-        "smart_read": "Read from a sensor"
+        "smart_read": "Read from a sensor",
+        "smart_write": "Commanded by the optimizer"
       }
     }
   }

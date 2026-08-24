@@ -33,6 +33,7 @@ from .const import (
     CONF_MIXING_VALVE_MODE,
     CONF_MIXING_VALVE_TARGET,
     CONF_MIXING_VALVE_TARGET_ENTITY,
+    CONF_MIXING_VALVE_WRITE_ENTITY,
     DEFAULT_BUFFER_MAX_TEMP,
     DEFAULT_MIXING_VALVE_TARGET,
     CONF_BUFFER_TANK_TEMP_ENTITY,
@@ -728,6 +729,7 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
         CONF_WOOD_TANK_TOP_ENTITY,
         CONF_WOOD_TANK_BOTTOM_ENTITY,
         CONF_MIXING_VALVE_TARGET_ENTITY,
+        CONF_MIXING_VALVE_WRITE_ENTITY,
         CONF_PV_PRODUCTION_ENTITY,
         CONF_PV_EXPORT_PRICE_ENTITY,
         CONF_AWAY_PRESENCE_ENTITY,
@@ -1141,11 +1143,15 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
         """Mixing valve, and whether the buffer tank can be used as a store."""
         if user_input is not None:
             cleaned = dict(user_input)
-            # This page's own clearable entity, mirroring the solar/away/
+            # This page's own clearable entities, mirroring the solar/away/
             # learning pages: an absent selector must be written back as None
             # or clearing it silently restores the old entity.
-            if not cleaned.get(CONF_MIXING_VALVE_TARGET_ENTITY):
-                cleaned[CONF_MIXING_VALVE_TARGET_ENTITY] = None
+            for key in (
+                CONF_MIXING_VALVE_TARGET_ENTITY,
+                CONF_MIXING_VALVE_WRITE_ENTITY,
+            ):
+                if not cleaned.get(key):
+                    cleaned[key] = None
             return self._save(cleaned)
 
         current = self._current
@@ -1179,6 +1185,11 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
                     ): _number(0, 30, 0.5, "°C"),
                     _entity(CONF_MIXING_VALVE_TARGET_ENTITY): _entity_of(
                         "sensor", "temperature"
+                    ),
+                    # The actuation path for smart_write: the number or
+                    # climate entity the valve's own controller exposes.
+                    _entity(CONF_MIXING_VALVE_WRITE_ENTITY): _entity_of(
+                        ["number", "input_number", "climate"]
                     ),
                     vol.Optional(
                         CONF_BUFFER_MAX_TEMP,

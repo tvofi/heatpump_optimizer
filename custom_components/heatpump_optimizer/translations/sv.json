@@ -467,12 +467,14 @@
           "mixing_valve_mode": "Shuntventil",
           "mixing_valve_target": "Ventilens börvärde",
           "mixing_valve_target_entity": "Givare för ventilens börvärde",
+          "mixing_valve_write_entity": "Ventilens styrenhet",
           "buffer_max_temperature": "Högsta temperatur i ackumulatortanken"
         },
         "data_description": {
-          "mixing_valve_mode": "\"Ställs in för hand\" är en ventil du själv ställer in; ange nedan vad du ställde den på. \"Läs från givare\" innebär att integrationen kan se börvärdet men inte ändra det.",
+          "mixing_valve_mode": "\"Ställs in för hand\" är en ventil du själv ställer in; ange nedan vad du ställde den på. \"Läs från givare\" innebär att integrationen kan se börvärdet men inte ändra det. \"Styrs av optimeraren\" skriver det rekommenderade börvärdet till ventilens egen styrning via styrenheten nedan.",
           "mixing_valve_target": "Inomhustemperaturen ventilen håller. Lämna på 0 för att använda toppen av ditt komfortintervall, vilket är den rekommenderade inställningen: byggnaden laddas först utan verkningsgradsförlust, och tanken tar bara överskottet.",
           "mixing_valve_target_entity": "Valfritt. Läser ventilens börvärde i stället för det fasta värdet ovan.",
+          "mixing_valve_write_entity": "Krävs för \"Styrs av optimeraren\": den number- eller climate-entitet som ventilens styrning exponerar. Optimeraren skriver sitt rekommenderade börvärde dit efter varje planeringscykel, och bara när svaret ändras.",
           "buffer_max_temperature": "Tanken laddas aldrig över detta, hur billig elen än är."
         }
       }
@@ -530,7 +532,8 @@
       "options": {
         "none": "Ingen shuntventil",
         "manual": "Ställs in för hand",
-        "smart_read": "Läs från givare"
+        "smart_read": "Läs från givare",
+        "smart_write": "Styrs av optimeraren"
       }
     }
   }

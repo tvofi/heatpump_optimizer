@@ -335,6 +335,16 @@ CONF_BUFFER_COOLING_RATE: Final = "buffer_cooling_rate"  # °C/h at reference
 CONF_MIXING_VALVE_MODE: Final = "mixing_valve_mode"
 CONF_MIXING_VALVE_TARGET: Final = "mixing_valve_target"  # °C indoor
 CONF_MIXING_VALVE_TARGET_ENTITY: Final = "mixing_valve_target_entity"
+# The entity `smart_write` commands: a number, input_number or climate entity
+# exposed by the valve's own controller. This is the actuation path the mode
+# waited for -- a mode that cannot do what its name says is worse than one
+# that is absent, so `smart_write` only became selectable when this landed.
+CONF_MIXING_VALVE_WRITE_ENTITY: Final = "mixing_valve_write_entity"
+# Do not rewrite the valve target for changes smaller than this. The write
+# runs after every optimization cycle, and most cycles the answer is the same
+# number -- hammering a device with identical setpoints every 15 minutes
+# wears flash on some controllers and floods others' logs.
+MIXING_VALVE_WRITE_EPSILON: Final = 0.25  # K
 CONF_BUFFER_MAX_TEMP: Final = "buffer_max_temperature"  # °C
 DEFAULT_BUFFER_MAX_TEMP: Final = 70.0  # °C
 # 0.0 means "not set": the comfort ceiling is used instead, which is the

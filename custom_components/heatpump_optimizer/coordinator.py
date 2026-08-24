@@ -39,6 +39,8 @@ from .const import (
     CONF_FLOOR_RETURN_TEMP_ENTITY,
     CONF_LOWER_FLOOR_TEMP_ENTITY,
     CONF_MIXING_VALVE_TARGET_ENTITY,
+    CONF_MIXING_VALVE_WRITE_ENTITY,
+    MIXING_VALVE_WRITE_EPSILON,
     CONF_DHW_TEMP_ENTITY,
     CONF_DHW_SCHEDULE_ENABLED,
     CONF_DHW_WINDOWS,
@@ -607,6 +609,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         """Away mode, accuracy tracking, learning experiments and totals."""
         self._external_heat = ExternalHeatDetector(self._external_heat_config())
         self._external_heat_active: bool = False
+        # Last valve target actually written in smart_write mode, so identical
+        # answers on consecutive cycles do not re-command the device.
+        self._valve_commanded_target: float | None = None
         # --- Away mode (item 13) -------------------------------------------
         self._away_state = away_mode.AwayState()
 
@@ -2336,6 +2341,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
             self._record_quiet_comfort_period()
 
+            # smart_write: command the valve's controller to the target the
+            # plan was just built against. After the solve rather than before,
+            # so a failed write can never delay or break planning.
+            await self._command_valve_target()
+
             _LOGGER.info(
                 "Optimization complete: savings=%.1f%%, cost=%.2f, status=%s, "
                 "dhw_enabled=%s, starts=%d, peak=%.1f kW",
@@ -3300,6 +3310,72 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             heat_pump_on=bool(self._current_action.get("heat_pump_on", False)),
             reason=reason,
         )
+
+    async def _command_valve_target(self) -> None:
+        """Write the valve target to its controller, in ``smart_write`` mode.
+
+        The commanded number is the one the plan was built against: the
+        configured static target, or the comfort ceiling -- which is also
+        what the dumb-valve recommendation tells a user to set by hand. It is
+        deliberately *not* the read-back entity: commanding what a sensor
+        reports would freeze whatever the valve happened to hold when the
+        mode was enabled, and a changed comfort band would never reach it.
+
+        Skipped when the answer has not meaningfully changed
+        (``MIXING_VALVE_WRITE_EPSILON``): the write runs after every
+        optimization cycle, and re-sending an identical setpoint every 15
+        minutes wears flash on some controllers and floods others' logs.
+        Failures are logged and swallowed -- a valve that refuses a write must
+        never break planning, and the model keeps working from the target it
+        intended, exactly as ``manual`` mode does.
+        """
+        params = self._thermal_params
+        if params.mixing_valve_mode != mixing_valve.MODE_SMART_WRITE:
+            return
+        entity_id = self._config.get(CONF_MIXING_VALVE_WRITE_ENTITY)
+        if not entity_id:
+            _LOGGER.debug(
+                "smart_write selected but no valve write entity configured"
+            )
+            return
+        target = params.mixing_valve_target or params.comfort_ceiling
+        if (
+            self._valve_commanded_target is not None
+            and abs(target - self._valve_commanded_target)
+            < MIXING_VALVE_WRITE_EPSILON
+        ):
+            return
+        domain = entity_id.split(".", 1)[0]
+        try:
+            if domain == "climate":
+                await self.hass.services.async_call(
+                    "climate",
+                    "set_temperature",
+                    {"entity_id": entity_id, "temperature": round(target, 1)},
+                    blocking=True,
+                )
+            elif domain in ("number", "input_number"):
+                await self.hass.services.async_call(
+                    domain,
+                    "set_value",
+                    {"entity_id": entity_id, "value": round(target, 1)},
+                    blocking=True,
+                )
+            else:
+                _LOGGER.warning(
+                    "Valve write entity %s is a %s; smart_write can command "
+                    "number, input_number and climate entities",
+                    entity_id,
+                    domain,
+                )
+                return
+        except Exception as err:  # noqa: BLE001 - never break planning
+            _LOGGER.error("Error commanding valve target: %s", err)
+            return
+        _LOGGER.info(
+            "Commanded mixing valve target %.1f °C via %s", target, entity_id
+        )
+        self._valve_commanded_target = target
 
     async def _apply_action(self) -> None:
         """Apply current action as (heat_pump_on, displace_value)."""

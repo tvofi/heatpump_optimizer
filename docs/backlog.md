@@ -3,11 +3,12 @@
 Started at the end of the v2.7.0 release session, kept up to date since.
 
 **Status as of v3.12.0.** Every item, 1-33, is done, released across v2.8.0
-through v3.12.0 — with two recorded exceptions: item 29 lacks `smart_write`
-(needs an actuation path, and now carries the measured value case: a
-commandable valve could hold charge for the peak), and item 32's
-click-to-assign second stage is deferred until the read-only overview earns
-it. See the notes appended to each item for what was
+through v3.13.0 — with one recorded exception: item 32's click-to-assign
+second stage is deferred until the read-only overview earns it. Item 29's
+`smart_write` shipped in v3.13.0 as the actuation path (the optimizer
+commands the valve's controller); the time-varying target *schedule* that
+would let a commanded valve hold charge for the peak is future work, recorded
+in item 29's status. See the notes appended to each item for what was
 actually built and what was found along the way. v3.8.0 is the audit release
 (`docs/audit-2026-08.md` records everything it fixed); v3.10.0 is the release
 where the buffer tank finally charges — the discharge law, the hard
@@ -28,9 +29,12 @@ empirical sizing measured in `tests/backtest.py`.
   the optimizer now deliberately charges. See the v3.10.0 block in item 29's
   status for what it is measured to be worth and the honest limit a fixed
   valve imposes.
-- **`smart_write` valve mode** (item 29). Needs an actuation path. Now also
-  the key to the remaining storage value: a commandable valve could *hold*
-  charge for the peak instead of feeding it out right after charging.
+- ~~**`smart_write` valve mode** (item 29).~~ Shipped in v3.13.0: the mode
+  is selectable and the coordinator writes the recommended target to a
+  configured number/input_number/climate entity after each planning cycle.
+  Still open behind it, recorded in item 29's status: a time-varying target
+  *schedule*, which is what would let a commanded valve hold charge for the
+  peak instead of feeding it out right after charging.
 - ~~**Item 28**, the wood furnace, in full.~~ Done in v3.11.0 — the
   per-step free-heat harness, the measured payoff, the outlet-sensor
   displacement and the tank-pair decay cut-off. See its status block.
@@ -39,7 +43,8 @@ empirical sizing measured in `tests/backtest.py`.
   card's Setup page. Click-to-assign (32's second stage) remains deferred
   until the read-only view earns it.
 
-**Item 29 is done except `smart_write`** — see its status blocks. **Item 27 is
+**Item 29 is done** — `smart_write` shipped in v3.13.0; see its status
+blocks for the one idea still behind it (a target schedule). **Item 27 is
 done** through the same work. **Item 28 is done as of v3.11.0** and **items 32
 and 33 as of v3.12.0** — see their status blocks.
 
@@ -1675,7 +1680,27 @@ which is worth knowing before, not after.
 >
 > ### Outstanding pieces of this item
 >
-> - **`smart_write` mode.** Not shipped: it needs an actuation path to command
+> **`smart_write` shipped in v3.13.0.** The actuation path is a configured
+> number/input_number/climate entity exposed by the valve's own controller;
+> after each optimization cycle the coordinator writes the target the plan
+> was built against (the configured static target, else the comfort ceiling —
+> the same number the recommendation sensor shows), skipping writes when the
+> answer has not changed by `MIXING_VALVE_WRITE_EPSILON`. Deliberately *not*
+> the read-back entity: commanding what a sensor reports would freeze
+> whatever the valve held when the mode was enabled.
+>
+> **What smart_write does not yet do — the target schedule.** v3.10.0
+> measured that a fixed-curve valve cannot *hold* charge for the peak: the
+> tank feeds the house the moment it is warmer than the curve, so storage
+> mostly shifts the hours right after charging (~+5 SEK/day typical instead
+> of the analytical table's +25). Capturing the rest means commanding a
+> *time-varying* target — low between charge and peak so the curve drops and
+> the tank holds, high through the peak so it carries the house. That is a
+> second decision-variable series in the optimizer AND a per-step target in
+> the model (else plan and reality diverge), which is why it did not ride
+> along here. The write plumbing this shipped is the prerequisite.
+>
+> - ~~**`smart_write` mode.**~~ Was: it needs an actuation path to command
 >   the valve's controller. A mode that cannot do what its name says is worse
 >   than one that is absent, and adding the option later needs no migration.
 > - **The dumb-valve recommendation is not surfaced.**
