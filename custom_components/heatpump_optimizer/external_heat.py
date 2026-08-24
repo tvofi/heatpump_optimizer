@@ -418,9 +418,21 @@ class ExternalHeatDetector:
         self._decay(now)
 
     def _decay(self, now: datetime) -> None:
-        """Fade confidence after release rather than dropping it cleanly."""
+        """Fade confidence after release rather than dropping it cleanly.
+
+        The wood tank pair, when sensed, can only *shorten* this: a tank
+        that measurably holds nothing ends the fade immediately (item 28's
+        "this fire is spent"), but a tank that still reads warm never
+        extends it past the configured window. Believing longer than the
+        timer is the expensive failure direction, so measurement is allowed
+        to argue for less trust and never for more.
+        """
         state = self.state
         cfg = self.config
+        if state.wood_energy_kwh is not None and state.wood_energy_kwh <= 0.0:
+            state.confidence = 0.0
+            state.fading = False
+            return
         if state.last_active is None or cfg.decay_minutes <= 0:
             state.confidence = 0.0
             state.fading = False

@@ -432,6 +432,46 @@ R.check(
     all(v == 0.0 for v in _fc_det.forecast_free_heat(96, 0.25)),
 )
 
+# The tank pair can shorten the decay tail, never extend it: a fire whose
+# tank measurably holds nothing is spent, whatever the timer says. This
+# replaces the fixed decay's job with a measurement, in the only direction
+# measurement is allowed to argue -- towards less trust.
+def _burn_then_release(det, spent_pair):
+    """Confirm a fire, release it, and hand the detector one post-release
+    observation -- with or without a wood pair that reads spent."""
+    det.update(_fire_obs(0, buffer_temp=40.0))
+    det.update(_fire_obs(15, buffer_temp=41.0))
+    det.update(_fire_obs(30, buffer_temp=42.0))          # active
+    det.update(_fire_obs(45, buffer_temp=42.0))          # release 1
+    kw = (
+        dict(wood_top=41.0, wood_bottom=40.0, hp_tank_temp=40.5)
+        if spent_pair
+        else {}
+    )
+    det.update(_fire_obs(60, buffer_temp=41.8, **kw))    # release 2: fading
+    det.update(_fire_obs(75, buffer_temp=41.6, **kw))
+
+
+_spent = ExternalHeatDetector(ExternalHeatConfig(
+    enabled=True, confirm_samples=2, release_samples=2,
+    decay_minutes=90.0, wood_tank_volume_l=500.0,
+))
+_burn_then_release(_spent, spent_pair=True)
+R.check(
+    "a measurably spent wood tank ends the decay early",
+    not _spent.suppressing,
+    "the 90-minute timer would still be fading; the empty tank overrules it",
+)
+_timed = ExternalHeatDetector(ExternalHeatConfig(
+    enabled=True, confirm_samples=2, release_samples=2, decay_minutes=90.0,
+))
+_burn_then_release(_timed, spent_pair=False)
+R.check(
+    "while without the tank pair the timer stands",
+    _timed.suppressing,
+    "the measured cut-off must be the difference, not a detector change",
+)
+
 
 # ===========================================================================
 # Item 7: modelling the unknown price horizon
