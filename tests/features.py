@@ -2928,6 +2928,103 @@ R.check(
 )
 
 
+R.section("smart_write: the optimizer commands the valve (item 29)")
+
+# The mode was withheld until its actuation path existed -- a mode that cannot
+# do what its name says is worse than one that is absent. It now writes the
+# recommended target to the valve's own controller through a configured
+# number/input_number/climate entity.
+R.check(
+    "smart_write is selectable now that it can act",
+    _mv.MODE_SMART_WRITE in _mv.SELECTABLE_MODES,
+    "the actuation path exists, so the mode may be offered",
+)
+
+
+def _write_coord(**extra):
+    return _zone_coord(_BASE, max_temperature=23.5, **extra)
+
+
+_wc = _write_coord(
+    mixing_valve_mode="smart_write", mixing_valve_write_entity="number.valve"
+)
+_asyncio.run(_wc._command_valve_target())
+_calls = _wc.hass.services.calls
+R.check(
+    "a number entity is commanded through set_value",
+    _calls == [("number", "set_value",
+                {"entity_id": "number.valve", "value": 23.5})],
+    f"got {_calls!r}",
+)
+R.check(
+    "and the commanded number is the comfort ceiling, the same value the "
+    "dumb-valve recommendation gives",
+    _calls and _calls[0][2]["value"] == 23.5,
+    "commanding what a read-back sensor reports would freeze whatever the "
+    "valve held when the mode was enabled",
+)
+
+# An unchanged answer is not re-sent: the write runs after every optimization
+# cycle, and re-commanding an identical setpoint every 15 minutes wears flash
+# on some controllers.
+_asyncio.run(_wc._command_valve_target())
+R.check(
+    "an unchanged target is not rewritten",
+    len(_wc.hass.services.calls) == 1,
+    f"{len(_wc.hass.services.calls)} calls after two cycles with one answer",
+)
+_wc._thermal_params.comfort_ceiling = 22.0
+_asyncio.run(_wc._command_valve_target())
+R.check(
+    "while a changed comfort band reaches the valve",
+    len(_wc.hass.services.calls) == 2
+    and _wc.hass.services.calls[1][2]["value"] == 22.0,
+    f"got {_wc.hass.services.calls[1:]}",
+)
+
+_cc = _write_coord(
+    mixing_valve_mode="smart_write", mixing_valve_write_entity="climate.valve"
+)
+_asyncio.run(_cc._command_valve_target())
+R.check(
+    "a climate entity is commanded through set_temperature",
+    _cc.hass.services.calls == [("climate", "set_temperature",
+                                 {"entity_id": "climate.valve",
+                                  "temperature": 23.5})],
+    f"got {_cc.hass.services.calls!r}",
+)
+
+_tc = _write_coord(
+    mixing_valve_mode="smart_write",
+    mixing_valve_write_entity="number.valve",
+    mixing_valve_target=22.0,
+)
+_asyncio.run(_tc._command_valve_target())
+R.check(
+    "a configured static target wins over the ceiling",
+    _tc.hass.services.calls[0][2]["value"] == 22.0,
+    f"got {_tc.hass.services.calls!r}",
+)
+
+_nc = _write_coord(mixing_valve_mode="smart_write")
+_asyncio.run(_nc._command_valve_target())
+_mc = _write_coord(
+    mixing_valve_mode="manual", mixing_valve_write_entity="number.valve"
+)
+_asyncio.run(_mc._command_valve_target())
+_uc = _write_coord(
+    mixing_valve_mode="smart_write", mixing_valve_write_entity="switch.valve"
+)
+_asyncio.run(_uc._command_valve_target())
+R.check(
+    "no entity, another mode, or an uncommandable domain all write nothing",
+    _nc.hass.services.calls == [] and _mc.hass.services.calls == []
+    and _uc.hass.services.calls == [],
+    f"got {_nc.hass.services.calls} / {_mc.hass.services.calls} / "
+    f"{_uc.hass.services.calls}",
+)
+
+
 R.section("Per-step external heat reaches the model and the plan (item 28)")
 
 # The harness prerequisite the item names: `external_heat_active` was a scalar

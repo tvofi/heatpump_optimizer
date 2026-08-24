@@ -41,15 +41,16 @@ MODES: tuple[str, ...] = (
     MODE_SMART_WRITE,
 )
 
-#: The subset offered in the UI today. `smart_write` needs an actuation path --
-#: commanding the valve's own controller -- and is added to this tuple when that
-#: lands. Offering a mode that cannot do what its name says is worse than not
-#: offering it, and adding an option later needs no migration because nobody can
-#: have selected it.
+#: All four modes are selectable. `smart_write` was withheld until its
+#: actuation path existed -- a mode that cannot do what its name says is worse
+#: than one that is absent -- and now commands the valve's own controller
+#: through a configured number/input_number/climate entity: the coordinator
+#: writes the recommended target after each optimization cycle.
 SELECTABLE_MODES: tuple[str, ...] = (
     MODE_NONE,
     MODE_MANUAL,
     MODE_SMART_READ,
+    MODE_SMART_WRITE,
 )
 
 #: Modes in which a valve exists at all, and delivery is therefore throttled.

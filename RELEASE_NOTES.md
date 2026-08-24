@@ -1,5 +1,48 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v3.13.0
+
+### Economy mode finally is one
+
+Until now, *economy* ran exactly the same plan as *auto* — verified to
+thirteen decimal places. It now does what its description has always
+promised: the plan may let the house drift up to **1.5 °C below your comfort
+floor** to ride out expensive hours, never below 15 °C. Measured savings:
+about **25 % on a typical winter day**, 19 % on a narrow-spread day, and only
+4.5 % at flat prices — the right shape for a mode that trades comfort for
+money. The mode also survives restarts and options changes now (it used to
+quietly revert to auto), and the optimizer switch no longer stomps a live
+economy or comfort selection when something toggles it on again.
+
+### The optimizer can command a smart valve
+
+*Commanded by the optimizer* is a new mixing-valve mode: point it at the
+number or climate entity your valve's controller exposes, and the integration
+writes its recommended target there after each planning cycle — the same
+number the Valve Target Recommendation sensor shows, sent only when it
+actually changes. No more copying the recommendation across by hand, and a
+changed comfort band reaches the valve on its own.
+
+### Honest savings when the day ends warm
+
+The reported savings settlement charged the plan for ending the day with less
+stored heat than a thermostat would have, but paid nothing for ending with
+*more*. The result understated your savings precisely when the plan chose to
+end the window warm — by 8 % on a shoulder day and up to 62 % at flat prices.
+It is symmetric now. This changes only the reported numbers; not a single
+plan is different.
+
+### Small fixes and speed
+
+- A tiny buffer tank (a 10 L separator) could be simulated discharging to
+  **−8 °C** — heat it never had. Delivery is now bounded by the energy the
+  tank actually holds; realistic tank sizes are unchanged to the last digit.
+- A hot-path property recomputed a constant a few million times per solve;
+  planning with a mixing valve is now roughly a quarter faster.
+- The planned buffer-tank temperature is now part of the optimization result,
+  and four golden scenarios pin the mixing-valve behaviour that four releases
+  of storage work had no recorded coverage for.
+
 ## v3.12.0
 
 ### A picture of your system, in two places

@@ -520,6 +520,7 @@ the house has what it needs the surplus has nowhere to go but the tank. Set
 | No mixing valve | Default. Nothing changes. |
 | Set by hand | A fixed valve you adjust yourself; tell the integration what you set it to. |
 | Read from a sensor | The integration reads the valve's target but cannot change it. |
+| Commanded by the optimizer | The integration writes its recommended target to the valve's controller (a number or climate entity) after each planning cycle, and only when the answer changes. |
 
 **What to set a hand-adjusted valve to.** The top of your comfort band, in
 almost every case. A high setting keeps the valve open until the house reaches

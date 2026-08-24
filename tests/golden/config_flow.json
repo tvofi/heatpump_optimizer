@@ -764,7 +764,7 @@
   "mixing_valve_mode": {
    "config": {
     "mode": "'dropdown'",
-    "options": "['none', 'manual', 'smart_read']",
+    "options": "['none', 'manual', 'smart_read', 'smart_write']",
     "translation_key": "'mixing_valve_mode'"
    },
    "default": "'none'",
@@ -786,6 +786,14 @@
   "mixing_valve_target_entity": {
    "config": {
     "filter": "[{'domain': ['sensor'], 'device_class': ['temperature']}]"
+   },
+   "default": null,
+   "required": "Optional",
+   "selector": "EntitySelector"
+  },
+  "mixing_valve_write_entity": {
+   "config": {
+    "filter": "[{'domain': ['number', 'input_number', 'climate']}]"
    },
    "default": null,
    "required": "Optional",
