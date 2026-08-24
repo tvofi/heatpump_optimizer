@@ -434,6 +434,10 @@
           "external_heat_entity": "Stove or flue sensor (optional)",
           "external_heat_min_rise": "Temperature rise that counts as evidence",
           "external_heat_decay_minutes": "How long to keep assuming it after it stops",
+          "valve_outlet_temp_entity": "Temperature after the wood/heat-pump mixing valve (optional)",
+          "wood_tank_top_entity": "Wood tank top sensor (optional)",
+          "wood_tank_bottom_entity": "Wood tank bottom sensor (optional)",
+          "wood_tank_volume": "Wood tank volume",
           "comfort_learning_enabled": "Learn my comfort preference from overrides",
           "system_identification_enabled": "Allow a one-off measurement experiment"
         },
@@ -443,6 +447,10 @@
           "external_heat_detection_enabled": "Spots the tanks warming up when the heat pump is not running. While that is happening, planned electric hot water is held back — paying to heat water that is already being heated for free is the most expensive mistake available.",
           "external_heat_entity": "If you have a flue thermostat or a stove switch, use it. It is trusted over the automatic detection.",
           "external_heat_min_rise": "Raise this if normal operation triggers it. Missing a fire costs one unnecessary heating cycle; wrongly assuming one can leave you without hot water.",
+          "valve_outlet_temp_entity": "The one sensor that measures what the house actually receives. With the tank sensors it tells the plan how much of the heating a fire is covering right now, so electric heat can stand down by that much instead of all-or-nothing.",
+          "wood_tank_top_entity": "Together with the bottom sensor this says how much a fire has left. A hot top over a cold bottom means the charge is nearly spent.",
+          "wood_tank_bottom_entity": "See the top sensor. Both are needed for the remaining-energy estimate; one alone is read conservatively.",
+          "wood_tank_volume": "The wood-side buffer tank, used to bound how much free heat a fire can still deliver.",
           "comfort_learning_enabled": "Every time you override the temperature, you are saying the plan went too far in one direction. This slowly adjusts the comfort setting from that. The learned value is shown on its own sensor and there is a button to reset it.",
           "system_identification_enabled": "Lets the optimizer run a small deliberate heating step on a mild, cheap night to measure your house directly, instead of waiting weeks to infer it. The change is kept too small to notice and it stops if the temperature drifts."
         }

@@ -153,6 +153,11 @@ from .const import (
     DEFAULT_EXTERNAL_HEAT_ENABLED,
     DEFAULT_EXTERNAL_HEAT_MIN_RISE,
     DEFAULT_EXTERNAL_HEAT_DECAY_MINUTES,
+    CONF_VALVE_OUTLET_TEMP_ENTITY,
+    CONF_WOOD_TANK_TOP_ENTITY,
+    CONF_WOOD_TANK_BOTTOM_ENTITY,
+    CONF_WOOD_TANK_VOLUME,
+    DEFAULT_WOOD_TANK_VOLUME,
     CONF_PRICE_PRIOR_ENABLED,
     DEFAULT_PRICE_PRIOR_ENABLED,
     CONF_PEAK_TARIFF_ENABLED,
@@ -719,6 +724,9 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
     # mixing-valve pages clear their own members in their own handlers.
     _OPTIONAL_ENTITY_KEYS = _ENTITIES_PAGE_KEYS + (
         CONF_EXTERNAL_HEAT_ENTITY,
+        CONF_VALVE_OUTLET_TEMP_ENTITY,
+        CONF_WOOD_TANK_TOP_ENTITY,
+        CONF_WOOD_TANK_BOTTOM_ENTITY,
         CONF_MIXING_VALVE_TARGET_ENTITY,
         CONF_PV_PRODUCTION_ENTITY,
         CONF_PV_EXPORT_PRICE_ENTITY,
@@ -1474,8 +1482,14 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
         """Watchdogs and the opt-in learning features."""
         if user_input is not None:
             cleaned = dict(user_input)
-            if not cleaned.get(CONF_EXTERNAL_HEAT_ENTITY):
-                cleaned[CONF_EXTERNAL_HEAT_ENTITY] = None
+            for key in (
+                CONF_EXTERNAL_HEAT_ENTITY,
+                CONF_VALVE_OUTLET_TEMP_ENTITY,
+                CONF_WOOD_TANK_TOP_ENTITY,
+                CONF_WOOD_TANK_BOTTOM_ENTITY,
+            ):
+                if not cleaned.get(key):
+                    cleaned[key] = None
             return self._save(cleaned)
 
         current = self._current
@@ -1524,6 +1538,23 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
                             DEFAULT_EXTERNAL_HEAT_DECAY_MINUTES,
                         ),
                     ): _number(15, 360, 15, "min", slider=True),
+                    # Wood-furnace topology (item 28): the valve outlet is
+                    # the sensor that turns the boolean fire into a
+                    # continuous displacement; the tank pair bounds how long
+                    # the fire can back it.
+                    _entity(CONF_VALVE_OUTLET_TEMP_ENTITY): _entity_of(
+                        ["sensor"]
+                    ),
+                    _entity(CONF_WOOD_TANK_TOP_ENTITY): _entity_of(["sensor"]),
+                    _entity(CONF_WOOD_TANK_BOTTOM_ENTITY): _entity_of(
+                        ["sensor"]
+                    ),
+                    vol.Optional(
+                        CONF_WOOD_TANK_VOLUME,
+                        default=current.get(
+                            CONF_WOOD_TANK_VOLUME, DEFAULT_WOOD_TANK_VOLUME
+                        ),
+                    ): _number(50, 3000, 50, "L", slider=True),
                     vol.Optional(
                         CONF_COMFORT_LEARNING_ENABLED,
                         default=current.get(

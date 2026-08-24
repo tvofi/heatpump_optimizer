@@ -710,6 +710,42 @@
    "default": "False",
    "required": "Optional",
    "selector": "type"
+  },
+  "valve_outlet_temp_entity": {
+   "config": {
+    "filter": "[{'domain': ['sensor']}]"
+   },
+   "default": null,
+   "required": "Optional",
+   "selector": "EntitySelector"
+  },
+  "wood_tank_bottom_entity": {
+   "config": {
+    "filter": "[{'domain': ['sensor']}]"
+   },
+   "default": null,
+   "required": "Optional",
+   "selector": "EntitySelector"
+  },
+  "wood_tank_top_entity": {
+   "config": {
+    "filter": "[{'domain': ['sensor']}]"
+   },
+   "default": null,
+   "required": "Optional",
+   "selector": "EntitySelector"
+  },
+  "wood_tank_volume": {
+   "config": {
+    "max": "3000",
+    "min": "50",
+    "mode": "'slider'",
+    "step": "50",
+    "unit_of_measurement": "'L'"
+   },
+   "default": "500.0",
+   "required": "Optional",
+   "selector": "NumberSelector"
   }
  },
  "mixing_valve": {
