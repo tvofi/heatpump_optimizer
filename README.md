@@ -668,6 +668,21 @@ while coasting still meets your requirement — and the learners freeze. If the
 fire gets the tank all the way to the anti-legionella temperature, the existing
 cycle timer resets on its own and no electric cycle is scheduled at all.
 
+**With three more sensors, the fire stops being all-or-nothing.** If your
+furnace heats its own buffer tank and an automatic valve mixes the two tanks,
+point the integration at the temperature after that valve and at the wood
+tank's top and bottom probes (all optional, on the learning page). The outlet
+is the one sensor that measures what the house actually receives: together
+with the tank temperatures it says how much of the heating the fire covers
+right now — the furnace is doing 70 %, so electric space heating stands down
+by 70 % — and the plan is given that free heat for a strictly bounded window:
+never more than two hours ahead, fading over it, and never more energy than
+the wood tank measurably holds. The tank pair also ends the
+keep-assuming-the-fire window early once a hot top sits over a cold bottom,
+because that charge is nearly spent whatever the timer says. Measurement is
+only ever allowed to argue for *less* trust in the fire, never more: a wrong
+promise of free heat is a cold house in winter.
+
 Off by default: most users have no such source, and a feature that cannot save
 them anything should not be able to cost them anything.
 

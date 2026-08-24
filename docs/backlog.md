@@ -2,8 +2,8 @@
 
 Started at the end of the v2.7.0 release session, kept up to date since.
 
-**Status as of v3.10.0.** Items 1-27 and 29-31 are done, released across
-v2.8.0 through v3.10.0. See the notes appended to each item for what was
+**Status as of v3.11.0.** Items 1-31 are done, released across v2.8.0
+through v3.11.0 (29 lacks only `smart_write`). See the notes appended to each item for what was
 actually built and what was found along the way. v3.8.0 is the audit release
 (`docs/audit-2026-08.md` records everything it fixed); v3.10.0 is the release
 where the buffer tank finally charges — the discharge law, the hard
@@ -27,12 +27,15 @@ empirical sizing measured in `tests/backtest.py`.
 - **`smart_write` valve mode** (item 29). Needs an actuation path. Now also
   the key to the remaining storage value: a commandable valve could *hold*
   charge for the peak instead of feeding it out right after charging.
-- **Item 28**, the wood furnace, in full. Independent of the above.
+- ~~**Item 28**, the wood furnace, in full.~~ Done in v3.11.0 — the
+  per-step free-heat harness, the measured payoff, the outlet-sensor
+  displacement and the tank-pair decay cut-off. See its status block.
 - **Items 32 and 33**, the setup diagram and the card page.
 
 **Item 29 is done except `smart_write`** — see its status blocks. **Item 27 is
-done** through the same work. **Item 28 has not been started.** **Items 32 and
-33** were added 2026-08-23 and are planned but not built.
+done** through the same work. **Item 28 is done as of v3.11.0** — see its
+status block. **Items 32 and 33** were added 2026-08-23 and are planned but
+not built.
 
 Scope decision (user, 2026-08-23): 26, 24+25, 30 and 31 were done first, one PR
 each, and all shipped. The wood-furnace cluster (27-29) was deferred, re-planned
@@ -1342,9 +1345,46 @@ need reviewing rather than re-baselining blind.**
 
 ## 28. Wood furnace: a second buffer tank and a mixing valve
 
-> **Status, 2026-08-23: not started.** Nothing in this item has been built. It is
-> independent of items 27 and 29 -- its value does not depend on the charging
-> problem being solved -- so it can be picked up on its own.
+> ## Status, 2026-08-24 (v3.11.0): done, in the item's own ranked order.
+>
+> **1. The harness first.** The model, both trajectory functions and the
+> optimizer take a per-step `external_heat_kw` forecast; it joins the pump's
+> output at the hydronic mix and never touches the COP. The savings baseline
+> receives the same free heat, so a burn is not booked as savings. Feature
+> off (None or all-zero) is byte-for-byte the old model.
+>
+> **2. The payoff, measured before the estimator was built** (the item's own
+> instruction): tests/backtest.py's furnace section, a value-of-information
+> A/B — the fire burns in both arms, only one plan knows. An 8 kW evening
+> fire through the winter_typical peak is worth **+4.2 SEK/day** to know
+> about. Zero-burn null control asserted byte-for-byte in features.py.
+>
+> **3. The outlet sensor → displacement.** `f = (T_out − T_hp)/(T_wood −
+> T_hp)`, a new `displacement` field on `ExternalHeatState` (not
+> `confidence`, exactly as this item warned). The forecast fed to the solve
+> is bounded three independent ways: a hard 2 h horizon
+> (`EXTERNAL_HEAT_FORECAST_MAX_HOURS`, the DHW suppression's pattern), a
+> linear fade, and the wood tank's measured sensible energy. Zero unless a
+> fire is active or fading, zero on any missing/stale sensor (staleness maps
+> to absence via `InputReader` and the three entities are in
+> `INPUT_MAX_AGE_MINUTES` from the start), zero below a 2 K identification
+> margin.
+>
+> **4. The tank pair, scoped to the safe direction.** A measurably spent
+> tank ends the decay early; a warm one never extends it past the timer.
+> Measurement may argue for less trust in a fire, never more.
+>
+> **Not built, by the item's own ranking:** the second heat-pump-tank
+> sensor. It was rated low value and blocked on item 27; item 27 is now
+> done, so re-evaluate it if stratification of the pump tank ever matters —
+> but note the v3.10.0 discharge law models the pump tank as well-mixed, so
+> a second probe still has nothing to change.
+>
+> **The learner-freeze tension flagged below still stands**: on a house that
+> fires daily, the COP learner is frozen exactly when the interesting tank
+> temperatures occur. Nothing in v3.11.0 changes `_learning_frozen`; if the
+> flow-temperature COP term ever needs validating on this house's own data,
+> that freeze is the first thing in the way.
 >
 > Two corrections to the item text, from reading the code while working on 29:
 >

@@ -1,5 +1,46 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v3.11.0
+
+### The wood furnace becomes a number, not a boolean
+
+If you have a wood furnace on its own buffer tank with an automatic mixing
+valve, three optional sensors now let the optimizer treat a fire as what it
+is: a partial, measurable, fading source of free heat.
+
+**The valve outlet sensor is the step change.** It is the only sensor that
+measures what the house actually receives, and together with the two tank
+temperatures it identifies the mixing fraction directly — "the furnace is
+covering 70 % of the heating right now". Electric space heating then stands
+down by exactly that much. Until now a detected fire only ever suppressed
+discretionary hot water; space heating carried on paying as if the fire did
+not exist. Measured on a typical winter day, knowing about an evening fire is
+worth about **4 SEK/day** on its own.
+
+**The wood tank's top and bottom probes replace a guess with a measurement.**
+The fixed keep-assuming-the-fire window assumed every fire is good for about
+another 90 minutes. The pair measures it: a hot top over a cold bottom means
+the charge is nearly spent, and both the free-heat promise and the
+suppression end there.
+
+**The promise of free heat is deliberately hard to earn.** A wrongly promised
+burn is a cold house in winter, so the forecast is bounded three independent
+ways: never further than two hours ahead whatever the decay setting says,
+fading over that window, and never more energy than the wood tank measurably
+holds. It is zero unless a fire is actually burning or fading — when you
+*will* light one is your business and is never predicted — zero when any
+needed sensor is missing or has gone stale (a stalled hot probe would
+otherwise look like an indefinite free fire), and zero when the wood side is
+too close to the heat-pump side to tell the mix apart. Measurement may argue
+for trusting a fire less, never for trusting it more.
+
+The savings figure stays honest: the reference thermostat is granted the same
+free heat, so a burn is never booked as optimizer savings.
+
+All three sensors and the wood tank volume are optional, on the
+"Self-learning and diagnostics" page. Without them nothing changes at all —
+every golden scenario is byte-for-byte identical with the feature off.
+
 ## v3.10.0
 
 ### The buffer tank finally charges
