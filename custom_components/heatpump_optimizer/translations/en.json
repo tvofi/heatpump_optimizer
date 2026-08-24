@@ -189,6 +189,7 @@
         "title": "Heat Pump Optimizer options",
         "description": "Pick the group of settings you want to change.",
         "menu_options": {
+          "setup_overview": "Your system, as configured",
           "entities": "Sensors and entities",
           "comfort": "Comfort and temperatures",
           "hot_water": "Hot water",
@@ -202,6 +203,10 @@
           "learning": "Self-learning and diagnostics",
           "mixing_valve": "Mixing valve and heat storage"
         }
+      },
+      "setup_overview": {
+        "title": "Your system, as configured",
+        "description": "What the optimizer believes your system is, from the current configuration. An empty slot is shown as empty on purpose — it is a sensor this setup could use and does not have.\n\n{setup_summary}"
       },
       "entities": {
         "title": "Sensors and entities",

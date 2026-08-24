@@ -792,6 +792,7 @@
    "selector": "EntitySelector"
   }
  },
+ "setup_overview": {},
  "solar_pv": {
   "pv_enabled": {
    "config": null,

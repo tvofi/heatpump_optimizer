@@ -1622,5 +1622,71 @@ check("the hand-scheduled reason has a label",
     second === first, `first ${first}, after re-render ${second}`);
 }
 
+// --- Scenario: the setup page (item 33) ------------------------------------
+{
+  const topo = {
+    two_zone: true, dhw: true, valve_mode: "manual",
+    buffer: { volume_l: 750, is_store: true, max_temp: 70 },
+    wood: { present: true, volume_l: 500 },
+    slots: [
+      { key: "indoor_temp_entity", label: "Indoor temperature",
+        place: "upper_zone", entity: "sensor.livingroom" },
+      { key: "lower_floor_temp_entity", label: "Lower floor temperature",
+        place: "lower_zone", entity: null },
+      { key: "buffer_tank_temp_entity", label: "Buffer tank temperature",
+        place: "buffer_tank", entity: "sensor.tank" },
+      { key: "wood_tank_top_entity", label: "Wood tank top",
+        place: "wood_tank", entity: null },
+      { key: "outdoor_temp_entity", label: "Outdoor temperature",
+        place: "outdoor", entity: "sensor.outside" },
+    ],
+  };
+  const states = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  states[DEFAULT_SPACE].attributes.setup_topology = topo;
+  states["sensor.livingroom"] = {
+    state: "21.3", attributes: { unit_of_measurement: "°C" } };
+  states["sensor.tank"] = {
+    state: "47.5", attributes: { unit_of_measurement: "°C" } };
+  states["sensor.outside"] = { state: "unavailable", attributes: {} };
+  const su = build(states);
+  su._onCardClick({});
+  const planPage = collect(su.shadowRoot).join("\n");
+  check("the dialog offers plan and setup tabs",
+    /dlg-tab[^>]*data-page="plan"/.test(planPage) &&
+    /dlg-tab[^>]*data-page="setup"/.test(planPage));
+
+  su._dialogPage = "setup";
+  su._render();
+  const setupPage = collect(su.shadowRoot).join("\n");
+  check("the setup page draws the system", /setup-svg/.test(setupPage) &&
+    /Buffer tank \(750 L\)/.test(setupPage) && /Wood furnace tank/.test(setupPage));
+  check("live values are read straight from hass states",
+    /21\.3 °C/.test(setupPage) && /47\.5 °C/.test(setupPage));
+  check("an unavailable sensor says so instead of a stale number",
+    /unavailable/.test(setupPage));
+  // Labels longer than the row are trimmed with an ellipsis, so match the
+  // prefix rather than the full name.
+  check("empty slots are drawn empty, not omitted",
+    /not configured/.test(setupPage) && /Lower floor te/.test(setupPage));
+  // The hidden page must be genuinely unrendered, not display:none --
+  // getBoundingClientRect on a hidden chart returns zeroes and
+  // _timeAtClientX would compute garbage drag times rather than fail.
+  check("the plan chart is genuinely unrendered on the setup page",
+    !/chartwrap big/.test(setupPage) && !/class="whatif"/.test(setupPage));
+
+  // A plan refresh must not yank the user off the page they are reading.
+  su._sig = null;
+  su._maybeRender(true);
+  const afterRefresh = collect(su.shadowRoot).join("\n");
+  check("the current page survives a plan refresh",
+    su._dialogPage === "setup" && /setup-svg/.test(afterRefresh));
+
+  su._dialogPage = "plan";
+  su._render();
+  const backToPlan = collect(su.shadowRoot).join("\n");
+  check("switching back restores the chart and the what-if panel",
+    /chartwrap big/.test(backToPlan) && !/class="setup-svg"/.test(backToPlan));
+}
+
 console.log(fails ? `\n${fails} CARD CHECK(S) FAILED` : "\nALL CARD CHECKS PASSED");
 process.exit(fails?1:0);

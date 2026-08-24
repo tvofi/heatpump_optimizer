@@ -917,7 +917,7 @@ class _PlanSensorBase(HeatPumpOptimizerSensorBase):
     still recorded and remain usable in history and automations.
     """
 
-    _unrecorded_attributes = frozenset({"forecast", "slots"})
+    _unrecorded_attributes = frozenset({"forecast", "slots", "setup_topology"})
     _plan_key: str = ""
     # Stable machine-readable marker. Entity ids depend on the device name and
     # can be renamed by the user, so the dashboard card discovers these sensors
@@ -956,6 +956,9 @@ class _PlanSensorBase(HeatPumpOptimizerSensorBase):
                 # not something derived from a plan, and the card needs it to
                 # bound editing before the first plan has arrived.
                 "manual_plan_window_hours": MANUAL_PLAN_WINDOW_HOURS,
+                # Configuration-derived, so it exists before the first plan
+                # does; the card's setup page should not need a solve to draw.
+                "setup_topology": self.coordinator.describe_setup(),
             }
         slots = plan.get("slots", [])
         next_slot = None
@@ -999,6 +1002,10 @@ class _PlanSensorBase(HeatPumpOptimizerSensorBase):
             # would show slots as pinned beyond the point `channel_pins` frees
             # them -- which is the failure this number exists to prevent.
             "manual_plan_window_hours": MANUAL_PLAN_WINDOW_HOURS,
+            # The configured topology for the card's setup page (item 33),
+            # emitted by the coordinator so the config flow's overview and
+            # the card can never disagree about what the system looks like.
+            "setup_topology": self.coordinator.describe_setup(),
         }
 
 
