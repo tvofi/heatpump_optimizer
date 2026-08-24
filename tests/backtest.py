@@ -368,4 +368,85 @@ R.check(
     f"{_store_gain['winter_typical']:+.2f} SEK/day",
 )
 
+
+# ===========================================================================
+# Wood furnace sizing (item 28): what is knowing about a burn worth?
+# ===========================================================================
+#
+# The check the item asks for before the estimator is built: "how much does
+# the optimizer save if it *knows* the furnace covers part of the load,
+# versus ignoring it". A value-of-information measurement: both arms live in
+# the same physics (the fire burns either way -- lighting it is human
+# behaviour the plan never controls), but only one arm's plan gets the
+# forecast. The blind arm's model mismatch is not a confound here; it is
+# precisely the cost of ignorance being measured. Null control: with no burn
+# the two arms are the same plan, asserted byte-for-byte in features.py.
+
+
+def _furnace_arm(informed: bool, burn: np.ndarray):
+    cfg = house(two_zone=True, dhw=False)
+    params = ThermalParameters.from_config(cfg)
+    params.dhw_enabled = False
+    model = ThermalModel(params)
+    opt_cfg = OptimizationConfig(
+        horizon_hours=24, time_step_minutes=15,
+        target_temp=cfg["target_temperature"],
+        min_temp=cfg["min_temperature"],
+        max_temp=cfg["max_temperature"],
+    )
+    optimizer = HeatPumpOptimizer(model, opt_cfg)
+    price_series = prices("winter_typical", START)
+    outdoor, wind, rain, solar = weather("winter_cold", START)
+    state = ThermalState(
+        room_temperature=20.5, upper_floor_temperature=20.5,
+        lower_floor_temperature=20.5, slab_temperature=22.0,
+        buffer_tank_temperature=30.0,
+        outdoor_temperature=float(outdoor[0]),
+    )
+    result = optimizer.optimize(
+        state, price_series, outdoor, wind, rain, solar, START,
+        external_heat_kw=burn if informed else None,
+    )
+    power = np.asarray(result.power_schedule)
+    # Score under the real physics: the fire burns whether or not the plan
+    # knew about it.
+    room, slab, upper, lower = model.simulate_trajectory(
+        state, power, outdoor, wind, rain, solar, DT, external_heat_kw=burn
+    )
+    indoor = np.minimum(upper[1:], lower[1:])
+    floor = np.array(
+        [opt_cfg.get_temp_bounds((i * DT) % 24)[0] for i in range(len(indoor))]
+    )
+    violation = float(np.sum(np.maximum(0.0, floor - indoor)) * DT)
+    cost = float(np.sum(price_series * power * DT))
+    p = model.params
+    e_delta = (
+        p.upper_floor_thermal_mass * (upper[-1] - 20.5)
+        + p.lower_floor_thermal_mass * (lower[-1] - 20.5)
+        + p.slab_thermal_mass * (slab[-1] - 22.0)
+    )
+    refill = float(np.percentile(price_series, 25))
+    cop_end = model.compute_cop(float(np.mean(outdoor)))
+    return cost - e_delta * refill / cop_end, violation
+
+
+# An evening fire: lit at 17:00, 8 kW fading through 23:00 -- covering the
+# whole house load straight through the evening price peak.
+_burn = np.zeros(96)
+_burn[68:80] = 8.0   # 17:00-20:00
+_burn[80:92] = 4.0   # 20:00-23:00, dying down
+_aware_cost, _aware_viol = _furnace_arm(True, _burn)
+_blind_cost, _blind_viol = _furnace_arm(False, _burn)
+R.check(
+    "knowing about an evening burn is worth real money",
+    _blind_cost - _aware_cost > 1.0,
+    f"blind {_blind_cost:.2f} vs informed {_aware_cost:.2f} SEK "
+    f"({_blind_cost - _aware_cost:+.2f}/day for an evening fire)",
+)
+R.check(
+    "and the informed plan still holds comfort",
+    _aware_viol < 0.5,
+    f"violation {_aware_viol:.2f} degree-hours",
+)
+
 sys.exit(R.close("BACKTEST CHECKS"))
