@@ -3408,6 +3408,13 @@ R.check(
     "used as a store" in _text,
     "a 750 L tank behind a manual valve is a store as of v3.10.0",
 )
+R.check(
+    "the wood abstraction is admitted in prose",
+    "modelled as heat into the heat-pump tank" in _text,
+    "issue #40: the separate wood tank is drawn, but the model folds its "
+    "heat into the heat-pump tank -- the summary must say so until the "
+    "two-tank model replaces the abstraction",
+)
 
 
 # A tank cannot deliver heat it does not have. Capping the emitters at the
