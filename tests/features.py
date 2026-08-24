@@ -2822,6 +2822,194 @@ R.check(
     "storage must not appear where it cannot pay",
 )
 
+
+R.section("The valve hold schedule (item 29)")
+
+# A fixed-curve valve starts feeding the house the moment the tank is warmer
+# than the curve, so storage mostly shifts the hours right after charging --
+# measured in v3.10.0 at roughly a fifth of the analytical value. A valve the
+# optimizer can command does not have to wait passively: lower the curve
+# between charging and the peak and the tank holds its heat for when it is
+# worth most. The schedule is a *candidate*: derived from the solved plan,
+# re-solved in full, and adopted only if it beats the fixed target on the
+# same objective.
+
+
+def _hold_plan(price_profile, mode=_mv.MODE_SMART_WRITE, volume=750.0):
+    p = ThermalParameters(
+        two_zone_enabled=True, buffer_tank_volume=volume,
+        mixing_valve_mode=mode, buffer_max_temp=70.0, cop_flow_carnot=True,
+        upper_floor_thermal_mass=3.0, lower_floor_thermal_mass=4.5,
+        upper_floor_heat_loss=0.10, lower_floor_heat_loss=0.09,
+        radiator_power_fraction=0.4,
+    )
+    m = ThermalModel(p)
+    opt = _StoreOpt(m, _StoreCfg(
+        horizon_hours=24, time_step_minutes=15,
+        target_temp=21.0, min_temp=17.0, max_temp=23.0,
+    ))
+    n = 96
+    hours = np.arange(n) * 0.25
+    if price_profile == "spread":
+        prices = np.full(n, 1.80)
+        prices[hours < 5] = 0.90
+        prices[(hours >= 7) & (hours < 10)] = 4.80
+        prices[(hours >= 16) & (hours < 20)] = 7.40
+    else:
+        prices = np.full(n, 1.20)
+    outdoor = np.full(n, -10.0)
+    zeros = np.zeros(n)
+    st = ThermalState(
+        room_temperature=20.0, upper_floor_temperature=20.0,
+        lower_floor_temperature=20.0, slab_temperature=21.0,
+        buffer_tank_temperature=25.0, outdoor_temperature=-10.0,
+    )
+    return opt.optimize(st, prices, outdoor, zeros, zeros, zeros,
+                        datetime(2026, 1, 15)), hours
+
+
+_hold_r, _hold_hours = _hold_plan("spread")
+R.check(
+    "a price spread earns a hold schedule",
+    bool(_hold_r.valve_target_schedule),
+    "with cheap hours to charge in and a peak to save for, a commanded "
+    "valve has something to do that a fixed one cannot",
+)
+_sched = np.asarray(_hold_r.valve_target_schedule or [23.0] * 96)
+R.check(
+    "and the schedule is fully resolved -- real temperatures, no sentinels",
+    len(_sched) == 96 and bool(np.all((_sched >= 15.0) & (_sched <= 30.0))),
+    f"range {_sched.min():.1f}-{_sched.max():.1f} C",
+)
+R.check(
+    "it holds the valve down between charging and the peak",
+    bool(np.any(_sched < 20.0)) and bool(np.any(_sched >= 22.0)),
+    f"{int((_sched < 20.0).sum())} held steps of 96; a schedule that never "
+    "lowers the curve is the fixed target under another name",
+)
+_floor_by_step = np.array([
+    _StoreCfg(horizon_hours=24, time_step_minutes=15, target_temp=21.0,
+              min_temp=17.0, max_temp=23.0).get_temp_bounds((i * 0.25) % 24)[0]
+    for i in range(96)
+])
+R.check(
+    "and it never asks for a house below the comfort floor",
+    bool(np.all(_sched >= _floor_by_step - 1e-9)),
+    f"lowest target {_sched.min():.1f} C against a per-step floor bottoming "
+    f"at {_floor_by_step.min():.1f} C -- the hold uses the floor the solve "
+    "already plans against (which the night setback lowers), so it can "
+    "never ask for a house the objective would refuse",
+)
+
+# The null control, and the two gates.
+_flat_r, _ = _hold_plan("flat")
+R.check(
+    "the null control: flat prices earn no schedule at all",
+    not _flat_r.valve_target_schedule,
+    "with nothing to arbitrage there is nothing to hold for, and the "
+    "candidate is not even proposed",
+)
+_read_r, _ = _hold_plan("spread", mode=_mv.MODE_SMART_READ)
+R.check(
+    "a valve the integration cannot command gets no schedule",
+    not _read_r.valve_target_schedule,
+    "smart_read and manual can only be told what to do by a human; "
+    "planning a schedule nobody will actuate would make the plan a fiction",
+)
+_small_r, _ = _hold_plan("spread", volume=35.0)
+R.check(
+    "and neither does a tank too small to be a store",
+    not _small_r.valve_target_schedule,
+    "below BUFFER_STORE_MIN_VOLUME there is no charge worth holding",
+)
+
+# The adoption rule itself: a candidate that does not beat the fixed target
+# on the same objective must be discarded, schedule and all.
+_ho = _StoreOpt(
+    ThermalModel(ThermalParameters(
+        two_zone_enabled=True, buffer_tank_volume=750.0,
+        mixing_valve_mode=_mv.MODE_SMART_WRITE, buffer_max_temp=70.0,
+        cop_flow_carnot=True,
+    )),
+    _StoreCfg(horizon_hours=24, time_step_minutes=15,
+              target_temp=21.0, min_temp=17.0, max_temp=23.0),
+)
+_flat_prices = np.full(96, 1.20)
+_spread_prices = np.full(96, 1.80)
+_spread_prices[np.arange(96) * 0.25 < 5] = 0.90
+_spread_prices[(np.arange(96) * 0.25 >= 16) & (np.arange(96) * 0.25 < 20)] = 7.40
+_pw_charge = np.zeros(96)
+_pw_charge[:20] = 6.0
+_floors = np.full(96, 17.0)
+R.check(
+    "no candidate is derived where prices are flat",
+    _ho._derive_hold_schedule(_pw_charge, _flat_prices, _floors) is None,
+    "the derivation refuses before the solver is ever asked",
+)
+R.check(
+    "nor where the plan never charges",
+    _ho._derive_hold_schedule(np.zeros(96), _spread_prices, _floors) is None,
+    "there is no stored heat to hold",
+)
+_derived = _ho._derive_hold_schedule(_pw_charge, _spread_prices, _floors)
+R.check(
+    "a charging plan against a spread does derive one",
+    _derived is not None and bool(np.any(np.asarray(_derived) < 20.0)),
+    f"got {None if _derived is None else 'a schedule'}",
+)
+R.check(
+    "the peak itself is never held down",
+    _derived is not None
+    and bool(np.all(np.asarray(_derived)[
+        (np.arange(96) * 0.25 >= 16) & (np.arange(96) * 0.25 < 20)
+    ] >= 22.0)),
+    "holding through the peak would store heat for a moment that has "
+    "already arrived -- the tank must be delivering then, not saving",
+)
+
+# And the model has to actually obey a per-step target, or the schedule is
+# a number the plan believes and the physics ignores.
+_ht_p = ThermalParameters(
+    two_zone_enabled=True, buffer_tank_volume=750.0,
+    mixing_valve_mode=_mv.MODE_SMART_WRITE, buffer_max_temp=70.0,
+    cop_flow_carnot=True,
+)
+_ht_m = ThermalModel(_ht_p)
+_ht_st = ThermalState(
+    room_temperature=21.0, upper_floor_temperature=21.0,
+    lower_floor_temperature=20.5, slab_temperature=25.0,
+    buffer_tank_temperature=60.0, outdoor_temperature=-5.0,
+)
+_ht_zero = np.zeros(24)
+_ht_open = _ht_m.simulate_trajectory(
+    _ht_st, _ht_zero, np.full(24, -5.0), _ht_zero, _ht_zero, _ht_zero, 0.25,
+    valve_targets=np.full(24, 23.0),
+)
+_ht_open_end = float(_ht_m.last_buffer_trajectory[-1])
+_ht_held = _ht_m.simulate_trajectory(
+    _ht_st, _ht_zero, np.full(24, -5.0), _ht_zero, _ht_zero, _ht_zero, 0.25,
+    valve_targets=np.full(24, 17.0),
+)
+_ht_held_end = float(_ht_m.last_buffer_trajectory[-1])
+R.check(
+    "a held valve really does keep heat in the tank",
+    _ht_held_end > _ht_open_end + 2.0,
+    f"6 h coasting: open curve leaves {_ht_open_end:.1f} C, held leaves "
+    f"{_ht_held_end:.1f} C -- if these matched, the schedule would be a "
+    "number the plan believes and the physics ignores",
+)
+R.check(
+    "and no schedule is byte-for-byte the configured target",
+    float(_ht_m.simulate_trajectory(
+        _ht_st, _ht_zero, np.full(24, -5.0), _ht_zero, _ht_zero, _ht_zero,
+        0.25, valve_targets=None,
+    )[0][-1]) == float(_ht_m.simulate_trajectory(
+        _ht_st, _ht_zero, np.full(24, -5.0), _ht_zero, _ht_zero, _ht_zero,
+        0.25, valve_targets=np.full(24, _ht_p.comfort_ceiling),
+    )[0][-1]),
+    "passing the value the model would have used itself must change nothing",
+)
+
 # The tank's ceiling is a hard constraint in the solve, not a soft penalty.
 # The model's clamp deletes heat charged into a full tank, so in the
 # objective overcharging is merely wasteful -- and at a low enough price the
@@ -3024,6 +3212,43 @@ R.check(
     f"{_uc.hass.services.calls}",
 )
 
+# With a hold schedule in force the actuator follows *it*, not the fixed
+# recommendation -- otherwise the plan holds the tank on paper while the real
+# valve stays wide open and empties it, which is worse than never planning
+# the hold at all.
+_sc = _write_coord(
+    mixing_valve_mode="smart_write", mixing_valve_write_entity="number.valve"
+)
+_sc._current_action = {"valve_target": 17.0}
+_asyncio.run(_sc._command_valve_target())
+R.check(
+    "a hold schedule is what actually reaches the valve",
+    _sc.hass.services.calls
+    and _sc.hass.services.calls[0][2]["value"] == 17.0,
+    f"got {_sc.hass.services.calls!r}; the plan holds this step at 17.0, "
+    "and writing the fixed 23.5 would empty the tank the plan is saving",
+)
+
+# The step the actuator writes is chosen by `get_current_action`, once, so
+# there is no second search to disagree with the first.
+_ao = _StoreOpt(
+    ThermalModel(ThermalParameters(
+        two_zone_enabled=True, mixing_valve_mode=_mv.MODE_SMART_WRITE)),
+    _StoreCfg(horizon_hours=24, time_step_minutes=15,
+              target_temp=21.0, min_temp=17.0, max_temp=23.0),
+)
+_a_now = datetime(2026, 1, 15, 12, 0)
+_a_res = _hold_r
+_a_res_action = _ao.get_current_action(_hold_r, _hold_r.timestamps[8])
+R.check(
+    "the current action carries the valve target for the step it is about",
+    _a_res_action.get("valve_target") == round(
+        float(_hold_r.valve_target_schedule[8]), 1
+    ),
+    f"action says {_a_res_action.get('valve_target')}, schedule step 8 is "
+    f"{_hold_r.valve_target_schedule[8]:.1f}",
+)
+
 
 R.section("Per-step external heat reaches the model and the plan (item 28)")
 
@@ -3152,6 +3377,23 @@ R.check(
 )
 
 _text = _topo.render_text_summary(_full)
+R.check(
+    "every assignable slot carries the domains it accepts",
+    all(s.get("domains") for s in _full["slots"])
+    and {s["key"] for s in _full["slots"]} <= set(_topo.ASSIGNABLE_KEYS),
+    "the picker filters and the service validates from one list, so a "
+    "diagram cannot offer what the service would refuse",
+)
+R.check(
+    "a temperature slot does not accept a switch",
+    "switch" not in _topo.ASSIGNABLE_KEYS[hp_const.CONF_INDOOR_TEMP_ENTITY]
+    and "switch" in _topo.ASSIGNABLE_KEYS[
+        hp_const.CONF_HEAT_PUMP_SWITCH_ENTITY
+    ],
+    "assigning a switch to a temperature slot is the mistake a clickable "
+    "diagram makes easy, and it plans against nonsense rather than erroring",
+)
+
 R.check(
     "the flow overview is a fenced monospaced block",
     _text.startswith("```\n") and _text.endswith("\n```"),

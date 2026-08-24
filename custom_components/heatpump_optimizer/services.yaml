@@ -480,6 +480,39 @@ simulate_plan:
       selector:
         text:
 
+assign_entity:
+  name: Assign Entity
+  description: >-
+    Assign one of the integration's optional sensors, or clear it. This is what
+    the setup diagram on the dashboard card calls when you click a slot, and it
+    writes the same configuration the options pages write. Changing the
+    configuration reloads the integration.
+  fields:
+    key:
+      name: Setting
+      description: >-
+        Which optional sensor to assign, by its configuration key - for example
+        buffer_tank_temp_entity.
+      required: true
+      example: buffer_tank_temp_entity
+      selector:
+        text:
+    entity_id:
+      name: Entity
+      description: >-
+        The entity to assign. Leave empty to clear the slot. The entity must
+        exist and its domain must be one the slot accepts.
+      required: true
+      example: sensor.buffer_tank
+      selector:
+        text:
+    entry_id:
+      name: Config entry
+      description: >-
+        Restrict the change to one heat pump. Omit to apply to all of them.
+      selector:
+        text:
+
 apply_schedule:
   name: Apply Schedule
   description: >-

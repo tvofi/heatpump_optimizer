@@ -1624,21 +1624,25 @@ check("the hand-scheduled reason has a label",
 
 // --- Scenario: the setup page (item 33) ------------------------------------
 {
+  const TEMP = ["sensor", "number", "input_number"];
   const topo = {
     two_zone: true, dhw: true, valve_mode: "manual",
     buffer: { volume_l: 750, is_store: true, max_temp: 70 },
     wood: { present: true, volume_l: 500 },
     slots: [
       { key: "indoor_temp_entity", label: "Indoor temperature",
-        place: "upper_zone", entity: "sensor.livingroom" },
+        place: "upper_zone", entity: "sensor.livingroom", domains: TEMP },
       { key: "lower_floor_temp_entity", label: "Lower floor temperature",
-        place: "lower_zone", entity: null },
+        place: "lower_zone", entity: null, domains: TEMP },
       { key: "buffer_tank_temp_entity", label: "Buffer tank temperature",
-        place: "buffer_tank", entity: "sensor.tank" },
+        place: "buffer_tank", entity: "sensor.tank", domains: TEMP },
       { key: "wood_tank_top_entity", label: "Wood tank top",
-        place: "wood_tank", entity: null },
+        place: "wood_tank", entity: null, domains: TEMP },
       { key: "outdoor_temp_entity", label: "Outdoor temperature",
-        place: "outdoor", entity: "sensor.outside" },
+        place: "outdoor", entity: "sensor.outside", domains: TEMP },
+      { key: "heat_pump_switch_entity", label: "Heat pump switch",
+        place: "heat_pump", entity: null,
+        domains: ["switch", "input_boolean", "climate"] },
     ],
   };
   const states = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
@@ -1686,6 +1690,72 @@ check("the hand-scheduled reason has a label",
   const backToPlan = collect(su.shadowRoot).join("\n");
   check("switching back restores the chart and the what-if panel",
     /chartwrap big/.test(backToPlan) && !/class="setup-svg"/.test(backToPlan));
+
+  // --- click-to-assign (item 32's second stage) ---------------------------
+  su._dialogPage = "setup";
+  su._render();
+  const clickable = collect(su.shadowRoot).join("\n");
+  check("every slot is a click target, not just the configured ones",
+    (clickable.match(/class="setup-hit"/g) || []).length === topo.slots.length,
+    `${(clickable.match(/class="setup-hit"/g) || []).length} hit targets for `
+    + `${topo.slots.length} slots -- an empty slot is the one you most need `
+    + `to click`);
+
+  su._pickerKey = "lower_floor_temp_entity";
+  su._render();
+  const picking = collect(su.shadowRoot).join("\n");
+  check("clicking a slot opens a picker for it",
+    /class="setup-picker"/.test(picking) && /Lower floor temperature/.test(picking));
+  check("the picker offers entities of the domains the slot accepts",
+    /sensor\.livingroom/.test(picking) && /sensor\.tank/.test(picking));
+  check("and offers clearing the slot",
+    /\(not configured\)/.test(picking));
+  // The service validates domains too, but a picker that offers what the
+  // service will refuse turns a wrong click into an error message instead of
+  // an impossibility.
+  su._pickerKey = "heat_pump_switch_entity";
+  su._render();
+  const switchPick = collect(su.shadowRoot).join("\n");
+  check("a switch slot does not offer temperature sensors",
+    !/sensor\.livingroom/.test(switchPick),
+    "the picker is filtered by the same domain list the service enforces");
+
+  su._pickerKey = "lower_floor_temp_entity";
+  su._render();
+  const calls = [];
+  su._hass.callService = async (domain, service, data) => {
+    calls.push([domain, service, data]);
+  };
+  const saveBtn = su.shadowRoot.querySelector(".sp-save");
+  const select = su.shadowRoot.querySelector(".sp-select");
+  if (select) select.value = "sensor.tank";
+  if (saveBtn) await Promise.all(
+    (saveBtn._listeners.click || []).map((f) => f({ stopPropagation() {} })));
+  check("assigning calls the validated service, not a config write",
+    calls.length === 1 && calls[0][0] === "heatpump_optimizer"
+    && calls[0][1] === "assign_entity",
+    JSON.stringify(calls));
+  check("and sends the slot key and the chosen entity",
+    calls.length === 1 && calls[0][2].key === "lower_floor_temp_entity"
+    && calls[0][2].entity_id === "sensor.tank",
+    JSON.stringify(calls[0] && calls[0][2]));
+  check("the picker closes once the assignment is away",
+    su._pickerKey === null);
+
+  // A failed call must say so rather than looking like it worked.
+  su._pickerKey = "lower_floor_temp_entity";
+  su._render();
+  su._hass.callService = async () => {
+    throw new Error("Entity does not exist");
+  };
+  const saveBtn2 = su.shadowRoot.querySelector(".sp-save");
+  if (saveBtn2) await Promise.all(
+    (saveBtn2._listeners.click || []).map((f) => f({ stopPropagation() {} })));
+  check("a rejected assignment is reported, not swallowed",
+    /Could not assign/.test(su._setupNote || ""),
+    `note was ${JSON.stringify(su._setupNote)}`);
+  check("and the picker stays open so the choice can be corrected",
+    su._pickerKey === "lower_floor_temp_entity");
 }
 
 console.log(fails ? `\n${fails} CARD CHECK(S) FAILED` : "\nALL CARD CHECKS PASSED");
