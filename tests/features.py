@@ -2757,6 +2757,87 @@ R.check(
 )
 
 
+R.section("Per-step external heat reaches the model and the plan (item 28)")
+
+# The harness prerequisite the item names: `external_heat_active` was a scalar
+# bool on the initial state and the model had no free-heat input at all, so a
+# fire could not be represented, sized, or planned around.
+
+_x_p = ThermalParameters(
+    two_zone_enabled=True, buffer_tank_volume=200.0,
+    upper_floor_thermal_mass=3.0, lower_floor_thermal_mass=4.5,
+    upper_floor_heat_loss=0.10, lower_floor_heat_loss=0.09,
+    radiator_power_fraction=0.4,
+)
+_x_m = ThermalModel(_x_p)
+_x_st = ThermalState(
+    room_temperature=20.0, upper_floor_temperature=20.0,
+    lower_floor_temperature=20.0, slab_temperature=21.0,
+    buffer_tank_temperature=30.0, outdoor_temperature=-5.0,
+)
+
+
+def _x_coast(ext_kw):
+    st = _x_st
+    for _ in range(8):
+        st = _x_m.simulate_step(
+            st, 0.0, -5.0, dt_hours=0.25, external_heat_kw=ext_kw
+        )
+    return st
+
+
+_x_none = _x_coast(0.0)
+_x_burn = _x_coast(8.0)
+R.check(
+    "free heat warms the house with the compressor off",
+    _x_burn.upper_floor_temperature > _x_none.upper_floor_temperature + 1.0,
+    f"{_x_none.upper_floor_temperature:.2f} C without vs "
+    f"{_x_burn.upper_floor_temperature:.2f} C with an 8 kW burn",
+)
+R.check(
+    "and it is heat, not electricity: a zero burn is the old model exactly",
+    _x_coast(0.0) == _x_none,
+    "the default path must stay byte-for-byte identical",
+)
+
+# The plan defers electric heat the furnace is already providing: a burn
+# forecast over the first six hours must reduce what the optimizer buys
+# there, and an all-zero forecast must change nothing at all.
+_x_opt = _StoreOpt(_x_m, _StoreCfg(
+    horizon_hours=24, time_step_minutes=15,
+    target_temp=21.0, min_temp=17.0, max_temp=23.0,
+))
+_x_prices = np.full(96, 1.2)
+_x_out = np.full(96, -5.0)
+_x_zero = np.zeros(96)
+_x_blind = _x_opt.optimize(
+    _x_st, _x_prices, _x_out, _x_zero, _x_zero, _x_zero, datetime(2026, 1, 15)
+)
+_x_fc = np.zeros(96)
+_x_fc[:24] = 6.0
+_x_aware = _x_opt.optimize(
+    _x_st, _x_prices, _x_out, _x_zero, _x_zero, _x_zero, datetime(2026, 1, 15),
+    external_heat_kw=_x_fc,
+)
+_x_pb = np.asarray(_x_blind.power_schedule)
+_x_pa = np.asarray(_x_aware.power_schedule)
+R.check(
+    "a burn forecast reduces electric heating during the burn",
+    float(_x_pa[:24].sum()) < float(_x_pb[:24].sum()) - 2.0,
+    f"first 6 h: blind {_x_pb[:24].sum() * 0.25:.1f} kWh vs "
+    f"aware {_x_pa[:24].sum() * 0.25:.1f} kWh",
+)
+_x_zeroed = _x_opt.optimize(
+    _x_st, _x_prices, _x_out, _x_zero, _x_zero, _x_zero, datetime(2026, 1, 15),
+    external_heat_kw=np.zeros(96),
+)
+R.check(
+    "an all-zero forecast is byte-identical to no forecast",
+    np.array_equal(np.asarray(_x_zeroed.power_schedule), _x_pb),
+    "zeros must take the exact default path",
+)
+
+
 R.section("Buffer tank standby loss scales with the tank (items 27/29)")
 
 # UA follows the tank's *surface area*, which grows as volume^(2/3), while the
