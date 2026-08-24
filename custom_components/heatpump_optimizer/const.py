@@ -169,10 +169,23 @@ DEFAULT_PEAK_TARIFF_WINDOW: Final = 60  # minutes
 
 # --- Compressor cycling, item 10 -------------------------------------------
 #
-# Defaults to zero so the shipped behaviour is unchanged until a user decides
-# their compressor's start cost is worth paying for. ``tests/validate.py``
-# reports the start count per scenario, which is how that decision gets made
-# from evidence rather than from assumption.
+# Still zero, and that is now a measured decision rather than an assumption.
+#
+# Until v3.9.0 chatter was discouraged by a `0.01 * sum(dP^2)` term in the
+# objective, priced in no units at all. Removing it was clearly right. Moving
+# its job here, by shipping a non-zero default, was tried and rejected:
+# sweeping 0.00 / 0.05 / 0.10 / 0.20 SEK per cycle moved the *cycling charge*
+# by at most 0.5 SEK while moving the *electricity* cost by up to 2.2 SEK, and
+# not monotonically -- 0.10 produced fewer starts than 0.05 on the same
+# scenario. At these magnitudes the term does not steer the plan, it perturbs
+# which local optimum the solver lands in, and the perturbation is worth more
+# than the term. Shipping that as a default would be churn dressed as tuning.
+#
+# So it stays opt-in. Removing the mispriced term costs about 5% more
+# compressor starts across the scenario set (127 -> 133) and saves about 9% of
+# the electricity, which is a trade worth taking; anyone who wants the starts
+# back has a knob denominated in real currency. `tests/validate.py` reports the
+# start count per scenario, which is how that decision gets made from evidence.
 CONF_CYCLING_COST: Final = "compressor_cycling_cost"
 DEFAULT_CYCLING_COST: Final = 0.0
 
