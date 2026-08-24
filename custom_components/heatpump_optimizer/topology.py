@@ -104,6 +104,10 @@ def describe_setup(config: dict[str, Any]) -> dict[str, Any]:
     """
     p = ThermalParameters.from_config(config)
     valve = mixing_valve.is_throttling(p.mixing_valve_mode)
+    # Whether the wood tank is simulated as its own store, or folded into the
+    # heat-pump tank. Read from the model, never re-derived here, so a picture
+    # cannot claim physics the model does not run (issue #40).
+    two_tank = p.two_tank_modelled
     wood = bool(
         config.get(CONF_EXTERNAL_HEAT_ENABLED)
         or config.get(CONF_WOOD_TANK_TOP_ENTITY)
@@ -121,25 +125,38 @@ def describe_setup(config: dict[str, Any]) -> dict[str, Any]:
         "dhw_tank": p.dhw_enabled,
         "mixing_valve": valve,
         "wood_tank": wood,
-        "wood_valve": wood,
+        # In the two-tank layout the 4-way valve is ONE physical device: the
+        # separate "wood valve" place is an artifact of the single-tank
+        # abstraction, so its slot moves onto the mixing valve below rather
+        # than a second valve being drawn that nobody owns.
+        "wood_valve": wood and not two_tank,
     }
+    def placed(place: str) -> str:
+        """Where this slot actually lives on the configured topology."""
+        return "mixing_valve" if two_tank and place == "wood_valve" else place
+
     slots = [
         {
             "key": key,
             "label": label,
-            "place": place,
+            "place": placed(place),
             "entity": config.get(key) or None,
             # Carried so the card's picker offers only what the service will
             # accept for this slot -- one list, not two that can disagree.
             "domains": list(domains),
         }
         for key, place, label, domains in _SLOTS
-        if present.get(place, True)
+        if present.get(placed(place), True)
     ]
     return {
         "two_zone": p.two_zone_enabled,
         "dhw": p.dhw_enabled,
         "valve_mode": p.mixing_valve_mode,
+        # Additive (issue #40): the layout key the model resolved to, and
+        # whether it runs the two-tank physics. Both renderers key off these
+        # rather than re-deriving "is there a wood tank" for themselves.
+        "layout": p.topology_layout,
+        "two_tank_modelled": two_tank,
         "buffer": {
             "volume_l": p.buffer_tank_volume,
             "is_store": p.buffer_is_store,
@@ -176,6 +193,9 @@ def render_text_summary(setup: dict[str, Any]) -> str:
     every install already has.
     """
     valve = mixing_valve.is_throttling(setup["valve_mode"])
+    # Absent on descriptions captured before issue #40, and false is the
+    # right answer for those: the single-tank abstraction is what they ran.
+    two_tank = bool(setup.get("two_tank_modelled"))
     parts: list[str] = []
 
     house = ["House: two zones" if setup["two_zone"] else "House: one zone"]
@@ -191,7 +211,10 @@ def render_text_summary(setup: dict[str, Any]) -> str:
 
     buf = setup["buffer"]
     tank = [
-        f"Buffer tank: {buf['volume_l']:.0f} L"
+        # With a second modelled store the bare word "buffer" stops
+        # identifying which tank is meant, so name it by what fills it.
+        ("Heat pump tank" if two_tank else "Buffer tank")
+        + f": {buf['volume_l']:.0f} L"
         + (
             f", used as a store up to {buf['max_temp']:.0f} °C"
             if buf["is_store"]
@@ -212,10 +235,16 @@ def render_text_summary(setup: dict[str, Any]) -> str:
         parts.append("\n".join(dhw))
 
     if setup["wood"]["present"]:
-        # The separate tank is drawn, but the model folds its heat into the
-        # heat-pump tank (issue #40) — say so until the two-tank model lands.
-        wood = [f"Wood furnace tank: {setup['wood']['volume_l']:.0f} L"]
-        wood.append("  (modelled as heat into the heat-pump tank)")
+        # Two tanks or one: the caption is the honest difference. Without the
+        # two-tank model the separate tank is drawn but its heat is folded
+        # into the heat-pump tank, and the summary must admit that; with it,
+        # the tank is a store in its own right and the caption would lie.
+        wood = [
+            f"Wood furnace tank: {setup['wood']['volume_l']:.0f} L"
+            + (", modelled as its own store" if two_tank else "")
+        ]
+        if not two_tank:
+            wood.append("  (modelled as heat into the heat-pump tank)")
         wood += _slot_lines(setup, "wood_tank")
         wood += _slot_lines(setup, "wood_valve")
         parts.append("\n".join(wood))

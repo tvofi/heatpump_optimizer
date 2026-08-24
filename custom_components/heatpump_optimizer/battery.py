@@ -30,6 +30,8 @@ import logging
 from dataclasses import dataclass
 from typing import Any
 
+from .const import WOOD_TANK_MAX_TEMP
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -249,6 +251,25 @@ def build(
                 min_temperature=comfort_min,
                 max_temperature=comfort_max + 20.0,
                 loss_kw_per_c=params.buffer_tank_heat_loss_coefficient,
+                ambient_temperature=20.0,
+            )
+        )
+
+    if (
+        params.two_tank_modelled
+        and state.wood_tank_temperature is not None
+    ):
+        # The wood tank is a real store when the two-tank topology is
+        # modelled (issue #40): heat a burn left in it displaces bought
+        # heat like any other component. Report-only, like the whole view.
+        components.append(
+            StorageComponent(
+                name="wood_tank",
+                capacity_kwh_per_c=params.wood_tank_thermal_mass,
+                temperature=state.wood_tank_temperature,
+                min_temperature=comfort_min,
+                max_temperature=WOOD_TANK_MAX_TEMP,
+                loss_kw_per_c=params.wood_tank_heat_loss_coefficient,
                 ambient_temperature=20.0,
             )
         )

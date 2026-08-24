@@ -47,11 +47,12 @@ import numpy as np
 from scipy.optimize import linprog, minimize
 
 from . import mixing_valve, pv
-from .const import DEFAULT_CYCLING_COST
+from .const import DEFAULT_CYCLING_COST, WOOD_TANK_MAX_TEMP
 from .thermal_model import (
     DHW_AMBIENT_TEMP,
     ThermalModel,
     ThermalState,
+    wood_share,
 )
 from .tariff import peak_cost, realised_peak
 from .dhw_schedule import (
@@ -451,6 +452,10 @@ class OptimizationResult:
     # its heat, back to the working target through the peak. The actuator
     # writes the current step's entry each cycle.
     valve_target_schedule: list[float] = field(default_factory=list)
+    # The planned wood-tank temperature, one entry per step boundary. Empty
+    # unless the two-tank topology is modelled (issue #40) — mirrors
+    # buffer_temp_trajectory as the only external view of the wood store.
+    wood_temp_trajectory: list[float] = field(default_factory=list)
     # The achieved objective value of this plan, for candidate comparison --
     # two solves under different valve schedules are two controls priced by
     # the same physics, so the smaller wins. NaN when a solve failed.
@@ -933,6 +938,7 @@ class HeatPumpOptimizer:
         dhw_temps: np.ndarray | None = None,
         dhw_cost: float = 0.0,
         buffer_temps: np.ndarray | None = None,
+        wood_temps: np.ndarray | None = None,
         predictive_info: dict | None = None,
         objective_value: float = float("nan"),
     ) -> OptimizationResult:
@@ -967,6 +973,12 @@ class HeatPumpOptimizer:
             valve_target_schedule=(
                 [float(v) for v in h.valve_targets]
                 if h.valve_targets is not None
+                else []
+            ),
+            wood_temp_trajectory=(
+                [float(v) for v in wood_temps]
+                if wood_temps is not None
+                and self.model.params.two_tank_modelled
                 else []
             ),
             objective_value=objective_value,
@@ -2033,6 +2045,7 @@ class HeatPumpOptimizer:
         # Captured here, next to the call that wrote it, rather than read back
         # at assembly time -- by then further simulations have run.
         buffer_temps = self.model.last_buffer_trajectory
+        wood_temps = self.model.last_wood_trajectory
         # The achieved objective, for candidate comparison across valve
         # schedules. One extra evaluation, robust on the failure path too.
         achieved_objective = float(objective(optimal_power))
@@ -2067,6 +2080,7 @@ class HeatPumpOptimizer:
             space_power=optimal_power,
             trajectories=(room_temps, slab_temps, upper_temps, lower_temps),
             buffer_temps=buffer_temps,
+            wood_temps=wood_temps,
             objective_value=achieved_objective,
             status=status,
             predicted_cost=predicted_cost,
@@ -3204,6 +3218,7 @@ class HeatPumpOptimizer:
         # the series, whatever the last space-only simulation had left on the
         # model was a trajectory for a different power schedule.
         buffer_temps = self.model.last_buffer_trajectory
+        wood_temps = self.model.last_wood_trajectory
         # The achieved objective, for candidate comparison across valve
         # schedules.
         achieved_objective = float(objective(optimal_space, optimal_dhw))
@@ -3276,6 +3291,7 @@ class HeatPumpOptimizer:
             space_power=optimal_space,
             trajectories=(room_temps, slab_temps, upper_temps, lower_temps),
             buffer_temps=buffer_temps,
+            wood_temps=wood_temps,
             objective_value=achieved_objective,
             status=status,
             predicted_cost=predicted_cost,
@@ -3383,6 +3399,14 @@ class HeatPumpOptimizer:
             # cap cannot change any decision. Left alone so these paths stay
             # byte-for-byte identical.
             caps["buffer"] = slab_cap
+        if p.two_tank_modelled:
+            # The wood tank is a genuine store too (issue #40): a burn's heat
+            # still in it at the horizon end displaces bought heat exactly as
+            # the buffer's does. Report-only and symmetric, like every
+            # settlement figure -- the objective's terminal cost deliberately
+            # excludes it (nobody refills it with electricity, so crediting
+            # it there would create a hoarding incentive with no refill cost).
+            caps["wood"] = WOOD_TANK_MAX_TEMP
         if dhw_cap is not None:
             caps["dhw"] = dhw_cap
         return caps
@@ -3505,6 +3529,41 @@ class HeatPumpOptimizer:
                 if external_heat_kw is not None and i < len(external_heat_kw)
                 else 0.0
             )
+            if (
+                p.two_tank_modelled
+                and state.wood_tank_temperature is not None
+            ):
+                # With the wood tank modelled, the 4-way valve covers part
+                # of the draw from the wood side; the reference backs its
+                # electric demand off by that share, computed with the SAME
+                # wood_share law the plan's physics uses so the two cannot
+                # drift. Subtracting ext_i afterwards as well is deliberate
+                # double counting in the conservative direction: the
+                # baseline can only get cheaper, so reported savings are
+                # understated, never inflated.
+                u_up = self.model.effective_heat_loss_coefficient(
+                    p.upper_floor_heat_loss, wind_speeds[i], precipitation[i]
+                )
+                u_lo = self.model.effective_heat_loss_coefficient(
+                    p.lower_floor_heat_loss_learned,
+                    wind_speeds[i] * 0.5, precipitation[i] * 0.5,
+                )
+                design_power = p.max_electrical_power * max(p.cop_nominal, 1.0)
+                flow_set = mixing_valve.flow_setpoint(
+                    target_temp=p.mixing_valve_target or p.comfort_ceiling,
+                    outdoor_temp=float(outdoor_temps[i]),
+                    heat_loss_coefficient=u_up + u_lo,
+                    emitter_ua=design_power / max(p.emitter_design_delta_t, 1.0),
+                )
+                w_i = wood_share(
+                    state.wood_tank_temperature,
+                    state.buffer_tank_temperature,
+                    flow_set,
+                    min(
+                        state.upper_floor_temperature, state.slab_temperature
+                    ),
+                )
+                required_thermal *= 1.0 - w_i
             required_thermal = max(0.0, required_thermal - ext_i)
 
             cop = self.model.compute_cop(outdoor_temps[i])
@@ -3672,6 +3731,15 @@ class HeatPumpOptimizer:
                 + p.buffer_tank_thermal_mass
                 * _t(state.buffer_tank_temperature, "buffer")
             )
+            if (
+                p.two_tank_modelled
+                and state.wood_tank_temperature is not None
+            ):
+                # Symmetric with the buffer: heat still in the wood tank at
+                # the horizon end is heat the next window does not buy.
+                stored += p.wood_tank_thermal_mass * _t(
+                    state.wood_tank_temperature, "wood"
+                )
         else:
             stored = (
                 p.slab_thermal_mass * _t(state.slab_temperature, "slab")

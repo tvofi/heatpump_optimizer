@@ -178,6 +178,7 @@ from .external_heat import (
     ExternalHeatConfig,
     ExternalHeatDetector,
     ExternalHeatObservation,
+    wood_mean_temperature,
 )
 from . import away as away_mode
 from . import battery as battery_view
@@ -1347,7 +1348,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if not self._external_heat.suppressing:
             return None
         forecast = self._external_heat.forecast_free_heat(
-            n_steps, self._opt_config.time_step_minutes / 60.0
+            n_steps,
+            self._opt_config.time_step_minutes / 60.0,
+            # With the wood tank modelled its stored energy is initial state
+            # in the solve; budgeting the forecast against it as well would
+            # count the same heat twice (issue #40).
+            tank_modelled=self._thermal_params.two_tank_modelled,
         )
         arr = np.asarray(forecast, dtype=float)
         return arr if bool(np.any(arr > 0.0)) else None
@@ -2594,6 +2600,36 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if buffer_reading.ok:
             self._current_state.buffer_tank_temperature = buffer_reading.value
 
+        # Wood tank temperature (issue #40): seeds the two-tank model each
+        # cycle through the same stale-aware reader — the model never
+        # extrapolates yesterday's fire, it re-reads the physical tank.
+        # Staleness maps to absence, and absence means the step falls back
+        # to the single-tank abstraction (free heat routed into the HP
+        # tank) rather than planning against a stalled hot probe or
+        # dropping the heat. Logged once per transition.
+        if self._thermal_params.two_tank_modelled:
+            wood_top = reader.read(CONF_WOOD_TANK_TOP_ENTITY)
+            wood_bottom = reader.read(CONF_WOOD_TANK_BOTTOM_ENTITY)
+            wood_mean = wood_mean_temperature(
+                wood_top.value if wood_top.ok else None,
+                wood_bottom.value if wood_bottom.ok else None,
+            )
+            had = self._current_state.wood_tank_temperature is not None
+            if wood_mean is None and had:
+                _LOGGER.warning(
+                    "Wood tank probe stale or missing; falling back to the "
+                    "single-tank abstraction until it recovers"
+                )
+            elif wood_mean is not None and not had:
+                _LOGGER.info(
+                    "Two-tank model active: wood tank at %.1f °C", wood_mean
+                )
+            self._current_state.wood_tank_temperature = wood_mean
+        elif self._current_state.wood_tank_temperature is not None:
+            # Reconfigured away mid-session: drop the state so nothing
+            # simulates a tank the parameters no longer model.
+            self._current_state.wood_tank_temperature = None
+
         # The health snapshot has to be complete before any learner runs, since
         # each one consults it to decide whether to freeze.
         self._input_health = reader.health
@@ -3424,7 +3460,17 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     def _thermal_view(self) -> dict[str, Any]:
         """Measured and modelled temperatures, and the solar input."""
         state = self._current_state
+        # Conditional keys, not null keys: installs without the two-tank
+        # topology publish exactly the attributes they published before
+        # (issue #40's conditional-key pattern).
+        two_tank: dict[str, Any] = {}
+        if self._thermal_params.two_tank_modelled:
+            two_tank = {
+                "two_tank_modelled": True,
+                "wood_tank_temperature": state.wood_tank_temperature,
+            }
         return {
+            **two_tank,
             "indoor_temperature": state.room_temperature,
             "outdoor_temperature": state.outdoor_temperature,
             "slab_temperature": state.slab_temperature,

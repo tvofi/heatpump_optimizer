@@ -3408,12 +3408,27 @@ R.check(
     "used as a store" in _text,
     "a 750 L tank behind a manual valve is a store as of v3.10.0",
 )
+# _full_cfg is itself a two-tank configuration (two zones, manual valve,
+# a wood-tank probe), so as of v3.15.0 its summary claims the wood tank as
+# a real store. The v3.14.1 abstraction caption must survive exactly where
+# the abstraction still runs: wood present without a probe.
 R.check(
-    "the wood abstraction is admitted in prose",
-    "modelled as heat into the heat-pump tank" in _text,
-    "issue #40: the separate wood tank is drawn, but the model folds its "
-    "heat into the heat-pump tank -- the summary must say so until the "
-    "two-tank model replaces the abstraction",
+    "a modelled wood tank is claimed as its own store",
+    "modelled as its own store" in _text
+    and "modelled as heat into the heat-pump tank" not in _text
+    and "Heat pump tank: 750 L" in _text,
+    "issue #40: with the two-tank model active the summary stops "
+    "apologizing for an abstraction it no longer uses",
+)
+_folded = _topo.render_text_summary(
+    _topo.describe_setup({**_full_cfg, "wood_tank_top_entity": None})
+)
+R.check(
+    "the wood abstraction is admitted in prose where it still runs",
+    "modelled as heat into the heat-pump tank" in _folded
+    and "Buffer tank: 750 L" in _folded,
+    "issue #40: a flue switch without a probe still folds wood heat into "
+    "the heat-pump tank, and the summary must keep saying so",
 )
 
 
@@ -3859,5 +3874,482 @@ R.check(
     )
     is None,
 )
+
+
+R.section("Two-tank topology (issue #40)")
+
+# The wood tank is now its own store rather than heat folded into the heat
+# pump's tank. The abstraction it replaces was not merely coarse: a burn
+# raised the *modelled* HP tank, which is the flow temperature the COP curve
+# is evaluated at and the level the safe-ceiling cap is measured against, so
+# free heat arrived as a COP penalty and as refused cap headroom the
+# optimizer then planned around.
+
+from heatpump_optimizer import mixing_valve as _w2t_mv  # noqa: E402
+from heatpump_optimizer.thermal_model import (  # noqa: E402
+    wood_share as _w2t_share,
+)
+from heatpump_optimizer.const import (  # noqa: E402
+    TOPOLOGY_NO_VALVE as _W2T_NO_VALVE,
+    TOPOLOGY_SINGLE_TANK_VALVE as _W2T_ONE_TANK,
+    TOPOLOGY_TWO_TANK_4WAY as _W2T_TWO_TANK,
+    WATER_SPECIFIC_HEAT as _W2T_CP,
+    WOOD_TANK_MIN_MARGIN as _W2T_MARGIN,
+)
+
+# --- Gating: a probe, not a flag ------------------------------------------
+#
+# Resolved from a config dict rather than from hand-built parameters, because
+# the question is what a real entry activates. The two-tank model must not
+# come on for a flue switch: it has to be initializable from a measurement.
+
+_w2t_cfg_base = {
+    "indoor_temp_entity": "sensor.indoor",
+    "outdoor_temp_entity": "sensor.outdoor",
+    "upper_floor_thermal_mass": 3.0,
+    "lower_floor_thermal_mass": 4.5,
+    "buffer_tank_volume": 750.0,
+}
+
+
+def _w2t_from_config(**extra):
+    cfg = dict(_w2t_cfg_base)
+    cfg.update(extra)
+    return ThermalParameters.from_config(cfg)
+
+
+_w2t_p_no_valve = _w2t_from_config(wood_tank_top_entity="sensor.wood_top")
+_w2t_p_full = _w2t_from_config(
+    mixing_valve_mode="manual", wood_tank_top_entity="sensor.wood_top"
+)
+_w2t_p_no_probe = _w2t_from_config(mixing_valve_mode="manual")
+_w2t_p_flue = _w2t_from_config(
+    mixing_valve_mode="manual",
+    external_heat_detection_enabled=True,
+    external_heat_entity="binary_sensor.flue",
+)
+_w2t_p_one_zone = ThermalParameters.from_config({
+    "indoor_temp_entity": "sensor.indoor",
+    "mixing_valve_mode": "manual",
+    "wood_tank_top_entity": "sensor.wood_top",
+})
+
+R.check(
+    "without a valve the layout is the valveless one",
+    _w2t_p_no_valve.topology_layout == _W2T_NO_VALVE
+    and not _w2t_p_no_valve.two_tank_modelled,
+    f"got {_w2t_p_no_valve.topology_layout}; a wood probe cannot conjure a "
+    "4-way valve that is not plumbed in",
+)
+R.check(
+    "a valve, two zones and a wood probe resolve to the 4-way layout",
+    _w2t_p_full.topology_layout == _W2T_TWO_TANK
+    and _w2t_p_full.two_tank_modelled,
+    f"got {_w2t_p_full.topology_layout}",
+)
+R.check(
+    "a valve without a wood probe stays single-tank",
+    _w2t_p_no_probe.topology_layout == _W2T_ONE_TANK
+    and not _w2t_p_no_probe.two_tank_modelled,
+    f"got {_w2t_p_no_probe.topology_layout}",
+)
+R.check(
+    "a flue switch alone does not activate the two-tank model",
+    _w2t_p_flue.topology_layout == _W2T_ONE_TANK
+    and not _w2t_p_flue.two_tank_modelled,
+    "detection says heat is arriving; it does not say how hot the tank is, "
+    "and the second state variable has to start from a measurement",
+)
+R.check(
+    "and neither does a wood probe without a second zone",
+    _w2t_p_one_zone.topology_layout == _W2T_ONE_TANK
+    and not _w2t_p_one_zone.two_tank_modelled,
+    "the draw law lives in the two-zone step; there is no other branch to "
+    "gate it into",
+)
+_w2t_p_vol = _w2t_from_config(
+    mixing_valve_mode="manual",
+    wood_tank_top_entity="sensor.wood_top",
+    wood_tank_volume=800.0,
+)
+R.check(
+    "one number sizes the one physical tank",
+    abs(_w2t_p_vol.wood_tank_thermal_mass - 800.0 * _W2T_CP) < 1e-12,
+    "the detector and the model share CONF_WOOD_TANK_VOLUME, so a tank "
+    "cannot be 500 L to one of them and 800 L to the other",
+)
+
+
+# --- Simulation arms ------------------------------------------------------
+
+_w2t_params_two = ThermalParameters(
+    two_zone_enabled=True, buffer_tank_volume=500.0,
+    mixing_valve_mode=_w2t_mv.MODE_MANUAL, mixing_valve_target=21.0,
+    cop_flow_carnot=True, wood_tank_configured=True, wood_tank_volume=500.0,
+)
+_w2t_params_off = ThermalParameters(
+    two_zone_enabled=True, buffer_tank_volume=500.0,
+    mixing_valve_mode=_w2t_mv.MODE_MANUAL, mixing_valve_target=21.0,
+    cop_flow_carnot=True,
+)
+
+
+def _w2t_state(wood, buf=45.0):
+    return ThermalState(
+        room_temperature=21.0, upper_floor_temperature=21.0,
+        lower_floor_temperature=20.5, slab_temperature=25.0,
+        buffer_tank_temperature=buf, outdoor_temperature=-5.0,
+        wood_tank_temperature=wood,
+    )
+
+
+def _w2t_run(params, wood, burn, *, n=48, power=0.5, dt=0.25):
+    model = ThermalModel(params)
+    out = model.simulate_trajectory(
+        _w2t_state(wood), np.full(n, power), np.full(n, -5.0), dt_hours=dt,
+        external_heat_kw=np.full(n, burn),
+    )
+    return model, out
+
+
+# --- Reduction: no reading, no second tank --------------------------------
+#
+# The gate is the *state*, not only the parameters: a configured probe that
+# has gone stale must fall back to the old abstraction exactly, wood heat and
+# all, rather than to a differently-wrong third behaviour.
+
+_w2t_m_none, _w2t_out_none = _w2t_run(_w2t_params_two, None, 5.0)
+_w2t_m_ref, _w2t_out_ref = _w2t_run(_w2t_params_off, None, 5.0)
+R.check(
+    "a gated-on model with no wood reading reduces byte-for-byte",
+    all(
+        np.array_equal(a, b)
+        for a, b in zip(_w2t_out_none, _w2t_out_ref)
+    )
+    and np.array_equal(
+        _w2t_m_none.last_buffer_trajectory, _w2t_m_ref.last_buffer_trajectory
+    ),
+    "a 5 kW burn must fold into the heat-pump tank identically in both, or "
+    "a stale probe silently changes the plan",
+)
+R.check(
+    "and reports no wood trajectory at all",
+    _w2t_m_none.last_wood_trajectory is None,
+    "None rather than a flat line of ambient, so a silent reset is visible",
+)
+
+
+# --- The draw law: wood-while-usable, not hotter-tank-first ---------------
+
+R.check(
+    "the wood tank is drawn while it can meet the curve, hotter tank or not",
+    _w2t_share(45.0, 55.0, 40.0, 21.0) == 1.0
+    and _w2t_share(60.0, 40.0, 45.0, 21.0) == 1.0,
+    "the owner's ESBE setting is wood priority; hotter-tank-first would "
+    "burn the wood into a full tank and then dump it",
+)
+
+# In the blend region the modelled outlet is the curve itself, so the blend
+# fraction the model uses must be the one the displacement estimator measures
+# at the valve outlet: (t_out - T_hp) / (T_wood - T_hp). One law, two users.
+_w2t_blend_ok = True
+for _w2t_bw, _w2t_bh, _w2t_bf in (
+    (30.0, 55.0, 40.0), (25.0, 60.0, 45.0), (35.0, 50.0, 42.0)
+):
+    _w2t_measured = (_w2t_bf - _w2t_bh) / (_w2t_bw - _w2t_bh)
+    _w2t_derate = (_w2t_bw - 21.0) / (_w2t_bf - 21.0)
+    _w2t_blend_ok = _w2t_blend_ok and abs(
+        _w2t_share(_w2t_bw, _w2t_bh, _w2t_bf, 21.0)
+        - _w2t_measured * _w2t_derate
+    ) < 1e-12
+R.check(
+    "the blend fraction is the one the outlet estimator measures",
+    _w2t_blend_ok,
+    "external_heat.py infers the wood share from the mixed outlet; if the "
+    "model blended by a different rule the two would disagree about the "
+    "same burn",
+)
+
+R.check(
+    "below the curve both tanks fall back to a smooth hotter-source switch",
+    _w2t_share(30.0, 35.0, 40.0, 21.0) == 0.0
+    and _w2t_share(30.0 + _W2T_MARGIN, 30.0, 40.0, 21.0) == 1.0
+    and 0.0 < _w2t_share(31.0, 30.0, 40.0, 21.0) < 1.0,
+    "switching hard at equality would chatter the share between steps over "
+    "sensor noise, which the estimator already calls unidentifiable there",
+)
+
+# Continuity in the delivered quantity, w * Q, across every region boundary:
+# a step change there is a step change in emitter heat, which no valve does.
+def _w2t_max_jump(values):
+    return max(abs(b - a) for a, b in zip(values, values[1:]))
+
+
+_w2t_step = 0.02
+_w2t_flow_sweep = [
+    _w2t_share(30.0, 55.0, 25.0 + i * _w2t_step, 21.0)
+    * (25.0 + i * _w2t_step - 21.0)
+    for i in range(int(35.0 / _w2t_step) + 1)
+]
+_w2t_wood_sweep = [
+    _w2t_share(20.0 + i * _w2t_step, 55.0, 40.0, 21.0) * (40.0 - 21.0)
+    for i in range(int(30.0 / _w2t_step) + 1)
+]
+R.check(
+    "sweeping the curve across both boundaries moves the draw smoothly",
+    _w2t_max_jump(_w2t_flow_sweep) < 3.0 * _w2t_step,
+    f"largest step in w*Q was {_w2t_max_jump(_w2t_flow_sweep):.4f} K for a "
+    f"{_w2t_step} K increment",
+)
+R.check(
+    "and so does sweeping the wood tank up through the curve",
+    _w2t_max_jump(_w2t_wood_sweep) < 3.0 * _w2t_step,
+    f"largest step in w*Q was {_w2t_max_jump(_w2t_wood_sweep):.4f} K for a "
+    f"{_w2t_step} K increment",
+)
+
+
+# --- The regression this release exists for -------------------------------
+#
+# Equal power schedules, hot wood tank, burn versus no burn. The burn must be
+# invisible to everything the heat pump is judged by.
+
+_w2t_m_burn, _ = _w2t_run(_w2t_params_two, 60.0, 10.0)
+_w2t_m_calm, _ = _w2t_run(_w2t_params_two, 60.0, 0.0)
+_w2t_m_old, _ = _w2t_run(_w2t_params_off, None, 10.0)
+
+R.check(
+    "a burn charges the wood tank, pointwise",
+    np.all(
+        _w2t_m_burn.last_wood_trajectory
+        >= _w2t_m_calm.last_wood_trajectory - 1e-12
+    )
+    and _w2t_m_burn.last_wood_trajectory[-1]
+    > _w2t_m_calm.last_wood_trajectory[-1] + 1.0,
+    f"ends at {_w2t_m_burn.last_wood_trajectory[-1]:.1f} C against "
+    f"{_w2t_m_calm.last_wood_trajectory[-1]:.1f} C unburnt",
+)
+R.check(
+    "and takes no cap headroom from the heat pump's tank",
+    _w2t_m_burn.last_buffer_refused.max() == 0.0
+    and _w2t_m_burn.last_buffer_trajectory.max()
+    < _w2t_params_two.buffer_max_temp - 1.0,
+    f"HP tank peaked at {_w2t_m_burn.last_buffer_trajectory.max():.1f} C "
+    f"against a {_w2t_params_two.buffer_max_temp:.0f} C cap with nothing "
+    "refused",
+)
+R.check(
+    "the burn moves load off the heat pump's tank rather than into it",
+    _w2t_m_burn.last_buffer_trajectory[-1]
+    >= _w2t_m_calm.last_buffer_trajectory[-1] - 1e-9,
+    f"HP tank ends {_w2t_m_burn.last_buffer_trajectory[-1]:.1f} C with the "
+    f"burn and {_w2t_m_calm.last_buffer_trajectory[-1]:.1f} C without: the "
+    "wood side carries the emitters, so the HP tank is drawn less",
+)
+R.check(
+    "which is exactly what the single-tank abstraction could not do",
+    _w2t_m_old.last_buffer_trajectory.max()
+    > _w2t_m_burn.last_buffer_trajectory.max() + 5.0
+    and _w2t_m_old.last_buffer_refused.max() > 0.0,
+    f"the same burn put the old model's tank at "
+    f"{_w2t_m_old.last_buffer_trajectory.max():.1f} C and had it refuse "
+    f"{_w2t_m_old.last_buffer_refused.max():.1f} kW of the pump's own heat",
+)
+_w2t_cop_model = ThermalModel(_w2t_params_two)
+_w2t_cop_two = _w2t_cop_model.compute_cop(
+    -5.0, flow_temp=float(_w2t_m_burn.last_buffer_trajectory[-1])
+)
+_w2t_cop_old = _w2t_cop_model.compute_cop(
+    -5.0, flow_temp=float(_w2t_m_old.last_buffer_trajectory[-1])
+)
+R.check(
+    "so wood heat no longer shows up as a heat pump COP penalty",
+    _w2t_cop_old < _w2t_cop_two - 0.1,
+    f"the abstraction rated the same pump at {_w2t_cop_old:.2f} against "
+    f"{_w2t_cop_two:.2f}, purely because the burn was modelled as raising "
+    "the flow temperature the pump charges at",
+)
+
+
+# --- Conservation ---------------------------------------------------------
+#
+# One step in the blend region, where both tanks supply the emitters. The
+# balance is recomputed from the same helpers the model uses, and the emitter
+# side is cross-checked against the slab's own dynamics so that a starved
+# draw cannot pass as a conserved one.
+
+_w2t_p_c = ThermalParameters(
+    two_zone_enabled=True, buffer_tank_volume=500.0,
+    mixing_valve_mode=_w2t_mv.MODE_MANUAL, mixing_valve_target=23.0,
+    cop_flow_carnot=True, wood_tank_configured=True, wood_tank_volume=500.0,
+)
+_w2t_m_c = ThermalModel(_w2t_p_c)
+_w2t_s0 = ThermalState(
+    room_temperature=21.0, upper_floor_temperature=21.0,
+    lower_floor_temperature=20.5, slab_temperature=24.0,
+    buffer_tank_temperature=45.0, outdoor_temperature=-15.0,
+    wood_tank_temperature=25.0,
+)
+_w2t_dt, _w2t_pw, _w2t_ext = 0.25, 2.0, 1.0
+_w2t_s1 = _w2t_m_c.simulate_step(
+    _w2t_s0, _w2t_pw, -15.0, dt_hours=_w2t_dt, external_heat_kw=_w2t_ext
+)
+_w2t_ua_tot = (
+    _w2t_p_c.max_electrical_power
+    * max(_w2t_p_c.cop_nominal, 1.0)
+    / max(_w2t_p_c.emitter_design_delta_t, 1.0)
+)
+_w2t_ua_rad = _w2t_p_c.radiator_power_fraction * _w2t_ua_tot
+_w2t_ua_floor = (1.0 - _w2t_p_c.radiator_power_fraction) * _w2t_ua_tot
+_w2t_fs = _w2t_mv.flow_setpoint(
+    target_temp=23.0, outdoor_temp=-15.0,
+    heat_loss_coefficient=(
+        _w2t_m_c.effective_heat_loss_coefficient(
+            _w2t_p_c.upper_floor_heat_loss
+        )
+        + _w2t_m_c.effective_heat_loss_coefficient(
+            _w2t_p_c.lower_floor_heat_loss_learned
+        )
+    ),
+    emitter_ua=_w2t_ua_tot,
+)
+_w2t_tmix = min(
+    max(_w2t_s0.wood_tank_temperature, _w2t_s0.buffer_tank_temperature),
+    _w2t_fs,
+)
+_w2t_q_rad = _w2t_mv.emitter_delivery(
+    mix_temp=_w2t_tmix,
+    zone_temp=_w2t_s0.upper_floor_temperature,
+    ua=_w2t_ua_rad,
+)
+_w2t_q_floor = _w2t_mv.emitter_delivery(
+    mix_temp=_w2t_tmix, zone_temp=_w2t_s0.slab_temperature, ua=_w2t_ua_floor
+)
+_w2t_q_floor_seen = (
+    _w2t_p_c.slab_thermal_mass
+    * (_w2t_s1.slab_temperature - _w2t_s0.slab_temperature)
+    / _w2t_dt
+    + _w2t_p_c.slab_heat_transfer
+    * (_w2t_s0.slab_temperature - _w2t_s0.lower_floor_temperature)
+)
+_w2t_store = (
+    _w2t_p_c.wood_tank_thermal_mass
+    * (_w2t_s1.wood_tank_temperature - _w2t_s0.wood_tank_temperature)
+    + _w2t_p_c.buffer_tank_thermal_mass
+    * (_w2t_s1.buffer_tank_temperature - _w2t_s0.buffer_tank_temperature)
+) / _w2t_dt
+_w2t_residual = (
+    _w2t_store
+    + _w2t_p_c.wood_tank_heat_loss_coefficient
+    * (_w2t_s0.wood_tank_temperature - 20.0)
+    + _w2t_p_c.buffer_tank_heat_loss_coefficient
+    * (_w2t_s0.buffer_tank_temperature - 20.0)
+    + _w2t_q_rad
+    + _w2t_q_floor
+    - _w2t_m_c.compute_cop(-15.0, flow_temp=_w2t_s0.buffer_tank_temperature)
+    * _w2t_pw
+    - _w2t_ext
+)
+R.check(
+    "the emitters got what the valve outlet says they got",
+    abs(_w2t_q_floor - _w2t_q_floor_seen) < 1e-9 and _w2t_q_floor > 0.1,
+    f"recomputed {_w2t_q_floor:.4f} kW into the slab against "
+    f"{_w2t_q_floor_seen:.4f} kW the slab's own dynamics show; a starved "
+    "draw would show up here as a gap",
+)
+R.check(
+    "and one two-tank step balances to the last bit",
+    abs(_w2t_residual) < 1e-9
+    and _w2t_s1.wood_tank_temperature < _w2t_s0.wood_tank_temperature,
+    f"stored + lost + delivered - (COP*P + burn) = {_w2t_residual:.3e} kW, "
+    "with the wood tank supplying its share of the blend",
+)
+
+
+# --- Step length ----------------------------------------------------------
+
+_w2t_m_q, _ = _w2t_run(_w2t_params_two, 60.0, 3.0, n=24, dt=0.25)
+_w2t_m_f, _ = _w2t_run(_w2t_params_two, 60.0, 3.0, n=72, dt=1.0 / 12.0)
+R.check(
+    "six hours of two-tank operation does not depend on the step length",
+    abs(
+        _w2t_m_q.last_wood_trajectory[-1] - _w2t_m_f.last_wood_trajectory[-1]
+    ) < 0.5
+    and abs(
+        _w2t_m_q.last_buffer_trajectory[-1]
+        - _w2t_m_f.last_buffer_trajectory[-1]
+    ) < 0.5,
+    f"wood ends {_w2t_m_q.last_wood_trajectory[-1]:.2f} C at 15 min vs "
+    f"{_w2t_m_f.last_wood_trajectory[-1]:.2f} C at 5 min",
+)
+
+
+# --- A tiny wood tank -----------------------------------------------------
+#
+# The per-tank availability bound is the 10 L buffer fix generalized: each
+# tank is judged against its own contents. Unbounded, a 10 L store against a
+# 40 K flow-to-room difference overshoots its Euler step and goes negative.
+
+_w2t_m_tiny, _w2t_out_tiny = _w2t_run(
+    ThermalParameters(
+        two_zone_enabled=True, buffer_tank_volume=500.0,
+        mixing_valve_mode=_w2t_mv.MODE_MANUAL, mixing_valve_target=21.0,
+        cop_flow_carnot=True, wood_tank_configured=True, wood_tank_volume=10.0,
+    ),
+    60.0, 0.0, n=48, power=0.0,
+)
+_w2t_wood_tiny = _w2t_m_tiny.last_wood_trajectory
+# The floor each step is judged against is the coldest zone it feeds, or the
+# 20 C room the tank stands in once the zones fall below that: standby loss
+# to a warmer room is not a draw, and the availability bound does not (and
+# must not) stop it.
+_w2t_floors = np.minimum(
+    np.minimum(_w2t_out_tiny[2][:-1], _w2t_out_tiny[1][:-1]), 20.0
+)
+R.check(
+    "a 10 L wood tank cannot discharge below what it is feeding",
+    np.all(_w2t_wood_tiny[1:] >= _w2t_floors - 1e-9),
+    f"12 h of coasting left the wood tank at {_w2t_wood_tiny.min():.2f} C; "
+    f"the shallowest margin over its floor was "
+    f"{float(np.min(_w2t_wood_tiny[1:] - _w2t_floors)):.3f} K",
+)
+R.check(
+    "and it empties into the house rather than through zero",
+    _w2t_wood_tiny.min() > 15.0 and _w2t_wood_tiny[1] < 30.0,
+    f"the first 15-minute step took it from 60 C to "
+    f"{_w2t_wood_tiny[1]:.1f} C -- everything it had above the zones -- and "
+    "no further; unbounded, the same bug took a 10 L buffer to -8.04 C",
+)
+
+
+# --- Null control ---------------------------------------------------------
+#
+# A wood tank colder than everything it could feed is not a feature: with no
+# burn it must be indistinguishable from having no wood tank at all. Without
+# this the arms above could be measuring the second branch rather than the
+# second tank.
+
+_w2t_m_cold, _w2t_out_cold = _w2t_run(_w2t_params_two, 15.0, 0.0)
+_w2t_m_flat, _w2t_out_flat = _w2t_run(_w2t_params_off, None, 0.0)
+R.check(
+    "a cold wood tank and no burn is byte-identical to no wood tank",
+    all(
+        np.array_equal(a, b)
+        for a, b in zip(_w2t_out_cold, _w2t_out_flat)
+    )
+    and np.array_equal(
+        _w2t_m_cold.last_buffer_trajectory, _w2t_m_flat.last_buffer_trajectory
+    ),
+    "the share is zero, the supply is the HP tank either way, and the two "
+    "branches must agree exactly there -- not to within a tolerance",
+)
+R.check(
+    "and the cold tank only drifts towards the room it stands in",
+    _w2t_m_cold.last_wood_trajectory[-1] > 15.0
+    and _w2t_m_cold.last_wood_trajectory[-1] < 20.0,
+    f"ended at {_w2t_m_cold.last_wood_trajectory[-1]:.2f} C from 15 C, on "
+    "standby loss alone",
+)
+
 
 sys.exit(R.close("FEATURE CHECKS"))

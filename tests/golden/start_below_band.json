@@ -1652,5 +1652,6 @@
   16.714963,
   16.701572
  ],
- "valve_target_schedule": []
+ "valve_target_schedule": [],
+ "wood_temp_trajectory": []
 }
