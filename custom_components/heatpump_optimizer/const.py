@@ -265,6 +265,12 @@ ENERGY_STORE_VERSION: Final = 1
 # Service for the card's what-if simulator (item 21).
 SERVICE_SIMULATE_PLAN: Final = "simulate_plan"
 SERVICE_APPLY_SCHEDULE: Final = "apply_schedule"
+# Assign (or clear) one optional sensor from the card's setup diagram. Item
+# 32's click-to-assign, built on the card rather than in a custom panel: the
+# card is already authenticated and already draws the diagram, and one
+# validated service is a far smaller surface than a second frontend with its
+# own hand-rolled config-write path.
+SERVICE_ASSIGN_ENTITY: Final = "assign_entity"
 # Manual plan override: pin *when* the pump runs, safety permitting.
 SERVICE_APPLY_MANUAL_PLAN: Final = "apply_manual_plan"
 SERVICE_CLEAR_MANUAL_PLAN: Final = "clear_manual_plan"

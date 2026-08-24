@@ -10,7 +10,7 @@
  */
 
 const CARD_TAG = "heatpump-optimizer-card";
-const CARD_VERSION = "3.12.0";
+const CARD_VERSION = "3.14.0";
 
 const DEFAULTS = {
   title: "Heat pump plan",
@@ -192,6 +192,12 @@ const VIEW_ZOOM_STEP = 1.4;
 const DIALOG_FONT_RATIO = 0.0105;
 const DIALOG_FONT_PX_MIN = 12;
 const DIALOG_FONT_PX_MAX = 21;
+
+// How many entities the setup page's picker will list. A large installation
+// has thousands, and a select with thousands of options is both slow to build
+// and useless to scroll; the options flow remains the way to reach an entity
+// that does not appear here.
+const PICKER_MAX_OPTIONS = 200;
 
 // Human-readable labels for the plan reason codes the optimizer publishes.
 // Without these an unexpected slot is indistinguishable from a bug.
@@ -1104,9 +1110,114 @@ class HeatpumpOptimizerCard extends HTMLElement {
         plan sensors after the integration loads.</div></div>`;
     }
     return `<div class="setup-page">${this._setupSvg(topo)}
-      <div class="setup-hint">An empty slot is a sensor this setup could use
-      and does not have; it is shown on purpose. Assign entities under
-      Settings &gt; Integrations &gt; Heat Pump Optimizer.</div></div>`;
+      ${this._setupPickerHtml(topo)}
+      <div class="setup-hint">Click any sensor to assign it, or to clear it.
+      An empty slot is a sensor this setup could use and does not have; it is
+      shown on purpose.</div>
+      <div class="setup-result" role="status"></div></div>`;
+  }
+
+  /** The entity picker for one slot, or nothing when none is open.
+   *
+   * Item 32's click-to-assign, on the card rather than in a custom panel: the
+   * card is already authenticated, already draws the diagram and already has
+   * `hass`, so this needs one validated service instead of a second frontend
+   * with its own hand-rolled config-write path.
+   *
+   * Candidates come from `hass.states`, filtered to the domains the slot
+   * accepts -- the same list the service validates against, published on the
+   * slot itself so the picker cannot offer what the service would refuse.
+   */
+  _setupPickerHtml(topo) {
+    const key = this._pickerKey;
+    if (!key) return "";
+    const slot = (topo.slots || []).find((s) => s.key === key);
+    if (!slot) return "";
+    const domains = slot.domains || [];
+    const states = (this._hass && this._hass.states) || {};
+    const candidates = Object.keys(states)
+      .filter((id) => domains.includes(id.split(".")[0]))
+      .sort()
+      .slice(0, PICKER_MAX_OPTIONS);
+    const options = candidates
+      .map((id) => {
+        const friendly =
+          (states[id].attributes && states[id].attributes.friendly_name) || id;
+        const sel = id === slot.entity ? " selected" : "";
+        return `<option value="${esc(id)}"${sel}>${esc(friendly)}</option>`;
+      })
+      .join("");
+    return `
+      <div class="setup-picker">
+        <div class="sp-title">${esc(slot.label)}</div>
+        <select class="sp-select" aria-label="Entity for ${esc(slot.label)}">
+          <option value="">(not configured)</option>
+          ${options}
+        </select>
+        <div class="sp-actions">
+          <button type="button" class="sp-save">Assign</button>
+          <button type="button" class="sp-cancel">Cancel</button>
+        </div>
+        <div class="sp-note">${
+          candidates.length >= PICKER_MAX_OPTIONS
+            ? `Showing the first ${PICKER_MAX_OPTIONS} matching entities.`
+            : `${candidates.length} matching ${domains.join("/")} entities.`
+        }</div>
+      </div>`;
+  }
+
+  /** Wire the setup page's clickable slots and its picker. */
+  _attachSetupEvents(root) {
+    for (const hit of root.querySelectorAll(".setup-hit")) {
+      hit.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        this._pickerKey = ev.currentTarget.dataset.key;
+        this._render();
+      });
+    }
+    const picker = root.querySelector(".setup-picker");
+    if (!picker) return;
+    // Every control stops propagation: the dialog closes on a click that
+    // lands on its backdrop, and a click inside the picker is not that.
+    picker.addEventListener("click", (ev) => ev.stopPropagation());
+    const cancel = picker.querySelector(".sp-cancel");
+    if (cancel) {
+      cancel.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        this._pickerKey = null;
+        this._render();
+      });
+    }
+    const save = picker.querySelector(".sp-save");
+    if (save) {
+      save.addEventListener("click", async (ev) => {
+        ev.stopPropagation();
+        const select = picker.querySelector(".sp-select");
+        const key = this._pickerKey;
+        const entityId = select ? select.value : "";
+        const note = this.shadowRoot.querySelector(".setup-result");
+        try {
+          await this._hass.callService(
+            "heatpump_optimizer",
+            "assign_entity",
+            { key, entity_id: entityId }
+          );
+          this._pickerKey = null;
+          // The write reloads the integration, so the topology the card is
+          // drawn from is replaced a moment later. Say what happened rather
+          // than leaving a diagram that has not caught up yet looking wrong.
+          this._setupNote = entityId
+            ? `Assigned ${entityId}. Reloading…`
+            : "Cleared. Reloading…";
+        } catch (err) {
+          this._setupNote = `Could not assign: ${
+            (err && err.message) || err
+          }`;
+        }
+        this._render();
+        if (note) note.textContent = this._setupNote || "";
+      });
+    }
   }
 
   /** One live reading, formatted, or null for an empty slot. */
@@ -1227,6 +1338,14 @@ class HeatpumpOptimizerCard extends HTMLElement {
           <tspan>${esc(label)}</tspan>
           <tspan class="setup-value" x="${b.x + colW - 10}"
             text-anchor="end">${esc(value)}</tspan></text>`);
+        // A transparent rect over the row, not a handler on the text: text
+        // is a thin target, and the gap between label and value would not
+        // respond at all -- which reads as a diagram that is only sometimes
+        // clickable.
+        rows.push(`<rect class="setup-hit" data-key="${esc(s.key)}"
+          x="${b.x + 2}" y="${y - rowH + 4}" width="${colW - 4}"
+          height="${rowH}" rx="3">
+          <title>${esc(s.label)} — click to assign</title></rect>`);
         y += rowH;
       }
       for (const ex of b.extra) {
@@ -2055,10 +2174,17 @@ class HeatpumpOptimizerCard extends HTMLElement {
         if (page && page !== this._dialogPage) {
           this._dialogPage = page;
           this._dialogScroll = 0;
+          // Leaving the setup page abandons a half-made assignment rather
+          // than keeping a picker open behind the chart.
+          this._pickerKey = null;
           this._render();
         }
       });
     }
+
+    this._attachSetupEvents(dlg);
+    const note = dlg.querySelector(".setup-result");
+    if (note && this._setupNote) note.textContent = this._setupNote;
 
     if (this._expanded && !dlg.open) {
       // showModal promotes the dialog to the top layer, which is what keeps it
@@ -2295,6 +2421,44 @@ class HeatpumpOptimizerCard extends HTMLElement {
         .setup-hint {
           color: var(--secondary-text-color);
           font-size: 0.85em; padding: 0.5em 0.25em;
+        }
+        .setup-result {
+          color: var(--secondary-text-color);
+          font-size: 0.85em; padding: 0 0.25em 0.5em 0.25em;
+        }
+        .setup-hit { fill: transparent; cursor: pointer; }
+        .setup-hit:hover { fill: var(--primary-color, #03a9f4); opacity: 0.12; }
+        .setup-page { position: relative; }
+        .setup-picker {
+          position: absolute; left: 50%; top: 1em;
+          transform: translateX(-50%); z-index: 6;
+          background: var(--card-background-color, #fff);
+          border: 1px solid var(--divider-color, #ccc);
+          border-radius: 0.5em; padding: 0.7em 0.8em;
+          box-shadow: 0 2px 12px rgba(0,0,0,0.25);
+          min-width: 16em; max-width: 90%;
+        }
+        .sp-title { font-weight: 600; padding-bottom: 0.4em; }
+        .sp-select {
+          width: 100%; font: inherit; padding: 0.3em;
+          color: var(--primary-text-color);
+          background: var(--card-background-color, #fff);
+          border: 1px solid var(--divider-color, #ccc);
+          border-radius: 0.3em;
+        }
+        .sp-actions {
+          display: flex; gap: 0.4em; padding-top: 0.5em;
+        }
+        .sp-actions button {
+          font: inherit; cursor: pointer; border-radius: 0.3em;
+          border: 1px solid var(--divider-color, #ccc);
+          background: transparent; color: var(--primary-text-color);
+          padding: 0.25em 0.8em;
+        }
+        .sp-save { border-color: var(--primary-color, #03a9f4) !important; }
+        .sp-note {
+          color: var(--secondary-text-color);
+          font-size: 0.8em; padding-top: 0.4em;
         }
 
         /* Editable slot lanes */

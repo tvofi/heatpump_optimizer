@@ -139,7 +139,7 @@ pricing are outside this project's control.
 - **Energy dashboard integration** — accumulating energy and cost totals, split hot water versus space heating
 - **The house as a virtual battery** — state of charge, capacity and rates published so other automations can use it
 - **Rich sensor entities** — 47 sensors including full heating plans, DHW, predictive insights, per-zone temperatures
-- **Dashboard card** — plots price, planned heating slots, irradiance and predicted temperatures on one graph, with per-series toggles, reason codes, a what-if simulator, and a Setup page drawing your configured system with live sensor readings in place
+- **Dashboard card** — plots price, planned heating slots, irradiance and predicted temperatures on one graph, with per-series toggles, reason codes, a what-if simulator, and a Setup page drawing your configured system with live sensor readings in place, where clicking a sensor assigns or clears it
 - **Climate entity** — virtual thermostat with full HA climate integration
 - **Buttons and binary sensors** — force a run, arm a measurement experiment, and see input health, external heat and away state at a glance
 - **Service calls** — manual optimization, mode changes, runtime parameter tuning, and what-if simulation
@@ -520,7 +520,18 @@ the house has what it needs the surplus has nowhere to go but the tank. Set
 | No mixing valve | Default. Nothing changes. |
 | Set by hand | A fixed valve you adjust yourself; tell the integration what you set it to. |
 | Read from a sensor | The integration reads the valve's target but cannot change it. |
-| Commanded by the optimizer | The integration writes its recommended target to the valve's controller (a number or climate entity) after each planning cycle, and only when the answer changes. |
+| Commanded by the optimizer | The integration writes the target to the valve's controller (a number or climate entity) after each planning cycle, and only when it changes. This is the mode that can *hold* stored heat for the evening peak — see below. |
+
+**A commanded valve can do something a hand-set one cannot: wait.** A fixed
+valve starts feeding the house the moment the tank is warmer than its curve,
+so stored heat mostly gets used in the hours right after it was bought. With
+*Commanded by the optimizer*, the plan can lower the valve's target between
+charging and the expensive hours — the house coasts on what the building
+itself is holding, the tank keeps its heat — and raise it again for the peak.
+It is worth roughly 1–2 SEK a day on a winter price curve, on top of what
+storage already saves, and at flat prices the optimizer does not do it at
+all, because there would be nothing to gain. The house is never planned below
+your comfort floor to achieve it.
 
 **What to set a hand-adjusted valve to.** The top of your comfort band, in
 almost every case. A high setting keeps the valve open until the house reaches

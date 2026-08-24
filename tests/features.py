@@ -3378,6 +3378,23 @@ R.check(
 
 _text = _topo.render_text_summary(_full)
 R.check(
+    "every assignable slot carries the domains it accepts",
+    all(s.get("domains") for s in _full["slots"])
+    and {s["key"] for s in _full["slots"]} <= set(_topo.ASSIGNABLE_KEYS),
+    "the picker filters and the service validates from one list, so a "
+    "diagram cannot offer what the service would refuse",
+)
+R.check(
+    "a temperature slot does not accept a switch",
+    "switch" not in _topo.ASSIGNABLE_KEYS[hp_const.CONF_INDOOR_TEMP_ENTITY]
+    and "switch" in _topo.ASSIGNABLE_KEYS[
+        hp_const.CONF_HEAT_PUMP_SWITCH_ENTITY
+    ],
+    "assigning a switch to a temperature slot is the mistake a clickable "
+    "diagram makes easy, and it plans against nonsense rather than erroring",
+)
+
+R.check(
     "the flow overview is a fenced monospaced block",
     _text.startswith("```\n") and _text.endswith("\n```"),
     "the one drawing surface every install already renders",

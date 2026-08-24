@@ -2,70 +2,96 @@
 
 Started at the end of the v2.7.0 release session, kept up to date since.
 
-**Status as of v3.12.0.** Every item, 1-33, is done, released across v2.8.0
-through v3.13.0 — with one recorded exception: item 32's click-to-assign
-second stage is deferred until the read-only overview earns it. Item 29's
-`smart_write` shipped in v3.13.0 as the actuation path (the optimizer
-commands the valve's controller); the time-varying target *schedule* that
-would let a commanded valve hold charge for the peak is future work, recorded
-in item 29's status. See the notes appended to each item for what was
-actually built and what was found along the way. v3.8.0 is the audit release
-(`docs/audit-2026-08.md` records everything it fixed); v3.10.0 is the release
-where the buffer tank finally charges — the discharge law, the hard
-temperature cap, the size threshold and the recommendation sensor, with the
-empirical sizing measured in `tests/backtest.py`.
+**Status as of v3.14.0: every item, 1–33, is delivered.** There is no
+outstanding work from the original list, and no deferred half of any item.
+The last three pieces landed in v3.13.0 (`smart_write`, the actuation path
+for a commanded valve) and v3.14.0 (the valve target *schedule* that makes a
+commanded valve worth having, and item 32's click-to-assign).
 
-### What is actually left, shortest first
+**What this file is now.** An archive of reasoning, not a worklist. The item
+bodies are kept as written — including for work long since shipped — because
+they record *why* each thing was built, what was measured, and which traps
+were found on the way. Several of them are the only written record of a
+decision that would otherwise be re-litigated from scratch. Read an item's
+status block first; it corrects the body wherever the body turned out to be
+wrong, and says so explicitly.
 
-- ~~**Delete `get_state_matrices`** (item 27).~~ Done in v3.8.0.
-- ~~**Surface the dumb-valve recommendation** (item 29).~~ Done in v3.10.0 —
-  the Valve Target Recommendation diagnostic sensor.
-- ~~**A tank size threshold** (item 27).~~ Done in v3.10.0 —
-  `BUFFER_STORE_MIN_VOLUME`, 100 L.
-- ~~**`buffer_max_temp` as a hard constraint in the solve** (item 29).~~ Done
-  in v3.10.0 — a tighten-and-re-solve loop mirroring the pin-safety pattern.
-- ~~**Find out why the optimizer will not charge** (item 29).~~ Answered in
-  v3.8.0, and the prescribed discharge-law fix is **implemented in v3.10.0**:
-  the optimizer now deliberately charges. See the v3.10.0 block in item 29's
-  status for what it is measured to be worth and the honest limit a fixed
-  valve imposes.
-- ~~**`smart_write` valve mode** (item 29).~~ Shipped in v3.13.0: the mode
-  is selectable and the coordinator writes the recommended target to a
-  configured number/input_number/climate entity after each planning cycle.
-  Still open behind it, recorded in item 29's status: a time-varying target
-  *schedule*, which is what would let a commanded valve hold charge for the
-  peak instead of feeding it out right after charging.
-- ~~**Item 28**, the wood furnace, in full.~~ Done in v3.11.0 — the
-  per-step free-heat harness, the measured payoff, the outlet-sensor
-  displacement and the tank-pair decay cut-off. See its status block.
-- ~~**Items 32 and 33**, the setup diagram and the card page.~~ Done in
-  v3.12.0 — one topology description, the options-flow overview and the
-  card's Setup page. Click-to-assign (32's second stage) remains deferred
-  until the read-only view earns it.
+New work goes in the "Open" section immediately below, which is short by
+design. If it grows past a handful of entries, that is the signal to plan a
+release rather than to keep adding.
 
-**Item 29 is done** — `smart_write` shipped in v3.13.0; see its status
-blocks for the one idea still behind it (a target schedule). **Item 27 is
-done** through the same work. **Item 28 is done as of v3.11.0** and **items 32
-and 33 as of v3.12.0** — see their status blocks.
+### Open
 
-Scope decision (user, 2026-08-23): 26, 24+25, 30 and 31 were done first, one PR
-each, and all shipped. The wood-furnace cluster (27-29) was deferred, re-planned
-once item 27's modelling fork was settled, and then partly built -- see the
-status blocks on 27 and 29.
+Nothing from items 1–33. What follows was found along the way, judged real,
+and deliberately not built.
 
-Items 27-31 are one cluster, added 2026-08-23, about a house with a wood
-furnace, a second buffer tank and a mixing valve. **Item 27 was a modelling bug
-blocking 28 and 29**, and its physics half is now fixed. Read them in order: 27
-is why the tank could not store anything, 29 is why a mixing valve means it can,
-and 28 is the sensors that would tell it what the furnace is doing. They were
-correctly judged a release of their own rather than an afternoon -- 27 and 29
-together took five releases (v3.6.1 through v3.7.1) and are still not finished.
+- **System identification fits a first-order plant** (audit finding 3). The
+  step-response experiment fits one time constant to a two-store plant (room
+  plus slab), so its `heat_loss_kw_per_c` blends envelope loss with slab
+  charging. Its confidence-weighted blend limits the damage; a two-exponential
+  fit would fix it properly. Nobody has measured what the blend costs, which
+  is the first thing to do if this is picked up.
+- **`SolarRadiation` and `SolarIrradiance` publish one reading under two
+  names** (audit finding 5). Removing either is a breaking change to entity
+  ids that users notice, so it is flagged rather than done. Worth pairing with
+  any other deliberate breaking change rather than spending a release on it
+  alone.
+- **The learner freeze fights the COP flow term on a wood-furnace house**
+  (recorded in item 28). `_learning_frozen` freezes six learners for the whole
+  burn plus its decay, which on a house that fires daily is precisely when the
+  interesting tank temperatures occur. Only matters if the flow-temperature
+  COP term ever needs validating against that house's own data.
+- **A second probe in the heat-pump tank** (item 28 ranked it low). The
+  v3.10.0 discharge law models that tank as well-mixed, so stratification data
+  has nothing to change yet. Revisit only if the tank model gains layers.
 
-**Items 30 and 31 are a chain and should be done first.** Item 30 is a second
-modelling bug in the two-zone lower floor; item 31 adds learning for the
-coupling coefficients, which are confirmed *not* learned today. 31 depends
-strictly on 30 — the coefficient it most wants to fit is currently
-unidentifiable, so building 31 first would produce confidently wrong numbers.
+### Decisions recorded so they are not re-litigated
+
+- **Item 32's clickable diagram is on the card, not in a custom panel.**
+  A panel's risk is not authentication — panels are served only to
+  authenticated users through a stable public API. It is that Home Assistant
+  has no supported way for a frontend panel to edit a config entry, so
+  click-to-assign there means a hand-rolled write path duplicating every rule
+  the options flow already enforces, plus a dependency on `ha-selector` and
+  friends, which are internal and break across frontend releases. The card is
+  already authenticated, already draws the diagram and already has `hass`, so
+  it needed one validated service (`assign_entity`) instead of a second
+  frontend. A panel would only win for first-run setup, before any dashboard
+  with the card exists.
+- **Economy mode widens the comfort band; it does not raise the price
+  weight.** The multiplier was measured and rejected — it is the degree of
+  freedom the comfort learner already owns, it does nothing in the two winter
+  profiles where a savings mode is most wanted, and it raised the shoulder
+  bill by 29 %. See `docs/audit-2026-08.md` finding 4.
+- **The deferred-energy settlement is symmetric, and it is a *reported*
+  number, not an optimised one.** It reaches `predicted_savings` and the
+  sensors and the objective nowhere, so changing it moved no plan at all.
+
+### The releases this backlog produced
+
+v3.8.0 is the audit release (`docs/audit-2026-08.md` records everything it
+fixed). v3.10.0 is where the buffer tank finally charges — the discharge law,
+the hard temperature cap, the size threshold, the recommendation sensor, with
+the empirical sizing measured in `tests/backtest.py`. v3.11.0 is the wood
+furnace as a continuous displacement rather than a boolean. v3.12.0 is the
+setup diagram, in the options flow and on the card. v3.13.0 and v3.14.0
+finish the storage story: a valve the optimizer commands, and a schedule
+worth commanding.
+
+### Historical notes, kept because they explain the shape of the file
+
+Scope decision (user, 2026-08-23): 26, 24+25, 30 and 31 were done first, one
+PR each. The wood-furnace cluster (27–29) was deferred, re-planned once item
+27's modelling fork was settled, then built across v3.6.1–v3.11.0. Items
+27–31 are one cluster about a house with a wood furnace, a second buffer tank
+and a mixing valve; read them in order — 27 is why the tank could not store
+anything, 29 is why a mixing valve means it can, and 28 is the sensors that
+tell it what the furnace is doing. They were correctly judged a release of
+their own rather than an afternoon: 27 and 29 together took seven.
+
+Items 30 and 31 were a chain, and 31 depended strictly on 30 — the
+coefficient it most wanted to fit was unidentifiable until 30 landed, so
+building 31 first would have produced confidently wrong numbers.
 
 Item 22 was **inverted on 2026-08-23**: it used to say "remove the comfort
 slider", it now says keep it and pair it with a hot water minimum. If you are
@@ -74,11 +100,10 @@ working from memory of this file, re-read it.
 Item 4, the refactor, was excluded from the first pass but *was* completed
 later, in v3.0.0 — see the "Refactored" section of `RELEASE_NOTES.md` for the
 before/after measurements. Its stated precondition was honoured rather than
-waved away: `tests/golden.py` (37 scenarios, byte-for-byte, sensitivity
-demonstrated) was built first, and every refactoring change was made with its
-diffs empty. `tests/stress.py` and `tests/rolling.py` came with it. So the
-"safety net is too thin" caveat recorded in item 4 no longer applies — the net
-is the thing that got built.
+waved away: `tests/golden.py` was built first, and every refactoring change
+was made with its diffs empty. `tests/stress.py` and `tests/rolling.py` came
+with it. So the "safety net is too thin" caveat recorded in item 4 no longer
+applies — the net is the thing that got built.
 
 Item 21's what-if simulator shipped, but v3.2.0's slot editor has largely
 superseded its original framing; item 22 covers what to do about the remnant.
@@ -1689,16 +1714,30 @@ which is worth knowing before, not after.
 > the read-back entity: commanding what a sensor reports would freeze
 > whatever the valve held when the mode was enabled.
 >
-> **What smart_write does not yet do — the target schedule.** v3.10.0
-> measured that a fixed-curve valve cannot *hold* charge for the peak: the
-> tank feeds the house the moment it is warmer than the curve, so storage
-> mostly shifts the hours right after charging (~+5 SEK/day typical instead
-> of the analytical table's +25). Capturing the rest means commanding a
-> *time-varying* target — low between charge and peak so the curve drops and
-> the tank holds, high through the peak so it carries the house. That is a
-> second decision-variable series in the optimizer AND a per-step target in
-> the model (else plan and reality diverge), which is why it did not ride
-> along here. The write plumbing this shipped is the prerequisite.
+> **The target schedule — shipped in v3.14.0.** v3.10.0 measured that a
+> fixed-curve valve cannot *hold* charge for the peak: the tank feeds the
+> house the moment it is warmer than the curve, so storage mostly shifts the
+> hours right after charging. The optimizer now derives a per-step target
+> schedule — the comfort floor between charging and the peak so the curve
+> drops and the tank holds, the working target through the peak so it
+> carries the house — re-solves against it, and adopts it only if it beats
+> the fixed target on the same objective. Both halves the sketch called for
+> landed: `_Horizon.valve_targets` in the optimizer and a per-step
+> `valve_target` in the model, so plan and physics cannot diverge.
+>
+> **What it is worth, null-subtracted, against `smart_read` on identical
+> physics:** +2.10 SEK/day winter_typical, +1.68 moderate, +1.50 extreme,
+> +0.85 narrow, and exactly +0.00 at flat prices, where no candidate is even
+> proposed. Comfort violations fall rather than rise. That is real and
+> modest — it does not recover the analytical table's +25, because the
+> remaining gap is the emitter coupling and the tank's size, not the valve's
+> schedule. Do not re-open this expecting the rest of the table.
+>
+> **A finding worth keeping.** The peak threshold has to be p85, not p75. A
+> real day is a long flat plateau with a short tall spike — sixteen expensive
+> steps in ninety-six — and at p75 the threshold lands *on* the plateau, so
+> the whole day reads as expensive, the spread test sees p75 == p25, and the
+> schedule is refused on exactly the profile that most wants one.
 >
 > - ~~**`smart_write` mode.**~~ Was: it needs an actuation path to command
 >   the valve's controller. A mode that cannot do what its name says is worse
@@ -2361,14 +2400,25 @@ which is the check that the ratio really is identity at its default.
 > with the model) feeds a read-only "Your system, as configured" page at the
 > top of the options menu, rendered as a fenced monospaced block through
 > `description_placeholders`. Empty slots are listed as `not configured` on
-> purpose. Click-to-assign stays deferred, as recommended.
+> purpose.
 >
-> **A finding for whoever attempts the clickable stage:** a generated SVG
-> served from the integration's static path was considered and rejected —
-> that path is unauthenticated (it serves the card JS to the login page),
-> and the topology plus entity ids should not be readable off the LAN. An
-> interactive diagram needs a custom panel with a real auth story, exactly
-> as this item's "where it is hard" paragraph predicted.
+> **Click-to-assign shipped in v3.14.0 — on the card, not here.** Two
+> findings settled where it belongs. A generated SVG served from the
+> integration's static path was rejected: that path is unauthenticated (it
+> serves the card JS to the login page), and topology plus entity ids should
+> not be readable off the LAN. A custom panel was then rejected too, and not
+> for the reason this item predicted — panels *are* served only to
+> authenticated users, through a stable public API. The real problem is that
+> Home Assistant has no supported way for a panel to edit a config entry, so
+> click-to-assign there means a hand-rolled write path duplicating every
+> rule the options flow enforces, plus `ha-selector` and friends, which are
+> internal and break across frontend releases.
+>
+> The card already is an authenticated surface that draws this diagram and
+> holds `hass`, so it needed one validated service — `assign_entity`, which
+> writes the same options the flow writes, through the same reload — and no
+> second frontend at all. The config flow keeps the read-only overview,
+> which is still the only view available before a dashboard exists.
 
 > **Status, 2026-08-23: planned, not built.**
 

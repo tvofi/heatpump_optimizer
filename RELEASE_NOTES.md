@@ -1,5 +1,53 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v3.14.0
+
+### A commanded valve can now wait for the peak
+
+If your mixing valve is set to *Commanded by the optimizer*, the plan can do
+something a hand-set valve physically cannot: **hold stored heat back**.
+
+A fixed valve starts feeding the house the moment the tank is warmer than its
+curve, so heat bought cheaply mostly gets used in the hours right after it was
+bought — which is why storage has been worth less than the theory suggested.
+The optimizer now works out a *schedule* for the valve: lower its target
+between charging and the expensive hours, so the house coasts on what the
+building itself holds and the tank keeps its heat, then raise it again for the
+peak so the tank carries the house through it.
+
+Worth roughly **1–2 SEK a day** on a winter price curve on top of what storage
+already saves — and, importantly, comfort gets slightly *better* rather than
+worse, because the plan stops dumping heat into an already-warm house.
+
+Two things it deliberately will not do. At flat prices it does not schedule
+anything at all, because there is nothing to gain. And it never plans the
+house below your comfort floor to hold heat back: the lowest target it will
+ask for is the floor the optimizer already plans against.
+
+The schedule is not a rule of thumb applied blindly. The optimizer works one
+out, re-plans the whole day against it, and keeps it only if that day comes
+out cheaper on the same measure it uses for every other decision. If it does
+not, the schedule is discarded.
+
+### Click a sensor on the card to assign it
+
+The Setup page added in v3.12.0 was read-only. Now clicking any sensor on the
+diagram — including an empty slot — opens a picker and assigns it, or clears
+it. The picker only offers entities that make sense for that slot, so a switch
+cannot end up where a temperature sensor belongs.
+
+This does exactly what the options pages do, and reloads the integration the
+same way; it is simply reachable from the picture of your system rather than
+eleven pages of settings. Assignments are made through a new
+`heatpump_optimizer.assign_entity` service, which validates every call, so an
+automation can use it too.
+
+### Fixed
+
+Outdoor humidity was read from the first entry of the weather forecast rather
+than the entry covering the current time. On a stale or offset forecast that
+could be hours out of date, which slightly mis-aimed the defrost derate.
+
 ## v3.13.0
 
 ### Economy mode finally is one

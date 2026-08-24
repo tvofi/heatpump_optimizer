@@ -52,25 +52,42 @@ from .thermal_model import ThermalParameters
 # Places are stable ids both renderers key their drawing off; adding a place
 # here without teaching the renderers about it is harmless — unknown places
 # land in the "elsewhere" group rather than vanishing.
-_SLOTS: tuple[tuple[str, str, str], ...] = (
-    (CONF_OUTDOOR_TEMP_ENTITY, "outdoor", "Outdoor temperature"),
-    (CONF_SOLAR_RADIATION_ENTITY, "outdoor", "Solar radiation"),
-    (CONF_PV_PRODUCTION_ENTITY, "outdoor", "PV production"),
-    (CONF_INDOOR_TEMP_ENTITY, "upper_zone", "Indoor temperature"),
-    (CONF_LOWER_FLOOR_TEMP_ENTITY, "lower_zone", "Lower floor temperature"),
-    (CONF_FLOOR_RETURN_TEMP_ENTITY, "floor_loop", "Floor loop return"),
-    (CONF_HEAT_PUMP_SWITCH_ENTITY, "heat_pump", "Heat pump switch"),
-    (CONF_POWER_ENTITY, "heat_pump", "Power meter"),
-    (CONF_ENERGY_ENTITY, "heat_pump", "Energy meter"),
-    (CONF_HOUSE_POWER_ENTITY, "heat_pump", "Whole-house power"),
-    (CONF_BUFFER_TANK_TEMP_ENTITY, "buffer_tank", "Buffer tank temperature"),
-    (CONF_MIXING_VALVE_TARGET_ENTITY, "mixing_valve", "Valve target"),
-    (CONF_DHW_TEMP_ENTITY, "dhw_tank", "Hot water temperature"),
-    (CONF_EXTERNAL_HEAT_ENTITY, "wood_tank", "Stove or flue sensor"),
-    (CONF_WOOD_TANK_TOP_ENTITY, "wood_tank", "Wood tank top"),
-    (CONF_WOOD_TANK_BOTTOM_ENTITY, "wood_tank", "Wood tank bottom"),
-    (CONF_VALVE_OUTLET_TEMP_ENTITY, "wood_valve", "Valve outlet temperature"),
+# The domains each slot accepts, so the card's picker and the assign service
+# agree about what may go where. Assigning a switch to a temperature slot is
+# the mistake a clickable diagram makes easy, and the one that produces a
+# model quietly planning against nonsense rather than an error.
+_TEMP = ("sensor", "number", "input_number")
+_SLOTS: tuple[tuple[str, str, str, tuple[str, ...]], ...] = (
+    (CONF_OUTDOOR_TEMP_ENTITY, "outdoor", "Outdoor temperature", _TEMP),
+    (CONF_SOLAR_RADIATION_ENTITY, "outdoor", "Solar radiation", _TEMP),
+    (CONF_PV_PRODUCTION_ENTITY, "outdoor", "PV production", _TEMP),
+    (CONF_INDOOR_TEMP_ENTITY, "upper_zone", "Indoor temperature", _TEMP),
+    (CONF_LOWER_FLOOR_TEMP_ENTITY, "lower_zone", "Lower floor temperature",
+     _TEMP),
+    (CONF_FLOOR_RETURN_TEMP_ENTITY, "floor_loop", "Floor loop return", _TEMP),
+    (CONF_HEAT_PUMP_SWITCH_ENTITY, "heat_pump", "Heat pump switch",
+     ("switch", "input_boolean", "climate")),
+    (CONF_POWER_ENTITY, "heat_pump", "Power meter", _TEMP),
+    (CONF_ENERGY_ENTITY, "heat_pump", "Energy meter", _TEMP),
+    (CONF_HOUSE_POWER_ENTITY, "heat_pump", "Whole-house power", _TEMP),
+    (CONF_BUFFER_TANK_TEMP_ENTITY, "buffer_tank", "Buffer tank temperature",
+     _TEMP),
+    (CONF_MIXING_VALVE_TARGET_ENTITY, "mixing_valve", "Valve target", _TEMP),
+    (CONF_DHW_TEMP_ENTITY, "dhw_tank", "Hot water temperature", _TEMP),
+    (CONF_EXTERNAL_HEAT_ENTITY, "wood_tank", "Stove or flue sensor",
+     ("sensor", "binary_sensor", "switch", "input_boolean")),
+    (CONF_WOOD_TANK_TOP_ENTITY, "wood_tank", "Wood tank top", _TEMP),
+    (CONF_WOOD_TANK_BOTTOM_ENTITY, "wood_tank", "Wood tank bottom", _TEMP),
+    (CONF_VALVE_OUTLET_TEMP_ENTITY, "wood_valve", "Valve outlet temperature",
+     _TEMP),
 )
+
+#: Every config key a diagram may assign, and the domains it accepts. The one
+#: source for the card's picker and the ``assign_entity`` service, so what the
+#: diagram offers and what the service accepts cannot drift apart.
+ASSIGNABLE_KEYS: dict[str, tuple[str, ...]] = {
+    key: domains for key, _place, _label, domains in _SLOTS
+}
 
 #: Places that only exist on some topologies, and the flag that brings them.
 _CONDITIONAL_PLACES = ("lower_zone", "floor_loop", "dhw_tank", "mixing_valve",
@@ -112,8 +129,11 @@ def describe_setup(config: dict[str, Any]) -> dict[str, Any]:
             "label": label,
             "place": place,
             "entity": config.get(key) or None,
+            # Carried so the card's picker offers only what the service will
+            # accept for this slot -- one list, not two that can disagree.
+            "domains": list(domains),
         }
-        for key, place, label in _SLOTS
+        for key, place, label, domains in _SLOTS
         if present.get(place, True)
     ]
     return {

@@ -42,6 +42,7 @@ from .const import (
     DEFAULT_DHW_SETPOINT,
     DHW_MIN_TEMP_SETPOINT_MARGIN,
     SERVICE_APPLY_SCHEDULE,
+    SERVICE_ASSIGN_ENTITY,
     SERVICE_APPLY_MANUAL_PLAN,
     SERVICE_CLEAR_MANUAL_PLAN,
     SERVICE_RUN_OPTIMIZATION,
@@ -58,6 +59,7 @@ from .const import (
 from .coordinator import HeatPumpOptimizerCoordinator
 from .dhw_schedule import DHWWindowError, format_windows, parse_windows
 from .frontend import async_register_frontend
+from . import topology
 from .manual_plan import ManualPlanError, build_override
 
 _LOGGER = logging.getLogger(__name__)
@@ -106,12 +108,26 @@ SERVICE_SCHEMA_SET_MODE = vol.Schema(
     }
 )
 
+# Assign one optional sensor from the card's setup diagram (item 32).
+#
+# One of two services that write to the config entry, and deliberately the
+# narrower: one key, one entity, both checked against the same slot table the
+# diagram is drawn from. ``entity_id`` may be an empty string, which clears
+# the slot -- unassigning has to be possible from the same place assigning is,
+# or the diagram becomes a one-way door.
+SERVICE_SCHEMA_ASSIGN_ENTITY = vol.Schema(
+    {
+        vol.Required("key"): vol.In(sorted(topology.ASSIGNABLE_KEYS)),
+        vol.Required("entity_id"): cv.string,
+        vol.Optional("entry_id"): cv.string,
+    }
+)
+
 # Persist a schedule the user arrived at in the what-if simulator.
 #
-# This is the only service that writes to the config entry, so it is
-# deliberately narrow: it accepts the three fields the card can edit and
-# nothing else. Ranges are enforced here rather than in the handler so a bad
-# call is rejected before it can touch stored configuration.
+# Deliberately narrow: it accepts the fields the card can edit and nothing
+# else. Ranges are enforced here rather than in the handler so a bad call is
+# rejected before it can touch stored configuration.
 SERVICE_SCHEMA_APPLY_SCHEDULE = vol.Schema(
     {
         vol.Optional("day_start_hour"): vol.All(
@@ -349,6 +365,61 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 results[entry_id] = await coord.async_simulate(overrides)
         return {"results": results}
 
+    async def handle_assign_entity(call: ServiceCall) -> dict[str, Any]:
+        """Assign or clear one optional sensor from the setup diagram.
+
+        Item 32's click-to-assign. It writes the same options the config flow
+        writes, through the same reload, so an assignment made on the card and
+        one made in the options pages are indistinguishable afterwards.
+
+        Two checks the schema cannot make. The entity must exist -- a config
+        flow's picker can only offer real entities, and this service is
+        callable directly, so without this a typo would be stored and the
+        model would plan against a sensor that never reports. And its domain
+        must be one the slot accepts: assigning a switch to a temperature slot
+        is the mistake a clickable diagram makes easy, and it produces a model
+        quietly planning against nonsense rather than an error.
+        """
+        key = call.data["key"]
+        raw = str(call.data["entity_id"]).strip()
+        target_entry = call.data.get("entry_id")
+
+        if raw:
+            if hass.states.get(raw) is None:
+                raise ServiceValidationError(
+                    f"Entity {raw} does not exist"
+                )
+            domains = topology.ASSIGNABLE_KEYS[key]
+            domain = raw.split(".", 1)[0]
+            if domain not in domains:
+                raise ServiceValidationError(
+                    f"{raw} is a {domain} entity; {key} accepts "
+                    f"{', '.join(domains)}"
+                )
+
+        targets = [
+            entry
+            for entry in hass.config_entries.async_entries(DOMAIN)
+            if (target_entry is None or entry.entry_id == target_entry)
+            and entry.entry_id in hass.data.get(DOMAIN, {})
+        ]
+        if not targets:
+            raise ServiceValidationError(
+                "No loaded Heat Pump Optimizer config entry matched this call"
+            )
+
+        # ``None`` rather than "" for a cleared slot: that is what the options
+        # flow stores, and what every reader treats as absent.
+        value = raw or None
+        for entry in targets:
+            options = {**dict(entry.options), key: value}
+            hass.config_entries.async_update_entry(entry, options=options)
+
+        _LOGGER.info(
+            "Assigned %s = %s on %d entry(ies)", key, value, len(targets)
+        )
+        return {"key": key, "entity_id": value}
+
     async def handle_apply_schedule(call: ServiceCall) -> dict[str, Any]:
         """Persist a schedule the user built in the what-if simulator.
 
@@ -579,6 +650,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
     hass.services.async_register(
         DOMAIN,
+        SERVICE_ASSIGN_ENTITY,
+        handle_assign_entity,
+        schema=SERVICE_SCHEMA_ASSIGN_ENTITY,
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+    hass.services.async_register(
+        DOMAIN,
         SERVICE_APPLY_MANUAL_PLAN,
         handle_apply_manual_plan,
         schema=SERVICE_SCHEMA_APPLY_MANUAL_PLAN,
@@ -620,6 +698,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             SERVICE_SET_THERMAL_PARAMS,
             SERVICE_SIMULATE_PLAN,
             SERVICE_APPLY_SCHEDULE,
+            SERVICE_ASSIGN_ENTITY,
             SERVICE_APPLY_MANUAL_PLAN,
             SERVICE_CLEAR_MANUAL_PLAN,
         ):
