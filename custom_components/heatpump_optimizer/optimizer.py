@@ -438,6 +438,13 @@ class OptimizationResult:
     displace_schedule: list[float] = field(default_factory=list)
     heat_pump_on_schedule: list[bool] = field(default_factory=list)
 
+    # The planned buffer-tank temperature, one entry per step boundary. Empty
+    # without a mixing valve, where the tank is a hydraulic separator and its
+    # temperature is not a decision. It is the only view anyone -- a sensor, the
+    # card, a test -- has of whether the plan intends to store anything: the
+    # model stashes the series on itself for the terminal-cost term and nothing
+    # else could reach it.
+    buffer_temp_trajectory: list[float] = field(default_factory=list)
     # Two-zone trajectories
     upper_temp_trajectory: list[float] = field(default_factory=list)
     lower_temp_trajectory: list[float] = field(default_factory=list)
@@ -910,6 +917,7 @@ class HeatPumpOptimizer:
         dhw_power: np.ndarray | None = None,
         dhw_temps: np.ndarray | None = None,
         dhw_cost: float = 0.0,
+        buffer_temps: np.ndarray | None = None,
         predictive_info: dict | None = None,
     ) -> OptimizationResult:
         """Assemble the result both solve paths return.
@@ -934,6 +942,12 @@ class HeatPumpOptimizer:
             power_schedule=space_power.tolist(),
             room_temp_trajectory=room_temps.tolist(),
             slab_temp_trajectory=slab_temps.tolist(),
+            buffer_temp_trajectory=(
+                [float(v) for v in buffer_temps]
+                if buffer_temps is not None
+                and mixing_valve.is_throttling(self.model.params.mixing_valve_mode)
+                else []
+            ),
             timestamps=h.timestamps,
             prices=h.prices.tolist(),
             outdoor_temps=h.outdoor_temps.tolist(),
@@ -1875,6 +1889,9 @@ class HeatPumpOptimizer:
                 external_heat_kw=h.external_heat_kw,
             )
         )
+        # Captured here, next to the call that wrote it, rather than read back
+        # at assembly time -- by then further simulations have run.
+        buffer_temps = self.model.last_buffer_trajectory
 
         baseline_cost = energy_cost_of(baseline_power)
         predicted_cost = energy_cost_of(optimal_power)
@@ -1904,6 +1921,7 @@ class HeatPumpOptimizer:
             h,
             space_power=optimal_power,
             trajectories=(room_temps, slab_temps, upper_temps, lower_temps),
+            buffer_temps=buffer_temps,
             status=status,
             predicted_cost=predicted_cost,
             baseline_cost=baseline_cost,
@@ -3034,6 +3052,10 @@ class HeatPumpOptimizer:
                 external_heat_kw=h.external_heat_kw,
             )
         )
+        # Captured next to the call that wrote it. Before this method recorded
+        # the series, whatever the last space-only simulation had left on the
+        # model was a trajectory for a different power schedule.
+        buffer_temps = self.model.last_buffer_trajectory
 
         # Baseline cost
         baseline_power, baseline_end = self._compute_baseline_power(
@@ -3101,6 +3123,7 @@ class HeatPumpOptimizer:
             h,
             space_power=optimal_space,
             trajectories=(room_temps, slab_temps, upper_temps, lower_temps),
+            buffer_temps=buffer_temps,
             status=status,
             predicted_cost=predicted_cost,
             baseline_cost=baseline_cost,

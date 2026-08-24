@@ -1362,12 +1362,14 @@ class ThermalModel:
         upper_temps = np.zeros(n_steps + 1)
         lower_temps = np.zeros(n_steps + 1)
         dhw_temps = np.zeros(n_steps + 1)
+        buffer_temps = np.zeros(n_steps + 1)
 
         room_temps[0] = initial_state.room_temperature
         slab_temps[0] = initial_state.slab_temperature
         upper_temps[0] = initial_state.upper_floor_temperature
         lower_temps[0] = initial_state.lower_floor_temperature
         dhw_temps[0] = initial_state.dhw_temperature
+        buffer_temps[0] = initial_state.buffer_tank_temperature
 
         state = initial_state
         current_hour = start_hour
@@ -1408,9 +1410,15 @@ class ThermalModel:
             upper_temps[i + 1] = state.upper_floor_temperature
             lower_temps[i + 1] = state.lower_floor_temperature
             dhw_temps[i + 1] = new_dhw
+            buffer_temps[i + 1] = state.buffer_tank_temperature
 
             current_hour += dt_hours
 
+        # Recorded on the same attribute as `simulate_trajectory`, which is not
+        # decoration: this method used to leave it holding whatever the last
+        # space-only simulation put there, so anything reading it afterwards got
+        # a trajectory belonging to a different power schedule.
+        self.last_buffer_trajectory = buffer_temps
         return room_temps, slab_temps, upper_temps, lower_temps, dhw_temps
 
     def update_slab_from_return_temp(

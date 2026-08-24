@@ -1,5 +1,6 @@
 {
  "baseline_cost": 179.479166,
+ "buffer_temp_trajectory": [],
  "compressor_starts": 3,
  "deferred_energy_cost": 30.396552,
  "dhw_heating_cost": 7.026158,
