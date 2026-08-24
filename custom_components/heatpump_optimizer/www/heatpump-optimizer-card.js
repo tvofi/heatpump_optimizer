@@ -10,7 +10,7 @@
  */
 
 const CARD_TAG = "heatpump-optimizer-card";
-const CARD_VERSION = "3.14.0";
+const CARD_VERSION = "3.14.1";
 
 const DEFAULTS = {
   title: "Heat pump plan",
@@ -1238,13 +1238,30 @@ class HeatpumpOptimizerCard extends HTMLElement {
     const W = 720;
     const slotsAt = (place) => topo.slots.filter((s) => s.place === place);
     const boxes = [];
+    // SVG text does not wrap, and a caption longer than the box runs
+    // straight past its border — measured in a real browser, the no-valve
+    // caption overflowed by 19 viewBox units. ~34 characters is what fits
+    // in the 190 units a row offers at the slot font, so long extras are
+    // wrapped here, before layout, where the box height still follows the
+    // row count.
+    const wrapExtra = (s) => {
+      const lines = [];
+      let cur = "";
+      for (const w of String(s).split(/\s+/)) {
+        const next = cur ? `${cur} ${w}` : w;
+        if (next.length > 34 && cur) { lines.push(cur); cur = w; }
+        else cur = next;
+      }
+      if (cur) lines.push(cur);
+      return lines;
+    };
     // A box is a titled list of slot rows; its height follows its contents.
     const box = (col, title, places, extra) => {
       const rows = [];
       for (const p of places) {
         for (const s of slotsAt(p)) rows.push(s);
       }
-      boxes.push({ col, title, rows, extra: extra || [] });
+      boxes.push({ col, title, rows, extra: (extra || []).flatMap(wrapExtra) });
     };
 
     const valve =
@@ -1252,8 +1269,11 @@ class HeatpumpOptimizerCard extends HTMLElement {
     box(0, "Outside", ["outdoor"]);
     box(0, "Heat pump", ["heat_pump"]);
     if (topo.wood && topo.wood.present) {
+      // Honest caption: until the two-tank model lands, wood heat is a
+      // single-tank abstraction — the drawing must say so rather than let
+      // the separate box imply separately modelled physics (issue #40).
       box(0, `Wood furnace tank (${Math.round(topo.wood.volume_l)} L)`,
-        ["wood_tank"]);
+        ["wood_tank"], ["modelled as heat into the heat-pump tank"]);
       box(0, "Wood mixing valve", ["wood_valve"]);
     }
     const buf = topo.buffer || {};
@@ -1297,28 +1317,41 @@ class HeatpumpOptimizerCard extends HTMLElement {
     const find = (t) => boxes.find((b) => b.title.startsWith(t));
     // Boxes in the same column stack vertically, so their connection is a
     // short vertical pipe; a right-to-left curve between them crosses every
-    // box in between and reads as spaghetti.
-    const line = (a, b) => {
+    // box in between and reads as spaghetti. `edge` names the connection so
+    // tests can assert the drawn topology instead of path coordinates.
+    const line = (a, b, edge) => {
       if (!a || !b) return "";
       if (a.col === b.col) {
         const upper = a.y < b.y ? a : b;
         const lower = a.y < b.y ? b : a;
         const x = a.x + 24;
-        return `<path class="setup-pipe" d="M ${x} ${upper.y + upper.h}
+        return `<path class="setup-pipe" data-edge="${edge}"
+          d="M ${x} ${upper.y + upper.h}
           L ${x} ${lower.y}" />`;
       }
-      return `<path class="setup-pipe" d="M ${anchor(a).x} ${anchor(a).y}
+      return `<path class="setup-pipe" data-edge="${edge}"
+        d="M ${anchor(a).x} ${anchor(a).y}
         C ${anchor(a).x + 30} ${anchor(a).y},
           ${to(b).x - 30} ${to(b).y}, ${to(b).x} ${to(b).y}" />`;
     };
     const bufferBox = find("Buffer tank");
     const houseBox = find(topo.two_zone ? "Upper floor" : "House");
-    parts.push(line(find("Heat pump"), bufferBox));
-    parts.push(line(find("Wood mixing valve"), bufferBox));
-    parts.push(line(find("Wood furnace tank"), find("Wood mixing valve")));
-    parts.push(line(valve ? find("Mixing valve") : bufferBox, houseBox));
-    if (valve) parts.push(line(bufferBox, find("Mixing valve")));
-    if (topo.two_zone) parts.push(line(bufferBox, find("Lower floor")));
+    // One shared flow serves every circuit: whatever regulates the supply —
+    // the mixing valve when one exists, the raw tank when not — feeds BOTH
+    // floors in parallel. Drawing the lower floor from the tank while a
+    // valve throttled the upper one contradicted the model, which computes
+    // one t_mix and delivers both circuits from it (issue #40).
+    const supplyBox = valve ? find("Mixing valve") : bufferBox;
+    const supplyName = valve ? "valve" : "buffer";
+    parts.push(line(find("Heat pump"), bufferBox, "hp-buffer"));
+    parts.push(line(find("Wood mixing valve"), bufferBox, "woodvalve-buffer"));
+    parts.push(line(find("Wood furnace tank"), find("Wood mixing valve"),
+      "wood-woodvalve"));
+    parts.push(line(supplyBox, houseBox, `${supplyName}-upper`));
+    if (valve) parts.push(line(bufferBox, find("Mixing valve"),
+      "buffer-valve"));
+    if (topo.two_zone) parts.push(line(supplyBox, find("Lower floor"),
+      `${supplyName}-lower`));
 
     for (const b of boxes) {
       const rows = [];

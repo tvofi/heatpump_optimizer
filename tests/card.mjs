@@ -1672,6 +1672,37 @@ check("the hand-scheduled reason has a label",
   // prefix rather than the full name.
   check("empty slots are drawn empty, not omitted",
     /not configured/.test(setupPage) && /Lower floor te/.test(setupPage));
+  // Issue #40: the drawn hydronics must match the model. The model computes
+  // one t_mix and feeds both circuits from it in parallel, so with a valve
+  // BOTH floor boxes hang off the mixing valve; the old drawing ran the
+  // slab straight from the tank, which is a different (unmodelled) system.
+  const edges = (html) =>
+    (html.match(/data-edge="([^"]+)"/g) || []).map((m) => m.slice(11, -1));
+  const drawn = edges(setupPage);
+  check("with a valve, one shared flow feeds both floors",
+    drawn.includes("valve-upper") && drawn.includes("valve-lower") &&
+    drawn.includes("buffer-valve") && !drawn.includes("buffer-lower"),
+    `edges drawn: ${drawn.join(", ")}`);
+  // The caption is wrapped across rows (SVG text does not wrap itself), so
+  // match its fragments rather than the whole sentence.
+  check("the wood box admits the single-tank abstraction",
+    /modelled as heat into the/.test(setupPage) &&
+    /heat-pump tank/.test(setupPage));
+  {
+    const noValve = JSON.parse(JSON.stringify(topo));
+    noValve.valve_mode = "none";
+    const nvStates = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+    nvStates[DEFAULT_SPACE].attributes.setup_topology = noValve;
+    const nv = build(nvStates);
+    nv._onCardClick({});
+    nv._dialogPage = "setup";
+    nv._render();
+    const nvDrawn = edges(collect(nv.shadowRoot).join("\n"));
+    check("without a valve the tank feeds both floors directly",
+      nvDrawn.includes("buffer-upper") && nvDrawn.includes("buffer-lower") &&
+      !nvDrawn.some((e) => e.startsWith("valve-")),
+      `edges drawn: ${nvDrawn.join(", ")}`);
+  }
   // The hidden page must be genuinely unrendered, not display:none --
   // getBoundingClientRect on a hidden chart returns zeroes and
   // _timeAtClientX would compute garbage drag times rather than fail.

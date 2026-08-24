@@ -212,7 +212,10 @@ def render_text_summary(setup: dict[str, Any]) -> str:
         parts.append("\n".join(dhw))
 
     if setup["wood"]["present"]:
+        # The separate tank is drawn, but the model folds its heat into the
+        # heat-pump tank (issue #40) — say so until the two-tank model lands.
         wood = [f"Wood furnace tank: {setup['wood']['volume_l']:.0f} L"]
+        wood.append("  (modelled as heat into the heat-pump tank)")
         wood += _slot_lines(setup, "wood_tank")
         wood += _slot_lines(setup, "wood_valve")
         parts.append("\n".join(wood))
