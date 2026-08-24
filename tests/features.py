@@ -310,6 +310,169 @@ R.check(
 )
 
 
+R.section("Wood furnace displacement (item 28)")
+
+# The valve outlet identifies the mixing fraction directly:
+# f = (T_outlet - T_hp) / (T_wood - T_hp). It turns the boolean fire into
+# "the furnace covers 70% of space heating right now", which is what lets
+# electric heat stand down by that much instead of all-or-nothing.
+
+
+def _fire_obs(minutes, **kw):
+    return ExternalHeatObservation(
+        now=datetime(2026, 1, 10, 18, 0, tzinfo=UTC) + timedelta(minutes=minutes),
+        dhw_temp=kw.pop("dhw_temp", None),
+        commanded_power_kw=0.0,
+        measured_power_kw=0.0,
+        **kw,
+    )
+
+
+_wd = ExternalHeatDetector(ExternalHeatConfig(
+    enabled=True, confirm_samples=2, release_samples=2,
+    wood_tank_volume_l=500.0,
+))
+# Light the fire via the buffer rising with the pump off.
+_wd.update(_fire_obs(0, buffer_temp=40.0))
+_wd.update(_fire_obs(15, buffer_temp=41.0))
+_wd_state = _wd.update(_fire_obs(
+    30, buffer_temp=42.0,
+    outlet_temp=61.0, wood_top=70.0, wood_bottom=55.0,
+    hp_tank_temp=40.0, space_demand_kw=6.0,
+))
+R.check(
+    "the outlet temperature identifies the mixing fraction",
+    abs(_wd_state.displacement - 0.7) < 1e-6,
+    f"(61-40)/(70-40) should be 0.70, got {_wd_state.displacement:.2f}",
+)
+R.check(
+    "and scales to an absolute free-heat figure",
+    abs(_wd_state.free_heat_kw - 4.2) < 1e-6,
+    f"0.70 of 6 kW demand, got {_wd_state.free_heat_kw:.2f} kW",
+)
+R.check(
+    "the wood tank's remaining energy is measured, not assumed",
+    _wd_state.wood_energy_kwh is not None and _wd_state.wood_energy_kwh > 10.0,
+    f"got {_wd_state.wood_energy_kwh} kWh from a 500 L tank at 62.5 C mean",
+)
+R.check(
+    "displacement is a separate field from confidence",
+    _wd_state.confidence == 1.0 and _wd_state.displacement < 1.0,
+    "confidence means how recently; displacement means how much",
+)
+
+# Never predict an unlit fire: same sensors, no active state, no displacement.
+_cold_det = ExternalHeatDetector(ExternalHeatConfig(enabled=True))
+_cold_state = _cold_det.update(_fire_obs(
+    0, outlet_temp=61.0, wood_top=70.0, wood_bottom=55.0,
+    hp_tank_temp=40.0, space_demand_kw=6.0,
+))
+R.check(
+    "no active fire means no displacement, whatever the sensors read",
+    _cold_state.displacement == 0.0 and _cold_state.free_heat_kw == 0.0,
+    "lighting a fire is human behaviour and is never predicted",
+)
+
+# Unidentifiable mix: the wood side barely above the pump side.
+_flat_state = _wd.update(_fire_obs(
+    45, buffer_temp=43.0,
+    outlet_temp=40.5, wood_top=41.0, wood_bottom=40.0,
+    hp_tank_temp=40.0, space_demand_kw=6.0,
+))
+R.check(
+    "too small a margin reads as zero, not as a noisy fraction",
+    _flat_state.displacement == 0.0,
+    "a 1 K difference is sensor noise, not a measurement of the mix",
+)
+
+# A stalled sensor maps to absence, and absence means zero. This is the
+# backlog's named verification: a stalled hot probe must stop being
+# believed rather than look like an indefinite free fire.
+_stale_state = _wd.update(_fire_obs(
+    60, buffer_temp=44.0,
+    outlet_temp=None, wood_top=70.0, hp_tank_temp=40.0, space_demand_kw=6.0,
+))
+R.check(
+    "a missing or stale outlet reading zeroes the displacement",
+    _stale_state.displacement == 0.0 and _stale_state.free_heat_kw == 0.0,
+    "staleness maps to absence upstream, and absence must fail closed",
+)
+
+# The forecast the optimizer receives is bounded three independent ways.
+_fc_det = ExternalHeatDetector(ExternalHeatConfig(
+    enabled=True, decay_minutes=360.0, wood_tank_volume_l=500.0,
+))
+_fc_det.state.active = True
+_fc_det.state.free_heat_kw = 6.0
+_fc_det.state.wood_energy_kwh = 100.0
+_fc = _fc_det.forecast_free_heat(96, 0.25)
+R.check(
+    "the forecast never promises past its hard two-hour cap",
+    _fc[7] > 0.0 and all(v == 0.0 for v in _fc[8:]),
+    "whatever the detector's own decay says -- a wrong promise here is a "
+    "cold house in winter",
+)
+R.check(
+    "and fades over that horizon rather than carrying full weight",
+    _fc[0] == 6.0 and _fc[7] < _fc[0] * 0.2,
+    f"first step {_fc[0]:.1f} kW, last promised step {_fc[7]:.2f} kW",
+)
+_fc_det.state.wood_energy_kwh = 0.5
+_fc_low = _fc_det.forecast_free_heat(96, 0.25)
+R.check(
+    "the promise never exceeds what the wood tank measurably holds",
+    sum(v * 0.25 for v in _fc_low) <= 0.5 + 1e-9,
+    f"promised {sum(v * 0.25 for v in _fc_low):.2f} kWh against 0.5 in the tank",
+)
+_fc_det.state.active = False
+_fc_det.state.fading = False
+_fc_det.state.free_heat_kw = 0.0
+R.check(
+    "no fire, no forecast",
+    all(v == 0.0 for v in _fc_det.forecast_free_heat(96, 0.25)),
+)
+
+# The tank pair can shorten the decay tail, never extend it: a fire whose
+# tank measurably holds nothing is spent, whatever the timer says. This
+# replaces the fixed decay's job with a measurement, in the only direction
+# measurement is allowed to argue -- towards less trust.
+def _burn_then_release(det, spent_pair):
+    """Confirm a fire, release it, and hand the detector one post-release
+    observation -- with or without a wood pair that reads spent."""
+    det.update(_fire_obs(0, buffer_temp=40.0))
+    det.update(_fire_obs(15, buffer_temp=41.0))
+    det.update(_fire_obs(30, buffer_temp=42.0))          # active
+    det.update(_fire_obs(45, buffer_temp=42.0))          # release 1
+    kw = (
+        dict(wood_top=41.0, wood_bottom=40.0, hp_tank_temp=40.5)
+        if spent_pair
+        else {}
+    )
+    det.update(_fire_obs(60, buffer_temp=41.8, **kw))    # release 2: fading
+    det.update(_fire_obs(75, buffer_temp=41.6, **kw))
+
+
+_spent = ExternalHeatDetector(ExternalHeatConfig(
+    enabled=True, confirm_samples=2, release_samples=2,
+    decay_minutes=90.0, wood_tank_volume_l=500.0,
+))
+_burn_then_release(_spent, spent_pair=True)
+R.check(
+    "a measurably spent wood tank ends the decay early",
+    not _spent.suppressing,
+    "the 90-minute timer would still be fading; the empty tank overrules it",
+)
+_timed = ExternalHeatDetector(ExternalHeatConfig(
+    enabled=True, confirm_samples=2, release_samples=2, decay_minutes=90.0,
+))
+_burn_then_release(_timed, spent_pair=False)
+R.check(
+    "while without the tank pair the timer stands",
+    _timed.suppressing,
+    "the measured cut-off must be the difference, not a detector change",
+)
+
+
 # ===========================================================================
 # Item 7: modelling the unknown price horizon
 # ===========================================================================
@@ -2754,6 +2917,87 @@ R.check(
     _zone_coord(_BASE)._mixing_valve_view() == {},
     "no valve, no keys -- existing captures of the coordinator's data must "
     "stay byte-for-byte identical",
+)
+
+
+R.section("Per-step external heat reaches the model and the plan (item 28)")
+
+# The harness prerequisite the item names: `external_heat_active` was a scalar
+# bool on the initial state and the model had no free-heat input at all, so a
+# fire could not be represented, sized, or planned around.
+
+_x_p = ThermalParameters(
+    two_zone_enabled=True, buffer_tank_volume=200.0,
+    upper_floor_thermal_mass=3.0, lower_floor_thermal_mass=4.5,
+    upper_floor_heat_loss=0.10, lower_floor_heat_loss=0.09,
+    radiator_power_fraction=0.4,
+)
+_x_m = ThermalModel(_x_p)
+_x_st = ThermalState(
+    room_temperature=20.0, upper_floor_temperature=20.0,
+    lower_floor_temperature=20.0, slab_temperature=21.0,
+    buffer_tank_temperature=30.0, outdoor_temperature=-5.0,
+)
+
+
+def _x_coast(ext_kw):
+    st = _x_st
+    for _ in range(8):
+        st = _x_m.simulate_step(
+            st, 0.0, -5.0, dt_hours=0.25, external_heat_kw=ext_kw
+        )
+    return st
+
+
+_x_none = _x_coast(0.0)
+_x_burn = _x_coast(8.0)
+R.check(
+    "free heat warms the house with the compressor off",
+    _x_burn.upper_floor_temperature > _x_none.upper_floor_temperature + 1.0,
+    f"{_x_none.upper_floor_temperature:.2f} C without vs "
+    f"{_x_burn.upper_floor_temperature:.2f} C with an 8 kW burn",
+)
+R.check(
+    "and it is heat, not electricity: a zero burn is the old model exactly",
+    _x_coast(0.0) == _x_none,
+    "the default path must stay byte-for-byte identical",
+)
+
+# The plan defers electric heat the furnace is already providing: a burn
+# forecast over the first six hours must reduce what the optimizer buys
+# there, and an all-zero forecast must change nothing at all.
+_x_opt = _StoreOpt(_x_m, _StoreCfg(
+    horizon_hours=24, time_step_minutes=15,
+    target_temp=21.0, min_temp=17.0, max_temp=23.0,
+))
+_x_prices = np.full(96, 1.2)
+_x_out = np.full(96, -5.0)
+_x_zero = np.zeros(96)
+_x_blind = _x_opt.optimize(
+    _x_st, _x_prices, _x_out, _x_zero, _x_zero, _x_zero, datetime(2026, 1, 15)
+)
+_x_fc = np.zeros(96)
+_x_fc[:24] = 6.0
+_x_aware = _x_opt.optimize(
+    _x_st, _x_prices, _x_out, _x_zero, _x_zero, _x_zero, datetime(2026, 1, 15),
+    external_heat_kw=_x_fc,
+)
+_x_pb = np.asarray(_x_blind.power_schedule)
+_x_pa = np.asarray(_x_aware.power_schedule)
+R.check(
+    "a burn forecast reduces electric heating during the burn",
+    float(_x_pa[:24].sum()) < float(_x_pb[:24].sum()) - 2.0,
+    f"first 6 h: blind {_x_pb[:24].sum() * 0.25:.1f} kWh vs "
+    f"aware {_x_pa[:24].sum() * 0.25:.1f} kWh",
+)
+_x_zeroed = _x_opt.optimize(
+    _x_st, _x_prices, _x_out, _x_zero, _x_zero, _x_zero, datetime(2026, 1, 15),
+    external_heat_kw=np.zeros(96),
+)
+R.check(
+    "an all-zero forecast is byte-identical to no forecast",
+    np.array_equal(np.asarray(_x_zeroed.power_schedule), _x_pb),
+    "zeros must take the exact default path",
 )
 
 

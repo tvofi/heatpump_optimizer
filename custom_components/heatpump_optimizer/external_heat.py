@@ -27,6 +27,12 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime
 
+from .const import (
+    EXTERNAL_HEAT_FORECAST_MAX_HOURS,
+    WATER_SPECIFIC_HEAT,
+    WOOD_TANK_MIN_MARGIN,
+)
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -58,6 +64,9 @@ class ExternalHeatConfig:
     #: detector was permanently blind while appearing configured.
     max_sample_hours: float = 1.0
     min_sample_hours: float = 0.05
+    #: Volume of the wood-side tank, liters, for bounding how much free heat
+    #: a fire can still back (item 28).
+    wood_tank_volume_l: float = 500.0
 
 
 @dataclass
@@ -76,6 +85,17 @@ class ExternalHeatObservation:
     buffer_max_rise_c_per_h: float | None = None
     #: An explicit user entity: ``True``/``False`` when one is configured.
     override: bool | None = None
+    #: Wood-furnace topology sensors (item 28), each ``None`` when the entity
+    #: is unconfigured or its reading is stale — a stalled hot sensor would
+    #: look like an indefinite free fire, so staleness maps to absence.
+    outlet_temp: float | None = None
+    wood_top: float | None = None
+    wood_bottom: float | None = None
+    #: The heat-pump tank temperature, the cold side of the mix.
+    hp_tank_temp: float | None = None
+    #: Current space-heating demand, kW thermal, for scaling the displacement
+    #: into an absolute free-heat figure.
+    space_demand_kw: float | None = None
 
 
 @dataclass
@@ -93,6 +113,15 @@ class ExternalHeatState:
     #: Observed rise rates, published so a user can check the reasoning.
     dhw_rise_c_per_h: float | None = None
     buffer_rise_c_per_h: float | None = None
+    #: How much of the space-heating load the furnace currently covers, 0-1.
+    #: A separate field from ``confidence`` on purpose: confidence means "how
+    #: recently", this means "how much", and the two must not be conflated.
+    displacement: float = 0.0
+    #: The displacement scaled to kW thermal, when demand is known.
+    free_heat_kw: float = 0.0
+    #: Sensible energy left in the wood tank above the useful floor, kWh.
+    #: ``None`` when the tank pair is not sensed.
+    wood_energy_kwh: float | None = None
 
     def as_dict(self) -> dict:
         return {
@@ -112,7 +141,22 @@ class ExternalHeatState:
                 if self.buffer_rise_c_per_h is not None
                 else None
             ),
-        }
+        } | self._displacement_dict()
+
+    def _displacement_dict(self) -> dict:
+        """The item-28 fields, present only when the topology produces them.
+
+        Conditional so that a configuration without the wood-furnace sensors
+        publishes exactly the dictionary it always did — the golden captures
+        of the coordinator's data hold every existing install to that.
+        """
+        out: dict = {}
+        if self.displacement > 0.0 or self.free_heat_kw > 0.0:
+            out["displacement"] = round(self.displacement, 2)
+            out["free_heat_kw"] = round(self.free_heat_kw, 2)
+        if self.wood_energy_kwh is not None:
+            out["wood_energy_kwh"] = round(self.wood_energy_kwh, 1)
+        return out
 
 
 class ExternalHeatDetector:
@@ -162,6 +206,14 @@ class ExternalHeatDetector:
 
     def update(self, obs: ExternalHeatObservation) -> ExternalHeatState:
         """Fold one observation in and return the resulting state."""
+        state = self._update_activation(obs)
+        self._update_displacement(obs)
+        return state
+
+    def _update_activation(
+        self, obs: ExternalHeatObservation
+    ) -> ExternalHeatState:
+        """The boolean question: is something else heating the tanks?"""
         cfg = self.config
         state = self.state
 
@@ -238,6 +290,106 @@ class ExternalHeatDetector:
                     )
         return evidence
 
+    # -- displacement (item 28) --------------------------------------------
+
+    def _update_displacement(self, obs: ExternalHeatObservation) -> None:
+        """How much of the space load the furnace covers right now.
+
+        The valve outlet is the only sensor that measures what the house
+        actually receives; with the two tank temperatures either side of the
+        mix it identifies the mixing fraction directly:
+        ``f = (T_outlet − T_hp) / (T_wood − T_hp)``.
+
+        Deliberately reluctant, like everything else here: the displacement
+        is zero unless a fire is active or fading (lighting one is human
+        behaviour and is never predicted), zero when any needed sensor is
+        missing or stale, zero when the wood side is too close to the pump
+        side to identify the mix, and zero once the measured wood tank can no
+        longer back it.
+        """
+        state = self.state
+
+        # Sensible energy left in the wood tank, when the pair is sensed.
+        # The useful floor is the pump-tank side: below that the valve has
+        # no reason to prefer wood water. Published even while no fire is
+        # active, because "how much is left from the last one" is exactly
+        # what a user checks before deciding whether to light another.
+        state.wood_energy_kwh = None
+        if obs.wood_top is not None and obs.hp_tank_temp is not None:
+            useful_floor = obs.hp_tank_temp + WOOD_TANK_MIN_MARGIN
+            if obs.wood_bottom is not None:
+                mean_temp = (obs.wood_top + obs.wood_bottom) / 2.0
+            else:
+                # A single top probe over-reads a stratified tank; assume a
+                # modestly colder bulk rather than believing the top.
+                mean_temp = obs.wood_top - 5.0
+            state.wood_energy_kwh = (
+                max(0.0, mean_temp - useful_floor)
+                * self.config.wood_tank_volume_l
+                * WATER_SPECIFIC_HEAT
+            )
+
+        state.displacement = 0.0
+        state.free_heat_kw = 0.0
+        if not (state.active or state.fading):
+            return
+        if (
+            obs.outlet_temp is None
+            or obs.hp_tank_temp is None
+            or obs.wood_top is None
+        ):
+            return
+        denom = obs.wood_top - obs.hp_tank_temp
+        if denom < WOOD_TANK_MIN_MARGIN:
+            return
+        if state.wood_energy_kwh is not None and state.wood_energy_kwh <= 0.0:
+            return
+        fraction = (obs.outlet_temp - obs.hp_tank_temp) / denom
+        state.displacement = min(1.0, max(0.0, fraction))
+        if obs.space_demand_kw is not None:
+            state.free_heat_kw = state.displacement * max(
+                0.0, obs.space_demand_kw
+            )
+
+    def forecast_free_heat(self, n_steps: int, dt_hours: float) -> list[float]:
+        """Per-step free-heat forecast for the optimizer, kW.
+
+        Three independent bounds, each of which alone can zero it, because
+        the failure is asymmetric — a wrongly promised burn is a cold house
+        in winter, hours long:
+
+        * a hard horizon of ``EXTERNAL_HEAT_FORECAST_MAX_HOURS``, whatever
+          the detector's own decay says (the DHW suppression's pattern);
+        * a linear fade to zero across that horizon, so the tail never
+          carries full weight;
+        * when the wood tank pair is sensed, the cumulative promise never
+          exceeds the energy the tank measurably holds.
+        """
+        out = [0.0] * n_steps
+        rate = self.state.free_heat_kw
+        if rate <= 0.0 or n_steps <= 0 or dt_hours <= 0.0:
+            return out
+        horizon_steps = min(
+            n_steps, int(EXTERNAL_HEAT_FORECAST_MAX_HOURS / dt_hours)
+        )
+        budget = (
+            self.state.wood_energy_kwh
+            if self.state.wood_energy_kwh is not None
+            else float("inf")
+        )
+        for i in range(horizon_steps):
+            fade = 1.0 - i / max(horizon_steps, 1)
+            step_kw = rate * fade
+            step_kwh = step_kw * dt_hours
+            if step_kwh > budget:
+                step_kw = max(0.0, budget / dt_hours)
+                step_kwh = step_kw * dt_hours
+            out[i] = step_kw
+            budget -= step_kwh
+            if budget <= 0.0:
+                break
+        return out
+
     # -- state transitions --------------------------------------------------
 
     def _activate(self, now: datetime, source: str, evidence: list[str]) -> None:
@@ -266,9 +418,21 @@ class ExternalHeatDetector:
         self._decay(now)
 
     def _decay(self, now: datetime) -> None:
-        """Fade confidence after release rather than dropping it cleanly."""
+        """Fade confidence after release rather than dropping it cleanly.
+
+        The wood tank pair, when sensed, can only *shorten* this: a tank
+        that measurably holds nothing ends the fade immediately (item 28's
+        "this fire is spent"), but a tank that still reads warm never
+        extends it past the configured window. Believing longer than the
+        timer is the expensive failure direction, so measurement is allowed
+        to argue for less trust and never for more.
+        """
         state = self.state
         cfg = self.config
+        if state.wood_energy_kwh is not None and state.wood_energy_kwh <= 0.0:
+            state.confidence = 0.0
+            state.fading = False
+            return
         if state.last_active is None or cfg.decay_minutes <= 0:
             state.confidence = 0.0
             state.fading = False
@@ -285,6 +449,8 @@ class ExternalHeatDetector:
         self.state.source = "disabled"
         self.state.evidence = []
         self.state.since = None
+        self.state.displacement = 0.0
+        self.state.free_heat_kw = 0.0
         self._confirmations = 0
         self._releases = 0
 

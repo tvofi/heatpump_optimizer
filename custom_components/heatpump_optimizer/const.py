@@ -142,6 +142,30 @@ DEFAULT_EXTERNAL_HEAT_ENABLED: Final = False
 DEFAULT_EXTERNAL_HEAT_MIN_RISE: Final = 1.5  # °C/h
 DEFAULT_EXTERNAL_HEAT_DECAY_MINUTES: Final = 90.0
 
+# --- Wood furnace displacement (item 28) -----------------------------------
+#
+# Three optional sensors on a wood-furnace topology: the temperature after
+# the valve mixing the wood tank and the heat-pump tank, and top/bottom
+# probes in the wood tank. The outlet identifies how much of what the house
+# receives is coming from the wood side (a continuous 0-1 displacement,
+# where the plain detector only knows a boolean), and the tank pair bounds
+# how long the fire can keep it up.
+CONF_VALVE_OUTLET_TEMP_ENTITY: Final = "valve_outlet_temp_entity"
+CONF_WOOD_TANK_TOP_ENTITY: Final = "wood_tank_top_entity"
+CONF_WOOD_TANK_BOTTOM_ENTITY: Final = "wood_tank_bottom_entity"
+CONF_WOOD_TANK_VOLUME: Final = "wood_tank_volume"  # liters
+DEFAULT_WOOD_TANK_VOLUME: Final = 500.0
+
+# The forecast fed to the optimizer is deliberately short-lived, mirroring
+# the DHW suppression's hard cap: whatever the detector's own decay says,
+# free heat is never promised further ahead than this. A fire is human
+# behaviour -- only the decay of one already lit is forecastable, and a
+# wrong promise here is a cold house in winter.
+EXTERNAL_HEAT_FORECAST_MAX_HOURS: Final = 2.0
+# Below this margin between the wood tank and the heat-pump tank the mixing
+# fraction is unidentifiable and the displacement reads zero.
+WOOD_TANK_MIN_MARGIN: Final = 2.0  # °C
+
 
 # --- Unknown price horizon (item 7) ----------------------------------------
 #
@@ -616,4 +640,9 @@ INPUT_MAX_AGE_MINUTES[CONF_LOWER_FLOOR_TEMP_ENTITY] = 60.0
 # A stale valve target would have the model believe the house is being held
 # somewhere it is not, and plan charging around it.
 INPUT_MAX_AGE_MINUTES[CONF_MIXING_VALVE_TARGET_ENTITY] = 60.0
+# A stalled hot sensor on the wood side would look like an indefinite free
+# fire, which is the expensive failure direction -- these go stale early.
+INPUT_MAX_AGE_MINUTES[CONF_VALVE_OUTLET_TEMP_ENTITY] = 60.0
+INPUT_MAX_AGE_MINUTES[CONF_WOOD_TANK_TOP_ENTITY] = 60.0
+INPUT_MAX_AGE_MINUTES[CONF_WOOD_TANK_BOTTOM_ENTITY] = 60.0
 

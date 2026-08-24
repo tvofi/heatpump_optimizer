@@ -960,11 +960,15 @@ class ThermalModel:
         precipitation: float = 0.0,
         solar_radiation: float = 0.0,
         dt_hours: float = 0.25,
+        external_heat_kw: float = 0.0,
     ) -> ThermalState:
         """Simulate one step with the original single-zone model."""
         p = self.params
         cop = self.compute_cop(outdoor_temp)
-        thermal_power = cop * electrical_power
+        # Free thermal input (a wood furnace, item 28) joins the pump's output
+        # at the hydronic mix. It is heat, not electricity, so it never touches
+        # the COP and costs the plan nothing.
+        thermal_power = cop * electrical_power + max(0.0, external_heat_kw)
 
         u_eff = self.effective_heat_loss_coefficient(
             p.heat_loss_coefficient, wind_speed, precipitation
@@ -1008,6 +1012,7 @@ class ThermalModel:
         precipitation: float = 0.0,
         solar_radiation: float = 0.0,
         dt_hours: float = 0.25,
+        external_heat_kw: float = 0.0,
     ) -> ThermalState:
         """Simulate one step with the two-zone model including buffer tank.
 
@@ -1022,7 +1027,13 @@ class ThermalModel:
             outdoor_temp,
             flow_temp=state.buffer_tank_temperature if throttled else None,
         )
-        thermal_power = cop * electrical_power  # total heat from HP to buffer
+        # Free thermal input (a wood furnace, item 28) joins the pump's output
+        # at the hydronic mix — into the tank when a valve exists, straight to
+        # the emitters when not, exactly like the pump's own heat. It is heat,
+        # not electricity, so it never touches the COP.
+        thermal_power = (
+            cop * electrical_power + max(0.0, external_heat_kw)
+        )  # total heat into the buffer
 
         # Weather-adjusted heat loss using configurable sensitivity
         u_upper = self.effective_heat_loss_coefficient(
@@ -1168,6 +1179,7 @@ class ThermalModel:
         precipitation: float = 0.0,
         solar_radiation: float = 0.0,
         dt_hours: float = 0.25,
+        external_heat_kw: float = 0.0,
     ) -> ThermalState:
         """Simulate one time step (dispatches to single or two-zone)."""
         # The single-zone path has no buffer cap, so the scratch would
@@ -1177,10 +1189,12 @@ class ThermalModel:
             return self._simulate_step_two_zone(
                 state, electrical_power, outdoor_temp,
                 wind_speed, precipitation, solar_radiation, dt_hours,
+                external_heat_kw,
             )
         return self._simulate_step_single(
             state, electrical_power, outdoor_temp,
             wind_speed, precipitation, solar_radiation, dt_hours,
+            external_heat_kw,
         )
 
     def simulate_trajectory(
@@ -1192,8 +1206,13 @@ class ThermalModel:
         precipitation: np.ndarray | None = None,
         solar_radiation: np.ndarray | None = None,
         dt_hours: float = 0.25,
+        external_heat_kw: np.ndarray | None = None,
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Simulate the full trajectory given a power schedule.
+
+        ``external_heat_kw`` is an optional per-step forecast of free thermal
+        input (a wood furnace, item 28). ``None`` is the default and is
+        byte-for-byte the previous behaviour.
 
         Returns:
             Tuple of (room_temperatures, slab_temperatures,
@@ -1231,6 +1250,11 @@ class ThermalModel:
                 precipitation=precipitation[i],
                 solar_radiation=solar_radiation[i],
                 dt_hours=dt_hours,
+                external_heat_kw=(
+                    float(external_heat_kw[i])
+                    if external_heat_kw is not None
+                    else 0.0
+                ),
             )
             room_temps[i + 1] = state.room_temperature
             slab_temps[i + 1] = state.slab_temperature
@@ -1259,6 +1283,7 @@ class ThermalModel:
         start_hour: float = 0.0,
         dt_hours: float = 0.25,
         dhw_draw_rates: np.ndarray | None = None,
+        external_heat_kw: np.ndarray | None = None,
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Simulate full trajectory with coordinated space + DHW heating.
 
@@ -1308,6 +1333,11 @@ class ThermalModel:
                 precipitation=precipitation[i],
                 solar_radiation=solar_radiation[i],
                 dt_hours=dt_hours,
+                external_heat_kw=(
+                    float(external_heat_kw[i])
+                    if external_heat_kw is not None
+                    else 0.0
+                ),
             )
 
             # DHW simulation (runs in parallel with space heating)

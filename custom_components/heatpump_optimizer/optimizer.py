@@ -645,6 +645,12 @@ class _Horizon:
     #: re-solve loop in ``optimize`` lowers entries here at steps that charged
     #: a full tank. ``None`` means the nameplate maximum everywhere.
     power_caps: np.ndarray | None = None
+    #: Optional per-step forecast of free thermal input, kW — a wood furnace
+    #: burn (item 28). Both objectives and the savings baseline simulate with
+    #: it, so the plan defers electric heat the furnace is already providing
+    #: and the reference thermostat is granted the same free heat rather than
+    #: booking it as savings. ``None`` means none.
+    external_heat_kw: np.ndarray | None = None
 
     @property
     def timestamps(self) -> list[datetime]:
@@ -1258,6 +1264,7 @@ class HeatPumpOptimizer:
         pv_surplus: np.ndarray | None = None,
         space_pins: np.ndarray | None = None,
         dhw_pins: np.ndarray | None = None,
+        external_heat_kw: np.ndarray | None = None,
     ) -> OptimizationResult:
         """Run the MPC optimization with predictive weather anticipation.
 
@@ -1317,6 +1324,16 @@ class HeatPumpOptimizer:
 
         self._price_known = price_known
         self._pv_surplus = pv_surplus
+
+        # Free-heat forecast, normalised to horizon length like the arrays
+        # above. All-zero is the same as none at all, and is treated so.
+        if external_heat_kw is not None:
+            ext = np.clip(np.asarray(external_heat_kw, dtype=float), 0.0, None)
+            if ext.size < n_steps:
+                ext = np.concatenate([ext, np.zeros(n_steps - ext.size)])
+            external_heat_kw = ext[:n_steps]
+            if not np.any(external_heat_kw > 0.0):
+                external_heat_kw = None
 
         # --- Analyze forecast trajectory for predictive signals ---
         forecast_analysis = self._analyze_forecast_trajectory(
@@ -1417,6 +1434,7 @@ class HeatPumpOptimizer:
                 space_pins=space_pins,
                 dhw_pins=dhw_pins,
                 power_caps=power_caps,
+                external_heat_kw=external_heat_kw,
             )
             if dhw_enabled:
                 return self._optimize_with_dhw(horizon)
@@ -1494,6 +1512,7 @@ class HeatPumpOptimizer:
                 if not self._tighten_buffer_caps(
                     result, power_caps, initial_state, outdoor_temps,
                     wind_speeds, precipitation, solar_radiation, dt,
+                    external_heat_kw=external_heat_kw,
                 ):
                     break
                 result = _solve()
@@ -1534,6 +1553,7 @@ class HeatPumpOptimizer:
         precipitation: np.ndarray,
         solar_radiation: np.ndarray,
         dt: float,
+        external_heat_kw: np.ndarray | None = None,
     ) -> bool:
         """Lower per-step power ceilings where the plan charged a full tank.
 
@@ -1554,6 +1574,7 @@ class HeatPumpOptimizer:
             precipitation=precipitation,
             solar_radiation=solar_radiation,
             dt_hours=dt,
+            external_heat_kw=external_heat_kw,
         )
         refused = self.model.last_buffer_refused
         if refused is None:
@@ -1743,6 +1764,7 @@ class HeatPumpOptimizer:
                     precipitation=precipitation,
                     solar_radiation=solar_radiation,
                     dt_hours=dt,
+                    external_heat_kw=h.external_heat_kw,
                 )
             )
 
@@ -1820,6 +1842,7 @@ class HeatPumpOptimizer:
         baseline_power, baseline_end = self._compute_baseline_power(
             initial_state, outdoor_temps, wind_speeds, precipitation,
             solar_radiation, dt, comfort_targets,
+            external_heat_kw=h.external_heat_kw,
         )
         baseline_energy = float(np.sum(baseline_power) * dt)
         starts = [
@@ -1849,6 +1872,7 @@ class HeatPumpOptimizer:
                 precipitation=precipitation,
                 solar_radiation=solar_radiation,
                 dt_hours=dt,
+                external_heat_kw=h.external_heat_kw,
             )
         )
 
@@ -1858,6 +1882,7 @@ class HeatPumpOptimizer:
         optimized_end = self._replay_end_state(
             initial_state, optimal_power, outdoor_temps, wind_speeds,
             precipitation, solar_radiation, dt,
+            external_heat_kw=h.external_heat_kw,
         )
         deferred_cost = self._deferred_energy_cost(
             baseline_end, optimized_end, prices, outdoor_temps,
@@ -2879,6 +2904,7 @@ class HeatPumpOptimizer:
                     precipitation=precipitation,
                     solar_radiation=solar_radiation,
                     dt_hours=dt,
+                    external_heat_kw=h.external_heat_kw,
                 )
             )
 
@@ -3005,6 +3031,7 @@ class HeatPumpOptimizer:
                 start_hour=start_hour,
                 dt_hours=dt,
                 dhw_draw_rates=dhw_draw_rates,
+                external_heat_kw=h.external_heat_kw,
             )
         )
 
@@ -3012,6 +3039,7 @@ class HeatPumpOptimizer:
         baseline_power, baseline_end = self._compute_baseline_power(
             initial_state, outdoor_temps, wind_speeds, precipitation,
             solar_radiation, dt, comfort_targets,
+            external_heat_kw=h.external_heat_kw,
         )
         # Baseline DHW: an always-hot tank held at the setpoint. That costs the
         # energy drawn off as hot water plus the standby loss of keeping a tank
@@ -3043,6 +3071,7 @@ class HeatPumpOptimizer:
         optimized_end = self._replay_end_state(
             initial_state, optimal_space, outdoor_temps, wind_speeds,
             precipitation, solar_radiation, dt,
+            external_heat_kw=h.external_heat_kw,
         )
         optimized_end.dhw_temperature = float(dhw_temps[-1])
         # The tank only has to satisfy the requirement in force at the end of
@@ -3227,6 +3256,7 @@ class HeatPumpOptimizer:
         solar_radiation: np.ndarray,
         dt: float,
         comfort_targets: np.ndarray | None = None,
+        external_heat_kw: np.ndarray | None = None,
     ) -> tuple[np.ndarray, ThermalState]:
         """Simulate a conventional thermostat following the comfort schedule.
 
@@ -3274,6 +3304,16 @@ class HeatPumpOptimizer:
                     precipitation[i], solar_radiation[i], dt,
                 )
 
+            # A thermostat's house receives a furnace burn too, and its
+            # sensor sees the warmth: the reference backs off by the free
+            # heat, or the burn would be booked as optimizer savings.
+            ext_i = (
+                float(external_heat_kw[i])
+                if external_heat_kw is not None and i < len(external_heat_kw)
+                else 0.0
+            )
+            required_thermal = max(0.0, required_thermal - ext_i)
+
             cop = self.model.compute_cop(outdoor_temps[i])
             # No lower clamp to ``min_electrical_power``: a pump that cannot
             # modulate that low cycles on and off, and over a step the average
@@ -3289,6 +3329,7 @@ class HeatPumpOptimizer:
             state = self.model.simulate_step(
                 state, power, outdoor_temps[i],
                 wind_speeds[i], precipitation[i], solar_radiation[i], dt,
+                external_heat_kw=ext_i,
             )
 
         return baseline_power, state
@@ -3456,6 +3497,7 @@ class HeatPumpOptimizer:
         precipitation: np.ndarray,
         solar_radiation: np.ndarray,
         dt: float,
+        external_heat_kw: np.ndarray | None = None,
     ) -> ThermalState:
         """Final state after running a power schedule through the model.
 
@@ -3469,6 +3511,11 @@ class HeatPumpOptimizer:
             state = self.model.simulate_step(
                 state, float(power_schedule[i]), outdoor_temps[i],
                 wind_speeds[i], precipitation[i], solar_radiation[i], dt,
+                external_heat_kw=(
+                    float(external_heat_kw[i])
+                    if external_heat_kw is not None
+                    else 0.0
+                ),
             )
         return state
 

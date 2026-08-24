@@ -123,6 +123,11 @@ from .const import (
     DEFAULT_EXTERNAL_HEAT_ENABLED,
     DEFAULT_EXTERNAL_HEAT_MIN_RISE,
     DEFAULT_EXTERNAL_HEAT_DECAY_MINUTES,
+    CONF_VALVE_OUTLET_TEMP_ENTITY,
+    CONF_WOOD_TANK_TOP_ENTITY,
+    CONF_WOOD_TANK_BOTTOM_ENTITY,
+    CONF_WOOD_TANK_VOLUME,
+    DEFAULT_WOOD_TANK_VOLUME,
     CONF_PRICE_PRIOR_ENABLED,
     DEFAULT_PRICE_PRIOR_ENABLED,
     PRICE_MODEL_STORE_VERSION,
@@ -1205,6 +1210,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             # outlast the interval or every pair is rejected and the detector
             # is blind at exactly the 60-minute setting it appears to support.
             max_sample_hours=max(1.0, 1.5 * interval_hours),
+            wood_tank_volume_l=_as_float(
+                self._config.get(CONF_WOOD_TANK_VOLUME),
+                DEFAULT_WOOD_TANK_VOLUME,
+            ),
         )
 
     def _apply_cop_scale(self, scale: float) -> None:
@@ -1253,9 +1262,41 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         except ValueError:
             return None
 
+    def _space_demand_kw(self) -> float:
+        """Current space-heating standing loss, kW thermal."""
+        params = self._thermal_params
+        state = self._current_state
+        if params.two_zone_enabled:
+            u = params.upper_floor_heat_loss + params.lower_floor_heat_loss
+        else:
+            u = params.heat_loss_coefficient
+        return max(
+            0.0,
+            u * (state.room_temperature - state.outdoor_temperature),
+        )
+
     def _update_external_heat_detection(self) -> None:
         """Fold this interval's observation into the external-heat detector."""
         self._external_heat.config = self._external_heat_config()
+        # The wood-furnace sensors go through the stale-aware reader: a
+        # stalled hot probe would look like an indefinite free fire, which is
+        # the expensive failure direction, so staleness maps to absence.
+        reader = InputReader(
+            self.hass,
+            self._config,
+            enabled=bool(
+                self._config.get(
+                    CONF_STALENESS_ENABLED, DEFAULT_STALENESS_ENABLED
+                )
+            ),
+            scale=_as_float(
+                self._config.get(CONF_STALENESS_SCALE),
+                DEFAULT_STALENESS_SCALE,
+            ),
+        )
+        outlet = reader.read(CONF_VALVE_OUTLET_TEMP_ENTITY)
+        wood_top = reader.read(CONF_WOOD_TANK_TOP_ENTITY)
+        wood_bottom = reader.read(CONF_WOOD_TANK_BOTTOM_ENTITY)
         observation = ExternalHeatObservation(
             now=dt_util.now(),
             dhw_temp=self._current_state.dhw_temperature,
@@ -1265,6 +1306,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             dhw_max_rise_c_per_h=self._max_pump_rise("dhw"),
             buffer_max_rise_c_per_h=self._max_pump_rise("buffer"),
             override=self._external_heat_override(),
+            outlet_temp=outlet.value if outlet.ok else None,
+            wood_top=wood_top.value if wood_top.ok else None,
+            wood_bottom=wood_bottom.value if wood_bottom.ok else None,
+            hp_tank_temp=self._current_state.buffer_tank_temperature,
+            space_demand_kw=self._space_demand_kw(),
         )
         state = self._external_heat.update(observation)
         self._external_heat_active = self._external_heat.suppressing
@@ -1274,6 +1320,21 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 state.source,
                 "; ".join(state.evidence),
             )
+
+    def _external_heat_forecast(self, n_steps: int) -> np.ndarray | None:
+        """Free-heat forecast for the solve, or None when there is nothing.
+
+        The detector's own bounds do the safety work (a hard two-hour
+        horizon, a fade, and the measured wood-tank energy); this only turns
+        its answer into the array the optimizer takes.
+        """
+        if not self._external_heat.suppressing:
+            return None
+        forecast = self._external_heat.forecast_free_heat(
+            n_steps, self._opt_config.time_step_minutes / 60.0
+        )
+        arr = np.asarray(forecast, dtype=float)
+        return arr if bool(np.any(arr > 0.0)) else None
 
     def _learn_measured_cop(self) -> None:
         """Compare measured electrical input with modelled thermal output.
@@ -2237,6 +2298,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 horizon.pv_surplus,
                 space_pins,
                 dhw_pins,
+                self._external_heat_forecast(len(horizon.prices)),
             )
 
             self._record_manual_release(result)
