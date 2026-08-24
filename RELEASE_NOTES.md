@@ -1,5 +1,65 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v3.10.0
+
+### The buffer tank finally charges
+
+If you have a mixing valve and a real buffer tank, the optimizer now does what
+the storage feature has promised since v3.7.0: it buys heat in the cheap hours,
+stores it in the tank, and coasts the expensive ones. Measured against a tank
+too cold to coast for free, it fills the entire cheap night block, lifts the
+tank deliberately, and buys nothing at all through both the morning and the
+evening price peaks — and at flat prices it correctly does none of this,
+because with no spread there is nothing to gain.
+
+**What was wrong.** The model discharged the tank as if the valve were fully
+open: the emitters saw raw tank water, so a 40–45 °C tank dumped 22–26 kW into
+the house and anything stored was gone within half an hour of the pump
+stopping. Every plan ended with the same empty tank no matter what it did, so
+storing heat could never look worthwhile. The valve is now modelled as what it
+physically is — a flow-temperature regulator on a weather-compensation curve.
+It mixes return water into the flow, the house receives what it needs at the
+curve temperature, and stored heat lasts hours instead of minutes: a 60 °C
+tank now carries the house on its own for about six hours at −5 °C.
+
+This also confirms the setting recommendation: the valve capped at the top of
+your comfort band, exactly as the options page has advised since v3.7.0.
+
+**What it is worth.** On this release's backtest fixture (750 L, a cold
+start, winter weather), storage is worth on the order of **5 SEK/day on a
+typical winter price curve and 17 SEK/day on an extreme one**, beyond every
+measurement artefact — the flat-price control is subtracted, so only value a
+price spread can produce is counted. That is real money, but smaller than the
+theoretical sizing table suggested, and the reason is honest physics: a fixed
+valve cannot *hold* its charge for the evening peak. The tank starts feeding
+the house the moment it is warmer than the curve, so it mostly shifts the
+hours right after charging. Squeezing out the rest is what a commandable
+valve (`smart_write`, still to come) would be for.
+
+### The tank's ceiling is now a promise, not a suggestion
+
+The optimizer can no longer plan to push the tank past its maximum
+temperature, even when electricity is effectively free. Previously the model
+quietly discarded heat charged into a full tank — harmless in simulation,
+a boiled tank in reality. Plans that try are now re-solved with those steps'
+power capped to what the tank can actually accept.
+
+### Small tanks stop pretending to be stores
+
+The default 35 L buffer holds less than one planning step of heat. Below
+100 L the tank keeps its physics — valve delivery, standing loss, the
+temperature cap — but the planner no longer credits it as storage, so it
+cannot plan around charge that could never meaningfully exist.
+
+### A new diagnostic sensor: Valve Target Recommendation
+
+What to set a hand-adjusted valve to, with the reasoning in the attributes —
+including when nearly-flat prices mean storing is not worth much today.
+Appears only when a mixing valve mode is configured.
+
+Nothing in this release changes any behaviour unless a mixing valve mode is
+set: all 37 golden scenarios are byte-for-byte unchanged with the feature off.
+
 ## v3.9.0
 
 Two things the planner was quietly charging you for, and neither was ever

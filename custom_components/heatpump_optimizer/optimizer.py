@@ -639,6 +639,12 @@ class _Horizon:
     #: that channel is fully automatic. Encoding: NaN free, 0 off, 1 on.
     space_pins: np.ndarray | None = None
     dhw_pins: np.ndarray | None = None
+    #: Optional per-step ceiling on space-heating power, kW. The pin encoding
+    #: can force a step on or off but cannot say "at most this much", which is
+    #: what the buffer tank's hard temperature cap needs: the tighten-and-
+    #: re-solve loop in ``optimize`` lowers entries here at steps that charged
+    #: a full tank. ``None`` means the nameplate maximum everywhere.
+    power_caps: np.ndarray | None = None
 
     @property
     def timestamps(self) -> list[datetime]:
@@ -820,11 +826,14 @@ class HeatPumpOptimizer:
                 (params.lower_floor_thermal_mass, "lower", caps["room"]),
                 (params.slab_thermal_mass, "slab", caps["slab"]),
             )
-            if mixing_valve.is_throttling(params.mixing_valve_mode):
-                # Only with a valve. Without one the tank cannot be charged, so
-                # adding it here would put a constant in the objective -- it
-                # would not change which plan wins, but it would move every
-                # reported number for no reason.
+            if params.buffer_is_store:
+                # Only with a valve, and only a tank big enough to matter.
+                # Without a valve the tank cannot be charged, so adding it
+                # here would put a constant in the objective -- it would not
+                # change which plan wins, but it would move every reported
+                # number for no reason. A tiny tank (item 27) holds less than
+                # one step of heat, and crediting it has the solver planning
+                # around noise.
                 stores = stores + (
                     (params.buffer_tank_thermal_mass, "buffer", caps["buffer"]),
                 )
@@ -1372,6 +1381,15 @@ class HeatPumpOptimizer:
         released_space: set[int] = set()
         released_dhw: set[int] = set()
 
+        # Per-step ceiling on space power, lowered by the buffer-cap loop
+        # below. Only exists with a valve: without one the tank cannot be
+        # charged, so the path stays byte-for-byte identical.
+        power_caps: np.ndarray | None = None
+        if mixing_valve.is_throttling(self.model.params.mixing_valve_mode):
+            power_caps = np.full(
+                n_steps, self.model.params.max_electrical_power
+            )
+
         # Solve, then check the solved trajectory against the hard safety lines,
         # release any forced-off pin that would breach one, and solve again.
         # The comfort and tank floors are *soft* penalties in the objective, so
@@ -1398,6 +1416,7 @@ class HeatPumpOptimizer:
                 t_start=t_start,
                 space_pins=space_pins,
                 dhw_pins=dhw_pins,
+                power_caps=power_caps,
             )
             if dhw_enabled:
                 return self._optimize_with_dhw(horizon)
@@ -1458,6 +1477,27 @@ class HeatPumpOptimizer:
                         )
                     result = _solve()
 
+        if power_caps is not None:
+            # The tank's safe ceiling as a hard constraint. The model's clamp
+            # already stops the simulated temperature exceeding the cap, but it
+            # does so by *deleting* the excess heat -- so a plan that charges a
+            # full tank is merely wasteful in the objective while boiling the
+            # tank on the real system, and at a low enough price the solver is
+            # indifferent to the waste. A soft penalty is explicitly ruled out
+            # by item 29 (the solver would plan to boil the tank at a small
+            # modelled cost); instead, mirror the pin-safety loop above with
+            # the opposite polarity: find the steps whose heat the cap
+            # refused, lower their power ceiling to what the tank could
+            # actually accept, and re-solve. Bounded like the release loop, and
+            # for the same reason.
+            for _ in range(_SAFETY_REPAIR_ROUNDS):
+                if not self._tighten_buffer_caps(
+                    result, power_caps, initial_state, outdoor_temps,
+                    wind_speeds, precipitation, solar_radiation, dt,
+                ):
+                    break
+                result = _solve()
+
         result.manual_pins_active = space_pins is not None or dhw_pins is not None
         result.manual_released_space = sorted(released_space)
         result.manual_released_dhw = sorted(released_dhw)
@@ -1483,6 +1523,60 @@ class HeatPumpOptimizer:
         take = min(n_steps, src.size)
         arr[:take] = src[:take]
         return arr
+
+    def _tighten_buffer_caps(
+        self,
+        result: OptimizationResult,
+        power_caps: np.ndarray,
+        initial_state: ThermalState,
+        outdoor_temps: np.ndarray,
+        wind_speeds: np.ndarray,
+        precipitation: np.ndarray,
+        solar_radiation: np.ndarray,
+        dt: float,
+    ) -> bool:
+        """Lower per-step power ceilings where the plan charged a full tank.
+
+        Re-simulates the returned space schedule and reads the heat the
+        buffer cap refused at each step. A refusing step gets its ceiling cut
+        to the power whose heat the tank could actually take, converted at
+        that step's own COP (the flow temperature is the cap itself, since
+        that is where the tank sits when it refuses). Mutates ``power_caps``
+        in place, exactly as the pin-release loop mutates the pins, and
+        returns whether anything changed so the caller knows to re-solve.
+        """
+        schedule = np.asarray(result.power_schedule, dtype=float)
+        self.model.simulate_trajectory(
+            initial_state=initial_state,
+            power_schedule=schedule,
+            outdoor_temps=outdoor_temps,
+            wind_speeds=wind_speeds,
+            precipitation=precipitation,
+            solar_radiation=solar_radiation,
+            dt_hours=dt,
+        )
+        refused = self.model.last_buffer_refused
+        if refused is None:
+            return False
+        changed = False
+        for i in np.nonzero(refused > 1e-9)[0]:
+            cop_i = self.model.compute_cop(
+                float(outdoor_temps[i]),
+                flow_temp=self.model.params.buffer_max_temp,
+            )
+            allowed = float(schedule[i]) - float(refused[i]) / max(cop_i, 1e-6)
+            # Slightly under, or float noise re-trips the same step and burns
+            # a repair round confirming it.
+            new_cap = max(0.0, allowed) * 0.999
+            if new_cap < float(power_caps[i]) - 1e-9:
+                power_caps[i] = new_cap
+                changed = True
+        if changed:
+            _LOGGER.debug(
+                "Buffer cap tightened %d step(s); re-solving",
+                int(np.count_nonzero(refused > 1e-9)),
+            )
+        return changed
 
     def _safety_release_steps(
         self,
@@ -1705,7 +1799,12 @@ class HeatPumpOptimizer:
         # A heat pump can be off. min_electrical_power is the lowest it can
         # modulate to while running, not a floor it must burn every step, so
         # allow 0 and read sub-minimum values as duty cycling within the step.
-        bounds = [(0.0, p_max)] * n_steps
+        if h.power_caps is not None:
+            bounds = [
+                (0.0, float(min(p_max, h.power_caps[i]))) for i in range(n_steps)
+            ]
+        else:
+            bounds = [(0.0, p_max)] * n_steps
         # A manual plan pins individual steps on or off. Forcing on raises the
         # lower bound to the pump's minimum running power so the step must run
         # without fixing how hard; the initial guess is nudged into the pinned
@@ -2837,6 +2936,8 @@ class HeatPumpOptimizer:
             # The heat pump serves one circuit at a time, so a DHW block eats
             # into the capacity available for space heating during that step.
             headroom = np.maximum(0.0, p_max - dhw_plan)
+            if h.power_caps is not None:
+                headroom = np.minimum(headroom, h.power_caps)
             guess = init_base if warm_start is None else warm_start
             guess = np.minimum(np.clip(guess, 0.0, p_max), headroom)
             bounds = [(0.0, float(headroom[i])) for i in range(n_steps)]
@@ -3069,11 +3170,12 @@ class HeatPumpOptimizer:
         # 0.0 kWh of the 21.8 kWh actually stored. Charging was pure cost with no
         # modelled benefit, which is why every starting point descended to the
         # same no-storage plan.
-        if mixing_valve.is_throttling(p.mixing_valve_mode):
+        if p.buffer_is_store:
             caps["buffer"] = p.buffer_max_temp
         else:
-            # Without a valve the tank cannot be charged at all, so its cap
-            # cannot change any decision. Left alone so this path stays
+            # Without a valve the tank cannot be charged at all, and below the
+            # store threshold (item 27) it holds too little to matter, so its
+            # cap cannot change any decision. Left alone so these paths stay
             # byte-for-byte identical.
             caps["buffer"] = slab_cap
         if dhw_cap is not None:

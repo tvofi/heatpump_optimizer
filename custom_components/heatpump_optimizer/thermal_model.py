@@ -42,6 +42,7 @@ from . import mixing_valve
 from .mixing_valve import MODE_NONE as MIXING_VALVE_MODE_NONE
 from .const import (
     WATER_SPECIFIC_HEAT as _WATER_SPECIFIC_HEAT,
+    BUFFER_STORE_MIN_VOLUME,
     DEFAULT_HOUSE_THERMAL_MASS,
     DEFAULT_HOUSE_HEAT_LOSS_COEFFICIENT,
     DEFAULT_SLAB_THERMAL_MASS,
@@ -156,6 +157,20 @@ class ThermalParameters:
     # emitter UA out of the nameplate output so the throttled branch reproduces
     # today's delivery at the design point rather than inventing a new balance.
     emitter_design_delta_t: float = 15.0  # K
+
+    @property
+    def buffer_is_store(self) -> bool:
+        """Whether the buffer tank is worth planning around as a store.
+
+        Needs both a valve (or nothing can charge it) and enough volume to
+        matter: the default 35 L tank holds less than one optimizer step of
+        heat, and letting the terminal credit see it would have the solver
+        planning around noise. The physics stay modelled either way.
+        """
+        return (
+            mixing_valve.is_throttling(self.mixing_valve_mode)
+            and self.buffer_tank_volume >= BUFFER_STORE_MIN_VOLUME
+        )
     # The tank's safe ceiling. In the model this clamps the state; in the
     # optimizer it must become a hard constraint, because comfort and tank
     # limits there are soft penalties and the solver would plan to boil it.
@@ -628,6 +643,14 @@ class ThermalModel:
 
     #: Buffer trajectory of the last `simulate_trajectory` call.
     last_buffer_trajectory: np.ndarray | None = None
+    #: Heat (kW) the buffer cap refused per step of that call. The clamp in
+    #: `_simulate_step_two_zone` deletes heat that would push the tank past
+    #: its safe ceiling; the optimizer's hard-cap loop reads this to find the
+    #: steps that tried, because a plan that pays for deleted heat is merely
+    #: wasteful in the model but boils the tank on the real system.
+    last_buffer_refused: np.ndarray | None = None
+    #: Per-step scratch for the above, written by the step function.
+    _step_buffer_refused: float = 0.0
 
     def __init__(self, params: ThermalParameters) -> None:
         """Initialize the thermal model."""
@@ -1034,49 +1057,39 @@ class ThermalModel:
         q_buf_loss = p.buffer_tank_heat_loss_coefficient * (T_buf - 20.0)
 
         if throttled:
-            # --- A valve exists, so delivery is decided by the house ---------
+            # --- A valve exists: it regulates flow temperature ----------------
             #
-            # Emitter capacity at the current tank temperature. The UA is backed
-            # out of the nameplate output at a design flow-to-zone difference,
-            # so at that design point this reproduces the delivery the
-            # unthrottled branch would give rather than inventing a new balance.
+            # The emitter UA is backed out of the nameplate output at a design
+            # flow-to-zone difference, so when the valve saturates wide open
+            # (tank at or below the curve) this reproduces the delivery the
+            # unthrottled branch would give at the design point rather than
+            # inventing a new balance.
             design_power = p.max_electrical_power * max(p.cop_nominal, 1.0)
             design_dt = max(p.emitter_design_delta_t, 1.0)
-            cap_rad = max(
-                0.0,
-                rad_fraction * design_power / design_dt * (T_buf - T_upper),
-            )
-            cap_floor = max(
-                0.0,
-                (1.0 - rad_fraction) * design_power / design_dt * (T_buf - T_slab),
-            )
-            capacity = cap_rad + cap_floor
+            ua_rad = rad_fraction * design_power / design_dt
+            ua_floor = (1.0 - rad_fraction) * design_power / design_dt
 
-            # What the valve will actually pass, which is what the house is
-            # asking for -- and the surplus above it has nowhere to go but the
-            # tank. This is the line that makes the tank a store.
-            area_ratio = p.upper_floor_area_ratio
-            house_temp = T_upper * area_ratio + T_lower * (1.0 - area_ratio)
             # An unconfigured target means the top of the comfort band, as
             # documented everywhere the option is described.
             target = p.mixing_valve_target or p.comfort_ceiling
-            demand = mixing_valve.delivery_demand(
-                indoor_temp=house_temp,
+            flow_set = mixing_valve.flow_setpoint(
                 target_temp=target,
                 outdoor_temp=outdoor_temp,
                 heat_loss_coefficient=u_upper + u_lower,
-                thermal_mass=(
-                    p.upper_floor_thermal_mass + p.lower_floor_thermal_mass
-                ),
-                dt_hours=dt_hours,
+                emitter_ua=ua_rad + ua_floor,
             )
-            delivered = min(capacity, demand)
-            if capacity > 1e-9:
-                q_rad_from_buf = delivered * cap_rad / capacity
-                q_floor_from_buf = delivered * cap_floor / capacity
-            else:
-                q_rad_from_buf = 0.0
-                q_floor_from_buf = 0.0
+            # The valve mixes return water into the flow, so the emitters see
+            # the curve temperature, never raw tank water -- that is what makes
+            # stored heat leave at house-demand rate instead of dumping within
+            # a step. It cannot make water hotter than the tank, so below the
+            # curve it saturates wide open.
+            t_mix = min(T_buf, flow_set)
+            q_rad_from_buf = mixing_valve.emitter_delivery(
+                mix_temp=t_mix, zone_temp=T_upper, ua=ua_rad
+            )
+            q_floor_from_buf = mixing_valve.emitter_delivery(
+                mix_temp=t_mix, zone_temp=T_slab, ua=ua_floor
+            )
         else:
             # No valve: whatever the pump makes reaches the emitters. These two
             # sum to `thermal_power` identically, so the tank is a pass-through
@@ -1086,6 +1099,7 @@ class ThermalModel:
             q_floor_from_buf = (1.0 - rad_fraction) * thermal_power
 
         dT_buf = (thermal_power - q_rad_from_buf - q_floor_from_buf - q_buf_loss) / max(C_buf, 0.01)
+        self._step_buffer_refused = 0.0
         if throttled:
             # Physical ceiling: heat that would push the tank past its safe
             # temperature cannot go there.
@@ -1095,10 +1109,10 @@ class ThermalModel:
             # stored energy from the model (13.4 kWh in a 15-minute step for a
             # 75 °C reading against a 60 °C cap) instead of letting it cool at
             # its physical rate.
-            dT_buf = min(
-                dT_buf,
-                max(0.0, p.buffer_max_temp - T_buf) / max(dt_hours, 1e-6),
-            )
+            dT_cap = max(0.0, p.buffer_max_temp - T_buf) / max(dt_hours, 1e-6)
+            if dT_buf > dT_cap:
+                self._step_buffer_refused = (dT_buf - dT_cap) * max(C_buf, 0.01)
+                dT_buf = dT_cap
 
         # --- Slab dynamics ---
         q_slab_to_lower = p.slab_heat_transfer * (T_slab - T_lower)
@@ -1156,6 +1170,9 @@ class ThermalModel:
         dt_hours: float = 0.25,
     ) -> ThermalState:
         """Simulate one time step (dispatches to single or two-zone)."""
+        # The single-zone path has no buffer cap, so the scratch would
+        # otherwise carry a stale value from an earlier two-zone step.
+        self._step_buffer_refused = 0.0
         if self.params.two_zone_enabled:
             return self._simulate_step_two_zone(
                 state, electrical_power, outdoor_temp,
@@ -1202,6 +1219,7 @@ class ThermalModel:
         lower_temps[0] = initial_state.lower_floor_temperature
         buffer_temps = np.zeros(n_steps + 1)
         buffer_temps[0] = initial_state.buffer_tank_temperature
+        buffer_refused = np.zeros(n_steps)
 
         state = initial_state
         for i in range(n_steps):
@@ -1219,12 +1237,14 @@ class ThermalModel:
             upper_temps[i + 1] = state.upper_floor_temperature
             lower_temps[i + 1] = state.lower_floor_temperature
             buffer_temps[i + 1] = state.buffer_tank_temperature
+            buffer_refused[i] = self._step_buffer_refused
 
         # Recorded rather than returned: nine call sites unpack a four-tuple,
         # and the buffer is only wanted by the terminal-cost term. Without this
         # the tank's end state is invisible to the objective, so charging it can
         # only ever look like cost.
         self.last_buffer_trajectory = buffer_temps
+        self.last_buffer_refused = buffer_refused
         return room_temps, slab_temps, upper_temps, lower_temps
 
     def simulate_trajectory_with_dhw(

@@ -265,4 +265,107 @@ for label, two_zone, price_key, weather_key in SCENARIOS:
         # not chatter, the penalty is not worth its cost in savings.
     )
 
+
+# ===========================================================================
+# Storage sizing (item 29): what is a real buffer tank worth?
+# ===========================================================================
+#
+# The empirical check the item deferred to "after implementation". Two arms
+# under identical valve physics -- a 750 L accumulator against a tank just
+# below the store threshold -- each planned AND scored under its own model,
+# with the end state valued symmetrically against the start at the refill
+# reference.
+#
+# Measurement design, learned the hard way (three failed designs are recorded
+# in the item, and two more fell in this session):
+#
+# * Planning one arm against the other's model measures model mismatch, not
+#   storage (20 % "gain" at flat prices).
+# * Valve-vs-no-valve compares two different comfort trajectories -- the
+#   valve arm rides cooler, which is a comfort-for-money trade, not storage.
+# * Big-tank-vs-tiny-tank still differs in pass-through dynamics: a small
+#   tank's temperature spikes when the pump runs, and the Carnot flow term
+#   prices those spikes. Both residual asymmetries are *price-independent*,
+#   which is the fix: difference the gain against the flat-price null
+#   control, and what survives is the part only a price spread can produce
+#   -- storage.
+_STORE_START = 25.0  # C: too cold to coast for free, so charging is a choice
+
+
+def _storage_arm(volume: float, price_profile: str):
+    cfg = house(
+        two_zone=True, dhw=False,
+        buffer_tank_volume=volume,
+        buffer_max_temperature=70.0,
+        mixing_valve_mode="manual",
+    )
+    params = ThermalParameters.from_config(cfg)
+    params.dhw_enabled = False
+    model = ThermalModel(params)
+    opt_cfg = OptimizationConfig(
+        horizon_hours=24, time_step_minutes=15,
+        target_temp=cfg["target_temperature"],
+        min_temp=cfg["min_temperature"],
+        max_temp=cfg["max_temperature"],
+    )
+    optimizer = HeatPumpOptimizer(model, opt_cfg)
+    price_series = prices(price_profile, START)
+    outdoor, wind, rain, solar = weather("winter_cold", START)
+    state = ThermalState(
+        room_temperature=20.0, upper_floor_temperature=20.0,
+        lower_floor_temperature=20.0, slab_temperature=21.0,
+        buffer_tank_temperature=_STORE_START,
+        outdoor_temperature=float(outdoor[0]),
+    )
+    result = optimizer.optimize(
+        state, price_series, outdoor, wind, rain, solar, START
+    )
+    power = np.asarray(result.power_schedule)
+    s = score(model, opt_cfg, power, price_series, outdoor, wind, rain,
+              solar, state)
+    # Symmetric end-state settlement against the start, at the same refill
+    # reference the integration's own settlement uses. Symmetric because the
+    # arms are peers, not a plan against a thermostat: a surplus carried into
+    # tomorrow is worth exactly what a deficit costs.
+    room, slab, upper, lower = model.simulate_trajectory(
+        state, power, outdoor, wind, rain, solar, DT
+    )
+    buf = model.last_buffer_trajectory
+    p = model.params
+    e_delta = (
+        p.upper_floor_thermal_mass * (upper[-1] - 20.0)
+        + p.lower_floor_thermal_mass * (lower[-1] - 20.0)
+        + p.slab_thermal_mass * (slab[-1] - 21.0)
+        + p.buffer_tank_thermal_mass * (min(buf[-1], 70.0) - _STORE_START)
+    )
+    refill = float(np.percentile(price_series, 25))
+    cop_end = model.compute_cop(float(np.mean(outdoor)))
+    return s["cost"] - e_delta * refill / cop_end, s["violation"]
+
+
+_store_gain = {}
+for _profile in ("winter_typical", "winter_extreme", "flat"):
+    _small, _v_small = _storage_arm(99.0, _profile)
+    _large, _v_large = _storage_arm(750.0, _profile)
+    _store_gain[_profile] = _small - _large
+    R.check(
+        f"storage {_profile}: both arms hold comfort",
+        _v_small < 0.5 and _v_large < 0.5,
+        f"violations {_v_small:.2f} / {_v_large:.2f} degree-hours -- a cheaper "
+        "arm that is colder is not cheaper",
+    )
+
+R.check(
+    "storage pays where the spread is wide, beyond any arm asymmetry",
+    _store_gain["winter_typical"] - _store_gain["flat"] > 1.0,
+    f"typical {_store_gain['winter_typical']:+.2f} vs flat null "
+    f"{_store_gain['flat']:+.2f} SEK/day at 750 L",
+)
+R.check(
+    "and an extreme spread is worth more than a typical one",
+    _store_gain["winter_extreme"] > _store_gain["winter_typical"],
+    f"extreme {_store_gain['winter_extreme']:+.2f} vs typical "
+    f"{_store_gain['winter_typical']:+.2f} SEK/day",
+)
+
 sys.exit(R.close("BACKTEST CHECKS"))

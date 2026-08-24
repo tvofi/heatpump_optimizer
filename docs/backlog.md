@@ -2,36 +2,37 @@
 
 Started at the end of the v2.7.0 release session, kept up to date since.
 
-**Status as of v3.8.0.** Items 1-26 and 30-31 are done, released across v2.8.0
-through v3.6.0. See the notes appended to each item for what was actually built
-and what was found along the way. v3.8.0 is the audit release: no new items,
-but it clears two entries from the shortlist below (`get_state_matrices` is
-deleted, and the "why will it not charge" question is answered in item 29's
-status block), and `docs/audit-2026-08.md` records everything it fixed.
+**Status as of v3.10.0.** Items 1-27 and 29-31 are done, released across
+v2.8.0 through v3.10.0. See the notes appended to each item for what was
+actually built and what was found along the way. v3.8.0 is the audit release
+(`docs/audit-2026-08.md` records everything it fixed); v3.10.0 is the release
+where the buffer tank finally charges — the discharge law, the hard
+temperature cap, the size threshold and the recommendation sensor, with the
+empirical sizing measured in `tests/backtest.py`.
 
 ### What is actually left, shortest first
 
 - ~~**Delete `get_state_matrices`** (item 27).~~ Done in v3.8.0.
-- **Surface the dumb-valve recommendation** (item 29).
-  `mixing_valve.recommend_target()` exists and nothing calls it.
-- **A tank size threshold** (item 27). Small tanks should stop being treated as
-  stores.
-- **`buffer_max_temp` as a hard constraint in the solve** (item 29). Latent
-  today; a real hole once the optimizer charges.
+- ~~**Surface the dumb-valve recommendation** (item 29).~~ Done in v3.10.0 —
+  the Valve Target Recommendation diagnostic sensor.
+- ~~**A tank size threshold** (item 27).~~ Done in v3.10.0 —
+  `BUFFER_STORE_MIN_VOLUME`, 100 L.
+- ~~**`buffer_max_temp` as a hard constraint in the solve** (item 29).~~ Done
+  in v3.10.0 — a tighten-and-re-solve loop mirroring the pin-safety pattern.
 - ~~**Find out why the optimizer will not charge** (item 29).~~ Answered in
-  v3.8.0 — see the "Answered" block in item 29's status. What is left is
-  *implementing* the discharge-law fix it prescribes, which is the piece the
-  whole feature now turns on.
-- **`smart_write` valve mode** (item 29). Needs an actuation path.
+  v3.8.0, and the prescribed discharge-law fix is **implemented in v3.10.0**:
+  the optimizer now deliberately charges. See the v3.10.0 block in item 29's
+  status for what it is measured to be worth and the honest limit a fixed
+  valve imposes.
+- **`smart_write` valve mode** (item 29). Needs an actuation path. Now also
+  the key to the remaining storage value: a commandable valve could *hold*
+  charge for the peak instead of feeding it out right after charging.
 - **Item 28**, the wood furnace, in full. Independent of the above.
 - **Items 32 and 33**, the setup diagram and the card page.
 
-**Item 29 is partly built** and has a status block below: the mixing valve, the
-chargeable tank and the COP flow term all shipped in v3.6.1-v3.7.1, but the
-optimizer still does not deliberately charge, and several pieces of the item are
-outstanding. **Item 27 is partly built** through the same work. **Item 28 has not
-been started.** **Items 32 and 33** were added 2026-08-23 and are planned but not
-built.
+**Item 29 is done except `smart_write`** — see its status blocks. **Item 27 is
+done** through the same work. **Item 28 has not been started.** **Items 32 and
+33** were added 2026-08-23 and are planned but not built.
 
 Scope decision (user, 2026-08-23): 26, 24+25, 30 and 31 were done first, one PR
 each, and all shipped. The wood-furnace cluster (27-29) was deferred, re-planned
@@ -1230,12 +1231,14 @@ Two notes for whoever touches the chart tests next:
 >
 > **Outstanding, and both are things this item specifically asked for:**
 >
-> - **No size threshold.** The user's decision was "make it a real store when the
->   tank is large enough, and behave appropriately when it is configured so small
->   it is not a viable store". Only the first half exists. A 35 L tank is
->   currently treated exactly like a 750 L one, despite being worth about 0.8 kWh
->   over a 20 K swing -- below the resolution of a single 15-minute step. The
->   honest behaviour at that size is to stop pretending it is a store.
+> - ~~**No size threshold.**~~ **Done in v3.10.0.** The user's decision was
+>   "make it a real store when the tank is large enough, and behave
+>   appropriately when it is configured so small it is not a viable store".
+>   `ThermalParameters.buffer_is_store` now requires a valve *and*
+>   `BUFFER_STORE_MIN_VOLUME` (100 L); below it the terminal credit and the
+>   settlement cap ignore the tank while the physics stay modelled. The 35 L
+>   default lands below it decisively, for the reason recorded here: ~0.8 kWh
+>   over a 20 K swing is below the resolution of a single 15-minute step.
 > - **`get_state_matrices` is still dead and still contradictory.** This item says
 >   plainly: reconcile both models or delete the dead one, and do not fix one and
 >   leave the other. That is exactly what happened -- `_simulate_step_two_zone`
@@ -1451,6 +1454,59 @@ the optimizer's remaining electric decisions are small and so is the saving —
 which is worth knowing before, not after.
 
 ## 29. The buffer tank as a controllable thermal battery (mixing valve setups)
+
+> ## Status, 2026-08-24 (v3.10.0): the optimizer charges. Done except
+> ## `smart_write`.
+>
+> The discharge law prescribed by the audit is implemented. The valve is
+> modelled as what it physically is — a flow-temperature regulator on a
+> weather-compensation curve, derived rather than configured: the flow that
+> holds the house at the target is the target plus the standing loss over the
+> emitter UA. The emitters see `min(tank, curve)`, never raw tank water, so
+> stored heat leaves at house-demand rate (a 60 °C tank now carries the house
+> ~6 h at −5 °C where it previously relaxed to the curve within two steps),
+> the tank's end state depends on the plan, and the terminal credit has the
+> gradient it was starving for. `delivery_demand()` and its per-step gain are
+> gone — the effective P-gain is the emitter UA itself, in kW/K, dt-invariant
+> by construction. The user confirmed the framing independently: the valve
+> must be modelled capped at the max-comfort setting, not fully open.
+>
+> **Measured behaviour.** Against a tank too cold to coast for free the
+> optimizer saturates the cheap night block (30 kWh at 6 kW), lifts the tank
+> deliberately, coasts a 4.80 morning *and* a 7.40 evening peak with zero
+> purchases, and re-buys at the late-evening dip. At flat prices the
+> concentration vanishes — the null control. Against a tank that starts warm
+> enough to coast anyway it declines to charge, and that is correct: there is
+> nothing to displace, and a hand-built charge-harder plan scores worse on
+> the optimizer's own objective. Do not re-open "it will not charge" on a
+> fixture whose tank starts at 40 °C.
+>
+> **Sizing, measured in `tests/backtest.py` with the flat-price null
+> subtracted** (two more measurement traps fell in this session and are
+> recorded in that file's storage section: valve-vs-none confounds comfort
+> exposure, big-vs-tiny tank confounds COP pass-through spikes; both are
+> price-independent, so differencing against flat removes them): at 750 L,
+> ~+5 SEK/day on winter_typical, ~+17 on winter_extreme. Smaller than the
+> analytical table below, and the gap is physics, not a bug: **a fixed-curve
+> valve cannot hold charge for the peak** — the tank feeds the house the
+> moment it is warmer than the curve, so it mostly shifts the hours right
+> after charging. The analytical table assumed dispatchable delivery, which
+> only `smart_write` can provide. That is now the value case for
+> `smart_write`, not just a convenience.
+>
+> **Also in v3.10.0:** `buffer_max_temp` is a hard constraint in the solve
+> (tighten-and-re-solve on the steps whose heat the cap refused — the model
+> records `last_buffer_refused` beside the trajectory; tested at effectively
+> free electricity, where deleted heat costs nothing and only the hard
+> constraint stands between the solver and a boiled tank). The dumb-valve
+> recommendation is surfaced as the Valve Target Recommendation diagnostic
+> sensor. The tank size threshold landed in item 27.
+>
+> **The one-sided deferred-energy settlement** (audit deferred finding 2) was
+> evaluated and left alone: it shapes the *reported savings*, not the plan —
+> the objective's terminal cost prices every degree below the cap, so the
+> charging gradient never depended on it. Revisit only if reported savings on
+> a storing house look systematically low.
 
 > ## Status, 2026-08-23 (v3.7.1). Read this before the item text.
 >

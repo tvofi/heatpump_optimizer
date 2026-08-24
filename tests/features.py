@@ -2263,6 +2263,38 @@ R.check(
     "the tank cannot be charged there, so it must not enter the objective",
 )
 
+# 4b. And inert below the store threshold, valve or not. The default 35 L
+# tank holds ~0.8 kWh over a 20 K swing -- less than one optimizer step --
+# and crediting it would have the solver planning around noise (item 27).
+_p_tiny = ThermalParameters(
+    two_zone_enabled=True, buffer_tank_volume=35.0,
+    mixing_valve_mode="manual", buffer_max_temp=70.0,
+)
+_opt_tiny = _Opt(ThermalModel(_p_tiny), _cfg)
+R.check(
+    "a 35 L tank behind a valve is not a store",
+    not _p_tiny.buffer_is_store,
+    "the default volume must land below the threshold decisively",
+)
+_caps_tiny = _opt_tiny._settlement_caps(_outdoor)
+R.check(
+    "so its settlement cap stays the slab's",
+    _caps_tiny["buffer"] == _caps_tiny["slab"],
+    f"got {_caps_tiny['buffer']:.1f} C",
+)
+_term_tiny = _opt_tiny._terminal_cost(_prices, _outdoor)
+R.check(
+    "and the terminal cost ignores it",
+    _term_tiny(_flat(21.0), _flat(25.0), _flat(21.0), _flat(20.5), _flat(45.0))
+    == _term_tiny(_flat(21.0), _flat(25.0), _flat(21.0), _flat(20.5), _flat(70.0)),
+    "too small to matter must mean too small to plan around",
+)
+R.check(
+    "while a real accumulator on the same valve is one",
+    _opt_valve.model.params.buffer_is_store,
+    "750 L must clear the threshold",
+)
+
 # 5. The trajectory the objective needs must actually be recorded.
 _m_valve.simulate_trajectory(
     _st(45.0), np.full(96, 3.0), _outdoor, dt_hours=0.25
@@ -2280,7 +2312,8 @@ R.section("Mixing valve and the buffer tank as a store (items 27/29)")
 from heatpump_optimizer import mixing_valve as _mv  # noqa: E402
 
 
-def _tank_run(mode, power, *, target=23.0, hours=6.0, volume=750.0, start=45.0):
+def _tank_run(mode, power, *, target=23.0, hours=6.0, volume=750.0, start=45.0,
+              dt=0.25):
     p = ThermalParameters(
         two_zone_enabled=True, buffer_tank_volume=volume,
         mixing_valve_mode=mode, mixing_valve_target=target,
@@ -2292,8 +2325,8 @@ def _tank_run(mode, power, *, target=23.0, hours=6.0, volume=750.0, start=45.0):
         lower_floor_temperature=20.5, slab_temperature=25.0,
         buffer_tank_temperature=start, outdoor_temperature=-5.0,
     )
-    for _ in range(int(hours / 0.25)):
-        st = m.simulate_step(st, power, -5.0, dt_hours=0.25)
+    for _ in range(int(hours / dt)):
+        st = m.simulate_step(st, power, -5.0, dt_hours=dt)
     return st
 
 
@@ -2417,6 +2450,310 @@ R.check(
     "and the recommendation says what it costs, not just what to set",
     "comfort limits" in _rec.reason or "no longer limiting" in _rec.reason,
     "a high target gives up the valve's own overshoot protection",
+)
+
+
+R.section("The discharge law: the valve regulates flow temperature (item 29)")
+
+# Why these exist: the old model discharged the tank with the valve wide open
+# at the raw tank temperature, capped by a controller demand whose gap term
+# divided by the step length. A 40-45 C tank dumped 22-26 kW, anything stored
+# was gone within a step or two of the pump stopping, and every plan relaxed
+# to the same empty tank -- so the terminal credit had no gradient and the
+# optimizer correctly concluded storage buys nothing.
+
+# The curve: the flow setpoint that holds the house at the target.
+_fs = _mv.flow_setpoint(
+    target_temp=23.0, outdoor_temp=-5.0,
+    heat_loss_coefficient=0.19, emitter_ua=1.4,
+)
+R.check(
+    "the flow setpoint is the target plus the standing loss over the emitter UA",
+    abs(_fs - (23.0 + 0.19 * 28.0 / 1.4)) < 1e-9,
+    f"got {_fs:.2f} C",
+)
+R.check(
+    "and collapses to the target when there is nothing to hold against",
+    _mv.flow_setpoint(
+        target_temp=23.0, outdoor_temp=25.0,
+        heat_loss_coefficient=0.19, emitter_ua=1.4,
+    ) == 23.0,
+    "a compensation curve never runs below its own target",
+)
+R.check(
+    "delivery cannot be negative",
+    _mv.emitter_delivery(mix_temp=20.0, zone_temp=25.0, ua=1.4) == 0.0,
+    "a valve can shut, but it cannot cool a house",
+)
+
+# Survival: stored heat leaves at house-demand rate, not in one dump. Under
+# the old law this tank was at the curve within two steps.
+_surv = _tank_run(_mv.MODE_MANUAL, 0.0, start=60.0, hours=2.0)
+R.check(
+    "a charged tank survives hours, not steps",
+    _surv.buffer_tank_temperature > 45.0,
+    f"60 C held {_surv.buffer_tank_temperature:.1f} C after 2 h; the old law "
+    "left it at the curve inside two steps",
+)
+R.check(
+    "and while it lasts the tank alone carries the house",
+    _surv.upper_floor_temperature > 21.0,
+    f"house at {_surv.upper_floor_temperature:.2f} C on stored heat only",
+)
+
+# dt-invariance: the old gap term divided by dt_hours, so halving the step
+# doubled the demand and the trajectory changed with time_step_minutes.
+_dt_a = _tank_run(_mv.MODE_MANUAL, 0.0, start=60.0)
+_dt_b = _tank_run(_mv.MODE_MANUAL, 0.0, start=60.0, dt=0.125)
+R.check(
+    "the trajectory does not depend on the step length",
+    abs(_dt_a.buffer_tank_temperature - _dt_b.buffer_tank_temperature) < 0.3,
+    f"6 h end state {_dt_a.buffer_tank_temperature:.2f} C at 15 min vs "
+    f"{_dt_b.buffer_tank_temperature:.2f} C at 7.5 min",
+)
+
+# Design-point equivalence: when the tank cannot meet the curve the valve
+# saturates wide open and delivery follows the raw tank temperature, exactly
+# as the pre-valve calibration assumed.
+_p_dp = ThermalParameters(
+    two_zone_enabled=True, buffer_tank_volume=750.0,
+    mixing_valve_mode=_mv.MODE_MANUAL, mixing_valve_target=23.0,
+    cop_flow_carnot=True,
+)
+_m_dp = ThermalModel(_p_dp)
+_st_dp = ThermalState(
+    room_temperature=21.0, upper_floor_temperature=21.0,
+    lower_floor_temperature=20.5, slab_temperature=25.0,
+    buffer_tank_temperature=26.0, outdoor_temperature=-20.0,
+)
+_after_dp = _m_dp.simulate_step(_st_dp, 0.0, -20.0, dt_hours=0.25)
+_ua_tot = _p_dp.max_electrical_power * max(_p_dp.cop_nominal, 1.0) / max(
+    _p_dp.emitter_design_delta_t, 1.0
+)
+_ua_rad = _p_dp.radiator_power_fraction * _ua_tot
+_ua_floor = (1.0 - _p_dp.radiator_power_fraction) * _ua_tot
+_q_open = _ua_rad * (26.0 - 21.0) + _ua_floor * (26.0 - 25.0)
+_q_loss_buf = _p_dp.buffer_tank_heat_loss_coefficient * (26.0 - 20.0)
+_dT_expect = -(_q_open + _q_loss_buf) / _p_dp.buffer_tank_thermal_mass * 0.25
+R.check(
+    "below the curve the valve saturates wide open",
+    abs(_after_dp.buffer_tank_temperature - (26.0 + _dT_expect)) < 1e-6,
+    "delivery at a depleted tank follows the raw tank temperature, "
+    "preserving the design-point calibration",
+)
+
+# Conservation: with the pump off, what the tank loses in a step is exactly
+# what the emitters received plus the standing loss.
+_st_c = ThermalState(
+    room_temperature=21.0, upper_floor_temperature=21.0,
+    lower_floor_temperature=20.5, slab_temperature=25.0,
+    buffer_tank_temperature=50.0, outdoor_temperature=-5.0,
+)
+_after_c = _m_dp.simulate_step(_st_c, 0.0, -5.0, dt_hours=0.25)
+_u_up = _m_dp.effective_heat_loss_coefficient(
+    _p_dp.upper_floor_heat_loss, 0.0, 0.0
+)
+_u_lo = _m_dp.effective_heat_loss_coefficient(
+    _p_dp.lower_floor_heat_loss_learned, 0.0, 0.0
+)
+_fs_c = _mv.flow_setpoint(
+    target_temp=23.0, outdoor_temp=-5.0,
+    heat_loss_coefficient=_u_up + _u_lo, emitter_ua=_ua_tot,
+)
+_tmix_c = min(50.0, _fs_c)
+_q_del = _mv.emitter_delivery(
+    mix_temp=_tmix_c, zone_temp=21.0, ua=_ua_rad
+) + _mv.emitter_delivery(mix_temp=_tmix_c, zone_temp=25.0, ua=_ua_floor)
+_q_stand = _p_dp.buffer_tank_heat_loss_coefficient * (50.0 - 20.0)
+_lost = (50.0 - _after_c.buffer_tank_temperature) * _p_dp.buffer_tank_thermal_mass
+R.check(
+    "energy is conserved: the tank's loss is the delivery plus standing loss",
+    abs(_lost - (_q_del + _q_stand) * 0.25) < 1e-6,
+    f"tank lost {_lost:.4f} kWh vs {( _q_del + _q_stand) * 0.25:.4f} delivered+lost",
+)
+
+# The behaviour the whole feature exists for: with a valve and a price spread,
+# the optimizer concentrates purchases into the cheap night and coasts the
+# peaks on stored heat; with flat prices that concentration must vanish -- the
+# null control every sizing claim here needs. Both are full solves against a
+# tank that starts too cold to coast for free, because a tank that already
+# holds enough heat gives charging nothing to displace and the optimizer is
+# right to decline (measured: exactly that, at a 40 C start).
+from heatpump_optimizer.optimizer import (  # noqa: E402
+    HeatPumpOptimizer as _StoreOpt,
+    OptimizationConfig as _StoreCfg,
+)
+
+
+def _storage_plan(price_profile):
+    p = ThermalParameters(
+        two_zone_enabled=True, buffer_tank_volume=750.0,
+        mixing_valve_mode=_mv.MODE_MANUAL, buffer_max_temp=70.0,
+        cop_flow_carnot=True,
+        upper_floor_thermal_mass=3.0, lower_floor_thermal_mass=4.5,
+        upper_floor_heat_loss=0.10, lower_floor_heat_loss=0.09,
+        radiator_power_fraction=0.4,
+    )
+    m = ThermalModel(p)
+    opt = _StoreOpt(m, _StoreCfg(
+        horizon_hours=24, time_step_minutes=15,
+        target_temp=21.0, min_temp=17.0, max_temp=23.0,
+    ))
+    n = 96
+    hours = np.arange(n) * 0.25
+    if price_profile == "spread":
+        prices = np.full(n, 1.80)
+        prices[hours < 5] = 0.90
+        prices[(hours >= 7) & (hours < 10)] = 4.80
+        prices[(hours >= 16) & (hours < 20)] = 7.40
+    else:
+        prices = np.full(n, 1.20)
+    outdoor = np.full(n, -10.0)
+    zeros = np.zeros(n)
+    st = ThermalState(
+        room_temperature=20.0, upper_floor_temperature=20.0,
+        lower_floor_temperature=20.0, slab_temperature=21.0,
+        buffer_tank_temperature=25.0, outdoor_temperature=-10.0,
+    )
+    r = opt.optimize(st, prices, outdoor, zeros, zeros, zeros,
+                     datetime(2026, 1, 15))
+    pw = np.asarray(r.power_schedule)
+    m.simulate_trajectory(st, pw, outdoor, zeros, zeros, zeros, 0.25)
+    night = float(pw[hours < 5].sum() * 0.25)
+    peaks = float(
+        pw[((hours >= 7) & (hours < 10)) | ((hours >= 16) & (hours < 20))].sum()
+        * 0.25
+    )
+    return night, peaks, m.last_buffer_trajectory
+
+
+_night_s, _peak_s, _buf_s = _storage_plan("spread")
+_night_f, _peak_f, _buf_f = _storage_plan("flat")
+R.check(
+    "with a price spread the optimizer charges through the cheap night",
+    _night_s > 22.0,
+    f"bought {_night_s:.1f} kWh of a possible 30 in the 00-05 trough",
+)
+R.check(
+    "and deliberately lifts the tank to do it",
+    float(_buf_s.max()) > 25.0 + 8.0,
+    f"tank peaked at {float(_buf_s.max()):.1f} C from a 25 C start",
+)
+R.check(
+    "and coasts both price peaks on stored heat",
+    _peak_s < 2.0,
+    f"bought {_peak_s:.1f} kWh across seven peak hours",
+)
+R.check(
+    "the null control: flat prices produce no night concentration",
+    _night_f < _night_s - 5.0 and _peak_f > 10.0,
+    f"flat: night {_night_f:.1f} kWh, peak-hours {_peak_f:.1f} kWh -- "
+    "storage must not appear where it cannot pay",
+)
+
+# The tank's ceiling is a hard constraint in the solve, not a soft penalty.
+# The model's clamp deletes heat charged into a full tank, so in the
+# objective overcharging is merely wasteful -- and at a low enough price the
+# solver is indifferent to waste while the real tank boils. The tighten loop
+# must cut the ceiling at exactly the refusing steps.
+
+
+def _cap_fixture():
+    p = ThermalParameters(
+        two_zone_enabled=True, buffer_tank_volume=750.0,
+        mixing_valve_mode=_mv.MODE_MANUAL, buffer_max_temp=60.0,
+        cop_flow_carnot=True,
+        upper_floor_thermal_mass=3.0, lower_floor_thermal_mass=4.5,
+        upper_floor_heat_loss=0.10, lower_floor_heat_loss=0.09,
+        radiator_power_fraction=0.4,
+    )
+    m = ThermalModel(p)
+    opt = _StoreOpt(m, _StoreCfg(
+        horizon_hours=24, time_step_minutes=15,
+        target_temp=21.0, min_temp=17.0, max_temp=23.0,
+    ))
+    n = 96
+    st = ThermalState(
+        room_temperature=21.0, upper_floor_temperature=21.0,
+        lower_floor_temperature=21.0, slab_temperature=23.0,
+        buffer_tank_temperature=55.0, outdoor_temperature=-2.0,
+    )
+    zeros = np.zeros(n)
+    return p, m, opt, st, np.full(n, 0.001), np.full(n, -2.0), zeros
+
+
+_cp, _cm, _copt, _cst, _cprices, _cout, _czeros = _cap_fixture()
+
+# The mechanism, directly: a full-power schedule against a near-full tank
+# must refuse heat, and the tighten helper must cut those steps' ceilings.
+_full = np.full(96, _cp.max_electrical_power)
+_cm.simulate_trajectory(_cst, _full, _cout, _czeros, _czeros, _czeros, 0.25)
+R.check(
+    "charging a full tank at full power is refused by the physics",
+    _cm.last_buffer_refused is not None and _cm.last_buffer_refused.max() > 0.5,
+    f"peak refusal {_cm.last_buffer_refused.max():.2f} kW",
+)
+
+
+class _FakeResult:
+    power_schedule = _full
+
+
+_caps = np.full(96, _cp.max_electrical_power)
+_tightened = _copt._tighten_buffer_caps(
+    _FakeResult(), _caps, _cst, _cout, _czeros, _czeros, _czeros, 0.25
+)
+R.check(
+    "the tighten loop cuts the ceiling at the refusing steps",
+    _tightened and _caps.min() < _cp.max_electrical_power - 0.5,
+    f"lowest ceiling now {_caps.min():.2f} kW of {_cp.max_electrical_power}",
+)
+
+# End to end: even at effectively free electricity, the returned plan must
+# not charge past the cap. Free power is the adversarial case -- deleted
+# heat costs nothing, so only the hard constraint stands between the solver
+# and a boiled tank.
+_cres = _copt.optimize(
+    _cst, _cprices, _cout, _czeros, _czeros, _czeros, datetime(2026, 1, 15)
+)
+_cm.simulate_trajectory(
+    _cst, np.asarray(_cres.power_schedule), _cout,
+    _czeros, _czeros, _czeros, 0.25,
+)
+R.check(
+    "even free electricity cannot plan past the tank's ceiling",
+    float(_cm.last_buffer_refused.max()) < 1e-6,
+    f"refused {float(_cm.last_buffer_refused.max()):.4f} kW somewhere in the "
+    "final plan; the cap loop should have re-solved it away",
+)
+R.check(
+    "and the trajectory itself respects the cap",
+    float(_cm.last_buffer_trajectory.max()) <= 60.0 + 1e-6,
+    f"tank peaked at {float(_cm.last_buffer_trajectory.max()):.2f} C",
+)
+
+# The recommendation is surfaced, not just computable. recommend_target()
+# existed since v3.7.0 with zero callers -- the integration could recommend a
+# setting and told nobody. The coordinator now publishes it for the
+# diagnostic sensor.
+_vc = _zone_coord(_BASE, mixing_valve_mode="manual", max_temperature=23.0)
+_vview = _vc._mixing_valve_view()
+_vrec = _vview.get("valve_target_recommendation")
+R.check(
+    "the valve recommendation reaches the coordinator's data",
+    isinstance(_vrec, dict) and _vrec.get("target") == 23.0,
+    f"got {_vrec!r}",
+)
+R.check(
+    "with the reasoning attached, not just a number",
+    isinstance(_vrec, dict) and bool(_vrec.get("reason")),
+    "a bare setpoint invites blind trust",
+)
+R.check(
+    "and stays out of the data entirely without a valve to set",
+    _zone_coord(_BASE)._mixing_valve_view() == {},
+    "no valve, no keys -- existing captures of the coordinator's data must "
+    "stay byte-for-byte identical",
 )
 
 

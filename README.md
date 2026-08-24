@@ -138,7 +138,7 @@ pricing are outside this project's control.
 - **Plan reason codes** — every planned slot says *why* it was chosen
 - **Energy dashboard integration** — accumulating energy and cost totals, split hot water versus space heating
 - **The house as a virtual battery** — state of charge, capacity and rates published so other automations can use it
-- **Rich sensor entities** — 46 sensors including full heating plans, DHW, predictive insights, per-zone temperatures
+- **Rich sensor entities** — 47 sensors including full heating plans, DHW, predictive insights, per-zone temperatures
 - **Dashboard card** — plots price, planned heating slots, irradiance and predicted temperatures on one graph, with per-series toggles, reason codes and a what-if simulator
 - **Climate entity** — virtual thermostat with full HA climate integration
 - **Buttons and binary sensors** — force a run, arm a measurement experiment, and see input health, external heat and away state at a glance
@@ -839,7 +839,7 @@ turn the toggle off to require hot water around the clock.
 
 ## Entities Created
 
-### Sensors (46 total)
+### Sensors (47 total)
 | Sensor | Description |
 |---|---|
 | Optimization Mode | Current mode (auto/comfort/economy/boost/off) |
@@ -886,6 +886,7 @@ turn the toggle off to require hot water around the clock.
 | **Thermal Battery Charge** | State of charge of the house and tanks, against the comfort band |
 | **Thermal Battery Energy** | Stored energy available above the comfort floor |
 | **Comfort Weight** | The comfort weight in force, learned or configured |
+| **Valve Target Recommendation** | What to set a dumb mixing valve to, with the reasoning in its attributes |
 
 ### Binary Sensors (3 total)
 | Binary sensor | Description |
@@ -1103,7 +1104,7 @@ custom_components/heatpump_optimizer/
 ├── comfort_learning.py  # Revealed-preference comfort weight tuning
 ├── battery.py           # The thermal stores, published as a battery
 │
-├── sensor.py            # 46 sensors
+├── sensor.py            # 47 sensors
 ├── binary_sensor.py     # Input health, external heat, away mode
 ├── button.py            # Optimize now, run identification, reset comfort weight
 ├── climate.py           # Virtual climate entity with DHW status
