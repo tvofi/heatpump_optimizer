@@ -318,6 +318,20 @@ SCENARIOS: dict[str, dict] = {
         },
         state_overrides={"buffer_tank_temperature": 32.0},
     ),
+    # A commanded valve, which is the only mode that can hold its charge for
+    # the peak. Pinned because the hold schedule is a *derived* candidate:
+    # a change to the derivation, the adoption rule or the per-step target in
+    # the model all show up here as a moved schedule, and nowhere else.
+    "valve_storage_smart_write": dict(
+        two_zone=True,
+        dhw=False,
+        config_overrides={
+            "mixing_valve_mode": "smart_write",
+            "buffer_tank_volume": 750.0,
+            "buffer_max_temperature": 70.0,
+        },
+        state_overrides={"buffer_tank_temperature": 32.0},
+    ),
     # --- combinations, because features interact --------------------------
     "tariff_plus_two_zone": dict(
         two_zone=True,
@@ -397,6 +411,7 @@ def capture(name: str, spec: dict) -> dict:
         "room_temp_trajectory": r(result.room_temp_trajectory),
         "slab_temp_trajectory": r(result.slab_temp_trajectory),
         "buffer_temp_trajectory": r(result.buffer_temp_trajectory),
+        "valve_target_schedule": r(result.valve_target_schedule),
         "upper_temp_trajectory": r(result.upper_temp_trajectory),
         "lower_temp_trajectory": r(result.lower_temp_trajectory),
         "dhw_temp_trajectory": r(result.dhw_temp_trajectory),

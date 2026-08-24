@@ -445,6 +445,16 @@ class OptimizationResult:
     # model stashes the series on itself for the terminal-cost term and nothing
     # else could reach it.
     buffer_temp_trajectory: list[float] = field(default_factory=list)
+    # The valve target the plan wants at each step, fully resolved. Non-empty
+    # only in smart_write mode when a hold schedule beat the fixed target on
+    # the objective: low between charging and the price peak so the tank keeps
+    # its heat, back to the working target through the peak. The actuator
+    # writes the current step's entry each cycle.
+    valve_target_schedule: list[float] = field(default_factory=list)
+    # The achieved objective value of this plan, for candidate comparison --
+    # two solves under different valve schedules are two controls priced by
+    # the same physics, so the smaller wins. NaN when a solve failed.
+    objective_value: float = float("nan")
     # Two-zone trajectories
     upper_temp_trajectory: list[float] = field(default_factory=list)
     lower_temp_trajectory: list[float] = field(default_factory=list)
@@ -658,6 +668,11 @@ class _Horizon:
     #: and the reference thermostat is granted the same free heat rather than
     #: booking it as savings. ``None`` means none.
     external_heat_kw: np.ndarray | None = None
+    #: Optional per-step mixing-valve target schedule, fully resolved. Only
+    #: the objectives simulate with it — the savings baseline is a thermostat
+    #: and a thermostat does not schedule a valve. ``None`` means the static
+    #: configured target, which is byte-for-byte the previous behaviour.
+    valve_targets: np.ndarray | None = None
 
     @property
     def timestamps(self) -> list[datetime]:
@@ -919,6 +934,7 @@ class HeatPumpOptimizer:
         dhw_cost: float = 0.0,
         buffer_temps: np.ndarray | None = None,
         predictive_info: dict | None = None,
+        objective_value: float = float("nan"),
     ) -> OptimizationResult:
         """Assemble the result both solve paths return.
 
@@ -948,6 +964,12 @@ class HeatPumpOptimizer:
                 and mixing_valve.is_throttling(self.model.params.mixing_valve_mode)
                 else []
             ),
+            valve_target_schedule=(
+                [float(v) for v in h.valve_targets]
+                if h.valve_targets is not None
+                else []
+            ),
+            objective_value=objective_value,
             timestamps=h.timestamps,
             prices=h.prices.tolist(),
             outdoor_temps=h.outdoor_temps.tolist(),
@@ -1421,6 +1443,10 @@ class HeatPumpOptimizer:
                 n_steps, self.model.params.max_electrical_power
             )
 
+        # Per-step valve target schedule, set by the hold-candidate pass below
+        # and read by every solve and re-simulation through the closure.
+        valve_targets: np.ndarray | None = None
+
         # Solve, then check the solved trajectory against the hard safety lines,
         # release any forced-off pin that would breach one, and solve again.
         # The comfort and tank floors are *soft* penalties in the objective, so
@@ -1449,6 +1475,7 @@ class HeatPumpOptimizer:
                 dhw_pins=dhw_pins,
                 power_caps=power_caps,
                 external_heat_kw=external_heat_kw,
+                valve_targets=valve_targets,
             )
             if dhw_enabled:
                 return self._optimize_with_dhw(horizon)
@@ -1509,6 +1536,51 @@ class HeatPumpOptimizer:
                         )
                     result = _solve()
 
+        # --- The hold candidate: can a commanded valve wait for the peak? ---
+        #
+        # A fixed-curve valve starts feeding the house the moment the tank is
+        # warmer than the curve, so storage mostly shifts the hours right
+        # after charging (measured in v3.10.0 at roughly a fifth of the
+        # analytical value). A valve the optimizer can *command* does not have
+        # to: lower the curve to the comfort floor between charging and the
+        # price peak and the tank holds its heat for when it is worth most.
+        #
+        # The schedule is a derived candidate, not a rule: it is guessed from
+        # the structure of the solved plan, re-solved in full, and adopted
+        # only if it beats the fixed target on the same objective -- exactly
+        # `_co_optimize`'s discipline, and what makes a heuristic safe here.
+        # At flat prices no candidate is even proposed, which is the null
+        # control. Gated on smart_write (no other mode can actuate it), on
+        # the tank being a real store, and away from manual pins -- the
+        # pin-safety loop above has already finished, and a hand-pinned day
+        # is not the day to get clever with the valve.
+        if (
+            self.model.params.mixing_valve_mode == mixing_valve.MODE_SMART_WRITE
+            and self.model.params.buffer_is_store
+            and space_pins is None
+            and dhw_pins is None
+            and np.isfinite(result.objective_value)
+        ):
+            schedule = self._derive_hold_schedule(
+                np.asarray(result.power_schedule), prices, temp_min_bounds
+            )
+            if schedule is not None:
+                fixed_objective = result.objective_value
+                valve_targets = schedule
+                candidate = _solve()
+                if (
+                    np.isfinite(candidate.objective_value)
+                    and candidate.objective_value < fixed_objective - 1e-9
+                ):
+                    result = candidate
+                    _LOGGER.debug(
+                        "Valve hold schedule adopted: objective %.3f -> %.3f",
+                        fixed_objective,
+                        candidate.objective_value,
+                    )
+                else:
+                    valve_targets = None
+
         if power_caps is not None:
             # The tank's safe ceiling as a hard constraint. The model's clamp
             # already stops the simulated temperature exceeding the cap, but it
@@ -1527,6 +1599,7 @@ class HeatPumpOptimizer:
                     result, power_caps, initial_state, outdoor_temps,
                     wind_speeds, precipitation, solar_radiation, dt,
                     external_heat_kw=external_heat_kw,
+                    valve_targets=valve_targets,
                 ):
                     break
                 result = _solve()
@@ -1557,6 +1630,70 @@ class HeatPumpOptimizer:
         arr[:take] = src[:take]
         return arr
 
+    def _derive_hold_schedule(
+        self,
+        power: np.ndarray,
+        prices: np.ndarray,
+        temp_min_bounds: np.ndarray,
+    ) -> np.ndarray | None:
+        """A candidate valve-target schedule: hold between charging and peak.
+
+        Fully resolved -- every entry a real temperature. Default steps carry
+        the working target (the configured static target, else the comfort
+        ceiling); hold steps carry the per-step comfort floor, which is the
+        lowest target the solve is allowed to plan for anyway, so a hold can
+        never ask for a house the objective would not accept.
+
+        Hold steps are the ones after charging has begun and before the last
+        expensive block ends, that are neither charging nor expensive
+        themselves: the stretch where a fixed-curve valve bleeds the tank into
+        the house at mid prices. ``None`` -- no candidate at all -- when there
+        is nothing to arbitrage: no charging, no expensive block, or a price
+        spread too flat to name one. That refusal is the null control; the
+        caller adopts a candidate only if it beats the fixed target on the
+        same objective, so this function only has to be plausible, not right.
+        """
+        n = len(power)
+        if n == 0 or len(prices) != n:
+            return None
+        # p85 rather than p75 for the peak. A real day is often a long flat
+        # plateau with a short tall spike -- sixteen expensive steps in
+        # ninety-six -- and at p75 the threshold lands *on* the plateau: the
+        # whole day reads as expensive, the spread test then sees p75 == p25
+        # and refuses a schedule on exactly the profile that most wants one.
+        p25, p40, p85 = np.percentile(prices, [25, 40, 85])
+        # Flat prices: nothing to arbitrage, so no candidate. The margin is
+        # deliberately generous -- a 5 % spread cannot pay for a hold.
+        if p85 <= p25 * 1.05:
+            return None
+        p_max = self.model.params.max_electrical_power
+        expensive = prices >= p85
+        charging = (power > 0.5 * p_max) & (prices <= p40)
+        if not bool(expensive.any()) or not bool(charging.any()):
+            return None
+
+        after_charge = np.zeros(n, dtype=bool)
+        seen = False
+        for i in range(n):
+            seen = seen or bool(charging[i])
+            after_charge[i] = seen
+        before_peak = np.zeros(n, dtype=bool)
+        seen = False
+        for i in reversed(range(n)):
+            seen = seen or bool(expensive[i])
+            before_peak[i] = seen
+
+        hold = after_charge & before_peak & ~charging & ~expensive
+        if not bool(hold.any()):
+            return None
+
+        params = self.model.params
+        default_target = params.mixing_valve_target or params.comfort_ceiling
+        targets = np.full(n, float(default_target))
+        floors = np.asarray(temp_min_bounds, dtype=float)
+        targets[hold] = floors[hold]
+        return targets
+
     def _tighten_buffer_caps(
         self,
         result: OptimizationResult,
@@ -1568,6 +1705,7 @@ class HeatPumpOptimizer:
         solar_radiation: np.ndarray,
         dt: float,
         external_heat_kw: np.ndarray | None = None,
+        valve_targets: np.ndarray | None = None,
     ) -> bool:
         """Lower per-step power ceilings where the plan charged a full tank.
 
@@ -1589,6 +1727,7 @@ class HeatPumpOptimizer:
             solar_radiation=solar_radiation,
             dt_hours=dt,
             external_heat_kw=external_heat_kw,
+            valve_targets=valve_targets,
         )
         refused = self.model.last_buffer_refused
         if refused is None:
@@ -1779,6 +1918,7 @@ class HeatPumpOptimizer:
                     solar_radiation=solar_radiation,
                     dt_hours=dt,
                     external_heat_kw=h.external_heat_kw,
+                    valve_targets=h.valve_targets,
                 )
             )
 
@@ -1887,11 +2027,15 @@ class HeatPumpOptimizer:
                 solar_radiation=solar_radiation,
                 dt_hours=dt,
                 external_heat_kw=h.external_heat_kw,
+                valve_targets=h.valve_targets,
             )
         )
         # Captured here, next to the call that wrote it, rather than read back
         # at assembly time -- by then further simulations have run.
         buffer_temps = self.model.last_buffer_trajectory
+        # The achieved objective, for candidate comparison across valve
+        # schedules. One extra evaluation, robust on the failure path too.
+        achieved_objective = float(objective(optimal_power))
 
         baseline_cost = energy_cost_of(baseline_power)
         predicted_cost = energy_cost_of(optimal_power)
@@ -1900,6 +2044,7 @@ class HeatPumpOptimizer:
             initial_state, optimal_power, outdoor_temps, wind_speeds,
             precipitation, solar_radiation, dt,
             external_heat_kw=h.external_heat_kw,
+            valve_targets=h.valve_targets,
         )
         deferred_cost = self._deferred_energy_cost(
             baseline_end, optimized_end, prices, outdoor_temps,
@@ -1922,6 +2067,7 @@ class HeatPumpOptimizer:
             space_power=optimal_power,
             trajectories=(room_temps, slab_temps, upper_temps, lower_temps),
             buffer_temps=buffer_temps,
+            objective_value=achieved_objective,
             status=status,
             predicted_cost=predicted_cost,
             baseline_cost=baseline_cost,
@@ -2923,6 +3069,7 @@ class HeatPumpOptimizer:
                     solar_radiation=solar_radiation,
                     dt_hours=dt,
                     external_heat_kw=h.external_heat_kw,
+                    valve_targets=h.valve_targets,
                 )
             )
 
@@ -3050,12 +3197,16 @@ class HeatPumpOptimizer:
                 dt_hours=dt,
                 dhw_draw_rates=dhw_draw_rates,
                 external_heat_kw=h.external_heat_kw,
+                valve_targets=h.valve_targets,
             )
         )
         # Captured next to the call that wrote it. Before this method recorded
         # the series, whatever the last space-only simulation had left on the
         # model was a trajectory for a different power schedule.
         buffer_temps = self.model.last_buffer_trajectory
+        # The achieved objective, for candidate comparison across valve
+        # schedules.
+        achieved_objective = float(objective(optimal_space, optimal_dhw))
 
         # Baseline cost
         baseline_power, baseline_end = self._compute_baseline_power(
@@ -3094,6 +3245,7 @@ class HeatPumpOptimizer:
             initial_state, optimal_space, outdoor_temps, wind_speeds,
             precipitation, solar_radiation, dt,
             external_heat_kw=h.external_heat_kw,
+            valve_targets=h.valve_targets,
         )
         optimized_end.dhw_temperature = float(dhw_temps[-1])
         # The tank only has to satisfy the requirement in force at the end of
@@ -3124,6 +3276,7 @@ class HeatPumpOptimizer:
             space_power=optimal_space,
             trajectories=(room_temps, slab_temps, upper_temps, lower_temps),
             buffer_temps=buffer_temps,
+            objective_value=achieved_objective,
             status=status,
             predicted_cost=predicted_cost,
             baseline_cost=baseline_cost,
@@ -3538,6 +3691,7 @@ class HeatPumpOptimizer:
         solar_radiation: np.ndarray,
         dt: float,
         external_heat_kw: np.ndarray | None = None,
+        valve_targets: np.ndarray | None = None,
     ) -> ThermalState:
         """Final state after running a power schedule through the model.
 
@@ -3555,6 +3709,11 @@ class HeatPumpOptimizer:
                     float(external_heat_kw[i])
                     if external_heat_kw is not None
                     else 0.0
+                ),
+                valve_target=(
+                    float(valve_targets[i])
+                    if valve_targets is not None
+                    else None
                 ),
             )
         return state
@@ -3713,6 +3872,16 @@ class HeatPumpOptimizer:
             "heat_pump_on": bool(heat_pump_on),
             "displace_value": float(displace_value),
         }
+
+        # The valve target for *this* step, when a hold schedule is in force.
+        # It rides with the rest of the current action rather than being
+        # re-derived by the actuator: this method already owns the one search
+        # for the step covering now, and a second copy of that search is a
+        # second chance to disagree about which step is current.
+        if result.valve_target_schedule and i < len(result.valve_target_schedule):
+            action["valve_target"] = round(
+                float(result.valve_target_schedule[i]), 1
+            )
 
         # Add zone-specific setpoints if available
         if result.upper_setpoints and i < len(result.upper_setpoints):

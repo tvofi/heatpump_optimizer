@@ -1155,16 +1155,23 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             for i in range(n)
         ]
 
+        space_plan = {
+            "forecast": space_forecast,
+            "slots": space_slots,
+            "total_energy_kwh": round(sum(raw_space) * dt_hours, 2),
+            "total_cost": round(
+                sum(p * pr for p, pr in zip(raw_space, raw_prices)) * dt_hours, 2
+            ),
+            "active_now": bool(raw_space and raw_space[0] > 0.05),
+        }
+        # Only when a hold schedule was adopted (smart_write), so every
+        # existing capture of the plan view stays byte-for-byte identical.
+        if result.valve_target_schedule:
+            space_plan["valve_target_schedule"] = [
+                round(v, 1) for v in result.valve_target_schedule
+            ]
         return {
-            "space_plan": {
-                "forecast": space_forecast,
-                "slots": space_slots,
-                "total_energy_kwh": round(sum(raw_space) * dt_hours, 2),
-                "total_cost": round(
-                    sum(p * pr for p, pr in zip(raw_space, raw_prices)) * dt_hours, 2
-                ),
-                "active_now": bool(raw_space and raw_space[0] > 0.05),
-            },
+            "space_plan": space_plan,
             "dhw_plan": {
                 "forecast": dhw_forecast,
                 "slots": dhw_slots,
@@ -3339,6 +3346,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             )
             return
         target = params.mixing_valve_target or params.comfort_ceiling
+        # When the plan carries a hold schedule, actuate the current step's
+        # entry instead of the fixed recommendation: low between charging and
+        # the peak so the tank keeps its heat, back up through the peak. Read
+        # from the current action, which already resolved which step is now.
+        planned = (self._current_action or {}).get("valve_target")
+        if planned is not None:
+            target = float(planned)
         if (
             self._valve_commanded_target is not None
             and abs(target - self._valve_commanded_target)
@@ -4257,14 +4271,35 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     # ==================================================================
 
     def _current_humidity(self) -> float | None:
-        """Outdoor relative humidity, if the weather entity reports it."""
+        """Outdoor relative humidity, from the forecast entry covering now.
+
+        Entry 0 used to be read positionally — the last of the positional
+        reads the v3.8.0 audit aligned, deferred then because the defrost
+        bucket tolerates a stale-by-hours humidity. It reuses the same
+        timestamp comparison as the horizon alignment: the entry nearest the
+        current time wins, and a forecast with no timestamps at all falls
+        back to the old first-entry behaviour rather than reading nothing.
+        """
         if not self._weather_forecast:
             return None
-        raw = self._weather_forecast[0].get("humidity")
-        if raw is None:
+        now = dt_util.now()
+        best: tuple[float, Any] | None = None
+        for entry in self._weather_forecast:
+            raw = entry.get("humidity")
+            if raw is None:
+                continue
+            ts = self._comparable_ts(entry.get("datetime"), now)
+            distance = (
+                abs((ts - now).total_seconds())
+                if ts is not None
+                else float("inf")
+            )
+            if best is None or distance < best[0]:
+                best = (distance, raw)
+        if best is None:
             return None
         try:
-            value = float(raw)
+            value = float(best[1])
         except (TypeError, ValueError):
             return None
         return value if 0.0 <= value <= 100.0 else None

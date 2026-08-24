@@ -1037,6 +1037,7 @@ class ThermalModel:
         solar_radiation: float = 0.0,
         dt_hours: float = 0.25,
         external_heat_kw: float = 0.0,
+        valve_target: float | None = None,
     ) -> ThermalState:
         """Simulate one step with the two-zone model including buffer tank.
 
@@ -1105,8 +1106,15 @@ class ThermalModel:
             ua_floor = (1.0 - rad_fraction) * design_power / design_dt
 
             # An unconfigured target means the top of the comfort band, as
-            # documented everywhere the option is described.
-            target = p.mixing_valve_target or p.comfort_ceiling
+            # documented everywhere the option is described. A per-step
+            # override (`valve_target`) beats both: it is how a commanded
+            # valve holds its charge -- the plan lowers the curve between
+            # charging and the price peak so the tank keeps its heat for when
+            # it is worth most, which a fixed target physically cannot do.
+            if valve_target is not None:
+                target = float(valve_target)
+            else:
+                target = p.mixing_valve_target or p.comfort_ceiling
             flow_set = mixing_valve.flow_setpoint(
                 target_temp=target,
                 outdoor_temp=outdoor_temp,
@@ -1229,8 +1237,14 @@ class ThermalModel:
         solar_radiation: float = 0.0,
         dt_hours: float = 0.25,
         external_heat_kw: float = 0.0,
+        valve_target: float | None = None,
     ) -> ThermalState:
-        """Simulate one time step (dispatches to single or two-zone)."""
+        """Simulate one time step (dispatches to single or two-zone).
+
+        ``valve_target`` overrides the configured mixing-valve target for this
+        step. The single-zone model has no valve branch, so it is accepted and
+        ignored there rather than being a two-zone-only signature.
+        """
         # The single-zone path has no buffer cap, so the scratch would
         # otherwise carry a stale value from an earlier two-zone step.
         self._step_buffer_refused = 0.0
@@ -1238,7 +1252,7 @@ class ThermalModel:
             return self._simulate_step_two_zone(
                 state, electrical_power, outdoor_temp,
                 wind_speed, precipitation, solar_radiation, dt_hours,
-                external_heat_kw,
+                external_heat_kw, valve_target,
             )
         return self._simulate_step_single(
             state, electrical_power, outdoor_temp,
@@ -1256,12 +1270,16 @@ class ThermalModel:
         solar_radiation: np.ndarray | None = None,
         dt_hours: float = 0.25,
         external_heat_kw: np.ndarray | None = None,
+        valve_targets: np.ndarray | None = None,
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Simulate the full trajectory given a power schedule.
 
         ``external_heat_kw`` is an optional per-step forecast of free thermal
-        input (a wood furnace, item 28). ``None`` is the default and is
-        byte-for-byte the previous behaviour.
+        input (a wood furnace, item 28). ``valve_targets`` is an optional
+        per-step mixing-valve target schedule, fully resolved -- every entry a
+        real temperature, no sentinel values -- which is how a commanded valve
+        holds its charge between cheap hours and the price peak. ``None`` for
+        either is the default and is byte-for-byte the previous behaviour.
 
         Returns:
             Tuple of (room_temperatures, slab_temperatures,
@@ -1304,6 +1322,11 @@ class ThermalModel:
                     if external_heat_kw is not None
                     else 0.0
                 ),
+                valve_target=(
+                    float(valve_targets[i])
+                    if valve_targets is not None
+                    else None
+                ),
             )
             room_temps[i + 1] = state.room_temperature
             slab_temps[i + 1] = state.slab_temperature
@@ -1333,6 +1356,7 @@ class ThermalModel:
         dt_hours: float = 0.25,
         dhw_draw_rates: np.ndarray | None = None,
         external_heat_kw: np.ndarray | None = None,
+        valve_targets: np.ndarray | None = None,
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Simulate full trajectory with coordinated space + DHW heating.
 
@@ -1388,6 +1412,11 @@ class ThermalModel:
                     float(external_heat_kw[i])
                     if external_heat_kw is not None
                     else 0.0
+                ),
+                valve_target=(
+                    float(valve_targets[i])
+                    if valve_targets is not None
+                    else None
                 ),
             )
 
