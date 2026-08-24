@@ -628,6 +628,14 @@ class ThermalModel:
 
     #: Buffer trajectory of the last `simulate_trajectory` call.
     last_buffer_trajectory: np.ndarray | None = None
+    #: Heat (kW) the buffer cap refused per step of that call. The clamp in
+    #: `_simulate_step_two_zone` deletes heat that would push the tank past
+    #: its safe ceiling; the optimizer's hard-cap loop reads this to find the
+    #: steps that tried, because a plan that pays for deleted heat is merely
+    #: wasteful in the model but boils the tank on the real system.
+    last_buffer_refused: np.ndarray | None = None
+    #: Per-step scratch for the above, written by the step function.
+    _step_buffer_refused: float = 0.0
 
     def __init__(self, params: ThermalParameters) -> None:
         """Initialize the thermal model."""
@@ -1076,6 +1084,7 @@ class ThermalModel:
             q_floor_from_buf = (1.0 - rad_fraction) * thermal_power
 
         dT_buf = (thermal_power - q_rad_from_buf - q_floor_from_buf - q_buf_loss) / max(C_buf, 0.01)
+        self._step_buffer_refused = 0.0
         if throttled:
             # Physical ceiling: heat that would push the tank past its safe
             # temperature cannot go there.
@@ -1085,10 +1094,10 @@ class ThermalModel:
             # stored energy from the model (13.4 kWh in a 15-minute step for a
             # 75 °C reading against a 60 °C cap) instead of letting it cool at
             # its physical rate.
-            dT_buf = min(
-                dT_buf,
-                max(0.0, p.buffer_max_temp - T_buf) / max(dt_hours, 1e-6),
-            )
+            dT_cap = max(0.0, p.buffer_max_temp - T_buf) / max(dt_hours, 1e-6)
+            if dT_buf > dT_cap:
+                self._step_buffer_refused = (dT_buf - dT_cap) * max(C_buf, 0.01)
+                dT_buf = dT_cap
 
         # --- Slab dynamics ---
         q_slab_to_lower = p.slab_heat_transfer * (T_slab - T_lower)
@@ -1146,6 +1155,9 @@ class ThermalModel:
         dt_hours: float = 0.25,
     ) -> ThermalState:
         """Simulate one time step (dispatches to single or two-zone)."""
+        # The single-zone path has no buffer cap, so the scratch would
+        # otherwise carry a stale value from an earlier two-zone step.
+        self._step_buffer_refused = 0.0
         if self.params.two_zone_enabled:
             return self._simulate_step_two_zone(
                 state, electrical_power, outdoor_temp,
@@ -1192,6 +1204,7 @@ class ThermalModel:
         lower_temps[0] = initial_state.lower_floor_temperature
         buffer_temps = np.zeros(n_steps + 1)
         buffer_temps[0] = initial_state.buffer_tank_temperature
+        buffer_refused = np.zeros(n_steps)
 
         state = initial_state
         for i in range(n_steps):
@@ -1209,12 +1222,14 @@ class ThermalModel:
             upper_temps[i + 1] = state.upper_floor_temperature
             lower_temps[i + 1] = state.lower_floor_temperature
             buffer_temps[i + 1] = state.buffer_tank_temperature
+            buffer_refused[i] = self._step_buffer_refused
 
         # Recorded rather than returned: nine call sites unpack a four-tuple,
         # and the buffer is only wanted by the terminal-cost term. Without this
         # the tank's end state is invisible to the objective, so charging it can
         # only ever look like cost.
         self.last_buffer_trajectory = buffer_temps
+        self.last_buffer_refused = buffer_refused
         return room_temps, slab_temps, upper_temps, lower_temps
 
     def simulate_trajectory_with_dhw(

@@ -2619,6 +2619,87 @@ R.check(
     "storage must not appear where it cannot pay",
 )
 
+# The tank's ceiling is a hard constraint in the solve, not a soft penalty.
+# The model's clamp deletes heat charged into a full tank, so in the
+# objective overcharging is merely wasteful -- and at a low enough price the
+# solver is indifferent to waste while the real tank boils. The tighten loop
+# must cut the ceiling at exactly the refusing steps.
+
+
+def _cap_fixture():
+    p = ThermalParameters(
+        two_zone_enabled=True, buffer_tank_volume=750.0,
+        mixing_valve_mode=_mv.MODE_MANUAL, buffer_max_temp=60.0,
+        cop_flow_carnot=True,
+        upper_floor_thermal_mass=3.0, lower_floor_thermal_mass=4.5,
+        upper_floor_heat_loss=0.10, lower_floor_heat_loss=0.09,
+        radiator_power_fraction=0.4,
+    )
+    m = ThermalModel(p)
+    opt = _StoreOpt(m, _StoreCfg(
+        horizon_hours=24, time_step_minutes=15,
+        target_temp=21.0, min_temp=17.0, max_temp=23.0,
+    ))
+    n = 96
+    st = ThermalState(
+        room_temperature=21.0, upper_floor_temperature=21.0,
+        lower_floor_temperature=21.0, slab_temperature=23.0,
+        buffer_tank_temperature=55.0, outdoor_temperature=-2.0,
+    )
+    zeros = np.zeros(n)
+    return p, m, opt, st, np.full(n, 0.001), np.full(n, -2.0), zeros
+
+
+_cp, _cm, _copt, _cst, _cprices, _cout, _czeros = _cap_fixture()
+
+# The mechanism, directly: a full-power schedule against a near-full tank
+# must refuse heat, and the tighten helper must cut those steps' ceilings.
+_full = np.full(96, _cp.max_electrical_power)
+_cm.simulate_trajectory(_cst, _full, _cout, _czeros, _czeros, _czeros, 0.25)
+R.check(
+    "charging a full tank at full power is refused by the physics",
+    _cm.last_buffer_refused is not None and _cm.last_buffer_refused.max() > 0.5,
+    f"peak refusal {_cm.last_buffer_refused.max():.2f} kW",
+)
+
+
+class _FakeResult:
+    power_schedule = _full
+
+
+_caps = np.full(96, _cp.max_electrical_power)
+_tightened = _copt._tighten_buffer_caps(
+    _FakeResult(), _caps, _cst, _cout, _czeros, _czeros, _czeros, 0.25
+)
+R.check(
+    "the tighten loop cuts the ceiling at the refusing steps",
+    _tightened and _caps.min() < _cp.max_electrical_power - 0.5,
+    f"lowest ceiling now {_caps.min():.2f} kW of {_cp.max_electrical_power}",
+)
+
+# End to end: even at effectively free electricity, the returned plan must
+# not charge past the cap. Free power is the adversarial case -- deleted
+# heat costs nothing, so only the hard constraint stands between the solver
+# and a boiled tank.
+_cres = _copt.optimize(
+    _cst, _cprices, _cout, _czeros, _czeros, _czeros, datetime(2026, 1, 15)
+)
+_cm.simulate_trajectory(
+    _cst, np.asarray(_cres.power_schedule), _cout,
+    _czeros, _czeros, _czeros, 0.25,
+)
+R.check(
+    "even free electricity cannot plan past the tank's ceiling",
+    float(_cm.last_buffer_refused.max()) < 1e-6,
+    f"refused {float(_cm.last_buffer_refused.max()):.4f} kW somewhere in the "
+    "final plan; the cap loop should have re-solved it away",
+)
+R.check(
+    "and the trajectory itself respects the cap",
+    float(_cm.last_buffer_trajectory.max()) <= 60.0 + 1e-6,
+    f"tank peaked at {float(_cm.last_buffer_trajectory.max()):.2f} C",
+)
+
 
 R.section("Buffer tank standby loss scales with the tank (items 27/29)")
 
