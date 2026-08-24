@@ -403,7 +403,7 @@
     "mode": "'box'",
     "step": "0.05"
    },
-   "default": "0.0",
+   "default": "0.1",
    "required": "Optional",
    "selector": "NumberSelector"
   },

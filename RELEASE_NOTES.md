@@ -1,5 +1,67 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v3.9.0
+
+Two things the planner was quietly charging you for, and neither was ever
+something you asked for.
+
+### Your comfort band is what the plan owes you
+
+You give the optimizer a temperature *range* — 17 to 23 °C by default — and
+a target inside it. The target was being treated as far more binding than it
+reads: the plan would spend real money keeping the house near 21 °C even when
+your band gave it four degrees of room and the house was never close to being
+too cold.
+
+Measured on a cold January day, that preference cost 18 % of the bill — 28.55
+SEK against 23.28 — to hold the house 0.32 °C warmer on average. The band was
+never in danger either way.
+
+The pull towards the target is now half as strong, which is the point where
+the saving stops improving and a genuine preference for your setpoint still
+survives. The band itself is unchanged and is still defended exactly as
+before: the plan will not take your house below your minimum to save money.
+
+**What you will see.** Slightly more savings and a slightly cooler house. At
+the default comfort weight, a cold winter day now averages 19.4 °C and saves
+53 %, where before it averaged 19.8 °C and saved 51 %.
+
+| Comfort weight | Average room temp | Savings |
+|---|---|---|
+| 5 (default) | 19.4 °C | 53% |
+| 10 | 19.8 °C | 51% |
+| 20 | 20.2 °C | 49% |
+| 40 | 20.4 °C | 47% |
+
+If you preferred the old behaviour, raise **Comfort weight** on the Savings vs
+comfort page — one step up, from 5 to 10, reproduces it almost exactly.
+
+### Compressor starts now cost what they cost
+
+The planner has always avoided switching the pump on and off more than
+necessary. It did so through a term with no units — not money, not starts,
+just a number that discouraged change for its own sake. That term was
+expensive: removing it cut the two-zone winter bill by about 5 %, and on that
+scenario without adding a single compressor start. Across the full set of test
+scenarios the electricity cost falls about 9 % while the total number of
+compressor starts rises about 5 % — a trade worth making, and one you can now
+tune deliberately.
+
+Discouraging short cycling is what the **Compressor cycling cost** setting is
+for, and that one is denominated in kronor per start-stop cycle, so the trade
+against electricity is one you can read and set. It now defaults to 0.10 SEK
+per cycle instead of zero.
+
+That figure is the restart transient — a heat pump re-establishing steady
+state runs inefficiently for a few minutes, worth roughly 0.05–0.1 kWh. It
+deliberately does *not* try to price compressor wear, which is real but much
+harder to estimate honestly. If your unit is one you want to protect harder,
+raise it.
+
+**Being straight about the limits.** These two changes pull in opposite
+directions on the same dial, and the net effect on your bill depends on your
+prices and your house. The comfort change is the larger of the two.
+
 ## v3.8.0
 
 This is an audit release. The whole codebase — the planning economics, the

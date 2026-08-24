@@ -556,7 +556,7 @@ R.check(
 )
 # The README's own table, reproduced. If this drifts, either the optimizer
 # changed or the documentation is now lying to users.
-documented = {5.0: (19.8, 51), 10.0: (20.1, 49), 20.0: (20.4, 47), 40.0: (20.5, 46)}
+documented = {5.0: (19.4, 53), 10.0: (19.8, 51), 20.0: (20.2, 49), 40.0: (20.4, 47)}
 drift = [
     f"w={w:.0f}: {t:.1f}°C/{s:.0f}% vs documented "
     f"{documented[w][0]}°C/{documented[w][1]}%"
@@ -626,14 +626,46 @@ R.check(
     f"{sunny['result'].pv_self_consumed_kwh:.2f} kWh",
 )
 
-# A better heat pump must cost less to run for the same comfort.
+# A better heat pump must never leave the house worse off. It is tempting to
+# assert simply that it costs less, and that was the check here until v3.9.0 --
+# but it is not an invariant of an optimizer that values comfort, and it fails
+# for a legitimate reason.
+#
+# `winter_typical` has a six-hour cheap night block, which is exactly 24
+# quarter-hour steps; both plans saturate it, so both buy 36.00 kWh and both
+# spend 23.28 SEK. What the efficient pump does with that identical energy is
+# deliver more heat: the same money buys a house 0.95 K warmer on average and
+# 1.21 K warmer at its coldest. Efficiency is converted into whichever of
+# money or comfort the user's `comfort_weight` says is worth more, and here
+# the price structure means the cheap window binds before the money does.
+#
+# So the honest invariant is dominance: never worse on either axis, and
+# strictly better on at least one.
 efficient = build(season="winter", two_zone=False, dhw=False, cop_scale=1.4)
 standard = build(season="winter", two_zone=False, dhw=False, cop_scale=1.0)
+
+
+def _warmth(run):
+    """Mean indoor temperature the plan actually delivers."""
+    result = run["result"]
+    series = [
+        s
+        for s in (result.upper_temp_trajectory, result.lower_temp_trajectory)
+        if s
+    ] or [result.room_temp_trajectory]
+    return float(np.mean([np.mean(np.asarray(s)[1:]) for s in series]))
+
+
+_eff_cost = efficient["result"].predicted_cost
+_std_cost = standard["result"].predicted_cost
+_eff_warm, _std_warm = _warmth(efficient), _warmth(standard)
 R.check(
-    "a more efficient heat pump costs less",
-    efficient["result"].predicted_cost < standard["result"].predicted_cost,
-    f"{standard['result'].predicted_cost:.2f} -> "
-    f"{efficient['result'].predicted_cost:.2f}",
+    "a more efficient heat pump is never worse, and is better somewhere",
+    _eff_cost <= _std_cost + 1e-6
+    and _eff_warm >= _std_warm - 1e-6
+    and (_eff_cost < _std_cost - 1e-6 or _eff_warm > _std_warm + 1e-6),
+    f"cost {_std_cost:.2f} -> {_eff_cost:.2f}, "
+    f"mean indoor {_std_warm:.2f} -> {_eff_warm:.2f} °C",
 )
 
 # A leakier house must cost more than a tight one, all else equal.
