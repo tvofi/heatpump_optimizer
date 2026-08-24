@@ -25,6 +25,33 @@ release rather than to keep adding.
 Nothing from items 1–33. What follows was found along the way, judged real,
 and deliberately not built.
 
+- **The wood side of the setup diagram is a single-tank abstraction, and
+  the abstraction distorts the model on a real two-tank system** (issue
+  #40, found testing v3.14.0 against a live installation). The house side
+  was only a drawing bug and was fixed in v3.14.1 (one shared flow feeds
+  both floors, exactly as the model computes it). The wood side goes into
+  the physics: `external_heat_kw` is added to the heat-pump buffer tank and
+  the HP's COP is computed against that same tank, so a burn falsely
+  penalizes the modelled COP, falsely consumes `buffer_max_temp` headroom
+  (the hard-cap tighten loop can throttle HP charging because the *wood*
+  filled the modelled tank), and the hold schedule reasons about one
+  blended store that does not exist. Measured magnitude (synthetic winter
+  burn day, 9 kW × 4 h, 500 L buffer, throttling valve, identical schedule
+  both arms): a fire overlapping cheap-hour charging costs ΔCOP +0.23 mean
+  / +0.52 peak and +24 % phantom electrical energy over burn +6 h; an
+  evening fire and the flat-price control both measure 0.0 % — the
+  mechanism is price-independent, its exposure is price-driven, so it
+  strikes precisely when storage is working. Cap-headroom theft is 100 %
+  attributable to wood heat and binds on smaller tanks (200 L + 12 kW:
+  4.7 kWh refused, tighten loop firing; 15 kW: 15.4 kWh). Plan-level SEK
+  deltas failed their flat-price null (solver multi-start noise) and are
+  deliberately not recorded. Neither distortion exists without a
+  throttling valve. Issue #40 carries the approved
+  design: v3.15.0 models the two tanks with the `wood_share` draw law
+  (wood-while-usable priority), v3.16.0 adds the layout editor over a
+  validated topology catalog so drawing and physics can never diverge
+  again.
+
 - **System identification fits a first-order plant** (audit finding 3). The
   step-response experiment fits one time constant to a two-store plant (room
   plus slab), so its `heat_loss_kw_per_c` blends envelope loss with slab

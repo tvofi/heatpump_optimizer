@@ -1,5 +1,66 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v3.14.1
+
+### The setup diagram stops contradicting your plumbing
+
+Testing v3.14.0's Setup page against a real two-tank installation (issue
+#40) showed the drawn topology disagreeing with the physical system — and
+the investigation split the error in two.
+
+**The house side was purely a drawing bug, and is fixed.** The model already
+does what the real system does: the mixing valve produces one flow
+temperature and feeds *both* floors in parallel. The card drew the valve
+feeding the upper floor only, with the tank running straight to the slab —
+a different system that nobody's model was simulating. The valve (or the
+tank, where no valve exists) now feeds both floor boxes.
+
+**The wood side is model-deep, and is *labelled* rather than hidden.** The
+drawing was faithful: the model really does fold wood-furnace heat into the
+heat-pump buffer tank as if the two tanks were one. Until v3.15.0 replaces
+that abstraction with a real two-tank model, the wood box carries the
+caption *"modelled as heat into the heat-pump tank"* — on the card and in
+the config-flow overview — so the picture admits what the physics does.
+
+What the single-tank abstraction costs on a real two-tank system was
+measured on a synthetic winter burn day (9 kW fire for 4 h, two-zone house,
+500 L buffer behind a throttling valve, identical electrical schedule in
+both arms so only the COP coupling differs). The numbers motivate v3.15.0:
+
+- A fire overlapping the plan's cheap-hour charging drags the modelled COP
+  down by **0.23 on average and 0.52 at the worst step** — the model
+  believed 1.02 where the isolated reference says 1.53, a 33 %
+  understatement — booking **2.8 kWh (+24 %) of phantom electricity** over
+  the burn and the six hours after it.
+- The same fire in the evening, when nothing is charging, distorts
+  **nothing at all**, and at flat prices the distortion measures 0.0 %.
+  The coupling is price-independent physics whose *exposure* is
+  price-driven: only a price spread makes the plan charge the tank hot
+  enough for the false penalty to engage — so it strikes exactly the
+  behaviour storage exists for.
+- The planned bill barely moves, but the plan's shape does: with the
+  modelled COP collapsed, the plan switched the pump off during *cheap*
+  early-morning hours and ended the day slightly colder.
+- The false `buffer_max_temp` headroom consumption is real and, in
+  isolation runs, 100 % attributable to the wood heat. It does not bind at
+  500 L with a 9 kW fire, but a 200 L tank with a 12 kW fire has
+  **4.7 kWh of heat-pump charging refused** and the hard-cap loop
+  tightening power ceilings because the *wood* filled the modelled tank
+  (15.4 kWh at 15 kW).
+- Neither distortion exists without a throttling mixing valve, and the
+  isolated figures are upper bounds — a real wood tank also carries part
+  of the emitter load.
+
+(A plan-level cost delta was measured too, but its flat-price null control
+came back dirty — multi-start solver noise, not physics — so per this
+repo's measurement discipline it is not quoted.)
+
+### Fixed
+
+- Setup-page captions longer than their box overflowed it (the no-valve
+  buffer caption ran past its border by 19 viewBox units, measured in a real
+  browser). Long captions now wrap inside the box.
+
 ## v3.14.0
 
 ### A commanded valve can now wait for the peak
