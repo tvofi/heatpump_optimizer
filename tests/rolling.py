@@ -202,6 +202,9 @@ def run_rolling(
             lower_floor_temperature=float(lower[-1]),
             dhw_temperature=float(tank[-1]),
             buffer_tank_temperature=state.buffer_tank_temperature,
+            # Carried, not reset: the field-by-field rebuild is the one place
+            # a new ThermalState field silently vanishes (issue #40).
+            wood_tank_temperature=state.wood_tank_temperature,
             dhw_hours_since_legionella=(
                 0.0
                 if float(tank[-1]) >= params.dhw_legionella_temp - 1.0
