@@ -688,12 +688,29 @@ is the one sensor that measures what the house actually receives: together
 with the tank temperatures it says how much of the heating the fire covers
 right now — the furnace is doing 70 %, so electric space heating stands down
 by 70 % — and the plan is given that free heat for a strictly bounded window:
-never more than two hours ahead, fading over it, and never more energy than
-the wood tank measurably holds. The tank pair also ends the
+never more than two hours ahead, fading over it, and — unless the tank is
+modelled as its own store (below), where the stored energy enters the plan
+directly — never more energy than the wood tank measurably holds. The tank
+pair also ends the
 keep-assuming-the-fire window early once a hot top sits over a cold bottom,
 because that charge is nearly spent whatever the timer says. Measurement is
 only ever allowed to argue for *less* trust in the fire, never more: a wrong
 promise of free heat is a cold house in winter.
+
+**With a two-zone house and a mixing valve, the wood tank becomes its own
+modelled store** (v3.15.0, issue #40). When the wood-tank top probe is
+configured on such a system, the model simulates two tanks side by side: a
+burn charges the *wood* tank, the 4-way valve draws wood-first while the wood
+side can meet the flow temperature and shifts to the heat-pump tank as it
+depletes, and the blend law is the same one the outlet sensor measures, so
+model and measurement cannot disagree. The point of the split: a fire can no
+longer make the heat pump's modelled efficiency look worse (the old
+single-tank abstraction charged the modelled COP for water the pump never
+made) and can no longer eat the buffer's safe-temperature headroom, so the
+plan keeps charging cheap hours right through a burn. The heat still in the
+wood tank at the end of the day is counted in the savings settlement and the
+storage battery view, at up to 95 °C. Without the probe — or if it goes stale
+— everything falls back to exactly the previous behaviour.
 
 Off by default: most users have no such source, and a feature that cannot save
 them anything should not be able to cost them anything.

@@ -46,11 +46,20 @@ and deliberately not built.
   4.7 kWh refused, tighten loop firing; 15 kW: 15.4 kWh). Plan-level SEK
   deltas failed their flat-price null (solver multi-start noise) and are
   deliberately not recorded. Neither distortion exists without a
-  throttling valve. Issue #40 carries the approved
-  design: v3.15.0 models the two tanks with the `wood_share` draw law
-  (wood-while-usable priority), v3.16.0 adds the layout editor over a
-  validated topology catalog so drawing and physics can never diverge
-  again.
+  throttling valve. **Status: the model half shipped in v3.15.0** — the
+  `wood_share` draw law (wood-while-usable priority), per-tank energy
+  bounds, isolated COP, settlement/battery inclusion, and the two-tank
+  Setup drawing; measured on the same burn day, 15 % less planned HP
+  electricity at equal comfort and the storage signature restored (buffer
+  charged to 62 °C at spread vs 41 °C under the old abstraction, flat
+  prices unmoved). One trap recorded for posterity: the two-tank branch
+  had to mirror the single-tank branch's floating-point arithmetic
+  operation-for-operation, because a single ulp of difference moved a
+  96-step solve into a different basin and broke the feature-off
+  byte-identity null. Remaining: the layout editor over a validated
+  topology catalog (v3.16.0), and the optional DHW-refill coil in the
+  wood tank (owner input 2026-08-25, design recorded on issue #40;
+  planned as v3.15.1 — depends on the modelled wood-tank temperature).
 
 - **System identification fits a first-order plant** (audit finding 3). The
   step-response experiment fits one time constant to a two-store plant (room

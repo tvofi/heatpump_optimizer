@@ -1303,33 +1303,36 @@ class ThermalModel:
             if two_tank:
                 # Per-tank energy bounds, the same fix generalized: neither
                 # tank can deliver heat it does not have, each judged against
-                # its own contents and its own input.
+                # its own contents and its own input. Every expression here
+                # deliberately mirrors the single-tank branch's arithmetic
+                # (same operations, same order, division not reciprocal
+                # multiplication) so that at w == 0 this path is
+                # bit-identical to it — one ulp of difference moved a
+                # 96-step solve into a different basin when this was first
+                # written with `* (1/dt)`.
                 T_w = state.wood_tank_temperature
                 C_w = p.wood_tank_thermal_mass
                 q_wood_loss = p.wood_tank_heat_loss_coefficient * (T_w - 20.0)
                 w = wood_share(T_w, T_buf, flow_set, floor_temp)
-                inv_dt = 1.0 / max(dt_hours, 1e-6)
-                avail_wood = (
-                    ext - q_wood_loss
-                    + C_w * max(0.0, T_w - floor_temp) * inv_dt
-                )
-                avail_hp = (
-                    thermal_power - q_buf_loss
-                    + C_buf * max(0.0, T_buf - floor_temp) * inv_dt
-                )
-                want_wood = w * drawn
-                wood_draw = min(want_wood, max(avail_wood, 0.0))
+                avail_wood = ext - q_wood_loss + C_w * max(
+                    0.0, T_w - floor_temp
+                ) / max(dt_hours, 1e-6)
+                avail_hp = thermal_power - q_buf_loss + C_buf * max(
+                    0.0, T_buf - floor_temp
+                ) / max(dt_hours, 1e-6)
+                wood_draw = min(w * drawn, max(avail_wood, 0.0))
                 # A wood shortfall shifts to the HP side first — the physical
                 # valve shift as the wood side depletes — and only what
                 # neither tank can back starves the emitters, proportionally.
-                hp_draw = min(
-                    drawn - wood_draw, max(avail_hp, 0.0)
-                )
+                hp_draw = min(drawn - wood_draw, max(avail_hp, 0.0))
                 delivered = wood_draw + hp_draw
-                if drawn > 1e-12 and delivered < drawn:
+                if drawn > delivered > 0.0:
                     scale = delivered / drawn
                     q_rad_from_buf *= scale
                     q_floor_from_buf *= scale
+                elif delivered <= 0.0:
+                    q_rad_from_buf = 0.0
+                    q_floor_from_buf = 0.0
             else:
                 available = thermal_power - q_buf_loss + C_buf * max(
                     0.0, T_buf - floor_temp
@@ -1351,12 +1354,18 @@ class ThermalModel:
 
         new_wood = state.wood_tank_temperature
         if two_tank:
-            # The HP tank supplies only its own share of the draw; the wood
-            # tank carries the rest. Wood heat charges the wood tank, whose
-            # ceiling is a sanity clamp with no refused accounting — nothing
-            # the optimizer commands charges that tank, so there is nothing
-            # for the hard-cap loop to act on.
-            dT_buf = (thermal_power - hp_draw - q_buf_loss) / max(C_buf, 0.01)
+            # The HP tank supplies what the emitters received minus the wood
+            # side's contribution — written as the single-tank expression
+            # plus `wood_draw` so that at w == 0 the bits are identical, and
+            # so that per-step conservation is exact by construction. Wood
+            # heat charges the wood tank, whose ceiling is a sanity clamp
+            # with no refused accounting: nothing the optimizer commands
+            # charges that tank, so there is nothing for the cap loop to
+            # act on.
+            dT_buf = (
+                thermal_power - q_rad_from_buf - q_floor_from_buf
+                - q_buf_loss + wood_draw
+            ) / max(C_buf, 0.01)
             dT_wood = (ext - wood_draw - q_wood_loss) / max(C_w, 0.01)
             dT_wood_cap = max(0.0, WOOD_TANK_MAX_TEMP - T_w) / max(
                 dt_hours, 1e-6
