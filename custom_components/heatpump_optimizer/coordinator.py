@@ -3407,10 +3407,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         params = self._thermal_params
         mode = params.mixing_valve_mode
         if not mixing_valve.is_throttling(mode):
-            return {
-                "mixing_valve_mode": mode,
-                "valve_target_recommendation": None,
-            }
+            # No keys at all without a valve, so every existing capture of the
+            # coordinator's data stays byte-for-byte identical.
+            return {}
         totals = [
             _as_float(entry.get("total"), 0.0) for entry in self._prices
         ]

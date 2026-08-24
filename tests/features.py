@@ -2750,10 +2750,10 @@ R.check(
     "a bare setpoint invites blind trust",
 )
 R.check(
-    "and stays unknown without a valve to set",
-    _zone_coord(_BASE)._mixing_valve_view()["valve_target_recommendation"]
-    is None,
-    "no valve, nothing to recommend",
+    "and stays out of the data entirely without a valve to set",
+    _zone_coord(_BASE)._mixing_valve_view() == {},
+    "no valve, no keys -- existing captures of the coordinator's data must "
+    "stay byte-for-byte identical",
 )
 
 
