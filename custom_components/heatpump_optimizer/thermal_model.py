@@ -1034,49 +1034,39 @@ class ThermalModel:
         q_buf_loss = p.buffer_tank_heat_loss_coefficient * (T_buf - 20.0)
 
         if throttled:
-            # --- A valve exists, so delivery is decided by the house ---------
+            # --- A valve exists: it regulates flow temperature ----------------
             #
-            # Emitter capacity at the current tank temperature. The UA is backed
-            # out of the nameplate output at a design flow-to-zone difference,
-            # so at that design point this reproduces the delivery the
-            # unthrottled branch would give rather than inventing a new balance.
+            # The emitter UA is backed out of the nameplate output at a design
+            # flow-to-zone difference, so when the valve saturates wide open
+            # (tank at or below the curve) this reproduces the delivery the
+            # unthrottled branch would give at the design point rather than
+            # inventing a new balance.
             design_power = p.max_electrical_power * max(p.cop_nominal, 1.0)
             design_dt = max(p.emitter_design_delta_t, 1.0)
-            cap_rad = max(
-                0.0,
-                rad_fraction * design_power / design_dt * (T_buf - T_upper),
-            )
-            cap_floor = max(
-                0.0,
-                (1.0 - rad_fraction) * design_power / design_dt * (T_buf - T_slab),
-            )
-            capacity = cap_rad + cap_floor
+            ua_rad = rad_fraction * design_power / design_dt
+            ua_floor = (1.0 - rad_fraction) * design_power / design_dt
 
-            # What the valve will actually pass, which is what the house is
-            # asking for -- and the surplus above it has nowhere to go but the
-            # tank. This is the line that makes the tank a store.
-            area_ratio = p.upper_floor_area_ratio
-            house_temp = T_upper * area_ratio + T_lower * (1.0 - area_ratio)
             # An unconfigured target means the top of the comfort band, as
             # documented everywhere the option is described.
             target = p.mixing_valve_target or p.comfort_ceiling
-            demand = mixing_valve.delivery_demand(
-                indoor_temp=house_temp,
+            flow_set = mixing_valve.flow_setpoint(
                 target_temp=target,
                 outdoor_temp=outdoor_temp,
                 heat_loss_coefficient=u_upper + u_lower,
-                thermal_mass=(
-                    p.upper_floor_thermal_mass + p.lower_floor_thermal_mass
-                ),
-                dt_hours=dt_hours,
+                emitter_ua=ua_rad + ua_floor,
             )
-            delivered = min(capacity, demand)
-            if capacity > 1e-9:
-                q_rad_from_buf = delivered * cap_rad / capacity
-                q_floor_from_buf = delivered * cap_floor / capacity
-            else:
-                q_rad_from_buf = 0.0
-                q_floor_from_buf = 0.0
+            # The valve mixes return water into the flow, so the emitters see
+            # the curve temperature, never raw tank water -- that is what makes
+            # stored heat leave at house-demand rate instead of dumping within
+            # a step. It cannot make water hotter than the tank, so below the
+            # curve it saturates wide open.
+            t_mix = min(T_buf, flow_set)
+            q_rad_from_buf = mixing_valve.emitter_delivery(
+                mix_temp=t_mix, zone_temp=T_upper, ua=ua_rad
+            )
+            q_floor_from_buf = mixing_valve.emitter_delivery(
+                mix_temp=t_mix, zone_temp=T_slab, ua=ua_floor
+            )
         else:
             # No valve: whatever the pump makes reaches the emitters. These two
             # sum to `thermal_power` identically, so the tank is a pass-through

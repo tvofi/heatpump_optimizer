@@ -57,46 +57,52 @@ THROTTLING_MODES: frozenset[str] = frozenset(
     {MODE_MANUAL, MODE_SMART_READ, MODE_SMART_WRITE}
 )
 
-#: How much of the remaining gap to the target the valve closes in one step.
-#: A real valve is a PI loop; this is the proportional part, and it is
-#: deliberately less than 1 so the model does not pretend the house reaches its
-#: target instantly.
-DEFAULT_VALVE_GAIN = 0.5
-
-
 def is_throttling(mode: str | None) -> bool:
     """Whether this mode has a valve that limits delivery."""
     return (mode or MODE_NONE) in THROTTLING_MODES
 
 
-def delivery_demand(
+def flow_setpoint(
     *,
-    indoor_temp: float,
     target_temp: float,
     outdoor_temp: float,
     heat_loss_coefficient: float,
-    thermal_mass: float,
-    dt_hours: float,
-    gain: float = DEFAULT_VALVE_GAIN,
+    emitter_ua: float,
 ) -> float:
-    """Heat the valve will pass this step to hold `target_temp`, in kW.
+    """The flow temperature the valve regulates to, in °C.
 
-    Two terms: replace what the house is losing, and close some of the gap to
-    the target. Never negative -- a valve can shut, but it cannot cool a house.
+    A real mixing valve does not regulate room temperature -- it regulates the
+    *flow* temperature, following a weather-compensation curve. The curve here
+    is derived rather than configured: the flow temperature that, in steady
+    state, holds the house exactly at ``target_temp`` is the target plus the
+    house's standing loss spread over the emitter UA.
 
-    The behaviour that matters for storage is what happens *at* the target.
-    Once the house is there the second term vanishes and delivery falls back to
-    the standing loss, which is less than the pump is making. From that moment
-    the surplus goes to the tank. That is why a dumb valve set at the maximum
-    permitted temperature fills both stores in the right order: the slab first,
-    because it stores at room temperature and costs no COP, and the tank only
-    with what is left over.
+    This is what bounds discharge. The valve mixes return water into the flow,
+    so the emitters never see raw tank water while the tank runs above the
+    curve -- stored heat leaves the tank at the rate the house actually needs,
+    not at the 22-26 kW an open valve would dump. Below the curve the valve
+    saturates wide open and delivery follows the tank temperature itself.
+
+    The old model got both halves of this wrong: it computed emitter delivery
+    from the raw tank temperature, capped by a controller demand whose
+    gap-closing term divided by the step length -- so delivery changed with
+    ``time_step_minutes`` and a charged tank drained within a step or two of
+    the pump stopping. Every plan then relaxed to the same empty tank, the
+    terminal credit had no gradient, and the optimizer correctly concluded
+    that storage buys nothing. Delivery is now a pure function of
+    temperatures; the effective proportional gain is the emitter UA itself,
+    in kW/K, which no step length can distort.
     """
-    if dt_hours <= 0.0:
-        return 0.0
-    steady = heat_loss_coefficient * (indoor_temp - outdoor_temp)
-    gap = (target_temp - indoor_temp) * thermal_mass * max(gain, 0.0) / dt_hours
-    return max(0.0, steady + gap)
+    q_hold = heat_loss_coefficient * max(0.0, target_temp - outdoor_temp)
+    return target_temp + q_hold / max(emitter_ua, 1e-6)
+
+
+def emitter_delivery(*, mix_temp: float, zone_temp: float, ua: float) -> float:
+    """Heat one emitter circuit delivers at the mixed flow temperature, in kW.
+
+    Never negative: a valve can shut, but it cannot cool a house.
+    """
+    return max(0.0, ua * (mix_temp - zone_temp))
 
 
 @dataclass(frozen=True)
