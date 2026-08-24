@@ -2700,6 +2700,30 @@ R.check(
     f"tank peaked at {float(_cm.last_buffer_trajectory.max()):.2f} C",
 )
 
+# The recommendation is surfaced, not just computable. recommend_target()
+# existed since v3.7.0 with zero callers -- the integration could recommend a
+# setting and told nobody. The coordinator now publishes it for the
+# diagnostic sensor.
+_vc = _zone_coord(_BASE, mixing_valve_mode="manual", max_temperature=23.0)
+_vview = _vc._mixing_valve_view()
+_vrec = _vview.get("valve_target_recommendation")
+R.check(
+    "the valve recommendation reaches the coordinator's data",
+    isinstance(_vrec, dict) and _vrec.get("target") == 23.0,
+    f"got {_vrec!r}",
+)
+R.check(
+    "with the reasoning attached, not just a number",
+    isinstance(_vrec, dict) and bool(_vrec.get("reason")),
+    "a bare setpoint invites blind trust",
+)
+R.check(
+    "and stays unknown without a valve to set",
+    _zone_coord(_BASE)._mixing_valve_view()["valve_target_recommendation"]
+    is None,
+    "no valve, nothing to recommend",
+)
+
 
 R.section("Buffer tank standby loss scales with the tank (items 27/29)")
 

@@ -3396,6 +3396,43 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             "external_heat": self._external_heat.state.as_dict(),
         }
 
+    def _mixing_valve_view(self) -> dict[str, Any]:
+        """The valve mode in force, and what a dumb valve should be set to.
+
+        ``recommend_target`` has existed since v3.7.0 and nothing called it —
+        the integration could recommend a setting and told nobody. The price
+        ratio feeding it is cheapest over dearest of the currently published
+        prices, so the reason can say when storing is not worth much today.
+        """
+        params = self._thermal_params
+        mode = params.mixing_valve_mode
+        if not mixing_valve.is_throttling(mode):
+            return {
+                "mixing_valve_mode": mode,
+                "valve_target_recommendation": None,
+            }
+        totals = [
+            _as_float(entry.get("total"), 0.0) for entry in self._prices
+        ]
+        positives = [t for t in totals if t > 0.0]
+        ratio = (
+            min(positives) / max(positives) if len(positives) >= 2 else None
+        )
+        rec = mixing_valve.recommend_target(
+            comfort_min=self._opt_config.min_temp,
+            comfort_max=self._opt_config.max_temp,
+            price_ratio=ratio,
+        )
+        return {
+            "mixing_valve_mode": mode,
+            "valve_target_recommendation": {
+                "target": rec.target,
+                "reason": rec.reason,
+                "configured_target": params.mixing_valve_target or None,
+                "price_ratio": round(ratio, 3) if ratio is not None else None,
+            },
+        }
+
     def _build_data_dict(self) -> dict[str, Any]:
         """Everything the entities read, assembled from the domain views."""
         result = self._optimization_result
@@ -3415,6 +3452,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._ecl110_view,
             self._external_heat_view,
             self._input_health_view,
+            self._mixing_valve_view,
         ):
             data.update(view())
         data.update(self._away_state.as_dict())

@@ -94,6 +94,8 @@ async def async_setup_entry(
         ThermalBatteryEnergySensor(coordinator, entry),
         # Learned comfort weight (item 19)
         ComfortWeightSensor(coordinator, entry),
+        # Dumb-valve setting recommendation (item 29)
+        ValveTargetRecommendationSensor(coordinator, entry),
     ]
 
     async_add_entities(entities)
@@ -1393,6 +1395,46 @@ class ThermalBatteryEnergySensor(HeatPumpOptimizerSensorBase):
 # ---------------------------------------------------------------------------
 # Learned comfort weight (item 19)
 # ---------------------------------------------------------------------------
+
+
+class ValveTargetRecommendationSensor(HeatPumpOptimizerSensorBase):
+    """What to set a dumb mixing valve to, and why.
+
+    Item 29 asks the integration to *recommend* a setting for a valve it
+    cannot command. The number alone would invite blind trust, so the
+    attributes carry the reasoning and what it costs — a target at the
+    comfort ceiling gives up the valve's own overshoot protection. Unknown
+    unless a mixing valve mode is configured.
+    """
+
+    _attr_icon = "mdi:valve"
+    _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+    _attr_device_class = SensorDeviceClass.TEMPERATURE
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator, entry):
+        super().__init__(
+            coordinator, entry,
+            "valve_target_recommendation", "Valve Target Recommendation",
+        )
+
+    @property
+    def native_value(self) -> float | None:
+        rec = (self.coordinator.data or {}).get("valve_target_recommendation")
+        return rec.get("target") if isinstance(rec, dict) else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        data = self.coordinator.data or {}
+        rec = data.get("valve_target_recommendation")
+        if not isinstance(rec, dict):
+            return {}
+        return {
+            "reason": rec.get("reason"),
+            "configured_target": rec.get("configured_target"),
+            "mixing_valve_mode": data.get("mixing_valve_mode"),
+            "price_ratio": rec.get("price_ratio"),
+        }
 
 
 class ComfortWeightSensor(HeatPumpOptimizerSensorBase):
