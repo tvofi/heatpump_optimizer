@@ -3001,6 +3001,68 @@ R.check(
 )
 
 
+R.section("Setup topology: one description for every picture (items 32/33)")
+
+from heatpump_optimizer import topology as _topo  # noqa: E402
+
+_full_cfg = {
+    "indoor_temp_entity": "sensor.indoor",
+    "outdoor_temp_entity": "sensor.outdoor",
+    "upper_floor_thermal_mass": 3.0,
+    "lower_floor_thermal_mass": 4.5,
+    "dhw_tank_volume": 200.0,
+    "mixing_valve_mode": "manual",
+    "buffer_tank_volume": 750.0,
+    "external_heat_detection_enabled": True,
+    "wood_tank_top_entity": "sensor.wood_top",
+}
+_full = _topo.describe_setup(_full_cfg)
+R.check(
+    "the topology derives from the model's own inference",
+    _full["two_zone"] and _full["dhw"] and _full["buffer"]["is_store"],
+    "two-zone from zone settings, DHW from tank settings, store from the "
+    "valve and volume -- never from separate flags that could disagree",
+)
+_places = {s["place"] for s in _full["slots"]}
+R.check(
+    "a full topology shows every place",
+    {"lower_zone", "dhw_tank", "wood_tank", "mixing_valve"} <= _places,
+    f"got {sorted(_places)}",
+)
+_empty_slots = [s for s in _full["slots"] if s["entity"] is None]
+_filled = {s["key"]: s["entity"] for s in _full["slots"] if s["entity"]}
+R.check(
+    "empty slots are shown empty, not omitted",
+    len(_empty_slots) >= 5 and "sensor.wood_top" in _filled.values(),
+    "a diagram that silently omits an unconfigured sensor looks complete, "
+    "which is worse than no diagram",
+)
+
+_min = _topo.describe_setup({"indoor_temp_entity": "sensor.i"})
+_min_places = {s["place"] for s in _min["slots"]}
+R.check(
+    "a minimal setup does not grow places it does not have",
+    not ({"lower_zone", "dhw_tank", "wood_tank", "wood_valve"} & _min_places),
+    f"got {sorted(_min_places)}",
+)
+
+_text = _topo.render_text_summary(_full)
+R.check(
+    "the flow overview is a fenced monospaced block",
+    _text.startswith("```\n") and _text.endswith("\n```"),
+    "the one drawing surface every install already renders",
+)
+R.check(
+    "with configured sensors named and empty slots called out",
+    "sensor.wood_top" in _text and "not configured" in _text,
+)
+R.check(
+    "and the storage claim matches the model",
+    "used as a store" in _text,
+    "a 750 L tank behind a manual valve is a store as of v3.10.0",
+)
+
+
 R.section("Buffer tank standby loss scales with the tank (items 27/29)")
 
 # UA follows the tank's *surface area*, which grows as volume^(2/3), while the

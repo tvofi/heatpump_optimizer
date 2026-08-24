@@ -10,7 +10,7 @@
  */
 
 const CARD_TAG = "heatpump-optimizer-card";
-const CARD_VERSION = "3.9.0";
+const CARD_VERSION = "3.12.0";
 
 const DEFAULTS = {
   title: "Heat pump plan",
@@ -1050,20 +1050,203 @@ class HeatpumpOptimizerCard extends HTMLElement {
 
   _dialogHtml(built) {
     const cfg = this._config;
+    // Which page the dialog shows is instance state on purpose: `_render`
+    // rebuilds the shadow root on every plan refresh, on the coordinator's
+    // schedule, and a refresh must not yank the user off the setup page they
+    // are reading (the `_runs` memoisation bug class from v3.2.0).
+    const page = this._dialogPage === "setup" ? "setup" : "plan";
+    // The hidden page is genuinely unrendered, not `display: none`:
+    // `getBoundingClientRect()` returns zeroes for a hidden element, so
+    // `_timeAtClientX` would compute garbage drag times rather than fail.
+    const body =
+      page === "setup"
+        ? this._setupPageHtml()
+        : `${this._chartBlock(built, true)}${this._whatIfHtml()}`;
+    const tab = (id, label) =>
+      `<button type="button" class="dlg-tab${page === id ? " active" : ""}"
+         data-page="${id}" role="tab"
+         aria-selected="${page === id}">${label}</button>`;
     return `
       <dialog class="expanded" aria-label="${esc(cfg.title)}">
         <div class="dlg-head">
           <span class="title">${esc(cfg.title)}</span>
+          <div class="dlg-tabs" role="tablist">
+            ${tab("plan", "Plan")}
+            ${tab("setup", "Setup")}
+          </div>
           <button type="button" class="close" title="Close"
             aria-label="Close">${CLOSE_ICON}</button>
         </div>
-        ${this._legendHtml()}
+        ${page === "plan" ? this._legendHtml() : ""}
         <div class="dlg-body">
-          ${this._chartBlock(built, true)}
-          ${this._whatIfHtml()}
+          ${body}
         </div>
       </dialog>
     `;
+  }
+
+  /** Item 33: the configured system as a picture, with live values in place.
+   *
+   * Drawn from the `setup_topology` attribute the plan sensors publish --
+   * the same description the options flow's overview renders, emitted by the
+   * coordinator so the two can never disagree. Live readings come straight
+   * from `hass.states`, which is fresher than anything routed through the
+   * coordinator and free.
+   *
+   * Static inline SVG, hand-written like the rest of the card: no build
+   * step, no dependencies, and nothing interactive to begin with.
+   */
+  _setupPageHtml() {
+    const topo = this._planAttrRaw("setup_topology", null);
+    if (!topo || !Array.isArray(topo.slots)) {
+      return `<div class="setup-page"><div class="empty">
+        The setup description has not been published yet. It appears with the
+        plan sensors after the integration loads.</div></div>`;
+    }
+    return `<div class="setup-page">${this._setupSvg(topo)}
+      <div class="setup-hint">An empty slot is a sensor this setup could use
+      and does not have; it is shown on purpose. Assign entities under
+      Settings &gt; Integrations &gt; Heat Pump Optimizer.</div></div>`;
+  }
+
+  /** One live reading, formatted, or null for an empty slot. */
+  _slotLive(slot) {
+    if (!slot.entity) return null;
+    const st = this._hass && this._hass.states
+      ? this._hass.states[slot.entity]
+      : null;
+    if (!st || st.state === "unavailable" || st.state === "unknown") {
+      return "unavailable";
+    }
+    const unit =
+      (st.attributes && st.attributes.unit_of_measurement) || "";
+    return `${st.state}${unit ? " " + unit : ""}`;
+  }
+
+  _setupSvg(topo) {
+    const W = 720;
+    const slotsAt = (place) => topo.slots.filter((s) => s.place === place);
+    const boxes = [];
+    // A box is a titled list of slot rows; its height follows its contents.
+    const box = (col, title, places, extra) => {
+      const rows = [];
+      for (const p of places) {
+        for (const s of slotsAt(p)) rows.push(s);
+      }
+      boxes.push({ col, title, rows, extra: extra || [] });
+    };
+
+    const valve =
+      topo.valve_mode && topo.valve_mode !== "none";
+    box(0, "Outside", ["outdoor"]);
+    box(0, "Heat pump", ["heat_pump"]);
+    if (topo.wood && topo.wood.present) {
+      box(0, `Wood furnace tank (${Math.round(topo.wood.volume_l)} L)`,
+        ["wood_tank"]);
+      box(0, "Wood mixing valve", ["wood_valve"]);
+    }
+    const buf = topo.buffer || {};
+    const bufExtra = valve
+      ? [buf.is_store
+          ? `stores up to ${Math.round(buf.max_temp)} °C`
+          : "too small to store"]
+      : ["no mixing valve: delivery is not throttled"];
+    if (valve) {
+      box(1, `Mixing valve (${esc(String(topo.valve_mode))})`,
+        ["mixing_valve"]);
+    }
+    box(1, `Buffer tank (${Math.round(buf.volume_l || 0)} L)`,
+      ["buffer_tank"], bufExtra);
+    if (topo.dhw) box(1, "Hot water tank", ["dhw_tank"]);
+    box(2, topo.two_zone ? "Upper floor" : "House", ["upper_zone"]);
+    if (topo.two_zone) {
+      box(2, "Lower floor (slab)", ["lower_zone", "floor_loop"]);
+    }
+
+    // Lay the columns out top to bottom, then draw. All sizes in viewBox
+    // units; the SVG scales to the dialog like the chart does.
+    const colX = [16, 260, 504];
+    const colW = 200;
+    const rowH = 17;
+    const pad = 8;
+    const colY = [16, 16, 16];
+    for (const b of boxes) {
+      b.x = colX[b.col];
+      b.y = colY[b.col];
+      b.h = 24 + (b.rows.length + b.extra.length) * rowH + pad;
+      colY[b.col] = b.y + b.h + 14;
+    }
+    const H = Math.max(...colY) + 4;
+
+    const parts = [];
+    // Connections first, under the boxes: pump and furnace feed the buffer
+    // column, which feeds the house column.
+    const anchor = (b) => ({ x: b.x + colW, y: b.y + b.h / 2 });
+    const to = (b) => ({ x: b.x, y: b.y + b.h / 2 });
+    const find = (t) => boxes.find((b) => b.title.startsWith(t));
+    // Boxes in the same column stack vertically, so their connection is a
+    // short vertical pipe; a right-to-left curve between them crosses every
+    // box in between and reads as spaghetti.
+    const line = (a, b) => {
+      if (!a || !b) return "";
+      if (a.col === b.col) {
+        const upper = a.y < b.y ? a : b;
+        const lower = a.y < b.y ? b : a;
+        const x = a.x + 24;
+        return `<path class="setup-pipe" d="M ${x} ${upper.y + upper.h}
+          L ${x} ${lower.y}" />`;
+      }
+      return `<path class="setup-pipe" d="M ${anchor(a).x} ${anchor(a).y}
+        C ${anchor(a).x + 30} ${anchor(a).y},
+          ${to(b).x - 30} ${to(b).y}, ${to(b).x} ${to(b).y}" />`;
+    };
+    const bufferBox = find("Buffer tank");
+    const houseBox = find(topo.two_zone ? "Upper floor" : "House");
+    parts.push(line(find("Heat pump"), bufferBox));
+    parts.push(line(find("Wood mixing valve"), bufferBox));
+    parts.push(line(find("Wood furnace tank"), find("Wood mixing valve")));
+    parts.push(line(valve ? find("Mixing valve") : bufferBox, houseBox));
+    if (valve) parts.push(line(bufferBox, find("Mixing valve")));
+    if (topo.two_zone) parts.push(line(bufferBox, find("Lower floor")));
+
+    for (const b of boxes) {
+      const rows = [];
+      let y = b.y + 20 + rowH;
+      for (const s of b.rows) {
+        const live = this._slotLive(s);
+        const cls = s.entity ? "setup-slot" : "setup-slot empty";
+        const value = live === null ? "not configured" : live;
+        // The label and the right-anchored value share one 200-unit row;
+        // SVG text does not wrap, so a long label runs straight into the
+        // value. Trim the label instead — the full name is in the options
+        // flow, and a truncated label beats an unreadable collision.
+        const room = value.length > 10 ? 15 : 19;
+        const label =
+          s.label.length > room ? s.label.slice(0, room - 1) + "…" : s.label;
+        rows.push(`<text class="${cls}" x="${b.x + 10}" y="${y}">
+          <tspan>${esc(label)}</tspan>
+          <tspan class="setup-value" x="${b.x + colW - 10}"
+            text-anchor="end">${esc(value)}</tspan></text>`);
+        y += rowH;
+      }
+      for (const ex of b.extra) {
+        rows.push(`<text class="setup-slot extra" x="${b.x + 10}"
+          y="${y}">${esc(ex)}</text>`);
+        y += rowH;
+      }
+      parts.push(`
+        <g>
+          <rect class="setup-box" x="${b.x}" y="${b.y}" width="${colW}"
+            height="${b.h}" rx="8" />
+          <text class="setup-title" x="${b.x + 10}"
+            y="${b.y + 17}">${esc(b.title)}</text>
+          ${rows.join("")}
+        </g>`);
+    }
+
+    return `<svg class="setup-svg" viewBox="0 0 ${W} ${H}"
+      xmlns="http://www.w3.org/2000/svg" role="img"
+      aria-label="Configured system">${parts.join("")}</svg>`;
   }
 
   /** The what-if panel, shown in the expanded view only.
@@ -1299,6 +1482,13 @@ class HeatpumpOptimizerCard extends HTMLElement {
     if (raw === null || raw === undefined || raw === "") return fallback;
     const value = Number(raw);
     return Number.isFinite(value) ? value : fallback;
+  }
+
+  /** A plan-sensor attribute as-is, for the ones that are not numbers. */
+  _planAttrRaw(name, fallback) {
+    const st = this._stateOf(this._resolveEntity("space"));
+    const raw = ((st && st.attributes) || {})[name];
+    return raw === null || raw === undefined ? fallback : raw;
   }
 
   /** The manual override the integration is currently honouring, if any.
@@ -1855,6 +2045,21 @@ class HeatpumpOptimizerCard extends HTMLElement {
     const closeBtn = dlg.querySelector(".close");
     if (closeBtn) closeBtn.addEventListener("click", this._onDialogClick);
 
+    // Page tabs. Switching re-renders so the hidden page is genuinely gone
+    // from the DOM, and the scroll offset is reset because carrying the plan
+    // page's position into a differently sized setup page lands nowhere.
+    for (const tab of dlg.querySelectorAll(".dlg-tab")) {
+      tab.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        const page = ev.currentTarget.dataset.page;
+        if (page && page !== this._dialogPage) {
+          this._dialogPage = page;
+          this._dialogScroll = 0;
+          this._render();
+        }
+      });
+    }
+
     if (this._expanded && !dlg.open) {
       // showModal promotes the dialog to the top layer, which is what keeps it
       // clear of the dashboard's stacking contexts and any clipping ancestor.
@@ -2049,6 +2254,48 @@ class HeatpumpOptimizerCard extends HTMLElement {
         dialog.expanded .tooltip .dot { width: 0.6em; height: 0.6em; }
         dialog.expanded .whatif { font-size: 1em; }
         dialog.expanded .close svg { width: 1.4em; height: 1.4em; }
+
+        /* Dialog page tabs and the setup page (item 33) */
+        .dlg-tabs { display: flex; gap: 0.3em; flex: 0 0 auto; }
+        .dlg-tab {
+          border: 1px solid var(--divider-color, #e0e0e0);
+          background: transparent; color: var(--secondary-text-color);
+          border-radius: 1em; padding: 0.2em 0.9em; cursor: pointer;
+          font: inherit; font-size: 0.85em;
+        }
+        .dlg-tab.active {
+          color: var(--primary-text-color);
+          border-color: var(--primary-color, #03a9f4);
+        }
+        .dlg-tab:focus-visible {
+          outline: 2px solid var(--primary-color, #03a9f4);
+          outline-offset: 2px;
+        }
+        .setup-page { padding: 0.5em 0.25em; }
+        .setup-svg { width: 100%; height: auto; display: block; }
+        .setup-box {
+          fill: none; stroke: var(--divider-color, #e0e0e0);
+          stroke-width: 1.5;
+        }
+        .setup-pipe {
+          fill: none; stroke: var(--secondary-text-color, #888);
+          stroke-width: 1.5; opacity: 0.55;
+        }
+        .setup-title {
+          font-size: 13px; font-weight: 600;
+          fill: var(--primary-text-color, #222);
+        }
+        .setup-slot { font-size: 12px; fill: var(--primary-text-color, #222); }
+        .setup-slot.empty {
+          fill: var(--secondary-text-color, #888);
+          opacity: 0.75; font-style: italic;
+        }
+        .setup-slot.extra { fill: var(--secondary-text-color, #888); }
+        .setup-value { font-weight: 600; }
+        .setup-hint {
+          color: var(--secondary-text-color);
+          font-size: 0.85em; padding: 0.5em 0.25em;
+        }
 
         /* Editable slot lanes */
         .slot { cursor: grab; }

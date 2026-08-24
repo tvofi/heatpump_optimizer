@@ -189,6 +189,7 @@
         "title": "Inställningar för Heat Pump Optimizer",
         "description": "Välj vilken grupp av inställningar du vill ändra.",
         "menu_options": {
+          "setup_overview": "Ditt system, som det är inställt",
           "entities": "Givare och entiteter",
           "comfort": "Komfort och temperaturer",
           "hot_water": "Varmvatten",
@@ -202,6 +203,10 @@
           "learning": "Självlärande och diagnostik",
           "mixing_valve": "Shuntventil och värmelagring"
         }
+      },
+      "setup_overview": {
+        "title": "Ditt system, som det är inställt",
+        "description": "Vad optimeraren tror att ditt system är, utifrån nuvarande inställningar. En tom plats visas tom med avsikt — det är en givare den här anläggningen skulle kunna använda men inte har.\n\n{setup_summary}"
       },
       "entities": {
         "title": "Givare och entiteter",

@@ -202,7 +202,7 @@ from .const import (
     DEFAULT_BUILDING_PRESET_ENABLED,
     DEFAULT_HEATED_AREA,
 )
-from . import mixing_valve, presets
+from . import mixing_valve, presets, topology
 from .dhw_schedule import is_valid_spec
 
 _LOGGER = logging.getLogger(__name__)
@@ -737,6 +737,7 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
     # Fallback labels for the menu, used when the frontend has no translation
     # to show. They double as the definition of which pages the menu offers.
     _MENU_LABELS = {
+        "setup_overview": "Your system, as configured",
         "entities": "Sensors and entities",
         "comfort": "Comfort and temperatures",
         "hot_water": "Hot water",
@@ -803,6 +804,31 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
             if translated:
                 labels[step_id] = translated
         return labels
+
+    async def async_step_setup_overview(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Item 32: a read-only picture of the configured system.
+
+        Rendered from the same ``describe_setup`` the card's setup page uses,
+        so the two can never disagree about what the system looks like. Empty
+        sensor slots are shown as empty on purpose — the point is to reveal
+        what is missing, and a diagram that silently omits an unconfigured
+        sensor looks complete. Click-to-assign is deliberately deferred: a
+        config flow renders a voluptuous schema, and a genuinely interactive
+        drawing means a custom panel. This page is the staging the item
+        recommends.
+        """
+        if user_input is not None:
+            return await self.async_step_init()
+        setup = topology.describe_setup(self._current)
+        return self.async_show_form(
+            step_id="setup_overview",
+            data_schema=vol.Schema({}),
+            description_placeholders={
+                "setup_summary": topology.render_text_summary(setup)
+            },
+        )
 
     async def async_step_entities(
         self, user_input: dict[str, Any] | None = None

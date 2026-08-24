@@ -177,6 +177,7 @@ from .external_heat import (
 from . import away as away_mode
 from . import battery as battery_view
 from . import mixing_valve
+from . import topology
 from . import pv as pv_model
 from .accuracy import AccuracySample, AccuracyTracker, delivered_ratio
 from .comfort_learning import ComfortLearner, OverrideEvent
@@ -3457,6 +3458,16 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             "external_heat_suppressing": self._external_heat.suppressing,
             "external_heat": self._external_heat.state.as_dict(),
         }
+
+    def describe_setup(self) -> dict[str, Any]:
+        """The configured topology, for every picture of the system.
+
+        Item 32/33's single source: the config-flow overview and the card's
+        setup page both consume this, so the two can never disagree about
+        what the system looks like. Pure over configuration — not part of
+        the data dict, because it only changes when the config does.
+        """
+        return topology.describe_setup(self._config)
 
     def _mixing_valve_view(self) -> dict[str, Any]:
         """The valve mode in force, and what a dumb valve should be set to.

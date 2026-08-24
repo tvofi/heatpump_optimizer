@@ -143,6 +143,10 @@ class FakeCoordinator:
         for key, value in extra.items():
             setattr(self, key, value)
 
+    def describe_setup(self) -> dict:
+        """The topology the plan sensors publish for the card's setup page."""
+        return {"two_zone": False, "dhw": False, "slots": []}
+
     async def async_force_optimization(self):
         self.pressed.append("force_optimization")
 
