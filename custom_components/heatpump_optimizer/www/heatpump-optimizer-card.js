@@ -10,7 +10,7 @@
  */
 
 const CARD_TAG = "heatpump-optimizer-card";
-const CARD_VERSION = "3.14.1";
+const CARD_VERSION = "3.15.0";
 
 const DEFAULTS = {
   title: "Heat pump plan",
@@ -1266,15 +1266,28 @@ class HeatpumpOptimizerCard extends HTMLElement {
 
     const valve =
       topo.valve_mode && topo.valve_mode !== "none";
+    // Whether the model runs the wood tank as its own store (issue #40).
+    // Published by `describe_setup`; absent on older descriptions, where
+    // false is the right answer because that is the model they ran.
+    const twoTank = !!topo.two_tank_modelled;
+    // With two modelled stores the names have to say which tank is which,
+    // and the one valve is the physical 4-way device the wood tank, the
+    // heat-pump tank and both floors all meet at.
+    const tankTitle = twoTank ? "Heat pump tank" : "Buffer tank";
+    const valveTitle = twoTank ? "4-way mixing valve" : "Mixing valve";
     box(0, "Outside", ["outdoor"]);
     box(0, "Heat pump", ["heat_pump"]);
     if (topo.wood && topo.wood.present) {
-      // Honest caption: until the two-tank model lands, wood heat is a
-      // single-tank abstraction — the drawing must say so rather than let
-      // the separate box imply separately modelled physics (issue #40).
+      // Honest caption: while wood heat is a single-tank abstraction the
+      // drawing must say so rather than let the separate box imply
+      // separately modelled physics. Under the two-tank model the box is
+      // the physics, so the caption comes off (issue #40).
       box(0, `Wood furnace tank (${Math.round(topo.wood.volume_l)} L)`,
-        ["wood_tank"], ["modelled as heat into the heat-pump tank"]);
-      box(0, "Wood mixing valve", ["wood_valve"]);
+        ["wood_tank"],
+        twoTank ? [] : ["modelled as heat into the heat-pump tank"]);
+      // No second valve exists in the two-tank layout: its outlet probe is
+      // a slot on the 4-way valve below.
+      if (!twoTank) box(0, "Wood mixing valve", ["wood_valve"]);
     }
     const buf = topo.buffer || {};
     const bufExtra = valve
@@ -1283,10 +1296,10 @@ class HeatpumpOptimizerCard extends HTMLElement {
           : "too small to store"]
       : ["no mixing valve: delivery is not throttled"];
     if (valve) {
-      box(1, `Mixing valve (${esc(String(topo.valve_mode))})`,
+      box(1, `${valveTitle} (${esc(String(topo.valve_mode))})`,
         ["mixing_valve"]);
     }
-    box(1, `Buffer tank (${Math.round(buf.volume_l || 0)} L)`,
+    box(1, `${tankTitle} (${Math.round(buf.volume_l || 0)} L)`,
       ["buffer_tank"], bufExtra);
     if (topo.dhw) box(1, "Hot water tank", ["dhw_tank"]);
     box(2, topo.two_zone ? "Upper floor" : "House", ["upper_zone"]);
@@ -1334,22 +1347,31 @@ class HeatpumpOptimizerCard extends HTMLElement {
         C ${anchor(a).x + 30} ${anchor(a).y},
           ${to(b).x - 30} ${to(b).y}, ${to(b).x} ${to(b).y}" />`;
     };
-    const bufferBox = find("Buffer tank");
+    const bufferBox = find(tankTitle);
     const houseBox = find(topo.two_zone ? "Upper floor" : "House");
     // One shared flow serves every circuit: whatever regulates the supply —
     // the mixing valve when one exists, the raw tank when not — feeds BOTH
     // floors in parallel. Drawing the lower floor from the tank while a
     // valve throttled the upper one contradicted the model, which computes
     // one t_mix and delivers both circuits from it (issue #40).
-    const supplyBox = valve ? find("Mixing valve") : bufferBox;
+    const supplyBox = valve ? find(valveTitle) : bufferBox;
     const supplyName = valve ? "valve" : "buffer";
-    parts.push(line(find("Heat pump"), bufferBox, "hp-buffer"));
-    parts.push(line(find("Wood mixing valve"), bufferBox, "woodvalve-buffer"));
-    parts.push(line(find("Wood furnace tank"), find("Wood mixing valve"),
-      "wood-woodvalve"));
+    // "Heat pump tank" also starts with "Heat pump", so the pump itself is
+    // matched exactly rather than by prefix.
+    parts.push(line(boxes.find((b) => b.title === "Heat pump"), bufferBox,
+      "hp-buffer"));
+    if (twoTank) {
+      // Both stores feed the same 4-way valve; there is no wood-side valve
+      // and no path that pours the wood tank into the heat-pump tank.
+      parts.push(line(find("Wood furnace tank"), supplyBox, "wood-valve"));
+    } else {
+      parts.push(line(find("Wood mixing valve"), bufferBox,
+        "woodvalve-buffer"));
+      parts.push(line(find("Wood furnace tank"), find("Wood mixing valve"),
+        "wood-woodvalve"));
+    }
     parts.push(line(supplyBox, houseBox, `${supplyName}-upper`));
-    if (valve) parts.push(line(bufferBox, find("Mixing valve"),
-      "buffer-valve"));
+    if (valve) parts.push(line(bufferBox, supplyBox, "buffer-valve"));
     if (topo.two_zone) parts.push(line(supplyBox, find("Lower floor"),
       `${supplyName}-lower`));
 

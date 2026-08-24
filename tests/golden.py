@@ -332,6 +332,44 @@ SCENARIOS: dict[str, dict] = {
         },
         state_overrides={"buffer_tank_temperature": 32.0},
     ),
+    # --- the two-tank topology (issue #40) ---------------------------------
+    #
+    # A hot wood tank beside the heat-pump tank, the 4-way valve drawing
+    # wood-while-usable, and an active burn charging the wood side. The burn
+    # must land in the WOOD tank: the HP's modelled COP and its cap headroom
+    # stay its own, which is the entire fix these fixtures pin.
+    "wood_two_tank": dict(
+        two_zone=True,
+        dhw=False,
+        config_overrides={
+            "mixing_valve_mode": "manual",
+            "buffer_tank_volume": 750.0,
+            "buffer_max_temperature": 70.0,
+            "wood_tank_top_entity": "sensor.wood_top",
+            "wood_tank_volume": 500.0,
+        },
+        state_overrides={
+            "buffer_tank_temperature": 32.0,
+            "wood_tank_temperature": 55.0,
+        },
+    ),
+    # The commanded valve on the same plumbing: hold-schedule derivation and
+    # the two-tank draw law interact nowhere else.
+    "wood_two_tank_smart_write": dict(
+        two_zone=True,
+        dhw=False,
+        config_overrides={
+            "mixing_valve_mode": "smart_write",
+            "buffer_tank_volume": 750.0,
+            "buffer_max_temperature": 70.0,
+            "wood_tank_top_entity": "sensor.wood_top",
+            "wood_tank_volume": 500.0,
+        },
+        state_overrides={
+            "buffer_tank_temperature": 32.0,
+            "wood_tank_temperature": 55.0,
+        },
+    ),
     # --- combinations, because features interact --------------------------
     "tariff_plus_two_zone": dict(
         two_zone=True,
@@ -361,6 +399,18 @@ PARTIAL_PRICE_SCENARIOS = {"winter_single_dhw", "horizon_48h"}
 # Scenarios given a PV surplus profile, which changes the marginal price.
 PV_SCENARIOS = {"shoulder", "summer_dhw_only"}
 
+# Scenarios with an active wood burn: the shape forecast_free_heat produces,
+# a rate fading linearly over the detector's two-hour horizon.
+EXTERNAL_HEAT_SCENARIOS = {"wood_two_tank", "wood_two_tank_smart_write"}
+
+
+def external_heat_for(n):
+    steps = min(n, int(2.0 / DT))
+    arr = np.zeros(n)
+    for i in range(steps):
+        arr[i] = 8.0 * (1.0 - i / max(steps, 1))
+    return arr
+
 
 def pv_surplus_for(n, solar):
     """A plausible surplus profile derived from the scenario's own irradiance."""
@@ -385,6 +435,9 @@ def capture(name: str, spec: dict) -> dict:
     surplus = None
     if name in PV_SCENARIOS:
         surplus = pv_surplus_for(n, built["solar"])
+    ext = None
+    if name in EXTERNAL_HEAT_SCENARIOS:
+        ext = external_heat_for(n)
 
     result = opt.optimize(
         built["state"],
@@ -396,6 +449,7 @@ def capture(name: str, spec: dict) -> dict:
         START,
         price_known,
         surplus,
+        external_heat_kw=ext,
     )
 
     # Everything that describes the plan. Trajectories included: a constraint
@@ -411,6 +465,7 @@ def capture(name: str, spec: dict) -> dict:
         "room_temp_trajectory": r(result.room_temp_trajectory),
         "slab_temp_trajectory": r(result.slab_temp_trajectory),
         "buffer_temp_trajectory": r(result.buffer_temp_trajectory),
+        "wood_temp_trajectory": r(result.wood_temp_trajectory),
         "valve_target_schedule": r(result.valve_target_schedule),
         "upper_temp_trajectory": r(result.upper_temp_trajectory),
         "lower_temp_trajectory": r(result.lower_temp_trajectory),

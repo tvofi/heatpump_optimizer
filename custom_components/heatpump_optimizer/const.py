@@ -165,6 +165,22 @@ EXTERNAL_HEAT_FORECAST_MAX_HOURS: Final = 2.0
 # Below this margin between the wood tank and the heat-pump tank the mixing
 # fraction is unidentifiable and the displacement reads zero.
 WOOD_TANK_MIN_MARGIN: Final = 2.0  # °C
+# Sanity ceiling for the modelled wood tank (issue #40). A wood boiler is
+# not commanded by the optimizer, so unlike the buffer cap there is no
+# refused-heat accounting behind this — it only stops a runaway Euler step
+# from planning against steam.
+WOOD_TANK_MAX_TEMP: Final = 95.0  # °C
+
+# --- Topology layout keys (issue #40) --------------------------------------
+#
+# Named hydronic layouts. v3.15.0 uses them to gate the two-tank model; the
+# v3.16.0 catalog will carry one entry per key (edge set, required slots,
+# model variant) so the editor, the diagram and the model dispatch share one
+# vocabulary. Strings, not an enum, because they are stored in config
+# options and shown in diagnostics.
+TOPOLOGY_NO_VALVE: Final = "no_valve"
+TOPOLOGY_SINGLE_TANK_VALVE: Final = "single_tank_valve"
+TOPOLOGY_TWO_TANK_4WAY: Final = "two_tank_4way"
 
 
 # --- Unknown price horizon (item 7) ----------------------------------------

@@ -74,6 +74,55 @@ go("1500 L tank", cfgmod=lambda c: c.update(dhw_tank_volume=1500))
 go("band collapsed (min==target)", cfgmod=lambda c: c.update(min_temperature=21.0))
 go("very wide band 10-30", cfgmod=lambda c: c.update(min_temperature=10.0,max_temperature=30.0))
 
+print("=== two-tank topology nulls (issue #40) ===")
+# End-to-end through the full solve, not just the model: an unusable wood
+# tank must not move a single decision, and a warm one must displace HP
+# energy. The 5 C arm is the byte-identity null -- a tank colder than any
+# temperature the solver can drive a zone to can never be drawn on. A tank
+# at 15 C is deliberately NOT byte-equal: a coasting slab falls below 15,
+# and 15 C water genuinely heats a 14 C slab (verified while writing this).
+def _two_tank_run(wood_temp):
+    cfg = house(two_zone=True)
+    cfg.update(mixing_valve_mode="manual", buffer_tank_volume=750.0,
+               buffer_max_temperature=70.0, wood_tank_volume=500.0)
+    if wood_temp is not None:
+        cfg["wood_tank_top_entity"] = "sensor.wood_top"
+    p = ThermalParameters.from_config(cfg)
+    m = ThermalModel(p)
+    oc = OptimizationConfig(horizon_hours=24, time_step_minutes=15,
+                            target_temp=cfg["target_temperature"],
+                            min_temp=cfg["min_temperature"],
+                            max_temp=cfg["max_temperature"])
+    opt = HeatPumpOptimizer(m, oc)
+    start = datetime(2026, 1, 15)
+    pr = prices("winter_typical", start)
+    ot, wi, ra, so = weather("winter_cold", start)
+    st = ThermalState(room_temperature=21.0, slab_temperature=22.0,
+                      outdoor_temperature=float(ot[0]), dhw_temperature=50.0,
+                      dhw_hours_since_legionella=20.0,
+                      upper_floor_temperature=21.0, lower_floor_temperature=21.0,
+                      buffer_tank_temperature=32.0,
+                      wood_tank_temperature=wood_temp)
+    r = opt.optimize(st, pr, ot, wi, ra, so, start)
+    return np.asarray(r.power_schedule)
+
+try:
+    _off = _two_tank_run(None)
+    _cold = _two_tank_run(5.0)
+    check("two-tank null", np.array_equal(_off, _cold),
+          "an unusable 5 C wood tank changed the schedule")
+    print(f"  ok  {'unusable wood tank: byte-equal plan':<38} "
+          f"kWh={_off.sum()*DT:7.2f}")
+    _warm = _two_tank_run(55.0)
+    check("two-tank warm", float(_warm.sum()) < float(_off.sum()) - 1e-6,
+          f"a 55 C wood tank did not displace HP energy "
+          f"({_warm.sum()*DT:.2f} vs {_off.sum()*DT:.2f} kWh)")
+    print(f"  ok  {'warm wood tank displaces HP energy':<38} "
+          f"kWh={_warm.sum()*DT:7.2f} < {_off.sum()*DT:7.2f}")
+except Exception as e:
+    FAIL.append(f"[two-tank nulls] EXCEPTION {type(e).__name__}: {e}")
+    print(f"  FAIL two-tank nulls {type(e).__name__}: {e}")
+
 print()
 print(f"{len(FAIL)} FAILURES" if FAIL else "ALL EDGE CASES PASS")
 for f in FAIL: print("  "+f)

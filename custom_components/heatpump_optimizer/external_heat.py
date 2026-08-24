@@ -36,6 +36,24 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 
+def wood_mean_temperature(
+    top: float | None, bottom: float | None
+) -> float | None:
+    """Bulk wood-tank temperature from its probe pair, or ``None`` unsensed.
+
+    One law for the detector's energy estimate and the two-tank model's
+    initial state (issue #40): with both probes, the arithmetic mean; with
+    only a top probe, a modestly colder bulk than the top reads — a single
+    top probe over-reads a stratified tank, and believing it would promise
+    heat the tank does not hold.
+    """
+    if top is None:
+        return None
+    if bottom is not None:
+        return (top + bottom) / 2.0
+    return top - 5.0
+
+
 @dataclass
 class ExternalHeatConfig:
     """Tuning for the detector. Defaults are conservative on purpose."""
@@ -315,14 +333,9 @@ class ExternalHeatDetector:
         # active, because "how much is left from the last one" is exactly
         # what a user checks before deciding whether to light another.
         state.wood_energy_kwh = None
-        if obs.wood_top is not None and obs.hp_tank_temp is not None:
+        mean_temp = wood_mean_temperature(obs.wood_top, obs.wood_bottom)
+        if mean_temp is not None and obs.hp_tank_temp is not None:
             useful_floor = obs.hp_tank_temp + WOOD_TANK_MIN_MARGIN
-            if obs.wood_bottom is not None:
-                mean_temp = (obs.wood_top + obs.wood_bottom) / 2.0
-            else:
-                # A single top probe over-reads a stratified tank; assume a
-                # modestly colder bulk rather than believing the top.
-                mean_temp = obs.wood_top - 5.0
             state.wood_energy_kwh = (
                 max(0.0, mean_temp - useful_floor)
                 * self.config.wood_tank_volume_l
@@ -351,7 +364,9 @@ class ExternalHeatDetector:
                 0.0, obs.space_demand_kw
             )
 
-    def forecast_free_heat(self, n_steps: int, dt_hours: float) -> list[float]:
+    def forecast_free_heat(
+        self, n_steps: int, dt_hours: float, tank_modelled: bool = False
+    ) -> list[float]:
         """Per-step free-heat forecast for the optimizer, kW.
 
         Three independent bounds, each of which alone can zero it, because
@@ -363,7 +378,12 @@ class ExternalHeatDetector:
         * a linear fade to zero across that horizon, so the tail never
           carries full weight;
         * when the wood tank pair is sensed, the cumulative promise never
-          exceeds the energy the tank measurably holds.
+          exceeds the energy the tank measurably holds — unless
+          ``tank_modelled`` (issue #40): then the tank's stored energy
+          enters the solve as its own initial state, and budgeting the
+          forecast against it too would count the same heat twice. Rate,
+          fade and the hard horizon still apply — they bound the *fire*,
+          which is not in any tank yet.
         """
         out = [0.0] * n_steps
         rate = self.state.free_heat_kw
@@ -374,7 +394,7 @@ class ExternalHeatDetector:
         )
         budget = (
             self.state.wood_energy_kwh
-            if self.state.wood_energy_kwh is not None
+            if self.state.wood_energy_kwh is not None and not tank_modelled
             else float("inf")
         )
         for i in range(horizon_steps):

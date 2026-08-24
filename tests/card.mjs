@@ -1689,6 +1689,57 @@ check("the hand-scheduled reason has a label",
     /modelled as heat into the/.test(setupPage) &&
     /heat-pump tank/.test(setupPage));
   {
+    // Issue #40, stage 5: with the two-tank model active the drawing is of
+    // the real plumbing, not of the abstraction. One physical 4-way valve
+    // that both stores feed and both floors are served from -- so no wood
+    // valve, no wood tank pouring into the heat-pump tank, and no caption
+    // claiming the wood heat is folded in, because it no longer is.
+    const twoTank = JSON.parse(JSON.stringify(topo));
+    twoTank.two_tank_modelled = true;
+    twoTank.layout = "two_tank_4way";
+    twoTank.valve_mode = "manual";
+    twoTank.slots.push(
+      { key: "mixing_valve_target_entity", label: "Valve target",
+        place: "mixing_valve", entity: null, domains: TEMP },
+      // describe_setup moves this slot onto the mixing valve in the
+      // two-tank layout: one device, one place.
+      { key: "valve_outlet_temp_entity", label: "Valve outlet temperature",
+        place: "mixing_valve", entity: null, domains: TEMP });
+    const ttStates = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+    ttStates[DEFAULT_SPACE].attributes.setup_topology = twoTank;
+    const tt = build(ttStates);
+    tt._onCardClick({});
+    tt._dialogPage = "setup";
+    tt._render();
+    const ttPage = collect(tt.shadowRoot).join("\n");
+    const ttDrawn = edges(ttPage);
+    check("the two-tank drawing runs both stores into one 4-way valve",
+      ["hp-buffer", "wood-valve", "buffer-valve", "valve-upper",
+        "valve-lower"].every((e) => ttDrawn.includes(e)) &&
+      !ttDrawn.includes("woodvalve-buffer") &&
+      !ttDrawn.includes("wood-woodvalve") &&
+      !ttDrawn.includes("buffer-lower"),
+      `edges drawn: ${ttDrawn.join(", ")}`);
+    check("and names the tanks by what fills them",
+      /4-way mixing valve \(manual\)/.test(ttPage) &&
+      /Heat pump tank \(750 L\)/.test(ttPage) &&
+      !/Buffer tank \(750 L\)/.test(ttPage) &&
+      !/Wood mixing valve/.test(ttPage),
+      "with two modelled stores 'buffer tank' no longer says which one");
+    check("and drops the single-tank caption, which is no longer true",
+      !/modelled as heat into the/.test(ttPage),
+      "the box is the physics now, so the abstraction note would lie");
+    // Each box is its own <g>, so ask which box the row landed in rather
+    // than whether the page mentions it anywhere.
+    const valveGroup = ttPage.split("<g>")
+      .find((g) => g.includes("4-way mixing valve (manual)")) || "";
+    check("the valve outlet probe is drawn on the one valve that has it",
+      /data-key="valve_outlet_temp_entity"/.test(valveGroup) &&
+      /data-key="mixing_valve_target_entity"/.test(valveGroup),
+      "the slot moved to the mixing valve place; drawing it anywhere else "
+      + "would put a sensor on a device this system does not have");
+  }
+  {
     const noValve = JSON.parse(JSON.stringify(topo));
     noValve.valve_mode = "none";
     const nvStates = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);

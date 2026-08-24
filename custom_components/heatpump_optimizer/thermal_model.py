@@ -91,6 +91,12 @@ from .const import (
     DEFAULT_ECL110_DISPLACE_MIN,
     DEFAULT_ECL110_DISPLACE_MAX,
     DEFAULT_ECL110_PID_TIME_CONSTANT,
+    DEFAULT_WOOD_TANK_VOLUME,
+    TOPOLOGY_NO_VALVE,
+    TOPOLOGY_SINGLE_TANK_VALVE,
+    TOPOLOGY_TWO_TANK_4WAY,
+    WOOD_TANK_MAX_TEMP,
+    WOOD_TANK_MIN_MARGIN,
 )
 from .dhw_schedule import (
     DHWWindowError,
@@ -175,6 +181,45 @@ class ThermalParameters:
     # optimizer it must become a hard constraint, because comfort and tank
     # limits there are soft penalties and the solver would plan to boil it.
     buffer_max_temp: float = 70.0  # °C
+
+    # --- Two-tank topology (issue #40) --------------------------------------
+    #
+    # Whether a wood-tank probe is configured (CONF_WOOD_TANK_TOP_ENTITY).
+    # Deliberately stricter than the diagram's "wood present": the two-tank
+    # model activates only when it can be initialized from a real
+    # measurement, never from a flue switch alone.
+    wood_tank_configured: bool = False
+    # Shares the detector's config key (CONF_WOOD_TANK_VOLUME) — one number
+    # for one physical tank, no migration.
+    wood_tank_volume: float = DEFAULT_WOOD_TANK_VOLUME  # liters
+
+    @property
+    def topology_layout(self) -> str:
+        """The hydronic layout key this configuration resolves to.
+
+        The keys are the vocabulary the v3.16.0 catalog will formalize;
+        resolving them here already means the catalog's model dispatch can
+        replace this derivation without re-plumbing any consumer. Everything
+        that needs "is the two-tank model active" reads
+        ``two_tank_modelled`` below, which is derived from this — one home
+        for the gating, as the config flow, the coordinator and
+        ``describe_setup`` must all agree.
+        """
+        if not mixing_valve.is_throttling(self.mixing_valve_mode):
+            return TOPOLOGY_NO_VALVE
+        if self.two_zone_enabled and self.wood_tank_configured:
+            return TOPOLOGY_TWO_TANK_4WAY
+        return TOPOLOGY_SINGLE_TANK_VALVE
+
+    @property
+    def two_tank_modelled(self) -> bool:
+        """Whether the wood tank is simulated as its own store."""
+        return self.topology_layout == TOPOLOGY_TWO_TANK_4WAY
+
+    @property
+    def wood_tank_thermal_mass(self) -> float:
+        """Thermal mass of the wood tank in kWh/°C."""
+        return self.wood_tank_volume * WATER_SPECIFIC_HEAT
     # Carnot-derived COP penalty for charging hot. Off keeps `compute_cop`
     # exactly as it was. Without it, storing heat at 70 °C appears to cost the
     # same per kWh as delivering it at 35 °C, so storage looks free.
@@ -329,6 +374,29 @@ class ThermalParameters:
         rate = min(max(float(rate), low), high)
         value = rate * self.buffer_tank_thermal_mass / DHW_COOLING_REFERENCE_DELTA
         self._buffer_ua_cache = (key, value)
+        return value
+
+    #: Memo for `wood_tank_heat_loss_coefficient`, same shape as the buffer's.
+    _wood_ua_cache: tuple | None = field(
+        default=None, init=False, repr=False, compare=False
+    )
+
+    @property
+    def wood_tank_heat_loss_coefficient(self) -> float:
+        """Standby loss of the wood tank in kW/°C.
+
+        No learner and no configured rate in v1: the prior derived from the
+        tank's volume by the same volume^(2/3) surface law as the buffer is
+        used directly. Memoised for the same reason as the buffer's UA — the
+        two-tank step asks once per step, a few million times per solve.
+        """
+        key = self.wood_tank_volume
+        cached = self._wood_ua_cache
+        if cached is not None and cached[0] == key:
+            return cached[1]
+        rate = default_buffer_cooling_rate(self.wood_tank_volume)
+        value = rate * self.wood_tank_thermal_mass / DHW_COOLING_REFERENCE_DELTA
+        self._wood_ua_cache = (key, value)
         return value
 
     @property
@@ -575,6 +643,16 @@ class ThermalParameters:
             values["mixing_valve_mode"]
         )
 
+        # Two-tank gating (issue #40): a probe, not a flag. The volume shares
+        # the external-heat detector's key — one number for one physical tank.
+        values["wood_tank_configured"] = bool(
+            config.get(const.CONF_WOOD_TANK_TOP_ENTITY)
+        )
+        values["wood_tank_volume"] = float(
+            config.get(const.CONF_WOOD_TANK_VOLUME)
+            or const.DEFAULT_WOOD_TANK_VOLUME
+        )
+
         # Two-zone and DHW are inferred from whether their settings are present
         # at all, rather than from a flag, so an entry written before either
         # existed keeps working.
@@ -648,6 +726,12 @@ class ThermalState:
     # optimizer reads it to suppress discretionary electric hot water.
     external_heat_active: bool = False
 
+    # Measured wood-tank temperature (issue #40). None means "not sensed or
+    # not modelled" and reproduces the single-tank abstraction exactly; a
+    # value activates the two-tank draw law when the parameters gate it on.
+    # None rather than a sentinel temperature so a silent reset is visible.
+    wood_tank_temperature: float | None = None
+
 
 # DHW draw pattern: normalized hourly multipliers (24 values, sum=24)
 # Morning peak (6-9), evening peak (17-21), low overnight
@@ -660,6 +744,52 @@ DHW_HOURLY_DRAW_PATTERN: list[float] = [
 # Normalize so average = 1.0
 _DHW_SUM = sum(DHW_HOURLY_DRAW_PATTERN)
 DHW_HOURLY_DRAW_PATTERN = [x * 24.0 / _DHW_SUM for x in DHW_HOURLY_DRAW_PATTERN]
+
+
+def wood_share(
+    wood_temp: float,
+    hp_temp: float,
+    flow_set: float,
+    floor_temp: float,
+    margin: float = WOOD_TANK_MIN_MARGIN,
+) -> float:
+    """Fraction of the emitter draw the 4-way valve takes from the wood tank.
+
+    The valve's priority law is **wood-while-usable** (the owner's ESBE
+    setting, recorded in issue #40): draw from the wood tank while it can
+    meet the needed flow temperature, shifting to the heat-pump tank as the
+    wood side depletes — *not* hotter-tank-first. Three regions, continuous
+    in ``w * Q_draw`` across every boundary:
+
+    * ``wood_temp >= flow_set`` — all wood, even when the HP tank is hotter.
+    * ``hp_temp > flow_set > wood_temp`` — the maximum-wood blend: the valve
+      mixes just enough HP water to reach the curve,
+      ``f_w = (hp_temp - flow_set) / (hp_temp - wood_temp)``, derated by how
+      much useful heat the wood side still holds above the coldest zone.
+      In this region the modelled outlet is ``flow_set``, so
+      ``(t_out - hp_temp) / (wood_temp - hp_temp) == f_w`` — the model
+      reproduces exactly the blend fraction the displacement estimator
+      *measures* at the valve outlet (external_heat.py), one law for both.
+    * both at/below the curve — a smooth switch to the hotter source over
+      ``margin`` (the same margin below which the estimator calls the mix
+      unidentifiable).
+
+    Pure energy-priority ("drain the wood tank first, whatever its
+    temperature") was considered and rejected: the Euler availability term
+    lets any real tank cover a whole step, so priority degenerates to
+    "wood to the floor" even at 30 °C against a 40 °C curve.
+
+    Module-level and pure so the savings baseline can reuse it verbatim —
+    two copies of this law would drift the first time one is tuned.
+    """
+    if wood_temp >= flow_set:
+        return 1.0
+    if hp_temp > flow_set:
+        f_w = (hp_temp - flow_set) / (hp_temp - wood_temp)
+        useful = max(0.0, wood_temp - floor_temp)
+        span = max(flow_set - floor_temp, 1e-6)
+        return min(1.0, max(0.0, f_w * useful / span))
+    return min(1.0, max(0.0, (wood_temp - hp_temp) / max(margin, 1e-6)))
 
 
 class ThermalModel:
@@ -675,6 +805,9 @@ class ThermalModel:
     last_buffer_refused: np.ndarray | None = None
     #: Per-step scratch for the above, written by the step function.
     _step_buffer_refused: float = 0.0
+    #: Wood-tank trajectory of the last trajectory call, ``None`` whenever
+    #: the two-tank topology is not being simulated (issue #40).
+    last_wood_trajectory: np.ndarray | None = None
 
     def __init__(self, params: ThermalParameters) -> None:
         """Initialize the thermal model."""
@@ -1045,9 +1178,22 @@ class ThermalModel:
         """
         p = self.params
         throttled = mixing_valve.is_throttling(p.mixing_valve_mode)
+        # Two-tank topology (issue #40): active only when the parameters gate
+        # it on AND a real wood temperature is in the state. With either
+        # missing, everything below reduces byte-for-byte to the single-tank
+        # abstraction, wood heat and all — which is also the stale-probe
+        # fallback: free heat is routed into the HP tank rather than dropped.
+        two_tank = (
+            throttled
+            and p.two_tank_modelled
+            and state.wood_tank_temperature is not None
+        )
         # With a valve the pump is charging the tank, so the tank temperature is
         # the flow temperature and charging it hotter costs COP. That coupling is
         # the entire economics of storing heat; without it storage looks free.
+        # In the two-tank model this is the HP tank's own temperature — the
+        # fix issue #40 exists for: a wood burn heats the *wood* tank, so it
+        # can no longer penalize the modelled COP or eat cap headroom.
         cop = self.compute_cop(
             outdoor_temp,
             flow_temp=state.buffer_tank_temperature if throttled else None,
@@ -1055,9 +1201,11 @@ class ThermalModel:
         # Free thermal input (a wood furnace, item 28) joins the pump's output
         # at the hydronic mix — into the tank when a valve exists, straight to
         # the emitters when not, exactly like the pump's own heat. It is heat,
-        # not electricity, so it never touches the COP.
+        # not electricity, so it never touches the COP. When the wood tank is
+        # modelled it charges that tank instead (below), never this sum.
+        ext = max(0.0, external_heat_kw)
         thermal_power = (
-            cop * electrical_power + max(0.0, external_heat_kw)
+            cop * electrical_power + (0.0 if two_tank else ext)
         )  # total heat into the buffer
 
         # Weather-adjusted heat loss using configurable sensitivity
@@ -1125,8 +1273,12 @@ class ThermalModel:
             # the curve temperature, never raw tank water -- that is what makes
             # stored heat leave at house-demand rate instead of dumping within
             # a step. It cannot make water hotter than the tank, so below the
-            # curve it saturates wide open.
-            t_mix = min(T_buf, flow_set)
+            # curve it saturates wide open. With two tanks the supply side is
+            # whichever tank is hotter -- the 4-way valve draws on both.
+            supply_temp = (
+                max(state.wood_tank_temperature, T_buf) if two_tank else T_buf
+            )
+            t_mix = min(supply_temp, flow_set)
             q_rad_from_buf = mixing_valve.emitter_delivery(
                 mix_temp=t_mix, zone_temp=T_upper, ua=ua_rad
             )
@@ -1147,17 +1299,51 @@ class ThermalModel:
             # tank into a heat source. The floor is the coldest zone it feeds,
             # which is where `emitter_delivery` reaches zero of its own accord.
             floor_temp = min(T_upper, T_slab)
-            available = thermal_power - q_buf_loss + C_buf * max(
-                0.0, T_buf - floor_temp
-            ) / max(dt_hours, 1e-6)
             drawn = q_rad_from_buf + q_floor_from_buf
-            if drawn > available > 0.0:
-                scale = available / drawn
-                q_rad_from_buf *= scale
-                q_floor_from_buf *= scale
-            elif available <= 0.0:
-                q_rad_from_buf = 0.0
-                q_floor_from_buf = 0.0
+            if two_tank:
+                # Per-tank energy bounds, the same fix generalized: neither
+                # tank can deliver heat it does not have, each judged against
+                # its own contents and its own input. Every expression here
+                # deliberately mirrors the single-tank branch's arithmetic
+                # (same operations, same order, division not reciprocal
+                # multiplication) so that at w == 0 this path is
+                # bit-identical to it — one ulp of difference moved a
+                # 96-step solve into a different basin when this was first
+                # written with `* (1/dt)`.
+                T_w = state.wood_tank_temperature
+                C_w = p.wood_tank_thermal_mass
+                q_wood_loss = p.wood_tank_heat_loss_coefficient * (T_w - 20.0)
+                w = wood_share(T_w, T_buf, flow_set, floor_temp)
+                avail_wood = ext - q_wood_loss + C_w * max(
+                    0.0, T_w - floor_temp
+                ) / max(dt_hours, 1e-6)
+                avail_hp = thermal_power - q_buf_loss + C_buf * max(
+                    0.0, T_buf - floor_temp
+                ) / max(dt_hours, 1e-6)
+                wood_draw = min(w * drawn, max(avail_wood, 0.0))
+                # A wood shortfall shifts to the HP side first — the physical
+                # valve shift as the wood side depletes — and only what
+                # neither tank can back starves the emitters, proportionally.
+                hp_draw = min(drawn - wood_draw, max(avail_hp, 0.0))
+                delivered = wood_draw + hp_draw
+                if drawn > delivered > 0.0:
+                    scale = delivered / drawn
+                    q_rad_from_buf *= scale
+                    q_floor_from_buf *= scale
+                elif delivered <= 0.0:
+                    q_rad_from_buf = 0.0
+                    q_floor_from_buf = 0.0
+            else:
+                available = thermal_power - q_buf_loss + C_buf * max(
+                    0.0, T_buf - floor_temp
+                ) / max(dt_hours, 1e-6)
+                if drawn > available > 0.0:
+                    scale = available / drawn
+                    q_rad_from_buf *= scale
+                    q_floor_from_buf *= scale
+                elif available <= 0.0:
+                    q_rad_from_buf = 0.0
+                    q_floor_from_buf = 0.0
         else:
             # No valve: whatever the pump makes reaches the emitters. These two
             # sum to `thermal_power` identically, so the tank is a pass-through
@@ -1166,7 +1352,27 @@ class ThermalModel:
             q_rad_from_buf = rad_fraction * thermal_power
             q_floor_from_buf = (1.0 - rad_fraction) * thermal_power
 
-        dT_buf = (thermal_power - q_rad_from_buf - q_floor_from_buf - q_buf_loss) / max(C_buf, 0.01)
+        new_wood = state.wood_tank_temperature
+        if two_tank:
+            # The HP tank supplies what the emitters received minus the wood
+            # side's contribution — written as the single-tank expression
+            # plus `wood_draw` so that at w == 0 the bits are identical, and
+            # so that per-step conservation is exact by construction. Wood
+            # heat charges the wood tank, whose ceiling is a sanity clamp
+            # with no refused accounting: nothing the optimizer commands
+            # charges that tank, so there is nothing for the cap loop to
+            # act on.
+            dT_buf = (
+                thermal_power - q_rad_from_buf - q_floor_from_buf
+                - q_buf_loss + wood_draw
+            ) / max(C_buf, 0.01)
+            dT_wood = (ext - wood_draw - q_wood_loss) / max(C_w, 0.01)
+            dT_wood_cap = max(0.0, WOOD_TANK_MAX_TEMP - T_w) / max(
+                dt_hours, 1e-6
+            )
+            new_wood = T_w + min(dT_wood, dT_wood_cap) * dt_hours
+        else:
+            dT_buf = (thermal_power - q_rad_from_buf - q_floor_from_buf - q_buf_loss) / max(C_buf, 0.01)
         self._step_buffer_refused = 0.0
         if throttled:
             # Physical ceiling: heat that would push the tank past its safe
@@ -1220,6 +1426,7 @@ class ThermalModel:
             upper_floor_temperature=new_upper,
             lower_floor_temperature=new_lower,
             buffer_tank_temperature=new_buf,
+            wood_tank_temperature=new_wood,
             solar_radiation=solar_radiation,
         )
 
@@ -1306,6 +1513,10 @@ class ThermalModel:
         buffer_temps = np.zeros(n_steps + 1)
         buffer_temps[0] = initial_state.buffer_tank_temperature
         buffer_refused = np.zeros(n_steps)
+        wood_temps = None
+        if initial_state.wood_tank_temperature is not None:
+            wood_temps = np.zeros(n_steps + 1)
+            wood_temps[0] = initial_state.wood_tank_temperature
 
         state = initial_state
         for i in range(n_steps):
@@ -1334,6 +1545,8 @@ class ThermalModel:
             lower_temps[i + 1] = state.lower_floor_temperature
             buffer_temps[i + 1] = state.buffer_tank_temperature
             buffer_refused[i] = self._step_buffer_refused
+            if wood_temps is not None:
+                wood_temps[i + 1] = state.wood_tank_temperature
 
         # Recorded rather than returned: nine call sites unpack a four-tuple,
         # and the buffer is only wanted by the terminal-cost term. Without this
@@ -1341,6 +1554,7 @@ class ThermalModel:
         # only ever look like cost.
         self.last_buffer_trajectory = buffer_temps
         self.last_buffer_refused = buffer_refused
+        self.last_wood_trajectory = wood_temps
         return room_temps, slab_temps, upper_temps, lower_temps
 
     def simulate_trajectory_with_dhw(
@@ -1394,6 +1608,10 @@ class ThermalModel:
         lower_temps[0] = initial_state.lower_floor_temperature
         dhw_temps[0] = initial_state.dhw_temperature
         buffer_temps[0] = initial_state.buffer_tank_temperature
+        wood_temps = None
+        if initial_state.wood_tank_temperature is not None:
+            wood_temps = np.zeros(n_steps + 1)
+            wood_temps[0] = initial_state.wood_tank_temperature
 
         state = initial_state
         current_hour = start_hour
@@ -1440,6 +1658,8 @@ class ThermalModel:
             lower_temps[i + 1] = state.lower_floor_temperature
             dhw_temps[i + 1] = new_dhw
             buffer_temps[i + 1] = state.buffer_tank_temperature
+            if wood_temps is not None:
+                wood_temps[i + 1] = state.wood_tank_temperature
 
             current_hour += dt_hours
 
@@ -1448,6 +1668,7 @@ class ThermalModel:
         # space-only simulation put there, so anything reading it afterwards got
         # a trajectory belonging to a different power schedule.
         self.last_buffer_trajectory = buffer_temps
+        self.last_wood_trajectory = wood_temps
         return room_temps, slab_temps, upper_temps, lower_temps, dhw_temps
 
     def update_slab_from_return_temp(

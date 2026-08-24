@@ -1,5 +1,57 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v3.15.0
+
+### Two tanks, modelled as two tanks
+
+If your wood furnace charges its own buffer tank beside the heat-pump tank
+— with a 4-way valve blending the two into the house — the model now
+simulates exactly that (issue #40). Activated automatically when a two-zone
+house has a mixing valve and the wood tank's top probe is configured;
+otherwise nothing changes, byte for byte.
+
+What the split fixes, measured on v3.14.1 (the numbers that motivated it):
+a burn used to raise the *modelled* heat-pump tank temperature, dragging
+the modelled COP down by up to **0.52 at the worst step** (+24 % phantom
+electricity when a fire overlapped cheap-hour charging) and falsely
+consuming the tank's safe-temperature headroom — on smaller tanks the
+hard-cap loop refused up to 15 kWh of real charging because the *wood* had
+filled the modelled tank.
+
+With the two-tank model, on the same synthetic burn day at winter prices:
+
+- The plan buys **15 % less heat-pump electricity** (41.3 vs 48.4 kWh) at
+  slightly better comfort — the wood tank's stored heat is finally planned
+  around instead of half-lost inside a blended abstraction.
+- **Storage works during burns again.** The old model charged its buffer to
+  only 41 °C on a burn day (the fire had "filled" the modelled tank); the
+  new one charges to 62 °C at a winter price spread and does not bother at
+  flat prices — buying concentrated in cheap hours exactly when a spread
+  exists, which is the behavioural signature of genuine storage.
+- A burn causes **zero refused heat and zero cap tightening** while the
+  heat-pump tank is below its own ceiling.
+
+The valve in the model draws **wood-first while the wood side is usable**
+(the ESBE behaviour), shifting to the heat-pump tank as the wood depletes,
+and its blend law is algebraically identical to the fraction the
+valve-outlet sensor measures — one law for model and measurement, so they
+cannot drift apart. Wood heat left at the end of the day now counts in the
+savings settlement and the storage battery view (up to 95 °C). The plan and
+card show the planned wood-tank temperature alongside the buffer's.
+
+The Setup diagram follows the physics, as v3.14.1 promised it always
+should: two tanks side by side feeding one 4-way valve, no more phantom
+"wood mixing valve" box, and the *"modelled as heat into the heat-pump
+tank"* caption disappears exactly where it stopped being true (it stays
+for wood setups without the probe, which keep the old abstraction).
+
+Guardrails, because free heat is dangerous to promise: the model activates
+only from a real probe reading and falls back to the old behaviour the
+moment the probe goes stale; a tank too cold to meet the flow temperature
+is never drawn on (verified byte-identical plans against a no-wood
+configuration); and per-step energy conservation across both tanks is
+asserted to fourteen decimal places in the test suite.
+
 ## v3.14.1
 
 ### The setup diagram stops contradicting your plumbing
