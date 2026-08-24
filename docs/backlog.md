@@ -1248,6 +1248,25 @@ Two notes for whoever touches the chart tests next:
 >   settlement cap ignore the tank while the physics stay modelled. The 35 L
 >   default lands below it decisively, for the reason recorded here: ~0.8 kWh
 >   over a 20 K swing is below the resolution of a single 15-minute step.
+>
+>   **A residual, fixed separately, in the half this deliberately leaves alone.**
+>   The threshold governs *planning* — the terminal credit and the settlement cap
+>   ignore a small tank — and says plainly that "the physics stay modelled". The
+>   physics is where the remaining problem was. Capping the emitters at the
+>   weather curve in v3.10.0 made discharge physical for any tank a single step
+>   cannot empty, which is every realistic size, but a 10 L separator against a
+>   40 K flow-to-room difference still overshoots its own Euler step: measured,
+>   a 10 L tank coasting from 60 °C reached **−8.04 °C** with a 34 K single-step
+>   swing. Delivery is now bounded by the energy the tank actually holds above
+>   the coldest zone it feeds, which is where `emitter_delivery` reaches zero of
+>   its own accord. 10 L: −8.04 → 17.36 °C; 35 L, 100 L and 750 L move by less
+>   than 0.02 K, so the bound binds only where the model was wrong.
+>
+>   Bounding the energy rather than flooring the temperature is not a style
+>   choice: clipping `T_buf` at a floor while still crediting the emitters
+>   conserves nothing and turns the tank into a heat source. Measured on an
+>   earlier attempt, a 10 L tank then held the house through a −12 °C winter day
+>   on 5.65 kWh against a real demand near 60 kWh.
 > - **`get_state_matrices` is still dead and still contradictory.** This item says
 >   plainly: reconcile both models or delete the dead one, and do not fix one and
 >   leave the other. That is exactly what happened -- `_simulate_step_two_zone`

@@ -98,7 +98,10 @@ from .const import (
     DEFAULT_ECL110_DISPLACE_MAX,
     MODE_AUTO,
     MODE_COMFORT,
+    ECONOMY_ABSOLUTE_FLOOR,
+    ECONOMY_MIN_TEMP_WIDENING,
     MODE_ECONOMY,
+    OPERATION_MODES,
     MODE_OFF,
     MODE_BOOST,
     CONF_SOLAR_FORECAST_SOURCE,
@@ -2275,6 +2278,22 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._resolve_away()
             away_original = self._apply_away_setback()
 
+            # Economy mode, which until now was a rename of auto and nothing
+            # else: identical power schedule, identical hot water, identical
+            # predicted cost, with only the published mode string differing.
+            # `services.yaml` has promised "wider temperature swings allowed"
+            # since the mode was added, so that is what it does.
+            #
+            # Deliberately *after* the away snapshot, so the `finally` block
+            # below unwinds it. `min_temp` is otherwise written only at
+            # `_init_model()`, so a widening applied anywhere earlier would
+            # persist into every later solve and outlive the mode itself.
+            if self._mode == MODE_ECONOMY:
+                self._opt_config.min_temp = max(
+                    ECONOMY_ABSOLUTE_FLOOR,
+                    self._opt_config.min_temp - ECONOMY_MIN_TEMP_WIDENING,
+                )
+
             self._current_state.external_heat_active = self._external_heat_active
 
             # Manual plan: build the per-step pin arrays aligned to the exact
@@ -3692,6 +3711,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._defrost = DefrostDerate.from_dict(stored.get("defrost"))
         self._thermal_params.defrost_derate = self._defrost
         self._peak_tracker = PeakTracker.from_dict(stored.get("peaks"))
+        stored_mode = stored.get("mode")
+        if isinstance(stored_mode, str) and stored_mode in OPERATION_MODES:
+            self._mode = stored_mode
         self._comfort_learner = ComfortLearner.from_dict(
             stored.get("comfort"),
             _as_float(self._config.get(CONF_COMFORT_WEIGHT), DEFAULT_COMFORT_WEIGHT),
@@ -3706,6 +3728,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     "defrost": self._defrost.as_dict(),
                     "peaks": self._peak_tracker.as_dict(),
                     "comfort": self._comfort_learner.as_dict(),
+                    # Persisted because `_init_runtime_state` resets it to
+                    # `auto` on every reload, and writing any option reloads the
+                    # entry -- so dragging the thermostat card's temperature, or
+                    # simply restarting Home Assistant, silently dropped the
+                    # user out of the mode they had selected.
+                    "mode": self._mode,
                 }
             )
         except Exception as err:  # noqa: BLE001

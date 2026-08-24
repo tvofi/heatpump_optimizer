@@ -72,8 +72,15 @@ class OptimizerEnableSwitch(CoordinatorEntity, SwitchEntity):
         return {}
 
     async def async_turn_on(self, **kwargs: Any) -> None:
-        """Turn on the optimizer."""
-        await self.coordinator.async_set_mode(MODE_AUTO)
+        """Turn on the optimizer.
+
+        Only from *off*. Turning on a switch that is already on used to force
+        `auto`, which silently threw away a live economy or comfort selection --
+        easy to trigger from a dashboard toggle or a scene.
+        """
+        current = (self.coordinator.data or {}).get("mode", MODE_OFF)
+        if current == MODE_OFF:
+            await self.coordinator.async_set_mode(MODE_AUTO)
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off the optimizer."""

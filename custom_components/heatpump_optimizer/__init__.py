@@ -51,6 +51,7 @@ from .const import (
     MODE_AUTO,
     MODE_COMFORT,
     MODE_ECONOMY,
+    OPERATION_MODES,
     MODE_OFF,
     MODE_BOOST,
 )
@@ -100,7 +101,7 @@ SERVICE_SCHEMA_SIMULATE_PLAN = vol.Schema(
 SERVICE_SCHEMA_SET_MODE = vol.Schema(
     {
         vol.Required("mode"): vol.In(
-            [MODE_AUTO, MODE_COMFORT, MODE_ECONOMY, MODE_OFF, MODE_BOOST]
+            list(OPERATION_MODES)
         ),
     }
 )

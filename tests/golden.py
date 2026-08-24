@@ -260,6 +260,64 @@ SCENARIOS: dict[str, dict] = {
     "building_preset": dict(
         config_overrides=derive(BuildingPreset(heated_area_m2=180)),
     ),
+    # --- the buffer tank as a store (items 27/29) -------------------------
+    #
+    # Not one scenario in this matrix exercised a mixing valve before these,
+    # across four releases of work on the feature: the discharge law, the
+    # weather-curve cap, the hard power constraint and the store threshold all
+    # landed without a single recorded scenario able to see them. Every fixture
+    # here pins a valve on.
+    "valve_storage": dict(
+        two_zone=True,
+        dhw=False,
+        config_overrides={
+            "mixing_valve_mode": "manual",
+            "buffer_tank_volume": 750.0,
+            "buffer_max_temperature": 70.0,
+        },
+        state_overrides={"buffer_tank_temperature": 32.0},
+    ),
+    # The valve pinned at the comfort target rather than left at its ceiling
+    # default. This is the setting that works the tank hardest, so a storage
+    # regression shows here first.
+    "valve_storage_low_target": dict(
+        two_zone=True,
+        dhw=False,
+        config_overrides={
+            "mixing_valve_mode": "manual",
+            "mixing_valve_target": 21.0,
+            "buffer_tank_volume": 750.0,
+            "buffer_max_temperature": 70.0,
+        },
+        state_overrides={"buffer_tank_temperature": 32.0},
+    ),
+    # Flat prices are the null control: with nothing to arbitrage the store
+    # should barely move. A fixture that cycles as hard here as on a peaky day
+    # is a bug no cost assertion would catch.
+    "valve_storage_flat_prices": dict(
+        two_zone=True,
+        dhw=False,
+        price_profile="flat",
+        config_overrides={
+            "mixing_valve_mode": "manual",
+            "buffer_tank_volume": 750.0,
+            "buffer_max_temperature": 70.0,
+        },
+        state_overrides={"buffer_tank_temperature": 32.0},
+    ),
+    # Below `BUFFER_STORE_MIN_VOLUME`, so the planner stops treating the tank as
+    # a store while the physics stay modelled -- the branch where the discharge
+    # bound is the only thing keeping the trajectory physical.
+    "valve_storage_small_tank": dict(
+        two_zone=True,
+        dhw=False,
+        config_overrides={
+            "mixing_valve_mode": "manual",
+            "buffer_tank_volume": 35.0,
+            "buffer_max_temperature": 70.0,
+        },
+        state_overrides={"buffer_tank_temperature": 32.0},
+    ),
     # --- combinations, because features interact --------------------------
     "tariff_plus_two_zone": dict(
         two_zone=True,
@@ -338,6 +396,7 @@ def capture(name: str, spec: dict) -> dict:
         "heat_pump_on_schedule": r(result.heat_pump_on_schedule),
         "room_temp_trajectory": r(result.room_temp_trajectory),
         "slab_temp_trajectory": r(result.slab_temp_trajectory),
+        "buffer_temp_trajectory": r(result.buffer_temp_trajectory),
         "upper_temp_trajectory": r(result.upper_temp_trajectory),
         "lower_temp_trajectory": r(result.lower_temp_trajectory),
         "dhw_temp_trajectory": r(result.dhw_temp_trajectory),

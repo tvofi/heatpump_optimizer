@@ -2034,7 +2034,15 @@ from heatpump_optimizer import const as hp_const
 # parameters. A field the table forgets keeps its dataclass default forever,
 # silently ignoring whatever the user configured — which is invisible until
 # someone wonders why a setting does nothing.
-declared = {f.name for f in dataclasses.fields(ThermalParameters)}
+# Private fields are not part of the configuration surface by construction --
+# they are caches and internal bookkeeping, not parameters. Excluded by the
+# leading underscore rather than by name, so the next one needs no new
+# exemption, and so a *public* field can never be hidden this way.
+declared = {
+    f.name
+    for f in dataclasses.fields(ThermalParameters)
+    if not f.name.startswith("_")
+}
 # Fields that are deliberately not user-configurable.
 runtime_only = {
     "dhw_hourly_draw_pattern",  # learned from observed draws
@@ -3063,6 +3071,62 @@ R.check(
 )
 
 
+# A tank cannot deliver heat it does not have. Capping the emitters at the
+# weather curve (v3.10.0) made discharge physical for any tank a step cannot
+# empty, which is every realistic size -- but a 10 L separator against a 40 K
+# flow-to-room difference still overshoots its own Euler step. Measured before
+# this bound, a 10 L tank coasting from 60 C reached -8.04 C.
+for _vol, _floor in ((10.0, 15.0), (35.0, 15.0), (750.0, 20.0)):
+    _tiny = ThermalModel(ThermalParameters(
+        two_zone_enabled=True, buffer_tank_volume=_vol,
+        mixing_valve_mode=_mv.MODE_MANUAL, mixing_valve_target=21.0,
+        cop_flow_carnot=True,
+    ))
+    _ts = ThermalState(
+        room_temperature=21.0, upper_floor_temperature=21.0,
+        lower_floor_temperature=20.5, slab_temperature=25.0,
+        buffer_tank_temperature=60.0, outdoor_temperature=-5.0,
+    )
+    _seen = [_ts.buffer_tank_temperature]
+    for _ in range(48):
+        _ts = _tiny.simulate_step(_ts, 0.0, -5.0, dt_hours=0.25)
+        _seen.append(_ts.buffer_tank_temperature)
+    R.check(
+        f"a {_vol:.0f} L tank cannot discharge below what it is feeding",
+        min(_seen) > _floor,
+        f"12 h of coasting left the buffer at {min(_seen):.2f} C; unbounded, a "
+        "10 L tank went to -8.04 C",
+    )
+
+# The settlement is symmetric. It used to charge a deficit and pay nothing for a
+# surplus, which made the reported savings understate themselves exactly when
+# the plan chose to end the window warm -- by 62 % on flat prices with no valve
+# at all, where it is the building's own mass and not the tank. What keeps a
+# credit honest is the caps: a store above its useful ceiling is worth nothing
+# in either direction.
+_warm_end = _st(45.0)
+_cool_end = _st(45.0)
+for _attr in ("room_temperature", "upper_floor_temperature",
+              "lower_floor_temperature", "slab_temperature"):
+    setattr(_warm_end, _attr, getattr(_cool_end, _attr) + 2.0)
+_charge = _opt_valve._deferred_energy_cost(
+    _warm_end, _cool_end, np.full(96, 1.0), _outdoor, caps=_caps_valve
+)
+_credit = _opt_valve._deferred_energy_cost(
+    _cool_end, _warm_end, np.full(96, 1.0), _outdoor, caps=_caps_valve
+)
+R.check(
+    "ending colder than the reference is charged for",
+    _charge > 0.1,
+    f"a 2 K colder end state settles at {_charge:.3f} SEK",
+)
+R.check(
+    "and ending warmer is credited by exactly the same amount",
+    abs(_credit + _charge) < 1e-9,
+    f"charged {_charge:.3f} but credited {_credit:.3f}; one-sided settlement "
+    "returned 0.0 here and understated the savings it reported",
+)
+
 R.section("Buffer tank standby loss scales with the tank (items 27/29)")
 
 # UA follows the tank's *surface area*, which grows as volume^(2/3), while the
@@ -3326,6 +3390,50 @@ param_coord = HeatPumpOptimizerCoordinator(
         }
     ),
 )
+
+R.section("Economy mode (audit item 4)")
+
+# Economy was a rename of auto and nothing else: identical power schedule,
+# identical hot water, identical predicted cost, with only the published mode
+# string differing -- while services.yaml has promised "wider temperature swings
+# allowed" since the mode was added.
+from heatpump_optimizer.const import (  # noqa: E402
+    ECONOMY_ABSOLUTE_FLOOR,
+    ECONOMY_MIN_TEMP_WIDENING,
+    MODE_ECONOMY,
+    OPERATION_MODES,
+)
+
+R.check(
+    "economy is a real mode, not a label",
+    ECONOMY_MIN_TEMP_WIDENING > 0.0,
+    f"the plan may go {ECONOMY_MIN_TEMP_WIDENING} K below the comfort floor",
+)
+R.check(
+    "and it is not a licence to freeze the house",
+    ECONOMY_ABSOLUTE_FLOOR >= 12.0,
+    f"the widening stops at {ECONOMY_ABSOLUTE_FLOOR} C whatever the floor is",
+)
+
+# The widening is applied after the away snapshot so the solve's `finally`
+# restore unwinds it. `min_temp` is otherwise written only at `_init_model()`,
+# so a widening that escaped the restore would outlive the mode and quietly
+# lower the floor of every later plan -- including after the user left economy.
+_away_snapshot = param_coord._apply_away_setback()
+R.check(
+    "the away snapshot carries min_temp, which is what unwinds the widening",
+    "min_temp" in _away_snapshot,
+    "economy writes _opt_config.min_temp and relies on this restore; drop the "
+    "key and the widening leaks into every subsequent solve",
+)
+R.check(
+    "every mode the service accepts can be persisted and restored",
+    MODE_ECONOMY in OPERATION_MODES
+    and len(set(OPERATION_MODES)) == len(OPERATION_MODES),
+    f"{OPERATION_MODES}; the set was written out inline in the service schema "
+    "and nowhere else, so a new mode had to be added in two places",
+)
+
 
 # The table covers plain assignments; every one has to actually land.
 asyncio.run(
