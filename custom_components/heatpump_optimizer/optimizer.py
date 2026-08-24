@@ -47,6 +47,7 @@ import numpy as np
 from scipy.optimize import linprog, minimize
 
 from . import mixing_valve, pv
+from .const import DEFAULT_CYCLING_COST
 from .thermal_model import (
     DHW_AMBIENT_TEMP,
     ThermalModel,
@@ -517,7 +518,11 @@ class OptimizationConfig:
     # which is not affordable inside a 30-second Home Assistant update on the
     # hardware this usually runs on.
     #: Currency cost attributed to one full start-stop cycle.
-    cycling_cost: float = 0.0
+    #: Mirrors ``const.DEFAULT_CYCLING_COST`` rather than restating it, so the
+    #: objective a harness builds directly is the objective that ships. The two
+    #: had silently drifted apart once before, which meant the tests were
+    #: measuring a slightly different optimizer from the integration.
+    cycling_cost: float = DEFAULT_CYCLING_COST
 
     # --- Capacity tariff (item 8) --------------------------------------
     #: Currency per kW of new monthly peak, already divided by the number of

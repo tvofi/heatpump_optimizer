@@ -36,27 +36,27 @@ the default comfort weight, a cold winter day now averages 19.4 °C and saves
 If you preferred the old behaviour, raise **Comfort weight** on the Savings vs
 comfort page — one step up, from 5 to 10, reproduces it almost exactly.
 
-### Compressor starts now cost what they cost
+### A term that discouraged change for its own sake is gone
 
 The planner has always avoided switching the pump on and off more than
 necessary. It did so through a term with no units — not money, not starts,
-just a number that discouraged change for its own sake. That term was
-expensive: removing it cut the two-zone winter bill by about 5 %, and on that
-scenario without adding a single compressor start. Across the full set of test
-scenarios the electricity cost falls about 9 % while the total number of
-compressor starts rises about 5 % — a trade worth making, and one you can now
-tune deliberately.
+just a number that penalised change. That term was expensive: removing it cuts
+about 9 % from the electricity cost across the full set of test scenarios,
+while the total number of compressor starts rises about 5 %.
 
-Discouraging short cycling is what the **Compressor cycling cost** setting is
-for, and that one is denominated in kronor per start-stop cycle, so the trade
-against electricity is one you can read and set. It now defaults to 0.10 SEK
-per cycle instead of zero.
+The obvious follow-up was to move that job to the **Compressor cycling cost**
+setting, which is denominated in kronor per start-stop cycle and so can be
+weighed against electricity honestly. That was tried and rejected on the
+measurement: sweeping it from 0 to 0.20 SEK per cycle moved the cycling charge
+itself by at most 0.5 SEK, but moved the electricity cost by up to 2.2 SEK —
+and not even in a consistent direction, with 0.10 producing *fewer* starts
+than 0.05 on the same day. At those sizes the setting does not steer the plan
+so much as jostle the solver into a different solution, so shipping a non-zero
+default would have been churn dressed up as tuning.
 
-That figure is the restart transient — a heat pump re-establishing steady
-state runs inefficiently for a few minutes, worth roughly 0.05–0.1 kWh. It
-deliberately does *not* try to price compressor wear, which is real but much
-harder to estimate honestly. If your unit is one you want to protect harder,
-raise it.
+It therefore stays at zero and opt-in, exactly as before. If your unit is one
+you want to protect from short cycling, set it — and now it is the only thing
+doing that job, rather than competing with a hidden term.
 
 **Being straight about the limits.** These two changes pull in opposite
 directions on the same dial, and the net effect on your bill depends on your
