@@ -17,7 +17,8 @@ set_mode:
         The operating mode to set. Available modes:
         - auto: Full MPC optimization with predictive weather anticipation (recommended)
         - comfort: Maintain comfort temperature, ignore price optimization
-        - economy: Aggressive cost savings, wider temperature swings allowed
+        - economy: Lets the plan take the house up to 1.5 °C below your
+          comfort floor to ride out expensive hours (never below 15 °C)
         - boost: Maximum heating power
         - off: Disable optimizer, heat pump left in default state
       required: true

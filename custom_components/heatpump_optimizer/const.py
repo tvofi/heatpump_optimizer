@@ -616,9 +616,34 @@ DEFAULT_COMFORT_WEIGHT: Final = 5.0
 # Optimization modes
 MODE_COMFORT: Final = "comfort"
 MODE_ECONOMY: Final = "economy"
+#: How much lower the plan may take the house in economy mode, in K. Economy
+#: buys savings with comfort, and this is the whole of what it spends: the band
+#: widens downward and nothing else about the solve changes.
+#:
+#: A price-weight multiplier was the obvious alternative and was measured and
+#: rejected. It is the same degree of freedom the comfort learner already owns
+#: and would be erased by it, it does nothing at all in the two winter profiles
+#: where a savings mode is most wanted, and it raised the bill 29 % on the
+#: shoulder profile. Widening the band measures -24.6 % on winter_typical and
+#: -18.9 % on winter_narrow, and only -4.5 % on flat prices -- the right shape
+#: for a mode that promises savings in exchange for comfort.
+ECONOMY_MIN_TEMP_WIDENING: Final = 1.5  # K
+#: Economy is not a licence to freeze the house. Whatever the configured floor,
+#: the widening stops here.
+ECONOMY_ABSOLUTE_FLOOR: Final = 15.0  # °C
 MODE_OFF: Final = "off"
 MODE_BOOST: Final = "boost"
 MODE_AUTO: Final = "auto"
+
+#: Every mode the service and the persistence layer accept. Written out inline
+#: in the service schema before this, so there was no single place to add one.
+OPERATION_MODES: Final = (
+    MODE_AUTO,
+    MODE_COMFORT,
+    MODE_ECONOMY,
+    MODE_OFF,
+    MODE_BOOST,
+)
 
 # Service names
 SERVICE_RUN_OPTIMIZATION: Final = "run_optimization"

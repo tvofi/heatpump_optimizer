@@ -283,6 +283,13 @@ class ThermalParameters:
         """
         return self.lower_floor_heat_loss * self.lower_floor_loss_ratio
 
+    #: Memo for `buffer_tank_heat_loss_coefficient`, keyed on its own inputs.
+    #: `init=False` and `compare=False` so it is neither a constructor argument
+    #: nor part of equality -- it is a cache, not a parameter.
+    _buffer_ua_cache: tuple | None = field(
+        default=None, init=False, repr=False, compare=False
+    )
+
     @property
     def buffer_tank_thermal_mass(self) -> float:
         """Thermal mass of buffer tank in kWh/°C."""
@@ -295,17 +302,34 @@ class ThermalParameters:
         Derived from ``buffer_cooling_rate`` exactly as the DHW tank UA is
         derived from ``dhw_cooling_rate``, so both tanks can be learned by the
         same estimator.
+
+        Memoised on the two values it reads, because the simulation asks for it
+        once per step and a 24-hour solve runs a few million steps: profiled, it
+        and the volume^(2/3) surface area behind it were 29 % of a valved
+        solve's entire runtime, recomputing a constant. The key is the inputs
+        rather than a dirty flag, so the learner writing a new cooling rate --
+        or anything else mutating the parameters in place, which the coordinator
+        does -- invalidates it for free.
         """
         # Bounds depend on the tank: UA follows surface area, which grows as
         # volume^(2/3), while the rate is UA/C and so falls as volume^(-1/3).
         # Clamping every size against a 35 L tank's numbers is what floored a
         # large accumulator an order of magnitude above its real standby loss.
+        key = (self.buffer_tank_volume, self.buffer_cooling_rate)
+        cached = self._buffer_ua_cache
+        if cached is not None and cached[0] == key:
+            return cached[1]
         low, high = buffer_cooling_rate_bounds(self.buffer_tank_volume)
         rate = self.buffer_cooling_rate
         if rate <= 0.0:
             rate = default_buffer_cooling_rate(self.buffer_tank_volume)
-        rate = float(np.clip(rate, low, high))
-        return rate * self.buffer_tank_thermal_mass / DHW_COOLING_REFERENCE_DELTA
+        # min/max rather than np.clip: this is a scalar, and np.clip on a
+        # Python float costs about six microseconds, which at a few million
+        # calls per solve is seconds for nothing.
+        rate = min(max(float(rate), low), high)
+        value = rate * self.buffer_tank_thermal_mass / DHW_COOLING_REFERENCE_DELTA
+        self._buffer_ua_cache = (key, value)
+        return value
 
     @property
     def dhw_tank_thermal_mass(self) -> float:
@@ -1101,6 +1125,31 @@ class ThermalModel:
             q_floor_from_buf = mixing_valve.emitter_delivery(
                 mix_temp=t_mix, zone_temp=T_slab, ua=ua_floor
             )
+
+            # ...and the tank cannot deliver heat it does not have. Capping the
+            # emitters at the curve made the discharge physical for any tank big
+            # enough that a step cannot empty it, which is every realistic size
+            # -- but a 10 L separator against a 40 K flow-to-room difference
+            # still overshoots its own Euler step and goes through zero.
+            # Measured before this bound, a 10 L tank coasting from 60 C reached
+            # -8.04 C with a 34 K single-step swing.
+            #
+            # Bound the *energy*, not the temperature: clipping T_buf at a floor
+            # while still crediting the emitters conserves nothing and turns the
+            # tank into a heat source. The floor is the coldest zone it feeds,
+            # which is where `emitter_delivery` reaches zero of its own accord.
+            floor_temp = min(T_upper, T_slab)
+            available = thermal_power - q_buf_loss + C_buf * max(
+                0.0, T_buf - floor_temp
+            ) / max(dt_hours, 1e-6)
+            drawn = q_rad_from_buf + q_floor_from_buf
+            if drawn > available > 0.0:
+                scale = available / drawn
+                q_rad_from_buf *= scale
+                q_floor_from_buf *= scale
+            elif available <= 0.0:
+                q_rad_from_buf = 0.0
+                q_floor_from_buf = 0.0
         else:
             # No valve: whatever the pump makes reaches the emitters. These two
             # sum to `thermal_power` identically, so the tank is a pass-through
