@@ -587,10 +587,30 @@ byte-identical by construction):
    "a step can carry both loads; that is the pump splitting the quarter
    hour, not both circuits running at once."
 
+*Two more card defects reported on v3.16.0, same tranche:*
+
+4. **The Outside box says "not configured" for solar radiation even when
+   Open-Meteo supplies it.** `_slotLive` only reads the configured entity
+   and `describe_setup` is config-pure, so the fetched irradiance never
+   reaches the diagram. Fix in the card: when the solar slot has no
+   entity, fall back to the published `solar_radiation`/`solar_source`
+   ("210 W/m² · Open-Meteo"); if those keys are not reachable from an
+   entity the card already reads, extend the plan sensor's attributes
+   additively. Never show "not configured" for a value the plan is
+   actually using.
+5. **Slot values ignore the user's unit system** — the wood tank probes
+   render as raw `state + unit_of_measurement`, so a natively-°F probe
+   shows °F on a metric install while every other HA surface converts.
+   Fix: format slot rows through `hass.formatEntityState` when the
+   frontend provides it (raw concatenation as fallback) — fixes every
+   slot, not just the wood tank.
+
 **Must not:** change any schedule; add exclusivity constraints; touch the
 objective. Verification: card test for the shared-span rendering + a
 features check that `shared_kwh` sums match the overlap integral on a
-fixture with known overlap steps.
+fixture with known overlap steps; card tests for the solar fallback (no
+entity + meteo data ⇒ value with source tag, no entity + no data ⇒
+"not configured" stays) and for formatEntityState being preferred.
 
 ---
 
