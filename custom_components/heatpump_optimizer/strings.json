@@ -315,7 +315,6 @@
           "mixing_valve_write_entity": "Valve control entity",
           "buffer_tank_volume": "Buffer tank size",
           "buffer_max_temperature": "Maximum buffer tank temperature",
-          "radiator_power_fraction": "Share of heat going to radiators",
           "valve_outlet_temp_entity": "Temperature after the wood/heat-pump mixing valve (optional)",
           "wood_tank_top_entity": "Wood tank top sensor (optional)",
           "wood_tank_bottom_entity": "Wood tank bottom sensor (optional)",
@@ -329,7 +328,6 @@
           "mixing_valve_write_entity": "Required for \"Commanded by the optimizer\": the number or climate entity your valve's controller exposes. The optimizer writes its recommended target there after each planning cycle, and only when the answer changes.",
           "buffer_tank_volume": "Litres. The tank between the heat pump and the heating circuits. Larger tanks store more cheap heat.",
           "buffer_max_temperature": "The tank is never charged above this, however cheap electricity is.",
-          "radiator_power_fraction": "Two-zone systems only. 0 means all heat goes to the floor slab, 1 means all of it goes to the radiators. 0.4 means 40 percent to radiators.",
           "valve_outlet_temp_entity": "Temperature of the blended flow leaving the valve that mixes wood and heat-pump water. With the tank sensors it tells the plan how much of the heating a fire is covering right now, so electric heat can stand down by that much instead of all-or-nothing.",
           "wood_tank_top_entity": "Together with the bottom sensor this says how much a fire has left. A hot top over a cold bottom means the charge is nearly spent.",
           "wood_tank_bottom_entity": "See the top sensor. Both are needed for the remaining-energy estimate; one alone is read conservatively.",
@@ -417,6 +415,7 @@
           "heat_pump_cop_nominal": "Heat pump nominal COP",
           "heat_pump_max_power": "Heat pump max power (kW)",
           "heat_pump_min_power": "Heat pump min power (kW)",
+          "two_zone_mode": "Two-zone model",
           "upper_floor_thermal_mass": "Upper floor thermal mass (kWh/°C)",
           "lower_floor_thermal_mass": "Lower floor thermal mass (kWh/°C)",
           "upper_floor_heat_loss": "Upper floor heat loss (kW/°C)",
@@ -434,6 +433,7 @@
           "heat_pump_cop_nominal": "Units of heat produced per unit of electricity under normal conditions. Check the data sheet; 3 to 4 is typical for air-to-water, 4 to 5 for ground source.",
           "heat_pump_max_power": "Electrical input at full output. Caps how much cheap electricity can be stored per hour.",
           "heat_pump_min_power": "Lowest electrical input the pump can run at without cycling on and off.",
+          "two_zone_mode": "Off forces the single-zone model even though zone values are stored; On forces two-zone, using the values below or their defaults. Automatic keeps the old rule: two-zone as soon as any zone value has ever been saved — which can only ever turn it on, never off.",
           "upper_floor_thermal_mass": "Two-zone systems only. Heat stored per degree in the radiator-heated upper floor. Usually much lower than the slab, so this zone reacts faster.",
           "lower_floor_thermal_mass": "Two-zone systems only. Heat stored per degree in the slab-heated lower floor.",
           "upper_floor_heat_loss": "Two-zone systems only. How fast the upper floor loses heat per degree of difference to outside.",
@@ -573,6 +573,13 @@
         "manual": "Set by hand",
         "smart_read": "Read from a sensor",
         "smart_write": "Commanded by the optimizer"
+      }
+    },
+    "two_zone_mode": {
+      "options": {
+        "auto": "Automatic (on once zone values exist)",
+        "on": "On",
+        "off": "Off"
       }
     }
   }

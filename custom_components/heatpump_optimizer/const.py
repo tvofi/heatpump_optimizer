@@ -399,6 +399,19 @@ CONF_HEAT_PUMP_MAX_POWER: Final = "heat_pump_max_power"  # kW electrical
 CONF_HEAT_PUMP_MIN_POWER: Final = "heat_pump_min_power"  # kW electrical
 
 # Two-zone model parameters
+#
+# Whether the two-zone model runs was historically inferred from whether any
+# zone key exists at all — which an options page can never undo, because the
+# initial flow writes the keys into entry.data where options cannot erase
+# them. The mode is the explicit override (v4.0.0): "auto" (the default, and
+# what every untouched install effectively has) keeps the presence rule
+# byte-for-byte; "on"/"off" force the model regardless of which keys exist.
+CONF_TWO_ZONE_MODE: Final = "two_zone_mode"
+TWO_ZONE_MODE_AUTO: Final = "auto"
+TWO_ZONE_MODE_ON: Final = "on"
+TWO_ZONE_MODE_OFF: Final = "off"
+TWO_ZONE_MODES: Final = (TWO_ZONE_MODE_AUTO, TWO_ZONE_MODE_ON, TWO_ZONE_MODE_OFF)
+DEFAULT_TWO_ZONE_MODE: Final = TWO_ZONE_MODE_AUTO
 CONF_UPPER_FLOOR_THERMAL_MASS: Final = "upper_floor_thermal_mass"  # kWh/°C
 CONF_LOWER_FLOOR_THERMAL_MASS: Final = "lower_floor_thermal_mass"  # kWh/°C
 CONF_UPPER_FLOOR_HEAT_LOSS: Final = "upper_floor_heat_loss"  # kW/°C

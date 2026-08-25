@@ -162,6 +162,16 @@ external-heat *detector* settings stay on `learning`; only the plumbing it
 observes moves. `presets.derive()` outputs none of the moved keys, so
 enabling the preset cannot overwrite them.
 
+*(Second amendment, user decision 2026-08-25: two-zone must be switchable
+both ways.)* Presence of a zone key can only ever turn the model on — setup
+writes the keys into `entry.data`, where options cannot erase them — so the
+`thermal_model` page carries an explicit `two_zone_mode` select
+(`auto`/`on`/`off`, `CONF_TWO_ZONE_MODE`). `auto` — the default, and what
+every entry without the key has — is the presence rule byte-for-byte; an
+unknown stored value falls back to `auto` rather than disabling a running
+model. G2's "presence inference must not gain members" stands: the mode is
+an override above the inference, not a new member of it.
+
 Surviving page **keys never change** (`entities.py:508` hard-codes five;
 translations key on them); the one removed page's translations move under
 `building` in the same commit. The user's #40 item 4 (the valve-outlet
@@ -404,6 +414,14 @@ profiles/quantiles/cooling/inlet). **#28** is greenfield display math:
 rails** (the risky half): forced ON when the plan commands heat this or next step,
 when displace is being driven, when any zone is within 0.3 °C of its floor, and
 when outdoor < 0 °C. Off only in provably idle, warm slots.
+
+*Noted during T0's review, for this tranche:* the entities page writes
+`dhw_temp_entity: None` back when the sensor is cleared, and the
+`dhw_enabled` presence rule counts a None-valued key as present — so
+clearing a DHW sensor can phantom-enable hot water on an entry that never
+had it. Pre-existing; fix here (where DHW semantics are already in scope),
+either by ignoring None in the presence trio or with a `dhw_mode` override
+mirroring T0's `two_zone_mode`.
 
 **Must not:** change the `10.0` inlet default (every ready target sits on it — assert
 bit-identity); let new hot_water keys join the `dhw_enabled` presence trio; let

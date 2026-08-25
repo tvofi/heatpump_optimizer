@@ -315,7 +315,6 @@
           "mixing_valve_write_entity": "Ventilens styrenhet",
           "buffer_tank_volume": "Ackumulatortankens volym",
           "buffer_max_temperature": "Högsta temperatur i ackumulatortanken",
-          "radiator_power_fraction": "Andel värme till radiatorer",
           "valve_outlet_temp_entity": "Temperatur efter shunten mellan ved- och värmepumpstank (valfri)",
           "wood_tank_top_entity": "Vedtankens toppgivare (valfri)",
           "wood_tank_bottom_entity": "Vedtankens bottengivare (valfri)",
@@ -329,7 +328,6 @@
           "mixing_valve_write_entity": "Krävs för \"Styrs av optimeraren\": den number- eller climate-entitet som ventilens styrning exponerar. Optimeraren skriver sitt rekommenderade börvärde dit efter varje planeringscykel, och bara när svaret ändras.",
           "buffer_tank_volume": "Liter. Tanken mellan värmepumpen och värmekretsarna. Större tank lagrar mer billig värme.",
           "buffer_max_temperature": "Tanken laddas aldrig över detta, hur billig elen än är.",
-          "radiator_power_fraction": "Gäller endast tvåzonssystem. 0 betyder att all värme går till golvplattan, 1 att allt går till radiatorerna. 0,4 betyder 40 procent till radiatorer.",
           "valve_outlet_temp_entity": "Temperaturen på det blandade flödet som lämnar ventilen som blandar ved- och värmepumpsvatten. Tillsammans med tankgivarna talar den om hur stor del av uppvärmningen en brasa täcker just nu, så att elvärmen kan stå tillbaka lika mycket i stället för allt eller inget.",
           "wood_tank_top_entity": "Tillsammans med bottengivaren säger den hur mycket en brasa har kvar. En varm topp över en kall botten betyder att laddningen nästan är slut.",
           "wood_tank_bottom_entity": "Se toppgivaren. Båda behövs för uppskattningen av återstående energi; en ensam läses försiktigt.",
@@ -417,6 +415,7 @@
           "heat_pump_cop_nominal": "Värmepumpens nominella COP",
           "heat_pump_max_power": "Värmepump max effekt (kW)",
           "heat_pump_min_power": "Värmepump min effekt (kW)",
+          "two_zone_mode": "Tvåzonsmodell",
           "upper_floor_thermal_mass": "Övervåning termisk massa (kWh/°C)",
           "lower_floor_thermal_mass": "Nedervåning termisk massa (kWh/°C)",
           "upper_floor_heat_loss": "Övervåning värmeförlust (kW/°C)",
@@ -434,6 +433,7 @@
           "heat_pump_cop_nominal": "Enheter värme per enhet el under normala förhållanden. Se databladet; 3 till 4 är vanligt för luft/vatten, 4 till 5 för bergvärme.",
           "heat_pump_max_power": "Eleffekt vid full drift. Sätter taket för hur mycket billig el som kan lagras per timme.",
           "heat_pump_min_power": "Lägsta eleffekt pumpen klarar utan att börja starta och stanna.",
+          "two_zone_mode": "Av tvingar enzonsmodellen även om zonvärden finns sparade; På tvingar tvåzons, med värdena nedan eller deras standardvärden. Automatiskt behåller den gamla regeln: tvåzons så fort något zonvärde någonsin sparats — vilket bara kan slå på modellen, aldrig av.",
           "upper_floor_thermal_mass": "Endast tvåzonssystem. Värme som lagras per grad i det radiatorvärmda övre planet. Oftast mycket lägre än plattan, så zonen reagerar snabbare.",
           "lower_floor_thermal_mass": "Endast tvåzonssystem. Värme som lagras per grad i det golvvärmda nedre planet.",
           "upper_floor_heat_loss": "Endast tvåzonssystem. Hur snabbt övre planet förlorar värme per grads skillnad mot uteluften.",
@@ -573,6 +573,13 @@
         "manual": "Ställs in för hand",
         "smart_read": "Läs från givare",
         "smart_write": "Styrs av optimeraren"
+      }
+    },
+    "two_zone_mode": {
+      "options": {
+        "auto": "Automatiskt (på när zonvärden finns)",
+        "on": "På",
+        "off": "Av"
       }
     }
   }

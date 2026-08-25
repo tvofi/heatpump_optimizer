@@ -667,6 +667,71 @@ R.check(
     "the inference must still respond to real input, or the page can never enable it",
 )
 
+# The two-zone mode (v4.0.0): the page must be able to turn the model off —
+# presence of the zone keys in entry.data can only ever turn it on — and to
+# turn it on for a legacy entry, while an untouched save still changes
+# nothing (covered by the untouched-submit checks above, which the mode
+# select participates in: it is suggested, never defaulted).
+_off_entry = FakeEntry(
+    data={**_legacy.data, const.CONF_UPPER_FLOOR_THERMAL_MASS: 3.0}
+)
+_off_flow = options(_off_entry)
+_off_flow.hass = FakeHass()
+_off_saved = asyncio.run(
+    _off_flow.async_step_thermal_model({const.CONF_TWO_ZONE_MODE: "off"})
+)["data"]
+R.check(
+    "the mode select can turn two-zone off despite stored zone keys",
+    not ThermalParameters.from_config(
+        {**_off_entry.data, **_off_saved}
+    ).two_zone_enabled,
+    "options merge over data, so only an explicit override can disable it",
+)
+_on_flow = options(_legacy)
+_on_flow.hass = FakeHass()
+_on_saved = asyncio.run(
+    _on_flow.async_step_thermal_model({const.CONF_TWO_ZONE_MODE: "on"})
+)["data"]
+R.check(
+    "and can turn two-zone on for a legacy entry with no zone keys",
+    ThermalParameters.from_config(
+        {**_legacy.data, **_on_saved}
+    ).two_zone_enabled,
+)
+
+# The invariant behind all of the above, swept across EVERY page: opening any
+# options page on a legacy single-zone entry and pressing Submit untouched
+# must never flip two-zone. This is the net that catches the next page that
+# grows a voluptuous default on a presence key — exactly how the old building
+# page's radiator share nearly shipped as a silent zone-flipper when the
+# valve and wood-tank fields moved onto it (v4.0.0 review finding).
+_presence_quad = (
+    const.CONF_UPPER_FLOOR_THERMAL_MASS,
+    const.CONF_LOWER_FLOOR_THERMAL_MASS,
+    const.CONF_INTER_ZONE_TRANSFER,
+    const.CONF_RADIATOR_POWER_FRACTION,
+)
+for _step in options._MENU_LABELS:
+    _sf = options(FakeEntry(data=dict(_legacy.data)))
+    _sf.hass = FakeHass()
+    _sform = asyncio.run(getattr(_sf, f"async_step_{_step}")(None))
+    _sschema = _sform.get("data_schema")
+    if _sschema is None:
+        continue
+    _sresult = asyncio.run(getattr(_sf, f"async_step_{_step}")(_sschema({})))
+    if _sresult.get("type") != "create_entry":
+        continue  # pages like setup_overview just return to the menu
+    _ssaved = _sresult["data"]
+    _wrote = [k for k in _presence_quad if k in _ssaved]
+    R.check(
+        f"an untouched save of the {_step} page cannot flip two-zone",
+        not _wrote
+        and not ThermalParameters.from_config(
+            {**_legacy.data, **_ssaved}
+        ).two_zone_enabled,
+        f"wrote presence keys {_wrote}",
+    )
+
 # A stored value is *suggested* back, not defaulted: the form pre-fills, but
 # an untouched submission still writes nothing.
 _pflow = options(

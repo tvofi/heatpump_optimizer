@@ -178,17 +178,6 @@
    "required": "Optional",
    "selector": "EntitySelector"
   },
-  "radiator_power_fraction": {
-   "config": {
-    "max": "1.0",
-    "min": "0.0",
-    "mode": "'slider'",
-    "step": "0.05"
-   },
-   "default": "0.4",
-   "required": "Optional",
-   "selector": "NumberSelector"
-  },
   "valve_outlet_temp_entity": {
    "config": {
     "filter": "[{'domain': ['sensor']}]"
@@ -1055,6 +1044,16 @@
    "default": null,
    "required": "Optional",
    "selector": "NumberSelector"
+  },
+  "two_zone_mode": {
+   "config": {
+    "mode": "'dropdown'",
+    "options": "['auto', 'on', 'off']",
+    "translation_key": "'two_zone_mode'"
+   },
+   "default": null,
+   "required": "Optional",
+   "selector": "SelectSelector"
   },
   "upper_floor_area_ratio": {
    "config": {

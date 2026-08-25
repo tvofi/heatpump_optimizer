@@ -2052,7 +2052,7 @@ runtime_only = {
     "cop_reference_temp",       # a property of the COP curve, not the house
     "internal_gains",           # not exposed in the config flow
     "dhw_windows",              # parsed separately from a string spec
-    "two_zone_enabled",         # inferred from which keys are present
+    "two_zone_enabled",         # inferred from presence, overridable by mode
     "dhw_enabled",              # inferred from which keys are present
     "cop_flow_carnot",          # follows the mixing valve mode
     "cop_flow_reference_temp",  # a property of the COP curve, not the house
@@ -2122,6 +2122,46 @@ R.check(
     "the COP flow penalty follows the mode rather than being separate",
     _valve_set.cop_flow_carnot and not _valve_bad.cop_flow_carnot,
     "it only means anything when a valve can actually charge the tank",
+)
+
+# Two-zone can be forced both ways (v4.0.0). Presence of a zone key can only
+# ever turn the model on — the initial flow writes the keys into entry.data,
+# where the options flow cannot erase them — so disabling needs the explicit
+# mode. Its default must be the presence rule byte-for-byte, or every
+# untouched install changes behaviour.
+_zone_present = {hp_const.CONF_UPPER_FLOOR_THERMAL_MASS: 3.0}
+R.check(
+    "presence still enables two-zone when the mode key is absent",
+    ThermalParameters.from_config(_zone_present).two_zone_enabled,
+)
+R.check(
+    "mode 'off' disables two-zone even with zone values stored",
+    not ThermalParameters.from_config(
+        {**_zone_present, hp_const.CONF_TWO_ZONE_MODE: "off"}
+    ).two_zone_enabled,
+    "presence alone can never turn the model off — that is the whole point",
+)
+R.check(
+    "mode 'on' enables two-zone with no zone key present at all",
+    ThermalParameters.from_config(
+        {hp_const.CONF_TWO_ZONE_MODE: "on"}
+    ).two_zone_enabled,
+)
+R.check(
+    "mode 'auto' is exactly the presence rule, both ways",
+    not ThermalParameters.from_config(
+        {hp_const.CONF_TWO_ZONE_MODE: "auto"}
+    ).two_zone_enabled
+    and ThermalParameters.from_config(
+        {**_zone_present, hp_const.CONF_TWO_ZONE_MODE: "auto"}
+    ).two_zone_enabled,
+)
+R.check(
+    "an unknown mode falls back to the presence rule rather than disabling",
+    ThermalParameters.from_config(
+        {**_zone_present, hp_const.CONF_TWO_ZONE_MODE: "nonsense"}
+    ).two_zone_enabled,
+    "a typo in stored options must not silently switch a running model off",
 )
 
 # Round-tripping: a value set in the config must arrive in the parameters.

@@ -195,6 +195,9 @@ from .const import (
     DEFAULT_SYSID_ENABLED,
     CONF_COMFORT_LEARNING_ENABLED,
     DEFAULT_COMFORT_LEARNING_ENABLED,
+    CONF_TWO_ZONE_MODE,
+    TWO_ZONE_MODES,
+    TWO_ZONE_MODE_AUTO,
     CONF_BUILDING_PRESET_ENABLED,
     CONF_BUILDING_STRUCTURE,
     CONF_BUILDING_ERA,
@@ -724,7 +727,7 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
     )
 
     # Every clearable entity across all pages; the solar, away, learning and
-    # mixing-valve pages clear their own members in their own handlers.
+    # building pages clear their own members in their own handlers.
     _OPTIONAL_ENTITY_KEYS = _ENTITIES_PAGE_KEYS + (
         CONF_EXTERNAL_HEAT_ENTITY,
         CONF_VALVE_OUTLET_TEMP_ENTITY,
@@ -1171,13 +1174,13 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
                             CONF_BUFFER_MAX_TEMP, DEFAULT_BUFFER_MAX_TEMP
                         ),
                     ): _number(40, 90, 1, "°C", slider=True),
-                    vol.Optional(
-                        CONF_RADIATOR_POWER_FRACTION,
-                        default=current.get(
-                            CONF_RADIATOR_POWER_FRACTION,
-                            DEFAULT_RADIATOR_POWER_FRACTION,
-                        ),
-                    ): _number(0.0, 1.0, 0.05, slider=True),
+                    # The radiator share is deliberately NOT here even though
+                    # the old building page carried it: it is one of the four
+                    # two-zone *presence* keys, and this page's voluptuous
+                    # defaults write every field on any save — which would
+                    # flip a legacy single-zone entry to two-zone the first
+                    # time someone configured a valve. It lives on the
+                    # thermal_model page, whose fields are presence-safe.
                     # Wood-furnace topology: the valve outlet is the sensor
                     # that turns the boolean fire into a continuous
                     # displacement; the tank pair bounds how long the fire
@@ -1256,6 +1259,20 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
                     _numeric(CONF_HEAT_PUMP_COP_NOMINAL): _number(1.5, 6.0, 0.1),
                     _numeric(CONF_HEAT_PUMP_MAX_POWER): _number(1, 20, 0.5, "kW"),
                     _numeric(CONF_HEAT_PUMP_MIN_POWER): _number(0, 10, 0.5, "kW"),
+                    # The explicit two-zone switch. Presence of the zone keys
+                    # below can only ever turn the model on — the initial flow
+                    # writes them into entry.data, where this page cannot
+                    # erase them — so turning it *off* needs a real override.
+                    # Suggested, not defaulted, like every field here: an
+                    # untouched save must write nothing.
+                    vol.Optional(
+                        CONF_TWO_ZONE_MODE,
+                        description={
+                            "suggested_value": current.get(
+                                CONF_TWO_ZONE_MODE, TWO_ZONE_MODE_AUTO
+                            )
+                        },
+                    ): _select(list(TWO_ZONE_MODES), "two_zone_mode"),
                     _numeric(CONF_UPPER_FLOOR_THERMAL_MASS): _number(
                         1, 20, 0.5, "kWh/°C"
                     ),

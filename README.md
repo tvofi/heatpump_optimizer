@@ -1242,7 +1242,7 @@ the top; everything you typically set once lives one click further, under
 | Advanced page | What it covers |
 |---|---|
 | Sensors and entities | Tibber token, weather entity, and every optional sensor including the power meters |
-| Heating system and heat storage | Mixing valve, buffer tank as a store, radiator share, and the wood furnace tank with its probes |
+| Heating system and heat storage | Mixing valve, buffer tank as a store, and the wood furnace tank with its probes |
 | Building type and emitters | Structure, era, foundation, area and emitters, plus windows and wind/rain sensitivity |
 | Thermal model (expert) | The raw model numbers — heat pump power and COP, masses, losses, the two-zone split — previously fixed at setup |
 | Solar panels | Array size, efficiency, export compensation |
@@ -1255,10 +1255,11 @@ plain-language description, so you should not need this table to understand
 what a setting does.
 
 On the **Thermal model** page a field left empty keeps its current value — an
-empty field is never saved. That detail carries a rule: whether the two-zone
-model is on is inferred from whether its settings exist at all, so filling in
-the two-zone fields here is also how an existing install turns two-zone on,
-and leaving them empty is how a single-zone house stays one.
+empty field is never saved. The page also carries the explicit **Two-zone
+model** switch: *Automatic* (the default) keeps the historical rule — two-zone
+as soon as any zone value has ever been saved — while *On* and *Off* force the
+model either way. Off is the only way to genuinely return to single-zone,
+because the values saved during setup can never be un-saved.
 
 ### How hard the optimizer chases low prices
 
