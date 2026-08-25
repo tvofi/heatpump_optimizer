@@ -84,6 +84,21 @@ trees in `strings.json`, `translations/en.json`, `translations/sv.json`
 Review rule: feature work may add leaves only — a *changed* existing leaf is a
 regression unless the tranche explicitly claims it.
 
+**G4b — The five container-sensitive fixtures need an explicit drift gate.**
+`valve_storage_smart_write`, `wood_two_tank`, `wood_two_tank_smart_write`,
+`wood_coil` and `valve_upper_direct_slab` do not reproduce in this container
+— and NOT at the last decimal: scipy lands these non-convex valve/wood
+solves in a different local optimum (plan-shape flips, compressor-start
+counts, leaf deltas up to ~2e1), identically on a clean checkout of main.
+"Fails, as expected" is therefore not evidence — a real regression in
+exactly these scenarios would hide behind the label. The gate, run before
+each tranche merges: `PYTHONPATH=tests/hastub python3 tests/env_drift.py`
+captures all five from the branch AND from an `origin/main` worktree in
+the same environment and requires the two computed payload sets to be
+**byte-identical**; a tranche that deliberately moves them must claim the
+delta instead. Never re-record these five here. (T2 status: verified —
+zero differing leaves across all five after T0+T0b+T1+T2 stacked.)
+
 **G5 — README counts.** `entities.py:169-180` pins `### Sensors (N total)` /
 Binary Sensors / Buttons against instantiated entities. Currently **47/3/3**.
 
