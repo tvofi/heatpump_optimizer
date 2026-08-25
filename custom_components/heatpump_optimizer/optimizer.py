@@ -2436,8 +2436,15 @@ class HeatPumpOptimizer:
                 * window_hours
             )
             needed_delta = (draw_energy + standby_energy) / c_dhw
+            # T4a #11 (gated): when the immersion element keeps rescuing
+            # late tanks, the coordinator asks for a little extra
+            # readiness. 0.0 — the default — is byte-inert.
             required_ready = float(
-                np.clip(dhw_min_temp + needed_delta, dhw_min_temp, dhw_setpoint)
+                np.clip(
+                    dhw_min_temp + needed_delta + params.dhw_ready_margin_c,
+                    dhw_min_temp,
+                    dhw_setpoint,
+                )
             )
             # The tank must be ready by the END of the step before the window.
             ready_idx = max(0, start_idx - 1)

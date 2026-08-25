@@ -645,8 +645,78 @@ entity + meteo data ⇒ value with source tag, no entity + no data ⇒
 
 ## T4 — Model & learning (PR 5) · **Fable** · #42 #26 #11 #12 #21 #30 #17 #36 #53 #2
 
-Snapshots first (insurance), then detectors (they protect the learners), then
-weather inputs, then learners, with #2 last because it actuates.
+**Split executed at the pre-agreed point:** T4a (#42 #26 #11 #12, insurance +
+detectors) shipped as its own PR; T4b (#21 #30 #17 #36 #53 #2, weather inputs +
+learners) follows as the next tranche.
+
+*T4a outcome notes:* built as scoped, on two new modules. **`drift.py`** is the
+one CUSUM primitive all three detectors share — one-sided, drift allowance,
+hysteresis release at threshold/4, evidence trail capped at six, `as_dict`/`load`
+with thresholds code-owned (never persisted). **`snapshots.py`** is the weekly
+ring (8) plus the daily bias watch; the coordinator serialises snapshots
+exclusively through `_learner_snapshot_payloads()`, which reuses every store's
+own producer — the thermal-learning save path was refactored onto the same
+`_thermal_learning_payload()` so there is exactly one serialiser (a features
+check now pins that). Auto-rollback fires once per alarm, only when every
+counted drift day had healthy inputs, and restores the newest snapshot that was
+both healthy and in-band at capture; `restore_learned_snapshot` is the manual
+override. **#26** feeds the residual `_async_learn_house_heat_loss` already
+computes, clipped to `VENT_CUSUM_CLIP_C` = half the threshold — chosen during
+testing after the draft's ±2 °C clip was caught letting a single glitched
+reading trip a 1.2-threshold detector on its own, contradicting the design
+comment; at half the threshold at least three consecutive abnormal samples
+(~1.5 h) are needed. While tripped, `_learning_frozen()` says "ventilation" and
+the heat-loss learner passes through detector-feed-only, which is what lets the
+window's closing release the freeze. Binary sensors 3→4 ("Open Window
+Detected", WINDOW class, evidence attributes). **#11** latches on 2/2 samples
+over nameplate × 1.15 while commanded, skips COP folds while latched, books the
+excess as its own "immersion" ledger line, and (gated) three rescues in 14 days
+raise `params.dhw_ready_margin_c` to 2.0 — 0.0 is byte-inert in the solve by
+construction and a mutation pair proves both directions. **#12** keeps the
+per-3 °C-bucket COP baseline fed only through `_learn_measured_cop`'s already-
+guarded path (frost band, immersion, freezes, low duty all inherited), judges
+the shortfall before the observation joins the baseline, and raises/deletes the
+`cop_degradation` repair issue with an SEK/month estimate. All detector memory
+rides the thermal-learning store additively; a pre-T4 payload loads clean with
+every detector quiet. Goldens: coord_* re-recorded additive-only
+(ventilation/immersion/cop_health/snapshots keys), config_flow re-recorded for
+the two new learning-page toggles, optimizer fixtures untouched.
+
+*T4a review round (1 critical, 9 major, 7 minor, 1 nit — all fixed forward,
+none deferred):* the critical was the rollback restoring the AccuracyTracker,
+which erased the alarm's own evidence — the next counted day read in-band,
+released the alarm, deleted the notice, and under genuine drift the cycle
+repeated until a drifted snapshot laundered itself into the restore pool; the
+tracker is now never restored (it is evidence, not a learner), snapshots taken
+during an active alarm are excluded from the pool, and during an alarm only
+snapshots older than the out-of-band streak qualify (slow drift keeps its
+bias tag in band for days after the learners walked away). The majors: `take()`
+now deep-copies via a JSON round trip (payloads aliased live learner state —
+a week-old snapshot mutated in place, making defrost/price rollback a no-op);
+the restored defrost derate is rebound onto `thermal_params` and the restored
+comfort learner re-applies its weight (the model otherwise kept reading the
+orphaned pre-restore objects); the CUSUM statistic is capped at 1.5× threshold
+(release lag no longer grows with trip length) and a tripped vent latch that
+nothing has fed for 6 h force-releases as stale (the feed dries up entirely in
+mild weather, and a latch nothing can feed froze every learner indefinitely);
+both repair issues are `is_persistent` (they survive the restart their alarm
+state survives); the bias streak is persisted daily, not weekly (a restart on
+drift day 3 rewound the count); the COP baseline stops absorbing samples while
+tripped (the EWMA otherwise re-anchored to the fault and a permanent
+degradation cleared its own issue); the DHW profile gained the shared
+`_dhw_profile_payload()` producer and day-type profiles now restore with the
+pool. Minors: staleness outranks ventilation in `_learning_frozen` so a dead
+battery's flatline cannot drive the detector through the vent-only pass; the
+immersion ledger line is carved OUT of the spot line (lines sum to metered
+energy; the contract settlement folds it back in); SEK/month scales
+month-to-date receipts to a full month; the young COP baseline uses a plain
+mean until twenty samples so one outlier first interval cannot anchor it; the
+heartbeat gates on the snapshot store having loaded (the first cycle could
+snapshot half-loaded learners over the persisted ring); day health is
+accumulated worst-of-day across heartbeats instead of sampled at one tick; the
+relax gating and the rollback-alarm interplay got direct tests (the original
+rollback-once check had passed for the wrong reason). Features suite grew to
+662 checks in the round.
 
 **Infrastructure:** **`snapshots.py`** — weekly ring buffer (8) serialising every
 learner's existing `as_dict()` tagged with `accuracy.summary()`; drift test on

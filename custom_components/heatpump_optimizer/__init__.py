@@ -48,6 +48,7 @@ from .const import (
     SERVICE_ASSIGN_ENTITY,
     SERVICE_APPLY_MANUAL_PLAN,
     SERVICE_CLEAR_MANUAL_PLAN,
+    SERVICE_RESTORE_SNAPSHOT,
     SERVICE_RUN_OPTIMIZATION,
     SERVICE_SET_MODE,
     SERVICE_SET_THERMAL_PARAMS,
@@ -199,6 +200,14 @@ SERVICE_SCHEMA_APPLY_MANUAL_PLAN = vol.Schema(
 )
 
 SERVICE_SCHEMA_CLEAR_MANUAL_PLAN = vol.Schema(
+    {
+        vol.Optional("entry_id"): cv.string,
+    }
+)
+
+# Same shape, own name: reusing the clear-manual-plan constant for the
+# snapshot restore read as if the two services were related.
+SERVICE_SCHEMA_RESTORE_SNAPSHOT = vol.Schema(
     {
         vol.Optional("entry_id"): cv.string,
     }
@@ -698,6 +707,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             cleared.append(entry_id)
         return {"cleared": cleared}
 
+    async def handle_restore_snapshot(call: ServiceCall) -> dict[str, Any]:
+        """Roll the learners back to the newest trustworthy snapshot (#42)."""
+        target_entry = dict(call.data).get("entry_id")
+        restored: list[str] = []
+        for entry_id, coord in _manual_targets(target_entry):
+            if await coord.async_restore_learned_snapshot():
+                restored.append(entry_id)
+        return {"restored": restored}
+
     hass.services.async_register(
         DOMAIN,
         SERVICE_RUN_OPTIMIZATION,
@@ -756,6 +774,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         SERVICE_CLEAR_MANUAL_PLAN,
         handle_clear_manual_plan,
         schema=SERVICE_SCHEMA_CLEAR_MANUAL_PLAN,
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_RESTORE_SNAPSHOT,
+        handle_restore_snapshot,
+        schema=SERVICE_SCHEMA_RESTORE_SNAPSHOT,
         supports_response=SupportsResponse.OPTIONAL,
     )
 

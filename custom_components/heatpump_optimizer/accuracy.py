@@ -50,6 +50,10 @@ class AccuracySample:
     actual_cost: float | None = None
     outdoor_temp: float | None = None
     humidity: float | None = None
+    #: Observed minus modelled COP for the interval (v4.0.0 T4a, #42's
+    #: snapshot tags and #12's health watch both read it). None whenever a
+    #: power meter or the model's figure was missing.
+    cop_residual: float | None = None
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -62,6 +66,7 @@ class AccuracySample:
             "actual_cost": self.actual_cost,
             "outdoor_temp": self.outdoor_temp,
             "humidity": self.humidity,
+            "cop_residual": self.cop_residual,
         }
 
     @classmethod
@@ -94,6 +99,7 @@ class AccuracySample:
             actual_cost=num("actual_cost"),
             outdoor_temp=num("outdoor_temp"),
             humidity=num("humidity"),
+            cop_residual=num("cop_residual"),
         )
 
 

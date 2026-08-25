@@ -42,6 +42,7 @@ async def async_setup_entry(
             InputHealthBinarySensor(coordinator, entry),
             ExternalHeatBinarySensor(coordinator, entry),
             AwayModeBinarySensor(coordinator, entry),
+            VentilationBinarySensor(coordinator, entry),
         ]
     )
 
@@ -102,6 +103,37 @@ class InputHealthBinarySensor(_OptimizerBinarySensorBase):
             "input_ages_minutes": data.get("input_ages_minutes", {}),
             "learners_frozen": data.get("learners_frozen", False),
             "learner_freeze_reason": data.get("learner_freeze_reason"),
+        }
+
+
+class VentilationBinarySensor(_OptimizerBinarySensorBase):
+    """On while the house is losing heat like a window is open (#26).
+
+    The detector accumulates colder-than-predicted residuals from the
+    heat-loss learner's own replay; while it is tripped every learner
+    freezes (reason "ventilation") so an afternoon of airing out cannot
+    teach the model a heat loss the house does not have. Evidence rides
+    in the attributes, same contract as the external-heat detector: a
+    heuristic nobody can audit is a heuristic nobody can trust.
+    """
+
+    _attr_device_class = BinarySensorDeviceClass.WINDOW
+    _attr_icon = "mdi:window-open-variant"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator, entry) -> None:
+        super().__init__(
+            coordinator, entry, "ventilation", "Open Window Detected"
+        )
+
+    @property
+    def is_on(self) -> bool:
+        return bool(self._data().get("ventilation_active"))
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return {
+            "evidence": self._data().get("ventilation_evidence", []),
         }
 
 

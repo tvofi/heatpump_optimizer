@@ -670,3 +670,23 @@ clear_manual_plan:
         configured heat pump.
       selector:
         text:
+
+restore_learned_snapshot:
+  name: Restore Learned Snapshot
+  description: >-
+    Roll every learner back to the most recent weekly snapshot that was
+    captured while all inputs were healthy and prediction accuracy was in
+    band. Use this if the learned model has visibly gone wrong — after a
+    sensor fed garbage for a while, for example. The drift watchdog does the
+    same thing automatically when it can prove the inputs were healthy
+    throughout; this service is the manual override for when you can see
+    what it cannot. Nothing is lost permanently: learning simply continues
+    from the restored point.
+  fields:
+    entry_id:
+      name: Config entry
+      description: >-
+        Restrict the restore to one config entry. Leave empty to restore every
+        configured heat pump.
+      selector:
+        text:

@@ -559,7 +559,9 @@
           "comfort_learning_enabled": "Lär dig min komfortnivå av mina justeringar",
           "system_identification_enabled": "Tillåt ett engångsförsök för att mäta huset",
           "price_prior_enabled": "Uppskatta priser bortom publicerad horisont",
-          "outage_recovery_enabled": "Stegvis återhämtning efter strömavbrott"
+          "outage_recovery_enabled": "Stegvis återhämtning efter strömavbrott",
+          "open_window_relax_enabled": "Dämpa värmen medan ett fönster är öppet",
+          "immersion_feedback_enabled": "Planera utifrån elpatronens användning"
         },
         "data_description": {
           "staleness_watchdog_enabled": "Ett dött batteri lämnar ett helt normalt utseende värde kvar för alltid. Utan åtgärd lär sig modellen av den platta kurvan, och skadan överlever en omstart. Med detta på behandlas ett gammalt värde som saknat och inlärningen pausas i stället.",
@@ -570,7 +572,9 @@
           "comfort_learning_enabled": "Varje gång du justerar temperaturen säger du att planen gick för långt åt ett håll. Detta justerar långsamt komfortinställningen utifrån det. Det inlärda värdet visas på en egen sensor och det finns en knapp för att nollställa.",
           "system_identification_enabled": "Låter optimeraren göra ett litet avsiktligt värmesteg en mild och billig natt för att mäta huset direkt, i stället för att vänta veckor på att härleda det. Steget hålls så litet att det inte märks och avbryts om temperaturen driver.",
           "price_prior_enabled": "Morgondagens priser kommer runt kl. 13. Dessförinnan var resten av horisonten en platt upprepning av senaste priset, vilket döljer alla billiga timmar framåt. Detta lär sig din typiska prisprofil över dygnet och använder den i stället, och planen märker ut vilka timmar som är uppskattade.",
-          "outage_recovery_enabled": "Efter ett avbrott startar allt samtidigt — kallt hus, kall tank, hela grannskapet — vilket är exakt när en ny månadstopp sätts. Med detta på öppnar ett långt uppehåll i uppdateringarna ett tvåtimmarsfönster där effektavgiften tas på allvar från första kW och varmvattnet köar 45 minuter bakom husvärmen, om inte tanken är riktigt låg."
+          "outage_recovery_enabled": "Efter ett avbrott startar allt samtidigt — kallt hus, kall tank, hela grannskapet — vilket är exakt när en ny månadstopp sätts. Med detta på öppnar ett långt uppehåll i uppdateringarna ett tvåtimmarsfönster där effektavgiften tas på allvar från första kW och varmvattnet köar 45 minuter bakom husvärmen, om inte tanken är riktigt låg.",
+          "open_window_relax_enabled": "Fönsterdetektorn pausar alltid inlärningen — den delen är gratis och alltid på. Detta sänker dessutom värmemålet med 1 °C medan ett fönster verkar stå öppet, så att värmepumpen slutar betala för att värma trädgården. Av som standard eftersom det flyttar riktig värme: ett felaktigt flaggat fönster betyder ett något svalare hus.",
+          "immersion_feedback_enabled": "När tankens elpatron gång på gång får rycka in värmer planen inte vattnet tidigt nog. Med detta på höjer upprepad elpatronanvändning varmvattnets planeringsmarginal så att värmepumpen hinner först, och merkostnaden syns som en egen rad i besparingsredovisningen."
         }
       }
     },
@@ -647,6 +651,20 @@
         "rules": "Tidsregler",
         "entity": "Sensor"
       }
+    }
+  },
+  "issues": {
+    "cop_degradation": {
+      "title": "Värmepumpens verkningsgrad har sjunkit",
+      "description": "Värmepumpen har levererat ungefär {shortfall_percent} % mindre värme per kWh än den brukade under samma förhållanden, vilket kostar cirka {sek_month} kr per månad med senaste tidens priser. De vanliga misstänkta är ett igensatt filter, låg köldmediefyllning eller ett avfrostningsproblem — värt en titt innan säsongen blir kallare. Meddelandet försvinner av sig självt om verkningsgraden återhämtar sig."
+    },
+    "accuracy_drift": {
+      "title": "Den inlärda modellen driver",
+      "description": "Optimerarens prognoser har varit konsekvent fel i flera dagar, vilket oftast betyder att något i huset eller systemet ändrats snabbare än inlärningen hinner följa. Kontrollera att sensorerna visar rimliga värden. Om planen blivit märkbart sämre rullar tjänsten \"Återställ inlärd ögonblicksbild\" tillbaka modellen till den senaste kända bra veckokopian."
+    },
+    "accuracy_drift_rolled_back": {
+      "title": "Den inlärda modellen återställdes från en ögonblicksbild",
+      "description": "Optimerarens prognoser drev utanför bandet i flera dagar trots att alla indata såg friska ut, så den inlärda modellen rullades automatiskt tillbaka till den senaste kända bra veckokopian. Inget krävs av dig; meddelandet finns för att ändringen ska synas. Var driften verklig — nya radiatorer, ändrad isolering — lär sig modellen helt enkelt om från den återställda punkten."
     }
   }
 }

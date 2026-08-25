@@ -117,6 +117,14 @@ DATA = {
     "away_recovery_active": False,
     "away_target_temperature": 16.0,
     "away_dhw_min_temperature": 20.0,
+    "ventilation_active": True,
+    "ventilation_evidence": [
+        "2026-02-01T10:05:00: room 1.4 °C under prediction while heating"
+    ],
+    "immersion_active": False,
+    "immersion_evidence": [],
+    "cop_health": {"watched_buckets": 2, "alarm": False, "evidence": []},
+    "snapshots": {"count": 3, "alarm": False, "last_taken": "2026-02-01T03:00:00"},
     "space_energy_kwh": 120.5,
     "dhw_energy_kwh": 40.25,
     "total_energy_kwh": 160.75,
@@ -203,7 +211,7 @@ R.check("all sensors are constructible", len(sensors) > 30, str(len(sensors)))
 readme = Path("README.md").read_text()
 for label, count, pattern in (
     ("sensors", len(sensors), r"### Sensors \((\d+) total\)"),
-    ("binary sensors", 3, r"### Binary Sensors \((\d+) total\)"),
+    ("binary sensors", 4, r"### Binary Sensors \((\d+) total\)"),
     ("buttons", 3, r"### Buttons \((\d+) total\)"),
 ):
     import re as _re
@@ -442,7 +450,7 @@ R.section("Binary sensors")
 
 binaries = collect(binary_sensor)
 b_by_name = {b._attr_name: b for b in binaries}
-R.check("three binary sensors are added", len(binaries) == 3, str(len(binaries)))
+R.check("four binary sensors are added", len(binaries) == 4, str(len(binaries)))
 
 health = b_by_name["Input Problem"]
 R.check("a stale input raises the problem flag", health.is_on)
@@ -481,11 +489,27 @@ R.check(
     away.extra_state_attributes["return_time"] == "2026-02-14T18:00:00",
 )
 
+vent = b_by_name["Open Window Detected"]
+R.check("the open-window sensor reflects the detector", vent.is_on)
+R.check(
+    "its evidence is published, same contract as external heat",
+    vent.extra_state_attributes["evidence"],
+    "a heuristic nobody can audit is a heuristic nobody can trust",
+)
+R.check(
+    "the open-window sensor stays quiet without the detector key",
+    not binary_sensor.VentilationBinarySensor(
+        FakeCoordinator({"stale_inputs": []}), ENTRY
+    ).is_on,
+    "old payloads without the T4a keys must read as off, not crash",
+)
+
 b_crashed = []
 for entity in (
     binary_sensor.InputHealthBinarySensor(empty, ENTRY),
     binary_sensor.ExternalHeatBinarySensor(empty, ENTRY),
     binary_sensor.AwayModeBinarySensor(empty, ENTRY),
+    binary_sensor.VentilationBinarySensor(empty, ENTRY),
 ):
     try:
         entity.is_on
@@ -1110,6 +1134,15 @@ R.check(
         for k in integration.SERVICE_SCHEMA_CLEAR_MANUAL_PLAN.schema
         if type(k).__name__ == "Required"
     ],
+)
+
+R.check(
+    "restore_learned_snapshot is documented",
+    "restore_learned_snapshot" in services,
+)
+R.check(
+    "restore_learned_snapshot is registered under the documented name",
+    const.SERVICE_RESTORE_SNAPSHOT == "restore_learned_snapshot",
 )
 
 

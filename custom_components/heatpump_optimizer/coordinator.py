@@ -223,6 +223,20 @@ from .const import (
     DHW_LEGIONELLA_HOLD_MINUTES,
     DHW_DAYTYPE_BLEND_K,
     SPACE_PUMP_FLOOR_MARGIN_C,
+    CONF_OPEN_WINDOW_RELAX_ENABLED,
+    DEFAULT_OPEN_WINDOW_RELAX_ENABLED,
+    CONF_IMMERSION_FEEDBACK_ENABLED,
+    DEFAULT_IMMERSION_FEEDBACK_ENABLED,
+    VENT_CUSUM_THRESHOLD_C,
+    VENT_CUSUM_DRIFT_C,
+    VENT_CUSUM_CLIP_C,
+    VENT_CUSUM_STARVE_HOURS,
+    OPEN_WINDOW_RELAX_C,
+    IMMERSION_FACTOR,
+    COP_BASELINE_MIN_SAMPLES,
+    COP_BASELINE_ALPHA,
+    COP_HEALTH_THRESHOLD,
+    COP_HEALTH_DRIFT,
 )
 from .inputs import InputHealth, InputReader, normalize_power_kw, stale_summary
 from .external_heat import (
@@ -259,9 +273,12 @@ from .grid_fee import (
     parse_month_range as grid_fee_parse_month_range,
 )
 from .dhw_draws import DrawStats, labels_for, window_label as draw_window_label
+from .drift import Cusum
 from .ledger import MonthlyLedger, month_key
 from .power_guard import GuardState, project_window_mean
+from .snapshots import BIAS_TRIP_DAYS, SnapshotRing
 from . import pump_schedule
+from homeassistant.helpers import issue_registry as ir
 from .open_meteo import OpenMeteoSolar
 from .thermal_model import (
     DHW_AMBIENT_TEMP,
@@ -501,6 +518,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._init_measurements()
         self._init_grid(hass, entry)
         self._init_features(hass, entry)
+        self._init_insurance(hass, entry)
         self._init_ecl110()
 
         # Deferred: MQTT may not be up yet, and the stores are on disk.
@@ -514,10 +532,54 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._async_load_accuracy,
             self._async_load_energy_totals,
             self._async_load_ledger,
+            self._async_load_snapshots,
             self._async_setup_peak_guard,
             self._async_load_manual_plan,
         ):
             hass.async_create_task(load())
+
+    def _init_insurance(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+        """The learners' insurance and the drift detectors (v4.0.0 T4a).
+
+        Detection ships default-on because a freeze only stops learning —
+        it never moves a plan. Everything that could move one (the comfort
+        relaxation, the DHW margin nudge) is gated behind its own flag.
+        """
+        # #26: an open window shows as sustained colder-than-predicted
+        # residuals in the heat-loss learner's replay.
+        self._vent_cusum = Cusum(
+            threshold=VENT_CUSUM_THRESHOLD_C,
+            drift=VENT_CUSUM_DRIFT_C,
+            side=-1,
+        )
+        # #11: the immersion element announces itself as measured power
+        # beyond what the compressor can draw. 2/2 hysteresis, like every
+        # event detector in this integration.
+        self._immersion_active: bool = False
+        self._immersion_over_count: int = 0
+        self._immersion_clear_count: int = 0
+        self._immersion_evidence: list[str] = []
+        self._immersion_events: list[str] = []
+        # #12: a weeks-scale COP baseline per 3 °C bucket, fed only outside
+        # the frost band, and a slow CUSUM on the relative shortfall.
+        self._cop_baseline: dict[int, list[float]] = {}
+        self._cop_health_cusum = Cusum(
+            threshold=COP_HEALTH_THRESHOLD, drift=COP_HEALTH_DRIFT, side=1
+        )
+        # #42: the weekly ring of learner snapshots.
+        self._snapshot_ring = SnapshotRing()
+        self._snapshot_store: Store = Store(
+            hass, 1, f"{DOMAIN}_{entry.entry_id}_snapshots"
+        )
+        self._rollback_done_for_alarm: bool = False
+        # The heartbeat must not act before the persisted ring loads, or
+        # the first cycle snapshots half-loaded learners into an empty
+        # ring and saves that over eight weeks of insurance.
+        self._snapshots_loaded: bool = False
+        # Worst-of-day input health, accumulated across heartbeats and
+        # consumed when a day is counted (#42): a morning of garbage
+        # inputs must not green-light an evening rollback.
+        self._day_inputs_healthy: bool = True
 
     # -- construction, one concern at a time ---------------------------------
 
@@ -1019,19 +1081,30 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         )
         self._thermal_params.dhw_cooling_rate = self._dhw_cooling_rate
 
+    def _dhw_profile_payload(self) -> dict[str, Any]:
+        """The DHW profile store's exact save shape.
+
+        One producer for both the store and the weekly snapshot (#42),
+        same contract as ``_thermal_learning_payload``: a second
+        hand-built copy is how formats drift.
+        """
+        return {
+            "hourly_profile": self._dhw_hourly_profile,
+            "cooling_rate": self._dhw_cooling_rate,
+            "cooling_samples": self._dhw_cooling_samples,
+            # #18: additive — old loaders ignore these keys.
+            "profile_weekday": self._dhw_profile_weekday,
+            "profile_weekend": self._dhw_profile_weekend,
+            "profile_weekday_samples": self._dhw_daytype_samples[0],
+            "profile_weekend_samples": self._dhw_daytype_samples[1],
+        }
+
     async def _async_save_dhw_profile(self) -> None:
         """Persist learned DHW profile to Home Assistant storage."""
         try:
             await self._dhw_profile_store.async_save(
                 {
-                    "hourly_profile": self._dhw_hourly_profile,
-                    "cooling_rate": self._dhw_cooling_rate,
-                    "cooling_samples": self._dhw_cooling_samples,
-                    # #18: additive — old loaders ignore these keys.
-                    "profile_weekday": self._dhw_profile_weekday,
-                    "profile_weekend": self._dhw_profile_weekend,
-                    "profile_weekday_samples": self._dhw_daytype_samples[0],
-                    "profile_weekend_samples": self._dhw_daytype_samples[1],
+                    **self._dhw_profile_payload(),
                     "updated_at": dt_util.now().isoformat(),
                 }
             )
@@ -1129,6 +1202,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 if count > 0 and p90 is not None:
                     table[label] = (p90, count)
             params.dhw_window_ready_energy = table or None
+
+        # T4a #11 (gated): a recurring immersion rescue asks the plan to
+        # arrive a little earlier. 0.0 with the flag off — byte-inert.
+        params.dhw_ready_margin_c = self._immersion_dhw_margin(now)
 
         # #47: what a typical remaining day is expected to bottom out at.
         params.dhw_legionella_price_ceiling = None
@@ -1424,24 +1501,58 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             except (TypeError, ValueError) as err:
                 _LOGGER.debug("Could not load COP scale: %s", err)
 
+        # v4.0.0 T4a — the detectors' memory. Absent from every pre-T4
+        # payload, and each loader tolerates garbage on its own.
+        self._vent_cusum.load(stored.get("vent_cusum"))
+        self._cop_health_cusum.load(stored.get("cop_health_cusum"))
+        raw_baseline = stored.get("cop_baseline")
+        if isinstance(raw_baseline, dict):
+            for key, entry in raw_baseline.items():
+                try:
+                    self._cop_baseline[int(key)] = [
+                        float(entry[0]),
+                        int(entry[1]),
+                    ]
+                except (TypeError, ValueError, IndexError):
+                    continue
+        raw_events = stored.get("immersion_events")
+        if isinstance(raw_events, list):
+            self._immersion_events = [str(e) for e in raw_events[-20:]]
+
+    def _thermal_learning_payload(self) -> dict[str, Any]:
+        """The thermal-learning store's exact save shape.
+
+        One producer for both the store and the weekly snapshot (#42):
+        serialising learned state by any second path is how formats drift.
+        """
+        return {
+            "buffer_cooling_rate": self._buffer_cooling_rate,
+            "buffer_cooling_samples": self._buffer_cooling_samples,
+            "house_heat_loss_scale": self._house_heat_loss_scale,
+            "house_heat_loss_samples": self._house_heat_loss_samples,
+            "lower_floor_loss_ratio": self._lower_floor_loss_ratio,
+            "lower_floor_loss_samples": self._lower_floor_loss_samples,
+            # Every plan is priced through the COP curve, so a learned
+            # correction that evaporated on restart silently re-based
+            # all costs on the nameplate figure.
+            "cop_scale": self._cop_scale,
+            "cop_samples": self._cop_samples,
+            # v4.0.0 T4a — the detectors' memory, all additive keys.
+            "vent_cusum": self._vent_cusum.as_dict(),
+            "cop_baseline": {
+                str(k): [round(v[0], 4), int(v[1])]
+                for k, v in self._cop_baseline.items()
+            },
+            "cop_health_cusum": self._cop_health_cusum.as_dict(),
+            "immersion_events": list(self._immersion_events),
+            "updated_at": dt_util.now().isoformat(),
+        }
+
     async def _async_save_thermal_learning(self) -> None:
         """Persist the learned buffer and building parameters."""
         try:
             await self._thermal_learning_store.async_save(
-                {
-                    "buffer_cooling_rate": self._buffer_cooling_rate,
-                    "buffer_cooling_samples": self._buffer_cooling_samples,
-                    "house_heat_loss_scale": self._house_heat_loss_scale,
-                    "house_heat_loss_samples": self._house_heat_loss_samples,
-                    "lower_floor_loss_ratio": self._lower_floor_loss_ratio,
-                    "lower_floor_loss_samples": self._lower_floor_loss_samples,
-                    # Every plan is priced through the COP curve, so a learned
-                    # correction that evaporated on restart silently re-based
-                    # all costs on the nameplate figure.
-                    "cop_scale": self._cop_scale,
-                    "cop_samples": self._cop_samples,
-                    "updated_at": dt_util.now().isoformat(),
-                }
+                self._thermal_learning_payload()
             )
         except Exception as err:
             _LOGGER.debug("Could not persist learned thermal parameters: %s", err)
@@ -1865,6 +1976,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if in_frost_band(self._current_state.outdoor_temperature):
             return
 
+        # #11: a resistive kW in the reading is not the compressor being
+        # inefficient, it is a different appliance on the same meter.
+        if self._immersion_active:
+            return
+
         modelled_cop = self._thermal_model.compute_cop(
             self._current_state.outdoor_temperature
         )
@@ -1908,6 +2024,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._cop_scale,
             self._cop_samples,
         )
+        # #12: the same vetted sample feeds the weeks-scale health watch —
+        # this path is already guarded against frost, immersion, freezes
+        # and low duty, so the baseline inherits every filter for free.
+        self._observe_cop_health(float(observed_cop))
 
     def _input_health_view(self) -> dict[str, Any]:
         """Diagnostics for the input watchdog, published as entity attributes."""
@@ -2113,7 +2233,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         frozen = self._learning_frozen(
             CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY
         )
-        if frozen:
+        # "ventilation" is the one freeze reason this method must look
+        # past: the ventilation detector below is what CLEARS it, and it
+        # needs the residual to see the window close. Every other reason
+        # (stale sensors, external heat) makes the residual itself
+        # untrustworthy, detector included.
+        vent_only = frozen == "ventilation"
+        if frozen and not vent_only:
             self._learner_freeze_reason = frozen
             return
 
@@ -2171,6 +2297,28 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         residual = observed - predicted_room
         if not np.isfinite(residual):
             return
+
+        # #26: an open window shows as SUSTAINED colder-than-predicted
+        # residuals — often exactly the large ones the guard below throws
+        # away, which is why the detector is fed first, clipped so one
+        # sensor glitch cannot trip it alone. On a trip every learner
+        # freezes with reason "ventilation" until the residuals recover.
+        vent_changed = self._vent_cusum.update(
+            now, float(np.clip(residual, -VENT_CUSUM_CLIP_C, VENT_CUSUM_CLIP_C))
+        )
+        if vent_changed:
+            _LOGGER.info(
+                "Open-window detector %s (stat %.2f)",
+                "tripped" if self._vent_cusum.tripped else "released",
+                self._vent_cusum.stat,
+            )
+            await self._async_save_thermal_learning()
+        if vent_only:
+            # The detector has been fed; the learner itself stays frozen
+            # until the window closes.
+            self._learner_freeze_reason = frozen
+            return
+
         if abs(residual) > HOUSE_LOSS_MAX_RESIDUAL:
             _LOGGER.debug(
                 "Ignoring house heat loss sample: residual %.2f°C is too large "
@@ -2811,6 +2959,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             await self._async_save_accuracy()
             await self._async_save_energy_totals()
 
+            # T4a #42: the learners' insurance — weekly snapshot, daily
+            # bias check, and the rollback when drift proves itself on
+            # healthy inputs. Never allowed to break the cycle.
+            try:
+                await self._async_watch_learning_drift()
+            except Exception as err:  # noqa: BLE001
+                _LOGGER.debug("Snapshot heartbeat skipped: %s", err)
+
             self._next_optimization = dt_util.now() + timedelta(
                 minutes=self._config.get(
                     CONF_OPTIMIZATION_INTERVAL, DEFAULT_OPTIMIZATION_INTERVAL
@@ -2921,6 +3077,21 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 self._opt_config.min_temp = max(
                     ECONOMY_ABSOLUTE_FLOOR,
                     self._opt_config.min_temp - ECONOMY_MIN_TEMP_WIDENING,
+                )
+
+            # #26 (gated): while a window is detected open, holding the
+            # comfort floor heats the street. Applied inside the same
+            # snapshot-and-unwind envelope as the away setback, so the
+            # relaxation can never outlive the window.
+            if self._vent_cusum.tripped and bool(
+                self._config.get(
+                    CONF_OPEN_WINDOW_RELAX_ENABLED,
+                    DEFAULT_OPEN_WINDOW_RELAX_ENABLED,
+                )
+            ):
+                self._opt_config.min_temp = max(
+                    ECONOMY_ABSOLUTE_FLOOR,
+                    self._opt_config.min_temp - OPEN_WINDOW_RELAX_C,
                 )
 
             self._current_state.external_heat_active = self._external_heat_active
@@ -3217,6 +3388,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._measured_power = power_reading.value if power_reading.ok else None
         house_power = reader.read_power_kw(CONF_HOUSE_POWER_ENTITY)
         self._measured_house_power = house_power.value if house_power.ok else None
+        # #11: draw beyond what the compressor can pull means the immersion
+        # element is running — a different appliance wearing the pump's meter.
+        self._detect_immersion()
         energy_reading = reader.read(CONF_ENERGY_ENTITY)
         self._measured_energy = energy_reading.value if energy_reading.ok else None
 
@@ -3361,13 +3535,22 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         """
         if self._external_heat_active:
             return "external_heat_source"
+        # Staleness outranks ventilation deliberately: the heat-loss
+        # learner treats "ventilation" as a pass-through to keep feeding
+        # the detector, and a stale flatline fed through that pass would
+        # drive the very detector that froze everything. With stale
+        # first, the latch simply holds until real data returns.
         health = self._input_health
-        if health is None:
-            return None
-        for key in keys:
-            reading = health.readings.get(key)
-            if reading is not None and reading.stale:
-                return f"stale:{key}"
+        if health is not None:
+            for key in keys:
+                reading = health.readings.get(key)
+                if reading is not None and reading.stale:
+                    return f"stale:{key}"
+        # #26: training on an open window teaches a phantom heat loss the
+        # house does not have — measured in °C-scale residuals, far above
+        # any learning signal.
+        if self._vent_cusum.tripped:
+            return "ventilation"
         return None
 
     async def _fetch_tibber_prices(self) -> None:
@@ -4292,6 +4475,29 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             "comfort_learning": self._comfort_learner.summary(),
             "system_identification": self._sysid.as_dict(),
             "accuracy": self._accuracy.summary(),
+            # T4a: the detectors and the insurance, all additive.
+            "ventilation_active": self._vent_cusum.tripped,
+            "ventilation_evidence": list(self._vent_cusum.evidence),
+            "immersion_active": self._immersion_active,
+            "immersion_evidence": list(self._immersion_evidence),
+            "cop_health": {
+                "watched_buckets": sum(
+                    1
+                    for entry in self._cop_baseline.values()
+                    if int(entry[1]) >= COP_BASELINE_MIN_SAMPLES
+                ),
+                "alarm": self._cop_health_cusum.tripped,
+                "evidence": list(self._cop_health_cusum.evidence),
+            },
+            "snapshots": {
+                "count": len(self._snapshot_ring.snapshots),
+                "alarm": self._snapshot_ring.alarmed,
+                "last_taken": (
+                    self._snapshot_ring.snapshots[-1].get("taken_at")
+                    if self._snapshot_ring.snapshots
+                    else None
+                ),
+            },
         }
 
     def _measurement_view(self) -> dict[str, Any]:
@@ -5337,6 +5543,410 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             OUTAGE_DHW_DELAY_MINUTES,
         )
 
+    # ==================================================================
+    # Model & learning insurance (v4.0.0 T4a)
+    # ==================================================================
+
+    def _detect_immersion(self) -> None:
+        """#11: notice the immersion element wearing the pump's meter.
+
+        Measured draw beyond ``nameplate × IMMERSION_FACTOR`` while the
+        plan commands heat cannot be the compressor. Two agreeing samples
+        latch, two clear ones release — one meter spike does nothing.
+        While latched the COP learner skips (a resistive kW in the ratio
+        reads as catastrophic efficiency) and the settlement books the
+        excess as its own ledger line.
+        """
+        measured = self._measured_power
+        nameplate = float(self._thermal_params.max_electrical_power)
+        over = (
+            measured is not None
+            and nameplate > 0.1
+            and measured > nameplate * IMMERSION_FACTOR
+            and self._commanded_power() > 0.1
+        )
+        now = dt_util.now()
+        if over:
+            self._immersion_over_count += 1
+            self._immersion_clear_count = 0
+            if not self._immersion_active and self._immersion_over_count >= 2:
+                self._immersion_active = True
+                self._immersion_evidence.append(
+                    f"{now.isoformat(timespec='seconds')}: measured "
+                    f"{measured:.1f} kW over {nameplate:.1f} kW nameplate; "
+                    "immersion element running"
+                )
+                del self._immersion_evidence[:-6]
+                self._immersion_events.append(now.isoformat())
+                del self._immersion_events[:-20]
+                _LOGGER.info(
+                    "Immersion element detected (%.1f kW measured, %.1f kW "
+                    "nameplate)",
+                    measured,
+                    nameplate,
+                )
+        else:
+            self._immersion_clear_count += 1
+            self._immersion_over_count = 0
+            if self._immersion_active and self._immersion_clear_count >= 2:
+                self._immersion_active = False
+                self._immersion_evidence.append(
+                    f"{now.isoformat(timespec='seconds')}: draw back under "
+                    "nameplate; released"
+                )
+                del self._immersion_evidence[:-6]
+
+    def _immersion_dhw_margin(self, now: datetime) -> float:
+        """#11's gated feedback: extra readiness when rescues recur.
+
+        Three or more immersion events inside fourteen days say the tank
+        keeps arriving late enough that the element has to save it; the
+        margin asks the plan to arrive a little earlier instead of paying
+        resistive prices for the difference.
+        """
+        if not bool(
+            self._config.get(
+                CONF_IMMERSION_FEEDBACK_ENABLED,
+                DEFAULT_IMMERSION_FEEDBACK_ENABLED,
+            )
+        ):
+            return 0.0
+        cutoff = now - timedelta(days=14)
+        recent = 0
+        for raw in self._immersion_events:
+            try:
+                when = datetime.fromisoformat(raw)
+            except (TypeError, ValueError):
+                continue
+            if when.tzinfo is None and now.tzinfo is not None:
+                when = when.replace(tzinfo=now.tzinfo)
+            if when >= cutoff:
+                recent += 1
+        return 2.0 if recent >= 3 else 0.0
+
+    def _observe_cop_health(self, observed_cop: float) -> None:
+        """#12: the weeks-scale compressor-health watch.
+
+        Baseline per 3 °C outdoor bucket, fed only from the frost-band-
+        and immersion-guarded samples `_learn_measured_cop` already
+        vetted. The shortfall is judged BEFORE the observation joins the
+        baseline, or a slow decline would drag its own reference down and
+        never trip.
+        """
+        outdoor = float(self._current_state.outdoor_temperature)
+        bucket = int(np.floor(outdoor / 3.0))
+        entry = self._cop_baseline.get(bucket)
+        if entry is None:
+            self._cop_baseline[bucket] = [float(observed_cop), 1]
+            return
+        baseline, count = float(entry[0]), int(entry[1])
+        if count >= COP_BASELINE_MIN_SAMPLES and baseline > 0.5:
+            shortfall = (baseline - float(observed_cop)) / baseline
+            changed = self._cop_health_cusum.update(dt_util.now(), shortfall)
+            if changed:
+                if self._cop_health_cusum.tripped:
+                    self._raise_cop_issue(baseline)
+                else:
+                    ir.async_delete_issue(self.hass, DOMAIN, "cop_degradation")
+        # While the watch is tripped the baseline stops absorbing samples:
+        # otherwise the EWMA re-anchors to the degraded level within weeks
+        # and a permanent fault "recovers" on its own, clearing the issue
+        # the user was told clears only when efficiency does.
+        if self._cop_health_cusum.tripped:
+            return
+        if count < COP_BASELINE_MIN_SAMPLES:
+            # A plain mean while young: seeding the EWMA with a single
+            # first sample lets one outlier interval distort the baseline
+            # for its first fifty folds — and the watch starts judging
+            # after twenty.
+            entry[0] = (baseline * count + float(observed_cop)) / (count + 1)
+        else:
+            entry[0] = (
+                (1.0 - COP_BASELINE_ALPHA) * baseline
+                + COP_BASELINE_ALPHA * float(observed_cop)
+            )
+        entry[1] = count + 1
+
+    def _raise_cop_issue(self, baseline: float) -> None:
+        """One repair issue with the money the shortfall costs per month."""
+        now = dt_util.now()
+        monthly_kwh = 0.0
+        try:
+            summary = self._ledger.month_summary(month_key(now))
+            monthly_kwh = float((summary.get("spot") or {}).get("kwh", 0.0))
+            # The ledger holds month-to-date; a trip on the 2nd would
+            # otherwise price a month off two days of receipts. Scale to
+            # a full month — a rough estimate, honestly labelled "~".
+            monthly_kwh = monthly_kwh / max(1, now.day) * 30.0
+        except Exception:  # noqa: BLE001 - the estimate is best-effort
+            monthly_kwh = 0.0
+        mean_price = (
+            float(np.mean([p.get("total", 0.0) for p in self._prices]))
+            if self._prices
+            else 1.0
+        )
+        current = self._last_measured_cop or baseline
+        shortfall = max(0.0, (baseline - float(current)) / baseline)
+        sek_month = monthly_kwh * mean_price * shortfall
+        _LOGGER.warning(
+            "Compressor efficiency has drifted %.0f%% below its own "
+            "baseline (~%.0f SEK/month at current usage)",
+            shortfall * 100.0,
+            sek_month,
+        )
+        ir.async_create_issue(
+            self.hass,
+            DOMAIN,
+            "cop_degradation",
+            is_fixable=False,
+            # Persistent: the tripped watch survives a restart in the
+            # store, so the notice must too.
+            is_persistent=True,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key="cop_degradation",
+            translation_placeholders={
+                "shortfall_percent": f"{shortfall * 100.0:.0f}",
+                "sek_month": f"{sek_month:.0f}",
+            },
+        )
+
+    # -- #42: the weekly snapshots and the drift alarm ---------------------
+
+    def _learner_snapshot_payloads(self) -> dict[str, dict]:
+        """Every learner's persisted shape, by the stores' own producers."""
+        return {
+            "thermal_learning": self._thermal_learning_payload(),
+            "dhw_profile": self._dhw_profile_payload(),
+            "dhw_draws": self._draw_stats.as_dict(),
+            "price_model": self._price_model.as_dict(),
+            "accuracy": self._accuracy.as_dict(),
+            "comfort": self._comfort_learner.as_dict(),
+            "defrost": self._defrost.as_dict(),
+            "peak_tracker": self._peak_tracker.as_dict(),
+        }
+
+    def _apply_learner_payloads(self, learners: dict) -> None:
+        """Restore learners from a snapshot, via the loaders' own parsing."""
+        thermal = learners.get("thermal_learning")
+        if isinstance(thermal, dict):
+            for setter, key in (
+                (self._apply_buffer_cooling_rate, "buffer_cooling_rate"),
+                (self._apply_house_heat_loss_scale, "house_heat_loss_scale"),
+                (self._apply_lower_floor_loss_ratio, "lower_floor_loss_ratio"),
+                (self._apply_cop_scale, "cop_scale"),
+            ):
+                value = thermal.get(key)
+                if value is not None:
+                    try:
+                        setter(float(value))
+                    except (TypeError, ValueError):
+                        continue
+        profile = learners.get("dhw_profile")
+        if isinstance(profile, dict):
+            hourly = profile.get("hourly_profile")
+            if isinstance(hourly, list) and len(hourly) == 24:
+                self._dhw_hourly_profile = self._normalize_dhw_profile(hourly)
+                self._thermal_params.dhw_hourly_draw_pattern = (
+                    self._dhw_hourly_profile.copy()
+                )
+            # The day-type profiles restore alongside the pooled one, or a
+            # rollback would blend a rolled-back pool with un-rolled-back
+            # day shapes — half of one week, half of another.
+            for attr, key, count_idx in (
+                ("_dhw_profile_weekday", "profile_weekday", 0),
+                ("_dhw_profile_weekend", "profile_weekend", 1),
+            ):
+                arr = profile.get(key)
+                if isinstance(arr, list) and len(arr) == 24:
+                    setattr(self, attr, self._normalize_dhw_profile(arr))
+                    try:
+                        self._dhw_daytype_samples[count_idx] = max(
+                            0, int(profile.get(f"{key}_samples", 0))
+                        )
+                    except (TypeError, ValueError):
+                        self._dhw_daytype_samples[count_idx] = 0
+            rate = profile.get("cooling_rate")
+            if rate is not None:
+                try:
+                    self._apply_dhw_cooling_rate(float(rate))
+                except (TypeError, ValueError):
+                    pass
+        draws = learners.get("dhw_draws")
+        if isinstance(draws, dict):
+            self._draw_stats = DrawStats.from_dict(draws)
+        prices = learners.get("price_model")
+        if isinstance(prices, dict):
+            self._price_model = PriceShapeModel.from_dict(prices)
+        # The accuracy tracker is deliberately NOT restored: it is the
+        # evidence the drift alarm judges, not a learner. Restoring it
+        # made the rollback erase its own justification — the next
+        # counted day saw in-band bias, released the alarm, deleted the
+        # notice, and under genuine drift the cycle repeated until a
+        # drifted snapshot laundered itself into the restore pool.
+        comfort = learners.get("comfort")
+        if isinstance(comfort, dict):
+            self._comfort_learner = ComfortLearner.from_dict(
+                comfort, self._comfort_learner.configured_weight
+            )
+            self._apply_comfort_weight()
+        defrost = learners.get("defrost")
+        if isinstance(defrost, dict):
+            self._defrost = DefrostDerate.from_dict(defrost)
+            # Rebind, exactly as the load path does: the thermal model
+            # consumes the derate through this reference, and without it
+            # the restored object trains while an orphan keeps serving.
+            self._thermal_params.defrost_derate = self._defrost
+        tracker = learners.get("peak_tracker")
+        if isinstance(tracker, dict):
+            self._peak_tracker = PeakTracker.from_dict(tracker)
+
+    def _inputs_healthy(self) -> bool:
+        return (
+            self._learning_frozen(
+                CONF_INDOOR_TEMP_ENTITY,
+                CONF_OUTDOOR_TEMP_ENTITY,
+                CONF_POWER_ENTITY,
+            )
+            is None
+        )
+
+    async def _async_watch_learning_drift(self) -> None:
+        """The #42 heartbeat: weekly snapshot, daily bias check, rollback."""
+        # Never act before the persisted ring has loaded: the first
+        # heartbeat would otherwise snapshot half-loaded learners into an
+        # empty ring and overwrite eight weeks of insurance with it.
+        if not self._snapshots_loaded:
+            return
+        now = dt_util.now()
+
+        # #26's escape hatch: the vent detector is fed only by heat-loss
+        # residuals, which stop entirely in mild weather. A latch nothing
+        # can feed must time out, or the "ventilation" freeze (and the
+        # gated relax) would outlive the window by weeks.
+        if self._vent_cusum.release_if_starved(now, VENT_CUSUM_STARVE_HOURS):
+            _LOGGER.info(
+                "Open-window detector released: no residuals for %.0f h",
+                VENT_CUSUM_STARVE_HOURS,
+            )
+            await self._async_save_thermal_learning()
+
+        # Health is accumulated worst-of-day across heartbeats, not
+        # sampled at whichever tick happens to count the day: a morning
+        # of garbage inputs must not green-light an evening rollback.
+        healthy_now = self._inputs_healthy()
+        self._day_inputs_healthy = self._day_inputs_healthy and healthy_now
+        healthy = self._day_inputs_healthy
+
+        if self._snapshot_ring.due(now):
+            self._snapshot_ring.take(
+                now,
+                self._learner_snapshot_payloads(),
+                self._accuracy.summary(),
+                healthy,
+            )
+            await self._async_save_snapshots()
+
+        day_before = self._snapshot_ring._last_day
+        changed = self._snapshot_ring.observe_bias(
+            now, self._accuracy.temperature_bias(), healthy
+        )
+        day_counted = self._snapshot_ring._last_day != day_before
+        if day_counted:
+            # The counted day consumed the accumulator; the next day's
+            # verdict starts from this tick's health.
+            self._day_inputs_healthy = healthy_now
+        if not changed:
+            if day_counted:
+                # Persist the streak daily — a restart on drift day 3
+                # must not rewind the count to the last weekly save.
+                await self._async_save_snapshots()
+            return
+        if not self._snapshot_ring.alarmed:
+            ir.async_delete_issue(self.hass, DOMAIN, "accuracy_drift")
+            self._rollback_done_for_alarm = False
+            await self._async_save_snapshots()
+            return
+
+        rolled_back = False
+        if (
+            self._snapshot_ring.auto_rollback_justified
+            and not self._rollback_done_for_alarm
+        ):
+            snap = self._snapshot_ring.best_restore()
+            if snap is not None:
+                self._apply_learner_payloads(snap.get("learners") or {})
+                self._rollback_done_for_alarm = True
+                rolled_back = True
+                _LOGGER.warning(
+                    "Prediction bias out of band for %d days on healthy "
+                    "inputs; learned state rolled back to the snapshot "
+                    "from %s",
+                    BIAS_TRIP_DAYS,
+                    snap.get("taken_at"),
+                )
+                await self._async_save_thermal_learning()
+                await self._async_save_dhw_profile()
+                await self._async_save_dhw_draws()
+                await self._async_save_price_model()
+                await self._async_save_accuracy()
+        ir.async_create_issue(
+            self.hass,
+            DOMAIN,
+            "accuracy_drift",
+            is_fixable=False,
+            # Persistent: the alarm state survives a restart in the
+            # store, so its notice must too — a repair issue that
+            # silently vanishes on reboot while the fault stays is worse
+            # than none.
+            is_persistent=True,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key=(
+                "accuracy_drift_rolled_back" if rolled_back else "accuracy_drift"
+            ),
+        )
+        await self._async_save_snapshots()
+
+    async def async_restore_learned_snapshot(self) -> bool:
+        """The one-click rollback service. True when a snapshot applied."""
+        snap = self._snapshot_ring.best_restore()
+        if snap is None:
+            _LOGGER.warning(
+                "No snapshot qualifies for restore (healthy inputs and "
+                "in-band accuracy at capture time are required)"
+            )
+            return False
+        self._apply_learner_payloads(snap.get("learners") or {})
+        _LOGGER.info(
+            "Learned state restored from the snapshot taken %s",
+            snap.get("taken_at"),
+        )
+        await self._async_save_thermal_learning()
+        await self._async_save_dhw_profile()
+        await self._async_save_dhw_draws()
+        await self._async_save_price_model()
+        await self._async_save_accuracy()
+        self.async_update_listeners()
+        return True
+
+    async def _async_load_snapshots(self) -> None:
+        try:
+            stored = await self._snapshot_store.async_load()
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.debug("Could not load learner snapshots: %s", err)
+            return
+        finally:
+            # Set even on failure: a lost store means an empty ring, and
+            # the insurance must keep running rather than disarm forever.
+            self._snapshots_loaded = True
+        if stored:
+            self._snapshot_ring = SnapshotRing.from_dict(stored)
+
+    async def _async_save_snapshots(self) -> None:
+        try:
+            await self._snapshot_store.async_save(self._snapshot_ring.as_dict())
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.debug("Could not persist learner snapshots: %s", err)
+
     def _baseline_house_load(self, n_steps: int) -> np.ndarray:
         """Whole-house load excluding the heat pump, per step, in kW."""
         heat_pump = self._measured_power
@@ -5602,6 +6212,25 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     outdoor_temp=pending.get("outdoor"),
                     humidity=pending.get("humidity"),
                 )
+                # T4a: observed-minus-modelled COP rides on the sample, so
+                # the snapshots' accuracy tags and #12's history both see
+                # efficiency, not just temperature error.
+                if (
+                    self._last_measured_cop is not None
+                    and sample.outdoor_temp is not None
+                ):
+                    try:
+                        sample.cop_residual = round(
+                            float(self._last_measured_cop)
+                            - float(
+                                self._thermal_model.compute_cop(
+                                    sample.outdoor_temp
+                                )
+                            ),
+                            3,
+                        )
+                    except Exception:  # noqa: BLE001 - tag is best-effort
+                        sample.cop_residual = None
                 self._accuracy.record(sample)
                 self._accumulate_energy(sample, elapsed, pending)
 
@@ -5733,9 +6362,36 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # receipts, and the fee never contaminates the spot column the
         # contract comparison settles on.
         fee = _as_float(pending.get("grid_fee"), 0.0)
-        self._ledger.add(when, "spot", kwh=energy, sek=energy * spot)
+        # T4a #11: while the immersion element runs, the draw beyond what
+        # the plan commanded is resistive heat. Its kWh are CARVED OUT of
+        # the spot line, not booked on top of it — the lines must sum to
+        # the metered energy, or every cross-line total overstates. The
+        # fee line keeps the full energy: resistive kWh pay the grid fee
+        # like any other.
+        immersion_excess = 0.0
+        if (
+            self._immersion_active
+            and sample.actual_power_kw is not None
+            and sample.actual_power_kw > planned_total
+        ):
+            immersion_excess = min(
+                energy,
+                max(
+                    0.0,
+                    (sample.actual_power_kw - planned_total) * elapsed_hours,
+                ),
+            )
+        metered = energy - immersion_excess
+        self._ledger.add(when, "spot", kwh=metered, sek=metered * spot)
         if fee:
             self._ledger.add(when, "grid_fee", kwh=energy, sek=energy * fee)
+        if immersion_excess > 1e-6:
+            self._ledger.add(
+                when,
+                "immersion",
+                kwh=immersion_excess,
+                sek=immersion_excess * spot,
+            )
         self._schedule_ledger_save()
 
     def _contract_comparison(self) -> dict[str, Any]:
@@ -5750,8 +6406,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         """
         month = month_key(dt_util.now())
         spot_line = self._ledger.line(month, "spot")
-        kwh = spot_line["kwh"]
-        spot_cost = spot_line["sek"]
+        # The immersion line is spot-priced energy carved out of "spot"
+        # for visibility (#11); the settlement is over ALL metered kWh,
+        # so it folds back in here.
+        imm_line = self._ledger.line(month, "immersion")
+        kwh = spot_line["kwh"] + imm_line["kwh"]
+        spot_cost = spot_line["sek"] + imm_line["sek"]
         out: dict[str, Any] = {
             "month": month,
             "kwh": round(kwh, 3),
