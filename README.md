@@ -249,7 +249,8 @@ Six additions, each inert until configured or until evidence exists:
   weekends learned separately — and, when enabled, readies the tank for the
   90th-percentile day of that specific frame rather than the average. Two
   quiet people stop paying for a family's margin; the family stops running
-  cold every second Saturday.
+  cold every second Saturday. Requires *configured* time frames: with
+  learned-profile frames there is no stable frame to attach statistics to.
 - **Free disinfection** (opt-in): if a wood boiler, solar coil or immersion
   heater already holds the tank at the anti-legionella temperature long
   enough, that counts as a completed cycle — hold-verified, so a momentary

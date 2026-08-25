@@ -99,43 +99,44 @@
    "candidates": [
     {
      "cost_per_day": 2.67,
-     "meets_heaviest_window": true,
+     "meets_heaviest_window": false,
      "setpoint": 48
     },
     {
      "cost_per_day": 2.74,
-     "meets_heaviest_window": true,
+     "meets_heaviest_window": false,
      "setpoint": 50
     },
     {
      "cost_per_day": 2.81,
-     "meets_heaviest_window": true,
+     "meets_heaviest_window": false,
      "setpoint": 52
     },
     {
      "cost_per_day": 2.88,
-     "meets_heaviest_window": true,
+     "meets_heaviest_window": false,
      "setpoint": 54
     },
     {
      "cost_per_day": 2.96,
-     "meets_heaviest_window": true,
+     "meets_heaviest_window": false,
      "setpoint": 56
     },
     {
      "cost_per_day": 3.04,
-     "meets_heaviest_window": true,
+     "meets_heaviest_window": false,
      "setpoint": 58
     },
     {
      "cost_per_day": 3.12,
-     "meets_heaviest_window": true,
+     "meets_heaviest_window": false,
      "setpoint": 60
     }
    ],
+   "covers_heaviest_window": false,
    "current_setpoint": 55.0,
-   "heaviest_window_kwh": 0.0,
-   "recommended_setpoint": 48
+   "heaviest_window_kwh": 4.97,
+   "recommended_setpoint": 60
   },
   "dhw_cooling_rate": 0.3,
   "dhw_cooling_rate_learned": false,

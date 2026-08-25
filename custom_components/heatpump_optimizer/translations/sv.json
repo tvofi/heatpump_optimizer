@@ -319,7 +319,7 @@
           "dhw_inlet_seasonal_amplitude": "Hur många grader det inkommande vattnet svänger kring medelvärdet över året — kallast i slutet av februari, varmast på sensommaren. Lämna på 0 för konstant temperatur.",
           "dhw_inlet_entity": "En temperaturgivare på inkommande kallvattenrör. Om satt används dess mätvärde i stället för modellen ovan.",
           "greywater_recovery_effectiveness": "Om en spillvattenvärmeväxlare förvärmer inkommande vatten: andelen avloppsvärme den återför. 0 betyder ingen installerad.",
-          "dhw_quantile_targets_enabled": "Lär in hur mycket varmvatten varje tidsfönster faktiskt använder en tung dag, och gör tanken redo för det i stället för för genomsnittsdagen. Kräver tanktemperaturgivare och ett par veckors underlag.",
+          "dhw_quantile_targets_enabled": "Lär in hur mycket varmvatten varje tidsfönster faktiskt använder en tung dag, och gör tanken redo för det i stället för för genomsnittsdagen. Kräver tanktemperaturgivare, konfigurerade varmvattenfönster och ett par veckors underlag.",
           "dhw_free_disinfection_enabled": "Om en vedpanna, solslinga eller elpatron redan får tanken till legionellatemperatur och håller den där, räkna det som en genomförd cykel i stället för att köra en till.",
           "dhw_elastic_legionella_enabled": "Låt legionellacykeln köras en dag eller två tidigare när elen är ovanligt billig, i stället för att alltid vänta till sista dagen. Sista dagen hålls alltid.",
           "dhw_legionella_min_interval_days": "Kör aldrig legionellacykler tätare än så här, även på mycket billiga dagar.",

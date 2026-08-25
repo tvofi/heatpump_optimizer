@@ -481,6 +481,27 @@ test. Sensors 49 → 52 (Setpoint Advisor, Mixed Hot Water, Heavy Day
 Demand); the G4b drift gate verified all five container-sensitive
 fixtures byte-identical to origin/main after the tranche.
 
+*Review round (1 major, 7 minor, all fixed with regression tests):*
+the young-prior #47 control did not exist — a damped fresh shape put the
+"expected daily minimum" at the daily MEAN, so an opted-in fresh install
+would have run cycles at the minimum interval every time;
+`expected_daily_min` now answers None until every requested day type is
+fully trained, and a coordinator-path test pins it. The VVC lead probed
+the single instant now+lead, going dark in the final approach to any
+window shorter than the lead — now "does any window open within the
+lead". The setpoint advisor gained its documented profile-mean fallback
+(it recommended 48 °C for everyone) and, on tanks too small to hold
+their heaviest window at any setpoint, recommends the top candidate
+flagged `covers_heaviest_window: false` instead of answering nothing.
+#20 is explicitly scoped to configured time frames (learned-window
+labels can never match; option text updated). The open draw occurrence
+persists on every energy-bearing fold, not only at close. A failed pump
+command is retried (state recorded only after success), and a
+configured VVC pump with hot water disabled is left ON, never abandoned
+in its last commanded state. #18's blend trust counts distinct days,
+not sensor ticks. The empty-table byte-identity test compared a solve
+to itself; it now actually passes `{}`.
+
 Infrastructure: **`dhw_draws.py`** (draw-event detection reusing the existing
 standby-subtraction attribution; per-window reservoirs of event energies;
 quantiles; own Store) and the **inlet model** on `ThermalParameters`.

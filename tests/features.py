@@ -1844,6 +1844,7 @@ class _DhwUsage:
         self._dhw_profile_weekday = [1.0] * 24
         self._dhw_profile_weekend = [1.0] * 24
         self._dhw_daytype_samples = [0, 0]
+        self._dhw_daytype_last_day = ["", ""]
         self._thermal_params = ThermalParameters()
 
     async def _async_save_dhw_profile(self) -> None:
@@ -5980,7 +5981,7 @@ R.check(
     "an empty table is byte-identical to no table at all",
     np.array_equal(
         np.asarray(_q_base.dhw_power_schedule),
-        np.asarray(_q_solve(None).dhw_power_schedule),
+        np.asarray(_q_solve({}).dhw_power_schedule),
     ),
 )
 
@@ -6031,9 +6032,23 @@ from heatpump_optimizer.price_model import PriceShapeModel as _PSM
 
 _psm_fresh = _PSM()
 R.check(
-    "a fresh prior expects the daily minimum at the level itself",
-    abs(_psm_fresh.expected_daily_min([0], 1.0) - 1.0) < 1e-9,
-    "young model -> flat shape -> the gate defers to the deadline",
+    "a fresh prior has NO opinion on the daily minimum",
+    _psm_fresh.expected_daily_min([0], 1.0) is None,
+    "a damped young shape's minimum is the daily mean, and every day's "
+    "cheapest hour beats its mean — 'level x ~1' would fire the gate "
+    "at the minimum interval every time instead of deferring",
+)
+_psm_half = _PSM()
+_psm_half.days[0] = 3  # partially trained: still no opinion
+R.check(
+    "a partially trained prior still defers",
+    _psm_half.expected_daily_min([0], 1.0) is None,
+)
+_psm_mixed = _PSM()
+_psm_mixed.days[0] = 10  # weekday trained, weekend not
+R.check(
+    "one untrained day type in the span withholds the whole answer",
+    _psm_mixed.expected_daily_min([0, 1], 1.0) is None,
 )
 _psm_tr = _PSM()
 _shape_day = [1.5] * 7 + [0.5] * 5 + [1.0] * 12
@@ -6142,28 +6157,53 @@ R.check(
 )
 
 # --- #9 the setpoint sweep ----------------------------------------------------------
-_c9 = _t2_coord()
+# A 1500 L tank, where "which setpoint covers the heavy days" is a real
+# question; the default 200 L tank cannot hold its evening window in the
+# usable band at any setpoint (see the small-tank check below).
+_c9 = _t2_coord(dhw_tank_volume=1500.0)
 _c9._thermal_params.dhw_enabled = True
 _c9._prices = [{"total": 1.0}] * 24
 _sweep = _c9._dhw_setpoint_sweep()
+_rec1 = _sweep.get("recommended_setpoint")
 R.check(
-    "the sweep covers 48-60 °C and recommends the cheapest workable one",
+    "with no draw evidence the sweep falls back to the profile mean",
     len(_sweep.get("candidates", [])) == 7
-    and _sweep.get("recommended_setpoint") == 48,
-    "with no heavy-day evidence every candidate works, so cheapest wins",
+    and _sweep.get("heaviest_window_kwh", 0.0) > 0.5
+    and _rec1 is not None,
+    f"got {_sweep.get('heaviest_window_kwh')} kWh heaviest, rec {_rec1} — "
+    "a 0 kWh heaviest window would recommend the sweep bottom for everyone",
+)
+R.check(
+    "the recommendation actually covers the heaviest window",
+    _rec1 is not None
+    and _sweep.get("covers_heaviest_window") is True
+    and max(_c9._thermal_params.dhw_tank_thermal_mass, 0.05)
+    * (_rec1 - _c9._thermal_params.dhw_min_temp)
+    >= _sweep["heaviest_window_kwh"] - 1e-6,
 )
 R.check(
     "hotter tanks cost more per day — the trade the sweep exists to show",
     _sweep["candidates"][-1]["cost_per_day"]
     > _sweep["candidates"][0]["cost_per_day"],
 )
-_c9._draw_stats.reservoirs["06:00-08:30"] = [3.0] * 10
+_c9._draw_stats.reservoirs["06:00-08:30"] = [8.0] * 10
 _sweep2 = _c9._dhw_setpoint_sweep()
 R.check(
-    "a heavy learned window disqualifies setpoints that cannot cover it",
-    (_sweep2.get("recommended_setpoint") or 0) > 48,
-    f"got {_sweep2.get('recommended_setpoint')} with 3 kWh heavy days on a "
-    f"{_c9._thermal_params.dhw_tank_volume:.0f} L tank",
+    "a heavy learned window pushes the recommendation up",
+    (_sweep2.get("recommended_setpoint") or 0) > _rec1,
+    f"got {_sweep2.get('recommended_setpoint')} vs {_rec1} after 8 kWh "
+    f"heavy days on a {_c9._thermal_params.dhw_tank_volume:.0f} L tank",
+)
+_c9s = _t2_coord()  # the default 200 L tank
+_c9s._thermal_params.dhw_enabled = True
+_c9s._prices = [{"total": 1.0}] * 24
+_sweep_small = _c9s._dhw_setpoint_sweep()
+R.check(
+    "a tank too small for its heavy days says 'as hot as allowed', honestly",
+    _sweep_small.get("recommended_setpoint") == 60
+    and _sweep_small.get("covers_heaviest_window") is False,
+    f"got {_sweep_small.get('recommended_setpoint')}, covers "
+    f"{_sweep_small.get('covers_heaviest_window')} — None-forever helps no one",
 )
 
 # --- #6 the pump schedule ------------------------------------------------------------
@@ -6176,6 +6216,16 @@ R.check(
     "the lead time pre-heats the loop just before a window opens",
     _ps.vvc_should_run(16.8, _WINDOWS, 20)[0]
     and not _ps.vvc_should_run(16.3, _WINDOWS, 20)[0],
+)
+R.check(
+    "a window shorter than the lead has no hole in its final approach",
+    all(
+        _ps.vvc_should_run(h, [(17.0, 17.5)], 60)[0]
+        for h in (16.0, 16.4, 16.7, 16.9, 17.2)
+    )
+    and not _ps.vvc_should_run(15.9, [(17.0, 17.5)], 60)[0],
+    "probing the single instant now+lead went dark 16:30-17:00 — the "
+    "exact minutes the pre-heat exists for",
 )
 R.check(
     "with no windows the loop is simply left on",
@@ -6245,6 +6295,59 @@ _asyncio.run(_c7v._async_drive_pumps())
 R.check(
     "no configured pump entities means no service call, ever",
     len(_c7v.hass.services.calls) == 0,
+)
+_c6b = _t2_coord(vvc_pump_entity="switch.vvc")
+_c6b._thermal_params.dhw_enabled = False
+_c6b._pump_commanded["switch.vvc"] = False  # last schedule-driven command
+_asyncio.run(_c6b._async_drive_pumps())
+R.check(
+    "hot water disabled leaves the loop pump ON, never stuck off",
+    _c6b._pump_commanded.get("switch.vvc") is True
+    and len(_c6b.hass.services.calls) == 1
+    and _c6b.hass.services.calls[0][1] == "turn_on",
+    "a configured pump abandoned in its last commanded state is a "
+    "cold-loop trap",
+)
+
+
+async def _failing_call(domain, service, data=None, **kwargs):
+    raise RuntimeError("entity unavailable")
+
+_c6c = _t2_coord(vvc_pump_entity="switch.vvc")
+_c6c._thermal_params.dhw_enabled = False
+_c6c.hass.services.async_call = _failing_call
+_asyncio.run(_c6c._async_drive_pumps())
+R.check(
+    "a failed pump command is retried next tick, not remembered as done",
+    "switch.vvc" not in _c6c._pump_commanded,
+    f"cache {_c6c._pump_commanded} — recording before the call succeeded "
+    "meant one unavailable moment froze the pump state forever",
+)
+
+# --- #47 through the coordinator path (the review's major finding) --------------
+# The ceiling must be None with a young prior even when the user opted
+# in: the mechanism-level None is only real protection if the coordinator
+# actually passes it through.
+_c47 = _t2_coord(dhw_tank_volume=300.0)
+_c47._thermal_params.dhw_enabled = True
+_c47._thermal_params.dhw_elastic_legionella_enabled = True
+_c47._thermal_params.dhw_legionella_enabled = True
+_c47._dhw_last_legionella = dt_util.now() - timedelta(days=5)
+_c47._prices = [{"total": 1.0}] * 24
+_c47._prepare_dhw_inputs(dt_util.now())
+R.check(
+    "elastic opted in with a fresh prior sets NO ceiling",
+    _c47._thermal_params.dhw_legionella_price_ceiling is None,
+    "the young-prior 'ceiling = mean' fired the cycle at the minimum "
+    "interval every time — the opposite of deferring",
+)
+_c47._price_model.days = [30, 30]
+_c47._prepare_dhw_inputs(dt_util.now())
+_ceiling = _c47._thermal_params.dhw_legionella_price_ceiling
+R.check(
+    "a fully trained prior sets a real ceiling at or below the level",
+    _ceiling is not None and _ceiling <= 1.0 + 1e-9,
+    f"got {_ceiling}",
 )
 
 

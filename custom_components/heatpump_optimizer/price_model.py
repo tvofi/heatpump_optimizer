@@ -245,22 +245,26 @@ class PriceShapeModel:
         The elastic legionella gate asks: is today's known minimum already
         as cheap as a typical day gets, or is a better day likely before
         the deadline? The answer is the level scaled by the LOWEST hourly
-        shape factor across the day types the remaining interval spans —
-        trust-damped exactly like every other prediction, so a young model
-        answers "level × ~1.0" and the gate effectively always says "now
-        is fine", which is the inelastic behaviour.
+        shape factor across the day types the remaining interval spans.
 
-        None when no day type was given or the level is unusable.
+        None — the gate's "no opinion, defer to the deadline" answer —
+        when any requested day type is not yet fully trusted. This is
+        load-bearing, not politeness: a damped young shape has its minimum
+        pulled toward 1.0, making the "expected minimum" the daily MEAN,
+        and every horizon's cheapest hour beats its mean — so a young
+        model would run the cycle at the minimum interval every time, the
+        exact opposite of deferring. Shopping is for models that know the
+        shape of a day.
         """
         if not day_types or not np.isfinite(level) or level <= 0.0:
             return None
         factors = []
         for idx in day_types:
             idx = int(idx) % len(self.shapes)
+            if self.days[idx] < SHAPE_CONFIDENCE_DAYS:
+                return None
             shape = np.asarray(self.shapes[idx], dtype=float)
-            trust = min(1.0, self.days[idx] / SHAPE_CONFIDENCE_DAYS)
-            damped = 1.0 + (shape - 1.0) * trust
-            factors.append(float(np.min(damped)))
+            factors.append(float(np.min(shape)))
         return float(level * min(factors))
 
     def sigma(self, when: datetime, level: float) -> float:

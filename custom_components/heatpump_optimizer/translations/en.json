@@ -319,7 +319,7 @@
           "dhw_inlet_seasonal_amplitude": "How many degrees the incoming water swings around that average over the year — coldest in late February, warmest in late summer. Leave at 0 to treat it as constant.",
           "dhw_inlet_entity": "A temperature sensor on the incoming cold water pipe. When set, its live reading is used instead of the model above.",
           "greywater_recovery_effectiveness": "If a drain water heat recovery unit pre-warms the incoming water, the fraction of drain heat it returns. 0 means none installed.",
-          "dhw_quantile_targets_enabled": "Learn how much hot water each time frame actually uses on a heavy day, and make the tank ready for that instead of for the average day. Needs a tank temperature sensor and a couple of weeks of evidence.",
+          "dhw_quantile_targets_enabled": "Learn how much hot water each time frame actually uses on a heavy day, and make the tank ready for that instead of for the average day. Needs a tank temperature sensor, configured hot water time frames, and a couple of weeks of evidence.",
           "dhw_free_disinfection_enabled": "If a wood boiler, solar coil or immersion heater already gets the tank to the anti-legionella temperature and holds it there, count that as a completed cycle instead of running another one.",
           "dhw_elastic_legionella_enabled": "Allow the anti-legionella cycle to run a day or two early when electricity is unusually cheap, instead of always waiting for its deadline. The deadline is still always honoured.",
           "dhw_legionella_min_interval_days": "Never run anti-legionella cycles closer together than this, even on very cheap days.",

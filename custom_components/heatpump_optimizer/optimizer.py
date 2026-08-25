@@ -2496,8 +2496,11 @@ class HeatPumpOptimizer:
                 # remaining day is expected to bottom out at (the ceiling,
                 # from the learned prior). Prior-guessed steps never
                 # qualify — a cycle is real money spent on a guess. The
-                # ceiling is spot-based while dhw_prices may carry fees,
-                # which errs toward waiting; the deadline still catches it.
+                # ceiling exists only once the prior is fully trained
+                # (None otherwise ⇒ this branch is inert); both sides of
+                # the comparison are built from the same fee-inclusive
+                # published prices, and any surplus discount inside
+                # dhw_prices only makes a genuinely sunny hour qualify.
                 known = getattr(self, "_price_known", None)
                 if known is not None:
                     known_mask = np.zeros(n_steps, dtype=bool)

@@ -25,7 +25,7 @@ from __future__ import annotations
 import logging
 
 from .const import SPACE_PUMP_FLOOR_MARGIN_C
-from .dhw_schedule import hour_in_windows
+from .dhw_schedule import hour_in_windows, hours_until_next_window
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -49,7 +49,12 @@ def vvc_should_run(
     if hour_in_windows(hour, windows):
         return True, "inside a hot-water demand window"
     lead_h = max(0.0, float(lead_minutes)) / 60.0
-    if lead_h > 0.0 and hour_in_windows((hour + lead_h) % 24.0, windows):
+    # "Does any window OPEN within the lead", not "is the instant now+lead
+    # inside one": probing the single instant left a hole in the final
+    # approach to any window shorter than the lead — off during exactly
+    # the minutes the pre-heat exists for.
+    until = hours_until_next_window(hour, list(windows))
+    if lead_h > 0.0 and until is not None and 0.0 < until <= lead_h:
         return True, f"window opens within {int(lead_minutes)} min; pre-heating the loop"
     return False, "outside every demand window"
 

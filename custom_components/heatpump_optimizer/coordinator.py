@@ -275,6 +275,7 @@ from .dhw_schedule import (
     format_windows,
     hour_in_windows,
     hours_until_next_window,
+    overlap_fraction,
     parse_windows,
 )
 from .optimizer import HeatPumpOptimizer, OptimizationConfig, OptimizationResult
@@ -609,7 +610,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # blends to exactly the pooled answer.
         self._dhw_profile_weekday: list[float] = self._dhw_hourly_profile.copy()
         self._dhw_profile_weekend: list[float] = self._dhw_hourly_profile.copy()
+        #: Distinct DAYS with draw evidence per day type — the blend's
+        #: trust must measure days lived, not sensor ticks survived.
         self._dhw_daytype_samples: list[int] = [0, 0]  # [weekday, weekend]
+        self._dhw_daytype_last_day: list[str] = ["", ""]
         # #32/#20: per-window draw-occurrence statistics, own store.
         self._draw_stats = DrawStats()
         self._dhw_draws_store: Store = Store(
@@ -1105,9 +1109,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             inlet = params.seasonal_inlet_temp(now.timetuple().tm_yday)
         params.dhw_inlet_current = inlet
 
-        # #20: the learned heavy-day targets, only when opted in.
+        # #20: the learned heavy-day targets, only when opted in — and
+        # only with CONFIGURED time frames. With none, the optimizer plans
+        # against windows derived from the learned profile, whose labels
+        # can never match statistics keyed by the configured spec; rather
+        # than let the feature silently do nothing, it is explicitly
+        # scoped to configured frames (the option text says so too).
         params.dhw_window_ready_energy = None
-        if params.dhw_enabled and bool(
+        if params.dhw_enabled and params.dhw_windows_active and bool(
             self._config.get(
                 CONF_DHW_QUANTILE_TARGETS_ENABLED,
                 DEFAULT_DHW_QUANTILE_TARGETS_ENABLED,
@@ -1190,12 +1199,23 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             np.mean([p.get("total", 0.0) for p in self._prices])
         )
         # The heaviest ready energy any window needs, learned where
-        # evidence exists, profile-mean otherwise.
+        # evidence exists, profile-mean otherwise. Without the fallback a
+        # fresh install has a 0 kWh "heaviest window", every candidate
+        # trivially covers it, and the advisor recommends the sweep bottom
+        # regardless of how the household actually lives.
         heaviest = 0.0
-        for label in labels_for(params.dhw_demand_windows):
+        pattern = params.effective_dhw_draw_pattern()
+        windows = params.dhw_demand_windows
+        for window, label in zip(windows, labels_for(windows)):
             p90 = self._draw_stats.quantile(label, 0.9)
-            if p90 is not None:
-                heaviest = max(heaviest, p90)
+            if p90 is None:
+                p90 = sum(
+                    params.dhw_draw_power
+                    * pattern[hour]
+                    * overlap_fraction(float(hour), float(hour) + 1.0, [window])
+                    for hour in range(24)
+                )
+            heaviest = max(heaviest, p90)
         draw_day_kwh = (
             params.dhw_daily_consumption
             * WATER_SPECIFIC_HEAT
@@ -1226,9 +1246,18 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             candidates.append(entry)
             if meets and (best is None or cost_day < best["cost_per_day"]):
                 best = entry
+        # A tank too small to hold its heaviest window in the usable band
+        # at ANY setpoint gets the advice a plumber would give — run it as
+        # hot as allowed — flagged honestly rather than answered with
+        # nothing. In-window reheat covers the remainder in practice; the
+        # storage band is simply the margin.
+        covers = best is not None
+        if best is None and candidates:
+            best = candidates[-1]
         return {
             "current_setpoint": params.dhw_setpoint,
             "recommended_setpoint": (best or {}).get("setpoint"),
+            "covers_heaviest_window": covers,
             "heaviest_window_kwh": round(heaviest, 2),
             "candidates": candidates,
         }
@@ -1246,9 +1275,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         now = dt_util.now()
         params = self._thermal_params
 
-        if vvc_entity and params.dhw_enabled:
+        if vvc_entity:
+            # With hot water disabled (or no schedule) there is no frame to
+            # exploit and the loop is simply left on — never abandoned in
+            # whatever state the last schedule-driven command left it.
             windows = (
-                list(params.dhw_windows) if params.dhw_windows_active else []
+                list(params.dhw_windows)
+                if params.dhw_enabled and params.dhw_windows_active
+                else []
             )
             on, reason = pump_schedule.vvc_should_run(
                 now.hour + now.minute / 60.0,
@@ -1306,7 +1340,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         previous = self._pump_commanded.get(entity_id)
         if previous is not None and previous == on:
             return
-        self._pump_commanded[entity_id] = on
         service = "turn_on" if on else "turn_off"
         try:
             await self.hass.services.async_call(
@@ -1315,6 +1348,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             _LOGGER.info("Pump %s → %s: %s", entity_id, service, reason)
         except Exception as err:  # noqa: BLE001 - a pump must never kill the cycle
             _LOGGER.warning("Could not command pump %s: %s", entity_id, err)
+            return
+        # Recorded only AFTER the call succeeded: a command that failed
+        # (entity briefly unavailable) must be retried next tick, not
+        # remembered as done.
+        self._pump_commanded[entity_id] = on
 
     # ------------------------------------------------------------------
     # Buffer tank and building fabric learning
@@ -2545,9 +2583,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         before = {k: len(v) for k, v in self._draw_stats.reservoirs.items()}
         self._draw_stats.fold(now, label, energy_kwh)
         after = {k: len(v) for k, v in self._draw_stats.reservoirs.items()}
-        # Persist only when an occurrence actually closed — folding happens
-        # every learning tick and the store does not need that churn.
-        if before != after:
+        # Persist when an occurrence closes, and also whenever real energy
+        # was folded into the OPEN occurrence — as_dict carries it, and
+        # saving only at close time meant a restart mid-shower silently
+        # dropped everything since the last close, dragging the p90 down.
+        # Zero-energy ticks (most of the day) still cause no churn.
+        if before != after or energy_kwh > 1e-4:
             await self._async_save_dhw_draws()
 
     async def _async_learn_dhw_cooling(
@@ -2660,7 +2701,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._dhw_profile_weekend = normalized
         else:
             self._dhw_profile_weekday = normalized
-        self._dhw_daytype_samples[idx] += 1
+        # Trust counts distinct days, not ticks: at a five-minute sample
+        # cadence a tick counter would reach half-trust inside one
+        # Saturday morning.
+        day = dt_util.now().date().isoformat()
+        if self._dhw_daytype_last_day[idx] != day:
+            self._dhw_daytype_last_day[idx] = day
+            self._dhw_daytype_samples[idx] += 1
 
         _LOGGER.debug(
             "Learned DHW usage hour=%d drop=%.2f°C dt=%.2fh intensity=%.2f",
