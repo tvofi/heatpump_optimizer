@@ -442,6 +442,12 @@ SCENARIOS: dict[str, dict] = {
     # sigma vector is synthetic (the capture harness has no learned prior)
     # but rides the exact production path through the objective.
     "price_risk": dict(opt_overrides={"price_risk_lambda": 1.0}),
+    # --- v4.0.0 T2: peak & power --------------------------------------------
+    # #3/#7 ON: an external total-power cap at 60% of nameplate on the DHW
+    # winter day. Pins every piece of the cap composition through one solve:
+    # the DHW block's bounded run power, space headroom under a DHW block,
+    # and the ``power_cap_breach_c`` report.
+    "fuse_guard": dict(),
 }
 
 # Scenarios where prices past a point are the learned prior rather than
@@ -450,6 +456,11 @@ PARTIAL_PRICE_SCENARIOS = {"winter_single_dhw", "horizon_48h", "price_risk"}
 
 # Scenarios given a synthetic per-step sigma on the guessed steps (#34).
 RISK_SCENARIOS = {"price_risk"}
+
+# Scenarios solved under an external total-power cap (T2, items 3/7). The
+# cap is derived from the scenario's own nameplate so the fixture cannot
+# silently go slack if the harness house ever changes size.
+CAP_SCENARIOS = {"fuse_guard"}
 
 # Scenarios given a PV surplus profile, which changes the marginal price.
 PV_SCENARIOS = {"shoulder", "summer_dhw_only"}
@@ -498,6 +509,9 @@ def capture(name: str, spec: dict) -> dict:
     ext = None
     if name in EXTERNAL_HEAT_SCENARIOS:
         ext = external_heat_for(n)
+    caps = None
+    if name in CAP_SCENARIOS:
+        caps = np.full(n, opt.model.params.max_electrical_power * 0.6)
 
     result = opt.optimize(
         built["state"],
@@ -511,6 +525,7 @@ def capture(name: str, spec: dict) -> dict:
         surplus,
         external_heat_kw=ext,
         price_sigma=price_sigma,
+        power_caps_extra=caps,
     )
 
     # Everything that describes the plan. Trajectories included: a constraint

@@ -123,13 +123,30 @@ class PeakTracker:
     _window_samples: int = 0
     #: What the open window's kW counts at, captured when it opens.
     _window_factor: float = 1.0
+    #: Time-weighted accumulator (#7): kW·h and hours. Fed only when a
+    #: caller supplies ``dt_hours`` — the live meter listener, which knows
+    #: real spacing. The 30-minute tick path never does, and with both
+    #: accumulators empty of weighted samples the unweighted average is used
+    #: bit for bit, which is what keeps every pre-T2 install identical.
+    _window_wsum: float = 0.0
+    _window_weight: float = 0.0
 
     # -- accumulation -------------------------------------------------------
 
     def observe(
-        self, when: datetime, house_power_kw: float, tariff: CapacityTariff
+        self,
+        when: datetime,
+        house_power_kw: float,
+        tariff: CapacityTariff,
+        dt_hours: float | None = None,
     ) -> None:
-        """Fold one power sample into the current metering window."""
+        """Fold one power sample into the current metering window.
+
+        With ``dt_hours`` the sample is weighted by the time it actually
+        stood for; a window holding any weighted sample closes on the
+        weighted average. Without it (every pre-T2 caller) the unweighted
+        sample mean is used, unchanged.
+        """
         if not np.isfinite(house_power_kw) or house_power_kw < 0:
             return
         month = when.strftime("%Y-%m")
@@ -142,6 +159,8 @@ class PeakTracker:
             self._window_sum = 0.0
             self._window_samples = 0
             self._window_factor = 1.0
+            self._window_wsum = 0.0
+            self._window_weight = 0.0
 
         window = max(1, int(tariff.window_minutes))
         slot = when.replace(second=0, microsecond=0)
@@ -153,6 +172,8 @@ class PeakTracker:
             self._window_key = key
             self._window_sum = 0.0
             self._window_samples = 0
+            self._window_wsum = 0.0
+            self._window_weight = 0.0
             # The whole window bills at one rate, so the factor is the
             # window's, not each sample's: a window straddling the 19:00
             # peak-hour boundary is billed by where it starts, exactly as
@@ -161,16 +182,49 @@ class PeakTracker:
 
         self._window_sum += float(house_power_kw)
         self._window_samples += 1
+        if dt_hours is not None and np.isfinite(dt_hours) and dt_hours > 0:
+            self._window_wsum += float(house_power_kw) * float(dt_hours)
+            self._window_weight += float(dt_hours)
+
+    def _window_mean(self) -> float | None:
+        """The open window's running average, weighted where possible."""
+        if self._window_weight > 0:
+            return self._window_wsum / self._window_weight
+        if self._window_samples > 0:
+            return self._window_sum / self._window_samples
+        return None
+
+    def window_snapshot(
+        self, when: datetime, tariff: CapacityTariff
+    ) -> tuple[str, float | None, float, float]:
+        """(window key, running mean or None, elapsed minutes, billing
+        factor) at ``when``.
+
+        The guard's projection input (#7). Read-only: a snapshot for a
+        window other than the open one reports no accumulated mean, which
+        the projection treats as "assume the current draw throughout". The
+        factor is what this window's kW counts at under the #13 masks —
+        the guard must compare billed-equivalent kW against the
+        billed-equivalent threshold, or it would defend hours the tariff
+        does not bill.
+        """
+        window = max(1, int(tariff.window_minutes))
+        slot = when.replace(second=0, microsecond=0)
+        slot = slot.replace(minute=(slot.minute // window) * window % 60)
+        key = f"{slot.isoformat()}|{window}"
+        elapsed = (when - slot).total_seconds() / 60.0
+        mean = self._window_mean() if key == self._window_key else None
+        return key, mean, elapsed, tariff.sample_factor(slot)
 
     def _close_window(self, tariff: CapacityTariff) -> None:
-        if self._window_samples <= 0:
+        average = self._window_mean()
+        if average is None:
             return
         if self._window_factor <= 0.0:
             # The tariff does not bill this window at all (masked month, or
             # off-peak hours that are free). Contributing nothing is the
             # point; contributing zero would be a discount.
             return
-        average = self._window_sum / self._window_samples
         self.peaks.append(average * self._window_factor)
         self.peaks.sort(reverse=True)
         # Keep a little more than the billed count so that a later correction
@@ -221,6 +275,8 @@ class PeakTracker:
             "window_sum": self._window_sum,
             "window_samples": self._window_samples,
             "window_factor": self._window_factor,
+            "window_wsum": self._window_wsum,
+            "window_weight": self._window_weight,
         }
 
     @classmethod
@@ -247,6 +303,15 @@ class PeakTracker:
             tracker._window_factor = float(data.get("window_factor", 1.0))
         except (TypeError, ValueError):
             tracker._window_factor = 1.0
+        try:
+            # A restart mid-window must not close that window on the
+            # unweighted mean — that would readmit exactly the phantom
+            # chatty-meter peak the weighted fold exists to prevent.
+            tracker._window_wsum = float(data.get("window_wsum", 0.0))
+            tracker._window_weight = float(data.get("window_weight", 0.0))
+        except (TypeError, ValueError):
+            tracker._window_wsum = 0.0
+            tracker._window_weight = 0.0
         return tracker
 
 
