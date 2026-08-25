@@ -760,7 +760,24 @@ and bug reports much weaker than they could be.
 
 ### Grid costs beyond the price per kWh
 
-Two things cost money that the spot price does not describe.
+Four things cost money that the spot price does not describe.
+
+**The DSO transfer fee** (v4.0.0) is added per kWh moved through the grid,
+and increasingly by time of day: several Swedish grid companies charge
+roughly 25 öre/kWh more on winter weekdays 06–22. Tibber's price does not
+include it. Configure it on the Grid costs page — as time-of-use rules like
+`Nov-Mar Mon-Fri 06:00-22:00 = 0.25`, as a flat figure, or as a live sensor
+— and every planned hour is priced at spot *plus* fee, which moves load to
+nights and weekends in winter even when spot alone would not. The fee is
+booked as its own line in the monthly ledger, and the learned price prior
+never sees it.
+
+**The capacity tariff's clock** (v4.0.0): most effekttariffs do not bill
+every hour equally — many count only weekday daytime peaks, bill night
+peaks at half rate, or apply only November–March. The month, hour and
+weekday masks on the Grid costs page teach the plan exactly which hours a
+peak actually costs money in; a masked-out hour contributes nothing, so
+night-time stacking that is genuinely free stops being avoided.
 
 **A capacity tariff** is billed as the price per kW times the mean of the
 month's highest few hourly peaks. The cost of a plan is therefore the marginal
@@ -898,7 +915,7 @@ turn the toggle off to require hot water around the clock.
 
 ## Entities Created
 
-### Sensors (47 total)
+### Sensors (48 total)
 | Sensor | Description |
 |---|---|
 | Optimization Mode | Current mode (auto/comfort/economy/boost/off) |
@@ -945,6 +962,7 @@ turn the toggle off to require hot water around the clock.
 | **Thermal Battery Charge** | State of charge of the house and tanks, against the comfort band |
 | **Thermal Battery Energy** | Stored energy available above the comfort floor |
 | **Comfort Weight** | The comfort weight in force, learned or configured |
+| **Contract Comparison** | This month settled under hourly spot, monthly-average spot and a fixed price — and the öre/kWh your load shifting earns |
 | **Valve Target Recommendation** | What to set a dumb mixing valve to, with the reasoning in its attributes |
 
 ### Binary Sensors (3 total)
@@ -1235,8 +1253,8 @@ the top; everything you typically set once lives one click further, under
 | Your system, as configured | A read-only picture of what is set up and what is missing |
 | Comfort and temperatures | Target, minimum and maximum temperature, day/night hours |
 | Hot water | Tank size, temperatures, demand time frames, anti-legionella |
-| Savings vs comfort | Price weight, comfort weight, recalculation interval, compressor start cost |
-| Grid costs | Capacity tariff — what your grid company charges |
+| Savings vs comfort | Price weight, comfort weight, recalculation interval, compressor start cost, caution with guessed prices |
+| Grid costs | Capacity tariff and its clock, transfer fees, contract comparison — what your grid company charges |
 | Away and holiday mode | Presence source, return time, setback temperatures |
 
 | Advanced page | What it covers |

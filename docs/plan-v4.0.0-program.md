@@ -272,7 +272,20 @@ rejects its own default drawing.
 
 ---
 
-## T1 — Bill model (PR 2) · **Fable** · #1 #13 #19 #34 #23
+## T1 — Bill model (PR 2) · **Fable** · #1 #13 #19 #34 #23 · **executed**
+
+*Outcome notes:* built as specified, with one honest deviation from G6's
+null-control wording: "flat spot + flat fee ⇒ plan identical" does not hold
+for this optimizer — a uniform price rise legitimately buys slightly less
+energy against the comfort weight (measured ~3.5% on the flat-price day).
+The recorded null control is therefore *timing invariance*: a structureless
+fee moves no energy in time (06–22 share unchanged within 2%), while a
+höglast fee measurably empties the hours it prices up. The masks (#13) are
+implemented as billed-equivalent kW — the tracker records a window's average
+scaled by its hour's factor, and a masked-out month's windows are not
+recorded at all. #34's sigma tracks *shape* dispersion per (profile, hour);
+level risk is the level calibration's problem and normalisation removes it.
+New fixtures: `peak_masked`, `price_risk`, `coord_grid_fee`.
 
 Order: #1 → #13 → #19 → #34 → #23.
 

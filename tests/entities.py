@@ -552,6 +552,7 @@ for key in (
     const.CONF_EXTERNAL_HEAT_ENTITY,
     const.CONF_PV_PRODUCTION_ENTITY,
     const.CONF_AWAY_PRESENCE_ENTITY,
+    const.CONF_GRID_FEE_ENTITY,
 ):
     R.check(
         f"{key} can be cleared again once set",
