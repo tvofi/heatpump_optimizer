@@ -317,6 +317,36 @@ DEFAULT_PRICE_RISK_LAMBDA: Final = 0.0
 CONF_CONTRACT_FIXED_PRICE: Final = "contract_fixed_price"
 DEFAULT_CONTRACT_FIXED_PRICE: Final = 0.0
 
+# --- Fuse, the live peak guard and outage recovery: v4.0.0 T2 ---------------
+#
+# All default inert: fuse 0 A means unconfigured (advisor, guard and
+# headroom all dormant — a plausible default like 16 A would cap a 20 A
+# house); both guards default off, and the peak-guard listener is not even
+# registered while its flag is off.
+CONF_MAIN_FUSE_A: Final = "main_fuse_amperes"
+DEFAULT_MAIN_FUSE_A: Final = 0
+CONF_MAIN_FUSE_PHASES: Final = "main_fuse_phases"
+DEFAULT_MAIN_FUSE_PHASES: Final = 3
+CONF_FUSE_GUARD_ENABLED: Final = "fuse_guard_enabled"
+DEFAULT_FUSE_GUARD_ENABLED: Final = False
+CONF_PEAK_GUARD_ENABLED: Final = "peak_guard_enabled"
+DEFAULT_PEAK_GUARD_ENABLED: Final = False
+CONF_PEAK_GUARD_MARGIN_KW: Final = "peak_guard_margin_kw"
+DEFAULT_PEAK_GUARD_MARGIN_KW: Final = 0.5
+CONF_OUTAGE_RECOVERY_ENABLED: Final = "outage_recovery_enabled"
+DEFAULT_OUTAGE_RECOVERY_ENABLED: Final = False
+
+#: Swedish standard main-fuse ladder, for the right-sizing advisor (#3).
+FUSE_LADDER_A: Final = (16, 20, 25, 35, 50, 63)
+#: How far the guard lowers the ECL displace while suppressing (#7).
+PEAK_GUARD_DISPLACE_NUDGE_C: Final = 2.0
+#: A coordinator-update gap longer than this reads as a power outage (#22).
+OUTAGE_GAP_MINUTES: Final = 90.0
+#: How long the staggered-recovery window lasts after an outage.
+OUTAGE_RECOVERY_HOURS: Final = 2.0
+#: How long hot water queues behind space heating in recovery.
+OUTAGE_DHW_DELAY_MINUTES: Final = 45.0
+
 
 # --- Compressor cycling, item 10 -------------------------------------------
 #

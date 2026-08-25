@@ -693,6 +693,12 @@ class _Horizon:
     #: re-solve loop in ``optimize`` lowers entries here at steps that charged
     #: a full tank. ``None`` means the nameplate maximum everywhere.
     power_caps: np.ndarray | None = None
+    #: Optional per-step *total electrical* ceiling, kW — the fuse guard and
+    #: shadow solves (item 3). ``power_caps`` above bounds space heating
+    #: alone; this one bounds space **plus** hot water, so the DHW planner
+    #: and ``solve_space`` both have to respect it. Already clipped to ≥ 0
+    #: and padded to ``n_steps``. ``None`` means uncapped.
+    power_caps_extra: np.ndarray | None = None
     #: Optional per-step forecast of free thermal input, kW — a wood furnace
     #: burn (item 28). Both objectives and the savings baseline simulate with
     #: it, so the plan defers electric heat the furnace is already providing
@@ -1106,6 +1112,11 @@ class HeatPumpOptimizer:
                 p_max=p_max,
                 space_demand=np.where(pinned, p_max, space_power),
                 dhw_pins=h.dhw_pins,
+                p_run_cap=(
+                    float(np.min(h.power_caps_extra))
+                    if h.power_caps_extra is not None
+                    else None
+                ),
             )["schedule"]
             if np.allclose(replanned, dhw_power, atol=1e-4):
                 return space_power, dhw_power, status
@@ -1369,6 +1380,7 @@ class HeatPumpOptimizer:
         dhw_pins: np.ndarray | None = None,
         external_heat_kw: np.ndarray | None = None,
         price_sigma: np.ndarray | None = None,
+        power_caps_extra: np.ndarray | None = None,
     ) -> OptimizationResult:
         """Run the MPC optimization with predictive weather anticipation.
 
@@ -1520,13 +1532,35 @@ class HeatPumpOptimizer:
         released_dhw: set[int] = set()
 
         # Per-step ceiling on space power, lowered by the buffer-cap loop
-        # below. Only exists with a valve: without one the tank cannot be
-        # charged, so the path stays byte-for-byte identical.
+        # below (valve installs) and by external per-step caps (T2's fuse
+        # guard and shadow solves). It exists only when a valve can charge
+        # the tank OR extra caps were supplied, so every no-valve, no-cap
+        # install stays byte-for-byte identical.
+        throttling = mixing_valve.is_throttling(
+            self.model.params.mixing_valve_mode
+        )
         power_caps: np.ndarray | None = None
-        if mixing_valve.is_throttling(self.model.params.mixing_valve_mode):
+        caps_extra_arr: np.ndarray | None = None
+        if throttling or power_caps_extra is not None:
             power_caps = np.full(
                 n_steps, self.model.params.max_electrical_power
             )
+        if power_caps_extra is not None:
+            extra = np.clip(
+                np.asarray(power_caps_extra, dtype=float), 0.0, None
+            )
+            if extra.size < n_steps:
+                extra = np.concatenate(
+                    [
+                        extra,
+                        np.full(
+                            n_steps - extra.size,
+                            self.model.params.max_electrical_power,
+                        ),
+                    ]
+                )
+            caps_extra_arr = extra[:n_steps]
+            power_caps = np.minimum(power_caps, caps_extra_arr)
 
         # Per-step valve target schedule, set by the hold-candidate pass below
         # and read by every solve and re-simulation through the closure.
@@ -1559,6 +1593,7 @@ class HeatPumpOptimizer:
                 space_pins=space_pins,
                 dhw_pins=dhw_pins,
                 power_caps=power_caps,
+                power_caps_extra=caps_extra_arr,
                 external_heat_kw=external_heat_kw,
                 valve_targets=valve_targets,
             )
@@ -1666,7 +1701,7 @@ class HeatPumpOptimizer:
                 else:
                     valve_targets = None
 
-        if power_caps is not None:
+        if power_caps is not None and throttling:
             # The tank's safe ceiling as a hard constraint. The model's clamp
             # already stops the simulated temperature exceeding the cap, but it
             # does so by *deleting* the excess heat -- so a plan that charges a
@@ -1695,6 +1730,38 @@ class HeatPumpOptimizer:
 
         existing_info = result.predictive_info if result.predictive_info else {}
         result.predictive_info = {**forecast_analysis, **existing_info}
+
+        if power_caps_extra is not None:
+            # An externally capped plan must say when the cap made the floor
+            # unreachable — a fuse guard that silently plans a cold house is
+            # the program's worst failure mode. Zero when the cap is
+            # feasible; the worst floor shortfall in °C when it is not.
+            trajectory = np.asarray(
+                result.upper_temp_trajectory
+                if self.model.params.two_zone_enabled
+                and result.upper_temp_trajectory
+                else result.room_temp_trajectory,
+                dtype=float,
+            )
+            # Trajectories carry n+1 entries with index 0 the *initial*
+            # state — the same convention the objectives use (`room_t[1:]`
+            # vs bounds). Judging the starting temperature against the cap
+            # would blame the fuse for the weather; dropping the last step
+            # would miss a breach at the horizon's edge.
+            planned = trajectory[1:] if trajectory.size > n_steps else trajectory
+            steps = min(planned.size, temp_min_bounds.size)
+            breach = 0.0
+            if steps > 0:
+                breach = float(
+                    np.max(
+                        np.clip(
+                            temp_min_bounds[:steps] - planned[:steps],
+                            0.0,
+                            None,
+                        )
+                    )
+                )
+            result.predictive_info["power_cap_breach_c"] = round(breach, 3)
         return result
 
     @staticmethod
@@ -2295,6 +2362,7 @@ class HeatPumpOptimizer:
         p_max: float,
         space_demand: np.ndarray | None = None,
         dhw_pins: np.ndarray | None = None,
+        p_run_cap: float | None = None,
     ) -> dict[str, Any]:
         """Build the DHW availability requirements and a cheapest-first plan.
 
@@ -2356,8 +2424,17 @@ class HeatPumpOptimizer:
 
         # The pump serves DHW as an on/off block, not a trickle, so the planner
         # allocates at a realistic run power and never below the level at which
-        # the pump would actually be considered running.
+        # the pump would actually be considered running. An external total-power
+        # cap (fuse guard, shadow solves) bounds the block too — otherwise a
+        # DHW slot alone could blow through the very limit the cap encodes.
+        # Two accepted approximations: the cap is the horizon's *minimum*
+        # (a single low-headroom step throttles every block — conservative,
+        # never over the line), and the 0.1 kW planning floor still wins
+        # below it, because a fuse leaving under 100 W for hot water is not
+        # a plan, it is an infeasibility the breach report already states.
         p_dhw_run = max(0.1, min(p_max * 0.8, p_max))
+        if p_run_cap is not None:
+            p_dhw_run = max(0.1, min(p_dhw_run, float(p_run_cap)))
         min_run_power = min(p_dhw_run, max(0.15, self.model.params.min_electrical_power * 0.6))
 
         # What a DHW block actually costs per kWh at each step, with the
@@ -2511,7 +2588,9 @@ class HeatPumpOptimizer:
         # the timer and the requirement disappears by itself. That is a real
         # saving and an easy one to miss.
         suppress_steps = 0
-        if getattr(initial_state, "external_heat_active", False):
+        if getattr(initial_state, "external_heat_active", False) or getattr(
+            initial_state, "peak_guard_active", False
+        ):
             free_temps = self.model.simulate_dhw_only(
                 initial_temp=initial_state.dhw_temperature,
                 dhw_power_schedule=np.zeros(n_steps),
@@ -3125,6 +3204,11 @@ class HeatPumpOptimizer:
             dt=dt,
             p_max=p_max,
             dhw_pins=h.dhw_pins,
+            p_run_cap=(
+                float(np.min(h.power_caps_extra))
+                if h.power_caps_extra is not None
+                else None
+            ),
         )
 
         dhw_floor_temps = dhw_plan["floor_temps"]
@@ -3237,6 +3321,15 @@ class HeatPumpOptimizer:
             headroom = np.maximum(0.0, p_max - dhw_plan)
             if h.power_caps is not None:
                 headroom = np.minimum(headroom, h.power_caps)
+            if h.power_caps_extra is not None:
+                # power_caps bounds space heating alone, so during a DHW block
+                # space + DHW could still exceed an external *total* cap. The
+                # fuse guard's whole promise is that total draw stays under
+                # the limit, so subtract the block from the cap here too.
+                headroom = np.minimum(
+                    headroom,
+                    np.maximum(0.0, h.power_caps_extra - dhw_plan),
+                )
             guess = init_base if warm_start is None else warm_start
             guess = np.minimum(np.clip(guess, 0.0, p_max), headroom)
             bounds = [(0.0, float(headroom[i])) for i in range(n_steps)]

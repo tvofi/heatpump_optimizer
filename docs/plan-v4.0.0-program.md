@@ -338,7 +338,41 @@ month. G7 applies.
 
 ---
 
-## T2 — Peak & power (PR 3) · **Fable** · #7 #5 #3 #22
+## T2 — Peak & power (PR 3) · **Fable** · #7 #5 #3 #22 · **executed**
+
+*Outcome notes:* built as specified, with three findings worth recording.
+(1) The per-channel `power_caps` array alone could not hold the fuse line
+through a DHW block — space headroom was `min(p_max − dhw, caps)`, so
+space + DHW could exceed an external *total* cap while each channel obeyed
+its own. The extra cap is therefore threaded into the horizon
+(`_Horizon.power_caps_extra`), bounds the DHW block's run power, and is
+subtracted per-step in `solve_space` — deliberately without touching the
+existing valve-install composition, which stays byte-identical. (2) The
+test battery caught the meter listener dead on arrival: `_on_power_event`
+passed the raw state string and the whole attributes dict to
+`normalize_power_kw(value, unit)`, so every live event was dropped; and
+`GuardState.update` discarded the sample that announces a new window,
+making engagement need three events instead of two. Both fixed. (3) The
+adversarial review round caught four more, all fixed with regression
+tests: the advisor called a simulate method that did not exist (dead
+feature, swallowed by the cycle's blanket except — the advisor now runs
+end-to-end in tests, stubbed at the real method name); `_on_power_event`
+lacked `@callback`, which in real HA dispatches it to an executor thread
+where `async_create_task` raises; the guard compared a raw-kW projection
+against a billed-equivalent threshold, so it would defend half-rate and
+free hours (`window_snapshot` now returns the window's #13 factor and
+both sides compare billed-equivalent, with the fuse compared raw);
+and `power_cap_breach_c` judged the *initial* temperature against the
+floor and dropped the last step (trajectories are n+1 long) — fixed, and
+the advisor additionally attributes to the fuse only the shortfall the
+capped plan adds over the uncapped baseline, so a cold snap is not
+blamed on the candidate fuse. Weighted window accumulators now persist
+across restarts; a rate-limited or echo-mismatched what-if is discarded
+and retried tomorrow without displacing last month's verdict, and the
+advisor restores the card's simulate cache. New fixture: `fuse_guard`
+(60%-of-nameplate cap on the DHW winter day; `power_cap_breach_c` 0.0).
+The suppression flag is deliberately byte-equivalent to
+`external_heat_active` at the solver — the tests pin that equivalence.
 
 Order: infra → fuse config → #5 → #3 → #7 → #22.
 

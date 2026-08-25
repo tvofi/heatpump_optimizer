@@ -550,6 +550,12 @@
    "required": "Optional",
    "selector": "NumberSelector"
   },
+  "fuse_guard_enabled": {
+   "config": null,
+   "default": "False",
+   "required": "Optional",
+   "selector": "type"
+  },
   "grid_fee_entity": {
    "config": {
     "filter": "[{'domain': ['sensor']}]"
@@ -587,6 +593,47 @@
    "default": "''",
    "required": "Optional",
    "selector": "TextSelector"
+  },
+  "main_fuse_amperes": {
+   "config": {
+    "max": "125",
+    "min": "0",
+    "mode": "'box'",
+    "step": "1",
+    "unit_of_measurement": "'A'"
+   },
+   "default": "0",
+   "required": "Optional",
+   "selector": "NumberSelector"
+  },
+  "main_fuse_phases": {
+   "config": {
+    "max": "3",
+    "min": "1",
+    "mode": "'slider'",
+    "step": "1"
+   },
+   "default": "3",
+   "required": "Optional",
+   "selector": "NumberSelector"
+  },
+  "peak_guard_enabled": {
+   "config": null,
+   "default": "False",
+   "required": "Optional",
+   "selector": "type"
+  },
+  "peak_guard_margin_kw": {
+   "config": {
+    "max": "3.0",
+    "min": "0.0",
+    "mode": "'slider'",
+    "step": "0.1",
+    "unit_of_measurement": "'kW'"
+   },
+   "default": "0.5",
+   "required": "Optional",
+   "selector": "NumberSelector"
   },
   "peak_tariff_enabled": {
    "config": null,
@@ -895,6 +942,12 @@
    "default": "1.5",
    "required": "Optional",
    "selector": "NumberSelector"
+  },
+  "outage_recovery_enabled": {
+   "config": null,
+   "default": "False",
+   "required": "Optional",
+   "selector": "type"
   },
   "price_prior_enabled": {
    "config": null,

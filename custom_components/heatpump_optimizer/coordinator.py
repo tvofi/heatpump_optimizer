@@ -24,6 +24,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import UnitOfSpeed
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity import DeviceInfo
+from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
@@ -163,6 +164,23 @@ from .const import (
     DEFAULT_PRICE_RISK_LAMBDA,
     CONF_CONTRACT_FIXED_PRICE,
     DEFAULT_CONTRACT_FIXED_PRICE,
+    CONF_MAIN_FUSE_A,
+    DEFAULT_MAIN_FUSE_A,
+    CONF_MAIN_FUSE_PHASES,
+    DEFAULT_MAIN_FUSE_PHASES,
+    CONF_FUSE_GUARD_ENABLED,
+    DEFAULT_FUSE_GUARD_ENABLED,
+    CONF_PEAK_GUARD_ENABLED,
+    DEFAULT_PEAK_GUARD_ENABLED,
+    CONF_PEAK_GUARD_MARGIN_KW,
+    DEFAULT_PEAK_GUARD_MARGIN_KW,
+    CONF_OUTAGE_RECOVERY_ENABLED,
+    DEFAULT_OUTAGE_RECOVERY_ENABLED,
+    FUSE_LADDER_A,
+    PEAK_GUARD_DISPLACE_NUDGE_C,
+    OUTAGE_GAP_MINUTES,
+    OUTAGE_RECOVERY_HOURS,
+    OUTAGE_DHW_DELAY_MINUTES,
     CONF_CYCLING_COST,
     DEFAULT_CYCLING_COST,
     CONF_PV_ENABLED,
@@ -227,6 +245,7 @@ from .grid_fee import (
     parse_month_range as grid_fee_parse_month_range,
 )
 from .ledger import MonthlyLedger, month_key
+from .power_guard import GuardState, project_window_mean
 from .open_meteo import OpenMeteoSolar
 from .thermal_model import (
     DHW_AMBIENT_TEMP,
@@ -476,6 +495,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._async_load_accuracy,
             self._async_load_energy_totals,
             self._async_load_ledger,
+            self._async_setup_peak_guard,
             self._async_load_manual_plan,
         ):
             hass.async_create_task(load())
@@ -642,6 +662,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
         # --- Capacity tariff (item 8) --------------------------------------
         self._peak_tracker = PeakTracker()
+
+        # --- Live peak guard, fuse and outage recovery (v4.0.0 T2) ---------
+        self._peak_guard = GuardState()
+        self._unsub_peak_guard = None
+        self._guard_last_fold: datetime | None = None
+        self._fuse_advisor: dict[str, Any] = {}
+        self._fuse_advisor_at: datetime | None = None
+        self._outage_recovery_until: datetime | None = None
+        self._outage_dhw_until: datetime | None = None
 
         # --- PV self-consumption (item 9) ----------------------------------
         self._pv_surplus: np.ndarray | None = None
@@ -2319,6 +2348,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._opt_config.peak_threshold_kw = self._peak_tracker.threshold_kw(
                 tariff
             )
+            # Post-outage recovery (#22): every neighbour restarts at once,
+            # so the fresh-month "no reference yet" free pass is exactly
+            # wrong now. Force the peak term active by pricing from zero
+            # when the threshold would otherwise be infinite.
+            if self._outage_recovery_active(dt_util.now()) and not np.isfinite(
+                self._opt_config.peak_threshold_kw
+            ):
+                self._opt_config.peak_threshold_kw = 0.0
             self._opt_config.peak_window_minutes = tariff.window_minutes
             self._opt_config.peak_count = tariff.peaks_averaged
             self._opt_config.peak_months = tariff.months
@@ -2363,6 +2400,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 )
 
             self._current_state.external_heat_active = self._external_heat_active
+            # T2: the live guard's suppression and the post-outage DHW queue
+            # both ride the same discretionary-DHW gate in the solve (#7/#22).
+            self._current_state.peak_guard_active = (
+                self._peak_guard.suppressing
+                or self._outage_dhw_hold(dt_util.now())
+            )
 
             # Manual plan: build the per-step pin arrays aligned to the exact
             # horizon this solve will use. An expired override is dropped here so
@@ -2371,6 +2414,20 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             # builds from the same instant.
             solve_now = dt_util.now()
             space_pins, dhw_pins = self._manual_pins(solve_now, len(prices))
+
+            # The opt-in fuse guard (#3): a hard per-step ceiling on heat
+            # pump power at what the fuse leaves after the rest of the house.
+            caps_extra = None
+            if self._config.get(
+                CONF_FUSE_GUARD_ENABLED, DEFAULT_FUSE_GUARD_ENABLED
+            ):
+                fuse_kw = self._fuse_kw()
+                if fuse_kw is not None:
+                    caps_extra = np.clip(
+                        fuse_kw - self._baseline_house_load(len(prices)),
+                        0.0,
+                        None,
+                    )
 
             # Run optimization in executor to avoid blocking
             result = await self.hass.async_add_executor_job(
@@ -2388,6 +2445,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 dhw_pins,
                 self._external_heat_forecast(len(horizon.prices)),
                 horizon.price_sigma,
+                caps_extra,
             )
 
             self._record_manual_release(result)
@@ -2402,6 +2460,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             # A step-response experiment overrides the plan for its duration.
             self._run_system_identification(prices)
             self._adopt_system_identification()
+
+            # The monthly fuse right-sizing what-if (#3); rate-limited to
+            # weekly inside, and never allowed to break the cycle.
+            try:
+                await self._maybe_run_fuse_advisor()
+            except Exception as err:  # noqa: BLE001
+                _LOGGER.debug("Fuse advisor skipped: %s", err)
 
             self._record_quiet_comfort_period()
 
@@ -2545,6 +2610,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if self._unsub_ecl110_state:
             self._unsub_ecl110_state()
             self._unsub_ecl110_state = None
+        if self._unsub_peak_guard:
+            self._unsub_peak_guard()
+            self._unsub_peak_guard = None
 
     async def _update_current_state(self) -> None:
         """Update current thermal state from HA entities.
@@ -3704,6 +3772,16 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             "current_grid_fee": round(
                 self._current_grid_fee(dt_util.now()), 4
             ),
+            # T2: the headroom broadcast (#5), the fuse advisor's latest
+            # answer (#3), the live guard's state (#7) and the recovery
+            # window (#22).
+            "power_headroom": self._power_headroom(),
+            "fuse_advisor": dict(self._fuse_advisor),
+            "peak_guard_suppressing": self._peak_guard.suppressing,
+            "peak_guard_evidence": list(self._peak_guard.evidence),
+            "outage_recovery_active": self._outage_recovery_active(
+                dt_util.now()
+            ),
             "peak_tariff_enabled": tariff.enabled,
             "billed_peak_kw": round(self._peak_tracker.billed_peak_kw(tariff), 2),
             "peak_threshold_kw": round(self._peak_tracker.threshold_kw(tariff), 2),
@@ -4040,10 +4118,19 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 self._energy_totals[key] = max(
                     self._energy_totals[key], float(value)
                 )
+        # A long silence before this restart reads as a power cut (#22).
+        self._detect_outage(stored.get("last_tick"))
 
     async def _async_save_energy_totals(self) -> None:
         try:
-            await self._energy_store.async_save(dict(self._energy_totals))
+            await self._energy_store.async_save(
+                {
+                    **self._energy_totals,
+                    # The outage detector's heartbeat (#22): the last instant
+                    # this coordinator was alive. Numeric-key loaders skip it.
+                    "last_tick": dt_util.now().isoformat(),
+                }
+            )
         except Exception as err:  # noqa: BLE001
             _LOGGER.debug("Could not persist energy totals: %s", err)
 
@@ -4327,6 +4414,382 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if house is None:
             house = float(self._current_action.get("power", 0.0))
         self._peak_tracker.observe(dt_util.now(), float(house), tariff)
+
+    # ==================================================================
+    # Live peak guard (#7), fuse (#3/#5) and outage recovery (#22) — T2
+    # ==================================================================
+
+    async def _async_setup_peak_guard(self) -> None:
+        """Register the meter listener — only when the guard is switched on.
+
+        The flag gates *registration*, not just behaviour: an opt-out
+        install carries no listener at all, so the event path cannot even
+        run. The subscription follows the whole-house meter when one exists
+        (the billed quantity), else the heat pump's own meter.
+        """
+        if not self._config.get(
+            CONF_PEAK_GUARD_ENABLED, DEFAULT_PEAK_GUARD_ENABLED
+        ):
+            return
+        entity = self._config.get(CONF_HOUSE_POWER_ENTITY) or self._config.get(
+            CONF_POWER_ENTITY
+        )
+        if not entity:
+            _LOGGER.warning(
+                "Peak guard enabled but no power meter configured; "
+                "the guard stays dormant"
+            )
+            return
+        self._unsub_peak_guard = async_track_state_change_event(
+            self.hass, [entity], self._on_power_event
+        )
+        _LOGGER.info("Peak guard listening on %s", entity)
+
+    @callback
+    def _on_power_event(self, event) -> None:
+        """One meter reading: fold, project, and flip the flag on crossings.
+
+        Never solves, never blocks: the only work here is arithmetic on the
+        open metering window and, on a *transition*, scheduling the
+        already-async actuation. A chatty meter is throttled to one
+        processed event per ``MIN_EVENT_SPACING_S``.
+
+        ``@callback`` is load-bearing, not a style choice: without it the
+        event helper dispatches this to an executor thread, where
+        ``async_create_task`` raises and the tracker accumulators race the
+        update loop.
+        """
+        new_state = getattr(event, "data", {}).get("new_state")
+        if new_state is None:
+            return
+        now = dt_util.now()
+        if self._peak_guard.throttled(now):
+            return
+        tariff = self._capacity_tariff()
+        fuse = self._fuse_kw()
+        if not tariff.enabled and fuse is None:
+            return
+        try:
+            raw = float(getattr(new_state, "state", None))
+        except (TypeError, ValueError):
+            return
+        attrs = getattr(new_state, "attributes", {}) or {}
+        kw = normalize_power_kw(raw, attrs.get("unit_of_measurement"))
+        if kw is None or not np.isfinite(kw):
+            return
+
+        # Time-weighted fold (#7): the listener knows real sample spacing,
+        # which the 30-minute tick never did. Clamped so a reconnecting
+        # meter cannot claim an hour-long sample.
+        dt_h: float | None = None
+        if self._guard_last_fold is not None:
+            spacing = (now - self._guard_last_fold).total_seconds() / 3600.0
+            if 0.0 < spacing <= 0.25:
+                dt_h = spacing
+        self._guard_last_fold = now
+        if tariff.enabled:
+            self._peak_tracker.observe(now, kw, tariff, dt_hours=dt_h)
+
+        key, mean, elapsed, factor = self._peak_tracker.window_snapshot(
+            now, tariff
+        )
+        projection = project_window_mean(
+            mean, elapsed, kw, tariff.window_minutes
+        )
+        margin = _as_float(
+            self._config.get(CONF_PEAK_GUARD_MARGIN_KW),
+            DEFAULT_PEAK_GUARD_MARGIN_KW,
+        )
+        # Two independent lines can be crossed, each in its own currency.
+        # The tariff bills this window's kW scaled by the #13 masks, so the
+        # comparison is billed-equivalent on BOTH sides — a half-rate night
+        # window projects half as much, a free one cannot cross at all.
+        # The fuse is raw physics: projected window mean is the wrong
+        # quantity for a breaker, but staying under it on average is still
+        # the conservative guard behaviour, and the instantaneous
+        # protection is the breaker's own job. The guard folds in whichever
+        # line is worse off right now.
+        candidates: list[tuple[float, float]] = []
+        if tariff.enabled and factor > 0.0:
+            candidates.append(
+                (projection * factor, self._peak_tracker.threshold_kw(tariff))
+            )
+        if fuse is not None:
+            candidates.append((projection, fuse))
+        proj_eff, threshold = max(
+            candidates,
+            key=lambda pair: pair[0] - pair[1],
+            default=(projection, float("inf")),
+        )
+        changed = self._peak_guard.update(
+            now,
+            key,
+            proj_eff,
+            threshold,
+            margin,
+            floor_hold=self._guard_floor_hold(),
+        )
+        if changed:
+            self._current_state.peak_guard_active = self._peak_guard.suppressing
+            self.hass.async_create_task(self._async_peak_guard_transition())
+
+    def _guard_floor_hold(self) -> bool:
+        """Whether a hard floor outranks suppression right now.
+
+        A cold tank or a breached comfort floor means the house needs the
+        heat more than the bill needs protecting — the guard must refuse to
+        engage and release immediately.
+        """
+        params = self._thermal_params
+        state = self._current_state
+        if params.dhw_enabled and state.dhw_temperature < params.dhw_min_temp:
+            return True
+        floor = float(self._opt_config.min_temp)
+        temps = [state.room_temperature]
+        if params.two_zone_enabled:
+            temps += [
+                state.upper_floor_temperature,
+                state.lower_floor_temperature,
+            ]
+        return any(t is not None and float(t) < floor for t in temps)
+
+    async def _async_peak_guard_transition(self) -> None:
+        """Actuate one suppression transition — and only transitions.
+
+        Engaging nudges the ECL displace down for the rest of the window;
+        releasing re-publishes the plan's own action. The DHW hold itself
+        rides ``ThermalState.peak_guard_active`` through the same
+        discretionary-suppression gate external heat uses, at the next
+        solve — no solve happens here.
+        """
+        if not self._current_action:
+            self.async_update_listeners()
+            return
+        if self._peak_guard.suppressing:
+            await self.async_publish_ecl110_command(
+                displace_value=float(
+                    self._current_action.get("displace_value", 0.0)
+                )
+                - PEAK_GUARD_DISPLACE_NUDGE_C,
+                heat_pump_on=bool(
+                    self._current_action.get("heat_pump_on", False)
+                ),
+                reason="peak_guard",
+            )
+        else:
+            await self.async_publish_current_action(reason="peak_guard_release")
+        self.async_update_listeners()
+
+    def _fuse_kw(self) -> float | None:
+        """The main fuse's continuous capacity, or None when unconfigured."""
+        amps = _as_float(
+            self._config.get(CONF_MAIN_FUSE_A), DEFAULT_MAIN_FUSE_A
+        )
+        if amps <= 0:
+            return None
+        phases = int(
+            _as_float(
+                self._config.get(CONF_MAIN_FUSE_PHASES),
+                DEFAULT_MAIN_FUSE_PHASES,
+            )
+        )
+        return amps * max(1, phases) * 230.0 / 1000.0
+
+    def _power_headroom(self) -> dict[str, Any]:
+        """How many kW the house can draw right now without new cost (#5).
+
+        ``min(fuse, capacity threshold) − current house draw``, clamped at
+        zero, with the per-step horizon headroom in attributes so a charger
+        automation can follow the plan, not just the instant.
+        """
+        fuse = self._fuse_kw()
+        tariff = self._capacity_tariff()
+        threshold = (
+            self._peak_tracker.threshold_kw(tariff)
+            if tariff.enabled
+            else float("inf")
+        )
+        limits = [
+            v
+            for v in (fuse, threshold)
+            if v is not None and np.isfinite(v)
+        ]
+        if not limits:
+            return {"available": False}
+        limit = float(min(limits))
+
+        if self._measured_house_power is not None:
+            house_now = float(self._measured_house_power)
+            source = "house meter"
+        elif self._measured_power is not None:
+            house_now = float(self._measured_power)
+            source = "heat pump meter only (baseline load invisible)"
+        else:
+            house_now = float(self._current_action.get("power", 0.0)) + float(
+                self._current_action.get("dhw_power", 0.0)
+            )
+            source = "planned power only (no meter)"
+
+        out: dict[str, Any] = {
+            "available": True,
+            "limit_kw": round(limit, 3),
+            "headroom_kw": round(max(0.0, limit - house_now), 3),
+            "baseline_source": source,
+        }
+        result = self._optimization_result
+        if result is not None and result.power_schedule:
+            planned = np.asarray(result.power_schedule, dtype=float)
+            if result.dhw_power_schedule:
+                dhw = np.asarray(result.dhw_power_schedule, dtype=float)
+                planned = planned + dhw[: planned.size]
+            baseline = self._baseline_house_load(planned.size)
+            steps = np.clip(limit - planned - baseline, 0.0, None)
+            out["horizon_headroom_kw"] = [
+                round(float(v), 2) for v in steps[:48]
+            ]
+        return out
+
+    async def _maybe_run_fuse_advisor(self) -> None:
+        """The monthly what-if: would this house run under the next fuse (#3).
+
+        At most weekly, through the existing simulate harness and executor.
+        The answer is published on the Monthly Peak sensor; nothing here
+        actuates.
+        """
+        fuse = self._fuse_kw()
+        if fuse is None:
+            return
+        amps = _as_float(
+            self._config.get(CONF_MAIN_FUSE_A), DEFAULT_MAIN_FUSE_A
+        )
+        smaller = max(
+            (a for a in FUSE_LADDER_A if a < amps), default=None
+        )
+        if smaller is None:
+            return
+        now = dt_util.now()
+        if (
+            self._fuse_advisor_at is not None
+            and (now - self._fuse_advisor_at).total_seconds() < 7 * 24 * 3600.0
+            and self._fuse_advisor.get("month") == month_key(now)
+        ):
+            return
+
+        phases = int(
+            _as_float(
+                self._config.get(CONF_MAIN_FUSE_PHASES),
+                DEFAULT_MAIN_FUSE_PHASES,
+            )
+        )
+        candidate_kw = smaller * max(1, phases) * 230.0 / 1000.0
+        baseline_now = float(self._baseline_house_load(1)[0])
+        cap_kw = max(0.0, candidate_kw - baseline_now)
+        # The advisor borrows the card's simulate harness but must not
+        # spend its rate-limit slot or leave a fuse-capped payload in the
+        # cache the card's next drag would read back.
+        cache_snapshot = (self._last_simulation, self._simulation_cache)
+        try:
+            simulated = await self.async_simulate({"power_cap_kw": cap_kw})
+        finally:
+            self._last_simulation, self._simulation_cache = cache_snapshot
+        echoed = (simulated.get("overrides") or {}).get("power_cap_kw")
+        if (
+            "error" in simulated
+            or simulated.get("rate_limited")
+            or echoed != cap_kw
+        ):
+            # Retry tomorrow rather than in a week: a rate-limited or failed
+            # what-if is not an answer, and a month of "error" would be. A
+            # rate-limited call returns the card's *cached* payload — a
+            # different what-if entirely — which is why the overrides echo
+            # is checked rather than trusted. Last month's real verdict, if
+            # any, stays published; an error dict is not an upgrade.
+            self._fuse_advisor_at = now - timedelta(days=6)
+            if "candidate_kw" not in self._fuse_advisor:
+                self._fuse_advisor = {
+                    "month": month_key(now),
+                    "candidate_fuse_a": int(smaller),
+                    "error": simulated.get("error", "rate_limited"),
+                }
+            return
+        self._fuse_advisor_at = now
+        breach = float(simulated.get("power_cap_breach_c") or 0.0)
+        # The breach the solver reports is absolute: "the capped plan dips
+        # this far below the floor". On a cold-snap morning the *uncapped*
+        # plan dips too, and blaming the candidate fuse for weather would
+        # tell the user their house needs amperes it does not. What the cap
+        # itself costs is bounded by how much colder the capped plan gets
+        # than the baseline it was differenced against.
+        base_cold = simulated.get("baseline_min_room_temperature")
+        sim_cold = simulated.get("min_room_temperature")
+        if breach > 0.0 and base_cold is not None and sim_cold is not None:
+            breach = max(0.0, min(breach, float(base_cold) - float(sim_cold)))
+        peak = float(simulated.get("projected_peak_kw") or 0.0)
+        self._fuse_advisor = {
+            "month": month_key(now),
+            "current_fuse_a": int(amps),
+            "candidate_fuse_a": int(smaller),
+            "candidate_kw": round(candidate_kw, 2),
+            "feasible": breach <= 0.05,
+            "comfort_shortfall_c": round(breach, 2),
+            "worst_margin_kw": round(candidate_kw - peak, 2),
+            "cost_delta_sek_month": simulated.get("monthly_cost_delta"),
+        }
+
+    def _outage_recovery_active(self, now: datetime) -> bool:
+        return (
+            self._outage_recovery_until is not None
+            and now < self._outage_recovery_until
+        )
+
+    def _outage_dhw_hold(self, now: datetime) -> bool:
+        """Whether recovery is still queueing hot water behind space (#22).
+
+        Never while the tank is genuinely low: post-outage the water may
+        already be cold, and a delay that leaves a family without hot water
+        to protect a tariff is the wrong trade.
+        """
+        if self._outage_dhw_until is None or now >= self._outage_dhw_until:
+            return False
+        params = self._thermal_params
+        if params.dhw_enabled and (
+            self._current_state.dhw_temperature < params.dhw_min_temp
+        ):
+            return False
+        return True
+
+    def _detect_outage(self, last_tick_iso: str | None) -> None:
+        """Open the staggered-recovery window after a real gap (#22)."""
+        if not self._config.get(
+            CONF_OUTAGE_RECOVERY_ENABLED, DEFAULT_OUTAGE_RECOVERY_ENABLED
+        ):
+            return
+        if not last_tick_iso:
+            return
+        try:
+            last = datetime.fromisoformat(str(last_tick_iso))
+        except (TypeError, ValueError):
+            return
+        now = dt_util.now()
+        if last.tzinfo is None and now.tzinfo is not None:
+            last = last.replace(tzinfo=now.tzinfo)
+        gap_minutes = (now - last).total_seconds() / 60.0
+        if gap_minutes <= OUTAGE_GAP_MINUTES:
+            return
+        self._outage_recovery_until = now + timedelta(
+            hours=OUTAGE_RECOVERY_HOURS
+        )
+        self._outage_dhw_until = now + timedelta(
+            minutes=OUTAGE_DHW_DELAY_MINUTES
+        )
+        _LOGGER.warning(
+            "Update gap of %.0f minutes reads as an outage; staggered "
+            "recovery active for %.1f h (hot water queued %.0f min behind "
+            "space heating)",
+            gap_minutes,
+            OUTAGE_RECOVERY_HOURS,
+            OUTAGE_DHW_DELAY_MINUTES,
+        )
 
     def _baseline_house_load(self, n_steps: int) -> np.ndarray:
         """Whole-house load excluding the heat pump, per step, in kW."""
@@ -5061,6 +5524,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                         "rate_limited": False,
                     }
 
+        # T2: a per-step electrical ceiling for shadow solves — the fuse
+        # advisor (#3) and, later, the what-if tiles (#39).
+        cap_extra = None
+        if "power_cap_kw" in overrides:
+            cap_extra = np.full(
+                len(horizon.prices), float(overrides["power_cap_kw"])
+            )
+
         scratch = HeatPumpOptimizer(ThermalModel(scratch_params), scratch_config)
         try:
             simulated = await self.hass.async_add_executor_job(
@@ -5078,6 +5549,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     # what-if must price guessed steps the same way the plan
                     # it is compared against did (#34).
                     price_sigma=horizon.price_sigma,
+                    power_caps_extra=cap_extra,
                 )
             )
         except Exception as err:  # noqa: BLE001 - a what-if must never break ops
@@ -5112,6 +5584,17 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             "simulated_cost": round(simulated.predicted_cost, 2),
             "cost_delta": round(delta, 2),
             "monthly_cost_delta": round(delta * scale, 2),
+            # T2: present only when the what-if capped power — the worst
+            # comfort-floor shortfall that cap forced, 0.0 when feasible.
+            **(
+                {
+                    "power_cap_breach_c": simulated.predictive_info.get(
+                        "power_cap_breach_c", 0.0
+                    )
+                }
+                if "power_cap_kw" in overrides and simulated.predictive_info
+                else {}
+            ),
             "savings_percentage": round(simulated.savings_percentage, 1),
             "min_room_temperature": coldest(simulated),
             # The comfort consequence, alongside the money. A cheaper plan that

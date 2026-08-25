@@ -130,6 +130,23 @@ DATA = {
     "peak_month": "2026-02",
     "projected_peak_kw": 6.9,
     "projected_peak_cost": 0.0,
+    "power_headroom": {
+        "available": True,
+        "limit_kw": 13.8,
+        "headroom_kw": 7.3,
+        "baseline_source": "house meter",
+        "horizon_headroom_kw": [7.3, 7.1],
+    },
+    "fuse_advisor": {
+        "month": "2026-02",
+        "current_fuse_a": 20,
+        "candidate_fuse_a": 16,
+        "feasible": True,
+        "cost_delta_sek_month": -35.0,
+    },
+    "peak_guard_suppressing": False,
+    "peak_guard_evidence": [],
+    "outage_recovery_active": True,
     "pv_enabled": True,
     "pv": {"forecast_surplus_kwh": 5.4, "forecast_production_kwh": 12.0},
     "pv_self_consumed_kwh": 3.2,
@@ -265,6 +282,35 @@ R.check(
         "free_headroom_threshold_kw"
     ]
     == 6.5,
+)
+# v4.0.0 T2: the fuse advisor's answer and the outage flag ride the peak
+# sensor rather than adding two more diagnostic entities.
+_peak_attrs = by_name["Monthly Peak Power"].extra_state_attributes
+R.check(
+    "the fuse advisor's monthly answer is published",
+    _peak_attrs.get("fuse_advisor", {}).get("candidate_fuse_a") == 16,
+)
+R.check(
+    "outage recovery is visible while it is active",
+    _peak_attrs.get("outage_recovery_active") is True,
+)
+R.check("the Power Headroom sensor exists", "Power Headroom" in by_name)
+R.check(
+    "headroom is the state, in kW, ready for a charger automation",
+    by_name["Power Headroom"].native_value == 7.3
+    and by_name["Power Headroom"]._attr_native_unit_of_measurement == "kW",
+)
+R.check(
+    "the headroom sensor is available exactly when a limit exists",
+    by_name["Power Headroom"].available is True,
+)
+_hr_attrs = by_name["Power Headroom"].extra_state_attributes
+R.check(
+    "the headroom attributes carry the limit, source and horizon",
+    _hr_attrs.get("limit_kw") == 13.8
+    and _hr_attrs.get("baseline_source") == "house meter"
+    and _hr_attrs.get("horizon_headroom_kw") == [7.3, 7.1]
+    and "available" not in _hr_attrs,
 )
 R.check("PV surplus is published", by_name["Solar Surplus Forecast"].native_value == 5.4)
 R.check(

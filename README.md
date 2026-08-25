@@ -788,6 +788,34 @@ discourage. Below the running threshold, an hour changes nothing and costs
 nothing; and until the month has recorded some peaks there is no reference at
 all, so the charge stays switched off rather than treating every kW as new.
 
+**Living inside the peak, not just planning around it** (v4.0.0): four
+features act on power rather than energy, all inert until configured.
+
+- **The live peak guard** listens to your power meter between plans. The
+  DSO bills the *average* over a metering window, so mid-window the damage
+  is not yet done: when the projected window average crosses the billed
+  threshold (or the main fuse), the guard defers what can wait — electric
+  hot water, and a small heat-curve nudge — for the rest of the window,
+  then releases. Two agreeing readings engage it, two clear ones release
+  it, and a cold tank or a breached comfort floor always outranks it.
+- **The main fuse** (amperes and phases, on the Grid costs page) becomes a
+  hard per-step ceiling on planned space heating *plus* hot water together,
+  so the plan never schedules a draw the fuse cannot carry.
+- **Power Headroom** publishes `min(fuse, billed threshold) − current
+  draw` as a sensor an EV charger's dynamic circuit limit can follow.
+- **The fuse advisor** answers, monthly, whether this house — with the
+  optimizer flattening its peaks — would run under the next-smaller main
+  fuse, and what that would do to comfort and the bill. Standing fuse
+  charges are often 100+ SEK/month per step; the answer rides on the
+  Monthly Peak Power sensor.
+
+**After a power outage** (opt-in, on the Self-learning page) every heater in
+the neighbourhood restarts at once, which is precisely when a new monthly
+peak is set. A gap of more than 90 minutes in the integration's own history
+reads as an outage: for the next two hours the plan avoids stacking loads,
+and hot water queues 45 minutes behind space heating — unless the tank is
+genuinely cold, because a family without hot water is the wrong trade.
+
 **A compressor start** costs oil dilution, wear, and the loss while the system
 re-establishes steady state. It is modelled as a smooth term on the
 step-to-step power difference, which keeps the problem continuous — a true
@@ -915,7 +943,7 @@ turn the toggle off to require hot water around the clock.
 
 ## Entities Created
 
-### Sensors (48 total)
+### Sensors (49 total)
 | Sensor | Description |
 |---|---|
 | Optimization Mode | Current mode (auto/comfort/economy/boost/off) |
@@ -957,7 +985,8 @@ turn the toggle off to require hot water around the clock.
 | **Hot Water Cost** | Accumulating cost |
 | **Total Heating Cost** | Accumulating cost |
 | **Prediction Accuracy** | Mean error of the predicted indoor temperature, with the bias in attributes |
-| **Monthly Peak Power** | Peak the capacity tariff is currently billed on, and the free headroom |
+| **Monthly Peak Power** | Peak the capacity tariff is currently billed on, and the free headroom; the fuse advisor's monthly verdict rides in attributes |
+| **Power Headroom** | kW the house can draw right now without new cost — a number an EV charger's dynamic limit can follow, with the per-step horizon in attributes |
 | **Solar Surplus Forecast** | Forecast PV surplus available to the heat pump |
 | **Thermal Battery Charge** | State of charge of the house and tanks, against the comfort band |
 | **Thermal Battery Energy** | Stored energy available above the comfort floor |
@@ -1254,7 +1283,7 @@ the top; everything you typically set once lives one click further, under
 | Comfort and temperatures | Target, minimum and maximum temperature, day/night hours |
 | Hot water | Tank size, temperatures, demand time frames, anti-legionella |
 | Savings vs comfort | Price weight, comfort weight, recalculation interval, compressor start cost, caution with guessed prices |
-| Grid costs | Capacity tariff and its clock, transfer fees, contract comparison — what your grid company charges |
+| Grid costs | Capacity tariff and its clock, transfer fees, main fuse and live peak guard, contract comparison — what your grid company charges |
 | Away and holiday mode | Presence source, return time, setback temperatures |
 
 | Advanced page | What it covers |
@@ -1264,7 +1293,7 @@ the top; everything you typically set once lives one click further, under
 | Building type and emitters | Structure, era, foundation, area and emitters, plus windows and wind/rain sensitivity |
 | Thermal model (expert) | The raw model numbers — heat pump power and COP, masses, losses, the two-zone split — previously fixed at setup |
 | Solar panels | Array size, efficiency, export compensation |
-| Self-learning and diagnostics | Staleness watchdog, external heat detection, comfort learning, identification, price prior |
+| Self-learning and diagnostics | Staleness watchdog, external heat detection, comfort learning, identification, price prior, outage recovery |
 | Heat curve control (ECL110) | Heat curve points and offsets |
 
 Every sensor you picked during setup can be re-pointed here, including the

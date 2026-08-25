@@ -462,7 +462,12 @@
           "grid_fee_fixed": "Fixed transfer fee (SEK/kWh)",
           "grid_fee_rules": "Time-of-use fee rules",
           "grid_fee_entity": "Live fee sensor (optional)",
-          "contract_fixed_price": "Fixed contract price to compare (SEK/kWh)"
+          "contract_fixed_price": "Fixed contract price to compare (SEK/kWh)",
+          "main_fuse_amperes": "Main fuse size",
+          "main_fuse_phases": "Phases",
+          "fuse_guard_enabled": "Keep the plan under the main fuse",
+          "peak_guard_enabled": "Live peak guard",
+          "peak_guard_margin_kw": "Peak guard margin"
         },
         "data_description": {
           "peak_tariff_price_per_kw": "Take this from your grid invoice — it varies a lot between grid companies.",
@@ -476,7 +481,12 @@
           "grid_fee_fixed": "A flat fee added in every hour, on top of any rules. Take it from your grid invoice.",
           "grid_fee_rules": "One rule per line, for example \"Nov-Mar Mon-Fri 06:00-22:00 = 0.25\". Month, weekday and time parts are each optional; overlapping rules add together, which matches a base fee plus a high-load surcharge.",
           "grid_fee_entity": "A sensor reporting the current fee in SEK/kWh, for grids with dynamic fees. Its value is added to every planned hour.",
-          "contract_fixed_price": "If you could have a fixed-price contract, its SEK/kWh. The Contract Comparison sensor then shows what this month would have cost on it. 0 leaves that column out."
+          "contract_fixed_price": "If you could have a fixed-price contract, its SEK/kWh. The Contract Comparison sensor then shows what this month would have cost on it. 0 leaves that column out.",
+          "main_fuse_amperes": "The house's main fuse in amperes, from your grid contract. 0 leaves it unconfigured, which keeps the fuse advisor, the fuse guard and the headroom sensor dormant — there is no safe default to guess, and a wrong one would cap a bigger house.",
+          "main_fuse_phases": "Nearly every Swedish house is 3-phase.",
+          "fuse_guard_enabled": "Caps the heat pump's planned power at what the fuse leaves after the rest of the house. If a cap would make the comfort floor unreachable, the plan says so on its sensors instead of silently going cold.",
+          "peak_guard_enabled": "Watches the power meter live and, when the current metering window is projected to set a new billed peak, holds back electric hot water and nudges the heat curve down for the rest of that window. Needs a power meter; a cold tank or a breached comfort floor always wins over the guard.",
+          "peak_guard_margin_kw": "How far below the billed threshold the guard starts acting. Larger catches more peaks and intervenes more often."
         }
       },
       "solar_pv": {
@@ -524,7 +534,8 @@
           "external_heat_decay_minutes": "How long to keep assuming it after it stops",
           "comfort_learning_enabled": "Learn my comfort preference from overrides",
           "system_identification_enabled": "Allow a one-off measurement experiment",
-          "price_prior_enabled": "Estimate prices past the published horizon"
+          "price_prior_enabled": "Estimate prices past the published horizon",
+          "outage_recovery_enabled": "Staggered recovery after a power cut"
         },
         "data_description": {
           "staleness_watchdog_enabled": "A dead battery leaves a perfectly normal-looking value in place forever. Left alone, the model learns from that flatline and the damage survives a restart. With this on, an old value is treated as missing and learning pauses instead.",
@@ -534,7 +545,8 @@
           "external_heat_min_rise": "Raise this if normal operation triggers it. Missing a fire costs one unnecessary heating cycle; wrongly assuming one can leave you without hot water.",
           "comfort_learning_enabled": "Every time you override the temperature, you are saying the plan went too far in one direction. This slowly adjusts the comfort setting from that. The learned value is shown on its own sensor and there is a button to reset it.",
           "system_identification_enabled": "Lets the optimizer run a small deliberate heating step on a mild, cheap night to measure your house directly, instead of waiting weeks to infer it. The change is kept too small to notice and it stops if the temperature drifts.",
-          "price_prior_enabled": "Tomorrow's prices arrive around 13:00. Before then the rest of the horizon used to be a flat repeat of the last price, which hides every cheap hour ahead. This learns your typical daily price shape and uses it instead, and the plan marks which hours are estimated."
+          "price_prior_enabled": "Tomorrow's prices arrive around 13:00. Before then the rest of the horizon used to be a flat repeat of the last price, which hides every cheap hour ahead. This learns your typical daily price shape and uses it instead, and the plan marks which hours are estimated.",
+          "outage_recovery_enabled": "After an outage everything restarts at once — cold house, cold tank, the whole neighbourhood — which is exactly when a new monthly capacity peak gets set. With this on, a long gap in updates opens a two-hour recovery window where the capacity charge is taken seriously from the first kW and hot water queues 45 minutes behind space heating, unless the tank is genuinely low."
         }
       }
     },

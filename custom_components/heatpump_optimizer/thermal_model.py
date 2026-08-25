@@ -827,6 +827,12 @@ class ThermalState:
     # optimizer reads it to suppress discretionary electric hot water.
     external_heat_active: bool = False
 
+    # The live peak guard is holding electric DHW back for the rest of the
+    # billed metering window (#7, v4.0.0 T2). Consumed by the same
+    # discretionary-DHW suppression gate as external heat; carries no
+    # free-heat forecast semantics.
+    peak_guard_active: bool = False
+
     # Measured wood-tank temperature (issue #40). None means "not sensed or
     # not modelled" and reproduces the single-tank abstraction exactly; a
     # value activates the two-tank draw law when the parameters gate it on.

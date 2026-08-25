@@ -5136,5 +5136,653 @@ R.check(
     f"06-22 share {_share_none:.3f} -> {_share_tou:.3f} under a 06-22 fee",
 )
 
+# ===========================================================================
+# T2 — peak & power (#7 #5 #3 #22)
+# ===========================================================================
+R.section("T2 — peak & power (#7 #5 #3 #22)")
+
+from types import SimpleNamespace as _NS
+
+from homeassistant.util import dt as dt_util
+
+from heatpump_optimizer.const import (
+    OUTAGE_DHW_DELAY_MINUTES,
+    OUTAGE_RECOVERY_HOURS,
+    PEAK_GUARD_DISPLACE_NUDGE_C,
+)
+from heatpump_optimizer.power_guard import (
+    GuardState,
+    MIN_EVENT_SPACING_S,
+    project_window_mean,
+)
+
+# --- #7 the projection, against hand arithmetic --------------------------------
+# (2 kW × 30 min + 6 kW × 30 min) / 60 min — the DSO's own bill formula.
+R.check(
+    "mid-window projection is the bill formula, by hand",
+    abs(project_window_mean(2.0, 30.0, 6.0, 60.0) - 4.0) < 1e-9,
+    f"got {project_window_mean(2.0, 30.0, 6.0, 60.0)}",
+)
+R.check(
+    "an empty window projects the current draw itself",
+    abs(project_window_mean(None, 45.0, 5.0, 60.0) - 5.0) < 1e-9,
+    "elapsed must be ignored when there is no accumulated mean",
+)
+R.check(
+    "at the window's end the projection is the realised mean",
+    abs(project_window_mean(3.0, 60.0, 99.0, 60.0) - 3.0) < 1e-9,
+)
+R.check(
+    "elapsed time is clamped into the window",
+    abs(project_window_mean(3.0, 90.0, 99.0, 60.0) - 3.0) < 1e-9,
+    "a stale clock must not extrapolate outside the window",
+)
+
+# --- #7 the guard's hysteresis, as mutation pairs -------------------------------
+_T0 = datetime(2026, 1, 15, 7, 3, tzinfo=UTC)
+
+
+def _guard_events(projections, *, floors=None, keys=None, threshold=6.0):
+    g = GuardState()
+    changes = []
+    for i, p in enumerate(projections):
+        changes.append(
+            g.update(
+                _T0 + timedelta(seconds=20 * i),
+                (keys or ["w1"] * len(projections))[i],
+                p,
+                threshold,
+                0.5,
+                floor_hold=(floors or [False] * len(projections))[i],
+            )
+        )
+    return g, changes
+
+_g, _ch = _guard_events([7.0, 7.0])
+R.check(
+    "two crossing projections engage suppression",
+    _g.suppressing and _ch == [False, True],
+    f"changes {_ch}",
+)
+_g, _ch = _guard_events([7.0, 4.0, 7.0])
+R.check(
+    "a single crossing does nothing — one noisy sample is not a peak",
+    not _g.suppressing and not any(_ch),
+)
+_g, _ch = _guard_events([5.4, 5.4])
+R.check(
+    "sub-margin projections never engage",
+    not _g.suppressing,
+    "5.4 < 6.0 − 0.5, so no crossing",
+)
+_g, _ch = _guard_events([5.6, 5.6])
+R.check(
+    "the margin engages early — the guard acts before the money is spent",
+    _g.suppressing,
+    "5.6 > 6.0 − 0.5 must count as crossing",
+)
+_g, _ch = _guard_events([7.0, 7.0, 7.0, 4.0, 4.0])
+R.check(
+    "two clear projections release",
+    not _g.suppressing and _ch[-1] and not _ch[-2],
+    f"changes {_ch}",
+)
+_g, _ch = _guard_events([7.0, 7.0, 7.0, 4.0, 7.0, 7.0])
+R.check(
+    "a single clear sample does not release",
+    _g.suppressing and not any(_ch[3:]),
+    "release needs the same two-sample evidence as engagement",
+)
+_g, _ch = _guard_events([7.0, 7.0], floors=[False, True])
+R.check(
+    "a floor hold refuses engagement outright",
+    not _g.suppressing,
+    "protecting the bill never outranks protecting the house",
+)
+_g, _ch = _guard_events([7.0, 7.0, 7.0], floors=[False, False, True])
+R.check(
+    "a floor hold releases an active suppression immediately",
+    not _g.suppressing and _ch[-1],
+    f"changes {_ch}",
+)
+_g, _ch = _guard_events([7.0, 7.0, 7.0], keys=["w1", "w1", "w2"])
+R.check(
+    "the window closing releases unconditionally",
+    not _g.suppressing and _ch[-1],
+    "a suppression must never leak into the next billed window",
+)
+_g = GuardState()
+_g.update(_T0, "w1", 7.0, 6.0, 0.5, floor_hold=False)
+R.check(
+    "the event throttle holds for the spacing window and then opens",
+    _g.throttled(_T0 + timedelta(seconds=MIN_EVENT_SPACING_S - 1))
+    and not _g.throttled(_T0 + timedelta(seconds=MIN_EVENT_SPACING_S + 1)),
+)
+
+# --- #7 the time-weighted window fold -------------------------------------------
+_tariff_t2 = CapacityTariff(
+    enabled=True, price_per_kw=20.0, peaks_averaged=1, window_minutes=60
+)
+_w0 = datetime(2026, 1, 15, 7, 0, tzinfo=UTC)
+
+_tr_u, _tr_w = PeakTracker(), PeakTracker()
+for i in range(4):
+    when = _w0 + timedelta(minutes=15 * i)
+    _tr_u.observe(when, 2.0 + i, _tariff_t2)
+    _tr_w.observe(when, 2.0 + i, _tariff_t2, dt_hours=0.25)
+_tr_u.observe(_w0 + timedelta(minutes=60), 0.0, _tariff_t2)
+_tr_w.observe(_w0 + timedelta(minutes=60), 0.0, _tariff_t2, dt_hours=0.25)
+R.check(
+    "uniform spacing: weighted and unweighted folds close the same peak",
+    abs(_tr_u.peaks[0] - _tr_w.peaks[0]) < 1e-9,
+    f"{_tr_u.peaks[0]} vs {_tr_w.peaks[0]}",
+)
+
+# 2 kW standing for 45 minutes, then a 3-minute 10 kW burst: the unweighted
+# mean says 4.0, the bill says (2·0.75 + 10·0.05)/0.8 = 2.5. The whole point
+# of the weighted fold is that a chatty meter burst cannot buy 1.5 kW of
+# phantom peak.
+_tr_b = PeakTracker()
+for i in range(3):
+    _tr_b.observe(
+        _w0 + timedelta(minutes=15 * i), 2.0, _tariff_t2, dt_hours=0.25
+    )
+_tr_b.observe(_w0 + timedelta(minutes=48), 10.0, _tariff_t2, dt_hours=0.05)
+_key, _mean, _elapsed, _factor = _tr_b.window_snapshot(
+    _w0 + timedelta(minutes=48), _tariff_t2
+)
+R.check(
+    "the running window mean is time-weighted, by hand",
+    _mean is not None and abs(_mean - 2.5) < 1e-9,
+    f"got {_mean}, unweighted would be 4.0",
+)
+R.check(
+    "the snapshot reports the true elapsed minutes",
+    abs(_elapsed - 48.0) < 1e-9,
+    f"got {_elapsed}",
+)
+_k2, _m2, _, _ = _tr_b.window_snapshot(
+    _w0 + timedelta(minutes=75), _tariff_t2
+)
+R.check(
+    "a snapshot of a window that has no samples reports no mean",
+    _k2 != _key and _m2 is None,
+    "the projection must then assume the current draw throughout",
+)
+_tr_b.observe(_w0 + timedelta(minutes=61), 0.0, _tariff_t2, dt_hours=0.05)
+R.check(
+    "the closed window's peak is the weighted average",
+    abs(_tr_b.peaks[0] - 2.5) < 1e-9,
+    f"got {_tr_b.peaks[0]}",
+)
+
+# --- #3 the external cap holds through DHW blocks --------------------------------
+# The one composition the per-channel caps cannot express: space + hot water
+# together must stay under the fuse. The 60%-of-nameplate cap forces DHW
+# blocks and space heating to share.
+def _cap_solve(cap_kw):
+    sc = _mk_golden(dhw=True)
+    n = len(sc["prices"])
+    caps = None if cap_kw is None else np.full(n, cap_kw)
+    res = sc["optimizer"].optimize(
+        sc["state"], sc["prices"], sc["outdoor"], sc["wind"], sc["rain"],
+        sc["solar"], _G_START, power_caps_extra=caps,
+    )
+    total = np.asarray(res.power_schedule) + np.asarray(res.dhw_power_schedule)
+    return res, total
+
+_res_cap, _total_cap = _cap_solve(3.6)
+R.check(
+    "space + hot water never exceed the external cap, any step",
+    float(np.max(_total_cap)) <= 3.6 + 1e-6,
+    f"worst step {float(np.max(_total_cap)):.4f} kW against 3.6",
+)
+R.check(
+    "a DHW block genuinely runs under the cap (the check is not vacuous)",
+    float(np.max(np.asarray(_res_cap.dhw_power_schedule))) > 0.5,
+)
+R.check(
+    "a feasible cap reports no comfort breach",
+    _res_cap.predictive_info.get("power_cap_breach_c") == 0.0,
+    f"got {_res_cap.predictive_info.get('power_cap_breach_c')}",
+)
+_res_tiny, _total_tiny = _cap_solve(0.05)
+R.check(
+    "an infeasible cap says so in degrees, not silently",
+    float(_res_tiny.predictive_info.get("power_cap_breach_c", 0.0)) > 0.5,
+    f"got {_res_tiny.predictive_info.get('power_cap_breach_c')}",
+)
+_res_free, _ = _cap_solve(None)
+R.check(
+    "without a cap the breach report does not exist at all",
+    "power_cap_breach_c" not in _res_free.predictive_info,
+    "the field appearing everywhere would break inert-by-default",
+)
+
+# --- #7 the suppression flag rides the external-heat gate -----------------------
+# ``peak_guard_active`` must take exactly the discretionary-DHW path external
+# heat proved: same flag semantics, same coasting guard. Byte-equivalence to
+# ``external_heat_active`` (with no burn forecast) IS that statement.
+def _flag_solve(**state_overrides):
+    sc = _mk_golden(dhw=True, state_overrides=state_overrides)
+    return sc["optimizer"].optimize(
+        sc["state"], sc["prices"], sc["outdoor"], sc["wind"], sc["rain"],
+        sc["solar"], _G_START,
+    )
+
+_r_guard = _flag_solve(dhw_temperature=58.0, peak_guard_active=True)
+_r_ext = _flag_solve(dhw_temperature=58.0, external_heat_active=True)
+_r_neither = _flag_solve(dhw_temperature=58.0)
+R.check(
+    "peak_guard_active suppresses discretionary DHW exactly as external heat",
+    np.array_equal(
+        np.asarray(_r_guard.dhw_power_schedule),
+        np.asarray(_r_ext.dhw_power_schedule),
+    ),
+)
+R.check(
+    "and the gate actually bites on this day (the pair is not vacuous)",
+    not np.array_equal(
+        np.asarray(_r_guard.dhw_power_schedule),
+        np.asarray(_r_neither.dhw_power_schedule),
+    ),
+    "with no flag the planner must have been topping up somewhere early",
+)
+
+# --- the coordinator wiring: registration, events, fuse, outage -----------------
+_METER = {
+    "sensor.indoor": FakeState("21.0", unit="°C"),
+    "sensor.outdoor": FakeState("-5.0", unit="°C"),
+    "sensor.house_power": FakeState("6500", unit="W"),
+    "sensor.hp_power": FakeState("2000", unit="W"),
+}
+
+
+def _t2_coord(states=None, **extra):
+    cfg = {
+        "tibber_token": "x",
+        "weather_entity": "weather.home",
+        "indoor_temp_entity": "sensor.indoor",
+        "outdoor_temp_entity": "sensor.outdoor",
+        **extra,
+    }
+    return _Coord(_FakeHass(dict(_METER, **(states or {}))), _FakeEntry(data=cfg))
+
+
+def _listeners(coord):
+    _asyncio.run(coord._async_setup_peak_guard())
+    return getattr(coord.hass, "state_listeners", [])
+
+_c = _t2_coord(
+    peak_guard_enabled=True,
+    house_power_entity="sensor.house_power",
+    heat_pump_power_entity="sensor.hp_power",
+)
+_regs = _listeners(_c)
+R.check(
+    "the guard listens on the whole-house meter when there is one",
+    len(_regs) == 1 and _regs[0][0] == ["sensor.house_power"],
+    f"got {[e for e, _ in _regs]}",
+)
+_regs = _listeners(
+    _t2_coord(peak_guard_enabled=True, heat_pump_power_entity="sensor.hp_power")
+)
+R.check(
+    "without a house meter it falls back to the heat pump's own",
+    len(_regs) == 1 and _regs[0][0] == ["sensor.hp_power"],
+)
+R.check(
+    "switched off, no listener is registered at all",
+    not _listeners(
+        _t2_coord(house_power_entity="sensor.house_power")
+    ),
+    "the flag gates registration, not just behaviour",
+)
+R.check(
+    "enabled but meterless, the guard stays dormant instead of crashing",
+    not _listeners(_t2_coord(peak_guard_enabled=True)),
+)
+
+# One meter event through the real handler: a 16 A single-phase fuse is
+# 3.68 kW, a steady 6.5 kW house is projected over it, and two spaced events
+# engage. FakeHass.async_create_task closes coroutines, so the actuation is
+# then driven directly and recorded through instance-attribute stubs.
+_c = _t2_coord(
+    peak_guard_enabled=True,
+    house_power_entity="sensor.house_power",
+    main_fuse_amperes=16.0,
+    main_fuse_phases=1,
+)
+_ev = _NS(data={"new_state": FakeState("6500", unit="W")})
+_c._on_power_event(_ev)
+_first = _c._peak_guard.suppressing
+# Rewind the throttle rather than sleeping through it.
+_c._peak_guard._last_event -= timedelta(seconds=MIN_EVENT_SPACING_S + 1)
+_c._guard_last_fold -= timedelta(seconds=MIN_EVENT_SPACING_S + 1)
+_c._on_power_event(_ev)
+R.check(
+    "two real meter events over the fuse engage the guard",
+    not _first and _c._peak_guard.suppressing,
+    f"after one: {_first}, after two: {_c._peak_guard.suppressing}",
+)
+R.check(
+    "the state flag the solver reads follows the guard",
+    _c._current_state.peak_guard_active is True,
+)
+R.check(
+    "the evidence trail says what happened and when",
+    any("suppressing" in e for e in _c._peak_guard.evidence),
+    f"evidence: {_c._peak_guard.evidence}",
+)
+
+_published = []
+async def _rec_ecl(**kw):
+    _published.append(kw)
+async def _rec_plan(reason="optimizer"):
+    _published.append({"reason": reason})
+_c.async_publish_ecl110_command = _rec_ecl
+_c.async_publish_current_action = _rec_plan
+_c._current_action = {"displace_value": 5.0, "heat_pump_on": True}
+_asyncio.run(_c._async_peak_guard_transition())
+R.check(
+    "engaging nudges the ECL displace down by the configured step",
+    _published
+    and _published[-1].get("reason") == "peak_guard"
+    and abs(
+        _published[-1].get("displace_value")
+        - (5.0 - PEAK_GUARD_DISPLACE_NUDGE_C)
+    )
+    < 1e-9,
+    f"published {_published[-1] if _published else None}",
+)
+_c._peak_guard.suppressing = False
+_asyncio.run(_c._async_peak_guard_transition())
+R.check(
+    "releasing re-publishes the plan's own action",
+    _published[-1] == {"reason": "peak_guard_release"},
+    f"published {_published[-1]}",
+)
+
+_c2 = _t2_coord(
+    peak_guard_enabled=True,
+    house_power_entity="sensor.house_power",
+)
+_c2._on_power_event(_ev)
+R.check(
+    "with neither tariff nor fuse configured the event path is a no-op",
+    not _c2._peak_guard.suppressing and _c2._peak_guard._last_event is None,
+    "no threshold exists, so nothing must be folded or engaged",
+)
+
+# --- #5 fuse arithmetic and the headroom answer ----------------------------------
+_c3 = _t2_coord(main_fuse_amperes=20.0, main_fuse_phases=3)
+R.check(
+    "20 A × 3 phases × 230 V is 13.8 kW",
+    abs(_c3._fuse_kw() - 13.8) < 1e-9,
+    f"got {_c3._fuse_kw()}",
+)
+R.check(
+    "no fuse configured means no fuse, not a zero-kW one",
+    _t2_coord()._fuse_kw() is None,
+)
+_c3._measured_house_power = 6.5
+_hr = _c3._power_headroom()
+R.check(
+    "headroom is the fuse minus the live house draw",
+    _hr["available"]
+    and abs(_hr["limit_kw"] - 13.8) < 1e-9
+    and abs(_hr["headroom_kw"] - (13.8 - 6.5)) < 1e-9,
+    f"got {_hr}",
+)
+R.check(
+    "the answer names its baseline source honestly",
+    _hr.get("baseline_source") == "house meter",
+    f"got {_hr.get('baseline_source')}",
+)
+_c3._measured_house_power = None
+_c3._measured_power = 2.0
+R.check(
+    "a heat-pump-only meter admits the baseline load is invisible",
+    _c3._power_headroom().get("baseline_source")
+    == "heat pump meter only (baseline load invisible)",
+)
+_c3._measured_power = None
+R.check(
+    "and with no meter at all the answer says it is plan-derived",
+    _c3._power_headroom().get("baseline_source")
+    == "planned power only (no meter)",
+)
+R.check(
+    "with no limit configured the sensor says unavailable, not zero",
+    _t2_coord()._power_headroom() == {"available": False},
+)
+
+# --- #22 outage detection and staggered recovery ---------------------------------
+_now_t2 = dt_util.now()
+
+
+def _outage_coord(gap_minutes, **extra):
+    c = _t2_coord(outage_recovery_enabled=True, **extra)
+    c._detect_outage((_now_t2 - timedelta(minutes=gap_minutes)).isoformat())
+    return c
+
+_c4 = _outage_coord(180.0)
+R.check(
+    "a three-hour silence reads as an outage and opens recovery",
+    _c4._outage_recovery_active(_now_t2)
+    and not _c4._outage_recovery_active(
+        _now_t2 + timedelta(hours=OUTAGE_RECOVERY_HOURS, minutes=1)
+    ),
+)
+R.check(
+    "hot water is queued behind space heating, then released by the clock",
+    _c4._outage_dhw_hold(_now_t2)
+    and not _c4._outage_dhw_hold(
+        _now_t2 + timedelta(minutes=OUTAGE_DHW_DELAY_MINUTES + 1)
+    ),
+)
+_c4._thermal_params.dhw_enabled = True
+_c4._current_state.dhw_temperature = _c4._thermal_params.dhw_min_temp - 5.0
+R.check(
+    "a genuinely cold tank overrides the hot-water delay",
+    not _c4._outage_dhw_hold(_now_t2),
+    "post-outage the water may already be cold; the family wins",
+)
+_c5 = _outage_coord(20.0)
+R.check(
+    "an ordinary restart gap does nothing",
+    not _c5._outage_recovery_active(_now_t2)
+    and not _c5._outage_dhw_hold(_now_t2),
+    "20 minutes is a reboot, not an outage",
+)
+_c6 = _t2_coord()
+_c6._detect_outage((_now_t2 - timedelta(minutes=180)).isoformat())
+R.check(
+    "switched off, even a real gap changes nothing",
+    not _c6._outage_recovery_active(_now_t2),
+)
+_c7 = _t2_coord(outage_recovery_enabled=True)
+_c7._detect_outage("not a timestamp")
+_c7._detect_outage(None)
+R.check(
+    "garbage in the stored tick is ignored, never fatal",
+    not _c7._outage_recovery_active(_now_t2),
+)
+
+# --- #22 the heartbeat's full round trip through the store ----------------------
+# `_detect_outage` in isolation proves the arithmetic; what actually broke
+# things elsewhere in T2 was wiring. This drives save → persisted payload →
+# a fresh coordinator's load → detection, through the real Store stub.
+_ca = _t2_coord(outage_recovery_enabled=True)
+_asyncio.run(_ca._async_save_energy_totals())
+_cb = _t2_coord(outage_recovery_enabled=True)
+_asyncio.run(_cb._async_load_energy_totals())
+R.check(
+    "a fresh restart right after a save is not an outage",
+    not _cb._outage_recovery_active(dt_util.now()),
+)
+_payload = _asyncio.run(_ca._energy_store.async_load())
+_payload["last_tick"] = (dt_util.now() - timedelta(hours=3)).isoformat()
+_asyncio.run(_ca._energy_store.async_save(_payload))
+_cc = _t2_coord(outage_recovery_enabled=True)
+_asyncio.run(_cc._async_load_energy_totals())
+R.check(
+    "a three-hour-old persisted heartbeat opens recovery on load",
+    _cc._outage_recovery_active(dt_util.now()),
+    "the save->load->detect chain, not just the detector",
+)
+
+# --- #7 the guard bills the projection through the #13 masks --------------------
+# A tariff that half-rates nights must be defended in billed-equivalent kW on
+# BOTH sides of the comparison — otherwise the guard suppresses hot water in
+# exactly the cheap hours the planner shifts load into.
+_mask_tariff = dict(
+    peak_tariff_enabled=True,
+    peak_tariff_price=20.0,
+    peak_tariff_window_minutes=60,
+    peak_tariff_hours="07:00-19:00",
+    peak_tariff_offpeak_factor=0.5,
+    peak_guard_enabled=True,
+    house_power_entity="sensor.house_power",
+    peak_guard_margin_kw=0.5,
+)
+
+
+def _guard_after_two_events(fixed_now, kw_state="8000"):
+    import homeassistant.util.dt as _dt_mod
+
+    c = _t2_coord(
+        states={"sensor.house_power": FakeState(kw_state, unit="W")},
+        **_mask_tariff,
+    )
+    c._peak_tracker.month = fixed_now.strftime("%Y-%m")
+    c._peak_tracker.peaks = [5.0, 5.0, 5.0]
+    ev = _NS(data={"new_state": FakeState(kw_state, unit="W")})
+    real_now = _dt_mod.now
+    try:
+        _dt_mod.now = lambda: fixed_now
+        c._on_power_event(ev)
+        c._peak_guard._last_event -= timedelta(seconds=MIN_EVENT_SPACING_S + 1)
+        c._guard_last_fold -= timedelta(seconds=MIN_EVENT_SPACING_S + 1)
+        c._on_power_event(ev)
+    finally:
+        _dt_mod.now = real_now
+    return c._peak_guard.suppressing
+
+_daytime = datetime(2026, 1, 15, 10, 12, tzinfo=UTC)  # a Thursday, in-hours
+_night = datetime(2026, 1, 15, 21, 12, tzinfo=UTC)  # same day, off-peak
+R.check(
+    "in billed hours an 8 kW projection over a 5 kW threshold engages",
+    _guard_after_two_events(_daytime),
+)
+R.check(
+    "the same draw at half-rate night bills 4 kW and does not engage",
+    not _guard_after_two_events(_night),
+    "8 x 0.5 = 4.0 < 5.0 - 0.5: defending this hour would cost, not save",
+)
+
+# --- #3 the advisor actually runs, end to end ------------------------------------
+# tests/entities.py fabricates the advisor's payload; nothing before this
+# executed `_maybe_run_fuse_advisor` itself, which is how a call to a method
+# that did not exist survived to review. The simulate harness is stubbed at
+# its REAL name — a renamed call site fails here with AttributeError.
+_adv_calls = []
+
+
+def _advisor_coord(payload_extra=None, **cfg):
+    c = _t2_coord(main_fuse_amperes=20.0, main_fuse_phases=3, **cfg)
+
+    async def _fake_simulate(overrides):
+        _adv_calls.append(overrides)
+        return {
+            "overrides": overrides,
+            "rate_limited": False,
+            "power_cap_breach_c": 0.0,
+            "projected_peak_kw": 4.0,
+            "monthly_cost_delta": -35.0,
+            "baseline_min_room_temperature": 20.6,
+            "min_room_temperature": 20.6,
+            **(payload_extra or {}),
+        }
+
+    c.async_simulate = _fake_simulate
+    return c
+
+_adv_calls.clear()
+_cad = _advisor_coord()
+_cad._simulation_cache = {"marker": "card"}
+_cad._last_simulation = None
+_asyncio.run(_cad._maybe_run_fuse_advisor())
+_adv = _cad._fuse_advisor
+R.check(
+    "the advisor publishes a verdict for the next-smaller fuse",
+    _adv.get("candidate_fuse_a") == 16
+    and _adv.get("current_fuse_a") == 20
+    and _adv.get("feasible") is True
+    and _adv.get("cost_delta_sek_month") == -35.0,
+    f"got {_adv}",
+)
+R.check(
+    "the advisor asked for the candidate's headroom, not the full fuse",
+    len(_adv_calls) == 1
+    and abs(_adv_calls[0]["power_cap_kw"] - 16 * 3 * 0.23) < 1e-6,
+    f"calls {_adv_calls}",
+)
+R.check(
+    "the card's simulate cache survives an advisor run untouched",
+    _cad._simulation_cache == {"marker": "card"}
+    and _cad._last_simulation is None,
+)
+_asyncio.run(_cad._maybe_run_fuse_advisor())
+R.check(
+    "a second run inside the week is skipped",
+    len(_adv_calls) == 1,
+)
+
+# A breach the uncapped plan shares is the weather's, not the fuse's.
+_adv_calls.clear()
+_cad2 = _advisor_coord(
+    payload_extra={
+        "power_cap_breach_c": 1.5,
+        "baseline_min_room_temperature": 19.5,
+        "min_room_temperature": 19.5,
+    }
+)
+_asyncio.run(_cad2._maybe_run_fuse_advisor())
+R.check(
+    "a shortfall the baseline plan shares is not blamed on the fuse",
+    _cad2._fuse_advisor.get("feasible") is True
+    and _cad2._fuse_advisor.get("comfort_shortfall_c") == 0.0,
+    f"got {_cad2._fuse_advisor}",
+)
+_adv_calls.clear()
+_cad3 = _advisor_coord(
+    payload_extra={
+        "power_cap_breach_c": 1.5,
+        "baseline_min_room_temperature": 21.0,
+        "min_room_temperature": 19.5,
+    }
+)
+_asyncio.run(_cad3._maybe_run_fuse_advisor())
+R.check(
+    "a shortfall the cap itself forces still fails the candidate",
+    _cad3._fuse_advisor.get("feasible") is False
+    and _cad3._fuse_advisor.get("comfort_shortfall_c") == 1.5,
+    f"got {_cad3._fuse_advisor}",
+)
+
+# A rate-limited answer is the card's cached payload, not this what-if:
+# it must be discarded, retried tomorrow, and never displace a real verdict.
+_adv_calls.clear()
+_cad4 = _advisor_coord(payload_extra={"rate_limited": True})
+_cad4._fuse_advisor = {"candidate_kw": 11.04, "feasible": True}
+_asyncio.run(_cad4._maybe_run_fuse_advisor())
+R.check(
+    "a rate-limited what-if keeps last month's real verdict",
+    _cad4._fuse_advisor == {"candidate_kw": 11.04, "feasible": True}
+    and _cad4._fuse_advisor_at is not None,
+    f"got {_cad4._fuse_advisor}",
+)
+
 
 sys.exit(R.close("FEATURE CHECKS"))

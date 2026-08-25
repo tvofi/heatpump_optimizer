@@ -95,6 +95,7 @@ async def async_setup_entry(
         # Learned comfort weight (item 19)
         ComfortWeightSensor(coordinator, entry),
         ContractComparisonSensor(coordinator, entry),
+        PowerHeadroomSensor(coordinator, entry),
         # Dumb-valve setting recommendation (item 29)
         ValveTargetRecommendationSensor(coordinator, entry),
     ]
@@ -1293,7 +1294,7 @@ class MonthlyPeakSensor(HeatPumpOptimizerSensorBase):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         data = self.coordinator.data or {}
-        return {
+        out = {
             "month": data.get("peak_month"),
             # Below this a new hour is free: the bill is already set by the
             # peaks already recorded, so keeping power low buys nothing.
@@ -1301,6 +1302,15 @@ class MonthlyPeakSensor(HeatPumpOptimizerSensorBase):
             "projected_peak_kw": data.get("projected_peak_kw"),
             "projected_peak_cost": data.get("projected_peak_cost"),
         }
+        # The fuse right-sizing advisor's monthly answer (#3, v4.0.0 T2):
+        # whether this house, with the optimizer flattening peaks, would run
+        # under the next-smaller main fuse, and at what cost.
+        advisor = data.get("fuse_advisor")
+        if advisor:
+            out["fuse_advisor"] = advisor
+        if data.get("outage_recovery_active"):
+            out["outage_recovery_active"] = True
+        return out
 
 
 # ---------------------------------------------------------------------------
@@ -1501,3 +1511,44 @@ class ContractComparisonSensor(HeatPumpOptimizerSensorBase):
         return dict(
             (self.coordinator.data or {}).get("contract_comparison", {}) or {}
         )
+
+
+class PowerHeadroomSensor(HeatPumpOptimizerSensorBase):
+    """How many kW the house can draw right now without new cost (#5).
+
+    ``min(main fuse, capacity threshold) − current house draw``, clamped at
+    zero — a number an EV charger's dynamic circuit limit can follow with a
+    two-line automation. The per-step horizon headroom rides in attributes,
+    along with where the baseline came from: without a house meter the
+    figure only sees the heat pump, and pretending otherwise would be worse
+    than saying so.
+    """
+
+    _attr_icon = "mdi:transmission-tower"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_native_unit_of_measurement = UnitOfPower.KILO_WATT
+    _attr_device_class = SensorDeviceClass.POWER
+
+    def __init__(self, coordinator, entry):
+        super().__init__(
+            coordinator, entry, "power_headroom", "Power Headroom"
+        )
+
+    @property
+    def available(self) -> bool:
+        data = (self.coordinator.data or {}).get("power_headroom") or {}
+        return bool(data.get("available"))
+
+    @property
+    def native_value(self) -> float | None:
+        data = (self.coordinator.data or {}).get("power_headroom") or {}
+        value = data.get("headroom_kw")
+        return value if isinstance(value, (int, float)) else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        data = dict(
+            (self.coordinator.data or {}).get("power_headroom", {}) or {}
+        )
+        data.pop("available", None)
+        return data

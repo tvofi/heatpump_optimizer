@@ -192,6 +192,18 @@ from .const import (
     DEFAULT_PRICE_RISK_LAMBDA,
     CONF_CONTRACT_FIXED_PRICE,
     DEFAULT_CONTRACT_FIXED_PRICE,
+    CONF_MAIN_FUSE_A,
+    DEFAULT_MAIN_FUSE_A,
+    CONF_MAIN_FUSE_PHASES,
+    DEFAULT_MAIN_FUSE_PHASES,
+    CONF_FUSE_GUARD_ENABLED,
+    DEFAULT_FUSE_GUARD_ENABLED,
+    CONF_PEAK_GUARD_ENABLED,
+    DEFAULT_PEAK_GUARD_ENABLED,
+    CONF_PEAK_GUARD_MARGIN_KW,
+    DEFAULT_PEAK_GUARD_MARGIN_KW,
+    CONF_OUTAGE_RECOVERY_ENABLED,
+    DEFAULT_OUTAGE_RECOVERY_ENABLED,
     CONF_PV_ENABLED,
     CONF_PV_PEAK_KW,
     CONF_PV_EFFICIENCY,
@@ -1684,6 +1696,39 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
                             DEFAULT_PEAK_TARIFF_OFFPEAK_FACTOR,
                         ),
                     ): _number(0.0, 1.0, 0.05, slider=True),
+                    # The main fuse and its guards (T2). 0 A means
+                    # unconfigured: advisor, guard and headroom all dormant.
+                    vol.Optional(
+                        CONF_MAIN_FUSE_A,
+                        default=current.get(
+                            CONF_MAIN_FUSE_A, DEFAULT_MAIN_FUSE_A
+                        ),
+                    ): _number(0, 125, 1, "A"),
+                    vol.Optional(
+                        CONF_MAIN_FUSE_PHASES,
+                        default=current.get(
+                            CONF_MAIN_FUSE_PHASES, DEFAULT_MAIN_FUSE_PHASES
+                        ),
+                    ): _number(1, 3, 1, slider=True),
+                    vol.Optional(
+                        CONF_FUSE_GUARD_ENABLED,
+                        default=current.get(
+                            CONF_FUSE_GUARD_ENABLED, DEFAULT_FUSE_GUARD_ENABLED
+                        ),
+                    ): bool,
+                    vol.Optional(
+                        CONF_PEAK_GUARD_ENABLED,
+                        default=current.get(
+                            CONF_PEAK_GUARD_ENABLED, DEFAULT_PEAK_GUARD_ENABLED
+                        ),
+                    ): bool,
+                    vol.Optional(
+                        CONF_PEAK_GUARD_MARGIN_KW,
+                        default=current.get(
+                            CONF_PEAK_GUARD_MARGIN_KW,
+                            DEFAULT_PEAK_GUARD_MARGIN_KW,
+                        ),
+                    ): _number(0.0, 3.0, 0.1, "kW", slider=True),
                     # The ToU fee layer (#1).
                     vol.Optional(
                         CONF_GRID_FEE_MODE,
@@ -1892,6 +1937,15 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
                         CONF_PRICE_PRIOR_ENABLED,
                         default=current.get(
                             CONF_PRICE_PRIOR_ENABLED, DEFAULT_PRICE_PRIOR_ENABLED
+                        ),
+                    ): bool,
+                    # Post-outage staggered recovery (#22, T2): a diagnostic
+                    # behaviour, so it lives with the other watchdogs.
+                    vol.Optional(
+                        CONF_OUTAGE_RECOVERY_ENABLED,
+                        default=current.get(
+                            CONF_OUTAGE_RECOVERY_ENABLED,
+                            DEFAULT_OUTAGE_RECOVERY_ENABLED,
                         ),
                     ): bool,
                 }
