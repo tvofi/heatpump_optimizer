@@ -219,11 +219,21 @@ families and every translation move — which is why it ships alone and first).
 
 ---
 
-## T0b — #40 follow-ups (PR between T0 and T1) · Opus
+## T0b — #40 follow-ups (PR between T0 and T1) · Opus · **executed**
 
 The user's remaining feedback on v3.16.0's layout editor (items 1–3 and 5 of
 their list; 4 and 6–8 were folded into T0). All card/topology work, no
-optimizer surface.
+optimizer surface. *Outcomes:* item 5 fixed both sides (catalog ships
+`requirement`, card degrades without it); item 2 fixed (`heat_pump →
+dhw_tank` composed on every layout when hot water is modelled); item 3
+resolved by **dropping** the wood-valve box (tank-to-tank wood chain, the
+outlet slot re-homed onto the wood tank / 4-way valve, stale payloads
+re-homed in the card); item 1 fixed as far as this environment can verify
+(blanket `svg { touch-action: none }` was swallowing touch on the setup
+diagram — scoped to the chart — plus a wrapping dialog header and a
+sideways-scrolling canvas at phone width); confirming the feel on a real
+phone remains with the user. No golden re-record was needed: the coord_*
+fixtures carry no topology payload.
 
 1. **"needs: Undefined" save bug (item 5).** Root cause found during T0:
    `describe_setup()`'s catalog entries never include the `Layout.requirement`

@@ -4533,11 +4533,13 @@ R.check(
 )
 # The pre-v3.14.1 drawing (valve to the radiators, slab fed direct from
 # the tank) is not a mistake the catalog rejects -- it is a real layout it
-# recognizes. This is the design working: some houses have it.
+# recognizes. This is the design working: some houses have it. The wood
+# chain is tank-to-tank since v4.0.0: the separate wood-valve box modelled
+# nothing and was removed (#40 feedback, item 3).
 _old_drawing = [
     ["heat_pump", "buffer_tank"], ["buffer_tank", "mixing_valve"],
     ["mixing_valve", "upper_zone"], ["buffer_tank", "lower_zone"],
-    ["wood_tank", "wood_valve"], ["wood_valve", "buffer_tank"],
+    ["wood_tank", "buffer_tank"],
 ]
 R.check(
     "the old drawing is recognized as the layout it always depicted",
@@ -4545,6 +4547,19 @@ R.check(
     == "valve_upper_direct_slab",
     "valve on the radiators, slab fed direct: a supported layout, not an "
     "error",
+)
+# A drawing carrying the removed wood-valve hop no longer matches anything,
+# but the rejection must still explain itself rather than crash or claim an
+# empty diff.
+_wv_key, _wv_why = _match_layout(
+    _old_drawing[:-1]
+    + [["wood_tank", "wood_valve"], ["wood_valve", "buffer_tank"]],
+    two_zone=True, wood=True,
+)
+R.check(
+    "the removed wood-valve chain degrades to a named nearest layout",
+    _wv_key is None and "Closest supported layout" in _wv_why,
+    f"got {_wv_key!r}: {_wv_why}",
 )
 _wrong = [["heat_pump", "buffer_tank"], ["buffer_tank", "mixing_valve"],
           ["mixing_valve", "upper_zone"], ["mixing_valve", "lower_zone"],
@@ -4648,7 +4663,8 @@ R.check(
         "valve_upper_direct_slab", two_zone=True, wood=False))
     and {c["key"] for c in _ds["catalog"]} == set(_LAYOUTS)
     and all(
-        set(c) >= {"key", "label", "selectable", "valid", "edges"}
+        set(c) >= {"key", "label", "selectable", "valid", "edges",
+                   "requirement"}
         for c in _ds["catalog"]
     )
     and not next(
@@ -4656,6 +4672,91 @@ R.check(
     )["valid"],
     "the card draws topo.edges and the editor matches against topo.catalog "
     "-- both derived here, never in the frontend",
+)
+
+# Every catalog entry ships its requirement text (#40 feedback, item 5): the
+# card renders "<label> — needs <requirement>" when a drawing matches a
+# layout the configuration cannot store, and the missing field is what made
+# that message read "needs undefined" at the exact moment it was supposed to
+# say what to configure.
+R.check(
+    "every catalog entry carries a non-empty requirement",
+    all(
+        isinstance(c.get("requirement"), str) and c["requirement"]
+        for c in _ds["catalog"]
+    ),
+    str([(c["key"], c.get("requirement")) for c in _ds["catalog"]]),
+)
+
+# The arrangement from the user's #40 report: a 4-way valve, two tanks and
+# hot water, with the refill coil OFF. It must be storable, its drawn edge
+# set must snap to two_tank_4way, and the diagram must show the heat pump
+# feeding the hot water tank (#40 item 2) — coil or no coil.
+_u_cfg = dict(_full_cfg)  # two-zone + manual valve + wood probe + dhw
+_u = _topo.describe_setup(_u_cfg)
+_u_entry = next(c for c in _u["catalog"] if c["key"] == "two_tank_4way")
+R.check(
+    "4-way + two tanks + hot water, coil off, is valid and matches",
+    _u_entry["valid"]
+    and _u["layout"] == "two_tank_4way"
+    and _match_layout(
+        _u["edges"], two_zone=True, wood=True, dhw_coil=False, dhw=True
+    )[0] == "two_tank_4way",
+    "the user's report said this could not be saved; the message was the "
+    "bug, the arrangement itself is supported",
+)
+R.check(
+    "the heat pump visibly feeds the hot water tank, coil or no coil",
+    ["heat_pump", "dhw_tank"] in _u["edges"]
+    and ["heat_pump", "dhw_tank"]
+    in _topo.describe_setup(
+        {**_u_cfg, "dhw_wood_coil_enabled": True}
+    )["edges"],
+    "the DHW tank floated unconnected in every drawing (#40 item 2)",
+)
+R.check(
+    "and no hot-water pipe is drawn for a house without hot water",
+    ["heat_pump", "dhw_tank"]
+    not in _topo.describe_setup(
+        {k: v for k, v in _u_cfg.items() if k != "dhw_tank_volume"}
+    )["edges"],
+)
+# Without the probe the same drawing is recognized but not storable, and the
+# requirement text names exactly what is missing — the actionable message
+# the user should have seen.
+_np_cfg = {k: v for k, v in _u_cfg.items() if k != "wood_tank_top_entity"}
+_np = _topo.describe_setup(_np_cfg)
+_np_entry = next(c for c in _np["catalog"] if c["key"] == "two_tank_4way")
+R.check(
+    "without the probe the entry is invalid and the requirement says why",
+    not _np_entry["valid"] and "wood-tank top probe" in _np_entry["requirement"],
+    f"got valid={_np_entry['valid']} requirement={_np_entry.get('requirement')!r}",
+)
+
+# The wood-valve box is gone (#40 item 3): no slot and no edge references
+# the place. The outlet probe's slot sits on the 4-way valve in the two-tank
+# layout and on the wood tank in the single-tank abstraction.
+_wv_places_two_tank = {
+    s["place"] for s in _u["slots"] if s["key"] == "valve_outlet_temp_entity"
+}
+_single_wood = _topo.describe_setup(
+    {k: v for k, v in _u_cfg.items() if k != "wood_tank_top_entity"}
+    | {"external_heat_detection_enabled": True}
+)
+_wv_places_single = {
+    s["place"]
+    for s in _single_wood["slots"]
+    if s["key"] == "valve_outlet_temp_entity"
+}
+R.check(
+    "the wood valve is a slot on a real device, not a box of its own",
+    _wv_places_two_tank == {"mixing_valve"}
+    and _wv_places_single == {"wood_tank"}
+    and all("wood_valve" not in e for e in _u["edges"])
+    and all(
+        "wood_valve" not in e for c in _u["catalog"] for e in c["edges"]
+    ),
+    f"two-tank {_wv_places_two_tank}, single {_wv_places_single}",
 )
 R.check(
     "positions pass through untouched and default empty",
