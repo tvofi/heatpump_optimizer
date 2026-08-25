@@ -451,7 +451,56 @@ violation, not silence; synthetic 3 h gap ⇒ recovery, 20 min ⇒ nothing; new
 
 ---
 
-## T3 — Hot water (PR 4) · Opus · #32 #18 #20 #24 #47 #9 #28 #6
+## T3 — Hot water (PR 4) · Opus · #32 #18 #20 #24 #47 #9 #28 #6 · **executed**
+
+*Outcome notes:* built as specified, with these decisions and findings.
+(1) #20's blend lives in the optimizer, next to the mean it blends
+against (`dhw_window_ready_energy` carries `(p90, count)` pairs, the ramp
+is applied at the ready loop) — computing the blend in the coordinator
+would have duplicated the mean's definition. (2) The draw statistic
+records whole *occurrences* (one number per window per day, zeros
+included) rather than tick samples, keyed by the window's spec string so
+redrawn windows honestly forget. Heated intervals fold as lower bounds;
+external-heat intervals are skipped outright. (3) #47 grew a
+reachability guard during testing: the elastic placement had picked the
+cheapest step even when the tank physically could not heat to the
+disinfection temperature by then — a constraint the solver silently
+relaxes — so candidates now start at the earliest step the pump can
+reach the target. The honest inert control is elastic-ON with a young
+prior (ceiling None ⇒ byte-identical to off); a flat-price day with a
+trained prior legitimately runs the cycle early at zero marginal cost.
+(4) #24's hold accumulates only hot-to-hot observation gaps — crediting
+a gap that STARTED cold let a blip-cold-blip sequence pass the hold.
+(5) The dhw None-presence quirk is fixed in the presence trio itself
+(`config.get(key) is not None`); empty-string windows still count, and
+none of the twelve new hot_water keys joins the trio. (6) The directional
+tests run on flat prices with a 1500 L tank: on the winter day the
+planner charges the tank for arbitrage anyway, and on 300 L one DHW
+block moves it 3.4 °C — both swamp exactly the target changes under
+test. Sensors 49 → 52 (Setpoint Advisor, Mixed Hot Water, Heavy Day
+Demand); the G4b drift gate verified all five container-sensitive
+fixtures byte-identical to origin/main after the tranche.
+
+*Review round (1 major, 7 minor, all fixed with regression tests):*
+the young-prior #47 control did not exist — a damped fresh shape put the
+"expected daily minimum" at the daily MEAN, so an opted-in fresh install
+would have run cycles at the minimum interval every time;
+`expected_daily_min` now answers None until every requested day type is
+fully trained, and a coordinator-path test pins it. The VVC lead probed
+the single instant now+lead, going dark in the final approach to any
+window shorter than the lead — now "does any window open within the
+lead". The setpoint advisor gained its documented profile-mean fallback
+(it recommended 48 °C for everyone) and, on tanks too small to hold
+their heaviest window at any setpoint, recommends the top candidate
+flagged `covers_heaviest_window: false` instead of answering nothing.
+#20 is explicitly scoped to configured time frames (learned-window
+labels can never match; option text updated). The open draw occurrence
+persists on every energy-bearing fold, not only at close. A failed pump
+command is retried (state recorded only after success), and a
+configured VVC pump with hot water disabled is left ON, never abandoned
+in its last commanded state. #18's blend trust counts distinct days,
+not sensor ticks. The empty-table byte-identity test compared a solve
+to itself; it now actually passes `{}`.
 
 Infrastructure: **`dhw_draws.py`** (draw-event detection reusing the existing
 standby-subtraction attribution; per-window reservoirs of event energies;
@@ -507,6 +556,61 @@ mutation (58 °C for an hour must not credit; 61 °C for the hold must); #6 rail
 mutations (cold snap ⇒ pump on regardless). README 49→52.
 
 ~10 files, +1100/−60. Risk **medium**.
+
+---
+
+## T3b — Shared-step honesty (small PR between T3 and T4) · user-reported
+
+*Reported on v3.16.0:* the card shows hot water and space heating planned
+in the same period even at maximum zoom, and the user could not tell
+whether the display or the planner was wrong. Investigated: neither is
+broken, but the story is untold. The optimizer's per-step contract is
+``space + dhw ≤ p_max`` — a deliberate time-share relaxation. A step with
+4.8 kW DHW + 1.2 kW space on a 6 kW pump means "this quarter-hour is
+~80 % tank, ~20 % heating circuit"; the diverter valve serves one circuit
+at an instant and alternates with DHW priority, so within-step sharing is
+physically realizable, and hard per-step exclusivity would make the solve
+combinatorial for no gain. Verified across all 31 DHW golden fixtures:
+every overlap step respects the capacity sum exactly.
+
+The defect is that nothing says this. Scope (display + docs only, plan
+byte-identical by construction):
+
+1. **Card:** where a space slot and a DHW slot overlap in time, mark the
+   shared span visibly in both lanes (hatched overlay) and say it in the
+   tooltip: "Shared quarter-hour: the pump alternates circuits — hot
+   water first. X kWh hot water, Y kWh heating." No new entities.
+2. **Plan sensors:** `_plan_slots` slots gain a `shared_kwh` field where
+   the other channel is active in the same steps (additive attribute —
+   coord goldens re-record as additive-only).
+3. **README:** the DHW capacity diagram gains the time-share paragraph —
+   "a step can carry both loads; that is the pump splitting the quarter
+   hour, not both circuits running at once."
+
+*Two more card defects reported on v3.16.0, same tranche:*
+
+4. **The Outside box says "not configured" for solar radiation even when
+   Open-Meteo supplies it.** `_slotLive` only reads the configured entity
+   and `describe_setup` is config-pure, so the fetched irradiance never
+   reaches the diagram. Fix in the card: when the solar slot has no
+   entity, fall back to the published `solar_radiation`/`solar_source`
+   ("210 W/m² · Open-Meteo"); if those keys are not reachable from an
+   entity the card already reads, extend the plan sensor's attributes
+   additively. Never show "not configured" for a value the plan is
+   actually using.
+5. **Slot values ignore the user's unit system** — the wood tank probes
+   render as raw `state + unit_of_measurement`, so a natively-°F probe
+   shows °F on a metric install while every other HA surface converts.
+   Fix: format slot rows through `hass.formatEntityState` when the
+   frontend provides it (raw concatenation as fallback) — fixes every
+   slot, not just the wood tank.
+
+**Must not:** change any schedule; add exclusivity constraints; touch the
+objective. Verification: card test for the shared-span rendering + a
+features check that `shared_kwh` sums match the overlap integral on a
+fixture with known overlap steps; card tests for the solar fallback (no
+entity + meteo data ⇒ value with source tag, no entity + no data ⇒
+"not configured" stays) and for formatEntityState being preferred.
 
 ---
 

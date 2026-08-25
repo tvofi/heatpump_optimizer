@@ -82,6 +82,27 @@ from .const import (
     CONF_DHW_LEGIONELLA_ENABLED,
     CONF_DHW_LEGIONELLA_TEMP,
     CONF_DHW_LEGIONELLA_INTERVAL_DAYS,
+    CONF_DHW_INLET_TEMP,
+    DEFAULT_DHW_INLET_TEMP,
+    CONF_DHW_INLET_SEASONAL_AMPLITUDE,
+    DEFAULT_DHW_INLET_SEASONAL_AMPLITUDE,
+    CONF_DHW_INLET_ENTITY,
+    CONF_GREYWATER_RECOVERY,
+    DEFAULT_GREYWATER_RECOVERY,
+    CONF_DHW_QUANTILE_TARGETS_ENABLED,
+    DEFAULT_DHW_QUANTILE_TARGETS_ENABLED,
+    CONF_DHW_FREE_DISINFECTION_ENABLED,
+    DEFAULT_DHW_FREE_DISINFECTION_ENABLED,
+    CONF_DHW_ELASTIC_LEGIONELLA_ENABLED,
+    DEFAULT_DHW_ELASTIC_LEGIONELLA_ENABLED,
+    CONF_DHW_LEGIONELLA_MIN_INTERVAL_DAYS,
+    DEFAULT_DHW_LEGIONELLA_MIN_INTERVAL_DAYS,
+    CONF_SHOWER_FLOW_LPM,
+    DEFAULT_SHOWER_FLOW_LPM,
+    CONF_VVC_PUMP_ENTITY,
+    CONF_VVC_LEAD_MINUTES,
+    DEFAULT_VVC_LEAD_MINUTES,
+    CONF_SPACE_PUMP_ENTITY,
     CONF_WIND_SENSITIVITY,
     CONF_RAIN_HEAT_LOSS_MULTIPLIER,
     CONF_OPTIMIZATION_INTERVAL,
@@ -785,6 +806,9 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
         CONF_AWAY_PRESENCE_ENTITY,
         CONF_AWAY_RETURN_ENTITY,
         CONF_GRID_FEE_ENTITY,
+        CONF_DHW_INLET_ENTITY,
+        CONF_VVC_PUMP_ENTITY,
+        CONF_SPACE_PUMP_ENTITY,
     )
 
     # Fallback labels for the menus, used when the frontend has no translation
@@ -1061,11 +1085,29 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
             elif _dhw_min_too_close(user_input, self._current):
                 errors[CONF_DHW_MIN_TEMP] = "dhw_min_too_close"
             else:
-                return self._save(user_input)
+                cleaned = dict(user_input)
+                # This page's clearable entities (T3): an absent selector is
+                # written back as None so clearing genuinely clears. The
+                # presence rule ignores None-valued keys, so this can never
+                # phantom-enable hot water.
+                for key in (
+                    CONF_DHW_INLET_ENTITY,
+                    CONF_VVC_PUMP_ENTITY,
+                    CONF_SPACE_PUMP_ENTITY,
+                ):
+                    if not cleaned.get(key):
+                        cleaned[key] = None
+                return self._save(cleaned)
 
         current = self._current
         if user_input is not None:
             current = {**current, **user_input}
+
+        def _entity_default(key: str) -> Any:
+            existing = current.get(key)
+            if existing:
+                return vol.Optional(key, default=existing)
+            return vol.Optional(key)
 
         return self.async_show_form(
             step_id="hot_water",
@@ -1138,6 +1180,75 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
                             DEFAULT_DHW_LEGIONELLA_INTERVAL_DAYS,
                         ),
                     ): _number(1, 30, 1, "days", slider=True),
+                    # --- v4.0.0 T3 -------------------------------------
+                    vol.Optional(
+                        CONF_DHW_INLET_TEMP,
+                        default=current.get(
+                            CONF_DHW_INLET_TEMP, DEFAULT_DHW_INLET_TEMP
+                        ),
+                    ): _number(2, 25, 0.5, "°C"),
+                    vol.Optional(
+                        CONF_DHW_INLET_SEASONAL_AMPLITUDE,
+                        default=current.get(
+                            CONF_DHW_INLET_SEASONAL_AMPLITUDE,
+                            DEFAULT_DHW_INLET_SEASONAL_AMPLITUDE,
+                        ),
+                    ): _number(0, 8, 0.5, "°C"),
+                    _entity_default(CONF_DHW_INLET_ENTITY): _entity_of(
+                        "sensor", "temperature"
+                    ),
+                    vol.Optional(
+                        CONF_GREYWATER_RECOVERY,
+                        default=current.get(
+                            CONF_GREYWATER_RECOVERY, DEFAULT_GREYWATER_RECOVERY
+                        ),
+                    ): _number(0, 0.9, 0.05, None, slider=True),
+                    vol.Optional(
+                        CONF_DHW_QUANTILE_TARGETS_ENABLED,
+                        default=current.get(
+                            CONF_DHW_QUANTILE_TARGETS_ENABLED,
+                            DEFAULT_DHW_QUANTILE_TARGETS_ENABLED,
+                        ),
+                    ): selector.BooleanSelector(),
+                    vol.Optional(
+                        CONF_DHW_FREE_DISINFECTION_ENABLED,
+                        default=current.get(
+                            CONF_DHW_FREE_DISINFECTION_ENABLED,
+                            DEFAULT_DHW_FREE_DISINFECTION_ENABLED,
+                        ),
+                    ): selector.BooleanSelector(),
+                    vol.Optional(
+                        CONF_DHW_ELASTIC_LEGIONELLA_ENABLED,
+                        default=current.get(
+                            CONF_DHW_ELASTIC_LEGIONELLA_ENABLED,
+                            DEFAULT_DHW_ELASTIC_LEGIONELLA_ENABLED,
+                        ),
+                    ): selector.BooleanSelector(),
+                    vol.Optional(
+                        CONF_DHW_LEGIONELLA_MIN_INTERVAL_DAYS,
+                        default=current.get(
+                            CONF_DHW_LEGIONELLA_MIN_INTERVAL_DAYS,
+                            DEFAULT_DHW_LEGIONELLA_MIN_INTERVAL_DAYS,
+                        ),
+                    ): _number(1, 14, 1, "days", slider=True),
+                    vol.Optional(
+                        CONF_SHOWER_FLOW_LPM,
+                        default=current.get(
+                            CONF_SHOWER_FLOW_LPM, DEFAULT_SHOWER_FLOW_LPM
+                        ),
+                    ): _number(4, 20, 0.5, "L/min"),
+                    _entity_default(CONF_VVC_PUMP_ENTITY): _entity_of(
+                        ["switch", "input_boolean"]
+                    ),
+                    vol.Optional(
+                        CONF_VVC_LEAD_MINUTES,
+                        default=current.get(
+                            CONF_VVC_LEAD_MINUTES, DEFAULT_VVC_LEAD_MINUTES
+                        ),
+                    ): _number(0, 120, 5, "min", slider=True),
+                    _entity_default(CONF_SPACE_PUMP_ENTITY): _entity_of(
+                        ["switch", "input_boolean"]
+                    ),
                 }
             ),
         )

@@ -95,10 +95,63 @@
   "defrost_buckets": [],
   "defrost_derate": 1.0,
   "defrost_samples": 0,
+  "dhw_advisor": {
+   "candidates": [
+    {
+     "cost_per_day": 2.67,
+     "meets_heaviest_window": false,
+     "setpoint": 48
+    },
+    {
+     "cost_per_day": 2.74,
+     "meets_heaviest_window": false,
+     "setpoint": 50
+    },
+    {
+     "cost_per_day": 2.81,
+     "meets_heaviest_window": false,
+     "setpoint": 52
+    },
+    {
+     "cost_per_day": 2.88,
+     "meets_heaviest_window": false,
+     "setpoint": 54
+    },
+    {
+     "cost_per_day": 2.96,
+     "meets_heaviest_window": false,
+     "setpoint": 56
+    },
+    {
+     "cost_per_day": 3.04,
+     "meets_heaviest_window": false,
+     "setpoint": 58
+    },
+    {
+     "cost_per_day": 3.12,
+     "meets_heaviest_window": false,
+     "setpoint": 60
+    }
+   ],
+   "covers_heaviest_window": false,
+   "current_setpoint": 55.0,
+   "heaviest_window_kwh": 4.97,
+   "recommended_setpoint": 60
+  },
   "dhw_cooling_rate": 0.3,
   "dhw_cooling_rate_learned": false,
   "dhw_cooling_samples": 0,
   "dhw_cost": 0.0,
+  "dhw_draw_stats": {
+   "06:00-08:30": {
+    "events": 0,
+    "p90_kwh": null
+   },
+   "17:00-22:00": {
+    "events": 0,
+    "p90_kwh": null
+   }
+  },
   "dhw_enabled": true,
   "dhw_energy_kwh": 0.0,
   "dhw_heating_active": false,
@@ -106,9 +159,15 @@
   "dhw_hold_hours": 39.2,
   "dhw_idle_min_temperature": 20.0,
   "dhw_in_demand_window": false,
+  "dhw_inlet_temperature": 10.0,
   "dhw_legionella_due_in_hours": null,
   "dhw_legionella_enabled": true,
   "dhw_min_temperature": 45.0,
+  "dhw_mixed": {
+   "litres_40c": 300.0,
+   "shower_minutes": 37.5,
+   "tank_temperature": 55.0
+  },
   "dhw_next_window_in_hours": 6.0,
   "dhw_plan": {},
   "dhw_schedule": [],

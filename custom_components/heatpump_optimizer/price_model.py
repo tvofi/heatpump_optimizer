@@ -237,6 +237,36 @@ class PriceShapeModel:
             level * shape[when.hour % HOURS_PER_DAY] * self.quarter_factor(when)
         )
 
+    def expected_daily_min(
+        self, day_types: list[int], level: float
+    ) -> float | None:
+        """Expected cheapest hourly price over the given day types (#47).
+
+        The elastic legionella gate asks: is today's known minimum already
+        as cheap as a typical day gets, or is a better day likely before
+        the deadline? The answer is the level scaled by the LOWEST hourly
+        shape factor across the day types the remaining interval spans.
+
+        None — the gate's "no opinion, defer to the deadline" answer —
+        when any requested day type is not yet fully trusted. This is
+        load-bearing, not politeness: a damped young shape has its minimum
+        pulled toward 1.0, making the "expected minimum" the daily MEAN,
+        and every horizon's cheapest hour beats its mean — so a young
+        model would run the cycle at the minimum interval every time, the
+        exact opposite of deferring. Shopping is for models that know the
+        shape of a day.
+        """
+        if not day_types or not np.isfinite(level) or level <= 0.0:
+            return None
+        factors = []
+        for idx in day_types:
+            idx = int(idx) % len(self.shapes)
+            if self.days[idx] < SHAPE_CONFIDENCE_DAYS:
+                return None
+            shape = np.asarray(self.shapes[idx], dtype=float)
+            factors.append(float(np.min(shape)))
+        return float(level * min(factors))
+
     def sigma(self, when: datetime, level: float) -> float:
         """One-sigma dispersion of the prior's guess at ``when``, in SEK/kWh.
 

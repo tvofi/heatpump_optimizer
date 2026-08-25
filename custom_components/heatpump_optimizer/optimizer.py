@@ -50,8 +50,10 @@ from . import mixing_valve, pv
 from .const import (
     DEFAULT_CYCLING_COST,
     DEFAULT_PRICE_RISK_LAMBDA,
+    DHW_QUANTILE_MIN_EVENTS,
     WOOD_TANK_MAX_TEMP,
 )
+from .dhw_draws import window_label as draw_window_label
 from .thermal_model import (
     DHW_AMBIENT_TEMP,
     ThermalModel,
@@ -2409,6 +2411,25 @@ class HeatPumpOptimizer:
                 end_idx += 1
             window_hours = max((end_idx - start_idx) * dt, dt)
             draw_energy = float(np.sum(draw_rates[start_idx:end_idx])) * dt
+            # #20: the learned per-window quantile replaces the profile mean,
+            # ramped by evidence — w = n/8 keeps a fresh install answering
+            # exactly as before and stops one early outlier yanking the
+            # target. The blend lives HERE, where the mean it blends against
+            # is computed, so the two can never diverge.
+            stats = params.dhw_window_ready_energy
+            if stats:
+                label = draw_window_label(float(hours_mod[start_idx]), windows)
+                entry = stats.get(label)
+                if entry is not None:
+                    try:
+                        p90, count = float(entry[0]), int(entry[1])
+                    except (TypeError, ValueError, IndexError):
+                        p90, count = None, 0
+                    if p90 is not None and np.isfinite(p90) and count > 0:
+                        w = min(1.0, count / float(DHW_QUANTILE_MIN_EVENTS))
+                        draw_energy = (1.0 - w) * draw_energy + w * max(
+                            0.0, p90
+                        )
             standby_energy = (
                 params.dhw_tank_heat_loss_coefficient
                 * max(0.5 * (dhw_setpoint + dhw_min_temp) - 20.0, 0.0)
@@ -2457,13 +2478,68 @@ class HeatPumpOptimizer:
         ):
             hours_remaining = interval_hours - float(hours_since)
             deadline_step = int(np.floor(hours_remaining / dt))
+            place_idx: int | None = None
             if deadline_step < n_steps:
+                # The hard deadline is inside this horizon: place the cycle
+                # at the cheapest hour before it, elastic or not. Hygiene
+                # never waits for a better price.
                 limit = max(1, min(deadline_step + 1, n_steps))
-                idx = int(np.argmin(dhw_prices[:limit]))
-                ready_temps[idx] = max(ready_temps[idx], params.dhw_legionella_temp)
+                place_idx = int(np.argmin(dhw_prices[:limit]))
+            elif (
+                params.dhw_elastic_legionella_enabled
+                and params.dhw_legionella_price_ceiling is not None
+                and float(hours_since)
+                >= float(params.dhw_legionella_min_interval_days) * 24.0
+            ):
+                # #47: inside the elastic window the cycle shops. Run it
+                # early only when a *known* price beats what a typical
+                # remaining day is expected to bottom out at (the ceiling,
+                # from the learned prior). Prior-guessed steps never
+                # qualify — a cycle is real money spent on a guess. The
+                # ceiling exists only once the prior is fully trained
+                # (None otherwise ⇒ this branch is inert); both sides of
+                # the comparison are built from the same fee-inclusive
+                # published prices, and any surplus discount inside
+                # dhw_prices only makes a genuinely sunny hour qualify.
+                known = getattr(self, "_price_known", None)
+                if known is not None:
+                    known_mask = np.zeros(n_steps, dtype=bool)
+                    arr = np.asarray(known, dtype=bool)[:n_steps]
+                    known_mask[: arr.size] = arr
+                else:
+                    known_mask = np.ones(n_steps, dtype=bool)
+                # A cycle target the tank cannot physically reach by its
+                # step is not a plan, it is a constraint the solver will
+                # quietly relax. Only steps the pump can actually heat to
+                # the disinfection temperature by are candidates.
+                lift = max(
+                    0.0,
+                    params.dhw_legionella_temp
+                    - float(initial_state.dhw_temperature),
+                )
+                thermal_kw = p_dhw_run * max(
+                    self.model.compute_cop_dhw(
+                        float(outdoor_temps[0]) if n_steps else 0.0,
+                        params.dhw_legionella_temp,
+                    ),
+                    0.5,
+                )
+                min_step = int(np.ceil(lift * c_dhw / max(thermal_kw, 0.1) / dt))
+                known_mask[: min(min_step, n_steps)] = False
+                candidates = np.where(known_mask)[0]
+                if candidates.size:
+                    idx = int(candidates[np.argmin(dhw_prices[candidates])])
+                    if float(dhw_prices[idx]) <= float(
+                        params.dhw_legionella_price_ceiling
+                    ):
+                        place_idx = idx
+            if place_idx is not None:
+                ready_temps[place_idx] = max(
+                    ready_temps[place_idx], params.dhw_legionella_temp
+                )
                 legionella_due = True
-                legionella_hour = float(hours_mod[idx])
-                legionella_step = idx
+                legionella_hour = float(hours_mod[place_idx])
+                legionella_step = place_idx
 
         max_temp = params.dhw_max_temp
         # How long stored heat actually survives in this tank. The learned

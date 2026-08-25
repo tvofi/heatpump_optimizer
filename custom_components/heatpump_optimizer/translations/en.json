@@ -289,7 +289,19 @@
           "dhw_cooling_rate": "Tank heat loss (learned)",
           "dhw_legionella_enabled": "Run an anti-legionella cycle",
           "dhw_legionella_temperature": "Anti-legionella temperature",
-          "dhw_legionella_interval_days": "Anti-legionella interval"
+          "dhw_legionella_interval_days": "Anti-legionella interval",
+          "dhw_inlet_temp": "Cold water inlet temperature",
+          "dhw_inlet_seasonal_amplitude": "Seasonal inlet swing",
+          "dhw_inlet_entity": "Cold water inlet sensor (optional)",
+          "greywater_recovery_effectiveness": "Greywater heat recovery effectiveness",
+          "dhw_quantile_targets_enabled": "Learn heavy-day hot water targets",
+          "dhw_free_disinfection_enabled": "Credit disinfection from any heat source",
+          "dhw_elastic_legionella_enabled": "Let the anti-legionella cycle pick a cheap day",
+          "dhw_legionella_min_interval_days": "Earliest anti-legionella re-run",
+          "shower_flow_lpm": "Shower flow rate",
+          "vvc_pump_entity": "Hot water circulation pump switch (optional)",
+          "vvc_lead_minutes": "Start circulation before a time frame",
+          "space_circulation_pump_entity": "Heating circulation pump switch (optional)"
         },
         "data_description": {
           "dhw_schedule_enabled": "On: hot water is guaranteed only during the times below, and the tank may cool down in between. Off: the tank is kept hot around the clock, which costs noticeably more.",
@@ -302,7 +314,19 @@
           "dhw_cooling_rate": "How fast the tank cools when nobody uses hot water, measured at 45 C in a 20 C room. This is only a starting point: the integration measures your tank's actual cooling and refines it automatically. A tank that holds heat well can be charged further ahead of time, so more of the heating lands in cheap hours.",
           "dhw_legionella_enabled": "Because the tank is now allowed to stay cool for long stretches, it is periodically heated hot enough to kill legionella bacteria. Strongly recommended.",
           "dhw_legionella_temperature": "60 C is the usual recommendation.",
-          "dhw_legionella_interval_days": "How often the disinfection heat-up runs. It is placed in the cheapest hour before each deadline."
+          "dhw_legionella_interval_days": "How often the disinfection heat-up runs. It is placed in the cheapest hour before each deadline.",
+          "dhw_inlet_temp": "Yearly average temperature of the cold water refilling the tank. The Swedish default of 10 °C is right for most homes; change it only if you have measured yours.",
+          "dhw_inlet_seasonal_amplitude": "How many degrees the incoming water swings around that average over the year — coldest in late February, warmest in late summer. Leave at 0 to treat it as constant.",
+          "dhw_inlet_entity": "A temperature sensor on the incoming cold water pipe. When set, its live reading is used instead of the model above.",
+          "greywater_recovery_effectiveness": "If a drain water heat recovery unit pre-warms the incoming water, the fraction of drain heat it returns. 0 means none installed.",
+          "dhw_quantile_targets_enabled": "Learn how much hot water each time frame actually uses on a heavy day, and make the tank ready for that instead of for the average day. Needs a tank temperature sensor, configured hot water time frames, and a couple of weeks of evidence.",
+          "dhw_free_disinfection_enabled": "If a wood boiler, solar coil or immersion heater already gets the tank to the anti-legionella temperature and holds it there, count that as a completed cycle instead of running another one.",
+          "dhw_elastic_legionella_enabled": "Allow the anti-legionella cycle to run a day or two early when electricity is unusually cheap, instead of always waiting for its deadline. The deadline is still always honoured.",
+          "dhw_legionella_min_interval_days": "Never run anti-legionella cycles closer together than this, even on very cheap days.",
+          "shower_flow_lpm": "Your shower head's flow. Only used to translate the tank's content into shower minutes on the Mixed Hot Water sensor.",
+          "vvc_pump_entity": "A switch controlling the hot water circulation (VVC) loop pump. When set, the pump only runs during your hot water time frames, plus the lead time below.",
+          "vvc_lead_minutes": "How long before a hot water time frame the circulation pump starts, so the loop is already hot when the time frame opens.",
+          "space_circulation_pump_entity": "A switch controlling the heating circulation pump. When set, the pump is paused only in slots that are provably idle and warm — it always runs when heat is planned, when it is freezing outside, or when any room is near its comfort floor."
         }
       },
       "building": {

@@ -159,6 +159,24 @@ DATA = {
         "hours_of_autonomy": 6.75,
         "round_trip_efficiency_6h": 11.0,
     },
+    "dhw_inlet_temperature": 8.5,
+    "dhw_mixed": {
+        "litres_40c": 450.0,
+        "tank_temperature": 55.0,
+        "shower_minutes": 56.3,
+    },
+    "dhw_advisor": {
+        "current_setpoint": 55.0,
+        "recommended_setpoint": 52,
+        "heaviest_window_kwh": 3.4,
+        "candidates": [
+            {"setpoint": 52, "cost_per_day": 6.1, "meets_heaviest_window": True}
+        ],
+    },
+    "dhw_draw_stats": {
+        "06:00-08:30": {"events": 12, "p90_kwh": 3.4},
+        "17:00-22:00": {"events": 9, "p90_kwh": 2.1},
+    },
     "comfort_weight": 6.4,
     "comfort_learning": {"configured": 5.0, "learned": 6.4, "overrides": 7},
     "system_identification": {"phase": "idle", "active": False},
@@ -311,6 +329,29 @@ R.check(
     and _hr_attrs.get("baseline_source") == "house meter"
     and _hr_attrs.get("horizon_headroom_kw") == [7.3, 7.1]
     and "available" not in _hr_attrs,
+)
+# v4.0.0 T3: hot water beyond the tank temperature.
+R.check(
+    "the setpoint advisor recommends in °C with the sweep alongside",
+    by_name["DHW Setpoint Advisor"].native_value == 52
+    and by_name["DHW Setpoint Advisor"].extra_state_attributes[
+        "heaviest_window_kwh"
+    ]
+    == 3.4,
+)
+R.check(
+    "the tank is translated into shower terms",
+    by_name["Mixed Hot Water"].native_value == 450.0
+    and by_name["Mixed Hot Water"].extra_state_attributes["shower_minutes"]
+    == 56.3,
+)
+R.check(
+    "the heavy-day sensor reports the worst learned window",
+    by_name["DHW Heavy Day Demand"].native_value == 3.4
+    and by_name["DHW Heavy Day Demand"].extra_state_attributes[
+        "17:00-22:00"
+    ]["events"]
+    == 9,
 )
 R.check("PV surplus is published", by_name["Solar Surplus Forecast"].native_value == 5.4)
 R.check(

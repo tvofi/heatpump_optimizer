@@ -96,6 +96,9 @@ async def async_setup_entry(
         ComfortWeightSensor(coordinator, entry),
         ContractComparisonSensor(coordinator, entry),
         PowerHeadroomSensor(coordinator, entry),
+        DHWSetpointAdvisorSensor(coordinator, entry),
+        MixedHotWaterSensor(coordinator, entry),
+        DHWHeavyDaySensor(coordinator, entry),
         # Dumb-valve setting recommendation (item 29)
         ValveTargetRecommendationSensor(coordinator, entry),
     ]
@@ -1552,3 +1555,111 @@ class PowerHeadroomSensor(HeatPumpOptimizerSensorBase):
         )
         data.pop("available", None)
         return data
+
+
+class DHWSetpointAdvisorSensor(HeatPumpOptimizerSensorBase):
+    """The cheapest hot-water setpoint that still covers the heavy days (#9).
+
+    Read-only by design: it replays candidate setpoints against everything
+    the integration has learned — the usage profile, the per-window draw
+    quantiles, the tank's own cooling rate, the inlet — and reports what
+    each would cost per day. Whether to act on it stays the user's call.
+    """
+
+    _attr_icon = "mdi:thermometer-check"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator, entry):
+        super().__init__(
+            coordinator, entry, "dhw_setpoint_advisor", "DHW Setpoint Advisor"
+        )
+
+    @property
+    def available(self) -> bool:
+        data = (self.coordinator.data or {}).get("dhw_advisor") or {}
+        return data.get("recommended_setpoint") is not None
+
+    @property
+    def native_value(self) -> float | None:
+        data = (self.coordinator.data or {}).get("dhw_advisor") or {}
+        value = data.get("recommended_setpoint")
+        return value if isinstance(value, (int, float)) else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return dict((self.coordinator.data or {}).get("dhw_advisor", {}) or {})
+
+
+class MixedHotWaterSensor(HeatPumpOptimizerSensorBase):
+    """The tank translated into shower terms (#28).
+
+    ``V·(T_tank − T_inlet)/(40 − T_inlet)`` litres of 40 °C water. "212
+    litres of shower water, 26 minutes" answers the question the tank
+    temperature never did.
+    """
+
+    _attr_icon = "mdi:shower-head"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_native_unit_of_measurement = "L"
+
+    def __init__(self, coordinator, entry):
+        super().__init__(
+            coordinator, entry, "dhw_mixed_water", "Mixed Hot Water"
+        )
+
+    @property
+    def available(self) -> bool:
+        return bool((self.coordinator.data or {}).get("dhw_mixed"))
+
+    @property
+    def native_value(self) -> float | None:
+        data = (self.coordinator.data or {}).get("dhw_mixed") or {}
+        value = data.get("litres_40c")
+        return value if isinstance(value, (int, float)) else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return dict((self.coordinator.data or {}).get("dhw_mixed", {}) or {})
+
+
+class DHWHeavyDaySensor(HeatPumpOptimizerSensorBase):
+    """The learned heavy-day demand per hot-water window (#32/#20).
+
+    State: the largest p90 occurrence energy across the windows — what the
+    quantile ready targets are standing on. The per-window reservoir
+    counts ride in attributes, so "why is the tank hotter on Saturdays"
+    has a visible answer.
+    """
+
+    _attr_icon = "mdi:chart-box-outline"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_native_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator, entry):
+        super().__init__(
+            coordinator, entry, "dhw_heavy_day", "DHW Heavy Day Demand"
+        )
+
+    @property
+    def available(self) -> bool:
+        stats = (self.coordinator.data or {}).get("dhw_draw_stats") or {}
+        return any((v or {}).get("events") for v in stats.values())
+
+    @property
+    def native_value(self) -> float | None:
+        stats = (self.coordinator.data or {}).get("dhw_draw_stats") or {}
+        values = [
+            v.get("p90_kwh")
+            for v in stats.values()
+            if isinstance(v.get("p90_kwh"), (int, float))
+        ]
+        return max(values) if values else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return dict(
+            (self.coordinator.data or {}).get("dhw_draw_stats", {}) or {}
+        )

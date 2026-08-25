@@ -1840,6 +1840,11 @@ class _DhwUsage:
     def __init__(self) -> None:
         self._dhw_cooling_rate = 0.3
         self._dhw_hourly_profile = [1.0] * 24
+        # v4.0.0 T3 (#18): the learner also teaches the day-type arrays.
+        self._dhw_profile_weekday = [1.0] * 24
+        self._dhw_profile_weekend = [1.0] * 24
+        self._dhw_daytype_samples = [0, 0]
+        self._dhw_daytype_last_day = ["", ""]
         self._thermal_params = ThermalParameters()
 
     async def _async_save_dhw_profile(self) -> None:
@@ -2048,6 +2053,9 @@ runtime_only = {
     "dhw_hourly_draw_pattern",  # learned from observed draws
     "defrost_derate",           # learned per temperature/humidity bucket
     "ambient_humidity",         # current conditions, set per update
+    "dhw_inlet_current",        # resolved per solve: live sensor or season
+    "dhw_window_ready_energy",  # learned per-window quantiles, set per solve
+    "dhw_legionella_price_ceiling",  # from the price prior, set per solve
     "cop_scale",                # learned from measured power
     "cop_reference_temp",       # a property of the COP curve, not the house
     "internal_gains",           # not exposed in the config flow
@@ -5782,6 +5790,564 @@ R.check(
     _cad4._fuse_advisor == {"candidate_kw": 11.04, "feasible": True}
     and _cad4._fuse_advisor_at is not None,
     f"got {_cad4._fuse_advisor}",
+)
+
+# ===========================================================================
+# T3 — hot water (#32 #18 #20 #24 #47 #9 #28 #6)
+# ===========================================================================
+R.section("T3 — hot water (#32 #18 #20 #24 #47 #9 #28 #6)")
+
+from heatpump_optimizer.const import (
+    DHW_LEGIONELLA_HOLD_MINUTES,
+    DHW_QUANTILE_MIN_EVENTS,
+)
+from heatpump_optimizer.dhw_draws import (
+    DrawStats,
+    labels_for,
+    window_label as _wlabel,
+)
+from heatpump_optimizer import pump_schedule as _ps
+from heatpump_optimizer.thermal_model import WATER_SPECIFIC_HEAT
+
+# --- the inlet model, against the numbers it replaced ---------------------------
+_tp = ThermalParameters()
+_old_draw = (
+    _tp.dhw_daily_consumption / 24.0 * WATER_SPECIFIC_HEAT
+    * (_tp.dhw_setpoint - 10.0)
+)
+R.check(
+    "the default inlet reproduces the hard-coded 10.0 draw power bit for bit",
+    _tp.dhw_draw_power == _old_draw,
+    f"{_tp.dhw_draw_power} vs {_old_draw}",
+)
+R.check(
+    "amplitude zero keeps the inlet constant across the year",
+    all(_tp.seasonal_inlet_temp(d) == 10.0 for d in (1, 60, 182, 242, 365)),
+)
+_tp_swing = ThermalParameters(dhw_inlet_seasonal_amplitude=3.0)
+R.check(
+    "the seasonal swing bottoms in late February and peaks in late summer",
+    abs(_tp_swing.seasonal_inlet_temp(60) - 7.0) < 0.01
+    and abs(_tp_swing.seasonal_inlet_temp(242) - 13.0) < 0.05,
+    f"feb {_tp_swing.seasonal_inlet_temp(60):.2f}, aug {_tp_swing.seasonal_inlet_temp(242):.2f}",
+)
+_tp.dhw_inlet_current = 4.5
+R.check(
+    "a resolved live inlet wins over the configured mean",
+    _tp.dhw_inlet_reference == 4.5,
+)
+_tp_grey = ThermalParameters(greywater_recovery=0.3)
+R.check(
+    "greywater recovery scales the draw chain down by its effectiveness",
+    abs(_tp_grey.dhw_draw_power - 0.7 * _old_draw) < 1e-12,
+)
+
+# --- the presence rule ignores None (the phantom-enable fix) --------------------
+R.check(
+    "a cleared DHW sensor written back as None does not enable hot water",
+    ThermalParameters.from_config({"dhw_temp_entity": None}).dhw_enabled
+    is False,
+)
+R.check(
+    "a real DHW key still enables it, and empty windows still count",
+    ThermalParameters.from_config({"dhw_temp_entity": "sensor.t"}).dhw_enabled
+    and ThermalParameters.from_config({"dhw_windows": ""}).dhw_enabled,
+)
+R.check(
+    "no T3 hot-water key joins the presence trio",
+    not ThermalParameters.from_config(
+        {
+            "dhw_inlet_temp": 8.0,
+            "dhw_quantile_targets_enabled": True,
+            "vvc_pump_entity": "switch.vvc",
+        }
+    ).dhw_enabled,
+)
+
+# --- #32 the draw-occurrence statistics ------------------------------------------
+_WINDOWS = [(6.0, 8.5), (17.0, 22.0)]
+R.check(
+    "hours resolve to their window label, outside hours to nothing",
+    _wlabel(7.0, _WINDOWS) == "06:00-08:30"
+    and _wlabel(21.9, _WINDOWS) == "17:00-22:00"
+    and _wlabel(12.0, _WINDOWS) == "",
+)
+R.check(
+    "a midnight-wrapping window resolves on both sides of midnight",
+    _wlabel(23.0, [(22.0, 2.0)]) == "22:00-02:00"
+    and _wlabel(1.0, [(22.0, 2.0)]) == "22:00-02:00"
+    and _wlabel(12.0, [(22.0, 2.0)]) == "",
+)
+
+_ds = DrawStats()
+_D1 = datetime(2026, 1, 15, 6, 0, tzinfo=UTC)
+for minutes, kwh in ((0, 0.8), (30, 1.0), (60, 0.4)):
+    _ds.fold(_D1 + timedelta(minutes=minutes), "06:00-08:30", kwh)
+_ds.fold(_D1 + timedelta(hours=4), "", 0.0)  # window closed
+R.check(
+    "ticks inside one window merge into a single occurrence",
+    _ds.count("06:00-08:30") == 1
+    and abs(_ds.reservoirs["06:00-08:30"][0] - 2.2) < 1e-9,
+    f"got {_ds.reservoirs}",
+)
+_ds.fold(_D1 + timedelta(days=1), "06:00-08:30", 0.0)
+_ds.fold(_D1 + timedelta(days=1, hours=4), "", 0.0)
+R.check(
+    "a quiet morning records its zero — calm days are evidence too",
+    _ds.count("06:00-08:30") == 2 and _ds.reservoirs["06:00-08:30"][1] == 0.0,
+)
+R.check(
+    "energy outside every window belongs to no statistic",
+    "" not in _ds.reservoirs,
+)
+_mean = 1.0
+R.check(
+    "below the evidence floor the ready energy leans on the mean",
+    abs(
+        _ds.ready_energy("17:00-22:00", _mean) - _mean
+    ) < 1e-9,  # zero events -> pure mean
+)
+_ds2 = DrawStats()
+for day in range(DHW_QUANTILE_MIN_EVENTS):
+    _ds2.fold(_D1 + timedelta(days=day), "06:00-08:30", 3.0)
+    _ds2.fold(_D1 + timedelta(days=day, hours=4), "", 0.0)
+R.check(
+    "at full evidence the ready energy is the quantile itself",
+    abs(_ds2.ready_energy("06:00-08:30", 1.0) - 3.0) < 1e-9,
+    f"got {_ds2.ready_energy('06:00-08:30', 1.0)}",
+)
+_ds3 = DrawStats.from_dict(_ds2.as_dict())
+R.check(
+    "the statistics survive a store round trip",
+    _ds3.reservoirs == _ds2.reservoirs and _ds3.count("06:00-08:30") == 8,
+)
+_ds3.prune(["17:00-22:00"])
+R.check(
+    "redrawn windows forget their old statistics",
+    _ds3.count("06:00-08:30") == 0,
+    "stats about hours that are no longer windows would be silently wrong",
+)
+_ds4 = DrawStats()
+for day in range(50):
+    _ds4.fold(_D1 + timedelta(days=day), "06:00-08:30", float(day))
+    _ds4.fold(_D1 + timedelta(days=day, hours=4), "", 0.0)
+R.check(
+    "reservoirs keep the newest forty occurrences and drop the rest",
+    _ds4.count("06:00-08:30") == 40
+    and _ds4.reservoirs["06:00-08:30"][0] == 10.0,
+)
+
+# --- #20 the quantile targets reach the plan (mutation pair) --------------------
+# Flat prices and a big tank on purpose: on the winter day the planner
+# charges the tank overnight for arbitrage anyway, and on the default
+# 300 L tank a single DHW block moves it 3.4 °C — both of which would
+# swamp exactly the ready-target change these pairs exist to see.
+def _q_solve(table):
+    sc = _mk_golden(
+        dhw=True,
+        price_profile="flat",
+        config_overrides={"dhw_tank_volume": 1500.0},
+        state_overrides={"dhw_temperature": 46.0},
+        param_overrides=(
+            {"dhw_window_ready_energy": table} if table is not None else {}
+        ),
+    )
+    return sc["optimizer"].optimize(
+        sc["state"], sc["prices"], sc["outdoor"], sc["wind"], sc["rain"],
+        sc["solar"], _G_START,
+    )
+
+_q_base = _q_solve(None)
+_q_heavy = _q_solve({"06:00-08:30": (15.0, DHW_QUANTILE_MIN_EVENTS)})
+R.check(
+    "a learned heavy morning raises what the tank holds before the window",
+    not np.array_equal(
+        np.asarray(_q_base.dhw_power_schedule),
+        np.asarray(_q_heavy.dhw_power_schedule),
+    )
+    and max(_q_heavy.dhw_temp_trajectory[:25])
+    > max(_q_base.dhw_temp_trajectory[:25]) + 0.5,
+    f"pre-window peak {max(_q_base.dhw_temp_trajectory[:25]):.1f} -> "
+    f"{max(_q_heavy.dhw_temp_trajectory[:25]):.1f}",
+)
+_q_one = _q_solve({"06:00-08:30": (15.0, 1)})
+R.check(
+    "one early outlier moves the target a step, not the whole way",
+    max(_q_one.dhw_temp_trajectory[:25])
+    < max(_q_heavy.dhw_temp_trajectory[:25]) - 0.3,
+    "the ramp must damp single-event evidence",
+)
+R.check(
+    "an empty table is byte-identical to no table at all",
+    np.array_equal(
+        np.asarray(_q_base.dhw_power_schedule),
+        np.asarray(_q_solve({}).dhw_power_schedule),
+    ),
+)
+
+# --- #24 hold-verified free disinfection -----------------------------------------
+def _legionella_run(flag, observations):
+    """Feed (minutes, temp) observations through the tracker; return credit."""
+    import homeassistant.util.dt as _dt_mod
+
+    c = _t2_coord(dhw_free_disinfection_enabled=flag)
+    c._thermal_params.dhw_legionella_temp = 60.0
+    base = datetime(2026, 1, 15, 12, 0, tzinfo=UTC)
+    c._dhw_last_legionella = base - timedelta(days=3)
+    before = c._dhw_last_legionella
+    real_now = _dt_mod.now
+    try:
+        for minutes, temp in observations:
+            _dt_mod.now = lambda m=minutes: base + timedelta(minutes=m)
+            _asyncio.run(c._async_track_dhw_legionella(temp))
+    finally:
+        _dt_mod.now = real_now
+    return c._dhw_last_legionella != before
+
+R.check(
+    "58 °C for an hour credits nothing — warm is not disinfected",
+    not _legionella_run(
+        True, [(m, 58.0) for m in range(0, 61, 10)]
+    ),
+)
+R.check(
+    "61 °C held past the hold time writes the completion timestamp",
+    _legionella_run(True, [(m, 61.0) for m in range(0, 31, 10)]),
+    f"hold is {DHW_LEGIONELLA_HOLD_MINUTES} min of observed time at temperature",
+)
+R.check(
+    "a blip at temperature between cold readings starts the hold over",
+    not _legionella_run(
+        True,
+        [(0, 61.0), (10, 61.0), (20, 55.0), (30, 61.0), (40, 61.0)],
+    ),
+)
+R.check(
+    "with the flag off the historical instant credit is untouched",
+    _legionella_run(False, [(0, 61.0)]),
+)
+
+# --- #47 the elastic legionella gate ----------------------------------------------
+from heatpump_optimizer.price_model import PriceShapeModel as _PSM
+
+_psm_fresh = _PSM()
+R.check(
+    "a fresh prior has NO opinion on the daily minimum",
+    _psm_fresh.expected_daily_min([0], 1.0) is None,
+    "a damped young shape's minimum is the daily mean, and every day's "
+    "cheapest hour beats its mean — 'level x ~1' would fire the gate "
+    "at the minimum interval every time instead of deferring",
+)
+_psm_half = _PSM()
+_psm_half.days[0] = 3  # partially trained: still no opinion
+R.check(
+    "a partially trained prior still defers",
+    _psm_half.expected_daily_min([0], 1.0) is None,
+)
+_psm_mixed = _PSM()
+_psm_mixed.days[0] = 10  # weekday trained, weekend not
+R.check(
+    "one untrained day type in the span withholds the whole answer",
+    _psm_mixed.expected_daily_min([0, 1], 1.0) is None,
+)
+_psm_tr = _PSM()
+_shape_day = [1.5] * 7 + [0.5] * 5 + [1.0] * 12
+_base_day = datetime(2026, 1, 12, tzinfo=UTC)  # a Monday
+for d in range(30):
+    _psm_tr.observe_day(_base_day + timedelta(days=d), list(_shape_day))
+_exp = _psm_tr.expected_daily_min([0], 1.0)
+R.check(
+    "a trained prior expects the minimum at the cheap hours' factor",
+    _exp is not None and _exp < 0.75,
+    f"got {_exp}",
+)
+
+def _el_solve(**param_overrides):
+    sc = _mk_golden(
+        dhw=True,
+        price_profile="flat",  # winter arbitrage would mask the cycle
+        config_overrides={"dhw_tank_volume": 1500.0},
+        state_overrides={"dhw_hours_since_legionella": 130.0},
+        param_overrides=param_overrides,
+    )
+    return sc["optimizer"].optimize(
+        sc["state"], sc["prices"], sc["outdoor"], sc["wind"], sc["rain"],
+        sc["solar"], _G_START,
+    )
+
+_el_off = _el_solve()
+_el_inert = _el_solve(dhw_elastic_legionella_enabled=True)
+R.check(
+    "elastic with no ceiling (a young prior) is byte-identical to off",
+    np.array_equal(
+        np.asarray(_el_off.dhw_power_schedule),
+        np.asarray(_el_inert.dhw_power_schedule),
+    ),
+)
+_el_go = _el_solve(
+    dhw_elastic_legionella_enabled=True, dhw_legionella_price_ceiling=99.0
+)
+R.check(
+    "a generous ceiling runs the cycle early on a known cheap hour",
+    max(_el_go.dhw_temp_trajectory) > max(_el_off.dhw_temp_trajectory) + 2.0,
+    f"peak {max(_el_off.dhw_temp_trajectory):.1f} -> {max(_el_go.dhw_temp_trajectory):.1f}",
+)
+_el_wait = _el_solve(
+    dhw_elastic_legionella_enabled=True, dhw_legionella_price_ceiling=1e-6
+)
+R.check(
+    "a ceiling no known price beats keeps waiting for a better day",
+    np.array_equal(
+        np.asarray(_el_wait.dhw_power_schedule),
+        np.asarray(_el_off.dhw_power_schedule),
+    ),
+)
+_el_early = _el_solve(
+    dhw_elastic_legionella_enabled=True,
+    dhw_legionella_price_ceiling=99.0,
+    dhw_legionella_min_interval_days=6.0,
+)
+R.check(
+    "inside the minimum interval even a free day does not re-run the cycle",
+    np.array_equal(
+        np.asarray(_el_early.dhw_power_schedule),
+        np.asarray(_el_off.dhw_power_schedule),
+    ),
+    "130 h since the last cycle is under a 6-day minimum interval",
+)
+
+# --- #18 day-type profiles ---------------------------------------------------------
+_c18 = _t2_coord()
+R.check(
+    "with no day-type evidence the blend IS the pooled profile",
+    _c18._dhw_pattern_for(True) == _c18._dhw_hourly_profile,
+)
+_c18._dhw_profile_weekend = [2.0 if h in (9, 10) else 0.5 for h in range(24)]
+_c18._dhw_daytype_samples[1] = 28  # two weekends of evidence -> w = 2/3
+_blend = _c18._dhw_pattern_for(True)
+R.check(
+    "weekend evidence moves the weekend pattern toward late mornings",
+    _blend != _c18._dhw_hourly_profile and _blend[9] > _c18._dhw_hourly_profile[9],
+)
+R.check(
+    "and the blend still budgets the same daily volume",
+    abs(sum(_blend) - 24.0) < 0.3,
+    f"sum {sum(_blend):.2f} — the profile decides when, never how much",
+)
+R.check(
+    "weekday evidence does not leak into the weekend answer",
+    _c18._dhw_pattern_for(False) == _c18._dhw_hourly_profile,
+)
+
+# --- #28 mixed litres, by hand -----------------------------------------------------
+_c28 = _t2_coord(dhw_tank_volume=300.0)
+_c28._thermal_params.dhw_enabled = True
+_c28._thermal_params.dhw_tank_volume = 300.0
+_c28._current_state.dhw_temperature = 55.0
+_mix = _c28._dhw_mixed_water()
+R.check(
+    "300 L at 55 °C over a 10 °C inlet is 450 L of 40 °C shower water",
+    abs(_mix.get("litres_40c", 0) - 450.0) < 0.5,
+    f"got {_mix}",
+)
+R.check(
+    "and 56 minutes of shower at the default 8 L/min",
+    abs(_mix.get("shower_minutes", 0) - 56.3) < 0.2,
+    f"got {_mix}",
+)
+
+# --- #9 the setpoint sweep ----------------------------------------------------------
+# A 1500 L tank, where "which setpoint covers the heavy days" is a real
+# question; the default 200 L tank cannot hold its evening window in the
+# usable band at any setpoint (see the small-tank check below).
+_c9 = _t2_coord(dhw_tank_volume=1500.0)
+_c9._thermal_params.dhw_enabled = True
+_c9._prices = [{"total": 1.0}] * 24
+_sweep = _c9._dhw_setpoint_sweep()
+_rec1 = _sweep.get("recommended_setpoint")
+R.check(
+    "with no draw evidence the sweep falls back to the profile mean",
+    len(_sweep.get("candidates", [])) == 7
+    and _sweep.get("heaviest_window_kwh", 0.0) > 0.5
+    and _rec1 is not None,
+    f"got {_sweep.get('heaviest_window_kwh')} kWh heaviest, rec {_rec1} — "
+    "a 0 kWh heaviest window would recommend the sweep bottom for everyone",
+)
+R.check(
+    "the recommendation actually covers the heaviest window",
+    _rec1 is not None
+    and _sweep.get("covers_heaviest_window") is True
+    and max(_c9._thermal_params.dhw_tank_thermal_mass, 0.05)
+    * (_rec1 - _c9._thermal_params.dhw_min_temp)
+    >= _sweep["heaviest_window_kwh"] - 1e-6,
+)
+R.check(
+    "hotter tanks cost more per day — the trade the sweep exists to show",
+    _sweep["candidates"][-1]["cost_per_day"]
+    > _sweep["candidates"][0]["cost_per_day"],
+)
+_c9._draw_stats.reservoirs["06:00-08:30"] = [8.0] * 10
+_sweep2 = _c9._dhw_setpoint_sweep()
+R.check(
+    "a heavy learned window pushes the recommendation up",
+    (_sweep2.get("recommended_setpoint") or 0) > _rec1,
+    f"got {_sweep2.get('recommended_setpoint')} vs {_rec1} after 8 kWh "
+    f"heavy days on a {_c9._thermal_params.dhw_tank_volume:.0f} L tank",
+)
+_c9s = _t2_coord()  # the default 200 L tank
+_c9s._thermal_params.dhw_enabled = True
+_c9s._prices = [{"total": 1.0}] * 24
+_sweep_small = _c9s._dhw_setpoint_sweep()
+R.check(
+    "a tank too small for its heavy days says 'as hot as allowed', honestly",
+    _sweep_small.get("recommended_setpoint") == 60
+    and _sweep_small.get("covers_heaviest_window") is False,
+    f"got {_sweep_small.get('recommended_setpoint')}, covers "
+    f"{_sweep_small.get('covers_heaviest_window')} — None-forever helps no one",
+)
+
+# --- #6 the pump schedule ------------------------------------------------------------
+R.check(
+    "the VVC pump runs inside a demand window and rests outside",
+    _ps.vvc_should_run(7.0, _WINDOWS, 20)[0]
+    and not _ps.vvc_should_run(12.0, _WINDOWS, 20)[0],
+)
+R.check(
+    "the lead time pre-heats the loop just before a window opens",
+    _ps.vvc_should_run(16.8, _WINDOWS, 20)[0]
+    and not _ps.vvc_should_run(16.3, _WINDOWS, 20)[0],
+)
+R.check(
+    "a window shorter than the lead has no hole in its final approach",
+    all(
+        _ps.vvc_should_run(h, [(17.0, 17.5)], 60)[0]
+        for h in (16.0, 16.4, 16.7, 16.9, 17.2)
+    )
+    and not _ps.vvc_should_run(15.9, [(17.0, 17.5)], 60)[0],
+    "probing the single instant now+lead went dark 16:30-17:00 — the "
+    "exact minutes the pre-heat exists for",
+)
+R.check(
+    "with no windows the loop is simply left on",
+    _ps.vvc_should_run(3.0, [], 20)[0],
+)
+
+_SAFE = dict(
+    plan_heat_now=False,
+    plan_heat_next=False,
+    curve_driven=False,
+    zone_temps=[21.0],
+    floor_temp=19.0,
+    outdoor_temp=5.0,
+)
+R.check(
+    "a provably idle warm slot is the only one that switches the space pump off",
+    not _ps.space_pump_should_run(**_SAFE)[0],
+)
+for name, mutation in (
+    ("heat planned now", {"plan_heat_now": True}),
+    ("heat planned next step", {"plan_heat_next": True}),
+    ("heat curve driven", {"curve_driven": True}),
+    ("a zone near its floor", {"zone_temps": [19.2]}),
+    ("freezing outside", {"outdoor_temp": -1.0}),
+    ("outdoor unknown", {"outdoor_temp": None}),
+):
+    R.check(
+        f"rail: {name} forces the space pump on",
+        _ps.space_pump_should_run(**{**_SAFE, **mutation})[0],
+    )
+R.check(
+    "no plan at all reads as heat-wanted, never as off",
+    _ps.plan_commands_heat(None, 0) == (True, True),
+)
+R.check(
+    "the plan lookup reads this step and the next",
+    _ps.plan_commands_heat([0.0, 2.0, 0.0], 0) == (False, True)
+    and _ps.plan_commands_heat([0.0, 2.0, 0.0], 2) == (False, False),
+)
+
+# The coordinator glue: transitions only, and only configured entities.
+_c6 = _t2_coord(
+    vvc_pump_entity="switch.vvc",
+    dhw_tank_volume=300.0,  # presence -> dhw_enabled
+)
+_c6._thermal_params.dhw_enabled = True
+_c6._thermal_params.dhw_schedule_enabled = True
+from heatpump_optimizer.dhw_schedule import parse_windows as _parse_w
+
+_c6._thermal_params.dhw_windows = _parse_w("06:00-08:30")
+_asyncio.run(_c6._async_drive_pumps())
+_first_calls = len(_c6.hass.services.calls)
+_asyncio.run(_c6._async_drive_pumps())
+R.check(
+    "the pump is commanded on the first tick and not again without a change",
+    _first_calls == 1 and len(_c6.hass.services.calls) == 1,
+    f"calls {_c6.hass.services.calls}",
+)
+_dom, _svc, _payload = _c6.hass.services.calls[0]
+R.check(
+    "the command names the configured entity and a real on/off service",
+    _payload == {"entity_id": "switch.vvc"}
+    and _svc in ("turn_on", "turn_off"),
+)
+_c7v = _t2_coord()
+_asyncio.run(_c7v._async_drive_pumps())
+R.check(
+    "no configured pump entities means no service call, ever",
+    len(_c7v.hass.services.calls) == 0,
+)
+_c6b = _t2_coord(vvc_pump_entity="switch.vvc")
+_c6b._thermal_params.dhw_enabled = False
+_c6b._pump_commanded["switch.vvc"] = False  # last schedule-driven command
+_asyncio.run(_c6b._async_drive_pumps())
+R.check(
+    "hot water disabled leaves the loop pump ON, never stuck off",
+    _c6b._pump_commanded.get("switch.vvc") is True
+    and len(_c6b.hass.services.calls) == 1
+    and _c6b.hass.services.calls[0][1] == "turn_on",
+    "a configured pump abandoned in its last commanded state is a "
+    "cold-loop trap",
+)
+
+
+async def _failing_call(domain, service, data=None, **kwargs):
+    raise RuntimeError("entity unavailable")
+
+_c6c = _t2_coord(vvc_pump_entity="switch.vvc")
+_c6c._thermal_params.dhw_enabled = False
+_c6c.hass.services.async_call = _failing_call
+_asyncio.run(_c6c._async_drive_pumps())
+R.check(
+    "a failed pump command is retried next tick, not remembered as done",
+    "switch.vvc" not in _c6c._pump_commanded,
+    f"cache {_c6c._pump_commanded} — recording before the call succeeded "
+    "meant one unavailable moment froze the pump state forever",
+)
+
+# --- #47 through the coordinator path (the review's major finding) --------------
+# The ceiling must be None with a young prior even when the user opted
+# in: the mechanism-level None is only real protection if the coordinator
+# actually passes it through.
+_c47 = _t2_coord(dhw_tank_volume=300.0)
+_c47._thermal_params.dhw_enabled = True
+_c47._thermal_params.dhw_elastic_legionella_enabled = True
+_c47._thermal_params.dhw_legionella_enabled = True
+_c47._dhw_last_legionella = dt_util.now() - timedelta(days=5)
+_c47._prices = [{"total": 1.0}] * 24
+_c47._prepare_dhw_inputs(dt_util.now())
+R.check(
+    "elastic opted in with a fresh prior sets NO ceiling",
+    _c47._thermal_params.dhw_legionella_price_ceiling is None,
+    "the young-prior 'ceiling = mean' fired the cycle at the minimum "
+    "interval every time — the opposite of deferring",
+)
+_c47._price_model.days = [30, 30]
+_c47._prepare_dhw_inputs(dt_util.now())
+_ceiling = _c47._thermal_params.dhw_legionella_price_ceiling
+R.check(
+    "a fully trained prior sets a real ceiling at or below the level",
+    _ceiling is not None and _ceiling <= 1.0 + 1e-9,
+    f"got {_ceiling}",
 )
 
 
