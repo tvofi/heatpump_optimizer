@@ -443,6 +443,7 @@
           "wood_tank_top_entity": "Wood tank top sensor (optional)",
           "wood_tank_bottom_entity": "Wood tank bottom sensor (optional)",
           "wood_tank_volume": "Wood tank volume",
+          "dhw_wood_coil_enabled": "Hot water refilled through the wood tank",
           "comfort_learning_enabled": "Learn my comfort preference from overrides",
           "system_identification_enabled": "Allow a one-off measurement experiment"
         },
@@ -456,6 +457,7 @@
           "wood_tank_top_entity": "Together with the bottom sensor this says how much a fire has left. A hot top over a cold bottom means the charge is nearly spent.",
           "wood_tank_bottom_entity": "See the top sensor. Both are needed for the remaining-energy estimate; one alone is read conservatively.",
           "wood_tank_volume": "The wood-side buffer tank, used to bound how much free heat a fire can still deliver.",
+          "dhw_wood_coil_enabled": "The hot water tank's cold-water inlet passes through a coil in the wood buffer tank, so refill water arrives preheated when that tank is hot. Only takes effect when the wood tank is modelled as its own store.",
           "comfort_learning_enabled": "Every time you override the temperature, you are saying the plan went too far in one direction. This slowly adjusts the comfort setting from that. The learned value is shown on its own sensor and there is a button to reset it.",
           "system_identification_enabled": "Lets the optimizer run a small deliberate heating step on a mild, cheap night to measure your house directly, instead of waiting weeks to infer it. The change is kept too small to notice and it stops if the temperature drifts."
         }

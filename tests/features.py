@@ -4352,4 +4352,92 @@ R.check(
 )
 
 
+R.section("DHW refill coil in the wood tank (v3.15.1)")
+
+from heatpump_optimizer.thermal_model import dhw_coil_draw_reduction as _coil
+
+# The reduction and the coil heat are one identity: what the electric side
+# no longer buys is exactly what left the wood tank.
+for _draw, _tw, _sp in ((2.0, 70.0, 55.0), (1.3, 25.0, 55.0), (0.7, 95.0, 50.0)):
+    _red, _q = _coil(_draw, _tw, _sp)
+    R.check(
+        f"coil identity holds at T_w={_tw:.0f}",
+        _red + _q == _draw and 0.0 <= _red <= _draw,
+        f"reduced {_red} + coil {_q} != draw {_draw}",
+    )
+_red_cold, _q_cold = _coil(2.0, 10.0, 55.0)
+R.check(
+    "mains-temperature wood gives no preheat",
+    _red_cold == 2.0 and _q_cold == 0.0,
+    "a 10 C tank cannot warm 10 C water",
+)
+_red_hot, _q_hot = _coil(2.0, 70.0, 55.0)
+R.check(
+    "a 70 C tank at a 55 C setpoint covers two thirds of the draw",
+    abs(_q_hot - 2.0 * (30.0 / 45.0)) < 1e-12,
+    f"t_in = 10 + 0.5*60 = 40, so coil covers (40-10)/(55-10): got {_q_hot}",
+)
+
+_coil_cfg = dict(
+    upper_floor_thermal_mass=2.0,
+    mixing_valve_mode="manual",
+    wood_tank_top_entity="sensor.wood_top",
+    dhw_tank_volume=200.0,
+    dhw_wood_coil_enabled=True,
+)
+_p_coil = ThermalParameters.from_config(_coil_cfg)
+R.check(
+    "the coil activates only on the full stack",
+    _p_coil.dhw_coil_active
+    and not ThermalParameters.from_config(
+        {**_coil_cfg, "dhw_wood_coil_enabled": False}
+    ).dhw_coil_active
+    and not ThermalParameters.from_config(
+        {k: v for k, v in _coil_cfg.items() if k != "wood_tank_top_entity"}
+    ).dhw_coil_active,
+    "option + hot water + two-tank model, each necessary",
+)
+
+def _coil_run(params, wood):
+    m = ThermalModel(params)
+    s = ThermalState(
+        room_temperature=21.0, upper_floor_temperature=21.0,
+        lower_floor_temperature=20.5, slab_temperature=25.0,
+        buffer_tank_temperature=45.0, dhw_temperature=50.0,
+        outdoor_temperature=-5.0, wood_tank_temperature=wood,
+    )
+    n = 24
+    out = m.simulate_trajectory_with_dhw(
+        s, np.full(n, 0.5), np.zeros(n), np.full(n, -5.0),
+        start_hour=6.0, dt_hours=0.25,
+    )
+    return m, out
+
+_p_nocoil = ThermalParameters.from_config(
+    {**_coil_cfg, "dhw_wood_coil_enabled": False}
+)
+_m_on, _out_on = _coil_run(_p_coil, 70.0)
+_m_off, _out_off = _coil_run(_p_nocoil, 70.0)
+R.check(
+    "the coil keeps the hot water warmer on the same schedule",
+    float(_out_on[4][-1]) > float(_out_off[4][-1]),
+    f"dhw ended {_out_on[4][-1]:.2f} with coil vs {_out_off[4][-1]:.2f} "
+    "without: preheated refill water draws less from the tank",
+)
+R.check(
+    "and the preheat genuinely comes out of the wood tank",
+    float(_m_on.last_wood_trajectory[-1])
+    < float(_m_off.last_wood_trajectory[-1]),
+    f"wood ended {_m_on.last_wood_trajectory[-1]:.2f} with the coil vs "
+    f"{_m_off.last_wood_trajectory[-1]:.2f} without",
+)
+_m_flag, _out_flag = _coil_run(_p_coil, None)
+_m_ref2, _out_ref2 = _coil_run(_p_nocoil, None)
+R.check(
+    "an unsensed wood tank disables the coil byte-identically",
+    all(np.array_equal(a, b) for a, b in zip(_out_flag, _out_ref2)),
+    "no probe means no preheat claim, exactly the two-tank rule",
+)
+
+
 sys.exit(R.close("FEATURE CHECKS"))

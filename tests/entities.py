@@ -615,6 +615,23 @@ R.check(
     ", ".join(_unfiltered),
 )
 
+# v3.15.1: the hot water tank refills through a coil in the wood tank. That is
+# plumbing, not a detector setting, so the option lives beside the wood tank it
+# depends on -- an option with no page is an option nobody can turn on.
+_learning_fields = {
+    str(getattr(k, "schema", k)) for k in _pages["learning"].schema
+}
+R.check(
+    "the DHW wood-coil option is offered on the wood tank's own page",
+    const.CONF_DHW_WOOD_COIL_ENABLED in _learning_fields,
+    sorted(_learning_fields),
+)
+R.check(
+    "and it is off unless asked for",
+    _pages["learning"]({}).get(const.CONF_DHW_WOOD_COIL_ENABLED) is False,
+    "a new option that defaults on silently changes every existing install",
+)
+
 
 # ===========================================================================
 # Translations
@@ -659,6 +676,25 @@ R.check(
     sum(1 for k in sv_menu if sv_menu[k] == menu[k]) < len(menu) / 2,
     "placeholder English left in a translation is worse than no translation",
 )
+
+# A boolean whose label is missing renders as the bare config key, which reads
+# like a bug report rather than a question -- and the description is the only
+# place the "needs the two-tank model" precondition is stated.
+_learning = strings["options"]["step"]["learning"]
+for _section in ("data", "data_description"):
+    R.check(
+        f"the DHW wood-coil option has a {_section} entry",
+        const.CONF_DHW_WOOD_COIL_ENABLED in _learning[_section],
+        f"missing from options.step.learning.{_section}",
+    )
+_sv_learning = files["sv"]["options"]["step"]["learning"]
+for _section in ("data", "data_description"):
+    R.check(
+        f"and its Swedish {_section} is a real translation",
+        _sv_learning[_section][const.CONF_DHW_WOOD_COIL_ENABLED]
+        != _learning[_section][const.CONF_DHW_WOOD_COIL_ENABLED],
+        "English copied into sv.json passes the key check and fails the user",
+    )
 
 selectors = strings.get("selector", {})
 for key in ("building_structure", "building_era", "building_foundation", "emitter"):

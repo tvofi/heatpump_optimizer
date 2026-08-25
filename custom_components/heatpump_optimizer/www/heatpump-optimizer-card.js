@@ -10,7 +10,7 @@
  */
 
 const CARD_TAG = "heatpump-optimizer-card";
-const CARD_VERSION = "3.15.0";
+const CARD_VERSION = "3.15.1";
 
 const DEFAULTS = {
   title: "Heat pump plan",
@@ -1270,6 +1270,11 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // Published by `describe_setup`; absent on older descriptions, where
     // false is the right answer because that is the model they ran.
     const twoTank = !!topo.two_tank_modelled;
+    // The hot water tank refills through a coil in the wood tank (v3.15.1).
+    // `describe_setup` only sets this when the coil can actually preheat
+    // anything, so the drawing follows the flag rather than re-deriving the
+    // conditions and risking a picture the model disagrees with.
+    const dhwCoil = !!topo.dhw_wood_coil;
     // With two modelled stores the names have to say which tank is which,
     // and the one valve is the physical 4-way device the wood tank, the
     // heat-pump tank and both floors all meet at.
@@ -1301,7 +1306,8 @@ class HeatpumpOptimizerCard extends HTMLElement {
     }
     box(1, `${tankTitle} (${Math.round(buf.volume_l || 0)} L)`,
       ["buffer_tank"], bufExtra);
-    if (topo.dhw) box(1, "Hot water tank", ["dhw_tank"]);
+    if (topo.dhw) box(1, "Hot water tank", ["dhw_tank"],
+      dhwCoil ? ["refilled through a wood tank coil"] : []);
     box(2, topo.two_zone ? "Upper floor" : "House", ["upper_zone"]);
     if (topo.two_zone) {
       box(2, "Lower floor (slab)", ["lower_zone", "floor_loop"]);
@@ -1369,6 +1375,14 @@ class HeatpumpOptimizerCard extends HTMLElement {
         "woodvalve-buffer"));
       parts.push(line(find("Wood furnace tank"), find("Wood mixing valve"),
         "wood-woodvalve"));
+    }
+    // A second, separate path out of the wood tank: mains water on its way
+    // into the hot water tank, not heating water on its way to the house.
+    // No other edge stands for it, so without this pipe the diagram shows a
+    // hot water tank that the wood tank cannot reach.
+    if (dhwCoil) {
+      parts.push(line(find("Wood furnace tank"), find("Hot water tank"),
+        "wood-dhw"));
     }
     parts.push(line(supplyBox, houseBox, `${supplyName}-upper`));
     if (valve) parts.push(line(bufferBox, supplyBox, "buffer-valve"));

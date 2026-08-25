@@ -712,6 +712,13 @@ wood tank at the end of the day is counted in the savings settlement and the
 storage battery view, at up to 95 °C. Without the probe — or if it goes stale
 — everything falls back to exactly the previous behaviour.
 
+If your hot water tank refills **through a coil immersed in the wood tank**,
+enable *Hot water refilled through the wood tank* on the learning page
+(v3.15.1, off by default): refill water then enters preheated whenever the
+modelled wood tank is warm, each draw costs less electricity, and exactly
+that heat is drawn out of the wood tank. Only acts while the wood tank is
+modelled as its own store.
+
 Off by default: most users have no such source, and a feature that cannot save
 them anything should not be able to cost them anything.
 

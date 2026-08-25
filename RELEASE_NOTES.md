@@ -1,5 +1,36 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v3.15.1
+
+### Hot water refilled through the wood tank
+
+Some two-tank installations refill the hot water tank through a coil
+immersed in the wood buffer tank, so cold mains water arrives preheated
+whenever that tank is hot. A new option on the learning page — *Hot water
+refilled through the wood tank*, off by default — tells the model about
+that plumbing.
+
+With it on, every hot-water draw costs less electricity while the wood
+tank is warm: the refill water enters at the coil's outlet temperature
+instead of at mains temperature, the electric side only covers the
+remaining rise, and exactly the difference is drawn out of the modelled
+wood tank — the reduction and the coil heat are one identity, so energy
+is conserved by construction. A 70 °C wood tank against a 55 °C hot-water
+setpoint covers about two thirds of each draw. The savings baseline gets
+the identical coil (the plumbing is not optimizer cleverness), evaluated
+generously in the baseline's favour, so reported savings err low.
+
+The coil only acts when the wood tank is modelled as its own store
+(v3.15.0): it needs a real tank temperature to compute a preheat from. No
+probe, or a stale one, and everything behaves exactly as before. The
+Setup diagram draws the coil as its own pipe from the wood tank to the
+hot water tank, with a caption on the tank it preheats.
+
+Coil effectiveness is a deliberately conservative constant (half the
+tank-to-mains temperature difference) — a generous value would promise
+free hot water a mediocre coil cannot deliver, and the failure directions
+are not symmetric.
+
 ## v3.15.0
 
 ### Two tanks, modelled as two tanks

@@ -171,6 +171,25 @@ WOOD_TANK_MIN_MARGIN: Final = 2.0  # °C
 # from planning against steam.
 WOOD_TANK_MAX_TEMP: Final = 95.0  # °C
 
+# --- DHW refill coil in the wood tank (v3.15.1, issue #40) ------------------
+#
+# The owner's DHW tank refills through a coil immersed in the wood buffer
+# tank, so incoming mains water arrives preheated when that tank is hot.
+# Off by default; only acts when the wood tank is modelled as its own store
+# (the preheat depends on a real wood-tank temperature).
+CONF_DHW_WOOD_COIL_ENABLED: Final = "dhw_wood_coil_enabled"
+DEFAULT_DHW_WOOD_COIL_ENABLED: Final = False
+# Heat-exchanger effectiveness: the fraction of the wood-tank-to-mains
+# temperature difference the coil recovers. Deliberately conservative — a
+# generous value would promise free hot water a mediocre coil cannot
+# deliver, and the failure directions are not symmetric. Constant, not
+# config, until someone measures a real coil; no learner in v1.
+DHW_WOOD_COIL_EFFECTIVENESS: Final = 0.5
+# The mains temperature the DHW draw model already assumes (thermal_model's
+# dhw_draw_power heats from ~10 °C) — named so the coil math and the draw
+# model cannot quietly disagree about the cold end.
+DHW_COLD_WATER_TEMP: Final = 10.0  # °C
+
 # --- Topology layout keys (issue #40) --------------------------------------
 #
 # Named hydronic layouts. v3.15.0 uses them to gate the two-tank model; the

@@ -27,6 +27,7 @@ from . import mixing_valve
 from .const import (
     CONF_BUFFER_TANK_TEMP_ENTITY,
     CONF_DHW_TEMP_ENTITY,
+    CONF_DHW_WOOD_COIL_ENABLED,
     CONF_ENERGY_ENTITY,
     CONF_EXTERNAL_HEAT_ENABLED,
     CONF_EXTERNAL_HEAT_ENTITY,
@@ -157,6 +158,12 @@ def describe_setup(config: dict[str, Any]) -> dict[str, Any]:
         # rather than re-deriving "is there a wood tank" for themselves.
         "layout": p.topology_layout,
         "two_tank_modelled": two_tank,
+        # Additive (v3.15.1): the DHW tank refills through a coil in the wood
+        # tank. Read from the model's own gate rather than re-derived, so the
+        # coil is drawn only when it can actually preheat anything — the
+        # option alone, without hot water and a modelled wood tank, changes
+        # no physics and must therefore change no picture.
+        "dhw_wood_coil": p.dhw_coil_active,
         "buffer": {
             "volume_l": p.buffer_tank_volume,
             "is_store": p.buffer_is_store,
@@ -231,6 +238,11 @@ def render_text_summary(setup: dict[str, Any]) -> str:
 
     if setup["dhw"]:
         dhw = ["Hot water tank"]
+        # Absent on descriptions captured before v3.15.1, and absent is the
+        # right rendering for those: no coil, so nothing to say. Placed like
+        # the wood tank's caption, immediately under the heading it qualifies.
+        if setup.get("dhw_wood_coil"):
+            dhw.append("  (refilled through a coil in the wood tank)")
         dhw += _slot_lines(setup, "dhw_tank")
         parts.append("\n".join(dhw))
 

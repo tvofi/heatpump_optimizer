@@ -159,6 +159,8 @@ from .const import (
     CONF_WOOD_TANK_BOTTOM_ENTITY,
     CONF_WOOD_TANK_VOLUME,
     DEFAULT_WOOD_TANK_VOLUME,
+    CONF_DHW_WOOD_COIL_ENABLED,
+    DEFAULT_DHW_WOOD_COIL_ENABLED,
     CONF_PRICE_PRIOR_ENABLED,
     DEFAULT_PRICE_PRIOR_ENABLED,
     CONF_PEAK_TARIFF_ENABLED,
@@ -1592,6 +1594,17 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
                             CONF_WOOD_TANK_VOLUME, DEFAULT_WOOD_TANK_VOLUME
                         ),
                     ): _number(50, 3000, 50, "L", slider=True),
+                    # Part of the wood-tank topology block, not of the
+                    # detector: it says how the DHW tank is plumbed to that
+                    # tank. Only bites with the two-tank model, which is why
+                    # it sits beside the tank it depends on (v3.15.1).
+                    vol.Optional(
+                        CONF_DHW_WOOD_COIL_ENABLED,
+                        default=current.get(
+                            CONF_DHW_WOOD_COIL_ENABLED,
+                            DEFAULT_DHW_WOOD_COIL_ENABLED,
+                        ),
+                    ): bool,
                     vol.Optional(
                         CONF_COMFORT_LEARNING_ENABLED,
                         default=current.get(
