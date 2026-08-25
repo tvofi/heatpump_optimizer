@@ -1454,6 +1454,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         dt_hours: float,
         threshold: float = 0.05,
         reasons: list[str] | None = None,
+        other_powers: list[float] | None = None,
     ) -> list[dict[str, Any]]:
         """Collapse a per-step power schedule into contiguous heating slots.
 
@@ -1464,6 +1465,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
         Each slot also carries the reason code that dominates it, so an
         unexpected slot is no longer indistinguishable from a bug.
+
+        ``other_powers`` is the OTHER channel's schedule (hot water when
+        these are space steps, and vice versa). Where both are active in
+        the same step the pump is time-sharing the quarter hour — a
+        deliberate relaxation, not double-booking — and the slot says so
+        via ``shared_kwh``: the other channel's energy inside this slot's
+        shared steps. Zero-overlap slots carry no key, so captures without
+        overlap are unchanged.
         """
         slots: list[dict[str, Any]] = []
         start_idx: int | None = None
@@ -1488,6 +1497,16 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 "avg_price": (round(cost / energy, 4) if energy > 1e-9 else 0.0),
                 "cost": round(cost, 2),
             }
+            if other_powers is not None:
+                shared = sum(
+                    other_powers[i]
+                    for i in span
+                    if i < len(other_powers)
+                    and other_powers[i] > threshold
+                    and powers[i] > threshold
+                ) * dt_hours
+                if shared > 1e-9:
+                    slot["shared_kwh"] = round(shared, 3)
             if reasons:
                 codes = [
                     reasons[i]
@@ -1560,6 +1579,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             raw_prices,
             dt_hours,
             reasons=result.space_reasons,
+            other_powers=raw_dhw,
         )
         dhw_slots = self._plan_slots(
             timestamps,
@@ -1567,6 +1587,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             raw_prices,
             dt_hours,
             reasons=result.dhw_reasons,
+            other_powers=raw_space,
         )
 
         def reason_at(codes: list[str], index: int) -> str | None:

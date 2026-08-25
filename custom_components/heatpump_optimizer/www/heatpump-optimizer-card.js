@@ -1711,9 +1711,40 @@ class HeatpumpOptimizerCard extends HTMLElement {
     if (!st || st.state === "unavailable" || st.state === "unknown") {
       return "unavailable";
     }
+    // HA's own formatter applies the user's unit system and any per-entity
+    // display override, so a natively-°F probe reads in °C on a metric
+    // install here exactly as it does everywhere else in the frontend.
+    // Raw state + unit stays as the fallback for older frontends.
+    if (this._hass && typeof this._hass.formatEntityState === "function") {
+      try {
+        const formatted = this._hass.formatEntityState(st);
+        if (formatted) return formatted;
+      } catch (e) {
+        // fall through to the raw concatenation
+      }
+    }
     const unit =
       (st.attributes && st.attributes.unit_of_measurement) || "";
     return `${st.state}${unit ? " " + unit : ""}`;
+  }
+
+  /** The irradiance the plan actually runs on when no sensor is configured.
+   *
+   * The Outside box used to say "not configured" while the plan solved
+   * against Open-Meteo or weather-derived irradiance every cycle — a value
+   * in active use displayed as absent. The solar plan sensor carries both
+   * the number and its source, so show them, tagged so nobody mistakes a
+   * forecast for a roof sensor.
+   */
+  _solarFallback() {
+    const st = this._stateOf(this._resolveEntity("solar"));
+    if (!st) return null;
+    const v = Number(st.state);
+    if (!Number.isFinite(v)) return null;
+    const source = (st.attributes || {}).source;
+    if (!source) return null;
+    const label = source === "open_meteo" ? "Open-Meteo" : "weather forecast";
+    return `${Math.round(v)} W/m² · ${label}`;
   }
 
   _setupSvg(topo) {
@@ -1971,8 +2002,18 @@ class HeatpumpOptimizerCard extends HTMLElement {
       let y = b.y + 20 + rowH;
       for (const s of b.rows) {
         const live = this._slotLive(s);
-        const cls = s.entity ? "setup-slot" : "setup-slot empty";
-        const value = live === null ? "not configured" : live;
+        let cls = s.entity ? "setup-slot" : "setup-slot empty";
+        let value = live === null ? "not configured" : live;
+        // A value the plan actively uses must never read as absent: with no
+        // radiation sensor the irradiance still comes from Open-Meteo or
+        // the weather forecast, and the box says which.
+        if (live === null && s.key === "solar_radiation_entity") {
+          const fallback = this._solarFallback();
+          if (fallback) {
+            value = fallback;
+            cls = "setup-slot";
+          }
+        }
         // The label and the right-anchored value share one 200-unit row;
         // SVG text does not wrap, so a long label runs straight into the
         // value. Trim the label instead — the full name is in the options
@@ -2960,6 +3001,13 @@ class HeatpumpOptimizerCard extends HTMLElement {
         }
         .tooltip .tt-row { display: flex; align-items: center; gap: 6px; }
         .tooltip .tt-time { font-weight: 600; margin-bottom: 3px; }
+        .tooltip .tt-shared {
+          margin-top: 3px;
+          font-size: 0.85em;
+          font-style: italic;
+          color: var(--secondary-text-color, #888);
+          max-width: 180px;
+        }
         .tooltip .tt-reason {
           margin-top: 4px; padding-top: 4px; font-style: italic;
           border-top: 1px solid var(--divider-color, #eee);
@@ -3507,6 +3555,17 @@ class HeatpumpOptimizerCard extends HTMLElement {
     } else {
       this._geom = null;
     }
+
+    // Where BOTH circuits are planned in the same quarter hour the pump is
+    // time-sharing the step — hot water first, then heating. That is a
+    // deliberate relaxation (space + hot water ≤ nameplate per step), not
+    // double-booking, and two full-height bars with nothing said implied
+    // the impossible. Drawn under the bars so the bars stay readable.
+    // The builder's own series list, not this._series: the field may not
+    // be assigned yet on the first render.
+    parts.push(
+      this._sharedSpanBands(visible, scaleX, plotT, plotB, plotL, plotR)
+    );
 
     // Series paths (filled/area series first, lines on top)
     const order = ["stepArea", "stepBars", "smooth"];
@@ -4574,6 +4633,64 @@ class HeatpumpOptimizerCard extends HTMLElement {
     return out.join("");
   }
 
+  /** Hatched bands over every span where space and hot water share steps.
+   *
+   * Only when both power series are visible — hiding a channel hides its
+   * half of the story, and a band explaining an invisible series would be
+   * noise. The native <title> answers the "is this double-booking?"
+   * question right where it is asked.
+   */
+  _sharedSpanBands(seriesList, scaleX, plotT, plotB, plotL, plotR) {
+    const powerSeries = (field) =>
+      (seriesList || []).find(
+        (s) => s.field === field && s.visible && s.hasData
+      );
+    const space = powerSeries("space_power");
+    const dhw = powerSeries("dhw_power");
+    if (!space || !dhw) return "";
+    const pointsOf = (s) => {
+      const line = s.lines.find((l) => l.primary) || s.lines[0];
+      return line ? line.points : [];
+    };
+    const spacePts = pointsOf(space);
+    const dhwPts = pointsOf(dhw);
+    if (spacePts.length < 2 || dhwPts.length < 2) return "";
+    const spaceAt = new Map(spacePts.map((p) => [p.t, p.v]));
+    let step = Infinity;
+    for (let i = 1; i < dhwPts.length; i++) {
+      step = Math.min(step, dhwPts[i].t - dhwPts[i - 1].t);
+    }
+    if (!Number.isFinite(step) || step <= 0) return "";
+    const spans = [];
+    for (const p of dhwPts) {
+      const sv = spaceAt.get(p.t);
+      if (p.v > 0.05 && sv !== undefined && sv > 0.05) {
+        const last = spans[spans.length - 1];
+        if (last && p.t <= last.end + step / 2) last.end = p.t + step;
+        else spans.push({ start: p.t, end: p.t + step });
+      }
+    }
+    if (!spans.length) return "";
+    const out = [
+      `<defs><pattern id="hpoShared" width="6" height="6"
+        patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+        <line x1="0" y1="0" x2="0" y2="6"
+          stroke="var(--secondary-text-color,#888)" stroke-width="1.4"/>
+      </pattern></defs>`,
+    ];
+    for (const span of spans) {
+      const x1 = Math.max(plotL, scaleX(span.start));
+      const x2 = Math.min(plotR, scaleX(span.end));
+      if (x2 <= x1) continue;
+      out.push(`<rect class="shared-band" x="${x1}" y="${plotT}" width="${
+        x2 - x1
+      }" height="${plotB - plotT}" fill="url(#hpoShared)" fill-opacity="0.18">
+        <title>Space heating and hot water share these quarter hours: the pump alternates circuits within each step, hot water first. Their combined power never exceeds the heat pump's maximum — this is time-sharing, not double-booking.</title>
+      </rect>`);
+    }
+    return out.join("");
+  }
+
   _onPointerMove(ev) {
     if (!this._plot) return;
     const svg = ev && ev.currentTarget;
@@ -4624,6 +4741,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
           value: best.v,
           unit: s.unit,
           t: best.t,
+          field: s.field,
           reason: best.reason,
           priceKnown: best.priceKnown,
         });
@@ -4650,6 +4768,18 @@ class HeatpumpOptimizerCard extends HTMLElement {
         hour: "2-digit",
         minute: "2-digit",
       });
+      // A step carrying both circuits is the pump splitting the quarter
+      // hour, and the tooltip is where that question is actually asked.
+      const rowByField = (f) => rows.find((r) => r.field === f);
+      const spaceRow = rowByField("space_power");
+      const dhwRow = rowByField("dhw_power");
+      const sharedHtml =
+        spaceRow && dhwRow && spaceRow.value > 0.05 && dhwRow.value > 0.05
+          ? `<div class="tt-shared">Shared step: the pump alternates
+              circuits — hot water first. Combined
+              ${esc(fmtTick(spaceRow.value + dhwRow.value))} kW stays under
+              the pump's maximum.</div>`
+          : "";
       const bodyHtml =
         `<div class="tt-time">${esc(time)}</div>` +
         rows
@@ -4660,6 +4790,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
               )}: ${esc(fmtTick(r.value))} ${esc(r.unit)}</div>`
           )
           .join("") +
+        sharedHtml +
         this._reasonHtml(rows);
       tt.innerHTML = bodyHtml;
       tt.hidden = false;

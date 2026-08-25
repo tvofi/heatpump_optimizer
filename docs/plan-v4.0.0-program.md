@@ -559,7 +559,25 @@ mutations (cold snap ⇒ pump on regardless). README 49→52.
 
 ---
 
-## T3b — Shared-step honesty (small PR between T3 and T4) · user-reported
+## T3b — Shared-step honesty (small PR between T3 and T4) · user-reported · **executed**
+
+*Outcome notes:* built as scoped. The chart marks shared spans with a
+hatched band (drawn under the bars, only while both power series are
+visible — a hidden channel takes its half of the story with it) whose
+native tooltip and the hover tooltip both say "the pump alternates
+circuits, hot water first"; `_plan_slots` gained the additive
+`shared_kwh` (the other channel's energy inside a slot's shared steps,
+absent when zero, and callers that pass no other channel produce the
+pre-T3b slot byte for byte); the README explains the time-share at the
+capacity diagram. The solar fallback reads the solar plan sensor's own
+state + source tag ("120 W/m² · Open-Meteo" / "weather forecast"), so
+"not configured" now only ever describes a value the plan truly lacks.
+Slot rows prefer `hass.formatEntityState` — the user's unit system and
+display overrides apply exactly as everywhere else in the frontend —
+with the raw concatenation kept for older frontends. One test-harness
+lesson recorded: the chart's default view window clips the horizon's
+first hours, so fixtures that doctor overlap steps must place them deep
+enough to be visible.
 
 *Reported on v3.16.0:* the card shows hot water and space heating planned
 in the same period even at maximum zoom, and the user could not tell

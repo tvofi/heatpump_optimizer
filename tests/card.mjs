@@ -2386,5 +2386,131 @@ check("the hand-scheduled reason has a label",
     "slot rows scaled to a 380px dialog are too small to read or tap");
 }
 
+// --- Scenario: shared-step honesty (T3b, user report on v3.16.0) -----------
+// The optimizer plans space + hot water in the same quarter hour as a
+// time-share (their sum stays under nameplate). Two full-height bars with
+// nothing said implied double-booking; the chart must mark shared spans
+// and say what they are.
+{
+  const clone = (o) => JSON.parse(JSON.stringify(o));
+  const states = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  const spFc = clone(plan.space_plan.forecast);
+  const dwFc = clone(plan.dhw_plan.forecast);
+  // Doctor three consecutive steps into a guaranteed overlap — placed
+  // deep enough into the horizon to sit inside the default view window,
+  // which clips the first hours.
+  for (const i of [40, 41, 42]) {
+    if (spFc[i]) spFc[i].space_power = 2.0;
+    if (dwFc[i]) dwFc[i].dhw_power = 3.0;
+  }
+  states[DEFAULT_SPACE].attributes.forecast = spFc;
+  states[DEFAULT_DHW].attributes.forecast = dwFc;
+  const sh = build(states);
+  const shDump = collect(sh.shadowRoot).join("\n");
+  check("shared quarter hours are marked with a hatched band",
+    /shared-band/.test(shDump) && /hpoShared/.test(shDump));
+  check("the band explains itself: time-sharing, not double-booking",
+    /alternates circuits/.test(shDump) && /not double-booking/.test(shDump));
+
+  // Control: with hot water flat off there is nothing to mark.
+  const off = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  const dwOff = clone(plan.dhw_plan.forecast);
+  for (const p of dwOff) p.dhw_power = 0.0;
+  off[DEFAULT_DHW].attributes.forecast = dwOff;
+  const shOff = build(off);
+  check("no overlap, no band",
+    !/shared-band/.test(collect(shOff.shadowRoot).join("\n")));
+
+  // Hiding one channel hides its half of the story: no orphan bands.
+  const hid = build(states);
+  hid._hidden = { dhw_slots: true };
+  hid._render();
+  check("a hidden channel takes its shared bands with it",
+    !/shared-band/.test(collect(hid.shadowRoot).join("\n")));
+}
+
+// --- Scenario: the Outside box and the plan's real irradiance (T3b) --------
+// With no radiation sensor configured the plan still runs on Open-Meteo or
+// weather-derived irradiance every cycle; the setup diagram used to call
+// that "not configured".
+{
+  const TEMP = ["sensor", "number", "input_number"];
+  const mkTopo = () => ({
+    two_zone: false, dhw: false, valve_mode: "none",
+    buffer: { volume_l: 200, is_store: false, max_temp: 60 },
+    wood: { present: false },
+    edges: [["heat_pump", "buffer_tank"], ["buffer_tank", "upper_zone"]],
+    slots: [
+      { key: "solar_radiation_entity", label: "Solar radiation",
+        place: "outdoor", entity: null, domains: TEMP },
+      { key: "outdoor_temp_entity", label: "Outdoor temperature",
+        place: "outdoor", entity: null, domains: TEMP },
+    ],
+  });
+  const states = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  states[DEFAULT_SPACE].attributes.setup_topology = mkTopo();
+  const su = build(states);
+  su._onCardClick({});
+  su._dialogPage = "setup";
+  su._render();
+  const page = collect(su.shadowRoot).join("\n");
+  check("an unconfigured solar slot shows the irradiance the plan uses",
+    /120 W\/m² · Open-Meteo/.test(page));
+  check("only the genuinely absent slot reads as not configured",
+    (page.match(/not configured/g) || []).length === 1,
+    "the solar row has a fallback; the outdoor temperature row does not");
+
+  // Without any irradiance source the old answer is the right one.
+  const bare = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  delete bare[SOLAR_ID];
+  bare[DEFAULT_SPACE].attributes.setup_topology = mkTopo();
+  const suBare = build(bare);
+  suBare._onCardClick({});
+  suBare._dialogPage = "setup";
+  suBare._render();
+  check("no source at all still says not configured",
+    !/W\/m² ·/.test(collect(suBare.shadowRoot).join("\n")));
+}
+
+// --- Scenario: slot values follow the user's unit system (T3b) -------------
+// A natively-°F probe read raw showed °F on a metric install while every
+// other HA surface converts. The card must prefer the frontend's own
+// formatter and keep the raw concatenation only as a fallback.
+{
+  const TEMP = ["sensor", "number", "input_number"];
+  const topo = {
+    two_zone: false, dhw: false, valve_mode: "none",
+    buffer: { volume_l: 200, is_store: false, max_temp: 60 },
+    wood: { present: true, volume_l: 500 },
+    edges: [["heat_pump", "buffer_tank"], ["buffer_tank", "upper_zone"],
+      ["wood_tank", "buffer_tank"]],
+    slots: [
+      { key: "wood_tank_top_entity", label: "Wood tank top",
+        place: "wood_tank", entity: "sensor.wood_top", domains: TEMP },
+    ],
+  };
+  const states = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  states[DEFAULT_SPACE].attributes.setup_topology = topo;
+  states["sensor.wood_top"] = {
+    state: "140.0", attributes: { unit_of_measurement: "°F" } };
+
+  const fmt = build(states);
+  fmt.hass = { states, formatEntityState: (st) =>
+    st === states["sensor.wood_top"] ? "60.0 °C" : `${st.state}` };
+  fmt._onCardClick({});
+  fmt._dialogPage = "setup";
+  fmt._render();
+  const fmtPage = collect(fmt.shadowRoot).join("\n");
+  check("the frontend's formatter wins: the probe reads in the user's units",
+    /60\.0 °C/.test(fmtPage) && !/140\.0 °F/.test(fmtPage));
+
+  const raw = build(states);
+  raw._onCardClick({});
+  raw._dialogPage = "setup";
+  raw._render();
+  check("an older frontend without the formatter still gets the raw value",
+    /140\.0 °F/.test(collect(raw.shadowRoot).join("\n")));
+}
+
 console.log(fails ? `\n${fails} CARD CHECK(S) FAILED` : "\nALL CARD CHECKS PASSED");
 process.exit(fails?1:0);

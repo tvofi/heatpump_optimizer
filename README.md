@@ -216,6 +216,17 @@ Heat Pump Capacity: 5 kW total
     Total:         ≤ 5 kW (capacity constraint)
 ```
 
+A quarter-hour step can carry **both** loads, and on the card's plan you
+will see the two blocks overlap even at maximum zoom. That is not
+double-booking: a step planned as 4 kW hot water + 1 kW space heating on a
+5 kW pump means the pump splits that quarter hour between the circuits —
+the diverter valve serves one circuit at any instant and alternates, hot
+water first. The combined power never exceeds the pump's maximum, and the
+card marks shared steps with a hatched band and says so in the tooltip.
+Enforcing "one circuit per step" instead would make the plan strictly
+worse for no physical gain — the pump alternates within the step either
+way.
+
 #### Demand time frames
 
 Hot water is only *required* during the time frames you configure — for example
