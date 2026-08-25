@@ -719,6 +719,14 @@ modelled wood tank is warm, each draw costs less electricity, and exactly
 that heat is drawn out of the wood tank. Only acts while the wood tank is
 modelled as its own store.
 
+And if the drawn layout still does not match your plumbing, **edit it**
+(v3.16.0): the Setup page's *Edit layout* mode lets you drag boxes and
+pipes, tells you live which supported layout your drawing is, and saves the
+layout so the model runs exactly that physics. Only layouts from the
+supported catalog can be saved — a drawing the model cannot honor is
+refused with an explanation of what differs — so the picture and the
+physics can never disagree again.
+
 Off by default: most users have no such source, and a feature that cannot save
 them anything should not be able to cost them anything.
 

@@ -513,6 +513,38 @@ assign_entity:
       selector:
         text:
 
+apply_topology:
+  name: Apply Topology Layout
+  description: >-
+    Store the hydronic layout the setup diagram's editor snapped to, plus the
+    cosmetic box positions. Only layouts from the supported catalog are
+    accepted, and only when this system's configuration can honor them — a
+    two-tank layout needs a wood-tank probe, a valved layout needs a valve.
+    Changing the configuration reloads the integration.
+  fields:
+    layout:
+      name: Layout
+      description: >-
+        The catalog key of the layout - for example two_tank_4way or
+        valve_upper_direct_slab.
+      required: true
+      example: two_tank_4way
+      selector:
+        text:
+    positions:
+      name: Box positions
+      description: >-
+        Cosmetic diagram positions, as a mapping from place name to [x, y].
+        Never affects the physics.
+      selector:
+        object:
+    entry_id:
+      name: Config entry
+      description: >-
+        Restrict the change to one heat pump. Omit to apply to all of them.
+      selector:
+        text:
+
 apply_schedule:
   name: Apply Schedule
   description: >-

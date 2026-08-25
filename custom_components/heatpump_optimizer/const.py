@@ -193,13 +193,65 @@ DHW_COLD_WATER_TEMP: Final = 10.0  # °C
 # --- Topology layout keys (issue #40) --------------------------------------
 #
 # Named hydronic layouts. v3.15.0 uses them to gate the two-tank model; the
-# v3.16.0 catalog will carry one entry per key (edge set, required slots,
+# v3.16.0 catalog carries one entry per key (edge set, required slots,
 # model variant) so the editor, the diagram and the model dispatch share one
 # vocabulary. Strings, not an enum, because they are stored in config
 # options and shown in diagnostics.
 TOPOLOGY_NO_VALVE: Final = "no_valve"
 TOPOLOGY_SINGLE_TANK_VALVE: Final = "single_tank_valve"
 TOPOLOGY_TWO_TANK_4WAY: Final = "two_tank_4way"
+# The layout the pre-v3.14.1 drawing showed; some houses genuinely have it
+# (valve on the radiator circuit, slab fed direct from the tank).
+TOPOLOGY_VALVE_UPPER_DIRECT_SLAB: Final = "valve_upper_direct_slab"
+# Known, not yet modelled: drawable in the catalog, selectable never, until
+# physics exists for a shunt on the slab circuit.
+TOPOLOGY_SLAB_SHUNT: Final = "slab_shunt"
+
+# The user's chosen layout (v3.16.0). Absent = the derived default, so
+# untouched installs are byte-identical. Only catalog keys whose
+# requirements the configuration meets are ever stored (the apply_topology
+# service validates), and a stored key that stops being valid — the valve
+# mode changed, the probe was removed — falls back to the derived default
+# rather than erroring.
+CONF_TOPOLOGY_LAYOUT: Final = "topology_layout"
+# Cosmetic box positions from the layout editor, {place: [x, y]}. Never
+# affects physics; free-form edges are never stored — snapping means the
+# drawn edge set is matched against the catalog and only the KEY is saved.
+CONF_TOPOLOGY_POSITIONS: Final = "topology_positions"
+
+
+def topology_layout_valid(
+    key: str, *, two_zone: bool, throttling: bool, wood_probe: bool
+) -> bool:
+    """Whether a stored layout key is honest for this configuration.
+
+    Lives here, beside the keys, because both ``ThermalParameters`` (model
+    dispatch) and ``topology`` (catalog, service validation) need the same
+    answer and importing either from the other is circular. A key is valid
+    when the model variant it names can actually run on what is configured:
+
+    * ``no_valve`` — no throttling valve (with one, delivery IS throttled
+      and drawing it otherwise would lie);
+    * ``single_tank_valve`` — a throttling valve. Deliberately valid even
+      when the two-tank layout is available: storing it is the user's
+      off-switch for the two-tank model;
+    * ``two_tank_4way`` — valve + two zones + a real wood-tank probe (the
+      v3.15.0 gate, unchanged);
+    * ``valve_upper_direct_slab`` — valve + two zones, and NO wood probe:
+      no model variant exists for two tanks with a direct-fed slab, and a
+      catalog that accepted the combination would be promising physics
+      nobody wrote;
+    * ``slab_shunt`` — never: recorded as known-but-unmodelled.
+    """
+    if key == TOPOLOGY_NO_VALVE:
+        return not throttling
+    if key == TOPOLOGY_SINGLE_TANK_VALVE:
+        return throttling
+    if key == TOPOLOGY_TWO_TANK_4WAY:
+        return throttling and two_zone and wood_probe
+    if key == TOPOLOGY_VALVE_UPPER_DIRECT_SLAB:
+        return throttling and two_zone and not wood_probe
+    return False
 
 
 # --- Unknown price horizon (item 7) ----------------------------------------
@@ -306,6 +358,10 @@ SERVICE_APPLY_SCHEDULE: Final = "apply_schedule"
 # validated service is a far smaller surface than a second frontend with its
 # own hand-rolled config-write path.
 SERVICE_ASSIGN_ENTITY: Final = "assign_entity"
+# Store the layout the user chose in the card's editor (v3.16.0), plus the
+# cosmetic box positions. Mirrors assign_entity's discipline: server-side
+# validation, an options write, the ordinary reload.
+SERVICE_APPLY_TOPOLOGY: Final = "apply_topology"
 # Manual plan override: pin *when* the pump runs, safety permitting.
 SERVICE_APPLY_MANUAL_PLAN: Final = "apply_manual_plan"
 SERVICE_CLEAR_MANUAL_PLAN: Final = "clear_manual_plan"

@@ -1629,6 +1629,18 @@ check("the hand-scheduled reason has a label",
     two_zone: true, dhw: true, valve_mode: "manual",
     buffer: { volume_l: 750, is_store: true, max_temp: 70 },
     wood: { present: true, volume_l: 500 },
+    // v3.16.0: the coordinator publishes the active layout's drawn edges and
+    // the card draws those, rather than hardcoding pipes that can drift from
+    // the physics. This is what `describe_setup` sends for a single-tank
+    // house with a throttling valve, two zones and a wood furnace.
+    edges: [
+      ["heat_pump", "buffer_tank"],
+      ["buffer_tank", "mixing_valve"],
+      ["mixing_valve", "upper_zone"],
+      ["mixing_valve", "lower_zone"],
+      ["wood_tank", "wood_valve"],
+      ["wood_valve", "buffer_tank"],
+    ],
     slots: [
       { key: "indoor_temp_entity", label: "Indoor temperature",
         place: "upper_zone", entity: "sensor.livingroom", domains: TEMP },
@@ -1680,9 +1692,34 @@ check("the hand-scheduled reason has a label",
     (html.match(/data-edge="([^"]+)"/g) || []).map((m) => m.slice(11, -1));
   const drawn = edges(setupPage);
   check("with a valve, one shared flow feeds both floors",
-    drawn.includes("valve-upper") && drawn.includes("valve-lower") &&
-    drawn.includes("buffer-valve") && !drawn.includes("buffer-lower"),
+    drawn.includes("mixing_valve>upper_zone") &&
+    drawn.includes("mixing_valve>lower_zone") &&
+    drawn.includes("buffer_tank>mixing_valve") &&
+    !drawn.includes("buffer_tank>lower_zone"),
     `edges drawn: ${drawn.join(", ")}`);
+  check("and the wood chain is drawn from the published edges",
+    drawn.includes("wood_tank>wood_valve") &&
+    drawn.includes("wood_valve>buffer_tank"),
+    `edges drawn: ${drawn.join(", ")}`);
+  {
+    // An older coordinator publishes no `edges` at all. The card must fall
+    // back to the drawing it has always made rather than showing a system
+    // with no plumbing in it.
+    const legacyTopo = JSON.parse(JSON.stringify(topo));
+    delete legacyTopo.edges;
+    const lgStates = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+    lgStates[DEFAULT_SPACE].attributes.setup_topology = legacyTopo;
+    const lg = build(lgStates);
+    lg._onCardClick({});
+    lg._dialogPage = "setup";
+    lg._render();
+    const lgDrawn = edges(collect(lg.shadowRoot).join("\n"));
+    check("a coordinator that publishes no edges still gets the old drawing",
+      ["hp-buffer", "buffer-valve", "valve-upper", "valve-lower",
+        "wood-woodvalve", "woodvalve-buffer"].every((e) =>
+        lgDrawn.includes(e)) && !lgDrawn.some((e) => e.includes(">")),
+      `edges drawn: ${lgDrawn.join(", ")}`);
+  }
   // The caption is wrapped across rows (SVG text does not wrap itself), so
   // match its fragments rather than the whole sentence.
   check("the wood box admits the single-tank abstraction",
@@ -1698,6 +1735,15 @@ check("the hand-scheduled reason has a label",
     twoTank.two_tank_modelled = true;
     twoTank.layout = "two_tank_4way";
     twoTank.valve_mode = "manual";
+    // What `describe_setup` composes for `two_tank_4way`: both stores into
+    // the one 4-way valve, and no wood chain at all.
+    twoTank.edges = [
+      ["heat_pump", "buffer_tank"],
+      ["buffer_tank", "mixing_valve"],
+      ["wood_tank", "mixing_valve"],
+      ["mixing_valve", "upper_zone"],
+      ["mixing_valve", "lower_zone"],
+    ];
     twoTank.slots.push(
       { key: "mixing_valve_target_entity", label: "Valve target",
         place: "mixing_valve", entity: null, domains: TEMP },
@@ -1714,11 +1760,12 @@ check("the hand-scheduled reason has a label",
     const ttPage = collect(tt.shadowRoot).join("\n");
     const ttDrawn = edges(ttPage);
     check("the two-tank drawing runs both stores into one 4-way valve",
-      ["hp-buffer", "wood-valve", "buffer-valve", "valve-upper",
-        "valve-lower"].every((e) => ttDrawn.includes(e)) &&
-      !ttDrawn.includes("woodvalve-buffer") &&
-      !ttDrawn.includes("wood-woodvalve") &&
-      !ttDrawn.includes("buffer-lower"),
+      ["heat_pump>buffer_tank", "wood_tank>mixing_valve",
+        "buffer_tank>mixing_valve", "mixing_valve>upper_zone",
+        "mixing_valve>lower_zone"].every((e) => ttDrawn.includes(e)) &&
+      !ttDrawn.includes("wood_valve>buffer_tank") &&
+      !ttDrawn.includes("wood_tank>wood_valve") &&
+      !ttDrawn.includes("buffer_tank>lower_zone"),
       `edges drawn: ${ttDrawn.join(", ")}`);
     check("and names the tanks by what fills them",
       /4-way mixing valve \(manual\)/.test(ttPage) &&
@@ -1742,7 +1789,8 @@ check("the hand-scheduled reason has a label",
     // appear. A drawing that shows plumbing the model does not run is the
     // failure this whole diagram exists to prevent.
     check("no coil in the drawing when the topology does not have one",
-      !ttDrawn.includes("wood-dhw") && !/refilled through/.test(ttPage),
+      !ttDrawn.includes("wood_tank>dhw_tank") &&
+      !/refilled through/.test(ttPage),
       `edges drawn: ${ttDrawn.join(", ")}`);
 
     // v3.15.1: the same two-tank system, plus the DHW tank's cold-water inlet
@@ -1752,6 +1800,7 @@ check("the hand-scheduled reason has a label",
     // the two-tank drawing already had survives.
     const coil = JSON.parse(JSON.stringify(twoTank));
     coil.dhw_wood_coil = true;
+    coil.edges = twoTank.edges.concat([["wood_tank", "dhw_tank"]]);
     coil.slots.push(
       { key: "dhw_temp_entity", label: "Hot water temperature",
         place: "dhw_tank", entity: null, domains: TEMP });
@@ -1764,9 +1813,10 @@ check("the hand-scheduled reason has a label",
     const coPage = collect(co.shadowRoot).join("\n");
     const coDrawn = edges(coPage);
     check("the coil is drawn as its own pipe, wood tank to hot water tank",
-      coDrawn.includes("wood-dhw") &&
-      ["hp-buffer", "wood-valve", "buffer-valve", "valve-upper",
-        "valve-lower"].every((e) => coDrawn.includes(e)),
+      coDrawn.includes("wood_tank>dhw_tank") &&
+      ["heat_pump>buffer_tank", "wood_tank>mixing_valve",
+        "buffer_tank>mixing_valve", "mixing_valve>upper_zone",
+        "mixing_valve>lower_zone"].every((e) => coDrawn.includes(e)),
       `edges drawn: ${coDrawn.join(", ")}`);
     // 33 characters, which fits the box on a single row (wrapExtra breaks
     // above 34 -- the original wording wrapped with "coil" alone on row two).
@@ -1779,6 +1829,13 @@ check("the hand-scheduled reason has a label",
   {
     const noValve = JSON.parse(JSON.stringify(topo));
     noValve.valve_mode = "none";
+    noValve.edges = [
+      ["heat_pump", "buffer_tank"],
+      ["buffer_tank", "upper_zone"],
+      ["buffer_tank", "lower_zone"],
+      ["wood_tank", "wood_valve"],
+      ["wood_valve", "buffer_tank"],
+    ];
     const nvStates = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
     nvStates[DEFAULT_SPACE].attributes.setup_topology = noValve;
     const nv = build(nvStates);
@@ -1787,8 +1844,9 @@ check("the hand-scheduled reason has a label",
     nv._render();
     const nvDrawn = edges(collect(nv.shadowRoot).join("\n"));
     check("without a valve the tank feeds both floors directly",
-      nvDrawn.includes("buffer-upper") && nvDrawn.includes("buffer-lower") &&
-      !nvDrawn.some((e) => e.startsWith("valve-")),
+      nvDrawn.includes("buffer_tank>upper_zone") &&
+      nvDrawn.includes("buffer_tank>lower_zone") &&
+      !nvDrawn.some((e) => e.startsWith("mixing_valve>")),
       `edges drawn: ${nvDrawn.join(", ")}`);
   }
   // The hidden page must be genuinely unrendered, not display:none --
@@ -1875,6 +1933,362 @@ check("the hand-scheduled reason has a label",
     `note was ${JSON.stringify(su._setupNote)}`);
   check("and the picker stays open so the choice can be corrected",
     su._pickerKey === "lower_floor_temp_entity");
+}
+
+// --- Scenario: the layout editor (v3.16.0, issue #40) ----------------------
+//
+// The editor's whole promise is that a drawing cannot claim physics the model
+// does not run: every edit is matched against the catalog the coordinator
+// published for THIS configuration, and only a key -- never a free-form graph
+// -- is ever saved. These checks are about that promise, not about pixels.
+{
+  const TEMP = ["sensor", "number", "input_number"];
+  // A two-zone house with a throttling valve and no wood tank: exactly the
+  // configuration where `valve_upper_direct_slab` and `single_tank_valve` are
+  // both storable, so an edit can legitimately move between them.
+  const EDGES = {
+    no_valve: [["heat_pump", "buffer_tank"], ["buffer_tank", "upper_zone"],
+      ["buffer_tank", "lower_zone"]],
+    single_tank_valve: [["heat_pump", "buffer_tank"],
+      ["buffer_tank", "mixing_valve"], ["mixing_valve", "upper_zone"],
+      ["mixing_valve", "lower_zone"]],
+    two_tank_4way: [["heat_pump", "buffer_tank"],
+      ["buffer_tank", "mixing_valve"], ["wood_tank", "mixing_valve"],
+      ["mixing_valve", "upper_zone"], ["mixing_valve", "lower_zone"]],
+    valve_upper_direct_slab: [["heat_pump", "buffer_tank"],
+      ["buffer_tank", "mixing_valve"], ["mixing_valve", "upper_zone"],
+      ["buffer_tank", "lower_zone"]],
+    slab_shunt: [["heat_pump", "buffer_tank"],
+      ["buffer_tank", "mixing_valve"], ["mixing_valve", "upper_zone"],
+      ["buffer_tank", "slab_shunt"], ["slab_shunt", "lower_zone"]],
+  };
+  // `valid` is what `topology_layout_valid` answers for a throttling valve,
+  // two zones and no wood-tank probe.
+  const CATALOG = [
+    { key: "no_valve", label: "No mixing valve", description: "",
+      requirement: "no throttling mixing valve configured",
+      selectable: true, valid: false, edges: EDGES.no_valve },
+    { key: "single_tank_valve", label: "One tank behind a valve",
+      description: "", requirement: "a throttling mixing valve",
+      selectable: true, valid: true, edges: EDGES.single_tank_valve },
+    { key: "two_tank_4way", label: "Two tanks, one 4-way valve",
+      description: "",
+      requirement: "a throttling valve, two zones and a wood-tank top probe",
+      selectable: true, valid: false, edges: EDGES.two_tank_4way },
+    { key: "valve_upper_direct_slab",
+      label: "Valve on the radiators, slab fed direct", description: "",
+      requirement: "a throttling valve, two zones, and no wood-tank probe",
+      selectable: true, valid: true, edges: EDGES.valve_upper_direct_slab },
+    { key: "slab_shunt", label: "Separate slab shunt", description: "",
+      requirement: "not selectable: no model variant exists yet",
+      selectable: false, valid: false, edges: EDGES.slab_shunt },
+  ];
+  const mkTopo = (over) => ({
+    two_zone: true, dhw: false, valve_mode: "manual",
+    layout: "valve_upper_direct_slab", two_tank_modelled: false,
+    buffer: { volume_l: 500, is_store: true, max_temp: 65 },
+    wood: { present: false, volume_l: 0 },
+    edges: EDGES.valve_upper_direct_slab.map((e) => [e[0], e[1]]),
+    catalog: CATALOG, positions: {},
+    slots: [
+      { key: "indoor_temp_entity", label: "Indoor temperature",
+        place: "upper_zone", entity: "sensor.livingroom", domains: TEMP },
+      { key: "lower_floor_temp_entity", label: "Lower floor temperature",
+        place: "lower_zone", entity: null, domains: TEMP },
+      { key: "buffer_tank_temp_entity", label: "Buffer tank temperature",
+        place: "buffer_tank", entity: "sensor.tank", domains: TEMP },
+      { key: "mixing_valve_target_entity", label: "Valve target",
+        place: "mixing_valve", entity: null, domains: TEMP },
+      { key: "outdoor_temp_entity", label: "Outdoor temperature",
+        place: "outdoor", entity: "sensor.outside", domains: TEMP },
+      { key: "heat_pump_switch_entity", label: "Heat pump switch",
+        place: "heat_pump", entity: null,
+        domains: ["switch", "input_boolean", "climate"] },
+    ],
+    ...(over || {}),
+  });
+  const mkEditor = (over) => {
+    const states = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+    states[DEFAULT_SPACE].attributes.setup_topology = mkTopo(over);
+    states["sensor.livingroom"] = {
+      state: "21.3", attributes: { unit_of_measurement: "°C" } };
+    states["sensor.tank"] = {
+      state: "47.5", attributes: { unit_of_measurement: "°C" } };
+    states["sensor.outside"] = { state: "3.0", attributes: {} };
+    const c = build(states);
+    c._onCardClick({});
+    c._dialogPage = "setup";
+    c._render();
+    return c;
+  };
+  // The diagram as it stands now. An edit refreshes the canvas in place, so
+  // the shadow root's own innerHTML is a snapshot from before it -- reading
+  // the whole dump would happily assert against the drawing being replaced.
+  const pageHtml = (card) => {
+    const canvas = card.shadowRoot.querySelector(".setup-canvas");
+    return (canvas && canvas.innerHTML) || collect(card.shadowRoot).join("\n");
+  };
+  const edgesOf = (card) =>
+    (pageHtml(card).match(/data-edge="([^"]+)"/g) || [])
+      .map((m) => m.slice(11, -1));
+  const clickOn = (el) => (el._listeners.click || [])
+    .map((f) => f({ stopPropagation() {}, preventDefault() {} }));
+  // The DOM stub measures every element 900 px wide and the diagram's viewBox
+  // is 720 units, so a viewBox unit is 1.25 px. Aiming at real box geometry
+  // (from `_layoutBoxes`) rather than at guessed coordinates is what makes
+  // these drags mean anything.
+  const pxOf = (u) => (u * 900) / 720;
+  const boxAt = (card, place) =>
+    (card._layoutBoxes || []).find((b) => b.place === place);
+  const centre = (card, place) => {
+    const b = boxAt(card, place);
+    return { x: b.x + b.w / 2, y: b.y + b.h / 2 };
+  };
+  const ev = (pt, target) => ({
+    clientX: pxOf(pt.x), clientY: pxOf(pt.y), target: target || {},
+    stopPropagation() {}, preventDefault() {},
+  });
+  // Drag from one box's port and drop on another, the way a pointer does it.
+  const connect = (card, from, to) => {
+    const src = centre(card, from);
+    const dst = centre(card, to);
+    card._onLayoutDown(ev(src, { dataset: { place: from, port: "right" } }));
+    card._onLayoutMove(ev({ x: (src.x + dst.x) / 2, y: (src.y + dst.y) / 2 }));
+    card._onLayoutUp(ev(dst));
+  };
+
+  {
+    const c = mkEditor();
+    const dump0 = collect(c.shadowRoot).join("\n");
+    check("the setup page offers an Edit layout toggle",
+      /class="layout-edit-toggle[^"]*"/.test(dump0) &&
+      !/class="layout-port"/.test(dump0),
+      "and draws no drag handles until it is pressed");
+    const toggle = c.shadowRoot.querySelector(".layout-edit-toggle");
+    clickOn(toggle);
+    const dump = pageHtml(c);
+    check("the editor draws a port on every box edge",
+      (dump.match(/class="layout-port"/g) || []).length ===
+        (c._layoutBoxes || []).length * 4,
+      `${(dump.match(/class="layout-port"/g) || []).length} ports for `
+      + `${(c._layoutBoxes || []).length} boxes`);
+    const save = c.shadowRoot.querySelector(".layout-save");
+    check("Save is offered but disabled until something is drawn",
+      !!save && !!save.disabled,
+      "an untouched editor would otherwise offer to write what is already "
+      + "configured");
+    check("and the editor says which layout is on screen",
+      /Valve on the radiators, slab fed direct/
+        .test(collect(c.shadowRoot).join("\n")),
+      `verdict was ${JSON.stringify(c._layoutEdit.verdict)}`);
+    // Editing takes the diagram over; a picker opening on top of a drag is
+    // the interaction that made the whole page feel broken.
+    const hit = c.shadowRoot.querySelector(".setup-hit");
+    if (hit) (hit._listeners.click || []).forEach((f) =>
+      f({ stopPropagation() {}, currentTarget: hit }));
+    check("click-to-assign is off while the layout is being edited",
+      !c._pickerKey);
+  }
+
+  {
+    // The edit this feature exists for: the slab is not fed straight from the
+    // tank after all, it hangs off the valve like the radiators. That is
+    // exactly `single_tank_valve`, and the editor has to recognise it.
+    const c = mkEditor();
+    clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
+    c._onLayoutClick({ target: { dataset: { edge: "buffer_tank>lower_zone" } },
+      stopPropagation() {} });
+    check("clicking a pipe while editing removes it",
+      !edgesOf(c).includes("buffer_tank>lower_zone"),
+      `edges drawn: ${edgesOf(c).join(", ")}`);
+    check("and a drawing that is no layout is rejected, with a reason",
+      !c._layoutEdit.match &&
+      /No supported layout matches/.test(c._layoutEdit.verdict) &&
+      /Lower floor/.test(c._layoutEdit.verdict),
+      `verdict was ${JSON.stringify(c._layoutEdit.verdict)}`);
+    connect(c, "mixing_valve", "lower_zone");
+    check("dragging a port onto another box proposes that connection",
+      edgesOf(c).includes("mixing_valve>lower_zone"),
+      `edges drawn: ${edgesOf(c).join(", ")}`);
+    check("the finished drawing snaps to the layout it equals",
+      !!c._layoutEdit.match &&
+      c._layoutEdit.match.key === "single_tank_valve",
+      `matched ${JSON.stringify(c._layoutEdit.match)}`);
+    const dump = pageHtml(c);
+    check("a matched layout is highlighted and Save is enabled",
+      /setup-pipe layout-match/.test(dump) &&
+      !c.shadowRoot.querySelector(".layout-save").disabled &&
+      /One tank behind a valve/.test(c._layoutEdit.verdict));
+
+    // (4) Only the key travels. A free-form graph is never stored, which is
+    // what keeps the model from being asked to run physics nobody wrote.
+    const calls = [];
+    c._hass.callService = async (domain, service, data) => {
+      calls.push([domain, service, data]);
+    };
+    await Promise.all(clickOn(c.shadowRoot.querySelector(".layout-save")));
+    check("saving calls apply_topology with the matched key and positions",
+      calls.length === 1 && calls[0][0] === "heatpump_optimizer" &&
+      calls[0][1] === "apply_topology" &&
+      calls[0][2].layout === "single_tank_valve" &&
+      calls[0][2].positions && typeof calls[0][2].positions === "object" &&
+      !("edges" in calls[0][2]),
+      JSON.stringify(calls));
+    check("and the editor closes once the write is away",
+      c._layoutEdit === null && /Saved/.test(c._setupNote || ""),
+      `note was ${JSON.stringify(c._setupNote)}`);
+  }
+
+  {
+    // A rejected write keeps the drawing: it is the user's work, and losing
+    // it is not a way to say no.
+    const c = mkEditor();
+    clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
+    c._onLayoutClick({ target: { dataset: { edge: "buffer_tank>lower_zone" } },
+      stopPropagation() {} });
+    connect(c, "mixing_valve", "lower_zone");
+    c._hass.callService = async () => {
+      throw new Error("that layout needs a wood-tank top probe");
+    };
+    await Promise.all(clickOn(c.shadowRoot.querySelector(".layout-save")));
+    check("a rejected layout write is reported, not swallowed",
+      /Could not save the layout/.test(c._setupNote || "") &&
+      /wood-tank top probe/.test(c._setupNote || ""),
+      `note was ${JSON.stringify(c._setupNote)}`);
+    check("and the editor stays open with the drawing intact",
+      c._layoutEditing() &&
+      c._layoutEdit.edges.some((e) => e[1] === "lower_zone" &&
+        e[0] === "mixing_valve"));
+  }
+
+  {
+    // (3) An edit that is no layout at all: drawn, but drawn as rejected.
+    const c = mkEditor();
+    clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
+    connect(c, "heat_pump", "upper_zone");
+    const dump = pageHtml(c);
+    check("an unsupported drawing names the nearest layout and what differs",
+      !c._layoutEdit.match &&
+      /No supported layout matches/.test(c._layoutEdit.verdict) &&
+      /Closest: Valve on the radiators, slab fed direct/
+        .test(c._layoutEdit.verdict) &&
+      /Heat pump → Upper floor/.test(c._layoutEdit.verdict),
+      `verdict was ${JSON.stringify(c._layoutEdit.verdict)}`);
+    check("the offending pipe is drawn as rejected, and Save stays disabled",
+      /setup-pipe invalid" data-edge="heat_pump>upper_zone"/.test(dump) &&
+      !!c.shadowRoot.querySelector(".layout-save").disabled,
+      `edges drawn: ${edgesOf(c).join(", ")}`);
+    const verdictEl = c.shadowRoot.querySelector(".layout-verdict");
+    check("and the page says so, not just the console",
+      !!verdictEl && /No supported layout matches/.test(verdictEl.textContent));
+
+    // A drawing that IS a known layout this configuration cannot run gets the
+    // requirement instead: nothing is mis-drawn, the house is just not that.
+    c._layoutEdit.edges = EDGES.two_tank_4way.map((e) => [e[0], e[1]]);
+    c._layoutEvaluate();
+    check("a layout the configuration cannot run explains what it needs",
+      !c._layoutEdit.match &&
+      /Two tanks, one 4-way valve/.test(c._layoutEdit.verdict) &&
+      /wood-tank top probe/.test(c._layoutEdit.verdict),
+      `verdict was ${JSON.stringify(c._layoutEdit.verdict)}`);
+    c._layoutEdit.edges = EDGES.slab_shunt.map((e) => [e[0], e[1]]);
+    c._layoutEvaluate();
+    check("and a known-but-unmodelled layout says it is not selectable",
+      !c._layoutEdit.match &&
+      /Separate slab shunt/.test(c._layoutEdit.verdict) &&
+      /no model variant exists yet/.test(c._layoutEdit.verdict),
+      `verdict was ${JSON.stringify(c._layoutEdit.verdict)}`);
+  }
+
+  {
+    // (5) The recorded trap: `_maybeRender` rebuilds the shadow root on the
+    // coordinator's schedule, and an editor living in local state would be
+    // wiped out mid-drawing every few minutes.
+    const c = mkEditor();
+    clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
+    c._onLayoutClick({ target: { dataset: { edge: "buffer_tank>lower_zone" } },
+      stopPropagation() {} });
+    connect(c, "mixing_valve", "lower_zone");
+    c._sig = null;
+    c._maybeRender(true);
+    const dump = pageHtml(c);
+    check("the layout editor survives a plan refresh",
+      c._layoutEditing() && /class="layout-port"/.test(dump) &&
+      edgesOf(c).includes("mixing_valve>lower_zone") &&
+      !edgesOf(c).includes("buffer_tank>lower_zone"),
+      `edges drawn: ${edgesOf(c).join(", ")}`);
+    check("and so does the match it had made",
+      !!c._layoutEdit.match &&
+      c._layoutEdit.match.key === "single_tank_valve" &&
+      !c.shadowRoot.querySelector(".layout-save").disabled);
+    // Cancel discards: nothing was written, so the working set must not
+    // outlive the editor.
+    clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
+    check("closing the editor discards the drawing",
+      c._layoutEdit === null &&
+      edgesOf(c).includes("buffer_tank>lower_zone"),
+      `edges drawn: ${edgesOf(c).join(", ")}`);
+  }
+
+  {
+    // (6) Cosmetic positions come from the coordinator and move a box; the
+    // drawing grows to fit rather than clipping it.
+    const plain = mkEditor();
+    const plainBox = boxAt(plain, "heat_pump");
+    const moved = mkEditor({ positions: { heat_pump: [430, 360] } });
+    const movedBox = boxAt(moved, "heat_pump");
+    check("a published position moves the box it names",
+      movedBox.x === 430 && movedBox.y === 360 &&
+      (plainBox.x !== 430 || plainBox.y !== 360),
+      `default ${plainBox.x},${plainBox.y} -> ${movedBox.x},${movedBox.y}`);
+    const dump = pageHtml(moved);
+    check("and the drawing is written at that position",
+      /<rect class="setup-box" x="430" y="360"/.test(dump));
+    const height = (html) => {
+      const m = /viewBox="0 0 720 (\d+)"/.exec(html);
+      return m ? Number(m[1]) : 0;
+    };
+    check("the diagram grows so the moved box is not clipped",
+      height(dump) >= 360 + movedBox.h,
+      `viewBox height ${height(dump)} for a box ending at `
+      + `${360 + movedBox.h}`);
+    // Out of the viewBox is out of reach: a position that would park a box
+    // off the page is clamped back onto it.
+    const wild = mkEditor({ positions: { heat_pump: [9999, -50] } });
+    const wildBox = boxAt(wild, "heat_pump");
+    check("an impossible position is clamped onto the drawing",
+      wildBox.x === 720 - wildBox.w && wildBox.y === 0,
+      `clamped to ${wildBox.x},${wildBox.y}`);
+
+    // Dragging a box records a position and nothing else: a box that moved
+    // must not change which layout the drawing is.
+    const c = mkEditor();
+    clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
+    const before = c._layoutEdit.edges.map((e) => `${e[0]}>${e[1]}`).join();
+    const from = centre(c, "buffer_tank");
+    c._onLayoutDown(ev(from, { dataset: {} }));
+    c._onLayoutMove(ev({ x: from.x + 30, y: from.y + 40 }));
+    c._onLayoutUp(ev({ x: from.x + 30, y: from.y + 40 }));
+    const at = c._layoutEdit.positions.buffer_tank;
+    check("dragging a box records its position and leaves the pipes alone",
+      Array.isArray(at) && at.length === 2 &&
+      c._layoutEdit.edges.map((e) => `${e[0]}>${e[1]}`).join() === before,
+      `position ${JSON.stringify(at)}`);
+    check("and a moved box is still the layout it was, now saveable",
+      !!c._layoutEdit.match &&
+      c._layoutEdit.match.key === "valve_upper_direct_slab" &&
+      !c.shadowRoot.querySelector(".layout-save").disabled);
+    // The click a drag owes is swallowed by whatever it ended over -- a slot
+    // row stops it before the diagram sees it -- so the next gesture must
+    // clear the debt rather than spend it on the user's next real click.
+    c._onLayoutDown(ev({ x: 4, y: 4 }, { dataset: {} }));
+    c._onLayoutClick({
+      target: { dataset: { edge: "buffer_tank>lower_zone" } },
+      stopPropagation() {} });
+    check("a click after a drag is not silently eaten",
+      !edgesOf(c).includes("buffer_tank>lower_zone"),
+      `edges drawn: ${edgesOf(c).join(", ")}`);
+  }
 }
 
 console.log(fails ? `\n${fails} CARD CHECK(S) FAILED` : "\nALL CARD CHECKS PASSED");

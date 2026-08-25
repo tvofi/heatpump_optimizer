@@ -98,8 +98,10 @@ from .const import (
     TOPOLOGY_NO_VALVE,
     TOPOLOGY_SINGLE_TANK_VALVE,
     TOPOLOGY_TWO_TANK_4WAY,
+    TOPOLOGY_VALVE_UPPER_DIRECT_SLAB,
     WOOD_TANK_MAX_TEMP,
     WOOD_TANK_MIN_MARGIN,
+    topology_layout_valid,
 )
 from .dhw_schedule import (
     DHWWindowError,
@@ -212,28 +214,72 @@ class ThermalParameters:
             and self.two_tank_modelled
         )
 
+    # The user's stored layout choice (v3.16.0, CONF_TOPOLOGY_LAYOUT).
+    # None = derive the default below, which is every pre-editor install.
+    topology_layout_override: str | None = None
+
+    #: Memo for `topology_layout`, keyed on its inputs like the UA caches:
+    #: the step function asks `two_tank_modelled`/`slab_fed_direct` once
+    #: per step, a few million times per solve, and re-deriving a constant
+    #: there is the exact mistake the buffer-UA profiling found.
+    _layout_cache: tuple | None = field(
+        default=None, init=False, repr=False, compare=False
+    )
+
     @property
     def topology_layout(self) -> str:
         """The hydronic layout key this configuration resolves to.
 
-        The keys are the vocabulary the v3.16.0 catalog will formalize;
-        resolving them here already means the catalog's model dispatch can
-        replace this derivation without re-plumbing any consumer. Everything
-        that needs "is the two-tank model active" reads
-        ``two_tank_modelled`` below, which is derived from this — one home
-        for the gating, as the config flow, the coordinator and
-        ``describe_setup`` must all agree.
+        A stored choice wins when it is still honest for the configuration
+        (``topology_layout_valid`` — the same predicate the apply_topology
+        service enforces at write time, so a key can only stop being valid
+        when the configuration changes underneath it, and then it falls
+        back to the derived default rather than erroring). Everything that
+        needs "is the two-tank model active" reads ``two_tank_modelled``
+        below — one home for the gating, as the config flow, the
+        coordinator and ``describe_setup`` must all agree.
         """
-        if not mixing_valve.is_throttling(self.mixing_valve_mode):
-            return TOPOLOGY_NO_VALVE
-        if self.two_zone_enabled and self.wood_tank_configured:
-            return TOPOLOGY_TWO_TANK_4WAY
-        return TOPOLOGY_SINGLE_TANK_VALVE
+        key = (
+            self.topology_layout_override,
+            self.mixing_valve_mode,
+            self.two_zone_enabled,
+            self.wood_tank_configured,
+        )
+        cached = self._layout_cache
+        if cached is not None and cached[0] == key:
+            return cached[1]
+        throttling = mixing_valve.is_throttling(self.mixing_valve_mode)
+        if self.topology_layout_override and topology_layout_valid(
+            self.topology_layout_override,
+            two_zone=self.two_zone_enabled,
+            throttling=throttling,
+            wood_probe=self.wood_tank_configured,
+        ):
+            value = self.topology_layout_override
+        elif not throttling:
+            value = TOPOLOGY_NO_VALVE
+        elif self.two_zone_enabled and self.wood_tank_configured:
+            value = TOPOLOGY_TWO_TANK_4WAY
+        else:
+            value = TOPOLOGY_SINGLE_TANK_VALVE
+        self._layout_cache = (key, value)
+        return value
 
     @property
     def two_tank_modelled(self) -> bool:
         """Whether the wood tank is simulated as its own store."""
         return self.topology_layout == TOPOLOGY_TWO_TANK_4WAY
+
+    @property
+    def slab_fed_direct(self) -> bool:
+        """Whether the slab circuit bypasses the valve (v3.16.0 layout).
+
+        The layout the pre-v3.14.1 drawing showed, and some houses have:
+        the valve throttles the radiator circuit while the slab drinks raw
+        tank water. Its validity predicate excludes a wood probe, so this
+        can never be true together with ``two_tank_modelled``.
+        """
+        return self.topology_layout == TOPOLOGY_VALVE_UPPER_DIRECT_SLAB
 
     @property
     def wood_tank_thermal_mass(self) -> float:
@@ -676,6 +722,23 @@ class ThermalParameters:
                 const.CONF_DHW_WOOD_COIL_ENABLED,
                 const.DEFAULT_DHW_WOOD_COIL_ENABLED,
             )
+        )
+        # The stored layout choice (v3.16.0). An unknown string is dropped
+        # here rather than carried: the property would refuse it anyway,
+        # and carrying it would make diagnostics show a key that does
+        # nothing.
+        stored_layout = config.get(const.CONF_TOPOLOGY_LAYOUT)
+        values["topology_layout_override"] = (
+            str(stored_layout)
+            if stored_layout
+            and str(stored_layout)
+            in (
+                const.TOPOLOGY_NO_VALVE,
+                const.TOPOLOGY_SINGLE_TANK_VALVE,
+                const.TOPOLOGY_TWO_TANK_4WAY,
+                const.TOPOLOGY_VALVE_UPPER_DIRECT_SLAB,
+            )
+            else None
         )
 
         # Two-zone and DHW are inferred from whether their settings are present
@@ -1338,8 +1401,17 @@ class ThermalModel:
             q_rad_from_buf = mixing_valve.emitter_delivery(
                 mix_temp=t_mix, zone_temp=T_upper, ua=ua_rad
             )
+            # In the valve_upper_direct_slab layout (v3.16.0) only the
+            # radiator circuit sits behind the valve; the slab drinks raw
+            # tank water, so its delivery follows the tank temperature with
+            # no curve cap. Its validity predicate excludes a wood probe,
+            # so this and the two-tank branch are mutually exclusive by
+            # construction. The energy bound below still applies: a direct
+            # pipe cannot draw heat the tank does not hold.
             q_floor_from_buf = mixing_valve.emitter_delivery(
-                mix_temp=t_mix, zone_temp=T_slab, ua=ua_floor
+                mix_temp=(T_buf if p.slab_fed_direct else t_mix),
+                zone_temp=T_slab,
+                ua=ua_floor,
             )
 
             # ...and the tank cannot deliver heat it does not have. Capping the

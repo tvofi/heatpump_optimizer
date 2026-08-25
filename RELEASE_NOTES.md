@@ -1,5 +1,46 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v3.16.0
+
+### Draw your plumbing, and the model follows
+
+The Setup page gained an editor. Toggle *Edit layout*, drag the boxes where
+you like, drag a pipe from one box's port to another, click a pipe to
+remove it — and the diagram tells you, live, which supported layout your
+drawing is. A drawing that matches one can be saved; the model then runs
+exactly that layout's physics. A drawing that matches none says so in
+plain words: which supported layout is closest, and which pipes differ.
+
+Free-form plumbing is deliberately impossible. The editor snaps to a
+**catalog of supported layouts** — no valve; one tank behind a valve; two
+tanks on a 4-way valve; valve on the radiators with the slab fed direct —
+and only the layout's *name* is stored, never a raw graph, so the drawing
+can never again claim physics the model does not run. The catalog also
+knows the slab-shunt layout exists; it says so, and refuses to select it
+until physics for it is written. The same catalog drives the drawing
+itself: every pipe on the Setup page is now derived from it.
+
+New in the same stroke: **valve on the radiators, slab fed direct** is a
+modelled layout. It is exactly what the pre-v3.14.1 diagram used to show —
+and some houses genuinely have it. If yours does, select it: the slab then
+drinks raw tank water in the model, with no weather-curve cap, while the
+radiators stay behind the valve. (Choosing *one tank behind a valve* on a
+two-tank system is also honored — it is the off switch for the two-tank
+model.)
+
+Box positions are saved too, cosmetically. Everything goes through one
+validated service (`apply_topology`), which refuses a layout your
+configuration cannot honor and explains what is missing. No stored layout
+means the derived default — every existing install is byte-identical.
+
+### Fixed
+
+- The editor's connection ports were nearly untappable (about two pixels
+  at card scale, measured in a real browser) and a drag begun a frame
+  after a re-render could grab the box instead of the port. Ports carry a
+  large invisible hit target now, and a gesture that claims empty canvas
+  at a port's coordinates is re-tested against the live drawing.
+
 ## v3.15.1
 
 ### Hot water refilled through the wood tank

@@ -2062,7 +2062,7 @@ runtime_only = {
 # Fields that *are* configurable but cannot be probed by substituting a
 # sentinel, because the mapping validates them. They get an explicit check
 # below instead of being quietly exempted.
-validated_enums = {"mixing_valve_mode"}
+validated_enums = {"mixing_valve_mode", "topology_layout_override"}
 
 def reachable(name: str) -> str | None:
     """Find a config key that actually changes ``name``, or None.
@@ -4437,6 +4437,193 @@ R.check(
     "an unsensed wood tank disables the coil byte-identically",
     all(np.array_equal(a, b) for a, b in zip(_out_flag, _out_ref2)),
     "no probe means no preheat claim, exactly the two-tank rule",
+)
+
+
+R.section("Topology catalog and the layout editor's contract (v3.16.0)")
+
+from heatpump_optimizer.topology import (
+    LAYOUTS as _LAYOUTS,
+    layout_edges as _layout_edges,
+    match_layout as _match_layout,
+)
+
+# Every layout's composed edge set must match only itself, under every flag
+# combination the catalog can meet -- two layouts with one signature would
+# let the editor store a key the drawing did not show.
+_sig_ok = True
+for _tz, _wd in ((True, True), (True, False), (False, True), (False, False)):
+    _sets = {}
+    for _key in _LAYOUTS:
+        _sets[_key] = frozenset(
+            _layout_edges(_key, two_zone=_tz, wood=_wd)
+        )
+    _vals = list(_sets.values())
+    if len(set(_vals)) != len(_vals):
+        # Collisions are acceptable only between layouts that cannot both
+        # exist under these flags (e.g. one-zone collapses the slab
+        # variants onto single_tank_valve's shape).
+        for _a in _sets:
+            for _b in _sets:
+                if _a < _b and _sets[_a] == _sets[_b]:
+                    _sig_ok = _sig_ok and not (_tz or _a == _b)
+R.check(
+    "every two-zone layout signature matches only itself",
+    _sig_ok
+    and all(
+        _match_layout(
+            _layout_edges(_key, two_zone=True, wood=(
+                _key == "two_tank_4way"
+            )), two_zone=True, wood=(_key == "two_tank_4way"),
+        )[0] == _key
+        for _key in _LAYOUTS
+        if _LAYOUTS[_key].selectable
+    ),
+    "the editor stores whichever key the edge set snaps to; a collision "
+    "stores the wrong physics",
+)
+_ss_key, _ss_why = _match_layout(
+    _layout_edges("slab_shunt", two_zone=True, wood=False),
+    two_zone=True, wood=False,
+)
+R.check(
+    "a drawn slab shunt is recognized and refused, with the reason",
+    _ss_key is None and "not modelled" in _ss_why,
+    f"got {_ss_key!r}: {_ss_why}",
+)
+# The pre-v3.14.1 drawing (valve to the radiators, slab fed direct from
+# the tank) is not a mistake the catalog rejects -- it is a real layout it
+# recognizes. This is the design working: some houses have it.
+_old_drawing = [
+    ["heat_pump", "buffer_tank"], ["buffer_tank", "mixing_valve"],
+    ["mixing_valve", "upper_zone"], ["buffer_tank", "lower_zone"],
+    ["wood_tank", "wood_valve"], ["wood_valve", "buffer_tank"],
+]
+R.check(
+    "the old drawing is recognized as the layout it always depicted",
+    _match_layout(_old_drawing, two_zone=True, wood=True)[0]
+    == "valve_upper_direct_slab",
+    "valve on the radiators, slab fed direct: a supported layout, not an "
+    "error",
+)
+_wrong = [["heat_pump", "buffer_tank"], ["buffer_tank", "mixing_valve"],
+          ["mixing_valve", "upper_zone"], ["mixing_valve", "lower_zone"],
+          ["buffer_tank", "lower_zone"]]
+_wk, _wwhy = _match_layout(_wrong, two_zone=True, wood=False)
+R.check(
+    "a genuinely unsupported set names the nearest layout and the diff",
+    _wk is None and "Closest supported layout" in _wwhy
+    and ("Missing" in _wwhy or "Not in it" in _wwhy),
+    f"got {_wk!r}: {_wwhy}",
+)
+
+# 750 L, not the tiny default: the per-step availability bound must not be
+# what limits delivery here, or both slab variants drain the same energy
+# and the drain-rate contrast below measures the bound instead of the pipe.
+_vud_cfg = {
+    "upper_floor_thermal_mass": 2.0,
+    "mixing_valve_mode": "manual",
+    "buffer_tank_volume": 750.0,
+    "topology_layout": "valve_upper_direct_slab",
+}
+_p_vud = ThermalParameters.from_config(_vud_cfg)
+R.check(
+    "a stored layout wins while it is honest",
+    _p_vud.topology_layout == "valve_upper_direct_slab"
+    and _p_vud.slab_fed_direct
+    and not _p_vud.two_tank_modelled,
+    "valve + two zones + no probe can store the direct-slab layout",
+)
+R.check(
+    "and falls back to the derived default when it stops being honest",
+    ThermalParameters.from_config(
+        {**_vud_cfg, "wood_tank_top_entity": "sensor.w"}
+    ).topology_layout == "two_tank_4way"
+    and ThermalParameters.from_config(
+        {**_vud_cfg, "topology_layout": "no_such_layout"}
+    ).topology_layout == "single_tank_valve",
+    "a probe invalidates direct-slab; an unknown key is dropped entirely",
+)
+R.check(
+    "storing single_tank_valve is the two-tank model's off switch",
+    not ThermalParameters.from_config(
+        {
+            **_vud_cfg,
+            "wood_tank_top_entity": "sensor.w",
+            "topology_layout": "single_tank_valve",
+        }
+    ).two_tank_modelled,
+    "a user may deliberately opt out of the two-tank physics",
+)
+
+# The direct-slab physics: the slab drinks raw tank water, so with the tank
+# above the curve it receives more heat than the valved slab would -- and
+# with the override absent the step is byte-identical to v3.15.1.
+def _vud_run(cfg):
+    m = ThermalModel(ThermalParameters.from_config(cfg))
+    s = ThermalState(
+        room_temperature=21.0, upper_floor_temperature=21.0,
+        lower_floor_temperature=20.5, slab_temperature=25.0,
+        buffer_tank_temperature=60.0, outdoor_temperature=-5.0,
+    )
+    out = m.simulate_trajectory(
+        s, np.full(8, 1.0), np.full(8, -5.0), dt_hours=0.25
+    )
+    return m, out
+
+_m_vud, _out_vud = _vud_run(_vud_cfg)
+_m_valved, _out_valved = _vud_run(
+    {k: v for k, v in _vud_cfg.items() if k != "topology_layout"}
+)
+R.check(
+    "a direct-fed slab takes more heat from a hot tank than a valved one",
+    float(_out_vud[1][-1]) > float(_out_valved[1][-1]),
+    f"slab reached {_out_vud[1][-1]:.2f} direct vs {_out_valved[1][-1]:.2f} "
+    "behind the valve, from a 60 C tank",
+)
+R.check(
+    "and the tank pays for it",
+    float(_m_vud.last_buffer_trajectory[-1])
+    < float(_m_valved.last_buffer_trajectory[-1]),
+    "raw tank water to the slab must drain the tank faster",
+)
+_m_a, _out_a2 = _vud_run(
+    {k: v for k, v in _vud_cfg.items() if k != "topology_layout"}
+)
+R.check(
+    "no stored layout means byte-identical v3.15.1 behaviour",
+    all(np.array_equal(a, b) for a, b in zip(_out_valved, _out_a2))
+    and np.array_equal(
+        _m_valved.last_buffer_trajectory, _m_a.last_buffer_trajectory
+    ),
+    "the editor's absence is exactly the previous release",
+)
+
+_ds = _topo.describe_setup(_vud_cfg)
+R.check(
+    "describe_setup ships the active edges and the catalog",
+    _ds["layout"] == "valve_upper_direct_slab"
+    and sorted(map(tuple, _ds["edges"]))
+    == sorted(_layout_edges(
+        "valve_upper_direct_slab", two_zone=True, wood=False))
+    and {c["key"] for c in _ds["catalog"]} == set(_LAYOUTS)
+    and all(
+        set(c) >= {"key", "label", "selectable", "valid", "edges"}
+        for c in _ds["catalog"]
+    )
+    and not next(
+        c for c in _ds["catalog"] if c["key"] == "slab_shunt"
+    )["valid"],
+    "the card draws topo.edges and the editor matches against topo.catalog "
+    "-- both derived here, never in the frontend",
+)
+R.check(
+    "positions pass through untouched and default empty",
+    _ds["positions"] == {}
+    and _topo.describe_setup(
+        {**_vud_cfg, "topology_positions": {"buffer_tank": [10, 20]}}
+    )["positions"] == {"buffer_tank": [10, 20]},
+    "cosmetic only, but they must survive the round trip",
 )
 
 
