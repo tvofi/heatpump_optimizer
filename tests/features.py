@@ -6350,5 +6350,57 @@ R.check(
     f"got {_ceiling}",
 )
 
+# ===========================================================================
+# T3b — shared-step honesty (user report on v3.16.0)
+# ===========================================================================
+R.section("T3b — shared-step honesty")
+
+# space runs steps 0-1, hot water steps 1-2: they share step 1 only. Each
+# slot's shared_kwh is the OTHER channel's energy inside the shared steps —
+# by hand: dhw contributes 3 kW x 0.25 h = 0.75 to the space slot, space
+# contributes 2 kW x 0.25 h = 0.5 to the dhw slot.
+_ts = [datetime(2026, 1, 15, 6, 0, tzinfo=UTC) + timedelta(minutes=15 * i) for i in range(4)]
+_space_p = [2.0, 2.0, 0.0, 0.0]
+_dhw_p = [0.0, 3.0, 3.0, 0.0]
+_prices_p = [1.0] * 4
+_sp_slots = Coord._plan_slots(_ts, _space_p, _prices_p, 0.25, other_powers=_dhw_p)
+_dw_slots = Coord._plan_slots(_ts, _dhw_p, _prices_p, 0.25, other_powers=_space_p)
+R.check(
+    "a slot names the other channel's energy in its shared steps, by hand",
+    len(_sp_slots) == 1
+    and _sp_slots[0].get("shared_kwh") == 0.75
+    and len(_dw_slots) == 1
+    and _dw_slots[0].get("shared_kwh") == 0.5,
+    f"space {_sp_slots}, dhw {_dw_slots}",
+)
+_solo = Coord._plan_slots(
+    _ts, [2.0, 2.0, 0.0, 0.0], _prices_p, 0.25,
+    other_powers=[0.0, 0.0, 3.0, 3.0],
+)
+R.check(
+    "no overlap, no key — captures without sharing are unchanged",
+    len(_solo) == 1 and "shared_kwh" not in _solo[0],
+)
+_legacy = Coord._plan_slots(_ts, _space_p, _prices_p, 0.25)
+R.check(
+    "callers that pass no other channel get the pre-T3b slot, byte for byte",
+    _legacy == [{k: v for k, v in _sp_slots[0].items() if k != "shared_kwh"}],
+)
+
+# The invariant the whole fixture library already witnesses, asserted once
+# explicitly: overlap steps exist AND respect the capacity sum. If a future
+# change ever made them exceed it, "time-share" would become a lie.
+import json as _json
+
+_wf = _json.load(open("tests/golden/winter_single_dhw.json"))
+_pairs = list(zip(_wf["power_schedule"], _wf["dhw_power_schedule"]))
+_over = [(s, w) for s, w in _pairs if s > 0.05 and w > 0.05]
+R.check(
+    "the recorded winter day shares steps and every one respects capacity",
+    len(_over) > 0 and all(s + w <= 6.0 + 1e-6 for s, w in _over),
+    f"{len(_over)} shared steps, worst sum "
+    f"{max((s + w for s, w in _over), default=0):.2f} of 6.0",
+)
+
 
 sys.exit(R.close("FEATURE CHECKS"))
