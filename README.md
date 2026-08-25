@@ -236,6 +236,38 @@ midnight (`22:00-02:00`). Leave the field empty and the optimizer derives the
 frames from the *learned* hourly usage profile instead. Switch the schedule off
 entirely to require hot water around the clock (the pre-2.3 behaviour).
 
+#### Hot water that knows your household (v4.0.0)
+
+Six additions, each inert until configured or until evidence exists:
+
+- **The cold-water inlet is a setting, not an assumption.** The 10 °C the
+  model always used is now configurable, with an optional seasonal swing
+  (coldest in late February) or a live sensor on the incoming pipe, and a
+  greywater heat-recovery effectiveness for homes that have one.
+- **Heavy-day targets** (opt-in): the integration learns how much hot water
+  each time frame actually draws — as whole occurrences, weekdays and
+  weekends learned separately — and, when enabled, readies the tank for the
+  90th-percentile day of that specific frame rather than the average. Two
+  quiet people stop paying for a family's margin; the family stops running
+  cold every second Saturday.
+- **Free disinfection** (opt-in): if a wood boiler, solar coil or immersion
+  heater already holds the tank at the anti-legionella temperature long
+  enough, that counts as a completed cycle — hold-verified, so a momentary
+  blip at 60 °C credits nothing.
+- **A price-aware anti-legionella cycle** (opt-in): inside its interval the
+  cycle may run a day or two early when a known price beats what a typical
+  remaining day is expected to bottom out at. The deadline is always
+  honoured; hygiene never waits for a better price.
+- **The tank in shower terms**: the Mixed Hot Water sensor translates tank
+  temperature into litres of 40 °C water and minutes of shower, and the DHW
+  Setpoint Advisor reports the cheapest setpoint that still covers your
+  learned heavy days — read-only, the decision stays yours.
+- **Circulation pumps** (opt-in): a VVC loop pump runs only around your
+  demand time frames (with a lead so the loop is hot when they open); the
+  space circulation pump pauses only in provably idle, warm slots and is
+  forced on whenever heat is planned, the heat curve is being driven, any
+  room is near its comfort floor, or it is freezing outside.
+
 #### Minimum-cost production
 
 DHW is a deferrable, essentially on/off load: the tank is a battery, and heat
@@ -943,7 +975,7 @@ turn the toggle off to require hot water around the clock.
 
 ## Entities Created
 
-### Sensors (49 total)
+### Sensors (52 total)
 | Sensor | Description |
 |---|---|
 | Optimization Mode | Current mode (auto/comfort/economy/boost/off) |
@@ -992,6 +1024,9 @@ turn the toggle off to require hot water around the clock.
 | **Thermal Battery Energy** | Stored energy available above the comfort floor |
 | **Comfort Weight** | The comfort weight in force, learned or configured |
 | **Contract Comparison** | This month settled under hourly spot, monthly-average spot and a fixed price — and the öre/kWh your load shifting earns |
+| **DHW Setpoint Advisor** | The cheapest hot-water setpoint that still covers your heavy days, with the whole candidate sweep in attributes |
+| **Mixed Hot Water** | The tank translated into shower terms: litres of 40 °C water and minutes of shower it holds right now |
+| **DHW Heavy Day Demand** | The learned 90th-percentile draw per hot water time frame — what the heavy-day targets stand on |
 | **Valve Target Recommendation** | What to set a dumb mixing valve to, with the reasoning in its attributes |
 
 ### Binary Sensors (3 total)
@@ -1281,7 +1316,7 @@ the top; everything you typically set once lives one click further, under
 |---|---|
 | Your system, as configured | A read-only picture of what is set up and what is missing |
 | Comfort and temperatures | Target, minimum and maximum temperature, day/night hours |
-| Hot water | Tank size, temperatures, demand time frames, anti-legionella |
+| Hot water | Tank size, temperatures, demand time frames, anti-legionella, the cold-water inlet, heavy-day learning, circulation pumps |
 | Savings vs comfort | Price weight, comfort weight, recalculation interval, compressor start cost, caution with guessed prices |
 | Grid costs | Capacity tariff and its clock, transfer fees, main fuse and live peak guard, contract comparison — what your grid company charges |
 | Away and holiday mode | Presence source, return time, setback temperatures |

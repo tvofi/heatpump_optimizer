@@ -289,7 +289,19 @@
           "dhw_cooling_rate": "Beredarens värmeförlust (inlärd)",
           "dhw_legionella_enabled": "Kör legionellaskydd",
           "dhw_legionella_temperature": "Legionellatemperatur",
-          "dhw_legionella_interval_days": "Intervall för legionellaskydd"
+          "dhw_legionella_interval_days": "Intervall för legionellaskydd",
+          "dhw_inlet_temp": "Kallvattnets inloppstemperatur",
+          "dhw_inlet_seasonal_amplitude": "Årstidssvängning för inloppet",
+          "dhw_inlet_entity": "Givare för inkommande kallvatten (valfritt)",
+          "greywater_recovery_effectiveness": "Verkningsgrad för spillvattenåtervinning",
+          "dhw_quantile_targets_enabled": "Lär in varmvattenbehov för tunga dagar",
+          "dhw_free_disinfection_enabled": "Tillgodoräkna desinfektion från andra värmekällor",
+          "dhw_elastic_legionella_enabled": "Låt legionellacykeln välja en billig dag",
+          "dhw_legionella_min_interval_days": "Tidigaste omkörning av legionellacykel",
+          "shower_flow_lpm": "Duschens flöde",
+          "vvc_pump_entity": "Brytare för VVC-pump (valfritt)",
+          "vvc_lead_minutes": "Starta cirkulationen före tidsfönstret",
+          "space_circulation_pump_entity": "Brytare för värmesystemets cirkulationspump (valfritt)"
         },
         "data_description": {
           "dhw_schedule_enabled": "På: varmvatten garanteras bara under tiderna nedan, och beredaren får svalna däremellan. Av: beredaren hålls varm dygnet runt, vilket kostar märkbart mer.",
@@ -302,7 +314,19 @@
           "dhw_cooling_rate": "Hur snabbt beredaren svalnar när ingen använder varmvatten, mätt vid 45 C i ett 20-gradigt rum. Detta är bara en startpunkt: integrationen mäter beredarens faktiska avsvalning och justerar värdet automatiskt. En beredare som håller värmen väl kan laddas längre i förväg, så att mer av uppvärmningen hamnar på billiga timmar.",
           "dhw_legionella_enabled": "Eftersom beredaren nu får stå sval under långa perioder värms den regelbundet tillräckligt hett för att döda legionellabakterier. Rekommenderas starkt.",
           "dhw_legionella_temperature": "60 C är den vanliga rekommendationen.",
-          "dhw_legionella_interval_days": "Hur ofta desinficeringen körs. Den läggs på den billigaste timmen före varje deadline."
+          "dhw_legionella_interval_days": "Hur ofta desinficeringen körs. Den läggs på den billigaste timmen före varje deadline.",
+          "dhw_inlet_temp": "Årsmedeltemperatur på kallvattnet som fyller på tanken. Svenska standardvärdet 10 °C stämmer för de flesta hem; ändra bara om du har mätt ditt.",
+          "dhw_inlet_seasonal_amplitude": "Hur många grader det inkommande vattnet svänger kring medelvärdet över året — kallast i slutet av februari, varmast på sensommaren. Lämna på 0 för konstant temperatur.",
+          "dhw_inlet_entity": "En temperaturgivare på inkommande kallvattenrör. Om satt används dess mätvärde i stället för modellen ovan.",
+          "greywater_recovery_effectiveness": "Om en spillvattenvärmeväxlare förvärmer inkommande vatten: andelen avloppsvärme den återför. 0 betyder ingen installerad.",
+          "dhw_quantile_targets_enabled": "Lär in hur mycket varmvatten varje tidsfönster faktiskt använder en tung dag, och gör tanken redo för det i stället för för genomsnittsdagen. Kräver tanktemperaturgivare och ett par veckors underlag.",
+          "dhw_free_disinfection_enabled": "Om en vedpanna, solslinga eller elpatron redan får tanken till legionellatemperatur och håller den där, räkna det som en genomförd cykel i stället för att köra en till.",
+          "dhw_elastic_legionella_enabled": "Låt legionellacykeln köras en dag eller två tidigare när elen är ovanligt billig, i stället för att alltid vänta till sista dagen. Sista dagen hålls alltid.",
+          "dhw_legionella_min_interval_days": "Kör aldrig legionellacykler tätare än så här, även på mycket billiga dagar.",
+          "shower_flow_lpm": "Ditt duschmunstyckes flöde. Används bara för att räkna om tankens innehåll till duschminuter på sensorn Mixed Hot Water.",
+          "vvc_pump_entity": "En brytare som styr VVC-pumpen. Om satt körs pumpen bara under dina varmvattenfönster, plus förvarmningstiden nedan.",
+          "vvc_lead_minutes": "Hur långt före ett varmvattenfönster cirkulationspumpen startar, så att slingan redan är varm när fönstret öppnar.",
+          "space_circulation_pump_entity": "En brytare som styr värmesystemets cirkulationspump. Om satt pausas pumpen bara i stunder som bevisligen är sysslolösa och varma — den går alltid när värme är planerad, när det är minusgrader ute eller när något rum är nära sin komfortgräns."
         }
       },
       "building": {

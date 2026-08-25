@@ -451,7 +451,35 @@ violation, not silence; synthetic 3 h gap ⇒ recovery, 20 min ⇒ nothing; new
 
 ---
 
-## T3 — Hot water (PR 4) · Opus · #32 #18 #20 #24 #47 #9 #28 #6
+## T3 — Hot water (PR 4) · Opus · #32 #18 #20 #24 #47 #9 #28 #6 · **executed**
+
+*Outcome notes:* built as specified, with these decisions and findings.
+(1) #20's blend lives in the optimizer, next to the mean it blends
+against (`dhw_window_ready_energy` carries `(p90, count)` pairs, the ramp
+is applied at the ready loop) — computing the blend in the coordinator
+would have duplicated the mean's definition. (2) The draw statistic
+records whole *occurrences* (one number per window per day, zeros
+included) rather than tick samples, keyed by the window's spec string so
+redrawn windows honestly forget. Heated intervals fold as lower bounds;
+external-heat intervals are skipped outright. (3) #47 grew a
+reachability guard during testing: the elastic placement had picked the
+cheapest step even when the tank physically could not heat to the
+disinfection temperature by then — a constraint the solver silently
+relaxes — so candidates now start at the earliest step the pump can
+reach the target. The honest inert control is elastic-ON with a young
+prior (ceiling None ⇒ byte-identical to off); a flat-price day with a
+trained prior legitimately runs the cycle early at zero marginal cost.
+(4) #24's hold accumulates only hot-to-hot observation gaps — crediting
+a gap that STARTED cold let a blip-cold-blip sequence pass the hold.
+(5) The dhw None-presence quirk is fixed in the presence trio itself
+(`config.get(key) is not None`); empty-string windows still count, and
+none of the twelve new hot_water keys joins the trio. (6) The directional
+tests run on flat prices with a 1500 L tank: on the winter day the
+planner charges the tank for arbitrage anyway, and on 300 L one DHW
+block moves it 3.4 °C — both swamp exactly the target changes under
+test. Sensors 49 → 52 (Setpoint Advisor, Mixed Hot Water, Heavy Day
+Demand); the G4b drift gate verified all five container-sensitive
+fixtures byte-identical to origin/main after the tranche.
 
 Infrastructure: **`dhw_draws.py`** (draw-event detection reusing the existing
 standby-subtraction attribution; per-window reservoirs of event energies;

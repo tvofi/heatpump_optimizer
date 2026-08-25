@@ -336,6 +336,29 @@ class ThermalParameters:
     dhw_legionella_temp: float = DEFAULT_DHW_LEGIONELLA_TEMP  # °C
     dhw_legionella_interval_days: float = DEFAULT_DHW_LEGIONELLA_INTERVAL_DAYS
 
+    # --- Hot water, v4.0.0 T3 ------------------------------------------
+    # The cold-water inlet (annual mean), previously two hard-coded 10.0 s.
+    # The default IS 10.0 and every existing ready target sits on it.
+    dhw_inlet_temp: float = 10.0  # °C
+    #: Seasonal swing amplitude, °C; 0 keeps the inlet constant year-round.
+    dhw_inlet_seasonal_amplitude: float = 0.0
+    #: The inlet the coordinator resolved for "now" (live sensor, or the
+    #: seasonal model). None means the configured annual mean — which is
+    #: how every pre-T3 install behaves.
+    dhw_inlet_current: Any = None
+    #: Fraction of drain heat a greywater recovery unit gives back (#3
+    #: of the draw energy chain); 0 = none installed.
+    greywater_recovery: float = 0.0
+    #: #20: learned per-window ready energies in kWh, keyed by the demand
+    #: window's label. None (the default) keeps the mean-profile targets.
+    dhw_window_ready_energy: Any = None
+    #: #47: the legionella cycle may shop for a cheap day inside its
+    #: interval. The price ceiling is set per solve by the coordinator
+    #: from the learned prior's expected daily minimum; None = inelastic.
+    dhw_elastic_legionella_enabled: bool = False
+    dhw_legionella_min_interval_days: float = 5.0
+    dhw_legionella_price_ceiling: Any = None
+
     # Weather sensitivity parameters (configurable)
     wind_sensitivity: float = DEFAULT_WIND_SENSITIVITY  # fraction per m/s
     rain_heat_loss_multiplier: float = DEFAULT_RAIN_HEAT_LOSS_MULTIPLIER  # multiplier
@@ -489,18 +512,49 @@ class ThermalParameters:
         return rate * self.dhw_tank_thermal_mass / DHW_COOLING_REFERENCE_DELTA
 
     @property
+    def dhw_inlet_reference(self) -> float:
+        """The cold-water temperature the tank refills at, °C.
+
+        The coordinator-resolved value (live sensor or seasonal model) wins
+        when present; otherwise the configured annual mean, whose default is
+        the 10.0 the model always assumed.
+        """
+        current = self.dhw_inlet_current
+        if isinstance(current, (int, float)) and np.isfinite(current):
+            return float(current)
+        return float(self.dhw_inlet_temp)
+
+    def seasonal_inlet_temp(self, day_of_year: int) -> float:
+        """The inlet model: annual mean minus a cosine dipping in late winter.
+
+        Swedish tap water bottoms out around day 60 (late February) and
+        peaks in late summer; the amplitude is the half-swing in °C. With
+        the default amplitude of 0 this is exactly the constant mean.
+        """
+        swing = float(self.dhw_inlet_seasonal_amplitude)
+        if swing <= 0.0:
+            return float(self.dhw_inlet_temp)
+        phase = 2.0 * np.pi * (float(day_of_year) - 60.0) / 365.0
+        return float(self.dhw_inlet_temp - swing * np.cos(phase))
+
+    @property
     def dhw_draw_power(self) -> float:
         """Average DHW draw power in kW (heat lost from tank due to consumption).
 
-        Based on daily consumption heated from ~10°C cold water to tank temp.
+        Based on daily consumption heated from the cold-water inlet to tank
+        temp. A greywater recovery unit pre-warms the incoming water with
+        drain heat, which scales the whole chain down by its effectiveness.
         """
         # Average draw rate in liters per hour
         liters_per_hour = self.dhw_daily_consumption / 24.0
         # Heat needed: mass * Cp * delta_T
-        # Assume cold water at 10°C, mixing with tank water
-        delta_t = self.dhw_setpoint - 10.0  # °C temperature rise
+        delta_t = self.dhw_setpoint - self.dhw_inlet_reference  # °C rise
+        recovery = float(np.clip(self.greywater_recovery, 0.0, 0.9))
         # Power = volume_flow * Cp * delta_T
-        return liters_per_hour * WATER_SPECIFIC_HEAT * delta_t
+        return (
+            liters_per_hour * WATER_SPECIFIC_HEAT * max(delta_t, 0.0)
+            * (1.0 - recovery)
+        )
 
     @property
     def dhw_windows_active(self) -> bool:
@@ -620,6 +674,18 @@ class ThermalParameters:
             "dhw_legionella_interval_days": (
                 "DHW_LEGIONELLA_INTERVAL_DAYS", "DHW_LEGIONELLA_INTERVAL_DAYS"
             ),
+            # Hot water, v4.0.0 T3. None of these joins the dhw_enabled
+            # presence trio below — a configured inlet must never phantom-
+            # enable hot water on an entry that has none.
+            "dhw_inlet_temp": ("DHW_INLET_TEMP", "DHW_INLET_TEMP"),
+            "dhw_inlet_seasonal_amplitude": (
+                "DHW_INLET_SEASONAL_AMPLITUDE", "DHW_INLET_SEASONAL_AMPLITUDE"
+            ),
+            "greywater_recovery": ("GREYWATER_RECOVERY", "GREYWATER_RECOVERY"),
+            "dhw_legionella_min_interval_days": (
+                "DHW_LEGIONELLA_MIN_INTERVAL_DAYS",
+                "DHW_LEGIONELLA_MIN_INTERVAL_DAYS",
+            ),
             # Learned corrections
             "buffer_cooling_rate": ("BUFFER_COOLING_RATE", "BUFFER_COOLING_RATE"),
             "house_heat_loss_scale": (
@@ -667,6 +733,11 @@ class ThermalParameters:
                 "dhw_legionella_enabled",
                 "DHW_LEGIONELLA_ENABLED",
                 "DHW_LEGIONELLA_ENABLED",
+            ),
+            (
+                "dhw_elastic_legionella_enabled",
+                "DHW_ELASTIC_LEGIONELLA_ENABLED",
+                "DHW_ELASTIC_LEGIONELLA_ENABLED",
             ),
         ):
             values[name] = bool(
@@ -766,8 +837,13 @@ class ThermalParameters:
                     const.CONF_RADIATOR_POWER_FRACTION,
                 )
             )
+        # A None value does NOT count as presence (v4.0.0 T3): clearing the
+        # DHW temperature sensor on the entities page writes the key back as
+        # None, and counting that as "configured" phantom-enabled hot water
+        # on entries that never had it. An empty string still counts — an
+        # empty ``dhw_windows`` legitimately means "learned windows".
         values["dhw_enabled"] = any(
-            key in config
+            config.get(key) is not None
             for key in (
                 const.CONF_DHW_TANK_VOLUME,
                 const.CONF_DHW_TEMP_ENTITY,
@@ -1209,8 +1285,8 @@ class ThermalModel:
         dT = (q_in - q_draw - q_loss) / C_dhw
         new_temp = dhw_temp + dT * dt_hours
 
-        # Physical bounds (can't go below cold water inlet ~10°C)
-        new_temp = max(10.0, new_temp)
+        # Physical bounds (can't go below the cold water inlet)
+        new_temp = max(p.dhw_inlet_reference, new_temp)
 
         return new_temp
 

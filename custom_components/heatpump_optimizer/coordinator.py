@@ -209,6 +209,20 @@ from .const import (
     ENERGY_STORE_VERSION,
     MANUAL_PLAN_STORE_VERSION,
     SIMULATE_MIN_INTERVAL_SECONDS,
+    CONF_DHW_INLET_ENTITY,
+    CONF_DHW_QUANTILE_TARGETS_ENABLED,
+    DEFAULT_DHW_QUANTILE_TARGETS_ENABLED,
+    CONF_DHW_FREE_DISINFECTION_ENABLED,
+    DEFAULT_DHW_FREE_DISINFECTION_ENABLED,
+    CONF_SHOWER_FLOW_LPM,
+    DEFAULT_SHOWER_FLOW_LPM,
+    CONF_VVC_PUMP_ENTITY,
+    CONF_VVC_LEAD_MINUTES,
+    DEFAULT_VVC_LEAD_MINUTES,
+    CONF_SPACE_PUMP_ENTITY,
+    DHW_LEGIONELLA_HOLD_MINUTES,
+    DHW_DAYTYPE_BLEND_K,
+    SPACE_PUMP_FLOOR_MARGIN_C,
 )
 from .inputs import InputHealth, InputReader, normalize_power_kw, stale_summary
 from .external_heat import (
@@ -244,11 +258,14 @@ from .grid_fee import (
     GridFeeSchedule,
     parse_month_range as grid_fee_parse_month_range,
 )
+from .dhw_draws import DrawStats, labels_for, window_label as draw_window_label
 from .ledger import MonthlyLedger, month_key
 from .power_guard import GuardState, project_window_mean
+from . import pump_schedule
 from .open_meteo import OpenMeteoSolar
 from .thermal_model import (
     DHW_AMBIENT_TEMP,
+    WATER_SPECIFIC_HEAT,
     ThermalModel,
     ThermalParameters,
     ThermalState,
@@ -489,6 +506,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         hass.async_create_task(self._async_setup_ecl110_state_subscription())
         for load in (
             self._async_load_dhw_profile,
+            self._async_load_dhw_draws,
             self._async_load_dhw_legionella,
             self._async_load_thermal_learning,
             self._async_load_price_model,
@@ -583,6 +601,28 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             DHW_PROFILE_STORE_VERSION,
             f"{DOMAIN}_{entry.entry_id}_dhw_legionella",
         )
+
+        # --- Hot water, v4.0.0 T3 -----------------------------------------
+        # #18: day-type profiles learned BESIDE the pooled one, blended
+        # toward pooled by their own evidence. A store that has only ever
+        # seen the pooled profile loads with zero day-type samples, which
+        # blends to exactly the pooled answer.
+        self._dhw_profile_weekday: list[float] = self._dhw_hourly_profile.copy()
+        self._dhw_profile_weekend: list[float] = self._dhw_hourly_profile.copy()
+        self._dhw_daytype_samples: list[int] = [0, 0]  # [weekday, weekend]
+        # #32/#20: per-window draw-occurrence statistics, own store.
+        self._draw_stats = DrawStats()
+        self._dhw_draws_store: Store = Store(
+            hass,
+            DHW_PROFILE_STORE_VERSION,
+            f"{DOMAIN}_{entry.entry_id}_dhw_draws",
+        )
+        self._dhw_draws_dirty: bool = False
+        # #24: minutes the tank has HELD the disinfection temperature.
+        self._legionella_hold_minutes: float = 0.0
+        self._legionella_hold_last: datetime | None = None
+        # #6: last commanded pump states, so actuation is transitions-only.
+        self._pump_commanded: dict[str, bool] = {}
 
         # Self-learned buffer tank standby cooling, in °C/h at the same
         # reference ΔT as the DHW rate. Only learned when a buffer tank
@@ -933,6 +973,26 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             )
             _LOGGER.info("Loaded learned DHW usage profile from storage")
 
+        # #18: day-type profiles are additive keys. A pooled-only store —
+        # every store written before T3 — leaves both arrays at the pooled
+        # profile with zero samples, and the blend below then answers
+        # exactly the pooled pattern.
+        for attr, key, count_idx in (
+            ("_dhw_profile_weekday", "profile_weekday", 0),
+            ("_dhw_profile_weekend", "profile_weekend", 1),
+        ):
+            arr = stored.get(key)
+            if isinstance(arr, list) and len(arr) == 24:
+                setattr(self, attr, self._normalize_dhw_profile(arr))
+            else:
+                setattr(self, attr, self._dhw_hourly_profile.copy())
+            try:
+                self._dhw_daytype_samples[count_idx] = max(
+                    0, int(stored.get(f"{key}_samples", 0))
+                )
+            except (TypeError, ValueError):
+                self._dhw_daytype_samples[count_idx] = 0
+
         rate = stored.get("cooling_rate")
         if rate is None:
             return
@@ -963,11 +1023,298 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     "hourly_profile": self._dhw_hourly_profile,
                     "cooling_rate": self._dhw_cooling_rate,
                     "cooling_samples": self._dhw_cooling_samples,
+                    # #18: additive — old loaders ignore these keys.
+                    "profile_weekday": self._dhw_profile_weekday,
+                    "profile_weekend": self._dhw_profile_weekend,
+                    "profile_weekday_samples": self._dhw_daytype_samples[0],
+                    "profile_weekend_samples": self._dhw_daytype_samples[1],
                     "updated_at": dt_util.now().isoformat(),
                 }
             )
         except Exception as err:
             _LOGGER.debug("Could not persist DHW profile: %s", err)
+
+    async def _async_load_dhw_draws(self) -> None:
+        """Load the per-window draw statistics (#32)."""
+        try:
+            stored = await self._dhw_draws_store.async_load()
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.debug("Could not load DHW draw statistics: %s", err)
+            return
+        if stored:
+            self._draw_stats = DrawStats.from_dict(stored)
+
+    async def _async_save_dhw_draws(self) -> None:
+        try:
+            await self._dhw_draws_store.async_save(self._draw_stats.as_dict())
+            self._dhw_draws_dirty = False
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.debug("Could not persist DHW draw statistics: %s", err)
+
+    def _dhw_pattern_for(self, weekend: bool) -> list[float]:
+        """The #18 blended pattern for one day type, volume-preserving.
+
+        ``w = n/(n+K)`` leans on the pooled profile until the day type has
+        real evidence of its own; the result is re-normalised so each day
+        type still budgets the same daily volume — the profile decides
+        *when*, never *how much*.
+        """
+        idx = 1 if weekend else 0
+        daytype = (
+            self._dhw_profile_weekend if weekend else self._dhw_profile_weekday
+        )
+        n = float(self._dhw_daytype_samples[idx])
+        w = n / (n + DHW_DAYTYPE_BLEND_K) if n > 0 else 0.0
+        if w <= 0.0:
+            return self._dhw_hourly_profile.copy()
+        blended = [
+            (1.0 - w) * pooled + w * day
+            for pooled, day in zip(self._dhw_hourly_profile, daytype)
+        ]
+        return self._normalize_dhw_profile(blended)
+
+    def _prepare_dhw_inputs(self, now: datetime) -> None:
+        """Refresh everything the hot-water plan reads, before each solve.
+
+        One chokepoint on purpose: the inlet, the day-type pattern, the
+        quantile targets and the elastic-legionella ceiling all reach the
+        solver through parameters set here, so a stale value can survive at
+        most one cycle and there is exactly one place to look.
+        """
+        params = self._thermal_params
+
+        # #18: today's blended pattern. With no day-type evidence this IS
+        # the pooled profile, byte for byte.
+        params.dhw_hourly_draw_pattern = self._dhw_pattern_for(
+            now.weekday() >= 5
+        )
+
+        # The inlet: live sensor wins, then the seasonal model, whose
+        # default amplitude of zero keeps it at the configured mean.
+        inlet: float | None = None
+        entity = self._config.get(CONF_DHW_INLET_ENTITY)
+        if entity:
+            state = self.hass.states.get(entity)
+            try:
+                value = float(state.state) if state is not None else None
+            except (TypeError, ValueError):
+                value = None
+            if value is not None and -5.0 <= value <= 35.0:
+                inlet = value
+        if inlet is None:
+            inlet = params.seasonal_inlet_temp(now.timetuple().tm_yday)
+        params.dhw_inlet_current = inlet
+
+        # #20: the learned heavy-day targets, only when opted in.
+        params.dhw_window_ready_energy = None
+        if params.dhw_enabled and bool(
+            self._config.get(
+                CONF_DHW_QUANTILE_TARGETS_ENABLED,
+                DEFAULT_DHW_QUANTILE_TARGETS_ENABLED,
+            )
+        ):
+            table: dict[str, tuple[float, int]] = {}
+            for label in labels_for(params.dhw_demand_windows):
+                count = self._draw_stats.count(label)
+                p90 = self._draw_stats.quantile(label, 0.9)
+                if count > 0 and p90 is not None:
+                    table[label] = (p90, count)
+            params.dhw_window_ready_energy = table or None
+
+        # #47: what a typical remaining day is expected to bottom out at.
+        params.dhw_legionella_price_ceiling = None
+        if (
+            params.dhw_elastic_legionella_enabled
+            and params.dhw_legionella_enabled
+            and self._dhw_last_legionella is not None
+            and self._prices
+        ):
+            deadline = self._dhw_last_legionella + timedelta(
+                days=float(params.dhw_legionella_interval_days)
+            )
+            day_types: list[int] = []
+            day = (now + timedelta(days=1)).date()
+            while day <= deadline.date():
+                day_types.append(1 if day.weekday() >= 5 else 0)
+                day = day + timedelta(days=1)
+            level = float(
+                np.mean([p.get("total", 0.0) for p in self._prices])
+            )
+            ceiling = self._price_model.expected_daily_min(
+                sorted(set(day_types)), level
+            )
+            params.dhw_legionella_price_ceiling = ceiling
+
+    def _dhw_mixed_water(self) -> dict[str, Any]:
+        """#28: what the tank actually holds, in shower terms.
+
+        ``V·(T_tank − T_inlet)/(40 − T_inlet)`` litres of 40 °C water — the
+        translation between the abstract tank temperature and the only
+        quantity anyone showers in.
+        """
+        params = self._thermal_params
+        tank = self._current_state.dhw_temperature
+        if not params.dhw_enabled or tank is None:
+            return {}
+        inlet = params.dhw_inlet_reference
+        if 40.0 - inlet < 1.0:
+            return {}
+        litres = (
+            params.dhw_tank_volume * max(0.0, float(tank) - inlet) / (40.0 - inlet)
+        )
+        flow = _as_float(
+            self._config.get(CONF_SHOWER_FLOW_LPM), DEFAULT_SHOWER_FLOW_LPM
+        )
+        out = {"litres_40c": round(litres, 1), "tank_temperature": round(float(tank), 1)}
+        if flow > 0:
+            out["shower_minutes"] = round(litres / flow, 1)
+        return out
+
+    def _dhw_setpoint_sweep(self) -> dict[str, Any]:
+        """#9: replay candidate setpoints against everything learned.
+
+        Read-only. For each candidate: a day of standby loss at that
+        temperature through the LEARNED cooling rate, the fixed daily draw
+        energy from the learned consumption and the current inlet, both
+        priced at the learned COP for that tank temperature and the recent
+        mean price. The recommendation is the cheapest candidate that
+        still covers the heaviest learned window demand.
+        """
+        params = self._thermal_params
+        if not params.dhw_enabled or not self._prices:
+            return {}
+        c_dhw = max(params.dhw_tank_thermal_mass, 0.05)
+        inlet = params.dhw_inlet_reference
+        outdoor = float(self._current_state.outdoor_temperature)
+        mean_price = float(
+            np.mean([p.get("total", 0.0) for p in self._prices])
+        )
+        # The heaviest ready energy any window needs, learned where
+        # evidence exists, profile-mean otherwise.
+        heaviest = 0.0
+        for label in labels_for(params.dhw_demand_windows):
+            p90 = self._draw_stats.quantile(label, 0.9)
+            if p90 is not None:
+                heaviest = max(heaviest, p90)
+        draw_day_kwh = (
+            params.dhw_daily_consumption
+            * WATER_SPECIFIC_HEAT
+            * max(params.dhw_setpoint - inlet, 0.0)
+        )
+        candidates = []
+        best: dict[str, Any] | None = None
+        for setpoint in range(48, 61, 2):
+            t = float(setpoint)
+            standby_kwh = (
+                params.dhw_tank_heat_loss_coefficient
+                * max(0.5 * (t + params.dhw_min_temp) - DHW_AMBIENT_TEMP, 0.0)
+                * 24.0
+            )
+            cop = max(
+                float(self._thermal_model.compute_cop_dhw(outdoor, t)), 0.5
+            )
+            cost_day = (standby_kwh + draw_day_kwh) / cop * mean_price
+            # Can a tank at this setpoint cover the heaviest window from
+            # its usable band at all?
+            usable_kwh = c_dhw * max(t - params.dhw_min_temp, 0.0)
+            meets = usable_kwh >= heaviest
+            entry = {
+                "setpoint": setpoint,
+                "cost_per_day": round(cost_day, 2),
+                "meets_heaviest_window": meets,
+            }
+            candidates.append(entry)
+            if meets and (best is None or cost_day < best["cost_per_day"]):
+                best = entry
+        return {
+            "current_setpoint": params.dhw_setpoint,
+            "recommended_setpoint": (best or {}).get("setpoint"),
+            "heaviest_window_kwh": round(heaviest, 2),
+            "candidates": candidates,
+        }
+
+    async def _async_drive_pumps(self) -> None:
+        """#6: follow the plan with the circulation pumps, transitions only.
+
+        Only entities the user explicitly configured are ever touched, and
+        each is commanded exactly once per state change.
+        """
+        vvc_entity = self._config.get(CONF_VVC_PUMP_ENTITY)
+        space_entity = self._config.get(CONF_SPACE_PUMP_ENTITY)
+        if not vvc_entity and not space_entity:
+            return
+        now = dt_util.now()
+        params = self._thermal_params
+
+        if vvc_entity and params.dhw_enabled:
+            windows = (
+                list(params.dhw_windows) if params.dhw_windows_active else []
+            )
+            on, reason = pump_schedule.vvc_should_run(
+                now.hour + now.minute / 60.0,
+                windows,
+                _as_float(
+                    self._config.get(CONF_VVC_LEAD_MINUTES),
+                    DEFAULT_VVC_LEAD_MINUTES,
+                ),
+            )
+            await self._async_set_pump(vvc_entity, on, reason)
+
+        if space_entity:
+            result = self._optimization_result
+            idx = 0
+            schedule = None
+            if result is not None and result.power_schedule:
+                schedule = result.power_schedule
+                dt_hours = max(self._opt_config.dt_hours, 1e-6)
+                if result.timestamps:
+                    idx = int(
+                        max(
+                            0.0,
+                            (now - result.timestamps[0]).total_seconds()
+                            / 3600.0
+                            / dt_hours,
+                        )
+                    )
+            heat_now, heat_next = pump_schedule.plan_commands_heat(
+                schedule, idx
+            )
+            action = self._current_action or {}
+            curve_driven = bool(action.get("heat_pump_on")) or (
+                abs(_as_float(action.get("displace_value"), 0.0)) > 0.01
+            )
+            state = self._current_state
+            zones = [state.room_temperature]
+            if params.two_zone_enabled:
+                zones += [
+                    state.upper_floor_temperature,
+                    state.lower_floor_temperature,
+                ]
+            on, reason = pump_schedule.space_pump_should_run(
+                plan_heat_now=heat_now,
+                plan_heat_next=heat_next,
+                curve_driven=curve_driven,
+                zone_temps=[z for z in zones if z is not None],
+                floor_temp=float(self._opt_config.min_temp),
+                outdoor_temp=state.outdoor_temperature,
+            )
+            await self._async_set_pump(space_entity, on, reason)
+
+    async def _async_set_pump(
+        self, entity_id: str, on: bool, reason: str
+    ) -> None:
+        previous = self._pump_commanded.get(entity_id)
+        if previous is not None and previous == on:
+            return
+        self._pump_commanded[entity_id] = on
+        service = "turn_on" if on else "turn_off"
+        try:
+            await self.hass.services.async_call(
+                "homeassistant", service, {"entity_id": entity_id}
+            )
+            _LOGGER.info("Pump %s → %s: %s", entity_id, service, reason)
+        except Exception as err:  # noqa: BLE001 - a pump must never kill the cycle
+            _LOGGER.warning("Could not command pump %s: %s", entity_id, err)
 
     # ------------------------------------------------------------------
     # Buffer tank and building fabric learning
@@ -2023,15 +2370,51 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         """Reset the anti-legionella timer whenever the tank actually gets hot.
 
         Any reason for the tank reaching the disinfection temperature counts —
-        a planned cycle, a manual boost, or an immersion heater.
+        a planned cycle, a manual boost, a wood coil or an immersion heater.
+
+        With free disinfection (#24) switched on, the credit is
+        hold-verified: the tank must spend ``DHW_LEGIONELLA_HOLD_MINUTES``
+        at temperature, integrated across observations, before the
+        completion timestamp is written — exactly the timestamp a planned
+        cycle writes. A momentary blip at 60 °C kills nothing and credits
+        nothing. With the flag off the historical instant-credit rule is
+        untouched.
         """
         target = float(self._thermal_params.dhw_legionella_temp)
-        if dhw_temp < target - 1.0:
-            return
         now = dt_util.now()
+
+        if bool(
+            self._config.get(
+                CONF_DHW_FREE_DISINFECTION_ENABLED,
+                DEFAULT_DHW_FREE_DISINFECTION_ENABLED,
+            )
+        ):
+            if dhw_temp >= target - 0.5:
+                previous_obs = self._legionella_hold_last
+                # Accumulate only hot-to-hot gaps: an interval that STARTED
+                # cold proves nothing about the water in between. Capped so
+                # a long observation gap cannot claim more than was
+                # plausibly held.
+                if previous_obs is not None:
+                    gap_min = (now - previous_obs).total_seconds() / 60.0
+                    self._legionella_hold_minutes += min(gap_min, 90.0)
+                self._legionella_hold_last = now
+                if self._legionella_hold_minutes < DHW_LEGIONELLA_HOLD_MINUTES:
+                    return
+            else:
+                # Not at temperature: the accumulation chain breaks, and a
+                # clear fall below the band starts the hold over.
+                self._legionella_hold_last = None
+                if dhw_temp < target - 1.5:
+                    self._legionella_hold_minutes = 0.0
+                return
+        elif dhw_temp < target - 1.0:
+            return
+
         previous = self._dhw_last_legionella
         if previous is not None and (now - previous).total_seconds() < 3600:
             return
+        self._legionella_hold_minutes = 0.0
         self._dhw_last_legionella = now
         _LOGGER.info(
             "DHW anti-legionella cycle observed at %.1f°C, timer reset", dhw_temp
@@ -2118,8 +2501,54 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if not heated_during_interval:
             await self._async_learn_dhw_cooling(previous_temp, dhw_temp, dt_h)
         await self._async_learn_dhw_usage(
-            previous_temp, temp_drop, dt_h, now.hour, heated_during_interval
+            previous_temp,
+            temp_drop,
+            dt_h,
+            now.hour,
+            heated_during_interval,
+            weekend=now.weekday() >= 5,
         )
+        await self._async_fold_draw_stats(now, previous_temp, temp_drop, dt_h)
+
+    async def _async_fold_draw_stats(
+        self, now: datetime, previous_temp: float, temp_drop: float, dt_h: float
+    ) -> None:
+        """Fold one interval's beyond-standby draw energy into #32's stats.
+
+        External heat is the one contamination the freeze guard upstream
+        does not cover: a wood burn drives the tank temperature and every
+        drop-based attribution with it, so those intervals are skipped
+        outright. Heated intervals ARE folded — heating makes the drop
+        smaller, so the attributed energy is a lower bound of the true
+        draw, which can only make the learned heavy-day target
+        conservative relative to reality, never inflated.
+        """
+        if getattr(self._current_state, "external_heat_active", False):
+            return
+        params = self._thermal_params
+        if not params.dhw_enabled:
+            return
+        standby_rate = (
+            self._dhw_cooling_rate
+            * max(0.0, previous_temp - DHW_AMBIENT_TEMP)
+            / DHW_COOLING_REFERENCE_DELTA
+        )
+        intensity = max(0.0, temp_drop / dt_h - standby_rate)  # °C/h beyond standby
+        energy_kwh = (
+            intensity * dt_h * max(params.dhw_tank_thermal_mass, 0.05)
+        )
+        windows = params.dhw_demand_windows
+        label = draw_window_label(
+            now.hour + now.minute / 60.0, windows
+        )
+        self._draw_stats.prune(labels_for(windows))
+        before = {k: len(v) for k, v in self._draw_stats.reservoirs.items()}
+        self._draw_stats.fold(now, label, energy_kwh)
+        after = {k: len(v) for k, v in self._draw_stats.reservoirs.items()}
+        # Persist only when an occurrence actually closed — folding happens
+        # every learning tick and the store does not need that churn.
+        if before != after:
+            await self._async_save_dhw_draws()
 
     async def _async_learn_dhw_cooling(
         self, previous_temp: float, dhw_temp: float, dt_h: float
@@ -2186,6 +2615,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         dt_h: float,
         hour: int,
         heated: bool,
+        weekend: bool = False,
     ) -> None:
         """Learn hourly DHW usage profile from observed temperature drops."""
         # Learn only while DHW is not actively heated, and only from the part
@@ -2212,6 +2642,25 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         )
         self._dhw_hourly_profile = self._normalize_dhw_profile(profile)
         self._thermal_params.dhw_hourly_draw_pattern = self._dhw_hourly_profile.copy()
+
+        # #18: the same observation also teaches this day type's own
+        # profile. Both are normalised independently, so each day type
+        # preserves the daily volume on its own — the invariant the ready
+        # targets stand on.
+        idx = 1 if weekend else 0
+        daytype = (
+            self._dhw_profile_weekend if weekend else self._dhw_profile_weekday
+        ).copy()
+        daytype[hour] = (
+            (1.0 - DHW_PROFILE_EWMA_ALPHA) * daytype[hour]
+            + DHW_PROFILE_EWMA_ALPHA * draw_intensity
+        )
+        normalized = self._normalize_dhw_profile(daytype)
+        if weekend:
+            self._dhw_profile_weekend = normalized
+        else:
+            self._dhw_profile_weekday = normalized
+        self._dhw_daytype_samples[idx] += 1
 
         _LOGGER.debug(
             "Learned DHW usage hour=%d drop=%.2f°C dt=%.2fh intensity=%.2f",
@@ -2279,6 +2728,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
             # Apply current action to heat pump
             await self._apply_action()
+
+            # T3 #6: follow the plan with the circulation pumps. Every tick,
+            # transitions only, and never allowed to break the cycle.
+            try:
+                await self._async_drive_pumps()
+            except Exception as err:  # noqa: BLE001
+                _LOGGER.debug("Pump scheduling skipped: %s", err)
 
             # Close the loop: pair the previous interval's prediction with what
             # actually happened, accumulate energy, and train the derate.
@@ -2406,6 +2862,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 self._peak_guard.suppressing
                 or self._outage_dhw_hold(dt_util.now())
             )
+
+            # T3: everything the hot-water plan reads is refreshed here, in
+            # one place, immediately before the solve.
+            self._prepare_dhw_inputs(dt_util.now())
 
             # Manual plan: build the per-step pin arrays aligned to the exact
             # horizon this solve will use. An expired override is dropped here so
@@ -3711,6 +4171,24 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             "dhw_idle_min_temperature": params.dhw_idle_min_temp,
             "dhw_legionella_enabled": params.dhw_legionella_enabled,
             "dhw_legionella_due_in_hours": self._dhw_legionella_due_in_hours(),
+            # T3: the inlet actually in force, the tank in shower terms
+            # (#28), the setpoint sweep (#9) and the learned heavy-day
+            # statistics (#32/#20).
+            "dhw_inlet_temperature": round(params.dhw_inlet_reference, 1),
+            "dhw_mixed": self._dhw_mixed_water(),
+            "dhw_advisor": self._dhw_setpoint_sweep(),
+            "dhw_draw_stats": {
+                label: {
+                    "events": self._draw_stats.count(label),
+                    "p90_kwh": round(p90, 2)
+                    if (p90 := self._draw_stats.quantile(label, 0.9))
+                    is not None
+                    else None,
+                }
+                for label in labels_for(params.dhw_demand_windows)
+            }
+            if params.dhw_enabled
+            else {},
         }
 
     def _learning_view(self) -> dict[str, Any]:

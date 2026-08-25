@@ -805,6 +805,18 @@
    "required": "Optional",
    "selector": "NumberSelector"
   },
+  "dhw_elastic_legionella_enabled": {
+   "config": null,
+   "default": "False",
+   "required": "Optional",
+   "selector": "BooleanSelector"
+  },
+  "dhw_free_disinfection_enabled": {
+   "config": null,
+   "default": "False",
+   "required": "Optional",
+   "selector": "BooleanSelector"
+  },
   "dhw_idle_min_temperature": {
    "config": {
     "max": "55",
@@ -814,6 +826,38 @@
     "unit_of_measurement": "'\u00b0C'"
    },
    "default": "20.0",
+   "required": "Optional",
+   "selector": "NumberSelector"
+  },
+  "dhw_inlet_entity": {
+   "config": {
+    "filter": "[{'domain': ['sensor'], 'device_class': ['temperature']}]"
+   },
+   "default": null,
+   "required": "Optional",
+   "selector": "EntitySelector"
+  },
+  "dhw_inlet_seasonal_amplitude": {
+   "config": {
+    "max": "8",
+    "min": "0",
+    "mode": "'box'",
+    "step": "0.5",
+    "unit_of_measurement": "'\u00b0C'"
+   },
+   "default": "0.0",
+   "required": "Optional",
+   "selector": "NumberSelector"
+  },
+  "dhw_inlet_temp": {
+   "config": {
+    "max": "25",
+    "min": "2",
+    "mode": "'box'",
+    "step": "0.5",
+    "unit_of_measurement": "'\u00b0C'"
+   },
+   "default": "10.0",
    "required": "Optional",
    "selector": "NumberSelector"
   },
@@ -832,6 +876,18 @@
     "unit_of_measurement": "'days'"
    },
    "default": "7.0",
+   "required": "Optional",
+   "selector": "NumberSelector"
+  },
+  "dhw_legionella_min_interval_days": {
+   "config": {
+    "max": "14",
+    "min": "1",
+    "mode": "'slider'",
+    "step": "1",
+    "unit_of_measurement": "'days'"
+   },
+   "default": "5.0",
    "required": "Optional",
    "selector": "NumberSelector"
   },
@@ -858,6 +914,12 @@
    "default": "45.0",
    "required": "Optional",
    "selector": "NumberSelector"
+  },
+  "dhw_quantile_targets_enabled": {
+   "config": null,
+   "default": "False",
+   "required": "Optional",
+   "selector": "BooleanSelector"
   },
   "dhw_schedule_enabled": {
    "config": null,
@@ -896,6 +958,57 @@
    "default": "'06:00-08:30, 17:00-22:00'",
    "required": "Optional",
    "selector": "TextSelector"
+  },
+  "greywater_recovery_effectiveness": {
+   "config": {
+    "max": "0.9",
+    "min": "0",
+    "mode": "'slider'",
+    "step": "0.05"
+   },
+   "default": "0.0",
+   "required": "Optional",
+   "selector": "NumberSelector"
+  },
+  "shower_flow_lpm": {
+   "config": {
+    "max": "20",
+    "min": "4",
+    "mode": "'box'",
+    "step": "0.5",
+    "unit_of_measurement": "'L/min'"
+   },
+   "default": "8.0",
+   "required": "Optional",
+   "selector": "NumberSelector"
+  },
+  "space_circulation_pump_entity": {
+   "config": {
+    "filter": "[{'domain': ['switch', 'input_boolean']}]"
+   },
+   "default": null,
+   "required": "Optional",
+   "selector": "EntitySelector"
+  },
+  "vvc_lead_minutes": {
+   "config": {
+    "max": "120",
+    "min": "0",
+    "mode": "'slider'",
+    "step": "5",
+    "unit_of_measurement": "'min'"
+   },
+   "default": "20",
+   "required": "Optional",
+   "selector": "NumberSelector"
+  },
+  "vvc_pump_entity": {
+   "config": {
+    "filter": "[{'domain': ['switch', 'input_boolean']}]"
+   },
+   "default": null,
+   "required": "Optional",
+   "selector": "EntitySelector"
   }
  },
  "learning": {

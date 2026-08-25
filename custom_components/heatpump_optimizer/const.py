@@ -544,6 +544,52 @@ CONF_DHW_LEGIONELLA_ENABLED: Final = "dhw_legionella_enabled"
 CONF_DHW_LEGIONELLA_TEMP: Final = "dhw_legionella_temperature"  # °C
 CONF_DHW_LEGIONELLA_INTERVAL_DAYS: Final = "dhw_legionella_interval_days"
 
+# --- Hot water, v4.0.0 T3 ---------------------------------------------------
+#
+# All default inert. The inlet default of 10.0 °C is load-bearing: it is the
+# number the two previously hard-coded cold-water temperatures used, and
+# every ready target in every existing install sits on it — the T3 identity
+# test asserts a fresh model with these defaults plans byte-identically.
+# NONE of these keys may join the ``dhw_enabled`` presence trio.
+CONF_DHW_INLET_TEMP: Final = "dhw_inlet_temp"  # °C cold-water inlet, annual mean
+DEFAULT_DHW_INLET_TEMP: Final = 10.0
+#: Peak-to-mean amplitude of the seasonal inlet swing, °C. 0 = constant.
+CONF_DHW_INLET_SEASONAL_AMPLITUDE: Final = "dhw_inlet_seasonal_amplitude"
+DEFAULT_DHW_INLET_SEASONAL_AMPLITUDE: Final = 0.0
+CONF_DHW_INLET_ENTITY: Final = "dhw_inlet_entity"  # live sensor wins over model
+#: Fraction of drain heat a greywater recovery unit returns to the inlet.
+CONF_GREYWATER_RECOVERY: Final = "greywater_recovery_effectiveness"
+DEFAULT_GREYWATER_RECOVERY: Final = 0.0
+#: #20 — ready targets from learned per-window draw quantiles.
+CONF_DHW_QUANTILE_TARGETS_ENABLED: Final = "dhw_quantile_targets_enabled"
+DEFAULT_DHW_QUANTILE_TARGETS_ENABLED: Final = False
+#: #24 — credit disinfection achieved by any heat source, hold-verified.
+CONF_DHW_FREE_DISINFECTION_ENABLED: Final = "dhw_free_disinfection_enabled"
+DEFAULT_DHW_FREE_DISINFECTION_ENABLED: Final = False
+#: #47 — let the legionella cycle shop for a cheap day inside its interval.
+CONF_DHW_ELASTIC_LEGIONELLA_ENABLED: Final = "dhw_elastic_legionella_enabled"
+DEFAULT_DHW_ELASTIC_LEGIONELLA_ENABLED: Final = False
+CONF_DHW_LEGIONELLA_MIN_INTERVAL_DAYS: Final = "dhw_legionella_min_interval_days"
+DEFAULT_DHW_LEGIONELLA_MIN_INTERVAL_DAYS: Final = 5.0
+#: #28 — display only: the shower the tank actually holds.
+CONF_SHOWER_FLOW_LPM: Final = "shower_flow_lpm"
+DEFAULT_SHOWER_FLOW_LPM: Final = 8.0
+#: #6 — pump switches the scheduler may drive, unset = never touched.
+CONF_VVC_PUMP_ENTITY: Final = "vvc_pump_entity"
+CONF_VVC_LEAD_MINUTES: Final = "vvc_lead_minutes"
+DEFAULT_VVC_LEAD_MINUTES: Final = 20
+CONF_SPACE_PUMP_ENTITY: Final = "space_circulation_pump_entity"
+
+#: #24 — minutes the tank must HOLD the disinfection temperature before the
+#: cycle counts. Momentary blips at temperature kill nothing.
+DHW_LEGIONELLA_HOLD_MINUTES: Final = 20.0
+#: #20 — events per window before the p90 fully replaces the mean (ramp).
+DHW_QUANTILE_MIN_EVENTS: Final = 8
+#: #18 — day-type samples at which the blend is half day-type, half pooled.
+DHW_DAYTYPE_BLEND_K: Final = 14.0
+#: #6 — a zone this close to its comfort floor forces the space pump on.
+SPACE_PUMP_FLOOR_MARGIN_C: Final = 0.3
+
 # Weather sensitivity parameters
 CONF_WIND_SENSITIVITY: Final = "wind_sensitivity_factor"  # fraction per m/s
 CONF_RAIN_HEAT_LOSS_MULTIPLIER: Final = "rain_heat_loss_multiplier"  # multiplier

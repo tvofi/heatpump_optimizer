@@ -237,6 +237,32 @@ class PriceShapeModel:
             level * shape[when.hour % HOURS_PER_DAY] * self.quarter_factor(when)
         )
 
+    def expected_daily_min(
+        self, day_types: list[int], level: float
+    ) -> float | None:
+        """Expected cheapest hourly price over the given day types (#47).
+
+        The elastic legionella gate asks: is today's known minimum already
+        as cheap as a typical day gets, or is a better day likely before
+        the deadline? The answer is the level scaled by the LOWEST hourly
+        shape factor across the day types the remaining interval spans —
+        trust-damped exactly like every other prediction, so a young model
+        answers "level × ~1.0" and the gate effectively always says "now
+        is fine", which is the inelastic behaviour.
+
+        None when no day type was given or the level is unusable.
+        """
+        if not day_types or not np.isfinite(level) or level <= 0.0:
+            return None
+        factors = []
+        for idx in day_types:
+            idx = int(idx) % len(self.shapes)
+            shape = np.asarray(self.shapes[idx], dtype=float)
+            trust = min(1.0, self.days[idx] / SHAPE_CONFIDENCE_DAYS)
+            damped = 1.0 + (shape - 1.0) * trust
+            factors.append(float(np.min(damped)))
+        return float(level * min(factors))
+
     def sigma(self, when: datetime, level: float) -> float:
         """One-sigma dispersion of the prior's guess at ``when``, in SEK/kWh.
 
