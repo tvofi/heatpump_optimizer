@@ -559,6 +559,41 @@ mutations (cold snap ⇒ pump on regardless). README 49→52.
 
 ---
 
+## T3b — Shared-step honesty (small PR between T3 and T4) · user-reported
+
+*Reported on v3.16.0:* the card shows hot water and space heating planned
+in the same period even at maximum zoom, and the user could not tell
+whether the display or the planner was wrong. Investigated: neither is
+broken, but the story is untold. The optimizer's per-step contract is
+``space + dhw ≤ p_max`` — a deliberate time-share relaxation. A step with
+4.8 kW DHW + 1.2 kW space on a 6 kW pump means "this quarter-hour is
+~80 % tank, ~20 % heating circuit"; the diverter valve serves one circuit
+at an instant and alternates with DHW priority, so within-step sharing is
+physically realizable, and hard per-step exclusivity would make the solve
+combinatorial for no gain. Verified across all 31 DHW golden fixtures:
+every overlap step respects the capacity sum exactly.
+
+The defect is that nothing says this. Scope (display + docs only, plan
+byte-identical by construction):
+
+1. **Card:** where a space slot and a DHW slot overlap in time, mark the
+   shared span visibly in both lanes (hatched overlay) and say it in the
+   tooltip: "Shared quarter-hour: the pump alternates circuits — hot
+   water first. X kWh hot water, Y kWh heating." No new entities.
+2. **Plan sensors:** `_plan_slots` slots gain a `shared_kwh` field where
+   the other channel is active in the same steps (additive attribute —
+   coord goldens re-record as additive-only).
+3. **README:** the DHW capacity diagram gains the time-share paragraph —
+   "a step can carry both loads; that is the pump splitting the quarter
+   hour, not both circuits running at once."
+
+**Must not:** change any schedule; add exclusivity constraints; touch the
+objective. Verification: card test for the shared-span rendering + a
+features check that `shared_kwh` sums match the overlap integral on a
+fixture with known overlap steps.
+
+---
+
 ## T4 — Model & learning (PR 5) · **Fable** · #42 #26 #11 #12 #21 #30 #17 #36 #53 #2
 
 Snapshots first (insurance), then detectors (they protect the learners), then
