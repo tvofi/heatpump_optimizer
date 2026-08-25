@@ -513,7 +513,7 @@ can never be charged. That is the default and it is a correct model.
 
 A mixing valve changes this. It limits how much heat reaches the house, so once
 the house has what it needs the surplus has nowhere to go but the tank. Set
-**Mixing valve and heat storage** in the options:
+**Heating system and heat storage** in the options (under Advanced settings):
 
 | Setting | Meaning |
 |---|---|
@@ -567,7 +567,7 @@ as `T_return + 1 °C`, so the difference between slab and room was always exactl
 0.5 K no matter what the sensor read — which pinned the main heat path into the
 lower zone at a constant value, unable to respond to anything.
 
-**Configure `Lower floor temperature sensor`** (Step 1, or Options → Entities)
+**Configure `Lower floor temperature sensor`** (Step 1, or Options → Advanced → Sensors and entities)
 and both problems go away: the zone is measured, and slab-to-room becomes a real
 difference again. It is optional and two-zone only. Without it the old estimate
 is still used, so nothing changes for existing installations until you add one.
@@ -683,8 +683,8 @@ cycle timer resets on its own and no electric cycle is scheduled at all.
 **With three more sensors, the fire stops being all-or-nothing.** If your
 furnace heats its own buffer tank and an automatic valve mixes the two tanks,
 point the integration at the temperature after that valve and at the wood
-tank's top and bottom probes (all optional, on the learning page). The outlet
-is the one sensor that measures what the house actually receives: together
+tank's top and bottom probes (all optional, on the heating-system page). The
+outlet measures the blended flow that valve sends onward: together
 with the tank temperatures it says how much of the heating the fire covers
 right now — the furnace is doing 70 %, so electric space heating stands down
 by 70 % — and the plan is given that free heat for a strictly bounded window:
@@ -713,7 +713,7 @@ storage battery view, at up to 95 °C. Without the probe — or if it goes stale
 — everything falls back to exactly the previous behaviour.
 
 If your hot water tank refills **through a coil immersed in the wood tank**,
-enable *Hot water refilled through the wood tank* on the learning page
+enable *Hot water refilled through the wood tank* on the heating-system page
 (v3.15.1, off by default): refill water then enters preheated whenever the
 modelled wood tank is warm, each draw costs less electricity, and exactly
 that heat is drawn out of the wood tank. Only acts while the wood tank is
@@ -1226,26 +1226,39 @@ a fix has to be careful of. Items 1-21 are released; 22-31 are open.
 ## Changing settings after setup
 
 Open the integration and choose **Configure**. Instead of one long form you get
-a menu, and each page can be edited independently:
+a menu, and each page can be edited independently. The pages you revisit sit at
+the top; everything you typically set once lives one click further, under
+**Advanced settings**:
 
 | Page | What it covers |
 |---|---|
-| Sensors and entities | Tibber token, weather entity, and every optional sensor including the power meters |
+| Your system, as configured | A read-only picture of what is set up and what is missing |
 | Comfort and temperatures | Target, minimum and maximum temperature, day/night hours |
 | Hot water | Tank size, temperatures, demand time frames, anti-legionella |
-| House and heating system | Heat loss, thermal mass, windows, two-zone settings |
-| Building type and emitters | Structure, era, foundation, area and emitters, which derive the page above |
-| Savings vs comfort | Price weight, comfort weight, recalculation interval |
-| Grid costs and cycling | Capacity tariff, compressor start cost, price prior |
-| Solar panels | Array size, efficiency, export compensation |
+| Savings vs comfort | Price weight, comfort weight, recalculation interval, compressor start cost |
+| Grid costs | Capacity tariff — what your grid company charges |
 | Away and holiday mode | Presence source, return time, setback temperatures |
-| Self-learning and diagnostics | Staleness watchdog, external heat detection, comfort learning, identification |
+
+| Advanced page | What it covers |
+|---|---|
+| Sensors and entities | Tibber token, weather entity, and every optional sensor including the power meters |
+| Heating system and heat storage | Mixing valve, buffer tank as a store, radiator share, and the wood furnace tank with its probes |
+| Building type and emitters | Structure, era, foundation, area and emitters, plus windows and wind/rain sensitivity |
+| Thermal model (expert) | The raw model numbers — heat pump power and COP, masses, losses, the two-zone split — previously fixed at setup |
+| Solar panels | Array size, efficiency, export compensation |
+| Self-learning and diagnostics | Staleness watchdog, external heat detection, comfort learning, identification, price prior |
 | Heat curve control (ECL110) | Heat curve points and offsets |
 
 Every sensor you picked during setup can be re-pointed here, including the
 solar radiance sensor. Clearing a field genuinely clears it. Every field has a
 plain-language description, so you should not need this table to understand
 what a setting does.
+
+On the **Thermal model** page a field left empty keeps its current value — an
+empty field is never saved. That detail carries a rule: whether the two-zone
+model is on is inferred from whether its settings exist at all, so filling in
+the two-zone fields here is also how an existing install turns two-zone on,
+and leaving them empty is how a single-zone house stays one.
 
 ### How hard the optimizer chases low prices
 

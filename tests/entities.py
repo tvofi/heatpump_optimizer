@@ -505,8 +505,45 @@ R.check(
     ", ".join(missing),
     # A menu row with no handler renders and then does nothing at all.
 )
-for step in ("building_preset", "grid", "solar_pv", "away", "learning"):
+for step in ("building_preset", "grid", "solar_pv", "away", "learning", "thermal_model"):
     R.check(f"the {step} page is offered in the menu", step in options._MENU_LABELS)
+
+# v4.0.0: the menu is two-level. ``_MENU_LABELS`` stays the flat roster of
+# every leaf page — this file and the golden capture walk it expecting each
+# entry to render a form — and the two tuples partition it between the top
+# menu and the advanced submenu. A page in neither menu is unreachable; a
+# page in both renders twice.
+_top = set(options._TOP_MENU)
+_advanced = set(options._ADVANCED_MENU)
+R.check(
+    "the top and advanced menus partition the pages exactly",
+    not (_top & _advanced) and (_top | _advanced) == set(options._MENU_LABELS),
+    f"overlap {sorted(_top & _advanced)}, "
+    f"unpartitioned {sorted((_top | _advanced) ^ set(options._MENU_LABELS))}",
+)
+R.check(
+    "'advanced' is a menu, not a page",
+    "advanced" not in options._MENU_LABELS
+    and hasattr(options, "async_step_advanced"),
+    "a menu entry in _MENU_LABELS would be walked here expecting a form",
+)
+
+_menu_flow = options(FakeEntry())
+_menu_flow.hass = FakeHass()
+_top_menu = asyncio.run(_menu_flow.async_step_init(None))
+R.check(
+    "the top menu is the everyday pages plus Advanced",
+    _top_menu["type"] == "menu"
+    and list(_top_menu["menu_options"]) == list(options._TOP_MENU) + ["advanced"],
+    str(list(_top_menu.get("menu_options", []))),
+)
+_advanced_menu = asyncio.run(_menu_flow.async_step_advanced(None))
+R.check(
+    "the advanced submenu offers exactly the advanced pages",
+    _advanced_menu["type"] == "menu"
+    and list(_advanced_menu["menu_options"]) == list(options._ADVANCED_MENU),
+    str(list(_advanced_menu.get("menu_options", []))),
+)
 
 for key in (
     const.CONF_POWER_ENTITY,
@@ -551,17 +588,102 @@ R.check(
     "a cleared selector must be written back as None or clearing does not stick",
 )
 
-# The mixing valve page owns its target entity, so it has to clear it itself —
-# it used to lean on the entities page's global nulling, i.e. on the bug above.
+# The building page owns the valve and wood entities (v4.0.0 merged the
+# mixing-valve page and the learning page's wood block into it), so it has to
+# clear them itself — it used to lean on the entities page's global nulling,
+# i.e. on the bug above.
 _vflow = options(
-    FakeEntry(options={const.CONF_MIXING_VALVE_TARGET_ENTITY: "sensor.tgt"})
+    FakeEntry(
+        options={
+            const.CONF_MIXING_VALVE_TARGET_ENTITY: "sensor.tgt",
+            const.CONF_WOOD_TANK_TOP_ENTITY: "sensor.wood_top",
+        }
+    )
 )
 _vflow.hass = FakeHass()
-_vsaved = asyncio.run(_vflow.async_step_mixing_valve({}))["data"]
+_vsaved = asyncio.run(_vflow.async_step_building({}))["data"]
+for _key in (const.CONF_MIXING_VALVE_TARGET_ENTITY, const.CONF_WOOD_TANK_TOP_ENTITY):
+    R.check(
+        f"the building page clears its own absent {_key}",
+        _vsaved.get(_key) is None,
+        f"got {_vsaved.get(_key)!r}",
+    )
+
+# The thermal_model page (v4.0.0) walks the presence-inference minefield:
+# ``two_zone_enabled`` and ``dhw_enabled`` are inferred from whether their
+# keys exist at all, so a page that wrote defaults for untouched fields
+# would flip a legacy single-zone entry to two-zone on any save. The page
+# must save exactly what the user typed and nothing else.
+from heatpump_optimizer.thermal_model import ThermalParameters
+
+_legacy = FakeEntry(
+    data={const.CONF_TIBBER_TOKEN: "t", const.CONF_WEATHER_ENTITY: "weather.home"}
+)
+_tflow = options(_legacy)
+_tflow.hass = FakeHass()
+_tform = asyncio.run(_tflow.async_step_thermal_model(None))
+_tuntouched = _tform["data_schema"]({})
 R.check(
-    "the mixing valve page clears its own absent entity",
-    _vsaved.get(const.CONF_MIXING_VALVE_TARGET_ENTITY) is None,
-    f"got {_vsaved.get(const.CONF_MIXING_VALVE_TARGET_ENTITY)!r}",
+    "an untouched thermal model form submits nothing at all",
+    _tuntouched == {},
+    f"defaults leaked into the submission: {_tuntouched}",
+)
+_tsaved = asyncio.run(_tflow.async_step_thermal_model(_tuntouched))["data"]
+_tmerged = {**_legacy.data, **_tsaved}
+R.check(
+    "an untouched save leaves a legacy entry single-zone",
+    not ThermalParameters.from_config(_tmerged).two_zone_enabled,
+    "presence-inferred two_zone_enabled flipped by an untouched save",
+)
+R.check(
+    "and leaves hot water off too",
+    not ThermalParameters.from_config(_tmerged).dhw_enabled,
+)
+
+# Both halves of the mechanism, deliberately: a plain number saves without
+# dragging zone keys along, and an explicit zone value is exactly what may
+# flip the model on.
+_eflow = options(_legacy)
+_eflow.hass = FakeHass()
+_esaved = asyncio.run(
+    _eflow.async_step_thermal_model({const.CONF_HEAT_PUMP_MAX_POWER: 9.0})
+)["data"]
+R.check(
+    "an edited number saves without touching the zone inference",
+    _esaved.get(const.CONF_HEAT_PUMP_MAX_POWER) == 9.0
+    and not ThermalParameters.from_config(
+        {**_legacy.data, **_esaved}
+    ).two_zone_enabled,
+    f"saved {_esaved!r}",
+)
+_zflow = options(_legacy)
+_zflow.hass = FakeHass()
+_zsaved = asyncio.run(
+    _zflow.async_step_thermal_model({const.CONF_UPPER_FLOOR_THERMAL_MASS: 3.0})
+)["data"]
+R.check(
+    "an explicit zone value is what turns two-zone on",
+    ThermalParameters.from_config({**_legacy.data, **_zsaved}).two_zone_enabled,
+    "the inference must still respond to real input, or the page can never enable it",
+)
+
+# A stored value is *suggested* back, not defaulted: the form pre-fills, but
+# an untouched submission still writes nothing.
+_pflow = options(
+    FakeEntry(data={**_legacy.data, const.CONF_HEAT_PUMP_MAX_POWER: 6.0})
+)
+_pflow.hass = FakeHass()
+_pform = asyncio.run(_pflow.async_step_thermal_model(None))
+_pmarker = next(
+    k
+    for k in _pform["data_schema"].schema
+    if str(getattr(k, "schema", k)) == const.CONF_HEAT_PUMP_MAX_POWER
+)
+R.check(
+    "a stored value is suggested back rather than defaulted",
+    getattr(_pmarker, "description", None) == {"suggested_value": 6.0}
+    and _pform["data_schema"]({}) == {},
+    f"description={getattr(_pmarker, 'description', None)!r}",
 )
 
 
@@ -617,18 +739,18 @@ R.check(
 
 # v3.15.1: the hot water tank refills through a coil in the wood tank. That is
 # plumbing, not a detector setting, so the option lives beside the wood tank it
-# depends on -- an option with no page is an option nobody can turn on.
-_learning_fields = {
-    str(getattr(k, "schema", k)) for k in _pages["learning"].schema
+# depends on -- since v4.0.0 that is the combined heating-system page.
+_building_fields = {
+    str(getattr(k, "schema", k)) for k in _pages["building"].schema
 }
 R.check(
     "the DHW wood-coil option is offered on the wood tank's own page",
-    const.CONF_DHW_WOOD_COIL_ENABLED in _learning_fields,
-    sorted(_learning_fields),
+    const.CONF_DHW_WOOD_COIL_ENABLED in _building_fields,
+    sorted(_building_fields),
 )
 R.check(
     "and it is off unless asked for",
-    _pages["learning"]({}).get(const.CONF_DHW_WOOD_COIL_ENABLED) is False,
+    _pages["building"]({}).get(const.CONF_DHW_WOOD_COIL_ENABLED) is False,
     "a new option that defaults on silently changes every existing install",
 )
 
@@ -664,35 +786,54 @@ for name, data in files.items():
     )
 
 menu = strings["options"]["step"]["init"]["menu_options"]
+advanced_menu = strings["options"]["step"]["advanced"]["menu_options"]
 R.check(
-    "the menu in strings.json matches the flow",
-    set(menu) == set(options._MENU_LABELS),
-    str(set(menu) ^ set(options._MENU_LABELS)),
+    "the two menus in strings.json match the flow, in order",
+    list(menu) == list(options._TOP_MENU) + ["advanced"]
+    and list(advanced_menu) == list(options._ADVANCED_MENU),
+    f"init {list(menu)}, advanced {list(advanced_menu)}",
 )
 
-sv_menu = files["sv"]["options"]["step"]["init"]["menu_options"]
+for _step_id, _base in (("init", menu), ("advanced", advanced_menu)):
+    _sv_menu = files["sv"]["options"]["step"][_step_id]["menu_options"]
+    R.check(
+        f"the Swedish {_step_id} menu is actually translated",
+        sum(1 for k in _sv_menu if _sv_menu[k] == _base[k]) < len(_base) / 2,
+        "placeholder English left in a translation is worse than no translation",
+    )
+
+# Every field on every options page needs a label in strings.json. The
+# key-identity check above only compares the three files to each other, so a
+# field missing from all three — which renders as the raw config key — passed
+# silently until now.
+_unlabelled = sorted(
+    f"{step}.{key}"
+    for step, schema in _pages.items()
+    for key in (str(getattr(k, "schema", k)) for k in schema.schema)
+    if key not in strings["options"]["step"].get(step, {}).get("data", {})
+)
 R.check(
-    "the Swedish menu is actually translated",
-    sum(1 for k in sv_menu if sv_menu[k] == menu[k]) < len(menu) / 2,
-    "placeholder English left in a translation is worse than no translation",
+    "every options field has a label translation",
+    not _unlabelled,
+    ", ".join(_unlabelled[:6]),
 )
 
 # A boolean whose label is missing renders as the bare config key, which reads
 # like a bug report rather than a question -- and the description is the only
 # place the "needs the two-tank model" precondition is stated.
-_learning = strings["options"]["step"]["learning"]
+_building_strings = strings["options"]["step"]["building"]
 for _section in ("data", "data_description"):
     R.check(
         f"the DHW wood-coil option has a {_section} entry",
-        const.CONF_DHW_WOOD_COIL_ENABLED in _learning[_section],
-        f"missing from options.step.learning.{_section}",
+        const.CONF_DHW_WOOD_COIL_ENABLED in _building_strings[_section],
+        f"missing from options.step.building.{_section}",
     )
-_sv_learning = files["sv"]["options"]["step"]["learning"]
+_sv_building = files["sv"]["options"]["step"]["building"]
 for _section in ("data", "data_description"):
     R.check(
         f"and its Swedish {_section} is a real translation",
-        _sv_learning[_section][const.CONF_DHW_WOOD_COIL_ENABLED]
-        != _learning[_section][const.CONF_DHW_WOOD_COIL_ENABLED],
+        _sv_building[_section][const.CONF_DHW_WOOD_COIL_ENABLED]
+        != _building_strings[_section][const.CONF_DHW_WOOD_COIL_ENABLED],
         "English copied into sv.json passes the key check and fails the user",
     )
 
