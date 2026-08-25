@@ -21,10 +21,18 @@ Kept free of Home Assistant imports so it can be unit-tested directly, like
 """
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any
 
 from . import mixing_valve
 from .const import (
+    CONF_TOPOLOGY_POSITIONS,
+    TOPOLOGY_NO_VALVE,
+    TOPOLOGY_SINGLE_TANK_VALVE,
+    TOPOLOGY_SLAB_SHUNT,
+    TOPOLOGY_TWO_TANK_4WAY,
+    TOPOLOGY_VALVE_UPPER_DIRECT_SLAB,
+    topology_layout_valid,
     CONF_BUFFER_TANK_TEMP_ENTITY,
     CONF_DHW_TEMP_ENTITY,
     CONF_DHW_WOOD_COIL_ENABLED,
@@ -95,6 +103,218 @@ _CONDITIONAL_PLACES = ("lower_zone", "floor_loop", "dhw_tank", "mixing_valve",
                        "wood_tank", "wood_valve")
 
 
+# ---------------------------------------------------------------------------
+# The layout catalog (v3.16.0, issue #40)
+# ---------------------------------------------------------------------------
+#
+# The root-cause fix for "the diagram lies about the physics": one catalog
+# of named hydronic layouts that the editor validates against, the drawing
+# derives its edges FROM, and the model dispatches on
+# (`ThermalParameters.topology_layout`). Free-form graphs are never stored:
+# the editor snaps a drawn edge set to a catalog key or rejects it with an
+# explanation naming the nearest supported layout.
+
+
+@dataclass(frozen=True)
+class Layout:
+    """One supported (or known-but-unmodelled) hydronic arrangement."""
+
+    key: str
+    label: str
+    description: str
+    #: What the configuration must have for this key to be storable — the
+    #: prose half of `const.topology_layout_valid`, shown when a selection
+    #: is rejected.
+    requirement: str
+    #: False = drawable in explanations, selectable never, because no model
+    #: variant exists — promising physics nobody wrote is the exact failure
+    #: this catalog ends.
+    selectable: bool = True
+
+
+LAYOUTS: dict[str, Layout] = {
+    layout.key: layout
+    for layout in (
+        Layout(
+            TOPOLOGY_NO_VALVE,
+            "No mixing valve",
+            "Everything the pump makes reaches the emitters; the tank is a "
+            "pass-through with a standing loss.",
+            "no throttling mixing valve configured",
+        ),
+        Layout(
+            TOPOLOGY_SINGLE_TANK_VALVE,
+            "One tank behind a valve",
+            "The valve regulates one shared flow to every circuit; wood "
+            "heat, if any, is folded into the heat-pump tank.",
+            "a throttling mixing valve",
+        ),
+        Layout(
+            TOPOLOGY_TWO_TANK_4WAY,
+            "Two tanks, one 4-way valve",
+            "A wood tank beside the heat-pump tank; the valve draws "
+            "wood-first while usable and feeds both floors in parallel.",
+            "a throttling valve, two zones and a wood-tank top probe",
+        ),
+        Layout(
+            TOPOLOGY_VALVE_UPPER_DIRECT_SLAB,
+            "Valve on the radiators, slab fed direct",
+            "Only the radiator circuit sits behind the valve; the slab "
+            "drinks raw tank water.",
+            "a throttling valve, two zones, and no wood-tank probe (no "
+            "model exists for two tanks with a direct-fed slab)",
+        ),
+        Layout(
+            TOPOLOGY_SLAB_SHUNT,
+            "Separate slab shunt",
+            "A second shunt on the slab circuit. Recorded as a known "
+            "layout; not selectable until physics exists for it.",
+            "not selectable: no model variant exists yet",
+            selectable=False,
+        ),
+    )
+}
+
+#: Human names for the places edges connect, for rejection explanations.
+PLACE_LABELS: dict[str, str] = {
+    "heat_pump": "Heat pump",
+    "buffer_tank": "Buffer tank",
+    "mixing_valve": "Mixing valve",
+    "upper_zone": "Upper floor",
+    "lower_zone": "Lower floor",
+    "wood_tank": "Wood tank",
+    "wood_valve": "Wood mixing valve",
+    "dhw_tank": "Hot water tank",
+    "slab_shunt": "Slab shunt",
+}
+
+
+def layout_edges(
+    key: str,
+    *,
+    two_zone: bool,
+    wood: bool,
+    dhw_coil: bool = False,
+) -> list[tuple[str, str]]:
+    """The drawn edge set of a layout under this configuration's flags.
+
+    Place-name pairs, source to sink. The flags matter because the same
+    layout draws differently on different houses — a one-zone house has no
+    lower-floor edge, a house without a furnace has no wood chain — and
+    both the drawing and the editor's matching must agree on the composed
+    set, so it is composed here, once.
+    """
+    edges: list[tuple[str, str]] = [("heat_pump", "buffer_tank")]
+    # The single-tank wood chain: furnace tank blended into the HP tank by
+    # its own small valve. Only two_tank_4way replaces it.
+    wood_chain = [("wood_tank", "wood_valve"), ("wood_valve", "buffer_tank")]
+    if key == TOPOLOGY_NO_VALVE:
+        edges.append(("buffer_tank", "upper_zone"))
+        if two_zone:
+            edges.append(("buffer_tank", "lower_zone"))
+        if wood:
+            edges.extend(wood_chain)
+    elif key == TOPOLOGY_SINGLE_TANK_VALVE:
+        edges.extend(
+            [("buffer_tank", "mixing_valve"), ("mixing_valve", "upper_zone")]
+        )
+        if two_zone:
+            edges.append(("mixing_valve", "lower_zone"))
+        if wood:
+            edges.extend(wood_chain)
+    elif key == TOPOLOGY_TWO_TANK_4WAY:
+        edges.extend(
+            [
+                ("buffer_tank", "mixing_valve"),
+                ("wood_tank", "mixing_valve"),
+                ("mixing_valve", "upper_zone"),
+                ("mixing_valve", "lower_zone"),
+            ]
+        )
+        if dhw_coil:
+            edges.append(("wood_tank", "dhw_tank"))
+    elif key == TOPOLOGY_VALVE_UPPER_DIRECT_SLAB:
+        edges.extend(
+            [
+                ("buffer_tank", "mixing_valve"),
+                ("mixing_valve", "upper_zone"),
+                ("buffer_tank", "lower_zone"),
+            ]
+        )
+        if wood:
+            edges.extend(wood_chain)
+    elif key == TOPOLOGY_SLAB_SHUNT:
+        edges.extend(
+            [
+                ("buffer_tank", "mixing_valve"),
+                ("mixing_valve", "upper_zone"),
+                ("buffer_tank", "slab_shunt"),
+                ("slab_shunt", "lower_zone"),
+            ]
+        )
+    else:
+        raise KeyError(f"unknown layout {key!r}")
+    return edges
+
+
+def _edge_name(edge: tuple[str, str]) -> str:
+    a, b = edge
+    return (
+        f"{PLACE_LABELS.get(a, a)} → {PLACE_LABELS.get(b, b)}"
+    )
+
+
+def match_layout(
+    edges: list[tuple[str, str]] | list[list[str]],
+    *,
+    two_zone: bool,
+    wood: bool,
+    dhw_coil: bool = False,
+) -> tuple[str | None, str]:
+    """Snap a drawn edge set to a catalog key, or explain why it fits none.
+
+    Returns ``(key, "")`` on an exact match against a layout's composed
+    edge set, or ``(None, explanation)`` naming the nearest layout and the
+    exact edges that differ — the editor shows the explanation verbatim, so
+    it is written for a person, not a parser. Matching is exact on purpose:
+    a nearly-right graph is a graph the model would nearly honor, which is
+    the polite name for wrong physics.
+    """
+    target = {tuple(e) for e in edges}
+    nearest: str | None = None
+    nearest_diff: int | None = None
+    for key in LAYOUTS:
+        expected = set(
+            layout_edges(key, two_zone=two_zone, wood=wood, dhw_coil=dhw_coil)
+        )
+        if expected == target and LAYOUTS[key].selectable:
+            return key, ""
+        diff = len(expected ^ target)
+        if nearest_diff is None or diff < nearest_diff:
+            nearest, nearest_diff = key, diff
+    assert nearest is not None
+    expected = set(
+        layout_edges(nearest, two_zone=two_zone, wood=wood, dhw_coil=dhw_coil)
+    )
+    missing = sorted(expected - target)
+    extra = sorted(target - expected)
+    parts = [f"Closest supported layout: {LAYOUTS[nearest].label}."]
+    if not LAYOUTS[nearest].selectable:
+        parts.append(
+            "That layout is known but not modelled yet, so it cannot be "
+            "selected."
+        )
+    if missing:
+        parts.append(
+            "Missing: " + "; ".join(_edge_name(e) for e in missing) + "."
+        )
+    if extra:
+        parts.append(
+            "Not in it: " + "; ".join(_edge_name(e) for e in extra) + "."
+        )
+    return None, " ".join(parts)
+
+
 def describe_setup(config: dict[str, Any]) -> dict[str, Any]:
     """The configured system as one structured description.
 
@@ -149,6 +369,40 @@ def describe_setup(config: dict[str, Any]) -> dict[str, Any]:
         for key, place, label, domains in _SLOTS
         if present.get(placed(place), True)
     ]
+    # The active layout's drawn edges, composed from the catalog — the card
+    # draws these rather than hardcoding pipes, so drawing and physics can
+    # no longer diverge (v3.16.0). The editor matches edited edge sets
+    # against `catalog`, whose entries carry each layout's edges under THIS
+    # configuration's flags, plus whether the configuration could store it.
+    active_edges = layout_edges(
+        p.topology_layout,
+        two_zone=p.two_zone_enabled,
+        wood=wood,
+        dhw_coil=p.dhw_coil_active,
+    )
+    catalog = [
+        {
+            "key": layout.key,
+            "label": layout.label,
+            "description": layout.description,
+            "selectable": layout.selectable,
+            "valid": layout.selectable
+            and topology_layout_valid(
+                layout.key,
+                two_zone=p.two_zone_enabled,
+                throttling=valve,
+                wood_probe=p.wood_tank_configured,
+            ),
+            "edges": [list(e) for e in layout_edges(
+                layout.key,
+                two_zone=p.two_zone_enabled,
+                wood=wood,
+                dhw_coil=p.dhw_coil_active,
+            )],
+        }
+        for layout in LAYOUTS.values()
+    ]
+    positions = config.get(CONF_TOPOLOGY_POSITIONS) or {}
     return {
         "two_zone": p.two_zone_enabled,
         "dhw": p.dhw_enabled,
@@ -158,6 +412,10 @@ def describe_setup(config: dict[str, Any]) -> dict[str, Any]:
         # rather than re-deriving "is there a wood tank" for themselves.
         "layout": p.topology_layout,
         "two_tank_modelled": two_tank,
+        # Additive (v3.16.0): the drawing and the editor's material.
+        "edges": [list(e) for e in active_edges],
+        "catalog": catalog,
+        "positions": dict(positions) if isinstance(positions, dict) else {},
         # Additive (v3.15.1): the DHW tank refills through a coil in the wood
         # tank. Read from the model's own gate rather than re-derived, so the
         # coil is drawn only when it can actually preheat anything — the

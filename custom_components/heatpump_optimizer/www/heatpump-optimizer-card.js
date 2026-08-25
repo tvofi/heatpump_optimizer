@@ -10,7 +10,7 @@
  */
 
 const CARD_TAG = "heatpump-optimizer-card";
-const CARD_VERSION = "3.15.1";
+const CARD_VERSION = "3.16.0";
 
 const DEFAULTS = {
   title: "Heat pump plan",
@@ -198,6 +198,35 @@ const DIALOG_FONT_PX_MAX = 21;
 // and useless to scroll; the options flow remains the way to reach an entity
 // that does not appear here.
 const PICKER_MAX_OPTIONS = 200;
+
+// The setup diagram's viewBox width, and how far down a dragged box may be
+// parked. Both are needed outside the drawing itself: the layout editor turns
+// pointer coordinates into viewBox units, which only works against the same
+// width the drawing used.
+const SETUP_W = 720;
+const SETUP_MAX_Y = 2000;
+
+// Human names for the places pipes connect, mirroring `topology.PLACE_LABELS`.
+// Only the layout editor's rejection line uses them -- every box already
+// carries its own title -- so a place added on the backend without a label
+// here degrades to its id rather than disappearing.
+const PLACE_LABELS = {
+  heat_pump: "Heat pump",
+  buffer_tank: "Buffer tank",
+  mixing_valve: "Mixing valve",
+  upper_zone: "Upper floor",
+  lower_zone: "Lower floor",
+  wood_tank: "Wood tank",
+  wood_valve: "Wood mixing valve",
+  dhw_tank: "Hot water tank",
+  slab_shunt: "Slab shunt",
+};
+
+/** "mixing_valve>lower_zone" as something a person can read. */
+function edgeLabel(name) {
+  const [a, b] = String(name).split(">");
+  return `${PLACE_LABELS[a] || a} → ${PLACE_LABELS[b] || b}`;
+}
 
 // Human-readable labels for the plan reason codes the optimizer publishes.
 // Without these an unexpected slot is indistinguishable from a bug.
@@ -541,6 +570,19 @@ class HeatpumpOptimizerCard extends HTMLElement {
     this._viewFrame = 0;
     this._pan = null;
     this._suppressClick = false;
+    // The layout editor (v3.16.0, issue #40). Instance state, like the what-if
+    // draft and for the same reason: `_render` rebuilds the shadow root on the
+    // coordinator's schedule, and a half-drawn layout that vanished on a plan
+    // refresh would be worse than no editor. `null` means "not editing", so an
+    // untouched setup page behaves exactly as it did before this existed.
+    this._layoutEdit = null;
+    // Where the last drawing put each box, in viewBox units, so a drop can be
+    // tested against real geometry instead of guessing from the event target.
+    this._layoutBoxes = [];
+    this._onLayoutDown = this._onLayoutDown.bind(this);
+    this._onLayoutMove = this._onLayoutMove.bind(this);
+    this._onLayoutUp = this._onLayoutUp.bind(this);
+    this._onLayoutClick = this._onLayoutClick.bind(this);
     this._onLegendClick = this._onLegendClick.bind(this);
     this._onChartWheel = this._onChartWheel.bind(this);
     this._onPanDown = this._onPanDown.bind(this);
@@ -1109,12 +1151,79 @@ class HeatpumpOptimizerCard extends HTMLElement {
         The setup description has not been published yet. It appears with the
         plan sensors after the integration loads.</div></div>`;
     }
-    return `<div class="setup-page">${this._setupSvg(topo)}
+    const editing = this._layoutEditing();
+    // The svg lives in a wrapper of its own so an edit can redraw the diagram
+    // without rebuilding the page around it: the pointer handlers are attached
+    // to the wrapper, and a drag that replaced its own listeners mid-gesture
+    // would drop the pointer.
+    return `<div class="setup-page${editing ? " editing" : ""}">
+      ${this._layoutBarHtml(topo)}
+      <div class="setup-canvas">${this._setupSvg(topo)}</div>
       ${this._setupPickerHtml(topo)}
-      <div class="setup-hint">Click any sensor to assign it, or to clear it.
+      <div class="setup-hint">${
+        editing
+          ? `Drag a box to move it, drag a port to connect two boxes, or click
+             a pipe to remove it. Only a drawing that matches a supported
+             layout can be saved.`
+          : `Click any sensor to assign it, or to clear it.
       An empty slot is a sensor this setup could use and does not have; it is
-      shown on purpose.</div>
+      shown on purpose.`
+      }</div>
       <div class="setup-result" role="status"></div></div>`;
+  }
+
+  /** True while the layout editor is open. */
+  _layoutEditing() {
+    return !!(this._layoutEdit && this._layoutEdit.active);
+  }
+
+  /** True when there is an edit worth writing: a change, and a layout to
+   * name it. Either alone is not something to offer to save. */
+  _layoutSaveable() {
+    const ed = this._layoutEdit;
+    return !!(ed && ed.active && ed.match && ed.dirty);
+  }
+
+  /** The editor's own controls: the toggle, Save, and the verdict line.
+   *
+   * Offered only when the coordinator publishes a catalog. Without one there
+   * is nothing to validate a drawing against, and an editor that could not
+   * tell a supported layout from an invented one is exactly the "diagram that
+   * lies about the physics" this feature exists to end.
+   */
+  _layoutBarHtml(topo) {
+    // An editor already open keeps its toggle even if the catalog goes away
+    // under it (an integration downgrade mid-session); a bar that vanished
+    // would leave the editor open with no way out of it.
+    if (
+      (!Array.isArray(topo.catalog) || !topo.catalog.length) &&
+      !this._layoutEditing()
+    ) {
+      return "";
+    }
+    const ed = this._layoutEdit;
+    const active = this._layoutEditing();
+    const match = active && ed.match ? ed.match : null;
+    return `
+      <div class="layout-bar">
+        <button type="button" class="layout-edit-toggle${active ? " on" : ""}"
+          aria-pressed="${active}">${
+            active ? "Done editing" : "Edit layout"
+          }</button>
+        ${
+          active
+            ? `<button type="button" class="layout-save"${
+                this._layoutSaveable() ? "" : ` disabled="disabled"`
+              }>Save layout</button>`
+            : ""
+        }
+        ${
+          active
+            ? `<span class="layout-verdict${match ? " match" : ""}"
+                 role="status">${esc((ed && ed.verdict) || "")}</span>`
+            : ""
+        }
+      </div>`;
   }
 
   /** The entity picker for one slot, or nothing when none is open.
@@ -1168,9 +1277,14 @@ class HeatpumpOptimizerCard extends HTMLElement {
 
   /** Wire the setup page's clickable slots and its picker. */
   _attachSetupEvents(root) {
+    this._attachLayoutEditor(root);
     for (const hit of root.querySelectorAll(".setup-hit")) {
       hit.addEventListener("click", (ev) => {
         ev.stopPropagation();
+        // While the layout editor is open a click on a box is the start of a
+        // drag, not a request to assign a sensor. Opening the picker over the
+        // diagram being edited would put a dialog on top of the drag.
+        if (this._layoutEditing()) return;
         this._pickerKey = ev.currentTarget.dataset.key;
         this._render();
       });
@@ -1220,6 +1334,364 @@ class HeatpumpOptimizerCard extends HTMLElement {
     }
   }
 
+  // ---- The layout editor (v3.16.0, issue #40) ----------------------------
+  //
+  // Free-form graphs are never stored. The editor is a drawing surface whose
+  // only output is a catalog KEY: after every change the working edge set is
+  // matched against the catalog the coordinator published for THIS
+  // configuration, and Save is enabled only when it equals an entry the
+  // configuration could actually run. Anything else is drawn as a rejection
+  // with the reason on the page, which is the whole point -- a diagram that
+  // cannot be wrong about the physics.
+
+  /** Wire the editor's controls and the diagram's pointer gestures.
+   *
+   * The buttons take listeners directly because `_refreshLayout` never
+   * rebuilds them; only the canvas's contents are replaced mid-edit, and its
+   * listeners live on the wrapper, which survives.
+   */
+  _attachLayoutEditor(root) {
+    const toggle = root.querySelector(".layout-edit-toggle");
+    if (toggle) {
+      toggle.addEventListener("click", (ev) => {
+        stop(ev);
+        this._toggleLayoutEdit();
+      });
+    }
+    const save = root.querySelector(".layout-save");
+    if (save) {
+      // Returns the promise so a caller (and the tests) can await the call.
+      save.addEventListener("click", (ev) => {
+        stop(ev);
+        return this._saveLayout();
+      });
+    }
+    const canvas = root.querySelector(".setup-canvas");
+    if (!canvas) return;
+    canvas.addEventListener("pointerdown", this._onLayoutDown);
+    canvas.addEventListener("pointermove", this._onLayoutMove);
+    canvas.addEventListener("pointerup", this._onLayoutUp);
+    canvas.addEventListener("pointerleave", this._onLayoutUp);
+    canvas.addEventListener("click", this._onLayoutClick);
+  }
+
+  /** Open the editor on the published layout, or close it, discarding. */
+  _toggleLayoutEdit() {
+    if (this._layoutEditing()) {
+      // Cancel discards. Nothing was written, so keeping the working set on
+      // screen would show a system that does not exist.
+      this._layoutEdit = null;
+    } else {
+      const topo = this._planAttrRaw("setup_topology", null) || {};
+      const positions =
+        topo.positions && typeof topo.positions === "object"
+          ? topo.positions
+          : {};
+      this._layoutEdit = {
+        active: true,
+        edges: (Array.isArray(topo.edges) ? topo.edges : []).map((e) => [
+          e[0],
+          e[1],
+        ]),
+        positions: { ...positions },
+        drag: null,
+        match: null,
+        invalid: [],
+        verdict: "",
+        // Nothing has been drawn yet, so there is nothing to save. Without
+        // this, Save is lit the moment the editor opens and offers to write
+        // the layout the system already has.
+        dirty: false,
+      };
+      this._layoutEvaluate();
+    }
+    // Editing suppresses click-to-assign, so a picker left open would be
+    // unreachable behind the diagram.
+    this._pickerKey = null;
+    this._render();
+  }
+
+  /** Match the working edge set against the catalog, and say what it is.
+   *
+   * Sets `match` (the entry Save would store, or null), `invalid` (the drawn
+   * edges no near layout has, drawn as rejected pipes) and `verdict` (one
+   * line for the page). Matching is exact: a nearly-right graph is a graph
+   * the model would nearly honour.
+   */
+  _layoutEvaluate() {
+    const ed = this._layoutEdit;
+    if (!ed) return;
+    const topo = this._planAttrRaw("setup_topology", null) || {};
+    const catalog = Array.isArray(topo.catalog) ? topo.catalog : [];
+    const name = (e) => `${e[0]}>${e[1]}`;
+    const drawn = new Set(ed.edges.map(name));
+    const equals = (set) =>
+      set.size === drawn.size && [...drawn].every((k) => set.has(k));
+
+    let match = null;
+    let sameButUnusable = null;
+    let nearest = null;
+    let nearestSet = null;
+    let nearestDiff = null;
+    for (const entry of catalog) {
+      const set = new Set((entry.edges || []).map(name));
+      if (equals(set)) {
+        if (entry.valid) match = match || entry;
+        else sameButUnusable = sameButUnusable || entry;
+      }
+      let diff = 0;
+      for (const k of set) if (!drawn.has(k)) diff++;
+      for (const k of drawn) if (!set.has(k)) diff++;
+      // Ties go to the earlier catalog entry, which is the order the
+      // integration lists them in -- stable, so the same drawing always gets
+      // the same explanation.
+      if (nearestDiff === null || diff < nearestDiff) {
+        nearest = entry;
+        nearestSet = set;
+        nearestDiff = diff;
+      }
+    }
+
+    if (match) {
+      ed.match = match;
+      ed.invalid = [];
+      ed.verdict = `Matches ${match.label}.`;
+      return;
+    }
+    ed.match = null;
+    if (sameButUnusable) {
+      // The drawing IS a known layout; what fails is the configuration, so
+      // the requirement is the only useful thing to say. No pipe is at
+      // fault, so none is marked.
+      ed.invalid = [];
+      ed.verdict =
+        sameButUnusable.selectable === false
+          ? `${sameButUnusable.label} — ${sameButUnusable.requirement}.`
+          : `${sameButUnusable.label} — needs ${sameButUnusable.requirement}.`;
+      return;
+    }
+    if (!nearest) {
+      ed.invalid = [];
+      ed.verdict = "No layout catalog was published for this system.";
+      return;
+    }
+    const extra = [...drawn].filter((k) => !nearestSet.has(k));
+    const missing = [...nearestSet].filter((k) => !drawn.has(k));
+    ed.invalid = extra;
+    const parts = [
+      `No supported layout matches. Closest: ${nearest.label}.`,
+    ];
+    if (extra.length) {
+      parts.push(`Not in it: ${extra.map(edgeLabel).join("; ")}.`);
+    }
+    if (missing.length) {
+      parts.push(`Missing: ${missing.map(edgeLabel).join("; ")}.`);
+    }
+    ed.verdict = parts.join(" ");
+  }
+
+  /** Redraw only what an edit changes.
+   *
+   * A full `_render` per pointer move would rebuild the shadow root dozens of
+   * times a second and take the drag's own listeners with it -- the same
+   * reason the plan lanes refresh in place.
+   */
+  _refreshLayout() {
+    const root = this.shadowRoot;
+    if (!root) return;
+    const topo = this._planAttrRaw("setup_topology", null);
+    const canvas = root.querySelector(".setup-canvas");
+    if (canvas && topo && Array.isArray(topo.slots)) {
+      canvas.innerHTML = this._setupSvg(topo);
+    }
+    const ed = this._layoutEdit;
+    const verdict = root.querySelector(".layout-verdict");
+    if (verdict) {
+      verdict.textContent = (ed && ed.verdict) || "";
+      if (verdict.classList) {
+        verdict.classList.toggle("match", !!(ed && ed.match));
+      }
+    }
+    const save = root.querySelector(".layout-save");
+    if (save) save.disabled = !this._layoutSaveable();
+  }
+
+  /** Pointer client coordinates as viewBox units on the setup diagram. */
+  _layoutPoint(ev) {
+    const root = this.shadowRoot;
+    const svg = root && root.querySelector(".setup-svg");
+    if (!svg || !svg.getBoundingClientRect || !ev) return null;
+    const rect = svg.getBoundingClientRect();
+    if (!rect || !rect.width) return null;
+    // The diagram keeps its aspect ratio (`width: 100%; height: auto`), so a
+    // single scale relates both axes; measuring y against the measured height
+    // would skew every drop test further down the page.
+    const scale = SETUP_W / rect.width;
+    return {
+      x: (ev.clientX - rect.left) * scale,
+      y: (ev.clientY - rect.top) * scale,
+    };
+  }
+
+  /** The box under a point, in viewBox units, or null. */
+  _layoutBoxAt(x, y) {
+    const boxes = this._layoutBoxes || [];
+    for (let i = boxes.length - 1; i >= 0; i--) {
+      const b = boxes[i];
+      if (x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) return b;
+    }
+    return null;
+  }
+
+  _onLayoutDown(ev) {
+    const ed = this._layoutEdit;
+    if (!ed || !ed.active) return;
+    const pt = this._layoutPoint(ev);
+    if (!pt) return;
+    // A new gesture cancels any click still owed from the last one. The click
+    // after a drag that ended on a slot row is stopped by the row's own
+    // handler, so the flag would otherwise survive and eat the next real
+    // click -- the one asking for a pipe to be removed.
+    ed.suppressClick = false;
+    let data = (ev.target && ev.target.dataset) || {};
+    if (!data.port && this.shadowRoot.elementFromPoint) {
+      // Browser input routing can hit-test a pointerdown against a
+      // frame-old layout (observed with synthesized input; touch rides the
+      // same compositor path), so a down that claims the bare svg at a
+      // port's coordinates would silently become a box drag. Re-test
+      // against the live DOM before deciding what the gesture is.
+      const live = this.shadowRoot.elementFromPoint(ev.clientX, ev.clientY);
+      if (live && live.dataset && live.dataset.port) data = live.dataset;
+    }
+    if (data.port && data.place) {
+      // A connection in the making. It is only a proposal until it lands on
+      // another box, so nothing is added here.
+      ed.drag = { kind: "edge", from: data.place, x: pt.x, y: pt.y };
+    } else {
+      const box = this._layoutBoxAt(pt.x, pt.y);
+      if (!box) return;
+      ed.drag = {
+        kind: "box",
+        place: box.place,
+        dx: pt.x - box.x,
+        dy: pt.y - box.y,
+      };
+    }
+    stop(ev);
+    if (ev.preventDefault) ev.preventDefault();
+  }
+
+  _onLayoutMove(ev) {
+    const ed = this._layoutEdit;
+    if (!ed || !ed.active || !ed.drag) return;
+    const pt = this._layoutPoint(ev);
+    if (!pt) return;
+    ed.drag.moved = true;
+    if (ed.drag.kind === "box") {
+      // Cosmetic only: a position never changes an edge, and therefore never
+      // changes which layout the drawing matches.
+      ed.positions[ed.drag.place] = [
+        Math.round(pt.x - ed.drag.dx),
+        Math.round(pt.y - ed.drag.dy),
+      ];
+      ed.dirty = true;
+    } else {
+      ed.drag.x = pt.x;
+      ed.drag.y = pt.y;
+    }
+    this._refreshLayout();
+  }
+
+  _onLayoutUp(ev) {
+    const ed = this._layoutEdit;
+    if (!ed || !ed.active || !ed.drag) return;
+    const drag = ed.drag;
+    ed.drag = null;
+    if (drag.kind === "edge") {
+      const pt = this._layoutPoint(ev) || { x: drag.x, y: drag.y };
+      const box = this._layoutBoxAt(pt.x, pt.y);
+      // A pipe from a box to itself is not a pipe; a release over nothing
+      // abandons the proposal, which is how a drag is cancelled.
+      if (box && box.place !== drag.from) {
+        this._layoutAddEdge(drag.from, box.place);
+      }
+    }
+    // The browser synthesises a click after pointerup, and on the diagram
+    // that click would land on whatever the drag ended over -- removing the
+    // pipe the user just drew.
+    if (drag.moved) ed.suppressClick = true;
+    this._layoutEvaluate();
+    this._refreshLayout();
+  }
+
+  _onLayoutClick(ev) {
+    const ed = this._layoutEdit;
+    if (!ed || !ed.active) return;
+    if (ed.suppressClick) {
+      ed.suppressClick = false;
+      stop(ev);
+      return;
+    }
+    const data = (ev.target && ev.target.dataset) || {};
+    if (!data.edge) return;
+    stop(ev);
+    this._layoutRemoveEdge(data.edge);
+  }
+
+  _layoutAddEdge(from, to) {
+    const ed = this._layoutEdit;
+    if (!ed) return;
+    if (ed.edges.some((e) => e[0] === from && e[1] === to)) return;
+    // The same pipe drawn backwards is the same pipe. Keeping both would
+    // match no catalog entry and read as a bug in the editor rather than a
+    // second connection.
+    ed.edges = ed.edges.filter((e) => !(e[0] === to && e[1] === from));
+    ed.edges.push([from, to]);
+    ed.dirty = true;
+  }
+
+  _layoutRemoveEdge(name) {
+    const ed = this._layoutEdit;
+    if (!ed) return;
+    const before = ed.edges.length;
+    ed.edges = ed.edges.filter((e) => `${e[0]}>${e[1]}` !== name);
+    if (ed.edges.length !== before) ed.dirty = true;
+    this._layoutEvaluate();
+    this._refreshLayout();
+  }
+
+  /** Store the matched layout key and the box positions.
+   *
+   * Only the key travels: the service re-derives the edges from it, so a
+   * drawing can never smuggle in physics the model does not implement. A
+   * rejection is reported on the page and leaves the editor open, because
+   * the drawing is the user's work and losing it is not a way to say no.
+   */
+  async _saveLayout() {
+    const ed = this._layoutEdit;
+    if (!this._layoutSaveable()) return;
+    if (!this._hass || typeof this._hass.callService !== "function") return;
+    const note = this.shadowRoot.querySelector(".setup-result");
+    const label = ed.match.label;
+    try {
+      await this._hass.callService("heatpump_optimizer", "apply_topology", {
+        layout: ed.match.key,
+        positions: ed.positions,
+      });
+      // The write reloads the integration, so the topology the card draws
+      // from is replaced a moment later; say so rather than leaving a
+      // diagram that has not caught up looking wrong.
+      this._setupNote = `Saved ${label}. Reloading…`;
+      this._layoutEdit = null;
+    } catch (err) {
+      this._setupNote = `Could not save the layout: ${
+        (err && err.message) || err
+      }`;
+    }
+    this._render();
+    if (note) note.textContent = this._setupNote || "";
+  }
+
   /** One live reading, formatted, or null for an empty slot. */
   _slotLive(slot) {
     if (!slot.entity) return null;
@@ -1235,7 +1707,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
   }
 
   _setupSvg(topo) {
-    const W = 720;
+    const W = SETUP_W;
     const slotsAt = (place) => topo.slots.filter((s) => s.place === place);
     const boxes = [];
     // SVG text does not wrap, and a caption longer than the box runs
@@ -1256,12 +1728,18 @@ class HeatpumpOptimizerCard extends HTMLElement {
       return lines;
     };
     // A box is a titled list of slot rows; its height follows its contents.
+    // The first place is the box's identity -- the id edges and saved
+    // positions name it by -- and any others are slots that live on the same
+    // physical thing (the floor loop's return probe is on the slab).
     const box = (col, title, places, extra) => {
       const rows = [];
       for (const p of places) {
         for (const s of slotsAt(p)) rows.push(s);
       }
-      boxes.push({ col, title, rows, extra: (extra || []).flatMap(wrapExtra) });
+      boxes.push({
+        col, title, rows, place: places[0],
+        extra: (extra || []).flatMap(wrapExtra),
+      });
     };
 
     const valve =
@@ -1326,7 +1804,35 @@ class HeatpumpOptimizerCard extends HTMLElement {
       b.h = 24 + (b.rows.length + b.extra.length) * rowH + pad;
       colY[b.col] = b.y + b.h + 14;
     }
-    const H = Math.max(...colY) + 4;
+    let H = Math.max(...colY) + 4;
+
+    // Cosmetic positions (v3.16.0): the column layout above still runs, so a
+    // position for one box leaves every other box where it was, and a place
+    // that no longer has a box is simply ignored rather than erroring. The
+    // editor's own working positions win over the stored ones while it is
+    // open, which is what makes a drag visible.
+    const editing = this._layoutEditing();
+    const stored =
+      topo.positions && typeof topo.positions === "object" ? topo.positions : {};
+    const placed = editing
+      ? { ...stored, ...(this._layoutEdit.positions || {}) }
+      : stored;
+    for (const b of boxes) {
+      const at = placed[b.place];
+      if (!Array.isArray(at) || at.length < 2) continue;
+      const x = Number(at[0]);
+      const y = Number(at[1]);
+      if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
+      // Clamped to the drawing: a box parked outside the viewBox is a box
+      // nobody can drag back.
+      b.x = Math.max(0, Math.min(W - colW, x));
+      b.y = Math.max(0, Math.min(SETUP_MAX_Y, y));
+      H = Math.max(H, b.y + b.h + 4);
+    }
+    // Where the boxes ended up, for the editor's drop tests.
+    this._layoutBoxes = boxes.map((b) => ({
+      place: b.place, x: b.x, y: b.y, w: colW, h: b.h,
+    }));
 
     const parts = [];
     // Connections first, under the boxes: pump and furnace feed the buffer
@@ -1338,17 +1844,21 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // short vertical pipe; a right-to-left curve between them crosses every
     // box in between and reads as spaghetti. `edge` names the connection so
     // tests can assert the drawn topology instead of path coordinates.
-    const line = (a, b, edge) => {
+    // Same-column is asked as "same x" so a box the user has dragged still
+    // gets the pipe its new position deserves; with nothing dragged the two
+    // questions have identical answers, because a column is one x.
+    const line = (a, b, edge, cls) => {
       if (!a || !b) return "";
-      if (a.col === b.col) {
+      const extra = cls || "";
+      if (a.x === b.x) {
         const upper = a.y < b.y ? a : b;
         const lower = a.y < b.y ? b : a;
         const x = a.x + 24;
-        return `<path class="setup-pipe" data-edge="${edge}"
+        return `<path class="setup-pipe${extra}" data-edge="${edge}"
           d="M ${x} ${upper.y + upper.h}
           L ${x} ${lower.y}" />`;
       }
-      return `<path class="setup-pipe" data-edge="${edge}"
+      return `<path class="setup-pipe${extra}" data-edge="${edge}"
         d="M ${anchor(a).x} ${anchor(a).y}
         C ${anchor(a).x + 30} ${anchor(a).y},
           ${to(b).x - 30} ${to(b).y}, ${to(b).x} ${to(b).y}" />`;
@@ -1362,32 +1872,75 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // one t_mix and delivers both circuits from it (issue #40).
     const supplyBox = valve ? find(valveTitle) : bufferBox;
     const supplyName = valve ? "valve" : "buffer";
-    // "Heat pump tank" also starts with "Heat pump", so the pump itself is
-    // matched exactly rather than by prefix.
-    parts.push(line(boxes.find((b) => b.title === "Heat pump"), bufferBox,
-      "hp-buffer"));
-    if (twoTank) {
-      // Both stores feed the same 4-way valve; there is no wood-side valve
-      // and no path that pours the wood tank into the heat-pump tank.
-      parts.push(line(find("Wood furnace tank"), supplyBox, "wood-valve"));
+
+    // The place each edge endpoint is drawn at. Two places fold: the
+    // two-tank layout has no separate wood valve (its outlet probe is a slot
+    // on the one 4-way device), and the lower floor's box carries the floor
+    // loop. A place with no box drops its pipes rather than drawing them
+    // into empty space -- `slab_shunt` has no box on any modelled layout.
+    const byPlace = new Map();
+    for (const b of boxes) if (b.place) byPlace.set(b.place, b);
+    if (!byPlace.has("wood_valve") && byPlace.has("mixing_valve")) {
+      byPlace.set("wood_valve", byPlace.get("mixing_valve"));
+    }
+
+    // v3.16.0: the pipes are the coordinator's edge list, drawn as published.
+    // Hardcoding them here is what let the drawing and the physics drift
+    // apart in the first place. `topo.edges` is absent on a coordinator from
+    // before this release, and that fallback is the old drawing exactly.
+    const drawnEdges = editing
+      ? this._layoutEdit.edges
+      : Array.isArray(topo.edges)
+        ? topo.edges
+        : null;
+    if (drawnEdges) {
+      const rejected = new Set(
+        editing && Array.isArray(this._layoutEdit.invalid)
+          ? this._layoutEdit.invalid
+          : []
+      );
+      const matched = editing && this._layoutEdit.match ? " layout-match" : "";
+      for (const e of drawnEdges) {
+        const edge = `${e[0]}>${e[1]}`;
+        parts.push(line(byPlace.get(e[0]), byPlace.get(e[1]), edge,
+          rejected.has(edge) ? " invalid" : matched));
+      }
+      // The connection being dragged, from its box to the pointer.
+      const drag = editing ? this._layoutEdit.drag : null;
+      if (drag && drag.kind === "edge" && byPlace.has(drag.from)) {
+        const src = byPlace.get(drag.from);
+        parts.push(`<path class="layout-ghost"
+          d="M ${src.x + colW / 2} ${src.y + src.h / 2}
+          L ${drag.x} ${drag.y}" />`);
+      }
     } else {
-      parts.push(line(find("Wood mixing valve"), bufferBox,
-        "woodvalve-buffer"));
-      parts.push(line(find("Wood furnace tank"), find("Wood mixing valve"),
-        "wood-woodvalve"));
+      // "Heat pump tank" also starts with "Heat pump", so the pump itself is
+      // matched exactly rather than by prefix.
+      parts.push(line(boxes.find((b) => b.title === "Heat pump"), bufferBox,
+        "hp-buffer"));
+      if (twoTank) {
+        // Both stores feed the same 4-way valve; there is no wood-side valve
+        // and no path that pours the wood tank into the heat-pump tank.
+        parts.push(line(find("Wood furnace tank"), supplyBox, "wood-valve"));
+      } else {
+        parts.push(line(find("Wood mixing valve"), bufferBox,
+          "woodvalve-buffer"));
+        parts.push(line(find("Wood furnace tank"), find("Wood mixing valve"),
+          "wood-woodvalve"));
+      }
+      // A second, separate path out of the wood tank: mains water on its way
+      // into the hot water tank, not heating water on its way to the house.
+      // No other edge stands for it, so without this pipe the diagram shows a
+      // hot water tank that the wood tank cannot reach.
+      if (dhwCoil) {
+        parts.push(line(find("Wood furnace tank"), find("Hot water tank"),
+          "wood-dhw"));
+      }
+      parts.push(line(supplyBox, houseBox, `${supplyName}-upper`));
+      if (valve) parts.push(line(bufferBox, supplyBox, "buffer-valve"));
+      if (topo.two_zone) parts.push(line(supplyBox, find("Lower floor"),
+        `${supplyName}-lower`));
     }
-    // A second, separate path out of the wood tank: mains water on its way
-    // into the hot water tank, not heating water on its way to the house.
-    // No other edge stands for it, so without this pipe the diagram shows a
-    // hot water tank that the wood tank cannot reach.
-    if (dhwCoil) {
-      parts.push(line(find("Wood furnace tank"), find("Hot water tank"),
-        "wood-dhw"));
-    }
-    parts.push(line(supplyBox, houseBox, `${supplyName}-upper`));
-    if (valve) parts.push(line(bufferBox, supplyBox, "buffer-valve"));
-    if (topo.two_zone) parts.push(line(supplyBox, find("Lower floor"),
-      `${supplyName}-lower`));
 
     for (const b of boxes) {
       const rows = [];
@@ -1422,17 +1975,45 @@ class HeatpumpOptimizerCard extends HTMLElement {
           y="${y}">${esc(ex)}</text>`);
         y += rowH;
       }
+      // One port per edge midpoint, drawn only while editing: they are drag
+      // handles for connections, and a diagram nobody is editing should not
+      // sprout handles that do nothing.
+      // Each port is two circles: the visible 5-unit dot, and a much larger
+      // invisible twin that actually takes the pointer. Measured in a real
+      // browser, the dot alone renders around two CSS pixels — a drag aimed
+      // at its exact center landed on the box instead, and no fingertip
+      // would ever fare better. The twin is painted after the dot so hit
+      // testing prefers it, and carries the same data attributes so the
+      // handler cannot tell them apart.
+      const ports = editing
+        ? [
+            [b.x + colW / 2, b.y, "top"],
+            [b.x + colW / 2, b.y + b.h, "bottom"],
+            [b.x, b.y + b.h / 2, "left"],
+            [b.x + colW, b.y + b.h / 2, "right"],
+          ]
+          .map(([px, py, side]) =>
+            `<circle class="layout-port" data-place="${esc(b.place || "")}"
+              data-port="${side}" cx="${px}" cy="${py}" r="5" />
+            <circle class="layout-port-hit" data-place="${esc(b.place || "")}"
+              data-port="${side}" cx="${px}" cy="${py}" r="16" />`)
+          .join("")
+        : "";
+      // The place id rides on the box only while editing: outside the editor
+      // nothing reads it, and a drawing that is byte-identical to the one
+      // before this feature is the cheapest possible proof it changed nothing.
+      const at = editing ? ` data-place="${esc(b.place || "")}"` : "";
       parts.push(`
         <g>
-          <rect class="setup-box" x="${b.x}" y="${b.y}" width="${colW}"
+          <rect class="setup-box"${at} x="${b.x}" y="${b.y}" width="${colW}"
             height="${b.h}" rx="8" />
           <text class="setup-title" x="${b.x + 10}"
             y="${b.y + 17}">${esc(b.title)}</text>
-          ${rows.join("")}
+          ${rows.join("")}${ports}
         </g>`);
     }
 
-    return `<svg class="setup-svg" viewBox="0 0 ${W} ${H}"
+    return `<svg class="setup-svg${editing ? " editing" : ""}" viewBox="0 0 ${W} ${H}"
       xmlns="http://www.w3.org/2000/svg" role="img"
       aria-label="Configured system">${parts.join("")}</svg>`;
   }
@@ -2497,6 +3078,55 @@ class HeatpumpOptimizerCard extends HTMLElement {
         }
         .setup-hit { fill: transparent; cursor: pointer; }
         .setup-hit:hover { fill: var(--primary-color, #03a9f4); opacity: 0.12; }
+
+        /* The layout editor (v3.16.0, issue #40) */
+        .layout-bar {
+          display: flex; align-items: center; gap: 0.5em;
+          flex-wrap: wrap; padding: 0 0.25em 0.4em 0.25em;
+        }
+        .layout-bar button {
+          font: inherit; font-size: 0.85em; cursor: pointer;
+          border: 1px solid var(--divider-color, #e0e0e0);
+          background: transparent; color: var(--primary-text-color);
+          border-radius: 1em; padding: 0.2em 0.9em;
+        }
+        .layout-bar button:focus-visible {
+          outline: 2px solid var(--primary-color, #03a9f4);
+          outline-offset: 2px;
+        }
+        .layout-edit-toggle.on { border-color: var(--primary-color, #03a9f4); }
+        .layout-bar button[disabled] { opacity: 0.45; cursor: default; }
+        .layout-verdict {
+          flex: 1 1 100%; font-size: 0.85em;
+          color: var(--secondary-text-color);
+        }
+        .layout-verdict.match { color: var(--primary-color, #03a9f4); }
+        /* Editing widens the pipes: a 1.5-unit stroke is a hopeless click
+           target, and clicking a pipe is how one is removed. */
+        .setup-svg.editing .setup-pipe { stroke-width: 3.5; cursor: pointer; }
+        .setup-svg.editing .setup-box { cursor: move; }
+        /* A drag on a touch screen must move the box, not scroll the page. */
+        .setup-svg.editing { touch-action: none; }
+        .setup-pipe.layout-match {
+          stroke: var(--primary-color, #03a9f4); opacity: 0.9;
+        }
+        .setup-pipe.invalid {
+          stroke: var(--error-color, #db4437); opacity: 0.95;
+          stroke-dasharray: 6 4;
+        }
+        .layout-port {
+          fill: var(--card-background-color, #fff);
+          stroke: var(--primary-color, #03a9f4); stroke-width: 1.5;
+          cursor: crosshair;
+        }
+        .layout-port-hit {
+          fill: #fff; fill-opacity: 0.001; stroke: none;
+          cursor: crosshair;
+        }
+        .layout-ghost {
+          fill: none; stroke: var(--primary-color, #03a9f4);
+          stroke-width: 1.5; stroke-dasharray: 4 3;
+        }
         .setup-page { position: relative; }
         .setup-picker {
           position: absolute; left: 50%; top: 1em;

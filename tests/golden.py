@@ -388,6 +388,20 @@ SCENARIOS: dict[str, dict] = {
             "wood_tank_temperature": 55.0,
         },
     ),
+    # The stored-layout override (v3.16.0): the slab drinks raw tank water,
+    # so a hot tank drains into the floor with no curve cap — the layout
+    # the pre-v3.14.1 drawing showed, now honestly modelled.
+    "valve_upper_direct_slab": dict(
+        two_zone=True,
+        dhw=False,
+        config_overrides={
+            "mixing_valve_mode": "manual",
+            "buffer_tank_volume": 750.0,
+            "buffer_max_temperature": 70.0,
+            "topology_layout": "valve_upper_direct_slab",
+        },
+        state_overrides={"buffer_tank_temperature": 32.0},
+    ),
     # --- combinations, because features interact --------------------------
     "tariff_plus_two_zone": dict(
         two_zone=True,

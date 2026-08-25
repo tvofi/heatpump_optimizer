@@ -41,7 +41,10 @@ from .const import (
     DEFAULT_DAY_START_HOUR,
     DEFAULT_DHW_SETPOINT,
     DHW_MIN_TEMP_SETPOINT_MARGIN,
+    CONF_TOPOLOGY_LAYOUT,
+    CONF_TOPOLOGY_POSITIONS,
     SERVICE_APPLY_SCHEDULE,
+    SERVICE_APPLY_TOPOLOGY,
     SERVICE_ASSIGN_ENTITY,
     SERVICE_APPLY_MANUAL_PLAN,
     SERVICE_CLEAR_MANUAL_PLAN,
@@ -55,8 +58,11 @@ from .const import (
     OPERATION_MODES,
     MODE_OFF,
     MODE_BOOST,
+    topology_layout_valid,
 )
+from . import mixing_valve
 from .coordinator import HeatPumpOptimizerCoordinator
+from .thermal_model import ThermalParameters
 from .dhw_schedule import DHWWindowError, format_windows, parse_windows
 from .frontend import async_register_frontend
 from . import topology
@@ -119,6 +125,27 @@ SERVICE_SCHEMA_ASSIGN_ENTITY = vol.Schema(
     {
         vol.Required("key"): vol.In(sorted(topology.ASSIGNABLE_KEYS)),
         vol.Required("entity_id"): cv.string,
+        vol.Optional("entry_id"): cv.string,
+    }
+)
+
+# Store the layout the card's editor snapped to (v3.16.0). The schema only
+# admits selectable catalog keys — an unmodelled layout (slab_shunt) is
+# impossible by construction, not by handler vigilance. Positions are
+# cosmetic box coordinates, {place: [x, y]}; free-form edges are never
+# accepted anywhere, which is the whole design.
+SERVICE_SCHEMA_APPLY_TOPOLOGY = vol.Schema(
+    {
+        vol.Required("layout"): vol.In(
+            sorted(k for k, v in topology.LAYOUTS.items() if v.selectable)
+        ),
+        vol.Optional("positions"): vol.Schema(
+            {
+                vol.In(sorted(topology.PLACE_LABELS)): vol.All(
+                    [vol.Coerce(float)], vol.Length(min=2, max=2)
+                ),
+            }
+        ),
         vol.Optional("entry_id"): cv.string,
     }
 )
@@ -420,6 +447,61 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
         return {"key": key, "entity_id": value}
 
+    async def handle_apply_topology(call: ServiceCall) -> dict[str, Any]:
+        """Store the layout the card's editor snapped to (v3.16.0).
+
+        Mirrors assign_entity's discipline: server-side validation, an
+        options write, the ordinary reload. The schema already restricts
+        the key to selectable catalog entries; what it cannot know is
+        whether THIS configuration can honor it — a two-tank layout needs
+        a wood probe, a valved layout needs a valve — so that is checked
+        per entry here, and the rejection names the requirement so the
+        editor can show it verbatim.
+        """
+        key = call.data["layout"]
+        positions = call.data.get("positions")
+        target_entry = call.data.get("entry_id")
+
+        targets = [
+            entry
+            for entry in hass.config_entries.async_entries(DOMAIN)
+            if (target_entry is None or entry.entry_id == target_entry)
+            and entry.entry_id in hass.data.get(DOMAIN, {})
+        ]
+        if not targets:
+            raise ServiceValidationError(
+                "No loaded Heat Pump Optimizer config entry matched this call"
+            )
+
+        for entry in targets:
+            merged = {**entry.data, **entry.options}
+            p = ThermalParameters.from_config(merged)
+            if not topology_layout_valid(
+                key,
+                two_zone=p.two_zone_enabled,
+                throttling=mixing_valve.is_throttling(p.mixing_valve_mode),
+                wood_probe=p.wood_tank_configured,
+            ):
+                raise ServiceValidationError(
+                    f"This system cannot use the "
+                    f"'{topology.LAYOUTS[key].label}' layout: it needs "
+                    f"{topology.LAYOUTS[key].requirement}"
+                )
+
+        for entry in targets:
+            options = {**dict(entry.options), CONF_TOPOLOGY_LAYOUT: key}
+            if positions is not None:
+                options[CONF_TOPOLOGY_POSITIONS] = {
+                    place: [float(x), float(y)]
+                    for place, (x, y) in positions.items()
+                }
+            hass.config_entries.async_update_entry(entry, options=options)
+
+        _LOGGER.info(
+            "Topology layout %s stored on %d entry(ies)", key, len(targets)
+        )
+        return {"layout": key}
+
     async def handle_apply_schedule(call: ServiceCall) -> dict[str, Any]:
         """Persist a schedule the user built in the what-if simulator.
 
@@ -657,6 +739,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
     hass.services.async_register(
         DOMAIN,
+        SERVICE_APPLY_TOPOLOGY,
+        handle_apply_topology,
+        schema=SERVICE_SCHEMA_APPLY_TOPOLOGY,
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+    hass.services.async_register(
+        DOMAIN,
         SERVICE_APPLY_MANUAL_PLAN,
         handle_apply_manual_plan,
         schema=SERVICE_SCHEMA_APPLY_MANUAL_PLAN,
@@ -699,6 +788,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             SERVICE_SIMULATE_PLAN,
             SERVICE_APPLY_SCHEDULE,
             SERVICE_ASSIGN_ENTITY,
+            SERVICE_APPLY_TOPOLOGY,
             SERVICE_APPLY_MANUAL_PLAN,
             SERVICE_CLEAR_MANUAL_PLAN,
         ):

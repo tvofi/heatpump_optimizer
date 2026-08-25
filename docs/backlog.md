@@ -60,8 +60,17 @@ and deliberately not built.
   design recorded on issue #40) **shipped in v3.15.1**: inlet preheat at
   a conservative fixed effectiveness, draw reduction and wood-tank debit
   as one exact identity, the baseline owning the identical coil.
-  Remaining: the layout editor over a validated topology catalog
-  (v3.16.0).
+  **v3.16.0 closed the finding**: the topology catalog is the single
+  source for the drawing, the editor and the model dispatch; layouts are
+  stored by key only (free-form graphs impossible); the pre-v3.14.1
+  drawing's arrangement (valve on the radiators, slab fed direct) turned
+  out to be a real layout some houses have and is modelled now;
+  slab_shunt is recorded as known-but-unmodelled and unselectable. Two
+  editor traps found only in a real browser and fixed: a ~2 px port
+  target, and pointerdown hit-testing against a frame-old layout (the
+  down claims the bare svg at a port's coordinates — re-tested against
+  the live DOM). Issue #40 is complete: three releases plus the coil,
+  exactly as planned.
 
 - **System identification fits a first-order plant** (audit finding 3). The
   step-response experiment fits one time constant to a two-store plant (room
