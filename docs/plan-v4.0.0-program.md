@@ -18,7 +18,13 @@ subsystem, and in a set of learners and guardrails that make the existing model
 honest about its own uncertainty.
 
 **Decisions, fixed by the user:**
-- One PR per theme tranche (9 PRs), config-flow restructure first.
+- One PR per theme tranche (10 PRs since T0b was added), config-flow
+  restructure first.
+- *Added 2026-08-25:* the user's eight feedback items on the v3.16.0 layout
+  editor are part of this program. Items 4 and 6–8 (config-flow grouping and
+  the wrong valve-outlet description) were folded into T0; items 1–3 and 5
+  (card mobile access, the missing heat-pump→DHW pipe, the unremovable
+  "wood mixing valve" box, the "needs: Undefined" save bug) are tranche T0b.
 - Build from fresh `origin/main`.
 - Single **v4.0.0** release at the end; version strings move only in the last PR.
 - **Every new configuration option is optional and default inert** — an
@@ -108,6 +114,7 @@ Extend **additively** — the silent-fallback loaders discard reshaped payloads.
 
 ```
 T0 config-flow restructure
+T0b #40 follow-ups   card + topology fixes from the user's v3.16.0 feedback
 T1 bill model        #1 #13 #19 #34 #23   builds: grid_fee.py, ledger.py, price σ
 T2 peak & power      #7 #5 #3 #22         builds: state-change listener, time-weighted
                                           PeakTracker, fuse config, power_caps extra,
@@ -140,16 +147,43 @@ second-level menu**, which works on every supported version.
 **Top menu:** `setup_overview`, `comfort`, `hot_water`, `tuning`, `grid`, `away`,
 `advanced →`.
 **Advanced submenu:** `entities`, `building`, `building_preset`, `thermal_model`
-(new), `solar_pv`, `learning`, `heat_curve`, `mixing_valve`.
+(new), `solar_pv`, `learning`, `heat_curve`.
 
-Page **keys never change** (`entities.py:508` hard-codes five; translations key on
-them). Only labels and menu position move.
+*(Amended during execution, per the user's #40 feedback items 6–8.)* The
+`mixing_valve` page is **merged into `building`**, which becomes "Heating
+system and heat storage": one page for everything between the heat sources
+and the emitters — valve mode/target/entities, `buffer_max_temp`, buffer
+volume, radiator share, and the wood-tank block
+(`valve_outlet_temp_entity`, wood tank probes, `wood_tank_volume`,
+`dhw_wood_coil_enabled`) which moves off `learning`. The purely structural
+four (`window_area`, `solar_heat_gain_coefficient`, `wind_sensitivity_factor`,
+`rain_heat_loss_multiplier`) move `building`→`building_preset`. The
+external-heat *detector* settings stay on `learning`; only the plumbing it
+observes moves. `presets.derive()` outputs none of the moved keys, so
+enabling the preset cannot overwrite them.
 
-Mechanics: keep `_MENU_LABELS` as the flat dict of all leaf pages (now 14) so its
-two load-bearing consumers (`golden.py:575`, `entities.py:463`) are unchanged in
-shape; add `_TOP_MENU`/`_ADVANCED_MENU` partitioning it plus the synthetic
-`advanced` entry; refactor `_menu_options()` into `_translated_menu(step_id,
-labels)`; add `async_step_advanced`.
+*(Second amendment, user decision 2026-08-25: two-zone must be switchable
+both ways.)* Presence of a zone key can only ever turn the model on — setup
+writes the keys into `entry.data`, where options cannot erase them — so the
+`thermal_model` page carries an explicit `two_zone_mode` select
+(`auto`/`on`/`off`, `CONF_TWO_ZONE_MODE`). `auto` — the default, and what
+every entry without the key has — is the presence rule byte-for-byte; an
+unknown stored value falls back to `auto` rather than disabling a running
+model. G2's "presence inference must not gain members" stands: the mode is
+an override above the inference, not a new member of it.
+
+Surviving page **keys never change** (`entities.py:508` hard-codes five;
+translations key on them); the one removed page's translations move under
+`building` in the same commit. The user's #40 item 4 (the valve-outlet
+description claimed the sensor "measures what the house actually receives";
+in every modelled layout it measures the blend the wood valve sends onward)
+is fixed here as part of moving those strings.
+
+Mechanics: keep `_MENU_LABELS` as the flat dict of all leaf pages (now 13) so
+its two load-bearing consumers (`golden.py:575`, `entities.py:463`) are
+unchanged in shape; add `_TOP_MENU`/`_ADVANCED_MENU` partitioning it plus the
+synthetic `advanced` entry; refactor `_menu_options()` into
+`_translated_menu(step_id, labels)`; add `async_step_advanced`.
 
 **Field moves:** `CONF_CYCLING_COST` grid→tuning (an objective knob in SEK);
 `CONF_PRICE_PRIOR_ENABLED` grid→learning (a learned model toggle). This leaves
@@ -182,6 +216,59 @@ for fresh installs.
 
 ~6 files, +550/−200. Risk **medium-low** (zero runtime change; both fixture
 families and every translation move — which is why it ships alone and first).
+
+---
+
+## T0b — #40 follow-ups (PR between T0 and T1) · Opus · **executed**
+
+The user's remaining feedback on v3.16.0's layout editor (items 1–3 and 5 of
+their list; 4 and 6–8 were folded into T0). All card/topology work, no
+optimizer surface. *Outcomes:* item 5 fixed both sides (catalog ships
+`requirement`, card degrades without it); item 2 fixed (`heat_pump →
+dhw_tank` composed on every layout when hot water is modelled); item 3
+resolved by **dropping** the wood-valve box (tank-to-tank wood chain, the
+outlet slot re-homed onto the wood tank / 4-way valve, stale payloads
+re-homed in the card); item 1 fixed as far as this environment can verify
+(blanket `svg { touch-action: none }` was swallowing touch on the setup
+diagram — scoped to the chart — plus a wrapping dialog header and a
+sideways-scrolling canvas at phone width); confirming the feel on a real
+phone remains with the user. No golden re-record was needed: the coord_*
+fixtures carry no topology payload.
+
+1. **"needs: Undefined" save bug (item 5).** Root cause found during T0:
+   `describe_setup()`'s catalog entries never include the `Layout.requirement`
+   field, but the card renders `needs ${sameButUnusable.requirement}`
+   (`heatpump-optimizer-card.js:1470`) when a drawn edge set matches an
+   unusable layout — which is exactly the two-tank-4-way-without-coil case
+   the user hit. Fix: add `"requirement": layout.requirement` to the catalog
+   dict in `topology.py`, a card-side fallback for descriptions that predate
+   the field, and a `card.mjs` case rendering the rejection text. Verify the
+   4-way + two tanks + no coil arrangement saves (it is `selectable` and
+   `valid` with a wood probe — the message was the bug, but confirm
+   end-to-end).
+2. **The heat pump visibly feeds the DHW tank (item 2).** `layout_edges()`
+   never emits a `heat_pump → dhw_tank` edge, so the DHW tank floats
+   unconnected in every drawing, coil or no coil. Add the edge whenever DHW
+   is enabled (all layouts), keep `wood_tank → dhw_tank` for the coil, and
+   update `match_layout` fixtures, the card drawing, and the setup-overview
+   text. Editor round-trips must keep matching.
+3. **The "wood mixing valve" box (item 3).** The `wood_valve` place is an
+   artifact of the single-tank abstraction (the two-tank layout already folds
+   it into the 4-way valve). The user finds the box meaningless and cannot
+   remove it. Decide: either drop the place entirely — single-tank wood draws
+   `wood_tank → buffer_tank` and the valve-outlet sensor slot moves onto the
+   wood tank — or make the box deletable with both edge sets matching the
+   same layout. Prefer dropping it: fewer boxes nobody owns. Migrate stored
+   `CONF_TOPOLOGY_POSITIONS` for the removed place.
+4. **Mobile setup page (item 1).** The card's setup page cannot be seen or
+   entered on mobile. Investigate the card's tab/page navigation and canvas
+   sizing on narrow viewports; fix CSS/interaction; cover what `card.mjs`
+   can (page reachable, no horizontal dependence), note what only a device
+   can verify.
+
+~4 files (topology.py, the card, card.mjs, goldens for the setup payload).
+Risk **medium** — drawing and matcher must move together or the editor
+rejects its own default drawing.
 
 ---
 
@@ -337,6 +424,14 @@ profiles/quantiles/cooling/inlet). **#28** is greenfield display math:
 rails** (the risky half): forced ON when the plan commands heat this or next step,
 when displace is being driven, when any zone is within 0.3 °C of its floor, and
 when outdoor < 0 °C. Off only in provably idle, warm slots.
+
+*Noted during T0's review, for this tranche:* the entities page writes
+`dhw_temp_entity: None` back when the sensor is cleared, and the
+`dhw_enabled` presence rule counts a None-valued key as present — so
+clearing a DHW sensor can phantom-enable hot water on an entry that never
+had it. Pre-existing; fix here (where DHW semantics are already in scope),
+either by ignoring None in the presence trio or with a `dhw_mode` override
+mirroring T0's `two_zone_mode`.
 
 **Must not:** change the `10.0` inlet default (every ready target sits on it — assert
 bit-identity); let new hot_water keys join the `dhw_enabled` presence trio; let

@@ -195,6 +195,9 @@ from .const import (
     DEFAULT_SYSID_ENABLED,
     CONF_COMFORT_LEARNING_ENABLED,
     DEFAULT_COMFORT_LEARNING_ENABLED,
+    CONF_TWO_ZONE_MODE,
+    TWO_ZONE_MODES,
+    TWO_ZONE_MODE_AUTO,
     CONF_BUILDING_PRESET_ENABLED,
     CONF_BUILDING_STRUCTURE,
     CONF_BUILDING_ERA,
@@ -724,7 +727,7 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
     )
 
     # Every clearable entity across all pages; the solar, away, learning and
-    # mixing-valve pages clear their own members in their own handlers.
+    # building pages clear their own members in their own handlers.
     _OPTIONAL_ENTITY_KEYS = _ENTITIES_PAGE_KEYS + (
         CONF_EXTERNAL_HEAT_ENTITY,
         CONF_VALVE_OUTLET_TEMP_ENTITY,
@@ -738,23 +741,48 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
         CONF_AWAY_RETURN_ENTITY,
     )
 
-    # Fallback labels for the menu, used when the frontend has no translation
-    # to show. They double as the definition of which pages the menu offers.
+    # Fallback labels for the menus, used when the frontend has no translation
+    # to show. This stays the flat roster of every *leaf* page — the golden
+    # capture and the entity tests walk it expecting each entry to render a
+    # form — while the two tuples below decide where each page appears. The
+    # synthetic ``advanced`` menu entry is deliberately not a member: it opens
+    # the second menu, not a form.
     _MENU_LABELS = {
         "setup_overview": "Your system, as configured",
         "entities": "Sensors and entities",
         "comfort": "Comfort and temperatures",
         "hot_water": "Hot water",
-        "building": "House and heating system",
+        "building": "Heating system and heat storage",
         "building_preset": "Building type and emitters",
+        "thermal_model": "Thermal model (expert)",
         "tuning": "Savings vs comfort",
-        "grid": "Grid costs and cycling",
+        "grid": "Grid costs",
         "solar_pv": "Solar panels",
         "away": "Away and holiday mode",
         "learning": "Self-learning and diagnostics",
         "heat_curve": "Heat curve control (ECL110)",
-        "mixing_valve": "Mixing valve and heat storage",
     }
+
+    # The pages a household actually revisits. Everything else moves behind
+    # one extra click so the first menu reads as questions a user has, not as
+    # a map of the integration's internals. ``section()`` was considered and
+    # rejected for this: the pinned minimum HA version predates it and the
+    # golden capture walks schemas one level deep, so grouped fields would
+    # silently fall out of the fingerprint — a submenu works everywhere.
+    _TOP_MENU = ("setup_overview", "comfort", "hot_water", "tuning", "grid", "away")
+
+    # Set-once configuration: sensors, building physics, actuation plumbing.
+    _ADVANCED_MENU = (
+        "entities",
+        "building",
+        "building_preset",
+        "thermal_model",
+        "solar_pv",
+        "learning",
+        "heat_curve",
+    )
+
+    _ADVANCED_LABEL = "Advanced settings"
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         """Initialize options flow."""
@@ -778,13 +806,27 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Show the options menu."""
+        """Show the top-level options menu."""
+        labels = {step: self._MENU_LABELS[step] for step in self._TOP_MENU}
+        labels["advanced"] = self._ADVANCED_LABEL
         return self.async_show_menu(
             step_id="init",
-            menu_options=await self._menu_options(),
+            menu_options=await self._translated_menu("init", labels),
         )
 
-    async def _menu_options(self) -> dict[str, str]:
+    async def async_step_advanced(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Show the advanced submenu of set-once pages."""
+        labels = {step: self._MENU_LABELS[step] for step in self._ADVANCED_MENU}
+        return self.async_show_menu(
+            step_id="advanced",
+            menu_options=await self._translated_menu("advanced", labels),
+        )
+
+    async def _translated_menu(
+        self, step_id: str, labels: dict[str, str]
+    ) -> dict[str, str]:
         """Menu entries as explicit ``step id -> label`` pairs.
 
         Passing plain step ids instead would leave the frontend to translate
@@ -793,7 +835,7 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
         ourselves means the menu is always legible; the translation is still
         used whenever it resolves.
         """
-        labels = dict(self._MENU_LABELS)
+        labels = dict(labels)
         try:
             translations = await async_get_translations(
                 self.hass, self.hass.config.language, "options", {DOMAIN}
@@ -802,11 +844,11 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
             _LOGGER.debug("Could not load option menu translations", exc_info=True)
             return labels
 
-        prefix = f"component.{DOMAIN}.options.step.init.menu_options."
-        for step_id in labels:
-            translated = translations.get(f"{prefix}{step_id}")
+        prefix = f"component.{DOMAIN}.options.step.{step_id}.menu_options."
+        for entry in labels:
+            translated = translations.get(f"{prefix}{entry}")
             if translated:
-                labels[step_id] = translated
+                labels[entry] = translated
         return labels
 
     async def async_step_setup_overview(
@@ -1057,15 +1099,69 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
     async def async_step_building(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Physical properties of the house and heating system."""
+        """The heating system's plumbing: valve, tanks, and the heat split.
+
+        One page for everything between the heat sources and the emitters —
+        the mixing valve, the buffer tank as a store, and the wood-furnace
+        tank with its probes. These used to be spread across three pages
+        (building, mixing valve, and the wood block on the learning page),
+        which meant describing one physical system in three places.
+        The purely structural properties (windows, wind and rain) live on
+        *Building type and emitters* instead.
+        """
         if user_input is not None:
-            return self._save(user_input)
+            cleaned = dict(user_input)
+            # This page's own clearable entities: an absent selector must be
+            # written back as None or clearing it silently restores the old
+            # entity.
+            for key in (
+                CONF_MIXING_VALVE_TARGET_ENTITY,
+                CONF_MIXING_VALVE_WRITE_ENTITY,
+                CONF_VALVE_OUTLET_TEMP_ENTITY,
+                CONF_WOOD_TANK_TOP_ENTITY,
+                CONF_WOOD_TANK_BOTTOM_ENTITY,
+            ):
+                if not cleaned.get(key):
+                    cleaned[key] = None
+            return self._save(cleaned)
 
         current = self._current
+
+        def _entity(key: str) -> Any:
+            """Optional key that keeps the currently configured entity as default."""
+            existing = current.get(key)
+            if existing:
+                return vol.Optional(key, default=existing)
+            return vol.Optional(key)
+
         return self.async_show_form(
             step_id="building",
             data_schema=vol.Schema(
                 {
+                    vol.Optional(
+                        CONF_MIXING_VALVE_MODE,
+                        default=current.get(
+                            CONF_MIXING_VALVE_MODE, mixing_valve.MODE_NONE
+                        ),
+                    ): _select(
+                        list(mixing_valve.SELECTABLE_MODES), "mixing_valve_mode"
+                    ),
+                    # 0 means "use the top of the comfort band", which is also
+                    # what a dumb valve is recommended to be set to.
+                    vol.Optional(
+                        CONF_MIXING_VALVE_TARGET,
+                        default=current.get(
+                            CONF_MIXING_VALVE_TARGET, DEFAULT_MIXING_VALVE_TARGET
+                        ),
+                    ): _number(0, 30, 0.5, "°C"),
+                    _entity(CONF_MIXING_VALVE_TARGET_ENTITY): _entity_of(
+                        "sensor", "temperature"
+                    ),
+                    # The actuation path for smart_write: the number or
+                    # climate entity the valve's own controller exposes.
+                    _entity(CONF_MIXING_VALVE_WRITE_ENTITY): _entity_of(
+                        ["number", "input_number", "climate"]
+                    ),
                     vol.Optional(
                         CONF_BUFFER_TANK_VOLUME,
                         default=current.get(
@@ -1073,36 +1169,134 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
                         ),
                     ): _number(10, 1500, 5, "L"),
                     vol.Optional(
-                        CONF_RADIATOR_POWER_FRACTION,
+                        CONF_BUFFER_MAX_TEMP,
                         default=current.get(
-                            CONF_RADIATOR_POWER_FRACTION,
-                            DEFAULT_RADIATOR_POWER_FRACTION,
+                            CONF_BUFFER_MAX_TEMP, DEFAULT_BUFFER_MAX_TEMP
                         ),
-                    ): _number(0.0, 1.0, 0.05, slider=True),
+                    ): _number(40, 90, 1, "°C", slider=True),
+                    # The radiator share is deliberately NOT here even though
+                    # the old building page carried it: it is one of the four
+                    # two-zone *presence* keys, and this page's voluptuous
+                    # defaults write every field on any save — which would
+                    # flip a legacy single-zone entry to two-zone the first
+                    # time someone configured a valve. It lives on the
+                    # thermal_model page, whose fields are presence-safe.
+                    # Wood-furnace topology: the valve outlet is the sensor
+                    # that turns the boolean fire into a continuous
+                    # displacement; the tank pair bounds how long the fire
+                    # can back it. The detector itself stays on the learning
+                    # page; this is the plumbing it observes.
+                    _entity(CONF_VALVE_OUTLET_TEMP_ENTITY): _entity_of(
+                        ["sensor"]
+                    ),
+                    _entity(CONF_WOOD_TANK_TOP_ENTITY): _entity_of(["sensor"]),
+                    _entity(CONF_WOOD_TANK_BOTTOM_ENTITY): _entity_of(
+                        ["sensor"]
+                    ),
                     vol.Optional(
-                        CONF_WINDOW_AREA,
-                        default=current.get(CONF_WINDOW_AREA, DEFAULT_WINDOW_AREA),
-                    ): _number(0, 50, 0.5, "m²"),
-                    vol.Optional(
-                        CONF_SOLAR_HEAT_GAIN_COEFF,
+                        CONF_WOOD_TANK_VOLUME,
                         default=current.get(
-                            CONF_SOLAR_HEAT_GAIN_COEFF,
-                            DEFAULT_SOLAR_HEAT_GAIN_COEFF,
+                            CONF_WOOD_TANK_VOLUME, DEFAULT_WOOD_TANK_VOLUME
                         ),
-                    ): _number(0.1, 1.0, 0.05, slider=True),
+                    ): _number(50, 3000, 50, "L", slider=True),
+                    # How the DHW tank is plumbed to the wood tank. Only bites
+                    # with the two-tank model, which is why it sits beside the
+                    # tank it depends on (v3.15.1).
                     vol.Optional(
-                        CONF_WIND_SENSITIVITY,
+                        CONF_DHW_WOOD_COIL_ENABLED,
                         default=current.get(
-                            CONF_WIND_SENSITIVITY, DEFAULT_WIND_SENSITIVITY
+                            CONF_DHW_WOOD_COIL_ENABLED,
+                            DEFAULT_DHW_WOOD_COIL_ENABLED,
                         ),
-                    ): _number(0.0, 0.5, 0.01),
+                    ): bool,
+                }
+            ),
+        )
+
+    async def async_step_thermal_model(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """The raw numeric thermal model, previously settable only at setup.
+
+        A wrong ``heat_pump_max_power`` or zone split could until now only be
+        fixed by deleting the integration and starting over — losing every
+        learned parameter with it. This page surfaces those numbers.
+
+        The presence hazard: ``two_zone_enabled`` and ``dhw_enabled`` are not
+        flags but *inferences* from whether their keys exist at all
+        (``ThermalParameters.from_config``), so a ``vol.Optional`` with a
+        default would write that default on any untouched save and silently
+        flip a legacy single-zone entry to two-zone. Fields with a stored
+        value therefore only *suggest* it back — writing the same value again
+        is a no-op — and fields without one render empty; an empty box is
+        omitted from ``user_input`` and never saved.
+        """
+        if user_input is not None:
+            return self._save(user_input)
+
+        current = self._current
+
+        def _numeric(key: str) -> Any:
+            """Optional key that suggests the stored value without defaulting it."""
+            if key in current:
+                return vol.Optional(
+                    key, description={"suggested_value": current[key]}
+                )
+            return vol.Optional(key)
+
+        return self.async_show_form(
+            step_id="thermal_model",
+            data_schema=vol.Schema(
+                {
+                    _numeric(CONF_HOUSE_THERMAL_MASS): _number(2, 50, 0.5, "kWh/°C"),
+                    _numeric(CONF_HOUSE_HEAT_LOSS_COEFFICIENT): _number(
+                        0.05, 1.0, 0.01, "kW/°C"
+                    ),
+                    _numeric(CONF_SLAB_THERMAL_MASS): _number(1, 30, 0.5, "kWh/°C"),
+                    _numeric(CONF_SLAB_HEAT_TRANSFER): _number(
+                        0.1, 5.0, 0.1, "kW/°C"
+                    ),
+                    _numeric(CONF_HEAT_PUMP_COP_NOMINAL): _number(1.5, 6.0, 0.1),
+                    _numeric(CONF_HEAT_PUMP_MAX_POWER): _number(1, 20, 0.5, "kW"),
+                    _numeric(CONF_HEAT_PUMP_MIN_POWER): _number(0, 10, 0.5, "kW"),
+                    # The explicit two-zone switch. Presence of the zone keys
+                    # below can only ever turn the model on — the initial flow
+                    # writes them into entry.data, where this page cannot
+                    # erase them — so turning it *off* needs a real override.
+                    # Suggested, not defaulted, like every field here: an
+                    # untouched save must write nothing.
                     vol.Optional(
-                        CONF_RAIN_HEAT_LOSS_MULTIPLIER,
-                        default=current.get(
-                            CONF_RAIN_HEAT_LOSS_MULTIPLIER,
-                            DEFAULT_RAIN_HEAT_LOSS_MULTIPLIER,
-                        ),
-                    ): _number(1.0, 1.5, 0.01),
+                        CONF_TWO_ZONE_MODE,
+                        description={
+                            "suggested_value": current.get(
+                                CONF_TWO_ZONE_MODE, TWO_ZONE_MODE_AUTO
+                            )
+                        },
+                    ): _select(list(TWO_ZONE_MODES), "two_zone_mode"),
+                    _numeric(CONF_UPPER_FLOOR_THERMAL_MASS): _number(
+                        1, 20, 0.5, "kWh/°C"
+                    ),
+                    _numeric(CONF_LOWER_FLOOR_THERMAL_MASS): _number(
+                        1, 30, 0.5, "kWh/°C"
+                    ),
+                    _numeric(CONF_UPPER_FLOOR_HEAT_LOSS): _number(
+                        0.01, 0.5, 0.01, "kW/°C"
+                    ),
+                    _numeric(CONF_LOWER_FLOOR_HEAT_LOSS): _number(
+                        0.01, 0.5, 0.01, "kW/°C"
+                    ),
+                    _numeric(CONF_INTER_ZONE_TRANSFER): _number(
+                        0.0, 3.0, 0.1, "kW/°C"
+                    ),
+                    _numeric(CONF_RADIATOR_POWER_FRACTION): _number(
+                        0.0, 1.0, 0.05, slider=True
+                    ),
+                    _numeric(CONF_UPPER_FLOOR_AREA_RATIO): _number(
+                        0.1, 0.9, 0.05, slider=True
+                    ),
+                    _numeric(CONF_SOLAR_ORIENTATION_FACTOR): _number(
+                        0.0, 1.0, 0.05, slider=True
+                    ),
                 }
             ),
         )
@@ -1135,70 +1329,13 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
                             CONF_OPTIMIZATION_INTERVAL, DEFAULT_OPTIMIZATION_INTERVAL
                         ),
                     ): _number(10, 120, 5, "min", slider=True),
-                }
-            ),
-        )
-
-    async def async_step_mixing_valve(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Mixing valve, and whether the buffer tank can be used as a store."""
-        if user_input is not None:
-            cleaned = dict(user_input)
-            # This page's own clearable entities, mirroring the solar/away/
-            # learning pages: an absent selector must be written back as None
-            # or clearing it silently restores the old entity.
-            for key in (
-                CONF_MIXING_VALVE_TARGET_ENTITY,
-                CONF_MIXING_VALVE_WRITE_ENTITY,
-            ):
-                if not cleaned.get(key):
-                    cleaned[key] = None
-            return self._save(cleaned)
-
-        current = self._current
-
-        def _entity(key: str) -> Any:
-            """Optional key that keeps the currently configured entity as default."""
-            existing = current.get(key)
-            if existing:
-                return vol.Optional(key, default=existing)
-            return vol.Optional(key)
-
-        return self.async_show_form(
-            step_id="mixing_valve",
-            data_schema=vol.Schema(
-                {
+                    # An objective knob in SEK per start, so it lives with the
+                    # other objective weights rather than under grid fees
+                    # (moved here in v4.0.0; the key is unchanged).
                     vol.Optional(
-                        CONF_MIXING_VALVE_MODE,
-                        default=current.get(
-                            CONF_MIXING_VALVE_MODE, mixing_valve.MODE_NONE
-                        ),
-                    ): _select(
-                        list(mixing_valve.SELECTABLE_MODES), "mixing_valve_mode"
-                    ),
-                    # 0 means "use the top of the comfort band", which is also
-                    # what a dumb valve is recommended to be set to.
-                    vol.Optional(
-                        CONF_MIXING_VALVE_TARGET,
-                        default=current.get(
-                            CONF_MIXING_VALVE_TARGET, DEFAULT_MIXING_VALVE_TARGET
-                        ),
-                    ): _number(0, 30, 0.5, "°C"),
-                    _entity(CONF_MIXING_VALVE_TARGET_ENTITY): _entity_of(
-                        "sensor", "temperature"
-                    ),
-                    # The actuation path for smart_write: the number or
-                    # climate entity the valve's own controller exposes.
-                    _entity(CONF_MIXING_VALVE_WRITE_ENTITY): _entity_of(
-                        ["number", "input_number", "climate"]
-                    ),
-                    vol.Optional(
-                        CONF_BUFFER_MAX_TEMP,
-                        default=current.get(
-                            CONF_BUFFER_MAX_TEMP, DEFAULT_BUFFER_MAX_TEMP
-                        ),
-                    ): _number(40, 90, 1, "°C", slider=True),
+                        CONF_CYCLING_COST,
+                        default=current.get(CONF_CYCLING_COST, DEFAULT_CYCLING_COST),
+                    ): _number(0, 10, 0.05),
                 }
             ),
         )
@@ -1349,6 +1486,34 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
                         CONF_LOWER_EMITTER,
                         default=current.get(CONF_LOWER_EMITTER, presets.EMITTER_FLOOR),
                     ): _select(list(presets.EMITTERS), "emitter"),
+                    # Structural properties of the building itself, beside
+                    # the questions that describe it. None of these are
+                    # derived by the preset, so a hand-set value survives
+                    # enabling it.
+                    vol.Optional(
+                        CONF_WINDOW_AREA,
+                        default=current.get(CONF_WINDOW_AREA, DEFAULT_WINDOW_AREA),
+                    ): _number(0, 50, 0.5, "m²"),
+                    vol.Optional(
+                        CONF_SOLAR_HEAT_GAIN_COEFF,
+                        default=current.get(
+                            CONF_SOLAR_HEAT_GAIN_COEFF,
+                            DEFAULT_SOLAR_HEAT_GAIN_COEFF,
+                        ),
+                    ): _number(0.1, 1.0, 0.05, slider=True),
+                    vol.Optional(
+                        CONF_WIND_SENSITIVITY,
+                        default=current.get(
+                            CONF_WIND_SENSITIVITY, DEFAULT_WIND_SENSITIVITY
+                        ),
+                    ): _number(0.0, 0.5, 0.01),
+                    vol.Optional(
+                        CONF_RAIN_HEAT_LOSS_MULTIPLIER,
+                        default=current.get(
+                            CONF_RAIN_HEAT_LOSS_MULTIPLIER,
+                            DEFAULT_RAIN_HEAT_LOSS_MULTIPLIER,
+                        ),
+                    ): _number(1.0, 1.5, 0.01),
                 }
             ),
         )
@@ -1407,16 +1572,6 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
                             )
                         ),
                     ): _select(["15", "60"], "peak_window"),
-                    vol.Optional(
-                        CONF_CYCLING_COST,
-                        default=current.get(CONF_CYCLING_COST, DEFAULT_CYCLING_COST),
-                    ): _number(0, 10, 0.05),
-                    vol.Optional(
-                        CONF_PRICE_PRIOR_ENABLED,
-                        default=current.get(
-                            CONF_PRICE_PRIOR_ENABLED, DEFAULT_PRICE_PRIOR_ENABLED
-                        ),
-                    ): bool,
                 }
             ),
         )
@@ -1521,12 +1676,7 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
         """Watchdogs and the opt-in learning features."""
         if user_input is not None:
             cleaned = dict(user_input)
-            for key in (
-                CONF_EXTERNAL_HEAT_ENTITY,
-                CONF_VALVE_OUTLET_TEMP_ENTITY,
-                CONF_WOOD_TANK_TOP_ENTITY,
-                CONF_WOOD_TANK_BOTTOM_ENTITY,
-            ):
+            for key in (CONF_EXTERNAL_HEAT_ENTITY,):
                 if not cleaned.get(key):
                     cleaned[key] = None
             return self._save(cleaned)
@@ -1577,34 +1727,6 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
                             DEFAULT_EXTERNAL_HEAT_DECAY_MINUTES,
                         ),
                     ): _number(15, 360, 15, "min", slider=True),
-                    # Wood-furnace topology (item 28): the valve outlet is
-                    # the sensor that turns the boolean fire into a
-                    # continuous displacement; the tank pair bounds how long
-                    # the fire can back it.
-                    _entity(CONF_VALVE_OUTLET_TEMP_ENTITY): _entity_of(
-                        ["sensor"]
-                    ),
-                    _entity(CONF_WOOD_TANK_TOP_ENTITY): _entity_of(["sensor"]),
-                    _entity(CONF_WOOD_TANK_BOTTOM_ENTITY): _entity_of(
-                        ["sensor"]
-                    ),
-                    vol.Optional(
-                        CONF_WOOD_TANK_VOLUME,
-                        default=current.get(
-                            CONF_WOOD_TANK_VOLUME, DEFAULT_WOOD_TANK_VOLUME
-                        ),
-                    ): _number(50, 3000, 50, "L", slider=True),
-                    # Part of the wood-tank topology block, not of the
-                    # detector: it says how the DHW tank is plumbed to that
-                    # tank. Only bites with the two-tank model, which is why
-                    # it sits beside the tank it depends on (v3.15.1).
-                    vol.Optional(
-                        CONF_DHW_WOOD_COIL_ENABLED,
-                        default=current.get(
-                            CONF_DHW_WOOD_COIL_ENABLED,
-                            DEFAULT_DHW_WOOD_COIL_ENABLED,
-                        ),
-                    ): bool,
                     vol.Optional(
                         CONF_COMFORT_LEARNING_ENABLED,
                         default=current.get(
@@ -1616,6 +1738,15 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
                         CONF_SYSID_ENABLED,
                         default=current.get(
                             CONF_SYSID_ENABLED, DEFAULT_SYSID_ENABLED
+                        ),
+                    ): bool,
+                    # A learned model toggle, so it belongs with the other
+                    # learners rather than under grid fees (moved here in
+                    # v4.0.0; the key is unchanged).
+                    vol.Optional(
+                        CONF_PRICE_PRIOR_ENABLED,
+                        default=current.get(
+                            CONF_PRICE_PRIOR_ENABLED, DEFAULT_PRICE_PRIOR_ENABLED
                         ),
                     ): bool,
                 }

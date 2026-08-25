@@ -1638,8 +1638,8 @@ check("the hand-scheduled reason has a label",
       ["buffer_tank", "mixing_valve"],
       ["mixing_valve", "upper_zone"],
       ["mixing_valve", "lower_zone"],
-      ["wood_tank", "wood_valve"],
-      ["wood_valve", "buffer_tank"],
+      ["wood_tank", "buffer_tank"],
+      ["heat_pump", "dhw_tank"],
     ],
     slots: [
       { key: "indoor_temp_entity", label: "Indoor temperature",
@@ -1697,10 +1697,48 @@ check("the hand-scheduled reason has a label",
     drawn.includes("buffer_tank>mixing_valve") &&
     !drawn.includes("buffer_tank>lower_zone"),
     `edges drawn: ${drawn.join(", ")}`);
-  check("and the wood chain is drawn from the published edges",
-    drawn.includes("wood_tank>wood_valve") &&
-    drawn.includes("wood_valve>buffer_tank"),
+  // v4.0.0 (#40 feedback, item 3): the wood chain is tank to tank; the
+  // wood-side blending valve is no longer a box of its own.
+  check("and the wood chain is drawn tank to tank from the published edges",
+    drawn.includes("wood_tank>buffer_tank") &&
+    !/Wood mixing valve/.test(setupPage),
     `edges drawn: ${drawn.join(", ")}`);
+  // #40 feedback, item 2: the DHW tank used to float unconnected.
+  check("the heat pump visibly feeds the hot water tank",
+    drawn.includes("heat_pump>dhw_tank"),
+    `edges drawn: ${drawn.join(", ")}`);
+  {
+    // A coordinator from before v4.0.0 still publishes the wood-valve hop
+    // and a slot placed on it. The pipes anchor where the slot went — the
+    // wood tank — so a stale payload degrades to the new drawing instead of
+    // dropping its wood chain or losing the outlet sensor.
+    const stale = JSON.parse(JSON.stringify(topo));
+    stale.edges = [
+      ["heat_pump", "buffer_tank"],
+      ["buffer_tank", "mixing_valve"],
+      ["mixing_valve", "upper_zone"],
+      ["mixing_valve", "lower_zone"],
+      ["wood_tank", "wood_valve"],
+      ["wood_valve", "buffer_tank"],
+    ];
+    stale.slots = topo.slots.concat([
+      { key: "valve_outlet_temp_entity", label: "Valve outlet temperature",
+        place: "wood_valve", entity: null, domains: TEMP }]);
+    const stStates = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+    stStates[DEFAULT_SPACE].attributes.setup_topology = stale;
+    const st = build(stStates);
+    st._onCardClick({});
+    st._dialogPage = "setup";
+    st._render();
+    const stPage = collect(st.shadowRoot).join("\n");
+    const woodGroup = stPage.split("<g>")
+      .find((g) => g.includes("Wood furnace tank")) || "";
+    check("a stale wood-valve payload re-homes its slot onto the wood tank",
+      !/Wood mixing valve/.test(stPage) &&
+      /data-key="valve_outlet_temp_entity"/.test(woodGroup) &&
+      edges(stPage).includes("wood_valve>buffer_tank"),
+      "the removed box must not take the outlet sensor down with it");
+  }
   {
     // An older coordinator publishes no `edges` at all. The card must fall
     // back to the drawing it has always made rather than showing a system
@@ -1716,7 +1754,7 @@ check("the hand-scheduled reason has a label",
     const lgDrawn = edges(collect(lg.shadowRoot).join("\n"));
     check("a coordinator that publishes no edges still gets the old drawing",
       ["hp-buffer", "buffer-valve", "valve-upper", "valve-lower",
-        "wood-woodvalve", "woodvalve-buffer"].every((e) =>
+        "wood-buffer", "hp-dhw"].every((e) =>
         lgDrawn.includes(e)) && !lgDrawn.some((e) => e.includes(">")),
       `edges drawn: ${lgDrawn.join(", ")}`);
   }
@@ -1743,6 +1781,7 @@ check("the hand-scheduled reason has a label",
       ["wood_tank", "mixing_valve"],
       ["mixing_valve", "upper_zone"],
       ["mixing_valve", "lower_zone"],
+      ["heat_pump", "dhw_tank"],
     ];
     twoTank.slots.push(
       { key: "mixing_valve_target_entity", label: "Valve target",
@@ -1818,6 +1857,10 @@ check("the hand-scheduled reason has a label",
         "buffer_tank>mixing_valve", "mixing_valve>upper_zone",
         "mixing_valve>lower_zone"].every((e) => coDrawn.includes(e)),
       `edges drawn: ${coDrawn.join(", ")}`);
+    check("and the electric pipe survives beside the coil (#40 item 2)",
+      coDrawn.includes("heat_pump>dhw_tank"),
+      "with the coil, the only pipe shown used to be the wood one — "
+      + "implying a tank with no electric heat source at all");
     // 33 characters, which fits the box on a single row (wrapExtra breaks
     // above 34 -- the original wording wrapped with "coil" alone on row two).
     const dhwGroup = coPage.split("<g>")
@@ -1833,8 +1876,8 @@ check("the hand-scheduled reason has a label",
       ["heat_pump", "buffer_tank"],
       ["buffer_tank", "upper_zone"],
       ["buffer_tank", "lower_zone"],
-      ["wood_tank", "wood_valve"],
-      ["wood_valve", "buffer_tank"],
+      ["wood_tank", "buffer_tank"],
+      ["heat_pump", "dhw_tank"],
     ];
     const nvStates = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
     nvStates[DEFAULT_SPACE].attributes.setup_topology = noValve;
@@ -2201,6 +2244,33 @@ check("the hand-scheduled reason has a label",
   }
 
   {
+    // #40 feedback, item 5: a catalog from before the `requirement` field
+    // existed must not render "needs undefined" — the message shown at the
+    // exact moment the user needs to know what to configure.
+    const bare = CATALOG.map((e) => {
+      const copy = { ...e };
+      delete copy.requirement;
+      return copy;
+    });
+    const c = mkEditor({ catalog: bare });
+    clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
+    c._layoutEdit.edges = EDGES.two_tank_4way.map((e) => [e[0], e[1]]);
+    c._layoutEvaluate();
+    check("a catalog without requirement text degrades, never 'undefined'",
+      !c._layoutEdit.match &&
+      /Two tanks, one 4-way valve/.test(c._layoutEdit.verdict) &&
+      !/undefined/.test(c._layoutEdit.verdict) &&
+      /cannot store/.test(c._layoutEdit.verdict),
+      `verdict was ${JSON.stringify(c._layoutEdit.verdict)}`);
+    c._layoutEdit.edges = EDGES.slab_shunt.map((e) => [e[0], e[1]]);
+    c._layoutEvaluate();
+    check("and the unmodelled layout degrades the same way",
+      !/undefined/.test(c._layoutEdit.verdict) &&
+      /not modelled yet/.test(c._layoutEdit.verdict),
+      `verdict was ${JSON.stringify(c._layoutEdit.verdict)}`);
+  }
+
+  {
     // (5) The recorded trap: `_maybeRender` rebuilds the shadow root on the
     // coordinator's schedule, and an editor living in local state would be
     // wiped out mid-drawing every few minutes.
@@ -2289,6 +2359,31 @@ check("the hand-scheduled reason has a label",
       !edgesOf(c).includes("buffer_tank>lower_zone"),
       `edges drawn: ${edgesOf(c).join(", ")}`);
   }
+}
+
+// --- Scenario: phone-width usability (#40 feedback, item 1) -----------------
+//
+// Style rules, asserted on the source: the DOM stub computes no layout, so
+// what CAN be pinned is that the rules exist and are scoped as designed.
+{
+  check("only the chart claims raw touch input",
+    /\.chartwrap svg \{ touch-action: none; \}/.test(cardSrc) &&
+    !/^\s*svg \{[^}]*touch-action/m.test(cardSrc),
+    "a blanket svg { touch-action: none } swallowed touch on the setup "
+    + "diagram, which on a phone fills the dialog — the page could not be "
+    + "scrolled at all");
+  check("the editor still claims the diagram while a drag must move a box",
+    /\.setup-svg\.editing \{ touch-action: none; \}/.test(cardSrc));
+  const phone = (cardSrc.match(/@media \(max-width: 600px\) \{[\s\S]*?\n {8}\}/g) || [])
+    .join("\n");
+  check("the dialog header may wrap at phone width, keeping the tabs reachable",
+    /\.dlg-head \{ flex-wrap: wrap/.test(phone),
+    "without wrapping, the title pushes the Plan/Setup tabs out of the "
+    + "header on narrow screens");
+  check("the setup diagram scrolls sideways at phone width instead of shrinking",
+    /\.setup-canvas \{ overflow-x: auto/.test(phone) &&
+    /\.setup-canvas svg \{ min-width/.test(phone),
+    "slot rows scaled to a 380px dialog are too small to read or tap");
 }
 
 console.log(fails ? `\n${fails} CARD CHECK(S) FAILED` : "\nALL CARD CHECKS PASSED");

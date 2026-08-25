@@ -1462,12 +1462,22 @@ class HeatpumpOptimizerCard extends HTMLElement {
     if (sameButUnusable) {
       // The drawing IS a known layout; what fails is the configuration, so
       // the requirement is the only useful thing to say. No pipe is at
-      // fault, so none is marked.
+      // fault, so none is marked. A catalog from before the field existed
+      // ships no requirement, and interpolating undefined here is exactly
+      // the "needs: undefined" bug from the user's #40 report — degrade to
+      // a sentence that at least says which side is at fault.
       ed.invalid = [];
+      const req = sameButUnusable.requirement;
       ed.verdict =
         sameButUnusable.selectable === false
-          ? `${sameButUnusable.label} — ${sameButUnusable.requirement}.`
-          : `${sameButUnusable.label} — needs ${sameButUnusable.requirement}.`;
+          ? req
+            ? `${sameButUnusable.label} — ${req}.`
+            : `${sameButUnusable.label} — known but not modelled yet, so it ` +
+              `cannot be selected.`
+          : req
+            ? `${sameButUnusable.label} — needs ${req}.`
+            : `${sameButUnusable.label} — the current configuration cannot ` +
+              `store this layout.`;
       return;
     }
     if (!nearest) {
@@ -1708,7 +1718,18 @@ class HeatpumpOptimizerCard extends HTMLElement {
 
   _setupSvg(topo) {
     const W = SETUP_W;
-    const slotsAt = (place) => topo.slots.filter((s) => s.place === place);
+    // Whether the model runs the wood tank as its own store (issue #40).
+    // Published by `describe_setup`; absent on older descriptions, where
+    // false is the right answer because that is the model they ran.
+    const twoTank = !!topo.two_tank_modelled;
+    // The wood valve stopped being a box in v4.0.0 (#40 feedback, item 3):
+    // its one slot lives on the 4-way valve or the wood tank now. An old
+    // coordinator can still publish the slot at the removed place, so the
+    // same re-homing is applied here rather than letting the slot vanish.
+    const normPlace = (p) =>
+      p === "wood_valve" ? (twoTank ? "mixing_valve" : "wood_tank") : p;
+    const slotsAt = (place) =>
+      topo.slots.filter((s) => normPlace(s.place) === place);
     const boxes = [];
     // SVG text does not wrap, and a caption longer than the box runs
     // straight past its border — measured in a real browser, the no-valve
@@ -1744,10 +1765,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
 
     const valve =
       topo.valve_mode && topo.valve_mode !== "none";
-    // Whether the model runs the wood tank as its own store (issue #40).
-    // Published by `describe_setup`; absent on older descriptions, where
-    // false is the right answer because that is the model they ran.
-    const twoTank = !!topo.two_tank_modelled;
     // The hot water tank refills through a coil in the wood tank (v3.15.1).
     // `describe_setup` only sets this when the coil can actually preheat
     // anything, so the drawing follows the flag rather than re-deriving the
@@ -1768,9 +1785,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
       box(0, `Wood furnace tank (${Math.round(topo.wood.volume_l)} L)`,
         ["wood_tank"],
         twoTank ? [] : ["modelled as heat into the heat-pump tank"]);
-      // No second valve exists in the two-tank layout: its outlet probe is
-      // a slot on the 4-way valve below.
-      if (!twoTank) box(0, "Wood mixing valve", ["wood_valve"]);
     }
     const buf = topo.buffer || {};
     const bufExtra = valve
@@ -1880,8 +1894,12 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // into empty space -- `slab_shunt` has no box on any modelled layout.
     const byPlace = new Map();
     for (const b of boxes) if (b.place) byPlace.set(b.place, b);
-    if (!byPlace.has("wood_valve") && byPlace.has("mixing_valve")) {
-      byPlace.set("wood_valve", byPlace.get("mixing_valve"));
+    // An old coordinator's edge list can still name the removed wood-valve
+    // place; anchor those pipes where the slot went, so a stale payload
+    // degrades to the new drawing instead of dropping its wood chain.
+    if (!byPlace.has("wood_valve")) {
+      const home = byPlace.get(twoTank ? "mixing_valve" : "wood_tank");
+      if (home) byPlace.set("wood_valve", home);
     }
 
     // v3.16.0: the pipes are the coordinator's edge list, drawn as published.
@@ -1923,10 +1941,10 @@ class HeatpumpOptimizerCard extends HTMLElement {
         // and no path that pours the wood tank into the heat-pump tank.
         parts.push(line(find("Wood furnace tank"), supplyBox, "wood-valve"));
       } else {
-        parts.push(line(find("Wood mixing valve"), bufferBox,
-          "woodvalve-buffer"));
-        parts.push(line(find("Wood furnace tank"), find("Wood mixing valve"),
-          "wood-woodvalve"));
+        // Tank to tank: the wood-side blending valve stopped being a box of
+        // its own in v4.0.0 (#40 feedback, item 3).
+        parts.push(line(find("Wood furnace tank"), bufferBox,
+          "wood-buffer"));
       }
       // A second, separate path out of the wood tank: mains water on its way
       // into the hot water tank, not heating water on its way to the house.
@@ -1940,6 +1958,12 @@ class HeatpumpOptimizerCard extends HTMLElement {
       if (valve) parts.push(line(bufferBox, supplyBox, "buffer-valve"));
       if (topo.two_zone) parts.push(line(supplyBox, find("Lower floor"),
         `${supplyName}-lower`));
+      // Electric hot water: the pump heats the DHW tank on every layout
+      // (#40 feedback, item 2) — stale payloads deserve the pipe too.
+      if (topo.dhw) {
+        parts.push(line(boxes.find((b) => b.title === "Heat pump"),
+          find("Hot water tank"), "hp-dhw"));
+      }
     }
 
     for (const b of boxes) {
@@ -2912,7 +2936,15 @@ class HeatpumpOptimizerCard extends HTMLElement {
         }
         .viewctl button:disabled { opacity: 0.4; cursor: default; }
         .chartwrap.pannable svg { cursor: grab; }
-        svg { width: 100%; height: auto; display: block; touch-action: none; }
+        svg { width: 100%; height: auto; display: block; }
+        /* Only the chart claims raw touch input — a horizontal drag on it is
+           a pan, not a scroll. Claiming it on every svg also swallowed touch
+           on the setup diagram, where nothing consumes the gesture outside
+           the editor: on a phone the diagram fills the dialog, so a finger
+           landing on it could not scroll the page at all, which read as a
+           setup page that cannot be seen (#40 feedback, item 1). The editor
+           re-claims the diagram while a drag must move a box, below. */
+        .chartwrap svg { touch-action: none; }
         .empty {
           padding: 28px 12px; text-align: center;
           color: var(--secondary-text-color); line-height: 1.5em;
@@ -3292,6 +3324,14 @@ class HeatpumpOptimizerCard extends HTMLElement {
         @media (max-width: 600px) {
           dialog.expanded { width: 96vw; padding: 12px; }
           dialog.expanded .legend { font-size: 1rem; }
+          /* Phone-width dialogs (#40 feedback, item 1): the header must be
+             allowed to wrap, or the Plan/Setup tabs are pushed out of reach
+             by the title; and the setup diagram scrolls sideways at a
+             readable, tappable size instead of shrinking every slot row to
+             fingernail height. */
+          .dlg-head { flex-wrap: wrap; row-gap: 6px; }
+          .setup-canvas { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+          .setup-canvas svg { min-width: 560px; }
         }
       </style>
     `;

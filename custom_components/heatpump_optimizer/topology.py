@@ -87,6 +87,12 @@ _SLOTS: tuple[tuple[str, str, str, tuple[str, ...]], ...] = (
      ("sensor", "binary_sensor", "switch", "input_boolean")),
     (CONF_WOOD_TANK_TOP_ENTITY, "wood_tank", "Wood tank top", _TEMP),
     (CONF_WOOD_TANK_BOTTOM_ENTITY, "wood_tank", "Wood tank bottom", _TEMP),
+    # "wood_valve" is a slot id, not a drawn place: the wood-side blending
+    # valve was a box of its own until v4.0.0, when the user's #40 feedback
+    # (item 3) had it removed — it modelled nothing, could not be deleted,
+    # and drew a device nobody owns. ``describe_setup`` re-homes this slot
+    # onto the 4-way valve in the two-tank layout and onto the wood tank
+    # everywhere else.
     (CONF_VALVE_OUTLET_TEMP_ENTITY, "wood_valve", "Valve outlet temperature",
      _TEMP),
 )
@@ -100,7 +106,7 @@ ASSIGNABLE_KEYS: dict[str, tuple[str, ...]] = {
 
 #: Places that only exist on some topologies, and the flag that brings them.
 _CONDITIONAL_PLACES = ("lower_zone", "floor_loop", "dhw_tank", "mixing_valve",
-                       "wood_tank", "wood_valve")
+                       "wood_tank")
 
 
 # ---------------------------------------------------------------------------
@@ -183,7 +189,6 @@ PLACE_LABELS: dict[str, str] = {
     "upper_zone": "Upper floor",
     "lower_zone": "Lower floor",
     "wood_tank": "Wood tank",
-    "wood_valve": "Wood mixing valve",
     "dhw_tank": "Hot water tank",
     "slab_shunt": "Slab shunt",
 }
@@ -195,6 +200,7 @@ def layout_edges(
     two_zone: bool,
     wood: bool,
     dhw_coil: bool = False,
+    dhw: bool = False,
 ) -> list[tuple[str, str]]:
     """The drawn edge set of a layout under this configuration's flags.
 
@@ -205,9 +211,12 @@ def layout_edges(
     set, so it is composed here, once.
     """
     edges: list[tuple[str, str]] = [("heat_pump", "buffer_tank")]
-    # The single-tank wood chain: furnace tank blended into the HP tank by
-    # its own small valve. Only two_tank_4way replaces it.
-    wood_chain = [("wood_tank", "wood_valve"), ("wood_valve", "buffer_tank")]
+    # The single-tank wood chain: the furnace tank's heat folded into the HP
+    # tank. Drawn tank-to-tank since v4.0.0 — the wood-side blending valve
+    # used to be a box of its own, which modelled nothing, could not be
+    # removed, and drew a device nobody owns (#40 feedback, item 3). Only
+    # two_tank_4way replaces this chain.
+    wood_chain = [("wood_tank", "buffer_tank")]
     if key == TOPOLOGY_NO_VALVE:
         edges.append(("buffer_tank", "upper_zone"))
         if two_zone:
@@ -254,6 +263,13 @@ def layout_edges(
         )
     else:
         raise KeyError(f"unknown layout {key!r}")
+    # Electric hot water rides every layout: the heat pump heats the DHW tank
+    # whenever hot water is modelled at all. The diagram used to omit this
+    # pipe entirely, leaving the tank floating unconnected (#40 feedback,
+    # item 2) — with a coil, the only pipe shown was the wood one, which
+    # implied the tank had no electric heat source at all.
+    if dhw:
+        edges.append(("heat_pump", "dhw_tank"))
     return edges
 
 
@@ -270,6 +286,7 @@ def match_layout(
     two_zone: bool,
     wood: bool,
     dhw_coil: bool = False,
+    dhw: bool = False,
 ) -> tuple[str | None, str]:
     """Snap a drawn edge set to a catalog key, or explain why it fits none.
 
@@ -285,7 +302,9 @@ def match_layout(
     nearest_diff: int | None = None
     for key in LAYOUTS:
         expected = set(
-            layout_edges(key, two_zone=two_zone, wood=wood, dhw_coil=dhw_coil)
+            layout_edges(
+                key, two_zone=two_zone, wood=wood, dhw_coil=dhw_coil, dhw=dhw
+            )
         )
         if expected == target and LAYOUTS[key].selectable:
             return key, ""
@@ -294,7 +313,9 @@ def match_layout(
             nearest, nearest_diff = key, diff
     assert nearest is not None
     expected = set(
-        layout_edges(nearest, two_zone=two_zone, wood=wood, dhw_coil=dhw_coil)
+        layout_edges(
+            nearest, two_zone=two_zone, wood=wood, dhw_coil=dhw_coil, dhw=dhw
+        )
     )
     missing = sorted(expected - target)
     extra = sorted(target - expected)
@@ -346,15 +367,19 @@ def describe_setup(config: dict[str, Any]) -> dict[str, Any]:
         "dhw_tank": p.dhw_enabled,
         "mixing_valve": valve,
         "wood_tank": wood,
-        # In the two-tank layout the 4-way valve is ONE physical device: the
-        # separate "wood valve" place is an artifact of the single-tank
-        # abstraction, so its slot moves onto the mixing valve below rather
-        # than a second valve being drawn that nobody owns.
-        "wood_valve": wood and not two_tank,
     }
     def placed(place: str) -> str:
-        """Where this slot actually lives on the configured topology."""
-        return "mixing_valve" if two_tank and place == "wood_valve" else place
+        """Where this slot actually lives on the configured topology.
+
+        The "wood valve" stopped being a drawn place in v4.0.0 (#40 feedback,
+        item 3): in the two-tank layout the 4-way valve is the one physical
+        device the outlet probe sits on, and in the single-tank abstraction
+        the probe belongs with the wood tank whose blended output it
+        measures — a separate box modelled nothing and could not be removed.
+        """
+        if place == "wood_valve":
+            return "mixing_valve" if two_tank else "wood_tank"
+        return place
 
     slots = [
         {
@@ -379,12 +404,19 @@ def describe_setup(config: dict[str, Any]) -> dict[str, Any]:
         two_zone=p.two_zone_enabled,
         wood=wood,
         dhw_coil=p.dhw_coil_active,
+        dhw=p.dhw_enabled,
     )
     catalog = [
         {
             "key": layout.key,
             "label": layout.label,
             "description": layout.description,
+            # The prose half of the validity predicate. The card renders it
+            # when a drawing matches a layout the configuration cannot store;
+            # omitting it was the "needs: undefined" bug (#40 feedback,
+            # item 5) — the one message meant to say exactly what is missing
+            # said nothing at all.
+            "requirement": layout.requirement,
             "selectable": layout.selectable,
             "valid": layout.selectable
             and topology_layout_valid(
@@ -398,6 +430,7 @@ def describe_setup(config: dict[str, Any]) -> dict[str, Any]:
                 two_zone=p.two_zone_enabled,
                 wood=wood,
                 dhw_coil=p.dhw_coil_active,
+                dhw=p.dhw_enabled,
             )],
         }
         for layout in LAYOUTS.values()
@@ -515,8 +548,10 @@ def render_text_summary(setup: dict[str, Any]) -> str:
         ]
         if not two_tank:
             wood.append("  (modelled as heat into the heat-pump tank)")
+        # The valve-outlet probe's slot lives on the wood tank here (or on
+        # the 4-way valve in the two-tank layout, rendered above) — there is
+        # no separate wood-valve section since v4.0.0.
         wood += _slot_lines(setup, "wood_tank")
-        wood += _slot_lines(setup, "wood_valve")
         parts.append("\n".join(wood))
 
     outside = ["Outside"]

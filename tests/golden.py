@@ -697,6 +697,16 @@ def capture_config_flow() -> dict:
                 "required": type(key).__name__,
             }
         pages[step] = fields
+
+    # The two-level menu (v4.0.0) is structure the schemas cannot see: which
+    # page sits on which menu, and in what order. Recorded as ordered pairs,
+    # because ``sort_keys`` would alphabetise a dict and silently drop the
+    # order users actually see.
+    menus = {}
+    for step in ("init", "advanced"):
+        result = asyncio.run(getattr(flow, f"async_step_{step}")())
+        menus[step] = [[k, v] for k, v in result["menu_options"].items()]
+    pages["_menu"] = menus
     return pages
 
 
