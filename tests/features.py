@@ -4969,6 +4969,21 @@ R.check(
     abs(float(np.mean(_qpred)) - _psm.predict(_monday.replace(hour=6), 1.0)
         / _psm.quarter_factor(_monday.replace(hour=6, minute=0))) < 0.05,
 )
+# The renormalization is only load-bearing when clipping breaks the natural
+# mean — so feed it a spiked quarter far beyond the clip ceiling and require
+# the hour's four factors to still average 1.0. Without the post-EWMA
+# renormalization this hour would learn a level shift, not a split.
+_spiked = [1.0] * 96
+_spiked[24:28] = [0.2, 0.2, 0.2, 20.0]  # hour 6: one quarter at 34x its mean
+_psm_clip = _PSM()
+for _ in range(3):
+    _psm_clip.observe_day_quarters(_monday, _spiked)
+_h6 = _psm_clip.quarter_factors[0][24:28]
+R.check(
+    "a clipped quarter still leaves its hour's factors at mean 1.0",
+    abs(float(np.mean(_h6)) - 1.0) < 1e-6 and max(_h6) < 4.5,
+    f"hour-6 factors {_h6}",
+)
 _old_payload = {"shapes": [[1.1] * 24, [0.9] * 24], "days": [7, 7]}
 _loaded = _PSM.from_dict(_old_payload)
 R.check(

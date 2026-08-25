@@ -2176,17 +2176,34 @@ class HeatPumpOptimizer:
         """Peak and cycling figures for the solved plan."""
         cfg = self.config
         offset_steps = self._window_offset_steps(start_time, dt)
+        n = len(np.asarray(total_power))
+        factors = self._peak_window_factors(n, dt, start_time, offset_steps)
+        if factors is None:
+            peak_kw = realised_peak(
+                total_power,
+                baseline_load,
+                cfg.peak_window_minutes,
+                dt,
+                offset_steps,
+            )
+        else:
+            # Billed-equivalent projection when the #13 masks are active:
+            # this figure is published beside the billed-equivalent threshold
+            # and the peak cost, and a physical 8 kW above a half-rate 4 kW
+            # threshold with zero cost read as three mutually contradictory
+            # numbers. Unmasked, this is the physical window max, as always.
+            house = np.asarray(total_power, dtype=float) + np.asarray(
+                baseline_load, dtype=float
+            )
+            windows = metering_windows(
+                house, cfg.peak_window_minutes, dt, offset_steps
+            )
+            f = factors[: windows.size]
+            if f.size < windows.size:
+                f = np.concatenate([f, np.ones(windows.size - f.size)])
+            peak_kw = float(np.max(windows * f)) if windows.size else 0.0
         return {
-            "peak_kw": round(
-                realised_peak(
-                    total_power,
-                    baseline_load,
-                    cfg.peak_window_minutes,
-                    dt,
-                    offset_steps,
-                ),
-                3,
-            ),
+            "peak_kw": round(peak_kw, 3),
             "peak_cost": round(
                 peak_cost(
                     total_power,

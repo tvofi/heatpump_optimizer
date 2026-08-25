@@ -4801,7 +4801,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         delta = float(requested) - planned
         prices = [p.get("total", 0.0) for p in self._prices] or [1.0]
         mean_price = float(np.mean([_as_float(p, 0.0) for p in prices])) or 1.0
-        relative = self._get_current_price() / mean_price if mean_price else 1.0
+        # Spot on BOTH sides of the ratio: the denominator is a mean over raw
+        # Tibber entries, so a fee-inclusive numerator (T1's #1) would inflate
+        # every override's price-weight by the fee regardless of hour.
+        relative = self._current_spot_price() / mean_price if mean_price else 1.0
         self._comfort_learner.record_override(
             OverrideEvent(
                 when=dt_util.now(),

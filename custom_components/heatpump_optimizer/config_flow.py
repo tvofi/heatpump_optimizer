@@ -1598,6 +1598,12 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
         current = self._current
         if user_input is not None:
             current = {**current, **user_input}
+            # A cleared entity selector is simply absent from the submission,
+            # so on the error re-render the merge above would resurrect the
+            # stored value — and fixing the unrelated error would then
+            # silently re-save the entity the user cleared.
+            if not user_input.get(CONF_GRID_FEE_ENTITY):
+                current.pop(CONF_GRID_FEE_ENTITY, None)
 
         def _entity(key: str) -> Any:
             existing = current.get(key)
