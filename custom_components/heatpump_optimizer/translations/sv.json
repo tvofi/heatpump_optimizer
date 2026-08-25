@@ -342,13 +342,15 @@
           "price_weight": "Hur hårt billiga timmar ska jagas",
           "comfort_weight": "Hur strikt temperaturen ska hållas",
           "optimization_interval": "Räkna om var",
-          "compressor_cycling_cost": "Kostnad för en kompressorstart"
+          "compressor_cycling_cost": "Kostnad för en kompressorstart",
+          "price_risk_lambda": "Försiktighet med gissade priser"
         },
         "data_description": {
           "price_weight": "Högre värde gör att optimeringen jobbar hårdare för att flytta värmen till billiga timmar, till priset av större temperatursvängningar.",
           "comfort_weight": "Motvikten till inställningen ovan, och det mest effektiva reglaget du har. Den vägs mot intervallet du tillåter, så ett bredare intervall gör optimeraren djärvare. Runt 5 låter huset röra sig fritt inom ditt tillåtna intervall för störst besparing; 10 håller det märkbart närmare målet; 20 eller mer beter sig nästan som en vanlig termostat.",
           "optimization_interval": "Hur ofta planen räknas om mot färska priser och väder. Oftare reagerar snabbare men kräver mer arbete.",
-          "compressor_cycling_cost": "Motverkar planer som slår på och av upprepade gånger. Lämna på 0 om du inte har skäl att tro att din pump startar för ofta; antalet planerade starter publiceras på plansensorerna så du kan titta först."
+          "compressor_cycling_cost": "Motverkar planer som slår på och av upprepade gånger. Lämna på 0 om du inte har skäl att tro att din pump startar för ofta; antalet planerade starter publiceras på plansensorerna så du kan titta först.",
+          "price_risk_lambda": "Bortom den publicerade horisonten uppskattas priserna från din inlärda dygnsprofil. Detta lägger ett påslag på gissningarna i proportion till hur fel de brukat vara, så planen slutar behandla en gissad billig natt som säker. 0 litar på gissningarna rakt av, som tidigare."
         }
       },
       "heat_curve": {
@@ -451,12 +453,30 @@
           "peak_tariff_enabled": "Min nätfaktura har en effektavgift",
           "peak_tariff_price_per_kw": "Effektavgift per kW och månad",
           "peak_tariff_peaks_averaged": "Antal topptimmar som medelvärdesbildas",
-          "peak_tariff_window_minutes": "Mätperiod"
+          "peak_tariff_window_minutes": "Mätperiod",
+          "peak_tariff_months": "Månader effekttariffen gäller",
+          "peak_tariff_hours": "Höglasttimmar",
+          "peak_tariff_weekdays_only": "Helger är låglast",
+          "peak_tariff_offpeak_factor": "Vad låglasttimmar räknas som",
+          "grid_fee_mode": "Elnätets överföringsavgift",
+          "grid_fee_fixed": "Fast överföringsavgift (SEK/kWh)",
+          "grid_fee_rules": "Tidsdifferentierade avgiftsregler",
+          "grid_fee_entity": "Sensor för aktuell avgift (valfri)",
+          "contract_fixed_price": "Fastprisavtal att jämföra med (SEK/kWh)"
         },
         "data_description": {
           "peak_tariff_price_per_kw": "Hämta siffran från din nätfaktura — den varierar kraftigt mellan nätbolag.",
           "peak_tariff_peaks_averaged": "De flesta svenska tariffer tar medel av månadens tre högsta timmar. Kontrollera din faktura.",
-          "peak_tariff_window_minutes": "Per timme för de flesta tariffer. Vissa nyare mäter var 15:e minut, vilket är betydligt mindre förlåtande."
+          "peak_tariff_window_minutes": "Per timme för de flesta tariffer. Vissa nyare mäter var 15:e minut, vilket är betydligt mindre förlåtande.",
+          "peak_tariff_months": "Till exempel \"Nov-Mar\". Tomt betyder att tariffen fakturerar varje månad. Utanför dessa månader bidrar en topp ingenting till räkningen, och planen vet om det.",
+          "peak_tariff_hours": "Till exempel \"07:00-19:00\". Tomt betyder att varje timme räknas fullt ut. Utanför dessa timmar räknas en topp enligt låglastfaktorn nedan.",
+          "peak_tariff_weekdays_only": "Många svenska tariffer fakturerar bara vardagstoppar. Med detta på räknas lördag och söndag enligt låglastfaktorn.",
+          "peak_tariff_offpeak_factor": "1,0 behandlar varje timme lika, som det fungerade tidigare. 0,5 är den vanliga halvtaxan för natt-toppar; 0 gör låglasttimmar gratis — nattlig stapling kostar då ingenting i effekt, vilket är precis den billiga-timmar-koncentration integrationen finns för att hitta.",
+          "grid_fee_mode": "Avgiften ditt elnätsbolag lägger på varje överförd kWh. Tibbers pris innehåller den inte, så med den inställd ser planen äntligen hela marginalpriset. \"Tidsregler\" använder schemat nedan; \"Sensor\" följer en entitet.",
+          "grid_fee_fixed": "En fast avgift som läggs på varje timme, utöver eventuella regler. Ta den från din elnätsfaktura.",
+          "grid_fee_rules": "En regel per rad, till exempel \"Nov-Mar Mån-Fre 06:00-22:00 = 0.25\". Månads-, veckodags- och tidsdelarna är valfria var för sig; överlappande regler adderas, vilket motsvarar grundavgift plus höglastpåslag.",
+          "grid_fee_entity": "En sensor som anger aktuell avgift i SEK/kWh, för nät med dynamiska avgifter. Värdet läggs på varje planerad timme.",
+          "contract_fixed_price": "Om du kunde ha ett fastprisavtal, dess SEK/kWh. Sensorn Avtalsjämförelse visar då vad denna månad hade kostat med det. 0 utelämnar den kolumnen."
         }
       },
       "solar_pv": {
@@ -521,7 +541,10 @@
     "error": {
       "invalid_tibber_token": "Tibber-token accepterades inte. Kontrollera den på developer.tibber.com och försök igen.",
       "invalid_dhw_windows": "Tiderna kunde inte tolkas. Använd 24-timmarsformat separerat med komma, till exempel \"06:00-08:30, 17:00-22:00\".",
-      "dhw_min_too_close": "Ett varmvattenminimum s\\u00e5 n\\u00e4ra b\\u00f6rv\\u00e4rdet l\\u00e4mnar tanken utan arbetsband; h\\u00e5ll det minst 5 \\u00b0C under b\\u00f6rv\\u00e4rdet."
+      "dhw_min_too_close": "Ett varmvattenminimum s\\u00e5 n\\u00e4ra b\\u00f6rv\\u00e4rdet l\\u00e4mnar tanken utan arbetsband; h\\u00e5ll det minst 5 \\u00b0C under b\\u00f6rv\\u00e4rdet.",
+      "invalid_grid_fee_rules": "Avgiftsreglerna kunde inte läsas. En regel per rad, som \"Nov-Mar Mån-Fre 06:00-22:00 = 0.25\".",
+      "invalid_peak_months": "Månaderna kunde inte läsas. Använd intervall som \"Nov-Mar\" eller enstaka månader som \"Jul\".",
+      "invalid_peak_hours": "Timmarna kunde inte läsas. Använd 24-timmarsintervall som \"07:00-19:00\"."
     }
   },
   "selector": {
@@ -580,6 +603,13 @@
         "auto": "Automatiskt (på när zonvärden finns)",
         "on": "På",
         "off": "Av"
+      }
+    },
+    "grid_fee_mode": {
+      "options": {
+        "none": "Ingen",
+        "rules": "Tidsregler",
+        "entity": "Sensor"
       }
     }
   }

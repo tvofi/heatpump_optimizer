@@ -94,6 +94,7 @@ async def async_setup_entry(
         ThermalBatteryEnergySensor(coordinator, entry),
         # Learned comfort weight (item 19)
         ComfortWeightSensor(coordinator, entry),
+        ContractComparisonSensor(coordinator, entry),
         # Dumb-valve setting recommendation (item 29)
         ValveTargetRecommendationSensor(coordinator, entry),
     ]
@@ -1467,3 +1468,36 @@ class ComfortWeightSensor(HeatPumpOptimizerSensorBase):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         return dict((self.coordinator.data or {}).get("comfort_learning", {}) or {})
+
+
+class ContractComparisonSensor(HeatPumpOptimizerSensorBase):
+    """This month's consumption settled under each contract type (#23).
+
+    The state is the load-profile value: how many SEK/kWh below the month's
+    flat-consumer average the optimizer's shifting lands. A household on
+    monthly-average spot gains nothing from hourly shifting, and this sensor
+    is the proof, either way — which is why the per-contract totals ride
+    along as attributes.
+    """
+
+    _attr_icon = "mdi:file-compare"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_native_unit_of_measurement = "SEK/kWh"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator, entry):
+        super().__init__(
+            coordinator, entry, "contract_comparison", "Contract Comparison"
+        )
+
+    @property
+    def native_value(self) -> float | None:
+        data = (self.coordinator.data or {}).get("contract_comparison") or {}
+        value = data.get("load_profile_value_per_kwh")
+        return value if isinstance(value, (int, float)) else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return dict(
+            (self.coordinator.data or {}).get("contract_comparison", {}) or {}
+        )

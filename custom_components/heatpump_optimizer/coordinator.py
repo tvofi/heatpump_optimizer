@@ -144,6 +144,25 @@ from .const import (
     DEFAULT_PEAK_TARIFF_PRICE,
     DEFAULT_PEAK_TARIFF_COUNT,
     DEFAULT_PEAK_TARIFF_WINDOW,
+    CONF_GRID_FEE_MODE,
+    DEFAULT_GRID_FEE_MODE,
+    CONF_GRID_FEE_RULES,
+    DEFAULT_GRID_FEE_RULES,
+    CONF_GRID_FEE_ENTITY,
+    CONF_GRID_FEE_FIXED,
+    DEFAULT_GRID_FEE_FIXED,
+    CONF_PEAK_TARIFF_MONTHS,
+    DEFAULT_PEAK_TARIFF_MONTHS,
+    CONF_PEAK_TARIFF_HOURS,
+    DEFAULT_PEAK_TARIFF_HOURS,
+    CONF_PEAK_TARIFF_WEEKDAYS_ONLY,
+    DEFAULT_PEAK_TARIFF_WEEKDAYS_ONLY,
+    CONF_PEAK_TARIFF_OFFPEAK_FACTOR,
+    DEFAULT_PEAK_TARIFF_OFFPEAK_FACTOR,
+    CONF_PRICE_RISK_LAMBDA,
+    DEFAULT_PRICE_RISK_LAMBDA,
+    CONF_CONTRACT_FIXED_PRICE,
+    DEFAULT_CONTRACT_FIXED_PRICE,
     CONF_CYCLING_COST,
     DEFAULT_CYCLING_COST,
     CONF_PV_ENABLED,
@@ -198,9 +217,16 @@ from .price_model import (
     PriceShapeModel,
     extend_price_series,
     hourly_from_entries,
+    quarters_from_entries,
 )
 from .sysid import SysIdConfig, SystemIdentification
 from .tariff import CapacityTariff, PeakTracker
+from .grid_fee import (
+    GridFeeError,
+    GridFeeSchedule,
+    parse_month_range as grid_fee_parse_month_range,
+)
+from .ledger import MonthlyLedger, month_key
 from .open_meteo import OpenMeteoSolar
 from .thermal_model import (
     DHW_AMBIENT_TEMP,
@@ -293,12 +319,16 @@ class ForecastArrays(NamedTuple):
     #: learned diurnal prior.
     price_known: np.ndarray
     pv_surplus: np.ndarray
+    #: The prior's learned one-sigma dispersion per step (#34), zero on
+    #: known steps. Appended, never inserted: the positional consumers
+    #: slice by index and an insertion would silently re-map them all.
+    price_sigma: np.ndarray = np.array([], dtype=float)
 
     @classmethod
     def empty(cls) -> "ForecastArrays":
         """No usable horizon, so the caller should skip the run."""
         blank = np.array([], dtype=float)
-        return cls(blank, blank, blank, blank, blank, blank, blank)
+        return cls(blank, blank, blank, blank, blank, blank, blank, blank)
 
 
 DHW_PROFILE_STORE_VERSION = 1
@@ -445,6 +475,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._async_load_price_model,
             self._async_load_accuracy,
             self._async_load_energy_totals,
+            self._async_load_ledger,
             self._async_load_manual_plan,
         ):
             hass.async_create_task(load())
@@ -596,6 +627,17 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             hass,
             PRICE_MODEL_STORE_VERSION,
             f"{DOMAIN}_{entry.entry_id}_price_model",
+        )
+
+        self._price_qdays_seen: set[str] = set()
+
+        # --- Grid transfer fees and the monthly ledger (v4.0.0 T1) ---------
+        self._grid_fee_cache: tuple | None = None
+        self._ledger = MonthlyLedger()
+        self._ledger_store: Store = Store(
+            hass,
+            1,
+            f"{DOMAIN}_{entry.entry_id}_ledger",
         )
 
         # --- Capacity tariff (item 8) --------------------------------------
@@ -2279,6 +2321,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             )
             self._opt_config.peak_window_minutes = tariff.window_minutes
             self._opt_config.peak_count = tariff.peaks_averaged
+            self._opt_config.peak_months = tariff.months
+            self._opt_config.peak_hours = tariff.peak_hours
+            self._opt_config.peak_weekdays_only = tariff.weekdays_only
+            self._opt_config.peak_offpeak_factor = tariff.offpeak_factor
+            self._opt_config.price_risk_lambda = _as_float(
+                self._config.get(CONF_PRICE_RISK_LAMBDA),
+                DEFAULT_PRICE_RISK_LAMBDA,
+            )
             self._opt_config.baseline_load_kw = self._baseline_house_load(
                 len(prices)
             )
@@ -2337,6 +2387,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 space_pins,
                 dhw_pins,
                 self._external_heat_forecast(len(horizon.prices)),
+                horizon.price_sigma,
             )
 
             self._record_manual_release(result)
@@ -2978,7 +3029,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
     def _price_series(
         self, n_steps: int, midnight: datetime, step_offset: int
-    ) -> tuple[np.ndarray, np.ndarray] | None:
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray] | None:
         """Per-step prices, and a mask of which came from published data.
 
         Returns ``None`` when there are no prices at all. Inventing a flat
@@ -3011,11 +3062,22 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # last price. A flat tail has no trough, so the optimizer cannot see a
         # cheap period ahead worth waiting for. The mask records which steps
         # rest on the learned prior so that stays visible downstream.
-        prices, price_known = extend_price_series(
+        prices, price_known, price_sigma = extend_price_series(
             known, n_steps, step_starts, self._price_prior()
         )
         self._price_known_steps = int(np.sum(price_known))
-        return prices, price_known
+
+        # The fee chokepoint (#1): DSO transfer fees join the planning prices
+        # here, strictly AFTER the prior has both learned from and filled the
+        # spot series — a fee folded in earlier would contaminate the learned
+        # shape and mis-scale the level calibration (`observe_day` reads the
+        # raw Tibber entries and is fee-free by construction). Tibber's
+        # `total` includes tax and VAT but not the DSO transfer fee, so this
+        # is additive, never double-counted.
+        schedule = self._grid_fee_schedule()
+        if schedule.active:
+            prices = prices + self._fee_series(step_starts)
+        return prices, price_known, price_sigma
 
     @staticmethod
     def _comparable_ts(raw: Any, reference: datetime) -> datetime | None:
@@ -3231,7 +3293,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         priced = self._price_series(n_steps, midnight, step_offset)
         if priced is None:
             return ForecastArrays.empty()
-        prices, price_known = priced
+        prices, price_known, price_sigma = priced
 
         outdoor, wind, precipitation, solar = self._weather_series(
             n_steps, midnight, step_offset
@@ -3254,10 +3316,21 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             solar_radiation=solar_array,
             price_known=price_known,
             pv_surplus=surplus,
+            price_sigma=price_sigma,
         )
 
     def _get_current_price(self) -> float:
-        """Get the current electricity price."""
+        """The current price of a consumed kWh: spot plus the DSO fee.
+
+        The second of the fee chokepoint's three sites (#1): everything that
+        prices the present — the settlement's pending dict, the published
+        current price, the comfort learner's relative price — goes through
+        here, so the fee can never diverge between them.
+        """
+        return self._current_spot_price() + self._current_grid_fee(dt_util.now())
+
+    def _current_spot_price(self) -> float:
+        """The current spot price alone, exactly as Tibber bills it."""
         if not self._prices:
             return 0.0
 
@@ -3275,6 +3348,49 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     continue
 
         return self._prices[0].get("total", 0) if self._prices else 0.0
+
+    # ------------------------------------------------------------------
+    # The grid-fee layer (v4.0.0 T1, #1)
+    # ------------------------------------------------------------------
+
+    def _grid_fee_schedule(self) -> GridFeeSchedule:
+        """The parsed fee schedule, re-parsed only when its config changes."""
+        key = (
+            self._config.get(CONF_GRID_FEE_MODE, DEFAULT_GRID_FEE_MODE),
+            self._config.get(CONF_GRID_FEE_RULES, DEFAULT_GRID_FEE_RULES),
+            self._config.get(CONF_GRID_FEE_FIXED, DEFAULT_GRID_FEE_FIXED),
+        )
+        cache = self._grid_fee_cache
+        if cache is None or cache[0] != key:
+            self._grid_fee_cache = (
+                key,
+                GridFeeSchedule.from_config(self._config),
+            )
+        return self._grid_fee_cache[1]
+
+    def _grid_fee_entity_value(self) -> float | None:
+        """The live SEK/kWh fee entity's value, when one is configured."""
+        entity_id = self._config.get(CONF_GRID_FEE_ENTITY)
+        if not entity_id:
+            return None
+        state = self.hass.states.get(entity_id)
+        if state is None:
+            return None
+        try:
+            value = float(state.state)
+        except (TypeError, ValueError):
+            return None
+        return value if np.isfinite(value) else None
+
+    def _fee_series(self, step_starts: list[datetime]) -> np.ndarray:
+        return self._grid_fee_schedule().fee_vector(
+            step_starts, self._grid_fee_entity_value()
+        )
+
+    def _current_grid_fee(self, when: datetime) -> float:
+        return self._grid_fee_schedule().current_fee(
+            when, self._grid_fee_entity_value()
+        )
 
     async def async_publish_ecl110_command(
         self,
@@ -3582,6 +3698,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             "weather_forecast_available": len(self._weather_forecast),
             "price_known_steps": self._price_known_steps,
             "price_prior": self._price_model.summary(),
+            # T1: what the same metered month would have cost under each
+            # contract type on the market, and the DSO fee actually paid.
+            "contract_comparison": self._contract_comparison(),
+            "current_grid_fee": round(
+                self._current_grid_fee(dt_util.now()), 4
+            ),
             "peak_tariff_enabled": tariff.enabled,
             "billed_peak_kw": round(self._peak_tracker.billed_peak_kw(tariff), 2),
             "peak_threshold_kw": round(self._peak_tracker.threshold_kw(tariff), 2),
@@ -3821,6 +3943,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         days = stored.get("days_seen")
         if isinstance(days, list):
             self._price_days_seen = {str(d) for d in days}
+        qdays = stored.get("quarter_days_seen")
+        if isinstance(qdays, list):
+            self._price_qdays_seen = {str(d) for d in qdays}
 
     async def _async_save_price_model(self) -> None:
         try:
@@ -3830,10 +3955,34 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     # Only recent days matter for de-duplication, and an
                     # unbounded set would grow forever.
                     "days_seen": sorted(self._price_days_seen)[-90:],
+                    "quarter_days_seen": sorted(self._price_qdays_seen)[-90:],
                 }
             )
         except Exception as err:  # noqa: BLE001
             _LOGGER.debug("Could not persist price model: %s", err)
+
+    async def _async_load_ledger(self) -> None:
+        """Restore the monthly ledger (T1)."""
+        try:
+            stored = await self._ledger_store.async_load()
+        except Exception as err:  # noqa: BLE001 - never block setup on storage
+            _LOGGER.debug("Could not load ledger: %s", err)
+            return
+        if not stored:
+            return
+        self._ledger = MonthlyLedger.from_dict(stored.get("ledger"))
+
+    def _schedule_ledger_save(self) -> None:
+        """Persist the ledger without blocking the settlement path."""
+        self.hass.async_create_task(self._async_save_ledger())
+
+    async def _async_save_ledger(self) -> None:
+        try:
+            await self._ledger_store.async_save(
+                {"ledger": self._ledger.as_dict()}
+            )
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.debug("Could not persist ledger: %s", err)
 
     async def _async_load_accuracy(self) -> None:
         try:
@@ -4057,6 +4206,18 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             if self._price_model.observe_day(when, hours):
                 self._price_days_seen.add(day)
                 learned = True
+        # The quarter refinement (#19) learns beside the hourly shape, from
+        # days that arrived at full 15-minute resolution only.
+        for day, quarters in quarters_from_entries(self._prices).items():
+            if day in self._price_qdays_seen:
+                continue
+            try:
+                when = datetime.fromisoformat(f"{day}T12:00:00")
+            except ValueError:
+                continue
+            if self._price_model.observe_day_quarters(when, quarters):
+                self._price_qdays_seen.add(day)
+                learned = True
         if learned:
             await self._async_save_price_model()
 
@@ -4094,7 +4255,60 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     DEFAULT_PEAK_TARIFF_WINDOW,
                 )
             ),
+            months=self._tariff_months(),
+            peak_hours=self._tariff_hours(),
+            weekdays_only=bool(
+                self._config.get(
+                    CONF_PEAK_TARIFF_WEEKDAYS_ONLY,
+                    DEFAULT_PEAK_TARIFF_WEEKDAYS_ONLY,
+                )
+            ),
+            offpeak_factor=_as_float(
+                self._config.get(CONF_PEAK_TARIFF_OFFPEAK_FACTOR),
+                DEFAULT_PEAK_TARIFF_OFFPEAK_FACTOR,
+            ),
         )
+
+    def _tariff_months(self) -> frozenset[int]:
+        """The #13 month mask, empty (= every month) when unset or broken."""
+        spec = str(
+            self._config.get(CONF_PEAK_TARIFF_MONTHS, DEFAULT_PEAK_TARIFF_MONTHS)
+        ).strip()
+        if not spec:
+            return frozenset()
+        months: set[int] = set()
+        try:
+            for chunk in spec.replace(";", ",").split(","):
+                chunk = chunk.strip()
+                if chunk:
+                    months |= grid_fee_parse_month_range(chunk)
+        except GridFeeError as err:
+            _LOGGER.warning(
+                "Invalid peak tariff months %r (%s); applying the tariff "
+                "in every month",
+                spec,
+                err,
+            )
+            return frozenset()
+        return frozenset(months)
+
+    def _tariff_hours(self) -> tuple:
+        """The #13 peak-hour windows, empty (= every hour) when unset."""
+        spec = str(
+            self._config.get(CONF_PEAK_TARIFF_HOURS, DEFAULT_PEAK_TARIFF_HOURS)
+        ).strip()
+        if not spec:
+            return ()
+        try:
+            return tuple(parse_windows(spec))
+        except DHWWindowError as err:
+            _LOGGER.warning(
+                "Invalid peak tariff hours %r (%s); treating every hour "
+                "as peak",
+                spec,
+                err,
+            )
+            return ()
 
     def _track_realised_peak(self) -> None:
         """Fold the current whole-house draw into this month's peaks.
@@ -4409,6 +4623,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             "space_power": float(self._current_action.get("power", 0.0)),
             "dhw_power": float(self._current_action.get("dhw_power", 0.0)),
             "price": self._get_current_price(),
+            # The third fee-chokepoint site (#1): the settlement books spot
+            # and fee as separate lines, so the ledger can itemise the bill
+            # while "price" above stays what the kWh actually cost.
+            "spot_price": self._current_spot_price(),
+            "grid_fee": self._current_grid_fee(now),
             "predicted_temp": self._predicted_next_room_temp(),
             "outdoor": self._current_state.outdoor_temperature,
             "humidity": self._current_humidity(),
@@ -4470,11 +4689,20 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         planned_dhw = float(pending.get("dhw_power") or 0.0)
         planned_total = planned_space + planned_dhw
 
+        when = pending.get("when") or dt_util.now()
+        spot = _as_float(pending.get("spot_price"), 0.0)
+
+        # The månadsspot shadow column (#23) settles on the month's *average*
+        # spot price, so the average must sample every interval — including
+        # the ones where nothing was consumed. Before the energy gate below.
+        self._ledger.observe_meta_mean(when, "spot_price", spot)
+
         actual = sample.actual_power_kw
         if actual is None:
             actual = planned_total
         energy = max(0.0, actual * elapsed_hours)
         if energy <= 0:
+            self._schedule_ledger_save()
             return
 
         if planned_total > 1e-6:
@@ -4490,6 +4718,60 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._energy_totals["space_cost"] += space_energy * price
         self._energy_totals["dhw_cost"] += dhw_energy * price
         self._energy_totals["total_cost"] += energy * price
+
+        # The monthly ledger (T1): spot and DSO fee booked as separate lines,
+        # so every later SEK claim can reconcile against the month's
+        # receipts, and the fee never contaminates the spot column the
+        # contract comparison settles on.
+        fee = _as_float(pending.get("grid_fee"), 0.0)
+        self._ledger.add(when, "spot", kwh=energy, sek=energy * spot)
+        if fee:
+            self._ledger.add(when, "grid_fee", kwh=energy, sek=energy * fee)
+        self._schedule_ledger_save()
+
+    def _contract_comparison(self) -> dict[str, Any]:
+        """This month's metered consumption settled under each contract (#23).
+
+        Hourly spot is what Tibber actually bills; monthly-average spot
+        (månadsspot) is the same kWh at the month's mean spot price; fixed is
+        the configured contract price. The "load profile value" is the
+        öre/kWh the optimizer's shifting earns below the flat-consumer
+        average — a household on månadsspot gains nothing from hourly
+        shifting, and this is the proof, either way.
+        """
+        month = month_key(dt_util.now())
+        spot_line = self._ledger.line(month, "spot")
+        kwh = spot_line["kwh"]
+        spot_cost = spot_line["sek"]
+        out: dict[str, Any] = {
+            "month": month,
+            "kwh": round(kwh, 3),
+            "hourly_spot_sek": round(spot_cost, 2),
+        }
+        fee_line = self._ledger.line(month, "grid_fee")
+        if fee_line["sek"]:
+            out["grid_fee_sek"] = round(fee_line["sek"], 2)
+
+        costs: dict[str, float] = {"hourly_spot": spot_cost}
+        mean_spot = self._ledger.meta_mean(month, "spot_price")
+        if kwh > 0 and mean_spot is not None:
+            monthly_avg_cost = kwh * mean_spot
+            costs["monthly_avg_spot"] = monthly_avg_cost
+            out["monthly_avg_spot_sek"] = round(monthly_avg_cost, 2)
+            out["load_profile_value_per_kwh"] = round(
+                mean_spot - spot_cost / kwh, 4
+            )
+        fixed_price = _as_float(
+            self._config.get(CONF_CONTRACT_FIXED_PRICE),
+            DEFAULT_CONTRACT_FIXED_PRICE,
+        )
+        if kwh > 0 and fixed_price > 0:
+            fixed_cost = kwh * fixed_price
+            costs["fixed"] = fixed_cost
+            out["fixed_sek"] = round(fixed_cost, 2)
+        if kwh > 0 and len(costs) > 1:
+            out["cheapest"] = min(costs, key=costs.get)
+        return out
 
     # ==================================================================
     # Revealed-preference comfort tuning (item 19)
@@ -4519,7 +4801,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         delta = float(requested) - planned
         prices = [p.get("total", 0.0) for p in self._prices] or [1.0]
         mean_price = float(np.mean([_as_float(p, 0.0) for p in prices])) or 1.0
-        relative = self._get_current_price() / mean_price if mean_price else 1.0
+        # Spot on BOTH sides of the ratio: the denominator is a mean over raw
+        # Tibber entries, so a fee-inclusive numerator (T1's #1) would inflate
+        # every override's price-weight by the fee regardless of hour.
+        relative = self._current_spot_price() / mean_price if mean_price else 1.0
         self._comfort_learner.record_override(
             OverrideEvent(
                 when=dt_util.now(),
@@ -4789,6 +5074,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     now,
                     horizon.price_known,
                     horizon.pv_surplus,
+                    # The scratch config inherits price_risk_lambda, so the
+                    # what-if must price guessed steps the same way the plan
+                    # it is compared against did (#34).
+                    price_sigma=horizon.price_sigma,
                 )
             )
         except Exception as err:  # noqa: BLE001 - a what-if must never break ops

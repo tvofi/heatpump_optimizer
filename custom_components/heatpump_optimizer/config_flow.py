@@ -173,6 +173,25 @@ from .const import (
     DEFAULT_PEAK_TARIFF_WINDOW,
     CONF_CYCLING_COST,
     DEFAULT_CYCLING_COST,
+    CONF_GRID_FEE_MODE,
+    DEFAULT_GRID_FEE_MODE,
+    CONF_GRID_FEE_RULES,
+    DEFAULT_GRID_FEE_RULES,
+    CONF_GRID_FEE_ENTITY,
+    CONF_GRID_FEE_FIXED,
+    DEFAULT_GRID_FEE_FIXED,
+    CONF_PEAK_TARIFF_MONTHS,
+    DEFAULT_PEAK_TARIFF_MONTHS,
+    CONF_PEAK_TARIFF_HOURS,
+    DEFAULT_PEAK_TARIFF_HOURS,
+    CONF_PEAK_TARIFF_WEEKDAYS_ONLY,
+    DEFAULT_PEAK_TARIFF_WEEKDAYS_ONLY,
+    CONF_PEAK_TARIFF_OFFPEAK_FACTOR,
+    DEFAULT_PEAK_TARIFF_OFFPEAK_FACTOR,
+    CONF_PRICE_RISK_LAMBDA,
+    DEFAULT_PRICE_RISK_LAMBDA,
+    CONF_CONTRACT_FIXED_PRICE,
+    DEFAULT_CONTRACT_FIXED_PRICE,
     CONF_PV_ENABLED,
     CONF_PV_PEAK_KW,
     CONF_PV_EFFICIENCY,
@@ -208,7 +227,7 @@ from .const import (
     DEFAULT_BUILDING_PRESET_ENABLED,
     DEFAULT_HEATED_AREA,
 )
-from . import mixing_valve, presets, topology
+from . import grid_fee, mixing_valve, presets, topology
 from .dhw_schedule import is_valid_spec
 
 _LOGGER = logging.getLogger(__name__)
@@ -290,6 +309,20 @@ def _dhw_min_too_close(candidate: dict[str, Any], current: dict[str, Any]) -> bo
         CONF_DHW_MIN_TEMP, current.get(CONF_DHW_MIN_TEMP, DEFAULT_DHW_MIN_TEMP)
     )
     return float(minimum) > float(setpoint) - DHW_MIN_TEMP_SETPOINT_MARGIN
+
+
+def _valid_months_spec(spec: Any) -> bool:
+    """Whether a #13 month-mask spec parses; empty means every month."""
+    text = str(spec or "").strip()
+    if not text:
+        return True
+    try:
+        for chunk in text.replace(";", ",").split(","):
+            if chunk.strip():
+                grid_fee.parse_month_range(chunk)
+    except grid_fee.GridFeeError:
+        return False
+    return True
 
 
 def _entity_of(
@@ -739,6 +772,7 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
         CONF_PV_EXPORT_PRICE_ENTITY,
         CONF_AWAY_PRESENCE_ENTITY,
         CONF_AWAY_RETURN_ENTITY,
+        CONF_GRID_FEE_ENTITY,
     )
 
     # Fallback labels for the menus, used when the frontend has no translation
@@ -1336,6 +1370,15 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
                         CONF_CYCLING_COST,
                         default=current.get(CONF_CYCLING_COST, DEFAULT_CYCLING_COST),
                     ): _number(0, 10, 0.05),
+                    # Risk premium on the prior-guessed part of the horizon
+                    # (#34). Zero prices guessed steps at the prior's mean,
+                    # exactly as before.
+                    vol.Optional(
+                        CONF_PRICE_RISK_LAMBDA,
+                        default=current.get(
+                            CONF_PRICE_RISK_LAMBDA, DEFAULT_PRICE_RISK_LAMBDA
+                        ),
+                    ): _number(0.0, 2.0, 0.05),
                 }
             ),
         )
@@ -1521,23 +1564,56 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
     async def async_step_grid(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Capacity tariff, compressor cycling and the price prior."""
+        """What the DSO charges: capacity tariff, transfer fees, contracts."""
+        errors: dict[str, str] = {}
         if user_input is not None:
-            cleaned = dict(user_input)
-            # The dropdown speaks strings; everything downstream treats the
-            # window as a number of minutes. Convert once, here, so the stored
-            # value has the type the rest of the integration expects.
-            window = cleaned.get(CONF_PEAK_TARIFF_WINDOW)
-            if window is not None:
-                try:
-                    cleaned[CONF_PEAK_TARIFF_WINDOW] = int(window)
-                except (TypeError, ValueError):
-                    cleaned[CONF_PEAK_TARIFF_WINDOW] = DEFAULT_PEAK_TARIFF_WINDOW
-            return self._save(cleaned)
+            if not grid_fee.is_valid_spec(
+                user_input.get(CONF_GRID_FEE_RULES, "")
+            ):
+                errors[CONF_GRID_FEE_RULES] = "invalid_grid_fee_rules"
+            if not _valid_months_spec(
+                user_input.get(CONF_PEAK_TARIFF_MONTHS, "")
+            ):
+                errors[CONF_PEAK_TARIFF_MONTHS] = "invalid_peak_months"
+            if not is_valid_spec(user_input.get(CONF_PEAK_TARIFF_HOURS, "")):
+                errors[CONF_PEAK_TARIFF_HOURS] = "invalid_peak_hours"
+            if not errors:
+                cleaned = dict(user_input)
+                # The dropdown speaks strings; everything downstream treats
+                # the window as a number of minutes. Convert once, here, so
+                # the stored value has the type the rest of the integration
+                # expects.
+                window = cleaned.get(CONF_PEAK_TARIFF_WINDOW)
+                if window is not None:
+                    try:
+                        cleaned[CONF_PEAK_TARIFF_WINDOW] = int(window)
+                    except (TypeError, ValueError):
+                        cleaned[CONF_PEAK_TARIFF_WINDOW] = (
+                            DEFAULT_PEAK_TARIFF_WINDOW
+                        )
+                if not cleaned.get(CONF_GRID_FEE_ENTITY):
+                    cleaned[CONF_GRID_FEE_ENTITY] = None
+                return self._save(cleaned)
 
         current = self._current
+        if user_input is not None:
+            current = {**current, **user_input}
+            # A cleared entity selector is simply absent from the submission,
+            # so on the error re-render the merge above would resurrect the
+            # stored value — and fixing the unrelated error would then
+            # silently re-save the entity the user cleared.
+            if not user_input.get(CONF_GRID_FEE_ENTITY):
+                current.pop(CONF_GRID_FEE_ENTITY, None)
+
+        def _entity(key: str) -> Any:
+            existing = current.get(key)
+            if existing:
+                return vol.Optional(key, default=existing)
+            return vol.Optional(key)
+
         return self.async_show_form(
             step_id="grid",
+            errors=errors,
             data_schema=vol.Schema(
                 {
                     vol.Optional(
@@ -1572,6 +1648,75 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
                             )
                         ),
                     ): _select(["15", "60"], "peak_window"),
+                    # The #13 masks: which hours a peak actually bills in.
+                    # Empty means every hour at full rate — the flat model.
+                    vol.Optional(
+                        CONF_PEAK_TARIFF_MONTHS,
+                        default=current.get(
+                            CONF_PEAK_TARIFF_MONTHS, DEFAULT_PEAK_TARIFF_MONTHS
+                        ),
+                    ): selector.TextSelector(
+                        selector.TextSelectorConfig(
+                            type=selector.TextSelectorType.TEXT,
+                        )
+                    ),
+                    vol.Optional(
+                        CONF_PEAK_TARIFF_HOURS,
+                        default=current.get(
+                            CONF_PEAK_TARIFF_HOURS, DEFAULT_PEAK_TARIFF_HOURS
+                        ),
+                    ): selector.TextSelector(
+                        selector.TextSelectorConfig(
+                            type=selector.TextSelectorType.TEXT,
+                        )
+                    ),
+                    vol.Optional(
+                        CONF_PEAK_TARIFF_WEEKDAYS_ONLY,
+                        default=current.get(
+                            CONF_PEAK_TARIFF_WEEKDAYS_ONLY,
+                            DEFAULT_PEAK_TARIFF_WEEKDAYS_ONLY,
+                        ),
+                    ): bool,
+                    vol.Optional(
+                        CONF_PEAK_TARIFF_OFFPEAK_FACTOR,
+                        default=current.get(
+                            CONF_PEAK_TARIFF_OFFPEAK_FACTOR,
+                            DEFAULT_PEAK_TARIFF_OFFPEAK_FACTOR,
+                        ),
+                    ): _number(0.0, 1.0, 0.05, slider=True),
+                    # The ToU fee layer (#1).
+                    vol.Optional(
+                        CONF_GRID_FEE_MODE,
+                        default=current.get(
+                            CONF_GRID_FEE_MODE, DEFAULT_GRID_FEE_MODE
+                        ),
+                    ): _select(list(grid_fee.MODES), "grid_fee_mode"),
+                    vol.Optional(
+                        CONF_GRID_FEE_FIXED,
+                        default=current.get(
+                            CONF_GRID_FEE_FIXED, DEFAULT_GRID_FEE_FIXED
+                        ),
+                    ): _number(0, 5, 0.01),
+                    vol.Optional(
+                        CONF_GRID_FEE_RULES,
+                        default=current.get(
+                            CONF_GRID_FEE_RULES, DEFAULT_GRID_FEE_RULES
+                        ),
+                    ): selector.TextSelector(
+                        selector.TextSelectorConfig(
+                            type=selector.TextSelectorType.TEXT,
+                            multiline=True,
+                        )
+                    ),
+                    _entity(CONF_GRID_FEE_ENTITY): _entity_of("sensor"),
+                    # The contract shadow settlement's fixed column (#23).
+                    vol.Optional(
+                        CONF_CONTRACT_FIXED_PRICE,
+                        default=current.get(
+                            CONF_CONTRACT_FIXED_PRICE,
+                            DEFAULT_CONTRACT_FIXED_PRICE,
+                        ),
+                    ): _number(0, 10, 0.01),
                 }
             ),
         )

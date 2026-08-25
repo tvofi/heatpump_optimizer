@@ -539,11 +539,87 @@
   }
  },
  "grid": {
+  "contract_fixed_price": {
+   "config": {
+    "max": "10",
+    "min": "0",
+    "mode": "'box'",
+    "step": "0.01"
+   },
+   "default": "0.0",
+   "required": "Optional",
+   "selector": "NumberSelector"
+  },
+  "grid_fee_entity": {
+   "config": {
+    "filter": "[{'domain': ['sensor']}]"
+   },
+   "default": null,
+   "required": "Optional",
+   "selector": "EntitySelector"
+  },
+  "grid_fee_fixed": {
+   "config": {
+    "max": "5",
+    "min": "0",
+    "mode": "'box'",
+    "step": "0.01"
+   },
+   "default": "0.0",
+   "required": "Optional",
+   "selector": "NumberSelector"
+  },
+  "grid_fee_mode": {
+   "config": {
+    "mode": "'dropdown'",
+    "options": "['none', 'rules', 'entity']",
+    "translation_key": "'grid_fee_mode'"
+   },
+   "default": "'none'",
+   "required": "Optional",
+   "selector": "SelectSelector"
+  },
+  "grid_fee_rules": {
+   "config": {
+    "multiline": "True",
+    "type": "'text'"
+   },
+   "default": "''",
+   "required": "Optional",
+   "selector": "TextSelector"
+  },
   "peak_tariff_enabled": {
    "config": null,
    "default": "False",
    "required": "Optional",
    "selector": "type"
+  },
+  "peak_tariff_hours": {
+   "config": {
+    "type": "'text'"
+   },
+   "default": "''",
+   "required": "Optional",
+   "selector": "TextSelector"
+  },
+  "peak_tariff_months": {
+   "config": {
+    "type": "'text'"
+   },
+   "default": "''",
+   "required": "Optional",
+   "selector": "TextSelector"
+  },
+  "peak_tariff_offpeak_factor": {
+   "config": {
+    "max": "1.0",
+    "min": "0.0",
+    "mode": "'slider'",
+    "step": "0.05"
+   },
+   "default": "1.0",
+   "required": "Optional",
+   "selector": "NumberSelector"
   },
   "peak_tariff_peaks_averaged": {
    "config": {
@@ -566,6 +642,12 @@
    "default": "45.0",
    "required": "Optional",
    "selector": "NumberSelector"
+  },
+  "peak_tariff_weekdays_only": {
+   "config": null,
+   "default": "False",
+   "required": "Optional",
+   "selector": "type"
   },
   "peak_tariff_window_minutes": {
    "config": {
@@ -1124,6 +1206,17 @@
    },
    "default": "30",
    "required": "Required",
+   "selector": "NumberSelector"
+  },
+  "price_risk_lambda": {
+   "config": {
+    "max": "2.0",
+    "min": "0.0",
+    "mode": "'box'",
+    "step": "0.05"
+   },
+   "default": "0.0",
+   "required": "Optional",
    "selector": "NumberSelector"
   },
   "price_weight": {

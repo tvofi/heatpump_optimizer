@@ -29,16 +29,25 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import numpy as np
+
+from .dhw_schedule import Window, hour_in_windows
 
 _LOGGER = logging.getLogger(__name__)
 
 
 @dataclass
 class CapacityTariff:
-    """Configuration of a monthly capacity tariff."""
+    """Configuration of a monthly capacity tariff.
+
+    The masks (#13) are how most real Swedish effekttariffs deviate from the
+    flat model: many count only weekday daytime peaks, bill night peaks at a
+    reduced rate, or apply only November–March. Every mask's default means
+    "no mask": empty month set, empty hour windows and ``weekdays_only``
+    False with ``offpeak_factor`` 1.0 reproduce the flat model bit for bit.
+    """
 
     enabled: bool = False
     #: Currency per kW per month.
@@ -48,6 +57,18 @@ class CapacityTariff:
     #: Metering window in minutes. Most Swedish DSOs meter hourly; some newer
     #: tariffs use 15 minutes, which is much harder to hide a defrost in.
     window_minutes: int = 60
+    #: Months the tariff applies in at all; empty = every month. Outside
+    #: them a window contributes *nothing* — not a discounted peak.
+    months: frozenset[int] = frozenset()
+    #: Peak hours; empty = all hours are peak. Outside them (or on a
+    #: weekend, with ``weekdays_only``) the off-peak factor applies.
+    peak_hours: tuple[Window, ...] = ()
+    #: Weekends are off-peak when set.
+    weekdays_only: bool = False
+    #: What an off-peak window's kW counts at, 0..1. 1.0 = no distinction
+    #: (the flat model); 0.5 = the common half-rate night peak; 0.0 =
+    #: off-peak hours are free.
+    offpeak_factor: float = 1.0
 
     @property
     def marginal_price_per_kw(self) -> float:
@@ -63,18 +84,45 @@ class CapacityTariff:
             return 0.0
         return self.price_per_kw / float(self.peaks_averaged)
 
+    def sample_factor(self, when: datetime) -> float:
+        """What a metered kW at ``when`` counts at towards the billed peak.
+
+        1.0 in peak hours (or with no masks at all), the off-peak factor in
+        off-peak hours, and 0.0 in months where the tariff does not apply.
+        """
+        if self.months and when.month not in self.months:
+            return 0.0
+        offpeak = False
+        if self.weekdays_only and when.weekday() >= 5:
+            offpeak = True
+        elif self.peak_hours:
+            hour = when.hour + when.minute / 60.0
+            offpeak = not hour_in_windows(hour, list(self.peak_hours))
+        if not offpeak:
+            return 1.0
+        return float(min(1.0, max(0.0, self.offpeak_factor)))
+
 
 @dataclass
 class PeakTracker:
-    """The realised peaks so far this month."""
+    """The realised peaks so far this month.
+
+    With the masks (#13) the peaks kept here are *billed-equivalent* kW:
+    each closed window's average scaled by what its hour counts at. A window
+    in a month the tariff skips is not recorded at all — recording a zero
+    would poison ``threshold_kw``'s early-month "lowest peak seen" answer.
+    With no masks configured the factor is always 1.0 and nothing changes.
+    """
 
     month: str = ""
-    #: Highest metered window averages seen this month, descending.
+    #: Highest billed-equivalent window averages seen this month, descending.
     peaks: list[float] = field(default_factory=list)
     #: Accumulator for the window currently being metered.
     _window_key: str = ""
     _window_sum: float = 0.0
     _window_samples: int = 0
+    #: What the open window's kW counts at, captured when it opens.
+    _window_factor: float = 1.0
 
     # -- accumulation -------------------------------------------------------
 
@@ -93,6 +141,7 @@ class PeakTracker:
             self._window_key = ""
             self._window_sum = 0.0
             self._window_samples = 0
+            self._window_factor = 1.0
 
         window = max(1, int(tariff.window_minutes))
         slot = when.replace(second=0, microsecond=0)
@@ -104,6 +153,11 @@ class PeakTracker:
             self._window_key = key
             self._window_sum = 0.0
             self._window_samples = 0
+            # The whole window bills at one rate, so the factor is the
+            # window's, not each sample's: a window straddling the 19:00
+            # peak-hour boundary is billed by where it starts, exactly as
+            # the DSO's meter attributes it.
+            self._window_factor = tariff.sample_factor(slot)
 
         self._window_sum += float(house_power_kw)
         self._window_samples += 1
@@ -111,8 +165,13 @@ class PeakTracker:
     def _close_window(self, tariff: CapacityTariff) -> None:
         if self._window_samples <= 0:
             return
+        if self._window_factor <= 0.0:
+            # The tariff does not bill this window at all (masked month, or
+            # off-peak hours that are free). Contributing nothing is the
+            # point; contributing zero would be a discount.
+            return
         average = self._window_sum / self._window_samples
-        self.peaks.append(average)
+        self.peaks.append(average * self._window_factor)
         self.peaks.sort(reverse=True)
         # Keep a little more than the billed count so that a later correction
         # (a retracted sample) does not lose the runner-up.
@@ -161,6 +220,7 @@ class PeakTracker:
             "window_key": self._window_key,
             "window_sum": self._window_sum,
             "window_samples": self._window_samples,
+            "window_factor": self._window_factor,
         }
 
     @classmethod
@@ -182,6 +242,11 @@ class PeakTracker:
         except (TypeError, ValueError):
             tracker._window_sum = 0.0
             tracker._window_samples = 0
+        try:
+            # Absent from pre-v4 payloads; 1.0 is the unmasked behaviour.
+            tracker._window_factor = float(data.get("window_factor", 1.0))
+        except (TypeError, ValueError):
+            tracker._window_factor = 1.0
         return tracker
 
 
@@ -230,14 +295,54 @@ def metering_windows(
     return np.concatenate(pieces)
 
 
+def mask_active(tariff: CapacityTariff) -> bool:
+    """Whether any #13 mask can change what a window counts at."""
+    return bool(tariff.months) or (
+        (bool(tariff.peak_hours) or tariff.weekdays_only)
+        and tariff.offpeak_factor < 1.0
+    )
+
+
+def window_factors(
+    tariff: CapacityTariff,
+    start_time: datetime | None,
+    n_windows: int,
+    dt_hours: float,
+) -> np.ndarray | None:
+    """Billing factor per metering window over the horizon, or None.
+
+    None when no mask is configured — the fast path, and the proof of
+    inertness: ``peak_cost`` with ``None`` runs the exact pre-#13 arithmetic.
+    Windows are keyed by their aligned start instant, matching how
+    ``PeakTracker.observe`` attributes a live window, so the plan's cost term
+    and the realised tracker can never disagree about which hour a window
+    bills under.
+    """
+    if start_time is None or n_windows <= 0 or not mask_active(tariff):
+        return None
+    window = max(1, int(tariff.window_minutes))
+    slot0 = start_time.replace(second=0, microsecond=0)
+    slot0 = slot0.replace(minute=(slot0.minute // window) * window % 60)
+    return np.asarray(
+        [
+            tariff.sample_factor(slot0 + timedelta(minutes=window * i))
+            for i in range(n_windows)
+        ],
+        dtype=float,
+    )
+
+
 def peak_penalty(
     total_power_kw: np.ndarray,
     baseline_load_kw: np.ndarray,
     threshold_kw: float,
     tariff: CapacityTariff,
     dt_hours: float,
+    start_time: datetime | None = None,
 ) -> float:
     """Cost of the new monthly peak this plan would create."""
+    house = np.asarray(total_power_kw, dtype=float)
+    windows = metering_windows(house, tariff.window_minutes, dt_hours)
     return peak_cost(
         total_power_kw,
         baseline_load_kw,
@@ -246,6 +351,9 @@ def peak_penalty(
         tariff.window_minutes,
         dt_hours,
         tariff.peaks_averaged,
+        window_factors=window_factors(
+            tariff, start_time, windows.size, dt_hours
+        ),
     )
 
 
@@ -258,6 +366,7 @@ def peak_cost(
     dt_hours: float,
     peaks_averaged: int = 3,
     offset_steps: int = 0,
+    window_factors: np.ndarray | None = None,
 ) -> float:
     """What this plan would add to the monthly capacity charge.
 
@@ -296,6 +405,17 @@ def peak_cost(
     if house.size == 0:
         return 0.0
     windows = metering_windows(house, window_minutes, dt_hours, offset_steps)
+    if window_factors is not None and window_factors.size:
+        # Billed-equivalent kW (#13): each window's average counts at its
+        # hour's factor, against a threshold the tracker keeps in the same
+        # billed-equivalent terms. A masked-out window (factor 0) can never
+        # exceed any threshold, which is "contributes nothing" exactly.
+        factors = window_factors[: windows.size]
+        if factors.size < windows.size:
+            factors = np.concatenate(
+                [factors, np.ones(windows.size - factors.size)]
+            )
+        windows = windows * factors
     excess = np.maximum(0.0, windows - threshold_kw)
     if not np.any(excess > 0):
         return 0.0

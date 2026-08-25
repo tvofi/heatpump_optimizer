@@ -47,7 +47,11 @@ import numpy as np
 from scipy.optimize import linprog, minimize
 
 from . import mixing_valve, pv
-from .const import DEFAULT_CYCLING_COST, WOOD_TANK_MAX_TEMP
+from .const import (
+    DEFAULT_CYCLING_COST,
+    DEFAULT_PRICE_RISK_LAMBDA,
+    WOOD_TANK_MAX_TEMP,
+)
 from .thermal_model import (
     DHW_AMBIENT_TEMP,
     ThermalModel,
@@ -55,7 +59,13 @@ from .thermal_model import (
     dhw_coil_draw_reduction,
     wood_share,
 )
-from .tariff import peak_cost, realised_peak
+from .tariff import (
+    CapacityTariff,
+    metering_windows,
+    peak_cost,
+    realised_peak,
+    window_factors,
+)
 from .dhw_schedule import (
     FULL_DAY,
     Window,
@@ -565,6 +575,21 @@ class OptimizationConfig:
     #: forecast surplus available, consumption up to it is priced at this
     #: rather than at the import price; see `pv.piecewise_cost`.
     pv_export_price: float = 0.0
+
+    # --- Effekttariff masks (#13) --------------------------------------
+    #: Months the capacity tariff applies in at all; empty = every month.
+    peak_months: Any = frozenset()
+    #: Peak-hour windows (dhw_schedule ``Window`` tuples); empty = always.
+    peak_hours: Any = ()
+    #: Weekends bill as off-peak when set.
+    peak_weekdays_only: bool = False
+    #: What an off-peak window's kW counts at; 1.0 = the flat model.
+    peak_offpeak_factor: float = 1.0
+
+    # --- Risk-adjusted unknown-horizon pricing (#34) --------------------
+    #: Premium multiplier on the prior's per-step dispersion. Zero prices
+    #: prior-filled steps at the mean, exactly as before.
+    price_risk_lambda: float = DEFAULT_PRICE_RISK_LAMBDA
 
     @property
     def n_steps(self) -> int:
@@ -1176,6 +1201,7 @@ class HeatPumpOptimizer:
         p_max = self.model.params.max_electrical_power
         baseline = cfg.baseline_load_array(n_steps)
         offset_steps = self._window_offset_steps(start_time, dt)
+        factors = self._peak_window_factors(n_steps, dt, start_time, offset_steps)
 
         def cycling(power: np.ndarray) -> float:
             return cycling_penalty(power, cfg.cycling_cost, p_max)
@@ -1190,9 +1216,37 @@ class HeatPumpOptimizer:
                 dt,
                 cfg.peak_count,
                 offset_steps,
+                window_factors=factors,
             )
 
         return cycling, capacity, baseline
+
+    def _peak_window_factors(
+        self,
+        n_steps: int,
+        dt: float,
+        start_time: datetime | None,
+        offset_steps: int,
+    ) -> np.ndarray | None:
+        """Per-window billing factors for the #13 masks, or None unmasked.
+
+        Composed from the same ``CapacityTariff.sample_factor`` the realised
+        tracker uses, so the plan's cost term and the live meter can never
+        disagree about which hour a window bills under.
+        """
+        cfg = self.config
+        mask = CapacityTariff(
+            enabled=True,
+            window_minutes=cfg.peak_window_minutes,
+            months=frozenset(cfg.peak_months or ()),
+            peak_hours=tuple(cfg.peak_hours or ()),
+            weekdays_only=bool(cfg.peak_weekdays_only),
+            offpeak_factor=float(cfg.peak_offpeak_factor),
+        )
+        n_windows = metering_windows(
+            np.zeros(n_steps), cfg.peak_window_minutes, dt, offset_steps
+        ).size
+        return window_factors(mask, start_time, n_windows, dt)
 
     # ------------------------------------------------------------------
     # Predictive weather analysis
@@ -1314,6 +1368,7 @@ class HeatPumpOptimizer:
         space_pins: np.ndarray | None = None,
         dhw_pins: np.ndarray | None = None,
         external_heat_kw: np.ndarray | None = None,
+        price_sigma: np.ndarray | None = None,
     ) -> OptimizationResult:
         """Run the MPC optimization with predictive weather anticipation.
 
@@ -1373,6 +1428,23 @@ class HeatPumpOptimizer:
 
         self._price_known = price_known
         self._pv_surplus = pv_surplus
+
+        # Risk-adjusted pricing on the unpublished horizon (#34). The prior
+        # fills unknown steps with its mean, so the optimizer treats a
+        # guessed trough as bankable; the error is asymmetric — a trough
+        # that fails to appear forces buying at a peak, while charging
+        # slightly early costs only standby loss. Deferral into guessed
+        # steps therefore pays λ·sigma on top of the mean; known steps carry
+        # sigma 0 by construction and λ defaults to 0, which skips this
+        # entirely and leaves the array untouched.
+        if price_sigma is not None and self.config.price_risk_lambda > 0.0:
+            sig = np.clip(np.asarray(price_sigma, dtype=float), 0.0, None)
+            if sig.size < n_steps:
+                sig = np.concatenate([sig, np.zeros(n_steps - sig.size)])
+            risk = self.config.price_risk_lambda * sig[:n_steps]
+            risk = np.where(price_known, 0.0, risk)
+            if np.any(risk > 0.0):
+                prices = np.asarray(prices, dtype=float) + risk
 
         # Free-heat forecast, normalised to horizon length like the arrays
         # above. All-zero is the same as none at all, and is treated so.
@@ -2104,17 +2176,34 @@ class HeatPumpOptimizer:
         """Peak and cycling figures for the solved plan."""
         cfg = self.config
         offset_steps = self._window_offset_steps(start_time, dt)
+        n = len(np.asarray(total_power))
+        factors = self._peak_window_factors(n, dt, start_time, offset_steps)
+        if factors is None:
+            peak_kw = realised_peak(
+                total_power,
+                baseline_load,
+                cfg.peak_window_minutes,
+                dt,
+                offset_steps,
+            )
+        else:
+            # Billed-equivalent projection when the #13 masks are active:
+            # this figure is published beside the billed-equivalent threshold
+            # and the peak cost, and a physical 8 kW above a half-rate 4 kW
+            # threshold with zero cost read as three mutually contradictory
+            # numbers. Unmasked, this is the physical window max, as always.
+            house = np.asarray(total_power, dtype=float) + np.asarray(
+                baseline_load, dtype=float
+            )
+            windows = metering_windows(
+                house, cfg.peak_window_minutes, dt, offset_steps
+            )
+            f = factors[: windows.size]
+            if f.size < windows.size:
+                f = np.concatenate([f, np.ones(windows.size - f.size)])
+            peak_kw = float(np.max(windows * f)) if windows.size else 0.0
         return {
-            "peak_kw": round(
-                realised_peak(
-                    total_power,
-                    baseline_load,
-                    cfg.peak_window_minutes,
-                    dt,
-                    offset_steps,
-                ),
-                3,
-            ),
+            "peak_kw": round(peak_kw, 3),
             "peak_cost": round(
                 peak_cost(
                     total_power,
@@ -2125,6 +2214,10 @@ class HeatPumpOptimizer:
                     dt,
                     cfg.peak_count,
                     offset_steps,
+                    window_factors=self._peak_window_factors(
+                        len(np.asarray(total_power)), dt, start_time,
+                        offset_steps,
+                    ),
                 ),
                 3,
             ),

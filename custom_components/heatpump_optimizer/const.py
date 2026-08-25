@@ -277,6 +277,46 @@ DEFAULT_PEAK_TARIFF_PRICE: Final = 45.0  # currency per kW per month
 DEFAULT_PEAK_TARIFF_COUNT: Final = 3
 DEFAULT_PEAK_TARIFF_WINDOW: Final = 60  # minutes
 
+# --- The bill beyond spot: v4.0.0 T1 ---------------------------------------
+#
+# Every key here is optional and default inert: mode "none" produces a zero
+# fee vector, empty masks are "all hours count at full rate" (exactly the
+# pre-T1 model), λ = 0 prices prior-filled steps at the mean as before, and
+# a zero fixed contract price disables that shadow column.
+
+# Time-of-use grid transfer fees (#1). Tibber's `total` includes tax and VAT
+# but not the DSO transfer fee, so the layer is additive, never double
+# counted.
+CONF_GRID_FEE_MODE: Final = "grid_fee_mode"  # none | rules | entity
+DEFAULT_GRID_FEE_MODE: Final = "none"
+CONF_GRID_FEE_RULES: Final = "grid_fee_rules"
+DEFAULT_GRID_FEE_RULES: Final = ""
+CONF_GRID_FEE_ENTITY: Final = "grid_fee_entity"  # SEK/kWh sensor
+CONF_GRID_FEE_FIXED: Final = "grid_fee_fixed"  # SEK/kWh always added
+DEFAULT_GRID_FEE_FIXED: Final = 0.0
+
+# Windowed and seasonal effekttariff structures (#13). Empty month/hour
+# masks mean every hour counts, and factor 1.0 means off-peak hours count
+# at full rate — together exactly the flat model that shipped before.
+CONF_PEAK_TARIFF_MONTHS: Final = "peak_tariff_months"  # e.g. "Nov-Mar"
+DEFAULT_PEAK_TARIFF_MONTHS: Final = ""
+CONF_PEAK_TARIFF_HOURS: Final = "peak_tariff_hours"  # e.g. "07:00-19:00"
+DEFAULT_PEAK_TARIFF_HOURS: Final = ""
+CONF_PEAK_TARIFF_WEEKDAYS_ONLY: Final = "peak_tariff_weekdays_only"
+DEFAULT_PEAK_TARIFF_WEEKDAYS_ONLY: Final = False
+CONF_PEAK_TARIFF_OFFPEAK_FACTOR: Final = "peak_tariff_offpeak_factor"
+DEFAULT_PEAK_TARIFF_OFFPEAK_FACTOR: Final = 1.0
+
+# Risk-adjusted pricing on the unpublished horizon (#34). λ = 0 keeps the
+# prior's mean pricing; the sigma vector still rides along for display.
+CONF_PRICE_RISK_LAMBDA: Final = "price_risk_lambda"
+DEFAULT_PRICE_RISK_LAMBDA: Final = 0.0
+
+# Contract-type shadow settlement (#23): the fixed-price column's SEK/kWh.
+# 0 means "no fixed contract to compare against".
+CONF_CONTRACT_FIXED_PRICE: Final = "contract_fixed_price"
+DEFAULT_CONTRACT_FIXED_PRICE: Final = 0.0
+
 
 # --- Compressor cycling, item 10 -------------------------------------------
 #

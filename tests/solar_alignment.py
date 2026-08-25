@@ -57,6 +57,9 @@ def make_coordinator(open_meteo, weather_solar: float = 0.0, n_steps: int = 96):
     # model (item 9) are both consulted while the forecast arrays are built.
     c._price_model = PriceShapeModel()
     c._price_known_steps = 0
+    # Added in v4.0.0 T1: the grid-fee layer's parse cache (#1) is consulted
+    # by the fee chokepoint inside ``_price_series``.
+    c._grid_fee_cache = None
     c._pv_surplus = None
     c._pv_summary = {}
     c._measured_power = None

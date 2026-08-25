@@ -422,11 +422,34 @@ SCENARIOS: dict[str, dict] = {
         param_overrides={"cop_scale": 1.15},
         state_overrides={"dhw_hours_since_legionella": 160.0},
     ),
+    # --- v4.0.0 T1: the bill beyond spot -----------------------------------
+    # The #13 masks ON: a Nov-Mar weekday-daytime tariff with half-rate
+    # off-peak hours, on a January Thursday. Pins the per-window factor
+    # composition through the whole solve.
+    "peak_masked": dict(
+        opt_overrides={
+            "peak_price_per_kw": 20.0,
+            "peak_threshold_kw": 6.5,
+            "peak_window_minutes": 60,
+            "baseline_load_kw": 1.5,
+            "peak_months": frozenset({11, 12, 1, 2, 3}),
+            "peak_hours": ((7.0, 19.0),),
+            "peak_weekdays_only": True,
+            "peak_offpeak_factor": 0.5,
+        }
+    ),
+    # #34 ON: a risk premium on the prior-guessed 45% of the horizon. The
+    # sigma vector is synthetic (the capture harness has no learned prior)
+    # but rides the exact production path through the objective.
+    "price_risk": dict(opt_overrides={"price_risk_lambda": 1.0}),
 }
 
 # Scenarios where prices past a point are the learned prior rather than
 # published, exercising the provenance mask through the whole result.
-PARTIAL_PRICE_SCENARIOS = {"winter_single_dhw", "horizon_48h"}
+PARTIAL_PRICE_SCENARIOS = {"winter_single_dhw", "horizon_48h", "price_risk"}
+
+# Scenarios given a synthetic per-step sigma on the guessed steps (#34).
+RISK_SCENARIOS = {"price_risk"}
 
 # Scenarios given a PV surplus profile, which changes the marginal price.
 PV_SCENARIOS = {"shoulder", "summer_dhw_only"}
@@ -466,6 +489,9 @@ def capture(name: str, spec: dict) -> dict:
     price_known = None
     if name in PARTIAL_PRICE_SCENARIOS:
         price_known = known_mask(n, int(n * 0.55))
+    price_sigma = None
+    if name in RISK_SCENARIOS and price_known is not None:
+        price_sigma = np.where(price_known, 0.0, 0.5)
     surplus = None
     if name in PV_SCENARIOS:
         surplus = pv_surplus_for(n, built["solar"])
@@ -484,6 +510,7 @@ def capture(name: str, spec: dict) -> dict:
         price_known,
         surplus,
         external_heat_kw=ext,
+        price_sigma=price_sigma,
     )
 
     # Everything that describes the plan. Trajectories included: a constraint
@@ -570,6 +597,13 @@ def coordinator_scenarios() -> dict[str, dict]:
             "lower_floor_thermal_mass": 8.0,
             "upper_floor_heat_loss": 0.08,
             "lower_floor_heat_loss": 0.07,
+        },
+        "coord_grid_fee": {
+            **base,
+            "grid_fee_mode": "rules",
+            "grid_fee_rules": "Mon-Fri 06:00-22:00 = 0.25",
+            "grid_fee_fixed": 0.05,
+            "contract_fixed_price": 1.2,
         },
         "coord_all_features": {
             **base,

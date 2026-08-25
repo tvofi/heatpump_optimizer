@@ -342,13 +342,15 @@
           "price_weight": "How hard to chase low prices",
           "comfort_weight": "How strictly to hold the temperature",
           "optimization_interval": "Recalculate every",
-          "compressor_cycling_cost": "Cost of one compressor start"
+          "compressor_cycling_cost": "Cost of one compressor start",
+          "price_risk_lambda": "Caution with guessed prices"
         },
         "data_description": {
           "price_weight": "Higher means the optimizer works harder to move heating into cheap hours, at the cost of letting the temperature swing more.",
           "comfort_weight": "The counterweight to the setting above, and the most effective knob you have. It is measured against the range you allow, so widening that range makes the optimizer bolder. Around 5 lets the house drift freely inside your allowed range for the biggest savings; 10 keeps it noticeably closer to target; 20 or more behaves almost like an ordinary thermostat.",
           "optimization_interval": "How often the plan is recalculated against fresh prices and weather. More often reacts quicker but does more work.",
-          "compressor_cycling_cost": "Discourages plans that switch on and off repeatedly. Leave at 0 unless you have reason to think your unit is cycling too much; the planned start count is published on the plan sensors so you can look before deciding."
+          "compressor_cycling_cost": "Discourages plans that switch on and off repeatedly. Leave at 0 unless you have reason to think your unit is cycling too much; the planned start count is published on the plan sensors so you can look before deciding.",
+          "price_risk_lambda": "Beyond the published horizon prices are estimated from your learned daily shape. This adds a premium to those guesses proportional to how wrong they have tended to be, so the plan stops treating a guessed cheap night as bankable. 0 trusts the guesses at face value, as before."
         }
       },
       "heat_curve": {
@@ -451,12 +453,30 @@
           "peak_tariff_enabled": "My grid bill has a capacity charge",
           "peak_tariff_price_per_kw": "Capacity charge per kW per month",
           "peak_tariff_peaks_averaged": "Number of peak hours averaged",
-          "peak_tariff_window_minutes": "Measurement window"
+          "peak_tariff_window_minutes": "Measurement window",
+          "peak_tariff_months": "Months the capacity tariff applies",
+          "peak_tariff_hours": "Peak hours",
+          "peak_tariff_weekdays_only": "Weekends are off-peak",
+          "peak_tariff_offpeak_factor": "What off-peak hours count at",
+          "grid_fee_mode": "Grid transfer fee",
+          "grid_fee_fixed": "Fixed transfer fee (SEK/kWh)",
+          "grid_fee_rules": "Time-of-use fee rules",
+          "grid_fee_entity": "Live fee sensor (optional)",
+          "contract_fixed_price": "Fixed contract price to compare (SEK/kWh)"
         },
         "data_description": {
           "peak_tariff_price_per_kw": "Take this from your grid invoice — it varies a lot between grid companies.",
           "peak_tariff_peaks_averaged": "Most Swedish tariffs average the three highest hours of the month. Check your invoice.",
-          "peak_tariff_window_minutes": "Hourly for most tariffs. Some newer ones measure every 15 minutes, which is much less forgiving."
+          "peak_tariff_window_minutes": "Hourly for most tariffs. Some newer ones measure every 15 minutes, which is much less forgiving.",
+          "peak_tariff_months": "For example \"Nov-Mar\". Empty means the tariff bills every month. Outside these months a peak contributes nothing to the bill, and the plan knows it.",
+          "peak_tariff_hours": "For example \"07:00-19:00\". Empty means every hour counts in full. Outside these hours a peak counts at the off-peak factor below.",
+          "peak_tariff_weekdays_only": "Many Swedish tariffs only bill weekday peaks. With this on, Saturday and Sunday count at the off-peak factor.",
+          "peak_tariff_offpeak_factor": "1.0 treats every hour the same, which is how it worked before. 0.5 is the common half-rate night peak; 0 makes off-peak hours free — night-time stacking then costs nothing in capacity, which is exactly the cheap-hour concentration this integration exists to find.",
+          "grid_fee_mode": "The fee your grid company adds per kWh transferred. Tibber's price does not include it, so with it configured the plan finally sees the whole marginal price. \"Rules\" uses the schedule below; \"Live sensor\" follows an entity.",
+          "grid_fee_fixed": "A flat fee added in every hour, on top of any rules. Take it from your grid invoice.",
+          "grid_fee_rules": "One rule per line, for example \"Nov-Mar Mon-Fri 06:00-22:00 = 0.25\". Month, weekday and time parts are each optional; overlapping rules add together, which matches a base fee plus a high-load surcharge.",
+          "grid_fee_entity": "A sensor reporting the current fee in SEK/kWh, for grids with dynamic fees. Its value is added to every planned hour.",
+          "contract_fixed_price": "If you could have a fixed-price contract, its SEK/kWh. The Contract Comparison sensor then shows what this month would have cost on it. 0 leaves that column out."
         }
       },
       "solar_pv": {
@@ -521,7 +541,10 @@
     "error": {
       "invalid_tibber_token": "That Tibber token was not accepted. Check it at developer.tibber.com and try again.",
       "invalid_dhw_windows": "Those time frames could not be read. Use 24-hour times separated by commas, for example \"06:00-08:30, 17:00-22:00\".",
-      "dhw_min_too_close": "A hot water minimum this close to the setpoint leaves the tank no working band; keep it at least 5 \\u00b0C below the setpoint."
+      "dhw_min_too_close": "A hot water minimum this close to the setpoint leaves the tank no working band; keep it at least 5 \\u00b0C below the setpoint.",
+      "invalid_grid_fee_rules": "Those fee rules could not be read. One rule per line, like \"Nov-Mar Mon-Fri 06:00-22:00 = 0.25\".",
+      "invalid_peak_months": "Those months could not be read. Use ranges like \"Nov-Mar\" or single months like \"Jul\".",
+      "invalid_peak_hours": "Those hours could not be read. Use 24-hour ranges like \"07:00-19:00\"."
     }
   },
   "selector": {
@@ -580,6 +603,13 @@
         "auto": "Automatic (on once zone values exist)",
         "on": "On",
         "off": "Off"
+      }
+    },
+    "grid_fee_mode": {
+      "options": {
+        "none": "None",
+        "rules": "Time-of-use rules",
+        "entity": "Live sensor"
       }
     }
   }

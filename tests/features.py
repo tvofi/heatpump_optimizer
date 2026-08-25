@@ -506,17 +506,17 @@ R.check(
 
 steps = [datetime(2026, 1, 20, 0) + timedelta(minutes=15 * i) for i in range(96)]
 known = [1.0] * 40
-prices, mask = extend_price_series(known, 96, steps, model)
+prices, mask, _sig = extend_price_series(known, 96, steps, model)
 R.check("published prices are preserved exactly", list(prices[:40]) == known)
 R.check("the mask marks which steps are real", mask[:40].all() and not mask[40:].any())
 R.check("the tail is not flat", len(set(np.round(prices[40:], 4))) > 1)
 
-flat_prices, flat_mask = extend_price_series(known, 96, steps, None)
+flat_prices, flat_mask, _ = extend_price_series(known, 96, steps, None)
 R.check(
     "without a model the old flat repeat is used, not an invention",
     np.allclose(flat_prices[40:], 1.0),
 )
-full_prices, full_mask = extend_price_series([1.0] * 96, 96, steps, model)
+full_prices, full_mask, _ = extend_price_series([1.0] * 96, 96, steps, model)
 R.check(
     "a fully published horizon never consults the prior",
     full_mask.all() and np.allclose(full_prices, 1.0),
@@ -548,7 +548,7 @@ _lvl_model = PriceShapeModel()
 _lvl_model.shapes[0] = [1.5] * 12 + [0.5] * 12  # expensive night, cheap day
 _lvl_model.days = [10, 10]
 _lvl_steps = [datetime(2026, 1, 7, h, 0) for h in range(24)]  # a Wednesday
-_lvl_prices, _lvl_mask = extend_price_series(
+_lvl_prices, _lvl_mask, _lvl_sig = extend_price_series(
     [3.0] * 4, 24, _lvl_steps, _lvl_model
 )
 R.check(
@@ -4765,6 +4765,375 @@ R.check(
         {**_vud_cfg, "topology_positions": {"buffer_tank": [10, 20]}}
     )["positions"] == {"buffer_tank": [10, 20]},
     "cosmetic only, but they must survive the round trip",
+)
+
+
+R.section("T1 — the bill beyond spot (#1 #13 #19 #34 #23)")
+
+from heatpump_optimizer import grid_fee as _gf
+from heatpump_optimizer.ledger import MonthlyLedger as _Ledger
+from heatpump_optimizer.price_model import (
+    PriceShapeModel as _PSM,
+    hourly_from_entries as _hourly,
+    quarters_from_entries as _quarters,
+)
+from heatpump_optimizer.tariff import (
+    CapacityTariff as _CT,
+    PeakTracker as _PT,
+    peak_cost as _peak_cost,
+    window_factors as _wfactors,
+    metering_windows as _mwindows,
+)
+
+# --- #1: the fee rule grammar ------------------------------------------------
+_rules = _gf.parse_rules("Nov-Mar Mon-Fri 06:00-22:00 = 0.25, Jul = 0.10")
+_sched = _gf.GridFeeSchedule(mode=_gf.MODE_RULES, fixed=0.05, rules=_rules)
+_winter_day = datetime(2026, 1, 14, 10, 0)   # a Wednesday in January
+_winter_night = datetime(2026, 1, 14, 23, 0)
+_winter_sat = datetime(2026, 1, 17, 10, 0)   # Saturday
+_july_noon = datetime(2026, 7, 14, 12, 0)
+R.check(
+    "a höglast rule bills winter weekday daytime and nothing else",
+    abs(_sched.current_fee(_winter_day) - 0.30) < 1e-9
+    and abs(_sched.current_fee(_winter_night) - 0.05) < 1e-9
+    and abs(_sched.current_fee(_winter_sat) - 0.05) < 1e-9
+    and abs(_sched.current_fee(_july_noon) - 0.15) < 1e-9,
+    f"day {_sched.current_fee(_winter_day)}, night {_sched.current_fee(_winter_night)}, "
+    f"sat {_sched.current_fee(_winter_sat)}, july {_sched.current_fee(_july_noon)}",
+)
+R.check(
+    "overlapping rules add, matching base fee plus surcharge tariffs",
+    abs(
+        _gf.GridFeeSchedule(
+            mode=_gf.MODE_RULES,
+            rules=_gf.parse_rules("= 0.10, Mon-Fri = 0.20"),
+        ).current_fee(_winter_day)
+        - 0.30
+    )
+    < 1e-9,
+)
+R.check(
+    "Swedish month and weekday spellings parse",
+    _gf.is_valid_spec("Maj Mån-Fre 06:00-22:00 = 0.2")
+    and _gf.is_valid_spec("Okt-Dec Lör-Sön = 0.1"),
+)
+R.check(
+    "a wrapping month range covers the wrap and not the middle",
+    2 in _gf.parse_month_range("Nov-Mar") and 6 not in _gf.parse_month_range("Nov-Mar"),
+)
+R.check(
+    "broken specs are rejected by validation, not stored",
+    not _gf.is_valid_spec("Nov-Mar = banana")
+    and not _gf.is_valid_spec("Frunday = 0.2")
+    and not _gf.is_valid_spec("06:00-22:00"),
+)
+R.check(
+    "mode none is a sentinel: zero vector and inactive, whatever else is set",
+    not _gf.GridFeeSchedule(mode=_gf.MODE_NONE, fixed=9.9, rules=_rules).active
+    and float(
+        np.sum(
+            _gf.GridFeeSchedule(mode=_gf.MODE_NONE, fixed=9.9, rules=_rules)
+            .fee_vector([_winter_day, _winter_night])
+        )
+    )
+    == 0.0,
+    "an untouched install must price exactly as before",
+)
+_ent = _gf.GridFeeSchedule(mode=_gf.MODE_ENTITY, fixed=0.1)
+R.check(
+    "entity mode holds the live value flat across the horizon",
+    np.allclose(_ent.fee_vector([_winter_day, _july_noon], 0.4), 0.5)
+    and abs(_ent.current_fee(_winter_day, None) - 0.1) < 1e-9,
+)
+
+# --- #13: masks on the capacity tariff ---------------------------------------
+_flat_ct = _CT(enabled=True, price_per_kw=30.0)
+_masked_ct = _CT(
+    enabled=True, price_per_kw=30.0,
+    months=frozenset({11, 12, 1, 2, 3}),
+    peak_hours=(( 7.0, 19.0),),
+    weekdays_only=True,
+    offpeak_factor=0.5,
+)
+R.check(
+    "with no masks every hour counts in full, exactly the old model",
+    _flat_ct.sample_factor(_winter_night) == 1.0
+    and _flat_ct.sample_factor(_july_noon) == 1.0,
+)
+R.check(
+    "masked months contribute nothing, off-peak hours count at the factor",
+    _masked_ct.sample_factor(_july_noon) == 0.0
+    and _masked_ct.sample_factor(_winter_night) == 0.5
+    and _masked_ct.sample_factor(_winter_sat) == 0.5
+    and _masked_ct.sample_factor(_winter_day) == 1.0,
+)
+_pt_masked = _PT()
+for _h in range(3):
+    _pt_masked.observe(_july_noon.replace(hour=10 + _h), 8.0, _masked_ct)
+_pt_masked.observe(_july_noon.replace(hour=13), 8.0, _masked_ct)  # closes last
+R.check(
+    "a July window under a Nov-Mar tariff is not recorded at all",
+    _pt_masked.peaks == [] and _pt_masked.threshold_kw(_masked_ct) == float("inf"),
+    "recording a zero would poison the early-month threshold",
+)
+_pt_night = _PT()
+_pt_night.observe(_winter_night, 8.0, _masked_ct)
+_pt_night.observe(_winter_night.replace(hour=23, minute=30), 8.0, _masked_ct)
+_pt_night.observe(datetime(2026, 1, 15, 0, 0), 8.0, _masked_ct)  # closes 23:00
+R.check(
+    "a half-rate night window is recorded at half its kW",
+    len(_pt_night.peaks) == 1 and abs(_pt_night.peaks[0] - 4.0) < 1e-9,
+    f"peaks {_pt_night.peaks}",
+)
+_pt_flat = _PT()
+_pt_flat.observe(_winter_night, 8.0, _flat_ct)
+_pt_flat.observe(datetime(2026, 1, 15, 0, 0), 8.0, _flat_ct)
+R.check(
+    "unmasked observation is bit-identical to the old tracker",
+    _pt_flat.peaks == [8.0],
+)
+_power = np.zeros(96)
+_power[92:96] = 6.0  # a 23:00 burst on a day starting at midnight
+_day_start = datetime(2026, 1, 14, 0, 0)
+_nf = _wfactors(_masked_ct, _day_start, _mwindows(_power, 60, 0.25).size, 0.25)
+_cost_masked = _peak_cost(_power, np.zeros(96), 1.0, 10.0, 60, 0.25, 3,
+                          window_factors=_nf)
+_cost_flat = _peak_cost(_power, np.zeros(96), 1.0, 10.0, 60, 0.25, 3)
+R.check(
+    "the plan's peak term prices a night burst at the off-peak rate",
+    0.0 < _cost_masked < _cost_flat
+    and _wfactors(_flat_ct, _day_start, 24, 0.25) is None,
+    f"masked {_cost_masked}, flat {_cost_flat}",
+)
+_ct_free_night = _CT(enabled=True, price_per_kw=30.0, peak_hours=((7.0, 19.0),),
+                     offpeak_factor=0.0)
+R.check(
+    "free off-peak hours make a night burst cost nothing in capacity",
+    _peak_cost(_power, np.zeros(96), 1.0, 10.0, 60, 0.25, 3,
+               window_factors=_wfactors(
+                   _ct_free_night, _day_start,
+                   _mwindows(_power, 60, 0.25).size, 0.25)) == 0.0,
+)
+_pt_round = _PT.from_dict(_pt_night.as_dict())
+R.check(
+    "the tracker's window factor survives the round trip, and old payloads "
+    "default to 1.0",
+    _pt_round._window_factor == _pt_night._window_factor
+    and _PT.from_dict({"month": "2026-01", "peaks": [5.0]})._window_factor == 1.0,
+)
+
+# --- #19: the quarter refinement ----------------------------------------------
+_q_entries = [
+    {
+        "starts_at": f"2026-01-12T{h:02d}:{m:02d}:00",
+        "total": 1.0 + h * 0.01 + (0.2 if m == 45 else 0.0),
+    }
+    for h in range(24)
+    for m in (0, 15, 30, 45)
+]
+_h_days = _hourly(_q_entries)
+R.check(
+    "quarter entries train the hourly shape on the hour's mean, not on :45",
+    "2026-01-12" in _h_days
+    and abs(_h_days["2026-01-12"][0] - 1.05) < 1e-9,
+    "assigning quarters to one slot per hour trained on whichever came last",
+)
+_q_days = _quarters(_q_entries)
+R.check(
+    "a full 15-minute day qualifies for quarter learning, an hourly one not",
+    "2026-01-12" in _q_days and len(_q_days["2026-01-12"]) == 96
+    and not _quarters(
+        [{"starts_at": f"2026-01-12T{h:02d}:00:00", "total": 1.0} for h in range(24)]
+    ),
+)
+_psm = _PSM()
+_monday = datetime(2026, 1, 12, 12, 0)
+R.check(
+    "with no quarter evidence the 96-bin model collapses onto the 24-bin one",
+    _psm.quarter_factor(_monday.replace(minute=45)) == 1.0
+    and _psm.predict(_monday, 1.0) == _PSM().predict(_monday, 1.0),
+)
+for _ in range(6):
+    _psm.observe_day(_monday, [1.0] * 24)
+    _psm.observe_day_quarters(_monday, _q_days["2026-01-12"])
+_qpred = [
+    _psm.predict(_monday.replace(hour=6, minute=m), 1.0) for m in (0, 15, 30, 45)
+]
+R.check(
+    "learned quarter structure moves the :45 quarter above its siblings",
+    _qpred[3] > _qpred[0] and _qpred[3] > _qpred[1],
+    f"quarter predictions {_qpred}",
+)
+R.check(
+    "and the hour's mean is preserved: the refinement splits, never shifts",
+    abs(float(np.mean(_qpred)) - _psm.predict(_monday.replace(hour=6), 1.0)
+        / _psm.quarter_factor(_monday.replace(hour=6, minute=0))) < 0.05,
+)
+# The renormalization is only load-bearing when clipping breaks the natural
+# mean — so feed it a spiked quarter far beyond the clip ceiling and require
+# the hour's four factors to still average 1.0. Without the post-EWMA
+# renormalization this hour would learn a level shift, not a split.
+_spiked = [1.0] * 96
+_spiked[24:28] = [0.2, 0.2, 0.2, 20.0]  # hour 6: one quarter at 34x its mean
+_psm_clip = _PSM()
+for _ in range(3):
+    _psm_clip.observe_day_quarters(_monday, _spiked)
+_h6 = _psm_clip.quarter_factors[0][24:28]
+R.check(
+    "a clipped quarter still leaves its hour's factors at mean 1.0",
+    abs(float(np.mean(_h6)) - 1.0) < 1e-6 and max(_h6) < 4.5,
+    f"hour-6 factors {_h6}",
+)
+_old_payload = {"shapes": [[1.1] * 24, [0.9] * 24], "days": [7, 7]}
+_loaded = _PSM.from_dict(_old_payload)
+R.check(
+    "a pre-v4 store loads into exactly the behaviour it had",
+    _loaded.quarter_days == [0, 0]
+    and _loaded.quarter_factor(_monday) == 1.0
+    and _loaded.sigma(_monday, 1.0) == 0.0
+    and _loaded.shapes[0][0] == 1.1,
+    "the silent-fallback loader must never discard learned state",
+)
+
+# --- #34: risk-adjusted pricing on the guessed tail ---------------------------
+_steps_34 = [datetime(2026, 1, 12, 0, 0) + timedelta(minutes=15 * i) for i in range(96)]
+_p34, _m34, _s34 = extend_price_series([1.0] * 48, 96, _steps_34, _psm)
+R.check(
+    "sigma is zero on every published step",
+    float(np.sum(_s34[:48])) == 0.0,
+)
+_vol = _PSM()
+for _i in range(10):
+    # Alternate the SHAPE day to day — cheap nights one day, cheap days the
+    # next — so the learned mean converges near flat while the per-hour
+    # dispersion stays large: exactly the prior a trough-chaser overrates.
+    # (A flat day at a different level carries no shape risk at all: the
+    # level calibration owns that, and normalisation removes it here.)
+    _shape = (
+        [0.5] * 12 + [1.5] * 12 if _i % 2 else [1.5] * 12 + [0.5] * 12
+    )
+    _vol.observe_day(_monday, _shape)
+_pv_, _mv_, _sv_ = extend_price_series([1.0] * 48, 96, _steps_34, _vol)
+R.check(
+    "a prior that has been wrong carries real sigma on guessed steps",
+    float(np.min(_sv_[48:])) > 0.05,
+    f"min sigma {float(np.min(_sv_[48:]))}",
+)
+
+# --- #23 + ledger arithmetic ---------------------------------------------------
+_led = _Ledger()
+_jan = datetime(2026, 1, 10, 8, 0)
+for _kwh, _spot in ((2.0, 0.50), (1.0, 2.00), (1.0, 0.50)):
+    _led.add(_jan, "spot", kwh=_kwh, sek=_kwh * _spot)
+for _sample in (0.50, 2.00, 0.50, 1.00):
+    _led.observe_meta_mean(_jan, "spot_price", _sample)
+_line = _led.line("2026-01", "spot")
+R.check(
+    "the ledger's month adds up to the hand-computed bill",
+    abs(_line["kwh"] - 4.0) < 1e-9 and abs(_line["sek"] - 3.5) < 1e-9
+    and abs(_led.meta_mean("2026-01", "spot_price") - 1.0) < 1e-9,
+    f"line {_line}",
+)
+# Hand-check of the contract columns' arithmetic: 4 kWh at hourly spot cost
+# 3.50; the same 4 kWh at the month's 1.00 mean costs 4.00 — the shifting
+# earned 0.125 SEK/kWh below the flat-consumer average.
+R.check(
+    "the load-profile value is the öre/kWh below the flat average",
+    abs((_led.meta_mean("2026-01", "spot_price")
+         - _line["sek"] / _line["kwh"]) - 0.125) < 1e-9,
+)
+for _m in range(30):
+    _led.add(datetime(2020, 1, 1, 0, 0) + timedelta(days=31 * _m), "spot",
+             kwh=1.0, sek=1.0)
+R.check(
+    "the ledger prunes itself to two years of months",
+    len(_led.months) <= 24,
+    f"{len(_led.months)} months kept",
+)
+R.check(
+    "a garbage ledger payload loads as empty rather than raising",
+    _Ledger.from_dict({"months": "nonsense"}).months == {}
+    and _Ledger.from_dict(None).months == {},
+)
+
+# --- #34 at the solver: λ=0 is byte-identity, λ>0 pulls load off the guess ----
+from golden import make as _mk_golden, START as _G_START
+
+_rk = _mk_golden(hours=24)
+_rk_n = len(_rk["prices"])
+_rk_known = np.zeros(_rk_n, dtype=bool)
+_rk_known[: int(_rk_n * 0.4)] = True
+_rk_sigma = np.where(_rk_known, 0.0, 1.0)
+
+def _rk_solve(lam, sigma):
+    _rk["optimizer"].config.price_risk_lambda = lam
+    return _rk["optimizer"].optimize(
+        _rk["state"], _rk["prices"], _rk["outdoor"], _rk["wind"],
+        _rk["rain"], _rk["solar"], _G_START,
+        price_known=_rk_known, price_sigma=sigma,
+    )
+
+_rk_none = _rk_solve(0.0, None)
+_rk_zero = _rk_solve(0.0, _rk_sigma)
+R.check(
+    "λ=0 with a sigma vector present is byte-identical to no sigma at all",
+    np.array_equal(
+        np.asarray(_rk_none.power_schedule), np.asarray(_rk_zero.power_schedule)
+    )
+    and np.array_equal(
+        np.asarray(_rk_none.dhw_power_schedule),
+        np.asarray(_rk_zero.dhw_power_schedule),
+    ),
+    "the default must not move a single step",
+)
+_rk_on = _rk_solve(1.0, _rk_sigma)
+_unknown = ~_rk_known
+_e0 = float(np.sum(np.asarray(_rk_zero.power_schedule)[_unknown])) + float(
+    np.sum(np.asarray(_rk_zero.dhw_power_schedule)[_unknown])
+)
+_e1 = float(np.sum(np.asarray(_rk_on.power_schedule)[_unknown])) + float(
+    np.sum(np.asarray(_rk_on.dhw_power_schedule)[_unknown])
+)
+R.check(
+    "a risk premium moves energy off the guessed tail, never onto it",
+    _e1 <= _e0 + 1e-6
+    and not np.array_equal(
+        np.asarray(_rk_on.power_schedule), np.asarray(_rk_zero.power_schedule)
+    ),
+    f"unknown-step energy {_e0:.2f} -> {_e1:.2f} kW-steps",
+)
+
+# --- #1 null control and directional shift at the solver -----------------------
+# A fee with no time structure cannot create time-shifting: a uniform price
+# rise may legitimately buy a little less energy overall (it trades against
+# the comfort weight — measured at ~3.5% on the flat-price day, which is why
+# this is deliberately NOT a byte-identity check), but the SHARE of energy
+# placed in any window must stay put. A ToU fee on the same day must move it.
+def _fee_share(prices_add):
+    _sc = _mk_golden(price_profile="flat")
+    _res = _sc["optimizer"].optimize(
+        _sc["state"], _sc["prices"] + prices_add, _sc["outdoor"], _sc["wind"],
+        _sc["rain"], _sc["solar"], _G_START,
+    )
+    _tot = np.asarray(_res.power_schedule) + np.asarray(_res.dhw_power_schedule)
+    _day = _tot[24:88]  # 06:00-22:00 on the 15-minute grid
+    _sum = float(_tot.sum())
+    return float(_day.sum()) / _sum if _sum > 0 else 0.0
+
+_share_none = _fee_share(0.0)
+_share_flat = _fee_share(0.25)
+_tou_add = np.zeros(96)
+_tou_add[24:88] = 0.25  # the höglast window priced up
+_share_tou = _fee_share(_tou_add)
+R.check(
+    "a flat fee does not shift energy in time — the null control",
+    abs(_share_flat - _share_none) < 0.02,
+    f"06-22 share {_share_none:.3f} -> {_share_flat:.3f} under a uniform fee",
+)
+R.check(
+    "a höglast fee moves energy out of the hours it prices up",
+    _share_tou < _share_none - 0.05,
+    f"06-22 share {_share_none:.3f} -> {_share_tou:.3f} under a 06-22 fee",
 )
 
 
