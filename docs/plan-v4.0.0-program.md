@@ -579,6 +579,17 @@ lesson recorded: the chart's default view window clips the horizon's
 first hours, so fixtures that doctor overlap steps must place them deep
 enough to be visible.
 
+*Review round (no blockers, five polish items, all fixed):* the band
+rect spans the full plot and paints after the what-if lanes, so it
+needed `pointer-events: none` or a low-power shared span would have
+swallowed the slot editor's drags; the tooltip's shared line now
+requires both rows to come from the SAME timestamp (each series snaps
+to its own nearest point, and mismatched grids could pair points hours
+apart); the shared line moved into `_sharedTooltipHtml` and gained
+direct tests; the pattern id is unique per chart (inline + dialog
+render into one shadow root); and a comment that documented a defense
+that did not exist was rewritten to say what the code actually does.
+
 *Reported on v3.16.0:* the card shows hot water and space heating planned
 in the same period even at maximum zoom, and the user could not tell
 whether the display or the planner was wrong. Investigated: neither is

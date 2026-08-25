@@ -3561,8 +3561,8 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // deliberate relaxation (space + hot water ≤ nameplate per step), not
     // double-booking, and two full-height bars with nothing said implied
     // the impossible. Drawn under the bars so the bars stay readable.
-    // The builder's own series list, not this._series: the field may not
-    // be assigned yet on the first render.
+    // The list is passed in rather than read from this._series so the
+    // helper stays a pure function of its inputs.
     parts.push(
       this._sharedSpanBands(visible, scaleX, plotT, plotB, plotL, plotR)
     );
@@ -4671,8 +4671,13 @@ class HeatpumpOptimizerCard extends HTMLElement {
       }
     }
     if (!spans.length) return "";
+    // The pattern id must be unique per chart: with the dialog open the
+    // inline and expanded charts render into one shadow root, and two
+    // <pattern> elements sharing an id is invalid markup that would
+    // silently couple them.
+    const pid = `hpoShared${++HeatpumpOptimizerCard._sharedPatternSeq}`;
     const out = [
-      `<defs><pattern id="hpoShared" width="6" height="6"
+      `<defs><pattern id="${pid}" width="6" height="6"
         patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
         <line x1="0" y1="0" x2="0" y2="6"
           stroke="var(--secondary-text-color,#888)" stroke-width="1.4"/>
@@ -4682,13 +4687,44 @@ class HeatpumpOptimizerCard extends HTMLElement {
       const x1 = Math.max(plotL, scaleX(span.start));
       const x2 = Math.min(plotR, scaleX(span.end));
       if (x2 <= x1) continue;
-      out.push(`<rect class="shared-band" x="${x1}" y="${plotT}" width="${
+      // pointer-events none is load-bearing: the band spans the full plot
+      // and paints after the what-if lanes, so without it a low-power
+      // shared span would swallow the slot editor's drags and clicks.
+      out.push(`<rect class="shared-band" pointer-events="none" x="${x1}" y="${plotT}" width="${
         x2 - x1
-      }" height="${plotB - plotT}" fill="url(#hpoShared)" fill-opacity="0.18">
+      }" height="${plotB - plotT}" fill="url(#${pid})" fill-opacity="0.18">
         <title>Space heating and hot water share these quarter hours: the pump alternates circuits within each step, hot water first. Their combined power never exceeds the heat pump's maximum — this is time-sharing, not double-booking.</title>
       </rect>`);
     }
     return out.join("");
+  }
+
+  /** The tooltip's shared-step line, or "" when this step is not shared.
+   *
+   * A step carrying both circuits is the pump splitting the quarter hour,
+   * and the hover tooltip is where that question is actually asked. Both
+   * rows must come from the SAME timestamp: each series snaps to its own
+   * nearest point, and with mismatched grids (a stale third-party sensor)
+   * the two nearest points can be hours apart — pairing those would claim
+   * sharing the band correctly refuses to draw.
+   */
+  _sharedTooltipHtml(rows) {
+    const rowByField = (f) => (rows || []).find((r) => r.field === f);
+    const spaceRow = rowByField("space_power");
+    const dhwRow = rowByField("dhw_power");
+    if (
+      !spaceRow ||
+      !dhwRow ||
+      spaceRow.t !== dhwRow.t ||
+      !(spaceRow.value > 0.05) ||
+      !(dhwRow.value > 0.05)
+    ) {
+      return "";
+    }
+    return `<div class="tt-shared">Shared step: the pump alternates
+        circuits — hot water first. Combined
+        ${esc(fmtTick(spaceRow.value + dhwRow.value))} kW stays under
+        the pump's maximum.</div>`;
   }
 
   _onPointerMove(ev) {
@@ -4768,18 +4804,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
         hour: "2-digit",
         minute: "2-digit",
       });
-      // A step carrying both circuits is the pump splitting the quarter
-      // hour, and the tooltip is where that question is actually asked.
-      const rowByField = (f) => rows.find((r) => r.field === f);
-      const spaceRow = rowByField("space_power");
-      const dhwRow = rowByField("dhw_power");
-      const sharedHtml =
-        spaceRow && dhwRow && spaceRow.value > 0.05 && dhwRow.value > 0.05
-          ? `<div class="tt-shared">Shared step: the pump alternates
-              circuits — hot water first. Combined
-              ${esc(fmtTick(spaceRow.value + dhwRow.value))} kW stays under
-              the pump's maximum.</div>`
-          : "";
+      const sharedHtml = this._sharedTooltipHtml(rows);
       const bodyHtml =
         `<div class="tt-time">${esc(time)}</div>` +
         rows
@@ -4812,6 +4837,8 @@ class HeatpumpOptimizerCard extends HTMLElement {
 // say so loudly and record which version actually won.
 // Exposed so the editing model can be exercised without a browser.
 HeatpumpOptimizerCard.slots = SlotModel;
+// Per-render sequence for the shared-band pattern ids (see _sharedSpanBands).
+HeatpumpOptimizerCard._sharedPatternSeq = 0;
 
 const previous = customElements.get(CARD_TAG);
 if (previous) {

@@ -2427,6 +2427,26 @@ check("the hand-scheduled reason has a label",
   hid._render();
   check("a hidden channel takes its shared bands with it",
     !/shared-band/.test(collect(hid.shadowRoot).join("\n")));
+
+  // The hover tooltip's shared line, driven directly: each series snaps to
+  // its own nearest point, so the guard must demand the SAME timestamp —
+  // otherwise a stale sensor whose horizon ends early pairs points hours
+  // apart and the tooltip claims a sharing the band refuses to draw.
+  const T0 = 1700000000000;
+  const row = (field, value, t) => ({ field, value, t });
+  const shared = sh._sharedTooltipHtml([
+    row("space_power", 1.2, T0), row("dhw_power", 4.8, T0),
+  ]);
+  check("the tooltip explains a genuinely shared step, with the sum",
+    /Shared step/.test(shared) && /alternates/.test(shared) && /6/.test(shared));
+  check("nearest points from different timestamps are never called shared",
+    sh._sharedTooltipHtml([
+      row("space_power", 1.2, T0), row("dhw_power", 4.8, T0 + 3600000),
+    ]) === "");
+  check("one idle channel means no shared line",
+    sh._sharedTooltipHtml([
+      row("space_power", 1.2, T0), row("dhw_power", 0.0, T0),
+    ]) === "" && sh._sharedTooltipHtml([row("space_power", 1.2, T0)]) === "");
 }
 
 // --- Scenario: the Outside box and the plan's real irradiance (T3b) --------
