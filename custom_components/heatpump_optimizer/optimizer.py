@@ -52,6 +52,7 @@ from .thermal_model import (
     DHW_AMBIENT_TEMP,
     ThermalModel,
     ThermalState,
+    dhw_coil_draw_reduction,
     wood_share,
 )
 from .tariff import peak_cost, realised_peak
@@ -3241,7 +3242,22 @@ class HeatPumpOptimizer:
         standby_loss = p.dhw_tank_heat_loss_coefficient * max(
             dhw_setpoint - DHW_AMBIENT_TEMP, 0.0
         )
-        baseline_dhw = np.full(n_steps, (p.dhw_draw_power + standby_loss) / cop_dhw)
+        baseline_draw = p.dhw_draw_power
+        if (
+            p.dhw_coil_active
+            and initial_state.wood_tank_temperature is not None
+        ):
+            # The baseline house owns the same refill coil (v3.15.1) — the
+            # plumbing is not optimizer value. Held at the initial wood
+            # temperature for the whole day: the real coil weakens as the
+            # tank cools, so this makes the baseline at least as cheap as
+            # reality and the reported savings err low, never high.
+            baseline_draw, _ = dhw_coil_draw_reduction(
+                baseline_draw,
+                initial_state.wood_tank_temperature,
+                p.dhw_setpoint,
+            )
+        baseline_dhw = np.full(n_steps, (baseline_draw + standby_loss) / cop_dhw)
         # All three figures are piecewise in the PV surplus, like the objective.
         # The baseline house would self-consume the same sun, so pricing only
         # the optimized plan that way would manufacture fictitious savings.

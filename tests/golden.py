@@ -370,6 +370,24 @@ SCENARIOS: dict[str, dict] = {
             "wood_tank_temperature": 55.0,
         },
     ),
+    # The DHW refill coil (v3.15.1): hot water joins the two-tank plumbing,
+    # so refill water is preheated by the wood side and the electric DHW
+    # demand falls exactly by what the coil pulls from that tank.
+    "wood_coil": dict(
+        two_zone=True,
+        config_overrides={
+            "mixing_valve_mode": "manual",
+            "buffer_tank_volume": 750.0,
+            "buffer_max_temperature": 70.0,
+            "wood_tank_top_entity": "sensor.wood_top",
+            "wood_tank_volume": 500.0,
+            "dhw_wood_coil_enabled": True,
+        },
+        state_overrides={
+            "buffer_tank_temperature": 32.0,
+            "wood_tank_temperature": 55.0,
+        },
+    ),
     # --- combinations, because features interact --------------------------
     "tariff_plus_two_zone": dict(
         two_zone=True,
@@ -401,7 +419,9 @@ PV_SCENARIOS = {"shoulder", "summer_dhw_only"}
 
 # Scenarios with an active wood burn: the shape forecast_free_heat produces,
 # a rate fading linearly over the detector's two-hour horizon.
-EXTERNAL_HEAT_SCENARIOS = {"wood_two_tank", "wood_two_tank_smart_write"}
+EXTERNAL_HEAT_SCENARIOS = {
+    "wood_two_tank", "wood_two_tank_smart_write", "wood_coil",
+}
 
 
 def external_heat_for(n):

@@ -92,6 +92,9 @@ from .const import (
     DEFAULT_ECL110_DISPLACE_MAX,
     DEFAULT_ECL110_PID_TIME_CONSTANT,
     DEFAULT_WOOD_TANK_VOLUME,
+    DEFAULT_DHW_WOOD_COIL_ENABLED,
+    DHW_COLD_WATER_TEMP,
+    DHW_WOOD_COIL_EFFECTIVENESS,
     TOPOLOGY_NO_VALVE,
     TOPOLOGY_SINGLE_TANK_VALVE,
     TOPOLOGY_TWO_TANK_4WAY,
@@ -192,6 +195,22 @@ class ThermalParameters:
     # Shares the detector's config key (CONF_WOOD_TANK_VOLUME) — one number
     # for one physical tank, no migration.
     wood_tank_volume: float = DEFAULT_WOOD_TANK_VOLUME  # liters
+    # The DHW tank refills through a coil in the wood tank (v3.15.1).
+    dhw_wood_coil_enabled: bool = DEFAULT_DHW_WOOD_COIL_ENABLED
+
+    @property
+    def dhw_coil_active(self) -> bool:
+        """Whether DHW refill water is preheated by the modelled wood tank.
+
+        Requires the option, hot water, and the two-tank model — the
+        preheat is a function of a real wood-tank temperature, so without
+        the modelled tank there is nothing sound to compute it from.
+        """
+        return (
+            self.dhw_wood_coil_enabled
+            and self.dhw_enabled
+            and self.two_tank_modelled
+        )
 
     @property
     def topology_layout(self) -> str:
@@ -652,6 +671,12 @@ class ThermalParameters:
             config.get(const.CONF_WOOD_TANK_VOLUME)
             or const.DEFAULT_WOOD_TANK_VOLUME
         )
+        values["dhw_wood_coil_enabled"] = bool(
+            config.get(
+                const.CONF_DHW_WOOD_COIL_ENABLED,
+                const.DEFAULT_DHW_WOOD_COIL_ENABLED,
+            )
+        )
 
         # Two-zone and DHW are inferred from whether their settings are present
         # at all, rather than from a flag, so an entry written before either
@@ -790,6 +815,37 @@ def wood_share(
         span = max(flow_set - floor_temp, 1e-6)
         return min(1.0, max(0.0, f_w * useful / span))
     return min(1.0, max(0.0, (wood_temp - hp_temp) / max(margin, 1e-6)))
+
+
+def dhw_coil_draw_reduction(
+    draw_kw: float,
+    wood_temp: float,
+    dhw_setpoint: float,
+) -> tuple[float, float]:
+    """The DHW draw after the wood-tank refill coil, and the coil's heat.
+
+    The owner's DHW tank refills through a coil immersed in the wood tank
+    (v3.15.1): cold mains water enters at ``DHW_COLD_WATER_TEMP`` and
+    leaves the coil at ``mains + ε·(T_wood − mains)⁺``, never usefully
+    hotter than the DHW setpoint the draw model heats to. The draw the
+    electric side must cover scales with the remaining temperature rise,
+    and the exact difference is the heat the coil pulled from the wood
+    tank — the two are one identity, so conservation holds by
+    construction.
+
+    Returns ``(reduced_draw_kw, coil_heat_kw)`` with
+    ``reduced + coil == draw`` exactly. Pure and module-level so the
+    savings baseline prices the same coil the simulation runs.
+    """
+    if draw_kw <= 0.0:
+        return draw_kw, 0.0
+    t_in = DHW_COLD_WATER_TEMP + DHW_WOOD_COIL_EFFECTIVENESS * max(
+        0.0, wood_temp - DHW_COLD_WATER_TEMP
+    )
+    t_in = min(t_in, dhw_setpoint)
+    span = max(dhw_setpoint - DHW_COLD_WATER_TEMP, 1e-6)
+    reduced = draw_kw * max(0.0, dhw_setpoint - t_in) / span
+    return reduced, draw_kw - reduced
 
 
 class ThermalModel:
@@ -1615,6 +1671,10 @@ class ThermalModel:
 
         state = initial_state
         current_hour = start_hour
+        # The DHW refill coil (v3.15.1): active only with the two-tank
+        # model, and only while the wood state is real. Hoisted so the
+        # feature-off path stays byte-identical inside the loop.
+        coil = self.params.dhw_coil_active
 
         for i in range(n_steps):
             # Space heating simulation
@@ -1638,6 +1698,24 @@ class ThermalModel:
                 ),
             )
 
+            draw_i = float(dhw_draw_rates[i])
+            if coil and state.wood_tank_temperature is not None:
+                # Refill water arrives preheated by the wood tank; the coil's
+                # heat leaves that tank in the same step, floored at the
+                # mains temperature it can never cool below.
+                draw_i, q_coil = dhw_coil_draw_reduction(
+                    draw_i,
+                    state.wood_tank_temperature,
+                    self.params.dhw_setpoint,
+                )
+                if q_coil > 0.0:
+                    state.wood_tank_temperature = max(
+                        DHW_COLD_WATER_TEMP,
+                        state.wood_tank_temperature
+                        - q_coil * dt_hours
+                        / max(self.params.wood_tank_thermal_mass, 0.01),
+                    )
+
             # DHW simulation (runs in parallel with space heating)
             cop_dhw = self.compute_cop_dhw(outdoor_temps[i], state.dhw_temperature)
             dhw_thermal_power = cop_dhw * dhw_power_schedule[i]
@@ -1648,7 +1726,7 @@ class ThermalModel:
                 hour_of_day=current_hour % 24.0,
                 ambient_temp=DHW_AMBIENT_TEMP,
                 dt_hours=dt_hours,
-                draw_power=float(dhw_draw_rates[i]),
+                draw_power=draw_i,
             )
             state.dhw_temperature = new_dhw
 

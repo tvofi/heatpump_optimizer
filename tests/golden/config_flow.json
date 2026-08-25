@@ -650,6 +650,12 @@
    "required": "Optional",
    "selector": "type"
   },
+  "dhw_wood_coil_enabled": {
+   "config": null,
+   "default": "False",
+   "required": "Optional",
+   "selector": "type"
+  },
   "external_heat_decay_minutes": {
    "config": {
     "max": "360",

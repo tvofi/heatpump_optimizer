@@ -56,10 +56,12 @@ and deliberately not built.
   had to mirror the single-tank branch's floating-point arithmetic
   operation-for-operation, because a single ulp of difference moved a
   96-step solve into a different basin and broke the feature-off
-  byte-identity null. Remaining: the layout editor over a validated
-  topology catalog (v3.16.0), and the optional DHW-refill coil in the
-  wood tank (owner input 2026-08-25, design recorded on issue #40;
-  planned as v3.15.1 — depends on the modelled wood-tank temperature).
+  byte-identity null. The DHW-refill coil (owner input 2026-08-25,
+  design recorded on issue #40) **shipped in v3.15.1**: inlet preheat at
+  a conservative fixed effectiveness, draw reduction and wood-tank debit
+  as one exact identity, the baseline owning the identical coil.
+  Remaining: the layout editor over a validated topology catalog
+  (v3.16.0).
 
 - **System identification fits a first-order plant** (audit finding 3). The
   step-response experiment fits one time constant to a two-store plant (room

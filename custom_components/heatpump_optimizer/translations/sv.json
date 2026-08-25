@@ -443,6 +443,7 @@
           "wood_tank_top_entity": "Vedtankens toppgivare (valfri)",
           "wood_tank_bottom_entity": "Vedtankens bottengivare (valfri)",
           "wood_tank_volume": "Vedtankens volym",
+          "dhw_wood_coil_enabled": "Varmvattnet fylls på genom vedtanken",
           "comfort_learning_enabled": "Lär dig min komfortnivå av mina justeringar",
           "system_identification_enabled": "Tillåt ett engångsförsök för att mäta huset"
         },
@@ -456,6 +457,7 @@
           "wood_tank_top_entity": "Tillsammans med bottengivaren säger den hur mycket en brasa har kvar. En varm topp över en kall botten betyder att laddningen nästan är slut.",
           "wood_tank_bottom_entity": "Se toppgivaren. Båda behövs för uppskattningen av återstående energi; en ensam läses försiktigt.",
           "wood_tank_volume": "Buffertanken på vedsidan, används för att begränsa hur mycket gratis värme en brasa fortfarande kan leverera.",
+          "dhw_wood_coil_enabled": "Varmvattenberedarens kallvatteninlopp går genom en slinga i vedbuffertanken, så påfyllningsvattnet kommer in förvärmt när den tanken är varm. Får bara effekt när vedtanken modelleras som ett eget lager.",
           "comfort_learning_enabled": "Varje gång du justerar temperaturen säger du att planen gick för långt åt ett håll. Detta justerar långsamt komfortinställningen utifrån det. Det inlärda värdet visas på en egen sensor och det finns en knapp för att nollställa.",
           "system_identification_enabled": "Låter optimeraren göra ett litet avsiktligt värmesteg en mild och billig natt för att mäta huset direkt, i stället för att vänta veckor på att härleda det. Steget hålls så litet att det inte märks och avbryts om temperaturen driver."
         }

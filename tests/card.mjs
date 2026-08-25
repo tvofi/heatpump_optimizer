@@ -1738,6 +1738,43 @@ check("the hand-scheduled reason has a label",
       /data-key="mixing_valve_target_entity"/.test(valveGroup),
       "the slot moved to the mixing valve place; drawing it anywhere else "
       + "would put a sensor on a device this system does not have");
+    // The coil is off in this topo, so neither the pipe nor the caption may
+    // appear. A drawing that shows plumbing the model does not run is the
+    // failure this whole diagram exists to prevent.
+    check("no coil in the drawing when the topology does not have one",
+      !ttDrawn.includes("wood-dhw") && !/refilled through/.test(ttPage),
+      `edges drawn: ${ttDrawn.join(", ")}`);
+
+    // v3.15.1: the same two-tank system, plus the DHW tank's cold-water inlet
+    // running through a coil in the wood tank. That is a second, separate
+    // path out of the wood tank -- mains water on its way in, not heating
+    // water on its way to the house -- so it is its own pipe, and every pipe
+    // the two-tank drawing already had survives.
+    const coil = JSON.parse(JSON.stringify(twoTank));
+    coil.dhw_wood_coil = true;
+    coil.slots.push(
+      { key: "dhw_temp_entity", label: "Hot water temperature",
+        place: "dhw_tank", entity: null, domains: TEMP });
+    const coStates = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+    coStates[DEFAULT_SPACE].attributes.setup_topology = coil;
+    const co = build(coStates);
+    co._onCardClick({});
+    co._dialogPage = "setup";
+    co._render();
+    const coPage = collect(co.shadowRoot).join("\n");
+    const coDrawn = edges(coPage);
+    check("the coil is drawn as its own pipe, wood tank to hot water tank",
+      coDrawn.includes("wood-dhw") &&
+      ["hp-buffer", "wood-valve", "buffer-valve", "valve-upper",
+        "valve-lower"].every((e) => coDrawn.includes(e)),
+      `edges drawn: ${coDrawn.join(", ")}`);
+    // 33 characters, which fits the box on a single row (wrapExtra breaks
+    // above 34 -- the original wording wrapped with "coil" alone on row two).
+    const dhwGroup = coPage.split("<g>")
+      .find((g) => g.includes("Hot water tank")) || "";
+    check("and the hot water box says where its refill water comes from",
+      /refilled through a wood tank coil/.test(dhwGroup),
+      "the caption belongs on the tank being preheated, not loose on the page");
   }
   {
     const noValve = JSON.parse(JSON.stringify(topo));
