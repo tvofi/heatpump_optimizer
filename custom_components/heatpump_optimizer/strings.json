@@ -176,6 +176,7 @@
     },
     "error": {
       "invalid_tibber_token": "That Tibber token was not accepted. Check it at developer.tibber.com and try again.",
+      "cannot_connect": "Could not reach Tibber to check the token. Check the internet connection and try again.",
       "invalid_dhw_windows": "Those time frames could not be read. Use 24-hour times separated by commas, for example \"06:00-08:30, 17:00-22:00\".",
       "dhw_min_too_close": "A hot water minimum this close to the setpoint leaves the tank no working band; keep it at least 5 \\u00b0C below the setpoint."
     },
@@ -614,6 +615,7 @@
     },
     "error": {
       "invalid_tibber_token": "That Tibber token was not accepted. Check it at developer.tibber.com and try again.",
+      "cannot_connect": "Could not reach Tibber to check the token. Check the internet connection and try again.",
       "invalid_dhw_windows": "Those time frames could not be read. Use 24-hour times separated by commas, for example \"06:00-08:30, 17:00-22:00\".",
       "dhw_min_too_close": "A hot water minimum this close to the setpoint leaves the tank no working band; keep it at least 5 \\u00b0C below the setpoint.",
       "invalid_grid_fee_rules": "Those fee rules could not be read. One rule per line, like \"Nov-Mar Mon-Fri 06:00-22:00 = 0.25\".",
@@ -709,6 +711,10 @@
     "freq_watchdog": {
       "title": "Frequency control stood down",
       "description": "The compressor frequency reported by {entity} kept diverging from the commanded value, so frequency control fell back to observe mode and no further writes will be made. This usually means the wrong register or entity is configured, or the pump is in a protective mode that ignores external commands. Check the entity, then re-arm by switching the frequency mode to observe, saving, and switching back to control."
+    },
+    "solve_failures": {
+      "title": "Optimization keeps failing; the plan is going stale",
+      "description": "The last {count} optimization runs failed, so the integration is still showing — and until recently acting on — a plan computed at {last_success}. Once the plan is older than a few update intervals the heat pump is handed back to its own heating curve rather than driven from an outdated schedule. The usual suspects are a lost price or weather connection, or an error in the log from the solver itself. This notice clears on the next successful optimization."
     }
   }
 }

@@ -291,7 +291,13 @@ from .const import (
     CONF_FREQ_CONTROL_MODE,
     DEFAULT_FREQ_CONTROL_MODE,
 )
-from .inputs import InputHealth, InputReader, normalize_power_kw, stale_summary
+from .inputs import (
+    InputHealth,
+    InputReader,
+    age_of,
+    normalize_power_kw,
+    stale_summary,
+)
 from .external_heat import (
     ExternalHeatConfig,
     ExternalHeatDetector,
@@ -422,6 +428,26 @@ def _as_float(value: Any, default: float) -> float:
 #: Resolution the optimizer plans at, and therefore the resolution every
 #: forecast series is resampled to.
 FORECAST_STEP_MINUTES = 15
+
+# A failed solve keeps the last good plan published — deliberately, a solver
+# hiccup must not blank the entities — but a plan that keeps failing to
+# refresh eventually describes yesterday's prices and weather, not today's.
+# Stale = older than three missed solve cycles, floored at 90 minutes so a
+# short 5-minute update interval does not declare a plan stale over one
+# transient failure. A stale plan stops being actuated (the pump falls back
+# to its own curve, exactly as when no plan exists) and, after three
+# consecutive failures, raises a repair issue.
+PLAN_STALE_INTERVALS = 3
+PLAN_STALE_FLOOR_MINUTES = 90.0
+SOLVE_FAILURE_ISSUE_COUNT = 3
+
+# Age limits for the optional sensors read outside InputReader. Humidity
+# drives the mold floor — a frozen sensor would hold a raised floor
+# forever, so it gets the reader's indoor-scale limit. The DHW inlet probe
+# is genuinely slow-moving (ground temperature), so a day; past that the
+# seasonal model is the honest fallback.
+HUMIDITY_MAX_AGE_MINUTES = 120.0
+DHW_INLET_MAX_AGE_MINUTES = 24.0 * 60.0
 
 
 class ForecastArrays(NamedTuple):
@@ -723,6 +749,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self.integration_version: str | None = None
         self._optimization_result: OptimizationResult | None = None
         self._last_optimization: datetime | None = None
+        # Consecutive failed solves. A failed solve keeps the last good plan
+        # published; this counter is what turns "keeps" into "keeps, and
+        # says so" — the staleness flag, the actuation fallback and the
+        # repair issue all key off it and off the last success time.
+        self._solve_failures: int = 0
         self._next_optimization: datetime | None = None
         self._prices: list[dict] = []
         self._weather_forecast: list[dict] = []
@@ -1315,12 +1346,20 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         entity = self._config.get(CONF_DHW_INLET_ENTITY)
         if entity:
             state = self.hass.states.get(entity)
-            try:
-                value = float(state.state) if state is not None else None
-            except (TypeError, ValueError):
-                value = None
-            if value is not None and -5.0 <= value <= 35.0:
-                inlet = value
+            # An inlet probe is slow-moving, so a generous day-scale limit —
+            # but a probe frozen since last winter would otherwise pin the
+            # inlet at winter cold forever. Stale degrades to the seasonal
+            # model below, which is the configured no-sensor behaviour.
+            age = age_of(state, dt_util.utcnow()) if state is not None else None
+            if age is not None and age <= timedelta(
+                minutes=DHW_INLET_MAX_AGE_MINUTES
+            ):
+                try:
+                    value = float(state.state)
+                except (TypeError, ValueError):
+                    value = None
+                if value is not None and -5.0 <= value <= 35.0:
+                    inlet = value
         if inlet is None:
             inlet = params.seasonal_inlet_temp(now.timetuple().tm_yday)
         params.dhw_inlet_current = inlet
@@ -3519,6 +3558,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
             self._optimization_result = result
             self._last_optimization = dt_util.now()
+            if self._solve_failures >= SOLVE_FAILURE_ISSUE_COUNT:
+                ir.async_delete_issue(self.hass, DOMAIN, "solve_failures")
+            self._solve_failures = 0
             # T5 #16: file this plan's promises at each lead bucket, to be
             # scored when their moment arrives. Anchored to the instant
             # the trajectory was built from, not to "after the solve".
@@ -3566,6 +3608,32 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
         except Exception as err:
             _LOGGER.error("Optimization failed: %s", err, exc_info=True)
+            self._solve_failures += 1
+            if self._solve_failures == SOLVE_FAILURE_ISSUE_COUNT:
+                # Exactly-at, not at-or-above: the issue is idempotent to
+                # re-create, but re-raising it every cycle would refresh
+                # its timestamp and bury when the failures started.
+                ir.async_create_issue(
+                    self.hass,
+                    DOMAIN,
+                    "solve_failures",
+                    is_fixable=False,
+                    # Persistent: the stale plan survives a restart (it is
+                    # simply re-solved — or not), so the notice must too.
+                    is_persistent=True,
+                    severity=ir.IssueSeverity.WARNING,
+                    translation_key="solve_failures",
+                    translation_placeholders={
+                        "count": str(self._solve_failures),
+                        "last_success": (
+                            self._last_optimization.isoformat(
+                                sep=" ", timespec="minutes"
+                            )
+                            if self._last_optimization
+                            else "—"
+                        ),
+                    },
+                )
         finally:
             if away_original is not None:
                 self._restore_away_setback(away_original)
@@ -3677,6 +3745,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._thermal_params.dhw_legionella_interval_days = float(
                 params[CONF_DHW_LEGIONELLA_INTERVAL_DAYS]
             )
+
+        # Attribute writes bypass __post_init__, so the thermal-mass divisor
+        # floor is re-enforced here — the one chokepoint for service writes.
+        self._thermal_params.clamp()
 
         # The model and optimizer hold the parameters by reference at
         # construction, so both are rebuilt rather than mutated in place.
@@ -4830,9 +4902,44 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         )
         self._valve_commanded_target = target
 
+    def _plan_age_minutes(self) -> float | None:
+        """Minutes since the last successful solve; None before the first."""
+        if self._last_optimization is None:
+            return None
+        return max(
+            0.0,
+            (dt_util.now() - self._last_optimization).total_seconds() / 60.0,
+        )
+
+    def _plan_is_stale(self) -> bool:
+        """True when the plan is older than three solve cycles (min 90 min)."""
+        age = self._plan_age_minutes()
+        if age is None:
+            return False
+        interval = float(
+            self._config.get(
+                CONF_OPTIMIZATION_INTERVAL, DEFAULT_OPTIMIZATION_INTERVAL
+            )
+        )
+        return age > max(PLAN_STALE_INTERVALS * interval, PLAN_STALE_FLOOR_MINUTES)
+
     async def _apply_action(self) -> None:
         """Apply current action as (heat_pump_on, displace_value)."""
         if not self._current_action:
+            return
+        if self._mode in (MODE_AUTO, MODE_ECONOMY) and self._plan_is_stale():
+            # The action was cut from a plan whose horizon has slid out from
+            # under it — its "cheap hour" may be the current peak. Stop
+            # actuating, exactly as when no plan exists: the pump's own
+            # weather-compensated curve holds comfort until a solve succeeds.
+            # Fixed-rule modes (comfort/boost/off) carry no horizon and are
+            # unaffected.
+            _LOGGER.warning(
+                "Plan is %.0f minutes old after %d failed solves; holding "
+                "comfort on the pump's own curve instead of actuating it",
+                self._plan_age_minutes() or 0.0,
+                self._solve_failures,
+            )
             return
 
         heat_pump_on = bool(self._current_action.get("heat_pump_on", False))
@@ -5148,6 +5255,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             "current_action": self._current_action,
             "last_optimization": self._last_optimization,
             "next_optimization": self._next_optimization,
+            # Staleness is judged where the data is read, not only where the
+            # solve fails: a dashboard acting on `current_action` needs the
+            # same "this plan is old" signal the actuator uses.
+            "plan_age_minutes": (
+                round(age, 1)
+                if (age := self._plan_age_minutes()) is not None
+                else None
+            ),
+            "plan_stale": self._plan_is_stale(),
         }
         for view in (
             self._thermal_view,
@@ -6242,6 +6358,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         state = self.hass.states.get(entity_id)
         if state is None:
             return None
+        # A frozen sensor holds a raised mold floor forever; with no live
+        # reading the floor vanishes instead — the fail-safe direction the
+        # inputs module prescribes for every optional sensor.
+        age = age_of(state, dt_util.utcnow())
+        if age is None or age > timedelta(minutes=HUMIDITY_MAX_AGE_MINUTES):
+            return None
         try:
             value = float(state.state)
         except (TypeError, ValueError):
@@ -6657,7 +6779,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             "accuracy": self._accuracy.as_dict(),
             "comfort": self._comfort_learner.as_dict(),
             "defrost": self._defrost.as_dict(),
-            "peak_tracker": self._peak_tracker.as_dict(),
+            # peak_tracker deliberately absent: realised monthly peaks are
+            # billed facts, not learned state — see _apply_learner_payloads.
         }
 
     def _apply_learner_payloads(self, learners: dict) -> None:
@@ -6748,9 +6871,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             # consumes the derate through this reference, and without it
             # the restored object trains while an orphan keeps serving.
             self._thermal_params.defrost_derate = self._defrost
-        tracker = learners.get("peak_tracker")
-        if isinstance(tracker, dict):
-            self._peak_tracker = PeakTracker.from_dict(tracker)
+        # The peak tracker is deliberately NOT restored: the month's
+        # realised peaks are billed facts — the DSO already metered them —
+        # not learned state. Restoring a week-old peak list lowered
+        # threshold_kw below what this month will actually be billed at,
+        # mis-arming the live peak guard against a ceiling that no longer
+        # exists. Old snapshots still carrying the key are simply ignored.
 
     def _inputs_healthy(self) -> bool:
         return (

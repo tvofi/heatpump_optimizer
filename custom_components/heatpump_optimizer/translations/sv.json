@@ -176,6 +176,7 @@
     },
     "error": {
       "invalid_tibber_token": "Tibber-token accepterades inte. Kontrollera den på developer.tibber.com och försök igen.",
+      "cannot_connect": "Kunde inte nå Tibber för att kontrollera token. Kontrollera internetanslutningen och försök igen.",
       "invalid_dhw_windows": "Tiderna kunde inte tolkas. Använd 24-timmarsformat separerat med komma, till exempel \"06:00-08:30, 17:00-22:00\".",
       "dhw_min_too_close": "Ett varmvattenminimum s\\u00e5 n\\u00e4ra b\\u00f6rv\\u00e4rdet l\\u00e4mnar tanken utan arbetsband; h\\u00e5ll det minst 5 \\u00b0C under b\\u00f6rv\\u00e4rdet."
     },
@@ -614,6 +615,7 @@
     },
     "error": {
       "invalid_tibber_token": "Tibber-token accepterades inte. Kontrollera den på developer.tibber.com och försök igen.",
+      "cannot_connect": "Kunde inte nå Tibber för att kontrollera token. Kontrollera internetanslutningen och försök igen.",
       "invalid_dhw_windows": "Tiderna kunde inte tolkas. Använd 24-timmarsformat separerat med komma, till exempel \"06:00-08:30, 17:00-22:00\".",
       "dhw_min_too_close": "Ett varmvattenminimum s\\u00e5 n\\u00e4ra b\\u00f6rv\\u00e4rdet l\\u00e4mnar tanken utan arbetsband; h\\u00e5ll det minst 5 \\u00b0C under b\\u00f6rv\\u00e4rdet.",
       "invalid_grid_fee_rules": "Avgiftsreglerna kunde inte läsas. En regel per rad, som \"Nov-Mar Mån-Fre 06:00-22:00 = 0.25\".",
@@ -709,6 +711,10 @@
     "freq_watchdog": {
       "title": "Frekvensstyrningen har ställts ner",
       "description": "Kompressorfrekvensen som {entity} rapporterar fortsatte att avvika från det kommenderade värdet, så frekvensstyrningen föll tillbaka till observationsläge och inga fler skrivningar görs. Det betyder oftast att fel register eller entitet är konfigurerad, eller att pumpen är i ett skyddsläge som ignorerar externa kommandon. Kontrollera entiteten och återaktivera genom att byta frekvensläget till observera, spara, och byta tillbaka till styrning."
+    },
+    "solve_failures": {
+      "title": "Optimeringen fortsätter att misslyckas; planen börjar bli inaktuell",
+      "description": "De senaste {count} optimeringskörningarna misslyckades, så integrationen visar fortfarande — och agerade tills nyligen på — en plan beräknad {last_success}. När planen är äldre än några uppdateringsintervall lämnas värmepumpen tillbaka till sin egen värmekurva i stället för att styras efter ett föråldrat schema. De vanliga misstänkta är en tappad pris- eller väderanslutning, eller ett fel i loggen från själva lösaren. Meddelandet försvinner vid nästa lyckade optimering."
     }
   }
 }

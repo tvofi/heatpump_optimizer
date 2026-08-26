@@ -4231,30 +4231,49 @@ class HeatPumpOptimizer:
         )
         return (np.maximum(space, dhw) >= on_threshold).tolist()
 
+    def _idle_action(self) -> dict[str, Any]:
+        """The do-nothing action: shared by the empty-plan branch and the
+        pre-horizon clamp so the two fallbacks cannot drift apart."""
+        return {
+            "power": self.model.params.min_electrical_power,
+            "setpoint": self.config.target_temp,
+            "mode": "idle",
+            "price": 0.0,
+            "heat_pump_on": False,
+            "displace_value": 0.0,
+            "space_reason": None,
+            "dhw_reason": None,
+        }
+
     def get_current_action(
         self, result: OptimizationResult, current_time: datetime
     ) -> dict[str, Any]:
         """Get the current recommended action from the optimization result."""
         if not result.timestamps:
-            return {
-                "power": self.model.params.min_electrical_power,
-                "setpoint": self.config.target_temp,
-                "mode": "idle",
-                "price": 0.0,
-                "heat_pump_on": False,
-                "displace_value": 0.0,
-                "space_reason": None,
-                "dhw_reason": None,
-            }
+            return self._idle_action()
 
-        # Find the current time step
-        for i, ts in enumerate(result.timestamps):
-            if i + 1 < len(result.timestamps):
-                if ts <= current_time < result.timestamps[i + 1]:
-                    break
+        if current_time < result.timestamps[0]:
+            # A pre-horizon clock (NTP step back, restored stale plan) would
+            # fall through the loop below to the LAST step — the 24h-ahead
+            # slot where terminal-value charging lives. Clamp to step 0 only
+            # while the gap is within one step length; beyond that the plan
+            # says nothing about now, so idle like the empty-plan branch.
+            if len(result.timestamps) > 1:
+                step = result.timestamps[1] - result.timestamps[0]
             else:
-                i = len(result.timestamps) - 1
-                break
+                step = timedelta(minutes=15)
+            if result.timestamps[0] - current_time > step:
+                return self._idle_action()
+            i = 0
+        else:
+            # Find the current time step
+            for i, ts in enumerate(result.timestamps):
+                if i + 1 < len(result.timestamps):
+                    if ts <= current_time < result.timestamps[i + 1]:
+                        break
+                else:
+                    i = len(result.timestamps) - 1
+                    break
 
         power = result.power_schedule[i]
         setpoint = result.optimal_setpoints[i]
