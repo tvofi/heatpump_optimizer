@@ -173,6 +173,16 @@
   "external_heat_active": false,
   "external_heat_suppressing": false,
   "floor_return_temperature": null,
+  "freq_control": {
+   "commanded_hz": null,
+   "evidence_exhausted": false,
+   "fallback_active": false,
+   "map": {},
+   "mode": "unconfigured",
+   "range_hz": null,
+   "recommended_hz": null,
+   "reported_hz": null
+  },
   "fuse_advisor": {},
   "heat_curve": {
    "bias_k": 0.0,

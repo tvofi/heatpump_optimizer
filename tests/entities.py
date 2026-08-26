@@ -159,6 +159,15 @@ DATA = {
         },
         "last_diagnosis": {"residual": -0.3, "unexplained": -0.1},
     },
+    "freq_control": {
+        "mode": "observe",
+        "fallback_active": False,
+        "reported_hz": 47.0,
+        "recommended_hz": 45.0,
+        "commanded_hz": None,
+        "range_hz": [20.0, 120.0],
+        "map": {"2": {"mid_hz": 45.0, "kw_per_hz": 0.044, "samples": 12}},
+    },
     "space_energy_kwh": 120.5,
     "dhw_energy_kwh": 40.25,
     "total_energy_kwh": 160.75,
@@ -467,6 +476,7 @@ for cls in (
     sensor.OptimizationScoreSensor,
     sensor.CompressorStartsSensor,
     sensor.ContractComparisonSensor,
+    sensor.FrequencyAdvisorSensor,
 ):
     try:
         entity = cls(empty, ENTRY)
@@ -543,6 +553,24 @@ R.check(
     .extra_state_attributes.get("last_diagnosis", {})
     .get("residual")
     == -0.3,
+)
+
+# --- T7 frequency advisor --------------------------------------------------
+freq = sensor.FrequencyAdvisorSensor(FakeCoordinator(DATA), ENTRY)
+R.check(
+    "the frequency advisor states the recommendation with the map along",
+    freq.available
+    and freq.native_value == 45.0
+    and freq.extra_state_attributes.get("mode") == "observe",
+)
+R.check(
+    "without a frequency entity the advisor is unavailable, not zero",
+    not sensor.FrequencyAdvisorSensor(
+        FakeCoordinator(
+            {**DATA, "freq_control": {"mode": "unconfigured", "map": {}}}
+        ),
+        ENTRY,
+    ).available,
 )
 
 

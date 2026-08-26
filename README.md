@@ -138,7 +138,7 @@ pricing are outside this project's control.
 - **Plan reason codes** — every planned slot says *why* it was chosen
 - **Energy dashboard integration** — accumulating energy and cost totals, split hot water versus space heating
 - **The house as a virtual battery** — state of charge, capacity and rates published so other automations can use it
-- **Rich sensor entities** — 55 sensors including full heating plans, DHW, predictive insights, per-zone temperatures
+- **Rich sensor entities** — 56 sensors including full heating plans, DHW, predictive insights, per-zone temperatures
 - **Dashboard card** — plots price, planned heating slots, irradiance and predicted temperatures on one graph, with per-series toggles, reason codes, a what-if simulator, and a Setup page drawing your configured system with live sensor readings in place, where clicking a sensor assigns or clears it
 - **Climate entity** — virtual thermostat with full HA climate integration
 - **Buttons and binary sensors** — force a run, arm a measurement experiment, and see input health, external heat, open windows and away state at a glance
@@ -1070,7 +1070,7 @@ turn the toggle off to require hot water around the clock.
 
 ## Entities Created
 
-### Sensors (55 total)
+### Sensors (56 total)
 | Sensor | Description |
 |---|---|
 | Optimization Mode | Current mode (auto/comfort/economy/boost/off) |
@@ -1126,6 +1126,7 @@ turn the toggle off to require hot water around the clock.
 | **Plan Narrative** | The plan told in sentences, grouped by reason — where today's money goes and why |
 | **Optimization Score** | Envelope, machine and operation graded 0–100, with the what-if price tiles in attributes |
 | **Compressor Starts** | Realised compressor starts counted from the meter, immersion events excluded |
+| **Compressor Frequency Advisor** | The frequency the plan's power asks for, from the learned kW-per-Hz map — observation until you opt into control |
 
 ### Binary Sensors (4 total)
 | Binary sensor | Description |
@@ -1142,6 +1143,41 @@ turn the toggle off to require hot water around the clock.
 | **Run System Identification** | Arm the commissioning step test for the next mild, cheap night |
 | **Reset Learned Comfort Weight** | Undo the revealed-preference tuning |
 | **Diagnose Last Interval** | Explain the last interval's temperature error input by input, on the Prediction Accuracy sensor |
+
+### Inverter frequency: observe first, control if you say so
+
+If your heat pump's compressor frequency is exposed as a `number` entity
+(Modbus, ESPHome), configure it and the optimizer learns a **kW-per-Hz map**
+from the meter — per-decile buckets over the entity's own range — and the
+**Compressor Frequency Advisor** sensor shows what frequency the current
+plan's power would ask for. That is the whole observe stage: no actuation of
+any kind, just evidence for your go/no-go.
+
+Switch the frequency mode to **control** (a deliberate, separate step, after
+you have validated the entity against your real hardware) and the optimizer
+writes the recommendation via `number.set_value` — at most one write per
+five minutes, clamped to the entity's own min/max, with a watchdog: a
+reported frequency that keeps diverging from the commanded one for three
+active ticks stands the controller back down to observe and raises a repair
+issue. Idle periods and defrost pauses are not divergence — an operating
+point at rest is not a write path that stopped listening. The stand-down
+survives restarts; you re-arm it by explicitly switching the mode back.
+When the plan asks for more than the map has evidence for, control runs
+truly flat out (the entity's own maximum) and says so via an
+`evidence_exhausted` attribute — which is also how the map earns its
+missing high-frequency samples.
+
+**One hardware caveat that matters:** many `number` entities are setpoint
+registers that simply echo the last written value. Read from an echo, the
+watchdog can never see divergence and the map learns the setpoint instead
+of the machine. If your integration exposes the *actual* compressor
+frequency as a separate sensor, configure it as the actual-frequency
+sensor — the watchdog and the map then read reality, and the number entity
+is used only for writing.
+
+The learned map never feeds the optimizer's plans in either mode
+— plans stay power-denominated, and control only translates the planned
+kilowatts into the hertz that deliver them.
 
 ### Dashboard Card
 
@@ -1354,7 +1390,7 @@ custom_components/heatpump_optimizer/
 ├── comfort_learning.py  # Revealed-preference comfort weight tuning
 ├── battery.py           # The thermal stores, published as a battery
 │
-├── sensor.py            # 55 sensors
+├── sensor.py            # 56 sensors
 ├── binary_sensor.py     # Input health, external heat, away mode
 ├── button.py            # Optimize now, run identification, reset comfort weight
 ├── climate.py           # Virtual climate entity with DHW status

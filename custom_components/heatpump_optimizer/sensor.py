@@ -105,6 +105,8 @@ async def async_setup_entry(
         PlanNarrativeSensor(coordinator, entry),
         OptimizationScoreSensor(coordinator, entry),
         CompressorStartsSensor(coordinator, entry),
+        # Inverter frequency (v4.0.0 T7)
+        FrequencyAdvisorSensor(coordinator, entry),
     ]
 
     async_add_entities(entities)
@@ -1813,3 +1815,40 @@ class CompressorStartsSensor(HeatPumpOptimizerSensorBase):
             )
         ) or {}
         return dict(starts)
+
+
+class FrequencyAdvisorSensor(HeatPumpOptimizerSensorBase):
+    """What compressor frequency the plan's power asks for (T7 #61).
+
+    State: the recommended Hz for the current commanded power, from the
+    learned kW-per-Hz map. In observe mode this sensor IS the product —
+    evidence for the go/no-go before any wire is touched; in control mode
+    it shows what is being commanded, with the watchdog's stand-down state
+    in attributes. Unavailable until a frequency entity is configured.
+    """
+
+    _attr_icon = "mdi:sine-wave"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_device_class = SensorDeviceClass.FREQUENCY
+    _attr_native_unit_of_measurement = "Hz"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator, entry):
+        super().__init__(
+            coordinator, entry, "frequency_advisor", "Compressor Frequency Advisor"
+        )
+
+    @property
+    def available(self) -> bool:
+        view = (self.coordinator.data or {}).get("freq_control") or {}
+        return view.get("mode") not in (None, "unconfigured")
+
+    @property
+    def native_value(self) -> float | None:
+        view = (self.coordinator.data or {}).get("freq_control") or {}
+        value = view.get("recommended_hz")
+        return value if isinstance(value, (int, float)) else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return dict((self.coordinator.data or {}).get("freq_control", {}) or {})
