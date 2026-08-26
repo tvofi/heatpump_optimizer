@@ -1,5 +1,158 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v4.0.0
+
+Thirty-six features in seven tranches, and one rule held through all of
+them: **everything new is off, inert, or purely observational until you
+turn it on.** A 3.16.0 install upgrades to a byte-identical plan — same
+solves, same setpoints, same money — plus a set of switches, each of which
+was built, reviewed and tested to earn its place before it earns your
+trust. No store migrations are required; every persisted format is
+additive, and a downgrade reads its own keys and ignores the rest.
+
+### The bill beyond spot (T1)
+
+The optimizer used to price a kWh at its spot price. Your bill does not.
+Grid transfer fees now ride every priced kWh — flat, by rules
+(day/night/season), or from a sensor — and capacity (effekt) tariffs can
+be masked to the months, hours and weekdays your DSO actually bills.
+Prices past the published horizon come from a learned 96-bin quarter-hour
+prior instead of a flat guess, with an optional risk premium on the
+guessed steps. And a monthly ledger settles every interval as it happens,
+so the **Contract Comparison** sensor can show what this month's metered
+kWh would have cost under hourly spot, monthly-average spot and a fixed
+contract — and what your load shifting actually earns per kWh.
+
+### Power is a budget (T2)
+
+Tell it your main fuse and the optimizer treats amps as the hard budget
+they are: an opt-in fuse guard caps every planned step at what the fuse
+leaves after the rest of the house, a live peak guard watches the billed
+metering window in real time and holds discretionary hot water back
+before a new monthly peak is set, and outage recovery staggers the
+restart draw. The **Power Headroom** sensor broadcasts the kW the house
+can take right now — a number an EV charger's dynamic limit can follow —
+and a monthly fuse advisor prices what a smaller main fuse would cost you
+in comfort, using the optimizer's own solver as the judge.
+
+### Hot water that knows your house (T3)
+
+Hot water demand stopped being one number: weekday and weekend draw
+profiles are learned separately, quantile ready-targets size the tank for
+your actual heavy days (opt-in), the anti-legionella cycle can ride free
+external heat or shift within a safety window to cheap hours (both
+opt-in), and the plan can run circulation pumps on schedule with safety
+rails. The tank also learned to speak shower: the **Mixed Hot Water**
+sensor translates tank state into litres of 40 °C water and minutes of
+shower, and a setpoint advisor sweeps the candidates and prices each.
+
+### A model that checks itself (T4)
+
+The learners got insurance and the forecast got richer. Weekly snapshots
+of every learned parameter are captured only when all inputs were healthy
+and accuracy was in band; a drift watchdog rolls back automatically when
+it can prove the inputs were healthy throughout, and a service/button does
+it on demand. Detectors watch for open windows (learning pauses while
+one is tripped), immersion-element draw (so resistive heat never poisons
+the COP learners or the start counter), and long-term compressor
+efficiency drift (with the monthly cost of the shortfall in the repair
+issue). The forecast gained humidity (better defrost prediction, ungated
+— it only refines an existing input) and snow (opt-in: precipitation
+splits rain from snow by temperature, and a roof-snow memory shades solar
+gain until melt). Four new gated learners: a capacity envelope that
+learns what the machine can actually deliver per outdoor temperature, a
+solar aperture scale, an hourly internal-gains profile, and a heat-curve
+bias that creeps the ECL110 down while comfort holds and resets the
+instant it does not.
+
+### Comfort floors with reasons (T5)
+
+Two gated adjustments move the comfort floor inside the objective through
+one optimizer channel. **Confidence margins** raise the floor by the
+model's own expected error at each step's lead time — a per-lead-bucket
+error statistic the plan earns by filing predictions and being scored on
+them — damped by trust and hard-capped, so a trusted model margins
+nothing. The **mold guard** computes, per forecast step, the lowest room
+temperature that keeps your coldest surface under 80 % relative humidity
+(Magnus, closed form, from a measured indoor humidity and your worst
+thermal bridge's fRsi), capped at the configured comfort target: heating
+past target to fight a ventilation problem is the runaway it refuses.
+
+### The system explains itself (T6)
+
+Every settled interval books its money under the reason the plan drew it,
+so the **Plan Narrative** sensor tells the day in sentences ("6.2 kWh in
+the cheapest hours for 8.40 kr"), month-end receipts itemise where the
+money went with a published reconciliation flag, and the **Optimization
+Score** grades envelope, machine and operation 0–100 — the operation
+grade replaying each day's kWh against the day's own prices. The
+**Compressor Starts** sensor counts realised starts from the meter
+(debounced, immersion-blind), prices them against a replacement cost if
+you give it one, and can — opt-in — floor the cycling penalty with that
+realised wear price. A **Diagnose Last Interval** button explains the
+last interval's temperature error input by input, and opt-in price tiles
+re-price the plan under a target ±1 °C and a 75 % power cap after each
+scheduled solve.
+
+### Hardware, observed before trusted (T7)
+
+If your pump's compressor frequency is exposed as a `number` entity, the
+optimizer learns a kW-per-Hz map and the **Compressor Frequency Advisor**
+shows what frequency the plan's power would ask for — observation only.
+Switch to control (a deliberate, separate step) and it writes the
+recommendation: one write per five minutes, clamped to the entity's own
+range, with a watchdog that stands control back down to observe if the
+reported frequency stops following the commanded one — and a documented
+caveat about setpoint-echo registers, with an optional actual-frequency
+sensor for real feedback. Plans stay power-denominated in both modes.
+
+### Every new key, and its inert default
+
+| Key | Default | Turning it on means |
+|---|---|---|
+| `grid_fee_mode` | `none` | Grid transfer fees ride every priced kWh |
+| `grid_fee_rules` / `grid_fee_entity` / `grid_fee_fixed` | empty / unset / 0.0 | Where the fee comes from |
+| `peak_tariff_months` / `peak_tariff_hours` | empty | Mask the capacity tariff to billed periods |
+| `peak_tariff_weekdays_only` | off | …and to weekdays |
+| `peak_tariff_offpeak_factor` | 1.0 | Off-peak peaks billed at a fraction |
+| `price_risk_lambda` | 0.0 | Risk premium on prior-guessed prices |
+| `contract_fixed_price` | 0.0 | Fixed contract column in the comparison |
+| `main_fuse_amperes` / `main_fuse_phases` | 0 / 3 | The house's electrical budget |
+| `fuse_guard_enabled` | off | Hard per-step cap at what the fuse leaves |
+| `peak_guard_enabled` (+ `peak_guard_margin_kw` 0.5) | off | Live billed-window guard |
+| `outage_recovery_enabled` | off | Staggered restart after an outage |
+| `dhw_inlet_temp` / `dhw_inlet_seasonal_amplitude` / `dhw_inlet_entity` | 10.0 / 0.0 / unset | Cold-water inlet model or sensor |
+| `greywater_recovery_effectiveness` | 0.0 | Drain heat recovery in the energy math |
+| `dhw_quantile_targets_enabled` | off | Ready targets sized to learned heavy days |
+| `dhw_free_disinfection_enabled` | off | Legionella credit from external heat |
+| `dhw_elastic_legionella_enabled` (+ `dhw_legionella_min_interval_days` 5) | off | Price-aware cycle timing in a safety window |
+| `shower_flow_lpm` | 8.0 | The Mixed Hot Water sensor's shower maths |
+| `vvc_pump_entity` / `vvc_lead_minutes` / `space_circulation_pump_entity` | unset / 20 / unset | Pump scheduling |
+| `open_window_relax_enabled` | off | Floor relaxes 1 °C while a window is open |
+| `immersion_feedback_enabled` | off | Immersion detector may act, not just report |
+| `precip_type_enabled` | off | Rain/snow split by temperature |
+| `snow_roof_factor_enabled` | off | Roof-snow memory shades solar gain |
+| `capacity_curve_enabled` | off | Learned capacity envelope caps plans |
+| `solar_aperture_learning_enabled` | off | Learned solar aperture scale |
+| `internal_gains_learning_enabled` | off | Learned hourly internal-gains profile |
+| `curve_learning_enabled` | off | Heat-curve bias creep (ECL110) |
+| `confidence_margins_enabled` | off | Floor rises by the model's expected error |
+| `mold_guard_enabled` (+ `indoor_humidity_entity`, `thermal_bridge_frsi` 0.75) | off / unset | Per-step mold-safe floor |
+| `compressor_replacement_cost` / `compressor_rated_starts` | 0.0 / 100000 | Wear price per realised start |
+| `wear_autotune_enabled` | off | Realised wear floors the cycling penalty |
+| `price_tiles_enabled` | off | What-if tiles after each scheduled solve |
+| `compressor_freq_entity` / `compressor_freq_sensor` | unset | Observe stage: learn and recommend only |
+| `freq_control_mode` | `observe` | `control` writes the frequency, with rails |
+
+### Upgrading
+
+Install, restart, done. **No store migrations are required** — every
+persisted store (learned parameters, accuracy history, the ledger,
+snapshots) gained only additive keys, loaded with corruption barriers, so
+pre-4.0 state is read as-is and missing keys mean inert defaults. New
+sensors appear (56 sensors, 4 binary sensors, 4 buttons); nothing you
+configured changes behaviour until you visit the options flow and say so.
+
 ## v3.16.0
 
 ### Draw your plumbing, and the model follows
