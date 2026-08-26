@@ -2,6 +2,7 @@
  "data": {
   "accuracy": {
    "cost_error_percent": null,
+   "lead_sigma": {},
    "power_ratio": null,
    "predicted_cost": 0.0,
    "realised_cost": 0.0,

@@ -265,6 +265,15 @@ from .const import (
     INTERNAL_GAINS_MAX_FACTOR,
     CONF_CURVE_LEARNING_ENABLED,
     DEFAULT_CURVE_LEARNING_ENABLED,
+    CONF_CONFIDENCE_MARGINS_ENABLED,
+    DEFAULT_CONFIDENCE_MARGINS_ENABLED,
+    CONFIDENCE_MARGIN_CAP_C,
+    CONF_MOLD_GUARD_ENABLED,
+    DEFAULT_MOLD_GUARD_ENABLED,
+    CONF_INDOOR_HUMIDITY_ENTITY,
+    CONF_THERMAL_BRIDGE_FRSI,
+    DEFAULT_THERMAL_BRIDGE_FRSI,
+    MOLD_SURFACE_RH_LIMIT,
 )
 from .inputs import InputHealth, InputReader, normalize_power_kw, stale_summary
 from .external_heat import (
@@ -278,7 +287,12 @@ from . import battery as battery_view
 from . import mixing_valve
 from . import topology
 from . import pv as pv_model
-from .accuracy import AccuracySample, AccuracyTracker, delivered_ratio
+from .accuracy import (
+    LEAD_BUCKETS,
+    AccuracySample,
+    AccuracyTracker,
+    delivered_ratio,
+)
 from .comfort_learning import ComfortLearner, OverrideEvent
 from .defrost import DefrostDerate, in_frost_band
 from .manual_plan import (
@@ -315,6 +329,7 @@ from .thermal_model import (
     ThermalModel,
     ThermalParameters,
     ThermalState,
+    mold_safe_room_floor,
 )
 from .dhw_schedule import (
     DHWWindowError,
@@ -3361,12 +3376,19 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     and bool(np.any(np.isfinite(horizon.humidity)))
                     else None
                 ),
+                # T5 (#16 #54): the comfort floor's two gated adjustments;
+                # None for both is the byte-inert default path.
+                self._confidence_margins(len(horizon.prices)),
+                self._mold_floor_series(horizon.outdoor_temps),
             )
 
             self._record_manual_release(result)
 
             self._optimization_result = result
             self._last_optimization = dt_util.now()
+            # T5 #16: file this plan's promises at each lead bucket, to be
+            # scored when their moment arrives.
+            self._file_lead_predictions(result, self._last_optimization)
 
             self._current_action = self._optimizer.get_current_action(
                 result, dt_util.now()
@@ -5949,6 +5971,89 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 )
                 del self._immersion_evidence[:-6]
 
+    # -- T5 comfort floors (#16 #54), both gated ---------------------------
+
+    def _confidence_margins(self, n_steps: int) -> np.ndarray | None:
+        """#16: raise the floor by the model's own expected error per lead.
+
+        ``sigma(lead) × (1 − trust)``, hard-capped: a model with a good
+        recent record (trust → 1) margins nothing however noisy the long
+        buckets look, and no history means sigma 0 means None — the
+        byte-inert fresh-install case. The cap plus the damping is also
+        what keeps the loop (margin → different plan → different errors)
+        from oscillating: the margin can only shrink as accuracy improves.
+        """
+        if not bool(
+            self._config.get(
+                CONF_CONFIDENCE_MARGINS_ENABLED,
+                DEFAULT_CONFIDENCE_MARGINS_ENABLED,
+            )
+        ):
+            return None
+        damp = 1.0 - self._accuracy.trust()
+        if damp <= 1e-9:
+            return None
+        dt_h = max(self._opt_config.time_step_minutes, 1.0) / 60.0
+        margins = np.array(
+            [
+                min(
+                    self._accuracy.sigma((i + 1) * dt_h) * damp,
+                    CONFIDENCE_MARGIN_CAP_C,
+                )
+                for i in range(n_steps)
+            ],
+            dtype=float,
+        )
+        return margins if bool(np.any(margins > 1e-9)) else None
+
+    def _indoor_humidity_value(self) -> float | None:
+        """The measured indoor relative humidity, %, or None."""
+        entity_id = self._config.get(CONF_INDOOR_HUMIDITY_ENTITY)
+        if not entity_id:
+            return None
+        state = self.hass.states.get(entity_id)
+        if state is None:
+            return None
+        try:
+            value = float(state.state)
+        except (TypeError, ValueError):
+            return None
+        if not np.isfinite(value) or not 0.0 < value <= 100.0:
+            return None
+        return value
+
+    def _mold_floor_series(self, outdoor: np.ndarray) -> np.ndarray | None:
+        """#54: the per-step room floor keeping every surface under mold RH.
+
+        Double-gated — the flag AND a humidity entity with a live reading.
+        The measured vapour pressure is held constant across the horizon
+        (cooling the room does not remove moisture), and the floor is
+        capped at the comfort target: heating past target to fight mold is
+        dehumidification's job, not the heat pump's.
+        """
+        if not bool(
+            self._config.get(CONF_MOLD_GUARD_ENABLED, DEFAULT_MOLD_GUARD_ENABLED)
+        ):
+            return None
+        rh = self._indoor_humidity_value()
+        room = self._current_state.room_temperature
+        if rh is None or room is None or not np.isfinite(room):
+            return None
+        frsi = _as_float(
+            self._config.get(CONF_THERMAL_BRIDGE_FRSI),
+            DEFAULT_THERMAL_BRIDGE_FRSI,
+        )
+        floors = np.array(
+            [
+                mold_safe_room_floor(
+                    float(room), rh, float(t), frsi, MOLD_SURFACE_RH_LIMIT
+                )
+                for t in outdoor
+            ],
+            dtype=float,
+        )
+        return np.minimum(floors, float(self._opt_config.target_temp))
+
     def _track_curve_comfort(self, now: datetime) -> None:
         """#2's evidence: the day's worst (zone − comfort floor) margin.
 
@@ -6781,6 +6886,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         pending = self._pending_prediction
         now = dt_util.now()
 
+        # T5 #16: settle every matured lead-time promise against the same
+        # measured temperature the one-step sample below uses.
+        actual_now = self._current_state.room_temperature
+        if actual_now is not None:
+            self._accuracy.score_lead_predictions(now, float(actual_now))
+
         if pending is not None:
             elapsed = (now - pending["when"]).total_seconds() / 3600.0
             # Only pair up predictions with the interval they were actually
@@ -6863,6 +6974,34 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             "outdoor": self._current_state.outdoor_temperature,
             "humidity": self._current_humidity(),
         }
+
+    def _file_lead_predictions(self, result, solve_time: datetime) -> None:
+        """T5 #16: file the plan's room-temperature promises per lead bucket.
+
+        Same mode gate and same trajectory convention as the one-step
+        accuracy sample: only a plan that is actually running makes
+        promises worth scoring, and in two-zone mode the indoor sensor the
+        score will use reads the upper floor.
+        """
+        if self._mode not in (MODE_AUTO, MODE_ECONOMY):
+            return
+        trajectory = (
+            result.upper_temp_trajectory
+            if self._thermal_params.two_zone_enabled
+            and result.upper_temp_trajectory
+            else result.room_temp_trajectory
+        )
+        if not trajectory:
+            return
+        dt_h = max(self._opt_config.time_step_minutes, 1.0) / 60.0
+        for lead in LEAD_BUCKETS:
+            idx = int(round(lead / dt_h))
+            if 0 < idx < len(trajectory):
+                self._accuracy.note_lead_prediction(
+                    solve_time + timedelta(hours=lead),
+                    lead,
+                    float(trajectory[idx]),
+                )
 
     def _predicted_next_room_temp(self) -> float | None:
         """What the plan says the room will be at the next interval.
@@ -7356,6 +7495,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                         if horizon.humidity.size
                         and bool(np.any(np.isfinite(horizon.humidity)))
                         else None
+                    ),
+                    # T5: same floors as the live plan, same reasoning.
+                    min_temp_margins=self._confidence_margins(
+                        len(horizon.prices)
+                    ),
+                    min_temp_floors=self._mold_floor_series(
+                        horizon.outdoor_temps
                     ),
                 )
             )

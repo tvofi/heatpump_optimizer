@@ -681,6 +681,25 @@ INTERNAL_GAINS_MAX_FACTOR: Final = 3.0
 #: #2 — a standing learned bias on the ECL110 heat curve displace.
 CONF_CURVE_LEARNING_ENABLED: Final = "curve_learning_enabled"
 DEFAULT_CURVE_LEARNING_ENABLED: Final = False
+
+# T5 — comfort floors (#16 #54). Both move the floor inside the objective,
+# so both are gated; the mold guard is double-gated on its entity too.
+#: #16 — raise the comfort floor by the model's own expected error at
+#: each step's lead time, damped by trust and hard-capped.
+CONF_CONFIDENCE_MARGINS_ENABLED: Final = "confidence_margins_enabled"
+DEFAULT_CONFIDENCE_MARGINS_ENABLED: Final = False
+#: The margin can never exceed this, however bad the history looks (K).
+CONFIDENCE_MARGIN_CAP_C: Final = 0.8
+#: #54 — keep every cold surface under the mold threshold.
+CONF_MOLD_GUARD_ENABLED: Final = "mold_guard_enabled"
+DEFAULT_MOLD_GUARD_ENABLED: Final = False
+CONF_INDOOR_HUMIDITY_ENTITY: Final = "indoor_humidity_entity"
+#: Temperature factor of the worst thermal bridge: surface temperature =
+#: T_out + fRsi (T_room − T_out). 0.75 is the Swedish BBR guidance value.
+CONF_THERMAL_BRIDGE_FRSI: Final = "thermal_bridge_frsi"
+DEFAULT_THERMAL_BRIDGE_FRSI: Final = 0.75
+#: Mold growth needs sustained surface RH above roughly this fraction.
+MOLD_SURFACE_RH_LIMIT: Final = 0.8
 #: How far the comfort floor is relaxed while a window is open (gated).
 OPEN_WINDOW_RELAX_C: Final = 1.0
 #: #11 — measured power above nameplate by this factor reads as the

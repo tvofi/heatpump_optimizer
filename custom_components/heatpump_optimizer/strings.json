@@ -263,7 +263,10 @@
           "comfort_temp_day": "Daytime comfort temperature",
           "comfort_temp_night": "Night-time comfort temperature",
           "day_start_hour": "Day starts at",
-          "day_end_hour": "Day ends at"
+          "day_end_hour": "Day ends at",
+          "mold_guard_enabled": "Keep cold surfaces below mold humidity",
+          "indoor_humidity_entity": "Indoor humidity sensor (optional)",
+          "thermal_bridge_frsi": "Worst thermal bridge factor (fRsi)"
         },
         "data_description": {
           "target_temperature": "What you actually want the house to sit at. The optimizer aims for this and only drifts away from it to avoid expensive hours.",
@@ -272,7 +275,10 @@
           "comfort_temp_day": "Preferred temperature during waking hours.",
           "comfort_temp_night": "Preferred temperature overnight. Setting this a degree or two lower saves money and usually improves sleep.",
           "day_start_hour": "Hour of the morning when the daytime temperature takes over.",
-          "day_end_hour": "Hour of the evening when the night-time temperature takes over."
+          "day_end_hour": "Hour of the evening when the night-time temperature takes over.",
+          "mold_guard_enabled": "The coldest spot in the house — a window reveal, a corner behind a wardrobe — sits well below room temperature, and mold starts growing where its surface humidity stays above 80%. With this on, the optimizer will not coast the house below the temperature that keeps that spot safe, computed from the measured indoor humidity and the outdoor forecast. Needs the humidity sensor below; it never heats past your comfort target — persistent high humidity is a ventilation problem, not a heating one.",
+          "indoor_humidity_entity": "A relative humidity sensor in the living space. Without one the mold guard stays off regardless of the switch.",
+          "thermal_bridge_frsi": "How cold your worst surface gets, as a fraction: surface = outdoor + fRsi × (room − outdoor). 0.75 is the Swedish building-code guidance; lower means a colder worst spot and a more cautious guard."
         }
       },
       "hot_water": {
@@ -367,14 +373,16 @@
           "comfort_weight": "How strictly to hold the temperature",
           "optimization_interval": "Recalculate every",
           "compressor_cycling_cost": "Cost of one compressor start",
-          "price_risk_lambda": "Caution with guessed prices"
+          "price_risk_lambda": "Caution with guessed prices",
+          "confidence_margins_enabled": "Hold a safety margin where the model is unsure"
         },
         "data_description": {
           "price_weight": "Higher means the optimizer works harder to move heating into cheap hours, at the cost of letting the temperature swing more.",
           "comfort_weight": "The counterweight to the setting above, and the most effective knob you have. It is measured against the range you allow, so widening that range makes the optimizer bolder. Around 5 lets the house drift freely inside your allowed range for the biggest savings; 10 keeps it noticeably closer to target; 20 or more behaves almost like an ordinary thermostat.",
           "optimization_interval": "How often the plan is recalculated against fresh prices and weather. More often reacts quicker but does more work.",
           "compressor_cycling_cost": "Discourages plans that switch on and off repeatedly. Leave at 0 unless you have reason to think your unit is cycling too much; the planned start count is published on the plan sensors so you can look before deciding.",
-          "price_risk_lambda": "Beyond the published horizon prices are estimated from your learned daily shape. This adds a premium to those guesses proportional to how wrong they have tended to be, so the plan stops treating a guessed cheap night as bankable. 0 trusts the guesses at face value, as before."
+          "price_risk_lambda": "Beyond the published horizon prices are estimated from your learned daily shape. This adds a premium to those guesses proportional to how wrong they have tended to be, so the plan stops treating a guessed cheap night as bankable. 0 trusts the guesses at face value, as before.",
+          "confidence_margins_enabled": "A plan that promises 19.0 °C twelve hours ahead rests on a twelve-hour prediction, and the optimizer knows from its own history how wrong those get. With this on, the comfort floor rises by exactly that expected error — capped at 0.8 °C and shrinking to nothing as accuracy improves — so deep price-riding coasts are taken only where the model has earned the trust."
         }
       },
       "heat_curve": {

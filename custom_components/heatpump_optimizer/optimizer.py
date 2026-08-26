@@ -1388,6 +1388,8 @@ class HeatPumpOptimizer:
         price_sigma: np.ndarray | None = None,
         power_caps_extra: np.ndarray | None = None,
         humidity: np.ndarray | None = None,
+        min_temp_margins: np.ndarray | None = None,
+        min_temp_floors: np.ndarray | None = None,
     ) -> OptimizationResult:
         """Run the MPC optimization with predictive weather anticipation.
 
@@ -1524,6 +1526,33 @@ class HeatPumpOptimizer:
         bounds = [self.config.get_temp_bounds(hour) for hour in step_hours]
         temp_min_bounds = np.array([low for low, _ in bounds])
         temp_max_bounds = np.array([high for _, high in bounds])
+
+        # T5 (#16 #54): the comfort floor's two adjustments, both optional
+        # and both applied HERE — the single site where the bounds are
+        # built — so every consumer (objectives, safety releases, pin
+        # repair) sees the same effective floor. ``min_temp_margins`` is a
+        # per-step raise (the model's own expected error at that lead);
+        # ``min_temp_floors`` an absolute per-step floor (the mold guard).
+        # None for both is byte-for-byte the previous bounds.
+        if min_temp_margins is not None or min_temp_floors is not None:
+            if min_temp_margins is not None:
+                m = np.clip(np.asarray(min_temp_margins, dtype=float), 0.0, None)
+                if m.size < n_steps:
+                    m = np.concatenate([m, np.zeros(n_steps - m.size)])
+                temp_min_bounds = temp_min_bounds + m[:n_steps]
+            if min_temp_floors is not None:
+                f = np.asarray(min_temp_floors, dtype=float)
+                if f.size < n_steps:
+                    f = np.concatenate(
+                        [f, np.full(n_steps - f.size, -np.inf)]
+                    )
+                temp_min_bounds = np.maximum(temp_min_bounds, f[:n_steps])
+            # Whatever raised the floor, the band never squeezes shut: a
+            # floor at or above the ceiling makes the solve infeasible and
+            # the comfort penalty unbounded.
+            temp_min_bounds = np.minimum(
+                temp_min_bounds, temp_max_bounds - 0.5
+            )
 
         # Per-step solar gain, and the wind/rain multiplier on heat loss. Both
         # use the *forecast* at each future step rather than current

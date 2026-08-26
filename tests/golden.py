@@ -459,6 +459,11 @@ SCENARIOS: dict[str, dict] = {
     # rain (fraction 1). The pre-weighted array is exactly what the
     # coordinator hands the optimizer with the flag on.
     "precip_snow": dict(weather_profile="winter_mild"),
+    # --- T5 (#16 #54) -------------------------------------------------------
+    # Both comfort-floor adjustments riding one solve: a lead-shaped margin
+    # ramp on the min bounds and a flat mold floor, the shapes the
+    # coordinator actually produces with the flags on.
+    "confidence_margins": dict(),
 }
 
 # Scenarios where prices past a point are the learned prior rather than
@@ -480,6 +485,9 @@ ENVELOPE_CAP_SCENARIOS = {"capacity_curve"}
 # T4b #30: precipitation pre-weighted by liquid fraction, the transform
 # the coordinator applies with precip_type_enabled on.
 SNOW_SCENARIOS = {"precip_snow"}
+
+# T5: per-step comfort-floor adjustments (#16 margins, #54 mold floor).
+MARGIN_SCENARIOS = {"confidence_margins"}
 
 # Scenarios given a PV surplus profile, which changes the marginal price.
 PV_SCENARIOS = {"shoulder", "summer_dhw_only"}
@@ -539,6 +547,13 @@ def capture(name: str, spec: dict) -> dict:
     if name in SNOW_SCENARIOS:
         liquid = np.where(np.arange(n) < n // 2, 0.0, 1.0)
         built["rain"] = np.asarray(built["rain"], dtype=float) * liquid
+    margins = None
+    floors = None
+    if name in MARGIN_SCENARIOS:
+        # #16's real shape: expected error grows with lead, capped at 0.8.
+        margins = np.minimum(0.1 + np.arange(n) * (0.7 / max(n - 1, 1)), 0.8)
+        # #54's: a modest flat floor between the config's min and target.
+        floors = np.full(n, 18.5)
 
     result = opt.optimize(
         built["state"],
@@ -553,6 +568,8 @@ def capture(name: str, spec: dict) -> dict:
         external_heat_kw=ext,
         price_sigma=price_sigma,
         power_caps_extra=caps,
+        min_temp_margins=margins,
+        min_temp_floors=floors,
     )
 
     # Everything that describes the plan. Trajectories included: a constraint

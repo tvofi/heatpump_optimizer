@@ -938,6 +938,17 @@ Beyond the tank cooling rates and house heat loss learned in earlier versions:
   installer-set curve that runs too hot: it creeps down by at most 0.5 K per
   week on days that held comfort with margin, and resets to the installer's
   curve instantly on any comfort miss. It can only cool, never heat.
+- **Confidence margins** (opt-in) raise the comfort floor by the model's own
+  measured prediction error at each step's lead time — a promise made twelve
+  hours out carries the uncertainty twelve-hour promises have earned. Capped
+  at 0.8 °C, damped by the accuracy tracker's trust, and exactly zero with no
+  history, so deep price-riding coasts are taken only where the model has
+  earned them.
+- **A mold guard** (opt-in, needs an indoor humidity sensor) computes the
+  coldest surface in the house from the worst thermal bridge (fRsi) and the
+  outdoor forecast, and keeps the room above the temperature at which that
+  surface would cross 80% relative humidity. It never heats past the comfort
+  target — persistent high indoor humidity is a ventilation problem.
 
 The **Prediction Accuracy** sensor publishes how far off the model currently is,
 including the *signed* bias — a mean absolute error cannot tell random noise from
