@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 from bisect import bisect_right
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
@@ -237,6 +238,33 @@ from .const import (
     COP_BASELINE_ALPHA,
     COP_HEALTH_THRESHOLD,
     COP_HEALTH_DRIFT,
+    CONF_PRECIP_TYPE_ENABLED,
+    DEFAULT_PRECIP_TYPE_ENABLED,
+    CONF_SNOW_ROOF_FACTOR_ENABLED,
+    DEFAULT_SNOW_ROOF_FACTOR_ENABLED,
+    SNOW_CM_PER_MM_WATER,
+    SNOW_HEAVY_CM,
+    SNOW_ROOF_DAMPING,
+    SNOW_ROOF_DAYS,
+    CONF_CAPACITY_CURVE_ENABLED,
+    DEFAULT_CAPACITY_CURVE_ENABLED,
+    CAPACITY_MIN_SAMPLES,
+    CAPACITY_FLOOR_FRACTION,
+    CAPACITY_FORGET,
+    CONF_SOLAR_APERTURE_LEARNING_ENABLED,
+    DEFAULT_SOLAR_APERTURE_LEARNING_ENABLED,
+    SOLAR_APERTURE_MIN,
+    SOLAR_APERTURE_MAX,
+    SOLAR_APERTURE_MIN_IRRADIANCE,
+    SOLAR_APERTURE_ALPHA,
+    SOLAR_APERTURE_MIN_SAMPLES,
+    CONF_INTERNAL_GAINS_LEARNING_ENABLED,
+    DEFAULT_INTERNAL_GAINS_LEARNING_ENABLED,
+    INTERNAL_GAINS_ALPHA,
+    INTERNAL_GAINS_RIDGE,
+    INTERNAL_GAINS_MAX_FACTOR,
+    CONF_CURVE_LEARNING_ENABLED,
+    DEFAULT_CURVE_LEARNING_ENABLED,
 )
 from .inputs import InputHealth, InputReader, normalize_power_kw, stale_summary
 from .external_heat import (
@@ -273,6 +301,7 @@ from .grid_fee import (
     parse_month_range as grid_fee_parse_month_range,
 )
 from .dhw_draws import DrawStats, labels_for, window_label as draw_window_label
+from .curve_learning import CurveLearner
 from .drift import Cusum
 from .ledger import MonthlyLedger, month_key
 from .power_guard import GuardState, project_window_mean
@@ -377,12 +406,20 @@ class ForecastArrays(NamedTuple):
     #: known steps. Appended, never inserted: the positional consumers
     #: slice by index and an insertion would silently re-map them all.
     price_sigma: np.ndarray = np.array([], dtype=float)
+    #: Forecast relative humidity per step, % with NaN where unknown (#21).
+    #: Appended, never inserted — same rule as above.
+    humidity: np.ndarray = np.array([], dtype=float)
+    #: Forecast snowfall rate per step, cm/h (#30). Zero when no data.
+    snowfall: np.ndarray = np.array([], dtype=float)
 
     @classmethod
     def empty(cls) -> "ForecastArrays":
         """No usable horizon, so the caller should skip the run."""
         blank = np.array([], dtype=float)
-        return cls(blank, blank, blank, blank, blank, blank, blank, blank)
+        return cls(
+            blank, blank, blank, blank, blank, blank, blank, blank, blank,
+            blank,
+        )
 
 
 DHW_PROFILE_STORE_VERSION = 1
@@ -576,6 +613,31 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # the first cycle snapshots half-loaded learners into an empty
         # ring and saves that over eight weeks of insurance.
         self._snapshots_loaded: bool = False
+        # T4b #30: the roof-snow memory — a decaying accumulator of
+        # snowfall and the instant it last crossed "heavy". Weather
+        # memory, not learning; persisted so a restart mid-snow does not
+        # brighten the roof.
+        self._snow_accum_cm: float = 0.0
+        self._snow_accum_last: datetime | None = None
+        self._last_heavy_snow: datetime | None = None
+        # T4b learners (#17 #36 #53 #2), each fully behind its own flag —
+        # learning AND application, so a config change never suddenly
+        # applies weeks of evidence gathered while nobody was looking.
+        #: #17: per-3 °C-bucket upper envelope of delivered thermal kW.
+        self._capacity_envelope: dict[int, list[float]] = {}
+        #: #36: EWMA regression moments of (modelled Q_solar, implied
+        #: residual power) and the scale they currently support.
+        self._solar_aperture: dict[str, float] = {
+            "n": 0.0, "mx": 0.0, "my": 0.0, "cov": 0.0, "var": 0.0,
+            "scale": 1.0,
+        }
+        #: #53: learned per-hour internal gains, kW; None until first fold.
+        self._internal_gains_profile: list[float] | None = None
+        #: #2: the standing heat-curve displace bias.
+        self._curve_learner = CurveLearner()
+        #: #2's evidence: worst (zone − floor) margin seen so far today.
+        self._curve_day: str = ""
+        self._curve_day_worst: float | None = None
         # Worst-of-day input health, accumulated across heartbeats and
         # consumed when a day is counted (#42): a morning of garbage
         # inputs must not green-light an evening rollback.
@@ -1518,6 +1580,66 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         raw_events = stored.get("immersion_events")
         if isinstance(raw_events, list):
             self._immersion_events = [str(e) for e in raw_events[-20:]]
+        try:
+            self._snow_accum_cm = max(0.0, float(stored.get("snow_accum_cm", 0.0)))
+        except (TypeError, ValueError):
+            self._snow_accum_cm = 0.0
+        raw_snow = stored.get("last_heavy_snow")
+        if isinstance(raw_snow, str):
+            try:
+                self._last_heavy_snow = datetime.fromisoformat(raw_snow)
+            except ValueError:
+                self._last_heavy_snow = None
+        # The accumulator's clock persists too: without it, a restart
+        # after a multi-day outage skipped the downtime's decay entirely
+        # and stale accumulation could re-trip the roof-snow damping.
+        raw_snow_last = stored.get("snow_accum_last")
+        if isinstance(raw_snow_last, str):
+            try:
+                self._snow_accum_last = datetime.fromisoformat(raw_snow_last)
+            except ValueError:
+                self._snow_accum_last = None
+        self._load_t4b_learners(stored)
+
+    def _load_t4b_learners(self, stored: dict) -> None:
+        """Parse the T4b learners' additive keys (#17 #36 #53 #2).
+
+        One parser for both the store loader and the snapshot restore, so
+        the two paths cannot drift apart.
+        """
+        raw_env = stored.get("capacity_envelope")
+        if isinstance(raw_env, dict):
+            for key, entry in raw_env.items():
+                try:
+                    self._capacity_envelope[int(key)] = [
+                        float(entry[0]),
+                        int(entry[1]),
+                    ]
+                except (TypeError, ValueError, IndexError):
+                    continue
+        raw_ap = stored.get("solar_aperture")
+        if isinstance(raw_ap, dict):
+            for key in ("n", "mx", "my", "cov", "var", "scale"):
+                try:
+                    self._solar_aperture[key] = float(raw_ap.get(key, self._solar_aperture[key]))
+                except (TypeError, ValueError):
+                    continue
+            self._solar_aperture["scale"] = float(
+                np.clip(
+                    self._solar_aperture["scale"],
+                    SOLAR_APERTURE_MIN,
+                    SOLAR_APERTURE_MAX,
+                )
+            )
+        raw_gains = stored.get("internal_gains_profile")
+        if isinstance(raw_gains, list) and len(raw_gains) == 24:
+            try:
+                self._internal_gains_profile = [float(g) for g in raw_gains]
+            except (TypeError, ValueError):
+                self._internal_gains_profile = None
+        raw_curve = stored.get("curve_learner")
+        if isinstance(raw_curve, dict):
+            self._curve_learner = CurveLearner.from_dict(raw_curve)
 
     def _thermal_learning_payload(self) -> dict[str, Any]:
         """The thermal-learning store's exact save shape.
@@ -1545,6 +1667,35 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             },
             "cop_health_cusum": self._cop_health_cusum.as_dict(),
             "immersion_events": list(self._immersion_events),
+            # T4b #30: roof-snow memory, so a restart mid-snow does not
+            # brighten the roof. Weather memory riding the nearest store.
+            "snow_accum_cm": round(self._snow_accum_cm, 3),
+            "snow_accum_last": (
+                self._snow_accum_last.isoformat()
+                if self._snow_accum_last is not None
+                else None
+            ),
+            "last_heavy_snow": (
+                self._last_heavy_snow.isoformat()
+                if self._last_heavy_snow is not None
+                else None
+            ),
+            # T4b learners (#17 #36 #53 #2) — all additive keys, so this
+            # payload (and every weekly snapshot of it) stays loadable by
+            # any earlier version.
+            "capacity_envelope": {
+                str(k): [round(float(v[0]), 3), int(v[1])]
+                for k, v in self._capacity_envelope.items()
+            },
+            "solar_aperture": {
+                k: round(float(v), 6) for k, v in self._solar_aperture.items()
+            },
+            "internal_gains_profile": (
+                [round(float(g), 4) for g in self._internal_gains_profile]
+                if self._internal_gains_profile is not None
+                else None
+            ),
+            "curve_learner": self._curve_learner.as_dict(),
             "updated_at": dt_util.now().isoformat(),
         }
 
@@ -2028,6 +2179,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # this path is already guarded against frost, immersion, freezes
         # and low duty, so the baseline inherits every filter for free.
         self._observe_cop_health(float(observed_cop))
+        # #17 (gated): and the capacity envelope, for the same reason.
+        self._fold_capacity_envelope(float(observed_cop))
 
     def _input_health_view(self) -> dict[str, Any]:
         """Diagnostics for the input watchdog, published as entity attributes."""
@@ -2274,6 +2427,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 precipitation=precipitation,
                 solar_radiation=previous_state.solar_radiation,
                 dt_hours=dt_h,
+                # #53: the replay must predict with the learned per-hour
+                # profile, or its residuals never re-centre and the gains
+                # learner becomes an open-loop integrator converging to
+                # α/ridge times the true correction. None-profile (flag
+                # off, nothing learned) makes this byte-inert.
+                hour_of_day=previous_time.hour + previous_time.minute / 60.0,
             )
         except Exception as err:
             _LOGGER.debug("House heat loss learning simulation failed: %s", err)
@@ -2326,6 +2485,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 residual,
             )
             return
+
+        # T4b (#36 #53, both gated): the same accepted residual, split by
+        # attribution so the two learners cannot fight over one sample —
+        # sunny intervals inform the solar aperture, dark ones the
+        # internal-gains profile, and the heat-loss fold below keeps
+        # everything as before (UA error correlates with ΔT, not with the
+        # sun, so sharing samples with it is sound).
+        self._fold_solar_aperture(previous_state, residual, dt_h)
+        self._fold_internal_gains(previous_time, previous_state, residual, dt_h)
 
         # Current effective coefficient, i.e. what actually produced the
         # prediction, so the Newton step is taken about the right point.
@@ -2463,6 +2631,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 precipitation=precipitation,
                 solar_radiation=previous_state.solar_radiation,
                 dt_hours=dt_h,
+                # Same physics as the solve when #53 is on; inert when off.
+                hour_of_day=previous_time.hour + previous_time.minute / 60.0,
             )
         except Exception as err:
             _LOGGER.debug("Lower floor loss learning simulation failed: %s", err)
@@ -3094,6 +3264,34 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     self._opt_config.min_temp - OPEN_WINDOW_RELAX_C,
                 )
 
+            # T4b (#36 #53, gated): the learned solar aperture and internal
+            # gains apply per solve, so a flag change takes effect on the
+            # next run and never leaves a stale value behind when turned
+            # off — 1.0 / None are the byte-inert defaults.
+            aperture_on = bool(
+                self._config.get(
+                    CONF_SOLAR_APERTURE_LEARNING_ENABLED,
+                    DEFAULT_SOLAR_APERTURE_LEARNING_ENABLED,
+                )
+            )
+            self._thermal_params.solar_aperture_scale = (
+                float(self._solar_aperture["scale"])
+                if aperture_on
+                and self._solar_aperture["n"] >= SOLAR_APERTURE_MIN_SAMPLES
+                else 1.0
+            )
+            gains_on = bool(
+                self._config.get(
+                    CONF_INTERNAL_GAINS_LEARNING_ENABLED,
+                    DEFAULT_INTERNAL_GAINS_LEARNING_ENABLED,
+                )
+            )
+            self._thermal_params.internal_gains_profile = (
+                list(self._internal_gains_profile)
+                if gains_on and self._internal_gains_profile is not None
+                else None
+            )
+
             self._current_state.external_heat_active = self._external_heat_active
             # T2: the live guard's suppression and the post-outage DHW queue
             # both ride the same discretionary-DHW gate in the solve (#7/#22).
@@ -3127,6 +3325,16 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                         0.0,
                         None,
                     )
+            # #17 (gated): the learned capacity envelope composes through
+            # the SAME channel as the fuse guard — elementwise minimum,
+            # never a second cap mechanism.
+            env_caps = self._capacity_caps(horizon.outdoor_temps)
+            if env_caps is not None:
+                caps_extra = (
+                    env_caps
+                    if caps_extra is None
+                    else np.minimum(caps_extra, env_caps)
+                )
 
             # Run optimization in executor to avoid blocking
             result = await self.hass.async_add_executor_job(
@@ -3145,6 +3353,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 self._external_heat_forecast(len(horizon.prices)),
                 horizon.price_sigma,
                 caps_extra,
+                # #21: the forecast humidity series, when it carries data.
+                # None keeps the solve's inner loop free of dead lookups.
+                (
+                    horizon.humidity
+                    if horizon.humidity.size
+                    and bool(np.any(np.isfinite(horizon.humidity)))
+                    else None
+                ),
             )
 
             self._record_manual_release(result)
@@ -3391,6 +3607,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # #11: draw beyond what the compressor can pull means the immersion
         # element is running — a different appliance wearing the pump's meter.
         self._detect_immersion()
+        # #2 (gated): the curve learner's daily comfort evidence.
+        self._track_curve_comfort(dt_util.now())
         energy_reading = reader.read(CONF_ENERGY_ENTITY)
         self._measured_energy = energy_reading.value if energy_reading.ok else None
 
@@ -3913,8 +4131,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
     def _weather_series(
         self, n_steps: int, midnight: datetime, step_offset: int
-    ) -> tuple[list[float], list[float], list[float], list[float]]:
-        """Per-step outdoor temperature, wind, precipitation and irradiance.
+    ) -> tuple[
+        list[float], list[float], list[float], list[float], list[float]
+    ]:
+        """Per-step outdoor temperature, wind, precipitation, irradiance
+        and relative humidity (NaN where the entry offers none, #21).
 
         These are *forecast trajectories*, not current conditions: using the
         whole horizon is what makes the control anticipatory rather than
@@ -3933,6 +4154,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 [0.0] * n_steps,
                 [0.0] * n_steps,
                 [self._solar_radiation] * n_steps,
+                [float("nan")] * n_steps,
             )
 
         # Convert using the unit the weather entity actually reports in.
@@ -3944,11 +4166,17 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             for i in range(n_steps)
         ]
 
-        parsed: list[tuple[datetime | None, tuple[float, float, float, float]]] = []
+        parsed: list[
+            tuple[datetime | None, tuple[float, float, float, float, float]]
+        ] = []
         for idx, entry in enumerate(self._weather_forecast):
             temp = _as_float(entry.get("temperature"), 5.0)
             gust = max(0.0, _as_float(entry.get("wind_speed"), 0.0) * wind_scale)
             rain = max(0.0, _as_float(entry.get("precipitation"), 0.0))
+            # NaN, not a guess: the model reads NaN as "use the ambient
+            # value", while any invented number would select a real
+            # defrost bucket (#21).
+            rh = _as_float(entry.get("humidity"), float("nan"))
 
             irradiance = 0.0
             if idx < len(self._solar_radiation_forecast):
@@ -3966,7 +4194,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 if step_starts
                 else None
             )
-            parsed.append((ts, (temp, gust, rain, irradiance)))
+            parsed.append((ts, (temp, gust, rain, irradiance, rh)))
 
         timed = sorted(
             (item for item in parsed if item[0] is not None),
@@ -3976,6 +4204,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         wind: list[float] = []
         precipitation: list[float] = []
         solar: list[float] = []
+        humidity: list[float] = []
 
         if timed:
             starts = [ts for ts, _ in timed]
@@ -3984,22 +4213,24 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 # entry the first is the best information there is, and past
                 # the last the caller pads flat anyway.
                 idx = max(0, bisect_right(starts, step_start) - 1)
-                temp, gust, rain, irradiance = timed[idx][1]
+                temp, gust, rain, irradiance, rh = timed[idx][1]
                 outdoor.append(temp)
                 wind.append(gust)
                 precipitation.append(rain)
                 solar.append(irradiance)
+                humidity.append(rh)
         else:
             # No timestamps at all: the old positional assumption, hourly
             # entries starting now.
-            for _, (temp, gust, rain, irradiance) in parsed:
+            for _, (temp, gust, rain, irradiance, rh) in parsed:
                 for _ in range(4):
                     outdoor.append(temp)
                     wind.append(gust)
                     precipitation.append(rain)
                     solar.append(irradiance)
+                    humidity.append(rh)
 
-        return outdoor, wind, precipitation, solar
+        return outdoor, wind, precipitation, solar, humidity
 
     def _apply_open_meteo(
         self,
@@ -4074,28 +4305,121 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             return ForecastArrays.empty()
         prices, price_known, price_sigma = priced
 
-        outdoor, wind, precipitation, solar = self._weather_series(
+        outdoor, wind, precipitation, solar, humidity = self._weather_series(
             n_steps, midnight, step_offset
         )
         solar = self._apply_open_meteo(solar, n_steps, midnight, step_offset)
 
         # A forecast shorter than the horizon is held flat at its last value.
-        for series in (outdoor, wind, precipitation, solar):
+        for series in (outdoor, wind, precipitation, solar, humidity):
             while len(series) < n_steps:
                 series.append(series[-1] if series else 0.0)
 
-        solar_array = np.array(solar[:n_steps], dtype=float)
+        # Open-Meteo's hourly humidity and snowfall overlay the weather
+        # entity by wall-clock time, exactly like the irradiance above.
+        # Humidity keeps the entity's value where Open-Meteo has none;
+        # snowfall has no entity fallback — no data reads as no snow.
+        snowfall = [0.0] * n_steps
+        if self._open_meteo is not None and self._open_meteo.available:
+            step = timedelta(minutes=FORECAST_STEP_MINUTES)
+            for i in range(n_steps):
+                step_start = midnight + timedelta(
+                    minutes=FORECAST_STEP_MINUTES * (step_offset + i)
+                )
+                rh = self._open_meteo.humidity_for(step_start, step)
+                if rh is not None:
+                    humidity[i] = float(np.clip(rh, 0.0, 100.0))
+                snow = self._open_meteo.snowfall_for(step_start, step)
+                if snow is not None:
+                    snowfall[i] = max(0.0, float(snow))
+
+        precip_array = np.array(precipitation[:n_steps], dtype=float)
+        snow_array = np.array(snowfall[:n_steps], dtype=float)
+        # #30 (gated): weight the rain heat-loss effect by the liquid
+        # fraction — snow does not wet the building envelope. The array the
+        # optimizer sees is what carries the physics, so with the flag off
+        # it is byte-for-byte the raw precipitation.
+        if bool(
+            self._config.get(CONF_PRECIP_TYPE_ENABLED, DEFAULT_PRECIP_TYPE_ENABLED)
+        ) and np.any(snow_array > 0.0):
+            precip_array = precip_array * self._liquid_fraction(
+                precip_array, snow_array
+            )
+
+        solar_list = solar[:n_steps]
+        # #30 (gated): a roof under fresh snow admits far less sun. Crude by
+        # design — a factor and a holding period, not a melt model.
+        if self._update_snow_memory(now, snow_array):
+            solar_list = [s * SNOW_ROOF_DAMPING for s in solar_list]
+
+        solar_array = np.array(solar_list, dtype=float)
         surplus = self._pv_surplus_series(solar_array, n_steps)
 
         return ForecastArrays(
             prices=prices,
             outdoor_temps=np.array(outdoor[:n_steps], dtype=float),
             wind_speeds=np.array(wind[:n_steps], dtype=float),
-            precipitation=np.array(precipitation[:n_steps], dtype=float),
+            precipitation=precip_array,
             solar_radiation=solar_array,
             price_known=price_known,
             pv_surplus=surplus,
             price_sigma=price_sigma,
+            humidity=np.array(humidity[:n_steps], dtype=float),
+            snowfall=snow_array,
+        )
+
+    @staticmethod
+    def _liquid_fraction(
+        precip_array: np.ndarray, snow_array: np.ndarray
+    ) -> np.ndarray:
+        """#30's split: what share of each step's precipitation is rain.
+
+        Open-Meteo's ``precipitation`` already includes the snowfall's
+        water equivalent (cm × 1/0.7 mm), so subtracting it leaves the
+        liquid share; the clip absorbs cross-source disagreement (entity
+        rain vs Open-Meteo snow) and a dry step is defined as fully
+        liquid so it multiplies to zero either way.
+        """
+        snow_water = np.asarray(snow_array, dtype=float) / SNOW_CM_PER_MM_WATER
+        precip = np.asarray(precip_array, dtype=float)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            return np.where(
+                precip > 1e-9,
+                np.clip((precip - snow_water) / precip, 0.0, 1.0),
+                1.0,
+            )
+
+    def _update_snow_memory(self, now: datetime, snow_array: np.ndarray) -> bool:
+        """#30's roof-snow bookkeeping; True while solar should be damped.
+
+        A 24-hour decaying accumulator of the current snowfall rate trips
+        the "roof snowed over" assumption at SNOW_HEAVY_CM, which then
+        holds for SNOW_ROOF_DAYS. Entirely inert — no state is touched —
+        while the flag is off.
+        """
+        if not bool(
+            self._config.get(
+                CONF_SNOW_ROOF_FACTOR_ENABLED, DEFAULT_SNOW_ROOF_FACTOR_ENABLED
+            )
+        ):
+            return False
+        rate_now = float(snow_array[0]) if snow_array.size else 0.0
+        last = self._snow_accum_last
+        if last is not None:
+            dt_true = max(0.0, (now - last).total_seconds() / 3600.0)
+            # Decay over the FULL gap — clamping it would keep two-day-old
+            # snow "fresh" forever — but credit new fall only for a bounded
+            # window, so a long outage cannot book a blizzard from one rate
+            # sample.
+            self._snow_accum_cm *= math.exp(-dt_true / 24.0)
+            self._snow_accum_cm += rate_now * min(dt_true, 6.0)
+        self._snow_accum_last = now
+        if self._snow_accum_cm >= SNOW_HEAVY_CM:
+            self._last_heavy_snow = now
+        if self._last_heavy_snow is None:
+            return False
+        return (now - self._last_heavy_snow).total_seconds() < (
+            SNOW_ROOF_DAYS * 86400.0
         )
 
     def _get_current_price(self) -> float:
@@ -4178,6 +4502,16 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         reason: str = "optimizer",
     ) -> None:
         """Publish ECL110 displace command via direct `/set` topic and optional legacy JSON topic."""
+        # #2 (gated): the standing learned curve bias joins after every
+        # guard has had its say and before the configured displace clamp —
+        # exactly where a user correcting an over-hot installer curve by
+        # hand would apply it. Never positive: the bias may only cool.
+        if bool(
+            self._config.get(
+                CONF_CURVE_LEARNING_ENABLED, DEFAULT_CURVE_LEARNING_ENABLED
+            )
+        ):
+            displace_value = displace_value + self._curve_learner.bias
         displace = float(
             np.clip(displace_value, self._ecl110_displace_min, self._ecl110_displace_max)
         )
@@ -4489,6 +4823,25 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 "alarm": self._cop_health_cusum.tripped,
                 "evidence": list(self._cop_health_cusum.evidence),
             },
+            # T4b learners, all additive. Published even while gated off
+            # (they read as empty/inert) so a user weighing the flags can
+            # see what the learners would say.
+            "capacity_envelope": {
+                "buckets": {
+                    str(k * 3): [round(float(v[0]), 2), int(v[1])]
+                    for k, v in self._capacity_envelope.items()
+                },
+            },
+            "solar_aperture": {
+                "scale": round(float(self._solar_aperture["scale"]), 3),
+                "samples": int(self._solar_aperture["n"]),
+            },
+            "internal_gains_profile": (
+                [round(float(g), 3) for g in self._internal_gains_profile]
+                if self._internal_gains_profile is not None
+                else None
+            ),
+            "heat_curve": self._curve_learner.summary(),
             "snapshots": {
                 "count": len(self._snapshot_ring.snapshots),
                 "alarm": self._snapshot_ring.alarmed,
@@ -5596,6 +5949,62 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 )
                 del self._immersion_evidence[:-6]
 
+    def _track_curve_comfort(self, now: datetime) -> None:
+        """#2's evidence: the day's worst (zone − comfort floor) margin.
+
+        Measured zone temperatures against the floor the optimizer was
+        enforcing at that hour. A touch of the floor while the bias is
+        applied resets it on the spot — safety reacts immediately, only
+        the downward creep waits for the day to close.
+        """
+        if not bool(
+            self._config.get(
+                CONF_CURVE_LEARNING_ENABLED, DEFAULT_CURVE_LEARNING_ENABLED
+            )
+        ):
+            return
+        # An away setback sits deliberately below the normal floor this
+        # tracker reads (the lowered floor lives only inside the solve's
+        # snapshot/unwind envelope), so every vacation would read as a
+        # comfort miss and wipe the learned bias. Same for a tripped
+        # window detector or stale sensor: the dip is real but it is not
+        # the curve's doing. No evidence is collected on such days.
+        if self._away_state.active or self._away_state.recovery_active:
+            return
+        if self._learning_frozen(CONF_INDOOR_TEMP_ENTITY) is not None:
+            return
+        hour = now.hour + now.minute / 60.0
+        try:
+            floor_c = float(self._opt_config.get_temp_bounds(hour)[0])
+        except Exception:  # noqa: BLE001 - evidence, never operations
+            return
+        temps = [
+            t
+            for t in (
+                self._current_state.room_temperature,
+                self._current_state.upper_floor_temperature,
+                self._current_state.lower_floor_temperature,
+            )
+            if t is not None and np.isfinite(t)
+        ]
+        if not temps:
+            return
+        margin = min(temps) - floor_c
+
+        day = now.date().isoformat()
+        if self._curve_day and day != self._curve_day:
+            # Yesterday closed: fold its verdict, then start today's book.
+            self._curve_learner.record_day(now, self._curve_day_worst)
+            self._curve_day_worst = None
+        self._curve_day = day
+        self._curve_day_worst = (
+            margin
+            if self._curve_day_worst is None
+            else min(self._curve_day_worst, margin)
+        )
+        if margin <= 0.0 and self._curve_learner.bias < 0.0:
+            self._curve_learner.record_miss(now, margin)
+
     def _immersion_dhw_margin(self, now: datetime) -> float:
         """#11's gated feedback: extra readiness when rescues recur.
 
@@ -5623,6 +6032,177 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             if when >= cutoff:
                 recent += 1
         return 2.0 if recent >= 3 else 0.0
+
+    # -- T4b learners (#17 #36 #53), each fully behind its flag ------------
+
+    def _fold_capacity_envelope(self, observed_cop: float) -> None:
+        """#17: remember the most heat the unit has delivered per bucket.
+
+        Fed only from ``_learn_measured_cop``'s vetted tail, so frost,
+        immersion, freezes and low duty are already filtered. The envelope
+        is an upper bound with slow forgetting — a one-off spike decays
+        instead of pinning the bucket forever.
+
+        Only near-nameplate commands are evidence: a partial-load interval
+        says nothing about what the machine COULD deliver, and folding it
+        would make the envelope self-censoring — the caps limit the plan,
+        the plan limits the samples, and every bucket would ratchet down
+        to the floor within weeks of ordinary partial-load running.
+        """
+        if not bool(
+            self._config.get(
+                CONF_CAPACITY_CURVE_ENABLED, DEFAULT_CAPACITY_CURVE_ENABLED
+            )
+        ):
+            return
+        if self._measured_power is None:
+            return
+        p_max = float(self._thermal_params.max_electrical_power)
+        if p_max <= 0.1 or self._commanded_power() < 0.95 * p_max:
+            return
+        thermal_kw = float(observed_cop) * float(self._measured_power)
+        if not np.isfinite(thermal_kw) or thermal_kw <= 0.0:
+            return
+        bucket = int(
+            np.floor(float(self._current_state.outdoor_temperature) / 3.0)
+        )
+        entry = self._capacity_envelope.get(bucket)
+        if entry is None:
+            self._capacity_envelope[bucket] = [thermal_kw, 1]
+            return
+        entry[0] = max(thermal_kw, float(entry[0]) * CAPACITY_FORGET)
+        entry[1] = int(entry[1]) + 1
+
+    def _capacity_caps(self, outdoor_temps: np.ndarray) -> np.ndarray | None:
+        """#17's per-step electrical ceiling from the learned envelope.
+
+        Composes through T2's ``power_caps_extra`` channel — never a new
+        one. Floored at ``CAPACITY_FLOOR_FRACTION`` of nameplate: a starved
+        house at −15 °C is this program's worst failure mode, so the cap
+        may trim optimism but can never take the pump away. Buckets still
+        under ``CAPACITY_MIN_SAMPLES`` cap nothing. Returns None when no
+        bucket caps anything.
+        """
+        if not bool(
+            self._config.get(
+                CONF_CAPACITY_CURVE_ENABLED, DEFAULT_CAPACITY_CURVE_ENABLED
+            )
+        ):
+            return None
+        p_max = float(self._thermal_params.max_electrical_power)
+        if p_max <= 0.1:
+            return None
+        floor = CAPACITY_FLOOR_FRACTION * p_max
+        caps = np.full(len(outdoor_temps), p_max, dtype=float)
+        any_cap = False
+        for i, outdoor in enumerate(outdoor_temps):
+            entry = self._capacity_envelope.get(int(np.floor(outdoor / 3.0)))
+            if entry is None or int(entry[1]) < CAPACITY_MIN_SAMPLES:
+                continue
+            cop_i = max(self._thermal_model.compute_cop(float(outdoor)), 1e-6)
+            cap_i = float(np.clip(float(entry[0]) / cop_i, floor, p_max))
+            if cap_i < p_max - 1e-9:
+                caps[i] = cap_i
+                any_cap = True
+        return caps if any_cap else None
+
+    def _fold_solar_aperture(
+        self, previous_state: ThermalState, residual: float, dt_h: float
+    ) -> None:
+        """#36: regress the sunny-step residual against modelled Q_solar.
+
+        The slope of implied surplus power on modelled solar gain is
+        exactly (true aperture / modelled − 1); with the learned scale
+        already applied in the simulation, the residuals re-centre and
+        the regression converges to a fixed point.
+        """
+        if not bool(
+            self._config.get(
+                CONF_SOLAR_APERTURE_LEARNING_ENABLED,
+                DEFAULT_SOLAR_APERTURE_LEARNING_ENABLED,
+            )
+        ):
+            return
+        irradiance = float(previous_state.solar_radiation or 0.0)
+        if irradiance < SOLAR_APERTURE_MIN_IRRADIANCE:
+            return
+        capacity = (
+            self._thermal_params.upper_floor_thermal_mass
+            if self._thermal_params.two_zone_enabled
+            else self._thermal_params.room_thermal_mass
+        )
+        if capacity <= 1e-6 or dt_h <= 1e-6:
+            return
+        x = self._thermal_model.compute_solar_gain(irradiance)
+        y = residual * capacity / dt_h  # implied surplus power, kW
+        if x <= 1e-6 or not np.isfinite(y):
+            return
+        a = SOLAR_APERTURE_ALPHA
+        m = self._solar_aperture
+        m["n"] += 1.0
+        dx = x - m["mx"]
+        m["mx"] += a * dx
+        dy = y - m["my"]
+        m["my"] += a * dy
+        # EWMA covariance/variance about the running means.
+        m["cov"] += a * (dx * (y - m["my"]) - m["cov"])
+        m["var"] += a * (dx * (x - m["mx"]) - m["var"])
+        if m["n"] >= SOLAR_APERTURE_MIN_SAMPLES and m["var"] > 1e-6:
+            m["scale"] = float(
+                np.clip(
+                    m["scale"] + m["cov"] / m["var"],
+                    SOLAR_APERTURE_MIN,
+                    SOLAR_APERTURE_MAX,
+                )
+            )
+            # The step has been taken into the standing scale; the moments
+            # restart so the next correction is measured against it.
+            m["cov"] = 0.0
+
+    def _fold_internal_gains(
+        self,
+        previous_time: datetime | None,
+        previous_state: ThermalState,
+        residual: float,
+        dt_h: float,
+    ) -> None:
+        """#53: pull the interval's hour toward the residual it produced.
+
+        Only dark intervals feed it — under real sun the same surplus is
+        the aperture learner's business (#36) — and the ridge term keeps
+        every hour tethered to the configured constant: the profile is a
+        perturbation of the prior, never a replacement for it.
+        """
+        if not bool(
+            self._config.get(
+                CONF_INTERNAL_GAINS_LEARNING_ENABLED,
+                DEFAULT_INTERNAL_GAINS_LEARNING_ENABLED,
+            )
+        ):
+            return
+        if float(previous_state.solar_radiation or 0.0) > 50.0:
+            return
+        if previous_time is None or dt_h <= 1e-6:
+            return
+        capacity = (
+            self._thermal_params.upper_floor_thermal_mass
+            if self._thermal_params.two_zone_enabled
+            else self._thermal_params.room_thermal_mass
+        )
+        if capacity <= 1e-6:
+            return
+        g0 = float(self._thermal_params.internal_gains)
+        if self._internal_gains_profile is None:
+            self._internal_gains_profile = [g0] * 24
+        hour = int(previous_time.hour) % 24
+        y = residual * capacity / dt_h
+        if not np.isfinite(y):
+            return
+        g = self._internal_gains_profile[hour]
+        g += INTERNAL_GAINS_ALPHA * y - INTERNAL_GAINS_RIDGE * (g - g0)
+        self._internal_gains_profile[hour] = float(
+            np.clip(g, 0.0, INTERNAL_GAINS_MAX_FACTOR * max(g0, 0.05))
+        )
 
     def _observe_cop_health(self, observed_cop: float) -> None:
         """#12: the weeks-scale compressor-health watch.
@@ -5741,6 +6321,19 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                         setter(float(value))
                     except (TypeError, ValueError):
                         continue
+            # T4b learners roll back through the same parser the store
+            # loader uses, cleared first so a restore is a restore, not a
+            # merge with the drifted state it replaces — ALL of them: a
+            # pre-T4b snapshot without these keys must restore to inert,
+            # not keep whatever drifted in since.
+            self._capacity_envelope = {}
+            self._internal_gains_profile = None
+            self._solar_aperture = {
+                "n": 0.0, "mx": 0.0, "my": 0.0, "cov": 0.0, "var": 0.0,
+                "scale": 1.0,
+            }
+            self._curve_learner = CurveLearner()
+            self._load_t4b_learners(thermal)
         profile = learners.get("dhw_profile")
         if isinstance(profile, dict):
             hourly = profile.get("hourly_profile")
@@ -6756,6 +7349,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     # it is compared against did (#34).
                     price_sigma=horizon.price_sigma,
                     power_caps_extra=cap_extra,
+                    # #21: the what-if is compared against a plan that saw
+                    # the humidity series, so it must see the same one.
+                    humidity=(
+                        horizon.humidity
+                        if horizon.humidity.size
+                        and bool(np.any(np.isfinite(horizon.humidity)))
+                        else None
+                    ),
                 )
             )
         except Exception as err:  # noqa: BLE001 - a what-if must never break ops

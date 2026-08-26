@@ -718,6 +718,78 @@ relax gating and the rollback-alarm interplay got direct tests (the original
 rollback-once check had passed for the wrong reason). Features suite grew to
 662 checks in the round.
 
+*T4b outcome notes:* built as scoped, on the T4a-verified hook sites. **#21**
+ships ungated: `relative_humidity_2m` rides the existing Open-Meteo forecast
+request (hourly), overlays the weather entity's per-entry humidity by
+wall-clock time, and threads as an appended `ForecastArrays.humidity` (NaN =
+unknown = the ambient fallback) through `optimize()` into every
+`simulate_step` — the derate lookup now sees each step's own air. Inert by
+construction with zero defrost evidence, and an all-NaN series is dropped
+before the objective's inner loop so the no-data path costs nothing. **#30**
+(two gates): the optimizer's precipitation array is pre-weighted by the
+liquid fraction (snow does not wet the envelope) at the chokepoint where the
+horizon is assembled, so with the flag off the array is byte-identical; the
+roof-snow damping keeps a decaying snowfall accumulator (decay over the full
+gap, credit over a bounded one — the first draft clamped both and kept
+two-day-old snow fresh forever, caught by its own test) whose heavy-fall
+trigger halves modelled solar for two days, persisted so a restart does not
+brighten the roof. **#17** learns the per-3 °C upper envelope of delivered
+thermal power in `_learn_measured_cop`'s vetted tail and composes its
+electrical caps through T2's `caps_extra` via `np.minimum` — never a second
+channel — floored at 0.6 × nameplate. **#36** regresses sunny-step residuals
+(EWMA moments) against modelled Q_solar into `solar_aperture_scale`
+[0.3, 2.0], applied per solve; the convergence test runs the honest closed
+loop after an open-loop draft overshot. **#53** learns per-hour internal
+gains from dark intervals only (sunny surplus belongs to #36 — a hard
+attribution split), ridge-tethered to the configured constant, threaded as
+`hour_of_day` through the step functions. **#2** (`curve_learning.py`) creeps
+the ECL110 displace bias down ≤0.5 K/week on days that held comfort with
+margin and resets to 0 instantly on any miss with the bias applied; it joins
+the displace after every guard, before the configured clamp. All four
+learners persist additively on the thermal store through one parser shared
+with the snapshot restore, and every T4b flag gates learning AND application
+together. New goldens: `capacity_curve` (a per-step VARYING cap through
+caps_extra — the fuse fixture only ever exercised a constant) and
+`precip_snow` (the liquid-fraction transform on a wet mild day); coord_* and
+config_flow re-recorded additive-only. One harness lesson recorded: the
+golden recorder's `--only` filter re-recorded all fixtures, and the five
+machine-sensitive ones had to be restored from HEAD — the never-re-record
+rule needs the recorder's cooperation, not just the operator's.
+
+*T4b review round (1 critical, 3 major, 5 minor, 3 nits — all acted on):*
+the critical was that first restore failing silently: the recorder job ran
+two `--record` passes, and the second rewrote the five protected fixtures
+AFTER the restore, so the container-local bytes were committed anyway (and
+the "all 52 unchanged" run that looked like good news was comparing the
+tree against its own fresh recordings). The review proved behaviour
+byte-identical across the revisions at default flags, the fixtures are
+restored from the T4a merge commit, and the `--only` fix makes the class of
+accident unrepeatable. The majors: #53 was an open-loop integrator — the
+learner replay predicted with the flat constant, so its residuals never
+re-centred and the profile converged to α/ridge = 2.5× the true correction;
+both learner replays now pass `hour_of_day`, closing the loop the way #36's
+scale always was, with a source-pinned regression. #17's envelope was
+self-censoring — the caps limit the plan, the plan limits the samples, and
+every partial-load bucket would have ratcheted to the 0.6 floor within
+weeks; only near-nameplate commands (≥95%) are envelope evidence now, since
+partial load bounds nothing. #2's comfort tracker read the normal floor
+while away mode enforced a lower one inside the solve envelope, so every
+vacation read as a comfort miss and wiped the bias; the tracker stands down
+during away/recovery and whenever the indoor sensor's learners are frozen.
+Minors: the snow accumulator's clock persists (a restart after a multi-day
+outage skipped the decay and could re-trip the roof damping on stale snow);
+rollback resets the aperture moments and curve bias too, so a pre-T4b
+snapshot restores to inert rather than merging; the buffer-refusal cap
+shave simulates with the same per-hour gains as the objective; the
+liquid-fraction arithmetic moved into a named helper with direct tests
+(all-snow 0, half-snow ½, cross-source disagreement clips); Open-Meteo's
+plausibility ceiling is per-variable now (the GHI limit meant nothing to a
+humidity series). Features suite closed the round at 711 checks. The
+timing gate also caught the per-step hour threading costing ~5% of solve
+time on the default path (interleaved A/B against main); the hot loops now
+compute the hour only when a learned gains profile exists, restoring
+parity within noise with byte-identical outputs.
+
 **Infrastructure:** **`snapshots.py`** — weekly ring buffer (8) serialising every
 learner's existing `as_dict()` tagged with `accuracy.summary()`; drift test on
 `temperature_bias` out of band 5 consecutive days ⇒ repair issue + one-click

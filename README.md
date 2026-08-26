@@ -917,6 +917,27 @@ Beyond the tank cooling rates and house heat loss learned in earlier versions:
   to the last known-good snapshot automatically — and the
   `heatpump_optimizer.restore_learned_snapshot` service is the manual override
   for when you can see what the watchdog cannot.
+- **Forecast humidity feeds the defrost derate per step**, so the plan sees the
+  humid 0–5 °C band coming instead of assuming today's air all day. With no
+  defrost evidence the derate is 1.0 everywhere, so this changes nothing until
+  the unit has actually been observed frosting.
+- **Snow is not rain** (opt-in): the rain heat-loss multiplier is weighted by
+  the liquid fraction of forecast precipitation, and a second opt-in halves
+  modelled solar gain for two days after heavy snowfall — snow on the glazing
+  blocks the sun the plan was counting on.
+- **A measured capacity envelope** (opt-in) learns how much heat the pump has
+  actually delivered at each outdoor temperature and caps cold-snap plans to
+  it, through the same channel as the fuse guard. It can only trim optimism:
+  at least 60% of nameplate always stays available.
+- **Solar aperture** (opt-in) scales the configured window-area × SHGC product
+  from sunny-hour prediction errors, clamped to [0.3, 2.0] — window area and
+  shading are guesses, and only their product is observable.
+- **Per-hour internal gains** (opt-in) learn the household's daily heat rhythm
+  from dark-hour prediction errors, ridge-tethered to the configured constant.
+- **Heat-curve correction** (opt-in) learns a standing cooling bias for an
+  installer-set curve that runs too hot: it creeps down by at most 0.5 K per
+  week on days that held comfort with margin, and resets to the installer's
+  curve instantly on any comfort miss. It can only cool, never heat.
 
 The **Prediction Accuracy** sensor publishes how far off the model currently is,
 including the *signed* bias — a mean absolute error cannot tell random noise from

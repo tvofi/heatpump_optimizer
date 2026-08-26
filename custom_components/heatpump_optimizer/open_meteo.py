@@ -57,6 +57,11 @@ _LOGGER = logging.getLogger(__name__)
 # direct-beam radiation would be the wrong input: it excludes the diffuse
 # component, which on an overcast day is essentially all of the light there is.
 _VARIABLE = "shortwave_radiation"
+# T4b: the defrost derate's second dimension (#21) and the rain/snow split
+# (#30) ride the same forecast request. Hourly is enough for both — frost
+# and precipitation type do not turn on quarter-hour timescales.
+_VARIABLE_HUMIDITY = "relative_humidity_2m"
+_VARIABLE_SNOWFALL = "snowfall"
 
 # Physical ceiling used to reject nonsense rather than feed it to the model.
 # The solar constant is ~1361 W/m^2; surface GHI cannot exceed it, and values
@@ -158,13 +163,16 @@ class IrradianceSeries:
 _EMPTY = IrradianceSeries(times=(), values=(), resolution=timedelta(hours=1))
 
 
-def _parse_block(block: dict, variable: str) -> IrradianceSeries:
+def _parse_block(
+    block: dict, variable: str, max_value: float = _MAX_PLAUSIBLE_GHI
+) -> IrradianceSeries:
     """Build a series from one Open-Meteo time block, skipping null samples.
 
     Open-Meteo pads the tail of a block with nulls when a model has not
     produced that far ahead, and the satellite archive has gaps where no image
     was usable. Both must be dropped rather than coerced to zero, which would
-    read as "no sun" instead of "no data".
+    read as "no sun" instead of "no data". ``max_value`` is the variable's own
+    plausibility ceiling — the GHI limit means nothing to a humidity series.
     """
     times_raw = block.get("time") or []
     values_raw = block.get(variable) or []
@@ -178,7 +186,7 @@ def _parse_block(block: dict, variable: str) -> IrradianceSeries:
             value = float(raw_v)
         except (TypeError, ValueError):
             continue
-        if value < 0.0 or value > _MAX_PLAUSIBLE_GHI:
+        if value < 0.0 or value > max_value:
             continue
         try:
             # timezone=UTC is requested, so the naive ISO stamps are UTC.
@@ -225,6 +233,11 @@ class OpenMeteoSolar:
         self.longitude = float(longitude)
         self._forecast: IrradianceSeries = _EMPTY
         self._observed: IrradianceSeries = _EMPTY
+        # T4b side series from the same forecast payload: relative humidity
+        # in % (#21) and snowfall in cm per interval (#30). The series class
+        # is a generic timestamped sequence despite its name.
+        self._humidity: IrradianceSeries = _EMPTY
+        self._snowfall: IrradianceSeries = _EMPTY
         self._last_success: datetime | None = None
         self._last_attempt: datetime | None = None
         self._failures = 0
@@ -267,6 +280,14 @@ class OpenMeteoSolar:
         if observed is not None:
             return observed
         return self._forecast.mean_over(start, end)
+
+    def humidity_for(self, start: datetime, duration: timedelta) -> float | None:
+        """Mean forecast relative humidity (%) over one optimizer step (#21)."""
+        return self._humidity.mean_over(start, start + duration)
+
+    def snowfall_for(self, start: datetime, duration: timedelta) -> float | None:
+        """Mean forecast snowfall rate (cm/h) over one optimizer step (#30)."""
+        return self._snowfall.mean_over(start, start + duration)
 
     def current_irradiance(self, now: datetime) -> float | None:
         """Best estimate of irradiance right now.
@@ -379,7 +400,9 @@ class OpenMeteoSolar:
                 "latitude": f"{self.latitude:.6f}",
                 "longitude": f"{self.longitude:.6f}",
                 "minutely_15": _VARIABLE,
-                "hourly": _VARIABLE,
+                "hourly": ",".join(
+                    (_VARIABLE, _VARIABLE_HUMIDITY, _VARIABLE_SNOWFALL)
+                ),
                 # UTC keeps parsing unambiguous and immune to DST transitions,
                 # which is exactly the kind of edge a heating plan spans.
                 "timezone": "UTC",
@@ -391,8 +414,20 @@ class OpenMeteoSolar:
         if data is None:
             return _EMPTY
 
+        # The side series (#21 #30) parse from the same hourly block; a
+        # missing variable leaves the previous series in place, exactly
+        # like a failed irradiance fetch.
+        hourly_block = data.get("hourly") or {}
+        humidity = _parse_block(hourly_block, _VARIABLE_HUMIDITY, max_value=100.0)
+        if humidity:
+            self._humidity = humidity
+        # 50 cm in one hour is beyond any recorded snowfall rate.
+        snowfall = _parse_block(hourly_block, _VARIABLE_SNOWFALL, max_value=50.0)
+        if snowfall:
+            self._snowfall = snowfall
+
         fine = _parse_block(data.get("minutely_15") or {}, _VARIABLE)
-        coarse = _parse_block(data.get("hourly") or {}, _VARIABLE)
+        coarse = _parse_block(hourly_block, _VARIABLE)
 
         # 15 minute data is only published for some regions and models. Prefer
         # it when present, but only if it actually spans a useful horizon;
@@ -443,6 +478,8 @@ class OpenMeteoSolar:
             "observed_until": self._observed.end.isoformat()
             if self._observed.end
             else None,
+            "humidity_points": len(self._humidity.times),
+            "snowfall_points": len(self._snowfall.times),
             "last_success": self._last_success.isoformat()
             if self._last_success
             else None,

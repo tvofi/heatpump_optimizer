@@ -712,6 +712,10 @@ class _Horizon:
     #: and a thermostat does not schedule a valve. ``None`` means the static
     #: configured target, which is byte-for-byte the previous behaviour.
     valve_targets: np.ndarray | None = None
+    #: Optional forecast relative humidity per step (#21), for the defrost
+    #: derate; NaN marks unknown steps. ``None`` falls back to the single
+    #: ambient value, which is byte-for-byte the previous behaviour.
+    humidity: np.ndarray | None = None
 
     @property
     def timestamps(self) -> list[datetime]:
@@ -1383,6 +1387,7 @@ class HeatPumpOptimizer:
         external_heat_kw: np.ndarray | None = None,
         price_sigma: np.ndarray | None = None,
         power_caps_extra: np.ndarray | None = None,
+        humidity: np.ndarray | None = None,
     ) -> OptimizationResult:
         """Run the MPC optimization with predictive weather anticipation.
 
@@ -1459,6 +1464,21 @@ class HeatPumpOptimizer:
             risk = np.where(price_known, 0.0, risk)
             if np.any(risk > 0.0):
                 prices = np.asarray(prices, dtype=float) + risk
+
+        # Forecast humidity (#21), normalised to horizon length; short
+        # series pad with NaN, which the model reads as "unknown, use the
+        # ambient value" — never as 0 % humidity. An all-NaN series is the
+        # same as none at all, and dropping it keeps the objective's inner
+        # loop free of per-step lookups that can only fall back.
+        if humidity is not None:
+            hum = np.asarray(humidity, dtype=float)
+            if hum.size < n_steps:
+                hum = np.concatenate(
+                    [hum, np.full(n_steps - hum.size, np.nan)]
+                )
+            humidity = hum[:n_steps]
+            if not np.any(np.isfinite(humidity)):
+                humidity = None
 
         # Free-heat forecast, normalised to horizon length like the arrays
         # above. All-zero is the same as none at all, and is treated so.
@@ -1598,6 +1618,7 @@ class HeatPumpOptimizer:
                 power_caps_extra=caps_extra_arr,
                 external_heat_kw=external_heat_kw,
                 valve_targets=valve_targets,
+                humidity=humidity,
             )
             if dhw_enabled:
                 return self._optimize_with_dhw(horizon)
@@ -1722,6 +1743,8 @@ class HeatPumpOptimizer:
                     wind_speeds, precipitation, solar_radiation, dt,
                     external_heat_kw=external_heat_kw,
                     valve_targets=valve_targets,
+                    humidity=humidity,
+                    start_hour=float(step_hours[0]),
                 ):
                     break
                 result = _solve()
@@ -1860,6 +1883,8 @@ class HeatPumpOptimizer:
         dt: float,
         external_heat_kw: np.ndarray | None = None,
         valve_targets: np.ndarray | None = None,
+        humidity: np.ndarray | None = None,
+        start_hour: float | None = None,
     ) -> bool:
         """Lower per-step power ceilings where the plan charged a full tank.
 
@@ -1882,6 +1907,12 @@ class HeatPumpOptimizer:
             dt_hours=dt,
             external_heat_kw=external_heat_kw,
             valve_targets=valve_targets,
+            humidity=humidity,
+            # The refusal check must simulate the same physics the
+            # objective did — with #53's profile active, flat internal
+            # gains would judge the caps on a trajectory the solve does
+            # not believe.
+            start_hour=start_hour,
         )
         refused = self.model.last_buffer_refused
         if refused is None:
@@ -2073,6 +2104,8 @@ class HeatPumpOptimizer:
                     dt_hours=dt,
                     external_heat_kw=h.external_heat_kw,
                     valve_targets=h.valve_targets,
+                    humidity=h.humidity,
+                    start_hour=float(h.step_hours[0]),
                 )
             )
 
@@ -2182,6 +2215,8 @@ class HeatPumpOptimizer:
                 dt_hours=dt,
                 external_heat_kw=h.external_heat_kw,
                 valve_targets=h.valve_targets,
+                humidity=h.humidity,
+                start_hour=float(h.step_hours[0]),
             )
         )
         # Captured here, next to the call that wrote it, rather than read back
@@ -3345,6 +3380,8 @@ class HeatPumpOptimizer:
                     dt_hours=dt,
                     external_heat_kw=h.external_heat_kw,
                     valve_targets=h.valve_targets,
+                    humidity=h.humidity,
+                    start_hour=float(h.step_hours[0]),
                 )
             )
 
@@ -3482,6 +3519,7 @@ class HeatPumpOptimizer:
                 dhw_draw_rates=dhw_draw_rates,
                 external_heat_kw=h.external_heat_kw,
                 valve_targets=h.valve_targets,
+                humidity=h.humidity,
             )
         )
         # Captured next to the call that wrote it. Before this method recorded

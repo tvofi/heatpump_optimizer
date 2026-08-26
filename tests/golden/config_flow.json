@@ -1012,7 +1012,19 @@
   }
  },
  "learning": {
+  "capacity_curve_enabled": {
+   "config": null,
+   "default": "False",
+   "required": "Optional",
+   "selector": "type"
+  },
   "comfort_learning_enabled": {
+   "config": null,
+   "default": "False",
+   "required": "Optional",
+   "selector": "type"
+  },
+  "curve_learning_enabled": {
    "config": null,
    "default": "False",
    "required": "Optional",
@@ -1062,6 +1074,12 @@
    "required": "Optional",
    "selector": "type"
   },
+  "internal_gains_learning_enabled": {
+   "config": null,
+   "default": "False",
+   "required": "Optional",
+   "selector": "type"
+  },
   "open_window_relax_enabled": {
    "config": null,
    "default": "False",
@@ -1074,9 +1092,27 @@
    "required": "Optional",
    "selector": "type"
   },
+  "precip_type_enabled": {
+   "config": null,
+   "default": "False",
+   "required": "Optional",
+   "selector": "type"
+  },
   "price_prior_enabled": {
    "config": null,
    "default": "True",
+   "required": "Optional",
+   "selector": "type"
+  },
+  "snow_roof_factor_enabled": {
+   "config": null,
+   "default": "False",
+   "required": "Optional",
+   "selector": "type"
+  },
+  "solar_aperture_learning_enabled": {
+   "config": null,
+   "default": "False",
    "required": "Optional",
    "selector": "type"
   },

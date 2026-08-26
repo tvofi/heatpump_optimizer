@@ -634,7 +634,7 @@ _wa._weather_forecast = [
     }
     for h in range(6)
 ]
-_wa_outdoor, _, _, _ = _wa._weather_series(4, _pa_mid, 0)
+_wa_outdoor, _, _, _, _ = _wa._weather_series(4, _pa_mid, 0)
 R.check(
     "a stale weather forecast still lines up with the clock",
     _wa_outdoor[0] == -8.0,
@@ -1814,6 +1814,10 @@ class _CopGate:
         # stub only gates the frost-band split.
         return None
 
+    def _fold_capacity_envelope(self, observed_cop):
+        # T4b's envelope is likewise exercised on the real coordinator.
+        return None
+
 
 _in_band = _CopGate(outdoor=2.0)
 _in_band._learn_measured_cop()
@@ -1939,6 +1943,7 @@ class _LearnPersist:
     # The save path serialises through the same producer the snapshots
     # use (T4a); a stub with its own dict would test a second format.
     _thermal_learning_payload = Coord._thermal_learning_payload
+    _load_t4b_learners = Coord._load_t4b_learners
     _apply_cop_scale = Coord._apply_cop_scale
 
     def __init__(self, store) -> None:
@@ -1956,6 +1961,17 @@ class _LearnPersist:
         self._cop_health_cusum = _Cusum(threshold=0.8, drift=0.01, side=1)
         self._cop_baseline = {}
         self._immersion_events = []
+        self._snow_accum_cm = 0.0
+        self._snow_accum_last = None
+        self._last_heavy_snow = None
+        self._capacity_envelope = {}
+        self._solar_aperture = {
+            "n": 0.0, "mx": 0.0, "my": 0.0, "cov": 0.0, "var": 0.0,
+            "scale": 1.0,
+        }
+        self._internal_gains_profile = None
+        from heatpump_optimizer.curve_learning import CurveLearner as _CL
+        self._curve_learner = _CL()
 
     def _apply_buffer_cooling_rate(self, rate: float) -> None:
         self._buffer_cooling_rate = float(rate)
@@ -2073,6 +2089,8 @@ runtime_only = {
     "dhw_window_ready_energy",  # learned per-window quantiles, set per solve
     "dhw_legionella_price_ceiling",  # from the price prior, set per solve
     "dhw_ready_margin_c",       # #11 feedback, set per solve from events
+    "solar_aperture_scale",     # #36 learned, set per solve when gated on
+    "internal_gains_profile",   # #53 learned per-hour, set per solve
     "cop_scale",                # learned from measured power
     "cop_reference_temp",       # a property of the COP curve, not the house
     "internal_gains",           # not exposed in the config flow
@@ -7281,6 +7299,556 @@ R.check(
 R.check(
     "an old sample without the key still loads, as None",
     AccuracySample.from_dict({"t": NOW.isoformat()}).cop_residual is None,
+)
+
+# ===========================================================================
+# T4b — model & learning, part two (#21 #30 #17 #36 #53 #2)
+# ===========================================================================
+R.section("T4b — weather inputs and learners (#21 #30 #17 #36 #53 #2)")
+
+from heatpump_optimizer.const import (
+    CAPACITY_FLOOR_FRACTION,
+    CAPACITY_MIN_SAMPLES,
+    INTERNAL_GAINS_MAX_FACTOR,
+    SNOW_HEAVY_CM,
+    SNOW_ROOF_DAYS,
+    SOLAR_APERTURE_MAX,
+    SOLAR_APERTURE_MIN_SAMPLES,
+)
+from heatpump_optimizer.curve_learning import (
+    BIAS_MIN,
+    COMFORT_MARGIN_C,
+    DAYS_PER_STEP,
+    STEP_K,
+    CurveLearner,
+)
+from heatpump_optimizer.defrost import DefrostDerate
+
+# --- #21 the humidity threading ------------------------------------------------
+# A derate with full-trust factors: 0.6 in the humid frost bucket, un-
+# touched (1.0) in the dry one, so the lookup's bucket choice is visible
+# in the COP itself.
+_dr = DefrostDerate()
+_dr.factors[2][1] = 0.6
+_dr.counts[2][1] = 20
+# The deep-cold bucket too, so the winter-day solve below — which never
+# leaves -16..-8 °C — has a humid penalty to react to.
+_dr.factors[0][1] = 0.6
+_dr.counts[0][1] = 20
+_tm21 = ThermalModel(ThermalParameters(defrost_derate=_dr, ambient_humidity=40.0))
+R.check(
+    "the forecast humidity selects the derate bucket per step",
+    abs(_tm21.compute_cop(1.0, humidity=90.0) / _tm21.compute_cop(1.0, humidity=40.0) - 0.6)
+    < 1e-9,
+)
+R.check(
+    "NaN humidity falls back exactly like an absent argument",
+    _tm21.compute_cop(1.0, humidity=float("nan")) == _tm21.compute_cop(1.0)
+    and _tm21.compute_cop(1.0) == _tm21.compute_cop(1.0, humidity=40.0),
+    "the ambient value, never the 0-100 bucket a coerced NaN would pick",
+)
+_st21 = ThermalState(room_temperature=20.0, outdoor_temperature=1.0)
+R.check(
+    "the step simulation carries the humidity into the physics",
+    _tm21.simulate_step(_st21, 3.0, 1.0, humidity=90.0).slab_temperature
+    < _tm21.simulate_step(_st21, 3.0, 1.0, humidity=40.0).slab_temperature,
+    "0.6 x the COP is 0.6 x the delivered heat",
+)
+
+# With NO defrost evidence the humidity series is inert by construction:
+# the same solve, with and without a full humidity array, byte for byte.
+_h21 = _mk_golden(dhw=True)
+_hum_arr = np.full(len(_h21["prices"]), 85.0)
+_r_dry = _h21["optimizer"].optimize(
+    _h21["state"], _h21["prices"], _h21["outdoor"], _h21["wind"], _h21["rain"],
+    _h21["solar"], _G_START,
+)
+_h21b = _mk_golden(dhw=True)
+_r_hum = _h21b["optimizer"].optimize(
+    _h21b["state"], _h21b["prices"], _h21b["outdoor"], _h21b["wind"],
+    _h21b["rain"], _h21b["solar"], _G_START, humidity=_hum_arr,
+)
+R.check(
+    "with zero defrost samples the humidity series changes nothing",
+    np.array_equal(
+        np.asarray(_r_dry.power_schedule), np.asarray(_r_hum.power_schedule)
+    )
+    and np.array_equal(
+        np.asarray(_r_dry.dhw_power_schedule),
+        np.asarray(_r_hum.dhw_power_schedule),
+    ),
+    "the derate is 1.0 everywhere, so #21 ships ungated",
+)
+_h21c = _mk_golden(
+    dhw=True,
+    param_overrides={"defrost_derate": _dr, "ambient_humidity": 40.0},
+)
+_r_derate = _h21c["optimizer"].optimize(
+    _h21c["state"], _h21c["prices"], _h21c["outdoor"], _h21c["wind"],
+    _h21c["rain"], _h21c["solar"], _G_START, humidity=_hum_arr,
+)
+_h21d = _mk_golden(
+    dhw=True,
+    param_overrides={"defrost_derate": _dr, "ambient_humidity": 40.0},
+)
+_r_ambient = _h21d["optimizer"].optimize(
+    _h21d["state"], _h21d["prices"], _h21d["outdoor"], _h21d["wind"],
+    _h21d["rain"], _h21d["solar"], _G_START,
+)
+R.check(
+    "with real defrost evidence a humid forecast reshapes the plan",
+    not np.array_equal(
+        np.asarray(_r_derate.power_schedule),
+        np.asarray(_r_ambient.power_schedule),
+    ),
+    "the winter day crosses the frost band, where the humid bucket bites",
+)
+
+# --- #30 the roof-snow memory ----------------------------------------------------
+import homeassistant.util.dt as _dt_snow
+
+_c30 = _t2_coord()
+_heavy = np.full(4, 1.0)  # 1 cm/h at the current step
+_real_now_snow = _dt_snow.now
+_snow_t0 = datetime(2026, 1, 20, 6, 0, tzinfo=UTC)
+try:
+    _dt_snow.now = lambda: _snow_t0
+    R.check(
+        "with the flag off the snow memory never engages and never mutates",
+        not _c30._update_snow_memory(_snow_t0, _heavy)
+        and _c30._snow_accum_last is None,
+    )
+    _c31 = _t2_coord(snow_roof_factor_enabled=True)
+    _c31._update_snow_memory(_snow_t0, _heavy)  # seeds the clock
+    _damped = _c31._update_snow_memory(
+        _snow_t0 + timedelta(hours=3), _heavy
+    )
+    R.check(
+        "three hours of heavy snowfall cross the trip line and damp the sun",
+        _damped and _c31._snow_accum_cm >= SNOW_HEAVY_CM,
+        f"accumulated {_c31._snow_accum_cm:.1f} cm",
+    )
+    R.check(
+        "the roof is assumed clear again after the holding period",
+        not _c31._update_snow_memory(
+            _snow_t0 + timedelta(days=SNOW_ROOF_DAYS, hours=4), np.zeros(4)
+        ),
+    )
+finally:
+    _dt_snow.now = _real_now_snow
+
+# --- #17 the capacity envelope ------------------------------------------------------
+_c17 = _t2_coord(capacity_curve_enabled=True)
+_c17._current_state.outdoor_temperature = -10.0  # bucket -4
+_c17._current_action = {"power": 5.0}  # commanded at nameplate
+_c17._measured_power = 4.0
+for _ in range(CAPACITY_MIN_SAMPLES + 2):
+    _c17._fold_capacity_envelope(2.0)  # 8 kW thermal delivered
+_bucket = int(np.floor(-10.0 / 3.0))
+R.check(
+    "the envelope remembers the most heat the bucket has delivered",
+    abs(_c17._capacity_envelope[_bucket][0] - 8.0) < 1e-6
+    and _c17._capacity_envelope[_bucket][1] == CAPACITY_MIN_SAMPLES + 2,
+)
+_caps17 = _c17._capacity_caps(np.array([-10.0, -10.0, 15.0]))
+_cop_cold = _c17._thermal_model.compute_cop(-10.0)
+_exp_cap = float(np.clip(8.0 / _cop_cold, CAPACITY_FLOOR_FRACTION * 5.0, 5.0))
+R.check(
+    "a sampled bucket caps to its envelope at that step's own COP",
+    _caps17 is not None
+    and abs(_caps17[0] - _exp_cap) < 1e-6
+    and _caps17[2] == 5.0,
+    "the unsampled 15 °C bucket must stay at nameplate",
+)
+_c17._capacity_envelope[_bucket][0] = 0.5  # absurdly weak evidence
+R.check(
+    "the cap can never starve the house below the nameplate floor",
+    _c17._capacity_caps(np.array([-10.0]))[0]
+    >= CAPACITY_FLOOR_FRACTION * 5.0 - 1e-9,
+    "a starved house at -15 °C is this program's worst failure mode",
+)
+_c17._capacity_envelope[_bucket][1] = CAPACITY_MIN_SAMPLES - 1
+R.check(
+    "an under-sampled bucket caps nothing at all",
+    _c17._capacity_caps(np.array([-10.0])) is None,
+)
+_c18 = _t2_coord()
+_c18._measured_power = 4.0
+_c18._current_action = {"power": 5.0}
+_c18._current_state.outdoor_temperature = -10.0
+_c18._fold_capacity_envelope(3.0)
+R.check(
+    "with the flag off the envelope neither learns nor caps",
+    not _c18._capacity_envelope and _c18._capacity_caps(np.array([-10.0])) is None,
+)
+_c19 = _t2_coord(capacity_curve_enabled=True)
+_c19._current_state.outdoor_temperature = -10.0
+_c19._measured_power = 2.0
+_c19._current_action = {"power": 2.0}  # 40% duty: censored, not evidence
+_c19._fold_capacity_envelope(3.0)
+R.check(
+    "partial-load intervals are censored, never envelope evidence",
+    not _c19._capacity_envelope,
+    "the caps limit the plan and the plan limits the samples; folding "
+    "partial load would ratchet every active bucket down to the floor",
+)
+R.check(
+    "the envelope composes through caps_extra, never a second channel",
+    "np.minimum(caps_extra, env_caps)"
+    in inspect.getsource(_Coord.async_run_optimization),
+)
+
+# --- #36 the solar aperture -------------------------------------------------------
+_c36 = _t2_coord(solar_aperture_learning_enabled=True)
+_st36 = replace(_c36._current_state)
+_cap36 = _c36._thermal_params.room_thermal_mass
+_random.seed(11)
+# Closed loop, exactly as the coordinator runs it: the residual is what
+# remains AFTER the current scale is applied in the simulation, and the
+# irradiance varies — a constant sun carries no slope information at all.
+for _ in range(SOLAR_APERTURE_MIN_SAMPLES * 6):
+    _irr = _random.uniform(200.0, 800.0)
+    _st36.solar_radiation = _irr
+    _x = _c36._thermal_model.compute_solar_gain(_irr)
+    _scale_now = _c36._solar_aperture["scale"]
+    _res = ((1.5 - _scale_now) * _x + _random.gauss(0.0, 0.05)) * 0.5 / _cap36
+    _c36._fold_solar_aperture(_st36, _res, 0.5)
+R.check(
+    "the aperture regression converges on the true scale",
+    abs(_c36._solar_aperture["scale"] - 1.5) < 0.15,
+    f"learned {_c36._solar_aperture['scale']:.2f}, truth 1.5",
+)
+_c36x = _t2_coord(solar_aperture_learning_enabled=True)
+_st36x = replace(_c36x._current_state)
+for _ in range(SOLAR_APERTURE_MIN_SAMPLES * 4):
+    _irr = _random.uniform(200.0, 800.0)
+    _st36x.solar_radiation = _irr
+    _x = _c36x._thermal_model.compute_solar_gain(_irr)
+    _c36x._fold_solar_aperture(_st36x, 10.0 * _x * 0.5 / _cap36, 0.5)
+R.check(
+    "an absurd slope pins at the clamp instead of running away",
+    _c36x._solar_aperture["scale"] == SOLAR_APERTURE_MAX,
+)
+_c37 = _t2_coord(solar_aperture_learning_enabled=True)
+_st37 = replace(_c37._current_state)
+_st37.solar_radiation = 50.0  # below the information threshold
+for _ in range(100):
+    _c37._fold_solar_aperture(_st37, 0.4, 0.5)
+R.check(
+    "dim steps carry no aperture information and never move the scale",
+    _c37._solar_aperture["n"] == 0.0 and _c37._solar_aperture["scale"] == 1.0,
+)
+_c38 = _t2_coord()
+_st38 = replace(_c38._current_state)
+_st38.solar_radiation = 400.0
+_c38._fold_solar_aperture(_st38, 0.4, 0.5)
+R.check(
+    "with the flag off the aperture learner is inert",
+    _c38._solar_aperture["n"] == 0.0,
+)
+R.check(
+    "the aperture scale multiplies the solar gain, and 1.0 is byte-inert",
+    abs(
+        ThermalModel(
+            ThermalParameters(solar_aperture_scale=1.5)
+        ).compute_solar_gain(400.0)
+        - 1.5 * ThermalModel(ThermalParameters()).compute_solar_gain(400.0)
+    )
+    < 1e-12,
+)
+
+# --- #53 the internal-gains profile ---------------------------------------------
+_tm53 = ThermalModel(
+    ThermalParameters(internal_gains_profile=[0.3] * 18 + [0.9] * 6)
+)
+R.check(
+    "the per-hour profile answers its hour, and None answers the constant",
+    _tm53.internal_gains_at(19.5) == 0.9
+    and _tm53.internal_gains_at(3.0) == 0.3
+    and ThermalModel(ThermalParameters()).internal_gains_at(19.5)
+    == ThermalParameters().internal_gains,
+)
+_st53 = ThermalState(room_temperature=20.0, outdoor_temperature=0.0)
+R.check(
+    "the evening bump reaches the simulated physics",
+    _tm53.simulate_step(_st53, 0.0, 0.0, hour_of_day=19.5).room_temperature
+    > _tm53.simulate_step(_st53, 0.0, 0.0, hour_of_day=3.0).room_temperature,
+)
+_c53 = _t2_coord(internal_gains_learning_enabled=True)
+_st53d = replace(_c53._current_state)
+_st53d.solar_radiation = 0.0
+_g0 = _c53._thermal_params.internal_gains
+_when53 = datetime(2026, 1, 15, 19, 10, tzinfo=UTC)
+for _ in range(60):
+    # Consistently warmer than predicted at 19:00, in the dark.
+    _c53._fold_internal_gains(_when53, _st53d, 0.1, 0.5)
+R.check(
+    "a warm evening hour learns extra gains, tethered under the cap",
+    _c53._internal_gains_profile is not None
+    and _c53._internal_gains_profile[19] > _g0 + 0.1
+    and _c53._internal_gains_profile[19]
+    <= INTERNAL_GAINS_MAX_FACTOR * _g0 + 1e-9
+    and _c53._internal_gains_profile[3] == _g0,
+    f"hour 19 learned {_c53._internal_gains_profile[19]:.2f} vs prior {_g0}",
+)
+_before53 = _c53._internal_gains_profile[19]
+for _ in range(200):
+    _c53._fold_internal_gains(_when53, _st53d, 0.0, 0.5)
+R.check(
+    "with the evidence gone the ridge pulls the hour back toward the prior",
+    _c53._internal_gains_profile[19] < _before53
+    and _c53._internal_gains_profile[19] < _g0 + 0.05,
+)
+_st53s = replace(_c53._current_state)
+_st53s.solar_radiation = 300.0
+_h3_before = _c53._internal_gains_profile[3]
+_c53._fold_internal_gains(
+    datetime(2026, 1, 15, 3, 10, tzinfo=UTC), _st53s, 0.5, 0.5
+)
+R.check(
+    "sunny intervals are the aperture learner's business, never this one's",
+    _c53._internal_gains_profile[3] == _h3_before,
+)
+_c54 = _t2_coord()
+_c54._fold_internal_gains(_when53, _st53d, 0.1, 0.5)
+R.check(
+    "with the flag off no profile ever forms",
+    _c54._internal_gains_profile is None,
+)
+
+# --- #2 the heat-curve bias -------------------------------------------------------
+_cl_t4 = CurveLearner()
+_d2 = datetime(2026, 1, 10, 23, 0, tzinfo=UTC)
+for d in range(DAYS_PER_STEP):
+    _cl_t4.record_day(_d2 + timedelta(days=d), 1.0)
+R.check(
+    "three comfortable days step the bias down by one notch",
+    abs(_cl_t4.bias + STEP_K) < 1e-9,
+    f"bias {_cl_t4.bias}",
+)
+for d in range(DAYS_PER_STEP):
+    _cl_t4.record_day(_d2 + timedelta(days=DAYS_PER_STEP + d), 1.0)
+R.check(
+    "the weekly rate cap slows further steps below the notch size",
+    -0.5 < _cl_t4.bias < -STEP_K,
+    f"bias {_cl_t4.bias:.3f}: 3 days at 0.5 K/week allows ~0.21 K, not 0.4",
+)
+_cl_t4.record_day(_d2 + timedelta(days=20), -0.2)
+R.check(
+    "one comfort miss surrenders the whole bias on the spot",
+    _cl_t4.bias == 0.0 and _cl_t4.resets == 1,
+    "a learner that undershoots comfort and negotiates about it has "
+    "chosen the wrong failure mode",
+)
+_cl2_t4 = CurveLearner()
+for d in range(10):
+    _cl2_t4.record_day(_d2 + timedelta(days=d), COMFORT_MARGIN_C / 2.0)
+R.check(
+    "days that held with nothing to spare are no evidence either way",
+    _cl2_t4.bias == 0.0 and _cl2_t4.comfortable_days == 0,
+)
+_cl3_t4 = CurveLearner()
+for _ in range(10):
+    _cl3_t4.record_day(_d2, 1.0)
+R.check("the curve learner counts days, not ticks", _cl3_t4.comfortable_days == 1)
+_cl4_t4 = CurveLearner.from_dict(_cl_t4.as_dict())
+R.check(
+    "the bias and its evidence survive the store round trip",
+    _cl4_t4.bias == _cl_t4.bias and _cl4_t4.resets == 1
+    and CurveLearner.from_dict({"bias": -99}).bias == BIAS_MIN,
+)
+
+# The wiring: the bias joins the displace before the configured clamp,
+# only when the flag is on, and never moves the plan itself.
+_c2 = _t2_coord(curve_learning_enabled=True)
+_c2._curve_learner.bias = -2.0
+_asyncio.run(_c2.async_publish_ecl110_command(5.0, True))
+R.check(
+    "the published displace carries the learned bias",
+    _c2._ecl110_current_displace == 3.0,
+)
+_c2b = _t2_coord()
+_c2b._curve_learner.bias = -2.0
+_asyncio.run(_c2b.async_publish_ecl110_command(5.0, True))
+R.check(
+    "with the flag off the installer's curve is published untouched",
+    _c2b._ecl110_current_displace == 5.0,
+)
+_c2c = _t2_coord(curve_learning_enabled=True)
+_c2c._current_state.room_temperature = 21.5
+_c2c._track_curve_comfort(datetime(2026, 1, 15, 12, 0, tzinfo=UTC))
+_c2c._current_state.room_temperature = 20.2
+_c2c._track_curve_comfort(datetime(2026, 1, 15, 18, 0, tzinfo=UTC))
+_floor_now = float(_c2c._opt_config.get_temp_bounds(18.0)[0])
+R.check(
+    "the day's evidence is the WORST margin, not the last one",
+    _c2c._curve_day_worst is not None
+    and abs(_c2c._curve_day_worst - (20.2 - _floor_now)) < 1e-9,
+)
+_c2c._curve_learner.bias = -1.0
+_c2c._current_state.room_temperature = _floor_now - 0.1
+_c2c._track_curve_comfort(datetime(2026, 1, 15, 19, 0, tzinfo=UTC))
+R.check(
+    "touching the floor with the bias applied resets it immediately",
+    _c2c._curve_learner.bias == 0.0,
+    "safety reacts now; only the downward creep waits for the day to close",
+)
+_c2d = _t2_coord()
+_c2d._track_curve_comfort(datetime(2026, 1, 15, 12, 0, tzinfo=UTC))
+R.check(
+    "with the flag off no comfort evidence is even collected",
+    _c2d._curve_day == "" and _c2d._curve_day_worst is None,
+)
+
+# --- persistence: the T4b learners ride the thermal store -------------------------
+_cp4 = _t2_coord()
+_cp4._capacity_envelope[-4] = [12.0, 9]
+_cp4._solar_aperture.update({"n": 50.0, "scale": 1.4})
+_cp4._internal_gains_profile = [0.3] * 24
+_cp4._internal_gains_profile[19] = 0.8
+_cp4._curve_learner.bias = -1.2
+_t4b_payload = _cp4._thermal_learning_payload()
+_cq4 = _t2_coord()
+
+
+async def _fake_t4b_load(_p=_t4b_payload):
+    return _p
+
+
+_cq4._thermal_learning_store.async_load = _fake_t4b_load
+_asyncio.run(_cq4._async_load_thermal_learning())
+R.check(
+    "every T4b learner survives a restart",
+    _cq4._capacity_envelope.get(-4) == [12.0, 9]
+    and abs(_cq4._solar_aperture["scale"] - 1.4) < 1e-9
+    and _cq4._internal_gains_profile[19] == 0.8
+    and abs(_cq4._curve_learner.bias + 1.2) < 1e-9,
+)
+_cq5 = _t2_coord()
+
+
+async def _fake_t4a_load():
+    return {"house_heat_loss_scale": 1.1}
+
+
+_cq5._thermal_learning_store.async_load = _fake_t4a_load
+_asyncio.run(_cq5._async_load_thermal_learning())
+R.check(
+    "a pre-T4b payload loads clean and every learner starts inert",
+    not _cq5._capacity_envelope
+    and _cq5._solar_aperture["scale"] == 1.0
+    and _cq5._internal_gains_profile is None
+    and _cq5._curve_learner.bias == 0.0,
+)
+_cr4 = _t2_coord()
+_cr4._capacity_envelope[-4] = [12.0, 9]
+_cr4._snapshot_ring.take(
+    NOW, _cr4._learner_snapshot_payloads(), {"temperature_bias": 0.1}, True
+)
+_cr4._capacity_envelope[-4] = [3.0, 40]
+_cr4._capacity_envelope[0] = [5.0, 7]
+_asyncio.run(_cr4.async_restore_learned_snapshot())
+R.check(
+    "a rollback restores the envelope and clears what drifted in since",
+    _cr4._capacity_envelope.get(-4) == [12.0, 9]
+    and 0 not in _cr4._capacity_envelope,
+    "a restore is a restore, not a merge with the state it replaces",
+)
+
+# --- the T4b review round's regressions ------------------------------------------
+# #53's loop closure: the learner replays must predict WITH the learned
+# profile (and #36's scale must reach the params the replay shares), or
+# the gains learner is an open-loop integrator converging to alpha/ridge
+# times the true correction.
+_hl_src = inspect.getsource(_Coord._async_learn_house_heat_loss)
+R.check(
+    "the heat-loss replay predicts with the per-hour profile",
+    "hour_of_day=previous_time.hour" in _hl_src,
+    "an open-loop residual never re-centres: fixed point g0 + 2.5*surplus",
+)
+_run_src2 = inspect.getsource(_Coord.async_run_optimization)
+R.check(
+    "the apply path writes both learned scales onto the shared params",
+    "solar_aperture_scale" in _run_src2
+    and "internal_gains_profile" in _run_src2,
+    "the replay closes its loop through these params — a scale that "
+    "never lands there is learned but never applied OR re-centred",
+)
+
+# #2's evidence collection stands down when the floor it reads is not the
+# floor being enforced: away setbacks and frozen learners both fake a miss.
+_c2e = _t2_coord(curve_learning_enabled=True)
+_c2e._curve_learner.bias = -1.0
+_c2e._away_state.active = True
+_c2e._current_state.room_temperature = 15.0  # deep in the away setback
+_c2e._track_curve_comfort(datetime(2026, 1, 15, 12, 0, tzinfo=UTC))
+R.check(
+    "an away setback is not a comfort miss — the bias survives vacations",
+    _c2e._curve_learner.bias == -1.0 and _c2e._curve_day_worst is None,
+    "the tracker reads the normal floor; away lowers it only inside the "
+    "solve envelope",
+)
+_c2f = _t2_coord(curve_learning_enabled=True)
+_c2f._curve_learner.bias = -1.0
+_c2f._vent_cusum.tripped = True
+_c2f._current_state.room_temperature = 15.0
+_c2f._track_curve_comfort(datetime(2026, 1, 15, 12, 0, tzinfo=UTC))
+R.check(
+    "an open window's dip is the window's doing, not the curve's",
+    _c2f._curve_learner.bias == -1.0 and _c2f._curve_day_worst is None,
+)
+
+# #30's arithmetic, now a named helper with its own numbers.
+_lf = _Coord._liquid_fraction
+R.check(
+    "the liquid fraction: all snow is 0, all rain is 1, dry is 1",
+    float(_lf(np.array([1.0]), np.array([0.7]))[0]) == 0.0
+    and float(_lf(np.array([2.0]), np.array([0.0]))[0]) == 1.0
+    and float(_lf(np.array([0.0]), np.array([1.0]))[0]) == 1.0,
+    "0.7 cm of snow IS 1 mm of the water-equivalent precipitation",
+)
+R.check(
+    "a half-snow step splits at one half",
+    abs(float(_lf(np.array([2.0]), np.array([0.7]))[0]) - 0.5) < 1e-9,
+)
+R.check(
+    "cross-source disagreement clips instead of going negative",
+    float(_lf(np.array([0.5]), np.array([7.0]))[0]) == 0.0,
+)
+
+# The snow clock persists: a restart after a multi-day outage must decay
+# the accumulator over the downtime instead of re-tripping on stale snow.
+_cp5 = _t2_coord()
+_cp5._snow_accum_cm = 3.0
+_cp5._snow_accum_last = NOW
+_snow_payload = _cp5._thermal_learning_payload()
+_cq6 = _t2_coord()
+
+
+async def _fake_snow_load(_p=_snow_payload):
+    return _p
+
+
+_cq6._thermal_learning_store.async_load = _fake_snow_load
+_asyncio.run(_cq6._async_load_thermal_learning())
+R.check(
+    "the snow accumulator's clock survives a restart with its value",
+    _cq6._snow_accum_last == NOW and abs(_cq6._snow_accum_cm - 3.0) < 1e-9,
+)
+
+# A pre-T4b snapshot restores EVERY T4b learner to inert — aperture and
+# curve bias included, not just the two container types.
+_cr5 = _t2_coord()
+_old_snapshot = {"thermal_learning": {"house_heat_loss_scale": 1.0}}
+_cr5._solar_aperture.update({"n": 99.0, "scale": 1.8})
+_cr5._curve_learner.bias = -2.0
+_cr5._apply_learner_payloads(_old_snapshot)
+R.check(
+    "restoring a pre-T4b snapshot resets the aperture and the curve bias",
+    _cr5._solar_aperture["scale"] == 1.0
+    and _cr5._solar_aperture["n"] == 0.0
+    and _cr5._curve_learner.bias == 0.0,
+    "keeping the drifted values would be the merge the comment forbids",
 )
 
 sys.exit(R.close("FEATURE CHECKS"))
