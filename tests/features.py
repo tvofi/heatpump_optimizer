@@ -9057,8 +9057,12 @@ R.check(
     "an inverter runs most efficiently slow",
 )
 R.check(
-    "above every bucket's reach the answer is run flat out",
-    _fm.recommend(50.0, 20.0, 120.0) == 95.0,
+    "above every bucket's reach the answer is TRUE flat out, and says so",
+    _fm.recommend(50.0, 20.0, 120.0) == 120.0
+    and _fm.evidence_exhausted(50.0, 20.0, 120.0)
+    and not _fm.evidence_exhausted(1.5, 20.0, 120.0),
+    "answering from evidence alone would be the #17 ratchet: no higher "
+    "decile could ever earn its samples and capacity would freeze",
 )
 R.check(
     "no evidence, or nothing to deliver, is None — never a write",
@@ -9148,6 +9152,9 @@ def _armed_coord(**extra):
     c = _freq_coord(mode="control", **extra)
     for _ in range(FREQ_MIN_SAMPLES + 1):
         c._freq_map.observe(45.0, 2.0, 20.0, 120.0)
+    # The boot stamp (below) blocks the first five minutes after any
+    # start; these tests exercise the steady state.
+    c._freq_last_write = None
     return c
 
 
@@ -9191,10 +9198,11 @@ R.check(
 # --- the watchdog stand-down, end to end -----------------------------------------
 _ct7 = _armed_coord()
 _asyncio.run(_ct7._command_frequency())  # commands 45.0
-_ct7.hass.states._states["number.freq"] = FakeState(
-    "90", attributes={"min": 20.0, "max": 120.0}
+_ct7.hass.states.set(
+    "number.freq", FakeState("90", attributes={"min": 20.0, "max": 120.0})
 )
-for _ in range(FREQ_WATCHDOG_TICKS):
+# One extra tick: the first report after a command is a grace tick.
+for _ in range(FREQ_WATCHDOG_TICKS + 1):
     _ct7._observe_frequency(_T6)
 R.check(
     "persistent divergence stands control down to observe and latches",
@@ -9247,6 +9255,126 @@ R.check(
     not _cr7._freq_map.buckets and _cr7._freq_fallback,
     "a learner rollback must not quietly re-arm a controller that stood "
     "down over a hardware fault",
+)
+
+# --- the T7 review round's regressions ------------------------------------------------
+
+# An idle plan reading 0 Hz overnight is an operating point at rest, not a
+# write path that stopped listening: three cycles of routine MPC idle must
+# never stand control down.
+_ci7 = _armed_coord()
+_asyncio.run(_ci7._command_frequency())  # commands 45.0
+_ci7._current_action = {"power": 0.0, "dhw_power": 0.0}
+_ci7.hass.states.set(
+    "number.freq", FakeState("0", attributes={"min": 20.0, "max": 120.0})
+)
+for _ in range(FREQ_WATCHDOG_TICKS + 2):
+    _ci7._observe_frequency(_T6)
+R.check(
+    "overnight idle never trips the watchdog",
+    not _ci7._freq_fallback and _ci7._freq_watchdog.strikes == 0,
+    "compressor-off is not write-path divergence",
+)
+
+# The first report after a command is a grace tick: the pump is entitled
+# to still be ramping (or the register to a stale poll).
+_wdg = FrequencyWatchdog()
+_wdg.note_command(60.0)
+R.check(
+    "a setpoint change eats no strike on its own command tick",
+    not _wdg.note_report(90.0)
+    and _wdg.strikes == 0
+    and not _wdg.note_report(90.0)
+    and _wdg.strikes == 1,
+    "bang-bang plans alternating deciles must not accumulate false strikes",
+)
+
+# Echo hardware: the number entity mirrors the setpoint, so the watchdog
+# reads the SEPARATE actual-frequency sensor when one is configured.
+def _echo_coord(sensor_state="90"):
+    states = {
+        "number.freq": FakeState(
+            "45", attributes={"min": 20.0, "max": 120.0}
+        )
+    }
+    if sensor_state is not None:
+        states["sensor.hz_actual"] = FakeState(sensor_state)
+    c = _t2_coord(
+        states=states,
+        compressor_freq_entity="number.freq",
+        compressor_freq_sensor="sensor.hz_actual",
+        freq_control_mode="control",
+    )
+    c._measured_power = 2.0
+    c._current_action = {"power": 1.5, "dhw_power": 0.5}
+    c._freq_last_write = None
+    for _ in range(FREQ_MIN_SAMPLES + 1):
+        c._freq_map.observe(45.0, 2.0, 20.0, 120.0)
+    return c
+
+
+_ce7 = _echo_coord()
+_asyncio.run(_ce7._command_frequency())  # number echoes 45; sensor says 90
+for _ in range(FREQ_WATCHDOG_TICKS + 1):
+    _ce7._observe_frequency(_T6)
+R.check(
+    "with a real feedback sensor the watchdog sees through the echo",
+    _ce7._freq_fallback,
+    "read from the echoing setpoint alone this divergence is invisible",
+)
+_cm7 = _echo_coord(sensor_state=None)  # sensor configured but unavailable
+R.check(
+    "a configured but missing feedback sensor reads as no reading at all",
+    _cm7._freq_entity_reading()[0] is None,
+    "falling back to the echo would re-decorate the watchdog exactly when "
+    "the real feedback disappeared",
+)
+
+# Removing the entity is as explicit an acknowledgement as switching the
+# mode: neither may orphan the latch and its repair issue forever.
+_co7 = _armed_coord()
+_co7._freq_fallback = True
+_co7._config["compressor_freq_entity"] = None
+_co7._observe_frequency(_T6)
+R.check(
+    "clearing the entity re-arms the latch instead of orphaning it",
+    not _co7._freq_fallback,
+)
+
+# The latch loads strictly: corrupt truthy garbage must not silently
+# disable control with no repair issue and no visible cause.
+_cs7 = _t2_coord()
+
+
+async def _fake_junk_latch(_p={"freq_fallback": "junk"}):
+    return _p
+
+
+_cs7._thermal_learning_store.async_load = _fake_junk_latch
+_asyncio.run(_cs7._async_load_thermal_learning())
+R.check(
+    "only a stored True is a stand-down; garbage is not",
+    not _cs7._freq_fallback,
+)
+
+# The rate limit survives boot: a crash-looping HA must not get a fresh
+# write per restart. (The steady-state tests clear the stamp explicitly.)
+_cb7 = _freq_coord(mode="control")
+for _ in range(FREQ_MIN_SAMPLES + 1):
+    _cb7._freq_map.observe(45.0, 2.0, 20.0, 120.0)
+_asyncio.run(_cb7._command_frequency())
+R.check(
+    "the first five minutes after any start write nothing",
+    not _cb7.hass.services.calls,
+)
+
+# Flat-out-on-faith is visible: the view flags evidence exhaustion.
+_cx7 = _armed_coord()
+_cx7._current_action = {"power": 7.0, "dhw_power": 2.0}
+_x_view = _cx7._freq_view()
+R.check(
+    "the view says when the recommendation is extrapolation, not evidence",
+    _x_view["evidence_exhausted"] and _x_view["recommended_hz"] == 120.0,
 )
 
 sys.exit(R.close("FEATURE CHECKS"))

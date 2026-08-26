@@ -730,6 +730,11 @@ SCORE_ALPHA: Final = 0.05
 # nothing; control is an explicit per-install opt-in AFTER the user has
 # validated their number entity against the real hardware.
 CONF_COMPRESSOR_FREQ_ENTITY: Final = "compressor_freq_entity"
+#: Optional separate sensor carrying the ACTUAL compressor frequency.
+#: Many number entities are setpoint registers that echo the last written
+#: value — feedback read from one can never diverge, which makes the
+#: watchdog decorative and teaches the map against a frozen setpoint.
+CONF_COMPRESSOR_FREQ_SENSOR: Final = "compressor_freq_sensor"
 CONF_FREQ_CONTROL_MODE: Final = "freq_control_mode"
 DEFAULT_FREQ_CONTROL_MODE: Final = "observe"
 #: How far the comfort floor is relaxed while a window is open (gated).

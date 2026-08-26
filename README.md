@@ -1158,9 +1158,24 @@ you have validated the entity against your real hardware) and the optimizer
 writes the recommendation via `number.set_value` — at most one write per
 five minutes, clamped to the entity's own min/max, with a watchdog: a
 reported frequency that keeps diverging from the commanded one for three
-ticks stands the controller back down to observe and raises a repair issue.
-The stand-down survives restarts; you re-arm it by explicitly switching the
-mode back. The learned map never feeds the optimizer's plans in either mode
+active ticks stands the controller back down to observe and raises a repair
+issue. Idle periods and defrost pauses are not divergence — an operating
+point at rest is not a write path that stopped listening. The stand-down
+survives restarts; you re-arm it by explicitly switching the mode back.
+When the plan asks for more than the map has evidence for, control runs
+truly flat out (the entity's own maximum) and says so via an
+`evidence_exhausted` attribute — which is also how the map earns its
+missing high-frequency samples.
+
+**One hardware caveat that matters:** many `number` entities are setpoint
+registers that simply echo the last written value. Read from an echo, the
+watchdog can never see divergence and the map learns the setpoint instead
+of the machine. If your integration exposes the *actual* compressor
+frequency as a separate sensor, configure it as the actual-frequency
+sensor — the watchdog and the map then read reality, and the number entity
+is used only for writing.
+
+The learned map never feeds the optimizer's plans in either mode
 — plans stay power-denominated, and control only translates the planned
 kilowatts into the hertz that deliver them.
 

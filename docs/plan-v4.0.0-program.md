@@ -1084,6 +1084,40 @@ select on the entities page, en+sv triples with a translated selector.
 Goldens: coord_*×5 + config_flow re-recorded additive-only (+63/−0), the
 five protected fixtures untouched.
 
+*T7 review round (0 critical, 3 major, 4 minor, 3 nits — all acted on):*
+the safety invariant held under everything the reviewer threw at it (no
+write-path leak, nothing feeds plans, persistence solid); all three majors
+were in the control stage's OPERATIONAL soundness. **The watchdog
+false-tripped on routine idle** — reported-vs-commanded compared forever,
+so three 30-min cycles of overnight MPC idle reading 0 Hz stood control
+down permanently; divergence now counts only on ACTIVE ticks (plan asking
+for power AND the reading in the running range — an operating point at
+rest is not a write path that stopped listening), inactive ticks clear the
+streak, and the first report after each command is a grace tick (a
+ramping pump is not divergent — this also killed the bang-bang
+alternating-setpoint false-trip). **Setpoint-echo hardware made the
+watchdog decorative** — a number entity that echoes the written value can
+never diverge, and the map would learn a frozen setpoint; a new optional
+`compressor_freq_sensor` (frequency-class picker) carries the ACTUAL
+frequency for the watchdog and the map, a configured-but-missing sensor
+reads as no reading (never silently falling back to the echo), and the
+caveat is documented in the config description and README. **Control froze
+its own evidence** — "run flat out" answered with the highest EVIDENCED
+mid, so no higher decile could ever earn samples and capacity capped at
+whatever observation happened to see (the #17 ratchet); flat-out is now
+the entity's own maximum, which both delivers and generates the missing
+high-Hz evidence, with an `evidence_exhausted` flag published so
+extrapolation is visible. Minors: removing the entity re-arms the latch
+(it no longer orphans behind a mode selector nothing renders); the latch
+loads strictly (`is True` — corrupt truthy garbage must not silently
+disable control) with a warning when it loads set under configured
+control; the rate-limit stamp initialises at boot so a crash-looping HA
+cannot write once per restart; the range-survival docstring claim was
+corrected (ratios survive a range change, their frequency identity does
+not — the map re-learns within days). Nits: the advisor sensor gained
+`SensorDeviceClass.FREQUENCY` (hastub stub extended), the stand-down test
+uses the harness API instead of a private attribute. Checks 830 → 838.
+
 **Gate:** T2's guard and T4's capacity curve shipped clean, and a real
 Modbus/ESPHome number entity validated by the user.
 

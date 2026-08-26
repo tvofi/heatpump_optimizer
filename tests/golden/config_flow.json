@@ -456,6 +456,14 @@
    "required": "Optional",
    "selector": "EntitySelector"
   },
+  "compressor_freq_sensor": {
+   "config": {
+    "filter": "[{'domain': ['sensor'], 'device_class': ['frequency']}]"
+   },
+   "default": null,
+   "required": "Optional",
+   "selector": "EntitySelector"
+  },
   "dhw_temp_entity": {
    "config": {
     "filter": "[{'domain': ['sensor'], 'device_class': ['temperature']}]"

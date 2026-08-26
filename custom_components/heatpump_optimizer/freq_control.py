@@ -53,8 +53,15 @@ class FrequencyMap:
     """kW per Hz over frequency deciles — the envelope pattern again.
 
     ``buckets[decile] = [kw_per_hz_ewma, count]``. Ratios rather than
-    absolute kW so the map survives the entity's range being reconfigured:
-    a bucket's answer is its ratio times the frequency asked about.
+    absolute kW so a bucket's answer scales with the frequency asked
+    about. Buckets are keyed by decile INDEX of whatever range was in
+    force when the sample folded — reconfiguring the entity's min/max
+    re-labels old ratios onto different frequencies, so the map after a
+    range change is approximately right at best and re-learns within
+    days (slow EWMA, mean-until-N). A per-decile ratio also carries a
+    small within-bucket bias (samples at a bucket's edge are priced at
+    its mid), bounded by one decile's width and self-correcting under
+    control's own feedback.
     """
 
     buckets: dict[int, list] = field(default_factory=dict)
@@ -119,7 +126,31 @@ class FrequencyMap:
         for mid, predicted in candidates:
             if predicted >= target_kw:
                 return round(mid, 1)
-        return round(candidates[-1][0], 1)
+        # Above every evidenced bucket's reach: TRUE flat out — the
+        # entity's own maximum, not the highest evidenced mid. This both
+        # delivers what can be delivered and generates the high-frequency
+        # evidence the map is missing; answering from evidence alone would
+        # be the #17 ratchet again — control only revisits frequencies it
+        # already knows, so no higher decile could ever earn its samples
+        # and capacity would freeze at whatever observation happened to see.
+        return round(float(hz_max), 1)
+
+    def evidence_exhausted(
+        self, target_kw: float, hz_min: float, hz_max: float
+    ) -> bool:
+        """True when the target exceeds every evidenced bucket's reach.
+
+        Published so "running flat out on faith" is visible: the flat-out
+        answer above is deliberate, but the user watching the advisor
+        deserves to know when the map is extrapolating rather than
+        answering from evidence.
+        """
+        if not np.isfinite(target_kw) or target_kw <= 0.05:
+            return False
+        candidates = self._evidenced(hz_min, hz_max)
+        return bool(candidates) and all(
+            predicted < target_kw for _, predicted in candidates
+        )
 
     def summary(self, hz_min: float, hz_max: float) -> dict:
         """The map as published: per-bucket mid-Hz, ratio and count."""
@@ -172,23 +203,44 @@ class FrequencyWatchdog:
 
     Three CONSECUTIVE divergent ticks trip it; a single convergent report
     clears the streak — transient lag during a ramp must not stand the
-    controller down.
+    controller down. The tick right after a new command is a grace tick
+    (the register may not have ramped or re-polled yet), and ticks where
+    the plan is not actually asking for the compressor are no evidence at
+    all: an idle pump reading 0 Hz, or one pausing for a defrost, is an
+    operating point at rest, not a write path that stopped listening.
     """
 
     commanded: float | None = None
     strikes: int = 0
     tripped: bool = False
+    grace: bool = False
 
     def note_command(self, hz: float) -> None:
         self.commanded = float(hz)
+        self.grace = True
 
-    def note_report(self, reported: float | None) -> bool:
-        """Fold one reported frequency; True when this tick trips it."""
+    def note_report(self, reported: float | None, active: bool = True) -> bool:
+        """Fold one reported frequency; True when this tick trips it.
+
+        ``active`` is the caller's judgement that the divergence question
+        is even meaningful this tick — the plan is asking for power AND
+        the reading is in the compressor's running range. Inactive ticks
+        clear the streak rather than pausing it: strikes must be
+        CONSECUTIVE evidence, and an idle gap breaks consecutiveness.
+        """
         if self.tripped or self.commanded is None:
+            return False
+        if not active:
+            self.strikes = 0
             return False
         if reported is None or not np.isfinite(reported):
             # No reading is not divergence evidence; it is a stale input,
             # and the staleness watchdog owns that story.
+            return False
+        if self.grace:
+            # The first report after a command: the pump is entitled to
+            # still be ramping (or the register to a stale poll).
+            self.grace = False
             return False
         if abs(float(reported) - self.commanded) <= FREQ_DIVERGENCE_HZ:
             self.strikes = 0
@@ -203,3 +255,4 @@ class FrequencyWatchdog:
         self.commanded = None
         self.strikes = 0
         self.tripped = False
+        self.grace = False

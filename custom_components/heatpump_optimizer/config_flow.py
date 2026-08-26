@@ -252,6 +252,7 @@ from .const import (
     CONF_PRICE_TILES_ENABLED,
     DEFAULT_PRICE_TILES_ENABLED,
     CONF_COMPRESSOR_FREQ_ENTITY,
+    CONF_COMPRESSOR_FREQ_SENSOR,
     CONF_FREQ_CONTROL_MODE,
     DEFAULT_FREQ_CONTROL_MODE,
     CONF_MOLD_GUARD_ENABLED,
@@ -842,6 +843,7 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
         CONF_ENERGY_ENTITY,
         CONF_HOUSE_POWER_ENTITY,
         CONF_COMPRESSOR_FREQ_ENTITY,
+        CONF_COMPRESSOR_FREQ_SENSOR,
     )
 
     # Every clearable entity across all pages; the solar, away, learning and
@@ -1079,6 +1081,14 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
                     # per-install opt-in AFTER the user has validated the
                     # entity against their real hardware.
                     _entity(CONF_COMPRESSOR_FREQ_ENTITY): _entity_of("number"),
+                    # The ACTUAL frequency, when the number above is a
+                    # setpoint register that merely echoes what was
+                    # written: feedback read from an echo can never
+                    # diverge, so without this the watchdog is decorative
+                    # and the map learns against a frozen setpoint.
+                    _entity(CONF_COMPRESSOR_FREQ_SENSOR): _entity_of(
+                        "sensor", "frequency"
+                    ),
                     vol.Optional(
                         CONF_FREQ_CONTROL_MODE,
                         default=current.get(

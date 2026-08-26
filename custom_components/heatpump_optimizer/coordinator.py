@@ -284,6 +284,7 @@ from .const import (
     DEFAULT_PRICE_TILES_ENABLED,
     SCORE_ALPHA,
     CONF_COMPRESSOR_FREQ_ENTITY,
+    CONF_COMPRESSOR_FREQ_SENSOR,
     CONF_FREQ_CONTROL_MODE,
     DEFAULT_FREQ_CONTROL_MODE,
 )
@@ -895,7 +896,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._freq_map = FrequencyMap()
         self._freq_watchdog = FrequencyWatchdog()
         self._freq_fallback = False
-        self._freq_last_write: datetime | None = None
+        # Stamped at init rather than None: the rate limit is in-memory,
+        # and a crash-looping HA restarting every minute must not get a
+        # fresh write per boot. Costs one 5-minute delay after any start.
+        self._freq_last_write: datetime | None = dt_util.now()
 
         # --- Capacity tariff (item 8) --------------------------------------
         self._peak_tracker = PeakTracker()
@@ -1671,8 +1675,24 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # T7 #61: the watchdog's stand-down latch. Parsed HERE and not in
         # the shared learner parser on purpose — a learner rollback must
         # not quietly re-arm a controller that stood down over a hardware
-        # fault; only the user re-arms it (by re-saving the mode).
-        self._freq_fallback = bool(stored.get("freq_fallback", False))
+        # fault; only the user re-arms it (by re-saving the mode). Strict
+        # `is True`, not truthiness: corrupt store garbage silently
+        # latching a stand-down that never happened would disable control
+        # with no repair issue and no visible cause.
+        self._freq_fallback = stored.get("freq_fallback") is True
+        if self._freq_fallback and (
+            str(
+                self._config.get(
+                    CONF_FREQ_CONTROL_MODE, DEFAULT_FREQ_CONTROL_MODE
+                )
+            )
+            == FREQ_MODE_CONTROL
+        ):
+            _LOGGER.warning(
+                "Frequency control is standing down from an earlier "
+                "watchdog trip; switch the frequency mode to observe and "
+                "back to control to re-arm it"
+            )
         self._load_t4b_learners(stored)
 
     def _load_t4b_learners(self, stored: dict) -> None:
@@ -7958,11 +7978,16 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     # ==================================================================
 
     def _freq_entity_reading(self) -> tuple[float | None, float, float]:
-        """(reported Hz, range min, range max) from the configured entity.
+        """(reported Hz, range min, range max) for #61.
 
-        The range comes from the entity's OWN min/max attributes — the
-        hardware integration knows its register limits; guessing them here
-        would let a clamp "protect" the pump into an invalid write.
+        The range comes from the number entity's OWN min/max attributes —
+        the hardware integration knows its register limits; guessing them
+        here would let a clamp "protect" the pump into an invalid write.
+        The REPORTED frequency prefers the separate actual-frequency
+        sensor when one is configured: a number entity is often a setpoint
+        register that echoes the last written value, and feedback read
+        from an echo can never diverge — the watchdog would be decorative
+        and the map would learn against a frozen setpoint.
         """
         entity_id = self._config.get(CONF_COMPRESSOR_FREQ_ENTITY)
         if not entity_id:
@@ -7973,8 +7998,19 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         attrs = getattr(state, "attributes", {}) or {}
         hz_min = _as_float(attrs.get("min"), 20.0)
         hz_max = _as_float(attrs.get("max"), 120.0)
+        source = state
+        sensor_id = self._config.get(CONF_COMPRESSOR_FREQ_SENSOR)
+        if sensor_id:
+            sensor_state = self.hass.states.get(sensor_id)
+            if sensor_state is None:
+                # A configured but unavailable feedback sensor must not
+                # silently fall back to the echoing setpoint: that would
+                # quietly re-decorate the watchdog exactly when the real
+                # feedback disappeared.
+                return (None, hz_min, hz_max)
+            source = sensor_state
         try:
-            reported = float(state.state)
+            reported = float(source.state)
         except (TypeError, ValueError):
             reported = None
         if reported is not None and not np.isfinite(reported):
@@ -8008,10 +8044,16 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         configured = str(
             self._config.get(CONF_FREQ_CONTROL_MODE, DEFAULT_FREQ_CONTROL_MODE)
         )
-        if configured != FREQ_MODE_CONTROL and self._freq_fallback:
-            # The user switched back to observe: that is the explicit
-            # acknowledgement that re-arms the latch. A restart alone
-            # never clears it.
+        if (
+            configured != FREQ_MODE_CONTROL
+            or not self._config.get(CONF_COMPRESSOR_FREQ_ENTITY)
+        ) and self._freq_fallback:
+            # The user switched back to observe — or removed the entity
+            # entirely, which unconfigures the feature just as explicitly.
+            # Either is the acknowledgement that re-arms the latch and
+            # retires its repair issue; a restart alone never clears it,
+            # and without this clause a cleared entity would orphan both
+            # forever behind a mode selector nothing renders any more.
             self._freq_fallback = False
             self._freq_watchdog.reset()
             ir.async_delete_issue(self.hass, DOMAIN, "freq_watchdog")
@@ -8020,7 +8062,16 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if reported is None:
             return
         if configured == FREQ_MODE_CONTROL and not self._freq_fallback:
-            if self._freq_watchdog.note_report(reported):
+            # Divergence is only meaningful while the plan is actually
+            # asking for the compressor AND the reading is in its running
+            # range: an idle pump reading 0 Hz overnight, or one pausing
+            # for a defrost, is an operating point at rest, not a write
+            # path that stopped listening — three cycles of routine MPC
+            # idle must not stand control down.
+            watch_active = (
+                self._commanded_power() > 0.05 and reported >= hz_min
+            )
+            if self._freq_watchdog.note_report(reported, active=watch_active):
                 # Three consecutive divergent ticks: the hardware is not
                 # actually listening (wrong register, protective mode, a
                 # write path that silently drops). Stand down and say so;
@@ -8112,15 +8163,22 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         reported, hz_min, hz_max = self._freq_entity_reading()
         mode = self._freq_mode()
         recommended = None
+        exhausted = False
         if mode != "unconfigured":
-            recommended = self._freq_map.recommend(
-                self._commanded_power() or 0.0, hz_min, hz_max
+            target = self._commanded_power() or 0.0
+            recommended = self._freq_map.recommend(target, hz_min, hz_max)
+            # "Running flat out on faith" must be visible: the flat-out
+            # answer above the map's evidence is deliberate, but the user
+            # deserves to see when it is extrapolation, not knowledge.
+            exhausted = self._freq_map.evidence_exhausted(
+                target, hz_min, hz_max
             )
         return {
             "mode": mode,
             "fallback_active": bool(self._freq_fallback),
             "reported_hz": reported,
             "recommended_hz": recommended,
+            "evidence_exhausted": exhausted,
             "commanded_hz": self._freq_watchdog.commanded,
             "range_hz": (
                 [round(hz_min, 1), round(hz_max, 1)]

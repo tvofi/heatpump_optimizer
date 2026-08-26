@@ -9,6 +9,7 @@ class SensorDeviceClass(str):
     IRRADIANCE = "irradiance"
     BATTERY = "battery"
     TIMESTAMP = "timestamp"
+    FREQUENCY = "frequency"
 
 
 class SensorStateClass(str):

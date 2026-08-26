@@ -1829,6 +1829,7 @@ class FrequencyAdvisorSensor(HeatPumpOptimizerSensorBase):
 
     _attr_icon = "mdi:sine-wave"
     _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_device_class = SensorDeviceClass.FREQUENCY
     _attr_native_unit_of_measurement = "Hz"
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 

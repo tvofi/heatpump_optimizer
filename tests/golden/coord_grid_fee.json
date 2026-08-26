@@ -167,6 +167,7 @@
   "floor_return_temperature": null,
   "freq_control": {
    "commanded_hz": null,
+   "evidence_exhausted": false,
    "fallback_active": false,
    "map": {},
    "mode": "unconfigured",
