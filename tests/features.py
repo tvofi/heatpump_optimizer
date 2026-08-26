@@ -7851,4 +7851,422 @@ R.check(
     "keeping the drifted values would be the merge the comment forbids",
 )
 
+# ===========================================================================
+# T5 — comfort floors (#16 #54)
+# ===========================================================================
+R.section("T5 — comfort floors (#16 #54)")
+
+from heatpump_optimizer.accuracy import LEAD_BUCKETS
+from heatpump_optimizer.const import CONFIDENCE_MARGIN_CAP_C
+from heatpump_optimizer.thermal_model import (
+    dew_point_for_pressure,
+    mold_safe_room_floor,
+    saturation_vapor_pressure,
+)
+
+# --- the lead-time error tracker -------------------------------------------------
+_T5 = datetime(2026, 1, 20, 6, 0, tzinfo=UTC)
+_tr5 = AccuracyTracker()
+R.check("no history means sigma zero at every lead", _tr5.sigma(12.0) == 0.0)
+for k in LEAD_BUCKETS:
+    _tr5.note_lead_prediction(_T5 + timedelta(hours=k), k, 21.0)
+for k in LEAD_BUCKETS:
+    _tr5.score_lead_predictions(_T5 + timedelta(hours=k, minutes=10), 20.6)
+R.check(
+    "a matured promise scores into its own lead bucket",
+    abs(_tr5.sigma(3.0) - 0.4) < 1e-9 and abs(_tr5.sigma(24.0) - 0.4) < 1e-9,
+)
+R.check(
+    "between buckets the nearest one with evidence answers",
+    abs(_tr5.sigma(4.0) - _tr5.sigma(3.0)) < 1e-12
+    and abs(_tr5.sigma(40.0) - _tr5.sigma(24.0)) < 1e-12,
+)
+_tr5b = AccuracyTracker.from_dict(_tr5.as_dict())
+R.check(
+    "sigmas, counts and unmatured promises all ride the store round trip",
+    abs(_tr5b.sigma(6.0) - 0.4) < 1e-9
+    and _tr5b.lead_counts == _tr5.lead_counts,
+)
+_tr5c = AccuracyTracker()
+_tr5c.note_lead_prediction(_T5, 1.0, 21.0)
+_tr5c.score_lead_predictions(_T5 + timedelta(hours=2), 19.0)
+R.check(
+    "a promise that missed its measurement window is discarded unscored",
+    _tr5c.sigma(1.0) == 0.0 and not _tr5c.lead_pending,
+    "pairing a 1-hour promise with a 2-hour-late reading would file the "
+    "error under the wrong lead",
+)
+
+# --- filing promises through the coordinator ---------------------------------------
+_c16 = _t2_coord()
+_c16._mode = "auto"
+_fake_plan = _NS(
+    room_temp_trajectory=[21.0 + 0.01 * i for i in range(97)],
+    upper_temp_trajectory=[],
+)
+_c16._file_lead_predictions(_fake_plan, _T5)
+R.check(
+    "each solve files one promise per lead bucket within the horizon",
+    len(_c16._accuracy.lead_pending) == len(LEAD_BUCKETS)
+    and _c16._accuracy.lead_pending[0][1] == 1.0
+    # Anchored to the instant the trajectory was built from, not to
+    # "whenever the solve finished": a slow solve must not skew every
+    # bucket by its own duration.
+    and _c16._accuracy.lead_pending[0][0] == _T5 + timedelta(hours=1),
+    f"filed {len(_c16._accuracy.lead_pending)}",
+)
+_c16b = _t2_coord()
+_c16b._mode = "comfort"
+_c16b._file_lead_predictions(_fake_plan, _T5)
+R.check(
+    "a plan that is not running makes no promises worth scoring",
+    not _c16b._accuracy.lead_pending,
+    "same mode gate as the one-step accuracy sample",
+)
+
+# --- #16 the margins ------------------------------------------------------------------
+def _seed_sigma(coord, err):
+    for k in LEAD_BUCKETS:
+        coord._accuracy.note_lead_prediction(_T5 + timedelta(hours=k), k, 21.0)
+    for k in LEAD_BUCKETS:
+        coord._accuracy.score_lead_predictions(
+            _T5 + timedelta(hours=k, minutes=5), 21.0 - err
+        )
+
+
+_cm5 = _t2_coord(confidence_margins_enabled=True)
+_seed_sigma(_cm5, 0.5)
+_cm5._accuracy.temperature_mae = lambda: 2.0  # trust 0 -> full damping
+_m5 = _cm5._confidence_margins(96)
+R.check(
+    "the margin is the expected error at each step's own lead",
+    _m5 is not None and abs(_m5[3] - 0.5) < 1e-9 and abs(_m5[95] - 0.5) < 1e-9,
+)
+_cm5._accuracy.temperature_mae = lambda: 0.25  # trust 1 -> no margin at all
+R.check(
+    "a trusted model margins nothing however noisy the history",
+    _cm5._confidence_margins(96) is None,
+)
+_cm6 = _t2_coord(confidence_margins_enabled=True)
+_seed_sigma(_cm6, 5.0)
+_cm6._accuracy.temperature_mae = lambda: 2.0
+R.check(
+    "the cap holds whatever the history claims",
+    float(np.max(_cm6._confidence_margins(96))) <= CONFIDENCE_MARGIN_CAP_C + 1e-12,
+    "an unbounded margin is the oscillation the plan forbids",
+)
+# The fixed point, replayed for real: margins A, then a whole new round of
+# promises scored with the SAME error magnitude the history already claims,
+# then margins B. The EWMA sits still only at its fixed point, so equality
+# here is the anti-oscillation argument (margin -> plan -> errors converges),
+# not a tautology about calling the same function twice. Uncapped on purpose
+# — at the cap the claim would be vacuously true again.
+_cm8 = _t2_coord(confidence_margins_enabled=True)
+_seed_sigma(_cm8, 0.5)
+_cm8._accuracy.temperature_mae = lambda: 2.0
+_m8_a = _cm8._confidence_margins(96)
+_seed_sigma(_cm8, 0.5)
+_m8_b = _cm8._confidence_margins(96)
+R.check(
+    "a model erring exactly as history claims is a fixed point of the margin",
+    _m8_a is not None and np.allclose(_m8_a, _m8_b, atol=1e-12),
+    "margin -> plan -> errors loops only if the margin itself moves",
+)
+_seed_sigma(_cm8, 0.0)
+_m8_c = _cm8._confidence_margins(96)
+R.check(
+    "a round of perfect predictions shrinks the margin strictly",
+    _m8_c is None or bool(np.all(_m8_c < _m8_b - 1e-9)),
+    "the loop's only drift direction is toward less margin",
+)
+_cm7 = _t2_coord()
+_seed_sigma(_cm7, 0.5)
+_cm7._accuracy.temperature_mae = lambda: 2.0
+R.check(
+    "with the flag off no margin exists, whatever the history",
+    _cm7._confidence_margins(96) is None,
+)
+R.check(
+    "a fresh install margins nothing — zero history, zero sigma",
+    _t2_coord(confidence_margins_enabled=True)._confidence_margins(96) is None,
+)
+
+# --- the optimizer's floor channel ---------------------------------------------------
+_g5 = _mk_golden(dhw=False)
+_r5_base = _g5["optimizer"].optimize(
+    _g5["state"], _g5["prices"], _g5["outdoor"], _g5["wind"], _g5["rain"],
+    _g5["solar"], _G_START,
+)
+_g5b = _mk_golden(dhw=False)
+_r5_zero = _g5b["optimizer"].optimize(
+    _g5b["state"], _g5b["prices"], _g5b["outdoor"], _g5b["wind"], _g5b["rain"],
+    _g5b["solar"], _G_START,
+    min_temp_margins=np.zeros(len(_g5b["prices"])),
+    min_temp_floors=np.full(len(_g5b["prices"]), -100.0),
+)
+R.check(
+    "zero margins and a bottomless floor are byte-identical to none at all",
+    np.array_equal(
+        np.asarray(_r5_base.power_schedule), np.asarray(_r5_zero.power_schedule)
+    ),
+)
+_g5c = _mk_golden(dhw=False)
+_r5_m = _g5c["optimizer"].optimize(
+    _g5c["state"], _g5c["prices"], _g5c["outdoor"], _g5c["wind"], _g5c["rain"],
+    _g5c["solar"], _G_START,
+    min_temp_margins=np.full(len(_g5c["prices"]), 0.8),
+)
+R.check(
+    "a real margin lifts the coldest hour of the plan",
+    min(_r5_m.room_temp_trajectory) > min(_r5_base.room_temp_trajectory) + 0.3,
+    f"coldest {min(_r5_base.room_temp_trajectory):.2f} -> "
+    f"{min(_r5_m.room_temp_trajectory):.2f}",
+)
+_g5d = _mk_golden(dhw=False)
+_r5_f = _g5d["optimizer"].optimize(
+    _g5d["state"], _g5d["prices"], _g5d["outdoor"], _g5d["wind"], _g5d["rain"],
+    _g5d["solar"], _G_START,
+    min_temp_floors=np.full(len(_g5d["prices"]), 19.5),
+)
+R.check(
+    "a mold floor holds the coldest hour above it",
+    min(_r5_f.room_temp_trajectory) > 19.0,
+    f"coldest {min(_r5_f.room_temp_trajectory):.2f} against a 19.5 floor",
+)
+_g5e = _mk_golden(dhw=False)
+_r5_wild = _g5e["optimizer"].optimize(
+    _g5e["state"], _g5e["prices"], _g5e["outdoor"], _g5e["wind"], _g5e["rain"],
+    _g5e["solar"], _G_START,
+    min_temp_margins=np.full(len(_g5e["prices"]), 10.0),
+)
+R.check(
+    "an absurd margin cannot squeeze the band shut",
+    max(_r5_wild.room_temp_trajectory) < 30.0
+    and "failed" not in str(_r5_wild.status),
+    "the floor clamps below the ceiling instead of making the solve "
+    "infeasible",
+)
+
+# --- #54 the mold guard ---------------------------------------------------------------
+_p12 = saturation_vapor_pressure(12.0)
+R.check(
+    "the Magnus pair inverts itself",
+    abs(dew_point_for_pressure(_p12) - 12.0) < 0.01,
+)
+R.check(
+    "colder outside means a higher room floor — the guard's whole physics",
+    mold_safe_room_floor(21.0, 60.0, -15.0, 0.75)
+    > mold_safe_room_floor(21.0, 60.0, 5.0, 0.75),
+)
+
+
+def _mold_coord(rh_state=None, **cfg):
+    states = (
+        {"sensor.rh": FakeState(rh_state, unit="%")} if rh_state is not None else {}
+    )
+    c = _t2_coord(states=states, **cfg)
+    c._current_state.room_temperature = 21.0
+    return c
+
+
+_out5 = np.array([-15.0, -15.0, 5.0])
+_cold = _mold_coord(
+    "60", mold_guard_enabled=True, indoor_humidity_entity="sensor.rh"
+)
+_floors_wet = _cold._mold_floor_series(_out5)
+R.check(
+    "60% indoor humidity at -15 °C raises the floor to the target cap",
+    _floors_wet is not None
+    and abs(_floors_wet[0] - _cold._opt_config.target_temp) < 1e-9
+    and _floors_wet[2] < _floors_wet[0],
+    "the honest physics wants more than the target; the cap is the guard "
+    "against heating past comfort to fight a ventilation problem",
+)
+_dry = _mold_coord(
+    "20", mold_guard_enabled=True, indoor_humidity_entity="sensor.rh"
+)
+_floors_dry = _dry._mold_floor_series(_out5)
+R.check(
+    "20% indoor humidity raises nothing — dry air cannot mold",
+    _floors_dry is not None and float(np.max(_floors_dry)) < 10.0,
+)
+R.check(
+    "the double gate: flag without a sensor, or sensor without the flag, is off",
+    _mold_coord("60", mold_guard_enabled=True)._mold_floor_series(_out5) is None
+    and _mold_coord(
+        "60", indoor_humidity_entity="sensor.rh"
+    )._mold_floor_series(_out5)
+    is None,
+)
+R.check(
+    "an unusable humidity reading disarms the guard instead of guessing",
+    _mold_coord(
+        "unavailable", mold_guard_enabled=True, indoor_humidity_entity="sensor.rh"
+    )._mold_floor_series(_out5)
+    is None
+    and _mold_coord(
+        "0", mold_guard_enabled=True, indoor_humidity_entity="sensor.rh"
+    )._mold_floor_series(_out5)
+    is None,
+)
+
+# --- the T5 review round's regressions ------------------------------------------------
+
+# The scoring window follows the caller's cadence: an hourly scorer must not
+# discard every promise that matured between its ticks — with the default
+# half-hour window the 12 h and 24 h buckets would starve on any install
+# whose optimization interval is coarser than the tolerance.
+_tr1 = AccuracyTracker()
+_tr1.note_lead_prediction(_T5, 3.0, 21.0)
+_tr1.score_lead_predictions(_T5 + timedelta(minutes=45), 20.0)
+_tr1b = AccuracyTracker()
+_tr1b.note_lead_prediction(_T5, 3.0, 21.0)
+_tr1b.score_lead_predictions(_T5 + timedelta(minutes=45), 20.0, window_hours=1.0)
+R.check(
+    "a coarse solve cadence widens the window instead of starving buckets",
+    _tr1.sigma(3.0) == 0.0
+    and not _tr1.lead_pending
+    and abs(_tr1b.sigma(3.0) - 1.0) < 1e-9,
+)
+
+# Equidistant buckets: sigma(2.0) sits exactly between the 1 h and 3 h
+# buckets, and the answer must be the longer (more conservative) one.
+_tr11 = AccuracyTracker()
+_tr11.lead_sigma = {1.0: 0.2, 3.0: 0.6}
+_tr11.lead_counts = {1.0: 1, 3.0: 1}
+R.check(
+    "an exact tie between buckets answers with the longer one",
+    abs(_tr11.sigma(2.0) - 0.6) < 1e-12,
+)
+
+# The corruption barrier: a hand-edited or half-written store must not brick
+# the loop. A tz-naive pending timestamp would raise on the first aware
+# subtraction inside every subsequent score call; a NaN sigma would reach
+# the comfort bounds as a NaN margin.
+_tr8 = AccuracyTracker.from_dict(
+    {
+        "lead_sigma": {"1.0": float("nan"), "3.0": 0.4, "6.0": "junk"},
+        "lead_counts": {"1.0": 3, "3.0": 3, "6.0": 3},
+        "lead_pending": [
+            ["2026-01-20T06:00:00", 1.0, 21.0],
+            ["2026-01-20T06:00:00+00:00", 3.0, float("nan")],
+            ["2026-01-20T06:00:00+00:00", 6.0, 21.0],
+        ],
+    }
+)
+_loaded_pending = len(_tr8.lead_pending)  # naive + NaN entries never loaded
+_tr8.score_lead_predictions(_T5 + timedelta(minutes=10), 20.5)
+R.check(
+    "a corrupt store loads what survives and never bricks the score loop",
+    _tr8.sigma(1.0) == 0.4  # NaN sigma dropped; 3 h bucket answers for 1 h
+    and _loaded_pending == 1
+    and abs(_tr8.lead_sigma[6.0] - 0.5) < 1e-9,  # the good promise scored
+)
+
+# Leaving the plan's modes voids its unmatured promises: in comfort, boost
+# and off the room is driven by fixed rules, and scoring the old plan's
+# promises against it would charge the model with errors it never made.
+_c2m = _t2_coord()
+_c2m._mode = "auto"
+_c2m._file_lead_predictions(_fake_plan, _T5)
+_asyncio.run(_c2m.async_set_mode("economy"))
+_kept_between_plan_modes = len(_c2m._accuracy.lead_pending) == len(LEAD_BUCKETS)
+_asyncio.run(_c2m.async_set_mode("comfort"))
+R.check(
+    "leaving auto/economy voids the plan's unmatured promises",
+    _kept_between_plan_modes and not _c2m._accuracy.lead_pending,
+    "auto -> economy keeps them; auto -> comfort clears them",
+)
+
+# A step-response experiment overrides the plan for its duration, so no
+# promises are filed while it runs — and the ones the overridden plan
+# already filed are void too.
+_c2s = _t2_coord()
+_c2s._mode = "auto"
+_c2s._file_lead_predictions(_fake_plan, _T5)
+_c2s._sysid.phase = PHASE_ARMED
+_c2s._file_lead_predictions(_fake_plan, _T5)
+R.check(
+    "an active experiment files nothing and voids what the plan had filed",
+    not _c2s._accuracy.lead_pending,
+)
+
+# A frozen indoor sensor scores nothing: a stuck reading is not a
+# measurement, and an EWMA poisoned by one persists for weeks.
+from homeassistant.util import dt as _dt5
+
+_c9 = _t2_coord()
+_c9._mode = "auto"
+_c9._current_state.room_temperature = 20.0
+_t9 = datetime(2026, 1, 21, 6, 0, tzinfo=UTC)
+_c9._accuracy.note_lead_prediction(_t9 - timedelta(minutes=10), 1.0, 21.0)
+_dt5.freeze(_t9)
+try:
+    _c9._learning_frozen = lambda key: "stale"
+    _c9._record_accuracy()
+    _frozen_kept = (
+        len(_c9._accuracy.lead_pending) == 1 and _c9._accuracy.sigma(1.0) == 0.0
+    )
+    _c9._learning_frozen = lambda key: None
+    _c9._record_accuracy()
+    _live_scored = (
+        not _c9._accuracy.lead_pending
+        and abs(_c9._accuracy.sigma(1.0) - 1.0) < 1e-9
+    )
+finally:
+    _dt5.freeze(None)
+R.check(
+    "a frozen indoor sensor scores nothing; a live one settles the promise",
+    _frozen_kept and _live_scored,
+    "the promise waits through the freeze instead of being mis-scored",
+)
+
+# The floor channel is keyword-only: both arguments are per-step temperature
+# series the same shape as half the solver's inputs, so a positional
+# transposition would be silent and plausible-looking.
+_g5f = _mk_golden(dhw=False)
+try:
+    _g5f["optimizer"].optimize(
+        _g5f["state"], _g5f["prices"], _g5f["outdoor"], _g5f["wind"],
+        _g5f["rain"], _g5f["solar"], _G_START,
+        None, None, None, None, None, None, None, None,
+        np.zeros(len(_g5f["prices"])),
+    )
+    _f5_raised = False
+except TypeError:
+    _f5_raised = True
+R.check(
+    "the comfort-floor arguments cannot be passed positionally",
+    _f5_raised,
+    "a transposed margins/floors pair must be a loud TypeError, not a plan",
+)
+
+# The mold cap is the CONFIGURED target, never the live one: the away
+# setback lowers _opt_config.target_temp, and capping there would disarm
+# the guard exactly when mold risk peaks — a cold, damp, unheated house.
+_c6away = _mold_coord(
+    "60", mold_guard_enabled=True, indoor_humidity_entity="sensor.rh"
+)
+_c6away._opt_config.target_temp = 15.0
+_floors_away = _c6away._mold_floor_series(_out5)
+R.check(
+    "an away setback cannot lower the mold cap",
+    _floors_away is not None
+    and abs(float(_floors_away[0]) - float(_floors_wet[0])) < 1e-9
+    and float(_floors_away[0]) > 15.0 + 1.0,
+    "the guard holds the configured comfort target through the setback",
+)
+
+# What-if solves pass their scratch target as the cap, so a simulated
+# target override sees the floor that choice would actually get.
+_c7cap = _mold_coord(
+    "60", mold_guard_enabled=True, indoor_humidity_entity="sensor.rh"
+)
+_floors_cap = _c7cap._mold_floor_series(_out5, target_cap=18.0)
+R.check(
+    "a simulated target override caps its own what-if floor",
+    _floors_cap is not None
+    and abs(float(np.max(_floors_cap)) - 18.0) < 1e-9,
+)
+
 sys.exit(R.close("FEATURE CHECKS"))

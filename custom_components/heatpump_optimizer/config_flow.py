@@ -241,6 +241,13 @@ from .const import (
     DEFAULT_INTERNAL_GAINS_LEARNING_ENABLED,
     CONF_CURVE_LEARNING_ENABLED,
     DEFAULT_CURVE_LEARNING_ENABLED,
+    CONF_CONFIDENCE_MARGINS_ENABLED,
+    DEFAULT_CONFIDENCE_MARGINS_ENABLED,
+    CONF_MOLD_GUARD_ENABLED,
+    DEFAULT_MOLD_GUARD_ENABLED,
+    CONF_INDOOR_HUMIDITY_ENTITY,
+    CONF_THERMAL_BRIDGE_FRSI,
+    DEFAULT_THERMAL_BRIDGE_FRSI,
     CONF_PV_ENABLED,
     CONF_PV_PEAK_KW,
     CONF_PV_EFFICIENCY,
@@ -825,6 +832,7 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
         CONF_DHW_INLET_ENTITY,
         CONF_VVC_PUMP_ENTITY,
         CONF_SPACE_PUMP_ENTITY,
+        CONF_INDOOR_HUMIDITY_ENTITY,
     )
 
     # Fallback labels for the menus, used when the frontend has no translation
@@ -1045,9 +1053,20 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
     ) -> FlowResult:
         """How warm the house should be, and when."""
         if user_input is not None:
-            return self._save(user_input)
+            cleaned = dict(user_input)
+            # This page's clearable entity (T5 #54): an absent selector is
+            # written back as None so clearing genuinely clears.
+            if not cleaned.get(CONF_INDOOR_HUMIDITY_ENTITY):
+                cleaned[CONF_INDOOR_HUMIDITY_ENTITY] = None
+            return self._save(cleaned)
 
         current = self._current
+
+        def _entity_default(key: str) -> Any:
+            existing = current.get(key)
+            if existing:
+                return vol.Optional(key, default=existing)
+            return vol.Optional(key)
         return self.async_show_form(
             step_id="comfort",
             data_schema=vol.Schema(
@@ -1086,6 +1105,24 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
                         CONF_DAY_END_HOUR,
                         default=current.get(CONF_DAY_END_HOUR, DEFAULT_DAY_END_HOUR),
                     ): _number(18, 23, 1, slider=True),
+                    # T5 #54: the mold guard is comfort in the oldest sense
+                    # — a floor the house must not coast below. Double-
+                    # gated: the flag AND a live indoor humidity sensor.
+                    vol.Optional(
+                        CONF_MOLD_GUARD_ENABLED,
+                        default=current.get(
+                            CONF_MOLD_GUARD_ENABLED, DEFAULT_MOLD_GUARD_ENABLED
+                        ),
+                    ): bool,
+                    _entity_default(
+                        CONF_INDOOR_HUMIDITY_ENTITY
+                    ): _entity_of("sensor", "humidity"),
+                    vol.Optional(
+                        CONF_THERMAL_BRIDGE_FRSI,
+                        default=current.get(
+                            CONF_THERMAL_BRIDGE_FRSI, DEFAULT_THERMAL_BRIDGE_FRSI
+                        ),
+                    ): _number(0.3, 0.98, 0.01),
                 }
             ),
         )
@@ -1518,6 +1555,17 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
                             CONF_PRICE_RISK_LAMBDA, DEFAULT_PRICE_RISK_LAMBDA
                         ),
                     ): _number(0.0, 2.0, 0.05),
+                    # T5 #16: an objective-shaping knob like the weights
+                    # above — the floor rises by the model's own expected
+                    # error, so a promise made 12 hours out carries the
+                    # uncertainty a 12-hour promise has earned.
+                    vol.Optional(
+                        CONF_CONFIDENCE_MARGINS_ENABLED,
+                        default=current.get(
+                            CONF_CONFIDENCE_MARGINS_ENABLED,
+                            DEFAULT_CONFIDENCE_MARGINS_ENABLED,
+                        ),
+                    ): bool,
                 }
             ),
         )

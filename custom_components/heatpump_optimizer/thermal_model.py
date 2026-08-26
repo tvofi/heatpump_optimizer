@@ -33,6 +33,7 @@ parameters are not provided.
 from __future__ import annotations
 
 import logging
+import math
 from dataclasses import dataclass, field, replace
 from typing import Any
 
@@ -936,6 +937,50 @@ DHW_HOURLY_DRAW_PATTERN: list[float] = [
 # Normalize so average = 1.0
 _DHW_SUM = sum(DHW_HOURLY_DRAW_PATTERN)
 DHW_HOURLY_DRAW_PATTERN = [x * 24.0 / _DHW_SUM for x in DHW_HOURLY_DRAW_PATTERN]
+
+
+def saturation_vapor_pressure(temp_c: float) -> float:
+    """Magnus saturation vapour pressure over water, hPa (T5 #54).
+
+    Magnus-Tetens with the WMO coefficients; good to a few hundredths of
+    a hPa across the -40..+50 °C span a dwelling can see.
+    """
+    return 6.112 * math.exp(17.62 * temp_c / (243.12 + temp_c))
+
+
+def dew_point_for_pressure(vapor_pressure_hpa: float) -> float:
+    """The Magnus inverse: temperature at which this pressure saturates."""
+    ln = math.log(max(vapor_pressure_hpa, 1e-9) / 6.112)
+    return 243.12 * ln / (17.62 - ln)
+
+
+def mold_safe_room_floor(
+    room_temp_c: float,
+    indoor_rh_percent: float,
+    outdoor_temp_c: float,
+    frsi: float,
+    surface_rh_limit: float = 0.8,
+) -> float:
+    """Lowest room temperature keeping the worst surface under mold RH (#54).
+
+    The indoor vapour pressure is taken from the measured room state and
+    held constant — cooling the room does not remove moisture. The worst
+    surface sits at ``T_out + fRsi (T_room − T_out)``; its RH stays under
+    the limit iff the surface stays above the dew point of
+    ``e / limit``, which inverts to a closed-form floor on the room:
+
+        T_room ≥ T_out + (T_dew(e / limit) − T_out) / fRsi
+
+    Colder outside means a higher floor (fRsi < 1), which is the physics
+    the guard exists for.
+    """
+    frsi = min(max(frsi, 0.3), 0.98)
+    rh = min(max(indoor_rh_percent, 0.0), 100.0) / 100.0
+    e = rh * saturation_vapor_pressure(room_temp_c)
+    if e <= 1e-9:
+        return -100.0  # bone-dry air: no floor at all
+    t_surface_min = dew_point_for_pressure(e / max(surface_rh_limit, 0.05))
+    return outdoor_temp_c + (t_surface_min - outdoor_temp_c) / frsi
 
 
 def wood_share(

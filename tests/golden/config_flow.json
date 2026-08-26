@@ -377,6 +377,14 @@
    "required": "Required",
    "selector": "NumberSelector"
   },
+  "indoor_humidity_entity": {
+   "config": {
+    "filter": "[{'domain': ['sensor'], 'device_class': ['humidity']}]"
+   },
+   "default": null,
+   "required": "Optional",
+   "selector": "EntitySelector"
+  },
   "max_temperature": {
    "config": {
     "max": "28",
@@ -401,6 +409,12 @@
    "required": "Required",
    "selector": "NumberSelector"
   },
+  "mold_guard_enabled": {
+   "config": null,
+   "default": "False",
+   "required": "Optional",
+   "selector": "type"
+  },
   "target_temperature": {
    "config": {
     "max": "28",
@@ -411,6 +425,17 @@
    },
    "default": "21.0",
    "required": "Required",
+   "selector": "NumberSelector"
+  },
+  "thermal_bridge_frsi": {
+   "config": {
+    "max": "0.98",
+    "min": "0.3",
+    "mode": "'box'",
+    "step": "0.01"
+   },
+   "default": "0.75",
+   "required": "Optional",
    "selector": "NumberSelector"
   }
  },
@@ -1409,6 +1434,12 @@
    "default": "0.0",
    "required": "Optional",
    "selector": "NumberSelector"
+  },
+  "confidence_margins_enabled": {
+   "config": null,
+   "default": "False",
+   "required": "Optional",
+   "selector": "type"
   },
   "optimization_interval": {
    "config": {

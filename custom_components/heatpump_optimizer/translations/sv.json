@@ -263,7 +263,10 @@
           "comfort_temp_day": "Komforttemperatur dagtid",
           "comfort_temp_night": "Komforttemperatur nattetid",
           "day_start_hour": "Dagen börjar",
-          "day_end_hour": "Dagen slutar"
+          "day_end_hour": "Dagen slutar",
+          "mold_guard_enabled": "Håll kalla ytor under mögelfuktighet",
+          "indoor_humidity_entity": "Inomhusfuktsensor (valfri)",
+          "thermal_bridge_frsi": "Sämsta köldbryggans faktor (fRsi)"
         },
         "data_description": {
           "target_temperature": "Vad du faktiskt vill att huset ska ligga på. Optimeringen siktar hit och avviker bara för att undvika dyra timmar.",
@@ -272,7 +275,10 @@
           "comfort_temp_day": "Önskad temperatur under vakna timmar.",
           "comfort_temp_night": "Önskad temperatur nattetid. Ett par grader lägre sparar pengar och ger oftast bättre sömn.",
           "day_start_hour": "Timmen på morgonen då dagtemperaturen tar över.",
-          "day_end_hour": "Timmen på kvällen då nattemperaturen tar över."
+          "day_end_hour": "Timmen på kvällen då nattemperaturen tar över.",
+          "mold_guard_enabled": "Husets kallaste punkt — en fönstersmyg, ett hörn bakom en garderob — ligger långt under rumstemperaturen, och mögel börjar växa där ytans fuktighet stannar över 80 %. Med detta på låter optimeraren inte huset svalna under den temperatur som håller den punkten säker, beräknad ur uppmätt inomhusfukt och utomhusprognosen. Kräver fuktsensorn nedan; den värmer aldrig förbi ditt komfortmål — ihållande hög fukt är ett ventilationsproblem, inte ett värmeproblem.",
+          "indoor_humidity_entity": "En relativ fuktsensor i bostadsutrymmet. Utan en förblir mögelvakten av oavsett omkopplaren.",
+          "thermal_bridge_frsi": "Hur kall din sämsta yta blir, som andel: yta = ute + fRsi × (rum − ute). 0,75 är svenska byggreglernas riktvärde; lägre betyder en kallare värsta punkt och en försiktigare vakt."
         }
       },
       "hot_water": {
@@ -367,14 +373,16 @@
           "comfort_weight": "Hur strikt temperaturen ska hållas",
           "optimization_interval": "Räkna om var",
           "compressor_cycling_cost": "Kostnad för en kompressorstart",
-          "price_risk_lambda": "Försiktighet med gissade priser"
+          "price_risk_lambda": "Försiktighet med gissade priser",
+          "confidence_margins_enabled": "Håll säkerhetsmarginal där modellen är osäker"
         },
         "data_description": {
           "price_weight": "Högre värde gör att optimeringen jobbar hårdare för att flytta värmen till billiga timmar, till priset av större temperatursvängningar.",
           "comfort_weight": "Motvikten till inställningen ovan, och det mest effektiva reglaget du har. Den vägs mot intervallet du tillåter, så ett bredare intervall gör optimeraren djärvare. Runt 5 låter huset röra sig fritt inom ditt tillåtna intervall för störst besparing; 10 håller det märkbart närmare målet; 20 eller mer beter sig nästan som en vanlig termostat.",
           "optimization_interval": "Hur ofta planen räknas om mot färska priser och väder. Oftare reagerar snabbare men kräver mer arbete.",
           "compressor_cycling_cost": "Motverkar planer som slår på och av upprepade gånger. Lämna på 0 om du inte har skäl att tro att din pump startar för ofta; antalet planerade starter publiceras på plansensorerna så du kan titta först.",
-          "price_risk_lambda": "Bortom den publicerade horisonten uppskattas priserna från din inlärda dygnsprofil. Detta lägger ett påslag på gissningarna i proportion till hur fel de brukat vara, så planen slutar behandla en gissad billig natt som säker. 0 litar på gissningarna rakt av, som tidigare."
+          "price_risk_lambda": "Bortom den publicerade horisonten uppskattas priserna från din inlärda dygnsprofil. Detta lägger ett påslag på gissningarna i proportion till hur fel de brukat vara, så planen slutar behandla en gissad billig natt som säker. 0 litar på gissningarna rakt av, som tidigare.",
+          "confidence_margins_enabled": "En plan som lovar 19,0 °C tolv timmar framåt vilar på en tolvtimmarsprognos, och optimeraren vet ur sin egen historik hur fel de brukar bli. Med detta på höjs komfortgolvet med exakt det förväntade felet — begränsat till 0,8 °C och krympande mot noll när träffsäkerheten förbättras — så djupa prisridande svalningar tas bara där modellen förtjänat förtroendet."
         }
       },
       "heat_curve": {

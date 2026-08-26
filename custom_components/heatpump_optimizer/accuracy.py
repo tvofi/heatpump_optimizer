@@ -103,6 +103,21 @@ class AccuracySample:
         )
 
 
+#: Lead-time buckets, hours (T5 #16). The margin a plan needs against its
+#: own uncertainty grows with how far ahead the promise was made; these
+#: are the distances at which that growth is measured.
+LEAD_BUCKETS: tuple[float, ...] = (1.0, 3.0, 6.0, 12.0, 24.0)
+#: EWMA rate per scored prediction — weeks-scale, like every other slow
+#: statistic here.
+LEAD_SIGMA_ALPHA = 0.05
+#: A matured prediction is matched to the first measurement no more than
+#: this far AFTER its target (one-sided window); later than that, the
+#: pair says nothing about the lead it was filed under. Callers whose
+#: sampling cadence is coarser than this pass their own window, or every
+#: bucket that is not a multiple of the cadence starves forever.
+LEAD_MATCH_TOLERANCE_H = 0.5
+
+
 @dataclass
 class AccuracyTracker:
     """Rolling record of prediction quality."""
@@ -110,9 +125,99 @@ class AccuracyTracker:
     samples: Deque[AccuracySample] = field(
         default_factory=lambda: deque(maxlen=HISTORY_LENGTH)
     )
+    #: T5 #16 — per-lead-bucket EWMA of |realised − predicted| room
+    #: temperature, °C, and how many pairs each has scored.
+    lead_sigma: dict[float, float] = field(default_factory=dict)
+    lead_counts: dict[float, int] = field(default_factory=dict)
+    #: Predictions waiting for their moment of truth:
+    #: (target_time, lead_hours, predicted_temp). Bounded by construction —
+    #: each solve files one entry per bucket and entries expire when scored
+    #: or overdue.
+    lead_pending: list[tuple[datetime, float, float]] = field(
+        default_factory=list
+    )
 
     def record(self, sample: AccuracySample) -> None:
         self.samples.append(sample)
+
+    # -- lead-time error (T5 #16) --------------------------------------------
+
+    def note_lead_prediction(
+        self, target_time: datetime, lead_hours: float, predicted_temp: float
+    ) -> None:
+        """File one plan promise: 'at target_time the room will be X'."""
+        if not np.isfinite(predicted_temp):
+            return
+        self.lead_pending.append(
+            (target_time, float(lead_hours), float(predicted_temp))
+        )
+        # A hard cap far above normal fill (5 buckets × 48 half-hour
+        # solves), purely so corrupt state cannot grow without bound.
+        del self.lead_pending[:-512]
+
+    def score_lead_predictions(
+        self,
+        now: datetime,
+        actual_temp: float,
+        window_hours: float | None = None,
+    ) -> None:
+        """Settle every matured promise against the measured temperature.
+
+        ``window_hours`` is how long after its target a promise still
+        counts — at least the default tolerance, and callers scoring on a
+        coarse cadence pass that cadence, or promises maturing between
+        their ticks would be discarded systematically and the buckets
+        whose leads are not multiples of the cadence would never fill.
+        """
+        if not np.isfinite(actual_temp):
+            return
+        window = max(
+            LEAD_MATCH_TOLERANCE_H,
+            float(window_hours) if window_hours is not None else 0.0,
+        )
+        keep: list[tuple[datetime, float, float]] = []
+        for target_time, lead, predicted in self.lead_pending:
+            if not np.isfinite(predicted):
+                continue
+            age_h = (now - target_time).total_seconds() / 3600.0
+            if age_h < 0.0:
+                keep.append((target_time, lead, predicted))
+                continue
+            if age_h <= window:
+                err = abs(float(actual_temp) - predicted)
+                prev = self.lead_sigma.get(lead)
+                self.lead_sigma[lead] = (
+                    err
+                    if prev is None
+                    else (1.0 - LEAD_SIGMA_ALPHA) * prev
+                    + LEAD_SIGMA_ALPHA * err
+                )
+                self.lead_counts[lead] = self.lead_counts.get(lead, 0) + 1
+            # Matured entries never survive, scored or stale: a promise
+            # that missed its measurement window is unverifiable.
+        self.lead_pending = keep
+
+    def sigma(self, lead_hours: float) -> float:
+        """Expected |error| for a promise this far ahead, °C.
+
+        Zero with no history — which is what makes #16 byte-inert on a
+        fresh install: no evidence, no margin. Between buckets the nearer
+        bucket with evidence answers; beyond the last, the last does.
+        """
+        best: tuple[float, float, float] | None = None
+        for lead, value in self.lead_sigma.items():
+            if self.lead_counts.get(lead, 0) <= 0:
+                continue
+            distance = abs(lead - float(lead_hours))
+            # Exact ties resolve to the LONGER bucket: between two equally
+            # near answers, the more conservative one.
+            if (
+                best is None
+                or distance < best[0] - 1e-12
+                or (abs(distance - best[0]) <= 1e-12 and lead > best[2])
+            ):
+                best = (distance, value, lead)
+        return float(best[1]) if best is not None else 0.0
 
     # -- metrics ------------------------------------------------------------
 
@@ -199,6 +304,12 @@ class AccuracyTracker:
             "realised_cost": self.realised_cost(),
             "predicted_cost": self.predicted_cost(),
             "trust": round(self.trust(), 2),
+            # T5 #16, additive: the expected |error| per promise distance.
+            "lead_sigma": {
+                f"{lead:g}h": round(value, 3)
+                for lead, value in sorted(self.lead_sigma.items())
+                if self.lead_counts.get(lead, 0) > 0
+            },
         }
 
     # -- persistence --------------------------------------------------------
@@ -207,7 +318,24 @@ class AccuracyTracker:
         # Only the most recent slice is persisted; the whole history is not
         # worth the storage write on every interval.
         recent = list(self.samples)[-192:]
-        return {"samples": [s.as_dict() for s in recent]}
+        return {
+            "samples": [s.as_dict() for s in recent],
+            # T5 #16, additive keys. The pending promises persist too, or
+            # every restart would silently discard up to a day of filed
+            # predictions and the long buckets would starve.
+            "lead_sigma": {
+                str(lead): round(value, 4)
+                for lead, value in self.lead_sigma.items()
+            },
+            "lead_counts": {
+                str(lead): int(count)
+                for lead, count in self.lead_counts.items()
+            },
+            "lead_pending": [
+                [t.isoformat(), lead, round(pred, 3)]
+                for t, lead, pred in self.lead_pending[-512:]
+            ],
+        }
 
     @classmethod
     def from_dict(cls, data: dict[str, Any] | None) -> "AccuracyTracker":
@@ -220,6 +348,46 @@ class AccuracyTracker:
             sample = AccuracySample.from_dict(raw)
             if sample is not None:
                 tracker.samples.append(sample)
+        raw_sigma = data.get("lead_sigma")
+        if isinstance(raw_sigma, dict):
+            for key, value in raw_sigma.items():
+                try:
+                    parsed = float(value)
+                except (TypeError, ValueError):
+                    continue
+                # max(0, NaN) is NaN — a poisoned sigma would reach the
+                # comfort bounds as a NaN margin.
+                if not np.isfinite(parsed):
+                    continue
+                try:
+                    tracker.lead_sigma[float(key)] = max(0.0, parsed)
+                except (TypeError, ValueError):
+                    continue
+        raw_counts = data.get("lead_counts")
+        if isinstance(raw_counts, dict):
+            for key, value in raw_counts.items():
+                try:
+                    tracker.lead_counts[float(key)] = max(0, int(value))
+                except (TypeError, ValueError):
+                    continue
+        raw_pending = data.get("lead_pending")
+        if isinstance(raw_pending, list):
+            for entry in raw_pending[-512:]:
+                try:
+                    when = datetime.fromisoformat(str(entry[0]))
+                    lead = float(entry[1])
+                    predicted = float(entry[2])
+                except (TypeError, ValueError, IndexError):
+                    continue
+                # A tz-naive timestamp raises on the first aware
+                # comparison and, because it raises BEFORE pruning, would
+                # brick every subsequent update until the store is hand-
+                # edited. This classmethod is the corruption barrier.
+                if when.tzinfo is None:
+                    continue
+                if not np.isfinite(lead) or not np.isfinite(predicted):
+                    continue
+                tracker.lead_pending.append((when, lead, predicted))
         return tracker
 
 

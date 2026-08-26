@@ -849,6 +849,71 @@ insurance / T4b learners) if review size demands it.
 
 Isolated deliberately: both features move the comfort floor inside the objective.
 
+*Outcome notes:* built as scoped, both floors through ONE new optimizer
+channel — `optimize()` gained `min_temp_margins` (additive per step) and
+`min_temp_floors` (absolute per step), applied at the single site where the
+temperature bounds are built so every consumer (objectives, safety releases,
+pin repair) sees the same effective floor, with a band-never-shut clamp at
+`max − 0.5` that runs only when either argument is present. The lead-time
+infrastructure lives on the AccuracyTracker: each solve files one promise per
+bucket {1, 3, 6, 12, 24 h} ("at T+k the room will be X", the same trajectory
+and mode gate the one-step sample uses), matured promises score into a
+per-bucket EWMA of |error| within a ±30-minute matching window (a promise
+that misses its window is discarded unscored — filing it under the wrong lead
+would corrupt the very statistic), and `sigma(lead)` answers from the nearest
+bucket with evidence, zero with none. All of it persists additively on the
+accuracy store, pending promises included, so a restart does not starve the
+long buckets. **#16** computes `min(sigma(lead_i) × (1 − trust), 0.8)` per
+step — trust at 1 margins nothing however noisy the history, no history
+means sigma 0 means byte-inert, and cap+damping is the anti-oscillation
+argument: the margin can only shrink as accuracy improves, so the
+margin→plan→errors loop has a contracting fixed point (asserted on replayed
+history). **#54** got a closed form instead of the planned bisection: with
+the measured vapour pressure held constant, surface RH < 80 % inverts to
+`T_room ≥ T_out + (T_dew(e/0.8) − T_out)/fRsi` (Magnus both ways,
+module-level functions in thermal_model with round-trip tests), evaluated
+per forecast step so colder nights raise the floor. Double-gated on flag AND
+a live humidity entity, and capped at the comfort target — at 60 % indoor RH
+and −15 °C the honest physics wants 27 °C, and heating past target to fight
+a ventilation problem is the runaway the cap forbids. Keys: tuning page got
+the margins flag; the comfort page got the mold flag, the humidity entity
+(device-class-filtered picker, clearable) and fRsi (default 0.75, the BBR
+guidance value). New golden `confidence_margins` rides both channels in one
+solve; coord_*/config_flow re-recorded additive-only. The recorder's fixed
+`--only` recorded exactly one fixture this time.
+
+*T5 review round (0 critical, 3 major, 6 minor, 4 nits — all acted on):*
+the three majors were all "the promise machinery believes the plan more
+than the plant". **Bucket starvation**: the scoring window was the fixed
+±30-minute tolerance, so any install whose optimization interval is coarser
+discards every promise maturing between ticks and the long buckets starve
+forever — `score_lead_predictions` now takes the caller's cadence as
+`window_hours` (floored at the tolerance) and the coordinator passes its
+configured interval. **Void promises**: leaving auto/economy
+(`async_set_mode`) now clears unmatured promises — in comfort/boost/off the
+room is driven by fixed rules and scoring the dead plan's promises would
+charge the model with errors it never made; an active sys-ID experiment
+likewise files nothing and voids what the overridden plan had filed.
+**Away-blind mold cap**: the floor was capped at the *live*
+`_opt_config.target_temp`, which the away setback lowers — disarming the
+guard exactly when mold risk peaks (a cold, damp, unheated house). The cap
+is now the *configured* comfort target, with an explicit `target_cap`
+parameter so what-if solves cap at their simulated target. Minors: the two
+new optimizer arguments became keyword-only and the main solve moved to a
+lambda executor call (both are per-step temperature series the same shape
+as half the solver's inputs — a positional transposition would have been
+silent); promises are anchored to the solve's own timestamp, not "after
+the solve"; `from_dict` grew corruption barriers (a tz-naive pending
+timestamp would raise on the first aware subtraction and brick every
+subsequent score; a NaN sigma reaches the bounds as a NaN margin); exact
+between-bucket ties resolve to the longer, more conservative bucket; the
+vacuous fixed-point test became a real replay (identical errors → identical
+margins, smaller errors → strictly smaller margins); and the curve-comfort
+tracker documents that eating into #16's cushion is not a comfort miss.
+One finding dispositioned as non-action: the commit-trailer attribution
+line is mandated by the development harness and is not repository content,
+so it stays. Checks 734 → 744.
+
 **Infrastructure:** lead-time error quantiles. Score realised temperature against
 the prediction made k steps ago for buckets {1, 3, 6, 12, 24 h}; per-bucket EWMA
 persisted additively; exposed as `accuracy.sigma(lead_hours)`.
