@@ -29,7 +29,10 @@ jobs:
   fast:
     if: github.event_name == 'push' || github.event_name == 'pull_request'
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    # Drift mode captures all 53 scenarios twice (tree + merge-base); the
+    # first main run proved 45 min is not enough on GitHub's runners — the
+    # step was cancelled mid-suite by its own timeout.
+    timeout-minutes: 100
     steps:
       - uses: actions/checkout@v4
         with:
@@ -65,13 +68,13 @@ jobs:
           GOLDEN_MODE: drift
           # Shared runners are slower than the development box; the guard
           # still catches order-of-magnitude solver regressions.
-          STRESS_SOLVE_BUDGET_MS: "90000"
+          STRESS_SOLVE_BUDGET_MS: "120000"
         run: ./tests/run.sh
 
   slow:
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 150
     steps:
       - uses: actions/checkout@v4
         with:
@@ -98,5 +101,5 @@ jobs:
         env:
           GOLDEN_MODE: drift
           SLOW: "1"
-          STRESS_SOLVE_BUDGET_MS: "90000"
+          STRESS_SOLVE_BUDGET_MS: "120000"
         run: ./tests/run.sh

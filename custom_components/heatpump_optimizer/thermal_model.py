@@ -123,6 +123,19 @@ WATER_SPECIFIC_HEAT: float = _WATER_SPECIFIC_HEAT
 # This is the reference ambient the learned DHW cooling rate is stated against.
 DHW_AMBIENT_TEMP: float = DHW_COOLING_REFERENCE_AMBIENT_TEMP
 
+# Physical floor for the thermal-mass stores the per-step model divides by.
+# 0.1 kWh/°C is about 90 litres of water — already implausibly small for a
+# room, a slab or a floor; anything below it is a typo or a bad service
+# write, and as a divisor it turns the objective into inf/NaN. Enforced once
+# at the parameter boundary (``ThermalParameters.clamp``) so the simulate
+# steps can keep dividing without per-call guards.
+THERMAL_MASS_FLOOR: float = 0.1
+
+# Explicit Euler diverges once a store's coupling-to-mass ratio u·dt/C
+# passes 2; 1.5 leaves margin without ever triggering for a plausible house
+# (defaults sit near 0.05). Above it, ``simulate_step`` subdivides the step.
+EULER_STABILITY_MAX_RATIO: float = 1.5
+
 
 @dataclass
 class ThermalParameters:
@@ -169,6 +182,35 @@ class ThermalParameters:
     # emitter UA out of the nameplate output so the throttled branch reproduces
     # today's delivery at the design point rather than inventing a new balance.
     emitter_design_delta_t: float = 15.0  # K
+
+    def __post_init__(self) -> None:
+        # Every construction path — ``from_config``, snapshots, tests — runs
+        # through here, so the divisor floor holds from birth. Attribute
+        # writes after construction (the set_thermal_params service) call
+        # ``clamp`` again at their own chokepoint.
+        self.clamp()
+
+    def clamp(self) -> None:
+        """Enforce the physical floor on every thermal-mass divisor.
+
+        The per-step simulate functions divide by these four stores raw; a
+        zero or near-zero value from config or a service write would put
+        inf/NaN inside the objective. One boundary owns the guard so the
+        divisions stay unguarded.
+        """
+        for name in (
+            "room_thermal_mass",
+            "slab_thermal_mass",
+            "upper_floor_thermal_mass",
+            "lower_floor_thermal_mass",
+        ):
+            try:
+                value = float(getattr(self, name))
+            except (TypeError, ValueError):
+                value = THERMAL_MASS_FLOOR
+            if not np.isfinite(value) or value < THERMAL_MASS_FLOOR:
+                value = THERMAL_MASS_FLOOR
+            setattr(self, name, value)
 
     @property
     def buffer_is_store(self) -> bool:
@@ -1785,17 +1827,86 @@ class ThermalModel:
         # The single-zone path has no buffer cap, so the scratch would
         # otherwise carry a stale value from an earlier two-zone step.
         self._step_buffer_refused = 0.0
+        # Explicit-Euler stability: with u·dt/C past ~2 the update
+        # overshoots equilibrium and oscillates divergently. The parameter
+        # boundary floors the masses, but a floored mass against a large
+        # coupling can still land in that regime, so the step is subdivided
+        # to the smallest n that brings every store's ratio under the
+        # margin. n == 1 — the untouched original arithmetic, bit for bit —
+        # for every sane configuration; the fixtures prove it.
+        n_sub = self._stability_substeps(wind_speed, precipitation, dt_hours)
         if self.params.two_zone_enabled:
-            return self._simulate_step_two_zone(
+            if n_sub == 1:
+                return self._simulate_step_two_zone(
+                    state, electrical_power, outdoor_temp,
+                    wind_speed, precipitation, solar_radiation, dt_hours,
+                    external_heat_kw, valve_target, humidity, hour_of_day,
+                )
+            refused = 0.0
+            for _ in range(n_sub):
+                state = self._simulate_step_two_zone(
+                    state, electrical_power, outdoor_temp,
+                    wind_speed, precipitation, solar_radiation,
+                    dt_hours / n_sub,
+                    external_heat_kw, valve_target, humidity, hour_of_day,
+                )
+                refused += self._step_buffer_refused
+            # Refused charge is a power (kW); equal sub-steps make the
+            # step's figure the plain mean.
+            self._step_buffer_refused = refused / n_sub
+            return state
+        if n_sub == 1:
+            return self._simulate_step_single(
                 state, electrical_power, outdoor_temp,
                 wind_speed, precipitation, solar_radiation, dt_hours,
-                external_heat_kw, valve_target, humidity, hour_of_day,
+                external_heat_kw, humidity, hour_of_day,
             )
-        return self._simulate_step_single(
-            state, electrical_power, outdoor_temp,
-            wind_speed, precipitation, solar_radiation, dt_hours,
-            external_heat_kw, humidity, hour_of_day,
-        )
+        for _ in range(n_sub):
+            state = self._simulate_step_single(
+                state, electrical_power, outdoor_temp,
+                wind_speed, precipitation, solar_radiation, dt_hours / n_sub,
+                external_heat_kw, humidity, hour_of_day,
+            )
+        return state
+
+    def _stability_substeps(
+        self, wind_speed: float, precipitation: float, dt_hours: float
+    ) -> int:
+        """Sub-steps needed to keep every store's u·dt/C under the margin.
+
+        Only the four boundary-floored masses are judged: the buffer and
+        wood tanks already carry their own energy bounds and dT caps, and a
+        genuinely small separator tank is a sane configuration this guard
+        must not touch.
+        """
+        p = self.params
+        if p.two_zone_enabled:
+            u_upper = self.effective_heat_loss_coefficient(
+                p.upper_floor_heat_loss, wind_speed, precipitation
+            )
+            u_lower = self.effective_heat_loss_coefficient(
+                p.lower_floor_heat_loss_learned,
+                wind_speed * 0.5,
+                precipitation * 0.5,
+            )
+            worst = max(
+                (u_upper + p.inter_zone_transfer) / p.upper_floor_thermal_mass,
+                (u_lower + p.inter_zone_transfer + p.slab_heat_transfer)
+                / p.lower_floor_thermal_mass,
+                p.slab_heat_transfer / p.slab_thermal_mass,
+            )
+        else:
+            u_eff = self.effective_heat_loss_coefficient(
+                p.heat_loss_coefficient, wind_speed, precipitation
+            )
+            worst = max(
+                (u_eff + p.slab_heat_transfer) / p.room_thermal_mass,
+                p.slab_heat_transfer / p.slab_thermal_mass,
+            )
+        ratio = worst * dt_hours
+        if ratio <= EULER_STABILITY_MAX_RATIO:
+            return 1
+        return int(np.ceil(ratio / EULER_STABILITY_MAX_RATIO))
 
     def simulate_trajectory(
         self,

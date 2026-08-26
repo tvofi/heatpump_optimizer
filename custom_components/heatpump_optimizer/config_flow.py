@@ -305,8 +305,15 @@ _LOGGER = logging.getLogger(__name__)
 TIBBER_API_URL = "https://api.tibber.com/v1-beta/gql"
 
 
-async def validate_tibber_token(hass: HomeAssistant, token: str) -> bool:
-    """Validate the Tibber API token."""
+async def validate_tibber_token(hass: HomeAssistant, token: str) -> str:
+    """Check the Tibber API token: "ok", "invalid_auth" or "cannot_connect".
+
+    The distinction matters at 03:00 with the router rebooting: a network
+    failure must not tell the user their token is wrong — retyping a
+    correct token fixes nothing, and the message sends them to the wrong
+    place. Only Tibber's own verdict (an errors payload, or 401/403) may
+    say "invalid"; everything else is a connectivity answer.
+    """
     query = '{ "query": "{ viewer { name } }" }'
     headers = {
         "Authorization": f"Bearer {token}",
@@ -322,10 +329,12 @@ async def validate_tibber_token(hass: HomeAssistant, token: str) -> bool:
         ) as resp:
             if resp.status == 200:
                 data = await resp.json()
-                return "errors" not in data
-            return False
+                return "ok" if "errors" not in data else "invalid_auth"
+            if resp.status in (401, 403):
+                return "invalid_auth"
+            return "cannot_connect"
     except Exception:
-        return False
+        return "cannot_connect"
 
 
 def _number(
@@ -495,10 +504,13 @@ class HeatPumpOptimizerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            if not await validate_tibber_token(
+            verdict = await validate_tibber_token(
                 self.hass, user_input[CONF_TIBBER_TOKEN]
-            ):
+            )
+            if verdict == "invalid_auth":
                 errors[CONF_TIBBER_TOKEN] = "invalid_tibber_token"
+            elif verdict != "ok":
+                errors[CONF_TIBBER_TOKEN] = "cannot_connect"
             else:
                 self._data.update(user_input)
                 return await self.async_step_temperature()
@@ -1016,8 +1028,11 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
         if user_input is not None:
             token = user_input.get(CONF_TIBBER_TOKEN)
             if token and token != current.get(CONF_TIBBER_TOKEN):
-                if not await validate_tibber_token(self.hass, token):
+                verdict = await validate_tibber_token(self.hass, token)
+                if verdict == "invalid_auth":
                     errors[CONF_TIBBER_TOKEN] = "invalid_tibber_token"
+                elif verdict != "ok":
+                    errors[CONF_TIBBER_TOKEN] = "cannot_connect"
             if not errors:
                 cleaned = dict(user_input)
                 for key in self._ENTITIES_PAGE_KEYS:

@@ -1,5 +1,57 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v4.0.3
+
+### Guards from the audit's third pass
+
+Six fixes for the moments things go wrong — a solver that keeps failing, a
+clock that steps backwards, a sensor that froze last winter. On a healthy
+install nothing changes: every plan fixture is byte-identical, and the only
+new coordinator data are two staleness fields.
+
+**A clock before the plan no longer executes the end of it.** If the system
+clock stepped back past the plan's first step (NTP correction, a restored
+stale plan), the current-action lookup fell through to the *last* step of
+the horizon — the 24-hours-ahead slot where terminal-value charging lives.
+A small skew now clamps to the first step; anything larger idles, exactly
+as if there were no plan.
+
+**A plan that keeps failing to refresh now says so — and stops steering.**
+A failed solve has always kept the last good plan, deliberately; but it
+kept it silently and forever. The coordinator now publishes the plan's age
+(`plan_age_minutes`) and a staleness flag (`plan_stale`, tripping after
+three missed solve cycles, at least 90 minutes). A stale plan is no longer
+actuated — the heat pump falls back to its own heating curve, the same
+behaviour as having no plan at all — and three consecutive solve failures
+raise a repair issue that clears itself on the next success.
+
+**A learner rollback no longer un-remembers billed peaks.** The weekly
+snapshot insurance restored the month's realised peak list along with the
+learners — but those peaks are facts the grid company already metered, not
+learned state. A rollback could lower the capacity-tariff threshold and
+mis-arm the live peak guard against a ceiling that no longer exists. Peaks
+now stay out of snapshots entirely; old snapshots carrying them are ignored.
+
+**Thermal masses can no longer divide the model to pieces.** A zero or
+near-zero thermal mass — a typo in config, an aggressive
+`set_thermal_parameters` call — put infinities inside the objective. Every
+mass is now clamped to a physical floor (0.1 kWh/°C) at the parameter
+boundary, and the per-step simulation subdivides any step whose
+coupling-to-mass ratio would make plain Euler integration oscillate. No
+sane configuration ever triggers either guard; the fixtures prove it.
+
+**Frozen sensors fail safe.** A humidity sensor that stopped reporting held
+a raised mold-guard floor forever; it now reads as absent after two hours
+and the floor vanishes. A dead cold-water inlet probe pinned the hot-water
+model at its last reading; after a day it degrades to the seasonal model.
+And a legacy stored timestamp without a timezone no longer crashes the
+open-window detector's staleness release on restore.
+
+**Setup now tells the truth about Tibber.** A network failure during token
+validation reported "invalid token", sending users to retype a token that
+was never wrong. Connectivity problems now get their own message, in both
+the initial setup and the options page.
+
 ## v4.0.2
 
 ### Lifecycle housekeeping from the audit's second pass

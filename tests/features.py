@@ -9498,5 +9498,301 @@ R.check(
     and "async_get_clientsession" in _net_flow_src,
 )
 
+R.section("v4.0.3 — stale-plan guards, billed peaks, boundary clamps")
+
+from heatpump_optimizer.config_flow import validate_tibber_token as _g_tibber
+from heatpump_optimizer.coordinator import (
+    PLAN_STALE_FLOOR_MINUTES as _G_STALE_FLOOR,
+    SOLVE_FAILURE_ISSUE_COUNT as _G_FAIL_COUNT,
+)
+from heatpump_optimizer.optimizer import (
+    OptimizationResult as _GRes,
+)
+from heatpump_optimizer.thermal_model import (
+    THERMAL_MASS_FLOOR as _G_MASS_FLOOR,
+)
+
+# --- the pre-horizon clock guard -------------------------------------------------
+# The step-selection loop's else-branch answers "past the horizon" with the
+# LAST step; a clock BEFORE the horizon fell into the same branch — and the
+# last step is where terminal-value charging lives.
+_g_opt = _PvOpt(_PvModel(_PvParams()), _PvOptCfg())
+_g_t0 = datetime(2026, 3, 1, 12, 0, tzinfo=UTC)
+_g_res = _GRes(
+    power_schedule=[1.4, 2.8, 4.2],
+    room_temp_trajectory=[21.0] * 4,
+    slab_temp_trajectory=[22.0] * 4,
+    timestamps=[_g_t0 + timedelta(minutes=15 * i) for i in range(3)],
+    prices=[0.5, 1.0, 1.5],
+    predicted_cost=1.0,
+    baseline_cost=1.0,
+    predicted_savings=0.0,
+    savings_percentage=0.0,
+    optimal_setpoints=[21.0, 21.5, 22.0],
+    status="ok",
+)
+_g_act = _g_opt.get_current_action(_g_res, _g_t0 - timedelta(minutes=5))
+R.check(
+    "a skew within one step length clamps to the FIRST step, not the last",
+    _g_act["power"] == 1.4 and _g_act["setpoint"] == 21.0,
+    f"got power {_g_act['power']}, setpoint {_g_act['setpoint']}",
+)
+_g_far = _g_opt.get_current_action(_g_res, _g_t0 - timedelta(hours=2))
+R.check(
+    "beyond one step the plan says nothing about now: idle",
+    _g_far["mode"] == "idle" and _g_far["heat_pump_on"] is False,
+    f"got {_g_far['mode']}",
+)
+R.check(
+    "the pre-horizon idle IS the empty-plan fallback, one shared dict",
+    _g_far == _g_opt._idle_action(),
+    "two hand-maintained fallbacks would drift",
+)
+_g_last = _g_opt.get_current_action(_g_res, _g_t0 + timedelta(hours=5))
+R.check(
+    "past the horizon the last step still answers, unchanged",
+    _g_last["power"] == 4.2,
+)
+
+# --- solve failures: the counter, the issue, the stale predicate -----------------
+_g_coord = HeatPumpOptimizerCoordinator(FakeHass(), FakeEntry(data=_LC_DATA))
+R.check(
+    "before any solve the plan has no age and is not stale",
+    _g_coord._plan_age_minutes() is None
+    and _g_coord._plan_is_stale() is False,
+)
+
+
+def _g_boom():
+    raise RuntimeError("solver exploded")
+
+
+_g_coord._forecast_arrays = _g_boom
+for _ in range(_G_FAIL_COUNT):
+    _asyncio.run(_g_coord.async_run_optimization())
+_g_issues = [
+    i for i in getattr(_g_coord.hass, "issues", []) if i[1] == "solve_failures"
+]
+R.check(
+    "three consecutive failed solves raise exactly one repair issue",
+    _g_coord._solve_failures == _G_FAIL_COUNT and len(_g_issues) == 1,
+    f"failures {_g_coord._solve_failures}, issues {len(_g_issues)}",
+)
+R.check(
+    "the issue carries its translation key and placeholders",
+    _g_issues[0][2].get("translation_key") == "solve_failures"
+    and set(_g_issues[0][2].get("translation_placeholders", {}))
+    == {"count", "last_success"}
+    and _g_issues[0][2].get("is_persistent") is True,
+)
+
+from homeassistant.util import dt as _g_dt
+
+_g_coord._last_optimization = _g_dt.now() - timedelta(minutes=60)
+R.check(
+    "an hour-old plan is not yet stale (90-minute floor)",
+    not _g_coord._plan_is_stale()
+    and abs(_g_coord._plan_age_minutes() - 60.0) < 1.0,
+)
+_g_coord._last_optimization = _g_dt.now() - timedelta(
+    minutes=_G_STALE_FLOOR + 10
+)
+R.check(
+    "past three missed cycles the plan is stale",
+    _g_coord._plan_is_stale(),
+)
+_g_slow = HeatPumpOptimizerCoordinator(
+    FakeHass(), FakeEntry(data={**_LC_DATA, "optimization_interval": 60})
+)
+_g_slow._last_optimization = _g_dt.now() - timedelta(minutes=100)
+R.check(
+    "the threshold scales with the configured update interval",
+    not _g_slow._plan_is_stale(),
+    "3 x 60 min = 180 min; 100 minutes is one missed cycle, not staleness",
+)
+
+# The fallback path: a stale plan's action is NOT actuated — the same
+# non-actuation as having no plan, handing comfort to the pump's own curve.
+_g_pub: list[str] = []
+
+
+async def _g_rec(reason="optimizer"):
+    _g_pub.append(reason)
+
+
+_g_coord.async_publish_current_action = _g_rec
+_g_coord._current_action = {"heat_pump_on": True, "displace_value": 2.0}
+_asyncio.run(_g_coord._apply_action())
+R.check(
+    "a stale plan's schedule step is not applied",
+    not _g_pub,
+    f"published {_g_pub}",
+)
+_g_coord._last_optimization = _g_dt.now()
+_asyncio.run(_g_coord._apply_action())
+R.check(
+    "a fresh plan actuates exactly as before",
+    _g_pub == ["scheduled_update"],
+    f"published {_g_pub}",
+)
+_g_coord._last_optimization = _g_dt.now() - timedelta(days=1)
+_g_coord._mode = "boost"
+_asyncio.run(_g_coord._apply_action())
+R.check(
+    "fixed-rule modes carry no horizon and ignore staleness",
+    _g_pub == ["scheduled_update", "scheduled_update"],
+    f"published {_g_pub}",
+)
+
+# --- a rollback must not un-remember billed peaks --------------------------------
+_g_pk = HeatPumpOptimizerCoordinator(FakeHass(), FakeEntry(data=_LC_DATA))
+_g_pk._peak_tracker.month = "2026-08"
+_g_pk._peak_tracker.peaks = [5.0]
+_g_snap = _g_pk._learner_snapshot_payloads()
+R.check(
+    "new snapshots no longer carry the peak tracker at all",
+    "peak_tracker" not in _g_snap,
+)
+_g_pk._peak_tracker.peaks = [7.0, 5.0]  # the DSO has metered a higher peak
+_g_pk._apply_learner_payloads(_g_snap)
+R.check(
+    "a learner rollback leaves the month's realised peaks alone",
+    _g_pk._peak_tracker.peaks == [7.0, 5.0],
+    f"peaks after rollback: {_g_pk._peak_tracker.peaks}",
+)
+_g_pk._apply_learner_payloads(
+    {"peak_tracker": {"month": "2026-01", "peaks": [2.0]}}
+)
+R.check(
+    "an old snapshot still carrying the key is simply ignored",
+    _g_pk._peak_tracker.peaks == [7.0, 5.0]
+    and _g_pk._peak_tracker.month == "2026-08",
+)
+
+# --- the thermal-mass boundary clamp and the Euler stability guard ---------------
+_g_cfgp = ThermalParameters.from_config(
+    {"house_thermal_mass": 0.0, "upper_floor_thermal_mass": -3.0}
+)
+R.check(
+    "from_config clamps zero and negative masses to the physical floor",
+    _g_cfgp.room_thermal_mass == _G_MASS_FLOOR
+    and _g_cfgp.upper_floor_thermal_mass == _G_MASS_FLOOR,
+)
+_g_dirp = ThermalParameters(slab_thermal_mass=0.0)
+R.check(
+    "direct construction runs through the same clamp",
+    _g_dirp.slab_thermal_mass == _G_MASS_FLOOR,
+)
+_g_dirp.lower_floor_thermal_mass = 0.0
+_g_dirp.clamp()
+R.check(
+    "the service-write chokepoint re-clamps after attribute assignment",
+    _g_dirp.lower_floor_thermal_mass == _G_MASS_FLOOR,
+)
+
+_g_sane = ThermalModel(ThermalParameters(two_zone_enabled=True))
+R.check(
+    "no sane configuration ever subdivides a step",
+    _g_sane._stability_substeps(0.0, 0.0, 0.25) == 1
+    and ThermalModel(ThermalParameters())._stability_substeps(0.0, 0.0, 0.25)
+    == 1,
+    "the committed fixtures depend on n == 1 being the universal case",
+)
+
+# A floored upper-floor mass against a strong inter-zone coupling is exactly
+# the u·dt/C > 1.5 regime where plain Euler oscillates divergently.
+_g_stiff = ThermalModel(
+    ThermalParameters(
+        two_zone_enabled=True,
+        upper_floor_thermal_mass=0.001,  # clamps to the floor
+        inter_zone_transfer=3.0,
+    )
+)
+R.check(
+    "the stiff case genuinely exercises the subdivision",
+    _g_stiff._stability_substeps(0.0, 0.0, 0.25) > 1,
+)
+_g_room, _g_slab, _g_up, _g_low = _g_stiff.simulate_trajectory(
+    ThermalState(),
+    np.full(96, 2.0),
+    np.full(96, -5.0),
+)
+R.check(
+    "a 24 h trajectory on the stiff house stays finite and bounded",
+    bool(np.all(np.isfinite(_g_up)))
+    and float(np.max(np.abs(_g_up))) < 100.0,
+    f"max |T_upper| {float(np.max(np.abs(_g_up))):.1f}",
+)
+
+# --- stale-sensor guards and the naive-timestamp restore -------------------------
+_g_cus = Cusum(threshold=1.0, drift=0.1)
+_g_cus.load(
+    {"stat": 2.0, "tripped": True, "last_fed": "2026-01-01T00:00:00"}
+)
+R.check(
+    "a legacy naive last_fed loads as aware UTC",
+    _g_cus.last_fed is not None and _g_cus.last_fed.tzinfo is not None,
+)
+R.check(
+    "and release_if_starved subtracts it without raising",
+    _g_cus.release_if_starved(datetime(2026, 1, 2, tzinfo=UTC), 12.0)
+    is True,
+)
+
+_g_hum_cfg = {**_LC_DATA, "indoor_humidity_entity": "sensor.rh",
+              "mold_guard_enabled": True}
+_g_hfresh = HeatPumpOptimizerCoordinator(
+    FakeHass({"sensor.rh": FakeState("70", last_updated=minutes_ago(10))}),
+    FakeEntry(data=_g_hum_cfg),
+)
+R.check(
+    "a fresh humidity reading feeds the mold floor",
+    _g_hfresh._indoor_humidity_value() == 70.0
+    and _g_hfresh._mold_floor_series(np.array([-5.0, -10.0])) is not None,
+)
+_g_hstale = HeatPumpOptimizerCoordinator(
+    FakeHass({"sensor.rh": FakeState("70", last_updated=minutes_ago(300))}),
+    FakeEntry(data=_g_hum_cfg),
+)
+R.check(
+    "a frozen humidity sensor reads as no reading — the mold floor vanishes",
+    _g_hstale._indoor_humidity_value() is None
+    and _g_hstale._mold_floor_series(np.array([-5.0, -10.0])) is None,
+    "failing safe is a floor that disappears, not one held raised forever",
+)
+
+_g_now43 = datetime(2026, 8, 26, 12, 0, tzinfo=UTC)
+_g_ifresh = HeatPumpOptimizerCoordinator(
+    FakeHass({"sensor.inlet": FakeState("12.0", last_updated=minutes_ago(30))}),
+    FakeEntry(data={**_LC_DATA, "dhw_inlet_entity": "sensor.inlet"}),
+)
+_g_ifresh._prepare_dhw_inputs(_g_now43)
+R.check(
+    "a live inlet probe still wins",
+    _g_ifresh._thermal_params.dhw_inlet_current == 12.0,
+)
+_g_istale = HeatPumpOptimizerCoordinator(
+    FakeHass(
+        {"sensor.inlet": FakeState("12.0", last_updated=minutes_ago(60 * 48))}
+    ),
+    FakeEntry(data={**_LC_DATA, "dhw_inlet_entity": "sensor.inlet"}),
+)
+_g_istale._prepare_dhw_inputs(_g_now43)
+R.check(
+    "a probe frozen for two days degrades to the seasonal model",
+    _g_istale._thermal_params.dhw_inlet_current
+    == _g_istale._thermal_params.seasonal_inlet_temp(
+        _g_now43.timetuple().tm_yday
+    ),
+)
+
+# --- the Tibber verdict split ----------------------------------------------------
+# The stub has no HTTP session at all, which is precisely a network failure:
+# it must read as "cannot connect", never as "your token is wrong".
+R.check(
+    "an unreachable Tibber is a connectivity verdict, not an auth one",
+    _asyncio.run(_g_tibber(FakeHass(), "any-token")) == "cannot_connect",
+)
+
 
 sys.exit(R.close("FEATURE CHECKS"))

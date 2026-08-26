@@ -17,7 +17,7 @@ pattern: evidence strings, explicit release, nothing actuates from here.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 
 import numpy as np
 
@@ -147,3 +147,8 @@ class Cusum:
                 self.last_fed = datetime.fromisoformat(raw_fed)
             except ValueError:
                 self.last_fed = None
+            # A legacy payload may carry a naive timestamp; the callers'
+            # `now` is aware, and the subtraction in `release_if_starved`
+            # raises TypeError on the mix. Naive stored times were UTC.
+            if self.last_fed is not None and self.last_fed.tzinfo is None:
+                self.last_fed = self.last_fed.replace(tzinfo=timezone.utc)

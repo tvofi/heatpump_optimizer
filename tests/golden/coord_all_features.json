@@ -298,7 +298,9 @@
   "peak_month": "",
   "peak_tariff_enabled": true,
   "peak_threshold_kw": Infinity,
+  "plan_age_minutes": null,
   "plan_price_known": [],
+  "plan_stale": false,
   "power_headroom": {
    "available": false
   },
