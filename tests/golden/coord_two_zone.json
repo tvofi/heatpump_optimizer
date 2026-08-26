@@ -50,19 +50,19 @@
     },
     {
      "name": "buffer_tank",
-     "soc_percent": 88.5,
+     "soc_percent": 43.4,
      "standing_loss_kw": 0.0129,
      "stored_kwh": 0.934,
      "temperature": 40.0,
-     "usable_capacity_kwh": 1.056
+     "usable_capacity_kwh": 2.152
     }
    ],
    "discharge_rate_kw": 2.413,
    "hours_of_autonomy": 28.98,
    "round_trip_efficiency_6h": 79.3,
-   "state_of_charge_percent": 55.0,
+   "state_of_charge_percent": 54.6,
    "stored_energy_kwh": 69.93,
-   "usable_capacity_kwh": 127.06
+   "usable_capacity_kwh": 128.15
   },
   "billed_peak_kw": 0.0,
   "buffer_cooling_rate": 0.39588,
@@ -398,6 +398,7 @@
     "completed": false,
     "confidence": 0.0,
     "heat_loss_kw_per_c": null,
+    "internal_gains_kw": null,
     "reason": "",
     "thermal_mass_kwh_per_c": null,
     "time_constant_hours": null

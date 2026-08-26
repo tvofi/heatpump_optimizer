@@ -3,3 +3,56 @@
 # stale claim (a listed scenario that did not move) DOES fail, so entries
 # cannot outlive the PR that needed them. Empty file = this branch claims
 # byte-identical behaviour everywhere.
+#
+# v4.0.6 physics: the terminal value, the settlement caps, the mixed-use
+# draw debit and the shared marginal COP deliberately change planned
+# behaviour. The null controls hold: flat_prices, winter_single_no_dhw,
+# dhw_large_tank, horizon_6h, cop_scale_learned and config_flow are
+# byte-identical to main.
+away_setback  # terminal valuation at per-store marginal COP
+building_preset  # terminal valuation at per-store marginal COP
+capacity_curve  # terminal valuation at per-store marginal COP
+capacity_tariff  # terminal valuation at per-store marginal COP
+capacity_tariff_15min  # terminal valuation at per-store marginal COP
+confidence_margins  # terminal valuation at per-store marginal COP
+cool_rainy_summer  # terminal valuation at per-store marginal COP
+coord_all_features  # battery caps + sysid gains leaf + downstream of the solve
+coord_dhw  # battery caps + sysid gains leaf + downstream of the solve
+coord_grid_fee  # battery caps + sysid gains leaf + downstream of the solve
+coord_minimal  # battery caps + sysid gains leaf + downstream of the solve
+coord_two_zone  # battery caps + sysid gains leaf + downstream of the solve
+cycling_cost  # terminal valuation at per-store marginal COP
+dhw_cold_tank  # mixed-use draw debit + DHW terminal COP
+dhw_learned_windows  # mixed-use draw debit + DHW terminal COP
+dhw_schedule_off  # mixed-use draw debit + DHW terminal COP
+everything_on  # mixed-use draw debit + DHW terminal COP
+external_heat_active  # mixed-use draw debit + DHW terminal COP
+extreme_prices  # terminal valuation at per-store marginal COP
+fuse_guard  # mixed-use draw debit + DHW terminal COP
+horizon_48h  # terminal valuation at per-store marginal COP
+legionella_due  # mixed-use draw debit + DHW terminal COP
+mild_windy_rain  # terminal valuation at per-store marginal COP
+narrow_band  # terminal valuation at per-store marginal COP
+negative_prices  # terminal valuation at per-store marginal COP
+peak_masked  # terminal valuation at per-store marginal COP
+precip_snow  # terminal valuation at per-store marginal COP
+price_risk  # terminal valuation at per-store marginal COP
+shoulder  # terminal valuation at per-store marginal COP
+shoulder_two_zone  # lower-zone slab settlement cap
+start_above_band  # terminal valuation at per-store marginal COP
+start_below_band  # terminal valuation at per-store marginal COP
+summer_dhw_only  # mixed-use draw debit + DHW terminal COP
+tariff_plus_two_zone  # lower-zone slab settlement cap
+valve_storage  # flow-derated buffer terminal COP + charge-ceiling settlement
+valve_storage_flat_prices  # flow-derated buffer terminal COP + charge-ceiling settlement
+valve_storage_low_target  # flow-derated buffer terminal COP + charge-ceiling settlement
+valve_storage_small_tank  # flow-derated buffer terminal COP + charge-ceiling settlement
+valve_storage_smart_write  # flow-derated buffer terminal COP + charge-ceiling settlement
+valve_upper_direct_slab  # flow-derated buffer terminal COP + charge-ceiling settlement
+wide_band  # terminal valuation at per-store marginal COP
+winter_single_dhw  # mixed-use draw debit + DHW terminal COP
+winter_two_zone_dhw  # mixed-use draw debit + DHW terminal COP
+winter_two_zone_no_dhw  # mixed-use draw debit + DHW terminal COP
+wood_coil  # flow-derated buffer terminal COP + charge-ceiling settlement
+wood_two_tank  # flow-derated buffer terminal COP + charge-ceiling settlement
+wood_two_tank_smart_write  # flow-derated buffer terminal COP + charge-ceiling settlement
