@@ -233,7 +233,9 @@
           "solar_location": "Plats för solinstrålning",
           "heat_pump_power_entity": "Effektmätare för värmepumpen (valfritt)",
           "heat_pump_energy_entity": "Energimätare för värmepumpen (valfritt)",
-          "house_power_entity": "Effektmätare för hela huset (valfritt)"
+          "house_power_entity": "Effektmätare för hela huset (valfritt)",
+          "compressor_freq_entity": "Entitet för kompressorfrekvens",
+          "freq_control_mode": "Frekvensläge"
         },
         "data_description": {
           "tibber_token": "Används för att läsa dina timpriser på el. Skapa en på developer.tibber.com. Lämna som den är om den inte har ändrats.",
@@ -250,7 +252,9 @@
           "solar_location": "Koordinat som används för Open-Meteos solinstrålningsprognos. Utgår från Home Assistants hemposition. Används bara när källan är Open-Meteo.",
           "heat_pump_power_entity": "Faktisk elförbrukning. Utan den vet integrationen bara vad den bad pumpen om. Med den blir verkningsgraden mätbar, de beräknade kostnaderna får något att stämmas av mot, och en vedpanna kan upptäckas säkert. Både watt och kilowatt fungerar.",
           "heat_pump_energy_entity": "En ackumulerande kWh-mätare, om du har en. Noggrannare än att summera effektavläsningar mellan uppdateringar, vilket missar korta kompressorkörningar.",
-          "house_power_entity": "Total förbrukning vid mätaren. Effekttariff debiteras på hela huset, inte bara på värmepumpen, så utan denna är den topp optimeraren undviker bara en del av den verkliga."
+          "house_power_entity": "Total förbrukning vid mätaren. Effekttariff debiteras på hela huset, inte bara på värmepumpen, så utan denna är den topp optimeraren undviker bara en del av den verkliga.",
+          "compressor_freq_entity": "En number-entitet som exponerar kompressorfrekvensen, oftast från en Modbus- eller ESPHome-integration. Med den konfigurerad lär sig optimeraren en kW-per-Hz-karta och rekommenderar en frekvens — enbart observation tills du uttryckligen byter läget nedan till styrning.",
+          "freq_control_mode": "Observera lär sig och rekommenderar men skriver aldrig. Byt till styrning först när du har validerat entiteten mot din verkliga hårdvara: skrivningar går via number.set_value, högst en per fem minuter, begränsade till entitetens eget intervall, och en rapporterad frekvens som avviker från den kommenderade i tre cykler ställer ner styrningen till observation igen."
         }
       },
       "comfort": {
@@ -679,6 +683,12 @@
         "rules": "Tidsregler",
         "entity": "Sensor"
       }
+    },
+    "freq_control_mode": {
+      "options": {
+        "observe": "Observera (lär och rekommendera enbart)",
+        "control": "Styrning (skriv frekvensen)"
+      }
     }
   },
   "issues": {
@@ -693,6 +703,10 @@
     "accuracy_drift_rolled_back": {
       "title": "Den inlärda modellen återställdes från en ögonblicksbild",
       "description": "Optimerarens prognoser drev utanför bandet i flera dagar trots att alla indata såg friska ut, så den inlärda modellen rullades automatiskt tillbaka till den senaste kända bra veckokopian. Inget krävs av dig; meddelandet finns för att ändringen ska synas. Var driften verklig — nya radiatorer, ändrad isolering — lär sig modellen helt enkelt om från den återställda punkten."
+    },
+    "freq_watchdog": {
+      "title": "Frekvensstyrningen har ställts ner",
+      "description": "Kompressorfrekvensen som {entity} rapporterar fortsatte att avvika från det kommenderade värdet, så frekvensstyrningen föll tillbaka till observationsläge och inga fler skrivningar görs. Det betyder oftast att fel register eller entitet är konfigurerad, eller att pumpen är i ett skyddsläge som ignorerar externa kommandon. Kontrollera entiteten och återaktivera genom att byta frekvensläget till observera, spara, och byta tillbaka till styrning."
     }
   }
 }

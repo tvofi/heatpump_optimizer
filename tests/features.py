@@ -1972,6 +1972,9 @@ class _LearnPersist:
         self._internal_gains_profile = None
         from heatpump_optimizer.curve_learning import CurveLearner as _CL
         self._curve_learner = _CL()
+        from heatpump_optimizer.freq_control import FrequencyMap as _FM
+        self._freq_map = _FM()
+        self._freq_fallback = False
 
     def _apply_buffer_cooling_rate(self, rate: float) -> None:
         self._buffer_cooling_rate = float(rate)
@@ -9006,6 +9009,244 @@ R.check(
     and abs(_cneg._operation_score - 100.0) < 1e-6,
     "paid 1.40 against a 2.00 known-hours mean: zeroing the negative hour "
     "or folding the unknown one would both under-score the day",
+)
+
+# ===========================================================================
+# T7 — inverter frequency (#61)
+# ===========================================================================
+R.section("T7 — inverter frequency (#61)")
+
+from heatpump_optimizer.freq_control import (
+    FREQ_MIN_SAMPLES,
+    FREQ_MODE_CONTROL,
+    FREQ_MODE_OBSERVE,
+    FREQ_WATCHDOG_TICKS,
+    FrequencyMap,
+    FrequencyWatchdog,
+)
+
+# --- the kW-per-Hz map -----------------------------------------------------------
+_fm = FrequencyMap()
+_fm.observe(0.0, 2.0, 20.0, 120.0)   # stopped compressor
+_fm.observe(45.0, 0.01, 20.0, 120.0)  # no meaningful draw
+_fm.observe(200.0, 2.0, 20.0, 120.0)  # outside the entity's range
+R.check(
+    "a stopped compressor, a dead meter and a wild reading all teach nothing",
+    not _fm.buckets,
+)
+for _ in range(FREQ_MIN_SAMPLES + 1):
+    _fm.observe(45.0, 2.0, 20.0, 120.0)
+for _ in range(FREQ_MIN_SAMPLES + 1):
+    _fm.observe(95.0, 6.0, 20.0, 120.0)
+R.check(
+    "readings fold into their own frequency decile",
+    len(_fm.buckets) == 2
+    and abs(_fm.buckets[2][0] - 2.0 / 45.0) < 1e-9,
+)
+_before = float(_fm.buckets[2][0])
+_fm.observe(45.0, 4.0, 20.0, 120.0)  # one outlier after seeding
+R.check(
+    "a seeded bucket moves by its EWMA step, not to the outlier",
+    _fm.buckets[2][0] < _before * 1.15,
+    "mean-until-N then slow EWMA — the COP baseline's own lesson",
+)
+R.check(
+    "the recommendation is the LOWEST evidenced frequency that delivers",
+    _fm.recommend(1.5, 20.0, 120.0) == 45.0
+    and _fm.recommend(5.0, 20.0, 120.0) == 95.0,
+    "an inverter runs most efficiently slow",
+)
+R.check(
+    "above every bucket's reach the answer is run flat out",
+    _fm.recommend(50.0, 20.0, 120.0) == 95.0,
+)
+R.check(
+    "no evidence, or nothing to deliver, is None — never a write",
+    FrequencyMap().recommend(2.0, 20.0, 120.0) is None
+    and _fm.recommend(0.0, 20.0, 120.0) is None,
+)
+_fm2 = FrequencyMap.from_dict(_fm.as_dict())
+R.check(
+    "the map rides its store round trip",
+    _fm2.recommend(1.5, 20.0, 120.0) == 45.0,
+)
+R.check(
+    "a corrupt map loads what survives",
+    FrequencyMap.from_dict(
+        {"2": ["junk", 9], "5": [0.05, 9], "x": [0.1, "y"], "7": [-1.0, 9]}
+    ).buckets
+    == {5: [0.05, 9]},
+)
+
+# --- the watchdog ----------------------------------------------------------------
+_wd = FrequencyWatchdog()
+_wd.note_command(60.0)
+R.check(
+    "transient divergence during a ramp is not a fault",
+    not _wd.note_report(80.0)
+    and not _wd.note_report(80.0)
+    and not _wd.note_report(61.0)  # converged: streak clears
+    and _wd.strikes == 0,
+)
+_tripped_on = [_wd.note_report(80.0) for _ in range(FREQ_WATCHDOG_TICKS)]
+R.check(
+    "three CONSECUTIVE divergent ticks trip the watchdog, exactly then",
+    _tripped_on == [False, False, True] and _wd.tripped,
+)
+_wd2 = FrequencyWatchdog()
+_wd2.note_command(60.0)
+_wd2.note_report(None)
+R.check(
+    "a missing report is a stale input, never divergence evidence",
+    _wd2.strikes == 0,
+)
+
+# --- the coordinator's observe stage ---------------------------------------------
+def _freq_coord(hz="45", mode=None, **extra):
+    states = {
+        "number.freq": FakeState(hz, attributes={"min": 20.0, "max": 120.0})
+    }
+    cfg = {"compressor_freq_entity": "number.freq"}
+    if mode is not None:
+        cfg["freq_control_mode"] = mode
+    cfg.update(extra)
+    c = _t2_coord(states=states, **cfg)
+    c._measured_power = 2.0
+    # The plan is asking for 2 kW total — what control translates to Hz.
+    c._current_action = {"power": 1.5, "dhw_power": 0.5}
+    return c
+
+
+_cf = _freq_coord()
+_cf._observe_frequency(_T6)
+R.check(
+    "an observed cycle folds (frequency, kW) into the map",
+    _cf._freq_map.buckets and _cf._freq_map.buckets[2][1] == 1,
+)
+_cfi = _freq_coord()
+_cfi._immersion_active = True
+_cfi._observe_frequency(_T6)
+R.check(
+    "immersion intervals never teach the map",
+    not _cfi._freq_map.buckets,
+    "#11 owns resistive draw; folding it would teach the map that some "
+    "frequency draws the element's kilowatts",
+)
+R.check(
+    "without the entity the stage is unconfigured and the view says so",
+    _t2_coord()._freq_view()["mode"] == "unconfigured"
+    and _t2_coord()._freq_view()["map"] == {},
+)
+R.check(
+    "observe is the stage in force unless control is explicitly chosen",
+    _freq_coord()._freq_mode() == FREQ_MODE_OBSERVE
+    and _freq_coord(mode="control")._freq_mode() == FREQ_MODE_CONTROL,
+)
+
+# --- the control stage's rails ---------------------------------------------------
+def _armed_coord(**extra):
+    c = _freq_coord(mode="control", **extra)
+    for _ in range(FREQ_MIN_SAMPLES + 1):
+        c._freq_map.observe(45.0, 2.0, 20.0, 120.0)
+    return c
+
+
+_cc = _armed_coord()
+_asyncio.run(_cc._command_frequency())
+R.check(
+    "control writes the recommendation via number.set_value",
+    _cc.hass.services.calls
+    and _cc.hass.services.calls[-1][:2] == ("number", "set_value")
+    and _cc.hass.services.calls[-1][2]["value"] == 45.0,
+)
+_n_calls = len(_cc.hass.services.calls)
+_asyncio.run(_cc._command_frequency())
+R.check(
+    "a second write inside five minutes is rate-limited away",
+    len(_cc.hass.services.calls) == _n_calls,
+)
+_cc._freq_last_write = None
+_asyncio.run(_cc._command_frequency())
+R.check(
+    "re-commanding the same value is deduplicated, not re-sent",
+    len(_cc.hass.services.calls) == _n_calls,
+    "an unchanged setpoint on the wire every cycle is noise",
+)
+_co = _freq_coord()  # observe mode
+for _ in range(FREQ_MIN_SAMPLES + 1):
+    _co._freq_map.observe(45.0, 2.0, 20.0, 120.0)
+_asyncio.run(_co._command_frequency())
+R.check(
+    "observe mode never writes, however good the map",
+    not _co.hass.services.calls,
+    "the observe stage's entire contract: no actuation of any kind",
+)
+_cn = _freq_coord(mode="control")  # control but NO evidence
+_asyncio.run(_cn._command_frequency())
+R.check(
+    "a map with no evidence writes nothing — None is never a frequency",
+    not _cn.hass.services.calls,
+)
+
+# --- the watchdog stand-down, end to end -----------------------------------------
+_ct7 = _armed_coord()
+_asyncio.run(_ct7._command_frequency())  # commands 45.0
+_ct7.hass.states._states["number.freq"] = FakeState(
+    "90", attributes={"min": 20.0, "max": 120.0}
+)
+for _ in range(FREQ_WATCHDOG_TICKS):
+    _ct7._observe_frequency(_T6)
+R.check(
+    "persistent divergence stands control down to observe and latches",
+    _ct7._freq_fallback and _ct7._freq_mode() == FREQ_MODE_OBSERVE,
+)
+_n7 = len(_ct7.hass.services.calls)
+_ct7._freq_last_write = None
+_asyncio.run(_ct7._command_frequency())
+R.check(
+    "a stood-down controller makes no further writes",
+    len(_ct7.hass.services.calls) == _n7,
+)
+# The re-arm gesture: the user switches back to observe and saves.
+_ct7._config["freq_control_mode"] = "observe"
+_ct7._observe_frequency(_T6)
+R.check(
+    "switching the mode to observe is the acknowledgement that re-arms",
+    not _ct7._freq_fallback and not _ct7._freq_watchdog.tripped,
+    "a restart alone must never clear the latch — the user does",
+)
+
+# --- persistence and rollback ----------------------------------------------------
+_cp7 = _freq_coord()
+for _ in range(FREQ_MIN_SAMPLES + 1):
+    _cp7._freq_map.observe(45.0, 2.0, 20.0, 120.0)
+_cp7._freq_fallback = True
+_payload7 = _cp7._thermal_learning_payload()
+_cq10 = _t2_coord()
+
+
+async def _fake_freq_load(_p=_payload7):
+    return _p
+
+
+_cq10._thermal_learning_store.async_load = _fake_freq_load
+_asyncio.run(_cq10._async_load_thermal_learning())
+R.check(
+    "the map and the stand-down latch both survive a restart",
+    _cq10._freq_map.recommend(1.5, 20.0, 120.0) == 45.0
+    and _cq10._freq_fallback,
+)
+_cr7 = _t2_coord()
+_cr7._freq_map.observe(45.0, 2.0, 20.0, 120.0)
+_cr7._freq_fallback = True
+_cr7._apply_learner_payloads(
+    {"thermal_learning": {"house_heat_loss_scale": 1.0}}
+)
+R.check(
+    "a pre-T7 snapshot rolls the map back to inert but keeps the latch",
+    not _cr7._freq_map.buckets and _cr7._freq_fallback,
+    "a learner rollback must not quietly re-arm a controller that stood "
+    "down over a hardware fault",
 )
 
 sys.exit(R.close("FEATURE CHECKS"))

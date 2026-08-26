@@ -1050,6 +1050,40 @@ read-only publication).
 
 ## T7 — Hardware (PR 8) · **Fable** · #61 · go/no-go
 
+*Outcome notes:* built as scoped, with the gate's third condition moved to
+where it can actually be enforced. The two verifiable conditions held (T2's
+guard and T4's capacity curve shipped clean, PRs #46/#51 merged); "a real
+number entity validated by the user" cannot be verified from inside this
+program, so it is enforced AT RUNTIME, per install, which is strictly
+stronger than a merge gate: observe mode — the default whenever the entity
+is configured — actuates nothing whatever the config says elsewhere, and
+control requires the user to configure THEIR entity and explicitly select
+"control" on the entities page, which is precisely the moment the plan's
+validation condition is satisfied for that install. `freq_control.py`:
+FrequencyMap (kW-per-Hz ratios over ten deciles of the entity's OWN
+min/max range, mean-until-5 then EWMA 0.1 — the envelope pattern), a
+recommendation that answers with the LOWEST evidenced frequency delivering
+the target (an inverter runs most efficiently slow), run-flat-out above all
+evidence, and None with none — None is never a write. FrequencyWatchdog:
+three CONSECUTIVE divergent ticks (±5 Hz) trip it, convergence clears the
+streak, a missing report is the staleness watchdog's story, not divergence.
+Coordinator: the observe fold runs every accuracy cycle (immersion
+intervals excluded — #11 owns resistive draw), the map is a learner
+(snapshots carry it, rollbacks reset it) while the stand-down latch is a
+safety fact (persisted, EXEMPT from rollback, cleared only by the user
+switching the mode back to observe — a restart never re-arms). The control
+write path has every rail in one place: `number.set_value`, one write per
+5 min, clamped to the entity's own range, deduplicated within 1 Hz, and
+runs after `_apply_action` so a failed write can never block primary
+actuation. Stand-down raises a persistent `freq_watchdog` repair issue.
+The part-load COP factor was NOT built in either mode, per the must-not:
+plans stay power-denominated, control only translates planned kW to Hz.
+Publication: additive `freq_control` data block + Compressor Frequency
+Advisor sensor (README 55→56); config: entity picker + observe/control
+select on the entities page, en+sv triples with a translated selector.
+Goldens: coord_*×5 + config_flow re-recorded additive-only (+63/−0), the
+five protected fixtures untouched.
+
 **Gate:** T2's guard and T4's capacity curve shipped clean, and a real
 Modbus/ESPHome number entity validated by the user.
 

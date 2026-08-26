@@ -251,6 +251,9 @@ from .const import (
     DEFAULT_WEAR_AUTOTUNE_ENABLED,
     CONF_PRICE_TILES_ENABLED,
     DEFAULT_PRICE_TILES_ENABLED,
+    CONF_COMPRESSOR_FREQ_ENTITY,
+    CONF_FREQ_CONTROL_MODE,
+    DEFAULT_FREQ_CONTROL_MODE,
     CONF_MOLD_GUARD_ENABLED,
     DEFAULT_MOLD_GUARD_ENABLED,
     CONF_INDOOR_HUMIDITY_ENTITY,
@@ -293,6 +296,7 @@ from .const import (
 )
 from . import grid_fee, mixing_valve, presets, topology
 from .dhw_schedule import is_valid_spec
+from .freq_control import FREQ_MODE_CONTROL, FREQ_MODE_OBSERVE
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -418,6 +422,22 @@ def _select(options: list[str], translation_key: str) -> selector.SelectSelector
         selector.SelectSelectorConfig(
             options=options,
             translation_key=translation_key,
+            mode=selector.SelectSelectorMode.DROPDOWN,
+        )
+    )
+
+
+def _freq_mode_selector() -> selector.SelectSelector:
+    """Observe or control (T7 #61).
+
+    An explicit two-option select rather than a boolean, because the
+    words matter: "control" is the moment actuation begins, and the user
+    should read that word, not flip an anonymous toggle.
+    """
+    return selector.SelectSelector(
+        selector.SelectSelectorConfig(
+            options=[FREQ_MODE_OBSERVE, FREQ_MODE_CONTROL],
+            translation_key="freq_control_mode",
             mode=selector.SelectSelectorMode.DROPDOWN,
         )
     )
@@ -821,6 +841,7 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
         CONF_POWER_ENTITY,
         CONF_ENERGY_ENTITY,
         CONF_HOUSE_POWER_ENTITY,
+        CONF_COMPRESSOR_FREQ_ENTITY,
     )
 
     # Every clearable entity across all pages; the solar, away, learning and
@@ -1052,6 +1073,18 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
                     # connection point, not at the heat pump, so without this
                     # the peak model only sees part of the picture.
                     _entity(CONF_HOUSE_POWER_ENTITY): _entity_of("sensor", "power"),
+                    # T7 #61: the compressor frequency number entity, and
+                    # which stage runs. Observe (the default) learns and
+                    # recommends but never writes; control is the explicit
+                    # per-install opt-in AFTER the user has validated the
+                    # entity against their real hardware.
+                    _entity(CONF_COMPRESSOR_FREQ_ENTITY): _entity_of("number"),
+                    vol.Optional(
+                        CONF_FREQ_CONTROL_MODE,
+                        default=current.get(
+                            CONF_FREQ_CONTROL_MODE, DEFAULT_FREQ_CONTROL_MODE
+                        ),
+                    ): _freq_mode_selector(),
                 }
             ),
         )

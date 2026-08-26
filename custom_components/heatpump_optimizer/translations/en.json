@@ -233,7 +233,9 @@
           "solar_location": "Solar irradiance location",
           "heat_pump_power_entity": "Heat pump power meter (optional)",
           "heat_pump_energy_entity": "Heat pump energy meter (optional)",
-          "house_power_entity": "Whole-house power meter (optional)"
+          "house_power_entity": "Whole-house power meter (optional)",
+          "compressor_freq_entity": "Compressor frequency entity",
+          "freq_control_mode": "Frequency mode"
         },
         "data_description": {
           "tibber_token": "Used to read your hourly electricity prices. Create one at developer.tibber.com. Leave as-is unless it has changed.",
@@ -250,7 +252,9 @@
           "solar_location": "Coordinate used for the Open-Meteo irradiance forecast. Defaults to your Home Assistant home location. Only used when the source is Open-Meteo.",
           "heat_pump_power_entity": "Actual electrical draw. Without it the integration only knows what it asked the pump to do. With it, efficiency becomes measurable, predicted costs get a real counterpart to check against, and a wood furnace can be detected reliably. Watts or kilowatts both work.",
           "heat_pump_energy_entity": "A cumulative kWh meter, if you have one. More accurate than adding up power readings between updates, which misses short compressor runs.",
-          "house_power_entity": "Total consumption at the meter. A capacity tariff is billed on the whole house, not on the heat pump alone, so without this the peak the optimizer avoids is only part of the real one."
+          "house_power_entity": "Total consumption at the meter. A capacity tariff is billed on the whole house, not on the heat pump alone, so without this the peak the optimizer avoids is only part of the real one.",
+          "compressor_freq_entity": "A number entity exposing the compressor frequency, typically from a Modbus or ESPHome integration. With it configured the optimizer learns a kW-per-Hz map and recommends a frequency — observation only, until you explicitly switch the mode below to control.",
+          "freq_control_mode": "Observe learns and recommends but never writes. Switch to control only after you have validated the entity against your real hardware: writes go via number.set_value, at most one per five minutes, clamped to the entity's own range, and a reported frequency diverging from the commanded one for three ticks stands the controller back down to observe."
         }
       },
       "comfort": {
@@ -679,6 +683,12 @@
         "rules": "Time-of-use rules",
         "entity": "Live sensor"
       }
+    },
+    "freq_control_mode": {
+      "options": {
+        "observe": "Observe (learn and recommend only)",
+        "control": "Control (write the frequency)"
+      }
     }
   },
   "issues": {
@@ -693,6 +703,10 @@
     "accuracy_drift_rolled_back": {
       "title": "Learned model was restored from a snapshot",
       "description": "The optimizer's predictions drifted out of band for several days while all inputs looked healthy, so the learned model was automatically rolled back to the most recent known-good weekly snapshot. Nothing is required from you; this notice is here so the change is visible. If the drift was real — new radiators, changed insulation — the learners will simply relearn from the restored point."
+    },
+    "freq_watchdog": {
+      "title": "Frequency control stood down",
+      "description": "The compressor frequency reported by {entity} kept diverging from the commanded value, so frequency control fell back to observe mode and no further writes will be made. This usually means the wrong register or entity is configured, or the pump is in a protective mode that ignores external commands. Check the entity, then re-arm by switching the frequency mode to observe, saving, and switching back to control."
     }
   }
 }

@@ -448,6 +448,14 @@
    "required": "Optional",
    "selector": "EntitySelector"
   },
+  "compressor_freq_entity": {
+   "config": {
+    "filter": "[{'domain': ['number']}]"
+   },
+   "default": null,
+   "required": "Optional",
+   "selector": "EntitySelector"
+  },
   "dhw_temp_entity": {
    "config": {
     "filter": "[{'domain': ['sensor'], 'device_class': ['temperature']}]"
@@ -463,6 +471,16 @@
    "default": null,
    "required": "Optional",
    "selector": "EntitySelector"
+  },
+  "freq_control_mode": {
+   "config": {
+    "mode": "'dropdown'",
+    "options": "['observe', 'control']",
+    "translation_key": "'freq_control_mode'"
+   },
+   "default": "'observe'",
+   "required": "Optional",
+   "selector": "SelectSelector"
   },
   "heat_pump_energy_entity": {
    "config": {
