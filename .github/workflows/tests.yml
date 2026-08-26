@@ -63,6 +63,9 @@ jobs:
       - name: Run the suite
         env:
           GOLDEN_MODE: drift
+          # Shared runners are slower than the development box; the guard
+          # still catches order-of-magnitude solver regressions.
+          STRESS_SOLVE_BUDGET_MS: "90000"
         run: ./tests/run.sh
 
   slow:
@@ -95,4 +98,5 @@ jobs:
         env:
           GOLDEN_MODE: drift
           SLOW: "1"
+          STRESS_SOLVE_BUDGET_MS: "90000"
         run: ./tests/run.sh

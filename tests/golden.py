@@ -65,6 +65,17 @@ def _walk_finite(node, path, problems) -> None:
         problems.append(f"{path}: non-finite value {node!r}")
 
 
+def _walk_nan(node, path, problems) -> None:
+    if isinstance(node, dict):
+        for k, v in node.items():
+            _walk_nan(v, f"{path}.{k}", problems)
+    elif isinstance(node, (list, tuple)):
+        for i, v in enumerate(node):
+            _walk_nan(v, f"{path}[{i}]", problems)
+    elif isinstance(node, float) and math.isnan(node):
+        problems.append(f"{path}: NaN")
+
+
 def assert_invariants(name: str, payload: dict, params) -> None:
     """Hard physical facts every captured plan must satisfy.
 
@@ -776,9 +787,11 @@ def capture_coordinator(config: dict) -> dict:
     finally:
         dt_util.freeze(None)
     # Coordinator payloads mix strings, nulls and numbers, so the only
-    # invariant cheap enough to hold everywhere is finiteness.
+    # invariant cheap enough to hold everywhere is "no NaN". Infinity is
+    # deliberately allowed: `peak_threshold_kw` publishes +inf as "no
+    # capacity tariff configured", and the committed fixtures carry it.
     problems: list[str] = []
-    _walk_finite(payload, "coordinator", problems)
+    _walk_nan(payload, "coordinator", problems)
     if problems:
         for line in problems[:10]:
             print(f"  INVARIANT {line}", file=sys.stderr)
