@@ -9,6 +9,8 @@ The coordinator manages:
 """
 from __future__ import annotations
 
+import copy
+import hashlib
 import json
 import logging
 import math
@@ -24,6 +26,7 @@ from homeassistant.components import mqtt
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import UnitOfSpeed
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -936,6 +939,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             ACCURACY_STORE_VERSION,
             f"{DOMAIN}_{entry.entry_id}_accuracy",
         )
+        # Serialized form of the last payload each store accepted, keyed by
+        # store name. An every-cycle save that rewrites unchanged content is
+        # pure disk wear; a digest recorded only after a successful save means
+        # a failed write is retried on the next cycle rather than skipped.
+        self._store_digests: dict[str, str] = {}
 
         # --- Defrost derate (item 14) --------------------------------------
         self._defrost = DefrostDerate()
@@ -3264,6 +3272,25 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             )
             raise UpdateFailed(f"Error updating data: {err}") from err
 
+    def _solve_snapshot(self) -> tuple[ThermalState, HeatPumpOptimizer]:
+        """Frozen copies for the executor thread: the solve must never share
+        mutable state with the event loop (learners, the live peak guard and
+        the climate entity all write mid-solve).
+
+        The returned optimizer wraps its own ThermalModel over its own
+        parameter copy, so the solve's per-step scratch (the buffer
+        trajectory, the refused-heat carry) never lands on the live model the
+        event loop's ``simulate_step`` callers are walking. Construction per
+        solve is cheap — ``HeatPumpOptimizer.__init__`` only stores references
+        and per-solve scratch. ``defrost_derate`` holds the learner object
+        itself; deepcopying it is safe (the solve only reads it) and also
+        freezes the derate table mid-solve, which is the point.
+        """
+        state = copy.deepcopy(self._current_state)
+        params = copy.deepcopy(self._thermal_params)
+        config = copy.deepcopy(self._opt_config)
+        return state, HeatPumpOptimizer(ThermalModel(params), config)
+
     async def async_run_optimization(self) -> None:
         """Run the MPC optimization."""
         _LOGGER.info("Running heat pump optimization (predictive MPC)")
@@ -3454,10 +3481,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             margins = self._confidence_margins(len(horizon.prices))
             mold_floors = self._mold_floor_series(horizon.outdoor_temps)
             external_heat = self._external_heat_forecast(len(horizon.prices))
+            # Taken here, after every pre-solve mutation above, so the copies
+            # carry all of them into the executor thread.
+            solve_state, solve_optimizer = self._solve_snapshot()
             # Run optimization in executor to avoid blocking
             result = await self.hass.async_add_executor_job(
-                lambda: self._optimizer.optimize(
-                    self._current_state,
+                lambda: solve_optimizer.optimize(
+                    solve_state,
                     horizon.prices,
                     horizon.outdoor_temps,
                     horizon.wind_speeds,
@@ -3494,7 +3524,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             # the trajectory was built from, not to "after the solve".
             self._file_lead_predictions(result, solve_now)
 
-            self._current_action = self._optimizer.get_current_action(
+            self._current_action = solve_optimizer.get_current_action(
                 result, dt_util.now()
             )
 
@@ -3929,17 +3959,22 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         )
 
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.post(
-                    TIBBER_API_URL,
-                    data=query_data,
-                    headers=headers,
-                    timeout=aiohttp.ClientTimeout(total=15),
-                ) as resp:
-                    if resp.status != 200:
-                        _LOGGER.error("Tibber API error: %s", resp.status)
-                        return
-                    data = await resp.json()
+            # Home Assistant's shared session — a fresh ClientSession per
+            # update leaked a connection pool every cycle. Shared, so it is
+            # never closed here. Resolved inside the try: environments
+            # without an HTTP session (the test stub) degrade exactly as a
+            # failed fetch does.
+            session = async_get_clientsession(self.hass)
+            async with session.post(
+                TIBBER_API_URL,
+                data=query_data,
+                headers=headers,
+                timeout=aiohttp.ClientTimeout(total=15),
+            ) as resp:
+                if resp.status != 200:
+                    _LOGGER.error("Tibber API error: %s", resp.status)
+                    return
+                data = await resp.json()
 
             if "errors" in data:
                 _LOGGER.error("Tibber API errors: %s", data["errors"])
@@ -5377,9 +5412,30 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         )
         self._apply_comfort_weight()
 
+    async def _async_save_if_changed(
+        self, name: str, store: Store, payload: dict[str, Any]
+    ) -> None:
+        """Write ``payload`` unless the store already holds exactly it.
+
+        Both callers run every update cycle, and most cycles change nothing —
+        an unconditional rewrite is pure disk wear on the Pi-class hardware
+        Home Assistant usually lives on. The digest is remembered only after
+        the store accepted the payload, so a failed save is retried on the
+        next cycle rather than skipped as already-written.
+        """
+        digest = hashlib.sha256(
+            json.dumps(payload, sort_keys=True, default=str).encode()
+        ).hexdigest()
+        if self._store_digests.get(name) == digest:
+            return
+        await store.async_save(payload)
+        self._store_digests[name] = digest
+
     async def _async_save_accuracy(self) -> None:
         try:
-            await self._accuracy_store.async_save(
+            await self._async_save_if_changed(
+                "accuracy",
+                self._accuracy_store,
                 {
                     "accuracy": self._accuracy.as_dict(),
                     "defrost": self._defrost.as_dict(),
@@ -5391,7 +5447,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     # simply restarting Home Assistant, silently dropped the
                     # user out of the mode they had selected.
                     "mode": self._mode,
-                }
+                },
             )
         except Exception as err:  # noqa: BLE001
             _LOGGER.debug("Could not persist accuracy history: %s", err)
@@ -5417,13 +5473,18 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
     async def _async_save_energy_totals(self) -> None:
         try:
-            await self._energy_store.async_save(
+            await self._async_save_if_changed(
+                "energy_totals",
+                self._energy_store,
                 {
                     **self._energy_totals,
                     # The outage detector's heartbeat (#22): the last instant
                     # this coordinator was alive. Numeric-key loaders skip it.
+                    # It advances every cycle, so this store writes every
+                    # cycle — the skip cannot be allowed to starve the
+                    # heartbeat, or a plain restart reads as a power cut.
                     "last_tick": dt_util.now().isoformat(),
-                }
+                },
             )
         except Exception as err:  # noqa: BLE001
             _LOGGER.debug("Could not persist energy totals: %s", err)

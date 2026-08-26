@@ -92,6 +92,8 @@ class FakeHass:
         self.data = {}
         self.services = FakeServices()
         self.config = FakeConfig()
+        self.config_entries = FakeConfigEntries()
+        self.http = FakeHttp()
         self._tasks = []
 
     def async_create_task(self, coro):
@@ -105,17 +107,50 @@ class FakeHass:
 
 
 class FakeServices:
+    """Honest registration state, not a no-op.
+
+    A stub that swallows ``async_register`` cannot catch a service that is
+    registered but never removed — which is exactly the class of leak the
+    lifecycle tests exist for — so the registry is real: registration stores
+    the handler, removal deletes it, and ``async_services`` reports what is
+    actually there.
+    """
+
     def __init__(self) -> None:
         self.calls = []
+        self._registry: dict[str, dict] = {}
 
     async def async_call(self, domain, service, data=None, **kwargs):
         self.calls.append((domain, service, data))
         return None
 
-    def async_register(self, *args, **kwargs):
+    def async_register(self, domain, service, handler, **kwargs):
+        self._registry.setdefault(domain, {})[service] = handler
+
+    def async_remove(self, domain, service):
+        self._registry.get(domain, {}).pop(service, None)
+
+    def async_services(self) -> dict:
+        return self._registry
+
+
+class FakeConfigEntries:
+    """Platform forwarding is not what these tests exercise; it just has to
+    report success so the entry-level setup/unload paths can run whole."""
+
+    async def async_forward_entry_setups(self, entry, platforms):
         return None
 
-    def async_remove(self, *args, **kwargs):
+    async def async_unload_platforms(self, entry, platforms):
+        return True
+
+    def async_update_entry(self, entry, **kwargs):
+        for key, value in kwargs.items():
+            setattr(entry, key, value)
+
+
+class FakeHttp:
+    def register_static_path(self, *args, **kwargs):
         return None
 
 
@@ -163,6 +198,13 @@ class FakeEntry:
         self.options = dict(options or {})
         self.entry_id = "test_entry"
         self.version = 1
+        self._on_unload = []
+
+    def add_update_listener(self, listener):
+        return lambda: None
+
+    def async_on_unload(self, func):
+        self._on_unload.append(func)
 
 
 def minutes_ago(minutes: float, now: datetime | None = None) -> datetime:

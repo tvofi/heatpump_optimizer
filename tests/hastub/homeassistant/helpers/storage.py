@@ -23,6 +23,11 @@ from typing import Any
 # simulated in tests — sees what a previous instance persisted.
 _DISK: dict[str, str] = {}
 
+# Writes per storage key, counted in ``async_save`` itself so a test can prove
+# not just what a store holds but how often it was actually written — a save
+# that should have been skipped leaves the same bytes behind either way.
+SAVE_COUNTS: dict[str, int] = {}
+
 
 class Store:
     def __init__(self, hass: Any = None, version: int = 1, key: str = "", **kwargs: Any) -> None:
@@ -39,6 +44,7 @@ class Store:
         # Serialise eagerly so a non-serialisable payload fails now, matching the
         # real Store, rather than at some later flush the test never sees.
         _DISK[self._key] = json.dumps(data)
+        SAVE_COUNTS[self._key] = SAVE_COUNTS.get(self._key, 0) + 1
 
     async def async_remove(self) -> None:
         _DISK.pop(self._key, None)

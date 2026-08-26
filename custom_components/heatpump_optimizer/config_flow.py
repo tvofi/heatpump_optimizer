@@ -12,6 +12,7 @@ from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import selector
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.translation import async_get_translations
 
 from .const import (
@@ -304,7 +305,7 @@ _LOGGER = logging.getLogger(__name__)
 TIBBER_API_URL = "https://api.tibber.com/v1-beta/gql"
 
 
-async def validate_tibber_token(token: str) -> bool:
+async def validate_tibber_token(hass: HomeAssistant, token: str) -> bool:
     """Validate the Tibber API token."""
     query = '{ "query": "{ viewer { name } }" }'
     headers = {
@@ -312,15 +313,17 @@ async def validate_tibber_token(token: str) -> bool:
         "Content-Type": "application/json",
     }
     try:
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                TIBBER_API_URL, data=query, headers=headers,
-                timeout=aiohttp.ClientTimeout(total=10),
-            ) as resp:
-                if resp.status == 200:
-                    data = await resp.json()
-                    return "errors" not in data
-                return False
+        # Home Assistant's shared session — never closed here. A private
+        # ClientSession per validation attempt leaked its connection pool.
+        session = async_get_clientsession(hass)
+        async with session.post(
+            TIBBER_API_URL, data=query, headers=headers,
+            timeout=aiohttp.ClientTimeout(total=10),
+        ) as resp:
+            if resp.status == 200:
+                data = await resp.json()
+                return "errors" not in data
+            return False
     except Exception:
         return False
 
@@ -492,7 +495,9 @@ class HeatPumpOptimizerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            if not await validate_tibber_token(user_input[CONF_TIBBER_TOKEN]):
+            if not await validate_tibber_token(
+                self.hass, user_input[CONF_TIBBER_TOKEN]
+            ):
                 errors[CONF_TIBBER_TOKEN] = "invalid_tibber_token"
             else:
                 self._data.update(user_input)
@@ -1011,7 +1016,7 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
         if user_input is not None:
             token = user_input.get(CONF_TIBBER_TOKEN)
             if token and token != current.get(CONF_TIBBER_TOKEN):
-                if not await validate_tibber_token(token):
+                if not await validate_tibber_token(self.hass, token):
                     errors[CONF_TIBBER_TOKEN] = "invalid_tibber_token"
             if not errors:
                 cleaned = dict(user_input)

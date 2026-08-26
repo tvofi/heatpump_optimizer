@@ -9377,4 +9377,126 @@ R.check(
     _x_view["evidence_exhausted"] and _x_view["recommended_hz"] == 120.0,
 )
 
+R.section("v4.0.2 — entry lifecycle, the solve boundary, store writes")
+
+from pathlib import Path as _Path
+
+import heatpump_optimizer as _integ
+from heatpump_optimizer.const import DOMAIN as _DOMAIN
+from homeassistant.helpers import storage as _ha_storage
+
+_LC_DATA = {
+    "tibber_token": "x",
+    "weather_entity": "weather.home",
+}
+
+# The full entry lifecycle through the real setup and unload handlers. The
+# FakeServices registry is honest — registration stores, removal deletes — so
+# a service that setup registers and unload forgets stays visible. Two did:
+# restore_snapshot and diagnose_interval outlived the last entry because the
+# hand-written removal tuple had drifted from the registration list again.
+_lc_hass = FakeHass()
+_lc_entry = FakeEntry(data=_LC_DATA)
+_asyncio.run(_integ.async_setup_entry(_lc_hass, _lc_entry))
+_lc_registered = dict(_lc_hass.services.async_services().get(_DOMAIN, {}))
+R.check(
+    "setup registers the integration's services",
+    len(_lc_registered) == 11,
+    f"{len(_lc_registered)} registered: {sorted(_lc_registered)}",
+)
+_asyncio.run(_integ.async_unload_entry(_lc_hass, _lc_entry))
+_lc_left = dict(_lc_hass.services.async_services().get(_DOMAIN, {}))
+R.check(
+    "every registered service is gone after the last entry unloads",
+    not _lc_left,
+    f"leaked: {sorted(_lc_left)}",
+)
+
+# The solve runs in an executor thread while learners, the live peak guard
+# and the climate entity keep writing on the event loop. The snapshot is the
+# boundary: nothing it returns may alias the coordinator's live objects.
+_ss_coord = HeatPumpOptimizerCoordinator(FakeHass(), FakeEntry(data=_LC_DATA))
+_ss_state, _ss_opt = _ss_coord._solve_snapshot()
+R.check(
+    "the snapshot state is a copy, not the live state",
+    _ss_state is not _ss_coord._current_state,
+)
+R.check(
+    "the snapshot optimizer carries its own parameter copy",
+    _ss_opt.model.params is not _ss_coord._thermal_params,
+)
+R.check(
+    "and its own model, so per-solve scratch stays off the live one",
+    _ss_opt.model is not _ss_coord._thermal_model,
+)
+_ss_before = float(_ss_opt.model.params.heat_loss_coefficient)
+_ss_coord._thermal_params.heat_loss_coefficient = _ss_before + 5.0
+R.check(
+    "a mid-solve write on the live parameters cannot reach the snapshot",
+    _ss_opt.model.params.heat_loss_coefficient == _ss_before,
+    f"{_ss_opt.model.params.heat_loss_coefficient} vs {_ss_before}",
+)
+
+# The accuracy store used to be rewritten every update cycle whether or not
+# anything in it had changed. The stub's per-key save counter is the honest
+# witness: same payload, one write.
+_wr_coord = HeatPumpOptimizerCoordinator(FakeHass(), FakeEntry(data=_LC_DATA))
+_wr_key = f"{_DOMAIN}_test_entry_accuracy"
+_wr_base = _ha_storage.SAVE_COUNTS.get(_wr_key, 0)
+_asyncio.run(_wr_coord._async_save_accuracy())
+_asyncio.run(_wr_coord._async_save_accuracy())
+R.check(
+    "an unchanged accuracy payload is written exactly once",
+    _ha_storage.SAVE_COUNTS.get(_wr_key, 0) - _wr_base == 1,
+    f"{_ha_storage.SAVE_COUNTS.get(_wr_key, 0) - _wr_base} writes",
+)
+_wr_coord._mode = MODE_ECONOMY  # the payload persists the mode
+_asyncio.run(_wr_coord._async_save_accuracy())
+R.check(
+    "a changed payload is written again",
+    _ha_storage.SAVE_COUNTS.get(_wr_key, 0) - _wr_base == 2,
+    f"{_ha_storage.SAVE_COUNTS.get(_wr_key, 0) - _wr_base} writes",
+)
+
+# The digest is recorded only after the store accepted the payload; a failed
+# save that also recorded it would silently never be retried.
+_fl_coord = HeatPumpOptimizerCoordinator(FakeHass(), FakeEntry(data=_LC_DATA))
+_fl_orig = _fl_coord._accuracy_store.async_save
+
+
+async def _fl_boom(data):
+    raise OSError("disk full")
+
+
+_fl_coord._accuracy_store.async_save = _fl_boom
+_asyncio.run(_fl_coord._async_save_accuracy())
+_fl_coord._accuracy_store.async_save = _fl_orig
+_fl_base = _ha_storage.SAVE_COUNTS.get(_wr_key, 0)
+_asyncio.run(_fl_coord._async_save_accuracy())
+R.check(
+    "a failed save is retried on the next cycle, not skipped as written",
+    _ha_storage.SAVE_COUNTS.get(_wr_key, 0) - _fl_base == 1,
+    f"{_ha_storage.SAVE_COUNTS.get(_wr_key, 0) - _fl_base} writes",
+)
+
+# One aiohttp session, Home Assistant's, everywhere: a private ClientSession
+# per fetch or per token validation leaked its connection pool.
+_net_coord_src = _Path(
+    "custom_components/heatpump_optimizer/coordinator.py"
+).read_text()
+_net_flow_src = _Path(
+    "custom_components/heatpump_optimizer/config_flow.py"
+).read_text()
+R.check(
+    "the price fetch rides the shared aiohttp session",
+    "aiohttp.ClientSession(" not in _net_coord_src
+    and "async_get_clientsession" in _net_coord_src,
+)
+R.check(
+    "token validation rides the shared aiohttp session",
+    "aiohttp.ClientSession(" not in _net_flow_src
+    and "async_get_clientsession" in _net_flow_src,
+)
+
+
 sys.exit(R.close("FEATURE CHECKS"))

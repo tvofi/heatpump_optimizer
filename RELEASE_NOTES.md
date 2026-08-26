@@ -1,5 +1,36 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v4.0.2
+
+### Lifecycle housekeeping from the audit's second pass
+
+Nothing here changes a plan — same solves, same setpoints, same money.
+Four fixes to how the integration lives alongside Home Assistant.
+
+**Removing the integration now removes all of it.** Unloading the last
+config entry left the `restore_snapshot` and `diagnose_interval` services
+registered — the same registration-list drift a previous release fixed for
+`apply_schedule`. Removal now asks the service registry itself what the
+integration registered, so the two lists cannot drift apart again.
+
+**One HTTP session, Home Assistant's.** Every price fetch and every Tibber
+token check opened its own connection pool and threw it away. Both now ride
+the shared session Home Assistant provides — the weather client always did —
+which is faster and stops the churn of sockets on every update.
+
+**Each solve works on a frozen copy of the world.** The optimizer runs in a
+worker thread while the learners, the live peak guard and the thermostat
+card keep writing on the event loop; a write landing mid-solve could hand
+the solver a state that never existed. Every solve now snapshots the
+thermal state, the learned parameters and the tuning configuration at
+dispatch, so what the plan was built from is exactly what the moment held.
+
+**Fewer writes to your SD card.** The accuracy history was rewritten every
+update cycle whether or not anything in it had changed. An unchanged
+payload is now skipped — a failed write still retries on the next cycle —
+which matters on the flash storage most installs run on. Stored formats
+are unchanged.
+
 ## v4.0.1
 
 The test suite now runs itself. This release contains no behaviour change
@@ -47,6 +78,8 @@ now they run on every push and pull request.
 
 - `tests/README.md` documents the new modes, and its fixture count is
   correct again (53, not 37).
+
+## v4.0.0
 
 Thirty-six features in seven tranches, and one rule held through all of
 them: **everything new is off, inert, or purely observational until you
