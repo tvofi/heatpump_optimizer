@@ -435,6 +435,7 @@ SERVICE_APPLY_TOPOLOGY: Final = "apply_topology"
 # Manual plan override: pin *when* the pump runs, safety permitting.
 SERVICE_APPLY_MANUAL_PLAN: Final = "apply_manual_plan"
 SERVICE_CLEAR_MANUAL_PLAN: Final = "clear_manual_plan"
+SERVICE_RESTORE_SNAPSHOT: Final = "restore_learned_snapshot"
 MANUAL_PLAN_STORE_VERSION: Final = 1
 # A full solve is seconds of CPU. Dragging a slider must not trigger one per
 # pixel, so simulation requests are rate-limited to this interval.
@@ -589,6 +590,45 @@ DHW_QUANTILE_MIN_EVENTS: Final = 8
 DHW_DAYTYPE_BLEND_K: Final = 14.0
 #: #6 — a zone this close to its comfort floor forces the space pump on.
 SPACE_PUMP_FLOOR_MARGIN_C: Final = 0.3
+
+# --- Model & learning, v4.0.0 T4a --------------------------------------------
+#
+# Detection and learner-freezing ship default-ON: a freeze only stops
+# learning, it never changes a plan, so both are plan-neutral guard
+# extensions. Only the pieces that could move a plan are gated.
+#: #26 — relax the comfort floor while a window is detected open.
+CONF_OPEN_WINDOW_RELAX_ENABLED: Final = "open_window_relax_enabled"
+DEFAULT_OPEN_WINDOW_RELAX_ENABLED: Final = False
+#: #11 — nudge DHW readiness when the immersion element keeps rescuing it.
+CONF_IMMERSION_FEEDBACK_ENABLED: Final = "immersion_feedback_enabled"
+DEFAULT_IMMERSION_FEEDBACK_ENABLED: Final = False
+
+#: #26 — the ventilation CUSUM: °C of accumulated colder-than-predicted
+#: residual beyond the per-sample allowance before "window open" trips.
+VENT_CUSUM_THRESHOLD_C: Final = 1.2
+VENT_CUSUM_DRIFT_C: Final = 0.08
+#: Per-sample cap on what feeds the ventilation CUSUM. Half the threshold,
+#: so no single glitched reading can trip the detector alone — at least
+#: three consecutive abnormal samples (~1.5 h) are needed, which is the
+#: timescale of a window actually standing open.
+VENT_CUSUM_CLIP_C: Final = VENT_CUSUM_THRESHOLD_C / 2.0
+#: Hours without any residual feed before a tripped ventilation latch is
+#: force-released. The feed dries up entirely in mild weather (the
+#: heat-loss learner needs indoor−outdoor ≥ 6 °C), and a latch nothing
+#: can feed would otherwise freeze every learner indefinitely.
+VENT_CUSUM_STARVE_HOURS: Final = 6.0
+#: How far the comfort floor is relaxed while a window is open (gated).
+OPEN_WINDOW_RELAX_C: Final = 1.0
+#: #11 — measured power above nameplate by this factor reads as the
+#: immersion element, not the compressor.
+IMMERSION_FACTOR: Final = 1.15
+#: #12 — samples a 3 °C bucket needs before its baseline is trusted.
+COP_BASELINE_MIN_SAMPLES: Final = 20
+#: Weeks-scale EWMA for the long COP baseline.
+COP_BASELINE_ALPHA: Final = 0.02
+#: #12 — accumulated relative COP shortfall before the repair issue.
+COP_HEALTH_THRESHOLD: Final = 0.8
+COP_HEALTH_DRIFT: Final = 0.01
 
 # Weather sensitivity parameters
 CONF_WIND_SENSITIVITY: Final = "wind_sensitivity_factor"  # fraction per m/s

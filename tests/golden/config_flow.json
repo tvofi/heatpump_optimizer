@@ -1056,6 +1056,18 @@
    "required": "Optional",
    "selector": "NumberSelector"
   },
+  "immersion_feedback_enabled": {
+   "config": null,
+   "default": "False",
+   "required": "Optional",
+   "selector": "type"
+  },
+  "open_window_relax_enabled": {
+   "config": null,
+   "default": "False",
+   "required": "Optional",
+   "selector": "type"
+  },
   "outage_recovery_enabled": {
    "config": null,
    "default": "False",

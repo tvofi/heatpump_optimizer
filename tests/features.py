@@ -1804,8 +1804,14 @@ class _CopGate:
         self._cop_scale = 1.0
         self._cop_samples = 0
         self._last_measured_cop = None
+        self._immersion_active = False
 
     def _learning_frozen(self, *entities):
+        return None
+
+    def _observe_cop_health(self, observed_cop):
+        # T4a's health watch is exercised on the real coordinator; this
+        # stub only gates the frost-band split.
         return None
 
 
@@ -1924,9 +1930,15 @@ class _FakeLearnStore:
         return self.saved
 
 
+from heatpump_optimizer.drift import Cusum as _Cusum
+
+
 class _LearnPersist:
     _async_save_thermal_learning = Coord._async_save_thermal_learning
     _async_load_thermal_learning = Coord._async_load_thermal_learning
+    # The save path serialises through the same producer the snapshots
+    # use (T4a); a stub with its own dict would test a second format.
+    _thermal_learning_payload = Coord._thermal_learning_payload
     _apply_cop_scale = Coord._apply_cop_scale
 
     def __init__(self, store) -> None:
@@ -1940,6 +1952,10 @@ class _LearnPersist:
         self._lower_floor_loss_samples = 4
         self._cop_scale = 0.85
         self._cop_samples = 20
+        self._vent_cusum = _Cusum(threshold=1.2, drift=0.08, side=-1)
+        self._cop_health_cusum = _Cusum(threshold=0.8, drift=0.01, side=1)
+        self._cop_baseline = {}
+        self._immersion_events = []
 
     def _apply_buffer_cooling_rate(self, rate: float) -> None:
         self._buffer_cooling_rate = float(rate)
@@ -2056,6 +2072,7 @@ runtime_only = {
     "dhw_inlet_current",        # resolved per solve: live sensor or season
     "dhw_window_ready_energy",  # learned per-window quantiles, set per solve
     "dhw_legionella_price_ceiling",  # from the price prior, set per solve
+    "dhw_ready_margin_c",       # #11 feedback, set per solve from events
     "cop_scale",                # learned from measured power
     "cop_reference_temp",       # a property of the COP curve, not the house
     "internal_gains",           # not exposed in the config flow
@@ -3766,7 +3783,12 @@ R.check(
 # every time Home Assistant is restarted.
 R.check(
     "the split is persisted alongside the other learned parameters",
-    "lower_floor_loss_ratio" in inspect.getsource(_Coord._async_save_thermal_learning),
+    "lower_floor_loss_ratio"
+    in inspect.getsource(_Coord._thermal_learning_payload)
+    and "_thermal_learning_payload"
+    in inspect.getsource(_Coord._async_save_thermal_learning),
+    "the payload producer is shared with the weekly snapshots (T4a); the "
+    "save path must serialise through it, not through a second dict",
 )
 
 # The two learners share one baseline snapshot, and the house one overwrites it
@@ -6402,5 +6424,863 @@ R.check(
     f"{max((s + w for s, w in _over), default=0):.2f} of 6.0",
 )
 
+
+# ===========================================================================
+# T4a — model & learning, part one (#42 #26 #11 #12)
+# ===========================================================================
+R.section("T4a — insurance and detectors (#42 #26 #11 #12)")
+
+import random as _random
+from dataclasses import replace as _dc_replace
+
+from heatpump_optimizer.const import (
+    COP_BASELINE_MIN_SAMPLES,
+    IMMERSION_FACTOR,
+    OPEN_WINDOW_RELAX_C,
+    VENT_CUSUM_CLIP_C,
+    VENT_CUSUM_THRESHOLD_C,
+)
+from heatpump_optimizer.drift import Cusum
+from heatpump_optimizer.snapshots import (
+    BIAS_TRIP_DAYS,
+    RING_SIZE,
+    SnapshotRing,
+)
+
+_T4 = datetime(2026, 1, 15, 7, 0, tzinfo=UTC)
+
+# --- the CUSUM primitive, against hand arithmetic --------------------------------
+_cu = Cusum(threshold=1.2, drift=0.08, side=-1)
+_random.seed(7)
+for i in range(500):
+    _cu.update(_T4 + timedelta(minutes=30 * i), _random.gauss(0.0, 0.06))
+R.check(
+    "centred noise accumulates nothing",
+    not _cu.tripped and _cu.stat < 0.5,
+    f"stat {_cu.stat:.3f} after 500 noisy samples",
+)
+_cu2 = Cusum(threshold=1.2, drift=0.08, side=-1)
+_trip_at = None
+for i in range(10):
+    if _cu2.update(_T4 + timedelta(minutes=30 * i), -0.4) and _cu2.tripped:
+        _trip_at = i + 1
+        break
+R.check(
+    "a -0.4 °C step trips at exactly the hand-computed fourth sample",
+    _trip_at == 4,
+    "4 x (0.4 - 0.08) = 1.28 is the first total over 1.2",
+)
+_rel = None
+for i in range(30):
+    if (
+        _cu2.update(_T4 + timedelta(hours=10, minutes=30 * i), 0.0)
+        and not _cu2.tripped
+    ):
+        _rel = i + 1
+        break
+R.check(
+    "recovery releases through hysteresis, not at the trip line",
+    _rel is not None and _cu2.stat <= 0.3 + 1e-9,
+    "a detector that releases at the trip line chatters on it",
+)
+_cu3 = Cusum(threshold=1.2, drift=0.08, side=-1)
+for i in range(100):
+    _cu3.update(_T4 + timedelta(minutes=i), 0.5)
+R.check(
+    "the wrong-side residual never accumulates",
+    not _cu3.tripped and _cu3.stat == 0.0,
+    "warm-side error is the heat-loss learner's business, not a window",
+)
+_cu4 = Cusum(threshold=1.2, drift=0.08, side=-1)
+_cu4.load(_cu2.as_dict())
+R.check(
+    "the detector's state survives a store round trip",
+    abs(_cu4.stat - _cu2.stat) < 1e-3
+    and _cu4.tripped == _cu2.tripped
+    and _cu4.evidence == _cu2.evidence,
+)
+_cu5 = Cusum(threshold=1.2, drift=0.08, side=-1)
+_cu5.load({"stat": "garbage", "tripped": "yes", "evidence": None})
+R.check(
+    "a corrupt payload loads as a QUIET detector, not a latched one",
+    _cu5.stat == 0.0 and _cu5.tripped is False,
+    'a truthy string like "yes" must not freeze every learner on load',
+)
+_cu6 = Cusum(threshold=1.2, drift=0.08, side=-1)
+for i in range(100):
+    _cu6.update(_T4 + timedelta(minutes=30 * i), -0.4)
+R.check(
+    "the statistic is capped, so release lag cannot grow with trip length",
+    _cu6.stat <= 1.2 * 1.5 + 1e-9,
+    "an 8-hour window must not freeze learning for two extra days after "
+    "it closes",
+)
+_cu7 = Cusum(threshold=1.2, drift=0.08, side=-1)
+for i in range(6):
+    _cu7.update(_T4 + timedelta(minutes=30 * i), -0.4)
+R.check(
+    "a tripped detector nothing feeds for hours force-releases as stale",
+    not _cu7.release_if_starved(_T4 + timedelta(hours=5), 6.0)
+    and _cu7.release_if_starved(_T4 + timedelta(hours=10), 6.0)
+    and not _cu7.tripped
+    and _cu7.stat == 0.0,
+    "the feed dries up in mild weather; a latch nothing can feed must "
+    "time out",
+)
+_cu8 = Cusum(threshold=1.2, drift=0.08, side=-1)
+_cu8.load({"stat": 2.0, "tripped": True})  # a pre-cap payload, no last_fed
+R.check(
+    "an unknown feed history starts the clock instead of releasing blind",
+    not _cu8.release_if_starved(_T4, 6.0)
+    and _cu8.last_fed == _T4
+    and _cu8.release_if_starved(_T4 + timedelta(hours=7), 6.0),
+)
+
+# --- #26 through the heat-loss learner ---------------------------------------------
+# The real _async_learn_house_heat_loss, with only the model's one-step
+# prediction stubbed (at its real name, like the advisor tests) so the
+# residual is exact. Each helper call replays `n` intervals of a chosen
+# residual through the learner.
+
+
+def _vent_coord(**cfg):
+    c = _t2_coord(**cfg)
+    c._current_state.room_temperature = 20.0
+    c._current_state.outdoor_temperature = 0.0
+    c._current_action = {"power": 2.0}
+    c._current_weather = lambda: (0.0, 0.0)
+    return c
+
+
+def _feed_residual(c, residual, n, start):
+    """Replay exactly ``n`` half-hour intervals of one residual.
+
+    Successive runs must start >2 h after the previous one ended: the
+    learner's max-interval guard then skips call 0, which only re-seeds
+    the baseline, so calls 1..n each feed one residual.
+    """
+    import homeassistant.util.dt as _dt_mod
+
+    observed = c._current_state.room_temperature
+
+    def _sim(prev, power, outdoor, **kw):
+        return _dc_replace(prev, room_temperature=observed - residual)
+
+    c._thermal_model.simulate_step = _sim
+    real_now = _dt_mod.now
+    try:
+        for i in range(n + 1):
+            _dt_mod.now = lambda i=i: start + timedelta(minutes=30 * i)
+            _asyncio.run(c._async_learn_house_heat_loss())
+    finally:
+        _dt_mod.now = real_now
+
+
+_cv = _vent_coord()
+_feed_residual(_cv, -0.4, 3, _T4)
+R.check(
+    "three cold intervals are not yet a window",
+    not _cv._vent_cusum.tripped,
+    f"stat {_cv._vent_cusum.stat:.2f}",
+)
+_feed_residual(_cv, -0.4, 1, _T4 + timedelta(hours=4))
+R.check(
+    "the fourth trips the detector through the real learner",
+    _cv._vent_cusum.tripped and _cv._vent_cusum.evidence,
+)
+R.check(
+    "a tripped detector freezes every learner with reason ventilation",
+    _cv._learning_frozen() == "ventilation",
+)
+_scale_frozen = _cv._house_heat_loss_scale
+_feed_residual(_cv, -0.4, 4, _T4 + timedelta(hours=8))
+R.check(
+    "while frozen, cold residuals feed the detector but never the model",
+    _cv._house_heat_loss_scale == _scale_frozen
+    and _cv._learner_freeze_reason == "ventilation",
+    "an afternoon of airing out must not teach a phantom heat loss",
+)
+# The four frozen feeds above kept accumulating up to the 1.8 cap, so
+# the decay back to the 0.3 release line takes 19 clean half-hours.
+_feed_residual(_cv, 0.0, 32, _T4 + timedelta(hours=12))
+R.check(
+    "closing the window releases the freeze through the same path",
+    not _cv._vent_cusum.tripped and _cv._learning_frozen() is None,
+    "the detector must be fed while frozen, or nothing can ever release it",
+)
+
+_cw = _vent_coord()
+_feed_residual(_cw, 0.4, 10, _T4)
+R.check(
+    "ten warm intervals never look like a window",
+    not _cw._vent_cusum.tripped and _cw._vent_cusum.stat == 0.0,
+)
+
+# The clip is half the threshold by construction, so no single glitched
+# reading — however wild — can trip the detector alone.
+R.check(
+    "the per-sample clip is half the trip threshold",
+    abs(VENT_CUSUM_CLIP_C - VENT_CUSUM_THRESHOLD_C / 2.0) < 1e-12,
+)
+_cg = _vent_coord()
+_feed_residual(_cg, -10.0, 1, _T4)
+R.check(
+    "one glitched -10 °C reading cannot trip the detector alone",
+    not _cg._vent_cusum.tripped,
+    f"stat {_cg._vent_cusum.stat:.2f}: clipped to {VENT_CUSUM_CLIP_C}",
+)
+_feed_residual(_cg, -10.0, 2, _T4 + timedelta(hours=4))
+R.check(
+    "but a third consecutive one is a window, not a glitch",
+    _cg._vent_cusum.tripped,
+)
+
+# While a stale sensor is what feeds the residual, the detector must not
+# be driven by the flatline: staleness outranks ventilation, so the latch
+# simply holds until real data returns.
+_cs11 = _vent_coord()
+_cs11._vent_cusum.tripped = True
+_cs11._input_health = _NS(
+    readings={"indoor_temp_entity": _NS(stale=True)}
+)
+R.check(
+    "a stale sensor outranks the ventilation freeze for the feed path",
+    _cs11._learning_frozen("indoor_temp_entity") == "stale:indoor_temp_entity"
+    and _cs11._learning_frozen() == "ventilation",
+    "a dead battery's flatline must not drive the very detector that "
+    "froze everything",
+)
+
+# The gated relax rides the same snapshot-and-unwind envelope as the away
+# setback and economy mode; the envelope carrying min_temp is what makes
+# all three unwindable. Default-off byte-inertness is the goldens' job.
+_ce = _vent_coord()
+R.check(
+    "the away snapshot carries min_temp, which is what unwinds the relax",
+    "min_temp" in _ce._apply_away_setback(),
+)
+R.check(
+    "the relax is one degree and can never pierce the absolute floor",
+    OPEN_WINDOW_RELAX_C == 1.0
+    and ECONOMY_ABSOLUTE_FLOOR >= 12.0,
+)
+# Wiring, pinned at the source level like the learner-ordering checks:
+# the relax must be gated on its flag AND applied after the away
+# snapshot, inside the same method, so the finally-restore unwinds it.
+_run_src = inspect.getsource(_Coord.async_run_optimization)
+R.check(
+    "the relax sits behind its flag, after the away snapshot",
+    0
+    < _run_src.find("_apply_away_setback")
+    < _run_src.find("CONF_OPEN_WINDOW_RELAX_ENABLED")
+    < _run_src.find("OPEN_WINDOW_RELAX_C")
+    and "_vent_cusum.tripped" in _run_src,
+    "dropping the config gate or moving the relax outside the envelope "
+    "must fail here, not in a February install",
+)
+
+# --- #11 the immersion detector -----------------------------------------------------
+def _imm_coord(**cfg):
+    c = _t2_coord(**cfg)
+    c._current_action = {"power": 2.0}
+    return c
+
+
+_ci = _imm_coord()
+_ci._measured_power = 6.0  # 1.20 x the 5.0 kW nameplate
+_ci._detect_immersion()
+R.check("one over-nameplate sample is a spike, not a latch", not _ci._immersion_active)
+_ci._detect_immersion()
+R.check(
+    "two agreeing samples latch, with evidence and an event on record",
+    _ci._immersion_active
+    and _ci._immersion_evidence
+    and len(_ci._immersion_events) == 1,
+)
+_ci._measured_power = 3.0
+_ci._detect_immersion()
+R.check("one clean sample does not release either", _ci._immersion_active)
+_ci._detect_immersion()
+R.check(
+    "two clean samples release, and the event history stays",
+    not _ci._immersion_active and len(_ci._immersion_events) == 1,
+)
+
+_cj = _imm_coord()
+_cj._measured_power = 5.0 * IMMERSION_FACTOR * 0.98  # just under the line
+_cj._detect_immersion()
+_cj._detect_immersion()
+R.check(
+    "a draw just under nameplate x factor never latches",
+    not _cj._immersion_active,
+    "compressor spread must not read as a resistive element",
+)
+_ck0 = _imm_coord()
+_ck0._measured_power = None
+_ck0._detect_immersion()
+_ck0._detect_immersion()
+R.check("no meter, no detection", not _ck0._immersion_active)
+_cl = _imm_coord()
+_cl._measured_power = 6.0
+_cl._detect_immersion()
+_cl._measured_power = 3.0
+_cl._detect_immersion()
+_cl._measured_power = 6.0
+_cl._detect_immersion()
+R.check(
+    "alternating samples never latch: the count demands consecutive evidence",
+    not _cl._immersion_active,
+)
+
+# While latched, the COP learner must skip: a resistive kW in the ratio
+# reads as catastrophic compressor efficiency.
+_ck = _t2_coord()
+_ck._current_state.outdoor_temperature = 10.0  # outside the frost band
+_ck._current_action = {"power": 4.0}
+_ck._measured_power = 4.0
+_ck._immersion_active = True
+_ck._learn_measured_cop()
+R.check("an immersion interval never joins the COP learner", _ck._cop_samples == 0)
+_ck._immersion_active = False
+_ck._learn_measured_cop()
+R.check(
+    "the identical interval folds once the element is off — the guard is the "
+    "only difference",
+    _ck._cop_samples == 1,
+)
+
+# The gated feedback: recurring rescues raise the DHW planning margin.
+_now_imm = datetime(2026, 1, 15, 12, 0, tzinfo=UTC)
+_cm = _t2_coord(immersion_feedback_enabled=True)
+_cm._immersion_events = [
+    (_now_imm - timedelta(days=d)).isoformat() for d in (1, 3, 5)
+]
+R.check(
+    "three rescues in a fortnight ask the plan for two extra degrees",
+    _cm._immersion_dhw_margin(_now_imm) == 2.0,
+)
+_cm._immersion_events = _cm._immersion_events[:2]
+R.check("two rescues do not", _cm._immersion_dhw_margin(_now_imm) == 0.0)
+_cm._immersion_events = [
+    (_now_imm - timedelta(days=d)).isoformat() for d in (20, 21, 22)
+]
+R.check(
+    "old rescues age out of the window",
+    _cm._immersion_dhw_margin(_now_imm) == 0.0,
+)
+_cn = _t2_coord()
+_cn._immersion_events = [
+    (_now_imm - timedelta(days=d)).isoformat() for d in (1, 3, 5)
+]
+R.check(
+    "with the flag off the margin is always zero — the detector is",
+    _cn._immersion_dhw_margin(_now_imm) == 0.0,
+    "evidence-only until the user opts into moving the plan",
+)
+
+# And the margin genuinely moves a solve when set (mutation pair against
+# the same flat-price scenario the quantile targets used).
+def _m_solve(margin):
+    sc = _mk_golden(
+        dhw=True,
+        price_profile="flat",
+        config_overrides={"dhw_tank_volume": 1500.0},
+        state_overrides={"dhw_temperature": 46.0},
+        param_overrides={"dhw_ready_margin_c": margin},
+    )
+    return sc["optimizer"].optimize(
+        sc["state"], sc["prices"], sc["outdoor"], sc["wind"], sc["rain"],
+        sc["solar"], _G_START,
+    )
+
+
+R.check(
+    "the margin's inert value IS the default, and an explicit zero solves "
+    "byte-identically to it",
+    ThermalParameters().dhw_ready_margin_c == 0.0
+    and np.array_equal(
+        np.asarray(_m_solve(0.0).dhw_power_schedule),
+        np.asarray(_q_base.dhw_power_schedule),
+    ),
+    "the pre-T4a baseline itself is golden.py's pin, not this check's",
+)
+_m2 = _m_solve(2.0)
+R.check(
+    "two degrees of margin heat the tank higher before the window",
+    max(_m2.dhw_temp_trajectory[:25])
+    > max(_q_base.dhw_temp_trajectory[:25]) + 0.5,
+    f"pre-window peak {max(_q_base.dhw_temp_trajectory[:25]):.1f} -> "
+    f"{max(_m2.dhw_temp_trajectory[:25]):.1f}",
+)
+
+# The ledger carve-out: the immersion line comes OUT of spot, so the
+# month's lines sum to the metered energy instead of overstating it.
+_cl2 = _t2_coord()
+_cl2._immersion_active = True
+_lsample = AccuracySample(when=NOW, actual_power_kw=6.9)
+_lpending = {
+    "price": 2.5,
+    "spot_price": 2.0,
+    "grid_fee": 0.5,
+    "space_power": 1.0,
+    "dhw_power": 1.0,
+    "when": NOW,
+}
+_cl2._accumulate_energy(_lsample, 0.5, _lpending)
+_lmonth = NOW.strftime("%Y-%m")
+_lspot = _cl2._ledger.line(_lmonth, "spot")
+_limm = _cl2._ledger.line(_lmonth, "immersion")
+_lfee = _cl2._ledger.line(_lmonth, "grid_fee")
+R.check(
+    "the immersion kWh are carved out of spot, and the lines sum to the "
+    "metered energy",
+    abs(_limm["kwh"] - 2.45) < 1e-9
+    and abs(_lspot["kwh"] + _limm["kwh"] - 3.45) < 1e-9
+    and abs(_lfee["kwh"] - 3.45) < 1e-9,
+    f"spot {_lspot['kwh']:.2f} + immersion {_limm['kwh']:.2f} must equal "
+    "the 3.45 kWh metered; the fee line keeps the full energy",
+)
+import homeassistant.util.dt as _dt_mod_led
+
+_real_now_led = _dt_mod_led.now
+try:
+    _dt_mod_led.now = lambda: NOW  # the settlement reads "this month"
+    _settled_kwh = _cl2._contract_comparison()["kwh"]
+finally:
+    _dt_mod_led.now = _real_now_led
+R.check(
+    "the contract settlement folds the carved-out kWh back in",
+    abs(_settled_kwh - 3.45) < 1e-3,
+    "the comparison settles ALL metered energy, however it is lined",
+)
+_cl3 = _t2_coord()
+_cl3._accumulate_energy(_lsample, 0.5, dict(_lpending))
+R.check(
+    "with the element off the spot line carries everything and no "
+    "immersion line appears",
+    abs(_cl3._ledger.line(_lmonth, "spot")["kwh"] - 3.45) < 1e-9
+    and _cl3._ledger.line(_lmonth, "immersion")["kwh"] == 0.0,
+)
+
+# --- #12 the compressor-health watch --------------------------------------------------
+_ch = _t2_coord()
+_ch._current_state.outdoor_temperature = 9.5  # bucket 3, outside frost
+for _ in range(COP_BASELINE_MIN_SAMPLES + 5):
+    _ch._observe_cop_health(3.0)
+R.check(
+    "the baseline forms in its outdoor bucket and trips nothing on itself",
+    _ch._cop_baseline.get(3, [0, 0])[1] >= COP_BASELINE_MIN_SAMPLES
+    and not _ch._cop_health_cusum.tripped,
+)
+_ch._last_measured_cop = 2.4
+_trip_n = None
+for i in range(12):
+    _ch._observe_cop_health(2.4)
+    if _ch._cop_health_cusum.tripped:
+        _trip_n = i + 1
+        break
+_cop_issues = [
+    i for i in getattr(_ch.hass, "issues", []) if i[1] == "cop_degradation"
+]
+R.check(
+    "a 20% shortfall trips within a handful of samples and raises the issue",
+    _trip_n is not None and _trip_n <= 8 and len(_cop_issues) == 1,
+    f"tripped after {_trip_n} samples",
+)
+R.check(
+    "the issue prices the shortfall for the user and survives a restart",
+    _cop_issues[0][2].get("translation_key") == "cop_degradation"
+    and set(_cop_issues[0][2].get("translation_placeholders", {}))
+    == {"shortfall_percent", "sek_month"}
+    and _cop_issues[0][2].get("is_persistent") is True,
+    "a non-persistent issue vanishes on reboot while the fault stays",
+)
+_baseline_at_trip = _ch._cop_baseline[3][0]
+for _ in range(5):
+    _ch._observe_cop_health(2.4)
+R.check(
+    "staying degraded keeps exactly one issue, not a pile",
+    len([
+        i for i in getattr(_ch.hass, "issues", []) if i[1] == "cop_degradation"
+    ]) == 1,
+)
+R.check(
+    "the baseline stops absorbing samples while tripped",
+    _ch._cop_baseline[3][0] == _baseline_at_trip,
+    "otherwise the EWMA re-anchors to the fault and a permanent "
+    "degradation clears its own issue within weeks",
+)
+for _ in range(40):
+    _ch._observe_cop_health(3.2)
+    if not _ch._cop_health_cusum.tripped:
+        break
+R.check(
+    "recovery releases the watch and deletes the issue",
+    not _ch._cop_health_cusum.tripped
+    and not [
+        i for i in getattr(_ch.hass, "issues", []) if i[1] == "cop_degradation"
+    ],
+    "a repair issue that outlives its problem trains users to ignore repairs",
+)
+
+_ch2 = _t2_coord()
+_ch2._current_state.outdoor_temperature = 9.5
+for _ in range(COP_BASELINE_MIN_SAMPLES + 5):
+    _ch2._observe_cop_health(3.0)
+for i in range(40):
+    _ch2._observe_cop_health(2.97 if i % 2 else 3.03)
+R.check(
+    "spread inside the drift allowance never trips the watch",
+    not _ch2._cop_health_cusum.tripped and _ch2._cop_health_cusum.stat < 0.1,
+    "session-to-session COP noise is not degradation",
+)
+
+_ch3 = _t2_coord()
+_ch3._current_state.outdoor_temperature = 9.5
+_ch3._observe_cop_health(9.0)  # one wild first interval
+for _ in range(24):
+    _ch3._observe_cop_health(3.0)
+R.check(
+    "one outlier first sample cannot anchor the young baseline",
+    _ch3._cop_baseline[3][0] < 3.5,
+    f"got {_ch3._cop_baseline[3][0]:.2f}: a plain mean while young; an "
+    "EWMA seeded at 9.0 would still read ~6.7 when the watch starts "
+    "judging at twenty samples",
+)
+
+# Frost-band disjointness: the health watch is fed only through
+# _learn_measured_cop, which hands the frost band to the defrost learner.
+_cf = _t2_coord()
+_cf._current_state.outdoor_temperature = 2.0
+_cf._current_action = {"power": 4.0}
+_cf._measured_power = 4.0
+_cf._learn_measured_cop()
+R.check(
+    "a frost-band interval reaches neither the COP learner nor the baseline",
+    _cf._cop_samples == 0 and not _cf._cop_baseline,
+    "the defrost derate owns that band; feeding both corrects one loss twice",
+)
+
+# --- #42 snapshots: the ring and the alarm -------------------------------------------
+_ring = SnapshotRing()
+_taken = 0
+for d in range(120):
+    _rnow = _T4 + timedelta(days=d)
+    if _ring.due(_rnow):
+        _ring.take(
+            _rnow,
+            {"thermal": {"scale": 1.0 + d / 100.0}},
+            {"temperature_bias": 0.1},
+            healthy=True,
+        )
+        _taken += 1
+R.check(
+    "snapshots are weekly and the ring keeps eight",
+    _taken == 18 and len(_ring.snapshots) == RING_SIZE,
+    f"{_taken} takes, {len(_ring.snapshots)} kept",
+)
+_r2 = SnapshotRing()
+_r2.take(_T4, {"thermal": {"scale": 1.0}}, {"temperature_bias": 0.1}, True)
+_flags = [
+    _r2.observe_bias(_T4 + timedelta(days=d), 0.9, healthy=True)
+    for d in range(1, 7)
+]
+R.check(
+    "five consecutive out-of-band days raise the alarm exactly once",
+    _r2.alarmed and _flags.count(True) == 1 and _flags[BIAS_TRIP_DAYS - 1],
+    f"flags {_flags}",
+)
+R.check(
+    "healthy inputs throughout justify the automatic rollback",
+    _r2.auto_rollback_justified,
+)
+_r3 = SnapshotRing()
+for d in range(1, 7):
+    _r3.observe_bias(_T4 + timedelta(days=d), 0.9, healthy=(d != 3))
+R.check(
+    "one unhealthy day keeps the alarm but blocks auto-rollback",
+    _r3.alarmed and not _r3.auto_rollback_justified,
+    "if the sensors were the problem, the learners are innocent",
+)
+_r4 = SnapshotRing()
+for _ in range(10):
+    _r4.observe_bias(_T4, 0.9, True)
+R.check("the alarm counts days, not ticks", not _r4.alarmed)
+_r5 = SnapshotRing()
+_r5.take(_T4, {"a": 1}, {"temperature_bias": 0.1}, healthy=True)
+_r5.take(_T4 + timedelta(days=7), {"a": 2}, {"temperature_bias": 0.9}, True)
+_r5.take(_T4 + timedelta(days=14), {"a": 3}, {"temperature_bias": 0.1}, False)
+R.check(
+    "restore picks the newest healthy, in-band snapshot",
+    (_r5.best_restore() or {}).get("learners") == {"a": 1},
+    "restoring to a drifting snapshot rewinds the clock on the problem",
+)
+_r6 = SnapshotRing.from_dict(_r2.as_dict())
+R.check(
+    "the ring round-trips its alarm latch and history",
+    _r6.alarmed
+    and len(_r6.snapshots) == 1
+    and SnapshotRing.from_dict({"snapshots": "garbage"}).snapshots == [],
+)
+_r7 = SnapshotRing()
+_live = {"thermal": {"scale": 1.0}}
+_r7.take(_T4, _live, {"temperature_bias": 0.1}, True)
+_live["thermal"]["scale"] = 999.0
+R.check(
+    "a snapshot is a copy, never a window into live learner state",
+    _r7.snapshots[0]["learners"]["thermal"]["scale"] == 1.0,
+    "an aliased snapshot mutates for eight weeks and restores the very "
+    "drift it was taken to undo",
+)
+_r8 = SnapshotRing()
+_r8.alarmed = True
+_r8.take(_T4, {"a": 1}, {"temperature_bias": 0.1}, healthy=True)
+R.check(
+    "a snapshot taken during an active alarm never enters the restore pool",
+    _r8.best_restore() is None,
+    "it can only hold state the alarm already distrusts",
+)
+# Slow drift: the learners walk away days before the bias tag leaves the
+# band, so during an alarm only snapshots older than the streak qualify.
+_r9 = SnapshotRing()
+_r9.take(_T4 - timedelta(days=10), {"good": True}, {"temperature_bias": 0.1}, True)
+_r9.observe_bias(_T4 + timedelta(days=1), 0.9, True)  # streak starts day 1
+_r9.take(_T4 + timedelta(days=3), {"good": False}, {"temperature_bias": 0.3}, True)
+for d in range(2, 6):
+    _r9.observe_bias(_T4 + timedelta(days=d), 0.9, True)
+R.check(
+    "during an alarm, restore skips snapshots taken inside the drift streak",
+    _r9.alarmed
+    and (_r9.best_restore() or {}).get("learners") == {"good": True},
+    "the day-3 snapshot's in-band tag is not proof of innocence",
+)
+R.check(
+    "the streak marker rides the store round trip",
+    SnapshotRing.from_dict(_r9.as_dict())._streak_started
+    == _r9._streak_started
+    and _r9._streak_started != "",
+)
+
+# --- #42 through the coordinator: drift, rollback, restore -----------------------------
+def _drift_run(unhealthy_day=None):
+    """Take a clean snapshot, corrupt a learned value, drive 5 drift days."""
+    import homeassistant.util.dt as _dt_mod
+
+    c = _t2_coord()
+    c._snapshots_loaded = True  # the store gate; loading is its own check
+    c._apply_house_heat_loss_scale(1.0)
+    c._accuracy.temperature_bias = lambda: 0.05
+    base = datetime(2026, 3, 1, 3, 0, tzinfo=UTC)
+    real_now = _dt_mod.now
+    try:
+        _dt_mod.now = lambda: base
+        _asyncio.run(c._async_watch_learning_drift())  # day 0: weekly take
+        c._apply_house_heat_loss_scale(1.4)
+        c._accuracy.temperature_bias = lambda: 0.9
+        for d in range(1, 6):
+            if d == unhealthy_day:
+                c._inputs_healthy = lambda: False
+            _dt_mod.now = lambda d=d: base + timedelta(days=d)
+            _asyncio.run(c._async_watch_learning_drift())
+            if d == unhealthy_day:
+                del c._inputs_healthy
+    finally:
+        _dt_mod.now = real_now
+    return c
+
+
+_cd = _drift_run()
+_drift_issues = [
+    i for i in getattr(_cd.hass, "issues", []) if i[1] == "accuracy_drift"
+]
+R.check(
+    "five out-of-band days on healthy inputs roll the learners back",
+    _cd._house_heat_loss_scale == 1.0 and _cd._snapshot_ring.alarmed,
+    f"scale {_cd._house_heat_loss_scale}",
+)
+R.check(
+    "and the issue says so, in the rolled-back voice",
+    len(_drift_issues) == 1
+    and _drift_issues[0][2].get("translation_key") == "accuracy_drift_rolled_back",
+)
+R.check(
+    "the rollback leaves the accuracy tracker alone — it is evidence",
+    _cd._accuracy.temperature_bias() == 0.9,
+    "restoring the tracker made the rollback erase its own justification "
+    "and repeat until a drifted snapshot laundered itself in",
+)
+_cd._apply_house_heat_loss_scale(1.4)
+import homeassistant.util.dt as _dt_mod_t4
+
+_real_now_t4 = _dt_mod_t4.now
+try:
+    _dt_mod_t4.now = lambda: datetime(2026, 3, 7, 3, 0, tzinfo=UTC)
+    _asyncio.run(_cd._async_watch_learning_drift())
+finally:
+    _dt_mod_t4.now = _real_now_t4
+R.check(
+    "one alarm rolls back once — staying alarmed must not re-restore daily",
+    _cd._house_heat_loss_scale == 1.4,
+    "a daily rollback would fight every attempt to relearn",
+)
+R.check(
+    "the alarm stays latched while the bias stays out of band",
+    _cd._snapshot_ring.alarmed
+    and [
+        i for i in getattr(_cd.hass, "issues", []) if i[1] == "accuracy_drift"
+    ][0][2].get("is_persistent") is True,
+    "no self-release, and the notice survives a Home Assistant restart",
+)
+
+_cd2 = _drift_run(unhealthy_day=3)
+_drift_issues2 = [
+    i for i in getattr(_cd2.hass, "issues", []) if i[1] == "accuracy_drift"
+]
+R.check(
+    "one unhealthy drift day raises the alarm but leaves the learners alone",
+    _cd2._house_heat_loss_scale == 1.4
+    and len(_drift_issues2) == 1
+    and _drift_issues2[0][2].get("translation_key") == "accuracy_drift",
+)
+
+_cr = _t2_coord()
+R.check(
+    "restore with an empty ring refuses instead of pretending",
+    _asyncio.run(_cr.async_restore_learned_snapshot()) is False,
+)
+_cr._apply_house_heat_loss_scale(1.0)
+# Profiles are mean-1 weight vectors; this shape survives normalization.
+_cr._dhw_profile_weekend = [1.5] * 12 + [0.5] * 12
+_cr._dhw_daytype_samples[1] = 9
+_cr._snapshot_ring.take(
+    NOW, _cr._learner_snapshot_payloads(), {"temperature_bias": 0.1}, True
+)
+_cr._apply_house_heat_loss_scale(1.5)
+_cr._dhw_daytype_samples[1] = 0
+_cr._dhw_profile_weekend = [0.5] * 12 + [1.5] * 12
+R.check(
+    "the service applies the newest qualifying snapshot",
+    _asyncio.run(_cr.async_restore_learned_snapshot()) is True
+    and _cr._house_heat_loss_scale == 1.0,
+)
+R.check(
+    "the day-type profiles restore with the pool, samples included",
+    _cr._dhw_daytype_samples[1] == 9
+    and abs(_cr._dhw_profile_weekend[0] - 1.5) < 1e-9,
+    "half a rollback would blend one week's pool with another's shapes",
+)
+R.check(
+    "the restored defrost derate is rebound where the model reads it",
+    _cr._thermal_params.defrost_derate is _cr._defrost,
+    "without the rebind the restored object trains while an orphan serves",
+)
+R.check(
+    "the snapshot serialises the DHW profile through the store's own producer",
+    "profile_weekday" in inspect.getsource(_Coord._dhw_profile_payload)
+    and "_dhw_profile_payload"
+    in inspect.getsource(_Coord._async_save_dhw_profile)
+    and "_dhw_profile_payload"
+    in inspect.getsource(_Coord._learner_snapshot_payloads),
+    "a second hand-built copy is how formats drift",
+)
+
+# The heartbeat gates on the persisted ring having loaded (the first
+# cycle must not snapshot half-loaded learners over eight weeks of
+# insurance), and a counted day persists the streak even when nothing
+# else changed.
+_cg2 = _t2_coord()
+_asyncio.run(_cg2._async_watch_learning_drift())
+R.check(
+    "no snapshot is taken before the persisted ring has loaded",
+    not _cg2._snapshot_ring.snapshots,
+)
+_asyncio.run(_cg2._async_load_snapshots())
+R.check(
+    "the loader arms the heartbeat even when the store is empty",
+    _cg2._snapshots_loaded,
+)
+_cg3 = _t2_coord()
+_cg3._snapshots_loaded = True
+_cg3._snapshot_ring.take(NOW, {}, {"temperature_bias": 0.1}, True)
+_cg3._accuracy.temperature_bias = lambda: 0.9
+_ring_saves = []
+
+
+async def _fake_ring_save():
+    _ring_saves.append(1)
+
+
+_cg3._async_save_snapshots = _fake_ring_save
+import homeassistant.util.dt as _dt_mod_t4b
+
+_real_now_t4b = _dt_mod_t4b.now
+try:
+    _dt_mod_t4b.now = lambda: NOW + timedelta(days=1)
+    _asyncio.run(_cg3._async_watch_learning_drift())  # day counted
+    _asyncio.run(_cg3._async_watch_learning_drift())  # same day, no count
+finally:
+    _dt_mod_t4b.now = _real_now_t4b
+R.check(
+    "each counted drift day persists the streak, once",
+    len(_ring_saves) == 1 and _cg3._snapshot_ring._bias_days == 1,
+    "a restart on drift day 3 must not rewind the count to the last "
+    "weekly save",
+)
+
+# --- persistence: the detectors' memory rides the thermal store ----------------------
+_cp = _t2_coord()
+_cp._vent_cusum.stat = 0.66
+_cp._vent_cusum.tripped = True
+_cp._cop_baseline[3] = [3.0, 25]
+_cp._immersion_events = ["2026-01-01T00:00:00+00:00"]
+_t4_payload = _cp._thermal_learning_payload()
+_cq = _t2_coord()
+
+
+async def _fake_thermal_load(_p=_t4_payload):
+    return _p
+
+
+_cq._thermal_learning_store.async_load = _fake_thermal_load
+_asyncio.run(_cq._async_load_thermal_learning())
+R.check(
+    "a tripped window detector survives a restart tripped",
+    _cq._vent_cusum.tripped and abs(_cq._vent_cusum.stat - 0.66) < 1e-3,
+    "a restart mid-window must not unfreeze the learners",
+)
+R.check(
+    "the COP baseline and the immersion history ride along",
+    _cq._cop_baseline.get(3) == [3.0, 25]
+    and _cq._immersion_events == ["2026-01-01T00:00:00+00:00"],
+)
+_cq2 = _t2_coord()
+
+
+async def _fake_old_load():
+    return {"house_heat_loss_scale": 1.2}
+
+
+_cq2._thermal_learning_store.async_load = _fake_old_load
+_asyncio.run(_cq2._async_load_thermal_learning())
+R.check(
+    "a pre-T4 payload loads clean and every detector starts quiet",
+    _cq2._house_heat_loss_scale == 1.2
+    and not _cq2._vent_cusum.tripped
+    and not _cq2._cop_baseline
+    and _cq2._immersion_events == [],
+)
+
+# --- the accuracy sample's new field --------------------------------------------------
+_smp = AccuracySample(
+    when=NOW, predicted_temp=21.0, actual_temp=20.8, cop_residual=0.3
+)
+R.check(
+    "cop_residual survives the sample's store round trip",
+    AccuracySample.from_dict(_smp.as_dict()).cop_residual == 0.3,
+)
+R.check(
+    "an old sample without the key still loads, as None",
+    AccuracySample.from_dict({"t": NOW.isoformat()}).cop_residual is None,
+)
 
 sys.exit(R.close("FEATURE CHECKS"))

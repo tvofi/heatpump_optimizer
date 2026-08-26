@@ -358,6 +358,9 @@ class ThermalParameters:
     dhw_elastic_legionella_enabled: bool = False
     dhw_legionella_min_interval_days: float = 5.0
     dhw_legionella_price_ceiling: Any = None
+    #: T4a #11 (gated): extra readiness the coordinator asks for when the
+    #: immersion element keeps rescuing late tanks, °C. 0 = inert.
+    dhw_ready_margin_c: float = 0.0
 
     # Weather sensitivity parameters (configurable)
     wind_sensitivity: float = DEFAULT_WIND_SENSITIVITY  # fraction per m/s

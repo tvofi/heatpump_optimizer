@@ -5,6 +5,7 @@ class BinarySensorDeviceClass(str):
     PROBLEM = "problem"
     HEAT = "heat"
     PRESENCE = "presence"
+    WINDOW = "window"
 
 
 class BinarySensorEntity:

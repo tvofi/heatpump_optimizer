@@ -138,10 +138,10 @@ pricing are outside this project's control.
 - **Plan reason codes** — every planned slot says *why* it was chosen
 - **Energy dashboard integration** — accumulating energy and cost totals, split hot water versus space heating
 - **The house as a virtual battery** — state of charge, capacity and rates published so other automations can use it
-- **Rich sensor entities** — 47 sensors including full heating plans, DHW, predictive insights, per-zone temperatures
+- **Rich sensor entities** — 52 sensors including full heating plans, DHW, predictive insights, per-zone temperatures
 - **Dashboard card** — plots price, planned heating slots, irradiance and predicted temperatures on one graph, with per-series toggles, reason codes, a what-if simulator, and a Setup page drawing your configured system with live sensor readings in place, where clicking a sensor assigns or clears it
 - **Climate entity** — virtual thermostat with full HA climate integration
-- **Buttons and binary sensors** — force a run, arm a measurement experiment, and see input health, external heat and away state at a glance
+- **Buttons and binary sensors** — force a run, arm a measurement experiment, and see input health, external heat, open windows and away state at a glance
 - **Service calls** — manual optimization, mode changes, runtime parameter tuning, and what-if simulation
 
 ## How the Predictive Optimization Works
@@ -893,6 +893,30 @@ Beyond the tank cooling rates and house heat loss learned in earlier versions:
   step is kept small enough not to be noticed, and comfort is a hard constraint:
   it aborts if the room drifts too far. It will not repeat on a house that has
   already converged.
+- **An open-window detector** watches for the house losing heat faster than the
+  learned model can explain and pauses all learning while it lasts, so an
+  afternoon of airing out cannot teach the model a heat loss the house does not
+  have. It surfaces as the **Open Window Detected** binary sensor with its
+  evidence in the attributes. Optionally (off by default) it can also ease the
+  heating target by 1 °C while the window is open.
+- **Immersion-heater detection** notices when measured electrical power exceeds
+  what the compressor alone can draw — the tank's backup element stepping in
+  because the plan heated water too late. The events are logged, the extra cost
+  gets its own line in the savings ledger, the polluted samples are kept out of
+  COP learning, and (opt-in) repeated use raises the hot-water planning margin
+  so the heat pump gets there first.
+- **A COP health watch** compares each measured COP against a learned per-bucket
+  baseline and raises a Home Assistant repair issue when efficiency has
+  genuinely degraded — clogged filter, low refrigerant — priced in SEK per month
+  so you can decide whether the service call is worth it. It clears itself on
+  recovery.
+- **Weekly learner snapshots** guard everything above: the full learned state is
+  snapshotted weekly (last 8 kept), and a drift watchdog compares daily
+  prediction bias against the accuracy history. If predictions stay out of band
+  for days while every input was provably healthy, the learners are rolled back
+  to the last known-good snapshot automatically — and the
+  `heatpump_optimizer.restore_learned_snapshot` service is the manual override
+  for when you can see what the watchdog cannot.
 
 The **Prediction Accuracy** sensor publishes how far off the model currently is,
 including the *signed* bias — a mean absolute error cannot tell random noise from
@@ -1041,12 +1065,13 @@ turn the toggle off to require hot water around the clock.
 | **DHW Heavy Day Demand** | The learned 90th-percentile draw per hot water time frame — what the heavy-day targets stand on |
 | **Valve Target Recommendation** | What to set a dumb mixing valve to, with the reasoning in its attributes |
 
-### Binary Sensors (3 total)
+### Binary Sensors (4 total)
 | Binary sensor | Description |
 |---|---|
 | **Input Problem** | On when an input is stale or missing, with the evidence and the freeze reason in attributes |
 | **External Heat Source** | On while something other than the heat pump is heating the tanks |
 | **Away Mode** | On while the house is empty, with the return time and recovery state |
+| **Open Window Detected** | On while the house is losing heat like a window is open, with the evidence in attributes; learning pauses while it is on |
 
 ### Buttons (3 total)
 | Button | Description |
@@ -1178,6 +1203,15 @@ survives a restart, and it is dropped once it expires.
 Removes the override and re-solves, returning to fully automatic planning. This
 is the card's **Back to automatic** button.
 
+### `heatpump_optimizer.restore_learned_snapshot`
+Rolls every learner back to the most recent weekly snapshot that was captured
+with healthy inputs and in-band prediction accuracy. The drift watchdog does
+this automatically when it can prove the inputs were healthy throughout a
+drift; this service is the manual override for when you can see what it
+cannot — a sensor that fed garbage for a while, a probe that was mounted
+wrong. Nothing is lost permanently: learning continues from the restored
+point.
+
 ### `heatpump_optimizer.set_thermal_parameters`
 Runtime parameter tuning:
 ```yaml
@@ -1257,7 +1291,7 @@ custom_components/heatpump_optimizer/
 ├── comfort_learning.py  # Revealed-preference comfort weight tuning
 ├── battery.py           # The thermal stores, published as a battery
 │
-├── sensor.py            # 47 sensors
+├── sensor.py            # 52 sensors
 ├── binary_sensor.py     # Input health, external heat, away mode
 ├── button.py            # Optimize now, run identification, reset comfort weight
 ├── climate.py           # Virtual climate entity with DHW status

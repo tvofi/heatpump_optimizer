@@ -84,6 +84,11 @@
    "kwh": 0.0,
    "month": "2026-01"
   },
+  "cop_health": {
+   "alarm": false,
+   "evidence": [],
+   "watched_buckets": 0
+  },
   "cop_samples": 0,
   "cop_scale": 1.0,
   "current_action": {},
@@ -224,6 +229,8 @@
   "house_heat_loss_learned": false,
   "house_heat_loss_samples": 0,
   "house_heat_loss_scale": 1.0,
+  "immersion_active": false,
+  "immersion_evidence": [],
   "indoor_temperature": 21.0,
   "input_ages_minutes": {},
   "input_health": "unknown",
@@ -383,6 +390,11 @@
   "savings_percentage": null,
   "schedule": [],
   "slab_temperature": 22.0,
+  "snapshots": {
+   "alarm": false,
+   "count": 0,
+   "last_taken": null
+  },
   "solar_diagnostics": null,
   "solar_forecast": [],
   "solar_heat_gain": 0.0,
@@ -410,6 +422,8 @@
   "total_energy_kwh": 0.0,
   "two_zone_enabled": false,
   "upper_floor_temperature": 21.0,
+  "ventilation_active": false,
+  "ventilation_evidence": [],
   "weather_forecast_available": 48
  },
  "forecast_outdoor": [

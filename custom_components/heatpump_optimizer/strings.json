@@ -559,7 +559,9 @@
           "comfort_learning_enabled": "Learn my comfort preference from overrides",
           "system_identification_enabled": "Allow a one-off measurement experiment",
           "price_prior_enabled": "Estimate prices past the published horizon",
-          "outage_recovery_enabled": "Staggered recovery after a power cut"
+          "outage_recovery_enabled": "Staggered recovery after a power cut",
+          "open_window_relax_enabled": "Ease heating while a window is open",
+          "immersion_feedback_enabled": "Plan around immersion heater use"
         },
         "data_description": {
           "staleness_watchdog_enabled": "A dead battery leaves a perfectly normal-looking value in place forever. Left alone, the model learns from that flatline and the damage survives a restart. With this on, an old value is treated as missing and learning pauses instead.",
@@ -570,7 +572,9 @@
           "comfort_learning_enabled": "Every time you override the temperature, you are saying the plan went too far in one direction. This slowly adjusts the comfort setting from that. The learned value is shown on its own sensor and there is a button to reset it.",
           "system_identification_enabled": "Lets the optimizer run a small deliberate heating step on a mild, cheap night to measure your house directly, instead of waiting weeks to infer it. The change is kept too small to notice and it stops if the temperature drifts.",
           "price_prior_enabled": "Tomorrow's prices arrive around 13:00. Before then the rest of the horizon used to be a flat repeat of the last price, which hides every cheap hour ahead. This learns your typical daily price shape and uses it instead, and the plan marks which hours are estimated.",
-          "outage_recovery_enabled": "After an outage everything restarts at once — cold house, cold tank, the whole neighbourhood — which is exactly when a new monthly capacity peak gets set. With this on, a long gap in updates opens a two-hour recovery window where the capacity charge is taken seriously from the first kW and hot water queues 45 minutes behind space heating, unless the tank is genuinely low."
+          "outage_recovery_enabled": "After an outage everything restarts at once — cold house, cold tank, the whole neighbourhood — which is exactly when a new monthly capacity peak gets set. With this on, a long gap in updates opens a two-hour recovery window where the capacity charge is taken seriously from the first kW and hot water queues 45 minutes behind space heating, unless the tank is genuinely low.",
+          "open_window_relax_enabled": "The open-window detector always pauses learning — that part is free and always on. This additionally lowers the heating target by 1 °C while a window appears to be open, so the heat pump stops paying to heat the garden. Off by default because it moves real heat: a wrongly flagged window means a slightly cooler house.",
+          "immersion_feedback_enabled": "When the tank's electric immersion element keeps stepping in, the plan is not heating water early enough. With this on, repeated immersion use raises the hot-water planning margin so the heat pump gets there first, and the extra cost shows up as its own line in the savings ledger."
         }
       }
     },
@@ -647,6 +651,20 @@
         "rules": "Time-of-use rules",
         "entity": "Live sensor"
       }
+    }
+  },
+  "issues": {
+    "cop_degradation": {
+      "title": "Heat pump efficiency has dropped",
+      "description": "The heat pump has been delivering about {shortfall_percent} % less heat per kWh than it used to under the same conditions, which is costing roughly {sek_month} SEK per month at recent prices. The usual suspects are a clogged filter, low refrigerant, or a defrost problem — worth a look before the season gets colder. This notice clears itself if efficiency recovers."
+    },
+    "accuracy_drift": {
+      "title": "Learned model is drifting",
+      "description": "The optimizer's predictions have been consistently off for several days, which usually means something about the house or the system changed faster than the learners can follow. Check that sensors read sensibly. If the plan has become noticeably worse, the \"Restore learned snapshot\" service rolls the learned model back to the last known-good weekly snapshot."
+    },
+    "accuracy_drift_rolled_back": {
+      "title": "Learned model was restored from a snapshot",
+      "description": "The optimizer's predictions drifted out of band for several days while all inputs looked healthy, so the learned model was automatically rolled back to the most recent known-good weekly snapshot. Nothing is required from you; this notice is here so the change is visible. If the drift was real — new radiators, changed insulation — the learners will simply relearn from the restored point."
     }
   }
 }

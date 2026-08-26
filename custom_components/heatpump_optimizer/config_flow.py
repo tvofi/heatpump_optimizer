@@ -225,6 +225,10 @@ from .const import (
     DEFAULT_PEAK_GUARD_MARGIN_KW,
     CONF_OUTAGE_RECOVERY_ENABLED,
     DEFAULT_OUTAGE_RECOVERY_ENABLED,
+    CONF_OPEN_WINDOW_RELAX_ENABLED,
+    DEFAULT_OPEN_WINDOW_RELAX_ENABLED,
+    CONF_IMMERSION_FEEDBACK_ENABLED,
+    DEFAULT_IMMERSION_FEEDBACK_ENABLED,
     CONF_PV_ENABLED,
     CONF_PV_PEAK_KW,
     CONF_PV_EFFICIENCY,
@@ -2057,6 +2061,23 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
                         default=current.get(
                             CONF_OUTAGE_RECOVERY_ENABLED,
                             DEFAULT_OUTAGE_RECOVERY_ENABLED,
+                        ),
+                    ): bool,
+                    # T4a: only the plan-affecting halves are gated — the
+                    # detectors themselves ship on, because a freeze only
+                    # stops learning and never moves a plan.
+                    vol.Optional(
+                        CONF_OPEN_WINDOW_RELAX_ENABLED,
+                        default=current.get(
+                            CONF_OPEN_WINDOW_RELAX_ENABLED,
+                            DEFAULT_OPEN_WINDOW_RELAX_ENABLED,
+                        ),
+                    ): bool,
+                    vol.Optional(
+                        CONF_IMMERSION_FEEDBACK_ENABLED,
+                        default=current.get(
+                            CONF_IMMERSION_FEEDBACK_ENABLED,
+                            DEFAULT_IMMERSION_FEEDBACK_ENABLED,
                         ),
                     ): bool,
                 }
