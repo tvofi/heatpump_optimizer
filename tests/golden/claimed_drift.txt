@@ -3,8 +3,3 @@
 # stale claim (a listed scenario that did not move) DOES fail, so entries
 # cannot outlive the PR that needed them. Empty file = this branch claims
 # byte-identical behaviour everywhere.
-coord_minimal  # plan_age/plan_stale leaves added by v4.0.3 staleness tracking
-coord_dhw  # plan_age/plan_stale leaves added by v4.0.3 staleness tracking
-coord_two_zone  # plan_age/plan_stale leaves added by v4.0.3 staleness tracking
-coord_grid_fee  # plan_age/plan_stale leaves added by v4.0.3 staleness tracking
-coord_all_features  # plan_age/plan_stale leaves added by v4.0.3 staleness tracking
