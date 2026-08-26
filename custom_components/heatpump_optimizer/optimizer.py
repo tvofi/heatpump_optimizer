@@ -780,6 +780,9 @@ class HeatPumpOptimizer:
         # which step (if any) carries the legionella cycle.
         self._dhw_requirement: np.ndarray | None = None
         self._dhw_legionella_step: int | None = None
+        #: The solve's starting buffer temperature; floors the settlement
+        #: value cap so pre-stored heat cannot be drained for free.
+        self._initial_buffer_temp: float | None = None
 
     # ------------------------------------------------------------------
     # Shared cost terms
@@ -1514,6 +1517,12 @@ class HeatPumpOptimizer:
             )
 
         self._price_known = price_known
+        self._initial_buffer_temp = (
+            float(initial_state.buffer_tank_temperature)
+            if self.model.params.buffer_is_store
+            and initial_state.buffer_tank_temperature is not None
+            else None
+        )
         self._pv_surplus = pv_surplus
 
         # Risk-adjusted pricing on the unpublished horizon (#34). The prior
@@ -3836,7 +3845,24 @@ class HeatPumpOptimizer:
             # 70 °C charged every plan for failing to hold a temperature no
             # plan could reach, an asymmetry the room cap (the target, not
             # the comfort ceiling) never had.
-            caps["buffer"] = self._buffer_charge_ceiling(out_mean)
+            ceiling = self._buffer_charge_ceiling(out_mean)
+            # Heat ALREADY in the tank above the charging ceiling is real:
+            # it was paid for, and draining it displaces bought electricity
+            # at the derated COP. Capping the value at the ceiling alone let
+            # a plan drain a pre-charged tank (a mild evening's 60 °C before
+            # a cold snap) to the ceiling with zero settlement — re-creating
+            # the tail-dumping this term exists to prevent, in exactly the
+            # regime storage matters most (v4.0.5 review). The floor at the
+            # solve's initial temperature keeps the deficit direction
+            # honest too: no plan can charge past the ceiling, so the
+            # unavoidable decay from a hot start prices every candidate
+            # identically and only the drained difference separates them.
+            initial = self._initial_buffer_temp
+            if initial is not None:
+                ceiling = min(
+                    float(p.buffer_max_temp), max(ceiling, float(initial))
+                )
+            caps["buffer"] = ceiling
         else:
             # Without a valve the tank cannot be charged at all, and below the
             # store threshold (item 27) it holds too little to matter, so its
@@ -3880,6 +3906,11 @@ class HeatPumpOptimizer:
             u_house = p.upper_floor_heat_loss + p.lower_floor_heat_loss_learned
         else:
             u_house = p.heat_loss_coefficient
+        # The learned leakage scale rides along: the dynamics and the battery
+        # view both apply it, and a learned-leaky house that omitted it here
+        # got an optimistic ceiling — the one direction this bound must not
+        # err (v4.0.5 review).
+        u_house *= p.house_heat_loss_scale
         # What the valve keeps feeding the house while the tank charges: the
         # standing demand at the comfort target, the same steady-state frame
         # as the settlement caps themselves.

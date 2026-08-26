@@ -79,6 +79,7 @@ from .const import (
     DEFAULT_DHW_COOLING_RATE,
     DHW_COOLING_REFERENCE_DELTA,
     DHW_COOLING_REFERENCE_AMBIENT_TEMP,
+    DHW_MIXED_USE_TEMP,
     DHW_COOLING_RATE_MIN,
     DHW_COOLING_RATE_MAX,
     DEFAULT_DHW_SCHEDULE_ENABLED,
@@ -1477,21 +1478,28 @@ class ThermalModel:
         # energy referenced to a rise it does not hold, so the debit scales
         # with the rise it can actually deliver:
         #
-        #     q_eff = q_nominal · (min(T, setpoint) − inlet) / (setpoint − inlet)
+        #     q_eff = q_nominal · min(1, (T − inlet) / (T_use − inlet))
         #
-        # Unscaled, a 30 °C tank was charged the full (setpoint − inlet) per
-        # litre and the inlet floor below silently refunded the fabricated
-        # deficit — created energy, with no ledger. Demand-side quantities
-        # (planner ready-energy targets, the always-hot baseline) stay
-        # nominal on purpose: what the user wants delivered does not shrink
-        # because the tank is cold.
+        # with T_use the 40 °C mixed-water temperature: the tap draws MORE
+        # volume from a cooler tank to make the same mixed water, so the
+        # enthalpy removed stays exactly nominal all the way down to T_use,
+        # and only below it does the service itself degrade. Referencing the
+        # setpoint instead under-debited the 40..setpoint band — the very
+        # band cost optimization rides — by up to a third, and booked the
+        # deleted demand as savings (v4.0.5 review, blocker). Unscaled, a
+        # 30 °C tank was charged the full (setpoint − inlet) per litre and
+        # the inlet floor below silently refunded the fabricated deficit.
+        # Demand-side quantities (planner ready-energy targets, the
+        # always-hot baseline) stay nominal on purpose: what the user wants
+        # delivered does not shrink because the tank is cold.
         q_draw = (
             self.dhw_draw_rate(hour_of_day) if draw_power is None else draw_power
         )
-        span = max(p.dhw_setpoint - p.dhw_inlet_reference, 1e-6)
-        q_draw = q_draw * max(
-            0.0, min(dhw_temp, p.dhw_setpoint) - p.dhw_inlet_reference
-        ) / span
+        span = max(DHW_MIXED_USE_TEMP - p.dhw_inlet_reference, 1e-6)
+        q_draw = q_draw * min(
+            1.0,
+            max(0.0, dhw_temp - p.dhw_inlet_reference) / span,
+        )
         self._step_dhw_draw_kw = q_draw
 
         # Standby heat loss to ambient

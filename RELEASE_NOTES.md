@@ -93,6 +93,34 @@ two-zone scenario's terminal/settlement figures, and the valve-storage
 family's plans. Single-zone space-only scenarios are byte-identical, and
 `tests/features.py` pins the identities that guarantee it.
 
+### After the adversarial review
+
+Three verifiers attacked the physics commit before release; what survived
+them is stronger than what went in:
+
+- **The draw debit now references the 40 °C mixed-use temperature, not
+  the setpoint.** Mixing at the tap keeps the enthalpy per draw constant
+  for any tank at or above what people actually use; the setpoint ramp
+  under-debited the 40..setpoint band — the very band cost optimization
+  rides — by up to a third and booked the deleted demand as savings.
+- **Pre-stored buffer heat cannot be drained for free**: the settlement
+  value floors at the solve's starting tank temperature, so a tank
+  charged before a cold snap settles what a plan drains from it.
+- **The COP tracking gate no longer deadlocks**: outliers are judged
+  against a walking ratio average that persistent shifts can move, so a
+  genuinely degraded pump teaches the model — and reaches the
+  degradation watchdog — instead of being filtered forever.
+- **The meter split is gated the same way**: an interval where the pump
+  visibly is not running the plan yields no heat-loss sample, instead of
+  booking the whole gap onto the house.
+- **System identification survives real sensor noise**: the intercept is
+  anchored to the configured gains with a weight calibrated by the
+  night's own residual scatter — clean data recovers the truth exactly,
+  a noisy night leans on the prior, and a hopeless one abstains
+  (measured: the unregularized fit adopted a +34 % biased loss
+  coefficient or nothing at all).
+
+
 ## v4.0.5
 
 ### The zoom that quietly capped your editing

@@ -65,6 +65,14 @@ class SysIdConfig:
     settle_hours: float = 1.0
     step_hours: float = 2.0
     relax_hours: float = 2.0
+    #: Prior for the intercept, from the configuration: the comfort-bounded
+    #: excursion (max_excursion_c) keeps the ΔT column nearly constant, so
+    #: the intercept is weakly identified from data alone and pure least
+    #: squares either rejects noisy nights wholesale or adopts a
+    #: selection-biased UA. The fit ridges the intercept toward
+    #: gains_prior_kw / thermal_mass_prior instead of toward nothing.
+    gains_prior_kw: float = 0.3
+    thermal_mass_prior: float = 10.0
     #: Do not repeat on a house that has already converged.
     min_days_between_runs: float = 30.0
     converged_samples: int = 200
@@ -358,14 +366,49 @@ class SystemIdentification:
         a = np.asarray(rows, dtype=float)
         b = np.asarray(targets, dtype=float)
         gains_kw: float | None = None
+        # The comfort constraint bounds the room's excursion, which keeps the
+        # ΔT column nearly constant — near-collinear with the intercept — so
+        # with realistic sensor noise the unregularized three-column fit is
+        # ill-conditioned: it either fails the outcome guards on almost every
+        # night (the feature silently dead) or the survivors carry a
+        # selection-biased UA (v4.0.5 review, measured ~+34%). A ridge pulls
+        # the intercept toward the CONFIGURED gains — a genuine prior, not
+        # zero — with weight equal to a quarter of the samples, so a night
+        # with real information still moves it and a noisy one cannot run.
+        prior_icpt = self.config.gains_prior_kw / max(
+            self.config.thermal_mass_prior, 0.1
+        )
+        # Bayesian weighting, calibrated by the data's own residual noise: a
+        # first unregularized pass measures the scatter s, and the prior
+        # then enters as ONE pseudo-observation whose uncertainty is a
+        # generous ±0.5 kW on the gains. Clean data (s → 0) out-weighs the
+        # prior and recovers the truth exactly; a noisy night leans on the
+        # prior instead of handing the collinear intercept the noise.
+        prior_sd = 0.5 / max(self.config.thermal_mass_prior, 0.1)
         try:
-            solution, residuals, rank, _ = np.linalg.lstsq(a, b, rcond=None)
+            pass1, _res1, rank1, _ = np.linalg.lstsq(a, b, rcond=None)
+            resid = b - a @ pass1
+            dof = max(len(rows) - 3, 1)
+            s_noise = float(np.sqrt(np.sum(resid**2) / dof))
+        except np.linalg.LinAlgError:
+            return SysIdResult(completed=False, reason="fit failed")
+        data_w = 1.0 / max(s_noise, 1e-9)
+        prior_w = 1.0 / prior_sd
+        a_fit = np.vstack(
+            [a * data_w, prior_w * np.array([[0.0, 0.0, 1.0]])]
+        )
+        b_fit = np.concatenate([b * data_w, [prior_w * prior_icpt]])
+        try:
+            solution, residuals, rank, _ = np.linalg.lstsq(
+                a_fit, b_fit, rcond=None
+            )
             if rank < 3:
                 # The constant cannot be separated (e.g. ΔT barely moved, so
                 # the delta column is itself nearly constant). Fall back to
                 # the two-column fit rather than discarding the experiment.
                 a = a[:, :2]
                 solution, residuals, rank, _ = np.linalg.lstsq(a, b, rcond=None)
+                a_fit, b_fit = a, b
                 if rank < 2:
                     # Both regressors moved together, so they cannot be
                     # separated. This is exactly the ambiguity the experiment
@@ -391,7 +434,10 @@ class SystemIdentification:
             # drifting contaminant (sun through a window, a door), and a fit
             # whose intercept is absorbing an unmodelled input has no claim
             # on the other two coefficients either.
-            if not (-0.5 <= gains_kw <= 3.0):
+            if not (-0.5 <= gains_kw <= 2.0):
+                # Rejecting, not clipping: a triple whose intercept was
+                # clipped no longer satisfies the regression it came from,
+                # so UA and C would carry the unclipped intercept's bias.
                 return SysIdResult(
                     completed=False,
                     reason="fitted gains outside plausible bounds",
@@ -405,6 +451,12 @@ class SystemIdentification:
         ss_tot = float(np.sum((b - np.mean(b)) ** 2))
         r2 = 1.0 - ss_res / ss_tot if ss_tot > 1e-9 else 0.0
         confidence = float(np.clip(r2, 0.0, 1.0)) * min(1.0, len(rows) / 20.0)
+        # The intercept's identifiability scales with how far ΔT actually
+        # moved; R² cannot see that (a flat fit explains flat data well), so
+        # the blend weight is tempered by the achieved excursion directly.
+        deltas = -a[:, 0]
+        excursion = float(np.max(deltas) - np.min(deltas)) if len(deltas) else 0.0
+        confidence *= float(np.clip(excursion / 2.0, 0.3, 1.0))
 
         if not (0.1 <= tau <= 200.0) or not (0.01 <= ua <= 5.0):
             return SysIdResult(

@@ -1807,6 +1807,7 @@ class _CopGate:
         )
         self._cop_scale = 1.0
         self._cop_samples = 0
+        self._cop_ratio_ewma = None
         self._last_measured_cop = None
         self._immersion_active = False
 
@@ -10352,7 +10353,12 @@ R.check(
 )
 R.check(
     "and the tank never pins to the inlet pouring imaginary heat",
-    min(_ec_T) > _ec_p.dhw_inlet_reference + 0.5,
+    # Strictly above, not by a wide margin: the mixed-use draw reference
+    # (40 °C) keeps the debit at full nominal further down than the old
+    # setpoint ramp did, so a cold tank legitimately runs closer to the
+    # inlet — what must never happen is touching it (the floor would then
+    # be fabricating heat, and the ledger check above asserts it is not).
+    min(_ec_T) > _ec_p.dhw_inlet_reference + 0.05,
     f"minimum {min(_ec_T):.1f} °C against inlet {_ec_p.dhw_inlet_reference}",
 )
 # At or above the setpoint the mixed-at-tap convention makes the constant
@@ -10517,11 +10523,18 @@ R.check(
 )
 _ip = _Coord(_FakeHass(dict(_L5_STATES)), _FakeEntry(data=dict(_L5_CFG)))
 _ip._current_action = {"power": 3.0, "dhw_power": 0.5}
-_ip._measured_power = 2.0
+_ip._measured_power = 3.2
 R.check(
     "with one, the meter wins, net of the hot-water allocation the meter "
     "cannot tell apart",
-    _ip._interval_space_power() == 1.5,
+    abs(_ip._interval_space_power() - 2.7) < 1e-9,
+)
+_ip._measured_power = 2.0
+R.check(
+    "a meter far off the commanded total is a tracking gap: the split "
+    "would land the whole error on the space figure, so no sample",
+    _ip._interval_space_power() is None,
+    f"got {_ip._interval_space_power()}",
 )
 _ip._measured_power = None
 R.check(

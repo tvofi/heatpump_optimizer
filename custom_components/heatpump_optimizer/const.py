@@ -179,6 +179,11 @@ WOOD_TANK_MIN_MARGIN: Final = 2.0  # °C
 # from planning against steam.
 WOOD_TANK_MAX_TEMP: Final = 95.0  # °C
 
+# The temperature people actually use hot water at, after mixing at the tap.
+# Shared by the MixedHotWater sensor and the tank's draw debit: enthalpy per
+# nominal draw is constant for any tank at or above this, and degrades below.
+DHW_MIXED_USE_TEMP: Final = 40.0
+
 # --- DHW refill coil in the wood tank (v3.15.1, issue #40) ------------------
 #
 # The owner's DHW tank refills through a coil immersed in the wood buffer
