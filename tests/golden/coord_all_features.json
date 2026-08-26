@@ -244,6 +244,27 @@
   "input_ages_minutes": {},
   "input_health": "unknown",
   "input_problems": [],
+  "insight": {
+   "compressor_starts": {
+    "lifetime": 0,
+    "month": 0,
+    "wear_price_per_start": 0.0
+   },
+   "last_diagnosis": null,
+   "monthly_report": null,
+   "narrative": {
+    "items": [],
+    "language": "en",
+    "lines": []
+   },
+   "price_tiles": {},
+   "scores": {
+    "envelope": 58.3,
+    "machine": null,
+    "operation": null,
+    "overall": 58.3
+   }
+  },
   "internal_gains_profile": null,
   "learner_freeze_reason": null,
   "learners_frozen": false,

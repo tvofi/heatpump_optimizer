@@ -101,6 +101,10 @@ async def async_setup_entry(
         DHWHeavyDaySensor(coordinator, entry),
         # Dumb-valve setting recommendation (item 29)
         ValveTargetRecommendationSensor(coordinator, entry),
+        # Insight (v4.0.0 T6)
+        PlanNarrativeSensor(coordinator, entry),
+        OptimizationScoreSensor(coordinator, entry),
+        CompressorStartsSensor(coordinator, entry),
     ]
 
     async_add_entities(entities)
@@ -1267,7 +1271,15 @@ class PredictionAccuracySensor(HeatPumpOptimizerSensorBase):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        return dict((self.coordinator.data or {}).get("accuracy", {}) or {})
+        attrs = dict((self.coordinator.data or {}).get("accuracy", {}) or {})
+        # T6 #52: the last interval's residual, attributed input by input —
+        # accuracy's "how wrong" gets its "why" on the same sensor.
+        report = ((self.coordinator.data or {}).get("insight") or {}).get(
+            "last_diagnosis"
+        )
+        if report:
+            attrs["last_diagnosis"] = report
+        return attrs
 
 
 # ---------------------------------------------------------------------------
@@ -1511,9 +1523,17 @@ class ContractComparisonSensor(HeatPumpOptimizerSensorBase):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        return dict(
+        attrs = dict(
             (self.coordinator.data or {}).get("contract_comparison", {}) or {}
         )
+        # T6 #40: the latest frozen month's itemised receipt rides on the
+        # month-money sensor — the receipt is that comparison, settled.
+        report = ((self.coordinator.data or {}).get("insight") or {}).get(
+            "monthly_report"
+        )
+        if report:
+            attrs["monthly_report"] = report
+        return attrs
 
 
 class PowerHeadroomSensor(HeatPumpOptimizerSensorBase):
@@ -1663,3 +1683,133 @@ class DHWHeavyDaySensor(HeatPumpOptimizerSensorBase):
         return dict(
             (self.coordinator.data or {}).get("dhw_draw_stats", {}) or {}
         )
+
+
+# ---------------------------------------------------------------------------
+# Insight (v4.0.0 T6): #29 narrative, #65 scores, #55 compressor starts
+# ---------------------------------------------------------------------------
+
+
+class PlanNarrativeSensor(HeatPumpOptimizerSensorBase):
+    """The plan told in sentences, grouped by reason (#29).
+
+    State: the reason code carrying the most money in the current plan —
+    "what is today mostly about". The full narrative rides in attributes,
+    both as structured items (for the card) and as rendered lines in the
+    HA language, so an automation can speak the plan aloud verbatim.
+    """
+
+    _attr_icon = "mdi:text-long"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator, entry):
+        super().__init__(coordinator, entry, "plan_narrative", "Plan Narrative")
+
+    @property
+    def native_value(self) -> str | None:
+        items = (
+            ((self.coordinator.data or {}).get("insight") or {})
+            .get("narrative", {})
+            .get("items")
+        ) or []
+        for item in items:
+            if item.get("reason") != "idle":
+                return item.get("reason")
+        return "idle" if items else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return dict(
+            ((self.coordinator.data or {}).get("insight") or {}).get(
+                "narrative", {}
+            )
+            or {}
+        )
+
+
+class OptimizationScoreSensor(HeatPumpOptimizerSensorBase):
+    """Envelope, machine and operation graded 0–100 (#65).
+
+    State: the mean of whatever scores have evidence. Each sub-score
+    answers a different question — how good is the house, how healthy is
+    the machine, how well is it driven — so a low overall points at its
+    own cause in the attributes. The price tiles (#39) ride here too:
+    they are the operation score's actionable counterpart, "what would a
+    different choice cost".
+    """
+
+    _attr_icon = "mdi:speedometer"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator, entry):
+        super().__init__(
+            coordinator, entry, "optimization_score", "Optimization Score"
+        )
+
+    @property
+    def available(self) -> bool:
+        scores = (
+            ((self.coordinator.data or {}).get("insight") or {}).get("scores")
+        ) or {}
+        return scores.get("overall") is not None
+
+    @property
+    def native_value(self) -> float | None:
+        scores = (
+            ((self.coordinator.data or {}).get("insight") or {}).get("scores")
+        ) or {}
+        value = scores.get("overall")
+        return value if isinstance(value, (int, float)) else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        insight = (self.coordinator.data or {}).get("insight") or {}
+        return {
+            **(insight.get("scores") or {}),
+            "price_tiles": insight.get("price_tiles") or {},
+        }
+
+
+class CompressorStartsSensor(HeatPumpOptimizerSensorBase):
+    """Realised compressor starts, counted from the meter (#55).
+
+    State: lifetime starts. TOTAL_INCREASING, so long-term statistics and
+    "starts per day" template sensors come for free. The month's count and
+    the wear price each start books ride in attributes — with the default
+    replacement cost of 0 the money stays at zero and the counter is pure
+    observation.
+    """
+
+    _attr_icon = "mdi:counter"
+    _attr_state_class = SensorStateClass.TOTAL_INCREASING
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator, entry):
+        super().__init__(
+            coordinator, entry, "compressor_starts", "Compressor Starts"
+        )
+
+    @property
+    def available(self) -> bool:
+        data = (self.coordinator.data or {}).get("measured_power_available")
+        return bool(data)
+
+    @property
+    def native_value(self) -> int | None:
+        starts = (
+            ((self.coordinator.data or {}).get("insight") or {}).get(
+                "compressor_starts"
+            )
+        ) or {}
+        value = starts.get("lifetime")
+        return value if isinstance(value, int) else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        starts = (
+            ((self.coordinator.data or {}).get("insight") or {}).get(
+                "compressor_starts"
+            )
+        ) or {}
+        return dict(starts)

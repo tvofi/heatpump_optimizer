@@ -4243,6 +4243,8 @@ class HeatPumpOptimizer:
                 "price": 0.0,
                 "heat_pump_on": False,
                 "displace_value": 0.0,
+                "space_reason": None,
+                "dhw_reason": None,
             }
 
         # Find the current time step
@@ -4295,6 +4297,21 @@ class HeatPumpOptimizer:
             "power_normalized": round(p_norm, 2),
             "heat_pump_on": bool(heat_pump_on),
             "displace_value": float(displace_value),
+            # T6: the reason codes for THIS step ride with the action, so
+            # the settlement can tag every booked SEK with why the plan
+            # wanted that draw. This method already owns the one search for
+            # the step covering now; re-deriving the index at settle time
+            # would be a second chance to disagree about which step ran.
+            "space_reason": (
+                result.space_reasons[i]
+                if result.space_reasons and i < len(result.space_reasons)
+                else None
+            ),
+            "dhw_reason": (
+                result.dhw_reasons[i]
+                if result.dhw_reasons and i < len(result.dhw_reasons)
+                else None
+            ),
         }
 
         # The valve target for *this* step, when a hold schedule is in force.

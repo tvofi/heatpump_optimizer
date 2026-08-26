@@ -374,7 +374,11 @@
           "optimization_interval": "Recalculate every",
           "compressor_cycling_cost": "Cost of one compressor start",
           "price_risk_lambda": "Caution with guessed prices",
-          "confidence_margins_enabled": "Hold a safety margin where the model is unsure"
+          "confidence_margins_enabled": "Hold a safety margin where the model is unsure",
+          "compressor_replacement_cost": "Compressor replacement cost (SEK)",
+          "compressor_rated_starts": "Compressor rated starts",
+          "wear_autotune_enabled": "Let realised wear tune the cycling cost",
+          "price_tiles_enabled": "Refresh price tiles after each solve"
         },
         "data_description": {
           "price_weight": "Higher means the optimizer works harder to move heating into cheap hours, at the cost of letting the temperature swing more.",
@@ -382,7 +386,11 @@
           "optimization_interval": "How often the plan is recalculated against fresh prices and weather. More often reacts quicker but does more work.",
           "compressor_cycling_cost": "Discourages plans that switch on and off repeatedly. Leave at 0 unless you have reason to think your unit is cycling too much; the planned start count is published on the plan sensors so you can look before deciding.",
           "price_risk_lambda": "Beyond the published horizon prices are estimated from your learned daily shape. This adds a premium to those guesses proportional to how wrong they have tended to be, so the plan stops treating a guessed cheap night as bankable. 0 trusts the guesses at face value, as before.",
-          "confidence_margins_enabled": "A plan that promises 19.0 °C twelve hours ahead rests on a twelve-hour prediction, and the optimizer knows from its own history how wrong those get. With this on, the comfort floor rises by exactly that expected error — capped at 0.8 °C and shrinking to nothing as accuracy improves — so deep price-riding coasts are taken only where the model has earned the trust."
+          "confidence_margins_enabled": "A plan that promises 19.0 °C twelve hours ahead rests on a twelve-hour prediction, and the optimizer knows from its own history how wrong those get. With this on, the comfort floor rises by exactly that expected error — capped at 0.8 °C and shrinking to nothing as accuracy improves — so deep price-riding coasts are taken only where the model has earned the trust.",
+          "compressor_replacement_cost": "What a compressor swap costs, including labour. Divided by the rated starts below it prices every realised compressor start; leave at 0 to keep the start counter pure observation with no money attached.",
+          "compressor_rated_starts": "How many starts the manufacturer rates the compressor for. The replacement cost above is spread over this number.",
+          "wear_autotune_enabled": "When on, the wear price per start (replacement cost divided by rated starts) becomes a floor under the compressor cycling cost above, so plans stop understating a cost you have made explicit. This is the only insight feature that changes plans.",
+          "price_tiles_enabled": "After each scheduled optimization, price one what-if tile — target one degree lower, one degree higher, and power capped at 75 %, in rotation. Off by default because each tile is a full extra solve of real CPU."
         }
       },
       "heat_curve": {

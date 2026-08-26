@@ -38,6 +38,7 @@ async def async_setup_entry(
             ForceOptimizationButton(coordinator, entry),
             SystemIdentificationButton(coordinator, entry),
             ResetComfortWeightButton(coordinator, entry),
+            DiagnoseIntervalButton(coordinator, entry),
         ]
     )
 
@@ -125,3 +126,27 @@ class ResetComfortWeightButton(_OptimizerButtonBase):
 
     async def async_press(self) -> None:
         await self.coordinator.async_reset_comfort_weight()
+
+
+class DiagnoseIntervalButton(_OptimizerButtonBase):
+    """Attribute the last interval's temperature residual (T6 #52).
+
+    One press, one attribution: the coordinator re-runs the interval that
+    just settled, swapping realised inputs into the plan's assumptions one
+    at a time, and publishes what each swap explains on the Prediction
+    Accuracy sensor. A button rather than an automatic per-interval run,
+    because the answer is for a person mid-investigation — computed
+    unasked it would be noise, and noise about the model's errors is the
+    fastest way to teach people to ignore them.
+    """
+
+    _attr_icon = "mdi:stethoscope"
+    _attr_entity_category = None
+
+    def __init__(self, coordinator, entry) -> None:
+        super().__init__(
+            coordinator, entry, "diagnose_interval", "Diagnose Last Interval"
+        )
+
+    async def async_press(self) -> None:
+        await self.coordinator.async_diagnose_interval()

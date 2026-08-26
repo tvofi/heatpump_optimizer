@@ -129,6 +129,36 @@ DATA = {
     "solar_aperture": {"scale": 1.15, "samples": 40},
     "internal_gains_profile": None,
     "heat_curve": {"bias_k": -0.4, "comfortable_days": 1, "resets": 0},
+    "insight": {
+        "narrative": {
+            "items": [
+                {"reason": "cheap_price", "kwh": 6.2, "sek": 8.4, "hours": 3.0},
+                {"reason": "idle", "kwh": 0.0, "sek": 0.0, "hours": 21.0},
+            ],
+            "lines": ["6.2 kWh in the cheapest hours for 8.40 kr"],
+            "language": "en",
+        },
+        "scores": {
+            "envelope": 75.0,
+            "machine": 100.0,
+            "operation": None,
+            "overall": 87.5,
+        },
+        "compressor_starts": {
+            "lifetime": 412,
+            "month": 31,
+            "wear_price_per_start": 0.4,
+        },
+        "monthly_report": {
+            "month": "2026-01",
+            "reasons_reconcile": True,
+            "total_kwh": 812.4,
+        },
+        "price_tiles": {
+            "target_minus_1": {"monthly_cost_delta": -84.0}
+        },
+        "last_diagnosis": {"residual": -0.3, "unexplained": -0.1},
+    },
     "space_energy_kwh": 120.5,
     "dhw_energy_kwh": 40.25,
     "total_energy_kwh": 160.75,
@@ -216,7 +246,7 @@ readme = Path("README.md").read_text()
 for label, count, pattern in (
     ("sensors", len(sensors), r"### Sensors \((\d+) total\)"),
     ("binary sensors", 4, r"### Binary Sensors \((\d+) total\)"),
-    ("buttons", 3, r"### Buttons \((\d+) total\)"),
+    ("buttons", 4, r"### Buttons \((\d+) total\)"),
 ):
     import re as _re
     match = _re.search(pattern, readme)
@@ -433,6 +463,10 @@ for cls in (
     sensor.ThermalBatterySensor,
     sensor.ThermalBatteryEnergySensor,
     sensor.ComfortWeightSensor,
+    sensor.PlanNarrativeSensor,
+    sensor.OptimizationScoreSensor,
+    sensor.CompressorStartsSensor,
+    sensor.ContractComparisonSensor,
 ):
     try:
         entity = cls(empty, ENTRY)
@@ -444,6 +478,71 @@ R.check(
     "no sensor crashes before the first update",
     not crashed,
     "; ".join(crashed),
+)
+
+
+# --- T6 insight sensors ----------------------------------------------------
+narr = sensor.PlanNarrativeSensor(FakeCoordinator(DATA), ENTRY)
+R.check(
+    "the narrative sensor states the biggest non-idle reason",
+    narr.native_value == "cheap_price",
+    "idle never headlines a day that heated at all",
+)
+R.check(
+    "the narrative's items and rendered lines ride in attributes",
+    narr.extra_state_attributes.get("lines")
+    and narr.extra_state_attributes.get("language") == "en",
+)
+score = sensor.OptimizationScoreSensor(FakeCoordinator(DATA), ENTRY)
+R.check(
+    "the score sensor states the overall grade with the parts in attributes",
+    score.native_value == 87.5
+    and score.extra_state_attributes.get("machine") == 100.0
+    and "price_tiles" in score.extra_state_attributes,
+)
+no_scores = FakeCoordinator(
+    {
+        **DATA,
+        "insight": {
+            **DATA["insight"],
+            "scores": {
+                "envelope": None,
+                "machine": None,
+                "operation": None,
+                "overall": None,
+            },
+        },
+    }
+)
+R.check(
+    "the score sensor is unavailable before any grade has evidence",
+    not sensor.OptimizationScoreSensor(no_scores, ENTRY).available,
+)
+starts = sensor.CompressorStartsSensor(FakeCoordinator(DATA), ENTRY)
+R.check(
+    "the starts sensor counts lifetime with the month and wear price along",
+    starts.native_value == 412
+    and starts.extra_state_attributes.get("month") == 31,
+)
+R.check(
+    "no power meter means no start counter, not a frozen zero",
+    not sensor.CompressorStartsSensor(
+        FakeCoordinator({**DATA, "measured_power_available": False}), ENTRY
+    ).available,
+)
+R.check(
+    "the monthly receipt rides the contract comparison sensor",
+    sensor.ContractComparisonSensor(FakeCoordinator(DATA), ENTRY)
+    .extra_state_attributes.get("monthly_report", {})
+    .get("month")
+    == "2026-01",
+)
+R.check(
+    "the last diagnosis rides the prediction accuracy sensor",
+    sensor.PredictionAccuracySensor(FakeCoordinator(DATA), ENTRY)
+    .extra_state_attributes.get("last_diagnosis", {})
+    .get("residual")
+    == -0.3,
 )
 
 
@@ -530,11 +629,12 @@ R.section("Buttons")
 
 buttons = collect(button)
 btn_by_name = {b._attr_name: b for b in buttons}
-R.check("three buttons are added", len(buttons) == 3, str(len(buttons)))
+R.check("four buttons are added", len(buttons) == 4, str(len(buttons)))
 for name in (
     "Optimize Now",
     "Run System Identification",
     "Reset Learned Comfort Weight",
+    "Diagnose Last Interval",
 ):
     R.check(f"the {name} button exists", name in btn_by_name)
 
@@ -1147,6 +1247,16 @@ R.check(
 R.check(
     "restore_learned_snapshot is registered under the documented name",
     const.SERVICE_RESTORE_SNAPSHOT == "restore_learned_snapshot",
+)
+
+# T6 #52: the diagnosis has a service beside the button, for automations.
+R.check(
+    "diagnose_interval is documented",
+    "diagnose_interval" in services,
+)
+R.check(
+    "diagnose_interval is registered under the documented name",
+    const.SERVICE_DIAGNOSE_INTERVAL == "diagnose_interval",
 )
 
 

@@ -940,6 +940,84 @@ must not raise the floor; 60 % at −15 °C must); `confidence_margins` golden; 
 
 ## T6 — Insight (PR 7) · Opus · #29 #52 #55 #65 #39 #40
 
+*Outcome notes:* built as scoped, with the settlement infrastructure exactly
+as planned: `get_current_action` now carries the current step's
+`space_reason`/`dhw_reason` (one index search owns "which step is running"),
+the pending dict captures them at prediction time, and `_accumulate_energy`
+books `reason:<code>` ledger lines that PARTITION the metered spot line —
+the immersion carve-out comes out of the reason lines too, an untagged
+interval (manual modes, restarts, sys-ID overrides) books as
+`reason:untagged`, and the receipt publishes `reasons_reconcile` instead of
+asserting it. **#40** freezes receipts at rollover, derived from the ledger
+itself (any ledger month older than the current one without a receipt gets
+one — self-healing across restarts spanning month ends) with the closed
+month's contract comparison via a `month` parameter on the T1 settlement.
+**#55**: `wear.py` StartCounter — two-sample hysteresis on measured power at
+the optimizer's own on/off threshold (half `min_electrical_power`), the
+immersion flag freezes the machine AND resets the streak so half-edges
+cannot combine across an element event; each confirmed start books
+`replacement_cost/rated_starts` on a kWh-0 `wear` line; the autotune
+(`_effective_cycling_cost`, gated) floors the cycling penalty with max(),
+never replace. **#65**: envelope = the house time constant (mass over
+learned-scaled loss, 20 h→0, 100 h→100), machine = 1 − the COP watch's
+Cusum fill, operation = a daily replay of settled kWh against the day's
+time-mean spot (20 % under = 100), EWMA'd; None means no evidence, never
+zero. **#29**: `narrative.py` groups both channels' steps by reason
+(arithmetic over the published schedule, untagged included) and renders
+`str.format` templates from language-keyed tables — as data in the module,
+NOT in the translation triple, because hassfest's strings schema has no room
+for free-form sections; the en/sv parity the triple would have given is
+enforced by tests (same keys, same placeholders). **#52**: `diagnosis.py`
+re-runs the settled interval swapping realised inputs one at a time
+(planned set captured in the pending dict at prediction time, realised at
+settle); `predicted + contributions + unexplained == actual` by
+construction; service + fourth button, result on the Prediction Accuracy
+sensor. **#39** (gated): ONE tile per scheduled solve, rotating through the
+fixed set (target ±1 °C, 75 % power cap), through `async_simulate` itself —
+a rate-limited answer skips the cycle so the card's budget always wins.
+Publication: one additive `insight` block in the data dict; three new
+sensors (Plan Narrative, Optimization Score, Compressor Starts — README
+52→55), receipts on Contract Comparison, diagnosis on Prediction Accuracy,
+buttons 3→4. Starts, receipts and the operation score persist as riders on
+the ledger store. Goldens: coord_*×5 + config_flow re-recorded, additive
+only (+139/−0); the five protected fixtures untouched.
+
+*T6 review round (0 critical, 4 major, 6 minor, 4 nits — all acted on):*
+the majors: **a corrupt persisted day book bricked the update loop** — bare
+`float()` on a stored "junk" raised inside every settlement for the rest of
+the day; the score_day rider now gets the same load-time corruption barrier
+as its siblings, so garbage costs one operation sample, never the loop.
+**The diagnosis compared apples to fruit salad** — planned power was the
+commanded space+DHW total and realised the whole meter, while
+`simulate_step`'s power heats the house; the plan side now uses the space
+channel and the measured draw is apportioned by the plan's own split (the
+settlement's convention), and the module documents that in single-zone this
+step's power reaches the room only via next step's slab, so its swap
+honestly reads ~0 there. **The price tile spent the card's rate budget and
+poisoned its cache** — a drag within 3 s of a solve got the tile's payload
+back as its own answer; the tile now borrows the simulate harness the way
+the fuse advisor does, snapshot-restoring the stamp and cache. **Away
+setbacks flipped the target tiles' sign** — "one degree lower" was derived
+from the configured target and became a raise against the setback plan;
+tiles now perturb the live target. Minors: an erroring tile spec advances
+the rotation instead of stalling the set; turning the flag off clears the
+published tiles; pre-T6 months freeze with `reasons_reconcile: None` (no
+partition ever existed — False would make an upgrade look like the bug the
+flag exists to catch) and the reconcile compares raw ledger values so
+2-decimal rounding across a full reason set cannot cry wolf; the start
+counter's streak resets across meter outages (two spikes separated by an
+outage are not two consecutive samples); the day book keeps SIGNED SEK
+(a negative-price hour lowers the paid mean), samples the flat-consumer
+baseline only from hours whose price was known, and time-weights it; the
+diagnosis runs on a scratch ThermalModel, never the live one a concurrent
+solve may be walking. Nits: "25 % power cap" copy corrected to "power
+capped at 75 %" in all four places; the untagged-settlement check got its
+own T6 fixture instead of borrowing T4a's; the frozen-receipt test now
+books a late line into the closed month and proves it cannot rewrite
+history. Checks 793 → 805; stress's wall-clock failure proven environmental
+again (interleaved A/B: branch ≡ main within noise, 9–16 s alone vs the
+30 s budget — the run overlapped the review agent's golden replay).
+
 **Infrastructure:** reason-tagged settlement — the `pending` dict carries the
 interval's plan-slot reason codes so every settled SEK is attributable; the T1
 ledger gains per-reason lines; a month-rollover hook fires #40.

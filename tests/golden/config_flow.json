@@ -1435,6 +1435,28 @@
    "required": "Optional",
    "selector": "NumberSelector"
   },
+  "compressor_rated_starts": {
+   "config": {
+    "max": "1000000",
+    "min": "1000",
+    "mode": "'box'",
+    "step": "1000"
+   },
+   "default": "100000",
+   "required": "Optional",
+   "selector": "NumberSelector"
+  },
+  "compressor_replacement_cost": {
+   "config": {
+    "max": "100000",
+    "min": "0",
+    "mode": "'box'",
+    "step": "100"
+   },
+   "default": "0.0",
+   "required": "Optional",
+   "selector": "NumberSelector"
+  },
   "confidence_margins_enabled": {
    "config": null,
    "default": "False",
@@ -1464,6 +1486,12 @@
    "required": "Optional",
    "selector": "NumberSelector"
   },
+  "price_tiles_enabled": {
+   "config": null,
+   "default": "False",
+   "required": "Optional",
+   "selector": "type"
+  },
   "price_weight": {
    "config": {
     "max": "10",
@@ -1474,6 +1502,12 @@
    "default": "1.0",
    "required": "Required",
    "selector": "NumberSelector"
+  },
+  "wear_autotune_enabled": {
+   "config": null,
+   "default": "False",
+   "required": "Optional",
+   "selector": "type"
   }
  }
 }
