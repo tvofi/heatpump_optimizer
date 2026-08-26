@@ -1,13 +1,24 @@
 name: Release
 
-# Pushing a version tag (v4.0.0, v4.1.0, ...) publishes a GitHub Release
-# whose body is that version's own section of RELEASE_NOTES.md — the notes
-# are written once, in the repo, and the release page quotes them verbatim.
+# Two ways in, one result: a GitHub Release whose body is the version's
+# own section of RELEASE_NOTES.md — the notes are written once, in the
+# repo, and the release page quotes them verbatim.
+#
+# * Push a version tag (v4.0.0, v4.1.0, ...) and it releases that tag.
+# * Run the workflow by hand with a tag name and it CREATES the tag at
+#   the commit it runs on, then releases it — for callers whose push
+#   credentials are scoped to branches only.
 
 on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Version tag to create and release (e.g. v4.0.0)"
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -18,21 +29,34 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Extract this tag's section from RELEASE_NOTES.md
+      - name: Resolve the tag
         run: |
-          awk -v tag="${GITHUB_REF_NAME}" '
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "TAG=${{ inputs.tag }}" >> "$GITHUB_ENV"
+          else
+            echo "TAG=${GITHUB_REF_NAME}" >> "$GITHUB_ENV"
+          fi
+
+      - name: Extract the tag's section from RELEASE_NOTES.md
+        run: |
+          awk -v tag="${TAG}" '
             $0 == "## " tag {hit=1; next}
             hit && /^## v/ {exit}
             hit {print}
           ' RELEASE_NOTES.md > /tmp/notes.md
           if ! [ -s /tmp/notes.md ]; then
-            echo "See RELEASE_NOTES.md for ${GITHUB_REF_NAME}." > /tmp/notes.md
+            echo "See RELEASE_NOTES.md for ${TAG}." > /tmp/notes.md
           fi
 
       - name: Create the GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "${GITHUB_REF_NAME}" \
-            --title "${GITHUB_REF_NAME}" \
+          # On dispatch the tag does not exist yet; --target pins it to
+          # the commit this run checked out, and gh creates tag+release
+          # in one go. On a tag push the tag exists and --target is
+          # ignored by GitHub for an existing tag.
+          gh release create "${TAG}" \
+            --target "${GITHUB_SHA}" \
+            --title "${TAG}" \
             --notes-file /tmp/notes.md
