@@ -9563,7 +9563,7 @@ R.check(
 )
 
 
-def _g_boom():
+def _g_boom(*_args):
     raise RuntimeError("solver exploded")
 
 
@@ -9794,5 +9794,278 @@ R.check(
     _asyncio.run(_g_tibber(FakeHass(), "any-token")) == "cannot_connect",
 )
 
+
+# ===========================================================================
+# v4.0.4 — the quarter grid, DST days, window arithmetic, price-level guards
+# ===========================================================================
+R.section("v4.0.4 — DST-day exclusion from price learning")
+
+import os as _os
+import subprocess as _subprocess
+from zoneinfo import ZoneInfo as _ZoneInfo
+
+from heatpump_optimizer.grid_fee import (
+    GridFeeSchedule as _FeeSchedule,
+    IMPLAUSIBLE_FEE_SEK_PER_KWH as _FEE_BOUND,
+    max_abs_component as _fee_worst,
+    parse_rules as _fee_parse,
+)
+from heatpump_optimizer.optimizer import (
+    PRICE_MEAN_GUESS_EPS as _GUESS_EPS,
+    _price_guess_weights as _guess_weights,
+)
+from heatpump_optimizer.price_model import (
+    quarters_from_entries as _quarters_from_entries,
+)
+
+_STHLM = _ZoneInfo("Europe/Stockholm")
+
+
+def _local_day_entries(first_utc: datetime, hours: int, base: float) -> list[dict]:
+    """Hourly Tibber-style entries for one local day, built from UTC instants
+    so the transition days carry exactly the offsets Tibber delivers."""
+    return [
+        {
+            "starts_at": (first_utc + timedelta(hours=i))
+            .astimezone(_STHLM)
+            .isoformat(),
+            "total": base + 0.01 * i,
+        }
+        for i in range(hours)
+    ]
+
+
+# Europe/Stockholm 2026: spring gap 29 Mar (23 local hours), autumn fold
+# 25 Oct (25 local hours). Local midnight is 22:00 UTC (CEST) before the
+# fold and 23:00 UTC (CET) after it.
+_fold_day = _local_day_entries(
+    datetime(2026, 10, 24, 22, 0, tzinfo=UTC), 25, 0.5
+)
+_gap_day = _local_day_entries(
+    datetime(2026, 3, 28, 23, 0, tzinfo=UTC), 23, 0.5
+)
+_plain_day = _local_day_entries(
+    datetime(2026, 10, 23, 22, 0, tzinfo=UTC), 24, 0.5
+)
+R.check(
+    "the synthetic fold day really carries 25 hourly entries",
+    len(_fold_day) == 25
+    and len({e["starts_at"][-6:] for e in _fold_day}) == 2,
+)
+_hourly = hourly_from_entries(_plain_day + _fold_day + _gap_day)
+R.check(
+    "a plain 24-hour day trains the hourly shape",
+    "2026-10-24" in _hourly and len(_hourly["2026-10-24"]) == 24,
+    f"days: {sorted(_hourly)}",
+)
+R.check(
+    "the 25-hour autumn fold day is excluded — its collapse used to pass "
+    "the 24-hour gate with a fabricated hour 2",
+    "2026-10-25" not in _hourly,
+    f"days: {sorted(_hourly)}",
+)
+R.check(
+    "the 23-hour spring gap day is excluded by the same predicate",
+    "2026-03-29" not in _hourly,
+)
+
+
+def _quarter_day_entries(first_utc: datetime, hours: int) -> list[dict]:
+    return [
+        {
+            "starts_at": (first_utc + timedelta(minutes=15 * q))
+            .astimezone(_STHLM)
+            .isoformat(),
+            "total": 0.4 + 0.001 * q,
+        }
+        for q in range(hours * 4)
+    ]
+
+
+_q_days = _quarters_from_entries(
+    _quarter_day_entries(datetime(2026, 10, 23, 22, 0, tzinfo=UTC), 24)
+    + _quarter_day_entries(datetime(2026, 10, 24, 22, 0, tzinfo=UTC), 25)
+)
+R.check(
+    "quarter learning sees the same exclusion: plain day in, fold day out",
+    "2026-10-24" in _q_days
+    and len(_q_days["2026-10-24"]) == 96
+    and "2026-10-25" not in _q_days,
+    f"days: {sorted(_q_days)}",
+)
+
+_naive_day = [
+    {
+        "starts_at": f"2026-10-25T{h:02d}:00:00",
+        "total": 0.5 + 0.01 * h,
+    }
+    for h in range(24)
+]
+R.check(
+    "naive timestamps carry one offset (None) and keep learning",
+    "2026-10-25" in hourly_from_entries(_naive_day),
+)
+
+# ---------------------------------------------------------------------------
+R.section("v4.0.4 — negative-mean initial guess")
+
+_pos_prices = np.array([0.42, 1.31, 0.05, 2.5, 0.9, 0.63, 1.1, 0.77])
+_old_form = np.clip(
+    1.5 - _pos_prices / (np.mean(_pos_prices) + 1e-6), 0.2, 1.0
+)
+R.check(
+    "a positive-mean horizon gets the historical formula bit for bit",
+    np.array_equal(_guess_weights(_pos_prices), _old_form),
+)
+
+_neg_prices = np.array([-0.9, -0.1, -1.4, -0.3, -0.05, -2.0])
+_neg_w = _guess_weights(_neg_prices)
+R.check(
+    "all-negative prices: the cheapest (most negative) step starts highest",
+    int(np.argmax(_neg_w)) == int(np.argmin(_neg_prices))
+    and int(np.argmin(_neg_w)) == int(np.argmax(_neg_prices)),
+    f"weights {_neg_w}",
+)
+R.check(
+    "and the guess is monotone in price rank, inside the same 0.2-1.0 band",
+    bool(
+        np.all(np.diff(_neg_w[np.argsort(_neg_prices)]) < 0)
+    )
+    and float(np.min(_neg_w)) >= 0.2 - 1e-12
+    and float(np.max(_neg_w)) <= 1.0 + 1e-12,
+)
+# The historical formula on the same input, for the record: it INVERTED —
+# the cheapest step clipped to the floor.
+_neg_old = np.clip(1.5 - _neg_prices / (np.mean(_neg_prices) + 1e-6), 0.2, 1.0)
+R.check(
+    "the un-guarded formula really did invert on this input",
+    _neg_old[int(np.argmin(_neg_prices))] == 0.2,
+)
+_zero_prices = np.array([-1.0, 1.0, -0.5, 0.5])
+_zero_w = _guess_weights(_zero_prices)
+R.check(
+    "a near-zero mean takes the rank path instead of saturating the clip",
+    int(np.argmax(_zero_w)) == 0 and float(np.min(_zero_w)) >= 0.2 - 1e-12,
+    f"weights {_zero_w}",
+)
+
+# ---------------------------------------------------------------------------
+R.section("v4.0.4 — grid-fee magnitude repair issue")
+
+_fm_sched = _FeeSchedule(mode="rules", fixed=0.1, rules=_fee_parse("Nov-Mar = 25"))
+R.check(
+    "max_abs_component finds the öre-as-SEK rule and names its source",
+    _fee_worst(_fm_sched) == (25.0, "rules"),
+)
+R.check(
+    "an inactive layer has nothing to warn about",
+    _fee_worst(_FeeSchedule(mode="none", fixed=99.0)) == (0.0, "fixed"),
+)
+R.check(
+    "entity mode inspects the live value, rules mode ignores it",
+    _fee_worst(_FeeSchedule(mode="entity"), 25.0) == (25.0, "entity")
+    and _fee_worst(_fm_sched, 999.0)[1] == "rules",
+)
+
+_gf_steps = [
+    datetime(2026, 1, 7, 12, 0, tzinfo=UTC) + timedelta(minutes=15 * i)
+    for i in range(8)
+]
+_gf_bad = HeatPumpOptimizerCoordinator(
+    FakeHass(),
+    FakeEntry(
+        data={**_LC_DATA, "grid_fee_mode": "rules", "grid_fee_rules": "= 25"}
+    ),
+)
+_gf_vec = _gf_bad._fee_series(_gf_steps)
+_gf_issues = [
+    i for i in getattr(_gf_bad.hass, "issues", []) if i[1] == "grid_fee_magnitude"
+]
+R.check(
+    "a 25 SEK/kWh rule — öre in a SEK field — raises the repair issue",
+    len(_gf_issues) == 1
+    and _gf_issues[0][2].get("translation_key") == "grid_fee_magnitude"
+    and set(_gf_issues[0][2].get("translation_placeholders", {}))
+    == {"rate", "source"},
+)
+R.check(
+    "warn-only: the plan still prices with exactly what was typed",
+    bool(np.all(_gf_vec == 25.0)),
+    f"vector {_gf_vec[:2]}",
+)
+_gf_bad._fee_series(_gf_steps)
+R.check(
+    "the issue is raised once per offending value, not every cycle",
+    len(
+        [
+            i
+            for i in getattr(_gf_bad.hass, "issues", [])
+            if i[1] == "grid_fee_magnitude"
+        ]
+    )
+    == 1,
+)
+_gf_bad._config["grid_fee_rules"] = "= 0.25"
+_gf_bad._fee_series(_gf_steps)
+R.check(
+    "a corrected configuration clears the issue on the next cycle",
+    not [
+        i
+        for i in getattr(_gf_bad.hass, "issues", [])
+        if i[1] == "grid_fee_magnitude"
+    ],
+)
+_gf_ok = HeatPumpOptimizerCoordinator(
+    FakeHass(),
+    FakeEntry(
+        data={**_LC_DATA, "grid_fee_mode": "rules", "grid_fee_rules": "= 0.25"}
+    ),
+)
+_gf_ok._fee_series(_gf_steps)
+R.check(
+    "0.25 SEK/kWh — the value that was meant — raises nothing",
+    not [
+        i
+        for i in getattr(_gf_ok.hass, "issues", [])
+        if i[1] == "grid_fee_magnitude"
+    ],
+)
+_gf_ent = HeatPumpOptimizerCoordinator(
+    FakeHass({"sensor.fee": FakeState("25.0")}),
+    FakeEntry(
+        data={
+            **_LC_DATA,
+            "grid_fee_mode": "entity",
+            "grid_fee_entity": "sensor.fee",
+        }
+    ),
+)
+_gf_ent._fee_series(_gf_steps)
+_gf_ent_issues = [
+    i for i in getattr(_gf_ent.hass, "issues", []) if i[1] == "grid_fee_magnitude"
+]
+R.check(
+    "a fee sensor publishing öre trips the same issue, attributed to it",
+    len(_gf_ent_issues) == 1
+    and _gf_ent_issues[0][2]["translation_placeholders"]["source"] == "entity",
+)
+
+# ---------------------------------------------------------------------------
+R.section("v4.0.4 — the quarter snap and DST windows, under a real timezone")
+
+# The stub's DEFAULT_TIME_ZONE is fixed at import, so the timezone-dependent
+# checks run in a subprocess with HASTUB_TZ set; see tests/dst_checks.py.
+_dst = _subprocess.run(
+    [sys.executable, "tests/dst_checks.py"],
+    env={**_os.environ, "HASTUB_TZ": "Europe/Stockholm"},
+    capture_output=True,
+    text=True,
+)
+print(_dst.stdout, end="")
+R.check(
+    "the HASTUB_TZ subprocess suite passed",
+    _dst.returncode == 0,
+    (_dst.stdout + _dst.stderr)[-400:],
+)
 
 sys.exit(R.close("FEATURE CHECKS"))

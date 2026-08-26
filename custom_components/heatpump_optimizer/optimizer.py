@@ -173,6 +173,30 @@ def _multi_start_minimize(
     return best
 
 
+#: Below this horizon-mean price (SEK/kWh) the smooth guess's normalisation
+#: is meaningless: a negative mean flips its sign — the cheapest (most
+#: negative) steps clip to the LOW floor and the guess starts inverted — and
+#: a near-zero mean divides by ~1e-6 and saturates the clip into bang-bang
+#: at arbitrary steps. Real Nordic spring days do average below zero.
+PRICE_MEAN_GUESS_EPS = 1e-3
+
+
+def _price_guess_weights(prices: np.ndarray) -> np.ndarray:
+    """Per-step initial-guess weight in [0.2, 1.0], high where cheap.
+
+    On any meaningfully positive horizon mean this is the historical smooth
+    mean-normalised guess, arithmetic untouched so every normal solve starts
+    from bit-identical floats. Otherwise the same [0.2, 1.0] band is filled
+    by price rank — relative ordering is all the guess exists to encode, and
+    ranks keep it under any sign or scale. Shift-by-min would not: it warps
+    the relative spacing the clip band then quantises.
+    """
+    if float(np.mean(prices)) > PRICE_MEAN_GUESS_EPS:
+        return np.clip(1.5 - prices / (np.mean(prices) + 1e-6), 0.2, 1.0)
+    ranks = np.argsort(np.argsort(prices)).astype(float)
+    return 1.0 - 0.8 * ranks / float(max(len(prices) - 1, 1))
+
+
 def _price_ranked_start(
     prices: np.ndarray, energy_kwh: float, p_max: float, dt: float
 ) -> np.ndarray:
@@ -993,7 +1017,12 @@ class HeatPumpOptimizer:
         total_power = (
             space_power if dhw_power is None else space_power + dhw_power
         )
-        _, _, baseline_load = self._grid_terms(h.n_steps, h.dt)
+        # Only the start-time-independent baseline array is wanted here; the
+        # previous ``_grid_terms(h.n_steps, h.dt)`` call built offset-0
+        # cycling/capacity closures just to discard them, and read as if the
+        # published grid figures were folded without the anchor. They are
+        # not: ``_grid_report`` below gets ``h.start_time``.
+        baseline_load = self.config.baseline_load_array(h.n_steps)
         grid = self._grid_report(total_power, baseline_load, h.dt, h.start_time)
         upper_setpoints, lower_setpoints = self._zone_setpoints(space_power)
         two_zone = self.model.params.two_zone_enabled
@@ -2183,8 +2212,7 @@ class HeatPumpOptimizer:
             )
 
         # Initial guess: smart initialization considering forecasts
-        price_normalized = prices / (np.mean(prices) + 1e-6)
-        initial_power = p_max * np.clip(1.5 - price_normalized, 0.2, 1.0)
+        initial_power = p_max * _price_guess_weights(prices)
 
         # Apply predictive adjustments to initial guess
         for i in range(n_steps):
@@ -3459,8 +3487,7 @@ class HeatPumpOptimizer:
             )
 
         # Initial guess: space heating inversely proportional to price.
-        price_normalized = prices / (np.mean(prices) + 1e-6)
-        init_base = p_max * 0.6 * np.clip(1.5 - price_normalized, 0.2, 1.0)
+        init_base = p_max * 0.6 * _price_guess_weights(prices)
         for i in range(n_steps):
             init_base[i] *= anticipatory_weights[i]
         init_base = np.clip(init_base, p_min * 0.5, p_max * 0.8)

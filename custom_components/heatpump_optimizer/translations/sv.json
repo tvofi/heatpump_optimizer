@@ -715,6 +715,10 @@
     "solve_failures": {
       "title": "Optimeringen fortsätter att misslyckas; planen börjar bli inaktuell",
       "description": "De senaste {count} optimeringskörningarna misslyckades, så integrationen visar fortfarande — och agerade tills nyligen på — en plan beräknad {last_success}. När planen är äldre än några uppdateringsintervall lämnas värmepumpen tillbaka till sin egen värmekurva i stället för att styras efter ett föråldrat schema. De vanliga misstänkta är en tappad pris- eller väderanslutning, eller ett fel i loggen från själva lösaren. Meddelandet försvinner vid nästa lyckade optimering."
+    },
+    "grid_fee_magnitude": {
+      "title": "En konfigurerad nätavgift ser 100× för stor ut",
+      "description": "Nätavgiftslagret innehåller en avgift på {rate} SEK/kWh (från källan {source}). Svenska nätbolags överföringsavgifter ligger på några tiondels kronor per kWh, så ett så stort värde är nästan alltid öre inskrivet där SEK avsågs — 25 i stället för 0,25. Ingenting ändras eller begränsas: planen fortsätter att prissätta med exakt det värde som konfigurerats. Rätta värdet under alternativen för nätavgifter (eller åtgärda avgiftssensorn) så försvinner meddelandet vid nästa planeringscykel."
     }
   }
 }

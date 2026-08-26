@@ -37,6 +37,14 @@ from .dhw_schedule import DHWWindowError, Window, hour_in_windows, parse_windows
 
 _LOGGER = logging.getLogger(__name__)
 
+#: Above this a single SEK/kWh fee component is implausible for any Swedish
+#: DSO — real ToU transfer fees run 0.05–1.5 SEK/kWh. 25 in a SEK field is
+#: öre, the classic 100× slip; the coordinator raises a warn-only repair
+#: issue at this bound and never touches the value, because the parser must
+#: stay permissive (a blocked or mutated fee would be worse than a wrong one
+#: the user was told about).
+IMPLAUSIBLE_FEE_SEK_PER_KWH = 10.0
+
 #: ``grid_fee_mode`` values. "none" is the sentinel default: every vector is
 #: zeros and an untouched install is byte-for-byte what it was.
 MODE_NONE = "none"
@@ -269,3 +277,31 @@ class GridFeeSchedule:
         return np.asarray(
             [self.current_fee(when) for when in step_starts], dtype=float
         )
+
+
+def max_abs_component(
+    schedule: GridFeeSchedule, entity_value: float | None = None
+) -> tuple[float, str]:
+    """The largest-magnitude SEK/kWh component in force, and its source.
+
+    Pure and HA-free like the rest of the module, so the magnitude sanity
+    check is unit-testable here while the repair-issue plumbing stays in the
+    coordinator. Only inputs the active mode actually prices with are
+    inspected: warning about an unused entity or a rules text the mode
+    ignores would send the user hunting a fee the plan never charges.
+    """
+    worst, source = 0.0, "fixed"
+    if schedule.mode == MODE_NONE:
+        return worst, source
+    worst = abs(float(schedule.fixed))
+    if schedule.mode == MODE_RULES:
+        for rule in schedule.rules:
+            if abs(rule.rate) > worst:
+                worst, source = abs(rule.rate), "rules"
+    elif (
+        schedule.mode == MODE_ENTITY
+        and entity_value is not None
+        and abs(float(entity_value)) > worst
+    ):
+        worst, source = abs(float(entity_value)), "entity"
+    return worst, source

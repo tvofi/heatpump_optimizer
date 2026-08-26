@@ -38,6 +38,26 @@ from .dhw_schedule import Window, hour_in_windows
 _LOGGER = logging.getLogger(__name__)
 
 
+def _window_slot(when: datetime, window_minutes: int) -> datetime:
+    """The start of the metering window containing ``when``.
+
+    Anchored at local midnight and stepped by ``timedelta``, matching the
+    optimizer's ``_window_offset_steps`` phase arithmetic — the DSO's grid
+    runs from midnight, not from each wall-clock hour. The previous
+    ``minute``-modulo snap could only move the minute field, so for windows
+    longer than an hour the hour never advanced and a 90/120-minute tariff
+    silently degenerated to hourly metering: less burst dilution, inflated
+    recorded peaks and thresholds, and factor masks sampled one window off.
+    For any window that divides the hour (15/30/60 — every common DSO
+    config) this is bit-identical to the old snap, isoformat key included,
+    so persisted ``window_key`` accumulators survive the upgrade untouched.
+    """
+    window = max(1, int(window_minutes))
+    midnight = when.replace(hour=0, minute=0, second=0, microsecond=0)
+    minutes = ((when.hour * 60 + when.minute) // window) * window
+    return midnight + timedelta(minutes=minutes)
+
+
 @dataclass
 class CapacityTariff:
     """Configuration of a monthly capacity tariff.
@@ -163,8 +183,7 @@ class PeakTracker:
             self._window_weight = 0.0
 
         window = max(1, int(tariff.window_minutes))
-        slot = when.replace(second=0, microsecond=0)
-        slot = slot.replace(minute=(slot.minute // window) * window % 60)
+        slot = _window_slot(when, window)
         key = f"{slot.isoformat()}|{window}"
 
         if key != self._window_key:
@@ -209,8 +228,7 @@ class PeakTracker:
         does not bill.
         """
         window = max(1, int(tariff.window_minutes))
-        slot = when.replace(second=0, microsecond=0)
-        slot = slot.replace(minute=(slot.minute // window) * window % 60)
+        slot = _window_slot(when, window)
         key = f"{slot.isoformat()}|{window}"
         elapsed = (when - slot).total_seconds() / 60.0
         mean = self._window_mean() if key == self._window_key else None
@@ -386,8 +404,7 @@ def window_factors(
     if start_time is None or n_windows <= 0 or not mask_active(tariff):
         return None
     window = max(1, int(tariff.window_minutes))
-    slot0 = start_time.replace(second=0, microsecond=0)
-    slot0 = slot0.replace(minute=(slot0.minute // window) * window % 60)
+    slot0 = _window_slot(start_time, window)
     return np.asarray(
         [
             tariff.sample_factor(slot0 + timedelta(minutes=window * i))
