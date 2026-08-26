@@ -1794,7 +1794,11 @@ class _CopGate:
     _apply_cop_scale = Coord._apply_cop_scale
 
     def __init__(self, outdoor: float) -> None:
-        self._measured_power = 2.0
+        # A modest gap: v4.0.5's tracking gate discards samples whose
+        # commanded-vs-measured mismatch is too large to be efficiency at
+        # all, and this fixture is about the frost-band *split*, not the
+        # magnitude — it has to stay on the efficiency side of that gate.
+        self._measured_power = 2.6
         self._current_action = {"power": 3.0}
         self._thermal_params = ThermalParameters()
         self._thermal_model = ThermalModel(self._thermal_params)
@@ -5178,7 +5182,11 @@ _tou_add[24:88] = 0.25  # the höglast window priced up
 _share_tou = _fee_share(_tou_add)
 R.check(
     "a flat fee does not shift energy in time — the null control",
-    abs(_share_flat - _share_none) < 0.02,
+    # 0.03, not 0.02, since v4.0.5: the terminal refill price scales with
+    # the price level, so a uniform fee legitimately has the plan end the
+    # horizon holding slightly more heat — a small share wobble with no
+    # time structure, an order below the 0.05 the ToU check below demands.
+    abs(_share_flat - _share_none) < 0.03,
     f"06-22 share {_share_none:.3f} -> {_share_flat:.3f} under a uniform fee",
 )
 R.check(
@@ -10066,6 +10074,517 @@ R.check(
     "the HASTUB_TZ subprocess suite passed",
     _dst.returncode == 0,
     (_dst.stdout + _dst.stderr)[-400:],
+)
+
+# ===========================================================================
+# v4.0.5 — physics: one price of heat, honest tanks, honest learners
+# ===========================================================================
+R.section("v4.0.5 — one marginal COP per store, shared with the dynamics")
+
+from dataclasses import replace as _dc_replace
+
+from heatpump_optimizer.thermal_model import (
+    dhw_coil_draw_reduction as _coil_split,
+)
+
+_p5 = ThermalParameters(
+    two_zone_enabled=True, buffer_tank_volume=750.0,
+    mixing_valve_mode="manual", buffer_max_temp=70.0,
+)
+# `from_config` arms the Carnot flow derate with any throttling valve; the
+# direct constructor leaves it off, so arm it the way a real install has it.
+_p5.cop_flow_carnot = True
+_m5 = ThermalModel(_p5)
+R.check(
+    "marginal_cop('buffer') is the simulate step's own conversion",
+    _m5.marginal_cop(-5.0, "buffer", store_temp=70.0)
+    == _m5.compute_cop(-5.0, flow_temp=70.0),
+    "thermal_model.py:1548 charges the tank at exactly this COP",
+)
+R.check(
+    "marginal_cop('dhw') is compute_cop_dhw",
+    _m5.marginal_cop(-5.0, "dhw", store_temp=55.0)
+    == _m5.compute_cop_dhw(-5.0, 55.0),
+)
+R.check(
+    "building-mass stores heat at the plain curve",
+    _m5.marginal_cop(-5.0, "room") == _m5.compute_cop(-5.0)
+    and _m5.marginal_cop(-5.0, "slab") == _m5.compute_cop(-5.0),
+)
+_p5_off = ThermalParameters(
+    two_zone_enabled=True, buffer_tank_volume=750.0,
+    mixing_valve_mode="manual", buffer_max_temp=70.0,
+)
+_m5_off = ThermalModel(_p5_off)
+R.check(
+    "without the Carnot derate the buffer collapses to the plain curve",
+    _m5_off.marginal_cop(-5.0, "buffer", store_temp=70.0)
+    == _m5_off.compute_cop(-5.0),
+    "the cop_flow_carnot gate is what keeps unthrottled paths byte-identical",
+)
+
+# --- Terminal price of a stored kWh == the simulation's cost of storing it.
+_cfg5 = _OptCfg(horizon_hours=24, time_step_minutes=15,
+                target_temp=21.0, min_temp=19.0, max_temp=23.0)
+_opt5 = _Opt(_m5, _cfg5)
+_out5 = np.full(96, -5.0)
+_prices5 = np.full(96, 1.0)
+_caps5 = _opt5._settlement_caps(_out5)
+_term5 = _opt5._terminal_cost(_prices5, _out5)
+_f5 = lambda v: np.full(97, v)
+_mass_buf = _p5.buffer_tank_thermal_mass
+_t_lo = _term5(_f5(21.0), _f5(25.0), _f5(21.0), _f5(20.5),
+               _f5(_caps5["buffer"] - 1.0))
+_t_hi = _term5(_f5(21.0), _f5(25.0), _f5(21.0), _f5(20.5),
+               _f5(_caps5["buffer"]))
+_grad_buf = (_t_lo - _t_hi) / _mass_buf  # SEK per marginal stored kWh
+_sim_cost = 1.0 / _m5.compute_cop(-5.0, flow_temp=_caps5["buffer"])
+R.check(
+    "the terminal credit repays a stored buffer kWh at the flow-derated COP "
+    "the simulation charged to store it",
+    abs(_grad_buf - _sim_cost) < 1e-9,
+    f"terminal {_grad_buf:.4f} vs simulate {_sim_cost:.4f} SEK/kWh",
+)
+_grad_plain = 1.0 / _m5.compute_cop(-5.0)
+R.check(
+    "which is genuinely dearer than the plain curve the old code paid",
+    _grad_buf > _grad_plain * 1.3,
+    f"derated {_grad_buf:.4f} vs plain {_grad_plain:.4f} — the artificial "
+    "COP gap the solver had to overcome before storing anything",
+)
+# Room deficits still convert at the plain curve. Only the upper floor's
+# end moves here (the lower sits below the cap either way), so the marginal
+# kWh is the upper mass's alone.
+_t_room = _term5(_f5(20.0), _f5(25.0), _f5(20.0), _f5(20.5),
+                 _f5(_caps5["buffer"]))
+_grad_room = (_t_room - _term5(
+    _f5(21.0), _f5(25.0), _f5(21.0), _f5(20.5), _f5(_caps5["buffer"])
+)) / _p5.upper_floor_thermal_mass
+R.check(
+    "building-mass deficits keep the plain conversion",
+    abs(_grad_room - _grad_plain) < 1e-9,
+    f"room {_grad_room:.4f} vs plain {_grad_plain:.4f}",
+)
+# With the derate off, the whole term must reproduce the historical
+# arithmetic bit for bit — that is the branch that keeps every unthrottled
+# fixture untouched.
+_opt5_off = _Opt(_m5_off, _cfg5)
+_caps5_off = _opt5_off._settlement_caps(_out5)
+_term5_off = _opt5_off._terminal_cost(_prices5, _out5)
+_ends = {"room": 21.0, "slab": 25.0, "upper": 21.0, "lower": 20.5,
+         "buffer": 45.0}
+_expected_off = (
+    float(np.percentile(_prices5, 25))
+    * _cfg5.price_weight
+    * (
+        _p5_off.upper_floor_thermal_mass * max(0.0, _caps5_off["room"] - 21.0)
+        + _p5_off.lower_floor_thermal_mass * max(0.0, _caps5_off["room"] - 20.5)
+        + _p5_off.slab_thermal_mass * max(0.0, _caps5_off["slab"] - 25.0)
+        + _p5_off.buffer_tank_thermal_mass
+        * max(0.0, _caps5_off["buffer"] - 45.0)
+    )
+    / max(_m5_off.compute_cop(-5.0), 1e-6)
+)
+R.check(
+    "derate off: the terminal term is the historical single-sum, exactly",
+    _term5_off(_f5(21.0), _f5(25.0), _f5(21.0), _f5(20.5), _f5(45.0))
+    == _expected_off,
+    "unthrottled solves must keep their descent paths bit for bit",
+)
+
+# --- The reported settlement prices each tank share at its own COP too.
+_base_end = ThermalState(
+    room_temperature=21.0, upper_floor_temperature=21.0,
+    lower_floor_temperature=20.5, slab_temperature=25.0,
+    buffer_tank_temperature=50.0, outdoor_temperature=-5.0,
+    dhw_temperature=47.0,
+)
+_caps_dhw = dict(_caps5, dhw=50.0)
+_opt_end_a = _dc_replace(_base_end, dhw_temperature=47.0)
+_opt_end_b = _dc_replace(_base_end, dhw_temperature=45.0)
+_d_a = _opt5._deferred_energy_cost(
+    _base_end, _opt_end_a, _prices5, _out5, include_dhw=True, caps=_caps_dhw
+)
+_d_b = _opt5._deferred_energy_cost(
+    _base_end, _opt_end_b, _prices5, _out5, include_dhw=True, caps=_caps_dhw
+)
+_gap_dhw = _p5.dhw_tank_thermal_mass * 2.0
+_exp_dhw = _gap_dhw / _m5.compute_cop_dhw(-5.0, 50.0) * 1.0
+R.check(
+    "a DHW deficit settles at compute_cop_dhw of its settlement temperature",
+    abs((_d_b - _d_a) - _exp_dhw) < 1e-9,
+    f"settled {(_d_b - _d_a):.4f} vs expected {_exp_dhw:.4f} SEK",
+)
+_opt_end_c = _dc_replace(_base_end, buffer_tank_temperature=48.0)
+_d_c = _opt5._deferred_energy_cost(
+    _base_end, _opt_end_c, _prices5, _out5, include_dhw=True, caps=_caps_dhw
+)
+_exp_buf = (
+    _mass_buf * 2.0 / _m5.compute_cop(-5.0, flow_temp=_caps5["buffer"])
+)
+R.check(
+    "and a buffer deficit at the flow-derated COP of its settlement ceiling",
+    abs((_d_c - _d_a) - _exp_buf) < 1e-9,
+    f"settled {(_d_c - _d_a):.4f} vs expected {_exp_buf:.4f} SEK",
+)
+
+# ---------------------------------------------------------------------------
+R.section("v4.0.5 — settlement caps: the lower zone's slab, a reachable tank")
+
+# The slab feeds only the lower zone (`q_slab_to_lower`); the upper floor is
+# radiator-fed. Its ceiling is therefore sized from the lower zone alone,
+# through the learned loss, with the lower zone's share of the gains.
+_exp_slab = 21.0 + max(
+    0.0,
+    _p5.lower_floor_heat_loss_learned * (21.0 - (-5.0))
+    - _p5.internal_gains * (1.0 - _p5.upper_floor_area_ratio),
+) / max(_p5.slab_heat_transfer, 1e-6)
+R.check(
+    "two-zone slab cap is sized from the lower zone alone",
+    _caps5["slab"] == _exp_slab,
+    f"cap {_caps5['slab']:.3f} vs lower-zone formula {_exp_slab:.3f}",
+)
+_p5_ratio = ThermalParameters(
+    two_zone_enabled=True, buffer_tank_volume=750.0,
+    mixing_valve_mode="manual", lower_floor_loss_ratio=0.8,
+)
+_caps_ratio = _Opt(ThermalModel(_p5_ratio), _cfg5)._settlement_caps(_out5)
+R.check(
+    "and it moves with the learned split, like the dynamics it settles",
+    _caps_ratio["slab"] < _caps5["slab"],
+    f"ratio 0.8 gives {_caps_ratio['slab']:.3f}",
+)
+_p5_single = ThermalParameters()
+_caps_single = _Opt(ThermalModel(_p5_single), _cfg5)._settlement_caps(_out5)
+_exp_single = 21.0 + max(
+    0.0,
+    _p5_single.heat_loss_coefficient * (21.0 - (-5.0))
+    - _p5_single.internal_gains,
+) / max(_p5_single.slab_heat_transfer, 1e-6)
+R.check(
+    "single-zone keeps the historical formula exactly",
+    _caps_single["slab"] == _exp_single,
+)
+
+# The buffer's cap is the ceiling the pump can still charge past, not the
+# nameplate rating. A strong pump reaches the rating; a weak one against a
+# cold day cannot, and settling the unreachable distance charged every plan
+# for failing to hold a temperature no plan could reach.
+R.check(
+    "a strong pump's cap is the rating — mild installs are untouched",
+    _caps5["buffer"] == 70.0,
+    f"got {_caps5['buffer']:.1f}",
+)
+_p5_weak = ThermalParameters(
+    two_zone_enabled=True, buffer_tank_volume=750.0,
+    mixing_valve_mode="manual", buffer_max_temp=70.0,
+    max_electrical_power=1.2,
+)
+_p5_weak.cop_flow_carnot = True
+_opt_weak = _Opt(ThermalModel(_p5_weak), _cfg5)
+_cap_cold = _opt_weak._settlement_caps(np.full(96, -15.0))["buffer"]
+_cap_mild = _opt_weak._settlement_caps(np.full(96, 8.0))["buffer"]
+R.check(
+    "a weak pump against a cold day cannot reach the rating, and the cap "
+    "says so",
+    _cap_cold < 69.9,
+    f"reachable ceiling {_cap_cold:.1f} °C",
+)
+R.check(
+    "the reachable ceiling rises with milder weather, up to the rating",
+    _cap_cold < _cap_mild <= 70.0,
+    f"cold {_cap_cold:.1f} vs mild {_cap_mild:.1f}",
+)
+
+# ---------------------------------------------------------------------------
+R.section("v4.0.5 — DHW conservation: a cold tank cannot pour hot water")
+
+_ec_p = ThermalParameters(dhw_enabled=True, dhw_tank_volume=300.0)
+_ec_m = ThermalModel(_ec_p)
+_ec_C = _ec_p.dhw_tank_thermal_mass
+_ec_ua = _ec_p.dhw_tank_heat_loss_coefficient
+_ec_nominal = 5.0  # kW, a heavy constant draw against a 300 L tank
+_ec_T = [25.0]
+_ec_resid = 0.0
+_ec_floor = 0.0
+_ec_delivered = 0.0
+for _i in range(96):
+    _q_in = 8.0 if 40 <= _i < 64 else 0.0
+    _T = _ec_T[-1]
+    _q_loss = _ec_ua * (_T - 20.0)
+    _Tn = _ec_m.simulate_dhw_step(
+        _T, _q_in, 0.0, dt_hours=0.25, draw_power=_ec_nominal
+    )
+    # The step's own ledger: input minus booked draw, standby loss and any
+    # refused charge, plus any floor-fabricated heat, must equal the stored
+    # change exactly. The old floor clamp created energy with no ledger —
+    # this balance is the check that cannot pass on it.
+    _bal = _ec_C * (_Tn - _T) - (
+        _q_in - _ec_m._step_dhw_draw_kw - _q_loss
+        - _ec_m._step_dhw_refused + _ec_m._step_dhw_floor_injected
+    ) * 0.25
+    _ec_resid = max(_ec_resid, abs(_bal))
+    _ec_floor = max(_ec_floor, _ec_m._step_dhw_floor_injected)
+    _ec_delivered += _ec_m._step_dhw_draw_kw * 0.25
+    _ec_draw_max = max(
+        _ec_draw_max if _i else 0.0, _ec_m._step_dhw_draw_kw
+    )
+    _ec_T.append(_Tn)
+R.check(
+    "the booked draw never exceeds the nominal demand",
+    _ec_draw_max <= _ec_nominal + 1e-12,
+    f"peak booked draw {_ec_draw_max:.3f} kW",
+)
+R.check(
+    "every step balances: in == out + losses + storage delta",
+    _ec_resid < 1e-9,
+    f"worst residual {_ec_resid:.2e} kWh",
+)
+R.check(
+    "the inlet floor fabricated nothing — the scaled draw makes it inert",
+    _ec_floor == 0.0,
+    f"worst injection {_ec_floor:.4f} kW",
+)
+R.check(
+    "a cold tank delivers less than the nominal demand, not the same",
+    _ec_delivered < _ec_nominal * 96 * 0.25 - 1.0,
+    f"delivered {_ec_delivered:.1f} of {_ec_nominal * 96 * 0.25:.1f} kWh asked",
+)
+R.check(
+    "and the tank never pins to the inlet pouring imaginary heat",
+    min(_ec_T) > _ec_p.dhw_inlet_reference + 0.5,
+    f"minimum {min(_ec_T):.1f} °C against inlet {_ec_p.dhw_inlet_reference}",
+)
+# At or above the setpoint the mixed-at-tap convention makes the constant
+# nominal exactly right: mixing shrinks the drawn volume, enthalpy stays put.
+_ec_m.simulate_dhw_step(
+    _ec_p.dhw_setpoint, 0.0, 0.0, dt_hours=0.25, draw_power=_ec_nominal
+)
+R.check(
+    "a tank at the setpoint is debited exactly the nominal draw",
+    _ec_m._step_dhw_draw_kw == _ec_nominal,
+    "the fix is the cold-tank side only; hot tanks were already physical",
+)
+
+# The rating is now enforced in the model with refused-heat accounting, the
+# buffer clamp's pattern, instead of trusting every caller to pre-clamp.
+_hot = _ec_m.simulate_dhw_step(54.0, 500.0, 0.0, dt_hours=0.25, draw_power=0.0)
+R.check(
+    "charging cannot pass the tank rating, and the excess is booked",
+    _hot == _ec_p.dhw_max_temp and _ec_m._step_dhw_refused > 0.0,
+    f"landed {_hot:.1f} °C, refused {_ec_m._step_dhw_refused:.1f} kW",
+)
+_over = _ec_m.simulate_dhw_step(72.0, 0.0, 0.0, dt_hours=0.25, draw_power=0.0)
+R.check(
+    "a tank read above the rating cools at its physical rate, not by fiat",
+    _over > 70.0 and _ec_m._step_dhw_refused == 0.0,
+    f"72 °C cooled to {_over:.2f} °C — only the charging direction is clamped",
+)
+
+# One inlet reference everywhere: the coil split loses its hardcoded 10 °C.
+_red_d, _coil_d = _coil_split(2.0, 40.0, 55.0)
+R.check(
+    "coil split at the default inlet is the historical arithmetic",
+    abs(_red_d - 2.0 * (55.0 - 25.0) / 45.0) < 1e-12
+    and abs(_red_d + _coil_d - 2.0) < 1e-12,
+)
+_red_c, _coil_c = _coil_split(2.0, 40.0, 55.0, inlet_temp=4.0)
+R.check(
+    "a real winter inlet changes the split and keeps the identity exact",
+    abs(_red_c + _coil_c - 2.0) < 1e-12 and _coil_c > _coil_d,
+    f"coil covers {_coil_c:.3f} kW at 4 °C vs {_coil_d:.3f} at 10 °C — a "
+    "colder inlet gives the wood tank more of the rise to pre-heat",
+)
+
+# ---------------------------------------------------------------------------
+R.section("v4.0.5 — sysid: the intercept the relax phase was smuggling")
+
+from heatpump_optimizer.sysid import (
+    PHASE_RELAX as _PH_RELAX,
+    PHASE_STEP as _PH_STEP,
+    SysIdSample as _SidSample,
+)
+
+_SID_C, _SID_UA, _SID_G = 6.0, 0.12, 0.5
+
+
+def _sid_samples(gains):
+    """A synthetic step response with a known constant free heat."""
+    out = []
+    temp, tout = 20.7, 0.0
+    when = datetime(2026, 2, 10, 0, 0, tzinfo=UTC)
+    for phase, power, steps in ((_PH_STEP, 3.0, 12), (_PH_RELAX, 0.0, 19)):
+        for _ in range(steps):
+            out.append(_SidSample(when, temp, tout, power, phase))
+            temp += (1.0 / 6.0) * (
+                power + gains - _SID_UA * (temp - tout)
+            ) / _SID_C
+            when += timedelta(minutes=10)
+    return out
+
+
+_sid = SystemIdentification()
+_sid.samples = _sid_samples(_SID_G)
+_sid_res = _sid.identify()
+R.check(
+    "known UA, C and gains are recovered together",
+    _sid_res.completed
+    and abs(_sid_res.heat_loss_kw_per_c - _SID_UA) < 0.01
+    and abs(_sid_res.thermal_mass_kwh_per_c - _SID_C) < 0.3
+    and abs(_sid_res.internal_gains_kw - _SID_G) < 0.05,
+    f"UA {_sid_res.heat_loss_kw_per_c} C {_sid_res.thermal_mass_kwh_per_c} "
+    f"G {_sid_res.internal_gains_kw} ({_sid_res.reason})",
+)
+# The defect this section exists for: without the intercept, the same data
+# pushes the gains into UA and C. Fit the old two-column form on the same
+# samples and show the bias the fix removes.
+_sid_rows, _sid_targets = [], []
+for _prev, _cur in zip(_sid.samples, _sid.samples[1:]):
+    _dt_h = (_cur.when - _prev.when).total_seconds() / 3600.0
+    _sid_rows.append(
+        [-(_prev.room_temp - _prev.outdoor_temp), _prev.power_kw]
+    )
+    _sid_targets.append((_cur.room_temp - _prev.room_temp) / _dt_h)
+_sid_old, *_ = np.linalg.lstsq(
+    np.asarray(_sid_rows), np.asarray(_sid_targets), rcond=None
+)
+_sid_old_ua = float(_sid_old[0]) / float(_sid_old[1])
+R.check(
+    "the old no-intercept fit really was biased on this data",
+    abs(_sid_old_ua - _SID_UA) > 0.02,
+    f"no-intercept UA {_sid_old_ua:.4f} vs truth {_SID_UA}",
+)
+_sid_wild = SystemIdentification()
+_sid_wild.samples = _sid_samples(5.0)
+R.check(
+    "an implausible fitted gain rejects the experiment instead of adopting it",
+    not _sid_wild.identify().completed,
+    _sid_wild.identify().reason,
+)
+
+# ---------------------------------------------------------------------------
+R.section("v4.0.5 — learners: tracking error is not efficiency")
+
+_L5_CFG = {
+    "tibber_token": "x",
+    "weather_entity": "weather.home",
+    "indoor_temp_entity": "sensor.indoor",
+    "outdoor_temp_entity": "sensor.outdoor",
+    "heat_pump_power_entity": "sensor.pump_power",
+}
+_L5_STATES = {
+    "sensor.indoor": FakeState("21.0", unit="°C"),
+    "sensor.outdoor": FakeState("-10.0", unit="°C"),
+    "sensor.pump_power": FakeState("2700", unit="W"),
+}
+
+
+def _cop_learn(commanded, measured):
+    coord = _Coord(_FakeHass(dict(_L5_STATES)), _FakeEntry(data=dict(_L5_CFG)))
+    coord._current_action = {"power": commanded, "dhw_power": 0.0}
+    coord._measured_power = measured
+    coord._current_state.outdoor_temperature = -10.0  # outside the frost band
+    before = coord._cop_scale
+    coord._learn_measured_cop()
+    return coord._cop_scale - before, coord._cop_samples
+
+
+_moved, _n = _cop_learn(3.0, 1.5)
+R.check(
+    "a pure tracking error — pump at half the commanded power — moves "
+    "cop_scale not at all",
+    _moved == 0.0 and _n == 0,
+    f"scale moved {_moved:+.5f} on {_n} samples",
+)
+_moved, _n = _cop_learn(3.0, 2.7)
+R.check(
+    "while a modest, efficiency-shaped gap still teaches",
+    _moved > 1e-4 and _n == 1,
+    f"scale moved {_moved:+.5f}",
+)
+
+# The interval learners' power source: measured where a meter exists,
+# commanded only where none does, and no sample at all on a stale meter.
+_ip_none = _Coord(
+    _FakeHass(dict(_L5_STATES)),
+    _FakeEntry(data={k: v for k, v in _L5_CFG.items()
+                     if k != "heat_pump_power_entity"}),
+)
+_ip_none._current_action = {"power": 3.0, "dhw_power": 0.5}
+R.check(
+    "without a power entity the commanded space figure is all there is",
+    _ip_none._interval_space_power() == 3.0,
+)
+_ip = _Coord(_FakeHass(dict(_L5_STATES)), _FakeEntry(data=dict(_L5_CFG)))
+_ip._current_action = {"power": 3.0, "dhw_power": 0.5}
+_ip._measured_power = 2.0
+R.check(
+    "with one, the meter wins, net of the hot-water allocation the meter "
+    "cannot tell apart",
+    _ip._interval_space_power() == 1.5,
+)
+_ip._measured_power = None
+R.check(
+    "a configured-but-stale meter yields no sample rather than a commanded "
+    "guess",
+    _ip._interval_space_power() is None,
+    "a skipped interval loses convergence; a wrong power corrupts a "
+    "persisted parameter",
+)
+_ip._measured_power = 2.0
+_ip._immersion_active = True
+R.check(
+    "an immersion-latched meter is a different appliance's reading — skip",
+    _ip._interval_space_power() is None,
+)
+
+# ---------------------------------------------------------------------------
+R.section("v4.0.5 — the battery view shares the optimizer's caps")
+
+_bat_p = ThermalParameters(
+    two_zone_enabled=True, buffer_tank_volume=750.0,
+    mixing_valve_mode="manual", buffer_max_temp=65.0,
+    lower_floor_loss_ratio=0.8, house_heat_loss_scale=1.1,
+)
+_bat_state = ThermalState(
+    room_temperature=21.0, upper_floor_temperature=21.0,
+    lower_floor_temperature=20.5, slab_temperature=25.0,
+    buffer_tank_temperature=40.0, outdoor_temperature=-5.0,
+)
+_bat5 = battery_view.build(
+    _bat_p, _bat_state, comfort_min=19.0, comfort_max=23.0,
+    dhw_min=45.0, dhw_max=65.0, cop=3.2,
+)
+_bat_by_name = {c.name: c for c in _bat5.components}
+R.check(
+    "the buffer component's ceiling is the tank's configured rating — the "
+    "same constant the simulation clamps at and the settlement caps read",
+    _bat_by_name["buffer_tank"].max_temperature == _bat_p.buffer_max_temp,
+    f"got {_bat_by_name['buffer_tank'].max_temperature}",
+)
+R.check(
+    "a 40 °C tank no longer reads nearly full",
+    _bat_by_name["buffer_tank"].soc < 0.5,
+    f"soc {_bat_by_name['buffer_tank'].soc:.3f} — the comfort+20 offset "
+    "published ~0.88 for the same tank",
+)
+R.check(
+    "the zone losses are the learned ones the dynamics actually run",
+    _bat_by_name["lower_floor"].loss_kw_per_c
+    == _bat_p.lower_floor_heat_loss_learned * _bat_p.house_heat_loss_scale
+    and _bat_by_name["upper_floor"].loss_kw_per_c
+    == _bat_p.upper_floor_heat_loss * _bat_p.house_heat_loss_scale,
+)
+_bat_default = battery_view.build(
+    ThermalParameters(two_zone_enabled=True), _bat_state,
+    comfort_min=19.0, comfort_max=23.0, dhw_min=45.0, dhw_max=65.0, cop=3.2,
+)
+_bat_def_by_name = {c.name: c for c in _bat_default.components}
+R.check(
+    "at default learned values the loss figures are the raw configured ones",
+    _bat_def_by_name["lower_floor"].loss_kw_per_c
+    == ThermalParameters().lower_floor_heat_loss,
+    "both corrections default to 1.0, so this half of the change is inert",
 )
 
 sys.exit(R.close("FEATURE CHECKS"))

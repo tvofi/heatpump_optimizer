@@ -907,12 +907,28 @@ class HeatPumpOptimizer:
         term is: an unscaled terminal cost at a non-default weight changes the
         exchange rate between buying heat now and buying it back later, which
         re-creates the tail-dumping this term exists to prevent.
+
+        Each store's deficit converts at that store's own marginal COP
+        (v4.0.5, ``ThermalModel.marginal_cop``). The building mass refills at
+        the plain curve, but the buffer tank charges at the flow-derated COP
+        of its settlement temperature — the same physics the simulation
+        applies while charging it. Pricing the tank's terminal kWh at the
+        plain curve paid back less per kWh than storing it cost, so the
+        solver only stored when the price spread also covered a COP gap the
+        physics never charged: systematic under-charging.
         """
         caps = self._settlement_caps(outdoor_temps)
         refill_price = (
             float(np.percentile(prices, 25)) * self.config.price_weight
         )
-        cop_end = self.model.compute_cop(float(np.mean(outdoor_temps)))
+        out_mean = float(np.mean(outdoor_temps))
+        cop_end = self.model.compute_cop(out_mean)
+        # Equal to `cop_end` bit for bit whenever no valve throttles (the
+        # `cop_flow_carnot` gate) or the cap sits at the flow reference; the
+        # branch below keeps those paths on the historical arithmetic.
+        cop_buffer = self.model.marginal_cop(
+            out_mean, "buffer", store_temp=caps["buffer"]
+        )
         params = self.model.params
 
         if params.two_zone_enabled:
@@ -954,6 +970,23 @@ class HeatPumpOptimizer:
                     float(buffer_temps[-1]) if buffer_temps is not None else 0.0
                 ),
             }
+            # The buffer's deficit converts at its own (flow-derated) COP;
+            # everything else at the plain curve. Split only when the two
+            # actually differ, so every unthrottled configuration keeps the
+            # single-sum arithmetic — and therefore the solver's descent
+            # path — bit for bit.
+            if cop_buffer != cop_end:
+                deficit = 0.0
+                buffer_deficit = 0.0
+                for mass, name, cap in stores:
+                    if name == "buffer":
+                        buffer_deficit += mass * max(0.0, cap - ends[name])
+                    else:
+                        deficit += mass * max(0.0, cap - ends[name])
+                return refill_price * (
+                    deficit / max(cop_end, 1e-6)
+                    + buffer_deficit / max(cop_buffer, 1e-6)
+                )
             deficit = sum(
                 mass * max(0.0, cap - ends[name]) for mass, name, cap in stores
             )
@@ -1981,9 +2014,14 @@ class HeatPumpOptimizer:
             return False
         changed = False
         for i in np.nonzero(refused > 1e-9)[0]:
-            cop_i = self.model.compute_cop(
+            # The shared marginal-COP helper (v4.0.5): this loop was the one
+            # optimizer site already converting at the dynamics' flow-derated
+            # convention, and the terminal/deferred valuations now draw from
+            # the same code path so the three cannot drift apart again.
+            cop_i = self.model.marginal_cop(
                 float(outdoor_temps[i]),
-                flow_temp=self.model.params.buffer_max_temp,
+                "buffer",
+                store_temp=self.model.params.buffer_max_temp,
             )
             allowed = float(schedule[i]) - float(refused[i]) / max(cop_i, 1e-6)
             # Slightly under, or float noise re-trips the same step and burns
@@ -3623,6 +3661,9 @@ class HeatPumpOptimizer:
                 baseline_draw,
                 initial_state.wood_tank_temperature,
                 p.dhw_setpoint,
+                # The same inlet reference the draw itself was computed from;
+                # see dhw_coil_draw_reduction for why the two must agree.
+                inlet_temp=p.dhw_inlet_reference,
             )
         baseline_dhw = np.full(n_steps, (baseline_draw + standby_loss) / cop_dhw)
         # All three figures are piecewise in the PV surplus, like the objective.
@@ -3751,13 +3792,24 @@ class HeatPumpOptimizer:
         p = self.model.params
         target = self.config.target_temp
         out_mean = float(np.mean(outdoor_temps))
-        if p.two_zone_enabled:
-            u_eff = p.upper_floor_heat_loss + p.lower_floor_heat_loss
-        else:
-            u_eff = p.heat_loss_coefficient
         # Slab has to run above the room to push heat into it, so its useful
         # ceiling is the temperature that sustains the target, not the target.
-        q_demand = max(0.0, u_eff * (target - out_mean) - p.internal_gains)
+        if p.two_zone_enabled:
+            # The slab feeds ONLY the lower zone (`q_slab_to_lower` in the
+            # dynamics; the upper zone is radiator-fed), so its ceiling is
+            # sized from the lower zone's demand alone — the learned loss,
+            # because every consumer of the dynamics goes through it — and
+            # the lower zone's share of the internal gains. Sizing it from
+            # the whole house inflated the cap by the upper zone's demand
+            # and over-valued hot-slab end states by exactly that much.
+            q_demand = max(
+                0.0,
+                p.lower_floor_heat_loss_learned * (target - out_mean)
+                - p.internal_gains * (1.0 - p.upper_floor_area_ratio),
+            )
+        else:
+            u_eff = p.heat_loss_coefficient
+            q_demand = max(0.0, u_eff * (target - out_mean) - p.internal_gains)
         slab_cap = target + q_demand / max(p.slab_heat_transfer, 1e-6)
         caps = {"room": target, "slab": slab_cap}
         # The buffer tank needs its own ceiling, and it is much higher than the
@@ -3775,7 +3827,16 @@ class HeatPumpOptimizer:
         # modelled benefit, which is why every starting point descended to the
         # same no-storage plan.
         if p.buffer_is_store:
-            caps["buffer"] = p.buffer_max_temp
+            # Valued up to the ceiling the plan can actually charge to, not
+            # the raw safety rating. The rating is where the simulation's
+            # clamp and the cap-refusal loop stop the tank — but reaching it
+            # requires the pump to out-run the house's standing draw and the
+            # tank's own loss at an ever-worsening flow-derated COP, and in
+            # cold weather a real pump cannot. Settling the full distance to
+            # 70 °C charged every plan for failing to hold a temperature no
+            # plan could reach, an asymmetry the room cap (the target, not
+            # the comfort ceiling) never had.
+            caps["buffer"] = self._buffer_charge_ceiling(out_mean)
         else:
             # Without a valve the tank cannot be charged at all, and below the
             # store threshold (item 27) it holds too little to matter, so its
@@ -3793,6 +3854,54 @@ class HeatPumpOptimizer:
         if dhw_cap is not None:
             caps["dhw"] = dhw_cap
         return caps
+
+    def _buffer_charge_ceiling(self, out_mean: float) -> float:
+        """The tank temperature the pump can still charge past, °C.
+
+        The bound the solve actually operates under. The simulation's clamp
+        sits at ``buffer_max_temp``, but the tank only rises while the pump's
+        thermal output at the tank's own flow temperature exceeds the house's
+        standing draw plus the tank's standby loss — and the flow-derated COP
+        falls as the tank warms, so in cold weather that balance closes below
+        the rating and no schedule can push further. Bisection on the net
+        charge rate, which is monotone decreasing in tank temperature; the
+        answer is the rating whenever the pump still out-runs the drains
+        there (every mild-weather case, where this changes nothing).
+        """
+        p = self.model.params
+        hi = float(p.buffer_max_temp)
+        # Below the flow reference no derate applies and the tank is just the
+        # hydronic loop; heat down there is always chargeable.
+        lo = max(20.0, float(p.cop_flow_reference_temp))
+        if hi <= lo:
+            return hi
+        target = self.config.target_temp
+        if p.two_zone_enabled:
+            u_house = p.upper_floor_heat_loss + p.lower_floor_heat_loss_learned
+        else:
+            u_house = p.heat_loss_coefficient
+        # What the valve keeps feeding the house while the tank charges: the
+        # standing demand at the comfort target, the same steady-state frame
+        # as the settlement caps themselves.
+        q_house = max(0.0, u_house * (target - out_mean) - p.internal_gains)
+        ua_tank = p.buffer_tank_heat_loss_coefficient
+        p_max = p.max_electrical_power
+
+        def net(temp: float) -> float:
+            cop = self.model.marginal_cop(out_mean, "buffer", store_temp=temp)
+            return p_max * cop - q_house - ua_tank * max(0.0, temp - 20.0)
+
+        if net(hi) > 0.0:
+            return hi
+        if net(lo) <= 0.0:
+            return lo
+        for _ in range(32):
+            mid = 0.5 * (lo + hi)
+            if net(mid) > 0.0:
+                lo = mid
+            else:
+                hi = mid
+        return lo
 
     def _deferred_energy_cost(
         self,
@@ -3837,7 +3946,8 @@ class HeatPumpOptimizer:
             baseline_end, include_dhw, caps
         ) - self._stored_thermal_energy(optimized_end, include_dhw, caps)
 
-        cop = max(self.model.compute_cop(float(np.mean(outdoor_temps))), 1e-3)
+        out_mean = float(np.mean(outdoor_temps))
+        cop = max(self.model.compute_cop(out_mean), 1e-3)
         # Heat is topped up when it is cheap, so settle at a low percentile
         # rather than the mean; using the mean would over-charge the optimizer
         # for heat it would obviously buy back in a cheap hour. The same
@@ -3845,7 +3955,58 @@ class HeatPumpOptimizer:
         # conservative choice: heat already in store displaces whatever the next
         # window would have paid, which is the average and not the cheap tail.
         refill_price = float(np.percentile(prices, 25))
-        return stored_gap / cop * refill_price
+        electrical = stored_gap / cop
+
+        # v4.0.5: the tank shares of the gap re-price at their own marginal
+        # COP — the buffer refills at the flow-derated COP of its settlement
+        # temperature, the DHW tank at `compute_cop_dhw` — because that is
+        # what the simulation would actually charge to put the heat back.
+        # Pricing them at the plain space curve made a cold tank cheap to
+        # refill and a warm one rich to credit, so the reported savings
+        # overstated themselves exactly when the plan ended with a cold tank.
+        # Written as corrections on the plain-COP total rather than a clean
+        # per-store split so every store still priced at the plain curve —
+        # and every configuration where the tank COPs collapse to it —
+        # keeps the historical arithmetic bit for bit.
+        p = self.model.params
+        caps = caps or {}
+
+        def _capped(value: float, cap_key: str) -> float:
+            cap = caps.get(cap_key)
+            return min(value, cap) if cap is not None else value
+
+        if p.two_zone_enabled:
+            cop_buffer = max(
+                self.model.marginal_cop(
+                    out_mean, "buffer", store_temp=caps.get("buffer")
+                ),
+                1e-3,
+            )
+            if cop_buffer != cop:
+                buffer_gap = p.buffer_tank_thermal_mass * (
+                    _capped(baseline_end.buffer_tank_temperature, "buffer")
+                    - _capped(optimized_end.buffer_tank_temperature, "buffer")
+                )
+                electrical += buffer_gap / cop_buffer - buffer_gap / cop
+        if include_dhw:
+            dhw_cap = caps.get("dhw")
+            cop_dhw = max(
+                self.model.marginal_cop(
+                    out_mean,
+                    "dhw",
+                    store_temp=(
+                        dhw_cap if dhw_cap is not None else p.dhw_setpoint
+                    ),
+                ),
+                1e-3,
+            )
+            if cop_dhw != cop:
+                dhw_gap = p.dhw_tank_thermal_mass * (
+                    _capped(baseline_end.dhw_temperature, "dhw")
+                    - _capped(optimized_end.dhw_temperature, "dhw")
+                )
+                electrical += dhw_gap / cop_dhw - dhw_gap / cop
+        return electrical * refill_price
 
     def _compute_baseline_power(
         self,

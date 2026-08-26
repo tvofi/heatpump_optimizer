@@ -94,6 +94,14 @@ CONF_COP_SCALE: Final = "cop_scale"
 DEFAULT_COP_SCALE: Final = 1.0
 COP_SCALE_MIN: Final = 0.5
 COP_SCALE_MAX: Final = 1.6
+# The meter measures electrical input, never delivered heat, so a
+# commanded-vs-measured gap is ambiguous: a modest one is efficiency signal,
+# a large one means the pump simply is not running the plan (compressor
+# limits, cycling, ramp lag) and delivered thermal is unknown. Booking such
+# an interval as efficiency wrote tracking error into ``cop_scale`` — and
+# from there into every priced plan. Beyond this relative gap the sample is
+# discarded as untrustworthy rather than folded (v4.0.5).
+COP_TRACKING_ERROR_GATE: Final = 0.3
 
 # --- Input staleness watchdog (item 12) ------------------------------------
 #

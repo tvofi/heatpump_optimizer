@@ -100,6 +100,10 @@ class SysIdResult:
     heat_loss_kw_per_c: float | None = None
     #: Effective thermal capacity, kWh/°C.
     thermal_mass_kwh_per_c: float | None = None
+    #: Constant free heat during the experiment (occupancy, appliances,
+    #: residual solar), kW. ``None`` when the fit had to run without the
+    #: intercept column that identifies it.
+    internal_gains_kw: float | None = None
     #: 0-1; how much the result should be trusted as a prior.
     confidence: float = 0.0
     reason: str = ""
@@ -120,6 +124,11 @@ class SysIdResult:
             "thermal_mass_kwh_per_c": (
                 round(self.thermal_mass_kwh_per_c, 2)
                 if self.thermal_mass_kwh_per_c is not None
+                else None
+            ),
+            "internal_gains_kw": (
+                round(self.internal_gains_kw, 3)
+                if self.internal_gains_kw is not None
                 else None
             ),
             "confidence": round(self.confidence, 2),
@@ -307,15 +316,24 @@ class SystemIdentification:
     def identify(self) -> SysIdResult:
         """Fit a first-order model to the recorded step response.
 
-        During the step, the room obeys
+        During the experiment the room obeys
 
-            C·dT/dt = Q - UA·(T - T_out)
+            C·dT/dt = Q + G - UA·(T - T_out)
 
-        Regressing dT/dt on (T - T_out) and Q over the whole experiment gives
-        UA/C and 1/C directly, which is a plain least-squares problem. It is
-        solved over both the step and the relaxation phases because the
-        relaxation carries the cleanest information about UA (no input to
-        confound it) while the step carries the information about C.
+        with G the constant free heat (occupancy, appliances, residual
+        solar). Regressing dT/dt on (T - T_out), Q and a constant gives
+        UA/C, 1/C and G/C directly, which is a plain least-squares problem.
+        It is solved over both the step and the relaxation phases because
+        the relaxation carries the cleanest information about UA (no input
+        to confound it) while the step carries the information about C.
+
+        The intercept column is not decoration. Relax-phase samples carry
+        ``power_kw = 0`` while the gains keep heating the room, so a fit
+        without it pushed G into the other two coefficients and biased both
+        UA and C — the exact parameters the experiment exists to pin. When
+        the data cannot support three columns (rank < 3) the fit degrades
+        to the historical two-column form rather than failing outright,
+        and reports no gains figure.
         """
         usable = [
             s for s in self.samples if s.phase in (PHASE_STEP, PHASE_RELAX)
@@ -331,7 +349,7 @@ class SystemIdentification:
                 continue
             rate = (current.room_temp - previous.room_temp) / dt_h
             delta = previous.room_temp - previous.outdoor_temp
-            rows.append([-delta, previous.power_kw])
+            rows.append([-delta, previous.power_kw, 1.0])
             targets.append(rate)
 
         if len(rows) < 5:
@@ -339,18 +357,25 @@ class SystemIdentification:
 
         a = np.asarray(rows, dtype=float)
         b = np.asarray(targets, dtype=float)
+        gains_kw: float | None = None
         try:
             solution, residuals, rank, _ = np.linalg.lstsq(a, b, rcond=None)
+            if rank < 3:
+                # The constant cannot be separated (e.g. ΔT barely moved, so
+                # the delta column is itself nearly constant). Fall back to
+                # the two-column fit rather than discarding the experiment.
+                a = a[:, :2]
+                solution, residuals, rank, _ = np.linalg.lstsq(a, b, rcond=None)
+                if rank < 2:
+                    # Both regressors moved together, so they cannot be
+                    # separated. This is exactly the ambiguity the experiment
+                    # exists to break: the step was too small or too short.
+                    return SysIdResult(
+                        completed=False,
+                        reason="step gave insufficient excitation",
+                    )
         except np.linalg.LinAlgError:
             return SysIdResult(completed=False, reason="fit failed")
-
-        if rank < 2:
-            # Both regressors moved together, so they cannot be separated. This
-            # is exactly the ambiguity the experiment exists to break, and it
-            # means the step was too small or too short.
-            return SysIdResult(
-                completed=False, reason="step gave insufficient excitation"
-            )
 
         ua_over_c, one_over_c = float(solution[0]), float(solution[1])
         if one_over_c <= 1e-6 or ua_over_c <= 1e-6:
@@ -359,6 +384,19 @@ class SystemIdentification:
         capacity = 1.0 / one_over_c
         ua = ua_over_c * capacity
         tau = 1.0 / ua_over_c
+        if solution.shape[0] == 3:
+            gains_kw = float(solution[2]) * capacity
+            # Sanity bound: a hair of negative gains is regression noise and
+            # clips to zero; far outside the band means the "constant" was a
+            # drifting contaminant (sun through a window, a door), and a fit
+            # whose intercept is absorbing an unmodelled input has no claim
+            # on the other two coefficients either.
+            if not (-0.5 <= gains_kw <= 3.0):
+                return SysIdResult(
+                    completed=False,
+                    reason="fitted gains outside plausible bounds",
+                )
+            gains_kw = float(np.clip(gains_kw, 0.0, 2.0))
 
         # Confidence from how well the fit explains the data, tempered by how
         # much data there was.
@@ -378,6 +416,7 @@ class SystemIdentification:
             time_constant_hours=tau,
             heat_loss_kw_per_c=ua,
             thermal_mass_kwh_per_c=capacity,
+            internal_gains_kw=gains_kw,
             confidence=confidence,
             reason="ok",
         )
