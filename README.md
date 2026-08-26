@@ -1573,7 +1573,11 @@ For backward compatibility, it can also publish a **legacy JSON payload** to:
 }
 ```
 
-### New configuration options
+### Configuration options
+
+All ECL110 settings live on the options page *Heat curve control (ECL110)*
+(under Advanced settings); since v4.1.0 they no longer appear during initial
+setup, because only ECL110 owners can answer them:
 
 - `ecl110_displace_set_topic`
 - `ecl110_command_topic` (legacy JSON path)

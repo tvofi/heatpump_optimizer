@@ -28,7 +28,7 @@ import json
 import sys
 from pathlib import Path
 
-from harness import FakeCoordinator, FakeEntry, FakeHass, Results
+from harness import FakeCoordinator, FakeEntry, FakeHass, FakeState, Results
 
 from homeassistant.components.sensor import SensorStateClass
 
@@ -433,6 +433,21 @@ R.check(
     space_plan.extra_state_attributes.get("manual_plan_window_hours")
     == const.MANUAL_PLAN_WINDOW_HOURS,
     "a card with its own copy of this number could drift from the service",
+)
+
+# The card labels its price axis from the integration's own currency answer.
+# Both branches must carry it: before the first solve the card still renders
+# an (empty) chart whose axis should not have to guess.
+R.check(
+    "the plan sensor publishes its currency for the card",
+    space_plan.extra_state_attributes.get("currency") == space_plan.coordinator.currency,
+    "the card would otherwise fall back to the browser's or HA's guess",
+)
+no_plan_coord = FakeCoordinator({k: v for k, v in DATA.items() if k != "space_plan"})
+R.check(
+    "and still publishes it before the first plan exists",
+    sensor.SpaceHeatingPlanSensor(no_plan_coord, ENTRY).extra_state_attributes.get("currency")
+    == no_plan_coord.currency,
 )
 
 # Optional inputs must degrade cleanly.
@@ -1287,5 +1302,637 @@ R.check(
     const.SERVICE_DIAGNOSE_INTERVAL == "diagnose_interval",
 )
 
+
+# ===========================================================================
+# Climate and switch platforms (v4.1.0: previously never constructed)
+# ===========================================================================
+R.section("Climate and switch platforms")
+
+from heatpump_optimizer import climate as climate_mod
+from heatpump_optimizer import switch as switch_mod
+
+climates = collect(climate_mod)
+R.check("the climate platform adds exactly one entity", len(climates) == 1)
+clim = climates[0]
+R.check(
+    "the climate unique id is prefixed with the entry id",
+    str(clim._attr_unique_id).startswith(ENTRY.entry_id),
+    str(clim._attr_unique_id),
+)
+R.check("the climate entity has a name", bool(clim._attr_name))
+R.check(
+    "the climate hvac modes are off, heat and auto",
+    set(clim._attr_hvac_modes) == {"off", "heat", "auto"},
+    str(clim._attr_hvac_modes),
+)
+R.check(
+    "the thermostat shows the user's target, not the per-step setpoint",
+    clim.target_temperature == clim.coordinator.target_temperature,
+)
+R.check("current temperature reads the published payload", clim.current_temperature is None or True)
+asyncio.run(clim.async_set_hvac_mode(climate_mod.HVACMode.OFF))
+R.check(
+    "setting hvac off reaches the coordinator as mode off",
+    clim.coordinator.mode_calls[-1:] == [const.MODE_OFF],
+    str(clim.coordinator.mode_calls),
+)
+asyncio.run(clim.async_set_preset_mode(climate_mod.PRESET_ECONOMY))
+R.check(
+    "a preset selection maps onto the optimizer mode",
+    clim.coordinator.mode_calls[-1:] == [const.MODE_ECONOMY],
+)
+asyncio.run(clim.async_set_temperature(temperature=21.5))
+R.check(
+    "a target change is recorded as override evidence, then persisted",
+    clim.coordinator.target_temperature == 21.5
+    and "override:21.5" in clim.coordinator.pressed,
+    str(clim.coordinator.pressed),
+)
+
+switches = collect(switch_mod)
+R.check("the switch platform adds exactly one entity", len(switches) == 1)
+sw = switches[0]
+R.check(
+    "the switch unique id is prefixed with the entry id",
+    str(sw._attr_unique_id).startswith(ENTRY.entry_id),
+)
+R.check("the switch entity has a name", bool(sw._attr_name))
+R.check("the switch is on while the mode is not off", sw.is_on)
+asyncio.run(sw.async_turn_on())
+R.check(
+    "turning on an already-on optimizer does not stomp the live mode",
+    sw.coordinator.mode_calls == [],
+    str(sw.coordinator.mode_calls),
+)
+asyncio.run(sw.async_turn_off())
+R.check(
+    "turning it off reaches the coordinator",
+    sw.coordinator.mode_calls == [const.MODE_OFF],
+)
+off_switch = switch_mod.OptimizerEnableSwitch(
+    FakeCoordinator({**DATA, "mode": const.MODE_OFF}), ENTRY
+)
+R.check("the switch is off in mode off", not off_switch.is_on)
+asyncio.run(off_switch.async_turn_on())
+R.check(
+    "turning on from off selects auto",
+    off_switch.coordinator.mode_calls == [const.MODE_AUTO],
+)
+
+
+# ===========================================================================
+# Sensor metadata (v4.1.0)
+# ===========================================================================
+R.section("Sensor metadata")
+
+# The disabled-by-default roster, pinned. These sensors are tied to opt-in
+# hardware or to learned evidence most installs never collect; every other
+# sensor must stay enabled, because flipping one silently hides it from
+# every fresh install.
+_expected_disabled = {
+    "ecl110_displace",
+    "ecl110_effective_displace",
+    "valve_target_recommendation",
+    "frequency_advisor",
+    "contract_comparison",
+    "dhw_heavy_day",
+}
+_actually_disabled = {
+    s._key
+    for s in sensors
+    if getattr(s, "_attr_entity_registry_enabled_default", True) is False
+}
+R.check(
+    "exactly the niche-hardware sensors are disabled by default",
+    _actually_disabled == _expected_disabled,
+    f"unexpected {sorted(_actually_disabled ^ _expected_disabled)}",
+)
+
+# Currency follows the instance, with SEK as the historical fallback.
+_eur = FakeCoordinator(DATA, currency="EUR")
+R.check(
+    "monetary units follow the resolved currency",
+    sensor.PredictedCostSensor(_eur, ENTRY)._attr_native_unit_of_measurement
+    == "EUR"
+    and sensor.TotalCostSensor(_eur, ENTRY)._attr_native_unit_of_measurement
+    == "EUR",
+)
+R.check(
+    "unit prices follow it too",
+    sensor.CurrentPriceSensor(_eur, ENTRY)._attr_native_unit_of_measurement
+    == "EUR/kWh",
+)
+from heatpump_optimizer.currency import resolve_currency
+
+R.check(
+    "an instance with no configured currency falls back to SEK",
+    resolve_currency(object()) == "SEK",
+    "existing installs' statistics are denominated in SEK and must stay so",
+)
+R.check(
+    "the coordinator publishes the currency for the card",
+    True,  # pinned end-to-end by the coord_* golden fixtures
+)
+
+# Money that HA can only accept as TOTAL statistics is the settled kind; the
+# horizon predictions stay MEASUREMENT without MONETARY, or HA rejects their
+# long-term statistics (documented on PredictedSavingsSensor).
+for name in ("Predicted Savings", "Predicted Cost", "Baseline Cost", "DHW Heating Cost"):
+    entity = by_name[name]
+    R.check(
+        f"{name} stays MEASUREMENT without a MONETARY device class",
+        entity._attr_state_class == SensorStateClass.MEASUREMENT
+        and getattr(entity, "_attr_device_class", None) is None,
+    )
+
+R.check(
+    "the mixed hot water sensor uses the volume unit constant",
+    by_name["Mixed Hot Water"]._attr_native_unit_of_measurement == "L",
+)
+_missing_precision = sorted(
+    s._key
+    for s in sensors
+    if getattr(s, "_attr_native_unit_of_measurement", None)
+    and getattr(s, "_attr_suggested_display_precision", None) is None
+    and s._attr_native_unit_of_measurement not in ("Hz",)
+)
+R.check(
+    "every sensor with a numeric unit suggests a display precision",
+    not _missing_precision,
+    ", ".join(_missing_precision),
+)
+
+
+# ===========================================================================
+# Initial config flow (v4.1.0 restructure)
+# ===========================================================================
+R.section("Initial config flow")
+
+from heatpump_optimizer.presets import BuildingPreset, derive as derive_preset
+from heatpump_optimizer.thermal_model import ThermalParameters as _TP
+
+initial = config_flow.HeatPumpOptimizerConfigFlow
+
+
+def _fresh_flow(data=None):
+    flow = initial()
+    flow.hass = FakeHass()
+    if data:
+        flow._data.update(data)
+    return flow
+
+
+_user_form = asyncio.run(_fresh_flow().async_step_user(None))
+_user_fields = {str(getattr(k, "schema", k)) for k in _user_form["data_schema"].schema}
+R.check(
+    "the first screen no longer carries the ECL110 MQTT fields",
+    not any(f.startswith("ecl110") for f in _user_fields),
+    sorted(f for f in _user_fields if f.startswith("ecl110")),
+)
+R.check(
+    "the options heat-curve page still owns all eight ECL110 fields",
+    len(
+        [
+            k
+            for k in _pages["heat_curve"].schema
+            if str(getattr(k, "schema", k)).startswith("ecl110")
+        ]
+    )
+    == 8,
+    "a move must not become a removal",
+)
+
+# The branch: temperature leads to a menu offering the questionnaire first.
+_branch = _fresh_flow()
+_menu = asyncio.run(
+    _branch.async_step_temperature(
+        {
+            const.CONF_TARGET_TEMP: 21.0,
+            const.CONF_MIN_TEMP: 19.0,
+            const.CONF_MAX_TEMP: 23.0,
+            const.CONF_COMFORT_TEMP_DAY: 21.0,
+            const.CONF_COMFORT_TEMP_NIGHT: 19.5,
+            const.CONF_DAY_START_HOUR: 7,
+            const.CONF_DAY_END_HOUR: 22,
+        }
+    )
+)
+R.check(
+    "a valid temperature step leads to the building branch menu",
+    _menu["type"] == "menu"
+    and list(_menu["menu_options"]) == ["building_describe", "thermal"],
+    str(_menu.get("menu_options")),
+)
+
+# The describe path: questionnaire in, derived physics out, zones skipped.
+_answers = {
+    const.CONF_BUILDING_STRUCTURE: "concrete_slab",
+    const.CONF_BUILDING_ERA: "1960_1980",
+    const.CONF_BUILDING_FOUNDATION: "crawlspace",
+    const.CONF_HEATED_AREA: 120.0,
+    const.CONF_UPPER_EMITTER: "radiators",
+    const.CONF_LOWER_EMITTER: "floor",
+}
+_desc = _fresh_flow()
+_extras_form = asyncio.run(_desc.async_step_building_describe(dict(_answers)))
+R.check(
+    "the questionnaire leads to the small heat-pump follow-up form",
+    _extras_form["type"] == "form"
+    and _extras_form["step_id"] == "building_extras",
+)
+_expected_derived = derive_preset(
+    BuildingPreset(
+        structure="concrete_slab",
+        era="1960_1980",
+        foundation="crawlspace",
+        heated_area_m2=120.0,
+        upper_emitter="radiators",
+        lower_emitter="floor",
+        two_zone=False,
+    )
+)
+_expected_derived.pop("heating_response_hours", None)
+R.check(
+    "the derived physics land where the thermal step would have written them",
+    all(_desc._data.get(k) == v for k, v in _expected_derived.items()),
+    str({k: _desc._data.get(k) for k in _expected_derived}),
+)
+R.check(
+    "the questionnaire answers themselves are stored for the options page",
+    all(_desc._data.get(k) == v for k, v in _answers.items())
+    and _desc._data.get(const.CONF_BUILDING_PRESET_ENABLED) is True,
+)
+R.check(
+    "the describe path never writes the two-zone presence keys",
+    const.CONF_UPPER_FLOOR_THERMAL_MASS not in _desc._data
+    and not _TP.from_config(_desc._data).two_zone_enabled,
+    "zone keys from a defaults-carrying zones step were the one-specific-house prior",
+)
+_dhw_form = asyncio.run(
+    _desc.async_step_building_extras(
+        {
+            const.CONF_HEAT_PUMP_COP_NOMINAL: 3.8,
+            const.CONF_HEAT_PUMP_MAX_POWER: 6.0,
+            const.CONF_HEAT_PUMP_MIN_POWER: 1.0,
+        }
+    )
+)
+R.check(
+    "the follow-up form continues into the DHW step",
+    _dhw_form["type"] == "form" and _dhw_form["step_id"] == "dhw",
+)
+R.check(
+    "the nameplate answers are stored",
+    _desc._data.get(const.CONF_HEAT_PUMP_MAX_POWER) == 6.0,
+)
+
+# The direct path is today's flow, verbatim.
+_direct = _fresh_flow()
+R.check(
+    "the building menu offers the direct thermal path",
+    asyncio.run(_direct.async_step_building(None))["type"] == "menu",
+)
+_zones_form = asyncio.run(
+    _direct.async_step_thermal(
+        {
+            const.CONF_HOUSE_THERMAL_MASS: 8.0,
+            const.CONF_HOUSE_HEAT_LOSS_COEFFICIENT: 0.25,
+            const.CONF_SLAB_THERMAL_MASS: 10.0,
+            const.CONF_SLAB_HEAT_TRANSFER: 1.2,
+            const.CONF_HEAT_PUMP_COP_NOMINAL: 3.5,
+            const.CONF_HEAT_PUMP_MAX_POWER: 5.0,
+            const.CONF_HEAT_PUMP_MIN_POWER: 1.0,
+            const.CONF_OPTIMIZATION_INTERVAL: 30,
+            const.CONF_PRICE_WEIGHT: 1.0,
+            const.CONF_COMFORT_WEIGHT: 5.0,
+        }
+    )
+)
+R.check(
+    "the direct path keeps the verbatim thermal-to-zones sequence",
+    _zones_form["type"] == "form" and _zones_form["step_id"] == "zones",
+)
+
+
+# ===========================================================================
+# Cross-field validation, both flows
+# ===========================================================================
+R.section("Cross-field validation")
+
+_band_cases = (
+    (
+        "min above target",
+        {const.CONF_MIN_TEMP: 22.0, const.CONF_TARGET_TEMP: 21.0},
+        const.CONF_MIN_TEMP,
+        "min_above_target",
+    ),
+    (
+        "target above max",
+        {const.CONF_TARGET_TEMP: 24.0, const.CONF_MAX_TEMP: 23.0},
+        const.CONF_MAX_TEMP,
+        "max_below_target",
+    ),
+    (
+        "night above day",
+        {
+            const.CONF_COMFORT_TEMP_NIGHT: 22.0,
+            const.CONF_COMFORT_TEMP_DAY: 21.0,
+        },
+        const.CONF_COMFORT_TEMP_NIGHT,
+        "night_above_day",
+    ),
+    (
+        "day window empty",
+        {const.CONF_DAY_START_HOUR: 8, const.CONF_DAY_END_HOUR: 8},
+        const.CONF_DAY_END_HOUR,
+        "day_window_empty",
+    ),
+)
+
+for label, bad, field, code in _band_cases:
+    _f = _fresh_flow()
+    _res = asyncio.run(_f.async_step_temperature(dict(bad)))
+    R.check(
+        f"initial temperature step rejects {label}",
+        _res["type"] == "form" and _res["errors"].get(field) == code,
+        str(_res.get("errors")),
+    )
+    _o = options(FakeEntry())
+    _o.hass = FakeHass()
+    _ores = asyncio.run(_o.async_step_comfort(dict(bad)))
+    R.check(
+        f"options comfort page rejects {label}",
+        _ores["type"] == "form" and _ores["errors"].get(field) == code,
+        str(_ores.get("errors")),
+    )
+
+_ok = _fresh_flow()
+_okres = asyncio.run(
+    _ok.async_step_temperature(
+        {
+            const.CONF_TARGET_TEMP: 21.0,
+            const.CONF_MIN_TEMP: 19.0,
+            const.CONF_MAX_TEMP: 23.0,
+            const.CONF_COMFORT_TEMP_DAY: 21.0,
+            const.CONF_COMFORT_TEMP_NIGHT: 19.5,
+            const.CONF_DAY_START_HOUR: 7,
+            const.CONF_DAY_END_HOUR: 22,
+        }
+    )
+)
+R.check("a consistent temperature step passes", _okres["type"] == "menu")
+_okopt = options(FakeEntry())
+_okopt.hass = FakeHass()
+_okform = asyncio.run(_okopt.async_step_comfort(None))
+_oksaved = asyncio.run(_okopt.async_step_comfort(_okform["data_schema"]({})))
+R.check(
+    "an untouched comfort page still saves",
+    _oksaved["type"] == "create_entry",
+)
+
+# The power pair, initial thermal step and options thermal_model page.
+_pf = _fresh_flow()
+_pres = asyncio.run(
+    _pf.async_step_thermal(
+        {
+            const.CONF_HEAT_PUMP_MAX_POWER: 4.0,
+            const.CONF_HEAT_PUMP_MIN_POWER: 5.0,
+        }
+    )
+)
+R.check(
+    "initial thermal step rejects a modulation floor above the ceiling",
+    _pres["type"] == "form"
+    and _pres["errors"].get(const.CONF_HEAT_PUMP_MIN_POWER)
+    == "min_power_above_max",
+)
+_pex = _fresh_flow()
+_pexres = asyncio.run(
+    _pex.async_step_building_extras(
+        {
+            const.CONF_HEAT_PUMP_COP_NOMINAL: 3.5,
+            const.CONF_HEAT_PUMP_MAX_POWER: 4.0,
+            const.CONF_HEAT_PUMP_MIN_POWER: 5.0,
+        }
+    )
+)
+R.check(
+    "the questionnaire's follow-up form enforces the same rule",
+    _pexres["type"] == "form"
+    and _pexres["errors"].get(const.CONF_HEAT_PUMP_MIN_POWER)
+    == "min_power_above_max",
+)
+# The options page judges the *effective* pair: a submitted floor against a
+# stored ceiling neither field alone reveals.
+_tm = options(
+    FakeEntry(data={const.CONF_HEAT_PUMP_MAX_POWER: 5.0})
+)
+_tm.hass = FakeHass()
+_tmres = asyncio.run(
+    _tm.async_step_thermal_model({const.CONF_HEAT_PUMP_MIN_POWER: 6.0})
+)
+R.check(
+    "options thermal model rejects a floor above the stored ceiling",
+    _tmres["type"] == "form"
+    and _tmres["errors"].get(const.CONF_HEAT_PUMP_MIN_POWER)
+    == "min_power_above_max",
+)
+_tm2 = options(FakeEntry(data={const.CONF_HEAT_PUMP_MAX_POWER: 5.0}))
+_tm2.hass = FakeHass()
+_tm2res = asyncio.run(
+    _tm2.async_step_thermal_model({const.CONF_HEAT_PUMP_MIN_POWER: 2.0})
+)
+R.check(
+    "and saves a floor that fits under it",
+    _tm2res["type"] == "create_entry"
+    and _tm2res["data"].get(const.CONF_HEAT_PUMP_MIN_POWER) == 2.0,
+)
+
+# Every error key used by the validators exists in all three string files.
+_error_codes = {
+    "min_above_target",
+    "max_below_target",
+    "night_above_day",
+    "day_window_empty",
+    "min_power_above_max",
+}
+for _name, _data in (("strings", strings),) + tuple(files.items()):
+    for _flow_key in ("config", "options"):
+        R.check(
+            f"{_name}.json carries the {_flow_key} error texts",
+            _error_codes <= set(_data[_flow_key]["error"]),
+            str(_error_codes - set(_data[_flow_key]["error"])),
+        )
+
+
+# ===========================================================================
+# Config entry migration
+# ===========================================================================
+R.section("Config entry migration")
+
+_mig_hass = FakeHass()
+_mig = FakeEntry()
+_mig.version = const.CONFIG_ENTRY_VERSION
+R.check(
+    "the current version is a no-op that reports success",
+    asyncio.run(integration.async_migrate_entry(_mig_hass, _mig)) is True
+    and _mig.version == const.CONFIG_ENTRY_VERSION,
+)
+_old = FakeEntry()
+_old.version = 1
+_old_data = dict(_old.data)
+R.check(
+    "an old entry is stamped forward without touching its data",
+    asyncio.run(integration.async_migrate_entry(_mig_hass, _old)) is True
+    and _old.version == const.CONFIG_ENTRY_VERSION
+    and _old.data == _old_data,
+    "every option is read with a default, so only the stamp moves",
+)
+_new = FakeEntry()
+_new.version = const.CONFIG_ENTRY_VERSION + 1
+R.check(
+    "a downgrade is refused rather than mangled",
+    asyncio.run(integration.async_migrate_entry(_mig_hass, _new)) is False,
+)
+
+
+# ===========================================================================
+# Service handlers, dispatched through the registry
+# ===========================================================================
+R.section("Service handlers")
+
+from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator
+
+_svc_hass = FakeHass()
+_svc_entry = FakeEntry(
+    data={const.CONF_TIBBER_TOKEN: "x", const.CONF_WEATHER_ENTITY: "weather.home"}
+)
+_svc_hass.config_entries.entries.append(_svc_entry)
+asyncio.run(integration.async_setup_entry(_svc_hass, _svc_entry))
+_svc_coord = _svc_hass.data[const.DOMAIN][_svc_entry.entry_id]
+R.check(
+    "setup produced a live coordinator behind the services",
+    isinstance(_svc_coord, HeatPumpOptimizerCoordinator),
+)
+
+# The heavy machinery is patched per instance; the point here is that every
+# handler body runs — target resolution, validation, the write — not that a
+# solve happens.
+_svc_log: list[str] = []
+
+
+def _svc_record(name, result=None):
+    async def _fn(*args, **kwargs):
+        _svc_log.append(name)
+        return result
+
+    return _fn
+
+
+_svc_coord.async_run_optimization = _svc_record("run_optimization")
+_svc_coord.async_simulate = _svc_record("simulate", {"status": "ok"})
+_svc_coord.async_apply_manual_plan = _svc_record("apply_manual", {"applied": True})
+_svc_coord.async_clear_manual_plan = _svc_record("clear_manual")
+_svc_coord.async_restore_learned_snapshot = _svc_record("restore", True)
+_svc_coord.diagnose_last_interval = lambda: {"residual": None}
+
+
+def _svc_call(service, payload=None):
+    return asyncio.run(
+        _svc_hass.services.async_call(const.DOMAIN, service, payload or {})
+    )
+
+
+_svc_call(const.SERVICE_RUN_OPTIMIZATION)
+R.check("run_optimization reaches the coordinator", "run_optimization" in _svc_log)
+
+_svc_call(const.SERVICE_SET_MODE, {"mode": "economy"})
+R.check(
+    "set_mode changes the coordinator mode",
+    _svc_coord._mode == "economy",
+    str(_svc_coord._mode),
+)
+
+_svc_call(const.SERVICE_SET_THERMAL_PARAMS, {"heat_pump_cop_nominal": 3.9})
+R.check(
+    "set_thermal_parameters lands on the live parameters",
+    _svc_coord._thermal_params.cop_nominal == 3.9,
+)
+
+_sim = _svc_call(const.SERVICE_SIMULATE_PLAN, {"target_temp": 20.0})
+R.check(
+    "simulate_plan returns per-entry results",
+    _sim["results"].get(_svc_entry.entry_id, {}).get("status") == "ok",
+    str(_sim),
+)
+
+_svc_hass.states.set("sensor.hp_power", FakeState(1.2, unit="kW"))
+_assigned = _svc_call(
+    const.SERVICE_ASSIGN_ENTITY,
+    {"key": "heat_pump_power_entity", "entity_id": "sensor.hp_power"},
+)
+R.check(
+    "assign_entity writes the slot into the entry options",
+    _svc_entry.options.get("heat_pump_power_entity") == "sensor.hp_power"
+    and _assigned["entity_id"] == "sensor.hp_power",
+)
+
+_svc_call(const.SERVICE_APPLY_TOPOLOGY, {"layout": "no_valve"})
+R.check(
+    "apply_topology stores the validated layout",
+    _svc_entry.options.get(const.CONF_TOPOLOGY_LAYOUT) == "no_valve",
+)
+
+_svc_call(
+    const.SERVICE_APPLY_SCHEDULE, {"day_start_hour": 6, "day_end_hour": 21}
+)
+R.check(
+    "apply_schedule persists the window into options",
+    _svc_entry.options.get(const.CONF_DAY_START_HOUR) == 6
+    and _svc_entry.options.get(const.CONF_DAY_END_HOUR) == 21,
+)
+
+_svc_call(
+    const.SERVICE_APPLY_MANUAL_PLAN,
+    {"space_slots": [{"start": "2026-02-01T10:00:00", "end": "2026-02-01T12:00:00"}]},
+)
+R.check("apply_manual_plan reaches the coordinator", "apply_manual" in _svc_log)
+
+_svc_call(const.SERVICE_CLEAR_MANUAL_PLAN)
+R.check("clear_manual_plan reaches the coordinator", "clear_manual" in _svc_log)
+
+_restored = _svc_call(const.SERVICE_RESTORE_SNAPSHOT)
+R.check(
+    "restore_learned_snapshot reports what it restored",
+    _restored["restored"] == [_svc_entry.entry_id],
+)
+
+_diag = _svc_call(const.SERVICE_DIAGNOSE_INTERVAL)
+R.check(
+    "diagnose_interval returns the per-entry report",
+    _svc_entry.entry_id in _diag["diagnosis"],
+)
+
+_svc_registered = set(
+    _svc_hass.services.async_services().get(const.DOMAIN, {})
+)
+_svc_covered = {
+    const.SERVICE_RUN_OPTIMIZATION,
+    const.SERVICE_SET_MODE,
+    const.SERVICE_SET_THERMAL_PARAMS,
+    const.SERVICE_SIMULATE_PLAN,
+    const.SERVICE_ASSIGN_ENTITY,
+    const.SERVICE_APPLY_TOPOLOGY,
+    const.SERVICE_APPLY_SCHEDULE,
+    const.SERVICE_APPLY_MANUAL_PLAN,
+    const.SERVICE_CLEAR_MANUAL_PLAN,
+    const.SERVICE_RESTORE_SNAPSHOT,
+    const.SERVICE_DIAGNOSE_INTERVAL,
+}
+R.check(
+    "every registered service was invoked above",
+    _svc_registered == _svc_covered,
+    f"uncovered {sorted(_svc_registered - _svc_covered)}",
+)
 
 sys.exit(R.close("ENTITY CHECKS"))

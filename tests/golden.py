@@ -862,17 +862,17 @@ def capture_config_flow() -> dict:
     import asyncio
 
     from harness import FakeEntry, FakeHass
-    from heatpump_optimizer.config_flow import HeatPumpOptimizerOptionsFlow as Flow
+    from heatpump_optimizer.config_flow import (
+        HeatPumpOptimizerConfigFlow as InitialFlow,
+        HeatPumpOptimizerOptionsFlow as Flow,
+    )
 
     flow = Flow(
         FakeEntry(data={"tibber_token": "x", "weather_entity": "weather.home"})
     )
     flow.hass = FakeHass()
 
-    pages = {}
-    for step in Flow._MENU_LABELS:
-        result = asyncio.run(getattr(flow, f"async_step_{step}")())
-        schema = result.get("data_schema")
+    def fingerprint(schema) -> dict:
         fields = {}
         for key, value in (schema.schema.items() if schema else []):
             config = getattr(value, "config", None)
@@ -890,7 +890,39 @@ def capture_config_flow() -> dict:
                 "default": default,
                 "required": type(key).__name__,
             }
-        pages[step] = fields
+        return fields
+
+    pages = {}
+    for step in Flow._MENU_LABELS:
+        result = asyncio.run(getattr(flow, f"async_step_{step}")())
+        pages[step] = fingerprint(result.get("data_schema"))
+
+    # The initial flow (v4.1.0): fingerprinted since its restructure, because
+    # a first-run form that silently gains or loses a field is exactly the
+    # kind of change this fixture exists to make deliberate. Menu steps are
+    # recorded as their ordered option list.
+    initial = InitialFlow()
+    initial.hass = FakeHass()
+    initial_pages = {}
+    for step in (
+        "user",
+        "temperature",
+        "building",
+        "building_describe",
+        "building_extras",
+        "thermal",
+        "zones",
+        "dhw",
+        "weather_sensitivity",
+    ):
+        result = asyncio.run(getattr(initial, f"async_step_{step}")())
+        if result.get("type") == "menu":
+            initial_pages[step] = {
+                "menu": [[k, v] for k, v in result["menu_options"].items()]
+            }
+        else:
+            initial_pages[step] = fingerprint(result.get("data_schema"))
+    pages["_initial"] = initial_pages
 
     # The two-level menu (v4.0.0) is structure the schemas cannot see: which
     # page sits on which menu, and in what order. Recorded as ordered pairs,

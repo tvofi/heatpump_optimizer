@@ -106,6 +106,15 @@ class FakeHass:
         return func(*args)
 
 
+class FakeServiceCall:
+    """The slice of ``ServiceCall`` the integration's handlers read."""
+
+    def __init__(self, domain, service, data) -> None:
+        self.domain = domain
+        self.service = service
+        self.data = dict(data or {})
+
+
 class FakeServices:
     """Honest registration state, not a no-op.
 
@@ -113,22 +122,32 @@ class FakeServices:
     registered but never removed — which is exactly the class of leak the
     lifecycle tests exist for — so the registry is real: registration stores
     the handler, removal deletes it, and ``async_services`` reports what is
-    actually there.
+    actually there. ``async_call`` dispatches through the stored schema to
+    the stored handler, the way Home Assistant does, so a service test
+    exercises the handler body rather than a recording stub.
     """
 
     def __init__(self) -> None:
         self.calls = []
         self._registry: dict[str, dict] = {}
+        self._schemas: dict[tuple, object] = {}
 
     async def async_call(self, domain, service, data=None, **kwargs):
         self.calls.append((domain, service, data))
-        return None
+        handler = self._registry.get(domain, {}).get(service)
+        if handler is None:
+            return None
+        schema = self._schemas.get((domain, service))
+        payload = schema(dict(data or {})) if schema is not None else dict(data or {})
+        return await handler(FakeServiceCall(domain, service, payload))
 
-    def async_register(self, domain, service, handler, **kwargs):
+    def async_register(self, domain, service, handler, schema=None, **kwargs):
         self._registry.setdefault(domain, {})[service] = handler
+        self._schemas[(domain, service)] = schema
 
     def async_remove(self, domain, service):
         self._registry.get(domain, {}).pop(service, None)
+        self._schemas.pop((domain, service), None)
 
     def async_services(self) -> dict:
         return self._registry
@@ -136,7 +155,20 @@ class FakeServices:
 
 class FakeConfigEntries:
     """Platform forwarding is not what these tests exercise; it just has to
-    report success so the entry-level setup/unload paths can run whole."""
+    report success so the entry-level setup/unload paths can run whole. The
+    entry roster is real so service handlers that resolve their targets via
+    ``async_entries`` find the entry the test set up."""
+
+    def __init__(self) -> None:
+        self.entries = []
+        self.reloaded = []
+
+    def async_entries(self, domain=None):
+        return list(self.entries)
+
+    async def async_reload(self, entry_id):
+        self.reloaded.append(entry_id)
+        return True
 
     async def async_forward_entry_setups(self, entry, platforms):
         return None
@@ -158,6 +190,9 @@ class FakeConfig:
     latitude = 59.33
     longitude = 18.07
     language = "en"
+    # What a Swedish install has configured; also what the golden coordinator
+    # fixtures pin as the published currency leaf.
+    currency = "SEK"
 
 
 class FakeCoordinator:
@@ -175,8 +210,25 @@ class FakeCoordinator:
         self.optimization_running = False
         self.system_identification_active = False
         self.pressed = []
+        # What the real coordinator resolves from hass.config at construction.
+        self.currency = "SEK"
+        # What the climate thermostat card shows as the user's target.
+        self.target_temperature = 21.0
+        self.mode_calls: list[str] = []
         for key, value in extra.items():
             setattr(self, key, value)
+
+    async def async_set_mode(self, mode):
+        self.mode_calls.append(mode)
+
+    async def async_set_target_temperature(self, temp):
+        self.target_temperature = float(temp)
+
+    def record_setpoint_override(self, temp):
+        self.pressed.append(f"override:{temp}")
+
+    async def async_publish_current_action(self, reason=None):
+        self.pressed.append(f"publish:{reason}")
 
     def describe_setup(self) -> dict:
         """The topology the plan sensors publish for the card's setup page."""
