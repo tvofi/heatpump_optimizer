@@ -1962,6 +1962,7 @@ class _LearnPersist:
         self._cop_baseline = {}
         self._immersion_events = []
         self._snow_accum_cm = 0.0
+        self._snow_accum_last = None
         self._last_heavy_snow = None
         self._capacity_envelope = {}
         self._solar_aperture = {
@@ -7439,6 +7440,7 @@ finally:
 # --- #17 the capacity envelope ------------------------------------------------------
 _c17 = _t2_coord(capacity_curve_enabled=True)
 _c17._current_state.outdoor_temperature = -10.0  # bucket -4
+_c17._current_action = {"power": 5.0}  # commanded at nameplate
 _c17._measured_power = 4.0
 for _ in range(CAPACITY_MIN_SAMPLES + 2):
     _c17._fold_capacity_envelope(2.0)  # 8 kW thermal delivered
@@ -7472,11 +7474,23 @@ R.check(
 )
 _c18 = _t2_coord()
 _c18._measured_power = 4.0
+_c18._current_action = {"power": 5.0}
 _c18._current_state.outdoor_temperature = -10.0
 _c18._fold_capacity_envelope(3.0)
 R.check(
     "with the flag off the envelope neither learns nor caps",
     not _c18._capacity_envelope and _c18._capacity_caps(np.array([-10.0])) is None,
+)
+_c19 = _t2_coord(capacity_curve_enabled=True)
+_c19._current_state.outdoor_temperature = -10.0
+_c19._measured_power = 2.0
+_c19._current_action = {"power": 2.0}  # 40% duty: censored, not evidence
+_c19._fold_capacity_envelope(3.0)
+R.check(
+    "partial-load intervals are censored, never envelope evidence",
+    not _c19._capacity_envelope,
+    "the caps limit the plan and the plan limits the samples; folding "
+    "partial load would ratchet every active bucket down to the floor",
 )
 R.check(
     "the envelope composes through caps_extra, never a second channel",
@@ -7739,6 +7753,102 @@ R.check(
     _cr4._capacity_envelope.get(-4) == [12.0, 9]
     and 0 not in _cr4._capacity_envelope,
     "a restore is a restore, not a merge with the state it replaces",
+)
+
+# --- the T4b review round's regressions ------------------------------------------
+# #53's loop closure: the learner replays must predict WITH the learned
+# profile (and #36's scale must reach the params the replay shares), or
+# the gains learner is an open-loop integrator converging to alpha/ridge
+# times the true correction.
+_hl_src = inspect.getsource(_Coord._async_learn_house_heat_loss)
+R.check(
+    "the heat-loss replay predicts with the per-hour profile",
+    "hour_of_day=previous_time.hour" in _hl_src,
+    "an open-loop residual never re-centres: fixed point g0 + 2.5*surplus",
+)
+_run_src2 = inspect.getsource(_Coord.async_run_optimization)
+R.check(
+    "the apply path writes both learned scales onto the shared params",
+    "solar_aperture_scale" in _run_src2
+    and "internal_gains_profile" in _run_src2,
+    "the replay closes its loop through these params — a scale that "
+    "never lands there is learned but never applied OR re-centred",
+)
+
+# #2's evidence collection stands down when the floor it reads is not the
+# floor being enforced: away setbacks and frozen learners both fake a miss.
+_c2e = _t2_coord(curve_learning_enabled=True)
+_c2e._curve_learner.bias = -1.0
+_c2e._away_state.active = True
+_c2e._current_state.room_temperature = 15.0  # deep in the away setback
+_c2e._track_curve_comfort(datetime(2026, 1, 15, 12, 0, tzinfo=UTC))
+R.check(
+    "an away setback is not a comfort miss — the bias survives vacations",
+    _c2e._curve_learner.bias == -1.0 and _c2e._curve_day_worst is None,
+    "the tracker reads the normal floor; away lowers it only inside the "
+    "solve envelope",
+)
+_c2f = _t2_coord(curve_learning_enabled=True)
+_c2f._curve_learner.bias = -1.0
+_c2f._vent_cusum.tripped = True
+_c2f._current_state.room_temperature = 15.0
+_c2f._track_curve_comfort(datetime(2026, 1, 15, 12, 0, tzinfo=UTC))
+R.check(
+    "an open window's dip is the window's doing, not the curve's",
+    _c2f._curve_learner.bias == -1.0 and _c2f._curve_day_worst is None,
+)
+
+# #30's arithmetic, now a named helper with its own numbers.
+_lf = _Coord._liquid_fraction
+R.check(
+    "the liquid fraction: all snow is 0, all rain is 1, dry is 1",
+    float(_lf(np.array([1.0]), np.array([0.7]))[0]) == 0.0
+    and float(_lf(np.array([2.0]), np.array([0.0]))[0]) == 1.0
+    and float(_lf(np.array([0.0]), np.array([1.0]))[0]) == 1.0,
+    "0.7 cm of snow IS 1 mm of the water-equivalent precipitation",
+)
+R.check(
+    "a half-snow step splits at one half",
+    abs(float(_lf(np.array([2.0]), np.array([0.7]))[0]) - 0.5) < 1e-9,
+)
+R.check(
+    "cross-source disagreement clips instead of going negative",
+    float(_lf(np.array([0.5]), np.array([7.0]))[0]) == 0.0,
+)
+
+# The snow clock persists: a restart after a multi-day outage must decay
+# the accumulator over the downtime instead of re-tripping on stale snow.
+_cp5 = _t2_coord()
+_cp5._snow_accum_cm = 3.0
+_cp5._snow_accum_last = NOW
+_snow_payload = _cp5._thermal_learning_payload()
+_cq6 = _t2_coord()
+
+
+async def _fake_snow_load(_p=_snow_payload):
+    return _p
+
+
+_cq6._thermal_learning_store.async_load = _fake_snow_load
+_asyncio.run(_cq6._async_load_thermal_learning())
+R.check(
+    "the snow accumulator's clock survives a restart with its value",
+    _cq6._snow_accum_last == NOW and abs(_cq6._snow_accum_cm - 3.0) < 1e-9,
+)
+
+# A pre-T4b snapshot restores EVERY T4b learner to inert — aperture and
+# curve bias included, not just the two container types.
+_cr5 = _t2_coord()
+_old_snapshot = {"thermal_learning": {"house_heat_loss_scale": 1.0}}
+_cr5._solar_aperture.update({"n": 99.0, "scale": 1.8})
+_cr5._curve_learner.bias = -2.0
+_cr5._apply_learner_payloads(_old_snapshot)
+R.check(
+    "restoring a pre-T4b snapshot resets the aperture and the curve bias",
+    _cr5._solar_aperture["scale"] == 1.0
+    and _cr5._solar_aperture["n"] == 0.0
+    and _cr5._curve_learner.bias == 0.0,
+    "keeping the drifted values would be the merge the comment forbids",
 )
 
 sys.exit(R.close("FEATURE CHECKS"))

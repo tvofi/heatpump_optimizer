@@ -163,13 +163,16 @@ class IrradianceSeries:
 _EMPTY = IrradianceSeries(times=(), values=(), resolution=timedelta(hours=1))
 
 
-def _parse_block(block: dict, variable: str) -> IrradianceSeries:
+def _parse_block(
+    block: dict, variable: str, max_value: float = _MAX_PLAUSIBLE_GHI
+) -> IrradianceSeries:
     """Build a series from one Open-Meteo time block, skipping null samples.
 
     Open-Meteo pads the tail of a block with nulls when a model has not
     produced that far ahead, and the satellite archive has gaps where no image
     was usable. Both must be dropped rather than coerced to zero, which would
-    read as "no sun" instead of "no data".
+    read as "no sun" instead of "no data". ``max_value`` is the variable's own
+    plausibility ceiling — the GHI limit means nothing to a humidity series.
     """
     times_raw = block.get("time") or []
     values_raw = block.get(variable) or []
@@ -183,7 +186,7 @@ def _parse_block(block: dict, variable: str) -> IrradianceSeries:
             value = float(raw_v)
         except (TypeError, ValueError):
             continue
-        if value < 0.0 or value > _MAX_PLAUSIBLE_GHI:
+        if value < 0.0 or value > max_value:
             continue
         try:
             # timezone=UTC is requested, so the naive ISO stamps are UTC.
@@ -415,10 +418,11 @@ class OpenMeteoSolar:
         # missing variable leaves the previous series in place, exactly
         # like a failed irradiance fetch.
         hourly_block = data.get("hourly") or {}
-        humidity = _parse_block(hourly_block, _VARIABLE_HUMIDITY)
+        humidity = _parse_block(hourly_block, _VARIABLE_HUMIDITY, max_value=100.0)
         if humidity:
             self._humidity = humidity
-        snowfall = _parse_block(hourly_block, _VARIABLE_SNOWFALL)
+        # 50 cm in one hour is beyond any recorded snowfall rate.
+        snowfall = _parse_block(hourly_block, _VARIABLE_SNOWFALL, max_value=50.0)
         if snowfall:
             self._snowfall = snowfall
 

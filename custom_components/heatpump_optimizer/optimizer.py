@@ -1744,6 +1744,7 @@ class HeatPumpOptimizer:
                     external_heat_kw=external_heat_kw,
                     valve_targets=valve_targets,
                     humidity=humidity,
+                    start_hour=float(step_hours[0]),
                 ):
                     break
                 result = _solve()
@@ -1883,6 +1884,7 @@ class HeatPumpOptimizer:
         external_heat_kw: np.ndarray | None = None,
         valve_targets: np.ndarray | None = None,
         humidity: np.ndarray | None = None,
+        start_hour: float | None = None,
     ) -> bool:
         """Lower per-step power ceilings where the plan charged a full tank.
 
@@ -1906,6 +1908,11 @@ class HeatPumpOptimizer:
             external_heat_kw=external_heat_kw,
             valve_targets=valve_targets,
             humidity=humidity,
+            # The refusal check must simulate the same physics the
+            # objective did — with #53's profile active, flat internal
+            # gains would judge the caps on a trajectory the solve does
+            # not believe.
+            start_hour=start_hour,
         )
         refused = self.model.last_buffer_refused
         if refused is None:

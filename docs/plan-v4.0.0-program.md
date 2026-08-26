@@ -756,6 +756,36 @@ golden recorder's `--only` filter re-recorded all fixtures, and the five
 machine-sensitive ones had to be restored from HEAD — the never-re-record
 rule needs the recorder's cooperation, not just the operator's.
 
+*T4b review round (1 critical, 3 major, 5 minor, 3 nits — all acted on):*
+the critical was that first restore failing silently: the recorder job ran
+two `--record` passes, and the second rewrote the five protected fixtures
+AFTER the restore, so the container-local bytes were committed anyway (and
+the "all 52 unchanged" run that looked like good news was comparing the
+tree against its own fresh recordings). The review proved behaviour
+byte-identical across the revisions at default flags, the fixtures are
+restored from the T4a merge commit, and the `--only` fix makes the class of
+accident unrepeatable. The majors: #53 was an open-loop integrator — the
+learner replay predicted with the flat constant, so its residuals never
+re-centred and the profile converged to α/ridge = 2.5× the true correction;
+both learner replays now pass `hour_of_day`, closing the loop the way #36's
+scale always was, with a source-pinned regression. #17's envelope was
+self-censoring — the caps limit the plan, the plan limits the samples, and
+every partial-load bucket would have ratcheted to the 0.6 floor within
+weeks; only near-nameplate commands (≥95%) are envelope evidence now, since
+partial load bounds nothing. #2's comfort tracker read the normal floor
+while away mode enforced a lower one inside the solve envelope, so every
+vacation read as a comfort miss and wiped the bias; the tracker stands down
+during away/recovery and whenever the indoor sensor's learners are frozen.
+Minors: the snow accumulator's clock persists (a restart after a multi-day
+outage skipped the decay and could re-trip the roof damping on stale snow);
+rollback resets the aperture moments and curve bias too, so a pre-T4b
+snapshot restores to inert rather than merging; the buffer-refusal cap
+shave simulates with the same per-hour gains as the objective; the
+liquid-fraction arithmetic moved into a named helper with direct tests
+(all-snow 0, half-snow ½, cross-source disagreement clips); Open-Meteo's
+plausibility ceiling is per-variable now (the GHI limit meant nothing to a
+humidity series). Features suite closed the round at 711 checks.
+
 **Infrastructure:** **`snapshots.py`** — weekly ring buffer (8) serialising every
 learner's existing `as_dict()` tagged with `accuracy.summary()`; drift test on
 `temperature_bias` out of band 5 consecutive days ⇒ repair issue + one-click
