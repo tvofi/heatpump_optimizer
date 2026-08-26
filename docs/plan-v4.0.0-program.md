@@ -1137,6 +1137,20 @@ plans with no actuation to realise them.
 
 ## T8 — v4.0.0 release (PR 9) · Opus
 
+*Outcome notes:* shipped as scoped — VERSION, manifest.json and
+CARD_VERSION to 4.0.0, RELEASE_NOTES.md with the per-tranche story, the
+full feature-flag table (every new key, its inert default, and what
+turning it on means) and the no-migrations upgrade note. No code. Gates
+on the release tree: features 838, entities 196, the quick suites and
+card.mjs (the one suite whose input file actually changed), golden 48/53
+byte-identical with only the five environmental fixtures differing, and
+manifest JSON validity. `SLOW=1` rolling and env_drift were SKIPPED at
+the user's direction: the code tree is byte-identical to the T7-merged
+main those gates had just passed on, and re-proving unchanged code was
+redundant. No adversarial review round — the diff is version strings and
+prose; the release notes' factual claims (counts 56/4/4, flag defaults)
+were checked against const.py and the README's test-enforced counts.
+
 `VERSION` → 4.0.0, `manifest.json`, `CARD_VERSION`; `RELEASE_NOTES.md` in the
 repo's prose style with a per-tranche summary and a **feature-flag table showing
 every new key and its inert default**; upgrade note: no store migrations required.
