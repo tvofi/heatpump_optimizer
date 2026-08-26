@@ -47,6 +47,9 @@ for f in tests/*.py; do
   base=$(basename "$f")
   case "$base" in
     harness.py|profiles.py) continue ;;  # shared plumbing, not tests
+    # Run by features.py in a subprocess: HASTUB_TZ must be set before the
+    # dt stub is imported, which an in-process import cannot arrange.
+    dst_checks.py) continue ;;
   esac
   if ! grep -q "$base" tests/run.sh; then
     echo "UNWIRED TEST: tests/$base is not referenced by tests/run.sh"

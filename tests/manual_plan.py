@@ -206,6 +206,31 @@ def test_channel_semantics(R: Results) -> None:
         all(v != v for v in off_pins[24:]),
     )
 
+    # Overlap, not start-containment: the solve anchor snaps to the quarter
+    # grid, so a service call's "from now" slot starts mid-step. Judging
+    # only the step's start turned that command into a force-OFF of the
+    # very step it landed in — a boost that switched the channel off.
+    mid = build_override(
+        dhw_slots=[_slot(7.5 / 60.0, 1.0 + 7.5 / 60.0)],
+        space_slots=None,
+        expires_at=expires,
+        now=now,
+    )
+    mid_pins = mid.channel_pins(CHANNEL_DHW, step_starts)
+    R.check(
+        "a slot starting mid-step pins the step it lands in ON",
+        mid_pins[0] == 1.0,
+        f"step 0 pin = {mid_pins[0]}",
+    )
+    R.check(
+        "and the partially covered trailing step stays ON too",
+        [i for i, v in enumerate(mid_pins) if v == 1.0] == [0, 1, 2, 3, 4],
+        f"on steps = {[i for i, v in enumerate(mid_pins) if v == 1.0]}",
+    )
+    # Grid-aligned slots — everything the card produces — are untouched:
+    # overlap and containment agree exactly there (asserted above by the
+    # 02:00-03:00 slot's [8, 9, 10, 11]).
+
 
 def test_serialization(R: Results) -> None:
     R.section("Serialisation round-trip")

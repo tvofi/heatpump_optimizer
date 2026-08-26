@@ -425,8 +425,21 @@ def _entries_by_day(entries: list[dict]) -> dict[str, dict[int, dict[int, float]
     Keyed by minute rather than kept as a list so quarter order never depends
     on the order the API happened to deliver entries in, and so a duplicated
     entry overwrites instead of double-counting.
+
+    A local day whose entries change UTC offset mid-day — a DST transition —
+    is dropped entirely, for every learner fed from here. The bucketing is
+    positional (index == wall-clock hour), and on the autumn fold the
+    repeated local hour's second occurrence overwrites the first, so a
+    25-hour day emerged as a well-formed 24-hour day and trained the shape,
+    the quarter factors and the residual variance on a fabricated hour. The
+    23-hour spring day was only ever rejected incidentally by the
+    24-hour completeness gates. Two days a year, unbiased; the offset
+    information exists only here — downstream the day is bare floats —
+    which is why the predicate cannot live anywhere else. Naive timestamps
+    carry one offset (``None``) and degrade safely to "kept".
     """
     by_day: dict[str, dict[int, dict[int, float]]] = {}
+    offsets: dict[str, set] = {}
     for entry in entries or []:
         starts_at = entry.get("starts_at") or entry.get("startsAt")
         total = entry.get("total")
@@ -439,8 +452,13 @@ def _entries_by_day(entries: list[dict]) -> dict[str, dict[int, dict[int, float]
             continue
         if not np.isfinite(value):
             continue
-        day = by_day.setdefault(when.date().isoformat(), {})
+        day_key = when.date().isoformat()
+        day = by_day.setdefault(day_key, {})
         day.setdefault(when.hour, {})[when.minute] = value
+        offsets.setdefault(day_key, set()).add(when.utcoffset())
+    for day_key, seen in offsets.items():
+        if len(seen) > 1:
+            del by_day[day_key]
     return by_day
 
 

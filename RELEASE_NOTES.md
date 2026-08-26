@@ -1,5 +1,67 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v4.0.4
+
+### Time alignment and price math from the audit's fourth pass
+
+The plan's clock and the market's clock now agree. On a healthy install
+with common settings nothing moves: every plan fixture is byte-identical,
+and the guards below only wake on inputs that were already producing wrong
+answers.
+
+**Plans are anchored to the quarter-hour they actually describe.** The
+price and weather arrays have always been built on the midnight-anchored
+quarter grid, but the solve stamped its timestamps with the raw instant it
+happened to run at — a 12:07 solve published a "12:07" step whose price
+was the 12:00 quarter's. Every consumer inherited the seven-minute lie:
+card and sensor timestamps, manual-plan pins, capacity-window folding, and
+the filed accuracy promises. The solve anchor is now floored to the grid
+once, from a single clock reading shared with the forecast assembly, and
+the same snap covers the what-if simulator and the manual-plan step count.
+Wall-clock lookups into the plan — "what applies right now" — deliberately
+stay on the raw clock. One visible edge: an override expiring at 12:05
+still pins the [12:00, 12:15) step of a 12:07 solve, which is the grid's
+own semantics — the override covered that step's start.
+
+**Days with a DST transition no longer train the price prior.** On the
+autumn fold the repeated local hour's second batch of entries silently
+overwrote the first, so a 25-hour day slipped through the completeness
+gates as a well-formed 24-hour day and trained the shape, the quarter
+factors and the residual variance on a fabricated hour. A local day whose
+entries change UTC offset mid-day is now excluded from all price learning
+at the single bucketing chokepoint — two days a year, both directions,
+every learner seeing the identical exclusion. Prediction-time lookups were
+already wall-clock-safe and are unchanged.
+
+**Metering windows longer than an hour now meter longer than an hour.** The
+peak tracker's window snap could only move the minute field, so a 90- or
+120-minute capacity tariff degenerated into hourly windows: less burst
+dilution than the DSO's meter grants, inflated recorded peaks, and the
+live guard projecting over the wrong remaining time. All three snap sites
+now share one midnight-anchored helper, matching the optimizer's own
+window-offset arithmetic. For 15/30/60-minute windows the result is
+bit-identical, persisted window keys included.
+
+**Negative price days no longer invert the solver's starting guess.** The
+smooth initial guess normalises by the horizon's mean price; a negative
+mean (a real Nordic spring day) flipped its sign, so the guess ran lowest
+in the cheapest hours, and a near-zero mean saturated it into bang-bang at
+arbitrary steps. Below a small positive mean the guess now falls back to a
+price-rank mapping onto the same band — cheapest step, highest start.
+Three coordinator consumers of the mean price got the same respect for
+sign: a setpoint override during a negative-mean spell records a neutral
+relative price instead of a sign-flipped one, the DHW setpoint sweep ranks
+against a floored positive level instead of crowning the hungriest
+candidate, and the elastic legionella ceiling honestly reports "no
+opinion" rather than a ceiling below every possible price.
+
+**A 100× grid fee gets a warning, not a silent plan.** 25 öre typed as
+`25` in a SEK/kWh field — rules, fixed component, or a fee sensor
+publishing öre — now raises a warn-only repair issue naming the value and
+its source. Nothing is mutated or capped: the plan keeps pricing with
+exactly what was configured, and the notice clears on the first planning
+cycle after the value returns to plausible.
+
 ## v4.0.3
 
 ### Guards from the audit's third pass

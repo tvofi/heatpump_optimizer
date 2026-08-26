@@ -334,6 +334,8 @@ from .tariff import CapacityTariff, PeakTracker
 from .grid_fee import (
     GridFeeError,
     GridFeeSchedule,
+    IMPLAUSIBLE_FEE_SEK_PER_KWH,
+    max_abs_component as grid_fee_max_abs_component,
     parse_month_range as grid_fee_parse_month_range,
 )
 from .dhw_draws import DrawStats, labels_for, window_label as draw_window_label
@@ -894,6 +896,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
         # --- Grid transfer fees and the monthly ledger (v4.0.0 T1) ---------
         self._grid_fee_cache: tuple | None = None
+        # The fee magnitude the standing "grid_fee_magnitude" repair issue
+        # was raised for; None = no issue. Re-raising every cycle would
+        # refresh the issue's timestamp and bury when the bad value first
+        # appeared — the same reason solve_failures raises exactly-at.
+        self._grid_fee_issue_value: float | None = None
         self._ledger = MonthlyLedger()
         self._ledger_store: Store = Store(
             hass,
@@ -1408,10 +1415,20 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             level = float(
                 np.mean([p.get("total", 0.0) for p in self._prices])
             )
-            ceiling = self._price_model.expected_daily_min(
-                sorted(set(day_types)), level
-            )
-            params.dhw_legionella_price_ceiling = ceiling
+            # A near-zero or negative mean (negative spot spells are real
+            # in a Nordic spring) makes the scaled ceiling ~0 or negative,
+            # which the elastic gate can never see the price dip under —
+            # silently deferring the anti-legionella boost to its hard
+            # deadline through exactly the cheap spells it should use.
+            # None is the configured "no elasticity, run on schedule"
+            # answer, which is the fail-safe one for hygiene. Same guard
+            # style as ``_record_quiet_comfort_period``.
+            if level > 1e-6:
+                params.dhw_legionella_price_ceiling = (
+                    self._price_model.expected_daily_min(
+                        sorted(set(day_types)), level
+                    )
+                )
 
     def _dhw_mixed_water(self) -> dict[str, Any]:
         """#28: what the tank actually holds, in shower terms.
@@ -1457,6 +1474,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         mean_price = float(
             np.mean([p.get("total", 0.0) for p in self._prices])
         )
+        # The sweep ranks candidates by cost, and ranking needs a positive
+        # price level: a negative mean flips every ``cost_day`` negative and
+        # min-cost then crowns the candidate using the MOST energy. The
+        # sweep is a relative comparison, so on a worthless-energy day a
+        # floored positive level keeps the ranking meaningful — better than
+        # the advisor entity vanishing, which would look like a bug.
+        if mean_price <= 1e-6:
+            mean_price = max(abs(mean_price), 0.1)
         # The heaviest ready energy any window needs, learned where
         # evidence exists, profile-mean otherwise. Without the fallback a
         # fresh install has a 0 kWh "heaviest window", every candidate
@@ -3345,7 +3370,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self.async_update_listeners()
         away_original: dict[str, float] | None = None
         try:
-            horizon = self._forecast_arrays()
+            # One clock reading for the whole solve. The snapped anchor and
+            # the forecast grid must derive from the same instant: two
+            # separate ``dt_util.now()`` calls straddling a quarter boundary
+            # would shift every array one step against the plan's own
+            # timestamps — silently, and only a few times a day.
+            now = dt_util.now()
+            solve_now = self._solve_anchor(now)
+            horizon = self._forecast_arrays(now)
             prices = horizon.prices
 
             if len(prices) < 4:
@@ -3482,11 +3514,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._prepare_dhw_inputs(dt_util.now())
 
             # Manual plan: build the per-step pin arrays aligned to the exact
-            # horizon this solve will use. An expired override is dropped here so
-            # it can never influence planning, and the solve timestamp is taken
-            # once and reused so the pins line up with the steps the optimizer
-            # builds from the same instant.
-            solve_now = dt_util.now()
+            # horizon this solve will use. ``solve_now`` is the quarter
+            # anchor taken above, so the pins land on the same grid as the
+            # price array and the timestamps the optimizer will publish.
             space_pins, dhw_pins = self._manual_pins(solve_now, len(prices))
 
             # The opt-in fuse guard (#3): a hard per-step ceiling on heat
@@ -4532,15 +4562,39 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._pv_surplus = surplus
         return surplus
 
-    def _forecast_arrays(self) -> ForecastArrays:
+    def _solve_anchor(self, now: datetime) -> datetime:
+        """``now`` floored onto the grid the forecast arrays are built on.
+
+        ``_forecast_arrays`` anchors every price and weather step at
+        ``midnight + FORECAST_STEP_MINUTES·k``, so a solve labelled with the
+        raw instant (12:07) published timestamps seven minutes off the
+        quarter its own arrays described — and pins, capacity-window
+        offsets, filed lead promises and every card timestamp inherited
+        that skew. The granularity is the forecast grid's, deliberately not
+        ``time_step_minutes``: if the two ever diverge the arrays disagree
+        first, and the anchor must follow the arrays. Wall-clock lookups
+        INTO the plan (``get_current_action``, ``_async_drive_pumps``) stay
+        on the raw clock — they ask what applies now, not where step 0 is.
+        """
+        step = int(FORECAST_STEP_MINUTES)
+        return now.replace(
+            minute=(now.minute // step) * step, second=0, microsecond=0
+        )
+
+    def _forecast_arrays(self, now: datetime | None = None) -> ForecastArrays:
         """Everything the optimizer needs to know about the horizon.
 
         Assembled in one place because the pieces depend on each other: the PV
         surplus is derived from the irradiance series the weather assembly
         produced. Computing them elsewhere is how they would drift apart.
+
+        ``now`` is accepted from the caller so the solve anchor and this
+        grid come from one clock reading; left ``None`` for consumers with
+        no anchor of their own (the plain forecast property).
         """
         n_steps = self._opt_config.n_steps
-        now = dt_util.now()
+        if now is None:
+            now = dt_util.now()
         midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
         step_offset = int(
             (now - midnight).total_seconds() / 60 / FORECAST_STEP_MINUTES
@@ -4732,9 +4786,48 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         return value if np.isfinite(value) else None
 
     def _fee_series(self, step_starts: list[datetime]) -> np.ndarray:
-        return self._grid_fee_schedule().fee_vector(
-            step_starts, self._grid_fee_entity_value()
-        )
+        schedule = self._grid_fee_schedule()
+        entity_value = self._grid_fee_entity_value()
+        self._audit_grid_fee(schedule, entity_value)
+        return schedule.fee_vector(step_starts, entity_value)
+
+    def _audit_grid_fee(
+        self, schedule: GridFeeSchedule, entity_value: float | None
+    ) -> None:
+        """Warn-only magnitude check on the fee layer, per planning cycle.
+
+        A fee rate above ``IMPLAUSIBLE_FEE_SEK_PER_KWH`` is öre typed into a
+        SEK field (25 for 0.25 — the 100× slip), whether it arrived through
+        the rules text, the fixed component, a hand-edited store, or a
+        sensor publishing öre. The plan keeps running on exactly what was
+        configured — mutating or suppressing the value here would make the
+        planning prices silently diverge from what the user typed and from
+        the settlement paths reading the same schedule — so the only output
+        is a repair issue, raised once per offending value and cleared as
+        soon as the configured fees are plausible again.
+        """
+        worst, source = grid_fee_max_abs_component(schedule, entity_value)
+        if worst > IMPLAUSIBLE_FEE_SEK_PER_KWH:
+            if self._grid_fee_issue_value != worst:
+                ir.async_create_issue(
+                    self.hass,
+                    DOMAIN,
+                    "grid_fee_magnitude",
+                    is_fixable=False,
+                    # Persistent: the configuration survives a restart
+                    # unchanged, so the notice must too.
+                    is_persistent=True,
+                    severity=ir.IssueSeverity.WARNING,
+                    translation_key="grid_fee_magnitude",
+                    translation_placeholders={
+                        "rate": f"{worst:.2f}",
+                        "source": source,
+                    },
+                )
+                self._grid_fee_issue_value = worst
+        elif self._grid_fee_issue_value is not None:
+            ir.async_delete_issue(self.hass, DOMAIN, "grid_fee_magnitude")
+            self._grid_fee_issue_value = None
 
     def _current_grid_fee(self, when: datetime) -> float:
         return self._grid_fee_schedule().current_fee(
@@ -5662,6 +5755,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         Returns ``None`` for a channel left automatic (or when no override is in
         force / it has expired), so a solve with no manual plan is byte-for-byte
         identical to one from before this feature existed.
+
+        Expiry is judged at the snapped ``solve_now``, deliberately: an
+        override expiring 12:05 still pins step 0 of a 12:07 solve, because
+        that step IS [12:00, 12:15) and the override covered its start.
+        ``channel_pins`` already frees every step starting at or past the
+        expiry, so this is the grid's own semantics, not a grace period.
         """
         override = self._manual_override
         if override is None:
@@ -5692,9 +5791,18 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         ]
 
     def _manual_plan_state(self) -> dict[str, Any] | None:
-        """The override state the plan sensors expose, or ``None`` when inactive."""
+        """The override state the plan sensors expose, or ``None`` when inactive.
+
+        Expiry is judged at the snapped solve anchor, the same clock the
+        pins were built against: judged at raw ``now`` instead, an override
+        expiring mid-step read "inactive" here while the live plan still
+        forced the step the anchor pinned — the sensor contradicting the
+        actuation for up to a quarter hour.
+        """
         override = self._manual_override
-        if override is None or override.is_expired(dt_util.now()):
+        if override is None or override.is_expired(
+            self._solve_anchor(dt_util.now())
+        ):
             return None
         return {
             "active": True,
@@ -5721,9 +5829,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # The solver's own horizon length. `len(self._prices)` counts *hourly*
         # price entries, so using it would measure a 15-minute-step horizon in
         # hours and under-report the pins -- reporting zero for an evening plan
-        # that had in fact applied perfectly well.
+        # that had in fact applied perfectly well. Counted on the snapped
+        # anchor, the same lattice the refresh just triggered will solve on;
+        # a raw-instant lattice counts slot edges differently and the
+        # reported figure would disagree with the plan by one step.
         step_starts = self._horizon_step_starts(
-            dt_util.now(), self._opt_config.n_steps
+            self._solve_anchor(dt_util.now()), self._opt_config.n_steps
         )
         return {
             "expires_at": override.expires_at.isoformat(),
@@ -8406,11 +8517,20 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         planned = float(self._current_action.get("setpoint", requested))
         delta = float(requested) - planned
         prices = [p.get("total", 0.0) for p in self._prices] or [1.0]
-        mean_price = float(np.mean([_as_float(p, 0.0) for p in prices])) or 1.0
+        mean_price = float(np.mean([_as_float(p, 0.0) for p in prices]))
         # Spot on BOTH sides of the ratio: the denominator is a mean over raw
         # Tibber entries, so a fee-inclusive numerator (T1's #1) would inflate
         # every override's price-weight by the fee regardless of hour.
-        relative = self._current_spot_price() / mean_price if mean_price else 1.0
+        # A near-zero or negative mean has no "relative price" to learn
+        # from — a negative denominator flips the sign, filing an
+        # expensive-hour override as a cheap-hour complaint, and a tiny one
+        # lets a single override swamp the learner. Recorded neutral
+        # instead, same guard style as ``_record_quiet_comfort_period``.
+        relative = (
+            self._current_spot_price() / mean_price
+            if mean_price > 1e-6
+            else 1.0
+        )
         self._comfort_learner.record_override(
             OverrideEvent(
                 when=dt_util.now(),
@@ -8627,7 +8747,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if result is None:
             return {"error": "no_plan", "rate_limited": False}
 
-        horizon = self._forecast_arrays()
+        # Same shared-instant discipline as the live solve: the shadow
+        # solve's anchor and its arrays must not straddle a quarter
+        # boundary, or its predicted_cost stops being comparable to the
+        # plan it is differenced against below.
+        horizon = self._forecast_arrays(now)
         if len(horizon.prices) < 4:
             return {"error": "no_prices", "rate_limited": False}
 
@@ -8691,7 +8815,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     horizon.wind_speeds,
                     horizon.precipitation,
                     horizon.solar_radiation,
-                    now,
+                    self._solve_anchor(now),
                     horizon.price_known,
                     horizon.pv_surplus,
                     # The scratch config inherits price_risk_lambda, so the
