@@ -243,6 +243,14 @@ from .const import (
     DEFAULT_CURVE_LEARNING_ENABLED,
     CONF_CONFIDENCE_MARGINS_ENABLED,
     DEFAULT_CONFIDENCE_MARGINS_ENABLED,
+    CONF_COMPRESSOR_REPLACEMENT_COST,
+    DEFAULT_COMPRESSOR_REPLACEMENT_COST,
+    CONF_COMPRESSOR_RATED_STARTS,
+    DEFAULT_COMPRESSOR_RATED_STARTS,
+    CONF_WEAR_AUTOTUNE_ENABLED,
+    DEFAULT_WEAR_AUTOTUNE_ENABLED,
+    CONF_PRICE_TILES_ENABLED,
+    DEFAULT_PRICE_TILES_ENABLED,
     CONF_MOLD_GUARD_ENABLED,
     DEFAULT_MOLD_GUARD_ENABLED,
     CONF_INDOOR_HUMIDITY_ENTITY,
@@ -1564,6 +1572,40 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
                         default=current.get(
                             CONF_CONFIDENCE_MARGINS_ENABLED,
                             DEFAULT_CONFIDENCE_MARGINS_ENABLED,
+                        ),
+                    ): bool,
+                    # T6 #55: the wear pricing behind the start counter.
+                    # Replacement cost 0 keeps the counter pure observation.
+                    vol.Optional(
+                        CONF_COMPRESSOR_REPLACEMENT_COST,
+                        default=current.get(
+                            CONF_COMPRESSOR_REPLACEMENT_COST,
+                            DEFAULT_COMPRESSOR_REPLACEMENT_COST,
+                        ),
+                    ): _number(0, 100000, 100),
+                    vol.Optional(
+                        CONF_COMPRESSOR_RATED_STARTS,
+                        default=current.get(
+                            CONF_COMPRESSOR_RATED_STARTS,
+                            DEFAULT_COMPRESSOR_RATED_STARTS,
+                        ),
+                    ): _number(1000, 1000000, 1000),
+                    # The one T6 switch that changes plans: the realised
+                    # wear price floors the cycling cost above.
+                    vol.Optional(
+                        CONF_WEAR_AUTOTUNE_ENABLED,
+                        default=current.get(
+                            CONF_WEAR_AUTOTUNE_ENABLED,
+                            DEFAULT_WEAR_AUTOTUNE_ENABLED,
+                        ),
+                    ): bool,
+                    # T6 #39: three extra rate-limited solves per cycle of
+                    # the tile set — real CPU, so opt-in.
+                    vol.Optional(
+                        CONF_PRICE_TILES_ENABLED,
+                        default=current.get(
+                            CONF_PRICE_TILES_ENABLED,
+                            DEFAULT_PRICE_TILES_ENABLED,
                         ),
                     ): bool,
                 }

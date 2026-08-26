@@ -8269,4 +8269,522 @@ R.check(
     and abs(float(np.max(_floors_cap)) - 18.0) < 1e-9,
 )
 
+# ===========================================================================
+# T6 — insight (#29 #52 #55 #65 #39 #40)
+# ===========================================================================
+R.section("T6 — insight (#29 #52 #55 #65 #39 #40)")
+
+import re as _re6
+
+from heatpump_optimizer import diagnosis as diagnosis_mod
+from heatpump_optimizer import narrative as narrative_mod
+from heatpump_optimizer.const import COP_HEALTH_THRESHOLD
+from heatpump_optimizer.wear import StartCounter, wear_price_per_start
+
+_T6 = datetime(2026, 3, 28, 12, 0, tzinfo=UTC)
+
+# --- #55 the start counter -------------------------------------------------------
+_sc = StartCounter()
+_thr = 0.5
+R.check(
+    "one noisy sample above the threshold books nothing",
+    not _sc.observe(_T6, 2.0, _thr, False) and _sc.lifetime == 0,
+    "two-sample hysteresis: a single meter glitch is not a start",
+)
+R.check(
+    "the second consecutive sample confirms the start",
+    _sc.observe(_T6, 2.0, _thr, False) and _sc.lifetime == 1 and _sc.running,
+)
+R.check(
+    "a falling edge needs two samples too, and books no start",
+    not _sc.observe(_T6, 0.0, _thr, False)
+    and not _sc.observe(_T6, 0.0, _thr, False)
+    and _sc.lifetime == 1
+    and not _sc.running,
+)
+_sc.observe(_T6, 2.0, _thr, False)  # half an edge...
+R.check(
+    "the immersion element freezes the machine and resets the streak",
+    not _sc.observe(_T6, 2.0, _thr, True)  # ...the element cuts in
+    and not _sc.observe(_T6, 2.0, _thr, False)  # half an edge again
+    and _sc.lifetime == 1,
+    "#11's classifier owns resistive draw; half-edges must not combine "
+    "across an immersion event",
+)
+_sc.observe(_T6, 2.0, _thr, False)
+R.check(
+    "after the element drops out a full clean edge counts again",
+    _sc.lifetime == 2 and _sc.month_count("2026-03") == 2,
+)
+_sc2 = StartCounter.from_dict(_sc.as_dict())
+R.check(
+    "the counter rides its store round trip, running state included",
+    _sc2.lifetime == 2
+    and _sc2.month_count("2026-03") == 2
+    and _sc2.running == _sc.running,
+)
+R.check(
+    "a pre-T6 store (or garbage) loads as an inert counter",
+    StartCounter.from_dict(None).lifetime == 0
+    and StartCounter.from_dict({"lifetime": "junk"}).lifetime == 0,
+)
+R.check(
+    "the wear price: unpriced is 0, priced is cost over rated starts",
+    wear_price_per_start(0.0, 100000) == 0.0
+    and abs(wear_price_per_start(40000.0, 100000) - 0.4) < 1e-12,
+)
+
+# The coordinator's threshold convention and the wear booking on a start.
+_cw = _t2_coord(
+    compressor_replacement_cost=50000.0, compressor_rated_starts=100000
+)
+_cw._measured_power = 3.0
+_cw._observe_compressor_start(_T6)
+_cw._observe_compressor_start(_T6)
+R.check(
+    "a confirmed start books its wear price on the ledger's wear line",
+    _cw._start_counter.lifetime == 1
+    and abs(_cw._ledger.line("2026-03", "wear")["sek"] - 0.5) < 1e-9
+    and _cw._ledger.line("2026-03", "wear")["kwh"] == 0.0,
+    "money, not energy: wear kWh on a receipt would double-count the meter",
+)
+R.check(
+    "the default install books starts but no money",
+    _t2_coord()._wear_price() == 0.0,
+)
+R.check(
+    "the autotune floors the cycling cost only when asked",
+    _t2_coord()._effective_cycling_cost() == 0.0
+    and abs(
+        _t2_coord(
+            wear_autotune_enabled=True, compressor_replacement_cost=50000.0
+        )._effective_cycling_cost()
+        - 0.5
+    )
+    < 1e-12
+    and abs(
+        _t2_coord(
+            wear_autotune_enabled=True,
+            compressor_replacement_cost=50000.0,
+            compressor_cycling_cost=2.0,
+        )._effective_cycling_cost()
+        - 2.0
+    )
+    < 1e-12,
+    "max, never replace: a user who priced chatter above the datasheet "
+    "wear keeps their number",
+)
+
+# --- reason-tagged settlement ----------------------------------------------------
+_r6 = _g5["optimizer"].optimize(
+    _g5["state"], _g5["prices"], _g5["outdoor"], _g5["wind"], _g5["rain"],
+    _g5["solar"], _G_START,
+)
+_act6 = _g5["optimizer"].get_current_action(_r6, _r6.timestamps[2])
+R.check(
+    "the current action carries this step's reason codes",
+    _act6.get("space_reason") == _r6.space_reasons[2],
+    "the settlement tags money with WHY at the same index the action ran",
+)
+
+_ct = _t2_coord()
+_ct_pending = {
+    "price": 2.5,
+    "spot_price": 2.0,
+    "grid_fee": 0.5,
+    "space_power": 1.5,
+    "dhw_power": 0.5,
+    "when": _T6,
+    "space_reason": "cheap_price",
+    "dhw_reason": "dhw_preheat",
+}
+_ct._accumulate_energy(AccuracySample(when=_T6, actual_power_kw=2.0), 1.0, _ct_pending)
+_ct_spot = _ct._ledger.line("2026-03", "spot")
+_ct_space = _ct._ledger.line("2026-03", "reason:cheap_price")
+_ct_dhw = _ct._ledger.line("2026-03", "reason:dhw_preheat")
+R.check(
+    "the reason lines partition the spot line, split by the plan's shares",
+    abs(_ct_space["kwh"] - 1.5) < 1e-9
+    and abs(_ct_dhw["kwh"] - 0.5) < 1e-9
+    and abs(_ct_space["kwh"] + _ct_dhw["kwh"] - _ct_spot["kwh"]) < 1e-9
+    and abs(_ct_space["sek"] + _ct_dhw["sek"] - _ct_spot["sek"]) < 1e-9,
+    "a partition, not a bonus column — receipts built from these must not "
+    "overstate",
+)
+_ci = _t2_coord()
+_ci._immersion_active = True
+_ci._accumulate_energy(
+    AccuracySample(when=_T6, actual_power_kw=6.9), 0.5, dict(_ct_pending)
+)
+_ci_reasons = (
+    _ci._ledger.line("2026-03", "reason:cheap_price")["kwh"]
+    + _ci._ledger.line("2026-03", "reason:dhw_preheat")["kwh"]
+)
+R.check(
+    "the immersion carve-out comes out of the reason lines too",
+    abs(_ci_reasons - _ci._ledger.line("2026-03", "spot")["kwh"]) < 1e-9,
+    "reason lines partition METERED kWh; the element's excess is #11's line",
+)
+R.check(
+    "an interval without a tag books as untagged, not as nothing",
+    abs(
+        _cl3._ledger.line(_lmonth, "reason:untagged")["kwh"]
+        - _cl3._ledger.line(_lmonth, "spot")["kwh"]
+    )
+    < 1e-9,
+    "manual modes and restarts must still land in the month's total",
+)
+
+# The sys-ID override wipes the plan's reasons off the running action.
+_cs6 = _t2_coord()
+_cs6._current_action = {"power": 1.0, "space_reason": "cheap_price", "dhw_reason": None}
+_cs6._sysid.phase = PHASE_ARMED
+_cs6._sysid.step = lambda **kw: 2.0
+_cs6._run_system_identification(np.array([1.0]))
+R.check(
+    "an experiment's draw settles untagged, never under the dead plan's reason",
+    _cs6._current_action["space_reason"] is None
+    and _cs6._current_action["mode"] == "system_identification",
+)
+
+# --- #40 the month freeze --------------------------------------------------------
+_cm = _t2_coord()
+_cm._accumulate_energy(
+    AccuracySample(when=_T6, actual_power_kw=2.0), 1.0, dict(_ct_pending)
+)
+R.check(
+    "no receipt exists while the month is still open",
+    not _cm._month_reports,
+)
+_apr = datetime(2026, 4, 1, 0, 30, tzinfo=UTC)
+_cm._accumulate_energy(
+    AccuracySample(when=_apr, actual_power_kw=1.0),
+    1.0,
+    dict(_ct_pending, when=_apr),
+)
+R.check(
+    "the first settlement of a new month freezes the old month's receipt",
+    "2026-03" in _cm._month_reports
+    and _cm._month_reports["2026-03"]["month"] == "2026-03",
+)
+_receipt = _cm._month_reports["2026-03"]
+R.check(
+    "the receipt's reason lines reconcile against its spot line",
+    _receipt["reasons_reconcile"] is True
+    and abs(
+        sum(entry["kwh"] for entry in _receipt["reasons"].values())
+        - _receipt["lines"]["spot"]["kwh"]
+    )
+    < 0.05,
+)
+R.check(
+    "the receipt settles the CLOSED month's contracts, not the new month's",
+    _receipt["contract_comparison"]["month"] == "2026-03"
+    and abs(_receipt["contract_comparison"]["kwh"] - 2.0) < 1e-6,
+)
+_frozen_total = _receipt["total_kwh"]
+_cm._accumulate_energy(
+    AccuracySample(when=_apr, actual_power_kw=5.0),
+    1.0,
+    dict(_ct_pending, when=_apr),
+)
+R.check(
+    "a frozen receipt never changes after its month closed",
+    _cm._month_reports["2026-03"]["total_kwh"] == _frozen_total,
+)
+
+# --- #65 the scores --------------------------------------------------------------
+_ce = _t2_coord()
+_ce._thermal_params.room_thermal_mass = 10.0
+_ce._thermal_params.heat_loss_coefficient = 0.1
+_ce._thermal_params.house_heat_loss_scale = 1.0
+R.check(
+    "a 100-hour house grades 100 on the envelope",
+    _ce._scores_view()["envelope"] == 100.0,
+)
+_ce._thermal_params.heat_loss_coefficient = 0.5
+R.check(
+    "a 20-hour house grades 0 — the learned loss scale keeps it honest",
+    _ce._scores_view()["envelope"] == 0.0,
+)
+_ce._thermal_params.heat_loss_coefficient = 0.25
+_ce._thermal_params.house_heat_loss_scale = 0.5
+R.check(
+    "the envelope grade follows the house as measured, not as configured",
+    abs(_ce._scores_view()["envelope"] - 75.0) < 0.1,
+    "tau = 10 / (0.25 x 0.5) = 80 h -> (80-20)/80 of the way to 100",
+)
+_cmach = _t2_coord()
+R.check(
+    "no COP evidence means no machine grade, not a failing one",
+    _cmach._scores_view()["machine"] is None,
+)
+_cmach._cop_baseline[3] = [3.0, COP_BASELINE_MIN_SAMPLES + 1]
+R.check(
+    "a healthy watched machine grades 100",
+    _cmach._scores_view()["machine"] == 100.0,
+)
+_cmach._cop_health_cusum.stat = COP_HEALTH_THRESHOLD
+R.check(
+    "a machine at the alarm threshold grades 0",
+    _cmach._scores_view()["machine"] == 0.0,
+)
+_cop6 = _t2_coord()
+for _spot6 in (1.0, 1.0, 3.0, 3.0):
+    _cop6._fold_score_sample(_T6, 1.0, 1.6 * 1.0, _spot6)
+_cop6._fold_score_sample(_apr, 0.0, 0.0, 2.0)  # next day closes the book
+R.check(
+    "buying 20% under the day's mean spot replays to a perfect operation day",
+    _cop6._operation_score is not None
+    and abs(_cop6._operation_score - 100.0) < 1e-6,
+    "4 kWh at 1.60 mean against a 2.00 flat-consumer mean is the full "
+    "0.2 saved fraction",
+)
+_ctiny = _t2_coord()
+_ctiny._fold_score_sample(_T6, 0.1, 0.2, 2.0)
+_ctiny._fold_score_sample(_apr, 0.0, 0.0, 2.0)
+R.check(
+    "a day with too little energy teaches nothing and is skipped",
+    _ctiny._operation_score is None,
+)
+_fresh6 = _t2_coord()._scores_view()
+R.check(
+    "a fresh install grades only what it has: the configured envelope",
+    _fresh6["machine"] is None
+    and _fresh6["operation"] is None
+    and _fresh6["overall"] == _fresh6["envelope"],
+    "machine and operation need measurements; the envelope is the house "
+    "as configured until the learners move its loss scale",
+)
+
+# --- #29 the narrative -----------------------------------------------------------
+for _lang6 in narrative_mod.LANGUAGES:
+    R.check(
+        f"every template language carries every reason key ({_lang6})",
+        set(narrative_mod.TEMPLATES[_lang6]) == set(narrative_mod.TEMPLATES["en"]),
+    )
+_par_ok = all(
+    set(_re6.findall(r"{(\w+)}", narrative_mod.TEMPLATES["en"][key]))
+    == set(_re6.findall(r"{(\w+)}", narrative_mod.TEMPLATES["sv"][key]))
+    for key in narrative_mod.TEMPLATES["en"]
+)
+R.check(
+    "en and sv templates use identical placeholders per key",
+    _par_ok,
+    "a placeholder present in one language and absent in the other is a "
+    "sentence that cannot be said",
+)
+_n_items = narrative_mod.build(
+    {
+        "powers": [2.0, 2.0, 0.0, 1.0],
+        "prices": [1.0, 2.0, 3.0, 4.0],
+        "reasons": ["cheap_price", "cheap_price", "idle", "comfort_floor"],
+    },
+    {
+        "powers": [0.0, 0.0, 1.0, 0.0],
+        "prices": [1.0, 2.0, 3.0, 4.0],
+        "reasons": ["idle", "idle", "dhw_preheat", "idle"],
+    },
+    0.25,
+)
+R.check(
+    "the narrative groups both channels and orders by spend",
+    [i["reason"] for i in _n_items][:2] == ["cheap_price", "comfort_floor"]
+    and any(i["reason"] == "dhw_preheat" for i in _n_items),
+)
+R.check(
+    "the groups are arithmetic over the same steps the plan publishes",
+    abs(next(i for i in _n_items if i["reason"] == "cheap_price")["kwh"] - 1.0)
+    < 1e-9
+    and abs(
+        next(i for i in _n_items if i["reason"] == "cheap_price")["sek"] - 1.5
+    )
+    < 1e-9,
+)
+R.check(
+    "an unknown reason degrades to a missing sentence, not a crash",
+    narrative_mod.render(
+        [{"reason": "from_the_future", "kwh": 1.0, "sek": 1.0, "hours": 1.0}],
+        "sv",
+    )
+    == [],
+)
+_cn = _t2_coord()
+_cn._optimization_result = _r6
+_n_view = _cn._narrative_view()
+R.check(
+    "the coordinator's narrative view renders lines for the current plan",
+    _n_view["items"] and _n_view["lines"] and _n_view["language"] == "en",
+)
+
+# --- #52 the diagnosis -----------------------------------------------------------
+_dmodel = ThermalModel(ThermalParameters())
+_dstate = ThermalState(
+    room_temperature=20.0, slab_temperature=25.0, outdoor_temperature=0.0
+)
+_dplanned = {
+    "electrical_power": 2.0,
+    "outdoor_temp": 0.0,
+    "wind_speed": 2.0,
+    "solar_radiation": 0.0,
+    "external_heat_kw": 0.0,
+    "dt_hours": 1.0,
+    "humidity": None,
+    "hour_of_day": None,
+}
+_dbase = diagnosis_mod._room_after(_dmodel, _dstate, _dplanned)
+_dreport = diagnosis_mod.attribute(
+    _dmodel,
+    _dstate,
+    _dplanned,
+    {"outdoor_temp": -10.0, "electrical_power": None},
+    _dbase - 0.3,
+)
+R.check(
+    "a colder realised outdoor explains a colder room",
+    _dreport is not None
+    and _dreport["contributions"].get("outdoor_temp", 0.0) < 0.0,
+)
+R.check(
+    "an unmeasured input attributes nothing",
+    "electrical_power" not in _dreport["contributions"],
+)
+R.check(
+    "predicted + contributions + unexplained always accounts for actual",
+    abs(
+        _dreport["predicted"]
+        + sum(_dreport["contributions"].values())
+        + _dreport["unexplained"]
+        - _dreport["actual"]
+    )
+    < 0.02,
+    "the attribution is a partition of the residual by construction",
+)
+_cd = _t2_coord()
+R.check(
+    "no settled interval means no diagnosis, not a crash",
+    _cd.diagnose_last_interval() is None,
+)
+_cd._last_interval_record = {
+    "when": _T6.isoformat(),
+    "state": _dstate,
+    "planned": dict(_dplanned),
+    "dt_hours": 1.0,
+    "realised": {"outdoor_temp": -10.0},
+    "actual": _dbase - 0.3,
+}
+_cd_report = _cd.diagnose_last_interval()
+R.check(
+    "the coordinator's diagnosis runs the settled triple and publishes it",
+    _cd_report is not None
+    and _cd._last_diagnosis is _cd_report
+    and _cd_report["interval_end"] == _T6.isoformat(),
+)
+
+# --- #39 the price tiles ---------------------------------------------------------
+_ctile = _t2_coord()
+
+
+async def _fake_sim(overrides):
+    return {
+        "monthly_cost_delta": -42.0,
+        "min_room_temperature": 19.1,
+        "rate_limited": False,
+    }
+
+
+_ctile.async_simulate = _fake_sim
+_asyncio.run(_ctile._maybe_refresh_price_tile())
+R.check(
+    "with the flag off no tile ever computes, whatever solves happen",
+    not _ctile._price_tiles,
+)
+_ctile2 = _t2_coord(price_tiles_enabled=True)
+_ctile2.async_simulate = _fake_sim
+_asyncio.run(_ctile2._maybe_refresh_price_tile())
+R.check(
+    "one solve refreshes exactly one tile, in rotation",
+    list(_ctile2._price_tiles) == ["target_minus_1"]
+    and _ctile2._price_tiles["target_minus_1"]["monthly_cost_delta"] == -42.0
+    and _ctile2._price_tile_cursor == 1,
+)
+
+
+async def _fake_sim_limited(overrides):
+    return {"rate_limited": True}
+
+
+_ctile2.async_simulate = _fake_sim_limited
+_asyncio.run(_ctile2._maybe_refresh_price_tile())
+R.check(
+    "the card's rate budget wins: a limited answer leaves the rotation alone",
+    _ctile2._price_tile_cursor == 1 and len(_ctile2._price_tiles) == 1,
+    "tiles wait for the next interval instead of stealing the user's solve",
+)
+R.check(
+    "the tile set is fixed at three perturbations",
+    len(_ctile2._price_tile_specs()) == 3,
+)
+
+# --- the insight view and its persistence ----------------------------------------
+_cv = _t2_coord()
+_cv._optimization_result = _r6
+_iview = _cv._insight_view()
+R.check(
+    "the insight view publishes every T6 surface, inert on a fresh install",
+    set(_iview)
+    == {
+        "narrative",
+        "scores",
+        "compressor_starts",
+        "monthly_report",
+        "price_tiles",
+        "last_diagnosis",
+    }
+    and _iview["monthly_report"] is None
+    and _iview["compressor_starts"]["lifetime"] == 0,
+)
+
+_cp6 = _t2_coord()
+_cp6._start_counter.lifetime = 7
+_cp6._month_reports["2026-02"] = {"month": "2026-02", "total_kwh": 1.0}
+_cp6._operation_score = 88.0
+_led_payload = {
+    "ledger": _cp6._ledger.as_dict(),
+    "starts": _cp6._start_counter.as_dict(),
+    "month_reports": _cp6._month_reports,
+    "score_day": _cp6._score_day,
+    "operation_score": _cp6._operation_score,
+}
+_cq7 = _t2_coord()
+
+
+async def _fake_led_load(_p=_led_payload):
+    return _p
+
+
+_cq7._ledger_store.async_load = _fake_led_load
+_asyncio.run(_cq7._async_load_ledger())
+R.check(
+    "starts, receipts and the operation score ride the ledger store",
+    _cq7._start_counter.lifetime == 7
+    and "2026-02" in _cq7._month_reports
+    and _cq7._operation_score == 88.0,
+)
+
+
+async def _fake_led_old(_p={"ledger": {"months": {}}}):
+    return _p
+
+
+_cq8 = _t2_coord()
+_cq8._ledger_store.async_load = _fake_led_old
+_asyncio.run(_cq8._async_load_ledger())
+R.check(
+    "a pre-T6 ledger store loads with every insight rider inert",
+    _cq8._start_counter.lifetime == 0
+    and not _cq8._month_reports
+    and _cq8._operation_score is None,
+)
+
 sys.exit(R.close("FEATURE CHECKS"))

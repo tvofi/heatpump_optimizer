@@ -690,3 +690,23 @@ restore_learned_snapshot:
         configured heat pump.
       selector:
         text:
+
+diagnose_interval:
+  name: Diagnose Last Interval
+  description: >-
+    Explain the last interval's temperature error, input by input. The
+    optimizer re-runs the interval that just settled through its own thermal
+    model, swapping one realised input at a time into the plan's assumptions
+    — measured power for commanded power, realised outdoor temperature for
+    the forecast, realised solar for the assumed — and reports how much of
+    the error each swap explains. What no swap explains is the model's own
+    residual, reported as "unexplained". The result is published on the
+    Prediction Accuracy sensor and returned as the service response.
+  fields:
+    entry_id:
+      name: Config entry
+      description: >-
+        Restrict the diagnosis to one config entry. Leave empty to diagnose
+        every configured heat pump.
+      selector:
+        text:

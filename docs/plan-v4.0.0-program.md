@@ -940,6 +940,48 @@ must not raise the floor; 60 % at −15 °C must); `confidence_margins` golden; 
 
 ## T6 — Insight (PR 7) · Opus · #29 #52 #55 #65 #39 #40
 
+*Outcome notes:* built as scoped, with the settlement infrastructure exactly
+as planned: `get_current_action` now carries the current step's
+`space_reason`/`dhw_reason` (one index search owns "which step is running"),
+the pending dict captures them at prediction time, and `_accumulate_energy`
+books `reason:<code>` ledger lines that PARTITION the metered spot line —
+the immersion carve-out comes out of the reason lines too, an untagged
+interval (manual modes, restarts, sys-ID overrides) books as
+`reason:untagged`, and the receipt publishes `reasons_reconcile` instead of
+asserting it. **#40** freezes receipts at rollover, derived from the ledger
+itself (any ledger month older than the current one without a receipt gets
+one — self-healing across restarts spanning month ends) with the closed
+month's contract comparison via a `month` parameter on the T1 settlement.
+**#55**: `wear.py` StartCounter — two-sample hysteresis on measured power at
+the optimizer's own on/off threshold (half `min_electrical_power`), the
+immersion flag freezes the machine AND resets the streak so half-edges
+cannot combine across an element event; each confirmed start books
+`replacement_cost/rated_starts` on a kWh-0 `wear` line; the autotune
+(`_effective_cycling_cost`, gated) floors the cycling penalty with max(),
+never replace. **#65**: envelope = the house time constant (mass over
+learned-scaled loss, 20 h→0, 100 h→100), machine = 1 − the COP watch's
+Cusum fill, operation = a daily replay of settled kWh against the day's
+time-mean spot (20 % under = 100), EWMA'd; None means no evidence, never
+zero. **#29**: `narrative.py` groups both channels' steps by reason
+(arithmetic over the published schedule, untagged included) and renders
+`str.format` templates from language-keyed tables — as data in the module,
+NOT in the translation triple, because hassfest's strings schema has no room
+for free-form sections; the en/sv parity the triple would have given is
+enforced by tests (same keys, same placeholders). **#52**: `diagnosis.py`
+re-runs the settled interval swapping realised inputs one at a time
+(planned set captured in the pending dict at prediction time, realised at
+settle); `predicted + contributions + unexplained == actual` by
+construction; service + fourth button, result on the Prediction Accuracy
+sensor. **#39** (gated): ONE tile per scheduled solve, rotating through the
+fixed set (target ±1 °C, 75 % power cap), through `async_simulate` itself —
+a rate-limited answer skips the cycle so the card's budget always wins.
+Publication: one additive `insight` block in the data dict; three new
+sensors (Plan Narrative, Optimization Score, Compressor Starts — README
+52→55), receipts on Contract Comparison, diagnosis on Prediction Accuracy,
+buttons 3→4. Starts, receipts and the operation score persist as riders on
+the ledger store. Goldens: coord_*×5 + config_flow re-recorded, additive
+only (+139/−0); the five protected fixtures untouched.
+
 **Infrastructure:** reason-tagged settlement — the `pending` dict carries the
 interval's plan-slot reason codes so every settled SEK is attributable; the T1
 ledger gains per-reason lines; a month-rollover hook fires #40.

@@ -274,6 +274,15 @@ from .const import (
     CONF_THERMAL_BRIDGE_FRSI,
     DEFAULT_THERMAL_BRIDGE_FRSI,
     MOLD_SURFACE_RH_LIMIT,
+    CONF_COMPRESSOR_REPLACEMENT_COST,
+    DEFAULT_COMPRESSOR_REPLACEMENT_COST,
+    CONF_COMPRESSOR_RATED_STARTS,
+    DEFAULT_COMPRESSOR_RATED_STARTS,
+    CONF_WEAR_AUTOTUNE_ENABLED,
+    DEFAULT_WEAR_AUTOTUNE_ENABLED,
+    CONF_PRICE_TILES_ENABLED,
+    DEFAULT_PRICE_TILES_ENABLED,
+    SCORE_ALPHA,
 )
 from .inputs import InputHealth, InputReader, normalize_power_kw, stale_summary
 from .external_heat import (
@@ -317,7 +326,10 @@ from .grid_fee import (
 from .dhw_draws import DrawStats, labels_for, window_label as draw_window_label
 from .curve_learning import CurveLearner
 from .drift import Cusum
-from .ledger import MonthlyLedger, month_key
+from .ledger import KEEP_MONTHS, MonthlyLedger, month_key
+from .wear import StartCounter, wear_price_per_start
+from . import narrative
+from . import diagnosis
 from .power_guard import GuardState, project_window_mean
 from .snapshots import BIAS_TRIP_DAYS, SnapshotRing
 from . import pump_schedule
@@ -842,6 +854,28 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             1,
             f"{DOMAIN}_{entry.entry_id}_ledger",
         )
+
+        # --- Insight (v4.0.0 T6) -------------------------------------------
+        # #55: the realised compressor-start counter, sharing the ledger's
+        # store so counts and the wear SEK they book can never load from
+        # different generations of state.
+        self._start_counter = StartCounter()
+        # #40: receipts frozen at month rollover. Frozen rather than
+        # recomputed on read, so a receipt never changes after the month it
+        # describes has closed.
+        self._month_reports: dict[str, dict] = {}
+        # #65: the operation score's day book (today's settled kWh, SEK and
+        # spot samples) plus the smoothed score, persisted with the ledger.
+        self._score_day: dict[str, Any] = {}
+        self._operation_score: float | None = None
+        # #39: the price tiles, refreshed one per scheduled solve.
+        self._price_tiles: dict[str, dict] = {}
+        self._price_tile_cursor = 0
+        # #52: the last settled interval's (planned, realised, actual)
+        # triple, and the latest attribution run over one. In memory only:
+        # a diagnosis is about the interval that just happened.
+        self._last_interval_record: dict[str, Any] | None = None
+        self._last_diagnosis: dict[str, Any] | None = None
 
         # --- Capacity tariff (item 8) --------------------------------------
         self._peak_tracker = PeakTracker()
@@ -3234,9 +3268,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._opt_config.baseline_load_kw = self._baseline_house_load(
                 len(prices)
             )
-            self._opt_config.cycling_cost = _as_float(
-                self._config.get(CONF_CYCLING_COST), DEFAULT_CYCLING_COST
-            )
+            self._opt_config.cycling_cost = self._effective_cycling_cost()
             # The optimizer prices surplus consumption at this, so it has to
             # travel with the same freshness as the tariff settings above —
             # an entity-supplied compensation can change between runs.
@@ -3412,6 +3444,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 await self._maybe_run_fuse_advisor()
             except Exception as err:  # noqa: BLE001
                 _LOGGER.debug("Fuse advisor skipped: %s", err)
+
+            # T6 #39 (gated): one price tile per scheduled solve, and only
+            # here — the tiles must never run on demand.
+            try:
+                await self._maybe_refresh_price_tile()
+            except Exception as err:  # noqa: BLE001
+                _LOGGER.debug("Price tile skipped: %s", err)
 
             self._record_quiet_comfort_period()
 
@@ -5026,6 +5065,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         data.update(self._away_state.as_dict())
         data.update({k: round(v, 4) for k, v in self._energy_totals.items()})
         data["battery"] = self._battery_view()
+        # T6: narrative, scores, starts, receipts, tiles and the last
+        # diagnosis — one additive block, present even while everything in
+        # it is gated off (it reads as empty/inert).
+        data["insight"] = self._insight_view()
 
         # Only surface the manual-plan key while an override is actually active,
         # so a plan-free solve (the golden fixtures included) is byte-for-byte
@@ -5190,6 +5233,22 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if not stored:
             return
         self._ledger = MonthlyLedger.from_dict(stored.get("ledger"))
+        # T6, all additive on the same payload: absent keys on a pre-T6
+        # store load as inert defaults.
+        self._start_counter = StartCounter.from_dict(stored.get("starts"))
+        reports = stored.get("month_reports")
+        if isinstance(reports, dict):
+            self._month_reports = {
+                str(key): value
+                for key, value in reports.items()
+                if isinstance(value, dict)
+            }
+        day = stored.get("score_day")
+        if isinstance(day, dict):
+            self._score_day = dict(day)
+        score = stored.get("operation_score")
+        if isinstance(score, (int, float)) and np.isfinite(score):
+            self._operation_score = float(np.clip(score, 0.0, 100.0))
 
     def _schedule_ledger_save(self) -> None:
         """Persist the ledger without blocking the settlement path."""
@@ -5198,7 +5257,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     async def _async_save_ledger(self) -> None:
         try:
             await self._ledger_store.async_save(
-                {"ledger": self._ledger.as_dict()}
+                {
+                    "ledger": self._ledger.as_dict(),
+                    # T6 riders — one store, one generation of money state.
+                    "starts": self._start_counter.as_dict(),
+                    "month_reports": self._month_reports,
+                    "score_day": self._score_day,
+                    "operation_score": self._operation_score,
+                }
             )
         except Exception as err:  # noqa: BLE001
             _LOGGER.debug("Could not persist ledger: %s", err)
@@ -6922,6 +6988,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         pending = self._pending_prediction
         now = dt_util.now()
 
+        # T6 #55: every cycle is one power sample for the start counter,
+        # whether or not a prediction pair settles this time.
+        self._observe_compressor_start(now)
+
         # T5 #16: settle every matured lead-time promise against the same
         # measured temperature the one-step sample below uses. The window
         # is the sampling cadence itself — score only on the default
@@ -6991,6 +7061,28 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 self._accuracy.record(sample)
                 self._accumulate_energy(sample, elapsed, pending)
 
+                # T6 #52: the settled triple the diagnosis button re-runs.
+                # Realised values measured NOW close the interval whose
+                # assumptions were captured when it began.
+                diag = pending.get("diag")
+                if diag is not None and sample.actual_temp is not None:
+                    self._last_interval_record = {
+                        "when": now.isoformat(timespec="seconds"),
+                        "state": diag["state"],
+                        "planned": diag["planned"],
+                        "dt_hours": elapsed,
+                        "realised": {
+                            "electrical_power": sample.actual_power_kw,
+                            "outdoor_temp": (
+                                self._current_state.outdoor_temperature
+                            ),
+                            "solar_radiation": (
+                                self._current_state.solar_radiation
+                            ),
+                        },
+                        "actual": float(sample.actual_temp),
+                    }
+
                 # The delivered-versus-predicted ratio is exactly what the
                 # defrost derate learns from, and it is only meaningful while
                 # the learners are not frozen for some other reason. Outside
@@ -7017,6 +7109,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             "power": self._commanded_power(),
             "space_power": float(self._current_action.get("power", 0.0)),
             "dhw_power": float(self._current_action.get("dhw_power", 0.0)),
+            # T6: why the plan wanted this interval's draw, captured at
+            # prediction time — the plan that commanded the draw, not
+            # whatever plan exists when the interval settles.
+            "space_reason": self._current_action.get("space_reason"),
+            "dhw_reason": self._current_action.get("dhw_reason"),
             "price": self._get_current_price(),
             # The third fee-chokepoint site (#1): the settlement books spot
             # and fee as separate lines, so the ledger can itemise the bill
@@ -7026,6 +7123,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             "predicted_temp": self._predicted_next_room_temp(),
             "outdoor": self._current_state.outdoor_temperature,
             "humidity": self._current_humidity(),
+            # T6 #52: the assumptions this interval starts under, for the
+            # diagnosis re-run when it settles.
+            "diag": self._capture_diagnosis_inputs(),
         }
 
     def _file_lead_predictions(self, result, solve_time: datetime) -> None:
@@ -7122,6 +7222,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         when = pending.get("when") or dt_util.now()
         spot = _as_float(pending.get("spot_price"), 0.0)
 
+        # T6 #40: a settlement landing in a new month means the old month
+        # just closed — freeze its receipt before anything else books.
+        self._roll_month(when)
+
         # The månadsspot shadow column (#23) settles on the month's *average*
         # spot price, so the average must sample every interval — including
         # the ones where nothing was consumed. Before the energy gate below.
@@ -7131,6 +7235,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if actual is None:
             actual = planned_total
         energy = max(0.0, actual * elapsed_hours)
+        # T6 #65: the operation score's day book samples every interval
+        # too — the flat-consumer baseline it replays against is the
+        # time-mean spot price, idle hours included.
+        self._fold_score_sample(when, energy, energy * spot, spot)
         if energy <= 0:
             self._schedule_ledger_save()
             return
@@ -7175,6 +7283,31 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             )
         metered = energy - immersion_excess
         self._ledger.add(when, "spot", kwh=metered, sek=metered * spot)
+        # T6: the same metered kWh again, partitioned by WHY the plan drew
+        # them — the space share under the space slot's reason, the DHW
+        # share under the DHW slot's. A partition, not a bonus column: the
+        # reason lines must sum to the spot line, or every receipt built
+        # from them overstates. An interval without a tag (manual modes, a
+        # restart before the first solve) books as "untagged" rather than
+        # vanishing from the total.
+        space_reason = pending.get("space_reason") or "untagged"
+        dhw_reason = pending.get("dhw_reason") or "untagged"
+        metered_dhw = metered * dhw_share
+        metered_space = metered - metered_dhw
+        if metered_space > 1e-9:
+            self._ledger.add(
+                when,
+                f"reason:{space_reason}",
+                kwh=metered_space,
+                sek=metered_space * spot,
+            )
+        if metered_dhw > 1e-9:
+            self._ledger.add(
+                when,
+                f"reason:{dhw_reason}",
+                kwh=metered_dhw,
+                sek=metered_dhw * spot,
+            )
         if fee:
             self._ledger.add(when, "grid_fee", kwh=energy, sek=energy * fee)
         if immersion_excess > 1e-6:
@@ -7186,8 +7319,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             )
         self._schedule_ledger_save()
 
-    def _contract_comparison(self) -> dict[str, Any]:
+    def _contract_comparison(self, month: str | None = None) -> dict[str, Any]:
         """This month's metered consumption settled under each contract (#23).
+
+        ``month`` defaults to the current month; the month-freeze receipt
+        (T6 #40) passes the month that just closed so the shadow settlement
+        in the receipt is the closed month's, not the new month's empty one.
 
         Hourly spot is what Tibber actually bills; monthly-average spot
         (månadsspot) is the same kWh at the month's mean spot price; fixed is
@@ -7196,7 +7333,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         average — a household on månadsspot gains nothing from hourly
         shifting, and this is the proof, either way.
         """
-        month = month_key(dt_util.now())
+        month = month or month_key(dt_util.now())
         spot_line = self._ledger.line(month, "spot")
         # The immersion line is spot-priced energy carved out of "spot"
         # for visibility (#11); the settlement is over ALL metered kWh,
@@ -7233,6 +7370,420 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if kwh > 0 and len(costs) > 1:
             out["cheapest"] = min(costs, key=costs.get)
         return out
+
+    # ==================================================================
+    # Insight (v4.0.0 T6): wear, receipts, scores, narrative, tiles
+    # ==================================================================
+
+    def _wear_price(self) -> float:
+        """SEK one compressor start costs (#55). 0 until the user prices it."""
+        return wear_price_per_start(
+            _as_float(
+                self._config.get(CONF_COMPRESSOR_REPLACEMENT_COST),
+                DEFAULT_COMPRESSOR_REPLACEMENT_COST,
+            ),
+            int(
+                _as_float(
+                    self._config.get(CONF_COMPRESSOR_RATED_STARTS),
+                    DEFAULT_COMPRESSOR_RATED_STARTS,
+                )
+            ),
+        )
+
+    def _effective_cycling_cost(self) -> float:
+        """#55 (gated): the cycling penalty, floored by realised wear.
+
+        max(), never replace — a user who priced chatter ABOVE the
+        datasheet wear keeps their number; the autotune only stops the
+        penalty understating a cost the user has made explicit through
+        the replacement fields. With the flag off this is exactly the
+        configured value.
+        """
+        cost = _as_float(
+            self._config.get(CONF_CYCLING_COST), DEFAULT_CYCLING_COST
+        )
+        if bool(
+            self._config.get(
+                CONF_WEAR_AUTOTUNE_ENABLED, DEFAULT_WEAR_AUTOTUNE_ENABLED
+            )
+        ):
+            cost = max(cost, self._wear_price())
+        return cost
+
+    def _observe_compressor_start(self, now: datetime) -> None:
+        """#55: fold one measured-power sample into the start counter.
+
+        The threshold is the optimizer's own on/off convention (half the
+        pump's minimum electrical power), so the counter and the plan agree
+        about what "running" means. Immersion intervals are the #11
+        classifier's, never the compressor's.
+        """
+        started = self._start_counter.observe(
+            now,
+            self._measured_power,
+            max(0.1, 0.5 * self._thermal_params.min_electrical_power),
+            self._immersion_active,
+        )
+        if started:
+            wear = self._wear_price()
+            if wear > 0:
+                # kwh 0 by design: the wear line is money, not energy, and
+                # a receipt that adds wear kWh to metered kWh double-counts.
+                self._ledger.add(now, "wear", kwh=0.0, sek=wear)
+            self._schedule_ledger_save()
+
+    def _roll_month(self, when: datetime) -> None:
+        """#40: freeze receipts for months that have closed.
+
+        Derived from the ledger itself rather than a "last month seen"
+        marker: any ledger month strictly before the current one that has
+        no frozen receipt yet gets one now. Self-healing across restarts
+        and downtime spanning a month end — and bounded, because the
+        ledger prunes itself and each month freezes exactly once.
+        """
+        current = month_key(when)
+        closed = sorted(
+            key
+            for key in self._ledger.months
+            if key < current and key not in self._month_reports
+        )
+        for month in closed:
+            self._month_reports[month] = self._freeze_month_report(month)
+        if closed:
+            # Receipts follow the ledger's retention; a receipt for a month
+            # the ledger no longer holds cannot be reconciled anyway.
+            extra = sorted(self._month_reports)[
+                : max(0, len(self._month_reports) - KEEP_MONTHS)
+            ]
+            for old in extra:
+                del self._month_reports[old]
+            self._schedule_ledger_save()
+
+    def _freeze_month_report(self, month: str) -> dict[str, Any]:
+        """One month's itemised receipt, frozen at rollover (#40).
+
+        Everything in it comes from the ledger's own lines — the receipt is
+        a PRESENTATION of the accounting, never a second accounting. The
+        reason lines partition the spot line by construction, and the
+        receipt states how well that held rather than assuming it.
+        """
+        lines = self._ledger.month_summary(month)
+        reasons = {
+            name.split(":", 1)[1]: entry
+            for name, entry in lines.items()
+            if name.startswith("reason:")
+        }
+        reason_kwh = sum(entry["kwh"] for entry in reasons.values())
+        reason_sek = sum(entry["sek"] for entry in reasons.values())
+        spot = lines.get("spot", {"kwh": 0.0, "sek": 0.0})
+        report: dict[str, Any] = {
+            "month": month,
+            "lines": {
+                name: entry
+                for name, entry in lines.items()
+                if not name.startswith("reason:")
+            },
+            "reasons": reasons,
+            "total_kwh": round(
+                spot["kwh"] + lines.get("immersion", {}).get("kwh", 0.0), 3
+            ),
+            "total_sek": round(
+                sum(entry["sek"] for entry in lines.values() if entry)
+                - reason_sek,
+                2,
+            ),
+            "compressor_starts": self._start_counter.month_count(month),
+            "contract_comparison": self._contract_comparison(month),
+            # The partition check, published instead of asserted: a receipt
+            # that hides its own bookkeeping error is worse than one that
+            # admits it. Rounding on 3-decimal lines makes ±0.01 kWh noise.
+            "reasons_reconcile": bool(
+                abs(reason_kwh - spot["kwh"]) <= 0.05
+                and abs(reason_sek - spot["sek"]) <= 0.05
+            ),
+        }
+        mean_spot = self._ledger.meta_mean(month, "spot_price")
+        if mean_spot is not None:
+            report["mean_spot_price"] = round(mean_spot, 4)
+        return report
+
+    def _fold_score_sample(
+        self, when: datetime, kwh: float, sek: float, spot: float
+    ) -> None:
+        """#65's operation evidence: today's kWh, SEK and spot samples.
+
+        The day closes on the first sample of the next day — the daily
+        replay against realised prices happens exactly once per day, on
+        numbers the ledger already settled.
+        """
+        day = when.date().isoformat()
+        book = self._score_day
+        if book.get("day") and book["day"] != day:
+            self._close_score_day()
+            book = self._score_day
+        if not book.get("day"):
+            book.update(
+                {"day": day, "kwh": 0.0, "sek": 0.0, "spot_sum": 0.0, "spot_n": 0}
+            )
+        book["kwh"] = float(book.get("kwh", 0.0)) + max(0.0, kwh)
+        book["sek"] = float(book.get("sek", 0.0)) + max(0.0, sek)
+        if np.isfinite(spot):
+            book["spot_sum"] = float(book.get("spot_sum", 0.0)) + float(spot)
+            book["spot_n"] = int(book.get("spot_n", 0)) + 1
+
+    def _close_score_day(self) -> None:
+        """Replay yesterday against its own realised prices, fold the score.
+
+        The replay: the same kWh bought flat at the day's time-mean spot
+        price is what a non-shifting consumer pays. Buying 20 % below that
+        scores 100; buying at or above it scores 0. Days with too little
+        energy or price signal teach nothing and are skipped, not scored.
+        """
+        book = self._score_day
+        self._score_day = {}
+        kwh = float(book.get("kwh", 0.0))
+        n = int(book.get("spot_n", 0))
+        if kwh < 1.0 or n < 4:
+            return
+        mean_spot = float(book.get("spot_sum", 0.0)) / n
+        if mean_spot <= 0.01:
+            # Free or negative-price days make the ratio meaningless; a
+            # score of "you saved nothing off zero" is not evidence.
+            return
+        paid_mean = float(book.get("sek", 0.0)) / kwh
+        saved_fraction = 1.0 - paid_mean / mean_spot
+        sample = float(np.clip(saved_fraction / 0.2, 0.0, 1.0)) * 100.0
+        if self._operation_score is None:
+            self._operation_score = sample
+        else:
+            self._operation_score = (
+                (1.0 - SCORE_ALPHA) * self._operation_score + SCORE_ALPHA * sample
+            )
+        self._schedule_ledger_save()
+
+    def _scores_view(self) -> dict[str, Any]:
+        """#65: envelope, machine and operation on one 0–100 scale.
+
+        Each score answers a different question — how good is the house,
+        how healthy is the machine, how well is it being driven — so a low
+        overall points at its own cause. None means "no evidence yet",
+        never "zero": a fresh install has no grades, not failing ones.
+        """
+        envelope = None
+        loss = (
+            self._thermal_params.heat_loss_coefficient
+            * max(self._thermal_params.house_heat_loss_scale, 0.1)
+        )
+        if loss > 1e-6 and self._thermal_params.room_thermal_mass > 0:
+            # The house's time constant in hours: how long the stored heat
+            # lasts against the losses. ~20 h is a leaky house, ~100 h a
+            # well-insulated one; the learned loss scale keeps the grade
+            # honest about the house as measured, not as configured.
+            tau_h = self._thermal_params.room_thermal_mass / loss
+            envelope = float(np.clip((tau_h - 20.0) / 80.0, 0.0, 1.0)) * 100.0
+
+        machine = None
+        watched = sum(
+            1
+            for entry in self._cop_baseline.values()
+            if int(entry[1]) >= COP_BASELINE_MIN_SAMPLES
+        )
+        if watched:
+            # 100 while the COP watch (#12) accumulates no shortfall; the
+            # grade falls as the Cusum climbs toward its alarm.
+            machine = (
+                1.0
+                - float(
+                    np.clip(
+                        self._cop_health_cusum.stat / COP_HEALTH_THRESHOLD,
+                        0.0,
+                        1.0,
+                    )
+                )
+            ) * 100.0
+
+        operation = self._operation_score
+        available = [s for s in (envelope, machine, operation) if s is not None]
+        return {
+            "envelope": round(envelope, 1) if envelope is not None else None,
+            "machine": round(machine, 1) if machine is not None else None,
+            "operation": round(operation, 1) if operation is not None else None,
+            "overall": (
+                round(float(np.mean(available)), 1) if available else None
+            ),
+        }
+
+    def _narrative_view(self) -> dict[str, Any]:
+        """#29: the current plan grouped by reason, with rendered lines."""
+        result = self._optimization_result
+        if result is None or not result.timestamps:
+            return {"items": [], "lines": [], "language": "en"}
+        dt_hours = max(self._opt_config.time_step_minutes, 1.0) / 60.0
+        prices = list(result.prices or [])
+        items = narrative.build(
+            {
+                "powers": list(result.power_schedule or []),
+                "prices": prices,
+                "reasons": list(result.space_reasons or []),
+            },
+            {
+                "powers": list(result.dhw_power_schedule or []),
+                "prices": prices,
+                "reasons": list(result.dhw_reasons or []),
+            },
+            dt_hours,
+        )
+        language = str(
+            getattr(getattr(self.hass, "config", None), "language", "en") or "en"
+        )
+        # The narrative speaks the languages it has parity for; anything
+        # else falls back to English rather than to silence.
+        short = language.split("-")[0].lower()
+        chosen = short if short in narrative.TEMPLATES else "en"
+        return {
+            "items": items,
+            "lines": narrative.render(items, chosen),
+            "language": chosen,
+        }
+
+    def _capture_diagnosis_inputs(self) -> dict[str, Any] | None:
+        """#52: what the plan assumed for the interval now starting.
+
+        Captured at prediction time next to the accuracy pending sample,
+        because a diagnosis re-run against inputs remembered any later
+        would attribute the residual against assumptions the plan never
+        made.
+        """
+        try:
+            state = replace(self._current_state)
+        except Exception:  # noqa: BLE001 - diagnosis is best-effort evidence
+            return None
+        now = dt_util.now()
+        try:
+            planned_wind, _ = self._current_weather()
+        except Exception:  # noqa: BLE001 - wind is optional evidence
+            planned_wind = 0.0
+        return {
+            "state": state,
+            "planned": {
+                "electrical_power": self._commanded_power() or 0.0,
+                "outdoor_temp": self._current_state.outdoor_temperature,
+                "wind_speed": planned_wind,
+                "solar_radiation": self._current_state.solar_radiation,
+                "external_heat_kw": 0.0,
+                "humidity": self._current_humidity(),
+                "hour_of_day": now.hour + now.minute / 60.0,
+            },
+        }
+
+    def diagnose_last_interval(self) -> dict[str, Any] | None:
+        """#52: attribute the last settled interval's residual, input by input.
+
+        Runs on the LAST SETTLED interval, not live state: attribution
+        needs a completed (planned, realised, actual) triple, and the
+        freshest one is the interval the accuracy sample just closed.
+        """
+        record = self._last_interval_record
+        if not record:
+            return None
+        try:
+            report = diagnosis.attribute(
+                self._thermal_model,
+                record["state"],
+                dict(record["planned"], dt_hours=record["dt_hours"]),
+                record["realised"],
+                record["actual"],
+            )
+        except Exception as err:  # noqa: BLE001 - never break ops for insight
+            _LOGGER.debug("Interval diagnosis failed: %s", err)
+            return None
+        if report is not None:
+            report["interval_end"] = record["when"]
+            self._last_diagnosis = report
+        return report
+
+    async def async_diagnose_interval(self) -> None:
+        """Service/button entry for #52; publishes on the insight view."""
+        report = await self.hass.async_add_executor_job(
+            self.diagnose_last_interval
+        )
+        if report is None:
+            _LOGGER.info(
+                "No settled interval to diagnose yet — one full "
+                "optimization interval must pass first"
+            )
+        await self.async_request_refresh()
+
+    def _price_tile_specs(self) -> list[tuple[str, dict[str, Any]]]:
+        """#39's fixed perturbation set. Fixed on purpose: tiles answer the
+        same three questions every day, so their day-to-day drift means the
+        situation changed, not the question."""
+        target = _as_float(
+            self._config.get(CONF_TARGET_TEMP), DEFAULT_TARGET_TEMP
+        )
+        return [
+            ("target_minus_1", {"target_temp": round(target - 1.0, 1)}),
+            ("target_plus_1", {"target_temp": round(target + 1.0, 1)}),
+            (
+                "power_cap_75",
+                {
+                    "power_cap_kw": round(
+                        0.75 * self._thermal_params.max_electrical_power, 2
+                    )
+                },
+            ),
+        ]
+
+    async def _maybe_refresh_price_tile(self) -> None:
+        """#39 (gated): refresh ONE tile after a scheduled solve.
+
+        One per solve, rotating, so the whole set costs at most one extra
+        solve per interval — and through ``async_simulate``'s own rate
+        limiter and executor, never a second solve path. When the limiter
+        says no (the user is dragging the card's sliders), the tile simply
+        waits for the next interval; the card's budget wins.
+        """
+        if not bool(
+            self._config.get(CONF_PRICE_TILES_ENABLED, DEFAULT_PRICE_TILES_ENABLED)
+        ):
+            return
+        specs = self._price_tile_specs()
+        name, overrides = specs[self._price_tile_cursor % len(specs)]
+        try:
+            answer = await self.async_simulate(dict(overrides))
+        except Exception as err:  # noqa: BLE001 - tiles are decoration
+            _LOGGER.debug("Price tile %s failed: %s", name, err)
+            return
+        if answer.get("rate_limited") or answer.get("error"):
+            return
+        self._price_tile_cursor += 1
+        self._price_tiles[name] = {
+            "overrides": overrides,
+            "monthly_cost_delta": answer.get("monthly_cost_delta"),
+            "min_room_temperature": answer.get("min_room_temperature"),
+            "computed_at": dt_util.now().isoformat(timespec="seconds"),
+        }
+
+    def _insight_view(self) -> dict[str, Any]:
+        """Everything T6 publishes, in one additive block."""
+        return {
+            "narrative": self._narrative_view(),
+            "scores": self._scores_view(),
+            "compressor_starts": {
+                "lifetime": self._start_counter.lifetime,
+                "month": self._start_counter.month_count(
+                    month_key(dt_util.now())
+                ),
+                "wear_price_per_start": round(self._wear_price(), 4),
+            },
+            "monthly_report": (
+                self._month_reports[max(self._month_reports)]
+                if self._month_reports
+                else None
+            ),
+            "price_tiles": dict(self._price_tiles),
+            "last_diagnosis": self._last_diagnosis,
+        }
 
     # ==================================================================
     # Revealed-preference comfort tuning (item 19)
@@ -7378,6 +7929,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             ),
             "heat_pump_on": override > 0.05,
             "mode": "system_identification",
+            # T6: the experiment's draw is not the plan's — settling it
+            # under the overridden plan's reason would book experiment
+            # energy as "cheapest hours" or whatever the plan happened to
+            # claim for this step.
+            "space_reason": None,
+            "dhw_reason": None,
         }
 
     def _adopt_system_identification(self) -> None:

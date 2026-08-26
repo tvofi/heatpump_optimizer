@@ -436,6 +436,8 @@ SERVICE_APPLY_TOPOLOGY: Final = "apply_topology"
 SERVICE_APPLY_MANUAL_PLAN: Final = "apply_manual_plan"
 SERVICE_CLEAR_MANUAL_PLAN: Final = "clear_manual_plan"
 SERVICE_RESTORE_SNAPSHOT: Final = "restore_learned_snapshot"
+#: T6 #52 — attribute the last settled interval's temperature residual.
+SERVICE_DIAGNOSE_INTERVAL: Final = "diagnose_interval"
 MANUAL_PLAN_STORE_VERSION: Final = 1
 # A full solve is seconds of CPU. Dragging a slider must not trigger one per
 # pixel, so simulation requests are rate-limited to this interval.
@@ -700,6 +702,29 @@ CONF_THERMAL_BRIDGE_FRSI: Final = "thermal_bridge_frsi"
 DEFAULT_THERMAL_BRIDGE_FRSI: Final = 0.75
 #: Mold growth needs sustained surface RH above roughly this fraction.
 MOLD_SURFACE_RH_LIMIT: Final = 0.8
+
+# T6 — insight (#29 #52 #55 #65 #39 #40). Everything here reads the system;
+# the only plan-affecting piece is the wear autotune, gated off by default.
+#: #55 — what a compressor swap costs. 0 means wear books 0 SEK/start,
+#: which keeps the counter pure observation until the user prices it.
+CONF_COMPRESSOR_REPLACEMENT_COST: Final = "compressor_replacement_cost"
+DEFAULT_COMPRESSOR_REPLACEMENT_COST: Final = 0.0
+#: #55 — the manufacturer's rated start count the swap cost spreads over.
+CONF_COMPRESSOR_RATED_STARTS: Final = "compressor_rated_starts"
+DEFAULT_COMPRESSOR_RATED_STARTS: Final = 100000
+#: #55 — feed the realised wear price (cost/rated) into the optimizer's
+#: cycling penalty. The one T6 switch that changes plans.
+CONF_WEAR_AUTOTUNE_ENABLED: Final = "wear_autotune_enabled"
+DEFAULT_WEAR_AUTOTUNE_ENABLED: Final = False
+#: #39 — refresh one what-if price tile after each scheduled solve.
+#: Off by default: the tile set is three extra solves of real CPU.
+CONF_PRICE_TILES_ENABLED: Final = "price_tiles_enabled"
+DEFAULT_PRICE_TILES_ENABLED: Final = False
+#: #55 — consecutive samples on the far side of the threshold before an
+#: edge counts. One noisy meter reading must not book a compressor start.
+START_HYSTERESIS_SAMPLES: Final = 2
+#: #65 — smoothing for the daily operation-score samples (~3 weeks).
+SCORE_ALPHA: Final = 0.05
 #: How far the comfort floor is relaxed while a window is open (gated).
 OPEN_WINDOW_RELAX_C: Final = 1.0
 #: #11 — measured power above nameplate by this factor reads as the

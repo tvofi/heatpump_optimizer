@@ -48,6 +48,7 @@ from .const import (
     SERVICE_ASSIGN_ENTITY,
     SERVICE_APPLY_MANUAL_PLAN,
     SERVICE_CLEAR_MANUAL_PLAN,
+    SERVICE_DIAGNOSE_INTERVAL,
     SERVICE_RESTORE_SNAPSHOT,
     SERVICE_RUN_OPTIMIZATION,
     SERVICE_SET_MODE,
@@ -208,6 +209,12 @@ SERVICE_SCHEMA_CLEAR_MANUAL_PLAN = vol.Schema(
 # Same shape, own name: reusing the clear-manual-plan constant for the
 # snapshot restore read as if the two services were related.
 SERVICE_SCHEMA_RESTORE_SNAPSHOT = vol.Schema(
+    {
+        vol.Optional("entry_id"): cv.string,
+    }
+)
+
+SERVICE_SCHEMA_DIAGNOSE_INTERVAL = vol.Schema(
     {
         vol.Optional("entry_id"): cv.string,
     }
@@ -716,6 +723,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 restored.append(entry_id)
         return {"restored": restored}
 
+    async def handle_diagnose_interval(call: ServiceCall) -> dict[str, Any]:
+        """Attribute the last settled interval's residual (T6 #52)."""
+        target_entry = dict(call.data).get("entry_id")
+        reports: dict[str, Any] = {}
+        for entry_id, coord in _manual_targets(target_entry):
+            reports[entry_id] = await hass.async_add_executor_job(
+                coord.diagnose_last_interval
+            )
+            await coord.async_request_refresh()
+        return {"diagnosis": reports}
+
     hass.services.async_register(
         DOMAIN,
         SERVICE_RUN_OPTIMIZATION,
@@ -781,6 +799,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         SERVICE_RESTORE_SNAPSHOT,
         handle_restore_snapshot,
         schema=SERVICE_SCHEMA_RESTORE_SNAPSHOT,
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_DIAGNOSE_INTERVAL,
+        handle_diagnose_interval,
+        schema=SERVICE_SCHEMA_DIAGNOSE_INTERVAL,
         supports_response=SupportsResponse.OPTIONAL,
     )
 

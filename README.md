@@ -138,7 +138,7 @@ pricing are outside this project's control.
 - **Plan reason codes** — every planned slot says *why* it was chosen
 - **Energy dashboard integration** — accumulating energy and cost totals, split hot water versus space heating
 - **The house as a virtual battery** — state of charge, capacity and rates published so other automations can use it
-- **Rich sensor entities** — 52 sensors including full heating plans, DHW, predictive insights, per-zone temperatures
+- **Rich sensor entities** — 55 sensors including full heating plans, DHW, predictive insights, per-zone temperatures
 - **Dashboard card** — plots price, planned heating slots, irradiance and predicted temperatures on one graph, with per-series toggles, reason codes, a what-if simulator, and a Setup page drawing your configured system with live sensor readings in place, where clicking a sensor assigns or clears it
 - **Climate entity** — virtual thermostat with full HA climate integration
 - **Buttons and binary sensors** — force a run, arm a measurement experiment, and see input health, external heat, open windows and away state at a glance
@@ -802,6 +802,33 @@ This is a small change with a disproportionate effect: without it, an unexpected
 slot is indistinguishable from a bug, which makes the optimizer hard to trust
 and bug reports much weaker than they could be.
 
+### The plan in sentences, the month on a receipt
+
+The reason codes go two steps further. The **Plan Narrative** sensor groups
+the current plan by reason and tells it in prose — "6.2 kWh in the cheapest
+hours for 8.40 kr, holding the minimum temperature cost 2.10 kr" — in
+English or Swedish. And every settled interval books its money under the
+reason the plan drew it, so when a month closes, the **Contract Comparison**
+sensor carries an itemised receipt: what the month cost, line by line and
+reason by reason, with the reason lines summing to the metered spot line by
+construction.
+
+The **Compressor Starts** sensor counts realised compressor starts from the
+power meter (debounced, and blind to the immersion element on purpose). Give
+it a replacement cost and rated start count and every start books its share
+of the eventual swap — and an opt-in switch lets that realised wear price
+floor the cycling cost the optimizer plans with.
+
+The **Optimization Score** sensor grades envelope, machine and operation
+0–100 — how good is the house, how healthy is the machine, how well is it
+driven — the operation grade replaying each day's kWh against the day's own
+prices. The **Diagnose Last Interval** button explains the last interval's
+temperature error input by input: the interval is re-run through the thermal
+model swapping realised inputs in one at a time, and each swap is charged
+with the share of the error it explains. Optional price tiles re-price the
+plan under a target one degree lower, one higher, and a 25 % power cap after
+each scheduled solve.
+
 ### Grid costs beyond the price per kWh
 
 Four things cost money that the spot price does not describe.
@@ -1043,7 +1070,7 @@ turn the toggle off to require hot water around the clock.
 
 ## Entities Created
 
-### Sensors (52 total)
+### Sensors (55 total)
 | Sensor | Description |
 |---|---|
 | Optimization Mode | Current mode (auto/comfort/economy/boost/off) |
@@ -1096,6 +1123,9 @@ turn the toggle off to require hot water around the clock.
 | **Mixed Hot Water** | The tank translated into shower terms: litres of 40 °C water and minutes of shower it holds right now |
 | **DHW Heavy Day Demand** | The learned 90th-percentile draw per hot water time frame — what the heavy-day targets stand on |
 | **Valve Target Recommendation** | What to set a dumb mixing valve to, with the reasoning in its attributes |
+| **Plan Narrative** | The plan told in sentences, grouped by reason — where today's money goes and why |
+| **Optimization Score** | Envelope, machine and operation graded 0–100, with the what-if price tiles in attributes |
+| **Compressor Starts** | Realised compressor starts counted from the meter, immersion events excluded |
 
 ### Binary Sensors (4 total)
 | Binary sensor | Description |
@@ -1105,12 +1135,13 @@ turn the toggle off to require hot water around the clock.
 | **Away Mode** | On while the house is empty, with the return time and recovery state |
 | **Open Window Detected** | On while the house is losing heat like a window is open, with the evidence in attributes; learning pauses while it is on |
 
-### Buttons (3 total)
+### Buttons (4 total)
 | Button | Description |
 |---|---|
 | **Optimize Now** | Force an optimization run. Unavailable while one is in flight |
 | **Run System Identification** | Arm the commissioning step test for the next mild, cheap night |
 | **Reset Learned Comfort Weight** | Undo the revealed-preference tuning |
+| **Diagnose Last Interval** | Explain the last interval's temperature error input by input, on the Prediction Accuracy sensor |
 
 ### Dashboard Card
 
@@ -1323,7 +1354,7 @@ custom_components/heatpump_optimizer/
 ├── comfort_learning.py  # Revealed-preference comfort weight tuning
 ├── battery.py           # The thermal stores, published as a battery
 │
-├── sensor.py            # 52 sensors
+├── sensor.py            # 55 sensors
 ├── binary_sensor.py     # Input health, external heat, away mode
 ├── button.py            # Optimize now, run identification, reset comfort weight
 ├── climate.py           # Virtual climate entity with DHW status
