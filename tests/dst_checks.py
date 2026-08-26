@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import asyncio
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 from harness import FakeEntry, FakeHass, Results
@@ -201,23 +201,46 @@ _days = (
 _mismatch = []
 for window in (15, 30, 60):
     for day in _days:
-        for m in range(0, 24 * 60, 7):
-            # Aware + timedelta is wall-clock arithmetic in Python, so this
-            # walks every wall minute of the day, transitions included.
-            when = day + timedelta(minutes=m, seconds=41)
+        # Walk the day by REAL elapsed time (UTC instants converted back to
+        # local), not by wall-clock timedelta: only the real walk visits the
+        # autumn fold's second 02:xx pass with fold=1 — the form
+        # ``dt_util.now()`` actually returns there, and the one place a
+        # fold-dropping snap silently merges two metered hours into one
+        # window key. The first version of this check walked wall time and
+        # stripped ``fold`` before comparing, which is precisely the
+        # difference that was load-bearing.
+        start_utc = day.astimezone(timezone.utc)
+        for m in range(0, 26 * 60, 7):
+            when = (start_utc + timedelta(minutes=m, seconds=41)).astimezone(
+                STHLM
+            )
+            if when.date() != day.date():
+                continue
             old = _old_slot(when, window)
             new = _window_slot(when, window)
-            # Compare the wall-clock fields the window key is made of; the
-            # fold hour's second pass differs only in the fold flag, which
-            # the old snap preserved and timedelta arithmetic resets.
-            if new.replace(tzinfo=None, fold=0) != old.replace(
-                tzinfo=None, fold=0
-            ):
+            # The window key is the slot's isoformat — compare exactly that.
+            if new.isoformat() != old.isoformat():
                 _mismatch.append((window, when, old, new))
 R.check(
-    "15/30/60-minute snaps are unchanged across plain and transition days",
+    "15/30/60-minute snaps match the old keys exactly, fold included",
     not _mismatch,
     f"first: {_mismatch[:1]}",
+)
+
+# The autumn day has 25 real hours; a 60-minute tariff must meter 25
+# distinct windows, or the repeated hour's burst is diluted across two real
+# hours sharing one accumulator.
+_fold_day_keys = set()
+_start_utc = datetime(2026, 10, 25, tzinfo=STHLM).astimezone(timezone.utc)
+for m in range(0, 26 * 60, 5):
+    when = (_start_utc + timedelta(minutes=m)).astimezone(STHLM)
+    if when.date() != datetime(2026, 10, 25).date():
+        continue
+    _fold_day_keys.add(_window_slot(when, 60).isoformat())
+R.check(
+    "the 25-hour autumn day meters 25 distinct 60-minute windows",
+    len(_fold_day_keys) == 25,
+    f"{len(_fold_day_keys)} distinct keys",
 )
 
 _slots_120 = [

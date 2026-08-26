@@ -26,7 +26,7 @@ Three things carry subtle intent and are worth stating once here:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
 # Pin encoding shared with the optimizer's bounds construction. The optimizer
@@ -161,25 +161,42 @@ class ManualOverride:
         return _coerce_awareness(now, self.expires_at) >= self.expires_at
 
     def channel_pins(
-        self, channel: str, step_starts: list[datetime]
+        self,
+        channel: str,
+        step_starts: list[datetime],
+        step_length: timedelta | None = None,
     ) -> list[float] | None:
         """Per-step pin values for one channel, or ``None`` when automatic.
 
-        A step is pinned on when its start instant falls inside one of the
-        channel's slots, pinned off when it does not, and left free once it is
-        at or beyond the expiry — so the override reaches exactly as far into
-        the horizon as it was asked to and no further.
+        A step is pinned on when any of the channel's slots OVERLAPS the
+        step's interval, pinned off when none does, and left free once its
+        start is at or beyond the expiry. Overlap, not start-containment:
+        the solve anchor is snapped to the quarter grid, so a service call's
+        "from now" slot starts mid-step — judging only the step's start
+        instant turned that command into a force-OFF of the very step it
+        landed in, the opposite of what was asked, for up to a full step.
+        Card-built slots are grid-aligned, where overlap and containment
+        agree exactly.
         """
         slots = self.slots_for(channel)
         if slots is None:
             return None
+        if step_length is None:
+            step_length = (
+                step_starts[1] - step_starts[0]
+                if len(step_starts) > 1
+                else timedelta(minutes=15)
+            )
         pins: list[float] = []
         for ts in step_starts:
             ref = _coerce_awareness(ts, self.expires_at)
             if ref >= self.expires_at:
                 pins.append(PIN_FREE)
                 continue
-            in_slot = any(start <= ref < end for start, end in slots)
+            step_end = ref + step_length
+            in_slot = any(
+                start < step_end and end > ref for start, end in slots
+            )
             pins.append(PIN_ON if in_slot else PIN_OFF)
         return pins
 

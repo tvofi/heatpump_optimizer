@@ -55,7 +55,21 @@ def _window_slot(when: datetime, window_minutes: int) -> datetime:
     window = max(1, int(window_minutes))
     midnight = when.replace(hour=0, minute=0, second=0, microsecond=0)
     minutes = ((when.hour * 60 + when.minute) // window) * window
-    return midnight + timedelta(minutes=minutes)
+    slot = midnight + timedelta(minutes=minutes)
+    if window <= 60:
+        # ``timedelta`` arithmetic resets ``fold``, and the window key is the
+        # slot's isoformat: without the flag, both real passes of the autumn
+        # transition's repeated hour render the same key, one accumulator
+        # swallows two metered hours, and a burst peak is diluted by their
+        # average — under-recording exactly the threshold the live guard
+        # protects. Sub-hour slots share ``when``'s wall hour, so the flag
+        # transfers exactly (and is inert outside the ambiguous hour).
+        # Windows longer than an hour stay wall-anchored at fold 0: the
+        # repeated hour extends that window's real duration, which matches
+        # wall-clock billing, while splitting on the flag would fabricate a
+        # one-hour "window" no DSO meters.
+        slot = slot.replace(fold=when.fold)
+    return slot
 
 
 @dataclass

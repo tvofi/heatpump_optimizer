@@ -5791,9 +5791,18 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         ]
 
     def _manual_plan_state(self) -> dict[str, Any] | None:
-        """The override state the plan sensors expose, or ``None`` when inactive."""
+        """The override state the plan sensors expose, or ``None`` when inactive.
+
+        Expiry is judged at the snapped solve anchor, the same clock the
+        pins were built against: judged at raw ``now`` instead, an override
+        expiring mid-step read "inactive" here while the live plan still
+        forced the step the anchor pinned — the sensor contradicting the
+        actuation for up to a quarter hour.
+        """
         override = self._manual_override
-        if override is None or override.is_expired(dt_util.now()):
+        if override is None or override.is_expired(
+            self._solve_anchor(dt_util.now())
+        ):
             return None
         return {
             "active": True,
