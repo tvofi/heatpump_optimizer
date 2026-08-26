@@ -229,6 +229,18 @@ from .const import (
     DEFAULT_OPEN_WINDOW_RELAX_ENABLED,
     CONF_IMMERSION_FEEDBACK_ENABLED,
     DEFAULT_IMMERSION_FEEDBACK_ENABLED,
+    CONF_PRECIP_TYPE_ENABLED,
+    DEFAULT_PRECIP_TYPE_ENABLED,
+    CONF_SNOW_ROOF_FACTOR_ENABLED,
+    DEFAULT_SNOW_ROOF_FACTOR_ENABLED,
+    CONF_CAPACITY_CURVE_ENABLED,
+    DEFAULT_CAPACITY_CURVE_ENABLED,
+    CONF_SOLAR_APERTURE_LEARNING_ENABLED,
+    DEFAULT_SOLAR_APERTURE_LEARNING_ENABLED,
+    CONF_INTERNAL_GAINS_LEARNING_ENABLED,
+    DEFAULT_INTERNAL_GAINS_LEARNING_ENABLED,
+    CONF_CURVE_LEARNING_ENABLED,
+    DEFAULT_CURVE_LEARNING_ENABLED,
     CONF_PV_ENABLED,
     CONF_PV_PEAK_KW,
     CONF_PV_EFFICIENCY,
@@ -2078,6 +2090,53 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
                         default=current.get(
                             CONF_IMMERSION_FEEDBACK_ENABLED,
                             DEFAULT_IMMERSION_FEEDBACK_ENABLED,
+                        ),
+                    ): bool,
+                    # T4b: every one of these moves real physics or real
+                    # heat, so learning AND application sit behind the
+                    # same flag — a half-armed learner that suddenly
+                    # applies weeks of unreviewed evidence is worse than
+                    # an off one.
+                    vol.Optional(
+                        CONF_PRECIP_TYPE_ENABLED,
+                        default=current.get(
+                            CONF_PRECIP_TYPE_ENABLED,
+                            DEFAULT_PRECIP_TYPE_ENABLED,
+                        ),
+                    ): bool,
+                    vol.Optional(
+                        CONF_SNOW_ROOF_FACTOR_ENABLED,
+                        default=current.get(
+                            CONF_SNOW_ROOF_FACTOR_ENABLED,
+                            DEFAULT_SNOW_ROOF_FACTOR_ENABLED,
+                        ),
+                    ): bool,
+                    vol.Optional(
+                        CONF_CAPACITY_CURVE_ENABLED,
+                        default=current.get(
+                            CONF_CAPACITY_CURVE_ENABLED,
+                            DEFAULT_CAPACITY_CURVE_ENABLED,
+                        ),
+                    ): bool,
+                    vol.Optional(
+                        CONF_SOLAR_APERTURE_LEARNING_ENABLED,
+                        default=current.get(
+                            CONF_SOLAR_APERTURE_LEARNING_ENABLED,
+                            DEFAULT_SOLAR_APERTURE_LEARNING_ENABLED,
+                        ),
+                    ): bool,
+                    vol.Optional(
+                        CONF_INTERNAL_GAINS_LEARNING_ENABLED,
+                        default=current.get(
+                            CONF_INTERNAL_GAINS_LEARNING_ENABLED,
+                            DEFAULT_INTERNAL_GAINS_LEARNING_ENABLED,
+                        ),
+                    ): bool,
+                    vol.Optional(
+                        CONF_CURVE_LEARNING_ENABLED,
+                        default=current.get(
+                            CONF_CURVE_LEARNING_ENABLED,
+                            DEFAULT_CURVE_LEARNING_ENABLED,
                         ),
                     ): bool,
                 }

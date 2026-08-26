@@ -561,7 +561,13 @@
           "price_prior_enabled": "Uppskatta priser bortom publicerad horisont",
           "outage_recovery_enabled": "Stegvis återhämtning efter strömavbrott",
           "open_window_relax_enabled": "Dämpa värmen medan ett fönster är öppet",
-          "immersion_feedback_enabled": "Planera utifrån elpatronens användning"
+          "immersion_feedback_enabled": "Planera utifrån elpatronens användning",
+          "precip_type_enabled": "Skilj snö från regn i prognosen",
+          "snow_roof_factor_enabled": "Räkna med mindre sol efter kraftigt snöfall",
+          "capacity_curve_enabled": "Planera inom uppmätt värmepumpskapacitet",
+          "solar_aperture_learning_enabled": "Lär hur mycket sol fönstren verkligen släpper in",
+          "internal_gains_learning_enabled": "Lär hushållets dagliga värmerytm",
+          "curve_learning_enabled": "Lär en korrigering av värmekurvan"
         },
         "data_description": {
           "staleness_watchdog_enabled": "Ett dött batteri lämnar ett helt normalt utseende värde kvar för alltid. Utan åtgärd lär sig modellen av den platta kurvan, och skadan överlever en omstart. Med detta på behandlas ett gammalt värde som saknat och inlärningen pausas i stället.",
@@ -574,7 +580,13 @@
           "price_prior_enabled": "Morgondagens priser kommer runt kl. 13. Dessförinnan var resten av horisonten en platt upprepning av senaste priset, vilket döljer alla billiga timmar framåt. Detta lär sig din typiska prisprofil över dygnet och använder den i stället, och planen märker ut vilka timmar som är uppskattade.",
           "outage_recovery_enabled": "Efter ett avbrott startar allt samtidigt — kallt hus, kall tank, hela grannskapet — vilket är exakt när en ny månadstopp sätts. Med detta på öppnar ett långt uppehåll i uppdateringarna ett tvåtimmarsfönster där effektavgiften tas på allvar från första kW och varmvattnet köar 45 minuter bakom husvärmen, om inte tanken är riktigt låg.",
           "open_window_relax_enabled": "Fönsterdetektorn pausar alltid inlärningen — den delen är gratis och alltid på. Detta sänker dessutom värmemålet med 1 °C medan ett fönster verkar stå öppet, så att värmepumpen slutar betala för att värma trädgården. Av som standard eftersom det flyttar riktig värme: ett felaktigt flaggat fönster betyder ett något svalare hus.",
-          "immersion_feedback_enabled": "När tankens elpatron gång på gång får rycka in värmer planen inte vattnet tidigt nog. Med detta på höjer upprepad elpatronanvändning varmvattnets planeringsmarginal så att värmepumpen hinner först, och merkostnaden syns som en egen rad i besparingsredovisningen."
+          "immersion_feedback_enabled": "När tankens elpatron gång på gång får rycka in värmer planen inte vattnet tidigt nog. Med detta på höjer upprepad elpatronanvändning varmvattnets planeringsmarginal så att värmepumpen hinner först, och merkostnaden syns som en egen rad i besparingsredovisningen.",
+          "precip_type_enabled": "Regn blöter ner klimatskalet och ökar värmeförlusten; snö gör det inte. Utan detta behandlas en snöig prognos som regn och planen köper värme för en våt vägg som förblir torr. Kräver Open-Meteo-anslutningen för snödata.",
+          "snow_roof_factor_enabled": "I två dygn efter kraftigt snöfall halveras den modellerade solvinsten — snö på takfönster och låga vinterrutor blockerar solen planen räknade med. Medvetet grovt: en faktor och en hålltid, ingen smältmodell.",
+          "capacity_curve_enabled": "Märkeffekten är ett laboratorievärde. Detta lär sig hur mycket värme pumpen faktiskt levererat vid varje utetemperatur och planerar inom det, så att en köldknäppsplan slutar lova effekt maskinen aldrig producerat. Det kan bara tygla optimism — minst 60 % av märkeffekten är alltid tillgänglig.",
+          "solar_aperture_learning_enabled": "Fönsterarea och skuggning är konfigurerade gissningar. Detta jämför soltimmarnas prognoser med vad som faktiskt hände och skalar solvinsten därefter, mellan en tredjedel och det dubbla av det konfigurerade värdet.",
+          "internal_gains_learning_enabled": "Människor, matlagning och apparater värmer huset i en dygnsrytm som den platta konstanten inte ser. Detta lär en timprofil ur mörkertimmarnas prognosfel, varsamt förankrad i det konfigurerade värdet så att den förblir en förfining, inte en omskrivning.",
+          "curve_learning_enabled": "De flesta värmekurvor ställdes in en gång, försiktigt, av en installatör som aldrig kom tillbaka. Detta lär en stående korrigering ur dagar som höll komforten med marginal — kryper svalare med högst en halv grad per vecka, och återgår omedelbart till installatörens kurva vid varje komfortmiss. Den kan bara kyla en för het kurva, aldrig värma."
         }
       }
     },

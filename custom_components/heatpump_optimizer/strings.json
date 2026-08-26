@@ -561,7 +561,13 @@
           "price_prior_enabled": "Estimate prices past the published horizon",
           "outage_recovery_enabled": "Staggered recovery after a power cut",
           "open_window_relax_enabled": "Ease heating while a window is open",
-          "immersion_feedback_enabled": "Plan around immersion heater use"
+          "immersion_feedback_enabled": "Plan around immersion heater use",
+          "precip_type_enabled": "Tell snow from rain in the forecast",
+          "snow_roof_factor_enabled": "Assume less sun after heavy snowfall",
+          "capacity_curve_enabled": "Plan within measured heat pump capacity",
+          "solar_aperture_learning_enabled": "Learn how much sun the windows really admit",
+          "internal_gains_learning_enabled": "Learn the household's daily heat rhythm",
+          "curve_learning_enabled": "Learn a correction to the heat curve"
         },
         "data_description": {
           "staleness_watchdog_enabled": "A dead battery leaves a perfectly normal-looking value in place forever. Left alone, the model learns from that flatline and the damage survives a restart. With this on, an old value is treated as missing and learning pauses instead.",
@@ -574,7 +580,13 @@
           "price_prior_enabled": "Tomorrow's prices arrive around 13:00. Before then the rest of the horizon used to be a flat repeat of the last price, which hides every cheap hour ahead. This learns your typical daily price shape and uses it instead, and the plan marks which hours are estimated.",
           "outage_recovery_enabled": "After an outage everything restarts at once — cold house, cold tank, the whole neighbourhood — which is exactly when a new monthly capacity peak gets set. With this on, a long gap in updates opens a two-hour recovery window where the capacity charge is taken seriously from the first kW and hot water queues 45 minutes behind space heating, unless the tank is genuinely low.",
           "open_window_relax_enabled": "The open-window detector always pauses learning — that part is free and always on. This additionally lowers the heating target by 1 °C while a window appears to be open, so the heat pump stops paying to heat the garden. Off by default because it moves real heat: a wrongly flagged window means a slightly cooler house.",
-          "immersion_feedback_enabled": "When the tank's electric immersion element keeps stepping in, the plan is not heating water early enough. With this on, repeated immersion use raises the hot-water planning margin so the heat pump gets there first, and the extra cost shows up as its own line in the savings ledger."
+          "immersion_feedback_enabled": "When the tank's electric immersion element keeps stepping in, the plan is not heating water early enough. With this on, repeated immersion use raises the hot-water planning margin so the heat pump gets there first, and the extra cost shows up as its own line in the savings ledger.",
+          "precip_type_enabled": "Rain soaks the building envelope and increases heat loss; snow does not. Without this, a snowy forecast is treated as rain and the plan buys heat for a wet wall that stays dry. Needs the Open-Meteo connection for the snow data.",
+          "snow_roof_factor_enabled": "For two days after heavy snowfall, the modelled solar gain is halved — snow on roof glazing and low winter panes blocks the sun the plan was counting on. Deliberately crude: a factor and a holding period, not a melt model.",
+          "capacity_curve_enabled": "The nameplate maximum is a laboratory number. This learns how much heat the pump has actually delivered at each outdoor temperature and plans within it, so a cold-snap plan stops promising output the machine has never produced. It can only trim optimism — at least 60% of nameplate always stays available.",
+          "solar_aperture_learning_enabled": "Window area and shading are configured guesses. This compares sunny-hour predictions with what actually happened and scales the solar gain accordingly, between a third and double the configured value.",
+          "internal_gains_learning_enabled": "People, cooking and appliances heat the house on a daily rhythm the flat constant cannot see. This learns a per-hour profile from dark-hour prediction errors, gently tethered to the configured value so it stays a refinement, not a rewrite.",
+          "curve_learning_enabled": "Most heat curves were set once, conservatively, by an installer who never came back. This learns a standing correction from days that held comfort with room to spare — creeping cooler by at most half a degree per week, and snapping back to the installer's curve instantly on any comfort miss. It can only cool an over-hot curve, never heat."
         }
       }
     },

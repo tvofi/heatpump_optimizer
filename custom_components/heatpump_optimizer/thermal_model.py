@@ -361,6 +361,12 @@ class ThermalParameters:
     #: T4a #11 (gated): extra readiness the coordinator asks for when the
     #: immersion element keeps rescuing late tanks, °C. 0 = inert.
     dhw_ready_margin_c: float = 0.0
+    #: T4b #36 (gated): learned scale on the modelled solar aperture.
+    #: 1.0 = inert; set per solve by the coordinator when the flag is on.
+    solar_aperture_scale: float = 1.0
+    #: T4b #53 (gated): learned per-hour internal gains, kW, 24 entries.
+    #: None = the flat ``internal_gains`` constant, byte-inert.
+    internal_gains_profile: Any = None
 
     # Weather sensitivity parameters (configurable)
     wind_sensitivity: float = DEFAULT_WIND_SENSITIVITY  # fraction per m/s
@@ -1062,6 +1068,10 @@ class ThermalModel:
         cop = self.params.cop_nominal * min(factor, 1.5) * self.params.cop_scale
         derate = self.params.defrost_derate
         if derate is not None:
+            # A forecast humidity series marks unknown steps as NaN (#21);
+            # those fall back exactly like an absent argument.
+            if humidity is not None and not np.isfinite(humidity):
+                humidity = None
             if humidity is None:
                 humidity = self.params.ambient_humidity
             cop *= derate.factor(outdoor_temp, humidity)
@@ -1084,14 +1094,19 @@ class ThermalModel:
                     cop *= max(0.25, carnot_flow / carnot_ref)
         return max(cop, 0.5)
 
-    def compute_cop_dhw(self, outdoor_temp: float, dhw_temp: float) -> float:
+    def compute_cop_dhw(
+        self,
+        outdoor_temp: float,
+        dhw_temp: float,
+        humidity: float | None = None,
+    ) -> float:
         """Compute heat pump COP for DHW mode.
 
         DHW requires higher supply temperature (55-65°C vs 35-45°C for space
         heating), so COP is lower.  Rough model:
         COP_dhw ≈ COP_space * 0.7 (penalty for higher supply temp)
         """
-        base_cop = self.compute_cop(outdoor_temp)
+        base_cop = self.compute_cop(outdoor_temp, humidity=humidity)
         # Higher DHW temp → lower COP (Carnot-like penalty)
         dhw_penalty = max(0.5, 1.0 - 0.008 * (dhw_temp - 35.0))
         return base_cop * dhw_penalty
@@ -1130,6 +1145,11 @@ class ThermalModel:
         """Compute total solar heat gain in kW from solar radiation (W/m²).
 
         Q_solar = solar_radiation * window_area * orientation_factor * SHGC / 1000
+
+        ``solar_aperture_scale`` is #36's learned correction on the whole
+        aperture product — window area, orientation and SHGC are configured
+        guesses, and only their product is observable. 1.0 (the default,
+        and the value whenever the learning flag is off) is byte-inert.
         """
         p = self.params
         if solar_radiation <= 0:
@@ -1139,8 +1159,24 @@ class ThermalModel:
             * p.window_area
             * p.solar_orientation_factor
             * p.solar_heat_gain_coefficient
+            * p.solar_aperture_scale
             / 1000.0  # W → kW
         )
+
+    def internal_gains_at(self, hour_of_day: float | None) -> float:
+        """Internal gains in kW for one hour of the day (#53).
+
+        The learned per-hour profile applies only when it exists AND the
+        caller knows the hour; every other combination is the configured
+        constant, byte-for-byte the previous behaviour.
+        """
+        profile = self.params.internal_gains_profile
+        if profile is None or hour_of_day is None:
+            return self.params.internal_gains
+        try:
+            return float(profile[int(hour_of_day) % 24])
+        except (TypeError, ValueError, IndexError):
+            return self.params.internal_gains
 
     def solar_gain_per_zone(
         self, solar_radiation: float
@@ -1335,10 +1371,12 @@ class ThermalModel:
         solar_radiation: float = 0.0,
         dt_hours: float = 0.25,
         external_heat_kw: float = 0.0,
+        humidity: float | None = None,
+        hour_of_day: float | None = None,
     ) -> ThermalState:
         """Simulate one step with the original single-zone model."""
         p = self.params
-        cop = self.compute_cop(outdoor_temp)
+        cop = self.compute_cop(outdoor_temp, humidity=humidity)
         # Free thermal input (a wood furnace, item 28) joins the pump's output
         # at the hydronic mix. It is heat, not electricity, so it never touches
         # the COP and costs the plan nothing.
@@ -1351,7 +1389,7 @@ class ThermalModel:
             state.slab_temperature - state.room_temperature
         )
         q_loss = u_eff * (state.room_temperature - outdoor_temp)
-        q_internal = p.internal_gains
+        q_internal = self.internal_gains_at(hour_of_day)
         q_solar = self.compute_solar_gain(solar_radiation)
 
         dT_room = (q_slab_to_room - q_loss + q_internal + q_solar) / p.room_thermal_mass
@@ -1388,6 +1426,8 @@ class ThermalModel:
         dt_hours: float = 0.25,
         external_heat_kw: float = 0.0,
         valve_target: float | None = None,
+        humidity: float | None = None,
+        hour_of_day: float | None = None,
     ) -> ThermalState:
         """Simulate one step with the two-zone model including buffer tank.
 
@@ -1413,6 +1453,7 @@ class ThermalModel:
         # can no longer penalize the modelled COP or eat cap headroom.
         cop = self.compute_cop(
             outdoor_temp,
+            humidity=humidity,
             flow_temp=state.buffer_tank_temperature if throttled else None,
         )
         # Free thermal input (a wood furnace, item 28) joins the pump's output
@@ -1439,8 +1480,9 @@ class ThermalModel:
 
         # Internal gains split proportional to area ratio
         area_ratio = p.upper_floor_area_ratio
-        q_internal_upper = p.internal_gains * area_ratio
-        q_internal_lower = p.internal_gains * (1.0 - area_ratio)
+        q_internal = self.internal_gains_at(hour_of_day)
+        q_internal_upper = q_internal * area_ratio
+        q_internal_lower = q_internal * (1.0 - area_ratio)
 
         T_upper = state.upper_floor_temperature
         T_lower = state.lower_floor_temperature
@@ -1671,12 +1713,18 @@ class ThermalModel:
         dt_hours: float = 0.25,
         external_heat_kw: float = 0.0,
         valve_target: float | None = None,
+        humidity: float | None = None,
+        hour_of_day: float | None = None,
     ) -> ThermalState:
         """Simulate one time step (dispatches to single or two-zone).
 
         ``valve_target`` overrides the configured mixing-valve target for this
         step. The single-zone model has no valve branch, so it is accepted and
         ignored there rather than being a two-zone-only signature.
+        ``humidity`` is the step's forecast relative humidity (#21) for the
+        defrost derate; ``hour_of_day`` selects the learned internal-gains
+        hour (#53). ``None`` for either falls back to the single configured
+        value, which is byte-for-byte the previous behaviour.
         """
         # The single-zone path has no buffer cap, so the scratch would
         # otherwise carry a stale value from an earlier two-zone step.
@@ -1685,12 +1733,12 @@ class ThermalModel:
             return self._simulate_step_two_zone(
                 state, electrical_power, outdoor_temp,
                 wind_speed, precipitation, solar_radiation, dt_hours,
-                external_heat_kw, valve_target,
+                external_heat_kw, valve_target, humidity, hour_of_day,
             )
         return self._simulate_step_single(
             state, electrical_power, outdoor_temp,
             wind_speed, precipitation, solar_radiation, dt_hours,
-            external_heat_kw,
+            external_heat_kw, humidity, hour_of_day,
         )
 
     def simulate_trajectory(
@@ -1704,6 +1752,8 @@ class ThermalModel:
         dt_hours: float = 0.25,
         external_heat_kw: np.ndarray | None = None,
         valve_targets: np.ndarray | None = None,
+        humidity: np.ndarray | None = None,
+        start_hour: float | None = None,
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Simulate the full trajectory given a power schedule.
 
@@ -1711,8 +1761,11 @@ class ThermalModel:
         input (a wood furnace, item 28). ``valve_targets`` is an optional
         per-step mixing-valve target schedule, fully resolved -- every entry a
         real temperature, no sentinel values -- which is how a commanded valve
-        holds its charge between cheap hours and the price peak. ``None`` for
-        either is the default and is byte-for-byte the previous behaviour.
+        holds its charge between cheap hours and the price peak.
+        ``humidity`` is the forecast relative humidity per step (#21), for
+        the defrost derate. ``None`` for
+        any of them is the default and is byte-for-byte the previous
+        behaviour.
 
         Returns:
             Tuple of (room_temperatures, slab_temperatures,
@@ -1764,6 +1817,14 @@ class ThermalModel:
                     if valve_targets is not None
                     else None
                 ),
+                humidity=(
+                    float(humidity[i]) if humidity is not None else None
+                ),
+                hour_of_day=(
+                    (start_hour + i * dt_hours) % 24.0
+                    if start_hour is not None
+                    else None
+                ),
             )
             room_temps[i + 1] = state.room_temperature
             slab_temps[i + 1] = state.slab_temperature
@@ -1797,6 +1858,7 @@ class ThermalModel:
         dhw_draw_rates: np.ndarray | None = None,
         external_heat_kw: np.ndarray | None = None,
         valve_targets: np.ndarray | None = None,
+        humidity: np.ndarray | None = None,
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Simulate full trajectory with coordinated space + DHW heating.
 
@@ -1866,6 +1928,10 @@ class ThermalModel:
                     if valve_targets is not None
                     else None
                 ),
+                humidity=(
+                    float(humidity[i]) if humidity is not None else None
+                ),
+                hour_of_day=current_hour % 24.0,
             )
 
             draw_i = float(dhw_draw_rates[i])
@@ -1887,7 +1953,13 @@ class ThermalModel:
                     )
 
             # DHW simulation (runs in parallel with space heating)
-            cop_dhw = self.compute_cop_dhw(outdoor_temps[i], state.dhw_temperature)
+            cop_dhw = self.compute_cop_dhw(
+                outdoor_temps[i],
+                state.dhw_temperature,
+                humidity=(
+                    float(humidity[i]) if humidity is not None else None
+                ),
+            )
             dhw_thermal_power = cop_dhw * dhw_power_schedule[i]
 
             new_dhw = self.simulate_dhw_step(

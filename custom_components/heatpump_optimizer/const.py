@@ -617,6 +617,70 @@ VENT_CUSUM_CLIP_C: Final = VENT_CUSUM_THRESHOLD_C / 2.0
 #: heat-loss learner needs indoor−outdoor ≥ 6 °C), and a latch nothing
 #: can feed would otherwise freeze every learner indefinitely.
 VENT_CUSUM_STARVE_HOURS: Final = 6.0
+
+# T4b — weather inputs (#21 #30). The humidity feed ships ungated: with no
+# defrost evidence the derate is 1.0 everywhere, so it is inert by
+# construction. The rain/snow split and the roof-snow solar damping move
+# real physics, so each is gated.
+#: #30 — weight the rain heat-loss multiplier by the liquid fraction of
+#: precipitation. Snow does not wet the building envelope.
+CONF_PRECIP_TYPE_ENABLED: Final = "precip_type_enabled"
+DEFAULT_PRECIP_TYPE_ENABLED: Final = False
+#: #30 — damp modelled solar gain for a while after heavy snowfall
+#: (snow on roof glazing and low winter panes). Deliberately crude.
+CONF_SNOW_ROOF_FACTOR_ENABLED: Final = "snow_roof_factor_enabled"
+DEFAULT_SNOW_ROOF_FACTOR_ENABLED: Final = False
+#: Open-Meteo's own snowfall convention: cm of snow ≈ 0.7 × mm of water.
+SNOW_CM_PER_MM_WATER: Final = 0.7
+#: Accumulated snowfall that counts as "heavy" (cm within a day).
+SNOW_HEAVY_CM: Final = 2.0
+#: Solar-gain multiplier while the roof is assumed snowed over, and how
+#: long the assumption holds after the heavy fall.
+SNOW_ROOF_DAMPING: Final = 0.5
+SNOW_ROOF_DAYS: Final = 2.0
+
+# T4b — the learners (#17 #36 #53 #2). Each ships its learning AND its
+# application behind one flag: half-armed states (learning silently, then
+# a config change suddenly applying weeks of unreviewed evidence) are
+# worse than off.
+#: #17 — cap planned electrical power to what the unit has actually
+#: delivered per outdoor bucket, through T2's caps_extra channel.
+CONF_CAPACITY_CURVE_ENABLED: Final = "capacity_curve_enabled"
+DEFAULT_CAPACITY_CURVE_ENABLED: Final = False
+#: Samples a 3 °C bucket needs before its envelope caps anything.
+CAPACITY_MIN_SAMPLES: Final = 5
+#: The cap can never starve the house: at least this fraction of
+#: nameplate is always available. The program's worst failure mode is a
+#: starved house at −15 °C, not an optimistic plan.
+CAPACITY_FLOOR_FRACTION: Final = 0.6
+#: Slow forgetting on the envelope so a one-off spike does not pin it.
+CAPACITY_FORGET: Final = 0.999
+#: #36 — learn a scale on the modelled solar aperture (window_area x
+#: SHGC) from sunny-step residuals.
+CONF_SOLAR_APERTURE_LEARNING_ENABLED: Final = "solar_aperture_learning_enabled"
+DEFAULT_SOLAR_APERTURE_LEARNING_ENABLED: Final = False
+SOLAR_APERTURE_MIN: Final = 0.3
+SOLAR_APERTURE_MAX: Final = 2.0
+#: Irradiance below this carries no aperture information, W/m².
+SOLAR_APERTURE_MIN_IRRADIANCE: Final = 150.0
+#: EWMA horizon for the regression moments (per accepted sample).
+SOLAR_APERTURE_ALPHA: Final = 0.02
+#: Accepted sunny samples before the learned scale applies.
+SOLAR_APERTURE_MIN_SAMPLES: Final = 30
+#: #53 — per-hour internal gains, ridge-regularised toward the constant.
+CONF_INTERNAL_GAINS_LEARNING_ENABLED: Final = (
+    "internal_gains_learning_enabled"
+)
+DEFAULT_INTERNAL_GAINS_LEARNING_ENABLED: Final = False
+INTERNAL_GAINS_ALPHA: Final = 0.05
+#: Pull toward the configured constant per fold — the profile is a
+#: perturbation of the prior, not a replacement for it.
+INTERNAL_GAINS_RIDGE: Final = 0.02
+#: Per-hour ceiling as a multiple of the configured constant.
+INTERNAL_GAINS_MAX_FACTOR: Final = 3.0
+#: #2 — a standing learned bias on the ECL110 heat curve displace.
+CONF_CURVE_LEARNING_ENABLED: Final = "curve_learning_enabled"
+DEFAULT_CURVE_LEARNING_ENABLED: Final = False
 #: How far the comfort floor is relaxed while a window is open (gated).
 OPEN_WINDOW_RELAX_C: Final = 1.0
 #: #11 — measured power above nameplate by this factor reads as the

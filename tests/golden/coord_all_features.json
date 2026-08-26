@@ -68,6 +68,9 @@
   "buffer_cooling_rate_learned": false,
   "buffer_cooling_samples": 0,
   "buffer_tank_temperature": 40.0,
+  "capacity_envelope": {
+   "buckets": {}
+  },
   "comfort_learning": {
    "configured": 5.0,
    "evidence": 0.0,
@@ -225,6 +228,11 @@
   "external_heat_suppressing": false,
   "floor_return_temperature": null,
   "fuse_advisor": {},
+  "heat_curve": {
+   "bias_k": 0.0,
+   "comfortable_days": 0,
+   "resets": 0
+  },
   "house_heat_loss_effective": 0.15,
   "house_heat_loss_learned": false,
   "house_heat_loss_samples": 0,
@@ -235,6 +243,7 @@
   "input_ages_minutes": {},
   "input_health": "unknown",
   "input_problems": [],
+  "internal_gains_profile": null,
   "learner_freeze_reason": null,
   "learners_frozen": false,
   "lower_floor_loss_learned": false,
@@ -394,6 +403,10 @@
    "alarm": false,
    "count": 0,
    "last_taken": null
+  },
+  "solar_aperture": {
+   "samples": 0,
+   "scale": 1.0
   },
   "solar_diagnostics": null,
   "solar_forecast": [],

@@ -448,6 +448,17 @@ SCENARIOS: dict[str, dict] = {
     # the DHW block's bounded run power, space headroom under a DHW block,
     # and the ``power_cap_breach_c`` report.
     "fuse_guard": dict(),
+    # --- T4b (#17 #30) ----------------------------------------------------
+    # The learned capacity envelope arrives through the same caps_extra
+    # channel as the fuse guard, but VARYING per step — the fuse fixture
+    # only ever exercised a constant cap, so a per-step regression in the
+    # cap handling was invisible until this one.
+    "capacity_curve": dict(),
+    # The rain multiplier weighted by liquid fraction (#30): the first
+    # half of the wet, mild day falls as snow (fraction 0), the second as
+    # rain (fraction 1). The pre-weighted array is exactly what the
+    # coordinator hands the optimizer with the flag on.
+    "precip_snow": dict(weather_profile="winter_mild"),
 }
 
 # Scenarios where prices past a point are the learned prior rather than
@@ -461,6 +472,14 @@ RISK_SCENARIOS = {"price_risk"}
 # cap is derived from the scenario's own nameplate so the fixture cannot
 # silently go slack if the harness house ever changes size.
 CAP_SCENARIOS = {"fuse_guard"}
+
+# T4b #17: a per-step VARYING electrical cap, shaped like a cold snap
+# tightening the learned envelope toward its 0.6 × nameplate floor.
+ENVELOPE_CAP_SCENARIOS = {"capacity_curve"}
+
+# T4b #30: precipitation pre-weighted by liquid fraction, the transform
+# the coordinator applies with precip_type_enabled on.
+SNOW_SCENARIOS = {"precip_snow"}
 
 # Scenarios given a PV surplus profile, which changes the marginal price.
 PV_SCENARIOS = {"shoulder", "summer_dhw_only"}
@@ -512,6 +531,14 @@ def capture(name: str, spec: dict) -> dict:
     caps = None
     if name in CAP_SCENARIOS:
         caps = np.full(n, opt.model.params.max_electrical_power * 0.6)
+    if name in ENVELOPE_CAP_SCENARIOS:
+        p_max = opt.model.params.max_electrical_power
+        caps = np.clip(
+            p_max * np.linspace(1.0, 0.6, n), 0.6 * p_max, p_max
+        )
+    if name in SNOW_SCENARIOS:
+        liquid = np.where(np.arange(n) < n // 2, 0.0, 1.0)
+        built["rain"] = np.asarray(built["rain"], dtype=float) * liquid
 
     result = opt.optimize(
         built["state"],
@@ -759,23 +786,40 @@ def capture_config_flow() -> dict:
     return pages
 
 
-def record_all() -> None:
+def record_all(only: str | None = None) -> None:
+    """Record fixtures; ``only`` filters by substring, exactly like checking.
+
+    The filter is honoured here for a reason with a scar attached: five
+    fixtures are machine-sensitive (scipy finds a different local optimum
+    per environment) and must NEVER be re-recorded casually. A --record
+    that silently ignored --only rewrote all of them in one keystroke.
+    """
     GOLDEN_DIR.mkdir(parents=True, exist_ok=True)
+    recorded = 0
     for name, spec in SCENARIOS.items():
+        if only and only not in name:
+            continue
         payload = capture(name, spec)
         path = GOLDEN_DIR / f"{name}.json"
         path.write_text(json.dumps(payload, indent=1, sort_keys=True) + "\n")
         print(f"  recorded {name} ({path.stat().st_size // 1024} KB)")
+        recorded += 1
     for name, config in coordinator_scenarios().items():
+        if only and only not in name:
+            continue
         payload = capture_coordinator(config)
         path = GOLDEN_DIR / f"{name}.json"
         path.write_text(json.dumps(payload, indent=1, sort_keys=True) + "\n")
         print(f"  recorded {name} ({path.stat().st_size // 1024} KB)")
-    path = GOLDEN_DIR / "config_flow.json"
-    path.write_text(json.dumps(capture_config_flow(), indent=1, sort_keys=True) + "\n")
-    print(f"  recorded config_flow ({path.stat().st_size // 1024} KB)")
-    total = len(SCENARIOS) + len(coordinator_scenarios()) + 1
-    print(f"\nRecorded {total} golden fixtures in {GOLDEN_DIR}/")
+        recorded += 1
+    if not only or only in "config_flow":
+        path = GOLDEN_DIR / "config_flow.json"
+        path.write_text(
+            json.dumps(capture_config_flow(), indent=1, sort_keys=True) + "\n"
+        )
+        print(f"  recorded config_flow ({path.stat().st_size // 1024} KB)")
+        recorded += 1
+    print(f"\nRecorded {recorded} golden fixture(s) in {GOLDEN_DIR}/")
 
 
 # ---------------------------------------------------------------------------
@@ -912,7 +956,7 @@ def main() -> int:
 
     print("=== Golden characterization ===\n")
     if args.record:
-        record_all()
+        record_all(args.only)
         return 0
     return check_all(args.only)
 
