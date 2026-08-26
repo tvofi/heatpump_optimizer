@@ -8425,11 +8425,17 @@ R.check(
     abs(_ci_reasons - _ci._ledger.line("2026-03", "spot")["kwh"]) < 1e-9,
     "reason lines partition METERED kWh; the element's excess is #11's line",
 )
+_cu6 = _t2_coord()
+_cu6._accumulate_energy(
+    AccuracySample(when=_T6, actual_power_kw=2.0),
+    1.0,
+    {k: v for k, v in _ct_pending.items() if not k.endswith("_reason")},
+)
 R.check(
     "an interval without a tag books as untagged, not as nothing",
     abs(
-        _cl3._ledger.line(_lmonth, "reason:untagged")["kwh"]
-        - _cl3._ledger.line(_lmonth, "spot")["kwh"]
+        _cu6._ledger.line("2026-03", "reason:untagged")["kwh"]
+        - _cu6._ledger.line("2026-03", "spot")["kwh"]
     )
     < 1e-9,
     "manual modes and restarts must still land in the month's total",
@@ -8483,6 +8489,9 @@ R.check(
     and abs(_receipt["contract_comparison"]["kwh"] - 2.0) < 1e-6,
 )
 _frozen_total = _receipt["total_kwh"]
+# A LATE booking into the already-closed month: a wrongly re-frozen
+# receipt would pick it up and change; a truly frozen one cannot.
+_cm._ledger.add(_T6, "wear", kwh=0.0, sek=5.0)
 _cm._accumulate_energy(
     AccuracySample(when=_apr, actual_power_kw=5.0),
     1.0,
@@ -8490,7 +8499,9 @@ _cm._accumulate_energy(
 )
 R.check(
     "a frozen receipt never changes after its month closed",
-    _cm._month_reports["2026-03"]["total_kwh"] == _frozen_total,
+    _cm._month_reports["2026-03"]["total_kwh"] == _frozen_total
+    and "wear" not in _cm._month_reports["2026-03"]["lines"],
+    "even a late line booked into the closed month cannot rewrite history",
 )
 
 # --- #65 the scores --------------------------------------------------------------
@@ -8531,8 +8542,8 @@ R.check(
 )
 _cop6 = _t2_coord()
 for _spot6 in (1.0, 1.0, 3.0, 3.0):
-    _cop6._fold_score_sample(_T6, 1.0, 1.6 * 1.0, _spot6)
-_cop6._fold_score_sample(_apr, 0.0, 0.0, 2.0)  # next day closes the book
+    _cop6._fold_score_sample(_T6, 1.0, 1.6 * 1.0, _spot6, 0.25, True)
+_cop6._fold_score_sample(_apr, 0.0, 0.0, 2.0, 0.25, True)  # next day closes
 R.check(
     "buying 20% under the day's mean spot replays to a perfect operation day",
     _cop6._operation_score is not None
@@ -8541,8 +8552,8 @@ R.check(
     "0.2 saved fraction",
 )
 _ctiny = _t2_coord()
-_ctiny._fold_score_sample(_T6, 0.1, 0.2, 2.0)
-_ctiny._fold_score_sample(_apr, 0.0, 0.0, 2.0)
+_ctiny._fold_score_sample(_T6, 0.1, 0.2, 2.0, 1.0, True)
+_ctiny._fold_score_sample(_apr, 0.0, 0.0, 2.0, 1.0, True)
 R.check(
     "a day with too little energy teaches nothing and is skipped",
     _ctiny._operation_score is None,
@@ -8785,6 +8796,216 @@ R.check(
     _cq8._start_counter.lifetime == 0
     and not _cq8._month_reports
     and _cq8._operation_score is None,
+)
+
+# --- the T6 review round's regressions ------------------------------------------------
+
+# A corrupt persisted day book must cost one operation sample, never the
+# update loop: bare float() on a stored "junk" would raise inside every
+# settlement for the rest of the day.
+_cq9 = _t2_coord()
+
+
+async def _fake_led_bad(
+    _p={
+        "ledger": {"months": {}},
+        "score_day": {"day": "2026-03-01", "kwh": "junk"},
+    }
+):
+    return _p
+
+
+_cq9._ledger_store.async_load = _fake_led_bad
+_asyncio.run(_cq9._async_load_ledger())
+_cq9._accumulate_energy(
+    AccuracySample(when=_T6, actual_power_kw=1.0), 1.0, dict(_ct_pending)
+)
+R.check(
+    "a corrupt day book is dropped at load and settlement carries on",
+    _cq9._score_day.get("day") == "2026-03-28",
+    "the T4a lesson again: a poisoned rider must not brick the loop",
+)
+
+# The diagnosis compares space against space: planned power is the space
+# channel, and the measured whole-meter draw is apportioned by the plan's
+# own split before the swap.
+_csp = _t2_coord()
+_csp._current_action = {"power": 1.5, "dhw_power": 2.0}
+R.check(
+    "the diagnosis plans with the space channel, not the commanded total",
+    _csp._capture_diagnosis_inputs()["planned"]["electrical_power"] == 1.5,
+    "simulate_step's power heats the house; handing it the total would "
+    "charge every tank charge to room heating",
+)
+_c10 = _t2_coord()
+_c10._mode = "auto"
+_c10._current_action = {"power": 1.0, "dhw_power": 1.0}
+_c10._measured_power = 3.0
+_c10._current_state.room_temperature = 20.0
+_t10 = datetime(2026, 3, 29, 6, 0, tzinfo=UTC)
+_dt5.freeze(_t10)
+try:
+    _c10._record_accuracy()
+    _dt5.freeze(_t10 + timedelta(minutes=15))
+    _c10._record_accuracy()
+finally:
+    _dt5.freeze(None)
+R.check(
+    "the realised power in the settled triple is the space share of the meter",
+    _c10._last_interval_record is not None
+    and abs(
+        _c10._last_interval_record["realised"]["electrical_power"] - 1.5
+    )
+    < 1e-9
+    and _c10._last_interval_record["planned"]["electrical_power"] == 1.0,
+    "3 kW metered at a 1.0/1.0 plan split diagnoses as 1.5 kW of space",
+)
+
+# The diagnosis runs on a scratch model, never the live one the scheduled
+# solve may be walking in another executor thread.
+from heatpump_optimizer import coordinator as _coord_mod
+
+_cd10 = _t2_coord()
+_cd10._last_interval_record = {
+    "when": _T6.isoformat(),
+    "state": _dstate,
+    "planned": dict(_dplanned),
+    "dt_hours": 1.0,
+    "realised": {},
+    "actual": 20.0,
+}
+_seen10: dict = {}
+_real_attribute = _coord_mod.diagnosis.attribute
+
+
+def _spy_attribute(model, state, planned, realised, actual):
+    _seen10["model"] = model
+    return _real_attribute(model, state, planned, realised, actual)
+
+
+_coord_mod.diagnosis.attribute = _spy_attribute
+try:
+    _cd10.diagnose_last_interval()
+finally:
+    _coord_mod.diagnosis.attribute = _real_attribute
+R.check(
+    "the diagnosis never touches the live thermal model",
+    _seen10.get("model") is not None
+    and _seen10["model"] is not _cd10._thermal_model,
+    "simulate_step writes per-call scratch on the model instance",
+)
+
+# The tile borrows the card's harness without spending its budget: the
+# rate-limit stamp and the cache are snapshot-restored, so a drag right
+# after a solve neither rate-limits nor reads the tile's payload back.
+_ctile3 = _t2_coord(price_tiles_enabled=True)
+_marker3 = {"marker": True}
+_stamp3 = datetime(2026, 3, 1, tzinfo=UTC)
+_ctile3._simulation_cache = _marker3
+_ctile3._last_simulation = _stamp3
+
+
+async def _fake_sim_poison(overrides, _c=_ctile3):
+    _c._last_simulation = datetime(2026, 3, 2, tzinfo=UTC)
+    _c._simulation_cache = {"poison": True}
+    return {
+        "monthly_cost_delta": -1.0,
+        "min_room_temperature": 19.0,
+        "rate_limited": False,
+    }
+
+
+_ctile3.async_simulate = _fake_sim_poison
+_asyncio.run(_ctile3._maybe_refresh_price_tile())
+R.check(
+    "a tile run leaves the card's rate budget and cache exactly as found",
+    _ctile3._simulation_cache is _marker3
+    and _ctile3._last_simulation == _stamp3
+    and _ctile3._price_tiles,
+    "the fuse advisor's own rule: borrow the harness, never the slot",
+)
+
+# The target tiles perturb the LIVE target: during an away setback the
+# configured target would flip the sign of the published trade.
+_ctile6 = _t2_coord(price_tiles_enabled=True)
+_ctile6._opt_config.target_temp = 17.0
+R.check(
+    "the target tiles follow the live target through an away setback",
+    _ctile6._price_tile_specs()[0][1]["target_temp"] == 16.0
+    and _ctile6._price_tile_specs()[1][1]["target_temp"] == 18.0,
+    "'one degree lower' must be lower than the plan being compared against",
+)
+
+# A consistently failing spec must not block the other tiles forever.
+_ctile4 = _t2_coord(price_tiles_enabled=True)
+
+
+async def _fake_sim_err(overrides):
+    return {"error": "boom", "rate_limited": False}
+
+
+_ctile4.async_simulate = _fake_sim_err
+_asyncio.run(_ctile4._maybe_refresh_price_tile())
+R.check(
+    "an erroring tile spec advances the rotation instead of stalling it",
+    _ctile4._price_tile_cursor == 1 and not _ctile4._price_tiles,
+)
+
+# Turning the flag off retires the published tiles too.
+_ctile5 = _t2_coord()
+_ctile5._price_tiles["stale"] = {"monthly_cost_delta": 1.0}
+_asyncio.run(_ctile5._maybe_refresh_price_tile())
+R.check(
+    "gate off means gone: no stale what-if money outlives the flag",
+    not _ctile5._price_tiles,
+)
+
+# A pre-T6 month has no partition to break: its receipt says None, never
+# False — an upgrade must not look like the bug the flag exists to catch.
+_cpre = _t2_coord()
+_cpre._ledger.add(_T6, "spot", kwh=100.0, sek=150.0)
+_cpre._roll_month(_apr)
+R.check(
+    "a month with no reason lines reconciles to None, not to failure",
+    _cpre._month_reports["2026-03"]["reasons_reconcile"] is None,
+)
+
+# The reconcile compares RAW ledger values: rounding thirty tiny lines to
+# two decimals each would otherwise cry wolf on a perfect partition.
+_crr = _t2_coord()
+for _i in range(30):
+    _crr._ledger.add(_T6, f"reason:r{_i}", kwh=0.001, sek=0.005017)
+_crr._ledger.add(_T6, "spot", kwh=0.03, sek=0.005017 * 30)
+R.check(
+    "a perfectly partitioned month reconciles whatever the rounding does",
+    _crr._freeze_month_report("2026-03")["reasons_reconcile"] is True,
+)
+
+# The debounce streak dies with the meter: two noise spikes separated by
+# an outage are not two CONSECUTIVE samples.
+_sc8 = StartCounter()
+_sc8.observe(_T6, 2.0, 0.5, False)
+_sc8.observe(_T6, None, 0.5, False)
+R.check(
+    "a meter outage resets the hysteresis streak",
+    not _sc8.observe(_T6, 2.0, 0.5, False) and _sc8.lifetime == 0,
+)
+
+# The day book keeps its signs and its baseline honest: a negative-price
+# hour lowers the paid mean, and an hour with no known price stays out of
+# the flat-consumer baseline entirely.
+_cneg = _t2_coord()
+for _ in range(3):
+    _cneg._fold_score_sample(_T6, 0.5, 1.5, 3.0, 0.25, True)
+_cneg._fold_score_sample(_T6, 1.0, -1.0, -1.0, 0.25, True)
+_cneg._fold_score_sample(_T6, 0.0, 0.0, 0.0, 0.25, False)
+_cneg._fold_score_sample(_apr, 0.0, 0.0, 2.0, 0.25, True)
+R.check(
+    "signed SEK and a known-price-only baseline score the day correctly",
+    _cneg._operation_score is not None
+    and abs(_cneg._operation_score - 100.0) < 1e-6,
+    "paid 1.40 against a 2.00 known-hours mean: zeroing the negative hour "
+    "or folding the unknown one would both under-score the day",
 )
 
 sys.exit(R.close("FEATURE CHECKS"))

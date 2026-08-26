@@ -982,6 +982,42 @@ buttons 3→4. Starts, receipts and the operation score persist as riders on
 the ledger store. Goldens: coord_*×5 + config_flow re-recorded, additive
 only (+139/−0); the five protected fixtures untouched.
 
+*T6 review round (0 critical, 4 major, 6 minor, 4 nits — all acted on):*
+the majors: **a corrupt persisted day book bricked the update loop** — bare
+`float()` on a stored "junk" raised inside every settlement for the rest of
+the day; the score_day rider now gets the same load-time corruption barrier
+as its siblings, so garbage costs one operation sample, never the loop.
+**The diagnosis compared apples to fruit salad** — planned power was the
+commanded space+DHW total and realised the whole meter, while
+`simulate_step`'s power heats the house; the plan side now uses the space
+channel and the measured draw is apportioned by the plan's own split (the
+settlement's convention), and the module documents that in single-zone this
+step's power reaches the room only via next step's slab, so its swap
+honestly reads ~0 there. **The price tile spent the card's rate budget and
+poisoned its cache** — a drag within 3 s of a solve got the tile's payload
+back as its own answer; the tile now borrows the simulate harness the way
+the fuse advisor does, snapshot-restoring the stamp and cache. **Away
+setbacks flipped the target tiles' sign** — "one degree lower" was derived
+from the configured target and became a raise against the setback plan;
+tiles now perturb the live target. Minors: an erroring tile spec advances
+the rotation instead of stalling the set; turning the flag off clears the
+published tiles; pre-T6 months freeze with `reasons_reconcile: None` (no
+partition ever existed — False would make an upgrade look like the bug the
+flag exists to catch) and the reconcile compares raw ledger values so
+2-decimal rounding across a full reason set cannot cry wolf; the start
+counter's streak resets across meter outages (two spikes separated by an
+outage are not two consecutive samples); the day book keeps SIGNED SEK
+(a negative-price hour lowers the paid mean), samples the flat-consumer
+baseline only from hours whose price was known, and time-weights it; the
+diagnosis runs on a scratch ThermalModel, never the live one a concurrent
+solve may be walking. Nits: "25 % power cap" copy corrected to "power
+capped at 75 %" in all four places; the untagged-settlement check got its
+own T6 fixture instead of borrowing T4a's; the frozen-receipt test now
+books a late line into the closed month and proves it cannot rewrite
+history. Checks 793 → 805; stress's wall-clock failure proven environmental
+again (interleaved A/B: branch ≡ main within noise, 9–16 s alone vs the
+30 s budget — the run overlapped the review agent's golden replay).
+
 **Infrastructure:** reason-tagged settlement — the `pending` dict carries the
 interval's plan-slot reason codes so every settled SEK is attributable; the T1
 ledger gains per-reason lines; a month-rollover hook fires #40.

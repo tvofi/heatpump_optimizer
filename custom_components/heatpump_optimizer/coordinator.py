@@ -5245,7 +5245,27 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             }
         day = stored.get("score_day")
         if isinstance(day, dict):
-            self._score_day = dict(day)
+            # Same corruption barrier as the other riders: a book with a
+            # non-numeric field would raise inside every subsequent
+            # settlement and take the WHOLE update loop down for the rest
+            # of the day. A day book is one day of evidence — dropping a
+            # corrupt one costs one operation sample, never the loop.
+            try:
+                cleaned = {
+                    "day": str(day.get("day") or ""),
+                    "kwh": float(day.get("kwh", 0.0)),
+                    "sek": float(day.get("sek", 0.0)),
+                    "spot_sum": float(day.get("spot_sum", 0.0)),
+                    "spot_h": float(day.get("spot_h", 0.0)),
+                }
+                if cleaned["day"] and all(
+                    np.isfinite(v)
+                    for k, v in cleaned.items()
+                    if k != "day"
+                ):
+                    self._score_day = cleaned
+            except (TypeError, ValueError):
+                pass
         score = stored.get("operation_score")
         if isinstance(score, (int, float)) and np.isfinite(score):
             self._operation_score = float(np.clip(score, 0.0, 100.0))
@@ -7066,13 +7086,30 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 # assumptions were captured when it began.
                 diag = pending.get("diag")
                 if diag is not None and sample.actual_temp is not None:
+                    # The meter reads the whole pump; the model's power
+                    # input is the space channel. Apportion the measured
+                    # draw by the plan's own split — the same convention
+                    # the energy settlement uses — so the power swap
+                    # compares space against space.
+                    planned_space = float(pending.get("space_power") or 0.0)
+                    planned_dhw = float(pending.get("dhw_power") or 0.0)
+                    planned_total = planned_space + planned_dhw
+                    share = (
+                        planned_space / planned_total
+                        if planned_total > 1e-6
+                        else 1.0
+                    )
                     self._last_interval_record = {
                         "when": now.isoformat(timespec="seconds"),
                         "state": diag["state"],
                         "planned": diag["planned"],
                         "dt_hours": elapsed,
                         "realised": {
-                            "electrical_power": sample.actual_power_kw,
+                            "electrical_power": (
+                                sample.actual_power_kw * share
+                                if sample.actual_power_kw is not None
+                                else None
+                            ),
                             "outdoor_temp": (
                                 self._current_state.outdoor_temperature
                             ),
@@ -7237,8 +7274,16 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         energy = max(0.0, actual * elapsed_hours)
         # T6 #65: the operation score's day book samples every interval
         # too — the flat-consumer baseline it replays against is the
-        # time-mean spot price, idle hours included.
-        self._fold_score_sample(when, energy, energy * spot, spot)
+        # time-mean spot price, idle hours included, but only hours whose
+        # price was actually known.
+        self._fold_score_sample(
+            when,
+            energy,
+            energy * spot,
+            spot,
+            elapsed_hours,
+            pending.get("spot_price") is not None,
+        )
         if energy <= 0:
             self._schedule_ledger_save()
             return
@@ -7473,8 +7518,22 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             for name, entry in lines.items()
             if name.startswith("reason:")
         }
-        reason_kwh = sum(entry["kwh"] for entry in reasons.values())
-        reason_sek = sum(entry["sek"] for entry in reasons.values())
+        # Reconcile on the RAW ledger values, not the rounded publication
+        # ones: with a full reason set the accumulated 2-decimal rounding
+        # alone can exceed the tolerance and cry wolf on a perfectly
+        # partitioned month.
+        raw_lines = self._ledger.months.get(month, {}).get("lines", {})
+        reason_kwh = sum(
+            self._ledger.line(month, name)["kwh"]
+            for name in raw_lines
+            if name.startswith("reason:")
+        )
+        reason_sek = sum(
+            self._ledger.line(month, name)["sek"]
+            for name in raw_lines
+            if name.startswith("reason:")
+        )
+        raw_spot = self._ledger.line(month, "spot")
         spot = lines.get("spot", {"kwh": 0.0, "sek": 0.0})
         report: dict[str, Any] = {
             "month": month,
@@ -7496,10 +7555,17 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             "contract_comparison": self._contract_comparison(month),
             # The partition check, published instead of asserted: a receipt
             # that hides its own bookkeeping error is worse than one that
-            # admits it. Rounding on 3-decimal lines makes ±0.01 kWh noise.
-            "reasons_reconcile": bool(
-                abs(reason_kwh - spot["kwh"]) <= 0.05
-                and abs(reason_sek - spot["sek"]) <= 0.05
+            # admits it. None, not False, for a month with no reason lines
+            # at all — a pre-T6 month never had a partition to break, and
+            # publishing "failed" for it would make an upgrade look like
+            # the very bug the flag exists to expose.
+            "reasons_reconcile": (
+                bool(
+                    abs(reason_kwh - raw_spot["kwh"]) <= 0.05
+                    and abs(reason_sek - raw_spot["sek"]) <= 0.05
+                )
+                if reasons
+                else None
             ),
         }
         mean_spot = self._ledger.meta_mean(month, "spot_price")
@@ -7508,13 +7574,25 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         return report
 
     def _fold_score_sample(
-        self, when: datetime, kwh: float, sek: float, spot: float
+        self,
+        when: datetime,
+        kwh: float,
+        sek: float,
+        spot: float,
+        elapsed_hours: float,
+        spot_known: bool,
     ) -> None:
         """#65's operation evidence: today's kWh, SEK and spot samples.
 
         The day closes on the first sample of the next day — the daily
         replay against realised prices happens exactly once per day, on
-        numbers the ledger already settled.
+        numbers the ledger already settled. The SEK fold is SIGNED: a
+        negative-price hour where the consumer was paid must lower the
+        day's mean paid price, not be zeroed away. The flat-consumer
+        baseline is time-weighted and samples only intervals whose spot
+        price was actually known — a missing price settling at the 0.0
+        default would otherwise drag the baseline toward free electricity
+        and flatter every real day.
         """
         day = when.date().isoformat()
         book = self._score_day
@@ -7523,13 +7601,17 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             book = self._score_day
         if not book.get("day"):
             book.update(
-                {"day": day, "kwh": 0.0, "sek": 0.0, "spot_sum": 0.0, "spot_n": 0}
+                {"day": day, "kwh": 0.0, "sek": 0.0, "spot_sum": 0.0, "spot_h": 0.0}
             )
-        book["kwh"] = float(book.get("kwh", 0.0)) + max(0.0, kwh)
-        book["sek"] = float(book.get("sek", 0.0)) + max(0.0, sek)
-        if np.isfinite(spot):
-            book["spot_sum"] = float(book.get("spot_sum", 0.0)) + float(spot)
-            book["spot_n"] = int(book.get("spot_n", 0)) + 1
+        book["kwh"] = _as_float(book.get("kwh"), 0.0) + max(0.0, kwh)
+        book["sek"] = _as_float(book.get("sek"), 0.0) + (
+            sek if np.isfinite(sek) else 0.0
+        )
+        if spot_known and np.isfinite(spot) and elapsed_hours > 0:
+            book["spot_sum"] = (
+                _as_float(book.get("spot_sum"), 0.0) + spot * elapsed_hours
+            )
+            book["spot_h"] = _as_float(book.get("spot_h"), 0.0) + elapsed_hours
 
     def _close_score_day(self) -> None:
         """Replay yesterday against its own realised prices, fold the score.
@@ -7541,16 +7623,16 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         """
         book = self._score_day
         self._score_day = {}
-        kwh = float(book.get("kwh", 0.0))
-        n = int(book.get("spot_n", 0))
-        if kwh < 1.0 or n < 4:
+        kwh = _as_float(book.get("kwh"), 0.0)
+        hours = _as_float(book.get("spot_h"), 0.0)
+        if kwh < 1.0 or hours < 1.0:
             return
-        mean_spot = float(book.get("spot_sum", 0.0)) / n
+        mean_spot = _as_float(book.get("spot_sum"), 0.0) / hours
         if mean_spot <= 0.01:
             # Free or negative-price days make the ratio meaningless; a
             # score of "you saved nothing off zero" is not evidence.
             return
-        paid_mean = float(book.get("sek", 0.0)) / kwh
+        paid_mean = _as_float(book.get("sek"), 0.0) / kwh
         saved_fraction = 1.0 - paid_mean / mean_spot
         sample = float(np.clip(saved_fraction / 0.2, 0.0, 1.0)) * 100.0
         if self._operation_score is None:
@@ -7666,7 +7748,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         return {
             "state": state,
             "planned": {
-                "electrical_power": self._commanded_power() or 0.0,
+                # The SPACE channel only: simulate_step's electrical_power
+                # heats the house, not the tank. Handing it the commanded
+                # total would charge every DHW charge to room heating.
+                "electrical_power": float(
+                    self._current_action.get("power") or 0.0
+                ),
                 "outdoor_temp": self._current_state.outdoor_temperature,
                 "wind_speed": planned_wind,
                 "solar_radiation": self._current_state.solar_radiation,
@@ -7687,8 +7774,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if not record:
             return None
         try:
+            # A scratch model, never the live one: simulate_step writes
+            # per-call scratch on the model instance, and the scheduled
+            # solve may be walking the SAME instance in another executor
+            # thread — a diagnosis mid-solve must not corrupt the live
+            # plan's accounting. Same idiom as the what-if solves.
+            scratch_model = ThermalModel(replace(self._thermal_params))
             report = diagnosis.attribute(
-                self._thermal_model,
+                scratch_model,
                 record["state"],
                 dict(record["planned"], dt_hours=record["dt_hours"]),
                 record["realised"],
@@ -7717,10 +7810,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     def _price_tile_specs(self) -> list[tuple[str, dict[str, Any]]]:
         """#39's fixed perturbation set. Fixed on purpose: tiles answer the
         same three questions every day, so their day-to-day drift means the
-        situation changed, not the question."""
-        target = _as_float(
-            self._config.get(CONF_TARGET_TEMP), DEFAULT_TARGET_TEMP
-        )
+        situation changed, not the question.
+
+        The target tiles perturb the LIVE target — the one the baseline
+        plan the what-if is compared against actually used. During an away
+        setback the configured target would make "one degree lower" a
+        raise against the setback plan, and the published trade would
+        carry the wrong sign.
+        """
+        target = float(self._opt_config.target_temp)
         return [
             ("target_minus_1", {"target_temp": round(target - 1.0, 1)}),
             ("target_plus_1", {"target_temp": round(target + 1.0, 1)}),
@@ -7738,25 +7836,41 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         """#39 (gated): refresh ONE tile after a scheduled solve.
 
         One per solve, rotating, so the whole set costs at most one extra
-        solve per interval — and through ``async_simulate``'s own rate
-        limiter and executor, never a second solve path. When the limiter
-        says no (the user is dragging the card's sliders), the tile simply
-        waits for the next interval; the card's budget wins.
+        solve per interval — and through ``async_simulate``'s own solve
+        path and executor, never a second one. The tile borrows the card's
+        harness the way the fuse advisor does: rate-limit slot and cache
+        snapshot-restored, so a card drag right after a solve neither gets
+        rate-limited by the tile nor reads the tile's payload back as its
+        own answer. When the limiter says no (the user dragged first), the
+        tile waits for the next interval; the card's budget wins in both
+        directions.
         """
         if not bool(
             self._config.get(CONF_PRICE_TILES_ENABLED, DEFAULT_PRICE_TILES_ENABLED)
         ):
+            # Gate off means gone: stale what-if money left published
+            # would outlive the user's decision to stop paying for it.
+            if self._price_tiles:
+                self._price_tiles.clear()
             return
         specs = self._price_tile_specs()
         name, overrides = specs[self._price_tile_cursor % len(specs)]
+        cache_snapshot = (self._last_simulation, self._simulation_cache)
         try:
             answer = await self.async_simulate(dict(overrides))
         except Exception as err:  # noqa: BLE001 - tiles are decoration
             _LOGGER.debug("Price tile %s failed: %s", name, err)
+            # A consistently failing spec must not block the other tiles:
+            # move on and retry it on the rotation's next pass.
+            self._price_tile_cursor += 1
             return
-        if answer.get("rate_limited") or answer.get("error"):
+        finally:
+            self._last_simulation, self._simulation_cache = cache_snapshot
+        if answer.get("rate_limited"):
             return
         self._price_tile_cursor += 1
+        if answer.get("error"):
+            return
         self._price_tiles[name] = {
             "overrides": overrides,
             "monthly_cost_delta": answer.get("monthly_cost_delta"),

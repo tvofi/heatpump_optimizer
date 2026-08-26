@@ -15,6 +15,14 @@ across the swaps pro rata. The arithmetic guarantees
 ``predicted + sum(contributions) + unexplained == actual`` by construction,
 so the attribution always accounts for the whole residual.
 
+One structural honesty note: in the single-zone model this step's
+electrical power heats the SLAB, and the room only sees the slab a step
+later — so the power swap's room contribution is genuinely ~0 there, and a
+power shortfall shows up under "unexplained" until the following interval.
+That is the model's answer, not a gap in the attribution: two-zone
+installs (where power reaches the radiator zone within the step) see the
+power swap directly.
+
 Kept free of Home Assistant imports so it can be unit-tested directly.
 """
 from __future__ import annotations

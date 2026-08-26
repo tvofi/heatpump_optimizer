@@ -390,7 +390,7 @@
           "compressor_replacement_cost": "Vad ett kompressorbyte kostar, inklusive arbete. Delat med märkantalet starter nedan prissätter det varje faktisk kompressorstart; lämna på 0 så förblir starträknaren ren observation utan pengar inblandade.",
           "compressor_rated_starts": "Hur många starter tillverkaren anger att kompressorn tål. Byteskostnaden ovan slås ut över detta antal.",
           "wear_autotune_enabled": "När detta är på blir slitagepriset per start (byteskostnad delat med märkantal starter) ett golv under kompressorns cyklingskostnad ovan, så att planerna inte underskattar en kostnad du gjort explicit. Detta är den enda insiktsfunktionen som påverkar planerna.",
-          "price_tiles_enabled": "Efter varje schemalagd optimering prissätts en tänk-om-platta — måltemperatur en grad lägre, en grad högre och ett effekttak på 25 %, i tur och ordning. Av som standard eftersom varje platta är en hel extra optimering av riktig CPU-tid."
+          "price_tiles_enabled": "Efter varje schemalagd optimering prissätts en tänk-om-platta — måltemperatur en grad lägre, en grad högre och effekten begränsad till 75 %, i tur och ordning. Av som standard eftersom varje platta är en hel extra optimering av riktig CPU-tid."
         }
       },
       "heat_curve": {

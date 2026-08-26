@@ -826,7 +826,7 @@ prices. The **Diagnose Last Interval** button explains the last interval's
 temperature error input by input: the interval is re-run through the thermal
 model swapping realised inputs in one at a time, and each swap is charged
 with the share of the error it explains. Optional price tiles re-price the
-plan under a target one degree lower, one higher, and a 25 % power cap after
+plan under a target one degree lower, one higher, and power capped at 75 % after
 each scheduled solve.
 
 ### Grid costs beyond the price per kWh

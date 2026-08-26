@@ -390,7 +390,7 @@
           "compressor_replacement_cost": "What a compressor swap costs, including labour. Divided by the rated starts below it prices every realised compressor start; leave at 0 to keep the start counter pure observation with no money attached.",
           "compressor_rated_starts": "How many starts the manufacturer rates the compressor for. The replacement cost above is spread over this number.",
           "wear_autotune_enabled": "When on, the wear price per start (replacement cost divided by rated starts) becomes a floor under the compressor cycling cost above, so plans stop understating a cost you have made explicit. This is the only insight feature that changes plans.",
-          "price_tiles_enabled": "After each scheduled optimization, price one what-if tile — target one degree lower, one degree higher, and a 25% power cap, in rotation. Off by default because each tile is a full extra solve of real CPU."
+          "price_tiles_enabled": "After each scheduled optimization, price one what-if tile — target one degree lower, one degree higher, and power capped at 75 %, in rotation. Off by default because each tile is a full extra solve of real CPU."
         }
       },
       "heat_curve": {

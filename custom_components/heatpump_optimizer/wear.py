@@ -56,6 +56,11 @@ class StartCounter:
         in must not combine with half an edge observed after it drops out.
         """
         if measured_kw is None or not np.isfinite(measured_kw):
+            # A meter outage resets the streak for the same reason the
+            # element does: "two CONSECUTIVE samples" is the promise, and
+            # two noise spikes separated by hours of missing readings are
+            # not consecutive.
+            self._streak = 0
             return False
         if immersion_active:
             self._streak = 0
