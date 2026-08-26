@@ -827,21 +827,14 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         coordinator = hass.data[DOMAIN].pop(entry.entry_id)
         await coordinator.async_shutdown()
 
-    # Remove services if no more entries. One list, so registration and
-    # removal cannot drift apart again — apply_schedule was registered but
-    # never removed, leaving a dead service behind after the last entry.
+    # Remove services if no more entries. Asked of the registry, not kept as
+    # a list here: the hand-written removal tuple drifted twice — first
+    # apply_schedule, then restore_snapshot and diagnose_interval were
+    # registered but never removed, each leaving a dead service behind after
+    # the last entry. Everything in the domain was registered by this
+    # integration, so the registry itself is the one list that cannot drift.
     if not hass.data[DOMAIN]:
-        for service in (
-            SERVICE_RUN_OPTIMIZATION,
-            SERVICE_SET_MODE,
-            SERVICE_SET_THERMAL_PARAMS,
-            SERVICE_SIMULATE_PLAN,
-            SERVICE_APPLY_SCHEDULE,
-            SERVICE_ASSIGN_ENTITY,
-            SERVICE_APPLY_TOPOLOGY,
-            SERVICE_APPLY_MANUAL_PLAN,
-            SERVICE_CLEAR_MANUAL_PLAN,
-        ):
+        for service in list(hass.services.async_services().get(DOMAIN, {})):
             hass.services.async_remove(DOMAIN, service)
 
     return unload_ok

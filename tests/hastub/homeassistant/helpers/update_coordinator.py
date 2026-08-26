@@ -15,6 +15,11 @@ class DataUpdateCoordinator:
     async def async_refresh(self):
         await self.async_request_refresh()
 
+    async def async_config_entry_first_refresh(self):
+        # Counted like the other refreshes: entry-lifecycle tests need setup
+        # to complete, not to run a full optimization as a side effect.
+        await self.async_request_refresh()
+
     def async_update_listeners(self):
         return None
 
