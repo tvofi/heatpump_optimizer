@@ -1388,6 +1388,10 @@ class HeatPumpOptimizer:
         price_sigma: np.ndarray | None = None,
         power_caps_extra: np.ndarray | None = None,
         humidity: np.ndarray | None = None,
+        # Keyword-only: both are per-step temperature series, the same shape
+        # and dtype as half the arrays above — a positional transposition
+        # would be silent and plausible-looking.
+        *,
         min_temp_margins: np.ndarray | None = None,
         min_temp_floors: np.ndarray | None = None,
     ) -> OptimizationResult:

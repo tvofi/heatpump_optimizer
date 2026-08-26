@@ -3351,35 +3351,42 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     else np.minimum(caps_extra, env_caps)
                 )
 
+            # T5 (#16 #54): the comfort floor's two gated adjustments;
+            # None for both is the byte-inert default path. Evaluated here,
+            # not inside the lambda — they read hass state, which belongs
+            # on the event loop, not in the executor.
+            margins = self._confidence_margins(len(horizon.prices))
+            mold_floors = self._mold_floor_series(horizon.outdoor_temps)
+            external_heat = self._external_heat_forecast(len(horizon.prices))
             # Run optimization in executor to avoid blocking
             result = await self.hass.async_add_executor_job(
-                self._optimizer.optimize,
-                self._current_state,
-                horizon.prices,
-                horizon.outdoor_temps,
-                horizon.wind_speeds,
-                horizon.precipitation,
-                horizon.solar_radiation,
-                solve_now,
-                horizon.price_known,
-                horizon.pv_surplus,
-                space_pins,
-                dhw_pins,
-                self._external_heat_forecast(len(horizon.prices)),
-                horizon.price_sigma,
-                caps_extra,
-                # #21: the forecast humidity series, when it carries data.
-                # None keeps the solve's inner loop free of dead lookups.
-                (
-                    horizon.humidity
-                    if horizon.humidity.size
-                    and bool(np.any(np.isfinite(horizon.humidity)))
-                    else None
-                ),
-                # T5 (#16 #54): the comfort floor's two gated adjustments;
-                # None for both is the byte-inert default path.
-                self._confidence_margins(len(horizon.prices)),
-                self._mold_floor_series(horizon.outdoor_temps),
+                lambda: self._optimizer.optimize(
+                    self._current_state,
+                    horizon.prices,
+                    horizon.outdoor_temps,
+                    horizon.wind_speeds,
+                    horizon.precipitation,
+                    horizon.solar_radiation,
+                    solve_now,
+                    horizon.price_known,
+                    horizon.pv_surplus,
+                    space_pins,
+                    dhw_pins,
+                    external_heat,
+                    horizon.price_sigma,
+                    caps_extra,
+                    # #21: the forecast humidity series, when it carries
+                    # data. None keeps the solve's inner loop free of dead
+                    # lookups.
+                    (
+                        horizon.humidity
+                        if horizon.humidity.size
+                        and bool(np.any(np.isfinite(horizon.humidity)))
+                        else None
+                    ),
+                    min_temp_margins=margins,
+                    min_temp_floors=mold_floors,
+                )
             )
 
             self._record_manual_release(result)
@@ -3387,8 +3394,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._optimization_result = result
             self._last_optimization = dt_util.now()
             # T5 #16: file this plan's promises at each lead bucket, to be
-            # scored when their moment arrives.
-            self._file_lead_predictions(result, self._last_optimization)
+            # scored when their moment arrives. Anchored to the instant
+            # the trajectory was built from, not to "after the solve".
+            self._file_lead_predictions(result, solve_now)
 
             self._current_action = self._optimizer.get_current_action(
                 result, dt_util.now()
@@ -3434,6 +3442,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     async def async_set_mode(self, mode: str) -> None:
         """Set the operation mode."""
         self._mode = mode
+        if mode not in (MODE_AUTO, MODE_ECONOMY):
+            # The plan stops being what runs, so its unmatured promises
+            # (T5 #16) are void: scoring them against a room now driven by
+            # fixed-rule comfort/boost/off would charge the model with
+            # errors it never made.
+            self._accuracy.lead_pending.clear()
         _LOGGER.info("Operation mode set to: %s", mode)
         await self.async_request_refresh()
 
@@ -6022,7 +6036,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             return None
         return value
 
-    def _mold_floor_series(self, outdoor: np.ndarray) -> np.ndarray | None:
+    def _mold_floor_series(
+        self, outdoor: np.ndarray, target_cap: float | None = None
+    ) -> np.ndarray | None:
         """#54: the per-step room floor keeping every surface under mold RH.
 
         Double-gated — the flag AND a humidity entity with a live reading.
@@ -6030,6 +6046,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         (cooling the room does not remove moisture), and the floor is
         capped at the comfort target: heating past target to fight mold is
         dehumidification's job, not the heat pump's.
+
+        The cap is the CONFIGURED target, never the live one: the away
+        setback lowers ``self._opt_config.target_temp``, and capping at
+        that would disarm the guard exactly when mold risk peaks — a cold,
+        damp, unheated house. For the same reason this floor deliberately
+        outranks the open-window relax: a tripped window detector lowers
+        the comfort floor, not the physics of condensation. What-if solves
+        pass ``target_cap`` so a simulated target override gets a
+        consistently capped floor.
         """
         if not bool(
             self._config.get(CONF_MOLD_GUARD_ENABLED, DEFAULT_MOLD_GUARD_ENABLED)
@@ -6052,7 +6077,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             ],
             dtype=float,
         )
-        return np.minimum(floors, float(self._opt_config.target_temp))
+        cap = (
+            float(target_cap)
+            if target_cap is not None
+            else _as_float(
+                self._config.get(CONF_TARGET_TEMP), DEFAULT_TARGET_TEMP
+            )
+        )
+        return np.minimum(floors, cap)
 
     def _track_curve_comfort(self, now: datetime) -> None:
         """#2's evidence: the day's worst (zone − comfort floor) margin.
@@ -6080,6 +6112,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             return
         hour = now.hour + now.minute / 60.0
         try:
+            # The BASE floor, deliberately: #16's confidence margin lifts
+            # the floor inside the solve as a cushion against model error,
+            # but eating into that cushion is not a comfort miss — only
+            # dipping under the floor the user actually configured is.
             floor_c = float(self._opt_config.get_temp_bounds(hour)[0])
         except Exception:  # noqa: BLE001 - evidence, never operations
             return
@@ -6887,10 +6923,27 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         now = dt_util.now()
 
         # T5 #16: settle every matured lead-time promise against the same
-        # measured temperature the one-step sample below uses.
+        # measured temperature the one-step sample below uses. The window
+        # is the sampling cadence itself — score only on the default
+        # half-hour and every bucket whose lead is not a multiple of a
+        # coarser configured interval starves forever. A stale or frozen
+        # indoor sensor scores nothing: a frozen reading is not a
+        # measurement, and an EWMA poisoned by one persists for weeks.
         actual_now = self._current_state.room_temperature
-        if actual_now is not None:
-            self._accuracy.score_lead_predictions(now, float(actual_now))
+        if (
+            actual_now is not None
+            and self._learning_frozen(CONF_INDOOR_TEMP_ENTITY) is None
+        ):
+            interval_h = (
+                _as_float(
+                    self._config.get(CONF_OPTIMIZATION_INTERVAL),
+                    DEFAULT_OPTIMIZATION_INTERVAL,
+                )
+                / 60.0
+            )
+            self._accuracy.score_lead_predictions(
+                now, float(actual_now), window_hours=interval_h
+            )
 
         if pending is not None:
             elapsed = (now - pending["when"]).total_seconds() / 3600.0
@@ -6984,6 +7037,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         score will use reads the upper floor.
         """
         if self._mode not in (MODE_AUTO, MODE_ECONOMY):
+            return
+        if self._sysid.active:
+            # A step-response experiment overrides the plan for its
+            # duration, so the plan's promises are fiction while it runs —
+            # and any already on file were made by a plan the experiment
+            # is about to override.
+            self._accuracy.lead_pending.clear()
             return
         trajectory = (
             result.upper_temp_trajectory
@@ -7496,12 +7556,16 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                         and bool(np.any(np.isfinite(horizon.humidity)))
                         else None
                     ),
-                    # T5: same floors as the live plan, same reasoning.
+                    # T5: same floors as the live plan, same reasoning —
+                    # except the mold cap follows the SIMULATED target, so
+                    # a what-if dragging the target down sees the floor
+                    # that choice would actually get.
                     min_temp_margins=self._confidence_margins(
                         len(horizon.prices)
                     ),
                     min_temp_floors=self._mold_floor_series(
-                        horizon.outdoor_temps
+                        horizon.outdoor_temps,
+                        target_cap=float(scratch_config.target_temp),
                     ),
                 )
             )

@@ -882,6 +882,38 @@ guidance value). New golden `confidence_margins` rides both channels in one
 solve; coord_*/config_flow re-recorded additive-only. The recorder's fixed
 `--only` recorded exactly one fixture this time.
 
+*T5 review round (0 critical, 3 major, 6 minor, 4 nits — all acted on):*
+the three majors were all "the promise machinery believes the plan more
+than the plant". **Bucket starvation**: the scoring window was the fixed
+±30-minute tolerance, so any install whose optimization interval is coarser
+discards every promise maturing between ticks and the long buckets starve
+forever — `score_lead_predictions` now takes the caller's cadence as
+`window_hours` (floored at the tolerance) and the coordinator passes its
+configured interval. **Void promises**: leaving auto/economy
+(`async_set_mode`) now clears unmatured promises — in comfort/boost/off the
+room is driven by fixed rules and scoring the dead plan's promises would
+charge the model with errors it never made; an active sys-ID experiment
+likewise files nothing and voids what the overridden plan had filed.
+**Away-blind mold cap**: the floor was capped at the *live*
+`_opt_config.target_temp`, which the away setback lowers — disarming the
+guard exactly when mold risk peaks (a cold, damp, unheated house). The cap
+is now the *configured* comfort target, with an explicit `target_cap`
+parameter so what-if solves cap at their simulated target. Minors: the two
+new optimizer arguments became keyword-only and the main solve moved to a
+lambda executor call (both are per-step temperature series the same shape
+as half the solver's inputs — a positional transposition would have been
+silent); promises are anchored to the solve's own timestamp, not "after
+the solve"; `from_dict` grew corruption barriers (a tz-naive pending
+timestamp would raise on the first aware subtraction and brick every
+subsequent score; a NaN sigma reaches the bounds as a NaN margin); exact
+between-bucket ties resolve to the longer, more conservative bucket; the
+vacuous fixed-point test became a real replay (identical errors → identical
+margins, smaller errors → strictly smaller margins); and the curve-comfort
+tracker documents that eating into #16's cushion is not a comfort miss.
+One finding dispositioned as non-action: the commit-trailer attribution
+line is mandated by the development harness and is not repository content,
+so it stays. Checks 734 → 744.
+
 **Infrastructure:** lead-time error quantiles. Score realised temperature against
 the prediction made k steps ago for buckets {1, 3, 6, 12, 24 h}; per-bucket EWMA
 persisted additively; exposed as `accuracy.sigma(lead_hours)`.

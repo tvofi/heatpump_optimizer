@@ -110,8 +110,11 @@ LEAD_BUCKETS: tuple[float, ...] = (1.0, 3.0, 6.0, 12.0, 24.0)
 #: EWMA rate per scored prediction — weeks-scale, like every other slow
 #: statistic here.
 LEAD_SIGMA_ALPHA = 0.05
-#: A matured prediction is matched to a measurement within this window;
-#: further away, the pair says nothing about the lead it was filed under.
+#: A matured prediction is matched to the first measurement no more than
+#: this far AFTER its target (one-sided window); later than that, the
+#: pair says nothing about the lead it was filed under. Callers whose
+#: sampling cadence is coarser than this pass their own window, or every
+#: bucket that is not a multiple of the cadence starves forever.
 LEAD_MATCH_TOLERANCE_H = 0.5
 
 
@@ -152,17 +155,35 @@ class AccuracyTracker:
         # solves), purely so corrupt state cannot grow without bound.
         del self.lead_pending[:-512]
 
-    def score_lead_predictions(self, now: datetime, actual_temp: float) -> None:
-        """Settle every matured promise against the measured temperature."""
+    def score_lead_predictions(
+        self,
+        now: datetime,
+        actual_temp: float,
+        window_hours: float | None = None,
+    ) -> None:
+        """Settle every matured promise against the measured temperature.
+
+        ``window_hours`` is how long after its target a promise still
+        counts — at least the default tolerance, and callers scoring on a
+        coarse cadence pass that cadence, or promises maturing between
+        their ticks would be discarded systematically and the buckets
+        whose leads are not multiples of the cadence would never fill.
+        """
         if not np.isfinite(actual_temp):
             return
+        window = max(
+            LEAD_MATCH_TOLERANCE_H,
+            float(window_hours) if window_hours is not None else 0.0,
+        )
         keep: list[tuple[datetime, float, float]] = []
         for target_time, lead, predicted in self.lead_pending:
+            if not np.isfinite(predicted):
+                continue
             age_h = (now - target_time).total_seconds() / 3600.0
             if age_h < 0.0:
                 keep.append((target_time, lead, predicted))
                 continue
-            if age_h <= LEAD_MATCH_TOLERANCE_H:
+            if age_h <= window:
                 err = abs(float(actual_temp) - predicted)
                 prev = self.lead_sigma.get(lead)
                 self.lead_sigma[lead] = (
@@ -183,13 +204,19 @@ class AccuracyTracker:
         fresh install: no evidence, no margin. Between buckets the nearer
         bucket with evidence answers; beyond the last, the last does.
         """
-        best: tuple[float, float] | None = None
+        best: tuple[float, float, float] | None = None
         for lead, value in self.lead_sigma.items():
             if self.lead_counts.get(lead, 0) <= 0:
                 continue
             distance = abs(lead - float(lead_hours))
-            if best is None or distance < best[0]:
-                best = (distance, value)
+            # Exact ties resolve to the LONGER bucket: between two equally
+            # near answers, the more conservative one.
+            if (
+                best is None
+                or distance < best[0] - 1e-12
+                or (abs(distance - best[0]) <= 1e-12 and lead > best[2])
+            ):
+                best = (distance, value, lead)
         return float(best[1]) if best is not None else 0.0
 
     # -- metrics ------------------------------------------------------------
@@ -325,7 +352,15 @@ class AccuracyTracker:
         if isinstance(raw_sigma, dict):
             for key, value in raw_sigma.items():
                 try:
-                    tracker.lead_sigma[float(key)] = max(0.0, float(value))
+                    parsed = float(value)
+                except (TypeError, ValueError):
+                    continue
+                # max(0, NaN) is NaN — a poisoned sigma would reach the
+                # comfort bounds as a NaN margin.
+                if not np.isfinite(parsed):
+                    continue
+                try:
+                    tracker.lead_sigma[float(key)] = max(0.0, parsed)
                 except (TypeError, ValueError):
                     continue
         raw_counts = data.get("lead_counts")
@@ -340,11 +375,19 @@ class AccuracyTracker:
             for entry in raw_pending[-512:]:
                 try:
                     when = datetime.fromisoformat(str(entry[0]))
-                    tracker.lead_pending.append(
-                        (when, float(entry[1]), float(entry[2]))
-                    )
+                    lead = float(entry[1])
+                    predicted = float(entry[2])
                 except (TypeError, ValueError, IndexError):
                     continue
+                # A tz-naive timestamp raises on the first aware
+                # comparison and, because it raises BEFORE pruning, would
+                # brick every subsequent update until the store is hand-
+                # edited. This classmethod is the corruption barrier.
+                if when.tzinfo is None:
+                    continue
+                if not np.isfinite(lead) or not np.isfinite(predicted):
+                    continue
+                tracker.lead_pending.append((when, lead, predicted))
         return tracker
 
 
