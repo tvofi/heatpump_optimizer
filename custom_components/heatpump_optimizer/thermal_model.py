@@ -1389,7 +1389,14 @@ class ThermalModel:
             state.slab_temperature - state.room_temperature
         )
         q_loss = u_eff * (state.room_temperature - outdoor_temp)
-        q_internal = self.internal_gains_at(hour_of_day)
+        # Attribute read on the default path: this runs thousands of times
+        # per solve, and the trajectory loops only pass an hour when a
+        # learned profile exists.
+        q_internal = (
+            self.internal_gains_at(hour_of_day)
+            if hour_of_day is not None
+            else p.internal_gains
+        )
         q_solar = self.compute_solar_gain(solar_radiation)
 
         dT_room = (q_slab_to_room - q_loss + q_internal + q_solar) / p.room_thermal_mass
@@ -1480,7 +1487,11 @@ class ThermalModel:
 
         # Internal gains split proportional to area ratio
         area_ratio = p.upper_floor_area_ratio
-        q_internal = self.internal_gains_at(hour_of_day)
+        q_internal = (
+            self.internal_gains_at(hour_of_day)
+            if hour_of_day is not None
+            else p.internal_gains
+        )
         q_internal_upper = q_internal * area_ratio
         q_internal_lower = q_internal * (1.0 - area_ratio)
 
@@ -1797,6 +1808,14 @@ class ThermalModel:
             wood_temps = np.zeros(n_steps + 1)
             wood_temps[0] = initial_state.wood_tank_temperature
 
+        # The hour only matters when a learned gains profile exists (#53);
+        # this loop runs thousands of times per solve, so the per-step
+        # modulo is not paid on the default path.
+        hours_matter = (
+            start_hour is not None
+            and self.params.internal_gains_profile is not None
+        )
+
         state = initial_state
         for i in range(n_steps):
             state = self.simulate_step(
@@ -1822,7 +1841,7 @@ class ThermalModel:
                 ),
                 hour_of_day=(
                     (start_hour + i * dt_hours) % 24.0
-                    if start_hour is not None
+                    if hours_matter
                     else None
                 ),
             )
@@ -1907,6 +1926,9 @@ class ThermalModel:
         # model, and only while the wood state is real. Hoisted so the
         # feature-off path stays byte-identical inside the loop.
         coil = self.params.dhw_coil_active
+        # #53: the space step needs its hour only when a learned gains
+        # profile exists — hoisted for the same reason as the coil flag.
+        gains_hours_matter = self.params.internal_gains_profile is not None
 
         for i in range(n_steps):
             # Space heating simulation
@@ -1931,7 +1953,9 @@ class ThermalModel:
                 humidity=(
                     float(humidity[i]) if humidity is not None else None
                 ),
-                hour_of_day=current_hour % 24.0,
+                hour_of_day=(
+                    current_hour % 24.0 if gains_hours_matter else None
+                ),
             )
 
             draw_i = float(dhw_draw_rates[i])

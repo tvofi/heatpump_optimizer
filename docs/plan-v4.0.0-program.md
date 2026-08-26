@@ -784,7 +784,11 @@ shave simulates with the same per-hour gains as the objective; the
 liquid-fraction arithmetic moved into a named helper with direct tests
 (all-snow 0, half-snow ½, cross-source disagreement clips); Open-Meteo's
 plausibility ceiling is per-variable now (the GHI limit meant nothing to a
-humidity series). Features suite closed the round at 711 checks.
+humidity series). Features suite closed the round at 711 checks. The
+timing gate also caught the per-step hour threading costing ~5% of solve
+time on the default path (interleaved A/B against main); the hot loops now
+compute the hour only when a learned gains profile exists, restoring
+parity within noise with byte-identical outputs.
 
 **Infrastructure:** **`snapshots.py`** — weekly ring buffer (8) serialising every
 learner's existing `as_dict()` tagged with `accuracy.summary()`; drift test on
