@@ -1,0 +1,98 @@
+name: Tests
+
+# The suite that guards every change. Two jobs:
+#
+# * fast — every push and PR. Runs the whole of tests/run.sh except the
+#   SLOW-gated closed-loop simulation. Golden fixtures are checked in
+#   drift mode: solver output is not bit-stable across BLAS builds, so
+#   comparing this runner's floats against fixtures recorded on another
+#   machine would cry wolf. Instead tests/env_drift.py --all captures
+#   every scenario twice IN THIS runner — once from the tree under test,
+#   once from a worktree of the comparison ref — and requires the two to
+#   be byte-identical. Solver noise cancels; what remains is the
+#   change's own behavioural footprint, which must be empty or claimed
+#   in tests/golden/claimed_drift.txt.
+#
+# * slow — nightly and on demand. Same suite plus SLOW=1, which adds
+#   tests/rolling.py (the closed-loop learner simulation, ~15 minutes).
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 2 * * *"
+
+jobs:
+  fast:
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # env_drift needs the comparison ref's history to build its
+          # baseline worktree.
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install pinned test dependencies
+        run: pip install -r tests/requirements-ci.txt
+
+      - name: Resolve the golden comparison ref
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            # The PR's merge-base with its target: exactly the code this
+            # PR forked from, so the drift comparison isolates the PR.
+            REF=$(git merge-base "origin/${{ github.base_ref }}" HEAD)
+          else
+            # Push to main: compare against the state before this push.
+            REF=$(git rev-parse HEAD^1 2>/dev/null || echo "")
+          fi
+          echo "GOLDEN_REF=${REF}" >> "$GITHUB_ENV"
+
+      - name: Run the suite
+        env:
+          GOLDEN_MODE: drift
+        run: ./tests/run.sh
+
+  slow:
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install pinned test dependencies
+        run: pip install -r tests/requirements-ci.txt
+
+      - name: Resolve the golden comparison ref
+        run: |
+          # Nightly runs sit on main; comparing against the commit before
+          # the latest lets the drift gate re-verify the newest merge.
+          echo "GOLDEN_REF=$(git rev-parse HEAD^1 2>/dev/null || git rev-parse HEAD)" >> "$GITHUB_ENV"
+
+      - name: Run the suite including the closed-loop simulation
+        env:
+          GOLDEN_MODE: drift
+          SLOW: "1"
+        run: ./tests/run.sh

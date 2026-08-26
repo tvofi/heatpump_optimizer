@@ -2,12 +2,21 @@
 
 These are plain scripts, not a pytest suite, so they can be run against a real
 Home Assistant environment without extra tooling. They need `numpy`, `scipy`,
-`voluptuous` and `pyyaml`.
+`voluptuous`, `aiohttp` and `pyyaml`; `tests/requirements-ci.txt` pins the
+exact versions CI uses.
 
 ```bash
 ./tests/run.sh          # everything except the slow closed-loop simulation
 SLOW=1 ./tests/run.sh   # including it (adds about fifteen minutes)
 ```
+
+CI runs the same `run.sh` on every push and pull request
+(`.github/workflows/tests.yml`), with one difference: `GOLDEN_MODE=drift`
+replaces the exact golden-fixture comparison with a same-environment
+comparison against the PR's merge-base (see `env_drift.py` below), because
+solver floats recorded on one machine do not reproduce bit-exactly on
+another. The `SLOW=1` closed-loop simulation runs nightly and on manual
+dispatch.
 
 Or individually:
 
@@ -24,7 +33,8 @@ python tests/edge.py         # degenerate inputs and boundary conditions
 python tests/backtest.py     # replay against alternative strategies
 python tests/stress.py       # 48 combinations, 17 edge cases, economics
 python tests/rolling.py      # days of re-planning against a mismatched house
-python tests/optimality.py   # checks the solver against cheaper challengers
+python tests/optimality.py   # solution-quality floor against cheap challengers
+python tests/env_drift.py    # sensitive fixtures vs origin/main, same machine
 python tests/plan_view.py    # plan sensor payloads, writes /tmp/plandata.json
 node   tests/card.mjs        # renders the dashboard card against that payload
 ```
@@ -50,11 +60,26 @@ Most of these scripts ask "is the answer good?". Two ask something different,
 and between them they cover the failures that are otherwise invisible.
 
 **`golden.py` asks "has the answer changed?"** It records the complete output of
-37 scenarios — every schedule, trajectory, setpoint, cost, reason code and
+53 fixtures (47 plan scenarios, 5 coordinator captures and the config-flow
+schema) — every schedule, trajectory, setpoint, cost, reason code and
 option-page field — and diffs byte for byte. The optimizer is deterministic, so
 any difference is real. This is what makes a refactor safe: the outcome-based
 scripts would happily pass a change that shifts a plan by one interval or drops
-a constraint in a rare branch, and this will not.
+a constraint in a rare branch, and this will not. Every capture also passes a
+physical-invariant layer (finite values, power within the compressor maximum,
+trajectories inside -40..120 °C, savings ≤ 100 %) on both record and check, so
+`--record` cannot bake an impossible plan into a fixture.
+
+Five fixtures (`valve_storage_smart_write`, `wood_two_tank`,
+`wood_two_tank_smart_write`, `wood_coil`, `valve_upper_direct_slab`) are the
+non-convex valve/wood solves and do not reproduce across BLAS builds. On such
+machines their exact comparison is meaningless, so **`env_drift.py`** captures
+them twice in the *same* environment — working tree vs a worktree of
+`origin/main` (or any ref) — and requires byte-identity; solver noise cancels
+and only the branch's own footprint remains. With `--all` it does this for
+every fixture, which is how CI checks goldens. A branch that deliberately
+moves fixtures lists them in `tests/golden/claimed_drift.txt` with a reason;
+claimed scenarios print their diffs without failing, and stale claims fail.
 
 `--record` re-records from current behaviour. **Read the diff before doing
 that.** A change here is either a bug or a deliberate decision that belongs in
@@ -118,9 +143,14 @@ model. Drift, oscillation and learner divergence only appear there.
   reports with the savings the replay measures, so the dashboard figure is the
   same quantity a user would compute themselves. A cheaper strategy only counts
   as a competitor if it is also comfortable.
-- **optimality.py** is a sanity check on solution quality rather than a
-  pass/fail test. It compares the optimizer against a greedy cheapest-hours
-  schedule and against random perturbations.
+- **optimality.py** is a solution-quality floor. It compares the optimizer
+  against a greedy cheapest-hours schedule with the same total energy and
+  against 300 comfort-preserving random perturbations, and fails if either
+  finds a materially cheaper comfortable plan — the margin says "the solver
+  missed its basin", with headroom over the measured gap so solver noise
+  cannot trip it. The challengers price energy only, not the full objective
+  (comfort pull, cycling), so a small measured gap on the two-zone house is
+  expected and documented in the file.
 - **plan_view.py** runs a winter scenario and builds the payloads the two plan
   sensors publish, checking that the slot summaries reconcile with the raw step
   schedule and that every heating step carries a reason code and price

@@ -1,0 +1,5 @@
+# Scenarios this branch deliberately moves, one name per line, reason after
+# the hash. env_drift.py prints their diffs but does not fail on them; a
+# stale claim (a listed scenario that did not move) DOES fail, so entries
+# cannot outlive the PR that needed them. Empty file = this branch claims
+# byte-identical behaviour everywhere.

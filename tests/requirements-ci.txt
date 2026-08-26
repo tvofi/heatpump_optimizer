@@ -1,0 +1,9 @@
+# Pinned test-suite dependencies for CI. Exact pins on the numeric stack
+# matter: the golden drift comparison assumes both captures in a run share
+# one solver, and an unpinned scipy/numpy would let two CI runs disagree
+# for reasons that have nothing to do with the code under test.
+numpy==2.4.6
+scipy==1.17.1
+voluptuous==0.16.0
+aiohttp==3.14.3
+PyYAML==6.0.1
