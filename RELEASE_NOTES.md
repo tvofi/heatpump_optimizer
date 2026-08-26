@@ -1,5 +1,58 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v4.0.5
+
+### The zoom that quietly capped your editing
+
+A field report, run to ground with a console probe: slots could only be
+added, removed or moved "up until midnight". The plan was fine and the
+20-hour window was in force — the card was **zoomed in**, and the editable
+ceiling clamps to the visible window so a slot can never be dragged to
+where the pointer cannot reach. A pinch or ctrl-wheel zoom is easy to make
+without noticing, it never expires, and nothing said the view was the
+limit; the invisible remainder read as an arbitrary rule.
+
+Three changes, all in the card:
+
+- **Dragging a slot against the plot's edge now pans the view under it**,
+  so the visible window stops being a wall. The gesture survives the
+  re-renders panning causes, the same way the chart's own pan drag does.
+- **The card says when zoom is the limit.** The lanes grow a chevron at
+  the clipped edge, and the what-if panel explains it — with a one-press
+  "show the whole plan" button — whenever the visible edge undercuts both
+  the 20-hour window and the plan's end. An unzoomed card shows nothing
+  new.
+- The editable ceiling's three inputs (visible window, 20-hour apply
+  window, plan end) are now computed in one place the diagnostics can
+  read.
+
+- **The view no longer outlives its session.** Closing the expanded
+  dialog discards any pan/zoom, so the next open always shows the whole
+  plan. This is the fix for "but I never zoomed": on a long-lived
+  dashboard tab the old view persisted for days, re-anchoring itself to
+  "now", so one unnoticed gesture weeks ago was still capping editing
+  today.
+
+### And the chart stopped eating your clicks
+
+The same field report, dug one layer deeper, found a second and older
+fault: the chart's series — the price area, the power bars, the
+temperature lines — are painted **after** the editing lanes, and SVG
+fills capture pointer events by default. Wherever a filled series body
+lay over the lane strip, hovering showed no highlight, slots would not
+drag, and right-clicking got the browser's own menu instead of "Add a
+slot here". Depending on where a series' data began, that dead zone
+could start exactly at midnight — which is precisely how it read.
+
+Every chart-body overlay (series paths, the estimated-prices shading,
+the crosshair) is now pointer-inert, so the lanes underneath always
+receive the hover, the drag and the right-click. A markup-level check
+pins this: the test harness fires synthetic events and cannot see real
+hit-testing, which is how this shipped in the first place.
+
+Card version 4.0.5; hard-refresh the browser if the hint does not appear
+after upgrading.
+
 ## v4.0.4
 
 ### Time alignment and price math from the audit's fourth pass
