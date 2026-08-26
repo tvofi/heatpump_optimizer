@@ -10,7 +10,7 @@
  */
 
 const CARD_TAG = "heatpump-optimizer-card";
-const CARD_VERSION = "4.0.0";
+const CARD_VERSION = "4.0.5";
 
 const DEFAULTS = {
   title: "Heat pump plan",
@@ -161,6 +161,10 @@ const LANE_BOTTOM_INSET = 3;
 // How close to an edge a grab counts as a resize rather than a move.
 const LANE_EDGE_GRAB = 6;
 const PLAN_STEP_MS = 15 * 60000;
+// Slot-drag edge auto-pan: how close to the plot edge (screen px) engages it,
+// and how often the parked pointer advances the view.
+const AUTOPAN_MARGIN_PX = 28;
+const AUTOPAN_INTERVAL_MS = 90;
 
 // How far ahead a hand-arranged plan may be pinned. The integration owns this
 // number and publishes it as `manual_plan_window_hours`; this is only the value
@@ -2136,6 +2140,13 @@ class HeatpumpOptimizerCard extends HTMLElement {
             drag either edge to resize it, or right-click a lane to add and
             remove slots. Applying pins them for the next 20 hours.
           </div>
+          ${
+            this._viewLimitsEditing()
+              ? `<div class="wi-viewlimit">Zoomed in — editing stops at the
+            visible edge. Drag a slot against the edge to pan, or
+            <button type="button" class="wi-viewreset">show the whole plan</button>.</div>`
+              : ""
+          }
           ${this._overrideHtml()}
           <div class="wi-row wi-delta">${this._deltaHtml()}</div>
           <div class="wi-row wi-actions">
@@ -2524,6 +2535,8 @@ class HeatpumpOptimizerCard extends HTMLElement {
     if (save) save.addEventListener("click", this._onSaveSchedule);
     const reset = root.querySelector(".wi-reset");
     if (reset) reset.addEventListener("click", this._onResetWhatIf);
+    const viewReset = root.querySelector(".wi-viewreset");
+    if (viewReset) viewReset.addEventListener("click", () => this._resetView());
   }
 
   _onWhatIfInput(ev) {
@@ -3317,6 +3330,21 @@ class HeatpumpOptimizerCard extends HTMLElement {
           font-size: 0.85em; color: var(--secondary-text-color);
           line-height: 1.35em;
         }
+        .whatif .wi-viewlimit {
+          font-size: 12px;
+          color: var(--secondary-text-color, #888);
+          margin: 4px 0 6px;
+        }
+        .whatif .wi-viewreset {
+          font-size: 12px;
+          padding: 1px 8px;
+          border: 1px solid var(--divider-color, #e0e0e0);
+          border-radius: 10px;
+          background: none;
+          color: var(--primary-color, #03a9f4);
+          cursor: pointer;
+        }
+        .lane-more { pointer-events: none; font-weight: 700; }
         /* A stored value the setpoint no longer allows. Warning rather than
            error: nothing is broken, but the number on screen is not the number
            that was saved, and that must not pass unremarked. */
@@ -3535,7 +3563,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     if (estimatedFrom !== null && estimatedFrom < windowEnd) {
       const ex = Math.max(plotL, scaleX(Math.max(estimatedFrom, windowStart)));
       parts.push(
-        `<rect class="estimated" x="${ex}" y="${plotT}" width="${Math.max(
+        `<rect class="estimated" pointer-events="none" x="${ex}" y="${plotT}" width="${Math.max(
           0,
           plotR - ex
         )}" height="${plotH}" fill="var(--secondary-text-color,#888)" fill-opacity="0.07"/>`
@@ -3578,7 +3606,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
 
     // Crosshair placeholder (updated on hover)
     parts.push(
-      `<line class="crosshair" x1="0" y1="${plotT}" x2="0" y2="${plotB}" stroke="var(--secondary-text-color,#888)" stroke-width="1" visibility="hidden"/>`
+      `<line class="crosshair" pointer-events="none" x1="0" y1="${plotT}" x2="0" y2="${plotB}" stroke="var(--secondary-text-color,#888)" stroke-width="1" visibility="hidden"/>`
     );
 
     return `<svg viewBox="0 0 ${VIEW_W} ${VIEW_H}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${esc(
@@ -4006,18 +4034,50 @@ class HeatpumpOptimizerCard extends HTMLElement {
         index,
         edge: data.edge || null,
         from: at,
+        svgIndex: svgs.indexOf(svg),
+        lastClientX: ev.clientX,
         // Edits apply to the arrangement as it was when the drag began, so a
         // slow drag does not compound its own deltas.
         original: runs.map((r) => ({ ...r })),
       };
+      // The svg-bound listeners below serve the common case, but an auto-pan
+      // re-render replaces the svg mid-gesture and its listeners with it, so
+      // the gesture's continuation also lives on `window` for the duration —
+      // the same survival trick the chart's pan drag uses. Both firing for
+      // one event is harmless: the second apply lands on identical state.
+      const winMove = (e) => {
+        const d = this._drag;
+        if (!d) return;
+        d.lastClientX = e.clientX;
+        const cur = svgAt(d.svgIndex);
+        if (cur) applyDragAt(cur, e.clientX);
+        maybeAutoPan(d.svgIndex, e.clientX);
+      };
+      const winUp = () => {
+        window.removeEventListener("pointermove", winMove);
+        window.removeEventListener("pointerup", winUp);
+        window.removeEventListener("pointercancel", winUp);
+        stopAutoPan();
+        onUp();
+      };
+      window.addEventListener("pointermove", winMove);
+      window.addEventListener("pointerup", winUp);
+      window.addEventListener("pointercancel", winUp);
       stop(ev);
       if (ev.preventDefault) ev.preventDefault();
     };
 
-    const onMove = (svg, ev) => {
+    const svgAt = (index) => {
+      // Auto-pan re-renders, replacing the svg the gesture started on; the
+      // chart at the same position in the fresh shadow root is its heir.
+      const current = this._chartSvgs(this.shadowRoot || root);
+      return current[index] || current[current.length - 1] || null;
+    };
+
+    const applyDragAt = (svg, clientX) => {
       const drag = this._drag;
       if (!drag) return;
-      const at = this._timeAtClientX(svg, ev.clientX);
+      const at = this._timeAtClientX(svg, clientX);
       if (at === null) return;
       drag.moved = true;
       const delta = at - drag.from;
@@ -4030,6 +4090,73 @@ class HeatpumpOptimizerCard extends HTMLElement {
             drag.original, drag.index, delta, PLAN_STEP_MS, bounds
           );
       this._commitRuns(drag.channel, next);
+    };
+
+    const onMove = (svg, ev) => {
+      if (this._drag) this._drag.lastClientX = ev.clientX;
+      applyDragAt(svg, ev.clientX);
+    };
+
+    const stopAutoPan = () => {
+      if (this._dragPan) {
+        clearInterval(this._dragPan);
+        this._dragPan = null;
+      }
+    };
+
+    // Holding a dragged slot against the plot's edge pans the view under it.
+    // Without this, a zoomed-in view is a wall: the edit ceiling clamps to
+    // the visible window (a slot must not land where the pointer cannot
+    // reach), so a user who zoomed — often accidentally, by pinch or
+    // ctrl-wheel — finds editing "stops" at an arbitrary-looking time.
+    const maybeAutoPan = (index, clientX) => {
+      if (!this._drag || !this._viewAdjustable()) {
+        stopAutoPan();
+        return;
+      }
+      const svg = svgAt(index);
+      const rect =
+        svg && svg.getBoundingClientRect ? svg.getBoundingClientRect() : null;
+      if (!rect || !rect.width) {
+        stopAutoPan();
+        return;
+      }
+      const dir =
+        clientX > rect.left + rect.width - AUTOPAN_MARGIN_PX
+          ? 1
+          : clientX < rect.left + AUTOPAN_MARGIN_PX
+            ? -1
+            : 0;
+      if (!dir) {
+        stopAutoPan();
+        return;
+      }
+      if (this._dragPan) return;
+      this._dragPan = setInterval(() => {
+        const drag = this._drag;
+        const lim = this._viewLimits;
+        if (!drag || !lim) {
+          stopAutoPan();
+          return;
+        }
+        const cur = this._viewCurrent();
+        const step = dir * Math.max(PLAN_STEP_MS, cur.span * 0.04);
+        const maxStart = Math.max(lim.floor, lim.rightBound - cur.span);
+        const start = clampNum(cur.start + step, lim.floor, maxStart);
+        if (start === cur.start) {
+          stopAutoPan();
+          return;
+        }
+        this._view = { start, span: cur.span };
+        // A full render: the gesture survives it because move/up also live
+        // on `window` (registered per drag below), exactly as the pan
+        // gesture does and for the same reason.
+        this._render();
+        const fresh = svgAt(drag.svgIndex);
+        if (fresh && drag.lastClientX !== undefined) {
+          applyDragAt(fresh, drag.lastClientX);
+        }
+      }, AUTOPAN_INTERVAL_MS);
     };
 
     const onUp = () => {
@@ -4132,14 +4259,35 @@ class HeatpumpOptimizerCard extends HTMLElement {
    * after the expiry, so a slot shown as pinned there would quietly do nothing.
    */
   _editCeiling() {
+    const p = this._editCeilingParts();
+    return Math.min(p.visibleEnd, p.applyEnd, p.planEnd);
+  }
+
+  /** The ceiling's three inputs, separately, so the lanes can say WHICH one
+   * is in charge. When the visible window is the binding limit the user is
+   * zoomed in, and an edit stopping there reads as an arbitrary rule unless
+   * the card says so — a real user diagnosed it as "slots end at midnight".
+   */
+  _editCeilingParts() {
     const visibleEnd = this._geom ? this._geom.windowEnd : Infinity;
     const windowHours = this._planAttr(
       "manual_plan_window_hours",
       MANUAL_PLAN_WINDOW_FALLBACK_H
     );
-    const applyEnd = Date.now() + windowHours * 3600 * 1000;
-    const planEnd = this._planEnd();
-    return Math.min(visibleEnd, applyEnd, planEnd);
+    return {
+      visibleEnd,
+      applyEnd: Date.now() + windowHours * 3600 * 1000,
+      planEnd: this._planEnd(),
+    };
+  }
+
+  /** Whether the zoomed-in view, not the plan or the 20 h window, is what
+   * currently stops editing. The one-second slack keeps float noise from
+   * flickering the hint on an unzoomed card whose window ends at the plan.
+   */
+  _viewLimitsEditing() {
+    const p = this._editCeilingParts();
+    return p.visibleEnd < Math.min(p.applyEnd, p.planEnd) - 1000;
   }
 
   /** The last timestamp the published plan covers. */
@@ -4238,6 +4386,15 @@ class HeatpumpOptimizerCard extends HTMLElement {
           `<rect class="lane-past" x="${ceilX}" y="${y}" width="${
             plotR - ceilX
           }" height="${LANE_H}" fill="var(--secondary-text-color,#888)" fill-opacity="0.12"/>`
+        );
+      }
+      // The lane runs out at the zoomed window, not at any rule of the
+      // plan's: mark it, or the invisible remainder reads as a hard limit.
+      if (this._viewLimitsEditing()) {
+        out.push(
+          `<text class="lane-more" x="${plotR - 3}" y="${
+            y + LANE_H - 3
+          }" font-size="${font}" text-anchor="end" fill="var(--primary-color,#03a9f4)">»</text>`
         );
       }
 
@@ -4400,10 +4557,10 @@ class HeatpumpOptimizerCard extends HTMLElement {
           ` L ${pts[0].x.toFixed(2)} ${baseY.toFixed(2)} Z`;
         const fillOpacity = s.style === "stepBars" ? 0.35 : 0.18;
         out.push(
-          `<path class="series" data-key="${s.key}" d="${areaD}" fill="${s.color}" fill-opacity="${fillOpacity}" stroke="none"/>`
+          `<path class="series" data-key="${s.key}" pointer-events="none" d="${areaD}" fill="${s.color}" fill-opacity="${fillOpacity}" stroke="none"/>`
         );
         out.push(
-          `<path class="series" data-key="${s.key}" d="${stepD}" fill="none" stroke="${s.color}" stroke-width="1.5"/>`
+          `<path class="series" data-key="${s.key}" pointer-events="none" d="${stepD}" fill="none" stroke="${s.color}" stroke-width="1.5"/>`
         );
       } else {
         const d = this._smoothLine(pts);
@@ -4411,7 +4568,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
           ? ""
           : ` stroke-dasharray="3 3" stroke-opacity="0.7"`;
         out.push(
-          `<path class="series" data-key="${s.key}" d="${d}" fill="none" stroke="${s.color}" stroke-width="1.8"${dash}/>`
+          `<path class="series" data-key="${s.key}" pointer-events="none" d="${d}" fill="none" stroke="${s.color}" stroke-width="1.8"${dash}/>`
         );
       }
     }
@@ -4508,6 +4665,14 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // Reopening should start at the top rather than resuming a scroll position
     // from a session the user has already dismissed.
     this._dialogScroll = 0;
+    // The pan/zoom view dies with the session it belonged to. It used to
+    // persist for the lifetime of the card element — on a wall-mounted
+    // dashboard, indefinitely — so one accidental trackpad pinch or
+    // two-finger swipe over the chart quietly capped slot editing at the
+    // narrowed window's edge for days, while re-anchoring itself to "now"
+    // so it never scrolled out of relevance. A dismissed dialog is a
+    // finished session; the next open shows the whole plan.
+    this._view = null;
   }
 
   _openExpanded() {

@@ -132,14 +132,26 @@ const store={};
 const ctx = {
   HTMLElement, document, console,
   window:{ customCards:[], localStorage:{ getItem:k=>store[k]??null, setItem:(k,v)=>{store[k]=String(v);}, removeItem:k=>{delete store[k];} },
-           addEventListener(){}, removeEventListener(){},
+           // Real registries: the drag and pan gestures park their move/up
+           // handlers on window so they survive mid-gesture re-renders, and a
+           // no-op here would make those paths untestable.
+           addEventListener(t,f){ (winListeners[t]=winListeners[t]||[]).push(f); },
+           removeEventListener(t,f){ const a=winListeners[t]||[]; const i=a.indexOf(f); if(i>=0)a.splice(i,1); },
            matchMedia:()=>({matches:false,addEventListener(){}}) },
   localStorage:{ getItem:k=>store[k]??null, setItem:(k,v)=>{store[k]=String(v);}, removeItem:k=>{delete store[k];} },
   customElements:{ _d:{}, define(n,c){ this._d[n]=c; }, get(n){ return this._d[n]; } },
   ResizeObserver: class { observe(){} unobserve(){} disconnect(){} },
   requestAnimationFrame:(f)=>f(),
   setTimeout, clearTimeout,
+  // Deterministic intervals: the edge auto-pan runs on one, and a test that
+  // slept for real time would be both slow and flaky.
+  setInterval:(f)=>{ intervals.set(++intervalId, f); return intervalId; },
+  clearInterval:(id)=>{ intervals.delete(id); },
 };
+const winListeners = {};
+const fireWindow = (t, ev) => (winListeners[t]||[]).slice().forEach((f)=>f(ev));
+const intervals = new Map(); let intervalId = 0;
+const tickIntervals = () => { for (const f of [...intervals.values()]) f(); };
 ctx.globalThis = ctx; ctx.self = ctx; ctx.window.document = document;
 vm.createContext(ctx);
 const cardSrc = fs.readFileSync("custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js","utf8");
@@ -1445,6 +1457,106 @@ check("the hand-scheduled reason has a label",
   drag._clearManualPlan();
   check("going back to automatic clears the override",
     called && called.service === "clear_manual_plan");
+}
+
+// ---------------------------------------------------------------------------
+// Zoom-limited editing: the ceiling names its cause, and dragging pans it
+// away (user report on v4.0.0: "slots can only be edited until midnight" —
+// a forgotten zoom had clamped the edit ceiling to the visible window).
+// ---------------------------------------------------------------------------
+{
+  drag._resetRuns();
+  drag._view = null;
+  drag._render();
+  const dump0 = collect(drag.shadowRoot).join("\n");
+  check("an unzoomed card shows no view-limit hint", !/class="wi-viewlimit"/.test(dump0));
+  check("and no lane chevron", !/class="lane-more"/.test(dump0));
+
+  drag._zoomView(0.25);
+  const parts = drag._editCeilingParts();
+  check("zoomed: the visible edge is the binding edit limit",
+    drag._editCeiling() === drag._geom.windowEnd &&
+      parts.visibleEnd < Math.min(parts.applyEnd, parts.planEnd),
+    JSON.stringify({ceiling: drag._editCeiling(), parts}));
+  const dump1 = collect(drag.shadowRoot).join("\n");
+  check("the lanes flag the zoom with a chevron", /class="lane-more"/.test(dump1));
+  check("the what-if panel says the zoom is the limit", /class="wi-viewlimit"/.test(dump1));
+
+  // Auto-pan: grab a slot, park the pointer at the plot's right edge, and let
+  // the interval carry the view forward.
+  const zoomGeom = drag._geom;
+  const zx = (t) =>
+    zoomGeom.plotL +
+    ((t - zoomGeom.windowStart) / (zoomGeom.windowEnd - zoomGeom.windowStart)) *
+      zoomGeom.plotW;
+  const zRuns = drag._draftRuns().dhw;
+  const [zlo] = drag._editBounds();
+  const zi = zRuns.findIndex((r) => r.end > zlo && r.start >= zlo && r.start < zoomGeom.windowEnd);
+  check("there is a visible slot to drag against the edge", zi >= 0);
+  if (zi >= 0) {
+    const startView = drag._viewCurrent().start;
+    const target = { dataset: { channel: "dhw", index: String(zi) } };
+    fire(svgOf(drag), "pointerdown", {
+      clientX: zx(zRuns[zi].start + 60000), clientY: 0, target,
+      stopPropagation() {}, preventDefault() {},
+    });
+    fireWindow("pointermove", { clientX: 897, clientY: 0, target: {} });
+    tickIntervals();
+    tickIntervals();
+    tickIntervals();
+    check("holding the drag at the edge pans the view forward",
+      drag._viewCurrent().start > startView,
+      `${startView} -> ${drag._viewCurrent().start}`);
+    fireWindow("pointerup", {});
+    check("releasing the drag stops the auto-pan", !drag._dragPan);
+  }
+
+  // Closing the dialog ends the session, and the view with it: one
+  // accidental pinch used to cap editing for days on a wall-mounted
+  // dashboard, because the view re-anchored to "now" and never expired.
+  drag._zoomView(0.25);
+  check("(setup) the view is narrowed again", !!drag._view);
+  drag._onDialogClose();
+  check("closing the dialog discards the pan/zoom view", drag._view === null);
+  // Reopen directly: the drag above armed the one-shot click suppression,
+  // which would silently spend a simulated card click.
+  drag._openExpanded();
+  // Narrow again: the reset-button checks below need a zoomed card.
+  drag._zoomView(0.25);
+
+  // The hint's button is the escape hatch: one press, whole plan back.
+  drag._render();
+  const resetBtn = drag.shadowRoot.querySelector(".wi-viewreset");
+  check("the hint carries a reset button", !!resetBtn);
+  if (resetBtn) {
+    fire(resetBtn, "click", { stopPropagation() {} });
+    check("pressing it clears the zoom", drag._view === null);
+    const dump2 = collect(drag.shadowRoot).join("\n");
+    check("and the hint disappears with it", !/class="wi-viewlimit"/.test(dump2));
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Nothing painted over the lanes may eat pointer events (field report,
+// Safari: hover, drags and right-click add all dead wherever a filled
+// series body covered the lane strip — the series are painted after the
+// lanes, and SVG fills capture events by default). The stub fires events
+// with pre-built targets and does no real hit-testing, so this is pinned
+// at the markup level: every chart-body overlay must declare itself inert.
+// ---------------------------------------------------------------------------
+{
+  const dump = collect(drag.shadowRoot).join("\n");
+  const seriesTags = dump.match(/<path class="series"[^>]*>/g) || [];
+  check("the chart draws series paths at all", seriesTags.length > 0);
+  check("every series path is pointer-inert",
+    seriesTags.every((t) => t.includes('pointer-events="none"')),
+    seriesTags.find((t) => !t.includes('pointer-events="none"')));
+  for (const frag of [
+    '<rect class="estimated" pointer-events="none"',
+    '<line class="crosshair" pointer-events="none"',
+  ]) {
+    check(`source keeps ${frag.slice(1, 30)}… inert`, cardSrc.includes(frag));
+  }
 }
 
 // ---------------------------------------------------------------------------
