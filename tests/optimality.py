@@ -1,15 +1,32 @@
+"""Solution-quality floor for the optimizer.
+
+Not an optimality proof — the solver is a multi-start local method over a
+non-convex objective and the challengers here only price energy cost, not
+the full objective (comfort pull, cycling, capacity). What this asserts is
+a floor: the plan must satisfy comfort, and no trivial challenger may beat
+it by a margin that says "the solver missed the basin", with generous
+headroom over the measured gap so BLAS-to-BLAS solver noise cannot trip it.
+
+Measured on the pinned test stack (2026-08): single-zone — greedy ties the
+optimizer to the öre and 0/300 perturbations beat it; two-zone — greedy is
+2.4% cheaper at a colder room minimum (it is buying less comfort, which the
+objective prices and this cost comparison does not) and 2/300 perturbations
+find at most 1.7%. The thresholds below are roughly double those gaps.
+"""
 import os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "custom_components"))
 import numpy as np
 from datetime import datetime
+from harness import Results
 from profiles import prices, weather, house, DT, N
 from heatpump_optimizer.thermal_model import (
     ThermalModel, ThermalParameters, ThermalState)
 from heatpump_optimizer.optimizer import (
     HeatPumpOptimizer, OptimizationConfig)
 rng=np.random.default_rng(0)
+R = Results("Optimality floor")
 
 def setup(tz, price_p="winter_typical", weather_p="winter_cold", start=datetime(2026,1,15)):
     cfg=house(two_zone=tz); p=ThermalParameters.from_config(cfg); p.dhw_enabled=False
@@ -30,14 +47,18 @@ def evaluate(m,pw,st,ot,wi,ra,so,pr,minT=16.5):
     return cost,viol,r.min(),r.max()
 
 for tz in (False,True):
+    R.section(f"two_zone={tz}")
     opt,m,pr,ot,wi,ra,so,st,start=setup(tz)
     r=opt.optimize(st,pr,ot,wi,ra,so,start)
     base=np.asarray(r.power_schedule)
     c0,v0,mn0,mx0=evaluate(m,base,st,ot,wi,ra,so,pr)
-    print(f"--- two_zone={tz} ---")
     print(f" optimizer : cost {c0:7.2f}  room {mn0:.2f}-{mx0:.2f}  viol {v0:.3f}")
+    R.check("optimizer plan meets the comfort floor", v0 <= 1e-6,
+            f"degree-steps below floor: {v0:.4f}")
 
-    # Challenger 1: same total energy, greedily moved to the cheapest slots
+    # Challenger 1: same total energy, greedily moved to the cheapest slots.
+    # It may run the house colder than the optimizer chose to (comfort is
+    # not in this cost), so the bound is a floor with headroom, not a tie.
     total=base.sum()
     pmax=m.params.max_electrical_power
     order=np.argsort(pr)
@@ -46,16 +67,23 @@ for tz in (False,True):
         take=min(pmax,left); greedy[i]=take; left-=take
         if left<=0: break
     c1,v1,mn1,mx1=evaluate(m,greedy,st,ot,wi,ra,so,pr)
-    print(f" greedy    : cost {c1:7.2f}  room {mn1:.2f}-{mx1:.2f}  viol {v1:.3f}"
-          + ("   <-- cheaper AND comfortable" if c1<c0-0.01 and v1<=v0+1e-6 else ""))
+    print(f" greedy    : cost {c1:7.2f}  room {mn1:.2f}-{mx1:.2f}  viol {v1:.3f}")
+    if v1 <= v0 + 1e-6:
+        R.check("greedy same-energy challenger does not rout the optimizer",
+                c1 >= c0 * 0.95, f"greedy {c1:.2f} vs optimizer {c0:.2f}")
 
-    # Challenger 2: random perturbations that keep comfort
-    best=(c0,None); improved=0
+    # Challenger 2: random perturbations that keep comfort. Finding a
+    # slightly cheaper neighbour is expected on the two-zone objective
+    # (cost here is not the objective); finding a much cheaper one means
+    # the solver stopped short of its basin's floor.
+    best=c0; improved=0
     for k in range(300):
         cand=np.clip(base+rng.normal(0,0.6,N),0,pmax)
         c,v,mn,mx=evaluate(m,cand,st,ot,wi,ra,so,pr)
-        if v<=v0+1e-6 and c<best[0]-0.01:
-            best=(c,cand); improved+=1
-    print(f" random    : {improved}/300 perturbations beat it; best cost {best[0]:7.2f}"
-          f" ({(c0-best[0])/c0*100:.1f}% better)" if best[1] is not None
-          else f" random    : 0/300 perturbations beat it (local optimum looks solid)")
+        if v<=v0+1e-6 and c<best-0.01:
+            best=c; improved+=1
+    print(f" random    : {improved}/300 comfort-safe perturbations cheaper; best {best:7.2f}")
+    R.check("no perturbation finds a materially cheaper comfort-safe plan",
+            best >= c0 * 0.965, f"best {best:.2f} vs optimizer {c0:.2f}")
+
+sys.exit(R.close("OPTIMALITY CHECKS"))

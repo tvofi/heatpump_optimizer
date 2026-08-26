@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -51,6 +52,91 @@ START = datetime(2026, 1, 15, 0, 0)
 # one-interval shift or a dropped constraint moves things by whole kilowatts —
 # while tolerating last-bit floating point noise that carries no meaning.
 PRECISION = 6
+
+
+def _walk_finite(node, path, problems) -> None:
+    if isinstance(node, dict):
+        for k, v in node.items():
+            _walk_finite(v, f"{path}.{k}", problems)
+    elif isinstance(node, (list, tuple)):
+        for i, v in enumerate(node):
+            _walk_finite(v, f"{path}[{i}]", problems)
+    elif isinstance(node, float) and not math.isfinite(node):
+        problems.append(f"{path}: non-finite value {node!r}")
+
+
+def _walk_nan(node, path, problems) -> None:
+    if isinstance(node, dict):
+        for k, v in node.items():
+            _walk_nan(v, f"{path}.{k}", problems)
+    elif isinstance(node, (list, tuple)):
+        for i, v in enumerate(node):
+            _walk_nan(v, f"{path}[{i}]", problems)
+    elif isinstance(node, float) and math.isnan(node):
+        problems.append(f"{path}: NaN")
+
+
+def assert_invariants(name: str, payload: dict, params) -> None:
+    """Hard physical facts every captured plan must satisfy.
+
+    The exact comparison pins behaviour; this layer pins *possibility*.
+    Without it, ``--record`` would happily bake a NaN, a negative power or
+    a diverged trajectory into a fixture, and from then on the suite would
+    defend the bug. Runs on both record and check, in every mode.
+    """
+    problems: list[str] = []
+    _walk_finite(payload, name, problems)
+
+    n = len(payload.get("prices") or [])
+    p_max = float(params.max_electrical_power)
+    space = payload.get("power_schedule") or []
+    dhw = payload.get("dhw_power_schedule") or []
+    for label, series in (("power_schedule", space), ("dhw_power_schedule", dhw)):
+        if series and len(series) != n:
+            problems.append(f"{label}: {len(series)} values for {n} steps")
+        for i, v in enumerate(series):
+            if v < -1e-9:
+                problems.append(f"{label}[{i}]: negative power {v}")
+                break
+    if space:
+        combined = (
+            [a + b for a, b in zip(space, dhw)] if len(dhw) == len(space) else space
+        )
+        worst = max(combined)
+        if worst > p_max + 1e-6:
+            problems.append(
+                f"electrical draw peaks at {worst:.3f} kW, above the "
+                f"{p_max:.3f} kW compressor maximum"
+            )
+
+    for key in (
+        "room_temp_trajectory",
+        "slab_temp_trajectory",
+        "buffer_temp_trajectory",
+        "wood_temp_trajectory",
+        "upper_temp_trajectory",
+        "lower_temp_trajectory",
+        "dhw_temp_trajectory",
+    ):
+        series = payload.get(key) or []
+        if series and len(series) != n + 1:
+            problems.append(f"{key}: {len(series)} values for {n}-step horizon")
+        for i, v in enumerate(series):
+            if not -40.0 <= v <= 120.0:
+                problems.append(f"{key}[{i}]: {v} °C is outside -40..120 °C")
+                break
+
+    savings = payload.get("savings_percentage")
+    if isinstance(savings, (int, float)) and savings > 100.0 + 1e-6:
+        problems.append(f"savings_percentage {savings} claims more than 100%")
+
+    if problems:
+        for line in problems[:10]:
+            print(f"  INVARIANT {line}", file=sys.stderr)
+        raise SystemExit(
+            f"golden scenario {name!r} violates {len(problems)} physical "
+            "invariant(s); refusing to record or compare it"
+        )
 
 
 def r(value):
@@ -574,7 +660,7 @@ def capture(name: str, spec: dict) -> dict:
 
     # Everything that describes the plan. Trajectories included: a constraint
     # dropped in a rare branch shows up there before it shows up in the cost.
-    return {
+    payload = {
         "power_schedule": r(result.power_schedule),
         "dhw_power_schedule": r(result.dhw_power_schedule),
         "optimal_setpoints": r(result.optimal_setpoints),
@@ -619,6 +705,8 @@ def capture(name: str, spec: dict) -> dict:
             }
         ),
     }
+    assert_invariants(name, payload, opt.model.params)
+    return payload
 
 
 # ---------------------------------------------------------------------------
@@ -695,9 +783,22 @@ def capture_coordinator(config: dict) -> dict:
 
     dt_util.freeze(START)
     try:
-        return _capture_coordinator(config)
+        payload = _capture_coordinator(config)
     finally:
         dt_util.freeze(None)
+    # Coordinator payloads mix strings, nulls and numbers, so the only
+    # invariant cheap enough to hold everywhere is "no NaN". Infinity is
+    # deliberately allowed: `peak_threshold_kw` publishes +inf as "no
+    # capacity tariff configured", and the committed fixtures carry it.
+    problems: list[str] = []
+    _walk_nan(payload, "coordinator", problems)
+    if problems:
+        for line in problems[:10]:
+            print(f"  INVARIANT {line}", file=sys.stderr)
+        raise SystemExit(
+            f"coordinator capture violates {len(problems)} invariant(s)"
+        )
+    return payload
 
 
 def _capture_coordinator(config: dict) -> dict:

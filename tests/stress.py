@@ -29,6 +29,7 @@ Three families of check:
 from __future__ import annotations
 
 import itertools
+import os
 import sys
 from datetime import datetime, timedelta
 
@@ -38,6 +39,12 @@ import numpy as np
 
 from profiles import DT, house, prices, weather
 from heatpump_optimizer import pv as pv_model
+
+# The solve-time guard exists to catch pathological slowdowns (a 10x
+# regression in the objective), not to benchmark the machine. 30 s holds on
+# the development box; slower shared runners (CI, containers) override it
+# via the environment rather than growing the default for everyone.
+SOLVE_BUDGET_MS = float(os.environ.get("STRESS_SOLVE_BUDGET_MS", "30000"))
 from heatpump_optimizer.dhw_schedule import hour_in_windows, parse_windows
 from heatpump_optimizer.optimizer import HeatPumpOptimizer, OptimizationConfig
 from heatpump_optimizer.presets import (
@@ -436,7 +443,7 @@ for combo in combinations:
             )
     if shortfall > 2.0:
         problems.append(f"hot water {shortfall:.1f} °C short inside a demand window")
-    if run["result"].solve_time_ms > 30000:
+    if run["result"].solve_time_ms > SOLVE_BUDGET_MS:
         slow.append((label, run["result"].solve_time_ms))
 
     if problems:

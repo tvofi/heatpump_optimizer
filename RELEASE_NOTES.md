@@ -1,6 +1,52 @@
 # Heat Pump Cost Optimizer — Release Notes
 
-## v4.0.0
+## v4.0.1
+
+The test suite now runs itself. This release contains no behaviour change
+to the integration — every golden fixture is byte-identical — but the
+18,000 lines of tests that guarded v4.0.0 were only ever run by hand;
+now they run on every push and pull request.
+
+### Continuous integration
+
+- **`.github/workflows/tests.yml`**: the full suite on every push and PR
+  (~15 minutes), and nightly with the closed-loop learner simulation
+  (`SLOW=1`). Dependencies are pinned in `tests/requirements-ci.txt` so
+  two runs cannot disagree for reasons unrelated to the code.
+- **Golden fixtures are checked environment-proof.** Solver floats are not
+  bit-stable across BLAS builds, so CI never compares this runner's output
+  against fixtures recorded on another machine. Instead `tests/env_drift.py
+  --all` captures every scenario twice in the same runner — once from the
+  tree under test, once from the PR's merge-base — and requires the two to
+  be byte-identical. A PR that deliberately changes behaviour claims the
+  moved scenarios in `tests/golden/claimed_drift.txt`, which is visible in
+  review; stale claims fail the gate.
+
+### The suite got teeth where it had gaps
+
+- **Golden captures now enforce physical invariants** on both record and
+  check: finite values everywhere, electrical draw within the compressor
+  maximum, trajectories inside −40..120 °C, savings never above 100 %.
+  `--record` can no longer bake an impossible plan into a fixture.
+- **`tests/optimality.py` can now fail.** It used to print a comparison
+  and exit 0 regardless; it now asserts the plan meets the comfort floor
+  and that neither a greedy same-energy schedule nor 300 comfort-safe
+  perturbations find a materially cheaper plan — and it runs in
+  `tests/run.sh`, which it never did.
+- **`tests/run.sh` audits itself**: a test script added to `tests/` but
+  not wired into the runner now fails the run instead of silently never
+  executing (exactly what happened to `optimality.py` and
+  `env_drift.py`).
+- **The Home Assistant stub learned real timezones**: set `HASTUB_TZ`
+  (e.g. `Europe/Stockholm`) and `as_local`/`now` do real conversions via
+  `zoneinfo` instead of being identity functions. The default remains the
+  identity, so nothing changes for existing fixtures — this is the
+  foundation the upcoming DST regression tests build on.
+
+### Notes
+
+- `tests/README.md` documents the new modes, and its fixture count is
+  correct again (53, not 37).
 
 Thirty-six features in seven tranches, and one rule held through all of
 them: **everything new is off, inert, or purely observational until you

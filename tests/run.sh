@@ -8,6 +8,15 @@
 # the suite is reproducible; it used to sit in /tmp and vanish on reboot.
 # `plan_view.py` writes /tmp/plandata.json, which `card.mjs` then reads, so the
 # order below is not arbitrary.
+#
+# GOLDEN_MODE picks how the characterization fixtures are checked:
+#   strict (default) — exact comparison against the committed fixtures, plus
+#     the five-fixture env_drift gate against GOLDEN_REF (default origin/main).
+#   drift — no exact comparison at all; instead env_drift.py --all captures
+#     every scenario from this tree AND from GOLDEN_REF in the same
+#     environment and requires them identical. This is what CI runs: solver
+#     floats are not bit-stable across BLAS builds, so comparing this
+#     machine's output against fixtures recorded on another would cry wolf.
 set -u
 
 cd "$(dirname "$0")/.."
@@ -17,6 +26,9 @@ if [ -z "$PYTHON" ]; then
   if [ -x .venv/bin/python ]; then PYTHON=.venv/bin/python; else PYTHON=python3; fi
 fi
 export PYTHONPATH="$PWD/tests/hastub:${PYTHONPATH:-}"
+
+GOLDEN_MODE="${GOLDEN_MODE:-strict}"
+GOLDEN_REF="${GOLDEN_REF:-origin/main}"
 
 failed=0
 run() {
@@ -28,6 +40,20 @@ run() {
   fi
 }
 
+# Every test script must be wired into this file or deliberately allow-listed;
+# a script added to tests/ and forgotten here would otherwise silently never
+# run — which is exactly how optimality.py sat dormant for a year.
+for f in tests/*.py; do
+  base=$(basename "$f")
+  case "$base" in
+    harness.py|profiles.py) continue ;;  # shared plumbing, not tests
+  esac
+  if ! grep -q "$base" tests/run.sh; then
+    echo "UNWIRED TEST: tests/$base is not referenced by tests/run.sh"
+    failed=$((failed + 1))
+  fi
+done
+
 # Unit-style checks first: they are fast, and a failure here explains any
 # end-to-end failure that follows.
 run "$PYTHON" tests/features.py
@@ -38,13 +64,27 @@ run "$PYTHON" tests/solar_alignment.py
 
 # The characterization harness: exact behaviour, pinned. Runs before the
 # outcome-based scripts because when both fail, this one says *what* changed.
-run "$PYTHON" tests/golden.py
+if [ "$GOLDEN_MODE" = "drift" ]; then
+  run "$PYTHON" tests/env_drift.py --all "$GOLDEN_REF"
+else
+  run "$PYTHON" tests/golden.py
+  # The five machine-sensitive fixtures get their real check here: identical
+  # to GOLDEN_REF when captured twice in THIS environment (G4b). Skipped
+  # when the ref is unreachable (tarball checkouts, offline clones).
+  if git rev-parse --verify --quiet "${GOLDEN_REF}^{commit}" >/dev/null 2>&1; then
+    run "$PYTHON" tests/env_drift.py "$GOLDEN_REF"
+  else
+    echo
+    echo "SKIP: tests/env_drift.py ($GOLDEN_REF is not available here)"
+  fi
+fi
 
 # End-to-end optimizer behaviour.
 run "$PYTHON" tests/validate.py
 run "$PYTHON" tests/edge.py
 run "$PYTHON" tests/backtest.py
 run "$PYTHON" tests/stress.py
+run "$PYTHON" tests/optimality.py
 
 # The closed-loop simulation runs hundreds of solves and takes about a quarter
 # of an hour, so it is opt-in: a test that slow would simply stop being run if
