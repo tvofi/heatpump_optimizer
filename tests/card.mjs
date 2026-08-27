@@ -2746,6 +2746,191 @@ check("the hand-scheduled reason has a label",
       edgesOf(c).includes("wood_tank>dhw_tank"),
       `edges drawn: ${edgesOf(c).join(", ")}`);
   }
+
+  // --- Undo: back to the layout in force, without leaving the editor ------
+  //
+  // The owner's ask: a rearrangement that turned out wrong should be
+  // undoable in place. Cancel already throws the drawing away, but it closes
+  // the editor too, so starting over meant reopening it. Undo restores the
+  // layout the editor opened on -- pipes AND box positions -- and stays.
+  {
+    const undoBtn = (card) => card.shadowRoot.querySelector(".layout-undo");
+    // A native <button> is activated by Enter and Space by the browser
+    // itself, which synthesises a click on it; a <div role="button"> is not.
+    // So the keyboard question is answered by what the control IS, plus the
+    // click path actually running -- which is what those keys deliver.
+    const pressKey = (el, key) => {
+      if (!el || el.tagName !== "BUTTON" || el.disabled) return [];
+      if (key !== "Enter" && key !== " ") return [];
+      return clickOn(el);
+    };
+    const posOf = (card) => JSON.stringify(card._layoutEdit.positions);
+    const edgeNames = (card) =>
+      card._layoutEdit.edges.map((e) => `${e[0]}>${e[1]}`).join();
+    const PUBLISHED = EDGES.valve_upper_direct_slab
+      .map((e) => `${e[0]}>${e[1]}`).join();
+
+    {
+      const c = mkEditor();
+      clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
+      check("Undo is offered but disabled on a freshly opened editor",
+        !!undoBtn(c) && !!undoBtn(c).disabled,
+        "an untouched drawing already IS the layout in use, so there is "
+        + "nothing to take back");
+      check("and it says what it does, for a screen reader and on hover",
+        /class="layout-undo"[\s\S]*?aria-label="[^"]*layout in use/
+          .test(collect(c.shadowRoot).join("\n")) &&
+        /class="layout-undo"[\s\S]*?title="[^"]*layout in use/
+          .test(collect(c.shadowRoot).join("\n")));
+      check("the Undo label goes through the translation layer, both ways",
+        /"setup\.undo_layout": "Undo"/.test(cardSrc) &&
+        /"setup\.undo_layout": "Ångra"/.test(cardSrc) &&
+        (cardSrc.match(/"setup\.undo_layout_aria":/g) || []).length === 2,
+        "a hard-coded English string is a string the Swedish card keeps");
+
+      // One drag and one new pipe: both halves of the working set moved.
+      const from = centre(c, "buffer_tank");
+      c._onLayoutDown(ev(from, { dataset: {} }));
+      c._onLayoutMove(ev({ x: from.x + 30, y: from.y + 40 }));
+      c._onLayoutUp(ev({ x: from.x + 30, y: from.y + 40 }));
+      connect(c, "heat_pump", "upper_zone");
+      check("Undo lights up as soon as something is changed",
+        !undoBtn(c).disabled && c._layoutEdit.dirty &&
+        posOf(c) !== "{}" && edgeNames(c) !== PUBLISHED,
+        `edges ${edgeNames(c)}, positions ${posOf(c)}`);
+
+      clickOn(undoBtn(c));
+      check("Undo restores the pipes and the box positions it opened with",
+        edgeNames(c) === PUBLISHED && posOf(c) === "{}",
+        `edges ${edgeNames(c)}, positions ${posOf(c)}`);
+      check("and re-derives the verdict for the restored drawing",
+        !!c._layoutEdit.match &&
+        c._layoutEdit.match.key === "valve_upper_direct_slab" &&
+        /Valve on the radiators, slab fed direct/
+          .test(c._layoutEdit.verdict) &&
+        /Valve on the radiators, slab fed direct/.test(
+          (c.shadowRoot.querySelector(".layout-verdict") || {}).textContent
+          || ""),
+        `verdict was ${JSON.stringify(c._layoutEdit.verdict)}`);
+      check("the editor stays open, unlike Cancel",
+        c._layoutEditing() && /class="layout-port"/.test(pageHtml(c)),
+        "Undo is the way to start over without reopening the editor");
+      check("and Undo goes dark again, with nothing left to take back",
+        !c._layoutEdit.dirty && !!undoBtn(c).disabled &&
+        !!c.shadowRoot.querySelector(".layout-save").disabled,
+        "an editor back at its starting point has nothing to save either");
+      check("no drag survives the restore",
+        c._layoutEdit.drag === null && !c._layoutEdit.suppressClick,
+        "a pointerup still owed would land an edge against a drawing that "
+        + "no longer exists");
+
+      // The baseline is a deep copy, so touching the working set cannot
+      // reach into the layout Undo owes on the NEXT press.
+      c._layoutEdit.positions.buffer_tank = [1, 2];
+      c._layoutEdit.edges.push(["heat_pump", "upper_zone"]);
+      check("the baseline is a copy the working set cannot corrupt",
+        JSON.stringify(c._layoutEdit.baseline.positions) === "{}" &&
+        c._layoutEdit.baseline.edges.map((e) => `${e[0]}>${e[1]}`).join()
+          === PUBLISHED,
+        JSON.stringify(c._layoutEdit.baseline));
+    }
+
+    {
+      // Only a drag: the positions half must come back on its own, and it
+      // has to come back to the PUBLISHED position, not to the origin.
+      const c = mkEditor({ positions: { heat_pump: [430, 360] } });
+      clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
+      const from = centre(c, "heat_pump");
+      c._onLayoutDown(ev(from, { dataset: {} }));
+      c._onLayoutMove(ev({ x: from.x + 40, y: from.y + 20 }));
+      c._onLayoutUp(ev({ x: from.x + 40, y: from.y + 20 }));
+      const moved = JSON.stringify(c._layoutEdit.positions.heat_pump);
+      clickOn(undoBtn(c));
+      check("Undo after a drag alone puts the box back where it was",
+        JSON.stringify(c._layoutEdit.positions.heat_pump) === "[430,360]" &&
+        moved !== "[430,360]" && boxAt(c, "heat_pump").x === 430 &&
+        boxAt(c, "heat_pump").y === 360,
+        `moved to ${moved}, restored to `
+        + JSON.stringify(c._layoutEdit.positions.heat_pump));
+      check("and the pipes it never touched are still the published ones",
+        edgeNames(c) === PUBLISHED, `edges ${edgeNames(c)}`);
+    }
+
+    {
+      // Only an edge change: the pipes half must come back on its own.
+      const c = mkEditor();
+      clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
+      c._onLayoutClick({
+        target: { dataset: { edge: "buffer_tank>lower_zone" } },
+        stopPropagation() {} });
+      connect(c, "mixing_valve", "lower_zone");
+      check("a rearranged drawing is a different layout before Undo",
+        c._layoutEdit.match.key === "single_tank_valve");
+      clickOn(undoBtn(c));
+      check("Undo after pipe edits alone restores the published pipe set",
+        edgeNames(c) === PUBLISHED &&
+        edgesOf(c).includes("buffer_tank>lower_zone") &&
+        !edgesOf(c).includes("mixing_valve>lower_zone"),
+        `edges drawn: ${edgesOf(c).join(", ")}`);
+
+      // Nothing stale left behind: the editor still works exactly as it did
+      // before the Undo, all the way through a real write.
+      c._onLayoutClick({
+        target: { dataset: { edge: "buffer_tank>lower_zone" } },
+        stopPropagation() {} });
+      connect(c, "mixing_valve", "lower_zone");
+      const calls = [];
+      c._hass.callService = async (domain, service, data) => {
+        calls.push([domain, service, data]);
+      };
+      await Promise.all(clickOn(c.shadowRoot.querySelector(".layout-save")));
+      check("Save still works normally after an Undo",
+        calls.length === 1 && calls[0][1] === "apply_topology" &&
+        calls[0][2].layout === "single_tank_valve" && c._layoutEdit === null,
+        JSON.stringify(calls));
+    }
+
+    {
+      // Keyboard parity with the buttons beside it.
+      const c = mkEditor();
+      clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
+      check("a disabled Undo does nothing on Enter",
+        pressKey(undoBtn(c), "Enter").length === 0 &&
+        undoBtn(c).tagName === "BUTTON" &&
+        undoBtn(c).getAttribute("type") === "button" &&
+        !/class="layout-undo"[^>]*tabindex/.test(collect(c.shadowRoot).join("")),
+        "a real button is in the tab order and activated by the browser; "
+        + "nothing here may take it back out");
+      connect(c, "heat_pump", "upper_zone");
+      pressKey(undoBtn(c), "Enter");
+      check("Enter on Undo restores the layout, from the keyboard alone",
+        edgeNames(c) === PUBLISHED && c._layoutEditing());
+      connect(c, "heat_pump", "upper_zone");
+      pressKey(undoBtn(c), " ");
+      check("and so does Space",
+        edgeNames(c) === PUBLISHED && c._layoutEditing());
+      check("the bar's buttons ring themselves with :focus-visible, no more",
+        /\.layout-bar button:focus-visible \{\s*outline: 2px solid/
+          .test(cardSrc),
+        "the shared rule covers Undo; an SVG-style outline is what clipped "
+        + "the setup rows' ring");
+    }
+
+    {
+      // The path Undo must NOT have changed: Cancel still closes, and still
+      // leaves the published layout on screen.
+      const c = mkEditor();
+      clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
+      connect(c, "heat_pump", "upper_zone");
+      clickOn(undoBtn(c));
+      clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
+      check("Cancel still closes the editor, Undo or no Undo",
+        c._layoutEdit === null && !c._layoutEditing() &&
+        !/class="layout-port"/.test(pageHtml(c)) &&
+        edgesOf(c).includes("buffer_tank>lower_zone"),
+        `edges drawn: ${edgesOf(c).join(", ")}`);
+    }
+  }
 }
 
 // --- Scenario: phone-width usability (#40 feedback, item 1) -----------------
