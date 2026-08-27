@@ -1,5 +1,51 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v5.1.4
+
+### The setup page, after a round of field reports
+
+Six things the owner of a real install ran into, all fixed.
+
+**The sensor picker could unassign a sensor while you were trying to fix
+one.** If your entity was not among the 200 the list offered, the dropdown
+quietly showed "(not configured)" — and pressing Assign then saved that
+emptiness and reloaded the integration. The list now always contains the
+entity the slot already holds, pre-selected; a search box narrows the
+candidates as you type, so an entity is reachable however many sensors you
+own (the list says "Showing 200 of 412 — type to narrow" when it is
+trimmed); every option shows its entity id next to its name, so two probes
+whose names differ only by a "_2" can be told apart; and an Assign that
+would clear a slot asks a second time first. Two further faults in the same
+control went with it: Assign read the dropdown after the filter had rebuilt
+it, and the filter box had no styling of its own and would have been
+unreadable on a dark theme.
+
+**The flow arrows pointed the wrong way.** Each pipe's arrow was drawn
+horizontally regardless of where the pipe went, so on a pipe that runs
+diagonally it looked perpendicular to the flow. Arrows now follow the pipe's
+own direction — measured against the drawn curve, the worst case went from
+about 87 degrees off to 0.012.
+
+**Text was cramped against the outlines.** Labels and readings sat 8 units
+from the contour walls; they now sit 14. Nothing else about the layout
+moved.
+
+**The solar row's label and reading overlapped** when Open-Meteo was the
+source, because the reading's width was under-estimated. The label is now
+measured against the real reading and shortened if it must be — the reading
+itself is never cut.
+
+**Two stray lines at the bottom-left of the heat pump** were meant to be
+cabinet vents and read as a rendering artifact. They are gone.
+
+**A focus outline lingered beside a sensor field** after cancelling the
+picker: it was drawn as an outline on an SVG shape and clipped, so only its
+top and left edges showed. It is now drawn as part of the shape, fully
+visible, and cancelling with the mouse no longer leaves it behind — while
+keyboard users still get a clear ring.
+
+The Outside box is deliberately unchanged.
+
 ## v5.1.3
 
 ### Fix: a broken sensor no longer teaches the model the wrong house

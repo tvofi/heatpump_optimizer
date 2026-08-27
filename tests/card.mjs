@@ -3409,7 +3409,7 @@ function ctxL(card, key) {
       `${document.activeElement.tagName} class=${document.activeElement.className}`);
 }
 
-// --- Shared rig for the v5.1.2 setup-page scenarios (items A-F) -------------
+// --- Shared rig for the v5.1.4 setup-page scenarios (items A-F) -------------
 // One topology with every box kind the reports touch: an open outdoor node,
 // the heat-pump cabinet, a wood tank, a valve, two zones. Built here rather
 // than reusing the layout editor's rig above, which is scoped to its own
@@ -3471,7 +3471,7 @@ const setupPage = (over, extraStates) =>
 const setupBox = (card, place) =>
   (card._layoutBoxes || []).find((b) => b.place === place);
 
-// --- Scenario: the heat pump lost its louvres (item A, v5.1.2) --------------
+// --- Scenario: the heat pump lost its louvres (item A, v5.1.4) --------------
 // Two horizontal strokes used to sit in the cabinet's bottom-left band as
 // vents. From a step back they read as two stray lines in the corner of a
 // box rather than as louvres, so they were removed. Everything else the
@@ -3516,7 +3516,7 @@ const setupBox = (card, place) =>
     /M 190 92 A 8 8 0 1 1 206 92/.test(page));
 }
 
-// --- Scenario: the flow chevrons lie along their pipes (item B, v5.1.2) -----
+// --- Scenario: the flow chevrons lie along their pipes (item B, v5.1.4) -----
 // `pipeDeco` used to draw an axis-aligned glyph in both branches: a
 // horizontal chevron for every cross-column pipe whatever its slope. Those
 // pipes are cubics whose ends usually differ in height, so on most of them
@@ -3756,7 +3756,7 @@ const setupBox = (card, place) =>
   }
 }
 
-// --- Scenario: the boxes have room to breathe (item C, v5.1.2) -------------
+// --- Scenario: the boxes have room to breathe (item C, v5.1.4) -------------
 // Titles and slot rows started at x+10 and right-anchored values ended at
 // x+190, against contour walls at x+2 and x+w-2: eight viewBox units of
 // air, which at desktop width reads as text pressed against the wall it is

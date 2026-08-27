@@ -27,7 +27,7 @@
 # was never wrong. Without rule 2 the same thing happens whenever two
 # commits share a version.
 #
-# claims-for: 5.1.3
+# claims-for: 5.1.4
 #
 #
 # v5.1.3 learning-freeze fix: `_learning_frozen` now returns a reason for

@@ -11,7 +11,7 @@
 
 const CARD_TAG = "heatpump-optimizer-card";
 const EDITOR_TAG = "heatpump-optimizer-card-editor";
-const CARD_VERSION = "4.3.0";
+const CARD_VERSION = "5.1.4";
 
 // ---- i18n ------------------------------------------------------------------
 //
@@ -930,7 +930,7 @@ const DIALOG_FONT_PX_MAX = 21;
 
 // How many entities the setup page's picker will RENDER at once. A large
 // installation has thousands, and a select with thousands of options is both
-// slow to build and useless to scroll. Since v5.1.2 this is a render bound
+// slow to build and useless to scroll. Since v5.1.4 this is a render bound
 // and nothing else: it is applied after the picker's text filter, so any
 // entity on the install is reachable by typing a few characters of its name
 // or its id, and the footnote says when the list is standing on more than it
@@ -975,7 +975,7 @@ const SETUP_COL_W = 200;
 // How far the drawing's text sits inside a box's bounding rect, and how far
 // that keeps it off the contour the box is painted with.
 //
-// v5.1.2: this was 10, against contour walls at x+2 and x+w-2 -- eight
+// v5.1.4: this was 10, against contour walls at x+2 and x+w-2 -- eight
 // viewBox units of air, which on a desktop-width dialog reads as text
 // pressed against the wall it is inside. 16 leaves 14 units of margin on
 // both sides. The box width (200), the column abscissae and the row
@@ -1158,7 +1158,7 @@ const NODE_SHAPES = {
   },
   // Shallow gable over walls, with a chimney. The pitch is capped by the
   // title geometry: the roofline at the title's x must clear the cap
-  // height -- at x+16 (v5.1.2's padding) the roof has risen to y+6.7,
+  // height -- at x+16 (v5.1.4's padding) the roof has risen to y+6.7,
   // 2.3 units above the 13px title's cap line, so the wider padding
   // relaxed this constraint rather than tightening it.
   house: {
@@ -1208,7 +1208,7 @@ const NODE_SHAPES = {
   // The machine: rounded cabinet with the fan in the header's free right
   // corner. Two louvre strokes used to sit in the bottom-left band; from a
   // step back they did not read as vents but as two stray lines in the
-  // corner of a box, so v5.1.2 removed them. The fan, its blades and its
+  // corner of a box, so v5.1.4 removed them. The fan, its blades and its
   // hub already say "heat pump", and ink that has to be explained is ink
   // the drawing is better without.
   hp: {
@@ -2569,7 +2569,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
 
   /** The picker's option list and its footnote, for one slot.
    *
-   * Three rules this had wrong before v5.1.2, each of them destructive:
+   * Three rules this had wrong before v5.1.4, each of them destructive:
    *
    *  - The entity the slot ALREADY holds is always an option, and always the
    *    selected one. It used to be offered only if it happened to fall
@@ -2718,7 +2718,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
       this._pickerFocus = !!viaKeyboard;
       // ...and remembered for the way back out. Handing focus to a row a
       // MOUSE user is no longer looking at is what left a focus ring stuck
-      // on the sensor field after Cancel (v5.1.2).
+      // on the sensor field after Cancel (v5.1.4).
       this._pickerViaKeyboard = !!viaKeyboard;
       this._render();
     };
@@ -3346,7 +3346,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // caption overflowed by 19 viewBox units. Captions are therefore
     // wrapped here, before layout, where the box height still follows the
     // line count. The rule is the measured width of the row's text area
-    // (v5.1.2 -- it was a 34-character count, which cannot tell "iiii"
+    // (v5.1.4 -- it was a 34-character count, which cannot tell "iiii"
     // from "WWWW" and had to be re-guessed every time the padding moved).
     // A caption is one line of prose and reads badly broken mid-phrase, so
     // it is allowed to lean into the right padding before it wraps: what it
