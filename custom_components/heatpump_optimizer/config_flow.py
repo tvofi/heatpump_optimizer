@@ -410,10 +410,6 @@ RANGE_ZONE_THERMAL_MASS: Final = (0.25, 60.0)
 RANGE_ZONE_HEAT_LOSS: Final = (0.001, 1.0)
 
 
-# Everything ``presets.derive`` writes into the entry, in the order the
-# expert page shows them. The last six only exist in two-zone mode.
-# ``tests/entities.py`` checks this against ``derive`` itself, so a new
-# derived parameter cannot quietly fall off the list.
 # Shown on the expert page while the questionnaire is armed. English here
 # is the fallback; the translated text lives beside the page's own strings.
 PRESET_WARNING_FALLBACK: Final = (
@@ -424,6 +420,10 @@ PRESET_WARNING_FALLBACK: Final = (
     "fields on this page switches the derivation off, so your value stays."
 )
 
+# Everything ``presets.derive`` writes into the entry, in the order the
+# expert page shows them. The last six only exist in two-zone mode.
+# ``tests/entities.py`` checks this against ``derive`` itself, so a new
+# derived parameter cannot quietly fall off the list.
 DERIVED_THERMAL_KEYS: Final = (
     CONF_HOUSE_THERMAL_MASS,
     CONF_HOUSE_HEAT_LOSS_COEFFICIENT,
