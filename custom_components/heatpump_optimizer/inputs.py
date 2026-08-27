@@ -18,6 +18,17 @@ reported as *missing*, and the caller is expected to freeze rather than guess.
 **Units.** Power entities report W, kW or MW depending on the device, and the
 internal model works in kW throughout. Assuming kW reads a 3000 W draw as
 3000 kW, which would silently dominate every cost calculation.
+
+**Not everything is a number.** An operating mode is a word, and a defrost or
+online flag is ``on``/``off``. ``read`` rejects those as ``not_numeric``, so
+until v5.2.0 the only string input in the integration — the external-heat
+override — was read by hand, straight out of ``hass.states``, with no
+freshness guard at all. That is precisely backwards: a stuck ``on`` on a
+flag that *suppresses* heating is more dangerous than a stuck temperature,
+because it costs a warm house rather than a little accuracy. ``read_state``
+and ``read_bool`` put strings and flags through the same guard as every
+number, and produce the same :class:`InputReading` the rest of the code
+already understands.
 """
 from __future__ import annotations
 
@@ -45,6 +56,12 @@ class InputReading:
     key: str
     entity_id: str | None
     value: float | None = None
+    #: The raw state string, for inputs whose meaning is a word rather than a
+    #: number (``read_state``). ``read`` never sets it, so every existing
+    #: caller sees exactly the reading it saw before.
+    text: str | None = None
+    #: The boolean ``text`` was interpreted as (``read_bool``).
+    flag: bool | None = None
     age_minutes: float | None = None
     max_age_minutes: float | None = None
     #: ``None`` when the read succeeded, otherwise why it did not.
@@ -52,8 +69,17 @@ class InputReading:
 
     @property
     def ok(self) -> bool:
-        """Whether the value may be used."""
-        return self.value is not None and self.problem is None
+        """Whether the reading may be used.
+
+        Widened in v5.2.0 from "has a number" to "has *something*", so that a
+        string or a flag participates in ``InputHealth`` — and therefore in
+        ``_learning_frozen`` and the diagnostics — on exactly the same terms
+        as a temperature. ``read`` still populates only ``value``, so this is
+        unchanged for every numeric caller.
+        """
+        return (
+            self.value is not None or self.text is not None
+        ) and self.problem is None
 
     @property
     def stale(self) -> bool:
@@ -144,6 +170,84 @@ def normalize_power_kw(value: float, unit: Any) -> float | None:
     return value * factor
 
 
+#: State strings that mean "yes". Deliberately wide: the same configuration
+#: slot may be filled with a ``binary_sensor`` (``on``/``off``), a ``switch``,
+#: an ``input_boolean``, or a plain ``sensor`` carrying whatever word the
+#: source integration happened to publish. Being strict here would not make a
+#: wrong answer less likely — it would only turn a readable flag into
+#: ``not_boolean`` for half the users who configure it correctly.
+BOOL_TRUE: frozenset[str] = frozenset(
+    {
+        "on",
+        "true",
+        "yes",
+        "1",
+        "home",
+        "open",
+        "opened",
+        "heat",
+        "heating",
+        "detected",
+        "active",
+        "enable",
+        "enabled",
+        "online",
+        "connected",
+        "running",
+    }
+)
+
+#: State strings that mean "no".
+BOOL_FALSE: frozenset[str] = frozenset(
+    {
+        "off",
+        "false",
+        "no",
+        "0",
+        "not_home",
+        "closed",
+        "clear",
+        "idle",
+        "inactive",
+        "disable",
+        "disabled",
+        "offline",
+        "disconnected",
+        "standby",
+        "stopped",
+    }
+)
+
+
+def parse_bool(raw: Any) -> bool | None:
+    """Interpret a state string as a flag, or ``None`` if it is not one.
+
+    Numbers are read as "non-zero means yes". That is not a guess: the Tuya
+    fault DP is a code where zero means healthy and anything else is a fault,
+    and the source integration's own mapping is literally ``value != 0``. A
+    user who points a flag slot at the raw code sensor instead of the derived
+    binary sensor must get the same answer as the binary sensor would give.
+    The same rule reads the defrost DP (0/1) correctly.
+
+    Kept module-level rather than buried in ``read_bool`` so callers with
+    their own extra rule on top — the external-heat override reads a flue
+    *temperature* as a threshold, which is a heuristic about one sensor and
+    emphatically not a general boolean — can reuse the vocabulary without
+    inheriting a numeric rule that would be wrong for them.
+    """
+    if isinstance(raw, bool):
+        return raw
+    token = str(raw).strip().lower()
+    if token in BOOL_TRUE:
+        return True
+    if token in BOOL_FALSE:
+        return False
+    try:
+        return float(token) != 0.0
+    except (TypeError, ValueError):
+        return None
+
+
 class InputReader:
     """Reads configured entities, applying the freshness and unit guards."""
 
@@ -193,16 +297,23 @@ class InputReader:
             return None
         return max(0.0, (now - stamp).total_seconds() / 60.0)
 
-    def read(
+    def _begin(
         self,
         key: str,
-        *,
-        max_age_minutes: float | None = None,
-        entity_id: str | None = None,
-    ) -> InputReading:
-        """Read one configured numeric entity.
+        max_age_minutes: float | None,
+        entity_id: str | None,
+    ) -> tuple[InputReading, Any]:
+        """Resolve the entity and reject the states no reader can use.
 
-        ``key`` is the configuration key, which also selects the age limit.
+        The half of a read that is identical whether the value turns out to
+        be a number, a word or a flag: which entity, which age limit, and the
+        three ways a read fails before its content is even looked at. Shared
+        so that a string input cannot quietly acquire different rules about
+        ``unavailable`` from a temperature.
+
+        Returns ``(reading, state)``; ``state`` is ``None`` exactly when
+        ``reading.problem`` has already been set and the caller should record
+        and return it as-is.
         """
         entity_id = entity_id if entity_id is not None else self.config.get(key)
         limit = (
@@ -216,43 +327,135 @@ class InputReader:
 
         if not entity_id:
             reading.problem = "not_configured"
-            return self.health.record(reading)
+            return reading, None
 
         state = self.hass.states.get(entity_id)
         if state is None:
             reading.problem = "missing_entity"
-            return self.health.record(reading)
+            return reading, None
 
         raw = getattr(state, "state", None)
         if raw is None or str(raw).lower() in _INVALID_STATES:
             reading.problem = "unavailable"
-            return self.health.record(reading)
+            return reading, None
 
-        try:
-            value = float(raw)
-        except (TypeError, ValueError):
-            reading.problem = "not_numeric"
-            return self.health.record(reading)
+        return reading, state
 
+    def _age_gate(self, reading: InputReading, state: Any) -> None:
+        """Record the reading's age and flag it stale when over the limit."""
         age = self._age_minutes(state)
         reading.age_minutes = age
-        reading.value = value
-
+        limit = reading.max_age_minutes
         if self.enabled and limit is not None and age is not None and age > limit:
-            # Keep ``value`` populated so a caller that explicitly wants the
+            # Keep the content populated so a caller that explicitly wants the
             # last known value can still degrade gracefully, but mark it so the
             # default path treats it as absent.
             reading.problem = "stale"
             _LOGGER.debug(
                 "Input %s (%s) is %.0f min old, over its %.0f min limit; "
                 "treating as missing",
-                key,
-                entity_id,
+                reading.key,
+                reading.entity_id,
                 age,
                 limit,
             )
 
+    def read(
+        self,
+        key: str,
+        *,
+        max_age_minutes: float | None = None,
+        entity_id: str | None = None,
+    ) -> InputReading:
+        """Read one configured numeric entity.
+
+        ``key`` is the configuration key, which also selects the age limit.
+        """
+        reading, state = self._begin(key, max_age_minutes, entity_id)
+        if state is None:
+            return self.health.record(reading)
+
+        try:
+            value = float(getattr(state, "state", None))
+        except (TypeError, ValueError):
+            reading.problem = "not_numeric"
+            return self.health.record(reading)
+
+        reading.value = value
+        self._age_gate(reading, state)
         return self.health.record(reading)
+
+    def read_state(
+        self,
+        key: str,
+        *,
+        max_age_minutes: float | None = None,
+        entity_id: str | None = None,
+        valid: Any = None,
+    ) -> InputReading:
+        """Read one configured entity whose state is a word, not a number.
+
+        The same contract as :meth:`read` in every respect that matters —
+        the same problems, the same age limit from ``INPUT_MAX_AGE_MINUTES``,
+        the same ``InputHealth`` record — with the content landing in
+        ``text`` instead of ``value``. An operating mode nobody has reported
+        for an hour is not evidence about the pump's current state, and
+        pretending otherwise is the same mistake as trusting a flatlined
+        thermometer.
+
+        ``valid``, when given, is either a container of acceptable states
+        (compared case-insensitively) or a predicate. A state outside it is
+        reported as ``unknown_value`` rather than passed on, so a caller
+        cannot mistake an unrecognised word for a meaningful one. Staleness
+        outranks it: an old unrecognised value is stale first.
+        """
+        reading, state = self._begin(key, max_age_minutes, entity_id)
+        if state is None:
+            return self.health.record(reading)
+
+        reading.text = str(getattr(state, "state", "")).strip()
+        self._age_gate(reading, state)
+        if reading.problem is None and valid is not None:
+            if callable(valid):
+                accepted = bool(valid(reading.text))
+            else:
+                accepted = reading.text.lower() in {
+                    str(v).strip().lower() for v in valid
+                }
+            if not accepted:
+                reading.problem = "unknown_value"
+        return self.health.record(reading)
+
+    def read_bool(
+        self,
+        key: str,
+        *,
+        max_age_minutes: float | None = None,
+        entity_id: str | None = None,
+    ) -> InputReading:
+        """Read one configured entity as a flag.
+
+        A thin layer over :meth:`read_state` so a defrost, online or fault
+        signal inherits the freshness discipline rather than being read by
+        hand. ``flag`` carries the interpretation; ``text`` keeps the word it
+        came from, because "which state did it actually report" is the first
+        question asked of a flag that is behaving oddly.
+        """
+        reading = self.read_state(
+            key, max_age_minutes=max_age_minutes, entity_id=entity_id
+        )
+        if reading.text is None:
+            return reading
+        flag = parse_bool(reading.text)
+        if flag is None:
+            if reading.problem is None:
+                reading.problem = "not_boolean"
+            return reading
+        # Set even on a stale reading, mirroring ``read`` keeping ``value``:
+        # ``ok`` is already False, and a caller that deliberately wants the
+        # last known flag must be able to reach it.
+        reading.flag = flag
+        return reading
 
     def read_power_kw(self, key: str) -> InputReading:
         """Read a power entity and normalise it to kW."""
@@ -282,6 +485,20 @@ class InputReader:
         if reading is None or not reading.ok:
             return default
         return reading.value
+
+    def text(self, key: str, default: str | None = None) -> str | None:
+        """Convenience: the usable state string for a key, or ``default``."""
+        reading = self.health.readings.get(key)
+        if reading is None or not reading.ok:
+            return default
+        return reading.text
+
+    def flag(self, key: str, default: bool | None = None) -> bool | None:
+        """Convenience: the usable flag for a key, or ``default``."""
+        reading = self.health.readings.get(key)
+        if reading is None or not reading.ok or reading.flag is None:
+            return default
+        return reading.flag
 
 
 def stale_summary(health: InputHealth) -> str:

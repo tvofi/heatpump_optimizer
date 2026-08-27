@@ -33,7 +33,14 @@ from harness import FakeCoordinator, FakeEntry, FakeHass, FakeState, Results
 from homeassistant.components.sensor import SensorStateClass
 
 import heatpump_optimizer as integration
-from heatpump_optimizer import binary_sensor, button, config_flow, const, sensor
+from heatpump_optimizer import (
+    binary_sensor,
+    button,
+    config_flow,
+    const,
+    sensor,
+    topology,
+)
 
 R = Results("Entities and platforms")
 
@@ -860,6 +867,131 @@ R.check(
     "the entities page still clears its own absent fields",
     _saved.get(const.CONF_POWER_ENTITY) is None,
     "a cleared selector must be written back as None or clearing does not stick",
+)
+
+# v5.2.0: the four signals the pump publishes about itself. All optional; an
+# install that leaves every one of them empty must behave exactly as it did
+# before they existed, which is what the "unchanged" checks below pin.
+_SIGNAL_KEYS = (
+    const.CONF_HEAT_PUMP_MODE_ENTITY,
+    const.CONF_HEAT_PUMP_DEFROST_ENTITY,
+    const.CONF_HEAT_PUMP_ONLINE_ENTITY,
+    const.CONF_HEAT_PUMP_FAULT_ENTITY,
+)
+# ``_form`` above is this page's rendered schema; ``_pages`` is not built
+# until further down the file.
+_entities_schema = _form["data_schema"]
+_entities_fields = {
+    str(getattr(k, "schema", k)): k for k in _entities_schema.schema
+}
+for _key in _SIGNAL_KEYS:
+    R.check(
+        f"{_key} is offered on the sensors page",
+        _key in _entities_fields,
+    )
+    R.check(
+        f"{_key} is optional",
+        type(_entities_fields[_key]).__name__ == "Optional",
+        "a required field here would break every existing install on save",
+    )
+    R.check(
+        f"{_key} can be cleared again once set",
+        _key in options._ENTITIES_PAGE_KEYS,
+        "options merge over setup data, so an absent key restores the old value",
+    )
+    R.check(
+        f"{_key} is a topology slot, so the card and the service agree",
+        _key in topology.ASSIGNABLE_KEYS,
+    )
+    R.check(
+        f"the picker for {_key} offers exactly its slot's domains",
+        _entities_fields[_key] is not None
+        and list(
+            _entities_schema.schema[_entities_fields[_key]].config["filter"][0][
+                "domain"
+            ]
+        )
+        == list(topology.ASSIGNABLE_KEYS[_key]),
+        "one list, or the diagram offers what the service would refuse",
+    )
+
+# Round trip: set all four, save, read them back; then clear them and check
+# the clearing sticks rather than being undone by the options merge.
+_sig_flow = options(FakeEntry(options={const.CONF_TIBBER_TOKEN: "t"}))
+_sig_flow.hass = FakeHass()
+_sig_values = {
+    const.CONF_HEAT_PUMP_MODE_ENTITY: "select.pump_mode",
+    const.CONF_HEAT_PUMP_DEFROST_ENTITY: "binary_sensor.pump_defrost",
+    const.CONF_HEAT_PUMP_ONLINE_ENTITY: "binary_sensor.pump_online",
+    const.CONF_HEAT_PUMP_FAULT_ENTITY: "binary_sensor.pump_fault",
+}
+_sig_form = asyncio.run(_sig_flow.async_step_entities(None))
+_sig_saved = asyncio.run(
+    _sig_flow.async_step_entities({**_sig_form["data_schema"]({}), **_sig_values})
+)["data"]
+for _key, _value in _sig_values.items():
+    R.check(
+        f"{_key} survives a save of the page it lives on",
+        _sig_saved.get(_key) == _value,
+        f"stored {_value!r}, page save produced {_sig_saved.get(_key)!r}",
+    )
+_sig_flow2 = options(
+    FakeEntry(options={const.CONF_TIBBER_TOKEN: "t", **_sig_values})
+)
+_sig_flow2.hass = FakeHass()
+_sig_form2 = asyncio.run(_sig_flow2.async_step_entities(None))
+R.check(
+    "a configured signal comes back as the field's default",
+    all(
+        _sig_form2["data_schema"]({}).get(_key) == _value
+        for _key, _value in _sig_values.items()
+    ),
+    "a page that forgets what is configured invites the user to re-enter it",
+)
+_sig_cleared = asyncio.run(
+    _sig_flow2.async_step_entities(
+        {
+            k: v
+            for k, v in _sig_form2["data_schema"]({}).items()
+            if k not in _sig_values
+        }
+    )
+)["data"]
+R.check(
+    "and clearing all four sticks",
+    all(_sig_cleared.get(_key) is None for _key in _SIGNAL_KEYS),
+    str({k: _sig_cleared.get(k) for k in _SIGNAL_KEYS}),
+)
+
+# The null case, which is the one every existing install runs: nothing
+# configured, nothing changed.
+_bare = options(FakeEntry(options={const.CONF_TIBBER_TOKEN: "t"}))
+_bare.hass = FakeHass()
+_bare_saved = asyncio.run(
+    _bare.async_step_entities(
+        asyncio.run(_bare.async_step_entities(None))["data_schema"]({})
+    )
+)["data"]
+R.check(
+    "an install that configures none of them stores none of them set",
+    all(_bare_saved.get(_key) is None for _key in _SIGNAL_KEYS),
+    str({k: _bare_saved.get(k) for k in _SIGNAL_KEYS}),
+)
+_bare_setup = topology.describe_setup({const.CONF_INDOOR_TEMP_ENTITY: "sensor.i"})
+R.check(
+    "and sees them as four empty slots on the heat pump, not as faults",
+    [
+        s["key"]
+        for s in _bare_setup["slots"]
+        if s["key"] in _SIGNAL_KEYS
+    ]
+    == list(_SIGNAL_KEYS)
+    and all(
+        s["entity"] is None and s["place"] == "heat_pump"
+        for s in _bare_setup["slots"]
+        if s["key"] in _SIGNAL_KEYS
+    ),
+    "an empty slot is shown empty; that is the point of the diagram",
 )
 
 # The building page owns the valve and wood entities (v4.0.0 merged the
@@ -2423,6 +2555,32 @@ R.check(
     not any(f.startswith("ecl110") for f in _user_fields),
     sorted(f for f in _user_fields if f.startswith("ecl110")),
 )
+R.check(
+    "the first screen offers the four heat-pump signal slots too",
+    set(_SIGNAL_KEYS) <= _user_fields,
+    sorted(set(_SIGNAL_KEYS) - _user_fields),
+    # A slot that exists only in the options flow is a slot most users never
+    # find: setup is where they are already naming their pump's entities.
+)
+R.check(
+    "and offers them optionally, so setup still completes without a pump",
+    all(
+        type(k).__name__ == "Optional"
+        for k in _user_form["data_schema"].schema
+        if str(getattr(k, "schema", k)) in _SIGNAL_KEYS
+    ),
+)
+# The null case: a fresh install with no pump integration at all. Only the
+# three genuinely required fields are supplied; nothing else may appear.
+_bare_user = _user_form["data_schema"](
+    {const.CONF_TIBBER_TOKEN: "t", const.CONF_WEATHER_ENTITY: "weather.home"}
+)
+R.check(
+    "an untouched first screen configures none of them",
+    not (set(_SIGNAL_KEYS) & set(_bare_user)),
+    str(set(_SIGNAL_KEYS) & set(_bare_user)),
+)
+
 R.check(
     "the options heat-curve page still owns all eight ECL110 fields",
     len(

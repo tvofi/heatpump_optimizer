@@ -23,6 +23,10 @@ from .const import (
     CONF_INDOOR_TEMP_ENTITY,
     CONF_OUTDOOR_TEMP_ENTITY,
     CONF_HEAT_PUMP_SWITCH_ENTITY,
+    CONF_HEAT_PUMP_MODE_ENTITY,
+    CONF_HEAT_PUMP_DEFROST_ENTITY,
+    CONF_HEAT_PUMP_ONLINE_ENTITY,
+    CONF_HEAT_PUMP_FAULT_ENTITY,
     CONF_SOLAR_RADIATION_ENTITY,
     CONF_SOLAR_FORECAST_SOURCE,
     CONF_SOLAR_LOCATION,
@@ -914,6 +918,22 @@ class HeatPumpOptimizerConfigFlow(
                     vol.Optional(
                         CONF_BUFFER_TANK_TEMP_ENTITY
                     ): _entity_of("sensor", "temperature"),
+                    # v5.2.0: what the pump reports about itself. Read only —
+                    # the optimizer never writes the mode — and every one of
+                    # them optional, so an install that leaves all four empty
+                    # behaves exactly as it did before they existed.
+                    vol.Optional(CONF_HEAT_PUMP_MODE_ENTITY): _entity_of(
+                        list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_MODE_ENTITY])
+                    ),
+                    vol.Optional(CONF_HEAT_PUMP_DEFROST_ENTITY): _entity_of(
+                        list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_DEFROST_ENTITY])
+                    ),
+                    vol.Optional(CONF_HEAT_PUMP_ONLINE_ENTITY): _entity_of(
+                        list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_ONLINE_ENTITY])
+                    ),
+                    vol.Optional(CONF_HEAT_PUMP_FAULT_ENTITY): _entity_of(
+                        list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_FAULT_ENTITY])
+                    ),
                     # The Danfoss ECL110 MQTT fields lived here until v4.1.0.
                     # Eight fields only ECL110 owners can answer do not belong
                     # on everyone's first screen; the options page "Heat curve
@@ -1299,6 +1319,10 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         CONF_HOUSE_POWER_ENTITY,
         CONF_COMPRESSOR_FREQ_ENTITY,
         CONF_COMPRESSOR_FREQ_SENSOR,
+        CONF_HEAT_PUMP_MODE_ENTITY,
+        CONF_HEAT_PUMP_DEFROST_ENTITY,
+        CONF_HEAT_PUMP_ONLINE_ENTITY,
+        CONF_HEAT_PUMP_FAULT_ENTITY,
     )
 
     # Every clearable entity across all pages; the solar, away, learning and
@@ -1528,6 +1552,22 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
                             CONF_FREQ_CONTROL_MODE, DEFAULT_FREQ_CONTROL_MODE
                         ),
                     ): _freq_mode_selector(),
+                    # v5.2.0: the pump's own account of itself. The domains
+                    # come from the topology slot table, so the picker here,
+                    # the card's picker and the assign_entity service cannot
+                    # offer three different answers about what fits a slot.
+                    _entity(CONF_HEAT_PUMP_MODE_ENTITY): _entity_of(
+                        list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_MODE_ENTITY])
+                    ),
+                    _entity(CONF_HEAT_PUMP_DEFROST_ENTITY): _entity_of(
+                        list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_DEFROST_ENTITY])
+                    ),
+                    _entity(CONF_HEAT_PUMP_ONLINE_ENTITY): _entity_of(
+                        list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_ONLINE_ENTITY])
+                    ),
+                    _entity(CONF_HEAT_PUMP_FAULT_ENTITY): _entity_of(
+                        list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_FAULT_ENTITY])
+                    ),
                 }
             ),
         )

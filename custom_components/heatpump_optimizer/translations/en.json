@@ -16,6 +16,10 @@
           "lower_floor_temp_entity": "Lower floor temperature sensor",
           "dhw_temp_entity": "Hot water tank temperature sensor",
           "buffer_tank_temp_entity": "Buffer tank temperature sensor",
+          "heat_pump_mode_entity": "Heat pump operating mode",
+          "heat_pump_defrost_entity": "Defrosting",
+          "heat_pump_online_entity": "Pump online",
+          "heat_pump_fault_entity": "Fault alarm",
           "solar_forecast_source": "Solar irradiance source",
           "solar_location": "Solar irradiance location"
         },
@@ -31,6 +35,10 @@
           "lower_floor_temp_entity": "Optional, two-zone only. A real thermometer in the lower zone. Without one the lower floor is planned and plotted at whatever the main room sensor reads, so a downstairs that runs warmer or cooler than upstairs is invisible.",
           "dhw_temp_entity": "Optional but recommended. The real tank temperature. Also lets a manual hot water boost reset the anti-legionella timer.",
           "buffer_tank_temp_entity": "Optional. When set, the integration learns how fast the buffer tank loses heat instead of relying on the configured estimate.",
+          "heat_pump_mode_entity": "Optional. The pump's own mode selector - cooling, heating, hot water, or a combination of two. Read only: the optimizer never changes it. A pump in a cooling or hot-water-only mode cannot heat the house, and one in a heating-only mode cannot make hot water, so without this the plan can promise heat the pump is not currently able to deliver. Left empty, the optimizer assumes the pump can do everything, exactly as before.",
+          "heat_pump_defrost_entity": "Optional. On while the pump reverses to melt frost off the outdoor coil. The electricity bought during a defrost goes into the coil rather than into the house. Note that many pumps are only polled every few minutes, so short defrosts are missed entirely: this is a sample of defrost activity, not a stopwatch.",
+          "heat_pump_online_entity": "Optional, and strongly recommended for a cloud-connected pump. On while the pump is actually reachable. A cloud integration can keep republishing its last known readings while the pump itself has dropped off the network, which leaves every other sensor looking perfectly fresh; this is the one signal that says otherwise. On a local (LAN) connection the sensors go unavailable by themselves and this adds little.",
+          "heat_pump_fault_entity": "Optional. On while the pump is reporting a fault. Only whether there is a fault is used, never the code itself.",
           "solar_forecast_source": "Where to get solar irradiance from. \"Weather entity\" uses your weather integration, which often does not publish irradiance at all. \"Open-Meteo\" fetches a free forecast for the location below; no account is needed.",
           "solar_location": "Coordinate used for the Open-Meteo irradiance forecast. Defaults to your Home Assistant home location. Only used when the source is Open-Meteo."
         }
@@ -269,7 +277,11 @@
           "house_power_entity": "Whole-house power meter (optional)",
           "compressor_freq_entity": "Compressor frequency entity",
           "freq_control_mode": "Frequency mode",
-          "compressor_freq_sensor": "Actual frequency sensor (recommended for control)"
+          "compressor_freq_sensor": "Actual frequency sensor (recommended for control)",
+          "heat_pump_mode_entity": "Heat pump operating mode",
+          "heat_pump_defrost_entity": "Defrosting",
+          "heat_pump_online_entity": "Pump online",
+          "heat_pump_fault_entity": "Fault alarm"
         },
         "data_description": {
           "tibber_token": "Used to read your hourly electricity prices. Create one at developer.tibber.com. Leave as-is unless it has changed.",
@@ -289,7 +301,11 @@
           "house_power_entity": "Total consumption at the meter. A capacity tariff is billed on the whole house, not on the heat pump alone, so without this the peak the optimizer avoids is only part of the real one.",
           "compressor_freq_entity": "A number entity exposing the compressor frequency, typically from a Modbus or ESPHome integration. With it configured the optimizer learns a kW-per-Hz map and recommends a frequency — observation only, until you explicitly switch the mode below to control.",
           "freq_control_mode": "Observe learns and recommends but never writes. Switch to control only after you have validated the entity against your real hardware: writes go via number.set_value, at most one per five minutes, clamped to the entity's own range, and a reported frequency diverging from the commanded one for three ticks stands the controller back down to observe.",
-          "compressor_freq_sensor": "A sensor carrying the compressor's ACTUAL frequency, if your integration exposes one separately. Many number entities are setpoint registers that simply echo the last written value — read from an echo, the watchdog can never see divergence and the learned map follows the setpoint instead of the machine. Leave empty only if the number entity's state genuinely tracks the real frequency."
+          "compressor_freq_sensor": "A sensor carrying the compressor's ACTUAL frequency, if your integration exposes one separately. Many number entities are setpoint registers that simply echo the last written value — read from an echo, the watchdog can never see divergence and the learned map follows the setpoint instead of the machine. Leave empty only if the number entity's state genuinely tracks the real frequency.",
+          "heat_pump_mode_entity": "Optional. The pump's own mode selector - cooling, heating, hot water, or a combination of two. Read only: the optimizer never changes it. A pump in a cooling or hot-water-only mode cannot heat the house, and one in a heating-only mode cannot make hot water, so without this the plan can promise heat the pump is not currently able to deliver. Left empty, the optimizer assumes the pump can do everything, exactly as before.",
+          "heat_pump_defrost_entity": "Optional. On while the pump reverses to melt frost off the outdoor coil. The electricity bought during a defrost goes into the coil rather than into the house. Note that many pumps are only polled every few minutes, so short defrosts are missed entirely: this is a sample of defrost activity, not a stopwatch.",
+          "heat_pump_online_entity": "Optional, and strongly recommended for a cloud-connected pump. On while the pump is actually reachable. A cloud integration can keep republishing its last known readings while the pump itself has dropped off the network, which leaves every other sensor looking perfectly fresh; this is the one signal that says otherwise. On a local (LAN) connection the sensors go unavailable by themselves and this adds little.",
+          "heat_pump_fault_entity": "Optional. On while the pump is reporting a fault. Only whether there is a fault is used, never the code itself."
         }
       },
       "comfort": {

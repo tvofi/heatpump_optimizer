@@ -298,6 +298,7 @@ from .inputs import (
     InputReader,
     age_of,
     normalize_power_kw,
+    parse_bool,
     stale_summary,
 )
 from .external_heat import (
@@ -2266,27 +2267,38 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             return None
         return thermal_kw / capacity
 
-    def _external_heat_override(self) -> bool | None:
-        """State of a user-provided stove/flue entity, if one is configured."""
-        entity_id = self._config.get(CONF_EXTERNAL_HEAT_ENTITY)
-        if not entity_id:
+    def _external_heat_override(self, reader: InputReader) -> bool | None:
+        """State of a user-provided stove/flue entity, if one is configured.
+
+        v5.2.0: read through the same guarded reader as the wood-side probes
+        beside it, rather than straight out of ``hass.states``. This is a
+        deliberate behaviour change — the override now goes stale — and it is
+        the direction the rest of the wood-side reads already took. The
+        override is the strongest single input in the integration: while it
+        says "yes" the detector suppresses, and the optimizer stops planning
+        heat it believes the fire is supplying. A stove sensor that dies
+        mid-fire, or a flue probe with a flat battery, used to hold that
+        suppression forever, on a value nothing was checking the age of. The
+        neighbouring probes have been gated at 60 minutes since v3.x for
+        exactly this failure ("a stalled hot sensor looks like an indefinite
+        free fire"); the one input that could suppress on its own was the
+        one input with no horizon.
+
+        The boolean vocabulary is shared (``inputs.parse_bool``); the numeric
+        rule is NOT, and numbers are therefore tested FIRST. A flue
+        temperature above 30 °C means a fire is burning, which is a heuristic
+        about this one sensor. The shared rule reads any non-zero number as
+        "yes" — right for a fault code, and quite wrong for a probe reading
+        20 °C in a cold room — so it must never see a number here.
+        """
+        reading = reader.read_state(CONF_EXTERNAL_HEAT_ENTITY)
+        if not reading.ok or reading.text is None:
             return None
-        state = self.hass.states.get(entity_id)
-        if state is None:
-            return None
-        raw = str(getattr(state, "state", "")).lower()
-        if raw in ("unknown", "unavailable", ""):
-            return None
-        if raw in ("on", "true", "home", "open", "heat", "detected"):
-            return True
-        if raw in ("off", "false", "not_home", "closed", "clear"):
-            return False
-        # A numeric entity (a flue temperature, say) counts as active when it
-        # reads above freezing-ish; anything else is not interpretable.
         try:
-            return float(raw) > 30.0
-        except ValueError:
-            return None
+            return float(reading.text) > 30.0
+        except (TypeError, ValueError):
+            pass
+        return parse_bool(reading.text)
 
     def _space_demand_kw(self) -> float:
         """Current space-heating standing loss, kW thermal."""
@@ -2331,7 +2343,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             measured_power_kw=self._measured_power,
             dhw_max_rise_c_per_h=self._max_pump_rise("dhw"),
             buffer_max_rise_c_per_h=self._max_pump_rise("buffer"),
-            override=self._external_heat_override(),
+            override=self._external_heat_override(reader),
             outlet_temp=outlet.value if outlet.ok else None,
             wood_top=wood_top.value if wood_top.ok else None,
             wood_bottom=wood_bottom.value if wood_bottom.ok else None,

@@ -39,10 +39,12 @@ from heatpump_optimizer.external_heat import (
     ExternalHeatDetector,
     ExternalHeatObservation,
 )
+from heatpump_optimizer import pump_mode
 from heatpump_optimizer.inputs import (
     InputReader,
     InputReading,
     normalize_power_kw,
+    parse_bool,
     stale_summary,
 )
 from heatpump_optimizer.price_model import (
@@ -214,6 +216,367 @@ bad = bad_unit.read_power_kw("heat_pump_power_entity")
 R.check(
     "a wrongly-united power entity yields nothing",
     bad.value is None and bad.problem == "unknown_unit",
+)
+
+
+# ===========================================================================
+# v5.2.0: strings and flags, guarded like numbers
+# ===========================================================================
+R.section("Non-numeric inputs (v5.2.0)")
+
+# The four signals a heat-pump integration publishes about itself. `read`
+# rejects every one of them as `not_numeric`; `read_state` and `read_bool`
+# are what make them readable without giving up the freshness discipline.
+SIGNALS = {
+    "heat_pump_mode_entity": "select.pump_mode",
+    "heat_pump_defrost_entity": "binary_sensor.pump_defrost",
+    "heat_pump_online_entity": "binary_sensor.pump_online",
+    "heat_pump_fault_entity": "binary_sensor.pump_fault",
+}
+
+
+def signals(states, **kwargs):
+    return InputReader(FakeHass(states), SIGNALS, now=lambda: NOW, **kwargs)
+
+
+# -- present ----------------------------------------------------------------
+_mode_now = signals(
+    {"select.pump_mode": FakeState("Heating + DHW", last_updated=minutes_ago(2, NOW))}
+)
+_mode = _mode_now.read_state("heat_pump_mode_entity")
+R.check(
+    "a fresh string entity reads as text",
+    _mode.ok and _mode.text == "Heating + DHW",
+    f"{_mode.problem}, text {_mode.text!r}",
+)
+R.check(
+    "and carries no number, so numeric callers cannot mistake it for one",
+    _mode.value is None,
+)
+R.check(
+    "the same entity through the numeric reader is still not_numeric",
+    signals(
+        {"select.pump_mode": FakeState("Heating + DHW")}
+    ).read("heat_pump_mode_entity").problem
+    == "not_numeric",
+    "read()'s contract is unchanged",
+)
+
+# -- absent, missing, unavailable -------------------------------------------
+R.check(
+    "an unconfigured signal is not_configured, not a problem",
+    InputReader(FakeHass({}), {}, now=lambda: NOW)
+    .read_state("heat_pump_mode_entity")
+    .problem
+    == "not_configured",
+)
+R.check(
+    "a configured entity that does not exist is missing_entity",
+    signals({}).read_state("heat_pump_mode_entity").problem == "missing_entity",
+)
+for _bad in ("unavailable", "unknown"):
+    _r = signals({"select.pump_mode": FakeState(_bad)}).read_state(
+        "heat_pump_mode_entity"
+    )
+    R.check(
+        f"a {_bad} string entity yields nothing usable",
+        not _r.ok and _r.problem == "unavailable",
+        str(_r.problem),
+    )
+
+# -- stale ------------------------------------------------------------------
+# The whole reason this method exists rather than a bespoke hand-read: a mode
+# nobody has reported for ninety minutes is not evidence about the pump now.
+_old_mode = signals(
+    {"select.pump_mode": FakeState("cool", last_updated=minutes_ago(90, NOW))}
+).read_state("heat_pump_mode_entity")
+R.check(
+    "an over-age string is rejected exactly like an over-age number",
+    not _old_mode.ok and _old_mode.stale and _old_mode.problem == "stale",
+    str(_old_mode.problem),
+)
+R.check(
+    "and keeps its text for a caller that wants last-known-good",
+    _old_mode.text == "cool" and _old_mode.age_minutes > 89,
+)
+R.check(
+    "a defrost flag goes stale sooner than a mode does",
+    signals(
+        {
+            "binary_sensor.pump_defrost": FakeState(
+                "on", last_updated=minutes_ago(45, NOW)
+            ),
+            "select.pump_mode": FakeState("heat", last_updated=minutes_ago(45, NOW)),
+        }
+    ).read_bool("heat_pump_defrost_entity").stale
+    and not signals(
+        {"select.pump_mode": FakeState("heat", last_updated=minutes_ago(45, NOW))}
+    ).read_state("heat_pump_mode_entity").stale,
+    "an event needs a tighter horizon than a slow-moving state",
+)
+
+# -- unknown values ---------------------------------------------------------
+_odd = signals({"select.pump_mode": FakeState("turbo")}).read_state(
+    "heat_pump_mode_entity", valid=pump_mode.is_known
+)
+R.check(
+    "a state outside the vocabulary is reported, not passed on",
+    not _odd.ok and _odd.problem == "unknown_value",
+    str(_odd.problem),
+)
+R.check(
+    "while a recognised one passes the same gate",
+    signals({"select.pump_mode": FakeState("Cooling + DHW")})
+    .read_state("heat_pump_mode_entity", valid=pump_mode.is_known)
+    .ok,
+)
+R.check(
+    "a plain container of accepted states works too, case-insensitively",
+    signals({"select.pump_mode": FakeState("Heat")})
+    .read_state("heat_pump_mode_entity", valid=("heat", "cool"))
+    .ok,
+)
+_stale_odd = signals(
+    {"select.pump_mode": FakeState("turbo", last_updated=minutes_ago(90, NOW))}
+).read_state("heat_pump_mode_entity", valid=pump_mode.is_known)
+R.check(
+    "staleness outranks an unrecognised value",
+    _stale_odd.problem == "stale",
+    f"an old unknown value is old first, got {_stale_odd.problem}",
+)
+
+# -- flags ------------------------------------------------------------------
+for _raw, _expected in (
+    ("on", True),
+    ("off", False),
+    ("true", True),
+    ("false", False),
+    ("detected", True),
+    ("clear", False),
+    # A raw Tuya fault DP: zero is healthy, anything else is a fault. The
+    # source integration's own rule is literally `value != 0`, so a user who
+    # points the slot at the code sensor gets the same answer as the derived
+    # binary sensor would give.
+    ("0", False),
+    ("1", True),
+    ("3", True),
+):
+    _rb = signals({"binary_sensor.pump_fault": FakeState(_raw)}).read_bool(
+        "heat_pump_fault_entity"
+    )
+    R.check(
+        f"a flag reading {_raw!r} is {_expected}",
+        _rb.ok and _rb.flag is _expected,
+        f"{_rb.problem}, flag {_rb.flag!r}",
+    )
+    R.check(
+        f"and {_raw!r} keeps the word it came from",
+        _rb.text == _raw,
+        "the first question asked of a misbehaving flag is what it said",
+    )
+
+_notbool = signals({"binary_sensor.pump_fault": FakeState("warm")}).read_bool(
+    "heat_pump_fault_entity"
+)
+R.check(
+    "an uninterpretable flag is refused rather than guessed",
+    not _notbool.ok and _notbool.problem == "not_boolean" and _notbool.flag is None,
+    str(_notbool.problem),
+)
+_stale_flag = signals(
+    {"binary_sensor.pump_online": FakeState("on", last_updated=minutes_ago(90, NOW))}
+).read_bool("heat_pump_online_entity")
+R.check(
+    "a stale flag is unusable but still reachable",
+    not _stale_flag.ok and _stale_flag.stale and _stale_flag.flag is True,
+    "mirrors read() keeping value on a stale numeric reading",
+)
+
+R.check("parse_bool reads a real bool through", parse_bool(True) is True)
+R.check("parse_bool refuses a word it does not know", parse_bool("warm") is None)
+R.check("parse_bool reads any non-zero number as yes", parse_bool("-2") is True)
+
+# -- health, and what must NOT freeze ---------------------------------------
+# Mode configured and healthy, online configured but unusable, defrost never
+# configured at all -- the three states every install is a mixture of.
+_health_reader = InputReader(
+    FakeHass(
+        {
+            "binary_sensor.pump_online": FakeState("unavailable"),
+            "select.pump_mode": FakeState("heat", last_updated=minutes_ago(2, NOW)),
+        }
+    ),
+    {k: v for k, v in SIGNALS.items() if k != "heat_pump_defrost_entity"},
+    now=lambda: NOW,
+)
+_health_reader.read_state("heat_pump_mode_entity")
+_health_reader.read_bool("heat_pump_online_entity")
+_health_reader.read_bool("heat_pump_defrost_entity")
+R.check(
+    "a configured-but-unusable signal is visible in the health snapshot",
+    _health_reader.health.missing_keys == ["heat_pump_online_entity"],
+    str(_health_reader.health.missing_keys),
+)
+R.check(
+    "a never-configured signal is not held against the install",
+    "heat_pump_defrost_entity" not in _health_reader.health.missing_keys
+    and "heat_pump_defrost_entity" not in _health_reader.health.stale_keys,
+    "absent evidence must not read as a fault, or every install without the "
+    "optional sensor would look broken",
+)
+R.check(
+    "the convenience accessors mirror value()",
+    _health_reader.text("heat_pump_mode_entity") == "heat"
+    and _health_reader.flag("heat_pump_online_entity", default=None) is None
+    and _health_reader.flag("heat_pump_defrost_entity", default=True) is True,
+    "an unusable or unread key falls back to the caller's default",
+)
+
+
+# ===========================================================================
+# v5.2.0: the operating-mode vocabulary
+# ===========================================================================
+R.section("Heat pump operating mode (v5.2.0)")
+
+# The five modes the reference unit (Rotenso Windmi, Tuya model 000004k4z6)
+# exposes on DP 2, and what each one lets the pump actually do.
+for _raw, _space, _dhw, _cooling, _concurrent in (
+    ("cool", False, False, True, False),
+    ("heat", True, False, False, False),
+    ("DHW", False, True, False, False),
+    ("COOLDHW", False, True, True, True),
+    ("HEATDHW", True, True, False, True),
+):
+    _cap = pump_mode.capability(_raw)
+    R.check(
+        f"{_raw}: space={_space} dhw={_dhw}",
+        _cap.space_heat is _space
+        and _cap.dhw is _dhw
+        and _cap.cooling is _cooling
+        and _cap.known,
+        f"got space={_cap.space_heat} dhw={_cap.dhw} cooling={_cap.cooling}",
+    )
+    R.check(
+        f"{_raw}: two duties at once = {_concurrent}",
+        _cap.concurrent is _concurrent,
+        "HEATDHW and COOLDHW run both duties concurrently, which is exactly "
+        "the premise _commanded_power's 'one at a time' comment gets wrong "
+        "for this hardware",
+    )
+
+# The state Home Assistant actually holds is the select's LABEL, not the Tuya
+# enum: the reference integration sets _attr_options to the labels and
+# returns one from current_option. A vocabulary that knew only the enum would
+# recognise nothing on a real install -- and, falling back to full
+# capability, would do nothing at all, silently, forever.
+for _label, _key in (
+    ("Cooling", "cool"),
+    ("Heating", "heat"),
+    ("DHW (Hot Water)", "DHW"),
+    ("Cooling + DHW", "COOLDHW"),
+    ("Heating + DHW", "HEATDHW"),
+):
+    R.check(
+        f"the select label {_label!r} resolves to {_key}",
+        pump_mode.resolve(_label) == _key,
+        str(pump_mode.resolve(_label)),
+    )
+
+for _spelling in ("heatdhw", "HEAT_DHW", "  Heating + DHW  ", "heating and dhw"):
+    R.check(
+        f"{_spelling!r} is tolerated",
+        pump_mode.capability(_spelling).key == "HEATDHW",
+        "case, spacing and punctuation must not decide whether the house "
+        "gets heat",
+    )
+
+for _unknown in ("turbo", "auto", "", None, 7):
+    _cap = pump_mode.capability(_unknown)
+    R.check(
+        f"an unrecognised mode {_unknown!r} falls back to full capability",
+        _cap.space_heat and _cap.dhw and not _cap.known and _cap is pump_mode.FULL_CAPABILITY,
+        "suppressing everything on a word nobody recognised is a cold house "
+        "in January; over-promising for one interval is not",
+    )
+R.check(
+    "and the unknown fallback does not claim two duties at once",
+    not pump_mode.FULL_CAPABILITY.concurrent,
+    "without evidence, keep the pre-v5.2.0 assumption",
+)
+
+R.check(
+    "suppression is symmetric",
+    not pump_mode.capability("DHW").space_heat
+    and not pump_mode.capability("heat").dhw
+    and not pump_mode.capability("cool").space_heat
+    and not pump_mode.capability("cool").dhw,
+    "a hot-water-only mode must suppress space heating and a heating-only "
+    "mode must suppress hot water; promising either is promising heat the "
+    "pump cannot deliver",
+)
+R.check(
+    "every mode carries what a future writer would need",
+    all(
+        m.key and m.options and m.label
+        for m in pump_mode.MODES.values()
+    )
+    and pump_mode.MODE_KEYS == ("cool", "heat", "DHW", "COOLDHW", "HEATDHW"),
+    "the device enum to put on the wire, and the select option string HA's "
+    "select.select_option would have to be given",
+)
+
+
+# -- the external-heat override, migrated onto the shared reader ------------
+#
+# A deliberate behaviour change (v5.2.0): this was the one input in the
+# integration read straight out of hass.states, with no age limit at all. It
+# is also the strongest input there is -- while it says "yes" the optimizer
+# stops planning heat -- so a stove sensor that died mid-fire suppressed
+# heating indefinitely. It now goes through read_state and goes stale like
+# everything else.
+_OVERRIDE_CFG = {"external_heat_entity": "binary_sensor.stove"}
+
+
+class _OverrideHost:
+    _external_heat_override = Coord._external_heat_override
+
+
+def override_for(state):
+    states = {} if state is None else {"binary_sensor.stove": state}
+    return _OverrideHost()._external_heat_override(
+        InputReader(FakeHass(states), _OVERRIDE_CFG, now=lambda: NOW)
+    )
+
+
+R.check(
+    "a lit stove still reads as an override",
+    override_for(FakeState("on", last_updated=minutes_ago(5, NOW))) is True,
+)
+R.check(
+    "and a cold one still reads as no override",
+    override_for(FakeState("off", last_updated=minutes_ago(5, NOW))) is False,
+)
+R.check(
+    "a stove sensor that stopped reporting stops suppressing (v5.2.0)",
+    override_for(FakeState("on", last_updated=minutes_ago(240, NOW))) is None,
+    "the behaviour change: a stalled 'yes' used to hold suppression forever, "
+    "which in winter is a cold house on the word of a dead sensor",
+)
+R.check(
+    "a flue probe still uses its own threshold, not the shared numeric rule",
+    override_for(FakeState("45", last_updated=NOW)) is True
+    and override_for(FakeState("20", last_updated=NOW)) is False,
+    "parse_bool would call 20 'yes' because it is non-zero, which is right "
+    "for a fault code and wrong for a probe in a cold room",
+)
+R.check(
+    "the shared vocabulary widens what a flag entity may say",
+    override_for(FakeState("yes", last_updated=NOW)) is True,
+    "unrecognised before, and silently ignored",
+)
+R.check(
+    "an unavailable or unconfigured override is simply absent",
+    override_for(FakeState("unavailable")) is None and override_for(None) is None,
 )
 
 
