@@ -64,7 +64,7 @@ config_flow  # four optional heat-pump signal slots, on both flows
 #                              "Unknown", nothing blocked, no freeze
 #   defrost_flag_configured    false without a defrost sensor
 #   defrost_measured_samples   0: no duty has been counted
-#   defrost_store_migrated     false: no pre-v5.2.0 derate store was reset
+#   defrost_store_migrated     false: no pre-v5.2.0 derate store was upgraded
 #
 # All four are additive and all four read as "no evidence" on a fixture that
 # configures none of the slots. They are published unconditionally on purpose:
