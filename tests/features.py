@@ -11421,6 +11421,10 @@ _DB_DT_H = 0.25
 #: form, which is what makes "widens with lead" a check and not a hope.
 _DB_TANK_C = 55.0
 _DB_DRIFT_PER_STEP = 0.1
+#: Cycles the "goes_stale" probe reads normally before it stops updating.
+#: Long enough that the record is already filling when the sensor dies, so
+#: the check that follows is about what STOPS, not about an empty tracker.
+_DB_FREEZE_AT = 24
 
 
 def _db_plan(solve_time):
@@ -11448,10 +11452,25 @@ def _db_plan(solve_time):
     )
 
 
-def _db_probe_state(condition, t):
-    """The tank probe as this condition presents it at wall-clock ``t``."""
+def _db_probe_state(condition, t, i=0):
+    """The tank probe as this condition presents it at cycle ``i``, time ``t``."""
     if condition == "healthy":
         return FakeState(f"{_DB_TANK_C:.1f}", unit="°C", last_updated=t)
+    if condition == "goes_stale":
+        # The one case the `raw is None` gate cannot catch. The sensor keeps
+        # reporting a perfectly readable number; it just stops UPDATING it.
+        # `_update_current_state` then pins `_dhw_temperature` at the last
+        # good value by design, so the accuracy record still sees 55.0 every
+        # cycle. Only `_learning_frozen` can tell that this is a corpse
+        # rather than a measurement -- which is why the other four
+        # conditions above do not exercise that gate at all.
+        if i < _DB_FREEZE_AT:
+            return FakeState(f"{_DB_TANK_C:.1f}", unit="°C", last_updated=t)
+        return FakeState(
+            f"{_DB_TANK_C:.1f}",
+            unit="°C",
+            last_updated=_DB_T0 + timedelta(minutes=30 * (_DB_FREEZE_AT - 1)),
+        )
     if condition == "stale":
         return FakeState(
             f"{_DB_TANK_C:.1f}", unit="°C", last_updated=t - timedelta(hours=12)
@@ -11510,7 +11529,7 @@ def _db_drive(probe="healthy", configured=True, feed=True, cycles=_DB_CYCLES):
                 "sensor.outdoor", FakeState("-2.0", unit="°C", last_updated=t)
             )
             if configured:
-                st = _db_probe_state(probe, t)
+                st = _db_probe_state(probe, t, i)
                 if st is None:
                     hass.states._states.pop("sensor.tank", None)
                 else:
@@ -11584,6 +11603,48 @@ for _db_cond in ("stale", "unavailable", "missing_entity", "not_numeric"):
         all(p["dhw_temp_lo"] is None for p in _db_band(_db_c)),
     )
 
+# A probe that dies HALFWAY, which none of the four conditions above reach:
+# they present an unusable sensor from the first cycle, so `_dhw_temperature`
+# is never set and the "no value read yet" gate answers on its own. Here the
+# sensor reads normally for twelve hours and then stops updating, leaving
+# `_update_current_state`'s deliberate pin holding a stale 55.0 that looks
+# exactly like a healthy reading. Only the v5.1.3 freeze predicate separates
+# the two, so this is the case that actually exercises it.
+_db_frozen = _db_drive(probe="goes_stale")
+_db_frozen_longer = _db_drive(probe="goes_stale", cycles=_DB_CYCLES + 40)
+R.check(
+    "a tank probe pinned at its last good value still reads back, and the "
+    "record refuses it anyway",
+    _db_frozen._dhw_temperature == _DB_TANK_C
+    and _db_frozen._dhw_probe_temperature() is None,
+    f"pinned {_db_frozen._dhw_temperature}, "
+    f"probe answers {_db_frozen._dhw_probe_temperature()}",
+)
+R.check(
+    "so a probe that stops updating stops filling the record, while the "
+    "same run on a live probe keeps filling it",
+    sum(_db_frozen._dhw_accuracy.lead_counts.values())
+    < sum(_db_ok._dhw_accuracy.lead_counts.values())
+    and _db_frozen._dhw_accuracy.has_lead_history(),
+    f"frozen {_db_frozen._dhw_accuracy.lead_counts} vs "
+    f"live {_db_ok._dhw_accuracy.lead_counts}",
+)
+R.check(
+    "and it stays stopped: another 20 h against the dead probe scores "
+    "nothing more and files nothing more",
+    _db_frozen_longer._dhw_accuracy.lead_counts
+    == _db_frozen._dhw_accuracy.lead_counts
+    and _db_frozen_longer._dhw_accuracy.lead_sigma
+    == _db_frozen._dhw_accuracy.lead_sigma,
+    f"{_db_frozen_longer._dhw_accuracy.lead_counts} after the extra cycles "
+    f"vs {_db_frozen._dhw_accuracy.lead_counts} before them",
+)
+R.check(
+    "the band it had already earned survives the outage -- a dead probe "
+    "stops the record, it does not erase it",
+    any(p["dhw_temp_lo"] is not None for p in _db_band(_db_frozen)),
+)
+
 # --- sigma widens with lead ------------------------------------------------
 _db_sigmas = [
     (lead, _db_ok._dhw_accuracy.sigma(lead)) for lead in (1.0, 3.0, 6.0, 12.0, 24.0)
@@ -11650,6 +11711,27 @@ R.check(
     f"first {_db_widths[0] if _db_widths else '-'}, "
     f"last {_db_widths[-1] if _db_widths else '-'}",
 )
+# The band must END where the curve ends. `series()` fills past the end of a
+# trajectory with None, and a band drawn around a step that has no centre
+# would be two dashed lines bracketing nothing.
+_db_short = _db_plan(_DB_T0)
+_db_short.dhw_temp_trajectory = _db_short.dhw_temp_trajectory[:20]
+_db_short_fc = _db_ok._build_plan_views(_db_short)["dhw_plan"]["forecast"]
+R.check(
+    "a tank trajectory that stops early takes its band with it, step for "
+    "step",
+    all(
+        (p["dhw_temp"] is None)
+        == (p["dhw_temp_lo"] is None)
+        == (p["dhw_temp_hi"] is None)
+        for p in _db_short_fc
+    )
+    and any(p["dhw_temp"] is None for p in _db_short_fc)
+    and any(p["dhw_temp_lo"] is not None for p in _db_short_fc),
+    f"{sum(1 for p in _db_short_fc if p['dhw_temp'] is None)} curve nulls, "
+    f"{sum(1 for p in _db_short_fc if p['dhw_temp_lo'] is None)} band nulls",
+)
+
 R.check(
     "the band is rounded exactly as `dhw_temp` is: two decimals",
     all(
