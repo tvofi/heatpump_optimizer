@@ -1,5 +1,51 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v5.1.3
+
+### Fix: a broken sensor no longer teaches the model the wrong house
+
+If one of the temperature sensors the optimizer depends on stopped working —
+a flat battery in a room sensor, a Zigbee node dropping off, an entity that
+got renamed — the integration kept planning from that sensor's last known
+reading. That part is deliberate: steering from the last good number is
+better than steering from nothing.
+
+What was wrong is that the *learning* kept running too. The optimizer
+continuously refines a model of how fast your house loses heat, and it was
+doing that against a number that had not changed since the sensor died. A
+frozen reading looks, to the model, like a house that barely loses any heat
+at all, so the learned figure walked steadily downward — in testing, from its
+starting value to roughly a third of it inside two days — and it is written to
+disk as it goes. The damage therefore outlived the sensor outage: the sensor
+came back, and the house model stayed wrong for weeks. The same frozen reading
+also made the heating curve look permanently comfortable, which quietly biased
+the standing curve adjustment downward.
+
+The integration already knew how to handle one version of this: a sensor that
+keeps reporting the same value for too long ("stale") froze the learners
+correctly. Every *other* way a sensor can break — reporting `unavailable`,
+having its entity disappear, or reporting something that is not a number — did
+not. That gap is what this release closes.
+
+**What changes now**
+
+- Any sensor a learner depends on that is unusable for any reason pauses that
+  learner until the sensor recovers. Planning is unaffected — it still uses the
+  last known reading, as before — and learning simply resumes where it left off.
+- A sensor you never configured still does not pause anything. Only a sensor
+  you *did* configure and that is currently broken counts.
+- The diagnostic now says which problem and which sensor caused the pause
+  (for example `unavailable:indoor_temp_entity`), instead of only ever saying
+  "stale".
+
+**If your model already drifted**
+
+An installation that ran through a sensor outage before this release may have a
+house model that is already wrong. Call the **Restore Learned Snapshot**
+service (`heatpump_optimizer.restore_learned_snapshot`) to roll every learner
+back to the most recent weekly snapshot taken while all inputs were healthy.
+Nothing is lost permanently — learning continues from the restored point.
+
 ## v5.1.2
 
 ### Maintenance: the test suite's own gates can now fail
