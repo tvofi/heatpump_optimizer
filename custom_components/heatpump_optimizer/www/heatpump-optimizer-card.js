@@ -252,8 +252,16 @@ const STRINGS = {
     "setup.picker_none": "(not configured)",
     "setup.assign": "Assign",
     "setup.cancel": "Cancel",
-    "setup.picker_truncated": "Showing the first {n} matching entities.",
     "setup.picker_count": "{n} matching {domains} entities.",
+    "setup.picker_filter_placeholder": "Type to narrow the list…",
+    "setup.picker_filter_aria": "Filter entities for {slot}",
+    "setup.picker_showing": "Showing {n} of {total} — type to narrow.",
+    "setup.picker_no_match": "Nothing matches “{q}”.",
+    "setup.picker_missing": "not available right now",
+    "setup.confirm_clear": "Confirm: clear this sensor",
+    "setup.confirm_clear_hint":
+      "This removes {entity} from “{label}” and reloads the integration. " +
+      "Press Assign again to confirm.",
     "setup.assigned_reloading": "Assigned {entity}. Reloading…",
     "setup.cleared_reloading": "Cleared. Reloading…",
 
@@ -561,8 +569,16 @@ const STRINGS = {
     "setup.picker_none": "(inte konfigurerad)",
     "setup.assign": "Tilldela",
     "setup.cancel": "Avbryt",
-    "setup.picker_truncated": "Visar de första {n} matchande entiteterna.",
     "setup.picker_count": "{n} matchande {domains}-entiteter.",
+    "setup.picker_filter_placeholder": "Skriv för att filtrera listan…",
+    "setup.picker_filter_aria": "Filtrera entiteter för {slot}",
+    "setup.picker_showing": "Visar {n} av {total} — skriv för att filtrera.",
+    "setup.picker_no_match": "Inget matchar ”{q}”.",
+    "setup.picker_missing": "inte tillgänglig just nu",
+    "setup.confirm_clear": "Bekräfta: rensa sensorn",
+    "setup.confirm_clear_hint":
+      "Detta tar bort {entity} från ”{label}” och laddar om integrationen. " +
+      "Tryck Tilldela igen för att bekräfta.",
     "setup.assigned_reloading": "Tilldelade {entity}. Laddar om…",
     "setup.cleared_reloading": "Rensat. Laddar om…",
 
@@ -912,11 +928,39 @@ const DIALOG_FONT_RATIO = 0.0105;
 const DIALOG_FONT_PX_MIN = 12;
 const DIALOG_FONT_PX_MAX = 21;
 
-// How many entities the setup page's picker will list. A large installation
-// has thousands, and a select with thousands of options is both slow to build
-// and useless to scroll; the options flow remains the way to reach an entity
-// that does not appear here.
+// How many entities the setup page's picker will RENDER at once. A large
+// installation has thousands, and a select with thousands of options is both
+// slow to build and useless to scroll. Since v5.1.4 this is a render bound
+// and nothing else: it is applied after the picker's text filter, so any
+// entity on the install is reachable by typing a few characters of its name
+// or its id, and the footnote says when the list is standing on more than it
+// shows.
 const PICKER_MAX_OPTIONS = 200;
+
+// What a slot is asking for, where the answer is narrower than its accepted
+// domains. `sensor` covers every reading a house produces, so on an install
+// with hundreds of them the temperature probes are ranked to the top of the
+// picker for the slots that want one. Ranking only -- nothing is hidden,
+// because plenty of working sensors carry no device class at all. Keyed by
+// slot id, and superseded by a `device_class` the backend publishes on the
+// slot itself if a later version ever does.
+const SLOT_DEVICE_CLASS = {
+  outdoor_temp_entity: "temperature",
+  indoor_temp_entity: "temperature",
+  lower_floor_temp_entity: "temperature",
+  floor_return_temp_entity: "temperature",
+  buffer_tank_temp_entity: "temperature",
+  dhw_temp_entity: "temperature",
+  wood_tank_top_entity: "temperature",
+  wood_tank_bottom_entity: "temperature",
+  valve_outlet_temp_entity: "temperature",
+  mixing_valve_target_entity: "temperature",
+  power_entity: "power",
+  house_power_entity: "power",
+  energy_entity: "energy",
+  pv_production_entity: "power",
+  solar_radiation_entity: "irradiance",
+};
 
 // The setup diagram's viewBox width, and how far down a dragged box may be
 // parked. Both are needed outside the drawing itself: the layout editor turns
@@ -924,6 +968,143 @@ const PICKER_MAX_OPTIONS = 200;
 // width the drawing used.
 const SETUP_W = 720;
 const SETUP_MAX_Y = 2000;
+// One box's width. Module-level because the caption wrapper needs it before
+// the layout below has run.
+const SETUP_COL_W = 200;
+
+// How far the drawing's text sits inside a box's bounding rect, and how far
+// that keeps it off the contour the box is painted with.
+//
+// v5.1.4: this was 10, against contour walls at x+2 and x+w-2 -- eight
+// viewBox units of air, which on a desktop-width dialog reads as text
+// pressed against the wall it is inside. 16 leaves 14 units of margin on
+// both sides. The box width (200), the column abscissae and the row
+// arithmetic are all untouched: only the text moved inward.
+const SETUP_PAD = 16;
+// The gutter kept between a row's label and its right-anchored value, and
+// the narrowest label worth keeping whole-ish. Below `SETUP_MIN_LABEL_W` the
+// row stops squeezing the label and shortens the VALUE instead -- see
+// `fitSlotRow`.
+const SETUP_ROW_GAP = 8;
+const SETUP_MIN_LABEL_W = 78;
+
+// ---- Text metrics for the setup drawing -----------------------------------
+//
+// SVG text neither wraps nor measures itself before it is on screen, so the
+// layout has to know how wide a string will render BEFORE it writes it.
+// `getComputedTextLength` needs a live, laid-out element; this is the cheap
+// substitute: per-glyph advance widths for the sans-serif face the diagram
+// is drawn in, as a fraction of the font size, from Helvetica/Arial metrics
+// (the faces every platform this runs on falls back to agree within a few
+// percent, and the layout only needs to know "does this fit").
+//
+// The estimate this replaces was a character COUNT -- "a label longer than
+// 15 characters is too long" -- which prices an "i" and a "W" the same. It
+// under-measured `123 W/m² · Open-Meteo` (proportional digits, a middot, a
+// superscript two) badly enough that the right-anchored value ran straight
+// through the label beside it on the reporter's install.
+const GLYPH_W = (() => {
+  const m = new Map();
+  const put = (chars, w) => {
+    for (const c of chars) m.set(c, w);
+  };
+  put("ijl", 0.22);
+  put(" .,:;!'", 0.28);
+  put("ft/I()[]|", 0.3);
+  put("r-·²\u00ad", 0.34);
+  put("°", 0.4);
+  put("ckvxyzsJ", 0.51);
+  put("abdeghnopqu0123456789$?L", 0.56);
+  put("åäöéèüáà", 0.56);
+  put("w", 0.72);
+  put("ABEFKPSTVXYZ&", 0.68);
+  put("CDGHNOQRU+=<>", 0.74);
+  put("mM%@", 0.86);
+  put("W", 0.94);
+  put("…—", 1.0);
+  return m;
+})();
+const GLYPH_W_DEFAULT = 0.58;
+// Semibold text (the values and the titles) sets a few percent wider than
+// the regular face at the same size.
+const GLYPH_BOLD_FACTOR = 1.06;
+
+/** Rendered width of `s` at `size` px, in viewBox units.
+ *
+ * Deliberately NOT called `textWidth`: the chart already has a function of
+ * that name (a flat `length * CHAR_WIDTH_EM`, good enough for axis units),
+ * and function declarations hoist, so the later one would silently win and
+ * this whole table would go unused.
+ */
+function setupTextW(s, size, bold) {
+  let em = 0;
+  for (const c of String(s)) em += GLYPH_W.has(c) ? GLYPH_W.get(c) : GLYPH_W_DEFAULT;
+  return em * size * (bold ? GLYPH_BOLD_FACTOR : 1);
+}
+
+/** `s` shortened with an ellipsis until it fits `width`, or "" if nothing does.
+ *
+ * Trailing spaces are dropped before the ellipsis is added: "Lower floor …"
+ * reads as a typo, "Lower floor…" reads as a name that continues.
+ */
+function ellipsize(s, width, size, bold) {
+  const full = String(s);
+  if (setupTextW(full, size, bold) <= width) return full;
+  const dots = setupTextW("…", size, bold);
+  let out = "";
+  let w = dots;
+  for (const c of full) {
+    const cw = setupTextW(c, size, bold);
+    if (w + cw > width) break;
+    out += c;
+    w += cw;
+  }
+  out = out.replace(/[\s·-]+$/, "");
+  return out ? `${out}…` : "";
+}
+
+/** Fit one slot row's label and right-anchored value into `inner` units.
+ *
+ * The two share a single 200-unit row and SVG text does not wrap, so one of
+ * them has to give when they do not both fit. The label gives first: it is
+ * ellipsized down to whatever the value leaves it, and the row's tooltip
+ * still carries the whole thing. Only once the label would drop below
+ * `SETUP_MIN_LABEL_W` does the VALUE shorten, and then never by cutting the
+ * reading itself: `values` is the ladder of acceptable spellings, longest
+ * first ("123 W/m² · Open-Meteo", then "123 W/m²"), and the longest one that
+ * leaves the label its minimum wins.
+ */
+function fitSlotRow(label, values, inner, size) {
+  const alts = (Array.isArray(values) ? values : [values]).filter(
+    (v) => v !== undefined && v !== null
+  );
+  const labelW = setupTextW(label, size, false);
+  // The label never demands more room than it actually needs, so a short
+  // label ("Valve target") can keep a long value whole.
+  const reserve = Math.min(labelW, SETUP_MIN_LABEL_W);
+  let value = alts[alts.length - 1];
+  for (const alt of alts) {
+    if (setupTextW(alt, size, true) <= inner - SETUP_ROW_GAP - reserve) {
+      value = alt;
+      break;
+    }
+  }
+  // A single value so long that even the shortest spelling swamps the row
+  // (a sensor whose state is a sentence) is cut as a last resort: an
+  // unreadable row still beats two overlapping strings.
+  let valueW = setupTextW(value, size, true);
+  if (valueW > inner - SETUP_ROW_GAP - 20) {
+    value = ellipsize(value, inner - SETUP_ROW_GAP - 20, size, true);
+    valueW = setupTextW(value, size, true);
+  }
+  return {
+    value,
+    label: ellipsize(label, inner - SETUP_ROW_GAP - valueW, size, false),
+    // What the row would have said with unlimited room, for the tooltip.
+    full: alts[0],
+    shortened: value !== alts[0],
+  };
+}
 
 // The setup drawing's visual vocabulary (v4.3.0). Each place is drawn as the
 // piece of equipment it is instead of a plain rectangle. The geometry carrier
@@ -953,12 +1134,13 @@ const PLACE_KIND = {
 // divider at all -- it would separate the title from nothing, and on the
 // valve it grazes the bowtie's top edge. `rightPad` lets a shape whose
 // header band is already occupied (the heat pump's fan) stop the line
-// short of its own furniture.
-const shapeDivider = (x, y, w, h, rightPad = 10) =>
+// short of its own furniture. Both ends follow `SETUP_PAD`, so the rule
+// under a title starts where the title starts.
+const shapeDivider = (x, y, w, h, rightPad = SETUP_PAD) =>
   h < 49
     ? null
     : {
-        d: `M ${x + 10} ${y + 21.5} L ${x + w - rightPad} ${y + 21.5}`,
+        d: `M ${x + SETUP_PAD} ${y + 21.5} L ${x + w - rightPad} ${y + 21.5}`,
         cls: "setup-accent divider",
       };
 const NODE_SHAPES = {
@@ -975,7 +1157,10 @@ const NODE_SHAPES = {
     inset: { t: 4.5, r: 2, b: 4.5, l: 2 },
   },
   // Shallow gable over walls, with a chimney. The pitch is capped by the
-  // pinned title geometry: the roofline at x+10 must clear the cap height.
+  // title geometry: the roofline at the title's x must clear the cap
+  // height -- at x+16 (v5.1.4's padding) the roof has risen to y+6.7,
+  // 2.3 units above the 13px title's cap line, so the wider padding
+  // relaxed this constraint rather than tightening it.
   house: {
     contour: (x, y, w, h) =>
       `M ${x + 2} ${y + 7.5} ` +
@@ -1020,8 +1205,12 @@ const NODE_SHAPES = {
     },
     inset: { t: 2, r: 2, b: 2, l: 2 },
   },
-  // The machine: rounded cabinet, fan in the header's free right corner,
-  // louvres in the bottom band below the last row's descenders.
+  // The machine: rounded cabinet with the fan in the header's free right
+  // corner. Two louvre strokes used to sit in the bottom-left band; from a
+  // step back they did not read as vents but as two stray lines in the
+  // corner of a box, so v5.1.4 removed them. The fan, its blades and its
+  // hub already say "heat pump", and ink that has to be explained is ink
+  // the drawing is better without.
   hp: {
     contour: (x, y, w, h) =>
       `M ${x + 12} ${y + 2} H ${x + w - 12} ` +
@@ -1043,10 +1232,6 @@ const NODE_SHAPES = {
           `A 5 5 0 0 1 ${x + w - 15.8} ${y + 19.1} ` +
           `M ${x + w - 20.2} ${y + 14.3} ` +
           `A 5 5 0 0 1 ${x + w - 24.4} ${y + 11.9}`,
-      },
-      {
-        d: `M ${x + 14} ${y + h - 7} H ${x + 40} ` +
-          `M ${x + 14} ${y + h - 4.5} H ${x + 40}`,
       },
       // The fan shroud's bottom is y+21, tangent to the divider's y+21.5:
       // the line stops at x+w-30, clear of the shroud's left edge at x+w-26.
@@ -1470,6 +1655,16 @@ class HeatpumpOptimizerCard extends HTMLElement {
     this._whatIfTimer = null;
     this._pendingSave = false;
     this._saveTimer = null;
+    // The entity picker's per-visit state: which slot is open, what has been
+    // typed into its filter, which entity is chosen (null = "whatever the
+    // slot already holds") and whether an Assign that would CLEAR the slot
+    // has been armed.
+    this._pickerKey = null;
+    this._pickerSlot = null;
+    this._pickerFilter = "";
+    this._pickerChoice = null;
+    this._pendingClear = false;
+    this._clearTimer = null;
     this._dialogFontPx = 0;
     this._dialogScroll = 0;
     // Pan/zoom window (item 23). `null` means "the default window", so an
@@ -1623,6 +1818,8 @@ class HeatpumpOptimizerCard extends HTMLElement {
       this._saveTimer = null;
     }
     this._pendingSave = false;
+    // Nor an armed "clear this slot" confirmation in the entity picker.
+    this._cancelPendingClear();
     if (this._resizeObserver) {
       try {
         this._resizeObserver.disconnect();
@@ -2344,44 +2541,163 @@ class HeatpumpOptimizerCard extends HTMLElement {
     if (!key) return "";
     const slot = (topo.slots || []).find((s) => s.key === key);
     if (!slot) return "";
-    const domains = slot.domains || [];
-    const states = (this._hass && this._hass.states) || {};
-    const candidates = Object.keys(states)
-      .filter((id) => domains.includes(id.split(".")[0]))
-      .sort()
-      .slice(0, PICKER_MAX_OPTIONS);
-    const options = candidates
-      .map((id) => {
-        const friendly =
-          (states[id].attributes && states[id].attributes.friendly_name) || id;
-        const sel = id === slot.entity ? " selected" : "";
-        return `<option value="${esc(id)}"${sel}>${esc(friendly)}</option>`;
-      })
-      .join("");
+    // The open picker's slot, for the handlers: the filter box rebuilds the
+    // option list without re-rendering the page (which would take the focus
+    // out of the input the user is typing into), and needs the same slot
+    // this render used.
+    this._pickerSlot = slot;
+    const model = this._pickerModel(slot);
+    const filter = this._pickerFilter || "";
     return `
       <div class="setup-picker">
         <div class="sp-title">${esc(slot.label)}</div>
-        <select class="sp-select" aria-label="${esc(
+        <input class="sp-filter" type="text" value="${esc(filter)}"
+          placeholder="${esc(L("setup.picker_filter_placeholder"))}"
+          aria-label="${esc(
+            L("setup.picker_filter_aria", { slot: slot.label })
+          )}" />
+        <select class="sp-select" size="8" aria-label="${esc(
           L("setup.picker_aria", { slot: slot.label })
-        )}">
-          <option value="">${esc(L("setup.picker_none"))}</option>
-          ${options}
-        </select>
+        )}">${model.options}</select>
         <div class="sp-actions">
           <button type="button" class="sp-save">${esc(L("setup.assign"))}</button>
           <button type="button" class="sp-cancel">${esc(L("setup.cancel"))}</button>
         </div>
-        <div class="sp-note">${
-          candidates.length >= PICKER_MAX_OPTIONS
-            ? esc(L("setup.picker_truncated", { n: PICKER_MAX_OPTIONS }))
-            : esc(
-                L("setup.picker_count", {
-                  n: candidates.length,
-                  domains: domains.join("/"),
-                })
-              )
-        }</div>
+        <div class="sp-note">${esc(model.note)}</div>
       </div>`;
+  }
+
+  /** The picker's option list and its footnote, for one slot.
+   *
+   * Three rules this had wrong before v5.1.4, each of them destructive:
+   *
+   *  - The entity the slot ALREADY holds is always an option, and always the
+   *    selected one. It used to be offered only if it happened to fall
+   *    inside the candidate list; when it did not -- a renamed entity, one
+   *    past the cap, one whose domain the slot no longer lists -- the
+   *    `<select>` fell back to "(not configured)", and pressing Assign
+   *    wrote that emptiness back and reloaded the integration. The user was
+   *    shown a cleared slot and a destructive default in the same control.
+   *  - The cap applies AFTER the filter, so every entity on the install is
+   *    reachable by typing. It used to truncate the alphabetical candidate
+   *    list, which on a large install simply hid the user's own probe with
+   *    no way to reach it.
+   *  - Every option shows the entity id next to the friendly name.
+   *    Auto-generated names collide ("Vedpanna temperatur" twice, one of
+   *    them silently `..._2`), and a list of identical labels is a list
+   *    nobody can choose from.
+   */
+  _pickerModel(slot) {
+    const domains = slot.domains || [];
+    const states = (this._hass && this._hass.states) || {};
+    const nameOf = (id) => {
+      const st = states[id];
+      return (st && st.attributes && st.attributes.friendly_name) || id;
+    };
+    const labelOf = (id) => {
+      if (!states[id]) return `${id} — ${L("setup.picker_missing")}`;
+      const friendly = nameOf(id);
+      return friendly === id ? id : `${friendly} — ${id}`;
+    };
+    // A slot that wants a temperature says so; a matching device class is
+    // ranked first so the probe the slot is for is near the top before a
+    // single character is typed. Ranking only -- nothing is hidden by it,
+    // because a house full of unclassified sensors is normal.
+    const want = slot.device_class || SLOT_DEVICE_CLASS[slot.key] || null;
+    const classOf = (id) => {
+      const st = states[id];
+      return (st && st.attributes && st.attributes.device_class) || "";
+    };
+    const all = Object.keys(states).filter((id) =>
+      domains.includes(id.split(".")[0])
+    );
+    const q = String(this._pickerFilter || "").trim().toLowerCase();
+    const matching = q
+      ? all.filter((id) => labelOf(id).toLowerCase().includes(q))
+      : all;
+    matching.sort((a, b) => {
+      if (want) {
+        const ra = classOf(a) === want ? 0 : 1;
+        const rb = classOf(b) === want ? 0 : 1;
+        if (ra !== rb) return ra - rb;
+      }
+      return a < b ? -1 : a > b ? 1 : 0;
+    });
+    const shown = matching.slice(0, PICKER_MAX_OPTIONS);
+    // What the select must come up on: the user's own pick this time round,
+    // otherwise whatever the slot is configured with.
+    const chosen =
+      this._pickerChoice === null || this._pickerChoice === undefined
+        ? slot.entity || ""
+        : this._pickerChoice;
+    const listed = new Set(shown);
+    const options = [
+      `<option value=""${chosen ? "" : " selected"}>${esc(
+        L("setup.picker_none")
+      )}</option>`,
+    ];
+    // The current entity rides at the top of the list, outside the filter
+    // and outside the cap: it is the one option whose absence would rewrite
+    // the configuration.
+    if (chosen && !listed.has(chosen)) {
+      options.push(
+        `<option value="${esc(chosen)}" selected>${esc(labelOf(chosen))}</option>`
+      );
+    }
+    for (const id of shown) {
+      options.push(
+        `<option value="${esc(id)}"${id === chosen ? " selected" : ""}>${esc(
+          labelOf(id)
+        )}</option>`
+      );
+    }
+    let note;
+    if (matching.length > shown.length) {
+      note = L("setup.picker_showing", {
+        n: shown.length,
+        total: matching.length,
+      });
+    } else if (q && !matching.length) {
+      note = L("setup.picker_no_match", { q });
+    } else {
+      note = L("setup.picker_count", {
+        n: matching.length,
+        domains: domains.join("/"),
+      });
+    }
+    return { options: options.join(""), note, total: matching.length,
+      shown: shown.length };
+  }
+
+  /** Close the picker, dropping everything that belonged to that visit. */
+  _closePicker() {
+    this._pickerKey = null;
+    this._pickerSlot = null;
+    this._pickerViaKeyboard = false;
+    this._pickerFilter = "";
+    this._pickerChoice = null;
+    this._cancelPendingClear();
+  }
+
+  /** Disarm the "this would clear the slot" confirmation. */
+  _cancelPendingClear() {
+    if (this._clearTimer) {
+      clearTimeout(this._clearTimer);
+      this._clearTimer = null;
+    }
+    this._pendingClear = false;
+  }
+
+  /** Disarm it and put the Assign button back the way it was. */
+  _disarmClear(picker) {
+    this._cancelPendingClear();
+    const root = picker || (this.shadowRoot && this.shadowRoot.querySelector(
+      ".setup-picker"));
+    const save = root && root.querySelector(".sp-save");
+    if (save) {
+      save.textContent = L("setup.assign");
+      save.classList.remove("confirm");
+    }
   }
 
   /** Wire the setup page's clickable slots and its picker. */
@@ -2392,13 +2708,29 @@ class HeatpumpOptimizerCard extends HTMLElement {
       // drag, not a request to assign a sensor. Opening the picker over the
       // diagram being edited would put a dialog on top of the drag.
       if (this._layoutEditing()) return;
+      // A fresh visit: no filter, no half-made choice, no armed clear left
+      // over from the row before this one.
+      this._closePicker();
       this._pickerKey = key;
       // Opened from the keyboard, focus must land in the picker: the hit
       // target that had it is rebuilt by the render below, so without this
       // the keyboard user is dropped back at the top of the dialog.
       this._pickerFocus = !!viaKeyboard;
+      // ...and remembered for the way back out. Handing focus to a row a
+      // MOUSE user is no longer looking at is what left a focus ring stuck
+      // on the sensor field after Cancel (v5.1.4).
+      this._pickerViaKeyboard = !!viaKeyboard;
       this._render();
     };
+    // Any pointer gesture that is not on a row takes focus off whichever row
+    // has it. Without this a ring can outlive the gesture that caused it --
+    // the reported "thin blue line beside the sensor field" after cancelling
+    // the picker and clicking away.
+    root.addEventListener("pointerdown", (ev) => {
+      const t = ev && ev.target;
+      if (t && t.classList && t.classList.contains("setup-hit")) return;
+      this._blurSetupRow();
+    });
     for (const hit of root.querySelectorAll(".setup-hit")) {
       hit.addEventListener("click", (ev) => {
         ev.stopPropagation();
@@ -2426,7 +2758,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
       if (ev.key !== "Escape") return;
       stop(ev);
       const key = this._pickerKey;
-      this._pickerKey = null;
+      this._closePicker();
       this._render();
       this._restoreSetupFocus(key);
     });
@@ -2435,14 +2767,51 @@ class HeatpumpOptimizerCard extends HTMLElement {
       this._pickerFocus = false;
       if (typeof select.focus === "function") select.focus();
     }
+    // Typing narrows the list in place. A full `_render()` would rebuild the
+    // input and take the caret with it, so only the options and the footnote
+    // are replaced; the select keeps whatever the user had highlighted when
+    // that entity is still on the list.
+    const filterBox = picker.querySelector(".sp-filter");
+    if (filterBox) {
+      filterBox.addEventListener("input", (ev) => {
+        const target = ev.currentTarget || ev.target;
+        this._pickerFilter = (target && target.value) || "";
+        const slot = this._pickerSlot;
+        if (!slot) return;
+        const model = this._pickerModel(slot);
+        const list = picker.querySelector(".sp-select");
+        if (list) list.innerHTML = model.options;
+        const foot = picker.querySelector(".sp-note");
+        if (foot) foot.textContent = model.note;
+      });
+    }
+    // The chosen entity is remembered on the card, not only in the DOM: the
+    // list is rebuilt on every keystroke, and a choice that lived only in
+    // the `<select>` would be forgotten by the next one.
+    if (select) {
+      select.addEventListener("change", (ev) => {
+        const target = ev.currentTarget || ev.target;
+        this._pickerChoice = (target && target.value) || "";
+        // Choosing again disarms a clear that was armed for a different
+        // answer than the one now selected.
+        if (this._pendingClear) this._disarmClear(picker);
+      });
+    }
     const cancel = picker.querySelector(".sp-cancel");
     if (cancel) {
       cancel.addEventListener("click", (ev) => {
         ev.stopPropagation();
         const key = this._pickerKey;
-        this._pickerKey = null;
+        const viaKeyboard = this._pickerViaKeyboard;
+        this._closePicker();
         this._render();
-        this._restoreSetupFocus(key);
+        // A keyboard user must land back on the row they came from, or they
+        // are dropped at the top of the dialog. A mouse user must NOT: the
+        // row would light up with a focus ring around a field they have
+        // just backed out of, and clicking elsewhere does not always take
+        // it off an SVG element again.
+        if (viaKeyboard) this._restoreSetupFocus(key);
+        else this._blurSetupRow();
       });
     }
     const save = picker.querySelector(".sp-save");
@@ -2453,13 +2822,38 @@ class HeatpumpOptimizerCard extends HTMLElement {
         const key = this._pickerKey;
         const entityId = select ? select.value : "";
         const note = this.shadowRoot.querySelector(".setup-result");
+        const slot = this._pickerSlot;
+        // Assigning nothing to a slot that HAS something is a deletion: it
+        // writes the config entry and reloads the integration, and the user
+        // usually got here believing they were fixing a slot rather than
+        // emptying one. Same pattern as the what-if save -- the button
+        // itself becomes the confirmation, since a nested browser prompt
+        // inside this modal is easy to miss behind the backdrop.
+        if (!entityId && slot && slot.entity && !this._pendingClear) {
+          this._pendingClear = true;
+          save.textContent = L("setup.confirm_clear");
+          save.classList.add("confirm");
+          this._setupNote = L("setup.confirm_clear_hint", {
+            entity: slot.entity,
+            label: slot.label,
+          });
+          if (note) note.textContent = this._setupNote;
+          const foot = picker.querySelector(".sp-note");
+          if (foot) foot.textContent = this._setupNote;
+          // Let the decision lapse rather than sit armed: a stray second
+          // click minutes later must not empty a slot.
+          clearTimeout(this._clearTimer);
+          this._clearTimer = setTimeout(() => this._disarmClear(picker), 8000);
+          return;
+        }
+        this._cancelPendingClear();
         try {
           await this._hass.callService(
             "heatpump_optimizer",
             "assign_entity",
             { key, entity_id: entityId }
           );
-          this._pickerKey = null;
+          this._closePicker();
           // The write reloads the integration, so the topology the card is
           // drawn from is replaced a moment later. Say what happened rather
           // than leaving a diagram that has not caught up yet looking wrong.
@@ -2564,7 +2958,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     }
     // Editing suppresses click-to-assign, so a picker left open would be
     // unreachable behind the diagram.
-    this._pickerKey = null;
+    this._closePicker();
     this._render();
   }
 
@@ -2927,17 +3321,24 @@ class HeatpumpOptimizerCard extends HTMLElement {
     const boxes = [];
     // SVG text does not wrap, and a caption longer than the box runs
     // straight past its border — measured in a real browser, the no-valve
-    // caption overflowed by 19 viewBox units. ~34 characters is what fits
-    // in the 190 units a row offers at the slot font, so long extras are
+    // caption overflowed by 19 viewBox units. Captions are therefore
     // wrapped here, before layout, where the box height still follows the
-    // row count.
+    // line count. The rule is the measured width of the row's text area
+    // (v5.1.4 -- it was a 34-character count, which cannot tell "iiii"
+    // from "WWWW" and had to be re-guessed every time the padding moved).
+    // A caption is one line of prose and reads badly broken mid-phrase, so
+    // it is allowed to lean into the right padding before it wraps: what it
+    // must not do is reach the contour. Eight units clear of the wall.
+    const captionW = SETUP_COL_W - SETUP_PAD - 8;
     const wrapExtra = (s) => {
       const lines = [];
       let cur = "";
       for (const w of String(s).split(/\s+/)) {
         const next = cur ? `${cur} ${w}` : w;
-        if (next.length > 34 && cur) { lines.push(cur); cur = w; }
-        else cur = next;
+        if (setupTextW(next, 12, false) > captionW && cur) {
+          lines.push(cur);
+          cur = w;
+        } else cur = next;
       }
       if (cur) lines.push(cur);
       return lines;
@@ -3005,7 +3406,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // Lay the columns out top to bottom, then draw. All sizes in viewBox
     // units; the SVG scales to the dialog like the chart does.
     const colX = [16, 260, 504];
-    const colW = 200;
+    const colW = SETUP_COL_W;
     const rowH = 17;
     const pad = 8;
     const colY = [16, 16, 16];
@@ -3092,13 +3493,50 @@ class HeatpumpOptimizerCard extends HTMLElement {
         `<circle class="setup-pipe-dot" cx="${fx}" cy="${fy}" r="2" />` +
         `<circle class="setup-pipe-dot" cx="${tx}" cy="${ty}" r="2" />`;
       if (invalid) return dots;
+      // The chevron sits at the pipe's midpoint and must lie ALONG it.
+      // Both branches used to draw an axis-aligned glyph -- horizontal for
+      // every cross-column pipe, vertical for every stacked one -- so on
+      // the many pipes whose ends differ in height the arrow crossed the
+      // pipe at right angles instead of pointing down it.
+      //
+      // A cross-column pipe is the cubic `M f C f+40 fy, tx-40 ty, t`, and
+      // for it both the midpoint and the direction are exact:
+      //   B(0.5)  = (P0 + 3P1 + 3P2 + P3) / 8 = ((fx+tx)/2, (fy+ty)/2)
+      //             -- the control handles cancel, so the midpoint is the
+      //             chord's midpoint, which is where the glyph already was.
+      //   B'(0.5) = 3[(P1-P0)/4 + (P2-P1)/2 + (P3-P2)/4]
+      //           ∝ (dx/2 - 20, dy/2)
+      //             -- horizontal only when dy is 0. The -20 is the two
+      //             40-unit handles pulling back against the run.
+      // A stacked pipe is a straight segment, so its direction is simply
+      // the flow: `s` is +1 when the box the water leaves is the upper one.
       const mx = (fx + tx) / 2;
       const my = (fy + ty) / 2;
-      const flow = vertical
-        ? `M ${fx - 3} ${my - 3 * s} L ${fx} ${my + 2 * s} ` +
-          `L ${fx + 3} ${my - 3 * s}`
-        : `M ${mx - 3 * s} ${my - 3} L ${mx + 2 * s} ${my} ` +
-          `L ${mx - 3 * s} ${my + 3}`;
+      let ux = 0;
+      let uy = s;
+      if (!vertical) {
+        const vx = (tx - fx) / 2 - 20;
+        const vy = (ty - fy) / 2;
+        const len = Math.hypot(vx, vy);
+        // A tangent of zero length has no direction to draw along; fall
+        // back to the caller's left/right hint rather than dividing by 0.
+        if (len < 1e-6) {
+          ux = s;
+          uy = 0;
+        } else {
+          ux = vx / len;
+          uy = vy / len;
+        }
+      }
+      // Apex 2 units ahead of the midpoint, tails 3 behind and 3 to each
+      // side: the same glyph as before, now in the pipe's own frame.
+      const nx = -uy;
+      const ny = ux;
+      const r = (n) => Math.round(n * 1000) / 1000;
+      const flow =
+        `M ${r(mx - 3 * ux + 3 * nx)} ${r(my - 3 * uy + 3 * ny)} ` +
+        `L ${r(mx + 2 * ux)} ${r(my + 2 * uy)} ` +
+        `L ${r(mx - 3 * ux - 3 * nx)} ${r(my - 3 * uy - 3 * ny)}`;
       return `${dots}<path class="setup-flow" d="${flow}" />`;
     };
     const line = (a, b, edge, cls) => {
@@ -3242,34 +3680,49 @@ class HeatpumpOptimizerCard extends HTMLElement {
             cls = "setup-slot";
           }
         }
+        // Spellings of this value from longest to shortest, for the row to
+        // choose between. Anything tagged with its provenance after a
+        // middot ("123 W/m² · Open-Meteo") can fall back to the reading on
+        // its own; the tag then rides in the row's tooltip, where it is
+        // still one hover away, instead of overwriting the label.
+        const valueAlts = value.includes(" · ")
+          ? [value, value.split(" · ")[0]]
+          : [value];
         // The label and the right-anchored value share one 200-unit row;
-        // SVG text does not wrap, so a long label runs straight into the
-        // value. Trim the label instead — the full name is in the options
-        // flow, and a truncated label beats an unreadable collision.
-        const room = value.length > 10 ? 15 : 19;
-        const label =
-          s.label.length > room ? s.label.slice(0, room - 1) + "…" : s.label;
-        rows.push(`<text class="${cls}" x="${b.x + 10}" y="${y}">
-          <tspan>${esc(label)}</tspan>
-          <tspan class="setup-value" x="${b.x + colW - 10}"
-            text-anchor="end">${esc(value)}</tspan></text>`);
+        // SVG text does not wrap, so whatever does not fit collides. Both
+        // strings are MEASURED (`fitSlotRow`) and the value is given its
+        // room first: the label is ellipsized into what is left, and only a
+        // value that would squeeze the label below readability is itself
+        // shortened -- never by cutting the reading, only by dropping the
+        // provenance tag after the middot. The old rule counted characters
+        // and let "123 W/m² · Open-Meteo" run through the label beside it.
+        //
+        // A row whose text was shortened says the whole thing in its
+        // tooltip and its accessible name, so nothing is only visible to
+        // someone with a wide screen.
+        const fit = fitSlotRow(s.label, valueAlts, colW - 2 * SETUP_PAD, 12);
+        // The tooltip and the accessible name always carry the whole label
+        // (they are built from it), and additionally the whole value when
+        // the row had to shorten it.
+        const title = L("setup.click_to_assign_title", { label: s.label });
+        const full = fit.shortened ? `${title} — ${fit.full}` : title;
+        rows.push(`<text class="${cls}" x="${b.x + SETUP_PAD}" y="${y}">
+          <tspan>${esc(fit.label)}</tspan>
+          <tspan class="setup-value" x="${b.x + colW - SETUP_PAD}"
+            text-anchor="end">${esc(fit.value)}</tspan></text>`);
         // A transparent rect over the row, not a handler on the text: text
         // is a thin target, and the gap between label and value would not
         // respond at all -- which reads as a diagram that is only sometimes
         // clickable.
         rows.push(`<rect class="setup-hit" data-key="${esc(s.key)}"
-          tabindex="0" role="button" aria-label="${esc(
-            L("setup.click_to_assign_title", { label: s.label })
-          )}"
-          x="${b.x + 2}" y="${y - rowH + 4}" width="${colW - 4}"
-          height="${rowH}" rx="3">
-          <title>${esc(
-            L("setup.click_to_assign_title", { label: s.label })
-          )}</title></rect>`);
+          tabindex="0" role="button" aria-label="${esc(full)}"
+          x="${b.x + 4}" y="${y - rowH + 5}" width="${colW - 8}"
+          height="${rowH - 2}" rx="3">
+          <title>${esc(full)}</title></rect>`);
         y += rowH;
       }
       for (const ex of b.extra) {
-        rows.push(`<text class="setup-slot extra" x="${b.x + 10}"
+        rows.push(`<text class="setup-slot extra" x="${b.x + SETUP_PAD}"
           y="${y}">${esc(ex)}</text>`);
         y += rowH;
       }
@@ -3353,7 +3806,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
           <rect class="setup-box"${at} x="${b.x}" y="${b.y}" width="${colW}"
             height="${b.h}" rx="8" />
           ${deco.join("")}
-          <text class="setup-title" x="${b.x + 10}"
+          <text class="setup-title" x="${b.x + SETUP_PAD}"
             y="${b.y + 17}">${esc(b.title)}</text>
           ${rows.join("")}${ports}
         </g>`);
@@ -4211,7 +4664,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
           this._dialogScroll = 0;
           // Leaving the setup page abandons a half-made assignment rather
           // than keeping a picker open behind the chart.
-          this._pickerKey = null;
+          this._closePicker();
           this._render();
         }
       });
@@ -4256,9 +4709,24 @@ class HeatpumpOptimizerCard extends HTMLElement {
         .chip:focus-visible {
           outline: 2px solid var(--primary-color, #03a9f4); outline-offset: 2px;
         }
-        /* The SVG's keyboard-reachable parts: slots, lanes, setup rows. */
-        .slot:focus-visible, .lane:focus-visible, .setup-hit:focus-visible {
+        /* The SVG's keyboard-reachable parts: slots and lanes. */
+        .slot:focus-visible, .lane:focus-visible {
           outline: 2px solid var(--primary-color, #03a9f4); outline-offset: 1px;
+        }
+        /* The setup rows ring themselves with their own stroke rather than
+           an outline. An outline on an SVG rect is painted around the
+           element's box in the viewport, where the row's neighbours and the
+           diagram's edges cut it: the reporter saw a ring with only its top
+           and left sides left. A stroke is part of the drawing, so all four
+           sides are visible, and it is inset far enough (the rect stops 4
+           units short of the box and 1 unit short of each neighbouring row)
+           to stay clear of the contour and of the row above and below.
+           It is a :focus-visible rule, not :focus, so a mouse click leaves
+           no ring behind while a keyboard user keeps one. */
+        .setup-hit:focus-visible {
+          outline: none;
+          fill: var(--primary-color, #03a9f4); fill-opacity: 0.12;
+          stroke: var(--primary-color, #03a9f4); stroke-width: 2;
         }
         .headline {
           display: flex; flex-direction: column; gap: 2px;
@@ -5157,6 +5625,25 @@ class HeatpumpOptimizerCard extends HTMLElement {
       }
     }
     focus(svg);
+  }
+
+  /** Take focus off a setup row that no longer deserves it.
+   *
+   * The rows are focusable (`tabindex="0"`, `role="button"`) so the diagram
+   * can be assigned from the keyboard. The cost is that a pointer gesture
+   * can leave one focused with nothing on screen explaining why, and a
+   * click on the diagram's empty space does not reliably move focus off an
+   * SVG element -- which is how a ring survived a cancelled picker.
+   */
+  _blurSetupRow() {
+    const root = this.shadowRoot;
+    const active =
+      (root && root.activeElement) ||
+      (typeof document !== "undefined" ? document.activeElement : null);
+    if (!active || !active.classList || !active.classList.contains("setup-hit")) {
+      return;
+    }
+    if (typeof active.blur === "function") active.blur();
   }
 
   /** Focus the setup row the entity picker was opened from, once the picker
