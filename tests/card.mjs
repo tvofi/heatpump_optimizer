@@ -3919,5 +3919,184 @@ const setupBox = (card, place) =>
     outdoorGroup.slice(0, 160).replace(/\s+/g, " "));
 }
 
+// --- Scenario: the solar row's label and value never collide (item D) -------
+// With no radiation probe the plan still has irradiance -- from Open-Meteo
+// or from the weather forecast -- and the row says so: "123 W/m² ·
+// Open-Meteo", right-anchored in the same 200-unit row as its label. The
+// old rule sized the label by COUNTING CHARACTERS of the value ("longer
+// than 10 characters, allow the label 15"), which prices an "i" and a "W"
+// alike and never looked at the value's rendered width at all. On the
+// reporter's install the two strings ran through each other.
+//
+// Both strings are measured now. The value is priced first, the label gets
+// what is left, and only the LABEL is ever ellipsized -- when the label
+// would be squeezed below legibility the VALUE gives up its provenance tag
+// instead, never a digit of the reading.
+{
+  const INNER = vm.runInContext("SETUP_COL_W - 2 * SETUP_PAD", ctx);
+  const GAP = vm.runInContext("SETUP_ROW_GAP", ctx);
+  const MINLABEL = vm.runInContext("SETUP_MIN_LABEL_W", ctx);
+  const w = (s, bold) =>
+    vm.runInContext(`setupTextW(${JSON.stringify(s)}, 12, ${!!bold})`, ctx);
+  const fit = (label, alts) => vm.runInContext(
+    `fitSlotRow(${JSON.stringify(label)}, ${JSON.stringify(alts)}, ` +
+    `${INNER}, 12)`, ctx);
+  // Every spelling of the fallback the card can actually produce, at both
+  // ends of the reading's length, in both languages, plus the ordinary
+  // rows it shares the drawing with.
+  const cases = [
+    ["Solar radiation", ["1000 W/m² · Open-Meteo", "1000 W/m²"]],
+    ["Solar radiation", ["123 W/m² · Open-Meteo", "123 W/m²"]],
+    ["Solar radiation", ["0 W/m² · Open-Meteo", "0 W/m²"]],
+    ["Solar radiation", ["123 W/m² · weather forecast", "123 W/m²"]],
+    ["Solar radiation", ["1000 W/m² · weather forecast", "1000 W/m²"]],
+    ["Solinstrålning", ["1000 W/m² · väderprognos", "1000 W/m²"]],
+    ["Solinstrålning", ["1000 W/m² · Open-Meteo", "1000 W/m²"]],
+    ["Solar radiation", ["(not configured)"]],
+    ["Outdoor temperature", ["unavailable"]],
+    ["Lower floor temperature", ["21.3 °C"]],
+    ["Buffer tank temperature", ["47.5 °C"]],
+    ["Valve target", ["1000 W/m² · Open-Meteo", "1000 W/m²"]],
+    ["Hot water temperature",
+      ["a sensor whose state is a whole sentence about the weather"]],
+  ];
+  const collisions = [];
+  const cutReadings = [];
+  const rows = [];
+  for (const [label, alts] of cases) {
+    const f = fit(label, alts);
+    const lw = w(f.label, false);
+    const vw = w(f.value, true);
+    rows.push(`${JSON.stringify(label)} + ${JSON.stringify(alts[0])} -> ` +
+      `${lw.toFixed(1)}+${vw.toFixed(1)}=${(lw + vw).toFixed(1)}/${INNER}`);
+    if (lw + vw + GAP > INNER + 1e-9) {
+      collisions.push(`${label} | ${f.label} + ${f.value} = ` +
+        `${(lw + vw).toFixed(2)} > ${INNER - GAP}`);
+    }
+    // The reading itself is never cut. Whatever spelling the row settles
+    // on must still open with the same number the longest one did.
+    const num = /^[\d.]+/.exec(alts[0]);
+    if (num && !f.value.startsWith(num[0])) {
+      cutReadings.push(`${alts[0]} -> ${f.value}`);
+    }
+  }
+  check("no slot row's label and value can overlap, at any real length",
+    collisions.length === 0, collisions.join("; ") || rows.join("\n    "));
+  check("and the reading itself is never what gets cut",
+    cutReadings.length === 0, cutReadings.join("; "));
+
+  // The specific report: the longest fallback the card can write, beside
+  // the label it shares its row with.
+  const worst = fit("Solar radiation",
+    ["1000 W/m² · weather forecast", "1000 W/m²"]);
+  const worstL = w(worst.label, false);
+  const worstV = w(worst.value, true);
+  check("the longest real solar value leaves the label whole and legible",
+    worst.label === "Solar radiation" && worstL >= MINLABEL &&
+    worst.value === "1000 W/m²" && worst.shortened === true &&
+    worstL + worstV + GAP <= INNER,
+    `label ${JSON.stringify(worst.label)} (${worstL.toFixed(2)}u, minimum ` +
+    `${MINLABEL}) + value ${JSON.stringify(worst.value)} ` +
+    `(${worstV.toFixed(2)}u) = ${(worstL + worstV).toFixed(2)}u of ` +
+    `${INNER}, ${(INNER - worstL - worstV).toFixed(2)}u to spare`);
+  // ...and the tag it dropped is still reachable, so nothing is lost.
+  check("the dropped provenance tag is kept for the tooltip",
+    worst.full === "1000 W/m² · weather forecast", worst.full);
+
+  // The old rule, priced with the same metrics, on the same strings: this
+  // is the collision the owner reported, in viewBox units. The old row was
+  // 180 units wide (x+10 to x+190).
+  const oldRow = (label, value) => {
+    const room = value.length > 10 ? 15 : 19;
+    const lab = label.length > room ? label.slice(0, room - 1) + "…" : label;
+    return w(lab, false) + w(value, true) - 180;
+  };
+  const oldOverlaps = [
+    ["Solar radiation", "1000 W/m² · Open-Meteo"],
+    ["Solar radiation", "123 W/m² · Open-Meteo"],
+    ["Solar radiation", "1000 W/m² · weather forecast"],
+    ["Solinstrålning", "1000 W/m² · väderprognos"],
+  ].map(([l, v]) => `${JSON.stringify(v)} overran by ` +
+    `${oldRow(l, v).toFixed(2)}u`);
+  check("the rule this replaced really did overlap on these very strings",
+    oldRow("Solar radiation", "1000 W/m² · Open-Meteo") > 40 &&
+    oldRow("Solar radiation", "123 W/m² · Open-Meteo") > 30 &&
+    oldRow("Solar radiation", "1000 W/m² · weather forecast") > 60 &&
+    oldRow("Solinstrålning", "1000 W/m² · väderprognos") > 40,
+    oldOverlaps.join("; "));
+
+  // A short label keeps a long value whole: the label only ever asks for
+  // the room it actually needs, so the tag is not dropped out of habit.
+  // (At 138.65u the tag is a near thing -- "Sun" reserves 21.6u and the row
+  // has 138.4u to give -- which is exactly why this is measured and not
+  // counted.)
+  const roomy = fit("Sun", ["0 W/m² · Open-Meteo", "0 W/m²"]);
+  check("a short label lets the value keep its source tag",
+    roomy.label === "Sun" && roomy.value === "0 W/m² · Open-Meteo" &&
+    roomy.shortened === false &&
+    w(roomy.label, false) + w(roomy.value, true) + GAP <= INNER,
+    `${JSON.stringify(roomy.label)} + ${JSON.stringify(roomy.value)} = ` +
+    `${(w(roomy.label, false) + w(roomy.value, true)).toFixed(2)}u`);
+  // The invariant behind that: a shorter label never costs the value room.
+  const alts = ["123 W/m² · Open-Meteo", "123 W/m²"];
+  const short = fit("Sun", alts);
+  const long = fit("Solar radiation", alts);
+  check("a shorter label never buys the value less room",
+    w(short.value, true) >= w(long.value, true),
+    `"Sun" keeps ${JSON.stringify(short.value)}, ` +
+    `"Solar radiation" keeps ${JSON.stringify(long.value)}`);
+  // An ellipsis is only ever spent when it buys something, and it never
+  // leaves a dangling separator behind it.
+  check("a label that fits is left exactly alone",
+    fit("Valve target", ["21.3 °C"]).label === "Valve target" &&
+    !/[\s·-]…$/.test(fit("Lower floor temperature", ["21.3 °C"]).label),
+    fit("Lower floor temperature", ["21.3 °C"]).label);
+
+  // ...and the whole thing again on the real drawing, which is where the
+  // report came from: a solar slot with no probe, falling back to
+  // Open-Meteo, rendered beside its label.
+  const solarTopo = setupTopo();
+  solarTopo.slots = solarTopo.slots.concat([{
+    key: "solar_radiation_entity", label: "Solar radiation",
+    place: "outdoor", entity: null, domains: SETUP_TEMP }]);
+  // The harness already publishes an Open-Meteo irradiance sensor; drive it
+  // to the widest reading the fallback can ever print.
+  const solarStates = {};
+  solarStates[SOLAR_ID] = {
+    state: "1000",
+    attributes: { forecast: solarForecast, source: "open_meteo",
+      friendly_name: "Solar Irradiance", plan_kind: "solar",
+      unit_of_measurement: "W/m²" },
+  };
+  const page = setupPage(solarTopo, solarStates);
+  const row = new RegExp(
+    '<text class="setup-slot[^"]*" x="([\\d.]+)" y="[\\d.]+">\\s*' +
+    '<tspan>([^<]*)</tspan>\\s*<tspan class="setup-value" x="([\\d.]+)"\\s*' +
+    'text-anchor="end">([^<]*)</tspan></text>\\s*' +
+    '<rect class="setup-hit" data-key="solar_radiation_entity"[^>]*' +
+    'aria-label="([^"]*)"').exec(page);
+  check("the drawing really does fall back to Open-Meteo for irradiance",
+    !!row && /W\/m²/.test(row[4]), row ? row[4] : "no solar row drawn");
+  if (row) {
+    const labelX = Number(row[1]);
+    const valueEnd = Number(row[3]);
+    const lw = w(row[2], false);
+    const vw = w(row[4], true);
+    check("on the page, the solar label ends before its value begins",
+      labelX + lw <= valueEnd - vw,
+      `label ${JSON.stringify(row[2])} runs x${labelX}..` +
+      `${(labelX + lw).toFixed(2)}; value ${JSON.stringify(row[4])} runs ` +
+      `x${(valueEnd - vw).toFixed(2)}..${valueEnd}; ` +
+      `${(valueEnd - vw - labelX - lw).toFixed(2)}u between them`);
+    check("the label is the whole label, not a truncation",
+      row[2] === "Solar radiation", row[2]);
+    // Nothing is lost by shortening: the row's accessible name and tooltip
+    // still carry the reading with its provenance.
+    check("and the row still says where the number came from, out loud",
+      /1000 W\/m² · Open-Meteo/.test(row[5]) && row[4] === "1000 W/m²",
+      `drawn ${JSON.stringify(row[4])}, spoken ${JSON.stringify(row[5])}`);
+  }
+}
+
 console.log(fails ? `\n${fails} CARD CHECK(S) FAILED` : "\nALL CARD CHECKS PASSED");
 process.exit(fails?1:0);
