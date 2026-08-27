@@ -4186,17 +4186,38 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         """
         if self._external_heat_active:
             return "external_heat_source"
-        # Staleness outranks ventilation deliberately: the heat-loss
+        # An unusable input outranks ventilation deliberately: the heat-loss
         # learner treats "ventilation" as a pass-through to keep feeding
-        # the detector, and a stale flatline fed through that pass would
-        # drive the very detector that froze everything. With stale
-        # first, the latch simply holds until real data returns.
+        # the detector, and a flatline fed through that pass would
+        # drive the very detector that froze everything. With the input
+        # check first, the latch simply holds until real data returns.
+        #
+        # v5.1.3: this used to freeze only on ``stale``. Every other
+        # unusable-input problem — ``unavailable``, ``missing_entity``,
+        # ``not_numeric``, ``unknown_unit`` — left the learners running.
+        # That mattered because ``_update_current_state`` deliberately PINS
+        # the last good value when a read fails (there is no ``else`` on
+        # those branches, by design: the planner is better off steering from
+        # the last known room temperature than from nothing). Pinning is
+        # right for the *input*; it is fatal for a *learner*, which then
+        # reads a frozen number as thermal behaviour and persists the
+        # result. A flat battery or a dropped Zigbee sensor walked the house
+        # heat-loss scale from 1.0 to ~0.37 inside 48 h, saved every 10
+        # samples, and the corruption outlived the sensor outage by weeks.
+        # So: freeze on ANY unusable reading. The pinning in
+        # ``_update_current_state`` is untouched and intentional — this
+        # bounds only what the learners may do with a pinned value.
+        #
+        # ``reading.entity_id`` is the load-bearing half of the predicate: a
+        # slot the user never configured reads as ``not_configured`` with no
+        # entity, and must NOT freeze learning — otherwise every install
+        # without an optional sensor would never learn anything.
         health = self._input_health
         if health is not None:
             for key in keys:
                 reading = health.readings.get(key)
-                if reading is not None and reading.stale:
-                    return f"stale:{key}"
+                if reading is not None and reading.entity_id and not reading.ok:
+                    return f"{reading.problem}:{key}"
         # #26: training on an open window teaches a phantom heat loss the
         # house does not have — measured in °C-scale residuals, far above
         # any learning signal.

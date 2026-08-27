@@ -39,7 +39,12 @@ from heatpump_optimizer.external_heat import (
     ExternalHeatDetector,
     ExternalHeatObservation,
 )
-from heatpump_optimizer.inputs import InputReader, normalize_power_kw, stale_summary
+from heatpump_optimizer.inputs import (
+    InputReader,
+    InputReading,
+    normalize_power_kw,
+    stale_summary,
+)
 from heatpump_optimizer.price_model import (
     PriceShapeModel,
     extend_price_series,
@@ -6666,12 +6671,21 @@ R.check(
 )
 
 # While a stale sensor is what feeds the residual, the detector must not
-# be driven by the flatline: staleness outranks ventilation, so the latch
-# simply holds until real data returns.
+# be driven by the flatline: an unusable input outranks ventilation, so the
+# latch simply holds until real data returns. Real ``InputReading`` objects,
+# not namespaces: the predicate reads ``entity_id``/``ok``/``problem``, and a
+# hand-rolled stub can satisfy a predicate the real dataclass would not.
 _cs11 = _vent_coord()
 _cs11._vent_cusum.tripped = True
 _cs11._input_health = _NS(
-    readings={"indoor_temp_entity": _NS(stale=True)}
+    readings={
+        "indoor_temp_entity": InputReading(
+            key="indoor_temp_entity",
+            entity_id="sensor.indoor",
+            value=21.0,
+            problem="stale",
+        )
+    }
 )
 R.check(
     "a stale sensor outranks the ventilation freeze for the feed path",
@@ -6679,6 +6693,36 @@ R.check(
     and _cs11._learning_frozen() == "ventilation",
     "a dead battery's flatline must not drive the very detector that "
     "froze everything",
+)
+# v5.1.3: and so does every other unusable problem, while a slot the user
+# never configured stays out of the way entirely.
+_cs11._input_health = _NS(
+    readings={
+        "indoor_temp_entity": InputReading(
+            key="indoor_temp_entity",
+            entity_id="sensor.indoor",
+            problem="unavailable",
+        )
+    }
+)
+R.check(
+    "an unavailable sensor outranks the ventilation freeze the same way",
+    _cs11._learning_frozen("indoor_temp_entity")
+    == "unavailable:indoor_temp_entity",
+    f"got {_cs11._learning_frozen('indoor_temp_entity')!r}",
+)
+_cs11._input_health = _NS(
+    readings={
+        "dhw_temp_entity": InputReading(
+            key="dhw_temp_entity", entity_id=None, problem="not_configured"
+        )
+    }
+)
+R.check(
+    "an unconfigured slot never freezes learning",
+    _cs11._learning_frozen("dhw_temp_entity") == "ventilation",
+    "only the ventilation latch may speak here; a missing optional sensor "
+    "must not stop every learner on every install that lacks it",
 )
 
 # The gated relax rides the same snapshot-and-unwind envelope as the away
@@ -10799,5 +10843,156 @@ R.check(
     _ho_new._reload_handover is None and not _ho_new._skip_solve_once,
 )
 _asyncio.run(_integ.async_unload_entry(_ho_hass, _ho_entry))
+
+R.section("v5.1.3 — an unusable sensor freezes the learners, not just a quiet one")
+
+# The rank-1 finding of the second audit. `_learning_frozen` froze only on
+# `problem == "stale"`. Every other unusable-input condition — `unavailable`
+# (a flat battery, a Zigbee dropout), `missing_entity` (an entity renamed or
+# removed), `not_numeric` (a sensor reporting a word) — left the learners
+# running, and `_update_current_state` deliberately PINS the last good value
+# on those branches. So the house learner spent the outage regressing against
+# a number that had not moved since the sensor died, and persisted the result
+# every 10 samples. Measured before the fix: 1.0 -> 0.57 at 24 h -> 0.3737 at
+# 48 h, surviving restarts and outliving the outage by weeks.
+#
+# This drives the REAL path: `_update_current_state` reads real fake states
+# through the real `InputReader` and calls the real learners at its foot.
+# Nothing is stubbed but the clock and the weather.
+
+_LF_T0 = datetime(2025, 1, 10, 0, 0, tzinfo=UTC)
+
+
+def _lf_broken_state(condition, t):
+    """The indoor sensor as this condition presents it at wall-clock ``t``."""
+    if condition == "healthy":
+        # A live sensor that actually moves — so "the scale moved" cannot be
+        # passing because a flatline happens to look like one.
+        return FakeState(f"{21.0 + 0.4 * np.sin(t.hour / 3.0):.2f}",
+                         unit="°C", last_updated=t)
+    if condition == "stale":
+        # Still reporting a perfectly valid number, just 12 hours old.
+        return FakeState("21.0", unit="°C", last_updated=t - timedelta(hours=12))
+    if condition == "unavailable":
+        return FakeState("unavailable", unit="°C", last_updated=t)
+    if condition == "missing_entity":
+        return None
+    if condition == "not_numeric":
+        return FakeState("warm", unit="°C", last_updated=t)
+    raise AssertionError(condition)
+
+
+def _lf_drive(condition, cycles=96):
+    """96 half-hour cycles (48 h) at -8 °C outdoors. Returns the coordinator."""
+    import homeassistant.util.dt as _lf_dt
+
+    hass = _FakeHass(
+        {
+            "sensor.indoor": FakeState("21.0", unit="°C", last_updated=_LF_T0),
+            "sensor.outdoor": FakeState("-8.0", unit="°C", last_updated=_LF_T0),
+        }
+    )
+    coord = Coord(
+        hass,
+        _FakeEntry(
+            data={
+                "tibber_token": "x",
+                "weather_entity": "weather.home",
+                "indoor_temp_entity": "sensor.indoor",
+                "outdoor_temp_entity": "sensor.outdoor",
+            }
+        ),
+    )
+    coord._current_action = {"power": 2.0}
+    coord._current_weather = lambda: (0.0, 0.0)
+    real_now, real_utcnow = _lf_dt.now, _lf_dt.utcnow
+    try:
+        for i in range(cycles):
+            t = _LF_T0 + timedelta(minutes=30 * i)
+            _lf_dt.now = lambda t=t: t
+            _lf_dt.utcnow = lambda t=t: t
+            state = _lf_broken_state(condition, t)
+            if state is None:
+                hass.states._states.pop("sensor.indoor", None)
+            else:
+                hass.states.set("sensor.indoor", state)
+            # The outdoor sensor stays healthy throughout, or a freeze would
+            # prove nothing about the indoor one.
+            hass.states.set(
+                "sensor.outdoor", FakeState("-8.0", unit="°C", last_updated=t)
+            )
+            _asyncio.run(coord._update_current_state())
+    finally:
+        _lf_dt.now, _lf_dt.utcnow = real_now, real_utcnow
+    return coord
+
+
+# The control first: with the fix in place the learners must still LEARN.
+# A freeze predicate that fires on everything would pass all four cases below
+# and be a silent regression — every install would stop learning forever.
+_lf_ok = _lf_drive("healthy")
+R.check(
+    "a healthy 48 h still moves the house heat-loss scale",
+    _lf_ok._house_heat_loss_scale != 1.0 and _lf_ok._house_heat_loss_samples > 50,
+    f"scale {_lf_ok._house_heat_loss_scale:.4f}, "
+    f"{_lf_ok._house_heat_loss_samples} samples",
+)
+R.check(
+    "and nothing reports a freeze reason on that run",
+    _lf_ok._learner_freeze_reason is None,
+    f"got {_lf_ok._learner_freeze_reason!r}",
+)
+
+for _lf_cond in ("stale", "unavailable", "missing_entity", "not_numeric"):
+    _lf_c = _lf_drive(_lf_cond)
+    R.check(
+        f"48 h with an indoor sensor that is {_lf_cond} leaves the scale at 1.0",
+        _lf_c._house_heat_loss_scale == 1.0,
+        f"scale walked to {_lf_c._house_heat_loss_scale:.4f} over "
+        f"{_lf_c._house_heat_loss_samples} samples",
+    )
+    R.check(
+        f"no heat-loss sample is taken at all while {_lf_cond}",
+        _lf_c._house_heat_loss_samples == 0,
+        f"{_lf_c._house_heat_loss_samples} samples",
+    )
+    R.check(
+        f"and the freeze reason names both the condition and the key ({_lf_cond})",
+        _lf_c._learner_freeze_reason == f"{_lf_cond}:indoor_temp_entity",
+        f"got {_lf_c._learner_freeze_reason!r}",
+    )
+
+# The three other consumers of the same predicate, checked on a coordinator
+# whose indoor sensor is unavailable rather than stale — the case that used to
+# slip through all four.
+_lf_u = _lf_drive("unavailable", cycles=2)
+R.check(
+    "the input-health gate on the drift watchdog sees it too",
+    not _lf_u._inputs_healthy(),
+    "an unavailable sensor must suppress a drift alarm exactly as a stale "
+    "one does, or the watchdog rolls back learners the sensor broke",
+)
+R.check(
+    "the curve comfort tracker's gate sees it",
+    _lf_u._learning_frozen("indoor_temp_entity") is not None,
+    "a pinned +1 K reads as 'comfortable' and biases the standing ECL "
+    "displace down",
+)
+R.check(
+    "the lead-prediction scorer's gate sees it",
+    _lf_u._learning_frozen("indoor_temp_entity")
+    == "unavailable:indoor_temp_entity",
+    f"got {_lf_u._learning_frozen('indoor_temp_entity')!r}",
+)
+
+# The pinning itself is deliberate and out of scope: the planner is better off
+# steering from the last known room temperature than from nothing. This pins
+# that contract so a later change cannot "fix" the wrong half.
+R.check(
+    "the pinned input is left exactly as it was — this PR bounds the learners "
+    "only",
+    _lf_u._current_state.room_temperature == 21.0,
+    f"room temperature {_lf_u._current_state.room_temperature}",
+)
 
 sys.exit(R.close("FEATURE CHECKS"))
