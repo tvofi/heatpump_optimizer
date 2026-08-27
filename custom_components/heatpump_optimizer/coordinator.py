@@ -1004,6 +1004,18 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
         # --- Closed-loop accuracy (item 11) --------------------------------
         self._accuracy = AccuracyTracker()
+        # v5.2.0: the same machinery, keyed to the hot-water tank instead of
+        # the room. A SECOND INSTANCE rather than a per-channel key threaded
+        # through AccuracyTracker: the lead-time record is already
+        # self-contained (file a promise, score it when it matures, ask
+        # sigma), so a separate tracker reuses the bucketing, the admission
+        # window, the EWMA rate and the persistence format exactly as
+        # written, and adds no branch to any of them. Only its lead record
+        # is fed — the one-step `samples` deque stays empty, because the
+        # tank has no realised power or cost column of its own to settle,
+        # and `trust()`/`temperature_mae()` are the room model's judgement,
+        # not the tank's.
+        self._dhw_accuracy = AccuracyTracker()
         self._pending_prediction: dict[str, Any] | None = None
         self._accuracy_store: Store = Store(
             hass,
@@ -3866,8 +3878,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             # The plan stops being what runs, so its unmatured promises
             # (T5 #16) are void: scoring them against a room now driven by
             # fixed-rule comfort/boost/off would charge the model with
-            # errors it never made.
+            # errors it never made. The tank's promises are void for the
+            # same reason: comfort/boost/off charge it on their own rules.
             self._accuracy.lead_pending.clear()
+            self._dhw_accuracy.lead_pending.clear()
         _LOGGER.info("Operation mode set to: %s", mode)
         await self.async_request_refresh()
 
@@ -5929,6 +5943,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if not stored:
             return
         self._accuracy = AccuracyTracker.from_dict(stored.get("accuracy"))
+        # v5.2.0, additive key. A store written by an older build has no
+        # "dhw_accuracy"; `from_dict(None)` answers an empty tracker and the
+        # band simply stays absent until the record fills. In the other
+        # direction an older build ignores a key it never reads, so a
+        # downgrade loads this store without error too.
+        self._dhw_accuracy = AccuracyTracker.from_dict(
+            stored.get("dhw_accuracy")
+        )
         self._defrost = DefrostDerate.from_dict(stored.get("defrost"))
         self._thermal_params.defrost_derate = self._defrost
         self._peak_tracker = PeakTracker.from_dict(stored.get("peaks"))
@@ -5967,6 +5989,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 self._accuracy_store,
                 {
                     "accuracy": self._accuracy.as_dict(),
+                    # v5.2.0: the tank's lead record, alongside the room's
+                    # rather than inside it.
+                    "dhw_accuracy": self._dhw_accuracy.as_dict(),
                     "defrost": self._defrost.as_dict(),
                     "peaks": self._peak_tracker.as_dict(),
                     "comfort": self._comfort_learner.as_dict(),
@@ -7711,20 +7736,30 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # coarser configured interval starves forever. A stale or frozen
         # indoor sensor scores nothing: a frozen reading is not a
         # measurement, and an EWMA poisoned by one persists for weeks.
+        interval_h = (
+            _as_float(
+                self._config.get(CONF_OPTIMIZATION_INTERVAL),
+                DEFAULT_OPTIMIZATION_INTERVAL,
+            )
+            / 60.0
+        )
         actual_now = self._current_state.room_temperature
         if (
             actual_now is not None
             and self._learning_frozen(CONF_INDOOR_TEMP_ENTITY) is None
         ):
-            interval_h = (
-                _as_float(
-                    self._config.get(CONF_OPTIMIZATION_INTERVAL),
-                    DEFAULT_OPTIMIZATION_INTERVAL,
-                )
-                / 60.0
-            )
             self._accuracy.score_lead_predictions(
                 now, float(actual_now), window_hours=interval_h
+            )
+
+        # v5.2.0: and the same settlement for the hot-water tank, against
+        # the measured probe. `_dhw_probe_temperature` carries the whole
+        # gate — configured, read, usable this interval — so a house with
+        # no tank probe scores nothing and its band never appears.
+        dhw_now = self._dhw_probe_temperature()
+        if dhw_now is not None:
+            self._dhw_accuracy.score_lead_predictions(
+                now, dhw_now, window_hours=interval_h
             )
 
         if pending is not None:
@@ -7857,6 +7892,65 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             "diag": self._capture_diagnosis_inputs(),
         }
 
+    def _dhw_probe_temperature(self) -> float | None:
+        """The tank's MEASURED temperature, or ``None`` when there is none.
+
+        ``_current_state.dhw_temperature`` cannot answer this. It carries a
+        55 °C modelling default, and ``_update_current_state`` deliberately
+        PINS the last good value when a read fails, so on a house with no
+        tank probe it reads as a perfectly steady 55 °C — which would train
+        the hot-water record on a constant and draw a confidence band around
+        a measurement that does not exist.
+
+        Three gates, in order: the entity must be configured at all (an
+        unconfigured slot must never freeze anything, which is why
+        ``_learning_frozen`` alone is not enough); a value must have been
+        read at least once; and this interval must not be one the learners
+        would refuse. That last gate is the v5.1.3 discipline — freeze on ANY
+        unusable configured input, not only a stale one — reached through the
+        same predicate ``_async_learn_dhw_dynamics`` uses, so the accuracy
+        record and the tank's own learners admit exactly the same intervals.
+        """
+        if not self._config.get(CONF_DHW_TEMP_ENTITY):
+            return None
+        raw = self._dhw_temperature
+        if raw is None:
+            return None
+        try:
+            value = float(raw)
+        except (TypeError, ValueError):
+            return None
+        if not np.isfinite(value):
+            return None
+        if self._learning_frozen(CONF_DHW_TEMP_ENTITY) is not None:
+            return None
+        return value
+
+    def _file_dhw_lead_predictions(
+        self, result, solve_time: datetime, dt_h: float
+    ) -> None:
+        """v5.2.0: the plan's tank-temperature promises, per lead bucket.
+
+        Gated on a usable probe at FILING time as well as at scoring time.
+        A promise filed while the tank is unmeasured could only ever be
+        settled against the model's own default, which would teach the
+        record that the model is flawless and draw a hairline band on a
+        house that has no evidence at all.
+        """
+        if self._dhw_probe_temperature() is None:
+            return
+        trajectory = result.dhw_temp_trajectory
+        if not trajectory:
+            return
+        for lead in LEAD_BUCKETS:
+            idx = int(round(lead / dt_h))
+            if 0 < idx < len(trajectory):
+                self._dhw_accuracy.note_lead_prediction(
+                    solve_time + timedelta(hours=lead),
+                    lead,
+                    float(trajectory[idx]),
+                )
+
     def _file_lead_predictions(self, result, solve_time: datetime) -> None:
         """T5 #16: file the plan's room-temperature promises per lead bucket.
 
@@ -7873,7 +7967,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             # and any already on file were made by a plan the experiment
             # is about to override.
             self._accuracy.lead_pending.clear()
+            self._dhw_accuracy.lead_pending.clear()
             return
+        dt_h = max(self._opt_config.time_step_minutes, 1.0) / 60.0
+        # Filed first, so a plan with no room trajectory to promise about
+        # (the early return below) does not also silence the tank's record.
+        self._file_dhw_lead_predictions(result, solve_time, dt_h)
         trajectory = (
             result.upper_temp_trajectory
             if self._thermal_params.two_zone_enabled
@@ -7882,7 +7981,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         )
         if not trajectory:
             return
-        dt_h = max(self._opt_config.time_step_minutes, 1.0) / 60.0
         for lead in LEAD_BUCKETS:
             idx = int(round(lead / dt_h))
             if 0 < idx < len(trajectory):
