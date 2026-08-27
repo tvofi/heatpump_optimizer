@@ -410,6 +410,14 @@ RANGE_ZONE_THERMAL_MASS: Final = (0.25, 60.0)
 RANGE_ZONE_HEAT_LOSS: Final = (0.001, 1.0)
 
 
+# The error a page reports on a field whose stored value sits outside that
+# field's nominal range. Raised when the form is *shown*, not when it is
+# submitted: the value is already on disk, so the user has to be told before
+# they press anything — and the whole point of a nominal range is that
+# leaving it is worth noticing.
+ERROR_STORED_VALUE_OUT_OF_RANGE: Final = "stored_value_out_of_range"
+
+
 def _prefilled_values(marker: Any) -> list[Any]:
     """What the frontend will put in this field before the user touches it.
 
@@ -518,6 +526,12 @@ class _StoredValuesAlwaysFit:
     reach it, and the stored value need not have come from this integration's
     own forms (``apply_schedule`` and the climate entity both write config
     keys straight into the entry's options, with their own wider limits).
+
+    The widening is deliberately paired with an error on the same field. A
+    form that silently accepts an implausible number teaches the user
+    nothing, and the failure this exists to end was invisible: the page
+    simply did not save. Whatever else happens, the user must be told which
+    field is odd and why.
     """
 
     @callback
@@ -526,6 +540,13 @@ class _StoredValuesAlwaysFit:
         fitted, widened = _fit_stored_values(kwargs.get("data_schema"))
         if widened:
             kwargs["data_schema"] = fitted
+            errors = dict(kwargs.get("errors") or {})
+            for field in widened:
+                # A real validation error on the same field wins: it is about
+                # what the user just typed, which is more urgent than a value
+                # that has been sitting on disk for months.
+                errors.setdefault(field, ERROR_STORED_VALUE_OUT_OF_RANGE)
+            kwargs["errors"] = errors
         return super().async_show_form(**kwargs)
 
 

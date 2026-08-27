@@ -209,7 +209,8 @@
       "max_below_target": "Högsta temperaturen ligger under måltemperaturen.",
       "night_above_day": "Nattemperaturen ligger över dagtemperaturen.",
       "day_window_empty": "Dagen skulle sluta innan den börjar, så ingen dagperiod blir kvar alls.",
-      "min_power_above_max": "Värmepumpens lägsta effekt ligger över dess högsta."
+      "min_power_above_max": "Värmepumpens lägsta effekt ligger över dess högsta.",
+      "stored_value_out_of_range": "Det här värdet ligger utanför det intervall fältet normalt godtar. Intervallet har vidgats så att sidan ändå går att spara – kontrollera värdet och ändra det om det ser fel ut."
     },
     "abort": {
       "already_configured": "Den här integrationen är redan konfigurerad."
@@ -664,7 +665,8 @@
       "max_below_target": "Högsta temperaturen ligger under måltemperaturen.",
       "night_above_day": "Nattemperaturen ligger över dagtemperaturen.",
       "day_window_empty": "Dagen skulle sluta innan den börjar, så ingen dagperiod blir kvar alls.",
-      "min_power_above_max": "Värmepumpens lägsta effekt ligger över dess högsta."
+      "min_power_above_max": "Värmepumpens lägsta effekt ligger över dess högsta.",
+      "stored_value_out_of_range": "Det här värdet ligger utanför det intervall fältet normalt godtar. Intervallet har vidgats så att sidan ändå går att spara – kontrollera värdet och ändra det om det ser fel ut."
     }
   },
   "selector": {

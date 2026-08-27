@@ -1424,6 +1424,20 @@ R.check(
     str(_wide[const.CONF_SLAB_THERMAL_MASS]),
 )
 R.check(
+    "the widened field is named to the user, not silently patched",
+    _wide_form.get("errors", {}).get(const.CONF_SLAB_THERMAL_MASS)
+    == config_flow.ERROR_STORED_VALUE_OUT_OF_RANGE,
+    f"a page that quietly accepts an odd value teaches nothing: "
+    f"{_wide_form.get('errors')}",
+)
+_clean_form = asyncio.run(_nominal_flow.async_step_thermal_model(None))
+R.check(
+    "a page with nothing out of range reports no error at all",
+    not _clean_form.get("errors"),
+    f"an error on a page with nothing wrong would cry wolf: "
+    f"{_clean_form.get('errors')}",
+)
+R.check(
     "and no other field on the page moves",
     {k: v for k, v in _wide.items() if k != const.CONF_SLAB_THERMAL_MASS}
     == {k: v for k, v in _NOMINAL.items() if k != const.CONF_SLAB_THERMAL_MASS},
@@ -1484,6 +1498,23 @@ for name, data in files.items():
         f"{name}.json matches strings.json exactly",
         not diff,
         ", ".join(sorted(diff)[:6]),
+    )
+
+# The stored-value warning is rendered on a form the user merely opened, so
+# an untranslated one is especially visible. It has to exist for both flows —
+# the widening applies to initial setup as well — and be a real translation.
+_warning = config_flow.ERROR_STORED_VALUE_OUT_OF_RANGE
+for _flow_name in ("config", "options"):
+    R.check(
+        f"the out-of-range warning has a {_flow_name} message",
+        strings[_flow_name]["error"].get(_warning),
+        "a missing error string renders as the raw key",
+    )
+    R.check(
+        f"and the Swedish {_flow_name} message is actually translated",
+        files["sv"][_flow_name]["error"].get(_warning)
+        not in (None, files["en"][_flow_name]["error"].get(_warning)),
+        "placeholder English left in a translation is worse than no translation",
     )
 
 menu = strings["options"]["step"]["init"]["menu_options"]
