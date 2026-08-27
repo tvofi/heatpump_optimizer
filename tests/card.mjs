@@ -5217,6 +5217,54 @@ const setupBox = (card, place) =>
     !/expected error/.test(hoverHidden) &&
     !/DHW tank temperature:/.test(hoverHidden), hoverHidden);
 
+  // --- the legend toggle --------------------------------------------------
+  //
+  // The band belongs to the tank series rather than being a series of its
+  // own, so the one chip governs all three lines -- exactly as the room's
+  // chip governs its two floors. A dashed pair that outlived its own toggle
+  // would be two lines nobody can turn off.
+  const chipFor = (c, key) =>
+    [...c.shadowRoot.querySelectorAll(".chip")]
+      .find((el) => el.getAttribute("data-key") === key);
+  // `_onLegendClick` reads `currentTarget`, which the stub's dispatch does
+  // not set, so the handler is called directly with the chip as its target.
+  const clickChip = (c, key) => {
+    const el = chipFor(c, key);
+    for (const f of el._listeners.click || []) {
+      f({ currentTarget: el, stopPropagation() {}, preventDefault() {} });
+    }
+    return collect(c.shadowRoot).join("\n");
+  };
+  const roomDashedIn = (dump) =>
+    [...dump.matchAll(/<path class="series" data-key="house_temp"[^>]*>/g)]
+      .map((m) => m[0]).filter((x) => /stroke-dasharray/.test(x));
+
+  const toggled = mkCard(null);
+  const hiddenDump = clickChip(toggled.card, "dhw_temp");
+  check("turning the tank series off takes its band with it",
+    dhwPaths(hiddenDump).length === 0,
+    `${dhwPaths(hiddenDump).length} dhw_temp paths after the toggle`);
+  check("and the chip reads as off, band and all",
+    /class="chip off" data-key="dhw_temp"/.test(hiddenDump),
+    (hiddenDump.match(/class="chip[^"]*" data-key="dhw_temp"/) || [""])[0]);
+  check("while the room's own dashed pair is untouched -- one chip, one series",
+    roomDashedIn(hiddenDump).length === 2,
+    `${roomDashedIn(hiddenDump).length} dashed house_temp paths`);
+  const backDump = clickChip(toggled.card, "dhw_temp");
+  check("and turning it back on restores the curve and both band edges",
+    dhwPaths(backDump).length === 3 && dashed(dhwPaths(backDump)).length === 2,
+    `${dhwPaths(backDump).length} dhw_temp paths, `
+    + `${dashed(dhwPaths(backDump)).length} dashed`);
+  const hoverHidden = (() => {
+    clickChip(toggled.card, "dhw_temp");
+    const tt = hover(toggled.card);
+    clickChip(toggled.card, "dhw_temp");
+    return tt;
+  })();
+  check("a hidden tank series contributes no band row to the tooltip either",
+    !/expected error/.test(hoverHidden) &&
+    !/DHW tank temperature:/.test(hoverHidden), hoverHidden);
+
   // Swedish: both dictionaries carry the new keys, or the band is explained
   // to half the users only.
   const sv = mkCard(null, "sv-SE");
