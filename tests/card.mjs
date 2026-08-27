@@ -140,6 +140,10 @@ class Node {
   // render-destroying keyboard actions, and the assertion is simply "who
   // received the last .focus() call".
   focus(){ document.activeElement = this; }
+  // ...and gives it up again. The card takes focus off a setup row that a
+  // pointer gesture left holding it (item F), which is only observable if
+  // the stub models letting go as well as taking hold.
+  blur(){ if (document.activeElement === this) document.activeElement = document.body; }
 }
 // Selector support: a tag name, a class, an attribute, or a tag+attribute
 // pair, which covers everything the card actually queries for.
@@ -3403,6 +3407,1126 @@ function ctxL(card, key) {
     document.activeElement.dataset.key === "indoor_temp_entity",
     document.activeElement &&
       `${document.activeElement.tagName} class=${document.activeElement.className}`);
+}
+
+// --- Shared rig for the v5.1.4 setup-page scenarios (items A-F) -------------
+// One topology with every box kind the reports touch: an open outdoor node,
+// the heat-pump cabinet, a wood tank, a valve, two zones. Built here rather
+// than reusing the layout editor's rig above, which is scoped to its own
+// block and carries a catalog these scenarios have no use for.
+const SETUP_TEMP = ["sensor", "number", "input_number"];
+const setupTopo = (over) => ({
+  two_zone: true, dhw: false, valve_mode: "manual",
+  layout: "valve_upper_direct_slab", two_tank_modelled: false,
+  buffer: { volume_l: 500, is_store: true, max_temp: 65 },
+  wood: { present: true, volume_l: 750 },
+  edges: [
+    ["heat_pump", "buffer_tank"],
+    ["buffer_tank", "mixing_valve"],
+    ["mixing_valve", "upper_zone"],
+    ["mixing_valve", "lower_zone"],
+    ["wood_tank", "buffer_tank"],
+  ],
+  positions: {},
+  slots: [
+    { key: "indoor_temp_entity", label: "Indoor temperature",
+      place: "upper_zone", entity: "sensor.livingroom", domains: SETUP_TEMP },
+    { key: "lower_floor_temp_entity", label: "Lower floor temperature",
+      place: "lower_zone", entity: null, domains: SETUP_TEMP },
+    { key: "buffer_tank_temp_entity", label: "Buffer tank temperature",
+      place: "buffer_tank", entity: "sensor.tank", domains: SETUP_TEMP },
+    { key: "wood_tank_top_entity", label: "Wood tank top",
+      place: "wood_tank", entity: null, domains: SETUP_TEMP },
+    { key: "mixing_valve_target_entity", label: "Valve target",
+      place: "mixing_valve", entity: null, domains: SETUP_TEMP },
+    { key: "outdoor_temp_entity", label: "Outdoor temperature",
+      place: "outdoor", entity: "sensor.outside", domains: SETUP_TEMP },
+    { key: "heat_pump_switch_entity", label: "Heat pump switch",
+      place: "heat_pump", entity: null,
+      domains: ["switch", "input_boolean", "climate"] },
+  ],
+  ...(over || {}),
+});
+function mkSetup(over, extraStates) {
+  const states = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  states[DEFAULT_SPACE].attributes.setup_topology = setupTopo(over);
+  states["sensor.livingroom"] = {
+    state: "21.3", attributes: { unit_of_measurement: "°C",
+      friendly_name: "Living room" } };
+  states["sensor.tank"] = {
+    state: "47.5", attributes: { unit_of_measurement: "°C",
+      friendly_name: "Buffer tank" } };
+  states["sensor.outside"] = {
+    state: "3.0", attributes: { unit_of_measurement: "°C",
+      friendly_name: "Outside" } };
+  Object.assign(states, extraStates || {});
+  const c = build(states);
+  c._onCardClick({});
+  c._dialogPage = "setup";
+  c._render();
+  return c;
+}
+const setupPage = (over, extraStates) =>
+  collect(mkSetup(over, extraStates).shadowRoot).join("\n");
+const setupBox = (card, place) =>
+  (card._layoutBoxes || []).find((b) => b.place === place);
+
+// --- Scenario: the heat pump lost its louvres (item A, v5.1.4) --------------
+// Two horizontal strokes used to sit in the cabinet's bottom-left band as
+// vents. From a step back they read as two stray lines in the corner of a
+// box rather than as louvres, so they were removed. Everything else the
+// silhouette is built from -- contour, fan shroud, blades, hub, header
+// divider -- stays, and this pins that the removal took the ink and nothing
+// around it.
+{
+  const X = 16, Y = 79, W = 200, H = 49;
+  const acc = vm
+    .runInContext(`NODE_SHAPES.hp.accents(${X}, ${Y}, ${W}, ${H})`, ctx)
+    .filter(Boolean);
+  check("the heat pump draws four accents, not six",
+    acc.length === 4, `${acc.length} accents: ${JSON.stringify(acc)}`);
+  const ds = acc.map((a) => a.d || "").join(" ");
+  check("the fan shroud, its blades, the hub and the divider all survive",
+    /A 8 8 0 1 1/.test(ds) &&
+    (ds.match(/A 5 5 0 0 1/g) || []).length === 3 &&
+    acc.some((a) => (a.cls || "").includes("hub") && a.r === 1.6) &&
+    acc.some((a) => (a.cls || "").includes("divider")),
+    ds);
+  // The louvres lived at y+h-7 and y+h-4.5, i.e. the band within 10 units of
+  // the cabinet floor. Numeric, not textual: any ink that lands there again
+  // fails this whether or not it is spelled the way the old pair was. `d`
+  // is read as "M/L x y" pairs, which is every point the accents place.
+  const floorBand = [];
+  for (const a of acc) {
+    for (const m of String(a.d || "").matchAll(/[ML] (-?[\d.]+) (-?[\d.]+)/g)) {
+      if (Number(m[2]) > Y + H - 10) floorBand.push(m[0]);
+    }
+    if (a.cy !== undefined && a.cy > Y + H - 10) floorBand.push(`circle@${a.cy}`);
+  }
+  check("nothing is drawn in the cabinet's floor band any more",
+    floorBand.length === 0,
+    `ink below y=${Y + H - 10}: ${floorBand.join(", ")}`);
+  // ...and the same holds once the box is actually drawn: the louvres would
+  // have rendered as `M 30 121 H 56 M 30 123.5 H 56` on this box.
+  const page = setupPage();
+  check("the drawn heat pump has no louvre strokes",
+    !/M 30 121 H 56/.test(page) && !/M 30 123\.5 H 56/.test(page) &&
+    !/H 56 M 30/.test(page));
+  check("but it does still have its fan",
+    /M 190 92 A 8 8 0 1 1 206 92/.test(page));
+}
+
+// --- Scenario: the flow chevrons lie along their pipes (item B, v5.1.4) -----
+// `pipeDeco` used to draw an axis-aligned glyph in both branches: a
+// horizontal chevron for every cross-column pipe whatever its slope. Those
+// pipes are cubics whose ends usually differ in height, so on most of them
+// the arrow sat across the pipe at very nearly a right angle -- which is
+// what the reporter saw. The glyph is now built from the curve's own unit
+// tangent at its midpoint.
+//
+// Nothing below repeats the card's formula. The tangent is measured off the
+// ACTUAL drawn path by central difference, so a chevron that agreed with a
+// wrong derivation would still fail here.
+{
+  // Every pipe in the card's drawing, paired with the chevron on it.
+  //
+  // One asymmetry to respect: a cross-column pipe's cubic is written from
+  // source to target, so the path runs with the water. A same-column pipe
+  // is always written top to bottom whichever way the water goes, so its
+  // flow direction has to come from the edge's own place names.
+  const pipesOf = (card, html) => {
+    const page = html || collect(card.shadowRoot).join("\n");
+    const boxes = card._layoutBoxes || [];
+    const boxOf = (place) => boxes.find((b) => b.place === place);
+    const re = new RegExp(
+      '<path class="setup-pipe([^"]*)" data-edge="([^"]+)"\\s+' +
+      'd="M\\s+(-?[\\d.]+)\\s+(-?[\\d.]+)\\s+(C|L)([^"]*)"\\s*/>' +
+      '\\s*(?:<circle[^>]*/>\\s*<circle[^>]*/>)?' +
+      '\\s*(?:<path class="setup-flow" d="M (-?[\\d.]+) (-?[\\d.]+) ' +
+      'L (-?[\\d.]+) (-?[\\d.]+) L (-?[\\d.]+) (-?[\\d.]+)"\\s*/>)?',
+      "g");
+    const out = [];
+    let m;
+    while ((m = re.exec(page)) !== null) {
+      const n = (v) => Number(v);
+      const rest = (m[6].match(/-?[\d.]+/g) || []).map(Number);
+      const cubic = m[5] === "C";
+      const p0 = [n(m[3]), n(m[4])];
+      const p1 = cubic ? [rest[0], rest[1]] : null;
+      const p2 = cubic ? [rest[2], rest[3]] : null;
+      const p3 = cubic ? [rest[4], rest[5]] : [rest[0], rest[1]];
+      const [srcPlace, dstPlace] = m[2].split(">");
+      const src = boxOf(srcPlace);
+      const dst = boxOf(dstPlace);
+      // True when the path was written against the water: only ever the
+      // same-column case, and only when the source box is the lower one.
+      const flipped = !cubic && !!src && !!dst && src.y > dst.y;
+      out.push({
+        edge: m[2], cls: m[1], cubic, p0, p1, p2, p3, flipped,
+        chevron: m[8] === undefined ? null : {
+          tail1: [n(m[7]), n(m[8])],
+          apex: [n(m[9]), n(m[10])],
+          tail2: [n(m[11]), n(m[12])],
+        },
+      });
+    }
+    return out;
+  };
+  // The drawn path at t (t running along the PATH), and its tangent there by
+  // central difference -- the curve's real direction, not a restatement of
+  // the card's algebra.
+  const at = (p, t) => {
+    if (!p.cubic) {
+      return [p.p0[0] + (p.p3[0] - p.p0[0]) * t,
+        p.p0[1] + (p.p3[1] - p.p0[1]) * t];
+    }
+    const u = 1 - t;
+    return [0, 1].map((i) =>
+      u * u * u * p.p0[i] + 3 * u * u * t * p.p1[i] +
+      3 * u * t * t * p.p2[i] + t * t * t * p.p3[i]);
+  };
+  // The direction the WATER moves at the pipe's midpoint.
+  const flowAtMid = (p) => {
+    const h = 1e-6;
+    const a = at(p, 0.5 - h);
+    const b = at(p, 0.5 + h);
+    const sign = p.flipped ? -1 : 1;
+    return [sign * (b[0] - a[0]) / (2 * h), sign * (b[1] - a[1]) / (2 * h)];
+  };
+  // How well the chevron's axis agrees with the flow there: +1 is "points
+  // exactly down the pipe", 0 "crosses it at a right angle", -1 "points
+  // back up it". This is the number the bug got wrong.
+  const report = (p) => {
+    const mid = at(p, 0.5);
+    const d = [p.chevron.apex[0] - mid[0], p.chevron.apex[1] - mid[1]];
+    const T = flowAtMid(p);
+    const dn = Math.hypot(d[0], d[1]);
+    const tn = Math.hypot(T[0], T[1]);
+    return {
+      mid, d, dn, T,
+      cos: (d[0] * T[0] + d[1] * T[1]) / (dn * tn),
+      // The chord midpoint, which is where the glyph is anchored. For this
+      // cubic the two coincide exactly -- the two 40-unit handles cancel --
+      // and that is worth pinning, because the anchoring assumes it.
+      chord: [(p.p0[0] + p.p3[0]) / 2, (p.p0[1] + p.p3[1]) / 2],
+    };
+  };
+  const near = (a, b, eps) => Math.abs(a - b) <= (eps === undefined ? 1e-6 : eps);
+  const byEdge = (list, e) => list.find((p) => p.edge === e);
+
+  // The five orientations, each on a real pipe of a real drawing. Downhill,
+  // uphill and flat come from the default rig; a near-horizontal pipe is
+  // made by parking two boxes almost level; the two vertical directions
+  // need a same-column edge that is not the one into the mixing valve
+  // (which drops its chevron on purpose -- see (3)).
+  const rig = mkSetup();
+  const cross = pipesOf(rig);
+  const upCard = mkSetup({
+    edges: [["wood_tank", "heat_pump"], ["heat_pump", "buffer_tank"]] });
+  const downCard = mkSetup({
+    edges: [["heat_pump", "wood_tank"], ["heat_pump", "buffer_tank"]] });
+  const tiltCard = mkSetup({
+    edges: [["heat_pump", "buffer_tank"]],
+    positions: { heat_pump: [16, 120], buffer_tank: [260, 113] } });
+
+  const cases = [
+    ["downhill cross-column", byEdge(cross, "mixing_valve>lower_zone")],
+    ["uphill cross-column", byEdge(cross, "wood_tank>buffer_tank")],
+    ["flat cross-column", byEdge(cross, "mixing_valve>upper_zone")],
+    ["near-horizontal cross-column",
+      byEdge(pipesOf(tiltCard), "heat_pump>buffer_tank")],
+    ["vertical, water flowing down",
+      byEdge(pipesOf(downCard), "heat_pump>wood_tank")],
+    ["vertical, water flowing up",
+      byEdge(pipesOf(upCard), "wood_tank>heat_pump")],
+  ];
+  // The set is only worth anything if the orientations really differ, so
+  // state each one's slope and insist the family covers the ground.
+  const slopes = [];
+  for (const [name, p] of cases) {
+    if (!p || !p.chevron) {
+      check(`${name}: the pipe is drawn with a chevron`, false,
+        p ? "pipe drawn without one" : "pipe not found");
+      continue;
+    }
+    const r = report(p);
+    const dy = r.T[1] / Math.hypot(r.T[0], r.T[1]);
+    slopes.push({ name, dy });
+    check(`${name}: the chevron points down the pipe, not across it`,
+      near(r.cos, 1, 1e-6) && near(r.dn, 2, 1e-3),
+      `flow direction (${r.T.map((v) => v.toFixed(2))}), ` +
+      `cos=${r.cos.toFixed(9)}, |apex-mid|=${r.dn.toFixed(4)}`);
+    check(`${name}: it is anchored on the pipe's own midpoint`,
+      near(r.mid[0], r.chord[0], 1e-6) && near(r.mid[1], r.chord[1], 1e-6),
+      `curve mid ${r.mid} vs chord mid ${r.chord}`);
+    // The tails straddle the axis 3 units back and 3 to each side, so the
+    // glyph is the same arrowhead as before -- just rotated into frame.
+    const tm = [(p.chevron.tail1[0] + p.chevron.tail2[0]) / 2,
+      (p.chevron.tail1[1] + p.chevron.tail2[1]) / 2];
+    const span = Math.hypot(p.chevron.tail1[0] - p.chevron.tail2[0],
+      p.chevron.tail1[1] - p.chevron.tail2[1]);
+    const reach = Math.hypot(tm[0] - p.chevron.apex[0],
+      tm[1] - p.chevron.apex[1]);
+    check(`${name}: the arrowhead keeps its 5-long, 6-wide proportions`,
+      near(reach, 5, 1e-3) && near(span, 6, 1e-3),
+      `apex-to-tailmid ${reach.toFixed(4)}, span ${span.toFixed(4)}`);
+    // ...and it is a chevron, not a spike: the two tails are on opposite
+    // sides of the axis.
+    const nrm = [-r.T[1], r.T[0]];
+    const side = (pt) => (pt[0] - r.mid[0]) * nrm[0] + (pt[1] - r.mid[1]) * nrm[1];
+    check(`${name}: its two tails sit on opposite sides of the axis`,
+      side(p.chevron.tail1) * side(p.chevron.tail2) < 0,
+      `${side(p.chevron.tail1).toFixed(3)} and ` +
+      `${side(p.chevron.tail2).toFixed(3)}`);
+  }
+  // Genuinely different orientations, not one orientation spelled six ways.
+  // `dy` here is the flow direction's vertical component once normalised:
+  // +1 straight down, -1 straight up, 0 dead level.
+  const vy = slopes.map((x) => x.dy);
+  const seen = (lo, hi) => vy.some((v) => v > lo && v < hi);
+  check("the six cases really are six different slopes",
+    slopes.length === 6 &&
+    vy.some((v) => near(v, 1, 1e-9)) &&   // straight down
+    vy.some((v) => near(v, -1, 1e-9)) &&  // straight up
+    vy.some((v) => near(v, 0, 1e-9)) &&   // dead level
+    seen(0.02, 0.5) &&                  // barely tilted
+    seen(0.5, 0.999) &&                 // steeply down, but not vertical
+    seen(-0.999, -0.5) &&               // steeply up, but not vertical
+    new Set(vy.map((v) => v.toFixed(4))).size === 6,
+    slopes.map((x) => `${x.name}=${x.dy.toFixed(4)}`).join("; "));
+
+  // (2) The bug itself. A horizontal glyph on a sloped pipe puts the apex on
+  //     the midpoint's own horizontal, and on the steepest pipe of the
+  //     drawing that is nearly 90 degrees away from the pipe.
+  const steep = byEdge(cross, "wood_tank>buffer_tank");
+  const steepR = report(steep);
+  const degrees = Math.acos(Math.max(-1, Math.min(1, steepR.cos))) * 180 / Math.PI;
+  // 0.05 degrees, not zero: the card rounds the glyph's coordinates to
+  // three decimals, which at a radius of 2 units is worth about 0.014
+  // degrees of slack. The bug being excluded is 87 degrees wide.
+  check("a steep pipe's chevron is no longer drawn horizontally",
+    !near(steepR.d[1], 0, 1e-3) && degrees < 0.05,
+    `dy=${(steep.p3[1] - steep.p0[1]).toFixed(1)}: apex is ` +
+    `${steepR.d[1].toFixed(3)} off the midpoint's horizontal and ` +
+    `${degrees.toFixed(6)} degrees off the tangent`);
+  // The old code wrote `M mx-3s my-3 L mx+2s my L mx-3s my+3`, apex on the
+  // midpoint's own y. Nowhere in the drawing now.
+  const axisAligned = cross.filter((p) =>
+    p.chevron && p.cubic &&
+    Math.abs(p.p3[1] - p.p0[1]) > 1 &&
+    near(p.chevron.apex[1], (p.p0[1] + p.p3[1]) / 2, 1e-3));
+  check("no sloped pipe carries an axis-aligned chevron any more",
+    axisAligned.length === 0, axisAligned.map((p) => p.edge).join(", "));
+
+  // (3) The two suppressions the fix had to preserve.
+  const intoValve = byEdge(cross, "buffer_tank>mixing_valve");
+  check("a same-column pipe into the mixing valve still keeps its chevron off",
+    !!intoValve && intoValve.chevron === null &&
+    intoValve.p0[0] === intoValve.p3[0],
+    intoValve ? JSON.stringify(intoValve.chevron) : "pipe not found");
+  // An invalid pipe is drawn to be rejected, and an arrow on it would
+  // endorse a connection the model refuses.
+  const ed = mkSetup();
+  ed._layoutEdit = { active: true,
+    edges: setupTopo().edges.map((e) => e.slice()),
+    positions: {}, invalid: ["heat_pump>buffer_tank"], match: null,
+    drag: null, verdict: null };
+  ed._refreshLayout();
+  const canvas = ed.shadowRoot.querySelector(".setup-canvas");
+  const edited = pipesOf(ed, (canvas && canvas.innerHTML) || "");
+  const bad = edited.filter((p) => / invalid/.test(p.cls));
+  check("an invalid pipe still carries dots but no chevron",
+    bad.length === 1 && bad[0].edge === "heat_pump>buffer_tank" &&
+    bad[0].chevron === null &&
+    edited.some((p) => p.edge === "mixing_valve>lower_zone" && p.chevron),
+    `${bad.length} invalid pipes; chevrons ` +
+    bad.map((p) => JSON.stringify(p.chevron)).join(","));
+
+  // (4) Direction, stated the plain way: the apex is on the downstream side.
+  for (const [name, p] of cases) {
+    if (!p || !p.chevron) continue;
+    const mid = at(p, 0.5);
+    const far = p.flipped ? p.p0 : p.p3;
+    const toEnd = [far[0] - mid[0], far[1] - mid[1]];
+    const d = [p.chevron.apex[0] - mid[0], p.chevron.apex[1] - mid[1]];
+    check(`${name}: the apex is on the downstream side of the midpoint`,
+      d[0] * toEnd[0] + d[1] * toEnd[1] > 0,
+      `apex offset ${d.map((v) => v.toFixed(3))} vs travel ` +
+      `${toEnd.map((v) => v.toFixed(3))}`);
+  }
+}
+
+// --- Scenario: the boxes have room to breathe (item C, v5.1.4) -------------
+// Titles and slot rows started at x+10 and right-anchored values ended at
+// x+190, against contour walls at x+2 and x+w-2: eight viewBox units of
+// air, which at desktop width reads as text pressed against the wall it is
+// inside. `SETUP_PAD` is now 16, so the margin is 14 units on both sides.
+//
+// The point of the change is that NOTHING ELSE moved. Box width, the three
+// column abscissae, the viewBox and the row arithmetic that sets `b.h` are
+// all as shipped, which is why the drawing's only literal geometry pin
+// (`<rect class="setup-box" x="430" y="360"`, the moved-box test above)
+// still reads true and did not have to be rewritten.
+{
+  const card = mkSetup();
+  const page = collect(card.shadowRoot).join("\n");
+  const boxes = card._layoutBoxes || [];
+  const PAD = 16;
+  const COLW = 200;
+
+  // (1) Nothing that was pinned moved.
+  check("the columns, the box width and the viewBox are untouched",
+    boxes.every((b) => b.w === COLW) &&
+    boxes.every((b) => [16, 260, 504].includes(b.x)) &&
+    /viewBox="0 0 720 \d+"/.test(page),
+    `widths ${[...new Set(boxes.map((b) => b.w))]}, ` +
+    `columns ${[...new Set(boxes.map((b) => b.x))].sort((a, c) => a - c)}, ` +
+    `viewBox ${(/viewBox="([^"]*)"/.exec(page) || [])[1]}`);
+  // b.h = 24 + (rows + caption lines) * 17 + 8, exactly as before: the line
+  // count drives the height, and neither the padding nor the caption
+  // wrapping that follows from it may change how many lines there are.
+  // Counted off the drawing, so a caption that started wrapping differently
+  // would show up here as a height that no longer matches its own content.
+  const topo = setupTopo();
+  const groups = page.split('<rect class="setup-box"').slice(1);
+  const perBox = groups.map((g) => {
+    const m = /^[^>]*x="([\d.]+)" y="([\d.]+)" width="([\d.]+)"\s*height="([\d.]+)"/
+      .exec(g);
+    return {
+      x: m && Number(m[1]), y: m && Number(m[2]),
+      w: m && Number(m[3]), h: m && Number(m[4]),
+      lines: (g.match(/<text class="setup-slot/g) || []).length,
+    };
+  });
+  const heightWrong = perBox.filter((b) => b.h !== 24 + b.lines * 17 + 8);
+  check("the row arithmetic that sets each box height is unchanged",
+    perBox.length === boxes.length && heightWrong.length === 0,
+    `${perBox.length} boxes; ` + perBox.map((b) =>
+      `${b.x},${b.y} h=${b.h} lines=${b.lines}`).join("; "));
+  check("the carrier rects are still written at the column abscissae",
+    /<rect class="setup-box" x="16" y="16" width="200"/.test(page),
+    (/<rect class="setup-box"[^>]*>/.exec(page) || [])[0]);
+
+  // (2) The padding itself, measured against the contour walls the boxes
+  //     are actually painted with (x+2 and x+w-2).
+  const titles = [...page.matchAll(/<text class="setup-title" x="([\d.]+)"/g)]
+    .map((m) => Number(m[1]));
+  const labels = [...page.matchAll(/<text class="setup-slot[^"]*" x="([\d.]+)"/g)]
+    .map((m) => Number(m[1]));
+  const values = [...page.matchAll(
+    /<tspan class="setup-value" x="([\d.]+)"/g)].map((m) => Number(m[1]));
+  const cols = [...new Set(boxes.map((b) => b.x))].sort((a, b) => a - b);
+  const leftGaps = [...new Set([...titles, ...labels])]
+    .map((x) => x - (cols.reduce((best, c) => (x - c >= 0 && x - c < x - best
+      ? c : best), -1e9) + 2));
+  const rightGaps = [...new Set(values)].map((x) => {
+    const c = cols.reduce((best, cc) => (x - cc >= 0 && x - cc < x - best
+      ? cc : best), -1e9);
+    return c + COLW - 2 - x;
+  });
+  check("every title and every row label clears the left wall by 14 units",
+    titles.length > 0 && labels.length > 0 &&
+    leftGaps.every((g) => g === 14),
+    `text at x ${[...new Set([...titles, ...labels])].sort((a, b) => a - b)}, ` +
+    `gaps ${[...new Set(leftGaps)]}`);
+  check("every right-anchored value clears the right wall by 14 units",
+    values.length > 0 && rightGaps.every((g) => g === 14),
+    `values anchored at ${[...new Set(values)].sort((a, b) => a - b)}, ` +
+    `gaps ${[...new Set(rightGaps)]}`);
+  // Both are a real widening, not a shuffle: main put text 8 units off the
+  // wall on both sides.
+  check("that is a widening on both sides, not a shift",
+    leftGaps.every((g) => g > 8) && rightGaps.every((g) => g > 8) &&
+    leftGaps.every((g) => g <= 16) && rightGaps.every((g) => g <= 16));
+  // The rule under a title starts where the title starts, or it reads as a
+  // second, contradictory margin.
+  const dividers = [...page.matchAll(
+    /<path class="setup-accent divider" d="M ([\d.]+) [\d.]+ L ([\d.]+)/g)];
+  check("the header rules start on the title's own left margin",
+    dividers.length > 0 &&
+    dividers.every((m) => cols.includes(Number(m[1]) - PAD)),
+    dividers.map((m) => `${m[1]}->${m[2]}`).join(", "));
+
+  // (3) The hit targets still cover the rows they belong to. A row that
+  //     stops responding to the pointer is a worse regression than cramped
+  //     text, so this is checked per row rather than in aggregate.
+  const pairs = [...page.matchAll(new RegExp(
+    '<text class="setup-slot[^"]*" x="([\\d.]+)" y="([\\d.]+)">\\s*' +
+    '<tspan>([^<]*)</tspan>\\s*<tspan class="setup-value" x="([\\d.]+)"\\s*' +
+    'text-anchor="end">([^<]*)</tspan></text>\\s*' +
+    '<rect class="setup-hit" data-key="([^"]+)"[^>]*?' +
+    'x="([\\d.]+)" y="([\\d.]+)" width="([\\d.]+)"\\s*height="([\\d.]+)"',
+    "g"))].map((m) => ({
+      labelX: Number(m[1]), baseline: Number(m[2]), label: m[3],
+      valueX: Number(m[4]), value: m[5], key: m[6],
+      x: Number(m[7]), y: Number(m[8]), w: Number(m[9]), h: Number(m[10]),
+    }));
+  check("every slot row is matched with its own hit rect",
+    pairs.length === topo.slots.length,
+    `${pairs.length} of ${topo.slots.length}`);
+  // 12px text: the cap line sits about 8.7 units above the baseline and the
+  // descenders about 2.6 below, so a rect that spans that band covers every
+  // glyph in the row as well as the gap between label and value.
+  const uncovered = pairs.filter((r) =>
+    !(r.x <= r.labelX && r.x + r.w >= r.valueX &&
+      r.y <= r.baseline - 9 && r.y + r.h >= r.baseline + 3));
+  check("and every hit rect covers its row's text from label to value",
+    uncovered.length === 0,
+    uncovered.map((r) =>
+      `${r.key}: rect x${r.x}..${r.x + r.w} y${r.y}..${r.y + r.h} ` +
+      `vs text x${r.labelX}..${r.valueX} baseline ${r.baseline}`).join("; "));
+  // The rects are inset inside their box and off their neighbours, so the
+  // focus ring drawn on them (item F) has all four sides on screen.
+  const boxOf = (r) => boxes.find((b) => b.x + 4 === r.x);
+  check("the hit rects sit inside the box, clear of the contour",
+    pairs.every((r) => {
+      const b = boxOf(r);
+      return b && r.x > b.x + 2 && r.x + r.w < b.x + COLW - 2;
+    }),
+    pairs.map((r) => `${r.key} x${r.x}+${r.w}`).join("; "));
+  const sameBox = {};
+  for (const r of pairs) (sameBox[r.x] ||= []).push(r);
+  const touching = [];
+  for (const list of Object.values(sameBox)) {
+    const sorted = list.slice().sort((a, b) => a.y - b.y);
+    for (let i = 1; i < sorted.length; i++) {
+      const gap = sorted[i].y - (sorted[i - 1].y + sorted[i - 1].h);
+      if (gap < 1) touching.push(`${sorted[i - 1].key}/${sorted[i].key}=${gap}`);
+    }
+  }
+  check("and neighbouring rows do not touch, so neither do their rings",
+    touching.length === 0, touching.join(", "));
+
+  // (4) The outdoor node is explicitly out of scope: the owner has seen the
+  //     open composition -- no walls, a tray baseline the rows hang over, a
+  //     cloud in the header's right corner -- and wants it as shipped. These
+  //     are the two paths origin/main draws for it at column 0, verbatim.
+  //     Only the text inside moved, and only by the padding above.
+  const cloudInk = [...page.matchAll(
+    /<path class="setup-contour[^"]*"\s+d="([^"]*)"/g)]
+    .map((m) => m[1].replace(/\s+/g, " ").trim());
+  check("the outdoor node's tray and cloud are exactly as shipped",
+    cloudInk.includes("M 18 57 A 6 6 0 0 0 24 63 H 208 A 6 6 0 0 0 214 57") &&
+    cloudInk.includes("M 170 35 A 5.5 5.5 0 0 1 173 25.5 A 7 7 0 0 1 186 " +
+      "22.5 A 6 6 0 0 1 197 25 A 6 6 0 0 1 203 35 Z"),
+    cloudInk.slice(0, 3).join(" | "));
+  // ...and it is still an OPEN composition: no header rule, no side walls,
+  // no closing Z on the tray.
+  const outdoorBox = boxes.find((b) => b.place === "outdoor");
+  const outdoorGroup = page.slice(
+    page.indexOf("kind-outdoor"),
+    page.indexOf("<g", page.indexOf("kind-outdoor")));
+  check("the outdoor node still has no walls and no header rule",
+    !!outdoorBox && outdoorBox.x === 16 && outdoorBox.y === 16 &&
+    !/setup-accent divider/.test(outdoorGroup) &&
+    !/\bZ"/.test((/kind-outdoor"\s+d="([^"]*)"/.exec(page) || ["", ""])[1]),
+    outdoorGroup.slice(0, 160).replace(/\s+/g, " "));
+}
+
+// --- Scenario: the solar row's label and value never collide (item D) -------
+// With no radiation probe the plan still has irradiance -- from Open-Meteo
+// or from the weather forecast -- and the row says so: "123 W/m² ·
+// Open-Meteo", right-anchored in the same 200-unit row as its label. The
+// old rule sized the label by COUNTING CHARACTERS of the value ("longer
+// than 10 characters, allow the label 15"), which prices an "i" and a "W"
+// alike and never looked at the value's rendered width at all. On the
+// reporter's install the two strings ran through each other.
+//
+// Both strings are measured now. The value is priced first, the label gets
+// what is left, and only the LABEL is ever ellipsized -- when the label
+// would be squeezed below legibility the VALUE gives up its provenance tag
+// instead, never a digit of the reading.
+{
+  const INNER = vm.runInContext("SETUP_COL_W - 2 * SETUP_PAD", ctx);
+  const GAP = vm.runInContext("SETUP_ROW_GAP", ctx);
+  const MINLABEL = vm.runInContext("SETUP_MIN_LABEL_W", ctx);
+  const w = (s, bold) =>
+    vm.runInContext(`setupTextW(${JSON.stringify(s)}, 12, ${!!bold})`, ctx);
+  const fit = (label, alts) => vm.runInContext(
+    `fitSlotRow(${JSON.stringify(label)}, ${JSON.stringify(alts)}, ` +
+    `${INNER}, 12)`, ctx);
+  // Every spelling of the fallback the card can actually produce, at both
+  // ends of the reading's length, in both languages, plus the ordinary
+  // rows it shares the drawing with.
+  const cases = [
+    ["Solar radiation", ["1000 W/m² · Open-Meteo", "1000 W/m²"]],
+    ["Solar radiation", ["123 W/m² · Open-Meteo", "123 W/m²"]],
+    ["Solar radiation", ["0 W/m² · Open-Meteo", "0 W/m²"]],
+    ["Solar radiation", ["123 W/m² · weather forecast", "123 W/m²"]],
+    ["Solar radiation", ["1000 W/m² · weather forecast", "1000 W/m²"]],
+    ["Solinstrålning", ["1000 W/m² · väderprognos", "1000 W/m²"]],
+    ["Solinstrålning", ["1000 W/m² · Open-Meteo", "1000 W/m²"]],
+    ["Solar radiation", ["(not configured)"]],
+    ["Outdoor temperature", ["unavailable"]],
+    ["Lower floor temperature", ["21.3 °C"]],
+    ["Buffer tank temperature", ["47.5 °C"]],
+    ["Valve target", ["1000 W/m² · Open-Meteo", "1000 W/m²"]],
+    ["Hot water temperature",
+      ["a sensor whose state is a whole sentence about the weather"]],
+  ];
+  const collisions = [];
+  const cutReadings = [];
+  const rows = [];
+  for (const [label, alts] of cases) {
+    const f = fit(label, alts);
+    const lw = w(f.label, false);
+    const vw = w(f.value, true);
+    rows.push(`${JSON.stringify(label)} + ${JSON.stringify(alts[0])} -> ` +
+      `${lw.toFixed(1)}+${vw.toFixed(1)}=${(lw + vw).toFixed(1)}/${INNER}`);
+    if (lw + vw + GAP > INNER + 1e-9) {
+      collisions.push(`${label} | ${f.label} + ${f.value} = ` +
+        `${(lw + vw).toFixed(2)} > ${INNER - GAP}`);
+    }
+    // The reading itself is never cut. Whatever spelling the row settles
+    // on must still open with the same number the longest one did.
+    const num = /^[\d.]+/.exec(alts[0]);
+    if (num && !f.value.startsWith(num[0])) {
+      cutReadings.push(`${alts[0]} -> ${f.value}`);
+    }
+  }
+  check("no slot row's label and value can overlap, at any real length",
+    collisions.length === 0, collisions.join("; ") || rows.join("\n    "));
+  check("and the reading itself is never what gets cut",
+    cutReadings.length === 0, cutReadings.join("; "));
+
+  // The specific report: the longest fallback the card can write, beside
+  // the label it shares its row with.
+  const worst = fit("Solar radiation",
+    ["1000 W/m² · weather forecast", "1000 W/m²"]);
+  const worstL = w(worst.label, false);
+  const worstV = w(worst.value, true);
+  check("the longest real solar value leaves the label whole and legible",
+    worst.label === "Solar radiation" && worstL >= MINLABEL &&
+    worst.value === "1000 W/m²" && worst.shortened === true &&
+    worstL + worstV + GAP <= INNER,
+    `label ${JSON.stringify(worst.label)} (${worstL.toFixed(2)}u, minimum ` +
+    `${MINLABEL}) + value ${JSON.stringify(worst.value)} ` +
+    `(${worstV.toFixed(2)}u) = ${(worstL + worstV).toFixed(2)}u of ` +
+    `${INNER}, ${(INNER - worstL - worstV).toFixed(2)}u to spare`);
+  // ...and the tag it dropped is still reachable, so nothing is lost.
+  check("the dropped provenance tag is kept for the tooltip",
+    worst.full === "1000 W/m² · weather forecast", worst.full);
+
+  // The old rule, priced with the same metrics, on the same strings: this
+  // is the collision the owner reported, in viewBox units. The old row was
+  // 180 units wide (x+10 to x+190).
+  const oldRow = (label, value) => {
+    const room = value.length > 10 ? 15 : 19;
+    const lab = label.length > room ? label.slice(0, room - 1) + "…" : label;
+    return w(lab, false) + w(value, true) - 180;
+  };
+  const oldOverlaps = [
+    ["Solar radiation", "1000 W/m² · Open-Meteo"],
+    ["Solar radiation", "123 W/m² · Open-Meteo"],
+    ["Solar radiation", "1000 W/m² · weather forecast"],
+    ["Solinstrålning", "1000 W/m² · väderprognos"],
+  ].map(([l, v]) => `${JSON.stringify(v)} overran by ` +
+    `${oldRow(l, v).toFixed(2)}u`);
+  check("the rule this replaced really did overlap on these very strings",
+    oldRow("Solar radiation", "1000 W/m² · Open-Meteo") > 40 &&
+    oldRow("Solar radiation", "123 W/m² · Open-Meteo") > 30 &&
+    oldRow("Solar radiation", "1000 W/m² · weather forecast") > 60 &&
+    oldRow("Solinstrålning", "1000 W/m² · väderprognos") > 40,
+    oldOverlaps.join("; "));
+
+  // A short label keeps a long value whole: the label only ever asks for
+  // the room it actually needs, so the tag is not dropped out of habit.
+  // (At 138.65u the tag is a near thing -- "Sun" reserves 21.6u and the row
+  // has 138.4u to give -- which is exactly why this is measured and not
+  // counted.)
+  const roomy = fit("Sun", ["0 W/m² · Open-Meteo", "0 W/m²"]);
+  check("a short label lets the value keep its source tag",
+    roomy.label === "Sun" && roomy.value === "0 W/m² · Open-Meteo" &&
+    roomy.shortened === false &&
+    w(roomy.label, false) + w(roomy.value, true) + GAP <= INNER,
+    `${JSON.stringify(roomy.label)} + ${JSON.stringify(roomy.value)} = ` +
+    `${(w(roomy.label, false) + w(roomy.value, true)).toFixed(2)}u`);
+  // The invariant behind that: a shorter label never costs the value room.
+  const alts = ["123 W/m² · Open-Meteo", "123 W/m²"];
+  const short = fit("Sun", alts);
+  const long = fit("Solar radiation", alts);
+  check("a shorter label never buys the value less room",
+    w(short.value, true) >= w(long.value, true),
+    `"Sun" keeps ${JSON.stringify(short.value)}, ` +
+    `"Solar radiation" keeps ${JSON.stringify(long.value)}`);
+  // An ellipsis is only ever spent when it buys something, and it never
+  // leaves a dangling separator behind it.
+  check("a label that fits is left exactly alone",
+    fit("Valve target", ["21.3 °C"]).label === "Valve target" &&
+    !/[\s·-]…$/.test(fit("Lower floor temperature", ["21.3 °C"]).label),
+    fit("Lower floor temperature", ["21.3 °C"]).label);
+
+  // ...and the whole thing again on the real drawing, which is where the
+  // report came from: a solar slot with no probe, falling back to
+  // Open-Meteo, rendered beside its label.
+  const solarTopo = setupTopo();
+  solarTopo.slots = solarTopo.slots.concat([{
+    key: "solar_radiation_entity", label: "Solar radiation",
+    place: "outdoor", entity: null, domains: SETUP_TEMP }]);
+  // The harness already publishes an Open-Meteo irradiance sensor; drive it
+  // to the widest reading the fallback can ever print.
+  const solarStates = {};
+  solarStates[SOLAR_ID] = {
+    state: "1000",
+    attributes: { forecast: solarForecast, source: "open_meteo",
+      friendly_name: "Solar Irradiance", plan_kind: "solar",
+      unit_of_measurement: "W/m²" },
+  };
+  const page = setupPage(solarTopo, solarStates);
+  const row = new RegExp(
+    '<text class="setup-slot[^"]*" x="([\\d.]+)" y="[\\d.]+">\\s*' +
+    '<tspan>([^<]*)</tspan>\\s*<tspan class="setup-value" x="([\\d.]+)"\\s*' +
+    'text-anchor="end">([^<]*)</tspan></text>\\s*' +
+    '<rect class="setup-hit" data-key="solar_radiation_entity"[^>]*' +
+    'aria-label="([^"]*)"').exec(page);
+  check("the drawing really does fall back to Open-Meteo for irradiance",
+    !!row && /W\/m²/.test(row[4]), row ? row[4] : "no solar row drawn");
+  if (row) {
+    const labelX = Number(row[1]);
+    const valueEnd = Number(row[3]);
+    const lw = w(row[2], false);
+    const vw = w(row[4], true);
+    check("on the page, the solar label ends before its value begins",
+      labelX + lw <= valueEnd - vw,
+      `label ${JSON.stringify(row[2])} runs x${labelX}..` +
+      `${(labelX + lw).toFixed(2)}; value ${JSON.stringify(row[4])} runs ` +
+      `x${(valueEnd - vw).toFixed(2)}..${valueEnd}; ` +
+      `${(valueEnd - vw - labelX - lw).toFixed(2)}u between them`);
+    check("the label is the whole label, not a truncation",
+      row[2] === "Solar radiation", row[2]);
+    // Nothing is lost by shortening: the row's accessible name and tooltip
+    // still carry the reading with its provenance.
+    check("and the row still says where the number came from, out loud",
+      /1000 W\/m² · Open-Meteo/.test(row[5]) && row[4] === "1000 W/m²",
+      `drawn ${JSON.stringify(row[4])}, spoken ${JSON.stringify(row[5])}`);
+  }
+}
+
+// --- Scenario: the entity picker stops destroying assignments (item E) ------
+// Three faults, and the first two combined into a data-loss bug rather than
+// an inconvenience:
+//
+//  - The slot's own entity was offered only if it happened to fall inside
+//    the candidate list. When it did not, the `<select>` fell back to
+//    "(not configured)" -- so a configured slot was SHOWN as empty, and
+//    pressing Assign wrote that emptiness and reloaded the integration.
+//  - PICKER_MAX_OPTIONS truncated the alphabetical candidate list, so on a
+//    large install the user's own probe was simply not in the list, with no
+//    way to reach it. That is the case above, on every install big enough.
+//  - Options were friendly names only. The reporter's two wood-tank probes
+//    are both called "Vedpanna temperatur"; one of them is silently
+//    `..._2`. A list of identical labels is a list nobody can choose from.
+{
+  const MAX = vm.runInContext("PICKER_MAX_OPTIONS", ctx);
+  // Parse a rendered picker into something to assert against.
+  const pickerOf = (card) => {
+    const page = collect(card.shadowRoot).join("\n");
+    const html = (/<div class="setup-picker">[\s\S]*?<\/div>\s*$/m
+      .exec(page) || [page])[0];
+    const options = [...page.matchAll(
+      /<option value="([^"]*)"( selected)?>([^<]*)<\/option>/g)]
+      .map((m) => ({ value: m[1], selected: !!m[2], text: m[3] }));
+    const note = (/<div class="sp-note">([^<]*)<\/div>/.exec(page) || [])[1];
+    return { html, options, note,
+      selected: options.filter((o) => o.selected) };
+  };
+  const openPicker = (card, key, viaKeyboard) => {
+    const hit = card.shadowRoot.querySelectorAll(".setup-hit")
+      .find((h) => h.dataset.key === key);
+    if (!hit) return null;
+    if (viaKeyboard) {
+      (hit._listeners.keydown || []).forEach((f) => f({ key: "Enter",
+        currentTarget: hit, preventDefault() {}, stopPropagation() {} }));
+    } else {
+      (hit._listeners.click || []).forEach((f) => f({ currentTarget: hit,
+        preventDefault() {}, stopPropagation() {} }));
+    }
+    return card.shadowRoot.querySelector(".setup-picker");
+  };
+  const clickBtn = async (card, sel) => {
+    const b = card.shadowRoot.querySelector(sel);
+    if (!b) return;
+    await Promise.all((b._listeners.click || [])
+      .map((f) => f({ stopPropagation() {}, preventDefault() {} })));
+  };
+  const typeFilter = (card, text) => {
+    const box = card.shadowRoot.querySelector(".sp-filter");
+    box.value = text;
+    (box._listeners.input || []).forEach((f) =>
+      f({ currentTarget: box, target: box }));
+  };
+  const chooseInSelect = (card, value) => {
+    const sel = card.shadowRoot.querySelector(".sp-select");
+    sel.value = value;
+    (sel._listeners.change || []).forEach((f) =>
+      f({ currentTarget: sel, target: sel }));
+  };
+
+  // A big install: 400 sensors whose names give nothing away, plus the two
+  // wood-tank probes the report is actually about -- identical friendly
+  // names, distinguishable only by their ids.
+  const bigStates = {};
+  for (let i = 0; i < 400; i++) {
+    bigStates[`sensor.zz_probe_${String(i).padStart(3, "0")}`] = {
+      state: "20.0",
+      attributes: { unit_of_measurement: "°C",
+        friendly_name: `Probe ${String(i).padStart(3, "0")}` },
+    };
+  }
+  bigStates["sensor.vedpanna_temperatur_temperature"] = {
+    state: "71.2", attributes: { unit_of_measurement: "°C",
+      friendly_name: "Vedpanna temperatur" } };
+  bigStates["sensor.vedpanna_temperatur_temperature_2"] = {
+    state: "48.9", attributes: { unit_of_measurement: "°C",
+      friendly_name: "Vedpanna temperatur" } };
+
+  // (a) A slot that HAS an entity shows it, and shows it selected -- even
+  //     when the install is far too big for it to survive the render cap.
+  const assignedTopo = setupTopo();
+  assignedTopo.slots = assignedTopo.slots.map((s) =>
+    s.key === "wood_tank_top_entity"
+      ? { ...s, entity: "sensor.vedpanna_temperatur_temperature_2" }
+      : s);
+  const big = mkSetup(assignedTopo, bigStates);
+  openPicker(big, "wood_tank_top_entity");
+  const p1 = pickerOf(big);
+  const mine = p1.options.find((o) =>
+    o.value === "sensor.vedpanna_temperatur_temperature_2");
+  check("a slot's own entity is offered even on an install past the cap",
+    !!mine, `${p1.options.length} options rendered, cap ${MAX}`);
+  check("and it is the option the picker comes up on",
+    !!mine && mine.selected && p1.selected.length === 1 &&
+    p1.selected[0].value === "sensor.vedpanna_temperatur_temperature_2",
+    `selected: ${JSON.stringify(p1.selected)}`);
+  check("so the placeholder is NOT what a configured slot shows",
+    !p1.options.some((o) => o.value === "" && o.selected),
+    JSON.stringify(p1.options.filter((o) => o.value === "")));
+  // The bug's payload: pressing Assign on an untouched picker must not
+  // write a clearance. It writes the entity that is already there, if it
+  // writes anything at all.
+  const calls = [];
+  big._hass.callService = async (d, s2, data) => { calls.push([d, s2, data]); };
+  await clickBtn(big, ".sp-save");
+  check("Assign on an untouched configured slot never clears it",
+    calls.length === 1 &&
+    calls[0][2].entity_id === "sensor.vedpanna_temperatur_temperature_2",
+    JSON.stringify(calls));
+
+  // ...and every option carries its entity id, because the two probes this
+  // report is about are indistinguishable without it.
+  const twins = p1.options.filter((o) => /vedpanna/.test(o.value));
+  check("every option shows its entity id next to the friendly name",
+    p1.options.filter((o) => o.value).every((o) => o.text.includes(o.value)),
+    p1.options.filter((o) => o.value && !o.text.includes(o.value))
+      .slice(0, 3).map((o) => `${o.value} -> ${o.text}`).join("; "));
+  check("so the two identically-named wood-tank probes are tellable apart",
+    twins.length === 2 && twins[0].text !== twins[1].text &&
+    twins.every((o) => /Vedpanna temperatur/.test(o.text)),
+    twins.map((o) => o.text).join(" | "));
+
+  // (b) Filtering. The cap is a RENDER bound applied after the filter, so
+  //     anything on the install is reachable by typing, and the footnote
+  //     says so while the list is standing on more than it shows.
+  const fresh = mkSetup(setupTopo(), bigStates);
+  openPicker(fresh, "wood_tank_top_entity");
+  const p2 = pickerOf(fresh);
+  const listed = p2.options.filter((o) => o.value).length;
+  check("a big install's list is capped rather than built in full",
+    listed === MAX, `${listed} options for 400+ candidates, cap ${MAX}`);
+  check("and the footnote says what it is standing on",
+    /showing 200 of 40\d/i.test(p2.note || "") ||
+    /200 of 40\d/.test(p2.note || ""),
+    p2.note);
+  // The probe the reporter could not reach: past the cap alphabetically,
+  // and found by typing part of its name.
+  const reachable = (q) => {
+    typeFilter(fresh, q);
+    const opts = [...fresh.shadowRoot.querySelector(".sp-select").innerHTML
+      .matchAll(/<option value="([^"]*)"/g)].map((m) => m[1]);
+    return opts;
+  };
+  const byName = reachable("vedpanna");
+  check("typing part of a friendly name reaches an entity past the cap",
+    byName.includes("sensor.vedpanna_temperatur_temperature") &&
+    byName.includes("sensor.vedpanna_temperatur_temperature_2"),
+    `${byName.length} options: ${byName.slice(0, 4).join(", ")}`);
+  const byId = reachable("TEMPERATURE_2");
+  check("and typing part of an entity id does too, case-insensitively",
+    byId.includes("sensor.vedpanna_temperatur_temperature_2"),
+    `${byId.length} options: ${byId.slice(0, 4).join(", ")}`);
+  const deep = reachable("probe 387");
+  check("an entity 387 places down the alphabet is one search away",
+    deep.includes("sensor.zz_probe_387"),
+    `${deep.length} options: ${deep.slice(0, 4).join(", ")}`);
+  // A filter that matches nothing says so rather than showing an empty box.
+  typeFilter(fresh, "no such sensor anywhere");
+  const emptyNote = fresh.shadowRoot.querySelector(".sp-note");
+  check("a filter that matches nothing says so",
+    /nothing matches/i.test(emptyNote.textContent || ""),
+    emptyNote.textContent);
+  // Narrowing below the cap drops the truncation notice.
+  typeFilter(fresh, "vedpanna");
+  check("and once the list fits, the footnote stops warning about the cap",
+    !/\bof 40\d/.test(
+      fresh.shadowRoot.querySelector(".sp-note").textContent || ""),
+    fresh.shadowRoot.querySelector(".sp-note").textContent);
+
+  // (c) A clearing Assign is confirmed, the way the what-if save is.
+  const clearing = mkSetup(assignedTopo, bigStates);
+  const clearCalls = [];
+  clearing._hass.callService = async (d, s2, data) => {
+    clearCalls.push([d, s2, data]);
+  };
+  openPicker(clearing, "wood_tank_top_entity");
+  chooseInSelect(clearing, "");
+  await clickBtn(clearing, ".sp-save");
+  const saveBtn = clearing.shadowRoot.querySelector(".sp-save");
+  check("choosing (not configured) does not clear the slot on one click",
+    clearCalls.length === 0 && clearing._pendingClear === true,
+    JSON.stringify(clearCalls));
+  check("the button says what the second click will do",
+    /confirm/i.test(saveBtn.textContent || "") &&
+    saveBtn.classList.contains("confirm"),
+    `${JSON.stringify(saveBtn.textContent)} ` +
+    `class=${saveBtn.className}`);
+  check("and the warning names the entity that would be lost",
+    /vedpanna_temperatur_temperature_2/.test(clearing._setupNote || ""),
+    clearing._setupNote);
+  await clickBtn(clearing, ".sp-save");
+  check("a second, deliberate click does clear it",
+    clearCalls.length === 1 && clearCalls[0][1] === "assign_entity" &&
+    clearCalls[0][2].entity_id === "" &&
+    clearCalls[0][2].key === "wood_tank_top_entity",
+    JSON.stringify(clearCalls));
+  // Clearing a slot that was already empty is not destructive and is not
+  // made to feel like it.
+  const emptySlot = mkSetup(setupTopo(), bigStates);
+  const emptyCalls = [];
+  emptySlot._hass.callService = async (d, s2, data) => {
+    emptyCalls.push([d, s2, data]);
+  };
+  openPicker(emptySlot, "wood_tank_top_entity");
+  chooseInSelect(emptySlot, "");
+  await clickBtn(emptySlot, ".sp-save");
+  check("an empty slot does not demand confirmation to stay empty",
+    emptyCalls.length === 1 && emptyCalls[0][2].entity_id === "",
+    JSON.stringify(emptyCalls));
+  // Changing your mind disarms it, so the armed state cannot be inherited
+  // by a different answer.
+  const rearm = mkSetup(assignedTopo, bigStates);
+  rearm._hass.callService = async () => {};
+  openPicker(rearm, "wood_tank_top_entity");
+  chooseInSelect(rearm, "");
+  await clickBtn(rearm, ".sp-save");
+  chooseInSelect(rearm, "sensor.vedpanna_temperatur_temperature");
+  check("picking something else disarms the clear",
+    rearm._pendingClear === false &&
+    !rearm.shadowRoot.querySelector(".sp-save").classList.contains("confirm"),
+    `pendingClear=${rearm._pendingClear}`);
+  // Leaving the picker drops the arming with it.
+  const leave = mkSetup(assignedTopo, bigStates);
+  leave._hass.callService = async () => {};
+  openPicker(leave, "wood_tank_top_entity");
+  chooseInSelect(leave, "");
+  await clickBtn(leave, ".sp-save");
+  await clickBtn(leave, ".sp-cancel");
+  check("and cancelling out of the picker disarms it too",
+    leave._pendingClear === false && leave._pickerKey === null &&
+    leave._pickerFilter === "" && leave._pickerChoice === null,
+    `pendingClear=${leave._pendingClear} key=${leave._pickerKey} ` +
+    `filter=${JSON.stringify(leave._pickerFilter)}`);
+
+  // Keyboard access has to survive all of that.
+  const kb = mkSetup(assignedTopo, bigStates);
+  check("Enter on a row still opens the picker",
+    !!openPicker(kb, "wood_tank_top_entity", true));
+  const kbPicker = kb.shadowRoot.querySelector(".setup-picker");
+  (kbPicker._listeners.keydown || []).forEach((f) =>
+    f({ key: "Escape", stopPropagation() {} }));
+  check("Escape still closes it without assigning",
+    !kb.shadowRoot.querySelector(".setup-picker") && kb._pickerKey === null);
+  check("and still hands focus back to the row it came from",
+    !!document.activeElement &&
+    document.activeElement.classList.contains("setup-hit") &&
+    document.activeElement.dataset.key === "wood_tank_top_entity",
+    document.activeElement && document.activeElement.className);
+  // The filter is a labelled control, not an unexplained box.
+  const kb2 = mkSetup(assignedTopo, bigStates);
+  openPicker(kb2, "wood_tank_top_entity", true);
+  const filterBox = kb2.shadowRoot.querySelector(".sp-filter");
+  check("the filter box says out loud what it filters",
+    !!filterBox && /wood tank top/i.test(filterBox["aria-label"] || "") &&
+    !!filterBox.placeholder,
+    filterBox && `${filterBox["aria-label"]} / ${filterBox.placeholder}`);
+}
+
+// --- Scenario: no focus ring is left behind by a mouse (item F) -------------
+// Click a sensor field, click Cancel, click elsewhere: "a thin blue line
+// remains at the left and above the sensor field". The rows have been
+// focusable buttons since v4.2.0, and Cancel handed focus back to the row
+// whether or not the person wanted it there -- so a mouse user was left
+// holding focus on a field they had just backed out of, ringed by an
+// `outline` that the row's own geometry clipped down to two edges.
+//
+// Fixed by keeping the ring (keyboard users need it) and fixing everything
+// around it: focus goes back to the row only when the keyboard sent it
+// there, any pointer gesture off a row drops it, and the ring is stroked
+// onto the rect -- part of the drawing, so nothing can clip it -- inside a
+// rect inset far enough for all four sides to show.
+{
+  const hitFor = (card, key) => card.shadowRoot.querySelectorAll(".setup-hit")
+    .find((h) => h.dataset.key === key);
+  const openBy = (card, key, viaKeyboard) => {
+    const hit = hitFor(card, key);
+    // A real pointer press focuses what it presses; the keyboard path
+    // arrives on an already-focused row.
+    hit.focus();
+    if (viaKeyboard) {
+      (hit._listeners.keydown || []).forEach((f) => f({ key: "Enter",
+        currentTarget: hit, preventDefault() {}, stopPropagation() {} }));
+    } else {
+      (hit._listeners.click || []).forEach((f) => f({ currentTarget: hit,
+        preventDefault() {}, stopPropagation() {} }));
+    }
+  };
+  const cancel = (card) => {
+    const b = card.shadowRoot.querySelector(".sp-cancel");
+    (b._listeners.click || []).forEach((f) =>
+      f({ stopPropagation() {}, preventDefault() {} }));
+  };
+  const focusedRow = () => {
+    const a = document.activeElement;
+    return a && a.classList && a.classList.contains("setup-hit")
+      ? a.dataset.key : null;
+  };
+  // A pointer press somewhere in the dialog that is not a row. The card
+  // parks the listener on the dialog, which is the root `_attachSetupEvents`
+  // is handed.
+  const clickElsewhere = (card, target) => {
+    const dlg = card.shadowRoot.querySelector("dialog");
+    ((dlg && dlg._listeners.pointerdown) || []).forEach((f) =>
+      f({ target: target || new Node("div") }));
+  };
+
+  // The reported sequence, with a mouse throughout.
+  const mouse = mkSetup();
+  openBy(mouse, "indoor_temp_entity", false);
+  check("a mouse click on a row opens the picker",
+    !!mouse.shadowRoot.querySelector(".setup-picker"));
+  cancel(mouse);
+  check("Cancel does not hand the row back to a mouse user",
+    focusedRow() === null,
+    `focus is on ${focusedRow() || (document.activeElement || {}).tagName}`);
+  // Put focus back on the row by hand first, so this is a real test of the
+  // click and not of the line above it.
+  hitFor(mouse, "indoor_temp_entity").focus();
+  clickElsewhere(mouse);
+  check("and clicking elsewhere afterwards leaves no row focused",
+    focusedRow() === null, `focus is on ${focusedRow()}`);
+  // The listener that does it is parked once per render, not once per
+  // render since the dialog opened.
+  const before = mouse.shadowRoot.querySelector("dialog")
+    ._listeners.pointerdown.length;
+  mouse._sig = null;
+  mouse._maybeRender(true);
+  const after = mouse.shadowRoot.querySelector("dialog")
+    ._listeners.pointerdown.length;
+  check("and re-rendering does not stack another copy of it",
+    after === before, `${before} listeners before a re-render, ${after} after`);
+
+  // The keyboard path is the one the ring exists for, and it is unchanged.
+  const keys = mkSetup();
+  openBy(keys, "indoor_temp_entity", true);
+  check("Enter on a row opens the picker",
+    !!keys.shadowRoot.querySelector(".setup-picker"));
+  cancel(keys);
+  check("Cancel does return the row to a keyboard user",
+    focusedRow() === "indoor_temp_entity",
+    `focus is on ${focusedRow()}`);
+  // ...and Escape, the other way out, still does the same.
+  const esc = mkSetup();
+  openBy(esc, "buffer_tank_temp_entity", true);
+  const pk = esc.shadowRoot.querySelector(".setup-picker");
+  (pk._listeners.keydown || []).forEach((f) =>
+    f({ key: "Escape", stopPropagation() {} }));
+  check("Escape returns it too",
+    focusedRow() === "buffer_tank_temp_entity", `focus is on ${focusedRow()}`);
+  // A row a keyboard user is deliberately sitting on is not stolen from
+  // them by an unrelated pointer gesture on that same row.
+  const kept = mkSetup();
+  hitFor(kept, "indoor_temp_entity").focus();
+  clickElsewhere(kept, hitFor(kept, "indoor_temp_entity"));
+  check("a pointer press on the row itself does not drop its focus",
+    focusedRow() === "indoor_temp_entity", `focus is on ${focusedRow()}`);
+  clickElsewhere(kept);
+  check("but a pointer press anywhere else does",
+    focusedRow() === null, `focus is on ${focusedRow()}`);
+
+  // The ring itself: kept, and kept visible.
+  check("the ring is still there for keyboard users",
+    /\.setup-hit:focus-visible \{/.test(cardSrc),
+    "no :focus-visible rule for setup rows");
+  check("it is not painted with an outline that geometry can clip",
+    /\.setup-hit:focus-visible \{[^}]*outline:\s*none/.test(cardSrc) &&
+    /\.setup-hit:focus-visible \{[^}]*stroke:/.test(cardSrc) &&
+    /\.setup-hit:focus-visible \{[^}]*stroke-width:\s*2/.test(cardSrc),
+    (/\.setup-hit:focus-visible \{[^}]*\}/.exec(cardSrc) || [])[0]);
+  check("and it is :focus-visible, so a mouse click cannot leave one",
+    !/\.setup-hit:focus(?![-\w])/.test(cardSrc),
+    "a bare :focus rule on .setup-hit would ring mouse clicks too");
+  // Hover and focus-visible have equal specificity, so a hover rule using
+  // element opacity would fade the ring on the row under the pointer.
+  check("hovering a focused row does not fade its ring",
+    /\.setup-hit:hover \{[^}]*fill-opacity/.test(cardSrc) &&
+    !/\.setup-hit:hover \{[^}]*[^-]opacity:\s*0\.12/.test(cardSrc),
+    (/\.setup-hit:hover \{[^}]*\}/.exec(cardSrc) || [])[0]);
+  // Nobody's outline was hidden wholesale to make the report go away.
+  check("no blanket outline suppression was added",
+    !/outline:\s*none[^;]*;\s*\}\s*\/\* *hide/i.test(cardSrc) &&
+    /\.slot:focus-visible, \.lane:focus-visible \{[\s\S]{0,80}outline: 2px solid/
+      .test(cardSrc),
+    "the other focusable SVG parts keep their outlines");
+
+  // Geometry: at stroke-width 2 centred on the path the ring reaches one
+  // unit outside the rect, and must still clear the contour and the rows
+  // above and below -- otherwise it is clipped again, differently.
+  const geoCard = mkSetup();
+  const page = collect(geoCard.shadowRoot).join("\n");
+  const rects = [...page.matchAll(
+    /<rect class="setup-hit" data-key="([^"]+)"[^>]*?x="([\d.]+)" y="([\d.]+)"\s*width="([\d.]+)"\s*height="([\d.]+)"/g)]
+    .map((m) => ({ key: m[1], x: +m[2], y: +m[3], w: +m[4], h: +m[5] }));
+  const boxes = geoCard._layoutBoxes || [];
+  const clipped = [];
+  for (const r of rects) {
+    const b = boxes.find((bb) => r.x > bb.x && r.x < bb.x + bb.w &&
+      r.y > bb.y && r.y < bb.y + bb.h);
+    if (!b) { clipped.push(`${r.key}: no box`); continue; }
+    // 1 unit of ring on every side, against the contour at x+2 / x+w-2 and
+    // the box's own top and bottom.
+    if (r.x - 1 < b.x + 2) clipped.push(`${r.key}: left ${r.x - 1} < ${b.x + 2}`);
+    if (r.x + r.w + 1 > b.x + b.w - 2) {
+      clipped.push(`${r.key}: right ${r.x + r.w + 1} > ${b.x + b.w - 2}`);
+    }
+    if (r.y - 1 < b.y) clipped.push(`${r.key}: top ${r.y - 1} < ${b.y}`);
+    if (r.y + r.h + 1 > b.y + b.h) {
+      clipped.push(`${r.key}: bottom ${r.y + r.h + 1} > ${b.y + b.h}`);
+    }
+  }
+  check("the ring has room for all four of its sides inside the box",
+    clipped.length === 0, clipped.join("; "));
+  // Two rings on adjacent rows must not merge into one smear.
+  const merged = [];
+  const byCol = {};
+  for (const r of rects) (byCol[r.x] ||= []).push(r);
+  for (const list of Object.values(byCol)) {
+    const sorted = list.slice().sort((a, b) => a.y - b.y);
+    for (let i = 1; i < sorted.length; i++) {
+      const gap = sorted[i].y - (sorted[i - 1].y + sorted[i - 1].h) - 2;
+      if (gap < 0) merged.push(`${sorted[i - 1].key}/${sorted[i].key} ${gap}`);
+    }
+  }
+  check("and two neighbouring rings never touch each other",
+    merged.length === 0, merged.join(", "));
 }
 
 console.log(fails ? `\n${fails} CARD CHECK(S) FAILED` : "\nALL CARD CHECKS PASSED");
