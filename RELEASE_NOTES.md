@@ -18,8 +18,9 @@ your heated area, while the ranges those boxes accepted were guessed
 around a single 140 m² house with floor heating. A house with radiators
 only is the clearest case: its "slab" store is the water and steel of the
 radiator circuit, about 0.2 kWh/°C for 100 m², against a box that started
-at 1. Sweeping every building the questionnaire can describe, two thirds
-of them produced at least one value their own page would not take back.
+at 1. Sweeping every building the questionnaire can describe between 40 and
+400 m², three quarters of them produced at least one value their own page
+would not take back.
 
 Three things changed.
 
