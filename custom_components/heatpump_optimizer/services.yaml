@@ -44,13 +44,15 @@ set_thermal_parameters:
       name: House Thermal Mass
       description: >-
         Thermal mass of the house (air + furnishings) in kWh/°C.
-        Higher values mean slower temperature changes.
+        Higher values mean slower temperature changes. Roughly
+        0.02 kWh/°C per m² of heated area for a timber house; heavy
+        floors are counted under slab_thermal_mass instead.
       required: false
       example: 10.0
       selector:
         number:
-          min: 2
-          max: 50
+          min: 0.5
+          max: 80
           step: 0.5
           unit_of_measurement: "kWh/°C"
     house_heat_loss_coefficient:
@@ -62,31 +64,34 @@ set_thermal_parameters:
       example: 0.15
       selector:
         number:
-          min: 0.05
+          min: 0.01
           max: 1.0
           step: 0.01
           unit_of_measurement: "kW/°C"
     slab_thermal_mass:
       name: Slab Thermal Mass
       description: >-
-        Thermal mass of the concrete slab floor in kWh/°C.
+        Thermal mass of whatever the heat is delivered through, in
+        kWh/°C: the concrete slab of a floor-heated house, or the water
+        and steel of a radiator circuit, which is far smaller.
       required: false
       example: 5.0
       selector:
         number:
-          min: 1
-          max: 30
+          min: 0.05
+          max: 60
           step: 0.5
           unit_of_measurement: "kWh/°C"
     slab_heat_transfer:
       name: Slab Heat Transfer Coefficient
       description: >-
-        Heat transfer coefficient between slab and room in kW/°C.
+        Heat transfer coefficient between that store and the room, in
+        kW/°C. Radiators sit far higher than a slab.
       required: false
       example: 0.8
       selector:
         number:
-          min: 0.1
+          min: 0.02
           max: 5.0
           step: 0.1
           unit_of_measurement: "kW/°C"
@@ -109,8 +114,8 @@ set_thermal_parameters:
       example: 3.0
       selector:
         number:
-          min: 1
-          max: 20
+          min: 0.25
+          max: 60
           step: 0.5
           unit_of_measurement: "kWh/°C"
     lower_floor_thermal_mass:
@@ -121,8 +126,8 @@ set_thermal_parameters:
       example: 8.0
       selector:
         number:
-          min: 1
-          max: 30
+          min: 0.25
+          max: 60
           step: 0.5
           unit_of_measurement: "kWh/°C"
     inter_zone_heat_transfer:
