@@ -59,7 +59,29 @@ class NumberSelectorMode(str):
 
 
 class NumberSelector(_Selector):
-    pass
+    """Mirrors the real selector's validation: coerce to float, then range.
+
+    Home Assistant runs ``vol.Coerce(float)`` on the incoming value and
+    rejects anything outside the configured min/max, so a page default that
+    cannot coerce — or sits outside its own declared range — fails the moment
+    the user submits the form untouched. A stub that accepts anything hides
+    exactly that class of bug.
+    """
+
+    def __call__(self, value):
+        try:
+            value = float(value)
+        except (TypeError, ValueError):
+            raise ValueError(
+                f"expected a number, got {type(value).__name__}: {value!r}"
+            ) from None
+        minimum = self.config.get("min")
+        if minimum is not None and value < minimum:
+            raise ValueError(f"{value} is below the minimum {minimum}")
+        maximum = self.config.get("max")
+        if maximum is not None and value > maximum:
+            raise ValueError(f"{value} is above the maximum {maximum}")
+        return value
 
 
 class TextSelectorConfig(_Config):

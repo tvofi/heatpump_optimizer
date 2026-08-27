@@ -181,3 +181,4 @@ run("summer, no DHW",            "summer_typical","summer_warm", dhw=False)
 run("2zone winter, no DHW",      "winter_typical","winter_cold", two_zone=True, dhw=False)
 
 print("\n" + ("NO ISSUES" if not ISSUES else f"{len(ISSUES)} ISSUES:\n  " + "\n  ".join(ISSUES)))
+sys.exit(1 if ISSUES else 0)

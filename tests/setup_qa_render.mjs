@@ -5,8 +5,19 @@
 import fs from "fs";
 import vm from "vm";
 import path from "path";
+import crypto from "crypto";
+import { fileURLToPath } from "url";
 
-const plan = JSON.parse(fs.readFileSync("/tmp/plandata.json", "utf8"));
+// Same plan-payload resolution as tests/card.mjs: argv, HPO_PLANDATA, then a
+// default derived from this checkout's tests/ directory (what plan_view.py
+// writes), so the render never silently uses another checkout's stale file.
+const _testsDir = path.dirname(fileURLToPath(import.meta.url));
+const _defaultPlan = path.join(
+  "/tmp",
+  `plandata-${crypto.createHash("sha1").update(_testsDir).digest("hex").slice(0, 12)}.json`
+);
+const _planPath = process.argv[2] || process.env.HPO_PLANDATA || _defaultPlan;
+const plan = JSON.parse(fs.readFileSync(_planPath, "utf8"));
 
 // --- DOM stub, verbatim from tests/card.mjs ---------------------------------
 const VOID_TAGS = new Set(["br","hr","img","input","meta","link","source","path","rect","line","circle","use"]);

@@ -6,7 +6,8 @@
 #
 # The Home Assistant stub lives in `tests/hastub` and is version-controlled, so
 # the suite is reproducible; it used to sit in /tmp and vanish on reboot.
-# `plan_view.py` writes /tmp/plandata.json, which `card.mjs` then reads, so the
+# `plan_view.py` writes the plan payload (HPO_PLANDATA, or a per-checkout
+# default both sides derive identically), which `card.mjs` then reads, so the
 # order below is not arbitrary.
 #
 # GOLDEN_MODE picks how the characterization fixtures are checked:
@@ -43,15 +44,21 @@ run() {
 # Every test script must be wired into this file or deliberately allow-listed;
 # a script added to tests/ and forgotten here would otherwise silently never
 # run — which is exactly how optimality.py sat dormant for a year.
-for f in tests/*.py; do
+# "Wired" means an actual invocation line — `run ... tests/<name>` — not a
+# mention in a comment or prose, which is how a bare-substring grep once
+# counted four suites as wired when they were merely talked about.
+for f in tests/*.py tests/*.mjs; do
   base=$(basename "$f")
   case "$base" in
     harness.py|profiles.py) continue ;;  # shared plumbing, not tests
     # Run by features.py in a subprocess: HASTUB_TZ must be set before the
     # dt stub is imported, which an in-process import cannot arrange.
     dst_checks.py) continue ;;
+    # Visual-QA render helper for designer review (added v4.3.0): run by
+    # hand to produce setup-page SVGs, not a test — nothing to wire here.
+    setup_qa_render.mjs) continue ;;
   esac
-  if ! grep -q "$base" tests/run.sh; then
+  if ! grep -Eq '^[[:space:]]*run .*tests/'"$base"'( |$)' tests/run.sh; then
     echo "UNWIRED TEST: tests/$base is not referenced by tests/run.sh"
     failed=$((failed + 1))
   fi

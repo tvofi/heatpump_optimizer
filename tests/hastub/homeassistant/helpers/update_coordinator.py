@@ -6,6 +6,7 @@ class DataUpdateCoordinator:
         self.hass = args[0] if args else kwargs.get("hass")
         self.data = None
         self.refresh_requests = 0
+        self.last_update_success = True
 
     async def async_request_refresh(self):
         # Counted rather than executed: a test that exercises a setter should
@@ -33,3 +34,13 @@ class CoordinatorEntity:
 
     def __init__(self, coordinator, context=None):
         self.coordinator = coordinator
+
+    @property
+    def available(self) -> bool:
+        """Mirror the real base class: unavailable after a failed refresh.
+
+        Entities that override ``available`` are expected to AND their own
+        condition with ``super().available``; a stub without this property
+        made that conjunction untestable.
+        """
+        return bool(getattr(self.coordinator, "last_update_success", True))
