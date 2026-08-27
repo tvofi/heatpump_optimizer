@@ -2,6 +2,93 @@
 
 ## v5.1.6
 
+### The house was never planned to 28 °C. The chart was drawing water.
+
+An owner reported that heating slots were being planned that would take the
+house to 28 °C, with a comfort maximum of 23. Reproducing it showed something
+different, and worth saying plainly: **the plan was correct all along.** Across
+the whole characterization matrix the planned room temperature peaks between
+21.0 and 21.9 °C, and a fixture built specifically to test this — the comfort
+ceiling raised from 23 to 28, everything else identical — plans the room to
+exactly the same peak. The ceiling is a limit the plan stays under, never a
+target it aims for.
+
+What was wrong was what the chart drew, what a slot called itself, and what
+the setup page promised.
+
+**The "house temperature" line was, downstairs, a water temperature.** In a
+two-zone house with a floor-return sensor but no lower-floor thermometer, the
+lower zone's *air* temperature was taken from the floor-return *water*, plus
+half a degree. In an underfloor-heated house in a cold snap that return sits
+at 26-30 °C, so the lower zone was published — and plotted, in the same colour
+and under the same label as the room — at 28.0 °C while the upstairs zone sat
+at 22.1. That number then went to the model and was judged against the same
+comfort band as the measured zone.
+
+The floor return keeps the job it is genuinely a proxy for: estimating the
+slab. The lower zone now starts from the room sensor and is carried forward by
+the thermal model, which is what "the modelled indoor temperature" means. A
+repair notice says so, so a modelled zone is never mistaken for a measured
+one, and it explains what a lower-floor thermometer would add: the model
+running open-loop cannot correct itself, so over a long cold spell it can
+drift from the real downstairs.
+
+**The chart now names every line it draws.** The house-temperature series
+draws up to three traces — the room solid, the two zones dashed — and all
+three shared one label, one legend chip and one tooltip row. Hovering the
+28 °C line reported the room's 21 °C, which is precisely how a display defect
+reads as a planning defect. Each trace now has its own legend chip and its own
+tooltip row with its own value, named "Upper floor" and "Lower floor" (or
+"Lower floor (modelled)" where no thermometer is assigned), in English and
+Swedish. A single-zone house publishes the two zone traces as exact copies of
+the room; those duplicates are now dropped rather than drawn and labelled
+three times.
+
+**An ordinary slot stopped calling itself weather pre-heating.** "Pre-heating
+before colder weather" was not only the reason for a step that anticipates a
+cold spell — it was also the *default* for any heating step that was none of
+the other cases. So a mid-price hour on a mild afternoon told the user the
+optimizer was stocking up for weather that was not coming. Those steps now say
+**"Keeping the house at target"**; `preheat_weather` is kept for the branch
+that has actually looked at the heat-loss forecast. Eighteen fixtures carried
+the old label on at least one step.
+
+**The comfort bounds are described honestly.** The setup page called the
+warmest and coldest acceptable temperatures "a hard ceiling" and "a hard
+floor… never allowed below this", while the documentation, the config flow's
+own code and the integration's setup all say the opposite: the bounds are
+priced, not fenced. A hard band would make a cold morning the pump cannot heat
+through unsolvable, and an unsolvable problem produces no plan at all. So
+breaching a bound is made very expensive instead — expensive enough that
+breakeven sits about two orders of magnitude beyond any real Nord Pool spread.
+The four descriptions now say that, and say that the maximum is a limit rather
+than a target and cannot hold back heat the house gets for free from the sun.
+
+**Two ways into the comfort band skipped its checks.** The setup and options
+forms have always refused to store a band that contradicts itself. Two other
+paths write the same fields and did not: the `apply_schedule` service writes
+the daytime comfort temperature, and the thermostat card's slider writes the
+target temperature — with the slider's own maximum a degree *above* the
+configured ceiling, so its top notch stored an impossible target by
+construction. Both now run the same rules the forms do, and the slider stops
+at the ceiling. The measured effect on planning is small (a daytime comfort
+temperature of 30 against a maximum of 23 moved the planned room peak by
+0.01 K); this is a correctness fix, not a behaviour change.
+
+**The virtual battery reports the slab against the optimizer's own cap.** The
+slab component's ceiling was `comfort maximum + 6` — a leftover magic offset,
+a fixed 29 °C where the optimizer's settlement cap is weather-dependent and
+runs 24.5-28.5. The battery view overstated the slab's usable capacity by
+about 28 % and understated its state of charge by the same. Both numbers now
+come from one formula. This view is report-only: no plan changes.
+
+**Golden fixtures.** The reason-code change moves `space_reasons` on the
+fixtures that carried the old fall-through label, and the battery ceiling
+moves the slab component in the five coordinator fixtures. Every moved
+fixture is claimed with its reason; nothing else moves.
+
+## v5.1.6
+
 ### The expert thermal page can be saved again
 
 Changing a number under **Thermal model (expert)** and pressing Submit did

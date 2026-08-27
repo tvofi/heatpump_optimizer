@@ -11154,7 +11154,9 @@ R.check(
 
 # Ranking is unchanged: the specific reasons still outrank the fall-through.
 _room_low = _room_cl.copy()
-_room_low[3] = 19.1
+# Trajectories carry the initial state at index 0, so step i reads index i+1:
+# this is the room at the END of step 3.
+_room_low[4] = 19.1
 _surplus_cl = np.zeros(_n_cl)
 _surplus_cl[4] = 0.5
 _pw_idle = _pw_cl.copy()

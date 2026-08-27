@@ -11,7 +11,7 @@
 
 const CARD_TAG = "heatpump-optimizer-card";
 const EDITOR_TAG = "heatpump-optimizer-card-editor";
-const CARD_VERSION = "5.1.5";
+const CARD_VERSION = "5.1.6";
 
 // ---- i18n ------------------------------------------------------------------
 //
@@ -7360,7 +7360,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
           value: best.v,
           unit: this._seriesUnit(s),
           t: best.t,
-          field: s.field,
+          field: line.field,
           reason: best.reason,
           priceKnown: best.priceKnown,
         });

@@ -30,9 +30,40 @@
 # claims-for: 5.1.6
 #
 #
-# v5.1.6 un-submittable expert page: the numeric ranges the thermal fields
-# declare were narrower than the physics the building questionnaire derives
-# into them, so the config-flow fingerprint moves. Bounds only — no field
-# gained, lost or changed selector, and nothing the optimizer runs is
-# touched, so every coord_* and scenario fixture must stay byte-identical.
-config_flow  # thermal min/max recalibrated against presets.derive
+# v5.1.6 moves fixtures for two deliberate reasons, and nothing else.
+#
+# 1. The plan reason codes. `preheat_weather` was both the high-heat-loss
+#    branch of classify_space_steps AND its fall-through default, so an
+#    ordinary mid-price step published itself as "pre-heating before colder
+#    weather". The fall-through is now the neutral `scheduled`. Only
+#    `space_reasons` moves on these fixtures -- no power, no trajectory, no
+#    cost -- and the scenarios whose preheat_weather steps come from the
+#    genuine heat-loss branch (cool_rainy_summer, mild_windy_rain,
+#    precip_snow, shoulder_two_zone) are byte-identical, which is the check
+#    that the branch survived.
+#
+# 2. The virtual battery's slab ceiling, in the coordinator fixtures. It was
+#    `comfort_max + 6.0`, a fixed 29.0 C, and is now the optimizer's own
+#    settlement cap for the slab. Only `data.battery` moves. Report-only:
+#    the optimizer is not involved.
+
+away_setback  # space_reasons: 2 fall-through steps relabelled scheduled
+capacity_tariff  # space_reasons: 9 fall-through steps relabelled scheduled
+capacity_tariff_15min  # space_reasons: 9 fall-through steps relabelled scheduled
+everything_on  # space_reasons: 3 fall-through steps relabelled scheduled
+fuse_guard  # space_reasons: 4 fall-through steps relabelled scheduled
+horizon_48h  # space_reasons: 13 fall-through steps relabelled scheduled
+narrow_band  # space_reasons: 3 fall-through steps relabelled scheduled
+tariff_plus_two_zone  # space_reasons: 27 fall-through steps relabelled scheduled
+valve_storage  # space_reasons: 5 fall-through steps relabelled scheduled
+valve_storage_low_target  # space_reasons: 7 fall-through steps relabelled scheduled
+valve_storage_small_tank  # space_reasons: 17 fall-through steps relabelled scheduled
+winter_two_zone_no_dhw  # space_reasons: 1 fall-through step relabelled scheduled
+valve_upper_direct_slab  # space_reasons[88]: the one fall-through step this
+# machine's solve of this sensitive fixture produces, relabelled scheduled.
+# Not re-recorded: golden.py reports the five sensitive fixtures as DIFF here.
+coord_minimal  # data.battery: slab ceiling is now the settlement cap
+coord_dhw  # data.battery: slab ceiling is now the settlement cap
+coord_two_zone  # data.battery: slab ceiling is now the settlement cap
+coord_grid_fee  # data.battery: slab ceiling is now the settlement cap
+coord_all_features  # data.battery: slab ceiling is now the settlement cap

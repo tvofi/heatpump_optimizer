@@ -1966,6 +1966,21 @@ R.check(
     and "override:21.5" in clim.coordinator.pressed,
     str(clim.coordinator.pressed),
 )
+# v5.1.6: the slider used to run to `max_temp + 1`, so its top notch stored a
+# target the comfort band forbids -- and nothing on this path checked. The
+# minimum keeps its degree of headroom on purpose: a target below the floor is
+# a user asking to save more, judged by the band's own rule, not a
+# contradiction by construction.
+R.check(
+    "the thermostat's slider stops at the comfort ceiling",
+    clim._attr_max_temp == const.DEFAULT_MAX_TEMP,
+    f"max_temp {clim._attr_max_temp}, ceiling {const.DEFAULT_MAX_TEMP}",
+)
+R.check(
+    "and still offers a degree below the floor",
+    clim._attr_min_temp == const.DEFAULT_MIN_TEMP - 1,
+    str(clim._attr_min_temp),
+)
 
 switches = collect(switch_mod)
 R.check("the switch platform adds exactly one entity", len(switches) == 1)
