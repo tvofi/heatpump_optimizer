@@ -2820,9 +2820,31 @@ class HeatpumpOptimizerCard extends HTMLElement {
         ev.stopPropagation();
         const select = picker.querySelector(".sp-select");
         const key = this._pickerKey;
-        const entityId = select ? select.value : "";
-        const note = this.shadowRoot.querySelector(".setup-result");
         const slot = this._pickerSlot;
+        // What Assign will write is the choice the card remembered, not
+        // whatever the `<select>` reports. That element is rebuilt on every
+        // keystroke of the filter, and reading an answer back out of a
+        // control that has just been replaced is the same class of mistake
+        // as the one this whole item is about: a slot with a perfectly good
+        // sensor in it must never be emptied by the UI's own bookkeeping.
+        // `null` means "the user did not choose anything this visit", which
+        // is a request to keep what the slot already has.
+        const chose = this._pickerChoice;
+        const picked = chose === null || chose === undefined ? null : chose;
+        const fromDom =
+          select && typeof select.value === "string" && select.value
+            ? select.value
+            : null;
+        // An empty `<select>` that the user never touched is the control's
+        // own default, not a decision -- and acting on it is precisely the
+        // reported bug -- so it degrades to what the slot already holds.
+        // Choosing "(not configured)" deliberately still clears, through
+        // the confirmation below.
+        const entityId =
+          picked !== null ? picked
+            : fromDom !== null ? fromDom
+              : (slot && slot.entity) || "";
+        const note = this.shadowRoot.querySelector(".setup-result");
         // Assigning nothing to a slot that HAS something is a deletion: it
         // writes the config entry and reloads the integration, and the user
         // usually got here believing they were fixing a slot rather than
@@ -5070,12 +5092,23 @@ class HeatpumpOptimizerCard extends HTMLElement {
           min-width: 16em; max-width: 90%;
         }
         .sp-title { font-weight: 600; padding-bottom: 0.4em; }
-        .sp-select {
+        /* The filter and the list it narrows are one control, so they are
+           built out of one rule: an input that did not inherit the card's
+           colours would be unreadable on a dark theme, which is the sort of
+           thing that only shows up on somebody else's screen. */
+        .sp-filter, .sp-select {
           width: 100%; font: inherit; padding: 0.3em;
           color: var(--primary-text-color);
           background: var(--card-background-color, #fff);
           border: 1px solid var(--divider-color, #ccc);
           border-radius: 0.3em;
+        }
+        .sp-filter {
+          box-sizing: border-box; margin-bottom: 0.4em;
+        }
+        .sp-filter:focus-visible, .sp-select:focus-visible {
+          outline: 2px solid var(--primary-color, #03a9f4);
+          outline-offset: 1px;
         }
         .sp-actions {
           display: flex; gap: 0.4em; padding-top: 0.5em;
@@ -5087,6 +5120,14 @@ class HeatpumpOptimizerCard extends HTMLElement {
           padding: 0.25em 0.8em;
         }
         .sp-save { border-color: var(--primary-color, #03a9f4) !important; }
+        /* An Assign that is armed to CLEAR the slot is not the same button
+           any more, and it should not look like it. Same treatment as the
+           what-if save's confirmation, which this flow is modelled on. */
+        .sp-save.confirm {
+          border-color: var(--error-color, #e0544e) !important;
+          background: var(--error-color, #e0544e);
+          color: var(--text-primary-color, #fff); font-weight: 600;
+        }
         .sp-note {
           color: var(--secondary-text-color);
           font-size: 0.8em; padding-top: 0.4em;

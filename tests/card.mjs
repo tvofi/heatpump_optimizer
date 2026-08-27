@@ -4098,5 +4098,263 @@ const setupBox = (card, place) =>
   }
 }
 
+// --- Scenario: the entity picker stops destroying assignments (item E) ------
+// Three faults, and the first two combined into a data-loss bug rather than
+// an inconvenience:
+//
+//  - The slot's own entity was offered only if it happened to fall inside
+//    the candidate list. When it did not, the `<select>` fell back to
+//    "(not configured)" -- so a configured slot was SHOWN as empty, and
+//    pressing Assign wrote that emptiness and reloaded the integration.
+//  - PICKER_MAX_OPTIONS truncated the alphabetical candidate list, so on a
+//    large install the user's own probe was simply not in the list, with no
+//    way to reach it. That is the case above, on every install big enough.
+//  - Options were friendly names only. The reporter's two wood-tank probes
+//    are both called "Vedpanna temperatur"; one of them is silently
+//    `..._2`. A list of identical labels is a list nobody can choose from.
+{
+  const MAX = vm.runInContext("PICKER_MAX_OPTIONS", ctx);
+  // Parse a rendered picker into something to assert against.
+  const pickerOf = (card) => {
+    const page = collect(card.shadowRoot).join("\n");
+    const html = (/<div class="setup-picker">[\s\S]*?<\/div>\s*$/m
+      .exec(page) || [page])[0];
+    const options = [...page.matchAll(
+      /<option value="([^"]*)"( selected)?>([^<]*)<\/option>/g)]
+      .map((m) => ({ value: m[1], selected: !!m[2], text: m[3] }));
+    const note = (/<div class="sp-note">([^<]*)<\/div>/.exec(page) || [])[1];
+    return { html, options, note,
+      selected: options.filter((o) => o.selected) };
+  };
+  const openPicker = (card, key, viaKeyboard) => {
+    const hit = card.shadowRoot.querySelectorAll(".setup-hit")
+      .find((h) => h.dataset.key === key);
+    if (!hit) return null;
+    if (viaKeyboard) {
+      (hit._listeners.keydown || []).forEach((f) => f({ key: "Enter",
+        currentTarget: hit, preventDefault() {}, stopPropagation() {} }));
+    } else {
+      (hit._listeners.click || []).forEach((f) => f({ currentTarget: hit,
+        preventDefault() {}, stopPropagation() {} }));
+    }
+    return card.shadowRoot.querySelector(".setup-picker");
+  };
+  const clickBtn = async (card, sel) => {
+    const b = card.shadowRoot.querySelector(sel);
+    if (!b) return;
+    await Promise.all((b._listeners.click || [])
+      .map((f) => f({ stopPropagation() {}, preventDefault() {} })));
+  };
+  const typeFilter = (card, text) => {
+    const box = card.shadowRoot.querySelector(".sp-filter");
+    box.value = text;
+    (box._listeners.input || []).forEach((f) =>
+      f({ currentTarget: box, target: box }));
+  };
+  const chooseInSelect = (card, value) => {
+    const sel = card.shadowRoot.querySelector(".sp-select");
+    sel.value = value;
+    (sel._listeners.change || []).forEach((f) =>
+      f({ currentTarget: sel, target: sel }));
+  };
+
+  // A big install: 400 sensors whose names give nothing away, plus the two
+  // wood-tank probes the report is actually about -- identical friendly
+  // names, distinguishable only by their ids.
+  const bigStates = {};
+  for (let i = 0; i < 400; i++) {
+    bigStates[`sensor.zz_probe_${String(i).padStart(3, "0")}`] = {
+      state: "20.0",
+      attributes: { unit_of_measurement: "°C",
+        friendly_name: `Probe ${String(i).padStart(3, "0")}` },
+    };
+  }
+  bigStates["sensor.vedpanna_temperatur_temperature"] = {
+    state: "71.2", attributes: { unit_of_measurement: "°C",
+      friendly_name: "Vedpanna temperatur" } };
+  bigStates["sensor.vedpanna_temperatur_temperature_2"] = {
+    state: "48.9", attributes: { unit_of_measurement: "°C",
+      friendly_name: "Vedpanna temperatur" } };
+
+  // (a) A slot that HAS an entity shows it, and shows it selected -- even
+  //     when the install is far too big for it to survive the render cap.
+  const assignedTopo = setupTopo();
+  assignedTopo.slots = assignedTopo.slots.map((s) =>
+    s.key === "wood_tank_top_entity"
+      ? { ...s, entity: "sensor.vedpanna_temperatur_temperature_2" }
+      : s);
+  const big = mkSetup(assignedTopo, bigStates);
+  openPicker(big, "wood_tank_top_entity");
+  const p1 = pickerOf(big);
+  const mine = p1.options.find((o) =>
+    o.value === "sensor.vedpanna_temperatur_temperature_2");
+  check("a slot's own entity is offered even on an install past the cap",
+    !!mine, `${p1.options.length} options rendered, cap ${MAX}`);
+  check("and it is the option the picker comes up on",
+    !!mine && mine.selected && p1.selected.length === 1 &&
+    p1.selected[0].value === "sensor.vedpanna_temperatur_temperature_2",
+    `selected: ${JSON.stringify(p1.selected)}`);
+  check("so the placeholder is NOT what a configured slot shows",
+    !p1.options.some((o) => o.value === "" && o.selected),
+    JSON.stringify(p1.options.filter((o) => o.value === "")));
+  // The bug's payload: pressing Assign on an untouched picker must not
+  // write a clearance. It writes the entity that is already there, if it
+  // writes anything at all.
+  const calls = [];
+  big._hass.callService = async (d, s2, data) => { calls.push([d, s2, data]); };
+  await clickBtn(big, ".sp-save");
+  check("Assign on an untouched configured slot never clears it",
+    calls.length === 1 &&
+    calls[0][2].entity_id === "sensor.vedpanna_temperatur_temperature_2",
+    JSON.stringify(calls));
+
+  // ...and every option carries its entity id, because the two probes this
+  // report is about are indistinguishable without it.
+  const twins = p1.options.filter((o) => /vedpanna/.test(o.value));
+  check("every option shows its entity id next to the friendly name",
+    p1.options.filter((o) => o.value).every((o) => o.text.includes(o.value)),
+    p1.options.filter((o) => o.value && !o.text.includes(o.value))
+      .slice(0, 3).map((o) => `${o.value} -> ${o.text}`).join("; "));
+  check("so the two identically-named wood-tank probes are tellable apart",
+    twins.length === 2 && twins[0].text !== twins[1].text &&
+    twins.every((o) => /Vedpanna temperatur/.test(o.text)),
+    twins.map((o) => o.text).join(" | "));
+
+  // (b) Filtering. The cap is a RENDER bound applied after the filter, so
+  //     anything on the install is reachable by typing, and the footnote
+  //     says so while the list is standing on more than it shows.
+  const fresh = mkSetup(setupTopo(), bigStates);
+  openPicker(fresh, "wood_tank_top_entity");
+  const p2 = pickerOf(fresh);
+  const listed = p2.options.filter((o) => o.value).length;
+  check("a big install's list is capped rather than built in full",
+    listed === MAX, `${listed} options for 400+ candidates, cap ${MAX}`);
+  check("and the footnote says what it is standing on",
+    /showing 200 of 40\d/i.test(p2.note || "") ||
+    /200 of 40\d/.test(p2.note || ""),
+    p2.note);
+  // The probe the reporter could not reach: past the cap alphabetically,
+  // and found by typing part of its name.
+  const reachable = (q) => {
+    typeFilter(fresh, q);
+    const opts = [...fresh.shadowRoot.querySelector(".sp-select").innerHTML
+      .matchAll(/<option value="([^"]*)"/g)].map((m) => m[1]);
+    return opts;
+  };
+  const byName = reachable("vedpanna");
+  check("typing part of a friendly name reaches an entity past the cap",
+    byName.includes("sensor.vedpanna_temperatur_temperature") &&
+    byName.includes("sensor.vedpanna_temperatur_temperature_2"),
+    `${byName.length} options: ${byName.slice(0, 4).join(", ")}`);
+  const byId = reachable("TEMPERATURE_2");
+  check("and typing part of an entity id does too, case-insensitively",
+    byId.includes("sensor.vedpanna_temperatur_temperature_2"),
+    `${byId.length} options: ${byId.slice(0, 4).join(", ")}`);
+  const deep = reachable("probe 387");
+  check("an entity 387 places down the alphabet is one search away",
+    deep.includes("sensor.zz_probe_387"),
+    `${deep.length} options: ${deep.slice(0, 4).join(", ")}`);
+  // A filter that matches nothing says so rather than showing an empty box.
+  typeFilter(fresh, "no such sensor anywhere");
+  const emptyNote = fresh.shadowRoot.querySelector(".sp-note");
+  check("a filter that matches nothing says so",
+    /nothing matches/i.test(emptyNote.textContent || ""),
+    emptyNote.textContent);
+  // Narrowing below the cap drops the truncation notice.
+  typeFilter(fresh, "vedpanna");
+  check("and once the list fits, the footnote stops warning about the cap",
+    !/\bof 40\d/.test(
+      fresh.shadowRoot.querySelector(".sp-note").textContent || ""),
+    fresh.shadowRoot.querySelector(".sp-note").textContent);
+
+  // (c) A clearing Assign is confirmed, the way the what-if save is.
+  const clearing = mkSetup(assignedTopo, bigStates);
+  const clearCalls = [];
+  clearing._hass.callService = async (d, s2, data) => {
+    clearCalls.push([d, s2, data]);
+  };
+  openPicker(clearing, "wood_tank_top_entity");
+  chooseInSelect(clearing, "");
+  await clickBtn(clearing, ".sp-save");
+  const saveBtn = clearing.shadowRoot.querySelector(".sp-save");
+  check("choosing (not configured) does not clear the slot on one click",
+    clearCalls.length === 0 && clearing._pendingClear === true,
+    JSON.stringify(clearCalls));
+  check("the button says what the second click will do",
+    /confirm/i.test(saveBtn.textContent || "") &&
+    saveBtn.classList.contains("confirm"),
+    `${JSON.stringify(saveBtn.textContent)} ` +
+    `class=${saveBtn.className}`);
+  check("and the warning names the entity that would be lost",
+    /vedpanna_temperatur_temperature_2/.test(clearing._setupNote || ""),
+    clearing._setupNote);
+  await clickBtn(clearing, ".sp-save");
+  check("a second, deliberate click does clear it",
+    clearCalls.length === 1 && clearCalls[0][1] === "assign_entity" &&
+    clearCalls[0][2].entity_id === "" &&
+    clearCalls[0][2].key === "wood_tank_top_entity",
+    JSON.stringify(clearCalls));
+  // Clearing a slot that was already empty is not destructive and is not
+  // made to feel like it.
+  const emptySlot = mkSetup(setupTopo(), bigStates);
+  const emptyCalls = [];
+  emptySlot._hass.callService = async (d, s2, data) => {
+    emptyCalls.push([d, s2, data]);
+  };
+  openPicker(emptySlot, "wood_tank_top_entity");
+  chooseInSelect(emptySlot, "");
+  await clickBtn(emptySlot, ".sp-save");
+  check("an empty slot does not demand confirmation to stay empty",
+    emptyCalls.length === 1 && emptyCalls[0][2].entity_id === "",
+    JSON.stringify(emptyCalls));
+  // Changing your mind disarms it, so the armed state cannot be inherited
+  // by a different answer.
+  const rearm = mkSetup(assignedTopo, bigStates);
+  rearm._hass.callService = async () => {};
+  openPicker(rearm, "wood_tank_top_entity");
+  chooseInSelect(rearm, "");
+  await clickBtn(rearm, ".sp-save");
+  chooseInSelect(rearm, "sensor.vedpanna_temperatur_temperature");
+  check("picking something else disarms the clear",
+    rearm._pendingClear === false &&
+    !rearm.shadowRoot.querySelector(".sp-save").classList.contains("confirm"),
+    `pendingClear=${rearm._pendingClear}`);
+  // Leaving the picker drops the arming with it.
+  const leave = mkSetup(assignedTopo, bigStates);
+  leave._hass.callService = async () => {};
+  openPicker(leave, "wood_tank_top_entity");
+  chooseInSelect(leave, "");
+  await clickBtn(leave, ".sp-save");
+  await clickBtn(leave, ".sp-cancel");
+  check("and cancelling out of the picker disarms it too",
+    leave._pendingClear === false && leave._pickerKey === null &&
+    leave._pickerFilter === "" && leave._pickerChoice === null,
+    `pendingClear=${leave._pendingClear} key=${leave._pickerKey} ` +
+    `filter=${JSON.stringify(leave._pickerFilter)}`);
+
+  // Keyboard access has to survive all of that.
+  const kb = mkSetup(assignedTopo, bigStates);
+  check("Enter on a row still opens the picker",
+    !!openPicker(kb, "wood_tank_top_entity", true));
+  const kbPicker = kb.shadowRoot.querySelector(".setup-picker");
+  (kbPicker._listeners.keydown || []).forEach((f) =>
+    f({ key: "Escape", stopPropagation() {} }));
+  check("Escape still closes it without assigning",
+    !kb.shadowRoot.querySelector(".setup-picker") && kb._pickerKey === null);
+  check("and still hands focus back to the row it came from",
+    !!document.activeElement &&
+    document.activeElement.classList.contains("setup-hit") &&
+    document.activeElement.dataset.key === "wood_tank_top_entity",
+    document.activeElement && document.activeElement.className);
+  // The filter is a labelled control, not an unexplained box.
+  const kb2 = mkSetup(assignedTopo, bigStates);
+  openPicker(kb2, "wood_tank_top_entity", true);
+  const filterBox = kb2.shadowRoot.querySelector(".sp-filter");
+  check("the filter box says out loud what it filters",
+    !!filterBox && /wood tank top/i.test(filterBox["aria-label"] || "") &&
+    !!filterBox.placeholder,
+    filterBox && `${filterBox["aria-label"]} / ${filterBox.placeholder}`);
+}
+
 console.log(fails ? `\n${fails} CARD CHECK(S) FAILED` : "\nALL CARD CHECKS PASSED");
 process.exit(fails?1:0);
