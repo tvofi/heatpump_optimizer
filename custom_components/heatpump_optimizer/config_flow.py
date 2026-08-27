@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, Final
 
 import aiohttp
 import voluptuous as vol
@@ -365,6 +365,49 @@ def _number(
     if unit is not None:
         config["unit_of_measurement"] = unit
     return selector.NumberSelector(selector.NumberSelectorConfig(**config))
+
+
+# --- Nominal bounds for the thermal model ----------------------------------
+#
+# These are the ranges the expert page and the initial setup flow accept for
+# the parameters ``presets.derive`` writes. They were originally guessed
+# around one 140 m² house with floor heating, and the guess was narrower than
+# the physics: ``derive`` scales everything by heated area, so the same
+# archetype at 40 m² or 400 m² lands far outside a range chosen for the
+# middle. A radiator-only house derives a ``slab_thermal_mass`` — the emitter
+# loop's few litres of water and steel — of about 0.002 kWh/°C per m², i.e.
+# 0.1 to 0.8 for any ordinary house, against a field that used to start at 1.
+#
+# So each pair below covers what ``derive`` can emit for a *plausible*
+# building — 40 to 400 m² of heated area, every structure, era, foundation,
+# emitter pair and zone split — with modest headroom, and no more. The
+# extremes the questionnaire still allows (a 20 m² cabin, a 1000 m² block)
+# are not covered here on purpose: a range wide enough for those would stop
+# catching a mistyped number, and a stored value outside its field's range
+# is admitted anyway by ``_fit_stored_values`` above, which relaxes only the
+# one field that holds it. ``tests/entities.py`` pins both halves.
+#
+# kWh/°C. 0.72 is a 40 m² timber house on a crawlspace; 62.5 a 400 m² masonry
+# house with a heated basement. Only the *fast* store — air, furnishings and
+# light fabric — lives here; heavy floors are in the slab mass below.
+RANGE_HOUSE_THERMAL_MASS: Final = (0.5, 80.0)
+# kW/°C. 0.0140 is a 40 m² low-energy house (14 W/K), 0.7316 a 400 m²
+# pre-1960 one with a heated basement. The ceiling is unchanged.
+RANGE_HOUSE_HEAT_LOSS: Final = (0.01, 1.0)
+# kWh/°C. 0.1 is the radiator loop of a small house — the floor ``derive``
+# itself imposes — and 53.0 a 400 m² masonry house's heated slab.
+RANGE_SLAB_THERMAL_MASS: Final = (0.05, 60.0)
+# kW/°C. ``derive`` floors this at 0.05; a 400 m² floor circuit reaches 4.0.
+# The ceiling is unchanged.
+RANGE_SLAB_HEAT_TRANSFER: Final = (0.02, 5.0)
+# kWh/°C per zone. ``derive`` floors both at 0.5; the heaviest zone of a
+# 400 m² masonry house with a heated basement is 58.45. The two zones share
+# one range because either can be the heavy one, depending on the emitters.
+RANGE_ZONE_THERMAL_MASS: Final = (0.25, 60.0)
+# kW/°C per zone. A tenth of a 40 m² low-energy house is 0.0014; nine tenths
+# of a 400 m² pre-1960 one with a basement is 0.6584. A single zone cannot
+# lose more than the whole house, so the ceiling matches RANGE_HOUSE_HEAT_LOSS.
+RANGE_ZONE_HEAT_LOSS: Final = (0.001, 1.0)
 
 
 def _prefilled_values(marker: Any) -> list[Any]:
@@ -966,17 +1009,17 @@ class HeatPumpOptimizerConfigFlow(
                 {
                     vol.Required(
                         CONF_HOUSE_THERMAL_MASS, default=DEFAULT_HOUSE_THERMAL_MASS
-                    ): _number(2, 50, 0.5, "kWh/°C"),
+                    ): _number(*RANGE_HOUSE_THERMAL_MASS, 0.5, "kWh/°C"),
                     vol.Required(
                         CONF_HOUSE_HEAT_LOSS_COEFFICIENT,
                         default=DEFAULT_HOUSE_HEAT_LOSS_COEFFICIENT,
-                    ): _number(0.05, 1.0, 0.01, "kW/°C"),
+                    ): _number(*RANGE_HOUSE_HEAT_LOSS, 0.01, "kW/°C"),
                     vol.Required(
                         CONF_SLAB_THERMAL_MASS, default=DEFAULT_SLAB_THERMAL_MASS
-                    ): _number(1, 30, 0.5, "kWh/°C"),
+                    ): _number(*RANGE_SLAB_THERMAL_MASS, 0.5, "kWh/°C"),
                     vol.Required(
                         CONF_SLAB_HEAT_TRANSFER, default=DEFAULT_SLAB_HEAT_TRANSFER
-                    ): _number(0.1, 5.0, 0.1, "kW/°C"),
+                    ): _number(*RANGE_SLAB_HEAT_TRANSFER, 0.1, "kW/°C"),
                     vol.Required(
                         CONF_HEAT_PUMP_COP_NOMINAL,
                         default=DEFAULT_HEAT_PUMP_COP_NOMINAL,
@@ -1016,19 +1059,19 @@ class HeatPumpOptimizerConfigFlow(
                     vol.Optional(
                         CONF_UPPER_FLOOR_THERMAL_MASS,
                         default=DEFAULT_UPPER_FLOOR_THERMAL_MASS,
-                    ): _number(1, 20, 0.5, "kWh/°C"),
+                    ): _number(*RANGE_ZONE_THERMAL_MASS, 0.5, "kWh/°C"),
                     vol.Optional(
                         CONF_LOWER_FLOOR_THERMAL_MASS,
                         default=DEFAULT_LOWER_FLOOR_THERMAL_MASS,
-                    ): _number(1, 30, 0.5, "kWh/°C"),
+                    ): _number(*RANGE_ZONE_THERMAL_MASS, 0.5, "kWh/°C"),
                     vol.Optional(
                         CONF_UPPER_FLOOR_HEAT_LOSS,
                         default=DEFAULT_UPPER_FLOOR_HEAT_LOSS,
-                    ): _number(0.01, 0.5, 0.01, "kW/°C"),
+                    ): _number(*RANGE_ZONE_HEAT_LOSS, 0.01, "kW/°C"),
                     vol.Optional(
                         CONF_LOWER_FLOOR_HEAT_LOSS,
                         default=DEFAULT_LOWER_FLOOR_HEAT_LOSS,
-                    ): _number(0.01, 0.5, 0.01, "kW/°C"),
+                    ): _number(*RANGE_ZONE_HEAT_LOSS, 0.01, "kW/°C"),
                     vol.Optional(
                         CONF_INTER_ZONE_TRANSFER,
                         default=DEFAULT_INTER_ZONE_TRANSFER,
@@ -1856,13 +1899,17 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
             errors=errors,
             data_schema=vol.Schema(
                 {
-                    _numeric(CONF_HOUSE_THERMAL_MASS): _number(2, 50, 0.5, "kWh/°C"),
-                    _numeric(CONF_HOUSE_HEAT_LOSS_COEFFICIENT): _number(
-                        0.05, 1.0, 0.01, "kW/°C"
+                    _numeric(CONF_HOUSE_THERMAL_MASS): _number(
+                        *RANGE_HOUSE_THERMAL_MASS, 0.5, "kWh/°C"
                     ),
-                    _numeric(CONF_SLAB_THERMAL_MASS): _number(1, 30, 0.5, "kWh/°C"),
+                    _numeric(CONF_HOUSE_HEAT_LOSS_COEFFICIENT): _number(
+                        *RANGE_HOUSE_HEAT_LOSS, 0.01, "kW/°C"
+                    ),
+                    _numeric(CONF_SLAB_THERMAL_MASS): _number(
+                        *RANGE_SLAB_THERMAL_MASS, 0.5, "kWh/°C"
+                    ),
                     _numeric(CONF_SLAB_HEAT_TRANSFER): _number(
-                        0.1, 5.0, 0.1, "kW/°C"
+                        *RANGE_SLAB_HEAT_TRANSFER, 0.1, "kW/°C"
                     ),
                     _numeric(CONF_HEAT_PUMP_COP_NOMINAL): _number(1.5, 6.0, 0.1),
                     _numeric(CONF_HEAT_PUMP_MAX_POWER): _number(1, 20, 0.5, "kW"),
@@ -1882,16 +1929,16 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
                         },
                     ): _select(list(TWO_ZONE_MODES), "two_zone_mode"),
                     _numeric(CONF_UPPER_FLOOR_THERMAL_MASS): _number(
-                        1, 20, 0.5, "kWh/°C"
+                        *RANGE_ZONE_THERMAL_MASS, 0.5, "kWh/°C"
                     ),
                     _numeric(CONF_LOWER_FLOOR_THERMAL_MASS): _number(
-                        1, 30, 0.5, "kWh/°C"
+                        *RANGE_ZONE_THERMAL_MASS, 0.5, "kWh/°C"
                     ),
                     _numeric(CONF_UPPER_FLOOR_HEAT_LOSS): _number(
-                        0.01, 0.5, 0.01, "kW/°C"
+                        *RANGE_ZONE_HEAT_LOSS, 0.01, "kW/°C"
                     ),
                     _numeric(CONF_LOWER_FLOOR_HEAT_LOSS): _number(
-                        0.01, 0.5, 0.01, "kW/°C"
+                        *RANGE_ZONE_HEAT_LOSS, 0.01, "kW/°C"
                     ),
                     _numeric(CONF_INTER_ZONE_TRANSFER): _number(
                         0.0, 3.0, 0.1, "kW/°C"
