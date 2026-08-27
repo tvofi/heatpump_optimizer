@@ -1118,7 +1118,9 @@ window would freeze learning for two extra days after it closed.
 Every planned slot carries a **reason code** — cheapest hours, holding the
 minimum temperature, pre-heating before colder weather, using solar surplus, the
 anti-legionella cycle, and so on — in the plan sensor attributes and in the
-card's tooltip. Without it, an unexpected slot is indistinguishable from a bug,
+card's tooltip. A step that is none of those is `scheduled`, "keeping the house
+at target": until v5.1.6 the fall-through was `preheat_weather`, so an ordinary
+mid-price hour claimed to be anticipating weather nobody had forecast. Without it, an unexpected slot is indistinguishable from a bug,
 which makes the optimizer hard to trust and bug reports much weaker than they
 could be. Everything below is built on those codes:
 

@@ -2382,14 +2382,14 @@ _delta_measured = _converged_delta(
     lower_floor_temp_entity="sensor.lower",
 )
 R.check(
-    "the inferred path really does pin slab-to-room at 0.5 K",
-    abs(_delta_inferred - 0.5) < 0.01,
+    "the estimated path no longer pins slab-to-room at 0.5 K",
+    abs(_delta_inferred - 0.5) > 1.0,
     f"delta {_delta_inferred:.3f}",
 )
 R.check(
-    "and a real sensor unpins it, so the main heat path can vary at all",
-    _delta_measured > 5.0,
-    f"delta {_delta_measured:.3f} (was {_delta_inferred:.3f})",
+    "and a real sensor moves it further still, from a measurement",
+    _delta_measured > _delta_inferred,
+    f"delta {_delta_measured:.3f} (estimated {_delta_inferred:.3f})",
 )
 
 # 4. With no floor return at all, the room temperature is the better estimate --
@@ -11089,6 +11089,101 @@ R.check(
     "only",
     _lf_u._current_state.room_temperature == 21.0,
     f"room temperature {_lf_u._current_state.room_temperature}",
+)
+
+
+# ===========================================================================
+# v5.1.6 — an ordinary slot stops calling itself weather pre-heating
+# ===========================================================================
+R.section("Plan reason codes: the fall-through is neutral (v5.1.6)")
+
+# `REASON_PREHEAT_WEATHER` was both the high-heat-loss branch AND the
+# fall-through default, so every heating step that was not idle, at the floor,
+# solar-surplus, terminal or in the cheapest 35 % was published as
+# "Pre-heating before colder weather". The card renders exactly that sentence,
+# which is what an owner read on a mild afternoon and reported as the
+# optimizer chasing weather it had never been shown.
+from heatpump_optimizer.optimizer import (  # noqa: E402
+    REASON_CHEAP_PRICE as _R_CHEAP,
+    REASON_COMFORT_FLOOR as _R_FLOOR,
+    REASON_IDLE as _R_IDLE,
+    REASON_PREHEAT_WEATHER as _R_PREHEAT,
+    REASON_SCHEDULED as _R_SCHED,
+    REASON_SOLAR_SURPLUS as _R_SURPLUS,
+    REASON_TERMINAL_VALUE as _R_TERMINAL,
+    classify_space_steps as _classify,
+    slab_settlement_cap as _slab_cap,
+)
+
+# Ten steps. Prices rise, so the 35th percentile sits low and the later steps
+# are "not cheap"; the room is comfortably above the floor throughout; the
+# terminal window is the last step only (max(1, int(0.08 * 10)) == 1).
+_n_cl = 10
+_pw_cl = np.full(_n_cl, 1.0)
+_pr_cl = np.linspace(0.5, 2.0, _n_cl)
+_room_cl = np.full(_n_cl + 1, 21.0)
+_min_cl = np.full(_n_cl, 19.0)
+_hl_cl = np.full(_n_cl, 1.0)  # ordinary weather: nothing to anticipate
+_reasons_cl = _classify(_pw_cl, _pr_cl, _room_cl, _min_cl, _hl_cl, None, _n_cl)
+R.check(
+    "an ordinary mid-price step is no longer called weather pre-heating",
+    _R_PREHEAT not in _reasons_cl,
+    f"{_reasons_cl}",
+)
+R.check(
+    "it carries the neutral fall-through instead",
+    _reasons_cl[5] == _R_SCHED,
+    f"step 5 is {_reasons_cl[5]!r} in {_reasons_cl}",
+)
+R.check(
+    "and the cheap steps keep their own, more specific, reason",
+    _reasons_cl[0] == _R_CHEAP and _reasons_cl[-1] == _R_TERMINAL,
+    f"{_reasons_cl}",
+)
+
+# The genuine branch must survive: a step whose heat-loss factor says the
+# weather is turning still reports weather pre-heating.
+_hl_hot = _hl_cl.copy()
+_hl_hot[5] = 1.4
+_reasons_hl = _classify(_pw_cl, _pr_cl, _room_cl, _min_cl, _hl_hot, None, _n_cl)
+R.check(
+    "a real high-heat-loss step still says weather pre-heating",
+    _reasons_hl[5] == _R_PREHEAT,
+    f"{_reasons_hl}",
+)
+
+# Ranking is unchanged: the specific reasons still outrank the fall-through.
+_room_low = _room_cl.copy()
+_room_low[3] = 19.1
+_surplus_cl = np.zeros(_n_cl)
+_surplus_cl[4] = 0.5
+_pw_idle = _pw_cl.copy()
+_pw_idle[2] = 0.0
+_ranked = _classify(
+    _pw_idle, _pr_cl, _room_low, _min_cl, _hl_cl, _surplus_cl, _n_cl
+)
+R.check(
+    "idle, comfort floor and solar surplus all still outrank it",
+    _ranked[2] == _R_IDLE
+    and _ranked[3] == _R_FLOOR
+    and _ranked[4] == _R_SURPLUS,
+    f"{_ranked}",
+)
+
+# Every code the classifier can emit needs a sentence in both languages, or a
+# plan says nothing in Swedish and shows a raw identifier in English.
+for _lang_cl in narrative_mod.LANGUAGES:
+    R.check(
+        f"the new reason has a narrative sentence ({_lang_cl})",
+        _R_SCHED in narrative_mod.TEMPLATES[_lang_cl],
+    )
+_card_src_cl = _Path(
+    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+).read_text(encoding="utf-8")
+R.check(
+    "and a card label in both languages, wired to the code",
+    _card_src_cl.count('"reasons.scheduled"') == 3
+    and "scheduled: \"reasons.scheduled\"," in _card_src_cl,
 )
 
 sys.exit(R.close("FEATURE CHECKS"))

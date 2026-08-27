@@ -283,6 +283,15 @@ def cycling_penalty(
 REASON_COMFORT_FLOOR = "comfort_floor"
 REASON_CHEAP_PRICE = "cheap_price"
 REASON_PREHEAT_WEATHER = "preheat_weather"
+#: The neutral fall-through: a step that is none of the specific cases below,
+#: which is to say an ordinary slot holding the house at target. Until v5.1.6
+#: these steps were tagged ``preheat_weather`` — the same code as the genuine
+#: high-heat-loss branch — so the card told a user that a mid-price hour on a
+#: mild afternoon was "Pre-heating before colder weather". A reason code that
+#: doubles as a default is a reason code that cannot be trusted, and this one
+#: was read as evidence that the optimizer was chasing weather it had not been
+#: shown.
+REASON_SCHEDULED = "scheduled"
 REASON_TERMINAL_VALUE = "terminal_value"
 REASON_SOLAR_SURPLUS = "solar_surplus"
 REASON_DHW_WINDOW = "dhw_window"
@@ -306,8 +315,9 @@ def classify_space_steps(
 
     The plan sensors published *which* slots were chosen but never *why*. A
     slot could be cheapest-price, comfort-floor, weather pre-heat, terminal
-    value or solar self-consumption, and nothing distinguished them — so an
-    unexpected slot was indistinguishable from a bug. That makes the optimizer
+    value, solar self-consumption or simply scheduled, and nothing
+    distinguished them — so an unexpected slot was indistinguishable from a
+    bug. That makes the optimizer
     hard to trust and hard to support, and it makes bug reports much weaker
     than they could be.
 
@@ -342,7 +352,10 @@ def classify_space_steps(
         if prices[i] <= cheap_cut:
             reasons.append(REASON_CHEAP_PRICE)
             continue
-        reasons.append(REASON_PREHEAT_WEATHER)
+        # Nothing more specific applies: an ordinary step keeping the house at
+        # target. `preheat_weather` is reserved for the heat-loss branch above,
+        # which is the only one that has actually looked at the weather.
+        reasons.append(REASON_SCHEDULED)
     return reasons
 
 
