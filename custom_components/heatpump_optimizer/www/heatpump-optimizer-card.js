@@ -42,6 +42,16 @@ const STRINGS = {
     "series.dhw_temp": "DHW tank temperature",
     "series.house_temp": "House temperature",
     "series.solar": "Solar irradiance",
+    // The extra traces inside the house-temperature series. They are drawn
+    // dashed in the same colour, and before v5.1.6 nothing named them: one
+    // legend chip and one tooltip row said "House temperature" for all
+    // three, so hovering the upper or lower zone reported the room's value.
+    "series.upper_floor": "Upper floor",
+    "series.lower_floor": "Lower floor",
+    // No lower-floor thermometer: the trace is the model's own prediction,
+    // running open-loop with nothing to correct it. Worth saying, because it
+    // can drift from the real downstairs over a few hours.
+    "series.lower_floor_modelled": "Lower floor (modelled)",
 
     // chart / plan annotations
     "plan.now": "now",
@@ -366,6 +376,9 @@ const STRINGS = {
     "series.dhw_temp": "Varmvattentankens temperatur",
     "series.house_temp": "Innetemperatur",
     "series.solar": "Solinstrålning",
+    "series.upper_floor": "Övre plan",
+    "series.lower_floor": "Nedre plan",
+    "series.lower_floor_modelled": "Nedre plan (modellerad)",
 
     "plan.now": "nu",
     "plan.estimated_prices": "uppskattade priser",
@@ -793,6 +806,13 @@ const SERIES_DEFS = [
     sensor: "space",
     field: "room",
     extra: ["upper", "lower"],
+    // What each extra trace is called. Without this the zones inherit the
+    // series label and the chart claims three different temperatures are all
+    // "House temperature".
+    extraLabels: {
+      upper: "series.upper_floor",
+      lower: "series.lower_floor",
+    },
     style: "smooth",
   },
   {
@@ -1335,6 +1355,32 @@ const REASON_LABELS = {
   manual_plan: "reasons.manual_plan",
   idle: "reasons.idle",
 };
+
+/** Whether two point series are the same curve, to the plotted precision.
+ *
+ * Values arrive rounded to two decimals from the integration, so an exact
+ * comparison is the right one: a genuinely separate zone differs by far more
+ * than that, and a copy differs by nothing at all.
+ */
+function samePoints(a, b) {
+  if (!a || !b || a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i].t !== b[i].t || a[i].v !== b[i].v) return false;
+  }
+  return true;
+}
+
+/** The swatch for one trace: solid for a primary line, dashed for an extra.
+ *
+ * The chart already distinguishes them by stroke, so the legend chip and the
+ * tooltip dot have to as well — otherwise two rows in the same colour look
+ * like the same line reported twice.
+ */
+function dotStyle(color, dashed) {
+  return dashed
+    ? `background:repeating-linear-gradient(90deg,${color} 0 3px,transparent 3px 6px)`
+    : `background:${color}`;
+}
 
 /** Stop a click inside the panel from reaching the card's expand handler. */
 function stop(ev) {
@@ -2097,6 +2143,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     for (const def of SERIES_DEFS) {
       const fc = def.sensor === "either" ? either(def.field) : pick(def.sensor);
       const lines = [];
+      let primaryPts = null;
       const fields = [def.field].concat(def.extra || []);
       for (const field of fields) {
         const pts = [];
@@ -2117,7 +2164,26 @@ class HeatpumpOptimizerCard extends HTMLElement {
         }
         pts.sort((a, b) => a.t - b.t);
         if (pts.length) {
-          lines.push({ field, points: pts, primary: field === def.field });
+          const primary = field === def.field;
+          // A single-zone house still publishes `upper` and `lower`: the
+          // one-zone dynamics set both to the room temperature step by step,
+          // so the extras are exact copies of the primary. Drawing them put
+          // two dashed lines under the solid one, and naming them would put
+          // two more chips in the legend and two more rows in the tooltip for
+          // a house that has one zone. Drop a duplicate rather than label it.
+          if (!primary && samePoints(pts, primaryPts)) continue;
+          if (primary) primaryPts = pts;
+          lines.push({
+            field,
+            points: pts,
+            primary,
+            // Named per line, not per series: `_lineLabel` resolves the
+            // dictionary key so the tooltip and the legend cannot disagree
+            // about what a trace is called.
+            labelKey: primary
+              ? def.labelKey
+              : (def.extraLabels || {})[field] || def.labelKey,
+          });
         }
       }
       series.push({
@@ -5404,14 +5470,59 @@ class HeatpumpOptimizerCard extends HTMLElement {
       const hasData = s ? s.hasData : false;
       const hidden = !!this._hidden[def.key];
       const cls = "chip" + (hidden ? " off" : "") + (hasData ? "" : " nodata");
-      const label = L(def.labelKey);
-      return `<button type="button" class="${cls}" data-key="${def.key}" title="${esc(
-        label
-      )} (${esc(this._seriesUnit(def))})">
-        <span class="dot" style="background:${def.color}"></span>${esc(label)}
+      const unit = esc(this._seriesUnit(def));
+      const chip = (label, dashed) =>
+        `<button type="button" class="${cls}" data-key="${def.key}" title="${esc(
+          label
+        )} (${unit})">
+        <span class="dot" style="${dotStyle(def.color, dashed)}"></span>${esc(
+          label
+        )}
       </button>`;
+      // The extra traces of a multi-line series get chips of their own, named
+      // and drawn dashed like the lines they stand for. They carry the same
+      // data-key, so clicking any of them toggles the series as a whole —
+      // which is the only granularity the visibility model has.
+      const extras = (s ? s.lines : [])
+        .filter((line) => !line.primary)
+        .map((line) => chip(this._lineLabel(def, line), true))
+        .join("");
+      return chip(L(def.labelKey), false) + extras;
     }).join("");
     return `<div class="legend">${chips}</div>`;
+  }
+
+  /** What one trace inside a series is called.
+   *
+   * A series can carry several lines — the house-temperature series draws the
+   * whole-house room average solid and the two zones dashed — and every one of
+   * them needs its own name. The lower zone gets a second name when nothing
+   * measures it, so a modelled trace is never mistaken for a reading.
+   */
+  _lineLabel(def, line) {
+    if (!line || line.primary) return L(def.labelKey);
+    if (line.field === "lower" && this._lowerFloorModelled()) {
+      return L("series.lower_floor_modelled");
+    }
+    return L(line.labelKey || def.labelKey);
+  }
+
+  /** True when the lower zone has no thermometer of its own.
+   *
+   * Read from the published `setup_topology` slots rather than guessed: the
+   * integration already says there which sensor slots are filled, so the
+   * chart's label and the setup page cannot disagree. Unknown topology
+   * claims nothing — a missing attribute is not evidence of a missing
+   * sensor.
+   */
+  _lowerFloorModelled() {
+    const topo = this._planAttrRaw("setup_topology", null);
+    const slots = topo && Array.isArray(topo.slots) ? topo.slots : null;
+    if (!slots) return false;
+    const slot = slots.find(
+      (x) => x && x.key === "lower_floor_temp_entity"
+    );
+    return !!slot && !slot.entity;
   }
 
   /** The unit a series renders with. Only the price unit is dynamic: its
@@ -7207,25 +7318,28 @@ class HeatpumpOptimizerCard extends HTMLElement {
     let snapX = vbX;
     let snapped = false;
     for (const s of visible) {
-      const line = s.lines.find((l) => l.primary) || s.lines[0];
-      if (!line) continue;
-      let best = null;
-      let bestDt = Infinity;
-      for (const p of line.points) {
-        const dt = Math.abs(p.t - t);
-        if (dt < bestDt) {
-          bestDt = dt;
-          best = p;
+      // Every line, not just the primary one. The house-temperature series
+      // draws three traces and the tooltip used to report the room's value
+      // for all of them, so hovering a 28 C zone line showed 21 C.
+      for (const line of s.lines) {
+        let best = null;
+        let bestDt = Infinity;
+        for (const p of line.points) {
+          const dt = Math.abs(p.t - t);
+          if (dt < bestDt) {
+            bestDt = dt;
+            best = p;
+          }
         }
-      }
-      if (best) {
+        if (!best) continue;
         if (!snapped) {
           snapX = scaleX(best.t);
           snapped = true;
         }
         rows.push({
           color: s.color,
-          label: L(s.labelKey),
+          label: this._lineLabel(s, line),
+          dashed: !line.primary,
           value: best.v,
           unit: this._seriesUnit(s),
           t: best.t,
@@ -7262,9 +7376,12 @@ class HeatpumpOptimizerCard extends HTMLElement {
         rows
           .map(
             (r) =>
-              `<div class="tt-row"><span class="dot" style="background:${r.color}"></span>${esc(
-                r.label
-              )}: ${esc(fmtTick(r.value))} ${esc(r.unit)}</div>`
+              `<div class="tt-row"><span class="dot" style="${dotStyle(
+                r.color,
+                r.dashed
+              )}"></span>${esc(r.label)}: ${esc(fmtTick(r.value))} ${esc(
+                r.unit
+              )}</div>`
           )
           .join("") +
         sharedHtml +

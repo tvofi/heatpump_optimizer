@@ -4714,5 +4714,113 @@ const setupBox = (card, place) =>
     merged.length === 0, merged.join(", "));
 }
 
+
+// --- Scenario: the zone traces are named (v5.1.6) --------------------------
+//
+// The house-temperature series draws `room` solid and `upper`/`lower` dashed
+// in one colour. Until v5.1.6 all three shared one legend chip and one label,
+// and the tooltip reported `s.lines.find(l => l.primary)` — the ROOM value —
+// for whichever line the pointer was over. A two-zone house whose downstairs
+// trace sat at 28 °C therefore hovered as 21 °C, which is how a display defect
+// reads as the optimizer overheating the house.
+{
+  const twoZone = (opts) => {
+    const st = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+    // Same timestamps, three genuinely different temperatures.
+    st[DEFAULT_SPACE].attributes.forecast =
+      plan.space_plan.forecast.map((p) => ({
+        ...p,
+        // Whole degrees apart: the chart formats anything at or above 10
+        // with `toFixed(0)`, so smaller gaps would render identically and the
+        // "own value" check below would pass on a coincidence.
+        room: 22.0,
+        upper: 20.0,
+        lower: 28.0,
+      }));
+    if (opts && opts.topology) {
+      st[DEFAULT_SPACE].attributes.setup_topology = {
+        slots: [
+          { key: "indoor_temp_entity", entity: "sensor.indoor" },
+          { key: "lower_floor_temp_entity", entity: opts.lowerEntity || null },
+        ],
+      };
+    }
+    return st;
+  };
+
+  // Just the chips: the legend div ends at the first </div>, and nothing
+  // inside a chip is one. Slicing rather than regex-matching keeps unrelated
+  // markup (which may legitimately contain the word "modelled") out of the
+  // labelling assertions below.
+  const legendOf = (dump) => {
+    const i = dump.indexOf('<div class="legend">');
+    if (i < 0) return "";
+    const end = dump.indexOf("</div>", i);
+    return dump.slice(i, end < 0 ? undefined : end);
+  };
+  const zc = build(twoZone());
+  const zdump = collect(zc.shadowRoot).join("\n");
+  const zlegend = legendOf(zdump);
+  check("the legend names the dashed zone traces, not just the series",
+    /Upper floor/.test(zlegend) && /Lower floor/.test(zlegend), zlegend);
+  check("the extra chips toggle the series they belong to",
+    (zlegend.match(/<button[^>]*data-key="house_temp"/g) || []).length === 3,
+    zlegend);
+  check("a dashed trace gets a dashed swatch, not a solid dot",
+    /repeating-linear-gradient/.test(zlegend));
+
+  // Hover: three rows, each with its own name and its OWN value.
+  const hovered = () => {
+    zc._onPointerMove({
+      clientX: 450,
+      currentTarget: {
+        getBoundingClientRect: () => ({ width: 900, left: 0, top: 0 }),
+      },
+    });
+    const tt = zc.shadowRoot.querySelector(".tooltip");
+    return tt ? tt.innerHTML : "";
+  };
+  const tip = hovered();
+  check("the tooltip names all three house-temperature traces",
+    /House temperature/.test(tip) && /Upper floor/.test(tip) &&
+    /Lower floor/.test(tip), tip);
+  check("and reports each trace's own value, not the room's three times",
+    /House temperature: 22 °C/.test(tip) &&
+    /Upper floor: 20 °C/.test(tip) &&
+    /Lower floor: 28 °C/.test(tip), tip);
+
+  // A single-zone house publishes upper == lower == room (the one-zone
+  // dynamics assign both from the room temperature every step). Naming those
+  // copies would put three identical rows in the tooltip for a house with one
+  // zone, so an exact duplicate is dropped instead.
+  const oneZone = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
+  const olegend = legendOf(collect(oneZone.shadowRoot).join("\n"));
+  check("a single-zone house gets one house-temperature chip, not three",
+    (olegend.match(/<button[^>]*data-key="house_temp"/g) || []).length === 1 &&
+    !/Upper floor/.test(olegend), olegend);
+
+  // Modelled vs measured. With no lower-floor thermometer the trace is the
+  // model running open-loop, and the label has to say so.
+  const modelled = build(twoZone({ topology: true }));
+  const mlegend = legendOf(collect(modelled.shadowRoot).join("\n"));
+  check("an unmeasured lower zone is labelled as modelled",
+    /Lower floor \(modelled\)/.test(mlegend), mlegend);
+  const measured = build(twoZone({ topology: true, lowerEntity: "sensor.down" }));
+  const slegend = legendOf(collect(measured.shadowRoot).join("\n"));
+  check("a lower zone with its own thermometer is not",
+    /Lower floor\s*</.test(slegend) && !/modelled/.test(slegend), slegend);
+  check("no topology published means no claim either way",
+    !/modelled/.test(zlegend), zlegend);
+
+  // Swedish, like every other user-visible string on this card.
+  const svZone = new Card();
+  svZone.setConfig({ type: "custom:heatpump-optimizer-card" });
+  svZone.hass = { states: twoZone({ topology: true }), language: "sv-SE" };
+  const svZoneLegend = legendOf(collect(svZone.shadowRoot).join("\n"));
+  check("the zone traces are named in Swedish too",
+    /Övre plan/.test(svZoneLegend) &&
+    /Nedre plan \(modellerad\)/.test(svZoneLegend), svZoneLegend);
+}
+
 console.log(fails ? `\n${fails} CARD CHECK(S) FAILED` : "\nALL CARD CHECKS PASSED");
 process.exit(fails?1:0);
