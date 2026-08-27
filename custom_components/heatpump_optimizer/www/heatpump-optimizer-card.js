@@ -10,7 +10,7 @@
  */
 
 const CARD_TAG = "heatpump-optimizer-card";
-const CARD_VERSION = "4.0.5";
+const CARD_VERSION = "4.0.7";
 
 const DEFAULTS = {
   title: "Heat pump plan",
@@ -158,8 +158,22 @@ const TIME_LABEL_STEPS = [1, 2, 3, 4, 6, 8, 12, 24];
 const LANE_H = 15;
 const LANE_GAP = 3;
 const LANE_BOTTOM_INSET = 3;
-// How close to an edge a grab counts as a resize rather than a move.
+// How close to an edge a grab counts as a resize rather than a move. Under
+// a coarse pointer (touch) the hit zone widens to something a finger can
+// actually land on; the drawn geometry is unchanged.
 const LANE_EDGE_GRAB = 6;
+const LANE_EDGE_GRAB_COARSE = 16;
+const _coarsePointer = () => {
+  try {
+    return !!(
+      typeof window !== "undefined" &&
+      window.matchMedia &&
+      window.matchMedia("(pointer: coarse)").matches
+    );
+  } catch (err) {
+    return false;
+  }
+};
 const PLAN_STEP_MS = 15 * 60000;
 // Slot-drag edge auto-pan: how close to the plot edge (screen px) engages it,
 // and how often the parked pointer advances the view.
@@ -4022,20 +4036,27 @@ class HeatpumpOptimizerCard extends HTMLElement {
       const runs = this._draftRuns()[channel] || [];
       let index = data.index === undefined ? -1 : Number(data.index);
       if (index < 0) index = SlotModel.indexAt(runs, at);
-      if (index < 0) return;
-      // A slot outside the editable range -- already run, or beyond the point
-      // where the override expires -- must not be draggable.
-      const [lo, hi] = this._editBounds();
-      const run = runs[index];
-      if (run && (run.end <= lo || run.start >= hi)) return;
+      // No slot under the press: not draggable, but a press RELEASED here
+      // without movement must still open the add-slot menu — on touch it
+      // is the only way to reach it. menuOnly presses ignore movement.
+      let menuOnly = index < 0;
+      if (!menuOnly) {
+        // A slot outside the editable range -- already run, or beyond the
+        // point where the override expires -- must not be draggable.
+        const [lo, hi] = this._editBounds();
+        const run = runs[index];
+        if (run && (run.end <= lo || run.start >= hi)) menuOnly = true;
+      }
 
       this._drag = {
         channel,
         index,
+        menuOnly,
         edge: data.edge || null,
         from: at,
         svgIndex: svgs.indexOf(svg),
         lastClientX: ev.clientX,
+        lastClientY: ev.clientY,
         // Edits apply to the arrangement as it was when the drag began, so a
         // slow drag does not compound its own deltas.
         original: runs.map((r) => ({ ...r })),
@@ -4076,7 +4097,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
 
     const applyDragAt = (svg, clientX) => {
       const drag = this._drag;
-      if (!drag) return;
+      if (!drag || drag.menuOnly) return;
       const at = this._timeAtClientX(svg, clientX);
       if (at === null) return;
       drag.moved = true;
@@ -4110,7 +4131,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // reach), so a user who zoomed — often accidentally, by pinch or
     // ctrl-wheel — finds editing "stops" at an arbitrary-looking time.
     const maybeAutoPan = (index, clientX) => {
-      if (!this._drag || !this._viewAdjustable()) {
+      if (!this._drag || this._drag.menuOnly || !this._viewAdjustable()) {
         stopAutoPan();
         return;
       }
@@ -4161,15 +4182,40 @@ class HeatpumpOptimizerCard extends HTMLElement {
 
     const onUp = () => {
       if (!this._drag) return;
+      const drag = this._drag;
       // The browser synthesises a click after pointerup — preventDefault on
       // pointerdown suppresses compatibility mouse events but not click — and
       // on the inline chart that click bubbles to ha-card and pops the
       // expanded dialog open at the end of every drag. Same one-shot
       // suppression the pan gesture uses; a drag ending off-svg spends it on
       // nothing, which the pan path already accepts.
-      if (this._drag.moved) this._suppressClick = true;
+      if (drag.moved) this._suppressClick = true;
       this._drag = null;
       this._render();
+      // A press released without movement is a tap: open the slot menu the
+      // desktop reaches by right-click. iOS Safari never synthesises
+      // contextmenu (no long-press equivalent), so before this a touch
+      // user could not add or remove a slot at all. Desktop gains the
+      // same affordance — a menu on plain click is more discoverable than
+      // one hidden behind the right button. After _render so the menu
+      // attaches to the fresh shadow root, and suppressClick still spends
+      // the synthetic click before it can pop the dialog.
+      if (
+        !drag.moved &&
+        drag.lastClientX !== undefined &&
+        drag.lastClientY !== undefined
+      ) {
+        this._suppressClick = true;
+        const fresh = svgAt(drag.svgIndex);
+        if (fresh) {
+          const at = this._timeAtClientX(fresh, drag.lastClientX);
+          if (at !== null) {
+            this._openSlotMenu(
+              drag.channel, at, drag.lastClientX, drag.lastClientY, fresh
+            );
+          }
+        }
+      }
     };
 
     const onContext = (svg, ev) => {
@@ -4418,10 +4464,11 @@ class HeatpumpOptimizerCard extends HTMLElement {
         if (locked) return;
         // Explicit edge handles: without them a narrow slot is impossible to
         // resize, because the whole rect reads as "move".
+        const grab = _coarsePointer() ? LANE_EDGE_GRAB_COARSE : LANE_EDGE_GRAB;
         for (const edge of ["start", "end"]) {
-          const ex = edge === "start" ? x1 : x2 - LANE_EDGE_GRAB;
+          const ex = edge === "start" ? x1 : x2 - grab;
           out.push(
-            `<rect class="slot-handle" data-channel="${spec.channel}" data-index="${index}" data-edge="${edge}" x="${ex}" y="${y}" width="${LANE_EDGE_GRAB}" height="${LANE_H}" fill="#fff" fill-opacity="0.001"/>`
+            `<rect class="slot-handle" data-channel="${spec.channel}" data-index="${index}" data-edge="${edge}" x="${ex}" y="${y}" width="${grab}" height="${LANE_H}" fill="#fff" fill-opacity="0.001"/>`
           );
         }
       });

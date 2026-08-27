@@ -1,5 +1,31 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v4.0.7
+
+### Card: the plan is editable on a phone now
+
+Reported on mobile: existing plan slots could not be modified or removed at
+all. Two causes, both fixed.
+
+**Tap opens the slot menu.** The add/change/remove menu was bound to the
+`contextmenu` event — a desktop right-click. iOS Safari never fires it, and
+long-press on the card was swallowed by the drag handler, so a phone had no
+path to the menu at all. A tap (press and release without movement) on a
+lane now opens the same menu: on a slot it offers force/remove, on empty
+lane it offers adding a slot. A real drag still drags — the menu only opens
+when the pointer hasn't moved — and desktop right-click keeps working
+exactly as before.
+
+**Finger-sized grab handles.** The edge-resize grab zones were 6 SVG units
+wide, tuned for a mouse cursor. On a coarse pointer (`pointer: coarse`
+media query — touch screens) they are now 16 units, so grabbing a slot edge
+to resize it works with a finger. Fine pointers keep the 6-unit zones so
+precise mouse edits don't get sloppier.
+
+Card-only release: no integration behavior, entities, or plans change.
+Bump the card resource query string (`?v=4.0.7`) or clear the browser cache
+to pick up the new card.
+
 ## v4.0.6
 
 ### Physics from the audit's fifth pass: one price of heat, honest tanks
