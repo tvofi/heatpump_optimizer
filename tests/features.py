@@ -10654,4 +10654,150 @@ R.check(
     "both corrections default to 1.0, so this half of the change is inert",
 )
 
+R.section("v5.1.1 — reloads that change nothing, and setups that do not solve")
+
+# The setup-time refresh must not run the MPC solve: with the flag set, the
+# solve entry point raising is PROOF the light path never reaches it, and the
+# call still has to succeed with a publishable payload.
+_fr_hass = _FakeHass()
+_fr_coord = Coord(_fr_hass, _FakeEntry(data=_LC_DATA))
+_fr_calls: list[str] = []
+
+
+async def _fr_boom() -> None:
+    _fr_calls.append("boom")
+    raise AssertionError("the setup refresh ran the solve")
+
+
+_fr_coord.async_run_optimization = _fr_boom
+_fr_coord._skip_solve_once = True
+_fr_data = _asyncio.run(_fr_coord._async_update_data())
+R.check(
+    "with the flag set the first refresh completes without invoking the solve",
+    isinstance(_fr_data, dict) and not _fr_calls,
+    f"solve calls: {_fr_calls}",
+)
+R.check(
+    "the light payload still carries the live-state keys entities read",
+    "mode" in _fr_data and "current_action" in _fr_data
+    and "plan_stale" in _fr_data,
+    f"keys: {sorted(_fr_data)[:8]}...",
+)
+R.check(
+    "the flag is consumed by the light refresh",
+    not _fr_coord._skip_solve_once,
+)
+
+
+async def _fr_note() -> None:
+    _fr_calls.append("solved")
+
+
+_fr_coord.async_run_optimization = _fr_note
+_fr_data2 = _asyncio.run(_fr_coord._async_update_data())
+R.check(
+    "the second refresh solves normally — the flag never latches",
+    _fr_calls == ["solved"] and isinstance(_fr_data2, dict),
+    f"solve calls: {_fr_calls}",
+)
+
+# A save that changes nothing must not reload. The options flow rewrites the
+# options dict on every page it leaves, so "the listener fired" is not "the
+# config changed" — the comparison against the setup-time stash is what tells
+# them apart, and the FakeConfigEntries reload ledger is the honest witness.
+_nr_hass = _FakeHass()
+_nr_entry = _FakeEntry(data=dict(_LC_DATA), options={"target_temp": 21.0})
+_asyncio.run(_integ.async_setup_entry(_nr_hass, _nr_entry))
+_asyncio.run(_integ.async_update_options(_nr_hass, _nr_entry))
+R.check(
+    "an options save with an unchanged effective config reloads nothing",
+    _nr_hass.config_entries.reloaded == [],
+    f"reloads: {_nr_hass.config_entries.reloaded}",
+)
+# The live bug's exact shape: the flow's page-merge copies effective-config
+# keys into options. Options differ, the effective config does not.
+_nr_entry.options = {**_nr_entry.options, "tibber_token": "x"}
+_asyncio.run(_integ.async_update_options(_nr_hass, _nr_entry))
+R.check(
+    "the page-merge no-op (options rewritten, config identical) skips too",
+    _nr_hass.config_entries.reloaded == [],
+    f"reloads: {_nr_hass.config_entries.reloaded}",
+)
+_nr_entry.options = {**_nr_entry.options, "target_temp": 22.0}
+_asyncio.run(_integ.async_update_options(_nr_hass, _nr_entry))
+R.check(
+    "a genuinely changed config reloads exactly once",
+    _nr_hass.config_entries.reloaded == [_nr_entry.entry_id],
+    f"reloads: {_nr_hass.config_entries.reloaded}",
+)
+_asyncio.run(_integ.async_update_options(_nr_hass, _nr_entry))
+R.check(
+    "the stash follows the reload, so repeating the same save skips again",
+    _nr_hass.config_entries.reloaded == [_nr_entry.entry_id],
+    f"reloads: {_nr_hass.config_entries.reloaded}",
+)
+# Mutation: the zero-reload results above must hinge on the comparison.
+# Delete the stash — the guard's memory — and the very same unchanged save
+# now reloads, which is what an always-reload listener would do every time.
+_nr_hass.data[_DOMAIN].pop(_integ._config_stash_key(_nr_entry.entry_id))
+_asyncio.run(_integ.async_update_options(_nr_hass, _nr_entry))
+R.check(
+    "removing the stash comparison makes the no-op save reload (mutation)",
+    len(_nr_hass.config_entries.reloaded) == 2,
+    f"reloads: {_nr_hass.config_entries.reloaded}",
+)
+_asyncio.run(_integ.async_unload_entry(_nr_hass, _nr_entry))
+
+# The plan survives a reload: unload stashes the published payload, the next
+# setup pops it, and the light first refresh returns it without so much as a
+# sensor read — an options save must not wait on Tibber. The fetch methods
+# raising is the proof.
+_ho_hass = _FakeHass()
+_ho_entry = _FakeEntry(data=dict(_LC_DATA))
+_asyncio.run(_integ.async_setup_entry(_ho_hass, _ho_entry))
+_ho_old = _ho_hass.data[_DOMAIN][_ho_entry.entry_id]
+_ho_payload = {"mode": "auto", "sentinel": "the pre-reload plan"}
+_ho_old.data = _ho_payload
+_asyncio.run(_integ.async_unload_entry(_ho_hass, _ho_entry))
+_ho_key = _integ._plan_handover_key(_ho_entry.entry_id)
+R.check(
+    "unload stashes the last published payload for the next setup",
+    _ho_hass.data[_DOMAIN].get(_ho_key) is _ho_payload,
+)
+_asyncio.run(_integ.async_setup_entry(_ho_hass, _ho_entry))
+_ho_new = _ho_hass.data[_DOMAIN][_ho_entry.entry_id]
+R.check(
+    "setup always pops the handover — it never outlives one reload",
+    _ho_key not in _ho_hass.data[_DOMAIN] and _ho_new is not _ho_old,
+)
+
+
+async def _ho_untouchable(*args, **kwargs) -> None:
+    raise AssertionError("the handover path touched a fetch")
+
+
+for _ho_name in (
+    "_update_current_state",
+    "_fetch_tibber_prices",
+    "_fetch_weather_forecast",
+    "_fetch_solar_forecast",
+    "_async_learn_price_shape",
+    "async_run_optimization",
+):
+    setattr(_ho_new, _ho_name, _ho_untouchable)
+R.check(
+    "the reloaded coordinator arrives with the skip-solve flag armed",
+    _ho_new._skip_solve_once,
+)
+_ho_out = _asyncio.run(_ho_new._async_update_data())
+R.check(
+    "the light refresh returns the handed-over plan itself, fetch-free",
+    _ho_out is _ho_payload,
+)
+R.check(
+    "the handover is single-use on the coordinator too",
+    _ho_new._reload_handover is None and not _ho_new._skip_solve_once,
+)
+_asyncio.run(_integ.async_unload_entry(_ho_hass, _ho_entry))
+
 sys.exit(R.close("FEATURE CHECKS"))

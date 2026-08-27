@@ -81,6 +81,27 @@ PLATFORM_LIST = [
     Platform.SWITCH,
 ]
 
+
+def _config_stash_key(entry_id: str) -> str:
+    """hass.data key holding the effective config the entry was set up with.
+
+    ``async_update_options`` compares against this to skip reloads that would
+    change nothing: the options flow's page-merge writes the options dict on
+    every save, so without the comparison even an untouched form tears the
+    integration down and back up.
+    """
+    return f"effective_config_{entry_id}"
+
+
+def _plan_handover_key(entry_id: str) -> str:
+    """hass.data key carrying the last published plan across one reload.
+
+    Written by ``async_unload_entry``, popped by ``async_setup_entry`` —
+    never persisted. It lets a reload republish the previous plan instantly
+    instead of blocking Home Assistant on a full cold solve.
+    """
+    return f"plan_handover_{entry_id}"
+
 SERVICE_SCHEMA_RUN_OPTIMIZATION = vol.Schema({})
 
 # What-if simulator (item 21). Every field is optional: the card sends only the
@@ -366,9 +387,32 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         coordinator.integration_version = str(integration.version)
     except Exception:  # noqa: BLE001 - version is cosmetic, never block setup
         _LOGGER.debug("Could not resolve integration version", exc_info=True)
+
+    # If this setup is the second half of an in-process reload, the unload
+    # handler stashed the previous plan. Always pop — a stale payload must
+    # never outlive the one reload it was made for — and hand it to the
+    # coordinator so the first refresh can republish it instantly.
+    handover = hass.data[DOMAIN].pop(_plan_handover_key(entry.entry_id), None)
+    if handover is not None:
+        coordinator._reload_handover = handover
+
+    # The first refresh must not run the full MPC solve: it executes inside
+    # ``async_setup_entry``, and on modest hardware the sensor reads, the
+    # network fetches and a Python-heavy cold solve add up to minutes during
+    # which the whole instance is unresponsive (the solve holds the GIL even
+    # from the executor thread). The flag is set here and ONLY here; the
+    # coordinator consumes it on the next refresh, so every later cycle —
+    # and every existing test path — solves exactly as before.
+    coordinator._skip_solve_once = True
     await coordinator.async_config_entry_first_refresh()
 
     hass.data[DOMAIN][entry.entry_id] = coordinator
+    # The effective config this setup ran with, for the update listener's
+    # no-op comparison. Removed again on unload.
+    hass.data[DOMAIN][_config_stash_key(entry.entry_id)] = {
+        **entry.data,
+        **entry.options,
+    }
 
     # Serve and register the Lovelace dashboard card (idempotent; runs once).
     await async_register_frontend(hass)
@@ -849,11 +893,45 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     entry.async_on_unload(entry.add_update_listener(async_update_options))
 
+    # The real first solve, deferred out of setup (see the skip-solve flag
+    # above). Platforms and services are registered by now, so entities exist
+    # and publish the light payload — the handover plan after a reload, live
+    # sensor readings on a fresh start — while the cold solve runs here in
+    # the background and replaces it within the first update cycle.
+    if hasattr(entry, "async_create_background_task"):
+        entry.async_create_background_task(
+            hass,
+            coordinator.async_request_refresh(),
+            name="heatpump_optimizer_first_solve",
+        )
+    else:
+        task = hass.async_create_task(coordinator.async_request_refresh())
+        if task is not None and hasattr(task, "cancel"):
+            entry.async_on_unload(task.cancel)
+
     return True
 
 
 async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Handle options update."""
+    """Handle options update.
+
+    Reload only when the save actually changed something. The options flow
+    persists every page it leaves — ``_save`` merges the page's fields into
+    the options dict — so backing out of an untouched form still fires this
+    listener. Reloading on those no-op saves tore the whole integration down
+    for nothing, which is exactly the freeze the skip-solve flag exists to
+    soften; here it is avoided entirely.
+    """
+    new_config = {**entry.data, **entry.options}
+    stash_key = _config_stash_key(entry.entry_id)
+    domain_data = hass.data.setdefault(DOMAIN, {})
+    if domain_data.get(stash_key) == new_config:
+        _LOGGER.debug(
+            "Options saved without changes for %s; skipping reload",
+            entry.entry_id,
+        )
+        return
+    domain_data[stash_key] = new_config
     await hass.config_entries.async_reload(entry.entry_id)
 
 
@@ -863,6 +941,15 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     if unload_ok:
         coordinator = hass.data[DOMAIN].pop(entry.entry_id)
+        hass.data[DOMAIN].pop(_config_stash_key(entry.entry_id), None)
+        # Keep the last published payload for the setup that follows a
+        # reload: it republishes the previous plan instantly instead of
+        # holding Home Assistant hostage to a cold solve. In-process only —
+        # never written to disk — and setup always pops it.
+        if coordinator.data is not None:
+            hass.data[DOMAIN][_plan_handover_key(entry.entry_id)] = (
+                coordinator.data
+            )
         await coordinator.async_shutdown()
 
     # Remove services if no more entries. Asked of the registry, not kept as
@@ -871,7 +958,13 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # registered but never removed, each leaving a dead service behind after
     # the last entry. Everything in the domain was registered by this
     # integration, so the registry itself is the one list that cannot drift.
-    if not hass.data[DOMAIN]:
+    # Counted over coordinators, not raw keys: the plan-handover stash above
+    # legitimately outlives its entry's unload (it is what the reload's setup
+    # pops), and a leftover key must not keep dead services registered.
+    if not any(
+        isinstance(value, HeatPumpOptimizerCoordinator)
+        for value in hass.data[DOMAIN].values()
+    ):
         for service in list(hass.services.async_services().get(DOMAIN, {})):
             hass.services.async_remove(DOMAIN, service)
 
