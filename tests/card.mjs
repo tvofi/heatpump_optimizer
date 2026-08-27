@@ -137,7 +137,7 @@ const ctx = {
            // no-op here would make those paths untestable.
            addEventListener(t,f){ (winListeners[t]=winListeners[t]||[]).push(f); },
            removeEventListener(t,f){ const a=winListeners[t]||[]; const i=a.indexOf(f); if(i>=0)a.splice(i,1); },
-           matchMedia:()=>({matches:false,addEventListener(){}}) },
+           matchMedia:(q)=>({matches: q === "(pointer: coarse)" && coarseTouch.on, addEventListener(){}}) },
   localStorage:{ getItem:k=>store[k]??null, setItem:(k,v)=>{store[k]=String(v);}, removeItem:k=>{delete store[k];} },
   customElements:{ _d:{}, define(n,c){ this._d[n]=c; }, get(n){ return this._d[n]; } },
   ResizeObserver: class { observe(){} unobserve(){} disconnect(){} },
@@ -149,6 +149,7 @@ const ctx = {
   clearInterval:(id)=>{ intervals.delete(id); },
 };
 const winListeners = {};
+const coarseTouch = { on: false };
 const fireWindow = (t, ev) => (winListeners[t]||[]).slice().forEach((f)=>f(ev));
 const intervals = new Map(); let intervalId = 0;
 const tickIntervals = () => { for (const f of [...intervals.values()]) f(); };
@@ -1457,6 +1458,86 @@ check("the hand-scheduled reason has a label",
   drag._clearManualPlan();
   check("going back to automatic clears the override",
     called && called.service === "clear_manual_plan");
+}
+
+// ---------------------------------------------------------------------------
+// Touch can edit too (field report: on a phone, existing slots could not be
+// modified or removed at all — the menu lived behind right-click, which iOS
+// Safari never synthesises, and the resize handles were ~7 px wide).
+// ---------------------------------------------------------------------------
+{
+  drag._resetRuns();
+  drag._view = null;
+  drag._render();
+  const svg = svgOf(drag);
+  const { runs, i } = editable();
+  check("(setup) a future slot exists to tap", i >= 0);
+  if (i >= 0) {
+    // Tap ON a slot: down + up with no movement opens the menu with Remove.
+    const target = { dataset: { channel: "dhw", index: String(i) } };
+    fire(svg, "pointerdown", evAt(runs[i].start + 60000, target));
+    fire(svg, "pointerup", {});
+    let menu = drag.shadowRoot.querySelector(".slot-menu");
+    check("tapping a slot opens the slot menu (no right-click needed)",
+      !!menu && /Remove this hot water slot/.test(collect(menu).join("")),
+      menu ? collect(menu).join("") : "no menu");
+    if (menu) {
+      const n = drag._draftRuns().dhw.length;
+      fire(menu, "click", { target: { dataset: { act: "remove" } }, stopPropagation() {} });
+      check("and Remove removes it", drag._draftRuns().dhw.length === n - 1);
+    }
+
+    // Tap on an EMPTY editable stretch: the add menu, from a bare press.
+    drag._resetRuns();
+    drag._render();
+    const [lo2, hi2] = drag._editBounds();
+    const space = drag._draftRuns().space;
+    let gap2 = null;
+    for (let t = lo2 + HOUR; t < hi2 - HOUR; t += 15 * 60000) {
+      if (!space.some((r) => t >= r.start - HOUR && t < r.end + HOUR)) { gap2 = t; break; }
+    }
+    check("(setup) an empty stretch exists", gap2 !== null);
+    if (gap2 !== null) {
+      fire(svgOf(drag), "pointerdown", evAt(gap2, { dataset: { channel: "space" } }));
+      fire(svgOf(drag), "pointerup", {});
+      menu = drag.shadowRoot.querySelector(".slot-menu");
+      check("tapping an empty lane offers to add a slot",
+        !!menu && /Add a heating slot here/.test(collect(menu).join("")));
+      if (menu) fire(menu, "click", { target: { dataset: {} }, stopPropagation() {} });
+      drag._closeSlotMenu();
+    }
+
+    // A DRAG must not open the menu on release.
+    drag._resetRuns();
+    drag._render();
+    const e2 = editable();
+    if (e2.i >= 0) {
+      const t2 = { dataset: { channel: "dhw", index: String(e2.i) } };
+      fire(svgOf(drag), "pointerdown", evAt(e2.runs[e2.i].start + 60000, t2));
+      fire(svgOf(drag), "pointermove", evAt(e2.runs[e2.i].start + 60000 + HOUR, t2));
+      fire(svgOf(drag), "pointerup", {});
+      check("a real drag does not open the menu on release",
+        !drag.shadowRoot.querySelector(".slot-menu"));
+    }
+  }
+
+  // Coarse pointers get finger-sized resize handles; fine pointers keep the
+  // slim ones the mouse tests above rely on.
+  drag._resetRuns();
+  coarseTouch.on = true;
+  drag._render();
+  const dumpCoarse = collect(drag.shadowRoot).join("\n");
+  coarseTouch.on = false;
+  drag._render();
+  const dumpFine = collect(drag.shadowRoot).join("\n");
+  const widthOf = (dump) => {
+    const m = dump.match(/class="slot-handle"[^>]*width="([0-9.]+)"/);
+    return m ? Number(m[1]) : null;
+  };
+  check("touch widens the grab handles", widthOf(dumpCoarse) === 16,
+    `coarse width ${widthOf(dumpCoarse)}`);
+  check("mouse keeps the slim handles", widthOf(dumpFine) === 6,
+    `fine width ${widthOf(dumpFine)}`);
 }
 
 // ---------------------------------------------------------------------------
