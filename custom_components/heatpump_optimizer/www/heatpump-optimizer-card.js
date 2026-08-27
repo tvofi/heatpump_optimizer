@@ -11,7 +11,7 @@
 
 const CARD_TAG = "heatpump-optimizer-card";
 const EDITOR_TAG = "heatpump-optimizer-card-editor";
-const CARD_VERSION = "5.1.4";
+const CARD_VERSION = "5.1.5";
 
 // ---- i18n ------------------------------------------------------------------
 //
