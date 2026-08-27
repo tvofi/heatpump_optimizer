@@ -1,5 +1,57 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v5.2.0
+
+### The hot water line now shows how sure it is
+
+The plan chart draws a dashed pair either side of the **hot water tank
+temperature**. That pair is the *expected error* of the prediction: how far
+the tank curve has actually been out, in the past, at that distance ahead.
+Read it as "the tank is probably in here somewhere", not as a plan.
+
+It widens the further right you look, and it should — a promise about two
+hours from now is a much safer promise than one about tomorrow evening, and
+the band says so instead of pretending otherwise. The tooltip names it in
+words: *Hot water, expected error ±1.2 °C*.
+
+**It only appears once there is something to base it on.** A brand new
+install has never had a prediction come true or fail, so there is no error
+to report and no band is drawn at all — you just get the solid line, as
+before. It fills in over the following days. A house with no hot water tank
+sensor configured never gets one, because there is nothing to check the
+prediction against; the same goes for stretches where the sensor is
+unavailable or stuck, which are not measurements and are not counted.
+
+### It shares the room's dashed-line vocabulary rather than inventing one
+
+v5.1.7 gave every trace on the house-temperature series its own name, its own
+tooltip row and its own legend chip. The hot water band rides exactly that
+machinery — same dashed stroke, same colour, same single chip that toggles the
+whole series — so the chart has one visual language for "this line is a
+companion, not a plan", and the two dashed pairs cannot be confused for being
+the same *kind* of thing.
+
+One deliberate difference. The room's two dashed lines are two real predicted
+temperatures, one per floor, and are named and reported separately. The hot
+water pair is a single symmetric envelope, so it gets **one** legend chip and
+**one** tooltip row stating one ± figure, rather than two absolute temperatures
+nobody asked for.
+
+Two things follow for free. Where the band has no value the dashed lines stop
+rather than bridging the gap. And a band with no width at all — a record that
+has scored predictions but never been wrong — is not drawn, caught by the same
+rule that already stopped a single-zone house drawing two dashed copies of its
+own room line.
+
+### Under the hood
+
+The hot-water plan sensor's forecast gains two additive keys,
+`dhw_temp_lo` and `dhw_temp_hi`, alongside the existing `dhw_temp`. They are
+`null` whenever there is no band to draw. Nothing that was already published
+changed shape or value. The tank's accuracy record is stored alongside the
+existing one; upgrading and downgrading both read the store without
+complaint.
+
 ## v5.1.9
 
 ### One legend entry for the house temperature line
