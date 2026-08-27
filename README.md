@@ -1,1529 +1,641 @@
 # Heat Pump Cost Optimizer for Home Assistant
 
-A custom Home Assistant integration that uses **Model Predictive Control (MPC)** to optimize heat pump operation and minimize electricity costs, while maintaining indoor comfort and domestic hot water availability. Integrates with **Tibber** for dynamic electricity prices and Home Assistant weather entities for temperature, wind, rain, and solar forecasts.
+Model-predictive heating control for Home Assistant. It plans your heat pump and
+your hot water 24 hours ahead against hourly electricity prices, the weather
+forecast, and a thermal model of your own house that it keeps correcting from
+your own sensors — so the house stays as warm as you asked, bought in better
+hours.
+
+[![HACS: custom](https://img.shields.io/badge/HACS-custom-41BDF5.svg)](https://hacs.xyz)
+[![Home Assistant: 2024.1.0+](https://img.shields.io/badge/Home%20Assistant-2024.1.0%2B-41BDF5.svg)](https://www.home-assistant.io)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+
+<!-- Hero image: a screenshot of the dashboard card belongs here. None is
+     committed yet; see docs/dashboard-card.md for what the card looks like. -->
 
 ## Acknowledgement
 
 This project began as a fork of
 [**strutsfarm/heatpump_optimizer**](https://github.com/strutsfarm/heatpump_optimizer)
-at version 2.2.0, and everything it does rests on that foundation: the MPC
-formulation, the two-zone thermal model with its slab and buffer tank, the
-Tibber and weather integration, the config flow, and the ECL110 heat-curve
-control path are all originally strutsfarm's work. The companion
+at version 2.2.0. The MPC formulation, the two-zone thermal model with its slab
+and buffer tank, the Tibber and weather integration, the config flow and the
+ECL110 heat-curve path are all originally strutsfarm's work; the companion
 [**strutsfarm/ecl110**](https://github.com/strutsfarm/ecl110) project provides
-the MQTT interface this integration drives.
+the MQTT interface this integration drives. Versions 2.3.0 onward were developed
+in this fork. Both projects are MIT licensed. The formal attribution is recorded
+in [NOTICE](NOTICE), and [LICENSE](LICENSE) is kept as the verbatim MIT text.
 
-Versions 2.3.0 onward were developed in this fork. Both projects are MIT
-licensed. Thank you to strutsfarm for the original code and for releasing it
-under a licence that made this possible. The formal attribution is recorded in
-[NOTICE](NOTICE); `LICENSE` is kept as the verbatim MIT text so that automated
-licence detection recognises it.
+## What it does
 
-## Disclaimer
+```mermaid
+flowchart LR
+    subgraph inputs["Inputs"]
+        tibber["Tibber API<br/>hourly prices"]
+        weather["HA weather entity<br/>temperature, wind,<br/>rain, irradiance"]
+        meteo["Open-Meteo<br/>optional irradiance"]
+        ha["Your HA sensors<br/>temps, power, presence"]
+    end
 
-**Read this before installing.** This software controls real heating equipment
-and makes claims about money. Both deserve care.
+    subgraph brain["Coordinator (every interval)"]
+        pm["Price model<br/>learned prior + tariffs<br/>+ grid fees"]
+        tm["Thermal model<br/>house, slab, tanks,<br/>two zones, DHW"]
+        opt["Optimizer<br/>24 h MPC plan"]
+        guard["Safety layer<br/>peak guard, fuse,<br/>manual-plan pins"]
+    end
 
-**No warranty.** This project is provided "as is" and "as available" under the
-MIT licence, with no warranty or condition of any kind, express or implied,
-including but not limited to warranties of merchantability, fitness for a
-particular purpose, title, accuracy, and non-infringement. There is no
-guarantee that it works at all, that it works as described, that it will
-continue to work, or that any defect will ever be corrected. See
-[LICENSE](LICENSE) for the full text.
+    subgraph learn["Self-learning (background)"]
+        acc["Prediction accuracy<br/>+ drift watchdog"]
+        learners["Loss scale, COP,<br/>solar aperture, DHW draws,<br/>comfort weight, heat curve"]
+        snap["Weekly snapshots<br/>(last 8 kept)"]
+    end
 
-**Any use of this software is entirely at your own risk.** You accept that risk
-in full, and in its entirety, the moment you install or run it.
+    subgraph out["Outputs"]
+        ent["65 entities<br/>55 sensors, 4 binary,<br/>4 buttons, switch, climate"]
+        card["Dashboard card<br/>plan chart + editor"]
+        ctl["Heat pump switch /<br/>ECL110 displace /<br/>frequency advisor"]
+    end
 
-**No responsibility, no liability.** The authors and contributors accept **no
-responsibility whatsoever** for anything arising out of, or in any way
-connected with, this software — its use, its misuse, its inability to be used,
-its effects, its behaviour, its functions or its failure to function.
-
-This exclusion is intended to be as broad as the law allows. It covers every
-kind of loss or damage, whether direct, indirect, incidental, special,
-exemplary, punitive or consequential, and regardless of the legal theory
-advanced — contract, tort, negligence, strict liability, statute or otherwise —
-and applies even if the possibility of such damage was known or foreseeable. It
-includes, without limitation: damage to your heat pump, boiler, tanks, pipes,
-controller, sensors, wiring or any other equipment; damage to your building or
-its contents, including from freezing, overheating, condensation, water or
-fire; loss of heating or hot water, and any discomfort, disruption or
-displacement resulting from it; injury or illness, including any arising from
-water temperature or hygiene; excessive electricity consumption, unexpected
-bills, missed savings, tariff penalties or peak charges; wear, shortened
-service life, or voided warranties on your equipment; corrupted or lost
-configuration, history or data; time and cost spent installing, diagnosing,
-repairing or removing it; and any decision you make in reliance on anything
-this software calculates, predicts, reports or displays.
-
-**It is your decision and your risk.** Any use of this software, and anything
-you do with it or because of it, is entirely and exclusively at your own risk.
-You alone are responsible for deciding whether to install it, for how you
-configure it, for what you allow it to control, for supervising what it does,
-and for making sure independent protections remain in place. Nobody is obliged
-to provide support, fixes, updates or maintenance of any kind. If any part of
-this exclusion is held unenforceable, the remainder continues to apply and
-liability is limited to the smallest amount permitted by law.
-
-**It is not a safety device.** Do not rely on it for frost protection, for
-keeping pipes from freezing, for legionella control, or for anything else where
-failure has consequences. It can stop working for many ordinary reasons — a
-lost network connection, an expired API token, a Home Assistant upgrade, a
-crashed process, a dead sensor — and when it does, your heat pump is left
-wherever it was last told to be. Keep your heat pump's own thermostats,
-limits and safety controls active and correctly configured. They, not this
-integration, are what protect your home.
-
-**Anti-legionella is a convenience, not a compliance feature.** The cycle
-scheduled here is a best effort based on a modelled tank temperature at one
-sensor. It is not a substitute for following your local regulations and your
-tank manufacturer's guidance on hot water hygiene, and it cannot detect
-stratification, dead legs or a mis-sited sensor. If in doubt, keep an
-independent legionella cycle configured on the tank itself.
-
-**Savings figures are estimates.** Every cost, saving and percentage this
-integration reports is the output of a model, computed against forecast prices
-and forecast weather. Real savings depend on your building, your tariff, your
-heat pump, your habits and the weather actually occurring. Nothing here is a
-guarantee or a financial projection, and the baseline it compares against is a
-simulated always-on thermostat rather than a measurement of what you would
-otherwise have spent. Treat the numbers as a guide to relative decisions, not
-as an accounting record.
-
-**The model learns, and can be wrong.** Several parameters are estimated from
-your own house over time. A faulty or mis-configured sensor can push those
-estimates somewhere unhelpful, and the optimizer will then plan confidently
-against a wrong model. The input watchdog and the guard thresholds exist to
-limit that, but they cannot eliminate it. Check the diagnostic sensors
-occasionally, especially in the first weeks.
-
-**Your equipment, your responsibility.** Driving a heat pump or an external
-controller over MQTT may affect its warranty, may interact badly with its own
-internal logic, and may be subject to local regulation. Confirm that what you
-are doing is permitted and sensible for your specific hardware before enabling
-control features. Cycling a compressor more than its manufacturer intends can
-shorten its life.
-
-**No affiliation.** This project is not affiliated with, endorsed by, or
-supported by Home Assistant, Nabu Casa, Tibber, Nord Pool, Danfoss, Open-Meteo,
-or any heat pump manufacturer. Product and company names are used only to
-describe what the integration interoperates with. Use of third-party APIs is
-subject to those providers' own terms, and their availability, accuracy and
-pricing are outside this project's control.
-
-## Features
-
-- **True Predictive MPC** — uses FULL 24-hour weather forecast trajectories for anticipatory control
-- **Solar Anticipation** — reduces pre-heating when sunny weather is forecasted (the sun will heat for free)
-- **Wind/Rain Anticipation** — increases pre-heating before forecasted bad weather (higher heat loss coming)
-- **Two-zone thermal model** — separately models upper floor (radiators) and lower floor (slab floor heating)
-- **Joint DHW and space heating optimization** — the two circuits share one compressor and are planned against each other, not one after the other
-- **Enhanced heat loss model** — wind speed increases convective loss, rain increases envelope U-value
-- **Solar heat gain calculation** — accounts for passive solar gains through windows
-- **Buffer tank dynamics** — models the heat pump buffer tank coupling both heating circuits
-- **Tibber integration** — uses real-time and day-ahead electricity prices
-- **COP modeling** — adjusts for outdoor temperature–dependent heat pump efficiency
-- **Real sensor feedback** — uses floor heating return temperature for slab state estimation
-- **Multiple operation modes** — Auto, Comfort, Economy, Boost, Off
-- **Self-learning thermal parameters** — tank cooling rates, house heat loss, COP and the defrost derate are estimated from your own house
-- **Capacity tariff awareness** — models the monthly *effekttariff* many Swedish grid companies bill, so cheap-hour stacking cannot cost more than it saves
-- **PV self-consumption** — prices each hour at what consuming actually costs you, which is the export compensation while your array is in surplus
-- **Learned price prior** — models the unpublished part of the horizon from your own typical daily price shape instead of repeating the last price
-- **External heat source detection** — spots a wood furnace charging the tanks and stops paying to heat water that is already hot
-- **Away and holiday mode** — deep setback with recovery heat bought in the cheapest hours before you get home
-- **Input staleness watchdog** — a sensor that stops updating is treated as missing, and learning pauses rather than training on a flatline
-- **Closed-loop accuracy reporting** — predicted versus realised temperature, power and cost, so model drift is visible
-- **Building type presets** — three answerable questions about your house instead of two unanswerable ones about kWh/°C
-- **Plan reason codes** — every planned slot says *why* it was chosen
-- **Energy dashboard integration** — accumulating energy and cost totals, split hot water versus space heating
-- **The house as a virtual battery** — state of charge, capacity and rates published so other automations can use it
-- **Rich sensor entities** — 55 sensors including full heating plans, DHW, predictive insights, per-zone temperatures
-- **Dashboard card** — plots price, planned heating slots, irradiance and predicted temperatures on one graph, with per-series toggles, reason codes, a what-if simulator, and a Setup page drawing your configured system with live sensor readings in place, where clicking a sensor assigns or clears it
-- **Climate entity** — virtual thermostat with full HA climate integration
-- **Buttons and binary sensors** — force a run, arm a measurement experiment, and see input health, external heat, open windows and away state at a glance
-- **Service calls** — manual optimization, mode changes, runtime parameter tuning, and what-if simulation
-
-## How the Predictive Optimization Works
-
-### True Anticipatory Control (Not Just Reactive!)
-
-The key differentiator of this optimizer is that it uses **forecasted weather data** to make decisions about **current** actions. This is what makes it true Model Predictive Control:
-
-#### Solar Anticipation Strategy
-```
-Current time: 22:00 (night, cheap electricity)
-Forecast: Tomorrow 10:00-16:00 → 400-600 W/m² solar radiation
-
-Traditional optimizer: Pre-heat slab during cheap night electricity ✓
-THIS optimizer: REDUCE slab pre-heating because solar will heat it for free! 💰
-
-Result: Less overnight heating → sun heats the slab tomorrow → SAVINGS
+    tibber --> pm
+    weather --> tm
+    meteo -. "irradiance override" .-> tm
+    ha --> tm
+    pm --> opt
+    tm --> opt
+    opt --> guard
+    guard --> ent
+    guard --> ctl
+    ent --> card
+    card -- "services:<br/>apply_manual_plan,<br/>simulate_plan, assign_entity" --> brain
+    acc --> learners
+    learners --> tm
+    learners --> snap
+    snap -- "restore on drift" --> learners
+    ha --> acc
 ```
 
-This falls out of the physics rather than from a bonus term. Solar gain is
-applied to the simulated trajectory at every future step, so a plan that
-pre-heats the slab before a sunny morning simply predicts an overheated house
-and gets charged for the electricity it wasted. The optimizer avoids it because
-it is genuinely more expensive, not because it is told to.
-
-Earlier versions also added an explicit "heating before sun is bad" cost on top.
-That double-counted physics the simulation already had, and removing it made
-shoulder-season plans 4-6% cheaper with identical comfort. The solar forecast
-still shapes the solver's initial guess, where a wrong hunch costs nothing.
-
-#### Wind/Rain Anticipation Strategy
-```
-Current time: 14:00 (afternoon, moderate price)
-Forecast: Tonight 20:00-06:00 → 8-12 m/s wind + rain
-
-Traditional optimizer: React to wind when it arrives (too late!)
-THIS optimizer: INCREASE pre-heating NOW while electricity is cheaper! 🏠
-
-Result: Thermal mass pre-charged → house stays warm through bad weather → COMFORT
-```
-
-Again this is emergent. The forecast heat loss factors are applied to the real
-dynamics at each step:
-- **Wind effect**: Infiltration/convective heat loss increases by `wind_sensitivity × wind_speed` (default 3% per m/s)
-- **Rain effect**: Wet building envelope U-value increases by `rain_multiplier` (default 15%)
-
-so coasting into a windy night predicts a cold house and a comfort penalty. The
-cheapest way to avoid that penalty is to pre-charge the thermal mass while
-electricity is cheap, which is exactly what the plan does.
-
-#### Joint hot water and space heating planning
-
-The two circuits share one compressor, so they are planned against each other
-rather than one after the other. Hot water is scheduled first as a minimum-cost
-linear program, but that program is charged a **congestion premium**: taking
-compressor capacity in a step where space heating also wants it costs the extra
-price of buying the displaced space heating elsewhere, using the cheapest slot
-within a 6 hour window. A second pass then re-plans hot water against the
-resulting space heating profile and keeps it only if it scores strictly better.
-
-Without this, hot water filled the cheapest hours to the ceiling and pushed
-2.6-4.7 kWh of space heating out into dearer ones.
-
-### DHW (Domestic Hot Water) Optimization
-
-The optimizer coordinates DHW heating with space heating:
-
-```
-Heat Pump Capacity: 5 kW total
-├── Space Heating: 0-5 kW (variable)
-└── DHW Heating:   0-5 kW (variable)
-    Total:         ≤ 5 kW (capacity constraint)
-```
-
-A quarter-hour step can carry **both** loads, and on the card's plan you
-will see the two blocks overlap even at maximum zoom. That is not
-double-booking: a step planned as 4 kW hot water + 1 kW space heating on a
-5 kW pump means the pump splits that quarter hour between the circuits —
-the diverter valve serves one circuit at any instant and alternates, hot
-water first. The combined power never exceeds the pump's maximum, and the
-card marks shared steps with a hatched band and says so in the tooltip.
-Enforcing "one circuit per step" instead would make the plan strictly
-worse for no physical gain — the pump alternates within the step either
-way.
-
-#### Demand time frames
-
-Hot water is only *required* during the time frames you configure — for example
-`06:00-08:30, 17:00-22:00`. This is the single biggest lever on DHW cost:
-
-- **Inside a time frame** the tank is guaranteed to stay at or above the DHW
-  minimum temperature (default 45 °C), so hot water is always available.
-- **When a time frame opens** the tank is pre-heated to a "ready" temperature
-  sized from the draw actually expected in that frame, capped at the DHW
-  setpoint. A household that uses little water is never heated to 55 °C just
-  because the setpoint says so.
-- **Outside the time frames** there is no availability requirement at all. The
-  tank is allowed to drift down, so no electricity is spent keeping water hot
-  that nobody is going to use.
-
-Time frames accept 24-hour times separated by commas, and may wrap past
-midnight (`22:00-02:00`). Leave the field empty and the optimizer derives the
-frames from the *learned* hourly usage profile instead. Switch the schedule off
-entirely to require hot water around the clock (the pre-2.3 behaviour).
-
-#### Hot water that knows your household (v4.0.0)
-
-Six additions, each inert until configured or until evidence exists:
-
-- **The cold-water inlet is a setting, not an assumption.** The 10 °C the
-  model always used is now configurable, with an optional seasonal swing
-  (coldest in late February) or a live sensor on the incoming pipe, and a
-  greywater heat-recovery effectiveness for homes that have one.
-- **Heavy-day targets** (opt-in): the integration learns how much hot water
-  each time frame actually draws — as whole occurrences, weekdays and
-  weekends learned separately — and, when enabled, readies the tank for the
-  90th-percentile day of that specific frame rather than the average. Two
-  quiet people stop paying for a family's margin; the family stops running
-  cold every second Saturday. Requires *configured* time frames: with
-  learned-profile frames there is no stable frame to attach statistics to.
-- **Free disinfection** (opt-in): if a wood boiler, solar coil or immersion
-  heater already holds the tank at the anti-legionella temperature long
-  enough, that counts as a completed cycle — hold-verified, so a momentary
-  blip at 60 °C credits nothing.
-- **A price-aware anti-legionella cycle** (opt-in): inside its interval the
-  cycle may run a day or two early when a known price beats what a typical
-  remaining day is expected to bottom out at. The deadline is always
-  honoured; hygiene never waits for a better price.
-- **The tank in shower terms**: the Mixed Hot Water sensor translates tank
-  temperature into litres of 40 °C water and minutes of shower, and the DHW
-  Setpoint Advisor reports the cheapest setpoint that still covers your
-  learned heavy days — read-only, the decision stays yours.
-- **Circulation pumps** (opt-in): a VVC loop pump runs only around your
-  demand time frames (with a lead so the loop is hot when they open); the
-  space circulation pump pauses only in provably idle, warm slots and is
-  forced on whenever heat is planned, the heat curve is being driven, any
-  room is near its comfort floor, or it is freezing outside.
-
-#### Minimum-cost production
-
-DHW is a deferrable, essentially on/off load: the tank is a battery, and heat
-put in at any hour is still there later, minus standby loss. It is therefore
-scheduled separately from the gradient-based space-heating solve:
-
-1. **A linear program plans the tank over the whole horizon.** The tank is a
-   linear store, so its temperature at any step is an affine function of the
-   heat put in earlier — a kWh delivered `k` steps ago still contributes
-   `(1 - UA·Δt/C)^k / C` degrees today. Minimising `Σ price·energy/COP` under
-   the availability floors and the tank's maximum temperature gives the
-   genuinely cheapest feasible plan. The decay factor *is* the standby loss, so
-   buying heat early is automatically priced above buying it late, and no
-   artificial "don't pre-heat more than N hours ahead" cap is needed — none is
-   applied. Heating can land at 02:00 for a 17:00 demand frame whenever that is
-   cheaper, subject only to how much the tank can hold.
-2. **A cheapest-first pass repairs the remainder.** The linear model ignores the
-   COP's dependence on tank temperature and the cold-water floor, so a greedy
-   top-up fixes any residual shortfall — and takes over entirely if the solve
-   is unavailable.
-3. **Space heating is then optimized around that fixed DHW schedule,** with the
-   pump's remaining capacity during a DHW block bounding space heating power.
-
-Because nothing in the objective rewards a hot tank for its own sake, price is
-the only thing deciding *when* the pump runs for hot water. The result is
-discrete heating blocks the pump can actually deliver, concentrated in the
-cheapest hours, and no heating during price peaks that could have been done
-earlier and stored.
-
-#### Self-learning tank cooling
-
-How far ahead pre-heating pays off depends entirely on how well the tank holds
-heat, so that is measured rather than assumed. The parameter is stated as a
-**cooling rate in °C per hour at 45 °C tank temperature in a 20 °C room**,
-defaulting to 0.3 °C/h, and converted to a UA value using the tank's volume.
-
-Every time the tank temperature is sampled across an interval in which the heat
-pump did not run, the standby time constant follows from the decay itself:
-
-```
-UA/C = -ln((T_end - T_ambient) / (T_start - T_ambient)) / Δt
-```
-
-Hot water drawn during the interval can only make the tank *look* leakier than
-it is, never tighter, so observations are folded in as a **lower envelope**: the
-estimate moves quickly towards a quieter reading and only creeps upward. One
-shower therefore cannot convince the model that the tank is badly insulated,
-while a genuinely deteriorating tank is still learned within a few days. The
-result is clamped to 0.05–3.0 °C/h and persisted across restarts.
-
-A tank that holds heat well earns a longer pre-heating horizon and more of its
-heating in cheap hours; a leaky one is heated closer to when the water is
-needed. The learned value, its sample count and the resulting hold time are
-exposed as attributes on the **DHW Temperature** sensor.
-
-#### Anti-legionella
-
-Since the tank is now allowed to cool between time frames, a periodic
-disinfection cycle is enabled by default: every 7 days the tank is heated to
-60 °C, scheduled at the cheapest hour before the deadline. The timer resets
-whenever the tank is observed at the disinfection temperature for any reason
-(planned cycle, manual boost, or immersion heater), so an already-hot tank never
-triggers a redundant cycle.
-
-Other behaviour:
-
-- The optimizer models a time-of-day hot water draw pattern, masked by the
-  configured time frames (learned from observed tank temperature drops).
-- DHW tank thermal dynamics include standby losses and consumption draws.
-- The tank is never planned above `min(70 °C, max(setpoint, legionella temp))`.
-
-### Self-Learning Model Parameters
-
-Three parameters are estimated from your own house instead of being taken on
-faith from configuration. All three are clamped to plausible ranges, persisted
-across restarts, and exposed as sensor attributes.
-
-| Parameter | Learned from | Estimator |
-|---|---|---|
-| Hot water tank cooling rate | Tank temperature decay with no heating | Lower envelope |
-| Buffer tank cooling rate | Buffer temperature decay with the pump off | Lower envelope |
-| House heat loss coefficient | Predicted vs. measured indoor temperature | Symmetric average |
-
-**Why the estimators differ.** For a tank, every source of error points the same
-way: an unnoticed draw can only make it look leakier than it is. So the estimate
-tracks the *lower envelope* of what is observed, dropping quickly towards a
-quieter reading and creeping upward only slowly. One shower cannot convince the
-model that the tank is badly insulated.
-
-The house is not like that. Unmodelled gains (an oven, a full room of people)
-bias the estimate down, while an open window or a draughty day biases it up, so
-a lower envelope would be systematically wrong. It uses a slow symmetric average
-instead, with a per-interval rate limit and a residual cutoff so a single
-anomaly cannot move the model far.
-
-**How the house estimate works.** Rather than waiting for a coasting period —
-a heated house in winter rarely has one — each update replays the interval that
-just elapsed through the same model the optimizer uses, with the electrical
-power that was actually applied. Slab transfer, solar gain, internal gains, wind
-and rain are therefore already accounted for, and the leftover difference
-between predicted and measured indoor temperature is attributed to heat loss.
-Predicted room change is linear in the heat loss coefficient with slope
-`-(T_room - T_out)·Δt / C_room`, so a Newton step on the residual gives the
-correction directly.
-
-It is learned as a dimensionless scale on whatever you configured, which keeps
-your entered value meaningful and also handles the two-zone case, where a single
-indoor sensor cannot identify the upper and lower floor coefficients separately.
-
-The buffer tank rate is only learned when a **Buffer tank temperature sensor**
-is configured; without one a prior derived from the tank's size is used.
-
-That prior, and the range the learning is allowed to move within, both follow
-the tank's **surface area** rather than its volume. Heat escapes through a
-tank's skin, and a large tank has far less skin for the water it holds — a
-750-litre accumulator loses proportionally much less than a 35-litre buffer, so
-a single "degrees per hour" figure cannot describe both. If you have an
-accumulator this matters a great deal: applied unscaled, a small tank's figure
-models more heat lost in six hours than the tank can physically hold, which
-makes storing heat in it look pointless when it is not.
-
-### Two-Zone Thermal Model
-
-The house is modeled as two thermal zones served by a single air-to-water heat pump with a buffer tank:
-
-```
-                    ┌─────────────────────────┐
-                    │    Heat Pump (COP)       │
-                    └────────┬────────────────┘
-                             │ Q_hp
-                    ┌────────▼────────────────┐
-                    │   Buffer Tank (35L)      │
-                    └──┬──────────────────┬───┘
-           Q_rad (40%) │                  │ Q_floor (60%)
-                       │                  │
-        ┌──────────────▼───┐   ┌─────────▼────────────┐
-        │  Zone 1: Upper   │   │  Zone 2: Lower Floor  │
-        │  Floor (Radiator)│   │  (Slab Floor Heating)  │
-        │  Low thermal mass│   │  High thermal mass     │
-        │  Fast response   │   │  Slow response         │
-        └──────┬───────────┘   └──────┬────────────────┘
-               │  Q_inter (open       │
-               │◄─layout heat─────────┤
-               │   transfer)          │
-               │                      │
-          ┌────▼──────────────────────▼───┐
-          │   Outdoor environment          │
-          │   Wind → ↑ convective loss     │
-          │   Rain → ↑ envelope U-value    │
-          └───────────────────────────────┘
-```
-
-### Enhanced Heat Loss Model
-
-The heat loss model accounts for forecasted weather at EACH time step:
-
-**Wind effect** (infiltration and convective heat transfer):
-```
-U_effective = U_base × (1 + wind_sensitivity × wind_speed)
-```
-- Default: 3% increase per m/s wind speed
-- Example: 5 m/s wind → 15% higher heat loss coefficient
-- Uses FORECASTED wind speed at each future time step
-- Only the infiltration/convective share of the loss responds to wind, so the
-  whole-house sensitivity is small. Raise it toward 0.05-0.08 for a draughty
-  or very exposed house; measured infiltration studies put a 10 m/s wind at
-  roughly +20-40% for typical tightness.
-
-| House | Suggested wind sensitivity |
-|---|---|
-| Modern, tight, sheltered | 0.01-0.02 |
-| Typical (default) | 0.03 |
-| Older or exposed site | 0.04-0.06 |
-| Draughty, coastal/open field | 0.06-0.08 |
-
-**Rain effect** (wet building envelope):
-```
-U_effective = U_wind_adjusted × rain_multiplier (when raining)
-```
-- Default: 15% increase during rain (rain_multiplier = 1.15)
-- Scales with precipitation intensity (light rain → partial multiplier)
-- Uses FORECASTED precipitation at each future time step
-
-### Solar Heat Gain
-
-Solar radiation through windows reduces heating need:
-```
-Q_solar = solar_radiation × window_area × orientation_factor × SHGC / 1000
-```
-
-Solar gains are split between zones:
-- Upper floor: 40% (default) — light reaches upper level
-- Lower floor: 60% (default) — sun hits lower floor through large windows
-
-#### Where the irradiance comes from
-
-Solar gain is only as good as the irradiance behind it, and most weather
-integrations never publish a `solar_irradiance` field, so the term silently
-evaluated to zero for many installs. There are now three sources, tried in this
-order:
-
-1. **A local irradiance sensor**, if configured. A real measurement at the
-   actual site always beats a model, so this wins outright.
-2. **Open-Meteo**, if *Solar forecast source* is set to `Open-Meteo`. Pick the
-   location on the map in the configurator. No API key or account is needed.
-3. **The weather entity's forecast**, which is the previous behaviour and stays
-   the default.
-
-Open-Meteo is used through two endpoints because they do different jobs:
-
-| Endpoint | Role | Why |
-|---|---|---|
-| `api.open-meteo.com/v1/forecast` | The planning horizon | Supports `minutely_15`, which matches the optimizer's 15-minute grid exactly |
-| `satellite-api.open-meteo.com/v1/archive` | Current irradiance | Observed rather than modelled, current to ~10 minutes, so the heat-loss learner trains against what actually happened |
-
-The satellite endpoint is archive-only and has no forecast route, which is why
-it cannot serve the horizon on its own.
-
-Two details worth knowing if you compare the numbers against the API by hand:
-
-- The optimizer requests **`shortwave_radiation`** (global horizontal
-  irradiance), not `direct_radiation`. The window-gain formula above applies its
-  own orientation factor, and direct-beam alone omits the diffuse component,
-  which on an overcast day is essentially all the light there is.
-- **Open-Meteo timestamps mark the end of the averaging interval**, so the
-  sample stamped `04:00` covers `03:00-04:00`. Reading them as interval starts
-  shifts every value by one interval, which around dawn and dusk is the
-  difference between darkness and full sun.
-
-Values are resampled by overlap-weighted averaging, so the API's resolution does
-not have to match the optimizer's step length. A step that Open-Meteo does not
-cover falls back to the weather entity rather than to zero, because "no data" is
-not the same as "no sun".
-
-### Floor Return Temperature Feedback
-
-When a floor heating return temperature sensor is configured, the optimizer uses it to correct the slab temperature model:
-```
-T_slab_estimated = 0.7 × (T_return + 1°C) + 0.3 × T_slab_model
-```
-
-### Learning how the heat loss splits between the floors
-
-Once a real lower-floor sensor exists, the model can stop taking the *split*
-between the two zones on trust as well.
-
-The catch is that `house_heat_loss_scale`, the correction learned from
-prediction error, multiplies **both** zone losses. It can move the total but
-never the split, so learning both zone losses independently alongside it would
-be three parameters chasing two degrees of freedom — they trade off against each
-other and drift without ever making the fit worse.
-
-So the two are given separate jobs. The scale owns the **level** and is fitted
-from the upper floor. A new ratio owns the **split** and is fitted from the
-lower floor, which the scale's own fit does not touch. Two parameters, two
-independent measurements.
-
-It only moves when a real lower-floor sensor is configured. Without one the
-lower zone is inferred from the floor return water — an estimate derived from
-the same sensor as the slab — so there is nothing independent to fit against.
-Watch `lower_floor_loss_ratio` and `lower_floor_loss_samples` on the learning
-sensor; the ratio stays at 1.0, the configured split, until it has evidence.
-
-Deliberately **not** learned: the inter-zone transfer coefficient. One pump, one
-water temperature and a fixed radiator/floor split mean the two zones are driven
-together and rarely diverge, so there is very little to learn from and a passive
-fit would mostly track noise. It stays at its configured value.
-
-### Using the buffer tank as a store (mixing valve required)
-
-Without a mixing valve, everything the heat pump makes goes straight to your
-radiators and floor loops. The buffer tank is then just a hydraulic separator
-that happens to lose a little heat — whatever enters it leaves immediately, so it
-can never be charged. That is the default and it is a correct model.
-
-A mixing valve changes this. It limits how much heat reaches the house, so once
-the house has what it needs the surplus has nowhere to go but the tank. Set
-**Heating system and heat storage** in the options (under Advanced settings):
-
-| Setting | Meaning |
-|---|---|
-| No mixing valve | Default. Nothing changes. |
-| Set by hand | A fixed valve you adjust yourself; tell the integration what you set it to. |
-| Read from a sensor | The integration reads the valve's target but cannot change it. |
-| Commanded by the optimizer | The integration writes the target to the valve's controller (a number or climate entity) after each planning cycle, and only when it changes. This is the mode that can *hold* stored heat for the evening peak — see below. |
-
-**A commanded valve can do something a hand-set one cannot: wait.** A fixed
-valve starts feeding the house the moment the tank is warmer than its curve,
-so stored heat mostly gets used in the hours right after it was bought. With
-*Commanded by the optimizer*, the plan can lower the valve's target between
-charging and the expensive hours — the house coasts on what the building
-itself is holding, the tank keeps its heat — and raise it again for the peak.
-It is worth roughly 1–2 SEK a day on a winter price curve, on top of what
-storage already saves, and at flat prices the optimizer does not do it at
-all, because there would be nothing to gain. The house is never planned below
-your comfort floor to achieve it.
-
-**What to set a hand-adjusted valve to.** The top of your comfort band, in
-almost every case. A high setting keeps the valve open until the house reaches
-its ceiling, so the building charges first — and building storage is free,
-because the heat sits at room temperature. Only then does the valve throttle and
-the tank take the surplus, which is stored hot and does cost efficiency.
-Building first, tank second, is the cheap order; a low setting reverses it and
-fills the expensive store while the free one sits empty.
-
-The cost of that choice is that the valve is no longer what prevents your house
-overheating — the optimizer's comfort limits are.
-
-**Storing hot is not free.** A heat pump loses efficiency the hotter it must
-push water, and that penalty is the whole economics of a thermal store: it
-decides whether moving heat into a cheap hour actually pays. The model accounts
-for it, so the tank is only charged when the price difference covers the loss.
-On a flat-price day it will leave the tank alone. The tank is also never charged
-past the maximum you configure, however cheap electricity gets.
-
-### Knowing the lower floor, rather than guessing it
-
-Two-zone mode plans against two room temperatures, but only the upper one has
-ever had a sensor. The lower zone was inferred from the floor return water as
-`T_return + 0.5 °C` — and that is a *water* temperature standing in for an air
-temperature. A floor loop returns at roughly 24–30 °C while the room it serves
-sits near 21, so the model believed the lower floor was several degrees warmer
-than it was. That value is judged against the same comfort band as the upper
-floor, so the zone read as permanently overshooting and the optimizer
-under-heated the one room it could not see.
-
-There was a second, quieter problem. The slab was derived from the *same* sensor
-as `T_return + 1 °C`, so the difference between slab and room was always exactly
-0.5 K no matter what the sensor read — which pinned the main heat path into the
-lower zone at a constant value, unable to respond to anything.
-
-**Configure `Lower floor temperature sensor`** (Step 1, or Options → Advanced → Sensors and entities)
-and both problems go away: the zone is measured, and slab-to-room becomes a real
-difference again. It is optional and two-zone only. Without it the old estimate
-is still used, so nothing changes for existing installations until you add one.
-
-The order of preference is: a real sensor, then the floor return estimate, then
-the upper floor's temperature.
-
-### Backward Compatibility
-
-When two-zone parameters are not configured, the model falls back to single-zone operation. DHW optimization is only active when a DHW temperature sensor or DHW tank volume is configured.
-
-### Knowing when a sensor has gone bad
-
-Every sensor read is guarded against `unavailable` and `unknown`. Those are the
-easy failures: they are visible, and everything downstream already handles them.
-
-The dangerous failure is a sensor that stops updating while continuing to report
-its last value. A dead battery in a tank probe, or a dropped Zigbee room sensor,
-leaves a perfectly valid-looking constant in the state machine indefinitely. Two
-things then go wrong, and the second is worse:
-
-1. The optimizer plans against a fiction.
-2. The learners observe a flatline, attribute it to thermal behaviour, and
-   corrupt a parameter that is then persisted — so the damage survives a
-   restart.
-
-So each input has a maximum age, and an over-age value is treated as **missing**
-rather than as data. The learners freeze rather than training on it. A room
-temperature may reasonably be minutes old and an outdoor forecast hours, so the
-limits differ per input. The **Input Problem** binary sensor names which inputs
-are stale, how old they are, and why the learners paused.
-
-This is on by default, because it protects everything else and costs nothing.
-
-### Measuring rather than assuming
-
-Three optional entities change how much the integration can actually know:
-
-| Entity | What it unlocks |
-|---|---|
-| Heat pump power meter | Real COP, predicted-versus-actual cost, reliable wood-furnace detection |
-| Whole-house power meter | A capacity tariff model that sees the peak the grid actually bills |
-| Cumulative energy meter | Cost accounting against a real meter rather than integrated power |
-
-Watts, kilowatts and megawatts are all accepted and normalised. An unrecognised
-unit is refused rather than guessed: a wrongly scaled power value is worse than
-no power value, because everything downstream trusts it.
-
-Note that **Recommended Power** is what the optimizer is *commanding* and
-**Measured Power** is what the pump is *drawing*. They are deliberately named to
-keep that distinction visible.
-
-### Capacity (effekt) tariffs
-
-Many Swedish grid companies bill a monthly capacity charge based on your highest
-hours — commonly the mean of the three highest. Without modelling that, the
-optimizer will happily stack hot water and space heating into the same cheap
-hour, and one new monthly peak can easily cost more than the energy that
-stacking saved.
-
-Two details matter:
-
-- **Only exceeding the peak already billed this month costs anything.** If the
-  month has a 9 kW peak recorded, an 8 kW hour is free — the bill is already
-  set. Treating this as "keep power low" would give away savings for nothing.
-- **The penalty is soft.** A hard cap would fight the comfort band and could
-  make a cold morning infeasible. What is wanted is a price signal the optimizer
-  trades off like any other.
-
-Take the price per kW and the number of peaks averaged from your grid invoice;
-they vary a lot between grid companies.
-
-### Prices past the published horizon
-
-Nord Pool and Tibber publish tomorrow's prices around 13:00. Before then, a
-large part of a 24-hour-plus horizon has no data at all.
-
-That gap used to be filled by repeating the last known price. A flat tail has no
-trough, so the optimizer could not see a cheap period ahead worth waiting for,
-and systematically under-deferred load in the morning — precisely when deferral
-is most valuable.
-
-Instead, a normalised daily price *shape* is learned from the prices you have
-actually seen, split weekday/weekend, and scaled to the recent price level. It
-never displaces published data, it is heavily damped until several days have
-been observed, and the plan records which steps rest on it. The dashboard card
-shades that stretch of the chart, because a plan that looks identical whether or
-not it rests on real prices cannot be audited.
-
-### Wood furnaces and other external heat
-
-If something other than the heat pump is charging your tanks — typically a wood
-furnace on the same buffer — paying for electric hot water at the same time is
-the most expensive mistake available.
-
-Detection uses sensors you already have: a tank warming while the compressor is
-off, or warming faster than the compressor could possibly manage. If you have a
-flue thermostat or a stove switch, point the integration at it and that is
-trusted instead.
-
-The detector is deliberately reluctant, because the two errors do not cost the
-same. Wrongly believing a fire is lit means skipping a cheap-hours charge and
-either paying peak prices later or running out of hot water; missing one costs a
-single unnecessary charge. So it wants several consecutive confirmations, and it
-keeps assuming the fire for a while after the rise stops, since a fire dies down
-gradually and re-planning a full charge the moment it drops would be wrong.
-
-While it is active, discretionary electric hot water is suppressed — but only
-while coasting still meets your requirement — and the learners freeze. If the
-fire gets the tank all the way to the anti-legionella temperature, the existing
-cycle timer resets on its own and no electric cycle is scheduled at all.
-
-**With three more sensors, the fire stops being all-or-nothing.** If your
-furnace heats its own buffer tank and an automatic valve mixes the two tanks,
-point the integration at the temperature after that valve and at the wood
-tank's top and bottom probes (all optional, on the heating-system page). The
-outlet measures the blended flow that valve sends onward: together
-with the tank temperatures it says how much of the heating the fire covers
-right now — the furnace is doing 70 %, so electric space heating stands down
-by 70 % — and the plan is given that free heat for a strictly bounded window:
-never more than two hours ahead, fading over it, and — unless the tank is
-modelled as its own store (below), where the stored energy enters the plan
-directly — never more energy than the wood tank measurably holds. The tank
-pair also ends the
-keep-assuming-the-fire window early once a hot top sits over a cold bottom,
-because that charge is nearly spent whatever the timer says. Measurement is
-only ever allowed to argue for *less* trust in the fire, never more: a wrong
-promise of free heat is a cold house in winter.
-
-**With a two-zone house and a mixing valve, the wood tank becomes its own
-modelled store** (v3.15.0, issue #40). When the wood-tank top probe is
-configured on such a system, the model simulates two tanks side by side: a
-burn charges the *wood* tank, the 4-way valve draws wood-first while the wood
-side can meet the flow temperature and shifts to the heat-pump tank as it
-depletes, and the blend law is the same one the outlet sensor measures, so
-model and measurement cannot disagree. The point of the split: a fire can no
-longer make the heat pump's modelled efficiency look worse (the old
-single-tank abstraction charged the modelled COP for water the pump never
-made) and can no longer eat the buffer's safe-temperature headroom, so the
-plan keeps charging cheap hours right through a burn. The heat still in the
-wood tank at the end of the day is counted in the savings settlement and the
-storage battery view, at up to 95 °C. Without the probe — or if it goes stale
-— everything falls back to exactly the previous behaviour.
-
-If your hot water tank refills **through a coil immersed in the wood tank**,
-enable *Hot water refilled through the wood tank* on the heating-system page
-(v3.15.1, off by default): refill water then enters preheated whenever the
-modelled wood tank is warm, each draw costs less electricity, and exactly
-that heat is drawn out of the wood tank. Only acts while the wood tank is
-modelled as its own store.
-
-And if the drawn layout still does not match your plumbing, **edit it**
-(v3.16.0): the Setup page's *Edit layout* mode lets you drag boxes and
-pipes, tells you live which supported layout your drawing is, and saves the
-layout so the model runs exactly that physics. Only layouts from the
-supported catalog can be saved — a drawing the model cannot honor is
-refused with an explanation of what differs — so the picture and the
-physics can never disagree again.
-
-Off by default: most users have no such source, and a feature that cannot save
-them anything should not be able to cost them anything.
-
-### Away and holiday mode
-
-A week away is the largest single saving a heating system can offer: a deep
-setback plus hot water suppressed entirely.
-
-What makes this more than a manual setpoint is the **return time**. Knowing when
-the house must be comfortable again lets the recovery heat be bought in the
-cheapest hours beforehand, instead of panic-heating on arrival at whatever the
-spot price happens to be. That is the same deadline-driven machinery the hot
-water planner already uses, applied to the building.
-
-Away state can come from a person, a device tracker, a calendar entry or a plain
-toggle. The polarity differs by domain — a person is `not_home` when away, a
-holiday toggle is `on` — and that is handled for you. Recovery starts
-deliberately early, because a wrong return time is a comfort failure you will
-notice.
-
-### Why a slot was chosen
-
-Each planned slot now carries a reason code: cheapest hours, holding the minimum
-temperature, pre-heating before colder weather, using solar surplus, the
-anti-legionella cycle, and so on. It appears in the plan sensor attributes and
-in the card's tooltip.
-
-This is a small change with a disproportionate effect: without it, an unexpected
-slot is indistinguishable from a bug, which makes the optimizer hard to trust
-and bug reports much weaker than they could be.
-
-### The plan in sentences, the month on a receipt
-
-The reason codes go two steps further. The **Plan Narrative** sensor groups
-the current plan by reason and tells it in prose — "6.2 kWh in the cheapest
-hours for 8.40 kr, holding the minimum temperature cost 2.10 kr" — in
-English or Swedish. And every settled interval books its money under the
-reason the plan drew it, so when a month closes, the **Contract Comparison**
-sensor carries an itemised receipt: what the month cost, line by line and
-reason by reason, with the reason lines summing to the metered spot line by
-construction.
-
-The **Compressor Starts** sensor counts realised compressor starts from the
-power meter (debounced, and blind to the immersion element on purpose). Give
-it a replacement cost and rated start count and every start books its share
-of the eventual swap — and an opt-in switch lets that realised wear price
-floor the cycling cost the optimizer plans with.
-
-The **Optimization Score** sensor grades envelope, machine and operation
-0–100 — how good is the house, how healthy is the machine, how well is it
-driven — the operation grade replaying each day's kWh against the day's own
-prices. The **Diagnose Last Interval** button explains the last interval's
-temperature error input by input: the interval is re-run through the thermal
-model swapping realised inputs in one at a time, and each swap is charged
-with the share of the error it explains. Optional price tiles re-price the
-plan under a target one degree lower, one higher, and power capped at 75 % after
-each scheduled solve.
-
-### Grid costs beyond the price per kWh
-
-Four things cost money that the spot price does not describe.
-
-**The DSO transfer fee** (v4.0.0) is added per kWh moved through the grid,
-and increasingly by time of day: several Swedish grid companies charge
-roughly 25 öre/kWh more on winter weekdays 06–22. Tibber's price does not
-include it. Configure it on the Grid costs page — as time-of-use rules like
-`Nov-Mar Mon-Fri 06:00-22:00 = 0.25`, as a flat figure, or as a live sensor
-— and every planned hour is priced at spot *plus* fee, which moves load to
-nights and weekends in winter even when spot alone would not. The fee is
-booked as its own line in the monthly ledger, and the learned price prior
-never sees it.
-
-**The capacity tariff's clock** (v4.0.0): most effekttariffs do not bill
-every hour equally — many count only weekday daytime peaks, bill night
-peaks at half rate, or apply only November–March. The month, hour and
-weekday masks on the Grid costs page teach the plan exactly which hours a
-peak actually costs money in; a masked-out hour contributes nothing, so
-night-time stacking that is genuinely free stops being avoided.
-
-**A capacity tariff** is billed as the price per kW times the mean of the
-month's highest few hourly peaks. The cost of a plan is therefore the marginal
-price times the sum of its top-k excesses above what the month has already
-committed to — charging only the single largest, which is the obvious
-simplification, under-states exactly the plan a capacity tariff exists to
-discourage. Below the running threshold, an hour changes nothing and costs
-nothing; and until the month has recorded some peaks there is no reference at
-all, so the charge stays switched off rather than treating every kW as new.
-
-**Living inside the peak, not just planning around it** (v4.0.0): four
-features act on power rather than energy, all inert until configured.
-
-- **The live peak guard** listens to your power meter between plans. The
-  DSO bills the *average* over a metering window, so mid-window the damage
-  is not yet done: when the projected window average crosses the billed
-  threshold (or the main fuse), the guard defers what can wait — electric
-  hot water, and a small heat-curve nudge — for the rest of the window,
-  then releases. Two agreeing readings engage it, two clear ones release
-  it, and a cold tank or a breached comfort floor always outranks it.
-- **The main fuse** (amperes and phases, on the Grid costs page) becomes a
-  hard per-step ceiling on planned space heating *plus* hot water together,
-  so the plan never schedules a draw the fuse cannot carry.
-- **Power Headroom** publishes `min(fuse, billed threshold) − current
-  draw` as a sensor an EV charger's dynamic circuit limit can follow.
-- **The fuse advisor** answers, monthly, whether this house — with the
-  optimizer flattening its peaks — would run under the next-smaller main
-  fuse, and what that would do to comfort and the bill. Standing fuse
-  charges are often 100+ SEK/month per step; the answer rides on the
-  Monthly Peak Power sensor.
-
-**After a power outage** (opt-in, on the Self-learning page) every heater in
-the neighbourhood restarts at once, which is precisely when a new monthly
-peak is set. A gap of more than 90 minutes in the integration's own history
-reads as an outage: for the next two hours the plan avoids stacking loads,
-and hot water queues 45 minutes behind space heating — unless the tank is
-genuinely cold, because a family without hot water is the wrong trade.
-
-**A compressor start** costs oil dilution, wear, and the loss while the system
-re-establishes steady state. It is modelled as a smooth term on the
-step-to-step power difference, which keeps the problem continuous — a true
-minimum-runtime constraint would make it a MILP, which is not affordable inside
-a Home Assistant update. It defaults to zero because the measurement came
-first: realistic plans make two to four starts a day, so most installs have
-nothing to fix, and the planned start count is published so the decision can be
-made from evidence.
-
-### Self-learning, and how to see it
-
-Beyond the tank cooling rates and house heat loss learned in earlier versions:
-
-- **COP** becomes observable with a power meter, instead of being derived from a
-  nominal figure and a temperature curve.
-- **A defrost derate** is learned per outdoor-temperature and humidity bucket
-  from predicted-versus-actual performance. Air-source units lose real capacity
-  in the 0 to +5 °C humid band, which is exactly the Swedish shoulder season and
-  exactly where the plan is most aggressive about coasting. The derate is
-  learned rather than taken from a datasheet, because units vary far more than
-  the effect being modelled. With no evidence it is exactly 1.0.
-- **Comfort weight** can be learned from your own overrides (opt-in). Every time
-  you override the temperature you are saying the plan went too far in one
-  direction, which is the only evidence anyone ever produces about a number that
-  has no intuitive units. It moves slowly, needs consistent evidence, and has
-  its own sensor and a reset button — an invisible self-adjusting objective
-  would be alarming.
-- **Active system identification** (opt-in) runs a small deliberate heating step
-  on a mild, cheap night and fits the response, getting the time constant and
-  loss coefficient in days rather than the weeks passive learning needs. The
-  step is kept small enough not to be noticed, and comfort is a hard constraint:
-  it aborts if the room drifts too far. It will not repeat on a house that has
-  already converged.
-- **An open-window detector** watches for the house losing heat faster than the
-  learned model can explain and pauses all learning while it lasts, so an
-  afternoon of airing out cannot teach the model a heat loss the house does not
-  have. It surfaces as the **Open Window Detected** binary sensor with its
-  evidence in the attributes. Optionally (off by default) it can also ease the
-  heating target by 1 °C while the window is open.
-- **Immersion-heater detection** notices when measured electrical power exceeds
-  what the compressor alone can draw — the tank's backup element stepping in
-  because the plan heated water too late. The events are logged, the extra cost
-  gets its own line in the savings ledger, the polluted samples are kept out of
-  COP learning, and (opt-in) repeated use raises the hot-water planning margin
-  so the heat pump gets there first.
-- **A COP health watch** compares each measured COP against a learned per-bucket
-  baseline and raises a Home Assistant repair issue when efficiency has
-  genuinely degraded — clogged filter, low refrigerant — priced in SEK per month
-  so you can decide whether the service call is worth it. It clears itself on
-  recovery.
-- **Weekly learner snapshots** guard everything above: the full learned state is
-  snapshotted weekly (last 8 kept), and a drift watchdog compares daily
-  prediction bias against the accuracy history. If predictions stay out of band
-  for days while every input was provably healthy, the learners are rolled back
-  to the last known-good snapshot automatically — and the
-  `heatpump_optimizer.restore_learned_snapshot` service is the manual override
-  for when you can see what the watchdog cannot.
-- **Forecast humidity feeds the defrost derate per step**, so the plan sees the
-  humid 0–5 °C band coming instead of assuming today's air all day. With no
-  defrost evidence the derate is 1.0 everywhere, so this changes nothing until
-  the unit has actually been observed frosting.
-- **Snow is not rain** (opt-in): the rain heat-loss multiplier is weighted by
-  the liquid fraction of forecast precipitation, and a second opt-in halves
-  modelled solar gain for two days after heavy snowfall — snow on the glazing
-  blocks the sun the plan was counting on.
-- **A measured capacity envelope** (opt-in) learns how much heat the pump has
-  actually delivered at each outdoor temperature and caps cold-snap plans to
-  it, through the same channel as the fuse guard. It can only trim optimism:
-  at least 60% of nameplate always stays available.
-- **Solar aperture** (opt-in) scales the configured window-area × SHGC product
-  from sunny-hour prediction errors, clamped to [0.3, 2.0] — window area and
-  shading are guesses, and only their product is observable.
-- **Per-hour internal gains** (opt-in) learn the household's daily heat rhythm
-  from dark-hour prediction errors, ridge-tethered to the configured constant.
-- **Heat-curve correction** (opt-in) learns a standing cooling bias for an
-  installer-set curve that runs too hot: it creeps down by at most 0.5 K per
-  week on days that held comfort with margin, and resets to the installer's
-  curve instantly on any comfort miss. It can only cool, never heat.
-- **Confidence margins** (opt-in) raise the comfort floor by the model's own
-  measured prediction error at each step's lead time — a promise made twelve
-  hours out carries the uncertainty twelve-hour promises have earned. Capped
-  at 0.8 °C, damped by the accuracy tracker's trust, and exactly zero with no
-  history, so deep price-riding coasts are taken only where the model has
-  earned them.
-- **A mold guard** (opt-in, needs an indoor humidity sensor) computes the
-  coldest surface in the house from the worst thermal bridge (fRsi) and the
-  outdoor forecast, and keeps the room above the temperature at which that
-  surface would cross 80% relative humidity. It never heats past the comfort
-  target — persistent high indoor humidity is a ventilation problem.
-
-The **Prediction Accuracy** sensor publishes how far off the model currently is,
-including the *signed* bias — a mean absolute error cannot tell random noise from
-a model that is consistently half a degree optimistic, and it is the second that
-means the model is drifting.
-
-Measured end to end in `tests/rolling.py`: given a house that loses 35% more
-heat than its configuration says, the correction recovers 99% of that error
-within two simulated days, settles rather than oscillating, and leaves an
-already-correct model alone.
-
-## Configuration
-
-### Step 1: API & Entity Selection
-| Parameter | Description | Required |
-|---|---|---|
-| Tibber API token | Get from https://developer.tibber.com | Yes |
-| Weather entity | HA weather entity for forecasts | Yes |
-| Indoor temp sensor | Room temperature sensor | No |
-| Outdoor temp sensor | Outdoor temperature sensor | No |
-| Heat pump climate entity | To control the heat pump | No |
-| Heat pump switch | On/off switch for heat pump | No |
-| Solar radiation sensor | W/m² irradiance sensor | No |
-| Solar forecast source | `Weather entity` or `Open-Meteo`; see below | No |
-| Solar location | Map coordinate used when the source is Open-Meteo | No |
-| Floor return temp sensor | Floor heating return temp | No |
-| Lower floor temp sensor | Real thermometer on the lower floor (two-zone); without it the zone is inferred from the return water and reads several degrees too warm | No |
-| DHW temp sensor | Hot water tank temperature | No |
-| Buffer tank temp sensor | Buffer tank temperature; enables cooling-rate learning | No |
-
-### Step 2: Temperature Settings
-| Parameter | Default | Range |
-|---|---|---|
-| Target temperature | 21.0°C | 15-28°C |
-| Min temperature | 19.0°C | 14-25°C |
-| Max temperature | 23.0°C | 18-28°C |
-| Comfort temp (day) | 21.0°C | 16-26°C |
-| Comfort temp (night) | 19.5°C | 15-24°C |
-| Day starts | 07:00 | 0-12 |
-| Day ends | 22:00 | 18-23 |
-
-### Step 3: Thermal Model
-| Parameter | Default | Unit |
-|---|---|---|
-| House thermal mass | 10.0 | kWh/°C |
-| Heat loss coefficient | 0.15 | kW/°C |
-| Slab thermal mass | 5.0 | kWh/°C |
-| Slab heat transfer | 0.8 | kW/°C |
-| HP nominal COP | 3.5 | - |
-| HP max power | 5.0 | kW |
-| HP min power | 1.0 | kW |
-
-### Step 4: Two-Zone & Solar (Optional)
-| Parameter | Default | Unit |
-|---|---|---|
-| Upper floor thermal mass | 3.0 | kWh/°C |
-| Lower floor thermal mass | 8.0 | kWh/°C |
-| Upper floor heat loss | 0.08 | kW/°C |
-| Lower floor heat loss | 0.07 | kW/°C |
-| Inter-zone transfer | 0.5 | kW/°C |
-| Radiator power fraction | 0.4 | 0-1 |
-| Buffer tank volume | 35 | L (10–1500) |
-| Window area | 10 | m² |
-| Solar orientation factor | 0.7 | 0-1 |
-| SHGC | 0.7 | 0-1 |
-
-### Step 5: DHW Configuration (Optional)
-| Parameter | Default | Unit |
-|---|---|---|
-| DHW tank volume | 200 | L (50–1500) |
-| DHW setpoint | 55 | °C |
-| DHW minimum temperature | 45 | °C |
-| Daily consumption | 150 | L/day |
-| Tank cooling rate | 0.3 | °C/h at 45 °C tank, 20 °C room (0.05–3.0) |
-| Only guarantee hot water during set time frames | on | — |
-| Hot water time frames | `06:00-08:30, 17:00-22:00` | HH:MM-HH:MM, comma separated |
-| Tank minimum outside the time frames | 20 | °C |
-| Anti-legionella cycle | on | — |
-| Anti-legionella temperature | 60 | °C |
-| Anti-legionella interval | 7 | days |
-
-The time frames are the periods when hot water must be available. Outside them
-the tank may cool freely, which is where most of the savings come from. Leave
-the field empty to let the optimizer learn the frames from observed usage, or
-turn the toggle off to require hot water around the clock.
-
-### Step 6: Weather Sensitivity
-| Parameter | Default | Description |
-|---|---|---|
-| Wind sensitivity | 0.03 | 3% heat loss increase per m/s wind |
-| Rain multiplier | 1.15 | 15% heat loss increase when raining |
-
-## Entities Created
-
-Since v5.0.0 the display names are translated (English and Swedish) and
-follow your Home Assistant language; the tables below show the English
-names. Entity ids and history are unaffected by the language.
-
-### Sensors (55 total)
-| Sensor | Description |
-|---|---|
-| Optimization Mode | Current mode (auto/comfort/economy/boost/off) |
-| Optimization Status | Solver status (optimal/suboptimal/failed) |
-| Predicted Savings | Cost savings vs. baseline (SEK) |
-| Savings Percentage | Savings as percentage |
-| Predicted Cost | Optimized 24h cost (SEK) |
-| Baseline Cost | Non-optimized 24h cost (SEK) |
-| Current Electricity Price | Current Tibber price (SEK/kWh) |
-| Optimal Setpoint | Current recommended setpoint (°C) |
-| Recommended Power | Current recommended power (kW) |
-| Estimated COP | COP at current outdoor temp |
-| Indoor Temperature | Current indoor temp (optimizer) |
-| Outdoor Temperature | Current outdoor temp (optimizer) |
-| Slab Temperature | Estimated slab temperature (°C) |
-| Next Optimization | Timestamp of next optimization run |
-| Last Optimization | Timestamp of last optimization run |
-| Heat Pump Action | Current action (off/eco/normal/pre_heat/boost) |
-| Optimization Schedule | Full 24h schedule (in attributes) |
-| Upper Floor Temperature | Upper floor (radiator zone) temp |
-| Lower Floor Temperature | Lower floor (slab zone) temp |
-| Floor Heating Return Temp | Floor return sensor reading |
-| Solar Irradiance | Irradiance the optimizer plans with (W/m²), with the forecast horizon in attributes |
-| Solar Heat Gain | Current solar gain (kW) |
-| Buffer Tank Temperature | Modeled buffer tank temp |
-| **Space Heating Plan** | Planned space heating slots + full-horizon forecast |
-| **DHW Heating Plan** | Planned hot water slots + full-horizon forecast |
-| **DHW Temperature** | Current hot water temperature |
-| **DHW Heating Schedule** | Planned DHW heating periods |
-| **DHW Heating Cost** | Estimated DHW heating cost |
-| **Predictive Insight** | Anticipatory control status |
-| **Measured Power** | Actual electrical draw, when a power entity is configured |
-| **Observed COP** | Efficiency derived from measurement rather than the nameplate curve |
-| **Space Heating Energy** | Accumulating kWh, for the Energy dashboard |
-| **Hot Water Energy** | Accumulating kWh, for the Energy dashboard |
-| **Total Energy** | Accumulating kWh, for the Energy dashboard |
-| **Space Heating Cost** | Accumulating cost |
-| **Hot Water Cost** | Accumulating cost |
-| **Total Heating Cost** | Accumulating cost |
-| **Prediction Accuracy** | Mean error of the predicted indoor temperature, with the bias in attributes |
-| **Monthly Peak Power** | Peak the capacity tariff is currently billed on, and the free headroom; the fuse advisor's monthly verdict rides in attributes |
-| **Power Headroom** | kW the house can draw right now without new cost — a number an EV charger's dynamic limit can follow, with the per-step horizon in attributes |
-| **Solar Surplus Forecast** | Forecast PV surplus available to the heat pump |
-| **Thermal Battery Charge** | State of charge of the house and tanks, against the comfort band |
-| **Thermal Battery Energy** | Stored energy available above the comfort floor |
-| **Comfort Weight** | The comfort weight in force, learned or configured |
-| **Contract Comparison** | This month settled under hourly spot, monthly-average spot and a fixed price — and the öre/kWh your load shifting earns |
-| **DHW Setpoint Advisor** | The cheapest hot-water setpoint that still covers your heavy days, with the whole candidate sweep in attributes |
-| **Mixed Hot Water** | The tank translated into shower terms: litres of 40 °C water and minutes of shower it holds right now |
-| **DHW Heavy Day Demand** | The learned 90th-percentile draw per hot water time frame — what the heavy-day targets stand on |
-| **Valve Target Recommendation** | What to set a dumb mixing valve to, with the reasoning in its attributes |
-| **Plan Narrative** | The plan told in sentences, grouped by reason — where today's money goes and why |
-| **Optimization Score** | Envelope, machine and operation graded 0–100, with the what-if price tiles in attributes |
-| **Compressor Starts** | Realised compressor starts counted from the meter, immersion events excluded |
-| **Compressor Frequency Advisor** | The frequency the plan's power asks for, from the learned kW-per-Hz map — observation until you opt into control |
-
-### Binary Sensors (4 total)
-| Binary sensor | Description |
-|---|---|
-| **Input Problem** | On when an input is stale or missing, with the evidence and the freeze reason in attributes |
-| **External Heat Source** | On while something other than the heat pump is heating the tanks |
-| **Away Mode** | On while the house is empty, with the return time and recovery state |
-| **Open Window Detected** | On while the house is losing heat like a window is open, with the evidence in attributes; learning pauses while it is on |
-
-### Buttons (4 total)
-| Button | Description |
-|---|---|
-| **Optimize Now** | Force an optimization run. Unavailable while one is in flight |
-| **Run System Identification** | Arm the commissioning step test for the next mild, cheap night |
-| **Reset Learned Comfort Weight** | Undo the revealed-preference tuning |
-| **Diagnose Last Interval** | Explain the last interval's temperature error input by input, on the Prediction Accuracy sensor |
-
-### Inverter frequency: observe first, control if you say so
-
-If your heat pump's compressor frequency is exposed as a `number` entity
-(Modbus, ESPHome), configure it and the optimizer learns a **kW-per-Hz map**
-from the meter — per-decile buckets over the entity's own range — and the
-**Compressor Frequency Advisor** sensor shows what frequency the current
-plan's power would ask for. That is the whole observe stage: no actuation of
-any kind, just evidence for your go/no-go.
-
-Switch the frequency mode to **control** (a deliberate, separate step, after
-you have validated the entity against your real hardware) and the optimizer
-writes the recommendation via `number.set_value` — at most one write per
-five minutes, clamped to the entity's own min/max, with a watchdog: a
-reported frequency that keeps diverging from the commanded one for three
-active ticks stands the controller back down to observe and raises a repair
-issue. Idle periods and defrost pauses are not divergence — an operating
-point at rest is not a write path that stopped listening. The stand-down
-survives restarts; you re-arm it by explicitly switching the mode back.
-When the plan asks for more than the map has evidence for, control runs
-truly flat out (the entity's own maximum) and says so via an
-`evidence_exhausted` attribute — which is also how the map earns its
-missing high-frequency samples.
-
-**One hardware caveat that matters:** many `number` entities are setpoint
-registers that simply echo the last written value. Read from an echo, the
-watchdog can never see divergence and the map learns the setpoint instead
-of the machine. If your integration exposes the *actual* compressor
-frequency as a separate sensor, configure it as the actual-frequency
-sensor — the watchdog and the map then read reality, and the number entity
-is used only for writing.
-
-The learned map never feeds the optimizer's plans in either mode
-— plans stay power-denominated, and control only translates the planned
-kilowatts into the hertz that deliver them.
-
-### Dashboard Card
-
-`custom:heatpump-optimizer-card` charts electricity price, planned hot water
-slots, planned space heating slots, outdoor temperature, solar irradiance,
-predicted tank temperature and predicted house temperature on one shared time
-axis. Each series has a legend chip that toggles it on and off, and the choice
-is remembered. Hovering a slot shows *why* it was planned, and the stretch of
-the horizon whose prices are estimated rather than published is shaded. The
-integration serves and registers the card automatically. See
-[docs/dashboard-card.md](docs/dashboard-card.md).
-
-```yaml
-type: custom:heatpump-optimizer-card
-# Optional: set to false to hide the schedule editor in the enlarged view.
-what_if: true
-```
-
-**Click the card to enlarge it.** The enlarged view draws today's plan again as
-two editable lanes. Drag a block to move it, drag an edge to resize it, and
-right-click a lane to add or remove one. A running total prices your arrangement
-against the plan in force, and **Apply this plan** pins it for the next 20
-hours — the
-optimizer keeps re-solving, but has to schedule around your slots.
-
-**Pan and zoom the plan window.** Pinch to zoom (or hold Ctrl and scroll), swipe
-sideways with two fingers to pan, or drag the chart background. The buttons above
-the chart do the same for touch and keyboard. It is forward-only — there is no
-stored history to scroll back into, because plan forecasts are deliberately kept
-out of the recorder — so the window stays between now and the end of the plan,
-and zooming out stops at the plan's real extent rather than showing empty chart.
-A plain scroll is left alone so the dashboard still scrolls under the pointer.
-
-Timing is yours; safety is not. If an arrangement would let the tank fall below
-its minimum, skip a legionella cycle or take the house under its comfort floor,
-the integration releases only the slots it must and tells you which. The past,
-and anything past midnight, is locked.
-
-Below that is a panel where you can drag the comfort temperature, move the
-heating day, and add or remove hot water windows:
-
-* **Simulate these slots** prices the change against the current forecast and
-  reports the difference. Nothing is applied, and nothing is saved.
-* **Save as my schedule** writes the edited schedule into your configuration and
-  reloads the integration, so the next plan is made against it. It asks for a
-  second press first, because it replaces what the house actually runs on.
-* **Reset** discards the draft and returns to the schedule now in force.
-
-Both are shown by default: holding a draft costs nothing, and only the buttons
-reach Home Assistant. Set `what_if: false` to hide them.
-
-### Climate Entity
-- Virtual thermostat with HVAC modes and presets
-- Attributes include zone temperatures, DHW status, and predictive optimization insights
-
-### Switch Entity
-- Enable/disable the optimizer
-
-## Services
-
-### `heatpump_optimizer.run_optimization`
-Manually trigger a predictive optimization run.
-
-### `heatpump_optimizer.set_mode`
-Set operation mode: auto, comfort, economy, boost, off.
-
-### `heatpump_optimizer.simulate_plan`
-Prices a hypothetical comfort choice against the current forecast without
-disturbing operation, and returns the cost difference against the live plan.
-This is what the card's what-if simulator calls. The solve is rate-limited, so
-rapid repeat calls return the previous answer rather than queueing work.
-
-### `heatpump_optimizer.apply_schedule`
-Writes a schedule into your configuration and reloads the integration, so the
-next plan is made against it. This is what the card's **Save as my schedule**
-button calls. Every field is optional; only what you pass is changed.
-
-```yaml
-service: heatpump_optimizer.apply_schedule
-data:
-  day_start_hour: 6          # comfort period starts
-  day_end_hour: 22           # comfort period ends
-  dhw_windows: "06:00-08:30, 17:00-22:00"
-  comfort_temp_day: 21.0
-  dhw_min_temperature: 45.0  # lowest usable tank temperature in a window
-```
-
-The windows are validated and canonicalised before they are stored, so a
-malformed schedule is rejected here rather than failing on every later reload.
-
-`dhw_min_temperature` must stay a few degrees below your hot water setpoint. A
-minimum equal to the setpoint leaves the tank no band to work in, so the pump
-would short-cycle against its own hysteresis; a value that close is rejected
-rather than quietly accepted. The limit is checked per heat pump, because the
-setpoint is configured per heat pump.
-
-### `heatpump_optimizer.apply_manual_plan`
-Pins today's heating and hot water slots, so the optimizer plans around them
-instead of choosing them. This is what the card's **Apply this plan** button
-calls.
-
-```yaml
-service: heatpump_optimizer.apply_manual_plan
-data:
-  dhw_slots:
-    - start: "2026-01-15T13:00:00+01:00"
-      end: "2026-01-15T14:30:00+01:00"
-  expires_at: "2026-01-16T00:00:00+01:00"   # optional, defaults to 20 hours from now
-```
-
-A channel you leave out stays fully automatic. Passing an explicit empty list is
-different, and means "do not run this at all until the override expires" — so
-`dhw_slots: []` switches hot water off for the whole pinned window.
-
-The pins constrain *timing only*. Tank minimums, legionella and the house
-comfort floor still override them: if your slots cannot be made safe, the
-integration releases the ones it has to, re-solves, and reports them in the
-`manual_override` attribute of the plan sensors. The plan is persisted, so it
-survives a restart, and it is dropped once it expires.
-
-### `heatpump_optimizer.clear_manual_plan`
-Removes the override and re-solves, returning to fully automatic planning. This
-is the card's **Back to automatic** button.
-
-### `heatpump_optimizer.restore_learned_snapshot`
-Rolls every learner back to the most recent weekly snapshot that was captured
-with healthy inputs and in-band prediction accuracy. The drift watchdog does
-this automatically when it can prove the inputs were healthy throughout a
-drift; this service is the manual override for when you can see what it
-cannot — a sensor that fed garbage for a while, a probe that was mounted
-wrong. Nothing is lost permanently: learning continues from the restored
-point.
-
-### `heatpump_optimizer.set_thermal_parameters`
-Runtime parameter tuning:
-```yaml
-service: heatpump_optimizer.set_thermal_parameters
-data:
-  house_thermal_mass: 12.0
-  wind_sensitivity_factor: 0.20
-  rain_heat_loss_multiplier: 1.20
-  dhw_setpoint: 55
-  dhw_min_temperature: 45
-  dhw_cooling_rate: 0.3
-  window_area: 15.0
-  solar_heat_gain_coefficient: 0.65
-```
-
-## Troubleshooting
-
-### Temperature swings between zones
-- Adjust `inter_zone_heat_transfer` (higher for open layouts)
-
-### Solar over-heating in summer
-- Reduce `window_area` or `solar_heat_gain_coefficient`
-- Consider seasonal shading effects
-
-### Floor heating slow response
-- This is expected — slab has high thermal mass
-- The optimizer accounts for this by pre-heating during cheap periods
-
-### DHW too cold / too often heated
-- Check the **hot water time frames** first — hot water is only guaranteed
-  inside them, and outside them the tank is *meant* to cool down
-- Water cold when you need it? Widen the time frame, or start it earlier
-- Water cold at the very start of a frame? Raise `dhw_min_temperature`
-- Still heating during expensive hours? The tank probably cannot store enough
-  to bridge the peak — raise `dhw_setpoint` so more cheap energy fits in the
-  tank, or shorten the time frame
-- Decrease `dhw_daily_consumption` if the tank stays warmer than you need
-- The `DHW Temperature` sensor exposes `dhw_in_demand_window`,
-  `dhw_next_window_in_hours` and `dhw_required_temperature` so you can see
-  exactly what the optimizer is being asked to deliver right now
-- It also exposes `dhw_cooling_rate` (°C/h at 45/20 °C),
-  `dhw_cooling_rate_learned`, `dhw_cooling_samples` and `dhw_hold_hours`. If the
-  learned rate looks far too high, the tank sensor is probably seeing draws that
-  the model reads as standby loss; set the rate explicitly with
-  `set_thermal_parameters` (`dhw_cooling_rate`) to reset the estimate.
-
-### Predictive optimization not working
-- Check that your weather entity provides hourly forecasts
-- Check the "Predictive Insight" sensor for forecast analysis
-- Solar anticipation requires solar irradiance in weather data
-- Wind/rain anticipation requires wind_speed and precipitation in forecasts
-
-## Architecture
-
-```
-custom_components/heatpump_optimizer/
-├── __init__.py          # Entry point, service registration
-├── const.py             # Constants and configuration keys
-├── config_flow.py       # UI config: setup steps plus 11 editable option pages
-├── coordinator.py       # Data fetching, full 24h forecasts, learners, state
-├── thermal_model.py     # Two-zone model + DHW tank + enhanced wind/rain loss
-├── optimizer.py         # Predictive MPC, DHW co-planning, reason codes
-├── dhw_schedule.py      # Hot water demand time frame parsing and evaluation
-├── open_meteo.py        # Solar irradiance forecast and satellite observations
-│
-│   # Feature modules, each independently testable
-├── inputs.py            # Guarded sensor reads: freshness and unit handling
-├── external_heat.py     # Wood-furnace detection with hysteresis and decay
-├── price_model.py       # Learned diurnal price shape for the unknown horizon
-├── tariff.py            # Monthly capacity (effekt) tariff and peak tracking
-├── pv.py                # PV production model and marginal-cost pricing
-├── away.py              # Away state, return time and recovery scheduling
-├── accuracy.py          # Predicted-versus-realised recording and drift metrics
-├── defrost.py           # Learned COP derate by outdoor temperature and humidity
-├── presets.py           # Building archetypes → thermal parameters
-├── sysid.py             # Active step-response identification
-├── comfort_learning.py  # Revealed-preference comfort weight tuning
-├── battery.py           # The thermal stores, published as a battery
-│
-├── sensor.py            # 55 sensors
-├── binary_sensor.py     # Input health, external heat, away mode
-├── button.py            # Optimize now, run identification, reset comfort weight
-├── climate.py           # Virtual climate entity with DHW status
-├── switch.py            # Enable/disable switch
-├── frontend.py          # Serves and registers the Lovelace card
-├── www/                 # The dashboard card
-├── services.yaml        # Service definitions
-├── strings.json         # UI strings
-├── translations/
-│   ├── en.json          # English translations
-│   └── sv.json          # Swedish translations
-└── manifest.json        # Integration manifest
-```
-
-Everything in the feature-module block is deliberately free of Home Assistant
-imports, so each can be driven directly by `tests/features.py`. That matters
-because their failure mode is a *plausible* plan: a detector that never fires or
-a watchdog that lets a flatline through produces output that looks entirely
-normal, and only a mechanism-level test will catch it.
-
-### How a plan is made
-
-```
-prices ─┐
-weather ┼─► coordinator._forecast_arrays()  ──► _Horizon  ──► optimizer.optimize()
-solar  ─┘        │                                                    │
-                 ├─ learned price shape fills the unpublished tail    ├─ with hot water:
-                 ├─ PV surplus replaces the import price              │    plan the tank by LP,
-                 └─ Open-Meteo overrides irradiance by timestamp      │    then solve space
-                                                                      │    around it, then
-                                                                      │    re-plan the tank
-                                                                      │    against contention
-                                                                      └─ without: solve directly
-                                                                             │
-   entities ◄── coordinator._build_data_dict() ◄── OptimizationResult ◄──────┘
-                     │
-                     └─ composed from per-domain views (thermal, dhw, learning,
-                        measurement, grid, ECL110, external heat, health)
-```
-
-Both optimizer paths share one set of cost terms — the comfort penalty, the
-terminal cost, the cycling and capacity charges — so enabling hot water cannot
-change the space-heating objective. That is not hypothetical tidiness: it used
-to, and the two objectives had silently drifted apart.
-
-## Roadmap
-
-Known bugs and planned work are tracked in
-[docs/backlog.md](docs/backlog.md), which records each item together with the
-investigation behind it — the code that causes it, what was measured, and what
-a fix has to be careful of. Items 1-21 are released; 22-31 are open.
+**Plans ahead instead of reacting.** A 24-hour model-predictive plan is re-solved
+on every interval against the full forecast trajectory, not against the weather
+right now. Space heating and hot water share one compressor, so they are planned
+against each other rather than one after the other, and every planned slot
+carries a reason code you can read off the card.
+
+**Learns your house.** The heat-loss scale, tank cooling rates, the COP curve and
+its defrost derate, the solar aperture, internal gains, how the loss splits
+between floors, your hot-water draw statistics, your revealed comfort preference,
+and a cool-only heat-curve correction of at most 0.5 K per week are all estimated
+from your own house. Every learner is snapshotted weekly (the last eight are
+kept), and a drift watchdog can roll them back to the last healthy snapshot.
+
+**Knows what your electricity actually costs.** Tibber spot prices, time-of-use
+grid transfer fees, the monthly capacity (*effekt*) tariff and its billing clock,
+PV self-consumption priced at what consuming actually costs you, and a learned
+diurnal price prior for the part of the horizon that has not been published yet.
+A live peak guard and a main-fuse headroom advisor act inside the metering window
+the plan never saw, and a contract comparison settles the month three ways so you
+can see what your tariff choice is worth.
+
+**Handles real plumbing.** A mixing valve is what lets a buffer tank store
+anything, so it is modelled explicitly. A wood furnace tank is a store of its
+own, drawn wood-first while it is usable, with an optional hot-water inlet coil.
+Your hydronic layout is picked from a catalog of drawn arrangements rather than
+described in prose, and circulation pumps — the hot-water loop and the space
+pump — are scheduled instead of left running.
+
+**Hot water that fits your household.** Hot water is guaranteed inside demand
+time frames rather than kept permanently hot, which is where most of the saving
+comes from. Draw statistics are learned per window, with a heavy-day (90th
+percentile) target so the second shower is not the one that runs cold. A setpoint
+advisor proposes the cheapest setpoint that still covers those days; a mixed-water
+sensor translates the tank into litres and shower minutes; anti-legionella can be
+elastic, and takes the free disinfection when a burn or a cheap hour delivers it
+anyway.
+
+**Shows its work.** The plan is published as sentences grouped by reason, and
+graded 0–100 across envelope, machine and operation. Energy and cost accumulate
+into the Energy dashboard split by hot water versus space heating. Prediction
+accuracy carries a signed bias, and a one-shot diagnosis attributes the last
+interval's temperature error input by input. Compressor starts are counted from
+the meter, and the wear they imply is priced rather than assumed.
+
+**You stay in charge.** The card's editor pins exact run slots for up to 20 hours
+and the optimizer plans around them; a what-if simulator prices a comfort change
+before you commit to it; a climate entity and a switch give you the ordinary
+Home Assistant controls. Compressor frequency control is deliberately two-stage:
+it observes and advises until you explicitly turn writing on.
+
+**Stays out of trouble.** A staleness watchdog treats a sensor that stopped
+updating as missing and pauses learning rather than training on a flatline. Open
+windows are detected and freeze the learners. Away and holiday mode sets back
+deeply and buys the recovery heat in the cheapest hours before you get home. An
+optional mould guard watches surface humidity. Safety — tank minimums, the
+legionella clock, the comfort floor — releases pinned slots it cannot honour and
+tells you which.
+
+**Fits your Home Assistant.** Since v5.0.0 entity names are translated (English
+and Swedish) and follow your Home Assistant language, without touching entity ids
+or history. Monetary units follow your instance currency.
 
 ## Requirements
 
 - Home Assistant 2024.1.0 or newer
-- Tibber account with API access
-- Weather integration with hourly forecasts (recommended: Met.no or similar)
-- Python packages: `numpy`, `scipy`
+- A Tibber account with API access ([developer.tibber.com](https://developer.tibber.com))
+- A weather integration with hourly forecasts (Met.no or similar)
+- `numpy` and `scipy`, installed automatically from the integration manifest
+
+Everything else — indoor and outdoor thermometers, tank probes, a power meter —
+is optional. The optimizer runs without them and gets steadily better with each
+one you add.
+
+## Installation
+
+### HACS (recommended)
+
+1. Add this repository to HACS as a custom repository.
+2. Install **Heat Pump Cost Optimizer**.
+3. Restart Home Assistant.
+4. Go to **Settings → Devices & services → Add integration → Heat Pump Cost
+   Optimizer**.
+
+### Manual
+
+1. Copy `custom_components/heatpump_optimizer` into your Home Assistant
+   `custom_components` folder.
+2. Restart Home Assistant.
+3. Add the integration from the UI as above.
+
+## Quick start — the first 30 minutes
+
+Have your Tibber token and the entity id of your weather integration to hand.
+Everything else can be added later from the options pages.
+
+```mermaid
+flowchart TD
+    A["1 · Basics<br/>name, Tibber token, weather entity<br/>+ optional sensors"] --> B["2 · Temperatures<br/>targets, day/night comfort, hours"]
+    B --> C{"3 · How do you want to<br/>describe your building?"}
+    C -- "Describe my building<br/>(recommended)" --> D["Questionnaire<br/>structure, era, foundation,<br/>heated area, emitters"]
+    D --> E["Heat pump basics<br/>COP, max/min power"]
+    C -- "Enter thermal values<br/>directly (expert)" --> F["Thermal model<br/>masses, loss coefficient,<br/>COP, power limits"]
+    F --> G["Two-zone & solar<br/>per-floor masses, buffer tank,<br/>windows, orientation"]
+    E --> H["4 · Hot water<br/>tank, setpoint, schedule,<br/>legionella"]
+    G --> H
+    H --> I["5 · Weather sensitivity<br/>wind, rain"]
+    I --> J(["Done — first plan<br/>within one interval"])
+```
+
+**1 · Basics.** A name, your Tibber token (it is validated before the flow
+continues) and your weather entity are required. Everything else on this page is
+optional and can be pointed at later: indoor and outdoor temperature sensors, a
+switch that turns the heat pump on and off, a solar irradiance sensor or an
+Open-Meteo location, the floor-heating return temperature, a lower-floor
+thermometer, and the hot-water and buffer tank probes.
+
+**2 · Temperatures.** Your target (21 °C), the band you allow around it, and the
+comfort temperatures for day (21 °C) and night (19.5 °C) with the hours the day
+runs (07:00–22:00). The width of the band is the single biggest lever you have:
+a wide one gives the optimizer room to shift heating into cheap hours, a narrow
+one keeps the house near the setpoint.
+
+**3 · How to describe your building.** This is a choice, not a step.
+
+- **Describe my building (recommended)** asks what your house is made of —
+  structure, era, foundation, heated area, and what each floor is heated by —
+  and derives the physics from building archetypes. Then it asks for three
+  numbers off the heat pump's nameplate: nominal COP, maximum power, minimum
+  power. That is the whole path.
+- **Enter thermal values directly** is the expert branch, for someone holding a
+  real energy declaration. It asks for thermal masses, the heat-loss coefficient,
+  the slab parameters and the power limits, and then for the two-zone and solar
+  values: per-floor masses and losses, inter-zone transfer, the radiator power
+  fraction, buffer tank volume, window area, orientation factor and SHGC.
+
+Both paths land on the same model, and every value either one sets can be edited
+afterwards — though not all on one page. The masses, losses, the two-zone split
+and the power limits are on **Advanced settings → Thermal model (expert)**;
+buffer tank volume is on **Heating system and heat storage**; window area,
+orientation factor and SHGC are on **Building type and emitters**.
+
+**4 · Hot water.** Tank volume, setpoint and minimum, daily consumption, and the
+demand time frames — the periods when hot water must be available (`06:00-08:30,
+17:00-22:00` by default). Outside them the tank is *meant* to cool down; that is
+where most of the savings come from. Leave the field empty to let the optimizer
+learn the frames from observed usage, or turn the toggle off to require hot water
+around the clock. Anti-legionella is on by default at 60 °C every 7 days.
+
+**5 · Weather sensitivity.** How much wind and rain raise your heat loss.
+The defaults (3 % per m/s of wind, 15 % while raining) are a reasonable
+starting point for a detached house.
+
+Every field and its range is documented in
+[docs/configuration.md](docs/configuration.md).
+
+### Your first week
+
+- **Immediately.** All 65 entities appear and the first plan is solved within one
+  optimization interval (30 minutes by default). Add the dashboard card and you
+  can see what it intends to do.
+- **Day one.** If you want the commissioning step test, first switch on *Allow a
+  one-off measurement experiment* under **Advanced settings → Self-learning and
+  diagnostics**: it is off on a fresh install, and until it is on, **Run System
+  Identification** does nothing but log that identification is disabled. With the
+  option enabled, press the button and the test arms itself and runs on the next
+  mild, cheap night.
+- **The first days.** The heat-loss scale, tank cooling rates and the COP curve
+  start correcting themselves as soon as there is data to correct them with.
+  Watch **Prediction Accuracy** and **Input Problem**.
+- **The first weeks.** Hot-water draw quantiles and the heavy-day demand sensor
+  need weeks of observation before they mean anything, and stay unavailable
+  until they do.
+
+## Entities
+
+All entities are created on every install. Where a feature is not configured, the
+entity exists but reports itself unavailable, so nothing appears and disappears
+under your dashboards. Six sensors are disabled by default and can be enabled
+from the entity registry.
+
+Since v5.0.0 the display names are translated (English and Swedish) and follow
+your Home Assistant language; the tables below show the English names. Entity ids
+and history are unaffected by the language.
+
+### Sensors (55 total)
+
+`CUR` is your Home Assistant instance currency (SEK when the instance has none
+configured).
+
+| Sensor | Unit | What it tells you | Notes |
+|---|---|---|---|
+| Optimization Mode | — | Current mode: auto, comfort, economy, boost or off | |
+| Optimization Status | — | Solver result for the current plan | |
+| Predicted Savings | CUR | Saving over 24 h against a simulated conventional thermostat following the same comfort schedule | Only the hot-water half of the baseline is always-on |
+| Savings Percentage | % | The same saving as a percentage | |
+| Predicted Cost | CUR | Cost of the optimized 24 h plan | |
+| Baseline Cost | CUR | Cost of the baseline over the same 24 h | |
+| Current Electricity Price | CUR/kWh | The price the plan is being made against right now | |
+| Optimal Setpoint | °C | The setpoint the current plan step asks for | |
+| Recommended Power | kW | The electrical power the current plan step asks for | |
+| Estimated COP | — | Modelled COP at the current outdoor temperature | |
+| Indoor Temperature (Optimizer) | °C | Indoor temperature as the optimizer sees it | |
+| Outdoor Temperature (Optimizer) | °C | Outdoor temperature as the optimizer sees it | |
+| Solar Irradiance | W/m² | The irradiance the plan uses, with the forecast horizon in attributes | Absorbed the former Solar Radiation sensor in v5.0.0 |
+| Slab Temperature (Estimated) | °C | Modelled slab temperature | |
+| Next Optimization | — | When the next run is due | Timestamp |
+| Last Optimization | — | When the last run finished | Timestamp |
+| Heat Pump Action | — | What the plan is doing now: `off`, `eco`, `normal`, `pre_heat` or `boost`, and `comfort` while comfort mode holds | |
+| Optimization Schedule | — | The whole 24 h schedule, in attributes | Not recorded |
+| Upper Floor Temperature | °C | The radiator zone | |
+| Lower Floor Temperature | °C | The slab zone | |
+| Floor Heating Return Temperature | °C | The return-water reading the slab estimate uses | |
+| Solar Heat Gain | kW | Passive solar gain through the windows right now | |
+| Buffer Tank Temperature (Model) | °C | Modelled buffer tank temperature | |
+| DHW Temperature | °C | Tank temperature, with the demand-window state and the learned cooling rate in attributes | |
+| DHW Heating Schedule | — | The planned hot-water heating periods | Not recorded |
+| DHW Heating Cost | CUR | Estimated cost of the planned hot water | |
+| Predictive Optimization Insight | — | What the forecast is making the plan do | |
+| ECL110 Displace | °C | The parallel shift commanded to an ECL110 heat curve | Disabled by default; ECL110 hardware |
+| ECL110 Effective Displace | °C | The shift the controller has actually reached, after its own lag | Disabled by default; ECL110 hardware |
+| Space Heating Plan | — | Planned space-heating slots plus the full-horizon forecast | Backs the card; forecast not recorded |
+| DHW Heating Plan | — | Planned hot-water slots plus the full-horizon forecast | Backs the card; forecast not recorded |
+| Measured Power | kW | Real electrical draw, with the commanded power alongside | Unavailable until a power or energy entity is configured |
+| Observed COP | — | Efficiency from measurement rather than the nameplate curve | Needs measured power |
+| Space Heating Energy | kWh | Accumulating, for the Energy dashboard | |
+| Hot Water Energy | kWh | Accumulating, for the Energy dashboard | |
+| Total Energy | kWh | Accumulating, for the Energy dashboard | |
+| Space Heating Cost | CUR | Accumulating cost | |
+| Hot Water Cost | CUR | Accumulating cost | |
+| Total Heating Cost | CUR | Accumulating cost | |
+| Prediction Accuracy | °C | Mean indoor-temperature error, with the signed bias and the last diagnosis in attributes | Diagnostic |
+| Monthly Peak Power | kW | The peak the capacity tariff is billed on, and the headroom left | Unavailable unless the capacity tariff is enabled |
+| Solar Surplus Forecast | kWh | Forecast PV surplus the heat pump could absorb | Unavailable unless PV is enabled |
+| Thermal Battery Charge | % | State of charge of house and tanks against the comfort band | |
+| Thermal Battery Energy | kWh | Stored energy available above the comfort floor | |
+| Comfort Weight | — | The comfort weight in force, learned or configured | Diagnostic |
+| Contract Comparison | CUR/kWh | How far below the month's flat-consumer average the shifting landed; the three settled totals — hourly spot, monthly-average spot, fixed price — ride in attributes | Diagnostic; disabled by default; needs a configured contract comparison |
+| Power Headroom | kW | What the house can draw right now without new cost — a number an EV charger's dynamic limit can follow | Unavailable until it can be computed |
+| DHW Setpoint Advisor | °C | The cheapest hot-water setpoint that still covers your heavy days | Diagnostic; unavailable until there is a recommendation |
+| Mixed Hot Water | L | Litres of 40 °C water the tank holds now, with shower minutes alongside | Unavailable without mixed-water data |
+| DHW Heavy Day Demand | kWh | The learned 90th-percentile draw per demand window | Diagnostic; disabled by default; needs weeks of data |
+| Valve Target Recommendation | °C | What to set a manual mixing valve to, and why | Diagnostic; disabled by default; needs a mixing-valve mode |
+| Plan Narrative | — | The plan told in sentences, grouped by reason | Diagnostic |
+| Optimization Score | — | Envelope, machine and operation graded 0–100 | Diagnostic; unavailable until the scores have evidence |
+| Compressor Starts | — | Realised starts counted from the meter, immersion events excluded | Diagnostic; needs measured power |
+| Compressor Frequency Advisor | Hz | The frequency the plan's power asks for, from the learned kW-per-Hz map | Diagnostic; disabled by default; needs a compressor frequency entity |
+
+Disabled by default: ECL110 Displace, ECL110 Effective Displace, Contract
+Comparison, DHW Heavy Day Demand, Valve Target Recommendation and Compressor
+Frequency Advisor.
+
+### Binary Sensors (4 total)
+
+| Binary sensor | On when | Notes |
+|---|---|---|
+| Input Problem | An optimizer input is stale or missing | Diagnostic; the evidence and which learners are frozen are in attributes |
+| Open Window Detected | The house is losing heat as if a window were open | Diagnostic; learning pauses while it is on |
+| External Heat Source | Something other than the heat pump is heating the tanks | Evidence in attributes |
+| Away Mode | The away setback is active | Return time and recovery state in attributes |
+
+### Buttons (4 total)
+
+| Button | What it does |
+|---|---|
+| Optimize Now | Force an optimization run. Unavailable while one is in flight |
+| Run System Identification | Arm the commissioning step test for the next mild, cheap night. Inert until *Allow a one-off measurement experiment* is enabled on Advanced settings → Self-learning and diagnostics, which is off by default |
+| Reset Learned Comfort Weight | Undo the revealed-preference tuning |
+| Diagnose Last Interval | Explain the last interval's temperature error input by input, on the Prediction Accuracy sensor |
+
+### Switch and climate entity
+
+**Optimizer Active** turns the optimizer on and off. Turning it on only acts from
+*off* — it never clobbers a comfort or economy mode you selected deliberately.
+
+The **climate entity** is a virtual thermostat with HVAC modes (off, heat, auto)
+and presets (auto, comfort, economy, boost). Its target temperature is *your*
+comfort target, not the per-step setpoint the optimizer is currently commanding,
+and setting it records a comfort-weight observation. Zone temperatures, hot-water
+status and the predictive factors ride in its attributes.
+
+### Inverter frequency: observe first, control if you say so
+
+If your heat pump's compressor frequency is exposed as a `number` entity (Modbus,
+ESPHome), configure it and the optimizer learns a **kW-per-Hz map** from the
+meter. The **Compressor Frequency Advisor** sensor then shows what frequency the
+current plan's power would ask for. That is the whole observe stage: no actuation
+of any kind, just evidence for your go/no-go.
+
+Switching the frequency mode to **control** is a deliberate, separate step. The
+optimizer then writes the recommendation via `number.set_value` — at most one
+write per five minutes, clamped to the entity's own limits, with a watchdog: a
+reported frequency that keeps diverging from the commanded one for three active
+ticks stands the controller back down to observe and raises a repair issue. Idle
+periods and defrost pauses are not divergence. The stand-down survives restarts,
+and you re-arm it by switching the mode back explicitly. When the plan asks for
+more than the map has evidence for, control runs at the entity's own maximum and
+says so in an `evidence_exhausted` attribute.
+
+**One hardware caveat that matters:** many `number` entities are setpoint
+registers that simply echo the last written value. Read from an echo, the
+watchdog can never see divergence and the map learns the setpoint instead of the
+machine. If your integration exposes the *actual* compressor frequency as a
+separate sensor, configure that as well — the watchdog and the map then read
+reality, and the number entity is used only for writing.
+
+The learned map never feeds the optimizer's plans in either mode. Plans stay
+power-denominated; control only translates the planned kilowatts into the hertz
+that deliver them.
+
+## Services
+
+Eleven services are registered under the `heatpump_optimizer` domain. Field-level
+detail for each — including all 28 fields of `set_thermal_parameters` — is in
+[docs/configuration.md](docs/configuration.md).
+
+| Service | What it does | Returns |
+|---|---|---|
+| `run_optimization` | Fetch prices and weather and re-solve the 24 h plan now | — |
+| `set_mode` | Set the operating mode: auto, comfort, economy, boost or off | — |
+| `set_thermal_parameters` | Tune the thermal model directly at runtime | — |
+| `simulate_plan` | Price a hypothetical comfort choice against the current forecast without disturbing operation. Rate-limited, so rapid repeats return the previous answer | Always |
+| `apply_schedule` | Write an edited heating and hot-water schedule into your configuration and reload the entry | Optional |
+| `apply_manual_plan` | Pin exact run slots for up to 20 hours; the optimizer plans around them, and safety still releases any it cannot honour | Optional |
+| `clear_manual_plan` | Drop the manual plan and return to fully automatic planning | Optional |
+| `restore_learned_snapshot` | Roll every learner back to the last weekly snapshot taken with healthy inputs | Optional |
+| `diagnose_interval` | Attribute the last interval's temperature error input by input | Optional |
+| `assign_entity` | Assign or clear one optional sensor slot | Optional |
+| `apply_topology` | Store the hydronic layout and the box positions from the setup editor | Optional |
+
+`assign_entity` and `apply_topology` are what the card's Setup page calls when
+you click a sensor or move a box. They write the same configuration the options
+pages do; you should not need to call them by hand.
+
+`apply_manual_plan` deserves one note. A channel you leave out stays fully
+automatic, but an explicit empty list means "do not run this at all until the
+override expires" — so `dhw_slots: []` switches hot water off for the whole
+pinned window. The pins constrain *timing only*: tank minimums, the legionella
+clock and the house comfort floor still override them, and any slot that had to
+be released is reported in the `manual_override` attribute of the plan sensors.
+
+## How it works
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant C as Coordinator
+    participant P as Prices (Tibber + learned prior)
+    participant W as Weather entity (HA)
+    participant S as Your sensors
+    participant M as Thermal model
+    participant O as Optimizer (MPC)
+    participant E as Entities and card
+
+    Note over C: every optimization interval (default 30 min)
+    C->>P: published hourly prices
+    P-->>C: prices + estimated tail (weekday/weekend prior,<br/>never displacing published data)
+    C->>W: temperature, wind, rain, forecast irradiance
+    Note over W: irradiance has three sources, in order:<br/>a local irradiance sensor, then Open-Meteo when<br/>selected, else this entity's own forecast
+    C->>S: indoor/outdoor temps, tank temps, power
+    S-->>C: staleness check, then Input Problem sensor,<br/>learners freeze on bad input
+    C->>M: build forecast arrays (24 h)
+    M-->>O: predicted heat demand, COP, solar gain,<br/>DHW draw quantiles
+    O->>O: solve: minimize cost + comfort penalty<br/>subject to comfort floor, tank limits,<br/>legionella clock, fuse and peak caps
+    O-->>C: space + DHW slot plan
+    C->>C: apply manual-plan pins,<br/>safety releases pinned-off slots
+    C->>E: publish plan sensors, switch the heat pump,<br/>ECL110 displace / frequency advice
+    Note over C: between plans the peak guard folds power-meter events<br/>and flips a flag (2 agree to engage, 2 to clear).<br/>It never solves — the next solve only reads the flag
+    Note over M: afterwards: compare prediction against reality,<br/>nudge the learned parameters
+```
+
+The prices come from Tibber, and the horizon is longer than the published one.
+For the unpublished tail the integration uses a diurnal shape learned from your
+own history, kept separate for weekdays and weekends, and it never displaces a
+published price with an estimate — the card shades the estimated stretch so you
+can see which part of the plan rests on a guess.
+
+The weather comes from the Home Assistant weather entity you pick at setup — the
+one field the config flow will not proceed without. Its hourly forecast supplies
+temperature, wind and precipitation: wind raises convective loss and rain raises
+the envelope's U-value. Irradiance is the exception, because most weather
+integrations never publish it, so there are three sources tried in priority
+order — a local irradiance sensor if you have configured one, then Open-Meteo if
+you opt into it, then the weather entity's own forecast, which is the default.
+Whichever wins is turned into solar gain through your window area, orientation
+factor and SHGC — so a sunny afternoon reduces the pre-heating bought for it.
+
+The thermal model carries the house, the slab, the buffer tank and the hot-water
+tank, with two zones when you have them. Where you have a real floor-return
+sensor the slab estimate leans on it rather than on the model alone, and where
+you have a lower-floor thermometer the zone is measured instead of inferred.
+
+The optimizer solves one problem for both circuits. The objective is cost plus a
+comfort penalty, subject to the comfort floor, tank minimums and maximums, the
+legionella clock, and the fuse and capacity-tariff caps. With hot water enabled
+the tank is planned first, space heating is solved around it, then the tank is
+re-planned against the contention that produced — but both paths share one set of
+cost terms, so enabling hot water cannot silently change the space-heating
+objective.
+
+What comes out is then checked before it is applied. Manual pins are honoured
+where they are safe and released where they are not. The peak guard needs two
+agreeing samples to engage and two to clear, so a single spike does not throttle
+the house. Afterwards the prediction is compared against what actually happened,
+and the learners are nudged.
+
+The self-learning is bounded on purpose. In a closed-loop test where the house
+loses 35 % more heat than configured, the learned correction converges toward the
+true loss over three simulated days without oscillating or overshooting, and cuts
+the comfort breach it exists to fix — in the reference run recorded in the test,
+from 6.7 degree-hours to zero. A model that is already correct is left alone
+(within ±12 %).
+
+Full theory, with every mechanism and its defaults:
+[docs/how-it-works.md](docs/how-it-works.md).
 
 ## Changing settings after setup
 
-Open the integration and choose **Configure**. Instead of one long form you get
-a menu, and each page can be edited independently. The pages you revisit sit at
-the top; everything you typically set once lives one click further, under
-**Advanced settings**:
+Open the integration and choose **Configure**. Instead of one long form you get a
+menu of 13 pages — 12 you can edit plus a read-only overview — and each can be
+edited independently. The pages you revisit sit at the top; everything you
+typically set once lives one click further, under **Advanced settings**.
 
 | Page | What it covers |
 |---|---|
 | Your system, as configured | A read-only picture of what is set up and what is missing |
-| Comfort and temperatures | Target, minimum and maximum temperature, day/night hours |
+| Comfort and temperatures | Target, minimum and maximum temperature, day/night hours, mould guard |
 | Hot water | Tank size, temperatures, demand time frames, anti-legionella, the cold-water inlet, heavy-day learning, circulation pumps |
 | Savings vs comfort | Price weight, comfort weight, recalculation interval, compressor start cost, caution with guessed prices |
-| Grid costs | Capacity tariff and its clock, transfer fees, main fuse and live peak guard, contract comparison — what your grid company charges |
+| Grid costs | Capacity tariff and its clock, transfer fees, main fuse and live peak guard, contract comparison |
 | Away and holiday mode | Presence source, return time, setback temperatures |
 
 | Advanced page | What it covers |
 |---|---|
-| Sensors and entities | Tibber token, weather entity, and every optional sensor including the power meters |
+| Sensors and entities | Tibber token, weather entity, and every optional sensor including the power meters and the compressor frequency entities |
 | Heating system and heat storage | Mixing valve, buffer tank as a store, and the wood furnace tank with its probes |
 | Building type and emitters | Structure, era, foundation, area and emitters, plus windows and wind/rain sensitivity |
-| Thermal model (expert) | The raw model numbers — heat pump power and COP, masses, losses, the two-zone split — previously fixed at setup |
+| Thermal model (expert) | The raw model numbers — heat pump power and COP, masses, losses, the two-zone split |
 | Solar panels | Array size, efficiency, export compensation |
 | Self-learning and diagnostics | Staleness watchdog, external heat detection, comfort learning, identification, price prior, outage recovery |
-| Heat curve control (ECL110) | Heat curve points and offsets |
+| Heat curve control (ECL110) | MQTT topics, displace limits and the controller time constant |
 
-Every sensor you picked during setup can be re-pointed here, including the
-solar radiance sensor. Clearing a field genuinely clears it. Every field has a
-plain-language description, so you should not need this table to understand
-what a setting does.
-
-On the **Thermal model** page a field left empty keeps its current value — an
-empty field is never saved. The page also carries the explicit **Two-zone
-model** switch: *Automatic* (the default) keeps the historical rule — two-zone
-as soon as any zone value has ever been saved — while *On* and *Off* force the
-model either way. Off is the only way to genuinely return to single-zone,
-because the values saved during setup can never be un-saved.
-
-### How hard the optimizer chases low prices
+Every sensor you picked during setup can be re-pointed here, and clearing a field
+genuinely clears it. On the **Thermal model (expert)** page a field left empty
+keeps its current value — an empty field is never saved — and the explicit
+**Two-zone model** switch is the only way to genuinely return to single-zone,
+because values saved during setup can never be un-saved.
 
 The single most useful setting is **How strictly to hold the temperature**
-(`comfort_weight`), on the Tuning page. It is weighed against the range you
-allow, so it interacts directly with your minimum temperature: a wide range
-gives the optimizer room to shift heating into cheap hours, and a narrow one
-keeps it near the setpoint.
+(`comfort_weight`, default 5) on the **Savings vs comfort** page. It is weighed
+against the range you allow, so it interacts directly with your minimum
+temperature. If the house feels cooler than you want, raise this value or raise
+your minimum temperature; both work, and both trade savings for warmth.
 
-Measured on a cold January day in SE3 with a target of 21 °C and a minimum
-of 17 °C:
+Every field, default and range:
+[docs/configuration.md](docs/configuration.md).
 
-| Comfort weight | Average room temp | Savings |
-|---|---|---|
-| 5 (default) | 19.4 °C | 53% |
-| 10 | 19.8 °C | 51% |
-| 20 | 20.2 °C | 49% |
-| 40 | 20.4 °C | 47% |
+## Dashboard card
 
-If the house feels cooler than you want, raise this value or raise your minimum
-temperature. Both work, and both trade savings for warmth.
+`custom:heatpump-optimizer-card` charts electricity price, planned hot water and
+space heating slots, outdoor temperature, solar irradiance and the predicted tank
+and house temperatures on one shared time axis. Each series has a legend chip
+that toggles it, hovering a slot shows why it was planned, and the stretch of the
+horizon whose prices are estimated rather than published is shaded. Click the
+card to enlarge it: the plan becomes two editable lanes you can drag, stretch,
+add to and remove from, with a running total and an **Apply this plan** button
+that pins your arrangement. Below that, a panel lets you move the heating day and
+the hot-water windows, price the change with **Simulate these slots**, and commit
+it with **Save as my schedule**. A Setup tab draws your configured system with
+live sensor readings in place, where clicking a sensor assigns or clears it.
 
-## Installation
+The integration serves and registers the card automatically. Add it with:
 
-### HACS (Recommended)
-1. Add this repository to HACS as a custom repository
-2. Install "Heat Pump Cost Optimizer"
-3. Restart Home Assistant
-4. Configure via Settings → Integrations → Add → Heat Pump Cost Optimizer
+```yaml
+type: custom:heatpump-optimizer-card
+# Optional: set to false to hide the schedule editor AND the editable plan
+# lanes in the enlarged view, leaving a read-only chart.
+what_if: true
+```
 
-### Manual
-1. Copy `custom_components/heatpump_optimizer` to your HA `custom_components` folder
-2. Restart Home Assistant
-3. Configure via the UI
+Every option, the keyboard and pointer interactions, and the editing limits are
+documented in [docs/dashboard-card.md](docs/dashboard-card.md).
+
+## Troubleshooting
+
+**Temperature swings between zones.** Raise `inter_zone_heat_transfer` for open
+layouts, lower it for a well-separated upstairs.
+
+**Solar over-heating in summer.** Reduce `window_area` or
+`solar_heat_gain_coefficient`, and consider seasonal shading.
+
+**Floor heating responds slowly.** That is the slab, and it is expected. The
+optimizer plans around it by pre-heating during cheap periods.
+
+**Hot water is cold, or heats too often.** Check the demand time frames first —
+hot water is only guaranteed inside them, and outside them the tank is meant to
+cool down.
+
+- Cold when you need it? Widen the frame, or start it earlier.
+- Cold at the very start of a frame? Raise `dhw_min_temperature`.
+- Still heating during expensive hours? The tank probably cannot store enough to
+  bridge the peak. Raise `dhw_setpoint` so more cheap energy fits, or shorten the
+  frame.
+- Warmer than you need? Lower `dhw_daily_consumption`.
+
+The **DHW Temperature** sensor exposes `dhw_in_demand_window`,
+`dhw_next_window_in_hours` and `dhw_required_temperature`, so you can see exactly
+what the optimizer is being asked to deliver right now. It also exposes
+`dhw_cooling_rate`, `dhw_cooling_rate_learned`, `dhw_cooling_samples` and
+`dhw_hold_hours`. If the learned rate looks far too high, the tank sensor is
+probably seeing draws the model reads as standby loss; set the rate explicitly
+with `set_thermal_parameters` to reset the estimate.
+
+**Predictive optimization is not doing anything.** Check that your weather entity
+provides hourly forecasts, and read the **Predictive Optimization Insight**
+sensor. Solar anticipation needs irradiance, and wind and rain anticipation need
+`wind_speed` and `precipitation` in the forecast.
+
+**Something looks wrong in the numbers.** Check **Input Problem** first — a stale
+sensor freezes the learners and is the usual cause. Then press **Diagnose Last
+Interval** and read the attribution on **Prediction Accuracy**.
+
+## ECL110 heat-curve control
+
+The integration can drive a Danfoss ECL110-compatible controller over MQTT,
+publishing a heat-pump on/off decision and an integer parallel shift (*displace*)
+onto the controller's own heat curve. Since v4.1.0 the ECL110 settings live only
+on the **Heat curve control (ECL110)** options page, not in initial setup, and
+both ECL110 sensors are disabled by default. Topics, payloads, options and the
+PI/PID lag handling are documented in [docs/ecl110.md](docs/ecl110.md).
+
+## Project status
+
+Backlog items 1–33 are all delivered; [docs/backlog.md](docs/backlog.md) keeps
+each one with the investigation behind it — the code that caused it, what was
+measured, and what a fix had to be careful of. The v4.0.0 feature program (36
+selected proposals, delivered as tranches T0 through T8 and recorded in
+[docs/plan-v4.0.0-program.md](docs/plan-v4.0.0-program.md)) followed, and the
+v4.0.x–v5.0.0 releases have been an audit train on top of it. What remains open —
+findings judged real and deliberately not built — is the short list at the top of
+`docs/backlog.md`.
+
+## Documentation
+
+| Document | What is in it |
+|---|---|
+| [docs/how-it-works.md](docs/how-it-works.md) | The full theory: planning, the thermal model, weather, wood and external heat, grid and tariffs, and every learner with its bounds |
+| [docs/configuration.md](docs/configuration.md) | Every setup field and options page, every service field, and the hydronic layout catalog |
+| [docs/dashboard-card.md](docs/dashboard-card.md) | The card: options, interactions, editing limits |
+| [docs/architecture.md](docs/architecture.md) | Module map and how a plan is made, for anyone reading or changing the code |
+| [docs/ecl110.md](docs/ecl110.md) | ECL110 MQTT control |
+| [docs/backlog.md](docs/backlog.md) | The archive of what was built and why, plus what is open |
+| [DISCLAIMER.md](DISCLAIMER.md) | The full disclaimer |
+
+## Disclaimer
+
+This software controls real heating equipment and makes claims about money. It
+comes with no warranty of any kind, and any use of it is entirely at your own
+risk. **It is not a safety device**: keep your heat pump's own thermostats, limits
+and safety controls active, and treat the anti-legionella cycle as a convenience
+rather than as compliance with your local rules for hot water hygiene. Every cost
+and saving it reports is the output of a model, not an accounting record.
+
+Read [DISCLAIMER.md](DISCLAIMER.md) in full before installing.
 
 ## License
 
@@ -1532,64 +644,5 @@ MIT. See [LICENSE](LICENSE).
 This project is a fork of
 [strutsfarm/heatpump_optimizer](https://github.com/strutsfarm/heatpump_optimizer),
 which is also MIT licensed; the upstream copyright is retained alongside this
-project's own. See the [Acknowledgement](#acknowledgement) and
-[Disclaimer](#disclaimer) at the top of this file.
-
-## ECL110 MQTT Control (Heat Pump ON/OFF + Displace)
-
-This integration can now drive an ECL110-compatible controller using two explicit outputs from MPC:
-
-- `heat_pump_on` (boolean): whether supply should be enabled
-- `displace_value` (°C): parallel shift command for ECL110 heat curve (published as integer to ECL110)
-
-### MQTT command publishing
-
-The coordinator now publishes the **preferred direct-write command** as a plain number to:
-
-- `ecl110_displace_set_topic` (default: `ecl110/flow_temp_control/displace/set`)
-
-Example payload:
-
-```text
-4
-```
-
-For backward compatibility, it can also publish a **legacy JSON payload** to:
-
-- `ecl110_command_topic` (default: `ecl110/command`)
-
-```json
-{
-  "source": "heatpump_optimizer",
-  "reason": "scheduled_update",
-  "timestamp": "2026-01-01T12:00:00+00:00",
-  "command": {
-    "type": "ecl110_control",
-    "heat_pump_on": true,
-    "displace": 4
-  },
-  "context": {
-    "price": 1.23,
-    "mode": "pre_heat",
-    "pre_heat_urgency": 0.6
-  }
-}
-```
-
-### Configuration options
-
-All ECL110 settings live on the options page *Heat curve control (ECL110)*
-(under Advanced settings); since v4.1.0 they no longer appear during initial
-setup, because only ECL110 owners can answer them:
-
-- `ecl110_displace_set_topic`
-- `ecl110_command_topic` (legacy JSON path)
-- `ecl110_state_topic`
-- `ecl110_mqtt_qos`
-- `ecl110_mqtt_retain`
-- `ecl110_displace_min` / `ecl110_displace_max`
-- `ecl110_pid_time_constant_hours`
-
-### PI/PID dynamics handling
-
-ECL110 PI/PID response is approximated as a first-order lag, so internal displace commands are smoothed before dispatch, then rounded to integer values for MQTT output, and an `effective_displace` state is tracked for observability.
+project's own. See the [Acknowledgement](#acknowledgement) above and
+[NOTICE](NOTICE).
