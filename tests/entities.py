@@ -1471,6 +1471,126 @@ R.check(
 )
 
 # ===========================================================================
+# Derived values and the questionnaire
+# ===========================================================================
+R.section("Derived values and the questionnaire")
+
+# The questionnaire owns ten of the expert page's fields. The page has to
+# know which ten: an edit to one of them means the user is overriding the
+# derivation, and derivation left armed would take it back on the next save
+# of the questionnaire page.
+_two_zone_derived = _derived(
+    presets.STRUCTURE_MASONRY, presets.ERA_PRE_1960, presets.FOUNDATION_BASEMENT,
+    180.0, presets.EMITTER_RADIATORS, presets.EMITTER_FLOOR, True, 0.5,
+)
+_single_derived = _derived(
+    presets.STRUCTURE_MASONRY, presets.ERA_PRE_1960, presets.FOUNDATION_BASEMENT,
+    180.0, presets.EMITTER_RADIATORS, presets.EMITTER_FLOOR, False, 0.5,
+)
+R.check(
+    "the derived-key roster is exactly what presets.derive writes",
+    set(config_flow.DERIVED_THERMAL_KEYS) == set(_two_zone_derived)
+    and set(_single_derived) <= set(config_flow.DERIVED_THERMAL_KEYS),
+    str(sorted(set(config_flow.DERIVED_THERMAL_KEYS) ^ set(_two_zone_derived))),
+)
+
+_armed = {
+    const.CONF_TIBBER_TOKEN: "t",
+    const.CONF_BUILDING_PRESET_ENABLED: True,
+    **_single_derived,
+}
+_override_flow = options(FakeEntry(data=dict(_armed)))
+_override_flow.hass = FakeHass()
+_override = asyncio.run(
+    _override_flow.async_step_thermal_model({const.CONF_HOUSE_THERMAL_MASS: 4.5})
+)["data"]
+R.check(
+    "editing a derived value switches the derivation off, so the value keeps",
+    _override.get(const.CONF_HOUSE_THERMAL_MASS) == 4.5
+    and _override.get(const.CONF_BUILDING_PRESET_ENABLED) is False,
+    f"saved {_override!r}",
+)
+_unrelated_flow = options(FakeEntry(data=dict(_armed)))
+_unrelated_flow.hass = FakeHass()
+_unrelated = asyncio.run(
+    _unrelated_flow.async_step_thermal_model({const.CONF_HEAT_PUMP_MAX_POWER: 9.0})
+)["data"]
+R.check(
+    "editing a field the questionnaire does not own leaves it armed",
+    const.CONF_BUILDING_PRESET_ENABLED not in _unrelated,
+    f"saved {_unrelated!r}",
+)
+_untouched_flow = options(FakeEntry(data=dict(_armed)))
+_untouched_flow.hass = FakeHass()
+_untouched_form = asyncio.run(_untouched_flow.async_step_thermal_model(None))
+R.check(
+    "and an untouched save still writes nothing at all",
+    asyncio.run(
+        _untouched_flow.async_step_thermal_model(_untouched_form["data_schema"]({}))
+    )["data"]
+    == {},
+    "a page that writes on an untouched save flips presence-inferred settings",
+)
+
+# The user-visible text, in all three files. (The Translations section below
+# checks they carry the same keys; these checks are about what those keys
+# say.)
+_CATALOGUES = {
+    "strings.json": json.loads((ROOT / "strings.json").read_text()),
+    "en.json": json.loads((ROOT / "translations" / "en.json").read_text()),
+    "sv.json": json.loads((ROOT / "translations" / "sv.json").read_text()),
+}
+
+# Home Assistant has no way to grey a field out, so the page says in words
+# what it cannot show. An unfilled placeholder renders as literal braces.
+R.check(
+    "the expert page warns while the derivation is armed",
+    _untouched_form["description_placeholders"]["preset_warning"],
+    "a user editing a value that will be overwritten deserves to know",
+)
+R.check(
+    "and says nothing when it is off",
+    _clean_form["description_placeholders"]["preset_warning"] == "",
+    "a warning about a derivation nobody enabled is noise",
+)
+for _name, _data in _CATALOGUES.items():
+    _step = _data["options"]["step"]["thermal_model"]
+    R.check(
+        f"{_name} gives the warning somewhere to appear",
+        "{preset_warning}" in _step["description"] and _step.get("preset_warning"),
+        "the placeholder and its text have to travel together",
+    )
+
+# The caption that sent the owner's own value 27 percent high: an absolute
+# rule of thumb ("roughly 3 kWh/°C") printed on a field the model scales by
+# heated area, and on the *fast* store at that -- the heavy floor is counted
+# separately. A user correcting a derived 1.44 up to 3 would inflate the
+# store the plan coasts on.
+for _name, _data in _CATALOGUES.items():
+    for _flow_name, _step_id in (("config", "thermal"), ("options", "thermal_model")):
+        _text = _data[_flow_name]["step"][_step_id]["data_description"][
+            "house_thermal_mass"
+        ]
+        R.check(
+            f"{_name} {_flow_name} scales the house-mass advice by area",
+            "m²" in _text,
+            "an absolute figure on an area-scaled field invites a harmful edit",
+        )
+
+# The same page names a page that does not exist: all ten derived keys live
+# on the expert page, none on "Heating system and heat storage".
+for _name, _data in _CATALOGUES.items():
+    _caption = _data["options"]["step"]["building_preset"]["data_description"][
+        "building_preset_enabled"
+    ]
+    _expert_title = _data["options"]["step"]["thermal_model"]["title"]
+    R.check(
+        f"{_name} points the derivation at the page it actually overwrites",
+        _expert_title in _caption,
+        f"names {_caption!r}, expert page is {_expert_title!r}",
+    )
+
+# ===========================================================================
 # Translations
 # ===========================================================================
 R.section("Translations")

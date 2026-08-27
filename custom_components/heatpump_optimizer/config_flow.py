@@ -410,6 +410,34 @@ RANGE_ZONE_THERMAL_MASS: Final = (0.25, 60.0)
 RANGE_ZONE_HEAT_LOSS: Final = (0.001, 1.0)
 
 
+# Everything ``presets.derive`` writes into the entry, in the order the
+# expert page shows them. The last six only exist in two-zone mode.
+# ``tests/entities.py`` checks this against ``derive`` itself, so a new
+# derived parameter cannot quietly fall off the list.
+# Shown on the expert page while the questionnaire is armed. English here
+# is the fallback; the translated text lives beside the page's own strings.
+PRESET_WARNING_FALLBACK: Final = (
+    "Deriving from the building type is switched on, so saving Building type "
+    "and emitters recalculates the house thermal mass, heat loss, slab mass "
+    "and slab transfer below (and the two-zone values) from the "
+    "questionnaire, overwriting whatever is here. Changing any of those "
+    "fields on this page switches the derivation off, so your value stays."
+)
+
+DERIVED_THERMAL_KEYS: Final = (
+    CONF_HOUSE_THERMAL_MASS,
+    CONF_HOUSE_HEAT_LOSS_COEFFICIENT,
+    CONF_SLAB_THERMAL_MASS,
+    CONF_SLAB_HEAT_TRANSFER,
+    CONF_UPPER_FLOOR_THERMAL_MASS,
+    CONF_LOWER_FLOOR_THERMAL_MASS,
+    CONF_UPPER_FLOOR_HEAT_LOSS,
+    CONF_LOWER_FLOOR_HEAT_LOSS,
+    CONF_UPPER_FLOOR_AREA_RATIO,
+    CONF_RADIATOR_POWER_FRACTION,
+)
+
+
 # The error a page reports on a field whose stored value sits outside that
 # field's nominal range. Raised when the form is *shown*, not when it is
 # submitted: the value is already on disk, so the user has to be told before
@@ -791,6 +819,27 @@ def _derive_preset(answers: dict[str, Any], current: dict[str, Any]) -> dict[str
     # parameter and would be rejected by the model.
     derived.pop("heating_response_hours", None)
     return derived
+
+
+async def _translated_text(
+    hass: HomeAssistant, flow_type: str, path: str, fallback: str
+) -> str:
+    """One translated sentence for a description placeholder.
+
+    Placeholder *values* are substituted verbatim by the frontend, so a
+    sentence composed here would ship in English whatever the user's
+    language is. The catalogue is read the same way ``_translated_menu``
+    reads it, and the English text stays in code as the fallback for the
+    moment the lookup fails.
+    """
+    try:
+        translations = await async_get_translations(
+            hass, hass.config.language, flow_type, {DOMAIN}
+        )
+    except Exception:  # noqa: BLE001 - a form must never fail to render
+        _LOGGER.debug("Could not load %s translations", flow_type, exc_info=True)
+        return fallback
+    return translations.get(f"component.{DOMAIN}.{flow_type}.{path}") or fallback
 
 
 async def _translated_menu(
@@ -1901,7 +1950,14 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
             # stored ceiling without both being on the form.
             errors = _power_errors(user_input, self._current)
             if not errors:
-                return self._save(user_input)
+                saved = dict(user_input)
+                if any(key in saved for key in DERIVED_THERMAL_KEYS):
+                    # Editing a derived number here has to mean it. Left
+                    # armed, the questionnaire would overwrite this value the
+                    # next time that page was saved, and the user would be
+                    # back to a number they did not choose with no idea why.
+                    saved[CONF_BUILDING_PRESET_ENABLED] = False
+                return self._save(saved)
 
         current = self._current
         if user_input is not None:
@@ -1915,9 +1971,24 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
                 )
             return vol.Optional(key)
 
+        # Home Assistant cannot grey a field out — a selector carries no
+        # read-only flag, and the schema the browser receives has nowhere to
+        # put one — so say in words what the form cannot show.
+        preset_warning = ""
+        if current.get(
+            CONF_BUILDING_PRESET_ENABLED, DEFAULT_BUILDING_PRESET_ENABLED
+        ):
+            preset_warning = await _translated_text(
+                self.hass,
+                "options",
+                "step.thermal_model.preset_warning",
+                PRESET_WARNING_FALLBACK,
+            )
+
         return self.async_show_form(
             step_id="thermal_model",
             errors=errors,
+            description_placeholders={"preset_warning": preset_warning},
             data_schema=vol.Schema(
                 {
                     _numeric(CONF_HOUSE_THERMAL_MASS): _number(

@@ -115,10 +115,10 @@
           "comfort_weight": "How strictly to hold the temperature"
         },
         "data_description": {
-          "house_thermal_mass": "How much heat the building fabric stores per degree. Higher means the house holds its temperature longer and can coast further through expensive hours. Roughly 3 kWh/°C for a light timber house, 8 or more for heavy masonry.",
+          "house_thermal_mass": "How much heat the room air, furnishings and light fabric store per degree — roughly 0.02 kWh/°C per m² of heated area for a timber house, 0.05 or more for stone. Heavy floors and a heated slab are counted separately under Slab floor thermal mass, so this figure alone is not the whole building.",
           "house_heat_loss_coefficient": "How fast the house loses heat per degree of difference to outside. Multiply by the indoor-outdoor gap to get the heating power needed: 0.25 kW/°C at 20 degrees difference means about 5 kW.",
-          "slab_thermal_mass": "Heat stored in the concrete slab per degree. This is the buffer that lets floor heating be switched off during price peaks without the room getting cold.",
-          "slab_heat_transfer": "How quickly heat moves from the slab into the room. Lower values mean a slow, sluggish floor that has to be charged further in advance.",
+          "slab_thermal_mass": "Heat stored per degree in whatever the heat is delivered through: the concrete slab of a floor-heated house — the buffer that lets the floor be switched off during price peaks — or, with radiators, the water and steel of the radiator circuit, which is far smaller. A radiator house of 100 m² lands near 0.2 kWh/°C, a heated slab of the same size near 10.",
+          "slab_heat_transfer": "How quickly heat moves from that store into the room. Lower values mean a slow, sluggish floor that has to be charged further in advance; radiators are much faster and sit far higher.",
           "heat_pump_cop_nominal": "Units of heat produced per unit of electricity under normal conditions. Check the data sheet; 3 to 4 is typical for air-to-water, 4 to 5 for ground source.",
           "heat_pump_max_power": "Electrical input at full output. Caps how much cheap electricity can be stored per hour.",
           "heat_pump_min_power": "Lowest electrical input the pump can run at without cycling on and off.",
@@ -473,7 +473,7 @@
           "rain_heat_loss_multiplier": "Rain sensitivity"
         },
         "data_description": {
-          "building_preset_enabled": "Turning this on overwrites the thermal mass and heat loss values on the House and heating system page.",
+          "building_preset_enabled": "Turning this on overwrites the thermal mass, heat loss and emitter values on the Thermal model (expert) page every time this page is saved.",
           "building_structure": "Heavy materials inside the insulation store heat, which is what lets the optimizer buy it cheaply and use it later.",
           "building_era": "Construction era is a good proxy for insulation standard, and a far better starting point than a single default.",
           "heated_area_m2": "Everything is scaled by this, so it is the number worth getting closest to right.",
@@ -488,7 +488,7 @@
       },
       "thermal_model": {
         "title": "Thermal model (expert)",
-        "description": "The raw numbers behind the thermal model, otherwise only asked during setup. A field left empty keeps its current value and is never saved, so a single-zone house stays single-zone — and filling in the two-zone fields is how an existing install turns the two-zone model on.",
+        "description": "The raw numbers behind the thermal model, otherwise only asked during setup. A field left empty keeps its current value and is never saved, so a single-zone house stays single-zone — and filling in the two-zone fields is how an existing install turns the two-zone model on.\n\n{preset_warning}",
         "data": {
           "house_thermal_mass": "House thermal mass (kWh/°C)",
           "house_heat_loss_coefficient": "Heat loss coefficient (kW/°C)",
@@ -508,10 +508,10 @@
           "solar_orientation_factor": "Solar orientation factor"
         },
         "data_description": {
-          "house_thermal_mass": "How much heat the building fabric stores per degree. Higher means the house holds its temperature longer and can coast further through expensive hours. Roughly 3 kWh/°C for a light timber house, 8 or more for heavy masonry.",
+          "house_thermal_mass": "How much heat the room air, furnishings and light fabric store per degree — roughly 0.02 kWh/°C per m² of heated area for a timber house, 0.05 or more for stone. Heavy floors and a heated slab are counted separately under Slab floor thermal mass, so this figure alone is not the whole building.",
           "house_heat_loss_coefficient": "How fast the house loses heat per degree of difference to outside. Multiply by the indoor-outdoor gap to get the heating power needed: 0.25 kW/°C at 20 degrees difference means about 5 kW.",
-          "slab_thermal_mass": "Heat stored in the concrete slab per degree. This is the buffer that lets floor heating be switched off during price peaks without the room getting cold.",
-          "slab_heat_transfer": "How quickly heat moves from the slab into the room. Lower values mean a slow, sluggish floor that has to be charged further in advance.",
+          "slab_thermal_mass": "Heat stored per degree in whatever the heat is delivered through: the concrete slab of a floor-heated house — the buffer that lets the floor be switched off during price peaks — or, with radiators, the water and steel of the radiator circuit, which is far smaller. A radiator house of 100 m² lands near 0.2 kWh/°C, a heated slab of the same size near 10.",
+          "slab_heat_transfer": "How quickly heat moves from that store into the room. Lower values mean a slow, sluggish floor that has to be charged further in advance; radiators are much faster and sit far higher.",
           "heat_pump_cop_nominal": "Units of heat produced per unit of electricity under normal conditions. Check the data sheet; 3 to 4 is typical for air-to-water, 4 to 5 for ground source.",
           "heat_pump_max_power": "Electrical input at full output. Caps how much cheap electricity can be stored per hour.",
           "heat_pump_min_power": "Lowest electrical input the pump can run at without cycling on and off.",
@@ -524,7 +524,8 @@
           "radiator_power_fraction": "Two-zone systems only. 0 means all heat goes to the floor slab, 1 means all of it goes to the radiators. 0.4 means 40 percent to radiators.",
           "upper_floor_area_ratio": "Share of the total floor area that sits upstairs. 0.5 means the two floors are the same size.",
           "solar_orientation_factor": "How well the windows face the sun over a day. 1.0 suits mostly south-facing glazing; lower it for east or west facing windows that only catch part of the day."
-        }
+        },
+        "preset_warning": "Deriving from the building type is switched on, so saving Building type and emitters recalculates the house thermal mass, heat loss, slab mass and slab transfer below (and the two-zone values) from the questionnaire, overwriting whatever is here. Changing any of those fields on this page switches the derivation off, so your value stays."
       },
       "grid": {
         "title": "Grid costs",
