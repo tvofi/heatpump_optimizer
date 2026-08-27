@@ -2038,6 +2038,44 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             close(len(powers))
         return slots
 
+    def _dhw_confidence_band(
+        self, dhw_temp: list[float | None], dt_hours: float
+    ) -> tuple[list[float | None], list[float | None]]:
+        """``dhw_temp`` ∓ the tank record's expected error, per step.
+
+        ``None`` at every step until the record has actually scored a pair.
+        ``sigma`` answers 0.0 with no evidence, and publishing
+        ``dhw_temp ± 0`` would lay two dashed lines exactly on the curve —
+        a fresh install claiming perfect foresight, which is the opposite
+        of what the band is for. Nothing beats a lie here, so the card gets
+        nulls and draws nothing at all.
+
+        Step ``i`` holds trajectory index ``i + 1``, so its promise is
+        ``(i + 1) * dt_hours`` ahead — the same lead convention
+        ``_confidence_margins`` uses for the comfort floor, and the same one
+        the promises were filed under.
+        """
+        n = len(dhw_temp)
+        if not self._dhw_accuracy.has_lead_history():
+            return [None] * n, [None] * n
+        lo: list[float | None] = []
+        hi: list[float | None] = []
+        for i, value in enumerate(dhw_temp):
+            if value is None:
+                # A step past the end of the trajectory has no centre to
+                # put a band around; nulls here break the dashed line
+                # exactly where the solid one already ends.
+                lo.append(None)
+                hi.append(None)
+                continue
+            sigma = self._dhw_accuracy.sigma((i + 1) * dt_hours)
+            # Two decimals, as `series()` rounds `dhw_temp` itself: the
+            # band and the curve it brackets must not disagree in the
+            # last digit.
+            lo.append(round(float(value) - sigma, 2))
+            hi.append(round(float(value) + sigma, 2))
+        return lo, hi
+
     def _build_plan_views(self, result) -> dict[str, Any]:
         """Full-resolution space heating and DHW plans for the plan sensors.
 
@@ -2075,6 +2113,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         lower = series(result.lower_temp_trajectory, offset=1) if two_zone else [None] * n
         dhw_power = series(result.dhw_power_schedule)
         dhw_temp = series(result.dhw_temp_trajectory, offset=1)
+        # v5.2.0: how far the tank curve has historically been out, at each
+        # step's own distance ahead. Deliberately NOT the same kind of thing
+        # as the room's `upper`/`lower`, which are two real predicted floor
+        # temperatures — this is an expected-error envelope, and the card
+        # labels the two differently for exactly that reason.
+        dhw_temp_lo, dhw_temp_hi = self._dhw_confidence_band(
+            dhw_temp, dt_hours
+        )
 
         raw_prices = [p if p is not None else 0.0 for p in prices]
         raw_space = [p if p is not None else 0.0 for p in space_power]
@@ -2135,6 +2181,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 "outdoor": outdoor[i],
                 "dhw_power": dhw_power[i],
                 "dhw_temp": dhw_temp[i],
+                "dhw_temp_lo": dhw_temp_lo[i],
+                "dhw_temp_hi": dhw_temp_hi[i],
                 "reason": reason_at(result.dhw_reasons, i),
             }
             for i in range(n)
