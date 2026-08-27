@@ -3752,5 +3752,172 @@ const setupBox = (card, place) =>
   }
 }
 
+// --- Scenario: the boxes have room to breathe (item C, v5.1.2) -------------
+// Titles and slot rows started at x+10 and right-anchored values ended at
+// x+190, against contour walls at x+2 and x+w-2: eight viewBox units of
+// air, which at desktop width reads as text pressed against the wall it is
+// inside. `SETUP_PAD` is now 16, so the margin is 14 units on both sides.
+//
+// The point of the change is that NOTHING ELSE moved. Box width, the three
+// column abscissae, the viewBox and the row arithmetic that sets `b.h` are
+// all as shipped, which is why the drawing's only literal geometry pin
+// (`<rect class="setup-box" x="430" y="360"`, the moved-box test above)
+// still reads true and did not have to be rewritten.
+{
+  const card = mkSetup();
+  const page = collect(card.shadowRoot).join("\n");
+  const boxes = card._layoutBoxes || [];
+  const PAD = 16;
+  const COLW = 200;
+
+  // (1) Nothing that was pinned moved.
+  check("the columns, the box width and the viewBox are untouched",
+    boxes.every((b) => b.w === COLW) &&
+    boxes.every((b) => [16, 260, 504].includes(b.x)) &&
+    /viewBox="0 0 720 \d+"/.test(page),
+    `widths ${[...new Set(boxes.map((b) => b.w))]}, ` +
+    `columns ${[...new Set(boxes.map((b) => b.x))].sort((a, c) => a - c)}, ` +
+    `viewBox ${(/viewBox="([^"]*)"/.exec(page) || [])[1]}`);
+  // b.h = 24 + (rows + caption lines) * 17 + 8, exactly as before: the line
+  // count drives the height, and neither the padding nor the caption
+  // wrapping that follows from it may change how many lines there are.
+  // Counted off the drawing, so a caption that started wrapping differently
+  // would show up here as a height that no longer matches its own content.
+  const topo = setupTopo();
+  const groups = page.split('<rect class="setup-box"').slice(1);
+  const perBox = groups.map((g) => {
+    const m = /^[^>]*x="([\d.]+)" y="([\d.]+)" width="([\d.]+)"\s*height="([\d.]+)"/
+      .exec(g);
+    return {
+      x: m && Number(m[1]), y: m && Number(m[2]),
+      w: m && Number(m[3]), h: m && Number(m[4]),
+      lines: (g.match(/<text class="setup-slot/g) || []).length,
+    };
+  });
+  const heightWrong = perBox.filter((b) => b.h !== 24 + b.lines * 17 + 8);
+  check("the row arithmetic that sets each box height is unchanged",
+    perBox.length === boxes.length && heightWrong.length === 0,
+    `${perBox.length} boxes; ` + perBox.map((b) =>
+      `${b.x},${b.y} h=${b.h} lines=${b.lines}`).join("; "));
+  check("the carrier rects are still written at the column abscissae",
+    /<rect class="setup-box" x="16" y="16" width="200"/.test(page),
+    (/<rect class="setup-box"[^>]*>/.exec(page) || [])[0]);
+
+  // (2) The padding itself, measured against the contour walls the boxes
+  //     are actually painted with (x+2 and x+w-2).
+  const titles = [...page.matchAll(/<text class="setup-title" x="([\d.]+)"/g)]
+    .map((m) => Number(m[1]));
+  const labels = [...page.matchAll(/<text class="setup-slot[^"]*" x="([\d.]+)"/g)]
+    .map((m) => Number(m[1]));
+  const values = [...page.matchAll(
+    /<tspan class="setup-value" x="([\d.]+)"/g)].map((m) => Number(m[1]));
+  const cols = [...new Set(boxes.map((b) => b.x))].sort((a, b) => a - b);
+  const leftGaps = [...new Set([...titles, ...labels])]
+    .map((x) => x - (cols.reduce((best, c) => (x - c >= 0 && x - c < x - best
+      ? c : best), -1e9) + 2));
+  const rightGaps = [...new Set(values)].map((x) => {
+    const c = cols.reduce((best, cc) => (x - cc >= 0 && x - cc < x - best
+      ? cc : best), -1e9);
+    return c + COLW - 2 - x;
+  });
+  check("every title and every row label clears the left wall by 14 units",
+    titles.length > 0 && labels.length > 0 &&
+    leftGaps.every((g) => g === 14),
+    `text at x ${[...new Set([...titles, ...labels])].sort((a, b) => a - b)}, ` +
+    `gaps ${[...new Set(leftGaps)]}`);
+  check("every right-anchored value clears the right wall by 14 units",
+    values.length > 0 && rightGaps.every((g) => g === 14),
+    `values anchored at ${[...new Set(values)].sort((a, b) => a - b)}, ` +
+    `gaps ${[...new Set(rightGaps)]}`);
+  // Both are a real widening, not a shuffle: main put text 8 units off the
+  // wall on both sides.
+  check("that is a widening on both sides, not a shift",
+    leftGaps.every((g) => g > 8) && rightGaps.every((g) => g > 8) &&
+    leftGaps.every((g) => g <= 16) && rightGaps.every((g) => g <= 16));
+  // The rule under a title starts where the title starts, or it reads as a
+  // second, contradictory margin.
+  const dividers = [...page.matchAll(
+    /<path class="setup-accent divider" d="M ([\d.]+) [\d.]+ L ([\d.]+)/g)];
+  check("the header rules start on the title's own left margin",
+    dividers.length > 0 &&
+    dividers.every((m) => cols.includes(Number(m[1]) - PAD)),
+    dividers.map((m) => `${m[1]}->${m[2]}`).join(", "));
+
+  // (3) The hit targets still cover the rows they belong to. A row that
+  //     stops responding to the pointer is a worse regression than cramped
+  //     text, so this is checked per row rather than in aggregate.
+  const pairs = [...page.matchAll(new RegExp(
+    '<text class="setup-slot[^"]*" x="([\\d.]+)" y="([\\d.]+)">\\s*' +
+    '<tspan>([^<]*)</tspan>\\s*<tspan class="setup-value" x="([\\d.]+)"\\s*' +
+    'text-anchor="end">([^<]*)</tspan></text>\\s*' +
+    '<rect class="setup-hit" data-key="([^"]+)"[^>]*?' +
+    'x="([\\d.]+)" y="([\\d.]+)" width="([\\d.]+)"\\s*height="([\\d.]+)"',
+    "g"))].map((m) => ({
+      labelX: Number(m[1]), baseline: Number(m[2]), label: m[3],
+      valueX: Number(m[4]), value: m[5], key: m[6],
+      x: Number(m[7]), y: Number(m[8]), w: Number(m[9]), h: Number(m[10]),
+    }));
+  check("every slot row is matched with its own hit rect",
+    pairs.length === topo.slots.length,
+    `${pairs.length} of ${topo.slots.length}`);
+  // 12px text: the cap line sits about 8.7 units above the baseline and the
+  // descenders about 2.6 below, so a rect that spans that band covers every
+  // glyph in the row as well as the gap between label and value.
+  const uncovered = pairs.filter((r) =>
+    !(r.x <= r.labelX && r.x + r.w >= r.valueX &&
+      r.y <= r.baseline - 9 && r.y + r.h >= r.baseline + 3));
+  check("and every hit rect covers its row's text from label to value",
+    uncovered.length === 0,
+    uncovered.map((r) =>
+      `${r.key}: rect x${r.x}..${r.x + r.w} y${r.y}..${r.y + r.h} ` +
+      `vs text x${r.labelX}..${r.valueX} baseline ${r.baseline}`).join("; "));
+  // The rects are inset inside their box and off their neighbours, so the
+  // focus ring drawn on them (item F) has all four sides on screen.
+  const boxOf = (r) => boxes.find((b) => b.x + 4 === r.x);
+  check("the hit rects sit inside the box, clear of the contour",
+    pairs.every((r) => {
+      const b = boxOf(r);
+      return b && r.x > b.x + 2 && r.x + r.w < b.x + COLW - 2;
+    }),
+    pairs.map((r) => `${r.key} x${r.x}+${r.w}`).join("; "));
+  const sameBox = {};
+  for (const r of pairs) (sameBox[r.x] ||= []).push(r);
+  const touching = [];
+  for (const list of Object.values(sameBox)) {
+    const sorted = list.slice().sort((a, b) => a.y - b.y);
+    for (let i = 1; i < sorted.length; i++) {
+      const gap = sorted[i].y - (sorted[i - 1].y + sorted[i - 1].h);
+      if (gap < 1) touching.push(`${sorted[i - 1].key}/${sorted[i].key}=${gap}`);
+    }
+  }
+  check("and neighbouring rows do not touch, so neither do their rings",
+    touching.length === 0, touching.join(", "));
+
+  // (4) The outdoor node is explicitly out of scope: the owner has seen the
+  //     open composition -- no walls, a tray baseline the rows hang over, a
+  //     cloud in the header's right corner -- and wants it as shipped. These
+  //     are the two paths origin/main draws for it at column 0, verbatim.
+  //     Only the text inside moved, and only by the padding above.
+  const cloudInk = [...page.matchAll(
+    /<path class="setup-contour[^"]*"\s+d="([^"]*)"/g)]
+    .map((m) => m[1].replace(/\s+/g, " ").trim());
+  check("the outdoor node's tray and cloud are exactly as shipped",
+    cloudInk.includes("M 18 57 A 6 6 0 0 0 24 63 H 208 A 6 6 0 0 0 214 57") &&
+    cloudInk.includes("M 170 35 A 5.5 5.5 0 0 1 173 25.5 A 7 7 0 0 1 186 " +
+      "22.5 A 6 6 0 0 1 197 25 A 6 6 0 0 1 203 35 Z"),
+    cloudInk.slice(0, 3).join(" | "));
+  // ...and it is still an OPEN composition: no header rule, no side walls,
+  // no closing Z on the tray.
+  const outdoorBox = boxes.find((b) => b.place === "outdoor");
+  const outdoorGroup = page.slice(
+    page.indexOf("kind-outdoor"),
+    page.indexOf("<g", page.indexOf("kind-outdoor")));
+  check("the outdoor node still has no walls and no header rule",
+    !!outdoorBox && outdoorBox.x === 16 && outdoorBox.y === 16 &&
+    !/setup-accent divider/.test(outdoorGroup) &&
+    !/\bZ"/.test((/kind-outdoor"\s+d="([^"]*)"/.exec(page) || ["", ""])[1]),
+    outdoorGroup.slice(0, 160).replace(/\s+/g, " "));
+}
+
 console.log(fails ? `\n${fails} CARD CHECK(S) FAILED` : "\nALL CARD CHECKS PASSED");
 process.exit(fails?1:0);
