@@ -2801,6 +2801,36 @@ class HeatPumpOptimizer:
         )
         schedule = np.where(schedule < min_run_power - 1e-9, 0.0, schedule)
 
+        # The floor gets the same physics check the rating just got. The LP
+        # and the greedy passes plan on an affine tank; the trajectory the
+        # house actually runs is the simulation's, and the gap between the
+        # two let a plan that satisfied every linear floor drain the real
+        # tank ~1-2 °C below the promised minimum inside an evening demand
+        # window (stress: winter_mild). Top up at the cheapest usable step
+        # before each breach until the simulated trajectory honours the
+        # requirement, then re-apply the rating, which always wins.
+        schedule = self._repair_dhw_floor(
+            plan=schedule,
+            initial_temp=initial_state.dhw_temperature,
+            outdoor_temps=outdoor_temps,
+            draw_rates=draw_rates,
+            dt=dt,
+            requirement=requirement,
+            max_temp=max_temp,
+            p_dhw_max=p_dhw_run,
+            min_run_power=min_run_power,
+            prices=prices,
+            c_dhw=c_dhw,
+            forced_off=forced_off,
+        )
+        # Deliberately NOT re-clamped: the external clamp predicts the tank
+        # without draw relief (conservative by design), so it reads the
+        # repair's in-window top-ups — which exist precisely because the
+        # window is draining the tank — as rating breaches and truncates
+        # them back out. The repair's own simulation runs the real step,
+        # whose internal rating clamp books any genuinely refused heat, so
+        # a repaired plan cannot overshoot where it matters.
+
         # --- External heat source (item 5) ---------------------------------
         # While something else is charging the tank for free, buying electric
         # hot water is the most expensive mistake available. Suppress the
@@ -3124,6 +3154,83 @@ class HeatPumpOptimizer:
             else:
                 out[i] = 0.0
         return out
+
+    def _repair_dhw_floor(
+        self,
+        *,
+        plan: np.ndarray,
+        initial_temp: float,
+        outdoor_temps: np.ndarray,
+        draw_rates: np.ndarray,
+        dt: float,
+        requirement: np.ndarray,
+        max_temp: float,
+        p_dhw_max: float,
+        min_run_power: float,
+        prices: np.ndarray,
+        c_dhw: float,
+        forced_off: np.ndarray | None = None,
+    ) -> np.ndarray:
+        """Top up the plan until the SIMULATED trajectory meets the floor.
+
+        Bounded best-effort: each round finds the first step whose simulated
+        temperature breaches the requirement, sizes the missing electrical
+        energy at the tank's own marginal COP, and adds it at the cheapest
+        step with headroom that can still reach the breach — after the last
+        rating-pinned step before it, since heat added ahead of a full tank
+        is refused, not stored. A demand no rating-legal plan can meet exits
+        after the round limit with the closest achievable trajectory; the
+        rating clamp re-runs after and always wins.
+        """
+        plan = np.asarray(plan, dtype=float).copy()
+        n = plan.size
+        if n == 0 or requirement is None:
+            return plan
+        req = np.asarray(requirement, dtype=float)[:n]
+        # Convergence is a min-run trickle per round in the worst case (a
+        # cheap-step landscape already near the run cap), so the bound is
+        # sized for a multi-degree breach at trickle pace, not for elegance.
+        for _ in range(48):
+            temps = np.asarray(
+                self.model.simulate_dhw_only(
+                    initial_temp=initial_temp,
+                    dhw_power_schedule=plan,
+                    outdoor_temps=outdoor_temps,
+                    draw_rates=draw_rates,
+                    dt_hours=dt,
+                )
+            )
+            deficit = req - temps[1 : n + 1]
+            breach = np.where(deficit > 0.05)[0]
+            if breach.size == 0:
+                return plan
+            b = int(breach[0])
+            # Heat added before a rating-pinned step is refused, so only
+            # steps after the last full-tank moment can feed the breach.
+            pinned = np.where(temps[: b + 1] >= max_temp - 0.1)[0]
+            lo = int(pinned[-1]) if pinned.size else 0
+            headroom = p_dhw_max - plan[lo : b + 1]
+            usable = headroom > 1e-6
+            if forced_off is not None:
+                usable &= ~np.asarray(forced_off[lo : b + 1], dtype=bool)
+            if not np.any(usable):
+                return plan
+            costs = np.where(usable, prices[lo : b + 1], np.inf)
+            j_local = int(np.argmin(costs))
+            j = lo + j_local
+            cop_j = max(
+                self.model.marginal_cop(
+                    float(outdoor_temps[j]), "dhw", store_temp=float(temps[j])
+                ),
+                0.5,
+            )
+            needed = float(deficit[b]) * c_dhw / max(dt * cop_j, 1e-6)
+            add = float(np.clip(needed, min_run_power, headroom[j_local]))
+            new_level = plan[j] + add
+            if new_level < min_run_power - 1e-9:
+                new_level = min(min_run_power, p_dhw_max)
+            plan[j] = min(p_dhw_max, new_level)
+        return plan
 
     def _clamp_dhw_to_capacity(
         self,

@@ -10552,6 +10552,60 @@ R.check(
 )
 
 # ---------------------------------------------------------------------------
+R.section("v4.0.6 — the floor gets the same physics check the rating has")
+
+# The stress sweep's winter_mild catch: the LP and greedy passes plan on an
+# affine tank, the published trajectory runs the real simulation, and the
+# gap let a plan satisfying every linear floor drain the real tank ~1-2 °C
+# below the promised minimum inside the evening demand window — on main
+# too, just under the sweep's tolerance. The repair pass walks the real
+# simulation and tops up ahead of each breach.
+from heatpump_optimizer.dhw_schedule import (
+    hour_in_windows as _fl_in_win,
+    parse_windows as _fl_parse,
+)
+from profiles import house as _fl_house
+
+_fl_cfg = _fl_house(two_zone=False, dhw=True)
+_fl_built = _mk_golden(
+    two_zone=False, dhw=True,
+    price_profile="winter_typical", weather_profile="winter_mild",
+)
+_fl_opt = _fl_built["optimizer"]
+_fl_params = _fl_opt.model.params
+
+def _fl_worst(opt):
+    r = opt.optimize(
+        _fl_built["state"], _fl_built["prices"], _fl_built["outdoor"],
+        _fl_built["wind"], _fl_built["rain"], _fl_built["solar"], _G_START,
+    )
+    T = np.asarray(r.dhw_temp_trajectory[1:])
+    wins = _fl_parse(_fl_cfg.get("dhw_windows", "") or "")
+    hours = [(_G_START.hour + i * 0.25) % 24 for i in range(len(T))]
+    inside = np.array([_fl_in_win(h, wins) for h in hours])
+    return float(max(0.0, _fl_params.dhw_min_temp - T[inside].min()))
+
+_fl_shortfall = _fl_worst(_fl_opt)
+R.check(
+    "winter_mild's evening window holds the promised minimum",
+    _fl_shortfall <= 0.1,
+    f"shortfall {_fl_shortfall:.2f} °C",
+)
+# Mutation value: with the repair neutered, the same solve breaches — the
+# check above genuinely depends on the repair, not on planner luck.
+_FlOpt = type(_fl_opt)
+_fl_orig = _FlOpt._repair_dhw_floor
+try:
+    _FlOpt._repair_dhw_floor = lambda self, *, plan, **kw: plan
+    _fl_mutant = _fl_worst(_fl_opt)
+finally:
+    _FlOpt._repair_dhw_floor = _fl_orig
+R.check(
+    "neutering the floor repair reopens the breach (mutation check)",
+    _fl_mutant > 0.5,
+    f"mutant shortfall {_fl_mutant:.2f} °C",
+)
+
 R.section("v4.0.5 — the battery view shares the optimizer's caps")
 
 _bat_p = ThermalParameters(

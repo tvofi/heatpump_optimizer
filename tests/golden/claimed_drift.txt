@@ -7,8 +7,7 @@
 # v4.0.6 physics: the terminal value, the settlement caps, the mixed-use
 # draw debit and the shared marginal COP deliberately change planned
 # behaviour. The null controls hold: flat_prices, winter_single_no_dhw,
-# dhw_large_tank, horizon_6h, cop_scale_learned and config_flow are
-# byte-identical to main.
+# dhw_large_tank, horizon_6h and config_flow are byte-identical to main.
 away_setback  # terminal valuation at per-store marginal COP
 building_preset  # terminal valuation at per-store marginal COP
 capacity_curve  # terminal valuation at per-store marginal COP
@@ -16,6 +15,7 @@ capacity_tariff  # terminal valuation at per-store marginal COP
 capacity_tariff_15min  # terminal valuation at per-store marginal COP
 confidence_margins  # terminal valuation at per-store marginal COP
 cool_rainy_summer  # terminal valuation at per-store marginal COP
+cop_scale_learned  # simulation-walked DHW floor repair reshapes the plan
 coord_all_features  # battery caps + sysid gains leaf + downstream of the solve
 coord_dhw  # battery caps + sysid gains leaf + downstream of the solve
 coord_grid_fee  # battery caps + sysid gains leaf + downstream of the solve
