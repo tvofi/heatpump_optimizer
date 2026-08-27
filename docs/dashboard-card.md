@@ -270,7 +270,8 @@ series:                                  # optional, initial per-series visibili
 | `solar_entity` | string  | auto-detected                  | Entity id of the solar irradiance sensor (its `forecast` attribute supplies `ghi`). |
 | `hours`        | number  | `24`                           | How many hours forward to plot. Must be `1`–`168`. |
 | `what_if`      | boolean | `true`                         | Show the slot lanes and schedule editor in the enlarged view. Editing is local to the card; only the Simulate, Save and Apply buttons reach Home Assistant. |
-| `currency`     | string  | Home Assistant's currency      | Unit shown next to the slot editor's cost delta. Only override this if your price sensor is not in the currency Home Assistant is configured for. |
+| `currency`     | string  | plan sensor's, else Home Assistant's | Unit shown on the price axis and cost figures. The card first uses the currency the integration publishes on the plan sensors (v4.1.0+), then Home Assistant's configured currency. Only override this if your price feed disagrees with both. |
+| `show_stats`   | boolean | `true`                         | Show the headline row (projected savings, optimization score, plan narrative) under the card header. It hides itself when the backend does not publish those sensors. |
 | `series`       | map     | all `true`                     | Initial visibility per series key. Keys: `price`, `dhw_slots`, `space_slots`, `outdoor`, `dhw_temp`, `house_temp`, `solar`. |
 
 ### Entity discovery
