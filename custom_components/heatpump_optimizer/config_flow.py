@@ -367,6 +367,125 @@ def _number(
     return selector.NumberSelector(selector.NumberSelectorConfig(**config))
 
 
+def _prefilled_values(marker: Any) -> list[Any]:
+    """What the frontend will put in this field before the user touches it.
+
+    Both mechanisms count. ``description={"suggested_value": x}`` pre-fills
+    the box without defaulting the key, and ``default=x`` pre-fills it *and*
+    substitutes itself when the key is absent from the submission. Either way
+    the value comes back on submit and is validated by this field's own
+    selector — so either way, a stored value the selector rejects makes the
+    page impossible to save.
+    """
+    values: list[Any] = []
+    description = getattr(marker, "description", None)
+    if isinstance(description, dict) and "suggested_value" in description:
+        values.append(description["suggested_value"])
+    default = getattr(marker, "default", None)
+    # A marker without a default carries voluptuous' UNDEFINED sentinel here,
+    # which is not callable; only a real default is.
+    if callable(default):
+        try:
+            values.append(default())
+        except Exception:  # noqa: BLE001 - a broken default is not our business
+            pass
+    return values
+
+
+def _widen_to_fit(
+    number: selector.NumberSelector, values: list[Any]
+) -> selector.NumberSelector | None:
+    """The same field with bounds stretched to admit ``values``, or None.
+
+    Returns None when nothing needs to move, so an untouched page keeps the
+    very selector object it declared.
+    """
+    config = dict(number.config)
+    low = config.get("min")
+    high = config.get("max")
+    if low is None and high is None:
+        return None
+    fitted_low, fitted_high = low, high
+    for value in values:
+        try:
+            number_value = float(value)
+        except (TypeError, ValueError):
+            continue
+        if number_value != number_value or number_value in (
+            float("inf"),
+            float("-inf"),
+        ):
+            continue
+        if fitted_low is not None and number_value < fitted_low:
+            fitted_low = number_value
+        if fitted_high is not None and number_value > fitted_high:
+            fitted_high = number_value
+    if fitted_low == low and fitted_high == high:
+        return None
+    if fitted_low is not None:
+        config["min"] = fitted_low
+    if fitted_high is not None:
+        config["max"] = fitted_high
+    return selector.NumberSelector(selector.NumberSelectorConfig(**config))
+
+
+def _fit_stored_values(schema: Any) -> tuple[Any, list[str]]:
+    """Schema with every numeric field widened to admit what it displays.
+
+    A bounded numeric field is validated on submit against its own min/max,
+    and the frontend submits the whole form — including the fields nobody
+    touched. So a *stored* value outside a field's range does not merely look
+    odd: it makes the entire page un-submittable, silently, because
+    voluptuous rejects the submission before any handler sees it and the
+    dialog just re-renders. The user experiences a Submit button that does
+    nothing.
+
+    That is not hypothetical: ``presets.derive`` scales the thermal
+    parameters by heated area and knows nothing about the bounds the expert
+    page happens to declare, and a radiator-only house legitimately derives a
+    ``slab_thermal_mass`` an order of magnitude below what that field used to
+    accept.
+
+    So whenever a value is already on disk, the field that displays it
+    relaxes far enough to display it — and no further. Every other field
+    keeps its nominal bounds, which is what makes them worth having. The
+    caller gets back the list of fields that had to relax, so it can say so.
+    """
+    if schema is None or not hasattr(schema, "schema"):
+        return schema, []
+    fitted: dict[Any, Any] = {}
+    widened: list[str] = []
+    for marker, value in schema.schema.items():
+        if isinstance(value, selector.NumberSelector):
+            replacement = _widen_to_fit(value, _prefilled_values(marker))
+            if replacement is not None:
+                value = replacement
+                widened.append(str(getattr(marker, "schema", marker)))
+        fitted[marker] = value
+    if not widened:
+        return schema, []
+    return vol.Schema(fitted), widened
+
+
+class _StoredValuesAlwaysFit:
+    """Mixin: a page can never be blocked by a value already on disk.
+
+    Applied to both flows rather than to one page, because the hazard is
+    structural — any bounded numeric field fed from stored configuration can
+    reach it, and the stored value need not have come from this integration's
+    own forms (``apply_schedule`` and the climate entity both write config
+    keys straight into the entry's options, with their own wider limits).
+    """
+
+    @callback
+    def async_show_form(self, **kwargs: Any) -> FlowResult:
+        """Show a form, first making sure it can be submitted at all."""
+        fitted, widened = _fit_stored_values(kwargs.get("data_schema"))
+        if widened:
+            kwargs["data_schema"] = fitted
+        return super().async_show_form(**kwargs)
+
+
 def _effective(
     candidate: dict[str, Any], current: dict[str, Any], key: str, default: Any
 ) -> float:
@@ -638,7 +757,9 @@ async def _translated_menu(
     return labels
 
 
-class HeatPumpOptimizerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+class HeatPumpOptimizerConfigFlow(
+    _StoredValuesAlwaysFit, config_entries.ConfigFlow, domain=DOMAIN
+):
     """Handle a config flow for Heat Pump Optimizer."""
 
     VERSION = CONFIG_ENTRY_VERSION
@@ -1046,7 +1167,7 @@ class HeatPumpOptimizerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return HeatPumpOptimizerOptionsFlow(config_entry)
 
 
-class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
+class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.OptionsFlow):
     """Handle options flow for Heat Pump Optimizer.
 
     The options are split into a menu of focused pages rather than one very
