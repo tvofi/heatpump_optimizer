@@ -10,10 +10,677 @@
  */
 
 const CARD_TAG = "heatpump-optimizer-card";
-const CARD_VERSION = "4.0.7";
+const EDITOR_TAG = "heatpump-optimizer-card-editor";
+const CARD_VERSION = "4.2.0";
+
+// ---- i18n ------------------------------------------------------------------
+//
+// Every user-visible string lives here, keyed, with an English source text and
+// a Swedish translation. `L(key, vars)` looks the key up in the active
+// language, falls back to English for anything untranslated, and interpolates
+// `{name}` placeholders. The active language follows `hass.language`
+// ("sv-SE" -> "sv"); anything without a dictionary renders in English.
+//
+// Deliberately NOT translated: entity ids, config keys, service and attribute
+// names, CSS classes, data-* attributes, wire enums (reason codes, place ids,
+// channels), and console messages -- those are contracts, not prose.
+const STRINGS = {
+  en: {
+    // header / card chrome
+    "header.default_title": "Heat pump plan",
+    "header.enlarge": "Enlarge",
+    "header.enlarge_chart": "Enlarge chart",
+    "header.tab_plan": "Plan",
+    "header.tab_setup": "Setup",
+    "header.close": "Close",
+
+    // legend / series
+    "series.price": "Electricity price",
+    "series.dhw_slots": "DHW heating",
+    "series.space_slots": "Space heating",
+    "series.outdoor": "Outdoor temperature",
+    "series.dhw_temp": "DHW tank temperature",
+    "series.house_temp": "House temperature",
+    "series.solar": "Solar irradiance",
+
+    // chart / plan annotations
+    "plan.now": "now",
+    "plan.estimated_prices": "estimated prices",
+    "plan.zoom_out": "Zoom out",
+    "plan.zoom_in": "Zoom in",
+    "plan.show_whole_plan": "Show the whole plan",
+    "plan.price_estimated": "Price is estimated, not published yet",
+    "plan.shared_step_tooltip":
+      "Shared step: the pump alternates circuits — hot water first. " +
+      "Combined {kw} kW stays under the pump's maximum.",
+    "plan.shared_band_title":
+      "Space heating and hot water share these quarter hours: the pump " +
+      "alternates circuits within each step, hot water first. Their " +
+      "combined power never exceeds the heat pump's maximum — this is " +
+      "time-sharing, not double-booking.",
+
+    // plan reason codes
+    "reasons.comfort_floor": "Holding the minimum temperature",
+    "reasons.cheap_price": "Cheapest hours",
+    "reasons.preheat_weather": "Pre-heating before colder weather",
+    "reasons.terminal_value": "Leaving the house warm past the horizon",
+    "reasons.solar_surplus": "Using solar surplus",
+    "reasons.dhw_window": "Hot water needed now",
+    "reasons.dhw_ready": "Getting the tank ready for a demand window",
+    "reasons.dhw_preheat": "Charging the tank while electricity is cheap",
+    "reasons.legionella": "Anti-legionella cycle",
+    "reasons.manual_plan": "You scheduled this",
+    "reasons.idle": "Not heating",
+
+    // slot lanes and the slot menu
+    "slots.lane_dhw": "Hot water",
+    "slots.lane_space": "Heating",
+    "menu.remove_slot_dhw": "Remove this hot water slot",
+    "menu.remove_slot_space": "Remove this heating slot",
+    "menu.add_slot_dhw": "Add a hot water slot here",
+    "menu.add_slot_space": "Add a heating slot here",
+    "slots.no_plan_to_pin": "No plan to pin yet.",
+    "slots.applying": "Applying…",
+    "slots.until_suffix": " until {expiry}",
+    "slots.pinned_result":
+      "Pinned{until}. These slots will be kept unless doing so would take " +
+      "the house or the tank below its limits.",
+    "slots.clearing": "Clearing…",
+    "slots.back_to_auto_result": "Back to automatic planning.",
+    "slots.released_one":
+      "{n} slot was released to protect the house or the tank.",
+    "slots.released_other":
+      "{n} slots were released to protect the house or the tank.",
+    "slots.pinned_status": "Your slots are pinned{until}.",
+
+    // what-if panel
+    "whatif.todays_slots": "Today's slots",
+    "whatif.slots_hint":
+      "Drag a slot along its lane at the bottom of the chart to move it, " +
+      "drag either edge to resize it, or right-click a lane to add and " +
+      "remove slots. Applying pins them for the next {hours} hours.",
+    "whatif.zoom_limit_hint":
+      "Zoomed in — editing stops at the visible edge. Drag a slot against " +
+      "the edge to pan, or {button}.",
+    "whatif.show_whole_plan_button": "show the whole plan",
+    "whatif.apply_plan": "Apply this plan",
+    "whatif.undo_changes": "Undo my changes",
+    "whatif.back_to_auto": "Back to automatic",
+    "whatif.usual_schedule": "My usual schedule",
+    "whatif.schedule_hint":
+      "These are the recurring hours the optimizer plans against every " +
+      "day, not just today.",
+    "whatif.heating_hours": "Heating hours",
+    "whatif.day_from": "Day from",
+    "whatif.day_start_aria": "Heating day starts",
+    "whatif.day_to": "to",
+    "whatif.day_end_aria": "Heating day ends",
+    "whatif.setback_hint": "Outside these hours the night setback applies.",
+    "whatif.dhw_windows": "Hot water windows",
+    "whatif.window_start_aria": "Window {n} start",
+    "whatif.window_end_aria": "Window {n} end",
+    "whatif.remove": "Remove",
+    "whatif.remove_window_aria": "Remove window {n}",
+    "whatif.no_windows_hint":
+      "No windows: hot water is never required, so the tank is only kept " +
+      "above its idle minimum.",
+    "whatif.add_window": "+ Add window",
+    "whatif.simulate": "Simulate these slots",
+    "whatif.save_schedule": "Save as my schedule",
+    "whatif.reset": "Reset",
+    "whatif.idle_status":
+      "Change a setting to see what it would cost. Simulating changes " +
+      "nothing; saving replaces your configured schedule.",
+    "whatif.temperatures": "Temperatures",
+    "whatif.temperatures_hint":
+      "How warm the house is kept during the heating day, and how cool " +
+      "the hot water tank is allowed to get inside a demand window. Both " +
+      "are priced the same way as the schedule above.",
+    "whatif.comfort_temp": "Comfort temperature",
+    "whatif.dhw_min": "Minimum hot water",
+    "whatif.dhw_min_aria": "Minimum hot water temperature",
+    "whatif.cap_no_setpoint":
+      "Capped at {t}&nbsp;°C, far enough below the hot water setpoint to " +
+      "leave the tank a band to work in.",
+    "whatif.cap_with_setpoint":
+      "Capped at {t}&nbsp;°C: a {band}&nbsp;°C band below the " +
+      "{setpoint}&nbsp;°C setpoint, so the tank has room to work in " +
+      "instead of chasing its target.",
+    "whatif.clamped_warning":
+      "Your saved minimum of {a}&nbsp;°C is above that limit, so the " +
+      "slider shows {b}&nbsp;°C. Saving will store the lower value.",
+    "whatif.confirm_overwrite": "Confirm: overwrite my schedule",
+    "whatif.confirm_hint":
+      "This replaces your configured heating hours, hot water windows and " +
+      "temperatures, and reloads the integration. Press again to confirm.",
+    "whatif.saving": "Saving…",
+    "whatif.saved_result":
+      "Saved. The optimizer is reloading and will plan against the new " +
+      "schedule.",
+    "whatif.simulating": "Working out what that would cost…",
+    "whatif.same_cost": "<b>About the same cost</b> as the current plan.",
+    "whatif.cheaper_per_month":
+      '<b class="cheaper">{amount} less per month</b> than the current plan.',
+    "whatif.dearer_per_month":
+      '<b class="dearer">{amount} more per month</b> than the current plan.',
+    "whatif.min_room_temp": "Coldest the house gets: {t} °C",
+    "whatif.min_dhw_temp": "Lowest tank temperature: {t} °C",
+    "whatif.compressor_starts_one": "{n} compressor start",
+    "whatif.compressor_starts_other": "{n} compressor starts",
+    "whatif.rate_limited":
+      "<i>(previous estimate; simulations are rate-limited)</i>",
+
+    // cost delta row
+    "stats.no_plan_to_compare": "No plan data to compare against yet.",
+    "stats.cheaper": "cheaper",
+    "stats.dearer": "dearer",
+    "stats.the_same": "the same",
+    "stats.delta_detail":
+      "{verdict} than the saved plan ({planned} → {edited}&nbsp;{currency}, " +
+      "estimated)",
+
+    // expiry prose
+    "time.tomorrow": "{time} tomorrow",
+    "time.on_weekday": "{time} on {weekday}",
+
+    // setup page
+    "setup.not_published":
+      "The setup description has not been published yet. It appears with " +
+      "the plan sensors after the integration loads.",
+    "setup.editing_hint":
+      "Drag a box to move it, drag a port to connect two boxes, or click " +
+      "a pipe to remove it. Only a drawing that matches a supported " +
+      "layout can be saved.",
+    "setup.assign_hint":
+      "Click any sensor to assign it, or to clear it. An empty slot is a " +
+      "sensor this setup could use and does not have; it is shown on " +
+      "purpose.",
+    "setup.done_editing": "Done editing",
+    "setup.edit_layout": "Edit layout",
+    "setup.save_layout": "Save layout",
+    "setup.verdict_match": "Matches {label}.",
+    "setup.verdict_req": "{label} — {requirement}.",
+    "setup.verdict_not_modelled":
+      "{label} — known but not modelled yet, so it cannot be selected.",
+    "setup.verdict_needs": "{label} — needs {requirement}.",
+    "setup.verdict_cannot_store":
+      "{label} — the current configuration cannot store this layout.",
+    "setup.no_catalog": "No layout catalog was published for this system.",
+    "setup.verdict_no_match": "No supported layout matches. Closest: {label}.",
+    "setup.verdict_extra_edges": "Not in it: {edges}.",
+    "setup.verdict_missing_edges": "Missing: {edges}.",
+    "setup.saved_reloading": "Saved {label}. Reloading…",
+    "setup.svg_aria": "Configured system",
+
+    // place labels (layout editor rejection lines)
+    "places.heat_pump": "Heat pump",
+    "places.buffer_tank": "Buffer tank",
+    "places.mixing_valve": "Mixing valve",
+    "places.upper_zone": "Upper floor",
+    "places.lower_zone": "Lower floor",
+    "places.wood_tank": "Wood tank",
+    "places.wood_valve": "Wood mixing valve",
+    "places.dhw_tank": "Hot water tank",
+    "places.slab_shunt": "Slab shunt",
+
+    // setup diagram boxes and captions
+    "setup.box_hp_tank": "Heat pump tank",
+    "setup.box_buffer_tank": "Buffer tank",
+    "setup.box_4way_valve": "4-way mixing valve",
+    "setup.box_mixing_valve": "Mixing valve",
+    "setup.box_outside": "Outside",
+    "setup.box_heat_pump": "Heat pump",
+    "setup.box_wood_tank": "Wood furnace tank ({v} L)",
+    "setup.wood_caption": "modelled as heat into the heat-pump tank",
+    "setup.buffer_stores": "stores up to {t} °C",
+    "setup.buffer_too_small": "too small to store",
+    "setup.no_valve_caption": "no mixing valve: delivery is not throttled",
+    "setup.box_dhw_tank": "Hot water tank",
+    "setup.dhw_coil_caption": "refilled through a wood tank coil",
+    "setup.box_upper_floor": "Upper floor",
+    "setup.box_house": "House",
+    "setup.box_lower_floor": "Lower floor (slab)",
+
+    // setup slot rows / live values
+    "setup.unavailable": "unavailable",
+    "setup.source_weather": "weather forecast",
+    "setup.not_configured": "not configured",
+    "setup.click_to_assign_title": "{label} — click to assign",
+
+    // entity picker
+    "setup.picker_aria": "Entity for {slot}",
+    "setup.picker_none": "(not configured)",
+    "setup.assign": "Assign",
+    "setup.cancel": "Cancel",
+    "setup.picker_truncated": "Showing the first {n} matching entities.",
+    "setup.picker_count": "{n} matching {domains} entities.",
+    "setup.assigned_reloading": "Assigned {entity}. Reloading…",
+    "setup.cleared_reloading": "Cleared. Reloading…",
+
+    // errors and diagnostics
+    "errors.not_connected": "Not connected to Home Assistant.",
+    "errors.invalid_window_time":
+      "One of the hot water windows is not a valid time.",
+    "errors.day_start_equals_end":
+      "The heating day starts and ends at the same hour, which would " +
+      "leave no comfort period at all.",
+    "errors.could_not_apply": "Could not apply: {err}",
+    "errors.could_not_clear": "Could not clear: {err}",
+    "errors.could_not_save": "Could not save: {err}",
+    "errors.could_not_simulate": "Could not simulate: {err}",
+    "errors.no_answer": "No answer from the optimizer.",
+    "errors.could_not_save_layout": "Could not save the layout: {err}",
+    "errors.could_not_assign": "Could not assign: {err}",
+    "errors.diag_space": "Space heating",
+    "errors.diag_dhw": "DHW",
+    "errors.no_plan_data": "No plan data available yet.",
+    "errors.diag_not_found":
+      "{label}: no entity found. Looked for <code>{id}</code>. Check the " +
+      "entity id in Developer Tools &gt; States and set " +
+      "<code>{kind}_entity</code> in the card config.",
+    "errors.diag_unavailable": "{label}: <code>{id}</code> is {state}.",
+    "errors.diag_no_forecast":
+      "{label}: <code>{id}</code> has no forecast attribute yet. It " +
+      "appears after the first optimization run.",
+    "errors.diag_empty_forecast":
+      "{label}: <code>{id}</code> published an empty forecast.",
+    "errors.diag_out_of_window":
+      "{label}: <code>{id}</code> has {n} points, but none fall in the " +
+      "selected window.",
+
+    // setConfig errors (the literal prefix and quoted config keys are part
+    // of the contract and stay untranslated inside each message)
+    "errors.cfg_not_object":
+      "heatpump-optimizer-card: configuration must be an object",
+    "errors.cfg_space_entity":
+      "heatpump-optimizer-card: 'space_entity' must be an entity id string",
+    "errors.cfg_dhw_entity":
+      "heatpump-optimizer-card: 'dhw_entity' must be an entity id string",
+    "errors.cfg_solar_entity":
+      "heatpump-optimizer-card: 'solar_entity' must be an entity id string",
+    "errors.cfg_what_if":
+      "heatpump-optimizer-card: 'what_if' must be true or false",
+    "errors.cfg_hours":
+      "heatpump-optimizer-card: 'hours' must be a number between 1 and 168",
+    "errors.cfg_title": "heatpump-optimizer-card: 'title' must be a string",
+    "errors.cfg_series": "heatpump-optimizer-card: 'series' must be a map",
+    "errors.cfg_series_unknown":
+      "heatpump-optimizer-card: unknown series '{k}' in 'series'",
+    "errors.cfg_series_visibility":
+      "heatpump-optimizer-card: series '{k}' visibility must be true or false",
+    "errors.cfg_show_stats":
+      "heatpump-optimizer-card: 'show_stats' must be true or false",
+
+    // headline stats row
+    "headline.savings": "Projected savings",
+    "headline.savings_title":
+      "Estimated saving of the current plan against unoptimized heating.",
+    "headline.score": "Optimization score",
+    "headline.score_title":
+      "How well the whole installation is set up and running, 0–100.",
+    // The percent is a template because the spacing is orthographic:
+    // English sets "(8%)", Swedish "(8 %)".
+    "headline.savings_pct": "({pct}%)",
+
+    // keyboard access (aria labels)
+    "slots.slot_aria":
+      "{lane} {start}–{end}. Press Enter for actions, Delete to remove.",
+    "slots.lane_aria": "{lane} lane. Press Enter to add a slot.",
+
+    // visual config editor
+    "editor.title": "Title",
+    "editor.space_entity": "Space heating plan sensor",
+    "editor.dhw_entity": "Hot water plan sensor",
+    "editor.solar_entity": "Solar irradiance sensor",
+    "editor.hours": "Hours to show",
+    "editor.what_if": "Show the schedule editor",
+    "editor.show_stats": "Show the headline stats",
+    "editor.currency": "Currency",
+    "editor.series": "Series shown by default",
+  },
+
+  sv: {
+    "header.default_title": "Värmepumpsplan",
+    "header.enlarge": "Förstora",
+    "header.enlarge_chart": "Förstora diagrammet",
+    "header.tab_plan": "Plan",
+    "header.tab_setup": "Anläggning",
+    "header.close": "Stäng",
+
+    "series.price": "Elpris",
+    "series.dhw_slots": "Varmvattenberedning",
+    "series.space_slots": "Uppvärmning",
+    "series.outdoor": "Utetemperatur",
+    "series.dhw_temp": "Varmvattentankens temperatur",
+    "series.house_temp": "Innetemperatur",
+    "series.solar": "Solinstrålning",
+
+    "plan.now": "nu",
+    "plan.estimated_prices": "uppskattade priser",
+    "plan.zoom_out": "Zooma ut",
+    "plan.zoom_in": "Zooma in",
+    "plan.show_whole_plan": "Visa hela planen",
+    "plan.price_estimated": "Priset är uppskattat, ännu inte publicerat",
+    "plan.shared_step_tooltip":
+      "Delat steg: pumpen växlar mellan kretsarna — varmvatten först. " +
+      "Sammanlagt håller sig {kw} kW under pumpens maxeffekt.",
+    "plan.shared_band_title":
+      "Uppvärmning och varmvatten delar de här kvartarna: pumpen växlar " +
+      "mellan kretsarna inom varje steg, varmvatten först. Deras " +
+      "sammanlagda effekt överstiger aldrig värmepumpens maxeffekt — " +
+      "tiden delas, inget dubbelbokas.",
+
+    "reasons.comfort_floor": "Håller minimitemperaturen",
+    "reasons.cheap_price": "Billigaste timmarna",
+    "reasons.preheat_weather": "Förvärmer inför kallare väder",
+    "reasons.terminal_value": "Lämnar huset varmt bortom horisonten",
+    "reasons.solar_surplus": "Använder solöverskott",
+    "reasons.dhw_window": "Varmvatten behövs nu",
+    "reasons.dhw_ready": "Gör tanken redo inför ett behovsfönster",
+    "reasons.dhw_preheat": "Laddar tanken medan elen är billig",
+    "reasons.legionella": "Legionellaskyddscykel",
+    "reasons.manual_plan": "Du har schemalagt detta",
+    "reasons.idle": "Värmer inte",
+
+    "slots.lane_dhw": "Varmvatten",
+    "slots.lane_space": "Värme",
+    "menu.remove_slot_dhw": "Ta bort det här varmvattenpasset",
+    "menu.remove_slot_space": "Ta bort det här värmepasset",
+    "menu.add_slot_dhw": "Lägg till ett varmvattenpass här",
+    "menu.add_slot_space": "Lägg till ett värmepass här",
+    "slots.no_plan_to_pin": "Ingen plan att låsa ännu.",
+    "slots.applying": "Tillämpar…",
+    "slots.until_suffix": " till {expiry}",
+    "slots.pinned_result":
+      "Låst{until}. De här passen behålls så länge det inte tar huset " +
+      "eller tanken under sina gränser.",
+    "slots.clearing": "Rensar…",
+    "slots.back_to_auto_result": "Tillbaka till automatisk planering.",
+    "slots.released_one":
+      "{n} pass släpptes för att skydda huset eller tanken.",
+    "slots.released_other":
+      "{n} pass släpptes för att skydda huset eller tanken.",
+    "slots.pinned_status": "Dina pass är låsta{until}.",
+
+    "whatif.todays_slots": "Dagens pass",
+    "whatif.slots_hint":
+      "Dra ett pass längs sin bana längst ner i diagrammet för att " +
+      "flytta det, dra i endera kanten för att ändra längden, eller " +
+      "högerklicka på en bana för att lägga till och ta bort pass. Att " +
+      "tillämpa låser dem de kommande {hours} timmarna.",
+    "whatif.zoom_limit_hint":
+      "Inzoomad — redigeringen stannar vid den synliga kanten. Dra ett " +
+      "pass mot kanten för att panorera, eller {button}.",
+    "whatif.show_whole_plan_button": "visa hela planen",
+    "whatif.apply_plan": "Tillämpa denna plan",
+    "whatif.undo_changes": "Ångra mina ändringar",
+    "whatif.back_to_auto": "Tillbaka till automatik",
+    "whatif.usual_schedule": "Mitt vanliga schema",
+    "whatif.schedule_hint":
+      "Det här är de återkommande tider optimeraren planerar efter varje " +
+      "dag, inte bara i dag.",
+    "whatif.heating_hours": "Värmetider",
+    "whatif.day_from": "Dag från",
+    "whatif.day_start_aria": "Värmedagen börjar",
+    "whatif.day_to": "till",
+    "whatif.day_end_aria": "Värmedagen slutar",
+    "whatif.setback_hint": "Utanför dessa tider gäller nattsänkningen.",
+    "whatif.dhw_windows": "Varmvattenfönster",
+    "whatif.window_start_aria": "Fönster {n} start",
+    "whatif.window_end_aria": "Fönster {n} slut",
+    "whatif.remove": "Ta bort",
+    "whatif.remove_window_aria": "Ta bort fönster {n}",
+    "whatif.no_windows_hint":
+      "Inga fönster: varmvatten krävs aldrig, så tanken hålls bara över " +
+      "sitt vilominimum.",
+    "whatif.add_window": "+ Lägg till fönster",
+    "whatif.simulate": "Simulera dessa pass",
+    "whatif.save_schedule": "Spara som mitt schema",
+    "whatif.reset": "Återställ",
+    "whatif.idle_status":
+      "Ändra en inställning för att se vad den skulle kosta. Att " +
+      "simulera ändrar ingenting; att spara ersätter ditt konfigurerade " +
+      "schema.",
+    "whatif.temperatures": "Temperaturer",
+    "whatif.temperatures_hint":
+      "Hur varmt huset hålls under värmedagen, och hur svalt " +
+      "varmvattentanken får bli inom ett behovsfönster. Båda prissätts " +
+      "på samma sätt som schemat ovan.",
+    "whatif.comfort_temp": "Komforttemperatur",
+    "whatif.dhw_min": "Lägsta varmvatten",
+    "whatif.dhw_min_aria": "Lägsta varmvattentemperatur",
+    "whatif.cap_no_setpoint":
+      "Begränsad till {t}&nbsp;°C, tillräckligt långt under varmvattnets " +
+      "börvärde för att lämna tanken ett band att arbeta i.",
+    "whatif.cap_with_setpoint":
+      "Begränsad till {t}&nbsp;°C: ett band på {band}&nbsp;°C under " +
+      "börvärdet {setpoint}&nbsp;°C, så att tanken har utrymme att " +
+      "arbeta i i stället för att jaga sitt mål.",
+    "whatif.clamped_warning":
+      "Ditt sparade minimum på {a}&nbsp;°C ligger över den gränsen, så " +
+      "reglaget visar {b}&nbsp;°C. Vid sparning lagras det lägre värdet.",
+    "whatif.confirm_overwrite": "Bekräfta: skriv över mitt schema",
+    "whatif.confirm_hint":
+      "Detta ersätter dina konfigurerade värmetider, varmvattenfönster " +
+      "och temperaturer, och laddar om integrationen. Tryck igen för att " +
+      "bekräfta.",
+    "whatif.saving": "Sparar…",
+    "whatif.saved_result":
+      "Sparat. Optimeraren laddar om och kommer att planera efter det " +
+      "nya schemat.",
+    "whatif.simulating": "Räknar ut vad det skulle kosta…",
+    "whatif.same_cost":
+      "<b>Ungefär samma kostnad</b> som den nuvarande planen.",
+    "whatif.cheaper_per_month":
+      '<b class="cheaper">{amount} mindre per månad</b> än den nuvarande ' +
+      "planen.",
+    "whatif.dearer_per_month":
+      '<b class="dearer">{amount} mer per månad</b> än den nuvarande ' +
+      "planen.",
+    "whatif.min_room_temp": "Som kallast blir huset {t} °C",
+    "whatif.min_dhw_temp": "Lägsta tanktemperatur: {t} °C",
+    "whatif.compressor_starts_one": "{n} kompressorstart",
+    "whatif.compressor_starts_other": "{n} kompressorstarter",
+    "whatif.rate_limited":
+      "<i>(föregående uppskattning; antalet simuleringar är begränsat)</i>",
+
+    "stats.no_plan_to_compare": "Ingen plandata att jämföra med ännu.",
+    "stats.cheaper": "billigare",
+    "stats.dearer": "dyrare",
+    "stats.the_same": "oförändrad",
+    "stats.delta_detail":
+      "{verdict} jämfört med den sparade planen ({planned} → " +
+      "{edited}&nbsp;{currency}, uppskattat)",
+
+    "time.tomorrow": "{time} i morgon",
+    "time.on_weekday": "{time} på {weekday}",
+
+    "setup.not_published":
+      "Anläggningsbeskrivningen har inte publicerats ännu. Den visas " +
+      "tillsammans med plansensorerna när integrationen har laddats.",
+    "setup.editing_hint":
+      "Dra en låda för att flytta den, dra i en port för att koppla ihop " +
+      "två lådor, eller klicka på ett rör för att ta bort det. Endast en " +
+      "ritning som motsvarar en layout som stöds kan sparas.",
+    "setup.assign_hint":
+      "Klicka på valfri sensor för att tilldela eller rensa den. En tom " +
+      "plats är en sensor som anläggningen skulle kunna använda men " +
+      "saknar; den visas med avsikt.",
+    "setup.done_editing": "Klar med redigeringen",
+    "setup.edit_layout": "Redigera layout",
+    "setup.save_layout": "Spara layout",
+    "setup.verdict_match": "Motsvarar {label}.",
+    "setup.verdict_req": "{label} — {requirement}.",
+    "setup.verdict_not_modelled":
+      "{label} — känd men ännu inte modellerad, så den kan inte väljas.",
+    "setup.verdict_needs": "{label} — kräver {requirement}.",
+    "setup.verdict_cannot_store":
+      "{label} — den nuvarande konfigurationen kan inte lagra denna layout.",
+    "setup.no_catalog":
+      "Ingen layoutkatalog har publicerats för det här systemet.",
+    "setup.verdict_no_match":
+      "Ingen layout som stöds stämmer. Närmast: {label}.",
+    "setup.verdict_extra_edges": "Finns inte i den: {edges}.",
+    "setup.verdict_missing_edges": "Saknas: {edges}.",
+    "setup.saved_reloading": "Sparade {label}. Laddar om…",
+    "setup.svg_aria": "Konfigurerad anläggning",
+
+    "places.heat_pump": "Värmepump",
+    "places.buffer_tank": "Ackumulatortank",
+    "places.mixing_valve": "Shuntventil",
+    "places.upper_zone": "Övervåning",
+    "places.lower_zone": "Nedervåning",
+    "places.wood_tank": "Vedtank",
+    "places.wood_valve": "Vedshunt",
+    "places.dhw_tank": "Varmvattentank",
+    "places.slab_shunt": "Golvshunt",
+
+    "setup.box_hp_tank": "Värmepumpstank",
+    "setup.box_buffer_tank": "Ackumulatortank",
+    "setup.box_4way_valve": "4-vägs shuntventil",
+    "setup.box_mixing_valve": "Shuntventil",
+    "setup.box_outside": "Ute",
+    "setup.box_heat_pump": "Värmepump",
+    "setup.box_wood_tank": "Vedpannetank ({v} L)",
+    "setup.wood_caption": "modelleras som värme in i värmepumpstanken",
+    "setup.buffer_stores": "lagrar upp till {t} °C",
+    "setup.buffer_too_small": "för liten för att lagra",
+    "setup.no_valve_caption": "ingen shuntventil: leveransen stryps inte",
+    "setup.box_dhw_tank": "Varmvattentank",
+    "setup.dhw_coil_caption": "återfylls genom en slinga i vedtanken",
+    "setup.box_upper_floor": "Övervåning",
+    "setup.box_house": "Hus",
+    "setup.box_lower_floor": "Nedervåning (platta)",
+
+    "setup.unavailable": "otillgänglig",
+    "setup.source_weather": "väderprognos",
+    "setup.not_configured": "inte konfigurerad",
+    "setup.click_to_assign_title": "{label} — klicka för att tilldela",
+
+    "setup.picker_aria": "Entitet för {slot}",
+    "setup.picker_none": "(inte konfigurerad)",
+    "setup.assign": "Tilldela",
+    "setup.cancel": "Avbryt",
+    "setup.picker_truncated": "Visar de första {n} matchande entiteterna.",
+    "setup.picker_count": "{n} matchande {domains}-entiteter.",
+    "setup.assigned_reloading": "Tilldelade {entity}. Laddar om…",
+    "setup.cleared_reloading": "Rensat. Laddar om…",
+
+    "errors.not_connected": "Inte ansluten till Home Assistant.",
+    "errors.invalid_window_time":
+      "Ett av varmvattenfönstren är inte en giltig tid.",
+    "errors.day_start_equals_end":
+      "Värmedagen börjar och slutar vid samma timme, vilket inte skulle " +
+      "lämna någon komfortperiod alls.",
+    "errors.could_not_apply": "Kunde inte tillämpa: {err}",
+    "errors.could_not_clear": "Kunde inte rensa: {err}",
+    "errors.could_not_save": "Kunde inte spara: {err}",
+    "errors.could_not_simulate": "Kunde inte simulera: {err}",
+    "errors.no_answer": "Inget svar från optimeraren.",
+    "errors.could_not_save_layout": "Kunde inte spara layouten: {err}",
+    "errors.could_not_assign": "Kunde inte tilldela: {err}",
+    "errors.diag_space": "Uppvärmning",
+    "errors.diag_dhw": "Varmvatten",
+    "errors.no_plan_data": "Ingen plandata tillgänglig ännu.",
+    "errors.diag_not_found":
+      "{label}: ingen entitet hittades. Letade efter <code>{id}</code>. " +
+      "Kontrollera entitets-id:t under Utvecklarverktyg &gt; Tillstånd " +
+      "och ange <code>{kind}_entity</code> i kortets konfiguration.",
+    "errors.diag_unavailable": "{label}: <code>{id}</code> är {state}.",
+    "errors.diag_no_forecast":
+      "{label}: <code>{id}</code> har inget forecast-attribut ännu. Det " +
+      "visas efter den första optimeringskörningen.",
+    "errors.diag_empty_forecast":
+      "{label}: <code>{id}</code> publicerade en tom prognos.",
+    "errors.diag_out_of_window":
+      "{label}: <code>{id}</code> har {n} punkter, men ingen faller inom " +
+      "det valda fönstret.",
+
+    "errors.cfg_not_object":
+      "heatpump-optimizer-card: konfigurationen måste vara ett objekt",
+    "errors.cfg_space_entity":
+      "heatpump-optimizer-card: 'space_entity' måste vara en " +
+      "entitets-id-sträng",
+    "errors.cfg_dhw_entity":
+      "heatpump-optimizer-card: 'dhw_entity' måste vara en " +
+      "entitets-id-sträng",
+    "errors.cfg_solar_entity":
+      "heatpump-optimizer-card: 'solar_entity' måste vara en " +
+      "entitets-id-sträng",
+    "errors.cfg_what_if":
+      "heatpump-optimizer-card: 'what_if' måste vara true eller false",
+    "errors.cfg_hours":
+      "heatpump-optimizer-card: 'hours' måste vara ett tal mellan 1 och 168",
+    "errors.cfg_title":
+      "heatpump-optimizer-card: 'title' måste vara en sträng",
+    "errors.cfg_series":
+      "heatpump-optimizer-card: 'series' måste vara en mappning",
+    "errors.cfg_series_unknown":
+      "heatpump-optimizer-card: okänd serie '{k}' i 'series'",
+    "errors.cfg_series_visibility":
+      "heatpump-optimizer-card: synligheten för serien '{k}' måste vara " +
+      "true eller false",
+    "errors.cfg_show_stats":
+      "heatpump-optimizer-card: 'show_stats' måste vara true eller false",
+
+    "headline.savings": "Beräknad besparing",
+    "headline.savings_title":
+      "Uppskattad besparing för nuvarande plan jämfört med ooptimerad drift.",
+    "headline.score": "Optimeringsbetyg",
+    "headline.score_title":
+      "Hur väl hela anläggningen är inställd och fungerar, 0–100.",
+    "headline.savings_pct": "({pct} %)",
+
+    "slots.slot_aria":
+      "{lane} {start}–{end}. Tryck Enter för åtgärder, Delete för att " +
+      "ta bort.",
+    "slots.lane_aria": "Raden {lane}. Tryck Enter för att lägga till ett pass.",
+
+    "editor.title": "Rubrik",
+    "editor.space_entity": "Sensor för uppvärmningsplan",
+    "editor.dhw_entity": "Sensor för varmvattenplan",
+    "editor.solar_entity": "Sensor för solinstrålning",
+    "editor.hours": "Timmar att visa",
+    "editor.what_if": "Visa schemaredigeraren",
+    "editor.show_stats": "Visa nyckeltalsraden",
+    "editor.currency": "Valuta",
+    "editor.series": "Serier som visas som standard",
+  },
+};
+
+// The active language. Module-level rather than per-instance because Home
+// Assistant has exactly one frontend language per session, and helpers
+// outside the class (fmtExpiry, edgeLabel) need it too.
+let ACTIVE_LANG = "en";
+
+/** "sv-SE" -> "sv"; anything without a dictionary falls back to English. */
+function setLanguage(raw) {
+  const code = String(raw || "en").toLowerCase().split(/[-_]/)[0];
+  ACTIVE_LANG = STRINGS[code] ? code : "en";
+}
+
+/** The translation for `key`, with `{name}` placeholders interpolated.
+ *
+ * Missing keys fall back to English, then to the key itself -- a visible
+ * key on screen beats a silently blank label.
+ */
+function L(key, vars) {
+  const dict = STRINGS[ACTIVE_LANG] || STRINGS.en;
+  let text = dict[key];
+  if (text === undefined) text = STRINGS.en[key];
+  if (text === undefined) return key;
+  if (vars) {
+    text = text.replace(/\{(\w+)\}/g, (match, name) =>
+      vars[name] === undefined ? match : String(vars[name])
+    );
+  }
+  return text;
+}
 
 const DEFAULTS = {
-  title: "Heat pump plan",
+  // No default title here: the default is localized, so it is resolved at
+  // render time (`_title`) rather than baked into the config at setConfig
+  // time, where the language is not yet known.
   // Entity ids are derived from the device name ("Heat Pump Optimizer"), since
   // the plan sensors use has_entity_name. These are the ids a default install
   // produces; if they are absent the card auto-discovers by the `plan_kind`
@@ -27,6 +694,11 @@ const DEFAULTS = {
   // "Simulate" button runs a solve on the Home Assistant host, and only "Save"
   // changes any configuration. Set `what_if: false` to hide the panel entirely.
   what_if: true,
+  // The headline stats row under the title: projected savings, optimization
+  // score and the plan narrative, when the integration publishes them. It
+  // costs nothing when the sensors are absent (the row simply is not
+  // rendered), so it is on by default.
+  show_stats: true,
 };
 
 // Series metadata. `axis` selects one of four value axes: temp / power / price
@@ -37,8 +709,11 @@ const DEFAULTS = {
 const SERIES_DEFS = [
   {
     key: "price",
-    label: "Electricity price",
+    labelKey: "series.price",
     axis: "price",
+    // The rendered unit is dynamic (`_seriesUnit`): the currency comes from
+    // the card config, the plan sensor or Home Assistant. This is only the
+    // fallback shape.
     unit: "SEK/kWh",
     color: "#f5a623",
     sensor: "either",
@@ -47,7 +722,7 @@ const SERIES_DEFS = [
   },
   {
     key: "dhw_slots",
-    label: "DHW heating",
+    labelKey: "series.dhw_slots",
     axis: "power",
     unit: "kW",
     color: "#e0544e",
@@ -57,7 +732,7 @@ const SERIES_DEFS = [
   },
   {
     key: "space_slots",
-    label: "Space heating",
+    labelKey: "series.space_slots",
     axis: "power",
     unit: "kW",
     color: "#4a90e2",
@@ -67,7 +742,7 @@ const SERIES_DEFS = [
   },
   {
     key: "outdoor",
-    label: "Outdoor temperature",
+    labelKey: "series.outdoor",
     axis: "temp",
     unit: "\u00b0C",
     color: "#7d8794",
@@ -77,7 +752,7 @@ const SERIES_DEFS = [
   },
   {
     key: "dhw_temp",
-    label: "DHW tank temperature",
+    labelKey: "series.dhw_temp",
     axis: "temp",
     unit: "\u00b0C",
     color: "#c264d0",
@@ -87,7 +762,7 @@ const SERIES_DEFS = [
   },
   {
     key: "house_temp",
-    label: "House temperature",
+    labelKey: "series.house_temp",
     axis: "temp",
     unit: "\u00b0C",
     color: "#2fae7a",
@@ -102,7 +777,7 @@ const SERIES_DEFS = [
     // Scaling it into the power axis as kW/m² was the alternative, but a
     // 0.8 kW/m² line sharing a scale with a 5 kW compressor is unreadable.
     key: "solar",
-    label: "Solar irradiance",
+    labelKey: "series.solar",
     axis: "solar",
     unit: "W/m\u00b2",
     color: "#f2c94c",
@@ -174,7 +849,33 @@ const _coarsePointer = () => {
     return false;
   }
 };
+// The card's only animation is a decorative fade on the zoom controls; a user
+// who asked the OS for reduced motion gets none of it. Read at render time
+// (the style block is rebuilt on every render), with a CSS media query as the
+// belt to this suspender for changes between renders.
+const _reducedMotion = () => {
+  try {
+    return !!(
+      typeof window !== "undefined" &&
+      window.matchMedia &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    );
+  } catch (err) {
+    return false;
+  }
+};
 const PLAN_STEP_MS = 15 * 60000;
+
+// The headline row's sensors, found by entity-id suffix. Unlike the plan
+// sensors these publish no `plan_kind`-style marker to discover them by, so
+// the id suffix — stable under has_entity_name for any device name — is the
+// contract. Order matters only to the re-render signature.
+const HEADLINE_SUFFIXES = [
+  "_predicted_savings",
+  "_savings_percentage",
+  "_optimization_score",
+  "_plan_narrative",
+];
 // Slot-drag edge auto-pan: how close to the plot edge (screen px) engages it,
 // and how often the parked pointer advances the view.
 const AUTOPAN_MARGIN_PX = 28;
@@ -229,37 +930,42 @@ const SETUP_MAX_Y = 2000;
 // carries its own title -- so a place added on the backend without a label
 // here degrades to its id rather than disappearing.
 const PLACE_LABELS = {
-  heat_pump: "Heat pump",
-  buffer_tank: "Buffer tank",
-  mixing_valve: "Mixing valve",
-  upper_zone: "Upper floor",
-  lower_zone: "Lower floor",
-  wood_tank: "Wood tank",
-  wood_valve: "Wood mixing valve",
-  dhw_tank: "Hot water tank",
-  slab_shunt: "Slab shunt",
+  heat_pump: "places.heat_pump",
+  buffer_tank: "places.buffer_tank",
+  mixing_valve: "places.mixing_valve",
+  upper_zone: "places.upper_zone",
+  lower_zone: "places.lower_zone",
+  wood_tank: "places.wood_tank",
+  wood_valve: "places.wood_valve",
+  dhw_tank: "places.dhw_tank",
+  slab_shunt: "places.slab_shunt",
 };
+
+/** A place id as something a person can read; unknown ids stay as-is. */
+function placeLabel(id) {
+  return PLACE_LABELS[id] ? L(PLACE_LABELS[id]) : id;
+}
 
 /** "mixing_valve>lower_zone" as something a person can read. */
 function edgeLabel(name) {
   const [a, b] = String(name).split(">");
-  return `${PLACE_LABELS[a] || a} → ${PLACE_LABELS[b] || b}`;
+  return `${placeLabel(a)} → ${placeLabel(b)}`;
 }
 
 // Human-readable labels for the plan reason codes the optimizer publishes.
 // Without these an unexpected slot is indistinguishable from a bug.
 const REASON_LABELS = {
-  comfort_floor: "Holding the minimum temperature",
-  cheap_price: "Cheapest hours",
-  preheat_weather: "Pre-heating before colder weather",
-  terminal_value: "Leaving the house warm past the horizon",
-  solar_surplus: "Using solar surplus",
-  dhw_window: "Hot water needed now",
-  dhw_ready: "Getting the tank ready for a demand window",
-  dhw_preheat: "Charging the tank while electricity is cheap",
-  legionella: "Anti-legionella cycle",
-  manual_plan: "You scheduled this",
-  idle: "Not heating",
+  comfort_floor: "reasons.comfort_floor",
+  cheap_price: "reasons.cheap_price",
+  preheat_weather: "reasons.preheat_weather",
+  terminal_value: "reasons.terminal_value",
+  solar_surplus: "reasons.solar_surplus",
+  dhw_window: "reasons.dhw_window",
+  dhw_ready: "reasons.dhw_ready",
+  dhw_preheat: "reasons.dhw_preheat",
+  legionella: "reasons.legionella",
+  manual_plan: "reasons.manual_plan",
+  idle: "reasons.idle",
 };
 
 /** Stop a click inside the panel from reaching the card's expand handler. */
@@ -366,9 +1072,16 @@ function clampNum(v, lo, hi) {
  * usually falls on the following day. Under the old midnight rule the day was
  * implicit and a bare "until 08:30" was unambiguous; it no longer is, so say
  * which day whenever it is not today.
+ *
+ * Dates are formatted in ACTIVE_LANG, not the browser locale: this string is
+ * embedded in prose translated per hass.language, and a browser set to
+ * another language would otherwise yield "Låst till 17:00 på Friday".
  */
 function fmtExpiry(when) {
-  const time = when.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const time = when.toLocaleTimeString(ACTIVE_LANG, {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
   const today = new Date();
   const sameDay =
     when.getFullYear() === today.getFullYear() &&
@@ -381,8 +1094,11 @@ function fmtExpiry(when) {
     when.getFullYear() === tomorrow.getFullYear() &&
     when.getMonth() === tomorrow.getMonth() &&
     when.getDate() === tomorrow.getDate();
-  if (isTomorrow) return `${time} tomorrow`;
-  return `${time} on ${when.toLocaleDateString([], { weekday: "long" })}`;
+  if (isTomorrow) return L("time.tomorrow", { time });
+  return L("time.on_weekday", {
+    time,
+    weekday: when.toLocaleDateString(ACTIVE_LANG, { weekday: "long" }),
+  });
 }
 
 /** A temperature for prose: no trailing ".0" on whole degrees. */
@@ -623,52 +1339,43 @@ class HeatpumpOptimizerCard extends HTMLElement {
 
   setConfig(config) {
     if (config === null || typeof config !== "object") {
-      throw new Error("heatpump-optimizer-card: configuration must be an object");
+      throw new Error(L("errors.cfg_not_object"));
     }
     const cfg = { ...DEFAULTS, ...config };
 
     if (typeof cfg.space_entity !== "string" || !cfg.space_entity.includes(".")) {
-      throw new Error(
-        "heatpump-optimizer-card: 'space_entity' must be an entity id string"
-      );
+      throw new Error(L("errors.cfg_space_entity"));
     }
     if (typeof cfg.dhw_entity !== "string" || !cfg.dhw_entity.includes(".")) {
-      throw new Error(
-        "heatpump-optimizer-card: 'dhw_entity' must be an entity id string"
-      );
+      throw new Error(L("errors.cfg_dhw_entity"));
     }
     if (typeof cfg.solar_entity !== "string" || !cfg.solar_entity.includes(".")) {
-      throw new Error(
-        "heatpump-optimizer-card: 'solar_entity' must be an entity id string"
-      );
+      throw new Error(L("errors.cfg_solar_entity"));
     }
     if (typeof cfg.what_if !== "boolean") {
-      throw new Error("heatpump-optimizer-card: 'what_if' must be true or false");
+      throw new Error(L("errors.cfg_what_if"));
+    }
+    if (typeof cfg.show_stats !== "boolean") {
+      throw new Error(L("errors.cfg_show_stats"));
     }
     const hours = Number(cfg.hours);
     if (!Number.isFinite(hours) || hours <= 0 || hours > 168) {
-      throw new Error(
-        "heatpump-optimizer-card: 'hours' must be a number between 1 and 168"
-      );
+      throw new Error(L("errors.cfg_hours"));
     }
     cfg.hours = hours;
     if (cfg.title !== undefined && typeof cfg.title !== "string") {
-      throw new Error("heatpump-optimizer-card: 'title' must be a string");
+      throw new Error(L("errors.cfg_title"));
     }
     if (cfg.series !== undefined) {
       if (typeof cfg.series !== "object" || cfg.series === null) {
-        throw new Error("heatpump-optimizer-card: 'series' must be a map");
+        throw new Error(L("errors.cfg_series"));
       }
       for (const k of Object.keys(cfg.series)) {
         if (!SERIES_DEFS.some((s) => s.key === k)) {
-          throw new Error(
-            `heatpump-optimizer-card: unknown series '${k}' in 'series'`
-          );
+          throw new Error(L("errors.cfg_series_unknown", { k }));
         }
         if (typeof cfg.series[k] !== "boolean") {
-          throw new Error(
-            `heatpump-optimizer-card: series '${k}' visibility must be true or false`
-          );
+          throw new Error(L("errors.cfg_series_visibility", { k }));
         }
       }
     }
@@ -681,6 +1388,10 @@ class HeatpumpOptimizerCard extends HTMLElement {
 
   set hass(hass) {
     this._hass = hass;
+    // The frontend's language rides on the hass object; keep the dictionary
+    // in step before anything renders. `_signature` includes the language,
+    // so a switch re-renders even when the data has not changed.
+    setLanguage(hass && hass.language);
     this._maybeRender(false);
   }
 
@@ -698,6 +1409,13 @@ class HeatpumpOptimizerCard extends HTMLElement {
       space_entity: DEFAULTS.space_entity,
       dhw_entity: DEFAULTS.dhw_entity,
     };
+  }
+
+  /** The visual editor, defined in this same file (no build step, no lazy
+   * chunk to fetch). Home Assistant awaits the return value, so returning
+   * the element directly is part of the contract. */
+  static getConfigElement() {
+    return document.createElement(EDITOR_TAG);
   }
 
   connectedCallback() {
@@ -742,7 +1460,19 @@ class HeatpumpOptimizerCard extends HTMLElement {
 
   // ---- persistence -------------------------------------------------------
 
+  // Two cards can plot the same entities — a 24 h card on the wall panel
+  // dashboard and a 48 h card with its own title on another — so the key
+  // carries the card's config identity (title + hours), not just its data
+  // sources. Otherwise a series toggled off on one card silently disappears
+  // from the other.
   _storageKey(cfg) {
+    const title = cfg.title !== undefined ? cfg.title : "";
+    return `${CARD_TAG}:${cfg.space_entity}:${cfg.dhw_entity}:${title}:${cfg.hours}`;
+  }
+
+  /** The pre-v4.2.0 key, read as a fallback so an upgrade does not silently
+   * drop every saved series toggle. Writes always go to the new key. */
+  _storageKeyLegacy(cfg) {
     return `${CARD_TAG}:${cfg.space_entity}:${cfg.dhw_entity}`;
   }
 
@@ -757,7 +1487,9 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // localStorage overrides config so user toggles survive reloads.
     try {
       if (typeof localStorage !== "undefined") {
-        const raw = localStorage.getItem(this._storageKey(cfg));
+        const raw =
+          localStorage.getItem(this._storageKey(cfg)) ||
+          localStorage.getItem(this._storageKeyLegacy(cfg));
         if (raw) {
           const saved = JSON.parse(raw);
           if (saved && typeof saved === "object") {
@@ -885,7 +1617,23 @@ class HeatpumpOptimizerCard extends HTMLElement {
       dhwFc ? dhwFc.length : -1,
       solarFc ? solarFc.length : -1,
       JSON.stringify(this._hidden),
+      // A language switch or a currency change redraws text without any
+      // plan data changing, so both belong in the signature.
+      ACTIVE_LANG,
+      this._currency(),
+      // The headline reads its own sensors; leaving them out would freeze
+      // the row at whatever the first render saw.
+      this._headlineSignature(),
     ].join("|");
+  }
+
+  /** The headline sensors' contribution to the re-render signature. */
+  _headlineSignature() {
+    if (!this._config.show_stats) return "off";
+    return HEADLINE_SUFFIXES.map((sfx) => {
+      const st = this._statEntity(sfx);
+      return st ? `${st.state}@${st.last_updated || ""}` : "-";
+    }).join("~");
   }
 
   _maybeRender(force) {
@@ -1010,30 +1758,196 @@ class HeatpumpOptimizerCard extends HTMLElement {
   // else, so distinguish not-found from present-but-empty.
   _diagnose(kind) {
     const id = this._resolveEntity(kind);
-    const label = kind === "space" ? "Space heating" : "DHW";
+    const label = L(kind === "space" ? "errors.diag_space" : "errors.diag_dhw");
     const st = this._stateOf(id);
     if (!st) {
-      return `${label}: no entity found. Looked for <code>${esc(id)}</code>.
-        Check the entity id in Developer Tools &gt; States and set
-        <code>${kind}_entity</code> in the card config.`;
+      return L("errors.diag_not_found", { label, id: esc(id), kind });
     }
     if (st.state === "unavailable" || st.state === "unknown") {
-      return `${label}: <code>${esc(id)}</code> is ${esc(st.state)}.`;
+      return L("errors.diag_unavailable", {
+        label,
+        id: esc(id),
+        state: esc(st.state),
+      });
     }
     const fc = this._forecast(id);
     if (!fc) {
-      return `${label}: <code>${esc(id)}</code> has no forecast attribute yet.
-        It appears after the first optimization run.`;
+      return L("errors.diag_no_forecast", { label, id: esc(id) });
     }
     if (!fc.length) {
-      return `${label}: <code>${esc(id)}</code> published an empty forecast.`;
+      return L("errors.diag_empty_forecast", { label, id: esc(id) });
     }
-    return `${label}: <code>${esc(id)}</code> has ${fc.length} points, but none
-      fall in the selected window.`;
+    return L("errors.diag_out_of_window", {
+      label,
+      id: esc(id),
+      n: fc.length,
+    });
+  }
+
+  /** The card's display title: the configured one, or the localized default. */
+  _title() {
+    const t = this._config && this._config.title;
+    return t !== undefined ? t : L("header.default_title");
+  }
+
+  // ---- headline stats ----------------------------------------------------
+
+  /** The state object of a headline sensor, found by id suffix and cached.
+   *
+   * The savings/score/narrative sensors publish no `plan_kind`-style marker,
+   * so the suffix — which has_entity_name keeps stable under any device
+   * name — is the discovery contract.
+   *
+   * They also share a device with the plan sensors, which means they share
+   * an entity-id prefix. Deriving the stat id from the RESOLVED plan sensor
+   * (config first, then plan_kind discovery — `_resolveEntity` already owns
+   * that) is both cheap and scoped to this card's config entry; a global
+   * scan could bind the headline to another entry's — or a foreign
+   * integration's — sensors. The scan survives only as a fallback for
+   * hand-renamed stat entities, and its result is cached even when it is a
+   * miss: the negative cache is keyed to the number of `sensor.` ids, so a
+   * late-arriving backend is still found without rescanning every state
+   * batch.
+   */
+  _statEntity(suffix) {
+    const states = this._hass && this._hass.states;
+    if (!states) return null;
+    if (!this._statCache) this._statCache = {};
+    if (!this._statMissAt) this._statMissAt = {};
+    const cached = this._statCache[suffix];
+    if (cached && states[cached]) return states[cached];
+
+    for (const [kind, planSuffix] of [
+      ["space", "_space_heating_plan"],
+      ["dhw", "_dhw_heating_plan"],
+    ]) {
+      const planId = this._resolveEntity(kind);
+      if (!planId || !states[planId] || !planId.endsWith(planSuffix)) {
+        continue;
+      }
+      const candidate = planId.slice(0, -planSuffix.length) + suffix;
+      if (states[candidate]) {
+        this._statCache[suffix] = candidate;
+        delete this._statMissAt[suffix];
+        return states[candidate];
+      }
+    }
+
+    const count = this._sensorCount(states);
+    if (this._statMissAt[suffix] === count) return null;
+    // Sorted iteration makes a tie deterministic, the same choice
+    // `_resolveEntity` makes.
+    for (const id of Object.keys(states).sort()) {
+      if (!id.startsWith("sensor.") || !id.endsWith(suffix)) continue;
+      this._statCache[suffix] = id;
+      delete this._statMissAt[suffix];
+      return states[id];
+    }
+    this._statMissAt[suffix] = count;
+    return null;
+  }
+
+  /** How many `sensor.` entity ids this state batch holds.
+   *
+   * Memoized per batch object — hass replaces `states` wholesale on every
+   * update, so object identity is the batch's identity. This is what the
+   * negative cache above is keyed to.
+   */
+  _sensorCount(states) {
+    if (this._sensorCountFor !== states) {
+      let n = 0;
+      for (const id of Object.keys(states)) {
+        if (id.startsWith("sensor.")) n++;
+      }
+      this._sensorCountFor = states;
+      this._sensorCountN = n;
+    }
+    return this._sensorCountN;
+  }
+
+  /** A headline sensor's state as a finite number, or null. */
+  _statNumber(suffix) {
+    const st = this._statEntity(suffix);
+    if (!st || st.state === "unavailable" || st.state === "unknown") {
+      return null;
+    }
+    const v = Number(st.state);
+    return Number.isFinite(v) ? v : null;
+  }
+
+  /** The compact stats row under the header, or nothing at all.
+   *
+   * Every part is optional because every source sensor is: the score sensor
+   * is unavailable until enough history exists, the savings sensors null out
+   * between optimizer runs, and old integrations publish none of them. A row
+   * with nothing to say renders no chrome rather than an empty strip.
+   */
+  _headlineHtml() {
+    if (!this._config.show_stats) return "";
+    const items = [];
+
+    const savings = this._statNumber("_predicted_savings");
+    if (savings !== null) {
+      const pct = this._statNumber("_savings_percentage");
+      // The savings sensor declares the unit its value is denominated in;
+      // nothing here converts, so a card-config `currency:` must not relabel
+      // it. `_currency()` only fills in when the sensor declares no unit.
+      const savingsSt = this._statEntity("_predicted_savings");
+      const unit =
+        (savingsSt &&
+          savingsSt.attributes &&
+          savingsSt.attributes.unit_of_measurement) ||
+        this._currency();
+      const value =
+        `${savings.toFixed(2)} ${unit}` +
+        (pct !== null
+          ? ` ${L("headline.savings_pct", { pct: pct.toFixed(0) })}`
+          : "");
+      items.push({
+        cls: "savings",
+        title: L("headline.savings_title"),
+        label: L("headline.savings"),
+        value,
+      });
+    }
+
+    const score = this._statNumber("_optimization_score");
+    if (score !== null) {
+      items.push({
+        cls: "score",
+        title: L("headline.score_title"),
+        label: L("headline.score"),
+        value: `${Math.round(score)}/100`,
+      });
+    }
+
+    // The narrative arrives already rendered in Home Assistant's language
+    // (the coordinator owns those templates), so the first line is shown
+    // verbatim rather than re-keyed here.
+    const narrative = this._statEntity("_plan_narrative");
+    const lines =
+      narrative && narrative.attributes && narrative.attributes.lines;
+    const line =
+      Array.isArray(lines) && typeof lines[0] === "string" && lines[0]
+        ? lines[0]
+        : null;
+
+    if (!items.length && !line) return "";
+    const stats = items
+      .map(
+        (it) =>
+          `<span class="hl-stat hl-${it.cls}" title="${esc(it.title)}">` +
+          `<span class="hl-label">${esc(it.label)}</span> ` +
+          `<span class="hl-value">${esc(it.value)}</span></span>`
+      )
+      .join("");
+    return `<div class="headline">
+      ${stats ? `<div class="hl-stats">${stats}</div>` : ""}
+      ${line ? `<div class="hl-narrative">${esc(line)}</div>` : ""}
+    </div>`;
   }
 
   _render() {
-    const cfg = this._config;
     // The dialog body scrolls now, and `_render` replaces the whole shadow root
     // on every plan refresh -- which happens on the coordinator's schedule, not
     // the user's. Without carrying the offset across the rebuild the panel would
@@ -1050,7 +1964,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
 
     let body;
     if (!anyData) {
-      body = `<div class="empty">No plan data available yet.<br>
+      body = `<div class="empty">${L("errors.no_plan_data")}<br>
         ${this._diagnose("space")}<br>
         ${this._diagnose("dhw")}</div>`;
       this._plot = null;
@@ -1071,14 +1985,17 @@ class HeatpumpOptimizerCard extends HTMLElement {
       <ha-card class="${anyData ? "clickable" : ""}">
         ${style}
         <div class="header">
-          <span class="title">${esc(cfg.title)}</span>
+          <span class="title">${esc(this._title())}</span>
           ${
             anyData
-              ? `<button type="button" class="expand" title="Enlarge"
-                   aria-label="Enlarge chart">${EXPAND_ICON}</button>`
+              ? `<button type="button" class="expand" title="${esc(
+                  L("header.enlarge")
+                )}"
+                   aria-label="${esc(L("header.enlarge_chart"))}">${EXPAND_ICON}</button>`
               : ""
           }
         </div>
+        ${this._headlineHtml()}
         ${legend}
         ${body}
       </ha-card>
@@ -1115,7 +2032,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
   }
 
   _dialogHtml(built) {
-    const cfg = this._config;
     // Which page the dialog shows is instance state on purpose: `_render`
     // rebuilds the shadow root on every plan refresh, on the coordinator's
     // schedule, and a refresh must not yank the user off the setup page they
@@ -1133,15 +2049,15 @@ class HeatpumpOptimizerCard extends HTMLElement {
          data-page="${id}" role="tab"
          aria-selected="${page === id}">${label}</button>`;
     return `
-      <dialog class="expanded" aria-label="${esc(cfg.title)}">
+      <dialog class="expanded" aria-label="${esc(this._title())}">
         <div class="dlg-head">
-          <span class="title">${esc(cfg.title)}</span>
+          <span class="title">${esc(this._title())}</span>
           <div class="dlg-tabs" role="tablist">
-            ${tab("plan", "Plan")}
-            ${tab("setup", "Setup")}
+            ${tab("plan", esc(L("header.tab_plan")))}
+            ${tab("setup", esc(L("header.tab_setup")))}
           </div>
-          <button type="button" class="close" title="Close"
-            aria-label="Close">${CLOSE_ICON}</button>
+          <button type="button" class="close" title="${esc(L("header.close"))}"
+            aria-label="${esc(L("header.close"))}">${CLOSE_ICON}</button>
         </div>
         ${page === "plan" ? this._legendHtml() : ""}
         <div class="dlg-body">
@@ -1166,8 +2082,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     const topo = this._planAttrRaw("setup_topology", null);
     if (!topo || !Array.isArray(topo.slots)) {
       return `<div class="setup-page"><div class="empty">
-        The setup description has not been published yet. It appears with the
-        plan sensors after the integration loads.</div></div>`;
+        ${L("setup.not_published")}</div></div>`;
     }
     const editing = this._layoutEditing();
     // The svg lives in a wrapper of its own so an edit can redraw the diagram
@@ -1179,13 +2094,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
       <div class="setup-canvas">${this._setupSvg(topo)}</div>
       ${this._setupPickerHtml(topo)}
       <div class="setup-hint">${
-        editing
-          ? `Drag a box to move it, drag a port to connect two boxes, or click
-             a pipe to remove it. Only a drawing that matches a supported
-             layout can be saved.`
-          : `Click any sensor to assign it, or to clear it.
-      An empty slot is a sensor this setup could use and does not have; it is
-      shown on purpose.`
+        editing ? L("setup.editing_hint") : L("setup.assign_hint")
       }</div>
       <div class="setup-result" role="status"></div></div>`;
   }
@@ -1226,13 +2135,13 @@ class HeatpumpOptimizerCard extends HTMLElement {
       <div class="layout-bar">
         <button type="button" class="layout-edit-toggle${active ? " on" : ""}"
           aria-pressed="${active}">${
-            active ? "Done editing" : "Edit layout"
+            active ? esc(L("setup.done_editing")) : esc(L("setup.edit_layout"))
           }</button>
         ${
           active
             ? `<button type="button" class="layout-save"${
                 this._layoutSaveable() ? "" : ` disabled="disabled"`
-              }>Save layout</button>`
+              }>${esc(L("setup.save_layout"))}</button>`
             : ""
         }
         ${
@@ -1277,18 +2186,25 @@ class HeatpumpOptimizerCard extends HTMLElement {
     return `
       <div class="setup-picker">
         <div class="sp-title">${esc(slot.label)}</div>
-        <select class="sp-select" aria-label="Entity for ${esc(slot.label)}">
-          <option value="">(not configured)</option>
+        <select class="sp-select" aria-label="${esc(
+          L("setup.picker_aria", { slot: slot.label })
+        )}">
+          <option value="">${esc(L("setup.picker_none"))}</option>
           ${options}
         </select>
         <div class="sp-actions">
-          <button type="button" class="sp-save">Assign</button>
-          <button type="button" class="sp-cancel">Cancel</button>
+          <button type="button" class="sp-save">${esc(L("setup.assign"))}</button>
+          <button type="button" class="sp-cancel">${esc(L("setup.cancel"))}</button>
         </div>
         <div class="sp-note">${
           candidates.length >= PICKER_MAX_OPTIONS
-            ? `Showing the first ${PICKER_MAX_OPTIONS} matching entities.`
-            : `${candidates.length} matching ${domains.join("/")} entities.`
+            ? esc(L("setup.picker_truncated", { n: PICKER_MAX_OPTIONS }))
+            : esc(
+                L("setup.picker_count", {
+                  n: candidates.length,
+                  domains: domains.join("/"),
+                })
+              )
         }</div>
       </div>`;
   }
@@ -1296,15 +2212,30 @@ class HeatpumpOptimizerCard extends HTMLElement {
   /** Wire the setup page's clickable slots and its picker. */
   _attachSetupEvents(root) {
     this._attachLayoutEditor(root);
+    const openPicker = (key, viaKeyboard) => {
+      // While the layout editor is open a click on a box is the start of a
+      // drag, not a request to assign a sensor. Opening the picker over the
+      // diagram being edited would put a dialog on top of the drag.
+      if (this._layoutEditing()) return;
+      this._pickerKey = key;
+      // Opened from the keyboard, focus must land in the picker: the hit
+      // target that had it is rebuilt by the render below, so without this
+      // the keyboard user is dropped back at the top of the dialog.
+      this._pickerFocus = !!viaKeyboard;
+      this._render();
+    };
     for (const hit of root.querySelectorAll(".setup-hit")) {
       hit.addEventListener("click", (ev) => {
         ev.stopPropagation();
-        // While the layout editor is open a click on a box is the start of a
-        // drag, not a request to assign a sensor. Opening the picker over the
-        // diagram being edited would put a dialog on top of the drag.
-        if (this._layoutEditing()) return;
-        this._pickerKey = ev.currentTarget.dataset.key;
-        this._render();
+        openPicker(ev.currentTarget.dataset.key, false);
+      });
+      // The hits are focusable buttons (role="button"), so Enter and Space
+      // must do what a click does.
+      hit.addEventListener("keydown", (ev) => {
+        if (ev.key !== "Enter" && ev.key !== " ") return;
+        if (ev.preventDefault) ev.preventDefault();
+        stop(ev);
+        openPicker(ev.currentTarget.dataset.key, true);
       });
     }
     const picker = root.querySelector(".setup-picker");
@@ -1312,17 +2243,36 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // Every control stops propagation: the dialog closes on a click that
     // lands on its backdrop, and a click inside the picker is not that.
     picker.addEventListener("click", (ev) => ev.stopPropagation());
+    // Escape backs out of the picker without assigning, from any of its
+    // controls — the keyboard twin of the Cancel button. Closing re-renders,
+    // which destroys whichever picker control held focus, so focus is
+    // walked back to the setup row the picker was opened from.
+    picker.addEventListener("keydown", (ev) => {
+      if (ev.key !== "Escape") return;
+      stop(ev);
+      const key = this._pickerKey;
+      this._pickerKey = null;
+      this._render();
+      this._restoreSetupFocus(key);
+    });
+    const select = picker.querySelector(".sp-select");
+    if (select && this._pickerFocus) {
+      this._pickerFocus = false;
+      if (typeof select.focus === "function") select.focus();
+    }
     const cancel = picker.querySelector(".sp-cancel");
     if (cancel) {
       cancel.addEventListener("click", (ev) => {
         ev.stopPropagation();
+        const key = this._pickerKey;
         this._pickerKey = null;
         this._render();
+        this._restoreSetupFocus(key);
       });
     }
     const save = picker.querySelector(".sp-save");
     if (save) {
-      save.addEventListener("click", async (ev) => {
+      const assign = async (ev) => {
         ev.stopPropagation();
         const select = picker.querySelector(".sp-select");
         const key = this._pickerKey;
@@ -1339,16 +2289,30 @@ class HeatpumpOptimizerCard extends HTMLElement {
           // drawn from is replaced a moment later. Say what happened rather
           // than leaving a diagram that has not caught up yet looking wrong.
           this._setupNote = entityId
-            ? `Assigned ${entityId}. Reloading…`
-            : "Cleared. Reloading…";
+            ? L("setup.assigned_reloading", { entity: entityId })
+            : L("setup.cleared_reloading");
         } catch (err) {
-          this._setupNote = `Could not assign: ${
-            (err && err.message) || err
-          }`;
+          this._setupNote = L("errors.could_not_assign", {
+            err: (err && err.message) || err,
+          });
         }
         this._render();
         if (note) note.textContent = this._setupNote || "";
-      });
+        // Success closed the picker (and the render destroyed the control
+        // that had focus): return focus to the row that was assigned. A
+        // failure keeps the picker open, and focus with it.
+        if (this._pickerKey === null) this._restoreSetupFocus(key);
+      };
+      save.addEventListener("click", assign);
+      // Enter on the select assigns the chosen entity — the picker's one
+      // "submit" action, without a Tab trip to the button.
+      if (select) {
+        select.addEventListener("keydown", (ev) => {
+          if (ev.key !== "Enter") return;
+          if (ev.preventDefault) ev.preventDefault();
+          assign(ev);
+        });
+      }
     }
   }
 
@@ -1473,7 +2437,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     if (match) {
       ed.match = match;
       ed.invalid = [];
-      ed.verdict = `Matches ${match.label}.`;
+      ed.verdict = L("setup.verdict_match", { label: match.label });
       return;
     }
     ed.match = null;
@@ -1486,34 +2450,39 @@ class HeatpumpOptimizerCard extends HTMLElement {
       // a sentence that at least says which side is at fault.
       ed.invalid = [];
       const req = sameButUnusable.requirement;
+      const label = sameButUnusable.label;
       ed.verdict =
         sameButUnusable.selectable === false
           ? req
-            ? `${sameButUnusable.label} — ${req}.`
-            : `${sameButUnusable.label} — known but not modelled yet, so it ` +
-              `cannot be selected.`
+            ? L("setup.verdict_req", { label, requirement: req })
+            : L("setup.verdict_not_modelled", { label })
           : req
-            ? `${sameButUnusable.label} — needs ${req}.`
-            : `${sameButUnusable.label} — the current configuration cannot ` +
-              `store this layout.`;
+            ? L("setup.verdict_needs", { label, requirement: req })
+            : L("setup.verdict_cannot_store", { label });
       return;
     }
     if (!nearest) {
       ed.invalid = [];
-      ed.verdict = "No layout catalog was published for this system.";
+      ed.verdict = L("setup.no_catalog");
       return;
     }
     const extra = [...drawn].filter((k) => !nearestSet.has(k));
     const missing = [...nearestSet].filter((k) => !drawn.has(k));
     ed.invalid = extra;
-    const parts = [
-      `No supported layout matches. Closest: ${nearest.label}.`,
-    ];
+    const parts = [L("setup.verdict_no_match", { label: nearest.label })];
     if (extra.length) {
-      parts.push(`Not in it: ${extra.map(edgeLabel).join("; ")}.`);
+      parts.push(
+        L("setup.verdict_extra_edges", {
+          edges: extra.map(edgeLabel).join("; "),
+        })
+      );
     }
     if (missing.length) {
-      parts.push(`Missing: ${missing.map(edgeLabel).join("; ")}.`);
+      parts.push(
+        L("setup.verdict_missing_edges", {
+          edges: missing.map(edgeLabel).join("; "),
+        })
+      );
     }
     ed.verdict = parts.join(" ");
   }
@@ -1709,12 +2678,12 @@ class HeatpumpOptimizerCard extends HTMLElement {
       // The write reloads the integration, so the topology the card draws
       // from is replaced a moment later; say so rather than leaving a
       // diagram that has not caught up looking wrong.
-      this._setupNote = `Saved ${label}. Reloading…`;
+      this._setupNote = L("setup.saved_reloading", { label });
       this._layoutEdit = null;
     } catch (err) {
-      this._setupNote = `Could not save the layout: ${
-        (err && err.message) || err
-      }`;
+      this._setupNote = L("errors.could_not_save_layout", {
+        err: (err && err.message) || err,
+      });
     }
     this._render();
     if (note) note.textContent = this._setupNote || "";
@@ -1727,7 +2696,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
       ? this._hass.states[slot.entity]
       : null;
     if (!st || st.state === "unavailable" || st.state === "unknown") {
-      return "unavailable";
+      return L("setup.unavailable");
     }
     // HA's own formatter applies the user's unit system and any per-entity
     // display override, so a natively-°F probe reads in °C on a metric
@@ -1761,7 +2730,8 @@ class HeatpumpOptimizerCard extends HTMLElement {
     if (!Number.isFinite(v)) return null;
     const source = (st.attributes || {}).source;
     if (!source) return null;
-    const label = source === "open_meteo" ? "Open-Meteo" : "weather forecast";
+    const label =
+      source === "open_meteo" ? "Open-Meteo" : L("setup.source_weather");
     return `${Math.round(v)} W/m² · ${label}`;
   }
 
@@ -1822,36 +2792,39 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // With two modelled stores the names have to say which tank is which,
     // and the one valve is the physical 4-way device the wood tank, the
     // heat-pump tank and both floors all meet at.
-    const tankTitle = twoTank ? "Heat pump tank" : "Buffer tank";
-    const valveTitle = twoTank ? "4-way mixing valve" : "Mixing valve";
-    box(0, "Outside", ["outdoor"]);
-    box(0, "Heat pump", ["heat_pump"]);
+    const tankTitle = L(twoTank ? "setup.box_hp_tank" : "setup.box_buffer_tank");
+    const valveTitle = L(
+      twoTank ? "setup.box_4way_valve" : "setup.box_mixing_valve"
+    );
+    box(0, L("setup.box_outside"), ["outdoor"]);
+    box(0, L("setup.box_heat_pump"), ["heat_pump"]);
     if (topo.wood && topo.wood.present) {
       // Honest caption: while wood heat is a single-tank abstraction the
       // drawing must say so rather than let the separate box imply
       // separately modelled physics. Under the two-tank model the box is
       // the physics, so the caption comes off (issue #40).
-      box(0, `Wood furnace tank (${Math.round(topo.wood.volume_l)} L)`,
+      box(0, L("setup.box_wood_tank", { v: Math.round(topo.wood.volume_l) }),
         ["wood_tank"],
-        twoTank ? [] : ["modelled as heat into the heat-pump tank"]);
+        twoTank ? [] : [L("setup.wood_caption")]);
     }
     const buf = topo.buffer || {};
     const bufExtra = valve
       ? [buf.is_store
-          ? `stores up to ${Math.round(buf.max_temp)} °C`
-          : "too small to store"]
-      : ["no mixing valve: delivery is not throttled"];
+          ? L("setup.buffer_stores", { t: Math.round(buf.max_temp) })
+          : L("setup.buffer_too_small")]
+      : [L("setup.no_valve_caption")];
     if (valve) {
       box(1, `${valveTitle} (${esc(String(topo.valve_mode))})`,
         ["mixing_valve"]);
     }
     box(1, `${tankTitle} (${Math.round(buf.volume_l || 0)} L)`,
       ["buffer_tank"], bufExtra);
-    if (topo.dhw) box(1, "Hot water tank", ["dhw_tank"],
-      dhwCoil ? ["refilled through a wood tank coil"] : []);
-    box(2, topo.two_zone ? "Upper floor" : "House", ["upper_zone"]);
+    if (topo.dhw) box(1, L("setup.box_dhw_tank"), ["dhw_tank"],
+      dhwCoil ? [L("setup.dhw_coil_caption")] : []);
+    box(2, L(topo.two_zone ? "setup.box_upper_floor" : "setup.box_house"),
+      ["upper_zone"]);
     if (topo.two_zone) {
-      box(2, "Lower floor (slab)", ["lower_zone", "floor_loop"]);
+      box(2, L("setup.box_lower_floor"), ["lower_zone", "floor_loop"]);
     }
 
     // Lay the columns out top to bottom, then draw. All sizes in viewBox
@@ -1902,7 +2875,10 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // column, which feeds the house column.
     const anchor = (b) => ({ x: b.x + colW, y: b.y + b.h / 2 });
     const to = (b) => ({ x: b.x, y: b.y + b.h / 2 });
-    const find = (t) => boxes.find((b) => b.title.startsWith(t));
+    // Boxes are found by their place id, never by their (localized) title:
+    // matching on display text is exactly what would silently drop pipes the
+    // moment a title is translated.
+    const findPlace = (p) => boxes.find((b) => b.place === p);
     // Boxes in the same column stack vertically, so their connection is a
     // short vertical pipe; a right-to-left curve between them crosses every
     // box in between and reads as spaghetti. `edge` names the connection so
@@ -1926,14 +2902,14 @@ class HeatpumpOptimizerCard extends HTMLElement {
         C ${anchor(a).x + 30} ${anchor(a).y},
           ${to(b).x - 30} ${to(b).y}, ${to(b).x} ${to(b).y}" />`;
     };
-    const bufferBox = find(tankTitle);
-    const houseBox = find(topo.two_zone ? "Upper floor" : "House");
+    const bufferBox = findPlace("buffer_tank");
+    const houseBox = findPlace("upper_zone");
     // One shared flow serves every circuit: whatever regulates the supply —
     // the mixing valve when one exists, the raw tank when not — feeds BOTH
     // floors in parallel. Drawing the lower floor from the tank while a
     // valve throttled the upper one contradicted the model, which computes
     // one t_mix and delivers both circuits from it (issue #40).
-    const supplyBox = valve ? find(valveTitle) : bufferBox;
+    const supplyBox = valve ? findPlace("mixing_valve") : bufferBox;
     const supplyName = valve ? "valve" : "buffer";
 
     // The place each edge endpoint is drawn at. Two places fold: the
@@ -1981,37 +2957,33 @@ class HeatpumpOptimizerCard extends HTMLElement {
           L ${drag.x} ${drag.y}" />`);
       }
     } else {
-      // "Heat pump tank" also starts with "Heat pump", so the pump itself is
-      // matched exactly rather than by prefix.
-      parts.push(line(boxes.find((b) => b.title === "Heat pump"), bufferBox,
-        "hp-buffer"));
+      parts.push(line(findPlace("heat_pump"), bufferBox, "hp-buffer"));
       if (twoTank) {
         // Both stores feed the same 4-way valve; there is no wood-side valve
         // and no path that pours the wood tank into the heat-pump tank.
-        parts.push(line(find("Wood furnace tank"), supplyBox, "wood-valve"));
+        parts.push(line(findPlace("wood_tank"), supplyBox, "wood-valve"));
       } else {
         // Tank to tank: the wood-side blending valve stopped being a box of
         // its own in v4.0.0 (#40 feedback, item 3).
-        parts.push(line(find("Wood furnace tank"), bufferBox,
-          "wood-buffer"));
+        parts.push(line(findPlace("wood_tank"), bufferBox, "wood-buffer"));
       }
       // A second, separate path out of the wood tank: mains water on its way
       // into the hot water tank, not heating water on its way to the house.
       // No other edge stands for it, so without this pipe the diagram shows a
       // hot water tank that the wood tank cannot reach.
       if (dhwCoil) {
-        parts.push(line(find("Wood furnace tank"), find("Hot water tank"),
+        parts.push(line(findPlace("wood_tank"), findPlace("dhw_tank"),
           "wood-dhw"));
       }
       parts.push(line(supplyBox, houseBox, `${supplyName}-upper`));
       if (valve) parts.push(line(bufferBox, supplyBox, "buffer-valve"));
-      if (topo.two_zone) parts.push(line(supplyBox, find("Lower floor"),
+      if (topo.two_zone) parts.push(line(supplyBox, findPlace("lower_zone"),
         `${supplyName}-lower`));
       // Electric hot water: the pump heats the DHW tank on every layout
       // (#40 feedback, item 2) — stale payloads deserve the pipe too.
       if (topo.dhw) {
-        parts.push(line(boxes.find((b) => b.title === "Heat pump"),
-          find("Hot water tank"), "hp-dhw"));
+        parts.push(line(findPlace("heat_pump"), findPlace("dhw_tank"),
+          "hp-dhw"));
       }
     }
 
@@ -2021,7 +2993,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
       for (const s of b.rows) {
         const live = this._slotLive(s);
         let cls = s.entity ? "setup-slot" : "setup-slot empty";
-        let value = live === null ? "not configured" : live;
+        let value = live === null ? L("setup.not_configured") : live;
         // A value the plan actively uses must never read as absent: with no
         // radiation sensor the irradiance still comes from Open-Meteo or
         // the weather forecast, and the box says which.
@@ -2048,9 +3020,14 @@ class HeatpumpOptimizerCard extends HTMLElement {
         // respond at all -- which reads as a diagram that is only sometimes
         // clickable.
         rows.push(`<rect class="setup-hit" data-key="${esc(s.key)}"
+          tabindex="0" role="button" aria-label="${esc(
+            L("setup.click_to_assign_title", { label: s.label })
+          )}"
           x="${b.x + 2}" y="${y - rowH + 4}" width="${colW - 4}"
           height="${rowH}" rx="3">
-          <title>${esc(s.label)} — click to assign</title></rect>`);
+          <title>${esc(
+            L("setup.click_to_assign_title", { label: s.label })
+          )}</title></rect>`);
         y += rowH;
       }
       for (const ex of b.extra) {
@@ -2096,9 +3073,12 @@ class HeatpumpOptimizerCard extends HTMLElement {
         </g>`);
     }
 
+    // role="group", not "img": the assignment hit targets inside are
+    // focusable buttons, and "img" would flatten them out of the
+    // accessibility tree.
     return `<svg class="setup-svg${editing ? " editing" : ""}" viewBox="0 0 ${W} ${H}"
-      xmlns="http://www.w3.org/2000/svg" role="img"
-      aria-label="Configured system">${parts.join("")}</svg>`;
+      xmlns="http://www.w3.org/2000/svg" role="group"
+      aria-label="${esc(L("setup.svg_aria"))}">${parts.join("")}</svg>`;
   }
 
   /** The what-if panel, shown in the expanded view only.
@@ -2145,30 +3125,40 @@ class HeatpumpOptimizerCard extends HTMLElement {
       clamped = draft.dhwMin;
       draft.dhwMin = ceiling;
     }
+    const windowHours = this._planAttr(
+      "manual_plan_window_hours",
+      MANUAL_PLAN_WINDOW_FALLBACK_H
+    );
     return `
       <div class="whatif">
         <div class="wi-section">
-          <div class="wi-group-title">Today's slots</div>
+          <div class="wi-group-title">${esc(L("whatif.todays_slots"))}</div>
           <div class="wi-hint">
-            Drag a slot along its lane at the bottom of the chart to move it,
-            drag either edge to resize it, or right-click a lane to add and
-            remove slots. Applying pins them for the next 20 hours.
+            ${L("whatif.slots_hint", { hours: windowHours })}
           </div>
           ${
             this._viewLimitsEditing()
-              ? `<div class="wi-viewlimit">Zoomed in — editing stops at the
-            visible edge. Drag a slot against the edge to pan, or
-            <button type="button" class="wi-viewreset">show the whole plan</button>.</div>`
+              ? `<div class="wi-viewlimit">${L("whatif.zoom_limit_hint", {
+                  button:
+                    `<button type="button" class="wi-viewreset">` +
+                    `${esc(L("whatif.show_whole_plan_button"))}</button>`,
+                })}</div>`
               : ""
           }
           ${this._overrideHtml()}
           <div class="wi-row wi-delta">${this._deltaHtml()}</div>
           <div class="wi-row wi-actions">
-            <button type="button" class="wi-pin">Apply this plan</button>
-            <button type="button" class="wi-revert">Undo my changes</button>
+            <button type="button" class="wi-pin">${esc(
+              L("whatif.apply_plan")
+            )}</button>
+            <button type="button" class="wi-revert">${esc(
+              L("whatif.undo_changes")
+            )}</button>
             ${
               this._manualOverride()
-                ? `<button type="button" class="wi-auto">Back to automatic</button>`
+                ? `<button type="button" class="wi-auto">${esc(
+                    L("whatif.back_to_auto")
+                  )}</button>`
                 : ""
             }
           </div>
@@ -2176,29 +3166,32 @@ class HeatpumpOptimizerCard extends HTMLElement {
         </div>
 
         <div class="wi-section">
-          <div class="wi-group-title">My usual schedule</div>
+          <div class="wi-group-title">${esc(L("whatif.usual_schedule"))}</div>
           <div class="wi-hint">
-            These are the recurring hours the optimizer plans against every
-            day, not just today.
+            ${L("whatif.schedule_hint")}
           </div>
         <div class="wi-row wi-slots">
           <div class="wi-group">
-            <div class="wi-group-title">Heating hours</div>
+            <div class="wi-group-title">${esc(L("whatif.heating_hours"))}</div>
             <label class="wi-field">
-              <span>Day from</span>
+              <span>${esc(L("whatif.day_from"))}</span>
               <input type="time" class="wi-day-start" step="3600"
-                value="${hhmm(draft.dayStart)}" aria-label="Heating day starts">
+                value="${hhmm(draft.dayStart)}" aria-label="${esc(
+                  L("whatif.day_start_aria")
+                )}">
             </label>
             <label class="wi-field">
-              <span>to</span>
+              <span>${esc(L("whatif.day_to"))}</span>
               <input type="time" class="wi-day-end" step="3600"
-                value="${hhmm(draft.dayEnd)}" aria-label="Heating day ends">
+                value="${hhmm(draft.dayEnd)}" aria-label="${esc(
+                  L("whatif.day_end_aria")
+                )}">
             </label>
-            <div class="wi-hint">Outside these hours the night setback applies.</div>
+            <div class="wi-hint">${L("whatif.setback_hint")}</div>
           </div>
 
           <div class="wi-group">
-            <div class="wi-group-title">Hot water windows</div>
+            <div class="wi-group-title">${esc(L("whatif.dhw_windows"))}</div>
             <div class="wi-windows">
               ${windows.length
                 ? windows
@@ -2206,76 +3199,87 @@ class HeatpumpOptimizerCard extends HTMLElement {
                       (w, i) => `
                 <div class="wi-window" data-index="${i}">
                   <input type="time" class="wi-win-start" step="900"
-                    value="${esc(w.start)}" aria-label="Window ${i + 1} start">
+                    value="${esc(w.start)}" aria-label="${esc(
+                      L("whatif.window_start_aria", { n: i + 1 })
+                    )}">
                   <span>–</span>
                   <input type="time" class="wi-win-end" step="900"
-                    value="${esc(w.end)}" aria-label="Window ${i + 1} end">
+                    value="${esc(w.end)}" aria-label="${esc(
+                      L("whatif.window_end_aria", { n: i + 1 })
+                    )}">
                   <button type="button" class="wi-remove" data-index="${i}"
-                    title="Remove" aria-label="Remove window ${i + 1}">×</button>
+                    title="${esc(L("whatif.remove"))}" aria-label="${esc(
+                      L("whatif.remove_window_aria", { n: i + 1 })
+                    )}">×</button>
                 </div>`
                     )
                     .join("")
-                : `<div class="wi-hint">No windows: hot water is never
-                     required, so the tank is only kept above its idle
-                     minimum.</div>`}
+                : `<div class="wi-hint">${L("whatif.no_windows_hint")}</div>`}
             </div>
-            <button type="button" class="wi-add">+ Add window</button>
+            <button type="button" class="wi-add">${esc(
+              L("whatif.add_window")
+            )}</button>
           </div>
         </div>
 
         <div class="wi-row wi-actions">
-          <button type="button" class="wi-apply">Simulate these slots</button>
-          <button type="button" class="wi-save">Save as my schedule</button>
-          <button type="button" class="wi-reset">Reset</button>
+          <button type="button" class="wi-apply">${esc(
+            L("whatif.simulate")
+          )}</button>
+          <button type="button" class="wi-save">${esc(
+            L("whatif.save_schedule")
+          )}</button>
+          <button type="button" class="wi-reset">${esc(
+            L("whatif.reset")
+          )}</button>
         </div>
 
         <div class="wi-result" role="status">
-          Change a setting to see what it would cost. Simulating changes
-          nothing; saving replaces your configured schedule.
+          ${L("whatif.idle_status")}
         </div>
         </div>
 
         <div class="wi-section">
-          <div class="wi-group-title">Temperatures</div>
+          <div class="wi-group-title">${esc(L("whatif.temperatures"))}</div>
           <div class="wi-hint">
-            How warm the house is kept during the heating day, and how cool the
-            hot water tank is allowed to get inside a demand window. Both are
-            priced the same way as the schedule above.
+            ${L("whatif.temperatures_hint")}
           </div>
           <div class="wi-row">
             <label class="wi-field">
-              <span>Comfort temperature</span>
+              <span>${esc(L("whatif.comfort_temp"))}</span>
               <input type="range" class="wi-temp" min="16" max="24" step="0.5"
-                value="${draft.comfort}" aria-label="Comfort temperature">
+                value="${draft.comfort}" aria-label="${esc(
+                  L("whatif.comfort_temp")
+                )}">
               <span class="wi-value wi-comfort-value">${draft.comfort.toFixed(1)}&nbsp;°C</span>
             </label>
           </div>
           <div class="wi-row">
             <label class="wi-field">
-              <span>Minimum hot water</span>
+              <span>${esc(L("whatif.dhw_min"))}</span>
               <input type="range" class="wi-dhw-min" min="${DHW_MIN_FLOOR}"
                 max="${ceiling}" step="0.5" value="${draft.dhwMin}"
-                aria-label="Minimum hot water temperature">
+                aria-label="${esc(L("whatif.dhw_min_aria"))}">
               <span class="wi-value wi-dhw-value">${draft.dhwMin.toFixed(1)}&nbsp;°C</span>
             </label>
           </div>
           <div class="wi-hint">
             ${
               setpoint === null
-                ? `Capped at ${fmtTemp(ceiling)}&nbsp;°C, far enough below the
-                   hot water setpoint to leave the tank a band to work in.`
-                : `Capped at ${fmtTemp(ceiling)}&nbsp;°C: a
-                   ${fmtTemp(setpoint - ceiling)}&nbsp;°C band below the
-                   ${fmtTemp(setpoint)}&nbsp;°C setpoint, so the tank has room
-                   to work in instead of chasing its target.`
+                ? L("whatif.cap_no_setpoint", { t: fmtTemp(ceiling) })
+                : L("whatif.cap_with_setpoint", {
+                    t: fmtTemp(ceiling),
+                    band: fmtTemp(setpoint - ceiling),
+                    setpoint: fmtTemp(setpoint),
+                  })
             }
           </div>
           ${
             clamped
-              ? `<div class="wi-hint wi-warn">Your saved minimum of
-                   ${fmtTemp(clamped)}&nbsp;°C is above that limit, so the
-                   slider shows ${fmtTemp(draft.dhwMin)}&nbsp;°C. Saving will
-                   store the lower value.</div>`
+              ? `<div class="wi-hint wi-warn">${L("whatif.clamped_warning", {
+                  a: fmtTemp(clamped),
+                  b: fmtTemp(draft.dhwMin),
+                })}</div>`
               : ""
           }
         </div>
@@ -2377,18 +3381,22 @@ class HeatpumpOptimizerCard extends HTMLElement {
     const until = info.expires_at ? new Date(info.expires_at) : null;
     const when =
       until && !Number.isNaN(until.getTime())
-        ? ` until ${fmtExpiry(until)}`
+        ? L("slots.until_suffix", { expiry: fmtExpiry(until) })
         : "";
     const released =
       (info.released_space || []).length + (info.released_dhw || []).length;
     const note = released
-      ? ` <span class="dearer">${released} slot${
-          released === 1 ? " was" : "s were"
-        } released to protect the house or the tank.</span>`
+      ? ` <span class="dearer">${esc(
+          L(
+            released === 1 ? "slots.released_one" : "slots.released_other",
+            { n: released }
+          )
+        )}</span>`
       : "";
-    return `<div class="wi-row wi-override" role="status">Your slots are pinned${esc(
-      when
-    )}.${note}</div>`;
+    return `<div class="wi-row wi-override" role="status">${L(
+      "slots.pinned_status",
+      { until: esc(when) }
+    )}${note}</div>`;
   }
 
   /** Demand windows the DHW plan sensor is currently planning against. */
@@ -2455,10 +3463,10 @@ class HeatpumpOptimizerCard extends HTMLElement {
         }));
     }
     if (!Object.keys(payload).length) {
-      this._slotResult("No plan to pin yet.", "dearer");
+      this._slotResult(L("slots.no_plan_to_pin"), "dearer");
       return;
     }
-    this._slotResult("Applying…");
+    this._slotResult(L("slots.applying"));
     Promise.resolve(
       this._hass.callService(
         "heatpump_optimizer",
@@ -2479,20 +3487,16 @@ class HeatpumpOptimizerCard extends HTMLElement {
           : null;
         const when =
           until && !Number.isNaN(until.getTime())
-            ? ` until ${fmtExpiry(until)}`
+            ? L("slots.until_suffix", { expiry: fmtExpiry(until) })
             : "";
         // Deliberately not a promise that these slots will run: the optimizer
         // releases a pin that would take the house or the tank below its
         // limits, and saying otherwise would be a lie the user acts on.
-        this._slotResult(
-          `Pinned${when}. These slots will be kept unless doing so would take` +
-            ` the house or the tank below its limits.`,
-          "cheaper"
-        );
+        this._slotResult(L("slots.pinned_result", { until: when }), "cheaper");
       })
       .catch((err) => {
         this._slotResult(
-          `Could not apply: ${(err && err.message) || err}`,
+          L("errors.could_not_apply", { err: (err && err.message) || err }),
           "dearer"
         );
       });
@@ -2500,18 +3504,18 @@ class HeatpumpOptimizerCard extends HTMLElement {
 
   _clearManualPlan() {
     if (!this._hass || !this._hass.callService) return;
-    this._slotResult("Clearing…");
+    this._slotResult(L("slots.clearing"));
     Promise.resolve(
       this._hass.callService("heatpump_optimizer", "clear_manual_plan", {})
     )
       .then(() => {
         this._resetRuns();
-        this._slotResult("Back to automatic planning.");
+        this._slotResult(L("slots.back_to_auto_result"));
         this._render();
       })
       .catch((err) => {
         this._slotResult(
-          `Could not clear: ${(err && err.message) || err}`,
+          L("errors.could_not_clear", { err: (err && err.message) || err }),
           "dearer"
         );
       });
@@ -2672,7 +3676,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
 
     if (!this._hass || typeof this._hass.callService !== "function") {
       out.className = "wi-result dearer";
-      out.textContent = "Not connected to Home Assistant.";
+      out.textContent = L("errors.not_connected");
       return;
     }
 
@@ -2682,25 +3686,21 @@ class HeatpumpOptimizerCard extends HTMLElement {
     );
     if (invalid) {
       out.className = "wi-result dearer";
-      out.textContent = "One of the hot water windows is not a valid time.";
+      out.textContent = L("errors.invalid_window_time");
       return;
     }
     if (draft.dayStart === draft.dayEnd) {
       out.className = "wi-result dearer";
-      out.textContent =
-        "The heating day starts and ends at the same hour, which would " +
-        "leave no comfort period at all.";
+      out.textContent = L("errors.day_start_equals_end");
       return;
     }
 
     if (!this._pendingSave) {
       this._pendingSave = true;
-      button.textContent = "Confirm: overwrite my schedule";
+      button.textContent = L("whatif.confirm_overwrite");
       button.classList.add("confirm");
       out.className = "wi-result";
-      out.textContent =
-        "This replaces your configured heating hours, hot water windows and " +
-        "temperatures, and reloads the integration. Press again to confirm.";
+      out.textContent = L("whatif.confirm_hint");
       // Let the decision lapse rather than sit armed indefinitely: a stray
       // click minutes later should not rewrite the configuration.
       clearTimeout(this._saveTimer);
@@ -2710,7 +3710,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
 
     this._cancelPendingSave();
     out.className = "wi-result";
-    out.textContent = "Saving…";
+    out.textContent = L("whatif.saving");
     button.disabled = true;
     try {
       await this._hass.callService("heatpump_optimizer", "apply_schedule", {
@@ -2721,15 +3721,15 @@ class HeatpumpOptimizerCard extends HTMLElement {
         dhw_min_temperature: draft.dhwMin,
       });
       out.className = "wi-result cheaper";
-      out.textContent =
-        "Saved. The optimizer is reloading and will plan against the new " +
-        "schedule.";
+      out.textContent = L("whatif.saved_result");
       // The draft has become the configuration, so drop it: keeping it would
       // leave the editor showing an "unsaved" copy of what is now saved.
       this._whatIf = null;
     } catch (err) {
       out.className = "wi-result dearer";
-      out.textContent = `Could not save: ${(err && err.message) || err}`;
+      out.textContent = L("errors.could_not_save", {
+        err: (err && err.message) || err,
+      });
     } finally {
       button.disabled = false;
     }
@@ -2742,7 +3742,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     const button =
       this.shadowRoot && this.shadowRoot.querySelector(".wi-save");
     if (button) {
-      button.textContent = "Save as my schedule";
+      button.textContent = L("whatif.save_schedule");
       button.classList.remove("confirm");
     }
   }
@@ -2777,12 +3777,12 @@ class HeatpumpOptimizerCard extends HTMLElement {
     );
     if (invalid) {
       out.className = "wi-result dearer";
-      out.textContent = "One of the hot water windows is not a valid time.";
+      out.textContent = L("errors.invalid_window_time");
       return;
     }
 
     out.className = "wi-result";
-    out.textContent = "Working out what that would cost…";
+    out.textContent = L("whatif.simulating");
     try {
       const response = await this._hass.callService(
         "heatpump_optimizer",
@@ -2798,17 +3798,17 @@ class HeatpumpOptimizerCard extends HTMLElement {
       if (!first || first.error) {
         out.className = "wi-result dearer";
         out.textContent = first && first.error
-          ? `Could not simulate: ${first.error}`
-          : "No answer from the optimizer.";
+          ? L("errors.could_not_simulate", { err: first.error })
+          : L("errors.no_answer");
         return;
       }
       out.className = "wi-result";
       out.innerHTML = this._whatIfSummary(first);
     } catch (err) {
       out.className = "wi-result dearer";
-      out.textContent = `Could not simulate: ${
-        err && err.message ? err.message : err
-      }`;
+      out.textContent = L("errors.could_not_simulate", {
+        err: err && err.message ? err.message : err,
+      });
     }
   }
 
@@ -2822,16 +3822,16 @@ class HeatpumpOptimizerCard extends HTMLElement {
     const parts = [];
 
     if (!Number.isFinite(delta)) {
-      return "No answer from the optimizer.";
+      return L("errors.no_answer");
     }
     if (Math.abs(delta) < 0.5) {
-      parts.push(`<b>About the same cost</b> as the current plan.`);
+      parts.push(L("whatif.same_cost"));
     } else {
       const cheaper = delta < 0;
       parts.push(
-        `<b class="${cheaper ? "cheaper" : "dearer"}">` +
-          `${Math.abs(delta).toFixed(0)} ${cheaper ? "less" : "more"} per month` +
-          `</b> than the current plan.`
+        L(cheaper ? "whatif.cheaper_per_month" : "whatif.dearer_per_month", {
+          amount: Math.abs(delta).toFixed(0),
+        })
       );
     }
 
@@ -2840,7 +3840,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     if (Number.isFinite(room)) {
       const drop = Number.isFinite(roomBase) ? room - roomBase : null;
       parts.push(
-        `Coldest the house gets: ${room.toFixed(1)} °C` +
+        L("whatif.min_room_temp", { t: room.toFixed(1) }) +
           (drop !== null && Math.abs(drop) >= 0.1
             ? ` (${drop > 0 ? "+" : ""}${drop.toFixed(1)})`
             : "")
@@ -2852,7 +3852,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     if (Number.isFinite(dhw)) {
       const drop = Number.isFinite(dhwBase) ? dhw - dhwBase : null;
       parts.push(
-        `Lowest tank temperature: ${dhw.toFixed(1)} °C` +
+        L("whatif.min_dhw_temp", { t: dhw.toFixed(1) }) +
           (drop !== null && Math.abs(drop) >= 0.1
             ? ` (${drop > 0 ? "+" : ""}${drop.toFixed(1)})`
             : "")
@@ -2860,10 +3860,17 @@ class HeatpumpOptimizerCard extends HTMLElement {
     }
 
     if (Number.isFinite(Number(result.compressor_starts))) {
-      parts.push(`${result.compressor_starts} compressor starts`);
+      parts.push(
+        L(
+          Number(result.compressor_starts) === 1
+            ? "whatif.compressor_starts_one"
+            : "whatif.compressor_starts_other",
+          { n: result.compressor_starts }
+        )
+      );
     }
     if (result.rate_limited) {
-      parts.push("<i>(previous estimate; simulations are rate-limited)</i>");
+      parts.push(L("whatif.rate_limited"));
     }
 
     return (
@@ -2963,6 +3970,23 @@ class HeatpumpOptimizerCard extends HTMLElement {
         .chip:focus-visible {
           outline: 2px solid var(--primary-color, #03a9f4); outline-offset: 2px;
         }
+        /* The SVG's keyboard-reachable parts: slots, lanes, setup rows. */
+        .slot:focus-visible, .lane:focus-visible, .setup-hit:focus-visible {
+          outline: 2px solid var(--primary-color, #03a9f4); outline-offset: 1px;
+        }
+        .headline {
+          display: flex; flex-direction: column; gap: 2px;
+          padding: 0 4px 8px 4px;
+        }
+        .hl-stats {
+          display: flex; flex-wrap: wrap; gap: 2px 16px; font-size: 0.85em;
+        }
+        .hl-label { color: var(--secondary-text-color); }
+        .hl-value { font-weight: 600; color: var(--primary-text-color); }
+        .hl-narrative {
+          font-size: 0.82em; font-style: italic;
+          color: var(--secondary-text-color);
+        }
         .legend {
           display: flex; flex-wrap: wrap; gap: 6px; padding: 0 2px 8px 2px;
         }
@@ -2986,7 +4010,16 @@ class HeatpumpOptimizerCard extends HTMLElement {
         .viewctl {
           position: absolute; top: 4px; left: 50%; transform: translateX(-50%);
           display: flex; gap: 2px; z-index: 4;
-          opacity: 0; transition: opacity 120ms ease-in-out;
+          opacity: 0;${
+            /* The fade is the card's only animation, and it is decorative:
+               reduced-motion users get an instant show/hide instead. Checked
+               here because the style block is rebuilt per render, with the
+               media query below as the live fallback between renders. */
+            _reducedMotion() ? "" : " transition: opacity 120ms ease-in-out;"
+          }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .viewctl { transition: none; }
         }
         .chartwrap:hover .viewctl,
         .viewctl:focus-within { opacity: 1; }
@@ -3433,13 +4466,25 @@ class HeatpumpOptimizerCard extends HTMLElement {
       const hasData = s ? s.hasData : false;
       const hidden = !!this._hidden[def.key];
       const cls = "chip" + (hidden ? " off" : "") + (hasData ? "" : " nodata");
+      const label = L(def.labelKey);
       return `<button type="button" class="${cls}" data-key="${def.key}" title="${esc(
-        def.label
-      )} (${esc(def.unit)})">
-        <span class="dot" style="background:${def.color}"></span>${esc(def.label)}
+        label
+      )} (${esc(this._seriesUnit(def))})">
+        <span class="dot" style="background:${def.color}"></span>${esc(label)}
       </button>`;
     }).join("");
     return `<div class="legend">${chips}</div>`;
+  }
+
+  /** The unit a series renders with. Only the price unit is dynamic: its
+   * currency comes from the config, the plan sensor or Home Assistant. */
+  _seriesUnit(def) {
+    return def.axis === "price" ? this._priceUnit() : def.unit;
+  }
+
+  /** "SEK/kWh", "EUR/kWh", ... from the resolved currency. */
+  _priceUnit() {
+    return `${this._currency()}/kWh`;
   }
 
   _chartSvg(built, expanded) {
@@ -3524,10 +4569,13 @@ class HeatpumpOptimizerCard extends HTMLElement {
     const titleFits = (unit, room) =>
       textWidth(unit, font) + font * 0.6 <= room;
     const powerTitleInset = 44;
+    // The price axis title carries the resolved currency, so the measured
+    // string and the drawn string must be the same value.
+    const priceUnit = this._priceUnit();
     const tempAnchor =
       axes.power && !titleFits("\u00b0C", powerTitleInset) ? "start" : "end";
     const priceAnchor =
-      axes.solar && !titleFits("SEK/kWh", SOLAR_AXIS_INSET) ? "end" : "start";
+      axes.solar && !titleFits(priceUnit, SOLAR_AXIS_INSET) ? "end" : "start";
 
     if (axes.temp)
       parts.push(
@@ -3547,7 +4595,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
       parts.push(
         this._valueAxis(
           axes.price, plotR, plotB, plotH, "right", 0,
-          scaleY, "price", "SEK/kWh", font, priceAnchor
+          scaleY, "price", priceUnit, font, priceAnchor
         )
       );
     if (axes.solar)
@@ -3566,7 +4614,9 @@ class HeatpumpOptimizerCard extends HTMLElement {
         `<line x1="${nx}" y1="${plotT}" x2="${nx}" y2="${plotB}" stroke="var(--primary-color,#03a9f4)" stroke-width="1.5" stroke-dasharray="4 3"/>`
       );
       parts.push(
-        `<text x="${nx + 3}" y="${plotT + font + 1}" font-size="${font}" fill="var(--primary-color,#03a9f4)">now</text>`
+        `<text x="${nx + 3}" y="${plotT + font + 1}" font-size="${font}" fill="var(--primary-color,#03a9f4)">${esc(
+          L("plan.now")
+        )}</text>`
       );
     }
 
@@ -3583,7 +4633,9 @@ class HeatpumpOptimizerCard extends HTMLElement {
         )}" height="${plotH}" fill="var(--secondary-text-color,#888)" fill-opacity="0.07"/>`
       );
       parts.push(
-        `<text x="${ex + 4}" y="${plotB - 5}" font-size="${font}" fill="var(--secondary-text-color,#888)">estimated prices</text>`
+        `<text x="${ex + 4}" y="${plotB - 5}" font-size="${font}" fill="var(--secondary-text-color,#888)">${esc(
+          L("plan.estimated_prices")
+        )}</text>`
       );
     }
 
@@ -3623,8 +4675,17 @@ class HeatpumpOptimizerCard extends HTMLElement {
       `<line class="crosshair" pointer-events="none" x1="0" y1="${plotT}" x2="0" y2="${plotB}" stroke="var(--secondary-text-color,#888)" stroke-width="1" visibility="hidden"/>`
     );
 
-    return `<svg viewBox="0 0 ${VIEW_W} ${VIEW_H}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${esc(
-      this._config.title
+    // role="img" flattens every descendant for assistive tech, which is
+    // right for a pure picture but wrong the moment the lanes put focusable
+    // slots inside it — those need "group" so they stay in the tree. The
+    // editable chart also takes tabindex="-1": it is the last-resort home
+    // for restored focus (`_restoreSlotFocus`), and an svg without a
+    // tabindex refuses programmatic focus.
+    const editing = this._editingEnabled();
+    return `<svg viewBox="0 0 ${VIEW_W} ${VIEW_H}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" role="${
+      editing ? "group" : "img"
+    }"${editing ? ' tabindex="-1"' : ""} aria-label="${esc(
+      this._title()
     )}">${parts.join("")}</svg>`;
   }
 
@@ -3633,7 +4694,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
    * Rendered as plain HTML positioned over the card rather than as SVG, so it
    * is not clipped by the chart and inherits the dialog's font.
    */
-  _openSlotMenu(channel, at, clientX, clientY, svg) {
+  _openSlotMenu(channel, at, clientX, clientY, svg, focusMenu) {
     const root = this.shadowRoot;
     if (!root) return;
     this._closeSlotMenu();
@@ -3653,11 +4714,18 @@ class HeatpumpOptimizerCard extends HTMLElement {
     menu.className = "slot-menu";
     menu.style.left = `${clientX - (rect.left || 0)}px`;
     menu.style.top = `${clientY - (rect.top || 0)}px`;
-    const label = channel === "dhw" ? "hot water" : "heating";
+    // Whole sentences per channel rather than an interpolated noun: gendered
+    // articles and compound nouns make "Remove this {channel} slot" untranslatable.
+    const dhw = channel === "dhw";
     menu.innerHTML = editable
-      ? `<button type="button" data-act="remove">Remove this ${esc(label)} slot</button>`
-      : `<button type="button" data-act="add">Add a ${esc(label)} slot here</button>`;
+      ? `<button type="button" data-act="remove">${esc(
+          L(dhw ? "menu.remove_slot_dhw" : "menu.remove_slot_space")
+        )}</button>`
+      : `<button type="button" data-act="add">${esc(
+          L(dhw ? "menu.add_slot_dhw" : "menu.add_slot_space")
+        )}</button>`;
 
+    const svgIndex = this._chartSvgs().indexOf(svg);
     menu.addEventListener("click", (ev) => {
       const act = ((ev.target || {}).dataset || {}).act;
       stop(ev);
@@ -3671,9 +4739,43 @@ class HeatpumpOptimizerCard extends HTMLElement {
       }
       this._closeSlotMenu();
       this._render();
+      // The render just destroyed the element that had focus (the menu's
+      // button, or the slot). Falling to document.body strands a keyboard
+      // user; the lane the action happened in is the logical successor —
+      // the acted-on slot itself no longer exists (removed) or has a new
+      // index (added).
+      this._restoreSlotFocus(channel, null, svgIndex);
     });
+    // Escape dismisses the menu whichever way it was opened. The menu's own
+    // listener covers the keyboard-opened case, where its button holds
+    // focus; a MOUSE-opened menu leaves focus on the chart, so Escape must
+    // also be caught at the document (registered below, removed on close).
+    const onEscape = (ev) => {
+      if (ev.key !== "Escape") return;
+      stop(ev);
+      const origin = this._menuOrigin;
+      this._closeSlotMenu();
+      // Nothing re-rendered, but a keyboard-opened menu moved focus into
+      // its button, which is now gone: send it back where the menu came
+      // from.
+      if (origin) {
+        this._restoreSlotFocus(origin.channel, origin.index, origin.svgIndex);
+      }
+    };
+    menu.addEventListener("keydown", onEscape);
     host.appendChild(menu);
     this._slotMenu = menu;
+    this._menuOrigin = { channel, index: editable ? index : null, svgIndex };
+    const escTarget = this._globalKeyTarget();
+    if (escTarget) {
+      this._menuEscape = onEscape;
+      this._menuEscapeTarget = escTarget;
+      escTarget.addEventListener("keydown", onEscape);
+    }
+    if (focusMenu) {
+      const btn = menu.querySelector("button");
+      if (btn && typeof btn.focus === "function") btn.focus();
+    }
   }
 
   _closeSlotMenu() {
@@ -3682,6 +4784,68 @@ class HeatpumpOptimizerCard extends HTMLElement {
       menu.parentNode.removeChild(menu);
     }
     this._slotMenu = null;
+    this._menuOrigin = null;
+    if (this._menuEscapeTarget && this._menuEscape) {
+      this._menuEscapeTarget.removeEventListener("keydown", this._menuEscape);
+    }
+    this._menuEscape = null;
+    this._menuEscapeTarget = null;
+  }
+
+  /** Where a while-the-menu-is-open key listener can live: keydown events
+   * are composed, so they bubble out of the shadow root to the document. */
+  _globalKeyTarget() {
+    if (typeof document !== "undefined" && document.addEventListener) {
+      return document;
+    }
+    if (typeof window !== "undefined" && window.addEventListener) {
+      return window;
+    }
+    return null;
+  }
+
+  /** Put keyboard focus back near a slot action after the DOM it happened
+   * in was rebuilt (or its menu closed): the same slot re-located by its
+   * channel and index in the fresh chart, else that channel's lane, else
+   * the chart svg itself — never document.body.
+   */
+  _restoreSlotFocus(channel, index, svgIndex) {
+    const svgs = this._chartSvgs(this.shadowRoot);
+    const svg = svgs[svgIndex] || svgs[svgs.length - 1];
+    if (!svg) return;
+    const focus = (el) =>
+      !!(el && typeof el.focus === "function" && (el.focus(), true));
+    if (index !== null && index !== undefined && index >= 0) {
+      for (const slot of svg.querySelectorAll(".slot")) {
+        const d = slot.dataset || {};
+        if (
+          d.channel === channel &&
+          Number(d.index) === Number(index) &&
+          !slot.classList.contains("locked")
+        ) {
+          if (focus(slot)) return;
+        }
+      }
+    }
+    for (const lane of svg.querySelectorAll(".lane")) {
+      if ((lane.dataset || {}).channel === channel) {
+        if (focus(lane)) return;
+      }
+    }
+    focus(svg);
+  }
+
+  /** Focus the setup row the entity picker was opened from, once the picker
+   * has closed and the render that removed it has finished. The row is
+   * re-located by its data-key: the element that had focus was rebuilt. */
+  _restoreSetupFocus(key) {
+    if (!key || !this.shadowRoot) return;
+    for (const hit of this.shadowRoot.querySelectorAll(".setup-hit")) {
+      if ((hit.dataset || {}).key === key) {
+        if (typeof hit.focus === "function") hit.focus();
+        return;
+      }
+    }
   }
 
   /** What the current arrangement would cost against the published plan.
@@ -3720,6 +4884,10 @@ class HeatpumpOptimizerCard extends HTMLElement {
     const hass = this._hass || {};
     return (
       this._config.currency ||
+      // v4.1.0+: the integration publishes the currency its prices are in on
+      // the plan sensors. That beats Home Assistant's global currency, which
+      // describes the install, not the price feed.
+      this._planAttrRaw("currency", null) ||
       (hass.config && hass.config.currency) ||
       "SEK"
     );
@@ -3728,17 +4896,26 @@ class HeatpumpOptimizerCard extends HTMLElement {
   _deltaHtml() {
     const { planned, edited, delta } = this._costDelta();
     if (!Number.isFinite(delta) || (!planned && !edited)) {
-      return `<span class="wi-hint">No plan data to compare against yet.</span>`;
+      return `<span class="wi-hint">${L("stats.no_plan_to_compare")}</span>`;
     }
     const cur = this._currency();
     const cls = delta < -0.005 ? "cheaper" : delta > 0.005 ? "dearer" : "";
     const sign = delta > 0 ? "+" : "";
-    const verdict =
-      cls === "cheaper" ? "cheaper" : cls === "dearer" ? "dearer" : "the same";
+    const verdict = L(
+      cls === "cheaper"
+        ? "stats.cheaper"
+        : cls === "dearer"
+          ? "stats.dearer"
+          : "stats.the_same"
+    );
     return `
       <span class="delta ${cls}">${sign}${delta.toFixed(2)}&nbsp;${esc(cur)}</span>
-      <span class="wi-hint">${verdict} than the saved plan
-        (${planned.toFixed(2)} → ${edited.toFixed(2)}&nbsp;${esc(cur)}, estimated)</span>`;
+      <span class="wi-hint">${L("stats.delta_detail", {
+        verdict,
+        planned: planned.toFixed(2),
+        edited: edited.toFixed(2),
+        currency: esc(cur),
+      })}</span>`;
   }
 
   _updateDelta() {
@@ -3859,12 +5036,14 @@ class HeatpumpOptimizerCard extends HTMLElement {
     const zoomed = this._view !== null;
     return `
       <div class="viewctl">
-        <button type="button" class="vc-out" title="Zoom out"
-          aria-label="Zoom out">&minus;</button>
-        <button type="button" class="vc-in" title="Zoom in"
-          aria-label="Zoom in">+</button>
-        <button type="button" class="vc-reset" title="Show the whole plan"
-          aria-label="Show the whole plan"${zoomed ? "" : " disabled"}>&#8634;</button>
+        <button type="button" class="vc-out" title="${esc(L("plan.zoom_out"))}"
+          aria-label="${esc(L("plan.zoom_out"))}">&minus;</button>
+        <button type="button" class="vc-in" title="${esc(L("plan.zoom_in"))}"
+          aria-label="${esc(L("plan.zoom_in"))}">+</button>
+        <button type="button" class="vc-reset" title="${esc(
+          L("plan.show_whole_plan")
+        )}"
+          aria-label="${esc(L("plan.show_whole_plan"))}"${zoomed ? "" : " disabled"}>&#8634;</button>
       </div>`;
   }
 
@@ -4228,12 +5407,82 @@ class HeatpumpOptimizerCard extends HTMLElement {
       this._openSlotMenu(data.channel, at, ev.clientX, ev.clientY, svg);
     };
 
+    // The keyboard equivalent of the pointer gestures, delegated on the svg
+    // like everything else here (the rects are rebuilt on every refresh).
+    // Enter/Space on a focused slot or lane opens the same menu a
+    // right-click does; Delete removes the focused slot outright. Dragging
+    // has no keyboard form — the menu's add/remove covers the same edits,
+    // just in more steps.
+    const onKeydown = (svg, ev) => {
+      const data = (ev.target || {}).dataset || {};
+      if (!data.channel) return;
+      const key = ev.key;
+      const wantsMenu =
+        key === "Enter" || key === " " || key === "ContextMenu";
+      const wantsRemove = key === "Delete" || key === "Backspace";
+      if (!wantsMenu && !wantsRemove) return;
+      const geom = this._geom;
+      if (!geom) return;
+      if (ev.preventDefault) ev.preventDefault();
+      stop(ev);
+
+      const channel = data.channel;
+      const runs = this._draftRuns()[channel] || [];
+      const index = data.index === undefined ? -1 : Number(data.index);
+      const run = index >= 0 ? runs[index] : null;
+      const [lo, hi] = this._editBounds();
+
+      if (wantsRemove) {
+        if (run && run.end > lo && run.start < hi) {
+          this._commitRuns(channel, SlotModel.remove(runs, index));
+          this._render();
+          // The focused slot is gone and the render rebuilt everything
+          // around it; without this, focus drops to document.body and a
+          // keyboard user restarts from the top. Its lane is the successor.
+          this._restoreSlotFocus(channel, null, svgs.indexOf(svg));
+        }
+        return;
+      }
+
+      // The menu asks "what is at this time?", so aim it at the middle of
+      // the focused slot — or, from a lane, at the middle of the editable
+      // stretch of the visible window.
+      let at;
+      if (run) {
+        at = (run.start + run.end) / 2;
+      } else {
+        const s = Math.max(lo, geom.windowStart);
+        const e = Math.min(hi, geom.windowEnd);
+        if (e <= s) return;
+        at = (s + e) / 2;
+      }
+      // Anchor the menu where that time is drawn. The pointer paths get
+      // client coordinates for free; here they are reconstructed from the
+      // viewBox geometry, and degrade to the svg's own corner when the
+      // element cannot be measured.
+      const rect = svg.getBoundingClientRect
+        ? svg.getBoundingClientRect()
+        : null;
+      let clientX = rect ? rect.left : 0;
+      let clientY = rect ? rect.top : 0;
+      if (rect && rect.width) {
+        const span = geom.windowEnd - geom.windowStart || 1;
+        const vx =
+          geom.plotL + ((at - geom.windowStart) / span) * geom.plotW;
+        clientX = rect.left + (vx / VIEW_W) * rect.width;
+        clientY =
+          rect.top + ((geom.plotB - LANE_H) / VIEW_H) * (rect.height || 0);
+      }
+      this._openSlotMenu(channel, at, clientX, clientY, svg, true);
+    };
+
     for (const svg of svgs) {
       svg.addEventListener("pointerdown", (ev) => onDown(svg, ev));
       svg.addEventListener("pointermove", (ev) => onMove(svg, ev));
       svg.addEventListener("pointerup", onUp);
       svg.addEventListener("pointerleave", onUp);
       svg.addEventListener("contextmenu", (ev) => onContext(svg, ev));
+      svg.addEventListener("keydown", (ev) => onKeydown(svg, ev));
     }
   }
 
@@ -4269,8 +5518,18 @@ class HeatpumpOptimizerCard extends HTMLElement {
   /** The two editable channels, in the order they are drawn. */
   _laneSpecs() {
     return [
-      { channel: "dhw", label: "Hot water", field: "dhw_power", color: "#e0544e" },
-      { channel: "space", label: "Heating", field: "space_power", color: "#4a90e2" },
+      {
+        channel: "dhw",
+        label: L("slots.lane_dhw"),
+        field: "dhw_power",
+        color: "#e0544e",
+      },
+      {
+        channel: "space",
+        label: L("slots.lane_space"),
+        field: "space_power",
+        color: "#4a90e2",
+      },
     ];
   }
 
@@ -4403,9 +5662,13 @@ class HeatpumpOptimizerCard extends HTMLElement {
     specs.forEach((spec, row) => {
       const y =
         plotB - LANE_BOTTOM_INSET - (specs.length - row) * (LANE_H + LANE_GAP);
-      // The track, so an empty lane is still an obvious drop target.
+      // The track, so an empty lane is still an obvious drop target. Also a
+      // tab stop: Enter on it opens the same add-slot menu a right-click
+      // does, which is the whole editor without a pointer.
       out.push(
-        `<rect class="lane" data-channel="${spec.channel}" x="${plotL}" y="${y}" width="${
+        `<rect class="lane" data-channel="${spec.channel}" tabindex="0" role="button" aria-label="${esc(
+          L("slots.lane_aria", { lane: spec.label })
+        )}" x="${plotL}" y="${y}" width="${
           plotR - plotL
         }" height="${LANE_H}" rx="2" fill="var(--secondary-text-color,#888)" fill-opacity="0.07"/>`
       );
@@ -4454,10 +5717,26 @@ class HeatpumpOptimizerCard extends HTMLElement {
         const x2 = clampX(run.end);
         const w = Math.max(1, x2 - x1);
         const locked = run.end <= lo || run.start >= hi;
+        // Editable slots are tab stops with the keyboard menu (Enter) and
+        // removal (Delete) announced; locked ones stay presentational.
+        const fmtT = (t) =>
+          new Date(t).toLocaleTimeString(ACTIVE_LANG, {
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+        const kbd = locked
+          ? ""
+          : ` tabindex="0" role="button" aria-label="${esc(
+              L("slots.slot_aria", {
+                lane: spec.label,
+                start: fmtT(run.start),
+                end: fmtT(run.end),
+              })
+            )}"`;
         out.push(
           `<rect class="slot${locked ? " locked" : ""}" data-channel="${
             spec.channel
-          }" data-index="${index}" x="${x1}" y="${y}" width="${w}" height="${LANE_H}" rx="2" fill="${
+          }" data-index="${index}"${kbd} x="${x1}" y="${y}" width="${w}" height="${LANE_H}" rx="2" fill="${
             spec.color
           }" fill-opacity="${locked ? 0.35 : 0.85}"/>`
         );
@@ -4499,7 +5778,10 @@ class HeatpumpOptimizerCard extends HTMLElement {
         t,
         x: scaleX(t),
         hours: d.getHours(),
-        label: d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        label: d.toLocaleTimeString(ACTIVE_LANG, {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
       });
     }
     if (!ticks.length) return "";
@@ -4834,12 +6116,14 @@ class HeatpumpOptimizerCard extends HTMLElement {
     for (const r of rows) {
       if (!r.reason || r.reason === "idle" || seen.has(r.reason)) continue;
       seen.add(r.reason);
-      const label = REASON_LABELS[r.reason] || r.reason;
+      const label = REASON_LABELS[r.reason]
+        ? L(REASON_LABELS[r.reason])
+        : r.reason;
       out.push(`<div class="tt-reason">${esc(label)}</div>`);
     }
     if (rows.some((r) => r.priceKnown === false)) {
       out.push(
-        `<div class="tt-reason">Price is estimated, not published yet</div>`
+        `<div class="tt-reason">${esc(L("plan.price_estimated"))}</div>`
       );
     }
     return out.join("");
@@ -4905,7 +6189,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
       out.push(`<rect class="shared-band" pointer-events="none" x="${x1}" y="${plotT}" width="${
         x2 - x1
       }" height="${plotB - plotT}" fill="url(#${pid})" fill-opacity="0.18">
-        <title>Space heating and hot water share these quarter hours: the pump alternates circuits within each step, hot water first. Their combined power never exceeds the heat pump's maximum — this is time-sharing, not double-booking.</title>
+        <title>${esc(L("plan.shared_band_title"))}</title>
       </rect>`);
     }
     return out.join("");
@@ -4933,10 +6217,9 @@ class HeatpumpOptimizerCard extends HTMLElement {
     ) {
       return "";
     }
-    return `<div class="tt-shared">Shared step: the pump alternates
-        circuits — hot water first. Combined
-        ${esc(fmtTick(spaceRow.value + dhwRow.value))} kW stays under
-        the pump's maximum.</div>`;
+    return `<div class="tt-shared">${L("plan.shared_step_tooltip", {
+      kw: esc(fmtTick(spaceRow.value + dhwRow.value)),
+    })}</div>`;
   }
 
   _onPointerMove(ev) {
@@ -4985,9 +6268,9 @@ class HeatpumpOptimizerCard extends HTMLElement {
         }
         rows.push({
           color: s.color,
-          label: s.label,
+          label: L(s.labelKey),
           value: best.v,
-          unit: s.unit,
+          unit: this._seriesUnit(s),
           t: best.t,
           field: s.field,
           reason: best.reason,
@@ -5012,7 +6295,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
 
     const tt = scope.querySelector(".tooltip");
     if (tt) {
-      const time = new Date(rows[0].t).toLocaleString([], {
+      const time = new Date(rows[0].t).toLocaleString(ACTIVE_LANG, {
         hour: "2-digit",
         minute: "2-digit",
       });
@@ -5052,6 +6335,174 @@ HeatpumpOptimizerCard.slots = SlotModel;
 // Per-render sequence for the shared-band pattern ids (see _sharedSpanBands).
 HeatpumpOptimizerCard._sharedPatternSeq = 0;
 
+// ---- The visual config editor ---------------------------------------------
+//
+// Returned by `getConfigElement`. Built on Home Assistant's own `ha-form`,
+// which supplies the selectors (entity pickers, toggles, number boxes) and the
+// theming for free; this element only owns the schema, the current values and
+// the `config-changed` contract. Same file as the card on purpose: one
+// resource, no build step, no lazy chunk that can 404 independently.
+
+// Currencies offered by the dropdown; `custom_value` keeps any other ISO code
+// typeable, so the list only needs to cover the likely ones.
+const EDITOR_CURRENCIES = [
+  "SEK", "EUR", "NOK", "DKK", "GBP", "USD", "PLN", "CZK", "CHF",
+];
+
+class HeatpumpOptimizerCardEditor extends HTMLElement {
+  setConfig(config) {
+    this._config = { ...(config || {}) };
+    this._upgrade();
+  }
+
+  set hass(hass) {
+    this._hass = hass;
+    // The editor can receive hass before setConfig (Lovelace sets both in
+    // either order), so it must render from whichever arrives last.
+    setLanguage(hass && hass.language);
+    this._upgrade();
+  }
+
+  get hass() {
+    return this._hass;
+  }
+
+  /** The form's schema: every documented config key, as selectors. */
+  _schema() {
+    // The three data sources are sensors of this integration, so the picker
+    // is filtered to exactly those rather than every sensor in the house.
+    const planEntity = {
+      entity: { integration: "heatpump_optimizer", domain: "sensor" },
+    };
+    return [
+      { name: "title", selector: { text: {} } },
+      { name: "space_entity", selector: planEntity },
+      { name: "dhw_entity", selector: planEntity },
+      { name: "solar_entity", selector: planEntity },
+      {
+        name: "hours",
+        selector: {
+          number: {
+            min: 1, max: 168, step: 1, mode: "box",
+            unit_of_measurement: "h",
+          },
+        },
+      },
+      { name: "what_if", selector: { boolean: {} } },
+      { name: "show_stats", selector: { boolean: {} } },
+      {
+        name: "currency",
+        selector: {
+          select: {
+            mode: "dropdown",
+            custom_value: true,
+            options: EDITOR_CURRENCIES,
+          },
+        },
+      },
+      {
+        name: "series",
+        type: "expandable",
+        schema: SERIES_DEFS.map((d) => ({
+          name: d.key,
+          selector: { boolean: {} },
+        })),
+      },
+    ];
+  }
+
+  /** What the form shows: the config with every default filled in, so a
+   * toggle reads as its effective value rather than as blank. */
+  _data() {
+    const cfg = this._config || {};
+    const series = {};
+    for (const d of SERIES_DEFS) {
+      series[d.key] = !(cfg.series && cfg.series[d.key] === false);
+    }
+    return { ...DEFAULTS, ...cfg, series };
+  }
+
+  /** Create the form once, then keep its inputs current. */
+  _upgrade() {
+    if (!this._form) {
+      this._form = document.createElement("ha-form");
+      this._form.addEventListener("value-changed", (ev) =>
+        this._onValueChanged(ev)
+      );
+      this.appendChild(this._form);
+    }
+    this._form.hass = this._hass;
+    this._form.data = this._data();
+    this._form.schema = this._schema();
+    this._form.computeLabel = (s) => {
+      // The series toggles reuse the legend's own labels; everything else
+      // has an editor.* key.
+      const def = SERIES_DEFS.find((d) => d.key === s.name);
+      return def ? L(def.labelKey) : L(`editor.${s.name}`);
+    };
+  }
+
+  /** Turn the form's value back into the leanest equivalent config.
+   *
+   * The form pre-fills every default (`_data`), so the value it emits
+   * carries space_entity/hours/what_if/… even when the user never touched
+   * them. Storing those verbatim would bake the defaults into the YAML on
+   * the first GUI edit; instead any key whose value merely restates its
+   * default is dropped, alongside emptied fields.
+   */
+  _onValueChanged(ev) {
+    stop(ev);
+    const v = (ev.detail && ev.detail.value) || {};
+    const prior = this._config || {};
+    const config = { ...prior };
+    config.type = config.type || `custom:${CARD_TAG}`;
+    for (const key of [
+      "title", "space_entity", "dhw_entity", "solar_entity",
+      "hours", "what_if", "show_stats", "currency",
+    ]) {
+      // `title` is the one key where "" is a legitimate stored value (it
+      // renders no header text), so an explicitly configured empty title
+      // survives unrelated edits. Only a title that was absent before and
+      // comes back empty is treated as "no title configured".
+      if (key === "title") {
+        const had = Object.prototype.hasOwnProperty.call(prior, "title");
+        if (v.title === undefined || (v.title === "" && !had)) {
+          delete config.title;
+        } else {
+          config.title = v.title;
+        }
+        continue;
+      }
+      // An emptied or default-restating field means "back to the default",
+      // and the stored config stays free of keys that merely restate it.
+      if (
+        v[key] === undefined ||
+        v[key] === "" ||
+        (key in DEFAULTS && v[key] === DEFAULTS[key])
+      ) {
+        delete config[key];
+      } else {
+        config[key] = v[key];
+      }
+    }
+    // Series: only "start hidden" is worth storing; `true` is the default.
+    const series = {};
+    for (const d of SERIES_DEFS) {
+      if (v.series && v.series[d.key] === false) series[d.key] = false;
+    }
+    if (Object.keys(series).length) config.series = series;
+    else delete config.series;
+    this._config = config;
+    this.dispatchEvent(
+      new CustomEvent("config-changed", {
+        detail: { config },
+        bubbles: true,
+        composed: true,
+      })
+    );
+  }
+}
+
 const previous = customElements.get(CARD_TAG);
 if (previous) {
   if (previous.cardVersion !== CARD_VERSION) {
@@ -5068,6 +6519,12 @@ if (previous) {
   HeatpumpOptimizerCard.cardVersion = CARD_VERSION;
   customElements.define(CARD_TAG, HeatpumpOptimizerCard);
 }
+// The editor rides the same guard logic but its own registration: a stale
+// duplicate card may predate the editor entirely, and defining ours anyway
+// gives that card's getConfigElement something to create.
+if (!customElements.get(EDITOR_TAG)) {
+  customElements.define(EDITOR_TAG, HeatpumpOptimizerCardEditor);
+}
 
 window.customCards = window.customCards || [];
 window.customCards.push({
@@ -5075,7 +6532,10 @@ window.customCards.push({
   name: "Heat Pump Optimizer Card",
   description:
     "Plots heat-pump price, power and temperature plans on one shared time axis with per-series toggles.",
-  preview: false,
+  // The preview renders from getStubConfig; with no plan sensors in the
+  // dashboard picker's context it shows the card's own diagnostic empty
+  // state, which is honest and harmless.
+  preview: true,
 });
 
 // eslint-disable-next-line no-console

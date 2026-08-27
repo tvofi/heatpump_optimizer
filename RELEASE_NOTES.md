@@ -1,5 +1,44 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v4.2.0
+
+### The card grows up: editor, headline, your language, your currency
+
+**A visual editor.** The card can now be configured entirely from the
+dashboard UI — no YAML needed. Adding or editing the card offers entity
+pickers filtered to this integration's sensors, the plot window, the
+what-if editor and headline toggles, a currency override and per-series
+visibility, and the emitted config stays minimal: options left at their
+defaults are not written into your dashboard.
+
+**A headline that answers "is it working?".** A compact row under the
+header shows the projected savings (in the sensor's own currency), the
+optimization score and the plan narrative — the figures the integration
+already computed but the card never showed. It hides itself entirely when
+the backend doesn't publish them, and `show_stats: false` turns it off.
+
+**The card speaks Swedish.** Every label, menu, tooltip, dialog, error and
+spoken (screen-reader) string — about 200 of them — now follows Home
+Assistant's language: Swedish when HA is set to Swedish, English otherwise,
+dates and weekdays included. Unknown languages fall back to English.
+
+**Prices in your currency.** Nothing is hardcoded to SEK any more: the
+axis, tooltips and cost figures use the currency the integration publishes
+on the plan sensors (v4.1.0+), falling back to Home Assistant's configured
+currency, with `currency:` in the card config as a manual override. SEK
+remains the last-resort fallback, so existing dashboards look unchanged.
+
+**Keyboard and screen-reader access.** Plan slots and lanes are focusable
+buttons with spoken labels — Enter opens the same menu a tap does, Delete
+removes the focused slot, Escape closes menus however they were opened,
+and focus lands somewhere sensible afterwards instead of vanishing. The
+setup page's rows and entity picker work the same way, and the card honors
+`prefers-reduced-motion`. Saved view preferences are now keyed per card
+config, so two cards on one dashboard stop overwriting each other's
+settings (existing saved settings are migrated).
+
+Card-only release: no integration behavior, entities, or plans change.
+
 ## v4.1.0
 
 ### A setup a homeowner can finish, and sensors that say what they mean

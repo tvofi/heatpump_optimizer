@@ -83,6 +83,10 @@ class Node {
   getAttribute(k){ return this[k]; }
   addEventListener(t,f){ (this._listeners[t] ||= []).push(f); }
   removeEventListener(){}
+  // No bubbling: the card and its editor only ever listen on the element the
+  // event is dispatched on, so a local delivery is faithful enough.
+  dispatchEvent(ev){ ev.target = ev.target || this;
+    (this._listeners[ev.type]||[]).slice().forEach((f)=>f(ev)); return true; }
   querySelector(sel){ return this._find(sel); }
   querySelectorAll(sel){ const out=[]; this._findAll(sel,out); return out; }
   _find(sel){ const a=[]; this._findAll(sel,a); return a[0]||null; }
@@ -105,6 +109,10 @@ class Node {
   }
   attachShadow(){ this.shadowRoot=new Node("shadow-root"); return this.shadowRoot; }
   getBoundingClientRect(){ return {width:900,height:400,left:0,top:0}; }
+  // Focus is tracked, not simulated: the card restores focus after
+  // render-destroying keyboard actions, and the assertion is simply "who
+  // received the last .focus() call".
+  focus(){ document.activeElement = this; }
 }
 // Selector support: a tag name, a class, an attribute, or a tag+attribute
 // pair, which covers everything the card actually queries for.
@@ -127,7 +135,14 @@ const document = {
   createElement:(t)=>new Node(t),
   createElementNS:(ns,t)=>new Node(t),
   head:new Node("head"), body:new Node("body"),
+  activeElement:null,
+  // Real registries, same pattern as window's below: the slot menu parks an
+  // Escape listener on the document while it is open, so a mouse-opened menu
+  // (focus still on the chart) can be dismissed from the keyboard.
+  addEventListener(t,f){ (docListeners[t]=docListeners[t]||[]).push(f); },
+  removeEventListener(t,f){ const a=docListeners[t]||[]; const i=a.indexOf(f); if(i>=0)a.splice(i,1); },
 };
+document.activeElement = document.body;
 const store={};
 const ctx = {
   HTMLElement, document, console,
@@ -137,7 +152,10 @@ const ctx = {
            // no-op here would make those paths untestable.
            addEventListener(t,f){ (winListeners[t]=winListeners[t]||[]).push(f); },
            removeEventListener(t,f){ const a=winListeners[t]||[]; const i=a.indexOf(f); if(i>=0)a.splice(i,1); },
-           matchMedia:(q)=>({matches: q === "(pointer: coarse)" && coarseTouch.on, addEventListener(){}}) },
+           matchMedia:(q)=>({matches:
+             (q === "(pointer: coarse)" && coarseTouch.on) ||
+             (q === "(prefers-reduced-motion: reduce)" && reducedMotion.on),
+             addEventListener(){}}) },
   localStorage:{ getItem:k=>store[k]??null, setItem:(k,v)=>{store[k]=String(v);}, removeItem:k=>{delete store[k];} },
   customElements:{ _d:{}, define(n,c){ this._d[n]=c; }, get(n){ return this._d[n]; } },
   ResizeObserver: class { observe(){} unobserve(){} disconnect(){} },
@@ -149,7 +167,18 @@ const ctx = {
   clearInterval:(id)=>{ intervals.delete(id); },
 };
 const winListeners = {};
+const docListeners = {};
+const fireDocument = (t, ev) => (docListeners[t]||[]).slice().forEach((f)=>f(ev));
 const coarseTouch = { on: false };
+const reducedMotion = { on: false };
+// The editor dispatches config-changed as a CustomEvent; the stub only needs
+// the shape the listeners read.
+ctx.CustomEvent = class {
+  constructor(type, opts = {}) {
+    this.type = type; this.detail = opts.detail;
+    this.bubbles = !!opts.bubbles; this.composed = !!opts.composed;
+  }
+};
 const fireWindow = (t, ev) => (winListeners[t]||[]).slice().forEach((f)=>f(ev));
 const intervals = new Map(); let intervalId = 0;
 const tickIntervals = () => { for (const f of [...intervals.values()]) f(); };
@@ -2723,6 +2752,496 @@ check("the hand-scheduled reason has a label",
   raw._render();
   check("an older frontend without the formatter still gets the raw value",
     /140\.0 °F/.test(collect(raw.shadowRoot).join("\n")));
+}
+
+// --- Scenario: the card speaks Swedish (v4.2.0 i18n + currency) -------------
+//
+// The language rides on `hass.language` and is applied in the hass setter, so
+// no card-level configuration exists (or is needed). English remains the
+// default and the fallback: every earlier scenario in this file asserts the
+// English literals, which is itself the regression test for the "en" table.
+{
+  const svStates = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  const sv = new Card();
+  sv.setConfig({ type: "custom:heatpump-optimizer-card" });
+  sv.hass = { states: svStates, language: "sv-SE" };
+  const svDump = collect(sv.shadowRoot).join("\n");
+  check("hass.language sv-SE renders the legend in Swedish",
+    ["Elpris", "Varmvattenberedning", "Uppvärmning", "Utetemperatur",
+     "Innetemperatur", "Solinstrålning"].every((l) => svDump.includes(l)),
+    svDump.match(/class="legend"[\s\S]{0,400}/)?.[0]);
+  check("the default title localizes too (it is not baked in at setConfig)",
+    /Värmepumpsplan/.test(svDump) && !/Heat pump plan/.test(svDump));
+  check("reason codes explain themselves in Swedish",
+    /Billigaste timmarna/.test(sv._reasonHtml([{ reason: "cheap_price" }])) &&
+    /Varmvatten behövs nu/.test(sv._reasonHtml([{ reason: "dhw_window" }])));
+  check("wire contracts stay untranslated under sv",
+    /data-key="price"/.test(svDump) && /data-key="dhw_slots"/.test(svDump));
+
+  sv._onCardClick({});
+  const svExpanded = collect(sv.shadowRoot).join("\n");
+  check("the expanded dialog is Swedish: tabs, slot actions, schedule editor",
+    /Anläggning/.test(svExpanded) &&
+    /Tillämpa denna plan/.test(svExpanded) &&
+    /Spara som mitt schema/.test(svExpanded) &&
+    /Varmvattenfönster/.test(svExpanded));
+  check("the slot menu strings are whole Swedish sentences",
+    /värmepass/.test(
+      (() => { // exercise the L() path the menu uses
+        sv._closeExpanded();
+        return ctxL(sv, "menu.add_slot_space");
+      })()
+    ));
+
+  // A language without a dictionary falls back to English wholesale.
+  const de = new Card();
+  de.setConfig({ type: "custom:heatpump-optimizer-card" });
+  de.hass = { states: mkStates(DEFAULT_SPACE, DEFAULT_DHW, true),
+    language: "de-DE" };
+  const deDump = collect(de.shadowRoot).join("\n");
+  check("an unknown language falls back to English",
+    deDump.includes("Electricity price") &&
+    deDump.includes("Heat pump plan") &&
+    !/Elpris/.test(deDump));
+
+  // Currency: published by the plan sensor as `currency`, shown on the price
+  // axis and in the legend chip; absent, the SEK fallback holds.
+  const eurStates = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  eurStates[DEFAULT_SPACE].attributes.currency = "EUR";
+  const eur = build(eurStates);
+  const eurDump = collect(eur.shadowRoot).join("\n");
+  check("a currency published on the plan sensor reaches the price axis",
+    /EUR\/kWh/.test(eurDump) && !/SEK\/kWh/.test(eurDump));
+  const sekDump =
+    collect(build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true)).shadowRoot)
+      .join("\n");
+  check("no published currency still falls back to SEK",
+    /SEK\/kWh/.test(sekDump));
+  // hass's global currency fills in when the sensor publishes none.
+  const nok = new Card();
+  nok.setConfig({ type: "custom:heatpump-optimizer-card" });
+  nok.hass = { states: mkStates(DEFAULT_SPACE, DEFAULT_DHW, true),
+    config: { currency: "NOK" } };
+  check("hass.config.currency fills in when the sensor publishes none",
+    /NOK\/kWh/.test(collect(nok.shadowRoot).join("\n")));
+
+  // Leave the module back in English for anything that runs after this block.
+  build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
+}
+
+// The slot-menu helper above: reach the same lookup the menu uses without
+// standing up a pointer gesture. `_openSlotMenu` needs real chart geometry;
+// what the i18n scenario cares about is only that the per-channel sentence
+// exists in the active language.
+function ctxL(card, key) {
+  card._closeSlotMenu();
+  // The card file keeps L private; the menu markup is the observable. Build
+  // it via a minimal fake wrapper.
+  const host = new (Object.getPrototypeOf(card.shadowRoot).constructor)("div");
+  host.classList.add("chartwrap");
+  card.shadowRoot.appendChild(host);
+  card._geom = null;
+  try {
+    card._openSlotMenu("space", Date.now(), 0, 0, host);
+    const menu = card._slotMenu;
+    return menu ? menu.innerHTML : "";
+  } finally {
+    card._closeSlotMenu();
+  }
+}
+
+// --- Scenario: the visual config editor (v4.2.0) ----------------------------
+//
+// The editor is a plain element wrapping ha-form: the schema, the effective
+// values and the config-changed contract are the card's own code and are
+// exercised here; ha-form itself is Home Assistant's and is only stood up as
+// a stub node the editor sets properties on.
+{
+  const Editor = ctx.customElements.get("heatpump-optimizer-card-editor");
+  check("an editor element is registered", !!Editor);
+
+  const el = Card.getConfigElement();
+  check("getConfigElement returns the editor element",
+    !!el && el.tagName === "HEATPUMP-OPTIMIZER-CARD-EDITOR");
+
+  const stub = Card.getStubConfig();
+  let stubErr = null;
+  try { new Card().setConfig(stub); } catch (e) { stubErr = e; }
+  check("getStubConfig passes setConfig", stubErr === null,
+    stubErr && stubErr.message);
+
+  check("the card advertises itself with a preview",
+    ctx.window.customCards.some((c) =>
+      c.type === "heatpump-optimizer-card" && c.preview === true));
+
+  const ed = new Editor();
+  ed.hass = { states: {}, language: "en" };
+  ed.setConfig(stub);
+  const form = ed.querySelector("ha-form");
+  check("the editor builds an ha-form with a schema",
+    !!form && Array.isArray(form.schema));
+  const names = form ? form.schema.map((s) => s.name) : [];
+  check("the schema covers the card's config keys",
+    ["title", "space_entity", "dhw_entity", "solar_entity", "hours",
+     "what_if", "show_stats", "currency", "series"]
+      .every((k) => names.includes(k)),
+    `schema names: ${names.join(", ")}`);
+  const spaceRow = form && form.schema.find((s) => s.name === "space_entity");
+  check("entity pickers are filtered to this integration's sensors",
+    !!spaceRow && spaceRow.selector.entity.integration === "heatpump_optimizer"
+    && spaceRow.selector.entity.domain === "sensor");
+  check("the form shows effective values, defaults filled in",
+    form && form.data.hours === 24 && form.data.what_if === true &&
+    form.data.show_stats === true && form.data.series.price === true);
+  check("labels come from the dictionary, not raw key names",
+    form && form.computeLabel({ name: "hours" }) === "Hours to show" &&
+    form.computeLabel({ name: "price" }) === "Electricity price");
+
+  // A user edit flows out as config-changed, and the emitted config both
+  // passes setConfig and stays free of keys that restate defaults.
+  let fired = null;
+  ed.addEventListener("config-changed", (ev) => { fired = ev.detail.config; });
+  form.dispatchEvent(new ctx.CustomEvent("value-changed", { detail: { value: {
+    ...form.data, hours: 48, show_stats: false, title: "",
+    series: { ...form.data.series, solar: false },
+  } } }));
+  check("editing fires config-changed with the new values",
+    !!fired && fired.hours === 48 && fired.show_stats === false &&
+    fired.type === "custom:heatpump-optimizer-card");
+  check("an emptied field falls back to the default rather than storing ''",
+    fired && !("title" in fired));
+  // The form pre-fills every default, so its emitted value carries them all;
+  // the stored config must not. Only the two keys the user changed (hours,
+  // show_stats) and the non-default series choice may appear.
+  check("untouched defaults do not appear in the emitted config",
+    fired && !("space_entity" in fired) && !("dhw_entity" in fired) &&
+    !("solar_entity" in fired) && !("what_if" in fired),
+    fired && JSON.stringify(fired));
+  check("only non-default series choices are stored",
+    fired && fired.series && fired.series.solar === false &&
+    !("price" in fired.series));
+  // A value edited back to its default drops out of the config again.
+  let firedBack = null;
+  ed.addEventListener("config-changed", (ev) => { firedBack = ev.detail.config; });
+  form.dispatchEvent(new ctx.CustomEvent("value-changed", { detail: { value: {
+    ...form.data, hours: 24, show_stats: false,
+  } } }));
+  check("a field edited back to its default is dropped, not stored",
+    !!firedBack && !("hours" in firedBack) && firedBack.show_stats === false,
+    firedBack && JSON.stringify(firedBack));
+
+  // An explicit `title: ""` is a real choice (it renders no header text):
+  // it must survive an unrelated edit, while a title that was never
+  // configured must not materialize as "".
+  const edTitled = new Editor();
+  edTitled.hass = { states: {}, language: "en" };
+  edTitled.setConfig({ type: "custom:heatpump-optimizer-card", title: "" });
+  const formTitled = edTitled.querySelector("ha-form");
+  let firedTitled = null;
+  edTitled.addEventListener("config-changed",
+    (ev) => { firedTitled = ev.detail.config; });
+  formTitled.dispatchEvent(new ctx.CustomEvent("value-changed",
+    { detail: { value: { ...formTitled.data, hours: 48 } } }));
+  check("an existing title: \"\" survives an unrelated edit",
+    !!firedTitled && firedTitled.title === "" && firedTitled.hours === 48,
+    firedTitled && JSON.stringify(firedTitled));
+  let firedErr = null;
+  try { new Card().setConfig(fired); } catch (e) { firedErr = e; }
+  check("the emitted config passes setConfig", firedErr === null,
+    firedErr && firedErr.message);
+}
+
+// --- Scenario: the headline stats row (v4.2.0) ------------------------------
+{
+  const statStates = () => ({
+    "sensor.heat_pump_optimizer_predicted_savings": {
+      state: "12.34", attributes: { unit_of_measurement: "SEK" } },
+    "sensor.heat_pump_optimizer_savings_percentage": {
+      state: "8.2", attributes: {} },
+    "sensor.heat_pump_optimizer_optimization_score": {
+      state: "82", attributes: { envelope: 90, machine: 75 } },
+    "sensor.heat_pump_optimizer_plan_narrative": {
+      state: "cheap_price", attributes: {
+        lines: ["Most heating is placed in the cheapest hours."],
+        language: "en" } },
+  });
+  const full = { ...mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), ...statStates() };
+  const hl = build(full);
+  const hlDump = collect(hl.shadowRoot).join("\n");
+  check("headline shows the projected savings in the sensor's unit",
+    /class="headline"/.test(hlDump) && /Projected savings/.test(hlDump) &&
+    /12\.34 SEK \(8%\)/.test(hlDump),
+    hlDump.match(/class="headline"[\s\S]{0,300}/)?.[0]);
+
+  // The savings sensor declares the unit its value is denominated in; a
+  // card-level `currency:` must not relabel it (nothing converts here).
+  const relabeled = build(full, { currency: "EUR" });
+  check("a config currency does not relabel the sensor's own unit",
+    /12\.34 SEK/.test(collect(relabeled.shadowRoot).join("\n")));
+  const noUnit = { ...full,
+    "sensor.heat_pump_optimizer_predicted_savings": {
+      state: "12.34", attributes: {} } };
+  check("a savings sensor without a unit falls back to the resolved currency",
+    /12\.34 EUR/.test(
+      collect(build(noUnit, { currency: "EUR" }).shadowRoot).join("\n")));
+
+  // Percent spacing is orthographic, so it rides the language: sv keeps the
+  // space before %, en drops it.
+  const svHl = new Card();
+  svHl.setConfig({ type: "custom:heatpump-optimizer-card" });
+  svHl.hass = { states: full, language: "sv-SE" };
+  check("Swedish spaces the percent; English does not",
+    /\(8 %\)/.test(collect(svHl.shadowRoot).join("\n")));
+  build(full); // leave the module back in English
+
+  // Discovery is scoped to the plan sensors' device (shared entity-id
+  // prefix): a foreign integration's sensor that shares the suffix — and
+  // sorts first — must not capture the headline.
+  const foreign = { ...full,
+    "sensor.aaa_other_vendor_predicted_savings": {
+      state: "99.99", attributes: { unit_of_measurement: "EUR" } } };
+  const scopedDump = collect(build(foreign).shadowRoot).join("\n");
+  check("headline binds to the plan sensors' device, not a foreign twin",
+    /12\.34 SEK/.test(scopedDump) && !/99\.99/.test(scopedDump));
+
+  // A backend that starts publishing the stat sensors later must still be
+  // found: the miss is cached, but keyed to the number of sensor ids.
+  const lateCard = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
+  check("(setup) no headline before the backend publishes",
+    !/class="headline"/.test(collect(lateCard.shadowRoot).join("\n")));
+  lateCard.hass = { states:
+    { ...mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), ...statStates() } };
+  check("a late-arriving backend still surfaces the headline",
+    /class="headline"/.test(collect(lateCard.shadowRoot).join("\n")));
+  check("headline shows the optimization score",
+    /Optimization score/.test(hlDump) && /82\/100/.test(hlDump));
+  check("headline shows the narrative's first line",
+    hlDump.includes("Most heating is placed in the cheapest hours."));
+
+  // The row must track its own sensors: a new savings value re-renders even
+  // though no plan data changed (the headline is part of _signature).
+  const next = { ...full,
+    "sensor.heat_pump_optimizer_predicted_savings": {
+      state: "20.00", attributes: { unit_of_measurement: "SEK" } } };
+  hl.hass = { states: next };
+  check("a savings update re-renders the headline",
+    /20\.00 SEK/.test(collect(hl.shadowRoot).join("\n")));
+
+  // No stat sensors: no row, no empty chrome.
+  const bare = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
+  check("no headline chrome when the sensors are absent",
+    !/class="headline"/.test(collect(bare.shadowRoot).join("\n")));
+
+  // Sensors present but unavailable and with no lines: still nothing.
+  const unavail = { ...mkStates(DEFAULT_SPACE, DEFAULT_DHW, true),
+    "sensor.heat_pump_optimizer_predicted_savings": {
+      state: "unavailable", attributes: {} },
+    "sensor.heat_pump_optimizer_optimization_score": {
+      state: "unknown", attributes: {} },
+    "sensor.heat_pump_optimizer_plan_narrative": {
+      state: "idle", attributes: { lines: [] } } };
+  check("unavailable sensors render no row either",
+    !/class="headline"/.test(collect(build(unavail)).join("\n") ||
+      collect(build(unavail).shadowRoot).join("\n")));
+
+  // The config toggle removes the row even with data to show.
+  const off = build(full, { show_stats: false });
+  check("show_stats: false removes the row",
+    !/class="headline"/.test(collect(off.shadowRoot).join("\n")));
+  let err = null;
+  try { new Card().setConfig({ show_stats: "yes" }); } catch (e) { err = e; }
+  check("a non-boolean show_stats is rejected",
+    !!err && /show_stats/.test(err.message));
+}
+
+// --- Scenario: reduced motion is honored (v4.2.0) ---------------------------
+{
+  reducedMotion.on = false;
+  const animated = collect(build(
+    mkStates(DEFAULT_SPACE, DEFAULT_DHW, true)).shadowRoot).join("\n");
+  check("the zoom controls fade by default",
+    /transition: opacity 120ms/.test(animated));
+  reducedMotion.on = true;
+  const calm = collect(build(
+    mkStates(DEFAULT_SPACE, DEFAULT_DHW, true)).shadowRoot).join("\n");
+  check("prefers-reduced-motion drops the fade",
+    !/transition: opacity 120ms/.test(calm));
+  reducedMotion.on = false;
+}
+
+// --- Scenario: localStorage keys carry the card's identity (v4.2.0) ---------
+//
+// Two cards can plot the same entities — different titles, different horizons
+// — and a series hidden on one must not vanish from the other.
+{
+  const a = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true),
+    { title: "Upstairs" });
+  const b = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true),
+    { title: "Downstairs", hours: 48 });
+  check("cards with different config identities get different keys",
+    a._storageKey(a._config) !== b._storageKey(b._config) &&
+    a._storageKey(a._config).includes("Upstairs") &&
+    a._storageKey(a._config).includes(DEFAULT_SPACE));
+  a._onLegendClick({ stopPropagation(){}, currentTarget: {
+    getAttribute: (k) => (k === "data-key" ? "outdoor" : null) } });
+  const bReloaded = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true),
+    { title: "Downstairs", hours: 48 });
+  check("a toggle on one card does not leak into the other",
+    a._hidden.outdoor === true && !bReloaded._hidden.outdoor);
+
+  // A pre-v4.2.0 key (no identity suffix) still loads, so an upgrade keeps
+  // the user's saved toggles; writes then move to the new key.
+  const legacySpace = "sensor.legacy_space_heating_plan";
+  const legacyDhw = "sensor.legacy_dhw_heating_plan";
+  store[`heatpump-optimizer-card:${legacySpace}:${legacyDhw}`] =
+    JSON.stringify({ price: true });
+  const legacy = build(mkStates(legacySpace, legacyDhw, true),
+    { space_entity: legacySpace, dhw_entity: legacyDhw });
+  check("a legacy storage key is still honoured after the upgrade",
+    legacy._hidden.price === true);
+}
+
+// --- Scenario: keyboard access to the plan slots (v4.2.0) -------------------
+{
+  const kb = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
+  const kbDump = collect(kb.shadowRoot).join("\n");
+  check("editable slots are focusable buttons with a spoken label",
+    /<rect class="slot" [^>]*tabindex="0"/.test(kbDump) &&
+    /<rect class="slot" [^>]*role="button"/.test(kbDump) &&
+    /Press Enter for actions/.test(kbDump));
+  check("the lanes are focusable add targets",
+    /<rect class="lane" [^>]*tabindex="0"/.test(kbDump) &&
+    /Press Enter to add a slot/.test(kbDump));
+  check("an svg with focusable children is not role=img",
+    /<svg viewBox="0 0 900[^>]*role="group"/.test(kbDump));
+
+  const svg = kb._chartSvgs(kb.shadowRoot)[0];
+  const slot = svg.querySelector(".slot");
+  check("there is a slot to drive", !!slot && slot.dataset.index !== undefined);
+  const keydown = (target, key) => svg._listeners.keydown.forEach((f) =>
+    f({ key, target, preventDefault(){}, stopPropagation(){} }));
+
+  const kdBase = (docListeners.keydown || []).length;
+  keydown(slot, "Enter");
+  check("Enter on a slot opens the slot menu",
+    !!kb._slotMenu && /slot/.test(kb._slotMenu.innerHTML));
+  check("an open menu parks an Escape listener on the document",
+    (docListeners.keydown || []).length === kdBase + 1);
+  check("a keyboard-opened menu takes focus onto its button",
+    document.activeElement &&
+    document.activeElement.tagName === "BUTTON");
+  kb._slotMenu._listeners.keydown.forEach((f) =>
+    f({ key: "Escape", stopPropagation(){} }));
+  check("Escape dismisses the menu", kb._slotMenu === null);
+  check("and hands focus back to the slot it came from",
+    document.activeElement === kb._chartSvgs(kb.shadowRoot)[0]
+      .querySelector(".slot") ||
+    (document.activeElement &&
+      document.activeElement.classList.contains &&
+      document.activeElement.classList.contains("slot")));
+  check("closing the menu releases its document Escape listener",
+    (docListeners.keydown || []).length === kdBase);
+
+  const channel = slot.dataset.channel;
+  const before = (kb._draftRuns()[channel] || []).length;
+  keydown(slot, "Delete");
+  const after = (kb._draftRuns()[channel] || []).length;
+  check("Delete removes the focused slot", before > 0 && after === before - 1);
+  // The render that removed the slot destroyed the element holding focus;
+  // the card must not let it fall to document.body. The slot is gone, so
+  // its lane (or, failing that, the chart svg) is the logical successor.
+  const active = document.activeElement;
+  check("after Delete, focus lands on the lane or the chart, not the body",
+    !!active && active !== document.body &&
+    ((active.classList.contains("lane") &&
+      active.dataset.channel === channel) ||
+     active.tagName === "SVG"),
+    active && `${active.tagName} class=${active.className}`);
+
+  // A MOUSE-opened menu leaves focus on the chart, so the menu element
+  // itself never sees the keydown: Escape is caught at the document while
+  // the menu is open.
+  const freshSvg = kb._chartSvgs(kb.shadowRoot)[0];
+  const freshSlot = freshSvg.querySelector(".slot");
+  const freshRuns = kb._draftRuns()[freshSlot.dataset.channel] || [];
+  const freshRun = freshRuns[Number(freshSlot.dataset.index)];
+  kb._openSlotMenu(freshSlot.dataset.channel,
+    (freshRun.start + freshRun.end) / 2, 120, 300, freshSvg);
+  check("a mouse-opened menu does not steal focus",
+    !!kb._slotMenu && document.activeElement !== kb._slotMenu &&
+    (document.activeElement === null ||
+      document.activeElement.tagName !== "BUTTON"));
+  fireDocument("keydown",
+    { key: "Escape", stopPropagation(){}, preventDefault(){} });
+  check("Escape closes a mouse-opened menu via the document listener",
+    kb._slotMenu === null);
+  check("the document Escape listener is removed with the menu",
+    (docListeners.keydown || []).length === kdBase);
+
+  const lane = kb._chartSvgs(kb.shadowRoot)[0].querySelector(".lane");
+  const laneChannel = lane.dataset.channel;
+  const laneBefore = (kb._draftRuns()[laneChannel] || []).length;
+  kb._chartSvgs(kb.shadowRoot)[0]._listeners.keydown.forEach((f) =>
+    f({ key: "Enter", target: lane, preventDefault(){}, stopPropagation(){} }));
+  check("Enter on a lane offers the menu there too", !!kb._slotMenu);
+  // Acting on the menu re-renders; focus must follow to the fresh lane.
+  kb._slotMenu._listeners.click.forEach((f) => f({
+    target: kb._slotMenu.querySelector("button"), stopPropagation(){} }));
+  const laneActive = document.activeElement;
+  check("a menu action returns focus to the lane in the fresh DOM",
+    !!laneActive && laneActive !== document.body &&
+    ((laneActive.classList.contains("lane") &&
+      laneActive.dataset.channel === laneChannel) ||
+     laneActive.tagName === "SVG"),
+    laneActive && `${laneActive.tagName} class=${laneActive.className}`);
+}
+
+// --- Scenario: keyboard access to the setup page (v4.2.0) -------------------
+{
+  const TEMP = ["sensor", "number", "input_number"];
+  const topo = {
+    two_zone: false, dhw: false, valve_mode: "none",
+    buffer: { volume_l: 500, is_store: true, max_temp: 70 },
+    wood: { present: false },
+    edges: [["heat_pump", "buffer_tank"], ["buffer_tank", "upper_zone"]],
+    slots: [
+      { key: "indoor_temp_entity", label: "Indoor temperature",
+        place: "upper_zone", entity: "sensor.livingroom", domains: TEMP },
+    ],
+  };
+  const states = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  states[DEFAULT_SPACE].attributes.setup_topology = topo;
+  states["sensor.livingroom"] = {
+    state: "21.0", attributes: { unit_of_measurement: "°C" } };
+  const su = build(states);
+  su._onCardClick({});
+  su._dialogPage = "setup";
+  su._render();
+  const page = collect(su.shadowRoot).join("\n");
+  check("setup rows are focusable buttons",
+    /setup-hit[^>]*[\s\S]{0,120}?tabindex="0"/.test(page) &&
+    /setup-hit[\s\S]{0,200}?role="button"/.test(page));
+  check("the setup diagram is a group, not a flattened image",
+    /setup-svg[\s\S]{0,200}?role="group"/.test(page));
+
+  const hit = su.shadowRoot.querySelector(".setup-hit");
+  hit._listeners.keydown.forEach((f) => f({ key: "Enter",
+    currentTarget: hit, preventDefault(){}, stopPropagation(){} }));
+  const picker = su.shadowRoot.querySelector(".setup-picker");
+  check("Enter on a setup row opens the entity picker", !!picker);
+  picker._listeners.keydown.forEach((f) =>
+    f({ key: "Escape", stopPropagation(){} }));
+  check("Escape closes the picker without assigning",
+    !su.shadowRoot.querySelector(".setup-picker") && su._pickerKey === null);
+  // The close re-rendered the page, destroying the focused select; focus
+  // must come back to the row the picker was opened from, re-located by
+  // its data-key in the fresh DOM.
+  check("Escape returns focus to the setup row it came from",
+    !!document.activeElement &&
+    document.activeElement.classList.contains("setup-hit") &&
+    document.activeElement.dataset.key === "indoor_temp_entity",
+    document.activeElement &&
+      `${document.activeElement.tagName} class=${document.activeElement.className}`);
 }
 
 console.log(fails ? `\n${fails} CARD CHECK(S) FAILED` : "\nALL CARD CHECKS PASSED");
