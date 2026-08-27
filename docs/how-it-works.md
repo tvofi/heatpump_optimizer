@@ -1023,7 +1023,10 @@ Two caveats are worth stating plainly:
   perfectly performing unit — and its error is biased optimistic, because the
   gaps it measures are dominated by the pump drawing *less* than commanded. Its
   upper clamp is now 1.0 rather than 1.05: this is a model of a loss, and no
-  defrost cycle makes a heat pump exceed its own curve.
+  defrost cycle makes a heat pump exceed its own curve. An existing learned
+  derate survives the upgrade — its buckets are kept and simply re-clamped, so
+  the careful half of what it learned is not thrown away — and measured duty
+  takes over each bucket as it is counted.
 
 **The subtlest gate matters most.** Delivered heat is not measured, so a
 commanded-versus-measured gap is ambiguous: a modest one is efficiency signal, a

@@ -174,8 +174,10 @@ class DefrostDerate:
     #: the arithmetic: it is how a user tells a duty learned from two coarse
     #: cloud polls from one learned from three hundred MQTT transitions.
     duty_events: list[list[int]] = field(default_factory=lambda: _grid(0))
-    #: True when a v1 store was loaded and its inferred arrays were dropped.
-    #: Surfaced in :meth:`summary` so the reset is visible rather than silent.
+    #: True when a pre-v5.2.0 store was loaded and upgraded in place: its
+    #: inferred factors kept and re-clamped, no measured duty to restore.
+    #: Published in the diagnostics so the upgrade is visible rather than
+    #: silent.
     migrated: bool = False
 
     # -- lookup -------------------------------------------------------------
@@ -289,21 +291,24 @@ class DefrostDerate:
     def from_dict(cls, data: dict | None) -> "DefrostDerate":
         """Load, tolerating both schema versions.
 
-        A v1 store (no ``duty`` arrays) has its inferred ``factors``/``counts``
-        **dropped**, not carried forward, and the instance is marked
-        ``migrated``. That is a deliberate reset, not an oversight: those
-        numbers were learned through a clamp that allowed 1.05, from a signal
-        whose error is biased optimistic, in the one band where the derate
-        exists to be pessimistic. Importing them into the new estimator would
-        launder a known-wrong prior into a measurement. Starting from 1.0 —
-        the module's own no-evidence default, which changes nothing — is the
-        honest baseline, and a bucket re-earns its derate within a day or two
-        of real duty samples.
+        A v1 store has no ``duty`` arrays. Its inferred ``factors``/``counts``
+        are **kept**, not discarded, and re-clamped to the new ``DERATE_MAX``
+        of 1.0; the instance is marked ``migrated`` so the upgrade is visible.
 
-        A v1 store on an install with no defrost flag is the same reset. It
-        costs those installs their accumulated inferred derate once, which is
-        the price of removing a bias that was making frost-band plans more
-        aggressive than the physics allows.
+        Keeping them is the safer of the two readings, which is why it wins.
+        A stored factor below 1.0 was learned from real under-delivery in the
+        frosting band — a blunt estimator, but evidence, and evidence pointing
+        the *careful* way. A stored factor above 1.0 is the estimator's known
+        optimistic bias and is the only part that has to go. Discarding the
+        lot would have been tidier to describe, but it resets every bucket to
+        1.0 — the optimistic end — and so would make frost-band plans LESS
+        conservative on upgrade, which is the wrong direction for a module
+        whose entire job is to stop a plan over-promising in that band.
+
+        The measured estimator then takes over bucket by bucket as duty
+        samples arrive: :meth:`factor` prefers it wherever it exists, so a
+        carried-over inferred value is a floor to stand on until something
+        better is counted, not a prior that the measurement has to argue with.
         """
         instance = cls()
         if not isinstance(data, dict):
@@ -326,31 +331,31 @@ class DefrostDerate:
 
         duty = _grid_of("duty", float)
         duty_counts = _grid_of("duty_counts", int)
-        if duty is None or duty_counts is None:
-            # v1, or a v2 store whose measured half is unreadable. Either way
-            # there is no measured evidence to keep, and the inferred half is
-            # not worth importing. Fresh, and marked.
+        if duty is not None and duty_counts is not None:
+            instance.duty = duty
+            instance.duty_counts = duty_counts
+            events = _grid_of("duty_events", int)
+            if events is not None:
+                instance.duty_events = events
+        else:
+            # v1, or a v2 store whose measured half is unreadable. There is no
+            # measured evidence to keep; the inferred half below still is.
             instance.migrated = isinstance(data.get("factors"), list)
             if instance.migrated:
                 _LOGGER.info(
-                    "Defrost derate: a pre-v5.2.0 store was found and reset. "
-                    "Its factors were inferred from an electrical power ratio "
-                    "that cannot see a defrost and is biased optimistic; the "
-                    "derate relearns from measured duty (or from the same "
-                    "ratio, unbiased at the clamp) from 1.0"
+                    "Defrost derate: a pre-v5.2.0 store was upgraded. Its "
+                    "learned factors are kept and re-clamped to at most 1.0 "
+                    "— a derate above 1 was this estimator's optimistic bias, "
+                    "not physics — and measured defrost duty takes over each "
+                    "bucket as it is counted"
                 )
-            return instance
 
-        instance.duty = duty
-        instance.duty_counts = duty_counts
-        events = _grid_of("duty_events", int)
-        if events is not None:
-            instance.duty_events = events
         factors = _grid_of("factors", float)
         if factors is not None:
-            # Re-clamped on load: a store written before DERATE_MAX dropped to
-            # 1.0 can carry factors up to 1.05, and reading them back
-            # unchanged would let the old optimistic bound outlive the fix.
+            # Re-clamped on load, for BOTH versions: a store written before
+            # DERATE_MAX dropped to 1.0 can carry factors up to 1.05, and
+            # reading them back unchanged would let the old optimistic bound
+            # outlive the fix.
             instance.factors = [
                 [min(DERATE_MAX, max(DERATE_MIN, v)) for v in row]
                 for row in factors

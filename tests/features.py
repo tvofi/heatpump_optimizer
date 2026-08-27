@@ -12280,14 +12280,35 @@ _v1_store = {
 }
 _migrated = DefrostDerate.from_dict(_v1_store)
 R.check(
-    "a pre-v5.2.0 store loads without raising",
+    "a pre-v5.2.0 store loads without raising, and says it was upgraded",
     isinstance(_migrated, DefrostDerate) and _migrated.migrated,
 )
 R.check(
-    "its inferred factors are reset rather than laundered into the new model",
-    _migrated.factor(2.0, 80.0) == 1.0 and _migrated.total_samples == 0,
-    "they were learned through a clamp that allowed 1.05, from a signal that "
-    "cannot see a defrost and whose error is biased optimistic",
+    "its learned factors are KEPT, not discarded",
+    abs(_migrated.factor(2.0, 80.0) - 0.88) < 1e-9
+    and _migrated.total_samples == 480,
+    f"factor {_migrated.factor(2.0, 80.0)} — a stored factor below 1.0 is "
+    f"evidence pointing the careful way; resetting every bucket to 1.0 would "
+    f"make frost-band plans LESS conservative on upgrade",
+)
+_v1_optimistic = DefrostDerate.from_dict(
+    {"factors": [[1.05, 1.05] for _ in range(6)],
+     "counts": [[40, 40] for _ in range(6)]}
+)
+R.check(
+    "but the estimator's optimistic tail is clamped away on load",
+    _v1_optimistic.factor(2.0, 80.0) == 1.0,
+    "a derate above 1 says frost makes the pump exceed its own curve; "
+    "reading it back unchanged would let the old bound outlive the fix",
+)
+R.check(
+    "a measured duty then overrides the carried-over inference",
+    (lambda d: [d.observe_duty(2.0, 80.0, 0.02) for _ in range(40)] and
+     abs(d.factor(2.0, 80.0) - derate_from_duty(0.02)) < 0.01)(
+        DefrostDerate.from_dict(_v1_store)
+    ),
+    "the carried value is a floor to stand on until something is counted, "
+    "not a prior the measurement has to argue with",
 )
 R.check(
     "a v2 store round-trips exactly",
