@@ -3405,5 +3405,112 @@ function ctxL(card, key) {
       `${document.activeElement.tagName} class=${document.activeElement.className}`);
 }
 
+// --- Shared rig for the v5.1.2 setup-page scenarios (items A-F) -------------
+// One topology with every box kind the reports touch: an open outdoor node,
+// the heat-pump cabinet, a wood tank, a valve, two zones. Built here rather
+// than reusing the layout editor's rig above, which is scoped to its own
+// block and carries a catalog these scenarios have no use for.
+const SETUP_TEMP = ["sensor", "number", "input_number"];
+const setupTopo = (over) => ({
+  two_zone: true, dhw: false, valve_mode: "manual",
+  layout: "valve_upper_direct_slab", two_tank_modelled: false,
+  buffer: { volume_l: 500, is_store: true, max_temp: 65 },
+  wood: { present: true, volume_l: 750 },
+  edges: [
+    ["heat_pump", "buffer_tank"],
+    ["buffer_tank", "mixing_valve"],
+    ["mixing_valve", "upper_zone"],
+    ["mixing_valve", "lower_zone"],
+    ["wood_tank", "buffer_tank"],
+  ],
+  positions: {},
+  slots: [
+    { key: "indoor_temp_entity", label: "Indoor temperature",
+      place: "upper_zone", entity: "sensor.livingroom", domains: SETUP_TEMP },
+    { key: "lower_floor_temp_entity", label: "Lower floor temperature",
+      place: "lower_zone", entity: null, domains: SETUP_TEMP },
+    { key: "buffer_tank_temp_entity", label: "Buffer tank temperature",
+      place: "buffer_tank", entity: "sensor.tank", domains: SETUP_TEMP },
+    { key: "wood_tank_top_entity", label: "Wood tank top",
+      place: "wood_tank", entity: null, domains: SETUP_TEMP },
+    { key: "mixing_valve_target_entity", label: "Valve target",
+      place: "mixing_valve", entity: null, domains: SETUP_TEMP },
+    { key: "outdoor_temp_entity", label: "Outdoor temperature",
+      place: "outdoor", entity: "sensor.outside", domains: SETUP_TEMP },
+    { key: "heat_pump_switch_entity", label: "Heat pump switch",
+      place: "heat_pump", entity: null,
+      domains: ["switch", "input_boolean", "climate"] },
+  ],
+  ...(over || {}),
+});
+function mkSetup(over, extraStates) {
+  const states = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  states[DEFAULT_SPACE].attributes.setup_topology = setupTopo(over);
+  states["sensor.livingroom"] = {
+    state: "21.3", attributes: { unit_of_measurement: "°C",
+      friendly_name: "Living room" } };
+  states["sensor.tank"] = {
+    state: "47.5", attributes: { unit_of_measurement: "°C",
+      friendly_name: "Buffer tank" } };
+  states["sensor.outside"] = {
+    state: "3.0", attributes: { unit_of_measurement: "°C",
+      friendly_name: "Outside" } };
+  Object.assign(states, extraStates || {});
+  const c = build(states);
+  c._onCardClick({});
+  c._dialogPage = "setup";
+  c._render();
+  return c;
+}
+const setupPage = (over, extraStates) =>
+  collect(mkSetup(over, extraStates).shadowRoot).join("\n");
+const setupBox = (card, place) =>
+  (card._layoutBoxes || []).find((b) => b.place === place);
+
+// --- Scenario: the heat pump lost its louvres (item A, v5.1.2) --------------
+// Two horizontal strokes used to sit in the cabinet's bottom-left band as
+// vents. From a step back they read as two stray lines in the corner of a
+// box rather than as louvres, so they were removed. Everything else the
+// silhouette is built from -- contour, fan shroud, blades, hub, header
+// divider -- stays, and this pins that the removal took the ink and nothing
+// around it.
+{
+  const X = 16, Y = 79, W = 200, H = 49;
+  const acc = vm
+    .runInContext(`NODE_SHAPES.hp.accents(${X}, ${Y}, ${W}, ${H})`, ctx)
+    .filter(Boolean);
+  check("the heat pump draws four accents, not six",
+    acc.length === 4, `${acc.length} accents: ${JSON.stringify(acc)}`);
+  const ds = acc.map((a) => a.d || "").join(" ");
+  check("the fan shroud, its blades, the hub and the divider all survive",
+    /A 8 8 0 1 1/.test(ds) &&
+    (ds.match(/A 5 5 0 0 1/g) || []).length === 3 &&
+    acc.some((a) => (a.cls || "").includes("hub") && a.r === 1.6) &&
+    acc.some((a) => (a.cls || "").includes("divider")),
+    ds);
+  // The louvres lived at y+h-7 and y+h-4.5, i.e. the band within 10 units of
+  // the cabinet floor. Numeric, not textual: any ink that lands there again
+  // fails this whether or not it is spelled the way the old pair was. `d`
+  // is read as "M/L x y" pairs, which is every point the accents place.
+  const floorBand = [];
+  for (const a of acc) {
+    for (const m of String(a.d || "").matchAll(/[ML] (-?[\d.]+) (-?[\d.]+)/g)) {
+      if (Number(m[2]) > Y + H - 10) floorBand.push(m[0]);
+    }
+    if (a.cy !== undefined && a.cy > Y + H - 10) floorBand.push(`circle@${a.cy}`);
+  }
+  check("nothing is drawn in the cabinet's floor band any more",
+    floorBand.length === 0,
+    `ink below y=${Y + H - 10}: ${floorBand.join(", ")}`);
+  // ...and the same holds once the box is actually drawn: the louvres would
+  // have rendered as `M 30 121 H 56 M 30 123.5 H 56` on this box.
+  const page = setupPage();
+  check("the drawn heat pump has no louvre strokes",
+    !/M 30 121 H 56/.test(page) && !/M 30 123\.5 H 56/.test(page) &&
+    !/H 56 M 30/.test(page));
+  check("but it does still have its fan",
+    /M 190 92 A 8 8 0 1 1 206 92/.test(page));
+}
+
 console.log(fails ? `\n${fails} CARD CHECK(S) FAILED` : "\nALL CARD CHECKS PASSED");
 process.exit(fails?1:0);
