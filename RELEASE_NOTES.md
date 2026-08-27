@@ -1,5 +1,43 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v5.1.0
+
+### Documentation you can actually read
+
+The README had grown to 1,594 lines in an order nobody would choose: a
+93-line legal disclaimer before any description of what the integration
+does, an 843-line theory essay between you and the reference material,
+and the installation instructions at line 1,515. It is now 632 lines in
+the order you need them — what it does, requirements, install, a quick
+start covering your first thirty minutes, then the entity, service and
+configuration reference, with the depth moved into documents of its own.
+
+**New documents.** `docs/how-it-works.md` carries the full theory, rewritten
+against the current code rather than the version it was written for.
+`docs/configuration.md` documents every setup step and all thirteen options
+pages field by field. `docs/architecture.md` maps all 42 modules.
+`docs/ecl110.md` gives the Danfoss ECL110 integration its own page.
+`DISCLAIMER.md` holds the legal text in full, with a condensed paragraph
+and a link left in the README.
+
+**Diagrams.** Architecture and data flow, the optimization cycle, the
+config-flow branch map and the hydronic topology catalog are drawn as
+diagrams that render on GitHub.
+
+**Claims checked against the code, not against the last README.** Every
+factual statement was verified line by line and the false ones corrected:
+the sensor table listed 53 rows under a "55 total" heading (the two
+ECL110 displace sensors were missing), the options flow was described as
+11 pages when it has 13, three services were undocumented, the module
+tree was missing modules, the feature list still described v2.8, the
+weather forecast was attributed to Open-Meteo when it comes from your
+weather entity, the system-identification button was described as working
+out of the box when the option must be enabled first, and the accuracy
+claim ("99% in two days") stated more than the test suite measures — it
+now states exactly what the suite enforces.
+
+Documentation-only release: no code, entities, or plans change.
+
 ## v5.0.0
 
 ### Entity names in your language, and one duplicate sensor merged

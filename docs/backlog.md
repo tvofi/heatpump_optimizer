@@ -20,6 +20,13 @@ New work goes in the "Open" section immediately below, which is short by
 design. If it grows past a handful of entries, that is the signal to plan a
 release rather than to keep adding.
 
+**Where this file stops.** The item archive below ends at v3.16.0. The work
+after it is recorded elsewhere: the v4.0.0 program — 36 selected proposals
+delivered as themed tranche PRs — lives in `docs/plan-v4.0.0-program.md`, and
+the v4.0.1–v5.0.0 audit train that followed it is recorded release by release
+in `RELEASE_NOTES.md`. Only the "Open" section below is maintained against the
+current tree.
+
 ### Open
 
 Nothing from items 1–33. What follows was found along the way, judged real,
@@ -78,11 +85,19 @@ and deliberately not built.
   charging. Its confidence-weighted blend limits the damage; a two-exponential
   fit would fix it properly. Nobody has measured what the blend costs, which
   is the first thing to do if this is picked up.
-- **`SolarRadiation` and `SolarIrradiance` publish one reading under two
+- ~~**`SolarRadiation` and `SolarIrradiance` publish one reading under two
   names** (audit finding 5). Removing either is a breaking change to entity
   ids that users notice, so it is flagged rather than done. Worth pairing with
   any other deliberate breaking change rather than spending a release on it
-  alone.
+  alone.~~ **Shipped in v5.0.0**, paired with a deliberate breaking change
+  exactly as suggested: the release that moved every entity's display name into
+  the translation files also merged the two sensors. `SolarIrradianceSensor`
+  absorbed the duplicate — it is the one the card, the docs and the tests
+  always pointed at — and the retired `solar_radiation` unique id is removed
+  from the entity registry at startup, so it does not linger as a permanently
+  unavailable "restored" entity. The survivor keeps its own unique id, entity
+  id, history and statistics. The sensor count went from 56 to 55, which
+  `tests/entities.py` pins.
 - **The learner freeze fights the COP flow term on a wood-furnace house**
   (recorded in item 28). `_learning_frozen` freezes six learners for the whole
   burn plus its decay, which on a house that fires daily is precisely when the
@@ -2560,11 +2575,15 @@ hand-writes inline SVG with no build step and no dependencies; keep it that way.
   It takes over 10 minutes: the backtest, stress and golden scripts dominate.
 - Python tests need `PYTHONPATH=$PWD/tests/hastub` and the repo `.venv`. The
   stub now lives in the repo, not `/tmp`, so it survives a reboot.
-- Freeze the clock in any test whose meaning depends on the time of day.
-  Overrides expire at the next local midnight, so "two hours from now" silently
-  means 90 minutes when the suite runs at 22:30, and the assertion stops saying
-  anything about the code. Both `tests/card.mjs` and `tests/manual_plan.py` had
-  to be fixed for exactly this.
+- Freeze the clock in any test whose meaning depends on the time of day. The
+  original reason no longer applies — a manual override used to expire at the
+  next local midnight, so "two hours from now" silently meant 90 minutes when
+  the suite ran at 22:30, and both `tests/card.mjs` and `tests/manual_plan.py`
+  had to be fixed for exactly that. Overrides now expire a fixed 20 hours after
+  they are applied (`MANUAL_PLAN_WINDOW_HOURS`), measured from the moment of
+  application. Keep the clock frozen anyway: several checks assert on
+  hour-of-day arithmetic, and a frozen clock keeps a failure meaning the code
+  changed rather than that the suite ran at an awkward time.
 - Mutation-test new safety assertions: change the fix back and confirm the test
   fails. Several assertions written this session passed against the bug they
   were meant to catch until they were strengthened.
