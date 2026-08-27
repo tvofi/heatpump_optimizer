@@ -4715,6 +4715,90 @@ const setupBox = (card, place) =>
 }
 
 
+// --- Scenario: tooltip prose wraps, and the box stays on the chart ---------
+//
+// `.tooltip` sets `white-space: nowrap`, which is right for the value rows
+// ("House temperature: 22 °C" must not break) and wrong for everything else
+// in the box. `.tt-shared` carried a `max-width: 180px` that could never take
+// effect, because nowrap was never overridden on it: the ~110-character
+// shared-step sentence rendered as one unbroken line roughly 500 px wide and
+// spilled straight out of the box. `.tt-reason` is prose too and had no width
+// bound at all.
+//
+// STRUCTURAL PIN, not a rendered-overflow test. This DOM stub has no layout
+// engine: there is no box model, no text measurement and no `offsetWidth`, so
+// nothing here can observe an overflow. What it can pin is the rule that
+// prevents one — every prose block inside the tooltip declares
+// `white-space: normal` and a `max-width`, and none is left inheriting nowrap.
+// A future prose block added without those two declarations is caught; a
+// declared max-width that is simply too narrow for its content is NOT, and
+// neither is a real overflow arising from anything other than these rules.
+{
+  const styleOf = (cls) => {
+    const re = new RegExp(
+      "\\.tooltip \\." + cls + "\\s*\\{([\\s\\S]*?)\\}", "m"
+    );
+    const m = cardSrc.match(re);
+    return m ? m[1] : null;
+  };
+  // Every block the tooltip builder emits, and whether it is prose.
+  const PROSE = ["tt-shared", "tt-reason"];
+  const VALUES = ["tt-row", "tt-time"];
+
+  check("the tooltip itself still keeps short value rows on one line",
+    /\.tooltip \{[\s\S]*?white-space:\s*nowrap[\s\S]*?\}/.test(cardSrc));
+  for (const cls of PROSE) {
+    const css = styleOf(cls);
+    check(`${cls} declares a style block at all`, css !== null);
+    check(`${cls} wraps instead of inheriting nowrap`,
+      css !== null && /white-space:\s*normal/.test(css), css);
+    check(`${cls} bounds its own width`,
+      css !== null && /max-width:\s*\d/.test(css), css);
+  }
+  for (const cls of VALUES) {
+    const css = styleOf(cls);
+    check(`${cls} is left on one line, which is what nowrap is for`,
+      css === null || !/white-space:\s*normal/.test(css), css);
+  }
+  // Every class the tooltip HTML emits must be one of the two lists above, so
+  // a new prose block cannot be added without deciding which it is.
+  const emitted = new Set(
+    [...cardSrc.matchAll(/<div class="(tt-[\w-]+)"/g)].map((m) => m[1])
+  );
+  check("every tooltip block is classified as prose or as a value row",
+    [...emitted].every((c) => PROSE.includes(c) || VALUES.includes(c)),
+    [...emitted].join(", "));
+
+  // The competing hypothesis, and a real second defect: placement clamped
+  // only the LEFT edge (`Math.max(0, place)`) and flipped the box left of the
+  // pointer past 60 % of the width assuming a 160 px box. A wider box near the
+  // right-hand edge ran off the chart whether or not its text wrapped.
+  const posCard = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
+  const rect = { width: 900, left: 0, top: 0 };
+  // The stub has no layout, so `offsetWidth` is supplied by hand: this is the
+  // one number the placement needs and the only thing standing in for layout.
+  const TT_W = 420;
+  const ttNode = posCard.shadowRoot.querySelector(".tooltip");
+  ttNode.offsetWidth = TT_W;
+  const place = (clientX) => {
+    posCard._onPointerMove({
+      clientX,
+      currentTarget: { getBoundingClientRect: () => rect },
+    });
+    return parseFloat(ttNode.style.left);
+  };
+  // Inside the plot area: the pointer handler ignores anything outside it, so
+  // these have to be plot coordinates, not card ones.
+  const atRightEdge = place(830);
+  check("the tooltip never starts past the chart's right edge",
+    atRightEdge + TT_W <= rect.width,
+    `left ${atRightEdge} + ${TT_W} > ${rect.width}`);
+  check("and never starts left of the chart", place(95) >= 0,
+    `left ${place(95)}`);
+  check("a pointer in the middle still places it beside the crosshair",
+    place(300) > 0 && place(300) + TT_W <= rect.width, `left ${place(300)}`);
+}
+
 // --- Scenario: the zone traces are named (v5.1.6) --------------------------
 //
 // The house-temperature series draws `room` solid and `upper`/`lower` dashed

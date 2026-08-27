@@ -4999,6 +4999,17 @@ class HeatpumpOptimizerCard extends HTMLElement {
           color: var(--primary-text-color);
           box-shadow: 0 2px 6px rgba(0,0,0,0.2); white-space: nowrap;
         }
+        /* The value rows keep the tooltip's nowrap: "House temperature:
+           22 °C" broken across two lines is worse than a wider box, and these
+           rows are short by construction.
+
+           The prose blocks below must NOT. tt-shared carried a
+           max-width of 180px that could never do anything, because it
+           inherited white-space: nowrap from .tooltip and never overrode
+           it: a ~110-character sentence rendered as one unbroken ~500 px line
+           inside a box told to be 180 px wide, and spilled out of it and over
+           whatever sat beside the chart. tt-reason is prose too and had no
+           width bound at all. Both now wrap, and both carry a width. */
         .tooltip .tt-row { display: flex; align-items: center; gap: 6px; }
         .tooltip .tt-time { font-weight: 600; margin-bottom: 3px; }
         .tooltip .tt-shared {
@@ -5006,12 +5017,15 @@ class HeatpumpOptimizerCard extends HTMLElement {
           font-size: 0.85em;
           font-style: italic;
           color: var(--secondary-text-color, #888);
-          max-width: 180px;
+          white-space: normal;
+          max-width: 220px;
         }
         .tooltip .tt-reason {
           margin-top: 4px; padding-top: 4px; font-style: italic;
           border-top: 1px solid var(--divider-color, #eee);
           color: var(--secondary-text-color);
+          white-space: normal;
+          max-width: 220px;
         }
         .tooltip .dot {
           width: 8px; height: 8px; border-radius: 50%; display: inline-block;
@@ -7390,7 +7404,16 @@ class HeatpumpOptimizerCard extends HTMLElement {
       tt.hidden = false;
       const leftPx = clientX - rect.left;
       const place = leftPx > rect.width * 0.6 ? leftPx - 160 : leftPx + 14;
-      tt.style.left = `${Math.max(0, place)}px`;
+      // Clamped to the chart, both edges. Flipping to the left of the pointer
+      // past 60 % of the width assumed a 160 px box; a wider one (a long
+      // reason line, a shared-step sentence, a chart in the expanded dialog)
+      // still ran off the right-hand side and over the card beside it. Measure
+      // the box that actually exists, and keep its right edge inside the plot.
+      // `offsetWidth` is 0 before layout and absent in the test DOM, hence the
+      // fallback to the width this placement was originally written for.
+      const ttWidth = tt.offsetWidth || 160;
+      const rightLimit = Math.max(0, rect.width - ttWidth - 4);
+      tt.style.left = `${Math.min(Math.max(0, place), rightLimit)}px`;
       // The tooltip is positioned against its own chart wrapper, so a
       // small inset keeps it clear of the plot frame in both views.
       tt.style.top = `8px`;
