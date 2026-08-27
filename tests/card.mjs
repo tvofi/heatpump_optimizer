@@ -140,6 +140,10 @@ class Node {
   // render-destroying keyboard actions, and the assertion is simply "who
   // received the last .focus() call".
   focus(){ document.activeElement = this; }
+  // ...and gives it up again. The card takes focus off a setup row that a
+  // pointer gesture left holding it (item F), which is only observable if
+  // the stub models letting go as well as taking hold.
+  blur(){ if (document.activeElement === this) document.activeElement = document.body; }
 }
 // Selector support: a tag name, a class, an attribute, or a tag+attribute
 // pair, which covers everything the card actually queries for.
@@ -4354,6 +4358,175 @@ const setupBox = (card, place) =>
     !!filterBox && /wood tank top/i.test(filterBox["aria-label"] || "") &&
     !!filterBox.placeholder,
     filterBox && `${filterBox["aria-label"]} / ${filterBox.placeholder}`);
+}
+
+// --- Scenario: no focus ring is left behind by a mouse (item F) -------------
+// Click a sensor field, click Cancel, click elsewhere: "a thin blue line
+// remains at the left and above the sensor field". The rows have been
+// focusable buttons since v4.2.0, and Cancel handed focus back to the row
+// whether or not the person wanted it there -- so a mouse user was left
+// holding focus on a field they had just backed out of, ringed by an
+// `outline` that the row's own geometry clipped down to two edges.
+//
+// Fixed by keeping the ring (keyboard users need it) and fixing everything
+// around it: focus goes back to the row only when the keyboard sent it
+// there, any pointer gesture off a row drops it, and the ring is stroked
+// onto the rect -- part of the drawing, so nothing can clip it -- inside a
+// rect inset far enough for all four sides to show.
+{
+  const hitFor = (card, key) => card.shadowRoot.querySelectorAll(".setup-hit")
+    .find((h) => h.dataset.key === key);
+  const openBy = (card, key, viaKeyboard) => {
+    const hit = hitFor(card, key);
+    // A real pointer press focuses what it presses; the keyboard path
+    // arrives on an already-focused row.
+    hit.focus();
+    if (viaKeyboard) {
+      (hit._listeners.keydown || []).forEach((f) => f({ key: "Enter",
+        currentTarget: hit, preventDefault() {}, stopPropagation() {} }));
+    } else {
+      (hit._listeners.click || []).forEach((f) => f({ currentTarget: hit,
+        preventDefault() {}, stopPropagation() {} }));
+    }
+  };
+  const cancel = (card) => {
+    const b = card.shadowRoot.querySelector(".sp-cancel");
+    (b._listeners.click || []).forEach((f) =>
+      f({ stopPropagation() {}, preventDefault() {} }));
+  };
+  const focusedRow = () => {
+    const a = document.activeElement;
+    return a && a.classList && a.classList.contains("setup-hit")
+      ? a.dataset.key : null;
+  };
+  // A pointer press somewhere in the dialog that is not a row. The card
+  // parks the listener on the dialog, which is the root `_attachSetupEvents`
+  // is handed.
+  const clickElsewhere = (card, target) => {
+    const dlg = card.shadowRoot.querySelector("dialog");
+    ((dlg && dlg._listeners.pointerdown) || []).forEach((f) =>
+      f({ target: target || new Node("div") }));
+  };
+
+  // The reported sequence, with a mouse throughout.
+  const mouse = mkSetup();
+  openBy(mouse, "indoor_temp_entity", false);
+  check("a mouse click on a row opens the picker",
+    !!mouse.shadowRoot.querySelector(".setup-picker"));
+  cancel(mouse);
+  check("Cancel does not hand the row back to a mouse user",
+    focusedRow() === null,
+    `focus is on ${focusedRow() || (document.activeElement || {}).tagName}`);
+  // Put focus back on the row by hand first, so this is a real test of the
+  // click and not of the line above it.
+  hitFor(mouse, "indoor_temp_entity").focus();
+  clickElsewhere(mouse);
+  check("and clicking elsewhere afterwards leaves no row focused",
+    focusedRow() === null, `focus is on ${focusedRow()}`);
+  // The listener that does it is parked once per render, not once per
+  // render since the dialog opened.
+  const before = mouse.shadowRoot.querySelector("dialog")
+    ._listeners.pointerdown.length;
+  mouse._sig = null;
+  mouse._maybeRender(true);
+  const after = mouse.shadowRoot.querySelector("dialog")
+    ._listeners.pointerdown.length;
+  check("and re-rendering does not stack another copy of it",
+    after === before, `${before} listeners before a re-render, ${after} after`);
+
+  // The keyboard path is the one the ring exists for, and it is unchanged.
+  const keys = mkSetup();
+  openBy(keys, "indoor_temp_entity", true);
+  check("Enter on a row opens the picker",
+    !!keys.shadowRoot.querySelector(".setup-picker"));
+  cancel(keys);
+  check("Cancel does return the row to a keyboard user",
+    focusedRow() === "indoor_temp_entity",
+    `focus is on ${focusedRow()}`);
+  // ...and Escape, the other way out, still does the same.
+  const esc = mkSetup();
+  openBy(esc, "buffer_tank_temp_entity", true);
+  const pk = esc.shadowRoot.querySelector(".setup-picker");
+  (pk._listeners.keydown || []).forEach((f) =>
+    f({ key: "Escape", stopPropagation() {} }));
+  check("Escape returns it too",
+    focusedRow() === "buffer_tank_temp_entity", `focus is on ${focusedRow()}`);
+  // A row a keyboard user is deliberately sitting on is not stolen from
+  // them by an unrelated pointer gesture on that same row.
+  const kept = mkSetup();
+  hitFor(kept, "indoor_temp_entity").focus();
+  clickElsewhere(kept, hitFor(kept, "indoor_temp_entity"));
+  check("a pointer press on the row itself does not drop its focus",
+    focusedRow() === "indoor_temp_entity", `focus is on ${focusedRow()}`);
+  clickElsewhere(kept);
+  check("but a pointer press anywhere else does",
+    focusedRow() === null, `focus is on ${focusedRow()}`);
+
+  // The ring itself: kept, and kept visible.
+  check("the ring is still there for keyboard users",
+    /\.setup-hit:focus-visible \{/.test(cardSrc),
+    "no :focus-visible rule for setup rows");
+  check("it is not painted with an outline that geometry can clip",
+    /\.setup-hit:focus-visible \{[^}]*outline:\s*none/.test(cardSrc) &&
+    /\.setup-hit:focus-visible \{[^}]*stroke:/.test(cardSrc) &&
+    /\.setup-hit:focus-visible \{[^}]*stroke-width:\s*2/.test(cardSrc),
+    (/\.setup-hit:focus-visible \{[^}]*\}/.exec(cardSrc) || [])[0]);
+  check("and it is :focus-visible, so a mouse click cannot leave one",
+    !/\.setup-hit:focus(?![-\w])/.test(cardSrc),
+    "a bare :focus rule on .setup-hit would ring mouse clicks too");
+  // Hover and focus-visible have equal specificity, so a hover rule using
+  // element opacity would fade the ring on the row under the pointer.
+  check("hovering a focused row does not fade its ring",
+    /\.setup-hit:hover \{[^}]*fill-opacity/.test(cardSrc) &&
+    !/\.setup-hit:hover \{[^}]*[^-]opacity:\s*0\.12/.test(cardSrc),
+    (/\.setup-hit:hover \{[^}]*\}/.exec(cardSrc) || [])[0]);
+  // Nobody's outline was hidden wholesale to make the report go away.
+  check("no blanket outline suppression was added",
+    !/outline:\s*none[^;]*;\s*\}\s*\/\* *hide/i.test(cardSrc) &&
+    /\.slot:focus-visible, \.lane:focus-visible \{[\s\S]{0,80}outline: 2px solid/
+      .test(cardSrc),
+    "the other focusable SVG parts keep their outlines");
+
+  // Geometry: at stroke-width 2 centred on the path the ring reaches one
+  // unit outside the rect, and must still clear the contour and the rows
+  // above and below -- otherwise it is clipped again, differently.
+  const geoCard = mkSetup();
+  const page = collect(geoCard.shadowRoot).join("\n");
+  const rects = [...page.matchAll(
+    /<rect class="setup-hit" data-key="([^"]+)"[^>]*?x="([\d.]+)" y="([\d.]+)"\s*width="([\d.]+)"\s*height="([\d.]+)"/g)]
+    .map((m) => ({ key: m[1], x: +m[2], y: +m[3], w: +m[4], h: +m[5] }));
+  const boxes = geoCard._layoutBoxes || [];
+  const clipped = [];
+  for (const r of rects) {
+    const b = boxes.find((bb) => r.x > bb.x && r.x < bb.x + bb.w &&
+      r.y > bb.y && r.y < bb.y + bb.h);
+    if (!b) { clipped.push(`${r.key}: no box`); continue; }
+    // 1 unit of ring on every side, against the contour at x+2 / x+w-2 and
+    // the box's own top and bottom.
+    if (r.x - 1 < b.x + 2) clipped.push(`${r.key}: left ${r.x - 1} < ${b.x + 2}`);
+    if (r.x + r.w + 1 > b.x + b.w - 2) {
+      clipped.push(`${r.key}: right ${r.x + r.w + 1} > ${b.x + b.w - 2}`);
+    }
+    if (r.y - 1 < b.y) clipped.push(`${r.key}: top ${r.y - 1} < ${b.y}`);
+    if (r.y + r.h + 1 > b.y + b.h) {
+      clipped.push(`${r.key}: bottom ${r.y + r.h + 1} > ${b.y + b.h}`);
+    }
+  }
+  check("the ring has room for all four of its sides inside the box",
+    clipped.length === 0, clipped.join("; "));
+  // Two rings on adjacent rows must not merge into one smear.
+  const merged = [];
+  const byCol = {};
+  for (const r of rects) (byCol[r.x] ||= []).push(r);
+  for (const list of Object.values(byCol)) {
+    const sorted = list.slice().sort((a, b) => a.y - b.y);
+    for (let i = 1; i < sorted.length; i++) {
+      const gap = sorted[i].y - (sorted[i - 1].y + sorted[i - 1].h) - 2;
+      if (gap < 0) merged.push(`${sorted[i - 1].key}/${sorted[i].key} ${gap}`);
+    }
+  }
+  check("and two neighbouring rings never touch each other",
+    merged.length === 0, merged.join(", "));
 }
 
 console.log(fails ? `\n${fails} CARD CHECK(S) FAILED` : "\nALL CARD CHECKS PASSED");

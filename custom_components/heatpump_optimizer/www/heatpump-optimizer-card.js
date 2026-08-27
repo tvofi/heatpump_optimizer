@@ -4740,9 +4740,12 @@ class HeatpumpOptimizerCard extends HTMLElement {
            element's box in the viewport, where the row's neighbours and the
            diagram's edges cut it: the reporter saw a ring with only its top
            and left sides left. A stroke is part of the drawing, so all four
-           sides are visible, and it is inset far enough (the rect stops 4
-           units short of the box and 1 unit short of each neighbouring row)
-           to stay clear of the contour and of the row above and below.
+           sides are visible, and the rect is inset far enough to keep them
+           so: it starts 4 units inside the box, which is 2 clear of the
+           contour at x+2, and is 2 units shorter than the 17-unit row
+           pitch, which leaves 1 unit of air above and below. At
+           stroke-width 2, centred on the path, the ring needs exactly 1 of
+           those units on each side and touches nothing.
            It is a :focus-visible rule, not :focus, so a mouse click leaves
            no ring behind while a keyboard user keeps one. */
         .setup-hit:focus-visible {
@@ -5022,7 +5025,14 @@ class HeatpumpOptimizerCard extends HTMLElement {
           font-size: 0.85em; padding: 0 0.25em 0.5em 0.25em;
         }
         .setup-hit { fill: transparent; cursor: pointer; }
-        .setup-hit:hover { fill: var(--primary-color, #03a9f4); opacity: 0.12; }
+        /* fill-opacity, not opacity: element opacity would fade the focus
+           ring stroked on this same rect down to 12% as soon as the pointer
+           crossed a keyboard-focused row -- and :hover and :focus-visible
+           have equal specificity, so the later rule would win. Tinting only
+           the fill leaves the ring alone. */
+        .setup-hit:hover {
+          fill: var(--primary-color, #03a9f4); fill-opacity: 0.12;
+        }
 
         /* The layout editor (v3.16.0, issue #40) */
         .layout-bar {
