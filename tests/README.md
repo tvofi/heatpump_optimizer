@@ -79,7 +79,30 @@ them twice in the *same* environment — working tree vs a worktree of
 and only the branch's own footprint remains. With `--all` it does this for
 every fixture, which is how CI checks goldens. A branch that deliberately
 moves fixtures lists them in `tests/golden/claimed_drift.txt` with a reason;
-claimed scenarios print their diffs without failing, and stale claims fail.
+claimed scenarios print their diffs without failing, and a claim that matched
+nothing fails as a *stale claim* — counted and reported separately from drift,
+since nothing regressed.
+
+That file is committed, so two rules stop a claim from outliving the diff it
+describes. It carries a `# claims-for: <version>` line that must equal the
+repo-root `VERSION` — checked by both `env_drift.py` (before any capture, in
+either mode) and `entities.py` — so a release that moves no goldens still
+bumps the line and empties the list. And under `--all`, the claim list must
+differ from the baseline's: identical names with identical reasons mean the
+list was written for the baseline's diff and carried forward, which the stamp
+alone cannot catch, because it only expires claims when `VERSION` *changes*
+and consecutive commits often share one. An empty list is always fine.
+
+The comparison ref must not resolve to `HEAD`. A tree compared against itself
+is identical by construction, so nothing can ever drift and every claim is
+stale; `env_drift.py` refuses that instead of passing, and CI resolves the ref
+with no fallback to `HEAD`. So a run from a checkout that *is* `main` needs a
+real baseline — `GOLDEN_REF=HEAD^1 ./tests/run.sh` — rather than the default
+`origin/main`, which there is this same commit.
+
+Without `--all` only the five sensitive fixtures are captured, so claims
+naming any other scenario are reported there as *not evaluated* rather than
+stale; judging those is `--all`'s job, which is what CI runs.
 
 `--record` re-records from current behaviour. **Read the diff before doing
 that.** A change here is either a bug or a deliberate decision that belongs in

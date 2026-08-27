@@ -71,7 +71,10 @@ class HeatPumpOptimizerClimate(CoordinatorEntity, ClimateEntity):
     """Climate entity for the Heat Pump Optimizer."""
 
     _attr_has_entity_name = True
-    _attr_name = "Heat Pump Optimizer"
+    # The device's main feature: a device-named entity (name None) takes the
+    # device's own name, which is what the old literal "Heat Pump Optimizer"
+    # resolved to after registry deduplication — same display, idiomatically.
+    _attr_name = None
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_hvac_modes = [HVACMode.OFF, HVACMode.HEAT, HVACMode.AUTO]
     _attr_supported_features = (
@@ -94,6 +97,9 @@ class HeatPumpOptimizerClimate(CoordinatorEntity, ClimateEntity):
         self._entry = entry
         self._config = {**entry.data, **entry.options}
         self._attr_unique_id = f"{entry.entry_id}_climate"
+        # Pin today's object id for new installs (the integration
+        # suggested-object-id mechanism); see the sensor base class.
+        self.entity_id = "climate.heat_pump_optimizer"
         self._attr_min_temp = self._config.get(CONF_MIN_TEMP, DEFAULT_MIN_TEMP) - 1
         self._attr_max_temp = self._config.get(CONF_MAX_TEMP, DEFAULT_MAX_TEMP) + 1
 

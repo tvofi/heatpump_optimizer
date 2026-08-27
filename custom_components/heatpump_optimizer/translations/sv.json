@@ -764,5 +764,207 @@
       "title": "En konfigurerad nätavgift ser 100× för stor ut",
       "description": "Nätavgiftslagret innehåller en avgift på {rate} SEK/kWh (från källan {source}). Svenska nätbolags överföringsavgifter ligger på några tiondels kronor per kWh, så ett så stort värde är nästan alltid öre inskrivet där SEK avsågs — 25 i stället för 0,25. Ingenting ändras eller begränsas: planen fortsätter att prissätta med exakt det värde som konfigurerats. Rätta värdet under alternativen för nätavgifter (eller åtgärda avgiftssensorn) så försvinner meddelandet vid nästa planeringscykel."
     }
+  },
+  "entity": {
+    "sensor": {
+      "baseline_cost": {
+        "name": "Referenskostnad"
+      },
+      "buffer_tank_temperature_model": {
+        "name": "Ackumulatortankens temperatur (modell)"
+      },
+      "comfort_weight": {
+        "name": "Komfortvikt"
+      },
+      "compressor_frequency_advisor": {
+        "name": "Rådgivare för kompressorfrekvens"
+      },
+      "compressor_starts": {
+        "name": "Kompressorstarter"
+      },
+      "contract_comparison": {
+        "name": "Avtalsjämförelse"
+      },
+      "current_electricity_price": {
+        "name": "Aktuellt elpris"
+      },
+      "dhw_heating_cost": {
+        "name": "Kostnad för varmvattenuppvärmning"
+      },
+      "dhw_heating_plan": {
+        "name": "Varmvattenplan"
+      },
+      "dhw_heating_schedule": {
+        "name": "Schema för varmvatten"
+      },
+      "dhw_heavy_day_demand": {
+        "name": "Varmvattenbehov tunga dagar"
+      },
+      "dhw_setpoint_advisor": {
+        "name": "Rådgivare för varmvattenbörvärde"
+      },
+      "dhw_temperature": {
+        "name": "Varmvattentemperatur"
+      },
+      "ecl110_displace": {
+        "name": "ECL110-förskjutning"
+      },
+      "ecl110_effective_displace": {
+        "name": "ECL110 effektiv förskjutning"
+      },
+      "estimated_cop": {
+        "name": "Beräknad COP"
+      },
+      "floor_heating_return_temperature": {
+        "name": "Golvvärmens returtemperatur"
+      },
+      "heat_pump_action": {
+        "name": "Värmepumpens åtgärd"
+      },
+      "hot_water_cost": {
+        "name": "Varmvattenkostnad"
+      },
+      "hot_water_energy": {
+        "name": "Varmvattenenergi"
+      },
+      "indoor_temperature_optimizer": {
+        "name": "Inomhustemperatur (optimeraren)"
+      },
+      "last_optimization": {
+        "name": "Senaste optimering"
+      },
+      "lower_floor_temperature": {
+        "name": "Temperatur nedervåning"
+      },
+      "measured_power": {
+        "name": "Uppmätt effekt"
+      },
+      "mixed_hot_water": {
+        "name": "Blandat varmvatten"
+      },
+      "monthly_peak_power": {
+        "name": "Månadens effekttopp"
+      },
+      "next_optimization": {
+        "name": "Nästa optimering"
+      },
+      "observed_cop": {
+        "name": "Observerad COP"
+      },
+      "optimal_setpoint": {
+        "name": "Optimalt börvärde"
+      },
+      "optimization_mode": {
+        "name": "Optimeringsläge"
+      },
+      "optimization_schedule": {
+        "name": "Optimeringsschema"
+      },
+      "optimization_score": {
+        "name": "Optimeringsbetyg"
+      },
+      "optimization_status": {
+        "name": "Optimeringsstatus"
+      },
+      "outdoor_temperature_optimizer": {
+        "name": "Utomhustemperatur (optimeraren)"
+      },
+      "plan_narrative": {
+        "name": "Planbeskrivning"
+      },
+      "power_headroom": {
+        "name": "Effektmarginal"
+      },
+      "predicted_cost": {
+        "name": "Beräknad kostnad"
+      },
+      "predicted_savings": {
+        "name": "Beräknad besparing"
+      },
+      "prediction_accuracy": {
+        "name": "Prognosnoggrannhet"
+      },
+      "predictive_optimization_insight": {
+        "name": "Prediktiv optimeringsinsikt"
+      },
+      "recommended_power": {
+        "name": "Rekommenderad effekt"
+      },
+      "savings_percentage": {
+        "name": "Besparing i procent"
+      },
+      "slab_temperature_estimated": {
+        "name": "Golvplattans temperatur (uppskattad)"
+      },
+      "solar_heat_gain": {
+        "name": "Solvärmetillskott"
+      },
+      "solar_irradiance": {
+        "name": "Solinstrålning"
+      },
+      "solar_surplus_forecast": {
+        "name": "Prognos för solöverskott"
+      },
+      "space_heating_cost": {
+        "name": "Uppvärmningskostnad"
+      },
+      "space_heating_energy": {
+        "name": "Uppvärmningsenergi"
+      },
+      "space_heating_plan": {
+        "name": "Uppvärmningsplan"
+      },
+      "thermal_battery_charge": {
+        "name": "Termiskt batteri – laddningsgrad"
+      },
+      "thermal_battery_energy": {
+        "name": "Termiskt batteri – lagrad energi"
+      },
+      "total_energy": {
+        "name": "Total energi"
+      },
+      "total_heating_cost": {
+        "name": "Total värmekostnad"
+      },
+      "upper_floor_temperature": {
+        "name": "Temperatur övervåning"
+      },
+      "valve_target_recommendation": {
+        "name": "Rekommenderat läge för shuntventil"
+      }
+    },
+    "binary_sensor": {
+      "away_mode": {
+        "name": "Bortaläge"
+      },
+      "external_heat_source": {
+        "name": "Extern värmekälla"
+      },
+      "input_problem": {
+        "name": "Problem med indata"
+      },
+      "open_window_detected": {
+        "name": "Öppet fönster upptäckt"
+      }
+    },
+    "button": {
+      "diagnose_last_interval": {
+        "name": "Diagnostisera senaste intervallet"
+      },
+      "optimize_now": {
+        "name": "Optimera nu"
+      },
+      "reset_learned_comfort_weight": {
+        "name": "Återställ inlärd komfortvikt"
+      },
+      "run_system_identification": {
+        "name": "Kör systemidentifiering"
+      }
+    },
+    "switch": {
+      "optimizer_active": {
+        "name": "Optimeraren aktiv"
+      }
+    }
   }
 }

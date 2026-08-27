@@ -1,5 +1,96 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v5.0.0
+
+### Entity names in your language, and one duplicate sensor merged
+
+This is a major-version release because it changes what entities exist and
+how they are named. Read the migration notes below; for almost everyone the
+answer is "nothing to do".
+
+**Translated entity names.** Every entity now takes its display name from
+the integration's translation files instead of a hardcoded English string:
+English and Swedish ship in this release, following your Home Assistant
+language. The English names are the same names as in v4.x, so an install
+running in English looks unchanged. Any entity you renamed yourself keeps
+your name — a user-set name always wins over the integration's.
+
+**One sensor instead of two for solar.** "Solar Radiation (Optimizer)" and
+"Solar Irradiance" published the same number (the irradiance the optimizer
+is currently planning with). They are now one sensor: **Solar Irradiance**,
+the one the dashboard card, the documentation and the attributes (forecast,
+source, `plan_kind` marker) always lived on. The sensor total goes from 56
+to 55.
+
+**A `stat_kind` attribute on the headline sensors.** Predicted Savings,
+Savings Percentage, Optimization Score and Plan Narrative now advertise a
+stable `stat_kind` attribute, like `plan_kind` on the plan sensors, so the
+dashboard card (and your own templates) can find them without depending on
+entity ids. The card needs no update — this is future-proofing.
+
+### Migration notes
+
+**Existing installs:**
+
+- **Entity ids, unique ids, history and long-term statistics are all
+  preserved.** Unique ids never changed, and Home Assistant keeps a
+  registered entity's id across renames. Automations, dashboards and
+  recorded statistics keep working untouched.
+- **Display names only change if your HA language is not English** (Swedish
+  installs get Swedish names) — and even then, never for entities you
+  renamed yourself.
+- **The "Solar Radiation (Optimizer)" sensor is removed.** Its registry
+  entry is cleaned up automatically at startup, so it will not linger as an
+  unavailable entity. Its recorded history is *not* merged into Solar
+  Irradiance — the two sensors always recorded the same value, so Solar
+  Irradiance's own history already tells the same story; the retired
+  series simply stops. Its long-term statistics remain visible under
+  Developer Tools → Statistics until you dismiss the orphaned series
+  there (one click on "Fix issue"). If anything of yours references
+  `sensor.…_solar_radiation_optimizer`, point it at
+  `sensor.…_solar_irradiance`.
+- **The climate entity's displayed name improves.** It becomes formally
+  "device-named" (the idiomatic Home Assistant pattern for a device's
+  main entity). Under v4.x it displayed with the device name doubled
+  ("Heat Pump Optimizer Heat Pump Optimizer"); it now displays as just
+  the device name. Existing installs keep their entity id.
+
+**New installs:** identical entity ids to v4.x for every sensor, binary
+sensor, button and switch, in every Home Assistant language. The
+integration pins its English object ids explicitly
+(`sensor.heat_pump_optimizer_optimal_setpoint`, …), so docs, automation
+examples and the dashboard card's discovery keep matching even on a
+Swedish-language HA, where translated names would otherwise produce
+Swedish entity ids. The one exception is the climate entity: a fresh
+v5.0.0 install creates `climate.heat_pump_optimizer` where v4.x created
+the doubled `climate.heat_pump_optimizer_heat_pump_optimizer` — the
+corrected id, and nothing in the integration, card or docs references
+the old one.
+
+### Also: the test gate stops crying wolf
+
+Three recent releases (v4.0.7, v4.2.0, v4.3.0) showed a red CI badge for a
+reason that had nothing to do with their code. The golden-fixture gate lets
+a release declare "these fixtures move on purpose" in a claim file, and
+fails any claim that turns out to move nothing — so claims cannot outlive
+the release that needed them. But the file is committed, so a release that
+moves no fixtures inherited the previous release's claims and failed on
+every one of them.
+
+The claim file now stamps itself with the release it belongs to and is
+rejected if that does not match `VERSION`, and in CI it must also differ
+from the release it is being compared against — so an inherited list is
+caught in a fraction of a second, with one sentence saying what to do,
+instead of a wall of misleading "regression" output after a half-hour run.
+Three further faults in the same gate went with it: a valid claim file
+could fail a local run, a release that added and claimed a new fixture was
+failed for it, and a mis-resolved comparison could silently compare the
+tree against itself and pass. `VERSION`, `manifest.json`, the release-notes
+heading and the card version are now pinned to each other as well, so a
+half-finished version bump fails the suite rather than shipping.
+
+Integration-only release: the dashboard card is unchanged.
+
 ## v4.3.0
 
 ### The setup page looks like your heating system now
