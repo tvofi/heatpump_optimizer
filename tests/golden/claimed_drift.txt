@@ -43,14 +43,28 @@
 # does not expire with the stamp and is not part of the inherited-claims
 # comparison.
 #
-# claims-for: 5.1.9
+# claims-for: 5.2.0
 #
 #
-# v5.1.9 is card-only: one file of Lovelace JavaScript, its own test lane and
-# the release metadata. Nothing under custom_components/heatpump_optimizer/
-# outside www/ is touched, no planning code runs differently, and no fixture
-# is expected to move. The list below is therefore empty, which is the whole
-# claim: byte-identical behaviour everywhere.
+# v5.2.0 hot-water expected-error band: the claim list is deliberately
+# EMPTY, and that is the whole claim -- byte-identical behaviour everywhere.
+#
+# This release does touch Python, unlike v5.1.9, so the reason is a longer
+# one. The two new forecast keys (dhw_temp_lo / dhw_temp_hi) are published
+# from _build_plan_views, which runs only inside a solve; golden.py's
+# _capture_coordinator records _build_data_dict() WITHOUT running one, so
+# space_plan and dhw_plan are {} in every coord_* fixture and the new keys
+# never reach one. The scenario fixtures capture the optimizer's own result
+# object, which this release does not touch at all. The tank's accuracy
+# record is a second AccuracyTracker fed from the update cycle, which no
+# fixture drives. The rest of the change is the Lovelace card, which no
+# fixture runs. Verified by running env_drift --all against this baseline,
+# not assumed.
+#
+# v5.1.7's claims are deliberately NOT carried forward, and neither is
+# v5.1.9's empty one: every claim describes exactly one release's diff, and
+# both of those diffs are inside the baseline this branch is measured
+# against.
 
 # These five are the fixtures this gate declares non-reproducible across BLAS
 # builds: each machine solves them to a different local optimum, so whether
@@ -59,7 +73,8 @@
 # they show against main is entirely the machine -- which is exactly what
 # may-drift is for, and why these entries do not expire with the stamp. The
 # reasons below name the last release whose change could plausibly reach
-# them; nothing in this one can.
+# them; nothing in this one can either -- v5.2.0 adds a published band and
+# a second accuracy record, and changes no solver code.
 # may-drift: valve_storage_smart_write -- machine-sensitive; last touched by the v5.1.7 fall-through relabel
 # may-drift: wood_two_tank -- machine-sensitive; last touched by the v5.1.7 fall-through relabel
 # may-drift: wood_two_tank_smart_write -- machine-sensitive; last touched by the v5.1.7 fall-through relabel
