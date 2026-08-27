@@ -1929,6 +1929,90 @@ check("the hand-scheduled reason has a label",
   check("the heat pump visibly feeds the hot water tank",
     drawn.includes("heat_pump>dhw_tank"),
     `edges drawn: ${drawn.join(", ")}`);
+  // v4.3.0: each place is drawn as the equipment it is. The silhouette rides
+  // its own contour path so the rect can stay the invisible geometry carrier
+  // every older assertion (and the drag editor) reads.
+  check("every place wears its own silhouette",
+    ["heat_pump", "wood_tank", "buffer_tank", "dhw_tank", "mixing_valve",
+      "upper_zone", "lower_zone", "outdoor"].every((p) =>
+      new RegExp(`class="setup-contour kind-${p}"`).test(setupPage)),
+    "a place without a contour is a box that lost its shape");
+  check("no box goes without a contour",
+    (setupPage.match(/class="setup-contour/g) || []).length >=
+      (su._layoutBoxes || []).length,
+    `${(setupPage.match(/class="setup-contour/g) || []).length} contours for `
+    + `${(su._layoutBoxes || []).length} boxes`);
+  check("the carrier rect is invisible, not gone",
+    /\.setup-box \{ fill: none; stroke: none; \}/.test(cardSrc),
+    "the rect is geometry for the tests and the editor; the contours are "
+    + "the paint");
+  // Outside air is unbounded: its contour is an open tray baseline, no Z,
+  // while a tank's silhouette closes.
+  {
+    const outdoorG = setupPage.split("<g>")
+      .find((g) => g.includes("kind-outdoor")) || "";
+    const contourD = (seg, place) => {
+      const m = new RegExp(
+        `class="setup-contour kind-${place}"\\s+d="([^"]*)"`).exec(seg);
+      return m ? m[1] : "";
+    };
+    check("outside air is drawn open, tanks are drawn closed",
+      contourD(outdoorG, "outdoor") !== "" &&
+      !/Z/.test(contourD(outdoorG, "outdoor")) &&
+      /Z/.test(contourD(setupPage, "wood_tank")),
+      "walls around the outdoors would claim a container that place is not");
+  }
+  // Endpoint dots and flow chevrons are ornament: none of them may carry
+  // `data-edge`, or every scrape of the drawn topology inflates. Scoped to
+  // the diagram's own svg -- the plan lanes elsewhere in the shadow root
+  // legitimately use data-edge for their drag handles.
+  {
+    const svgOnly =
+      (setupPage.match(/<svg class="setup-svg[\s\S]*?<\/svg>/) || [""])[0];
+    check("pipe decorations never carry data-edge",
+      (svgOnly.match(/data-edge=/g) || []).length === topo.edges.length &&
+      (svgOnly.match(/<path class="setup-pipe/g) || []).length ===
+        topo.edges.length,
+      `${(svgOnly.match(/data-edge=/g) || []).length} data-edge and `
+      + `${(svgOnly.match(/<path class="setup-pipe/g) || []).length} pipes `
+      + `for ${topo.edges.length} edges`);
+  }
+  // Designer QA pass (v4.3.x): the silhouettes keep their ink apart.
+  {
+    const svgOnly =
+      (setupPage.match(/<svg class="setup-svg[\s\S]*?<\/svg>/) || [""])[0];
+    // The house ridge is a shallow r=30 knuckle. An `A 4 4` arc over the
+    // 8-unit chord was a full semicircle whose apex sat above the bounding
+    // box -- a pimple on every roof.
+    const houseG = svgOnly.split("<g>")
+      .find((g) => g.includes("kind-upper_zone")) || "";
+    check("the house ridge arc is shallow and stays inside the box",
+      /A 30 30 0 0 1/.test(houseG) && !/A 4 4 /.test(houseG),
+      "chord 8 at r=4 renders a semicircle bulging above the roofline");
+    // The same-column pipe into the mixing valve drops its flow chevron:
+    // the apex would land on the valve's bowtie accent and merge ink. Every
+    // other pipe keeps its chevron, so the count is exactly edges - 1.
+    const pipeSegs = svgOnly.split('<path class="setup-pipe');
+    const valveSeg = pipeSegs.find((s) =>
+      s.includes('data-edge="buffer_tank>mixing_valve"')) || "";
+    check("the pipe into the mixing valve carries no flow chevron",
+      valveSeg !== "" && !/class="setup-flow"/.test(valveSeg) &&
+      (svgOnly.match(/class="setup-flow"/g) || []).length ===
+        topo.edges.length - 1,
+      `${(svgOnly.match(/class="setup-flow"/g) || []).length} chevrons for `
+      + `${topo.edges.length} edges`);
+    // A row-less box (h = 32) draws no header divider -- it would separate
+    // the title from nothing and graze the valve's bowtie -- while a box
+    // with rows keeps it.
+    const valveBoxG = svgOnly.split("<g>")
+      .find((g) => g.includes("Mixing valve")) || "";
+    const bufBoxG = svgOnly.split("<g>")
+      .find((g) => g.includes("Buffer tank (750 L)")) || "";
+    check("a row-less box draws no header divider",
+      valveBoxG !== "" && !/setup-accent divider/.test(valveBoxG) &&
+      /setup-accent divider/.test(bufBoxG),
+      "a divider over an empty band underlines nothing");
+  }
   {
     // A coordinator from before v4.0.0 still publishes the wood-valve hop
     // and a slot placed on it. The pipes anchor where the slot went — the
@@ -2090,6 +2174,21 @@ check("the hand-scheduled reason has a label",
     check("and the hot water box says where its refill water comes from",
       /refilled through a wood tank coil/.test(dhwGroup),
       "the caption belongs on the tank being preheated, not loose on the page");
+    // v4.3.0: the coil is also drawn -- a helix on the wood tank's wall --
+    // and only when the connection exists. The plain two-tank drawing above
+    // has no coil, so it must have no helix either.
+    check("the coil is drawn as a helix on the wood tank",
+      /class="setup-coil"/.test(coPage) && !/class="setup-coil"/.test(ttPage),
+      "the helix exists exactly when the wood>DHW connection does");
+    {
+      const wb = (co._layoutBoxes || []).find((b) => b.place === "wood_tank");
+      const coilPipe = new RegExp(
+        `data-edge="wood_tank>dhw_tank"\\s+d="M ${wb.x + wb.w + 13} ` +
+        `${wb.y + 23}`);
+      check("and the coil pipe departs from the helix, not the box wall",
+        coilPipe.test(coPage),
+        "a pipe from the box midpoint would leave the helix as ornament");
+    }
   }
   {
     const noValve = JSON.parse(JSON.stringify(topo));
@@ -2337,6 +2436,15 @@ check("the hand-scheduled reason has a label",
         (c._layoutBoxes || []).length * 4,
       `${(dump.match(/class="layout-port"/g) || []).length} ports for `
       + `${(c._layoutBoxes || []).length} boxes`);
+    // v4.3.0: the pipe ornament (endpoint dots, flow chevrons) is styled
+    // away while editing -- it would sit right on the widened pipes that
+    // are the editor's click targets. The stub computes no styles, so what
+    // can be pinned is that the rule exists and is scoped as designed.
+    check("pipe ornament is suppressed while the layout is being edited",
+      /\.setup-svg\.editing \.setup-pipe-dot/.test(cardSrc) &&
+      /\.setup-svg\.editing \.setup-flow \{ display: none; \}/.test(cardSrc),
+      "dots and chevrons under the pointer would cover the editor's "
+      + "click targets");
     const save = c.shadowRoot.querySelector(".layout-save");
     check("Save is offered but disabled until something is drawn",
       !!save && !!save.disabled,
@@ -2579,6 +2687,32 @@ check("the hand-scheduled reason has a label",
       stopPropagation() {} });
     check("a click after a drag is not silently eaten",
       !edgesOf(c).includes("buffer_tank>lower_zone"),
+      `edges drawn: ${edgesOf(c).join(", ")}`);
+  }
+
+  {
+    // v4.3.0: the coil helix follows the drawing while the editor is open.
+    // The wood>DHW pipe is what claims a coil, so removing it must take the
+    // helix off the tank live, and re-drawing it must bring it back --
+    // otherwise the editor shows a heat exchanger the drawing just deleted.
+    const c = mkEditor({
+      dhw: true, dhw_wood_coil: true,
+      wood: { present: true, volume_l: 300 },
+      edges: EDGES.valve_upper_direct_slab
+        .concat([["wood_tank", "dhw_tank"]]).map((e) => [e[0], e[1]]),
+    });
+    check("the coil helix hangs on the wood tank",
+      /class="setup-coil"/.test(pageHtml(c)),
+      "the drawn wood>DHW edge is the coil's existence condition");
+    clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
+    c._layoutRemoveEdge("wood_tank>dhw_tank");
+    check("removing the wood>DHW pipe removes the helix with it",
+      !/class="setup-coil"/.test(pageHtml(c)),
+      `edges drawn: ${edgesOf(c).join(", ")}`);
+    connect(c, "wood_tank", "dhw_tank");
+    check("and drawing the pipe again brings the helix back",
+      /class="setup-coil"/.test(pageHtml(c)) &&
+      edgesOf(c).includes("wood_tank>dhw_tank"),
       `edges drawn: ${edgesOf(c).join(", ")}`);
   }
 }

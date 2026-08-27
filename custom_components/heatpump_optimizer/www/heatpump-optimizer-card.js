@@ -11,7 +11,7 @@
 
 const CARD_TAG = "heatpump-optimizer-card";
 const EDITOR_TAG = "heatpump-optimizer-card-editor";
-const CARD_VERSION = "4.2.0";
+const CARD_VERSION = "4.3.0";
 
 // ---- i18n ------------------------------------------------------------------
 //
@@ -924,6 +924,181 @@ const PICKER_MAX_OPTIONS = 200;
 // width the drawing used.
 const SETUP_W = 720;
 const SETUP_MAX_Y = 2000;
+
+// The setup drawing's visual vocabulary (v4.3.0). Each place is drawn as the
+// piece of equipment it is instead of a plain rectangle. The geometry carrier
+// stays the (now invisible) `setup-box` rect -- the drag editor and the tests
+// read it -- and one of these generators paints the visible silhouette over
+// it. Every generator is written against the box's own (x, y, w, h), so a box
+// that grows a row, or is dragged, keeps its shape: the walls are the only
+// vertical segments, and everything else hugs the top or bottom band.
+//
+// Two stroke weights only: primary 2 (`setup-contour`), detail 1.25
+// (`setup-accent`). `inset` is how far a pipe endpoint pulls inside the
+// bounding box so pipes meet ink rather than the invisible rect.
+const PLACE_KIND = {
+  outdoor: "cloud",
+  heat_pump: "hp",
+  wood_tank: "tank",
+  buffer_tank: "tank",
+  dhw_tank: "tank",
+  mixing_valve: "valve",
+  upper_zone: "house",
+  lower_zone: "slab",
+};
+// The hairline between the title and the first slot row, shared by every
+// closed shape. It sits between the title's descenders and the first hit
+// rect, which is what lets each silhouette shape only the header band.
+// A row-less box (h = 32: title only, nothing under the line) gets no
+// divider at all -- it would separate the title from nothing, and on the
+// valve it grazes the bowtie's top edge. `rightPad` lets a shape whose
+// header band is already occupied (the heat pump's fan) stop the line
+// short of its own furniture.
+const shapeDivider = (x, y, w, h, rightPad = 10) =>
+  h < 49
+    ? null
+    : {
+        d: `M ${x + 10} ${y + 21.5} L ${x + w - rightPad} ${y + 21.5}`,
+        cls: "setup-accent divider",
+      };
+const NODE_SHAPES = {
+  // Vertical cylinder: domed top and bottom, straight walls. All three tanks
+  // share the silhouette deliberately -- they are the same object class --
+  // and identity comes from titles, captions and the wood tank's coil.
+  tank: {
+    contour: (x, y, w, h) =>
+      `M ${x + 2} ${y + 9} ` +
+      `A ${(w - 4) / 2} 7 0 0 1 ${x + w - 2} ${y + 9} ` +
+      `L ${x + w - 2} ${y + h - 9} ` +
+      `A ${(w - 4) / 2} 7 0 0 1 ${x + 2} ${y + h - 9} Z`,
+    accents: (x, y, w, h) => [shapeDivider(x, y, w, h)],
+    inset: { t: 4.5, r: 2, b: 4.5, l: 2 },
+  },
+  // Shallow gable over walls, with a chimney. The pitch is capped by the
+  // pinned title geometry: the roofline at x+10 must clear the cap height.
+  house: {
+    contour: (x, y, w, h) =>
+      `M ${x + 2} ${y + 7.5} ` +
+      `L ${x + w / 2 - 4} ${y + 1.9} ` +
+      // r=30 over an 8-unit chord: apex ~y+1.63, a near-smooth knuckle.
+      // (r=4 made chord = diameter -- a full semicircle bulging to y-2.1,
+      // above the bounding box.)
+      `A 30 30 0 0 1 ${x + w / 2 + 4} ${y + 1.9} ` +
+      `L ${x + w - 2} ${y + 7.5} ` +
+      `L ${x + w - 2} ${y + h - 8} ` +
+      `A 6 6 0 0 1 ${x + w - 8} ${y + h - 2} ` +
+      `L ${x + 8} ${y + h - 2} ` +
+      `A 6 6 0 0 1 ${x + 2} ${y + h - 8} Z`,
+    accents: (x, y, w, h) => [
+      {
+        d: `M ${x + w - 52} ${y + 4.7} V ${y + 1} ` +
+          `H ${x + w - 45} V ${y + 5.1}`,
+        cls: "setup-contour",
+      },
+      shapeDivider(x, y, w, h),
+    ],
+    inset: { t: 6, r: 2, b: 2, l: 2 },
+  },
+  // The slab: a flat plate with ground hatching under it. The ticks end at
+  // y+h+4 exactly -- the deepest overhang the viewBox margin never clips.
+  slab: {
+    contour: (x, y, w, h) =>
+      `M ${x + 6} ${y + 2} H ${x + w - 6} ` +
+      `A 4 4 0 0 1 ${x + w - 2} ${y + 6} V ${y + h - 6} ` +
+      `A 4 4 0 0 1 ${x + w - 6} ${y + h - 2} H ${x + 6} ` +
+      `A 4 4 0 0 1 ${x + 2} ${y + h - 6} V ${y + 6} ` +
+      `A 4 4 0 0 1 ${x + 6} ${y + 2} Z`,
+    accents: (x, y, w, h) => {
+      const out = [shapeDivider(x, y, w, h)];
+      for (let i = 0; i < 7; i++) {
+        out.push({
+          d: `M ${x + 34 + i * 22} ${y + h - 2} ` +
+            `L ${x + 28 + i * 22} ${y + h + 4}`,
+        });
+      }
+      return out;
+    },
+    inset: { t: 2, r: 2, b: 2, l: 2 },
+  },
+  // The machine: rounded cabinet, fan in the header's free right corner,
+  // louvres in the bottom band below the last row's descenders.
+  hp: {
+    contour: (x, y, w, h) =>
+      `M ${x + 12} ${y + 2} H ${x + w - 12} ` +
+      `A 10 10 0 0 1 ${x + w - 2} ${y + 12} V ${y + h - 12} ` +
+      `A 10 10 0 0 1 ${x + w - 12} ${y + h - 2} H ${x + 12} ` +
+      `A 10 10 0 0 1 ${x + 2} ${y + h - 12} V ${y + 12} ` +
+      `A 10 10 0 0 1 ${x + 12} ${y + 2} Z`,
+    accents: (x, y, w, h) => [
+      {
+        d: `M ${x + w - 26} ${y + 13} ` +
+          `A 8 8 0 1 1 ${x + w - 10} ${y + 13} ` +
+          `A 8 8 0 1 1 ${x + w - 26} ${y + 13}`,
+      },
+      { cx: x + w - 18, cy: y + 13, r: 1.6, cls: "setup-accent hub" },
+      {
+        d: `M ${x + w - 18} ${y + 10.5} ` +
+          `A 5 5 0 0 1 ${x + w - 13.8} ${y + 8} ` +
+          `M ${x + w - 15.8} ${y + 14.3} ` +
+          `A 5 5 0 0 1 ${x + w - 15.8} ${y + 19.1} ` +
+          `M ${x + w - 20.2} ${y + 14.3} ` +
+          `A 5 5 0 0 1 ${x + w - 24.4} ${y + 11.9}`,
+      },
+      {
+        d: `M ${x + 14} ${y + h - 7} H ${x + 40} ` +
+          `M ${x + 14} ${y + h - 4.5} H ${x + 40}`,
+      },
+      // The fan shroud's bottom is y+21, tangent to the divider's y+21.5:
+      // the line stops at x+w-30, clear of the shroud's left edge at x+w-26.
+      shapeDivider(x, y, w, h, 30),
+    ],
+    inset: { t: 2, r: 2, b: 2, l: 2 },
+  },
+  // Chamfered block, with the bowtie valve symbol straddling the bottom edge
+  // at the same-column pipe abscissa x+24 -- on its own pipe, the way a
+  // hydronic schematic marks a valve. No glyph in the header: valve titles
+  // are the longest on the page.
+  valve: {
+    contour: (x, y, w, h) =>
+      `M ${x + 12} ${y + 2} H ${x + w - 12} ` +
+      `L ${x + w - 2} ${y + 12} V ${y + h - 12} ` +
+      `L ${x + w - 12} ${y + h - 2} H ${x + 12} ` +
+      `L ${x + 2} ${y + h - 12} V ${y + 12} Z`,
+    accents: (x, y, w, h) => [
+      {
+        d: `M ${x + 18} ${y + h - 10} H ${x + 30} ` +
+          `L ${x + 24} ${y + h - 2} Z ` +
+          `M ${x + 24} ${y + h - 2} ` +
+          `L ${x + 18} ${y + h + 6} H ${x + 30} Z`,
+        cls: "setup-contour",
+      },
+      shapeDivider(x, y, w, h),
+    ],
+    inset: { t: 2, r: 2, b: 2, l: 2 },
+  },
+  // Outside air is unbounded, so it gets no walls: an open tray baseline the
+  // rows hang over, and a cloud glyph in the header's right corner. No
+  // header divider either -- the composition is open.
+  cloud: {
+    contour: (x, y, w, h) =>
+      `M ${x + 2} ${y + h - 8} ` +
+      `A 6 6 0 0 0 ${x + 8} ${y + h - 2} H ${x + w - 8} ` +
+      `A 6 6 0 0 0 ${x + w - 2} ${y + h - 8}`,
+    accents: (x, y, w) => [
+      {
+        d: `M ${x + w - 46} ${y + 19} ` +
+          `A 5.5 5.5 0 0 1 ${x + w - 43} ${y + 9.5} ` +
+          `A 7 7 0 0 1 ${x + w - 30} ${y + 6.5} ` +
+          `A 6 6 0 0 1 ${x + w - 19} ${y + 9} ` +
+          // r=6, not 5.5: this chord is sqrt(6^2+10^2) ~ 11.66, and a radius
+          // under chord/2 would be auto-scaled to an exact semicircle.
+          `A 6 6 0 0 1 ${x + w - 13} ${y + 19} Z`,
+        cls: "setup-contour",
+      },
+    ],
+    inset: { t: 0, r: 0, b: 2, l: 0 },
+  },
+};
 
 // Human names for the places pipes connect, mirroring `topology.PLACE_LABELS`.
 // Only the layout editor's rejection line uses them -- every box already
@@ -2886,21 +3061,76 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // Same-column is asked as "same x" so a box the user has dragged still
     // gets the pipe its new position deserves; with nothing dragged the two
     // questions have identical answers, because a column is one x.
+    // The silhouette each box wears (unknown places fall back to the plain
+    // cabinet), consulted for how far a pipe endpoint pulls inside the
+    // bounding box so pipes meet ink rather than the invisible rect.
+    const KIND = (b) => NODE_SHAPES[PLACE_KIND[b.place]] || NODE_SHAPES.hp;
+    // One pipe departs somewhere other than a wall midpoint: the DHW
+    // pre-heating coil hangs on the wood tank's upper-right wall, and its
+    // pipe must leave from the coil's bulge -- in every branch, including
+    // the same-column one a drag can create -- or the helix reads as
+    // ornament next to a pipe that ignores it. Keyed by place pair so the
+    // published edge and the legacy `wood-dhw` name both hit it.
+    // The pipe leaves from the midpoint of the helix's stub pair, which is
+    // height-dependent: a row-less wood tank (h < 49) wears the single-loop
+    // coil (stubs y+13/y+20), a taller one the two-loop coil (y+16/y+30).
+    const ANCHOR_OVERRIDES = {
+      "wood_tank>dhw_tank": {
+        from: (bb) => ({
+          x: bb.x + colW + 13,
+          y: bb.y + (bb.h < 49 ? 16.5 : 23),
+        }),
+      },
+    };
+    // Endpoint dots weld pipe to silhouette, and one midpoint chevron says
+    // which way the water flows (skipped on rejected pipes -- an arrow on a
+    // connection that cannot exist would endorse it). None of these carry
+    // `data-edge`: the tests scrape it to read the drawn topology, and must
+    // keep seeing exactly one occurrence per pipe.
+    const pipeDeco = (fx, fy, tx, ty, vertical, s, invalid) => {
+      const dots =
+        `<circle class="setup-pipe-dot" cx="${fx}" cy="${fy}" r="2" />` +
+        `<circle class="setup-pipe-dot" cx="${tx}" cy="${ty}" r="2" />`;
+      if (invalid) return dots;
+      const mx = (fx + tx) / 2;
+      const my = (fy + ty) / 2;
+      const flow = vertical
+        ? `M ${fx - 3} ${my - 3 * s} L ${fx} ${my + 2 * s} ` +
+          `L ${fx + 3} ${my - 3 * s}`
+        : `M ${mx - 3 * s} ${my - 3} L ${mx + 2 * s} ${my} ` +
+          `L ${mx - 3 * s} ${my + 3}`;
+      return `${dots}<path class="setup-flow" d="${flow}" />`;
+    };
     const line = (a, b, edge, cls) => {
       if (!a || !b) return "";
       const extra = cls || "";
-      if (a.x === b.x) {
+      const invalid = extra === " invalid";
+      const over = ANCHOR_OVERRIDES[`${a.place}>${b.place}`];
+      if (!over && a.x === b.x) {
         const upper = a.y < b.y ? a : b;
         const lower = a.y < b.y ? b : a;
         const x = a.x + 24;
+        const yTop = upper.y + upper.h - KIND(upper).inset.b;
+        const yBot = lower.y + KIND(lower).inset.t;
+        // The valve's bowtie accent straddles its bottom edge at this same
+        // abscissa, and the chevron's apex would land close enough to merge
+        // ink with it -- so the pipe into the valve keeps its dots but
+        // drops the chevron (pipeDeco's `invalid` path is exactly that).
+        const noFlow = invalid || b.place === "mixing_valve";
         return `<path class="setup-pipe${extra}" data-edge="${edge}"
-          d="M ${x} ${upper.y + upper.h}
-          L ${x} ${lower.y}" />`;
+          d="M ${x} ${yTop}
+          L ${x} ${yBot}" />` +
+          pipeDeco(x, yTop, x, yBot, true, a === upper ? 1 : -1, noFlow);
       }
+      const f = over
+        ? over.from(a)
+        : { x: anchor(a).x - KIND(a).inset.r, y: anchor(a).y };
+      const t = { x: to(b).x + KIND(b).inset.l, y: to(b).y };
       return `<path class="setup-pipe${extra}" data-edge="${edge}"
-        d="M ${anchor(a).x} ${anchor(a).y}
-        C ${anchor(a).x + 30} ${anchor(a).y},
-          ${to(b).x - 30} ${to(b).y}, ${to(b).x} ${to(b).y}" />`;
+        d="M ${f.x} ${f.y}
+        C ${f.x + 40} ${f.y},
+          ${t.x - 40} ${t.y}, ${t.x} ${t.y}" />` +
+        pipeDeco(f.x, f.y, t.x, t.y, false, t.x > f.x ? 1 : -1, invalid);
     };
     const bufferBox = findPlace("buffer_tank");
     const houseBox = findPlace("upper_zone");
@@ -2936,6 +3166,14 @@ class HeatpumpOptimizerCard extends HTMLElement {
       : Array.isArray(topo.edges)
         ? topo.edges
         : null;
+    // The coil helix (drawn on the wood tank below) follows the drawing, not
+    // the flag: while the editor is open the wood>DHW pipe is what claims a
+    // coil, so the helix must appear and vanish with it live. Without an
+    // edge list the flag is all there is, exactly like the legacy pipe
+    // branch below.
+    const coilDrawn = drawnEdges
+      ? drawnEdges.some((e) => e[0] === "wood_tank" && e[1] === "dhw_tank")
+      : dhwCoil && !!findPlace("dhw_tank");
     if (drawnEdges) {
       const rejected = new Set(
         editing && Array.isArray(this._layoutEdit.invalid)
@@ -3063,10 +3301,58 @@ class HeatpumpOptimizerCard extends HTMLElement {
       // nothing reads it, and a drawing that is byte-identical to the one
       // before this feature is the cheapest possible proof it changed nothing.
       const at = editing ? ` data-place="${esc(b.place || "")}"` : "";
+      // The visible silhouette, painted right after the invisible carrier
+      // rect. Everything here is inert (`pointer-events: none`), so the hit
+      // rects, pipe clicks and drags behave exactly as before; the per-kind
+      // class rides on the contour path because the `<g>` must stay bare --
+      // three tests split the page on the literal "<g>".
+      const kindKey = PLACE_KIND[b.place];
+      const shape = NODE_SHAPES[kindKey] || NODE_SHAPES.hp;
+      const deco = [
+        `<path class="setup-contour kind-${esc(b.place || "")}"
+          d="${shape.contour(b.x, b.y, colW, b.h)}" />`,
+      ];
+      // An unknown place keeps the plain cabinet outline but none of the
+      // hp accents -- a fan on a box nobody named would be a claim.
+      if (kindKey) {
+        for (const acc of shape.accents(b.x, b.y, colW, b.h)) {
+          // The divider returns null for a row-less box; skip it.
+          if (!acc) continue;
+          deco.push(
+            acc.d
+              ? `<path class="${acc.cls || "setup-accent"}" d="${acc.d}" />`
+              : `<circle class="${acc.cls || "setup-accent"}" cx="${acc.cx}"
+                  cy="${acc.cy}" r="${acc.r}" />`
+          );
+        }
+      }
+      // The DHW pre-heating helix on the wood tank's upper-right wall: two
+      // overlapping loops whose stubs pierce the straight wall below the
+      // dome. Part of the tank's own markup so it moves with the box during
+      // drags and survives `_refreshLayout`'s innerHTML rebuild.
+      if (b.place === "wood_tank" && coilDrawn) {
+        // A row-less tank (h = 32, two-tank mode with the caption re-homed)
+        // only has straight wall from y+9 to y+23, so the two-loop coil's
+        // lower stub at y+30 would pierce empty air below the dome. It gets
+        // one loop, stubs at y+13 and y+20; anything taller keeps the
+        // two-loop helix, byte for byte. ANCHOR_OVERRIDES above computes
+        // the pipe's departure from the same stub pair.
+        deco.push(b.h < 49
+          ? `<path class="setup-coil"
+          d="M ${b.x + colW - 2} ${b.y + 13} H ${b.x + colW + 6}
+          A 4.5 4.5 0 1 1 ${b.x + colW + 6} ${b.y + 20}
+          H ${b.x + colW - 2}" />`
+          : `<path class="setup-coil"
+          d="M ${b.x + colW - 2} ${b.y + 16} H ${b.x + colW + 6}
+          A 4.5 4.5 0 1 1 ${b.x + colW + 6} ${b.y + 23}
+          A 4.5 4.5 0 1 1 ${b.x + colW + 6} ${b.y + 30}
+          H ${b.x + colW - 2}" />`);
+      }
       parts.push(`
         <g>
           <rect class="setup-box"${at} x="${b.x}" y="${b.y}" width="${colW}"
             height="${b.h}" rx="8" />
+          ${deco.join("")}
           <text class="setup-title" x="${b.x + 10}"
             y="${b.y + 17}">${esc(b.title)}</text>
           ${rows.join("")}${ports}
@@ -4189,9 +4475,38 @@ class HeatpumpOptimizerCard extends HTMLElement {
         }
         .setup-page { padding: 0.5em 0.25em; }
         .setup-svg { width: 100%; height: auto; display: block; }
-        .setup-box {
-          fill: none; stroke: var(--divider-color, #e0e0e0);
-          stroke-width: 1.5;
+        /* The rect stays in the markup as the geometry carrier the tests
+           and the drag editor read; the contour paths draw the visible
+           outline (v4.3.0). */
+        .setup-box { fill: none; stroke: none; }
+        .setup-contour {
+          fill: none; stroke: var(--primary-text-color, #212121);
+          stroke-width: 2; opacity: 0.75;
+          stroke-linecap: round; stroke-linejoin: round;
+          pointer-events: none;
+        }
+        .setup-accent {
+          fill: none; stroke: var(--secondary-text-color, #757575);
+          stroke-width: 1.25; opacity: 0.6;
+          stroke-linecap: round; pointer-events: none;
+        }
+        .setup-accent.divider { opacity: 0.5; }
+        .setup-accent.hub {
+          stroke: var(--primary-color, #03a9f4); opacity: 0.9;
+        }
+        .setup-coil {
+          fill: none; stroke: var(--primary-color, #03a9f4);
+          stroke-width: 2; opacity: 0.85;
+          stroke-linecap: round; pointer-events: none;
+        }
+        .setup-pipe-dot {
+          fill: var(--card-background-color, #fff);
+          stroke: var(--secondary-text-color, #888);
+          stroke-width: 1.5; opacity: 0.8; pointer-events: none;
+        }
+        .setup-flow {
+          fill: none; stroke: var(--secondary-text-color, #888);
+          stroke-width: 1.5; opacity: 0.55; pointer-events: none;
         }
         .setup-pipe {
           fill: none; stroke: var(--secondary-text-color, #888);
@@ -4244,7 +4559,16 @@ class HeatpumpOptimizerCard extends HTMLElement {
         /* Editing widens the pipes: a 1.5-unit stroke is a hopeless click
            target, and clicking a pipe is how one is removed. */
         .setup-svg.editing .setup-pipe { stroke-width: 3.5; cursor: pointer; }
-        .setup-svg.editing .setup-box { cursor: move; }
+        /* With stroke: none an unfilled rect catches no pointer, so the
+           move cursor needs pointer-events back on the surface; hit rects
+           painted later still win over their own rows, and drags themselves
+           are geometric via _layoutBoxAt either way. */
+        .setup-svg.editing .setup-box { cursor: move; pointer-events: all; }
+        /* Ornament off while editing: pipes widen into click targets and
+           ports appear, and dots or chevrons under the pointer would only
+           lie about what is clickable. */
+        .setup-svg.editing .setup-pipe-dot,
+        .setup-svg.editing .setup-flow { display: none; }
         /* A drag on a touch screen must move the box, not scroll the page. */
         .setup-svg.editing { touch-action: none; }
         .setup-pipe.layout-match {

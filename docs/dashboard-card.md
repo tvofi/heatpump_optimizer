@@ -181,6 +181,25 @@ desktop windows, because that is where the height-derived branch of the old
 formula won. Nothing depends on guessing the chrome now, so a panel added later
 costs a scrollbar rather than spilled content.
 
+## The setup page
+
+The enlarged view's **Setup** tab draws your heating system as a schematic:
+each component is a thin line-art contour — the house with its gable roof,
+tanks as domed cylinders, the heat pump as a cabinet with its fan, the
+mixing valve as a chamfered block with a valve symbol on its own pipe, and
+outside air as an open composition under a cloud. When the wood tank
+pre-heats hot water through an immersed coil, the coil is drawn as a visible
+spring on the tank's upper-right wall with its own connector stubs, and the
+hot-water pipe departs from it. Pipes carry small connection dots at their
+endpoints and a chevron showing flow direction.
+
+Each shape stretches with the sensor rows inside it, and every row is the
+same assignment slot it always was: click (or press Enter on) a row to pick
+the entity that feeds it. The layout editor works unchanged — dragging boxes
+and drawing or removing connections re-renders the schematic live, and the
+decorations get out of the way while you edit. Colors follow your Home
+Assistant theme in both light and dark mode.
+
 ## Installation
 
 ### Automatic (recommended)
