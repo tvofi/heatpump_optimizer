@@ -1,5 +1,25 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v5.1.5
+
+### Undo, while you are rearranging the system layout
+
+Rearranging the layout on the setup page — dragging the boxes around,
+drawing and removing pipes — had one way back: Cancel, which throws the
+drawing away *and* closes the editor. If you had made a mess and wanted to
+start from the layout your system actually runs, you had to close the
+editor and open it again.
+
+There is now an **Undo** button next to Save. It puts the drawing back the
+way it was when you opened the editor — the pipes and where the boxes sit,
+both — and leaves you in the editor, ready to try again. It stays greyed
+out until you have actually changed something, so it can never surprise
+you, and it never writes anything: the layout your system runs only ever
+changes when you press Save.
+
+Undo goes back to the layout that was in force when you opened the editor,
+not one step at a time.
+
 ## v5.1.4
 
 ### The setup page, after a round of field reports
