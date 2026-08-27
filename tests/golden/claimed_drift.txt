@@ -49,9 +49,34 @@
 # Tuya heat-pump signals, milestone 1 (the foundation). Four optional entity
 # slots are added to the setup flow and to the sensors page, so the config
 # flow's schema fingerprint gains four fields on each — and nothing else.
-# No plan or coordinator fixture may move: nothing reads the new keys yet,
-# and every one of them is absent from every scenario's configuration.
 config_flow  # four optional heat-pump signal slots, on both flows
+#
+# Milestone 2 consumes those four signals. Every one of them is still absent
+# from every scenario's configuration, so nothing they gate can fire and NO
+# PLANNING FIXTURE MOVES — verified, not assumed: all 48 plan scenarios are
+# byte-identical, including the five this environment perturbs, which perturb
+# identically on a pristine baseline worktree.
+#
+# What does move is the coordinator's published diagnostics, on all five
+# coordinator fixtures and by exactly four new keys each:
+#
+#   heat_pump_signals          the four signals resolved — reads "absent",
+#                              "Unknown", nothing blocked, no freeze
+#   defrost_flag_configured    false without a defrost sensor
+#   defrost_measured_samples   0: no duty has been counted
+#   defrost_store_migrated     false: no pre-v5.2.0 derate store was reset
+#
+# All four are additive and all four read as "no evidence" on a fixture that
+# configures none of the slots. They are published unconditionally on purpose:
+# "why is nothing being suppressed" and "is this install measuring defrost
+# duty or inferring it" are questions a user has to be able to answer without
+# reading the source, and a key that only appears once something is wrong
+# cannot answer either of them.
+coord_minimal       # + 4 diagnostic keys, all "no evidence"; no plan value moved
+coord_dhw           # + 4 diagnostic keys, all "no evidence"; no plan value moved
+coord_two_zone      # + 4 diagnostic keys, all "no evidence"; no plan value moved
+coord_grid_fee      # + 4 diagnostic keys, all "no evidence"; no plan value moved
+coord_all_features  # + 4 diagnostic keys, all "no evidence"; no plan value moved
 
 # All five sensitive fixtures run a weather profile whose heat-loss factor is
 # a constant 1.0600 -- below the 1.1 threshold everywhere -- so classify's

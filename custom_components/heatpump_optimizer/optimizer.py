@@ -400,6 +400,14 @@ def classify_dhw_steps(
 #: mistaken for the solver's own decision.
 REASON_MANUAL = "manual_plan"
 
+#: A step is empty because the heat pump's *operating mode* cannot serve that
+#: channel at all — a unit in ``heat`` makes no hot water, a unit in ``DHW`` or
+#: ``cool`` heats no rooms. Deliberately distinct from ``idle``: idle means the
+#: optimizer chose not to run, and a user reading "not heating" against a
+#: comfort floor the plan is missing would look for a bug in the optimizer
+#: instead of at the mode selector on the pump. See ``pump_mode.py``.
+REASON_PUMP_MODE = "pump_mode"
+
 #: How many times a manual plan may be repaired before its forced-off slots are
 #: abandoned entirely. Each round costs a full solve, so this trades run time
 #: against how precisely an unsafe plan can be salvaged.
@@ -445,6 +453,24 @@ def _apply_pins_to_bounds(
         else:
             out[i] = (0.0, 0.0)
     return out
+
+
+def _mark_blocked_reasons(reasons: list[str], blocked: bool) -> list[str]:
+    """Relabel a mode-blocked channel's empty steps from ``idle``.
+
+    Only the empty ones, and only a channel the mode actually blocked. A
+    blocked channel should be empty everywhere — the suppression is enforced
+    at the bounds and, for hot water, again as a hard zeroing — so anything
+    still carrying power here is a bug, and painting it ``pump_mode`` would
+    hide the bug behind a plausible label. Leaving it as whatever the
+    classifier said keeps the contradiction visible.
+    """
+    if not blocked:
+        return reasons
+    return [
+        REASON_PUMP_MODE if reason == REASON_IDLE else reason
+        for reason in reasons
+    ]
 
 
 def _mark_manual_reasons(
@@ -566,6 +592,15 @@ class OptimizationResult:
     #: tank minimum or legionella), so the UI can show where the plan yielded.
     manual_released_space: list[int] = field(default_factory=list)
     manual_released_dhw: list[int] = field(default_factory=list)
+
+    # --- Heat pump operating mode (v5.2.0) ------------------------------
+    #: True when the pump's observed mode made this channel unplannable for
+    #: the whole horizon. Unlike a manual pin these are never released for
+    #: safety: releasing them would put back power the hardware refuses to
+    #: draw, so the plan would report heat that cannot arrive. The channel's
+    #: floor is left unmet and *visible* instead.
+    mode_blocked_space: bool = False
+    mode_blocked_dhw: bool = False
 
 
 @dataclass
@@ -762,6 +797,12 @@ class _Horizon:
     #: derate; NaN marks unknown steps. ``None`` falls back to the single
     #: ambient value, which is byte-for-byte the previous behaviour.
     humidity: np.ndarray | None = None
+    #: The observed operating mode has made a channel undeliverable for the
+    #: whole horizon (v5.2.0). Carried rather than derived so the reason
+    #: codes can say *why* a channel is empty; the actual suppression is
+    #: already in ``power_caps`` (space) and the DHW forced-off mask.
+    space_blocked: bool = False
+    dhw_blocked: bool = False
 
     @property
     def timestamps(self) -> list[datetime]:
@@ -1175,17 +1216,20 @@ class HeatPumpOptimizer:
                 dhw_temps.tolist() if dhw_temps is not None else []
             ),
             dhw_heating_cost=dhw_cost,
-            space_reasons=_mark_manual_reasons(
-                classify_space_steps(
-                    space_power,
-                    h.prices,
-                    upper_temps if two_zone else room_temps,
-                    h.temp_min_bounds,
-                    h.heat_loss_factors,
-                    self._pv_surplus,
-                    h.n_steps,
+            space_reasons=_mark_blocked_reasons(
+                _mark_manual_reasons(
+                    classify_space_steps(
+                        space_power,
+                        h.prices,
+                        upper_temps if two_zone else room_temps,
+                        h.temp_min_bounds,
+                        h.heat_loss_factors,
+                        self._pv_surplus,
+                        h.n_steps,
+                    ),
+                    h.space_pins,
                 ),
-                h.space_pins,
+                h.space_blocked,
             ),
             dhw_reasons=[],
             price_known=self._price_known_list(h.n_steps),
@@ -1516,6 +1560,8 @@ class HeatPumpOptimizer:
         *,
         min_temp_margins: np.ndarray | None = None,
         min_temp_floors: np.ndarray | None = None,
+        space_blocked: bool = False,
+        dhw_blocked: bool = False,
     ) -> OptimizationResult:
         """Run the MPC optimization with predictive weather anticipation.
 
@@ -1534,6 +1580,17 @@ class HeatPumpOptimizer:
         import price — so a step with trivial sun is not repriced wholesale.
         ``price_known`` marks which steps rest on published market data rather
         than on the learned diurnal prior.
+
+        ``space_blocked`` / ``dhw_blocked`` say that the heat pump's *observed
+        operating mode* cannot serve that channel at all — a unit in ``heat``
+        makes no hot water, a unit in ``DHW`` or ``cool`` heats no rooms. They
+        are not a preference and not a manual pin: the pin-safety loop below
+        releases forced-off pins when a floor would be breached, and doing
+        that here would put back power the hardware refuses to draw. So a
+        blocked channel stays blocked, its floor is left unmet, and the reason
+        codes say ``pump_mode`` rather than ``idle`` so the shortfall is
+        visible instead of looking like the optimizer declining to run. Both
+        default to False, which is byte-for-byte the previous behaviour.
         """
         import time
 
@@ -1724,10 +1781,17 @@ class HeatPumpOptimizer:
         )
         power_caps: np.ndarray | None = None
         caps_extra_arr: np.ndarray | None = None
-        if throttling or power_caps_extra is not None:
+        if throttling or power_caps_extra is not None or space_blocked:
             power_caps = np.full(
                 n_steps, self.model.params.max_electrical_power
             )
+        if space_blocked:
+            # The mode gate rides the space-heating ceiling rather than being
+            # a mechanism of its own: ``power_caps`` is already the one place
+            # that bounds space power on both solve paths, it composes with
+            # the fuse guard and the buffer cap by minimum, and — unlike a
+            # pin — nothing in this function can relax it.
+            power_caps = np.zeros(n_steps, dtype=float)
         if power_caps_extra is not None:
             extra = np.clip(
                 np.asarray(power_caps_extra, dtype=float), 0.0, None
@@ -1780,6 +1844,8 @@ class HeatPumpOptimizer:
                 external_heat_kw=external_heat_kw,
                 valve_targets=valve_targets,
                 humidity=humidity,
+                space_blocked=space_blocked,
+                dhw_blocked=dhw_blocked,
             )
             if dhw_enabled:
                 return self._optimize_with_dhw(horizon)
@@ -1787,14 +1853,24 @@ class HeatPumpOptimizer:
 
         result = _solve()
 
-        if space_pins is not None or dhw_pins is not None:
+        # A blocked channel is withheld from the release loop entirely. Its
+        # floor IS breached — that is the whole point, and the plan reports it
+        # — so the loop would dutifully free every forced-off pin on that
+        # channel, re-solve to the identical (still blocked) schedule, and
+        # then report those slots as "released for safety". None of that is
+        # true, and the user would be told the optimizer overrode their
+        # manual plan when it did nothing of the kind.
+        release_space = None if space_blocked else space_pins
+        release_dhw = None if dhw_blocked else dhw_pins
+
+        if release_space is not None or release_dhw is not None:
             # Every release must be followed by a re-solve: releasing a pin and
             # then returning the plan that was built *with* it would hand back a
             # schedule already known to be unsafe, while reporting the step as
             # released. Bounded so a physically infeasible plan cannot spin.
             for _ in range(_SAFETY_REPAIR_ROUNDS):
                 rel_s, rel_d = self._safety_release_steps(
-                    result, temp_min_bounds, space_pins, dhw_pins
+                    result, temp_min_bounds, release_space, release_dhw
                 )
                 if not rel_s and not rel_d:
                     break
@@ -1811,7 +1887,7 @@ class HeatPumpOptimizer:
                 # leaves the house or the tank below its limit: the user asked
                 # for timing, not for the heating to be unsafe.
                 rel_s, rel_d = self._safety_release_steps(
-                    result, temp_min_bounds, space_pins, dhw_pins
+                    result, temp_min_bounds, release_space, release_dhw
                 )
                 if rel_s or rel_d:
                     # Only the channel that is actually breaching is abandoned.
@@ -1821,8 +1897,8 @@ class HeatPumpOptimizer:
                     # then report those slots as released for safety, which
                     # would not be true.
                     for name, pins, released, breaching in (
-                        ("space", space_pins, released_space, bool(rel_s)),
-                        ("hot water", dhw_pins, released_dhw, bool(rel_d)),
+                        ("space", release_space, released_space, bool(rel_s)),
+                        ("hot water", release_dhw, released_dhw, bool(rel_d)),
                     ):
                         if pins is None or not breaching:
                             continue
@@ -1913,15 +1989,20 @@ class HeatPumpOptimizer:
         result.manual_pins_active = space_pins is not None or dhw_pins is not None
         result.manual_released_space = sorted(released_space)
         result.manual_released_dhw = sorted(released_dhw)
+        result.mode_blocked_space = bool(space_blocked)
+        result.mode_blocked_dhw = bool(dhw_blocked)
 
         existing_info = result.predictive_info if result.predictive_info else {}
         result.predictive_info = {**forecast_analysis, **existing_info}
 
-        if power_caps_extra is not None:
+        if power_caps_extra is not None or space_blocked:
             # An externally capped plan must say when the cap made the floor
             # unreachable — a fuse guard that silently plans a cold house is
             # the program's worst failure mode. Zero when the cap is
-            # feasible; the worst floor shortfall in °C when it is not.
+            # feasible; the worst floor shortfall in °C when it is not. A
+            # mode-blocked channel reports through the same figure: it is the
+            # same question (how far below its floor did the cap push the
+            # house) and the user is owed the same answer.
             trajectory = np.asarray(
                 result.upper_temp_trajectory
                 if self.model.params.two_zone_enabled
@@ -2565,6 +2646,7 @@ class HeatPumpOptimizer:
         space_demand: np.ndarray | None = None,
         dhw_pins: np.ndarray | None = None,
         p_run_cap: float | None = None,
+        blocked: bool = False,
     ) -> dict[str, Any]:
         """Build the DHW availability requirements and a cheapest-first plan.
 
@@ -2769,6 +2851,16 @@ class HeatPumpOptimizer:
             mask[: pins_arr.size] = ~np.isnan(pins_arr) & (pins_arr < 0.5)
             if mask.any():
                 forced_off = mask
+        if blocked:
+            # v5.2.0: the pump's mode makes no hot water at all. Entering
+            # through the same door as a forced-off pin is what keeps the
+            # planners coherent: the LP, the greedy pass and the floor repair
+            # all already know how to plan *around* unusable steps, so the
+            # requirement stays visibly unmet rather than being deleted, and
+            # nothing tries to buy the shortfall in a step that is equally
+            # unusable. The difference from a pin is that this one is never
+            # released — see ``optimize``'s docstring.
+            forced_off = np.ones(n_steps, dtype=bool)
 
         # Pre-heating is allowed anywhere in the horizon: the planners price the
         # standby losses of storing heat, so an early cheap hour wins only when
@@ -2947,6 +3039,14 @@ class HeatPumpOptimizer:
             # Same hygiene as the automatic path: a step the rating truncated
             # below the pump's minimum cannot actually run, even a pinned one.
             schedule = np.where(schedule < min_run_power - 1e-9, 0.0, schedule)
+        if blocked:
+            # The invariant, restated after every path that can add energy —
+            # including the manual force-on overlay directly above, which a
+            # user may well have set before switching the pump to a mode that
+            # cannot honour it. A pin expresses a preference; the mode is the
+            # hardware. Cheap, and it means no future addition to this method
+            # can quietly reopen a channel the pump refuses to serve.
+            schedule = np.zeros_like(schedule)
         self._dhw_requirement = requirement
         self._dhw_legionella_step = legionella_step
 
@@ -3599,6 +3699,7 @@ class HeatPumpOptimizer:
                 if h.power_caps_extra is not None
                 else None
             ),
+            blocked=h.dhw_blocked,
         )
 
         dhw_floor_temps = dhw_plan["floor_temps"]
@@ -3944,15 +4045,18 @@ class HeatPumpOptimizer:
         )
         # The only reason codes the shared builder cannot produce: they depend
         # on the demand windows and legionella deadline this path computed.
-        result.dhw_reasons = _mark_manual_reasons(
-            classify_dhw_steps(
-                optimal_dhw,
-                in_demand_window,
-                dhw_ready_temps,
-                dhw_plan.get("legionella_step"),
-                n_steps,
+        result.dhw_reasons = _mark_blocked_reasons(
+            _mark_manual_reasons(
+                classify_dhw_steps(
+                    optimal_dhw,
+                    in_demand_window,
+                    dhw_ready_temps,
+                    dhw_plan.get("legionella_step"),
+                    n_steps,
+                ),
+                h.dhw_pins,
             ),
-            h.dhw_pins,
+            h.dhw_blocked,
         )
         return result
 

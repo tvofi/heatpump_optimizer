@@ -81,6 +81,7 @@ const STRINGS = {
     "reasons.dhw_preheat": "Charging the tank while electricity is cheap",
     "reasons.legionella": "Anti-legionella cycle",
     "reasons.manual_plan": "You scheduled this",
+    "reasons.pump_mode": "The heat pump's mode cannot do this",
     "reasons.idle": "Not heating",
 
     // slot lanes and the slot menu
@@ -407,6 +408,7 @@ const STRINGS = {
     "reasons.dhw_preheat": "Laddar tanken medan elen är billig",
     "reasons.legionella": "Legionellaskyddscykel",
     "reasons.manual_plan": "Du har schemalagt detta",
+    "reasons.pump_mode": "Värmepumpens driftläge klarar inte detta",
     "reasons.idle": "Värmer inte",
 
     "slots.lane_dhw": "Varmvatten",
@@ -1356,6 +1358,7 @@ const REASON_LABELS = {
   dhw_preheat: "reasons.dhw_preheat",
   legionella: "reasons.legionella",
   manual_plan: "reasons.manual_plan",
+  pump_mode: "reasons.pump_mode",
   idle: "reasons.idle",
 };
 

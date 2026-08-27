@@ -913,6 +913,34 @@ the learners paused. It is on by default, because it protects everything else
 and costs nothing. Learning also freezes while an external heat source is active
 and while the open-window detector is tripped.
 
+**The heat pump's own signals (v5.2.0).** Four optional slots read the pump
+itself: operating mode, defrosting, online status and fault alarm. Three of
+them freeze the learners, and they freeze on a *value* rather than on a missing
+reading, which is a different shape from everything above:
+
+* **Offline** — the pump reports it is not reachable. This closes a gap
+  nothing else can see. Some cloud integrations, when the vendor API answers
+  successfully but the device's data is stale, mark the device offline and
+  *return the stale data anyway* without failing the update. Every entity then
+  stays available and its "last reported" timestamp keeps moving, so a pump
+  that has physically dropped off the network looks perfectly fresh to the
+  freshness guard. Only the online signal's value shows it. On a local (LAN)
+  connection the entities do go unavailable and the guard above already covers
+  it, so this is additive there rather than a second mechanism.
+* **Fault** — degraded operation is not efficiency data.
+* **Cooling** — the whole model assumes heating. An interval that drew power
+  while the house got *colder* is not a noisy heating sample, it is a
+  sign-inverted one.
+
+The reverse never holds: an unconfigured slot, an unavailable entity, an
+unrecognised mode and a reading past its age limit all mean *no evidence*, and
+no evidence changes nothing. That asymmetry is deliberate rather than lax.
+Where these signals come from — a cloud integration polling every few minutes,
+or one pushing over MQTT that writes entity state only when a value actually
+changes — a healthy pump idling overnight can leave all four untouched for
+hours. Reading that silence as "the pump is gone" would freeze the learners of
+every push-mode install, every night.
+
 ### Measuring rather than assuming
 
 Three optional entities change how much the integration can actually know:
@@ -959,11 +987,43 @@ With a power meter, COP becomes observable instead of derived from a nameplate
 figure and a temperature curve. The learned `cop_scale` multiplies the nameplate
 curve, bounded to [0.5, 1.6] so a mis-scaled power entity cannot destroy the
 model. A sample only counts if the pump is genuinely running (below a third of
-nameplate the reading is mostly auxiliaries), and samples are skipped in the
-frosting band — that shortfall belongs to the defrost derate, which learns from
-the same signal, and folding both would correct one shortfall twice — and while
-the immersion element is drawing, because a resistive kW is a different
-appliance on the same meter.
+nameplate the reading is mostly auxiliaries), and samples are skipped while the
+immersion element is drawing, because a resistive kW is a different appliance on
+the same meter.
+
+Samples are also skipped where the shortfall belongs to the **defrost derate**,
+which learns from the same signal: folding both would correct one shortfall
+twice. Without a defrost sensor there is no way to tell which intervals those
+are, so the exclusion has to cover the whole 0–5 °C frosting band — which in a
+Swedish shoulder season is a large share of all heating hours, leaving the one
+multiplier every priced plan runs through blind in the conditions it spends most
+of its life in. With a defrost flag configured (v5.2.0) the exclusion narrows to
+the intervals that **actually contained a defrost**, and the rest of the band
+teaches `cop_scale` normally. The attribution stays disjoint, just at a far
+finer grain.
+
+**The defrost derate itself, and what it can honestly claim.** With a flag, the
+derate is measured: defrost duty per (temperature, humidity) bucket is counted
+directly, and the derate follows from physics — `1 − duty × 1.5`, the multiplier
+being above 1 because a defrost costs more than its own duration (heat is pulled
+back out of the water loop to melt the ice, and the loop then has to recover).
+Two caveats are worth stating plainly:
+
+* **Resolution.** Duty is only as good as the flag's sampling. A cloud
+  integration polling every three minutes will miss a defrost that starts and
+  ends between two polls, so the measured duty is biased **low** and the derate
+  correspondingly optimistic. It is trustworthy at full resolution only under
+  MQTT push, where the flag arrives on change. The diagnostics report the
+  number of defrosts actually witnessed per bucket alongside the duty, so a
+  coarse estimate can be recognised as one.
+* **Without a flag** the derate falls back to inferring the shortfall from the
+  commanded-versus-measured power ratio, exactly as before v5.2.0. That
+  estimator cannot see a defrost at all — during one the compressor draws
+  roughly normal power while delivering almost no heat, which reads as a
+  perfectly performing unit — and its error is biased optimistic, because the
+  gaps it measures are dominated by the pump drawing *less* than commanded. Its
+  upper clamp is now 1.0 rather than 1.05: this is a model of a loss, and no
+  defrost cycle makes a heat pump exceed its own curve.
 
 **The subtlest gate matters most.** Delivered heat is not measured, so a
 commanded-versus-measured gap is ambiguous: a modest one is efficiency signal, a
