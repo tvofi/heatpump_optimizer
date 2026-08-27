@@ -59,14 +59,9 @@ print("space reasons:", reasons)
 print("dhw reasons  :", sorted({p.get("reason") for p in views["dhw_plan"]["forecast"]} - {None}))
 if not any(r in reasons for r in ("cheap_price", "comfort_floor", "preheat_weather")):
     issues.append("space plan produced no recognisable reason codes")
-if issues:
-    print("PLAN VIEW ISSUES:")
-    for i in issues:
-        print("  -", i)
-else:
-    print("plan reason codes and price provenance OK")
 
-# cross-check totals against the raw schedule
+# cross-check totals against the raw schedule: the slot summaries the card
+# shows must account for the same energy the optimizer scheduled.
 sp = np.asarray(r.power_schedule).sum()*DT
 dw = np.asarray(r.dhw_power_schedule).sum()*DT
 print("raw space kWh", round(sp,2), "raw dhw kWh", round(dw,2))
@@ -74,9 +69,30 @@ slot_e = sum(s["energy_kwh"] for s in views["space_plan"]["slots"])
 print("slot-sum space kWh", round(slot_e,2))
 slot_d = sum(s["energy_kwh"] for s in views["dhw_plan"]["slots"])
 print("slot-sum dhw kWh", round(slot_d,2))
+if abs(slot_e - sp) > 0.01:
+    issues.append(f"space slot energy {slot_e:.3f} kWh != schedule {sp:.3f} kWh")
+if abs(slot_d - dw) > 0.01:
+    issues.append(f"dhw slot energy {slot_d:.3f} kWh != schedule {dw:.3f} kWh")
 
-with open("/tmp/plandata.json","w") as f:
+# The rendered-plan payload for card.mjs. The path is shared via HPO_PLANDATA,
+# defaulting to a name derived from this checkout's tests/ directory so a run
+# here can never satisfy (or be satisfied by) a stale file another checkout
+# wrote. card.mjs derives the identical default.
+import hashlib
+_tests_dir = os.path.dirname(os.path.abspath(__file__))
+_default = os.path.join(
+    "/tmp", "plandata-%s.json" % hashlib.sha1(_tests_dir.encode()).hexdigest()[:12]
+)
+plandata_path = os.environ.get("HPO_PLANDATA", _default)
+with open(plandata_path, "w") as f:
     json.dump(views, f)
-print("wrote /tmp/plandata.json")
+print("wrote", plandata_path)
+
+if issues:
+    print("PLAN VIEW ISSUES:")
+    for i in issues:
+        print("  -", i)
+else:
+    print("plan reason codes, price provenance and slot energy OK")
 
 sys.exit(1 if issues else 0)

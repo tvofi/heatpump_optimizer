@@ -1,5 +1,33 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v5.1.2
+
+### Maintenance: the test suite's own gates can now fail
+
+No integration behaviour changes in this release — nothing about how your
+heat pump is planned, priced or controlled is different. What changed is the
+test suite that guards those behaviours: an audit found that several of its
+gates could not actually fail, so a regression in the areas they cover would
+have passed unnoticed.
+
+- Two test suites (`validate.py` and `edge.py`) printed their failures but
+  always exited successfully; they now report a failing exit code.
+- The runner's "is every test wired in?" guard counted a test as wired even
+  when it was only mentioned in a comment; it now requires a real invocation
+  line, and covers the JavaScript tests too.
+- Several checks were tautologies or compared a value against itself — the
+  external-heat hot-water suppression check compared two identical plans, the
+  plan-view energy cross-check printed numbers without comparing them, and a
+  climate-entity check was written so it could never be false. All now assert
+  something that can fail, verified by injecting each defect and watching the
+  suite catch it.
+- The card test could read a plan file left behind by a different checkout;
+  the plan payload path is now derived per-checkout (or set explicitly via
+  `HPO_PLANDATA`).
+- The Home Assistant test stub now validates number selectors (coerce and
+  range, as the real one does) and models coordinator availability
+  (`last_update_success`), so future tests can exercise entity availability.
+
 ## v5.1.1
 
 ### Hotfix: options saves no longer freeze Home Assistant

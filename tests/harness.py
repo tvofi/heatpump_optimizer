@@ -209,6 +209,9 @@ class FakeCoordinator:
         self.device_info = {"identifiers": {("heatpump_optimizer", "test")}}
         self.optimization_running = False
         self.system_identification_active = False
+        # Mirrors DataUpdateCoordinator: True until a refresh fails. Lets
+        # entity tests flip it and watch ``super().available`` conjunctions.
+        self.last_update_success = True
         self.pressed = []
         # What the real coordinator resolves from hass.config at construction.
         self.currency = "SEK"

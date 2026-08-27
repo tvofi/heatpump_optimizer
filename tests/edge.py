@@ -126,3 +126,4 @@ except Exception as e:
 print()
 print(f"{len(FAIL)} FAILURES" if FAIL else "ALL EDGE CASES PASS")
 for f in FAIL: print("  "+f)
+sys.exit(1 if FAIL else 0)

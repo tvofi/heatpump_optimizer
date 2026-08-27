@@ -98,6 +98,7 @@ def collect(module):
 # A representative published payload, covering every key the new entities read.
 DATA = {
     "mode": "auto",
+    "indoor_temperature": 21.3,
     "current_action": {"power": 2.5, "setpoint": 21.0},
     "measured_power": 2.4,
     "measured_house_power": 3.9,
@@ -1352,7 +1353,11 @@ R.check(
     "the thermostat shows the user's target, not the per-step setpoint",
     clim.target_temperature == clim.coordinator.target_temperature,
 )
-R.check("current temperature reads the published payload", clim.current_temperature is None or True)
+R.check(
+    "current temperature reads the published payload",
+    clim.current_temperature == DATA["indoor_temperature"],
+    str(clim.current_temperature),
+)
 asyncio.run(clim.async_set_hvac_mode(climate_mod.HVACMode.OFF))
 R.check(
     "setting hvac off reaches the coordinator as mode off",

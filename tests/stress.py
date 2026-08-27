@@ -769,15 +769,40 @@ if cheapest < 0:
         "nothing was consumed while being paid to consume",
     )
 
-# External heat must suppress discretionary electric hot water.
-with_fire = build(
-    season="winter", state={"external_heat_active": True, "dhw_temperature": 60.0}
+# External heat must suppress discretionary electric hot water. The
+# suppression only zeroes planned DHW steps inside its 2 h coasting horizon,
+# so the scenario must actually put DHW power there: a draw window starting
+# at t=0 with the tank a few degrees under setpoint makes the baseline heat
+# immediately, and the fire (whose free heat keeps coasting above the
+# requirement) must then remove it. A pair of already-hot tanks would
+# produce byte-identical plans and a check that can never fail.
+_fire_spec = dict(
+    season="winter",
+    config={"dhw_windows": "00:00-04:00, 17:00-22:00"},
 )
-without_fire = build(season="winter", state={"dhw_temperature": 60.0})
+with_fire = build(
+    **_fire_spec, state={"external_heat_active": True, "dhw_temperature": 52.0}
+)
+without_fire = build(**_fire_spec, state={"dhw_temperature": 52.0})
+_horizon_steps = int(round(2.0 / DT))
+_fire_early = float(np.sum(with_fire["result"].dhw_power_schedule[:_horizon_steps]))
+_base_early = float(
+    np.sum(without_fire["result"].dhw_power_schedule[:_horizon_steps])
+)
+R.check(
+    "the baseline scenario plans electric hot water inside the 2 h horizon",
+    _base_early > 1e-6,
+    f"only {_base_early:.2f} kW planned; the suppression check would be vacuous",
+)
 R.check(
     "an external heat source suppresses electric hot water",
+    _fire_early < _base_early - 1e-6,
+    f"first 2 h: {_base_early:.2f} -> {_fire_early:.2f} kW (no suppression)",
+)
+R.check(
+    "suppression lowers total electric DHW energy, not just moves it",
     float(np.sum(with_fire["result"].dhw_power_schedule))
-    <= float(np.sum(without_fire["result"].dhw_power_schedule)) + 1e-6,
+    < float(np.sum(without_fire["result"].dhw_power_schedule)) - 1e-6,
     f"{float(np.sum(without_fire['result'].dhw_power_schedule)):.2f} -> "
     f"{float(np.sum(with_fire['result'].dhw_power_schedule)):.2f}",
 )

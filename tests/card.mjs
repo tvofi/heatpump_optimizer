@@ -1,7 +1,34 @@
 import fs from "fs";
 import vm from "vm";
+import path from "path";
+import crypto from "crypto";
+import { fileURLToPath } from "url";
 
-const plan = JSON.parse(fs.readFileSync("/tmp/plandata.json","utf8"));
+// Plan payload written by tests/plan_view.py earlier in the run. The path is
+// argv[2], or HPO_PLANDATA, or a default derived from this checkout's tests/
+// directory — the same derivation plan_view.py uses — so this test cannot
+// quietly pass against a stale file another checkout left in /tmp. The old
+// fixed /tmp/plandata.json is only accepted as a last resort, loudly.
+const testsDir = path.dirname(fileURLToPath(import.meta.url));
+const defaultPath = path.join(
+  "/tmp",
+  `plandata-${crypto.createHash("sha1").update(testsDir).digest("hex").slice(0, 12)}.json`
+);
+let planPath = process.argv[2] || process.env.HPO_PLANDATA || defaultPath;
+if (!fs.existsSync(planPath)) {
+  const legacy = "/tmp/plandata.json";
+  if (planPath === defaultPath && fs.existsSync(legacy)) {
+    console.warn(
+      `WARNING: ${planPath} not found (run tests/plan_view.py first); ` +
+      `falling back to ${legacy}, which may be stale or from another checkout`
+    );
+    planPath = legacy;
+  } else {
+    console.error(`FAIL: plan payload ${planPath} not found — run tests/plan_view.py first`);
+    process.exit(1);
+  }
+}
+const plan = JSON.parse(fs.readFileSync(planPath, "utf8"));
 
 // Minimal DOM stub sufficient for the card's inline-SVG rendering.
 //
