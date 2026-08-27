@@ -24,6 +24,7 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import entity_registry as er
 from homeassistant.loader import async_get_integration
 from homeassistant.util import dt as dt_util
 
@@ -318,9 +319,46 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return True
 
 
+# Unique-id suffixes of entities removed by later releases, per platform.
+# v5.0.0: the "Solar Radiation (Optimizer)" sensor was merged into "Solar
+# Irradiance" — both published the same coordinator value, and the irradiance
+# sensor is the one the dashboard card, the docs and the tests point at.
+RETIRED_ENTITIES: tuple[tuple[str, str], ...] = (
+    ("sensor", "solar_radiation"),
+)
+
+
+def _async_remove_retired_entities(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Drop registry entries for entities this release no longer creates.
+
+    Without this the retired unique_ids linger as permanently-unavailable
+    "restored" entities on the device. The survivor of a merge keeps its own
+    unique_id, entity_id and recorded history untouched; only the retired
+    duplicate's registry entry is removed.
+    """
+    registry = er.async_get(hass)
+    retired = {
+        (domain, f"{entry.entry_id}_{suffix}") for domain, suffix in RETIRED_ENTITIES
+    }
+    for reg_entry in list(er.async_entries_for_config_entry(registry, entry.entry_id)):
+        if (reg_entry.domain, reg_entry.unique_id) in retired:
+            _LOGGER.info(
+                "Removing retired entity %s (unique_id %s)",
+                reg_entry.entity_id,
+                reg_entry.unique_id,
+            )
+            registry.async_remove(reg_entry.entity_id)
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Heat Pump Optimizer from a config entry."""
     hass.data.setdefault(DOMAIN, {})
+
+    # Clean up entities retired by this release before the platforms register
+    # their current rosters. Idempotent and cheap, so it runs on every setup
+    # rather than only inside a config-entry version bump — registry state is
+    # not versioned by the config entry.
+    _async_remove_retired_entities(hass, entry)
 
     coordinator = HeatPumpOptimizerCoordinator(hass, entry)
     try:

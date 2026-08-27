@@ -74,11 +74,18 @@ else
   # The five machine-sensitive fixtures get their real check here: identical
   # to GOLDEN_REF when captured twice in THIS environment (G4b). Skipped
   # when the ref is unreachable (tarball checkouts, offline clones).
-  if git rev-parse --verify --quiet "${GOLDEN_REF}^{commit}" >/dev/null 2>&1; then
-    run "$PYTHON" tests/env_drift.py "$GOLDEN_REF"
-  else
+  if ! git rev-parse --verify --quiet "${GOLDEN_REF}^{commit}" >/dev/null 2>&1; then
     echo
     echo "SKIP: tests/env_drift.py ($GOLDEN_REF is not available here)"
+  elif [ "$(git rev-parse "${GOLDEN_REF}^{commit}")" = "$(git rev-parse HEAD)" ]; then
+    # A checkout sitting on the comparison ref itself: comparing a tree to
+    # itself proves nothing, so there is nothing to run. env_drift fails on
+    # this rather than passing vacuously; here it is just where a developer
+    # on an up-to-date main lands, so say so and carry on.
+    echo
+    echo "SKIP: tests/env_drift.py ($GOLDEN_REF is this commit; use GOLDEN_REF=HEAD^1 to check it)"
+  else
+    run "$PYTHON" tests/env_drift.py "$GOLDEN_REF"
   fi
 fi
 

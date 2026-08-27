@@ -59,7 +59,18 @@ jobs:
             REF=$(git merge-base "origin/${{ github.base_ref }}" HEAD)
           else
             # Push to main: compare against the state before this push.
-            REF=$(git rev-parse HEAD^1 2>/dev/null || echo "")
+            REF=$(git rev-parse --verify --quiet 'HEAD^1^{commit}') || REF=""
+          fi
+          if [ -z "${REF}" ]; then
+            # An empty GOLDEN_REF is not "no preference": run.sh and
+            # env_drift.py both fall back to origin/main, which on a push to
+            # main IS this commit -- the tree would be compared against
+            # itself and pass no matter what it did. Fail here instead, where
+            # the reason is visible.
+            echo "Could not resolve a comparison ref for this ${{ github.event_name }}."
+            echo "The drift gate needs a baseline that is not this commit;"
+            echo "an empty ref silently becomes origin/main == HEAD."
+            exit 1
           fi
           echo "GOLDEN_REF=${REF}" >> "$GITHUB_ENV"
 
@@ -95,7 +106,19 @@ jobs:
         run: |
           # Nightly runs sit on main; comparing against the commit before
           # the latest lets the drift gate re-verify the newest merge.
-          echo "GOLDEN_REF=$(git rev-parse HEAD^1 2>/dev/null || git rev-parse HEAD)" >> "$GITHUB_ENV"
+          # There is no fallback on purpose: `|| git rev-parse HEAD` used to
+          # sit here, and a ref that resolves to HEAD compares the tree
+          # against itself -- byte-identical by construction, so no drift can
+          # ever be reported and every claim is stale. env_drift.py now
+          # refuses that state; failing here instead says which step is at
+          # fault. A root commit (no HEAD^1) is the only way to get here.
+          REF=$(git rev-parse --verify --quiet 'HEAD^1^{commit}') || {
+            echo "HEAD has no first parent, so there is nothing to compare"
+            echo "this tree against. The drift gate needs a real baseline;"
+            echo "check out main with history (fetch-depth: 0) and re-run."
+            exit 1
+          }
+          echo "GOLDEN_REF=${REF}" >> "$GITHUB_ENV"
 
       - name: Run the suite including the closed-loop simulation
         env:

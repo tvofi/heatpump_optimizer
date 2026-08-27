@@ -53,12 +53,16 @@ class _OptimizerButtonBase(CoordinatorEntity, ButtonEntity):
         coordinator: HeatPumpOptimizerCoordinator,
         entry: ConfigEntry,
         key: str,
-        name: str,
+        translation_key: str,
     ) -> None:
         super().__init__(coordinator)
         self._entry = entry
+        self._key = key
         self._attr_unique_id = f"{entry.entry_id}_{key}"
-        self._attr_name = name
+        self._attr_translation_key = translation_key
+        # Pin today's English object id for new installs (the integration
+        # suggested-object-id mechanism); see the sensor base class.
+        self.entity_id = f"button.heat_pump_optimizer_{translation_key}"
 
     @property
     def device_info(self) -> DeviceInfo:
@@ -72,7 +76,7 @@ class ForceOptimizationButton(_OptimizerButtonBase):
     _attr_icon = "mdi:play-circle-outline"
 
     def __init__(self, coordinator, entry) -> None:
-        super().__init__(coordinator, entry, "force_optimization", "Optimize Now")
+        super().__init__(coordinator, entry, "force_optimization", "optimize_now")
 
     @property
     def available(self) -> bool:
@@ -99,7 +103,7 @@ class SystemIdentificationButton(_OptimizerButtonBase):
 
     def __init__(self, coordinator, entry) -> None:
         super().__init__(
-            coordinator, entry, "system_identification", "Run System Identification"
+            coordinator, entry, "system_identification", "run_system_identification"
         )
 
     @property
@@ -121,7 +125,7 @@ class ResetComfortWeightButton(_OptimizerButtonBase):
 
     def __init__(self, coordinator, entry) -> None:
         super().__init__(
-            coordinator, entry, "reset_comfort_weight", "Reset Learned Comfort Weight"
+            coordinator, entry, "reset_comfort_weight", "reset_learned_comfort_weight"
         )
 
     async def async_press(self) -> None:
@@ -145,7 +149,7 @@ class DiagnoseIntervalButton(_OptimizerButtonBase):
 
     def __init__(self, coordinator, entry) -> None:
         super().__init__(
-            coordinator, entry, "diagnose_interval", "Diagnose Last Interval"
+            coordinator, entry, "diagnose_interval", "diagnose_last_interval"
         )
 
     async def async_press(self) -> None:

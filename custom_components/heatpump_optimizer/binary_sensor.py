@@ -57,12 +57,16 @@ class _OptimizerBinarySensorBase(CoordinatorEntity, BinarySensorEntity):
         coordinator: HeatPumpOptimizerCoordinator,
         entry: ConfigEntry,
         key: str,
-        name: str,
+        translation_key: str,
     ) -> None:
         super().__init__(coordinator)
         self._entry = entry
+        self._key = key
         self._attr_unique_id = f"{entry.entry_id}_{key}"
-        self._attr_name = name
+        self._attr_translation_key = translation_key
+        # Pin today's English object id for new installs (the integration
+        # suggested-object-id mechanism); see the sensor base class.
+        self.entity_id = f"binary_sensor.heat_pump_optimizer_{translation_key}"
 
     @property
     def device_info(self) -> DeviceInfo:
@@ -86,7 +90,7 @@ class InputHealthBinarySensor(_OptimizerBinarySensorBase):
     _attr_icon = "mdi:alert-decagram-outline"
 
     def __init__(self, coordinator, entry) -> None:
-        super().__init__(coordinator, entry, "input_health", "Input Problem")
+        super().__init__(coordinator, entry, "input_health", "input_problem")
 
     @property
     def is_on(self) -> bool:
@@ -123,7 +127,7 @@ class VentilationBinarySensor(_OptimizerBinarySensorBase):
 
     def __init__(self, coordinator, entry) -> None:
         super().__init__(
-            coordinator, entry, "ventilation", "Open Window Detected"
+            coordinator, entry, "ventilation", "open_window_detected"
         )
 
     @property
@@ -149,7 +153,7 @@ class ExternalHeatBinarySensor(_OptimizerBinarySensorBase):
     _attr_icon = "mdi:fire"
 
     def __init__(self, coordinator, entry) -> None:
-        super().__init__(coordinator, entry, "external_heat", "External Heat Source")
+        super().__init__(coordinator, entry, "external_heat", "external_heat_source")
 
     @property
     def is_on(self) -> bool:
@@ -182,7 +186,7 @@ class AwayModeBinarySensor(_OptimizerBinarySensorBase):
     _attr_icon = "mdi:home-export-outline"
 
     def __init__(self, coordinator, entry) -> None:
-        super().__init__(coordinator, entry, "away_mode", "Away Mode")
+        super().__init__(coordinator, entry, "away_mode", "away_mode")
 
     @property
     def is_on(self) -> bool:

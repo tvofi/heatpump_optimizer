@@ -764,5 +764,207 @@
       "title": "A configured grid fee looks 100× too large",
       "description": "The grid fee layer contains a rate of {rate} SEK/kWh (from the {source} input). Swedish DSO transfer fees run a few tenths of a krona per kWh, so a value this size is almost always öre entered where SEK was meant — 25 instead of 0.25. Nothing is changed or capped: the plan keeps pricing with exactly the value configured. Correct the value under the DSO fee options (or fix the fee sensor) and this notice clears on the next planning cycle."
     }
+  },
+  "entity": {
+    "sensor": {
+      "baseline_cost": {
+        "name": "Baseline Cost"
+      },
+      "buffer_tank_temperature_model": {
+        "name": "Buffer Tank Temperature (Model)"
+      },
+      "comfort_weight": {
+        "name": "Comfort Weight"
+      },
+      "compressor_frequency_advisor": {
+        "name": "Compressor Frequency Advisor"
+      },
+      "compressor_starts": {
+        "name": "Compressor Starts"
+      },
+      "contract_comparison": {
+        "name": "Contract Comparison"
+      },
+      "current_electricity_price": {
+        "name": "Current Electricity Price"
+      },
+      "dhw_heating_cost": {
+        "name": "DHW Heating Cost"
+      },
+      "dhw_heating_plan": {
+        "name": "DHW Heating Plan"
+      },
+      "dhw_heating_schedule": {
+        "name": "DHW Heating Schedule"
+      },
+      "dhw_heavy_day_demand": {
+        "name": "DHW Heavy Day Demand"
+      },
+      "dhw_setpoint_advisor": {
+        "name": "DHW Setpoint Advisor"
+      },
+      "dhw_temperature": {
+        "name": "DHW Temperature"
+      },
+      "ecl110_displace": {
+        "name": "ECL110 Displace"
+      },
+      "ecl110_effective_displace": {
+        "name": "ECL110 Effective Displace"
+      },
+      "estimated_cop": {
+        "name": "Estimated COP"
+      },
+      "floor_heating_return_temperature": {
+        "name": "Floor Heating Return Temperature"
+      },
+      "heat_pump_action": {
+        "name": "Heat Pump Action"
+      },
+      "hot_water_cost": {
+        "name": "Hot Water Cost"
+      },
+      "hot_water_energy": {
+        "name": "Hot Water Energy"
+      },
+      "indoor_temperature_optimizer": {
+        "name": "Indoor Temperature (Optimizer)"
+      },
+      "last_optimization": {
+        "name": "Last Optimization"
+      },
+      "lower_floor_temperature": {
+        "name": "Lower Floor Temperature"
+      },
+      "measured_power": {
+        "name": "Measured Power"
+      },
+      "mixed_hot_water": {
+        "name": "Mixed Hot Water"
+      },
+      "monthly_peak_power": {
+        "name": "Monthly Peak Power"
+      },
+      "next_optimization": {
+        "name": "Next Optimization"
+      },
+      "observed_cop": {
+        "name": "Observed COP"
+      },
+      "optimal_setpoint": {
+        "name": "Optimal Setpoint"
+      },
+      "optimization_mode": {
+        "name": "Optimization Mode"
+      },
+      "optimization_schedule": {
+        "name": "Optimization Schedule"
+      },
+      "optimization_score": {
+        "name": "Optimization Score"
+      },
+      "optimization_status": {
+        "name": "Optimization Status"
+      },
+      "outdoor_temperature_optimizer": {
+        "name": "Outdoor Temperature (Optimizer)"
+      },
+      "plan_narrative": {
+        "name": "Plan Narrative"
+      },
+      "power_headroom": {
+        "name": "Power Headroom"
+      },
+      "predicted_cost": {
+        "name": "Predicted Cost"
+      },
+      "predicted_savings": {
+        "name": "Predicted Savings"
+      },
+      "prediction_accuracy": {
+        "name": "Prediction Accuracy"
+      },
+      "predictive_optimization_insight": {
+        "name": "Predictive Optimization Insight"
+      },
+      "recommended_power": {
+        "name": "Recommended Power"
+      },
+      "savings_percentage": {
+        "name": "Savings Percentage"
+      },
+      "slab_temperature_estimated": {
+        "name": "Slab Temperature (Estimated)"
+      },
+      "solar_heat_gain": {
+        "name": "Solar Heat Gain"
+      },
+      "solar_irradiance": {
+        "name": "Solar Irradiance"
+      },
+      "solar_surplus_forecast": {
+        "name": "Solar Surplus Forecast"
+      },
+      "space_heating_cost": {
+        "name": "Space Heating Cost"
+      },
+      "space_heating_energy": {
+        "name": "Space Heating Energy"
+      },
+      "space_heating_plan": {
+        "name": "Space Heating Plan"
+      },
+      "thermal_battery_charge": {
+        "name": "Thermal Battery Charge"
+      },
+      "thermal_battery_energy": {
+        "name": "Thermal Battery Energy"
+      },
+      "total_energy": {
+        "name": "Total Energy"
+      },
+      "total_heating_cost": {
+        "name": "Total Heating Cost"
+      },
+      "upper_floor_temperature": {
+        "name": "Upper Floor Temperature"
+      },
+      "valve_target_recommendation": {
+        "name": "Valve Target Recommendation"
+      }
+    },
+    "binary_sensor": {
+      "away_mode": {
+        "name": "Away Mode"
+      },
+      "external_heat_source": {
+        "name": "External Heat Source"
+      },
+      "input_problem": {
+        "name": "Input Problem"
+      },
+      "open_window_detected": {
+        "name": "Open Window Detected"
+      }
+    },
+    "button": {
+      "diagnose_last_interval": {
+        "name": "Diagnose Last Interval"
+      },
+      "optimize_now": {
+        "name": "Optimize Now"
+      },
+      "reset_learned_comfort_weight": {
+        "name": "Reset Learned Comfort Weight"
+      },
+      "run_system_identification": {
+        "name": "Run System Identification"
+      }
+    },
+    "switch": {
+      "optimizer_active": {
+        "name": "Optimizer Active"
+      }
+    }
   }
 }

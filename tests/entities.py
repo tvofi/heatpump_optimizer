@@ -40,6 +40,20 @@ R = Results("Entities and platforms")
 ROOT = Path("custom_components/heatpump_optimizer")
 ENTRY = FakeEntry()
 
+# v5.0.0: display names live in the translation files, not in ``_attr_name``.
+# The tests keep addressing entities by their English display name — resolved
+# through strings.json exactly the way Home Assistant's frontend would — so a
+# missing translation entry fails loudly here rather than rendering as a raw
+# key in the UI.
+_ENTITY_STRINGS = json.loads((ROOT / "strings.json").read_text())["entity"]
+
+
+def display_name(platform: str, entity) -> str:
+    key = getattr(entity, "_attr_translation_key", None)
+    return _ENTITY_STRINGS.get(platform, {}).get(key, {}).get(
+        "name", f"<untranslated {platform}:{key}>"
+    )
+
 
 # ===========================================================================
 # Platform registration
@@ -245,7 +259,7 @@ DATA = {
 R.section("Sensors")
 
 sensors = collect(sensor)
-by_name = {s._attr_name: s for s in sensors}
+by_name = {display_name("sensor", s): s for s in sensors}
 R.check("all sensors are constructible", len(sensors) > 30, str(len(sensors)))
 
 # Entity counts are published in the README, so they are a claim rather than a
@@ -595,7 +609,7 @@ R.check(
 R.section("Binary sensors")
 
 binaries = collect(binary_sensor)
-b_by_name = {b._attr_name: b for b in binaries}
+b_by_name = {display_name("binary_sensor", b): b for b in binaries}
 R.check("four binary sensors are added", len(binaries) == 4, str(len(binaries)))
 
 health = b_by_name["Input Problem"]
@@ -671,7 +685,7 @@ R.check("no binary sensor crashes before the first update", not b_crashed, "; ".
 R.section("Buttons")
 
 buttons = collect(button)
-btn_by_name = {b._attr_name: b for b in buttons}
+btn_by_name = {display_name("button", b): b for b in buttons}
 R.check("four buttons are added", len(buttons) == 4, str(len(buttons)))
 for name in (
     "Optimize Now",
@@ -1319,7 +1333,16 @@ R.check(
     str(clim._attr_unique_id).startswith(ENTRY.entry_id),
     str(clim._attr_unique_id),
 )
-R.check("the climate entity has a name", bool(clim._attr_name))
+R.check(
+    "the climate entity is device-named (name None with has_entity_name)",
+    clim._attr_has_entity_name and clim._attr_name is None,
+    "a literal name equal to the device name would render doubled",
+)
+R.check(
+    "the climate entity pins the corrected object id for new installs",
+    clim.entity_id == "climate.heat_pump_optimizer",
+    str(getattr(clim, "entity_id", None)),
+)
 R.check(
     "the climate hvac modes are off, heat and auto",
     set(clim._attr_hvac_modes) == {"off", "heat", "auto"},
@@ -1356,7 +1379,16 @@ R.check(
     "the switch unique id is prefixed with the entry id",
     str(sw._attr_unique_id).startswith(ENTRY.entry_id),
 )
-R.check("the switch entity has a name", bool(sw._attr_name))
+R.check(
+    "the switch entity is named through its translation key",
+    display_name("switch", sw) == "Optimizer Active",
+    display_name("switch", sw),
+)
+R.check(
+    "the switch pins today's object id for new installs",
+    sw.entity_id == "switch.heat_pump_optimizer_optimizer_active",
+    str(getattr(sw, "entity_id", None)),
+)
 R.check("the switch is on while the mode is not off", sw.is_on)
 asyncio.run(sw.async_turn_on())
 R.check(
@@ -1406,6 +1438,215 @@ R.check(
     "exactly the niche-hardware sensors are disabled by default",
     _actually_disabled == _expected_disabled,
     f"unexpected {sorted(_actually_disabled ^ _expected_disabled)}",
+)
+
+
+# ===========================================================================
+# Breaking naming release (v5.0.0)
+# ===========================================================================
+R.section("Naming, translation keys and id stability (v5.0.0)")
+
+_named_entities = (
+    [("sensor", s) for s in sensors]
+    + [("binary_sensor", b) for b in binaries]
+    + [("button", b) for b in buttons]
+    + [("switch", sw)]
+)
+
+# Every entity resolves its display name through the translation files. The
+# climate entity is the deliberate exception: device-named (checked above).
+_missing_key = sorted(
+    f"{platform}:{e._attr_unique_id}"
+    for platform, e in _named_entities
+    if not getattr(e, "_attr_translation_key", None)
+)
+R.check(
+    "every entity carries a translation key",
+    not _missing_key,
+    ", ".join(_missing_key),
+)
+_literal_names = sorted(
+    f"{platform}:{e._attr_unique_id}"
+    for platform, e in _named_entities
+    if getattr(e, "_attr_name", None) is not None
+)
+R.check(
+    "no entity carries a literal _attr_name any more",
+    not _literal_names,
+    ", ".join(_literal_names),
+)
+
+# The translation rosters and the entity rosters must cover each other
+# exactly, per platform: a missing entry renders as a raw key, an orphan
+# entry is a translation nobody can ever see. (en.json and sv.json are
+# already pinned key-identical to strings.json by the Translations section,
+# so checking strings.json covers all three files.)
+_used_keys: dict[str, set] = {}
+for _platform, _e in _named_entities:
+    _used_keys.setdefault(_platform, set()).add(_e._attr_translation_key)
+for _platform in sorted(_used_keys):
+    _have = set(_ENTITY_STRINGS.get(_platform, {}))
+    _diff = _have ^ _used_keys[_platform]
+    R.check(
+        f"the {_platform} translation roster matches the entities exactly",
+        not _diff,
+        f"mismatch {sorted(_diff)}",
+    )
+R.check(
+    "the translation files carry no platforms without entities",
+    set(_ENTITY_STRINGS) == set(_used_keys),
+    str(set(_ENTITY_STRINGS) ^ set(_used_keys)),
+)
+_sv_entities = json.loads(
+    (ROOT / "translations" / "sv.json").read_text()
+)["entity"]
+_untranslated = sum(
+    1
+    for _platform, _entries in _ENTITY_STRINGS.items()
+    for _key, _val in _entries.items()
+    if _sv_entities[_platform][_key]["name"] == _val["name"]
+)
+_total_names = sum(len(v) for v in _ENTITY_STRINGS.values())
+R.check(
+    "the Swedish entity names are actually translated",
+    _untranslated < _total_names / 4,
+    f"{_untranslated} of {_total_names} identical to English",
+)
+
+# CRITICAL id stability: pre-assigning ``entity_id`` is the integration
+# suggested-object-id mechanism, used verbatim at first registration only.
+# It must reproduce exactly the object ids v4.x generated from the English
+# names, or new installs diverge from every doc, automation example and the
+# card's id-suffix fallback. Existing installs keep their ids via unique_id.
+_bad_ids = sorted(
+    e._attr_unique_id
+    for _platform, e in _named_entities
+    if getattr(e, "entity_id", None)
+    != f"{_platform}.heat_pump_optimizer_{e._attr_translation_key}"
+)
+R.check(
+    "every entity pre-assigns its suggested object id",
+    not _bad_ids,
+    ", ".join(_bad_ids),
+)
+# Spot-pins against the pre-v5.0.0 slugs, written out literally so a renamed
+# translation key cannot silently move the goalposts of the check above.
+for _display, _expected_id in (
+    ("Solar Irradiance", "sensor.heat_pump_optimizer_solar_irradiance"),
+    ("Space Heating Plan", "sensor.heat_pump_optimizer_space_heating_plan"),
+    ("DHW Heating Plan", "sensor.heat_pump_optimizer_dhw_heating_plan"),
+    ("Predicted Savings", "sensor.heat_pump_optimizer_predicted_savings"),
+    ("Savings Percentage", "sensor.heat_pump_optimizer_savings_percentage"),
+    ("Optimization Score", "sensor.heat_pump_optimizer_optimization_score"),
+    ("Plan Narrative", "sensor.heat_pump_optimizer_plan_narrative"),
+    ("Optimal Setpoint", "sensor.heat_pump_optimizer_optimal_setpoint"),
+    ("Recommended Power", "sensor.heat_pump_optimizer_recommended_power"),
+    ("Hot Water Cost", "sensor.heat_pump_optimizer_hot_water_cost"),
+):
+    R.check(
+        f"{_display} keeps its v4.x entity id on new installs",
+        by_name[_display].entity_id == _expected_id,
+        str(by_name[_display].entity_id),
+    )
+# The card derives headline-stat ids from the plan sensor id by suffix swap;
+# that derivation must keep landing on real ids.
+_plan_id = by_name["Space Heating Plan"].entity_id
+for _stat_suffix in (
+    "_predicted_savings",
+    "_savings_percentage",
+    "_optimization_score",
+    "_plan_narrative",
+):
+    _derived = _plan_id.replace("_space_heating_plan", _stat_suffix)
+    R.check(
+        f"the card's suffix derivation for {_stat_suffix} stays valid",
+        _derived in {s.entity_id for s in sensors},
+        _derived,
+    )
+
+# Belt-and-braces for the future: the four headline sensors advertise a
+# stable stat_kind attribute, same contract as plan_kind on the plan sensors.
+for _display, _kind in (
+    ("Predicted Savings", "predicted_savings"),
+    ("Savings Percentage", "savings_percentage"),
+    ("Optimization Score", "optimization_score"),
+    ("Plan Narrative", "plan_narrative"),
+):
+    R.check(
+        f"{_display} advertises stat_kind={_kind}",
+        by_name[_display].extra_state_attributes.get("stat_kind") == _kind,
+    )
+
+# The merge: Solar Radiation (Optimizer) is gone; Solar Irradiance is the
+# survivor and still publishes the merged value and the card's marker.
+R.check(
+    "the SolarRadiationSensor class no longer exists",
+    not hasattr(sensor, "SolarRadiationSensor"),
+)
+R.check(
+    "no sensor claims the retired solar_radiation unique id",
+    not [s for s in sensors if s._attr_unique_id.endswith("_solar_radiation")],
+)
+R.check(
+    "there are exactly 55 sensors after the merge",
+    len(sensors) == 55,
+    str(len(sensors)),
+)
+R.check(
+    "the survivor still publishes the shared irradiance value",
+    by_name["Solar Irradiance"].native_value == 210.0,
+)
+R.check(
+    "the survivor keeps its own unique id, so history stays put",
+    by_name["Solar Irradiance"]._attr_unique_id == f"{ENTRY.entry_id}_solar_irradiance",
+)
+
+# The retired unique_id's registry entry is removed at setup, so existing
+# installs do not keep a permanently-unavailable "restored" entity around.
+from homeassistant.helpers import entity_registry as er_stub
+
+_clean_hass = FakeHass()
+_clean_entry = FakeEntry(
+    data={const.CONF_TIBBER_TOKEN: "x", const.CONF_WEATHER_ENTITY: "weather.home"}
+)
+_clean_hass.config_entries.entries.append(_clean_entry)
+_clean_reg = er_stub.async_get(_clean_hass)
+_clean_reg.add(
+    "sensor.heat_pump_optimizer_solar_radiation_optimizer",
+    unique_id=f"{_clean_entry.entry_id}_solar_radiation",
+    config_entry_id=_clean_entry.entry_id,
+)
+_clean_reg.add(
+    "sensor.heat_pump_optimizer_solar_irradiance",
+    unique_id=f"{_clean_entry.entry_id}_solar_irradiance",
+    config_entry_id=_clean_entry.entry_id,
+)
+_other_reg_entry = _clean_reg.add(
+    "sensor.other_integration_solar_radiation",
+    unique_id="someone_elses_solar_radiation",
+    config_entry_id="another_entry",
+)
+asyncio.run(integration.async_setup_entry(_clean_hass, _clean_entry))
+R.check(
+    "setup removes the retired solar_radiation registry entry",
+    "sensor.heat_pump_optimizer_solar_radiation_optimizer" in _clean_reg.removed
+    and "sensor.heat_pump_optimizer_solar_radiation_optimizer"
+    not in _clean_reg.entities,
+)
+R.check(
+    "and leaves the surviving irradiance entry alone",
+    "sensor.heat_pump_optimizer_solar_irradiance" in _clean_reg.entities,
+)
+R.check(
+    "and never touches another config entry's entities",
+    _other_reg_entry.entity_id in _clean_reg.entities,
+)
+# Idempotence: a second setup (reload) with nothing left to remove is a no-op.
+_removed_before = list(_clean_reg.removed)
+integration._async_remove_retired_entities(_clean_hass, _clean_entry)
+R.check(
+    "the cleanup is idempotent across reloads",
+    _clean_reg.removed == _removed_before,
 )
 
 # Currency follows the instance, with SEK as the historical fallback.
@@ -1933,6 +2174,195 @@ R.check(
     "every registered service was invoked above",
     _svc_registered == _svc_covered,
     f"uncovered {sorted(_svc_registered - _svc_covered)}",
+)
+
+
+# ===========================================================================
+# Release metadata
+# ===========================================================================
+R.section("Release metadata")
+
+# A release is spread over four files that nothing tied together: VERSION,
+# the manifest HACS reads, the notes users read, and the card's own version
+# banner. Every one of them was bumped by hand, so any one of them could be
+# forgotten -- and the claim file was worse than forgotten, it was inherited:
+# v4.0.7, v4.2.0 and v4.3.0 all failed CI on main with stale claims left by
+# the release before them, for code that was never wrong.
+import re as _re
+import tempfile as _tempfile
+
+import env_drift as _env_drift
+
+_version = Path("VERSION").read_text().strip()
+R.check(
+    "VERSION holds a plain X.Y.Z release number",
+    _env_drift._looks_like_version(_version),
+    f"VERSION reads {_version!r} -- every check below compares against it",
+)
+_manifest_version = json.loads((ROOT / "manifest.json").read_text()).get("version")
+R.check(
+    "manifest.json carries the release version",
+    _manifest_version == _version,
+    f"VERSION says {_version}, manifest.json says {_manifest_version} -- "
+    "edit custom_components/heatpump_optimizer/manifest.json",
+)
+
+_notes_heading = _re.search(
+    r"^## v(\d+\.\d+\.\d+)", Path("RELEASE_NOTES.md").read_text(), _re.M
+)
+R.check(
+    "RELEASE_NOTES.md opens with this release",
+    _notes_heading is not None and _notes_heading.group(1) == _version,
+    f"VERSION says {_version}, the first heading is "
+    f"{'v' + _notes_heading.group(1) if _notes_heading else '<none>'} -- "
+    "add this release's section to the top of RELEASE_NOTES.md",
+)
+
+# Same rule env_drift.py enforces, asserted here so it holds in every
+# GOLDEN_MODE -- including the strict runs where run.sh skips env_drift
+# entirely because the comparison ref is unreachable.
+_claim_problem = _env_drift.claim_version_error(".")
+R.check(
+    "the drift claim file is stamped for this release",
+    _claim_problem is None,
+    " ".join((_claim_problem or "").split()),
+)
+
+
+def _version_tuple(text: str) -> tuple[int, ...]:
+    """Comparable form of an X.Y.Z string, or () when it is not one."""
+    if not _env_drift._looks_like_version(text):
+        return ()
+    return tuple(int(part) for part in text.split("."))
+
+
+_card_path = ROOT / "www" / "heatpump-optimizer-card.js"
+_card_match = _re.search(
+    r'CARD_VERSION\s*=\s*["\'](\d+\.\d+\.\d+)["\']', _card_path.read_text()
+)
+R.check(
+    "the card declares a valid CARD_VERSION",
+    _card_match is not None,
+    f"no `const CARD_VERSION = \"X.Y.Z\"` in {_card_path}",
+)
+# A card-only release bumps both files; an integration-only release leaves
+# the card behind, which is legal. Ahead of VERSION is not: it would ship a
+# banner advertising a release that does not exist.
+R.check(
+    "CARD_VERSION does not run ahead of VERSION",
+    _card_match is not None
+    and _version_tuple(_version) != ()
+    and _version_tuple(_card_match.group(1)) <= _version_tuple(_version),
+    f"card says {_card_match.group(1) if _card_match else '?'}, VERSION says "
+    f"{_version} -- lower CARD_VERSION in {_card_path} or bump VERSION",
+)
+
+
+# The stamp check is only worth having if it bites, so mutate a throwaway
+# tree and require env_drift to reject exactly the wrong ones -- and to
+# reject them for the stated reason, since "rejected" alone was satisfied
+# by the very parser bug these probes exist to pin. Delete the guards in
+# claim_version_error and the rejections below stop happening.
+def _claim_probe(tree_version: str, declared: str | None):
+    # Every probe carries the real file's header prose, which mentions
+    # `claims-for:` while declaring nothing. An earlier parser matched the
+    # marker anywhere in a comment, so that sentence became the
+    # declaration -- it sliced "-for:`" out of the middle of the word and
+    # no later stamp could win, because the first declaration wins. Only a
+    # probe that asserts WHICH answer came back catches that: the v4.1.0
+    # probe (whose message must name v4.1.0, not a fragment of a
+    # sentence), the `_stale_declared == "4.1.0"` check at the bottom, and
+    # the unstamped probe below, which requires the UNSTAMPED verdict.
+    # Asserting only "not None" pinned nothing at all: under that parser
+    # every one of these files came back MALFORMED -- rejected, but for
+    # the wrong reason, and the stamped ones rejected wrongly.
+    with _tempfile.TemporaryDirectory(prefix="claim_probe_") as root:
+        Path(root, "VERSION").write_text(tree_version + "\n")
+        golden_dir = Path(root, "tests", "golden")
+        golden_dir.mkdir(parents=True)
+        prose = "# The `claims-for:` line below must equal VERSION.\n"
+        stamp = f"# claims-for: {declared}\n" if declared is not None else ""
+        Path(golden_dir, "claimed_drift.txt").write_text(
+            prose + stamp + "wood_coil  # probe\n"
+        )
+        return _env_drift.claim_version_error(root), _env_drift._claimed(root)
+
+
+_stale_problem, (_stale_declared, _stale_claims) = _claim_probe("5.0.0", "4.1.0")
+R.check(
+    "a claim file stamped for another release is rejected",
+    _stale_problem is not None
+    and "4.1.0" in _stale_problem
+    and "5.0.0" in _stale_problem,
+    "env_drift accepted a v4.1.0 claim file in a v5.0.0 tree",
+)
+_unstamped_problem = _claim_probe("5.0.0", None)[0]
+R.check(
+    "an unstamped claim file is rejected, prose mention and all",
+    (_unstamped_problem or "").startswith("UNSTAMPED CLAIM FILE"),
+    "a file whose only mention of claims-for: is prose should be "
+    f"UNSTAMPED; env_drift said: {' '.join((_unstamped_problem or 'nothing').split())[:120]}",
+)
+# `declared == version` alone rejects 'next' in a 5.0.0 tree, so that pair
+# would pass with _looks_like_version deleted. Stamping a tree with its own
+# nonsense version is the case equality accepts and the version parser must
+# not: 'next' == 'next' matches, and expires on nothing.
+R.check(
+    "a claims-for: value that is not a version is rejected, tree and all",
+    _claim_probe("next", "next")[0] is not None,
+    "env_drift accepted 'claims-for: next' because VERSION also said 'next'",
+)
+R.check(
+    "a claims-for: value that is not a version is named as malformed",
+    (_claim_probe("5.0.0", "next")[0] or "").startswith("MALFORMED CLAIM FILE"),
+    "'claims-for: next' in a 5.0.0 tree should be MALFORMED, not stale",
+)
+_fresh_problem, _ = _claim_probe("5.0.0", "5.0.0")
+R.check(
+    "a claim file stamped for this release is accepted",
+    _fresh_problem is None,
+    " ".join((_fresh_problem or "").split()),
+)
+# The stamp is a comment, so it must not be read as a scenario name, and
+# real claims must still survive the parser that now returns two things.
+R.check(
+    "the stamp parses as a declaration, not as a claimed scenario",
+    _stale_declared == "4.1.0" and set(_stale_claims) == {"wood_coil"},
+    f"declared {_stale_declared!r}, claims {sorted(_stale_claims)}",
+)
+
+# The stamp expires claims per VERSION *value*, and consecutive commits
+# share one all over this history (7b512bc/401db6e/2248f64 at 4.0.0, the
+# ten v4.0.0 T* merges at 3.16.0), so a merge at an unchanged version
+# inherits a matching stamp and the stamp alone waves it through. The
+# invariant that actually holds is that a claim list must differ from the
+# baseline's; env_drift.py checks it in --all mode, once the baseline
+# worktree exists and before it captures anything.
+R.check(
+    "a claim list identical to the baseline's is refused as inherited",
+    (_env_drift.inherited_claims_error(
+        {"wood_coil": "non-convex solve moved"},
+        {"wood_coil": "non-convex solve moved"},
+        "origin/main",
+    ) or "").startswith("INHERITED CLAIMS"),
+    "env_drift accepted a claim list copied wholesale from the baseline",
+)
+R.check(
+    "an inherited claim list names the ref it was inherited from",
+    "origin/main" in (_env_drift.inherited_claims_error(
+        {"wood_coil": "r"}, {"wood_coil": "r"}, "origin/main") or ""),
+    "the inherited-claims message must say what it compared against",
+)
+R.check(
+    "claiming nothing, or claiming something else, is not inheritance",
+    _env_drift.inherited_claims_error({}, {}, "origin/main") is None
+    and _env_drift.inherited_claims_error(
+        {"wood_coil": "this branch's reason"},
+        {"wood_coil": "the baseline's reason"},
+        "origin/main",
+    ) is None,
+    "an empty list claims nothing and a changed reason is a rewrite; "
+    "neither is an inherited list",
 )
 
 sys.exit(R.close("ENTITY CHECKS"))

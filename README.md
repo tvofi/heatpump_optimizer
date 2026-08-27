@@ -138,7 +138,7 @@ pricing are outside this project's control.
 - **Plan reason codes** — every planned slot says *why* it was chosen
 - **Energy dashboard integration** — accumulating energy and cost totals, split hot water versus space heating
 - **The house as a virtual battery** — state of charge, capacity and rates published so other automations can use it
-- **Rich sensor entities** — 56 sensors including full heating plans, DHW, predictive insights, per-zone temperatures
+- **Rich sensor entities** — 55 sensors including full heating plans, DHW, predictive insights, per-zone temperatures
 - **Dashboard card** — plots price, planned heating slots, irradiance and predicted temperatures on one graph, with per-series toggles, reason codes, a what-if simulator, and a Setup page drawing your configured system with live sensor readings in place, where clicking a sensor assigns or clears it
 - **Climate entity** — virtual thermostat with full HA climate integration
 - **Buttons and binary sensors** — force a run, arm a measurement experiment, and see input health, external heat, open windows and away state at a glance
@@ -1070,7 +1070,11 @@ turn the toggle off to require hot water around the clock.
 
 ## Entities Created
 
-### Sensors (56 total)
+Since v5.0.0 the display names are translated (English and Swedish) and
+follow your Home Assistant language; the tables below show the English
+names. Entity ids and history are unaffected by the language.
+
+### Sensors (55 total)
 | Sensor | Description |
 |---|---|
 | Optimization Mode | Current mode (auto/comfort/economy/boost/off) |
@@ -1093,8 +1097,7 @@ turn the toggle off to require hot water around the clock.
 | Upper Floor Temperature | Upper floor (radiator zone) temp |
 | Lower Floor Temperature | Lower floor (slab zone) temp |
 | Floor Heating Return Temp | Floor return sensor reading |
-| Solar Radiation | Current solar radiation (W/m²) |
-| Solar Irradiance (Open-Meteo) | Open-Meteo irradiance, with the horizon in attributes |
+| Solar Irradiance | Irradiance the optimizer plans with (W/m²), with the forecast horizon in attributes |
 | Solar Heat Gain | Current solar gain (kW) |
 | Buffer Tank Temperature | Modeled buffer tank temp |
 | **Space Heating Plan** | Planned space heating slots + full-horizon forecast |
@@ -1390,7 +1393,7 @@ custom_components/heatpump_optimizer/
 ├── comfort_learning.py  # Revealed-preference comfort weight tuning
 ├── battery.py           # The thermal stores, published as a battery
 │
-├── sensor.py            # 56 sensors
+├── sensor.py            # 55 sensors
 ├── binary_sensor.py     # Input health, external heat, away mode
 ├── button.py            # Optimize now, run identification, reset comfort weight
 ├── climate.py           # Virtual climate entity with DHW status

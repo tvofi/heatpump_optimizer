@@ -1,16 +1,33 @@
 # Scenarios this branch deliberately moves, one name per line, reason after
 # the hash. env_drift.py prints their diffs but does not fail on them; a
 # stale claim (a listed scenario that did not move) DOES fail, so entries
-# cannot outlive the PR that needed them. Empty file = this branch claims
-# byte-identical behaviour everywhere.
+# cannot outlive the PR that needed them. It fails in its own right, under
+# its own heading: nothing drifted, the list is just out of date. Empty
+# list = this branch claims byte-identical behaviour everywhere.
 #
-# v4.1.0 config/entities: config_flow gains the additive _initial
-# fingerprint of the restructured setup steps, and the five coord_*
-# fixtures each gain the additive data.currency leaf. No existing leaf
-# moves; every planning scenario is byte-identical to main.
-config_flow  # initial-flow restructure: additive _initial fingerprint of the setup steps
-coord_all_features  # additive data.currency leaf
-coord_dhw  # additive data.currency leaf
-coord_grid_fee  # additive data.currency leaf
-coord_minimal  # additive data.currency leaf
-coord_two_zone  # additive data.currency leaf
+# A claim describes exactly ONE diff and never carries forward. Two rules
+# enforce that, and a branch must satisfy both:
+#
+#   1. The `claims-for:` line below is machine-read and MUST equal the
+#      repo-root VERSION file. Both tests/env_drift.py (before any capture,
+#      in either mode) and tests/entities.py fail when the two disagree.
+#   2. In `--all` mode the list below must DIFFER from the baseline's --
+#      the same names with the same reasons mean it was written for the
+#      baseline's diff, not this one, and env_drift.py fails the run. The
+#      stamp cannot catch that on its own: it only expires claims when
+#      VERSION changes, and merges at an unchanged version are common here
+#      (7b512bc, 401db6e and 2248f64 all sit at 4.0.0). An empty list is
+#      always fine -- it claims nothing.
+#
+# So this file is rewritten by every change that touches it, and a release
+# that moves no goldens still restates its own footprint: bump the line,
+# leave the list empty. Without rule 1 the file is committed and inherited:
+# v4.0.7, v4.2.0 and v4.3.0 each moved nothing, inherited the previous
+# release's claims, and failed CI on main with N stale claims for code that
+# was never wrong. Without rule 2 the same thing happens whenever two
+# commits share a version.
+#
+# claims-for: 5.0.0
+#
+# v5.0.0 naming: entity display names and registry metadata only — no
+# planning behaviour changes, so every scenario is byte-identical to main.
