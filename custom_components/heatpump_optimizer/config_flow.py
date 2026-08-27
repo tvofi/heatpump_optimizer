@@ -296,7 +296,7 @@ from .const import (
     DEFAULT_BUILDING_PRESET_ENABLED,
     DEFAULT_HEATED_AREA,
 )
-from . import grid_fee, mixing_valve, presets, topology
+from . import comfort_band, grid_fee, mixing_valve, presets, topology
 from .dhw_schedule import is_valid_spec
 from .freq_control import FREQ_MODE_CONTROL, FREQ_MODE_OBSERVE
 
@@ -606,29 +606,14 @@ def _band_errors(
     not rejected downstream — the plan just sits in permanent violation,
     which is the same undiagnosable failure mode the DHW deadband check
     exists for.
+
+    The rules themselves live in ``comfort_band`` (v5.1.6), because this form
+    stopped being the only way into these fields: the ``apply_schedule``
+    service writes ``comfort_temp_day`` and the climate entity's slider writes
+    ``target_temperature``, and both used to reach the config entry without
+    passing anything like this check. One rule set, three callers.
     """
-    errors: dict[str, str] = {}
-    target = _effective(candidate, current, CONF_TARGET_TEMP, DEFAULT_TARGET_TEMP)
-    if _effective(candidate, current, CONF_MIN_TEMP, DEFAULT_MIN_TEMP) > target:
-        errors[CONF_MIN_TEMP] = "min_above_target"
-    if target > _effective(candidate, current, CONF_MAX_TEMP, DEFAULT_MAX_TEMP):
-        errors[CONF_MAX_TEMP] = "max_below_target"
-    if _effective(
-        candidate, current, CONF_COMFORT_TEMP_NIGHT, DEFAULT_COMFORT_TEMP_NIGHT
-    ) > _effective(
-        candidate, current, CONF_COMFORT_TEMP_DAY, DEFAULT_COMFORT_TEMP_DAY
-    ):
-        errors[CONF_COMFORT_TEMP_NIGHT] = "night_above_day"
-    # get_comfort_temp only returns the day value for start <= hour < end, so
-    # start >= end leaves the house on the night temperature around the
-    # clock — the same rule the apply_schedule service already enforces.
-    if int(
-        _effective(candidate, current, CONF_DAY_START_HOUR, DEFAULT_DAY_START_HOUR)
-    ) >= int(
-        _effective(candidate, current, CONF_DAY_END_HOUR, DEFAULT_DAY_END_HOUR)
-    ):
-        errors[CONF_DAY_END_HOUR] = "day_window_empty"
-    return errors
+    return comfort_band.errors(candidate, current)
 
 
 def _power_errors(

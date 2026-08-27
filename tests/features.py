@@ -11186,4 +11186,36 @@ R.check(
     and "scheduled: \"reasons.scheduled\"," in _card_src_cl,
 )
 
+
+# ===========================================================================
+# v5.1.6 — the comfort band's rules, on every path that writes it
+# ===========================================================================
+R.section("Comfort band validation is shared, not per-form")
+
+from heatpump_optimizer import comfort_band as _cb  # noqa: E402
+from heatpump_optimizer import config_flow as _cf_mod  # noqa: E402
+
+R.check(
+    "the config flow's errors are the shared rules",
+    _cf_mod._band_errors({"min_temperature": 22.0}, {})
+    == _cb.errors({"min_temperature": 22.0}, {}),
+)
+R.check(
+    "a partial write is judged against what would be stored, not itself",
+    _cb.errors({"target_temperature": 24.0}, {"max_temperature": 23.0})
+    == {"max_temperature": "max_below_target"},
+    str(_cb.errors({"target_temperature": 24.0}, {"max_temperature": 23.0})),
+)
+R.check(
+    "a band that agrees with itself raises nothing",
+    _cb.errors({}, {}) == {} and _cb.violations({}, {}) == [],
+)
+R.check(
+    "every violation carries a sentence a service caller can be told",
+    all(
+        v.message and v.field and v.code
+        for v in _cb.violations({"min_temperature": 25.0}, {})
+    ),
+)
+
 sys.exit(R.close("FEATURE CHECKS"))

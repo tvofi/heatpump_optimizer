@@ -38,8 +38,6 @@ from .const import (
     CONF_DHW_SETPOINT,
     CONF_DHW_WINDOWS,
     MANUAL_PLAN_WINDOW_HOURS,
-    DEFAULT_DAY_END_HOUR,
-    DEFAULT_DAY_START_HOUR,
     DEFAULT_DHW_SETPOINT,
     DHW_MIN_TEMP_SETPOINT_MARGIN,
     CONF_TOPOLOGY_LAYOUT,
@@ -63,6 +61,7 @@ from .const import (
     MODE_BOOST,
     topology_layout_valid,
 )
+from . import comfort_band
 from . import mixing_valve
 from .coordinator import HeatPumpOptimizerCoordinator
 from .thermal_model import ThermalParameters
@@ -654,29 +653,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 "No loaded Heat Pump Optimizer config entry matched this call"
             )
 
-        # A day window that never opens would leave the house on the night
-        # temperature around the clock, silently — get_comfort_temp only
-        # returns the day value for start <= hour < end. The call may update
-        # one bound and collide with the other bound already stored, so the
-        # check runs per entry against the *effective* pair, not just the
-        # call's own values.
-        if CONF_DAY_START_HOUR in updates or CONF_DAY_END_HOUR in updates:
-            for entry in targets:
-                stored = {**entry.data, **entry.options}
-                start = updates.get(
-                    CONF_DAY_START_HOUR,
-                    stored.get(CONF_DAY_START_HOUR, DEFAULT_DAY_START_HOUR),
-                )
-                end = updates.get(
-                    CONF_DAY_END_HOUR,
-                    stored.get(CONF_DAY_END_HOUR, DEFAULT_DAY_END_HOUR),
-                )
-                if int(start) >= int(end):
-                    raise ServiceValidationError(
-                        f"The heating day would start at {int(start)}:00 and "
-                        f"end at {int(end)}:00, leaving no comfort period "
-                        "at all"
-                    )
+        # The comfort band's cross-field rules, the same ones the config flow
+        # runs. This service writes `comfort_temp_day` and the day window
+        # straight into the entry options, and until v5.1.6 the only thing
+        # standing between a call and stored configuration was the schema's
+        # 5-30 range: a daytime temperature below the stored night one, or a
+        # day window that never opens, went in unremarked and left the plan in
+        # a contradiction nothing downstream reports. The call may update one
+        # half of a pair and collide with the stored other half, so the check
+        # runs per entry against the *effective* values, not the call's own.
+        for entry in targets:
+            stored = {**entry.data, **entry.options}
+            found = comfort_band.violations(updates, stored)
+            if found:
+                raise ServiceValidationError(comfort_band.describe(found))
 
         # The hot water minimum has to clear a deadband below the setpoint, and
         # the setpoint is per entry, so this cannot live in the schema. Check

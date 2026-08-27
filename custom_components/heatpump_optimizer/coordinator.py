@@ -26,6 +26,7 @@ from homeassistant.components import mqtt
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import UnitOfSpeed
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.event import async_track_state_change_event
@@ -307,6 +308,7 @@ from .external_heat import (
 )
 from . import away as away_mode
 from . import battery as battery_view
+from . import comfort_band
 from . import mixing_valve
 from . import topology
 from . import pv as pv_model
@@ -1188,7 +1190,20 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         Writing it back to the entry options is what makes the change survive
         a reload; updating only the in-memory optimizer config meant the value
         silently reverted the next time the entry was reloaded.
+
+        Checked against the comfort band first (v5.1.6). This is a write to the
+        same config entry the options flow guards, and it used to arrive with
+        nothing checking it at all — the thermostat's own slider ran to
+        ``max_temp + 1``, so its top notch stored a target above the ceiling by
+        construction. A band the plan can never satisfy is not rejected
+        downstream, because the bounds are priced rather than fenced; it just
+        plans in permanent violation.
         """
+        found = comfort_band.violations(
+            {CONF_TARGET_TEMP: float(temperature)}, self._config
+        )
+        if found:
+            raise ServiceValidationError(comfort_band.describe(found))
         self._opt_config.target_temp = temperature
         self.hass.config_entries.async_update_entry(
             self.entry,

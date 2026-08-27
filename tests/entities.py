@@ -2637,6 +2637,8 @@ R.check(
 # ===========================================================================
 R.section("Service handlers")
 
+from homeassistant.exceptions import ServiceValidationError
+
 from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator
 
 _svc_hass = FakeHass()
@@ -2726,6 +2728,77 @@ R.check(
     "apply_schedule persists the window into options",
     _svc_entry.options.get(const.CONF_DAY_START_HOUR) == 6
     and _svc_entry.options.get(const.CONF_DAY_END_HOUR) == 21,
+)
+
+# v5.1.6 — the comfort band, on every path that writes it.
+#
+# `apply_schedule` writes `comfort_temp_day` into stored options behind a
+# 5-30 range check and nothing else, so a daytime temperature below the
+# stored night one went in unremarked: the plan then sat in a contradiction
+# the optimizer never reports, because the bounds are priced rather than
+# fenced. The service now runs the config flow's own band rules, against the
+# effective pair, per entry.
+_band_before = _svc_entry.options.get(const.CONF_COMFORT_TEMP_DAY)
+_band_rejected = None
+try:
+    _svc_call(const.SERVICE_APPLY_SCHEDULE, {"comfort_temp_day": 18.0})
+except ServiceValidationError as err:
+    _band_rejected = str(err)
+R.check(
+    "apply_schedule refuses a daytime temperature below the stored night one",
+    _band_rejected is not None and "night" in _band_rejected.lower(),
+    f"stored night is {const.DEFAULT_COMFORT_TEMP_NIGHT}; got {_band_rejected!r}",
+)
+R.check(
+    "and nothing was written when it refused",
+    _svc_entry.options.get(const.CONF_COMFORT_TEMP_DAY) == _band_before,
+    str(_svc_entry.options.get(const.CONF_COMFORT_TEMP_DAY)),
+)
+_svc_call(const.SERVICE_APPLY_SCHEDULE, {"comfort_temp_day": 22.0})
+R.check(
+    "a daytime temperature that clears the band still writes",
+    _svc_entry.options.get(const.CONF_COMFORT_TEMP_DAY) == 22.0,
+)
+_window_rejected = None
+try:
+    _svc_call(
+        const.SERVICE_APPLY_SCHEDULE, {"day_start_hour": 20, "day_end_hour": 8}
+    )
+except ServiceValidationError as err:
+    _window_rejected = str(err)
+R.check(
+    "the empty-day-window rule survived the move into the shared rules",
+    _window_rejected is not None and "daytime period" in _window_rejected,
+    f"got {_window_rejected!r}",
+)
+
+# The other bypass: the thermostat card's slider writes `target_temperature`
+# through the coordinator, which persisted it with no band check at all --
+# and the slider's own maximum was `max_temp + 1`, so its top notch stored a
+# target above the ceiling by construction.
+_target_before = _svc_coord._opt_config.target_temp
+_target_rejected = None
+try:
+    asyncio.run(_svc_coord.async_set_target_temperature(26.0))
+except ServiceValidationError as err:
+    _target_rejected = str(err)
+R.check(
+    "the climate entity cannot store a target above the comfort ceiling",
+    _target_rejected is not None and "23" in _target_rejected,
+    f"ceiling is {const.DEFAULT_MAX_TEMP}; got {_target_rejected!r}",
+)
+R.check(
+    "and the in-memory target is untouched by the refusal",
+    _svc_coord._opt_config.target_temp == _target_before
+    and _svc_entry.options.get(const.CONF_TARGET_TEMP) is None,
+    f"{_svc_coord._opt_config.target_temp} / "
+    f"{_svc_entry.options.get(const.CONF_TARGET_TEMP)}",
+)
+asyncio.run(_svc_coord.async_set_target_temperature(22.0))
+R.check(
+    "a target inside the band is stored as before",
+    _svc_coord._opt_config.target_temp == 22.0
+    and _svc_entry.options.get(const.CONF_TARGET_TEMP) == 22.0,
 )
 
 _svc_call(

@@ -100,8 +100,14 @@ class HeatPumpOptimizerClimate(CoordinatorEntity, ClimateEntity):
         # Pin today's object id for new installs (the integration
         # suggested-object-id mechanism); see the sensor base class.
         self.entity_id = "climate.heat_pump_optimizer"
+        # The slider used to run a degree past the configured ceiling, so its
+        # top notch stored a target the comfort band forbids — and nothing on
+        # this path checked (v5.1.6). The maximum is now the ceiling itself.
+        # The minimum keeps its degree of headroom: a target below the floor is
+        # a user asking to save more, which the band's own rule (minimum above
+        # target) then judges, rather than a contradiction by construction.
         self._attr_min_temp = self._config.get(CONF_MIN_TEMP, DEFAULT_MIN_TEMP) - 1
-        self._attr_max_temp = self._config.get(CONF_MAX_TEMP, DEFAULT_MAX_TEMP) + 1
+        self._attr_max_temp = self._config.get(CONF_MAX_TEMP, DEFAULT_MAX_TEMP)
 
     @property
     def device_info(self) -> DeviceInfo:
