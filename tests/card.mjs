@@ -3512,5 +3512,245 @@ const setupBox = (card, place) =>
     /M 190 92 A 8 8 0 1 1 206 92/.test(page));
 }
 
+// --- Scenario: the flow chevrons lie along their pipes (item B, v5.1.2) -----
+// `pipeDeco` used to draw an axis-aligned glyph in both branches: a
+// horizontal chevron for every cross-column pipe whatever its slope. Those
+// pipes are cubics whose ends usually differ in height, so on most of them
+// the arrow sat across the pipe at very nearly a right angle -- which is
+// what the reporter saw. The glyph is now built from the curve's own unit
+// tangent at its midpoint.
+//
+// Nothing below repeats the card's formula. The tangent is measured off the
+// ACTUAL drawn path by central difference, so a chevron that agreed with a
+// wrong derivation would still fail here.
+{
+  // Every pipe in the card's drawing, paired with the chevron on it.
+  //
+  // One asymmetry to respect: a cross-column pipe's cubic is written from
+  // source to target, so the path runs with the water. A same-column pipe
+  // is always written top to bottom whichever way the water goes, so its
+  // flow direction has to come from the edge's own place names.
+  const pipesOf = (card, html) => {
+    const page = html || collect(card.shadowRoot).join("\n");
+    const boxes = card._layoutBoxes || [];
+    const boxOf = (place) => boxes.find((b) => b.place === place);
+    const re = new RegExp(
+      '<path class="setup-pipe([^"]*)" data-edge="([^"]+)"\\s+' +
+      'd="M\\s+(-?[\\d.]+)\\s+(-?[\\d.]+)\\s+(C|L)([^"]*)"\\s*/>' +
+      '\\s*(?:<circle[^>]*/>\\s*<circle[^>]*/>)?' +
+      '\\s*(?:<path class="setup-flow" d="M (-?[\\d.]+) (-?[\\d.]+) ' +
+      'L (-?[\\d.]+) (-?[\\d.]+) L (-?[\\d.]+) (-?[\\d.]+)"\\s*/>)?',
+      "g");
+    const out = [];
+    let m;
+    while ((m = re.exec(page)) !== null) {
+      const n = (v) => Number(v);
+      const rest = (m[6].match(/-?[\d.]+/g) || []).map(Number);
+      const cubic = m[5] === "C";
+      const p0 = [n(m[3]), n(m[4])];
+      const p1 = cubic ? [rest[0], rest[1]] : null;
+      const p2 = cubic ? [rest[2], rest[3]] : null;
+      const p3 = cubic ? [rest[4], rest[5]] : [rest[0], rest[1]];
+      const [srcPlace, dstPlace] = m[2].split(">");
+      const src = boxOf(srcPlace);
+      const dst = boxOf(dstPlace);
+      // True when the path was written against the water: only ever the
+      // same-column case, and only when the source box is the lower one.
+      const flipped = !cubic && !!src && !!dst && src.y > dst.y;
+      out.push({
+        edge: m[2], cls: m[1], cubic, p0, p1, p2, p3, flipped,
+        chevron: m[8] === undefined ? null : {
+          tail1: [n(m[7]), n(m[8])],
+          apex: [n(m[9]), n(m[10])],
+          tail2: [n(m[11]), n(m[12])],
+        },
+      });
+    }
+    return out;
+  };
+  // The drawn path at t (t running along the PATH), and its tangent there by
+  // central difference -- the curve's real direction, not a restatement of
+  // the card's algebra.
+  const at = (p, t) => {
+    if (!p.cubic) {
+      return [p.p0[0] + (p.p3[0] - p.p0[0]) * t,
+        p.p0[1] + (p.p3[1] - p.p0[1]) * t];
+    }
+    const u = 1 - t;
+    return [0, 1].map((i) =>
+      u * u * u * p.p0[i] + 3 * u * u * t * p.p1[i] +
+      3 * u * t * t * p.p2[i] + t * t * t * p.p3[i]);
+  };
+  // The direction the WATER moves at the pipe's midpoint.
+  const flowAtMid = (p) => {
+    const h = 1e-6;
+    const a = at(p, 0.5 - h);
+    const b = at(p, 0.5 + h);
+    const sign = p.flipped ? -1 : 1;
+    return [sign * (b[0] - a[0]) / (2 * h), sign * (b[1] - a[1]) / (2 * h)];
+  };
+  // How well the chevron's axis agrees with the flow there: +1 is "points
+  // exactly down the pipe", 0 "crosses it at a right angle", -1 "points
+  // back up it". This is the number the bug got wrong.
+  const report = (p) => {
+    const mid = at(p, 0.5);
+    const d = [p.chevron.apex[0] - mid[0], p.chevron.apex[1] - mid[1]];
+    const T = flowAtMid(p);
+    const dn = Math.hypot(d[0], d[1]);
+    const tn = Math.hypot(T[0], T[1]);
+    return {
+      mid, d, dn, T,
+      cos: (d[0] * T[0] + d[1] * T[1]) / (dn * tn),
+      // The chord midpoint, which is where the glyph is anchored. For this
+      // cubic the two coincide exactly -- the two 40-unit handles cancel --
+      // and that is worth pinning, because the anchoring assumes it.
+      chord: [(p.p0[0] + p.p3[0]) / 2, (p.p0[1] + p.p3[1]) / 2],
+    };
+  };
+  const near = (a, b, eps) => Math.abs(a - b) <= (eps === undefined ? 1e-6 : eps);
+  const byEdge = (list, e) => list.find((p) => p.edge === e);
+
+  // The five orientations, each on a real pipe of a real drawing. Downhill,
+  // uphill and flat come from the default rig; a near-horizontal pipe is
+  // made by parking two boxes almost level; the two vertical directions
+  // need a same-column edge that is not the one into the mixing valve
+  // (which drops its chevron on purpose -- see (3)).
+  const rig = mkSetup();
+  const cross = pipesOf(rig);
+  const upCard = mkSetup({
+    edges: [["wood_tank", "heat_pump"], ["heat_pump", "buffer_tank"]] });
+  const downCard = mkSetup({
+    edges: [["heat_pump", "wood_tank"], ["heat_pump", "buffer_tank"]] });
+  const tiltCard = mkSetup({
+    edges: [["heat_pump", "buffer_tank"]],
+    positions: { heat_pump: [16, 120], buffer_tank: [260, 113] } });
+
+  const cases = [
+    ["downhill cross-column", byEdge(cross, "mixing_valve>lower_zone")],
+    ["uphill cross-column", byEdge(cross, "wood_tank>buffer_tank")],
+    ["flat cross-column", byEdge(cross, "mixing_valve>upper_zone")],
+    ["near-horizontal cross-column",
+      byEdge(pipesOf(tiltCard), "heat_pump>buffer_tank")],
+    ["vertical, water flowing down",
+      byEdge(pipesOf(downCard), "heat_pump>wood_tank")],
+    ["vertical, water flowing up",
+      byEdge(pipesOf(upCard), "wood_tank>heat_pump")],
+  ];
+  // The set is only worth anything if the orientations really differ, so
+  // state each one's slope and insist the family covers the ground.
+  const slopes = [];
+  for (const [name, p] of cases) {
+    if (!p || !p.chevron) {
+      check(`${name}: the pipe is drawn with a chevron`, false,
+        p ? "pipe drawn without one" : "pipe not found");
+      continue;
+    }
+    const r = report(p);
+    const dy = r.T[1] / Math.hypot(r.T[0], r.T[1]);
+    slopes.push({ name, dy });
+    check(`${name}: the chevron points down the pipe, not across it`,
+      near(r.cos, 1, 1e-6) && near(r.dn, 2, 1e-3),
+      `flow direction (${r.T.map((v) => v.toFixed(2))}), ` +
+      `cos=${r.cos.toFixed(9)}, |apex-mid|=${r.dn.toFixed(4)}`);
+    check(`${name}: it is anchored on the pipe's own midpoint`,
+      near(r.mid[0], r.chord[0], 1e-6) && near(r.mid[1], r.chord[1], 1e-6),
+      `curve mid ${r.mid} vs chord mid ${r.chord}`);
+    // The tails straddle the axis 3 units back and 3 to each side, so the
+    // glyph is the same arrowhead as before -- just rotated into frame.
+    const tm = [(p.chevron.tail1[0] + p.chevron.tail2[0]) / 2,
+      (p.chevron.tail1[1] + p.chevron.tail2[1]) / 2];
+    const span = Math.hypot(p.chevron.tail1[0] - p.chevron.tail2[0],
+      p.chevron.tail1[1] - p.chevron.tail2[1]);
+    const reach = Math.hypot(tm[0] - p.chevron.apex[0],
+      tm[1] - p.chevron.apex[1]);
+    check(`${name}: the arrowhead keeps its 5-long, 6-wide proportions`,
+      near(reach, 5, 1e-3) && near(span, 6, 1e-3),
+      `apex-to-tailmid ${reach.toFixed(4)}, span ${span.toFixed(4)}`);
+    // ...and it is a chevron, not a spike: the two tails are on opposite
+    // sides of the axis.
+    const nrm = [-r.T[1], r.T[0]];
+    const side = (pt) => (pt[0] - r.mid[0]) * nrm[0] + (pt[1] - r.mid[1]) * nrm[1];
+    check(`${name}: its two tails sit on opposite sides of the axis`,
+      side(p.chevron.tail1) * side(p.chevron.tail2) < 0,
+      `${side(p.chevron.tail1).toFixed(3)} and ` +
+      `${side(p.chevron.tail2).toFixed(3)}`);
+  }
+  // Genuinely different orientations, not one orientation spelled six ways.
+  // `dy` here is the flow direction's vertical component once normalised:
+  // +1 straight down, -1 straight up, 0 dead level.
+  const vy = slopes.map((x) => x.dy);
+  const seen = (lo, hi) => vy.some((v) => v > lo && v < hi);
+  check("the six cases really are six different slopes",
+    slopes.length === 6 &&
+    vy.some((v) => near(v, 1, 1e-9)) &&   // straight down
+    vy.some((v) => near(v, -1, 1e-9)) &&  // straight up
+    vy.some((v) => near(v, 0, 1e-9)) &&   // dead level
+    seen(0.02, 0.5) &&                  // barely tilted
+    seen(0.5, 0.999) &&                 // steeply down, but not vertical
+    seen(-0.999, -0.5) &&               // steeply up, but not vertical
+    new Set(vy.map((v) => v.toFixed(4))).size === 6,
+    slopes.map((x) => `${x.name}=${x.dy.toFixed(4)}`).join("; "));
+
+  // (2) The bug itself. A horizontal glyph on a sloped pipe puts the apex on
+  //     the midpoint's own horizontal, and on the steepest pipe of the
+  //     drawing that is nearly 90 degrees away from the pipe.
+  const steep = byEdge(cross, "wood_tank>buffer_tank");
+  const steepR = report(steep);
+  const degrees = Math.acos(Math.max(-1, Math.min(1, steepR.cos))) * 180 / Math.PI;
+  // 0.05 degrees, not zero: the card rounds the glyph's coordinates to
+  // three decimals, which at a radius of 2 units is worth about 0.014
+  // degrees of slack. The bug being excluded is 87 degrees wide.
+  check("a steep pipe's chevron is no longer drawn horizontally",
+    !near(steepR.d[1], 0, 1e-3) && degrees < 0.05,
+    `dy=${(steep.p3[1] - steep.p0[1]).toFixed(1)}: apex is ` +
+    `${steepR.d[1].toFixed(3)} off the midpoint's horizontal and ` +
+    `${degrees.toFixed(6)} degrees off the tangent`);
+  // The old code wrote `M mx-3s my-3 L mx+2s my L mx-3s my+3`, apex on the
+  // midpoint's own y. Nowhere in the drawing now.
+  const axisAligned = cross.filter((p) =>
+    p.chevron && p.cubic &&
+    Math.abs(p.p3[1] - p.p0[1]) > 1 &&
+    near(p.chevron.apex[1], (p.p0[1] + p.p3[1]) / 2, 1e-3));
+  check("no sloped pipe carries an axis-aligned chevron any more",
+    axisAligned.length === 0, axisAligned.map((p) => p.edge).join(", "));
+
+  // (3) The two suppressions the fix had to preserve.
+  const intoValve = byEdge(cross, "buffer_tank>mixing_valve");
+  check("a same-column pipe into the mixing valve still keeps its chevron off",
+    !!intoValve && intoValve.chevron === null &&
+    intoValve.p0[0] === intoValve.p3[0],
+    intoValve ? JSON.stringify(intoValve.chevron) : "pipe not found");
+  // An invalid pipe is drawn to be rejected, and an arrow on it would
+  // endorse a connection the model refuses.
+  const ed = mkSetup();
+  ed._layoutEdit = { active: true,
+    edges: setupTopo().edges.map((e) => e.slice()),
+    positions: {}, invalid: ["heat_pump>buffer_tank"], match: null,
+    drag: null, verdict: null };
+  ed._refreshLayout();
+  const canvas = ed.shadowRoot.querySelector(".setup-canvas");
+  const edited = pipesOf(ed, (canvas && canvas.innerHTML) || "");
+  const bad = edited.filter((p) => / invalid/.test(p.cls));
+  check("an invalid pipe still carries dots but no chevron",
+    bad.length === 1 && bad[0].edge === "heat_pump>buffer_tank" &&
+    bad[0].chevron === null &&
+    edited.some((p) => p.edge === "mixing_valve>lower_zone" && p.chevron),
+    `${bad.length} invalid pipes; chevrons ` +
+    bad.map((p) => JSON.stringify(p.chevron)).join(","));
+
+  // (4) Direction, stated the plain way: the apex is on the downstream side.
+  for (const [name, p] of cases) {
+    if (!p || !p.chevron) continue;
+    const mid = at(p, 0.5);
+    const far = p.flipped ? p.p0 : p.p3;
+    const toEnd = [far[0] - mid[0], far[1] - mid[1]];
+    const d = [p.chevron.apex[0] - mid[0], p.chevron.apex[1] - mid[1]];
+    check(`${name}: the apex is on the downstream side of the midpoint`,
+      d[0] * toEnd[0] + d[1] * toEnd[1] > 0,
+      `apex offset ${d.map((v) => v.toFixed(3))} vs travel ` +
+      `${toEnd.map((v) => v.toFixed(3))}`);
+  }
+}
+
 console.log(fails ? `\n${fails} CARD CHECK(S) FAILED` : "\nALL CARD CHECKS PASSED");
 process.exit(fails?1:0);
