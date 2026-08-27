@@ -115,7 +115,7 @@
           "comfort_weight": "Hur strikt temperaturen ska hållas"
         },
         "data_description": {
-          "house_thermal_mass": "Hur mycket värme rumsluften, inredningen och den lätta stommen lagrar per grad — ungefär 0,02 kWh/°C per m² uppvärmd yta för ett trähus, 0,05 eller mer för sten. Tunga golv och en värmd platta räknas separat under Plattans värmekapacitet, så den här siffran ensam är inte hela byggnaden.",
+          "house_thermal_mass": "Hur mycket värme rumsluften, inredningen och den lätta stommen lagrar per grad — ungefär 0,02 kWh/°C per m² uppvärmd yta för ett trähus, 0,05 eller mer för sten. Tunga golv och en värmd platta räknas separat under Plattans termiska massa, så den här siffran ensam är inte hela byggnaden.",
           "house_heat_loss_coefficient": "Hur snabbt huset förlorar värme per grads skillnad mot uteluften. Multiplicera med skillnaden inne-ute för effektbehovet: 0,25 kW/°C vid 20 graders skillnad ger ungefär 5 kW.",
           "slab_thermal_mass": "Värme som lagras per grad i det som värmen levereras genom: betongplattan i ett golvvärmt hus — bufferten som gör att golvvärmen kan stängas av under pristoppar — eller, med radiatorer, vattnet och stålet i radiatorkretsen, som är långt mindre. Ett radiatorhus på 100 m² hamnar kring 0,2 kWh/°C, en värmd platta av samma storlek kring 10.",
           "slab_heat_transfer": "Hur snabbt värmen går från det lagret ut i rummet. Lägre värden innebär ett trögt golv som måste laddas längre i förväg; radiatorer är mycket snabbare och ligger långt högre.",
@@ -508,7 +508,7 @@
           "solar_orientation_factor": "Solorientering (1.0=full söder)"
         },
         "data_description": {
-          "house_thermal_mass": "Hur mycket värme rumsluften, inredningen och den lätta stommen lagrar per grad — ungefär 0,02 kWh/°C per m² uppvärmd yta för ett trähus, 0,05 eller mer för sten. Tunga golv och en värmd platta räknas separat under Plattans värmekapacitet, så den här siffran ensam är inte hela byggnaden.",
+          "house_thermal_mass": "Hur mycket värme rumsluften, inredningen och den lätta stommen lagrar per grad — ungefär 0,02 kWh/°C per m² uppvärmd yta för ett trähus, 0,05 eller mer för sten. Tunga golv och en värmd platta räknas separat under Plattans termiska massa, så den här siffran ensam är inte hela byggnaden.",
           "house_heat_loss_coefficient": "Hur snabbt huset förlorar värme per grads skillnad mot uteluften. Multiplicera med skillnaden inne-ute för effektbehovet: 0,25 kW/°C vid 20 graders skillnad ger ungefär 5 kW.",
           "slab_thermal_mass": "Värme som lagras per grad i det som värmen levereras genom: betongplattan i ett golvvärmt hus — bufferten som gör att golvvärmen kan stängas av under pristoppar — eller, med radiatorer, vattnet och stålet i radiatorkretsen, som är långt mindre. Ett radiatorhus på 100 m² hamnar kring 0,2 kWh/°C, en värmd platta av samma storlek kring 10.",
           "slab_heat_transfer": "Hur snabbt värmen går från det lagret ut i rummet. Lägre värden innebär ett trögt golv som måste laddas längre i förväg; radiatorer är mycket snabbare och ligger långt högre.",
@@ -525,7 +525,7 @@
           "upper_floor_area_ratio": "Andel av total golvyta som ligger på övre planet. 0,5 betyder att planen är lika stora.",
           "solar_orientation_factor": "Hur väl fönstren möter solen över dagen. 1,0 passar mest södervända fönster; sänk för öster- eller västerläge som bara får sol en del av dagen."
         },
-        "preset_warning": "Härledning från hustypen är påslagen, så när sidan Hustyp och värmesystem sparas räknas husets värmekapacitet, värmeförlust, plattans värmekapacitet och värmeöverföring nedan (samt tvåzonsvärdena) om från formuläret och skriver över det som står här. Ändrar du något av de fälten på den här sidan stängs härledningen av, så att ditt värde blir kvar."
+        "preset_warning": "Härledning från hustypen är påslagen, så när sidan Hustyp och värmesystem sparas räknas husets värmekapacitet, värmeförlust, plattans termiska massa och värmeöverföring nedan (samt tvåzonsvärdena) om från formuläret och skriver över det som står här. Ändrar du något av de fälten på den här sidan stängs härledningen av, så att ditt värde blir kvar."
       },
       "grid": {
         "title": "Nätkostnader",
