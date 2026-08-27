@@ -49,8 +49,8 @@
         },
         "data_description": {
           "target_temperature": "What you actually want the house to sit at. The optimizer aims for this and only drifts away from it to avoid expensive hours.",
-          "min_temperature": "A hard floor. The house is never allowed below this, no matter how expensive electricity gets. A wider gap to the target means more room to save.",
-          "max_temperature": "A hard ceiling. Caps how far ahead the optimizer may pre-heat the house during cheap hours.",
+          "min_temperature": "The coldest the plan will take the house. A strongly priced bound rather than a hard constraint — a hard one would leave a cold morning the pump cannot heat through with no plan at all — but breaching it costs far more than the electricity saved, at prices a couple of orders of magnitude beyond real ones, so the plan holds above it. A wider gap to the target means more room to save.",
+          "max_temperature": "The warmest the plan will pre-heat the house to during cheap hours. Priced the same way as the minimum, and just as firm at any real price. A limit, never a target: the optimizer aims for the target temperature and only comes near this when cheap hours make storing heat worth it. It cannot hold back heat the house gets for free, so a sunny summer room may still drift above it.",
           "comfort_temp_day": "Preferred temperature during waking hours.",
           "comfort_temp_night": "Preferred temperature overnight. Setting this a degree or two lower saves money and usually improves sleep.",
           "day_start_hour": "Hour of the morning when the daytime temperature takes over.",
@@ -309,8 +309,8 @@
         },
         "data_description": {
           "target_temperature": "What you actually want the house to sit at. The optimizer aims for this and only drifts away from it to avoid expensive hours.",
-          "min_temperature": "A hard floor. The house is never allowed below this, no matter how expensive electricity gets. A wider gap to the target means more room to save.",
-          "max_temperature": "A hard ceiling. Caps how far ahead the optimizer may pre-heat the house during cheap hours.",
+          "min_temperature": "The coldest the plan will take the house. A strongly priced bound rather than a hard constraint — a hard one would leave a cold morning the pump cannot heat through with no plan at all — but breaching it costs far more than the electricity saved, at prices a couple of orders of magnitude beyond real ones, so the plan holds above it. A wider gap to the target means more room to save.",
+          "max_temperature": "The warmest the plan will pre-heat the house to during cheap hours. Priced the same way as the minimum, and just as firm at any real price. A limit, never a target: the optimizer aims for the target temperature and only comes near this when cheap hours make storing heat worth it. It cannot hold back heat the house gets for free, so a sunny summer room may still drift above it.",
           "comfort_temp_day": "Preferred temperature during waking hours.",
           "comfort_temp_night": "Preferred temperature overnight. Setting this a degree or two lower saves money and usually improves sleep.",
           "day_start_hour": "Hour of the morning when the daytime temperature takes over.",

@@ -49,8 +49,8 @@
         },
         "data_description": {
           "target_temperature": "Vad du faktiskt vill att huset ska ligga på. Optimeringen siktar hit och avviker bara för att undvika dyra timmar.",
-          "min_temperature": "En hård gräns. Huset tillåts aldrig under den här temperaturen, hur dyr elen än blir. Ett större avstånd till önskad temperatur ger mer utrymme att spara.",
-          "max_temperature": "En hård övre gräns. Styr hur mycket optimeringen får förvärma huset under billiga timmar.",
+          "min_temperature": "Det kallaste planen tar huset till. En hårt prissatt gräns snarare än ett absolut villkor — ett absolut villkor skulle lämna en kall morgon som pumpen inte hinner värma igenom helt utan plan — men att gå under den kostar långt mer än den el som sparas, vid priser ett par tiopotenser över verkliga, så planen håller sig ovanför. Ett större avstånd till önskad temperatur ger mer utrymme att spara.",
+          "max_temperature": "Det varmaste planen förvärmer huset till under billiga timmar. Prissatt på samma sätt som miniminivån och lika fast vid alla verkliga priser. En gräns, aldrig ett mål: optimeringen siktar på önskad temperatur och närmar sig den här bara när billiga timmar gör det värt att lagra värme. Den kan inte hålla tillbaka värme som huset får gratis, så ett soligt sommarrum kan ändå glida över den.",
           "comfort_temp_day": "Önskad temperatur under vakna timmar.",
           "comfort_temp_night": "Önskad temperatur nattetid. Ett par grader lägre sparar pengar och ger oftast bättre sömn.",
           "day_start_hour": "Timmen på morgonen då dagtemperaturen tar över.",
@@ -309,8 +309,8 @@
         },
         "data_description": {
           "target_temperature": "Vad du faktiskt vill att huset ska ligga på. Optimeringen siktar hit och avviker bara för att undvika dyra timmar.",
-          "min_temperature": "En hård gräns. Huset tillåts aldrig under den här temperaturen, hur dyr elen än blir. Ett större avstånd till önskad temperatur ger mer utrymme att spara.",
-          "max_temperature": "En hård övre gräns. Styr hur mycket optimeringen får förvärma huset under billiga timmar.",
+          "min_temperature": "Det kallaste planen tar huset till. En hårt prissatt gräns snarare än ett absolut villkor — ett absolut villkor skulle lämna en kall morgon som pumpen inte hinner värma igenom helt utan plan — men att gå under den kostar långt mer än den el som sparas, vid priser ett par tiopotenser över verkliga, så planen håller sig ovanför. Ett större avstånd till önskad temperatur ger mer utrymme att spara.",
+          "max_temperature": "Det varmaste planen förvärmer huset till under billiga timmar. Prissatt på samma sätt som miniminivån och lika fast vid alla verkliga priser. En gräns, aldrig ett mål: optimeringen siktar på önskad temperatur och närmar sig den här bara när billiga timmar gör det värt att lagra värme. Den kan inte hålla tillbaka värme som huset får gratis, så ett soligt sommarrum kan ändå glida över den.",
           "comfort_temp_day": "Önskad temperatur under vakna timmar.",
           "comfort_temp_night": "Önskad temperatur nattetid. Ett par grader lägre sparar pengar och ger oftast bättre sömn.",
           "day_start_hour": "Timmen på morgonen då dagtemperaturen tar över.",

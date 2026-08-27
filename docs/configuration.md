@@ -73,8 +73,8 @@ the wider it is, the further the house may coast through an expensive hour.
 | Setting | Default | Range | What it means |
 |---|---|---|---|
 | Target indoor temperature | 21.0 °C | 15–28, 0.5 steps | What you actually want. The optimizer aims here and only drifts to avoid expensive hours. |
-| Coldest acceptable temperature | 19.0 °C | 14–25 | A floor the plan will not go below whatever electricity costs. |
-| Warmest acceptable temperature | 23.0 °C | 18–28 | A ceiling on pre-heating during cheap hours. |
+| Coldest acceptable temperature | 19.0 °C | 14–25 | The coldest the plan will take the house. Priced, not fenced (see [how it works](how-it-works.md#the-objective-term-by-term)), but firm at any real price. |
+| Warmest acceptable temperature | 23.0 °C | 18–28 | A limit on pre-heating during cheap hours, never a target. Priced the same way; free solar gain can still carry a room past it. |
 | Daytime comfort temperature | 21.0 °C | 16–26 | Preferred temperature during waking hours. |
 | Night-time comfort temperature | 19.5 °C | 15–24 | Preferred temperature overnight. A degree or two lower saves money and usually sleeps better. |
 | Day starts at | 07 | 00–12 | Hour the daytime temperature takes over. |
