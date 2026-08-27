@@ -59,9 +59,11 @@ valve_storage  # space_reasons: 5 fall-through steps relabelled scheduled
 valve_storage_low_target  # space_reasons: 7 fall-through steps relabelled scheduled
 valve_storage_small_tank  # space_reasons: 17 fall-through steps relabelled scheduled
 winter_two_zone_no_dhw  # space_reasons: 1 fall-through step relabelled scheduled
-valve_upper_direct_slab  # space_reasons[88]: the one fall-through step this
-# machine's solve of this sensitive fixture produces, relabelled scheduled.
-# Not re-recorded: golden.py reports the five sensitive fixtures as DIFF here.
+# Not re-recorded, unlike the twelve above: this is one of the five
+# machine-sensitive fixtures, and golden.py reports all five as DIFF on this
+# machine, so re-recording here would bake in a local optimum rather than a
+# behaviour change. The other four are byte-identical to origin/main here.
+valve_upper_direct_slab  # space_reasons[88]: its one fall-through step, relabelled scheduled
 coord_minimal  # data.battery: slab ceiling is now the settlement cap
 coord_dhw  # data.battery: slab ceiling is now the settlement cap
 coord_two_zone  # data.battery: slab ceiling is now the settlement cap
