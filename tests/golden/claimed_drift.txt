@@ -27,7 +27,8 @@
 # was never wrong. Without rule 2 the same thing happens whenever two
 # commits share a version.
 #
-# claims-for: 5.1.0
+# claims-for: 5.1.1
 #
-# v5.0.0 naming: entity display names and registry metadata only — no
-# planning behaviour changes, so every scenario is byte-identical to main.
+# v5.1.1 reload hotfix: scheduling only — the setup-time skip-solve flag,
+# the no-op reload guard and the GIL yields never run inside a normal
+# solve, so every scenario is byte-identical to main.

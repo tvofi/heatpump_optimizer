@@ -39,6 +39,7 @@ itself.
 from __future__ import annotations
 
 import logging
+import time as _time_mod
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any
@@ -152,7 +153,15 @@ def _multi_start_minimize(
     best = None
     best_score = np.inf
     last_error: Exception | None = None
-    for _, guess in scored[:_MULTI_START_SOLVES]:
+    for solve_index, (_, guess) in enumerate(scored[:_MULTI_START_SOLVES]):
+        if solve_index:
+            # Timing only, between consecutive starts: each L-BFGS-B run is
+            # Python-heavy and holds the GIL even from an executor thread,
+            # so on the weak hardware Home Assistant usually runs on a long
+            # solve starves the event loop and the whole instance reads as
+            # frozen. A short sleep releases the GIL so the loop keeps
+            # breathing. No effect on any numerical result.
+            _time_mod.sleep(0.002)
         try:
             res = minimize(
                 objective,
@@ -3705,6 +3714,12 @@ class HeatPumpOptimizer:
                     f"failed ({e})",
                     float(objective(guess, dhw_plan)),
                 )
+
+        # The seam between the DHW LP stage above and the gradient space
+        # stage below. Timing only: yield the GIL for a moment so the event
+        # loop schedules pending work before the heaviest part of the solve
+        # begins (see _multi_start_minimize). No effect on any result.
+        time.sleep(0.002)
 
         optimal_space, status, best_score = solve_space(optimal_dhw, None)
         optimal_space, optimal_dhw, status = self._co_optimize(

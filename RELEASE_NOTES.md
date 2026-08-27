@@ -1,5 +1,34 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v5.1.1
+
+### Hotfix: options saves no longer freeze Home Assistant
+
+Leaving the integration's options pages — even without changing anything —
+could make the whole Home Assistant instance unreachable for minutes. Every
+save triggered a full reload of the integration, and the reload would not
+finish until it had read every sensor, fetched prices and weather, and run a
+complete optimization from scratch. On modest hardware that adds up, and the
+heavy math starves everything else running in the instance while it does.
+
+Three changes, all in how the work is scheduled — no plan, price or comfort
+behaviour is different:
+
+- **A save that changes nothing no longer reloads anything.** The options
+  pages used to rewrite their settings on every visit, so backing out of an
+  untouched form counted as a change. The integration now compares the saved
+  configuration against the one it is already running with and only reloads
+  when something actually differs.
+- **A real reload comes back in seconds.** The previous plan is kept across
+  the reload and published immediately, so your entities never go blank and
+  nothing waits on price or weather services. The fresh optimization runs in
+  the background and replaces it within the next update cycle. On a genuinely
+  fresh start the integration comes up with live sensor readings first and
+  likewise solves in the background.
+- **Long optimizations yield to the rest of Home Assistant.** The solver now
+  pauses for a moment at its internal stage boundaries so the user interface
+  and other integrations keep responding on slower hardware while it works.
+
 ## v5.1.0
 
 ### Documentation you can actually read

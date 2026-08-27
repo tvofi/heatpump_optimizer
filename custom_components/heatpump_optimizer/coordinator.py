@@ -778,6 +778,17 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # be able to stack solves on top of each other.
         self._optimization_running: bool = False
 
+        # Set by ``async_setup_entry`` — and by nothing else — just before the
+        # first refresh: that refresh runs inside setup, where a full cold
+        # solve stalls the whole instance. Consumed on the next update cycle,
+        # so every subsequent refresh (and every direct test call) solves
+        # exactly as it always has.
+        self._skip_solve_once: bool = False
+        # The previous plan, handed over by ``async_unload_entry`` across an
+        # in-process reload so the flag-lightened first refresh can republish
+        # it instantly, without even a network fetch. Never persisted.
+        self._reload_handover: dict[str, Any] | None = None
+
     def _init_dhw_learning(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         """Hot water: usage profile, cooling rate and the legionella timer."""
         # DHW state
@@ -3338,6 +3349,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch data and run optimization."""
+        if self._skip_solve_once:
+            # Consume the flag FIRST: no exception below may leave it
+            # latched, or every later cycle would skip its solve too.
+            self._skip_solve_once = False
+            return await self._async_first_refresh_light()
         try:
             # Update current state from sensors
             await self._update_current_state()
@@ -3433,6 +3449,49 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
             return self._build_data_dict()
 
+        except Exception as err:
+            _LOGGER.error(
+                "Error updating Heat Pump Optimizer: %s", err, exc_info=True
+            )
+            raise UpdateFailed(f"Error updating data: {err}") from err
+
+    async def _async_first_refresh_light(self) -> dict[str, Any]:
+        """The setup-time refresh: publish something valid without solving.
+
+        Runs at most once per setup, when ``async_setup_entry`` set
+        ``_skip_solve_once``. Two cases:
+
+        * After an in-process reload the unload handler passed the previous
+          plan through ``_reload_handover``; it is returned as-is, with no
+          fetches at all — an options save must not wait on Tibber. The
+          background refresh scheduled at the end of setup replaces it with
+          a freshly solved plan within the first cycle.
+        * On a genuinely fresh start there is nothing to hand over, so the
+          cheap reads run — live sensor state, prices, weather — and the
+          payload is built without a plan. Only the solve and its dependents
+          (actuation, accuracy pairing, drift heartbeat) are skipped: none
+          of them makes sense before a plan exists.
+        """
+        handover = self._reload_handover
+        self._reload_handover = None
+        if handover is not None:
+            _LOGGER.debug(
+                "First refresh republishes the pre-reload plan; the real "
+                "solve follows in the background"
+            )
+            return handover
+
+        try:
+            await self._update_current_state()
+            await self._fetch_tibber_prices()
+            await self._fetch_weather_forecast()
+            await self._fetch_solar_forecast()
+            await self._async_learn_price_shape()
+            _LOGGER.debug(
+                "First refresh completed without a solve; the real solve "
+                "follows in the background"
+            )
+            return self._build_data_dict()
         except Exception as err:
             _LOGGER.error(
                 "Error updating Heat Pump Optimizer: %s", err, exc_info=True
