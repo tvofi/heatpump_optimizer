@@ -198,6 +198,10 @@ const STRINGS = {
     "setup.done_editing": "Done editing",
     "setup.edit_layout": "Edit layout",
     "setup.save_layout": "Save layout",
+    "setup.undo_layout": "Undo",
+    "setup.undo_layout_aria":
+      "Undo the changes and go back to the layout in use, staying in the " +
+      "editor",
     "setup.verdict_match": "Matches {label}.",
     "setup.verdict_req": "{label} — {requirement}.",
     "setup.verdict_not_modelled":
@@ -517,6 +521,10 @@ const STRINGS = {
     "setup.done_editing": "Klar med redigeringen",
     "setup.edit_layout": "Redigera layout",
     "setup.save_layout": "Spara layout",
+    "setup.undo_layout": "Ångra",
+    "setup.undo_layout_aria":
+      "Ångra ändringarna och återgå till den layout som används, utan att " +
+      "lämna redigeringsläget",
     "setup.verdict_match": "Motsvarar {label}.",
     "setup.verdict_req": "{label} — {requirement}.",
     "setup.verdict_not_modelled":
@@ -2483,6 +2491,24 @@ class HeatpumpOptimizerCard extends HTMLElement {
     return !!(ed && ed.active && ed.match && ed.dirty);
   }
 
+  /** True when there is something to take back: a change made since the
+   * editor opened. An untouched drawing already IS the layout in use, so
+   * Undo would do nothing and must not pretend otherwise. */
+  _layoutUndoable() {
+    const ed = this._layoutEdit;
+    return !!(ed && ed.active && ed.dirty && ed.baseline);
+  }
+
+  /** A position map copied down to its coordinate pairs. */
+  _copyPositions(positions) {
+    const out = {};
+    for (const key of Object.keys(positions || {})) {
+      const at = positions[key];
+      out[key] = Array.isArray(at) ? at.slice() : at;
+    }
+    return out;
+  }
+
   /** The editor's own controls: the toggle, Save, and the verdict line.
    *
    * Offered only when the coordinator publishes a catalog. Without one there
@@ -2514,6 +2540,16 @@ class HeatpumpOptimizerCard extends HTMLElement {
             ? `<button type="button" class="layout-save"${
                 this._layoutSaveable() ? "" : ` disabled="disabled"`
               }>${esc(L("setup.save_layout"))}</button>`
+            : ""
+        }
+        ${
+          active
+            ? `<button type="button" class="layout-undo"${
+                this._layoutUndoable() ? "" : ` disabled="disabled"`
+              } title="${esc(L("setup.undo_layout_aria"))}"
+              aria-label="${esc(L("setup.undo_layout_aria"))}">${
+                esc(L("setup.undo_layout"))
+              }</button>`
             : ""
         }
         ${
@@ -2939,6 +2975,15 @@ class HeatpumpOptimizerCard extends HTMLElement {
         return this._saveLayout();
       });
     }
+    const undo = root.querySelector(".layout-undo");
+    if (undo) {
+      // A plain <button>, so the browser already turns Enter and Space into
+      // this same click; nothing keyboard-specific is needed here.
+      undo.addEventListener("click", (ev) => {
+        stop(ev);
+        this._undoLayout();
+      });
+    }
     const canvas = root.querySelector(".setup-canvas");
     if (!canvas) return;
     canvas.addEventListener("pointerdown", this._onLayoutDown);
@@ -2960,13 +3005,29 @@ class HeatpumpOptimizerCard extends HTMLElement {
         topo.positions && typeof topo.positions === "object"
           ? topo.positions
           : {};
-      this._layoutEdit = {
-        active: true,
+      // One reading of the published layout, copied out twice: the working
+      // set the user draws on, and the baseline Undo goes back to. Both are
+      // deep copies down to the individual edge and position pairs, so no
+      // edit can reach through a shared array into the other copy.
+      const snapshot = () => ({
         edges: (Array.isArray(topo.edges) ? topo.edges : []).map((e) => [
           e[0],
           e[1],
         ]),
-        positions: { ...positions },
+        positions: this._copyPositions(positions),
+      });
+      const working = snapshot();
+      this._layoutEdit = {
+        active: true,
+        edges: working.edges,
+        positions: working.positions,
+        // The layout Undo restores: the one in force when the editor opened,
+        // taken now rather than re-read from `setup_topology` at undo time.
+        // The integration republishes the topology on its own schedule, so a
+        // late read could hand back a different layout than the one the user
+        // started from -- and "back to where I was" is the whole promise of
+        // the button. A snapshot cannot be swapped underneath them.
+        baseline: snapshot(),
         drag: null,
         match: null,
         invalid: [],
@@ -3102,6 +3163,8 @@ class HeatpumpOptimizerCard extends HTMLElement {
     }
     const save = root.querySelector(".layout-save");
     if (save) save.disabled = !this._layoutSaveable();
+    const undo = root.querySelector(".layout-undo");
+    if (undo) undo.disabled = !this._layoutUndoable();
   }
 
   /** Pointer client coordinates as viewBox units on the setup diagram. */
@@ -3245,6 +3308,38 @@ class HeatpumpOptimizerCard extends HTMLElement {
     ed.edges = ed.edges.filter((e) => `${e[0]}>${e[1]}` !== name);
     if (ed.edges.length !== before) ed.dirty = true;
     this._layoutEvaluate();
+    this._refreshLayout();
+  }
+
+  /** Take the drawing back to the layout the editor opened on.
+   *
+   * The way out of a half-finished rearrangement that is not worth saving.
+   * Cancel already discards, but it also closes the editor, so starting
+   * over meant reopening it; this restores the same starting point and
+   * leaves the user where they are, still editing.
+   *
+   * Restoring is a revert to the baseline, not a step backwards through a
+   * history: what was asked for is the layout in force, and one button that
+   * always lands there is worth more here than a stack that has to be
+   * unwound to reach it.
+   */
+  _undoLayout() {
+    const ed = this._layoutEdit;
+    if (!this._layoutUndoable()) return;
+    // Copied out of the baseline rather than handed over: a later drag
+    // writes into these, and the baseline has to survive to serve a second
+    // Undo.
+    ed.edges = ed.baseline.edges.map((e) => [e[0], e[1]]);
+    ed.positions = this._copyPositions(ed.baseline.positions);
+    // A gesture still in flight belongs to the drawing that just went away:
+    // its pointerup would land an edge nobody asked for, or drop a box at a
+    // position the restore had already taken back.
+    ed.drag = null;
+    ed.suppressClick = false;
+    ed.dirty = false;
+    this._layoutEvaluate();
+    // The in-place redraw, not `_render`: a full rebuild would replace the
+    // bar and take the focus off the Undo button the keyboard just pressed.
     this._refreshLayout();
   }
 
