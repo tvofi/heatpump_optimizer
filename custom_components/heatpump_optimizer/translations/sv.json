@@ -28,7 +28,7 @@
           "heat_pump_switch_entity": "Valfritt. En strömbrytare som används för att stänga av värmepumpen under dyra timmar.",
           "solar_radiation_entity": "Valfritt. Solinstrålning i W/m2. Gör att optimeringen kan avstå från att värma före en solig eftermiddag som värmer huset gratis.",
           "floor_return_temp_entity": "Valfritt. Vattentemperaturen tillbaka från golvslingorna, används för att bedöma hur mycket värme plattan lagrar.",
-          "lower_floor_temp_entity": "Valfritt, endast tvåzonsläge. En riktig givare på nedre plan. Utan en sådan härleds nedre plan från golvvärmens returvatten, som är flera grader varmare än rummet och får zonen att verka varmare än den är.",
+          "lower_floor_temp_entity": "Valfritt, endast tvåzonsläge. En riktig givare på nedre plan. Utan en sådan planeras och ritas nedre plan efter vad rumsgivaren visar, så ett nedre plan som är varmare eller kallare än övre plan syns inte.",
           "dhw_temp_entity": "Valfritt men rekommenderas. Beredarens verkliga temperatur. Gör också att en manuell varmvattenkörning nollställer legionellatimern.",
           "buffer_tank_temp_entity": "Valfritt. När den anges lär sig integrationen hur snabbt buffertanken svalnar i stället för att förlita sig på det konfigurerade värdet.",
           "solar_forecast_source": "Var solinstrålningen ska hämtas ifrån. \"Väderentitet\" använder din väderintegration, som ofta inte publicerar solinstrålning alls. \"Open-Meteo\" hämtar en kostnadsfri prognos för platsen nedan; inget konto behövs.",
@@ -280,7 +280,7 @@
           "dhw_temp_entity": "Valfritt men rekommenderas. Beredarens verkliga temperatur. Gör också att en manuell varmvattenkörning nollställer legionellatimern.",
           "buffer_tank_temp_entity": "Valfritt. När den anges lär sig integrationen hur snabbt buffertanken svalnar i stället för att förlita sig på det konfigurerade värdet.",
           "floor_return_temp_entity": "Valfritt. Vattentemperaturen tillbaka från golvslingorna, används för att bedöma hur mycket värme plattan lagrar.",
-          "lower_floor_temp_entity": "Valfritt, endast tvåzonsläge. En riktig givare på nedre plan. Utan en sådan härleds nedre plan från golvvärmens returvatten, som är flera grader varmare än rummet och får zonen att verka varmare än den är.",
+          "lower_floor_temp_entity": "Valfritt, endast tvåzonsläge. En riktig givare på nedre plan. Utan en sådan planeras och ritas nedre plan efter vad rumsgivaren visar, så ett nedre plan som är varmare eller kallare än övre plan syns inte.",
           "heat_pump_switch_entity": "Valfritt. En strömbrytare som används för att stänga av värmepumpen under dyra timmar.",
           "solar_forecast_source": "Var solinstrålningen ska hämtas ifrån. \"Väderentitet\" använder din väderintegration, som ofta inte publicerar solinstrålning alls. \"Open-Meteo\" hämtar en kostnadsfri prognos för platsen nedan; inget konto behövs.",
           "solar_location": "Koordinat som används för Open-Meteos solinstrålningsprognos. Utgår från Home Assistants hemposition. Används bara när källan är Open-Meteo.",
@@ -766,6 +766,10 @@
     "grid_fee_magnitude": {
       "title": "En konfigurerad nätavgift ser 100× för stor ut",
       "description": "Nätavgiftslagret innehåller en avgift på {rate} SEK/kWh (från källan {source}). Svenska nätbolags överföringsavgifter ligger på några tiondels kronor per kWh, så ett så stort värde är nästan alltid öre inskrivet där SEK avsågs — 25 i stället för 0,25. Ingenting ändras eller begränsas: planen fortsätter att prissätta med exakt det värde som konfigurerats. Rätta värdet under alternativen för nätavgifter (eller åtgärda avgiftssensorn) så försvinner meddelandet vid nästa planeringscykel."
+    },
+    "lower_floor_modelled": {
+      "title": "Temperaturen på nedre plan är modellerad, inte uppmätt",
+      "description": "Tvåzonsplanering är på och ingen givare för nedre plan är konfigurerad, så nedre zonen utgår från rumsgivaren och räknas därefter fram av den termiska modellen — kurvan “Nedre plan (modellerad)” i plandiagrammet. Så måste zonen planeras utan givare, och det är inget returgivaren kan bidra med: returvattnet ligger 3–9 K över rummet det värmer, så det används till uppskattningen av plattan, vilket är det som det verkligen är ett mått på. Det en modellerad zon inte kan göra är att korrigera sig själv, så under en lång köldperiod kan den glida ifrån det verkliga nedre planet. Ange “Givare för temperaturen på nedre plan” under zonalternativen så sluts den kretsen; då försvinner meddelandet."
     }
   },
   "entity": {

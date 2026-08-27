@@ -341,10 +341,21 @@ could not see. Worse, the slab was derived from the *same* sensor as
 `T_return + 1 °C`, so slab-minus-room was always exactly 0.5 K whatever the
 sensor read — pinning the main heat path into the lower zone at a constant.
 
-Configuring a **Lower floor temperature sensor** fixes both: the zone is
+That estimate is gone (v5.1.6). It was also what the plan chart drew as the
+house temperature: a 27.5 °C floor return put a "house" trace at 28.0 °C on the
+chart while the measured zone sat at 22.1, which reads as the optimizer cooking
+the house to a temperature no plan ever chose. The floor return keeps the job it
+is genuinely a proxy for — the slab estimate above — and the lower zone now
+starts from the room sensor and is carried forward by the model's own dynamics.
+That is open-loop: nothing corrects it, so it can drift from the real downstairs
+over a long cold spell, and a repair notice says so rather than letting a
+modelled number pass for a measured one. The chart labels the trace
+"Lower floor (modelled)" until a thermometer is assigned.
+
+Configuring a **Lower floor temperature sensor** closes the loop: the zone is
 measured, and slab-to-room becomes a real difference again. It is optional and
-two-zone only. The order of preference is a real sensor, then the floor return
-estimate, then the upper floor's temperature.
+two-zone only. The order of preference is a real sensor, then the room
+temperature.
 
 ### Learning how the loss splits between the floors
 

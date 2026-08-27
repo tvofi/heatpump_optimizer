@@ -920,6 +920,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # refresh the issue's timestamp and bury when the bad value first
         # appeared — the same reason solve_failures raises exactly-at.
         self._grid_fee_issue_value: float | None = None
+        # Whether the standing "lower_floor_modelled" repair issue is up.
+        # Raised once, not per cycle, for the same reason the fee issue is:
+        # re-raising refreshes the timestamp and buries when it started.
+        self._lower_floor_issue_raised = False
         self._ledger = MonthlyLedger()
         self._ledger_store: Store = Store(
             hass,
@@ -4007,21 +4011,34 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
         # The lower zone's room temperature, best source first.
         #
-        # A real thermometer beats both estimates and is the only one that
-        # carries information. The return-temp estimate below is a *water*
-        # temperature standing in for an air temperature -- typically 3-9 K too
-        # warm -- and because the slab is derived from the same sensor as
-        # `return + 1.0`, the slab-to-room difference it produces is pinned at a
-        # constant 0.5 K whatever the sensor reads. So the main heat path into
-        # the lower zone is both wrong and unresponsive, and the error is judged
-        # against the same comfort bounds as the upper floor.
+        # A real thermometer beats every estimate and is the only source that
+        # carries information about the lower zone at all. There used to be a
+        # second-best branch here: the floor-return reading plus 0.5 K. That was
+        # a *water* temperature standing in for an air temperature -- typically
+        # 3-9 K too warm -- and because the slab is derived from the same sensor
+        # as `return + 1.0`, the slab-to-room difference it produced was pinned
+        # at a constant 0.5 K whatever the sensor read. So the main heat path
+        # into the lower zone was both wrong and unresponsive, the error was
+        # judged against the same comfort bounds as the upper floor, and the
+        # number was published and plotted as a house temperature: an underfloor
+        # return of 27.5 C in a cold snap drew a "house" trace at 28.0 C while
+        # the upper zone sat at 22.1 C, which reads as the optimizer cooking the
+        # house to a temperature nothing ever planned.
+        #
+        # The floor return keeps the job it is a genuine proxy for -- driving
+        # the slab estimate through `update_slab_from_return_temp` above. With
+        # no lower-floor thermometer the honest stand-in is the room
+        # temperature, which is what the last-resort seed further down has
+        # always used; a repair issue says so rather than letting a wrong
+        # number pass for a measurement.
         lower_floor = reader.read(CONF_LOWER_FLOOR_TEMP_ENTITY)
         if lower_floor.ok:
             self._current_state.lower_floor_temperature = lower_floor.value
         elif floor_return.ok:
             self._current_state.lower_floor_temperature = (
-                self._floor_return_temp + 0.5
+                self._current_state.room_temperature
             )
+        self._audit_lower_floor_sensor()
 
         # A smart valve's target, when the integration can see it. Knowing
         # where the valve regulates to is what tells the model whether it is
@@ -5011,6 +5028,41 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         elif self._grid_fee_issue_value is not None:
             ir.async_delete_issue(self.hass, DOMAIN, "grid_fee_magnitude")
             self._grid_fee_issue_value = None
+
+    def _audit_lower_floor_sensor(self) -> None:
+        """Tell the user when the lower zone's temperature is not measured.
+
+        Two-zone planning judges the lower zone against the same comfort
+        bounds as the upper one, so its temperature is an input the plan acts
+        on. Without ``lower_floor_temp_entity`` there is nothing to read and
+        the room sensor stands in for the whole downstairs — good enough to
+        plan from, but not a measurement, and the published trace says
+        "lower floor" either way. Say so once, rather than letting an
+        estimate pass for a reading.
+
+        Silent unless two-zone is actually running: a single-zone house has no
+        lower zone to measure, and the field is not even shown to it.
+        """
+        wanted = bool(
+            self._thermal_params.two_zone_enabled
+            and not self._config.get(CONF_LOWER_FLOOR_TEMP_ENTITY)
+        )
+        if wanted and not self._lower_floor_issue_raised:
+            ir.async_create_issue(
+                self.hass,
+                DOMAIN,
+                "lower_floor_modelled",
+                is_fixable=False,
+                # Persistent: the missing sensor survives a restart, so the
+                # notice must too.
+                is_persistent=True,
+                severity=ir.IssueSeverity.WARNING,
+                translation_key="lower_floor_modelled",
+            )
+            self._lower_floor_issue_raised = True
+        elif not wanted and self._lower_floor_issue_raised:
+            ir.async_delete_issue(self.hass, DOMAIN, "lower_floor_modelled")
+            self._lower_floor_issue_raised = False
 
     def _current_grid_fee(self, when: datetime) -> float:
         return self._grid_fee_schedule().current_fee(

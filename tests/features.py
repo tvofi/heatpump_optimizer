@@ -2322,14 +2322,26 @@ _BASE = {
 
 # 1. The bug this item exists to fix. A floor return of 28 °C means a *water*
 #    temperature, and the room it serves is nowhere near that warm.
+#
+#    v5.1.6: the `return + 0.5` stand-in is gone. It was the number the card
+#    plotted as the house temperature — a floor return of 27.5 °C drew a
+#    "house" trace at 28.0 while the upper zone sat at 22.1 — and it was
+#    judged against the same comfort band as the measured zone. Without a
+#    thermometer the honest stand-in is the room temperature, which is what
+#    the no-floor-return branch has always used.
 st = _lower_after_update(
     {**_BASE, "sensor.ret": FakeState("28.0", unit="°C")},
     floor_return_temp_entity="sensor.ret",
 )
 R.check(
-    "without a lower-floor sensor the zone is still inferred from return water",
-    abs(st.lower_floor_temperature - 28.5) < 1e-6,
+    "a floor return sensor never stands in for the lower zone's air temperature",
+    abs(st.lower_floor_temperature - 21.0) < 1e-6,
     f"got {st.lower_floor_temperature}",
+)
+R.check(
+    "and the floor return still does its real job: the slab estimate",
+    abs(st.slab_temperature - (0.7 * 29.0 + 0.3 * 22.0)) < 1e-6,
+    f"got {st.slab_temperature}",
 )
 
 # 2. A real sensor must win. This is the whole feature.
@@ -2425,8 +2437,8 @@ st = _lower_after_update(
     lower_floor_temp_entity="sensor.lower",
 )
 R.check(
-    "an unavailable lower-floor sensor falls back to the return-temp estimate",
-    abs(st.lower_floor_temperature - 28.5) < 1e-6,
+    "an unavailable lower-floor sensor falls back to the room temperature",
+    abs(st.lower_floor_temperature - 21.0) < 1e-6,
     f"got {st.lower_floor_temperature}",
 )
 
@@ -2436,6 +2448,90 @@ R.check(
     "the new sensor has a staleness limit like the other room sensors",
     hp_const.INPUT_MAX_AGE_MINUTES.get("lower_floor_temp_entity")
     == hp_const.INPUT_MAX_AGE_MINUTES.get("indoor_temp_entity"),
+)
+
+# 8. The owner's report, reproduced end to end (v5.1.6). Two-zone, a floor
+#    return sensor, no lower-floor thermometer -- exactly his configuration.
+#    The published lower zone used to read the return water; the card plotted
+#    that as a house temperature, and 28 °C on the chart is what "the optimizer
+#    is taking the house to 28 degrees" was.
+_owner_states = {
+    "sensor.indoor": FakeState("22.07", unit="°C"),
+    "sensor.outdoor": FakeState("-8.0", unit="°C"),
+    "sensor.ret": FakeState("27.5", unit="°C"),
+}
+_owner = _zone_coord(_owner_states, floor_return_temp_entity="sensor.ret")
+_asyncio.run(_owner._update_current_state())
+_owner_state = _owner._current_state
+R.check(
+    "the reported zone temperatures no longer differ by six degrees",
+    abs(_owner_state.lower_floor_temperature - 22.07) < 1e-6
+    and abs(_owner_state.upper_floor_temperature - 22.07) < 1e-6,
+    f"upper {_owner_state.upper_floor_temperature} "
+    f"lower {_owner_state.lower_floor_temperature}",
+)
+
+# 9. And the user is told the zone is modelled rather than measured, because a
+#    plausible number with nothing behind it is what made this hard to see.
+_owner_issues = [
+    i for i in getattr(_owner.hass, "issues", [])
+    if i[1] == "lower_floor_modelled"
+]
+R.check(
+    "an unmeasured lower zone raises the repair issue",
+    len(_owner_issues) == 1
+    and _owner_issues[0][2].get("translation_key") == "lower_floor_modelled",
+    f"{_owner_issues}",
+)
+_asyncio.run(_owner._update_current_state())
+R.check(
+    "raised once, not once per cycle",
+    len([
+        i for i in getattr(_owner.hass, "issues", [])
+        if i[1] == "lower_floor_modelled"
+    ]) == 1,
+)
+_measured_coord = _zone_coord(
+    {**_owner_states, "sensor.lower": FakeState("20.4", unit="°C")},
+    floor_return_temp_entity="sensor.ret",
+    lower_floor_temp_entity="sensor.lower",
+)
+_asyncio.run(_measured_coord._update_current_state())
+R.check(
+    "a configured thermometer raises nothing",
+    not [
+        i for i in getattr(_measured_coord.hass, "issues", [])
+        if i[1] == "lower_floor_modelled"
+    ],
+)
+_single = _Coord(
+    _FakeHass(dict(_BASE)),
+    _FakeEntry(data={
+        "tibber_token": "x",
+        "weather_entity": "weather.home",
+        "indoor_temp_entity": "sensor.indoor",
+        "outdoor_temp_entity": "sensor.outdoor",
+    }),
+)
+_asyncio.run(_single._update_current_state())
+R.check(
+    "a single-zone house is never told about a zone it does not have",
+    not [
+        i for i in getattr(_single.hass, "issues", [])
+        if i[1] == "lower_floor_modelled"
+    ],
+)
+_cleared = _zone_coord(_owner_states, floor_return_temp_entity="sensor.ret")
+_asyncio.run(_cleared._update_current_state())
+_cleared._config["lower_floor_temp_entity"] = "sensor.lower"
+_cleared.hass.states.set("sensor.lower", FakeState("20.4", unit="°C"))
+_asyncio.run(_cleared._update_current_state())
+R.check(
+    "and assigning one clears the notice on the next cycle",
+    not [
+        i for i in getattr(_cleared.hass, "issues", [])
+        if i[1] == "lower_floor_modelled"
+    ],
 )
 
 
