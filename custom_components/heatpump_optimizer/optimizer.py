@@ -781,6 +781,41 @@ class _Horizon:
         }
 
 
+def slab_settlement_cap(params, target: float, out_mean: float) -> float:
+    """The slab temperature above which stored heat is worth nothing.
+
+    The slab has to run above the room to push heat into it, so its useful
+    ceiling is the temperature that *sustains* the target at the weather in
+    front of it, not the target itself. Above that the extra degrees buy
+    nothing the plan can spend, so settling them up would credit a plan for
+    being pointlessly hot.
+
+    Module level, and public, because the settlement is no longer its only
+    reader: the virtual battery view reports the slab's usable capacity and
+    state of charge, and used a `comfort_max + 6` magic offset to do it —
+    a fixed 29.0 °C against this function's weather-dependent 24.5-28.5,
+    overstating usable capacity by around a quarter and understating the
+    charge in it by the same. One formula, both readers.
+    """
+    if params.two_zone_enabled:
+        # The slab feeds ONLY the lower zone (`q_slab_to_lower` in the
+        # dynamics; the upper zone is radiator-fed), so its ceiling is
+        # sized from the lower zone's demand alone — the learned loss,
+        # because every consumer of the dynamics goes through it — and
+        # the lower zone's share of the internal gains. Sizing it from
+        # the whole house inflated the cap by the upper zone's demand
+        # and over-valued hot-slab end states by exactly that much.
+        q_demand = max(
+            0.0,
+            params.lower_floor_heat_loss_learned * (target - out_mean)
+            - params.internal_gains * (1.0 - params.upper_floor_area_ratio),
+        )
+    else:
+        u_eff = params.heat_loss_coefficient
+        q_demand = max(0.0, u_eff * (target - out_mean) - params.internal_gains)
+    return target + q_demand / max(params.slab_heat_transfer, 1e-6)
+
+
 class HeatPumpOptimizer:
     """MPC-based heat pump cost optimizer with predictive weather anticipation and DHW."""
 
@@ -3936,25 +3971,7 @@ class HeatPumpOptimizer:
         p = self.model.params
         target = self.config.target_temp
         out_mean = float(np.mean(outdoor_temps))
-        # Slab has to run above the room to push heat into it, so its useful
-        # ceiling is the temperature that sustains the target, not the target.
-        if p.two_zone_enabled:
-            # The slab feeds ONLY the lower zone (`q_slab_to_lower` in the
-            # dynamics; the upper zone is radiator-fed), so its ceiling is
-            # sized from the lower zone's demand alone — the learned loss,
-            # because every consumer of the dynamics goes through it — and
-            # the lower zone's share of the internal gains. Sizing it from
-            # the whole house inflated the cap by the upper zone's demand
-            # and over-valued hot-slab end states by exactly that much.
-            q_demand = max(
-                0.0,
-                p.lower_floor_heat_loss_learned * (target - out_mean)
-                - p.internal_gains * (1.0 - p.upper_floor_area_ratio),
-            )
-        else:
-            u_eff = p.heat_loss_coefficient
-            q_demand = max(0.0, u_eff * (target - out_mean) - p.internal_gains)
-        slab_cap = target + q_demand / max(p.slab_heat_transfer, 1e-6)
+        slab_cap = slab_settlement_cap(p, target, out_mean)
         caps = {"room": target, "slab": slab_cap}
         # The buffer tank needs its own ceiling, and it is much higher than the
         # slab's.

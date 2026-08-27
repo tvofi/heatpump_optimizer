@@ -11188,6 +11188,65 @@ R.check(
 
 
 # ===========================================================================
+# v5.1.6 — the slab's battery ceiling is the settlement cap
+# ===========================================================================
+R.section("Virtual battery: the slab reports against the optimizer's cap")
+
+# `comfort_max + 6.0` was the last magic offset from the v4.0.6 sweep. It is a
+# fixed 29.0 at the default ceiling, while the optimizer's own settlement cap
+# is weather-dependent -- so the view claimed capacity the plan can never use
+# and reported a lower state of charge than the slab actually holds.
+_bat_params = ThermalParameters.from_config(
+    {"tibber_token": "x", "weather_entity": "weather.home"}
+)
+_bat_state = ThermalState(
+    room_temperature=21.0,
+    slab_temperature=24.0,
+    outdoor_temperature=-10.0,
+    buffer_tank_temperature=None,
+)
+_bat_cap = _slab_cap(_bat_params, 21.0, -10.0)
+_bat_new = battery_view.build(
+    _bat_params, _bat_state,
+    comfort_min=19.0, comfort_max=23.0,
+    dhw_min=45.0, dhw_max=60.0, cop=3.0,
+    slab_max=_bat_cap,
+)
+_bat_old = battery_view.build(
+    _bat_params, _bat_state,
+    comfort_min=19.0, comfort_max=23.0,
+    dhw_min=45.0, dhw_max=60.0, cop=3.0,
+)
+_slab_new = next(c for c in _bat_new.components if c.name == "slab")
+_slab_old = next(c for c in _bat_old.components if c.name == "slab")
+R.check(
+    "the slab's ceiling is the settlement cap, not comfort + 6",
+    abs(_slab_new.max_temperature - _bat_cap) < 1e-9
+    and abs(_slab_old.max_temperature - 29.0) < 1e-9,
+    f"cap {_bat_cap:.2f} vs old {_slab_old.max_temperature:.2f}",
+)
+R.check(
+    "which is below the old offset in cold weather, so capacity shrinks",
+    _slab_new.usable_capacity_kwh < _slab_old.usable_capacity_kwh
+    and _slab_new.soc > _slab_old.soc,
+    f"usable {_slab_new.usable_capacity_kwh:.2f} vs "
+    f"{_slab_old.usable_capacity_kwh:.2f} kWh, soc "
+    f"{_slab_new.soc:.3f} vs {_slab_old.soc:.3f}",
+)
+R.check(
+    "the cap the view reads is the one the optimizer settles against",
+    abs(
+        _Opt(
+            ThermalModel(_bat_params),
+            _OptCfg(target_temp=21.0),
+        )._settlement_caps(np.full(8, -10.0))["slab"]
+        - _bat_cap
+    )
+    < 1e-9,
+)
+
+
+# ===========================================================================
 # v5.1.6 — the comfort band's rules, on every path that writes it
 # ===========================================================================
 R.section("Comfort band validation is shared, not per-form")

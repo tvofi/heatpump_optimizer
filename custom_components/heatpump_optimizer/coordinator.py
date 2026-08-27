@@ -378,7 +378,12 @@ from .dhw_schedule import (
     overlap_fraction,
     parse_windows,
 )
-from .optimizer import HeatPumpOptimizer, OptimizationConfig, OptimizationResult
+from .optimizer import (
+    HeatPumpOptimizer,
+    OptimizationConfig,
+    OptimizationResult,
+    slab_settlement_cap,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -8956,6 +8961,17 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             dhw_min=params.dhw_min_temp,
             dhw_max=params.dhw_max_temp,
             cop=cop,
+            # The slab's ceiling is the optimizer's settlement cap, not a
+            # comfort offset: heat above the temperature that sustains the
+            # target is heat the plan can never spend, so counting it as
+            # capacity overstates the store. Read at the outdoor temperature
+            # in force now — the view is a snapshot of the house as it stands,
+            # like every other figure in it.
+            slab_max=slab_settlement_cap(
+                params,
+                self._opt_config.target_temp,
+                self._current_state.outdoor_temperature,
+            ),
         )
         return view.as_dict()
 

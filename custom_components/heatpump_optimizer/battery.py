@@ -176,8 +176,15 @@ def build(
     dhw_min: float,
     dhw_max: float,
     cop: float,
+    slab_max: float | None = None,
 ) -> VirtualBattery:
-    """Assemble the battery view from the thermal model's parameters and state."""
+    """Assemble the battery view from the thermal model's parameters and state.
+
+    ``slab_max`` is the slab's useful ceiling — the optimizer's own settlement
+    cap. Optional so the view still assembles without one, in which case it
+    falls back to the comfort ceiling; every caller in the integration passes
+    it.
+    """
     components: list[StorageComponent] = []
 
     # The view reports the same house the dynamics simulate, so every loss
@@ -231,7 +238,19 @@ def build(
             temperature=state.slab_temperature,
             # The slab is only useful down to the room temperature it feeds.
             min_temperature=comfort_min,
-            max_temperature=comfort_max + 6.0,
+            # The optimizer's own settlement cap: the slab temperature above
+            # which stored heat is worth nothing, sized from the demand the
+            # weather in front of the house actually creates. This was
+            # `comfort_max + 6.0` — the last magic offset left over from the
+            # v4.0.6 sweep that took `comfort + 20` off the buffer tank. At the
+            # default ceiling that fixed 29.0 °C disagreed with a settlement cap
+            # ranging 24.5-28.5, overstating the slab's usable capacity by
+            # around 28 % and understating its state of charge by the same. The
+            # view is report-only, so nothing the optimizer does changes; what
+            # changes is that the two numbers now come from one formula.
+            max_temperature=(
+                comfort_max + 6.0 if slab_max is None else float(slab_max)
+            ),
             loss_kw_per_c=0.0,
             ambient_temperature=state.room_temperature,
         )
