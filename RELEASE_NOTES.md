@@ -1,5 +1,40 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v4.3.0
+
+### The setup page looks like your heating system now
+
+The Setup tab's identical rounded squares are gone. Each component is drawn
+as a thin line-art contour of the thing it represents: the house has a
+gable roof and a chimney, tanks are domed cylinders, the heat pump is a
+cabinet with its fan and louvres, the mixing valve is a chamfered block
+with a proper valve symbol sitting on its own pipe, the floor slab stands
+on hatched ground, and outside air is an open composition under a cloud —
+unbounded, because it is.
+
+**The DHW pre-heating coil is finally visible.** When the wood tank
+pre-heats hot water through an immersed coil, the coil is drawn as a
+spring on the tank's upper-right wall with its own connector stubs, and
+the hot-water pipe departs from the coil instead of the tank's edge. Draw
+or remove the wood-to-hot-water connection in the layout editor and the
+coil appears and disappears live.
+
+**Pipes read like plumbing.** Endpoints carry small connection dots
+welded to the component walls, each pipe shows a chevron for flow
+direction, and the routing sweeps a little rounder. Decorations get out
+of the way while the layout editor is open.
+
+Everything underneath is untouched: the same assignment rows live inside
+the new contours, clicking or keyboard-navigating them works as before,
+the drag-and-connect layout editor is unchanged, and all colors follow
+your Home Assistant theme in light and dark mode. Shapes stretch with
+their sensor rows, and the whole page was geometry-checked shape by shape
+(arcs meet their walls, ink stays clear of text) rather than eyeballed.
+
+Card-only release: no integration behavior, entities, or plans change.
+Bump the card resource query string (`?v=4.3.0`) or clear the browser
+cache to pick up the new card.
+
 ## v4.2.0
 
 ### The card grows up: editor, headline, your language, your currency
