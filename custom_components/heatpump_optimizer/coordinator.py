@@ -121,6 +121,7 @@ from .const import (
     CONF_COP_SCALE,
     COP_SCALE_MAX,
     COP_SCALE_MIN,
+    COP_TRACKING_ERROR_GATE,
     DEFAULT_COP_SCALE,
     CONF_STALENESS_ENABLED,
     CONF_STALENESS_SCALE,
@@ -873,6 +874,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._config.get(CONF_COP_SCALE, DEFAULT_COP_SCALE)
         )
         self._cop_samples: int = 0
+        #: Walking measured/commanded ratio; the COP fold judges outliers
+        #: against it so a persistent efficiency shift can still teach.
+        self._cop_ratio_ewma: float | None = None
         self._last_measured_cop: float | None = None
         self._apply_cop_scale(self._cop_scale)
 
@@ -1022,7 +1026,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             SysIdConfig(
                 enabled=bool(
                     self._config.get(CONF_SYSID_ENABLED, DEFAULT_SYSID_ENABLED)
-                )
+                ),
+                # The fit's intercept ridge pulls toward the CONFIGURED
+                # gains and mass — the only priors the experiment may use
+                # without assuming the answer it is trying to measure.
+                gains_prior_kw=float(self._thermal_params.internal_gains),
+                thermal_mass_prior=float(
+                    self._thermal_params.room_thermal_mass
+                ),
             )
         )
 
@@ -1469,7 +1480,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if not params.dhw_enabled or not self._prices:
             return {}
         c_dhw = max(params.dhw_tank_thermal_mass, 0.05)
-        inlet = params.dhw_inlet_reference
         outdoor = float(self._current_state.outdoor_temperature)
         mean_price = float(
             np.mean([p.get("total", 0.0) for p in self._prices])
@@ -1500,11 +1510,16 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     for hour in range(24)
                 )
             heaviest = max(heaviest, p90)
-        draw_day_kwh = (
-            params.dhw_daily_consumption
-            * WATER_SPECIFIC_HEAT
-            * max(params.dhw_setpoint - inlet, 0.0)
-        )
+        # The model's own daily draw, not a re-derivation: the inline
+        # `volume · cp · ΔT` this replaces omitted the greywater-recovery
+        # factor the simulation applies, so the advisor priced a heavier
+        # draw than the model ever runs and every candidate's absolute cost
+        # sat high. `dhw_draw_power` carries the recovery and the shared
+        # inlet reference. The draw is still referenced to the *configured*
+        # setpoint, deliberately: the tank delivers at the tap mix whatever
+        # the candidate stores at, so the term is candidate-independent and
+        # cannot disturb the ranking.
+        draw_day_kwh = params.dhw_draw_power * 24.0
         candidates = []
         best: dict[str, Any] | None = None
         for setpoint in range(48, 61, 2):
@@ -2116,6 +2131,43 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         action = self._current_action
         return float(action.get("power", 0.0)) + float(action.get("dhw_power", 0.0))
 
+    def _interval_space_power(self) -> float | None:
+        """Electrical power that actually heated the house last interval, kW.
+
+        The interval learners replay the elapsed period through the model, and
+        what the model needs is what the pump really drew — a delivery
+        shortfall replayed as if the commanded power had flowed gets blamed on
+        the heat loss coefficient (v4.0.5). With a power entity the measured
+        total wins, minus the plan's hot-water allocation, because the meter
+        sees one sum; while the immersion element is latched the reading is a
+        different appliance's and the interval carries no usable space figure.
+        ``None`` means "skip this sample": the entity is configured but stale
+        (`read_power_kw`'s ok=False contract) or contaminated. Without any
+        power entity there is no measurement to prefer and the commanded
+        figure remains the only available estimate, as before.
+        """
+        commanded_space = float(self._current_action.get("power", 0.0))
+        if not self._config.get(CONF_POWER_ENTITY):
+            return commanded_space
+        if self._measured_power is None or self._immersion_active:
+            return None
+        dhw_share = float(self._current_action.get("dhw_power", 0.0))
+        # The subtraction only splits the meter correctly while the pump is
+        # plausibly running the plan: a deferred DHW start, or a
+        # controller-initiated boost the plan never commanded, lands the
+        # whole gap on the space figure — and the floor at zero then
+        # fabricates a confident 0 kW sample. Same gate, same reasoning as
+        # the COP fold: a large total gap is tracking, not measurement, so
+        # the interval carries no usable split (v4.0.5 review).
+        commanded_total = commanded_space + dhw_share
+        if (
+            abs(float(self._measured_power) - commanded_total)
+            / max(commanded_total, 0.5)
+            > COP_TRACKING_ERROR_GATE
+        ):
+            return None
+        return max(0.0, float(self._measured_power) - dhw_share)
+
     def _external_heat_config(self) -> ExternalHeatConfig:
         """Build the detector configuration from the config entry."""
         interval_hours = (
@@ -2306,6 +2358,39 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # #11: a resistive kW in the reading is not the compressor being
         # inefficient, it is a different appliance on the same meter.
         if self._immersion_active:
+            return
+
+        # v4.0.5: delivered heat is not measured, so this ratio can only be
+        # read as efficiency when the pump is plausibly running the plan. A
+        # large commanded-vs-measured gap is usually the pump NOT tracking
+        # (compressor limits, cycling, ramp lag) — folding it booked pure
+        # tracking error into ``cop_scale``. But a gate fixed on the
+        # commanded ratio deadlocks: a pump whose true efficiency sits more
+        # than the gate away from the current scale shows that same gap on
+        # EVERY sample, so nothing ever folds, the scale never moves, and
+        # the degradation watchdog downstream goes blind at exactly the
+        # severity it exists for (v4.0.5 review). So outliers are judged
+        # against a walking ratio EWMA instead: a one-off blip deviates
+        # from it and is dropped, while a persistent shift WALKS the EWMA
+        # (it updates from every sample) and unlocks folding within a
+        # handful of intervals.
+        ratio = float(self._measured_power) / max(commanded, 1e-6)
+        # Seeded at 1.0 — the model's own expectation, since ``commanded``
+        # already carries the current scale — and gated against the value
+        # BEFORE this sample updates it, so a first-sample blip cannot
+        # vouch for itself. The EWMA walks on every sample, accepted or
+        # not: that is what lets a genuine persistent shift unlock.
+        ewma = self._cop_ratio_ewma if self._cop_ratio_ewma is not None else 1.0
+        self._cop_ratio_ewma = 0.9 * ewma + 0.1 * ratio
+        if abs(ratio - ewma) / max(ewma, 1e-6) > COP_TRACKING_ERROR_GATE:
+            _LOGGER.debug(
+                "Skipping COP sample: commanded %.2f kW vs measured %.2f kW "
+                "deviates from the running ratio %.2f — a tracking blip, "
+                "not an efficiency reading",
+                commanded,
+                self._measured_power,
+                ewma,
+            )
             return
 
         modelled_cop = self._thermal_model.compute_cop(
@@ -2552,7 +2637,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # snapshot taken a cycle earlier was one action further back, and under
         # bang-bang price scheduling that off-by-one injected a spurious
         # residual an order of magnitude above the learning signal.
-        previous_power = float(self._current_action.get("power", 0.0))
+        # Measured where a meter exists (v4.0.5): replaying the *commanded*
+        # power attributed every delivery shortfall to the heat loss
+        # coefficient. ``None`` = no trustworthy figure this interval.
+        previous_power = self._interval_space_power()
 
         # Snapshot for the next interval before any early return, so a rejected
         # sample does not poison the following one with a stale baseline.
@@ -2573,6 +2661,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             return
 
         if previous_state is None or previous_time is None or observed is None:
+            return
+        # A configured meter that is stale or contaminated this interval:
+        # nothing trustworthy to replay, so no sample — a skipped interval
+        # loses convergence; a wrong power replayed corrupts a persisted
+        # parameter.
+        if previous_power is None:
             return
 
         dt_h = (now - previous_time).total_seconds() / 3600.0
@@ -2764,8 +2858,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         previous_state = self._last_house_sample
         previous_time = self._last_house_sample_time
         # See the house learner: the current action is the one that governed
-        # the elapsed interval.
-        previous_power = float(self._current_action.get("power", 0.0))
+        # the elapsed interval, and the measured figure wins over the
+        # commanded one wherever a meter exists (v4.0.5).
+        previous_power = self._interval_space_power()
         observed = self._current_state.lower_floor_temperature
 
         if not params.two_zone_enabled:
@@ -2786,6 +2881,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             return
 
         if previous_state is None or previous_time is None or observed is None:
+            return
+        # Same skip as the house learner: a stale or contaminated meter
+        # leaves nothing trustworthy to replay.
+        if previous_power is None:
             return
 
         dt_h = (now - previous_time).total_seconds() / 3600.0

@@ -79,6 +79,7 @@ from .const import (
     DEFAULT_DHW_COOLING_RATE,
     DHW_COOLING_REFERENCE_DELTA,
     DHW_COOLING_REFERENCE_AMBIENT_TEMP,
+    DHW_MIXED_USE_TEMP,
     DHW_COOLING_RATE_MIN,
     DHW_COOLING_RATE_MAX,
     DEFAULT_DHW_SCHEDULE_ENABLED,
@@ -1075,11 +1076,12 @@ def dhw_coil_draw_reduction(
     draw_kw: float,
     wood_temp: float,
     dhw_setpoint: float,
+    inlet_temp: float = DHW_COLD_WATER_TEMP,
 ) -> tuple[float, float]:
     """The DHW draw after the wood-tank refill coil, and the coil's heat.
 
     The owner's DHW tank refills through a coil immersed in the wood tank
-    (v3.15.1): cold mains water enters at ``DHW_COLD_WATER_TEMP`` and
+    (v3.15.1): cold mains water enters at ``inlet_temp`` and
     leaves the coil at ``mains + ε·(T_wood − mains)⁺``, never usefully
     hotter than the DHW setpoint the draw model heats to. The draw the
     electric side must cover scales with the remaining temperature rise,
@@ -1087,17 +1089,25 @@ def dhw_coil_draw_reduction(
     tank — the two are one identity, so conservation holds by
     construction.
 
+    ``inlet_temp`` must be the same reference the draw itself was computed
+    from — ``ThermalParameters.dhw_inlet_reference`` at every real call
+    site. Hard-coding ``DHW_COLD_WATER_TEMP`` here while the draw used the
+    live/seasonal inlet split a (setpoint − 4 °C)-sized winter draw with
+    10 °C-based ratios: the identity still held arithmetically but both
+    halves were misallocated between the wood tank and the electric side.
+    The default keeps the annual-mean configuration byte-identical.
+
     Returns ``(reduced_draw_kw, coil_heat_kw)`` with
     ``reduced + coil == draw`` exactly. Pure and module-level so the
     savings baseline prices the same coil the simulation runs.
     """
     if draw_kw <= 0.0:
         return draw_kw, 0.0
-    t_in = DHW_COLD_WATER_TEMP + DHW_WOOD_COIL_EFFECTIVENESS * max(
-        0.0, wood_temp - DHW_COLD_WATER_TEMP
+    t_in = inlet_temp + DHW_WOOD_COIL_EFFECTIVENESS * max(
+        0.0, wood_temp - inlet_temp
     )
     t_in = min(t_in, dhw_setpoint)
-    span = max(dhw_setpoint - DHW_COLD_WATER_TEMP, 1e-6)
+    span = max(dhw_setpoint - inlet_temp, 1e-6)
     reduced = draw_kw * max(0.0, dhw_setpoint - t_in) / span
     return reduced, draw_kw - reduced
 
@@ -1118,6 +1128,24 @@ class ThermalModel:
     #: Wood-tank trajectory of the last trajectory call, ``None`` whenever
     #: the two-tank topology is not being simulated (issue #40).
     last_wood_trajectory: np.ndarray | None = None
+    #: DHW analogue of the buffer's refused-heat ledger (v4.0.5). The DHW
+    #: step now clamps charging at the tank rating instead of trusting every
+    #: caller to pre-clamp, and heat the rating refuses is booked here (kW)
+    #: rather than silently deleted — the same reasoning as the buffer: a
+    #: trajectory that pays for deleted heat is merely wasteful in the model
+    #: but boils the tank on the real system.
+    _step_dhw_refused: float = 0.0
+    #: Heat the inlet floor would have had to fabricate this step (kW). With
+    #: the temperature-dependent draw the floor is a genuine no-op safety
+    #: bound — the draw vanishes as the tank approaches the inlet — so any
+    #: non-zero value here is a conservation bug, and the tests assert it.
+    _step_dhw_floor_injected: float = 0.0
+    #: The draw the DHW step actually debited (kW), after tank-temperature
+    #: scaling. Recorded so energy accounting outside the model can balance
+    #: the step exactly instead of assuming the nominal demand was met.
+    _step_dhw_draw_kw: float = 0.0
+    #: Per-step refused DHW heat of the last `simulate_trajectory_with_dhw`.
+    last_dhw_refused: np.ndarray | None = None
 
     def __init__(self, params: ThermalParameters) -> None:
         """Initialize the thermal model."""
@@ -1180,6 +1208,45 @@ class ThermalModel:
                 if carnot_ref > 1e-9:
                     cop *= max(0.25, carnot_flow / carnot_ref)
         return max(cop, 0.5)
+
+    def marginal_cop(
+        self,
+        outdoor_temp: float,
+        store: str,
+        store_temp: float | None = None,
+        humidity: float | None = None,
+    ) -> float:
+        """The COP at which one more kWh actually enters a given store.
+
+        One price of heat per (store, temperature, outdoor), shared by the
+        simulation and by every terminal/deferred valuation. The divergence
+        this closes (v4.0.5): the simulation charges a throttled buffer tank
+        at the flow-derated COP of the tank's own temperature and charges
+        the DHW tank at ``compute_cop_dhw``, while the optimizer's
+        settlement terms priced every stored kWh at the plain space curve.
+        Marginal value below marginal cost means systematic under-charging —
+        the solver only stored when the price spread also paid for an
+        artificial COP gap that the physics never charged.
+
+        ``store`` is ``"buffer"``, ``"dhw"``, or any of the building-mass
+        stores (``"room"``, ``"slab"``, ``"upper"``, ``"lower"``, ``"wood"``),
+        which heat at the plain curve. ``store_temp`` is the settlement or
+        charge temperature of a tank store; for ``"buffer"`` the
+        ``cop_flow_carnot`` gate inside :meth:`compute_cop` makes the derate
+        a no-op whenever no valve throttles, so unthrottled paths return the
+        plain curve bit for bit.
+        """
+        if store == "dhw":
+            return self.compute_cop_dhw(
+                outdoor_temp,
+                store_temp if store_temp is not None else self.params.dhw_setpoint,
+                humidity=humidity,
+            )
+        if store == "buffer":
+            return self.compute_cop(
+                outdoor_temp, humidity=humidity, flow_temp=store_temp
+            )
+        return self.compute_cop(outdoor_temp, humidity=humidity)
 
     def compute_cop_dhw(
         self,
@@ -1392,6 +1459,9 @@ class ThermalModel:
             New DHW tank temperature (°C)
         """
         p = self.params
+        self._step_dhw_refused = 0.0
+        self._step_dhw_floor_injected = 0.0
+        self._step_dhw_draw_kw = 0.0
         C_dhw = p.dhw_tank_thermal_mass
         if C_dhw < 0.01:
             return dhw_temp
@@ -1399,20 +1469,71 @@ class ThermalModel:
         # Heat input from heat pump
         q_in = dhw_power_thermal
 
-        # Heat drawn by consumption
+        # Heat drawn by consumption. The passed/pattern value is the NOMINAL
+        # demand — volume heated from the inlet to the setpoint — and that is
+        # what a tank at or above the setpoint genuinely supplies: mixing at
+        # the tap shrinks the drawn volume so the enthalpy removed stays
+        # exactly nominal (the `MixedHotWater` convention,
+        # coordinator._dhw_mixed_water). A colder tank cannot be debited
+        # energy referenced to a rise it does not hold, so the debit scales
+        # with the rise it can actually deliver:
+        #
+        #     q_eff = q_nominal · min(1, (T − inlet) / (T_use − inlet))
+        #
+        # with T_use the 40 °C mixed-water temperature: the tap draws MORE
+        # volume from a cooler tank to make the same mixed water, so the
+        # enthalpy removed stays exactly nominal all the way down to T_use,
+        # and only below it does the service itself degrade. Referencing the
+        # setpoint instead under-debited the 40..setpoint band — the very
+        # band cost optimization rides — by up to a third, and booked the
+        # deleted demand as savings (v4.0.5 review, blocker). Unscaled, a
+        # 30 °C tank was charged the full (setpoint − inlet) per litre and
+        # the inlet floor below silently refunded the fabricated deficit.
+        # Demand-side quantities (planner ready-energy targets, the
+        # always-hot baseline) stay nominal on purpose: what the user wants
+        # delivered does not shrink because the tank is cold.
         q_draw = (
             self.dhw_draw_rate(hour_of_day) if draw_power is None else draw_power
         )
+        span = max(DHW_MIXED_USE_TEMP - p.dhw_inlet_reference, 1e-6)
+        q_draw = q_draw * min(
+            1.0,
+            max(0.0, dhw_temp - p.dhw_inlet_reference) / span,
+        )
+        self._step_dhw_draw_kw = q_draw
 
         # Standby heat loss to ambient
         q_loss = p.dhw_tank_heat_loss_coefficient * (dhw_temp - ambient_temp)
 
         # Temperature change
         dT = (q_in - q_draw - q_loss) / C_dhw
+
+        # The tank rating, enforced in the model itself rather than trusted
+        # to every caller's pre-clamp: the optimizer's `_clamp_dhw_to_capacity`
+        # protects planned schedules, but the published trajectory also
+        # replays pinned plans and legionella boosts, and those paths could
+        # exceed the rating with no accounting. Same shape as the buffer
+        # clamp: only the charging direction is limited (a tank read above
+        # the rating cools at its physical rate, it is not snapped down),
+        # and the refused heat is booked, never deleted.
+        dT_cap = max(0.0, p.dhw_max_temp - dhw_temp) / max(dt_hours, 1e-6)
+        if dT > dT_cap:
+            self._step_dhw_refused = (dT - dT_cap) * C_dhw
+            dT = dT_cap
         new_temp = dhw_temp + dT * dt_hours
 
-        # Physical bounds (can't go below the cold water inlet)
-        new_temp = max(p.dhw_inlet_reference, new_temp)
+        # Physical bounds (can't go below the cold water inlet). With the
+        # scaled draw this floor is a genuine no-op safety bound — the draw
+        # vanishes as the tank approaches the inlet, and the tank's ambient
+        # (20 °C) sits above the inlet so standby "loss" warms a colder tank.
+        # Any heat it does have to fabricate is booked so the energy balance
+        # stays honest instead of silently created.
+        floor = p.dhw_inlet_reference
+        if new_temp < floor:
+            self._step_dhw_floor_injected = (
+                (floor - new_temp) * C_dhw / max(dt_hours, 1e-6)
+            )
+            new_temp = floor
 
         return new_temp
 
@@ -2064,6 +2185,7 @@ class ThermalModel:
         lower_temps = np.zeros(n_steps + 1)
         dhw_temps = np.zeros(n_steps + 1)
         buffer_temps = np.zeros(n_steps + 1)
+        dhw_refused = np.zeros(n_steps)
 
         room_temps[0] = initial_state.room_temperature
         slab_temps[0] = initial_state.slab_temperature
@@ -2118,15 +2240,19 @@ class ThermalModel:
             if coil and state.wood_tank_temperature is not None:
                 # Refill water arrives preheated by the wood tank; the coil's
                 # heat leaves that tank in the same step, floored at the
-                # mains temperature it can never cool below.
+                # mains temperature it can never cool below. The mains
+                # temperature is the shared inlet reference — the same number
+                # the draw was computed from — so the coil's cold-side base
+                # and the wood tank's floor are one value, not two.
                 draw_i, q_coil = dhw_coil_draw_reduction(
                     draw_i,
                     state.wood_tank_temperature,
                     self.params.dhw_setpoint,
+                    inlet_temp=self.params.dhw_inlet_reference,
                 )
                 if q_coil > 0.0:
                     state.wood_tank_temperature = max(
-                        DHW_COLD_WATER_TEMP,
+                        self.params.dhw_inlet_reference,
                         state.wood_tank_temperature
                         - q_coil * dt_hours
                         / max(self.params.wood_tank_thermal_mass, 0.01),
@@ -2151,6 +2277,7 @@ class ThermalModel:
                 draw_power=draw_i,
             )
             state.dhw_temperature = new_dhw
+            dhw_refused[i] = self._step_dhw_refused
 
             room_temps[i + 1] = state.room_temperature
             slab_temps[i + 1] = state.slab_temperature
@@ -2169,6 +2296,7 @@ class ThermalModel:
         # a trajectory belonging to a different power schedule.
         self.last_buffer_trajectory = buffer_temps
         self.last_wood_trajectory = wood_temps
+        self.last_dhw_refused = dhw_refused
         return room_temps, slab_temps, upper_temps, lower_temps, dhw_temps
 
     def update_slab_from_return_temp(

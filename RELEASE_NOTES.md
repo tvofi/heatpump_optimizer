@@ -1,5 +1,126 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v4.0.6
+
+### Physics from the audit's fifth pass: one price of heat, honest tanks
+
+This release deliberately changes plans. The simulation and the optimizer's
+valuations disagreed about what a stored kilowatt-hour costs, the DHW model
+could create energy at its floor clamp, and two learners were booking the
+pump's failure to follow the plan as the pump being inefficient. Fixing any
+of those moves numbers; here is which, and in which direction.
+
+**Every store now has one marginal price of heat, shared with the
+simulation.** The dynamics charge a throttled buffer tank at the
+flow-derated COP of the tank's own temperature — charging a 70 °C tank at
+−5 °C outdoor costs roughly twice the electricity per kWh the plain curve
+claims — and charge the DHW tank at the DHW COP. But the terminal cost and
+the savings settlement priced every stored kWh at the plain space curve, so
+the marginal value of stored heat sat below its marginal cost and the
+solver only stored when the price spread also paid for a COP gap the
+physics never charged. A shared `marginal_cop` helper now sits next to the
+COP curves, and the terminal cost, the deferred-energy settlement and the
+cap-refusal loop all draw each store's conversion from it. Valve-storage
+plans charge the tank somewhat less eagerly and somewhat more honestly;
+the reported savings no longer overstate themselves when a plan ends with
+a cold tank. Unthrottled configurations keep the historical arithmetic bit
+for bit — the derate gate makes the helper collapse to the plain curve
+there, and the tests pin the equality exactly.
+
+**Settlement ceilings are what the plan can reach, not what the nameplate
+says.** The two-zone slab cap was sized from the whole house's demand, but
+the slab feeds only the lower zone — the upper floor is radiator-fed — so
+hot-slab end states were over-valued by the upper zone's share; it is now
+sized from the lower zone alone, through the learned loss split. And the
+buffer was settled against its 70 °C safety rating even when a small pump
+against a cold day cannot push the tank anywhere near it: the cap is now
+the temperature at which the pump's flow-derated output stops out-running
+the house's draw plus the tank's standby loss, capped at the rating. Strong
+pumps and mild weather see no change; every two-zone plan's terminal
+numbers move a little.
+
+**The DHW tank can no longer pour hot water it does not hold.** The draw
+debited from the tank was the nominal demand — volume heated from inlet to
+setpoint — regardless of the tank's actual temperature, and the inlet floor
+silently refunded the fabricated deficit: created energy, with no ledger.
+The debit now scales with the rise the tank can deliver, which is exactly
+the existing mixed-at-tap convention (a tank at or above the setpoint still
+draws the nominal constant, so hot tanks are unchanged, baselines
+included). The tank rating is enforced inside the simulation with
+refused-heat accounting, the buffer clamp's pattern, instead of trusting
+every caller to pre-clamp. Direction: every DHW plan whose tank dips below
+the setpoint reheats slightly less (a cold tank also empties slower), so
+`dhw_heating_cost` drops a few percent and the temperature trajectories
+shift from the first draw onward. Demand-side targets stay nominal on
+purpose — a cold tank does not get to lower its own requirement. The
+wood-coil split and the wood-tank floor also stop hard-coding a 10 °C
+inlet and use the shared seasonal/live inlet reference; byte-inert at the
+default annual mean.
+
+**Learners stop booking tracking error as efficiency.** The observed-COP
+learner reads commanded-versus-measured electrical power, but delivered
+heat is not measured, so a large gap means the pump is not running the plan
+(compressor limits, cycling, ramp lag), not that it is inefficient — those
+samples are now discarded instead of folded into `cop_scale`. The interval
+heat-loss learners replayed the *commanded* power through the model, so a
+delivery shortfall was blamed on the house's heat loss coefficient; where a
+power entity exists they now replay the measured draw net of the hot-water
+allocation, and skip the interval when the meter is stale or the immersion
+element is latched. Installs without a power entity keep the commanded
+figure — there is nothing better to use, and that is now written down.
+
+**System identification learns the gains it was smearing.** The step-fit
+regressed `C·dT/dt = Q − UA·ΔT` with no intercept, so internal gains
+(~0.3 kW of people and appliances) leaked into both fitted parameters —
+relax-phase samples carry zero input while the gains keep heating. The fit
+gains a constant column, recovers the free heat explicitly (reported as
+`internal_gains_kw`, sanity-bounded), and degrades to the old two-column
+form when the data cannot separate three. On synthetic data with known
+parameters the old form misses UA by more than 15 %; the new one is exact.
+
+**The battery view shares the optimizer's caps.** The buffer component was
+capped at `comfort + 20 °C` (43 °C by default), so a 40 °C tank published
+88.5 % state of charge while the settlement valued it against 70 °C; it
+now reads the tank's configured rating, the same constant the simulation
+clamps at, and a 40 °C tank honestly reads about 43 %. The zone losses use
+the learned split and scale the dynamics actually run (inert at the 1.0
+defaults). The five `coord_*` fixtures move in their `battery` leaves.
+
+Golden movement, claimed: every `dhw=True` scenario's DHW trajectory and
+cost (measured on `winter_single_dhw`: `dhw_heating_cost` 6.66 → 6.04,
+one fewer compressor start; on `dhw_cold_tank`: 8.53 → 8.31), every
+two-zone scenario's terminal/settlement figures, and the valve-storage
+family's plans. Single-zone space-only scenarios are byte-identical, and
+`tests/features.py` pins the identities that guarantee it.
+
+### After the adversarial review
+
+Three verifiers attacked the physics commit before release; what survived
+them is stronger than what went in:
+
+- **The draw debit now references the 40 °C mixed-use temperature, not
+  the setpoint.** Mixing at the tap keeps the enthalpy per draw constant
+  for any tank at or above what people actually use; the setpoint ramp
+  under-debited the 40..setpoint band — the very band cost optimization
+  rides — by up to a third and booked the deleted demand as savings.
+- **Pre-stored buffer heat cannot be drained for free**: the settlement
+  value floors at the solve's starting tank temperature, so a tank
+  charged before a cold snap settles what a plan drains from it.
+- **The COP tracking gate no longer deadlocks**: outliers are judged
+  against a walking ratio average that persistent shifts can move, so a
+  genuinely degraded pump teaches the model — and reaches the
+  degradation watchdog — instead of being filtered forever.
+- **The meter split is gated the same way**: an interval where the pump
+  visibly is not running the plan yields no heat-loss sample, instead of
+  booking the whole gap onto the house.
+- **System identification survives real sensor noise**: the intercept is
+  anchored to the configured gains with a weight calibrated by the
+  night's own residual scatter — clean data recovers the truth exactly,
+  a noisy night leans on the prior, and a hopeless one abstains
+  (measured: the unregularized fit adopted a +34 % biased loss
+  coefficient or nothing at all).
+
+
 ## v4.0.5
 
 ### The zoom that quietly capped your editing

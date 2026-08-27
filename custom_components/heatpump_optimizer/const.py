@@ -94,6 +94,14 @@ CONF_COP_SCALE: Final = "cop_scale"
 DEFAULT_COP_SCALE: Final = 1.0
 COP_SCALE_MIN: Final = 0.5
 COP_SCALE_MAX: Final = 1.6
+# The meter measures electrical input, never delivered heat, so a
+# commanded-vs-measured gap is ambiguous: a modest one is efficiency signal,
+# a large one means the pump simply is not running the plan (compressor
+# limits, cycling, ramp lag) and delivered thermal is unknown. Booking such
+# an interval as efficiency wrote tracking error into ``cop_scale`` — and
+# from there into every priced plan. Beyond this relative gap the sample is
+# discarded as untrustworthy rather than folded (v4.0.5).
+COP_TRACKING_ERROR_GATE: Final = 0.3
 
 # --- Input staleness watchdog (item 12) ------------------------------------
 #
@@ -170,6 +178,11 @@ WOOD_TANK_MIN_MARGIN: Final = 2.0  # °C
 # refused-heat accounting behind this — it only stops a runaway Euler step
 # from planning against steam.
 WOOD_TANK_MAX_TEMP: Final = 95.0  # °C
+
+# The temperature people actually use hot water at, after mixing at the tap.
+# Shared by the MixedHotWater sensor and the tank's draw debit: enthalpy per
+# nominal draw is constant for any tank at or above this, and degrades below.
+DHW_MIXED_USE_TEMP: Final = 40.0
 
 # --- DHW refill coil in the wood tank (v3.15.1, issue #40) ------------------
 #

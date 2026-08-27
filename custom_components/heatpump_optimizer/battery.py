@@ -180,6 +180,14 @@ def build(
     """Assemble the battery view from the thermal model's parameters and state."""
     components: list[StorageComponent] = []
 
+    # The view reports the same house the dynamics simulate, so every loss
+    # figure carries the learned corrections: the overall scale on both
+    # zones, and the learned split on the lower one (whose docstring says
+    # every consumer of the dynamics must go through it). Raw configured
+    # values here showed autonomy figures for a house the model itself no
+    # longer believes in. Both default to 1.0, so a fresh install is
+    # unchanged.
+    loss_scale = params.house_heat_loss_scale
     if params.two_zone_enabled:
         components.append(
             StorageComponent(
@@ -188,7 +196,7 @@ def build(
                 temperature=state.upper_floor_temperature,
                 min_temperature=comfort_min,
                 max_temperature=comfort_max,
-                loss_kw_per_c=params.upper_floor_heat_loss,
+                loss_kw_per_c=params.upper_floor_heat_loss * loss_scale,
                 ambient_temperature=state.outdoor_temperature,
             )
         )
@@ -199,7 +207,7 @@ def build(
                 temperature=state.lower_floor_temperature,
                 min_temperature=comfort_min,
                 max_temperature=comfort_max,
-                loss_kw_per_c=params.lower_floor_heat_loss,
+                loss_kw_per_c=params.lower_floor_heat_loss_learned * loss_scale,
                 ambient_temperature=state.outdoor_temperature,
             )
         )
@@ -211,7 +219,7 @@ def build(
                 temperature=state.room_temperature,
                 min_temperature=comfort_min,
                 max_temperature=comfort_max,
-                loss_kw_per_c=params.heat_loss_coefficient,
+                loss_kw_per_c=params.heat_loss_coefficient * loss_scale,
                 ambient_temperature=state.outdoor_temperature,
             )
         )
@@ -249,7 +257,15 @@ def build(
                 capacity_kwh_per_c=params.buffer_tank_thermal_mass,
                 temperature=state.buffer_tank_temperature,
                 min_temperature=comfort_min,
-                max_temperature=comfort_max + 20.0,
+                # The tank's real ceiling — the same `buffer_max_temp` the
+                # simulation clamps at and the settlement caps read — not a
+                # `comfort + 20` magic offset. That offset (43 °C at the
+                # default ceiling) published 100 % state of charge for a tank
+                # barely half full: a 40 °C tank read 88.5 % against a 70 °C
+                # rating's ~43 %. Report-only, so the physical rating applies
+                # unconditionally; the wood tank one component down already
+                # shares its cap constant with the optimizer the same way.
+                max_temperature=params.buffer_max_temp,
                 loss_kw_per_c=params.buffer_tank_heat_loss_coefficient,
                 ambient_temperature=20.0,
             )
