@@ -8,7 +8,8 @@ optimizer's planning series on a single shared time axis:
 - **DHW heating** power (kW, left power axis, stepped filled band)
 - **Space heating** power (kW, left power axis, stepped filled band)
 - **Outdoor temperature** (°C, left temperature axis, smooth line)
-- **DHW tank temperature** (°C, left temperature axis, smooth line)
+- **DHW tank temperature** (°C, left temperature axis, smooth line, with the
+  prediction's expected error drawn as a dashed pair around it)
 - **House temperature** (°C, left temperature axis; upper/lower zones drawn as
   dashed lines when the house is configured as two-zone)
 - **Solar irradiance** (W/m², inner right axis, stepped filled area)
@@ -26,6 +27,33 @@ Chart.js, ApexCharts, npm or any CDN.
 A vertical "now" marker is drawn at the current time, and hovering (or touching)
 the plot shows a crosshair and a tooltip with the value of every visible series
 at the nearest sample, plus **why** the plan is heating at that moment.
+
+### The two kinds of dashed line
+
+Two series draw a dashed pair beside their solid curve, and they mean entirely
+different things.
+
+The **house temperature**'s dashed lines are the **upper and lower floor**: two
+real predicted temperatures, one per zone, drawn whenever the house is
+configured as two-zone. They are not error bars. The solid line between them is
+the whole-house temperature the optimizer plans against. Each has its own name
+in the legend and its own tooltip row, and the lower one reads *Lower floor
+(modelled)* when no sensor measures it.
+
+The **DHW tank temperature**'s dashed lines are the **prediction's expected
+error** — how far the tank curve has historically been out at that distance
+ahead. The band is `dhw_temp` ∓ the average error the model has actually made
+for a promise that far in advance, so it widens the further into the plan you
+look. It is absent entirely until there is history to draw it from: a fresh
+install, or a house with no tank temperature sensor configured, publishes no
+band rather than a zero-width one, and the card draws only the solid curve.
+
+Unlike the two floors, the band's two edges are **one** thing, so they share a
+single legend chip and produce a single tooltip row — *Hot water, expected
+error*, stated as one ± figure. The chip's hover text explains what the dashes
+mean. Where the band has no value the dashed lines simply stop, rather than
+bridging the gap, and a band with no width at all is not drawn: an envelope
+lying exactly on the curve would claim a precision the record has not earned.
 
 ### The headline row
 
@@ -465,7 +493,7 @@ series:                                  # optional, initial per-series visibili
 | `type`         | string  | —                              | Must be `custom:heatpump-optimizer-card`. |
 | `title`        | string  | localized                      | Card header text. Left out, it is the built-in default for the frontend language (`Heat pump plan`, `Värmepumpsplan`). An explicit empty string renders no header text. |
 | `space_entity` | string  | auto-detected                  | Entity id of the space-heating plan sensor (its `forecast` attribute supplies `price`, `outdoor`, `space_power`, `room`, `upper`, `lower`). |
-| `dhw_entity`   | string  | auto-detected                  | Entity id of the DHW plan sensor (its `forecast` attribute supplies `dhw_power`, `dhw_temp`, and `price`/`outdoor` fallbacks). |
+| `dhw_entity`   | string  | auto-detected                  | Entity id of the DHW plan sensor (its `forecast` attribute supplies `dhw_power`, `dhw_temp`, the `dhw_temp_lo`/`dhw_temp_hi` expected-error band, and `price`/`outdoor` fallbacks). |
 | `solar_entity` | string  | auto-detected                  | Entity id of the solar irradiance sensor (its `forecast` attribute supplies `ghi`). |
 | `hours`        | number  | `24`                           | How many hours forward to plot. Must be greater than `0` and at most `168`; fractional values such as `0.5` are accepted in YAML, while the visual editor's box steps whole hours from `1`. |
 | `what_if`      | boolean | `true`                         | Show the slot lanes and schedule editor in the enlarged view. Editing is local to the card; only the Simulate, Save and Apply buttons reach Home Assistant. |
