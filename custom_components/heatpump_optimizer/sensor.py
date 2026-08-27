@@ -15,6 +15,7 @@ from homeassistant.const import (
     UnitOfEnergy,
     UnitOfPower,
     UnitOfTemperature,
+    UnitOfVolume,
     PERCENTAGE,
 )
 from homeassistant.core import HomeAssistant
@@ -186,12 +187,19 @@ class OptimizationStatusSensor(HeatPumpOptimizerSensorBase):
 
 
 class PredictedSavingsSensor(HeatPumpOptimizerSensorBase):
+    # No MONETARY device class here or on the other horizon-money sensors
+    # below: Home Assistant only accepts state class TOTAL for MONETARY, and
+    # these are rolling predictions re-published every solve — MEASUREMENT is
+    # their honest state class, and MONETARY on top of it would make HA
+    # reject their long-term statistics (the trap the price sensor's comment
+    # documents). The settled accumulators further down carry MONETARY.
     _attr_icon = "mdi:piggy-bank-outline"
     _attr_state_class = SensorStateClass.MEASUREMENT
-    _attr_native_unit_of_measurement = "SEK"
+    _attr_suggested_display_precision = 2
 
     def __init__(self, coordinator, entry):
         super().__init__(coordinator, entry, "predicted_savings", "Predicted Savings")
+        self._attr_native_unit_of_measurement = coordinator.currency
 
     @property
     def native_value(self) -> float | None:
@@ -205,6 +213,7 @@ class SavingsPercentageSensor(HeatPumpOptimizerSensorBase):
     _attr_icon = "mdi:percent"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = PERCENTAGE
+    _attr_suggested_display_precision = 1
 
     def __init__(self, coordinator, entry):
         super().__init__(coordinator, entry, "savings_percentage", "Savings Percentage")
@@ -232,10 +241,11 @@ class SavingsPercentageSensor(HeatPumpOptimizerSensorBase):
 class PredictedCostSensor(HeatPumpOptimizerSensorBase):
     _attr_icon = "mdi:currency-usd"
     _attr_state_class = SensorStateClass.MEASUREMENT
-    _attr_native_unit_of_measurement = "SEK"
+    _attr_suggested_display_precision = 2
 
     def __init__(self, coordinator, entry):
         super().__init__(coordinator, entry, "predicted_cost", "Predicted Cost")
+        self._attr_native_unit_of_measurement = coordinator.currency
 
     @property
     def native_value(self) -> float | None:
@@ -248,10 +258,11 @@ class PredictedCostSensor(HeatPumpOptimizerSensorBase):
 class BaselineCostSensor(HeatPumpOptimizerSensorBase):
     _attr_icon = "mdi:currency-usd-off"
     _attr_state_class = SensorStateClass.MEASUREMENT
-    _attr_native_unit_of_measurement = "SEK"
+    _attr_suggested_display_precision = 2
 
     def __init__(self, coordinator, entry):
         super().__init__(coordinator, entry, "baseline_cost", "Baseline Cost")
+        self._attr_native_unit_of_measurement = coordinator.currency
 
     @property
     def native_value(self) -> float | None:
@@ -264,13 +275,14 @@ class BaselineCostSensor(HeatPumpOptimizerSensorBase):
 class CurrentPriceSensor(HeatPumpOptimizerSensorBase):
     _attr_icon = "mdi:flash"
     _attr_state_class = SensorStateClass.MEASUREMENT
-    _attr_native_unit_of_measurement = "SEK/kWh"
+    _attr_suggested_display_precision = 2
     # No device_class: this is a unit price, not a monetary total. Home
     # Assistant only accepts state_class "total" for device_class "monetary",
     # so declaring it here made HA reject the sensor's statistics.
 
     def __init__(self, coordinator, entry):
         super().__init__(coordinator, entry, "current_price", "Current Electricity Price")
+        self._attr_native_unit_of_measurement = f"{coordinator.currency}/kWh"
 
     @property
     def native_value(self) -> float | None:
@@ -285,6 +297,7 @@ class CurrentSetpointSensor(HeatPumpOptimizerSensorBase):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_device_class = SensorDeviceClass.TEMPERATURE
+    _attr_suggested_display_precision = 1
 
     def __init__(self, coordinator, entry):
         super().__init__(coordinator, entry, "current_setpoint", "Optimal Setpoint")
@@ -314,6 +327,7 @@ class CurrentPowerSensor(HeatPumpOptimizerSensorBase):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfPower.KILO_WATT
     _attr_device_class = SensorDeviceClass.POWER
+    _attr_suggested_display_precision = 2
 
     def __init__(self, coordinator, entry):
         super().__init__(coordinator, entry, "current_power", "Recommended Power")
@@ -330,6 +344,7 @@ class CurrentPowerSensor(HeatPumpOptimizerSensorBase):
 class CurrentCOPSensor(HeatPumpOptimizerSensorBase):
     _attr_icon = "mdi:gauge"
     _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_suggested_display_precision = 2
 
     def __init__(self, coordinator, entry):
         super().__init__(coordinator, entry, "current_cop", "Estimated COP")
@@ -348,6 +363,7 @@ class IndoorTempSensor(HeatPumpOptimizerSensorBase):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_device_class = SensorDeviceClass.TEMPERATURE
+    _attr_suggested_display_precision = 1
 
     def __init__(self, coordinator, entry):
         super().__init__(coordinator, entry, "indoor_temp", "Indoor Temperature (Optimizer)")
@@ -365,6 +381,7 @@ class OutdoorTempSensor(HeatPumpOptimizerSensorBase):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_device_class = SensorDeviceClass.TEMPERATURE
+    _attr_suggested_display_precision = 1
 
     def __init__(self, coordinator, entry):
         super().__init__(coordinator, entry, "outdoor_temp", "Outdoor Temperature (Optimizer)")
@@ -389,6 +406,7 @@ class SolarIrradianceSensor(HeatPumpOptimizerSensorBase):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = "W/m²"
     _attr_device_class = SensorDeviceClass.IRRADIANCE
+    _attr_suggested_display_precision = 0
     # The forecast series is far too large to write to the recorder on every
     # update, and its history is of no interest once superseded.
     _unrecorded_attributes = frozenset({"forecast"})
@@ -427,6 +445,7 @@ class SlabTempSensor(HeatPumpOptimizerSensorBase):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_device_class = SensorDeviceClass.TEMPERATURE
+    _attr_suggested_display_precision = 1
 
     def __init__(self, coordinator, entry):
         super().__init__(coordinator, entry, "slab_temp", "Slab Temperature (Estimated)")
@@ -540,6 +559,7 @@ class UpperFloorTempSensor(HeatPumpOptimizerSensorBase):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_device_class = SensorDeviceClass.TEMPERATURE
+    _attr_suggested_display_precision = 1
 
     def __init__(self, coordinator, entry):
         super().__init__(
@@ -561,6 +581,7 @@ class LowerFloorTempSensor(HeatPumpOptimizerSensorBase):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_device_class = SensorDeviceClass.TEMPERATURE
+    _attr_suggested_display_precision = 1
 
     def __init__(self, coordinator, entry):
         super().__init__(
@@ -582,6 +603,7 @@ class FloorReturnTempSensor(HeatPumpOptimizerSensorBase):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_device_class = SensorDeviceClass.TEMPERATURE
+    _attr_suggested_display_precision = 1
 
     def __init__(self, coordinator, entry):
         super().__init__(
@@ -603,6 +625,7 @@ class SolarRadiationSensor(HeatPumpOptimizerSensorBase):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = "W/m²"
     _attr_device_class = SensorDeviceClass.IRRADIANCE
+    _attr_suggested_display_precision = 0
 
     def __init__(self, coordinator, entry):
         super().__init__(
@@ -624,6 +647,7 @@ class SolarHeatGainSensor(HeatPumpOptimizerSensorBase):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfPower.KILO_WATT
     _attr_device_class = SensorDeviceClass.POWER
+    _attr_suggested_display_precision = 2
 
     def __init__(self, coordinator, entry):
         super().__init__(
@@ -656,6 +680,7 @@ class BufferTankTempSensor(HeatPumpOptimizerSensorBase):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_device_class = SensorDeviceClass.TEMPERATURE
+    _attr_suggested_display_precision = 1
 
     def __init__(self, coordinator, entry):
         super().__init__(
@@ -682,6 +707,7 @@ class DHWTemperatureSensor(HeatPumpOptimizerSensorBase):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_device_class = SensorDeviceClass.TEMPERATURE
+    _attr_suggested_display_precision = 1
 
     def __init__(self, coordinator, entry):
         super().__init__(
@@ -772,12 +798,13 @@ class DHWHeatingCostSensor(HeatPumpOptimizerSensorBase):
 
     _attr_icon = "mdi:cash-minus"
     _attr_state_class = SensorStateClass.MEASUREMENT
-    _attr_native_unit_of_measurement = "SEK"
+    _attr_suggested_display_precision = 2
 
     def __init__(self, coordinator, entry):
         super().__init__(
             coordinator, entry, "dhw_heating_cost", "DHW Heating Cost"
         )
+        self._attr_native_unit_of_measurement = coordinator.currency
 
     @property
     def native_value(self) -> float | None:
@@ -863,6 +890,11 @@ class ECL110DisplaceSensor(HeatPumpOptimizerSensorBase):
     _attr_icon = "mdi:tune-vertical"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+    _attr_suggested_display_precision = 1
+    # ECL110 hardware is a per-install opt-in (its MQTT topics live on the
+    # heat-curve options page); everyone else gets this disabled, not a
+    # forever-unknown entity. Existing registry entries keep their state.
+    _attr_entity_registry_enabled_default = False
 
     def __init__(self, coordinator, entry):
         super().__init__(coordinator, entry, "ecl110_displace", "ECL110 Displace")
@@ -881,6 +913,9 @@ class ECL110EffectiveDisplaceSensor(HeatPumpOptimizerSensorBase):
     _attr_icon = "mdi:chart-bell-curve"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+    _attr_suggested_display_precision = 1
+    # Same opt-in hardware as ECL110 Displace above.
+    _attr_entity_registry_enabled_default = False
 
     def __init__(self, coordinator, entry):
         super().__init__(
@@ -970,6 +1005,11 @@ class _PlanSensorBase(HeatPumpOptimizerSensorBase):
                 # Configuration-derived, so it exists before the first plan
                 # does; the card's setup page should not need a solve to draw.
                 "setup_topology": self.coordinator.describe_setup(),
+                # The currency every cost figure on this device is priced in,
+                # published so the dashboard card labels its axis from the
+                # integration's own answer rather than guessing from the
+                # browser or the HA install.
+                "currency": self.coordinator.currency,
             }
         slots = plan.get("slots", [])
         next_slot = None
@@ -1017,6 +1057,8 @@ class _PlanSensorBase(HeatPumpOptimizerSensorBase):
             # emitted by the coordinator so the config flow's overview and
             # the card can never disagree about what the system looks like.
             "setup_topology": self.coordinator.describe_setup(),
+            # The currency the plan's costs are in (see the no-plan branch).
+            "currency": self.coordinator.currency,
         }
 
 
@@ -1062,6 +1104,7 @@ class MeasuredPowerSensor(HeatPumpOptimizerSensorBase):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfPower.KILO_WATT
     _attr_device_class = SensorDeviceClass.POWER
+    _attr_suggested_display_precision = 2
 
     def __init__(self, coordinator, entry):
         super().__init__(coordinator, entry, "measured_power", "Measured Power")
@@ -1097,6 +1140,7 @@ class ObservedCOPSensor(HeatPumpOptimizerSensorBase):
 
     _attr_icon = "mdi:gauge-full"
     _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_suggested_display_precision = 2
 
     def __init__(self, coordinator, entry):
         super().__init__(coordinator, entry, "observed_cop", "Observed COP")
@@ -1147,6 +1191,7 @@ class _AccumulatingSensor(HeatPumpOptimizerSensorBase):
     """
 
     _attr_state_class = SensorStateClass.TOTAL_INCREASING
+    _attr_suggested_display_precision = 2
     _data_key: str = ""
 
     @property
@@ -1214,7 +1259,10 @@ class _AccumulatingCostSensor(_AccumulatingSensor):
 
     _attr_device_class = SensorDeviceClass.MONETARY
     _attr_state_class = SensorStateClass.TOTAL
-    _attr_native_unit_of_measurement = "SEK"
+
+    def __init__(self, coordinator, entry, key, name):
+        super().__init__(coordinator, entry, key, name)
+        self._attr_native_unit_of_measurement = coordinator.currency
 
 
 class SpaceCostSensor(_AccumulatingCostSensor):
@@ -1259,6 +1307,7 @@ class PredictionAccuracySensor(HeatPumpOptimizerSensorBase):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_suggested_display_precision = 2
 
     def __init__(self, coordinator, entry):
         super().__init__(
@@ -1296,6 +1345,7 @@ class MonthlyPeakSensor(HeatPumpOptimizerSensorBase):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfPower.KILO_WATT
     _attr_device_class = SensorDeviceClass.POWER
+    _attr_suggested_display_precision = 2
 
     def __init__(self, coordinator, entry):
         super().__init__(coordinator, entry, "monthly_peak", "Monthly Peak Power")
@@ -1341,6 +1391,7 @@ class PVSurplusSensor(HeatPumpOptimizerSensorBase):
     _attr_icon = "mdi:solar-power-variant"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
+    _attr_suggested_display_precision = 2
 
     def __init__(self, coordinator, entry):
         super().__init__(coordinator, entry, "pv_surplus", "Solar Surplus Forecast")
@@ -1380,6 +1431,7 @@ class ThermalBatterySensor(HeatPumpOptimizerSensorBase):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = PERCENTAGE
     _attr_device_class = SensorDeviceClass.BATTERY
+    _attr_suggested_display_precision = 1
 
     def __init__(self, coordinator, entry):
         super().__init__(
@@ -1403,6 +1455,7 @@ class ThermalBatteryEnergySensor(HeatPumpOptimizerSensorBase):
     _attr_icon = "mdi:battery-charging"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
+    _attr_suggested_display_precision = 2
 
     def __init__(self, coordinator, entry):
         super().__init__(
@@ -1445,7 +1498,11 @@ class ValveTargetRecommendationSensor(HeatPumpOptimizerSensorBase):
     _attr_icon = "mdi:valve"
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_device_class = SensorDeviceClass.TEMPERATURE
+    _attr_suggested_display_precision = 1
     _attr_entity_category = EntityCategory.DIAGNOSTIC
+    # Unknown unless a mixing valve mode is configured, and a mixing valve is
+    # opt-in plumbing; disabled rather than eternally-unknown by default.
+    _attr_entity_registry_enabled_default = False
 
     def __init__(self, coordinator, entry):
         super().__init__(
@@ -1483,6 +1540,7 @@ class ComfortWeightSensor(HeatPumpOptimizerSensorBase):
     _attr_icon = "mdi:scale-balance"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_suggested_display_precision = 2
 
     def __init__(self, coordinator, entry):
         super().__init__(coordinator, entry, "comfort_weight", "Comfort Weight")
@@ -1509,13 +1567,18 @@ class ContractComparisonSensor(HeatPumpOptimizerSensorBase):
 
     _attr_icon = "mdi:file-compare"
     _attr_state_class = SensorStateClass.MEASUREMENT
-    _attr_native_unit_of_measurement = "SEK/kWh"
     _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_suggested_display_precision = 3
+    # Meaningful only once a contract comparison is configured and settled;
+    # off by default so a fresh install's entity list is not padded with a
+    # diagnostic most households never enable.
+    _attr_entity_registry_enabled_default = False
 
     def __init__(self, coordinator, entry):
         super().__init__(
             coordinator, entry, "contract_comparison", "Contract Comparison"
         )
+        self._attr_native_unit_of_measurement = f"{coordinator.currency}/kWh"
 
     @property
     def native_value(self) -> float | None:
@@ -1553,6 +1616,7 @@ class PowerHeadroomSensor(HeatPumpOptimizerSensorBase):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfPower.KILO_WATT
     _attr_device_class = SensorDeviceClass.POWER
+    _attr_suggested_display_precision = 2
 
     def __init__(self, coordinator, entry):
         super().__init__(
@@ -1592,6 +1656,8 @@ class DHWSetpointAdvisorSensor(HeatPumpOptimizerSensorBase):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_entity_category = EntityCategory.DIAGNOSTIC
+    # The advisor sweeps whole-degree candidate setpoints.
+    _attr_suggested_display_precision = 0
 
     def __init__(self, coordinator, entry):
         super().__init__(
@@ -1624,7 +1690,8 @@ class MixedHotWaterSensor(HeatPumpOptimizerSensorBase):
 
     _attr_icon = "mdi:shower-head"
     _attr_state_class = SensorStateClass.MEASUREMENT
-    _attr_native_unit_of_measurement = "L"
+    _attr_native_unit_of_measurement = UnitOfVolume.LITERS
+    _attr_suggested_display_precision = 0
 
     def __init__(self, coordinator, entry):
         super().__init__(
@@ -1659,6 +1726,10 @@ class DHWHeavyDaySensor(HeatPumpOptimizerSensorBase):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
     _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_suggested_display_precision = 2
+    # Stands on the learned per-window draw quantiles, which need weeks of
+    # DHW draw evidence few installs collect; disabled until asked for.
+    _attr_entity_registry_enabled_default = False
 
     def __init__(self, coordinator, entry):
         super().__init__(
@@ -1743,6 +1814,7 @@ class OptimizationScoreSensor(HeatPumpOptimizerSensorBase):
     _attr_icon = "mdi:speedometer"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_suggested_display_precision = 1
 
     def __init__(self, coordinator, entry):
         super().__init__(
@@ -1832,6 +1904,10 @@ class FrequencyAdvisorSensor(HeatPumpOptimizerSensorBase):
     _attr_device_class = SensorDeviceClass.FREQUENCY
     _attr_native_unit_of_measurement = "Hz"
     _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_suggested_display_precision = 1
+    # Requires the opt-in compressor frequency entity (T7); unavailable for
+    # everyone else, so disabled rather than shipped dead.
+    _attr_entity_registry_enabled_default = False
 
     def __init__(self, coordinator, entry):
         super().__init__(

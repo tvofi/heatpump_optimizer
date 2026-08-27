@@ -16,14 +16,6 @@
           "lower_floor_temp_entity": "Givare för temperaturen på nedre plan",
           "dhw_temp_entity": "Givare för varmvattenberedarens temperatur",
           "buffer_tank_temp_entity": "Temperaturgivare för buffertank",
-          "ecl110_displace_set_topic": "Topic för förskjutningskommando",
-          "ecl110_command_topic": "Äldre JSON-kommandotopic",
-          "ecl110_state_topic": "Statustopic",
-          "ecl110_mqtt_qos": "MQTT quality of service",
-          "ecl110_mqtt_retain": "Behåll MQTT-meddelanden",
-          "ecl110_displace_min": "Största nedåtförskjutning",
-          "ecl110_displace_max": "Största uppåtförskjutning",
-          "ecl110_pid_time_constant_hours": "Regulatorns svarstid",
           "solar_forecast_source": "Källa för solinstrålning",
           "solar_location": "Plats för solinstrålning"
         },
@@ -39,14 +31,6 @@
           "lower_floor_temp_entity": "Valfritt, endast tvåzonsläge. En riktig givare på nedre plan. Utan en sådan härleds nedre plan från golvvärmens returvatten, som är flera grader varmare än rummet och får zonen att verka varmare än den är.",
           "dhw_temp_entity": "Valfritt men rekommenderas. Beredarens verkliga temperatur. Gör också att en manuell varmvattenkörning nollställer legionellatimern.",
           "buffer_tank_temp_entity": "Valfritt. När den anges lär sig integrationen hur snabbt buffertanken svalnar i stället för att förlita sig på det konfigurerade värdet.",
-          "ecl110_displace_set_topic": "MQTT-topic dit parallellförskjutningen av värmekurvan publiceras. Lämna tomt om du inte har en Danfoss ECL110.",
-          "ecl110_command_topic": "Behövs bara för äldre installationer som förväntar sig JSON i stället.",
-          "ecl110_state_topic": "MQTT-topic där regulatorn rapporterar sitt tillstånd.",
-          "ecl110_mqtt_qos": "0 räcker för de allra flesta.",
-          "ecl110_mqtt_retain": "Sparar den senaste förskjutningen på mäklaren så att regulatorn hämtar den efter en omstart.",
-          "ecl110_displace_min": "Hur långt ned värmekurvan får förskjutas under dyra timmar.",
-          "ecl110_displace_max": "Hur långt upp värmekurvan får förskjutas när billig värme lagras.",
-          "ecl110_pid_time_constant_hours": "Ungefär hur lång tid regulatorn behöver för att verkställa en ny förskjutning. Används så att optimeringen inte begär snabbare ändringar än systemet hinner följa.",
           "solar_forecast_source": "Var solinstrålningen ska hämtas ifrån. \"Väderentitet\" använder din väderintegration, som ofta inte publicerar solinstrålning alls. \"Open-Meteo\" hämtar en kostnadsfri prognos för platsen nedan; inget konto behövs.",
           "solar_location": "Koordinat som används för Open-Meteos solinstrålningsprognos. Utgår från Home Assistants hemposition. Används bara när källan är Open-Meteo."
         }
@@ -71,6 +55,48 @@
           "comfort_temp_night": "Önskad temperatur nattetid. Ett par grader lägre sparar pengar och ger oftast bättre sömn.",
           "day_start_hour": "Timmen på morgonen då dagtemperaturen tar över.",
           "day_end_hour": "Timmen på kvällen då nattemperaturen tar över."
+        }
+      },
+      "building": {
+        "title": "Din byggnad",
+        "description": "Optimeraren behöver en termisk modell av huset. De flesta bör beskriva byggnaden och låta integrationen härleda fysiken; värdena kan alltid finjusteras senare i inställningarna. Ange värden direkt bara om du har riktiga siffror, till exempel från en energideklaration.",
+        "menu_options": {
+          "building_describe": "Beskriv min byggnad (rekommenderas)",
+          "thermal": "Ange termiska värden direkt"
+        }
+      },
+      "building_describe": {
+        "title": "Beskriv din byggnad",
+        "description": "Frågor en husägare faktiskt kan svara på, i stället för kWh/°C. Svaren sätter bara startvärden — den självlärande modellen förfinar dem utifrån hur huset faktiskt beter sig.",
+        "data": {
+          "building_structure": "Vad huset är byggt av",
+          "building_era": "Ungefär när det byggdes",
+          "building_foundation": "Grundläggning",
+          "heated_area_m2": "Uppvärmd golvyta",
+          "upper_floor_emitter": "Värme på övervåningen",
+          "lower_floor_emitter": "Värme på nedervåningen"
+        },
+        "data_description": {
+          "building_structure": "Tunga material innanför isoleringen lagrar värme, och det är just det som gör att optimeraren kan köpa värmen billigt och använda den senare.",
+          "building_era": "Byggår är ett bra mått på isoleringsstandard och en betydligt bättre utgångspunkt än ett enda standardvärde.",
+          "building_foundation": "En krypgrund ökar värmeförlusterna; en uppvärmd källare ger både mer förlustyta och mer termisk massa.",
+          "heated_area_m2": "Allt skalas efter denna, så det är siffran det är värt att få närmast rätt.",
+          "upper_floor_emitter": "Radiatorer svarar på minuter, golvvärme på timmar. Det avgör hur långt i förväg värmen kan flyttas.",
+          "lower_floor_emitter": "En värmd platta är ett stort lager som laddas aktivt, vilket gör förvärmning både mer värdefull och mer nödvändig."
+        }
+      },
+      "building_extras": {
+        "title": "Din värmepump",
+        "description": "Tre siffror från typskylten. Allt frågeformuläret härledde kan granskas senare i integrationens inställningar.",
+        "data": {
+          "heat_pump_cop_nominal": "Värmepumpens nominella COP",
+          "heat_pump_max_power": "Värmepump max effekt (kW)",
+          "heat_pump_min_power": "Värmepump min effekt (kW)"
+        },
+        "data_description": {
+          "heat_pump_cop_nominal": "Enheter värme per enhet el under normala förhållanden. Se databladet; 3 till 4 är vanligt för luft/vatten, 4 till 5 för bergvärme.",
+          "heat_pump_max_power": "Eleffekt vid full drift. Sätter taket för hur mycket billig el som kan lagras per timme.",
+          "heat_pump_min_power": "Lägsta eleffekt pumpen klarar utan att börja starta och stanna."
         }
       },
       "thermal": {
@@ -178,7 +204,12 @@
       "invalid_tibber_token": "Tibber-token accepterades inte. Kontrollera den på developer.tibber.com och försök igen.",
       "cannot_connect": "Kunde inte nå Tibber för att kontrollera token. Kontrollera internetanslutningen och försök igen.",
       "invalid_dhw_windows": "Tiderna kunde inte tolkas. Använd 24-timmarsformat separerat med komma, till exempel \"06:00-08:30, 17:00-22:00\".",
-      "dhw_min_too_close": "Ett varmvattenminimum s\\u00e5 n\\u00e4ra b\\u00f6rv\\u00e4rdet l\\u00e4mnar tanken utan arbetsband; h\\u00e5ll det minst 5 \\u00b0C under b\\u00f6rv\\u00e4rdet."
+      "dhw_min_too_close": "Ett varmvattenminimum s\\u00e5 n\\u00e4ra b\\u00f6rv\\u00e4rdet l\\u00e4mnar tanken utan arbetsband; h\\u00e5ll det minst 5 \\u00b0C under b\\u00f6rv\\u00e4rdet.",
+      "min_above_target": "Lägsta temperaturen ligger över måltemperaturen.",
+      "max_below_target": "Högsta temperaturen ligger under måltemperaturen.",
+      "night_above_day": "Nattemperaturen ligger över dagtemperaturen.",
+      "day_window_empty": "Dagen skulle sluta innan den börjar, så ingen dagperiod blir kvar alls.",
+      "min_power_above_max": "Värmepumpens lägsta effekt ligger över dess högsta."
     },
     "abort": {
       "already_configured": "Den här integrationen är redan konfigurerad."
@@ -450,7 +481,8 @@
           "window_area": "Kvadratmeter glas som får direkt sol. Används för att förutse gratis solvärme.",
           "solar_heat_gain_coefficient": "0,6 är typiskt för modern treglasruta. Högre värde ger mer gratis värme soliga dagar.",
           "wind_sensitivity_factor": "Hur mycket extra värme huset förlorar per m/s vind. Höj den om huset märkbart kyls ned blåsiga dagar, så förvärmer optimeringen i förväg.",
-          "rain_heat_loss_multiplier": "Extra värmeförlust när det regnar. 1,0 betyder att regn inte spelar någon roll."
+          "rain_heat_loss_multiplier": "Extra värmeförlust när det regnar. 1,0 betyder att regn inte spelar någon roll.",
+          "building_foundation": "En krypgrund ökar värmeförlusterna; en uppvärmd källare ger både mer förlustyta och mer termisk massa."
         }
       },
       "thermal_model": {
@@ -533,7 +565,8 @@
           "main_fuse_phases": "Nästan alla svenska hus har 3 faser.",
           "fuse_guard_enabled": "Begränsar värmepumpens planerade effekt till vad säkringen lämnar efter resten av huset. Om en begränsning skulle göra komfortgolvet onåbart säger planen det på sina sensorer i stället för att tyst bli kall.",
           "peak_guard_enabled": "Bevakar effektmätaren live och håller tillbaka eldrivet varmvatten samt sänker värmekurvan resten av mätfönstret när fönstret beräknas sätta en ny fakturerad topp. Kräver en effektmätare; en kall tank eller ett brutet komfortgolv vinner alltid över vakten.",
-          "peak_guard_margin_kw": "Hur långt under den fakturerade tröskeln vakten börjar agera. Större fångar fler toppar och ingriper oftare."
+          "peak_guard_margin_kw": "Hur långt under den fakturerade tröskeln vakten börjar agera. Större fångar fler toppar och ingriper oftare.",
+          "peak_tariff_enabled": "Lägger in elnätsbolagets månadsavgift för effekttoppar i målet, så att utjämnade toppar är värda riktiga pengar."
         }
       },
       "solar_pv": {
@@ -550,7 +583,10 @@
         "data_description": {
           "pv_system_efficiency": "Allt mellan solljus och mätare: växelriktarförluster, panelernas temperatur, smuts, väderstreck. 0,8 är typiskt.",
           "pv_export_price": "Vad du får betalt för en såld kWh. När du har överskott är det vad en extra kWh värme egentligen kostar.",
-          "pv_export_price_entity": "Använd denna i stället om din ersättning följer spotpriset."
+          "pv_export_price_entity": "Använd denna i stället om din ersättning följer spotpriset.",
+          "pv_enabled": "Låter planen köra värmepumpen på ditt eget överskott i stället för att sälja det för mindre än vad köpt el kostar.",
+          "pv_peak_kw": "Anläggningens installerade toppeffekt. Används för att skala produktionsprognosen.",
+          "pv_production_entity": "Valfritt. En sensor med faktisk produktion låter prognosen rätta sig efter vad taket verkligen levererar."
         }
       },
       "away": {
@@ -566,7 +602,9 @@
         "data_description": {
           "away_presence_entity": "En semesterbrytare, en person eller enhetsspårare, eller en kalender. Polariteten sköts åt dig: att en person är 'inte hemma' och att en semesterbrytare är 'på' betyder båda bortavaro.",
           "away_return_entity": "Utan denna ligger huset kvar på sänkningen tills du själv slår om, och uppvärmningen kostar då vad priset råkar vara.",
-          "away_dhw_min_temperature": "Legionellacykeln körs fortfarande, och tidsätts så att den hinner bli klar innan du är tillbaka."
+          "away_dhw_min_temperature": "Legionellacykeln körs fortfarande, och tidsätts så att den hinner bli klar innan du är tillbaka.",
+          "away_enabled": "Djup sänkning när huset står tomt, med återhämtning tidsatt så att huset är varmt igen när du kommer hem.",
+          "away_temperature": "Temperaturen som hålls under bortavaron. Låg nog att spara, hög nog att skydda hus och rör."
         }
       },
       "learning": {
@@ -609,7 +647,8 @@
           "capacity_curve_enabled": "Märkeffekten är ett laboratorievärde. Detta lär sig hur mycket värme pumpen faktiskt levererat vid varje utetemperatur och planerar inom det, så att en köldknäppsplan slutar lova effekt maskinen aldrig producerat. Det kan bara tygla optimism — minst 60 % av märkeffekten är alltid tillgänglig.",
           "solar_aperture_learning_enabled": "Fönsterarea och skuggning är konfigurerade gissningar. Detta jämför soltimmarnas prognoser med vad som faktiskt hände och skalar solvinsten därefter, mellan en tredjedel och det dubbla av det konfigurerade värdet.",
           "internal_gains_learning_enabled": "Människor, matlagning och apparater värmer huset i en dygnsrytm som den platta konstanten inte ser. Detta lär en timprofil ur mörkertimmarnas prognosfel, varsamt förankrad i det konfigurerade värdet så att den förblir en förfining, inte en omskrivning.",
-          "curve_learning_enabled": "De flesta värmekurvor ställdes in en gång, försiktigt, av en installatör som aldrig kom tillbaka. Detta lär en stående korrigering ur dagar som höll komforten med marginal — kryper svalare med högst en halv grad per vecka, och återgår omedelbart till installatörens kurva vid varje komfortmiss. Den kan bara kyla en för het kurva, aldrig värma."
+          "curve_learning_enabled": "De flesta värmekurvor ställdes in en gång, försiktigt, av en installatör som aldrig kom tillbaka. Detta lär en stående korrigering ur dagar som höll komforten med marginal — kryper svalare med högst en halv grad per vecka, och återgår omedelbart till installatörens kurva vid varje komfortmiss. Den kan bara kyla en för het kurva, aldrig värma.",
+          "external_heat_decay_minutes": "Hur länge upptäckt extern värme antas fortsätta bidra efter att bevisen klingat av. Längre tid håller tillbaka planen längre efter att en brasa brunnit ut."
         }
       }
     },
@@ -620,7 +659,12 @@
       "dhw_min_too_close": "Ett varmvattenminimum s\\u00e5 n\\u00e4ra b\\u00f6rv\\u00e4rdet l\\u00e4mnar tanken utan arbetsband; h\\u00e5ll det minst 5 \\u00b0C under b\\u00f6rv\\u00e4rdet.",
       "invalid_grid_fee_rules": "Avgiftsreglerna kunde inte läsas. En regel per rad, som \"Nov-Mar Mån-Fre 06:00-22:00 = 0.25\".",
       "invalid_peak_months": "Månaderna kunde inte läsas. Använd intervall som \"Nov-Mar\" eller enstaka månader som \"Jul\".",
-      "invalid_peak_hours": "Timmarna kunde inte läsas. Använd 24-timmarsintervall som \"07:00-19:00\"."
+      "invalid_peak_hours": "Timmarna kunde inte läsas. Använd 24-timmarsintervall som \"07:00-19:00\".",
+      "min_above_target": "Lägsta temperaturen ligger över måltemperaturen.",
+      "max_below_target": "Högsta temperaturen ligger under måltemperaturen.",
+      "night_above_day": "Nattemperaturen ligger över dagtemperaturen.",
+      "day_window_empty": "Dagen skulle sluta innan den börjar, så ingen dagperiod blir kvar alls.",
+      "min_power_above_max": "Värmepumpens lägsta effekt ligger över dess högsta."
     }
   },
   "selector": {

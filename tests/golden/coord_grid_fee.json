@@ -87,6 +87,7 @@
   },
   "cop_samples": 0,
   "cop_scale": 1.0,
+  "currency": "SEK",
   "current_action": {},
   "current_grid_fee": 0.05,
   "current_price": 0.65,

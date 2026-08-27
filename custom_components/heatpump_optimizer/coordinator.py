@@ -341,6 +341,7 @@ from .grid_fee import (
 )
 from .dhw_draws import DrawStats, labels_for, window_label as draw_window_label
 from .curve_learning import CurveLearner
+from .currency import resolve_currency
 from .drift import Cusum
 from .ledger import KEEP_MONTHS, MonthlyLedger, month_key
 from .wear import StartCounter, wear_price_per_start
@@ -608,6 +609,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         """
         self.entry = entry
         self._config = {**entry.data, **entry.options}
+        # Resolved once: the sensors stamp it into their units at
+        # construction, and units must not change while an entity lives.
+        self.currency = resolve_currency(hass)
 
         super().__init__(
             hass,
@@ -5479,6 +5483,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # T7 #61: the frequency stage, map and recommendation — additive,
         # "unconfigured" and empty without the entity.
         data["freq_control"] = self._freq_view()
+        # v4.1.0: the unit every monetary figure above is denominated in,
+        # published so the card never has to guess it from a sensor's unit
+        # string.
+        data["currency"] = self.currency
 
         # Only surface the manual-plan key while an override is actually active,
         # so a plan-free solve (the golden fixtures included) is byte-for-byte

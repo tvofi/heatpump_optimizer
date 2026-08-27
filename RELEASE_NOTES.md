@@ -1,5 +1,49 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v4.1.0
+
+### A setup a homeowner can finish, and sensors that say what they mean
+
+**New setups get a questionnaire instead of physics homework.** Initial
+setup used to walk everyone through six required pages, including raw
+thermal values in kWh/°C that nobody knows and eight Danfoss ECL110 MQTT
+fields that only ECL110 owners can answer. Setup now branches after the
+temperature page: *Describe my building* (recommended) asks what the house
+is made of, roughly when it was built, its foundation, heated area and
+emitters — the same questionnaire the options flow has had — and derives
+the thermal starting values, leaving only three nameplate numbers for the
+heat pump. *Enter thermal values directly* keeps the old pages verbatim
+for anyone holding real figures. **Existing installs keep their
+configuration exactly as it is**; only new setups see the new path.
+
+**The ECL110 fields moved, they were not removed.** They live on the
+options page *Heat curve control (ECL110)*, where they always also were.
+An install that configured them keeps them; every reader falls back to
+the same defaults when they are absent.
+
+**Contradictory settings are now rejected at the form.** A minimum
+temperature above the target, a night temperature above the day one, a
+day that ends before it starts, or a heat pump minimum power above its
+maximum could all be saved — and the optimizer treats those bounds as
+soft penalties, so the plan just sat in permanent violation with nothing
+to point at. Both the setup and the options forms now refuse the
+contradiction on the field that caused it, in plain language.
+
+**Sensors follow your Home Assistant currency.** Every cost figure was
+hard-coded to SEK. Sensors now use the currency configured on the
+instance (SEK stays the fallback, so existing installs and their
+long-term statistics are unchanged), and the published data carries the
+currency so the dashboard card can read it. Sensor displays also gained
+sensible rounding — temperatures to a tenth, money and COP to two
+decimals — without changing any recorded value.
+
+**Fewer dead entities on fresh installs.** Six sensors that only mean
+something with opt-in hardware or long-collected evidence — the two
+ECL110 sensors, the valve target recommendation, the compressor frequency
+advisor, the contract comparison and the DHW heavy-day demand — are now
+disabled by default on new installs. Existing installs are unaffected;
+any of them can be enabled from the entity registry in one click.
+
 ## v4.0.7
 
 ### Card: the plan is editable on a phone now

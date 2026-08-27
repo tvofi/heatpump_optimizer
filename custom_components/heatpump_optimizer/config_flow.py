@@ -367,11 +367,65 @@ def _number(
     return selector.NumberSelector(selector.NumberSelectorConfig(**config))
 
 
-def _temperature(
-    minimum: float, maximum: float, step: float = 0.5, *, slider: bool = True
-) -> selector.NumberSelector:
-    """A temperature in degrees Celsius."""
-    return _number(minimum, maximum, step, "°C", slider=slider)
+def _effective(
+    candidate: dict[str, Any], current: dict[str, Any], key: str, default: Any
+) -> float:
+    """The value a save would leave in force for one field.
+
+    Cross-field rules must judge the *pair that would be stored*, not just
+    the submitted form: the options pages save partial pages over existing
+    data, so a form that only carries one half of a pair can still create a
+    contradiction with the stored other half.
+    """
+    return float(candidate.get(key, current.get(key, default)))
+
+
+def _band_errors(
+    candidate: dict[str, Any], current: dict[str, Any]
+) -> dict[str, str]:
+    """Comfort-band contradictions no single selector can catch.
+
+    Each violation lands on the field a user would naturally correct. The
+    optimizer treats these bounds as soft penalties, so an inverted band is
+    not rejected downstream — the plan just sits in permanent violation,
+    which is the same undiagnosable failure mode the DHW deadband check
+    exists for.
+    """
+    errors: dict[str, str] = {}
+    target = _effective(candidate, current, CONF_TARGET_TEMP, DEFAULT_TARGET_TEMP)
+    if _effective(candidate, current, CONF_MIN_TEMP, DEFAULT_MIN_TEMP) > target:
+        errors[CONF_MIN_TEMP] = "min_above_target"
+    if target > _effective(candidate, current, CONF_MAX_TEMP, DEFAULT_MAX_TEMP):
+        errors[CONF_MAX_TEMP] = "max_below_target"
+    if _effective(
+        candidate, current, CONF_COMFORT_TEMP_NIGHT, DEFAULT_COMFORT_TEMP_NIGHT
+    ) > _effective(
+        candidate, current, CONF_COMFORT_TEMP_DAY, DEFAULT_COMFORT_TEMP_DAY
+    ):
+        errors[CONF_COMFORT_TEMP_NIGHT] = "night_above_day"
+    # get_comfort_temp only returns the day value for start <= hour < end, so
+    # start >= end leaves the house on the night temperature around the
+    # clock — the same rule the apply_schedule service already enforces.
+    if int(
+        _effective(candidate, current, CONF_DAY_START_HOUR, DEFAULT_DAY_START_HOUR)
+    ) >= int(
+        _effective(candidate, current, CONF_DAY_END_HOUR, DEFAULT_DAY_END_HOUR)
+    ):
+        errors[CONF_DAY_END_HOUR] = "day_window_empty"
+    return errors
+
+
+def _power_errors(
+    candidate: dict[str, Any], current: dict[str, Any]
+) -> dict[str, str]:
+    """A modulation floor above the ceiling inverts the solver's power bounds."""
+    if _effective(
+        candidate, current, CONF_HEAT_PUMP_MIN_POWER, DEFAULT_HEAT_PUMP_MIN_POWER
+    ) > _effective(
+        candidate, current, CONF_HEAT_PUMP_MAX_POWER, DEFAULT_HEAT_PUMP_MAX_POWER
+    ):
+        return {CONF_HEAT_PUMP_MIN_POWER: "min_power_above_max"}
+    return {}
 
 
 def _dhw_min_too_close(candidate: dict[str, Any], current: dict[str, Any]) -> bool:
@@ -488,6 +542,102 @@ def _default_location(hass: HomeAssistant, current: dict[str, Any]) -> dict[str,
     }
 
 
+def _questionnaire_fields(current: dict[str, Any]) -> dict[Any, Any]:
+    """The building questionnaire, shared by initial setup and options.
+
+    One field list, two flows: the initial ``building_describe`` step and the
+    options ``building_preset`` page must ask the identical questions, or the
+    two paths would derive different physics for the same answers. Anything
+    either page adds around these (the enable flag, the structural extras)
+    stays that page's own.
+    """
+    return {
+        vol.Optional(
+            CONF_BUILDING_STRUCTURE,
+            default=current.get(
+                CONF_BUILDING_STRUCTURE, presets.STRUCTURE_TIMBER_SLAB
+            ),
+        ): _select(list(presets.STRUCTURES), "building_structure"),
+        vol.Optional(
+            CONF_BUILDING_ERA,
+            default=current.get(CONF_BUILDING_ERA, presets.ERA_1980_2005),
+        ): _select(list(presets.ERAS), "building_era"),
+        vol.Optional(
+            CONF_BUILDING_FOUNDATION,
+            default=current.get(
+                CONF_BUILDING_FOUNDATION, presets.FOUNDATION_NONE
+            ),
+        ): _select(list(presets.FOUNDATIONS), "building_foundation"),
+        vol.Optional(
+            CONF_HEATED_AREA,
+            default=current.get(CONF_HEATED_AREA, DEFAULT_HEATED_AREA),
+        ): _number(20, 1000, 5, "m²"),
+        vol.Optional(
+            CONF_UPPER_EMITTER,
+            default=current.get(CONF_UPPER_EMITTER, presets.EMITTER_RADIATORS),
+        ): _select(list(presets.EMITTERS), "emitter"),
+        vol.Optional(
+            CONF_LOWER_EMITTER,
+            default=current.get(CONF_LOWER_EMITTER, presets.EMITTER_FLOOR),
+        ): _select(list(presets.EMITTERS), "emitter"),
+    }
+
+
+def _derive_preset(answers: dict[str, Any], current: dict[str, Any]) -> dict[str, Any]:
+    """Turn questionnaire answers into thermal-parameter starting values.
+
+    ``two_zone`` follows the same presence rule the rest of the integration
+    uses — a fresh setup has no zone keys, so the questionnaire derives a
+    single-zone model and never writes the keys whose presence would flip
+    two-zone on.
+    """
+    preset = presets.BuildingPreset(
+        structure=answers.get(CONF_BUILDING_STRUCTURE, ""),
+        era=answers.get(CONF_BUILDING_ERA, ""),
+        foundation=answers.get(CONF_BUILDING_FOUNDATION, ""),
+        heated_area_m2=float(answers.get(CONF_HEATED_AREA, DEFAULT_HEATED_AREA)),
+        upper_emitter=answers.get(CONF_UPPER_EMITTER, ""),
+        lower_emitter=answers.get(CONF_LOWER_EMITTER, ""),
+        upper_area_ratio=float(
+            current.get(CONF_UPPER_FLOOR_AREA_RATIO, DEFAULT_UPPER_FLOOR_AREA_RATIO)
+        ),
+        two_zone=bool(current.get(CONF_UPPER_FLOOR_THERMAL_MASS)),
+    )
+    derived = presets.derive(preset)
+    # The derived response time is informational; it is not a thermal
+    # parameter and would be rejected by the model.
+    derived.pop("heating_response_hours", None)
+    return derived
+
+
+async def _translated_menu(
+    hass: HomeAssistant, flow_type: str, step_id: str, labels: dict[str, str]
+) -> dict[str, str]:
+    """Menu entries as explicit ``step id -> label`` pairs.
+
+    Passing plain step ids instead would leave the frontend to translate
+    them, and it renders an empty row when that lookup comes back empty,
+    which shows up as a menu of unreadable blank lines. Supplying the label
+    ourselves means the menu is always legible; the translation is still
+    used whenever it resolves.
+    """
+    labels = dict(labels)
+    try:
+        translations = await async_get_translations(
+            hass, hass.config.language, flow_type, {DOMAIN}
+        )
+    except Exception:  # noqa: BLE001 - a menu must never fail to render
+        _LOGGER.debug("Could not load %s menu translations", flow_type, exc_info=True)
+        return labels
+
+    prefix = f"component.{DOMAIN}.{flow_type}.step.{step_id}.menu_options."
+    for entry in labels:
+        translated = translations.get(f"{prefix}{entry}")
+        if translated:
+            labels[entry] = translated
+    return labels
+
+
 class HeatPumpOptimizerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Heat Pump Optimizer."""
 
@@ -540,38 +690,11 @@ class HeatPumpOptimizerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Optional(
                         CONF_BUFFER_TANK_TEMP_ENTITY
                     ): _entity_of("sensor", "temperature"),
-                    vol.Optional(
-                        CONF_ECL110_DISPLACE_SET_TOPIC,
-                        default=DEFAULT_ECL110_DISPLACE_SET_TOPIC,
-                    ): str,
-                    vol.Optional(
-                        CONF_ECL110_COMMAND_TOPIC,
-                        default=DEFAULT_ECL110_COMMAND_TOPIC,
-                    ): str,
-                    vol.Optional(
-                        CONF_ECL110_STATE_TOPIC,
-                        default=DEFAULT_ECL110_STATE_TOPIC,
-                    ): str,
-                    vol.Optional(
-                        CONF_ECL110_QOS,
-                        default=DEFAULT_ECL110_QOS,
-                    ): _number(0, 2, 1, slider=True),
-                    vol.Optional(
-                        CONF_ECL110_RETAIN,
-                        default=DEFAULT_ECL110_RETAIN,
-                    ): bool,
-                    vol.Optional(
-                        CONF_ECL110_DISPLACE_MIN,
-                        default=DEFAULT_ECL110_DISPLACE_MIN,
-                    ): _number(-30, 0, 0.5, "°C"),
-                    vol.Optional(
-                        CONF_ECL110_DISPLACE_MAX,
-                        default=DEFAULT_ECL110_DISPLACE_MAX,
-                    ): _number(0, 30, 0.5, "°C"),
-                    vol.Optional(
-                        CONF_ECL110_PID_TIME_CONSTANT,
-                        default=DEFAULT_ECL110_PID_TIME_CONSTANT,
-                    ): _number(0.25, 6.0, 0.25, "h"),
+                    # The Danfoss ECL110 MQTT fields lived here until v4.1.0.
+                    # Eight fields only ECL110 owners can answer do not belong
+                    # on everyone's first screen; the options page "Heat curve
+                    # control (ECL110)" owns them, and every reader falls back
+                    # to the same defaults when the keys are absent.
                 }
             ),
             errors=errors,
@@ -584,12 +707,16 @@ class HeatPumpOptimizerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Handle temperature configuration step."""
+        errors: dict[str, str] = {}
         if user_input is not None:
-            self._data.update(user_input)
-            return await self.async_step_thermal()
+            errors = _band_errors(user_input, self._data)
+            if not errors:
+                self._data.update(user_input)
+                return await self.async_step_building()
 
         return self.async_show_form(
             step_id="temperature",
+            errors=errors,
             data_schema=vol.Schema(
                 {
                     vol.Required(
@@ -617,16 +744,103 @@ class HeatPumpOptimizerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             ),
         )
 
+    async def async_step_building(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Choose how the thermal model gets its starting values.
+
+        The raw ``thermal`` page asks for kWh/°C, which nobody knows; the
+        questionnaire asks what the house is made of and derives the physics
+        (presets.py). Both paths exist because both users exist — someone
+        holding a real energy declaration should not be forced through an
+        approximation of it.
+        """
+        return self.async_show_menu(
+            step_id="building",
+            menu_options=await _translated_menu(
+                self.hass,
+                "config",
+                "building",
+                {
+                    "building_describe": "Describe my building (recommended)",
+                    "thermal": "Enter thermal values directly",
+                },
+            ),
+        )
+
+    async def async_step_building_describe(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """The questionnaire path: answerable questions instead of kWh/°C.
+
+        Stores the answers themselves (so the options page shows them back),
+        marks the preset enabled, and writes the derived physics where the
+        ``thermal`` step would have written hand-typed numbers. The ``zones``
+        step is skipped entirely: its voluptuous defaults would write the
+        two-zone presence keys on every fresh install, which is exactly the
+        one-specific-house prior presets.py exists to end.
+        """
+        if user_input is not None:
+            self._data.update(user_input)
+            self._data[CONF_BUILDING_PRESET_ENABLED] = True
+            self._data.update(_derive_preset(user_input, self._data))
+            return await self.async_step_building_extras()
+
+        return self.async_show_form(
+            step_id="building_describe",
+            data_schema=vol.Schema(_questionnaire_fields(self._data)),
+        )
+
+    async def async_step_building_extras(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """What the questionnaire cannot derive: the heat pump itself.
+
+        Three numbers off the nameplate. Everything else the skipped
+        ``thermal``/``zones`` pages asked (weights, interval, window and
+        solar factors) has a shipped default every reader falls back to,
+        and lives in the options pages for anyone who needs it.
+        """
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            errors = _power_errors(user_input, self._data)
+            if not errors:
+                self._data.update(user_input)
+                return await self.async_step_dhw()
+
+        return self.async_show_form(
+            step_id="building_extras",
+            errors=errors,
+            data_schema=vol.Schema(
+                {
+                    vol.Required(
+                        CONF_HEAT_PUMP_COP_NOMINAL,
+                        default=DEFAULT_HEAT_PUMP_COP_NOMINAL,
+                    ): _number(1.5, 6.0, 0.1),
+                    vol.Required(
+                        CONF_HEAT_PUMP_MAX_POWER, default=DEFAULT_HEAT_PUMP_MAX_POWER
+                    ): _number(1, 20, 0.5, "kW"),
+                    vol.Required(
+                        CONF_HEAT_PUMP_MIN_POWER, default=DEFAULT_HEAT_PUMP_MIN_POWER
+                    ): _number(0, 10, 0.5, "kW"),
+                }
+            ),
+        )
+
     async def async_step_thermal(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Handle thermal model configuration step."""
+        errors: dict[str, str] = {}
         if user_input is not None:
-            self._data.update(user_input)
-            return await self.async_step_zones()
+            errors = _power_errors(user_input, self._data)
+            if not errors:
+                self._data.update(user_input)
+                return await self.async_step_zones()
 
         return self.async_show_form(
             step_id="thermal",
+            errors=errors,
             data_schema=vol.Schema(
                 {
                     vol.Required(
@@ -953,7 +1167,7 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
         labels["advanced"] = self._ADVANCED_LABEL
         return self.async_show_menu(
             step_id="init",
-            menu_options=await self._translated_menu("init", labels),
+            menu_options=await _translated_menu(self.hass, "options", "init", labels),
         )
 
     async def async_step_advanced(
@@ -963,35 +1177,10 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
         labels = {step: self._MENU_LABELS[step] for step in self._ADVANCED_MENU}
         return self.async_show_menu(
             step_id="advanced",
-            menu_options=await self._translated_menu("advanced", labels),
+            menu_options=await _translated_menu(
+                self.hass, "options", "advanced", labels
+            ),
         )
-
-    async def _translated_menu(
-        self, step_id: str, labels: dict[str, str]
-    ) -> dict[str, str]:
-        """Menu entries as explicit ``step id -> label`` pairs.
-
-        Passing plain step ids instead would leave the frontend to translate
-        them, and it renders an empty row when that lookup comes back empty,
-        which shows up as a menu of unreadable blank lines. Supplying the label
-        ourselves means the menu is always legible; the translation is still
-        used whenever it resolves.
-        """
-        labels = dict(labels)
-        try:
-            translations = await async_get_translations(
-                self.hass, self.hass.config.language, "options", {DOMAIN}
-            )
-        except Exception:  # noqa: BLE001 - a menu must never fail to render
-            _LOGGER.debug("Could not load option menu translations", exc_info=True)
-            return labels
-
-        prefix = f"component.{DOMAIN}.options.step.{step_id}.menu_options."
-        for entry in labels:
-            translated = translations.get(f"{prefix}{entry}")
-            if translated:
-                labels[entry] = translated
-        return labels
 
     async def async_step_setup_overview(
         self, user_input: dict[str, Any] | None = None
@@ -1123,15 +1312,22 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """How warm the house should be, and when."""
+        errors: dict[str, str] = {}
         if user_input is not None:
-            cleaned = dict(user_input)
-            # This page's clearable entity (T5 #54): an absent selector is
-            # written back as None so clearing genuinely clears.
-            if not cleaned.get(CONF_INDOOR_HUMIDITY_ENTITY):
-                cleaned[CONF_INDOOR_HUMIDITY_ENTITY] = None
-            return self._save(cleaned)
+            errors = _band_errors(user_input, self._current)
+            if not errors:
+                cleaned = dict(user_input)
+                # This page's clearable entity (T5 #54): an absent selector is
+                # written back as None so clearing genuinely clears.
+                if not cleaned.get(CONF_INDOOR_HUMIDITY_ENTITY):
+                    cleaned[CONF_INDOOR_HUMIDITY_ENTITY] = None
+                return self._save(cleaned)
 
         current = self._current
+        if user_input is not None:
+            # Re-render the rejected form with what was typed, not with the
+            # stored values the user was in the middle of changing.
+            current = {**current, **user_input}
 
         def _entity_default(key: str) -> Any:
             existing = current.get(key)
@@ -1140,6 +1336,7 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
             return vol.Optional(key)
         return self.async_show_form(
             step_id="comfort",
+            errors=errors,
             data_schema=vol.Schema(
                 {
                     vol.Required(
@@ -1512,10 +1709,18 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
         is a no-op — and fields without one render empty; an empty box is
         omitted from ``user_input`` and never saved.
         """
+        errors: dict[str, str] = {}
         if user_input is not None:
-            return self._save(user_input)
+            # Judged against the *effective* pair: this page saves partial
+            # input over stored data, so a submitted floor can contradict a
+            # stored ceiling without both being on the form.
+            errors = _power_errors(user_input, self._current)
+            if not errors:
+                return self._save(user_input)
 
         current = self._current
+        if user_input is not None:
+            current = {**current, **user_input}
 
         def _numeric(key: str) -> Any:
             """Optional key that suggests the stored value without defaulting it."""
@@ -1527,6 +1732,7 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
 
         return self.async_show_form(
             step_id="thermal_model",
+            errors=errors,
             data_schema=vol.Schema(
                 {
                     _numeric(CONF_HOUSE_THERMAL_MASS): _number(2, 50, 0.5, "kWh/°C"),
@@ -1756,28 +1962,7 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
         if user_input is not None:
             saved = dict(user_input)
             if saved.get(CONF_BUILDING_PRESET_ENABLED):
-                preset = presets.BuildingPreset(
-                    structure=saved.get(CONF_BUILDING_STRUCTURE, ""),
-                    era=saved.get(CONF_BUILDING_ERA, ""),
-                    foundation=saved.get(CONF_BUILDING_FOUNDATION, ""),
-                    heated_area_m2=float(
-                        saved.get(CONF_HEATED_AREA, DEFAULT_HEATED_AREA)
-                    ),
-                    upper_emitter=saved.get(CONF_UPPER_EMITTER, ""),
-                    lower_emitter=saved.get(CONF_LOWER_EMITTER, ""),
-                    upper_area_ratio=float(
-                        current.get(
-                            CONF_UPPER_FLOOR_AREA_RATIO,
-                            DEFAULT_UPPER_FLOOR_AREA_RATIO,
-                        )
-                    ),
-                    two_zone=bool(current.get(CONF_UPPER_FLOOR_THERMAL_MASS)),
-                )
-                derived = presets.derive(preset)
-                # The derived response time is informational; it is not a
-                # thermal parameter and would be rejected by the model.
-                derived.pop("heating_response_hours", None)
-                saved.update(derived)
+                saved.update(_derive_preset(saved, current))
             return self._save(saved)
 
         return self.async_show_form(
@@ -1791,36 +1976,10 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
                             DEFAULT_BUILDING_PRESET_ENABLED,
                         ),
                     ): bool,
-                    vol.Optional(
-                        CONF_BUILDING_STRUCTURE,
-                        default=current.get(
-                            CONF_BUILDING_STRUCTURE, presets.STRUCTURE_TIMBER_SLAB
-                        ),
-                    ): _select(list(presets.STRUCTURES), "building_structure"),
-                    vol.Optional(
-                        CONF_BUILDING_ERA,
-                        default=current.get(CONF_BUILDING_ERA, presets.ERA_1980_2005),
-                    ): _select(list(presets.ERAS), "building_era"),
-                    vol.Optional(
-                        CONF_BUILDING_FOUNDATION,
-                        default=current.get(
-                            CONF_BUILDING_FOUNDATION, presets.FOUNDATION_NONE
-                        ),
-                    ): _select(list(presets.FOUNDATIONS), "building_foundation"),
-                    vol.Optional(
-                        CONF_HEATED_AREA,
-                        default=current.get(CONF_HEATED_AREA, DEFAULT_HEATED_AREA),
-                    ): _number(20, 1000, 5, "m²"),
-                    vol.Optional(
-                        CONF_UPPER_EMITTER,
-                        default=current.get(
-                            CONF_UPPER_EMITTER, presets.EMITTER_RADIATORS
-                        ),
-                    ): _select(list(presets.EMITTERS), "emitter"),
-                    vol.Optional(
-                        CONF_LOWER_EMITTER,
-                        default=current.get(CONF_LOWER_EMITTER, presets.EMITTER_FLOOR),
-                    ): _select(list(presets.EMITTERS), "emitter"),
+                    # The questionnaire itself is shared with the initial
+                    # flow's building_describe step — one field list, so the
+                    # two paths can never ask different questions.
+                    **_questionnaire_fields(current),
                     # Structural properties of the building itself, beside
                     # the questions that describe it. None of these are
                     # derived by the preset, so a hand-set value survives

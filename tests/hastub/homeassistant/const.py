@@ -42,5 +42,9 @@ class UnitOfTemperature:
     FAHRENHEIT = "°F"
 
 
+class UnitOfVolume:
+    LITERS = "L"
+
+
 PERCENTAGE = "%"
 ATTR_TEMPERATURE = "temperature"
