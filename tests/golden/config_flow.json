@@ -365,7 +365,7 @@
    "house_heat_loss_coefficient": {
     "config": {
      "max": "1.0",
-     "min": "0.05",
+     "min": "0.01",
      "mode": "'box'",
      "step": "0.01",
      "unit_of_measurement": "'kW/\u00b0C'"
@@ -376,8 +376,8 @@
    },
    "house_thermal_mass": {
     "config": {
-     "max": "50",
-     "min": "2",
+     "max": "80.0",
+     "min": "0.5",
      "mode": "'box'",
      "step": "0.5",
      "unit_of_measurement": "'kWh/\u00b0C'"
@@ -412,7 +412,7 @@
    "slab_heat_transfer": {
     "config": {
      "max": "5.0",
-     "min": "0.1",
+     "min": "0.02",
      "mode": "'box'",
      "step": "0.1",
      "unit_of_measurement": "'kW/\u00b0C'"
@@ -423,8 +423,8 @@
    },
    "slab_thermal_mass": {
     "config": {
-     "max": "30",
-     "min": "1",
+     "max": "60.0",
+     "min": "0.05",
      "mode": "'box'",
      "step": "0.5",
      "unit_of_measurement": "'kWh/\u00b0C'"
@@ -589,8 +589,8 @@
    },
    "lower_floor_heat_loss": {
     "config": {
-     "max": "0.5",
-     "min": "0.01",
+     "max": "1.0",
+     "min": "0.001",
      "mode": "'box'",
      "step": "0.01",
      "unit_of_measurement": "'kW/\u00b0C'"
@@ -601,8 +601,8 @@
    },
    "lower_floor_thermal_mass": {
     "config": {
-     "max": "30",
-     "min": "1",
+     "max": "60.0",
+     "min": "0.25",
      "mode": "'box'",
      "step": "0.5",
      "unit_of_measurement": "'kWh/\u00b0C'"
@@ -657,8 +657,8 @@
    },
    "upper_floor_heat_loss": {
     "config": {
-     "max": "0.5",
-     "min": "0.01",
+     "max": "1.0",
+     "min": "0.001",
      "mode": "'box'",
      "step": "0.01",
      "unit_of_measurement": "'kW/\u00b0C'"
@@ -669,8 +669,8 @@
    },
    "upper_floor_thermal_mass": {
     "config": {
-     "max": "20",
-     "min": "1",
+     "max": "60.0",
+     "min": "0.25",
      "mode": "'box'",
      "step": "0.5",
      "unit_of_measurement": "'kWh/\u00b0C'"
@@ -1983,7 +1983,7 @@
   "house_heat_loss_coefficient": {
    "config": {
     "max": "1.0",
-    "min": "0.05",
+    "min": "0.01",
     "mode": "'box'",
     "step": "0.01",
     "unit_of_measurement": "'kW/\u00b0C'"
@@ -1994,8 +1994,8 @@
   },
   "house_thermal_mass": {
    "config": {
-    "max": "50",
-    "min": "2",
+    "max": "80.0",
+    "min": "0.5",
     "mode": "'box'",
     "step": "0.5",
     "unit_of_measurement": "'kWh/\u00b0C'"
@@ -2018,8 +2018,8 @@
   },
   "lower_floor_heat_loss": {
    "config": {
-    "max": "0.5",
-    "min": "0.01",
+    "max": "1.0",
+    "min": "0.001",
     "mode": "'box'",
     "step": "0.01",
     "unit_of_measurement": "'kW/\u00b0C'"
@@ -2030,8 +2030,8 @@
   },
   "lower_floor_thermal_mass": {
    "config": {
-    "max": "30",
-    "min": "1",
+    "max": "60.0",
+    "min": "0.25",
     "mode": "'box'",
     "step": "0.5",
     "unit_of_measurement": "'kWh/\u00b0C'"
@@ -2054,7 +2054,7 @@
   "slab_heat_transfer": {
    "config": {
     "max": "5.0",
-    "min": "0.1",
+    "min": "0.02",
     "mode": "'box'",
     "step": "0.1",
     "unit_of_measurement": "'kW/\u00b0C'"
@@ -2065,8 +2065,8 @@
   },
   "slab_thermal_mass": {
    "config": {
-    "max": "30",
-    "min": "1",
+    "max": "60.0",
+    "min": "0.05",
     "mode": "'box'",
     "step": "0.5",
     "unit_of_measurement": "'kWh/\u00b0C'"
@@ -2109,8 +2109,8 @@
   },
   "upper_floor_heat_loss": {
    "config": {
-    "max": "0.5",
-    "min": "0.01",
+    "max": "1.0",
+    "min": "0.001",
     "mode": "'box'",
     "step": "0.01",
     "unit_of_measurement": "'kW/\u00b0C'"
@@ -2121,8 +2121,8 @@
   },
   "upper_floor_thermal_mass": {
    "config": {
-    "max": "20",
-    "min": "1",
+    "max": "60.0",
+    "min": "0.25",
     "mode": "'box'",
     "step": "0.5",
     "unit_of_measurement": "'kWh/\u00b0C'"

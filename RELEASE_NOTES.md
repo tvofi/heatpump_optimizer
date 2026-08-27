@@ -1,5 +1,67 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v5.1.6
+
+### The expert thermal page can be saved again
+
+Changing a number under **Thermal model (expert)** and pressing Submit did
+nothing, most of the time. No error, no message — the dialog simply stayed
+open and nothing was stored. Turning *Derive thermal values from the
+building type* off did not help, and the occasional save that did stick
+made it look random.
+
+It was not random. The page pre-fills every box from what is stored and
+your browser posts all of them back, so one stored value the page refuses
+to accept blocks the whole form, whichever field you were actually
+editing. And the values the building questionnaire works out are scaled by
+your heated area, while the ranges those boxes accepted were guessed
+around a single 140 m² house with floor heating. A house with radiators
+only is the clearest case: its "slab" store is the water and steel of the
+radiator circuit, about 0.2 kWh/°C for 100 m², against a box that started
+at 1. Sweeping every building the questionnaire can describe, two thirds
+of them produced at least one value their own page would not take back.
+
+Three things changed.
+
+**The ranges now match the physics.** They cover everything the
+questionnaire derives for a house of 40 to 400 m², of any construction,
+era, foundation and emitter, with a little headroom — and no more than
+that, so a mistyped number is still caught.
+
+**A value already stored can always be shown and saved.** If a value falls
+outside its field's range anyway — a very small or very large building,
+or a number written by the `apply_schedule` service — that one field
+stretches to fit it and the page tells you which field it was and why. The
+rest of the page keeps its normal limits. This applies to every page and to
+first-run setup, not just the expert one.
+
+**Editing an expert value now means it.** While derivation from the
+building type is on, saving *Building type and emitters* recalculates all
+ten derived numbers and overwrites whatever you typed. Changing any of them
+on the expert page now switches the derivation off, so your value stays,
+and the page says so while the derivation is armed.
+
+### Two captions that were giving wrong advice
+
+*House thermal mass* said "roughly 3 kWh/°C for a light timber house, 8 or
+more for heavy masonry". Those figures describe one 140 m² house with floor
+heating, on a field that scales with your area — and this field only holds
+the fast store, the room air, furnishings and light fabric; heavy floors are
+counted separately under *Slab floor thermal mass*. A 100 m² timber house
+belongs near 2, and "correcting" it up to 3 tells the optimizer the house
+coasts about a quarter further than it does. The advice is now given per
+square metre and says where the rest of the building is counted. The two
+slab captions, which described a concrete slab only, now also say what the
+field means for a house with radiators.
+
+*Derive thermal values from the building type* said it overwrites values
+"on the House and heating system page". There is no such page — the values
+it overwrites are all on *Thermal model (expert)*, and it overwrites them
+each time the questionnaire is saved, not continuously. It now says both.
+
+Nothing about how plans are computed has changed: every optimizer
+characterization fixture is byte-identical.
+
 ## v5.1.5
 
 ### Undo, while you are rearranging the system layout
