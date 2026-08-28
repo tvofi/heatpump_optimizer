@@ -94,7 +94,7 @@ FULL_CAPABILITY = ModeCapability(
     space_heat=True,
     dhw=True,
     cooling=False,
-    # The pre-v5.2.0 assumption, kept for anything unrecognised: without
+    # The pre-v5.3.0 assumption, kept for anything unrecognised: without
     # evidence that this unit runs two duties at once, do not assume it can.
     concurrent=False,
     known=False,

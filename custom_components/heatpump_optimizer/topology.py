@@ -89,7 +89,7 @@ _SLOTS: tuple[tuple[str, str, str, tuple[str, ...]], ...] = (
     (CONF_POWER_ENTITY, "heat_pump", "Power meter", _TEMP),
     (CONF_ENERGY_ENTITY, "heat_pump", "Energy meter", _TEMP),
     (CONF_HOUSE_POWER_ENTITY, "heat_pump", "Whole-house power", _TEMP),
-    # v5.2.0: what the pump says about itself. All optional, all read-only,
+    # v5.3.0: what the pump says about itself. All optional, all read-only,
     # all at the heat pump because that is the device they describe.
     (CONF_HEAT_PUMP_MODE_ENTITY, "heat_pump", "Operating mode", _MODE),
     (CONF_HEAT_PUMP_DEFROST_ENTITY, "heat_pump", "Defrosting", _FLAG),

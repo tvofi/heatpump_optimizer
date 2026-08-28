@@ -19,7 +19,7 @@ changes nothing.
 Two estimators, and which one is right
 --------------------------------------
 
-**The measured one (v5.2.0, preferred).** With a defrost flag from the pump,
+**The measured one (v5.3.0, preferred).** With a defrost flag from the pump,
 duty is directly countable: fraction of the interval the unit spent defrosting.
 The derate then follows from physics rather than from inference —
 ``factor = 1 - duty x DEFROST_LOSS_MULTIPLIER`` — where the multiplier is
@@ -28,7 +28,7 @@ merely zero, heat is actively pulled back out of the water loop to melt the
 ice, and the minutes after it ends are spent recovering the loop temperature
 before useful output resumes.
 
-**The inferred one (pre-v5.2.0, the fallback).** Without a flag, the derate is
+**The inferred one (pre-v5.3.0, the fallback).** Without a flag, the derate is
 inferred from ``accuracy.delivered_ratio`` — and it is worth being explicit
 about what that ratio is, because its own docstring is misleading. It is
 ``predicted_power / actual_power``: purely electrical, with no heat and no
@@ -39,12 +39,12 @@ measured estimator exists:
    draws roughly its normal power while delivering approximately no useful
    heat, so the ratio sits near 1.0 — the signature of a perfectly performing
    unit. Gating this estimator on a genuine defrost flag would therefore teach
-   it "no derate", which is exactly backwards, and is why v5.2.0 does not do
+   it "no derate", which is exactly backwards, and is why v5.3.0 does not do
    that.
 2. *Its error is biased optimistic.* The gaps between commanded and measured
    power are dominated by the pump drawing LESS than commanded (compressor
    limits, cycling, ramp lag), so the ratio comes out above 1 — and until
-   v5.2.0 the clamp allowed up to 1.05, i.e. "delivers 5% MORE than modelled",
+   v5.3.0 the clamp allowed up to 1.05, i.e. "delivers 5% MORE than modelled",
    in the one band that exists to be pessimistic. That clamp is now 1.0 on
    both estimators: this module models a loss, and a defrost cycle cannot make
    a heat pump exceed its own curve. The bound is arithmetic, not a judgement
@@ -91,7 +91,7 @@ def in_frost_band(outdoor_temp: float) -> bool:
 # Derate is bounded. A unit that appears to deliver less than half its rated
 # output is telling us about a broken sensor, not about frost.
 DERATE_MIN = 0.55
-# v5.2.0: 1.0, previously 1.05. This module models a LOSS; a derate above 1
+# v5.3.0: 1.0, previously 1.05. This module models a LOSS; a derate above 1
 # says frost makes the pump exceed its own curve, which is not a thing that
 # happens. The old bound let the fallback estimator's optimistic bias (see the
 # module docstring) park at "5% better than modelled" in precisely the band
@@ -104,7 +104,7 @@ DERATE_ALPHA = 0.05
 # first observation cannot swing a plan.
 DERATE_CONFIDENCE_SAMPLES = 12
 
-# --- the measured estimator (v5.2.0) ---------------------------------------
+# --- the measured estimator (v5.3.0) ---------------------------------------
 #: What a defrost costs, per unit of its own duration. Above 1 because output
 #: does not merely stop: the reversing valve pulls heat back out of the water
 #: loop to melt the ice, and the loop then has to recover before useful output
@@ -159,7 +159,7 @@ class DefrostDerate:
 
     Holds both estimators. The measured one wins in any bucket that has a duty
     sample, because it rests on a count rather than an inference; the inferred
-    one keeps every pre-v5.2.0 install working exactly as it did. They are
+    one keeps every pre-v5.3.0 install working exactly as it did. They are
     never averaged: mixing a measurement with an inference of the same quantity
     produces a number that is neither.
     """
@@ -174,7 +174,7 @@ class DefrostDerate:
     #: the arithmetic: it is how a user tells a duty learned from two coarse
     #: cloud polls from one learned from three hundred MQTT transitions.
     duty_events: list[list[int]] = field(default_factory=lambda: _grid(0))
-    #: True when a pre-v5.2.0 store was loaded and upgraded in place: its
+    #: True when a pre-v5.3.0 store was loaded and upgraded in place: its
     #: inferred factors kept and re-clamped, no measured duty to restore.
     #: Published in the diagnostics so the upgrade is visible rather than
     #: silent.
@@ -279,7 +279,7 @@ class DefrostDerate:
     ) -> None:
         """Fold in one INFERRED observation, from the electrical power ratio.
 
-        The pre-v5.2.0 estimator, kept for every install with no defrost flag.
+        The pre-v5.3.0 estimator, kept for every install with no defrost flag.
         ``delivered_ratio`` is nominally realised over predicted thermal
         output, but is in fact ``predicted_power / actual_power`` — see the
         module docstring for why that cannot see a defrost and why its error
@@ -421,7 +421,7 @@ class DefrostDerate:
             instance.migrated = isinstance(data.get("factors"), list)
             if instance.migrated:
                 _LOGGER.info(
-                    "Defrost derate: a pre-v5.2.0 store was upgraded. Its "
+                    "Defrost derate: a pre-v5.3.0 store was upgraded. Its "
                     "learned factors are kept and re-clamped to at most 1.0 "
                     "— a derate above 1 was this estimator's optimistic bias, "
                     "not physics — and measured defrost duty takes over each "

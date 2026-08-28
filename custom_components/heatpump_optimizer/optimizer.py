@@ -593,7 +593,7 @@ class OptimizationResult:
     manual_released_space: list[int] = field(default_factory=list)
     manual_released_dhw: list[int] = field(default_factory=list)
 
-    # --- Heat pump operating mode (v5.2.0) ------------------------------
+    # --- Heat pump operating mode (v5.3.0) ------------------------------
     #: True when the pump's observed mode made this channel unplannable for
     #: the whole horizon. Unlike a manual pin these are never released for
     #: safety: releasing them would put back power the hardware refuses to
@@ -804,7 +804,7 @@ class _Horizon:
     #: ambient value, which is byte-for-byte the previous behaviour.
     humidity: np.ndarray | None = None
     #: The observed operating mode has made a channel undeliverable for the
-    #: whole horizon (v5.2.0). Carried rather than derived so the reason
+    #: whole horizon (v5.3.0). Carried rather than derived so the reason
     #: codes can say *why* a channel is empty; the actual suppression is
     #: already in ``power_caps`` (space) and the DHW forced-off mask.
     space_blocked: bool = False
@@ -2036,7 +2036,7 @@ class HeatPumpOptimizer:
                 )
             result.predictive_info["power_cap_breach_c"] = round(breach, 3)
 
-        # v5.2.0: the mode block, published rather than merely recorded.
+        # v5.3.0: the mode block, published rather than merely recorded.
         # Added only when a channel is actually blocked, so an install with
         # no mode entity — every golden fixture, and the overwhelming
         # majority of installs — sees byte-identical predictive_info.
@@ -2888,7 +2888,7 @@ class HeatPumpOptimizer:
             if mask.any():
                 forced_off = mask
         if blocked:
-            # v5.2.0: the pump's mode makes no hot water at all. Entering
+            # v5.3.0: the pump's mode makes no hot water at all. Entering
             # through the same door as a forced-off pin is what keeps the
             # planners coherent: the LP, the greedy pass and the floor repair
             # all already know how to plan *around* unusable steps, so the

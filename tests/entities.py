@@ -869,7 +869,7 @@ R.check(
     "a cleared selector must be written back as None or clearing does not stick",
 )
 
-# v5.2.0: the four signals the pump publishes about itself. All optional; an
+# v5.3.0: the four signals the pump publishes about itself. All optional; an
 # install that leaves every one of them empty must behave exactly as it did
 # before they existed, which is what the "unchanged" checks below pin.
 _SIGNAL_KEYS = (

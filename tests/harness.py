@@ -70,7 +70,7 @@ class FakeState:
         # rewrites an unchanged value, which is why InputReader prefers it.
         # The stub had no such attribute at all, so every freshness test in
         # the suite was silently exercising the last_updated fallback and the
-        # mechanism v5.2.0's cloud-gap argument rests on was never run.
+        # mechanism v5.3.0's cloud-gap argument rests on was never run.
         # Defaults to last_updated (an entity that has only ever changed),
         # and a test that wants a re-reporting sensor sets it explicitly.
         self.last_reported = last_reported or self.last_updated

@@ -913,7 +913,7 @@ the learners paused. It is on by default, because it protects everything else
 and costs nothing. Learning also freezes while an external heat source is active
 and while the open-window detector is tripped.
 
-**The heat pump's own signals (v5.2.0).** Four optional slots read the pump
+**The heat pump's own signals (v5.3.0).** Four optional slots read the pump
 itself: operating mode, defrosting, online status and fault alarm. Three of
 them freeze the learners, and they freeze on a *value* rather than on a missing
 reading, which is a different shape from everything above:
@@ -997,7 +997,7 @@ twice. Without a defrost sensor there is no way to tell which intervals those
 are, so the exclusion has to cover the whole 0–5 °C frosting band — which in a
 Swedish shoulder season is a large share of all heating hours, leaving the one
 multiplier every priced plan runs through blind in the conditions it spends most
-of its life in. With a defrost flag configured (v5.2.0) the exclusion narrows to
+of its life in. With a defrost flag configured (v5.3.0) the exclusion narrows to
 the intervals that **actually contained a defrost**, and the rest of the band
 teaches `cop_scale` normally. The attribution stays disjoint, just at a far
 finer grain.
@@ -1017,7 +1017,7 @@ Two caveats are worth stating plainly:
   number of defrosts actually witnessed per bucket alongside the duty, so a
   coarse estimate can be recognised as one.
 * **Without a flag** the derate falls back to inferring the shortfall from the
-  commanded-versus-measured power ratio, exactly as before v5.2.0. That
+  commanded-versus-measured power ratio, exactly as before v5.3.0. That
   estimator cannot see a defrost at all — during one the compressor draws
   roughly normal power while delivering almost no heat, which reads as a
   perfectly performing unit — and its error is biased optimistic, because the

@@ -1,6 +1,6 @@
 # Heat Pump Cost Optimizer — Release Notes
 
-## v5.2.0
+## v5.3.0
 
 ### The heat pump can now tell the optimizer what it is doing
 

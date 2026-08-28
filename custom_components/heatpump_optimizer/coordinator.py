@@ -689,7 +689,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # #12: a weeks-scale COP baseline per 3 °C bucket, fed only outside
         # the frost band, and a slow CUSUM on the relative shortfall.
         #
-        # v5.2.0: keyed by (bucket, which curve the sample was judged
+        # v5.3.0: keyed by (bucket, which curve the sample was judged
         # against), not by bucket alone. ``_cop_reference_curve`` made
         # ``observed_cop`` curve-dependent — a hot-water interval is measured
         # against the DHW curve, which the model itself prices 8-20 % below
@@ -1048,13 +1048,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._defrost = DefrostDerate()
         self._thermal_params.defrost_derate = self._defrost
 
-        # Defrost on-time for the interval being measured (v5.2.0). Fed by
+        # Defrost on-time for the interval being measured (v5.3.0). Fed by
         # the per-cycle read AND by a state listener, because the two see
         # different things — see ``DefrostWindow``.
         self._defrost_window = DefrostWindow()
         self._unsub_defrost: Any = None
 
-        # --- Heat pump signals (v5.2.0) ------------------------------------
+        # --- Heat pump signals (v5.3.0) ------------------------------------
         # All four slots are optional and default absent, and absent resolves
         # to full capability with no freeze — so an install that configures
         # none of them behaves exactly as v5.1.5 did.
@@ -1831,7 +1831,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if isinstance(raw_baseline, dict):
             for key, entry in raw_baseline.items():
                 try:
-                    # "4" is a pre-v5.2.0 space-curve bucket and is kept as
+                    # "4" is a pre-v5.3.0 space-curve bucket and is kept as
                     # one; "4:dhw" is the hot-water curve's own baseline.
                     text = str(key)
                     is_dhw = text.endswith(":dhw")
@@ -1953,7 +1953,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             "cop_samples": self._cop_samples,
             # v4.0.0 T4a — the detectors' memory, all additive keys.
             "vent_cusum": self._vent_cusum.as_dict(),
-            # A space-curve bucket keeps its pre-v5.2.0 key ("4"), so an
+            # A space-curve bucket keeps its pre-v5.3.0 key ("4"), so an
             # older store loads unchanged and a downgrade still reads it; a
             # DHW-curve bucket rides alongside under "4:dhw". Additive, and
             # nothing is discarded on upgrade.
@@ -2296,7 +2296,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         power entity there is no measurement to prefer and the commanded
         figure remains the only available estimate, as before.
 
-        v5.2.0 fixes a silent under-report here. The subtraction removes *the
+        v5.3.0 fixes a silent under-report here. The subtraction removes *the
         plan's* hot-water allocation from the measured total, on the premise
         that the plan describes what the pump is doing. When the pump is
         actually in ``heat`` that premise is false: no hot water was made, the
@@ -2315,7 +2315,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if self._measured_power is None or self._immersion_active:
             return None
         if self._pump_signals.mode_observed and not self._pump_signals.space_heat:
-            # v5.2.0: the pump is in a mode that heats no rooms, so whatever
+            # v5.3.0: the pump is in a mode that heats no rooms, so whatever
             # the meter is reading went somewhere else — hot water, or the
             # cooling circuit. There is no space figure to extract, and
             # returning zero would be a *confident* claim that the house got
@@ -2397,7 +2397,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     def _external_heat_override(self, reader: InputReader) -> bool | None:
         """State of a user-provided stove/flue entity, if one is configured.
 
-        v5.2.0: read through the same guarded reader as the wood-side probes
+        v5.3.0: read through the same guarded reader as the wood-side probes
         beside it, rather than straight out of ``hass.states``. The override
         is the strongest single input in the integration: while it says "yes"
         the detector suppresses and the optimizer stops planning heat it
@@ -2424,7 +2424,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         that suppresses and the "no" that overrules the detector alike — for
         a household that may well leave the switch on for a fortnight of
         wood-burning. So a flag is read with no horizon, exactly as it was
-        before v5.2.0.
+        before v5.3.0.
 
         The boolean vocabulary is shared (``inputs.parse_bool``); the numeric
         rule is NOT, and numbers are therefore tested FIRST. A flue
@@ -2567,7 +2567,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         stored COP would then be subtracted from a curve it was never
         referenced to. ``_learn_measured_cop`` writes all three together.
 
-        v5.2.0. ``_learn_measured_cop`` used to compare every interval against
+        v5.3.0. ``_learn_measured_cop`` used to compare every interval against
         ``compute_cop`` — the SPACE curve — including intervals the pump spent
         making hot water. Hot water runs 55-65 °C flow against 35-45 °C for
         space heating, and the model prices that at roughly 16 % lower COP at a
@@ -2637,7 +2637,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # which learns from the same signal; letting both learners fold in the
         # same interval corrects one shortfall twice. See defrost.in_frost_band.
         #
-        # v5.2.0 narrows this from the whole band to the intervals that
+        # v5.3.0 narrows this from the whole band to the intervals that
         # actually contain a defrost. The disjointness argument only ever
         # justified excluding intervals the derate learns from — but without a
         # flag there was no way to tell which those were, so the exclusion had
@@ -4173,7 +4173,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     ),
                     min_temp_margins=margins,
                     min_temp_floors=mold_floors,
-                    # v5.2.0: never promise heat the pump's current mode
+                    # v5.3.0: never promise heat the pump's current mode
                     # cannot deliver — symmetrically. A cooling or hot-water
                     # mode suppresses space slots; a heating-only mode
                     # suppresses hot-water slots. Both default False and the
@@ -4557,7 +4557,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             # simulates a tank the parameters no longer model.
             self._current_state.wood_tank_temperature = None
 
-        # The four heat-pump signals (v5.2.0). Read through the same reader
+        # The four heat-pump signals (v5.3.0). Read through the same reader
         # as everything else, so all four appear in this cycle's health with
         # their entity id and problem — a mode entity nobody can read is
         # *visible* in the diagnostics, it just does not act. Read before the
@@ -4668,7 +4668,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         """
         if self._external_heat_active:
             return "external_heat_source"
-        # v5.2.0: the plant-wide freezes, from the heat pump's own signals.
+        # v5.3.0: the plant-wide freezes, from the heat pump's own signals.
         #
         # These have a shape the loop below cannot express, which is why they
         # are not folded into it. That loop asks "is the reading the caller
@@ -5815,7 +5815,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
         # 1) Toggle heat pump supply (ON/OFF)
         #
-        # v5.2.0: a mode block suppresses PLANNING, never actuation, and this
+        # v5.3.0: a mode block suppresses PLANNING, never actuation, and this
         # is the line where the difference matters. A block hard-zeroes its
         # channel, so a mode that blocks both — ``cool``, which is the whole
         # point of a cooling mode — leaves every step with
@@ -5984,7 +5984,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 self._current_state.outdoor_temperature, self._current_humidity()
             ),
             "defrost_samples": self._defrost.total_samples,
-            # v5.2.0: how much of the derate rests on counted defrost time
+            # v5.3.0: how much of the derate rests on counted defrost time
             # rather than on the power-ratio inference, and — because a duty
             # counted from three-minute cloud polls misses short defrosts and
             # is therefore biased LOW — whether this install can measure it at
@@ -5999,7 +5999,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             "comfort_learning": self._comfort_learner.summary(),
             "system_identification": self._sysid.as_dict(),
             "accuracy": self._accuracy.summary(),
-            # v5.2.0: the four heat-pump signals, resolved. Published
+            # v5.3.0: the four heat-pump signals, resolved. Published
             # unconditionally — an install with none of them configured shows
             # "Unknown"/absent, which is itself the answer to "why is nothing
             # being suppressed".
@@ -7117,7 +7117,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         )
         if smaller is None:
             return
-        # v5.2.0: a month in which the pump's mode stopped it heating is not
+        # v5.3.0: a month in which the pump's mode stopped it heating is not
         # evidence about how many amperes the house needs. Passing the block
         # into the shadow solve above makes the comparison honest, but an
         # honest comparison of two crippled plans still answers the wrong
@@ -7693,7 +7693,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         between them as a failing compressor — a fabricated fault report
         about expensive hardware, raised within hours on an ordinary plan.
         It defaults to False, which is what every install without a mode
-        entity produces and is the pre-v5.2.0 behaviour exactly.
+        entity produces and is the pre-v5.3.0 behaviour exactly.
         """
         outdoor = float(self._current_state.outdoor_temperature)
         bucket = (int(np.floor(outdoor / 3.0)), bool(dhw_curve))
@@ -8274,7 +8274,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         happen below 0 °C too, and a bucket that measures a duty of zero is
         learning something real — that it does not need a derate.
 
-        Without one it falls back to the pre-v5.2.0 inference from
+        Without one it falls back to the pre-v5.3.0 inference from
         ``delivered_ratio``, restricted to the frosting band as before, so
         that an install with no defrost sensor behaves exactly as it did.
 
@@ -8383,7 +8383,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     and sample.outdoor_temp is not None
                 ):
                     try:
-                        # v5.2.0: subtract the curve the observation was
+                        # v5.3.0: subtract the curve the observation was
                         # actually referenced to. Recomputing the space curve
                         # for a hot-water interval would put back exactly the
                         # mismatch ``_cop_reference_curve`` removes — the
@@ -8407,7 +8407,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                         )
                     except Exception:  # noqa: BLE001 - tag is best-effort
                         sample.cop_residual = None
-                # v5.2.0: an interval the pump spent cooling, faulted or
+                # v5.3.0: an interval the pump spent cooling, faulted or
                 # off the network is not a measurement of the model's
                 # accuracy — the plan asked for heat and something else
                 # happened — and ``_confidence_margins`` turns recorded
@@ -9576,7 +9576,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     def _run_system_identification(self, prices: np.ndarray) -> None:
         """Advance the experiment and override the plan if it wants the pump.
 
-        v5.2.0: the experiment is subject to the mode gate and the pump-signal
+        v5.3.0: the experiment is subject to the mode gate and the pump-signal
         freeze, like every other path that commands power. It writes
         ``_current_action["power"]`` directly, *after* the solve, so it is the
         one route that bypasses the bounds the mode block is enforced at —
@@ -9832,7 +9832,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                         horizon.outdoor_temps,
                         target_cap=float(scratch_config.target_temp),
                     ),
-                    # v5.2.0: and the mode block, for the same reason as
+                    # v5.3.0: and the mode block, for the same reason as
                     # every inherited input above — the what-if is
                     # DIFFERENCED against the live plan, so anything that
                     # shaped the live plan and not the shadow one turns the

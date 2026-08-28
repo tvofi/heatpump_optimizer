@@ -918,7 +918,7 @@ class HeatPumpOptimizerConfigFlow(
                     vol.Optional(
                         CONF_BUFFER_TANK_TEMP_ENTITY
                     ): _entity_of("sensor", "temperature"),
-                    # v5.2.0: what the pump reports about itself. Read only —
+                    # v5.3.0: what the pump reports about itself. Read only —
                     # the optimizer never writes the mode — and every one of
                     # them optional, so an install that leaves all four empty
                     # behaves exactly as it did before they existed.
@@ -1552,7 +1552,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
                             CONF_FREQ_CONTROL_MODE, DEFAULT_FREQ_CONTROL_MODE
                         ),
                     ): _freq_mode_selector(),
-                    # v5.2.0: the pump's own account of itself. The domains
+                    # v5.3.0: the pump's own account of itself. The domains
                     # come from the topology slot table, so the picker here,
                     # the card's picker and the assign_entity service cannot
                     # offer three different answers about what fits a slot.

@@ -21,7 +21,7 @@ internal model works in kW throughout. Assuming kW reads a 3000 W draw as
 
 **Not everything is a number.** An operating mode is a word, and a defrost or
 online flag is ``on``/``off``. ``read`` rejects those as ``not_numeric``, so
-until v5.2.0 the only string input in the integration — the external-heat
+until v5.3.0 the only string input in the integration — the external-heat
 override — was read by hand, straight out of ``hass.states``, with no
 freshness guard at all. That is precisely backwards: a stuck ``on`` on a
 flag that *suppresses* heating is more dangerous than a stuck temperature,
@@ -93,7 +93,7 @@ class InputReading:
     def ok(self) -> bool:
         """Whether the reading may be used.
 
-        Widened in v5.2.0 from "has a number" to "has *something*", so that a
+        Widened in v5.3.0 from "has a number" to "has *something*", so that a
         string or a flag participates in ``InputHealth`` — and therefore in
         ``_learning_frozen`` and the diagnostics — on exactly the same terms
         as a temperature. ``read`` still populates only ``value``, so this is
@@ -256,7 +256,7 @@ BOOL_FALSE: frozenset[str] = frozenset(
 #: A ``binary_sensor``, ``switch`` or ``input_boolean`` cannot make that
 #: mistake: its state is on/off by construction. So these words are accepted
 #: from those domains and refused from free-text ones, where refusing means
-#: "no evidence" — which for all three flags is the pre-v5.2.0 behaviour.
+#: "no evidence" — which for all three flags is the pre-v5.3.0 behaviour.
 AMBIGUOUS_ACTIVITY_TOKENS: frozenset[str] = frozenset(
     {"heat", "heating", "running", "active", "idle", "inactive",
      "standby", "stopped"}

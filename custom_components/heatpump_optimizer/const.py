@@ -78,7 +78,7 @@ CONF_ENERGY_ENTITY: Final = "heat_pump_energy_entity"
 # house connection, not at the heat pump) and for PV surplus.
 CONF_HOUSE_POWER_ENTITY: Final = "house_power_entity"
 
-# --- What the pump itself says it is doing (v5.2.0) ------------------------
+# --- What the pump itself says it is doing (v5.3.0) ------------------------
 #
 # Four optional signals published by heat-pump integrations — the Tuya
 # `tuya_heat_pump` custom integration is the one this was built against, but

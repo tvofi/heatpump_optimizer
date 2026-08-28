@@ -1,6 +1,6 @@
 """One cycle's reading of the four heat-pump signals, resolved to decisions.
 
-The four optional slots added in v5.2.0 — operating mode, defrosting, online
+The four optional slots added in v5.3.0 — operating mode, defrosting, online
 status and fault alarm — are read here, together, once per update cycle, and
 turned into the three answers the rest of the integration actually asks:
 
@@ -19,7 +19,7 @@ The two rules
 optional and most installs will have none of them. So an unconfigured slot,
 an unavailable entity, a word the mode table does not recognise and a reading
 past its horizon all resolve to *no evidence*, and no evidence is exactly the
-pre-v5.2.0 behaviour: full capability, no freeze, no defrost. Only a reading
+pre-v5.3.0 behaviour: full capability, no freeze, no defrost. Only a reading
 that is present, fresh and legible changes anything.
 
 **Staleness demotes a signal to silence — it never promotes it to bad news.**

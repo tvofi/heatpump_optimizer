@@ -229,9 +229,9 @@ R.check(
 
 
 # ===========================================================================
-# v5.2.0: strings and flags, guarded like numbers
+# v5.3.0: strings and flags, guarded like numbers
 # ===========================================================================
-R.section("Non-numeric inputs (v5.2.0)")
+R.section("Non-numeric inputs (v5.3.0)")
 
 # The four signals a heat-pump integration publishes about itself. `read`
 # rejects every one of them as `not_numeric`; `read_state` and `read_bool`
@@ -443,9 +443,9 @@ R.check(
 
 
 # ===========================================================================
-# v5.2.0: the operating-mode vocabulary
+# v5.3.0: the operating-mode vocabulary
 # ===========================================================================
-R.section("Heat pump operating mode (v5.2.0)")
+R.section("Heat pump operating mode (v5.3.0)")
 
 # The five modes the reference unit (Rotenso Windmi, Tuya model 000004k4z6)
 # exposes on DP 2, and what each one lets the pump actually do.
@@ -510,7 +510,7 @@ for _unknown in ("turbo", "auto", "", None, 7):
 R.check(
     "and the unknown fallback does not claim two duties at once",
     not pump_mode.FULL_CAPABILITY.concurrent,
-    "without evidence, keep the pre-v5.2.0 assumption",
+    "without evidence, keep the pre-v5.3.0 assumption",
 )
 
 R.check(
@@ -537,7 +537,7 @@ R.check(
 
 # -- the external-heat override, migrated onto the shared reader ------------
 #
-# A deliberate behaviour change (v5.2.0): this was the one input in the
+# A deliberate behaviour change (v5.3.0): this was the one input in the
 # integration read straight out of hass.states, with no age limit at all. It
 # is also the strongest input there is -- while it says "yes" the optimizer
 # stops planning heat, and while it says "no" it overrules the detector -- so
@@ -581,7 +581,7 @@ R.check(
     override_for(FakeState("off", last_updated=minutes_ago(5, NOW))) is False,
 )
 R.check(
-    "a flue PROBE that stopped reporting stops suppressing (v5.2.0)",
+    "a flue PROBE that stopped reporting stops suppressing (v5.3.0)",
     override_at("sensor.flue", FakeState("420", last_updated=minutes_ago(240, NOW)))
     is None
     and override_at("sensor.flue", FakeState("420", last_updated=minutes_ago(5, NOW)))
@@ -2148,9 +2148,9 @@ R.check(
 class _Coord:
     _commanded_power = Coord._commanded_power
     _commanded_split = Coord._commanded_split
-    # v5.2.0: the split is masked by the *observed* operating mode. With no
+    # v5.3.0: the split is masked by the *observed* operating mode. With no
     # mode entity the signals default to full capability and nothing is
-    # masked, which is the state every pre-v5.2.0 install is in.
+    # masked, which is the state every pre-v5.3.0 install is in.
     _pump_signals = PumpSignals()
 
 
@@ -2255,11 +2255,11 @@ class _CopGate:
         # magnitude — it has to stay on the efficiency side of that gate.
         self._measured_power = 2.6
         self._current_action = dict(action) if action else {"power": 3.0}
-        # v5.2.0: with no mode entity the signals are the full-capability
+        # v5.3.0: with no mode entity the signals are the full-capability
         # default, which masks nothing and selects the space curve — the
         # v5.1.5 behaviour this fixture was written against.
         self._pump_signals = signals if signals is not None else PumpSignals()
-        # v5.2.0: an empty window has observed=False, which keeps the
+        # v5.3.0: an empty window has observed=False, which keeps the
         # whole-band frost exclusion — the v5.1.5 behaviour.
         self._defrost_window = defrost if defrost is not None else DefrostWindow()
         self._last_cop_curve_dhw = False
@@ -11860,7 +11860,7 @@ R.check(
     ),
 )
 
-R.section("v5.2.0 — the four heat-pump signals, resolved")
+R.section("v5.3.0 — the four heat-pump signals, resolved")
 
 # ``pump_signals.read`` is where the four optional slots become the three
 # answers the rest of the integration asks. Two rules are load-bearing and
@@ -12105,7 +12105,7 @@ R.check(
 )
 
 
-R.section("v5.2.0 — the meter split follows the observed mode")
+R.section("v5.3.0 — the meter split follows the observed mode")
 
 # ``_interval_space_power`` subtracts THE PLAN'S hot-water allocation from the
 # measured total. When the pump is actually in `heat` no hot water was made,
@@ -12141,7 +12141,7 @@ R.check(
     "with no mode entity the split is exactly what it always was",
     _sp_blind._commanded_power() == 3.0
     and _sp_blind._commanded_split() == (2.0, 1.0),
-    "every pre-v5.2.0 install must be bit-identical",
+    "every pre-v5.3.0 install must be bit-identical",
 )
 R.check(
     "and a 2.0 kW meter against a 3.0 kW command is still discarded as tracking",
@@ -12158,7 +12158,7 @@ R.check(
 R.check(
     "so the measured 2.0 kW is recognised as space heating in full",
     _sp_heat._interval_space_power() == 2.0,
-    "before v5.2.0 this same interval was thrown away as a tracking error, "
+    "before v5.3.0 this same interval was thrown away as a tracking error, "
     "and when it was not, 1.0 kW of real space heating went missing",
 )
 
@@ -12175,7 +12175,7 @@ R.check(
 )
 
 
-R.section("v5.2.0 — the COP learner uses the curve the mode implies")
+R.section("v5.3.0 — the COP learner uses the curve the mode implies")
 
 # ``_learn_measured_cop`` compared every interval against ``compute_cop`` —
 # the SPACE curve — including the ones the pump spent making hot water, where
@@ -12280,7 +12280,7 @@ R.check(
     f"cop {_cop_pair._last_measured_cop} dhw={_cop_pair._last_cop_curve_dhw}",
 )
 
-R.section("v5.2.0 — defrost: duty is measured, the derate is physics")
+R.section("v5.3.0 — defrost: duty is measured, the derate is physics")
 
 # Establish the premise first, because it inverts what the flag looks like it
 # is for. `defrost.py`'s only learning input WAS `delivered_ratio`, which
@@ -12417,7 +12417,7 @@ _v1_store = {
 }
 _migrated = DefrostDerate.from_dict(_v1_store)
 R.check(
-    "a pre-v5.2.0 store loads without raising, and says it was upgraded",
+    "a pre-v5.3.0 store loads without raising, and says it was upgraded",
     isinstance(_migrated, DefrostDerate) and _migrated.migrated,
 )
 R.check(
@@ -12524,7 +12524,7 @@ R.check(
     "an install with no defrost sensor must be bit-identical to v5.1.5",
 )
 
-R.section("v5.2.0 — offline, fault and cooling freeze the real learners")
+R.section("v5.3.0 — offline, fault and cooling freeze the real learners")
 
 # The same driver as v5.1.3's: a real coordinator, real `InputReader` reads
 # from real fake states, the real learners at the foot of
@@ -12772,7 +12772,7 @@ R.check(
 )
 
 
-R.section("v5.2.0 — a blocked channel is suppressed, and visibly so")
+R.section("v5.3.0 — a blocked channel is suppressed, and visibly so")
 
 import profiles as _mb_profiles
 from heatpump_optimizer.optimizer import (
@@ -12895,9 +12895,9 @@ R.check(
 
 
 # ===========================================================================
-# v5.2.0 review — the coverage gaps a green suite was hiding
+# v5.3.0 review — the coverage gaps a green suite was hiding
 # ===========================================================================
-R.section("v5.2.0 review — presence is not trust (the defrost derate)")
+R.section("v5.3.0 review — presence is not trust (the defrost derate)")
 
 # The bug: DefrostDerate.factor branched on "does this bucket have a duty
 # sample" BEFORE consulting trust, so n=1 (trust 1/12) beat counts=200 (trust
@@ -13034,7 +13034,7 @@ R.check(
 )
 
 
-R.section("v5.2.0 review — DERATE_MAX 1.05 -> 1.0, on a POPULATED bucket")
+R.section("v5.3.0 review — DERATE_MAX 1.05 -> 1.0, on a POPULATED bucket")
 
 # The deliberate change no golden covers: defrost_buckets is [] in every
 # fixture, so "no fixture moved" was never evidence the re-clamp is inert.
@@ -13084,7 +13084,7 @@ R.check(
 _dm_params.defrost_derate = None
 
 
-R.section("v5.2.0 review — an unreadable flag makes no confident claim")
+R.section("v5.3.0 review — an unreadable flag makes no confident claim")
 
 # DefrostWindow.close carried _observed into the NEXT interval, so exactly one
 # interval after the flag went unreadable was reported observed with duty 0 —
@@ -13148,7 +13148,7 @@ R.check(
 )
 
 
-R.section("v5.2.0 review — an unrecognised mode never latches suppression")
+R.section("v5.3.0 review — an unrecognised mode never latches suppression")
 
 # pump_mode's contract is explicit: "Unknown means full capability, never
 # suppress everything". read() broke it by routing unknown_value into the
@@ -13258,7 +13258,7 @@ R.check(
 )
 
 
-R.section("v5.2.0 review — a status sensor is not a mode selector")
+R.section("v5.3.0 review — a status sensor is not a mode selector")
 
 # The alias table mapped bare `heating`/`cooling`/`hot water` to single-duty
 # MODES, and topology accepts `sensor` for this slot. A generic status sensor
@@ -13346,7 +13346,7 @@ R.check(
 )
 
 
-R.section("v5.2.0 review — the narrative explains a blocked channel")
+R.section("v5.3.0 review — the narrative explains a blocked channel")
 
 from heatpump_optimizer.optimizer import REASON_PUMP_MODE  # noqa: E402
 
@@ -13390,7 +13390,7 @@ R.check(
 )
 
 
-R.section("v5.2.0 review — a blocked channel is published, not just recorded")
+R.section("v5.3.0 review — a blocked channel is published, not just recorded")
 
 R.check(
     "a space block reaches predictive_info, where the coordinator can see it",
@@ -13417,7 +13417,7 @@ R.check(
 
 
 
-R.section("v5.2.0 review — the experiment obeys the mode gate too")
+R.section("v5.3.0 review — the experiment obeys the mode gate too")
 
 from pathlib import Path as _Path  # noqa: E402
 from heatpump_optimizer import sysid as _SysIdModule  # noqa: E402
@@ -13500,7 +13500,7 @@ R.check(
 )
 
 
-R.section("v5.2.0 review — a mode-blocked tank says so, loudly")
+R.section("v5.3.0 review — a mode-blocked tank says so, loudly")
 
 # An indefinitely blocked DHW channel silently defers the anti-legionella
 # cycle: forced_off is all-ones, the schedule is hard-zeroed, the legionella
@@ -13603,7 +13603,7 @@ for _lang_file in ("strings.json", "translations/en.json", "translations/sv.json
 
 
 
-R.section("v5.2.0 review 2 — the health watch judges like against like")
+R.section("v5.3.0 review 2 — the health watch judges like against like")
 
 # The BLOCKER: _cop_reference_curve made observed_cop curve-dependent, but
 # _observe_cop_health bucketed its baseline by outdoor temperature alone. A
@@ -13736,7 +13736,7 @@ async def _hw_load_v1(_p=_hw_v1_payload):
 _hw_old._thermal_learning_store.async_load = _hw_load_v1
 _asyncio.run(_hw_old._async_load_thermal_learning())
 R.check(
-    "a pre-v5.2.0 store's buckets load as SPACE baselines, not discarded",
+    "a pre-v5.3.0 store's buckets load as SPACE baselines, not discarded",
     _hw_old._cop_baseline.get((1, False)) == [3.2, 40]
     and _hw_old._cop_baseline.get((2, False)) == [3.5, 25],
     f"{_hw_old._cop_baseline} — the watch's memory is weeks long; throwing "
@@ -13755,7 +13755,7 @@ R.check(
 
 
 
-R.section("v5.2.0 review 2 — legibility belongs to the interval")
+R.section("v5.3.0 review 2 — legibility belongs to the interval")
 
 from heatpump_optimizer.const import (  # noqa: E402
     CONF_HEAT_PUMP_SWITCH_ENTITY,
@@ -13833,7 +13833,7 @@ R.check(
 )
 
 
-R.section("v5.2.0 review 2 — a mode nobody can read stops acting")
+R.section("v5.3.0 review 2 — a mode nobody can read stops acting")
 
 # pump_signals' own rule: "a cooling mode read six hours ago must not still be
 # freezing the learners". The implementation did the opposite -- stale routed
@@ -13896,7 +13896,7 @@ for _lang_file in ("strings.json", "translations/en.json", "translations/sv.json
     )
 
 
-R.section("v5.2.0 review 2 — a status sensor is not a flag either")
+R.section("v5.3.0 review 2 — a status sensor is not a flag either")
 
 # BOOL_TRUE/BOOL_FALSE carry heating, running, idle and standby, and all three
 # flag slots accept a plain `sensor`. Read as flags those words are actively
@@ -13957,7 +13957,7 @@ for _word, _want in (("idle", False), ("heating", True), ("running", True)):
     )
 
 
-R.section("v5.2.0 review 2 — the block never actuates")
+R.section("v5.3.0 review 2 — the block never actuates")
 
 # _apply_action calls switch.turn_off whenever the plan is empty. A mode that
 # blocks both channels makes every step empty, so a cooling pump was switched
@@ -14020,7 +14020,7 @@ R.check(
 )
 
 
-R.section("v5.2.0 review 2 — the what-if and the fuse advisor see the block")
+R.section("v5.3.0 review 2 — the what-if and the fuse advisor see the block")
 
 _wf_src = inspect.getsource(_Coord.async_simulate)
 R.check(
@@ -14082,7 +14082,7 @@ R.check(
 )
 
 
-R.section("v5.2.0 review 2 — the smaller repairs")
+R.section("v5.3.0 review 2 — the smaller repairs")
 
 # m9: the summary must report the number the plan applies, not the raw one.
 _sm_young = DefrostDerate()
