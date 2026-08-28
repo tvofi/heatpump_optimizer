@@ -242,14 +242,29 @@ def build(
             # which stored heat is worth nothing, sized from the demand the
             # weather in front of the house actually creates. This was
             # `comfort_max + 6.0` — the last magic offset left over from the
-            # v4.0.6 sweep that took `comfort + 20` off the buffer tank. At the
-            # default ceiling that fixed 29.0 °C disagreed with a settlement cap
-            # ranging 24.5-28.5, overstating the slab's usable capacity by
-            # around 28 % and understating its state of charge by the same. The
-            # view is report-only, so nothing the optimizer does changes; what
-            # changes is that the two numbers now come from one formula.
+            # v4.0.6 sweep that took `comfort + 20` off the buffer tank. A
+            # fixed 29.0 °C at the default ceiling is not the same number as
+            # the settlement cap in ANY direction: on the default parameters
+            # it is too high (cap 27.4 °C at −15 outdoor), and on a radiator
+            # install, where the emitter is weak and the loop must run hot to
+            # sustain the target, it is far too low (cap 48.3 °C). The view is
+            # report-only, so nothing the optimizer does changes; what changes
+            # is that the two numbers now come from one formula.
+            #
+            # Clamped to the plant's own ceiling, and only here. The cap is
+            # `target + demand / slab_heat_transfer`, unbounded above as that
+            # coefficient falls: at the `set_thermal_parameters` schema's
+            # minimum of 0.01 kW/°C it reaches 531 °C, which would publish
+            # 2560 kWh of "usable capacity" for a floor loop. No water-side
+            # store in this system can exceed the tank's rated ceiling, so
+            # that is the bound. It changes no objective — the optimizer
+            # settles against the unclamped cap exactly as before, and that
+            # unboundedness is a real edge case still open against the
+            # optimizer itself.
             max_temperature=(
-                comfort_max + 6.0 if slab_max is None else float(slab_max)
+                comfort_max + 6.0
+                if slab_max is None
+                else min(float(slab_max), float(params.buffer_max_temp))
             ),
             loss_kw_per_c=0.0,
             ambient_temperature=state.room_temperature,

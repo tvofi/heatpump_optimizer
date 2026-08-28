@@ -11297,6 +11297,62 @@ R.check(
     f"{_slab_old.usable_capacity_kwh:.2f} kWh, soc "
     f"{_slab_new.soc:.3f} vs {_slab_old.soc:.3f}",
 )
+# Direction is configuration-dependent, and the release note has to say so.
+# A weak emitter needs a HOTTER loop to sustain the target, so on a radiator
+# install the settlement cap is far above the old fixed 29 °C, capacity rises
+# and the reported charge falls. Both directions are the same correction.
+_rad_cfg = presets.derive(
+    presets.BuildingPreset(
+        structure=presets.STRUCTURE_MASONRY,
+        era=presets.ERA_PRE_1960,
+        heated_area_m2=250,
+        lower_emitter=presets.EMITTER_RADIATORS,
+    )
+)
+_rad_cfg.pop("heating_response_hours", None)
+_rad_params = ThermalParameters.from_config(
+    {"tibber_token": "x", "weather_entity": "weather.home", **_rad_cfg}
+)
+_rad_cap = _slab_cap(_rad_params, 21.0, -15.0)
+R.check(
+    "a radiator install moves the OTHER way: the cap is above comfort + 6",
+    _rad_cap > 23.0 + 6.0,
+    f"cap {_rad_cap:.1f} °C vs the old fixed 29.0",
+)
+
+# The cap is `target + demand / slab_heat_transfer`, unbounded above as that
+# coefficient falls. The optimizer has always lived with that; a user-visible
+# capacity figure must not, so the view alone clamps to the plant's ceiling.
+_tiny = ThermalParameters.from_config(
+    {"tibber_token": "x", "weather_entity": "weather.home",
+     "slab_heat_transfer": 0.01}
+)
+_tiny_cap = _slab_cap(_tiny, 21.0, -15.0)
+_tiny_slab = next(
+    c
+    for c in battery_view.build(
+        _tiny, _bat_state, comfort_min=19.0, comfort_max=23.0,
+        dhw_min=45.0, dhw_max=60.0, cop=3.0, slab_max=_tiny_cap,
+    ).components
+    if c.name == "slab"
+)
+R.check(
+    "the raw cap really does run away at the schema's minimum transfer",
+    _tiny_cap > 500.0,
+    f"cap {_tiny_cap:.0f} °C at slab_heat_transfer=0.01",
+)
+R.check(
+    "but the REPORTED ceiling is clamped to the tank's rating",
+    abs(_tiny_slab.max_temperature - _tiny.buffer_max_temp) < 1e-9,
+    f"reported {_tiny_slab.max_temperature} vs cap {_tiny_cap:.0f}",
+)
+R.check(
+    "and a realistic cap is left alone by that clamp",
+    abs(_slab_new.max_temperature - _bat_cap) < 1e-9
+    and _bat_cap < _bat_params.buffer_max_temp,
+    f"{_slab_new.max_temperature} vs {_bat_cap}",
+)
+
 R.check(
     "the cap the view reads is the one the optimizer settles against",
     abs(
