@@ -1214,15 +1214,28 @@ if cheapest < 0:
 
 # External heat must suppress discretionary electric hot water. The
 # suppression only zeroes planned DHW steps inside its 2 h coasting horizon,
-# so the scenario must actually put DHW power there: a draw window starting
-# at t=0 with the tank a few degrees under setpoint makes the baseline heat
-# immediately, and the fire (whose free heat keeps coasting above the
-# requirement) must then remove it. A pair of already-hot tanks would
-# produce byte-identical plans and a check that can never fail.
-_fire_spec = dict(
-    season="winter",
-    config={"dhw_windows": "00:00-04:00, 17:00-22:00"},
-)
+# and only where coasting on nothing would still meet the requirement — so
+# the energy it can remove is by construction DISCRETIONARY: pre-heating
+# ahead of a window, never a run the floor is forcing. The scenario has to
+# put exactly that kind of power in the first two hours, which is why the
+# guard below exists: a pair of already-hot tanks would produce
+# byte-identical plans and a check that can never fail.
+#
+# The default windows do it. START is midnight and the first window opens at
+# 06:00, so the first two hours are the night trough (0.62 SEK against a
+# 2.85 peak) and a tank three degrees under its charge limit pre-buys there
+# for the morning — 3.1 kW of it — while coasting alone still clears the
+# floor, so the fire can take all of it away.
+#
+# A window opening AT t=0 was used here until v5.1.8 and no longer works.
+# With the disinfection temperature out of `dhw_max_temp` the everyday
+# ceiling is the user's 55 °C charge limit, so a tank starting at 52 °C
+# inside a demand window has three degrees of headroom rather than eight:
+# it is already above the floor, and the plan buys later in the window
+# instead of immediately. Baseline and fire then both plan 0.00 kW in the
+# first two hours and the suppression check measures nothing — which is
+# precisely what the guard caught.
+_fire_spec = dict(season="winter")
 with_fire = build(
     **_fire_spec, state={"external_heat_active": True, "dhw_temperature": 52.0}
 )
