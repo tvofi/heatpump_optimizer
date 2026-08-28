@@ -36,9 +36,9 @@ different things.
 The **house temperature**'s dashed lines are the **upper and lower floor**: two
 real predicted temperatures, one per zone, drawn whenever the house is
 configured as two-zone. They are not error bars. The solid line between them is
-the whole-house temperature the optimizer plans against. Each has its own name
-in the legend and its own tooltip row, and the lower one reads *Lower floor
-(modelled)* when no sensor measures it.
+the whole-house temperature the optimizer plans against. Both are named in the
+series chip's hover text and each gets its own tooltip row, and the lower one
+reads *Lower floor (modelled)* when no sensor measures it.
 
 The **DHW tank temperature**'s dashed lines are the **prediction's expected
 error** — how far the tank curve has historically been out at that distance
@@ -48,12 +48,14 @@ look. It is absent entirely until there is history to draw it from: a fresh
 install, or a house with no tank temperature sensor configured, publishes no
 band rather than a zero-width one, and the card draws only the solid curve.
 
-Unlike the two floors, the band's two edges are **one** thing, so they share a
-single legend chip and produce a single tooltip row — *Hot water, expected
-error*, stated as one ± figure. The chip's hover text explains what the dashes
-mean. Where the band has no value the dashed lines simply stop, rather than
-bridging the gap, and a band with no width at all is not drawn: an envelope
-lying exactly on the curve would claim a precision the record has not earned.
+Unlike the two floors, the band's two edges are **one** thing. They are named
+once — *Hot water, expected error* — in the tank chip's hover text, and they
+produce a single tooltip row stating one ± figure rather than two absolute
+temperatures. That hover text also carries the sentence explaining what the
+dashes mean, which is the one place a puzzled reader looks. Where the band has
+no value the dashed lines simply stop, rather than bridging the gap, and a band
+with no width at all is not drawn: an envelope lying exactly on the curve would
+claim a precision the record has not earned.
 
 ### The headline row
 

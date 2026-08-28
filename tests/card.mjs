@@ -4849,6 +4849,12 @@ const setupBox = (card, place) =>
     const end = dump.indexOf("</div>", i);
     return dump.slice(i, end < 0 ? undefined : end);
   };
+  /** The `title` of one series' legend chip: what the chip claims beyond
+   * its visible name. One chip per series, so one title per key. */
+  const titleOf = (lg, key) => {
+    const m = lg.match(new RegExp(`data-key="${key}" title="([^"]*)"`));
+    return m ? m[1] : "";
+  };
   const chipsFor = (lg, key) =>
     (lg.match(new RegExp(`<button[^>]*data-key="${key}"`, "g")) || []).length;
   const zc = build(twoZone());
@@ -4920,8 +4926,13 @@ const setupBox = (card, place) =>
     olegend);
   check("and the duplicate traces are dropped rather than drawn",
     oneZone._series.find((s) => s.key === "house_temp").lines.length === 1);
+  // Scoped to the house chip's own title, not the whole legend: v5.2.0
+  // gives the tank series extra traces of its own on this same fixture, and
+  // "does the legend contain the words 'also drawn' anywhere" stopped being
+  // a question about the house the moment a second series could answer it.
   check("so its chip claims no extra traces",
-    !/also drawn/.test(olegend), olegend);
+    !/also drawn/.test(titleOf(olegend, "house_temp")),
+    titleOf(olegend, "house_temp"));
   const otip = ttRows(hovered(oneZone)).filter((l) =>
     /floor|House temperature/i.test(l));
   check("and its tooltip carries the one house row",
@@ -5129,11 +5140,18 @@ const setupBox = (card, place) =>
   const chipCount = (dump, key) =>
     (legendOnly(dump).match(
       new RegExp(`data-key="${key}"`, "g")) || []).length;
-  check("a broken band is still one chip and one tooltip row, not one per "
+  const legendTitle = (dump, key) => {
+    const m = legendOnly(dump).match(
+      new RegExp(`data-key="${key}" title="([^"]*)"`));
+    return m ? m[1] : "";
+  };
+  check("a broken band is still named once and reported once, not once per "
     + "segment",
-    chipCount(gapped.dump, "dhw_temp") === 2 &&
+    chipCount(gapped.dump, "dhw_temp") === 1 &&
+    (legendTitle(gapped.dump, "dhw_temp")
+      .match(/Hot water, expected error/g) || []).length === 1 &&
     (hover(gapped.card).match(/expected error/g) || []).length === 1,
-    `${chipCount(gapped.dump, "dhw_temp")} dhw_temp chips`);
+    legendTitle(gapped.dump, "dhw_temp"));
 
   // --- what the dashed lines SAY -----------------------------------------
   const ttEn = hover(on.card);
@@ -5155,14 +5173,30 @@ const setupBox = (card, place) =>
     /data-key="dhw_temp" title="[^"]*expected error[^"]*widens further ahead/
       .test(legEn),
     (legEn.match(/data-key="dhw_temp" title="[^"]*"/g) || []).join("\n"));
-  check("and it is one chip for the pair, drawn with the dashed swatch",
-    chipCount(on.dump, "dhw_temp") === 2 &&
-    /repeating-linear-gradient/.test(legEn), legEn);
+  // v5.1.9: ONE chip per series, extras named inside its title. The band
+  // gets no chip of its own and must not: the chip toggles the series, and
+  // there is no such thing as hiding one edge of it.
+  check("and it is the tank's own single chip that says so, not a second one",
+    chipCount(on.dump, "dhw_temp") === 1 &&
+    /also drawn: Hot water, expected error\./.test(
+      legendTitle(on.dump, "dhw_temp")),
+    legendTitle(on.dump, "dhw_temp"));
   // The sentence belongs on hover; stretched across the legend row it would
   // push every other chip off the card.
   check("the explanation rides in the chip's title, not its visible text",
-    />Hot water, expected error\s*<\/button>/.test(legEn) &&
+    />DHW tank temperature\s*<\/button>/.test(legEn) &&
     !/>[^<]*widens further ahead[^<]*<\/button>/.test(legEn), legEn);
+  // The band is named ONCE in that title, not once per edge -- which is the
+  // whole point of enumerating traces through `_extraFields`: a legend
+  // rewritten to stop repeating a name must not start repeating this one.
+  // Counted on the band's NAME, not on the words "expected error": the
+  // explanatory sentence that follows legitimately contains them again.
+  check("and it names the pair once, not once per edge",
+    (legendTitle(on.dump, "dhw_temp")
+      .match(/Hot water, expected error/g) || []).length === 1 &&
+    !/DHW tank temperature.*also drawn.*DHW tank temperature/.test(
+      legendTitle(on.dump, "dhw_temp")),
+    legendTitle(on.dump, "dhw_temp"));
 
   // A band is a PAIR or it is nothing. Either edge can go missing on its own
   // -- a key absent from the payload, an edge published null the whole way
