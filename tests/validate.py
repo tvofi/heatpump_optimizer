@@ -74,7 +74,7 @@ def run(scen, price_p, weather_p, two_zone=False, dhw=True, start=START, **over)
         if inw.any():
             worst = dt_traj[inw].min()
             dhw_ok = f"{worst:.1f}"
-            # 0.5 C, not the 2.0 C this allowed until v5.1.8. The wider bar
+            # 0.5 C, not the 2.0 C this allowed until v5.1.10. The wider bar
             # was wide enough to sit through a real regression: the floor
             # repair stopped topping the tank up at all and left a demand
             # window 1.11 C under the promised minimum, and every scenario
@@ -96,7 +96,7 @@ def run(scen, price_p, weather_p, two_zone=False, dhw=True, start=START, **over)
         # difference at whatever the price is then.
         #
         # Judging the whole schedule against a flat "share of slots" bar
-        # measured the tank rather than the planner, and v5.1.8 made that
+        # measured the tank rather than the planner, and v5.1.10 made that
         # visible: the planning ceiling used to be the disinfection
         # temperature (60 C) rather than the owner's own charge limit (55 C
         # by default), so the store looked 5 C deeper than they had asked

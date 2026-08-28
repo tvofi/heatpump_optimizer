@@ -43,10 +43,10 @@
 # does not expire with the stamp and is not part of the inherited-claims
 # comparison.
 #
-# claims-for: 5.1.8
+# claims-for: 5.1.10
 #
 #
-# v5.1.8 — the DHW charge limit stops being the disinfection temperature.
+# v5.1.10 — the DHW charge limit stops being the disinfection temperature.
 # `dhw_max_temp` was `max(setpoint, legionella_temp)`, so the cost planner had
 # a 60 °C ceiling to spend on every ordinary day and spent it: the stock 55/60
 # defaults ran the tank to 59.16 °C with no cycle due, and the reporting
@@ -143,13 +143,15 @@ wide_band  # the tank is charged to the charge limit instead of the disinfection
 winter_single_dhw  # the tank is charged to the charge limit instead of the disinfection temperature
 winter_two_zone_dhw  # the tank is charged to the charge limit instead of the disinfection temperature
 
-# The five fixtures this gate declares non-reproducible across BLAS builds.
-# All of them plan hot water, so this release's DHW work moves them for real —
-# but WHICH steps move is decided by the local optimum, which is exactly what
-# does not travel between machines, so no fixed claim can be right everywhere.
-# None of the five is re-recorded here.
-# may-drift: valve_storage_smart_write -- DHW plan, per local optimum
-# may-drift: wood_two_tank -- DHW plan, per local optimum
-# may-drift: wood_two_tank_smart_write -- DHW plan, per local optimum
-# may-drift: wood_coil -- DHW plan, per local optimum
-# may-drift: valve_upper_direct_slab -- DHW plan, per local optimum
+# These five are the fixtures this gate declares non-reproducible across BLAS
+# builds: each machine solves them to a different local optimum, so whether one
+# differs from the committed recording is a fact about the runner, not about the
+# diff. All five plan hot water, so unlike v5.1.9 this release's change really
+# can reach them -- but WHICH steps it moves is decided by that local optimum,
+# so no fixed claim can be right everywhere and none of the five is re-recorded
+# here. These entries do not expire with the stamp.
+# may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
+# may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
+# may-drift: wood_two_tank_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
+# may-drift: wood_coil -- machine-sensitive; the DHW plan can reach it, per local optimum
+# may-drift: valve_upper_direct_slab -- machine-sensitive; the DHW plan can reach it, per local optimum

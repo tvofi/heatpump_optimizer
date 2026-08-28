@@ -2796,7 +2796,7 @@ class HeatPumpOptimizer:
         #
         # `dhw_max_temp` is the user's own charge limit ("Highest tank
         # temperature to charge to"), and every ordinary step gets exactly
-        # that. Until v5.1.8 the disinfection temperature was folded into it
+        # that. Until v5.1.10 the disinfection temperature was folded into it
         # permanently, which made a hygiene setting the everyday ceiling the
         # cost planner *spends*: pre-buying at the night trough beats heating
         # at the evening window even after standby losses, so the plan
@@ -3415,7 +3415,7 @@ class HeatPumpOptimizer:
 
         This stage runs AFTER the capacity clamp and is deliberately not
         re-clamped (see the caller), so it has to carry its own ceiling: it
-        is the last word on the plan, and until v5.1.8 it relied on the
+        is the last word on the plan, and until v5.1.10 it relied on the
         model's tank-rating clamp to bound it, which only worked while the
         charge limit and the rating were the same number.
         """
@@ -3636,7 +3636,7 @@ class HeatPumpOptimizer:
             #
             # so the power that lands exactly ON the ceiling has to pay for
             # the draw and the standby loss as well as the rise. Sizing the
-            # allowance from the rise alone (as this did until v5.1.8) made
+            # allowance from the rise alone (as this did until v5.1.10) made
             # the clamp systematically tight: every truncated step landed
             # BELOW the ceiling it was aimed at, which is why a disinfection
             # ramp pinned to its own per-step band topped out at 59.90

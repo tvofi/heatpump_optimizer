@@ -851,7 +851,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # #24: minutes the tank has HELD the disinfection temperature.
         self._legionella_hold_minutes: float = 0.0
         self._legionella_hold_last: datetime | None = None
-        # v5.1.8: the cycle the PLAN commanded, followed independently of
+        # v5.1.10: the cycle the PLAN commanded, followed independently of
         # whether the tank was ever seen at temperature. Without this the
         # only way the timer could ever reset was an observation at
         # ``legionella_temp - 1``, so a pump that cannot get there — or a
@@ -3332,7 +3332,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     def _check_dhw_legionella_ceiling(self) -> None:
         """Say so when disinfection takes the tank above the charge limit.
 
-        A warning, not a block. Since v5.1.8 the charge limit really is the
+        A warning, not a block. Since v5.1.10 the charge limit really is the
         highest temperature the plan charges to, and the disinfection
         temperature applies only during a cycle — so a 52/60 pair is a valid
         configuration with a consequence: once an interval the tank goes 8 °C

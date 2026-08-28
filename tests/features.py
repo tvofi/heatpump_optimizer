@@ -5330,7 +5330,7 @@ R.check(
 # currency), and the energy it gives up is the discretionary pre-heat, which
 # lives at night. A share therefore moves even though nothing was shifted —
 # the reason the bar here had already been loosened from 0.02 to 0.03 in
-# v4.0.5, and it was loose enough by v5.1.8 to be measuring the level effect
+# v4.0.5, and it was loose enough by v5.1.10 to be measuring the level effect
 # rather than the shift.
 #
 # The direct statement has no such confound and more teeth: a uniform fee may
@@ -5613,7 +5613,7 @@ def _flag_solve(**state_overrides):
 # under the charge limit — otherwise the unflagged plan does no discretionary
 # top-ups either and the pair below is vacuous. 58 °C was such a temperature
 # while the planning ceiling was the 60 °C disinfection temperature; since
-# v5.1.8 the ceiling is the 55 °C charge limit, and a 58 °C tank is simply
+# v5.1.10 the ceiling is the 55 °C charge limit, and a 58 °C tank is simply
 # over it.
 _FLAG_TANK = 52.0
 _r_guard = _flag_solve(dhw_temperature=_FLAG_TANK, peak_guard_active=True)
@@ -10599,7 +10599,7 @@ R.check(
 
 # The rating is now enforced in the model with refused-heat accounting, the
 # buffer clamp's pattern, instead of trusting every caller to pre-clamp.
-# v5.1.8 split the rating from the everyday charge limit: this clamp is the
+# v5.1.10 split the rating from the everyday charge limit: this clamp is the
 # RATING, because a disinfection cycle is meant to go above the limit and
 # clamping it here would cap the cycle at the setpoint.
 _hot = _ec_m.simulate_dhw_step(54.0, 500.0, 0.0, dt_hours=0.25, draw_power=0.0)
@@ -11425,10 +11425,10 @@ R.check(
 
 
 # ---------------------------------------------------------------------------
-R.section("v5.1.8 — the charge limit is the charge limit, every ordinary day")
+R.section("v5.1.10 — the charge limit is the charge limit, every ordinary day")
 
 # The owner's report: "Highest tank temperature to charge to" 52 °C, the
-# anti-legionella cycle at its default 60 °C, no cycle due. Until v5.1.8 the
+# anti-legionella cycle at its default 60 °C, no cycle due. Until v5.1.10 the
 # disinfection temperature was folded into `dhw_max_temp` permanently, so the
 # cost planner had a 60 °C ceiling to spend every day of the week — and it
 # spent it, because pre-buying at the night trough beats heating at the
@@ -11572,7 +11572,7 @@ R.check(
 
 
 # ---------------------------------------------------------------------------
-R.section("v5.1.8 — the disinfection timer cannot latch")
+R.section("v5.1.10 — the disinfection timer cannot latch")
 
 from heatpump_optimizer.config_flow import (
     _dhw_legionella_warning as _lgw,
@@ -11605,7 +11605,7 @@ def _lg_cycle(coord, temps):
 
 
 # A pump that tops out at 54 °C never reaches `legionella_temp - 1`, so the
-# observer's reset can never fire. Before v5.1.8 that left `hours_since`
+# observer's reset can never fire. Before v5.1.10 that left `hours_since`
 # climbing for ever.
 _lg_short = _lg_coord()
 _lg_before = _lg_short._dhw_hours_since_legionella()
@@ -11648,7 +11648,7 @@ R.check(
 
 # No tank probe at all: the observer cannot run, so the countdown had no
 # reset path whatsoever. It resets — but on an ATTEMPT, not a claim of
-# success; see the v5.1.8 section below for why the two are the same
+# success; see the v5.1.10 section below for why the two are the same
 # countdown and only one of them can also be honest about what happened.
 _lg_blind = _lg_coord()
 _lg_blind._config.pop("dhw_temp_entity", None)
@@ -11681,7 +11681,7 @@ R.check(
 
 
 # ---------------------------------------------------------------------------
-R.section("v5.1.8 — the setpoint/disinfection pair warns, and never blocks")
+R.section("v5.1.10 — the setpoint/disinfection pair warns, and never blocks")
 
 R.check(
     "a 52 °C limit with a 60 °C cycle is reported, with how often",
@@ -11743,7 +11743,7 @@ from profiles import weather as _lg_weather
 from heatpump_optimizer.const import DHW_LEGIONELLA_BOOST_MAX_HOURS
 
 # ---------------------------------------------------------------------------
-R.section("v5.1.8 — a due cycle actually reaches the disinfection temperature")
+R.section("v5.1.10 — a due cycle actually reaches the disinfection temperature")
 
 # Honouring the charge limit means a summer plan legitimately parks the tank at
 # ~37 °C, so a cycle that comes due has the whole climb to make in the hours
@@ -11910,7 +11910,7 @@ R.check(
 
 
 # ---------------------------------------------------------------------------
-R.section("v5.1.8 — the floor repair tops the tank up again")
+R.section("v5.1.10 — the floor repair tops the tank up again")
 
 # The first cut of this release bounded the repair's room over the WHOLE tail. Every later step
 # sitting exactly ON the charge limit therefore read as zero room, the
@@ -12075,7 +12075,7 @@ R.check(
 
 
 # ---------------------------------------------------------------------------
-R.section("v5.1.8 — a cycle the tank cannot reach is not parked at the end")
+R.section("v5.1.10 — a cycle the tank cannot reach is not parked at the end")
 
 # Reachability is simulated, not estimated. A closed-form lift ÷ rate ignores
 # the draws and the standby losses the charge pays on the way, and one fixed
@@ -12147,7 +12147,7 @@ R.check(
 
 
 # ---------------------------------------------------------------------------
-R.section("v5.1.8 — a commanded cycle is credited only when something saw it")
+R.section("v5.1.10 — a commanded cycle is credited only when something saw it")
 
 # With no tank probe it is tempting to write the COMPLETION timestamp for a
 # boost nothing has verified. The claim buys no scheduling benefit whatsoever:
@@ -12211,7 +12211,7 @@ R.check(
 
 
 # ---------------------------------------------------------------------------
-R.section("v5.1.8 — free disinfection cannot latch the timer either")
+R.section("v5.1.10 — free disinfection cannot latch the timer either")
 
 # The observer's hold rule credits at `target - 0.5`, held for
 # DHW_LEGIONELLA_HOLD_MINUTES. The boost tracker used to return early at
@@ -12311,7 +12311,7 @@ R.check(
 
 
 # ---------------------------------------------------------------------------
-R.section("v5.1.8 — the stock defaults are not a Repairs card")
+R.section("v5.1.10 — the stock defaults are not a Repairs card")
 
 # `dhw_enabled=True` alone gives a 55 °C charge limit and a 60 °C cycle, both
 # straight from DEFAULT_*. A WARNING-severity, non-fixable Repairs issue on

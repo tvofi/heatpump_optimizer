@@ -315,7 +315,7 @@ def test_pins_change_schedule(R: Results) -> None:
 
     # Forcing hot water ON in a step the plan skipped adds DHW power there.
     # The step is picked from the plan, not hard-coded: a pin can only add a
-    # run where the tank has room for one, and since v5.1.8 "room" is measured
+    # run where the tank has room for one, and since v5.1.10 "room" is measured
     # against the user's charge limit rather than the disinfection
     # temperature, so an evening tank runs out of headroom sooner.
     _base_dhw = np.asarray(base.dhw_power_schedule)

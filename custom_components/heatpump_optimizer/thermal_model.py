@@ -630,7 +630,7 @@ class ThermalParameters:
         """The everyday charge limit: how hot a plan may take the tank.
 
         This is the user's own "Highest tank temperature to charge to", and
-        nothing else. Until v5.1.8 the disinfection temperature was folded
+        nothing else. Until v5.1.10 the disinfection temperature was folded
         in here permanently, which turned a 60 °C hygiene setting into the
         ceiling the cost planner spent every single day: pre-buying at the
         night trough beats heating at the evening window even after standby

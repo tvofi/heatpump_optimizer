@@ -1,6 +1,6 @@
 # Heat Pump Cost Optimizer — Release Notes
 
-## v5.1.8
+## v5.1.10
 
 ### Your hot water charge limit is now actually a limit
 
@@ -118,6 +118,38 @@ besides: the cycle lands on 60.00 °C every time.
 Hot water availability is unchanged by any of this. Across a sixteen-plan
 matrix the worst shortfall against the minimum temperature you set is 0.04 °C
 — the same as before the charge limit started being honoured.
+
+## v5.1.9
+
+### One legend entry for the house temperature line
+
+The house-temperature series draws up to three traces in one colour: the room
+average solid, the upper and lower zones dashed. v5.1.7 gave each of them its
+own name so that hovering a zone line stopped reporting the room's value — a
+real fix, and it stays. It also gave each of them its own legend chip, and
+that part was wrong.
+
+Every chip carries the series it belongs to, because visibility is per series:
+there is no way to hide one line of a series and keep the others. So the card
+showed three chips in the same colour, all of them saying "house temperature"
+in one form or another, and clicking any one of them hid all three lines
+together. Three controls doing one job read as a bug, and it was reported as
+one.
+
+The legend is back to one entry per series. Naming individual traces moved
+entirely to the tooltip, which is where it works: hovering the chart still
+gives a row per line — "House temperature", "Upper floor" and "Lower floor",
+or "Lower floor (modelled)" where no lower-floor thermometer is assigned —
+each with its own value and a dashed swatch for the dashed lines. The legend
+chip's hover text lists the extra traces that ride on the line it toggles, so
+the legend still describes what is drawn without adding a second control for
+it.
+
+A single-zone house is unchanged: it publishes the zone traces as exact copies
+of the room average, those duplicates are dropped rather than drawn, and its
+chip claims no extra traces.
+
+*Card-only.* No planning behaviour changes and no fixture moves.
 
 ## v5.1.7
 

@@ -271,7 +271,7 @@ SCENARIOS: dict[str, dict] = {
     "legionella_due": dict(
         state_overrides={"dhw_hours_since_legionella": 170.0},
     ),
-    # The control that separates the two halves of v5.1.8. With
+    # The control that separates the two halves of v5.1.10. With
     # disinfection switched off the everyday ceiling *is* the setpoint on
     # both sides of the per-step ceiling change, so anything that moves here
     # moved ORDINARY hot-water planning rather than the cycle. It does move,

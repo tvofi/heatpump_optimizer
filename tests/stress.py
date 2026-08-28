@@ -566,7 +566,7 @@ def check_invariants(label: str, run: dict) -> list[str]:
         # and let it coast. So the bound is the rating or the starting
         # temperature, whichever is higher. The RATING, not the everyday
         # charge limit: a disinfection cycle is meant to exceed the limit
-        # (v5.1.8 split the two).
+        # (v5.1.10 split the two).
         ceiling = max(params.dhw_hard_max_temp, run["initial"].dhw_temperature)
         if peak > ceiling + 1.0:
             problems.append(
@@ -1227,7 +1227,7 @@ if cheapest < 0:
 # for the morning — 3.1 kW of it — while coasting alone still clears the
 # floor, so the fire can take all of it away.
 #
-# A window opening AT t=0 was used here until v5.1.8 and no longer works.
+# A window opening AT t=0 was used here until v5.1.10 and no longer works.
 # With the disinfection temperature out of `dhw_max_temp` the everyday
 # ceiling is the user's 55 °C charge limit, so a tank starting at 52 °C
 # inside a demand window has three degrees of headroom rather than eight:
