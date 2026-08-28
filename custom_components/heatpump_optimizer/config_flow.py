@@ -420,14 +420,16 @@ RANGE_ZONE_HEAT_LOSS: Final = (0.001, 1.0)
 
 # Shown on the expert page while the questionnaire is armed. English here
 # is the fallback; the translated text lives beside the page's own strings.
-PRESET_WARNING_FALLBACK: Final = (
-    "Deriving from the building type is switched on, so saving Building type "
-    "and emitters recalculates the house thermal mass, heat loss, slab mass "
-    "and slab transfer below (and the two-zone values) from the "
-    "questionnaire, overwriting whatever is here. Changing any of those "
-    "fields to a different value switches the derivation off, so your value "
-    "stays; simply saving this page again does not."
-)
+# Shown on the expert page while the questionnaire is armed. Home Assistant
+# validates strings.json against a fixed schema, and a step may only carry
+# title/description/data/data_description/menu_options/submit/sections -- a
+# free-standing sentence under the step is rejected by hassfest. A
+# description *placeholder* is substituted verbatim by the frontend, so the
+# text has to be chosen here, by language, rather than looked up.
+PRESET_WARNING: Final = {
+    "en": "Deriving from the building type is switched on, so saving Building type and emitters recalculates the house thermal mass, heat loss, slab mass and slab transfer below (and the two-zone values) from the questionnaire, overwriting whatever is here. Changing any of those fields to a different value switches the derivation off, so your value stays; simply saving this page again does not.",
+    "sv": "Härledning från hustypen är påslagen, så när sidan Hustyp och värmesystem sparas räknas husets värmekapacitet, värmeförlust, plattans termiska massa och värmeöverföring nedan (samt tvåzonsvärdena) om från formuläret och skriver över det som står här. Ändrar du något av de fälten till ett annat värde stängs härledningen av, så att ditt värde blir kvar; att bara spara sidan igen gör det inte.",
+}
 
 # Everything ``presets.derive`` writes into the entry, in the order the
 # expert page shows them. The last six only exist in two-zone mode.
@@ -2020,12 +2022,8 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         if current.get(
             CONF_BUILDING_PRESET_ENABLED, DEFAULT_BUILDING_PRESET_ENABLED
         ):
-            preset_warning = await _translated_text(
-                self.hass,
-                "options",
-                "step.thermal_model.preset_warning",
-                PRESET_WARNING_FALLBACK,
-            )
+            lang = (self.hass.config.language or "en").split("-")[0]
+            preset_warning = PRESET_WARNING.get(lang, PRESET_WARNING["en"])
 
         return self.async_show_form(
             step_id="thermal_model",

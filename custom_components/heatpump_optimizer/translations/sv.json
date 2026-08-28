@@ -540,8 +540,7 @@
           "radiator_power_fraction": "Gäller endast tvåzonssystem. 0 betyder att all värme går till golvplattan, 1 att allt går till radiatorerna. 0,4 betyder 40 procent till radiatorer.",
           "upper_floor_area_ratio": "Andel av total golvyta som ligger på övre planet. 0,5 betyder att planen är lika stora.",
           "solar_orientation_factor": "Hur väl fönstren möter solen över dagen. 1,0 passar mest södervända fönster; sänk för öster- eller västerläge som bara får sol en del av dagen."
-        },
-        "preset_warning": "Härledning från hustypen är påslagen, så när sidan Hustyp och värmesystem sparas räknas husets värmekapacitet, värmeförlust, plattans termiska massa och värmeöverföring nedan (samt tvåzonsvärdena) om från formuläret och skriver över det som står här. Ändrar du något av de fälten till ett annat värde stängs härledningen av, så att ditt värde blir kvar; att bara spara sidan igen gör det inte."
+        }
       },
       "grid": {
         "title": "Nätkostnader",

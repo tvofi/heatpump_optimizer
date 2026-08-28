@@ -1801,9 +1801,31 @@ for _name, _data in _CATALOGUES.items():
     _step = _data["options"]["step"]["thermal_model"]
     R.check(
         f"{_name} gives the warning somewhere to appear",
-        "{preset_warning}" in _step["description"] and _step.get("preset_warning"),
-        "the placeholder and its text have to travel together",
+        "{preset_warning}" in _step["description"],
+        "the placeholder has to be in the description it fills",
     )
+    R.check(
+        f"{_name} does not carry the text as a step key",
+        "preset_warning" not in _step,
+        "hassfest rejects any step key outside title/description/data/"
+        "data_description/menu_options/submit/sections, and it did",
+    )
+
+# The text itself lives in code, because a description *placeholder* is
+# substituted verbatim by the frontend and a step has nowhere valid to keep
+# a free-standing sentence. So the languages have to be checked here.
+R.check(
+    "the warning is carried in code, in both languages",
+    set(config_flow.PRESET_WARNING) == {"en", "sv"}
+    and all(len(v) > 80 for v in config_flow.PRESET_WARNING.values()),
+    "an English-only warning would ship untranslated to every Swedish user",
+)
+R.check(
+    "and an unknown language falls back to English rather than a KeyError",
+    config_flow.PRESET_WARNING.get("de", config_flow.PRESET_WARNING["en"])
+    == config_flow.PRESET_WARNING["en"],
+    "a form must never fail to render",
+)
 
 # The caption that sent the owner's own value 27 percent high: an absolute
 # rule of thumb ("roughly 3 kWh/°C") printed on a field the model scales by
