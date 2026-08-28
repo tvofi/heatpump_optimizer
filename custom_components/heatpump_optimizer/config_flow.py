@@ -417,7 +417,8 @@ PRESET_WARNING_FALLBACK: Final = (
     "and emitters recalculates the house thermal mass, heat loss, slab mass "
     "and slab transfer below (and the two-zone values) from the "
     "questionnaire, overwriting whatever is here. Changing any of those "
-    "fields on this page switches the derivation off, so your value stays."
+    "fields to a different value switches the derivation off, so your value "
+    "stays; simply saving this page again does not."
 )
 
 # Everything ``presets.derive`` writes into the entry, in the order the
@@ -1951,11 +1952,23 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
             errors = _power_errors(user_input, self._current)
             if not errors:
                 saved = dict(user_input)
-                if any(key in saved for key in DERIVED_THERMAL_KEYS):
+                stored = self._current
+                if any(
+                    key in saved and saved[key] != stored.get(key)
+                    for key in DERIVED_THERMAL_KEYS
+                ):
                     # Editing a derived number here has to mean it. Left
                     # armed, the questionnaire would overwrite this value the
                     # next time that page was saved, and the user would be
                     # back to a number they did not choose with no idea why.
+                    #
+                    # It has to be a *changed* value, not merely a present
+                    # one. ``user_input`` is what the browser posted, and the
+                    # browser posts every pre-filled field back — which is
+                    # the whole premise of this page's suggested values — so
+                    # presence alone is true on a no-op Submit, and testing
+                    # it disarmed the questionnaire for every user who had
+                    # ever opened this page and pressed the button.
                     saved[CONF_BUILDING_PRESET_ENABLED] = False
                 return self._save(saved)
 

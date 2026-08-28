@@ -525,7 +525,7 @@
           "upper_floor_area_ratio": "Share of the total floor area that sits upstairs. 0.5 means the two floors are the same size.",
           "solar_orientation_factor": "How well the windows face the sun over a day. 1.0 suits mostly south-facing glazing; lower it for east or west facing windows that only catch part of the day."
         },
-        "preset_warning": "Deriving from the building type is switched on, so saving Building type and emitters recalculates the house thermal mass, heat loss, slab mass and slab transfer below (and the two-zone values) from the questionnaire, overwriting whatever is here. Changing any of those fields on this page switches the derivation off, so your value stays."
+        "preset_warning": "Deriving from the building type is switched on, so saving Building type and emitters recalculates the house thermal mass, heat loss, slab mass and slab transfer below (and the two-zone values) from the questionnaire, overwriting whatever is here. Changing any of those fields to a different value switches the derivation off, so your value stays; simply saving this page again does not."
       },
       "grid": {
         "title": "Grid costs",

@@ -39,8 +39,10 @@ first-run setup, not just the expert one.
 **Editing an expert value now means it.** While derivation from the
 building type is on, saving *Building type and emitters* recalculates all
 ten derived numbers and overwrites whatever you typed. Changing any of them
-on the expert page now switches the derivation off, so your value stays,
-and the page says so while the derivation is armed.
+to a different value on the expert page now switches the derivation off, so
+your value stays, and the page says so while the derivation is armed. Only a
+real change counts — pressing Submit without touching anything leaves the
+derivation exactly as it was.
 
 ### Two captions that were giving wrong advice
 

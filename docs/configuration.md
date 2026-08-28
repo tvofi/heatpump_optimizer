@@ -363,7 +363,7 @@ turning the preset on.
 
 | Setting | Default | Range | What it means |
 |---|---|---|---|
-| Derive thermal values from the building type | off | on/off | While this is on, **every save of this page** recalculates the ten derived values on *Thermal model (expert)* from your answers below and overwrites whatever is there. It never runs at any other time. Editing one of those values on the expert page switches this back off, so your own number stays. |
+| Derive thermal values from the building type | off | on/off | While this is on, **every save of this page** recalculates the ten derived values on *Thermal model (expert)* from your answers below and overwrites whatever is there. It never runs at any other time. Changing one of those values to a different number on the expert page switches this back off, so your own number stays; re-saving the expert page unchanged does not. |
 | The six questionnaire fields | as setup | see setup step 3 | Identical questions and choices; one field list serves both flows. |
 | Window area facing the sun | 10 m² | 0–50, 0.5 steps | Glazing that gets direct sun. Not derived by the preset. |
 | How much sunlight the windows let through | 0.7 | 0.1–1.0 | The glazing's solar heat gain coefficient. |
@@ -391,8 +391,10 @@ Two things about this page that follow from where its numbers come from.
 **Changing a derived value turns the derivation off.** Ten of these fields are
 what *Building type and emitters* works out from the questionnaire. If that
 switch stayed on, the next save of that page would take your edit back — so
-editing any of the ten switches it off instead, and the page says so while it
-is still armed.
+changing any of the ten to a different value switches it off instead, and the
+page says so while it is still armed. Only a real change counts: pressing
+Submit without touching anything, re-typing a value that was already there, or
+editing one of the fields the questionnaire does not own all leave it on.
 
 **A stored value outside a field's normal range widens that field rather than
 blocking the page.** The ranges cover the physics of a 40–400 m² building; a

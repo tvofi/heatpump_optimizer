@@ -1499,37 +1499,88 @@ _armed = {
     const.CONF_BUILDING_PRESET_ENABLED: True,
     **_single_derived,
 }
-_override_flow = options(FakeEntry(data=dict(_armed)))
-_override_flow.hass = FakeHass()
-_override = asyncio.run(
-    _override_flow.async_step_thermal_model({const.CONF_HOUSE_THERMAL_MASS: 4.5})
-)["data"]
+
+
+def _thermal_save(overrides):
+    """Post the expert page back the way the browser does, and return the save.
+
+    Through ``_submission``, never a hand-built dict. The distinction is the
+    whole subject of this file's previous section, and the first version of
+    the disarm rule below was certified with partial dicts the frontend
+    never sends -- ``{heat_pump_max_power: 9.0}`` and ``schema({})`` -- so
+    every check passed while a no-op Submit silently disarmed the
+    questionnaire for every user who had taken the recommended setup path.
+    """
+    flow = options(FakeEntry(data=dict(_armed)))
+    flow.hass = FakeHass()
+    schema = asyncio.run(flow.async_step_thermal_model(None))["data_schema"]
+    payload = schema(_submission(schema, **overrides))
+    return asyncio.run(flow.async_step_thermal_model(payload))["data"]
+
+
+# The case that matters most, because it is the cheapest thing a user can do
+# and the one nobody thinks to test: open the page, press Submit, touch
+# nothing. The browser still posts every pre-filled field, so "was a derived
+# key submitted?" is true here -- and answering that question instead of
+# "did a derived value change?" is what made this a regression.
+_noop = _thermal_save({})
 R.check(
-    "editing a derived value switches the derivation off, so the value keeps",
+    "a no-op Submit leaves the derivation exactly as it was",
+    const.CONF_BUILDING_PRESET_ENABLED not in _noop,
+    f"pressing Submit with nothing touched wrote {_noop!r}",
+)
+R.check(
+    "and changes nothing it wrote back",
+    all(_noop[k] == _armed[k] for k in _noop if k in _armed)
+    and not set(_noop) - set(_armed) - {const.CONF_TWO_ZONE_MODE},
+    f"a no-op Submit altered something: {_noop!r}",
+)
+
+_same = _thermal_save(
+    {const.CONF_HOUSE_THERMAL_MASS: _single_derived[const.CONF_HOUSE_THERMAL_MASS]}
+)
+R.check(
+    "re-typing a derived value unchanged is not an override",
+    const.CONF_BUILDING_PRESET_ENABLED not in _same,
+    f"saved {_same!r}",
+)
+
+_unrelated = _thermal_save({const.CONF_HEAT_PUMP_MAX_POWER: 9.0})
+R.check(
+    "editing a field the questionnaire does not own leaves it armed",
+    _unrelated.get(const.CONF_HEAT_PUMP_MAX_POWER) == 9.0
+    and const.CONF_BUILDING_PRESET_ENABLED not in _unrelated,
+    f"saved {_unrelated!r}",
+)
+
+_override = _thermal_save({const.CONF_HOUSE_THERMAL_MASS: 4.5})
+R.check(
+    "changing a derived value switches the derivation off, so the value keeps",
     _override.get(const.CONF_HOUSE_THERMAL_MASS) == 4.5
     and _override.get(const.CONF_BUILDING_PRESET_ENABLED) is False,
     f"saved {_override!r}",
 )
-_unrelated_flow = options(FakeEntry(data=dict(_armed)))
-_unrelated_flow.hass = FakeHass()
-_unrelated = asyncio.run(
-    _unrelated_flow.async_step_thermal_model({const.CONF_HEAT_PUMP_MAX_POWER: 9.0})
+
+# The consequence the user would actually feel, end to end: after the four
+# submits above, is the questionnaire still able to recalculate?
+_still_armed_flow = options(FakeEntry(data=dict(_armed), options=dict(_noop)))
+_still_armed_flow.hass = FakeHass()
+_preset_form = asyncio.run(_still_armed_flow.async_step_building_preset(None))
+_preset_saved = asyncio.run(
+    _still_armed_flow.async_step_building_preset(
+        _preset_form["data_schema"](
+            _submission(
+                _preset_form["data_schema"],
+                **{const.CONF_BUILDING_ERA: presets.ERA_POST_2005},
+            )
+        )
+    )
 )["data"]
 R.check(
-    "editing a field the questionnaire does not own leaves it armed",
-    const.CONF_BUILDING_PRESET_ENABLED not in _unrelated,
-    f"saved {_unrelated!r}",
-)
-_untouched_flow = options(FakeEntry(data=dict(_armed)))
-_untouched_flow.hass = FakeHass()
-_untouched_form = asyncio.run(_untouched_flow.async_step_thermal_model(None))
-R.check(
-    "and an untouched save still writes nothing at all",
-    asyncio.run(
-        _untouched_flow.async_step_thermal_model(_untouched_form["data_schema"]({}))
-    )["data"]
-    == {},
-    "a page that writes on an untouched save flips presence-inferred settings",
+    "and the questionnaire still recalculates after a no-op Submit",
+    _preset_saved.get(const.CONF_HOUSE_HEAT_LOSS_COEFFICIENT)
+    not in (None, _single_derived[const.CONF_HOUSE_HEAT_LOSS_COEFFICIENT]),
+    f"changing the era recalculated nothing: {_preset_saved!r}",
 )
 
 # The user-visible text, in all three files. (The Translations section below
@@ -1543,9 +1594,12 @@ _CATALOGUES = {
 
 # Home Assistant has no way to grey a field out, so the page says in words
 # what it cannot show. An unfilled placeholder renders as literal braces.
+_armed_flow = options(FakeEntry(data=dict(_armed)))
+_armed_flow.hass = FakeHass()
+_armed_form = asyncio.run(_armed_flow.async_step_thermal_model(None))
 R.check(
     "the expert page warns while the derivation is armed",
-    _untouched_form["description_placeholders"]["preset_warning"],
+    _armed_form["description_placeholders"]["preset_warning"],
     "a user editing a value that will be overwritten deserves to know",
 )
 R.check(
