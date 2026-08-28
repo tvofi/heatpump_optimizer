@@ -45,6 +45,7 @@ TEMPLATES: dict[str, dict[str, str]] = {
         "legionella": "the anti-legionella cycle takes {kwh} kWh ({sek} kr)",
         "manual_plan": "{kwh} kWh you scheduled yourself ({sek} kr)",
         "idle": "idle for {hours} h",
+        "pump_mode": "blocked by the heat pump's operating mode for {hours} h",
         "untagged": "{kwh} kWh outside the plan ({sek} kr)",
     },
     "sv": {
@@ -60,9 +61,15 @@ TEMPLATES: dict[str, dict[str, str]] = {
         "legionella": "legionellacykeln tar {kwh} kWh ({sek} kr)",
         "manual_plan": "{kwh} kWh som du själv schemalagt ({sek} kr)",
         "idle": "viloläge i {hours} h",
+        "pump_mode": "blockerat av värmepumpens driftläge i {hours} h",
         "untagged": "{kwh} kWh utanför planen ({sek} kr)",
     },
 }
+
+
+#: Reasons whose whole meaning is that no energy was spent. Kept in the
+#: narrative even at zero kWh, where every other reason at zero kWh is noise.
+ZERO_ENERGY_REASONS = frozenset({"idle", "pump_mode"})
 
 
 def group_by_reason(
@@ -115,14 +122,29 @@ def build(
             into = merged.setdefault(
                 reason, {"kwh": 0.0, "sek": 0.0, "hours": 0.0}
             )
-            for key, value in entry.items():
-                into[key] += value
+            into["kwh"] += entry["kwh"]
+            into["sek"] += entry["sek"]
+            # Hours are WALL CLOCK, so they do not add across channels the
+            # way energy does: the two schedules run over the same horizon,
+            # and a reason carried on both sides of one step happened once.
+            # Summing them reported "idle for 48 h" on a 24 h horizon —
+            # visible on every zero-energy line, which is the only kind of
+            # line whose hours are the whole message.
+            into["hours"] = max(into["hours"], entry["hours"])
     items = []
     for reason, entry in merged.items():
-        # Idle carries no energy by definition; every other zero-energy
+        # These two carry no energy by definition; every other zero-energy
         # group is noise (a reason that never actually drew) and a line
         # saying "0.0 kWh for 0.00 kr" teaches the reader nothing.
-        if reason != "idle" and entry["kwh"] < 0.05:
+        #
+        # ``pump_mode`` is here for the same reason ``idle`` is, and it is
+        # the more important of the two: a mode-blocked channel is empty by
+        # construction, so filtering on energy would drop the one line that
+        # explains WHY those hours are empty — and because the blocked steps
+        # were relabelled away from ``idle``, the "idle for 24 h" line that
+        # used to stand there is gone as well, leaving silence where an
+        # explanation belongs.
+        if reason not in ZERO_ENERGY_REASONS and entry["kwh"] < 0.05:
             continue
         items.append(
             {

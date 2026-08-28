@@ -59,12 +59,21 @@ class FakeState:
         state,
         *,
         last_updated: datetime | None = None,
+        last_reported: datetime | None = None,
         unit: str | None = None,
         attributes: dict | None = None,
     ) -> None:
         self.state = state
         self.last_updated = last_updated or datetime.now(UTC)
         self.last_changed = self.last_updated
+        # Home Assistant sets this on every state WRITE, including one that
+        # rewrites an unchanged value, which is why InputReader prefers it.
+        # The stub had no such attribute at all, so every freshness test in
+        # the suite was silently exercising the last_updated fallback and the
+        # mechanism v5.3.0's cloud-gap argument rests on was never run.
+        # Defaults to last_updated (an entity that has only ever changed),
+        # and a test that wants a re-reporting sensor sets it explicitly.
+        self.last_reported = last_reported or self.last_updated
         self.attributes = dict(attributes or {})
         if unit is not None:
             self.attributes["unit_of_measurement"] = unit

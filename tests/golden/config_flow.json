@@ -459,6 +459,38 @@
     "required": "Optional",
     "selector": "EntitySelector"
    },
+   "heat_pump_defrost_entity": {
+    "config": {
+     "filter": "[{'domain': ['binary_sensor', 'switch', 'input_boolean', 'sensor']}]"
+    },
+    "default": null,
+    "required": "Optional",
+    "selector": "EntitySelector"
+   },
+   "heat_pump_fault_entity": {
+    "config": {
+     "filter": "[{'domain': ['binary_sensor', 'switch', 'input_boolean', 'sensor']}]"
+    },
+    "default": null,
+    "required": "Optional",
+    "selector": "EntitySelector"
+   },
+   "heat_pump_mode_entity": {
+    "config": {
+     "filter": "[{'domain': ['select', 'sensor', 'input_select']}]"
+    },
+    "default": null,
+    "required": "Optional",
+    "selector": "EntitySelector"
+   },
+   "heat_pump_online_entity": {
+    "config": {
+     "filter": "[{'domain': ['binary_sensor', 'switch', 'input_boolean', 'sensor']}]"
+    },
+    "default": null,
+    "required": "Optional",
+    "selector": "EntitySelector"
+   },
    "heat_pump_switch_entity": {
     "config": {
      "filter": "[{'domain': ['switch']}]"
@@ -1184,9 +1216,41 @@
    "required": "Optional",
    "selector": "SelectSelector"
   },
+  "heat_pump_defrost_entity": {
+   "config": {
+    "filter": "[{'domain': ['binary_sensor', 'switch', 'input_boolean', 'sensor']}]"
+   },
+   "default": null,
+   "required": "Optional",
+   "selector": "EntitySelector"
+  },
   "heat_pump_energy_entity": {
    "config": {
     "filter": "[{'domain': ['sensor'], 'device_class': ['energy']}]"
+   },
+   "default": null,
+   "required": "Optional",
+   "selector": "EntitySelector"
+  },
+  "heat_pump_fault_entity": {
+   "config": {
+    "filter": "[{'domain': ['binary_sensor', 'switch', 'input_boolean', 'sensor']}]"
+   },
+   "default": null,
+   "required": "Optional",
+   "selector": "EntitySelector"
+  },
+  "heat_pump_mode_entity": {
+   "config": {
+    "filter": "[{'domain': ['select', 'sensor', 'input_select']}]"
+   },
+   "default": null,
+   "required": "Optional",
+   "selector": "EntitySelector"
+  },
+  "heat_pump_online_entity": {
+   "config": {
+    "filter": "[{'domain': ['binary_sensor', 'switch', 'input_boolean', 'sensor']}]"
    },
    "default": null,
    "required": "Optional",

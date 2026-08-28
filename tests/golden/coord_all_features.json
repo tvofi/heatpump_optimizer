@@ -104,7 +104,10 @@
   "deferred_energy_cost": null,
   "defrost_buckets": [],
   "defrost_derate": 1.0,
+  "defrost_flag_configured": false,
+  "defrost_measured_samples": 0,
   "defrost_samples": 0,
+  "defrost_store_migrated": false,
   "dhw_advisor": {
    "candidates": [
     {
@@ -244,6 +247,22 @@
    "bias_k": 0.0,
    "comfortable_days": 0,
    "resets": 0
+  },
+  "heat_pump_signals": {
+   "concurrent_duties": false,
+   "cooling": false,
+   "defrosting": null,
+   "dhw_available": true,
+   "dhw_blocked": false,
+   "fault": null,
+   "freeze_reason": null,
+   "mode": "Unknown",
+   "mode_key": null,
+   "mode_source": "absent",
+   "mode_state": null,
+   "online": null,
+   "space_blocked": false,
+   "space_heat_available": true
   },
   "house_heat_loss_effective": 0.15,
   "house_heat_loss_learned": false,

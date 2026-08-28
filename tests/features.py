@@ -33,16 +33,27 @@ from heatpump_optimizer.comfort_learning import (
     OverrideEvent,
 )
 from heatpump_optimizer.const import COP_SCALE_MAX, COP_SCALE_MIN
-from heatpump_optimizer.defrost import DefrostDerate
+from heatpump_optimizer.defrost import (
+    DEFROST_LOSS_MULTIPLIER,
+    DERATE_CONFIDENCE_SAMPLES,
+    DERATE_MAX,
+    DefrostDerate,
+    DefrostWindow,
+    derate_from_duty,
+)
 from heatpump_optimizer.external_heat import (
     ExternalHeatConfig,
     ExternalHeatDetector,
     ExternalHeatObservation,
 )
+from heatpump_optimizer import inputs as inputs_mod
+from heatpump_optimizer import pump_mode, pump_signals
+from heatpump_optimizer.pump_signals import PumpSignals
 from heatpump_optimizer.inputs import (
     InputReader,
     InputReading,
     normalize_power_kw,
+    parse_bool,
     stale_summary,
 )
 from heatpump_optimizer.price_model import (
@@ -214,6 +225,435 @@ bad = bad_unit.read_power_kw("heat_pump_power_entity")
 R.check(
     "a wrongly-united power entity yields nothing",
     bad.value is None and bad.problem == "unknown_unit",
+)
+
+
+# ===========================================================================
+# v5.3.0: strings and flags, guarded like numbers
+# ===========================================================================
+R.section("Non-numeric inputs (v5.3.0)")
+
+# The four signals a heat-pump integration publishes about itself. `read`
+# rejects every one of them as `not_numeric`; `read_state` and `read_bool`
+# are what make them readable without giving up the freshness discipline.
+SIGNALS = {
+    "heat_pump_mode_entity": "select.pump_mode",
+    "heat_pump_defrost_entity": "binary_sensor.pump_defrost",
+    "heat_pump_online_entity": "binary_sensor.pump_online",
+    "heat_pump_fault_entity": "binary_sensor.pump_fault",
+}
+
+
+def signals(states, **kwargs):
+    return InputReader(FakeHass(states), SIGNALS, now=lambda: NOW, **kwargs)
+
+
+# -- present ----------------------------------------------------------------
+_mode_now = signals(
+    {"select.pump_mode": FakeState("Heating + DHW", last_updated=minutes_ago(2, NOW))}
+)
+_mode = _mode_now.read_state("heat_pump_mode_entity")
+R.check(
+    "a fresh string entity reads as text",
+    _mode.ok and _mode.text == "Heating + DHW",
+    f"{_mode.problem}, text {_mode.text!r}",
+)
+R.check(
+    "and carries no number, so numeric callers cannot mistake it for one",
+    _mode.value is None,
+)
+R.check(
+    "the same entity through the numeric reader is still not_numeric",
+    signals(
+        {"select.pump_mode": FakeState("Heating + DHW")}
+    ).read("heat_pump_mode_entity").problem
+    == "not_numeric",
+    "read()'s contract is unchanged",
+)
+
+# -- absent, missing, unavailable -------------------------------------------
+R.check(
+    "an unconfigured signal is not_configured, not a problem",
+    InputReader(FakeHass({}), {}, now=lambda: NOW)
+    .read_state("heat_pump_mode_entity")
+    .problem
+    == "not_configured",
+)
+R.check(
+    "a configured entity that does not exist is missing_entity",
+    signals({}).read_state("heat_pump_mode_entity").problem == "missing_entity",
+)
+for _bad in ("unavailable", "unknown"):
+    _r = signals({"select.pump_mode": FakeState(_bad)}).read_state(
+        "heat_pump_mode_entity"
+    )
+    R.check(
+        f"a {_bad} string entity yields nothing usable",
+        not _r.ok and _r.problem == "unavailable",
+        str(_r.problem),
+    )
+
+# -- stale ------------------------------------------------------------------
+# The whole reason this method exists rather than a bespoke hand-read: a mode
+# nobody has reported for ninety minutes is not evidence about the pump now.
+_old_mode = signals(
+    {"select.pump_mode": FakeState("cool", last_updated=minutes_ago(90, NOW))}
+).read_state("heat_pump_mode_entity")
+R.check(
+    "an over-age string is rejected exactly like an over-age number",
+    not _old_mode.ok and _old_mode.stale and _old_mode.problem == "stale",
+    str(_old_mode.problem),
+)
+R.check(
+    "and keeps its text for a caller that wants last-known-good",
+    _old_mode.text == "cool" and _old_mode.age_minutes > 89,
+)
+R.check(
+    "a defrost flag goes stale sooner than a mode does",
+    signals(
+        {
+            "binary_sensor.pump_defrost": FakeState(
+                "on", last_updated=minutes_ago(45, NOW)
+            ),
+            "select.pump_mode": FakeState("heat", last_updated=minutes_ago(45, NOW)),
+        }
+    ).read_bool("heat_pump_defrost_entity").stale
+    and not signals(
+        {"select.pump_mode": FakeState("heat", last_updated=minutes_ago(45, NOW))}
+    ).read_state("heat_pump_mode_entity").stale,
+    "an event needs a tighter horizon than a slow-moving state",
+)
+
+# -- unknown values ---------------------------------------------------------
+_odd = signals({"select.pump_mode": FakeState("turbo")}).read_state(
+    "heat_pump_mode_entity", valid=pump_mode.is_known
+)
+R.check(
+    "a state outside the vocabulary is reported, not passed on",
+    not _odd.ok and _odd.problem == "unknown_value",
+    str(_odd.problem),
+)
+R.check(
+    "while a recognised one passes the same gate",
+    signals({"select.pump_mode": FakeState("Cooling + DHW")})
+    .read_state("heat_pump_mode_entity", valid=pump_mode.is_known)
+    .ok,
+)
+R.check(
+    "a plain container of accepted states works too, case-insensitively",
+    signals({"select.pump_mode": FakeState("Heat")})
+    .read_state("heat_pump_mode_entity", valid=("heat", "cool"))
+    .ok,
+)
+_stale_odd = signals(
+    {"select.pump_mode": FakeState("turbo", last_updated=minutes_ago(90, NOW))}
+).read_state("heat_pump_mode_entity", valid=pump_mode.is_known)
+R.check(
+    "staleness outranks an unrecognised value",
+    _stale_odd.problem == "stale",
+    f"an old unknown value is old first, got {_stale_odd.problem}",
+)
+
+# -- flags ------------------------------------------------------------------
+for _raw, _expected in (
+    ("on", True),
+    ("off", False),
+    ("true", True),
+    ("false", False),
+    ("detected", True),
+    ("clear", False),
+    # A raw Tuya fault DP: zero is healthy, anything else is a fault. The
+    # source integration's own rule is literally `value != 0`, so a user who
+    # points the slot at the code sensor gets the same answer as the derived
+    # binary sensor would give.
+    ("0", False),
+    ("1", True),
+    ("3", True),
+):
+    _rb = signals({"binary_sensor.pump_fault": FakeState(_raw)}).read_bool(
+        "heat_pump_fault_entity"
+    )
+    R.check(
+        f"a flag reading {_raw!r} is {_expected}",
+        _rb.ok and _rb.flag is _expected,
+        f"{_rb.problem}, flag {_rb.flag!r}",
+    )
+    R.check(
+        f"and {_raw!r} keeps the word it came from",
+        _rb.text == _raw,
+        "the first question asked of a misbehaving flag is what it said",
+    )
+
+_notbool = signals({"binary_sensor.pump_fault": FakeState("warm")}).read_bool(
+    "heat_pump_fault_entity"
+)
+R.check(
+    "an uninterpretable flag is refused rather than guessed",
+    not _notbool.ok and _notbool.problem == "not_boolean" and _notbool.flag is None,
+    str(_notbool.problem),
+)
+_stale_flag = signals(
+    {"binary_sensor.pump_online": FakeState("on", last_updated=minutes_ago(90, NOW))}
+).read_bool("heat_pump_online_entity")
+R.check(
+    "a stale flag is unusable but still reachable",
+    not _stale_flag.ok and _stale_flag.stale and _stale_flag.flag is True,
+    "mirrors read() keeping value on a stale numeric reading",
+)
+
+R.check("parse_bool reads a real bool through", parse_bool(True) is True)
+R.check("parse_bool refuses a word it does not know", parse_bool("warm") is None)
+R.check("parse_bool reads any non-zero number as yes", parse_bool("-2") is True)
+
+# -- health, and what must NOT freeze ---------------------------------------
+# Mode configured and healthy, online configured but unusable, defrost never
+# configured at all -- the three states every install is a mixture of.
+_health_reader = InputReader(
+    FakeHass(
+        {
+            "binary_sensor.pump_online": FakeState("unavailable"),
+            "select.pump_mode": FakeState("heat", last_updated=minutes_ago(2, NOW)),
+        }
+    ),
+    {k: v for k, v in SIGNALS.items() if k != "heat_pump_defrost_entity"},
+    now=lambda: NOW,
+)
+_health_reader.read_state("heat_pump_mode_entity")
+_health_reader.read_bool("heat_pump_online_entity")
+_health_reader.read_bool("heat_pump_defrost_entity")
+R.check(
+    "a configured-but-unusable signal is visible in the health snapshot",
+    _health_reader.health.missing_keys == ["heat_pump_online_entity"],
+    str(_health_reader.health.missing_keys),
+)
+R.check(
+    "a never-configured signal is not held against the install",
+    "heat_pump_defrost_entity" not in _health_reader.health.missing_keys
+    and "heat_pump_defrost_entity" not in _health_reader.health.stale_keys,
+    "absent evidence must not read as a fault, or every install without the "
+    "optional sensor would look broken",
+)
+R.check(
+    "the convenience accessors mirror value()",
+    _health_reader.text("heat_pump_mode_entity") == "heat"
+    and _health_reader.flag("heat_pump_online_entity", default=None) is None
+    and _health_reader.flag("heat_pump_defrost_entity", default=True) is True,
+    "an unusable or unread key falls back to the caller's default",
+)
+
+
+# ===========================================================================
+# v5.3.0: the operating-mode vocabulary
+# ===========================================================================
+R.section("Heat pump operating mode (v5.3.0)")
+
+# The five modes the reference unit (Rotenso Windmi, Tuya model 000004k4z6)
+# exposes on DP 2, and what each one lets the pump actually do.
+for _raw, _space, _dhw, _cooling, _concurrent in (
+    ("cool", False, False, True, False),
+    ("heat", True, False, False, False),
+    ("DHW", False, True, False, False),
+    ("COOLDHW", False, True, True, True),
+    ("HEATDHW", True, True, False, True),
+):
+    _cap = pump_mode.capability(_raw)
+    R.check(
+        f"{_raw}: space={_space} dhw={_dhw}",
+        _cap.space_heat is _space
+        and _cap.dhw is _dhw
+        and _cap.cooling is _cooling
+        and _cap.known,
+        f"got space={_cap.space_heat} dhw={_cap.dhw} cooling={_cap.cooling}",
+    )
+    R.check(
+        f"{_raw}: two duties at once = {_concurrent}",
+        _cap.concurrent is _concurrent,
+        "HEATDHW and COOLDHW run both duties concurrently, which is exactly "
+        "the premise _commanded_power's 'one at a time' comment gets wrong "
+        "for this hardware",
+    )
+
+# The state Home Assistant actually holds is the select's LABEL, not the Tuya
+# enum: the reference integration sets _attr_options to the labels and
+# returns one from current_option. A vocabulary that knew only the enum would
+# recognise nothing on a real install -- and, falling back to full
+# capability, would do nothing at all, silently, forever.
+for _label, _key in (
+    ("Cooling", "cool"),
+    ("Heating", "heat"),
+    ("DHW (Hot Water)", "DHW"),
+    ("Cooling + DHW", "COOLDHW"),
+    ("Heating + DHW", "HEATDHW"),
+):
+    R.check(
+        f"the select label {_label!r} resolves to {_key}",
+        pump_mode.resolve(_label) == _key,
+        str(pump_mode.resolve(_label)),
+    )
+
+for _spelling in ("heatdhw", "HEAT_DHW", "  Heating + DHW  ", "heating and dhw"):
+    R.check(
+        f"{_spelling!r} is tolerated",
+        pump_mode.capability(_spelling).key == "HEATDHW",
+        "case, spacing and punctuation must not decide whether the house "
+        "gets heat",
+    )
+
+for _unknown in ("turbo", "auto", "", None, 7):
+    _cap = pump_mode.capability(_unknown)
+    R.check(
+        f"an unrecognised mode {_unknown!r} falls back to full capability",
+        _cap.space_heat and _cap.dhw and not _cap.known and _cap is pump_mode.FULL_CAPABILITY,
+        "suppressing everything on a word nobody recognised is a cold house "
+        "in January; over-promising for one interval is not",
+    )
+R.check(
+    "and the unknown fallback does not claim two duties at once",
+    not pump_mode.FULL_CAPABILITY.concurrent,
+    "without evidence, keep the pre-v5.3.0 assumption",
+)
+
+R.check(
+    "suppression is symmetric",
+    not pump_mode.capability("DHW").space_heat
+    and not pump_mode.capability("heat").dhw
+    and not pump_mode.capability("cool").space_heat
+    and not pump_mode.capability("cool").dhw,
+    "a hot-water-only mode must suppress space heating and a heating-only "
+    "mode must suppress hot water; promising either is promising heat the "
+    "pump cannot deliver",
+)
+R.check(
+    "every mode carries what a future writer would need",
+    all(
+        m.key and m.options and m.label
+        for m in pump_mode.MODES.values()
+    )
+    and pump_mode.MODE_KEYS == ("cool", "heat", "DHW", "COOLDHW", "HEATDHW"),
+    "the device enum to put on the wire, and the select option string HA's "
+    "select.select_option would have to be given",
+)
+
+
+# -- the external-heat override, migrated onto the shared reader ------------
+#
+# A deliberate behaviour change (v5.3.0): this was the one input in the
+# integration read straight out of hass.states, with no age limit at all. It
+# is also the strongest input there is -- while it says "yes" the optimizer
+# stops planning heat, and while it says "no" it overrules the detector -- so
+# a flue PROBE that died mid-fire suppressed heating indefinitely.
+#
+# The horizon therefore applies to numbers only. A probe re-reports on every
+# poll, so its age is evidence; a flag helper is written only when it changes,
+# so its age is "how long since the user decided" and ageing it out silently
+# throws the decision away. Both halves are pinned below, because getting the
+# second one wrong is a regression for installs with no Tuya hardware at all.
+_OVERRIDE_CFG = {"external_heat_entity": "binary_sensor.stove"}
+
+
+class _OverrideHost:
+    _external_heat_override = Coord._external_heat_override
+
+    def __init__(self) -> None:
+        # The probe's "has gone quiet" warning is logged once per outage
+        # rather than once per cycle; the flag lives on the coordinator.
+        self._external_probe_stale_warned = False
+
+
+def override_at(entity_id, state):
+    cfg = {"external_heat_entity": entity_id}
+    states = {} if state is None else {entity_id: state}
+    return _OverrideHost()._external_heat_override(
+        InputReader(FakeHass(states), cfg, now=lambda: NOW)
+    )
+
+
+def override_for(state):
+    return override_at("binary_sensor.stove", state)
+
+
+R.check(
+    "a lit stove still reads as an override",
+    override_for(FakeState("on", last_updated=minutes_ago(5, NOW))) is True,
+)
+R.check(
+    "and a cold one still reads as no override",
+    override_for(FakeState("off", last_updated=minutes_ago(5, NOW))) is False,
+)
+R.check(
+    "a flue PROBE that stopped reporting stops suppressing (v5.3.0)",
+    override_at("sensor.flue", FakeState("420", last_updated=minutes_ago(240, NOW)))
+    is None
+    and override_at("sensor.flue", FakeState("420", last_updated=minutes_ago(5, NOW)))
+    is True,
+    "the behaviour change, and its whole scope: a stalled hot probe used to "
+    "hold suppression forever, which in winter is a cold house on the word "
+    "of a flat battery",
+)
+
+# The regression this pair exists to catch. config_flow offers this slot as
+# binary_sensor/switch/input_boolean/sensor and docs/configuration.md names
+# the same four; the two named first are helpers HA writes ONLY on a toggle,
+# so last_reported/last_updated/last_changed are all the moment the user
+# flipped it. Under a 60 min horizon the reading went stale an hour later and
+# the override vanished in BOTH directions -- the deliberate "yes" that holds
+# heating back AND the deliberate "no" that overrules the detector -- on an
+# install that configures none of the pump signals this branch is about.
+for _dom in ("input_boolean.wood_fire", "switch.stove", "binary_sensor.flue_stat"):
+    for _age in (61.0, 600.0, 2880.0):
+        R.check(
+            f"a flag helper is not aged out: {_dom.split('.')[0]} 'on' at "
+            f"{_age:.0f} min still suppresses",
+            override_at(_dom, FakeState("on", last_updated=minutes_ago(_age, NOW)))
+            is True,
+            "nothing re-writes an input_boolean, so its age measures how long "
+            "ago the user decided, not how long since anyone checked",
+        )
+        R.check(
+            f"...and its deliberate 'off' at {_age:.0f} min still overrules "
+            f"the detector ({_dom.split('.')[0]})",
+            override_at(_dom, FakeState("off", last_updated=minutes_ago(_age, NOW)))
+            is False,
+            "losing the 'no' is the same bug in the other direction: the "
+            "inference silently takes back over",
+        )
+
+R.check(
+    "the horizon is scoped to numbers, not to the entity domain",
+    override_at("sensor.stove_flag", FakeState("on", last_updated=minutes_ago(600, NOW)))
+    is True
+    and override_at("sensor.flue", FakeState("420", last_updated=minutes_ago(600, NOW)))
+    is None,
+    "the same sensor domain carries both a word and a measurement; what "
+    "decides is whether age is evidence, which is a property of the value",
+)
+R.check(
+    "a flue probe still uses its own threshold, not the shared numeric rule",
+    override_for(FakeState("45", last_updated=NOW)) is True
+    and override_for(FakeState("20", last_updated=NOW)) is False,
+    "parse_bool would call 20 'yes' because it is non-zero, which is right "
+    "for a fault code and wrong for a probe in a cold room",
+)
+R.check(
+    "the shared vocabulary widens what a flag entity may say",
+    override_for(FakeState("yes", last_updated=NOW)) is True,
+    "unrecognised before, and silently ignored",
+)
+R.check(
+    "UNBOUNDED is not the same as 'no key in the table'",
+    InputReader(
+        FakeHass({"sensor.x": FakeState("on", last_updated=minutes_ago(600, NOW))}),
+        {"indoor_temp_entity": "sensor.x"},
+    )
+    .read_state("indoor_temp_entity", max_age_minutes=inputs_mod.UNBOUNDED)
+    .max_age_minutes
+    is None,
+    "a key that HAS a horizon reads unbounded on request, and records the "
+    "absence of a limit honestly rather than as a very large number",
+)
+R.check(
+    "an unavailable or unconfigured override is simply absent",
+    override_for(FakeState("unavailable")) is None and override_for(None) is None,
 )
 
 
@@ -1707,6 +2147,11 @@ R.check(
 # asked for.
 class _Coord:
     _commanded_power = Coord._commanded_power
+    _commanded_split = Coord._commanded_split
+    # v5.3.0: the split is masked by the *observed* operating mode. With no
+    # mode entity the signals default to full capability and nothing is
+    # masked, which is the state every pre-v5.3.0 install is in.
+    _pump_signals = PumpSignals()
 
 
 c = _Coord()
@@ -1796,15 +2241,29 @@ R.check(
 class _CopGate:
     _learn_measured_cop = Coord._learn_measured_cop
     _commanded_power = Coord._commanded_power
+    _commanded_split = Coord._commanded_split
+    _cop_reference_curve = Coord._cop_reference_curve
+    _COP_CURVE_SHARE = Coord._COP_CURVE_SHARE
     _apply_cop_scale = Coord._apply_cop_scale
 
-    def __init__(self, outdoor: float) -> None:
+    def __init__(
+        self, outdoor: float, signals=None, action=None, defrost=None
+    ) -> None:
         # A modest gap: v4.0.5's tracking gate discards samples whose
         # commanded-vs-measured mismatch is too large to be efficiency at
         # all, and this fixture is about the frost-band *split*, not the
         # magnitude — it has to stay on the efficiency side of that gate.
         self._measured_power = 2.6
-        self._current_action = {"power": 3.0}
+        self._current_action = dict(action) if action else {"power": 3.0}
+        # v5.3.0: with no mode entity the signals are the full-capability
+        # default, which masks nothing and selects the space curve — the
+        # v5.1.5 behaviour this fixture was written against.
+        self._pump_signals = signals if signals is not None else PumpSignals()
+        # v5.3.0: an empty window has observed=False, which keeps the
+        # whole-band frost exclusion — the v5.1.5 behaviour.
+        self._defrost_window = defrost if defrost is not None else DefrostWindow()
+        self._last_cop_curve_dhw = False
+        self._last_cop_dhw_temp = None
         self._thermal_params = ThermalParameters()
         self._thermal_model = ThermalModel(self._thermal_params)
         self._current_state = ThermalState(
@@ -1815,13 +2274,17 @@ class _CopGate:
         self._cop_ratio_ewma = None
         self._last_measured_cop = None
         self._immersion_active = False
+        self.cop_health_calls: list = []
 
     def _learning_frozen(self, *entities):
         return None
 
-    def _observe_cop_health(self, observed_cop):
+    def _observe_cop_health(self, observed_cop, dhw_curve=False):
         # T4a's health watch is exercised on the real coordinator; this
-        # stub only gates the frost-band split.
+        # stub only gates the frost-band split. It takes the curve flag
+        # because the watch now keeps a baseline per curve — a stub that
+        # did not would hide a caller passing the wrong one.
+        self.cop_health_calls.append((observed_cop, dhw_curve))
         return None
 
     def _fold_capacity_envelope(self, observed_cop):
@@ -7124,7 +7587,7 @@ for _ in range(COP_BASELINE_MIN_SAMPLES + 5):
     _ch._observe_cop_health(3.0)
 R.check(
     "the baseline forms in its outdoor bucket and trips nothing on itself",
-    _ch._cop_baseline.get(3, [0, 0])[1] >= COP_BASELINE_MIN_SAMPLES
+    _ch._cop_baseline.get((3, False), [0, 0])[1] >= COP_BASELINE_MIN_SAMPLES
     and not _ch._cop_health_cusum.tripped,
 )
 _ch._last_measured_cop = 2.4
@@ -7150,7 +7613,7 @@ R.check(
     and _cop_issues[0][2].get("is_persistent") is True,
     "a non-persistent issue vanishes on reboot while the fault stays",
 )
-_baseline_at_trip = _ch._cop_baseline[3][0]
+_baseline_at_trip = _ch._cop_baseline[(3, False)][0]
 for _ in range(5):
     _ch._observe_cop_health(2.4)
 R.check(
@@ -7161,7 +7624,7 @@ R.check(
 )
 R.check(
     "the baseline stops absorbing samples while tripped",
-    _ch._cop_baseline[3][0] == _baseline_at_trip,
+    _ch._cop_baseline[(3, False)][0] == _baseline_at_trip,
     "otherwise the EWMA re-anchors to the fault and a permanent "
     "degradation clears its own issue within weeks",
 )
@@ -7197,8 +7660,8 @@ for _ in range(24):
     _ch3._observe_cop_health(3.0)
 R.check(
     "one outlier first sample cannot anchor the young baseline",
-    _ch3._cop_baseline[3][0] < 3.5,
-    f"got {_ch3._cop_baseline[3][0]:.2f}: a plain mean while young; an "
+    _ch3._cop_baseline[(3, False)][0] < 3.5,
+    f"got {_ch3._cop_baseline[(3, False)][0]:.2f}: a plain mean while young; an "
     "EWMA seeded at 9.0 would still read ~6.7 when the watch starts "
     "judging at twenty samples",
 )
@@ -7486,7 +7949,7 @@ R.check(
 _cp = _t2_coord()
 _cp._vent_cusum.stat = 0.66
 _cp._vent_cusum.tripped = True
-_cp._cop_baseline[3] = [3.0, 25]
+_cp._cop_baseline[(3, False)] = [3.0, 25]
 _cp._immersion_events = ["2026-01-01T00:00:00+00:00"]
 _t4_payload = _cp._thermal_learning_payload()
 _cq = _t2_coord()
@@ -7505,7 +7968,7 @@ R.check(
 )
 R.check(
     "the COP baseline and the immersion history ride along",
-    _cq._cop_baseline.get(3) == [3.0, 25]
+    _cq._cop_baseline.get((3, False)) == [3.0, 25]
     and _cq._immersion_events == ["2026-01-01T00:00:00+00:00"],
 )
 _cq2 = _t2_coord()
@@ -8767,7 +9230,7 @@ R.check(
     "no COP evidence means no machine grade, not a failing one",
     _cmach._scores_view()["machine"] is None,
 )
-_cmach._cop_baseline[3] = [3.0, COP_BASELINE_MIN_SAMPLES + 1]
+_cmach._cop_baseline[(3, False)] = [3.0, COP_BASELINE_MIN_SAMPLES + 1]
 R.check(
     "a healthy watched machine grades 100",
     _cmach._scores_view()["machine"] == 100.0,
@@ -11422,6 +11885,2307 @@ R.check(
         for v in _cb.violations({"min_temperature": 25.0}, {})
     ),
 )
+
+R.section("v5.3.0 — the four heat-pump signals, resolved")
+
+# ``pump_signals.read`` is where the four optional slots become the three
+# answers the rest of the integration asks. Two rules are load-bearing and
+# both are tested here rather than inferred: a value acts and its absence
+# never does, and staleness demotes a signal to silence instead of promoting
+# it to bad news.
+
+_PS_CFG = {
+    "heat_pump_mode_entity": "select.pump_mode",
+    "heat_pump_defrost_entity": "binary_sensor.pump_defrost",
+    "heat_pump_online_entity": "binary_sensor.pump_online",
+    "heat_pump_fault_entity": "binary_sensor.pump_fault",
+}
+_PS_NOW = datetime(2026, 2, 1, 12, 0, tzinfo=UTC)
+
+
+#: What Home Assistant's SelectEntity always publishes: the list of options
+#: it will accept. The reference integration builds these from the device's
+#: mode enum, and `pump_mode` reads a word at face value only from an entity
+#: that declares it among them — so a fixture without them is not modelling a
+#: select at all.
+_PS_SELECT_OPTIONS = [
+    "Cooling",
+    "Heating",
+    "DHW (Hot Water)",
+    "Cooling + DHW",
+    "Heating + DHW",
+]
+
+
+def _ps_state(entity: str, state, age: float):
+    """A FakeState shaped like the entity it stands for."""
+    attributes = (
+        {"options": list(_PS_SELECT_OPTIONS)}
+        if entity.split(".")[0] in ("select", "input_select")
+        else None
+    )
+    return FakeState(
+        state, last_updated=minutes_ago(age, _PS_NOW), attributes=attributes
+    )
+
+
+def _ps_read(states, *, config=None, last_good=None, age=2):
+    """Resolve the four signals from a set of entity states."""
+    stamped = {
+        entity: (
+            state
+            if state is None or isinstance(state, FakeState)
+            else _ps_state(entity, state, age)
+        )
+        for entity, state in states.items()
+    }
+    reader = InputReader(
+        FakeHass({k: v for k, v in stamped.items() if v is not None}),
+        _PS_CFG if config is None else config,
+        now=lambda: _PS_NOW,
+    )
+    return pump_signals.read(reader, last_good=last_good), reader
+
+
+# -- the null case: nothing configured must change nothing ------------------
+_ps_none, _ps_none_reader = _ps_read({}, config={})
+R.check(
+    "with no slots configured the pump can do everything",
+    _ps_none.mode is pump_mode.FULL_CAPABILITY
+    and not _ps_none.mode_observed
+    and _ps_none.mode_source == pump_signals.MODE_SOURCE_ABSENT,
+    f"{_ps_none.as_dict()}",
+)
+R.check(
+    "nothing is blocked and nothing is frozen",
+    not _ps_none.space_blocked
+    and not _ps_none.dhw_blocked
+    and _ps_none.freeze_reason is None,
+)
+R.check(
+    "and the three flags are None — no evidence, not False",
+    _ps_none.defrosting is None
+    and _ps_none.online is None
+    and _ps_none.fault is None,
+    "False would be a claim; None is the absence of one",
+)
+R.check(
+    "an unconfigured slot never lands in missing_keys",
+    _ps_none_reader.health.missing_keys == [],
+    "otherwise every install without an optional sensor reports as unhealthy",
+)
+
+# -- symmetric suppression, all five modes ----------------------------------
+#
+# The state Home Assistant holds is the select's LABEL, so these are the
+# strings a real Rotenso install actually publishes.
+for _label, _blk_space, _blk_dhw, _freeze in (
+    ("Heating + DHW", False, False, None),
+    ("Heating", False, True, None),
+    ("DHW (Hot Water)", True, False, None),
+    ("Cooling", True, True, pump_signals.FREEZE_COOLING),
+    ("Cooling + DHW", True, False, pump_signals.FREEZE_COOLING),
+):
+    _sig, _ = _ps_read({"select.pump_mode": _label})
+    R.check(
+        f"{_label}: space blocked={_blk_space}, hot water blocked={_blk_dhw}",
+        _sig.space_blocked is _blk_space and _sig.dhw_blocked is _blk_dhw,
+        f"got space={_sig.space_blocked} dhw={_sig.dhw_blocked}",
+    )
+    R.check(
+        f"{_label}: freeze reason {_freeze!r}",
+        _sig.freeze_reason == _freeze,
+        f"got {_sig.freeze_reason!r}",
+    )
+
+# The asymmetry that matters: a heating-only mode suppresses HOT WATER. It is
+# the half that is easy to forget, because "the pump is heating" sounds fine.
+_sig_heat, _ = _ps_read({"select.pump_mode": "Heating"})
+R.check(
+    "a heating-only pump must not be promised a hot-water slot",
+    _sig_heat.dhw_blocked and not _sig_heat.space_blocked,
+    "suppression is symmetric or it is not a capability model",
+)
+
+# -- an unrecognised mode plans normally, and says so -----------------------
+_sig_odd, _odd_reader = _ps_read({"select.pump_mode": "Turbo Eco Plus"})
+R.check(
+    "an unrecognised mode falls back to full capability",
+    _sig_odd.mode is pump_mode.FULL_CAPABILITY and not _sig_odd.mode_observed,
+)
+R.check(
+    "so nothing is suppressed on the strength of a word nobody recognised",
+    not _sig_odd.space_blocked and not _sig_odd.dhw_blocked,
+    "in January that would be a cold house",
+)
+R.check(
+    "but the unrecognised word is visible in the diagnostics",
+    _odd_reader.health.readings["heat_pump_mode_entity"].problem
+    == "unknown_value"
+    and "heat_pump_mode_entity" in _odd_reader.health.missing_keys,
+    "silent is the one thing it must not be",
+)
+
+# -- the last-good fallback --------------------------------------------------
+_dhw_only = pump_mode.capability("DHW")
+_sig_stale, _ = _ps_read(
+    {"select.pump_mode": "DHW (Hot Water)"}, age=600, last_good=_dhw_only
+)
+R.check(
+    "a mode entity that goes stale falls back to the last good mode",
+    _sig_stale.mode_observed
+    and _sig_stale.mode_source == pump_signals.MODE_SOURCE_LAST_GOOD
+    and _sig_stale.space_blocked,
+    "the pump did not change mode because its sensor stopped reporting",
+)
+_sig_never, _ = _ps_read({"select.pump_mode": "DHW (Hot Water)"}, age=600)
+R.check(
+    "with no last good mode ever seen it falls back to full capability",
+    not _sig_never.mode_observed and not _sig_never.space_blocked,
+)
+
+# -- online: the value acts, its silence does not ---------------------------
+R.check(
+    "an online pump does not freeze anything",
+    _ps_read({"binary_sensor.pump_online": "on"})[0].freeze_reason is None,
+)
+R.check(
+    "a pump reporting offline freezes the learners",
+    _ps_read({"binary_sensor.pump_online": "off"})[0].freeze_reason
+    == pump_signals.FREEZE_OFFLINE,
+    "this is the ONLY signal that closes the cloud gap: that coordinator "
+    "returns stale data with is_online=False and does not raise UpdateFailed, "
+    "so nothing about freshness can see it",
+)
+R.check(
+    "a stale online flag does NOT freeze",
+    _ps_read(
+        {"binary_sensor.pump_online": FakeState("on",
+                                                last_updated=minutes_ago(90, _PS_NOW))}
+    )[0].freeze_reason
+    is None,
+    "under MQTT push that integration writes only on change, so a healthy "
+    "pump idling overnight goes hours without an update; reading silence as "
+    "'the pump is gone' would freeze every MQTT install every night",
+)
+R.check(
+    "an unavailable online flag does not freeze either",
+    _ps_read({"binary_sensor.pump_online": "unavailable"})[0].freeze_reason
+    is None,
+    "in LAN mode the pump's own entities go unavailable when it drops and "
+    "v5.1.3's per-key rule already covers that; a second, plant-wide freeze "
+    "on the same evidence would fire on a momentary blip too",
+)
+
+# -- fault -------------------------------------------------------------------
+R.check(
+    "a fault freezes the learners",
+    _ps_read({"binary_sensor.pump_fault": "on"})[0].freeze_reason
+    == pump_signals.FREEZE_FAULT,
+)
+R.check(
+    "a healthy fault flag does not",
+    _ps_read({"binary_sensor.pump_fault": "off"})[0].freeze_reason is None,
+)
+R.check(
+    "the RAW fault code sensor works too: 0 is healthy",
+    _ps_read({"binary_sensor.pump_fault": "0"})[0].fault is False,
+    "the source integration's own mapping is literally value != 0, so "
+    "pointing the slot at the code sensor must agree with the binary one",
+)
+R.check(
+    "and any non-zero code is a fault",
+    _ps_read({"binary_sensor.pump_fault": "3"})[0].freeze_reason
+    == pump_signals.FREEZE_FAULT,
+)
+
+# -- precedence --------------------------------------------------------------
+_sig_all, _ = _ps_read(
+    {
+        "select.pump_mode": "Cooling",
+        "binary_sensor.pump_online": "off",
+        "binary_sensor.pump_fault": "on",
+    }
+)
+R.check(
+    "offline outranks fault outranks cooling",
+    _sig_all.freeze_reason == pump_signals.FREEZE_OFFLINE,
+    "a pump off the network explains its own sensors; reporting the symptom "
+    "sends the user to the wrong place",
+)
+
+# -- defrost flag ------------------------------------------------------------
+R.check(
+    "the defrost flag reads through the same guard",
+    _ps_read({"binary_sensor.pump_defrost": "on"})[0].defrosting is True
+    and _ps_read({"binary_sensor.pump_defrost": "off"})[0].defrosting is False,
+)
+R.check(
+    "a stale defrost flag is no evidence, not 'not defrosting'",
+    _ps_read(
+        {"binary_sensor.pump_defrost": FakeState("on",
+                                                 last_updated=minutes_ago(90, _PS_NOW))}
+    )[0].defrosting
+    is None,
+    "a latched on from yesterday must not keep excluding COP samples",
+)
+
+
+R.section("v5.3.0 — the meter split follows the observed mode")
+
+# ``_interval_space_power`` subtracts THE PLAN'S hot-water allocation from the
+# measured total. When the pump is actually in `heat` no hot water was made,
+# the whole reading is space heating, and the subtraction hands the house
+# heat-loss learner a figure that is too low by exactly the allocation —
+# every interval, in the same direction.
+
+_HEAT_ONLY = pump_signals.PumpSignals(
+    mode=pump_mode.capability("heat"), mode_observed=True,
+    mode_source=pump_signals.MODE_SOURCE_LIVE,
+)
+_DHW_ONLY = pump_signals.PumpSignals(
+    mode=pump_mode.capability("DHW"), mode_observed=True,
+    mode_source=pump_signals.MODE_SOURCE_LIVE,
+)
+
+
+class _Split:
+    _commanded_split = Coord._commanded_split
+    _commanded_power = Coord._commanded_power
+    _interval_space_power = Coord._interval_space_power
+
+    def __init__(self, signals, measured=2.0):
+        self._current_action = {"power": 2.0, "dhw_power": 1.0}
+        self._config = {"heat_pump_power_entity": "sensor.pump"}
+        self._measured_power = measured
+        self._immersion_active = False
+        self._pump_signals = signals
+
+
+_sp_blind = _Split(PumpSignals())
+R.check(
+    "with no mode entity the split is exactly what it always was",
+    _sp_blind._commanded_power() == 3.0
+    and _sp_blind._commanded_split() == (2.0, 1.0),
+    "every pre-v5.3.0 install must be bit-identical",
+)
+R.check(
+    "and a 2.0 kW meter against a 3.0 kW command is still discarded as tracking",
+    _sp_blind._interval_space_power() is None,
+    "|2.0-3.0|/3.0 = 0.33, past the 0.30 gate — the old behaviour",
+)
+
+_sp_heat = _Split(_HEAT_ONLY)
+R.check(
+    "in `heat` the phantom hot-water allocation is dropped from the command",
+    _sp_heat._commanded_split() == (2.0, 0.0)
+    and _sp_heat._commanded_power() == 2.0,
+)
+R.check(
+    "so the measured 2.0 kW is recognised as space heating in full",
+    _sp_heat._interval_space_power() == 2.0,
+    "before v5.3.0 this same interval was thrown away as a tracking error, "
+    "and when it was not, 1.0 kW of real space heating went missing",
+)
+
+_sp_dhw = _Split(_DHW_ONLY)
+R.check(
+    "in a hot-water-only mode there is no space figure to extract at all",
+    _sp_dhw._interval_space_power() is None,
+    "returning 0.0 would be a confident claim that the house got nothing, "
+    "which the heat-loss learner would replay as thermal behaviour",
+)
+R.check(
+    "and the commanded space allocation is dropped from the command too",
+    _sp_dhw._commanded_split() == (0.0, 1.0),
+)
+
+
+R.section("v5.3.0 — the COP learner uses the curve the mode implies")
+
+# ``_learn_measured_cop`` compared every interval against ``compute_cop`` —
+# the SPACE curve — including the ones the pump spent making hot water, where
+# the model itself says the COP is ~16 % lower at a 55 °C setpoint.
+
+_cop_space = _CopGate(outdoor=8.0)
+_cop_space._learn_measured_cop()
+_dhw_action = {"power": 0.0, "dhw_power": 3.0}
+_cop_dhw = _CopGate(outdoor=8.0, signals=_DHW_ONLY, action=_dhw_action)
+_cop_dhw._current_state.dhw_temperature = 55.0
+_cop_dhw._learn_measured_cop()
+R.check(
+    "a hot-water interval is judged against the DHW curve",
+    _cop_dhw._last_measured_cop is not None
+    and _cop_dhw._last_measured_cop < _cop_space._last_measured_cop,
+    f"dhw {_cop_dhw._last_measured_cop} vs space {_cop_space._last_measured_cop}",
+)
+_expected_penalty = 1.0 - 0.008 * (55.0 - 35.0)
+R.check(
+    "and the gap is exactly the model's own DHW penalty, not a fudge",
+    abs(
+        _cop_dhw._last_measured_cop
+        - round(_cop_space._last_measured_cop * _expected_penalty, 2)
+    )
+    <= 0.02,
+    f"{_cop_dhw._last_measured_cop} vs "
+    f"{_cop_space._last_measured_cop * _expected_penalty:.2f}",
+)
+R.check(
+    "the reported COP for a healthy pump on the space curve is unchanged",
+    _CopGate(outdoor=8.0, action=_dhw_action)._cop_reference_curve()
+    == _CopGate(outdoor=8.0)._cop_reference_curve(),
+    "without a mode entity the plan's split is not evidence about the pump, "
+    "so nothing about the curve choice may change",
+)
+
+_HEAT_DHW = pump_signals.PumpSignals(
+    mode=pump_mode.capability("HEATDHW"), mode_observed=True,
+    mode_source=pump_signals.MODE_SOURCE_LIVE,
+)
+_cop_both = _CopGate(
+    outdoor=8.0, signals=_HEAT_DHW, action={"power": 1.5, "dhw_power": 1.5}
+)
+R.check(
+    "a genuinely concurrent interval is skipped, not guessed at",
+    _cop_both._cop_reference_curve()[0] is None,
+    "HEATDHW runs both duties at once, and one power ratio cannot be "
+    "attributed to two curves",
+)
+_cop_both._learn_measured_cop()
+R.check(
+    "and it teaches the COP scale nothing",
+    _cop_both._cop_samples == 0 and _cop_both._cop_scale == 1.0,
+)
+_cop_mostly_space = _CopGate(
+    outdoor=8.0, signals=_HEAT_DHW, action={"power": 2.9, "dhw_power": 0.1}
+)
+R.check(
+    "a trickle of hot water does not disqualify a space-heating interval",
+    _cop_mostly_space._cop_reference_curve()[0] is not None,
+)
+
+# The pairing bug: the curve CHOICE used to be recorded as a side effect of
+# _cop_reference_curve, but several guards sit between that call and the write
+# of _last_measured_cop. A cycle that chose a curve and then returned early
+# re-pointed the residual's reference while leaving the stored COP alone — and
+# in HEATDHW with an even split that is every cycle on the target hardware.
+_cop_pair = _CopGate(outdoor=8.0, signals=_DHW_ONLY, action=_dhw_action)
+_cop_pair._current_state.dhw_temperature = 55.0
+_cop_pair._learn_measured_cop()
+_cop_pair_cop = _cop_pair._last_measured_cop
+R.check(
+    "the premise: a hot-water interval stores a DHW-referenced COP",
+    _cop_pair_cop is not None and _cop_pair._last_cop_curve_dhw
+    and _cop_pair._last_cop_dhw_temp == 55.0,
+    f"{_cop_pair_cop} dhw={_cop_pair._last_cop_curve_dhw} "
+    f"tank={_cop_pair._last_cop_dhw_temp}",
+)
+# Now a blended cycle, which produces no COP at all.
+_cop_pair._pump_signals = _HEAT_DHW
+_cop_pair._current_action = {"power": 1.5, "dhw_power": 1.5}
+_cop_pair._learn_measured_cop()
+R.check(
+    "a cycle that produces no COP leaves the stored COP's reference alone",
+    _cop_pair._last_measured_cop == _cop_pair_cop
+    and _cop_pair._last_cop_curve_dhw
+    and _cop_pair._last_cop_dhw_temp == 55.0,
+    f"cop {_cop_pair._last_measured_cop} dhw={_cop_pair._last_cop_curve_dhw} "
+    f"tank={_cop_pair._last_cop_dhw_temp} — before the fix the flag was "
+    f"cleared here and cop_residual then subtracted the SPACE curve from a "
+    f"COP that had been referenced to the DHW one",
+)
+# And a cycle that DOES produce one moves both together.
+_cop_pair._pump_signals = PumpSignals()
+_cop_pair._current_action = {"power": 3.0}
+_cop_pair._learn_measured_cop()
+R.check(
+    "and a cycle that does produce one moves the pair together",
+    _cop_pair._last_measured_cop != _cop_pair_cop
+    and not _cop_pair._last_cop_curve_dhw
+    and _cop_pair._last_cop_dhw_temp is None,
+    f"cop {_cop_pair._last_measured_cop} dhw={_cop_pair._last_cop_curve_dhw}",
+)
+
+R.section("v5.3.0 — defrost: duty is measured, the derate is physics")
+
+# Establish the premise first, because it inverts what the flag looks like it
+# is for. `defrost.py`'s only learning input WAS `delivered_ratio`, which
+# despite its docstring is `predicted_power / actual_power` — purely
+# electrical, no heat term. During a real defrost the compressor draws roughly
+# normal power while delivering ~zero heat, so that ratio reads ~1.0: a
+# perfect unit. Gating the OLD learner on a real defrost flag would therefore
+# have taught it "no derate".
+_defrost_sample = AccuracySample(
+    when=_PS_NOW,
+    predicted_power_kw=3.0,
+    # A real defrost: the compressor still draws its power.
+    actual_power_kw=3.0,
+    outdoor_temp=2.0,
+)
+R.check(
+    "the inferred estimator reads a real defrost as a PERFECT interval",
+    abs(delivered_ratio(_defrost_sample) - 1.0) < 1e-9,
+    "this is why the flag does not simply gate the old learner: it would "
+    "learn 'no derate' from the one event the derate exists to model",
+)
+
+# And the optimistic bias, which is now bounded by arithmetic.
+_opt = DefrostDerate()
+for _ in range(200):
+    # Tracking gaps mean the pump drew LESS than commanded, so the ratio comes
+    # out above 1 — "delivers more than modelled", in the band that exists to
+    # be pessimistic.
+    _opt.observe(2.0, 80.0, 1.40)
+R.check(
+    "an over-1 ratio can no longer park the derate above 1.0",
+    _opt.factor(2.0, 80.0) <= 1.0 + 1e-9 and DERATE_MAX == 1.0,
+    f"factor {_opt.factor(2.0, 80.0):.4f}; a defrost cycle cannot make a heat "
+    f"pump exceed its own curve, so the bound is arithmetic",
+)
+
+# -- the window ---------------------------------------------------------------
+_w = DefrostWindow()
+_w.observe(_PS_NOW, False)
+_w.observe(_PS_NOW + timedelta(minutes=10), True)
+_w.observe(_PS_NOW + timedelta(minutes=15), False)
+_wobs = _w.close(_PS_NOW + timedelta(minutes=30))
+R.check(
+    "five defrosting minutes in thirty is a duty of 1/6",
+    abs(_wobs.duty - 5.0 / 30.0) < 1e-9 and _wobs.events == 1,
+    f"duty {_wobs.duty}, events {_wobs.events}",
+)
+R.check(
+    "and the interval counts as observed",
+    _wobs.observed and _wobs.any_defrost and _wobs.seconds == 1800.0,
+)
+_w2 = DefrostWindow()
+_w2.observe(_PS_NOW, False)
+_wobs2 = _w2.close(_PS_NOW + timedelta(minutes=30))
+R.check(
+    "a quiet interval is duty zero AND observed — that is real evidence",
+    _wobs2.observed and _wobs2.duty == 0.0 and not _wobs2.any_defrost,
+    "'no defrost happened at 3 °C this hour' is what stops a bucket keeping "
+    "a derate it no longer earns",
+)
+_w3 = DefrostWindow()
+_w3.observe(_PS_NOW, None)
+_wobs3 = _w3.close(_PS_NOW + timedelta(minutes=30))
+R.check(
+    "an unreadable flag yields duty zero but NOT observed",
+    not _wobs3.observed and not _wobs3.any_defrost,
+    "a duty of 0 from an unreadable flag is a claim nobody can make",
+)
+_w4 = DefrostWindow()
+_w4.observe(_PS_NOW, True)
+_w4.close(_PS_NOW + timedelta(minutes=30))
+_wobs4 = _w4.close(_PS_NOW + timedelta(minutes=60))
+R.check(
+    "a defrost spanning an interval boundary keeps its second half",
+    abs(_wobs4.duty - 1.0) < 1e-9,
+    f"duty {_wobs4.duty}; the level carries over across close()",
+)
+
+# -- the physics --------------------------------------------------------------
+R.check(
+    "zero duty is no derate at all",
+    derate_from_duty(0.0) == 1.0,
+)
+R.check(
+    "the derate is 1 - duty x the loss multiplier",
+    abs(derate_from_duty(0.1) - (1.0 - 0.1 * DEFROST_LOSS_MULTIPLIER)) < 1e-9,
+)
+R.check(
+    "more duty is always a deeper derate, never a shallower one",
+    all(
+        derate_from_duty(d1) >= derate_from_duty(d2)
+        for d1, d2 in zip((0.0, 0.05, 0.1), (0.05, 0.1, 0.2))
+    ),
+)
+R.check(
+    "and it is bounded below, so a latched flag cannot zero the pump",
+    derate_from_duty(1.0) >= 0.55,
+)
+
+_meas = DefrostDerate()
+for _ in range(40):
+    _meas.observe_duty(2.0, 80.0, 0.10, events=1)
+R.check(
+    "a measured bucket derates from its counted duty",
+    _meas.measured(2.0, 80.0)
+    and abs(_meas.factor(2.0, 80.0) - derate_from_duty(0.10)) < 0.01,
+    f"factor {_meas.factor(2.0, 80.0):.4f} vs {derate_from_duty(0.10):.4f}",
+)
+_meas.observe(2.0, 80.0, 1.4)
+R.check(
+    "and a measurement is never averaged with an inference of the same thing",
+    abs(_meas.factor(2.0, 80.0) - derate_from_duty(0.10)) < 0.01,
+    "mixing them produces a number that is neither, the more so when the "
+    "inference is known to be biased",
+)
+R.check(
+    "an untouched bucket still derates nothing",
+    _meas.factor(-20.0, 30.0) == 1.0,
+)
+_bucket = [b for b in _meas.summary() if b["source"] == "measured"]
+R.check(
+    "the summary says which estimator a bucket rests on, and how many "
+    "defrosts were actually witnessed",
+    len(_bucket) == 1 and _bucket[0]["events"] == 40 and "duty" in _bucket[0],
+    "a duty counted from three-minute cloud polls is a much weaker number "
+    "than the same duty counted from MQTT transitions, and nothing else on "
+    "the row would show that",
+    )
+
+# -- persistence: an OLD store must load ------------------------------------
+_v1_store = {
+    "factors": [[0.92, 0.88] for _ in range(6)],
+    "counts": [[40, 40] for _ in range(6)],
+}
+_migrated = DefrostDerate.from_dict(_v1_store)
+R.check(
+    "a pre-v5.3.0 store loads without raising, and says it was upgraded",
+    isinstance(_migrated, DefrostDerate) and _migrated.migrated,
+)
+R.check(
+    "its learned factors are KEPT, not discarded",
+    abs(_migrated.factor(2.0, 80.0) - 0.88) < 1e-9
+    and _migrated.total_samples == 480,
+    f"factor {_migrated.factor(2.0, 80.0)} — a stored factor below 1.0 is "
+    f"evidence pointing the careful way; resetting every bucket to 1.0 would "
+    f"make frost-band plans LESS conservative on upgrade",
+)
+_v1_optimistic = DefrostDerate.from_dict(
+    {"factors": [[1.05, 1.05] for _ in range(6)],
+     "counts": [[40, 40] for _ in range(6)]}
+)
+R.check(
+    "but the estimator's optimistic tail is clamped away on load",
+    _v1_optimistic.factor(2.0, 80.0) == 1.0,
+    "a derate above 1 says frost makes the pump exceed its own curve; "
+    "reading it back unchanged would let the old bound outlive the fix",
+)
+R.check(
+    "a measured duty then overrides the carried-over inference",
+    (lambda d: [d.observe_duty(2.0, 80.0, 0.02) for _ in range(40)] and
+     abs(d.factor(2.0, 80.0) - derate_from_duty(0.02)) < 0.01)(
+        DefrostDerate.from_dict(_v1_store)
+    ),
+    "the carried value is a floor to stand on until something is counted, "
+    "not a prior the measurement has to argue with",
+)
+R.check(
+    "a v2 store round-trips exactly",
+    abs(
+        DefrostDerate.from_dict(_meas.as_dict()).factor(2.0, 80.0)
+        - _meas.factor(2.0, 80.0)
+    )
+    < 1e-12,
+)
+R.check(
+    "a v2 store still carries factors/counts, so a DOWNGRADE loads too",
+    "factors" in _meas.as_dict() and "counts" in _meas.as_dict(),
+    "v5.1.5's validator is strict about those two keys and ignores the rest",
+)
+for _junk in (None, {}, [], "nope", {"factors": "bad", "duty": 3}):
+    R.check(
+        f"a garbage store loads as empty rather than raising ({_junk!r})",
+        DefrostDerate.from_dict(_junk).factor(2.0, 80.0) == 1.0,
+    )
+
+# -- the primary win: cop_scale is no longer blind in 0-5 °C ----------------
+def _band_window(defrosting: bool):
+    """A window covering the elapsed interval, with or without a defrost.
+
+    Stamped from ``dt_util.now`` because that is the clock
+    ``_learn_measured_cop`` reads it with, and a window whose stamps cannot be
+    compared with the caller's deliberately declines to answer.
+    """
+    import homeassistant.util.dt as _bw_dt
+
+    origin = _bw_dt.now()
+    w = DefrostWindow()
+    w.observe(origin - timedelta(minutes=30), False)
+    if defrosting:
+        w.observe(origin - timedelta(minutes=20), True)
+        w.observe(origin - timedelta(minutes=17), False)
+    return w
+
+
+# The tz guard itself: a window it cannot measure must decline, not raise, and
+# declining must fall back to the whole-band exclusion.
+_band_mixed = DefrostWindow()
+_band_mixed.observe(_PS_NOW - timedelta(minutes=30), False)
+_band_mixed_gate = _CopGate(outdoor=2.0, defrost=_band_mixed)
+_band_mixed_gate._learn_measured_cop()
+R.check(
+    "a window whose clock cannot be compared measures nothing, and is refused",
+    _band_mixed_gate._cop_samples == 0,
+    "an uncomparable pair means the elapsed time is unknown, which is not "
+    "the same as zero",
+)
+
+
+_band_clean = _CopGate(outdoor=2.0, defrost=_band_window(False))
+_band_clean._learn_measured_cop()
+R.check(
+    "inside 0-5 °C an interval with NO defrost now teaches the COP scale",
+    _band_clean._cop_samples == 1 and _band_clean._cop_scale != 1.0,
+    "the exclusion covered the whole band because nothing could tell which "
+    "intervals the derate owned; in a Swedish shoulder season that blinded "
+    "the one multiplier every plan's cost runs through, for most of its "
+    "heating hours",
+)
+_band_defrost = _CopGate(outdoor=2.0, defrost=_band_window(True))
+_band_defrost._learn_measured_cop()
+R.check(
+    "and an interval that DID contain a defrost is still refused",
+    _band_defrost._cop_samples == 0 and _band_defrost._cop_scale == 1.0,
+    "the attribution stays disjoint, just at a far finer grain",
+)
+_band_blind = _CopGate(outdoor=2.0)
+_band_blind._learn_measured_cop()
+R.check(
+    "with no defrost evidence the whole band is excluded exactly as before",
+    _band_blind._cop_samples == 0 and _band_blind._cop_scale == 1.0,
+    "an install with no defrost sensor must be bit-identical to v5.1.5",
+)
+
+R.section("v5.3.0 — offline, fault and cooling freeze the real learners")
+
+# The same driver as v5.1.3's: a real coordinator, real `InputReader` reads
+# from real fake states, the real learners at the foot of
+# `_update_current_state`. Nothing stubbed but the clock. A freeze predicate
+# is only worth anything if it actually stops the learner it claims to.
+
+_PSD_T0 = datetime(2025, 1, 10, 0, 0, tzinfo=UTC)
+
+
+def _psd_drive(states=None, config=None, cycles=96):
+    """48 h at -8 °C with a live indoor sensor. Returns the coordinator."""
+    import homeassistant.util.dt as _psd_dt
+
+    extra = dict(states or {})
+    hass = _FakeHass(
+        {
+            "sensor.indoor": FakeState("21.0", unit="°C", last_updated=_PSD_T0),
+            "sensor.outdoor": FakeState("-8.0", unit="°C", last_updated=_PSD_T0),
+        }
+    )
+    coord = Coord(
+        hass,
+        _FakeEntry(
+            data=dict(
+                {
+                    "tibber_token": "x",
+                    "weather_entity": "weather.home",
+                    "indoor_temp_entity": "sensor.indoor",
+                    "outdoor_temp_entity": "sensor.outdoor",
+                },
+                **(config or {}),
+            )
+        ),
+    )
+    coord._current_action = {"power": 2.0}
+    coord._current_weather = lambda: (0.0, 0.0)
+    real_now, real_utcnow = _psd_dt.now, _psd_dt.utcnow
+    try:
+        for i in range(cycles):
+            t = _PSD_T0 + timedelta(minutes=30 * i)
+            _psd_dt.now = lambda t=t: t
+            _psd_dt.utcnow = lambda t=t: t
+            hass.states.set(
+                "sensor.indoor",
+                FakeState(
+                    f"{21.0 + 0.4 * np.sin(t.hour / 3.0):.2f}",
+                    unit="°C",
+                    last_updated=t,
+                ),
+            )
+            hass.states.set(
+                "sensor.outdoor", FakeState("-8.0", unit="°C", last_updated=t)
+            )
+            for entity, value in extra.items():
+                # A real SelectEntity always publishes its options, and
+                # pump_mode takes a word at face value only from an entity
+                # that declares it among them.
+                attrs = (
+                    {"options": list(_PS_SELECT_OPTIONS)}
+                    if entity.split(".")[0] in ("select", "input_select")
+                    else None
+                )
+                hass.states.set(
+                    entity,
+                    FakeState(value, last_updated=t, attributes=attrs),
+                )
+            _asyncio.run(coord._update_current_state())
+    finally:
+        _psd_dt.now, _psd_dt.utcnow = real_now, real_utcnow
+    return coord
+
+
+# The control: with none of the four slots configured, 48 h still learns.
+_psd_none = _psd_drive()
+R.check(
+    "with no heat-pump signals configured the learners run exactly as before",
+    _psd_none._house_heat_loss_scale != 1.0
+    and _psd_none._house_heat_loss_samples > 50,
+    f"scale {_psd_none._house_heat_loss_scale:.4f}, "
+    f"{_psd_none._house_heat_loss_samples} samples",
+)
+R.check(
+    "and nothing reports a freeze",
+    _psd_none._learner_freeze_reason is None
+    and _psd_none._learning_frozen("indoor_temp_entity") is None,
+)
+
+# THE CLOUD GAP. In cloud mode the source integration answers 200/success,
+# finds the device's property timestamps stale, sets is_online=False and
+# RETURNS THE STALE DATA — no UpdateFailed on that branch. Its online sensor
+# hardcodes available=True. So every entity stays available and Home
+# Assistant bumps last_reported on each write: to `InputReader` (which
+# prefers last_reported, deliberately) the pump looks perfectly fresh.
+# Neither `unavailable` nor `stale` fires. Only the VALUE can see it.
+_psd_offline = _psd_drive(
+    states={"binary_sensor.pump_online": "off"},
+    config={"heat_pump_online_entity": "binary_sensor.pump_online"},
+)
+R.check(
+    "a pump reporting offline freezes the house heat-loss learner",
+    _psd_offline._house_heat_loss_scale == 1.0
+    and _psd_offline._house_heat_loss_samples == 0,
+    f"scale walked to {_psd_offline._house_heat_loss_scale:.4f} over "
+    f"{_psd_offline._house_heat_loss_samples} samples",
+)
+R.check(
+    "and the reason names the pump, not a sensor",
+    _psd_offline._learner_freeze_reason == pump_signals.FREEZE_OFFLINE,
+    f"got {_psd_offline._learner_freeze_reason!r}",
+)
+R.check(
+    "the freeze is plant-wide: it does not depend on which key is asked about",
+    _psd_offline._learning_frozen("indoor_temp_entity")
+    == pump_signals.FREEZE_OFFLINE
+    and not _psd_offline._inputs_healthy(),
+    "the pump being absent invalidates the interval, not one reading of it",
+)
+
+# The null control for the same wiring: online = on must change nothing.
+_psd_online = _psd_drive(
+    states={"binary_sensor.pump_online": "on"},
+    config={"heat_pump_online_entity": "binary_sensor.pump_online"},
+)
+R.check(
+    "an online pump learns exactly as an unconfigured one does",
+    _psd_online._house_heat_loss_scale == _psd_none._house_heat_loss_scale
+    and _psd_online._learner_freeze_reason is None,
+    f"{_psd_online._house_heat_loss_scale:.6f} vs "
+    f"{_psd_none._house_heat_loss_scale:.6f}",
+)
+
+# And the LAN mode counterpart: the pump's entities go unavailable there,
+# which must NOT produce a second, different freeze — nor a false one.
+_psd_lan = _psd_drive(
+    states={"binary_sensor.pump_online": "unavailable"},
+    config={"heat_pump_online_entity": "binary_sensor.pump_online"},
+)
+R.check(
+    "an unavailable online entity does not freeze on its own",
+    _psd_lan._learner_freeze_reason is None
+    and _psd_lan._house_heat_loss_samples > 50,
+    "in LAN mode the pump's own power and temperature entities go unavailable "
+    "with it, and v5.1.3's per-key rule freezes on those; freezing again here "
+    "would only add false positives on a momentary blip",
+)
+
+# A fault: degraded operation must not train the learners, and must say so.
+_psd_fault = _psd_drive(
+    states={"binary_sensor.pump_fault": "on"},
+    config={"heat_pump_fault_entity": "binary_sensor.pump_fault"},
+)
+R.check(
+    "a fault freezes the learners",
+    _psd_fault._house_heat_loss_samples == 0
+    and _psd_fault._learner_freeze_reason == pump_signals.FREEZE_FAULT,
+    f"{_psd_fault._house_heat_loss_samples} samples, "
+    f"reason {_psd_fault._learner_freeze_reason!r}",
+)
+_psd_view = _psd_fault._input_health_view()
+R.check(
+    "and the diagnostics say WHY the samples stopped",
+    _psd_view["learners_frozen"]
+    and _psd_view["learner_freeze_reason"] == pump_signals.FREEZE_FAULT,
+    f"{_psd_view['learner_freeze_reason']!r} — silently starving the "
+    "learners is the failure this whole view exists to prevent",
+)
+R.check(
+    "the resolved signals are published too",
+    _psd_fault._learning_view()["heat_pump_signals"]["fault"] is True,
+)
+
+# Cooling: power drawn while the house gets COLDER is not a noisy heating
+# sample, it is a sign-inverted one.
+_psd_cool = _psd_drive(
+    states={"select.pump_mode": "Cooling"},
+    config={"heat_pump_mode_entity": "select.pump_mode"},
+)
+R.check(
+    "a cooling pump freezes the learners",
+    _psd_cool._house_heat_loss_samples == 0
+    and _psd_cool._learner_freeze_reason == pump_signals.FREEZE_COOLING,
+    f"{_psd_cool._house_heat_loss_samples} samples, "
+    f"reason {_psd_cool._learner_freeze_reason!r}",
+)
+R.check(
+    "and it suppresses BOTH channels of the plan",
+    _psd_cool._pump_signals.space_blocked
+    and _psd_cool._pump_signals.dhw_blocked,
+)
+
+# A mode nobody recognises must not disable anything.
+_psd_odd = _psd_drive(
+    states={"select.pump_mode": "Silent Night Mode"},
+    config={"heat_pump_mode_entity": "select.pump_mode"},
+)
+R.check(
+    "an unrecognised mode plans and learns exactly as no mode entity does",
+    _psd_odd._house_heat_loss_scale == _psd_none._house_heat_loss_scale
+    and not _psd_odd._pump_signals.space_blocked
+    and not _psd_odd._pump_signals.dhw_blocked,
+    f"{_psd_odd._house_heat_loss_scale:.6f} vs "
+    f"{_psd_none._house_heat_loss_scale:.6f}",
+)
+
+# A heating mode is the ordinary winter case and must be completely inert.
+_psd_heat = _psd_drive(
+    states={"select.pump_mode": "Heating + DHW"},
+    config={"heat_pump_mode_entity": "select.pump_mode"},
+)
+R.check(
+    "the pump's normal winter mode changes nothing at all",
+    _psd_heat._house_heat_loss_scale == _psd_none._house_heat_loss_scale
+    and _psd_heat._learner_freeze_reason is None
+    and not _psd_heat._pump_signals.space_blocked
+    and not _psd_heat._pump_signals.dhw_blocked,
+)
+
+# The last-good fallback, driven through the real coordinator: a mode entity
+# that dies must not quietly re-enable a channel the pump cannot serve.
+_psd_last = _psd_drive(
+    states={"select.pump_mode": "DHW (Hot Water)"},
+    config={"heat_pump_mode_entity": "select.pump_mode"},
+    cycles=2,
+)
+_psd_last.hass.states.set(
+    "select.pump_mode", FakeState("unavailable", last_updated=_PSD_T0)
+)
+import homeassistant.util.dt as _psd_dt2
+
+_psd_real = _psd_dt2.now, _psd_dt2.utcnow
+try:
+    _psd_t = _PSD_T0 + timedelta(hours=1)
+    _psd_dt2.now = lambda: _psd_t
+    _psd_dt2.utcnow = lambda: _psd_t
+    _asyncio.run(_psd_last._update_current_state())
+finally:
+    _psd_dt2.now, _psd_dt2.utcnow = _psd_real
+R.check(
+    "a mode entity that drops out holds the last mode the pump reported",
+    _psd_last._pump_signals.space_blocked
+    and _psd_last._pump_signals.mode_source
+    == pump_signals.MODE_SOURCE_LAST_GOOD,
+    f"{_psd_last._pump_signals.as_dict()} — the pump did not switch out of "
+    f"hot-water mode because its sensor stopped reporting",
+)
+
+
+R.section("v5.3.0 — a blocked channel is suppressed, and visibly so")
+
+import profiles as _mb_profiles
+from heatpump_optimizer.optimizer import (
+    HeatPumpOptimizer as _MbOpt,
+    OptimizationConfig as _MbCfg,
+)
+
+_MB_START = datetime(2026, 1, 15, 0, 0)
+_mb_params = ThermalParameters.from_config(_mb_profiles.house())
+_mb_params.dhw_enabled = True
+_mb_opt = _MbOpt(
+    ThermalModel(_mb_params),
+    _MbCfg(horizon_hours=12, time_step_minutes=15, min_temp=19.0, max_temp=23.0),
+)
+_mb_n = _mb_opt.config.n_steps
+_mb_prices = np.asarray(_mb_profiles.prices("winter_typical", _MB_START))[:_mb_n]
+_mb_t, _mb_wind, _mb_rain, _mb_solar = _mb_profiles.weather(
+    "winter_cold", _MB_START
+)
+_mb_state = ThermalState(
+    room_temperature=21.0, outdoor_temperature=-12.0, dhw_temperature=45.0
+)
+
+
+def _mb_run(**kw):
+    return _mb_opt.optimize(
+        _mb_state, _mb_prices, _mb_t[:_mb_n], _mb_wind[:_mb_n], _mb_rain[:_mb_n],
+        _mb_solar[:_mb_n], _MB_START, **kw
+    )
+
+
+_mb_base = _mb_run()
+R.check(
+    "the control: a January plan really does heat and really does make hot water",
+    sum(_mb_base.power_schedule) > 1.0 and sum(_mb_base.dhw_power_schedule) > 1.0,
+    "a suppression test against a plan that was empty anyway proves nothing",
+)
+_mb_space = _mb_run(space_blocked=True)
+R.check(
+    "a mode that cannot heat rooms plans no space heating at all",
+    max(_mb_space.power_schedule) == 0.0,
+)
+R.check(
+    "and hot water is untouched — suppression is per channel",
+    _mb_space.dhw_power_schedule == _mb_base.dhw_power_schedule,
+)
+R.check(
+    "every empty space slot says WHY, instead of reading as 'idle'",
+    set(_mb_space.space_reasons) == {"pump_mode"},
+    f"{sorted(set(_mb_space.space_reasons))}",
+)
+R.check(
+    "the comfort floor is left visibly unmet, not silently relaxed",
+    _mb_space.predictive_info.get("power_cap_breach_c", 0.0) > 0.5,
+    f"breach {_mb_space.predictive_info.get('power_cap_breach_c')} °C — the "
+    f"user is owed the fact that the mode is costing them comfort",
+)
+_mb_dhw = _mb_run(dhw_blocked=True)
+R.check(
+    "a heating-only mode plans no hot water at all",
+    max(_mb_dhw.dhw_power_schedule) == 0.0,
+)
+R.check(
+    "and space heating is not reduced — the freed capacity stays available",
+    max(_mb_dhw.power_schedule) > 0.0
+    and sum(_mb_dhw.power_schedule) >= sum(_mb_base.power_schedule) - 1e-6,
+    f"{sum(_mb_dhw.power_schedule):.4f} vs {sum(_mb_base.power_schedule):.4f}",
+)
+R.check(
+    "the space plan may re-arrange, because the compressor is no longer shared",
+    _mb_dhw.power_schedule != _mb_base.power_schedule,
+    "an identical schedule would mean the hot-water blocks never competed "
+    "for capacity in the first place, and this fixture would prove nothing",
+)
+R.check(
+    "every empty hot-water slot says why",
+    set(_mb_dhw.dhw_reasons) == {"pump_mode"},
+)
+R.check(
+    "the result flags which channel the mode closed",
+    _mb_space.mode_blocked_space
+    and not _mb_space.mode_blocked_dhw
+    and _mb_dhw.mode_blocked_dhw
+    and not _mb_dhw.mode_blocked_space,
+)
+R.check(
+    "and a blocked channel is NOT a manual pin — the two must not be confused",
+    not _mb_space.manual_pins_active and not _mb_dhw.manual_pins_active,
+    "a pin gets released for safety when a floor would breach; releasing "
+    "this one would put back power the hardware refuses to draw",
+)
+
+# The safety-release loop is the specific hazard: a manual force-ON pin must
+# not resurrect a channel the pump cannot serve.
+_mb_pins = np.full(_mb_n, float("nan"))
+_mb_pins[:8] = 1.0
+_mb_pinned = _mb_run(space_pins=_mb_pins.copy(), space_blocked=True)
+R.check(
+    "a manual force-on pin cannot make the pump heat in a cooling mode",
+    max(_mb_pinned.power_schedule) == 0.0,
+    "a pin expresses a preference; the mode is the hardware",
+)
+_mb_dhw_pins = np.full(_mb_n, float("nan"))
+_mb_dhw_pins[:8] = 1.0
+_mb_dhw_pinned = _mb_run(dhw_pins=_mb_dhw_pins.copy(), dhw_blocked=True)
+R.check(
+    "and the same on the hot-water channel",
+    max(_mb_dhw_pinned.dhw_power_schedule) == 0.0,
+)
+
+# The null control that protects every golden fixture.
+_mb_null = _mb_run(space_blocked=False, dhw_blocked=False)
+R.check(
+    "both flags default off and off is byte-for-byte the previous plan",
+    _mb_null.power_schedule == _mb_base.power_schedule
+    and _mb_null.dhw_power_schedule == _mb_base.dhw_power_schedule
+    and _mb_null.space_reasons == _mb_base.space_reasons
+    and _mb_null.dhw_reasons == _mb_base.dhw_reasons,
+)
+
+
+# ===========================================================================
+# v5.3.0 review — the coverage gaps a green suite was hiding
+# ===========================================================================
+R.section("v5.3.0 review — presence is not trust (the defrost derate)")
+
+# The bug: DefrostDerate.factor branched on "does this bucket have a duty
+# sample" BEFORE consulting trust, so n=1 (trust 1/12) beat counts=200 (trust
+# 1.0). _settle_defrost folds a duty on the first settled interval after the
+# flag is configured and that first duty is usually zero, so a bucket carrying
+# a fully-earned 0.80 was reset to 1.0 one interval after the upgrade — the
+# exact optimistic reset from_dict was rewritten to avoid, arriving by another
+# door and on the very install this feature targets.
+
+_RV_T, _RV_H = 2.0, 60.0
+
+
+def _rv_mature(factor=0.80, counts=200):
+    """A bucket whose INFERRED derate is fully trusted."""
+    d = DefrostDerate()
+    t, h = d._bucket(_RV_T, _RV_H)
+    d.factors[t][h] = factor
+    d.counts[t][h] = counts
+    return d
+
+
+_rv_inferred = _rv_mature()
+R.check(
+    "the premise: 200 inferred samples at 0.80 apply the whole 0.80",
+    abs(_rv_inferred.factor(_RV_T, _RV_H) - 0.80) < 1e-9,
+    f"factor {_rv_inferred.factor(_RV_T, _RV_H):.4f}",
+)
+_rv_one_zero = _rv_mature()
+_rv_one_zero.observe_duty(_RV_T, _RV_H, 0.0)
+R.check(
+    "ONE zero-duty sample does not discard a fully-trusted inferred derate",
+    abs(_rv_one_zero.factor(_RV_T, _RV_H) - 0.80) < 1e-9,
+    f"factor {_rv_one_zero.factor(_RV_T, _RV_H):.4f} — before the fix this "
+    f"returned exactly 1.0, i.e. no derate at all, on one sample worth 1/12 "
+    f"of a trust ramp",
+)
+R.check(
+    "and it reports the estimator the plan is actually using",
+    not _rv_one_zero.measured(_RV_T, _RV_H)
+    and _rv_one_zero.samples(_RV_T, _RV_H) == 200,
+    f"measured={_rv_one_zero.measured(_RV_T, _RV_H)} "
+    f"samples={_rv_one_zero.samples(_RV_T, _RV_H)} — saying 'measured, 1 "
+    f"sample' while planning from 200 inferred ones is how the diagnostics "
+    f"and the plan come to disagree",
+)
+_rv_summary = [
+    b
+    for b in _rv_one_zero.summary()
+    if b["outdoor_range"][0] <= _RV_T < b["outdoor_range"][1]
+][0]
+R.check(
+    "the summary agrees with the plan, and still shows what has been counted",
+    _rv_summary["source"] == "inferred"
+    and _rv_summary["samples"] == 200
+    and _rv_summary["duty_samples"] == 1,
+    f"{_rv_summary}",
+)
+
+# The ramp: the measurement takes over only once it has earned full trust,
+# and never averages with the inference on the way.
+_rv_ramp = []
+for _n in (1, 4, 8, 11, 12, 40):
+    d = _rv_mature()
+    for _ in range(_n):
+        d.observe_duty(_RV_T, _RV_H, 0.10)
+    _rv_ramp.append((_n, d.factor(_RV_T, _RV_H), d.measured(_RV_T, _RV_H)))
+R.check(
+    "while the measurement is short of full trust the inference is a FLOOR",
+    all(
+        abs(f - 0.80) < 1e-9 and not m
+        for n, f, m in _rv_ramp
+        if n < DERATE_CONFIDENCE_SAMPLES
+    ),
+    f"{[(n, round(f, 4)) for n, f, _ in _rv_ramp]}",
+)
+R.check(
+    "and at full trust the measurement takes over, as from_dict promises",
+    all(
+        m and abs(f - 0.80) > 1e-6
+        for n, f, m in _rv_ramp
+        if n >= DERATE_CONFIDENCE_SAMPLES
+    ),
+    f"{[(n, round(f, 4), m) for n, f, m in _rv_ramp]} — the carried value is "
+    f"'a floor to stand on until something better is counted', not a prior "
+    f"the measurement must argue with forever",
+)
+R.check(
+    "the handover never averages the two estimators",
+    all(
+        abs(f - 0.80) < 1e-9 or abs(f - _rv_measured_only) < 1e-9
+        for n, f, _ in _rv_ramp
+        for _rv_measured_only in [
+            (lambda dd: dd.factor(_RV_T, _RV_H))(
+                (lambda: [
+                    (lambda d2: [d2.observe_duty(_RV_T, _RV_H, 0.10)
+                                 for _ in range(n)] and d2)(DefrostDerate())
+                ][0])()
+            )
+        ]
+    ),
+    "every value is one estimator's or the other's; a blend of the two is "
+    "a number that is neither",
+)
+
+# A measurement is still allowed to argue the derate DEEPER before it reaches
+# full trust: the selection takes the more careful of the two, not always the
+# inference. Six samples of a 30% duty is well short of the twelve that would
+# hand the bucket over, and already deeper than a 0.95 inference.
+_rv_deep = _rv_mature(factor=0.95, counts=200)
+for _ in range(6):
+    _rv_deep.observe_duty(_RV_T, _RV_H, 0.30)
+_rv_deep_t, _rv_deep_h = _rv_deep._bucket(_RV_T, _RV_H)
+R.check(
+    "a measured duty deeper than the inference wins before full trust",
+    _rv_deep.factor(_RV_T, _RV_H) < 0.95 - 1e-9
+    and _rv_deep.measured(_RV_T, _RV_H)
+    and _rv_deep.duty_counts[_rv_deep_t][_rv_deep_h] < DERATE_CONFIDENCE_SAMPLES,
+    f"factor {_rv_deep.factor(_RV_T, _RV_H):.4f} against an inferred 0.95 on "
+    f"{_rv_deep.duty_counts[_rv_deep_t][_rv_deep_h]} duty samples — selection "
+    f"is by which is more careful, not by which is older; the floor must not "
+    f"become a ceiling",
+)
+_rv_fresh = DefrostDerate()
+_rv_fresh.observe_duty(_RV_T, _RV_H, 0.20)
+R.check(
+    "with no inference to stand on, one measurement still ramps from 1.0",
+    abs(
+        _rv_fresh.factor(_RV_T, _RV_H)
+        - (1.0 + (derate_from_duty(0.20 * 0.10) - 1.0) / DERATE_CONFIDENCE_SAMPLES)
+    )
+    < 1e-6,
+    f"factor {_rv_fresh.factor(_RV_T, _RV_H):.4f} — an empty bucket has no "
+    f"floor, so the trust ramp is the only guard and must still apply",
+)
+
+
+R.section("v5.3.0 review — DERATE_MAX 1.05 -> 1.0, on a POPULATED bucket")
+
+# The deliberate change no golden covers: defrost_buckets is [] in every
+# fixture, so "no fixture moved" was never evidence the re-clamp is inert.
+# Here it is exercised directly, on a store that actually carries a bucket
+# above 1.0, through the model the planner reads the derate with.
+_dm_store = {
+    "factors": [[1.05, 1.04] for _ in range(6)],
+    "counts": [[40, 40] for _ in range(6)],
+}
+_dm_loaded = DefrostDerate.from_dict(_dm_store)
+R.check(
+    "a v1 store's above-1 factors are re-clamped on load, not carried",
+    _dm_loaded.factor(2.0, 80.0) == 1.0 and _dm_loaded.factor(2.0, 30.0) == 1.0,
+    f"{_dm_loaded.factor(2.0, 80.0)} / {_dm_loaded.factor(2.0, 30.0)} — the "
+    f"old bound would otherwise outlive the fix in every upgrading store",
+)
+R.check(
+    "the re-clamp is a real change: the OLD bound would have kept 1.05",
+    _dm_store["factors"][0][0] > DERATE_MAX and DERATE_MAX == 1.0,
+    f"stored {_dm_store['factors'][0][0]} vs DERATE_MAX {DERATE_MAX}",
+)
+# And the change is visible in a PLAN, not just in the loader.
+_dm_params = ThermalParameters.from_config(_mb_profiles.house())
+_dm_model = ThermalModel(_dm_params)
+_dm_cop_plain = _dm_model.compute_cop(2.0, humidity=80.0)
+_dm_params.defrost_derate = DefrostDerate.from_dict(_dm_store)
+_dm_cop_clamped = _dm_model.compute_cop(2.0, humidity=80.0)
+_dm_optimistic = DefrostDerate.from_dict(_dm_store)
+_dm_t, _dm_h = _dm_optimistic._bucket(2.0, 80.0)
+_dm_optimistic.factors[_dm_t][_dm_h] = 1.05  # what the old bound stored
+_dm_params.defrost_derate = _dm_optimistic
+_dm_cop_old = _dm_model.compute_cop(2.0, humidity=80.0)
+R.check(
+    "a populated frost-band bucket really does reach the COP the plan prices",
+    abs(_dm_cop_old - _dm_cop_plain) > 1e-6,
+    f"clamped {_dm_cop_clamped:.4f}, unclamped {_dm_cop_old:.4f}, none "
+    f"{_dm_cop_plain:.4f} — if these were equal this fixture would prove "
+    f"nothing about the bound",
+)
+R.check(
+    "and the new bound can only ever make the frost band MORE careful",
+    _dm_cop_clamped <= _dm_cop_plain + 1e-9 and _dm_cop_clamped < _dm_cop_old,
+    f"clamped {_dm_cop_clamped:.4f} <= plain {_dm_cop_plain:.4f} < old "
+    f"{_dm_cop_old:.4f}: an upgrading install with a learned factor above 1.0 "
+    f"loses exactly that optimism and nothing else",
+)
+_dm_params.defrost_derate = None
+
+
+R.section("v5.3.0 review — an unreadable flag makes no confident claim")
+
+# DefrostWindow.close carried _observed into the NEXT interval, so exactly one
+# interval after the flag went unreadable was reported observed with duty 0 —
+# which _settle_defrost then folded as a measured zero AND used to admit a
+# frost-band COP sample with no defrost evidence behind it.
+_dw_t0 = datetime(2026, 1, 10, 3, 0, tzinfo=UTC)
+_dw_cycle = timedelta(minutes=5)
+
+
+def _dw_run(flags_per_interval):
+    """Drive a window through intervals of six cycles each."""
+    w = DefrostWindow()
+    now = _dw_t0
+    out = []
+    for flag in flags_per_interval:
+        for _ in range(6):
+            w.observe(now, flag)
+            now += _dw_cycle
+        out.append(w.close(now))
+    return out
+
+
+_dw = _dw_run([False, None, None])
+R.check(
+    "a readable flag reporting 'not defrosting' IS an observation",
+    _dw[0].observed and _dw[0].duty == 0.0,
+)
+R.check(
+    "the first interval after the flag dies is NOT reported as observed",
+    not _dw[1].observed,
+    "before the fix this one interval came back observed with duty 0 — 'a "
+    "duty of 0 from an unreadable flag is a confident claim nobody can make', "
+    "and per the derate above one folded zero was enough to flip the bucket",
+)
+R.check(
+    "and neither is any interval after it",
+    not _dw[2].observed,
+)
+_dw_back = _dw_run([None, False])
+R.check(
+    "legibility comes back with the next reading, within one cycle",
+    (not _dw_back[0].observed) and _dw_back[1].observed,
+    "resetting on close must not cost a healthy flag its next interval",
+)
+# The level still carries across the boundary; only legibility resets.
+_dw_w = DefrostWindow()
+_dw_now = _dw_t0
+for _ in range(6):
+    _dw_w.observe(_dw_now, True)
+    _dw_now += _dw_cycle
+_dw_w.close(_dw_now)
+for _ in range(6):
+    _dw_w.observe(_dw_now, True)
+    _dw_now += _dw_cycle
+_dw_half = _dw_w.close(_dw_now)
+R.check(
+    "a defrost spanning the boundary keeps its second half",
+    _dw_half.observed and _dw_half.duty > 0.99,
+    f"duty {_dw_half.duty:.4f} — the flag's LEVEL still carries over; only "
+    f"its legibility is re-established",
+)
+
+
+R.section("v5.3.0 review — an unrecognised mode never latches suppression")
+
+# pump_mode's contract is explicit: "Unknown means full capability, never
+# suppress everything". read() broke it by routing unknown_value into the
+# last_good branch, so a status sensor that said Heating once and idle
+# thereafter held hot water blocked for the life of the install.
+_um_cfg = {"heat_pump_mode_entity": "sensor.hp_status"}
+_um_now = datetime(2026, 2, 1, 12, 0, tzinfo=UTC)
+
+
+#: What the reference integration's select actually publishes as `options`.
+_UM_OPTIONS = [
+    "Cooling",
+    "Heating",
+    "DHW (Hot Water)",
+    "Cooling + DHW",
+    "Heating + DHW",
+]
+
+
+def _um_read(
+    state,
+    last_good=None,
+    entity="sensor.hp_status",
+    age=2,
+    options=None,
+    last_good_age=None,
+):
+    cfg = {"heat_pump_mode_entity": entity}
+    # A select declares its options; a bare status sensor declares nothing,
+    # and that difference is what decides which vocabulary it gets.
+    if options is None and entity.split(".")[0] in ("select", "input_select"):
+        options = _UM_OPTIONS
+    attrs = {"options": list(options)} if options else None
+    hass = FakeHass(
+        {entity: FakeState(state, last_updated=minutes_ago(age, _um_now),
+                           attributes=attrs)}
+    )
+    return pump_signals.read(
+        InputReader(hass, cfg, now=lambda: _um_now),
+        last_good=last_good,
+        last_good_age_minutes=last_good_age,
+    )
+
+
+_um_heat = pump_mode.capability("Heating")
+_um_unknown = _um_read("idle", last_good=_um_heat)
+R.check(
+    "an unrecognised word resolves to full capability, not to the last mode",
+    _um_unknown.mode is pump_mode.FULL_CAPABILITY
+    and not _um_unknown.mode_observed,
+    f"mode {_um_unknown.mode.label} from {_um_unknown.mode_source}",
+)
+R.check(
+    "so it suppresses nothing, in either channel",
+    not _um_unknown.space_blocked and not _um_unknown.dhw_blocked,
+    "before the fix this returned the last good mode and latched its "
+    "suppression permanently, with no recovery path at all",
+)
+R.check(
+    "and it is visible as its own source, not folded into 'absent'",
+    _um_unknown.mode_source == pump_signals.MODE_SOURCE_UNKNOWN
+    and _um_unknown.mode_text == "idle",
+    f"{_um_unknown.mode_source}/{_um_unknown.mode_text} — 'your mode entity "
+    f"works, we do not know what it is telling us' is the one case a user "
+    f"can act on",
+)
+# The recovery path, end to end.
+_um_seq = []
+_um_last = None
+for _word in ("Heating + DHW", "Heating", "idle", "idle", "Heating + DHW"):
+    _um_sig = _um_read(_word, last_good=_um_last, entity="select.hp_mode")
+    if _um_sig.mode.known:
+        _um_last = _um_sig.mode
+    _um_seq.append((_word, _um_sig.dhw_blocked))
+R.check(
+    "a select recovers from an unrecognised state instead of latching",
+    _um_seq == [
+        ("Heating + DHW", False),
+        ("Heating", True),
+        ("idle", False),
+        ("idle", False),
+        ("Heating + DHW", False),
+    ],
+    f"{_um_seq}",
+)
+# What last_good is still for: an entity that stops being readable.
+for _problem_state, _label in (("unavailable", "unavailable"),):
+    _um_lg = _um_read(_problem_state, last_good=_um_heat, entity="select.hp_mode")
+    R.check(
+        f"an {_label} mode entity still falls back to the last good mode",
+        _um_lg.mode is _um_heat
+        and _um_lg.mode_source == pump_signals.MODE_SOURCE_LAST_GOOD
+        and _um_lg.dhw_blocked,
+        "the pump did not change mode because its sensor went quiet",
+    )
+_um_stale = _um_read("Heating", last_good=_um_heat, entity="select.hp_mode", age=600)
+R.check(
+    "and so does a stale one — staleness is unreadability, not disagreement",
+    _um_stale.mode is _um_heat
+    and _um_stale.mode_source == pump_signals.MODE_SOURCE_LAST_GOOD,
+    f"{_um_stale.mode_source}",
+)
+_um_never = _um_read("idle")
+R.check(
+    "with nothing ever recognised, an unknown word is simply absent evidence",
+    _um_never.mode is pump_mode.FULL_CAPABILITY and not _um_never.mode_observed,
+)
+
+
+R.section("v5.3.0 review — a status sensor is not a mode selector")
+
+# The alias table mapped bare `heating`/`cooling`/`hot water` to single-duty
+# MODES, and topology accepts `sensor` for this slot. A generic status sensor
+# cycling heating/cooling/defrosting/idle is exactly what a user drops into a
+# field labelled "Heat pump operating mode" — and there "heating" means "the
+# compressor is making heat now", not "this unit cannot make hot water".
+for _word in ("heating", "heat", "cooling", "cool", "hot water", "DHW"):
+    R.check(
+        f"a select still recognises {_word!r} — the vocabulary is unchanged there",
+        pump_mode.is_known(_word) and pump_mode.resolve(_word) is not None,
+        "a select's state is one of a list its integration declared, so its "
+        "words can be taken at face value",
+    )
+    R.check(
+        f"a plain sensor's {_word!r} is refused as a mode",
+        not pump_mode.is_known(_word, strict=True)
+        and pump_mode.capability(_word, strict=True) is pump_mode.FULL_CAPABILITY,
+        "refusing means full capability, which is the documented safe "
+        "direction; accepting means suppressing a channel on a misreading",
+    )
+for _word in ("Heating + DHW", "HEATDHW", "Cooling + DHW", "COOLDHW"):
+    R.check(
+        f"the multi-duty spelling {_word!r} survives strict mode",
+        pump_mode.is_known(_word, strict=True),
+        "no status sensor reports 'Heating + DHW' as a momentary activity",
+    )
+# What chooses the vocabulary is whether the ENTITY declares its own state
+# among its options — not its domain. That is the property the trust rests
+# on, it is visible at runtime, and it fails safe for any entity type nobody
+# has thought of yet.
+_um_declared = FakeState("Heating", attributes={"options": _UM_OPTIONS})
+_um_undeclared = FakeState("Heating")
+_um_off_list = FakeState("Turbo Eco", attributes={"options": _UM_OPTIONS})
+R.check(
+    "an entity that declares this state among its options is taken at face value",
+    pump_mode.validator_for(_um_declared) is pump_mode.is_known
+    and pump_mode.declares_current_option(_um_declared),
+)
+R.check(
+    "one that declares nothing gets the careful vocabulary",
+    pump_mode.validator_for(_um_undeclared) is not pump_mode.is_known
+    and pump_mode.validator_for(None) is not pump_mode.is_known,
+)
+R.check(
+    "and so does one reporting a word it never declared",
+    pump_mode.validator_for(_um_off_list) is not pump_mode.is_known,
+    "a select whose state is off its own list is not a select doing its job",
+)
+R.check(
+    "a user-built input_select listing the modes is a declaration too",
+    pump_mode.declares_current_option(
+        FakeState("Cooling", attributes={"options": _UM_OPTIONS})
+    ),
+    "somebody who builds a helper listing the pump's modes and sets it to "
+    "one is telling us the mode; that is the input this slot wants",
+)
+_sm_sensor = _um_read("heating", entity="sensor.hp_status")
+R.check(
+    "so a status sensor reading 'heating' does NOT block hot water",
+    not _sm_sensor.dhw_blocked and not _sm_sensor.space_blocked,
+    f"dhw_blocked={_sm_sensor.dhw_blocked} — with the latch above this was "
+    f"a permanent hot-water suppression on a word that meant something else",
+)
+_sm_select = _um_read("Heating", entity="select.hp_mode")
+R.check(
+    "while a real select reading 'Heating' still does",
+    _sm_select.dhw_blocked and not _sm_select.space_blocked,
+    "the feature must keep working for the hardware it was written for",
+)
+_sm_sensor_multi = _um_read("Heating + DHW", entity="sensor.hp_mode")
+R.check(
+    "and a sensor carrying a real mode label is still read as one",
+    _sm_sensor_multi.mode.key == pump_mode.MODE_HEAT_DHW,
+    "a template sensor mirroring the select must not be collateral damage",
+)
+_sm_mirror = _um_read(
+    "Cooling", entity="sensor.hp_mode_mirror", options=_UM_OPTIONS
+)
+R.check(
+    "a template sensor that also mirrors the OPTIONS gets the full vocabulary",
+    _sm_mirror.mode.key == pump_mode.MODE_COOL and _sm_mirror.space_blocked,
+    f"{_sm_mirror.mode.label} — the single-word spellings are reachable from "
+    f"any domain that declares them, so mirroring a select properly is not "
+    f"collateral damage either",
+)
+
+
+R.section("v5.3.0 review — the narrative explains a blocked channel")
+
+from heatpump_optimizer.optimizer import REASON_PUMP_MODE  # noqa: E402
+
+R.check(
+    "pump_mode has a sentence in BOTH languages",
+    all(
+        REASON_PUMP_MODE in narrative_mod.TEMPLATES[lang]
+        for lang in narrative_mod.LANGUAGES
+    ),
+    "the en/sv parity test passes when a key is missing from both, so parity "
+    "alone could never catch this",
+)
+_nb_items = narrative_mod.build(
+    {"powers": [0.0] * 8, "prices": [1.0] * 8, "reasons": [REASON_PUMP_MODE] * 8},
+    {"powers": [], "prices": [], "reasons": []},
+    0.5,
+)
+R.check(
+    "a blocked channel survives the zero-energy filter, as idle does",
+    [i["reason"] for i in _nb_items] == [REASON_PUMP_MODE]
+    and _nb_items[0]["hours"] == 4.0,
+    f"{_nb_items} — the blocked slots were relabelled away from 'idle', so "
+    f"filtering them out leaves silence where the explanation belongs",
+)
+for _lang in narrative_mod.LANGUAGES:
+    _nb_lines = narrative_mod.render(_nb_items, _lang)
+    R.check(
+        f"and it renders a real sentence in {_lang}",
+        len(_nb_lines) == 1 and "4.0" in _nb_lines[0] and "{" not in _nb_lines[0],
+        f"{_nb_lines}",
+    )
+R.check(
+    "an ordinary zero-energy reason is still filtered out",
+    narrative_mod.build(
+        {"powers": [0.0] * 4, "prices": [1.0] * 4, "reasons": ["cheap_price"] * 4},
+        {"powers": [], "prices": [], "reasons": []},
+        0.5,
+    )
+    == [],
+    "only reasons whose whole meaning is 'no energy' are exempt",
+)
+
+
+R.section("v5.3.0 review — a blocked channel is published, not just recorded")
+
+R.check(
+    "a space block reaches predictive_info, where the coordinator can see it",
+    _mb_space.predictive_info.get("mode_blocked_space") is True
+    and "mode_blocked_dhw" not in _mb_space.predictive_info,
+)
+R.check(
+    "a hot-water block gets the numeric trace the space channel already had",
+    _mb_dhw.predictive_info.get("mode_blocked_dhw") is True
+    and _mb_dhw.predictive_info.get("dhw_floor_breach_c", 0.0) > 0.0,
+    f"breach {_mb_dhw.predictive_info.get('dhw_floor_breach_c')} °C — "
+    f"power_cap_breach_c is space-only, so without this a blocked tank left "
+    f"no number anywhere saying how far short it fell",
+)
+R.check(
+    "and an unblocked plan carries none of the new keys at all",
+    not any(
+        k in _mb_null.predictive_info
+        for k in ("mode_blocked_space", "mode_blocked_dhw", "dhw_floor_breach_c")
+    ),
+    f"{sorted(_mb_null.predictive_info)} — every golden fixture plans with no "
+    f"mode entity, so this is what keeps them still",
+)
+
+
+
+R.section("v5.3.0 review — the experiment obeys the mode gate too")
+
+from pathlib import Path as _Path  # noqa: E402
+from heatpump_optimizer import sysid as _SysIdModule  # noqa: E402
+
+_PKG_DIR = _Path("custom_components/heatpump_optimizer")
+
+# _run_system_identification writes _current_action["power"] AFTER the solve,
+# so it is the one route that bypasses the bounds the mode block is enforced
+# at — and the worst one to bypass them by, because
+# _adopt_system_identification seeds the persisted thermal parameters from
+# whatever the experiment measured.
+
+
+class _SysIdHost:
+    _run_system_identification = Coord._run_system_identification
+
+    def __init__(self, signals) -> None:
+        self._pump_signals = signals
+        self._sysid = _SysIdModule.SystemIdentification(
+            _SysIdModule.SysIdConfig(enabled=True)
+        )
+        self._sysid.arm(datetime(2026, 1, 5, 2, 0, tzinfo=UTC))
+        self._current_action = {"power": 0.0, "heat_pump_on": False}
+        self._current_state = ThermalState(
+            room_temperature=21.0, outdoor_temperature=3.0
+        )
+        self._thermal_params = ThermalParameters()
+        self._thermal_model = ThermalModel(self._thermal_params)
+        self._house_heat_loss_samples = 0
+
+    def _get_current_price(self):
+        return 0.2
+
+
+_COOLING = pump_signals.PumpSignals(
+    mode=pump_mode.capability("Cooling"),
+    mode_observed=True,
+    mode_source=pump_signals.MODE_SOURCE_LIVE,
+    freeze_reason=pump_signals.FREEZE_COOLING,
+)
+_DHW_ONLY_SIG = pump_signals.PumpSignals(
+    mode=pump_mode.capability("DHW"),
+    mode_observed=True,
+    mode_source=pump_signals.MODE_SOURCE_LIVE,
+)
+_OFFLINE = pump_signals.PumpSignals(
+    online=False, freeze_reason=pump_signals.FREEZE_OFFLINE
+)
+
+_si_free = _SysIdHost(PumpSignals())
+_si_free._run_system_identification(np.full(48, 0.2))
+R.check(
+    "the control: with no mode entity the experiment is untouched",
+    _si_free._sysid.active,
+    f"phase {_si_free._sysid.phase}",
+)
+for _sig, _name in (
+    (_COOLING, "a cooling mode"),
+    (_DHW_ONLY_SIG, "a hot-water-only mode"),
+    (_OFFLINE, "a pump that is off the network"),
+):
+    _si = _SysIdHost(_sig)
+    _si._run_system_identification(np.full(48, 0.2))
+    R.check(
+        f"{_name} aborts an armed experiment instead of commanding heat",
+        not _si._sysid.active
+        and _si._sysid.phase == _SysIdModule.PHASE_ABORTED
+        and _si._current_action["power"] == 0.0,
+        f"phase {_si._sysid.phase} power {_si._current_action['power']} — a "
+        f"step response measured through this is not a noisy measurement of "
+        f"the house, and _adopt_system_identification persists what it fits",
+    )
+_si_reason = _SysIdHost(_COOLING)
+_si_reason._run_system_identification(np.full(48, 0.2))
+R.check(
+    "the aborted result carries the cause",
+    _si_reason._sysid.result.reason
+    and not _si_reason._sysid.result.completed,
+    f"{_si_reason._sysid.result.reason!r}",
+)
+
+
+R.section("v5.3.0 review — a mode-blocked tank says so, loudly")
+
+# An indefinitely blocked DHW channel silently defers the anti-legionella
+# cycle: forced_off is all-ones, the schedule is hard-zeroed, the legionella
+# slot never runs, and dhw_legionella_due_in_hours merely goes negative in an
+# attribute. A pump left in heating for a fortnight produced no warning at all.
+
+_LG_ISSUE = "dhw_legionella_mode_blocked"
+
+
+def _lg_coord(*, days_since=20.0, enabled=True, dhw=True):
+    c = HeatPumpOptimizerCoordinator(FakeHass(), FakeEntry(data=dict(_LC_DATA)))
+    c._thermal_params.dhw_enabled = dhw
+    c._thermal_params.dhw_legionella_enabled = enabled
+    c._thermal_params.dhw_legionella_interval_days = 7.0
+    c._dhw_last_legionella = dt_util.now() - timedelta(days=days_since)
+    return c
+
+
+def _lg_issues(c):
+    return [i for i in getattr(c.hass, "issues", []) if i[1] == _LG_ISSUE]
+
+
+_lg_blocked = _lg_coord()
+R.check(
+    "the premise: the cycle really is overdue",
+    _lg_blocked._dhw_legionella_due_in_hours() < 0.0,
+    f"due in {_lg_blocked._dhw_legionella_due_in_hours()} h",
+)
+_lg_blocked._check_legionella_mode_block(False)
+R.check(
+    "an overdue cycle with hot water available raises nothing here",
+    not _lg_issues(_lg_blocked),
+    "that case is the disinfection timer's own business, not the mode's",
+)
+_lg_blocked._check_legionella_mode_block(True)
+_lg_raised = _lg_issues(_lg_blocked)
+R.check(
+    "an overdue cycle the pump's mode is blocking raises a repair issue",
+    len(_lg_raised) == 1
+    and _lg_raised[0][2].get("translation_key") == _LG_ISSUE
+    and set(_lg_raised[0][2].get("translation_placeholders", {}))
+    == {"overdue_days", "interval_days"},
+    f"{_lg_raised}",
+)
+R.check(
+    "and it says how long the tank has gone undisinfected",
+    int(_lg_raised[0][2]["translation_placeholders"]["overdue_days"]) >= 13,
+    f"{_lg_raised[0][2]['translation_placeholders']} — 20 days since the last "
+    f"cycle on a 7-day interval is 13 days overdue",
+)
+_lg_blocked._check_legionella_mode_block(True)
+R.check(
+    "it is not re-raised every cycle while nothing has changed",
+    len(_lg_issues(_lg_blocked)) == 1,
+)
+_lg_blocked._check_legionella_mode_block(False)
+R.check(
+    "a mode that can make hot water again clears it",
+    not _lg_issues(_lg_blocked),
+    "the notice describes a live condition, not a historical fact",
+)
+_lg_off = _lg_coord(enabled=False)
+_lg_off._check_legionella_mode_block(True)
+R.check(
+    "a user who turned disinfection off is not nagged about it",
+    not _lg_issues(_lg_off),
+)
+_lg_no_dhw = _lg_coord(dhw=False)
+_lg_no_dhw._check_legionella_mode_block(True)
+R.check(
+    "nor is an install with no hot-water tank at all",
+    not _lg_issues(_lg_no_dhw),
+)
+_lg_recent = _lg_coord(days_since=1.0)
+_lg_recent._check_legionella_mode_block(True)
+R.check(
+    "and a block that has not yet outlived the deadline is not an alarm",
+    not _lg_issues(_lg_recent),
+    f"due in {_lg_recent._dhw_legionella_due_in_hours()} h — a mode block is "
+    f"only news once the cycle it is holding up has actually come due",
+)
+_lg_unknown = _lg_coord()
+_lg_unknown._dhw_last_legionella = None
+_lg_unknown._check_legionella_mode_block(True)
+R.check(
+    "an unknown history is not evidence of an overdue cycle",
+    not _lg_issues(_lg_unknown),
+)
+for _lang_file in ("strings.json", "translations/en.json", "translations/sv.json"):
+    _lg_doc = _json.loads(
+        (_PKG_DIR / _lang_file).read_text(encoding="utf-8")
+    )
+    R.check(
+        f"the notice has a title and a description in {_lang_file}",
+        _LG_ISSUE in _lg_doc.get("issues", {})
+        and _lg_doc["issues"][_LG_ISSUE].get("title")
+        and "{overdue_days}" in _lg_doc["issues"][_LG_ISSUE]["description"]
+        and "{interval_days}" in _lg_doc["issues"][_LG_ISSUE]["description"],
+    )
+
+
+
+R.section("v5.3.0 review 2 — the health watch judges like against like")
+
+# The BLOCKER: _cop_reference_curve made observed_cop curve-dependent, but
+# _observe_cop_health bucketed its baseline by outdoor temperature alone. A
+# hot-water interval is measured against the DHW curve, which the model
+# prices 8-20 % below the space curve at the same outdoor temperature, so a
+# perfectly healthy pump produced a standing "shortfall" of exactly the gap
+# between the curves. The CUSUM is one-sided: it accumulates that and tells
+# the owner his compressor has degraded, persistently, and stops absorbing
+# samples while tripped so it never self-corrects.
+
+_hw_params = ThermalParameters()
+_hw_model = ThermalModel(_hw_params)
+_HW_OUT = 4.0
+_hw_space = _hw_model.compute_cop(_HW_OUT)
+_hw_dhw = _hw_model.compute_cop_dhw(_HW_OUT, 55.0)
+R.check(
+    "the premise: the two curves really are far apart at one outdoor temp",
+    (_hw_space - _hw_dhw) / _hw_space > 0.08,
+    f"space {_hw_space:.3f} vs dhw {_hw_dhw:.3f} — "
+    f"{100 * (_hw_space - _hw_dhw) / _hw_space:.1f}% apart, and a fixture "
+    f"that did not separate them would prove nothing",
+)
+
+
+def _hw_coord():
+    c = _t2_coord()
+    c._current_state.outdoor_temperature = _HW_OUT
+    return c
+
+
+def _hw_settle(c, n=60):
+    """A pump tracking its plan perfectly on both curves."""
+    for _ in range(n):
+        c._observe_cop_health(_hw_space, False)
+        c._observe_cop_health(_hw_dhw, True)
+
+
+def _hw_trip_after(c, space_factor=1.0, dhw_factor=1.0, limit=200):
+    for i in range(1, limit + 1):
+        c._observe_cop_health(_hw_space * space_factor, False)
+        c._observe_cop_health(_hw_dhw * dhw_factor, True)
+        if c._cop_health_cusum.tripped:
+            return i
+    return None
+
+
+# The plan shape that produced the false alarm: shoulder.json runs 38
+# space-only steps against 30 DHW-only ones in the same outdoor bucket.
+_hw_mixed = _hw_coord()
+for _ in range(60):
+    _hw_mixed._observe_cop_health(_hw_space, False)
+_hw_alarm_at = None
+for _i in range(1, 200):
+    _hw_mixed._observe_cop_health(
+        _hw_dhw if _i % 2 else _hw_space, bool(_i % 2)
+    )
+    if _hw_mixed._cop_health_cusum.tripped:
+        _hw_alarm_at = _i
+        break
+R.check(
+    "a healthy pump alternating space and hot water raises NO fault report",
+    _hw_alarm_at is None
+    and not [
+        i for i in getattr(_hw_mixed.hass, "issues", []) if i[1] == "cop_degradation"
+    ],
+    f"tripped at interval {_hw_alarm_at} — before the fix the 50/50 shape of "
+    f"the committed shoulder fixture raised cop_degradation inside a day, "
+    f"sending an owner to a service engineer for nothing",
+)
+R.check(
+    "and the two curves keep separate baselines rather than one blended one",
+    (_hw_mixed._cop_baseline.get((1, False)) or [0])[0]
+    > (_hw_mixed._cop_baseline.get((1, True)) or [0])[0],
+    f"space {_hw_mixed._cop_baseline.get((1, False))} vs "
+    f"dhw {_hw_mixed._cop_baseline.get((1, True))}",
+)
+
+# The watch must still do its job — on either channel independently.
+_hw_space_bad = _hw_coord()
+_hw_settle(_hw_space_bad)
+_hw_n_space = _hw_trip_after(_hw_space_bad, space_factor=0.85)
+_hw_dhw_bad = _hw_coord()
+_hw_settle(_hw_dhw_bad)
+_hw_n_dhw = _hw_trip_after(_hw_dhw_bad, dhw_factor=0.85)
+R.check(
+    "a real 15% loss on the space channel is still caught, and quickly",
+    _hw_n_space is not None and _hw_n_space <= 15,
+    f"caught after {_hw_n_space} intervals",
+)
+R.check(
+    "and so is one on the hot-water channel, which had no watch before",
+    _hw_n_dhw is not None and _hw_n_dhw <= 15,
+    f"caught after {_hw_n_dhw} intervals — separating the baselines must "
+    f"sharpen the watch, not switch half of it off",
+)
+_hw_healthy = _hw_coord()
+_hw_settle(_hw_healthy)
+R.check(
+    "a pump that is simply healthy never trips on either",
+    _hw_trip_after(_hw_healthy) is None,
+)
+
+# The wiring between the two halves: the learner must TELL the watch which
+# curve it used. Separate baselines are worthless if every sample arrives
+# labelled "space".
+_hw_gate_space = _CopGate(outdoor=8.0)
+_hw_gate_space._learn_measured_cop()
+_hw_gate_dhw = _CopGate(outdoor=8.0, signals=_DHW_ONLY, action=_dhw_action)
+_hw_gate_dhw._current_state.dhw_temperature = 55.0
+_hw_gate_dhw._learn_measured_cop()
+R.check(
+    "the COP learner labels each sample with the curve it was judged against",
+    [c[1] for c in _hw_gate_space.cop_health_calls] == [False]
+    and [c[1] for c in _hw_gate_dhw.cop_health_calls] == [True],
+    f"space {_hw_gate_space.cop_health_calls} vs dhw "
+    f"{_hw_gate_dhw.cop_health_calls} — separate baselines are worthless if "
+    f"every sample arrives labelled the same way",
+)
+
+# Persistence: additive, and an existing store keeps every bucket it had.
+_hw_old = _t2_coord()
+_hw_old._cop_baseline = {}
+_hw_v1_payload = {"cop_baseline": {"1": [3.2, 40], "2": [3.5, 25]}}
+
+
+async def _hw_load_v1(_p=_hw_v1_payload):
+    return _p
+
+
+_hw_old._thermal_learning_store.async_load = _hw_load_v1
+_asyncio.run(_hw_old._async_load_thermal_learning())
+R.check(
+    "a pre-v5.3.0 store's buckets load as SPACE baselines, not discarded",
+    _hw_old._cop_baseline.get((1, False)) == [3.2, 40]
+    and _hw_old._cop_baseline.get((2, False)) == [3.5, 25],
+    f"{_hw_old._cop_baseline} — the watch's memory is weeks long; throwing "
+    f"it away on upgrade would blind it for a month",
+)
+_hw_old._current_state.outdoor_temperature = _HW_OUT
+_hw_old._observe_cop_health(_hw_dhw, True)
+_hw_written = _hw_old._thermal_learning_payload()["cop_baseline"]
+R.check(
+    "and it writes back under the SAME keys, with the DHW curve alongside",
+    _hw_written.get("1") == [3.2, 40]
+    and _hw_written.get("2") == [3.5, 25]
+    and "1:dhw" in _hw_written,
+    f"{_hw_written} — additive, so a downgrade still reads what it wrote",
+)
+
+
+
+R.section("v5.3.0 review 2 — legibility belongs to the interval")
+
+from heatpump_optimizer.const import (  # noqa: E402
+    CONF_HEAT_PUMP_SWITCH_ENTITY,
+    MODE_LAST_GOOD_MAX_AGE_MINUTES,
+)
+
+# The previous fix stopped _observed carrying ACROSS a boundary but not
+# WITHIN an interval: one legible read marked the whole of it observed. The
+# earlier fixture missed it because it applied one flag to all six cycles of
+# an interval, which is the one thing the real system never does — the state
+# listener exists precisely because the flag changes mid-interval.
+_iv_t0 = datetime(2026, 1, 10, 3, 0, tzinfo=UTC)
+_iv_cycle = timedelta(minutes=5)
+
+
+def _iv(flags):
+    """Drive ONE interval, one flag per cycle. Returns the settled reading."""
+    w, now = DefrostWindow(), _iv_t0
+    for f in flags:
+        w.observe(now, f)
+        now += _iv_cycle
+    return w.close(now)
+
+
+_iv_legible_then_dark = _iv([False, None, None, None, None, None])
+R.check(
+    "one legible read does not vouch for the twenty-five minutes after it",
+    not _iv_legible_then_dark.observed,
+    f"observed={_iv_legible_then_dark.observed} duty="
+    f"{_iv_legible_then_dark.duty:.3f} — a defrost anywhere in that dark "
+    f"stretch is invisible, and this reported a confident zero over it",
+)
+_iv_dark_then_legible = _iv([None, None, None, None, None, False])
+R.check(
+    "and neither does one at the END of a dark interval",
+    not _iv_dark_then_legible.observed,
+    "the mirror of the same claim: the duty's denominator is the whole "
+    "interval either way",
+)
+_iv_clean = _iv([False] * 6)
+R.check(
+    "an interval legible throughout is still observed",
+    _iv_clean.observed and _iv_clean.duty == 0.0,
+    "the guard must not cost a healthy flag its evidence",
+)
+_iv_defrost = _iv([False, False, True, True, False, False])
+R.check(
+    "and a real mid-interval defrost is still measured, at its real duty",
+    _iv_defrost.observed
+    and abs(_iv_defrost.duty - 1.0 / 3.0) < 0.01
+    and _iv_defrost.events == 1,
+    f"duty {_iv_defrost.duty:.3f} events {_iv_defrost.events} — two of six "
+    f"cycles defrosting is a third of the interval",
+)
+_iv_all = _iv([True] * 6)
+R.check(
+    "a defrost spanning the whole interval reads as the whole interval",
+    _iv_all.observed and _iv_all.duty > 0.99,
+)
+# The boundary case the previous round fixed must still hold.
+_iv_w = DefrostWindow()
+_iv_now = _iv_t0
+for _ in range(6):
+    _iv_w.observe(_iv_now, True)
+    _iv_now += _iv_cycle
+_iv_w.close(_iv_now)
+for _ in range(6):
+    _iv_w.observe(_iv_now, True)
+    _iv_now += _iv_cycle
+_iv_second_half = _iv_w.close(_iv_now)
+R.check(
+    "a defrost spanning an interval boundary still keeps its second half",
+    _iv_second_half.observed and _iv_second_half.duty > 0.99,
+    "the flag's LEVEL carries over; only its legibility is re-established",
+)
+
+
+R.section("v5.3.0 review 2 — a mode nobody can read stops acting")
+
+# pump_signals' own rule: "a cooling mode read six hours ago must not still be
+# freezing the learners". The implementation did the opposite -- stale routed
+# to last_good, which restored identical capability with mode_observed still
+# true, and nothing ever cleared it.
+_ex_cool = pump_mode.capability("Cooling")
+_ex_rows = []
+for _label, _state, _age, _lg in (
+    ("fresh", "Cooling", 2, 2),
+    ("61 min old", "Cooling", 61, 61),
+    ("6 hours old", "Cooling", 360, 360),
+    ("3 days old", "Cooling", 4320, 4320),
+    ("unavailable 10 min", "unavailable", 2, 10),
+    ("unavailable 6 hours", "unavailable", 2, 360),
+):
+    _ex = _um_read(
+        _state, last_good=_ex_cool, entity="select.hp_mode",
+        age=_age, last_good_age=_lg,
+    )
+    _ex_rows.append((_label, _ex.space_blocked, _ex.mode_source))
+R.check(
+    "a mode read minutes ago still acts, one read hours ago does not",
+    [r[1] for r in _ex_rows] == [True, True, False, False, True, False],
+    f"{_ex_rows} — an unbounded fallback made the 60 minute horizon on this "
+    f"entity do nothing at all",
+)
+R.check(
+    "and the expiry is visible as its own source, not silence",
+    [r[2] for r in _ex_rows if not r[1]]
+    == [pump_signals.MODE_SOURCE_EXPIRED] * 3,
+    f"{_ex_rows}",
+)
+R.check(
+    "an expired mode suppresses nothing and freezes nothing",
+    (
+        lambda s: not s.space_blocked
+        and not s.dhw_blocked
+        and s.freeze_reason is None
+        and not s.mode_observed
+    )(
+        _um_read(
+            "Cooling", last_good=_ex_cool, entity="select.hp_mode",
+            age=4320, last_good_age=4320,
+        )
+    ),
+    "full capability is the documented safe direction; a dead mode entity "
+    "must not leave a house cold indefinitely",
+)
+R.check(
+    "the bound is longer than the reading's own horizon and shorter than six hours",
+    60.0 < MODE_LAST_GOOD_MAX_AGE_MINUTES < 360.0,
+    f"{MODE_LAST_GOOD_MAX_AGE_MINUTES} min",
+)
+for _lang_file in ("strings.json", "translations/en.json", "translations/sv.json"):
+    _ex_doc = _json.loads((_PKG_DIR / _lang_file).read_text(encoding="utf-8"))
+    R.check(
+        f"the mode-unreadable notice is translated in {_lang_file}",
+        "pump_mode_unreadable" in _ex_doc.get("issues", {})
+        and "{hours}" in _ex_doc["issues"]["pump_mode_unreadable"]["description"],
+    )
+
+
+R.section("v5.3.0 review 2 — a status sensor is not a flag either")
+
+# BOOL_TRUE/BOOL_FALSE carry heating, running, idle and standby, and all three
+# flag slots accept a plain `sensor`. Read as flags those words are actively
+# wrong in every slot.
+_fl_now = datetime(2026, 2, 1, 12, 0, tzinfo=UTC)
+
+
+def _fl_read(slot, entity, state):
+    hass = FakeHass(
+        {entity: FakeState(state, last_updated=minutes_ago(2, _fl_now))}
+    )
+    return pump_signals.read(
+        InputReader(hass, {slot: entity}, now=lambda: _fl_now)
+    )
+
+
+for _slot, _word, _what in (
+    ("heat_pump_online_entity", "idle", "an idle pump is not an offline one"),
+    ("heat_pump_fault_entity", "heating", "a heating pump is not a faulted one"),
+    ("heat_pump_fault_entity", "running", "nor is a running one"),
+    ("heat_pump_defrost_entity", "heating", "heating is not defrosting"),
+):
+    _fl = _fl_read(_slot, "sensor.hp_status", _word)
+    R.check(
+        f"a status sensor in the {_slot.split('_')[2]} slot reading {_word!r} "
+        f"is no evidence: {_what}",
+        _fl.online is None and _fl.fault is None and _fl.defrosting is None
+        and _fl.freeze_reason is None,
+        f"online={_fl.online} fault={_fl.fault} defrost={_fl.defrosting} "
+        f"freeze={_fl.freeze_reason} — 'idle' in the online slot froze every "
+        f"learner on a pump that was merely not running",
+    )
+for _slot, _word, _want in (
+    ("heat_pump_online_entity", "off", False),
+    ("heat_pump_online_entity", "on", True),
+    ("heat_pump_fault_entity", "on", True),
+    ("heat_pump_defrost_entity", "1", True),
+    ("heat_pump_defrost_entity", "0", False),
+):
+    _fl = _fl_read(_slot, "sensor.hp_flag", _word)
+    _got = {
+        "heat_pump_online_entity": _fl.online,
+        "heat_pump_fault_entity": _fl.fault,
+        "heat_pump_defrost_entity": _fl.defrosting,
+    }[_slot]
+    R.check(
+        f"but an unambiguous {_word!r} from a sensor still reads as a flag",
+        _got is _want,
+        f"got {_got} — a template sensor carrying a raw Tuya DP must keep "
+        f"working; only the activity words are refused",
+    )
+for _word, _want in (("idle", False), ("heating", True), ("running", True)):
+    _fl = _fl_read("heat_pump_online_entity", "binary_sensor.hp_online", _word)
+    R.check(
+        f"and a real binary_sensor is unaffected by the guard ({_word!r})",
+        _fl.online is _want,
+        "its state is on/off by construction, so it cannot make the mistake",
+    )
+
+
+R.section("v5.3.0 review 2 — the block never actuates")
+
+# _apply_action calls switch.turn_off whenever the plan is empty. A mode that
+# blocks both channels makes every step empty, so a cooling pump was switched
+# off every cycle -- defeating the cooling its owner selected, from a feature
+# documented as read-only.
+_ac_entity = "switch.hp_supply"
+
+
+def _ac_calls(signals, heat_pump_on):
+    c = _t2_coord()
+    c._config[CONF_HEAT_PUMP_SWITCH_ENTITY] = _ac_entity
+    c._pump_signals = signals
+    c._current_action = {"heat_pump_on": heat_pump_on, "power": 0.0}
+    c._mode = "comfort"
+    _asyncio.run(c._apply_action())
+    return [
+        call
+        for call in c.hass.services.calls
+        if call[0] == "switch" and call[2].get("entity_id") == _ac_entity
+    ]
+
+
+_AC_FREE = pump_signals.PumpSignals()
+_AC_COOL = pump_signals.PumpSignals(
+    mode=pump_mode.capability("Cooling"),
+    mode_observed=True,
+    mode_source=pump_signals.MODE_SOURCE_LIVE,
+    freeze_reason=pump_signals.FREEZE_COOLING,
+)
+_AC_DHW_ONLY = pump_signals.PumpSignals(
+    mode=pump_mode.capability("DHW"),
+    mode_observed=True,
+    mode_source=pump_signals.MODE_SOURCE_LIVE,
+)
+R.check(
+    "the control: with no mode entity an empty plan still switches off",
+    [c[1] for c in _ac_calls(_AC_FREE, False)] == ["turn_off"],
+    "every install without a mode entity must behave exactly as before",
+)
+R.check(
+    "and a plan that wants the pump still switches on",
+    [c[1] for c in _ac_calls(_AC_FREE, True)] == ["turn_on"],
+)
+R.check(
+    "a cooling mode does NOT switch the pump off",
+    _ac_calls(_AC_COOL, False) == [],
+    "both channels are hard-zeroed by the block, so 'the plan is empty' is "
+    "this integration's own doing — cutting the supply would defeat the "
+    "cooling the owner selected, from a feature documented as read-only",
+)
+R.check(
+    "nor does a mode that blocks only the other channel",
+    _ac_calls(_AC_DHW_ONLY, False) == [],
+)
+R.check(
+    "but a block never stops the pump being switched ON",
+    [c[1] for c in _ac_calls(_AC_DHW_ONLY, True)] == ["turn_on"],
+    "that is the plan asking for something the unblocked channel can "
+    "deliver, which the block has no claim over",
+)
+
+
+R.section("v5.3.0 review 2 — the what-if and the fuse advisor see the block")
+
+_wf_src = inspect.getsource(_Coord.async_simulate)
+R.check(
+    "the shadow solve inherits the block, like every other input it inherits",
+    "space_blocked=self._pump_signals.space_blocked" in _wf_src
+    and "dhw_blocked=self._pump_signals.dhw_blocked" in _wf_src,
+    "the what-if is DIFFERENCED against the live plan, so an input that "
+    "shaped one and not the other turns the difference into a comparison of "
+    "two different questions",
+)
+_wf_adv = inspect.getsource(_Coord._maybe_run_fuse_advisor)
+R.check(
+    "and the advisor declines to answer at all while a channel is blocked",
+    "space_blocked or self._pump_signals.dhw_blocked" in _wf_adv,
+    "a month in which the pump could not heat is not evidence about how "
+    "many amperes the house needs",
+)
+
+# The arithmetic the advisor does, on real solves, with and without a block.
+_fa_base_free = _mb_run()
+_fa_base_blocked = _mb_run(space_blocked=True)
+_fa_capped = _mb_run(power_caps_extra=np.full(_mb_n, 1.2))
+
+
+def _fa_coldest(plan):
+    series = [
+        s
+        for s in (
+            plan.upper_temp_trajectory,
+            plan.lower_temp_trajectory,
+            plan.room_temp_trajectory,
+        )
+        if s
+    ]
+    return round(min(min(s) for s in series), 2) if series else None
+
+
+def _fa_verdict(baseline):
+    breach = float(_fa_capped.predictive_info.get("power_cap_breach_c") or 0.0)
+    bc, sc = _fa_coldest(baseline), _fa_coldest(_fa_capped)
+    if breach > 0.0 and bc is not None and sc is not None:
+        breach = max(0.0, min(breach, float(bc) - float(sc)))
+    return breach
+
+
+R.check(
+    "the premise: a tight candidate fuse really does breach the floor",
+    _fa_verdict(_fa_base_free) > 0.05,
+    f"shortfall {_fa_verdict(_fa_base_free):.2f} °C against an unblocked "
+    f"baseline — a fixture where the fuse fitted would prove nothing",
+)
+R.check(
+    "and a blocked baseline would have called that same fuse feasible",
+    _fa_verdict(_fa_base_blocked) <= 0.05,
+    f"shortfall {_fa_verdict(_fa_base_blocked):.2f} °C — min_room "
+    f"{_fa_coldest(_fa_base_free)} unblocked vs {_fa_coldest(_fa_base_blocked)} "
+    f"blocked, so base_cold - sim_cold goes negative and the clamp zeroes a "
+    f"real breach. This is the arithmetic the advisor was publishing.",
+)
+
+
+R.section("v5.3.0 review 2 — the smaller repairs")
+
+# m9: the summary must report the number the plan applies, not the raw one.
+_sm_young = DefrostDerate()
+_sm_t, _sm_h = _sm_young._bucket(2.0, 60.0)
+_sm_young.factors[_sm_t][_sm_h] = 0.80
+_sm_young.counts[_sm_t][_sm_h] = 3
+_sm_row = [
+    b
+    for b in _sm_young.summary()
+    if b["outdoor_range"][0] <= 2.0 < b["outdoor_range"][1]
+][0]
+R.check(
+    "the summary's derate is the one the plan multiplies by",
+    abs(_sm_row["derate"] - _sm_young.factor(2.0, 60.0)) < 1e-3,
+    f"summary {_sm_row['derate']} vs factor {_sm_young.factor(2.0, 60.0):.3f} "
+    f"— reporting the raw estimator showed 0.80 while the plan used 0.95",
+)
+R.check(
+    "and what it has learned is reported alongside, not instead",
+    abs(_sm_row["learned"] - 0.80) < 1e-9,
+    f"{_sm_row}",
+)
+
+# m11: hours are wall clock and do not add across the two channels.
+_nh_both = narrative_mod.build(
+    {"powers": [0.0] * 48, "prices": [1.0] * 48, "reasons": ["pump_mode"] * 48},
+    {"powers": [0.0] * 48, "prices": [1.0] * 48, "reasons": ["pump_mode"] * 48},
+    0.5,
+)
+R.check(
+    "a 24 h horizon blocked on both channels reports 24 h, not 48",
+    _nh_both[0]["hours"] == 24.0,
+    f"{_nh_both} — the two schedules run over the same horizon, so a reason "
+    f"carried on both sides of one step happened once",
+)
+_nh_energy = narrative_mod.build(
+    {"powers": [2.0] * 4, "prices": [1.0] * 4, "reasons": ["cheap_price"] * 4},
+    {"powers": [1.0] * 4, "prices": [1.0] * 4, "reasons": ["cheap_price"] * 4},
+    0.5,
+)
+R.check(
+    "while energy and money still add, because they are per channel",
+    abs(_nh_energy[0]["kwh"] - 6.0) < 1e-9,
+    f"{_nh_energy}",
+)
+
+# m14: the stub had no last_reported, so the mechanism the cloud-gap argument
+# rests on was never exercised by any freshness test in the suite.
+_lr_live = FakeState(
+    "21.4",
+    last_updated=minutes_ago(600, NOW),
+    last_reported=minutes_ago(2, NOW),
+)
+_lr_dead = FakeState("21.4", last_updated=minutes_ago(600, NOW))
+_lr_a = InputReader(
+    FakeHass({"sensor.indoor": _lr_live}),
+    {"indoor_temp_entity": "sensor.indoor"},
+    now=lambda: NOW,
+).read("indoor_temp_entity")
+_lr_b = InputReader(
+    FakeHass({"sensor.indoor": _lr_dead}),
+    {"indoor_temp_entity": "sensor.indoor"},
+    now=lambda: NOW,
+).read("indoor_temp_entity")
+R.check(
+    "a stable sensor that is still REPORTING is fresh, though it last changed "
+    "ten hours ago",
+    _lr_a.ok and not _lr_a.stale,
+    f"age {_lr_a.age_minutes} min — this is the preference the whole "
+    f"cloud-gap argument rests on, and no test exercised it before",
+)
+R.check(
+    "while one that stopped reporting is stale on the same last_changed",
+    _lr_b.stale and not _lr_b.ok,
+    f"age {_lr_b.age_minutes} min",
+)
+
 
 
 # v5.2.0: the hot-water tank's own prediction-accuracy record, and the

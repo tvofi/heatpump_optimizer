@@ -78,6 +78,31 @@ CONF_ENERGY_ENTITY: Final = "heat_pump_energy_entity"
 # house connection, not at the heat pump) and for PV surplus.
 CONF_HOUSE_POWER_ENTITY: Final = "house_power_entity"
 
+# --- What the pump itself says it is doing (v5.3.0) ------------------------
+#
+# Four optional signals published by heat-pump integrations — the Tuya
+# `tuya_heat_pump` custom integration is the one this was built against, but
+# nothing here is Tuya-specific: any integration exposing the same four ideas
+# fits, and each slot is filled independently.
+#
+# All four are READ ONLY. The optimizer never writes the operating mode; the
+# mode is evidence about what the pump can currently deliver, not a lever.
+#
+#   * Operating mode. A pump in a cooling or hot-water-only mode cannot serve
+#     space heating however good the price is, and one in a heating-only mode
+#     cannot make hot water. Planning either is planning heat that will not
+#     arrive. See `pump_mode.py` for the vocabulary.
+#   * Defrosting. A reversing cycle spends compressor power putting heat INTO
+#     the outdoor coil; the interval's electricity bought no room heat at all.
+#   * Online. The one signal that closes a real gap in cloud mode — see the
+#     horizon comment below.
+#   * Fault. Non-zero means the unit is reporting a problem. The code itself
+#     is discarded by the source integration, so what reaches us is a flag.
+CONF_HEAT_PUMP_MODE_ENTITY: Final = "heat_pump_mode_entity"
+CONF_HEAT_PUMP_DEFROST_ENTITY: Final = "heat_pump_defrost_entity"
+CONF_HEAT_PUMP_ONLINE_ENTITY: Final = "heat_pump_online_entity"
+CONF_HEAT_PUMP_FAULT_ENTITY: Final = "heat_pump_fault_entity"
+
 # Power units the optional entities may report in, normalised to kW. Assuming
 # kW because the internal model uses kW misreads a 3000 W draw as 3000 kW.
 POWER_UNIT_TO_KW: Final = {
@@ -1087,4 +1112,54 @@ INPUT_MAX_AGE_MINUTES[CONF_MIXING_VALVE_TARGET_ENTITY] = 60.0
 INPUT_MAX_AGE_MINUTES[CONF_VALVE_OUTLET_TEMP_ENTITY] = 60.0
 INPUT_MAX_AGE_MINUTES[CONF_WOOD_TANK_TOP_ENTITY] = 60.0
 INPUT_MAX_AGE_MINUTES[CONF_WOOD_TANK_BOTTOM_ENTITY] = 60.0
+# The external-heat override, and ONLY when it reads as a number. A flue
+# probe stuck hot on a flat battery looks like an indefinite free fire — the
+# same failure the probes above are gated against — and a probe re-reports
+# every poll, so its age means something. A flag does not: the slot also
+# accepts input_boolean/switch/binary_sensor, and a helper is written only
+# when it changes, so its age is "how long since the user decided", not "how
+# long since anyone checked". _external_heat_override therefore reads the
+# flag case UNBOUNDED and only numbers land on this limit; ageing a helper
+# out would silently discard a deliberate setting in both directions.
+INPUT_MAX_AGE_MINUTES[CONF_EXTERNAL_HEAT_ENTITY] = 60.0
+
+# What the pump says about itself. The reference integration polls the Tuya
+# cloud every 3 minutes by default, and in MQTT push mode does not poll at
+# all — it pushes on change — so these horizons are set well clear of a
+# healthy reporting gap rather than tuned to a poll interval.
+#
+# Mode and fault are slow-moving state: an hour without a report is the
+# threshold at which "what the pump last said" stops being evidence about
+# what it is doing now.
+INPUT_MAX_AGE_MINUTES[CONF_HEAT_PUMP_MODE_ENTITY] = 60.0
+#: How long the LAST RECOGNISED mode may keep acting after the entity stopped
+#: being readable. Without a bound this fallback made the horizon above
+#: functionally inert: an unreadable reading fell back to the last good mode,
+#: which restored identical capability with ``mode_observed`` still true, and
+#: nothing ever cleared it. A pump last seen cooling whose mode entity then
+#: died left space heating hard-zeroed and the learners frozen for the life of
+#: the install, recoverable only by clearing the slot or restarting Home
+#: Assistant. ``pump_signals``' own rule says it plainly: "a cooling mode read
+#: six hours ago must not still be freezing the learners".
+#:
+#: Three hours: comfortably longer than the reading's own 60 minute horizon,
+#: so an ordinary poll gap or a brief restart never disturbs a real mode; and
+#: comfortably shorter than the six hours the rule names as too long. Past it
+#: the mode resolves to full capability -- "plan normally", the documented
+#: safe direction -- and a repair issue says the entity has gone quiet.
+MODE_LAST_GOOD_MAX_AGE_MINUTES: Final = 180.0
+INPUT_MAX_AGE_MINUTES[CONF_HEAT_PUMP_FAULT_ENTITY] = 60.0
+# Defrost is an event, not a state: an old defrost flag describes a cycle
+# that finished long ago, and a stuck "on" would read as a pump permanently
+# buying no heat. Matched to the power meter's horizon — it is the same kind
+# of fast signal, read on the same cycle.
+INPUT_MAX_AGE_MINUTES[CONF_HEAT_PUMP_DEFROST_ENTITY] = 30.0
+# Online is a liveness signal, so an old one is worth nothing by definition.
+# Note what this horizon does NOT do: in cloud mode a pump that has dropped
+# off the network still produces a *fresh* online entity saying "off",
+# because that integration keeps polling Tuya successfully and writes the
+# entity on every cycle. The cloud gap is closed by this signal's VALUE, not
+# by its age; the horizon only catches the source integration itself going
+# silent.
+INPUT_MAX_AGE_MINUTES[CONF_HEAT_PUMP_ONLINE_ENTITY] = 30.0
 

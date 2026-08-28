@@ -40,6 +40,7 @@ from .const import (
     CONF_WEATHER_ENTITY,
     CONF_INDOOR_TEMP_ENTITY,
     CONF_OUTDOOR_TEMP_ENTITY,
+    CONF_HEAT_PUMP_DEFROST_ENTITY,
     CONF_HEAT_PUMP_SWITCH_ENTITY,
     CONF_SOLAR_RADIATION_ENTITY,
     CONF_FLOOR_RETURN_TEMP_ENTITY,
@@ -109,6 +110,7 @@ from .const import (
     ECONOMY_ABSOLUTE_FLOOR,
     ECONOMY_MIN_TEMP_WIDENING,
     MODE_ECONOMY,
+    MODE_LAST_GOOD_MAX_AGE_MINUTES,
     OPERATION_MODES,
     MODE_OFF,
     MODE_BOOST,
@@ -297,10 +299,12 @@ from .const import (
     DEFAULT_FREQ_CONTROL_MODE,
 )
 from .inputs import (
+    UNBOUNDED,
     InputHealth,
     InputReader,
     age_of,
     normalize_power_kw,
+    parse_bool,
     stale_summary,
 )
 from .external_heat import (
@@ -322,7 +326,9 @@ from .accuracy import (
     delivered_ratio,
 )
 from .comfort_learning import ComfortLearner, OverrideEvent
-from .defrost import DefrostDerate, in_frost_band
+from .defrost import DefrostDerate, DefrostWindow, in_frost_band
+from . import pump_signals
+from .pump_signals import PumpSignals
 from .manual_plan import (
     CHANNEL_DHW,
     CHANNEL_SPACE,
@@ -657,6 +663,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._async_load_ledger,
             self._async_load_snapshots,
             self._async_setup_peak_guard,
+            self._async_setup_defrost_watch,
             self._async_load_manual_plan,
         ):
             hass.async_create_task(load())
@@ -685,7 +692,19 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._immersion_events: list[str] = []
         # #12: a weeks-scale COP baseline per 3 °C bucket, fed only outside
         # the frost band, and a slow CUSUM on the relative shortfall.
-        self._cop_baseline: dict[int, list[float]] = {}
+        #
+        # v5.3.0: keyed by (bucket, which curve the sample was judged
+        # against), not by bucket alone. ``_cop_reference_curve`` made
+        # ``observed_cop`` curve-dependent — a hot-water interval is measured
+        # against the DHW curve, which the model itself prices 8-20 % below
+        # the space curve at the same outdoor temperature. Feeding both into
+        # one baseline compares two different quantities: the shortfall of a
+        # perfectly healthy pump then reads as the gap between the curves,
+        # the one-sided CUSUM accumulates it, and the owner is told his
+        # compressor has degraded. In the committed ``shoulder`` fixture 38
+        # of 96 steps are space-only and 30 are DHW-only, so this is the
+        # ordinary plan shape rather than an edge case.
+        self._cop_baseline: dict[tuple[int, bool], list[float]] = {}
         self._cop_health_cusum = Cusum(
             threshold=COP_HEALTH_THRESHOLD, drift=COP_HEALTH_DRIFT, side=1
         )
@@ -921,6 +940,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         #: against it so a persistent efficiency shift can still teach.
         self._cop_ratio_ewma: float | None = None
         self._last_measured_cop: float | None = None
+        # Which curve ``_last_measured_cop`` was judged against, and the tank
+        # temperature that curve was evaluated at. Recorded rather than the
+        # modelled *value* on purpose: the accuracy residual is taken at the
+        # settling sample's own outdoor temperature, not at the one the COP
+        # was learned from, and swapping in a stored value would silently
+        # change that for every install. Storing the curve *choice* leaves the
+        # default path expression for expression identical.
+        self._last_cop_curve_dhw: bool = False
+        self._last_cop_dhw_temp: float | None = None
         self._apply_cop_scale(self._cop_scale)
 
         # --- Input health -------------------------------------------------
@@ -1052,6 +1080,36 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # --- Defrost derate (item 14) --------------------------------------
         self._defrost = DefrostDerate()
         self._thermal_params.defrost_derate = self._defrost
+
+        # Defrost on-time for the interval being measured (v5.3.0). Fed by
+        # the per-cycle read AND by a state listener, because the two see
+        # different things — see ``DefrostWindow``.
+        self._defrost_window = DefrostWindow()
+        self._unsub_defrost: Any = None
+
+        # --- Heat pump signals (v5.3.0) ------------------------------------
+        # All four slots are optional and default absent, and absent resolves
+        # to full capability with no freeze — so an install that configures
+        # none of them behaves exactly as v5.1.5 did.
+        self._pump_signals: PumpSignals = PumpSignals()
+        # The last operating mode that was actually recognised, kept so a mode
+        # entity that drops out falls back to what the pump last said rather
+        # than to "it can do everything". None until one is seen.
+        self._pump_mode_last_good = None
+        # When that mode was actually read. The fallback is bounded by it:
+        # see MODE_LAST_GOOD_MAX_AGE_MINUTES for why an unbounded one made
+        # the mode entity's freshness horizon do nothing at all.
+        self._pump_mode_last_good_at: datetime | None = None
+        #: Whether the "your mode entity has gone quiet" notice is raised.
+        self._pump_mode_expired_notice: bool = False
+        # Signature of the "disinfection is blocked by the pump's mode"
+        # notice currently raised, or None when none is. Coarsened to whole
+        # overdue days so a worsening situation updates the text without
+        # re-raising the issue every cycle.
+        self._legionella_mode_block_notice: int | None = None
+        #: Whether the "flue probe has gone quiet" warning has been logged
+        #: for the current outage. Cleared when the probe reports again.
+        self._external_probe_stale_warned: bool = False
 
         # --- Energy dashboard statistics (item 15) -------------------------
         # Monotonic accumulators, so Home Assistant's Energy dashboard can pick
@@ -1806,7 +1864,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if isinstance(raw_baseline, dict):
             for key, entry in raw_baseline.items():
                 try:
-                    self._cop_baseline[int(key)] = [
+                    # "4" is a pre-v5.3.0 space-curve bucket and is kept as
+                    # one; "4:dhw" is the hot-water curve's own baseline.
+                    text = str(key)
+                    is_dhw = text.endswith(":dhw")
+                    bucket = int(text[:-4] if is_dhw else text)
+                    self._cop_baseline[(bucket, is_dhw)] = [
                         float(entry[0]),
                         int(entry[1]),
                     ]
@@ -1923,8 +1986,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             "cop_samples": self._cop_samples,
             # v4.0.0 T4a — the detectors' memory, all additive keys.
             "vent_cusum": self._vent_cusum.as_dict(),
+            # A space-curve bucket keeps its pre-v5.3.0 key ("4"), so an
+            # older store loads unchanged and a downgrade still reads it; a
+            # DHW-curve bucket rides alongside under "4:dhw". Additive, and
+            # nothing is discarded on upgrade.
             "cop_baseline": {
-                str(k): [round(v[0], 4), int(v[1])]
+                (f"{k[0]}:dhw" if k[1] else str(k[0])): [
+                    round(v[0], 4),
+                    int(v[1]),
+                ]
                 for k, v in self._cop_baseline.items()
             },
             "cop_health_cusum": self._cop_health_cusum.as_dict(),
@@ -2241,18 +2311,56 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     # Measured power, COP learning and external heat detection
     # ------------------------------------------------------------------
 
+    def _commanded_split(self) -> tuple[float, float]:
+        """The plan's (space, hot water) allocation as the pump can serve it.
+
+        The split the plan wrote, with any channel the *observed* operating
+        mode cannot deliver zeroed. A pump switched to ``heat`` will not make
+        hot water however much the plan allocated to it, and the meter will
+        never show that kilowatt; leaving it in the commanded figure books the
+        difference as the pump failing to track its plan.
+
+        The window this matters in is real but bounded: the mode gate stops
+        the *next* solve from allocating a channel the pump cannot serve, so
+        what is corrected here is every interval between the mode changing on
+        the pump and the plan catching up. That is exactly the interval whose
+        measurement is least like the others and most likely to be believed.
+
+        Gated on ``mode_observed``, not on the capability flags: with no mode
+        entity the capability is the full-capability fallback and both
+        channels pass through untouched, so an install without one is
+        bit-identical to v5.1.5.
+        """
+        action = self._current_action
+        space = float(action.get("power", 0.0))
+        dhw = float(action.get("dhw_power", 0.0))
+        signals = self._pump_signals
+        if signals.mode_observed:
+            if not signals.mode.space_heat:
+                space = 0.0
+            if not signals.mode.dhw:
+                dhw = 0.0
+        return space, dhw
+
     def _commanded_power(self) -> float:
         """Total electrical draw the plan is asking of the heat pump, kW.
 
         ``current_action["power"]`` is the *space heating* allocation and
-        ``dhw_power`` is the hot water one; the compressor serves them one at a
-        time but a meter sees only their sum. Comparing the space figure alone
-        against a measured total makes a planned hot-water charge look like the
-        pump drawing power it was never asked for — which reads as an external
-        heat source, as a collapsed COP, and as a defrost derate, all at once.
+        ``dhw_power`` is the hot water one; a meter sees only their sum.
+        Comparing the space figure alone against a measured total makes a
+        planned hot-water charge look like the pump drawing power it was never
+        asked for — which reads as an external heat source, as a collapsed
+        COP, and as a defrost derate, all at once.
+
+        The sum is right whether or not the compressor serves the two duties
+        concurrently — and on this hardware ``HEATDHW`` and ``COOLDHW`` do run
+        both at once, which the comment here used to deny (see
+        ``pump_mode.ModeCapability.concurrent``). What the sum is *not* right
+        about is a channel the pump is not serving at all, which is what
+        ``_commanded_split`` removes.
         """
-        action = self._current_action
-        return float(action.get("power", 0.0)) + float(action.get("dhw_power", 0.0))
+        space, dhw = self._commanded_split()
+        return space + dhw
 
     def _interval_space_power(self) -> float | None:
         """Electrical power that actually heated the house last interval, kW.
@@ -2268,13 +2376,33 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         (`read_power_kw`'s ok=False contract) or contaminated. Without any
         power entity there is no measurement to prefer and the commanded
         figure remains the only available estimate, as before.
+
+        v5.3.0 fixes a silent under-report here. The subtraction removes *the
+        plan's* hot-water allocation from the measured total, on the premise
+        that the plan describes what the pump is doing. When the pump is
+        actually in ``heat`` that premise is false: no hot water was made, the
+        meter reading is all space heating, and subtracting a phantom DHW
+        share hands the house heat-loss learner a space figure that is too low
+        by exactly the allocation — every interval, in the same direction, for
+        as long as the mismatch lasts. A biased-low input to a learner that
+        persists what it concludes is the failure class this whole guard
+        exists for. ``_commanded_split`` now zeroes the channel the observed
+        mode cannot serve, so the subtraction removes only hot water that
+        could actually have been made.
         """
-        commanded_space = float(self._current_action.get("power", 0.0))
+        commanded_space, dhw_share = self._commanded_split()
         if not self._config.get(CONF_POWER_ENTITY):
             return commanded_space
         if self._measured_power is None or self._immersion_active:
             return None
-        dhw_share = float(self._current_action.get("dhw_power", 0.0))
+        if self._pump_signals.mode_observed and not self._pump_signals.space_heat:
+            # v5.3.0: the pump is in a mode that heats no rooms, so whatever
+            # the meter is reading went somewhere else — hot water, or the
+            # cooling circuit. There is no space figure to extract, and
+            # returning zero would be a *confident* claim that the house got
+            # nothing, which the house heat-loss learner would then replay as
+            # thermal behaviour. Skip the sample instead.
+            return None
         # The subtraction only splits the meter correctly while the pump is
         # plausibly running the plan: a deferred DHW start, or a
         # controller-initiated boost the plan never commanded, lands the
@@ -2347,27 +2475,80 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             return None
         return thermal_kw / capacity
 
-    def _external_heat_override(self) -> bool | None:
-        """State of a user-provided stove/flue entity, if one is configured."""
-        entity_id = self._config.get(CONF_EXTERNAL_HEAT_ENTITY)
-        if not entity_id:
+    def _external_heat_override(self, reader: InputReader) -> bool | None:
+        """State of a user-provided stove/flue entity, if one is configured.
+
+        v5.3.0: read through the same guarded reader as the wood-side probes
+        beside it, rather than straight out of ``hass.states``. The override
+        is the strongest single input in the integration: while it says "yes"
+        the detector suppresses and the optimizer stops planning heat it
+        believes the fire is supplying, and while it says "no" it overrules
+        the inference outright.
+
+        **The freshness horizon applies to numbers only, and that asymmetry is
+        the whole point.** The argument for ageing this input out is an
+        argument about a *measurement*: a flue probe with a flat battery
+        stuck at 400 °C looks like an indefinite free fire, which is the
+        expensive failure direction, and it is the same failure the
+        neighbouring wood probes have been gated against since v3.x. A probe
+        re-reports every poll, so its age is real evidence about whether
+        anything is still watching the flue.
+
+        None of that holds for a flag. This slot is offered as
+        ``binary_sensor``/``switch``/``input_boolean``/``sensor``, and the two
+        the documentation recommends first are helpers that are written
+        *only when they change*: an ``input_boolean``, or a template
+        ``binary_sensor`` fed by one, has ``last_reported`` equal to the
+        moment the user last flipped it and never moves again. Ageing that
+        out does not catch a broken sensor; it discards a deliberate setting
+        an hour after it was made, in both directions at once — the "yes"
+        that suppresses and the "no" that overrules the detector alike — for
+        a household that may well leave the switch on for a fortnight of
+        wood-burning. So a flag is read with no horizon, exactly as it was
+        before v5.3.0.
+
+        The boolean vocabulary is shared (``inputs.parse_bool``); the numeric
+        rule is NOT, and numbers are therefore tested FIRST. A flue
+        temperature above 30 °C means a fire is burning, which is a heuristic
+        about this one sensor. The shared rule reads any non-zero number as
+        "yes" — right for a fault code, and quite wrong for a probe reading
+        20 °C in a cold room — so it must never see a number here.
+        """
+        # A numeric read applies the horizon from INPUT_MAX_AGE_MINUTES and
+        # rejects a word as ``not_numeric``, so this one call both classifies
+        # the entity and gates the probe case.
+        probe = reader.read(CONF_EXTERNAL_HEAT_ENTITY)
+        if probe.ok and probe.value is not None:
+            self._external_probe_stale_warned = False
+            return probe.value > 30.0
+        if probe.stale:
+            # Warned once per outage, not once per cycle: a probe that has
+            # gone quiet stays quiet, and a line every five minutes for days
+            # is how a log stops being read. Re-armed when it reports again.
+            if not self._external_probe_stale_warned:
+                self._external_probe_stale_warned = True
+                _LOGGER.warning(
+                    "External heat override %s has not reported for %.0f min "
+                    "(limit %.0f); ignoring it until it does. A flue probe "
+                    "that stops reporting would otherwise hold heating back "
+                    "forever",
+                    probe.entity_id,
+                    probe.age_minutes if probe.age_minutes is not None else -1.0,
+                    probe.max_age_minutes
+                    if probe.max_age_minutes is not None
+                    else -1.0,
+                )
             return None
-        state = self.hass.states.get(entity_id)
-        if state is None:
+        self._external_probe_stale_warned = False
+        if probe.problem != "not_numeric":
+            # not_configured, missing_entity or unavailable: nothing to read.
             return None
-        raw = str(getattr(state, "state", "")).lower()
-        if raw in ("unknown", "unavailable", ""):
+        reading = reader.read_state(
+            CONF_EXTERNAL_HEAT_ENTITY, max_age_minutes=UNBOUNDED
+        )
+        if not reading.ok or reading.text is None:
             return None
-        if raw in ("on", "true", "home", "open", "heat", "detected"):
-            return True
-        if raw in ("off", "false", "not_home", "closed", "clear"):
-            return False
-        # A numeric entity (a flue temperature, say) counts as active when it
-        # reads above freezing-ish; anything else is not interpretable.
-        try:
-            return float(raw) > 30.0
-        except ValueError:
-            return None
+        return parse_bool(reading.text)
 
     def _space_demand_kw(self) -> float:
         """Current space-heating standing loss, kW thermal."""
@@ -2412,7 +2593,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             measured_power_kw=self._measured_power,
             dhw_max_rise_c_per_h=self._max_pump_rise("dhw"),
             buffer_max_rise_c_per_h=self._max_pump_rise("buffer"),
-            override=self._external_heat_override(),
+            override=self._external_heat_override(reader),
             outlet_temp=outlet.value if outlet.ok else None,
             wood_top=wood_top.value if wood_top.ok else None,
             wood_bottom=wood_bottom.value if wood_bottom.ok else None,
@@ -2448,6 +2629,67 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         arr = np.asarray(forecast, dtype=float)
         return arr if bool(np.any(arr > 0.0)) else None
 
+    #: How lopsided the commanded split has to be before one curve owns the
+    #: interval. Below it the other channel is a rounding error; between the
+    #: two the interval belongs to neither and is dropped.
+    _COP_CURVE_SHARE = 0.15
+
+    def _cop_reference_curve(self) -> tuple[float | None, bool, float | None]:
+        """The modelled COP this interval should be judged against, or None.
+
+        Returns ``(cop, dhw_curve, dhw_tank_temp)``. The choice is *returned*
+        rather than stored on the instance: several of
+        ``_learn_measured_cop``'s guards sit between this call and the point
+        where ``_last_measured_cop`` is written, so a method that recorded
+        the choice as a side effect re-pointed the residual's reference on
+        every cycle that then declined to produce a COP at all — including
+        the blended-interval branch below, which in ``HEATDHW`` with an even
+        split is *every* cycle on the hardware this release targets. The
+        stored COP would then be subtracted from a curve it was never
+        referenced to. ``_learn_measured_cop`` writes all three together.
+
+        v5.3.0. ``_learn_measured_cop`` used to compare every interval against
+        ``compute_cop`` — the SPACE curve — including intervals the pump spent
+        making hot water. Hot water runs 55-65 °C flow against 35-45 °C for
+        space heating, and the model prices that at roughly 16 % lower COP at a
+        55 °C setpoint. So a perfectly healthy pump doing exactly what the plan
+        asked looked ~16 % less efficient than modelled, every hot-water
+        interval, in the same direction.
+
+        Three things consume the result and all three were wrong for those
+        intervals: the reported ``measured_cop``, the capacity envelope, and —
+        the one that bites — ``_observe_cop_health``, the weeks-scale
+        degradation watch whose whole job is to notice a *persistent* shortfall
+        against its own baseline. A DHW-heavy household fed it a persistent
+        shortfall by construction.
+
+        The choice is made from the commanded split as the pump can actually
+        serve it (``_commanded_split``), and only when the mode was observed:
+        without a mode entity the split may be a plan-side fiction, and every
+        install without one must stay bit-identical to v5.1.5.
+
+        Returns ``None`` when the interval is a genuine blend — the ``HEATDHW``
+        and ``COOLDHW`` modes really do run both duties at once, so this is not
+        hypothetical on the hardware this release targets — because one ratio
+        cannot be attributed to two curves.
+        """
+        outdoor = self._current_state.outdoor_temperature
+        space_curve = self._thermal_model.compute_cop(outdoor)
+        space_ref = (space_curve, False, None)
+        if not self._pump_signals.mode_observed:
+            return space_ref
+        space, dhw = self._commanded_split()
+        total = space + dhw
+        if total <= 1e-6:
+            return space_ref
+        dhw_share = dhw / total
+        if dhw_share <= self._COP_CURVE_SHARE:
+            return space_ref
+        if dhw_share >= 1.0 - self._COP_CURVE_SHARE:
+            tank = float(self._current_state.dhw_temperature)
+            return self._thermal_model.compute_cop_dhw(outdoor, tank), True, tank
+        return None, False, None
+
     def _learn_measured_cop(self) -> None:
         """Compare measured electrical input with modelled thermal output.
 
@@ -2475,8 +2717,25 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # In the frosting band the shortfall belongs to the defrost derate,
         # which learns from the same signal; letting both learners fold in the
         # same interval corrects one shortfall twice. See defrost.in_frost_band.
+        #
+        # v5.3.0 narrows this from the whole band to the intervals that
+        # actually contain a defrost. The disjointness argument only ever
+        # justified excluding intervals the derate learns from — but without a
+        # flag there was no way to tell which those were, so the exclusion had
+        # to cover 0-5 °C entirely. In a Swedish shoulder season that is a
+        # large share of all heating hours, and ``cop_scale`` multiplies every
+        # cost the integration reports: the one learner whose error is in
+        # every number was blind in the conditions it spends most of its life
+        # in. With a real flag the attribution stays disjoint at much finer
+        # grain — a defrosting interval is still the derate's alone.
+        #
+        # ``observed`` is what keeps this honest. No flag, an unreadable flag,
+        # or a flag past its horizon all fall back to the whole-band
+        # exclusion, so nothing changes for an install without one.
         if in_frost_band(self._current_state.outdoor_temperature):
-            return
+            window = self._defrost_window.peek(dt_util.now())
+            if not window.observed or window.any_defrost:
+                return
 
         # #11: a resistive kW in the reading is not the compressor being
         # inefficient, it is a different appliance on the same meter.
@@ -2516,9 +2775,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             )
             return
 
-        modelled_cop = self._thermal_model.compute_cop(
-            self._current_state.outdoor_temperature
-        )
+        modelled_cop, cop_curve_dhw, cop_dhw_temp = self._cop_reference_curve()
+        if modelled_cop is None:
+            # A genuinely blended interval: the pump ran both duties at once
+            # and neither dominates, so the one ratio this method produces
+            # cannot be attributed to either curve. Skipping is the honest
+            # answer; guessing would put a DHW-shaped error into the space
+            # multiplier every plan's cost runs through.
+            return
         if modelled_cop <= 0.1:
             return
 
@@ -2528,7 +2792,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         observed_cop = modelled_cop * commanded / self._measured_power
         if not np.isfinite(observed_cop) or observed_cop <= 0.1:
             return
+        # The COP and the curve it was judged against are written together,
+        # and only here. Every guard above returns without touching either,
+        # so the pair the accuracy residual reads can never be mismatched.
         self._last_measured_cop = round(float(observed_cop), 2)
+        self._last_cop_curve_dhw = cop_curve_dhw
+        self._last_cop_dhw_temp = cop_dhw_temp
 
         # ``cop_scale`` multiplies the *nameplate* curve, and ``modelled_cop``
         # already has the current scale folded in. So the new absolute scale is
@@ -2562,7 +2831,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # #12: the same vetted sample feeds the weeks-scale health watch —
         # this path is already guarded against frost, immersion, freezes
         # and low duty, so the baseline inherits every filter for free.
-        self._observe_cop_health(float(observed_cop))
+        self._observe_cop_health(float(observed_cop), cop_curve_dhw)
         # #17 (gated): and the capacity envelope, for the same reason.
         self._fold_capacity_envelope(float(observed_cop))
 
@@ -3545,6 +3814,116 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             return None
         return round(params.dhw_legionella_interval_days * 24.0 - since, 1)
 
+    def _check_pump_mode_expired(self) -> None:
+        """Say so when the mode entity has gone quiet long enough to stop acting.
+
+        The expiry itself is the safety fix -- an unbounded ``last_good`` left
+        a dead mode entity suppressing a channel for the life of the install.
+        But expiring silently trades one invisible state for another: the
+        integration would go back to planning heat while the pump may well
+        still be in the mode it was last seen in. This is the half the user
+        can act on, by fixing or clearing the entity.
+        """
+        expired = (
+            self._pump_signals.mode_source == pump_signals.MODE_SOURCE_EXPIRED
+        )
+        if expired == self._pump_mode_expired_notice:
+            return
+        self._pump_mode_expired_notice = expired
+        if not expired:
+            try:
+                ir.async_delete_issue(self.hass, DOMAIN, "pump_mode_unreadable")
+            except Exception as err:  # noqa: BLE001 - clearing is best-effort
+                _LOGGER.debug("Could not clear the mode notice: %s", err)
+            return
+        _LOGGER.warning(
+            "The heat pump's operating mode entity has been unreadable for "
+            "over %.0f min; the mode it last reported (%s) has stopped "
+            "acting and the plan is back to assuming full capability",
+            MODE_LAST_GOOD_MAX_AGE_MINUTES,
+            self._pump_mode_last_good.label
+            if self._pump_mode_last_good is not None
+            else "unknown",
+        )
+        ir.async_create_issue(
+            self.hass,
+            DOMAIN,
+            "pump_mode_unreadable",
+            is_fixable=False,
+            # Derived from the live reading, so it is re-raised for as long
+            # as the entity stays unreadable and clears the moment it returns.
+            severity=ir.IssueSeverity.WARNING,
+            translation_key="pump_mode_unreadable",
+            translation_placeholders={
+                "hours": f"{MODE_LAST_GOOD_MAX_AGE_MINUTES / 60.0:.0f}",
+                "mode": (
+                    self._pump_mode_last_good.label
+                    if self._pump_mode_last_good is not None
+                    else "unknown"
+                ),
+            },
+        )
+
+    def _check_legionella_mode_block(self, dhw_blocked: bool) -> None:
+        """Say so when a mode block is holding disinfection past its deadline.
+
+        A hot-water channel the pump's mode has blocked is hard-zeroed for
+        the whole horizon, so the anti-legionella cycle simply never gets
+        placed: ``dhw_legionella_due_in_hours`` goes negative in an attribute
+        and nothing else happens. A pump left in a heating-only mode for a
+        fortnight therefore stops disinfecting the tank silently, which is
+        the same failure ``dhw_legionella_unreachable`` exists to prevent,
+        arriving by a different route — the cycle is not falling short of
+        temperature, it is not being scheduled at all.
+
+        Only ever a notice: the mode block is never released, here or
+        anywhere else. Putting hot water back into the plan would promise
+        water the hardware refuses to heat.
+        """
+        params = self._thermal_params
+        due = self._dhw_legionella_due_in_hours()
+        overdue_days: int | None = None
+        if (
+            dhw_blocked
+            and bool(params.dhw_enabled)
+            and bool(params.dhw_legionella_enabled)
+            and due is not None
+            and due < 0.0
+        ):
+            overdue_days = max(1, int(-due // 24.0) + 1)
+        if overdue_days == self._legionella_mode_block_notice:
+            return
+        self._legionella_mode_block_notice = overdue_days
+        if overdue_days is None:
+            try:
+                ir.async_delete_issue(
+                    self.hass, DOMAIN, "dhw_legionella_mode_blocked"
+                )
+            except Exception as err:  # noqa: BLE001 - clearing is best-effort
+                _LOGGER.debug(
+                    "Could not clear legionella mode-block notice: %s", err
+                )
+            return
+        _LOGGER.warning(
+            "The anti-legionella cycle has been due for %d day(s) but the "
+            "heat pump's mode makes no hot water, so it cannot be planned",
+            overdue_days,
+        )
+        ir.async_create_issue(
+            self.hass,
+            DOMAIN,
+            "dhw_legionella_mode_blocked",
+            is_fixable=False,
+            # Not persistent: it is derived from the live mode reading, so it
+            # is re-raised on the next cycle for as long as the mode stands.
+            severity=ir.IssueSeverity.WARNING,
+            translation_key="dhw_legionella_mode_blocked",
+            translation_placeholders={
+                "overdue_days": f"{overdue_days:d}",
+                "interval_days": f"{float(params.dhw_legionella_interval_days):.0f}",
+            },
+        )
+
     def _dhw_current_hour(self) -> float:
         now = dt_util.now()
         return now.hour + now.minute / 60.0
@@ -4152,6 +4531,30 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             margins = self._confidence_margins(len(horizon.prices))
             mold_floors = self._mold_floor_series(horizon.outdoor_temps)
             external_heat = self._external_heat_forecast(len(horizon.prices))
+            # The mode gate, read on the event loop with everything else the
+            # lambda closes over. A suppressed channel's comfort floor is
+            # deliberately left UNMET rather than quietly relaxed: the plan
+            # then shows the shortfall and labels the slots ``pump_mode``, so
+            # the user can see that the mode selection is costing them
+            # comfort. Silently widening the band would hide the one fact
+            # worth surfacing.
+            mode_blocked_space = self._pump_signals.space_blocked
+            mode_blocked_dhw = self._pump_signals.dhw_blocked
+            if mode_blocked_space or mode_blocked_dhw:
+                _LOGGER.info(
+                    "Heat pump reports mode %s: planning without %s for this "
+                    "horizon",
+                    self._pump_signals.mode.label,
+                    " and ".join(
+                        name
+                        for name, blocked in (
+                            ("space heating", mode_blocked_space),
+                            ("hot water", mode_blocked_dhw),
+                        )
+                        if blocked
+                    ),
+                )
+            self._check_legionella_mode_block(mode_blocked_dhw)
             # Taken here, after every pre-solve mutation above, so the copies
             # carry all of them into the executor thread.
             solve_state, solve_optimizer = self._solve_snapshot()
@@ -4183,6 +4586,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     ),
                     min_temp_margins=margins,
                     min_temp_floors=mold_floors,
+                    # v5.3.0: never promise heat the pump's current mode
+                    # cannot deliver — symmetrically. A cooling or hot-water
+                    # mode suppresses space slots; a heating-only mode
+                    # suppresses hot-water slots. Both default False and the
+                    # capability defaults to "can do everything", so an
+                    # install with no mode entity plans exactly as before.
+                    space_blocked=mode_blocked_space,
+                    dhw_blocked=mode_blocked_dhw,
                 )
             )
 
@@ -4403,6 +4814,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if self._unsub_peak_guard:
             self._unsub_peak_guard()
             self._unsub_peak_guard = None
+        if self._unsub_defrost:
+            self._unsub_defrost()
+            self._unsub_defrost = None
 
     async def _update_current_state(self) -> None:
         """Update current thermal state from HA entities.
@@ -4558,6 +4972,33 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             # simulates a tank the parameters no longer model.
             self._current_state.wood_tank_temperature = None
 
+        # The four heat-pump signals (v5.3.0). Read through the same reader
+        # as everything else, so all four appear in this cycle's health with
+        # their entity id and problem — a mode entity nobody can read is
+        # *visible* in the diagnostics, it just does not act. Read before the
+        # health snapshot is published because every learner below consults
+        # ``_learning_frozen``, which now consults these.
+        _mode_now = dt_util.now()
+        _last_good_age = (
+            (_mode_now - self._pump_mode_last_good_at).total_seconds() / 60.0
+            if self._pump_mode_last_good_at is not None
+            else None
+        )
+        self._pump_signals = pump_signals.read(
+            reader,
+            last_good=self._pump_mode_last_good,
+            last_good_age_minutes=_last_good_age,
+        )
+        if self._pump_signals.mode_source == pump_signals.MODE_SOURCE_LIVE:
+            self._pump_mode_last_good = self._pump_signals.mode
+            self._pump_mode_last_good_at = _mode_now
+        self._check_pump_mode_expired()
+        # The flag's level, once per cycle. Complements the listener, which
+        # only ever sees transitions.
+        self._defrost_window.observe(
+            dt_util.now(), self._pump_signals.defrosting
+        )
+
         # The health snapshot has to be complete before any learner runs, since
         # each one consults it to decide whether to freeze.
         self._input_health = reader.health
@@ -4653,6 +5094,25 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         """
         if self._external_heat_active:
             return "external_heat_source"
+        # v5.3.0: the plant-wide freezes, from the heat pump's own signals.
+        #
+        # These have a shape the loop below cannot express, which is why they
+        # are not folded into it. That loop asks "is the reading the caller
+        # named unusable" — it freezes on the *absence* of a measurement. The
+        # three conditions here freeze on the *presence* of one: the online
+        # flag says False, the fault flag says True, the mode says cooling.
+        # Every one of them is a perfectly healthy, perfectly fresh reading
+        # that happens to be bad news, and every one of them makes the whole
+        # interval misleading rather than one sensor unreadable — so they are
+        # not scoped to the caller's keys either. See ``pump_signals.py`` for
+        # why the absence of these signals never freezes anything.
+        #
+        # Ahead of the key loop because they are the root cause when both
+        # fire: a pump that has dropped off the network explains its own
+        # sensors going quiet, and reporting the symptom would send a user
+        # looking at the wrong thing.
+        if self._pump_signals.freeze_reason is not None:
+            return self._pump_signals.freeze_reason
         # An unusable input outranks ventilation deliberately: the heat-loss
         # learner treats "ventilation" as a pass-through to keep feeding
         # the detector, and a flatline fed through that pass would
@@ -5780,8 +6240,30 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         heat_pump_on = bool(self._current_action.get("heat_pump_on", False))
 
         # 1) Toggle heat pump supply (ON/OFF)
+        #
+        # v5.3.0: a mode block suppresses PLANNING, never actuation, and this
+        # is the line where the difference matters. A block hard-zeroes its
+        # channel, so a mode that blocks both — ``cool``, which is the whole
+        # point of a cooling mode — leaves every step with
+        # ``heat_pump_on=False`` and this call would cut the supply to a unit
+        # the owner deliberately set to cool, every cycle, defeating the
+        # cooling he asked for. Before this release the same install left the
+        # switch alone. The feature's own promise is that it is read-only, and
+        # an owner will reasonably read that as "configuring the mode entity
+        # cannot make things worse".
+        #
+        # So while a block is in force this never commands OFF. Turning the
+        # supply ON is still allowed: that is the plan asking for something
+        # the pump can actually deliver on its unblocked channel, and it is
+        # not a decision the block has any claim over. When BOTH channels are
+        # blocked there is genuinely nothing to command, and the correct
+        # action is to command nothing — the pump is left exactly as the
+        # owner's mode selection left it.
+        mode_blocked = (
+            self._pump_signals.space_blocked or self._pump_signals.dhw_blocked
+        )
         switch_entity = self._config.get(CONF_HEAT_PUMP_SWITCH_ENTITY)
-        if switch_entity:
+        if switch_entity and not (mode_blocked and not heat_pump_on):
             try:
                 await self.hass.services.async_call(
                     "switch",
@@ -5791,6 +6273,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 )
             except Exception as err:
                 _LOGGER.error("Error toggling heat pump switch: %s", err)
+        elif switch_entity:
+            _LOGGER.debug(
+                "Not switching %s off: the pump's mode (%s) is suppressing a "
+                "channel, so an empty plan is this integration's doing rather "
+                "than a decision to stop the pump",
+                switch_entity,
+                self._pump_signals.mode.label,
+            )
 
         # 2) Publish ECL110 displace command
         await self.async_publish_current_action(reason="scheduled_update")
@@ -5920,11 +6410,26 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 self._current_state.outdoor_temperature, self._current_humidity()
             ),
             "defrost_samples": self._defrost.total_samples,
+            # v5.3.0: how much of the derate rests on counted defrost time
+            # rather than on the power-ratio inference, and — because a duty
+            # counted from three-minute cloud polls misses short defrosts and
+            # is therefore biased LOW — whether this install can measure it at
+            # full resolution at all.
+            "defrost_measured_samples": self._defrost.measured_samples,
+            "defrost_flag_configured": bool(
+                self._config.get(CONF_HEAT_PUMP_DEFROST_ENTITY)
+            ),
+            "defrost_store_migrated": self._defrost.migrated,
             "defrost_buckets": self._defrost.summary(),
             "comfort_weight": self._opt_config.comfort_weight,
             "comfort_learning": self._comfort_learner.summary(),
             "system_identification": self._sysid.as_dict(),
             "accuracy": self._accuracy.summary(),
+            # v5.3.0: the four heat-pump signals, resolved. Published
+            # unconditionally — an install with none of them configured shows
+            # "Unknown"/absent, which is itself the answer to "why is nothing
+            # being suppressed".
+            "heat_pump_signals": self._pump_signals.as_dict(),
             # T4a: the detectors and the insurance, all additive.
             "ventilation_active": self._vent_cusum.tripped,
             "ventilation_evidence": list(self._vent_cusum.evidence),
@@ -6758,6 +7263,49 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     # Live peak guard (#7), fuse (#3/#5) and outage recovery (#22) — T2
     # ==================================================================
 
+    async def _async_setup_defrost_watch(self) -> None:
+        """Follow the defrost flag's transitions, when one is configured.
+
+        Registration is conditional on the slot being filled, so an install
+        without a defrost sensor carries no listener at all — the same
+        discipline as the peak guard above.
+
+        The listener is not an optimisation. Home Assistant fires no
+        state-change event when a value is rewritten unchanged, so the
+        per-cycle read is what supplies the flag's *level*; and a defrost runs
+        for minutes inside an interval of thirty, so the per-cycle read alone
+        would sample the flag at one instant and settle a real defrost as a
+        confident duty of zero. Each source sees what the other cannot.
+        """
+        entity = self._config.get(CONF_HEAT_PUMP_DEFROST_ENTITY)
+        if not entity:
+            return
+        self._unsub_defrost = async_track_state_change_event(
+            self.hass, [entity], self._on_defrost_event
+        )
+        _LOGGER.info("Defrost duty measured from %s", entity)
+
+    @callback
+    def _on_defrost_event(self, event) -> None:
+        """One defrost flag transition: accrue on-time. Arithmetic only.
+
+        ``@callback`` for the same reason as ``_on_power_event``: without it
+        the helper dispatches to an executor thread and the window's
+        accumulators race the update loop.
+
+        Deliberately NOT freshness-guarded. A transition is a report by
+        definition — it arrived, so it is current — and applying the reader's
+        horizon to an event that has just fired would be nonsense. The
+        horizon's job is to expire the per-cycle *level*, which is the reading
+        that can go quietly out of date.
+        """
+        new_state = getattr(event, "data", {}).get("new_state")
+        raw = getattr(new_state, "state", None) if new_state is not None else None
+        flag = None
+        if raw is not None and str(raw).lower() not in ("unknown", "unavailable"):
+            flag = parse_bool(raw)
+        self._defrost_window.observe(dt_util.now(), flag)
+
     async def _async_setup_peak_guard(self) -> None:
         """Register the meter listener — only when the guard is switched on.
 
@@ -7005,6 +7553,21 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             (a for a in FUSE_LADDER_A if a < amps), default=None
         )
         if smaller is None:
+            return
+        # v5.3.0: a month in which the pump's mode stopped it heating is not
+        # evidence about how many amperes the house needs. Passing the block
+        # into the shadow solve above makes the comparison honest, but an
+        # honest comparison of two crippled plans still answers the wrong
+        # question -- "would a smaller fuse do" is about the house's real
+        # demand, and while a channel is blocked the plan is not showing it.
+        # The last real verdict, if there is one, stays published untouched.
+        if self._pump_signals.space_blocked or self._pump_signals.dhw_blocked:
+            _LOGGER.debug(
+                "Skipping the fuse advisor: the heat pump's mode (%s) is "
+                "suppressing a channel, so this horizon is not evidence "
+                "about the house's demand",
+                self._pump_signals.mode.label,
+            )
             return
         now = dt_util.now()
         if (
@@ -7549,17 +8112,28 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             np.clip(g, 0.0, INTERNAL_GAINS_MAX_FACTOR * max(g0, 0.05))
         )
 
-    def _observe_cop_health(self, observed_cop: float) -> None:
+    def _observe_cop_health(
+        self, observed_cop: float, dhw_curve: bool = False
+    ) -> None:
         """#12: the weeks-scale compressor-health watch.
 
-        Baseline per 3 °C outdoor bucket, fed only from the frost-band-
-        and immersion-guarded samples `_learn_measured_cop` already
-        vetted. The shortfall is judged BEFORE the observation joins the
-        baseline, or a slow decline would drag its own reference down and
+        Baseline per (3 °C outdoor bucket, reference curve), fed only from
+        the frost-band- and immersion-guarded samples `_learn_measured_cop`
+        already vetted. The shortfall is judged BEFORE the observation joins
+        the baseline, or a slow decline would drag its own reference down and
         never trip.
+
+        ``dhw_curve`` says which curve produced ``observed_cop``, and a
+        sample is only ever compared against a baseline built from the same
+        curve. Without it the watch compares a hot-water COP against a
+        space-heating reference and reads the 8-20 % the model itself puts
+        between them as a failing compressor — a fabricated fault report
+        about expensive hardware, raised within hours on an ordinary plan.
+        It defaults to False, which is what every install without a mode
+        entity produces and is the pre-v5.3.0 behaviour exactly.
         """
         outdoor = float(self._current_state.outdoor_temperature)
-        bucket = int(np.floor(outdoor / 3.0))
+        bucket = (int(np.floor(outdoor / 3.0)), bool(dhw_curve))
         entry = self._cop_baseline.get(bucket)
         if entry is None:
             self._cop_baseline[bucket] = [float(observed_cop), 1]
@@ -8129,10 +8703,60 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             return None
         return value if 0.0 <= value <= 100.0 else None
 
+    def _settle_defrost(self, sample: AccuracySample, window: Any) -> None:
+        """Teach the derate from the interval that has just been settled.
+
+        With a legible flag the derate learns from **measured duty**, in every
+        temperature bucket rather than only in the frosting band: defrosts
+        happen below 0 °C too, and a bucket that measures a duty of zero is
+        learning something real — that it does not need a derate.
+
+        Without one it falls back to the pre-v5.3.0 inference from
+        ``delivered_ratio``, restricted to the frosting band as before, so
+        that an install with no defrost sensor behaves exactly as it did.
+
+        The two never both fold the same interval. That is not tidiness: they
+        estimate the same quantity from different evidence, and averaging a
+        measurement with an inference of it produces a number that is neither
+        — the more so here, where the inference is known to be biased
+        optimistic and structurally blind to the very event it is standing in
+        for (see ``defrost.py``).
+        """
+        outdoor = sample.outdoor_temp
+        if outdoor is None:
+            return
+        if window.observed:
+            # A window far from the expected interval length is a restart, a
+            # long stall or a reload, not a measurement: the denominator would
+            # be meaningless and a duty computed from it would be too.
+            interval_s = (
+                _as_float(
+                    self._config.get(CONF_OPTIMIZATION_INTERVAL),
+                    DEFAULT_OPTIMIZATION_INTERVAL,
+                )
+                * 60.0
+            )
+            if 0.25 * interval_s <= window.seconds <= 3.0 * interval_s:
+                self._defrost.observe_duty(
+                    outdoor, sample.humidity, window.duty, window.events
+                )
+            return
+        ratio = delivered_ratio(sample)
+        if ratio is not None and in_frost_band(outdoor):
+            self._defrost.observe(outdoor, sample.humidity, ratio)
+
     def _record_accuracy(self) -> None:
         """Close the loop on the prediction made at the previous interval."""
         pending = self._pending_prediction
         now = dt_util.now()
+
+        # The defrost measurement window is closed on EVERY cycle, before
+        # anything can return early. It is a measurement of wall-clock time,
+        # not a learner: leaving it open through a freeze, or through a cycle
+        # with no prediction to settle, would let it accumulate across hours
+        # and then report that span's duty as if it were one interval's.
+        # Whether the derate is allowed to *learn* from it is decided below.
+        defrost_window = self._defrost_window.close(now)
 
         # T6 #55: every cycle is one power sample for the start counter,
         # whether or not a prediction pair settles this time.
@@ -8206,18 +8830,41 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     and sample.outdoor_temp is not None
                 ):
                     try:
+                        # v5.3.0: subtract the curve the observation was
+                        # actually referenced to. Recomputing the space curve
+                        # for a hot-water interval would put back exactly the
+                        # mismatch ``_cop_reference_curve`` removes — the
+                        # residual would show ~16 % and nothing would be wrong
+                        # with the pump. Without a mode entity the flag is
+                        # never set and this is the v5.1.5 expression.
+                        if (
+                            self._last_cop_curve_dhw
+                            and self._last_cop_dhw_temp is not None
+                        ):
+                            modelled = self._thermal_model.compute_cop_dhw(
+                                sample.outdoor_temp, self._last_cop_dhw_temp
+                            )
+                        else:
+                            modelled = self._thermal_model.compute_cop(
+                                sample.outdoor_temp
+                            )
                         sample.cop_residual = round(
-                            float(self._last_measured_cop)
-                            - float(
-                                self._thermal_model.compute_cop(
-                                    sample.outdoor_temp
-                                )
-                            ),
+                            float(self._last_measured_cop) - float(modelled),
                             3,
                         )
                     except Exception:  # noqa: BLE001 - tag is best-effort
                         sample.cop_residual = None
-                self._accuracy.record(sample)
+                # v5.3.0: an interval the pump spent cooling, faulted or
+                # off the network is not a measurement of the model's
+                # accuracy — the plan asked for heat and something else
+                # happened — and ``_confidence_margins`` turns recorded
+                # error into a widened comfort band on every future solve.
+                # The energy below is still accumulated: it really was
+                # drawn, and the ledger must stay honest about that.
+                # ``freeze_reason`` is None on any install without the pump
+                # signals configured, so this is inert for them.
+                if self._pump_signals.freeze_reason is None:
+                    self._accuracy.record(sample)
                 self._accumulate_energy(sample, elapsed, pending)
 
                 # T6 #52: the settled triple the diagnosis button re-runs.
@@ -8259,22 +8906,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                         "actual": float(sample.actual_temp),
                     }
 
-                # The delivered-versus-predicted ratio is exactly what the
-                # defrost derate learns from, and it is only meaningful while
-                # the learners are not frozen for some other reason. Outside
-                # the frosting band the same shortfall is the COP scale
-                # learner's to explain, and exactly one of the two may see any
-                # given interval. See defrost.in_frost_band.
+                # The defrost derate, from whichever estimator this install
+                # can support. Either way it is only meaningful while the
+                # learners are not frozen for some other reason.
                 if not self._learning_frozen(CONF_POWER_ENTITY):
-                    ratio = delivered_ratio(sample)
-                    if (
-                        ratio is not None
-                        and sample.outdoor_temp is not None
-                        and in_frost_band(sample.outdoor_temp)
-                    ):
-                        self._defrost.observe(
-                            sample.outdoor_temp, sample.humidity, ratio
-                        )
+                    self._settle_defrost(sample, defrost_window)
 
         self._pending_prediction = {
             "when": now,
@@ -9458,8 +10094,31 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         await self.async_request_refresh()
 
     def _run_system_identification(self, prices: np.ndarray) -> None:
-        """Advance the experiment and override the plan if it wants the pump."""
+        """Advance the experiment and override the plan if it wants the pump.
+
+        v5.3.0: the experiment is subject to the mode gate and the pump-signal
+        freeze, like every other path that commands power. It writes
+        ``_current_action["power"]`` directly, *after* the solve, so it is the
+        one route that bypasses the bounds the mode block is enforced at —
+        and it is the worst route to bypass them by. A step response measured
+        while the pump is cooling, faulted or offline is not a noisy
+        measurement of the house, it is a measurement of something else
+        entirely, and ``_adopt_system_identification`` seeds the persisted
+        thermal parameters from it. Aborting rather than pausing is
+        deliberate: an experiment is a contiguous step, and one resumed
+        across an interval that commanded heat the pump never delivered
+        would identify a house that does not exist.
+        """
         if not self._sysid.active:
+            return
+        if self._pump_signals.space_blocked:
+            self._sysid.abort(
+                f"heat pump mode {self._pump_signals.mode.label} cannot heat "
+                "the house"
+            )
+            return
+        if self._pump_signals.freeze_reason is not None:
+            self._sysid.abort(self._pump_signals.freeze_reason)
             return
         override = self._sysid.step(
             now=dt_util.now(),
@@ -9693,6 +10352,20 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                         horizon.outdoor_temps,
                         target_cap=float(scratch_config.target_temp),
                     ),
+                    # v5.3.0: and the mode block, for the same reason as
+                    # every inherited input above — the what-if is
+                    # DIFFERENCED against the live plan, so anything that
+                    # shaped the live plan and not the shadow one turns the
+                    # difference into a comparison of two different
+                    # questions. This one is the worst of them: the live
+                    # plan under a block heats nothing, so an unblocked
+                    # shadow solve looks warmer than its own baseline,
+                    # ``base_cold - sim_cold`` goes negative, and the fuse
+                    # advisor's clamp turns a real comfort breach into
+                    # "feasible" — a published recommendation to fit a
+                    # smaller main fuse.
+                    space_blocked=self._pump_signals.space_blocked,
+                    dhw_blocked=self._pump_signals.dhw_blocked,
                 )
             )
         except Exception as err:  # noqa: BLE001 - a what-if must never break ops
