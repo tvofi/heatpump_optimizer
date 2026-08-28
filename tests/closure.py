@@ -64,16 +64,19 @@ DRIVEN_BY_OTHERS = {"dst_checks.py": "features.py"}
 #
 # Everything else that is not in any closure forces a FULL run. "No test reads
 # it" is not something to assume about a file nobody measured.
+# It is deliberately shorter than it looks like it should be. The first
+# version of this list had README.md and RELEASE_NOTES.md on it; the
+# recordings then showed that tests/entities.py READS both of them, and the
+# check below rejected the list. They are not inert; they are dependencies,
+# and they are in a closure now because a run said so.
 INERT = (
-    "README.md",
-    "RELEASE_NOTES.md",
-    "DISCLAIMER.md",
     "LICENSE",
     "NOTICE",
     "icon.png",
     "docs/",
     "tests/README.md",
     "custom_components/heatpump_optimizer/brand/",
+    "custom_components/heatpump_optimizer/icon.png",
     ".gitignore",
 )
 
@@ -255,11 +258,24 @@ def record(script: str, out_dir: Path, args: list[str] | None = None) -> int:
 # merging and rules
 
 
+def _is_real_file(rel: str) -> bool:
+    """Keep files that exist. A trace also catches directory opens (`tests`,
+    `golden`) and paths a run probed and did not find; neither is something a
+    change can be made to, and a directory in a closure would match nothing."""
+    p = ROOT / rel
+    return p.is_file()
+
+
 def _fold(records: dict[str, dict]) -> dict[str, list[str]]:
-    """Records -> closures, applying the two rules a trace cannot know."""
+    """Records -> closures, applying the rules a trace cannot know.
+
+    Filtering happens here rather than in the tracer so that it applies
+    identically to every record, including ones taken before the filter
+    existed.
+    """
     closures: dict[str, set[str]] = {}
     for name, rec in records.items():
-        closures[name] = set(rec["files"])
+        closures[name] = {f for f in rec["files"] if _is_real_file(f)}
         # The script's own file is a dependency of itself, even if the tracer
         # somehow missed the read.
         closures[name].add(name)
@@ -284,10 +300,12 @@ def _fold(records: dict[str, dict]) -> dict[str, list[str]]:
     ed = "tests/env_drift.py"
     if ed in closures:
         for p in sorted((ROOT / "custom_components").rglob("*")):
+            rel = str(p.relative_to(ROOT))
+            if p.is_file() and "__pycache__" not in rel:
+                closures[ed].add(rel)
+        for p in sorted((ROOT / "tests" / "golden").glob("*")):
             if p.is_file():
                 closures[ed].add(str(p.relative_to(ROOT)))
-        for p in sorted((ROOT / "tests" / "golden").glob("*")):
-            closures[ed].add(str(p.relative_to(ROOT)))
     # golden.py stands in for env_drift in strict mode and captures the same
     # scenarios, so it carries the same closure.
     g = "tests/golden.py"
@@ -297,7 +315,7 @@ def _fold(records: dict[str, dict]) -> dict[str, list[str]]:
     return {k: sorted(v) for k, v in sorted(closures.items())}
 
 
-def merge(in_dir: Path, out: Path) -> int:
+def merge(in_dir: Path, out: Path, allow_failures: bool = False) -> int:
     records = {}
     for f in sorted(in_dir.glob("*.json")):
         rec = json.loads(f.read_text())
@@ -306,6 +324,22 @@ def merge(in_dir: Path, out: Path) -> int:
     missing = [s for s in test_scripts() if s not in records]
     if missing:
         print(f"closure: no recording for {', '.join(missing)}", file=sys.stderr)
+        return 1
+    # A recording that ended early records only what the run reached before it
+    # stopped, which is an UNDER-approximation -- exactly the direction that
+    # makes the gate skip a script it should have run. Refuse it.
+    broken = sorted(k for k, r in records.items() if r["rc"] != 0)
+    if broken and not allow_failures:
+        print("closure: these scripts failed while being recorded, so their",
+              file=sys.stderr)
+        print("closure is only what they reached before stopping:", file=sys.stderr)
+        for b in broken:
+            print(f"  {b} (exit {records[b]['rc']}) -- see the run output",
+                  file=sys.stderr)
+        print("Fix them, or re-run with --allow-failures if you have checked",
+              file=sys.stderr)
+        print("that the run still exercised every import and every file read.",
+              file=sys.stderr)
         return 1
     closures = _fold(records)
     bad = sorted({f for files in closures.values() for f in files if is_inert(f)})
@@ -517,6 +551,7 @@ def main() -> int:
     r.add_argument("--args", nargs="*", default=[])
     m = sub.add_parser("merge"); m.add_argument("--in-dir", required=True)
     m.add_argument("--out", default=str(CLOSURES))
+    m.add_argument("--allow-failures", action="store_true")
     c = sub.add_parser("check"); c.add_argument("--in-dir", required=True)
     s = sub.add_parser("select")
     s.add_argument("--files", nargs="*"); s.add_argument("--diff")
@@ -527,7 +562,7 @@ def main() -> int:
     if a.cmd == "record":
         return record(a.script, Path(a.out_dir), a.args)
     if a.cmd == "merge":
-        return merge(Path(a.in_dir), Path(a.out))
+        return merge(Path(a.in_dir), Path(a.out), a.allow_failures)
     if a.cmd == "check":
         return check(Path(a.in_dir))
     if a.cmd == "show":
