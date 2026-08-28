@@ -2713,8 +2713,10 @@ R.check(
         _survival(_ua750, 70.0, a) <= _survival(_ua750, 70.0, b) + 1e-12
         for a, b in zip((0.01, 0.1, 0.5, 1.0, 2.0), (0.1, 0.5, 1.0, 2.0, 4.7))
     )
-    and _survival(_ua750, 70.0, 0.02) < 1e-3,
-    "monotone in demand and already ~0 just above zero",
+    and _survival(_ua750, 70.0, 0.02) < 0.01
+    and _survival(_ua750, 70.0, 0.01) < 1e-5,
+    "monotone in demand, and already negligible just above zero: at this "
+    "tank 0.02 kW of demand survives 0.2% and 0.01 kW survives 4e-4%",
 )
 R.check(
     "a better-insulated tank is discounted less than a bare one",
@@ -10440,11 +10442,25 @@ _t_hi = _term5(_f5(21.0), _f5(25.0), _f5(21.0), _f5(20.5),
                _f5(_caps5["buffer"]))
 _grad_buf = (_t_lo - _t_hi) / _mass_buf  # SEK per marginal stored kWh
 _sim_cost = 1.0 / _m5.compute_cop(-5.0, flow_temp=_caps5["buffer"])
+# v5.4.0: the credit repays that cost times the fraction of the stored heat
+# the next window actually gets to spend. The identity is unchanged in
+# substance -- no artificial COP gap either way -- but a tank that leaks
+# before its heat is wanted repays less than it cost, on purpose. Pinned
+# against the factor rather than loosened to a tolerance, so a change to the
+# discount still fails here.
+_surv5 = _opt5._buffer_survival(_out5, None, _caps5["buffer"])
 R.check(
     "the terminal credit repays a stored buffer kWh at the flow-derated COP "
-    "the simulation charged to store it",
-    abs(_grad_buf - _sim_cost) < 1e-9,
-    f"terminal {_grad_buf:.4f} vs simulate {_sim_cost:.4f} SEK/kWh",
+    "the simulation charged to store it, less what the tank loses first",
+    abs(_grad_buf - _sim_cost * _surv5) < 1e-9,
+    f"terminal {_grad_buf:.4f} vs simulate {_sim_cost:.4f} x survival "
+    f"{_surv5:.4f} = {_sim_cost * _surv5:.4f} SEK/kWh",
+)
+R.check(
+    "and at -5 C that haircut is small: winter storage is not discouraged",
+    0.95 < _surv5 < 1.0,
+    f"survival {_surv5:.4f} must be a real discount, but a slight one, when "
+    "the house is drawing hard enough to spend the tank within hours",
 )
 _grad_plain = 1.0 / _m5.compute_cop(-5.0)
 R.check(
@@ -10468,7 +10484,12 @@ R.check(
 )
 # With the derate off, the whole term must reproduce the historical
 # arithmetic bit for bit — that is the branch that keeps every unthrottled
-# fixture untouched.
+# fixture untouched. This fixture is not itself unthrottled (it has a valve
+# and a 750 L tank, so the tank IS a store); what it pins is the single-sum
+# path taken when cop_buffer == cop_end. v5.4.0 adds the survival factor to
+# the buffer's share, so the expectation carries it — computed from the
+# optimizer rather than hardcoded, which keeps this an arithmetic-identity
+# check and not a second implementation of the discount.
 _opt5_off = _Opt(_m5_off, _cfg5)
 _caps5_off = _opt5_off._settlement_caps(_out5)
 _term5_off = _opt5_off._terminal_cost(_prices5, _out5)
@@ -10482,6 +10503,7 @@ _expected_off = (
         + _p5_off.lower_floor_thermal_mass * max(0.0, _caps5_off["room"] - 20.5)
         + _p5_off.slab_thermal_mass * max(0.0, _caps5_off["slab"] - 25.0)
         + _p5_off.buffer_tank_thermal_mass
+        * _opt5_off._buffer_survival(_out5, None, _caps5_off["buffer"])
         * max(0.0, _caps5_off["buffer"] - 45.0)
     )
     / max(_m5_off.compute_cop(-5.0), 1e-6)
