@@ -354,8 +354,11 @@ if inside.any():
     )
 
 R.check(
+    # The RATING, not the everyday charge limit the plan works to: a
+    # disinfection cycle legitimately goes above the limit, and this check is
+    # about the tank's physical bound (v5.1.8 split the two).
     "the tank never exceeds its rating during operation",
-    float(h["dhw"].max()) <= base["params"].dhw_max_temp + 1.0,
+    float(h["dhw"].max()) <= base["params"].dhw_hard_max_temp + 1.0,
     f"reached {float(h['dhw'].max()):.1f} °C",
 )
 

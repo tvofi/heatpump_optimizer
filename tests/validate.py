@@ -74,22 +74,66 @@ def run(scen, price_p, weather_p, two_zone=False, dhw=True, start=START, **over)
         if inw.any():
             worst = dt_traj[inw].min()
             dhw_ok = f"{worst:.1f}"
-            if worst < cfg["dhw_min_temperature"] - 2.0:
+            # 0.5 C, not the 2.0 C this allowed until v5.1.8. The wider bar
+            # was wide enough to sit through a real regression: the floor
+            # repair stopped topping the tank up at all and left a demand
+            # window 1.11 C under the promised minimum, and every scenario
+            # here still passed. The planner's own repair stage converges to
+            # hundredths of a degree when it is working, so anything past
+            # half a degree is a defect, not slack.
+            if worst < cfg["dhw_min_temperature"] - 0.5:
                 issue(scen,f"DHW only {worst:.1f}C during demand window "
                            f"(need {cfg['dhw_min_temperature']})")
         if dt_traj.max() > 70.5:
             issue(scen,f"DHW overshoot {dt_traj.max():.1f}C")
 
-        # Hot water is a deferrable load: the tank can be charged at any hour
-        # and coast into the demand window, so heating it during the priciest
-        # slots means the planner failed to shift it.
+        # Hot water is a deferrable load -- but only up to what the tank can
+        # hold. The DISCRETIONARY part is the energy bought OUTSIDE a demand
+        # window: the planner picked those hours freely, so putting them in
+        # the priciest slots means it failed to shift. Energy bought INSIDE a
+        # window is the tank being refilled as it is drained, and a household
+        # that draws more in a day than its tank holds has to buy the
+        # difference at whatever the price is then.
+        #
+        # Judging the whole schedule against a flat "share of slots" bar
+        # measured the tank rather than the planner, and v5.1.8 made that
+        # visible: the planning ceiling used to be the disinfection
+        # temperature (60 C) rather than the owner's own charge limit (55 C
+        # by default), so the store looked 5 C deeper than they had asked
+        # for. With the honest, smaller store the same optimal plan carries
+        # 37% of its energy in the top price quartile where it used to carry
+        # 17% -- not because it stopped shifting, but because there is less
+        # to shift with. The "does it pre-charge at all" half of that bar
+        # survives as the outside-the-window check just below.
         dhw_kwh = dhw_pw.sum()*DT
         if dhw_kwh > 0.2 and pr.max()/max(pr.min(), 0.01) > 2.0:
             exp_slots = pr >= np.percentile(pr, 75)
             dhw_peak = dhw_pw[exp_slots].sum()*DT/dhw_kwh
-            if dhw_peak > exp_slots.mean():
-                issue(scen,f"DHW uses {dhw_peak:.0%} of its energy in the most "
-                           f"expensive {exp_slots.mean():.0%} of slots")
+            free_kwh = dhw_pw[~inw].sum()*DT if inw.any() else dhw_kwh
+            free_mask = (~inw) if inw.any() else np.ones(N, dtype=bool)
+            if free_kwh > 0.2:
+                free_peak = dhw_pw[exp_slots & free_mask].sum()*DT/free_kwh
+                if free_peak > exp_slots.mean():
+                    issue(scen,f"DHW pre-charges {free_peak:.0%} of its "
+                               f"discretionary energy in the most expensive "
+                               f"{exp_slots.mean():.0%} of slots")
+            elif inw.any():
+                # No discretionary energy at all: everything was bought
+                # inside a demand window, so the bar above has nothing to
+                # measure -- and skipping outright let a plan that buys ALL
+                # its hot water in the priciest slots go unjudged. What is
+                # left to judge is the buying it did do. Inside the windows
+                # the planner still chooses WHICH slots, so its energy must
+                # not be more concentrated in the expensive ones than an even
+                # spread across those windows would be.
+                inside_kwh = dhw_pw[inw].sum()*DT
+                bar = float((exp_slots & inw).sum()) / float(inw.sum())
+                got = (dhw_pw[exp_slots & inw].sum()*DT
+                       / max(inside_kwh, 1e-9))
+                if inside_kwh > 0.2 and got > bar + 1e-9:
+                    issue(scen,f"DHW buys {got:.0%} of its energy in the "
+                               f"most expensive slots of its demand windows "
+                               f"({bar:.0%} of them)")
             # It should also be willing to charge ahead of the window rather
             # than only inside it.
             if inw.any() and not inw.all():

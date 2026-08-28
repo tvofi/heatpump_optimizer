@@ -5323,40 +5323,56 @@ R.check(
 )
 
 # --- #1 null control and directional shift at the solver -----------------------
-# A fee with no time structure cannot create time-shifting: a uniform price
-# rise may legitimately buy a little less energy overall (it trades against
-# the comfort weight — measured at ~3.5% on the flat-price day, which is why
-# this is deliberately NOT a byte-identity check), but the SHARE of energy
-# placed in any window must stay put. A ToU fee on the same day must move it.
-def _fee_share(prices_add):
+# A fee with no time structure cannot create time-shifting. Measured in kWh
+# per half of the day rather than as a SHARE of the total, which is what this
+# used to do and what made it fragile: a uniform price rise legitimately buys
+# less energy overall (it trades against the comfort weight, which is fixed in
+# currency), and the energy it gives up is the discretionary pre-heat, which
+# lives at night. A share therefore moves even though nothing was shifted —
+# the reason the bar here had already been loosened from 0.02 to 0.03 in
+# v4.0.5, and it was loose enough by v5.1.8 to be measuring the level effect
+# rather than the shift.
+#
+# The direct statement has no such confound and more teeth: a uniform fee may
+# take energy OUT of either half of the day, but it may not put energy INTO
+# one — that is what shifting means. A ToU fee on the same day must do exactly
+# that, by a wide margin.
+def _fee_plan(prices_add):
     _sc = _mk_golden(price_profile="flat")
     _res = _sc["optimizer"].optimize(
         _sc["state"], _sc["prices"] + prices_add, _sc["outdoor"], _sc["wind"],
         _sc["rain"], _sc["solar"], _G_START,
     )
     _tot = np.asarray(_res.power_schedule) + np.asarray(_res.dhw_power_schedule)
-    _day = _tot[24:88]  # 06:00-22:00 on the 15-minute grid
-    _sum = float(_tot.sum())
-    return float(_day.sum()) / _sum if _sum > 0 else 0.0
+    _dhw = np.asarray(_res.dhw_power_schedule)
+    _day = float(_tot[24:88].sum()) * 0.25  # 06:00-22:00 on the 15-min grid
+    _night = float(_tot[:24].sum() + _tot[88:].sum()) * 0.25
+    _dhw_day = float(_dhw[24:88].sum()) / max(float(_dhw.sum()), 1e-9)
+    return _day, _night, _dhw_day
 
-_share_none = _fee_share(0.0)
-_share_flat = _fee_share(0.25)
+_day_none, _night_none, _dhwday_none = _fee_plan(0.0)
+_day_flat, _night_flat, _dhwday_flat = _fee_plan(0.25)
 _tou_add = np.zeros(96)
 _tou_add[24:88] = 0.25  # the höglast window priced up
-_share_tou = _fee_share(_tou_add)
+_day_tou, _night_tou, _dhwday_tou = _fee_plan(_tou_add)
 R.check(
-    "a flat fee does not shift energy in time — the null control",
-    # 0.03, not 0.02, since v4.0.5: the terminal refill price scales with
-    # the price level, so a uniform fee legitimately has the plan end the
-    # horizon holding slightly more heat — a small share wobble with no
-    # time structure, an order below the 0.05 the ToU check below demands.
-    abs(_share_flat - _share_none) < 0.03,
-    f"06-22 share {_share_none:.3f} -> {_share_flat:.3f} under a uniform fee",
+    "a flat fee moves no energy INTO either half of the day — the null "
+    "control",
+    _day_flat <= _day_none + 0.5 and _night_flat <= _night_none + 0.5,
+    f"day {_day_none:.2f} -> {_day_flat:.2f} kWh, "
+    f"night {_night_none:.2f} -> {_night_flat:.2f} kWh under a uniform fee",
 )
 R.check(
-    "a höglast fee moves energy out of the hours it prices up",
-    _share_tou < _share_none - 0.05,
-    f"06-22 share {_share_none:.3f} -> {_share_tou:.3f} under a 06-22 fee",
+    "…and the hot-water schedule it produces is untouched by one",
+    abs(_dhwday_flat - _dhwday_none) < 0.005,
+    f"DHW 06-22 share {_dhwday_none:.4f} -> {_dhwday_flat:.4f}",
+)
+R.check(
+    "a höglast fee moves energy out of the hours it prices up and into "
+    "the ones it does not",
+    _day_tou < _day_none - 5.0 and _night_tou > _night_none + 5.0,
+    f"day {_day_none:.2f} -> {_day_tou:.2f} kWh, "
+    f"night {_night_none:.2f} -> {_night_tou:.2f} kWh under a 06-22 fee",
 )
 
 # ===========================================================================
@@ -5593,9 +5609,16 @@ def _flag_solve(**state_overrides):
         sc["solar"], _G_START,
     )
 
-_r_guard = _flag_solve(dhw_temperature=58.0, peak_guard_active=True)
-_r_ext = _flag_solve(dhw_temperature=58.0, external_heat_active=True)
-_r_neither = _flag_solve(dhw_temperature=58.0)
+# A tank hot enough that the daily requirement is already covered, but still
+# under the charge limit — otherwise the unflagged plan does no discretionary
+# top-ups either and the pair below is vacuous. 58 °C was such a temperature
+# while the planning ceiling was the 60 °C disinfection temperature; since
+# v5.1.8 the ceiling is the 55 °C charge limit, and a 58 °C tank is simply
+# over it.
+_FLAG_TANK = 52.0
+_r_guard = _flag_solve(dhw_temperature=_FLAG_TANK, peak_guard_active=True)
+_r_ext = _flag_solve(dhw_temperature=_FLAG_TANK, external_heat_active=True)
+_r_neither = _flag_solve(dhw_temperature=_FLAG_TANK)
 R.check(
     "peak_guard_active suppresses discretionary DHW exactly as external heat",
     np.array_equal(
@@ -10576,10 +10599,13 @@ R.check(
 
 # The rating is now enforced in the model with refused-heat accounting, the
 # buffer clamp's pattern, instead of trusting every caller to pre-clamp.
+# v5.1.8 split the rating from the everyday charge limit: this clamp is the
+# RATING, because a disinfection cycle is meant to go above the limit and
+# clamping it here would cap the cycle at the setpoint.
 _hot = _ec_m.simulate_dhw_step(54.0, 500.0, 0.0, dt_hours=0.25, draw_power=0.0)
 R.check(
     "charging cannot pass the tank rating, and the excess is booked",
-    _hot == _ec_p.dhw_max_temp and _ec_m._step_dhw_refused > 0.0,
+    _hot == _ec_p.dhw_hard_max_temp and _ec_m._step_dhw_refused > 0.0,
     f"landed {_hot:.1f} °C, refused {_ec_m._step_dhw_refused:.1f} kW",
 )
 _over = _ec_m.simulate_dhw_step(72.0, 0.0, 0.0, dt_hours=0.25, draw_power=0.0)
@@ -11394,6 +11420,631 @@ R.check(
     all(
         v.message and v.field and v.code
         for v in _cb.violations({"min_temperature": 25.0}, {})
+    ),
+)
+
+
+from profiles import house as _lg_house, prices as _lg_prices
+from profiles import weather as _lg_weather
+from heatpump_optimizer.const import DHW_LEGIONELLA_BOOST_MAX_HOURS
+
+# ---------------------------------------------------------------------------
+R.section("v5.1.8 — a due cycle actually reaches the disinfection temperature")
+
+# Honouring the charge limit means a summer plan legitimately parks the tank at
+# ~37 °C, so a cycle that comes due has the whole climb to make in the hours
+# before it. The first cut of this release could not buy that run-up: the floor
+# repair bounded its top-ups over the whole tail, every later step sitting ON
+# the charge limit read as zero room, and the suffix-minimum carried that zero
+# back over every candidate. The cycle then arrived at whatever the greedy pass
+# happened to leave in the tank — around 58 °C: never disinfected, never
+# creditable, and reported to the owner as "your pump cannot reach 60 °C" on
+# hardware that reaches exactly 60.
+#
+# Two things had to be true for this band to pass. The repair has to be able to
+# buy the run-up, and the capacity clamp has to size its allowance from the
+# END of a step — draw and standby loss included — or every step of a
+# ceiling-pinned ramp lands just below the ceiling it was aimed at and the
+# cycle stops at 59.9 rather than 60.0.
+from heatpump_optimizer.optimizer import HeatPumpOptimizer as _LgOpt
+
+
+def _lg_band(setpoint, *, hours_since=150.0, tank=37.0, volume=300.0, pump=6.0):
+    built = _mk_golden(
+        config_overrides={
+            "dhw_tank_volume": volume,
+            "heat_pump_max_power": pump,
+            "dhw_setpoint": setpoint,
+            "dhw_min_temperature": setpoint - 5.0,
+        },
+        param_overrides={"dhw_legionella_temp": 60.0},
+        state_overrides={
+            "dhw_hours_since_legionella": hours_since,
+            "dhw_temperature": tank,
+        },
+        price_profile="summer_typical",
+        weather_profile="summer_warm",
+    )
+    res = built["optimizer"].optimize(
+        built["state"], built["prices"], built["outdoor"], built["wind"],
+        built["rain"], built["solar"], _G_START,
+    )
+    return built, res, np.asarray(res.dhw_temp_trajectory, dtype=float)
+
+
+_LG_BAND = tuple(range(41, 50))
+_lg_peaks = {s: float(_lg_band(float(s))[2].max()) for s in _LG_BAND}
+# The observer credits a cycle at `legionella_temp - 1`, so 59.0 is the bar
+# that decides whether the cycle counts at all.
+R.check(
+    "a due cycle reaches the disinfection temperature at every charge limit "
+    "from 41 to 49 °C",
+    all(p >= 59.0 for p in _lg_peaks.values()),
+    "peaks " + ", ".join(f"{s}:{_lg_peaks[s]:.2f}" for s in _LG_BAND),
+)
+R.check(
+    "…and lands ON it rather than a fraction short",
+    all(p >= 59.95 for p in _lg_peaks.values()),
+    "peaks " + ", ".join(f"{s}:{_lg_peaks[s]:.2f}" for s in _LG_BAND),
+)
+
+# Mutation: put the whole-tail room bound back — the first cut of the floor
+# repair's own ceiling, and what left the ramp short.
+def _lg_whole_tail_repair(
+    self, *, plan, initial_temp, outdoor_temps, draw_rates, dt,
+    requirement, max_temp, p_dhw_max, min_run_power, prices, c_dhw,
+    forced_off=None,
+):
+    """The rejected floor repair: the room bound taken over the WHOLE tail, and
+    nothing behind it to enforce the ceiling. Same loop, same ranking, same
+    arithmetic; the bound is the only difference."""
+    plan = np.asarray(plan, dtype=float).copy()
+    n = plan.size
+    ceiling = np.asarray(max_temp, dtype=float)[:n]
+    req = np.minimum(np.asarray(requirement, dtype=float)[:n], ceiling)
+    ua = max(self.model.params.dhw_tank_heat_loss_coefficient, 1e-6)
+    decay = float(np.clip(1.0 - ua * dt / max(c_dhw, 0.05), 0.0, 1.0))
+    weight = np.power(decay, np.arange(n))
+    unreachable: set[int] = set()
+    for _ in range(48):
+        temps = np.asarray(self.model.simulate_dhw_only(
+            initial_temp=initial_temp, dhw_power_schedule=plan,
+            outdoor_temps=outdoor_temps, draw_rates=draw_rates, dt_hours=dt))
+        deficit = req - temps[1:n + 1]
+        breach = [int(i) for i in np.where(deficit > 0.05)[0]
+                  if int(i) not in unreachable]
+        if not breach:
+            return plan
+        b = breach[0]
+        pinned = np.where(temps[:b + 1] >= ceiling[:b + 1] - 0.1)[0]
+        lo = int(pinned[-1]) if pinned.size else 0
+        headroom = p_dhw_max - plan[lo:b + 1]
+        usable = headroom > 1e-6
+        if forced_off is not None:
+            usable &= ~np.asarray(forced_off[lo:b + 1], dtype=bool)
+        gap = ceiling - temps[1:n + 1]
+        room_c = (np.minimum.accumulate((gap / weight)[::-1])[::-1]
+                  * weight)[lo:b + 1]
+        usable &= room_c > 0.01
+        costs = np.where(usable, prices[lo:b + 1], np.inf)
+        placed = False
+        for j_local in np.argsort(costs, kind="stable"):
+            j_local = int(j_local)
+            if not usable[j_local]:
+                break
+            j = lo + j_local
+            cop_j = max(self.model.marginal_cop(
+                float(outdoor_temps[j]), "dhw",
+                store_temp=float(temps[j])), 0.5)
+            cop_room = max(cop_j, self.model.compute_cop_dhw(
+                float(outdoor_temps[j]), float(temps[j])))
+            needed = float(deficit[b]) * c_dhw / max(dt * cop_j, 1e-6)
+            room_kw = float(room_c[j_local]) * c_dhw / max(dt * cop_room, 1e-6)
+            add = min(float(np.clip(needed, min_run_power, headroom[j_local])),
+                      room_kw)
+            level = plan[j] + add
+            if level < min_run_power - 1e-9:
+                runnable = min(min_run_power, p_dhw_max)
+                if runnable > plan[j] + room_kw + 1e-9:
+                    continue
+                level = runnable
+            plan[j] = min(p_dhw_max, level)
+            placed = True
+            break
+        if not placed:
+            unreachable.add(b)
+    return plan
+
+
+_lg_saved_repair = _LgOpt._repair_dhw_floor
+try:
+    _LgOpt._repair_dhw_floor = _lg_whole_tail_repair
+    _lg_mut_peaks = {s: float(_lg_band(float(s))[2].max()) for s in _LG_BAND}
+finally:
+    _LgOpt._repair_dhw_floor = _lg_saved_repair
+R.check(
+    "the whole-tail bound reproduces the cycle that never reaches "
+    "temperature (mutation check)",
+    sum(1 for p in _lg_mut_peaks.values() if p < 59.0) >= 2
+    and sum(1 for p in _lg_mut_peaks.values() if p < 59.95) >= 6,
+    "mutant peaks " + ", ".join(f"{s}:{_lg_mut_peaks[s]:.2f}" for s in _LG_BAND),
+)
+
+# The same cycle on other hardware, because the band above is one tank.
+_lg_hw = {
+    "300 L / 4 kW": _lg_band(45.0, volume=300.0, pump=4.0)[2].max(),
+    "500 L / 6 kW": _lg_band(44.0, volume=500.0, pump=6.0)[2].max(),
+    "150 L / 6 kW": _lg_band(43.0, volume=150.0, pump=6.0)[2].max(),
+}
+R.check(
+    "…on other tank and pump sizes too",
+    all(v >= 59.0 for v in _lg_hw.values()),
+    ", ".join(f"{k} {v:.2f}" for k, v in _lg_hw.items()),
+)
+
+# The run-up must not turn into a licence to sit at the limit all day: it is
+# the LATEST ramp that still arrives, so the hours before it stay ordinary.
+_lg_ramp_built, _lg_ramp_res, _lg_ramp_traj = _lg_band(45.0)
+_lg_ramp_step = _lg_ramp_built["optimizer"]._dhw_legionella_step
+R.check(
+    "the run-up is a ramp, not a day at the ceiling",
+    _lg_ramp_step is not None
+    and _lg_ramp_traj[: max(int(_lg_ramp_step) - 8, 1)].max() <= 45.1,
+    f"cycle at step {_lg_ramp_step}, peak before it "
+    f"{_lg_ramp_traj[: max(int(_lg_ramp_step) - 8, 1)].max():.2f} °C",
+)
+
+
+# ---------------------------------------------------------------------------
+R.section("v5.1.8 — the floor repair tops the tank up again")
+
+# The first cut of this release bounded the repair's room over the WHOLE tail. Every later step
+# sitting exactly ON the charge limit therefore read as zero room, the
+# suffix-minimum carried that zero back over every earlier candidate, and the
+# repair refused every top-up there was — including a hard `dhw_min` breach
+# inside a demand window.
+_fr_built = _mk_golden(
+    config_overrides={"dhw_setpoint": 52.0, "dhw_legionella_enabled": False}
+)
+_fr_opt = _fr_built["optimizer"]
+_fr_c = _fr_opt.model.params.dhw_tank_thermal_mass
+_FR_N, _FR_DT, _FR_RUN, _FR_MIN = 24, 0.25, 3.0, 0.6
+_fr_ceiling = np.full(_FR_N, 52.0)
+_fr_outdoor = np.zeros(_FR_N)
+_fr_prices = np.linspace(1.0, 2.0, _FR_N)
+_fr_req = np.full(_FR_N, 20.0)
+_fr_req[8] = 45.0
+_fr_draws = np.zeros(_FR_N)
+_fr_draws[4:9] = 2.2 * _fr_c / _FR_DT
+
+# A plan that empties the tank into a demand floor at step 8 and then charges
+# the tail right up to the limit — the shape the whole-tail bound choked on.
+_fr_plan = np.zeros(_FR_N)
+_fr_plan[10:] = _FR_RUN
+_fr_plan = _fr_opt._clamp_dhw_to_capacity(
+    plan=_fr_plan, initial_temp=52.0, outdoor_temps=_fr_outdoor,
+    draw_rates=_fr_draws, dt=_FR_DT, max_temp=_fr_ceiling,
+)
+_fr_plan = np.where(_fr_plan < _FR_MIN - 1e-9, 0.0, _fr_plan)
+
+
+def _fr_traj(plan):
+    return np.asarray(_fr_opt.model.simulate_dhw_only(
+        initial_temp=52.0, dhw_power_schedule=plan, outdoor_temps=_fr_outdoor,
+        draw_rates=_fr_draws, dt_hours=_FR_DT,
+    ))
+
+
+_fr_before = _fr_traj(_fr_plan)
+R.check(
+    "the fixture really does breach its floor, with the tail on the limit",
+    _fr_req[8] - _fr_before[9] > 1.0
+    and _fr_before[12:].max() >= 51.5,
+    f"deficit {_fr_req[8] - _fr_before[9]:.2f} °C, tail peak "
+    f"{_fr_before[12:].max():.2f} °C",
+)
+
+# Mutation: the whole-tail bound, computed here from the same trajectory. Its best
+# candidate cannot take a block the pump can actually run, so the repair had
+# nothing to place and the breach stood.
+_fr_ua = max(_fr_opt.model.params.dhw_tank_heat_loss_coefficient, 1e-6)
+_fr_decay = float(np.clip(1.0 - _fr_ua * _FR_DT / max(_fr_c, 0.05), 0.0, 1.0))
+_fr_w = np.power(_fr_decay, np.arange(_FR_N))
+_fr_gap = _fr_ceiling - _fr_before[1:_FR_N + 1]
+_fr_room_all = np.minimum.accumulate((_fr_gap / _fr_w)[::-1])[::-1] * _fr_w
+_fr_pinned = np.where(_fr_before[:9] >= _fr_ceiling[:9] - 0.1)[0]
+_fr_lo = int(_fr_pinned[-1]) if _fr_pinned.size else 0
+_fr_cop = _fr_opt.model.compute_cop_dhw(0.0, float(_fr_before[_fr_lo]))
+_fr_old_kw = float(_fr_room_all[_fr_lo:9].max()) * _fr_c / (_FR_DT * _fr_cop)
+R.check(
+    "the whole-tail bound leaves no candidate a runnable block fits in "
+    "(mutation check)",
+    _fr_old_kw < _FR_MIN,
+    f"best whole-tail room {_fr_old_kw:.3f} kW against a {_FR_MIN} kW "
+    f"minimum run",
+)
+
+_fr_fixed = _fr_opt._repair_dhw_floor(
+    plan=_fr_plan.copy(), initial_temp=52.0, outdoor_temps=_fr_outdoor,
+    draw_rates=_fr_draws, dt=_FR_DT, requirement=_fr_req,
+    max_temp=_fr_ceiling, p_dhw_max=_FR_RUN, min_run_power=_FR_MIN,
+    prices=_fr_prices, c_dhw=_fr_c,
+)
+_fr_after = _fr_traj(_fr_fixed)
+R.check(
+    "the repair closes the breach",
+    _fr_req[8] - _fr_after[9] <= 0.05,
+    f"deficit {_fr_req[8] - _fr_after[9]:.3f} °C",
+)
+R.check(
+    "…without taking the tank a degree over the charge limit",
+    _fr_after.max() <= 52.0 + 1e-6,
+    f"peak {_fr_after.max():.4f} °C against a 52.00 °C limit",
+)
+R.check(
+    "…and publishes no power the hardware cannot run",
+    not np.any((_fr_fixed > 1e-9) & (_fr_fixed < _FR_MIN - 1e-9)),
+    f"weak slots {np.round(_fr_fixed[(_fr_fixed > 1e-9) & (_fr_fixed < _FR_MIN)], 3).tolist()}",
+)
+
+# End to end, at the start hour where the reported breach was worst.
+def _lg_e2e(start_hour, hours_since, price_p, weather_p):
+    start = datetime(2026, 1, 15, start_hour, 0)
+    cfg = _lg_house(dhw=True)
+    cfg["dhw_setpoint"] = 52.0
+    params = ThermalParameters.from_config(cfg)
+    params.dhw_enabled = True
+    params.dhw_legionella_temp = 60.0
+    ocfg = _PvOptCfg(
+        horizon_hours=24, time_step_minutes=15,
+        target_temp=cfg["target_temperature"], min_temp=cfg["min_temperature"],
+        max_temp=cfg["max_temperature"],
+    )
+    _fit = lambda a: np.asarray(a, dtype=float)[:96]
+    ps = _fit(_lg_prices(price_p, start))
+    o, w, rn, sol = (_fit(x) for x in _lg_weather(weather_p, start))
+    st = ThermalState(
+        room_temperature=21.0, slab_temperature=22.0,
+        outdoor_temperature=float(o[0]), upper_floor_temperature=21.0,
+        lower_floor_temperature=21.0, dhw_temperature=50.0,
+        dhw_hours_since_legionella=hours_since, buffer_tank_temperature=40.0,
+    )
+    opt = _LgOpt(ThermalModel(params), ocfg)
+    res = opt.optimize(st, ps, o, w, rn, sol, start)
+    traj = np.asarray(res.dhw_temp_trajectory, dtype=float)
+    req = np.asarray(opt._dhw_requirement, dtype=float)
+    n = len(req)
+    served = req >= params.dhw_min_temp - 1e-9
+    worst = float(np.max((params.dhw_min_temp - traj[1:n + 1])[served]))
+    return worst, float(traj.max())
+
+
+_lg_e2e_worst = {
+    f"{h:02d}:00 since {s:.0f} h {p}": _lg_e2e(h, s, p, w)
+    for h, s, p, w in (
+        (16, 150.0, "summer_typical", "summer_warm"),
+        (16, 20.0, "summer_typical", "summer_warm"),
+        (12, 20.0, "winter_typical", "winter_cold"),
+        (18, 150.0, "winter_typical", "winter_cold"),
+    )
+}
+R.check(
+    "no plan leaves a demand window under the usable minimum",
+    all(v[0] <= 0.1 for v in _lg_e2e_worst.values()),
+    "; ".join(f"{k}: {v[0]:+.2f} °C" for k, v in _lg_e2e_worst.items())
+    + " (the whole-tail bound recorded +1.11 on the first of these)",
+)
+R.check(
+    "…and every one of them still honours the 52 °C charge limit or the "
+    "60 °C cycle exactly",
+    all(v[1] <= 52.001 or abs(v[1] - 60.0) <= 0.05
+        for v in _lg_e2e_worst.values()),
+    "; ".join(f"{k}: {v[1]:.2f}" for k, v in _lg_e2e_worst.items()),
+)
+try:
+    _LgOpt._repair_dhw_floor = _lg_whole_tail_repair
+    _lg_e2e_mut = {
+        k: _lg_e2e(h, s, p, w)
+        for k, (h, s, p, w) in (
+            ("16:00 since 150 h summer", (16, 150.0, "summer_typical",
+                                          "summer_warm")),
+        )
+    }
+finally:
+    _LgOpt._repair_dhw_floor = _lg_saved_repair
+R.check(
+    "the whole-tail bound puts the demand-window breach back (mutation "
+    "check)",
+    all(v[0] > 0.5 for v in _lg_e2e_mut.values()),
+    "; ".join(f"{k}: {v[0]:+.2f} °C" for k, v in _lg_e2e_mut.items()),
+)
+
+
+# ---------------------------------------------------------------------------
+R.section("v5.1.8 — a cycle the tank cannot reach is not parked at the end")
+
+# Reachability is simulated, not estimated. A closed-form lift ÷ rate ignores
+# the draws and the standby losses the charge pays on the way, and one fixed
+# COP ignores how the pump slows as the tank warms: it called step 91 of 96
+# reachable on a 3000 L tank that actually tops out at 52 °C. A cycle placed at
+# a step it cannot reach and near the END of the plan is never the current
+# action, so no boost is commanded, the tracker never runs, and the "cannot
+# reach temperature" notice can never be raised. Unreachable means start now.
+def _lg_big(hours, volume, pump, tank=35.0, hours_since=300.0):
+    built = _mk_golden(
+        hours=hours,
+        config_overrides={
+            "dhw_tank_volume": volume, "heat_pump_max_power": pump,
+            "dhw_setpoint": 52.0,
+        },
+        param_overrides={"dhw_legionella_temp": 60.0},
+        state_overrides={
+            "dhw_hours_since_legionella": hours_since, "dhw_temperature": tank,
+        },
+    )
+    res = built["optimizer"].optimize(
+        built["state"], built["prices"], built["outdoor"], built["wind"],
+        built["rain"], built["solar"], _G_START,
+    )
+    opt = built["optimizer"]
+    n = int(hours * 4)
+    # What the tank could do charging flat out for the whole horizon: the
+    # honest answer to "is this reachable at all".
+    p_run = max(0.1, min(pump * 0.8, pump))
+    best = float(np.asarray(opt.model.simulate_dhw_only(
+        initial_temp=tank, dhw_power_schedule=np.full(n, p_run),
+        outdoor_temps=np.asarray(built["outdoor"], dtype=float)[:n],
+        draw_rates=opt.model.dhw_draw_rates(
+            (np.arange(n) * 0.25 + _G_START.hour) % 24.0
+        ),
+        dt_hours=0.25,
+    )).max())
+    return opt._dhw_legionella_step, n, best, (res.dhw_reasons or [])
+
+
+for _label, _args in (
+    ("6 h, 1500 L, 3 kW", (6, 1500.0, 3.0)),
+    ("24 h, 3000 L, 3 kW", (24, 3000.0, 3.0)),
+):
+    _step, _n, _best, _reasons = _lg_big(*_args)
+    R.check(
+        f"{_label}: the tank provably cannot reach 60 °C in the horizon",
+        _best < 60.0,
+        f"flat-out best {_best:.2f} °C",
+    )
+    R.check(
+        f"{_label}: the cycle is commanded now, not parked at the last step",
+        _step == 0 and _step != _n - 1,
+        f"placed at step {_step} of {_n}",
+    )
+    R.check(
+        f"{_label}: …so the boost is the current action and can be observed",
+        bool(_reasons) and _reasons[0] == _LG_REASON,
+        f"first step reason {_reasons[0] if _reasons else None!r}",
+    )
+
+# A cycle that IS reachable must still be shopped for, not dragged to step 0.
+_lg_ok_step, _lg_ok_n, _lg_ok_best, _ = _lg_big(24, 300.0, 6.0)
+R.check(
+    "a reachable cycle is still placed where the pump can do it, not at 0",
+    _lg_ok_best >= 60.0 and _lg_ok_step not in (None, 0),
+    f"flat-out best {_lg_ok_best:.2f} °C, placed at step {_lg_ok_step}",
+)
+
+
+# ---------------------------------------------------------------------------
+R.section("v5.1.8 — a commanded cycle is credited only when something saw it")
+
+# With no tank probe it is tempting to write the COMPLETION timestamp for a
+# boost nothing has verified. The claim buys no scheduling benefit whatsoever:
+# `_dhw_hours_since_legionella` already counts attempts, so an attempt drives
+# the countdown from 192 h to 0 identically — and it costs the ability to say
+# the cycle is unverified. This integration publishes a plan; the actuation
+# may be an automation that never ran.
+_lg_blind2 = _lg_coord()
+_lg_blind2._config.pop("dhw_temp_entity", None)
+_lg_blind_before = _lg_blind2._dhw_hours_since_legionella()
+_lg_cycle(_lg_blind2, [None, None])
+_lg_blind_after = _lg_blind2._dhw_hours_since_legionella()
+R.check(
+    "the countdown still resets without a probe — the plan is not wedged",
+    _lg_blind_before > 168.0
+    and _lg_blind_after is not None
+    and _lg_blind_after < 1.0,
+    f"{_lg_blind_before:.0f} h before, {_lg_blind_after} h after",
+)
+R.check(
+    "…but it is recorded as an attempt, not as a verified cycle",
+    _lg_blind2._dhw_legionella_attempt is not None
+    and _lg_blind2._dhw_last_legionella == _G_START - timedelta(days=8),
+    f"attempt {_lg_blind2._dhw_legionella_attempt!r}, "
+    f"completion {_lg_blind2._dhw_last_legionella!r}",
+)
+R.check(
+    "…and the user is told the cycle cannot be verified",
+    any(
+        i[1] == "dhw_legionella_unverified"
+        for i in getattr(_lg_blind2.hass, "issues", [])
+    ),
+    f"issues {[i[1] for i in getattr(_lg_blind2.hass, 'issues', [])]}",
+)
+# Mutation value: the completion claim buys nothing. Writing it instead of the
+# attempt produces the SAME countdown, which is the whole argument for not
+# writing it.
+_lg_claim = _lg_coord()
+_lg_claim._config.pop("dhw_temp_entity", None)
+_lg_claim._dhw_last_legionella = _lg_blind2._dhw_legionella_attempt
+R.check(
+    "claiming success instead would give an identical countdown "
+    "(mutation check)",
+    abs((_lg_claim._dhw_hours_since_legionella() or 0.0)
+        - (_lg_blind_after or 0.0)) < 0.01,
+    f"attempt {_lg_blind_after!r} vs completion "
+    f"{_lg_claim._dhw_hours_since_legionella()!r}",
+)
+# A probe that later observes a real cycle takes the notice down.
+_lg_blind2._config["dhw_temp_entity"] = "sensor.tank"
+_lg_blind2._current_action = {"dhw_reason": "idle"}
+_asyncio.run(_lg_blind2._async_track_dhw_legionella(60.5))
+R.check(
+    "an observed cycle clears the cannot-verify notice",
+    not any(
+        i[1] == "dhw_legionella_unverified"
+        for i in getattr(_lg_blind2.hass, "issues", [])
+    ),
+    f"issues {[i[1] for i in getattr(_lg_blind2.hass, 'issues', [])]}",
+)
+
+
+# ---------------------------------------------------------------------------
+R.section("v5.1.8 — free disinfection cannot latch the timer either")
+
+# The observer's hold rule credits at `target - 0.5`, held for
+# DHW_LEGIONELLA_HOLD_MINUTES. The boost tracker used to return early at
+# `target - 1.0`, so a cycle peaking in [59.0, 59.5) was neither credited by
+# the observer nor recorded as an attempt: `hours_since` stayed at 192 h for
+# ever and the cycle was re-commanded on every single solve.
+def _lg_cycle_obs(coord, temps):
+    """A boost with the observer running alongside it, as the update does."""
+    for temp in temps:
+        coord._current_action = {"dhw_reason": _LG_REASON}
+        _asyncio.run(coord._async_track_dhw_legionella_cycle(temp))
+        _asyncio.run(coord._async_track_dhw_legionella(temp))
+    coord._current_action = {"dhw_reason": "idle"}
+    _asyncio.run(coord._async_track_dhw_legionella_cycle(temps[-1]))
+
+
+_lg_gap = _lg_coord(dhw_free_disinfection_enabled=True)
+_LG_GAP_PEAK = 59.2
+_lg_gap_before = _lg_gap._dhw_hours_since_legionella()
+_lg_cycle_obs(_lg_gap, [55.0, 58.0, _LG_GAP_PEAK])
+_lg_gap_after = _lg_gap._dhw_hours_since_legionella()
+R.check(
+    "the peak sits in the gap the old early return covered "
+    "(mutation check: any rule that returns on `peak >= target - 1.0` "
+    "records nothing here)",
+    59.0 <= _LG_GAP_PEAK < 59.5,
+    f"peak {_LG_GAP_PEAK} against a 60 °C target",
+)
+R.check(
+    "the observer demonstrably did not credit it under the hold rule",
+    _lg_gap._dhw_last_legionella == _G_START - timedelta(days=8),
+    f"completion {_lg_gap._dhw_last_legionella!r}",
+)
+R.check(
+    "…and the timer moves anyway, instead of latching at 192 h",
+    _lg_gap_before > 168.0 and _lg_gap_after is not None and _lg_gap_after < 1.0,
+    f"{_lg_gap_before:.0f} h before, {_lg_gap_after} h after",
+)
+R.check(
+    "…recorded as an attempt with its peak, so the retry is spaced",
+    _lg_gap._dhw_legionella_attempt is not None
+    and _lg_gap._dhw_legionella_attempt_peak == _LG_GAP_PEAK,
+    f"attempt peak {_lg_gap._dhw_legionella_attempt_peak!r}",
+)
+R.check(
+    "…and no 'cannot reach temperature' notice, because it plainly can",
+    not any(
+        i[1] == "dhw_legionella_unreachable"
+        for i in getattr(_lg_gap.hass, "issues", [])
+    ),
+    f"issues {[i[1] for i in getattr(_lg_gap.hass, 'issues', [])]}",
+)
+# With the flag off the observer credits at 59.0, so nothing is recorded here.
+_lg_gap_off = _lg_coord()
+_lg_cycle_obs(_lg_gap_off, [_LG_GAP_PEAK])
+R.check(
+    "with the flag off the same peak is a real completion, not an attempt",
+    _lg_gap_off._dhw_last_legionella != _G_START - timedelta(days=8)
+    and _lg_gap_off._dhw_legionella_attempt is None,
+    f"completion {_lg_gap_off._dhw_last_legionella!r}",
+)
+
+# A boost the plan re-commands for ever is closed out and judged, so a tank
+# that cannot finish still reports rather than heating without end.
+import homeassistant.util.dt as _lg_dt_mod
+
+_lg_stuck = _lg_coord()
+_lg_stuck_before = _lg_stuck._dhw_hours_since_legionella()
+_lg_real_now = _lg_dt_mod.now
+try:
+    _lg_t0 = _lg_dt_mod.now()
+    for _h, _t in ((0, 50.0), (2, 53.0), (6, 54.0),
+                   (DHW_LEGIONELLA_BOOST_MAX_HOURS + 0.1, 54.0)):
+        _lg_dt_mod.now = lambda h=_h: _lg_t0 + timedelta(hours=h)
+        _lg_stuck._current_action = {"dhw_reason": _LG_REASON}
+        _asyncio.run(_lg_stuck._async_track_dhw_legionella_cycle(_t))
+finally:
+    _lg_dt_mod.now = _lg_real_now
+_lg_stuck_after = _lg_stuck._dhw_hours_since_legionella()
+R.check(
+    "a boost still commanded after the bound is judged rather than waited on",
+    _lg_stuck_before > 168.0
+    and _lg_stuck_after is not None
+    and _lg_stuck_after < 1.0
+    and _lg_stuck._dhw_legionella_attempt_peak == 54.0,
+    f"{_lg_stuck_before:.0f} h before, {_lg_stuck_after} h after, peak "
+    f"{_lg_stuck._dhw_legionella_attempt_peak!r}",
+)
+R.check(
+    "…and the user is told the tank is not reaching temperature",
+    any(
+        i[1] == "dhw_legionella_unreachable"
+        for i in getattr(_lg_stuck.hass, "issues", [])
+    ),
+    f"issues {[i[1] for i in getattr(_lg_stuck.hass, 'issues', [])]}",
+)
+
+
+# ---------------------------------------------------------------------------
+R.section("v5.1.8 — the stock defaults are not a Repairs card")
+
+# `dhw_enabled=True` alone gives a 55 °C charge limit and a 60 °C cycle, both
+# straight from DEFAULT_*. A WARNING-severity, non-fixable Repairs issue on
+# that pair would put a card on every fresh install — one whose own text reads
+# "That is allowed and nothing is wrong", which is not what a Repairs card is
+# for. A pair the owner actually chose still gets it.
+_lg_stock = _Coord(
+    _FakeHass(),
+    _FakeEntry(data={"tibber_token": "x", "weather_entity": "weather.home",
+                     "dhw_enabled": True}),
+)
+R.check(
+    "a stock install really is on the default pair",
+    _lg_stock._thermal_params.dhw_setpoint == 55.0
+    and _lg_stock._thermal_params.dhw_legionella_temp == 60.0
+    and _lg_stock._thermal_params.dhw_legionella_enabled,
+    f"{_lg_stock._thermal_params.dhw_setpoint}/"
+    f"{_lg_stock._thermal_params.dhw_legionella_temp}",
+)
+_lg_stock._check_dhw_legionella_ceiling()
+R.check(
+    "…and it raises no Repairs card",
+    not any(
+        i[1] == "dhw_legionella_above_setpoint"
+        for i in getattr(_lg_stock.hass, "issues", [])
+    ),
+    f"issues {[i[1] for i in getattr(_lg_stock.hass, 'issues', [])]}",
+)
+# Mutation value: a pair the owner actually edited still gets the card, so
+# the check above is not passing because the notice was simply deleted.
+_lg_edited = _lg_coord()
+_lg_edited._check_dhw_legionella_ceiling()
+R.check(
+    "a pair the owner edited to differ still gets it (mutation check)",
+    any(
+        i[1] == "dhw_legionella_above_setpoint"
+        for i in getattr(_lg_edited.hass, "issues", [])
+    ),
+    f"52/60: issues {[i[1] for i in getattr(_lg_edited.hass, 'issues', [])]}",
+)
+_lg_edited_leg = _lg_coord(dhw_setpoint=55.0, dhw_legionella_temperature=65.0)
+_lg_edited_leg._check_dhw_legionella_ceiling()
+R.check(
+    "…and so does a raised disinfection temperature on the default limit",
+    any(
+        i[1] == "dhw_legionella_above_setpoint"
+        for i in getattr(_lg_edited_leg.hass, "issues", [])
     ),
 )
 

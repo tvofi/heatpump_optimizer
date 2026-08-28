@@ -627,7 +627,36 @@ class ThermalParameters:
 
     @property
     def dhw_max_temp(self) -> float:
-        """Highest tank temperature the optimizer is allowed to plan for."""
+        """The everyday charge limit: how hot a plan may take the tank.
+
+        This is the user's own "Highest tank temperature to charge to", and
+        nothing else. Until v5.1.8 the disinfection temperature was folded
+        in here permanently, which turned a 60 °C hygiene setting into the
+        ceiling the cost planner spent every single day: pre-buying at the
+        night trough beats heating at the evening window even after standby
+        losses, and how far the plan over-charges is bounded by exactly this
+        number. A 52/60 pair therefore ran the tank to ~58 °C on a day with
+        no cycle due — the field did the opposite of what its help text
+        promises ("An upper limit on charging, not a target").
+
+        A disinfection cycle legitimately goes above this, but only while it
+        is running: the optimizer raises the ceiling per step around the
+        cycle it has actually scheduled, and ``dhw_hard_max_temp`` below is
+        the physical rating that bounds even that.
+        """
+        return min(70.0, self.dhw_setpoint)
+
+    @property
+    def dhw_hard_max_temp(self) -> float:
+        """The tank's rating: the hottest this tank may ever be driven.
+
+        The everyday ceiling is a preference; this is physics, and it has to
+        stay above the disinfection temperature or the model would refuse
+        the very boost the hygiene cycle exists to deliver. ``simulate_dhw_step``
+        clamps to this, so a pinned plan, a replayed trajectory or a
+        legionella boost is bounded without the everyday limit silently
+        capping a cycle at the setpoint.
+        """
         top = self.dhw_setpoint
         if self.dhw_legionella_enabled:
             top = max(top, self.dhw_legionella_temp)
@@ -1402,6 +1431,10 @@ class ThermalModel:
         cap because it prices the storage losses directly.
         """
         p = self.params
+        # "Fully charged" means the everyday charge limit, not the rating: a
+        # disinfection cycle is a few hours a week, and sizing the pre-heat
+        # horizon off a temperature the tank only sees during one would
+        # over-state how far ahead ordinary hot water may be bought.
         top = max(p.dhw_max_temp, p.dhw_min_temp + 1.0)
         floor = p.dhw_min_temp
         return self.dhw_coast_hours(top, floor)
@@ -1516,7 +1549,11 @@ class ThermalModel:
         # clamp: only the charging direction is limited (a tank read above
         # the rating cools at its physical rate, it is not snapped down),
         # and the refused heat is booked, never deleted.
-        dT_cap = max(0.0, p.dhw_max_temp - dhw_temp) / max(dt_hours, 1e-6)
+        # The *rating*, not the everyday charge limit: a disinfection boost is
+        # meant to go above the user's charge limit, and clamping it here
+        # would make the cycle silently fail to reach temperature. The
+        # everyday limit is enforced per step by the planner instead.
+        dT_cap = max(0.0, p.dhw_hard_max_temp - dhw_temp) / max(dt_hours, 1e-6)
         if dT > dT_cap:
             self._step_dhw_refused = (dT - dT_cap) * C_dhw
             dT = dT_cap

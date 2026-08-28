@@ -647,6 +647,51 @@ def _dhw_min_too_close(candidate: dict[str, Any], current: dict[str, Any]) -> bo
     return float(minimum) > float(setpoint) - DHW_MIN_TEMP_SETPOINT_MARGIN
 
 
+def _dhw_legionella_warning(
+    candidate: dict[str, Any], current: dict[str, Any]
+) -> dict[str, str] | None:
+    """The disinfection cycle takes the tank above the charge limit — or not.
+
+    A warning, never an error. Since v5.1.8 the charge limit is exactly what
+    it says on the label: the plan does not take the tank above it on an
+    ordinary day, and the disinfection temperature applies only while a cycle
+    is running. That makes a 52/60 pair perfectly legitimate — it just means
+    the tank goes 8 °C above the limit once an interval, which is worth
+    saying out loud rather than blocking.
+
+    Returns the placeholders for the ``dhw_legionella_above_setpoint`` notice
+    (temperature, limit, and how often), or ``None`` when the pair says
+    nothing surprising. Shaped like ``_band_errors`` and ``_dhw_min_too_close``
+    beside it: judged on the pair a save would LEAVE IN FORCE, not on the
+    half of it this page happens to carry.
+    """
+    enabled = candidate.get(
+        CONF_DHW_LEGIONELLA_ENABLED,
+        current.get(CONF_DHW_LEGIONELLA_ENABLED, DEFAULT_DHW_LEGIONELLA_ENABLED),
+    )
+    if not bool(enabled):
+        return None
+    setpoint = _effective(
+        candidate, current, CONF_DHW_SETPOINT, DEFAULT_DHW_SETPOINT
+    )
+    legionella = _effective(
+        candidate, current, CONF_DHW_LEGIONELLA_TEMP, DEFAULT_DHW_LEGIONELLA_TEMP
+    )
+    if legionella <= setpoint:
+        return None
+    interval = _effective(
+        candidate,
+        current,
+        CONF_DHW_LEGIONELLA_INTERVAL_DAYS,
+        DEFAULT_DHW_LEGIONELLA_INTERVAL_DAYS,
+    )
+    return {
+        "legionella_temp": f"{legionella:.0f}",
+        "setpoint": f"{setpoint:.0f}",
+        "interval_days": f"{interval:.0f}",
+    }
+
+
 def _valid_months_spec(spec: Any) -> bool:
     """Whether a #13 month-mask spec parses; empty means every month."""
     text = str(spec or "").strip()
@@ -1174,6 +1219,22 @@ class HeatPumpOptimizerConfigFlow(
             elif _dhw_min_too_close(user_input, self._data):
                 errors[CONF_DHW_MIN_TEMP] = "dhw_min_too_close"
             else:
+                # A warning, not a block: the pair is legitimate, it just has
+                # a consequence worth naming. The coordinator turns the same
+                # judgement into the repair notice the user actually reads,
+                # from the parameters that end up in force — which also
+                # covers the set_thermal_parameters service, a path no form
+                # validator can see.
+                warning = _dhw_legionella_warning(user_input, self._data)
+                if warning is not None:
+                    _LOGGER.warning(
+                        "Hot water: the anti-legionella cycle at %s °C is "
+                        "above the %s °C charge limit, so the tank is taken "
+                        "above that limit every %s days",
+                        warning["legionella_temp"],
+                        warning["setpoint"],
+                        warning["interval_days"],
+                    )
                 self._data.update(user_input)
                 return await self.async_step_weather_sensitivity()
 
@@ -1630,6 +1691,17 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
             elif _dhw_min_too_close(user_input, self._current):
                 errors[CONF_DHW_MIN_TEMP] = "dhw_min_too_close"
             else:
+                # Warned, never blocked — see the setup flow's DHW step.
+                warning = _dhw_legionella_warning(user_input, self._current)
+                if warning is not None:
+                    _LOGGER.warning(
+                        "Hot water: the anti-legionella cycle at %s °C is "
+                        "above the %s °C charge limit, so the tank is taken "
+                        "above that limit every %s days",
+                        warning["legionella_temp"],
+                        warning["setpoint"],
+                        warning["interval_days"],
+                    )
                 cleaned = dict(user_input)
                 # This page's clearable entities (T3): an absent selector is
                 # written back as None so clearing genuinely clears. The

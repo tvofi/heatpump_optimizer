@@ -564,8 +564,10 @@ def check_invariants(label: str, run: dict) -> list[str]:
         # A tank that *starts* above its rating cannot be brought down by a
         # plan -- there is no way to un-heat water, only to stop adding heat
         # and let it coast. So the bound is the rating or the starting
-        # temperature, whichever is higher.
-        ceiling = max(params.dhw_max_temp, run["initial"].dhw_temperature)
+        # temperature, whichever is higher. The RATING, not the everyday
+        # charge limit: a disinfection cycle is meant to exceed the limit
+        # (v5.1.8 split the two).
+        ceiling = max(params.dhw_hard_max_temp, run["initial"].dhw_temperature)
         if peak > ceiling + 1.0:
             problems.append(
                 f"tank reached {peak:.1f} °C, over its {ceiling:.0f} °C ceiling"
