@@ -91,6 +91,34 @@ cannot see what they depend on:
   producer would leave it with no payload, or, on a developer's box, with a
   stale one from an earlier run.
 
+### What it actually saves
+
+Measured against a real CI run of the fast job (2435 s: `stress.py` 1254 s,
+`features.py` 415 s, `edge.py` 307 s, `validate.py` 207 s, `backtest.py`
+199 s, everything else inside 53 s between them):
+
+| change | scripts run | CI seconds | saved |
+|---|---|---|---|
+| a change to `RELEASE_NOTES.md` | 1 of 16 — `entities.py` | 5 | 100% |
+| a change to `tests/card.mjs` | 2 — `plan_view.py`, `card.mjs` | 11 | 100% |
+| a change to the card's JavaScript | 6 — `plan_view.py`, `card.mjs`, `features.py`, `entities.py`, `golden.py`, `env_drift.py` | 442 | 82% |
+| a config-flow change (`config_flow.py`, `strings.json`, both translations) | 4 — `features.py`, `entities.py`, `golden.py`, `env_drift.py` | 431 | 82% |
+| a change to `optimizer.py` | 14 — everything but `frontend.py` and `open_meteo.py` | 2424 | 0% |
+
+The last row is the point, not an embarrassment. A change to the solver can
+reach almost every script in the suite, the closures say so, and the gate
+runs almost the whole suite. A scoped gate that found a way to skip work
+there would be lying.
+
+The card row is worth reading twice, because it is not what anyone would have
+guessed. A card-only change does **not** cost five seconds: `features.py` and
+`entities.py` both open the card's JavaScript, and `features.py` alone is
+415 s. Meanwhile `frontend.py` — which sounds like the most card-adjacent
+script in the suite — is *not* run, because it checks how the card reaches the
+browser and never opens the card's code at all. Both of those are the
+measurement disagreeing with the intuition, and the measurement is what the
+gate uses.
+
 ### When it refuses to scope
 
 Scoping turns itself off and runs everything whenever it cannot be sure:
