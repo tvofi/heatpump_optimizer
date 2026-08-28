@@ -2504,8 +2504,19 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     #: two the interval belongs to neither and is dropped.
     _COP_CURVE_SHARE = 0.15
 
-    def _cop_reference_curve(self) -> float | None:
+    def _cop_reference_curve(self) -> tuple[float | None, bool, float | None]:
         """The modelled COP this interval should be judged against, or None.
+
+        Returns ``(cop, dhw_curve, dhw_tank_temp)``. The choice is *returned*
+        rather than stored on the instance: several of
+        ``_learn_measured_cop``'s guards sit between this call and the point
+        where ``_last_measured_cop`` is written, so a method that recorded
+        the choice as a side effect re-pointed the residual's reference on
+        every cycle that then declined to produce a COP at all — including
+        the blended-interval branch below, which in ``HEATDHW`` with an even
+        split is *every* cycle on the hardware this release targets. The
+        stored COP would then be subtracted from a curve it was never
+        referenced to. ``_learn_measured_cop`` writes all three together.
 
         v5.2.0. ``_learn_measured_cop`` used to compare every interval against
         ``compute_cop`` — the SPACE curve — including intervals the pump spent
@@ -2534,23 +2545,20 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         """
         outdoor = self._current_state.outdoor_temperature
         space_curve = self._thermal_model.compute_cop(outdoor)
-        self._last_cop_curve_dhw = False
-        self._last_cop_dhw_temp = None
+        space_ref = (space_curve, False, None)
         if not self._pump_signals.mode_observed:
-            return space_curve
+            return space_ref
         space, dhw = self._commanded_split()
         total = space + dhw
         if total <= 1e-6:
-            return space_curve
+            return space_ref
         dhw_share = dhw / total
         if dhw_share <= self._COP_CURVE_SHARE:
-            return space_curve
+            return space_ref
         if dhw_share >= 1.0 - self._COP_CURVE_SHARE:
             tank = float(self._current_state.dhw_temperature)
-            self._last_cop_curve_dhw = True
-            self._last_cop_dhw_temp = tank
-            return self._thermal_model.compute_cop_dhw(outdoor, tank)
-        return None
+            return self._thermal_model.compute_cop_dhw(outdoor, tank), True, tank
+        return None, False, None
 
     def _learn_measured_cop(self) -> None:
         """Compare measured electrical input with modelled thermal output.
@@ -2637,7 +2645,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             )
             return
 
-        modelled_cop = self._cop_reference_curve()
+        modelled_cop, cop_curve_dhw, cop_dhw_temp = self._cop_reference_curve()
         if modelled_cop is None:
             # A genuinely blended interval: the pump ran both duties at once
             # and neither dominates, so the one ratio this method produces
@@ -2654,7 +2662,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         observed_cop = modelled_cop * commanded / self._measured_power
         if not np.isfinite(observed_cop) or observed_cop <= 0.1:
             return
+        # The COP and the curve it was judged against are written together,
+        # and only here. Every guard above returns without touching either,
+        # so the pair the accuracy residual reads can never be mismatched.
         self._last_measured_cop = round(float(observed_cop), 2)
+        self._last_cop_curve_dhw = cop_curve_dhw
+        self._last_cop_dhw_temp = cop_dhw_temp
 
         # ``cop_scale`` multiplies the *nameplate* curve, and ``modelled_cop``
         # already has the current scale folded in. So the new absolute scale is

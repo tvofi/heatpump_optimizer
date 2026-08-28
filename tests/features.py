@@ -12191,7 +12191,7 @@ _cop_both = _CopGate(
 )
 R.check(
     "a genuinely concurrent interval is skipped, not guessed at",
-    _cop_both._cop_reference_curve() is None,
+    _cop_both._cop_reference_curve()[0] is None,
     "HEATDHW runs both duties at once, and one power ratio cannot be "
     "attributed to two curves",
 )
@@ -12205,8 +12205,51 @@ _cop_mostly_space = _CopGate(
 )
 R.check(
     "a trickle of hot water does not disqualify a space-heating interval",
-    _cop_mostly_space._cop_reference_curve() is not None,
+    _cop_mostly_space._cop_reference_curve()[0] is not None,
 )
+
+# The pairing bug: the curve CHOICE used to be recorded as a side effect of
+# _cop_reference_curve, but several guards sit between that call and the write
+# of _last_measured_cop. A cycle that chose a curve and then returned early
+# re-pointed the residual's reference while leaving the stored COP alone — and
+# in HEATDHW with an even split that is every cycle on the target hardware.
+_cop_pair = _CopGate(outdoor=8.0, signals=_DHW_ONLY, action=_dhw_action)
+_cop_pair._current_state.dhw_temperature = 55.0
+_cop_pair._learn_measured_cop()
+_cop_pair_cop = _cop_pair._last_measured_cop
+R.check(
+    "the premise: a hot-water interval stores a DHW-referenced COP",
+    _cop_pair_cop is not None and _cop_pair._last_cop_curve_dhw
+    and _cop_pair._last_cop_dhw_temp == 55.0,
+    f"{_cop_pair_cop} dhw={_cop_pair._last_cop_curve_dhw} "
+    f"tank={_cop_pair._last_cop_dhw_temp}",
+)
+# Now a blended cycle, which produces no COP at all.
+_cop_pair._pump_signals = _HEAT_DHW
+_cop_pair._current_action = {"power": 1.5, "dhw_power": 1.5}
+_cop_pair._learn_measured_cop()
+R.check(
+    "a cycle that produces no COP leaves the stored COP's reference alone",
+    _cop_pair._last_measured_cop == _cop_pair_cop
+    and _cop_pair._last_cop_curve_dhw
+    and _cop_pair._last_cop_dhw_temp == 55.0,
+    f"cop {_cop_pair._last_measured_cop} dhw={_cop_pair._last_cop_curve_dhw} "
+    f"tank={_cop_pair._last_cop_dhw_temp} — before the fix the flag was "
+    f"cleared here and cop_residual then subtracted the SPACE curve from a "
+    f"COP that had been referenced to the DHW one",
+)
+# And a cycle that DOES produce one moves both together.
+_cop_pair._pump_signals = PumpSignals()
+_cop_pair._current_action = {"power": 3.0}
+_cop_pair._learn_measured_cop()
+R.check(
+    "and a cycle that does produce one moves the pair together",
+    _cop_pair._last_measured_cop != _cop_pair_cop
+    and not _cop_pair._last_cop_curve_dhw
+    and _cop_pair._last_cop_dhw_temp is None,
+    f"cop {_cop_pair._last_measured_cop} dhw={_cop_pair._last_cop_curve_dhw}",
+)
+
 R.section("v5.2.0 — defrost: duty is measured, the derate is physics")
 
 # Establish the premise first, because it inverts what the flag looks like it
