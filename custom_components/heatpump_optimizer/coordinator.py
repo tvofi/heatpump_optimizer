@@ -8181,7 +8181,17 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                         )
                     except Exception:  # noqa: BLE001 - tag is best-effort
                         sample.cop_residual = None
-                self._accuracy.record(sample)
+                # v5.2.0: an interval the pump spent cooling, faulted or
+                # off the network is not a measurement of the model's
+                # accuracy — the plan asked for heat and something else
+                # happened — and ``_confidence_margins`` turns recorded
+                # error into a widened comfort band on every future solve.
+                # The energy below is still accumulated: it really was
+                # drawn, and the ledger must stay honest about that.
+                # ``freeze_reason`` is None on any install without the pump
+                # signals configured, so this is inert for them.
+                if self._pump_signals.freeze_reason is None:
+                    self._accuracy.record(sample)
                 self._accumulate_energy(sample, elapsed, pending)
 
                 # T6 #52: the settled triple the diagnosis button re-runs.
@@ -9338,8 +9348,31 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         await self.async_request_refresh()
 
     def _run_system_identification(self, prices: np.ndarray) -> None:
-        """Advance the experiment and override the plan if it wants the pump."""
+        """Advance the experiment and override the plan if it wants the pump.
+
+        v5.2.0: the experiment is subject to the mode gate and the pump-signal
+        freeze, like every other path that commands power. It writes
+        ``_current_action["power"]`` directly, *after* the solve, so it is the
+        one route that bypasses the bounds the mode block is enforced at —
+        and it is the worst route to bypass them by. A step response measured
+        while the pump is cooling, faulted or offline is not a noisy
+        measurement of the house, it is a measurement of something else
+        entirely, and ``_adopt_system_identification`` seeds the persisted
+        thermal parameters from it. Aborting rather than pausing is
+        deliberate: an experiment is a contiguous step, and one resumed
+        across an interval that commanded heat the pump never delivered
+        would identify a house that does not exist.
+        """
         if not self._sysid.active:
+            return
+        if self._pump_signals.space_blocked:
+            self._sysid.abort(
+                f"heat pump mode {self._pump_signals.mode.label} cannot heat "
+                "the house"
+            )
+            return
+        if self._pump_signals.freeze_reason is not None:
+            self._sysid.abort(self._pump_signals.freeze_reason)
             return
         override = self._sysid.step(
             now=dt_util.now(),

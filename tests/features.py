@@ -13309,5 +13309,88 @@ R.check(
 
 
 
+R.section("v5.2.0 review — the experiment obeys the mode gate too")
+
+from pathlib import Path as _Path  # noqa: E402
+from heatpump_optimizer import sysid as _SysIdModule  # noqa: E402
+
+_PKG_DIR = _Path("custom_components/heatpump_optimizer")
+
+# _run_system_identification writes _current_action["power"] AFTER the solve,
+# so it is the one route that bypasses the bounds the mode block is enforced
+# at — and the worst one to bypass them by, because
+# _adopt_system_identification seeds the persisted thermal parameters from
+# whatever the experiment measured.
+
+
+class _SysIdHost:
+    _run_system_identification = Coord._run_system_identification
+
+    def __init__(self, signals) -> None:
+        self._pump_signals = signals
+        self._sysid = _SysIdModule.SystemIdentification(
+            _SysIdModule.SysIdConfig(enabled=True)
+        )
+        self._sysid.arm(datetime(2026, 1, 5, 2, 0, tzinfo=UTC))
+        self._current_action = {"power": 0.0, "heat_pump_on": False}
+        self._current_state = ThermalState(
+            room_temperature=21.0, outdoor_temperature=3.0
+        )
+        self._thermal_params = ThermalParameters()
+        self._thermal_model = ThermalModel(self._thermal_params)
+        self._house_heat_loss_samples = 0
+
+    def _get_current_price(self):
+        return 0.2
+
+
+_COOLING = pump_signals.PumpSignals(
+    mode=pump_mode.capability("Cooling"),
+    mode_observed=True,
+    mode_source=pump_signals.MODE_SOURCE_LIVE,
+    freeze_reason=pump_signals.FREEZE_COOLING,
+)
+_DHW_ONLY_SIG = pump_signals.PumpSignals(
+    mode=pump_mode.capability("DHW"),
+    mode_observed=True,
+    mode_source=pump_signals.MODE_SOURCE_LIVE,
+)
+_OFFLINE = pump_signals.PumpSignals(
+    online=False, freeze_reason=pump_signals.FREEZE_OFFLINE
+)
+
+_si_free = _SysIdHost(PumpSignals())
+_si_free._run_system_identification(np.full(48, 0.2))
+R.check(
+    "the control: with no mode entity the experiment is untouched",
+    _si_free._sysid.active,
+    f"phase {_si_free._sysid.phase}",
+)
+for _sig, _name in (
+    (_COOLING, "a cooling mode"),
+    (_DHW_ONLY_SIG, "a hot-water-only mode"),
+    (_OFFLINE, "a pump that is off the network"),
+):
+    _si = _SysIdHost(_sig)
+    _si._run_system_identification(np.full(48, 0.2))
+    R.check(
+        f"{_name} aborts an armed experiment instead of commanding heat",
+        not _si._sysid.active
+        and _si._sysid.phase == _SysIdModule.PHASE_ABORTED
+        and _si._current_action["power"] == 0.0,
+        f"phase {_si._sysid.phase} power {_si._current_action['power']} — a "
+        f"step response measured through this is not a noisy measurement of "
+        f"the house, and _adopt_system_identification persists what it fits",
+    )
+_si_reason = _SysIdHost(_COOLING)
+_si_reason._run_system_identification(np.full(48, 0.2))
+R.check(
+    "the aborted result carries the cause",
+    _si_reason._sysid.result.reason
+    and not _si_reason._sysid.result.completed,
+    f"{_si_reason._sysid.result.reason!r}",
+)
+
+
 
 sys.exit(R.close("FEATURE CHECKS"))
