@@ -134,10 +134,11 @@ VERSION_FILE = "VERSION"
 #
 # What a baseline capture is a function of, read off the code that runs it:
 #
-#   * The baseline tree. `git worktree add --detach <ref>` checks out exactly
-#     the tracked content of one commit, so the commit SHA fixes every byte
-#     of tests/golden.py, tests/profiles.py, tests/hastub/ and
-#     custom_components/. Both the commit and its tree SHA go in the key.
+#   * The baseline tree. The worktree is checked out at the resolved commit
+#     SHA -- never at the ref name, see main() -- so one commit's tracked
+#     content fixes every byte of tests/golden.py, tests/profiles.py,
+#     tests/hastub/ and custom_components/. Both the commit and its tree SHA
+#     go in the key.
 #   * THIS file. `capture_tree` runs from the branch's copy of env_drift.py
 #     (main() re-invokes `os.path.abspath(__file__)`), and it is what decides
 #     which scenarios are captured and how -- SCENARIOS plus the coordinator
@@ -876,8 +877,17 @@ def main() -> int:
     # the twenty minutes the capture costs, and it keeps the inherited-claims
     # check reading the baseline's claim file from a real checkout, exactly as
     # it did before there was a cache.
+    # Checked out at the SHA the key was computed from, not at the ref NAME.
+    # These two are resolved a second or so apart -- long enough for a
+    # `git fetch` in another worktree sharing this .git to move origin/main
+    # in between, which is not hypothetical: it happened during a run while
+    # this cache was being written. Building the worktree from the name
+    # would then capture the NEW tree and file it under the OLD commit's
+    # key, and every later run would hit that entry and compare against a
+    # baseline that is not the one it names. Pinning to ref_sha closes the
+    # window: the key and the checkout cannot disagree.
     subprocess.run(
-        ["git", "worktree", "add", "--detach", worktree, ref],
+        ["git", "worktree", "add", "--detach", worktree, ref_sha or ref],
         cwd=repo, check=True, capture_output=True,
     )
     try:
