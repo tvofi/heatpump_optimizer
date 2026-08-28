@@ -2,9 +2,11 @@
 """Derive and apply the scoped gate's dependency closures.
 
 The gate is the throughput bottleneck: a full run is about forty minutes,
-and a change to the card genuinely needs about five seconds of it. This
-module lets ``tests/run.sh`` run only the scripts a change can affect --
-without anyone ever writing down, by hand, what a script depends on.
+and most changes cannot reach most of it. This module lets ``tests/run.sh``
+run only the scripts a change can affect -- without anyone ever writing down,
+by hand, what a script depends on. Measured on the real suite: a
+release-notes change reaches one script, a change to the card's JavaScript
+reaches six, a change to the optimizer reaches fourteen of sixteen.
 
 The closures are MEASURED, never declared. ``closure.py record`` runs a test
 script for real under two instruments at once:
@@ -31,6 +33,7 @@ Commands
   merge  --in-dir DIR             fold records into tests/closures.json
   check  --in-dir DIR             fail if the committed closures under-approximate
   select --files ... | --diff REF decide which scripts a change needs
+                 [--workdir DIR]  ...and write the plan where run.sh reads it
   show                            print the committed closures
 
 Nothing here imports the integration; recording does, by running the tests.
@@ -66,23 +69,22 @@ PRODUCERS = {"tests/card.mjs": ["tests/plan_view.py"]}
 
 # ---------------------------------------------------------------------------
 # Paths that no test can read, so a change to them cannot break one. This is
-# the ONLY hand-written list in the file, it is deliberately tiny, and it is
-# checked: `merge` fails if any of these turns up inside a recorded closure,
-# because that would mean a test does read it.
+# the only claim in this file that a person makes rather than a run, so it is
+# deliberately tiny AND it is checked: `merge` fails if any of these turns up
+# inside a recorded closure, because that would mean a test does read it.
 #
 # Everything else that is not in any closure forces a FULL run. "No test reads
 # it" is not something to assume about a file nobody measured.
-# It is deliberately shorter than it looks like it should be. Two entries were
-# taken off it by measurement rather than by argument:
 #
-#   README.md, RELEASE_NOTES.md — tests/entities.py reads both, checking the
+# The list is shorter than it looks like it should be, because the check took
+# entries off it:
+#
+#   README.md, RELEASE_NOTES.md -- tests/entities.py reads both, checking the
 #     documented behaviour against the code. They are dependencies.
-#   the integration's icon and brand images — inside custom_components/, so
-#     they are inside env_drift.py's rule-widened closure whatever anyone
-#     thinks about them, and claiming otherwise here is just an inconsistency
-#     waiting to be believed.
-#
-# Both were rejected by the check below, which is why they are gone.
+#   the integration's icon and brand images -- they sit inside
+#     custom_components/, so they are inside env_drift.py's rule-widened
+#     closure whatever anyone thinks about them, and saying otherwise here is
+#     an inconsistency waiting to be believed.
 INERT = (
     "LICENSE",
     "NOTICE",
