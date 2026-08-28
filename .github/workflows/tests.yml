@@ -24,6 +24,10 @@ name: Tests
 #   restored entry before using it, so a wrong restore is a miss rather
 #   than a stale baseline.
 #
+#   run.sh spreads the suite over lanes and runs tests/stress.py alone at
+#   the end; every script still runs with the same arguments and every
+#   failure still counts.
+#
 # * slow — nightly and on demand. Same suite plus SLOW=1, which adds
 #   tests/rolling.py (the closed-loop learner simulation, ~15 minutes).
 

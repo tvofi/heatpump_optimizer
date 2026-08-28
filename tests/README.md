@@ -8,7 +8,23 @@ exact versions CI uses.
 ```bash
 ./tests/run.sh          # everything except the slow closed-loop simulation
 SLOW=1 ./tests/run.sh   # including it (adds about fifteen minutes)
+GATE_JOBS=1 ./tests/run.sh   # one script at a time, streaming, for watching a failure
 ```
+
+`run.sh` runs the suite in lanes rather than in one long line: the unit-style
+scripts, the characterization gate and the end-to-end scripts go in parallel,
+then `stress.py` runs **alone** on an otherwise idle box, because its
+solve-time guard measures this machine while it solves and the rest of the
+suite must not be part of what it measures. `plan_view.py` writes the payload
+`card.mjs` reads, so those two stay in one lane in that order. Every script
+still runs with the same arguments, and every failure still counts — and a
+script that is wired into `run.sh` but that no lane actually executes now
+fails the run, which the older "is it mentioned?" grep could not see. Output
+is captured per script and replayed whole, one script at a time, once the
+lanes finish — four scripts interleaving their output is not something anyone
+can read — with live start/finish lines while they run and a wall-clock table
+at the end. `GATE_JOBS=1` puts it back to one script at a time with streaming
+output, which is what to reach for when a failure needs watching as it happens.
 
 CI runs the same `run.sh` on every push and pull request
 (`.github/workflows/tests.yml`), with one difference: `GOLDEN_MODE=drift`

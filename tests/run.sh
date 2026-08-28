@@ -18,6 +18,32 @@
 #     environment and requires them identical. This is what CI runs: solver
 #     floats are not bit-stable across BLAS builds, so comparing this
 #     machine's output against fixtures recorded on another would cry wolf.
+#
+# The suite runs in LANES, not one long line. Every script still runs, with
+# the same arguments, and every failure still counts; what changed is that
+# independent lanes share the box. Three things decide the shape:
+#
+#   * `plan_view.py` writes the payload `card.mjs` reads, so those two stay
+#     in one lane, in that order. That ordering is load-bearing.
+#   * `stress.py` runs ALONE, after every other lane has finished. Its
+#     solve-time guard measures this machine while it solves; sharing the
+#     box with three other Python processes is exactly the noise that guard
+#     exists to see through, and it should not have to see through noise
+#     this suite made itself.
+#   * Nothing else shares mutable state: the only files any of them write
+#     are the plan payload above and per-run temporary directories, and
+#     env_drift.py is the only script that touches git.
+#
+# GATE_JOBS controls it: unset (default) uses the smaller of `nproc` and 3
+# lanes; GATE_JOBS=1 runs everything serially with live streaming output,
+# which is the old behaviour and the thing to reach for when a failure needs
+# watching as it happens.
+#
+# In lane mode each script's output is captured and replayed in full, one
+# script at a time, after the lanes finish — interleaved output from four
+# concurrent scripts is not something a human can read. Progress lines are
+# printed live as scripts start and finish, so a long run still says what it
+# is doing, and every script's wall-clock time is reported at the end.
 set -u
 
 cd "$(dirname "$0")/.."
@@ -31,14 +57,68 @@ export PYTHONPATH="$PWD/tests/hastub:${PYTHONPATH:-}"
 GOLDEN_MODE="${GOLDEN_MODE:-strict}"
 GOLDEN_REF="${GOLDEN_REF:-origin/main}"
 
+JOBS="${GATE_JOBS:-}"
+if [ -z "$JOBS" ]; then
+  if command -v nproc >/dev/null 2>&1; then JOBS=$(nproc); else JOBS=1; fi
+  [ "$JOBS" -gt 3 ] && JOBS=3
+fi
+case "$JOBS" in (*[!0-9]*|"") JOBS=1 ;; esac
+[ "$JOBS" -lt 1 ] && JOBS=1
+
+WORKDIR=$(mktemp -d "${TMPDIR:-/tmp}/hpo-gate-XXXXXX")
+trap 'rm -rf "$WORKDIR"' EXIT
+
 failed=0
+LANE="${LANE:-main}"
+step=0
+suite_start=$(date +%s)
+
+# One test script. In lane mode its output goes to a file and is replayed
+# later, in one piece; serially it streams, exactly as it always did. Either
+# way the exit status and the wall-clock time land in the lane's manifest,
+# which is what the parent adds up — a lane runs in a subshell, so a counter
+# incremented in there would never come back.
 run() {
-  echo
-  echo "########## $* ##########"
-  if ! "$@"; then
-    echo ">>> FAILED: $*"
-    failed=$((failed + 1))
+  step=$((step + 1))
+  local id started finished rc=0
+  id=$(printf '%s-%03d' "$LANE" "$step")
+  started=$(date +%s)
+  if [ "$JOBS" -le 1 ]; then
+    echo
+    echo "########## $* ##########"
+    "$@" || rc=$?
+  else
+    printf '  [%s] start  %s\n' "$(date +%H:%M:%S)" "$*"
+    "$@" > "$WORKDIR/$id.log" 2>&1 || rc=$?
+    finished=$(date +%s)
+    printf '  [%s] %-6s %s (%ss)\n' \
+      "$(date +%H:%M:%S)" "$([ "$rc" -eq 0 ] && echo ok || echo FAILED)" \
+      "$*" "$((finished - started))"
   fi
+  finished=$(date +%s)
+  printf '%s\t%s\t%s\t%s\n' "$id" "$rc" "$((finished - started))" "$*" \
+    >> "$WORKDIR/$LANE.manifest"
+  if [ "$rc" -ne 0 ] && [ "$JOBS" -le 1 ]; then
+    echo ">>> FAILED: $*"
+  fi
+}
+
+# A script deliberately not run this time. It names the script it stands in
+# for, because the accounting check below insists every test script either
+# ran or was skipped on purpose — a lane function that never gets called
+# would otherwise take its scripts down with it, silently, and the
+# `run ... tests/<name>` grep above cannot see that: it only proves the line
+# exists, not that anything executed it.
+skip() {
+  local script="$1"
+  shift
+  step=$((step + 1))
+  local id
+  id=$(printf '%s-%03d' "$LANE" "$step")
+  printf '%s\n' "$*" > "$WORKDIR/$id.log"
+  printf '%s\t0\t0\t#skip %s\n' "$id" "$script" >> "$WORKDIR/$LANE.manifest"
+  [ "$JOBS" -le 1 ] && { echo; echo "$*"; }
+  return 0
 }
 
 # Every test script must be wired into this file or deliberately allow-listed;
@@ -46,7 +126,10 @@ run() {
 # run — which is exactly how optimality.py sat dormant for a year.
 # "Wired" means an actual invocation line — `run ... tests/<name>` — not a
 # mention in a comment or prose, which is how a bare-substring grep once
-# counted four suites as wired when they were merely talked about.
+# counted four suites as wired when they were merely talked about. Splitting
+# the suite into lanes moved those lines inside shell functions; they are
+# still `run` invocations at the start of a line, so the same pattern finds
+# them, and a script wired nowhere still fails here.
 for f in tests/*.py tests/*.mjs; do
   base=$(basename "$f")
   case "$base" in
@@ -64,64 +147,164 @@ for f in tests/*.py tests/*.mjs; do
   fi
 done
 
-# Unit-style checks first: they are fast, and a failure here explains any
-# end-to-end failure that follows.
-run "$PYTHON" tests/features.py
-run "$PYTHON" tests/entities.py
-run "$PYTHON" tests/manual_plan.py
-run "$PYTHON" tests/open_meteo.py
-run "$PYTHON" tests/solar_alignment.py
+# --- the lanes -------------------------------------------------------------
 
-# The characterization harness: exact behaviour, pinned. Runs before the
-# outcome-based scripts because when both fail, this one says *what* changed.
-if [ "$GOLDEN_MODE" = "drift" ]; then
-  run "$PYTHON" tests/env_drift.py --all "$GOLDEN_REF"
-else
-  run "$PYTHON" tests/golden.py
-  # The five machine-sensitive fixtures get their real check here: identical
-  # to GOLDEN_REF when captured twice in THIS environment (G4b). Skipped
-  # when the ref is unreachable (tarball checkouts, offline clones).
-  if ! git rev-parse --verify --quiet "${GOLDEN_REF}^{commit}" >/dev/null 2>&1; then
-    echo
-    echo "SKIP: tests/env_drift.py ($GOLDEN_REF is not available here)"
-  elif [ "$(git rev-parse "${GOLDEN_REF}^{commit}")" = "$(git rev-parse HEAD)" ]; then
-    # A checkout sitting on the comparison ref itself: comparing a tree to
-    # itself proves nothing, so there is nothing to run. env_drift fails on
-    # this rather than passing vacuously; here it is just where a developer
-    # on an up-to-date main lands, so say so and carry on.
-    echo
-    echo "SKIP: tests/env_drift.py ($GOLDEN_REF is this commit; use GOLDEN_REF=HEAD^1 to check it)"
+# Unit-style checks: fast, and a failure here explains any end-to-end failure
+# that follows. Kept together and reported first for exactly that reason.
+lane_units() {
+  run "$PYTHON" tests/features.py
+  run "$PYTHON" tests/entities.py
+  run "$PYTHON" tests/manual_plan.py
+  run "$PYTHON" tests/open_meteo.py
+  run "$PYTHON" tests/solar_alignment.py
+}
+
+# The characterization harness: exact behaviour, pinned. Its own lane because
+# it is the longest single step in the suite — in drift mode it captures every
+# scenario twice — and nothing else depends on it.
+lane_golden() {
+  if [ "$GOLDEN_MODE" = "drift" ]; then
+    # Drift mode replaces the exact comparison entirely; golden.py's
+    # fixtures were recorded on another machine and comparing this one's
+    # floats against them would cry wolf. Said out loud rather than left
+    # as a gap: the accounting below wants every script accounted for.
+    skip tests/golden.py "SKIP: tests/golden.py (GOLDEN_MODE=drift checks fixtures via env_drift.py instead)"
+    run "$PYTHON" tests/env_drift.py --all "$GOLDEN_REF"
   else
-    run "$PYTHON" tests/env_drift.py "$GOLDEN_REF"
+    run "$PYTHON" tests/golden.py
+    # The five machine-sensitive fixtures get their real check here: identical
+    # to GOLDEN_REF when captured twice in THIS environment (G4b). Skipped
+    # when the ref is unreachable (tarball checkouts, offline clones).
+    if ! git rev-parse --verify --quiet "${GOLDEN_REF}^{commit}" >/dev/null 2>&1; then
+      skip tests/env_drift.py "SKIP: tests/env_drift.py ($GOLDEN_REF is not available here)"
+    elif [ "$(git rev-parse "${GOLDEN_REF}^{commit}")" = "$(git rev-parse HEAD)" ]; then
+      # A checkout sitting on the comparison ref itself: comparing a tree to
+      # itself proves nothing, so there is nothing to run. env_drift fails on
+      # this rather than passing vacuously; here it is just where a developer
+      # on an up-to-date main lands, so say so and carry on.
+      skip tests/env_drift.py "SKIP: tests/env_drift.py ($GOLDEN_REF is this commit; use GOLDEN_REF=HEAD^1 to check it)"
+    else
+      run "$PYTHON" tests/env_drift.py "$GOLDEN_REF"
+    fi
   fi
-fi
+}
 
-# End-to-end optimizer behaviour.
-run "$PYTHON" tests/validate.py
-run "$PYTHON" tests/edge.py
-run "$PYTHON" tests/backtest.py
-run "$PYTHON" tests/stress.py
-run "$PYTHON" tests/optimality.py
+# End-to-end optimizer behaviour, then the plan payloads, the card that
+# renders them and how it reaches the page. plan_view.py writes what card.mjs
+# reads, so this lane is sequential and that pair keeps its order.
+lane_e2e() {
+  run "$PYTHON" tests/validate.py
+  run "$PYTHON" tests/edge.py
+  run "$PYTHON" tests/backtest.py
+  run "$PYTHON" tests/optimality.py
 
-# The closed-loop simulation runs hundreds of solves and takes about a quarter
-# of an hour, so it is opt-in: a test that slow would simply stop being run if
-# it sat in the default path. Run it before a release, or after touching the
-# optimizer or the learners.
-if [ "${SLOW:-0}" = "1" ]; then
-  run "$PYTHON" tests/rolling.py
+  # The closed-loop simulation runs hundreds of solves and takes about a
+  # quarter of an hour, so it is opt-in: a test that slow would simply stop
+  # being run if it sat in the default path. Run it before a release, or
+  # after touching the optimizer or the learners.
+  if [ "${SLOW:-0}" = "1" ]; then
+    run "$PYTHON" tests/rolling.py
+  else
+    skip tests/rolling.py "SKIP: tests/rolling.py (set SLOW=1 to include the closed-loop simulation)"
+  fi
+
+  run "$PYTHON" tests/plan_view.py
+  run "$PYTHON" tests/frontend.py
+  if command -v node >/dev/null 2>&1; then
+    run node tests/card.mjs
+  else
+    skip tests/card.mjs "SKIP: node not found, skipping tests/card.mjs"
+  fi
+}
+
+# Alone, on an idle box, after everything else. See the header: its
+# solve-time guard calibrates against this machine while it runs, and the
+# rest of the suite must not be part of what it measures.
+lane_stress() {
+  run "$PYTHON" tests/stress.py
+}
+
+LANES="units golden e2e"
+
+if [ "$JOBS" -le 1 ]; then
+  for lane in $LANES stress; do
+    LANE="$lane" step=0
+    "lane_$lane"
+    : > "$WORKDIR/$lane.done"
+  done
 else
   echo
-  echo "SKIP: tests/rolling.py (set SLOW=1 to include the closed-loop simulation)"
+  echo "########## $JOBS lanes in parallel: $LANES ##########"
+  pids=""
+  for lane in $LANES; do
+    # `trap - EXIT` so a finishing lane cannot delete the report
+    # directory the parent is still filling. The .done marker is written
+    # last: a lane killed part-way through (OOM, a signal) leaves no marker
+    # and the accounting below fails the run rather than reporting the
+    # scripts it did manage as the whole story.
+    ( trap - EXIT; LANE="$lane"; step=0; "lane_$lane"; : > "$WORKDIR/$lane.done" ) &
+    pids="$pids $!"
+  done
+  for pid in $pids; do wait "$pid"; done
+  echo
+  echo "########## alone on the box: stress ##########"
+  ( trap - EXIT; LANE="stress"; step=0; lane_stress; : > "$WORKDIR/stress.done" ) &
+  wait $!
 fi
 
-# Plan payloads, then the card that renders them, and how it reaches the page.
-run "$PYTHON" tests/plan_view.py
-run "$PYTHON" tests/frontend.py
-if command -v node >/dev/null 2>&1; then
-  run node tests/card.mjs
-else
-  echo "SKIP: node not found, skipping tests/card.mjs"
+# --- accounting: every lane finished, every test script is accounted for ---
+for lane in $LANES stress; do
+  if [ ! -f "$WORKDIR/$lane.done" ]; then
+    echo "LANE DID NOT FINISH: $lane stopped before its last script"
+    failed=$((failed + 1))
+  fi
+done
+
+# The grep above proves a `run` line exists; this proves it ran. A lane
+# function left out of $LANES, or a script wired into a function nothing
+# calls, passes the first check and fails this one.
+for f in tests/*.py tests/*.mjs; do
+  base=$(basename "$f")
+  case "$base" in
+    harness.py|profiles.py|dst_checks.py|setup_qa_render.mjs) continue ;;
+  esac
+  if ! cat "$WORKDIR"/*.manifest 2>/dev/null | grep -Fq "tests/$base"; then
+    echo "TEST NEVER RAN: tests/$base is wired into tests/run.sh but no lane"
+    echo "  executed it and no lane skipped it on purpose."
+    failed=$((failed + 1))
+  fi
+done
+
+# --- the report ------------------------------------------------------------
+
+if [ "$JOBS" -gt 1 ]; then
+  for lane in $LANES stress; do
+    [ -f "$WORKDIR/$lane.manifest" ] || continue
+    while IFS=$'\t' read -r id rc seconds label; do
+      echo
+      case "$label" in
+        "#skip "*) cat "$WORKDIR/$id.log"; continue ;;
+      esac
+      echo "########## $label ##########"
+      cat "$WORKDIR/$id.log"
+      [ "$rc" -ne 0 ] && echo ">>> FAILED: $label"
+    done < "$WORKDIR/$lane.manifest"
+  done
 fi
+
+echo
+echo "########## wall clock ##########"
+for lane in $LANES stress; do
+  [ -f "$WORKDIR/$lane.manifest" ] || continue
+  while IFS=$'\t' read -r id rc seconds label; do
+    case "$label" in
+      "#skip "*) continue ;;
+    esac
+    printf '  %6ss  %s\n' "$seconds" "$label"
+    [ "$rc" -ne 0 ] && failed=$((failed + 1))
+  done < "$WORKDIR/$lane.manifest"
+done
+printf '  %6ss  TOTAL (%s lane(s))\n' "$(( $(date +%s) - suite_start ))" "$JOBS"
 
 echo
 if [ "$failed" -ne 0 ]; then
