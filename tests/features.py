@@ -2521,16 +2521,78 @@ R.check(
         if i[1] == "lower_floor_modelled"
     ],
 )
-_cleared = _zone_coord(_owner_states, floor_return_temp_entity="sensor.ret")
-_asyncio.run(_cleared._update_current_state())
-_cleared._config["lower_floor_temp_entity"] = "sensor.lower"
-_cleared.hass.states.set("sensor.lower", FakeState("20.4", unit="°C"))
-_asyncio.run(_cleared._update_current_state())
+# 10. Clearing it, through the transition the integration ACTUALLY performs.
+#
+#     Assigning the sensor writes the entry's options, which triggers
+#     `async_update_options` -> `async_reload` -> a NEW coordinator object.
+#     The first version of this check mutated `coord._config` in place on the
+#     same coordinator and passed while the real path was broken: the delete
+#     was gated on an in-memory flag that a fresh coordinator resets to False,
+#     so the branch was dead and an `is_persistent` issue promising "this
+#     notice clears when you do" stayed up forever. The shape to copy is a
+#     second coordinator sharing the same hass -- same issue registry, fresh
+#     object -- because that is what a reload is.
+_reload_states = {**_owner_states, "sensor.lower": FakeState("20.4", unit="°C")}
+_before_reload = _zone_coord(_reload_states, floor_return_temp_entity="sensor.ret")
+_asyncio.run(_before_reload._update_current_state())
+_reload_hass = _before_reload.hass
 R.check(
-    "and assigning one clears the notice on the next cycle",
+    "the notice is up before the sensor is assigned",
+    [i[1] for i in getattr(_reload_hass, "issues", [])] == ["lower_floor_modelled"],
+)
+_after_reload = _Coord(
+    _reload_hass,
+    _FakeEntry(data={
+        "tibber_token": "x",
+        "weather_entity": "weather.home",
+        "indoor_temp_entity": "sensor.indoor",
+        "outdoor_temp_entity": "sensor.outdoor",
+        "floor_return_temp_entity": "sensor.ret",
+        "lower_floor_temp_entity": "sensor.lower",
+        "upper_floor_thermal_mass": 3.0,
+        "lower_floor_thermal_mass": 8.0,
+    }),
+)
+_asyncio.run(_after_reload._update_current_state())
+R.check(
+    "and assigning one clears it across the reload that follows",
     not [
-        i for i in getattr(_cleared.hass, "issues", [])
+        i for i in getattr(_reload_hass, "issues", [])
         if i[1] == "lower_floor_modelled"
+    ],
+    "a fresh coordinator's flag starts False, so the clear must not be "
+    "gated on it",
+)
+R.check(
+    "the reloaded coordinator really is reading the sensor",
+    abs(_after_reload._current_state.lower_floor_temperature - 20.4) < 1e-6,
+    f"got {_after_reload._current_state.lower_floor_temperature}",
+)
+
+# 11. The same shape for the fee notice this audit was copied from: it had
+#     the identical flag-gated delete, and correcting a fee also reloads.
+_fee_hass = _FakeHass()
+_fee_steps = [
+    datetime(2026, 1, 7, 12, 0, tzinfo=UTC) + timedelta(minutes=15 * i)
+    for i in range(8)
+]
+_fee_bad = _Coord(
+    _fee_hass,
+    _FakeEntry(data={"tibber_token": "x", "weather_entity": "weather.home",
+                     "grid_fee_mode": "rules", "grid_fee_rules": "= 25"}),
+)
+_fee_bad._fee_series(_fee_steps)
+_fee_fixed = _Coord(
+    _fee_hass,
+    _FakeEntry(data={"tibber_token": "x", "weather_entity": "weather.home",
+                     "grid_fee_mode": "rules", "grid_fee_rules": "= 0.25"}),
+)
+_fee_fixed._fee_series(_fee_steps)
+R.check(
+    "correcting a grid fee clears its notice across the reload too",
+    not [
+        i for i in getattr(_fee_hass, "issues", [])
+        if i[1] == "grid_fee_magnitude"
     ],
 )
 

@@ -5049,7 +5049,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     },
                 )
                 self._grid_fee_issue_value = worst
-        elif self._grid_fee_issue_value is not None:
+        else:
+            # Unconditional for the reason spelled out in
+            # `_audit_lower_floor_sensor`: correcting the fee writes options,
+            # which reloads the entry, which resets this flag to None -- so
+            # gating the delete on it left a corrected installation showing a
+            # persistent warning about a value it no longer has.
             ir.async_delete_issue(self.hass, DOMAIN, "grid_fee_magnitude")
             self._grid_fee_issue_value = None
 
@@ -5071,20 +5076,31 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._thermal_params.two_zone_enabled
             and not self._config.get(CONF_LOWER_FLOOR_TEMP_ENTITY)
         )
-        if wanted and not self._lower_floor_issue_raised:
-            ir.async_create_issue(
-                self.hass,
-                DOMAIN,
-                "lower_floor_modelled",
-                is_fixable=False,
-                # Persistent: the missing sensor survives a restart, so the
-                # notice must too.
-                is_persistent=True,
-                severity=ir.IssueSeverity.WARNING,
-                translation_key="lower_floor_modelled",
-            )
-            self._lower_floor_issue_raised = True
-        elif not wanted and self._lower_floor_issue_raised:
+        if wanted:
+            if not self._lower_floor_issue_raised:
+                ir.async_create_issue(
+                    self.hass,
+                    DOMAIN,
+                    "lower_floor_modelled",
+                    is_fixable=False,
+                    # Persistent: the missing sensor survives a restart, so
+                    # the notice must too.
+                    is_persistent=True,
+                    severity=ir.IssueSeverity.WARNING,
+                    translation_key="lower_floor_modelled",
+                )
+                self._lower_floor_issue_raised = True
+        else:
+            # UNCONDITIONAL, and that is the whole point. Assigning the sensor
+            # writes options, which reloads the entry, which builds a NEW
+            # coordinator whose flag starts at False -- so a delete gated on
+            # the flag can never run, and an `is_persistent` issue that says
+            # "this notice clears when you do" would stay up forever. The
+            # in-memory flag can only ever suppress a repeated CREATE; it must
+            # never guard the clear. (`freq_watchdog` deletes unconditionally
+            # for exactly this reason; `_audit_grid_fee` did not, and had the
+            # same defect until v5.1.6.) Deleting an issue that is not there
+            # is a no-op.
             ir.async_delete_issue(self.hass, DOMAIN, "lower_floor_modelled")
             self._lower_floor_issue_raised = False
 
