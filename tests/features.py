@@ -2679,7 +2679,105 @@ R.check(
     "a missing trajectory must not silently score as a full tank",
 )
 
-# 4. Inert without a valve.
+# 5. But a full tank is only worth what the next window gets to SPEND.
+#    The credit above is undiscounted, so in summer -- when the house coasts
+#    six degrees clear of its comfort floor and needs no bought heat for days
+#    -- it was the only term in the objective with a gradient, and the plan
+#    bought space heat at 27 C to collect it. A tank leaks to ambient whether
+#    or not anyone draws on it, so heat stored against a demand that will not
+#    arrive is largely gone before it is wanted.
+from heatpump_optimizer.optimizer import (  # noqa: E402
+    hold_demand_kw as _hold_kw,
+    stored_heat_survival as _survival,
+)
+
+_p750 = ThermalParameters(
+    two_zone_enabled=True, buffer_tank_volume=750.0,
+    mixing_valve_mode="manual", buffer_max_temp=70.0,
+)
+_ua750 = _p750.buffer_tank_heat_loss_coefficient
+
+R.check(
+    "a tank's terminal credit survives intact when the house is drawing hard",
+    _survival(_ua750, 70.0, 4.7) > 0.95,
+    f"winter demand must not be discounted, got {_survival(_ua750, 70.0, 4.7):.4f}",
+)
+R.check(
+    "and collapses to nothing when the house needs no bought heat at all",
+    _survival(_ua750, 70.0, 0.0) == 0.0,
+    "an unbounded hold time means every stored kWh leaks away unspent",
+)
+R.check(
+    "with no cliff between the two: the discount is continuous in demand",
+    all(
+        _survival(_ua750, 70.0, a) <= _survival(_ua750, 70.0, b) + 1e-12
+        for a, b in zip((0.01, 0.1, 0.5, 1.0, 2.0), (0.1, 0.5, 1.0, 2.0, 4.7))
+    )
+    and _survival(_ua750, 70.0, 0.02) < 1e-3,
+    "monotone in demand and already ~0 just above zero",
+)
+R.check(
+    "a better-insulated tank is discounted less than a bare one",
+    _survival(_ua750 * 8.0, 70.0, 0.5) < _survival(_ua750, 70.0, 0.5),
+    "the discount is this tank's learned physics, not a tuning constant",
+)
+# The discount must not be a function of the end temperature the solver is
+# choosing, or the terminal term gains a second-order kink and the descent
+# path bends for no physical reason. Proof: the cost stays exactly linear in
+# the buffer end temperature, so its second difference is zero.
+_lin = _opt_valve._terminal_cost(_prices, _outdoor, np.zeros(96))
+_at = lambda t: _lin(
+    _flat(21.0), _flat(25.0), _flat(21.0), _flat(20.5), _flat(t)
+)
+_d2 = _at(50.0) - 2.0 * _at(55.0) + _at(60.0)
+R.check(
+    "the discount does not depend on the end temperature the solver picks",
+    abs(_d2) < 1e-9 and _at(50.0) > _at(60.0),
+    f"second difference {_d2:.3e} must vanish while the term still slopes",
+)
+
+# The gate: gains that cover the loss mean no demand, and no demand means no
+# credit. This is the owner's reported case (two zone, valve, 750 L, 25 C day
+# / 11 C night, comfort 17-23) reduced to the term that drove it.
+_p_gain = ThermalParameters(two_zone_enabled=True, internal_gains=5.0)
+R.check(
+    "free gains that cover the whole loss leave no hold demand",
+    _hold_kw(_p_gain, 21.0, 18.0, solar_mean=2.0) == 0.0,
+    "a house holding target on gains alone is not waiting to spend stored heat",
+)
+R.check(
+    "and solar is only counted when the caller asks for it",
+    _hold_kw(_p_gain, 21.0, 18.0) >= _hold_kw(_p_gain, 21.0, 18.0, solar_mean=2.0),
+    "the slab ceiling deliberately ignores solar; the survival term does not",
+)
+
+_opt_summer = _optimizer_for("manual")[2]
+_out_summer = np.full(96, 18.0)
+_caps_summer = _opt_summer._settlement_caps(_out_summer)
+R.check(
+    "so in summer the tank's terminal credit is switched off entirely",
+    _opt_summer._buffer_survival(
+        _out_summer, np.full(96, 2.0), _caps_summer.get("buffer")
+    )
+    == 0.0,
+    "this is what stopped 5.5 kWh of space heat being planned at 27 C",
+)
+R.check(
+    "while at -5 C the same tank keeps essentially all of it",
+    _opt_valve._buffer_survival(_outdoor, np.zeros(96), _caps_valve.get("buffer"))
+    > 0.95,
+    "winter behaviour must be preserved, not traded away",
+)
+R.check(
+    "and without a valve the discount is exactly 1.0, changing nothing",
+    _opt_none._buffer_survival(
+        _out_summer, np.full(96, 2.0), _caps_none.get("buffer")
+    )
+    == 1.0,
+    "the no-store paths must stay byte-for-byte identical",
+)
+
+# 6. Inert without a valve.
 _term_none = _opt_none._terminal_cost(_prices, _outdoor)
 R.check(
     "without a valve the terminal cost ignores the tank",

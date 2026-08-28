@@ -43,7 +43,7 @@
 # does not expire with the stamp and is not part of the inherited-claims
 # comparison.
 #
-# claims-for: 5.1.9
+# claims-for: 5.4.0
 #
 #
 # v5.1.9 is card-only: one file of Lovelace JavaScript, its own test lane and

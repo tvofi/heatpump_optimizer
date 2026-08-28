@@ -1,5 +1,66 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v5.4.0
+
+### Stored heat is credited at what the next window can actually spend
+
+The optimizer values heat still in the buffer tank at the end of its 24-hour
+horizon as heat the next window does not have to buy. That credit was
+undiscounted, and in warm weather it was the only term in the objective with
+any gradient at all — so the plan bought space heat to collect it.
+
+Reported by an owner running two zones, a mixing valve and a 750 L tank, with
+comfort 17–23 °C and a target of 21 °C: at 25 °C outside by day and 11 °C at
+night, the house coasts from 27 °C down to about 21 °C over a full day with no
+heating whatsoever — six degrees clear of the comfort floor — and the plan
+still scheduled space heating. Comfort weight could not restrain it, because
+the bought heat never reached the rooms: the room trajectory was identical to
+six decimal places with and without those slots, so the comfort term had a
+gradient of exactly zero and the comfort weight was multiplying a constant.
+
+Two independent signs it was not economics. Buying *rose* as the weather got
+warmer — a 13 °C day planned 0.000 kWh while an 18 °C day planned 5.512 kWh —
+and a flat-price null control, where no arbitrage is available at all, still
+planned 5.035 kWh, spread over more steps rather than fewer. After the fix
+both the varying-price and the flat-price case plan 0.000 kWh.
+
+A tank loses heat to its surroundings whether or not anyone draws on it. Heat
+stored against a demand that will not arrive for days is largely gone before
+it is wanted, so crediting it at face value is wrong. The terminal credit is
+now discounted by the fraction that survives until the heat is actually spent:
+
+    survival = exp(-UA (cap - ambient) / (2 x hold demand))
+
+which is the tank's half-drain time measured in its own time constants. The
+`UA` is the tank's **learned** standby loss — the `buffer_cooling_rate` the
+coordinator already fits from observed cooling and clamps to this tank's
+insulation bounds — so a well-insulated accumulator is discounted far less
+than a bare cylinder. The discount is this tank's own physics, not a tuning
+constant, and there is no new setting to configure.
+
+The hold demand is what the house needs to hold target at the horizon's mean
+weather, net of internal and solar gains. When gains cover the whole loss it
+is zero, the hold time is unbounded, and the credit goes to zero with it —
+which is exactly the owner's case, and the behaviour asked for: heat is not
+bought when coasting unheated does not bring the house anywhere near its
+comfort floor.
+
+Winter is preserved by construction, because the discount divides by the
+demand it is waiting on. Across a seasonal sweep of the same house:
+
+| Outdoor | Discount | Space heat before | after |
+|---|---|---|---|
+| −8 °C | 3.0% | 28.750 kWh | 27.500 kWh |
+| −2 °C | 4.0% | 28.423 kWh | 27.500 kWh |
+| +7 °C | 8.4% | 16.549 kWh | 9.493 kWh |
+| +13 °C | 31.5% | 0.000 kWh | 0.000 kWh |
+| +18 °C | 100% | 5.512 kWh | 0.000 kWh |
+
+Installations without a mixing valve, and tanks below the store threshold,
+are unaffected: the discount is exactly 1.0 there and those paths stay
+byte-for-byte identical.
+
+
 ## v5.1.9
 
 ### One legend entry for the house temperature line
