@@ -27,6 +27,22 @@
 # was never wrong. Without rule 2 the same thing happens whenever two
 # commits share a version.
 #
+# Two categories live in this file.
+#
+# A CLAIM is a bare scenario name with a reason after the hash. It asserts
+# that THIS release moves that fixture, it is checked both ways (unclaimed
+# drift fails, and so does a claim nothing matched), and it expires with the
+# `claims-for:` stamp below.
+#
+# A MAY-DRIFT entry is a comment line, `# may-drift: <name> -- <reason>`. It
+# asserts nothing: the fixture moved here, or it did not, and either is fine.
+# It exists only for the five fixtures this gate itself declares
+# non-reproducible across BLAS builds, and env_drift.py refuses any other
+# name -- see `_may_drift` there for the full reasoning. Because it is a
+# statement about those fixtures rather than about one release's diff, it
+# does not expire with the stamp and is not part of the inherited-claims
+# comparison.
+#
 # claims-for: 5.2.0
 #
 #
