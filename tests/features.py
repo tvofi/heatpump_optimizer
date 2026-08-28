@@ -13057,5 +13057,88 @@ R.check(
 )
 
 
+R.section("v5.2.0 review — an unrecognised mode never latches suppression")
+
+# pump_mode's contract is explicit: "Unknown means full capability, never
+# suppress everything". read() broke it by routing unknown_value into the
+# last_good branch, so a status sensor that said Heating once and idle
+# thereafter held hot water blocked for the life of the install.
+_um_cfg = {"heat_pump_mode_entity": "sensor.hp_status"}
+_um_now = datetime(2026, 2, 1, 12, 0, tzinfo=UTC)
+
+
+def _um_read(state, last_good=None, entity="sensor.hp_status", age=2):
+    cfg = {"heat_pump_mode_entity": entity}
+    hass = FakeHass({entity: FakeState(state, last_updated=minutes_ago(age, _um_now))})
+    return pump_signals.read(
+        InputReader(hass, cfg, now=lambda: _um_now), last_good=last_good
+    )
+
+
+_um_heat = pump_mode.capability("Heating")
+_um_unknown = _um_read("idle", last_good=_um_heat)
+R.check(
+    "an unrecognised word resolves to full capability, not to the last mode",
+    _um_unknown.mode is pump_mode.FULL_CAPABILITY
+    and not _um_unknown.mode_observed,
+    f"mode {_um_unknown.mode.label} from {_um_unknown.mode_source}",
+)
+R.check(
+    "so it suppresses nothing, in either channel",
+    not _um_unknown.space_blocked and not _um_unknown.dhw_blocked,
+    "before the fix this returned the last good mode and latched its "
+    "suppression permanently, with no recovery path at all",
+)
+R.check(
+    "and it is visible as its own source, not folded into 'absent'",
+    _um_unknown.mode_source == pump_signals.MODE_SOURCE_UNKNOWN
+    and _um_unknown.mode_text == "idle",
+    f"{_um_unknown.mode_source}/{_um_unknown.mode_text} — 'your mode entity "
+    f"works, we do not know what it is telling us' is the one case a user "
+    f"can act on",
+)
+# The recovery path, end to end.
+_um_seq = []
+_um_last = None
+for _word in ("Heating + DHW", "Heating", "idle", "idle", "Heating + DHW"):
+    _um_sig = _um_read(_word, last_good=_um_last, entity="select.hp_mode")
+    if _um_sig.mode.known:
+        _um_last = _um_sig.mode
+    _um_seq.append((_word, _um_sig.dhw_blocked))
+R.check(
+    "a select recovers from an unrecognised state instead of latching",
+    _um_seq == [
+        ("Heating + DHW", False),
+        ("Heating", True),
+        ("idle", False),
+        ("idle", False),
+        ("Heating + DHW", False),
+    ],
+    f"{_um_seq}",
+)
+# What last_good is still for: an entity that stops being readable.
+for _problem_state, _label in (("unavailable", "unavailable"),):
+    _um_lg = _um_read(_problem_state, last_good=_um_heat, entity="select.hp_mode")
+    R.check(
+        f"an {_label} mode entity still falls back to the last good mode",
+        _um_lg.mode is _um_heat
+        and _um_lg.mode_source == pump_signals.MODE_SOURCE_LAST_GOOD
+        and _um_lg.dhw_blocked,
+        "the pump did not change mode because its sensor went quiet",
+    )
+_um_stale = _um_read("Heating", last_good=_um_heat, entity="select.hp_mode", age=600)
+R.check(
+    "and so does a stale one — staleness is unreadability, not disagreement",
+    _um_stale.mode is _um_heat
+    and _um_stale.mode_source == pump_signals.MODE_SOURCE_LAST_GOOD,
+    f"{_um_stale.mode_source}",
+)
+_um_never = _um_read("idle")
+R.check(
+    "with nothing ever recognised, an unknown word is simply absent evidence",
+    _um_never.mode is pump_mode.FULL_CAPABILITY and not _um_never.mode_observed,
+)
+
+
 
 sys.exit(R.close("FEATURE CHECKS"))

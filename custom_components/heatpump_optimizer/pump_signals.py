@@ -88,6 +88,28 @@ FREEZE_COOLING = "pump_cooling"
 MODE_SOURCE_LIVE = "live"
 MODE_SOURCE_LAST_GOOD = "last_good"
 MODE_SOURCE_ABSENT = "absent"
+#: The entity is readable and fresh, and reported a word the table does not
+#: recognise. Distinct from ``absent`` so the diagnostics can say "your mode
+#: entity works, we just do not know what it is telling us" — the one case a
+#: user can actually act on, by picking a different entity.
+MODE_SOURCE_UNKNOWN = "unrecognised"
+
+#: Read problems that mean "the sensor stopped telling us", as opposed to
+#: "the sensor told us something we do not understand". Only these fall back
+#: to the last good mode: the pump did not change mode because its sensor
+#: went quiet, so continuing to believe the last reading is right.
+#:
+#: ``unknown_value`` is deliberately NOT here, and that is the whole point.
+#: An unrecognised word is a *live* reading, and ``pump_mode``'s contract for
+#: it is explicit — "Unknown means full capability, never suppress
+#: everything" — because wrongly believing the pump is incapable suppresses a
+#: channel on the strength of a word nobody recognised. Routing it to
+#: ``last_good`` instead latched that suppression permanently and offered no
+#: recovery path: a generic status sensor that says ``Heating`` once and then
+#: ``idle`` forever would hold hot water blocked for the life of the install.
+_UNREADABLE_PROBLEMS = frozenset(
+    {"unavailable", "missing_entity", "stale", "not_configured"}
+)
 
 
 @dataclass(frozen=True)
@@ -191,7 +213,23 @@ def read(reader: Any, *, last_good: ModeCapability | None = None) -> PumpSignals
         capability = pump_mode.capability(mode_reading.text)
         source = MODE_SOURCE_LIVE
         observed = True
-    elif last_good is not None and mode_reading.entity_id:
+    elif mode_reading.problem == "unknown_value":
+        # Live, fresh and unrecognised. Full capability, never last_good:
+        # see ``_UNREADABLE_PROBLEMS``.
+        capability = FULL_CAPABILITY
+        source = MODE_SOURCE_UNKNOWN
+        observed = False
+        _LOGGER.debug(
+            "Heat pump mode entity %s reports %r, which names no mode this "
+            "release recognises; assuming full capability",
+            mode_reading.entity_id,
+            mode_reading.text,
+        )
+    elif (
+        last_good is not None
+        and mode_reading.entity_id
+        and mode_reading.problem in _UNREADABLE_PROBLEMS
+    ):
         capability = last_good
         source = MODE_SOURCE_LAST_GOOD
         observed = True
