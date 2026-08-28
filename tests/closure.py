@@ -56,6 +56,14 @@ NOT_A_TEST = {"harness.py", "profiles.py", "closure.py", "setup_qa_render.mjs"}
 # recorded so its closure can be folded into features.py's, never selected.
 DRIVEN_BY_OTHERS = {"dst_checks.py": "features.py"}
 
+# A dependency of a different kind: not "what can change this script's
+# answer" but "what has to run first for this script to run at all".
+# plan_view.py WRITES the plan payload card.mjs reads, so a scope that picks
+# card.mjs and drops plan_view.py leaves the card with no payload -- or, worse
+# on a developer's box, with a stale one another run left behind. Selecting
+# card.mjs selects its producer too.
+PRODUCERS = {"tests/card.mjs": ["tests/plan_view.py"]}
+
 # ---------------------------------------------------------------------------
 # Paths that no test can read, so a change to them cannot break one. This is
 # the ONLY hand-written list in the file, it is deliberately tiny, and it is
@@ -490,6 +498,16 @@ def select(files: list[str]) -> dict:
             continue
         skip[s] = {"closure_size": len(closures[s]),
                    "reason": "no changed file is in its measured closure"}
+
+    # Pull in whatever the selected scripts need to have run before them.
+    for consumer, producers in PRODUCERS.items():
+        if consumer in run:
+            for prod in producers:
+                if prod in skip:
+                    del skip[prod]
+                    run.append(prod)
+    run = [s for s in scripts if s in run]      # back into suite order
+
     return {"mode": "scoped", "reason": "", "run": run, "skip": skip,
             "changed": files, "closure_sizes": {s: len(closures[s]) for s in scripts}}
 

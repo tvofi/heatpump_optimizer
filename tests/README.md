@@ -84,7 +84,12 @@ cannot see what they depend on:
   reasoning cannot justify skipping a behavioural comparison.
 * **`card.mjs`** inherits `plan_view.py`'s whole closure, because
   `plan_view.py` writes the payload the card is rendered against; anything
-  that changes the payload changes what the card is tested with.
+  that changes the payload changes what the card is tested with. Selecting
+  `card.mjs` also selects `plan_view.py` to *run*, which is a different kind
+  of dependency — not "what can change this script's answer" but "what has to
+  run first for it to run at all". A scope that took the card without its
+  producer would leave it with no payload, or, on a developer's box, with a
+  stale one from an earlier run.
 
 ### When it refuses to scope
 
