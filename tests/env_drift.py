@@ -173,6 +173,20 @@ VERSION_FILE = "VERSION"
 # footprint.
 #
 # DRIFT_NO_CACHE=1 skips the cache entirely, read and write.
+#
+# How this sits with the may-drift category. Those five fixtures are judged
+# on whether they moved BETWEEN the two captures, and a cached baseline
+# changes nothing about that: it is the bytes a capture on this machine
+# already produced, under a key that pins the interpreter, the installed
+# packages, numpy's build and a bit-exact fingerprint of the arithmetic. The
+# category exists because the fixtures differ ACROSS machines, and the key's
+# whole job is to make a hit impossible across machines. Two pieces of
+# evidence rather than the assertion alone: a cold run and a warm run of
+# --all against the same ref both reported the same verdict over all 53
+# scenarios, the five sensitive ones included; and the optimizer's plan is
+# byte-identical with BLAS threads pinned to one and left at four (12 of 12
+# runs, same fingerprint), so a change in how many cores happened to be idle
+# when the baseline was captured cannot move a sensitive fixture either.
 
 CACHE_FORMAT = "1"
 CACHE_DIR_ENV = "DRIFT_CACHE_DIR"

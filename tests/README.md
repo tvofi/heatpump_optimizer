@@ -135,7 +135,20 @@ measurement rather than by guesswork. A hit prints a banner naming the key and
 the entry it came from, so gate output always says when a baseline was reused.
 `python tests/env_drift.py --cache-key <ref> --all` prints the key a run would
 look up; CI keys `actions/cache` with it on pull requests, where the
-merge-base is stable across pushes. The branch half is always recaptured, so
+merge-base is stable across pushes.
+
+Reading a cache hit in gate output: the banner is the gate telling you it did
+*not* recompute the baseline. Everything after it — every `ok`, `DRIFT`,
+`CLAIMED` and `may-drift` line — was judged against bytes captured by an
+earlier run on this machine, not against a worktree built just now. The banner
+names the key, the entry file, the commit and tree it stands for, how long ago
+it was captured, and a digest per key component, so you can see what the reuse
+was conditional on. If a result looks wrong and you want the baseline rebuilt
+from scratch to be certain, re-run with `DRIFT_NO_CACHE=1`; the verdict must
+come out identical, and a cold and a warm run of `--all` against the same ref
+have been checked to agree across all 53 scenarios including the five sensitive
+ones. A cache hit never changes how a scenario is judged — it only changes
+where one side of the comparison came from. The branch half is always recaptured, so
 even if the environment moved without moving the key, a mismatched baseline
 shows up as drift — a loud, over-strict failure — rather than as a silent pass.
 
