@@ -11424,6 +11424,320 @@ R.check(
 )
 
 
+# ---------------------------------------------------------------------------
+R.section("v5.1.8 — the charge limit is the charge limit, every ordinary day")
+
+# The owner's report: "Highest tank temperature to charge to" 52 °C, the
+# anti-legionella cycle at its default 60 °C, no cycle due. Until v5.1.8 the
+# disinfection temperature was folded into `dhw_max_temp` permanently, so the
+# cost planner had a 60 °C ceiling to spend every day of the week — and it
+# spent it, because pre-buying at the night trough beats heating at the
+# evening window even after standby losses.
+from heatpump_optimizer.optimizer import REASON_LEGIONELLA as _LG_REASON
+
+
+def _lg_plan(setpoint, *, leg_temp=60.0, enabled=True, hours_since=20.0):
+    built = _mk_golden(
+        config_overrides={
+            "dhw_setpoint": setpoint,
+            "dhw_legionella_enabled": enabled,
+        },
+        param_overrides={"dhw_legionella_temp": leg_temp},
+        state_overrides={"dhw_hours_since_legionella": hours_since},
+    )
+    res = built["optimizer"].optimize(
+        built["state"], built["prices"], built["outdoor"], built["wind"],
+        built["rain"], built["solar"], _G_START,
+    )
+    return built, res, np.asarray(res.dhw_temp_trajectory, dtype=float)
+
+
+_lg_built, _lg_res, _lg_traj = _lg_plan(52.0)
+R.check(
+    "the owner's 52/60 pair keeps the tank at or below the 52 °C limit "
+    "on a day with no cycle due",
+    _lg_traj.max() <= 52.1,
+    f"peak {_lg_traj.max():.2f} °C",
+)
+R.check(
+    "…and the ceiling the parameters publish is the charge limit itself",
+    _lg_built["optimizer"].model.params.dhw_max_temp == 52.0,
+    f"dhw_max_temp {_lg_built['optimizer'].model.params.dhw_max_temp}",
+)
+
+# Mutation value: put the old definition back and the same solve reproduces
+# the reported behaviour. Without this the check above could be passing for
+# any number of unrelated reasons.
+_lg_old = ThermalParameters.dhw_max_temp
+try:
+    ThermalParameters.dhw_max_temp = property(
+        lambda self: min(
+            70.0,
+            max(self.dhw_setpoint, self.dhw_legionella_temp)
+            if self.dhw_legionella_enabled
+            else self.dhw_setpoint,
+        )
+    )
+    _lg_mut_traj = _lg_plan(52.0)[2]
+finally:
+    ThermalParameters.dhw_max_temp = _lg_old
+R.check(
+    "reverting dhw_max_temp reproduces the reported over-charge "
+    "(mutation check)",
+    _lg_mut_traj.max() >= 58.0,
+    f"mutant peak {_lg_mut_traj.max():.2f} °C — v5.1.5 recorded 58.39",
+)
+
+# Row 4 of the report: this was never one owner's misconfiguration. The stock
+# defaults are a 55 °C charge limit and a 60 °C cycle, so every installation
+# on defaults was running its tank 4 °C over the limit.
+_lg_stock_traj = _lg_plan(55.0)[2]
+R.check(
+    "the stock 55/60 defaults stay at the 55 °C limit too",
+    _lg_stock_traj.max() <= 55.1,
+    f"peak {_lg_stock_traj.max():.2f} °C — v5.1.5 recorded 59.16",
+)
+
+# Disinfection is a safety feature and the fix must not quietly disable it.
+# The regression that would matter most is a cycle that is scheduled, costs
+# money, and never reaches temperature.
+_lg_due_built, _lg_due_res, _lg_due_traj = _lg_plan(52.0, hours_since=150.0)
+_lg_due_info = _lg_due_res.predictive_info or {}
+R.check(
+    "a cycle that IS due is still scheduled",
+    bool(_lg_due_info.get("dhw_legionella_due")),
+    f"predictive_info says {_lg_due_info.get('dhw_legionella_due')!r}",
+)
+R.check(
+    "…and the boost actually attains the disinfection temperature",
+    _lg_due_traj.max() >= 59.5,
+    f"peak {_lg_due_traj.max():.2f} °C against a 60 °C target",
+)
+R.check(
+    "…while the plan still marks the step it did it in",
+    _LG_REASON in (_lg_due_res.dhw_reasons or []),
+    "no step carries the legionella reason code",
+)
+
+# The per-step ceiling is exactly that: raised around the cycle, the charge
+# limit everywhere else. A cycle at hour X must not license a hot tank at
+# hour X + 12.
+# `predictive_info` publishes the cycle's HOUR, not its step; the step the
+# planner actually chose is stashed on the optimizer, which is what these two
+# checks are about.
+_lg_due_step = _lg_due_built["optimizer"]._dhw_legionella_step
+if _lg_due_step is not None:
+    _lg_late = _lg_due_traj[int(_lg_due_step) + 12 * 4 :]
+    R.check(
+        "twelve hours after the cycle the tank is back under the limit",
+        _lg_late.size == 0 or _lg_late.max() <= 52.1,
+        f"peak {_lg_late.max():.2f} °C" if _lg_late.size else "no steps left",
+    )
+
+# An overdue timer used to collapse the placement search to `limit = 1` and
+# pin the requirement on step 0 — the one step the tank provably cannot be at
+# 60 °C by, which is what made the failure permanent.
+_lg_over = {}
+for _hours in (170.0, 500.0, 2000.0):
+    _b, _r, _t = _lg_plan(52.0, hours_since=_hours)
+    _lg_over[_hours] = (_b["optimizer"]._dhw_legionella_step, float(_t.max()))
+R.check(
+    "an overdue cycle is not pinned to step 0 of every plan",
+    all(step not in (None, 0) for step, _ in _lg_over.values()),
+    f"placements {[s for s, _ in _lg_over.values()]}",
+)
+R.check(
+    "…and it reaches temperature instead of being re-commanded for ever",
+    all(peak >= 59.5 for _, peak in _lg_over.values()),
+    f"peaks {[round(p, 2) for _, p in _lg_over.values()]}",
+)
+
+# The model still has to allow the boost: the everyday ceiling is a
+# preference, the tank rating is physics, and conflating the two would cap a
+# disinfection cycle at the setpoint.
+_lg_p = ThermalParameters(dhw_setpoint=52.0, dhw_legionella_temp=60.0)
+R.check(
+    "the tank rating stays above the disinfection temperature",
+    _lg_p.dhw_max_temp == 52.0 and _lg_p.dhw_hard_max_temp == 60.0,
+    f"ceiling {_lg_p.dhw_max_temp}, rating {_lg_p.dhw_hard_max_temp}",
+)
+_lg_p_off = ThermalParameters(
+    dhw_setpoint=52.0, dhw_legionella_temp=60.0, dhw_legionella_enabled=False
+)
+R.check(
+    "with disinfection off the two are the same number, as before",
+    _lg_p_off.dhw_max_temp == _lg_p_off.dhw_hard_max_temp == 52.0,
+    f"{_lg_p_off.dhw_max_temp} / {_lg_p_off.dhw_hard_max_temp}",
+)
+
+
+# ---------------------------------------------------------------------------
+R.section("v5.1.8 — the disinfection timer cannot latch")
+
+from heatpump_optimizer.config_flow import (
+    _dhw_legionella_warning as _lgw,
+)
+
+_LG_CFG = {
+    "tibber_token": "x",
+    "weather_entity": "weather.home",
+    "dhw_temp_entity": "sensor.tank",
+    "dhw_tank_volume": 300.0,
+    "dhw_setpoint": 52.0,
+    "dhw_legionella_temperature": 60.0,
+}
+
+
+def _lg_coord(**over):
+    cfg = {**_LG_CFG, **over}
+    coord = _Coord(_FakeHass(), _FakeEntry(data=cfg))
+    coord._dhw_last_legionella = _G_START - timedelta(days=8)
+    return coord
+
+
+def _lg_cycle(coord, temps):
+    """Command a boost, feed it `temps`, then let the plan move on."""
+    for temp in temps:
+        coord._current_action = {"dhw_reason": _LG_REASON}
+        _asyncio.run(coord._async_track_dhw_legionella_cycle(temp))
+    coord._current_action = {"dhw_reason": "idle"}
+    _asyncio.run(coord._async_track_dhw_legionella_cycle(temps[-1]))
+
+
+# A pump that tops out at 54 °C never reaches `legionella_temp - 1`, so the
+# observer's reset can never fire. Before v5.1.8 that left `hours_since`
+# climbing for ever.
+_lg_short = _lg_coord()
+_lg_before = _lg_short._dhw_hours_since_legionella()
+_lg_cycle(_lg_short, [50.0, 52.0, 53.5, 54.0])
+_lg_after = _lg_short._dhw_hours_since_legionella()
+R.check(
+    "a tank that never gets hot still completes its cycle rather than "
+    "latching overdue",
+    _lg_before > 168.0 and _lg_after < 1.0,
+    f"{_lg_before:.0f} h before, {_lg_after:.2f} h after",
+)
+R.check(
+    "…and it is recorded as an attempt, not as a successful cycle",
+    _lg_short._dhw_legionella_attempt is not None
+    and _lg_short._dhw_legionella_attempt_peak == 54.0
+    and _lg_short._dhw_last_legionella == _G_START - timedelta(days=8),
+    f"attempt {_lg_short._dhw_legionella_attempt!r}, "
+    f"success {_lg_short._dhw_last_legionella!r}",
+)
+R.check(
+    "…and the user is told the water is not being disinfected",
+    any(
+        i[1] == "dhw_legionella_unreachable"
+        for i in getattr(_lg_short.hass, "issues", [])
+    ),
+    f"issues {[i[1] for i in getattr(_lg_short.hass, 'issues', [])]}",
+)
+
+# A cycle that does reach temperature clears both the attempt and the notice.
+_lg_short._current_action = {"dhw_reason": "idle"}
+_asyncio.run(_lg_short._async_track_dhw_legionella(59.5))
+R.check(
+    "a cycle that reaches temperature clears the notice and the attempt",
+    _lg_short._dhw_legionella_attempt is None
+    and not any(
+        i[1] == "dhw_legionella_unreachable"
+        for i in getattr(_lg_short.hass, "issues", [])
+    ),
+)
+
+# No tank probe at all: the observer cannot run, so the countdown had no
+# reset path whatsoever. It resets — but on an ATTEMPT, not a claim of
+# success; see the v5.1.8 section below for why the two are the same
+# countdown and only one of them can also be honest about what happened.
+_lg_blind = _lg_coord()
+_lg_blind._config.pop("dhw_temp_entity", None)
+_lg_cycle_blind_before = _lg_blind._dhw_hours_since_legionella()
+_lg_blind._current_action = {"dhw_reason": _LG_REASON}
+_asyncio.run(_lg_blind._async_track_dhw_legionella_cycle(None))
+_lg_blind._current_action = {"dhw_reason": "idle"}
+_asyncio.run(_lg_blind._async_track_dhw_legionella_cycle(None))
+_lg_blind_since = _lg_blind._dhw_hours_since_legionella()
+R.check(
+    "with no tank sensor a commanded cycle still resets the countdown "
+    "rather than leaving it counting up for ever",
+    _lg_cycle_blind_before > 168.0
+    and _lg_blind_since is not None
+    and _lg_blind_since < 1.0
+    and _lg_blind._dhw_legionella_attempt is not None,
+    f"{_lg_blind_since} h since, attempt "
+    f"{_lg_blind._dhw_legionella_attempt!r}",
+)
+
+# A boost nobody commanded must not credit anything.
+_lg_idle = _lg_coord()
+_lg_idle._current_action = {"dhw_reason": "dhw_window"}
+_asyncio.run(_lg_idle._async_track_dhw_legionella_cycle(45.0))
+R.check(
+    "an ordinary hot-water step is not mistaken for a disinfection cycle",
+    (_lg_idle._dhw_hours_since_legionella() or 0.0) > 168.0,
+    f"{_lg_idle._dhw_hours_since_legionella()} h since",
+)
+
+
+# ---------------------------------------------------------------------------
+R.section("v5.1.8 — the setpoint/disinfection pair warns, and never blocks")
+
+R.check(
+    "a 52 °C limit with a 60 °C cycle is reported, with how often",
+    _lgw({"dhw_setpoint": 52.0}, {"dhw_legionella_temperature": 60.0})
+    == {"legionella_temp": "60", "setpoint": "52", "interval_days": "7"},
+    f"got {_lgw({'dhw_setpoint': 52.0}, {'dhw_legionella_temperature': 60.0})!r}",
+)
+R.check(
+    "the stock defaults are reported too — this is not an exotic pairing",
+    _lgw({}, {}) is not None,
+    "55 °C limit against a 60 °C cycle is what a fresh install ships with",
+)
+R.check(
+    "a cycle at or below the limit says nothing",
+    _lgw({"dhw_setpoint": 60.0}, {"dhw_legionella_temperature": 60.0}) is None,
+)
+R.check(
+    "and disinfection switched off says nothing",
+    _lgw(
+        {"dhw_setpoint": 52.0, "dhw_legionella_enabled": False},
+        {"dhw_legionella_temperature": 60.0},
+    )
+    is None,
+)
+# The pair a page already holds must be judged, not just the half submitted:
+# the options pages save one page over the stored rest.
+R.check(
+    "the stored half of the pair still counts",
+    _lgw({"dhw_legionella_temperature": 62.0}, {"dhw_setpoint": 52.0})
+    == {"legionella_temp": "62", "setpoint": "52", "interval_days": "7"},
+)
+
+# Warning, not a block: the coordinator raises the notice from the parameters
+# actually in force, which is the only path that also covers the
+# set_thermal_parameters service.
+_lg_warn = _lg_coord()
+_lg_warn._check_dhw_legionella_ceiling()
+R.check(
+    "the coordinator raises the notice for a live 52/60 pair",
+    any(
+        i[1] == "dhw_legionella_above_setpoint"
+        for i in getattr(_lg_warn.hass, "issues", [])
+    ),
+    f"issues {[i[1] for i in getattr(_lg_warn.hass, 'issues', [])]}",
+)
+_lg_warn._thermal_params.dhw_legionella_temp = 52.0
+_lg_warn._check_dhw_legionella_ceiling()
+R.check(
+    "…and takes it down again once the pair no longer says anything",
+    not any(
+        i[1] == "dhw_legionella_above_setpoint"
+        for i in getattr(_lg_warn.hass, "issues", [])
+    ),
+)
+
+
 from profiles import house as _lg_house, prices as _lg_prices
 from profiles import weather as _lg_weather
 from heatpump_optimizer.const import DHW_LEGIONELLA_BOOST_MAX_HOURS
