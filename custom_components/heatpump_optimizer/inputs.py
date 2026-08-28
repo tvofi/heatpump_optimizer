@@ -49,6 +49,28 @@ _LOGGER = logging.getLogger(__name__)
 _INVALID_STATES = ("unknown", "unavailable", "none", "")
 
 
+class _Unbounded:
+    """Sentinel for ``max_age_minutes``: read with no freshness horizon.
+
+    Distinct from ``None``, which means "whatever :data:`INPUT_MAX_AGE_MINUTES`
+    says for this key". A caller passes this when age is not evidence about
+    the entity in question — the case being an entity nothing ever re-writes,
+    such as an ``input_boolean`` or a template flag fed by one, where the
+    timestamp records when a *person* last decided something rather than when
+    the reading was last confirmed. Ageing those out turns a deliberate
+    setting into no setting at all.
+    """
+
+    __slots__ = ()
+
+    def __repr__(self) -> str:  # pragma: no cover - debugging aid
+        return "UNBOUNDED"
+
+
+#: See :class:`_Unbounded`.
+UNBOUNDED = _Unbounded()
+
+
 @dataclass
 class InputReading:
     """One attempt to read a configured entity."""
@@ -300,7 +322,7 @@ class InputReader:
     def _begin(
         self,
         key: str,
-        max_age_minutes: float | None,
+        max_age_minutes: float | _Unbounded | None,
         entity_id: str | None,
     ) -> tuple[InputReading, Any]:
         """Resolve the entity and reject the states no reader can use.
@@ -316,11 +338,14 @@ class InputReader:
         and return it as-is.
         """
         entity_id = entity_id if entity_id is not None else self.config.get(key)
-        limit = (
-            max_age_minutes
-            if max_age_minutes is not None
-            else max_age_for(key, self.scale)
-        )
+        if max_age_minutes is UNBOUNDED:
+            # Recorded as "no limit" rather than as a very large one, so the
+            # diagnostics say what is actually true about this read.
+            limit: float | None = None
+        elif max_age_minutes is not None:
+            limit = float(max_age_minutes)
+        else:
+            limit = max_age_for(key, self.scale)
         reading = InputReading(
             key=key, entity_id=entity_id, max_age_minutes=limit
         )
@@ -364,7 +389,7 @@ class InputReader:
         self,
         key: str,
         *,
-        max_age_minutes: float | None = None,
+        max_age_minutes: float | _Unbounded | None = None,
         entity_id: str | None = None,
     ) -> InputReading:
         """Read one configured numeric entity.
@@ -389,7 +414,7 @@ class InputReader:
         self,
         key: str,
         *,
-        max_age_minutes: float | None = None,
+        max_age_minutes: float | _Unbounded | None = None,
         entity_id: str | None = None,
         valid: Any = None,
     ) -> InputReading:
@@ -430,7 +455,7 @@ class InputReader:
         self,
         key: str,
         *,
-        max_age_minutes: float | None = None,
+        max_age_minutes: float | _Unbounded | None = None,
         entity_id: str | None = None,
     ) -> InputReading:
         """Read one configured entity as a flag.

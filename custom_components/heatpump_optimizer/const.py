@@ -1104,13 +1104,15 @@ INPUT_MAX_AGE_MINUTES[CONF_MIXING_VALVE_TARGET_ENTITY] = 60.0
 INPUT_MAX_AGE_MINUTES[CONF_VALVE_OUTLET_TEMP_ENTITY] = 60.0
 INPUT_MAX_AGE_MINUTES[CONF_WOOD_TANK_TOP_ENTITY] = 60.0
 INPUT_MAX_AGE_MINUTES[CONF_WOOD_TANK_BOTTOM_ENTITY] = 60.0
-# The external-heat override was the one input in the integration read
-# straight out of the state machine with no horizon at all (v5.2.0). It is
-# also the strongest single input there is: while it says "yes" the optimizer
-# stops planning heat. A stove sensor that dies mid-fire therefore used to
-# suppress heating indefinitely — the same "indefinite free fire" failure the
-# probes above are already gated against, but with nothing to stop it. Same
-# horizon as its neighbours, for the same reason.
+# The external-heat override, and ONLY when it reads as a number. A flue
+# probe stuck hot on a flat battery looks like an indefinite free fire — the
+# same failure the probes above are gated against — and a probe re-reports
+# every poll, so its age means something. A flag does not: the slot also
+# accepts input_boolean/switch/binary_sensor, and a helper is written only
+# when it changes, so its age is "how long since the user decided", not "how
+# long since anyone checked". _external_heat_override therefore reads the
+# flag case UNBOUNDED and only numbers land on this limit; ageing a helper
+# out would silently discard a deliberate setting in both directions.
 INPUT_MAX_AGE_MINUTES[CONF_EXTERNAL_HEAT_ENTITY] = 60.0
 
 # What the pump says about itself. The reference integration polls the Tuya

@@ -35,6 +35,7 @@ from heatpump_optimizer.comfort_learning import (
 from heatpump_optimizer.const import COP_SCALE_MAX, COP_SCALE_MIN
 from heatpump_optimizer.defrost import (
     DEFROST_LOSS_MULTIPLIER,
+    DERATE_CONFIDENCE_SAMPLES,
     DERATE_MAX,
     DefrostDerate,
     DefrostWindow,
@@ -45,6 +46,7 @@ from heatpump_optimizer.external_heat import (
     ExternalHeatDetector,
     ExternalHeatObservation,
 )
+from heatpump_optimizer import inputs as inputs_mod
 from heatpump_optimizer import pump_mode, pump_signals
 from heatpump_optimizer.pump_signals import PumpSignals
 from heatpump_optimizer.inputs import (
@@ -538,9 +540,14 @@ R.check(
 # A deliberate behaviour change (v5.2.0): this was the one input in the
 # integration read straight out of hass.states, with no age limit at all. It
 # is also the strongest input there is -- while it says "yes" the optimizer
-# stops planning heat -- so a stove sensor that died mid-fire suppressed
-# heating indefinitely. It now goes through read_state and goes stale like
-# everything else.
+# stops planning heat, and while it says "no" it overrules the detector -- so
+# a flue PROBE that died mid-fire suppressed heating indefinitely.
+#
+# The horizon therefore applies to numbers only. A probe re-reports on every
+# poll, so its age is evidence; a flag helper is written only when it changes,
+# so its age is "how long since the user decided" and ageing it out silently
+# throws the decision away. Both halves are pinned below, because getting the
+# second one wrong is a regression for installs with no Tuya hardware at all.
 _OVERRIDE_CFG = {"external_heat_entity": "binary_sensor.stove"}
 
 
@@ -548,11 +555,16 @@ class _OverrideHost:
     _external_heat_override = Coord._external_heat_override
 
 
-def override_for(state):
-    states = {} if state is None else {"binary_sensor.stove": state}
+def override_at(entity_id, state):
+    cfg = {"external_heat_entity": entity_id}
+    states = {} if state is None else {entity_id: state}
     return _OverrideHost()._external_heat_override(
-        InputReader(FakeHass(states), _OVERRIDE_CFG, now=lambda: NOW)
+        InputReader(FakeHass(states), cfg, now=lambda: NOW)
     )
+
+
+def override_for(state):
+    return override_at("binary_sensor.stove", state)
 
 
 R.check(
@@ -564,10 +576,51 @@ R.check(
     override_for(FakeState("off", last_updated=minutes_ago(5, NOW))) is False,
 )
 R.check(
-    "a stove sensor that stopped reporting stops suppressing (v5.2.0)",
-    override_for(FakeState("on", last_updated=minutes_ago(240, NOW))) is None,
-    "the behaviour change: a stalled 'yes' used to hold suppression forever, "
-    "which in winter is a cold house on the word of a dead sensor",
+    "a flue PROBE that stopped reporting stops suppressing (v5.2.0)",
+    override_at("sensor.flue", FakeState("420", last_updated=minutes_ago(240, NOW)))
+    is None
+    and override_at("sensor.flue", FakeState("420", last_updated=minutes_ago(5, NOW)))
+    is True,
+    "the behaviour change, and its whole scope: a stalled hot probe used to "
+    "hold suppression forever, which in winter is a cold house on the word "
+    "of a flat battery",
+)
+
+# The regression this pair exists to catch. config_flow offers this slot as
+# binary_sensor/switch/input_boolean/sensor and docs/configuration.md names
+# the same four; the two named first are helpers HA writes ONLY on a toggle,
+# so last_reported/last_updated/last_changed are all the moment the user
+# flipped it. Under a 60 min horizon the reading went stale an hour later and
+# the override vanished in BOTH directions -- the deliberate "yes" that holds
+# heating back AND the deliberate "no" that overrules the detector -- on an
+# install that configures none of the pump signals this branch is about.
+for _dom in ("input_boolean.wood_fire", "switch.stove", "binary_sensor.flue_stat"):
+    for _age in (61.0, 600.0, 2880.0):
+        R.check(
+            f"a flag helper is not aged out: {_dom.split('.')[0]} 'on' at "
+            f"{_age:.0f} min still suppresses",
+            override_at(_dom, FakeState("on", last_updated=minutes_ago(_age, NOW)))
+            is True,
+            "nothing re-writes an input_boolean, so its age measures how long "
+            "ago the user decided, not how long since anyone checked",
+        )
+        R.check(
+            f"...and its deliberate 'off' at {_age:.0f} min still overrules "
+            f"the detector ({_dom.split('.')[0]})",
+            override_at(_dom, FakeState("off", last_updated=minutes_ago(_age, NOW)))
+            is False,
+            "losing the 'no' is the same bug in the other direction: the "
+            "inference silently takes back over",
+        )
+
+R.check(
+    "the horizon is scoped to numbers, not to the entity domain",
+    override_at("sensor.stove_flag", FakeState("on", last_updated=minutes_ago(600, NOW)))
+    is True
+    and override_at("sensor.flue", FakeState("420", last_updated=minutes_ago(600, NOW)))
+    is None,
+    "the same sensor domain carries both a word and a measurement; what "
+    "decides is whether age is evidence, which is a property of the value",
 )
 R.check(
     "a flue probe still uses its own threshold, not the shared numeric rule",
@@ -580,6 +633,18 @@ R.check(
     "the shared vocabulary widens what a flag entity may say",
     override_for(FakeState("yes", last_updated=NOW)) is True,
     "unrecognised before, and silently ignored",
+)
+R.check(
+    "UNBOUNDED is not the same as 'no key in the table'",
+    InputReader(
+        FakeHass({"sensor.x": FakeState("on", last_updated=minutes_ago(600, NOW))}),
+        {"indoor_temp_entity": "sensor.x"},
+    )
+    .read_state("indoor_temp_entity", max_age_minutes=inputs_mod.UNBOUNDED)
+    .max_age_minutes
+    is None,
+    "a key that HAS a horizon reads unbounded on request, and records the "
+    "absence of a limit honestly rather than as a very large number",
 )
 R.check(
     "an unavailable or unconfigured override is simply absent",
@@ -12142,7 +12207,6 @@ R.check(
     "a trickle of hot water does not disqualify a space-heating interval",
     _cop_mostly_space._cop_reference_curve() is not None,
 )
-
 R.section("v5.2.0 — defrost: duty is measured, the derate is physics")
 
 # Establish the premise first, because it inverts what the flag looks like it
@@ -12744,5 +12808,6 @@ R.check(
     and _mb_null.space_reasons == _mb_base.space_reasons
     and _mb_null.dhw_reasons == _mb_base.dhw_reasons,
 )
+
 
 sys.exit(R.close("FEATURE CHECKS"))

@@ -295,6 +295,7 @@ from .const import (
     DEFAULT_FREQ_CONTROL_MODE,
 )
 from .inputs import (
+    UNBOUNDED,
     InputHealth,
     InputReader,
     age_of,
@@ -2358,18 +2359,33 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         """State of a user-provided stove/flue entity, if one is configured.
 
         v5.2.0: read through the same guarded reader as the wood-side probes
-        beside it, rather than straight out of ``hass.states``. This is a
-        deliberate behaviour change — the override now goes stale — and it is
-        the direction the rest of the wood-side reads already took. The
-        override is the strongest single input in the integration: while it
-        says "yes" the detector suppresses, and the optimizer stops planning
-        heat it believes the fire is supplying. A stove sensor that dies
-        mid-fire, or a flue probe with a flat battery, used to hold that
-        suppression forever, on a value nothing was checking the age of. The
-        neighbouring probes have been gated at 60 minutes since v3.x for
-        exactly this failure ("a stalled hot sensor looks like an indefinite
-        free fire"); the one input that could suppress on its own was the
-        one input with no horizon.
+        beside it, rather than straight out of ``hass.states``. The override
+        is the strongest single input in the integration: while it says "yes"
+        the detector suppresses and the optimizer stops planning heat it
+        believes the fire is supplying, and while it says "no" it overrules
+        the inference outright.
+
+        **The freshness horizon applies to numbers only, and that asymmetry is
+        the whole point.** The argument for ageing this input out is an
+        argument about a *measurement*: a flue probe with a flat battery
+        stuck at 400 °C looks like an indefinite free fire, which is the
+        expensive failure direction, and it is the same failure the
+        neighbouring wood probes have been gated against since v3.x. A probe
+        re-reports every poll, so its age is real evidence about whether
+        anything is still watching the flue.
+
+        None of that holds for a flag. This slot is offered as
+        ``binary_sensor``/``switch``/``input_boolean``/``sensor``, and the two
+        the documentation recommends first are helpers that are written
+        *only when they change*: an ``input_boolean``, or a template
+        ``binary_sensor`` fed by one, has ``last_reported`` equal to the
+        moment the user last flipped it and never moves again. Ageing that
+        out does not catch a broken sensor; it discards a deliberate setting
+        an hour after it was made, in both directions at once — the "yes"
+        that suppresses and the "no" that overrules the detector alike — for
+        a household that may well leave the switch on for a fortnight of
+        wood-burning. So a flag is read with no horizon, exactly as it was
+        before v5.2.0.
 
         The boolean vocabulary is shared (``inputs.parse_bool``); the numeric
         rule is NOT, and numbers are therefore tested FIRST. A flue
@@ -2378,13 +2394,30 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         "yes" — right for a fault code, and quite wrong for a probe reading
         20 °C in a cold room — so it must never see a number here.
         """
-        reading = reader.read_state(CONF_EXTERNAL_HEAT_ENTITY)
+        # A numeric read applies the horizon from INPUT_MAX_AGE_MINUTES and
+        # rejects a word as ``not_numeric``, so this one call both classifies
+        # the entity and gates the probe case.
+        probe = reader.read(CONF_EXTERNAL_HEAT_ENTITY)
+        if probe.ok and probe.value is not None:
+            return probe.value > 30.0
+        if probe.stale:
+            _LOGGER.warning(
+                "External heat override %s has not reported for %.0f min "
+                "(limit %.0f); ignoring it until it does. A flue probe that "
+                "stops reporting would otherwise hold heating back forever",
+                probe.entity_id,
+                probe.age_minutes if probe.age_minutes is not None else -1.0,
+                probe.max_age_minutes if probe.max_age_minutes is not None else -1.0,
+            )
+            return None
+        if probe.problem != "not_numeric":
+            # not_configured, missing_entity or unavailable: nothing to read.
+            return None
+        reading = reader.read_state(
+            CONF_EXTERNAL_HEAT_ENTITY, max_age_minutes=UNBOUNDED
+        )
         if not reading.ok or reading.text is None:
             return None
-        try:
-            return float(reading.text) > 30.0
-        except (TypeError, ValueError):
-            pass
         return parse_bool(reading.text)
 
     def _space_demand_kw(self) -> float:
