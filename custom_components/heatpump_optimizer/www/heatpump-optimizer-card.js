@@ -11,7 +11,7 @@
 
 const CARD_TAG = "heatpump-optimizer-card";
 const EDITOR_TAG = "heatpump-optimizer-card-editor";
-const CARD_VERSION = "5.3.0";
+const CARD_VERSION = "5.4.0";
 
 // The de-duplication key `_extraFields` files a confidence band's two
 // edges under, so the pair counts as the one named trace it is. A Symbol

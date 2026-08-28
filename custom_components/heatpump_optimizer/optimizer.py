@@ -39,6 +39,7 @@ itself.
 from __future__ import annotations
 
 import logging
+import math
 import time as _time_mod
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
@@ -51,6 +52,7 @@ from . import mixing_valve, pv
 from .const import (
     DEFAULT_CYCLING_COST,
     DEFAULT_PRICE_RISK_LAMBDA,
+    DHW_COOLING_REFERENCE_AMBIENT_TEMP,
     DHW_MIXED_USE_TEMP,
     DHW_QUANTILE_MIN_EVENTS,
     WOOD_TANK_MAX_TEMP,
@@ -829,6 +831,97 @@ class _Horizon:
         }
 
 
+def hold_demand_kw(
+    params, target: float, out_mean: float, solar_mean: float = 0.0
+) -> float:
+    """Net thermal power the house needs to hold target, kW, never negative.
+
+    Deliberately NOT shared with ``slab_settlement_cap``, which computes a
+    similar-looking number for a different question and must keep doing so.
+    That one sizes how hot the slab has to run, so in two-zone mode it uses
+    the lower zone's loss and gains alone — the slab feeds only the lower
+    zone. This one asks how fast the buffer tank drains, and the tank sits
+    upstream of the mixing valve feeding both zones, so it is whole-house.
+    Collapsing the two would either inflate the slab ceiling by the upper
+    zone's demand or understate the tank's drain rate; they are two laws that
+    happen to rhyme, not one law written twice.
+
+    ``solar_mean`` is likewise opt-in rather than always-on. The slab ceiling
+    deliberately ignores solar (a worst case within the horizon); the
+    survival term must not, because free gain genuinely displaces the demand
+    the stored heat is waiting for, and omitting it credits storage on a
+    sunny summer day.
+
+    Zero means the house does not need bought heat at all at this weather —
+    gains alone hold the target — which is a real and common summer state,
+    not a degenerate one. Callers must handle it rather than dividing by it.
+    """
+    if params.two_zone_enabled:
+        u_eff = params.upper_floor_heat_loss + params.lower_floor_heat_loss_learned
+    else:
+        u_eff = params.heat_loss_coefficient
+    return max(
+        0.0,
+        u_eff * (target - out_mean)
+        - params.internal_gains
+        - max(0.0, float(solar_mean)),
+    )
+
+
+def stored_heat_survival(
+    ua: float, cap: float, demand: float, ambient: float = DHW_COOLING_REFERENCE_AMBIENT_TEMP
+) -> float:
+    """Fraction of tank heat left at the horizon end the next window can use.
+
+    The terminal cost credits a full tank as heat the next window does not
+    have to buy. That is only true if the next window *spends* it. A tank
+    loses to ambient at ``UA`` whether or not anyone draws on it, so heat put
+    in against a demand that will not arrive for days is largely gone before
+    it is wanted — and crediting it at face value is what had the optimizer
+    buying space heat in July, when the house was coasting six degrees clear
+    of its comfort floor and the credit was the only term with a gradient.
+
+    A mixed tank drained steadily at ``demand`` empties in
+    ``C (cap - ambient) / demand`` hours, so the average kWh in it is spent at
+    half that. Decaying over that time with the tank's own time constant
+    ``tau = C / UA`` cancels ``C`` entirely:
+
+        survival = exp(-UA (cap - ambient) / (2 demand))
+
+    which is ``exp(-half the drain time / tau)`` — how many time constants
+    pass before the heat is used. It depends only on the weather and the
+    hardware, never on the end temperature the solver is choosing, so the
+    terminal cost stays linear in that end temperature and the gradient keeps
+    pointing the same way; making the discount itself a function of the
+    decision variable would give the term a second-order kink for no physical
+    gain.
+
+    Winter is untouched by construction: at a 750 L tank's learned UA and a
+    house drawing ~4.7 kW the discount is under 3%. It only bites when the
+    demand it is divided by collapses, which is exactly the case it exists
+    for.
+
+    ``UA`` is the *learned* standby loss (``buffer_cooling_rate``, fitted by
+    the coordinator from observed cooling and clamped to this tank's
+    insulation bounds), so a well-insulated accumulator is discounted far
+    less than a bare cylinder — the discount is this tank's physics, not a
+    tuning constant.
+    """
+    if ua <= 0.0:
+        return 1.0
+    span = cap - ambient
+    if span <= 0.0:
+        # Nothing usable stored above ambient; the credit is zero anyway.
+        return 1.0
+    if demand <= 0.0:
+        # No demand at all: the hold time is unbounded and every stored kWh
+        # leaks away before it is ever spent.
+        return 0.0
+    # Capped before exp() so a near-zero demand underflows to 0.0 cleanly
+    # rather than raising.
+    return float(math.exp(-min(0.5 * ua * span / demand, 700.0)))
+
+
 def slab_settlement_cap(params, target: float, out_mean: float) -> float:
     """The slab temperature above which stored heat is worth nothing.
 
@@ -999,7 +1092,44 @@ class HeatPumpOptimizer:
         )
         return penalty, comfort_cost
 
-    def _terminal_cost(self, prices: np.ndarray, outdoor_temps: np.ndarray):
+    def _buffer_survival(
+        self,
+        outdoor_temps: np.ndarray,
+        solar_gains: np.ndarray | None,
+        cap: float | None,
+    ) -> float:
+        """The buffer tank's terminal-credit discount for this horizon.
+
+        Returns 1.0 — today's behaviour exactly — whenever the tank is not a
+        store, so the no-valve and small-tank paths stay byte-for-byte
+        identical. ``solar_gains`` is optional so a caller without a forecast
+        degrades to the no-solar answer (a smaller discount) rather than
+        crashing; that is the conservative direction.
+        """
+        params = self.model.params
+        if not params.buffer_is_store or cap is None:
+            return 1.0
+        solar_mean = (
+            float(np.mean(solar_gains))
+            if solar_gains is not None and len(solar_gains)
+            else 0.0
+        )
+        demand = hold_demand_kw(
+            params,
+            self.config.target_temp,
+            float(np.mean(outdoor_temps)),
+            solar_mean,
+        )
+        return stored_heat_survival(
+            params.buffer_tank_heat_loss_coefficient, float(cap), demand
+        )
+
+    def _terminal_cost(
+        self,
+        prices: np.ndarray,
+        outdoor_temps: np.ndarray,
+        solar_gains: np.ndarray | None = None,
+    ):
         """Price the heat the plan leaves unstored at the end of the horizon.
 
         Nothing beyond the horizon is scored, so without this the optimizer
@@ -1029,6 +1159,15 @@ class HeatPumpOptimizer:
         refill_price = (
             float(np.percentile(prices, 25)) * self.config.price_weight
         )
+        # How much of what the tank holds the next window actually gets to
+        # spend. Every building store settles at 1.0: their cap IS the comfort
+        # target, so heat credited there is heat serving the objective
+        # directly, not speculative storage waiting for a demand that may not
+        # come. Only the tank is an intermediate store, and only the tank can
+        # be charged with no comfort consequence at all.
+        buffer_survival = self._buffer_survival(
+            outdoor_temps, solar_gains, caps.get("buffer")
+        )
         out_mean = float(np.mean(outdoor_temps))
         cop_end = self.model.compute_cop(out_mean)
         # Equal to `cop_end` bit for bit whenever no valve throttles (the
@@ -1041,9 +1180,9 @@ class HeatPumpOptimizer:
 
         if params.two_zone_enabled:
             stores = (
-                (params.upper_floor_thermal_mass, "upper", caps["room"]),
-                (params.lower_floor_thermal_mass, "lower", caps["room"]),
-                (params.slab_thermal_mass, "slab", caps["slab"]),
+                (params.upper_floor_thermal_mass, "upper", caps["room"], 1.0),
+                (params.lower_floor_thermal_mass, "lower", caps["room"], 1.0),
+                (params.slab_thermal_mass, "slab", caps["slab"], 1.0),
             )
             if params.buffer_is_store:
                 # Only with a valve, and only a tank big enough to matter.
@@ -1054,12 +1193,17 @@ class HeatPumpOptimizer:
                 # one step of heat, and crediting it has the solver planning
                 # around noise.
                 stores = stores + (
-                    (params.buffer_tank_thermal_mass, "buffer", caps["buffer"]),
+                    (
+                        params.buffer_tank_thermal_mass,
+                        "buffer",
+                        caps["buffer"],
+                        buffer_survival,
+                    ),
                 )
         else:
             stores = (
-                (params.room_thermal_mass, "room", caps["room"]),
-                (params.slab_thermal_mass, "slab", caps["slab"]),
+                (params.room_thermal_mass, "room", caps["room"], 1.0),
+                (params.slab_thermal_mass, "slab", caps["slab"], 1.0),
             )
 
         def cost(
@@ -1086,17 +1230,20 @@ class HeatPumpOptimizer:
             if cop_buffer != cop_end:
                 deficit = 0.0
                 buffer_deficit = 0.0
-                for mass, name, cap in stores:
+                for mass, name, cap, survival in stores:
                     if name == "buffer":
-                        buffer_deficit += mass * max(0.0, cap - ends[name])
+                        buffer_deficit += (
+                            mass * survival * max(0.0, cap - ends[name])
+                        )
                     else:
-                        deficit += mass * max(0.0, cap - ends[name])
+                        deficit += mass * survival * max(0.0, cap - ends[name])
                 return refill_price * (
                     deficit / max(cop_end, 1e-6)
                     + buffer_deficit / max(cop_buffer, 1e-6)
                 )
             deficit = sum(
-                mass * max(0.0, cap - ends[name]) for mass, name, cap in stores
+                mass * survival * max(0.0, cap - ends[name])
+                for mass, name, cap, survival in stores
             )
             return refill_price * deficit / max(cop_end, 1e-6)
 
@@ -2369,7 +2516,9 @@ class HeatPumpOptimizer:
         # band actually buys cheaper operation instead of being overwhelmed by
         # a fixed quadratic penalty.
         comfort_band = np.maximum(comfort_targets - temp_min_bounds, 1.0)
-        terminal_cost = self._terminal_cost(prices, outdoor_temps)
+        terminal_cost = self._terminal_cost(
+            prices, outdoor_temps, solar_gains_per_step
+        )
         cycling, capacity, baseline_load = self._grid_terms(
             n_steps, dt, h.start_time
         )
@@ -4133,7 +4282,9 @@ class HeatPumpOptimizer:
         # See ``_optimize_space_only`` for why the band normalises the
         # pull-to-target term.
         comfort_band = np.maximum(comfort_targets - temp_min_bounds, 1.0)
-        terminal_cost = self._terminal_cost(prices, outdoor_temps)
+        terminal_cost = self._terminal_cost(
+            prices, outdoor_temps, solar_gains_per_step
+        )
         cycling, capacity, baseline_load = self._grid_terms(
             n_steps, dt, start_time
         )

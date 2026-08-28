@@ -43,7 +43,7 @@
 # does not expire with the stamp and is not part of the inherited-claims
 # comparison.
 #
-# claims-for: 5.3.0
+# claims-for: 5.4.0
 #
 #
 # This branch is test infrastructure only: tests/run.sh, tests/closure.py,
