@@ -43,25 +43,27 @@
 # does not expire with the stamp and is not part of the inherited-claims
 # comparison.
 #
-# claims-for: 5.1.9
+# claims-for: 5.1.10
 #
 #
-# v5.1.9 is card-only: one file of Lovelace JavaScript, its own test lane and
-# the release metadata. Nothing under custom_components/heatpump_optimizer/
-# outside www/ is touched, no planning code runs differently, and no fixture
-# is expected to move. The list below is therefore empty, which is the whole
-# claim: byte-identical behaviour everywhere.
+# This branch is test infrastructure only: tests/run.sh, tests/closure.py,
+# tests/closures.json, tests/derive_closures.sh, tests/README.md and the
+# workflow. Nothing under custom_components/ is touched, VERSION and
+# manifest.json are untouched, and no planning code runs differently. The
+# list below is therefore EMPTY, which is the whole claim: byte-identical
+# behaviour everywhere.
+#
+# Emptying it is not housekeeping. A branch that changes no behaviour and
+# leaves this file alone inherits the baseline's claims verbatim, and
+# inheritance rule 2 fails the run -- which is exactly how main went red
+# after v5.1.7's gate work (#77, fixed in #78). The stamp alone cannot
+# catch it here, because this branch does not bump VERSION either, so
+# 5.1.10 == VERSION holds on an inherited file. Rule 2 is the only thing
+# standing between this branch and a false green, and the fix is to say
+# plainly that nothing moves.
 
-# These five are the fixtures this gate declares non-reproducible across BLAS
-# builds: each machine solves them to a different local optimum, so whether
-# one differs from the committed recording is a fact about the runner, not
-# about the diff. This release changes no Python at all, so any difference
-# they show against main is entirely the machine -- which is exactly what
-# may-drift is for, and why these entries do not expire with the stamp. The
-# reasons below name the last release whose change could plausibly reach
-# them; nothing in this one can.
-# may-drift: valve_storage_smart_write -- machine-sensitive; last touched by the v5.1.7 fall-through relabel
-# may-drift: wood_two_tank -- machine-sensitive; last touched by the v5.1.7 fall-through relabel
-# may-drift: wood_two_tank_smart_write -- machine-sensitive; last touched by the v5.1.7 fall-through relabel
-# may-drift: wood_coil -- machine-sensitive; last touched by the v5.1.7 fall-through relabel
-# may-drift: valve_upper_direct_slab -- machine-sensitive; last touched by the v5.1.7 fall-through relabel
+# may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
+# may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
+# may-drift: wood_two_tank_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
+# may-drift: wood_coil -- machine-sensitive; the DHW plan can reach it, per local optimum
+# may-drift: valve_upper_direct_slab -- machine-sensitive; the DHW plan can reach it, per local optimum
