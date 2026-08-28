@@ -26,6 +26,7 @@ from homeassistant.components import mqtt
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import UnitOfSpeed
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.event import async_track_state_change_event
@@ -307,6 +308,7 @@ from .external_heat import (
 )
 from . import away as away_mode
 from . import battery as battery_view
+from . import comfort_band
 from . import mixing_valve
 from . import topology
 from . import pv as pv_model
@@ -376,7 +378,12 @@ from .dhw_schedule import (
     overlap_fraction,
     parse_windows,
 )
-from .optimizer import HeatPumpOptimizer, OptimizationConfig, OptimizationResult
+from .optimizer import (
+    HeatPumpOptimizer,
+    OptimizationConfig,
+    OptimizationResult,
+    slab_settlement_cap,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -920,6 +927,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # refresh the issue's timestamp and bury when the bad value first
         # appeared — the same reason solve_failures raises exactly-at.
         self._grid_fee_issue_value: float | None = None
+        # Whether the standing "lower_floor_modelled" repair issue is up.
+        # Raised once, not per cycle, for the same reason the fee issue is:
+        # re-raising refreshes the timestamp and buries when it started.
+        self._lower_floor_issue_raised = False
+        # The contradiction the standing "comfort_band_contradiction" issue
+        # was raised for; None = no issue.
+        self._band_issue_problem: str | None = None
         self._ledger = MonthlyLedger()
         self._ledger_store: Store = Store(
             hass,
@@ -1184,7 +1198,20 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         Writing it back to the entry options is what makes the change survive
         a reload; updating only the in-memory optimizer config meant the value
         silently reverted the next time the entry was reloaded.
+
+        Checked against the comfort band first (v5.1.7). This is a write to the
+        same config entry the options flow guards, and it used to arrive with
+        nothing checking it at all — the thermostat's own slider ran to
+        ``max_temp + 1``, so its top notch stored a target above the ceiling by
+        construction. A band the plan can never satisfy is not rejected
+        downstream, because the bounds are priced rather than fenced; it just
+        plans in permanent violation.
         """
+        found = comfort_band.violations(
+            {CONF_TARGET_TEMP: float(temperature)}, self._config
+        )
+        if found:
+            raise ServiceValidationError(comfort_band.describe(found))
         self._opt_config.target_temp = temperature
         self.hass.config_entries.async_update_entry(
             self.entry,
@@ -4007,21 +4034,35 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
         # The lower zone's room temperature, best source first.
         #
-        # A real thermometer beats both estimates and is the only one that
-        # carries information. The return-temp estimate below is a *water*
-        # temperature standing in for an air temperature -- typically 3-9 K too
-        # warm -- and because the slab is derived from the same sensor as
-        # `return + 1.0`, the slab-to-room difference it produces is pinned at a
-        # constant 0.5 K whatever the sensor reads. So the main heat path into
-        # the lower zone is both wrong and unresponsive, and the error is judged
-        # against the same comfort bounds as the upper floor.
+        # A real thermometer beats every estimate and is the only source that
+        # carries information about the lower zone at all. There used to be a
+        # second-best branch here: the floor-return reading plus 0.5 K. That was
+        # a *water* temperature standing in for an air temperature -- typically
+        # 3-9 K too warm -- and because the slab is derived from the same sensor
+        # as `return + 1.0`, the slab-to-room difference it produced was pinned
+        # at a constant 0.5 K whatever the sensor read. So the main heat path
+        # into the lower zone was both wrong and unresponsive, the error was
+        # judged against the same comfort bounds as the upper floor, and the
+        # number was published and plotted as a house temperature: an underfloor
+        # return of 27.5 C in a cold snap drew a "house" trace at 28.0 C while
+        # the upper zone sat at 22.1 C, which reads as the optimizer cooking the
+        # house to a temperature nothing ever planned.
+        #
+        # The floor return keeps the job it is a genuine proxy for -- driving
+        # the slab estimate through `update_slab_from_return_temp` above. With
+        # no lower-floor thermometer the honest stand-in is the room
+        # temperature, which is what the last-resort seed further down has
+        # always used; a repair issue says so rather than letting a wrong
+        # number pass for a measurement.
         lower_floor = reader.read(CONF_LOWER_FLOOR_TEMP_ENTITY)
         if lower_floor.ok:
             self._current_state.lower_floor_temperature = lower_floor.value
         elif floor_return.ok:
             self._current_state.lower_floor_temperature = (
-                self._floor_return_temp + 0.5
+                self._current_state.room_temperature
             )
+        self._audit_lower_floor_sensor()
+        self._audit_comfort_band()
 
         # A smart valve's target, when the integration can see it. Knowing
         # where the valve regulates to is what tells the model whether it is
@@ -5008,9 +5049,101 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     },
                 )
                 self._grid_fee_issue_value = worst
-        elif self._grid_fee_issue_value is not None:
+        else:
+            # Unconditional for the reason spelled out in
+            # `_audit_lower_floor_sensor`: correcting the fee writes options,
+            # which reloads the entry, which resets this flag to None -- so
+            # gating the delete on it left a corrected installation showing a
+            # persistent warning about a value it no longer has.
             ir.async_delete_issue(self.hass, DOMAIN, "grid_fee_magnitude")
             self._grid_fee_issue_value = None
+
+    def _audit_lower_floor_sensor(self) -> None:
+        """Tell the user when the lower zone's temperature is not measured.
+
+        Two-zone planning judges the lower zone against the same comfort
+        bounds as the upper one, so its temperature is an input the plan acts
+        on. Without ``lower_floor_temp_entity`` there is nothing to read and
+        the room sensor stands in for the whole downstairs — good enough to
+        plan from, but not a measurement, and the published trace says
+        "lower floor" either way. Say so once, rather than letting an
+        estimate pass for a reading.
+
+        Silent unless two-zone is actually running: a single-zone house has no
+        lower zone to measure, and the field is not even shown to it.
+        """
+        wanted = bool(
+            self._thermal_params.two_zone_enabled
+            and not self._config.get(CONF_LOWER_FLOOR_TEMP_ENTITY)
+        )
+        if wanted:
+            if not self._lower_floor_issue_raised:
+                ir.async_create_issue(
+                    self.hass,
+                    DOMAIN,
+                    "lower_floor_modelled",
+                    is_fixable=False,
+                    # Persistent: the missing sensor survives a restart, so
+                    # the notice must too.
+                    is_persistent=True,
+                    severity=ir.IssueSeverity.WARNING,
+                    translation_key="lower_floor_modelled",
+                )
+                self._lower_floor_issue_raised = True
+        else:
+            # UNCONDITIONAL, and that is the whole point. Assigning the sensor
+            # writes options, which reloads the entry, which builds a NEW
+            # coordinator whose flag starts at False -- so a delete gated on
+            # the flag can never run, and an `is_persistent` issue that says
+            # "this notice clears when you do" would stay up forever. The
+            # in-memory flag can only ever suppress a repeated CREATE; it must
+            # never guard the clear. (`freq_watchdog` deletes unconditionally
+            # for exactly this reason; `_audit_grid_fee` did not, and had the
+            # same defect until v5.1.7.) Deleting an issue that is not there
+            # is a no-op.
+            ir.async_delete_issue(self.hass, DOMAIN, "lower_floor_modelled")
+            self._lower_floor_issue_raised = False
+
+    def _audit_comfort_band(self) -> None:
+        """Say so when the STORED comfort band contradicts itself.
+
+        Every write path now runs the band's rules, so a contradiction can no
+        longer be created (v5.1.7). One can still be inherited: until this
+        release the thermostat's slider ran to ``max_temp + 1`` and persisted
+        whatever it was given, so a single tap on its top notch stored a target
+        one degree above the ceiling, and nothing said a word.
+
+        Reported rather than migrated. These are the user's own numbers and
+        only they know which one is wrong -- silently rewriting a comfort
+        target to make an inequality hold is exactly the kind of help nobody
+        asked for. The plan keeps running meanwhile: the bounds are priced
+        rather than fenced, so a contradictory band is a plan in permanent
+        violation, not a crash.
+        """
+        found = comfort_band.violations({}, self._config)
+        if found:
+            problem = comfort_band.describe(found)
+            if self._band_issue_problem != problem:
+                ir.async_create_issue(
+                    self.hass,
+                    DOMAIN,
+                    "comfort_band_contradiction",
+                    is_fixable=False,
+                    # Persistent: stored configuration survives a restart.
+                    is_persistent=True,
+                    severity=ir.IssueSeverity.WARNING,
+                    translation_key="comfort_band_contradiction",
+                    translation_placeholders={"problem": problem},
+                )
+                self._band_issue_problem = problem
+        else:
+            # Unconditional, like the two audits above: correcting the band
+            # reloads the entry and resets this flag, so a guarded delete
+            # could never fire.
+            ir.async_delete_issue(
+                self.hass, DOMAIN, "comfort_band_contradiction"
+            )
+            self._band_issue_problem = None
 
     def _current_grid_fee(self, when: datetime) -> float:
         return self._grid_fee_schedule().current_fee(
@@ -8889,6 +9022,17 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             dhw_min=params.dhw_min_temp,
             dhw_max=params.dhw_max_temp,
             cop=cop,
+            # The slab's ceiling is the optimizer's settlement cap, not a
+            # comfort offset: heat above the temperature that sustains the
+            # target is heat the plan can never spend, so counting it as
+            # capacity overstates the store. Read at the outdoor temperature
+            # in force now — the view is a snapshot of the house as it stands,
+            # like every other figure in it.
+            slab_max=slab_settlement_cap(
+                params,
+                self._opt_config.target_temp,
+                self._current_state.outdoor_temperature,
+            ),
         )
         return view.as_dict()
 

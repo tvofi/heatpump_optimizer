@@ -99,6 +99,9 @@ SENSITIVE = (
 
 CLAIM_FILE = os.path.join("tests", "golden", "claimed_drift.txt")
 CLAIM_VERSION_MARKER = "claims-for:"
+#: Declares a SENSITIVE fixture whose drift is judged per machine rather than
+#: per release. See `_may_drift` for why an ordinary claim cannot do this job.
+MAY_DRIFT_MARKER = "may-drift:"
 VERSION_FILE = "VERSION"
 
 
@@ -185,6 +188,102 @@ def _claimed(repo: str) -> tuple[str | None, dict[str, str]]:
             rest = note[len(CLAIM_VERSION_MARKER):].split()
             declared = rest[0] if rest else ""
     return declared, claims
+
+
+def _may_drift(repo: str) -> dict[str, str]:
+    """SENSITIVE fixtures this branch may or may not move, and why.
+
+    An ordinary claim asserts "this scenario moved". For the five fixtures in
+    ``SENSITIVE`` that assertion is not a property of the branch at all: they
+    do not reproduce across BLAS builds, so each machine solves them to a
+    different local optimum, and whether a given change touches one is a fact
+    about the runner rather than about the diff.
+
+    v5.1.7 is the case that forced this. Its change relabels the
+    ``classify_space_steps`` fall-through, which a plan reaches only when a
+    step has no ``heat_loss_factors > 1.1``. All five sensitive fixtures run a
+    profile whose factor is a constant 1.06, so every ``preheat_weather`` they
+    carry is a fall-through -- and *which* steps fall through depends on the
+    local optimum. On this machine only ``valve_upper_direct_slab`` has one;
+    the committed fixtures, recorded elsewhere, show them in
+    ``valve_storage_smart_write`` and ``wood_two_tank_smart_write`` instead.
+    So a claim naming this machine's fixture is unclaimed drift on the
+    recording machine, and a claim naming the recording machine's fixtures is
+    a stale claim here. Both spellings fail, on different machines, for a
+    change that is correct on both.
+
+    A may-drift entry says the honest thing: this scenario is one the gate
+    itself declares non-reproducible, this change plausibly touches it, and
+    the diff is printed for a human rather than judged by the runner. It is
+    deliberately weaker than a claim, and confined so it cannot be used as
+    one: `may_drift_error` rejects any name outside ``SENSITIVE``, so the
+    exemption can never reach a fixture whose floats do travel.
+
+    Written as comment lines (``# may-drift: <name> -- <reason>``) so that
+    `_claimed`, which reads any non-comment line as a claim, is untouched --
+    and so that the entries stay out of the inherited-claims comparison,
+    which is right: this is a standing statement about five fixtures, not a
+    claim about one release's diff, and it does not expire with VERSION.
+    """
+    path = os.path.join(repo, CLAIM_FILE)
+    out: dict[str, str] = {}
+    if not os.path.exists(path):
+        return out
+    for line in open(path):
+        body, _, comment = line.partition("#")
+        if body.strip():
+            # A claim line. Its trailing text is a reason, never a marker.
+            continue
+        note = comment.strip()
+        if not note.startswith(MAY_DRIFT_MARKER):
+            continue
+        rest = note[len(MAY_DRIFT_MARKER):].strip()
+        name, _, reason = rest.partition("--")
+        if name.strip():
+            out[name.strip()] = reason.strip() or "no reason given"
+    return out
+
+
+def may_drift_error(
+    may_drift: dict[str, str], claims: dict[str, str]
+) -> str | None:
+    """Why the may-drift list is not usable - None when it is.
+
+    Two rules, and both exist to stop the category becoming a way to launder
+    a real regression:
+
+    * it may only name fixtures in ``SENSITIVE``, the ones this script
+      already declares non-reproducible. Anywhere else, a moved fixture is
+      the branch's doing and has to be claimed;
+    * a name cannot be both claimed and may-drift, because the two say
+      different things about the same scenario and only one can be checked.
+    """
+    stray = sorted(set(may_drift) - set(SENSITIVE))
+    if stray:
+        return (
+            "MAY-DRIFT OUT OF SCOPE: {file} marks\n"
+            "{stray} as may-drift, but that category exists only for the\n"
+            "fixtures this gate declares non-reproducible across BLAS\n"
+            "builds: {sensitive}.\n"
+            "Everywhere else a moved fixture is this branch's doing and is\n"
+            "judged per release -- claim it with a reason, or find out why\n"
+            "it moved. Widening this category would let a real regression\n"
+            "through under a permanent exemption."
+        ).format(
+            file=CLAIM_FILE,
+            stray=", ".join(stray),
+            sensitive=", ".join(SENSITIVE),
+        )
+    both = sorted(set(may_drift) & set(claims))
+    if both:
+        return (
+            "CLAIMED AND MAY-DRIFT: {file} lists\n"
+            "{both} as both. A claim asserts the scenario moved and goes\n"
+            "stale when it does not; may-drift asserts nothing either way.\n"
+            "Pick one -- may-drift for the sensitive fixtures, a claim for\n"
+            "everything else."
+        ).format(file=CLAIM_FILE, both=", ".join(both))
+    return None
 
 
 def claim_version_error(repo: str) -> str | None:
@@ -308,6 +407,11 @@ def main() -> int:
         print(stamp_problem)
         return 1
     _declared, claims = _claimed(repo)
+    may_drift = _may_drift(repo)
+    scope_problem = may_drift_error(may_drift, claims)
+    if scope_problem:
+        print(scope_problem)
+        return 1
 
     # A ref that resolves to HEAD makes the whole gate vacuous, so say so
     # rather than reporting the "no drift" it would trivially find. (A ref
@@ -351,6 +455,7 @@ def main() -> int:
         branch, baseline = outputs["branch"], outputs["baseline"]
         drifted = 0
         claimed_hits = []
+        may_drift_hits: list[str] = []
         for name in sorted(set(branch) | set(baseline)):
             if name not in baseline:
                 # Added by this branch, so there is nothing to compare --
@@ -373,8 +478,22 @@ def main() -> int:
                 continue
             diffs: list[str] = []
             _diff_leaves(baseline[name], branch[name], name, diffs)
-            if not diffs:
+            if not diffs and name in may_drift:
+                # Not "ok": nothing was proved. This machine's solve of a
+                # non-reproducible fixture simply did not land on the part
+                # the change touches, and another machine's may.
+                print(f"  may-drift {name}: did not move here ({may_drift[name]})")
+            elif not diffs:
                 print(f"  ok    {name} is byte-identical to {ref} here")
+            elif name in may_drift:
+                may_drift_hits.append(name)
+                print(f"  MAY-DRIFT {name}: {len(diffs)} leaves moved "
+                      f"({may_drift[name]})")
+                # Printed in full rather than truncated at three: nobody can
+                # judge these from a runner's verdict, so the log is the only
+                # place the evidence exists.
+                for line in diffs[:10]:
+                    print(f"         {line}")
             elif name in claims:
                 claimed_hits.append(name)
                 print(f"  CLAIMED {name}: {len(diffs)} leaves moved ({claims[name]})")
@@ -398,6 +517,16 @@ def main() -> int:
             print(f"  STALE claim for {name}: nothing drifted, remove it")
         for name in unjudged:
             print(f"  unjudged claim for {name}: not captured in this mode")
+
+        if may_drift_hits:
+            print(f"\n{len(may_drift_hits)} MAY-DRIFT SCENARIO(S) MOVED, unjudged")
+            print("These are the fixtures this gate declares non-reproducible")
+            print("across BLAS builds, so a diff in them is not evidence about")
+            print("this branch either way and is printed rather than judged:")
+            for name in may_drift_hits:
+                print(f"  {name}: {may_drift[name]}")
+            print("Read the leaf diffs above. Never re-record them on a")
+            print("machine where golden.py already reports them as DIFF.")
 
         if unjudged:
             print(f"\nNOT EVALUATED: {len(unjudged)} claim(s) name scenarios that")

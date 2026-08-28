@@ -100,8 +100,20 @@ class HeatPumpOptimizerClimate(CoordinatorEntity, ClimateEntity):
         # Pin today's object id for new installs (the integration
         # suggested-object-id mechanism); see the sensor base class.
         self.entity_id = "climate.heat_pump_optimizer"
-        self._attr_min_temp = self._config.get(CONF_MIN_TEMP, DEFAULT_MIN_TEMP) - 1
-        self._attr_max_temp = self._config.get(CONF_MAX_TEMP, DEFAULT_MAX_TEMP) + 1
+        # The slider offers exactly the band, and nothing outside it.
+        #
+        # It used to run a degree past the ceiling AND a degree below the
+        # floor, and wrote whatever it was given without a check. v5.1.7 added
+        # the check, which made the overshoot on both ends worse than useless:
+        # the band's rules refuse `min > target` and `target > max`
+        # unconditionally, so every value in those two outer degrees was
+        # advertised as settable and then refused. A control must not offer a
+        # position it will reject — that is a worse bug than the one being
+        # fixed, and it is what the earlier `- 1` here produced. If a user
+        # wants a target outside the band, the band is what they need to
+        # change, and the options page is where that is done.
+        self._attr_min_temp = self._config.get(CONF_MIN_TEMP, DEFAULT_MIN_TEMP)
+        self._attr_max_temp = self._config.get(CONF_MAX_TEMP, DEFAULT_MAX_TEMP)
 
     @property
     def device_info(self) -> DeviceInfo:
@@ -258,14 +270,20 @@ class HeatPumpOptimizerClimate(CoordinatorEntity, ClimateEntity):
         temp = kwargs.get(ATTR_TEMPERATURE)
         if temp is not None:
             _LOGGER.info("Target temperature set to %.1f°C", temp)
-            # A manual override is the user telling us the plan went too far in
-            # one direction, which is the only evidence anyone ever produces
-            # about what ``comfort_weight`` should be. Recorded before the
-            # option write, since that reloads the entry.
-            self.coordinator.record_setpoint_override(float(temp))
             # Persisting the option reloads the entry, which re-optimizes and
             # re-applies the plan, so no manual refresh/publish is needed.
+            # It can also refuse: the comfort band's rules run here (v5.1.7).
             await self.coordinator.async_set_target_temperature(float(temp))
+            # A manual override is the user telling us the plan went too far in
+            # one direction, which is the only evidence anyone ever produces
+            # about what ``comfort_weight`` should be. Recorded AFTER the write
+            # and only if it succeeded: a refused setpoint is not a preference
+            # the user got, so training the comfort learner on it would teach
+            # the weight from a temperature the house was never asked to hold.
+            # (The write updates the entry's options, which reloads the entry
+            # asynchronously; this coordinator object is still the live one
+            # here, so recording after it is safe.)
+            self.coordinator.record_setpoint_override(float(temp))
 
     async def async_set_preset_mode(self, preset_mode: str) -> None:
         mode_map = {

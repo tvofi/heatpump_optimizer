@@ -56,8 +56,10 @@ but a 0.8 kW/m² line sharing a scale with a 5 kW compressor is unreadable.
 
 Hovering a planned slot shows why it was chosen: cheapest hours, holding the
 minimum temperature, pre-heating before colder weather, using solar surplus, the
-anti-legionella cycle, and so on. Without this an unexpected slot is
-indistinguishable from a bug.
+anti-legionella cycle, and so on — or simply keeping the house at target, which
+is what an ordinary slot says now that it no longer borrows the weather
+pre-heat label. Without this an unexpected slot is indistinguishable from a
+bug.
 
 The stretch of the horizon whose prices have not been published yet — Nord Pool
 and Tibber release tomorrow around 13:00 — is shaded and labelled *estimated

@@ -28,7 +28,7 @@
           "heat_pump_switch_entity": "Optional. A switch used to turn the heat pump off during expensive hours.",
           "solar_radiation_entity": "Optional. Sunshine in W/m2. Lets the optimizer skip heating before a sunny afternoon that will warm the house for free.",
           "floor_return_temp_entity": "Optional. Water temperature coming back from the floor loops, used to gauge how much heat the slab is holding.",
-          "lower_floor_temp_entity": "Optional, two-zone only. A real thermometer in the lower zone. Without one the lower floor is inferred from the floor return water, which runs several degrees warmer than the room and makes the zone look warmer than it is.",
+          "lower_floor_temp_entity": "Optional, two-zone only. A real thermometer in the lower zone. Without one the lower floor is planned and plotted at whatever the main room sensor reads, so a downstairs that runs warmer or cooler than upstairs is invisible.",
           "dhw_temp_entity": "Optional but recommended. The real tank temperature. Also lets a manual hot water boost reset the anti-legionella timer.",
           "buffer_tank_temp_entity": "Optional. When set, the integration learns how fast the buffer tank loses heat instead of relying on the configured estimate.",
           "solar_forecast_source": "Where to get solar irradiance from. \"Weather entity\" uses your weather integration, which often does not publish irradiance at all. \"Open-Meteo\" fetches a free forecast for the location below; no account is needed.",
@@ -49,8 +49,8 @@
         },
         "data_description": {
           "target_temperature": "What you actually want the house to sit at. The optimizer aims for this and only drifts away from it to avoid expensive hours.",
-          "min_temperature": "A hard floor. The house is never allowed below this, no matter how expensive electricity gets. A wider gap to the target means more room to save.",
-          "max_temperature": "A hard ceiling. Caps how far ahead the optimizer may pre-heat the house during cheap hours.",
+          "min_temperature": "The coldest the plan will take the house. A strongly priced bound rather than a hard constraint — a hard one would leave a cold morning the pump cannot heat through with no plan at all — but breaching it costs far more than the electricity saved, at prices a couple of orders of magnitude beyond real ones, so the plan holds above it. A wider gap to the target means more room to save.",
+          "max_temperature": "The warmest the plan will pre-heat the house to during cheap hours. Priced the same way as the minimum, and just as firm at any real price. A limit, never a target: the optimizer aims for the target temperature and only comes near this when cheap hours make storing heat worth it. It cannot hold back heat the house gets for free, so a sunny summer room may still drift above it.",
           "comfort_temp_day": "Preferred temperature during waking hours.",
           "comfort_temp_night": "Preferred temperature overnight. Setting this a degree or two lower saves money and usually improves sleep.",
           "day_start_hour": "Hour of the morning when the daytime temperature takes over.",
@@ -280,7 +280,7 @@
           "dhw_temp_entity": "Optional but recommended. The real tank temperature. Also lets a manual hot water boost reset the anti-legionella timer.",
           "buffer_tank_temp_entity": "Optional. When set, the integration learns how fast the buffer tank loses heat instead of relying on the configured estimate.",
           "floor_return_temp_entity": "Optional. Water temperature coming back from the floor loops, used to gauge how much heat the slab is holding.",
-          "lower_floor_temp_entity": "Optional, two-zone only. A real thermometer in the lower zone. Without one the lower floor is inferred from the floor return water, which runs several degrees warmer than the room and makes the zone look warmer than it is.",
+          "lower_floor_temp_entity": "Optional, two-zone only. A real thermometer in the lower zone. Without one the lower floor is planned and plotted at whatever the main room sensor reads, so a downstairs that runs warmer or cooler than upstairs is invisible.",
           "heat_pump_switch_entity": "Optional. A switch used to turn the heat pump off during expensive hours.",
           "solar_forecast_source": "Where to get solar irradiance from. \"Weather entity\" uses your weather integration, which often does not publish irradiance at all. \"Open-Meteo\" fetches a free forecast for the location below; no account is needed.",
           "solar_location": "Coordinate used for the Open-Meteo irradiance forecast. Defaults to your Home Assistant home location. Only used when the source is Open-Meteo.",
@@ -309,8 +309,8 @@
         },
         "data_description": {
           "target_temperature": "What you actually want the house to sit at. The optimizer aims for this and only drifts away from it to avoid expensive hours.",
-          "min_temperature": "A hard floor. The house is never allowed below this, no matter how expensive electricity gets. A wider gap to the target means more room to save.",
-          "max_temperature": "A hard ceiling. Caps how far ahead the optimizer may pre-heat the house during cheap hours.",
+          "min_temperature": "The coldest the plan will take the house. A strongly priced bound rather than a hard constraint — a hard one would leave a cold morning the pump cannot heat through with no plan at all — but breaching it costs far more than the electricity saved, at prices a couple of orders of magnitude beyond real ones, so the plan holds above it. A wider gap to the target means more room to save.",
+          "max_temperature": "The warmest the plan will pre-heat the house to during cheap hours. Priced the same way as the minimum, and just as firm at any real price. A limit, never a target: the optimizer aims for the target temperature and only comes near this when cheap hours make storing heat worth it. It cannot hold back heat the house gets for free, so a sunny summer room may still drift above it.",
           "comfort_temp_day": "Preferred temperature during waking hours.",
           "comfort_temp_night": "Preferred temperature overnight. Setting this a degree or two lower saves money and usually improves sleep.",
           "day_start_hour": "Hour of the morning when the daytime temperature takes over.",
@@ -766,6 +766,14 @@
     "grid_fee_magnitude": {
       "title": "A configured grid fee looks 100× too large",
       "description": "The grid fee layer contains a rate of {rate} SEK/kWh (from the {source} input). Swedish DSO transfer fees run a few tenths of a krona per kWh, so a value this size is almost always öre entered where SEK was meant — 25 instead of 0.25. Nothing is changed or capped: the plan keeps pricing with exactly the value configured. Correct the value under the DSO fee options (or fix the fee sensor) and this notice clears on the next planning cycle."
+    },
+    "lower_floor_modelled": {
+      "title": "The downstairs temperature is modelled, not measured",
+      "description": "Two-zone planning is on and no lower-floor thermometer is configured, so the lower zone starts from the main room sensor and is carried forward by the thermal model — the “Lower floor (modelled)” trace on the plan chart. That is how the zone has to be planned without a sensor, and it is not something the floor-return sensor can supply: return water runs 3–9 K above the room it heats, so it drives the slab estimate, which is what it is genuinely a proxy for. What a modelled zone cannot do is correct itself, so over a long cold spell it can drift from the real downstairs. Assigning “Lower floor temperature sensor” under the zone options closes that loop; this notice clears when you do."
+    },
+    "comfort_band_contradiction": {
+      "title": "Your comfort temperatures contradict each other",
+      "description": "The stored comfort settings cannot all be satisfied at once: {problem}. Until version 5.1.7 the thermostat card's temperature slider ran one degree past the warmest acceptable temperature and saved whatever it was given, so a single tap on its top notch could store a target above the ceiling. Nothing is broken — the optimizer prices these bounds rather than enforcing them, so the plan keeps running, just in permanent slight violation of a band it can never satisfy. Nothing has been changed for you either: which of the two numbers is the wrong one is yours to say. Correct them under the temperature options and this notice clears on the next cycle."
     }
   },
   "entity": {

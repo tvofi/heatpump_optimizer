@@ -57,7 +57,7 @@ reported as a connection problem rather than as a bad token.
 | Solar irradiance source | Weather entity | `Weather entity` reads irradiance from your weather integration, which often does not publish any. `Open-Meteo` fetches a free forecast for the location below; no account needed. |
 | Solar irradiance location | your Home Assistant home location | The coordinate Open-Meteo is asked about. Only used when the source is Open-Meteo. |
 | Floor heating return temperature sensor | none | Water coming back from the floor loops. Used to gauge how much heat the slab is holding. |
-| Lower floor temperature sensor | none | Two-zone houses only. Without it the lower zone is inferred from the floor return water, which runs several degrees warmer than the room. |
+| Lower floor temperature sensor | none | Two-zone houses only. Without it the lower zone is modelled from the main room sensor and labelled as modelled on the plan chart; a repair notice says so. |
 | Hot water tank temperature sensor | none | Recommended. Lets a manual hot-water boost reset the anti-legionella timer, and unlocks the learned draw quantiles. |
 | Buffer tank temperature sensor | none | When set, the tank's cooling rate is learned instead of assumed. |
 
@@ -73,8 +73,8 @@ the wider it is, the further the house may coast through an expensive hour.
 | Setting | Default | Range | What it means |
 |---|---|---|---|
 | Target indoor temperature | 21.0 °C | 15–28, 0.5 steps | What you actually want. The optimizer aims here and only drifts to avoid expensive hours. |
-| Coldest acceptable temperature | 19.0 °C | 14–25 | A floor the plan will not go below whatever electricity costs. |
-| Warmest acceptable temperature | 23.0 °C | 18–28 | A ceiling on pre-heating during cheap hours. |
+| Coldest acceptable temperature | 19.0 °C | 14–25 | The coldest the plan will take the house. Priced, not fenced (see [how it works](how-it-works.md#the-objective-term-by-term)), but firm at any real price. |
+| Warmest acceptable temperature | 23.0 °C | 18–28 | A limit on pre-heating during cheap hours, never a target. Priced the same way; free solar gain can still carry a room past it. |
 | Daytime comfort temperature | 21.0 °C | 16–26 | Preferred temperature during waking hours. |
 | Night-time comfort temperature | 19.5 °C | 15–24 | Preferred temperature overnight. A degree or two lower saves money and usually sleeps better. |
 | Day starts at | 07 | 00–12 | Hour the daytime temperature takes over. |

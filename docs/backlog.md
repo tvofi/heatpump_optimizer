@@ -2244,8 +2244,12 @@ one optional sensor, one branch, and it makes the two-zone model honest. It is
 also a precondition for trusting anything measured about the lower zone, so if
 the wood-furnace cluster gets built, do this first.
 
-**Done.** `CONF_LOWER_FLOOR_TEMP_ENTITY`, optional, two-zone only. Precedence is
-real sensor > `return + 0.5` > `room_temperature`.
+**Done.** `CONF_LOWER_FLOOR_TEMP_ENTITY`, optional, two-zone only. Precedence
+was real sensor > `return + 0.5` > `room_temperature`; since v5.1.7 it is real
+sensor > `room_temperature`. Keeping the return-temp rung was the wrong call:
+the number is published and plotted as a house temperature, so a 27.5 °C return
+drew a "house" trace at 28.0 °C, and it was judged against the same comfort band
+as the measured zone. A repair issue now says the zone is modelled.
 
 - **This item's test guidance was wrong, and it matters.** It says to expect
   golden churn and to treat an empty diff as proof the sensor is not consumed.

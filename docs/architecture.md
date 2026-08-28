@@ -66,6 +66,8 @@ custom_components/heatpump_optimizer/
 ├── optimizer.py          # The MPC solve: DHW by LP, space by L-BFGS-B, reason codes
 ├── open_meteo.py         # Irradiance forecast and satellite observation client
 ├── inputs.py             # Guarded state reads with a staleness watchdog
+├── comfort_band.py       # The band's cross-field rules, shared by the config
+│                         #   flow, the apply_schedule service and the thermostat
 │
 │   # Prices, tariffs and money
 ├── price_model.py        # Learned diurnal price shape for the unpublished tail

@@ -4714,5 +4714,197 @@ const setupBox = (card, place) =>
     merged.length === 0, merged.join(", "));
 }
 
+
+// --- Scenario: tooltip prose wraps, and the box stays on the chart ---------
+//
+// `.tooltip` sets `white-space: nowrap`, which is right for the value rows
+// ("House temperature: 22 °C" must not break) and wrong for everything else
+// in the box. `.tt-shared` carried a `max-width: 180px` that could never take
+// effect, because nowrap was never overridden on it: the ~110-character
+// shared-step sentence rendered as one unbroken line roughly 500 px wide and
+// spilled straight out of the box. `.tt-reason` is prose too and had no width
+// bound at all.
+//
+// STRUCTURAL PIN, not a rendered-overflow test. This DOM stub has no layout
+// engine: there is no box model, no text measurement and no `offsetWidth`, so
+// nothing here can observe an overflow. What it can pin is the rule that
+// prevents one — every prose block inside the tooltip declares
+// `white-space: normal` and a `max-width`, and none is left inheriting nowrap.
+// A future prose block added without those two declarations is caught; a
+// declared max-width that is simply too narrow for its content is NOT, and
+// neither is a real overflow arising from anything other than these rules.
+{
+  const styleOf = (cls) => {
+    const re = new RegExp(
+      "\\.tooltip \\." + cls + "\\s*\\{([\\s\\S]*?)\\}", "m"
+    );
+    const m = cardSrc.match(re);
+    return m ? m[1] : null;
+  };
+  // Every block the tooltip builder emits, and whether it is prose.
+  const PROSE = ["tt-shared", "tt-reason"];
+  const VALUES = ["tt-row", "tt-time"];
+
+  check("the tooltip itself still keeps short value rows on one line",
+    /\.tooltip \{[\s\S]*?white-space:\s*nowrap[\s\S]*?\}/.test(cardSrc));
+  for (const cls of PROSE) {
+    const css = styleOf(cls);
+    check(`${cls} declares a style block at all`, css !== null);
+    check(`${cls} wraps instead of inheriting nowrap`,
+      css !== null && /white-space:\s*normal/.test(css), css);
+    check(`${cls} bounds its own width`,
+      css !== null && /max-width:\s*\d/.test(css), css);
+  }
+  for (const cls of VALUES) {
+    const css = styleOf(cls);
+    check(`${cls} is left on one line, which is what nowrap is for`,
+      css === null || !/white-space:\s*normal/.test(css), css);
+  }
+  // Every class the tooltip HTML emits must be one of the two lists above, so
+  // a new prose block cannot be added without deciding which it is.
+  const emitted = new Set(
+    [...cardSrc.matchAll(/<div class="(tt-[\w-]+)"/g)].map((m) => m[1])
+  );
+  check("every tooltip block is classified as prose or as a value row",
+    [...emitted].every((c) => PROSE.includes(c) || VALUES.includes(c)),
+    [...emitted].join(", "));
+
+  // The competing hypothesis, and a real second defect: placement clamped
+  // only the LEFT edge (`Math.max(0, place)`) and flipped the box left of the
+  // pointer past 60 % of the width assuming a 160 px box. A wider box near the
+  // right-hand edge ran off the chart whether or not its text wrapped.
+  const posCard = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
+  const rect = { width: 900, left: 0, top: 0 };
+  // The stub has no layout, so `offsetWidth` is supplied by hand: this is the
+  // one number the placement needs and the only thing standing in for layout.
+  const TT_W = 420;
+  const ttNode = posCard.shadowRoot.querySelector(".tooltip");
+  ttNode.offsetWidth = TT_W;
+  const place = (clientX) => {
+    posCard._onPointerMove({
+      clientX,
+      currentTarget: { getBoundingClientRect: () => rect },
+    });
+    return parseFloat(ttNode.style.left);
+  };
+  // Inside the plot area: the pointer handler ignores anything outside it, so
+  // these have to be plot coordinates, not card ones.
+  const atRightEdge = place(830);
+  check("the tooltip never starts past the chart's right edge",
+    atRightEdge + TT_W <= rect.width,
+    `left ${atRightEdge} + ${TT_W} > ${rect.width}`);
+  check("and never starts left of the chart", place(95) >= 0,
+    `left ${place(95)}`);
+  check("a pointer in the middle still places it beside the crosshair",
+    place(300) > 0 && place(300) + TT_W <= rect.width, `left ${place(300)}`);
+}
+
+// --- Scenario: the zone traces are named (v5.1.7) --------------------------
+//
+// The house-temperature series draws `room` solid and `upper`/`lower` dashed
+// in one colour. Until v5.1.7 all three shared one legend chip and one label,
+// and the tooltip reported `s.lines.find(l => l.primary)` — the ROOM value —
+// for whichever line the pointer was over. A two-zone house whose downstairs
+// trace sat at 28 °C therefore hovered as 21 °C, which is how a display defect
+// reads as the optimizer overheating the house.
+{
+  const twoZone = (opts) => {
+    const st = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+    // Same timestamps, three genuinely different temperatures.
+    st[DEFAULT_SPACE].attributes.forecast =
+      plan.space_plan.forecast.map((p) => ({
+        ...p,
+        // Whole degrees apart: the chart formats anything at or above 10
+        // with `toFixed(0)`, so smaller gaps would render identically and the
+        // "own value" check below would pass on a coincidence.
+        room: 22.0,
+        upper: 20.0,
+        lower: 28.0,
+      }));
+    if (opts && opts.topology) {
+      st[DEFAULT_SPACE].attributes.setup_topology = {
+        slots: [
+          { key: "indoor_temp_entity", entity: "sensor.indoor" },
+          { key: "lower_floor_temp_entity", entity: opts.lowerEntity || null },
+        ],
+      };
+    }
+    return st;
+  };
+
+  // Just the chips: the legend div ends at the first </div>, and nothing
+  // inside a chip is one. Slicing rather than regex-matching keeps unrelated
+  // markup (which may legitimately contain the word "modelled") out of the
+  // labelling assertions below.
+  const legendOf = (dump) => {
+    const i = dump.indexOf('<div class="legend">');
+    if (i < 0) return "";
+    const end = dump.indexOf("</div>", i);
+    return dump.slice(i, end < 0 ? undefined : end);
+  };
+  const zc = build(twoZone());
+  const zdump = collect(zc.shadowRoot).join("\n");
+  const zlegend = legendOf(zdump);
+  check("the legend names the dashed zone traces, not just the series",
+    /Upper floor/.test(zlegend) && /Lower floor/.test(zlegend), zlegend);
+  check("the extra chips toggle the series they belong to",
+    (zlegend.match(/<button[^>]*data-key="house_temp"/g) || []).length === 3,
+    zlegend);
+  check("a dashed trace gets a dashed swatch, not a solid dot",
+    /repeating-linear-gradient/.test(zlegend));
+
+  // Hover: three rows, each with its own name and its OWN value.
+  const hovered = () => {
+    zc._onPointerMove({
+      clientX: 450,
+      currentTarget: {
+        getBoundingClientRect: () => ({ width: 900, left: 0, top: 0 }),
+      },
+    });
+    const tt = zc.shadowRoot.querySelector(".tooltip");
+    return tt ? tt.innerHTML : "";
+  };
+  const tip = hovered();
+  check("the tooltip names all three house-temperature traces",
+    /House temperature/.test(tip) && /Upper floor/.test(tip) &&
+    /Lower floor/.test(tip), tip);
+  check("and reports each trace's own value, not the room's three times",
+    /House temperature: 22 °C/.test(tip) &&
+    /Upper floor: 20 °C/.test(tip) &&
+    /Lower floor: 28 °C/.test(tip), tip);
+
+  // A single-zone house publishes upper == lower == room (the one-zone
+  // dynamics assign both from the room temperature every step). Naming those
+  // copies would put three identical rows in the tooltip for a house with one
+  // zone, so an exact duplicate is dropped instead.
+  const oneZone = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
+  const olegend = legendOf(collect(oneZone.shadowRoot).join("\n"));
+  check("a single-zone house gets one house-temperature chip, not three",
+    (olegend.match(/<button[^>]*data-key="house_temp"/g) || []).length === 1 &&
+    !/Upper floor/.test(olegend), olegend);
+
+  // Modelled vs measured. With no lower-floor thermometer the trace is the
+  // model running open-loop, and the label has to say so.
+  const modelled = build(twoZone({ topology: true }));
+  const mlegend = legendOf(collect(modelled.shadowRoot).join("\n"));
+  check("an unmeasured lower zone is labelled as modelled",
+    /Lower floor \(modelled\)/.test(mlegend), mlegend);
+  const measured = build(twoZone({ topology: true, lowerEntity: "sensor.down" }));
+  const slegend = legendOf(collect(measured.shadowRoot).join("\n"));
+  check("a lower zone with its own thermometer is not",
+    /Lower floor\s*</.test(slegend) && !/modelled/.test(slegend), slegend);
+  check("no topology published means no claim either way",
+    !/modelled/.test(zlegend), zlegend);
+
+  // Swedish, like every other user-visible string on this card.
+  const svZone = new Card();
+  svZone.setConfig({ type: "custom:heatpump-optimizer-card" });
+  svZone.hass = { states: twoZone({ topology: true }), language: "sv-SE" };
+  const svZoneLegend = legendOf(collect(svZone.shadowRoot).join("\n"));
+  check("the zone traces are named in Swedish too",
+    /Övre plan/.test(svZoneLegend) &&
+    /Nedre plan \(modellerad\)/.test(svZoneLegend), svZoneLegend);
+}
+
 console.log(fails ? `\n${fails} CARD CHECK(S) FAILED` : "\nALL CARD CHECKS PASSED");
 process.exit(fails?1:0);

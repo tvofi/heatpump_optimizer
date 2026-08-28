@@ -283,6 +283,15 @@ def cycling_penalty(
 REASON_COMFORT_FLOOR = "comfort_floor"
 REASON_CHEAP_PRICE = "cheap_price"
 REASON_PREHEAT_WEATHER = "preheat_weather"
+#: The neutral fall-through: a step that is none of the specific cases below,
+#: which is to say an ordinary slot holding the house at target. Until v5.1.7
+#: these steps were tagged ``preheat_weather`` — the same code as the genuine
+#: high-heat-loss branch — so the card told a user that a mid-price hour on a
+#: mild afternoon was "Pre-heating before colder weather". A reason code that
+#: doubles as a default is a reason code that cannot be trusted, and this one
+#: was read as evidence that the optimizer was chasing weather it had not been
+#: shown.
+REASON_SCHEDULED = "scheduled"
 REASON_TERMINAL_VALUE = "terminal_value"
 REASON_SOLAR_SURPLUS = "solar_surplus"
 REASON_DHW_WINDOW = "dhw_window"
@@ -306,8 +315,9 @@ def classify_space_steps(
 
     The plan sensors published *which* slots were chosen but never *why*. A
     slot could be cheapest-price, comfort-floor, weather pre-heat, terminal
-    value or solar self-consumption, and nothing distinguished them — so an
-    unexpected slot was indistinguishable from a bug. That makes the optimizer
+    value, solar self-consumption or simply scheduled, and nothing
+    distinguished them — so an unexpected slot was indistinguishable from a
+    bug. That makes the optimizer
     hard to trust and hard to support, and it makes bug reports much weaker
     than they could be.
 
@@ -342,7 +352,10 @@ def classify_space_steps(
         if prices[i] <= cheap_cut:
             reasons.append(REASON_CHEAP_PRICE)
             continue
-        reasons.append(REASON_PREHEAT_WEATHER)
+        # Nothing more specific applies: an ordinary step keeping the house at
+        # target. `preheat_weather` is reserved for the heat-loss branch above,
+        # which is the only one that has actually looked at the weather.
+        reasons.append(REASON_SCHEDULED)
     return reasons
 
 
@@ -766,6 +779,41 @@ class _Horizon:
             "precipitation": self.precipitation,
             "solar_radiation": self.solar_radiation,
         }
+
+
+def slab_settlement_cap(params, target: float, out_mean: float) -> float:
+    """The slab temperature above which stored heat is worth nothing.
+
+    The slab has to run above the room to push heat into it, so its useful
+    ceiling is the temperature that *sustains* the target at the weather in
+    front of it, not the target itself. Above that the extra degrees buy
+    nothing the plan can spend, so settling them up would credit a plan for
+    being pointlessly hot.
+
+    Module level, and public, because the settlement is no longer its only
+    reader: the virtual battery view reports the slab's usable capacity and
+    state of charge, and used a `comfort_max + 6` magic offset to do it —
+    a fixed 29.0 °C against this function's weather-dependent 24.5-28.5,
+    overstating usable capacity by around a quarter and understating the
+    charge in it by the same. One formula, both readers.
+    """
+    if params.two_zone_enabled:
+        # The slab feeds ONLY the lower zone (`q_slab_to_lower` in the
+        # dynamics; the upper zone is radiator-fed), so its ceiling is
+        # sized from the lower zone's demand alone — the learned loss,
+        # because every consumer of the dynamics goes through it — and
+        # the lower zone's share of the internal gains. Sizing it from
+        # the whole house inflated the cap by the upper zone's demand
+        # and over-valued hot-slab end states by exactly that much.
+        q_demand = max(
+            0.0,
+            params.lower_floor_heat_loss_learned * (target - out_mean)
+            - params.internal_gains * (1.0 - params.upper_floor_area_ratio),
+        )
+    else:
+        u_eff = params.heat_loss_coefficient
+        q_demand = max(0.0, u_eff * (target - out_mean) - params.internal_gains)
+    return target + q_demand / max(params.slab_heat_transfer, 1e-6)
 
 
 class HeatPumpOptimizer:
@@ -3923,25 +3971,7 @@ class HeatPumpOptimizer:
         p = self.model.params
         target = self.config.target_temp
         out_mean = float(np.mean(outdoor_temps))
-        # Slab has to run above the room to push heat into it, so its useful
-        # ceiling is the temperature that sustains the target, not the target.
-        if p.two_zone_enabled:
-            # The slab feeds ONLY the lower zone (`q_slab_to_lower` in the
-            # dynamics; the upper zone is radiator-fed), so its ceiling is
-            # sized from the lower zone's demand alone — the learned loss,
-            # because every consumer of the dynamics goes through it — and
-            # the lower zone's share of the internal gains. Sizing it from
-            # the whole house inflated the cap by the upper zone's demand
-            # and over-valued hot-slab end states by exactly that much.
-            q_demand = max(
-                0.0,
-                p.lower_floor_heat_loss_learned * (target - out_mean)
-                - p.internal_gains * (1.0 - p.upper_floor_area_ratio),
-            )
-        else:
-            u_eff = p.heat_loss_coefficient
-            q_demand = max(0.0, u_eff * (target - out_mean) - p.internal_gains)
-        slab_cap = target + q_demand / max(p.slab_heat_transfer, 1e-6)
+        slab_cap = slab_settlement_cap(p, target, out_mean)
         caps = {"room": target, "slab": slab_cap}
         # The buffer tank needs its own ceiling, and it is much higher than the
         # slab's.

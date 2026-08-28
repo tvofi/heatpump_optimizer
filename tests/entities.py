@@ -1493,6 +1493,41 @@ R.check(
     _sw_error or str(_sw_bounds[const.CONF_COMFORT_TEMP_DAY]),
 )
 
+# The two comfort mechanisms this release and the last one added meet on this
+# page, and they answer different questions: widening is about a value outside
+# ONE field's range, the band rules are about fields contradicting EACH OTHER,
+# which no single range can see. They compose through `errors.setdefault`
+# above -- a real validation error on a field outranks a notice about a value
+# that has been on disk for months -- so pin that both survive together.
+def _comfort_errors(stored, submit):
+    flow = options(FakeEntry(data=dict(_FULL_CONFIG), options=dict(stored)))
+    flow.hass = FakeHass()
+    asyncio.run(flow.async_step_comfort(None))
+    return asyncio.run(flow.async_step_comfort(submit)).get("errors") or {}
+
+
+_compose_stored = _comfort_errors({const.CONF_COMFORT_TEMP_DAY: 28.0}, None)
+_compose_band = _comfort_errors(
+    {const.CONF_COMFORT_TEMP_DAY: 28.0},
+    {
+        const.CONF_COMFORT_TEMP_DAY: 18.0,
+        const.CONF_COMFORT_TEMP_NIGHT: 22.0,
+        const.CONF_DAY_START_HOUR: 6,
+        const.CONF_DAY_END_HOUR: 22,
+    },
+)
+R.check(
+    "an out-of-range stored comfort value is flagged on its own field",
+    _compose_stored.get(const.CONF_COMFORT_TEMP_DAY)
+    == config_flow.ERROR_STORED_VALUE_OUT_OF_RANGE,
+    str(_compose_stored),
+)
+R.check(
+    "and a band contradiction is still reported when one is submitted",
+    _compose_band.get(const.CONF_COMFORT_TEMP_NIGHT) == "night_above_day",
+    str(_compose_band),
+)
+
 # ===========================================================================
 # Derived values and the questionnaire
 # ===========================================================================
@@ -1913,7 +1948,10 @@ R.check(
 # ===========================================================================
 R.section("Climate and switch platforms")
 
+from homeassistant.exceptions import ServiceValidationError
+
 from heatpump_optimizer import climate as climate_mod
+from heatpump_optimizer import comfort_band
 from heatpump_optimizer import switch as switch_mod
 
 climates = collect(climate_mod)
@@ -1965,6 +2003,66 @@ R.check(
     clim.coordinator.target_temperature == 21.5
     and "override:21.5" in clim.coordinator.pressed,
     str(clim.coordinator.pressed),
+)
+# v5.1.7: the slider ran a degree past the ceiling AND a degree below the
+# floor, writing whatever it was given unchecked. Adding the check made both
+# overshoots worse than useless -- the band refuses `min > target` and
+# `target > max` unconditionally, so every value in those outer degrees was
+# advertised and then refused. A control must not offer a position it will
+# reject, so the slider now offers exactly the band.
+R.check(
+    "the thermostat's slider stops at the comfort ceiling",
+    clim._attr_max_temp == const.DEFAULT_MAX_TEMP,
+    f"max_temp {clim._attr_max_temp}, ceiling {const.DEFAULT_MAX_TEMP}",
+)
+R.check(
+    "and starts at the comfort floor, not a degree below it",
+    clim._attr_min_temp == const.DEFAULT_MIN_TEMP,
+    f"min_temp {clim._attr_min_temp}, floor {const.DEFAULT_MIN_TEMP}",
+)
+# The check that ties the two together, and the one whose absence let a
+# slider advertise a minimum it always refused: walk every position the
+# control offers and require the coordinator to accept it.
+_slider_coord = FakeCoordinator()
+_slider_refused = []
+for _i in range(
+    int(round((clim._attr_max_temp - clim._attr_min_temp)
+              / clim._attr_target_temperature_step)) + 1
+):
+    _pos = round(
+        clim._attr_min_temp + _i * clim._attr_target_temperature_step, 2
+    )
+    _probe = comfort_band.violations({const.CONF_TARGET_TEMP: _pos}, {})
+    if _probe:
+        _slider_refused.append((_pos, comfort_band.describe(_probe)))
+R.check(
+    "every position the slider offers is one the band will accept",
+    not _slider_refused,
+    f"refused: {_slider_refused}",
+)
+# A refused setpoint must not reach the comfort learner. The override is the
+# only evidence the learner ever gets about `comfort_weight`, and it used to
+# be recorded BEFORE the write that can now refuse -- so a rejected slider
+# move trained the weight from a temperature the house was never asked to
+# hold, while the stored target did not move at all.
+_reject = FakeCoordinator()
+
+
+async def _refuse(temp):
+    raise ServiceValidationError("out of band")
+
+
+_reject.async_set_target_temperature = _refuse
+_reject_clim = climate_mod.HeatPumpOptimizerClimate(_reject, clim._entry)
+try:
+    asyncio.run(_reject_clim.async_set_temperature(temperature=30.0))
+    _reject_raised = False
+except ServiceValidationError:
+    _reject_raised = True
+R.check(
+    "a refused setpoint trains nothing",
+    _reject_raised and not [p for p in _reject.pressed if p.startswith("override")],
+    f"raised={_reject_raised}, learner saw {_reject.pressed}",
 )
 
 switches = collect(switch_mod)
@@ -2728,6 +2826,153 @@ R.check(
     and _svc_entry.options.get(const.CONF_DAY_END_HOUR) == 21,
 )
 
+# v5.1.7 — the comfort band, on every path that writes it.
+#
+# `apply_schedule` writes `comfort_temp_day` into stored options behind a
+# 5-30 range check and nothing else, so a daytime temperature below the
+# stored night one went in unremarked: the plan then sat in a contradiction
+# the optimizer never reports, because the bounds are priced rather than
+# fenced. The service now runs the config flow's own band rules, against the
+# effective pair, per entry.
+_band_before = _svc_entry.options.get(const.CONF_COMFORT_TEMP_DAY)
+_band_rejected = None
+try:
+    _svc_call(const.SERVICE_APPLY_SCHEDULE, {"comfort_temp_day": 18.0})
+except ServiceValidationError as err:
+    _band_rejected = str(err)
+R.check(
+    "apply_schedule refuses a daytime temperature below the stored night one",
+    _band_rejected is not None and "night" in _band_rejected.lower(),
+    f"stored night is {const.DEFAULT_COMFORT_TEMP_NIGHT}; got {_band_rejected!r}",
+)
+R.check(
+    "and nothing was written when it refused",
+    _svc_entry.options.get(const.CONF_COMFORT_TEMP_DAY) == _band_before,
+    str(_svc_entry.options.get(const.CONF_COMFORT_TEMP_DAY)),
+)
+_svc_call(const.SERVICE_APPLY_SCHEDULE, {"comfort_temp_day": 22.0})
+R.check(
+    "a daytime temperature that clears the band still writes",
+    _svc_entry.options.get(const.CONF_COMFORT_TEMP_DAY) == 22.0,
+)
+
+# Only violations the call INTRODUCES may refuse it. Judging the merged
+# result outright made the service throw on a contradiction already sitting
+# in the options and untouched by the call -- and one is genuinely out there,
+# because the pre-5.1.7 slider stored `target 24` against a `max 23` ceiling
+# unchecked. A nightly `dhw_windows` automation would then have started
+# failing at 03:00 about a ceiling it never mentioned.
+_pre_hass = FakeHass()
+_pre_entry = FakeEntry(
+    data={const.CONF_TIBBER_TOKEN: "x", const.CONF_WEATHER_ENTITY: "weather.home"}
+)
+_pre_entry.options = {const.CONF_TARGET_TEMP: 24.0}   # max stays at 23.0
+_pre_hass.config_entries.entries.append(_pre_entry)
+asyncio.run(integration.async_setup_entry(_pre_hass, _pre_entry))
+
+
+def _pre_call(payload):
+    try:
+        asyncio.run(
+            _pre_hass.services.async_call(
+                const.DOMAIN, const.SERVICE_APPLY_SCHEDULE, payload
+            )
+        )
+        return None
+    except ServiceValidationError as err:
+        return str(err)
+
+
+R.check(
+    "a call touching no band field survives a contradiction already stored",
+    _pre_call({"dhw_windows": "06:00-08:00"}) is None
+    and _pre_call({"dhw_min_temperature": 45.0}) is None
+    and _pre_call({"day_start_hour": 6, "day_end_hour": 22}) is None,
+    "the stored target 24 vs max 23 is not this call's doing",
+)
+R.check(
+    "and the write it asked for actually happened",
+    _pre_entry.options.get(const.CONF_DHW_WINDOWS) == "06:00-08:00"
+    and _pre_entry.options.get(const.CONF_DAY_START_HOUR) == 6,
+)
+R.check(
+    "but a NEW violation is still refused on the same broken entry",
+    "night" in (_pre_call({"comfort_temp_day": 18.0}) or "").lower(),
+    str(_pre_call({"comfort_temp_day": 18.0})),
+)
+
+# The stored contradiction is worth telling the user about -- as a repair
+# issue, which is where "your configuration disagrees with itself" belongs,
+# not as an exception thrown by an unrelated service call.
+_pre_coord = _pre_hass.data[const.DOMAIN][_pre_entry.entry_id]
+asyncio.run(_pre_coord._update_current_state())
+_band_issues = [
+    i for i in getattr(_pre_hass, "issues", [])
+    if i[1] == "comfort_band_contradiction"
+]
+R.check(
+    "a stored contradiction raises a repair issue instead",
+    len(_band_issues) == 1
+    and _band_issues[0][2].get("translation_key") == "comfort_band_contradiction"
+    and "23" in _band_issues[0][2]["translation_placeholders"]["problem"],
+    str(_band_issues),
+)
+# Same reload shape as the lower-floor notice: correcting the band writes
+# options and reloads, so the clear must not be gated on an in-memory flag.
+_fixed_entry = FakeEntry(
+    data={const.CONF_TIBBER_TOKEN: "x", const.CONF_WEATHER_ENTITY: "weather.home"}
+)
+_fixed_coord = HeatPumpOptimizerCoordinator(_pre_hass, _fixed_entry)
+asyncio.run(_fixed_coord._update_current_state())
+R.check(
+    "and correcting the band clears it across the reload",
+    not [
+        i for i in getattr(_pre_hass, "issues", [])
+        if i[1] == "comfort_band_contradiction"
+    ],
+)
+_window_rejected = None
+try:
+    _svc_call(
+        const.SERVICE_APPLY_SCHEDULE, {"day_start_hour": 20, "day_end_hour": 8}
+    )
+except ServiceValidationError as err:
+    _window_rejected = str(err)
+R.check(
+    "the empty-day-window rule survived the move into the shared rules",
+    _window_rejected is not None and "daytime period" in _window_rejected,
+    f"got {_window_rejected!r}",
+)
+
+# The other bypass: the thermostat card's slider writes `target_temperature`
+# through the coordinator, which persisted it with no band check at all --
+# and the slider's own maximum was `max_temp + 1`, so its top notch stored a
+# target above the ceiling by construction.
+_target_before = _svc_coord._opt_config.target_temp
+_target_rejected = None
+try:
+    asyncio.run(_svc_coord.async_set_target_temperature(26.0))
+except ServiceValidationError as err:
+    _target_rejected = str(err)
+R.check(
+    "the climate entity cannot store a target above the comfort ceiling",
+    _target_rejected is not None and "23" in _target_rejected,
+    f"ceiling is {const.DEFAULT_MAX_TEMP}; got {_target_rejected!r}",
+)
+R.check(
+    "and the in-memory target is untouched by the refusal",
+    _svc_coord._opt_config.target_temp == _target_before
+    and _svc_entry.options.get(const.CONF_TARGET_TEMP) is None,
+    f"{_svc_coord._opt_config.target_temp} / "
+    f"{_svc_entry.options.get(const.CONF_TARGET_TEMP)}",
+)
+asyncio.run(_svc_coord.async_set_target_temperature(22.0))
+R.check(
+    "a target inside the band is stored as before",
+    _svc_coord._opt_config.target_temp == 22.0
+    and _svc_entry.options.get(const.CONF_TARGET_TEMP) == 22.0,
+)
+
 _svc_call(
     const.SERVICE_APPLY_MANUAL_PLAN,
     {"space_slots": [{"start": "2026-02-01T10:00:00", "end": "2026-02-01T12:00:00"}]},
@@ -2959,5 +3204,75 @@ R.check(
     "an empty list claims nothing and a changed reason is a rewrite; "
     "neither is an inherited list",
 )
+
+# The may-drift category (v5.1.7). A claim asserts "this release moved this
+# fixture", which is a statement about the diff. For the five fixtures the
+# gate itself declares non-reproducible it is a statement about the runner
+# instead: v5.1.7's reason-code change relabels a fall-through that only
+# appears when the solve lands on a particular local optimum, so this machine
+# sees it in valve_upper_direct_slab and the recording machine sees it in
+# valve_storage_smart_write and wood_two_tank_smart_write. A fixed claim list
+# is unclaimed drift on one machine and a stale claim on the other -- both
+# spellings fail, for a change correct on both.
+#
+# What keeps the category from becoming a blanket exemption is its scope, so
+# that is what these probe.
+R.check(
+    "may-drift accepts the fixtures the gate calls non-reproducible",
+    _env_drift.may_drift_error({"wood_coil": "r"}, {}) is None
+    and _env_drift.may_drift_error(
+        {n: "r" for n in _env_drift.SENSITIVE}, {}
+    ) is None,
+)
+R.check(
+    "and refuses every fixture whose floats DO travel",
+    (_env_drift.may_drift_error({"winter_two_zone_no_dhw": "r"}, {}) or "")
+    .startswith("MAY-DRIFT OUT OF SCOPE")
+    and (_env_drift.may_drift_error({"coord_minimal": "r"}, {}) or "")
+    .startswith("MAY-DRIFT OUT OF SCOPE"),
+    "a permanent exemption on a reproducible fixture would launder the next "
+    "real regression",
+)
+R.check(
+    "the refusal names both the stray entry and the category's real scope",
+    "winter_two_zone_no_dhw"
+    in (_env_drift.may_drift_error({"winter_two_zone_no_dhw": "r"}, {}) or "")
+    and "wood_coil"
+    in (_env_drift.may_drift_error({"winter_two_zone_no_dhw": "r"}, {}) or ""),
+)
+R.check(
+    "a scenario cannot be claimed and may-drift at once",
+    (_env_drift.may_drift_error({"wood_coil": "r"}, {"wood_coil": "r"}) or "")
+    .startswith("CLAIMED AND MAY-DRIFT"),
+    "a claim goes stale when nothing moves and may-drift does not; one "
+    "scenario cannot be judged both ways",
+)
+R.check(
+    "an empty may-drift list is always fine",
+    _env_drift.may_drift_error({}, {"away_setback": "r"}) is None,
+)
+
+# Parsing: may-drift entries are comment lines, so `_claimed` must not read
+# them as claims -- a claim named "may-drift: wood_coil" would match no
+# scenario and fail the run as stale.
+_md_declared, _md_claims = _env_drift._claimed(".")
+_md_entries = _env_drift._may_drift(".")
+R.check(
+    "this tree's may-drift entries parse, with reasons",
+    set(_md_entries) == set(_env_drift.SENSITIVE)
+    and all(v and v != "no reason given" for v in _md_entries.values()),
+    f"{sorted(_md_entries)}",
+)
+R.check(
+    "and none of them leaks into the claim list",
+    not any("may-drift" in name for name in _md_claims)
+    and not (set(_md_claims) & set(_md_entries)),
+    f"claims {sorted(_md_claims)}",
+)
+R.check(
+    "this tree's own claim file passes the scope check",
+    _env_drift.may_drift_error(_md_entries, _md_claims) is None,
+)
+
 
 sys.exit(R.close("ENTITY CHECKS"))

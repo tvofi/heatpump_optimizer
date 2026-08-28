@@ -57,7 +57,13 @@ for key, power_key in (("space_plan", "space_power"), ("dhw_plan", "dhw_power"))
 reasons = sorted({p.get("reason") for p in views["space_plan"]["forecast"]} - {None})
 print("space reasons:", reasons)
 print("dhw reasons  :", sorted({p.get("reason") for p in views["dhw_plan"]["forecast"]} - {None}))
-if not any(r in reasons for r in ("cheap_price", "comfort_floor", "preheat_weather")):
+# `scheduled` joined the list in v5.1.7: it is the neutral fall-through, so a
+# plan made entirely of ordinary slots carries nothing else — leaving it out
+# would have this check call a perfectly labelled plan unrecognisable.
+if not any(
+    r in reasons
+    for r in ("cheap_price", "comfort_floor", "preheat_weather", "scheduled")
+):
     issues.append("space plan produced no recognisable reason codes")
 
 # cross-check totals against the raw schedule: the slot summaries the card

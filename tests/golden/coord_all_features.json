@@ -34,11 +34,11 @@
     },
     {
      "name": "slab",
-     "soc_percent": 41.7,
+     "soc_percent": 75.5,
      "standing_loss_kw": 0.0,
      "stored_kwh": 25.0,
      "temperature": 22.0,
-     "usable_capacity_kwh": 60.0
+     "usable_capacity_kwh": 33.125
     },
     {
      "name": "dhw_tank",
@@ -60,9 +60,9 @@
    "discharge_rate_kw": 2.51,
    "hours_of_autonomy": 27.19,
    "round_trip_efficiency_6h": 77.9,
-   "state_of_charge_percent": 54.3,
+   "state_of_charge_percent": 69.1,
    "stored_energy_kwh": 68.25,
-   "usable_capacity_kwh": 125.63
+   "usable_capacity_kwh": 98.76
   },
   "billed_peak_kw": 0.0,
   "buffer_cooling_rate": 0.39588,

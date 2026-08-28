@@ -2322,14 +2322,26 @@ _BASE = {
 
 # 1. The bug this item exists to fix. A floor return of 28 °C means a *water*
 #    temperature, and the room it serves is nowhere near that warm.
+#
+#    v5.1.7: the `return + 0.5` stand-in is gone. It was the number the card
+#    plotted as the house temperature — a floor return of 27.5 °C drew a
+#    "house" trace at 28.0 while the upper zone sat at 22.1 — and it was
+#    judged against the same comfort band as the measured zone. Without a
+#    thermometer the honest stand-in is the room temperature, which is what
+#    the no-floor-return branch has always used.
 st = _lower_after_update(
     {**_BASE, "sensor.ret": FakeState("28.0", unit="°C")},
     floor_return_temp_entity="sensor.ret",
 )
 R.check(
-    "without a lower-floor sensor the zone is still inferred from return water",
-    abs(st.lower_floor_temperature - 28.5) < 1e-6,
+    "a floor return sensor never stands in for the lower zone's air temperature",
+    abs(st.lower_floor_temperature - 21.0) < 1e-6,
     f"got {st.lower_floor_temperature}",
+)
+R.check(
+    "and the floor return still does its real job: the slab estimate",
+    abs(st.slab_temperature - (0.7 * 29.0 + 0.3 * 22.0)) < 1e-6,
+    f"got {st.slab_temperature}",
 )
 
 # 2. A real sensor must win. This is the whole feature.
@@ -2370,14 +2382,14 @@ _delta_measured = _converged_delta(
     lower_floor_temp_entity="sensor.lower",
 )
 R.check(
-    "the inferred path really does pin slab-to-room at 0.5 K",
-    abs(_delta_inferred - 0.5) < 0.01,
+    "the estimated path no longer pins slab-to-room at 0.5 K",
+    abs(_delta_inferred - 0.5) > 1.0,
     f"delta {_delta_inferred:.3f}",
 )
 R.check(
-    "and a real sensor unpins it, so the main heat path can vary at all",
-    _delta_measured > 5.0,
-    f"delta {_delta_measured:.3f} (was {_delta_inferred:.3f})",
+    "and a real sensor moves it further still, from a measurement",
+    _delta_measured > _delta_inferred,
+    f"delta {_delta_measured:.3f} (estimated {_delta_inferred:.3f})",
 )
 
 # 4. With no floor return at all, the room temperature is the better estimate --
@@ -2425,8 +2437,8 @@ st = _lower_after_update(
     lower_floor_temp_entity="sensor.lower",
 )
 R.check(
-    "an unavailable lower-floor sensor falls back to the return-temp estimate",
-    abs(st.lower_floor_temperature - 28.5) < 1e-6,
+    "an unavailable lower-floor sensor falls back to the room temperature",
+    abs(st.lower_floor_temperature - 21.0) < 1e-6,
     f"got {st.lower_floor_temperature}",
 )
 
@@ -2436,6 +2448,152 @@ R.check(
     "the new sensor has a staleness limit like the other room sensors",
     hp_const.INPUT_MAX_AGE_MINUTES.get("lower_floor_temp_entity")
     == hp_const.INPUT_MAX_AGE_MINUTES.get("indoor_temp_entity"),
+)
+
+# 8. The owner's report, reproduced end to end (v5.1.7). Two-zone, a floor
+#    return sensor, no lower-floor thermometer -- exactly his configuration.
+#    The published lower zone used to read the return water; the card plotted
+#    that as a house temperature, and 28 °C on the chart is what "the optimizer
+#    is taking the house to 28 degrees" was.
+_owner_states = {
+    "sensor.indoor": FakeState("22.07", unit="°C"),
+    "sensor.outdoor": FakeState("-8.0", unit="°C"),
+    "sensor.ret": FakeState("27.5", unit="°C"),
+}
+_owner = _zone_coord(_owner_states, floor_return_temp_entity="sensor.ret")
+_asyncio.run(_owner._update_current_state())
+_owner_state = _owner._current_state
+R.check(
+    "the reported zone temperatures no longer differ by six degrees",
+    abs(_owner_state.lower_floor_temperature - 22.07) < 1e-6
+    and abs(_owner_state.upper_floor_temperature - 22.07) < 1e-6,
+    f"upper {_owner_state.upper_floor_temperature} "
+    f"lower {_owner_state.lower_floor_temperature}",
+)
+
+# 9. And the user is told the zone is modelled rather than measured, because a
+#    plausible number with nothing behind it is what made this hard to see.
+_owner_issues = [
+    i for i in getattr(_owner.hass, "issues", [])
+    if i[1] == "lower_floor_modelled"
+]
+R.check(
+    "an unmeasured lower zone raises the repair issue",
+    len(_owner_issues) == 1
+    and _owner_issues[0][2].get("translation_key") == "lower_floor_modelled",
+    f"{_owner_issues}",
+)
+_asyncio.run(_owner._update_current_state())
+R.check(
+    "raised once, not once per cycle",
+    len([
+        i for i in getattr(_owner.hass, "issues", [])
+        if i[1] == "lower_floor_modelled"
+    ]) == 1,
+)
+_measured_coord = _zone_coord(
+    {**_owner_states, "sensor.lower": FakeState("20.4", unit="°C")},
+    floor_return_temp_entity="sensor.ret",
+    lower_floor_temp_entity="sensor.lower",
+)
+_asyncio.run(_measured_coord._update_current_state())
+R.check(
+    "a configured thermometer raises nothing",
+    not [
+        i for i in getattr(_measured_coord.hass, "issues", [])
+        if i[1] == "lower_floor_modelled"
+    ],
+)
+_single = _Coord(
+    _FakeHass(dict(_BASE)),
+    _FakeEntry(data={
+        "tibber_token": "x",
+        "weather_entity": "weather.home",
+        "indoor_temp_entity": "sensor.indoor",
+        "outdoor_temp_entity": "sensor.outdoor",
+    }),
+)
+_asyncio.run(_single._update_current_state())
+R.check(
+    "a single-zone house is never told about a zone it does not have",
+    not [
+        i for i in getattr(_single.hass, "issues", [])
+        if i[1] == "lower_floor_modelled"
+    ],
+)
+# 10. Clearing it, through the transition the integration ACTUALLY performs.
+#
+#     Assigning the sensor writes the entry's options, which triggers
+#     `async_update_options` -> `async_reload` -> a NEW coordinator object.
+#     The first version of this check mutated `coord._config` in place on the
+#     same coordinator and passed while the real path was broken: the delete
+#     was gated on an in-memory flag that a fresh coordinator resets to False,
+#     so the branch was dead and an `is_persistent` issue promising "this
+#     notice clears when you do" stayed up forever. The shape to copy is a
+#     second coordinator sharing the same hass -- same issue registry, fresh
+#     object -- because that is what a reload is.
+_reload_states = {**_owner_states, "sensor.lower": FakeState("20.4", unit="°C")}
+_before_reload = _zone_coord(_reload_states, floor_return_temp_entity="sensor.ret")
+_asyncio.run(_before_reload._update_current_state())
+_reload_hass = _before_reload.hass
+R.check(
+    "the notice is up before the sensor is assigned",
+    [i[1] for i in getattr(_reload_hass, "issues", [])] == ["lower_floor_modelled"],
+)
+_after_reload = _Coord(
+    _reload_hass,
+    _FakeEntry(data={
+        "tibber_token": "x",
+        "weather_entity": "weather.home",
+        "indoor_temp_entity": "sensor.indoor",
+        "outdoor_temp_entity": "sensor.outdoor",
+        "floor_return_temp_entity": "sensor.ret",
+        "lower_floor_temp_entity": "sensor.lower",
+        "upper_floor_thermal_mass": 3.0,
+        "lower_floor_thermal_mass": 8.0,
+    }),
+)
+_asyncio.run(_after_reload._update_current_state())
+R.check(
+    "and assigning one clears it across the reload that follows",
+    not [
+        i for i in getattr(_reload_hass, "issues", [])
+        if i[1] == "lower_floor_modelled"
+    ],
+    "a fresh coordinator's flag starts False, so the clear must not be "
+    "gated on it",
+)
+R.check(
+    "the reloaded coordinator really is reading the sensor",
+    abs(_after_reload._current_state.lower_floor_temperature - 20.4) < 1e-6,
+    f"got {_after_reload._current_state.lower_floor_temperature}",
+)
+
+# 11. The same shape for the fee notice this audit was copied from: it had
+#     the identical flag-gated delete, and correcting a fee also reloads.
+_fee_hass = _FakeHass()
+_fee_steps = [
+    datetime(2026, 1, 7, 12, 0, tzinfo=UTC) + timedelta(minutes=15 * i)
+    for i in range(8)
+]
+_fee_bad = _Coord(
+    _fee_hass,
+    _FakeEntry(data={"tibber_token": "x", "weather_entity": "weather.home",
+                     "grid_fee_mode": "rules", "grid_fee_rules": "= 25"}),
+)
+_fee_bad._fee_series(_fee_steps)
+_fee_fixed = _Coord(
+    _fee_hass,
+    _FakeEntry(data={"tibber_token": "x", "weather_entity": "weather.home",
+                     "grid_fee_mode": "rules", "grid_fee_rules": "= 0.25"}),
+)
+_fee_fixed._fee_series(_fee_steps)
+R.check(
+    "correcting a grid fee clears its notice across the reload too",
+    not [
+        i for i in getattr(_fee_hass, "issues", [])
+        if i[1] == "grid_fee_magnitude"
+    ],
 )
 
 
@@ -10993,6 +11151,250 @@ R.check(
     "only",
     _lf_u._current_state.room_temperature == 21.0,
     f"room temperature {_lf_u._current_state.room_temperature}",
+)
+
+
+# ===========================================================================
+# v5.1.7 — an ordinary slot stops calling itself weather pre-heating
+# ===========================================================================
+R.section("Plan reason codes: the fall-through is neutral (v5.1.7)")
+
+# `REASON_PREHEAT_WEATHER` was both the high-heat-loss branch AND the
+# fall-through default, so every heating step that was not idle, at the floor,
+# solar-surplus, terminal or in the cheapest 35 % was published as
+# "Pre-heating before colder weather". The card renders exactly that sentence,
+# which is what an owner read on a mild afternoon and reported as the
+# optimizer chasing weather it had never been shown.
+from heatpump_optimizer.optimizer import (  # noqa: E402
+    REASON_CHEAP_PRICE as _R_CHEAP,
+    REASON_COMFORT_FLOOR as _R_FLOOR,
+    REASON_IDLE as _R_IDLE,
+    REASON_PREHEAT_WEATHER as _R_PREHEAT,
+    REASON_SCHEDULED as _R_SCHED,
+    REASON_SOLAR_SURPLUS as _R_SURPLUS,
+    REASON_TERMINAL_VALUE as _R_TERMINAL,
+    classify_space_steps as _classify,
+    slab_settlement_cap as _slab_cap,
+)
+
+# Ten steps. Prices rise, so the 35th percentile sits low and the later steps
+# are "not cheap"; the room is comfortably above the floor throughout; the
+# terminal window is the last step only (max(1, int(0.08 * 10)) == 1).
+_n_cl = 10
+_pw_cl = np.full(_n_cl, 1.0)
+_pr_cl = np.linspace(0.5, 2.0, _n_cl)
+_room_cl = np.full(_n_cl + 1, 21.0)
+_min_cl = np.full(_n_cl, 19.0)
+_hl_cl = np.full(_n_cl, 1.0)  # ordinary weather: nothing to anticipate
+_reasons_cl = _classify(_pw_cl, _pr_cl, _room_cl, _min_cl, _hl_cl, None, _n_cl)
+R.check(
+    "an ordinary mid-price step is no longer called weather pre-heating",
+    _R_PREHEAT not in _reasons_cl,
+    f"{_reasons_cl}",
+)
+R.check(
+    "it carries the neutral fall-through instead",
+    _reasons_cl[5] == _R_SCHED,
+    f"step 5 is {_reasons_cl[5]!r} in {_reasons_cl}",
+)
+R.check(
+    "and the cheap steps keep their own, more specific, reason",
+    _reasons_cl[0] == _R_CHEAP and _reasons_cl[-1] == _R_TERMINAL,
+    f"{_reasons_cl}",
+)
+
+# The genuine branch must survive: a step whose heat-loss factor says the
+# weather is turning still reports weather pre-heating.
+_hl_hot = _hl_cl.copy()
+_hl_hot[5] = 1.4
+_reasons_hl = _classify(_pw_cl, _pr_cl, _room_cl, _min_cl, _hl_hot, None, _n_cl)
+R.check(
+    "a real high-heat-loss step still says weather pre-heating",
+    _reasons_hl[5] == _R_PREHEAT,
+    f"{_reasons_hl}",
+)
+
+# Ranking is unchanged: the specific reasons still outrank the fall-through.
+_room_low = _room_cl.copy()
+# Trajectories carry the initial state at index 0, so step i reads index i+1:
+# this is the room at the END of step 3.
+_room_low[4] = 19.1
+_surplus_cl = np.zeros(_n_cl)
+_surplus_cl[4] = 0.5
+_pw_idle = _pw_cl.copy()
+_pw_idle[2] = 0.0
+_ranked = _classify(
+    _pw_idle, _pr_cl, _room_low, _min_cl, _hl_cl, _surplus_cl, _n_cl
+)
+R.check(
+    "idle, comfort floor and solar surplus all still outrank it",
+    _ranked[2] == _R_IDLE
+    and _ranked[3] == _R_FLOOR
+    and _ranked[4] == _R_SURPLUS,
+    f"{_ranked}",
+)
+
+# Every code the classifier can emit needs a sentence in both languages, or a
+# plan says nothing in Swedish and shows a raw identifier in English.
+for _lang_cl in narrative_mod.LANGUAGES:
+    R.check(
+        f"the new reason has a narrative sentence ({_lang_cl})",
+        _R_SCHED in narrative_mod.TEMPLATES[_lang_cl],
+    )
+_card_src_cl = _Path(
+    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+).read_text(encoding="utf-8")
+R.check(
+    "and a card label in both languages, wired to the code",
+    _card_src_cl.count('"reasons.scheduled"') == 3
+    and "scheduled: \"reasons.scheduled\"," in _card_src_cl,
+)
+
+
+# ===========================================================================
+# v5.1.7 — the slab's battery ceiling is the settlement cap
+# ===========================================================================
+R.section("Virtual battery: the slab reports against the optimizer's cap")
+
+# `comfort_max + 6.0` was the last magic offset from the v4.0.6 sweep. It is a
+# fixed 29.0 at the default ceiling, while the optimizer's own settlement cap
+# is weather-dependent -- so the view claimed capacity the plan can never use
+# and reported a lower state of charge than the slab actually holds.
+_bat_params = ThermalParameters.from_config(
+    {"tibber_token": "x", "weather_entity": "weather.home"}
+)
+_bat_state = ThermalState(
+    room_temperature=21.0,
+    slab_temperature=24.0,
+    outdoor_temperature=-10.0,
+    buffer_tank_temperature=None,
+)
+_bat_cap = _slab_cap(_bat_params, 21.0, -10.0)
+_bat_new = battery_view.build(
+    _bat_params, _bat_state,
+    comfort_min=19.0, comfort_max=23.0,
+    dhw_min=45.0, dhw_max=60.0, cop=3.0,
+    slab_max=_bat_cap,
+)
+_bat_old = battery_view.build(
+    _bat_params, _bat_state,
+    comfort_min=19.0, comfort_max=23.0,
+    dhw_min=45.0, dhw_max=60.0, cop=3.0,
+)
+_slab_new = next(c for c in _bat_new.components if c.name == "slab")
+_slab_old = next(c for c in _bat_old.components if c.name == "slab")
+R.check(
+    "the slab's ceiling is the settlement cap, not comfort + 6",
+    abs(_slab_new.max_temperature - _bat_cap) < 1e-9
+    and abs(_slab_old.max_temperature - 29.0) < 1e-9,
+    f"cap {_bat_cap:.2f} vs old {_slab_old.max_temperature:.2f}",
+)
+R.check(
+    "which is below the old offset in cold weather, so capacity shrinks",
+    _slab_new.usable_capacity_kwh < _slab_old.usable_capacity_kwh
+    and _slab_new.soc > _slab_old.soc,
+    f"usable {_slab_new.usable_capacity_kwh:.2f} vs "
+    f"{_slab_old.usable_capacity_kwh:.2f} kWh, soc "
+    f"{_slab_new.soc:.3f} vs {_slab_old.soc:.3f}",
+)
+# Direction is configuration-dependent, and the release note has to say so.
+# A weak emitter needs a HOTTER loop to sustain the target, so on a radiator
+# install the settlement cap is far above the old fixed 29 °C, capacity rises
+# and the reported charge falls. Both directions are the same correction.
+_rad_cfg = presets.derive(
+    presets.BuildingPreset(
+        structure=presets.STRUCTURE_MASONRY,
+        era=presets.ERA_PRE_1960,
+        heated_area_m2=250,
+        lower_emitter=presets.EMITTER_RADIATORS,
+    )
+)
+_rad_cfg.pop("heating_response_hours", None)
+_rad_params = ThermalParameters.from_config(
+    {"tibber_token": "x", "weather_entity": "weather.home", **_rad_cfg}
+)
+_rad_cap = _slab_cap(_rad_params, 21.0, -15.0)
+R.check(
+    "a radiator install moves the OTHER way: the cap is above comfort + 6",
+    _rad_cap > 23.0 + 6.0,
+    f"cap {_rad_cap:.1f} °C vs the old fixed 29.0",
+)
+
+# The cap is `target + demand / slab_heat_transfer`, unbounded above as that
+# coefficient falls. The optimizer has always lived with that; a user-visible
+# capacity figure must not, so the view alone clamps to the plant's ceiling.
+_tiny = ThermalParameters.from_config(
+    {"tibber_token": "x", "weather_entity": "weather.home",
+     "slab_heat_transfer": 0.01}
+)
+_tiny_cap = _slab_cap(_tiny, 21.0, -15.0)
+_tiny_slab = next(
+    c
+    for c in battery_view.build(
+        _tiny, _bat_state, comfort_min=19.0, comfort_max=23.0,
+        dhw_min=45.0, dhw_max=60.0, cop=3.0, slab_max=_tiny_cap,
+    ).components
+    if c.name == "slab"
+)
+R.check(
+    "the raw cap really does run away at the schema's minimum transfer",
+    _tiny_cap > 500.0,
+    f"cap {_tiny_cap:.0f} °C at slab_heat_transfer=0.01",
+)
+R.check(
+    "but the REPORTED ceiling is clamped to the tank's rating",
+    abs(_tiny_slab.max_temperature - _tiny.buffer_max_temp) < 1e-9,
+    f"reported {_tiny_slab.max_temperature} vs cap {_tiny_cap:.0f}",
+)
+R.check(
+    "and a realistic cap is left alone by that clamp",
+    abs(_slab_new.max_temperature - _bat_cap) < 1e-9
+    and _bat_cap < _bat_params.buffer_max_temp,
+    f"{_slab_new.max_temperature} vs {_bat_cap}",
+)
+
+R.check(
+    "the cap the view reads is the one the optimizer settles against",
+    abs(
+        _Opt(
+            ThermalModel(_bat_params),
+            _OptCfg(target_temp=21.0),
+        )._settlement_caps(np.full(8, -10.0))["slab"]
+        - _bat_cap
+    )
+    < 1e-9,
+)
+
+
+# ===========================================================================
+# v5.1.7 — the comfort band's rules, on every path that writes it
+# ===========================================================================
+R.section("Comfort band validation is shared, not per-form")
+
+from heatpump_optimizer import comfort_band as _cb  # noqa: E402
+from heatpump_optimizer import config_flow as _cf_mod  # noqa: E402
+
+R.check(
+    "the config flow's errors are the shared rules",
+    _cf_mod._band_errors({"min_temperature": 22.0}, {})
+    == _cb.errors({"min_temperature": 22.0}, {}),
+)
+R.check(
+    "a partial write is judged against what would be stored, not itself",
+    _cb.errors({"target_temperature": 24.0}, {"max_temperature": 23.0})
+    == {"max_temperature": "max_below_target"},
+    str(_cb.errors({"target_temperature": 24.0}, {"max_temperature": 23.0})),
+)
+R.check(
+    "a band that agrees with itself raises nothing",
+    _cb.errors({}, {}) == {} and _cb.violations({}, {}) == [],
+)
+R.check(
+    "every violation carries a sentence a service caller can be told",
+    all(
+        v.message and v.field and v.code
+        for v in _cb.violations({"min_temperature": 25.0}, {})
+    ),
 )
 
 sys.exit(R.close("FEATURE CHECKS"))
