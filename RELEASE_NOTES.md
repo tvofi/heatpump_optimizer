@@ -50,8 +50,10 @@ cold spell — it was also the *default* for any heating step that was none of
 the other cases. So a mid-price hour on a mild afternoon told the user the
 optimizer was stocking up for weather that was not coming. Those steps now say
 **"Keeping the house at target"**; `preheat_weather` is kept for the branch
-that has actually looked at the heat-loss forecast. Eighteen fixtures carried
-the old label on at least one step.
+that has actually looked at the heat-loss forecast. Thirteen characterization
+fixtures relabel at least one step; the four weather-driven scenarios
+(`cool_rainy_summer`, `mild_windy_rain`, `precip_snow`, `shoulder_two_zone`)
+are unchanged, which is the check that the genuine branch survived.
 
 **The comfort bounds are described honestly.** The setup page called the
 warmest and coldest acceptable temperatures "a hard ceiling" and "a hard
@@ -77,15 +79,17 @@ temperature of 30 against a maximum of 23 moved the planned room peak by
 
 **The virtual battery reports the slab against the optimizer's own cap.** The
 slab component's ceiling was `comfort maximum + 6` — a leftover magic offset,
-a fixed 29 °C where the optimizer's settlement cap is weather-dependent and
-runs 24.5-28.5. The battery view overstated the slab's usable capacity by
-about 28 % and understated its state of charge by the same. Both numbers now
-come from one formula. This view is report-only: no plan changes.
+a fixed 29 °C where the optimizer's settlement cap is weather-dependent. On the
+characterization fixtures the offset claimed 60.0 kWh of usable slab capacity
+where the settlement cap gives 33.1 (26.1 in the two-zone case), and reported
+41.7 % state of charge where the cap gives 75.5 % (95.9 % two-zone). Both
+numbers now come from one formula. This view is report-only: no plan changes.
 
 **Golden fixtures.** The reason-code change moves `space_reasons` on the
-fixtures that carried the old fall-through label, and the battery ceiling
-moves the slab component in the five coordinator fixtures. Every moved
-fixture is claimed with its reason; nothing else moves.
+thirteen fixtures that carried the old fall-through label, and the battery
+ceiling moves `data.battery` in the five coordinator fixtures. Every moved
+fixture is claimed with its reason; the other 35 scenarios are byte-identical,
+trajectories and costs included.
 
 ## v5.1.6
 
