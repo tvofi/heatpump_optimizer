@@ -219,7 +219,9 @@ demand time frames — the periods when hot water must be available (`06:00-08:3
 17:00-22:00` by default). Outside them the tank is *meant* to cool down; that is
 where most of the savings come from. Leave the field empty to let the optimizer
 learn the frames from observed usage, or turn the toggle off to require hot water
-around the clock. Anti-legionella is on by default at 60 °C every 7 days.
+around the clock. Anti-legionella is on by default at 60 °C every 7 days; that
+temperature applies only during a cycle, so the rest of the week the tank is
+never charged above the limit you set.
 
 **5 · Weather sensitivity.** How much wind and rain raise your heat loss.
 The defaults (3 % per m/s of wind, 15 % while raining) are a reasonable

@@ -220,12 +220,15 @@ from .const import (
     DEFAULT_DHW_QUANTILE_TARGETS_ENABLED,
     CONF_DHW_FREE_DISINFECTION_ENABLED,
     DEFAULT_DHW_FREE_DISINFECTION_ENABLED,
+    DEFAULT_DHW_LEGIONELLA_TEMP,
+    DEFAULT_DHW_SETPOINT,
     CONF_SHOWER_FLOW_LPM,
     DEFAULT_SHOWER_FLOW_LPM,
     CONF_VVC_PUMP_ENTITY,
     CONF_VVC_LEAD_MINUTES,
     DEFAULT_VVC_LEAD_MINUTES,
     CONF_SPACE_PUMP_ENTITY,
+    DHW_LEGIONELLA_BOOST_MAX_HOURS,
     DHW_LEGIONELLA_HOLD_MINUTES,
     DHW_DAYTYPE_BLEND_K,
     SPACE_PUMP_FLOOR_MARGIN_C,
@@ -379,6 +382,7 @@ from .dhw_schedule import (
     parse_windows,
 )
 from .optimizer import (
+    REASON_LEGIONELLA,
     HeatPumpOptimizer,
     OptimizationConfig,
     OptimizationResult,
@@ -847,6 +851,23 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # #24: minutes the tank has HELD the disinfection temperature.
         self._legionella_hold_minutes: float = 0.0
         self._legionella_hold_last: datetime | None = None
+        # v5.1.10: the cycle the PLAN commanded, followed independently of
+        # whether the tank was ever seen at temperature. Without this the
+        # only way the timer could ever reset was an observation at
+        # ``legionella_temp - 1``, so a pump that cannot get there — or a
+        # tank with no probe at all — left the countdown running for ever.
+        self._legionella_boost_active: bool = False
+        self._legionella_boost_peak: float | None = None
+        self._legionella_boost_started: datetime | None = None
+        #: When a commanded cycle last FINISHED SHORT of the disinfection
+        #: temperature, and how far it got. This is not success and is never
+        #: reported as such; it exists so the retry happens once per
+        #: interval instead of on the first step of every single plan.
+        self._dhw_legionella_attempt: datetime | None = None
+        self._dhw_legionella_attempt_peak: float | None = None
+        #: The (disinfection temp, charge limit, interval) the ceiling notice
+        #: was last raised for, so it is only rewritten when the pair changes.
+        self._legionella_ceiling_notice: tuple[float, float, float] | None = None
         # #6: last commanded pump states, so actuation is transitions-only.
         self._pump_commanded: dict[str, bool] = {}
 
@@ -3100,6 +3121,20 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             stored = await self._dhw_legionella_store.async_load()
             raw = (stored or {}).get("last_cycle")
             parsed = dt_util.parse_datetime(raw) if isinstance(raw, str) else None
+            # A cycle that ran but fell short is remembered separately, so a
+            # restart cannot turn a failed attempt back into an overdue timer
+            # that pins a boost on every plan.
+            attempt_raw = (stored or {}).get("last_attempt")
+            attempt = (
+                dt_util.parse_datetime(attempt_raw)
+                if isinstance(attempt_raw, str)
+                else None
+            )
+            if attempt is not None:
+                self._dhw_legionella_attempt = attempt
+                peak = (stored or {}).get("last_attempt_peak")
+                if isinstance(peak, (int, float)):
+                    self._dhw_legionella_attempt_peak = float(peak)
             if parsed is not None:
                 self._dhw_last_legionella = parsed
                 return
@@ -3113,10 +3148,17 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         """Persist the timestamp of the last completed anti-legionella cycle."""
         if self._dhw_last_legionella is None:
             return
+        payload: dict[str, Any] = {
+            "last_cycle": self._dhw_last_legionella.isoformat()
+        }
+        if self._dhw_legionella_attempt is not None:
+            payload["last_attempt"] = self._dhw_legionella_attempt.isoformat()
+            if self._dhw_legionella_attempt_peak is not None:
+                payload["last_attempt_peak"] = round(
+                    float(self._dhw_legionella_attempt_peak), 2
+                )
         try:
-            await self._dhw_legionella_store.async_save(
-                {"last_cycle": self._dhw_last_legionella.isoformat()}
-            )
+            await self._dhw_legionella_store.async_save(payload)
         except Exception as err:
             _LOGGER.debug("Could not persist DHW legionella timestamp: %s", err)
 
@@ -3170,16 +3212,327 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             return
         self._legionella_hold_minutes = 0.0
         self._dhw_last_legionella = now
+        # A real cycle clears any record of one that fell short, and takes the
+        # "cannot reach temperature" notice down with it.
+        self._dhw_legionella_attempt = None
+        self._dhw_legionella_attempt_peak = None
+        self._clear_legionella_unreachable_issue()
+        self._clear_legionella_unverified_issue()
         _LOGGER.info(
             "DHW anti-legionella cycle observed at %.1f°C, timer reset", dhw_temp
         )
         await self._async_save_dhw_legionella()
 
+    async def _async_track_dhw_legionella_cycle(
+        self, dhw_temp: float | None
+    ) -> None:
+        """Follow the disinfection boost the PLAN commanded, to its end.
+
+        The observer above resets the timer only on seeing the tank at
+        ``legionella_temp - 1``. That is the only reset path there is, and it
+        has two holes:
+
+        * a pump that cannot physically get the tank to 60 °C never triggers
+          it, so ``hours_since`` runs past the interval and never comes back;
+        * with no tank probe configured it cannot run at all, while the
+          countdown keeps advancing on the clock.
+
+        Either way the cycle is permanently overdue — and an overdue cycle
+        used to pin a 60 °C requirement on the first step of every plan, for
+        ever, while never actually disinfecting anything. Both the scheduling
+        half and the user-facing half of that are fixed here: the boost the
+        plan commanded is followed to its end, and what happened is recorded
+        honestly.
+
+        "Its end" has to be bounded, because a cycle the tank cannot finish
+        is re-commanded on every solve and its boost window never closes on
+        its own. After ``DHW_LEGIONELLA_BOOST_MAX_HOURS`` the window is
+        closed here and judged on what it managed — otherwise a pump heating
+        towards a temperature it will never reach would do so indefinitely,
+        and nothing would ever be recorded or reported.
+
+        Success is never inferred from the peak this saw. The observer above
+        owns that decision, and its rule differs with the free-disinfection
+        flag; asking "did the observer credit a cycle while this boost ran?"
+        is the same question on both sides of it. Reading the peak instead
+        left a cycle topping out in the half-degree between the two rules
+        neither credited nor recorded, with the countdown pinned at its
+        overdue value for ever.
+        """
+        params = self._thermal_params
+        if not params.dhw_legionella_enabled:
+            self._legionella_boost_active = False
+            self._legionella_boost_peak = None
+            self._legionella_boost_started = None
+            return
+
+        now = dt_util.now()
+        commanded = (
+            str(self._current_action.get("dhw_reason") or "") == REASON_LEGIONELLA
+        )
+        if commanded:
+            if not self._legionella_boost_active:
+                self._legionella_boost_active = True
+                self._legionella_boost_started = now
+            if dhw_temp is not None:
+                self._legionella_boost_peak = max(
+                    self._legionella_boost_peak
+                    if self._legionella_boost_peak is not None
+                    else float(dhw_temp),
+                    float(dhw_temp),
+                )
+            started = self._legionella_boost_started
+            expired = (
+                started is not None
+                and (now - started).total_seconds()
+                >= DHW_LEGIONELLA_BOOST_MAX_HOURS * 3600.0
+            )
+            if not expired:
+                return
+            # Still commanded after half a day. A cycle the tank cannot
+            # finish is re-commanded on every solve, so waiting for the boost
+            # to end is waiting for something that never happens: the window
+            # is closed here instead and judged on what it managed, which is
+            # what lets the retry be spaced and the user be told.
+            _LOGGER.warning(
+                "DHW anti-legionella boost has been commanded for %.0f h "
+                "without completing; recording what it achieved",
+                DHW_LEGIONELLA_BOOST_MAX_HOURS,
+            )
+        elif not self._legionella_boost_active:
+            return
+
+        # The boost window closed — either the plan moved on, or it outlasted
+        # the bound above. Decide what it achieved.
+        started = self._legionella_boost_started
+        self._legionella_boost_active = False
+        self._legionella_boost_started = None
+        peak = self._legionella_boost_peak
+        self._legionella_boost_peak = None
+        target = float(params.dhw_legionella_temp)
+
+        # Did the observer credit a completed cycle while this boost ran? That
+        # is the only evidence of success there is, and it is the same test on
+        # both sides of the free-disinfection flag. Reading the peak instead
+        # (`peak >= target - 1.0`) disagreed with the observer's own rule
+        # (`target - 0.5`, held for DHW_LEGIONELLA_HOLD_MINUTES): a cycle
+        # peaking in [59.0, 59.5) was neither credited nor recorded, no notice
+        # was raised, and `hours_since` stayed pinned at its overdue value
+        # while the cycle was re-commanded on every single solve.
+        credited = (
+            self._dhw_last_legionella is not None
+            and started is not None
+            and self._dhw_last_legionella >= started
+        )
+        if credited:
+            return
+
+        has_probe = bool(self._config.get(CONF_DHW_TEMP_ENTITY))
+        if not has_probe:
+            # No way to verify, ever. What is recorded is an ATTEMPT, not a
+            # completion: nothing observed the tank, and this integration
+            # publishes a plan — the actuation may be an external automation
+            # that never ran. An attempt already drives `hours_since` from
+            # 192 h to 0 exactly as a completion would, because
+            # `_dhw_hours_since_legionella` counts attempts too, so claiming
+            # success bought no scheduling benefit at all and cost the ability
+            # to say the cycle is unverified. It is said instead.
+            self._legionella_hold_minutes = 0.0
+            self._dhw_legionella_attempt = now
+            self._dhw_legionella_attempt_peak = None
+            _LOGGER.warning(
+                "DHW anti-legionella cycle commanded but cannot be verified: "
+                "no tank temperature sensor is configured, so nothing confirms "
+                "the tank reached %.0f °C",
+                target,
+            )
+            self._raise_legionella_unverified_issue(target)
+            await self._async_save_dhw_legionella()
+            return
+
+        if peak is None:
+            # A probe exists but said nothing for the whole boost. Nothing was
+            # observed, so nothing is claimed — but the retry is still spaced
+            # by the interval rather than repeated on every solve.
+            self._dhw_legionella_attempt = now
+            self._dhw_legionella_attempt_peak = None
+            _LOGGER.warning(
+                "DHW anti-legionella cycle ran with no usable tank reading; "
+                "it cannot be confirmed and will be retried next interval"
+            )
+            await self._async_save_dhw_legionella()
+            return
+
+        self._dhw_legionella_attempt = now
+        self._dhw_legionella_attempt_peak = float(peak)
+        if peak >= target - 1.0:
+            # It got to temperature but the completion was never credited —
+            # under the free-disinfection flag that means the hold was not
+            # observed for long enough. The retry is spaced by the interval,
+            # and no "cannot reach temperature" notice is raised, because the
+            # tank plainly can.
+            _LOGGER.warning(
+                "DHW anti-legionella cycle reached %.1f °C but the completion "
+                "could not be confirmed; it will be retried next interval",
+                peak,
+            )
+        else:
+            # Commanded, run, and the tank topped out below the disinfection
+            # temperature. This is the achievable maximum for this pump and
+            # this tank, so repeating the same boost cannot do better.
+            _LOGGER.warning(
+                "DHW anti-legionella cycle reached only %.1f °C against a "
+                "%.0f °C target; the tank is not being disinfected",
+                peak,
+                target,
+            )
+            self._raise_legionella_unreachable_issue(float(peak), target)
+        await self._async_save_dhw_legionella()
+
+    def _check_dhw_legionella_ceiling(self) -> None:
+        """Say so when disinfection takes the tank above the charge limit.
+
+        A warning, not a block. Since v5.1.10 the charge limit really is the
+        highest temperature the plan charges to, and the disinfection
+        temperature applies only during a cycle — so a 52/60 pair is a valid
+        configuration with a consequence: once an interval the tank goes 8 °C
+        above the limit. Judged from the parameters actually in force, which
+        is what makes it cover the ``set_thermal_parameters`` service as well
+        as the two config-flow pages; the flow's own validator warns at save
+        time, but a service call never touches a form.
+        """
+        params = self._thermal_params
+        legionella = float(params.dhw_legionella_temp)
+        setpoint = float(params.dhw_setpoint)
+        # The stock pair says nothing. `dhw_enabled=True` alone gives 55/60,
+        # both straight from DEFAULT_*, so raising a WARNING-severity,
+        # non-fixable Repairs card on it put a permanent card on every fresh
+        # install — one whose own text reads "That is allowed and nothing is
+        # wrong", which is not what a Repairs card is for. Nothing about the
+        # stock pair is a surprise the user needs telling; a pair they edited
+        # to differ still is. The config flow logs the same fact at save time
+        # for anyone who does set it up that way.
+        stock = (
+            legionella == float(DEFAULT_DHW_LEGIONELLA_TEMP)
+            and setpoint == float(DEFAULT_DHW_SETPOINT)
+        )
+        active = (
+            bool(params.dhw_enabled and params.dhw_legionella_enabled)
+            and legionella > setpoint
+            and not stock
+        )
+        signature = (
+            (
+                round(legionella, 1),
+                round(setpoint, 1),
+                round(float(params.dhw_legionella_interval_days), 1),
+            )
+            if active
+            else None
+        )
+        if signature == self._legionella_ceiling_notice:
+            return
+        self._legionella_ceiling_notice = signature
+        if signature is None:
+            try:
+                ir.async_delete_issue(
+                    self.hass, DOMAIN, "dhw_legionella_above_setpoint"
+                )
+            except Exception as err:  # noqa: BLE001 - clearing is best-effort
+                _LOGGER.debug("Could not clear legionella ceiling notice: %s", err)
+            return
+        legionella, setpoint, interval = signature
+        ir.async_create_issue(
+            self.hass,
+            DOMAIN,
+            "dhw_legionella_above_setpoint",
+            is_fixable=False,
+            # Not persistent: it is derived from configuration, so it is
+            # re-raised on the next cycle for as long as the pair stands.
+            severity=ir.IssueSeverity.WARNING,
+            translation_key="dhw_legionella_above_setpoint",
+            translation_placeholders={
+                "legionella_temp": f"{legionella:.0f}",
+                "setpoint": f"{setpoint:.0f}",
+                "interval_days": f"{interval:.0f}",
+            },
+        )
+
+    def _raise_legionella_unreachable_issue(
+        self, peak: float, target: float
+    ) -> None:
+        """Tell the user the disinfection cycle is not reaching temperature.
+
+        Silent failure is the worst outcome available here: the user believes
+        the tank is being disinfected weekly and it is not. Persistent, because
+        the fact survives a restart in the store.
+        """
+        ir.async_create_issue(
+            self.hass,
+            DOMAIN,
+            "dhw_legionella_unreachable",
+            is_fixable=False,
+            is_persistent=True,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key="dhw_legionella_unreachable",
+            translation_placeholders={
+                "reached": f"{peak:.1f}",
+                "target": f"{target:.0f}",
+            },
+        )
+
+    def _clear_legionella_unreachable_issue(self) -> None:
+        """Take the notice down once a cycle actually reaches temperature."""
+        try:
+            ir.async_delete_issue(self.hass, DOMAIN, "dhw_legionella_unreachable")
+        except Exception as err:  # noqa: BLE001 - clearing is best-effort
+            _LOGGER.debug("Could not clear legionella issue: %s", err)
+
+    def _raise_legionella_unverified_issue(self, target: float) -> None:
+        """Say that the cycle was commanded but nothing confirmed it ran.
+
+        This integration publishes a plan; whether the pump obeyed it is
+        something only a tank temperature can answer. Without one, a
+        commanded cycle is a request, not a disinfection — and telling the
+        user their water is being disinfected weekly when nothing checked is
+        the one failure mode worth a notice all by itself. Persistent,
+        because the fact survives a restart.
+        """
+        ir.async_create_issue(
+            self.hass,
+            DOMAIN,
+            "dhw_legionella_unverified",
+            is_fixable=False,
+            is_persistent=True,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key="dhw_legionella_unverified",
+            translation_placeholders={"target": f"{target:.0f}"},
+        )
+
+    def _clear_legionella_unverified_issue(self) -> None:
+        """Take it down once a cycle is actually observed at temperature."""
+        try:
+            ir.async_delete_issue(self.hass, DOMAIN, "dhw_legionella_unverified")
+        except Exception as err:  # noqa: BLE001 - clearing is best-effort
+            _LOGGER.debug("Could not clear legionella notice: %s", err)
+
     def _dhw_hours_since_legionella(self) -> float | None:
-        """Hours since the last anti-legionella cycle, or None if unknown."""
-        if self._dhw_last_legionella is None:
+        """Hours since the last anti-legionella cycle, or None if unknown.
+
+        A cycle that RAN but fell short counts here too. It is not success —
+        nothing pretends it was — but it does bound the retry rate. Without
+        it, a pump that cannot reach the disinfection temperature leaves the
+        timer permanently overdue, and an overdue timer used to pin a 60 °C
+        requirement on the first step of every plan for ever: the boost was
+        re-commanded every quarter of an hour and never once completed.
+        """
+        last = self._dhw_last_legionella
+        attempt = self._dhw_legionella_attempt
+        if attempt is not None and (last is None or attempt > last):
+            last = attempt
+        if last is None:
             return None
-        delta = (dt_util.now() - self._dhw_last_legionella).total_seconds() / 3600.0
+        delta = (dt_util.now() - last).total_seconds() / 3600.0
         return max(0.0, delta)
 
     def _dhw_legionella_due_in_hours(self) -> float | None:
@@ -4222,6 +4575,17 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if dhw.ok:
             await self._async_learn_dhw_dynamics(dhw.value)
             await self._async_track_dhw_legionella(dhw.value)
+
+        # Deliberately NOT gated on `dhw.ok`: the observer above is the only
+        # reset path there was, and it cannot run without a tank reading —
+        # while the countdown below advances on the clock regardless. That
+        # asymmetry is the latch. This follows the boost the plan actually
+        # commanded, so a cycle can complete even when the probe is absent
+        # or the pump cannot reach the disinfection temperature.
+        await self._async_track_dhw_legionella_cycle(
+            dhw.value if dhw.ok else None
+        )
+        self._check_dhw_legionella_ceiling()
 
         self._current_state.dhw_hours_since_legionella = (
             self._dhw_hours_since_legionella()

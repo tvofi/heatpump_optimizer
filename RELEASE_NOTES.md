@@ -51,6 +51,124 @@ The hot-water plan sensor's forecast gains two additive keys,
 changed shape or value. The tank's accuracy record is stored alongside the
 existing one; upgrading and downgrading both read the store without
 complaint.
+## v5.1.10
+
+### Your hot water charge limit is now actually a limit
+
+"Highest tank temperature to charge to" says, in its own help text, that it
+is *an upper limit on charging, not a target* — and that the tank "is never
+heated to this just for the sake of it". It was not behaving that way. The
+anti-legionella temperature — 60 °C by default, and switched on by default —
+was quietly being used as the planning ceiling every day of the week, not
+just on the day a disinfection cycle was due. So if you had set your charge
+limit to 52 °C, the plan still ran your tank up towards 60 °C most nights,
+because buying hot water at the cheap night hours pays off and the ceiling
+was the only thing telling it where to stop.
+
+On the stock settings — a 55 °C charge limit and a 60 °C disinfection
+temperature — this affected every installation, not just the ones that had
+lowered the limit.
+
+From this release the two numbers do what they say:
+
+- **The charge limit is the highest temperature the plan charges to**, on
+  every ordinary day.
+- **The disinfection temperature applies during disinfection**, and only
+  then. When a cycle is due, the tank is taken up to it for that cycle — and
+  it is allowed to reach it, including the run-up needed to get there — then
+  left to cool back under your limit.
+
+You do not need to change any settings. If you have *set* a disinfection
+temperature above your charge limit yourself, you will see a note in Home
+Assistant's **Repairs** explaining that the tank goes above the limit for the
+cycle and how often that happens. It is a note, not a problem, and you can
+change the pair either way if you would rather it did not. The stock pairing
+— a 55 °C limit and a 60 °C cycle — says nothing there: nothing about the
+settings you were shipped with is a surprise worth a card in Repairs. It is
+still written to the log when you save the setup pages.
+
+**Your hot water plans will change.** The tank is charged less high, so less
+heat leaks out of it overnight. It also means the plan has less room to store
+cheap night electricity for the evening, and that side is worth being straight
+about: on a winter day with a big day/night price spread, hot water can end up
+costing a little more than it did — across our test scenarios the hot-water
+part of the bill moved by roughly plus or minus a tenth, and the whole day's
+plan by a few percent. The extra was never free: it was bought by heating your
+tank to a temperature you had asked it not to.
+
+If you would rather have the saving than the lower tank temperature, raise
+**Highest tank temperature to charge to**. That is now exactly the dial that
+controls it — which is the part that was broken.
+
+If you had switched the disinfection cycle **off**, the published hot-water
+schedule gets markedly smaller: with the cycle off the tank's limit was also
+the temperature the plan's own tank model refused heat at, so the plan kept
+asking for heat the tank had no room for. On our reference day the schedule
+falls from 13.34 kWh to 6.53 kWh — and the tank ends at exactly the same
+temperature, because the difference was never heat that went in. What changes
+is that the plan, the cost estimate and the graph now show what the tank
+actually takes.
+
+Comfort is unchanged either way: the temperature you need, when you need it, is
+the same setting it always was, and the plan still guarantees it.
+
+### The disinfection cycle could get stuck, and never disinfect
+
+The anti-legionella timer only ever reset by *seeing* the tank at the
+disinfection temperature. If your heat pump could not get the tank that hot
+on its own — many cannot, without an immersion heater — or if you have no
+tank temperature sensor configured, the timer could never be reset. Once it
+went past its interval, the plan pinned a 60 °C requirement to the very first
+step of every plan it made, for ever: a cycle demanded every fifteen minutes,
+never completed, and the water never disinfected. Nothing said so.
+
+The fixes:
+
+- An overdue cycle is now scheduled at the first moment the tank can
+  physically be at temperature, at the cheapest hour from there — not on the
+  first step of the plan, which is the one step it provably cannot reach.
+  Whether the tank can get there is worked out by running the plan's own tank
+  model forward at full power, so the hot water drawn and the heat lost on the
+  way are both counted — which matters most on a large tank with a small pump,
+  where the difference between an estimate and the real thing is hours.
+- If the tank cannot reach the temperature *anywhere* in the plan's horizon,
+  the cycle is scheduled to start **now** rather than at the far end of the
+  plan. Parked at the end it was never the step being acted on, so nothing
+  ever ran, nothing was ever observed, and you were never told.
+- A cycle the plan actually commanded now completes: it is followed to its
+  end whether or not the tank ever reaches temperature, so the countdown can
+  never latch. A boost that is still being commanded twelve hours later is
+  closed out and judged on what it managed, so a tank that cannot finish
+  reports the problem instead of heating indefinitely.
+- **If the pump cannot reach the disinfection temperature, you are told.**
+  A note appears in **Repairs** saying how far the tank actually got, so a
+  cycle that is quietly failing stops being invisible. It clears itself as
+  soon as a cycle reaches temperature.
+
+If you have **no tank temperature sensor**, the countdown still resets so your
+plans are not wedged — but it is recorded as an *attempt*, not as a cycle that
+worked, and a note in **Repairs** says so. Nothing watched the tank, and this
+integration publishes a plan: whether your pump acted on it is something only
+a temperature can answer. Point the "Hot water tank temperature" setting at a
+real sensor and the cycle is verified from then on, and the note goes away.
+
+### The cycle still reaches temperature, from a much cooler tank
+
+Because the tank is no longer held near 60 °C all week, a disinfection cycle
+now has further to climb: on a summer day the tank may quite correctly be
+sitting at 37 °C when the weekly cycle comes due. The plan charges that run-up
+deliberately in the hours before the cycle, so the tank *arrives* at the
+disinfection temperature rather than a degree or two short — which would be no
+disinfection at all, and would have your pump reported as unable to reach a
+temperature it can reach perfectly well.
+
+This is pinned by tests across every charge limit from 41 °C to 49 °C on four
+tank-and-pump combinations, and on twelve tank, pump and season combinations
+besides: the cycle lands on 60.00 °C every time.
+
+Hot water availability is unchanged by any of this. Across a sixteen-plan
+matrix the worst shortfall against the minimum temperature you set is 0.04 °C
+— the same as before the charge limit started being honoured.
 
 ## v5.1.9
 

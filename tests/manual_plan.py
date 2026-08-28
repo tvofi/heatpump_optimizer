@@ -104,6 +104,37 @@ def _solve(bundle, **kwargs):
     return opt_obj.optimize(state, p, outdoor, wind, rain, solar, START, **kwargs)
 
 
+def _last_planned_dhw(plan):
+    """The last planned DHW run, and how many runs the plan has.
+
+    The step this names is the one nothing downstream can be counting on, so
+    forcing it off is the case the safety release must NOT fire for. Named
+    rather than searched: a helper that tries every run until one happens to
+    need no release proves only that some step somewhere was dispensable —
+    which is nearly always true and says nothing about which — and it costs a
+    full solve per rejected candidate. Naming it means a plan where even the
+    last run has become load-bearing fails the check loudly instead of
+    quietly moving on to another step.
+
+    Hard-coding an index instead is what this replaces: v5.1.5's `active[0]`
+    stopped being dispensable once the charge limit, rather than the
+    disinfection temperature, set how much slack a summer plan carries.
+    """
+    powers = np.asarray(plan.dhw_power_schedule)
+    runs = [j for j, v in enumerate(powers) if v > 0.01]
+    return (runs[-1] if runs else None), len(runs)
+
+
+def _last_safe_dhw_off(bundle, plan):
+    """Force the last planned DHW run off, and solve once."""
+    k, _n = _last_planned_dhw(plan)
+    if k is None:
+        return None, None
+    off = np.full(N, np.nan)
+    off[k] = 0.0
+    return k, _solve(bundle, dhw_pins=off)
+
+
 def _mk_coordinator() -> HeatPumpOptimizerCoordinator:
     return HeatPumpOptimizerCoordinator(
         FakeHass(),
@@ -282,17 +313,32 @@ def test_pins_change_schedule(R: Results) -> None:
     )
     R.check("the override is flagged active", pinned.manual_pins_active)
 
-    # Forcing hot water ON in an expensive evening step adds DHW power there.
+    # Forcing hot water ON in a step the plan skipped adds DHW power there.
+    # The step is picked from the plan, not hard-coded: a pin can only add a
+    # run where the tank has room for one, and since v5.1.10 "room" is measured
+    # against the user's charge limit rather than the disinfection
+    # temperature, so an evening tank runs out of headroom sooner.
+    _base_dhw = np.asarray(base.dhw_power_schedule)
+    _base_tank = np.asarray(base.dhw_temp_trajectory)
+    _ceiling = winter[0].model.params.dhw_max_temp
+    _on_idx = next(
+        i
+        for i in range(N)
+        if _base_dhw[i] < 0.05 and _base_tank[i] < _ceiling - 2.0
+    )
     dp = np.full(N, np.nan)
-    dp[68] = 1.0
+    dp[_on_idx] = 1.0
     pinned_dhw = _solve(winter, dhw_pins=dp)
     R.check(
         "forcing hot water on adds a DHW run",
-        base.dhw_power_schedule[68] < 0.05 and pinned_dhw.dhw_power_schedule[68] > 0.3,
+        base.dhw_power_schedule[_on_idx] < 0.05
+        and pinned_dhw.dhw_power_schedule[_on_idx] > 0.3,
+        f"step {_on_idx}: {base.dhw_power_schedule[_on_idx]:.3f} -> "
+        f"{pinned_dhw.dhw_power_schedule[_on_idx]:.3f}",
     )
     R.check(
         "a manual DHW step is labelled manual_plan",
-        pinned_dhw.dhw_reasons[68] == REASON_MANUAL,
+        pinned_dhw.dhw_reasons[_on_idx] == REASON_MANUAL,
     )
 
     # Forcing hot water OFF when it is safe (hot tank in summer) removes a run.
@@ -300,19 +346,24 @@ def test_pins_change_schedule(R: Results) -> None:
         "summer_typical", "summer_warm", dhw_temperature=54.0
     )
     sbase = _solve(summer)
-    active = [i for i, v in enumerate(sbase.dhw_power_schedule) if v > 0.01]
-    k = active[0]
-    off = np.full(N, np.nan)
-    off[k] = 0.0
-    pinned_off = _solve(summer, dhw_pins=off)
+    k, pinned_off = _last_safe_dhw_off(summer, sbase)
+    _, nruns = _last_planned_dhw(sbase)
+    R.check(
+        "the summer plan has several runs, so the last one is a real choice",
+        nruns >= 2,
+        f"{nruns} planned DHW runs",
+    )
     R.check(
         "forcing hot water off removes a run when safe",
-        sbase.dhw_power_schedule[k] > 0.1
+        k is not None
+        and sbase.dhw_power_schedule[k] > 0.1
         and pinned_off.dhw_power_schedule[k] < 0.01,
+        f"step {k}",
     )
     R.check(
         "a safe forced-off step is not released",
-        k not in pinned_off.manual_released_dhw,
+        k is not None and not pinned_off.manual_released_dhw,
+        f"step {k} released {getattr(pinned_off, 'manual_released_dhw', None)}",
     )
 
 
@@ -375,13 +426,11 @@ def test_safety_release(R: Results) -> None:
         "summer_typical", "summer_warm", dhw_temperature=54.0
     )
     sbase = _solve(summer_dhw)
-    active = [i for i, v in enumerate(sbase.dhw_power_schedule) if v > 0.01]
-    off = np.full(N, np.nan)
-    off[active[0]] = 0.0
-    quiet_dhw = _solve(summer_dhw, dhw_pins=off)
+    _k, quiet_dhw = _last_safe_dhw_off(summer_dhw, sbase)
     R.check(
         "forcing hot water off when the tank is hot releases nothing",
-        len(quiet_dhw.manual_released_dhw) == 0,
+        quiet_dhw is not None and len(quiet_dhw.manual_released_dhw) == 0,
+        f"step {_k}",
     )
 
 
