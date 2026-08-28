@@ -3,8 +3,9 @@
 # Re-record every test script's dependency closure and rewrite
 # tests/closures.json.
 #
-#   ./tests/derive_closures.sh              # everything, three lanes
-#   ./tests/derive_closures.sh --out-dir D  # keep the raw records in D
+#   ./tests/derive_closures.sh                 # everything, three lanes
+#   ./tests/derive_closures.sh --out-dir D     # keep the raw records in D
+#   ./tests/derive_closures.sh --record-only   # record, do not rewrite the file
 #
 # This runs the whole suite once, under instrumentation (see tests/closure.py):
 # the closures are what the runs actually opened and imported, not what
@@ -27,9 +28,15 @@ PYTHON="${PYTHON:-python3}"
 GOLDEN_REF="${GOLDEN_REF:-origin/main}"
 
 OUTDIR=""
+MERGE=1
 while [ $# -gt 0 ]; do
   case "$1" in
     --out-dir) OUTDIR="$2"; shift 2 ;;
+    # Record only, leave tests/closures.json alone. This is what the gate on
+    # main uses: merging here would OVERWRITE the committed file with what
+    # this run just measured, and the check that follows would then compare
+    # the file against itself and pass no matter how stale it was.
+    --record-only) MERGE=0; shift ;;
     *) echo "unknown argument: $1" >&2; exit 2 ;;
   esac
 done
@@ -79,4 +86,8 @@ p3=$!
 wait $p1 $p2 $p3
 
 echo
-$PYTHON tests/closure.py merge --in-dir "$OUTDIR"
+if [ "$MERGE" -eq 1 ]; then
+  $PYTHON tests/closure.py merge --in-dir "$OUTDIR"
+else
+  echo "recorded into $OUTDIR; tests/closures.json left untouched (--record-only)"
+fi

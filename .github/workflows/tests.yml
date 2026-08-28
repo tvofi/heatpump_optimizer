@@ -257,7 +257,11 @@ jobs:
           MKL_NUM_THREADS: "1"
         run: |
           REF=$(git rev-parse --verify --quiet 'HEAD^1^{commit}') || REF=HEAD
-          GOLDEN_REF="$REF" ./tests/derive_closures.sh --out-dir "$RUNNER_TEMP/closures"
+          # --record-only: merging here would overwrite the committed
+          # tests/closures.json with what this run just measured, and the
+          # check below would then compare the file against itself.
+          GOLDEN_REF="$REF" ./tests/derive_closures.sh \
+            --out-dir "$RUNNER_TEMP/closures" --record-only
 
       - name: Fail if tests/closures.json under-approximates
         env:

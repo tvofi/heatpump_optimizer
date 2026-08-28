@@ -171,7 +171,8 @@ If you have changed what a test reaches — new fixture, new import, a script
 that starts reading a file it did not before — regenerate and commit:
 
 ```bash
-./tests/derive_closures.sh      # ~one full suite; rewrites tests/closures.json
+./tests/derive_closures.sh                # ~one full suite; rewrites tests/closures.json
+./tests/derive_closures.sh --record-only  # record without rewriting it — what main does
 ```
 
 A pull request that touches `tests/closures.json` is itself in the "changes
