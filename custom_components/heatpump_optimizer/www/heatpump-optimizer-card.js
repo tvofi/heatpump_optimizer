@@ -2265,6 +2265,29 @@ class HeatpumpOptimizerCard extends HTMLElement {
         }
         flush();
       }
+      // A band is a PAIR or it is nothing. Either edge can go missing on its
+      // own -- one key absent from the payload, one published null all the
+      // way across, or one edge dropped by the duplicate rule above -- and a
+      // single dashed line hugging the curve is not half an envelope, it is
+      // a different and wrong claim. Worse, the legend would still offer the
+      // "expected error" chip while the tooltip, which rightly demands both
+      // edges at the same step, reported nothing: three parts of the card
+      // disagreeing about whether a band exists at all.
+      if (def.band) {
+        const edges = new Set(
+          lines.filter((l) => !l.primary).map((l) => l.field)
+        );
+        if (!edges.has(def.band.lo) || !edges.has(def.band.hi)) {
+          for (let i = lines.length - 1; i >= 0; i--) {
+            if (
+              lines[i].field === def.band.lo ||
+              lines[i].field === def.band.hi
+            ) {
+              lines.splice(i, 1);
+            }
+          }
+        }
+      }
       series.push({
         ...def,
         lines,

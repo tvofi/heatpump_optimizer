@@ -5163,6 +5163,33 @@ const setupBox = (card, place) =>
     />Hot water, expected error\s*<\/button>/.test(legEn) &&
     !/>[^<]*widens further ahead[^<]*<\/button>/.test(legEn), legEn);
 
+  // A band is a PAIR or it is nothing. Either edge can go missing on its own
+  // -- a key absent from the payload, an edge published null the whole way
+  // across, or an edge dropped by v5.1.7's duplicate rule -- and before this
+  // was enforced the card drew ONE dashed line hugging the curve, still
+  // offered the "expected error" legend chip, and reported nothing in the
+  // tooltip. Three parts of the card disagreeing about whether a band exists.
+  for (const [how, mut] of [
+    ["the high edge absent",
+      (p) => { const q = { ...p }; delete q.dhw_temp_hi; return q; }],
+    ["the low edge absent",
+      (p) => { const q = { ...p }; delete q.dhw_temp_lo; return q; }],
+    ["the high edge null throughout", (p) => ({ ...p, dhw_temp_hi: null })],
+    ["the low edge null throughout", (p) => ({ ...p, dhw_temp_lo: null })],
+  ]) {
+    const half = mkCard(mut);
+    const paths = dhwPaths(half.dump);
+    check(`with ${how} the card draws no band at all, not half of one`,
+      paths.length === 1 && dashed(paths).length === 0,
+      `${paths.length} dhw_temp paths, ${dashed(paths).length} dashed`);
+    check(`and offers no expected-error chip for a band it is not drawing`,
+      !/expected error/.test(legendOnly(half.dump)),
+      legendOnly(half.dump));
+    check(`and the tank curve itself is untouched`,
+      ptsOf(half.card, "dhw_temp").length ===
+      ptsOf(on.card, "dhw_temp").length);
+  }
+
   // --- the legend toggle --------------------------------------------------
   const chipFor = (c, key) =>
     [...c.shadowRoot.querySelectorAll(".chip")]
