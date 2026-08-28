@@ -1913,7 +1913,10 @@ R.check(
 # ===========================================================================
 R.section("Climate and switch platforms")
 
+from homeassistant.exceptions import ServiceValidationError
+
 from heatpump_optimizer import climate as climate_mod
+from heatpump_optimizer import comfort_band
 from heatpump_optimizer import switch as switch_mod
 
 climates = collect(climate_mod)
@@ -1977,9 +1980,53 @@ R.check(
     f"max_temp {clim._attr_max_temp}, ceiling {const.DEFAULT_MAX_TEMP}",
 )
 R.check(
-    "and still offers a degree below the floor",
-    clim._attr_min_temp == const.DEFAULT_MIN_TEMP - 1,
-    str(clim._attr_min_temp),
+    "and starts at the comfort floor, not a degree below it",
+    clim._attr_min_temp == const.DEFAULT_MIN_TEMP,
+    f"min_temp {clim._attr_min_temp}, floor {const.DEFAULT_MIN_TEMP}",
+)
+# The check that ties the two together, and the one whose absence let a
+# slider advertise a minimum it always refused: walk every position the
+# control offers and require the coordinator to accept it.
+_slider_coord = FakeCoordinator()
+_slider_refused = []
+for _i in range(
+    int(round((clim._attr_max_temp - clim._attr_min_temp)
+              / clim._attr_target_temperature_step)) + 1
+):
+    _pos = round(
+        clim._attr_min_temp + _i * clim._attr_target_temperature_step, 2
+    )
+    _probe = comfort_band.violations({const.CONF_TARGET_TEMP: _pos}, {})
+    if _probe:
+        _slider_refused.append((_pos, comfort_band.describe(_probe)))
+R.check(
+    "every position the slider offers is one the band will accept",
+    not _slider_refused,
+    f"refused: {_slider_refused}",
+)
+# A refused setpoint must not reach the comfort learner. The override is the
+# only evidence the learner ever gets about `comfort_weight`, and it used to
+# be recorded BEFORE the write that can now refuse -- so a rejected slider
+# move trained the weight from a temperature the house was never asked to
+# hold, while the stored target did not move at all.
+_reject = FakeCoordinator()
+
+
+async def _refuse(temp):
+    raise ServiceValidationError("out of band")
+
+
+_reject.async_set_target_temperature = _refuse
+_reject_clim = climate_mod.HeatPumpOptimizerClimate(_reject, clim._entry)
+try:
+    asyncio.run(_reject_clim.async_set_temperature(temperature=30.0))
+    _reject_raised = False
+except ServiceValidationError:
+    _reject_raised = True
+R.check(
+    "a refused setpoint trains nothing",
+    _reject_raised and not [p for p in _reject.pressed if p.startswith("override")],
+    f"raised={_reject_raised}, learner saw {_reject.pressed}",
 )
 
 switches = collect(switch_mod)
@@ -2651,8 +2698,6 @@ R.check(
 # Service handlers, dispatched through the registry
 # ===========================================================================
 R.section("Service handlers")
-
-from homeassistant.exceptions import ServiceValidationError
 
 from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator
 
