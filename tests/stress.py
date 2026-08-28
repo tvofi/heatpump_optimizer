@@ -31,20 +31,313 @@ from __future__ import annotations
 import itertools
 import os
 import sys
+import time
 from datetime import datetime, timedelta
 
 from harness import Results
 
+# Pinned BEFORE numpy is imported, because OpenBLAS reads these once when
+# the library loads and ignores them afterwards. harness only imports
+# stdlib, so this is still the first chance.
+#
+# Two reasons, and the second is the one that bites. time.process_time()
+# sums CPU over every thread in the process, and OpenBLAS worker threads
+# SPIN-WAIT rather than sleep: measured on this box, one reference solve
+# burned 349.6 ms of process CPU for 105.0 ms of this thread's CPU -- a
+# thread factor of 3.33, nearly all of it threads busy-waiting on 96-element
+# vectors no BLAS should have bothered to thread. That inflates the number
+# the solve-time guard budgets, and it inflates it by an amount that depends
+# on how many cores are idle, which is exactly the load-dependence the guard
+# exists to remove. Pinning makes process CPU mean work done again.
+#
+# And it makes the budgets portable: a runner with a different core count
+# would otherwise record a different thread factor for identical work, so
+# ratios calibrated on one machine would be wrong on another.
+#
+# setdefault, not assignment: an operator investigating threading can still
+# override from the environment, and the guard's own parallelism check will
+# then tell them what it did to the measurement. Numerics are unaffected --
+# the drift gate's numeric probe hashes identically at one, two and default
+# threads on this build.
+for _threads in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
+                 "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS"):
+    os.environ.setdefault(_threads, "1")
+
 import numpy as np
+from scipy.optimize import minimize
 
 from profiles import DT, house, prices, weather
 from heatpump_optimizer import pv as pv_model
 
-# The solve-time guard exists to catch pathological slowdowns (a 10x
-# regression in the objective), not to benchmark the machine. 30 s holds on
-# the development box; slower shared runners (CI, containers) override it
-# via the environment rather than growing the default for everyone.
-SOLVE_BUDGET_MS = float(os.environ.get("STRESS_SOLVE_BUDGET_MS", "30000"))
+# ===========================================================================
+# The solve-time guard: relative to this machine, not to a stopwatch
+# ===========================================================================
+#
+# This check used to compare every scenario's solve against an absolute
+# millisecond budget (STRESS_SOLVE_BUDGET_MS). An absolute budget cannot
+# tell "this change made the solver slower" from "this machine is busy",
+# and only the first of those is a bug. On a shared box it answers the
+# second one: the check has failed five times in one day for load it could
+# not see, twice needing a hand-built interleaved A/B against a pristine
+# main to prove the branch innocent, and once failing on pristine main with
+# WORSE timings than the branch under test. A guard that fires on the
+# machine's mood is not a guard; it is a tax on every reader of its output.
+#
+# Two changes, and the first matters more than the second.
+#
+# THE CLOCK. The budgets are denominated in CPU time, not wall clock.
+# Wall clock counts time spent waiting for a busy machine; CPU time counts
+# work done. Measured on this box by putting three extra CPU hogs on it
+# while re-solving the same scenario:
+#
+#     scenario wall time   1694 ms -> 5224 ms   (3.08x)
+#     scenario CPU time    1044 ms -> 1038 ms   (0.99x)
+#
+# One of those two numbers is about the code and the other is about the
+# neighbours. result.solve_time_ms is the wall-clock one, so stress.py
+# times the solve itself with time.process_time() and budgets that. This
+# is the whole trick; everything below is refinement.
+#
+# THE RULER. CPU time still depends on how fast the machine is, which is
+# why an absolute CPU budget would go wrong on a slow CI runner in the
+# same way an absolute wall budget goes wrong on a busy one. So it is
+# normalised: immediately before each scenario's solve this file times a
+# REFERENCE SOLVE -- a fixed, seeded L-BFGS-B minimisation over a 96-step
+# vector, built out of the same numpy shapes and operations the optimizer's
+# own objective uses -- and budgets the ratio between them. Two properties
+# make it the right ruler:
+#
+#   * It is defined HERE, in the test suite, not in custom_components. No
+#     change to the integration can make it slower or faster, so it never
+#     moves for the reason the guard is watching for.
+#   * It is the same kind of work the solver does -- bounded L-BFGS-B over
+#     a small dense vector with a Python objective -- so CPU contention,
+#     thermal throttling and a noisy neighbour move it and the real solve
+#     together.
+#
+# A ruler has to be steadier than what it measures, and the first version
+# of this one was not: see reference_solve for the measurements that sized
+# it. On the same three-hog experiment the two ratios behaved like this:
+#
+#     wall-clock ratio     3.0 -> 6.4   (2.12x -- absorbs only part of it)
+#     CPU-time ratio       2.9 -> 3.0   (1.03x)
+#
+# which is why the check is denominated in CPU. A wall-clock ratio was
+# tried first and rejected on this evidence rather than on taste.
+#
+# There are two relative checks, because they catch different things.
+#
+#   * Per scenario: a solve fails when it exceeds STRESS_SOLVE_RATIO times
+#     the reference measured alongside it (median of a short trailing
+#     window, so a single hiccup in either direction cannot decide the
+#     run). This catches one scenario going pathological. Its budget has
+#     to be wide enough for the most expensive scenario in the sweep, so
+#     the cheap ones sit far under it -- which is exactly the weakness the
+#     old absolute budget had, for the same reason.
+#   * Whole sweep: total solve time against total reference time, under
+#     STRESS_SWEEP_RATIO. Totals average the per-scenario spread away, so
+#     this margin is far tighter, and it is what notices a change that
+#     made everything moderately slower -- the regression that would
+#     otherwise hide under a budget sized for the worst case.
+#
+# Load lifts the reference and both budgets with it. A solver that
+# genuinely got slower does not lift the reference at all, so the ratios --
+# and only the ratios -- blow up. That is exactly the question worth asking.
+#
+# The absolute ceiling stays as a backstop, and stays on the WALL clock,
+# because the thing it is there to catch -- a solve that has stopped
+# converging and will never return -- is a wall-clock problem. It is
+# deliberately far above anything load can produce: it exists for a hung
+# solve, not for a busy afternoon, and it is no longer the primary signal.
+#
+# For scale, from a real run of this file on unmodified code, on a
+# four-CPU box carrying five other test suites: the dearest scenario took
+# 87 977 ms of wall clock against the 90 000 ms absolute budget the release
+# gate passes in. Two seconds of headroom, on code that had changed
+# nothing. That is the false failure this rewrite removes, caught in the
+# act.
+#
+# STRESS_SOLVE_BUDGET_MS is retired. It is still read, and a run that sets
+# it says so loudly, because the old value would otherwise look like it was
+# still doing something.
+
+#: A scenario may cost this many times the reference solve's CPU.
+#: Measured, not guessed, and measured with threads pinned as this file
+#: now pins them: the two dearest scenarios came out at 655x and 662x --
+#: 49.6 s and 49.8 s of solver CPU against a ~75 ms reference. (Unpinned
+#: the same scenarios read 150x and 168x, because an unpinned reference
+#: burns 3.3x its own work in spinning BLAS threads while a real solve
+#: burns only 1.27x. That mismatch is why the numbers had to be taken
+#: again and why the parallelism check below exists.) The budget leaves
+#: the worst of those a factor of ~2.1, because this check exists to catch ONE scenario going
+#: pathological and its budget has to clear the dearest scenario in the
+#: sweep -- the cheap ones therefore sit far under it. The sweep-wide check
+#: below is the tight one. The observed spread is printed at the end of the
+#: section, so the headroom is visible rather than assumed.
+SOLVE_BUDGET_RATIO = float(os.environ.get("STRESS_SOLVE_RATIO", "1400"))
+
+#: The whole sweep may cost this many times the reference work timed
+#: alongside it. Totals average the per-scenario spread away -- and average
+#: the ruler's own noise away with it, over fifty-odd samples -- so this
+#: margin is far tighter than the per-scenario one, and it is what catches
+#: a change that made everything moderately slower: a uniform 50 % would
+#: sail under any per-scenario budget wide enough for the dearest scenario
+#: and lands here instead. Expected around 250 with threads pinned, from
+#: the per-scenario measurements above and the sweep's cost distribution;
+#: the run prints the figure it actually saw, and the budget leaves that
+#: estimate a factor of ~1.8. That margin is deliberately generous for
+#: a first release of this check -- there is one run's worth of evidence
+#: behind it. Tighten it once a few runs' aggregate ratios are on record;
+#: the run prints its own so they accumulate in gate output.
+SWEEP_BUDGET_RATIO = float(os.environ.get("STRESS_SWEEP_RATIO", "450"))
+
+#: Backstop only: a solve this slow is pathological whatever the machine is
+#: doing -- a non-converging objective, not a busy box.
+SOLVE_CEILING_MS = float(os.environ.get("STRESS_SOLVE_CEILING_MS", "600000"))
+
+#: How many reference samples the trailing median runs over. Wide enough
+#: that the ruler varies less than the solves it judges (see
+#: reference_solve), narrow enough to still follow the machine's load
+#: through a sweep that takes tens of minutes.
+CALIBRATION_WINDOW = int(os.environ.get("STRESS_CALIBRATION_WINDOW", "7"))
+
+_RETIRED_BUDGET = os.environ.get("STRESS_SOLVE_BUDGET_MS")
+
+_CAL_N = 96
+_cal_rng = np.random.default_rng(4711)
+_CAL_WEIGHTS = np.abs(_cal_rng.standard_normal(_CAL_N)) + 0.5
+_CAL_TARGET = 21.0 + 0.5 * _cal_rng.standard_normal(_CAL_N)
+_CAL_START = np.full(_CAL_N, 1.5)
+_CAL_BOUNDS = [(0.0, 5.0)] * _CAL_N
+
+
+def _reference_objective(x: np.ndarray) -> float:
+    """A stand-in for the space-heating objective, fixed for all time.
+
+    Same shapes and same kinds of operation as the real one -- a cumulative
+    sum for stored energy, a squared penalty against a comfort target, a
+    smoothness term over the differences, an exponential response curve --
+    so it responds to machine load the way a real solve does. Its arithmetic
+    is nobody's business but this file's: it must never be "improved", or
+    the ruler moves and every historical ratio stops meaning anything.
+    """
+    stored = np.cumsum(x) * 0.25
+    return float(
+        np.sum(_CAL_WEIGHTS * x)
+        + np.sum((stored - _CAL_TARGET) ** 2)
+        + 0.05 * np.sum(np.diff(x) ** 2)
+        + np.sum(np.exp(-x / 3.0))
+    )
+
+
+def reference_solve() -> tuple[float, float, float]:
+    """One reference solve: (wall ms, process CPU ms, this-thread CPU ms).
+
+    Both CPU clocks, because they answer different questions.
+    ``process_time`` sums CPU over every thread of the process, so a numpy
+    build that runs BLAS on N threads records roughly N times the
+    single-threaded figure. ``thread_time`` counts only this thread. Their
+    ratio is the effective parallelism of the timed section, and the guard
+    checks that the reference's matches the scenarios' -- see the
+    parallelism check at the end of the sweep for why that matters.
+    """
+    started = time.perf_counter()
+    started_cpu = time.process_time()
+    started_thread = time.thread_time()
+    # The iteration cap is not a convergence setting: it makes the amount of
+    # work FIXED. L-BFGS-B stops on the limit rather than on a tolerance, so
+    # every call costs the same number of objective evaluations whatever the
+    # machine, which is what a ruler has to do. Numerical gradients
+    # (eps=1e-4, as the real solver uses) over 96 bounded variables are most
+    # of that cost.
+    #
+    # The SIZE was measured, not guessed, and the first guess was wrong. At
+    # maxiter=3 the call took ~78 ms and had a coefficient of variation of
+    # 19-29 % on a loaded box, while the scenario solves it was meant to
+    # judge varied by only 9.5 %: the ruler wobbled more than the thing it
+    # measured, so dividing by it made the measurement worse rather than
+    # better. A call that short is at the mercy of a single scheduling
+    # quantum. Measured against the same box: ~78 ms -> CV 19 %, ~610 ms ->
+    # CV 10 %, ~1.6 s -> CV 4.5 %. maxiter=12 lands in the middle at a few
+    # hundred milliseconds, and the trailing median over CALIBRATION_WINDOW
+    # samples takes it below the solves' own variation, at a cost of one
+    # sample per scenario rather than a rerun of anything.
+    minimize(
+        _reference_objective,
+        _CAL_START,
+        method="L-BFGS-B",
+        bounds=_CAL_BOUNDS,
+        options={"maxiter": 12, "ftol": 1e-6, "eps": 1e-4},
+    )
+    return ((time.perf_counter() - started) * 1000.0,
+            (time.process_time() - started_cpu) * 1000.0,
+            (time.thread_time() - started_thread) * 1000.0)
+
+
+class Calibration:
+    """A rolling measurement of how much work this machine does per unit CPU.
+
+    Keeps both clocks. CPU time is what the budgets are denominated in --
+    it is what does not move when the box gets busy -- and wall time is
+    kept only so the run can report its own overhead honestly.
+    """
+
+    def __init__(self, window: int) -> None:
+        self.window = max(1, window)
+        self.samples: list[float] = []      # CPU ms, trailing window
+        self.all_cpu: list[float] = []
+        self.all_wall: list[float] = []
+        self.all_thread: list[float] = []
+        self.overhead_ms = 0.0              # wall, for reporting
+        self.count = 0
+
+    def warm_up(self) -> None:
+        """Pay scipy's first-call costs, then fill the window with samples.
+
+        The very first call measures imports and page faults rather than the
+        machine's speed, so it is timed as overhead and thrown away.
+        """
+        started = time.perf_counter()
+        reference_solve()
+        self.overhead_ms += (time.perf_counter() - started) * 1000.0
+        for _ in range(self.window):
+            self.sample()
+
+    def sample(self) -> float:
+        started = time.perf_counter()
+        wall, cpu, thread = reference_solve()
+        self.samples.append(cpu)
+        self.all_cpu.append(cpu)
+        self.all_wall.append(wall)
+        self.all_thread.append(thread)
+        if len(self.samples) > self.window:
+            self.samples.pop(0)
+        self.count += 1
+        self.overhead_ms += (time.perf_counter() - started) * 1000.0
+        return cpu
+
+    @property
+    def unit_ms(self) -> float:
+        """Trailing median reference CPU time -- the current machine unit."""
+        return float(np.median(self.samples))
+
+    def budget_ms(self) -> float:
+        return SOLVE_BUDGET_RATIO * self.unit_ms
+
+    def spread(self) -> tuple[float, float, float]:
+        arr = np.asarray(self.all_cpu, dtype=float)
+        return float(arr.min()), float(np.median(arr)), float(arr.max())
+
+    def wall_spread(self) -> tuple[float, float, float]:
+        arr = np.asarray(self.all_wall, dtype=float)
+        return float(arr.min()), float(np.median(arr)), float(arr.max())
+
+    @property
+    def parallelism(self) -> float:
+        """Process CPU over this-thread CPU: the reference's thread factor."""
+        thread = float(np.median(self.all_thread)) if self.all_thread else 0.0
+        cpu = float(np.median(self.all_cpu)) if self.all_cpu else 0.0
+        return cpu / thread if thread > 1e-9 else 1.0
 from heatpump_optimizer.dhw_schedule import hour_in_windows, parse_windows
 from heatpump_optimizer.optimizer import HeatPumpOptimizer, OptimizationConfig
 from heatpump_optimizer.presets import (
@@ -182,11 +475,22 @@ def build(
 
     model = ThermalModel(params)
     optimizer = HeatPumpOptimizer(model, opt_cfg)
+    # CPU time, measured here rather than taken from result.solve_time_ms,
+    # which is wall clock. Wall clock counts time spent waiting for a busy
+    # machine; CPU time counts work done. Measured on this box: putting
+    # three extra CPU hogs on it moved a scenario's wall time 3.08x and its
+    # CPU time 0.99x. Only one of those two numbers is about the code.
+    _cpu_before = time.process_time()
+    _thread_before = time.thread_time()
     result = optimizer.optimize(
         initial, price_series, outdoor, wind, rain, solar, START, None, surplus
     )
+    solve_cpu_ms = (time.process_time() - _cpu_before) * 1000.0
+    solve_thread_ms = (time.thread_time() - _thread_before) * 1000.0
     return {
         "result": result,
+        "solve_cpu_ms": solve_cpu_ms,
+        "solve_thread_ms": solve_thread_ms,
         "model": model,
         "params": params,
         "config": opt_cfg,
@@ -414,11 +718,56 @@ for building, season in itertools.product(BUILDINGS, ("winter", "shoulder")):
 failures = 0
 comfort_failures: list[str] = []
 worst_dhw = 0.0
-slow = []
+slow: list[str] = []
+pathological: list[str] = []
+ratios: list[tuple[float, str, float, float]] = []
+sweep_reference_ms = 0.0
+sweep_solve_ms = 0.0
+sweep_solve_thread_ms = 0.0
+
+if _RETIRED_BUDGET is not None:
+    print(
+        f"  NOTE: STRESS_SOLVE_BUDGET_MS={_RETIRED_BUDGET} is set but no longer\n"
+        "        decides anything. An absolute budget cannot separate a slower\n"
+        "        solver from a busier machine, which is the only question this\n"
+        "        guard exists to answer, so the check is now relative to a\n"
+        "        reference solve timed on this machine beside every scenario.\n"
+        "        Tune it with STRESS_SOLVE_RATIO (multiple of the reference)\n"
+        "        and STRESS_SOLVE_CEILING_MS (the pathological backstop)."
+    )
+
+calibration = Calibration(CALIBRATION_WINDOW)
+calibration.warm_up()
+print(
+    f"  solve-time guard: reference solve {calibration.unit_ms:.1f} ms of CPU "
+    f"on this machine, budget {SOLVE_BUDGET_RATIO:.0f}x that per scenario "
+    f"(= {calibration.budget_ms() / 1000.0:.1f} s of CPU), sweep budget "
+    f"{SWEEP_BUDGET_RATIO:.0f}x, absolute wall ceiling {SOLVE_CEILING_MS:.0f} ms"
+)
 
 for combo in combinations:
     label = combo.pop("label")
+    # Time the reference immediately before the solve it will judge, so the
+    # ruler and the thing being measured see the same machine.
+    sample_ms = calibration.sample()
+    unit_ms = max(calibration.unit_ms, 1e-6)
+    budget_ms = SOLVE_BUDGET_RATIO * unit_ms
     run = build(**combo)
+    solve_ms = float(run["solve_cpu_ms"])          # CPU: the load-free clock
+    wall_ms = float(run["result"].solve_time_ms)   # wall: for the ceiling only
+    ratio = solve_ms / unit_ms
+    ratios.append((ratio, label, solve_ms, unit_ms))
+    sweep_reference_ms += sample_ms
+    sweep_solve_ms += solve_ms
+    sweep_solve_thread_ms += float(run["solve_thread_ms"])
+    if solve_ms > budget_ms:
+        slow.append(
+            f"{label} used {solve_ms:.0f} ms of CPU = {ratio:.0f}x the "
+            f"{unit_ms:.1f} ms reference measured beside it "
+            f"(budget {SOLVE_BUDGET_RATIO:.0f}x)"
+        )
+    if wall_ms > SOLVE_CEILING_MS:
+        pathological.append(f"{label} took {wall_ms:.0f} ms of wall clock")
     problems = check_invariants(label, run)
     violation = comfort_violation(run)
     shortfall = dhw_shortfall(run)
@@ -443,8 +792,6 @@ for combo in combinations:
             )
     if shortfall > 2.0:
         problems.append(f"hot water {shortfall:.1f} °C short inside a demand window")
-    if run["result"].solve_time_ms > SOLVE_BUDGET_MS:
-        slow.append((label, run["result"].solve_time_ms))
 
     if problems:
         failures += 1
@@ -467,10 +814,104 @@ R.check(
     worst_dhw <= 2.0,
     f"worst shortfall {worst_dhw:.1f} °C",
 )
+# The guard can only mean something if the ruler was actually measured. A
+# calibration that silently produced nothing would turn the check below into
+# one more test that cannot fail, which is a failure mode this suite has
+# shipped five times already.
 R.check(
-    "every scenario solves in reasonable time",
+    "the solve-time guard calibrated against a reference solve per scenario",
+    calibration.count >= len(combinations) + CALIBRATION_WINDOW
+    and calibration.unit_ms > 0.0,
+    f"{calibration.count} reference samples for {len(combinations)} scenarios, "
+    f"unit {calibration.unit_ms:.3f} ms",
+)
+_worst = max(ratios) if ratios else (0.0, "-", 0.0, 0.0)
+_lo, _mid, _hi = calibration.spread() if calibration.all_cpu else (0.0, 0.0, 0.0)
+_wlo, _wmid, _whi = (
+    calibration.wall_spread() if calibration.all_wall else (0.0, 0.0, 0.0)
+)
+print(
+    f"  reference solve over the sweep: {_lo:.1f} / {_mid:.1f} / {_hi:.1f} ms of "
+    f"CPU (min/median/max of {calibration.count} samples); the same samples in "
+    f"wall clock: {_wlo:.1f} / {_wmid:.1f} / {_whi:.1f} ms -- the wall spread is "
+    f"the machine's load, the CPU spread is all the guard has to tolerate"
+)
+print(
+    f"  calibration overhead: {calibration.overhead_ms / 1000.0:.1f} s of wall "
+    f"clock for {calibration.count} samples"
+)
+print(
+    f"  worst scenario: {_worst[1]} used {_worst[2]:.0f} ms of CPU = "
+    f"{_worst[0]:.1f}x its {_worst[3]:.1f} ms reference; budget is "
+    f"{SOLVE_BUDGET_RATIO:.0f}x"
+)
+R.check(
+    "every scenario's solve costs what it should, in CPU, for this machine",
     not slow,
-    "; ".join(f"{n} took {t:.0f}ms" for n, t in slow),
+    "; ".join(slow),
+)
+_sweep_ratio = sweep_solve_ms / max(sweep_reference_ms, 1e-6)
+print(
+    f"  whole sweep: {sweep_solve_ms / 1000.0:.1f} s of solver CPU against "
+    f"{sweep_reference_ms / 1000.0:.1f} s of reference CPU = "
+    f"{_sweep_ratio:.2f}x; budget is {SWEEP_BUDGET_RATIO:.2f}x"
+)
+R.check(
+    "the sweep as a whole costs what it has always cost, relative to this machine",
+    _sweep_ratio <= SWEEP_BUDGET_RATIO,
+    f"{sweep_solve_ms / 1000.0:.1f} s of solver CPU vs "
+    f"{sweep_reference_ms / 1000.0:.1f} s of reference CPU = {_sweep_ratio:.2f}x, "
+    f"over the {SWEEP_BUDGET_RATIO:.2f}x budget",
+)
+# The thread factor has to cancel, or the budgets do not travel.
+#
+# time.process_time() sums CPU over every thread in the process. A numpy
+# built against a threaded BLAS records roughly N times the single-threaded
+# figure for work big enough to parallelise. That is perfectly stable on one
+# machine and completely unstable across machines -- CI has a different core
+# count -- so a ratio calibrated here would be systematically wrong there.
+#
+# It cancels in the ratio only if the reference and the scenarios are
+# parallelised to the SAME degree, and they need not be: the reference works
+# on 96-element vectors that no BLAS bothers to thread, while a scenario
+# solve touches larger arrays that one might. So rather than assume it, the
+# run measures both factors and says so. If they diverge the ratio is not a
+# pure work ratio any more and the budget below is not portable -- which is
+# a thing to be told, loudly, not to discover as a mystery failure on a
+# runner with a different core count. Pinning OMP_NUM_THREADS and
+# OPENBLAS_NUM_THREADS to 1 makes both factors 1 and the question go away.
+_ref_parallel = calibration.parallelism
+_solve_parallel = (
+    sweep_solve_ms / sweep_solve_thread_ms if sweep_solve_thread_ms > 1e-9 else 1.0
+)
+print(
+    f"  thread factor (process CPU / this-thread CPU): reference "
+    f"{_ref_parallel:.3f}, scenarios {_solve_parallel:.3f} -- these must "
+    f"match for the ratio above to be a pure work ratio that travels to "
+    f"another machine"
+)
+R.check(
+    "the reference and the scenarios are parallelised alike, so the thread "
+    "factor cancels in the ratio",
+    abs(_ref_parallel - _solve_parallel) <= 0.25 * max(_ref_parallel, 1.0),
+    f"reference runs at {_ref_parallel:.2f} threads' worth of CPU and the "
+    f"scenarios at {_solve_parallel:.2f}; the ratio then carries a thread "
+    f"factor that will differ on a machine with another core count. Pin "
+    f"OMP_NUM_THREADS=1 and OPENBLAS_NUM_THREADS=1 for this suite, or "
+    f"recalibrate STRESS_SOLVE_RATIO and STRESS_SWEEP_RATIO on this machine",
+)
+
+# Not redundant, whatever it looks like. A CPU-time budget measures work
+# done, so it is blind to a regression that makes the solver WAIT rather
+# than compute -- a lock held across a solve, an I/O stall, a retry loop
+# with a sleep in it, a solve that never converges and never returns. Those
+# consume no CPU and would sail through every check above while making the
+# gate take an hour longer. The wall clock is the only thing that sees them,
+# which is why this ceiling stays on the wall clock and stays in the file.
+R.check(
+    "no scenario hits the absolute pathological-solve ceiling",
+    not pathological,
+    f"wall-clock ceiling {SOLVE_CEILING_MS:.0f} ms: " + "; ".join(pathological),
 )
 
 

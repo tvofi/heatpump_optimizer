@@ -8,7 +8,23 @@ exact versions CI uses.
 ```bash
 ./tests/run.sh          # everything except the slow closed-loop simulation
 SLOW=1 ./tests/run.sh   # including it (adds about fifteen minutes)
+GATE_JOBS=1 ./tests/run.sh   # one script at a time, streaming, for watching a failure
 ```
+
+`run.sh` runs the suite in lanes rather than in one long line: the unit-style
+scripts, the characterization gate and the end-to-end scripts go in parallel,
+then `stress.py` runs **alone** on an otherwise idle box, because its
+solve-time guard measures this machine while it solves and the rest of the
+suite must not be part of what it measures. `plan_view.py` writes the payload
+`card.mjs` reads, so those two stay in one lane in that order. Every script
+still runs with the same arguments, and every failure still counts — and a
+script that is wired into `run.sh` but that no lane actually executes now
+fails the run, which the older "is it mentioned?" grep could not see. Output
+is captured per script and replayed whole, one script at a time, once the
+lanes finish — four scripts interleaving their output is not something anyone
+can read — with live start/finish lines while they run and a wall-clock table
+at the end. `GATE_JOBS=1` puts it back to one script at a time with streaming
+output, which is what to reach for when a failure needs watching as it happens.
 
 CI runs the same `run.sh` on every push and pull request
 (`.github/workflows/tests.yml`), with one difference: `GOLDEN_MODE=drift`
@@ -104,6 +120,38 @@ Without `--all` only the five sensitive fixtures are captured, so claims
 naming any other scenario are reported there as *not evaluated* rather than
 stale; judging those is `--all`'s job, which is what CI runs.
 
+The baseline half of the comparison is the slowest step in the whole suite,
+and it is byte-identical for every branch forked from the same commit, so it
+is cached between runs in `~/.cache/heatpump_optimizer/drift-baseline`
+(outside the repository, so it is never committed; `DRIFT_CACHE_DIR` moves it,
+`DRIFT_NO_CACHE=1` turns it off, `DRIFT_CACHE_KEEP` bounds how many entries
+are kept). The key covers the baseline commit *and* its tree, the SHA-256 of
+`env_drift.py` itself — which is what decides which scenarios are captured and
+how — the capture mode, the interpreter, the full installed distribution
+inventory, numpy's build configuration, the environment variables the capture
+path reads, and a `numeric_probe`: a fixed seeded numpy/scipy workload hashed
+to the last bit, so a swapped BLAS or a rebuilt scipy invalidates the entry by
+measurement rather than by guesswork. A hit prints a banner naming the key and
+the entry it came from, so gate output always says when a baseline was reused.
+`python tests/env_drift.py --cache-key <ref> --all` prints the key a run would
+look up; CI keys `actions/cache` with it on pull requests, where the
+merge-base is stable across pushes.
+
+Reading a cache hit in gate output: the banner is the gate telling you it did
+*not* recompute the baseline. Everything after it — every `ok`, `DRIFT`,
+`CLAIMED` and `may-drift` line — was judged against bytes captured by an
+earlier run on this machine, not against a worktree built just now. The banner
+names the key, the entry file, the commit and tree it stands for, how long ago
+it was captured, and a digest per key component, so you can see what the reuse
+was conditional on. If a result looks wrong and you want the baseline rebuilt
+from scratch to be certain, re-run with `DRIFT_NO_CACHE=1`; the verdict must
+come out identical, and a cold and a warm run of `--all` against the same ref
+have been checked to agree across all 53 scenarios including the five sensitive
+ones. A cache hit never changes how a scenario is judged — it only changes
+where one side of the comparison came from. The branch half is always recaptured, so
+even if the environment moved without moving the key, a mismatched baseline
+shows up as drift — a loud, over-strict failure — rather than as a silent pass.
+
 `--record` re-records from current behaviour. **Read the diff before doing
 that.** A change here is either a bug or a deliberate decision that belongs in
 a commit message; the whole value of the file is that re-recording is a choice
@@ -152,7 +200,30 @@ model. Drift, oscillation and learner divergence only appear there.
   be blaming it for physics). This sweep found three real defects: a capacity
   tariff that raised the peak it was meant to lower, a tariff term that dwarfed
   the energy cost on a fresh install, and DHW planners that could push the tank
-  past its rating.
+  past its rating. Its solve-time guard is denominated in **CPU time**, not
+  wall clock, and normalised against a reference solve. An absolute wall-clock
+  budget cannot tell a slower solver from a busier machine, and on a shared box
+  it answers the second question — it produced five false failures in one day,
+  once on pristine `main` with worse timings than the branch under test, and a
+  clean run of this file recorded its dearest scenario at 87,977 ms against the
+  90,000 ms the release gate allows: two seconds of headroom on code that had
+  changed nothing. Measured here by adding three CPU hogs mid-run, a scenario's
+  wall time moved 3.08× while its CPU time moved 0.99×; only one of those is
+  about the code. A fixed reference solve (defined in `stress.py`, so no change
+  to the integration can move it) is timed beside every scenario and the ratio
+  of CPU times is budgeted: `STRESS_SOLVE_RATIO` per scenario, and
+  `STRESS_SWEEP_RATIO` for the sweep as a whole on a much tighter margin, which
+  is what catches a change that made everything moderately slower.
+
+  Two things the run states out loud rather than assuming. `time.process_time()`
+  sums CPU over every thread, so a threaded BLAS inflates it; the ratio only
+  cancels that if the reference and the scenarios are parallelised alike, so the
+  run measures both thread factors and **fails** if they diverge, telling you to
+  pin `OMP_NUM_THREADS=1`/`OPENBLAS_NUM_THREADS=1` or recalibrate. And
+  `STRESS_SOLVE_CEILING_MS` stays on the *wall* clock and is not redundant: a
+  CPU budget is blind to a regression that makes the solver block rather than
+  compute — a lock, an I/O stall, a retry loop, a solve that never returns.
+  `STRESS_SOLVE_BUDGET_MS` is retired; a run that sets it says so.
 - **rolling.py** drives the real re-planning cycle for several simulated days
   against a plant deliberately mismatched from the optimizer's model, and is
   the only test that exercises the self-learning heat-loss correction against a
