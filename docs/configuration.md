@@ -431,7 +431,7 @@ planned, and the descriptions say which.
 | Ignore sensors that stop updating | on | on/off | A dead battery leaves a normal-looking value in place forever. With this on, an old value is treated as missing and learning pauses instead of learning the flatline. |
 | Allow this much extra age | 1.0 | 0.5–10.0, 0.5 steps | Raise it if sensors that deliberately report rarely are being flagged. |
 | Detect a wood furnace or other heat source | off | on/off | Spots the tanks warming while the pump is idle and holds back planned electric hot water. |
-| Stove or flue sensor | none | `binary_sensor`, `switch`, `input_boolean`, `sensor` | Trusted over the automatic detection. |
+| Stove or flue sensor | none | `binary_sensor`, `switch`, `input_boolean`, `sensor` | Trusted over the automatic detection, in both directions: it can say a fire is lit and it can say one is not. A switch or helper is trusted until you change it. A *numeric* flue probe is trusted for an hour after it last reported, because a probe stuck reading hot on a flat battery would otherwise hold heating back indefinitely. |
 | Temperature rise that counts as evidence | 1.5 °C/h | 0.5–10, 0.1 steps | Raise it if normal operation triggers it. Missing a fire costs one unnecessary cycle; wrongly assuming one can leave you without hot water. |
 | How long to keep assuming it after it stops | 90 min | 15–360, 15 steps | Longer holds the plan back further after a fire burns down. |
 | Learn my comfort preference from overrides | off | on/off | Every temperature override says the plan went too far one way. This adjusts the comfort weight from that, shows the result on its own sensor, and has a reset button. |
