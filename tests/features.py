@@ -11424,6 +11424,552 @@ R.check(
 )
 
 
+# v5.2.0: the hot-water tank's own prediction-accuracy record, and the
+# expected-error band the card draws from it.
+#
+# The room already had this machinery (T5 #16). The tank had none, so the
+# card had no error band for any series -- and the dashed pair beside the
+# room curve, which is the two FLOORS, was being read as one. These checks
+# cover the three claims the feature makes: the record fills only from a
+# configured, usable probe; its sigma widens with lead time; and the
+# published band brackets the curve and is absent until there is evidence.
+# ===========================================================================
+from heatpump_optimizer.optimizer import OptimizationResult as _DbResult
+
+_DB_T0 = datetime(2025, 3, 3, 0, 0, tzinfo=UTC)
+#: Half-hour cycles, 30 h — past the 24 h lead bucket, so every bucket in
+#: LEAD_BUCKETS gets a chance to score at least one pair.
+_DB_CYCLES = 62
+#: The solver's step, which is what `_file_lead_predictions` buckets against.
+_DB_DT_H = 0.25
+#: The tank as measured: dead steady. The plan below predicts it climbing,
+#: so the model's error at lead L is exactly 0.4·L °C — known in closed
+#: form, which is what makes "widens with lead" a check and not a hope.
+_DB_TANK_C = 55.0
+_DB_DRIFT_PER_STEP = 0.1
+#: Cycles the "goes_stale" probe reads normally before it stops updating.
+#: Long enough that the record is already filling when the sensor dies, so
+#: the check that follows is about what STOPS, not about an empty tracker.
+_DB_FREEZE_AT = 24
+
+
+def _db_plan(solve_time):
+    """A plan whose tank trajectory climbs away from the measured truth."""
+    n = 120  # > 24 h / 0.25 h, so the longest lead bucket has an index
+    return _DbResult(
+        power_schedule=[0.0] * n,
+        room_temp_trajectory=[21.0] * (n + 1),
+        slab_temp_trajectory=[22.0] * (n + 1),
+        timestamps=[solve_time + timedelta(hours=_DB_DT_H * k) for k in range(n)],
+        prices=[1.0] * n,
+        predicted_cost=0.0,
+        baseline_cost=0.0,
+        predicted_savings=0.0,
+        savings_percentage=0.0,
+        optimal_setpoints=[21.0] * n,
+        status="optimal",
+        dhw_power_schedule=[0.0] * n,
+        dhw_temp_trajectory=[
+            _DB_TANK_C + _DB_DRIFT_PER_STEP * k for k in range(n + 1)
+        ],
+        space_reasons=["idle"] * n,
+        dhw_reasons=["idle"] * n,
+        price_known=[True] * n,
+    )
+
+
+def _db_probe_state(condition, t, i=0):
+    """The tank probe as this condition presents it at cycle ``i``, time ``t``."""
+    if condition == "healthy":
+        return FakeState(f"{_DB_TANK_C:.1f}", unit="°C", last_updated=t)
+    if condition == "goes_stale":
+        # The one case the `raw is None` gate cannot catch. The sensor keeps
+        # reporting a perfectly readable number; it just stops UPDATING it.
+        # `_update_current_state` then pins `_dhw_temperature` at the last
+        # good value by design, so the accuracy record still sees 55.0 every
+        # cycle. Only `_learning_frozen` can tell that this is a corpse
+        # rather than a measurement -- which is why the other four
+        # conditions above do not exercise that gate at all.
+        if i < _DB_FREEZE_AT:
+            return FakeState(f"{_DB_TANK_C:.1f}", unit="°C", last_updated=t)
+        return FakeState(
+            f"{_DB_TANK_C:.1f}",
+            unit="°C",
+            last_updated=_DB_T0 + timedelta(minutes=30 * (_DB_FREEZE_AT - 1)),
+        )
+    if condition == "stale":
+        return FakeState(
+            f"{_DB_TANK_C:.1f}", unit="°C", last_updated=t - timedelta(hours=12)
+        )
+    if condition == "unavailable":
+        return FakeState("unavailable", unit="°C", last_updated=t)
+    if condition == "missing_entity":
+        return None
+    if condition == "not_numeric":
+        return FakeState("hot", unit="°C", last_updated=t)
+    raise AssertionError(condition)
+
+
+def _db_drive(probe="healthy", configured=True, feed=True, cycles=_DB_CYCLES):
+    """Drive the real filing/scoring path for ``cycles`` half hours.
+
+    ``configured=False`` is the house with no tank probe at all — the case
+    that must record nothing. ``feed=False`` is the MUTATION: the filing
+    call is neutered and everything else left exactly as it is, so a band
+    that still appears is a band coming from somewhere other than evidence.
+    """
+    import homeassistant.util.dt as _db_dt
+
+    cfg = {
+        "tibber_token": "x",
+        "weather_entity": "weather.home",
+        "indoor_temp_entity": "sensor.indoor",
+        "outdoor_temp_entity": "sensor.outdoor",
+    }
+    states = {
+        "sensor.indoor": FakeState("21.0", unit="°C", last_updated=_DB_T0),
+        "sensor.outdoor": FakeState("-2.0", unit="°C", last_updated=_DB_T0),
+    }
+    if configured:
+        cfg["dhw_temp_entity"] = "sensor.tank"
+        states["sensor.tank"] = FakeState(
+            f"{_DB_TANK_C:.1f}", unit="°C", last_updated=_DB_T0
+        )
+    hass = _FakeHass(states)
+    coord = Coord(hass, _FakeEntry(data=cfg))
+    coord._opt_config.time_step_minutes = _DB_DT_H * 60.0
+    coord._current_action = {"power": 0.0}
+    coord._current_weather = lambda: (0.0, 0.0)
+    if not feed:
+        coord._file_dhw_lead_predictions = lambda *a, **k: None
+    real_now, real_utcnow = _db_dt.now, _db_dt.utcnow
+    try:
+        for i in range(cycles):
+            t = _DB_T0 + timedelta(minutes=30 * i)
+            _db_dt.now = lambda t=t: t
+            _db_dt.utcnow = lambda t=t: t
+            hass.states.set(
+                "sensor.indoor", FakeState("21.0", unit="°C", last_updated=t)
+            )
+            hass.states.set(
+                "sensor.outdoor", FakeState("-2.0", unit="°C", last_updated=t)
+            )
+            if configured:
+                st = _db_probe_state(probe, t, i)
+                if st is None:
+                    hass.states._states.pop("sensor.tank", None)
+                else:
+                    hass.states.set("sensor.tank", st)
+            _asyncio.run(coord._update_current_state())
+            # The two real call sites, in the order the update cycle runs
+            # them: file this solve's promises, then settle the matured ones.
+            coord._file_lead_predictions(_db_plan(t), t)
+            coord._record_accuracy()
+    finally:
+        _db_dt.now, _db_dt.utcnow = real_now, real_utcnow
+    return coord
+
+
+def _db_band(coord, solve_time=_DB_T0):
+    """The published DHW forecast for this coordinator's tank record."""
+    return coord._build_plan_views(_db_plan(solve_time))["dhw_plan"]["forecast"]
+
+
+# --- the record fills only from a configured, usable probe -----------------
+_db_ok = _db_drive()
+R.check(
+    "a configured, healthy tank probe fills the hot-water accuracy record",
+    _db_ok._dhw_accuracy.has_lead_history()
+    and sum(_db_ok._dhw_accuracy.lead_counts.values()) > 0,
+    f"counts {_db_ok._dhw_accuracy.lead_counts}",
+)
+R.check(
+    "and it does so without touching the room's record's lead buckets",
+    _db_ok._dhw_accuracy is not _db_ok._accuracy
+    and _db_ok._dhw_accuracy.lead_sigma != {},
+    f"room {_db_ok._accuracy.lead_sigma}, tank {_db_ok._dhw_accuracy.lead_sigma}",
+)
+R.check(
+    "the tank record stays out of the one-step sample deque, which is the "
+    "room's",
+    len(_db_ok._dhw_accuracy.samples) == 0,
+    f"{len(_db_ok._dhw_accuracy.samples)} samples on the tank tracker",
+)
+
+_db_none = _db_drive(configured=False)
+R.check(
+    "a house with no tank probe records nothing at all",
+    not _db_none._dhw_accuracy.has_lead_history()
+    and not _db_none._dhw_accuracy.lead_pending,
+    f"sigma {_db_none._dhw_accuracy.lead_sigma}, "
+    f"pending {len(_db_none._dhw_accuracy.lead_pending)}",
+)
+R.check(
+    "and it publishes no band, so the card draws nothing",
+    all(
+        p["dhw_temp_lo"] is None and p["dhw_temp_hi"] is None
+        for p in _db_band(_db_none)
+    ),
+)
+
+# v5.1.3's discipline: an unusable configured input freezes the learners, not
+# only a stale one. A sample the tank's own learners would refuse must not
+# reach the accuracy record either — a probe pinned at its last good value
+# reads as a flawless prediction and would collapse the band to a hairline.
+for _db_cond in ("stale", "unavailable", "missing_entity", "not_numeric"):
+    _db_c = _db_drive(probe=_db_cond)
+    R.check(
+        f"a tank probe that is {_db_cond} scores nothing into the record",
+        not _db_c._dhw_accuracy.has_lead_history(),
+        f"sigma {_db_c._dhw_accuracy.lead_sigma}, "
+        f"counts {_db_c._dhw_accuracy.lead_counts}",
+    )
+    R.check(
+        f"and no band is published while the probe is {_db_cond}",
+        all(p["dhw_temp_lo"] is None for p in _db_band(_db_c)),
+    )
+
+# A probe that dies HALFWAY, which none of the four conditions above reach:
+# they present an unusable sensor from the first cycle, so `_dhw_temperature`
+# is never set and the "no value read yet" gate answers on its own. Here the
+# sensor reads normally for twelve hours and then stops updating, leaving
+# `_update_current_state`'s deliberate pin holding a stale 55.0 that looks
+# exactly like a healthy reading. Only the v5.1.3 freeze predicate separates
+# the two, so this is the case that actually exercises it.
+_db_frozen = _db_drive(probe="goes_stale")
+_db_frozen_longer = _db_drive(probe="goes_stale", cycles=_DB_CYCLES + 40)
+R.check(
+    "a tank probe pinned at its last good value still reads back, and the "
+    "record refuses it anyway",
+    _db_frozen._dhw_temperature == _DB_TANK_C
+    and _db_frozen._dhw_probe_temperature() is None,
+    f"pinned {_db_frozen._dhw_temperature}, "
+    f"probe answers {_db_frozen._dhw_probe_temperature()}",
+)
+R.check(
+    "so a probe that stops updating stops filling the record, while the "
+    "same run on a live probe keeps filling it",
+    sum(_db_frozen._dhw_accuracy.lead_counts.values())
+    < sum(_db_ok._dhw_accuracy.lead_counts.values())
+    and _db_frozen._dhw_accuracy.has_lead_history(),
+    f"frozen {_db_frozen._dhw_accuracy.lead_counts} vs "
+    f"live {_db_ok._dhw_accuracy.lead_counts}",
+)
+R.check(
+    "and it stays stopped: another 20 h against the dead probe scores "
+    "nothing more and files nothing more",
+    _db_frozen_longer._dhw_accuracy.lead_counts
+    == _db_frozen._dhw_accuracy.lead_counts
+    and _db_frozen_longer._dhw_accuracy.lead_sigma
+    == _db_frozen._dhw_accuracy.lead_sigma,
+    f"{_db_frozen_longer._dhw_accuracy.lead_counts} after the extra cycles "
+    f"vs {_db_frozen._dhw_accuracy.lead_counts} before them",
+)
+R.check(
+    "the band it had already earned survives the outage -- a dead probe "
+    "stops the record, it does not erase it",
+    any(p["dhw_temp_lo"] is not None for p in _db_band(_db_frozen)),
+)
+
+# --- sigma widens with lead ------------------------------------------------
+_db_sigmas = [
+    (lead, _db_ok._dhw_accuracy.sigma(lead)) for lead in (1.0, 3.0, 6.0, 12.0, 24.0)
+]
+R.check(
+    "the tank's expected error grows monotonically with how far ahead the "
+    "promise was made",
+    all(b[1] > a[1] for a, b in zip(_db_sigmas, _db_sigmas[1:])),
+    "; ".join(f"{lead:g}h={sig:.3f}" for lead, sig in _db_sigmas),
+)
+R.check(
+    "and it lands on the error the plan actually made (0.4 °C per hour of "
+    "lead, by construction)",
+    all(
+        abs(sig - 0.4 * lead) < 0.05 * max(1.0, 0.4 * lead)
+        for lead, sig in _db_sigmas
+    ),
+    "; ".join(f"{lead:g}h={sig:.3f} vs {0.4 * lead:.3f}" for lead, sig in _db_sigmas),
+)
+
+# --- the published band ----------------------------------------------------
+_db_fc = _db_band(_db_ok)
+R.check(
+    "every DHW forecast step carries both band keys",
+    all("dhw_temp_lo" in p and "dhw_temp_hi" in p for p in _db_fc),
+)
+R.check(
+    "the band brackets the tank curve at every step",
+    all(
+        p["dhw_temp_lo"] <= p["dhw_temp"] <= p["dhw_temp_hi"]
+        for p in _db_fc
+        if p["dhw_temp"] is not None
+    ),
+    next(
+        (
+            f"{p['dhw_temp_lo']} / {p['dhw_temp']} / {p['dhw_temp_hi']}"
+            for p in _db_fc
+            if p["dhw_temp"] is not None
+            and not p["dhw_temp_lo"] <= p["dhw_temp"] <= p["dhw_temp_hi"]
+        ),
+        "",
+    ),
+)
+R.check(
+    "and it is symmetric about it, to the published rounding",
+    all(
+        abs(
+            (p["dhw_temp_hi"] - p["dhw_temp"]) - (p["dhw_temp"] - p["dhw_temp_lo"])
+        )
+        <= 0.01
+        for p in _db_fc
+        if p["dhw_temp"] is not None
+    ),
+)
+_db_widths = [
+    round(p["dhw_temp_hi"] - p["dhw_temp_lo"], 3)
+    for p in _db_fc
+    if p["dhw_temp_lo"] is not None
+]
+R.check(
+    "the band widens further into the plan, because the record says the "
+    "model does",
+    len(_db_widths) > 2 and _db_widths[-1] > _db_widths[0],
+    f"first {_db_widths[0] if _db_widths else '-'}, "
+    f"last {_db_widths[-1] if _db_widths else '-'}",
+)
+# The band must END where the curve ends. `series()` fills past the end of a
+# trajectory with None, and a band drawn around a step that has no centre
+# would be two dashed lines bracketing nothing.
+_db_short = _db_plan(_DB_T0)
+_db_short.dhw_temp_trajectory = _db_short.dhw_temp_trajectory[:20]
+_db_short_fc = _db_ok._build_plan_views(_db_short)["dhw_plan"]["forecast"]
+R.check(
+    "a tank trajectory that stops early takes its band with it, step for "
+    "step",
+    all(
+        (p["dhw_temp"] is None)
+        == (p["dhw_temp_lo"] is None)
+        == (p["dhw_temp_hi"] is None)
+        for p in _db_short_fc
+    )
+    and any(p["dhw_temp"] is None for p in _db_short_fc)
+    and any(p["dhw_temp_lo"] is not None for p in _db_short_fc),
+    f"{sum(1 for p in _db_short_fc if p['dhw_temp'] is None)} curve nulls, "
+    f"{sum(1 for p in _db_short_fc if p['dhw_temp_lo'] is None)} band nulls",
+)
+
+R.check(
+    "the band is rounded exactly as `dhw_temp` is: two decimals",
+    all(
+        round(p["dhw_temp_lo"], 2) == p["dhw_temp_lo"]
+        and round(p["dhw_temp_hi"], 2) == p["dhw_temp_hi"]
+        for p in _db_fc
+        if p["dhw_temp_lo"] is not None
+    ),
+)
+
+# A fresh tracker: sigma answers 0.0 for want of evidence, and `dhw_temp ± 0`
+# would draw two dashed lines exactly on the curve — a brand new install
+# claiming perfect foresight. Nulls instead.
+_db_fresh = _db_drive(cycles=1)
+R.check(
+    "a fresh record publishes None, not a zero-width band",
+    all(
+        p["dhw_temp_lo"] is None and p["dhw_temp_hi"] is None
+        for p in _db_band(_db_fresh)
+    )
+    and not _db_fresh._dhw_accuracy.has_lead_history(),
+)
+R.check(
+    "and the tank curve itself is published exactly as before",
+    all(p["dhw_temp"] is not None for p in _db_band(_db_fresh)),
+)
+
+# --- MUTATION: neuter the feed, the band must vanish -----------------------
+#
+# Everything above would also pass against a band computed from something
+# other than the record — a constant, the plan's own spread, anything. This
+# is the check that rules that out: the same 30 h drive with only the filing
+# call neutered must leave no record and publish no band.
+_db_mut = _db_drive(feed=False)
+R.check(
+    "MUTATION: with the tracker feed neutered the record stays empty",
+    not _db_mut._dhw_accuracy.has_lead_history()
+    and not _db_mut._dhw_accuracy.lead_pending,
+    f"sigma {_db_mut._dhw_accuracy.lead_sigma}, "
+    f"counts {_db_mut._dhw_accuracy.lead_counts}",
+)
+R.check(
+    "MUTATION: and the published band vanishes with it",
+    all(
+        p["dhw_temp_lo"] is None and p["dhw_temp_hi"] is None
+        for p in _db_band(_db_mut)
+    ),
+    "the band survived its own evidence being removed",
+)
+R.check(
+    "MUTATION: while the un-neutered run on identical inputs does publish "
+    "one — the two differ only in the feed",
+    any(p["dhw_temp_lo"] is not None for p in _db_band(_db_ok)),
+)
+R.check(
+    "MUTATION: and nothing else about the DHW forecast moved",
+    [
+        {k: v for k, v in p.items() if not k.startswith("dhw_temp_")}
+        for p in _db_band(_db_mut)
+    ]
+    == [
+        {k: v for k, v in p.items() if not k.startswith("dhw_temp_")}
+        for p in _db_band(_db_ok)
+    ],
+)
+
+# --- the "configured at all" gate, which nothing was testing ---------------
+#
+# Found by deleting it: the whole suite still passed. Today it is genuinely
+# redundant -- `_dhw_temperature` is only ever assigned from an `ok` reading,
+# so an unconfigured house is already answered by the "nothing read yet"
+# gate, which is why `_db_drive(configured=False)` above cannot reach this.
+#
+# It is kept, and pinned, because of the OTHER tank temperature in the
+# coordinator. `_current_state.dhw_temperature` carries a 55 °C MODELLING
+# DEFAULT, and the coordinator already falls back to it elsewhere
+# (`self._dhw_temperature or self._current_state.dhw_temperature`). One such
+# fallback reaching this probe would train the record on a constant on a
+# house with no thermometer, and a record trained on a constant reports a
+# flawless model: the band would collapse to a hairline claiming a precision
+# nothing measured. The freeze predicate cannot stand in for the check --
+# an unconfigured slot must never freeze learning, so it answers None.
+_db_unconf = _t2_coord()
+_db_unconf._dhw_temperature = 55.0
+_db_unconf._current_state.dhw_temperature = 55.0
+R.check(
+    "a tank temperature with no tank entity configured is not a measurement, "
+    "and the probe refuses it",
+    _db_unconf._dhw_probe_temperature() is None
+    and _db_unconf._learning_frozen(hp_const.CONF_DHW_TEMP_ENTITY) is None,
+    f"probe {_db_unconf._dhw_probe_temperature()}, "
+    f"frozen {_db_unconf._learning_frozen(hp_const.CONF_DHW_TEMP_ENTITY)}",
+)
+_db_conf = _t2_coord(dhw_temp_entity="sensor.tank")
+_db_conf._dhw_temperature = 55.0
+R.check(
+    "and the very same value with the entity configured IS one -- the "
+    "configuration is the whole difference",
+    _db_conf._dhw_probe_temperature() == 55.0,
+    f"{_db_conf._dhw_probe_temperature()}",
+)
+
+# --- the three branches that void or protect the tank's promises ----------
+#
+# All three mirror a room-side branch that IS covered, and all three were
+# covered on the room side only: deleting any of the tank's three lines left
+# the whole suite passing. They are not cosmetic. A promise scored against a
+# tank that comfort/boost/off or a step-response experiment is driving on its
+# own rules charges the model with an error it never made, and the band the
+# card draws is exactly that error.
+
+# 1. Leaving auto/economy: the plan stops being what runs.
+_db_mode = _t2_coord()
+_db_mode._mode = "auto"
+for _db_rec in (_db_mode._accuracy, _db_mode._dhw_accuracy):
+    _db_rec.note_lead_prediction(_T5 + timedelta(hours=1), 1.0, 55.0)
+_asyncio.run(_db_mode.async_set_mode("economy"))
+_db_mode_kept = bool(_db_mode._dhw_accuracy.lead_pending)
+_asyncio.run(_db_mode.async_set_mode("comfort"))
+R.check(
+    "leaving auto/economy voids the TANK's unmatured promises, not only the "
+    "room's",
+    _db_mode_kept and not _db_mode._dhw_accuracy.lead_pending,
+    "auto -> economy keeps them; auto -> comfort clears them",
+)
+
+# 2. A step-response experiment overrides the plan for its duration.
+_db_exp = _db_drive(cycles=2)
+_db_exp._mode = "auto"
+_db_exp._dhw_accuracy.lead_pending.clear()
+_db_exp._file_lead_predictions(_db_plan(_DB_T0), _DB_T0)
+_db_exp_filed = len(_db_exp._dhw_accuracy.lead_pending)
+_db_exp._sysid.phase = PHASE_ARMED
+_db_exp._file_lead_predictions(_db_plan(_DB_T0), _DB_T0)
+R.check(
+    "an active experiment files no tank promises and voids the ones the "
+    "plan it overrides had filed",
+    _db_exp_filed == len(LEAD_BUCKETS)
+    and not _db_exp._dhw_accuracy.lead_pending,
+    f"{_db_exp_filed} filed before the experiment, "
+    f"{len(_db_exp._dhw_accuracy.lead_pending)} left after it",
+)
+
+# 3. Order inside `_file_lead_predictions`: the tank is filed BEFORE the
+# room's `if not trajectory: return`. A house whose plan carries no room
+# trajectory at all still has a tank to promise about, and moving the call
+# below that return would silence the tank's record on exactly those houses
+# — silently, because the room's own checks would all still pass.
+_db_noroom = _db_drive(cycles=2)
+_db_noroom._mode = "auto"
+_db_noroom._accuracy.lead_pending.clear()
+_db_noroom._dhw_accuracy.lead_pending.clear()
+_db_noroom_plan = _db_plan(_DB_T0)
+_db_noroom_plan.room_temp_trajectory = []
+_db_noroom_plan.upper_temp_trajectory = []
+_db_noroom_plan.lower_temp_trajectory = []
+_db_noroom._file_lead_predictions(_db_noroom_plan, _DB_T0)
+R.check(
+    "a plan with no room trajectory still files the tank's promises -- the "
+    "room's early return must not take the tank down with it",
+    len(_db_noroom._dhw_accuracy.lead_pending) == len(LEAD_BUCKETS)
+    and not _db_noroom._accuracy.lead_pending,
+    f"tank {len(_db_noroom._dhw_accuracy.lead_pending)}, "
+    f"room {len(_db_noroom._accuracy.lead_pending)}",
+)
+
+# --- persistence, additively ----------------------------------------------
+_db_store = {
+    "accuracy": _db_ok._accuracy.as_dict(),
+    "dhw_accuracy": _db_ok._dhw_accuracy.as_dict(),
+}
+_db_round = AccuracyTracker.from_dict(_db_store["dhw_accuracy"])
+R.check(
+    "the tank record survives a save/load round trip",
+    _db_round.has_lead_history()
+    and _db_round.lead_counts == _db_ok._dhw_accuracy.lead_counts
+    and all(
+        abs(_db_round.sigma(lead) - _db_ok._dhw_accuracy.sigma(lead)) < 1e-3
+        for lead in (1.0, 3.0, 6.0, 12.0, 24.0)
+    ),
+    f"{_db_round.lead_counts} vs {_db_ok._dhw_accuracy.lead_counts}",
+)
+R.check(
+    "a store written before v5.2.0 loads without error and simply has no "
+    "tank record",
+    not AccuracyTracker.from_dict(
+        {"accuracy": _db_ok._accuracy.as_dict()}.get("dhw_accuracy")
+    ).has_lead_history(),
+)
+R.check(
+    "and an older build reading a v5.2.0 store still finds its own key "
+    "untouched",
+    _db_store["accuracy"] == _db_ok._accuracy.as_dict(),
+)
+
+# `has_lead_history` is the whole difference between "no evidence" and "the
+# model has been perfect", which `sigma` cannot express. Pin both directions.
+_db_perfect = AccuracyTracker()
+_db_perfect.lead_sigma[1.0] = 0.0
+_db_perfect.lead_counts[1.0] = 40
+R.check(
+    "a record that scored 40 flawless pairs HAS history, though its sigma "
+    "is zero",
+    _db_perfect.has_lead_history() and _db_perfect.sigma(1.0) == 0.0,
+)
+_db_halfrestored = AccuracyTracker()
+_db_halfrestored.lead_sigma[1.0] = 1.2
+R.check(
+    "a sigma with no counts behind it does not count as history",
+    not _db_halfrestored.has_lead_history()
+    and _db_halfrestored.sigma(1.0) == 0.0,
+)
 # ---------------------------------------------------------------------------
 R.section("v5.1.10 — the charge limit is the charge limit, every ordinary day")
 
