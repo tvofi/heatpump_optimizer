@@ -687,7 +687,19 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._immersion_events: list[str] = []
         # #12: a weeks-scale COP baseline per 3 °C bucket, fed only outside
         # the frost band, and a slow CUSUM on the relative shortfall.
-        self._cop_baseline: dict[int, list[float]] = {}
+        #
+        # v5.2.0: keyed by (bucket, which curve the sample was judged
+        # against), not by bucket alone. ``_cop_reference_curve`` made
+        # ``observed_cop`` curve-dependent — a hot-water interval is measured
+        # against the DHW curve, which the model itself prices 8-20 % below
+        # the space curve at the same outdoor temperature. Feeding both into
+        # one baseline compares two different quantities: the shortfall of a
+        # perfectly healthy pump then reads as the gap between the curves,
+        # the one-sided CUSUM accumulates it, and the owner is told his
+        # compressor has degraded. In the committed ``shoulder`` fixture 38
+        # of 96 steps are space-only and 30 are DHW-only, so this is the
+        # ordinary plan shape rather than an edge case.
+        self._cop_baseline: dict[tuple[int, bool], list[float]] = {}
         self._cop_health_cusum = Cusum(
             threshold=COP_HEALTH_THRESHOLD, drift=COP_HEALTH_DRIFT, side=1
         )
@@ -1809,7 +1821,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if isinstance(raw_baseline, dict):
             for key, entry in raw_baseline.items():
                 try:
-                    self._cop_baseline[int(key)] = [
+                    # "4" is a pre-v5.2.0 space-curve bucket and is kept as
+                    # one; "4:dhw" is the hot-water curve's own baseline.
+                    text = str(key)
+                    is_dhw = text.endswith(":dhw")
+                    bucket = int(text[:-4] if is_dhw else text)
+                    self._cop_baseline[(bucket, is_dhw)] = [
                         float(entry[0]),
                         int(entry[1]),
                     ]
@@ -1926,8 +1943,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             "cop_samples": self._cop_samples,
             # v4.0.0 T4a — the detectors' memory, all additive keys.
             "vent_cusum": self._vent_cusum.as_dict(),
+            # A space-curve bucket keeps its pre-v5.2.0 key ("4"), so an
+            # older store loads unchanged and a downgrade still reads it; a
+            # DHW-curve bucket rides alongside under "4:dhw". Additive, and
+            # nothing is discarded on upgrade.
             "cop_baseline": {
-                str(k): [round(v[0], 4), int(v[1])]
+                (f"{k[0]}:dhw" if k[1] else str(k[0])): [
+                    round(v[0], 4),
+                    int(v[1]),
+                ]
                 for k, v in self._cop_baseline.items()
             },
             "cop_health_cusum": self._cop_health_cusum.as_dict(),
@@ -2706,7 +2730,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # #12: the same vetted sample feeds the weeks-scale health watch —
         # this path is already guarded against frost, immersion, freezes
         # and low duty, so the baseline inherits every filter for free.
-        self._observe_cop_health(float(observed_cop))
+        self._observe_cop_health(float(observed_cop), cop_curve_dhw)
         # #17 (gated): and the capacity envelope, for the same reason.
         self._fold_capacity_envelope(float(observed_cop))
 
@@ -7526,17 +7550,28 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             np.clip(g, 0.0, INTERNAL_GAINS_MAX_FACTOR * max(g0, 0.05))
         )
 
-    def _observe_cop_health(self, observed_cop: float) -> None:
+    def _observe_cop_health(
+        self, observed_cop: float, dhw_curve: bool = False
+    ) -> None:
         """#12: the weeks-scale compressor-health watch.
 
-        Baseline per 3 °C outdoor bucket, fed only from the frost-band-
-        and immersion-guarded samples `_learn_measured_cop` already
-        vetted. The shortfall is judged BEFORE the observation joins the
-        baseline, or a slow decline would drag its own reference down and
+        Baseline per (3 °C outdoor bucket, reference curve), fed only from
+        the frost-band- and immersion-guarded samples `_learn_measured_cop`
+        already vetted. The shortfall is judged BEFORE the observation joins
+        the baseline, or a slow decline would drag its own reference down and
         never trip.
+
+        ``dhw_curve`` says which curve produced ``observed_cop``, and a
+        sample is only ever compared against a baseline built from the same
+        curve. Without it the watch compares a hot-water COP against a
+        space-heating reference and reads the 8-20 % the model itself puts
+        between them as a failing compressor — a fabricated fault report
+        about expensive hardware, raised within hours on an ordinary plan.
+        It defaults to False, which is what every install without a mode
+        entity produces and is the pre-v5.2.0 behaviour exactly.
         """
         outdoor = float(self._current_state.outdoor_temperature)
-        bucket = int(np.floor(outdoor / 3.0))
+        bucket = (int(np.floor(outdoor / 3.0)), bool(dhw_curve))
         entry = self._cop_baseline.get(bucket)
         if entry is None:
             self._cop_baseline[bucket] = [float(observed_cop), 1]

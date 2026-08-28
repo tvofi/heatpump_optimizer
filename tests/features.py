@@ -7555,7 +7555,7 @@ for _ in range(COP_BASELINE_MIN_SAMPLES + 5):
     _ch._observe_cop_health(3.0)
 R.check(
     "the baseline forms in its outdoor bucket and trips nothing on itself",
-    _ch._cop_baseline.get(3, [0, 0])[1] >= COP_BASELINE_MIN_SAMPLES
+    _ch._cop_baseline.get((3, False), [0, 0])[1] >= COP_BASELINE_MIN_SAMPLES
     and not _ch._cop_health_cusum.tripped,
 )
 _ch._last_measured_cop = 2.4
@@ -7581,7 +7581,7 @@ R.check(
     and _cop_issues[0][2].get("is_persistent") is True,
     "a non-persistent issue vanishes on reboot while the fault stays",
 )
-_baseline_at_trip = _ch._cop_baseline[3][0]
+_baseline_at_trip = _ch._cop_baseline[(3, False)][0]
 for _ in range(5):
     _ch._observe_cop_health(2.4)
 R.check(
@@ -7592,7 +7592,7 @@ R.check(
 )
 R.check(
     "the baseline stops absorbing samples while tripped",
-    _ch._cop_baseline[3][0] == _baseline_at_trip,
+    _ch._cop_baseline[(3, False)][0] == _baseline_at_trip,
     "otherwise the EWMA re-anchors to the fault and a permanent "
     "degradation clears its own issue within weeks",
 )
@@ -7628,8 +7628,8 @@ for _ in range(24):
     _ch3._observe_cop_health(3.0)
 R.check(
     "one outlier first sample cannot anchor the young baseline",
-    _ch3._cop_baseline[3][0] < 3.5,
-    f"got {_ch3._cop_baseline[3][0]:.2f}: a plain mean while young; an "
+    _ch3._cop_baseline[(3, False)][0] < 3.5,
+    f"got {_ch3._cop_baseline[(3, False)][0]:.2f}: a plain mean while young; an "
     "EWMA seeded at 9.0 would still read ~6.7 when the watch starts "
     "judging at twenty samples",
 )
@@ -7917,7 +7917,7 @@ R.check(
 _cp = _t2_coord()
 _cp._vent_cusum.stat = 0.66
 _cp._vent_cusum.tripped = True
-_cp._cop_baseline[3] = [3.0, 25]
+_cp._cop_baseline[(3, False)] = [3.0, 25]
 _cp._immersion_events = ["2026-01-01T00:00:00+00:00"]
 _t4_payload = _cp._thermal_learning_payload()
 _cq = _t2_coord()
@@ -7936,7 +7936,7 @@ R.check(
 )
 R.check(
     "the COP baseline and the immersion history ride along",
-    _cq._cop_baseline.get(3) == [3.0, 25]
+    _cq._cop_baseline.get((3, False)) == [3.0, 25]
     and _cq._immersion_events == ["2026-01-01T00:00:00+00:00"],
 )
 _cq2 = _t2_coord()
@@ -9198,7 +9198,7 @@ R.check(
     "no COP evidence means no machine grade, not a failing one",
     _cmach._scores_view()["machine"] is None,
 )
-_cmach._cop_baseline[3] = [3.0, COP_BASELINE_MIN_SAMPLES + 1]
+_cmach._cop_baseline[(3, False)] = [3.0, COP_BASELINE_MIN_SAMPLES + 1]
 R.check(
     "a healthy watched machine grades 100",
     _cmach._scores_view()["machine"] == 100.0,
@@ -13499,6 +13499,141 @@ for _lang_file in ("strings.json", "translations/en.json", "translations/sv.json
         and "{overdue_days}" in _lg_doc["issues"][_LG_ISSUE]["description"]
         and "{interval_days}" in _lg_doc["issues"][_LG_ISSUE]["description"],
     )
+
+
+
+R.section("v5.2.0 review 2 — the health watch judges like against like")
+
+# The BLOCKER: _cop_reference_curve made observed_cop curve-dependent, but
+# _observe_cop_health bucketed its baseline by outdoor temperature alone. A
+# hot-water interval is measured against the DHW curve, which the model
+# prices 8-20 % below the space curve at the same outdoor temperature, so a
+# perfectly healthy pump produced a standing "shortfall" of exactly the gap
+# between the curves. The CUSUM is one-sided: it accumulates that and tells
+# the owner his compressor has degraded, persistently, and stops absorbing
+# samples while tripped so it never self-corrects.
+
+_hw_params = ThermalParameters()
+_hw_model = ThermalModel(_hw_params)
+_HW_OUT = 4.0
+_hw_space = _hw_model.compute_cop(_HW_OUT)
+_hw_dhw = _hw_model.compute_cop_dhw(_HW_OUT, 55.0)
+R.check(
+    "the premise: the two curves really are far apart at one outdoor temp",
+    (_hw_space - _hw_dhw) / _hw_space > 0.08,
+    f"space {_hw_space:.3f} vs dhw {_hw_dhw:.3f} — "
+    f"{100 * (_hw_space - _hw_dhw) / _hw_space:.1f}% apart, and a fixture "
+    f"that did not separate them would prove nothing",
+)
+
+
+def _hw_coord():
+    c = _t2_coord()
+    c._current_state.outdoor_temperature = _HW_OUT
+    return c
+
+
+def _hw_settle(c, n=60):
+    """A pump tracking its plan perfectly on both curves."""
+    for _ in range(n):
+        c._observe_cop_health(_hw_space, False)
+        c._observe_cop_health(_hw_dhw, True)
+
+
+def _hw_trip_after(c, space_factor=1.0, dhw_factor=1.0, limit=200):
+    for i in range(1, limit + 1):
+        c._observe_cop_health(_hw_space * space_factor, False)
+        c._observe_cop_health(_hw_dhw * dhw_factor, True)
+        if c._cop_health_cusum.tripped:
+            return i
+    return None
+
+
+# The plan shape that produced the false alarm: shoulder.json runs 38
+# space-only steps against 30 DHW-only ones in the same outdoor bucket.
+_hw_mixed = _hw_coord()
+for _ in range(60):
+    _hw_mixed._observe_cop_health(_hw_space, False)
+_hw_alarm_at = None
+for _i in range(1, 200):
+    _hw_mixed._observe_cop_health(
+        _hw_dhw if _i % 2 else _hw_space, bool(_i % 2)
+    )
+    if _hw_mixed._cop_health_cusum.tripped:
+        _hw_alarm_at = _i
+        break
+R.check(
+    "a healthy pump alternating space and hot water raises NO fault report",
+    _hw_alarm_at is None
+    and not [
+        i for i in getattr(_hw_mixed.hass, "issues", []) if i[1] == "cop_degradation"
+    ],
+    f"tripped at interval {_hw_alarm_at} — before the fix the 50/50 shape of "
+    f"the committed shoulder fixture raised cop_degradation inside a day, "
+    f"sending an owner to a service engineer for nothing",
+)
+R.check(
+    "and the two curves keep separate baselines rather than one blended one",
+    (_hw_mixed._cop_baseline.get((1, False)) or [0])[0]
+    > (_hw_mixed._cop_baseline.get((1, True)) or [0])[0],
+    f"space {_hw_mixed._cop_baseline.get((1, False))} vs "
+    f"dhw {_hw_mixed._cop_baseline.get((1, True))}",
+)
+
+# The watch must still do its job — on either channel independently.
+_hw_space_bad = _hw_coord()
+_hw_settle(_hw_space_bad)
+_hw_n_space = _hw_trip_after(_hw_space_bad, space_factor=0.85)
+_hw_dhw_bad = _hw_coord()
+_hw_settle(_hw_dhw_bad)
+_hw_n_dhw = _hw_trip_after(_hw_dhw_bad, dhw_factor=0.85)
+R.check(
+    "a real 15% loss on the space channel is still caught, and quickly",
+    _hw_n_space is not None and _hw_n_space <= 15,
+    f"caught after {_hw_n_space} intervals",
+)
+R.check(
+    "and so is one on the hot-water channel, which had no watch before",
+    _hw_n_dhw is not None and _hw_n_dhw <= 15,
+    f"caught after {_hw_n_dhw} intervals — separating the baselines must "
+    f"sharpen the watch, not switch half of it off",
+)
+_hw_healthy = _hw_coord()
+_hw_settle(_hw_healthy)
+R.check(
+    "a pump that is simply healthy never trips on either",
+    _hw_trip_after(_hw_healthy) is None,
+)
+
+# Persistence: additive, and an existing store keeps every bucket it had.
+_hw_old = _t2_coord()
+_hw_old._cop_baseline = {}
+_hw_v1_payload = {"cop_baseline": {"1": [3.2, 40], "2": [3.5, 25]}}
+
+
+async def _hw_load_v1(_p=_hw_v1_payload):
+    return _p
+
+
+_hw_old._thermal_learning_store.async_load = _hw_load_v1
+_asyncio.run(_hw_old._async_load_thermal_learning())
+R.check(
+    "a pre-v5.2.0 store's buckets load as SPACE baselines, not discarded",
+    _hw_old._cop_baseline.get((1, False)) == [3.2, 40]
+    and _hw_old._cop_baseline.get((2, False)) == [3.5, 25],
+    f"{_hw_old._cop_baseline} — the watch's memory is weeks long; throwing "
+    f"it away on upgrade would blind it for a month",
+)
+_hw_old._current_state.outdoor_temperature = _HW_OUT
+_hw_old._observe_cop_health(_hw_dhw, True)
+_hw_written = _hw_old._thermal_learning_payload()["cop_baseline"]
+R.check(
+    "and it writes back under the SAME keys, with the DHW curve alongside",
+    _hw_written.get("1") == [3.2, 40]
+    and _hw_written.get("2") == [3.5, 25]
+    and "1:dhw" in _hw_written,
+    f"{_hw_written} — additive, so a downgrade still reads what it wrote",
+)
 
 
 sys.exit(R.close("FEATURE CHECKS"))
