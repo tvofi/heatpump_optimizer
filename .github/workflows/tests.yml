@@ -111,9 +111,23 @@ jobs:
       - name: Run the suite
         env:
           GOLDEN_MODE: drift
-          # Shared runners are slower than the development box; the guard
-          # still catches order-of-magnitude solver regressions.
-          STRESS_SOLVE_BUDGET_MS: "120000"
+          # No STRESS_SOLVE_BUDGET_MS here any more. An absolute wall-clock
+          # budget cannot tell a slower solver from a busier runner, and on
+          # shared runners it answered the second question. tests/stress.py
+          # now budgets the solve's CPU time against a reference solve timed
+          # beside it, which does not move when the runner is busy.
+          # STRESS_SOLVE_RATIO, STRESS_SWEEP_RATIO and
+          # STRESS_SOLVE_CEILING_MS are the knobs if it ever needs one.
+          #
+          # Threads are pinned because process CPU time sums over all of
+          # them: a runner whose core count differs from the machine the
+          # ratios were calibrated on would otherwise record a different
+          # thread factor for the same work. stress.py checks this and fails
+          # if the reference and the scenarios disagree, but pinning means
+          # the question never arises.
+          OMP_NUM_THREADS: "1"
+          OPENBLAS_NUM_THREADS: "1"
+          MKL_NUM_THREADS: "1"
         run: ./tests/run.sh
 
   slow:
@@ -158,5 +172,12 @@ jobs:
         env:
           GOLDEN_MODE: drift
           SLOW: "1"
-          STRESS_SOLVE_BUDGET_MS: "120000"
+          # See the fast job: the solve-time guard calibrates against this
+          # runner rather than against a stopwatch, and threads are pinned
+          # so process CPU time means the same thing here as anywhere else.
+          # The nightly ref is HEAD^1 and moves every night, so there is no
+          # baseline worth caching here either.
+          OMP_NUM_THREADS: "1"
+          OPENBLAS_NUM_THREADS: "1"
+          MKL_NUM_THREADS: "1"
         run: ./tests/run.sh
