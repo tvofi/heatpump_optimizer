@@ -11798,6 +11798,70 @@ R.check(
     ],
 )
 
+# --- the three branches that void or protect the tank's promises ----------
+#
+# All three mirror a room-side branch that IS covered, and all three were
+# covered on the room side only: deleting any of the tank's three lines left
+# the whole suite passing. They are not cosmetic. A promise scored against a
+# tank that comfort/boost/off or a step-response experiment is driving on its
+# own rules charges the model with an error it never made, and the band the
+# card draws is exactly that error.
+
+# 1. Leaving auto/economy: the plan stops being what runs.
+_db_mode = _t2_coord()
+_db_mode._mode = "auto"
+for _db_rec in (_db_mode._accuracy, _db_mode._dhw_accuracy):
+    _db_rec.note_lead_prediction(_T5 + timedelta(hours=1), 1.0, 55.0)
+_asyncio.run(_db_mode.async_set_mode("economy"))
+_db_mode_kept = bool(_db_mode._dhw_accuracy.lead_pending)
+_asyncio.run(_db_mode.async_set_mode("comfort"))
+R.check(
+    "leaving auto/economy voids the TANK's unmatured promises, not only the "
+    "room's",
+    _db_mode_kept and not _db_mode._dhw_accuracy.lead_pending,
+    "auto -> economy keeps them; auto -> comfort clears them",
+)
+
+# 2. A step-response experiment overrides the plan for its duration.
+_db_exp = _db_drive(cycles=2)
+_db_exp._mode = "auto"
+_db_exp._dhw_accuracy.lead_pending.clear()
+_db_exp._file_lead_predictions(_db_plan(_DB_T0), _DB_T0)
+_db_exp_filed = len(_db_exp._dhw_accuracy.lead_pending)
+_db_exp._sysid.phase = PHASE_ARMED
+_db_exp._file_lead_predictions(_db_plan(_DB_T0), _DB_T0)
+R.check(
+    "an active experiment files no tank promises and voids the ones the "
+    "plan it overrides had filed",
+    _db_exp_filed == len(LEAD_BUCKETS)
+    and not _db_exp._dhw_accuracy.lead_pending,
+    f"{_db_exp_filed} filed before the experiment, "
+    f"{len(_db_exp._dhw_accuracy.lead_pending)} left after it",
+)
+
+# 3. Order inside `_file_lead_predictions`: the tank is filed BEFORE the
+# room's `if not trajectory: return`. A house whose plan carries no room
+# trajectory at all still has a tank to promise about, and moving the call
+# below that return would silence the tank's record on exactly those houses
+# — silently, because the room's own checks would all still pass.
+_db_noroom = _db_drive(cycles=2)
+_db_noroom._mode = "auto"
+_db_noroom._accuracy.lead_pending.clear()
+_db_noroom._dhw_accuracy.lead_pending.clear()
+_db_noroom_plan = _db_plan(_DB_T0)
+_db_noroom_plan.room_temp_trajectory = []
+_db_noroom_plan.upper_temp_trajectory = []
+_db_noroom_plan.lower_temp_trajectory = []
+_db_noroom._file_lead_predictions(_db_noroom_plan, _DB_T0)
+R.check(
+    "a plan with no room trajectory still files the tank's promises -- the "
+    "room's early return must not take the tank down with it",
+    len(_db_noroom._dhw_accuracy.lead_pending) == len(LEAD_BUCKETS)
+    and not _db_noroom._accuracy.lead_pending,
+    f"tank {len(_db_noroom._dhw_accuracy.lead_pending)}, "
+    f"room {len(_db_noroom._accuracy.lead_pending)}",
+)
+
 # --- persistence, additively ----------------------------------------------
 _db_store = {
     "accuracy": _db_ok._accuracy.as_dict(),

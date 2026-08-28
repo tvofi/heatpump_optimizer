@@ -13,6 +13,11 @@ const CARD_TAG = "heatpump-optimizer-card";
 const EDITOR_TAG = "heatpump-optimizer-card-editor";
 const CARD_VERSION = "5.2.0";
 
+// The de-duplication key `_extraFields` files a confidence band's two
+// edges under, so the pair counts as the one named trace it is. A Symbol
+// so it can never collide with a series field name.
+const BAND_TRACE_KEY = Symbol("band");
+
 // ---- i18n ------------------------------------------------------------------
 //
 // Every user-visible string lives here, keyed, with an English source text and
@@ -827,6 +832,17 @@ const SERIES_DEFS = [
     // dashed through the same `line.primary` branch, toggled by the same
     // one chip, dropped by the same duplicate rule when it has no width.
     extra: ["dhw_temp_lo", "dhw_temp_hi"],
+    // Both edges answer to the BAND's name, never to the tank curve's.
+    // Without this `_lineLabel` falls back to `def.labelKey` and any
+    // consumer that names a trace calls a dashed error edge "DHW tank
+    // temperature" — a second, wrong absolute temperature. It matters
+    // beyond this file's own legend: a legend that draws one chip per
+    // SERIES and lists the rest of its traces in the chip's title reaches
+    // those names through exactly this key.
+    extraLabels: {
+      dhw_temp_lo: "series.dhw_band",
+      dhw_temp_hi: "series.dhw_band",
+    },
     // ... but named as ONE thing, because it is one thing. The room's two
     // extras are two real predicted temperatures and get a row and a chip
     // each; these two are the edges of a single symmetric envelope, and
@@ -5610,12 +5626,21 @@ class HeatpumpOptimizerCard extends HTMLElement {
       // times, in the title written to stop saying it twice.
       const extras = this._extraFields(s);
       const unit = this._seriesUnit(def);
+      // ... and any sentence a trace needs beyond its name rides along
+      // after them. Only the expected-error band has one: "Upper floor"
+      // explains itself, a dashed pair hugging the tank curve does not, and
+      // this title is now the one place a puzzled reader can look.
+      const notes = extras
+        .map((line) => this._lineNote(def, line))
+        .filter(Boolean)
+        .map((note) => " " + note)
+        .join("");
       const title = extras.length
         ? L("legend.multi_trace_title", {
             label,
             unit,
             names: extras.map((line) => this._lineLabel(def, line)).join(", "),
-          })
+          }) + notes
         : `${label} (${unit})`;
       return `<button type="button" class="${cls}" data-key="${
         def.key
@@ -5639,19 +5664,56 @@ class HeatpumpOptimizerCard extends HTMLElement {
     return out;
   }
 
-  /** One representative line per non-primary FIELD, in draw order.
+  /** One representative line per NAMED non-primary trace, in draw order.
    *
-   * `lines` may hold several segments of the same field; the legend and the
-   * tooltip want one entry per trace, not one per fragment. */
+   * Two collapses, both because a reader counts traces by name and not by
+   * path. `lines` may hold several segments of one field, because a hole
+   * breaks a field into several paths; and a band's two edges are one
+   * envelope with one name.
+   *
+   * Every caller that names traces goes through here — this card's per-trace
+   * legend chips, its tooltip, and equally a legend that draws ONE chip per
+   * series and lists the rest in that chip's title. Iterating `lines`
+   * directly instead would name a gapped zone three times and a band twice.
+   */
   _extraFields(s) {
+    const band = s && s.band;
     const seen = new Set();
     const out = [];
     for (const line of (s && s.lines) || []) {
-      if (line.primary || seen.has(line.field)) continue;
-      seen.add(line.field);
+      if (line.primary) continue;
+      const key =
+        band && (line.field === band.lo || line.field === band.hi)
+          // A Symbol, never a string: a de-duplication key that cannot
+          // collide with a field name, whatever a later series calls its
+          // fields.
+          ? BAND_TRACE_KEY
+          : line.field;
+      if (seen.has(key)) continue;
+      seen.add(key);
       out.push(line);
     }
     return out;
+  }
+
+  /** The sentence a trace needs on hover, or "" when its name is enough.
+   *
+   * Only the expected-error band has one: "Upper floor" explains itself, a
+   * dashed pair hugging the tank curve does not. Keyed off the series
+   * definition beside `_lineLabel`, so anywhere a trace can be named the
+   * explanation can be asked for too.
+   */
+  _lineNote(def, line) {
+    const band = def && def.band;
+    if (
+      band &&
+      band.noteKey &&
+      line &&
+      (line.field === band.lo || line.field === band.hi)
+    ) {
+      return L(band.noteKey);
+    }
+    return "";
   }
 
   /** The point of `field` nearest `t`, or null when the field has none. */

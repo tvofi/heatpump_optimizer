@@ -5023,7 +5023,7 @@ const setupBox = (card, place) =>
   // have ONE vocabulary for "this line is a companion, not a plan". The
   // default fixture publishes upper == lower == room, which v5.1.7 rightly
   // drops as duplicates, so the comparison needs a genuinely two-zone card.
-  const twoZoneCard = (() => {
+  const twoZoneEl = (() => {
     const states = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
     states[DEFAULT_SPACE].attributes.forecast =
       plan.space_plan.forecast.map((p, i) => ({
@@ -5034,8 +5034,9 @@ const setupBox = (card, place) =>
     c.hass = { states };
     c._hidden = {};
     c.hass = { states };
-    return collect(c.shadowRoot).join("\n");
+    return c;
   })();
+  const twoZoneCard = collect(twoZoneEl.shadowRoot).join("\n");
   const roomDashed = [...twoZoneCard.matchAll(
     /<path class="series" data-key="house_temp"[^>]*>/g)]
     .map((m) => m[0]).filter((x) => /stroke-dasharray/.test(x));
@@ -5243,6 +5244,57 @@ const setupBox = (card, place) =>
   check("a hidden tank series contributes no band row to the tooltip either",
     !/expected error/.test(hoverHidden) &&
     !/DHW tank temperature:/.test(hoverHidden), hoverHidden);
+
+  // --- naming the band WITHOUT a chip of its own --------------------------
+  //
+  // This branch draws one chip per named trace. A sibling change replaces
+  // that with one chip per SERIES, naming the rest of its traces inside that
+  // chip's `title`. The band must not assume either shape: what it owes any
+  // such consumer is that "how many traces are there, and what is each
+  // called" has a right answer, which is `_extraFields` + `_lineLabel`.
+  // Asserted against those two directly, because the markup this branch
+  // happens to render cannot show it.
+  //
+  // Both failure modes here are silent and would ship: iterating `lines`
+  // instead of `_extraFields` names a band twice and a gapped trace once per
+  // fragment, and without `extraLabels` an edge falls back to the series
+  // label and calls itself "DHW tank temperature" -- a second, wrong
+  // absolute temperature in a legend built to remove duplicates.
+  {
+    const traces = (c, key) => {
+      const s = c._series.find((x) => x.key === key);
+      return c._extraFields(s).map((line) => c._lineLabel(s, line));
+    };
+    check("the band is ONE named trace, however many paths draw it",
+      JSON.stringify(traces(on.card, "dhw_temp")) ===
+        JSON.stringify(["Hot water, expected error"]),
+      JSON.stringify(traces(on.card, "dhw_temp")));
+    check("and it stays one when a hole splits both edges in two",
+      JSON.stringify(traces(gapped.card, "dhw_temp")) ===
+        JSON.stringify(["Hot water, expected error"]),
+      JSON.stringify(traces(gapped.card, "dhw_temp")));
+    check("neither edge ever answers to the tank curve's own name",
+      !traces(on.card, "dhw_temp").includes("DHW tank temperature"),
+      JSON.stringify(traces(on.card, "dhw_temp")));
+    // The collapse is the BAND's, not every extra's: two floors are two
+    // real temperatures and must keep two names.
+    check("while the room's two floors stay two separately named traces",
+      JSON.stringify(traces(twoZoneEl, "house_temp")) ===
+        JSON.stringify(["Upper floor", "Lower floor"]),
+      JSON.stringify(traces(twoZoneEl, "house_temp")));
+    check("and a series with no band is unaffected by any of it",
+      traces(on.card, "house_temp").length === 0,
+      JSON.stringify(traces(on.card, "house_temp")));
+    check("the explanation is fetched per trace too, so a one-chip legend "
+      + "can reach it",
+      (() => {
+        const s = on.card._series.find((x) => x.key === "dhw_temp");
+        const zs = twoZoneEl._series.find((x) => x.key === "house_temp");
+        return /widens further ahead/.test(
+          on.card._lineNote(s, on.card._extraFields(s)[0])) &&
+          twoZoneEl._lineNote(zs, twoZoneEl._extraFields(zs)[0]) === "";
+      })());
+  }
 
   // Swedish: both dictionaries carry the new keys, or the band is explained
   // to half the users only.
