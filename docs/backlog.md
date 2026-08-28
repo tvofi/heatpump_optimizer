@@ -63,7 +63,7 @@ and deliberately not built.
   Two collateral defects were confirmed on the way. The service-path reset
   writes scale 1.0 to the store but changes the coefficient **in memory
   only**, so a later restart pairs the reset scale with the unchanged option
-  (measured 0.80×). And `_apply_learner_payloads` restores the scale from a
+  (measured 0.80×). And `_apply_learner_payloads` (`coordinator.py:8228`) restores the scale from a
   weekly snapshot, so a drift rollback after an options edit can re-install a
   pre-edit scale.
 
@@ -188,6 +188,233 @@ and deliberately not built.
 - **A second probe in the heat-pump tank** (item 28 ranked it low). The
   v3.10.0 discharge law models that tank as well-mixed, so stratification data
   has nothing to change yet. Revisit only if the tank model gains layers.
+
+### The v4.0.0 → v5.4.0 review program: what shipped, and what is left
+
+The program that produced every release from v4.0.1 to v5.4.0 was driven by two
+audits. Its plan lived in session scratch and in `docs/plan-v4.0.0-program.md`;
+the unfinished half is written out here so it survives without them. **Every
+item below is unstarted or unmerged unless it says otherwise.** The GitHub
+issue numbers are the tracking record; this section says how the pieces relate,
+which the issues cannot.
+
+**On the references below.** They name symbols, not line numbers, and the line
+numbers that do appear were re-verified against v5.4.0 on 2026-08-28. The
+audit's own numbering was already several releases stale by then — its
+`optimizer.py:925` is now two sites at `:1160` and `:4797` — so re-derive
+before trusting any position, and prefer the symbol name, which has held.
+
+**The first audit's train finished.** Nine themed PRs, v4.0.1 (CI and the test
+suite) through v5.1.0 (documentation), plus the setup-page revamp (v4.3.0) and
+the breaking entity-naming release (v5.0.0). Nothing outstanding.
+
+**The second audit's train did not.** It confirmed 41 defects — 11 MAJOR, 30
+MINOR — and planned twelve PRs. Four shipped. The version column below is what
+each PR would take *today*; the numbers in the original plan (v5.1.1–v5.2.1)
+were consumed by the hotfix train that overtook it, and re-using them would
+collide.
+
+| # | Theme | State |
+|---|---|---|
+| 1 | Make the test gates able to fail | shipped, **v5.1.2** |
+| 2 | Freeze learning on any unusable input, not only a stale one | shipped, **v5.1.3** |
+| 3 | A stale plan stands down completely, and says why | **open** |
+| 4 | The defrost derate learns only from vetted intervals | **open** |
+| 5 | Negative-price arithmetic | **open** |
+| 6 | Settlement caps honour the learned heat-loss scale | **open**, see #87 |
+| 7 | Restore paths survive a corrupt store | **open** |
+| 8 | Sensors say what they actually know | PENDING-8 |
+| 9 | Card setup and what-if surfaces | PENDING-9 |
+| 10 | Config-flow guards | **open** |
+| 11 | Currency and translation seams | **open** |
+| 12 | Docs: what the integration actually does | **open** |
+
+PRs 8 and 9 were the last two to land, and they landed only because the work
+was already committed when the parallel build that produced them stopped. PRs
+5 and 12 were being built by the same run and have no branch at all.
+
+**The seven detailed below run in the order their harm justifies**, and item 6
+follows them as a deliberate deferral — eight open in all. Each names the
+finding it closes and where the evidence came from, because the reproduction is
+the expensive part and it has already been paid for once.
+
+- **3 — a stale plan never neutralises what it wrote** (MAJOR, rank 2).
+  `_apply_action` returns silently once `_plan_is_stale()` (`coordinator.py:6209`,
+  read at `:6225`), leaving
+  heat supply latched OFF and a negative ECL110 displace standing for the whole
+  outage, with nothing that restores either. `_current_action` never advances,
+  so a retained plan's own cheap hour is skipped as well; `_async_drive_pumps`
+  indexes the retained plan by wall clock while `_apply_action` re-commands the
+  last successful solve's step, so the two halves of one cycle disagree. The
+  fix drives an explicit safe state once on the transition into staleness
+  (`switch.turn_on`, `displace_value=0.0`, `heat_pump_on=True`), re-derives
+  `_current_action` against the current clock, gates `_command_frequency()` and
+  `_async_drive_pumps()` on the same predicate, and skips `_record_accuracy()`'s
+  pending stamp when `_apply_action` held off — that stamp is one of the two
+  feeds into item 4's contamination. Also: count `len(prices) < 4` as a solve
+  failure so the repair issue can fire, guard `self._prices = prices` with
+  `if prices:` so an empty `priceInfo` cannot wipe a usable list, and surface
+  `plan_stale`/`plan_age_minutes`, which are published to `coordinator.data`
+  and read by nothing. `strings.json:761` promises the pump is "handed back to
+  its own heating curve" and must be corrected. No golden movement expected.
+  Note for the tests: `grep mqtt tests/*.py` returns nothing today, and both
+  ECL110 publishes sit inside `except Exception`, so a raising publish cannot
+  currently fail a test.
+
+- **4 — the defrost derate learns from an ungated ratio** (MAJOR, rank 3).
+  The `self._defrost.observe(...)` call site (`coordinator.py:8746`) feeds a
+  commanded-vs-measured
+  power ratio without the three admission tests `_learn_measured_cop` already
+  applies (duty floor, immersion skip, tracking-error gate). Reproduced: 24
+  contaminated samples drive the derate to 0.6814 and COP at 3 °C / 85 % RH
+  from 3.150 to 2.146 — 1.47× the electricity per kWh of heat, persisted, and
+  it distorts every space-heating plan afterwards. `defrost.observe` should
+  **reject** a ratio below ~0.5 rather than clipping it to `DERATE_MIN` — the
+  clip is the `min(max(float(delivered_ratio), DERATE_MIN), DERATE_MAX)` at
+  `defrost.py:291`, and `DERATE_MIN` is 0.55: frost
+  tops out near 30 % under-delivery, so 0.1 is contamination, and the clip is
+  what converts one bad sample into a full walk to the floor. `accuracy.py`'s
+  `delivered_ratio` carries `predicted_temp`/`actual_temp` and ignores them,
+  despite its own docstring resting on them, so a pump that drew more power
+  *and* overshot is recorded as under-delivery.
+
+- **5 — a negative p25 flips the terminal cost's sign** (MAJOR, rank 4).
+  The two `np.percentile(prices, 25)` sites are `optimizer.py:1160` (inside the
+  `price_weight` term) and `:4797` (`refill_price`). Full solve on a
+  paid-to-consume day: the
+  shipped plan earns 3.69 SEK *less*, ends 2.19 K colder, and books a 1.78 SEK
+  credit for the coldness. The floor is `max(0.0, np.percentile(prices, 25))`
+  at both sites. Separately, in `price_model`'s unknown-horizon guess, when
+  `level <= PRICE_MEAN_GUESS_EPS` the learned shape must fall back to the
+  `last_known` repeat it already codes, with `sigma` at 0 — a learned
+  shape is always a positive-price shape (`observe_day` rejects a non-positive mean),
+  so a negative level yields a uniformly-negative tail that the floor then
+  flattens to a single value; reproduced as all 48 unknown steps identical with
+  the learned evening peak gone. Needs the whole horizon below zero *including*
+  tax and VAT, which is the only reason it ranks below the three above.
+  **Ship it alone.** No shipped scenario has a negative p25, so the goldens are
+  expected not to move; if one does, that is a finding, not a re-record.
+
+- **7 — a corrupt store raises out of six restore paths** (MAJOR, rank 11).
+  Each loader's `try` wraps `async_load` but not the `stored.get(...)` that
+  follows. Reproduced: payloads `[1,2,3]`, `"nonsense"` and `7` all raise
+  `AttributeError` out of `_async_load_accuracy`. Six loaders need the wider
+  `try`. In the same pass, `_apply_learner_payloads` restores
+  `profile_weekday_samples`/`profile_weekend_samples` but drops five sibling
+  counters (`buffer_cooling_samples`, `house_heat_loss_samples`,
+  `lower_floor_loss_samples`, `cop_samples`, `dhw_cooling_samples`), so a
+  rollback leaves `_learning_view` publishing `house_heat_loss_learned: True`
+  at 260 drift-era samples for a value that was discarded — and persists it.
+  The restore is a hand-maintained subset of a producer it has no schema link
+  to; only two of the eight deliberately-dropped keys are documented.
+  `tests/harness.py`'s `FakeHass.async_create_task` closes the coroutines unrun,
+  so a collecting mode has to come first. `_async_update_data` has never been
+  tested, and neither have the three fixed-mode action dicts in the cycle body.
+  The six loaders are `_async_load_dhw_profile` (`:1351`), `_async_load_dhw_draws`,
+  `_async_load_dhw_legionella`, `_async_load_price_model` (`:6757`),
+  `_async_load_accuracy` (`:6854`) and the ECL110 state subscription.
+
+- **10 — config-flow guards.** `smart_write` saves with no valve control
+  entity — `async_step_building` has no validation branch for it at all and goes
+  straight to `self._save` — after which the optimizer derives and *adopts* a
+  valve hold schedule for a valve that is never commanded; the only trace is a
+  `DEBUG` line, and no repair issue exists. Gate the hold schedule on the write
+  entity rather than the mode string. Second: there is no way to turn hot water
+  off — both questionnaire branches call `async_step_dhw()` unconditionally and
+  every field is `vol.Optional(..., default=...)`, so a space-heating-only
+  house cannot escape; a `dhw_mode` select mirroring `CONF_TWO_ZONE_MODE`,
+  honoured ahead of `thermal_model.py`'s key-presence inference, is the fix.
+  Third: `dhw_min_too_close` carries a double-escaped `\\u00b0C` in all three
+  string files, at both `:215` and `:676` in each (six occurrences, still
+  present in v5.4.0) — English degrades to "at least 5 °C" and the Swedish is
+  unreadable. `tests/golden/config_flow.json` moves; keep it in its own commit.
+
+- **11 — currency and translation seams** (breaking-adjacent, ship alone).
+  Money is still rendered in a hardcoded currency in `narrative.render()`, the
+  `cop_degradation` repair issue and a log line. Topology slot and layout
+  labels have no translation keys. Enumerable string-state sensors are not
+  declared `device_class: enum` with `_attr_options`, and three carry
+  runtime-built counts ("24 steps", "10 heating periods", "4 slots planned") in
+  the state where an attribute belongs. Two things make it breaking-adjacent:
+  the `hourly_spot_sek` → `hourly_spot_cost` rename breaks user templates (ship
+  aliases for one release and say so; the key is written at
+  `coordinator.py:9240`), and `CONF_NAME` finally reaching `device_info`
+  renames the device for existing installs — entity ids are safe, pinned at
+  first registration. One trap already paid for:
+  HA substitutes `description_placeholders` into `title`/`description` but
+  **not** into `data` labels, so stating the currency in a field label does not
+  work; it has to go in the step description.
+
+- **12 — the docs still overstate what a bare install does.** The Requirements
+  list says "everything else is optional" and two diagrams draw an
+  unconditional actuation arrow, but with no actuator the integration only
+  publishes a plan and no repair issue fires — a new user installs it and
+  nothing happens. Only `docs/configuration.md:55` states the consequence. Also
+  outstanding: `RELEASE_NOTES.md` is linked from no index and there is no
+  Upgrading section for the v5.0.0 boundary; a `strings.json` string claims a
+  planned start count is published on the plan sensors and it is not;
+  `switch.py`'s module docstring and `services.yaml`'s toggle description
+  promise the pump is "left in default
+  state" while the toggle delivers supply-off plus a −20 K curve shift, which
+  `docs/ecl110.md` already documents correctly; four features default `False`
+  but are not marked opt-in in the README's feature list; the anti-legionella
+  "timed to finish before you get back" describes an `away` coupling the
+  optimizer does not have, and `AwayConfig.legionella_before_return`
+  (`away.py:56`) is declared with a four-line justification and read nowhere. `docs/audit-2026-08.md`
+  should move under `docs/history/` with a banner: it carries a live
+  `python tests/golden.py --record` instruction against a tree that no longer
+  exists.
+
+**Deferred with a reason, not forgotten:** item 6 (settlement caps and the
+learned heat-loss scale, #87) was the plan's own first candidate to drop —
+MINOR, bit-identical at `scale ≤ 1.4`, and the only demonstrable harm is a
+savings headline reading 4–13 % high in a house whose learner has walked above
+1.0.
+
+**Two more program items were designed and not built:**
+
+- **Options-flow back navigation** (#100): return to the section menu from
+  inside a settings page instead of closing the dialog. The design is settled
+  and one wrong turn is already ruled out — see the Decisions section below.
+- **A second full audit round** across nine dimensions (the original seven plus
+  sensor verification and resource efficiency), against the tree as it stands.
+  Deferred deliberately by the owner. Its resource-efficiency dimension is the
+  one with a proven stake: v5.1.1's freeze was a cold solve holding the GIL
+  from an executor thread, which took the entire Home Assistant instance
+  unreachable. #97, #98 and #99 are that dimension's opening questions.
+
+**What neither audit pass examined**, recorded so a third pass does not
+rediscover the gap: config-entry migration and the v4 → v5 upgrade path; DST
+and month/day rollover arithmetic (the `24:00` finding was the only edge of
+this to surface, and it surfaced from the UI); event-loop behaviour and
+re-entrancy when a manual `run_optimization` overlaps a scheduled cycle;
+MQTT/ECL110 protocol semantics — retain, QoS, broker reconnect, and
+`_async_setup_ecl110_state_subscription`, which has no test coverage at all and
+is simultaneously the primary actuator on the reference install and the
+least-tested module in the package; Tibber token handling at rest and in logs;
+recorder load across 65 entities; and whether the Swedish reads correctly as
+prose rather than merely having every key present.
+
+**Three test-suite shortfalls found during the program and not fixed:** a
+script added to `tests/` with no closure entry silently disables the scoped
+gate (#90); `tests/optimality.py` cannot detect a 100× cut to the solver's
+iteration budget (#89); and `tests/features.py` loads
+`tests/golden/winter_single_dhw.json` (at `:7196`) and asserts a property *of
+that fixture* rather than of current behaviour, so it passes however stale the
+fixture becomes. `tests/setup_qa_render.mjs` is
+referenced by nothing and carries a verbatim copy of `card.mjs`'s DOM stub
+that can drift silently (#101). The audit's finding that CI relaxes the stress
+solve-time budget 4× (`STRESS_SOLVE_BUDGET_MS: "120000"` against a 30,000
+default) is **fixed and must not be re-filed**: the gate work in #77 removed
+that variable from the workflow entirely. `tests/stress.py` now budgets the
+solve's CPU time against a reference solve timed beside it, with
+`OMP/OPENBLAS/MKL_NUM_THREADS` pinned to 1 so the thread factor cannot differ
+between the calibration machine and the runner, and it fails outright if the
+reference and the scenarios disagree about that factor. `STRESS_SOLVE_RATIO`,
+`STRESS_SWEEP_RATIO` and `STRESS_SOLVE_CEILING_MS` are the knobs. A CPU-time
+ratio does distinguish a slower solver from a busier runner, which an absolute
+wall-clock budget could not, so CI's stress check is now stricter than a local
+default run rather than 4× looser.
 
 ### Decisions recorded so they are not re-litigated
 
