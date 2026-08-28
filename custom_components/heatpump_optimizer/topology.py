@@ -76,33 +76,62 @@ _TEMP = ("sensor", "number", "input_number")
 # code — so all four are accepted and `inputs.parse_bool` reconciles them.
 _FLAG = ("binary_sensor", "switch", "input_boolean", "sensor")
 _MODE = ("select", "sensor", "input_select")
-_SLOTS: tuple[tuple[str, str, str, tuple[str, ...]], ...] = (
-    (CONF_OUTDOOR_TEMP_ENTITY, "outdoor", "Outdoor temperature", _TEMP),
-    (CONF_SOLAR_RADIATION_ENTITY, "outdoor", "Solar radiation", _TEMP),
-    (CONF_PV_PRODUCTION_ENTITY, "outdoor", "PV production", _TEMP),
-    (CONF_INDOOR_TEMP_ENTITY, "upper_zone", "Indoor temperature", _TEMP),
+
+# What a slot is asking for, where the answer is narrower than the domains it
+# accepts. ``sensor`` covers every reading a house produces, so on an install
+# with hundreds of them the card's picker ranks a matching device class to the
+# top of the list: the probe the slot is for is near the top before a single
+# character is typed. RANKING ONLY -- nothing is hidden by it, because plenty
+# of working sensors carry no device class at all, and a picker that hid those
+# would hide the very probe the user came to assign.
+#
+# It lives here, in the same row as the domains, rather than in a second table
+# inside the card: two descriptions of one slot are two things to keep in step,
+# and the card's copy was reachable by no test at all.
+_TEMPERATURE = "temperature"
+_POWER = "power"
+_ENERGY = "energy"
+_IRRADIANCE = "irradiance"
+_SLOTS: tuple[tuple[str, str, str, tuple[str, ...], str | None], ...] = (
+    (CONF_OUTDOOR_TEMP_ENTITY, "outdoor", "Outdoor temperature", _TEMP,
+     _TEMPERATURE),
+    (CONF_SOLAR_RADIATION_ENTITY, "outdoor", "Solar radiation", _TEMP,
+     _IRRADIANCE),
+    (CONF_PV_PRODUCTION_ENTITY, "outdoor", "PV production", _TEMP, _POWER),
+    (CONF_INDOOR_TEMP_ENTITY, "upper_zone", "Indoor temperature", _TEMP,
+     _TEMPERATURE),
     (CONF_LOWER_FLOOR_TEMP_ENTITY, "lower_zone", "Lower floor temperature",
-     _TEMP),
-    (CONF_FLOOR_RETURN_TEMP_ENTITY, "floor_loop", "Floor loop return", _TEMP),
+     _TEMP, _TEMPERATURE),
+    (CONF_FLOOR_RETURN_TEMP_ENTITY, "floor_loop", "Floor loop return", _TEMP,
+     _TEMPERATURE),
     (CONF_HEAT_PUMP_SWITCH_ENTITY, "heat_pump", "Heat pump switch",
-     ("switch", "input_boolean", "climate")),
-    (CONF_POWER_ENTITY, "heat_pump", "Power meter", _TEMP),
-    (CONF_ENERGY_ENTITY, "heat_pump", "Energy meter", _TEMP),
-    (CONF_HOUSE_POWER_ENTITY, "heat_pump", "Whole-house power", _TEMP),
+     ("switch", "input_boolean", "climate"), None),
+    (CONF_POWER_ENTITY, "heat_pump", "Power meter", _TEMP, _POWER),
+    (CONF_ENERGY_ENTITY, "heat_pump", "Energy meter", _TEMP, _ENERGY),
+    (CONF_HOUSE_POWER_ENTITY, "heat_pump", "Whole-house power", _TEMP, _POWER),
     # v5.3.0: what the pump says about itself. All optional, all read-only,
-    # all at the heat pump because that is the device they describe.
-    (CONF_HEAT_PUMP_MODE_ENTITY, "heat_pump", "Operating mode", _MODE),
-    (CONF_HEAT_PUMP_DEFROST_ENTITY, "heat_pump", "Defrosting", _FLAG),
-    (CONF_HEAT_PUMP_ONLINE_ENTITY, "heat_pump", "Online status", _FLAG),
-    (CONF_HEAT_PUMP_FAULT_ENTITY, "heat_pump", "Fault alarm", _FLAG),
+    # all at the heat pump because that is the device they describe. None of
+    # them has a device class worth ranking on: a mode is a select, and the
+    # three flags arrive as whichever of four domains the integration chose.
+    (CONF_HEAT_PUMP_MODE_ENTITY, "heat_pump", "Operating mode", _MODE, None),
+    (CONF_HEAT_PUMP_DEFROST_ENTITY, "heat_pump", "Defrosting", _FLAG, None),
+    (CONF_HEAT_PUMP_ONLINE_ENTITY, "heat_pump", "Online status", _FLAG, None),
+    (CONF_HEAT_PUMP_FAULT_ENTITY, "heat_pump", "Fault alarm", _FLAG, None),
     (CONF_BUFFER_TANK_TEMP_ENTITY, "buffer_tank", "Buffer tank temperature",
-     _TEMP),
-    (CONF_MIXING_VALVE_TARGET_ENTITY, "mixing_valve", "Valve target", _TEMP),
-    (CONF_DHW_TEMP_ENTITY, "dhw_tank", "Hot water temperature", _TEMP),
+     _TEMP, _TEMPERATURE),
+    (CONF_MIXING_VALVE_TARGET_ENTITY, "mixing_valve", "Valve target", _TEMP,
+     _TEMPERATURE),
+    (CONF_DHW_TEMP_ENTITY, "dhw_tank", "Hot water temperature", _TEMP,
+     _TEMPERATURE),
+    # A stove sensor is a thermometer on some installs and a contact on
+    # others, which is why it accepts four domains; ranking one of them would
+    # push the other three down for no reason.
     (CONF_EXTERNAL_HEAT_ENTITY, "wood_tank", "Stove or flue sensor",
-     ("sensor", "binary_sensor", "switch", "input_boolean")),
-    (CONF_WOOD_TANK_TOP_ENTITY, "wood_tank", "Wood tank top", _TEMP),
-    (CONF_WOOD_TANK_BOTTOM_ENTITY, "wood_tank", "Wood tank bottom", _TEMP),
+     ("sensor", "binary_sensor", "switch", "input_boolean"), None),
+    (CONF_WOOD_TANK_TOP_ENTITY, "wood_tank", "Wood tank top", _TEMP,
+     _TEMPERATURE),
+    (CONF_WOOD_TANK_BOTTOM_ENTITY, "wood_tank", "Wood tank bottom", _TEMP,
+     _TEMPERATURE),
     # "wood_valve" is a slot id, not a drawn place: the wood-side blending
     # valve was a box of its own until v4.0.0, when the user's #40 feedback
     # (item 3) had it removed — it modelled nothing, could not be deleted,
@@ -110,14 +139,14 @@ _SLOTS: tuple[tuple[str, str, str, tuple[str, ...]], ...] = (
     # onto the 4-way valve in the two-tank layout and onto the wood tank
     # everywhere else.
     (CONF_VALVE_OUTLET_TEMP_ENTITY, "wood_valve", "Valve outlet temperature",
-     _TEMP),
+     _TEMP, _TEMPERATURE),
 )
 
 #: Every config key a diagram may assign, and the domains it accepts. The one
 #: source for the card's picker and the ``assign_entity`` service, so what the
 #: diagram offers and what the service accepts cannot drift apart.
 ASSIGNABLE_KEYS: dict[str, tuple[str, ...]] = {
-    key: domains for key, _place, _label, domains in _SLOTS
+    key: domains for key, _place, _label, domains, _class in _SLOTS
 }
 
 #: Places that only exist on some topologies, and the flag that brings them.
@@ -406,8 +435,12 @@ def describe_setup(config: dict[str, Any]) -> dict[str, Any]:
             # Carried so the card's picker offers only what the service will
             # accept for this slot -- one list, not two that can disagree.
             "domains": list(domains),
+            # ...and what the slot is actually asking for within those
+            # domains, which the picker ranks by. None where the slot has no
+            # narrower answer than its domains already give.
+            "device_class": device_class,
         }
-        for key, place, label, domains in _SLOTS
+        for key, place, label, domains, device_class in _SLOTS
         if present.get(placed(place), True)
     ]
     # The active layout's drawn edges, composed from the catalog — the card
