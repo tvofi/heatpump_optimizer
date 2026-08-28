@@ -1,13 +1,22 @@
 {
   "domain": "heatpump_optimizer",
   "name": "Heat Pump Cost Optimizer",
-  "after_dependencies": ["mqtt"],
-  "codeowners": ["@heatpump-optimizer"],
+  "after_dependencies": [
+    "mqtt"
+  ],
+  "codeowners": [
+    "@heatpump-optimizer"
+  ],
   "config_flow": true,
-  "dependencies": ["http"],
+  "dependencies": [
+    "http"
+  ],
   "documentation": "https://github.com/heatpump-optimizer/ha-heatpump-optimizer",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/heatpump-optimizer/ha-heatpump-optimizer/issues",
-  "requirements": ["numpy>=1.24.0", "scipy>=1.10.0"],
-  "version": "5.4.0"
+  "requirements": [
+    "numpy>=1.24.0",
+    "scipy>=1.10.0"
+  ],
+  "version": "5.4.1"
 }
