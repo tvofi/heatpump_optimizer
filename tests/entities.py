@@ -1191,6 +1191,29 @@ R.check(
     "; ".join(_mismatched),
 )
 
+# No field may accept a value the model will then quietly override.
+# ``ThermalParameters.clamp`` raises every store below THERMAL_MASS_FLOOR,
+# so a field minimum under it is a window in which the page stores one number
+# and the model runs another -- with nothing gained, since ``presets.derive``
+# floors its own radiator-loop mass at exactly the same place.
+from heatpump_optimizer.thermal_model import THERMAL_MASS_FLOOR
+
+_below_floor = sorted(
+    f"{key} starts at {_NOMINAL[key][0]}, below the model's floor {THERMAL_MASS_FLOOR}"
+    for key in (
+        const.CONF_HOUSE_THERMAL_MASS,
+        const.CONF_SLAB_THERMAL_MASS,
+        const.CONF_UPPER_FLOOR_THERMAL_MASS,
+        const.CONF_LOWER_FLOOR_THERMAL_MASS,
+    )
+    if _NOMINAL[key][0] < THERMAL_MASS_FLOOR
+)
+R.check(
+    "no thermal-mass field accepts a value the model would clamp away",
+    not _below_floor,
+    "; ".join(_below_floor),
+)
+
 # --- The invariant: derived physics fits the field that stores it ----------
 #
 # ``presets.derive`` scales every thermal parameter by heated area and knows

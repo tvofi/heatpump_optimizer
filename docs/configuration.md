@@ -122,7 +122,7 @@ declaration. It asks the model's own numbers:
 |---|---|---|---|
 | House thermal mass | 10.0 kWh/°C | 0.5–80, 0.5 steps | Heat stored per degree by the room air, furnishings and light fabric — roughly 0.02 kWh/°C per m² of heated area for timber, 0.05 or more for stone. Heavy floors are counted under the slab mass below, so this is not the whole building. |
 | Heat loss coefficient | 0.15 kW/°C | 0.01–1.0, 0.01 steps | Heat lost per degree of indoor-outdoor difference. 0.25 kW/°C across a 20-degree gap means about 5 kW of demand. |
-| Slab floor thermal mass | 5.0 kWh/°C | 0.05–60, 0.5 steps | Heat stored per degree by whatever the heat is delivered through: the slab of a floor-heated house — the buffer that lets it be switched off through a price peak — or, with radiators, the water and steel of the radiator circuit, which is far smaller (about 0.2 kWh/°C for 100 m²). |
+| Slab floor thermal mass | 5.0 kWh/°C | 0.1–60, 0.5 steps | Heat stored per degree by whatever the heat is delivered through: the slab of a floor-heated house — the buffer that lets it be switched off through a price peak — or, with radiators, the water and steel of the radiator circuit, which is far smaller (about 0.2 kWh/°C for 100 m²). |
 | Slab-to-room heat transfer | 0.8 kW/°C | 0.02–5.0, 0.1 steps | How fast that store gives its heat to the room. Lower means a sluggish floor that must be charged further in advance; radiators sit far higher. |
 | Heat pump nominal COP | 3.5 | 1.5–6.0 | As above. |
 | Heat pump max power | 5.0 kW | 1–20 | As above. |

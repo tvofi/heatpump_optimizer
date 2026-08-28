@@ -424,7 +424,7 @@
    "slab_thermal_mass": {
     "config": {
      "max": "60.0",
-     "min": "0.05",
+     "min": "0.1",
      "mode": "'box'",
      "step": "0.5",
      "unit_of_measurement": "'kWh/\u00b0C'"
@@ -2066,7 +2066,7 @@
   "slab_thermal_mass": {
    "config": {
     "max": "60.0",
-    "min": "0.05",
+    "min": "0.1",
     "mode": "'box'",
     "step": "0.5",
     "unit_of_measurement": "'kWh/\u00b0C'"

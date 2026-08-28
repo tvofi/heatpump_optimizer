@@ -394,9 +394,13 @@ RANGE_HOUSE_THERMAL_MASS: Final = (0.5, 80.0)
 # kW/°C. 0.0140 is a 40 m² low-energy house (14 W/K), 0.7316 a 400 m²
 # pre-1960 one with a heated basement. The ceiling is unchanged.
 RANGE_HOUSE_HEAT_LOSS: Final = (0.01, 1.0)
-# kWh/°C. 0.1 is the radiator loop of a small house — the floor ``derive``
-# itself imposes — and 53.0 a 400 m² masonry house's heated slab.
-RANGE_SLAB_THERMAL_MASS: Final = (0.05, 60.0)
+# kWh/°C. 0.1 is the radiator loop of a small house, and it is where three
+# things meet: ``derive`` floors its radiator-loop mass there, the whole
+# 20–1000 m² sweep bottoms out there exactly, and ``ThermalParameters.clamp``
+# raises anything below it to ``THERMAL_MASS_FLOOR`` anyway. A lower field
+# minimum would only buy a window in which the page stores a number the model
+# silently overrides. 53.0 is a 400 m² masonry house's heated slab.
+RANGE_SLAB_THERMAL_MASS: Final = (0.1, 60.0)
 # kW/°C. ``derive`` floors this at 0.05; a 400 m² floor circuit reaches 4.0.
 # The ceiling is unchanged.
 RANGE_SLAB_HEAT_TRANSFER: Final = (0.02, 5.0)
