@@ -779,6 +779,10 @@
       "title": "Optimization keeps failing; the plan is going stale",
       "description": "The last {count} optimization runs failed, so the integration is still showing — and until recently acting on — a plan computed at {last_success}. Once the plan is older than a few update intervals the heat pump is handed back to its own heating curve rather than driven from an outdated schedule. The usual suspects are a lost price or weather connection, or an error in the log from the solver itself. This notice clears on the next successful optimization."
     },
+    "dhw_legionella_mode_blocked": {
+      "title": "Hot water disinfection is overdue: the heat pump's mode blocks it",
+      "description": "The anti-legionella cycle was due {overdue_days} day(s) ago, but the heat pump reports an operating mode that makes no hot water at all, so the plan has nowhere to put the cycle and is not scheduling it. Nothing is being changed on your behalf: hot water is never planned into a mode the pump cannot serve, because that would promise water the hardware refuses to heat. The tank is simply not being disinfected while the pump stays in this mode. Switch the pump to a mode that includes hot water, or turn the disinfection cycle off if that is deliberate. It normally runs every {interval_days} days, and this notice clears as soon as a cycle can be planned again."
+    },
     "grid_fee_magnitude": {
       "title": "A configured grid fee looks 100× too large",
       "description": "The grid fee layer contains a rate of {rate} SEK/kWh (from the {source} input). Swedish DSO transfer fees run a few tenths of a krona per kWh, so a value this size is almost always öre entered where SEK was meant — 25 instead of 0.25. Nothing is changed or capped: the plan keeps pricing with exactly the value configured. Correct the value under the DSO fee options (or fix the fee sensor) and this notice clears on the next planning cycle."

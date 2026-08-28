@@ -779,6 +779,10 @@
       "title": "Optimeringen fortsätter att misslyckas; planen börjar bli inaktuell",
       "description": "De senaste {count} optimeringskörningarna misslyckades, så integrationen visar fortfarande — och agerade tills nyligen på — en plan beräknad {last_success}. När planen är äldre än några uppdateringsintervall lämnas värmepumpen tillbaka till sin egen värmekurva i stället för att styras efter ett föråldrat schema. De vanliga misstänkta är en tappad pris- eller väderanslutning, eller ett fel i loggen från själva lösaren. Meddelandet försvinner vid nästa lyckade optimering."
     },
+    "dhw_legionella_mode_blocked": {
+      "title": "Desinfektionen av varmvattnet är försenad: värmepumpens driftläge blockerar den",
+      "description": "Legionellacykeln skulle ha körts för {overdue_days} dygn sedan, men värmepumpen rapporterar ett driftläge som inte kan göra varmvatten alls, så planen har ingenstans att lägga cykeln och schemalägger den inte. Ingenting ändras åt dig: varmvatten planeras aldrig in i ett läge pumpen inte kan leverera, eftersom det skulle lova vatten som hårdvaran vägrar värma. Tanken desinficeras helt enkelt inte så länge pumpen står kvar i det här läget. Byt till ett driftläge som omfattar varmvatten, eller stäng av desinfektionscykeln om det är avsiktligt. Den körs normalt var {interval_days} dygn, och meddelandet försvinner så snart en cykel kan planeras igen."
+    },
     "grid_fee_magnitude": {
       "title": "En konfigurerad nätavgift ser 100× för stor ut",
       "description": "Nätavgiftslagret innehåller en avgift på {rate} SEK/kWh (från källan {source}). Svenska nätbolags överföringsavgifter ligger på några tiondels kronor per kWh, så ett så stort värde är nästan alltid öre inskrivet där SEK avsågs — 25 i stället för 0,25. Ingenting ändras eller begränsas: planen fortsätter att prissätta med exakt det värde som konfigurerats. Rätta värdet under alternativen för nätavgifter (eller åtgärda avgiftssensorn) så försvinner meddelandet vid nästa planeringscykel."

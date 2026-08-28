@@ -13392,5 +13392,106 @@ R.check(
 )
 
 
+R.section("v5.2.0 review — a mode-blocked tank says so, loudly")
+
+# An indefinitely blocked DHW channel silently defers the anti-legionella
+# cycle: forced_off is all-ones, the schedule is hard-zeroed, the legionella
+# slot never runs, and dhw_legionella_due_in_hours merely goes negative in an
+# attribute. A pump left in heating for a fortnight produced no warning at all.
+
+_LG_ISSUE = "dhw_legionella_mode_blocked"
+
+
+def _lg_coord(*, days_since=20.0, enabled=True, dhw=True):
+    c = HeatPumpOptimizerCoordinator(FakeHass(), FakeEntry(data=dict(_LC_DATA)))
+    c._thermal_params.dhw_enabled = dhw
+    c._thermal_params.dhw_legionella_enabled = enabled
+    c._thermal_params.dhw_legionella_interval_days = 7.0
+    c._dhw_last_legionella = dt_util.now() - timedelta(days=days_since)
+    return c
+
+
+def _lg_issues(c):
+    return [i for i in getattr(c.hass, "issues", []) if i[1] == _LG_ISSUE]
+
+
+_lg_blocked = _lg_coord()
+R.check(
+    "the premise: the cycle really is overdue",
+    _lg_blocked._dhw_legionella_due_in_hours() < 0.0,
+    f"due in {_lg_blocked._dhw_legionella_due_in_hours()} h",
+)
+_lg_blocked._check_legionella_mode_block(False)
+R.check(
+    "an overdue cycle with hot water available raises nothing here",
+    not _lg_issues(_lg_blocked),
+    "that case is the disinfection timer's own business, not the mode's",
+)
+_lg_blocked._check_legionella_mode_block(True)
+_lg_raised = _lg_issues(_lg_blocked)
+R.check(
+    "an overdue cycle the pump's mode is blocking raises a repair issue",
+    len(_lg_raised) == 1
+    and _lg_raised[0][2].get("translation_key") == _LG_ISSUE
+    and set(_lg_raised[0][2].get("translation_placeholders", {}))
+    == {"overdue_days", "interval_days"},
+    f"{_lg_raised}",
+)
+R.check(
+    "and it says how long the tank has gone undisinfected",
+    int(_lg_raised[0][2]["translation_placeholders"]["overdue_days"]) >= 13,
+    f"{_lg_raised[0][2]['translation_placeholders']} — 20 days since the last "
+    f"cycle on a 7-day interval is 13 days overdue",
+)
+_lg_blocked._check_legionella_mode_block(True)
+R.check(
+    "it is not re-raised every cycle while nothing has changed",
+    len(_lg_issues(_lg_blocked)) == 1,
+)
+_lg_blocked._check_legionella_mode_block(False)
+R.check(
+    "a mode that can make hot water again clears it",
+    not _lg_issues(_lg_blocked),
+    "the notice describes a live condition, not a historical fact",
+)
+_lg_off = _lg_coord(enabled=False)
+_lg_off._check_legionella_mode_block(True)
+R.check(
+    "a user who turned disinfection off is not nagged about it",
+    not _lg_issues(_lg_off),
+)
+_lg_no_dhw = _lg_coord(dhw=False)
+_lg_no_dhw._check_legionella_mode_block(True)
+R.check(
+    "nor is an install with no hot-water tank at all",
+    not _lg_issues(_lg_no_dhw),
+)
+_lg_recent = _lg_coord(days_since=1.0)
+_lg_recent._check_legionella_mode_block(True)
+R.check(
+    "and a block that has not yet outlived the deadline is not an alarm",
+    not _lg_issues(_lg_recent),
+    f"due in {_lg_recent._dhw_legionella_due_in_hours()} h — a mode block is "
+    f"only news once the cycle it is holding up has actually come due",
+)
+_lg_unknown = _lg_coord()
+_lg_unknown._dhw_last_legionella = None
+_lg_unknown._check_legionella_mode_block(True)
+R.check(
+    "an unknown history is not evidence of an overdue cycle",
+    not _lg_issues(_lg_unknown),
+)
+for _lang_file in ("strings.json", "translations/en.json", "translations/sv.json"):
+    _lg_doc = _json.loads(
+        (_PKG_DIR / _lang_file).read_text(encoding="utf-8")
+    )
+    R.check(
+        f"the notice has a title and a description in {_lang_file}",
+        _LG_ISSUE in _lg_doc.get("issues", {})
+        and _lg_doc["issues"][_LG_ISSUE].get("title")
+        and "{overdue_days}" in _lg_doc["issues"][_LG_ISSUE]["description"]
+        and "{interval_days}" in _lg_doc["issues"][_LG_ISSUE]["description"],
+    )
+
 
 sys.exit(R.close("FEATURE CHECKS"))

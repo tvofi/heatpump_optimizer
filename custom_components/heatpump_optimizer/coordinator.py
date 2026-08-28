@@ -1050,6 +1050,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # entity that drops out falls back to what the pump last said rather
         # than to "it can do everything". None until one is seen.
         self._pump_mode_last_good = None
+        # Signature of the "disinfection is blocked by the pump's mode"
+        # notice currently raised, or None when none is. Coarsened to whole
+        # overdue days so a worsening situation updates the text without
+        # re-raising the issue every cycle.
+        self._legionella_mode_block_notice: int | None = None
 
         # --- Energy dashboard statistics (item 15) -------------------------
         # Monotonic accumulators, so Home Assistant's Energy dashboard can pick
@@ -3352,6 +3357,66 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             return None
         return round(params.dhw_legionella_interval_days * 24.0 - since, 1)
 
+    def _check_legionella_mode_block(self, dhw_blocked: bool) -> None:
+        """Say so when a mode block is holding disinfection past its deadline.
+
+        A hot-water channel the pump's mode has blocked is hard-zeroed for
+        the whole horizon, so the anti-legionella cycle simply never gets
+        placed: ``dhw_legionella_due_in_hours`` goes negative in an attribute
+        and nothing else happens. A pump left in a heating-only mode for a
+        fortnight therefore stops disinfecting the tank silently, which is
+        the same failure ``dhw_legionella_unreachable`` exists to prevent,
+        arriving by a different route — the cycle is not falling short of
+        temperature, it is not being scheduled at all.
+
+        Only ever a notice: the mode block is never released, here or
+        anywhere else. Putting hot water back into the plan would promise
+        water the hardware refuses to heat.
+        """
+        params = self._thermal_params
+        due = self._dhw_legionella_due_in_hours()
+        overdue_days: int | None = None
+        if (
+            dhw_blocked
+            and bool(params.dhw_enabled)
+            and bool(params.dhw_legionella_enabled)
+            and due is not None
+            and due < 0.0
+        ):
+            overdue_days = max(1, int(-due // 24.0) + 1)
+        if overdue_days == self._legionella_mode_block_notice:
+            return
+        self._legionella_mode_block_notice = overdue_days
+        if overdue_days is None:
+            try:
+                ir.async_delete_issue(
+                    self.hass, DOMAIN, "dhw_legionella_mode_blocked"
+                )
+            except Exception as err:  # noqa: BLE001 - clearing is best-effort
+                _LOGGER.debug(
+                    "Could not clear legionella mode-block notice: %s", err
+                )
+            return
+        _LOGGER.warning(
+            "The anti-legionella cycle has been due for %d day(s) but the "
+            "heat pump's mode makes no hot water, so it cannot be planned",
+            overdue_days,
+        )
+        ir.async_create_issue(
+            self.hass,
+            DOMAIN,
+            "dhw_legionella_mode_blocked",
+            is_fixable=False,
+            # Not persistent: it is derived from the live mode reading, so it
+            # is re-raised on the next cycle for as long as the mode stands.
+            severity=ir.IssueSeverity.WARNING,
+            translation_key="dhw_legionella_mode_blocked",
+            translation_placeholders={
+                "overdue_days": f"{overdue_days:d}",
+                "interval_days": f"{float(params.dhw_legionella_interval_days):.0f}",
+            },
+        )
+
     def _dhw_current_hour(self) -> float:
         now = dt_util.now()
         return now.hour + now.minute / 60.0
@@ -3982,6 +4047,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                         if blocked
                     ),
                 )
+            self._check_legionella_mode_block(mode_blocked_dhw)
             # Taken here, after every pre-solve mutation above, so the copies
             # carry all of them into the executor thread.
             solve_state, solve_optimizer = self._solve_snapshot()
