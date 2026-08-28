@@ -199,7 +199,7 @@ def _may_drift(repo: str) -> dict[str, str]:
     different local optimum, and whether a given change touches one is a fact
     about the runner rather than about the diff.
 
-    v5.1.6 is the case that forced this. Its change relabels the
+    v5.1.7 is the case that forced this. Its change relabels the
     ``classify_space_steps`` fall-through, which a plan reaches only when a
     step has no ``heat_loss_factors > 1.1``. All five sensitive fixtures run a
     profile whose factor is a constant 1.06, so every ``preheat_weather`` they

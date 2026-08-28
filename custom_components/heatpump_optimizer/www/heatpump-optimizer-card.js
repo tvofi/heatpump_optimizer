@@ -11,7 +11,7 @@
 
 const CARD_TAG = "heatpump-optimizer-card";
 const EDITOR_TAG = "heatpump-optimizer-card-editor";
-const CARD_VERSION = "5.1.6";
+const CARD_VERSION = "5.1.7";
 
 // ---- i18n ------------------------------------------------------------------
 //
@@ -43,7 +43,7 @@ const STRINGS = {
     "series.house_temp": "House temperature",
     "series.solar": "Solar irradiance",
     // The extra traces inside the house-temperature series. They are drawn
-    // dashed in the same colour, and before v5.1.6 nothing named them: one
+    // dashed in the same colour, and before v5.1.7 nothing named them: one
     // legend chip and one tooltip row said "House temperature" for all
     // three, so hovering the upper or lower zone reported the room's value.
     "series.upper_floor": "Upper floor",

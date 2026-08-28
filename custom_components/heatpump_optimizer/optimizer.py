@@ -284,7 +284,7 @@ REASON_COMFORT_FLOOR = "comfort_floor"
 REASON_CHEAP_PRICE = "cheap_price"
 REASON_PREHEAT_WEATHER = "preheat_weather"
 #: The neutral fall-through: a step that is none of the specific cases below,
-#: which is to say an ordinary slot holding the house at target. Until v5.1.6
+#: which is to say an ordinary slot holding the house at target. Until v5.1.7
 #: these steps were tagged ``preheat_weather`` — the same code as the genuine
 #: high-heat-loss branch — so the card told a user that a mid-price hour on a
 #: mild afternoon was "Pre-heating before colder weather". A reason code that

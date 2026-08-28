@@ -43,10 +43,10 @@
 # does not expire with the stamp and is not part of the inherited-claims
 # comparison.
 #
-# claims-for: 5.1.6
+# claims-for: 5.1.7
 #
 #
-# v5.1.6 moves fixtures for two deliberate reasons, and nothing else.
+# v5.1.7 moves fixtures for two deliberate reasons, and nothing else.
 #
 # 1. The plan reason codes. `preheat_weather` was both the high-heat-loss
 #    branch of classify_space_steps AND its fall-through default, so an

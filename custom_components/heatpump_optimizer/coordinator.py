@@ -1199,7 +1199,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         a reload; updating only the in-memory optimizer config meant the value
         silently reverted the next time the entry was reloaded.
 
-        Checked against the comfort band first (v5.1.6). This is a write to the
+        Checked against the comfort band first (v5.1.7). This is a write to the
         same config entry the options flow guards, and it used to arrive with
         nothing checking it at all — the thermostat's own slider ran to
         ``max_temp + 1``, so its top notch stored a target above the ceiling by
@@ -5099,7 +5099,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             # in-memory flag can only ever suppress a repeated CREATE; it must
             # never guard the clear. (`freq_watchdog` deletes unconditionally
             # for exactly this reason; `_audit_grid_fee` did not, and had the
-            # same defect until v5.1.6.) Deleting an issue that is not there
+            # same defect until v5.1.7.) Deleting an issue that is not there
             # is a no-op.
             ir.async_delete_issue(self.hass, DOMAIN, "lower_floor_modelled")
             self._lower_floor_issue_raised = False
@@ -5108,7 +5108,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         """Say so when the STORED comfort band contradicts itself.
 
         Every write path now runs the band's rules, so a contradiction can no
-        longer be created (v5.1.6). One can still be inherited: until this
+        longer be created (v5.1.7). One can still be inherited: until this
         release the thermostat's slider ran to ``max_temp + 1`` and persisted
         whatever it was given, so a single tap on its top notch stored a target
         one degree above the ceiling, and nothing said a word.

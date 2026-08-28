@@ -103,7 +103,7 @@ class HeatPumpOptimizerClimate(CoordinatorEntity, ClimateEntity):
         # The slider offers exactly the band, and nothing outside it.
         #
         # It used to run a degree past the ceiling AND a degree below the
-        # floor, and wrote whatever it was given without a check. v5.1.6 added
+        # floor, and wrote whatever it was given without a check. v5.1.7 added
         # the check, which made the overshoot on both ends worse than useless:
         # the band's rules refuse `min > target` and `target > max`
         # unconditionally, so every value in those two outer degrees was
@@ -272,7 +272,7 @@ class HeatPumpOptimizerClimate(CoordinatorEntity, ClimateEntity):
             _LOGGER.info("Target temperature set to %.1f°C", temp)
             # Persisting the option reloads the entry, which re-optimizes and
             # re-applies the plan, so no manual refresh/publish is needed.
-            # It can also refuse: the comfort band's rules run here (v5.1.6).
+            # It can also refuse: the comfort band's rules run here (v5.1.7).
             await self.coordinator.async_set_target_temperature(float(temp))
             # A manual override is the user telling us the plan went too far in
             # one direction, which is the only evidence anyone ever produces

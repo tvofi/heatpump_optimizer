@@ -664,7 +664,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # Only violations this call INTRODUCES may refuse it. Judging the
         # merged result outright would make the service fail on a
         # contradiction already sitting in the entry's options and untouched
-        # by the call -- and one is genuinely out there, because until v5.1.6
+        # by the call -- and one is genuinely out there, because until v5.1.7
         # the thermostat slider ran to `max_temp + 1` and wrote it unchecked,
         # so a single tap on its top notch stored `target 24` against a
         # `max 23` ceiling. A nightly `dhw_windows` automation would then have

@@ -1,6 +1,6 @@
 # Heat Pump Cost Optimizer — Release Notes
 
-## v5.1.6
+## v5.1.7
 
 ### The house was never planned to 28 °C. The chart was drawing water.
 
@@ -92,6 +92,16 @@ The slider itself now offers exactly the comfort band. It used to run a degree
 past both ends, and with the new checks in place those outer degrees would have
 been positions the control advertised and then refused. A refused setpoint no
 longer trains the comfort learner either.
+
+This meets v5.1.6's change from the other side, and the two are complementary.
+That release made a settings page stretch a field rather than refuse to save
+when a stored value falls outside it — naming `apply_schedule` and the
+thermostat as two writers with limits of their own. This one narrows what the
+thermostat can write in the first place. Neither replaces the other: the
+stretching handles a value outside a single field's *range*, which is still
+reachable (a thermostat on a house whose comfort floor is 14 °C can store a
+target below the temperature page's own minimum), while the band rules handle
+fields that contradict *each other*, which no single field's range can see.
 
 The measured effect on planning is small (a daytime comfort temperature of 30
 against a maximum of 23 moved the planned room peak by 0.01 K); this is a

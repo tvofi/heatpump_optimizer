@@ -2323,7 +2323,7 @@ _BASE = {
 # 1. The bug this item exists to fix. A floor return of 28 °C means a *water*
 #    temperature, and the room it serves is nowhere near that warm.
 #
-#    v5.1.6: the `return + 0.5` stand-in is gone. It was the number the card
+#    v5.1.7: the `return + 0.5` stand-in is gone. It was the number the card
 #    plotted as the house temperature — a floor return of 27.5 °C drew a
 #    "house" trace at 28.0 while the upper zone sat at 22.1 — and it was
 #    judged against the same comfort band as the measured zone. Without a
@@ -2450,7 +2450,7 @@ R.check(
     == hp_const.INPUT_MAX_AGE_MINUTES.get("indoor_temp_entity"),
 )
 
-# 8. The owner's report, reproduced end to end (v5.1.6). Two-zone, a floor
+# 8. The owner's report, reproduced end to end (v5.1.7). Two-zone, a floor
 #    return sensor, no lower-floor thermometer -- exactly his configuration.
 #    The published lower zone used to read the return water; the card plotted
 #    that as a house temperature, and 28 °C on the chart is what "the optimizer
@@ -11155,9 +11155,9 @@ R.check(
 
 
 # ===========================================================================
-# v5.1.6 — an ordinary slot stops calling itself weather pre-heating
+# v5.1.7 — an ordinary slot stops calling itself weather pre-heating
 # ===========================================================================
-R.section("Plan reason codes: the fall-through is neutral (v5.1.6)")
+R.section("Plan reason codes: the fall-through is neutral (v5.1.7)")
 
 # `REASON_PREHEAT_WEATHER` was both the high-heat-loss branch AND the
 # fall-through default, so every heating step that was not idle, at the floor,
@@ -11252,7 +11252,7 @@ R.check(
 
 
 # ===========================================================================
-# v5.1.6 — the slab's battery ceiling is the settlement cap
+# v5.1.7 — the slab's battery ceiling is the settlement cap
 # ===========================================================================
 R.section("Virtual battery: the slab reports against the optimizer's cap")
 
@@ -11367,7 +11367,7 @@ R.check(
 
 
 # ===========================================================================
-# v5.1.6 — the comfort band's rules, on every path that writes it
+# v5.1.7 — the comfort band's rules, on every path that writes it
 # ===========================================================================
 R.section("Comfort band validation is shared, not per-form")
 

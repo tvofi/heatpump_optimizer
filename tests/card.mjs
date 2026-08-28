@@ -4799,10 +4799,10 @@ const setupBox = (card, place) =>
     place(300) > 0 && place(300) + TT_W <= rect.width, `left ${place(300)}`);
 }
 
-// --- Scenario: the zone traces are named (v5.1.6) --------------------------
+// --- Scenario: the zone traces are named (v5.1.7) --------------------------
 //
 // The house-temperature series draws `room` solid and `upper`/`lower` dashed
-// in one colour. Until v5.1.6 all three shared one legend chip and one label,
+// in one colour. Until v5.1.7 all three shared one legend chip and one label,
 // and the tooltip reported `s.lines.find(l => l.primary)` — the ROOM value —
 // for whichever line the pointer was over. A two-zone house whose downstairs
 // trace sat at 28 °C therefore hovered as 21 °C, which is how a display defect

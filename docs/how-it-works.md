@@ -341,7 +341,7 @@ could not see. Worse, the slab was derived from the *same* sensor as
 `T_return + 1 °C`, so slab-minus-room was always exactly 0.5 K whatever the
 sensor read — pinning the main heat path into the lower zone at a constant.
 
-That estimate is gone (v5.1.6). It was also what the plan chart drew as the
+That estimate is gone (v5.1.7). It was also what the plan chart drew as the
 house temperature: a 27.5 °C floor return put a "house" trace at 28.0 °C on the
 chart while the measured zone sat at 22.1, which reads as the optimizer cooking
 the house to a temperature no plan ever chose. The floor return keeps the job it
@@ -1119,7 +1119,7 @@ Every planned slot carries a **reason code** — cheapest hours, holding the
 minimum temperature, pre-heating before colder weather, using solar surplus, the
 anti-legionella cycle, and so on — in the plan sensor attributes and in the
 card's tooltip. A step that is none of those is `scheduled`, "keeping the house
-at target": until v5.1.6 the fall-through was `preheat_weather`, so an ordinary
+at target": until v5.1.7 the fall-through was `preheat_weather`, so an ordinary
 mid-price hour claimed to be anticipating weather nobody had forecast. Without it, an unexpected slot is indistinguishable from a bug,
 which makes the optimizer hard to trust and bug reports much weaker than they
 could be. Everything below is built on those codes:

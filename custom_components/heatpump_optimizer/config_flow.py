@@ -607,7 +607,7 @@ def _band_errors(
     which is the same undiagnosable failure mode the DHW deadband check
     exists for.
 
-    The rules themselves live in ``comfort_band`` (v5.1.6), because this form
+    The rules themselves live in ``comfort_band`` (v5.1.7), because this form
     stopped being the only way into these fields: the ``apply_schedule``
     service writes ``comfort_temp_day`` and the climate entity's slider writes
     ``target_temperature``, and both used to reach the config entry without

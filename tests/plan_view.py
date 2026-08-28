@@ -57,7 +57,7 @@ for key, power_key in (("space_plan", "space_power"), ("dhw_plan", "dhw_power"))
 reasons = sorted({p.get("reason") for p in views["space_plan"]["forecast"]} - {None})
 print("space reasons:", reasons)
 print("dhw reasons  :", sorted({p.get("reason") for p in views["dhw_plan"]["forecast"]} - {None}))
-# `scheduled` joined the list in v5.1.6: it is the neutral fall-through, so a
+# `scheduled` joined the list in v5.1.7: it is the neutral fall-through, so a
 # plan made entirely of ordinary slots carries nothing else — leaving it out
 # would have this check call a perfectly labelled plan unrecognisable.
 if not any(

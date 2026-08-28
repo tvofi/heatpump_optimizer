@@ -773,7 +773,7 @@
     },
     "comfort_band_contradiction": {
       "title": "Your comfort temperatures contradict each other",
-      "description": "The stored comfort settings cannot all be satisfied at once: {problem}. Until version 5.1.6 the thermostat card's temperature slider ran one degree past the warmest acceptable temperature and saved whatever it was given, so a single tap on its top notch could store a target above the ceiling. Nothing is broken — the optimizer prices these bounds rather than enforcing them, so the plan keeps running, just in permanent slight violation of a band it can never satisfy. Nothing has been changed for you either: which of the two numbers is the wrong one is yours to say. Correct them under the temperature options and this notice clears on the next cycle."
+      "description": "The stored comfort settings cannot all be satisfied at once: {problem}. Until version 5.1.7 the thermostat card's temperature slider ran one degree past the warmest acceptable temperature and saved whatever it was given, so a single tap on its top notch could store a target above the ceiling. Nothing is broken — the optimizer prices these bounds rather than enforcing them, so the plan keeps running, just in permanent slight violation of a band it can never satisfy. Nothing has been changed for you either: which of the two numbers is the wrong one is yours to say. Correct them under the temperature options and this notice clears on the next cycle."
     }
   },
   "entity": {

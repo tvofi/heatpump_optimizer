@@ -1969,7 +1969,7 @@ R.check(
     and "override:21.5" in clim.coordinator.pressed,
     str(clim.coordinator.pressed),
 )
-# v5.1.6: the slider ran a degree past the ceiling AND a degree below the
+# v5.1.7: the slider ran a degree past the ceiling AND a degree below the
 # floor, writing whatever it was given unchecked. Adding the check made both
 # overshoots worse than useless -- the band refuses `min > target` and
 # `target > max` unconditionally, so every value in those outer degrees was
@@ -2791,7 +2791,7 @@ R.check(
     and _svc_entry.options.get(const.CONF_DAY_END_HOUR) == 21,
 )
 
-# v5.1.6 — the comfort band, on every path that writes it.
+# v5.1.7 — the comfort band, on every path that writes it.
 #
 # `apply_schedule` writes `comfort_temp_day` into stored options behind a
 # 5-30 range check and nothing else, so a daytime temperature below the
@@ -2824,7 +2824,7 @@ R.check(
 # Only violations the call INTRODUCES may refuse it. Judging the merged
 # result outright made the service throw on a contradiction already sitting
 # in the options and untouched by the call -- and one is genuinely out there,
-# because the pre-5.1.6 slider stored `target 24` against a `max 23` ceiling
+# because the pre-5.1.7 slider stored `target 24` against a `max 23` ceiling
 # unchecked. A nightly `dhw_windows` automation would then have started
 # failing at 03:00 about a ceiling it never mentioned.
 _pre_hass = FakeHass()
@@ -3170,10 +3170,10 @@ R.check(
     "neither is an inherited list",
 )
 
-# The may-drift category (v5.1.6). A claim asserts "this release moved this
+# The may-drift category (v5.1.7). A claim asserts "this release moved this
 # fixture", which is a statement about the diff. For the five fixtures the
 # gate itself declares non-reproducible it is a statement about the runner
-# instead: v5.1.6's reason-code change relabels a fall-through that only
+# instead: v5.1.7's reason-code change relabels a fall-through that only
 # appears when the solve lands on a particular local optimum, so this machine
 # sees it in valve_upper_direct_slab and the recording machine sees it in
 # valve_storage_smart_write and wood_two_tank_smart_write. A fixed claim list
