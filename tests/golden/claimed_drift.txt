@@ -43,76 +43,53 @@
 # does not expire with the stamp and is not part of the inherited-claims
 # comparison.
 #
-# claims-for: 5.3.0
+# claims-for: 5.4.0
 #
 #
-# Tuya heat-pump signals, milestone 1 (the foundation). Four optional entity
-# slots are added to the setup flow and to the sensors page, so the config
-# flow's schema fingerprint gains four fields on each — and nothing else.
-config_flow  # four optional heat-pump signal slots, on both flows
+# v5.4.0 discounts the buffer tank's terminal credit by the fraction of
+# stored heat the next window can actually spend. The discount is
+# exp(-UA (cap - ambient) / (2 x hold demand)) with the tank's LEARNED
+# standing-loss UA, and it applies to exactly one term in the objective:
+# the buffer's entry in `_terminal_cost`.
 #
-# Milestone 2 consumes those four signals. Every one of them is still absent
-# from every scenario's configuration, so nothing they gate can fire and NO
-# PLANNING FIXTURE MOVES — verified, not assumed: all 48 plan scenarios are
-# byte-identical, including the five this environment perturbs, which perturb
-# identically on a pristine baseline worktree.
+# The footprint below is that scope, measured rather than asserted. Three
+# scenarios move, and all three are valve + storage configurations -- the
+# only ones where `buffer_is_store` is true and the tank therefore carries
+# a terminal credit at all:
+valve_storage              # tank credit discounted; the plan stores less at mild weather
+valve_storage_flat_prices  # same, and the largest move: with no price spread the credit was most of the incentive
+valve_storage_low_target   # same, at a lower comfort target
 #
-# What does move is the coordinator's published diagnostics, on all five
-# coordinator fixtures and by exactly four new keys each:
+# What did NOT move is the load-bearing half of this claim:
 #
-#   heat_pump_signals          the four signals resolved — reads "absent",
-#                              "Unknown", nothing blocked, no freeze
-#   defrost_flag_configured    false without a defrost sensor
-#   defrost_measured_samples   0: no duty has been counted
-#   defrost_store_migrated     false: no pre-v5.3.0 derate store was upgraded
+#   * valve_storage_small_tank -- byte-identical. Below
+#     BUFFER_STORE_MIN_VOLUME the tank is not a store, `_buffer_survival`
+#     returns exactly 1.0, and the arithmetic is unchanged. This is the
+#     empirical form of the "no-store paths stay byte-for-byte identical"
+#     claim in the release notes; it is asserted in tests/features.py too,
+#     but this fixture is the one that proves it end to end.
+#   * every no-valve scenario, for the same reason.
+#   * all five coord_* fixtures, config_flow, and the remaining 39 -- the
+#     change touches no published key, no schema and no coordinator path.
 #
-# All four are additive and all four read as "no evidence" on a fixture that
-# configures none of the slots. They are published unconditionally on purpose:
-# "why is nothing being suppressed" and "is this install measuring defrost
-# duty or inferring it" are questions a user has to be able to answer without
-# reading the source, and a key that only appears once something is wrong
-# cannot answer either of them.
-coord_minimal       # + 4 diagnostic keys, all "no evidence"; no plan value moved
-coord_dhw           # + 4 diagnostic keys, all "no evidence"; no plan value moved
-coord_two_zone      # + 4 diagnostic keys, all "no evidence"; no plan value moved
-coord_grid_fee      # + 4 diagnostic keys, all "no evidence"; no plan value moved
-coord_all_features  # + 4 diagnostic keys, all "no evidence"; no plan value moved
-#
-# The review pass over both milestones adds nothing to this list, and that is
-# the claim being made rather than an omission. Every fix in it is either
-# scoped to a slot no fixture configures, or gated on a condition no fixture
-# reaches:
-#
-#   * the external-heat override's horizon now applies to numbers only —
-#     no planning fixture sets external_heat_entity at all (only
-#     config_flow.json names it), which is exactly why the regression it
-#     repairs shipped past a green gate in the first place;
-#   * the defrost derate's estimator arbitration and DefrostWindow.close both
-#     need a populated bucket, and defrost_buckets is [] in every fixture.
-#     That gap is closed by a direct test rather than by a fixture, because a
-#     fixture that exercised it would move plan values on purpose;
-#   * mode_blocked_space / mode_blocked_dhw / dhw_floor_breach_c are written
-#     into predictive_info only when a channel is actually blocked, which
-#     requires a mode entity no fixture has;
-#   * the pump-signal freeze now gates _accuracy.record and the measurement
-#     experiment; freeze_reason is None throughout every fixture;
-#   * the narrative's new pump_mode sentence renders only for a reason code
-#     no fixture produces — insight.narrative is {items: [], lines: []} on
-#     all five coordinator fixtures;
-#   * the legionella mode-block notice is a repair issue, which is not
-#     captured by any fixture, and fires only while dhw_blocked is true.
+# Winter is preserved by construction rather than by claim: the discount
+# divides by the demand the stored heat is waiting on, so at -8 C it is
+# 3.0% and the seasonal sweep in the release notes shows the coldest room
+# temperature unchanged to the decimal. The three fixtures above sit at
+# milder weather, which is where a 8-30% discount can change which plan
+# wins.
 
-# All five sensitive fixtures run a weather profile whose heat-loss factor is
-# a constant 1.0600 -- below the 1.1 threshold everywhere -- so classify's
-# genuine preheat_weather branch is unreachable in them and every such label
-# they carry is a fall-through this release relabels. WHICH steps fall
-# through is decided by the local optimum, which is exactly what does not
-# travel: on this machine only valve_upper_direct_slab has one, while the
-# committed fixtures (recorded elsewhere) show them in
-# valve_storage_smart_write and wood_two_tank_smart_write. Any fixed list of
-# claims is therefore wrong on some machine. None of the five is re-recorded.
-# may-drift: valve_storage_smart_write -- space_reasons fall-through, per local optimum
-# may-drift: wood_two_tank -- space_reasons fall-through, per local optimum
-# may-drift: wood_two_tank_smart_write -- space_reasons fall-through, per local optimum
-# may-drift: wood_coil -- space_reasons fall-through, per local optimum
-# may-drift: valve_upper_direct_slab -- space_reasons fall-through, per local optimum
+# These five are the fixtures this gate declares non-reproducible across BLAS
+# builds: each machine solves them to a different local optimum, so whether
+# one differs from the committed recording is a fact about the runner, not
+# about the diff. Unlike v5.1.9, this release CAN reach them -- every one is
+# a valve or two-tank configuration carrying a buffer credit -- so their
+# diffs mix a real effect with a machine artifact and cannot be separated
+# fixture by fixture. That is exactly why they are unjudged rather than
+# claimed: the three judged fixtures above carry the behavioural evidence,
+# and none of these five is re-recorded.
+# may-drift: valve_storage_smart_write -- machine-sensitive; this release's tank-credit discount can reach it, per local optimum
+# may-drift: wood_two_tank -- machine-sensitive; this release's tank-credit discount can reach it, per local optimum
+# may-drift: wood_two_tank_smart_write -- machine-sensitive; this release's tank-credit discount can reach it, per local optimum
+# may-drift: wood_coil -- machine-sensitive; this release's tank-credit discount can reach it, per local optimum
+# may-drift: valve_upper_direct_slab -- machine-sensitive; this release's tank-credit discount can reach it, per local optimum
