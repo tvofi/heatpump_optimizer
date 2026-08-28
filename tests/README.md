@@ -180,6 +180,12 @@ the gate" case above, so it runs the whole suite unscoped. The change that
 redefines what may be skipped is never validated by the definition it is
 introducing.
 
+Closures that have fallen behind the tree degrade towards *more* work, not
+less. A file that has appeared since they were recorded is in no closure, so
+it is unmapped and forces a full run; a test script that has appeared has no
+closure, so it forces a full run too. Stale closures make the gate slow before
+they make it wrong, and the `closures` job on `main` says so out loud.
+
 Or individually:
 
 ```bash
