@@ -770,6 +770,10 @@
     "lower_floor_modelled": {
       "title": "Temperaturen på nedre plan är modellerad, inte uppmätt",
       "description": "Tvåzonsplanering är på och ingen givare för nedre plan är konfigurerad, så nedre zonen utgår från rumsgivaren och räknas därefter fram av den termiska modellen — kurvan “Nedre plan (modellerad)” i plandiagrammet. Så måste zonen planeras utan givare, och det är inget returgivaren kan bidra med: returvattnet ligger 3–9 K över rummet det värmer, så det används till uppskattningen av plattan, vilket är det som det verkligen är ett mått på. Det en modellerad zon inte kan göra är att korrigera sig själv, så under en lång köldperiod kan den glida ifrån det verkliga nedre planet. Ange “Givare för temperaturen på nedre plan” under zonalternativen så sluts den kretsen; då försvinner meddelandet."
+    },
+    "comfort_band_contradiction": {
+      "title": "Dina komforttemperaturer motsäger varandra",
+      "description": "De sparade komfortinställningarna kan inte uppfyllas samtidigt: {problem}. Fram till version 5.1.6 gick kortets temperaturreglage en grad förbi den varmaste acceptabla temperaturen och sparade det värde det fick, så ett enda tryck på det översta steget kunde spara en önskad temperatur ovanför den övre gränsen. Ingenting är trasigt — optimeringen prissätter de här gränserna i stället för att tvinga fram dem, så planen fortsätter att köras, bara i ständigt litet brott mot ett intervall den aldrig kan uppfylla. Ingenting har heller ändrats åt dig: vilket av de två värdena som är fel är ditt att avgöra. Rätta dem under temperaturalternativen så försvinner meddelandet vid nästa cykel."
     }
   },
   "entity": {

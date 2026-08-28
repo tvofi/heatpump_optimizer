@@ -2774,6 +2774,82 @@ R.check(
     "a daytime temperature that clears the band still writes",
     _svc_entry.options.get(const.CONF_COMFORT_TEMP_DAY) == 22.0,
 )
+
+# Only violations the call INTRODUCES may refuse it. Judging the merged
+# result outright made the service throw on a contradiction already sitting
+# in the options and untouched by the call -- and one is genuinely out there,
+# because the pre-5.1.6 slider stored `target 24` against a `max 23` ceiling
+# unchecked. A nightly `dhw_windows` automation would then have started
+# failing at 03:00 about a ceiling it never mentioned.
+_pre_hass = FakeHass()
+_pre_entry = FakeEntry(
+    data={const.CONF_TIBBER_TOKEN: "x", const.CONF_WEATHER_ENTITY: "weather.home"}
+)
+_pre_entry.options = {const.CONF_TARGET_TEMP: 24.0}   # max stays at 23.0
+_pre_hass.config_entries.entries.append(_pre_entry)
+asyncio.run(integration.async_setup_entry(_pre_hass, _pre_entry))
+
+
+def _pre_call(payload):
+    try:
+        asyncio.run(
+            _pre_hass.services.async_call(
+                const.DOMAIN, const.SERVICE_APPLY_SCHEDULE, payload
+            )
+        )
+        return None
+    except ServiceValidationError as err:
+        return str(err)
+
+
+R.check(
+    "a call touching no band field survives a contradiction already stored",
+    _pre_call({"dhw_windows": "06:00-08:00"}) is None
+    and _pre_call({"dhw_min_temperature": 45.0}) is None
+    and _pre_call({"day_start_hour": 6, "day_end_hour": 22}) is None,
+    "the stored target 24 vs max 23 is not this call's doing",
+)
+R.check(
+    "and the write it asked for actually happened",
+    _pre_entry.options.get(const.CONF_DHW_WINDOWS) == "06:00-08:00"
+    and _pre_entry.options.get(const.CONF_DAY_START_HOUR) == 6,
+)
+R.check(
+    "but a NEW violation is still refused on the same broken entry",
+    "night" in (_pre_call({"comfort_temp_day": 18.0}) or "").lower(),
+    str(_pre_call({"comfort_temp_day": 18.0})),
+)
+
+# The stored contradiction is worth telling the user about -- as a repair
+# issue, which is where "your configuration disagrees with itself" belongs,
+# not as an exception thrown by an unrelated service call.
+_pre_coord = _pre_hass.data[const.DOMAIN][_pre_entry.entry_id]
+asyncio.run(_pre_coord._update_current_state())
+_band_issues = [
+    i for i in getattr(_pre_hass, "issues", [])
+    if i[1] == "comfort_band_contradiction"
+]
+R.check(
+    "a stored contradiction raises a repair issue instead",
+    len(_band_issues) == 1
+    and _band_issues[0][2].get("translation_key") == "comfort_band_contradiction"
+    and "23" in _band_issues[0][2]["translation_placeholders"]["problem"],
+    str(_band_issues),
+)
+# Same reload shape as the lower-floor notice: correcting the band writes
+# options and reloads, so the clear must not be gated on an in-memory flag.
+_fixed_entry = FakeEntry(
+    data={const.CONF_TIBBER_TOKEN: "x", const.CONF_WEATHER_ENTITY: "weather.home"}
+)
+_fixed_coord = HeatPumpOptimizerCoordinator(_pre_hass, _fixed_entry)
+asyncio.run(_fixed_coord._update_current_state())
+R.check(
+    "and correcting the band clears it across the reload",
+    not [
+        i for i in getattr(_pre_hass, "issues", [])
+        if i[1] == "comfort_band_contradiction"
+    ],
+)
 _window_rejected = None
 try:
     _svc_call(

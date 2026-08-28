@@ -931,6 +931,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # Raised once, not per cycle, for the same reason the fee issue is:
         # re-raising refreshes the timestamp and buries when it started.
         self._lower_floor_issue_raised = False
+        # The contradiction the standing "comfort_band_contradiction" issue
+        # was raised for; None = no issue.
+        self._band_issue_problem: str | None = None
         self._ledger = MonthlyLedger()
         self._ledger_store: Store = Store(
             hass,
@@ -4059,6 +4062,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 self._current_state.room_temperature
             )
         self._audit_lower_floor_sensor()
+        self._audit_comfort_band()
 
         # A smart valve's target, when the integration can see it. Knowing
         # where the valve regulates to is what tells the model whether it is
@@ -5083,6 +5087,47 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         elif not wanted and self._lower_floor_issue_raised:
             ir.async_delete_issue(self.hass, DOMAIN, "lower_floor_modelled")
             self._lower_floor_issue_raised = False
+
+    def _audit_comfort_band(self) -> None:
+        """Say so when the STORED comfort band contradicts itself.
+
+        Every write path now runs the band's rules, so a contradiction can no
+        longer be created (v5.1.6). One can still be inherited: until this
+        release the thermostat's slider ran to ``max_temp + 1`` and persisted
+        whatever it was given, so a single tap on its top notch stored a target
+        one degree above the ceiling, and nothing said a word.
+
+        Reported rather than migrated. These are the user's own numbers and
+        only they know which one is wrong -- silently rewriting a comfort
+        target to make an inequality hold is exactly the kind of help nobody
+        asked for. The plan keeps running meanwhile: the bounds are priced
+        rather than fenced, so a contradictory band is a plan in permanent
+        violation, not a crash.
+        """
+        found = comfort_band.violations({}, self._config)
+        if found:
+            problem = comfort_band.describe(found)
+            if self._band_issue_problem != problem:
+                ir.async_create_issue(
+                    self.hass,
+                    DOMAIN,
+                    "comfort_band_contradiction",
+                    is_fixable=False,
+                    # Persistent: stored configuration survives a restart.
+                    is_persistent=True,
+                    severity=ir.IssueSeverity.WARNING,
+                    translation_key="comfort_band_contradiction",
+                    translation_placeholders={"problem": problem},
+                )
+                self._band_issue_problem = problem
+        else:
+            # Unconditional, like the two audits above: correcting the band
+            # reloads the entry and resets this flag, so a guarded delete
+            # could never fire.
+            ir.async_delete_issue(
+                self.hass, DOMAIN, "comfort_band_contradiction"
+            )
+            self._band_issue_problem = None
 
     def _current_grid_fee(self, when: datetime) -> float:
         return self._grid_fee_schedule().current_fee(

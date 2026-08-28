@@ -770,6 +770,10 @@
     "lower_floor_modelled": {
       "title": "The downstairs temperature is modelled, not measured",
       "description": "Two-zone planning is on and no lower-floor thermometer is configured, so the lower zone starts from the main room sensor and is carried forward by the thermal model — the “Lower floor (modelled)” trace on the plan chart. That is how the zone has to be planned without a sensor, and it is not something the floor-return sensor can supply: return water runs 3–9 K above the room it heats, so it drives the slab estimate, which is what it is genuinely a proxy for. What a modelled zone cannot do is correct itself, so over a long cold spell it can drift from the real downstairs. Assigning “Lower floor temperature sensor” under the zone options closes that loop; this notice clears when you do."
+    },
+    "comfort_band_contradiction": {
+      "title": "Your comfort temperatures contradict each other",
+      "description": "The stored comfort settings cannot all be satisfied at once: {problem}. Until version 5.1.6 the thermostat card's temperature slider ran one degree past the warmest acceptable temperature and saved whatever it was given, so a single tap on its top notch could store a target above the ceiling. Nothing is broken — the optimizer prices these bounds rather than enforcing them, so the plan keeps running, just in permanent slight violation of a band it can never satisfy. Nothing has been changed for you either: which of the two numbers is the wrong one is yours to say. Correct them under the temperature options and this notice clears on the next cycle."
     }
   },
   "entity": {

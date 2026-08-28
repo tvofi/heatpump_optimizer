@@ -655,18 +655,39 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         # The comfort band's cross-field rules, the same ones the config flow
         # runs. This service writes `comfort_temp_day` and the day window
-        # straight into the entry options, and until v5.1.6 the only thing
-        # standing between a call and stored configuration was the schema's
-        # 5-30 range: a daytime temperature below the stored night one, or a
-        # day window that never opens, went in unremarked and left the plan in
-        # a contradiction nothing downstream reports. The call may update one
-        # half of a pair and collide with the stored other half, so the check
-        # runs per entry against the *effective* values, not the call's own.
+        # straight into the entry options, and the only thing standing between
+        # a call and stored configuration was the schema's 5-30 range: a
+        # daytime temperature below the stored night one, or a day window that
+        # never opens, went in unremarked and left the plan in a contradiction
+        # nothing downstream reports.
+        #
+        # Only violations this call INTRODUCES may refuse it. Judging the
+        # merged result outright would make the service fail on a
+        # contradiction already sitting in the entry's options and untouched
+        # by the call -- and one is genuinely out there, because until v5.1.6
+        # the thermostat slider ran to `max_temp + 1` and wrote it unchecked,
+        # so a single tap on its top notch stored `target 24` against a
+        # `max 23` ceiling. A nightly `dhw_windows` automation would then have
+        # started throwing at 03:00 about a ceiling it never mentioned. The
+        # stored contradiction is real and worth telling the user about, but
+        # a repair issue is where that belongs (`_audit_comfort_band` in the
+        # coordinator), not an unrelated service call's exception.
+        #
+        # The call may still update one half of a pair and collide with the
+        # stored other half, so both sides are evaluated against the
+        # *effective* values, not the call's own.
         for entry in targets:
             stored = {**entry.data, **entry.options}
-            found = comfort_band.violations(updates, stored)
-            if found:
-                raise ServiceValidationError(comfort_band.describe(found))
+            already = {
+                (v.field, v.code) for v in comfort_band.violations({}, stored)
+            }
+            introduced = [
+                v
+                for v in comfort_band.violations(updates, stored)
+                if (v.field, v.code) not in already
+            ]
+            if introduced:
+                raise ServiceValidationError(comfort_band.describe(introduced))
 
         # The hot water minimum has to clear a deadband below the setpoint, and
         # the setpoint is per entry, so this cannot live in the schema. Check
