@@ -27,6 +27,22 @@
 # was never wrong. Without rule 2 the same thing happens whenever two
 # commits share a version.
 #
+# Two categories live in this file.
+#
+# A CLAIM is a bare scenario name with a reason after the hash. It asserts
+# that THIS release moves that fixture, it is checked both ways (unclaimed
+# drift fails, and so does a claim nothing matched), and it expires with the
+# `claims-for:` stamp below.
+#
+# A MAY-DRIFT entry is a comment line, `# may-drift: <name> -- <reason>`. It
+# asserts nothing: the fixture moved here, or it did not, and either is fine.
+# It exists only for the five fixtures this gate itself declares
+# non-reproducible across BLAS builds, and env_drift.py refuses any other
+# name -- see `_may_drift` there for the full reasoning. Because it is a
+# statement about those fixtures rather than about one release's diff, it
+# does not expire with the stamp and is not part of the inherited-claims
+# comparison.
+#
 # claims-for: 5.1.6
 #
 #
@@ -38,14 +54,16 @@
 #    weather". The fall-through is now the neutral `scheduled`. Only
 #    `space_reasons` moves on these fixtures -- no power, no trajectory, no
 #    cost -- and the scenarios whose preheat_weather steps come from the
-#    genuine heat-loss branch (cool_rainy_summer, mild_windy_rain,
-#    precip_snow, shoulder_two_zone) are byte-identical, which is the check
-#    that the branch survived.
+#    genuine heat-loss branch are byte-identical, which is the check that the
+#    branch survived. Measured: the weather factor is a constant 1.3652 on
+#    mild_windy_rain and precip_snow, 1.3570 on cool_rainy_summer and 1.1200
+#    on shoulder_two_zone -- all above the 1.1 threshold, so every
+#    preheat_weather in them is the real branch and none of them move.
 #
 # 2. The virtual battery's slab ceiling, in the coordinator fixtures. It was
 #    `comfort_max + 6.0`, a fixed 29.0 C, and is now the optimizer's own
-#    settlement cap for the slab. Only `data.battery` moves. Report-only:
-#    the optimizer is not involved.
+#    settlement cap for the slab, clamped for the report. Only `data.battery`
+#    moves. Report-only: the optimizer is not involved.
 
 away_setback  # space_reasons: 2 fall-through steps relabelled scheduled
 capacity_tariff  # space_reasons: 9 fall-through steps relabelled scheduled
@@ -59,13 +77,23 @@ valve_storage  # space_reasons: 5 fall-through steps relabelled scheduled
 valve_storage_low_target  # space_reasons: 7 fall-through steps relabelled scheduled
 valve_storage_small_tank  # space_reasons: 17 fall-through steps relabelled scheduled
 winter_two_zone_no_dhw  # space_reasons: 1 fall-through step relabelled scheduled
-# Not re-recorded, unlike the twelve above: this is one of the five
-# machine-sensitive fixtures, and golden.py reports all five as DIFF on this
-# machine, so re-recording here would bake in a local optimum rather than a
-# behaviour change. The other four are byte-identical to origin/main here.
-valve_upper_direct_slab  # space_reasons[88]: its one fall-through step, relabelled scheduled
 coord_minimal  # data.battery: slab ceiling is now the settlement cap
 coord_dhw  # data.battery: slab ceiling is now the settlement cap
 coord_two_zone  # data.battery: slab ceiling is now the settlement cap
 coord_grid_fee  # data.battery: slab ceiling is now the settlement cap
 coord_all_features  # data.battery: slab ceiling is now the settlement cap
+
+# All five sensitive fixtures run a weather profile whose heat-loss factor is
+# a constant 1.0600 -- below the 1.1 threshold everywhere -- so classify's
+# genuine preheat_weather branch is unreachable in them and every such label
+# they carry is a fall-through this release relabels. WHICH steps fall
+# through is decided by the local optimum, which is exactly what does not
+# travel: on this machine only valve_upper_direct_slab has one, while the
+# committed fixtures (recorded elsewhere) show them in
+# valve_storage_smart_write and wood_two_tank_smart_write. Any fixed list of
+# claims is therefore wrong on some machine. None of the five is re-recorded.
+# may-drift: valve_storage_smart_write -- space_reasons fall-through, per local optimum
+# may-drift: wood_two_tank -- space_reasons fall-through, per local optimum
+# may-drift: wood_two_tank_smart_write -- space_reasons fall-through, per local optimum
+# may-drift: wood_coil -- space_reasons fall-through, per local optimum
+# may-drift: valve_upper_direct_slab -- space_reasons fall-through, per local optimum

@@ -3169,4 +3169,74 @@ R.check(
     "neither is an inherited list",
 )
 
+# The may-drift category (v5.1.6). A claim asserts "this release moved this
+# fixture", which is a statement about the diff. For the five fixtures the
+# gate itself declares non-reproducible it is a statement about the runner
+# instead: v5.1.6's reason-code change relabels a fall-through that only
+# appears when the solve lands on a particular local optimum, so this machine
+# sees it in valve_upper_direct_slab and the recording machine sees it in
+# valve_storage_smart_write and wood_two_tank_smart_write. A fixed claim list
+# is unclaimed drift on one machine and a stale claim on the other -- both
+# spellings fail, for a change correct on both.
+#
+# What keeps the category from becoming a blanket exemption is its scope, so
+# that is what these probe.
+R.check(
+    "may-drift accepts the fixtures the gate calls non-reproducible",
+    _env_drift.may_drift_error({"wood_coil": "r"}, {}) is None
+    and _env_drift.may_drift_error(
+        {n: "r" for n in _env_drift.SENSITIVE}, {}
+    ) is None,
+)
+R.check(
+    "and refuses every fixture whose floats DO travel",
+    (_env_drift.may_drift_error({"winter_two_zone_no_dhw": "r"}, {}) or "")
+    .startswith("MAY-DRIFT OUT OF SCOPE")
+    and (_env_drift.may_drift_error({"coord_minimal": "r"}, {}) or "")
+    .startswith("MAY-DRIFT OUT OF SCOPE"),
+    "a permanent exemption on a reproducible fixture would launder the next "
+    "real regression",
+)
+R.check(
+    "the refusal names both the stray entry and the category's real scope",
+    "winter_two_zone_no_dhw"
+    in (_env_drift.may_drift_error({"winter_two_zone_no_dhw": "r"}, {}) or "")
+    and "wood_coil"
+    in (_env_drift.may_drift_error({"winter_two_zone_no_dhw": "r"}, {}) or ""),
+)
+R.check(
+    "a scenario cannot be claimed and may-drift at once",
+    (_env_drift.may_drift_error({"wood_coil": "r"}, {"wood_coil": "r"}) or "")
+    .startswith("CLAIMED AND MAY-DRIFT"),
+    "a claim goes stale when nothing moves and may-drift does not; one "
+    "scenario cannot be judged both ways",
+)
+R.check(
+    "an empty may-drift list is always fine",
+    _env_drift.may_drift_error({}, {"away_setback": "r"}) is None,
+)
+
+# Parsing: may-drift entries are comment lines, so `_claimed` must not read
+# them as claims -- a claim named "may-drift: wood_coil" would match no
+# scenario and fail the run as stale.
+_md_declared, _md_claims = _env_drift._claimed(".")
+_md_entries = _env_drift._may_drift(".")
+R.check(
+    "this tree's may-drift entries parse, with reasons",
+    set(_md_entries) == set(_env_drift.SENSITIVE)
+    and all(v and v != "no reason given" for v in _md_entries.values()),
+    f"{sorted(_md_entries)}",
+)
+R.check(
+    "and none of them leaks into the claim list",
+    not any("may-drift" in name for name in _md_claims)
+    and not (set(_md_claims) & set(_md_entries)),
+    f"claims {sorted(_md_claims)}",
+)
+R.check(
+    "this tree's own claim file passes the scope check",
+    _env_drift.may_drift_error(_md_entries, _md_claims) is None,
+)
+
+
 sys.exit(R.close("ENTITY CHECKS"))
