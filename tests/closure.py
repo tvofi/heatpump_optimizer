@@ -566,7 +566,10 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     sub = ap.add_subparsers(dest="cmd", required=True)
     r = sub.add_parser("record"); r.add_argument("script"); r.add_argument("--out-dir", required=True)
-    r.add_argument("--args", nargs="*", default=[])
+    # REMAINDER, not "*": the arguments being forwarded start with dashes
+    # (--only, --cache-key), and argparse reads those as options of its own.
+    # That silently recorded nothing for golden.py and env_drift.py once.
+    r.add_argument("--args", nargs=argparse.REMAINDER, default=[])
     m = sub.add_parser("merge"); m.add_argument("--in-dir", required=True)
     m.add_argument("--out", default=str(CLOSURES))
     m.add_argument("--allow-failures", action="store_true")
