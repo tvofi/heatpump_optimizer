@@ -1493,6 +1493,41 @@ R.check(
     _sw_error or str(_sw_bounds[const.CONF_COMFORT_TEMP_DAY]),
 )
 
+# The two comfort mechanisms this release and the last one added meet on this
+# page, and they answer different questions: widening is about a value outside
+# ONE field's range, the band rules are about fields contradicting EACH OTHER,
+# which no single range can see. They compose through `errors.setdefault`
+# above -- a real validation error on a field outranks a notice about a value
+# that has been on disk for months -- so pin that both survive together.
+def _comfort_errors(stored, submit):
+    flow = options(FakeEntry(data=dict(_FULL_CONFIG), options=dict(stored)))
+    flow.hass = FakeHass()
+    asyncio.run(flow.async_step_comfort(None))
+    return asyncio.run(flow.async_step_comfort(submit)).get("errors") or {}
+
+
+_compose_stored = _comfort_errors({const.CONF_COMFORT_TEMP_DAY: 28.0}, None)
+_compose_band = _comfort_errors(
+    {const.CONF_COMFORT_TEMP_DAY: 28.0},
+    {
+        const.CONF_COMFORT_TEMP_DAY: 18.0,
+        const.CONF_COMFORT_TEMP_NIGHT: 22.0,
+        const.CONF_DAY_START_HOUR: 6,
+        const.CONF_DAY_END_HOUR: 22,
+    },
+)
+R.check(
+    "an out-of-range stored comfort value is flagged on its own field",
+    _compose_stored.get(const.CONF_COMFORT_TEMP_DAY)
+    == config_flow.ERROR_STORED_VALUE_OUT_OF_RANGE,
+    str(_compose_stored),
+)
+R.check(
+    "and a band contradiction is still reported when one is submitted",
+    _compose_band.get(const.CONF_COMFORT_TEMP_NIGHT) == "night_above_day",
+    str(_compose_band),
+)
+
 # ===========================================================================
 # Derived values and the questionnaire
 # ===========================================================================
