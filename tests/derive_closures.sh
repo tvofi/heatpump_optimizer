@@ -57,9 +57,11 @@ rec() {
 # Lane 1: the single longest script, alone.
 ( rec tests/stress.py ) &
 p1=$!
-# Lane 2: the SLOW closed-loop simulation.
-( rec tests/rolling.py ) &
-p2=$!
+# Lane 2 used to record tests/rolling.py. It no longer does: rolling is
+# SLOW_GATED in tests/closure.py, so it is never selectable and its closure
+# could not decide anything. Recording it cost 62 minutes under the audit
+# hook -- more than every other script combined -- for an answer nothing
+# reads. See the SLOW_GATED comment in tests/closure.py.
 # Lane 3: everything else, in one sequence. plan_view.py writes the payload
 # card.mjs reads, so that pair keeps its order here exactly as in run.sh.
 (
@@ -83,7 +85,7 @@ p2=$!
   rec tests/card.mjs
 ) &
 p3=$!
-wait $p1 $p2 $p3
+wait $p1 $p3
 
 echo
 if [ "$MERGE" -eq 1 ]; then

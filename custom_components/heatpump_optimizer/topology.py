@@ -40,6 +40,10 @@ from .const import (
     CONF_EXTERNAL_HEAT_ENABLED,
     CONF_EXTERNAL_HEAT_ENTITY,
     CONF_FLOOR_RETURN_TEMP_ENTITY,
+    CONF_HEAT_PUMP_DEFROST_ENTITY,
+    CONF_HEAT_PUMP_FAULT_ENTITY,
+    CONF_HEAT_PUMP_MODE_ENTITY,
+    CONF_HEAT_PUMP_ONLINE_ENTITY,
     CONF_HEAT_PUMP_SWITCH_ENTITY,
     CONF_HOUSE_POWER_ENTITY,
     CONF_INDOOR_TEMP_ENTITY,
@@ -66,6 +70,12 @@ from .thermal_model import ThermalParameters
 # the mistake a clickable diagram makes easy, and the one that produces a
 # model quietly planning against nonsense rather than an error.
 _TEMP = ("sensor", "number", "input_number")
+# What the pump reports about itself. A flag may plausibly arrive as a
+# binary_sensor, as a switch (some integrations expose writable DPs that way),
+# as an input_boolean mirroring one, or as a plain sensor carrying the raw
+# code — so all four are accepted and `inputs.parse_bool` reconciles them.
+_FLAG = ("binary_sensor", "switch", "input_boolean", "sensor")
+_MODE = ("select", "sensor", "input_select")
 _SLOTS: tuple[tuple[str, str, str, tuple[str, ...]], ...] = (
     (CONF_OUTDOOR_TEMP_ENTITY, "outdoor", "Outdoor temperature", _TEMP),
     (CONF_SOLAR_RADIATION_ENTITY, "outdoor", "Solar radiation", _TEMP),
@@ -79,6 +89,12 @@ _SLOTS: tuple[tuple[str, str, str, tuple[str, ...]], ...] = (
     (CONF_POWER_ENTITY, "heat_pump", "Power meter", _TEMP),
     (CONF_ENERGY_ENTITY, "heat_pump", "Energy meter", _TEMP),
     (CONF_HOUSE_POWER_ENTITY, "heat_pump", "Whole-house power", _TEMP),
+    # v5.3.0: what the pump says about itself. All optional, all read-only,
+    # all at the heat pump because that is the device they describe.
+    (CONF_HEAT_PUMP_MODE_ENTITY, "heat_pump", "Operating mode", _MODE),
+    (CONF_HEAT_PUMP_DEFROST_ENTITY, "heat_pump", "Defrosting", _FLAG),
+    (CONF_HEAT_PUMP_ONLINE_ENTITY, "heat_pump", "Online status", _FLAG),
+    (CONF_HEAT_PUMP_FAULT_ENTITY, "heat_pump", "Fault alarm", _FLAG),
     (CONF_BUFFER_TANK_TEMP_ENTITY, "buffer_tank", "Buffer tank temperature",
      _TEMP),
     (CONF_MIXING_VALVE_TARGET_ENTITY, "mixing_valve", "Valve target", _TEMP),

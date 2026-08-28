@@ -43,7 +43,7 @@
 # does not expire with the stamp and is not part of the inherited-claims
 # comparison.
 #
-# claims-for: 5.1.10
+# claims-for: 5.3.0
 #
 #
 # This branch is test infrastructure only: tests/run.sh, tests/closure.py,
@@ -58,7 +58,7 @@
 # inheritance rule 2 fails the run -- which is exactly how main went red
 # after v5.1.7's gate work (#77, fixed in #78). The stamp alone cannot
 # catch it here, because this branch does not bump VERSION either, so
-# 5.1.10 == VERSION holds on an inherited file. Rule 2 is the only thing
+# the stamp still equals VERSION on an inherited file. Rule 2 is the only thing
 # standing between this branch and a false green, and the fix is to say
 # plainly that nothing moves.
 

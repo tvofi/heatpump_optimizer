@@ -16,6 +16,10 @@
           "lower_floor_temp_entity": "Givare för temperaturen på nedre plan",
           "dhw_temp_entity": "Givare för varmvattenberedarens temperatur",
           "buffer_tank_temp_entity": "Temperaturgivare för buffertank",
+          "heat_pump_mode_entity": "Värmepumpens driftläge",
+          "heat_pump_defrost_entity": "Avfrostning",
+          "heat_pump_online_entity": "Pumpen är uppkopplad",
+          "heat_pump_fault_entity": "Felindikering",
           "solar_forecast_source": "Källa för solinstrålning",
           "solar_location": "Plats för solinstrålning"
         },
@@ -31,6 +35,10 @@
           "lower_floor_temp_entity": "Valfritt, endast tvåzonsläge. En riktig givare på nedre plan. Utan en sådan planeras och ritas nedre plan efter vad rumsgivaren visar, så ett nedre plan som är varmare eller kallare än övre plan syns inte.",
           "dhw_temp_entity": "Valfritt men rekommenderas. Beredarens verkliga temperatur. Gör också att en manuell varmvattenkörning nollställer legionellatimern.",
           "buffer_tank_temp_entity": "Valfritt. När den anges lär sig integrationen hur snabbt buffertanken svalnar i stället för att förlita sig på det konfigurerade värdet.",
+          "heat_pump_mode_entity": "Valfritt. Pumpens eget lägesval - kyla, värme, varmvatten eller en kombination av två. Läses bara av: optimeringen ändrar aldrig läget. En pump som står i kylläge eller enbart varmvatten kan inte värma huset, och en som står i enbart värmeläge kan inte göra varmvatten. Utan det här kan planen alltså lova värme som pumpen just då inte kan leverera. Lämnas fältet tomt antar optimeringen att pumpen klarar allt, precis som förut.",
+          "heat_pump_defrost_entity": "Valfritt. På medan pumpen vänder cykeln för att smälta bort frost från utomhusbatteriet. Elen som köps under en avfrostning går till batteriet i stället för in i huset. Tänk på att många pumpar bara avfrågas med några minuters mellanrum, så korta avfrostningar missas helt: det här är ett stickprov på avfrostning, inte ett tidtagarur.",
+          "heat_pump_online_entity": "Valfritt, men varmt rekommenderat för en molnansluten pump. På medan pumpen faktiskt går att nå. En molnintegration kan fortsätta publicera sina senast kända värden medan pumpen själv har tappat nätverket, vilket får alla andra givare att se alldeles färska ut. Det här är den enda signal som avslöjar det. Vid lokal anslutning (LAN) blir givarna otillgängliga av sig själva och fältet tillför då lite.",
+          "heat_pump_fault_entity": "Valfritt. På medan pumpen larmar om ett fel. Bara om det finns ett fel används, aldrig själva felkoden.",
           "solar_forecast_source": "Var solinstrålningen ska hämtas ifrån. \"Väderentitet\" använder din väderintegration, som ofta inte publicerar solinstrålning alls. \"Open-Meteo\" hämtar en kostnadsfri prognos för platsen nedan; inget konto behövs.",
           "solar_location": "Koordinat som används för Open-Meteos solinstrålningsprognos. Utgår från Home Assistants hemposition. Används bara när källan är Open-Meteo."
         }
@@ -269,7 +277,11 @@
           "house_power_entity": "Effektmätare för hela huset (valfritt)",
           "compressor_freq_entity": "Entitet för kompressorfrekvens",
           "freq_control_mode": "Frekvensläge",
-          "compressor_freq_sensor": "Sensor för faktisk frekvens (rekommenderas för styrning)"
+          "compressor_freq_sensor": "Sensor för faktisk frekvens (rekommenderas för styrning)",
+          "heat_pump_mode_entity": "Värmepumpens driftläge",
+          "heat_pump_defrost_entity": "Avfrostning",
+          "heat_pump_online_entity": "Pumpen är uppkopplad",
+          "heat_pump_fault_entity": "Felindikering"
         },
         "data_description": {
           "tibber_token": "Används för att läsa dina timpriser på el. Skapa en på developer.tibber.com. Lämna som den är om den inte har ändrats.",
@@ -289,7 +301,11 @@
           "house_power_entity": "Total förbrukning vid mätaren. Effekttariff debiteras på hela huset, inte bara på värmepumpen, så utan denna är den topp optimeraren undviker bara en del av den verkliga.",
           "compressor_freq_entity": "En number-entitet som exponerar kompressorfrekvensen, oftast från en Modbus- eller ESPHome-integration. Med den konfigurerad lär sig optimeraren en kW-per-Hz-karta och rekommenderar en frekvens — enbart observation tills du uttryckligen byter läget nedan till styrning.",
           "freq_control_mode": "Observera lär sig och rekommenderar men skriver aldrig. Byt till styrning först när du har validerat entiteten mot din verkliga hårdvara: skrivningar går via number.set_value, högst en per fem minuter, begränsade till entitetens eget intervall, och en rapporterad frekvens som avviker från den kommenderade i tre cykler ställer ner styrningen till observation igen.",
-          "compressor_freq_sensor": "En sensor som bär kompressorns FAKTISKA frekvens, om din integration exponerar en separat. Många number-entiteter är börvärdesregister som bara ekar det senast skrivna värdet — läst från ett eko kan väktaren aldrig se någon avvikelse och den inlärda kartan följer börvärdet i stället för maskinen. Lämna tomt bara om number-entitetens tillstånd verkligen följer den riktiga frekvensen."
+          "compressor_freq_sensor": "En sensor som bär kompressorns FAKTISKA frekvens, om din integration exponerar en separat. Många number-entiteter är börvärdesregister som bara ekar det senast skrivna värdet — läst från ett eko kan väktaren aldrig se någon avvikelse och den inlärda kartan följer börvärdet i stället för maskinen. Lämna tomt bara om number-entitetens tillstånd verkligen följer den riktiga frekvensen.",
+          "heat_pump_mode_entity": "Valfritt. Pumpens eget lägesval - kyla, värme, varmvatten eller en kombination av två. Läses bara av: optimeringen ändrar aldrig läget. En pump som står i kylläge eller enbart varmvatten kan inte värma huset, och en som står i enbart värmeläge kan inte göra varmvatten. Utan det här kan planen alltså lova värme som pumpen just då inte kan leverera. Lämnas fältet tomt antar optimeringen att pumpen klarar allt, precis som förut.",
+          "heat_pump_defrost_entity": "Valfritt. På medan pumpen vänder cykeln för att smälta bort frost från utomhusbatteriet. Elen som köps under en avfrostning går till batteriet i stället för in i huset. Tänk på att många pumpar bara avfrågas med några minuters mellanrum, så korta avfrostningar missas helt: det här är ett stickprov på avfrostning, inte ett tidtagarur.",
+          "heat_pump_online_entity": "Valfritt, men varmt rekommenderat för en molnansluten pump. På medan pumpen faktiskt går att nå. En molnintegration kan fortsätta publicera sina senast kända värden medan pumpen själv har tappat nätverket, vilket får alla andra givare att se alldeles färska ut. Det här är den enda signal som avslöjar det. Vid lokal anslutning (LAN) blir givarna otillgängliga av sig själva och fältet tillför då lite.",
+          "heat_pump_fault_entity": "Valfritt. På medan pumpen larmar om ett fel. Bara om det finns ett fel används, aldrig själva felkoden."
         }
       },
       "comfort": {
@@ -635,7 +651,7 @@
           "staleness_watchdog_enabled": "Ett dött batteri lämnar ett helt normalt utseende värde kvar för alltid. Utan åtgärd lär sig modellen av den platta kurvan, och skadan överlever en omstart. Med detta på behandlas ett gammalt värde som saknat och inlärningen pausas i stället.",
           "staleness_max_age_scale": "Höj om du har sensorer som avsiktligt rapporterar sällan och flaggas i onödan.",
           "external_heat_detection_enabled": "Upptäcker att tankarna blir varmare utan att värmepumpen går. Under tiden hålls planerad eldriven varmvattenberedning tillbaka — att betala för att värma vatten som redan värms gratis är det dyraste misstag som finns.",
-          "external_heat_entity": "Har du en rökgastermostat eller en brytare på pannan, använd den. Den litas på framför den automatiska upptäckten.",
+          "external_heat_entity": "Har du en rökgastermostat eller en brytare på pannan, använd den. Den litas på framför den automatiska upptäckten åt båda hållen — den kan säga att en eld brinner, och den kan säga att den inte gör det. En brytare eller ett hjälpobjekt litas på tills du ändrar det. En rökgasgivare som rapporterar en temperatur litas på i en timme efter sin senaste rapport: en givare som fastnat på ett högt värde med tomt batteri skulle annars hålla tillbaka värmen i all evighet.",
           "external_heat_min_rise": "Höj om normal drift utlöser den. Att missa en brasa kostar en onödig uppvärmningscykel; att felaktigt anta en kan lämna dig utan varmvatten.",
           "comfort_learning_enabled": "Varje gång du justerar temperaturen säger du att planen gick för långt åt ett håll. Detta justerar långsamt komfortinställningen utifrån det. Det inlärda värdet visas på en egen sensor och det finns en knapp för att nollställa.",
           "system_identification_enabled": "Låter optimeraren göra ett litet avsiktligt värmesteg en mild och billig natt för att mäta huset direkt, i stället för att vänta veckor på att härleda det. Steget hålls så litet att det inte märks och avbryts om temperaturen driver.",
@@ -761,6 +777,14 @@
     "solve_failures": {
       "title": "Optimeringen fortsätter att misslyckas; planen börjar bli inaktuell",
       "description": "De senaste {count} optimeringskörningarna misslyckades, så integrationen visar fortfarande — och agerade tills nyligen på — en plan beräknad {last_success}. När planen är äldre än några uppdateringsintervall lämnas värmepumpen tillbaka till sin egen värmekurva i stället för att styras efter ett föråldrat schema. De vanliga misstänkta är en tappad pris- eller väderanslutning, eller ett fel i loggen från själva lösaren. Meddelandet försvinner vid nästa lyckade optimering."
+    },
+    "pump_mode_unreadable": {
+      "title": "Värmepumpens driftlägesenhet rapporterar inte",
+      "description": "Enheten du valt för värmepumpens driftläge har inte gått att läsa på över {hours} timmar. Det senaste läget den rapporterade var \u201d{mode}\u201d, och fram tills nu har planen fortfarande hållits till vad det läget klarar. Så är det inte längre: ett driftläge som ingen kunnat läsa på timmar säger inget om vad pumpen gör, och att fortsätta stänga av värme eller varmvatten utifrån det vore att låta dig frysa på en död givares ord. Planen utgår återigen från att pumpen klarar allt, precis som innan du konfigurerade enheten. Kontrollera att enheten fortfarande finns och är tillgänglig, eller töm fältet om du inte vill använda den. Meddelandet försvinner så snart enheten rapporterar igen."
+    },
+    "dhw_legionella_mode_blocked": {
+      "title": "Desinfektionen av varmvattnet är försenad: värmepumpens driftläge blockerar den",
+      "description": "Legionellacykeln skulle ha körts för {overdue_days} dygn sedan, men värmepumpen rapporterar ett driftläge som inte kan göra varmvatten alls, så planen har ingenstans att lägga cykeln och schemalägger den inte. Ingenting ändras åt dig: varmvatten planeras aldrig in i ett läge pumpen inte kan leverera, eftersom det skulle lova vatten som hårdvaran vägrar värma. Tanken desinficeras helt enkelt inte så länge pumpen står kvar i det här läget. Byt till ett driftläge som omfattar varmvatten, eller stäng av desinfektionscykeln om det är avsiktligt. Den körs normalt var {interval_days} dygn, och meddelandet försvinner så snart en cykel kan planeras igen."
     },
     "dhw_legionella_unreachable": {
       "title": "Varmvattnet når inte desinfektionstemperaturen",

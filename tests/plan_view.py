@@ -22,9 +22,21 @@ st = ThermalState(room_temperature=21.0, slab_temperature=22.0,
     dhw_hours_since_legionella=20.0, buffer_tank_temperature=40.0)
 r = opt.optimize(st, pr, ot, wind, rain, sol, START)
 
+# v5.2.0: the DHW expected-error band comes off the tank's own accuracy
+# record. Seeded here with a widening-with-lead sigma so the payload
+# card.mjs renders actually carries a band; a fresh record publishes
+# nulls, which the card test covers separately by nulling these out.
+from heatpump_optimizer.accuracy import AccuracyTracker
+dhw_acc = AccuracyTracker()
+for lead, err in ((1.0, 0.4), (3.0, 0.9), (6.0, 1.5), (12.0, 2.2), (24.0, 3.0)):
+    dhw_acc.lead_sigma[lead] = err
+    dhw_acc.lead_counts[lead] = 20
+
 class Fake:
     _opt_config = oc
+    _dhw_accuracy = dhw_acc
     _build_plan_views = Coord._build_plan_views
+    _dhw_confidence_band = Coord._dhw_confidence_band
     _plan_slots = staticmethod(Coord._plan_slots)
 views = Fake()._build_plan_views(r)
 
@@ -53,6 +65,32 @@ for key, power_key in (("space_plan", "space_power"), ("dhw_plan", "dhw_power"))
     slots = views[key]["slots"]
     if slots and any("reason" not in s for s in slots):
         issues.append(f"{key}: slots missing a dominant reason")
+
+# v5.2.0: the hot-water band. Every step must carry both keys (the card
+# reads them by name), and where both are present they must bracket the
+# curve they belong to — a band that does not contain its own centre is
+# worse than no band.
+_dhw_fc = views["dhw_plan"]["forecast"]
+if any("dhw_temp_lo" not in p or "dhw_temp_hi" not in p for p in _dhw_fc):
+    issues.append("dhw_plan: forecast points missing the expected-error band")
+_banded = [
+    p for p in _dhw_fc
+    if p.get("dhw_temp_lo") is not None and p.get("dhw_temp") is not None
+]
+if not _banded:
+    issues.append("dhw_plan: the seeded accuracy record produced no band")
+if any(
+    not (p["dhw_temp_lo"] <= p["dhw_temp"] <= p["dhw_temp_hi"]) for p in _banded
+):
+    issues.append("dhw_plan: band does not bracket dhw_temp")
+if _banded:
+    _widths = [p["dhw_temp_hi"] - p["dhw_temp_lo"] for p in _banded]
+    print(
+        "dhw band width: first %.2f last %.2f °C over %d steps"
+        % (_widths[0], _widths[-1], len(_widths))
+    )
+    if not _widths[-1] > _widths[0]:
+        issues.append("dhw_plan: band does not widen with lead time")
 
 reasons = sorted({p.get("reason") for p in views["space_plan"]["forecast"]} - {None})
 print("space reasons:", reasons)

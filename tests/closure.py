@@ -59,6 +59,25 @@ NOT_A_TEST = {"harness.py", "profiles.py", "closure.py", "setup_qa_render.mjs"}
 # recorded so its closure can be folded into features.py's, never selected.
 DRIVEN_BY_OTHERS = {"dst_checks.py": "features.py"}
 
+# Scripts that run only under SLOW=1, and so never run in the `fast` job that
+# scoping applies to. Every other path -- push to main, nightly, dispatch --
+# forces GATE_SCOPE=full, so their closures could never decide anything
+# either. They are excluded from selection rather than recorded because
+# recording them is not free: rolling.py alone takes over an hour under the
+# audit hook (measured 62 min, against 37 unhooked), which was most of the
+# wall clock of a whole re-derivation, spent on an answer nothing reads.
+#
+# This is a different exclusion from DRIVEN_BY_OTHERS, which means "another
+# script runs this one". Nothing runs rolling.py; the gate simply never
+# chooses whether to.
+#
+# Safety: excluding a script from selection cannot cause it to be skipped
+# when it would otherwise have run, because scoping never reaches it. If
+# scoping is ever extended to the slow job, this set must shrink first --
+# hence the assertion in tests/entities.py that every name here is in fact
+# SLOW-gated in run.sh.
+SLOW_GATED = {"rolling.py"}
+
 # A dependency of a different kind: not "what can change this script's
 # answer" but "what has to run first for this script to run at all".
 # plan_view.py WRITES the plan payload card.mjs reads, so a scope that picks
@@ -124,7 +143,11 @@ def test_scripts() -> list[str]:
 
 
 def selectable_scripts() -> list[str]:
-    return [s for s in test_scripts() if Path(s).name not in DRIVEN_BY_OTHERS]
+    return [
+        s
+        for s in test_scripts()
+        if Path(s).name not in DRIVEN_BY_OTHERS and Path(s).name not in SLOW_GATED
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -335,7 +358,11 @@ def merge(in_dir: Path, out: Path, allow_failures: bool = False) -> int:
         rec = json.loads(f.read_text())
         name = rec["script"]
         records[name] = rec
-    missing = [s for s in test_scripts() if s not in records]
+    # DRIVEN_BY_OTHERS scripts ARE recorded (their closure folds into their
+    # driver's), so they stay in the expectation; SLOW_GATED ones are not
+    # recorded at all, so demanding them here would fail every re-derivation.
+    expected = [s for s in test_scripts() if Path(s).name not in SLOW_GATED]
+    missing = [s for s in expected if s not in records]
     if missing:
         print(f"closure: no recording for {', '.join(missing)}", file=sys.stderr)
         return 1
@@ -398,7 +425,16 @@ def check(in_dir: Path) -> int:
     if not records:
         print("closure: no fresh recordings to check against", file=sys.stderr)
         return 1
-    fresh = _fold(records) if len(records) == len(test_scripts()) else {
+    # Fold only when the recordings cover everything a re-derivation produces
+    # -- a partial run cannot fold, because a driver may be missing the very
+    # recording that would be folded into it. SLOW_GATED scripts are never
+    # recorded, so they must not count towards that expectation or a complete
+    # run would look partial and dst_checks.py would be checked as if it were
+    # selectable in its own right.
+    expected_recordings = {
+        s for s in test_scripts() if Path(s).name not in SLOW_GATED
+    }
+    fresh = _fold(records) if set(records) >= expected_recordings else {
         k: sorted(set(v["files"]) | {k}) for k, v in records.items()
     }
     failed = 0
