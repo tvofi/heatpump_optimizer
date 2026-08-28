@@ -99,7 +99,49 @@
 # does. Space-only fixtures (dhw=False) are byte-identical and are not listed.
 #
 
-@@CLAIMS@@
+away_setback  # the tank is charged to the charge limit instead of the disinfection temperature
+building_preset  # the tank is charged to the charge limit instead of the disinfection temperature
+capacity_curve  # the tank is charged to the charge limit instead of the disinfection temperature
+capacity_tariff  # the tank is charged to the charge limit instead of the disinfection temperature
+capacity_tariff_15min  # the tank is charged to the charge limit instead of the disinfection temperature
+confidence_margins  # the tank is charged to the charge limit instead of the disinfection temperature
+cool_rainy_summer  # the tank is charged to the charge limit instead of the disinfection temperature
+coord_all_features  # dhw_hold_hours plus the DHW plan itself
+coord_dhw  # dhw_hold_hours plus the DHW plan itself
+coord_grid_fee  # dhw_hold_hours only, as coord_minimal
+coord_minimal  # dhw_hold_hours only: the pre-heat horizon now coasts from the charge limit, 39.2 -> 28.0 h
+coord_two_zone  # dhw_hold_hours only, as coord_minimal
+cop_scale_learned  # the tank is charged to the charge limit instead of the disinfection temperature
+cycling_cost  # the tank is charged to the charge limit instead of the disinfection temperature
+dhw_cold_tank  # the tank is charged to the charge limit instead of the disinfection temperature
+dhw_large_tank  # a 1500 L tank never reached the old ceiling anyway, so only the tail of the plan moves
+dhw_learned_windows  # the tank is charged to the charge limit instead of the disinfection temperature
+dhw_schedule_off  # the tank is charged to the charge limit instead of the disinfection temperature
+everything_on  # 160 h since: the cycle moves off the deadline-driven placement to the first reachable step
+external_heat_active  # starts at 58 C, above the 55 C charge limit: the plan may no longer add to it, only coast
+extreme_prices  # the tank is charged to the charge limit instead of the disinfection temperature
+flat_prices  # the tank is charged to the charge limit instead of the disinfection temperature
+fuse_guard  # the tank is charged to the charge limit instead of the disinfection temperature
+horizon_48h  # the tank is charged to the charge limit instead of the disinfection temperature
+horizon_6h  # dhw_hold_hours / dhw_preheat_lead_hours only; no hot water is planned in six hours
+legionella_due  # 170 h since = overdue, so the cycle was pinned to step 0 and could never reach 60 C; it now starts from the first reachable step and attains 59.9
+legionella_due_low_setpoint  # new on this branch: the owner's 52/60 pair with a cycle due
+legionella_off  # the ceiling change is inert here — proved by reverting only the repair bound, which reproduces main byte for byte, schedule and trajectory; it moves because the floor repair stops buying heat the tank refuses, 13.34 -> 6.53 kWh for the same 55.00 C peak
+mild_windy_rain  # the tank is charged to the charge limit instead of the disinfection temperature
+narrow_band  # the tank is charged to the charge limit instead of the disinfection temperature
+negative_prices  # the tank is charged to the charge limit instead of the disinfection temperature
+peak_masked  # the tank is charged to the charge limit instead of the disinfection temperature
+precip_snow  # the tank is charged to the charge limit instead of the disinfection temperature
+price_risk  # the tank is charged to the charge limit instead of the disinfection temperature
+shoulder  # the tank is charged to the charge limit instead of the disinfection temperature
+shoulder_two_zone  # the tank is charged to the charge limit instead of the disinfection temperature
+start_above_band  # the tank is charged to the charge limit instead of the disinfection temperature
+start_below_band  # the tank is charged to the charge limit instead of the disinfection temperature
+summer_dhw_only  # the biggest mover: a summer tank lived on stored heat, and the store is now 5 C shallower (6.45 -> 3.40 kWh)
+tariff_plus_two_zone  # the tank is charged to the charge limit instead of the disinfection temperature
+wide_band  # the tank is charged to the charge limit instead of the disinfection temperature
+winter_single_dhw  # the tank is charged to the charge limit instead of the disinfection temperature
+winter_two_zone_dhw  # the tank is charged to the charge limit instead of the disinfection temperature
 
 # The five fixtures this gate declares non-reproducible across BLAS builds.
 # All of them plan hot water, so this release's DHW work moves them for real —
