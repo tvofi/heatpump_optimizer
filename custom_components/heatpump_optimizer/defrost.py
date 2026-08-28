@@ -193,31 +193,81 @@ class DefrostDerate:
             ),
         )
 
-    def factor(self, outdoor_temp: float, humidity: float | None = None) -> float:
-        """Derate for these conditions, blended towards 1.0 while uncertain."""
-        t, h = self._bucket(outdoor_temp, humidity)
-        n_duty = self.duty_counts[t][h]
-        if n_duty > 0:
-            raw = derate_from_duty(self.duty[t][h])
-            n = n_duty
-        else:
-            raw = self.factors[t][h]
-            n = self.counts[t][h]
-            if n <= 0:
-                return 1.0
-        # Linear ramp of trust. A derate the size of the effect being measured
-        # should not be applied on the strength of one observation.
+    @staticmethod
+    def _trusted(raw: float, n: int) -> float | None:
+        """One estimator's value, blended towards 1.0 while it is short of
+        evidence, or ``None`` when it has no evidence at all.
+
+        Linear ramp of trust. A derate the size of the effect being measured
+        should not be applied on the strength of one observation — and that
+        cuts both ways: a *shallow* derate on one observation must not be
+        applied either.
+        """
+        if n <= 0:
+            return None
         trust = min(1.0, n / DERATE_CONFIDENCE_SAMPLES)
         return 1.0 + (raw - 1.0) * trust
 
+    def _decide(self, t: int, h: int) -> tuple[str | None, float, int]:
+        """Which estimator this bucket's derate actually rests on.
+
+        Returns ``(source, value, samples)`` with ``source`` one of
+        ``"measured"``, ``"inferred"`` or ``None`` for an empty bucket. The
+        single place the two estimators are arbitrated, so :meth:`factor`,
+        :meth:`measured`, :meth:`samples` and :meth:`summary` cannot drift
+        apart and tell a user one thing while the plan does another.
+
+        **Presence is not trust.** Preferring the measured estimator the
+        instant it has *any* sample was the whole bug: ``_settle_defrost``
+        folds a duty on the first settled interval after the flag is
+        configured, and that first duty is very often zero, so a bucket
+        carrying a fully-earned inferred derate of 0.80 was replaced by
+        ``1.0`` — no derate at all — one interval after the upgrade, on a
+        single sample worth 1/12 of a trust ramp. That is precisely the
+        optimistic reset :meth:`from_dict` was rewritten to avoid, arriving
+        one interval later by another door, and it fired hardest on exactly
+        the install this feature is for.
+
+        So while the measurement is still short of ``DERATE_CONFIDENCE_SAMPLES``
+        the two are *selected* between — the lower, i.e. the more careful, of
+        the two trust-blended values — and never averaged, because mixing a
+        measurement with an inference of the same quantity produces a number
+        that is neither. Once the duty count reaches full trust the
+        measurement stands alone and may raise the factor as well as lower
+        it: at that point the carried-over inference has served its purpose
+        as a floor to stand on, which is exactly what ``from_dict`` promises
+        it is.
+        """
+        n_duty = self.duty_counts[t][h]
+        measured = self._trusted(derate_from_duty(self.duty[t][h]), n_duty)
+        inferred = self._trusted(self.factors[t][h], self.counts[t][h])
+        if measured is None:
+            if inferred is None:
+                return None, 1.0, 0
+            return "inferred", inferred, self.counts[t][h]
+        if inferred is None or n_duty >= DERATE_CONFIDENCE_SAMPLES:
+            return "measured", measured, n_duty
+        if inferred < measured:
+            return "inferred", inferred, self.counts[t][h]
+        return "measured", measured, n_duty
+
+    def factor(self, outdoor_temp: float, humidity: float | None = None) -> float:
+        """Derate for these conditions, blended towards 1.0 while uncertain."""
+        return self._decide(*self._bucket(outdoor_temp, humidity))[1]
+
     def samples(self, outdoor_temp: float, humidity: float | None = None) -> int:
-        t, h = self._bucket(outdoor_temp, humidity)
-        return self.duty_counts[t][h] or self.counts[t][h]
+        """How many observations stand behind the derate actually in use."""
+        return self._decide(*self._bucket(outdoor_temp, humidity))[2]
 
     def measured(self, outdoor_temp: float, humidity: float | None = None) -> bool:
-        """Whether this bucket's derate rests on a counted duty."""
-        t, h = self._bucket(outdoor_temp, humidity)
-        return self.duty_counts[t][h] > 0
+        """Whether this bucket's derate rests on a counted duty.
+
+        Answers about the value :meth:`factor` returns, not merely about
+        whether a duty sample exists: a bucket whose carried-over inference
+        is still the more careful of the two is reported as inferred, because
+        that is what the plan is using.
+        """
+        return self._decide(*self._bucket(outdoor_temp, humidity))[0] == "measured"
 
     # -- learning -----------------------------------------------------------
 
@@ -377,29 +427,33 @@ class DefrostDerate:
         out = []
         for t in range(len(TEMP_EDGES) - 1):
             for h in range(len(HUMIDITY_EDGES) - 1):
-                measured = self.duty_counts[t][h] > 0
-                if not measured and self.counts[t][h] <= 0:
+                source, _value, count = self._decide(t, h)
+                if source is None:
                     continue
+                measured = source == "measured"
                 entry = {
                     "outdoor_range": [TEMP_EDGES[t], TEMP_EDGES[t + 1]],
                     "humidity_range": [
                         HUMIDITY_EDGES[h],
                         HUMIDITY_EDGES[h + 1],
                     ],
-                    "source": "measured" if measured else "inferred",
+                    "source": source,
                     "derate": round(
                         derate_from_duty(self.duty[t][h])
                         if measured
                         else self.factors[t][h],
                         3,
                     ),
-                    "samples": (
-                        self.duty_counts[t][h] if measured else self.counts[t][h]
-                    ),
+                    "samples": count,
                 }
-                if measured:
+                if self.duty_counts[t][h] > 0:
+                    # Reported whenever a duty has been counted, even in a
+                    # bucket the inference is still winning: "how much has
+                    # been measured here so far" is the question a user asks
+                    # of a bucket that has not handed over yet.
                     entry["duty"] = round(self.duty[t][h], 4)
                     entry["events"] = self.duty_events[t][h]
+                    entry["duty_samples"] = self.duty_counts[t][h]
                 out.append(entry)
         return out
 

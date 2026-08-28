@@ -12810,4 +12810,138 @@ R.check(
 )
 
 
+# ===========================================================================
+# v5.2.0 review — the coverage gaps a green suite was hiding
+# ===========================================================================
+R.section("v5.2.0 review — presence is not trust (the defrost derate)")
+
+# The bug: DefrostDerate.factor branched on "does this bucket have a duty
+# sample" BEFORE consulting trust, so n=1 (trust 1/12) beat counts=200 (trust
+# 1.0). _settle_defrost folds a duty on the first settled interval after the
+# flag is configured and that first duty is usually zero, so a bucket carrying
+# a fully-earned 0.80 was reset to 1.0 one interval after the upgrade — the
+# exact optimistic reset from_dict was rewritten to avoid, arriving by another
+# door and on the very install this feature targets.
+
+_RV_T, _RV_H = 2.0, 60.0
+
+
+def _rv_mature(factor=0.80, counts=200):
+    """A bucket whose INFERRED derate is fully trusted."""
+    d = DefrostDerate()
+    t, h = d._bucket(_RV_T, _RV_H)
+    d.factors[t][h] = factor
+    d.counts[t][h] = counts
+    return d
+
+
+_rv_inferred = _rv_mature()
+R.check(
+    "the premise: 200 inferred samples at 0.80 apply the whole 0.80",
+    abs(_rv_inferred.factor(_RV_T, _RV_H) - 0.80) < 1e-9,
+    f"factor {_rv_inferred.factor(_RV_T, _RV_H):.4f}",
+)
+_rv_one_zero = _rv_mature()
+_rv_one_zero.observe_duty(_RV_T, _RV_H, 0.0)
+R.check(
+    "ONE zero-duty sample does not discard a fully-trusted inferred derate",
+    abs(_rv_one_zero.factor(_RV_T, _RV_H) - 0.80) < 1e-9,
+    f"factor {_rv_one_zero.factor(_RV_T, _RV_H):.4f} — before the fix this "
+    f"returned exactly 1.0, i.e. no derate at all, on one sample worth 1/12 "
+    f"of a trust ramp",
+)
+R.check(
+    "and it reports the estimator the plan is actually using",
+    not _rv_one_zero.measured(_RV_T, _RV_H)
+    and _rv_one_zero.samples(_RV_T, _RV_H) == 200,
+    f"measured={_rv_one_zero.measured(_RV_T, _RV_H)} "
+    f"samples={_rv_one_zero.samples(_RV_T, _RV_H)} — saying 'measured, 1 "
+    f"sample' while planning from 200 inferred ones is how the diagnostics "
+    f"and the plan come to disagree",
+)
+_rv_summary = [
+    b
+    for b in _rv_one_zero.summary()
+    if b["outdoor_range"][0] <= _RV_T < b["outdoor_range"][1]
+][0]
+R.check(
+    "the summary agrees with the plan, and still shows what has been counted",
+    _rv_summary["source"] == "inferred"
+    and _rv_summary["samples"] == 200
+    and _rv_summary["duty_samples"] == 1,
+    f"{_rv_summary}",
+)
+
+# The ramp: the measurement takes over only once it has earned full trust,
+# and never averages with the inference on the way.
+_rv_ramp = []
+for _n in (1, 4, 8, 11, 12, 40):
+    d = _rv_mature()
+    for _ in range(_n):
+        d.observe_duty(_RV_T, _RV_H, 0.10)
+    _rv_ramp.append((_n, d.factor(_RV_T, _RV_H), d.measured(_RV_T, _RV_H)))
+R.check(
+    "while the measurement is short of full trust the inference is a FLOOR",
+    all(
+        abs(f - 0.80) < 1e-9 and not m
+        for n, f, m in _rv_ramp
+        if n < DERATE_CONFIDENCE_SAMPLES
+    ),
+    f"{[(n, round(f, 4)) for n, f, _ in _rv_ramp]}",
+)
+R.check(
+    "and at full trust the measurement takes over, as from_dict promises",
+    all(
+        m and abs(f - 0.80) > 1e-6
+        for n, f, m in _rv_ramp
+        if n >= DERATE_CONFIDENCE_SAMPLES
+    ),
+    f"{[(n, round(f, 4), m) for n, f, m in _rv_ramp]} — the carried value is "
+    f"'a floor to stand on until something better is counted', not a prior "
+    f"the measurement must argue with forever",
+)
+R.check(
+    "the handover never averages the two estimators",
+    all(
+        abs(f - 0.80) < 1e-9 or abs(f - _rv_measured_only) < 1e-9
+        for n, f, _ in _rv_ramp
+        for _rv_measured_only in [
+            (lambda dd: dd.factor(_RV_T, _RV_H))(
+                (lambda: [
+                    (lambda d2: [d2.observe_duty(_RV_T, _RV_H, 0.10)
+                                 for _ in range(n)] and d2)(DefrostDerate())
+                ][0])()
+            )
+        ]
+    ),
+    "every value is one estimator's or the other's; a blend of the two is "
+    "a number that is neither",
+)
+
+# A measurement is still allowed to argue the derate DEEPER at any count:
+# the selection takes the more careful of the two, not always the inference.
+_rv_deep = _rv_mature(factor=0.95, counts=200)
+for _ in range(3):
+    _rv_deep.observe_duty(_RV_T, _RV_H, 0.30)
+R.check(
+    "a measured duty deeper than the inference wins immediately",
+    _rv_deep.factor(_RV_T, _RV_H) < 0.95 - 1e-9 and _rv_deep.measured(_RV_T, _RV_H),
+    f"factor {_rv_deep.factor(_RV_T, _RV_H):.4f} against an inferred 0.95 — "
+    f"selection is by which is more careful, not by which is older",
+)
+_rv_fresh = DefrostDerate()
+_rv_fresh.observe_duty(_RV_T, _RV_H, 0.20)
+R.check(
+    "with no inference to stand on, one measurement still ramps from 1.0",
+    abs(
+        _rv_fresh.factor(_RV_T, _RV_H)
+        - (1.0 + (derate_from_duty(0.20 * 0.10) - 1.0) / DERATE_CONFIDENCE_SAMPLES)
+    )
+    < 1e-6,
+    f"factor {_rv_fresh.factor(_RV_T, _RV_H):.4f} — an empty bucket has no "
+    f"floor, so the trust ramp is the only guard and must still apply",
+)
+
+
+
 sys.exit(R.close("FEATURE CHECKS"))
