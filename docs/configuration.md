@@ -120,10 +120,10 @@ declaration. It asks the model's own numbers:
 
 | Setting | Default | Range | What it means |
 |---|---|---|---|
-| House thermal mass | 10.0 kWh/°C | 2–50, 0.5 steps | Heat stored in the building fabric per degree. Roughly 3 for a light timber house, 8 or more for heavy masonry. |
-| Heat loss coefficient | 0.15 kW/°C | 0.05–1.0, 0.01 steps | Heat lost per degree of indoor-outdoor difference. 0.25 kW/°C across a 20-degree gap means about 5 kW of demand. |
-| Slab floor thermal mass | 5.0 kWh/°C | 1–30, 0.5 steps | The buffer that lets floor heating be switched off through a price peak without the room getting cold. |
-| Slab-to-room heat transfer | 0.8 kW/°C | 0.1–5.0, 0.1 steps | How fast the slab gives its heat to the room. Lower means a sluggish floor that must be charged further in advance. |
+| House thermal mass | 10.0 kWh/°C | 0.5–80, 0.5 steps | Heat stored per degree by the room air, furnishings and light fabric — roughly 0.02 kWh/°C per m² of heated area for timber, 0.05 or more for stone. Heavy floors are counted under the slab mass below, so this is not the whole building. |
+| Heat loss coefficient | 0.15 kW/°C | 0.01–1.0, 0.01 steps | Heat lost per degree of indoor-outdoor difference. 0.25 kW/°C across a 20-degree gap means about 5 kW of demand. |
+| Slab floor thermal mass | 5.0 kWh/°C | 0.1–60, 0.5 steps | Heat stored per degree by whatever the heat is delivered through: the slab of a floor-heated house — the buffer that lets it be switched off through a price peak — or, with radiators, the water and steel of the radiator circuit, which is far smaller (about 0.2 kWh/°C for 100 m²). |
+| Slab-to-room heat transfer | 0.8 kW/°C | 0.02–5.0, 0.1 steps | How fast that store gives its heat to the room. Lower means a sluggish floor that must be charged further in advance; radiators sit far higher. |
 | Heat pump nominal COP | 3.5 | 1.5–6.0 | As above. |
 | Heat pump max power | 5.0 kW | 1–20 | As above. |
 | Heat pump min power | 1.0 kW | 0–10 | As above. |
@@ -135,10 +135,10 @@ followed by the two-zone and solar page:
 
 | Setting | Default | Range | What it means |
 |---|---|---|---|
-| Upper floor thermal mass | 3.0 kWh/°C | 1–20 | Heat stored in the radiator-heated upper floor. Usually much lower than the slab, so the zone reacts faster. |
-| Lower floor thermal mass | 8.0 kWh/°C | 1–30 | Heat stored in the slab-heated lower floor. |
-| Upper floor heat loss | 0.08 kW/°C | 0.01–0.5 | The upper zone's own loss coefficient. |
-| Lower floor heat loss | 0.07 kW/°C | 0.01–0.5 | The lower zone's own loss coefficient. |
+| Upper floor thermal mass | 3.0 kWh/°C | 0.25–60 | Heat stored in the upper zone. Usually much lower than a heated slab, so the zone reacts faster. |
+| Lower floor thermal mass | 8.0 kWh/°C | 0.25–60 | Heat stored in the lower zone. |
+| Upper floor heat loss | 0.08 kW/°C | 0.001–1.0 | The upper zone's own loss coefficient. |
+| Lower floor heat loss | 0.07 kW/°C | 0.001–1.0 | The lower zone's own loss coefficient. |
 | Inter-zone heat transfer | 0.5 kW/°C | 0.0–3.0 | How much heat drifts between floors. Higher suits an open stairwell. |
 | Share of heat going to radiators | 0.4 | 0.0–1.0, 0.05 steps | 0 sends everything to the slab, 1 everything to the radiators. |
 | Upper floor area ratio | 0.5 | 0.1–0.9 | The share of floor area upstairs. 0.5 means two equal floors. |
@@ -363,7 +363,7 @@ turning the preset on.
 
 | Setting | Default | Range | What it means |
 |---|---|---|---|
-| Derive thermal values from the building type | off | on/off | Turning this on overwrites the thermal masses and heat loss on the expert page from your answers below. |
+| Derive thermal values from the building type | off | on/off | While this is on, **every save of this page** recalculates the ten derived values on *Thermal model (expert)* from your answers below and overwrites whatever is there. It never runs at any other time. Changing one of those values to a different number on the expert page switches this back off, so your own number stays; re-saving the expert page unchanged does not. |
 | The six questionnaire fields | as setup | see setup step 3 | Identical questions and choices; one field list serves both flows. |
 | Window area facing the sun | 10 m² | 0–50, 0.5 steps | Glazing that gets direct sun. Not derived by the preset. |
 | How much sunlight the windows let through | 0.7 | 0.1–1.0 | The glazing's solar heat gain coefficient. |
@@ -385,6 +385,25 @@ coefficient live on *Building type and emitters*. One field exists only here:
 | Setting | Default | Range | What it means |
 |---|---|---|---|
 | Two-zone model | Automatic | Automatic · On · Off | *Automatic* means two-zone as soon as any zone value has ever been saved — which can only ever turn it on. **Off is the only way back to single-zone**, because values written during setup live where the options flow cannot erase them. *On* forces two-zone using the values below or their defaults. |
+
+Two things about this page that follow from where its numbers come from.
+
+**Changing a derived value turns the derivation off.** Ten of these fields are
+what *Building type and emitters* works out from the questionnaire. If that
+switch stayed on, the next save of that page would take your edit back — so
+changing any of the ten to a different value switches it off instead, and the
+page says so while it is still armed. Only a real change counts: pressing
+Submit without touching anything, re-typing a value that was already there, or
+editing one of the fields the questionnaire does not own all leave it on.
+
+**A stored value outside a field's normal range widens that field rather than
+blocking the page.** The ranges cover the physics of a 40–400 m² building; a
+20 m² cabin or a 1000 m² block can derive something outside them, and the
+`apply_schedule` service and the thermostat can store comfort values outside
+theirs. The one field holding such a value stretches to show it and is flagged
+with a warning, so the value can be seen, kept, or corrected; every other field
+keeps its normal limits. Before v5.1.6 the page simply refused to save, with no
+message.
 
 ### Solar panels
 

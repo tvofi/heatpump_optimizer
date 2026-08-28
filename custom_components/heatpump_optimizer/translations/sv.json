@@ -115,10 +115,10 @@
           "comfort_weight": "Hur strikt temperaturen ska hållas"
         },
         "data_description": {
-          "house_thermal_mass": "Hur mycket värme byggnadsstommen lagrar per grad. Högre värde innebär att huset håller temperaturen längre och kan rida ut fler dyra timmar. Cirka 3 kWh/°C för ett lätt trähus, 8 eller mer för tung sten.",
+          "house_thermal_mass": "Hur mycket värme rumsluften, inredningen och den lätta stommen lagrar per grad — ungefär 0,02 kWh/°C per m² uppvärmd yta för ett trähus, 0,05 eller mer för sten. Tunga golv och en värmd platta räknas separat under Plattans termiska massa, så den här siffran ensam är inte hela byggnaden.",
           "house_heat_loss_coefficient": "Hur snabbt huset förlorar värme per grads skillnad mot uteluften. Multiplicera med skillnaden inne-ute för effektbehovet: 0,25 kW/°C vid 20 graders skillnad ger ungefär 5 kW.",
-          "slab_thermal_mass": "Värme som lagras i betongplattan per grad. Det är bufferten som gör att golvvärmen kan stängas av under pristoppar utan att rummet blir kallt.",
-          "slab_heat_transfer": "Hur snabbt värmen går från plattan ut i rummet. Lägre värden innebär ett trögt golv som måste laddas längre i förväg.",
+          "slab_thermal_mass": "Värme som lagras per grad i det som värmen levereras genom: betongplattan i ett golvvärmt hus — bufferten som gör att golvvärmen kan stängas av under pristoppar — eller, med radiatorer, vattnet och stålet i radiatorkretsen, som är långt mindre. Ett radiatorhus på 100 m² hamnar kring 0,2 kWh/°C, en värmd platta av samma storlek kring 10.",
+          "slab_heat_transfer": "Hur snabbt värmen går från det lagret ut i rummet. Lägre värden innebär ett trögt golv som måste laddas längre i förväg; radiatorer är mycket snabbare och ligger långt högre.",
           "heat_pump_cop_nominal": "Enheter värme per enhet el under normala förhållanden. Se databladet; 3 till 4 är vanligt för luft/vatten, 4 till 5 för bergvärme.",
           "heat_pump_max_power": "Eleffekt vid full drift. Sätter taket för hur mycket billig el som kan lagras per timme.",
           "heat_pump_min_power": "Lägsta eleffekt pumpen klarar utan att börja starta och stanna.",
@@ -209,7 +209,8 @@
       "max_below_target": "Högsta temperaturen ligger under måltemperaturen.",
       "night_above_day": "Nattemperaturen ligger över dagtemperaturen.",
       "day_window_empty": "Dagen skulle sluta innan den börjar, så ingen dagperiod blir kvar alls.",
-      "min_power_above_max": "Värmepumpens lägsta effekt ligger över dess högsta."
+      "min_power_above_max": "Värmepumpens lägsta effekt ligger över dess högsta.",
+      "stored_value_out_of_range": "Det här värdet ligger utanför det intervall fältet normalt godtar. Intervallet har vidgats så att sidan ändå går att spara – kontrollera värdet och ändra det om det ser fel ut."
     },
     "abort": {
       "already_configured": "Den här integrationen är redan konfigurerad."
@@ -472,7 +473,7 @@
           "rain_heat_loss_multiplier": "Regnkänslighet"
         },
         "data_description": {
-          "building_preset_enabled": "Slår du på detta skrivs värmekapacitet och värmeförlust på sidan Hus och värmesystem över.",
+          "building_preset_enabled": "Slår du på detta skrivs värmekapacitet, värmeförlust och värmesystemsvärden på sidan Termisk modell (expert) över varje gång den här sidan sparas.",
           "building_structure": "Tunga material innanför isoleringen lagrar värme, och det är just det som gör att optimeraren kan köpa värmen billigt och använda den senare.",
           "building_era": "Byggår är ett bra mått på isoleringsstandard och en betydligt bättre utgångspunkt än ett enda standardvärde.",
           "heated_area_m2": "Allt skalas efter denna, så det är siffran det är värt att få närmast rätt.",
@@ -487,7 +488,7 @@
       },
       "thermal_model": {
         "title": "Termisk modell (expert)",
-        "description": "Råvärdena bakom den termiska modellen, som annars bara efterfrågas vid installationen. Ett tomt fält behåller sitt nuvarande värde och sparas aldrig, så ett enzonshus förblir enzons — och att fylla i tvåzonsfälten är sättet att slå på tvåzonsmodellen i en befintlig installation.",
+        "description": "Råvärdena bakom den termiska modellen, som annars bara efterfrågas vid installationen. Ett tomt fält behåller sitt nuvarande värde och sparas aldrig, så ett enzonshus förblir enzons — och att fylla i tvåzonsfälten är sättet att slå på tvåzonsmodellen i en befintlig installation.\n\n{preset_warning}",
         "data": {
           "house_thermal_mass": "Husets termiska massa (kWh/°C)",
           "house_heat_loss_coefficient": "Värmeförlustkoefficient (kW/°C)",
@@ -507,10 +508,10 @@
           "solar_orientation_factor": "Solorientering (1.0=full söder)"
         },
         "data_description": {
-          "house_thermal_mass": "Hur mycket värme byggnadsstommen lagrar per grad. Högre värde innebär att huset håller temperaturen längre och kan rida ut fler dyra timmar. Cirka 3 kWh/°C för ett lätt trähus, 8 eller mer för tung sten.",
+          "house_thermal_mass": "Hur mycket värme rumsluften, inredningen och den lätta stommen lagrar per grad — ungefär 0,02 kWh/°C per m² uppvärmd yta för ett trähus, 0,05 eller mer för sten. Tunga golv och en värmd platta räknas separat under Plattans termiska massa, så den här siffran ensam är inte hela byggnaden.",
           "house_heat_loss_coefficient": "Hur snabbt huset förlorar värme per grads skillnad mot uteluften. Multiplicera med skillnaden inne-ute för effektbehovet: 0,25 kW/°C vid 20 graders skillnad ger ungefär 5 kW.",
-          "slab_thermal_mass": "Värme som lagras i betongplattan per grad. Det är bufferten som gör att golvvärmen kan stängas av under pristoppar utan att rummet blir kallt.",
-          "slab_heat_transfer": "Hur snabbt värmen går från plattan ut i rummet. Lägre värden innebär ett trögt golv som måste laddas längre i förväg.",
+          "slab_thermal_mass": "Värme som lagras per grad i det som värmen levereras genom: betongplattan i ett golvvärmt hus — bufferten som gör att golvvärmen kan stängas av under pristoppar — eller, med radiatorer, vattnet och stålet i radiatorkretsen, som är långt mindre. Ett radiatorhus på 100 m² hamnar kring 0,2 kWh/°C, en värmd platta av samma storlek kring 10.",
+          "slab_heat_transfer": "Hur snabbt värmen går från det lagret ut i rummet. Lägre värden innebär ett trögt golv som måste laddas längre i förväg; radiatorer är mycket snabbare och ligger långt högre.",
           "heat_pump_cop_nominal": "Enheter värme per enhet el under normala förhållanden. Se databladet; 3 till 4 är vanligt för luft/vatten, 4 till 5 för bergvärme.",
           "heat_pump_max_power": "Eleffekt vid full drift. Sätter taket för hur mycket billig el som kan lagras per timme.",
           "heat_pump_min_power": "Lägsta eleffekt pumpen klarar utan att börja starta och stanna.",
@@ -523,7 +524,8 @@
           "radiator_power_fraction": "Gäller endast tvåzonssystem. 0 betyder att all värme går till golvplattan, 1 att allt går till radiatorerna. 0,4 betyder 40 procent till radiatorer.",
           "upper_floor_area_ratio": "Andel av total golvyta som ligger på övre planet. 0,5 betyder att planen är lika stora.",
           "solar_orientation_factor": "Hur väl fönstren möter solen över dagen. 1,0 passar mest södervända fönster; sänk för öster- eller västerläge som bara får sol en del av dagen."
-        }
+        },
+        "preset_warning": "Härledning från hustypen är påslagen, så när sidan Hustyp och värmesystem sparas räknas husets värmekapacitet, värmeförlust, plattans termiska massa och värmeöverföring nedan (samt tvåzonsvärdena) om från formuläret och skriver över det som står här. Ändrar du något av de fälten till ett annat värde stängs härledningen av, så att ditt värde blir kvar; att bara spara sidan igen gör det inte."
       },
       "grid": {
         "title": "Nätkostnader",
@@ -664,7 +666,8 @@
       "max_below_target": "Högsta temperaturen ligger under måltemperaturen.",
       "night_above_day": "Nattemperaturen ligger över dagtemperaturen.",
       "day_window_empty": "Dagen skulle sluta innan den börjar, så ingen dagperiod blir kvar alls.",
-      "min_power_above_max": "Värmepumpens lägsta effekt ligger över dess högsta."
+      "min_power_above_max": "Värmepumpens lägsta effekt ligger över dess högsta.",
+      "stored_value_out_of_range": "Det här värdet ligger utanför det intervall fältet normalt godtar. Intervallet har vidgats så att sidan ändå går att spara – kontrollera värdet och ändra det om det ser fel ut."
     }
   },
   "selector": {

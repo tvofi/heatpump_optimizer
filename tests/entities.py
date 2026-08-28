@@ -1095,6 +1095,579 @@ R.check(
 
 
 # ===========================================================================
+# Stored values and field ranges
+# ===========================================================================
+R.section("Stored values and field ranges")
+
+# The defect this section exists for: a bounded numeric field validates the
+# value it was *given back* on submit, and the frontend submits every field on
+# the page, not just the ones the user touched. So a stored value outside its
+# own field's range does not merely look odd -- it makes the whole page
+# impossible to save, silently, because voluptuous rejects the submission
+# before any handler runs and the dialog simply re-renders. The user sees a
+# Submit button that does nothing, "90% of the time".
+#
+# It shipped because the only round trip tested here was ``schema({})``, an
+# empty submission. That exercises the ``default=`` path and nothing else, and
+# the expert thermal page is built entirely from ``suggested_value``: it has
+# no defaults, so the empty dict proved only that the page writes nothing.
+# The checks below submit what the frontend would actually post.
+
+from heatpump_optimizer import presets
+
+
+def _submission(schema, **overrides):
+    """What the browser posts back when the user changes nothing.
+
+    Every field pre-filled from a stored value is echoed back verbatim --
+    from ``suggested_value`` or from ``default``, the frontend cannot tell
+    the two apart -- and a field with neither is left out.
+    """
+    payload = {}
+    for marker, _validator in schema.schema.items():
+        key = str(getattr(marker, "schema", marker))
+        description = getattr(marker, "description", None)
+        if isinstance(description, dict) and "suggested_value" in description:
+            payload[key] = description["suggested_value"]
+            continue
+        default = getattr(marker, "default", None)
+        if callable(default):
+            payload[key] = default()
+    payload.update(overrides)
+    return payload
+
+
+def _drive(coro):
+    """Run a config-flow step that never awaits, without an event loop.
+
+    The sweeps below run thousands of round trips; ``asyncio.run`` per call
+    costs twice as much as the flow itself.
+    """
+    try:
+        coro.send(None)
+    except StopIteration as stop:
+        return stop.value
+    raise AssertionError("this step awaited something; use asyncio.run")
+
+
+def _bounds(schema):
+    """``{field: (min, max)}`` for every numeric field on a page."""
+    return {
+        str(getattr(marker, "schema", marker)): (
+            validator.config.get("min"),
+            validator.config.get("max"),
+        )
+        for marker, validator in schema.schema.items()
+        if isinstance(validator, config_flow.selector.NumberSelector)
+    }
+
+
+# The nominal ranges: the expert page as it renders for an entry that has
+# stored nothing, so no field has been widened to fit a value.
+_nominal_flow = options(FakeEntry(data={const.CONF_TIBBER_TOKEN: "t"}))
+_nominal_flow.hass = FakeHass()
+_NOMINAL = _bounds(
+    asyncio.run(_nominal_flow.async_step_thermal_model(None))["data_schema"]
+)
+
+# The same keys are also editable during initial setup. Two pages storing one
+# key under two different ranges is the same defect with a longer fuse: the
+# setup flow would write a value the options page then refuses to show back.
+_initial = config_flow.HeatPumpOptimizerConfigFlow()
+_initial.hass = FakeHass()
+_setup_bounds = {}
+for _step in ("thermal", "zones"):
+    _setup_bounds.update(
+        _bounds(asyncio.run(getattr(_initial, f"async_step_{_step}")(None))["data_schema"])
+    )
+_mismatched = sorted(
+    f"{key} setup {_setup_bounds[key]} vs expert {_NOMINAL[key]}"
+    for key in _setup_bounds
+    if key in _NOMINAL and _setup_bounds[key] != _NOMINAL[key]
+)
+R.check(
+    "setup and the expert page agree on every shared field's range",
+    not _mismatched,
+    "; ".join(_mismatched),
+)
+
+# No field may accept a value the model will then quietly override.
+# ``ThermalParameters.clamp`` raises every store below THERMAL_MASS_FLOOR,
+# so a field minimum under it is a window in which the page stores one number
+# and the model runs another -- with nothing gained, since ``presets.derive``
+# floors its own radiator-loop mass at exactly the same place.
+from heatpump_optimizer.thermal_model import THERMAL_MASS_FLOOR
+
+_below_floor = sorted(
+    f"{key} starts at {_NOMINAL[key][0]}, below the model's floor {THERMAL_MASS_FLOOR}"
+    for key in (
+        const.CONF_HOUSE_THERMAL_MASS,
+        const.CONF_SLAB_THERMAL_MASS,
+        const.CONF_UPPER_FLOOR_THERMAL_MASS,
+        const.CONF_LOWER_FLOOR_THERMAL_MASS,
+    )
+    if _NOMINAL[key][0] < THERMAL_MASS_FLOOR
+)
+R.check(
+    "no thermal-mass field accepts a value the model would clamp away",
+    not _below_floor,
+    "; ".join(_below_floor),
+)
+
+# --- The invariant: derived physics fits the field that stores it ----------
+#
+# ``presets.derive`` scales every thermal parameter by heated area and knows
+# nothing about the ranges the config flow declares. Sweep what it can emit
+# and require the storing field to accept it.
+#
+# Exhaustive over every discrete axis -- structure, era, foundation, both
+# emitters, single- and two-zone, and all seventeen positions of the area-
+# ratio slider. Heated area is continuous, so it is walked at the ends of the
+# plausible band and inside it; ``derive`` is linear in area, so the extremes
+# live at the ends, and the interior points are there to catch a future term
+# that is not.
+_RATIOS = [round(0.1 + 0.05 * i, 2) for i in range(17)]
+_PLAUSIBLE_AREAS = (40.0, 100.0, 140.0, 200.0, 300.0, 400.0)
+
+
+def _derived(structure, era, foundation, area, upper, lower, two_zone, ratio):
+    values = presets.derive(
+        presets.BuildingPreset(
+            structure=structure,
+            era=era,
+            foundation=foundation,
+            heated_area_m2=area,
+            upper_emitter=upper,
+            lower_emitter=lower,
+            upper_area_ratio=ratio,
+            two_zone=two_zone,
+        )
+    )
+    # Informational, and not a field on any page.
+    values.pop("heating_response_hours", None)
+    return values
+
+
+def _matrix(areas, ratios):
+    for structure in presets.STRUCTURES:
+        for era in presets.ERAS:
+            for foundation in presets.FOUNDATIONS:
+                for upper in presets.EMITTERS:
+                    for lower in presets.EMITTERS:
+                        for area in areas:
+                            for two_zone in (False, True):
+                                for ratio in ratios if two_zone else (0.5,):
+                                    yield (
+                                        structure, era, foundation, area,
+                                        upper, lower, two_zone, ratio,
+                                    )
+
+
+_outside = {}
+_swept = 0
+for _case in _matrix(_PLAUSIBLE_AREAS, _RATIOS):
+    _swept += 1
+    for _key, _value in _derived(*_case).items():
+        _low, _high = _NOMINAL[_key]
+        if _value < _low or _value > _high:
+            _worst = _outside.setdefault(_key, [0, _value, _value, _case])
+            _worst[0] += 1
+            _worst[1] = min(_worst[1], _value)
+            _worst[2] = max(_worst[2], _value)
+R.check(
+    f"every value derivable for a 40-400 m² house fits its field ({_swept:,} cases)",
+    not _outside,
+    "; ".join(
+        f"{key}: {count:,} outside {_NOMINAL[key]}, seen {low:g}..{high:g} e.g. {case}"
+        for key, (count, low, high, case) in sorted(_outside.items())
+    ),
+)
+
+# The questionnaire accepts 20 to 1000 m², which is wider than any range
+# tight enough to catch a typo. Those houses are carried by the widening in
+# ``_fit_stored_values`` instead -- so here the check is the real one: store
+# what the questionnaire derived, open the page, and submit it back untouched
+# the way the browser would.
+_EXTREME_AREAS = (20.0, 40.0, 140.0, 400.0, 1000.0)
+_unsubmittable = []
+_roundtrips = 0
+_entry_for_sweep = FakeEntry(data={const.CONF_TIBBER_TOKEN: "t"})
+_sweep_flow = options(_entry_for_sweep)
+_sweep_flow.hass = FakeHass()
+for _case in _matrix(_EXTREME_AREAS, (0.1, 0.5, 0.9)):
+    _stored = _derived(*_case)
+    _entry_for_sweep.options = dict(_stored)
+    _schema = _drive(_sweep_flow.async_step_thermal_model(None))["data_schema"]
+    _roundtrips += 1
+    try:
+        _accepted = _schema(_submission(_schema))
+    except Exception as err:  # noqa: BLE001 - any rejection is the bug
+        _unsubmittable.append(f"{_case}: {type(err).__name__}: {err}")
+        continue
+    for _key, _value in _stored.items():
+        if _accepted.get(_key) != _value:
+            _unsubmittable.append(
+                f"{_case}: {_key} came back {_accepted.get(_key)!r}, stored {_value!r}"
+            )
+R.check(
+    f"any house the questionnaire can describe can still save the expert page "
+    f"({_roundtrips:,} round trips)",
+    not _unsubmittable,
+    "; ".join(_unsubmittable[:3]),
+)
+
+# And the edit the owner reported: change one number on a page whose other
+# values are out of the nominal range, and the change must stick.
+_reported = _derived(
+    "timber_crawlspace", "pre_1960", "crawlspace", 80.0,
+    "radiators", "radiators", False, 0.5,
+)
+_edit_entry = FakeEntry(data={const.CONF_TIBBER_TOKEN: "t"}, options=dict(_reported))
+_edit_flow = options(_edit_entry)
+_edit_flow.hass = FakeHass()
+_edit_form = asyncio.run(_edit_flow.async_step_thermal_model(None))
+_edit_payload = _submission(
+    _edit_form["data_schema"], **{const.CONF_HOUSE_THERMAL_MASS: 4.5}
+)
+try:
+    _edit_valid = _edit_form["data_schema"](_edit_payload)
+    _edit_error = ""
+except Exception as err:  # noqa: BLE001
+    _edit_valid = None
+    _edit_error = f"{type(err).__name__}: {err}"
+R.check(
+    "an expert edit sticks on a radiator house (slab mass 0.16, page floor was 1)",
+    _edit_valid is not None
+    and _edit_valid.get(const.CONF_HOUSE_THERMAL_MASS) == 4.5,
+    _edit_error or str(_edit_valid),
+)
+_edit_saved = asyncio.run(_edit_flow.async_step_thermal_model(_edit_valid or {}))
+R.check(
+    "and reaches the save rather than dying in the schema",
+    _edit_saved.get("type") == "create_entry"
+    and _edit_saved["data"].get(const.CONF_HOUSE_THERMAL_MASS) == 4.5,
+    str(_edit_saved.get("type")),
+)
+
+# --- The same round trip, on every page ------------------------------------
+#
+# The hazard is not the thermal page's alone. ``apply_schedule`` and the
+# climate entity write config keys straight into the entry's options with
+# their own, wider limits, so any page can end up displaying a value its own
+# selector would refuse. Load every page with a full configuration and post
+# it back the way the browser would.
+_FULL_CONFIG = {
+    const.CONF_TIBBER_TOKEN: "t",
+    const.CONF_WEATHER_ENTITY: "weather.home",
+    const.CONF_INDOOR_TEMP_ENTITY: "sensor.indoor",
+    const.CONF_TARGET_TEMP: 21.0,
+    const.CONF_MIN_TEMP: 19.0,
+    const.CONF_MAX_TEMP: 23.0,
+    const.CONF_COMFORT_TEMP_DAY: 21.0,
+    const.CONF_COMFORT_TEMP_NIGHT: 19.5,
+    const.CONF_DAY_START_HOUR: 6,
+    const.CONF_DAY_END_HOUR: 22,
+    const.CONF_DHW_SETPOINT: 52.0,
+    const.CONF_DHW_MIN_TEMP: 42.0,
+    const.CONF_DHW_WINDOWS: "06:00-08:00",
+    const.CONF_BUILDING_PRESET_ENABLED: True,
+    const.CONF_HEATED_AREA: 80.0,
+    const.CONF_BUILDING_STRUCTURE: presets.STRUCTURE_TIMBER_CRAWLSPACE,
+    const.CONF_BUILDING_ERA: presets.ERA_PRE_1960,
+    const.CONF_BUILDING_FOUNDATION: presets.FOUNDATION_CRAWLSPACE,
+    const.CONF_UPPER_EMITTER: presets.EMITTER_RADIATORS,
+    const.CONF_LOWER_EMITTER: presets.EMITTER_RADIATORS,
+    **_reported,
+}
+_rejected = []
+for _step in options._MENU_LABELS:
+    _rt_flow = options(FakeEntry(data=dict(_FULL_CONFIG)))
+    _rt_flow.hass = FakeHass()
+    _rt_form = asyncio.run(getattr(_rt_flow, f"async_step_{_step}")(None))
+    _rt_schema = _rt_form.get("data_schema")
+    if _rt_schema is None:
+        continue
+    try:
+        _rt_valid = _rt_schema(_submission(_rt_schema))
+    except Exception as err:  # noqa: BLE001
+        _rejected.append(f"{_step}: {type(err).__name__}: {err}")
+        continue
+    _rt_result = asyncio.run(getattr(_rt_flow, f"async_step_{_step}")(_rt_valid))
+    if _rt_result.get("type") not in ("create_entry", "menu"):
+        _rejected.append(f"{_step}: submit returned {_rt_result.get('type')}")
+R.check(
+    "every options page accepts the values it displays, on a full configuration",
+    not _rejected,
+    "; ".join(_rejected),
+)
+
+# The same, for the pages of the initial setup flow. A default outside its own
+# range breaks first-run setup, which nobody can work around.
+_setup_rejected = []
+for _step in ("temperature", "building_describe", "building_extras", "thermal",
+              "zones", "dhw", "weather_sensitivity"):
+    _sflow = config_flow.HeatPumpOptimizerConfigFlow()
+    _sflow.hass = FakeHass()
+    _sform = asyncio.run(getattr(_sflow, f"async_step_{_step}")(None))
+    _sschema = _sform.get("data_schema")
+    if _sschema is None:
+        continue
+    try:
+        _sschema(_submission(_sschema))
+    except Exception as err:  # noqa: BLE001
+        _setup_rejected.append(f"{_step}: {type(err).__name__}: {err}")
+R.check(
+    "every setup page accepts the values it displays",
+    not _setup_rejected,
+    "; ".join(_setup_rejected),
+)
+
+# --- The widening itself ---------------------------------------------------
+#
+# Only the field holding the odd value may relax; the rest of the page keeps
+# the bounds that make a typo catchable.
+# A 1000 m² masonry block with a heated basement and floor heating: the
+# questionnaire accepts it, and its slab store is far above anything a range
+# tight enough to be useful would admit.
+_WIDE_VALUE = _derived(
+    "masonry", "pre_1960", "heated_basement", 1000.0, "floor", "floor", False, 0.5
+)[const.CONF_SLAB_THERMAL_MASS]
+_wide_entry = FakeEntry(
+    data={const.CONF_TIBBER_TOKEN: "t"},
+    options={const.CONF_SLAB_THERMAL_MASS: _WIDE_VALUE},
+)
+_wide_flow = options(_wide_entry)
+_wide_flow.hass = FakeHass()
+_wide_form = asyncio.run(_wide_flow.async_step_thermal_model(None))
+_wide = _bounds(_wide_form["data_schema"])
+R.check(
+    f"the field holding an out-of-range value ({_WIDE_VALUE:g}) widens to admit it",
+    _wide[const.CONF_SLAB_THERMAL_MASS]
+    == (_NOMINAL[const.CONF_SLAB_THERMAL_MASS][0], _WIDE_VALUE),
+    str(_wide[const.CONF_SLAB_THERMAL_MASS]),
+)
+R.check(
+    "the widened field is named to the user, not silently patched",
+    _wide_form.get("errors", {}).get(const.CONF_SLAB_THERMAL_MASS)
+    == config_flow.ERROR_STORED_VALUE_OUT_OF_RANGE,
+    f"a page that quietly accepts an odd value teaches nothing: "
+    f"{_wide_form.get('errors')}",
+)
+_clean_form = asyncio.run(_nominal_flow.async_step_thermal_model(None))
+R.check(
+    "a page with nothing out of range reports no error at all",
+    not _clean_form.get("errors"),
+    f"an error on a page with nothing wrong would cry wolf: "
+    f"{_clean_form.get('errors')}",
+)
+R.check(
+    "and no other field on the page moves",
+    {k: v for k, v in _wide.items() if k != const.CONF_SLAB_THERMAL_MASS}
+    == {k: v for k, v in _NOMINAL.items() if k != const.CONF_SLAB_THERMAL_MASS},
+    str(sorted(set(_wide.items()) ^ set(_NOMINAL.items()))),
+)
+
+# The ``default=`` half of the hazard, which breaks a page the same way and is
+# reachable today: ``apply_schedule`` stores comfort_temp_day anywhere in
+# 5-30 °C, while the comfort page's own field stops at 16-26.
+_service_written = options(
+    FakeEntry(
+        data=dict(_FULL_CONFIG),
+        options={const.CONF_COMFORT_TEMP_DAY: 28.0, const.CONF_DAY_START_HOUR: 14},
+    )
+)
+_service_written.hass = FakeHass()
+_sw_form = asyncio.run(_service_written.async_step_comfort(None))
+_sw_bounds = _bounds(_sw_form["data_schema"])
+try:
+    _sw_valid = _sw_form["data_schema"](_submission(_sw_form["data_schema"]))
+    _sw_error = ""
+except Exception as err:  # noqa: BLE001
+    _sw_valid = None
+    _sw_error = f"{type(err).__name__}: {err}"
+R.check(
+    "a comfort value stored by apply_schedule can still be shown and saved",
+    _sw_valid is not None
+    and _sw_valid.get(const.CONF_COMFORT_TEMP_DAY) == 28.0
+    and _sw_bounds[const.CONF_COMFORT_TEMP_DAY][1] == 28.0,
+    _sw_error or str(_sw_bounds[const.CONF_COMFORT_TEMP_DAY]),
+)
+
+# ===========================================================================
+# Derived values and the questionnaire
+# ===========================================================================
+R.section("Derived values and the questionnaire")
+
+# The questionnaire owns ten of the expert page's fields. The page has to
+# know which ten: an edit to one of them means the user is overriding the
+# derivation, and derivation left armed would take it back on the next save
+# of the questionnaire page.
+_two_zone_derived = _derived(
+    presets.STRUCTURE_MASONRY, presets.ERA_PRE_1960, presets.FOUNDATION_BASEMENT,
+    180.0, presets.EMITTER_RADIATORS, presets.EMITTER_FLOOR, True, 0.5,
+)
+_single_derived = _derived(
+    presets.STRUCTURE_MASONRY, presets.ERA_PRE_1960, presets.FOUNDATION_BASEMENT,
+    180.0, presets.EMITTER_RADIATORS, presets.EMITTER_FLOOR, False, 0.5,
+)
+R.check(
+    "the derived-key roster is exactly what presets.derive writes",
+    set(config_flow.DERIVED_THERMAL_KEYS) == set(_two_zone_derived)
+    and set(_single_derived) <= set(config_flow.DERIVED_THERMAL_KEYS),
+    str(sorted(set(config_flow.DERIVED_THERMAL_KEYS) ^ set(_two_zone_derived))),
+)
+
+_armed = {
+    const.CONF_TIBBER_TOKEN: "t",
+    const.CONF_BUILDING_PRESET_ENABLED: True,
+    **_single_derived,
+}
+
+
+def _thermal_save(overrides):
+    """Post the expert page back the way the browser does, and return the save.
+
+    Through ``_submission``, never a hand-built dict. The distinction is the
+    whole subject of this file's previous section, and the first version of
+    the disarm rule below was certified with partial dicts the frontend
+    never sends -- ``{heat_pump_max_power: 9.0}`` and ``schema({})`` -- so
+    every check passed while a no-op Submit silently disarmed the
+    questionnaire for every user who had taken the recommended setup path.
+    """
+    flow = options(FakeEntry(data=dict(_armed)))
+    flow.hass = FakeHass()
+    schema = asyncio.run(flow.async_step_thermal_model(None))["data_schema"]
+    payload = schema(_submission(schema, **overrides))
+    return asyncio.run(flow.async_step_thermal_model(payload))["data"]
+
+
+# The case that matters most, because it is the cheapest thing a user can do
+# and the one nobody thinks to test: open the page, press Submit, touch
+# nothing. The browser still posts every pre-filled field, so "was a derived
+# key submitted?" is true here -- and answering that question instead of
+# "did a derived value change?" is what made this a regression.
+_noop = _thermal_save({})
+R.check(
+    "a no-op Submit leaves the derivation exactly as it was",
+    const.CONF_BUILDING_PRESET_ENABLED not in _noop,
+    f"pressing Submit with nothing touched wrote {_noop!r}",
+)
+R.check(
+    "and changes nothing it wrote back",
+    all(_noop[k] == _armed[k] for k in _noop if k in _armed)
+    and not set(_noop) - set(_armed) - {const.CONF_TWO_ZONE_MODE},
+    f"a no-op Submit altered something: {_noop!r}",
+)
+
+_same = _thermal_save(
+    {const.CONF_HOUSE_THERMAL_MASS: _single_derived[const.CONF_HOUSE_THERMAL_MASS]}
+)
+R.check(
+    "re-typing a derived value unchanged is not an override",
+    const.CONF_BUILDING_PRESET_ENABLED not in _same,
+    f"saved {_same!r}",
+)
+
+_unrelated = _thermal_save({const.CONF_HEAT_PUMP_MAX_POWER: 9.0})
+R.check(
+    "editing a field the questionnaire does not own leaves it armed",
+    _unrelated.get(const.CONF_HEAT_PUMP_MAX_POWER) == 9.0
+    and const.CONF_BUILDING_PRESET_ENABLED not in _unrelated,
+    f"saved {_unrelated!r}",
+)
+
+_override = _thermal_save({const.CONF_HOUSE_THERMAL_MASS: 4.5})
+R.check(
+    "changing a derived value switches the derivation off, so the value keeps",
+    _override.get(const.CONF_HOUSE_THERMAL_MASS) == 4.5
+    and _override.get(const.CONF_BUILDING_PRESET_ENABLED) is False,
+    f"saved {_override!r}",
+)
+
+# The consequence the user would actually feel, end to end: after the four
+# submits above, is the questionnaire still able to recalculate?
+_still_armed_flow = options(FakeEntry(data=dict(_armed), options=dict(_noop)))
+_still_armed_flow.hass = FakeHass()
+_preset_form = asyncio.run(_still_armed_flow.async_step_building_preset(None))
+_preset_saved = asyncio.run(
+    _still_armed_flow.async_step_building_preset(
+        _preset_form["data_schema"](
+            _submission(
+                _preset_form["data_schema"],
+                **{const.CONF_BUILDING_ERA: presets.ERA_POST_2005},
+            )
+        )
+    )
+)["data"]
+R.check(
+    "and the questionnaire still recalculates after a no-op Submit",
+    _preset_saved.get(const.CONF_HOUSE_HEAT_LOSS_COEFFICIENT)
+    not in (None, _single_derived[const.CONF_HOUSE_HEAT_LOSS_COEFFICIENT]),
+    f"changing the era recalculated nothing: {_preset_saved!r}",
+)
+
+# The user-visible text, in all three files. (The Translations section below
+# checks they carry the same keys; these checks are about what those keys
+# say.)
+_CATALOGUES = {
+    "strings.json": json.loads((ROOT / "strings.json").read_text()),
+    "en.json": json.loads((ROOT / "translations" / "en.json").read_text()),
+    "sv.json": json.loads((ROOT / "translations" / "sv.json").read_text()),
+}
+
+# Home Assistant has no way to grey a field out, so the page says in words
+# what it cannot show. An unfilled placeholder renders as literal braces.
+_armed_flow = options(FakeEntry(data=dict(_armed)))
+_armed_flow.hass = FakeHass()
+_armed_form = asyncio.run(_armed_flow.async_step_thermal_model(None))
+R.check(
+    "the expert page warns while the derivation is armed",
+    _armed_form["description_placeholders"]["preset_warning"],
+    "a user editing a value that will be overwritten deserves to know",
+)
+R.check(
+    "and says nothing when it is off",
+    _clean_form["description_placeholders"]["preset_warning"] == "",
+    "a warning about a derivation nobody enabled is noise",
+)
+for _name, _data in _CATALOGUES.items():
+    _step = _data["options"]["step"]["thermal_model"]
+    R.check(
+        f"{_name} gives the warning somewhere to appear",
+        "{preset_warning}" in _step["description"] and _step.get("preset_warning"),
+        "the placeholder and its text have to travel together",
+    )
+
+# The caption that sent the owner's own value 27 percent high: an absolute
+# rule of thumb ("roughly 3 kWh/°C") printed on a field the model scales by
+# heated area, and on the *fast* store at that -- the heavy floor is counted
+# separately. A user correcting a derived 1.44 up to 3 would inflate the
+# store the plan coasts on.
+for _name, _data in _CATALOGUES.items():
+    for _flow_name, _step_id in (("config", "thermal"), ("options", "thermal_model")):
+        _text = _data[_flow_name]["step"][_step_id]["data_description"][
+            "house_thermal_mass"
+        ]
+        R.check(
+            f"{_name} {_flow_name} scales the house-mass advice by area",
+            "m²" in _text,
+            "an absolute figure on an area-scaled field invites a harmful edit",
+        )
+
+# The same page names a page that does not exist: all ten derived keys live
+# on the expert page, none on "Heating system and heat storage".
+for _name, _data in _CATALOGUES.items():
+    _caption = _data["options"]["step"]["building_preset"]["data_description"][
+        "building_preset_enabled"
+    ]
+    _expert_title = _data["options"]["step"]["thermal_model"]["title"]
+    R.check(
+        f"{_name} points the derivation at the page it actually overwrites",
+        _expert_title in _caption,
+        f"names {_caption!r}, expert page is {_expert_title!r}",
+    )
+
+# ===========================================================================
 # Translations
 # ===========================================================================
 R.section("Translations")
@@ -1122,6 +1695,23 @@ for name, data in files.items():
         f"{name}.json matches strings.json exactly",
         not diff,
         ", ".join(sorted(diff)[:6]),
+    )
+
+# The stored-value warning is rendered on a form the user merely opened, so
+# an untranslated one is especially visible. It has to exist for both flows —
+# the widening applies to initial setup as well — and be a real translation.
+_warning = config_flow.ERROR_STORED_VALUE_OUT_OF_RANGE
+for _flow_name in ("config", "options"):
+    R.check(
+        f"the out-of-range warning has a {_flow_name} message",
+        strings[_flow_name]["error"].get(_warning),
+        "a missing error string renders as the raw key",
+    )
+    R.check(
+        f"and the Swedish {_flow_name} message is actually translated",
+        files["sv"][_flow_name]["error"].get(_warning)
+        not in (None, files["en"][_flow_name]["error"].get(_warning)),
+        "placeholder English left in a translation is worse than no translation",
     )
 
 menu = strings["options"]["step"]["init"]["menu_options"]

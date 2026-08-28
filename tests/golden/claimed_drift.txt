@@ -27,9 +27,12 @@
 # was never wrong. Without rule 2 the same thing happens whenever two
 # commits share a version.
 #
-# claims-for: 5.1.5
+# claims-for: 5.1.6
 #
 #
-# v5.1.5 layout-editor Undo: the change is entirely inside the Lovelace
-# card, which no golden fixture runs. Nothing may move — the claim list is
-# deliberately empty.
+# v5.1.6 un-submittable expert page: the numeric ranges the thermal fields
+# declare were narrower than the physics the building questionnaire derives
+# into them, so the config-flow fingerprint moves. Bounds only — no field
+# gained, lost or changed selector, and nothing the optimizer runs is
+# touched, so every coord_* and scenario fixture must stay byte-identical.
+config_flow  # thermal min/max recalibrated against presets.derive

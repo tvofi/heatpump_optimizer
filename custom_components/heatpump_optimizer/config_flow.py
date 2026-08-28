@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, Final
 
 import aiohttp
 import voluptuous as vol
@@ -367,6 +367,222 @@ def _number(
     return selector.NumberSelector(selector.NumberSelectorConfig(**config))
 
 
+# --- Nominal bounds for the thermal model ----------------------------------
+#
+# These are the ranges the expert page and the initial setup flow accept for
+# the parameters ``presets.derive`` writes. They were originally guessed
+# around one 140 m² house with floor heating, and the guess was narrower than
+# the physics: ``derive`` scales everything by heated area, so the same
+# archetype at 40 m² or 400 m² lands far outside a range chosen for the
+# middle. A radiator-only house derives a ``slab_thermal_mass`` — the emitter
+# loop's few litres of water and steel — of about 0.002 kWh/°C per m², i.e.
+# 0.1 to 0.8 for any ordinary house, against a field that used to start at 1.
+#
+# So each pair below covers what ``derive`` can emit for a *plausible*
+# building — 40 to 400 m² of heated area, every structure, era, foundation,
+# emitter pair and zone split — with modest headroom, and no more. The
+# extremes the questionnaire still allows (a 20 m² cabin, a 1000 m² block)
+# are not covered here on purpose: a range wide enough for those would stop
+# catching a mistyped number, and a stored value outside its field's range
+# is admitted anyway by ``_fit_stored_values`` above, which relaxes only the
+# one field that holds it. ``tests/entities.py`` pins both halves.
+#
+# kWh/°C. 0.72 is a 40 m² timber house on a crawlspace; 62.5 a 400 m² masonry
+# house with a heated basement. Only the *fast* store — air, furnishings and
+# light fabric — lives here; heavy floors are in the slab mass below.
+RANGE_HOUSE_THERMAL_MASS: Final = (0.5, 80.0)
+# kW/°C. 0.0140 is a 40 m² low-energy house (14 W/K), 0.7316 a 400 m²
+# pre-1960 one with a heated basement. The ceiling is unchanged.
+RANGE_HOUSE_HEAT_LOSS: Final = (0.01, 1.0)
+# kWh/°C. 0.1 is the radiator loop of a small house, and it is where three
+# things meet: ``derive`` floors its radiator-loop mass there, the whole
+# 20–1000 m² sweep bottoms out there exactly, and ``ThermalParameters.clamp``
+# raises anything below it to ``THERMAL_MASS_FLOOR`` anyway. A lower field
+# minimum would only buy a window in which the page stores a number the model
+# silently overrides. 53.0 is a 400 m² masonry house's heated slab.
+RANGE_SLAB_THERMAL_MASS: Final = (0.1, 60.0)
+# kW/°C. ``derive`` floors this at 0.05; a 400 m² floor circuit reaches 4.0.
+# The ceiling is unchanged.
+RANGE_SLAB_HEAT_TRANSFER: Final = (0.02, 5.0)
+# kWh/°C per zone. ``derive`` floors both at 0.5; the heaviest zone of a
+# 400 m² masonry house with a heated basement is 58.45. The two zones share
+# one range because either can be the heavy one, depending on the emitters.
+RANGE_ZONE_THERMAL_MASS: Final = (0.25, 60.0)
+# kW/°C per zone. A tenth of a 40 m² low-energy house is 0.0014; nine tenths
+# of a 400 m² pre-1960 one with a basement is 0.6584. A single zone cannot
+# lose more than the whole house, so the ceiling matches RANGE_HOUSE_HEAT_LOSS.
+RANGE_ZONE_HEAT_LOSS: Final = (0.001, 1.0)
+
+
+# Shown on the expert page while the questionnaire is armed. English here
+# is the fallback; the translated text lives beside the page's own strings.
+PRESET_WARNING_FALLBACK: Final = (
+    "Deriving from the building type is switched on, so saving Building type "
+    "and emitters recalculates the house thermal mass, heat loss, slab mass "
+    "and slab transfer below (and the two-zone values) from the "
+    "questionnaire, overwriting whatever is here. Changing any of those "
+    "fields to a different value switches the derivation off, so your value "
+    "stays; simply saving this page again does not."
+)
+
+# Everything ``presets.derive`` writes into the entry, in the order the
+# expert page shows them. The last six only exist in two-zone mode.
+# ``tests/entities.py`` checks this against ``derive`` itself, so a new
+# derived parameter cannot quietly fall off the list.
+DERIVED_THERMAL_KEYS: Final = (
+    CONF_HOUSE_THERMAL_MASS,
+    CONF_HOUSE_HEAT_LOSS_COEFFICIENT,
+    CONF_SLAB_THERMAL_MASS,
+    CONF_SLAB_HEAT_TRANSFER,
+    CONF_UPPER_FLOOR_THERMAL_MASS,
+    CONF_LOWER_FLOOR_THERMAL_MASS,
+    CONF_UPPER_FLOOR_HEAT_LOSS,
+    CONF_LOWER_FLOOR_HEAT_LOSS,
+    CONF_UPPER_FLOOR_AREA_RATIO,
+    CONF_RADIATOR_POWER_FRACTION,
+)
+
+
+# The error a page reports on a field whose stored value sits outside that
+# field's nominal range. Raised when the form is *shown*, not when it is
+# submitted: the value is already on disk, so the user has to be told before
+# they press anything — and the whole point of a nominal range is that
+# leaving it is worth noticing.
+ERROR_STORED_VALUE_OUT_OF_RANGE: Final = "stored_value_out_of_range"
+
+
+def _prefilled_values(marker: Any) -> list[Any]:
+    """What the frontend will put in this field before the user touches it.
+
+    Both mechanisms count. ``description={"suggested_value": x}`` pre-fills
+    the box without defaulting the key, and ``default=x`` pre-fills it *and*
+    substitutes itself when the key is absent from the submission. Either way
+    the value comes back on submit and is validated by this field's own
+    selector — so either way, a stored value the selector rejects makes the
+    page impossible to save.
+    """
+    values: list[Any] = []
+    description = getattr(marker, "description", None)
+    if isinstance(description, dict) and "suggested_value" in description:
+        values.append(description["suggested_value"])
+    default = getattr(marker, "default", None)
+    # A marker without a default carries voluptuous' UNDEFINED sentinel here,
+    # which is not callable; only a real default is.
+    if callable(default):
+        try:
+            values.append(default())
+        except Exception:  # noqa: BLE001 - a broken default is not our business
+            pass
+    return values
+
+
+def _widen_to_fit(
+    number: selector.NumberSelector, values: list[Any]
+) -> selector.NumberSelector | None:
+    """The same field with bounds stretched to admit ``values``, or None.
+
+    Returns None when nothing needs to move, so an untouched page keeps the
+    very selector object it declared.
+    """
+    config = dict(number.config)
+    low = config.get("min")
+    high = config.get("max")
+    if low is None and high is None:
+        return None
+    fitted_low, fitted_high = low, high
+    for value in values:
+        try:
+            number_value = float(value)
+        except (TypeError, ValueError):
+            continue
+        if number_value != number_value or number_value in (
+            float("inf"),
+            float("-inf"),
+        ):
+            continue
+        if fitted_low is not None and number_value < fitted_low:
+            fitted_low = number_value
+        if fitted_high is not None and number_value > fitted_high:
+            fitted_high = number_value
+    if fitted_low == low and fitted_high == high:
+        return None
+    if fitted_low is not None:
+        config["min"] = fitted_low
+    if fitted_high is not None:
+        config["max"] = fitted_high
+    return selector.NumberSelector(selector.NumberSelectorConfig(**config))
+
+
+def _fit_stored_values(schema: Any) -> tuple[Any, list[str]]:
+    """Schema with every numeric field widened to admit what it displays.
+
+    A bounded numeric field is validated on submit against its own min/max,
+    and the frontend submits the whole form — including the fields nobody
+    touched. So a *stored* value outside a field's range does not merely look
+    odd: it makes the entire page un-submittable, silently, because
+    voluptuous rejects the submission before any handler sees it and the
+    dialog just re-renders. The user experiences a Submit button that does
+    nothing.
+
+    That is not hypothetical: ``presets.derive`` scales the thermal
+    parameters by heated area and knows nothing about the bounds the expert
+    page happens to declare, and a radiator-only house legitimately derives a
+    ``slab_thermal_mass`` an order of magnitude below what that field used to
+    accept.
+
+    So whenever a value is already on disk, the field that displays it
+    relaxes far enough to display it — and no further. Every other field
+    keeps its nominal bounds, which is what makes them worth having. The
+    caller gets back the list of fields that had to relax, so it can say so.
+    """
+    if schema is None or not hasattr(schema, "schema"):
+        return schema, []
+    fitted: dict[Any, Any] = {}
+    widened: list[str] = []
+    for marker, value in schema.schema.items():
+        if isinstance(value, selector.NumberSelector):
+            replacement = _widen_to_fit(value, _prefilled_values(marker))
+            if replacement is not None:
+                value = replacement
+                widened.append(str(getattr(marker, "schema", marker)))
+        fitted[marker] = value
+    if not widened:
+        return schema, []
+    return vol.Schema(fitted), widened
+
+
+class _StoredValuesAlwaysFit:
+    """Mixin: a page can never be blocked by a value already on disk.
+
+    Applied to both flows rather than to one page, because the hazard is
+    structural — any bounded numeric field fed from stored configuration can
+    reach it, and the stored value need not have come from this integration's
+    own forms (``apply_schedule`` and the climate entity both write config
+    keys straight into the entry's options, with their own wider limits).
+
+    The widening is deliberately paired with an error on the same field. A
+    form that silently accepts an implausible number teaches the user
+    nothing, and the failure this exists to end was invisible: the page
+    simply did not save. Whatever else happens, the user must be told which
+    field is odd and why.
+    """
+
+    @callback
+    def async_show_form(self, **kwargs: Any) -> FlowResult:
+        """Show a form, first making sure it can be submitted at all."""
+        fitted, widened = _fit_stored_values(kwargs.get("data_schema"))
+        if widened:
+            kwargs["data_schema"] = fitted
+            errors = dict(kwargs.get("errors") or {})
+            for field in widened:
+                # A real validation error on the same field wins: it is about
+                # what the user just typed, which is more urgent than a value
+                # that has been sitting on disk for months.
+                errors.setdefault(field, ERROR_STORED_VALUE_OUT_OF_RANGE)
+            kwargs["errors"] = errors
+        return super().async_show_form(**kwargs)
+
+
 def _effective(
     candidate: dict[str, Any], current: dict[str, Any], key: str, default: Any
 ) -> float:
@@ -610,6 +826,27 @@ def _derive_preset(answers: dict[str, Any], current: dict[str, Any]) -> dict[str
     return derived
 
 
+async def _translated_text(
+    hass: HomeAssistant, flow_type: str, path: str, fallback: str
+) -> str:
+    """One translated sentence for a description placeholder.
+
+    Placeholder *values* are substituted verbatim by the frontend, so a
+    sentence composed here would ship in English whatever the user's
+    language is. The catalogue is read the same way ``_translated_menu``
+    reads it, and the English text stays in code as the fallback for the
+    moment the lookup fails.
+    """
+    try:
+        translations = await async_get_translations(
+            hass, hass.config.language, flow_type, {DOMAIN}
+        )
+    except Exception:  # noqa: BLE001 - a form must never fail to render
+        _LOGGER.debug("Could not load %s translations", flow_type, exc_info=True)
+        return fallback
+    return translations.get(f"component.{DOMAIN}.{flow_type}.{path}") or fallback
+
+
 async def _translated_menu(
     hass: HomeAssistant, flow_type: str, step_id: str, labels: dict[str, str]
 ) -> dict[str, str]:
@@ -638,7 +875,9 @@ async def _translated_menu(
     return labels
 
 
-class HeatPumpOptimizerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+class HeatPumpOptimizerConfigFlow(
+    _StoredValuesAlwaysFit, config_entries.ConfigFlow, domain=DOMAIN
+):
     """Handle a config flow for Heat Pump Optimizer."""
 
     VERSION = CONFIG_ENTRY_VERSION
@@ -845,17 +1084,17 @@ class HeatPumpOptimizerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 {
                     vol.Required(
                         CONF_HOUSE_THERMAL_MASS, default=DEFAULT_HOUSE_THERMAL_MASS
-                    ): _number(2, 50, 0.5, "kWh/°C"),
+                    ): _number(*RANGE_HOUSE_THERMAL_MASS, 0.5, "kWh/°C"),
                     vol.Required(
                         CONF_HOUSE_HEAT_LOSS_COEFFICIENT,
                         default=DEFAULT_HOUSE_HEAT_LOSS_COEFFICIENT,
-                    ): _number(0.05, 1.0, 0.01, "kW/°C"),
+                    ): _number(*RANGE_HOUSE_HEAT_LOSS, 0.01, "kW/°C"),
                     vol.Required(
                         CONF_SLAB_THERMAL_MASS, default=DEFAULT_SLAB_THERMAL_MASS
-                    ): _number(1, 30, 0.5, "kWh/°C"),
+                    ): _number(*RANGE_SLAB_THERMAL_MASS, 0.5, "kWh/°C"),
                     vol.Required(
                         CONF_SLAB_HEAT_TRANSFER, default=DEFAULT_SLAB_HEAT_TRANSFER
-                    ): _number(0.1, 5.0, 0.1, "kW/°C"),
+                    ): _number(*RANGE_SLAB_HEAT_TRANSFER, 0.1, "kW/°C"),
                     vol.Required(
                         CONF_HEAT_PUMP_COP_NOMINAL,
                         default=DEFAULT_HEAT_PUMP_COP_NOMINAL,
@@ -895,19 +1134,19 @@ class HeatPumpOptimizerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Optional(
                         CONF_UPPER_FLOOR_THERMAL_MASS,
                         default=DEFAULT_UPPER_FLOOR_THERMAL_MASS,
-                    ): _number(1, 20, 0.5, "kWh/°C"),
+                    ): _number(*RANGE_ZONE_THERMAL_MASS, 0.5, "kWh/°C"),
                     vol.Optional(
                         CONF_LOWER_FLOOR_THERMAL_MASS,
                         default=DEFAULT_LOWER_FLOOR_THERMAL_MASS,
-                    ): _number(1, 30, 0.5, "kWh/°C"),
+                    ): _number(*RANGE_ZONE_THERMAL_MASS, 0.5, "kWh/°C"),
                     vol.Optional(
                         CONF_UPPER_FLOOR_HEAT_LOSS,
                         default=DEFAULT_UPPER_FLOOR_HEAT_LOSS,
-                    ): _number(0.01, 0.5, 0.01, "kW/°C"),
+                    ): _number(*RANGE_ZONE_HEAT_LOSS, 0.01, "kW/°C"),
                     vol.Optional(
                         CONF_LOWER_FLOOR_HEAT_LOSS,
                         default=DEFAULT_LOWER_FLOOR_HEAT_LOSS,
-                    ): _number(0.01, 0.5, 0.01, "kW/°C"),
+                    ): _number(*RANGE_ZONE_HEAT_LOSS, 0.01, "kW/°C"),
                     vol.Optional(
                         CONF_INTER_ZONE_TRANSFER,
                         default=DEFAULT_INTER_ZONE_TRANSFER,
@@ -1046,7 +1285,7 @@ class HeatPumpOptimizerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return HeatPumpOptimizerOptionsFlow(config_entry)
 
 
-class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
+class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.OptionsFlow):
     """Handle options flow for Heat Pump Optimizer.
 
     The options are split into a menu of focused pages rather than one very
@@ -1716,7 +1955,26 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
             # stored ceiling without both being on the form.
             errors = _power_errors(user_input, self._current)
             if not errors:
-                return self._save(user_input)
+                saved = dict(user_input)
+                stored = self._current
+                if any(
+                    key in saved and saved[key] != stored.get(key)
+                    for key in DERIVED_THERMAL_KEYS
+                ):
+                    # Editing a derived number here has to mean it. Left
+                    # armed, the questionnaire would overwrite this value the
+                    # next time that page was saved, and the user would be
+                    # back to a number they did not choose with no idea why.
+                    #
+                    # It has to be a *changed* value, not merely a present
+                    # one. ``user_input`` is what the browser posted, and the
+                    # browser posts every pre-filled field back — which is
+                    # the whole premise of this page's suggested values — so
+                    # presence alone is true on a no-op Submit, and testing
+                    # it disarmed the questionnaire for every user who had
+                    # ever opened this page and pressed the button.
+                    saved[CONF_BUILDING_PRESET_ENABLED] = False
+                return self._save(saved)
 
         current = self._current
         if user_input is not None:
@@ -1730,18 +1988,37 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
                 )
             return vol.Optional(key)
 
+        # Home Assistant cannot grey a field out — a selector carries no
+        # read-only flag, and the schema the browser receives has nowhere to
+        # put one — so say in words what the form cannot show.
+        preset_warning = ""
+        if current.get(
+            CONF_BUILDING_PRESET_ENABLED, DEFAULT_BUILDING_PRESET_ENABLED
+        ):
+            preset_warning = await _translated_text(
+                self.hass,
+                "options",
+                "step.thermal_model.preset_warning",
+                PRESET_WARNING_FALLBACK,
+            )
+
         return self.async_show_form(
             step_id="thermal_model",
             errors=errors,
+            description_placeholders={"preset_warning": preset_warning},
             data_schema=vol.Schema(
                 {
-                    _numeric(CONF_HOUSE_THERMAL_MASS): _number(2, 50, 0.5, "kWh/°C"),
-                    _numeric(CONF_HOUSE_HEAT_LOSS_COEFFICIENT): _number(
-                        0.05, 1.0, 0.01, "kW/°C"
+                    _numeric(CONF_HOUSE_THERMAL_MASS): _number(
+                        *RANGE_HOUSE_THERMAL_MASS, 0.5, "kWh/°C"
                     ),
-                    _numeric(CONF_SLAB_THERMAL_MASS): _number(1, 30, 0.5, "kWh/°C"),
+                    _numeric(CONF_HOUSE_HEAT_LOSS_COEFFICIENT): _number(
+                        *RANGE_HOUSE_HEAT_LOSS, 0.01, "kW/°C"
+                    ),
+                    _numeric(CONF_SLAB_THERMAL_MASS): _number(
+                        *RANGE_SLAB_THERMAL_MASS, 0.5, "kWh/°C"
+                    ),
                     _numeric(CONF_SLAB_HEAT_TRANSFER): _number(
-                        0.1, 5.0, 0.1, "kW/°C"
+                        *RANGE_SLAB_HEAT_TRANSFER, 0.1, "kW/°C"
                     ),
                     _numeric(CONF_HEAT_PUMP_COP_NOMINAL): _number(1.5, 6.0, 0.1),
                     _numeric(CONF_HEAT_PUMP_MAX_POWER): _number(1, 20, 0.5, "kW"),
@@ -1761,16 +2038,16 @@ class HeatPumpOptimizerOptionsFlow(config_entries.OptionsFlow):
                         },
                     ): _select(list(TWO_ZONE_MODES), "two_zone_mode"),
                     _numeric(CONF_UPPER_FLOOR_THERMAL_MASS): _number(
-                        1, 20, 0.5, "kWh/°C"
+                        *RANGE_ZONE_THERMAL_MASS, 0.5, "kWh/°C"
                     ),
                     _numeric(CONF_LOWER_FLOOR_THERMAL_MASS): _number(
-                        1, 30, 0.5, "kWh/°C"
+                        *RANGE_ZONE_THERMAL_MASS, 0.5, "kWh/°C"
                     ),
                     _numeric(CONF_UPPER_FLOOR_HEAT_LOSS): _number(
-                        0.01, 0.5, 0.01, "kW/°C"
+                        *RANGE_ZONE_HEAT_LOSS, 0.01, "kW/°C"
                     ),
                     _numeric(CONF_LOWER_FLOOR_HEAT_LOSS): _number(
-                        0.01, 0.5, 0.01, "kW/°C"
+                        *RANGE_ZONE_HEAT_LOSS, 0.01, "kW/°C"
                     ),
                     _numeric(CONF_INTER_ZONE_TRANSFER): _number(
                         0.0, 3.0, 0.1, "kW/°C"
