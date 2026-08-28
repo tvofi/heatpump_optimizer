@@ -1969,11 +1969,12 @@ R.check(
     and "override:21.5" in clim.coordinator.pressed,
     str(clim.coordinator.pressed),
 )
-# v5.1.6: the slider used to run to `max_temp + 1`, so its top notch stored a
-# target the comfort band forbids -- and nothing on this path checked. The
-# minimum keeps its degree of headroom on purpose: a target below the floor is
-# a user asking to save more, judged by the band's own rule, not a
-# contradiction by construction.
+# v5.1.6: the slider ran a degree past the ceiling AND a degree below the
+# floor, writing whatever it was given unchecked. Adding the check made both
+# overshoots worse than useless -- the band refuses `min > target` and
+# `target > max` unconditionally, so every value in those outer degrees was
+# advertised and then refused. A control must not offer a position it will
+# reject, so the slider now offers exactly the band.
 R.check(
     "the thermostat's slider stops at the comfort ceiling",
     clim._attr_max_temp == const.DEFAULT_MAX_TEMP,

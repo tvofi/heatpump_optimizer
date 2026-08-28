@@ -55,6 +55,11 @@ fixtures relabel at least one step; the four weather-driven scenarios
 (`cool_rainy_summer`, `mild_windy_rain`, `precip_snow`, `shoulder_two_zone`)
 are unchanged, which is the check that the genuine branch survived.
 
+*If you automate on this:* the **Plan Narrative** sensor's state is the
+dominant reason code, so an automation matching `preheat_weather` will stop
+matching on ordinary heating hours and should match `scheduled` instead. The
+code still appears for genuine weather pre-heating.
+
 **The comfort bounds are described honestly.** The setup page called the
 warmest and coldest acceptable temperatures "a hard ceiling" and "a hard
 floor… never allowed below this", while the documentation, the config flow's
@@ -72,24 +77,74 @@ paths write the same fields and did not: the `apply_schedule` service writes
 the daytime comfort temperature, and the thermostat card's slider writes the
 target temperature — with the slider's own maximum a degree *above* the
 configured ceiling, so its top notch stored an impossible target by
-construction. Both now run the same rules the forms do, and the slider stops
-at the ceiling. The measured effect on planning is small (a daytime comfort
-temperature of 30 against a maximum of 23 moved the planned room peak by
-0.01 K); this is a correctness fix, not a behaviour change.
+construction. Both now run the same rules the forms do.
+
+Two details matter for anyone with an automation calling `apply_schedule`. The
+service refuses only contradictions **your call introduces** — a call carrying
+only hot-water windows is never judged against comfort temperatures it never
+mentioned, even on an entry whose stored band is already inconsistent. And a
+band that is *already* inconsistent is reported as a repair notice rather than
+corrected for you: which of the two numbers is the wrong one is yours to say.
+That case is real rather than theoretical, because the old slider could store
+it.
+
+The slider itself now offers exactly the comfort band. It used to run a degree
+past both ends, and with the new checks in place those outer degrees would have
+been positions the control advertised and then refused. A refused setpoint no
+longer trains the comfort learner either.
+
+The measured effect on planning is small (a daytime comfort temperature of 30
+against a maximum of 23 moved the planned room peak by 0.01 K); this is a
+correctness fix, not a planning change.
 
 **The virtual battery reports the slab against the optimizer's own cap.** The
 slab component's ceiling was `comfort maximum + 6` — a leftover magic offset,
-a fixed 29 °C where the optimizer's settlement cap is weather-dependent. On the
-characterization fixtures the offset claimed 60.0 kWh of usable slab capacity
-where the settlement cap gives 33.1 (26.1 in the two-zone case), and reported
-41.7 % state of charge where the cap gives 75.5 % (95.9 % two-zone). Both
-numbers now come from one formula. This view is report-only: no plan changes.
+a fixed 29 °C where the optimizer's settlement cap is sized from the demand
+the weather actually creates and from how well your floor moves heat into the
+room.
 
-**Golden fixtures.** The reason-code change moves `space_reasons` on the
-thirteen fixtures that carried the old fall-through label, and the battery
-ceiling moves `data.battery` in the five coordinator fixtures. Every moved
-fixture is claimed with its reason; the other 35 scenarios are byte-identical,
-trajectories and costs included.
+**Which way your figures move depends on your system, and both directions are
+the same correction.** With underfloor heating the cap sits *below* 29 °C, so
+usable capacity falls and the reported charge rises: on the characterization
+fixtures 60.0 kWh becomes 33.1 (26.1 two-zone) and 41.7 % state of charge
+becomes 75.5 % (95.9 %). With radiators the emitter is weak and the loop has
+to run *hot* to hold the target, so the cap is far above 29 °C: a pre-1960
+250 m² radiator house at −15 °C goes the other way, 5.0 kWh of capacity
+becoming 14.6 and 50 % state of charge becoming 17 %. The old fixed number was
+not "a bit high" — it was simply a different number from the one the optimizer
+uses, in whichever direction your house happens to lie.
+
+The reported ceiling is clamped to the buffer tank's rated maximum. The cap is
+`target + demand ÷ floor heat transfer`, which grows without limit as that
+coefficient falls: at the lowest value the `set_thermal_parameters` service
+accepts it reaches 531 °C, which would have published 2560 kWh of "usable
+capacity" for a floor loop. Nothing in this system can be hotter than the
+tank, so that is the bound — and it applies to the report only, leaving the
+optimizer's own arithmetic untouched.
+
+This whole view is report-only: no plan changes.
+
+**Golden fixtures, and a new kind of claim.** The reason-code change moves
+`space_reasons` on the twelve reproducible fixtures that carried the old
+fall-through label, and the battery ceiling moves `data.battery` in the five
+coordinator fixtures. Every one is claimed with its reason; the rest are
+byte-identical, trajectories and costs included.
+
+Five fixtures could not be handled that way. The drift gate already declares
+them non-reproducible — they are non-convex solves that land on a different
+local optimum per BLAS build — and this release's change happens to be one
+whose footprint *inside* them is decided by that optimum: all five run weather
+whose heat-loss factor never crosses the pre-heat threshold, so every
+`preheat_weather` they carry is a fall-through, and which steps fall through
+differs per machine. A claim naming this machine's fixture is unclaimed drift
+on another; naming another's is a stale claim here. Both spellings fail the
+gate, for a change that is correct on both machines.
+
+So the claim file gains a **may-drift** category for exactly those five: their
+diffs are printed in full for a human to read, and are not judged by the
+runner either way. It is deliberately narrow — the gate refuses a may-drift
+entry naming any fixture whose numbers *do* travel, so it cannot become a
+standing exemption for a real regression.
 
 ## v5.1.6
 
