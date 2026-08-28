@@ -34,6 +34,158 @@ solver floats recorded on one machine do not reproduce bit-exactly on
 another. The `SLOW=1` closed-loop simulation runs nightly and on manual
 dispatch.
 
+## The scoped gate
+
+A full run is about forty minutes. A change to the dashboard card genuinely
+needs `card.mjs`, `plan_view.py` and `frontend.py` — about five seconds of
+those forty minutes. On **pull requests only**, the gate runs just the scripts
+the change can actually reach:
+
+```bash
+GATE_SCOPE=full ./tests/run.sh                       # the default, everywhere
+GATE_SCOPE=auto ./tests/run.sh                       # scope to the diff vs origin/main
+GATE_SCOPE=auto GATE_SCOPE_BASE=v5.1.0 ./tests/run.sh   # ...vs something else
+```
+
+`GATE_SCOPE=full` is the default in every context, including this repository's
+own scripts when nobody has said otherwise. Scoping has to be asked for by
+name.
+
+### How a closure is derived
+
+Never by hand. A hand-maintained table of "what does this test depend on"
+would rot on the first refactor and nobody would notice.
+
+`tests/derive_closures.sh` runs the whole suite once under instrumentation and
+rewrites `tests/closures.json`. For each script, `tests/closure.py` runs it for
+real in a subprocess with a `sys.addaudithook` hook installed and then records
+the union of
+
+* every `open` the run performed — this is how the fixture and catalogue files
+  get in: `tests/golden/*.json`, `strings.json`, `services.yaml`,
+  `manifest.json`, `VERSION`, `translations/*.json`, `tests/harness.py`,
+  `tests/profiles.py`, the recorded Open-Meteo payloads;
+* every repo path that appeared on a subprocess command line — this is how
+  `features.py` reaches `tests/dst_checks.py`;
+* every entry in `sys.modules` whose `__file__` is inside the repo — the
+  integration modules and the `tests/hastub` stub.
+
+`card.mjs` has no audit hook, so it is recorded under `strace` instead; the
+result is the same list of repo files it really opened.
+
+Three closures are then widened by rule, because a trace of *this* process
+cannot see what they depend on:
+
+* **`env_drift.py` and `golden.py`** compare *behaviour* between two
+  checkouts, in subprocesses, inside a worktree outside this repo. Their
+  closure is the entire integration plus every file in `tests/golden/`. On top
+  of that, `env_drift.py` **always runs whenever anything under
+  `custom_components/` changed**, whatever the closure says — file-name
+  reasoning cannot justify skipping a behavioural comparison.
+* **`card.mjs`** inherits `plan_view.py`'s whole closure, because
+  `plan_view.py` writes the payload the card is rendered against; anything
+  that changes the payload changes what the card is tested with. Selecting
+  `card.mjs` also selects `plan_view.py` to *run*, which is a different kind
+  of dependency — not "what can change this script's answer" but "what has to
+  run first for it to run at all". A scope that took the card without its
+  producer would leave it with no payload, or, on a developer's box, with a
+  stale one from an earlier run.
+
+### What it actually saves
+
+Measured against a real CI run of the fast job (2435 s: `stress.py` 1254 s,
+`features.py` 415 s, `edge.py` 307 s, `validate.py` 207 s, `backtest.py`
+199 s, everything else inside 53 s between them):
+
+| change | scripts run | CI seconds | saved |
+|---|---|---|---|
+| a change to `RELEASE_NOTES.md` | 1 of 16 — `entities.py` | 5 | 100% |
+| a change to `tests/card.mjs` | 2 — `plan_view.py`, `card.mjs` | 11 | 100% |
+| a change to the card's JavaScript | 6 — `plan_view.py`, `card.mjs`, `features.py`, `entities.py`, `golden.py`, `env_drift.py` | 442 | 82% |
+| a config-flow change (`config_flow.py`, `strings.json`, both translations) | 4 — `features.py`, `entities.py`, `golden.py`, `env_drift.py` | 431 | 82% |
+| a change to `optimizer.py` | 14 — everything but `frontend.py` and `open_meteo.py` | 2424 | 0% |
+
+The last row is the point, not an embarrassment. A change to the solver can
+reach almost every script in the suite, the closures say so, and the gate
+runs almost the whole suite. A scoped gate that found a way to skip work
+there would be lying.
+
+The card row is worth reading twice, because it is not what anyone would have
+guessed. A card-only change does **not** cost five seconds: `features.py` and
+`entities.py` both open the card's JavaScript, and `features.py` alone is
+415 s. Meanwhile `frontend.py` — which sounds like the most card-adjacent
+script in the suite — is *not* run, because it checks how the card reaches the
+browser and never opens the card's code at all. Both of those are the
+measurement disagreeing with the intuition, and the measurement is what the
+gate uses.
+
+### When it refuses to scope
+
+Scoping turns itself off and runs everything whenever it cannot be sure:
+
+* `tests/closures.json` is missing, or has no closure for some script in
+  `tests/`, or names a script that no longer exists;
+* a changed file is not mentioned by *any* recorded closure and is not on the
+  short, checked list of files no test can read (`README.md`, `docs/`,
+  `RELEASE_NOTES.md`, the licence files, the brand images). "No test reads it"
+  is not something to assume about a file nobody measured;
+* the change touches the gate itself — `run.sh`, `closure.py`,
+  `closures.json`, `requirements-ci.txt` or `.github/workflows/`;
+* `closure.py` fails for any reason at all;
+* the diff cannot be determined.
+
+### What you see when something is skipped
+
+Both before and after the run, every scoped-out script is printed by name with
+its reason and the size of the closure it was checked against:
+
+```
+      SKIP  tests/stress.py  (closure: 61 files, no changed file is in its measured closure)
+...
+########## NOT RUN: scoped out of this gate ##########
+  tests/stress.py          did NOT run -- no changed file is in its measured closure (closure: 61 files)
+```
+
+This suite already has six known instances of a test that looked like it ran
+and asserted nothing. A script that quietly did not run at all would be worse,
+because it would look like a pass, so it is said twice and never in passing.
+
+### What the post-merge gate guarantees
+
+Scoping applies to pull requests. `.github/workflows/tests.yml` forces
+`GATE_SCOPE=full` on **every push to `main`**, on the nightly, and on any
+manual dispatch, so the whole suite runs, unscoped, against every merged
+change regardless of what it touched. If a closure is ever wrong, the scoped
+PR gate may miss it — but the next gate, the unscoped one on `main`, does not.
+`main` goes red within one merge instead of never.
+
+A second job, `closures`, runs beside it on `main` and on the nightly: it
+re-derives every closure from real instrumented runs and fails if
+`tests/closures.json` misses anything a run actually touched
+(`closure.py check`). A closure that lists *more* than a run touched only
+costs time and is reported rather than failed. So the closures cannot silently
+drift out of date behind a refactor; the run that would have caught the drift
+is the same run that reports it.
+
+If you have changed what a test reaches — new fixture, new import, a script
+that starts reading a file it did not before — regenerate and commit:
+
+```bash
+./tests/derive_closures.sh                # ~one full suite; rewrites tests/closures.json
+./tests/derive_closures.sh --record-only  # record without rewriting it — what main does
+```
+
+A pull request that touches `tests/closures.json` is itself in the "changes
+the gate" case above, so it runs the whole suite unscoped. The change that
+redefines what may be skipped is never validated by the definition it is
+introducing.
+
+Closures that have fallen behind the tree degrade towards *more* work, not
+less. A file that has appeared since they were recorded is in no closure, so
+it is unmapped and forces a full run; a test script that has appeared has no
+closure, so it forces a full run too. Stale closures make the gate slow before
+they make it wrong, and the `closures` job on `main` says so out loud.
+
 Or individually:
 
 ```bash
@@ -261,6 +413,17 @@ model. Drift, oscillation and learner divergence only appear there.
   discovery by `plan_kind`, the expanded dialog, legend scaling in the popup,
   reason codes in the tooltip, the shading of estimated prices, and the what-if
   simulator's debounce and error handling.
+
+Two files in `tests/` are not tests at all and are excluded from the
+"every script must be wired into `run.sh`" accounting:
+
+- **closure.py** is the scoping instrument. It runs the tests in order to
+  measure what they touch, derives each one's dependency closure, folds the
+  records into `tests/closures.json`, decides what a given diff needs, and
+  (`closure.py check`) fails when the committed closures miss something a real
+  run touched. Wiring it into the suite would make the suite run itself.
+- **derive_closures.sh** drives it across every script, in three lanes, and
+  rewrites `tests/closures.json`. See "The scoped gate" above.
 
 ## Note on browser checks
 
