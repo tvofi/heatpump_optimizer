@@ -1,5 +1,94 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v5.2.0
+
+### The heat pump can now tell the optimizer what it is doing
+
+Four new optional entity slots on the setup page, all read-only — the
+integration never writes any of them:
+
+**Operating mode.** Many units cannot heat the house and make hot water at
+the same time, and some cannot do both at all in the mode they are currently
+in. If you point this slot at the pump's mode entity, the plan stops
+promising heat the pump cannot deliver: a cooling or hot-water-only mode
+suppresses space heating, a heating-only mode suppresses hot water, and the
+affected hours are labelled *"The heat pump's mode cannot do this"* in the
+plan rather than reading as an ordinary idle hour. The comfort floor is left
+visibly unmet rather than quietly relaxed, because the fact worth showing you
+is that the mode selection is costing you comfort.
+
+**Defrosting.** Between roughly 0 and +5 °C in damp air, an air-to-water unit
+periodically reverses to clear frost off the evaporator, and both capacity and
+efficiency fall while it does. Until now that loss could only be inferred from
+a power ratio that cannot actually see a defrost. With a real defrost flag it
+is measured: how much of each interval the unit spent defrosting, per
+temperature and humidity band. Two honest caveats — a cloud connection that
+polls every few minutes will miss short defrosts, so the measured figure is
+biased low; and the number of defrosts actually witnessed is reported next to
+the duty, so a coarse estimate can be recognised as one.
+
+The same flag also unblocks the efficiency learner. It used to sit out the
+entire 0–5 °C band to avoid double-counting the defrost loss, which in a
+Swedish shoulder season is a large share of all heating hours. With a flag it
+sits out only the intervals that actually contained a defrost.
+
+**Online status** and **Fault alarm.** Both pause the learners rather than
+change the plan. The online signal closes a specific gap: some cloud
+integrations, when the vendor's API answers successfully but the device's data
+is stale, mark the device offline and hand back the stale data anyway. Every
+entity stays available and keeps looking freshly reported, so nothing about
+freshness can see it — only the signal's own value can.
+
+**None of this is required, and nothing changes if you configure none of it.**
+An empty slot, an unavailable entity, a word the mode table does not recognise
+and a reading past its age limit all mean *no evidence*, and no evidence is
+exactly the previous behaviour. The reverse is never true: silence is never
+read as bad news, because a pump that pushes updates only when something
+changes can leave all four entities untouched for hours while running
+perfectly.
+
+### Fixes found while reviewing the above
+
+**A stove or flue override no longer expires.** If you had told the
+integration about a wood fire with a switch or a helper toggle, that setting
+was being discarded an hour after you set it — in both directions: the
+deliberate "yes" that holds electric heating back, and the deliberate "no"
+that overrules the automatic detection. This affected installs with no heat
+pump signals configured at all. A *flue temperature probe* still ages out
+after an hour, and now says so in the log rather than only in debug: a probe
+stuck reading hot on a flat battery would otherwise hold heating back forever.
+A switch or helper does not age out, because nothing rewrites it — its
+timestamp records when you last decided something, not when anyone last
+checked.
+
+**A single defrost measurement no longer overrides a season of learning.**
+The first measured interval after you add a defrost flag is usually one with
+no defrost in it, and that one sample was replacing an entire learned derate
+with "no derate at all". The measurement now has to earn its place before it
+takes over; until it does, whatever was already learned stands as a floor.
+
+**An unrecognised operating mode can no longer get stuck.** A word the mode
+table does not know now means "we do not know what the pump is doing, so
+assume it can do everything" — the documented behaviour — instead of holding
+on to the last mode it did recognise for ever. And a generic *status* sensor
+reporting "heating" or "cooling" is no longer read as a mode: on such a
+sensor "heating" means the compressor is running right now, not that the unit
+cannot make hot water, and reading it the other way suppressed hot water on a
+misreading. A real mode selector is unaffected.
+
+**A blocked hot-water channel now says when it is holding up the
+anti-legionella cycle.** A pump left in a heating-only mode simply never got
+the disinfection cycle scheduled, and nothing said so. There is now a repair
+notice once the cycle is overdue, which clears as soon as hot water can be
+planned again.
+
+**Smaller things.** A one-off measurement experiment no longer runs while the
+pump is cooling, faulted or offline, and cooling intervals no longer widen the
+plan's confidence margins. A suppressed channel's hours now get a sentence in
+the plan narrative in both languages instead of vanishing from it. A blocked
+channel is reported with a figure for how far short the tank fell, which
+previously existed only for space heating.
+
 ## v5.1.7
 
 ### The house was never planned to 28 °C. The chart was drawing water.

@@ -1025,8 +1025,11 @@ Two caveats are worth stating plainly:
   upper clamp is now 1.0 rather than 1.05: this is a model of a loss, and no
   defrost cycle makes a heat pump exceed its own curve. An existing learned
   derate survives the upgrade — its buckets are kept and simply re-clamped, so
-  the careful half of what it learned is not thrown away — and measured duty
-  takes over each bucket as it is counted.
+  the careful half of what it learned is not thrown away. Measured duty then
+  takes each bucket over, but only once enough intervals have been counted
+  there to be worth more than what was already learned; until then the two are
+  compared and the more careful of them stands. A single quiet interval cannot
+  undo a season of evidence, in either direction.
 
 **The subtlest gate matters most.** Delivered heat is not measured, so a
 commanded-versus-measured gap is ambiguous: a modest one is efficiency signal, a

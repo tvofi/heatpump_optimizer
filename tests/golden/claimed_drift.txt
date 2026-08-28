@@ -27,23 +27,7 @@
 # was never wrong. Without rule 2 the same thing happens whenever two
 # commits share a version.
 #
-# Two categories live in this file.
-#
-# A CLAIM is a bare scenario name with a reason after the hash. It asserts
-# that THIS release moves that fixture, it is checked both ways (unclaimed
-# drift fails, and so does a claim nothing matched), and it expires with the
-# `claims-for:` stamp below.
-#
-# A MAY-DRIFT entry is a comment line, `# may-drift: <name> -- <reason>`. It
-# asserts nothing: the fixture moved here, or it did not, and either is fine.
-# It exists only for the five fixtures this gate itself declares
-# non-reproducible across BLAS builds, and env_drift.py refuses any other
-# name -- see `_may_drift` there for the full reasoning. Because it is a
-# statement about those fixtures rather than about one release's diff, it
-# does not expire with the stamp and is not part of the inherited-claims
-# comparison.
-#
-# claims-for: 5.1.7
+# claims-for: 5.2.0
 #
 #
 # Tuya heat-pump signals, milestone 1 (the foundation). Four optional entity
@@ -77,6 +61,30 @@ coord_dhw           # + 4 diagnostic keys, all "no evidence"; no plan value move
 coord_two_zone      # + 4 diagnostic keys, all "no evidence"; no plan value moved
 coord_grid_fee      # + 4 diagnostic keys, all "no evidence"; no plan value moved
 coord_all_features  # + 4 diagnostic keys, all "no evidence"; no plan value moved
+#
+# The review pass over both milestones adds nothing to this list, and that is
+# the claim being made rather than an omission. Every fix in it is either
+# scoped to a slot no fixture configures, or gated on a condition no fixture
+# reaches:
+#
+#   * the external-heat override's horizon now applies to numbers only —
+#     no planning fixture sets external_heat_entity at all (only
+#     config_flow.json names it), which is exactly why the regression it
+#     repairs shipped past a green gate in the first place;
+#   * the defrost derate's estimator arbitration and DefrostWindow.close both
+#     need a populated bucket, and defrost_buckets is [] in every fixture.
+#     That gap is closed by a direct test rather than by a fixture, because a
+#     fixture that exercised it would move plan values on purpose;
+#   * mode_blocked_space / mode_blocked_dhw / dhw_floor_breach_c are written
+#     into predictive_info only when a channel is actually blocked, which
+#     requires a mode entity no fixture has;
+#   * the pump-signal freeze now gates _accuracy.record and the measurement
+#     experiment; freeze_reason is None throughout every fixture;
+#   * the narrative's new pump_mode sentence renders only for a reason code
+#     no fixture produces — insight.narrative is {items: [], lines: []} on
+#     all five coordinator fixtures;
+#   * the legionella mode-block notice is a repair issue, which is not
+#     captured by any fixture, and fires only while dhw_blocked is true.
 
 # All five sensitive fixtures run a weather profile whose heat-loss factor is
 # a constant 1.0600 -- below the 1.1 threshold everywhere -- so classify's
