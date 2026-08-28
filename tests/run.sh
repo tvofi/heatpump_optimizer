@@ -226,6 +226,9 @@ for f in tests/*.py tests/*.mjs; do
   base=$(basename "$f")
   case "$base" in
     harness.py|profiles.py) continue ;;  # shared plumbing, not tests
+    # The scoping instrument, not a test: it RUNS the tests to measure what
+    # they touch. Wiring it into the suite would make the suite run itself.
+    closure.py) continue ;;
     # Run by features.py in a subprocess: HASTUB_TZ must be set before the
     # dt stub is imported, which an in-process import cannot arrange.
     dst_checks.py) continue ;;
@@ -358,7 +361,7 @@ done
 for f in tests/*.py tests/*.mjs; do
   base=$(basename "$f")
   case "$base" in
-    harness.py|profiles.py|dst_checks.py|setup_qa_render.mjs) continue ;;
+    harness.py|profiles.py|dst_checks.py|setup_qa_render.mjs|closure.py) continue ;;
   esac
   if ! cat "$WORKDIR"/*.manifest 2>/dev/null | grep -Fq "tests/$base"; then
     echo "TEST NEVER RAN: tests/$base is wired into tests/run.sh but no lane"
@@ -386,6 +389,7 @@ fi
 
 echo
 echo "########## wall clock ##########"
+ran=0
 for lane in $LANES stress; do
   [ -f "$WORKDIR/$lane.manifest" ] || continue
   while IFS=$'\t' read -r id rc seconds label; do
@@ -393,8 +397,12 @@ for lane in $LANES stress; do
       "#skip "*) continue ;;
     esac
     printf '  %6ss  %s\n' "$seconds" "$label"
+    ran=$((ran + 1))
     [ "$rc" -ne 0 ] && failed=$((failed + 1))
   done < "$WORKDIR/$lane.manifest"
+  # `ran` is incremented inside a `while` fed by a redirect, which bash runs
+  # in this shell -- not a pipeline subshell -- so the count survives. Said
+  # here because the same loop shape one line up in a pipeline would not.
 done
 printf '  %6ss  TOTAL (%s lane(s))\n' "$(( $(date +%s) - suite_start ))" "$JOBS"
 
@@ -427,5 +435,20 @@ echo
 if [ "$failed" -ne 0 ]; then
   echo "$failed TEST SCRIPT(S) FAILED"
   exit 1
+fi
+# A scoped run whose scope came out empty -- a documentation-only change, say
+# -- is a legitimate pass, but "ALL TEST SCRIPTS PASSED" is the wrong thing to
+# print when none of them ran. Say what actually happened.
+if [ "$ran" -eq 0 ]; then
+  echo "NO TEST SCRIPT RAN: every script was scoped out of this gate."
+  echo "Nothing was verified here. The full suite runs unscoped on main."
+  echo "To check this change against the whole suite: GATE_SCOPE=full ./tests/run.sh"
+  exit 0
+fi
+if [ -n "$SCOPE_RUN" ]; then
+  scoped_out_count=$(grep -c . "$WORKDIR/scope.skip" 2>/dev/null || true)
+  echo "$ran TEST SCRIPT(S) PASSED; ${scoped_out_count:-0} SCOPED OUT AND NOT RUN"
+  echo "(see the NOT RUN block above -- this is not a full gate)"
+  exit 0
 fi
 echo "ALL TEST SCRIPTS PASSED"
