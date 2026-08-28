@@ -13282,5 +13282,32 @@ R.check(
 )
 
 
+R.section("v5.2.0 review — a blocked channel is published, not just recorded")
+
+R.check(
+    "a space block reaches predictive_info, where the coordinator can see it",
+    _mb_space.predictive_info.get("mode_blocked_space") is True
+    and "mode_blocked_dhw" not in _mb_space.predictive_info,
+)
+R.check(
+    "a hot-water block gets the numeric trace the space channel already had",
+    _mb_dhw.predictive_info.get("mode_blocked_dhw") is True
+    and _mb_dhw.predictive_info.get("dhw_floor_breach_c", 0.0) > 0.0,
+    f"breach {_mb_dhw.predictive_info.get('dhw_floor_breach_c')} °C — "
+    f"power_cap_breach_c is space-only, so without this a blocked tank left "
+    f"no number anywhere saying how far short it fell",
+)
+R.check(
+    "and an unblocked plan carries none of the new keys at all",
+    not any(
+        k in _mb_null.predictive_info
+        for k in ("mode_blocked_space", "mode_blocked_dhw", "dhw_floor_breach_c")
+    ),
+    f"{sorted(_mb_null.predictive_info)} — every golden fixture plans with no "
+    f"mode entity, so this is what keeps them still",
+)
+
+
+
 
 sys.exit(R.close("FEATURE CHECKS"))

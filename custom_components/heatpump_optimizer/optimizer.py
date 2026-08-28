@@ -599,6 +599,12 @@ class OptimizationResult:
     #: safety: releasing them would put back power the hardware refuses to
     #: draw, so the plan would report heat that cannot arrive. The channel's
     #: floor is left unmet and *visible* instead.
+    #:
+    #: Also mirrored into ``predictive_info`` when true, because that is the
+    #: dict the coordinator actually publishes; a field only the solver could
+    #: see would make "the plan is empty and nothing says why" a supported
+    #: outcome. Only when true, so a plan with no mode entity carries no new
+    #: keys at all.
     mode_blocked_space: bool = False
     mode_blocked_dhw: bool = False
 
@@ -2029,6 +2035,36 @@ class HeatPumpOptimizer:
                     )
                 )
             result.predictive_info["power_cap_breach_c"] = round(breach, 3)
+
+        # v5.2.0: the mode block, published rather than merely recorded.
+        # Added only when a channel is actually blocked, so an install with
+        # no mode entity — every golden fixture, and the overwhelming
+        # majority of installs — sees byte-identical predictive_info.
+        if space_blocked:
+            result.predictive_info["mode_blocked_space"] = True
+        if dhw_blocked:
+            result.predictive_info["mode_blocked_dhw"] = True
+            # The DHW analogue of ``power_cap_breach_c``, which is space-only:
+            # without it a hot-water block leaves no number anywhere saying
+            # how badly the tank fell short, and "the tank went cold and the
+            # plan never said so" is the same failure the space figure exists
+            # to prevent. Worst shortfall against the tank's own per-step
+            # requirement, in °C; zero when the tank coasted through anyway.
+            requirement = self._dhw_requirement
+            trajectory = result.dhw_temp_trajectory
+            shortfall = 0.0
+            if requirement is not None and trajectory:
+                req = np.asarray(requirement, dtype=float)
+                planned = np.asarray(trajectory, dtype=float)
+                # Same convention as the space trajectory: index 0 is the
+                # initial tank temperature, not a planned one.
+                planned = planned[1:] if planned.size > req.size else planned
+                steps = min(planned.size, req.size)
+                if steps > 0:
+                    shortfall = float(
+                        np.max(np.clip(req[:steps] - planned[:steps], 0.0, None))
+                    )
+            result.predictive_info["dhw_floor_breach_c"] = round(shortfall, 3)
         return result
 
     @staticmethod
