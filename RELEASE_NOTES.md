@@ -56,9 +56,29 @@ demand it is waiting on. Across a seasonal sweep of the same house:
 | +13 °C | 31.5% | 0.000 kWh | 0.000 kWh |
 | +18 °C | 100% | 5.512 kWh | 0.000 kWh |
 
+The suite now carries the case. `tests/validate.py` gains four valve +
+storage scenarios — every scenario before this release left the mixing valve
+unset, so the buffer was never a planning store in any of them — and a
+standing check that fails any plan buying space heat while the house, left
+entirely unheated, would never drop below its comfort target. On v5.1.9 the
+flat-price control bought **8.73 kWh** with no price spread to exploit, while
+coasting to exactly 21.0 °C against a 21.0 °C target, and reported **100 %
+savings** for it. It now buys 0.00 kWh and reports 7 %. The room peak is
+27.3 °C either way: those 8.73 kWh did not raise the house by a tenth of a
+degree.
+
+The check is deliberately written against the symptom rather than this
+mechanism, so a future term that pays the objective to run the pump while the
+house is already comfortable cannot ship green. It is measured against the
+comfort *target*, not the floor: a floor-relative test also flags plans that
+coast to 19.9 °C or 20.5 °C, and those are legitimate — the optimizer pulls
+toward target, so heat bought there buys real comfort.
+
 Installations without a mixing valve, and tanks below the store threshold,
 are unaffected: the discount is exactly 1.0 there and those paths stay
-byte-for-byte identical.
+byte-for-byte identical. The golden fixtures agree — exactly three move, all
+of them valve + storage, and `valve_storage_small_tank` (below the store
+threshold) is byte-identical.
 
 
 ## v5.1.9

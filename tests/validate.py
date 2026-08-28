@@ -140,6 +140,46 @@ def run(scen, price_p, weather_p, two_zone=False, dhw=True, start=START, **over)
     elif kwh > 0.5:
         issue(scen, "plan publishes no reason codes at all")
 
+    # ---- no heat bought that coasting proves unnecessary ----
+    #
+    # The owner's acceptance criterion: "heat should never be bought if
+    # coasting the house with no heat doesn't predict it coasting to anywhere
+    # near the comfort lower bound." A low comfort weight is meant to let the
+    # temperature swing when that saves money, not to license running the
+    # pump while the house sits above target with nowhere to fall.
+    #
+    # The test is against the comfort TARGET, not the floor. Measured both
+    # ways: a floor-relative band flags "april shoulder" (coasts to 19.9 C)
+    # and "summer cool rainy" (20.5 C), and both are legitimate -- the
+    # optimizer pulls toward target, so heat bought while the house would
+    # otherwise sit 1.1 K below it is buying real comfort. What is NOT
+    # legitimate is heat bought when coasting has no comfort deficit at all:
+    # there the room trajectory is the same with the heat and without it, so
+    # the comfort term has no gradient and the energy is pure waste. That is
+    # exactly the v5.4.0 defect ("valve summer flat" bought 8.73 kWh at a
+    # flat price -- no arbitrage available -- while coasting to 21.0 C
+    # against a 21.0 C target, and reported 100 % savings for it).
+    #
+    # Written against the symptom, not that mechanism. The v5.4.0 cause was
+    # the buffer tank's undiscounted terminal credit, but any future term
+    # that pays the objective to run the pump while the house is already
+    # comfortable reproduces the same user-visible bug and would otherwise
+    # ship green.
+    coast_room, _, coast_up, coast_lo = m.simulate_trajectory(
+        st, np.zeros(N), ot, wind, rain, sol, DT, start_hour=start.hour
+    )
+    coast_zones = [coast_room] + ([coast_up, coast_lo] if two_zone else [])
+    coast_min = min(float(np.min(z)) for z in coast_zones)
+    target = cfg["target_temperature"]
+    # 0.1 K of slack for solver noise around an exact touch of target.
+    if coast_min >= target - 0.1 and kwh > 0.25:
+        issue(
+            scen,
+            f"{kwh:.2f} kWh of space heat bought while coasting on nothing "
+            f"never drops below target ({coast_min:.1f} C vs target "
+            f"{target:.1f} C): the heat buys no comfort",
+        )
+
     # ---- price provenance ----
     if len(r.price_known) != len(r.prices):
         issue(scen, "price provenance mask does not cover the horizon")
@@ -170,6 +210,24 @@ run("summer negative prices",    "summer_negative","summer_warm")
 run("summer cool rainy",         "summer_typical","summer_cool")
 run("summer flat price (control)","flat",         "summer_warm")
 run("2zone summer warm",         "summer_typical","summer_warm", two_zone=True)
+
+print("=== VALVE + STORAGE (the tank is a planning store) ===")
+# Every scenario above leaves mixing_valve_mode unset, so buffer_is_store is
+# false in all of them and the tank carries no terminal credit. That made the
+# coasting check below structurally unable to fire -- it would have passed on
+# the very release whose defect it exists to catch. These four give it
+# something to bite on.
+#
+# The summer pair is the owner's reported configuration: two zones, a
+# throttling valve and a 750 L tank, warm weather, a house sitting well above
+# target. On v5.1.9 the undiscounted tank credit was the only term in the
+# objective with a gradient there, and the plan bought space heat the house
+# had no use for.
+_VALVE = dict(mixing_valve_mode="manual", buffer_tank_volume=750.0)
+run("valve winter typical",      "winter_typical","winter_cold", two_zone=True, **_VALVE)
+run("valve winter extreme",      "winter_extreme","winter_cold", two_zone=True, **_VALVE)
+run("valve summer warm",         "summer_typical","summer_warm",  two_zone=True, **_VALVE)
+run("valve summer flat (control)","flat",         "summer_warm",  two_zone=True, **_VALVE)
 
 print("=== SHOULDER SEASON ===")
 run("april shoulder",            "shoulder",      "shoulder")

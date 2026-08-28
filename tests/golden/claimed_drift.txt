@@ -46,22 +46,50 @@
 # claims-for: 5.4.0
 #
 #
-# v5.1.9 is card-only: one file of Lovelace JavaScript, its own test lane and
-# the release metadata. Nothing under custom_components/heatpump_optimizer/
-# outside www/ is touched, no planning code runs differently, and no fixture
-# is expected to move. The list below is therefore empty, which is the whole
-# claim: byte-identical behaviour everywhere.
+# v5.4.0 discounts the buffer tank's terminal credit by the fraction of
+# stored heat the next window can actually spend. The discount is
+# exp(-UA (cap - ambient) / (2 x hold demand)) with the tank's LEARNED
+# standing-loss UA, and it applies to exactly one term in the objective:
+# the buffer's entry in `_terminal_cost`.
+#
+# The footprint below is that scope, measured rather than asserted. Three
+# scenarios move, and all three are valve + storage configurations -- the
+# only ones where `buffer_is_store` is true and the tank therefore carries
+# a terminal credit at all:
+valve_storage              # tank credit discounted; the plan stores less at mild weather
+valve_storage_flat_prices  # same, and the largest move: with no price spread the credit was most of the incentive
+valve_storage_low_target   # same, at a lower comfort target
+#
+# What did NOT move is the load-bearing half of this claim:
+#
+#   * valve_storage_small_tank -- byte-identical. Below
+#     BUFFER_STORE_MIN_VOLUME the tank is not a store, `_buffer_survival`
+#     returns exactly 1.0, and the arithmetic is unchanged. This is the
+#     empirical form of the "no-store paths stay byte-for-byte identical"
+#     claim in the release notes; it is asserted in tests/features.py too,
+#     but this fixture is the one that proves it end to end.
+#   * every no-valve scenario, for the same reason.
+#   * all five coord_* fixtures, config_flow, and the remaining 39 -- the
+#     change touches no published key, no schema and no coordinator path.
+#
+# Winter is preserved by construction rather than by claim: the discount
+# divides by the demand the stored heat is waiting on, so at -8 C it is
+# 3.0% and the seasonal sweep in the release notes shows the coldest room
+# temperature unchanged to the decimal. The three fixtures above sit at
+# milder weather, which is where a 8-30% discount can change which plan
+# wins.
 
 # These five are the fixtures this gate declares non-reproducible across BLAS
 # builds: each machine solves them to a different local optimum, so whether
 # one differs from the committed recording is a fact about the runner, not
-# about the diff. This release changes no Python at all, so any difference
-# they show against main is entirely the machine -- which is exactly what
-# may-drift is for, and why these entries do not expire with the stamp. The
-# reasons below name the last release whose change could plausibly reach
-# them; nothing in this one can.
-# may-drift: valve_storage_smart_write -- machine-sensitive; last touched by the v5.1.7 fall-through relabel
-# may-drift: wood_two_tank -- machine-sensitive; last touched by the v5.1.7 fall-through relabel
-# may-drift: wood_two_tank_smart_write -- machine-sensitive; last touched by the v5.1.7 fall-through relabel
-# may-drift: wood_coil -- machine-sensitive; last touched by the v5.1.7 fall-through relabel
-# may-drift: valve_upper_direct_slab -- machine-sensitive; last touched by the v5.1.7 fall-through relabel
+# about the diff. Unlike v5.1.9, this release CAN reach them -- every one is
+# a valve or two-tank configuration carrying a buffer credit -- so their
+# diffs mix a real effect with a machine artifact and cannot be separated
+# fixture by fixture. That is exactly why they are unjudged rather than
+# claimed: the three judged fixtures above carry the behavioural evidence,
+# and none of these five is re-recorded.
+# may-drift: valve_storage_smart_write -- machine-sensitive; this release's tank-credit discount can reach it, per local optimum
+# may-drift: wood_two_tank -- machine-sensitive; this release's tank-credit discount can reach it, per local optimum
+# may-drift: wood_two_tank_smart_write -- machine-sensitive; this release's tank-credit discount can reach it, per local optimum
+# may-drift: wood_coil -- machine-sensitive; this release's tank-credit discount can reach it, per local optimum
+# may-drift: valve_upper_direct_slab -- machine-sensitive; this release's tank-credit discount can reach it, per local optimum
