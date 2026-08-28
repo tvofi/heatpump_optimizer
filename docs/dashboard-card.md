@@ -13,9 +13,15 @@ optimizer's planning series on a single shared time axis:
   dashed lines when the house is configured as two-zone)
 - **Solar irradiance** (W/m², inner right axis, stepped filled area)
 
-Every series has a clickable legend chip. Toggling a chip hides/shows the series
-and rescales the axes to the visible data. The chart is drawn as hand-written
-inline SVG — there is **no** dependency on Chart.js, ApexCharts, npm or any CDN.
+Every series has one clickable legend chip — one per series, including the
+house-temperature series when it draws its two zone lines as well, because
+visibility is per series and hiding one line of a series is not something the
+card can do. The chip's hover text names the extra traces that ride on it; the
+crosshair tooltip is where they are told apart, with a row per line. Toggling a
+chip hides/shows the series and rescales the axes to the visible data.
+
+The chart is drawn as hand-written inline SVG — there is **no** dependency on
+Chart.js, ApexCharts, npm or any CDN.
 
 A vertical "now" marker is drawn at the current time, and hovering (or touching)
 the plot shows a crosshair and a tooltip with the value of every visible series
