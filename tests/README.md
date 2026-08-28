@@ -141,6 +141,11 @@ that starts reading a file it did not before — regenerate and commit:
 ./tests/derive_closures.sh      # ~one full suite; rewrites tests/closures.json
 ```
 
+A pull request that touches `tests/closures.json` is itself in the "changes
+the gate" case above, so it runs the whole suite unscoped. The change that
+redefines what may be skipped is never validated by the definition it is
+introducing.
+
 Or individually:
 
 ```bash
