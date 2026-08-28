@@ -46,21 +46,24 @@
 # claims-for: 5.4.0
 #
 #
-# This branch is test infrastructure only: tests/run.sh, tests/closure.py,
-# tests/closures.json, tests/derive_closures.sh, tests/README.md and the
-# workflow. Nothing under custom_components/ is touched, VERSION and
-# manifest.json are untouched, and no planning code runs differently. The
-# list below is therefore EMPTY, which is the whole claim: byte-identical
-# behaviour everywhere.
+# Documentation and comments only: docs/backlog.md, tests/README.md and two
+# explanatory comments in coordinator.py. No executable line changes, so the
+# list below is EMPTY, which is the whole claim: byte-identical behaviour
+# everywhere.
 #
-# Emptying it is not housekeeping. A branch that changes no behaviour and
-# leaves this file alone inherits the baseline's claims verbatim, and
+# Emptying this list is not housekeeping, and it is the one thing a
+# behaviour-free branch has to remember. Such a branch inherits the
+# baseline's claims verbatim, every one of them is then stale, and
 # inheritance rule 2 fails the run -- which is exactly how main went red
-# after v5.1.7's gate work (#77, fixed in #78). The stamp alone cannot
-# catch it here, because this branch does not bump VERSION either, so
-# the stamp still equals VERSION on an inherited file. Rule 2 is the only thing
-# standing between this branch and a false green, and the fix is to say
-# plainly that nothing moves.
+# after the v5.1.7 gate work (#77, fixed in #78). The stamp cannot catch it
+# either, because a branch that changes no behaviour usually does not bump
+# VERSION, so the inherited stamp still matches. Rule 2 is the only thing
+# between such a branch and a false green.
+#
+# The corollary, for whoever writes the next one: this block describes the
+# branch that last edited it, so on main it is always one merge out of date.
+# Read the list and the stamp, which are machine-checked; treat the prose as
+# the reason the last author gave.
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum

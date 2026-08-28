@@ -32,6 +32,88 @@ current tree.
 Nothing from items 1–33. What follows was found along the way, judged real,
 and deliberately not built.
 
+- **The learned house heat-loss scale is not re-anchored when the configured
+  coefficient changes, so an options edit multiplies a correction fitted
+  against the old nameplate by the new one** (found 2026-08-28, live in
+  v5.4.0, four fix attempts made and none shipped). The learner fits a
+  dimensionless `house_heat_loss_scale` against the *configured* coefficient.
+  The thermal store records the scale and its sample count and **not the
+  coefficient it was fitted against** (`_thermal_learning_payload`,
+  `coordinator.py:1978-1979`). An options write reloads the entry, the new
+  coordinator reads the new coefficient, and the loader restores the old
+  scale verbatim (`:1816-1821`); `thermal_model.py:1311` then multiplies the
+  two. The only reset in the codebase sits in `async_update_thermal_params`
+  (`coordinator.py:4740`), whose sole caller is the `set_thermal_parameters`
+  service (`__init__.py:473`) — the options flow never reaches it, and the
+  questionnaire reaches it least of all, because `presets.derive` rewrites
+  the coefficient without the user typing a number.
+
+  Measured across a real coordinator boundary (two coordinators on one
+  `entry_id`), 150 m² house, questionnaire re-answered 1980–2005 → pre-1960:
+  configured U 0.12 → 0.2325 kW/°C while the stored scale 1.25 reloads
+  untouched, giving an effective **0.2906 = 1.937× the UA the learner itself
+  measured**. Through the real `ThermalModel` that is +87.8 kWh/day of heat
+  the plan buys at −5 °C, and a 12 h unheated coast predicted 2.72 K colder
+  than the house actually gets, so the optimizer refuses coasts it could
+  safely take. The opposite edit (a user correcting pre-1960 → 1980–2005)
+  gives 0.516× truth and predicts the coast 1.57 K *warmer* than reality,
+  which coasts the house through the comfort floor. The backlog's original
+  “up to 3.3×” figure is real but is one sub-case, not the worst.
+
+  Two collateral defects were confirmed on the way. The service-path reset
+  writes scale 1.0 to the store but changes the coefficient **in memory
+  only**, so a later restart pairs the reset scale with the unchanged option
+  (measured 0.80×). And `_apply_learner_payloads` restores the scale from a
+  weekly snapshot, so a drift rollback after an options edit can re-install a
+  pre-edit scale.
+
+  **Status: not fixed. Four rounds, and the reason it is recorded here rather
+  than shipped is the shape of the failures, which is worth knowing before
+  anyone tries again.** Round 1's fix was *worse than the defect*: with no
+  evidence gate, a scale of 1.0 at zero samples was treated as a measurement,
+  so an install that had learned nothing had its configuration edits silently
+  and permanently cancelled — edit 0.12 → 0.2325, effective stays 0.1200,
+  forever. It also re-anchored on the upper zone alone while the scale
+  multiplies both zones, which is not a bad example but a theorem:
+  ∂U/∂(upper nameplate) = −e·u_old·l / u_new², negative for *every*
+  single-zone edit in a two-zone house.
+
+  What is worth keeping from the attempts, and should be the starting point:
+
+  * **The law.** `U_eff' = (1 − φ)·nameplate_new + φ·measured_UA`, where φ is
+    the fraction of an EWMA step the learner has traversed. Two properties
+    make it work and both were got wrong first: it must be written in
+    **absolute UA, not in scale units** (that is what makes it path
+    independent and sign preserving), and the basis must be **the quantity
+    the scale actually multiplies** — in two-zone mode the zone total, not
+    the upper zone. The stored scale already contains the nameplate
+    (`scale = 1 + φ(n)·(d − 1)`), so blending the *scale* toward 1.0 shrinks
+    toward the nameplate twice.
+  * **The clamp is decided before clipping.** If `scale·old/new` falls outside
+    `[0.3, 3.0]` the measurement genuinely cannot be expressed against the new
+    nameplate: reset explicitly and log it. Clipping onto a bound instead
+    lets the next edit read that bound as the learner's own signal — an 8 %
+    nameplate tweak produced a 3.6× jump in modelled UA, and the same
+    destination reached in two edits differed from one edit by 3.3×.
+  * **Upgrade persistence needs a gated write.** A pre-fix store has no
+    anchor; adopting one in memory without persisting it leaves the fix inert
+    until some unrelated learner happens to save. `if reanchored or not
+    anchored` costs exactly one extra write per install. Unconditional was
+    rejected: `_thermal_learning_payload` carries `updated_at`, so it moves
+    every call and the content-hash skip in `_async_save_if_changed` cannot
+    gate that store at all — the gate has to be in the loader.
+
+  **What still blocks it.** Below convergence the law is a measured
+  *regression* against today's behaviour, not merely a residue: the same
+  30-hop sub-threshold nameplate walk costs main +2.5 % and the law 18.2 %
+  in the opposite direction. That is a design question to settle before any
+  further code. Separately, the branch's tests re-implemented two production
+  formulas in the test file (the confidence curve and the materiality guard),
+  so their mutation proofs proved the test file's arithmetic — deleting the
+  real constant from the coordinator's guard left the suite fully green. See
+  the note in `tests/README.md`; rewrite the tests rather than iterating on
+  them.
+
 - **The wood side of the setup diagram is a single-tank abstraction, and
   the abstraction distorts the model on a real two-tank system** (issue
   #40, found testing v3.14.0 against a live installation). The house side
@@ -108,6 +190,47 @@ and deliberately not built.
   has nothing to change yet. Revisit only if the tank model gains layers.
 
 ### Decisions recorded so they are not re-litigated
+
+- **Re-anchoring the learned heat-loss scale beats resetting it, and the
+  hybrid between them loses to both.** When the configured coefficient
+  changes, the obvious fix is to drop the learned scale to 1.0 and let the
+  learner re-converge. It was built, measured head to head against the
+  confidence-weighted re-anchor on a 26-scenario grid, and lost. Recorded
+  here because it is the first thing anyone will reach for, and because the
+  mean error on that grid *favours* it, misleadingly.
+
+  The mean is not usable as a tiebreaker: every “the user is right” row is
+  built so the reset is exact by construction, and every “the learner is
+  right” row so the re-anchor is exact at φ=1, which makes the mean a
+  referendum on row counts. Leave-one-out proves it — dropping a single row
+  swings the gap 8 points on a 26-row grid. What survives leave-one-out is
+  the *size* of the damage each policy does where it does damage: reset
+  creates 116.4 points of error against the re-anchor's 27.1, a **4.3×
+  margin, stable across all 26 drops**.
+
+  The reset's failure modes are also the reachable ones. Change a value, save,
+  change your mind, change it back: the coefficient ends where it started and
+  a converged winter is destroyed permanently. Re-answer one dropdown on the
+  building questionnaire — the cheapest edit in the product — and 228 samples
+  are discarded to fix a 12 % error. And on the reported defect itself it only
+  gets from +93.8 % to +55.0 %, where the re-anchor reaches 0.0 %. Errors that
+  *destroy* information cost 4.75–9.5 days per edit to re-earn; errors that
+  merely preserve stale information are corrected by the still-running EWMA in
+  a fraction of that.
+
+  Four hybrids were measured — reset below a sample threshold at n=50, 114 and
+  228, and “reset but keep a clamp-bound scale”. **All four lost to both
+  parents** (mean 15.4–18.4 % against 13.1 % and 14.0 %) and none reduced the
+  worst case or the harm count. The threshold hybrid inherits one parent's
+  sysid failure and the other's renovation failure. The one change that did
+  earn its keep is not a hybrid but a single constant: run the re-anchor
+  behind a materiality threshold rather than a float-equality one.
+
+  The reset does win one criterion — worst-case relative error, 75.9 % against
+  200 % — and that is recorded honestly. The caveat is that the re-anchor's
+  200 % row is one where doing nothing is *also* 200 %: it fails to improve,
+  it creates no harm. The reset's 75.9 % row is one where it creates 21.7
+  points of new error.
 
 - **Item 32's clickable diagram is on the card, not in a custom panel.**
   A panel's risk is not authentication — panels are served only to

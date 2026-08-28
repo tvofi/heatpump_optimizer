@@ -222,6 +222,36 @@ It is deliberately small. A fuller stub would drift from the real thing without
 anyone noticing, and the job here is to let the integration *import* and its
 entities be *constructed*, not to reimplement Home Assistant.
 
+## A test must never re-implement what it is testing
+
+A test may build inputs and expected *values*. It must never contain its own
+copy of a production formula, constant or guard, and then assert against the
+copy.
+
+This is a distinct failure from a test that cannot fail, and it survives the
+review that catches those. The assertion *can* fail — it just fails when the
+test file's arithmetic changes rather than when production's does, so it looks
+convincing under a mutation proof while pinning nothing. It has been found
+twice, the second time in the round that was explicitly told to fix the first:
+
+* a test defined its own `phi()` reproducing the coordinator's confidence
+  curve, and the check named "the weight is exactly 0 at no samples and
+  exactly 1 at convergence" asserted against that copy;
+* a test defined its own `material()` reproducing the coordinator's
+  materiality guard, and every epsilon assertion ran against it. Deleting the
+  constant from the coordinator's *real* guard left the whole suite green.
+
+The rule: **every assertion about a computed quantity imports and calls the
+production symbol.** If production is awkward to call from a test — the value
+is buried in a method, or needs a coordinator to exist — that is a finding
+about production's shape, not permission to copy the formula. Extract it and
+test the extraction.
+
+The corollary for reviewers: "name a single-line production mutation that
+kills this assertion" is necessary but not sufficient. Also ask *which file*
+the mutation has to be made in. If the answer is the test file, the assertion
+is measuring itself.
+
 ## The two guards
 
 Most of these scripts ask "is the answer good?". Two ask something different,

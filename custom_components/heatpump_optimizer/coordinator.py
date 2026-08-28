@@ -1975,6 +1975,18 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         return {
             "buffer_cooling_rate": self._buffer_cooling_rate,
             "buffer_cooling_samples": self._buffer_cooling_samples,
+            # KNOWN DEFECT, unfixed as of v5.4.0: this records the scale
+            # but NOT the configured coefficient it was fitted against, so
+            # an options edit reloads the entry and the loader restores this
+            # scale verbatim against the NEW coefficient. Measured at 1.937x
+            # the UA the learner itself measured, on a questionnaire
+            # re-answer. The only reset lives in async_update_thermal_params,
+            # which only the set_thermal_parameters service reaches.
+            # Four fix attempts are written up in docs/backlog.md: read the
+            # "Open" entry AND the recorded decision before trying a fifth.
+            # The obvious fix -- reset the scale on an edit -- was built,
+            # measured against the alternative on a 26-scenario grid, and
+            # lost 4.3x on the damage it does where it does damage.
             "house_heat_loss_scale": self._house_heat_loss_scale,
             "house_heat_loss_samples": self._house_heat_loss_samples,
             "lower_floor_loss_ratio": self._lower_floor_loss_ratio,
@@ -6396,6 +6408,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             "buffer_cooling_rate": self._buffer_cooling_rate,
             "buffer_cooling_samples": self._buffer_cooling_samples,
             "buffer_cooling_rate_learned": self._buffer_cooling_samples > 0,
+            # Reports learned=True and an effective figure that the defect
+            # noted at _thermal_learning_payload can leave ~2x wrong after an
+            # options edit. The confidence shown here is in the sample count,
+            # not in the number. See docs/backlog.md, "Open".
             "house_heat_loss_scale": self._house_heat_loss_scale,
             "house_heat_loss_samples": self._house_heat_loss_samples,
             "house_heat_loss_learned": self._house_heat_loss_samples > 0,
