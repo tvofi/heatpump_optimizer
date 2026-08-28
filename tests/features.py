@@ -12943,5 +12943,55 @@ R.check(
 )
 
 
+R.section("v5.2.0 review — DERATE_MAX 1.05 -> 1.0, on a POPULATED bucket")
+
+# The deliberate change no golden covers: defrost_buckets is [] in every
+# fixture, so "no fixture moved" was never evidence the re-clamp is inert.
+# Here it is exercised directly, on a store that actually carries a bucket
+# above 1.0, through the model the planner reads the derate with.
+_dm_store = {
+    "factors": [[1.05, 1.04] for _ in range(6)],
+    "counts": [[40, 40] for _ in range(6)],
+}
+_dm_loaded = DefrostDerate.from_dict(_dm_store)
+R.check(
+    "a v1 store's above-1 factors are re-clamped on load, not carried",
+    _dm_loaded.factor(2.0, 80.0) == 1.0 and _dm_loaded.factor(2.0, 30.0) == 1.0,
+    f"{_dm_loaded.factor(2.0, 80.0)} / {_dm_loaded.factor(2.0, 30.0)} — the "
+    f"old bound would otherwise outlive the fix in every upgrading store",
+)
+R.check(
+    "the re-clamp is a real change: the OLD bound would have kept 1.05",
+    _dm_store["factors"][0][0] > DERATE_MAX and DERATE_MAX == 1.0,
+    f"stored {_dm_store['factors'][0][0]} vs DERATE_MAX {DERATE_MAX}",
+)
+# And the change is visible in a PLAN, not just in the loader.
+_dm_params = ThermalParameters.from_config(_mb_profiles.house())
+_dm_model = ThermalModel(_dm_params)
+_dm_cop_plain = _dm_model.compute_cop(2.0, humidity=80.0)
+_dm_params.defrost_derate = DefrostDerate.from_dict(_dm_store)
+_dm_cop_clamped = _dm_model.compute_cop(2.0, humidity=80.0)
+_dm_optimistic = DefrostDerate.from_dict(_dm_store)
+_dm_t, _dm_h = _dm_optimistic._bucket(2.0, 80.0)
+_dm_optimistic.factors[_dm_t][_dm_h] = 1.05  # what the old bound stored
+_dm_params.defrost_derate = _dm_optimistic
+_dm_cop_old = _dm_model.compute_cop(2.0, humidity=80.0)
+R.check(
+    "a populated frost-band bucket really does reach the COP the plan prices",
+    abs(_dm_cop_old - _dm_cop_plain) > 1e-6,
+    f"clamped {_dm_cop_clamped:.4f}, unclamped {_dm_cop_old:.4f}, none "
+    f"{_dm_cop_plain:.4f} — if these were equal this fixture would prove "
+    f"nothing about the bound",
+)
+R.check(
+    "and the new bound can only ever make the frost band MORE careful",
+    _dm_cop_clamped <= _dm_cop_plain + 1e-9 and _dm_cop_clamped < _dm_cop_old,
+    f"clamped {_dm_cop_clamped:.4f} <= plain {_dm_cop_plain:.4f} < old "
+    f"{_dm_cop_old:.4f}: an upgrading install with a learned factor above 1.0 "
+    f"loses exactly that optimism and nothing else",
+)
+_dm_params.defrost_derate = None
+
+
 
 sys.exit(R.close("FEATURE CHECKS"))
