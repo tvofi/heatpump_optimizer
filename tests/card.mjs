@@ -4849,6 +4849,12 @@ const setupBox = (card, place) =>
     const end = dump.indexOf("</div>", i);
     return dump.slice(i, end < 0 ? undefined : end);
   };
+  /** The `title` of one series' legend chip: what the chip claims beyond
+   * its visible name. One chip per series, so one title per key. */
+  const titleOf = (lg, key) => {
+    const m = lg.match(new RegExp(`data-key="${key}" title="([^"]*)"`));
+    return m ? m[1] : "";
+  };
   const chipsFor = (lg, key) =>
     (lg.match(new RegExp(`<button[^>]*data-key="${key}"`, "g")) || []).length;
   const zc = build(twoZone());
@@ -4920,8 +4926,13 @@ const setupBox = (card, place) =>
     olegend);
   check("and the duplicate traces are dropped rather than drawn",
     oneZone._series.find((s) => s.key === "house_temp").lines.length === 1);
+  // Scoped to the house chip's own title, not the whole legend: v5.2.0
+  // gives the tank series extra traces of its own on this same fixture, and
+  // "does the legend contain the words 'also drawn' anywhere" stopped being
+  // a question about the house the moment a second series could answer it.
   check("so its chip claims no extra traces",
-    !/also drawn/.test(olegend), olegend);
+    !/also drawn/.test(titleOf(olegend, "house_temp")),
+    titleOf(olegend, "house_temp"));
   const otip = ttRows(hovered(oneZone)).filter((l) =>
     /floor|House temperature/i.test(l));
   check("and its tooltip carries the one house row",
@@ -4957,6 +4968,379 @@ const setupBox = (card, place) =>
     chipsFor(svLegend, "house_temp") === 1 &&
     /ritas också: Övre plan, Nedre plan \(modellerad\)/.test(svLegend),
     svLegend);
+}
+
+// --- Scenario: the hot-water expected-error band (v5.2.0) ------------------
+//
+// `dhw_temp_lo` / `dhw_temp_hi` bracket the tank curve with the model's own
+// expected error. It rides v5.1.7's multi-trace machinery -- the same `extra`
+// array, the same dashed stroke, the same one-chip-toggles-the-series rule,
+// the same duplicate-drop -- and differs in exactly one deliberate way: the
+// pair is ONE envelope, so it collapses to a single named ± row and a single
+// chip instead of two of each.
+{
+  const mkCard = (mut, lang) => {
+    const states = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+    if (mut) {
+      states[DEFAULT_DHW].attributes.forecast = plan.dhw_plan.forecast.map(mut);
+    }
+    const c = new Card();
+    c.setConfig({ type: "custom:heatpump-optimizer-card" });
+    c.hass = { states, ...(lang ? { language: lang } : {}) };
+    // Legend toggles persist to the shared localStorage stub and earlier
+    // scenarios switch series off; these assertions are about the band.
+    c._hidden = {};
+    c.hass = { states, ...(lang ? { language: lang } : {}) };
+    return { card: c, dump: collect(c.shadowRoot).join("\n") };
+  };
+  const dhwPaths = (dump) =>
+    [...dump.matchAll(/<path class="series" data-key="dhw_temp"[^>]*>/g)]
+      .map((m) => m[0]);
+  const dashed = (paths) =>
+    paths.filter((x) => /stroke-dasharray="3 3"/.test(x));
+  const ptsOf = (c, field) => {
+    const s = c._series.find((x) => x.key === "dhw_temp");
+    return s.lines.filter((l) => l.field === field).flatMap((l) => l.points);
+  };
+  const hover = (c) => {
+    c._onPointerMove({
+      clientX: 400,
+      currentTarget: { getBoundingClientRect: () => ({ width: 900, left: 0 }) },
+    });
+    const tt = c.shadowRoot.querySelector(".tooltip");
+    return (tt && tt._html) || "";
+  };
+  const legendOnly = (dump) => {
+    const i = dump.indexOf('<div class="legend">');
+    if (i < 0) return "";
+    const end = dump.indexOf("</div>", i);
+    return dump.slice(i, end < 0 ? undefined : end);
+  };
+
+  const banded = plan.dhw_plan.forecast.filter(
+    (p) => p.dhw_temp_lo !== null && p.dhw_temp_lo !== undefined
+  );
+  check("the plan fixture actually carries a hot-water band to draw",
+    banded.length > 0 && banded.every(
+      (p) => p.dhw_temp_lo <= p.dhw_temp && p.dhw_temp <= p.dhw_temp_hi),
+    `${banded.length} banded steps of ${plan.dhw_plan.forecast.length}`);
+
+  const on = mkCard(null);
+  const onPaths = dhwPaths(on.dump);
+  check("the tank curve draws with its two dashed band edges",
+    onPaths.length === 3 && dashed(onPaths).length === 2,
+    `${onPaths.length} dhw_temp paths, ${dashed(onPaths).length} dashed`);
+  // Matching the room's dashes visually is the whole request: the chart must
+  // have ONE vocabulary for "this line is a companion, not a plan". The
+  // default fixture publishes upper == lower == room, which v5.1.7 rightly
+  // drops as duplicates, so the comparison needs a genuinely two-zone card.
+  const twoZoneEl = (() => {
+    const states = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+    states[DEFAULT_SPACE].attributes.forecast =
+      plan.space_plan.forecast.map((p, i) => ({
+        ...p, upper: p.room + 1.5, lower: p.room - 1.5 + (i % 3) * 0.1,
+      }));
+    const c = new Card();
+    c.setConfig({ type: "custom:heatpump-optimizer-card" });
+    c.hass = { states };
+    c._hidden = {};
+    c.hass = { states };
+    return c;
+  })();
+  const twoZoneCard = collect(twoZoneEl.shadowRoot).join("\n");
+  const roomDashed = [...twoZoneCard.matchAll(
+    /<path class="series" data-key="house_temp"[^>]*>/g)]
+    .map((m) => m[0]).filter((x) => /stroke-dasharray/.test(x));
+  const dashAttrs = (x) =>
+    (String(x).match(/stroke-dasharray="[^"]*" stroke-opacity="[^"]*"/) || [""])[0];
+  check("the band's dashes match the room extras' pattern and opacity exactly",
+    roomDashed.length === 2 &&
+    dashAttrs(dashed(onPaths)[0]) === dashAttrs(roomDashed[0]) &&
+    dashAttrs(dashed(onPaths)[0]) ===
+      'stroke-dasharray="3 3" stroke-opacity="0.7"',
+    `band ${dashAttrs(dashed(onPaths)[0])} vs `
+    + `room[${roomDashed.length}] ${dashAttrs(roomDashed[0])}`);
+  check("and the band is drawn in the tank series' own colour",
+    dashed(onPaths).every((x) => /stroke="#c264d0"/.test(x)),
+    dashed(onPaths).join("\n"));
+  check("the band brackets the curve it belongs to at every plotted step",
+    (() => {
+      const lo = ptsOf(on.card, "dhw_temp_lo");
+      const hi = ptsOf(on.card, "dhw_temp_hi");
+      const mid = new Map(ptsOf(on.card, "dhw_temp").map((q) => [q.t, q.v]));
+      const hiAt = new Map(hi.map((q) => [q.t, q.v]));
+      return lo.length > 0 && lo.every(
+        (q) => q.v <= mid.get(q.t) && mid.get(q.t) <= hiAt.get(q.t));
+    })());
+
+  // A fresh install: null at every step, and the card must draw no band at
+  // all rather than a zero-width one lying on the curve.
+  const off = mkCard((p) => ({ ...p, dhw_temp_lo: null, dhw_temp_hi: null }));
+  const offPaths = dhwPaths(off.dump);
+  check("null band values draw nothing -- only the tank curve remains",
+    offPaths.length === 1 && dashed(offPaths).length === 0,
+    `${offPaths.length} dhw_temp paths`);
+  check("and the tank curve keeps exactly the data it had with the band",
+    JSON.stringify(ptsOf(off.card, "dhw_temp").map((q) => [q.t, q.v])) ===
+    JSON.stringify(ptsOf(on.card, "dhw_temp").map((q) => [q.t, q.v])));
+
+  // v5.1.7's duplicate rule, which the band inherits: a record that has
+  // scored pairs but never been wrong answers sigma 0, so both edges land
+  // exactly on the curve. That is a zero-width envelope and must not draw.
+  const flat = mkCard((p) => ({
+    ...p, dhw_temp_lo: p.dhw_temp, dhw_temp_hi: p.dhw_temp,
+  }));
+  const flatPaths = dhwPaths(flat.dump);
+  check("a zero-width band is dropped by the same rule that drops a copied "
+    + "zone, not drawn on top of the curve",
+    flatPaths.length === 1 && dashed(flatPaths).length === 0,
+    `${flatPaths.length} dhw_temp paths`);
+  check("and it contributes no tooltip row either",
+    !/expected error/.test(hover(flat.card)), hover(flat.card));
+
+  // A hole in the middle must BREAK each dashed edge, not bridge it, and not
+  // plot the null as a zero -- a zero would drag the shared temperature axis
+  // down and flatten every other curve sharing it.
+  const gapFrom = 30, gapTo = 40;
+  const gapNulled = new Set(
+    plan.dhw_plan.forecast.slice(gapFrom, gapTo).map((p) => Date.parse(p.t)));
+  const gapped = mkCard((p, i) =>
+    i >= gapFrom && i < gapTo
+      ? { ...p, dhw_temp_lo: null, dhw_temp_hi: null }
+      : p);
+  const gapPaths = dhwPaths(gapped.dump);
+  check("a null in the middle breaks each band edge into two paths",
+    gapPaths.length === 5 && dashed(gapPaths).length === 4,
+    `${gapPaths.length} dhw_temp paths, ${dashed(gapPaths).length} dashed`);
+  const gapPts = ptsOf(gapped.card, "dhw_temp_lo");
+  check("and no null is plotted -- not as a zero, not as anything",
+    gapPts.length > 0 && gapPts.every((q) => !gapNulled.has(q.t)),
+    `${gapPts.filter((q) => gapNulled.has(q.t)).length} nulled steps plotted`);
+  check("every step that DID have a value is still drawn",
+    (() => {
+      const kept = new Set(gapPts.map((q) => q.t));
+      return ptsOf(on.card, "dhw_temp_lo")
+        .filter((q) => !gapNulled.has(q.t))
+        .every((q) => kept.has(q.t));
+    })());
+  check("the hole is a real break: the two segments do not share a step",
+    (() => {
+      const segs = gapped.card._series
+        .find((x) => x.key === "dhw_temp")
+        .lines.filter((l) => l.field === "dhw_temp_lo");
+      if (segs.length !== 2) return false;
+      const endA = segs[0].points[segs[0].points.length - 1].t;
+      const startB = segs[1].points[0].t;
+      return endA < startB && [...gapNulled].some(
+        (t) => t > endA && t < startB);
+    })());
+  // A segmented field is still ONE trace to the reader: v5.1.7 names every
+  // trace in the legend and the tooltip, and naming each fragment would say
+  // the same thing three times.
+  const chipCount = (dump, key) =>
+    (legendOnly(dump).match(
+      new RegExp(`data-key="${key}"`, "g")) || []).length;
+  const legendTitle = (dump, key) => {
+    const m = legendOnly(dump).match(
+      new RegExp(`data-key="${key}" title="([^"]*)"`));
+    return m ? m[1] : "";
+  };
+  check("a broken band is still named once and reported once, not once per "
+    + "segment",
+    chipCount(gapped.dump, "dhw_temp") === 1 &&
+    (legendTitle(gapped.dump, "dhw_temp")
+      .match(/Hot water, expected error/g) || []).length === 1 &&
+    (hover(gapped.card).match(/expected error/g) || []).length === 1,
+    legendTitle(gapped.dump, "dhw_temp"));
+
+  // --- what the dashed lines SAY -----------------------------------------
+  const ttEn = hover(on.card);
+  check("the tooltip names the band as the model's expected error, with a ±",
+    /Hot water, expected error: ±[\d.]+ °C/.test(ttEn), ttEn);
+  check("the solid tank row still reads as an absolute temperature",
+    /DHW tank temperature: [\d.-]+ °C/.test(ttEn), ttEn);
+  check("the band is ONE row, not two absolute temperatures nobody asked for",
+    (ttEn.match(/expected error/g) || []).length === 1 &&
+    !/dhw_temp_lo|dhw_temp_hi/.test(ttEn), ttEn);
+  const ttOff = hover(off.card);
+  check("with no band there is no expected-error row to mislead anyone",
+    !/expected error/.test(ttOff) && /DHW tank temperature:/.test(ttOff), ttOff);
+
+  // The legend chip carries the explanation, which is where a reader puzzled
+  // by a dashed line actually looks.
+  const legEn = legendOnly(on.dump);
+  check("the legend says what the tank's dashed pair is",
+    /data-key="dhw_temp" title="[^"]*expected error[^"]*widens further ahead/
+      .test(legEn),
+    (legEn.match(/data-key="dhw_temp" title="[^"]*"/g) || []).join("\n"));
+  // v5.1.9: ONE chip per series, extras named inside its title. The band
+  // gets no chip of its own and must not: the chip toggles the series, and
+  // there is no such thing as hiding one edge of it.
+  check("and it is the tank's own single chip that says so, not a second one",
+    chipCount(on.dump, "dhw_temp") === 1 &&
+    /also drawn: Hot water, expected error\./.test(
+      legendTitle(on.dump, "dhw_temp")),
+    legendTitle(on.dump, "dhw_temp"));
+  // The sentence belongs on hover; stretched across the legend row it would
+  // push every other chip off the card.
+  check("the explanation rides in the chip's title, not its visible text",
+    />DHW tank temperature\s*<\/button>/.test(legEn) &&
+    !/>[^<]*widens further ahead[^<]*<\/button>/.test(legEn), legEn);
+  // The band is named ONCE in that title, not once per edge -- which is the
+  // whole point of enumerating traces through `_extraFields`: a legend
+  // rewritten to stop repeating a name must not start repeating this one.
+  // Counted on the band's NAME, not on the words "expected error": the
+  // explanatory sentence that follows legitimately contains them again.
+  check("and it names the pair once, not once per edge",
+    (legendTitle(on.dump, "dhw_temp")
+      .match(/Hot water, expected error/g) || []).length === 1 &&
+    !/DHW tank temperature.*also drawn.*DHW tank temperature/.test(
+      legendTitle(on.dump, "dhw_temp")),
+    legendTitle(on.dump, "dhw_temp"));
+
+  // A band is a PAIR or it is nothing. Either edge can go missing on its own
+  // -- a key absent from the payload, an edge published null the whole way
+  // across, or an edge dropped by v5.1.7's duplicate rule -- and before this
+  // was enforced the card drew ONE dashed line hugging the curve, still
+  // offered the "expected error" legend chip, and reported nothing in the
+  // tooltip. Three parts of the card disagreeing about whether a band exists.
+  for (const [how, mut] of [
+    ["the high edge absent",
+      (p) => { const q = { ...p }; delete q.dhw_temp_hi; return q; }],
+    ["the low edge absent",
+      (p) => { const q = { ...p }; delete q.dhw_temp_lo; return q; }],
+    ["the high edge null throughout", (p) => ({ ...p, dhw_temp_hi: null })],
+    ["the low edge null throughout", (p) => ({ ...p, dhw_temp_lo: null })],
+  ]) {
+    const half = mkCard(mut);
+    const paths = dhwPaths(half.dump);
+    check(`with ${how} the card draws no band at all, not half of one`,
+      paths.length === 1 && dashed(paths).length === 0,
+      `${paths.length} dhw_temp paths, ${dashed(paths).length} dashed`);
+    check(`and offers no expected-error chip for a band it is not drawing`,
+      !/expected error/.test(legendOnly(half.dump)),
+      legendOnly(half.dump));
+    check(`and the tank curve itself is untouched`,
+      ptsOf(half.card, "dhw_temp").length ===
+      ptsOf(on.card, "dhw_temp").length);
+  }
+
+  // --- the legend toggle --------------------------------------------------
+  const chipFor = (c, key) =>
+    [...c.shadowRoot.querySelectorAll(".chip")]
+      .find((el) => el.getAttribute("data-key") === key);
+  // `_onLegendClick` reads `currentTarget`, which the stub's dispatch does
+  // not set, so the handler is called directly with the chip as its target.
+  const clickChip = (c, key) => {
+    const el = chipFor(c, key);
+    for (const f of el._listeners.click || []) {
+      f({ currentTarget: el, stopPropagation() {}, preventDefault() {} });
+    }
+    return collect(c.shadowRoot).join("\n");
+  };
+  const toggled = mkCard(null);
+  const hiddenDump = clickChip(toggled.card, "dhw_temp");
+  check("turning the tank series off takes its band with it",
+    dhwPaths(hiddenDump).length === 0,
+    `${dhwPaths(hiddenDump).length} dhw_temp paths after the toggle`);
+  // Compared against the SAME card before the toggle, not against the
+  // two-zone card above: the point is that hiding one series leaves the
+  // other exactly as it was.
+  const housePaths = (dump) =>
+    [...dump.matchAll(/<path class="series" data-key="house_temp"[^>]*>/g)]
+      .map((m) => m[0]);
+  // Trace count and dash treatment, not path geometry: hiding a series frees
+  // the shared temperature axis to rescale, so the remaining curve's
+  // coordinates legitimately move. What must not change is how many traces
+  // the room series has and which of them are dashed.
+  const dashCount = (paths) =>
+    paths.filter((x) => /stroke-dasharray/.test(x)).length;
+  check("while the room's own traces are untouched -- one chip, one series",
+    housePaths(hiddenDump).length === housePaths(on.dump).length &&
+    dashCount(housePaths(hiddenDump)) === dashCount(housePaths(on.dump)),
+    `${housePaths(hiddenDump).length}/${dashCount(housePaths(hiddenDump))} vs `
+    + `${housePaths(on.dump).length}/${dashCount(housePaths(on.dump))}`);
+  check("and the chip count is unchanged: the room keeps its own chips",
+    chipCount(hiddenDump, "house_temp") === chipCount(on.dump, "house_temp"),
+    `${chipCount(hiddenDump, "house_temp")} vs `
+    + `${chipCount(on.dump, "house_temp")}`);
+  const backDump = clickChip(toggled.card, "dhw_temp");
+  check("and turning it back on restores the curve and both band edges",
+    dhwPaths(backDump).length === 3 && dashed(dhwPaths(backDump)).length === 2,
+    `${dhwPaths(backDump).length} paths, `
+    + `${dashed(dhwPaths(backDump)).length} dashed`);
+  const hoverHidden = (() => {
+    clickChip(toggled.card, "dhw_temp");
+    const tt = hover(toggled.card);
+    clickChip(toggled.card, "dhw_temp");
+    return tt;
+  })();
+  check("a hidden tank series contributes no band row to the tooltip either",
+    !/expected error/.test(hoverHidden) &&
+    !/DHW tank temperature:/.test(hoverHidden), hoverHidden);
+
+  // --- naming the band WITHOUT a chip of its own --------------------------
+  //
+  // This branch draws one chip per named trace. A sibling change replaces
+  // that with one chip per SERIES, naming the rest of its traces inside that
+  // chip's `title`. The band must not assume either shape: what it owes any
+  // such consumer is that "how many traces are there, and what is each
+  // called" has a right answer, which is `_extraFields` + `_lineLabel`.
+  // Asserted against those two directly, because the markup this branch
+  // happens to render cannot show it.
+  //
+  // Both failure modes here are silent and would ship: iterating `lines`
+  // instead of `_extraFields` names a band twice and a gapped trace once per
+  // fragment, and without `extraLabels` an edge falls back to the series
+  // label and calls itself "DHW tank temperature" -- a second, wrong
+  // absolute temperature in a legend built to remove duplicates.
+  {
+    const traces = (c, key) => {
+      const s = c._series.find((x) => x.key === key);
+      return c._extraFields(s).map((line) => c._lineLabel(s, line));
+    };
+    check("the band is ONE named trace, however many paths draw it",
+      JSON.stringify(traces(on.card, "dhw_temp")) ===
+        JSON.stringify(["Hot water, expected error"]),
+      JSON.stringify(traces(on.card, "dhw_temp")));
+    check("and it stays one when a hole splits both edges in two",
+      JSON.stringify(traces(gapped.card, "dhw_temp")) ===
+        JSON.stringify(["Hot water, expected error"]),
+      JSON.stringify(traces(gapped.card, "dhw_temp")));
+    check("neither edge ever answers to the tank curve's own name",
+      !traces(on.card, "dhw_temp").includes("DHW tank temperature"),
+      JSON.stringify(traces(on.card, "dhw_temp")));
+    // The collapse is the BAND's, not every extra's: two floors are two
+    // real temperatures and must keep two names.
+    check("while the room's two floors stay two separately named traces",
+      JSON.stringify(traces(twoZoneEl, "house_temp")) ===
+        JSON.stringify(["Upper floor", "Lower floor"]),
+      JSON.stringify(traces(twoZoneEl, "house_temp")));
+    check("and a series with no band is unaffected by any of it",
+      traces(on.card, "house_temp").length === 0,
+      JSON.stringify(traces(on.card, "house_temp")));
+    check("the explanation is fetched per trace too, so a one-chip legend "
+      + "can reach it",
+      (() => {
+        const s = on.card._series.find((x) => x.key === "dhw_temp");
+        const zs = twoZoneEl._series.find((x) => x.key === "house_temp");
+        return /widens further ahead/.test(
+          on.card._lineNote(s, on.card._extraFields(s)[0])) &&
+          twoZoneEl._lineNote(zs, twoZoneEl._extraFields(zs)[0]) === "";
+      })());
+  }
+
+  // Swedish: both dictionaries carry the new keys, or the band is explained
+  // to half the users only.
+  const sv = mkCard(null, "sv-SE");
+  const svTt = hover(sv.card);
+  check("the band is named in Swedish too",
+    /Varmvatten, förväntat fel: ±[\d.]+ °C/.test(svTt), svTt);
+  check("the Swedish legend explains the dashed pair",
+    /förväntade fel/.test(legendOnly(sv.dump)), legendOnly(sv.dump));
+  check("and no English band string leaks into the Swedish render",
+    !/expected error/.test(svTt) && !/expected error/.test(legendOnly(sv.dump)),
+    svTt);
 }
 
 console.log(fails ? `\n${fails} CARD CHECK(S) FAILED` : "\nALL CARD CHECKS PASSED");

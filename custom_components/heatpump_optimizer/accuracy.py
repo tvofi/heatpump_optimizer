@@ -197,6 +197,24 @@ class AccuracyTracker:
             # that missed its measurement window is unverifiable.
         self.lead_pending = keep
 
+    def has_lead_history(self) -> bool:
+        """Whether any lead bucket has actually scored a pair.
+
+        ``sigma`` answers 0.0 both for "no evidence" and for "the model has
+        been perfect", which is the right answer for a safety margin — both
+        mean *add nothing*. It is the wrong answer for a band that gets
+        DRAWN: a zero-width envelope on a fresh install claims a precision
+        nothing has earned. Callers that publish a band ask this first and
+        publish nothing at all when it is False.
+        """
+        # Deliberately the same admission test ``sigma`` applies, so the
+        # two can never disagree: a half-restored store carrying sigmas
+        # with no counts (or counts with no sigmas) answers False here and
+        # 0.0 there, and nothing is drawn.
+        return any(
+            self.lead_counts.get(lead, 0) > 0 for lead in self.lead_sigma
+        )
+
     def sigma(self, lead_hours: float) -> float:
         """Expected |error| for a promise this far ahead, °C.
 
