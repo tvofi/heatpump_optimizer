@@ -65,7 +65,10 @@ p2=$!
   rec tests/open_meteo.py
   rec tests/solar_alignment.py
   rec tests/optimality.py
-  rec tests/dst_checks.py
+  # features.py runs this one in a subprocess with HASTUB_TZ set, because the
+  # stub's DEFAULT_TIME_ZONE is fixed at import. Recorded the same way: without
+  # it the script fails, and a failed run records only what it reached.
+  HASTUB_TZ=Europe/Stockholm rec tests/dst_checks.py
   rec tests/golden.py --only __no_such_scenario__
   rec tests/env_drift.py --cache-key "$GOLDEN_REF" --all
   rec tests/plan_view.py

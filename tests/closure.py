@@ -72,19 +72,23 @@ PRODUCERS = {"tests/card.mjs": ["tests/plan_view.py"]}
 #
 # Everything else that is not in any closure forces a FULL run. "No test reads
 # it" is not something to assume about a file nobody measured.
-# It is deliberately shorter than it looks like it should be. The first
-# version of this list had README.md and RELEASE_NOTES.md on it; the
-# recordings then showed that tests/entities.py READS both of them, and the
-# check below rejected the list. They are not inert; they are dependencies,
-# and they are in a closure now because a run said so.
+# It is deliberately shorter than it looks like it should be. Two entries were
+# taken off it by measurement rather than by argument:
+#
+#   README.md, RELEASE_NOTES.md — tests/entities.py reads both, checking the
+#     documented behaviour against the code. They are dependencies.
+#   the integration's icon and brand images — inside custom_components/, so
+#     they are inside env_drift.py's rule-widened closure whatever anyone
+#     thinks about them, and claiming otherwise here is just an inconsistency
+#     waiting to be believed.
+#
+# Both were rejected by the check below, which is why they are gone.
 INERT = (
     "LICENSE",
     "NOTICE",
     "icon.png",
     "docs/",
     "tests/README.md",
-    "custom_components/heatpump_optimizer/brand/",
-    "custom_components/heatpump_optimizer/icon.png",
     ".gitignore",
 )
 
