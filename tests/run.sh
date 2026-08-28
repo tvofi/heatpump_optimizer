@@ -39,6 +39,35 @@
 # which is the old behaviour and the thing to reach for when a failure needs
 # watching as it happens.
 #
+# SCOPING. A full run is about forty minutes; a change to the card genuinely
+# needs about five seconds of it. GATE_SCOPE=auto runs only the scripts the
+# change can reach, decided from the MEASURED dependency closures in
+# tests/closures.json (see tests/closure.py -- they are recorded by running
+# the suite under instrumentation, never written by hand).
+#
+#   GATE_SCOPE=full   (the DEFAULT, everywhere) run every script.
+#   GATE_SCOPE=auto   scope to the diff against GATE_SCOPE_BASE
+#                     (default origin/main).
+#
+# Scoping is off unless it is asked for, and it turns itself off again --
+# running everything -- whenever it cannot be sure: no closures file, a
+# closure missing for some script, a changed file no recorded closure
+# mentions, or any change to the gate itself. tests/env_drift.py additionally
+# always runs when anything under custom_components/ changed, because it
+# compares behaviour rather than imports and no file-name argument can
+# justify skipping it.
+#
+# Every scoped-out script is printed, with its reason and the size of the
+# closure it was tested against, both up front and again in a block of its
+# own at the end. This suite has a history of tests that looked like they ran
+# and asserted nothing; a script that quietly did not run at all would be
+# worse, because it would look like a pass.
+#
+# The safety net that makes this acceptable: the full unscoped suite still
+# runs on every push to main and on every release (.github/workflows/tests.yml
+# forces GATE_SCOPE=full there). Scoping applies to pull requests only, so a
+# wrong closure turns main red within one gate instead of never.
+#
 # In lane mode each script's output is captured and replayed in full, one
 # script at a time, after the lanes finish — interleaved output from four
 # concurrent scripts is not something a human can read. Progress lines are
@@ -68,10 +97,66 @@ case "$JOBS" in (*[!0-9]*|"") JOBS=1 ;; esac
 WORKDIR=$(mktemp -d "${TMPDIR:-/tmp}/hpo-gate-XXXXXX")
 trap 'rm -rf "$WORKDIR"' EXIT
 
+# --- scoping ---------------------------------------------------------------
+# Default full. The scoped path has to be asked for by name, and any doubt
+# inside tests/closure.py comes back as a full run.
+GATE_SCOPE="${GATE_SCOPE:-full}"
+GATE_SCOPE_BASE="${GATE_SCOPE_BASE:-origin/main}"
+SCOPE_RUN=""            # empty => no scoping, run everything
+if [ "$GATE_SCOPE" = "auto" ]; then
+  if "$PYTHON" tests/closure.py select --diff "$GATE_SCOPE_BASE" \
+       --workdir "$WORKDIR" > "$WORKDIR/scope.stdout" 2>&1; then
+    cat "$WORKDIR/scope.txt"
+    if [ -s "$WORKDIR/scope.run" ]; then SCOPE_RUN="$WORKDIR/scope.run"; fi
+  else
+    echo
+    echo "########## scoped gate ##########"
+    echo "  MODE: FULL -- tests/closure.py could not produce a plan, so"
+    echo "  nothing is scoped out. Its output:"
+    sed 's/^/    /' "$WORKDIR/scope.stdout"
+  fi
+elif [ "$GATE_SCOPE" != "full" ]; then
+  echo
+  echo "########## scoped gate ##########"
+  echo "  MODE: FULL -- GATE_SCOPE=$GATE_SCOPE is not a mode I know"
+  echo "  (expected 'full' or 'auto'), so every script runs."
+fi
+
+# The script a `run` line is actually running, for the scope lookup: the
+# first argument that names a file under tests/. Not the last argument --
+# env_drift.py takes a ref after its script path.
+scope_script() {
+  local a
+  for a in "$@"; do
+    case "$a" in tests/*.py|tests/*.mjs) printf '%s' "$a"; return ;; esac
+  done
+}
+
+# Is this script in the scoped run set? True when scoping is off.
+in_scope() {
+  [ -z "$SCOPE_RUN" ] && return 0
+  local s
+  s=$(scope_script "$@")
+  [ -z "$s" ] && return 0          # not a test script line: never scope it out
+  grep -Fxq "$s" "$SCOPE_RUN"
+}
+
 failed=0
 LANE="${LANE:-main}"
 step=0
 suite_start=$(date +%s)
+
+# Why a given script was scoped out, in the words tests/closure.py used.
+scope_reason() {
+  local line
+  line=$(grep -F "$1	" "$WORKDIR/scope.skip" 2>/dev/null | head -1)
+  if [ -z "$line" ]; then
+    echo "not in the scoped run set"
+  else
+    printf 'no changed file is in its measured closure of %s file(s)' \
+      "$(printf '%s' "$line" | cut -f2)"
+  fi
+}
 
 # One test script. In lane mode its output goes to a file and is replayed
 # later, in one piece; serially it streams, exactly as it always did. Either
@@ -79,6 +164,13 @@ suite_start=$(date +%s)
 # which is what the parent adds up — a lane runs in a subshell, so a counter
 # incremented in there would never come back.
 run() {
+  local scoped_out
+  if ! in_scope "$@"; then
+    scoped_out=$(scope_script "$@")
+    skip "$scoped_out" \
+      "SKIP: $scoped_out (scoped out: $(scope_reason "$scoped_out"))"
+    return 0
+  fi
   step=$((step + 1))
   local id started finished rc=0
   id=$(printf '%s-%03d' "$LANE" "$step")
@@ -305,6 +397,31 @@ for lane in $LANES stress; do
   done < "$WORKDIR/$lane.manifest"
 done
 printf '  %6ss  TOTAL (%s lane(s))\n' "$(( $(date +%s) - suite_start ))" "$JOBS"
+
+# --- what did NOT run ------------------------------------------------------
+# Said twice, on purpose. A scoped gate that is quiet about what it dropped
+# is indistinguishable from a gate that passed, and this codebase already has
+# six known instances of a test that looked like it ran and asserted nothing.
+if [ -n "$SCOPE_RUN" ]; then
+  echo
+  echo "########## NOT RUN: scoped out of this gate ##########"
+  if [ -s "$WORKDIR/scope.skip" ]; then
+    while IFS=$'\t' read -r script size reason; do
+      [ -z "$script" ] && continue
+      printf '  %-24s did NOT run -- %s (closure: %s files)\n' \
+        "$script" "$reason" "$size"
+    done < "$WORKDIR/scope.skip"
+  else
+    echo "  (nothing -- every script was in scope)"
+  fi
+  echo
+  echo "  Each line above is a claim that no file changed by this branch is in"
+  echo "  that script's MEASURED closure (tests/closures.json, recorded by"
+  echo "  tests/derive_closures.sh from real instrumented runs). The claim is"
+  echo "  re-checked in full: every push to main runs this suite unscoped, so"
+  echo "  a closure that is wrong turns main red within one gate."
+  echo "  Run everything here and now with: GATE_SCOPE=full ./tests/run.sh"
+fi
 
 echo
 if [ "$failed" -ne 0 ]; then

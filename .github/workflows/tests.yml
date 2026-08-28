@@ -28,6 +28,24 @@ name: Tests
 #   the end; every script still runs with the same arguments and every
 #   failure still counts.
 #
+#   SCOPING, and the reason it is safe. On a PULL REQUEST the suite runs
+#   with GATE_SCOPE=auto: only the scripts the diff can actually reach
+#   are run, decided from the measured dependency closures in
+#   tests/closures.json. On a PUSH TO MAIN -- and on the nightly, and on
+#   any manual dispatch -- GATE_SCOPE is forced to full and every script
+#   runs regardless of what changed. That asymmetry is the whole safety
+#   argument: if a closure is ever wrong, the scoped PR gate may miss it,
+#   but the very next gate, the unscoped one on main, does not. main goes
+#   red within one merge instead of never. Every scoped-out script is
+#   printed with its reason in the run log, twice.
+#
+# * closures — push to main, and nightly. Re-records every closure by
+#   running the whole suite under instrumentation and fails if
+#   tests/closures.json misses anything a real run touched. It runs
+#   beside `fast`, so it costs a runner and no wall clock. This is what
+#   stops the closures rotting the way a hand-written dependency table
+#   would.
+#
 # * slow — nightly and on demand. Same suite plus SLOW=1, which adds
 #   tests/rolling.py (the closed-loop learner simulation, ~15 minutes).
 
@@ -108,6 +126,19 @@ jobs:
           path: ~/.cache/heatpump_optimizer/drift-baseline
           key: drift-baseline-${{ steps.driftkey.outputs.key }}
 
+      # Pull requests get the scoped gate; everything else -- pushes to
+      # main above all -- gets the whole suite. Written as an explicit
+      # equality on the event name so an event this file has not thought
+      # about lands on `full`, not on `auto`.
+      - name: Decide the gate scope
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "GATE_SCOPE=auto" >> "$GITHUB_ENV"
+            echo "GATE_SCOPE_BASE=$GOLDEN_REF" >> "$GITHUB_ENV"
+          else
+            echo "GATE_SCOPE=full" >> "$GITHUB_ENV"
+          fi
+
       - name: Run the suite
         env:
           GOLDEN_MODE: drift
@@ -172,6 +203,10 @@ jobs:
         env:
           GOLDEN_MODE: drift
           SLOW: "1"
+          # Said out loud even though it is the default: the nightly is one
+          # of the runs the scoped gate is measured against, so it never
+          # scopes.
+          GATE_SCOPE: full
           # See the fast job: the solve-time guard calibrates against this
           # runner rather than against a stopwatch, and threads are pinned
           # so process CPU time means the same thing here as anywhere else.
@@ -181,3 +216,50 @@ jobs:
           OPENBLAS_NUM_THREADS: "1"
           MKL_NUM_THREADS: "1"
         run: ./tests/run.sh
+
+  # The closures the scoped PR gate trusts, re-derived from real runs and
+  # compared against what is committed. A closure that MISSES a file a run
+  # really touched is the dangerous direction -- that is what would make the
+  # gate skip a script it should have run -- and it fails here. A closure
+  # that lists more than a run touched only costs time, and is reported.
+  #
+  # This never runs on a pull request: it is the check on main, deliberately
+  # outside the thing it checks.
+  closures:
+    if: github.event_name == 'push' || github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 100
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install pinned test dependencies
+        run: pip install -r tests/requirements-ci.txt
+
+      - name: Install strace
+        # node has no audit hook, so tests/card.mjs is recorded by tracing
+        # its opens instead.
+        run: sudo apt-get update && sudo apt-get install -y strace
+
+      - name: Re-record every closure
+        env:
+          OMP_NUM_THREADS: "1"
+          OPENBLAS_NUM_THREADS: "1"
+          MKL_NUM_THREADS: "1"
+        run: |
+          REF=$(git rev-parse --verify --quiet 'HEAD^1^{commit}') || REF=HEAD
+          GOLDEN_REF="$REF" ./tests/derive_closures.sh --out-dir "$RUNNER_TEMP/closures"
+
+      - name: Fail if tests/closures.json under-approximates
+        env:
+          PYTHONPATH: tests/hastub
+        run: python tests/closure.py check --in-dir "$RUNNER_TEMP/closures"
