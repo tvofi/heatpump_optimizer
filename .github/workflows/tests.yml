@@ -13,6 +13,17 @@ name: Tests
 #   change's own behavioural footprint, which must be empty or claimed
 #   in tests/golden/claimed_drift.txt.
 #
+#   The env_drift baseline is cached between runs
+#   under a key covering the baseline commit and tree, tests/env_drift.py
+#   itself, the interpreter, the installed distributions and a bit-exact
+#   fingerprint of this runner's floating-point arithmetic. On a push to
+#   main the comparison ref is HEAD^1 and differs every run, so nothing is
+#   restored and the uncached path is what runs; on a pull request the
+#   merge-base is stable, so a second push to the same PR reuses the
+#   baseline it already captured. env_drift re-checks the key inside the
+#   restored entry before using it, so a wrong restore is a miss rather
+#   than a stale baseline.
+#
 # * slow — nightly and on demand. Same suite plus SLOW=1, which adds
 #   tests/rolling.py (the closed-loop learner simulation, ~15 minutes).
 
@@ -73,6 +84,25 @@ jobs:
             exit 1
           fi
           echo "GOLDEN_REF=${REF}" >> "$GITHUB_ENV"
+
+      # The key is computed by the same function the run itself uses, so
+      # the two can never disagree, and it needs the dependencies above to
+      # fingerprint them. Pull requests only: a push to main compares
+      # against HEAD^1, a different commit every run, so an entry could
+      # never be hit and would only take up room.
+      - name: Key the drift baseline cache
+        id: driftkey
+        if: github.event_name == 'pull_request'
+        env:
+          PYTHONPATH: tests/hastub
+        run: echo "key=$(python tests/env_drift.py --cache-key "$GOLDEN_REF" --all)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore the drift baseline
+        if: github.event_name == 'pull_request'
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/heatpump_optimizer/drift-baseline
+          key: drift-baseline-${{ steps.driftkey.outputs.key }}
 
       - name: Run the suite
         env:

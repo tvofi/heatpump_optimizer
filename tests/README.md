@@ -104,6 +104,25 @@ Without `--all` only the five sensitive fixtures are captured, so claims
 naming any other scenario are reported there as *not evaluated* rather than
 stale; judging those is `--all`'s job, which is what CI runs.
 
+The baseline half of the comparison is the slowest step in the whole suite,
+and it is byte-identical for every branch forked from the same commit, so it
+is cached between runs in `~/.cache/heatpump_optimizer/drift-baseline`
+(outside the repository, so it is never committed; `DRIFT_CACHE_DIR` moves it,
+`DRIFT_NO_CACHE=1` turns it off, `DRIFT_CACHE_KEEP` bounds how many entries
+are kept). The key covers the baseline commit *and* its tree, the SHA-256 of
+`env_drift.py` itself — which is what decides which scenarios are captured and
+how — the capture mode, the interpreter, the full installed distribution
+inventory, numpy's build configuration, the environment variables the capture
+path reads, and a `numeric_probe`: a fixed seeded numpy/scipy workload hashed
+to the last bit, so a swapped BLAS or a rebuilt scipy invalidates the entry by
+measurement rather than by guesswork. A hit prints a banner naming the key and
+the entry it came from, so gate output always says when a baseline was reused.
+`python tests/env_drift.py --cache-key <ref> --all` prints the key a run would
+look up; CI keys `actions/cache` with it on pull requests, where the
+merge-base is stable across pushes. The branch half is always recaptured, so
+even if the environment moved without moving the key, a mismatched baseline
+shows up as drift — a loud, over-strict failure — rather than as a silent pass.
+
 `--record` re-records from current behaviour. **Read the diff before doing
 that.** A change here is either a bug or a deliberate decision that belongs in
 a commit message; the whole value of the file is that re-recording is a choice
