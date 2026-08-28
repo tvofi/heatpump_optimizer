@@ -26,6 +26,7 @@ from __future__ import annotations
 import asyncio
 import json
 import sys
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from harness import FakeCoordinator, FakeEntry, FakeHass, FakeState, Results
@@ -84,20 +85,23 @@ for name in ("binary_sensor", "button"):
     )
 
 
-def collect(module):
+def collect(module, data=None, coordinator=None):
     """Instantiate every entity a platform would add, for a given data dict.
 
     Driven through the real ``async_setup_entry`` rather than by listing the
     classes here, so a new entity that is written but never registered still
-    shows up as missing.
+    shows up as missing — and so a whole-platform sweep cannot quietly miss
+    the one entity nobody thought to name.
     """
     added = []
 
     def add_entities(entities):
         added.extend(entities)
 
+    if coordinator is None:
+        coordinator = FakeCoordinator(DATA if data is None else data)
     hass = FakeHass()
-    hass.data[const.DOMAIN] = {ENTRY.entry_id: FakeCoordinator(DATA)}
+    hass.data[const.DOMAIN] = {ENTRY.entry_id: coordinator}
     asyncio.run(module.async_setup_entry(hass, ENTRY, add_entities))
     return added
 
@@ -197,6 +201,22 @@ DATA = {
     "dhw_cost": 70.0,
     "total_cost": 280.0,
     "accuracy": {"temperature_mae": 0.3, "temperature_bias": -0.1, "trust": 0.97},
+    # Every gate the entities read is satisfied here, so an entity that is
+    # unavailable against this payload is unavailable for a reason of its own
+    # -- which is what makes the coordinator-failure sweep below meaningful.
+    "dhw_enabled": True,
+    "reading_ok": {
+        "upper_floor_temperature": True,
+        "lower_floor_temperature": True,
+        "floor_return_temperature": True,
+        "slab_temperature": True,
+        "buffer_tank_temperature": True,
+        "dhw_temperature": True,
+    },
+    "contract_comparison": {
+        "load_profile_value_per_kwh": -0.031,
+        "months": 2,
+    },
     "peak_tariff_enabled": True,
     "billed_peak_kw": 7.2,
     "peak_threshold_kw": 6.5,
@@ -608,6 +628,311 @@ R.check(
         ),
         ENTRY,
     ).available,
+)
+
+
+# ===========================================================================
+# Sensors say what they actually know
+# ===========================================================================
+R.section("A published number is a reading or it is nothing")
+
+from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator
+from heatpump_optimizer.thermal_model import ThermalState
+
+# These go through a REAL coordinator rather than a hand-written dict. The
+# question being asked is precisely "did this number come from an entity or
+# from `ThermalState`'s constructor", and a fixture that writes the number
+# itself cannot answer it: it would pass just as happily against the bug.
+_DEFAULTS = ThermalState()
+#: Older than every ``INPUT_MAX_AGE_MINUTES`` limit in the package.
+_STALE_WHEN = datetime.now(UTC) - timedelta(hours=10)
+
+
+def _honest_coordinator(extra_config=None, states=None, dhw=True):
+    """A coordinator that has completed one real input-read cycle."""
+    hass = FakeHass()
+    hass.states.set("sensor.indoor", FakeState("21.4"))
+    hass.states.set("sensor.outdoor", FakeState("-3.0"))
+    for entity_id, state in (states or {}).items():
+        hass.states.set(entity_id, state)
+    config = {
+        const.CONF_INDOOR_TEMP_ENTITY: "sensor.indoor",
+        const.CONF_OUTDOOR_TEMP_ENTITY: "sensor.outdoor",
+    }
+    if dhw:
+        # Presence of a tank volume is what makes `dhw_enabled` true, so hot
+        # water is on here without a tank thermometer being configured --
+        # which is the ordinary install, not a corner case.
+        config[const.CONF_DHW_TANK_VOLUME] = 180.0
+    config.update(extra_config or {})
+    coord = HeatPumpOptimizerCoordinator(hass, FakeEntry(data=config))
+    asyncio.run(coord._update_current_state())
+    return hass, coord, coord._build_data_dict()
+
+
+_blind_hass, _blind_coord, _blind = _honest_coordinator()
+_blind_fake = FakeCoordinator(_blind)
+
+# The premise, stated in production's own terms: with nothing sensing the
+# tank, the buffer or the lower floor, what gets published IS the dataclass
+# default. No magic numbers here -- they are read off `ThermalState()`.
+R.check(
+    "with no tank sensor the published tank temperature is the model default",
+    _blind["dhw_temperature"] == _DEFAULTS.dhw_temperature,
+    f'{_blind["dhw_temperature"]} vs default {_DEFAULTS.dhw_temperature}',
+)
+R.check(
+    "with no buffer probe the published buffer temperature is the default too",
+    _blind["buffer_tank_temperature"] == _DEFAULTS.buffer_tank_temperature,
+    f'{_blind["buffer_tank_temperature"]}',
+)
+R.check(
+    "with no lower-floor sensor the lower floor IS the indoor temperature",
+    _blind["lower_floor_temperature"] == _blind["indoor_temperature"],
+    f'{_blind["lower_floor_temperature"]} vs {_blind["indoor_temperature"]}',
+)
+R.check(
+    "and the upper floor is the indoor temperature, always",
+    _blind["upper_floor_temperature"] == _blind["indoor_temperature"],
+    "there is no upper-floor input anywhere in the package",
+)
+
+# The fix: those numbers stop claiming to be measurements.
+for _cls, _label in (
+    (sensor.DHWTemperatureSensor, "the hot water tank"),
+    (sensor.BufferTankTempSensor, "the buffer tank"),
+    (sensor.SlabTempSensor, "the slab"),
+    (sensor.LowerFloorTempSensor, "the lower floor"),
+    (sensor.FloorReturnTempSensor, "the floor return"),
+):
+    R.check(
+        f"nothing reading {_label} means that sensor is unavailable",
+        not _cls(_blind_fake, ENTRY).available,
+        f"{_cls.__name__} published {_cls(_blind_fake, ENTRY).native_value!r}",
+    )
+R.check(
+    "the indoor sensor, which IS read, keeps reporting",
+    sensor.IndoorTempSensor(_blind_fake, ENTRY).available
+    and sensor.IndoorTempSensor(_blind_fake, ENTRY).native_value == 21.4,
+    "gating everything would be as useless as gating nothing",
+)
+# The upper floor is the one entity that is not gated on an input of its own,
+# because it has never had one: it follows the indoor thermometer, so it lives
+# and dies with the Indoor Temperature sensor rather than holding 21.4 on its
+# own after that thermometer stops reporting.
+_indoor_stale_hass, _indoor_stale_coord, _indoor_stale = _honest_coordinator(
+    states={"sensor.indoor": FakeState("21.4", last_updated=_STALE_WHEN)}
+)
+_indoor_stale_fake = FakeCoordinator(_indoor_stale)
+R.check(
+    "the upper floor is available exactly while the indoor thermometer reads",
+    sensor.UpperFloorTempSensor(_blind_fake, ENTRY).available
+    and not sensor.UpperFloorTempSensor(_indoor_stale_fake, ENTRY).available,
+    "it is the indoor reading under another name, and now says so",
+)
+R.check(
+    "and a stale indoor thermometer publishes the model default, as before",
+    _indoor_stale["indoor_temperature"] == _DEFAULTS.room_temperature,
+    "Indoor Temperature is deliberately left ungated here: it is the "
+    "integration's primary entity and its staleness already has a home in "
+    "the Input Problem binary sensor and the repair issues",
+)
+R.check(
+    "the upper floor names where its number comes from",
+    sensor.UpperFloorTempSensor(_blind_fake, ENTRY).extra_state_attributes.get(
+        "source"
+    )
+    == "indoor_temperature",
+    "two entities carrying one number look like corroboration until one owns up",
+)
+
+# Wire the thermometers up and the same entities come back to life, with the
+# sensors' values rather than the defaults.
+_sensed_hass, _sensed_coord, _sensed = _honest_coordinator(
+    {
+        const.CONF_DHW_TEMP_ENTITY: "sensor.tank",
+        const.CONF_BUFFER_TANK_TEMP_ENTITY: "sensor.buffer",
+        const.CONF_FLOOR_RETURN_TEMP_ENTITY: "sensor.return",
+        const.CONF_LOWER_FLOOR_TEMP_ENTITY: "sensor.downstairs",
+    },
+    {
+        "sensor.tank": FakeState("48.2"),
+        "sensor.buffer": FakeState("36.5"),
+        "sensor.return": FakeState("27.5"),
+        "sensor.downstairs": FakeState("20.1"),
+    },
+)
+_sensed_fake = FakeCoordinator(_sensed)
+for _cls, _expected in (
+    (sensor.DHWTemperatureSensor, 48.2),
+    (sensor.BufferTankTempSensor, 36.5),
+    (sensor.FloorReturnTempSensor, 27.5),
+    (sensor.LowerFloorTempSensor, 20.1),
+):
+    _entity = _cls(_sensed_fake, ENTRY)
+    R.check(
+        f"{_cls.__name__} reports its sensor once one is configured",
+        _entity.available and _entity.native_value == _expected,
+        f"available={_entity.available} value={_entity.native_value!r}",
+    )
+R.check(
+    "the slab estimate lives while the return temperature drives it",
+    sensor.SlabTempSensor(_sensed_fake, ENTRY).available,
+    "the slab is integrated from the floor return, never sensed directly",
+)
+
+# The case availability exists for: the sensor was configured and has stopped
+# reporting. The published number does not change -- the coordinator keeps the
+# last good read -- so nothing except availability can tell the two apart.
+_stale_hass, _stale_coord, _ = _honest_coordinator(
+    {const.CONF_DHW_TEMP_ENTITY: "sensor.tank"},
+    {"sensor.tank": FakeState("48.2")},
+)
+# One good cycle, then the thermometer stops reporting. The coordinator holds
+# the last good value, which is the whole problem.
+_stale_hass.states.set("sensor.tank", FakeState("48.2", last_updated=_STALE_WHEN))
+asyncio.run(_stale_coord._update_current_state())
+_stale = _stale_coord._build_data_dict()
+R.check(
+    "a stale tank sensor still publishes its last number",
+    _stale["dhw_temperature"] == 48.2,
+    f'{_stale["dhw_temperature"]!r}',
+)
+R.check(
+    "but the entity goes unavailable rather than holding it out as current",
+    not sensor.DHWTemperatureSensor(FakeCoordinator(_stale), ENTRY).available,
+    "a thermometer that died in January reads 48.2 all spring",
+)
+
+# --- hot water that is not configured is not a zero -------------------------
+R.section("Hot water entities exist only where there is hot water")
+
+_no_dhw_hass, _no_dhw_coord, _no_dhw = _honest_coordinator(dhw=False)
+R.check(
+    "a config with no hot water publishes dhw_enabled False",
+    _no_dhw.get("dhw_enabled") is False,
+    str(_no_dhw.get("dhw_enabled")),
+)
+_no_dhw_fake = FakeCoordinator(_no_dhw)
+_dhw_on_fake = FakeCoordinator(DATA)
+for _cls in (
+    sensor.DHWEnergySensor,
+    sensor.DHWCostSensor,
+    sensor.DHWTemperatureSensor,
+    sensor.DHWScheduleSensor,
+    sensor.DHWHeatingCostSensor,
+    sensor.DHWHeatingPlanSensor,
+):
+    R.check(
+        f"{_cls.__name__} is unavailable with hot water switched off",
+        not _cls(_no_dhw_fake, ENTRY).available,
+        f"published {_cls(_no_dhw_fake, ENTRY).native_value!r} instead",
+    )
+R.check(
+    "the Energy dashboard is offered a hot water meter only when there is one",
+    sensor.DHWEnergySensor(_no_dhw_fake, ENTRY).native_value == 0.0
+    and not sensor.DHWEnergySensor(_no_dhw_fake, ENTRY).available,
+    "a flat zero forever looks exactly like a working meter on an idle pump",
+)
+for _cls in (
+    sensor.DHWEnergySensor,
+    sensor.DHWCostSensor,
+    sensor.DHWScheduleSensor,
+    sensor.DHWHeatingCostSensor,
+    sensor.DHWHeatingPlanSensor,
+    sensor.DHWTemperatureSensor,
+):
+    R.check(
+        f"{_cls.__name__} is available again once hot water is configured",
+        _cls(_dhw_on_fake, ENTRY).available,
+        "the gate must be able to open, or it is not a gate",
+    )
+
+# --- unknown-versus-broken --------------------------------------------------
+R.section("Waiting for evidence is not the same as broken")
+
+for _cls, _key, _missing, _code in (
+    (
+        sensor.ObservedCOPSensor,
+        "measured_cop",
+        None,
+        "first_cop_sample",
+    ),
+    (
+        sensor.FrequencyAdvisorSensor,
+        "freq_control",
+        {"mode": "observe", "recommended_hz": None},
+        "first_frequency_map_sample",
+    ),
+    (
+        sensor.ContractComparisonSensor,
+        "contract_comparison",
+        {"months": 0},
+        "settled_metered_month",
+    ),
+):
+    _waiting = _cls(FakeCoordinator({**DATA, _key: _missing}), ENTRY)
+    R.check(
+        f"{_cls.__name__} is unavailable while its evidence is missing",
+        not _waiting.available,
+        "Unknown reads as broken; unavailable reads as 'nothing yet'",
+    )
+    R.check(
+        f"{_cls.__name__} names what it is waiting for",
+        _waiting.extra_state_attributes.get("waiting_for") == _code,
+        str(_waiting.extra_state_attributes.get("waiting_for")),
+    )
+    _ready = _cls(FakeCoordinator(DATA), ENTRY)
+    R.check(
+        f"{_cls.__name__} is available, and waiting for nothing, once it lands",
+        _ready.available
+        and _ready.extra_state_attributes.get("waiting_for") is None,
+        f"available={_ready.available} value={_ready.native_value!r}",
+    )
+R.check(
+    "an unconfigured source is distinguished from a missing sample",
+    sensor.ObservedCOPSensor(
+        FakeCoordinator({**DATA, "measured_power_available": False}), ENTRY
+    ).extra_state_attributes.get("waiting_for")
+    == "measured_power_entity",
+)
+
+# --- a failed refresh reaches every entity ----------------------------------
+R.section("A failed refresh reaches every entity")
+
+# `CoordinatorEntity.available` is False after a failed update. An override
+# that forgets to conjoin it replaces that answer instead of narrowing it, so
+# the entity keeps publishing a number from a coordinator that has stopped
+# updating -- and nothing anywhere says so.
+#
+# Two-sided on purpose. The first half proves DATA satisfies every gate, so
+# the second half can only be failing for the reason it claims. Without it,
+# deleting a `super().available and` would still pass: everything would be
+# unavailable for its own reasons and the sweep would never notice.
+_healthy = FakeCoordinator(DATA)
+_broken = FakeCoordinator(DATA)
+_broken.last_update_success = False
+# Buttons are deliberately out of scope: "run an optimization now" is exactly
+# what a user reaches for when the last refresh failed, so those two overrides
+# are a considered choice rather than the same oversight.
+_dead_when_healthy = []
+_alive_when_broken = []
+for _module in (sensor, binary_sensor):
+    for _entity in collect(_module, coordinator=_healthy):
+        if not _entity.available:
+            _dead_when_healthy.append(type(_entity).__name__)
+    for _entity in collect(_module, coordinator=_broken):
+        if _entity.available:
+            _alive_when_broken.append(type(_entity).__name__)
+R.check(
+    "every entity is available against a payload that satisfies every gate",
+    not _dead_when_healthy,
+    "; ".join(sorted(set(_dead_when_healthy))),
+)
+R.check(
+    "and none of them is available after a failed coordinator refresh",
+    not _alive_when_broken,
+    "; ".join(sorted(set(_alive_when_broken))),
 )
 
 
