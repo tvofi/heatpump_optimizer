@@ -384,9 +384,12 @@ class DefrostDerate:
         whose entire job is to stop a plan over-promising in that band.
 
         The measured estimator then takes over bucket by bucket as duty
-        samples arrive: :meth:`factor` prefers it wherever it exists, so a
-        carried-over inferred value is a floor to stand on until something
-        better is counted, not a prior that the measurement has to argue with.
+        samples arrive — once they are *trusted*, not the moment one exists.
+        Below ``DERATE_CONFIDENCE_SAMPLES`` duty samples :meth:`_decide`
+        selects the more careful of the two, so a carried-over inferred value
+        is a floor to stand on until something better is counted; at full
+        trust the measurement stands alone. What it never is, is a prior the
+        measurement has to argue with for ever.
         """
         instance = cls()
         if not isinstance(data, dict):
