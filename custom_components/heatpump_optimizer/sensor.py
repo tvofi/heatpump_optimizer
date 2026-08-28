@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import math
 from datetime import datetime
 from typing import Any
 
@@ -27,6 +28,39 @@ from .const import DHW_MIN_TEMP_SETPOINT_MARGIN, DOMAIN, MANUAL_PLAN_WINDOW_HOUR
 from .coordinator import HeatPumpOptimizerCoordinator
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _finite(value):
+    """Replace non-finite floats with ``None``, recursively.
+
+    ``inf`` and ``nan`` are not JSON. orjson -- the serializer Home Assistant
+    uses for the websocket and the recorder -- writes them as ``null``, so the
+    frontend and the database already see "unknown" while a Jinja template
+    reading the same attribute in-process sees Python's ``inf`` and compares
+    ``> 100`` as true. One published number, two different meanings depending
+    on who reads it.
+
+    The values are not accidents. ``PeakTracker.threshold_kw`` returns ``inf``
+    on purpose, as a sentinel meaning "the capacity term has no reference yet,
+    do not let it distort the plan" -- which is a decision variable, and
+    ``None`` ("unknown") is what it means once it becomes a published
+    attribute. It is +inf on the 1st of every month, for every install with a
+    capacity tariff.
+
+    Applied at the publication boundary rather than at the two sites that
+    produce it today, because the interesting case is the one nobody
+    predicted: the next attribute that divides by a zero sample count is
+    covered without anyone remembering to ask.
+    """
+    if isinstance(value, float):
+        return value if math.isfinite(value) else None
+    if isinstance(value, dict):
+        return {key: _finite(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_finite(item) for item in value]
+    if isinstance(value, tuple):
+        return tuple(_finite(item) for item in value)
+    return value
 
 
 def _reading_ok(coordinator: Any, key: str) -> bool:
@@ -134,6 +168,31 @@ class HeatPumpOptimizerSensorBase(CoordinatorEntity, SensorEntity):
     """
 
     _attr_has_entity_name = True
+
+    #: The two properties Home Assistant reads to build a state write. Every
+    #: number this integration publishes leaves through one of them, which is
+    #: why the non-finite scrub is installed here rather than repeated at each
+    #: of the fifty-five sensors -- and why a sensor added next year gets it
+    #: without anyone remembering to ask for it.
+    _PUBLISHED = ("native_value", "extra_state_attributes")
+
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        """Wrap every subclass's published properties in the finite scrub."""
+        super().__init_subclass__(**kwargs)
+        for name in HeatPumpOptimizerSensorBase._PUBLISHED:
+            prop = cls.__dict__.get(name)
+            if not isinstance(prop, property) or prop.fget is None:
+                continue
+            if getattr(prop.fget, "_finite_scrubbed", False):
+                continue
+
+            def scrubbed(self, _fget=prop.fget):
+                return _finite(_fget(self))
+
+            scrubbed.__name__ = name
+            scrubbed.__doc__ = prop.fget.__doc__
+            scrubbed._finite_scrubbed = True
+            setattr(cls, name, property(scrubbed, prop.fset, prop.fdel))
 
     def __init__(
         self,
@@ -1637,6 +1696,10 @@ class ThermalBatteryEnergySensor(HeatPumpOptimizerSensorBase):
     _attr_icon = "mdi:battery-charging"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
+    # Stored energy, not consumed energy. ENERGY_STORAGE is the device class
+    # for a state of charge in kWh and is the one that accepts MEASUREMENT;
+    # plain ENERGY would demand TOTAL/TOTAL_INCREASING and be rejected.
+    _attr_device_class = SensorDeviceClass.ENERGY_STORAGE
     _attr_suggested_display_precision = 2
 
     def __init__(self, coordinator, entry):
@@ -1851,6 +1914,10 @@ class DHWSetpointAdvisorSensor(HeatPumpOptimizerSensorBase):
     _attr_icon = "mdi:thermometer-check"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+    # An absolute tank temperature, so it converts and formats like one: a
+    # household on Fahrenheit was reading a bare "52" in a °C-labelled box.
+    # MEASUREMENT is the state class DEVICE_CLASS_STATE_CLASSES allows here.
+    _attr_device_class = SensorDeviceClass.TEMPERATURE
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     # The advisor sweeps whole-degree candidate setpoints.
     _attr_suggested_display_precision = 0
@@ -1889,6 +1956,9 @@ class MixedHotWaterSensor(HeatPumpOptimizerSensorBase):
     _attr_icon = "mdi:shower-head"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfVolume.LITERS
+    # A quantity *held*, not a quantity delivered, which is exactly what
+    # VOLUME_STORAGE means; VOLUME would invite HA to treat it as throughput.
+    _attr_device_class = SensorDeviceClass.VOLUME_STORAGE
     _attr_suggested_display_precision = 0
 
     def __init__(self, coordinator, entry):

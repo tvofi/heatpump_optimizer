@@ -7546,9 +7546,33 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             for v in (fuse, threshold)
             if v is not None and np.isfinite(v)
         ]
-        if not limits:
+        if limits:
+            limit = float(min(limits))
+            limit_source = "main fuse" if limit == fuse else "capacity threshold"
+        elif tariff.enabled and tariff.sample_factor(dt_util.now()) > 0.0:
+            # A capacity tariff with no reference peak yet. `threshold_kw`
+            # answers +inf there, which means "do not let the peak term
+            # distort the plan" -- it does not mean the house may draw
+            # freely, and this sensor asks a different question: how many kW
+            # can be drawn right now *without new cost*. With no peak
+            # recorded the month's bill is set from the first window, so no
+            # kW is free and the true answer is 0.0.
+            #
+            # It used to be no answer at all. An install with a capacity
+            # tariff and no `main_fuse_amperes` -- the default, since the
+            # fuse defaults to 0 -- had both candidate limits filtered out
+            # here and lost the entity entirely for the first metering window
+            # of every month. A charger automation following it saw its input
+            # disappear monthly, at the exact hour the month's peak was being
+            # set. Installs with a fuse are unaffected: their limit is finite
+            # and this branch is not reached.
+            limit = 0.0
+            limit_source = "capacity tariff with no peak reference yet"
+        else:
+            # Neither a fuse nor a capacity term that bills this window.
+            # Nothing bounds the house that this integration knows about,
+            # and saying nothing is the honest answer.
             return {"available": False}
-        limit = float(min(limits))
 
         if self._measured_house_power is not None:
             house_now = float(self._measured_house_power)
@@ -7567,6 +7591,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             "limit_kw": round(limit, 3),
             "headroom_kw": round(max(0.0, limit - house_now), 3),
             "baseline_source": source,
+            "limit_source": limit_source,
         }
         result = self._optimization_result
         if result is not None and result.power_schedule:

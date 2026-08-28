@@ -637,6 +637,7 @@ R.check(
 R.section("A published number is a reading or it is nothing")
 
 from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator
+from heatpump_optimizer.tariff import CapacityTariff, PeakTracker
 from heatpump_optimizer.thermal_model import ThermalState
 
 # These go through a REAL coordinator rather than a hand-written dict. The
@@ -933,6 +934,259 @@ R.check(
     "and none of them is available after a failed coordinator refresh",
     not _alive_when_broken,
     "; ".join(sorted(set(_alive_when_broken))),
+)
+
+
+# ===========================================================================
+# Nothing non-finite, and nothing unlabelled, reaches a published state
+# ===========================================================================
+R.section("No published attribute is non-finite, in any configuration")
+
+import math as _math
+
+from homeassistant.components.sensor import DEVICE_CLASS_STATE_CLASSES
+
+_INF = float("inf")
+
+
+def _non_finite(node, path, found):
+    """Every float in a published payload, checked for finiteness."""
+    if isinstance(node, dict):
+        for key, value in node.items():
+            _non_finite(value, f"{path}.{key}", found)
+    elif isinstance(node, (list, tuple)):
+        for index, value in enumerate(node):
+            _non_finite(value, f"{path}[{index}]", found)
+    elif isinstance(node, float) and not _math.isfinite(node):
+        found.append(f"{path} = {node!r}")
+
+
+# The configurations worth sweeping are the ones that actually produce a
+# non-finite number in production, plus the empty ones that produce nothing.
+# `peak_threshold_kw` is +inf on the 1st of every month for every install with
+# a capacity tariff, straight out of `PeakTracker.threshold_kw`.
+_CONFIGURATIONS = {
+    "the representative payload": DATA,
+    "before the first update": None,
+    "an empty payload": {},
+    "the 1st of the month, capacity tariff, no peak reference yet": {
+        **DATA,
+        "peak_threshold_kw": PeakTracker().threshold_kw(
+            CapacityTariff(enabled=True, price_per_kw=60.0)
+        ),
+    },
+    "a nan sneaking through a learner": {
+        **DATA,
+        "comfort_weight": float("nan"),
+        "battery": {**DATA["battery"], "hours_of_autonomy": _INF},
+        "pv": {**DATA["pv"], "forecast_surplus_kwh": -_INF},
+        "power_headroom": {
+            **DATA["power_headroom"],
+            "horizon_headroom_kw": [7.3, _INF, float("nan")],
+        },
+    },
+}
+
+_offenders = []
+for _label, _payload in _CONFIGURATIONS.items():
+    for _module in (sensor, binary_sensor, button):
+        for _entity in collect(_module, data=_payload):
+            _name = type(_entity).__name__
+            _non_finite(
+                getattr(_entity, "native_value", None),
+                f"{_label}: {_name}.native_value",
+                _offenders,
+            )
+            # Not every platform entity defines extra attributes; the ones
+            # that do are where the non-finite numbers actually ride.
+            _non_finite(
+                getattr(_entity, "extra_state_attributes", None),
+                f"{_label}: {_name}",
+                _offenders,
+            )
+R.check(
+    "no entity publishes a non-finite state or attribute, in any configuration",
+    not _offenders,
+    "; ".join(_offenders[:6]),
+)
+# ... and the sweep is only worth anything if the fixture really does carry
+# infinities into the entities. This is the half that stops it going vacuous
+# if someone later "tidies" the payloads.
+R.check(
+    "the sweep's fixtures really do feed non-finite numbers in",
+    _math.isinf(
+        _CONFIGURATIONS[
+            "the 1st of the month, capacity tariff, no peak reference yet"
+        ]["peak_threshold_kw"]
+    )
+    and _math.isnan(_CONFIGURATIONS["a nan sneaking through a learner"]["comfort_weight"]),
+    "a sweep over finite fixtures proves nothing",
+)
+# The specific one the frontend and the recorder disagree about: orjson
+# writes inf as null, so the database and a Jinja template already saw two
+# different values for this attribute.
+_inf_peak = sensor.MonthlyPeakSensor(
+    FakeCoordinator(
+        {
+            "peak_tariff_enabled": True,
+            "peak_threshold_kw": PeakTracker().threshold_kw(
+                CapacityTariff(enabled=True, price_per_kw=60.0)
+            ),
+        }
+    ),
+    ENTRY,
+)
+R.check(
+    "the free headroom threshold is None, not +inf, when there is no reference",
+    _inf_peak.extra_state_attributes["free_headroom_threshold_kw"] is None,
+    repr(_inf_peak.extra_state_attributes["free_headroom_threshold_kw"]),
+)
+R.check(
+    "and a real threshold still comes through untouched",
+    by_name["Monthly Peak Power"].extra_state_attributes[
+        "free_headroom_threshold_kw"
+    ]
+    == 6.5,
+    "mapping every number to None would pass the sweep and publish nothing",
+)
+
+# --- the headroom entity must not vanish on the 1st -------------------------
+R.section("Power headroom survives the turn of the month")
+
+_cap_only = {
+    const.CONF_INDOOR_TEMP_ENTITY: "sensor.indoor",
+    const.CONF_OUTDOOR_TEMP_ENTITY: "sensor.outdoor",
+    const.CONF_PEAK_TARIFF_ENABLED: True,
+    const.CONF_PEAK_TARIFF_PRICE: 60.0,
+    # The default. A capacity tariff does not imply a configured fuse.
+    const.CONF_MAIN_FUSE_A: 0,
+}
+_cap_hass = FakeHass()
+_cap_hass.states.set("sensor.indoor", FakeState("21.4"))
+_cap_hass.states.set("sensor.outdoor", FakeState("-3.0"))
+_cap_coord = HeatPumpOptimizerCoordinator(_cap_hass, FakeEntry(data=_cap_only))
+asyncio.run(_cap_coord._update_current_state())
+R.check(
+    "the tracker really has no reference peak at the turn of the month",
+    not _cap_coord._peak_tracker.peaks
+    and _math.isinf(
+        _cap_coord._peak_tracker.threshold_kw(_cap_coord._capacity_tariff())
+    ),
+    "this is the state every install is in on the 1st",
+)
+_fresh_month = _cap_coord._power_headroom()
+R.check(
+    "the headroom entity still exists on the 1st with no fuse configured",
+    _fresh_month.get("available") is True,
+    str(_fresh_month),
+)
+R.check(
+    "and answers 0 kW free, because the month's bill is set from zero",
+    _fresh_month.get("headroom_kw") == 0.0
+    and _fresh_month.get("limit_source")
+    == "capacity tariff with no peak reference yet",
+    str(_fresh_month),
+)
+R.check(
+    "the headroom sensor is available and numeric there",
+    sensor.PowerHeadroomSensor(
+        FakeCoordinator({"power_headroom": _fresh_month}), ENTRY
+    ).available
+    and sensor.PowerHeadroomSensor(
+        FakeCoordinator({"power_headroom": _fresh_month}), ENTRY
+    ).native_value
+    == 0.0,
+    "an EV charger's dynamic limit used to lose its input every month",
+)
+# Once a window closes the real threshold takes over again.
+_closing = datetime(2026, 2, 1, 0, 5)
+for _i in range(4):
+    _cap_coord._peak_tracker.observe(
+        _closing + timedelta(minutes=15 * _i), 5.0, _cap_coord._capacity_tariff()
+    )
+_cap_coord._peak_tracker.observe(
+    _closing + timedelta(hours=1, minutes=5), 5.0, _cap_coord._capacity_tariff()
+)
+_settled = _cap_coord._power_headroom()
+R.check(
+    "and the measured threshold takes over once a window has closed",
+    _settled.get("limit_kw") == 5.0
+    and _settled.get("limit_source") == "capacity threshold",
+    str(_settled),
+)
+# Nothing configured at all is still nothing to say.
+_bare_hass = FakeHass()
+_bare_hass.states.set("sensor.indoor", FakeState("21.4"))
+_bare_hass.states.set("sensor.outdoor", FakeState("-3.0"))
+_bare_coord = HeatPumpOptimizerCoordinator(
+    _bare_hass,
+    FakeEntry(
+        data={
+            const.CONF_INDOOR_TEMP_ENTITY: "sensor.indoor",
+            const.CONF_OUTDOOR_TEMP_ENTITY: "sensor.outdoor",
+        }
+    ),
+)
+asyncio.run(_bare_coord._update_current_state())
+R.check(
+    "with no fuse and no capacity tariff there is still nothing to report",
+    _bare_coord._power_headroom() == {"available": False},
+    str(_bare_coord._power_headroom()),
+)
+
+# --- device classes ---------------------------------------------------------
+R.section("Device classes on the three that were bare")
+
+for _display, _expected in (
+    ("DHW Setpoint Advisor", "temperature"),
+    ("Mixed Hot Water", "volume_storage"),
+    ("Thermal Battery Energy", "energy_storage"),
+):
+    R.check(
+        f"{_display} declares device class {_expected}",
+        getattr(by_name[_display], "_attr_device_class", None) == _expected,
+        repr(getattr(by_name[_display], "_attr_device_class", None)),
+    )
+
+# Home Assistant checks the (device class, state class) pair on every state
+# write and logs "state class ... is impossible considering device class" --
+# the trap MONETARY + TOTAL_INCREASING already sprang here once. The table is
+# Home Assistant's own, mirrored in the stub.
+_impossible = []
+for _entity in sensors:
+    _dc = getattr(_entity, "_attr_device_class", None)
+    _sc = getattr(_entity, "_attr_state_class", None)
+    if _dc is None or _sc is None:
+        continue
+    _allowed = DEVICE_CLASS_STATE_CLASSES.get(_dc)
+    if _allowed is not None and _sc not in _allowed:
+        _impossible.append(f"{type(_entity).__name__}: {_dc} + {_sc}")
+R.check(
+    "no sensor pairs a device class with a state class HA forbids",
+    not _impossible,
+    "; ".join(_impossible),
+)
+
+# Two the audit brief flagged and this PR deliberately leaves alone, pinned so
+# a future "consistency" pass does not add a device class to either.
+R.check(
+    "ECL110 Displace stays bare: it is a parallel shift, not a temperature",
+    getattr(by_name["ECL110 Displace"], "_attr_device_class", None) is None
+    and by_name["ECL110 Displace"]._attr_native_unit_of_measurement == "°C",
+    "a TEMPERATURE device class would have HA convert a delta as an absolute",
+)
+R.check(
+    "Prediction Accuracy stays bare for the same reason: it is a mean error",
+    getattr(by_name["Prediction Accuracy"], "_attr_device_class", None) is None
+    and by_name["Prediction Accuracy"]._attr_native_unit_of_measurement == "°C",
+)
+R.check(
+    "a device class with no state class is legal, so the valve target is fine",
+    getattr(by_name["Valve Target Recommendation"], "_attr_device_class", None)
+    == "temperature"
+    and getattr(by_name["Valve Target Recommendation"], "_attr_state_class", None)
+    is None,
+    "HA validates the pair only when a state class is set; it never demands one",
 )
 
 
