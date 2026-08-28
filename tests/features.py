@@ -11798,6 +11798,42 @@ R.check(
     ],
 )
 
+# --- the "configured at all" gate, which nothing was testing ---------------
+#
+# Found by deleting it: the whole suite still passed. Today it is genuinely
+# redundant -- `_dhw_temperature` is only ever assigned from an `ok` reading,
+# so an unconfigured house is already answered by the "nothing read yet"
+# gate, which is why `_db_drive(configured=False)` above cannot reach this.
+#
+# It is kept, and pinned, because of the OTHER tank temperature in the
+# coordinator. `_current_state.dhw_temperature` carries a 55 °C MODELLING
+# DEFAULT, and the coordinator already falls back to it elsewhere
+# (`self._dhw_temperature or self._current_state.dhw_temperature`). One such
+# fallback reaching this probe would train the record on a constant on a
+# house with no thermometer, and a record trained on a constant reports a
+# flawless model: the band would collapse to a hairline claiming a precision
+# nothing measured. The freeze predicate cannot stand in for the check --
+# an unconfigured slot must never freeze learning, so it answers None.
+_db_unconf = _t2_coord()
+_db_unconf._dhw_temperature = 55.0
+_db_unconf._current_state.dhw_temperature = 55.0
+R.check(
+    "a tank temperature with no tank entity configured is not a measurement, "
+    "and the probe refuses it",
+    _db_unconf._dhw_probe_temperature() is None
+    and _db_unconf._learning_frozen(hp_const.CONF_DHW_TEMP_ENTITY) is None,
+    f"probe {_db_unconf._dhw_probe_temperature()}, "
+    f"frozen {_db_unconf._learning_frozen(hp_const.CONF_DHW_TEMP_ENTITY)}",
+)
+_db_conf = _t2_coord(dhw_temp_entity="sensor.tank")
+_db_conf._dhw_temperature = 55.0
+R.check(
+    "and the very same value with the entity configured IS one -- the "
+    "configuration is the whole difference",
+    _db_conf._dhw_probe_temperature() == 55.0,
+    f"{_db_conf._dhw_probe_temperature()}",
+)
+
 # --- the three branches that void or protect the tank's promises ----------
 #
 # All three mirror a room-side branch that IS covered, and all three were

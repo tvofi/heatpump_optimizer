@@ -7950,14 +7950,24 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         the hot-water record on a constant and draw a confidence band around
         a measurement that does not exist.
 
-        Three gates, in order: the entity must be configured at all (an
-        unconfigured slot must never freeze anything, which is why
-        ``_learning_frozen`` alone is not enough); a value must have been
-        read at least once; and this interval must not be one the learners
-        would refuse. That last gate is the v5.1.3 discipline — freeze on ANY
-        unusable configured input, not only a stale one — reached through the
-        same predicate ``_async_learn_dhw_dynamics`` uses, so the accuracy
-        record and the tank's own learners admit exactly the same intervals.
+        Three gates, in order.
+
+        1. The entity must be configured at all. Said plainly: today this is
+           belt and braces, because ``_dhw_temperature`` is only ever
+           assigned from an ``ok`` reading and gate 2 already answers an
+           unconfigured house. It is here for the OTHER tank temperature in
+           this class — ``_current_state.dhw_temperature``, the 55 °C
+           modelling default, which the coordinator does fall back to
+           elsewhere. One such fallback reaching this probe would train the
+           record on a constant and report a flawless model. Note that
+           ``_learning_frozen`` cannot stand in for it: an unconfigured slot
+           must never freeze learning, so it answers None here.
+        2. A value must have been read at least once.
+        3. This interval must not be one the learners would refuse. That is
+           the v5.1.3 discipline — freeze on ANY unusable configured input,
+           not only a stale one — reached through the same predicate
+           ``_async_learn_dhw_dynamics`` uses, so the accuracy record and the
+           tank's own learners admit exactly the same intervals.
         """
         if not self._config.get(CONF_DHW_TEMP_ENTITY):
             return None
