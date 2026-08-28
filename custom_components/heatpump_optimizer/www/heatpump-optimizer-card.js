@@ -13,6 +13,11 @@ const CARD_TAG = "heatpump-optimizer-card";
 const EDITOR_TAG = "heatpump-optimizer-card-editor";
 const CARD_VERSION = "5.4.0";
 
+// The de-duplication key `_extraFields` files a confidence band's two
+// edges under, so the pair counts as the one named trace it is. A Symbol
+// so it can never collide with a series field name.
+const BAND_TRACE_KEY = Symbol("band");
+
 // ---- i18n ------------------------------------------------------------------
 //
 // Every user-visible string lives here, keyed, with an English source text and
@@ -60,6 +65,15 @@ const STRINGS = {
     "legend.multi_trace_title":
       "{label} ({unit}) — also drawn: {names}. " +
       "Hover the chart to read each trace.",
+    // The hot-water band. One name for the pair, because the pair is one
+    // thing: dhw_temp ∓ the model's own expected error at that lead. The
+    // room's dashed traces above are two real predicted temperatures and
+    // are named individually; this one is an envelope and is stated as a
+    // single ± figure, so the chart never implies the two are alike.
+    "series.dhw_band": "Hot water, expected error",
+    "series.dhw_band_note":
+      "Dashed: the model's expected error, which widens further ahead. " +
+      "Absent until there is enough history.",
 
     // chart / plan annotations
     "plan.now": "now",
@@ -89,6 +103,7 @@ const STRINGS = {
     "reasons.dhw_preheat": "Charging the tank while electricity is cheap",
     "reasons.legionella": "Anti-legionella cycle",
     "reasons.manual_plan": "You scheduled this",
+    "reasons.pump_mode": "The heat pump's mode cannot do this",
     "reasons.idle": "Not heating",
 
     // slot lanes and the slot menu
@@ -391,6 +406,10 @@ const STRINGS = {
     "legend.multi_trace_title":
       "{label} ({unit}) — ritas också: {names}. " +
       "Håll pekaren över diagrammet för att läsa varje kurva.",
+    "series.dhw_band": "Varmvatten, förväntat fel",
+    "series.dhw_band_note":
+      "Streckat: modellens förväntade fel, som växer längre fram i " +
+      "tiden. Visas först när det finns tillräckligt med historik.",
 
     "plan.now": "nu",
     "plan.estimated_prices": "uppskattade priser",
@@ -418,6 +437,7 @@ const STRINGS = {
     "reasons.dhw_preheat": "Laddar tanken medan elen är billig",
     "reasons.legionella": "Legionellaskyddscykel",
     "reasons.manual_plan": "Du har schemalagt detta",
+    "reasons.pump_mode": "Värmepumpens driftläge klarar inte detta",
     "reasons.idle": "Värmer inte",
 
     "slots.lane_dhw": "Varmvatten",
@@ -808,6 +828,35 @@ const SERIES_DEFS = [
     color: "#c264d0",
     sensor: "dhw",
     field: "dhw_temp",
+    // v5.2.0: the model's own expected error for the tank, published per
+    // step by the coordinator. Carried as `extra`, so it is drawn, hidden
+    // and coloured by exactly the machinery the room's zone traces use --
+    // dashed through the same `line.primary` branch, toggled by the same
+    // one chip, dropped by the same duplicate rule when it has no width.
+    extra: ["dhw_temp_lo", "dhw_temp_hi"],
+    // Both edges answer to the BAND's name, never to the tank curve's.
+    // Without this `_lineLabel` falls back to `def.labelKey` and any
+    // consumer that names a trace calls a dashed error edge "DHW tank
+    // temperature" — a second, wrong absolute temperature. It matters
+    // beyond this file's own legend: a legend that draws one chip per
+    // SERIES and lists the rest of its traces in the chip's title reaches
+    // those names through exactly this key.
+    extraLabels: {
+      dhw_temp_lo: "series.dhw_band",
+      dhw_temp_hi: "series.dhw_band",
+    },
+    // ... but named as ONE thing, because it is one thing. The room's two
+    // extras are two real predicted temperatures and get a row and a chip
+    // each; these two are the edges of a single symmetric envelope, and
+    // reporting them as two absolute temperatures would say something
+    // nobody asked and imply a second zone that does not exist. `band`
+    // is what tells the legend and the tooltip to collapse the pair.
+    band: {
+      lo: "dhw_temp_lo",
+      hi: "dhw_temp_hi",
+      labelKey: "series.dhw_band",
+      noteKey: "series.dhw_band_note",
+    },
     style: "smooth",
   },
   {
@@ -1367,6 +1416,7 @@ const REASON_LABELS = {
   dhw_preheat: "reasons.dhw_preheat",
   legionella: "reasons.legionella",
   manual_plan: "reasons.manual_plan",
+  pump_mode: "reasons.pump_mode",
   idle: "reasons.idle",
 };
 
@@ -2161,44 +2211,100 @@ class HeatpumpOptimizerCard extends HTMLElement {
       let primaryPts = null;
       const fields = [def.field].concat(def.extra || []);
       for (const field of fields) {
-        const pts = [];
+        // Every in-window sample, with a missing value kept as a HOLE
+        // rather than dropped. v5.2.0: the hot-water band is null wherever
+        // the accuracy record cannot answer, and a dropped null let the
+        // curve bridge straight across the gap — drawing an envelope over
+        // a stretch there is no evidence for. The room's zone traces were
+        // only ever accidentally safe from this: they have no holes.
+        const raw = [];
         for (const p of fc) {
           const t = parse(p);
           if (t === null) continue;
           if (t < windowStart || t > windowEnd) continue;
           const v = p[field];
-          if (v === null || v === undefined || Number.isNaN(Number(v))) continue;
-          pts.push({
+          const usable =
+            v !== null && v !== undefined && !Number.isNaN(Number(v));
+          raw.push({
             t,
-            v: Number(v),
+            v: usable ? Number(v) : null,
             // Reason codes and price provenance ride along on the point so the
             // tooltip can explain a slot without a second lookup.
             reason: p.reason,
             priceKnown: p.price_known,
           });
         }
-        pts.sort((a, b) => a.t - b.t);
-        if (pts.length) {
-          const primary = field === def.field;
-          // A single-zone house still publishes `upper` and `lower`: the
-          // one-zone dynamics set both to the room temperature step by step,
-          // so the extras are exact copies of the primary. Drawing them put
-          // two dashed lines under the solid one, and naming them would put
-          // two more chips in the legend and two more rows in the tooltip for
-          // a house that has one zone. Drop a duplicate rather than label it.
-          if (!primary && samePoints(pts, primaryPts)) continue;
-          if (primary) primaryPts = pts;
-          lines.push({
-            field,
-            points: pts,
-            primary,
-            // Named per line, not per series: `_lineLabel` resolves the
-            // dictionary key so the tooltip and the legend cannot disagree
-            // about what a trace is called.
-            labelKey: primary
-              ? def.labelKey
-              : (def.extraLabels || {})[field] || def.labelKey,
-          });
+        raw.sort((a, b) => a.t - b.t);
+        // The field's real samples, holes removed: what "is this trace a
+        // copy of the primary?" has to be asked about, and what the primary
+        // is remembered as. Asking it per segment would compare a fragment
+        // against the whole and never match.
+        const pts = raw.filter((q) => q.v !== null);
+        if (!pts.length) continue;
+        const primary = field === def.field;
+        // A single-zone house still publishes `upper` and `lower`: the
+        // one-zone dynamics set both to the room temperature step by step,
+        // so the extras are exact copies of the primary. Drawing them put
+        // two dashed lines under the solid one, and naming them would put
+        // two more chips in the legend and two more rows in the tooltip for
+        // a house that has one zone. Drop a duplicate rather than label it.
+        //
+        // v5.2.0: this catches a second case for free. A tank record that
+        // has scored pairs but never been wrong answers sigma 0, so both
+        // band edges land exactly on the curve; dropping them is right for
+        // the same reason it is right for the zones, and it is the same
+        // rule doing it.
+        if (!primary && samePoints(pts, primaryPts)) continue;
+        if (primary) primaryPts = pts;
+        const labelKey = primary
+          ? def.labelKey
+          : (def.extraLabels || {})[field] || def.labelKey;
+        // A hole BREAKS the trace into a new segment rather than being
+        // skipped over. One field can therefore own several lines; every
+        // consumer reaches them through `_fieldPoints`, and the per-field
+        // identity (`field`, `primary`, `labelKey`) is carried on each.
+        let seg = [];
+        const flush = () => {
+          if (seg.length) {
+            lines.push({
+              field,
+              points: seg,
+              primary,
+              // Named per line, not per series: `_lineLabel` resolves the
+              // dictionary key so the tooltip and the legend cannot disagree
+              // about what a trace is called.
+              labelKey,
+            });
+          }
+          seg = [];
+        };
+        for (const q of raw) {
+          if (q.v === null) flush();
+          else seg.push(q);
+        }
+        flush();
+      }
+      // A band is a PAIR or it is nothing. Either edge can go missing on its
+      // own -- one key absent from the payload, one published null all the
+      // way across, or one edge dropped by the duplicate rule above -- and a
+      // single dashed line hugging the curve is not half an envelope, it is
+      // a different and wrong claim. Worse, the legend would still offer the
+      // "expected error" chip while the tooltip, which rightly demands both
+      // edges at the same step, reported nothing: three parts of the card
+      // disagreeing about whether a band exists at all.
+      if (def.band) {
+        const edges = new Set(
+          lines.filter((l) => !l.primary).map((l) => l.field)
+        );
+        if (!edges.has(def.band.lo) || !edges.has(def.band.hi)) {
+          for (let i = lines.length - 1; i >= 0; i--) {
+            if (
+              lines[i].field === def.band.lo ||
+              lines[i].field === def.band.hi
+            ) {
+              lines.splice(i, 1);
+            }
+          }
         }
       }
       series.push({
@@ -5515,14 +5621,29 @@ class HeatpumpOptimizerCard extends HTMLElement {
       // trace, which also settles a case the per-line version got wrong:
       // with the primary field absent but the extras present, a solid
       // "House temperature" chip was emitted for a line nothing drew.
-      const extras = (s ? s.lines : []).filter((line) => !line.primary);
+      //
+      // v5.2.0 enumerates them with `_extraFields`, not `lines`: a hole now
+      // splits one field into several drawn paths, and a confidence band's
+      // two edges are one envelope with one name. Listing `lines` here would
+      // print "Lower floor, Lower floor, Lower floor" — saying a thing three
+      // times, in the title written to stop saying it twice.
+      const extras = this._extraFields(s);
       const unit = this._seriesUnit(def);
+      // ... and any sentence a trace needs beyond its name rides along
+      // after them. Only the expected-error band has one: "Upper floor"
+      // explains itself, a dashed pair hugging the tank curve does not, and
+      // this title is now the one place a puzzled reader can look.
+      const notes = extras
+        .map((line) => this._lineNote(def, line))
+        .filter(Boolean)
+        .map((note) => " " + note)
+        .join("");
       const title = extras.length
         ? L("legend.multi_trace_title", {
             label,
             unit,
             names: extras.map((line) => this._lineLabel(def, line)).join(", "),
-          })
+          }) + notes
         : `${label} (${unit})`;
       return `<button type="button" class="${cls}" data-key="${
         def.key
@@ -5533,6 +5654,83 @@ class HeatpumpOptimizerCard extends HTMLElement {
       </button>`;
     }).join("");
     return `<div class="legend">${chips}</div>`;
+  }
+
+  /** Every plotted point of one field, across the segments holes broke it
+   * into. A field is one trace to every caller; that it may be drawn as
+   * several paths is a rendering detail. */
+  _fieldPoints(s, field) {
+    const out = [];
+    for (const line of s.lines || []) {
+      if (line.field === field) out.push(...line.points);
+    }
+    return out;
+  }
+
+  /** One representative line per NAMED non-primary trace, in draw order.
+   *
+   * Two collapses, both because a reader counts traces by name and not by
+   * path. `lines` may hold several segments of one field, because a hole
+   * breaks a field into several paths; and a band's two edges are one
+   * envelope with one name.
+   *
+   * Every caller that names traces goes through here — this card's per-trace
+   * legend chips, its tooltip, and equally a legend that draws ONE chip per
+   * series and lists the rest in that chip's title. Iterating `lines`
+   * directly instead would name a gapped zone three times and a band twice.
+   */
+  _extraFields(s) {
+    const band = s && s.band;
+    const seen = new Set();
+    const out = [];
+    for (const line of (s && s.lines) || []) {
+      if (line.primary) continue;
+      const key =
+        band && (line.field === band.lo || line.field === band.hi)
+          // A Symbol, never a string: a de-duplication key that cannot
+          // collide with a field name, whatever a later series calls its
+          // fields.
+          ? BAND_TRACE_KEY
+          : line.field;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(line);
+    }
+    return out;
+  }
+
+  /** The sentence a trace needs on hover, or "" when its name is enough.
+   *
+   * Only the expected-error band has one: "Upper floor" explains itself, a
+   * dashed pair hugging the tank curve does not. Keyed off the series
+   * definition beside `_lineLabel`, so anywhere a trace can be named the
+   * explanation can be asked for too.
+   */
+  _lineNote(def, line) {
+    const band = def && def.band;
+    if (
+      band &&
+      band.noteKey &&
+      line &&
+      (line.field === band.lo || line.field === band.hi)
+    ) {
+      return L(band.noteKey);
+    }
+    return "";
+  }
+
+  /** The point of `field` nearest `t`, or null when the field has none. */
+  _nearestPoint(s, field, t) {
+    let best = null;
+    let bestDt = Infinity;
+    for (const p of this._fieldPoints(s, field)) {
+      const dt = Math.abs(p.t - t);
+      if (dt < bestDt) {
+        bestDt = dt;
+        best = p;
+      }
+    }
+    return best;
   }
 
   /** What one trace inside a series is called.
@@ -5548,6 +5746,33 @@ class HeatpumpOptimizerCard extends HTMLElement {
       return L("series.lower_floor_modelled");
     }
     return L(line.labelKey || def.labelKey);
+  }
+
+  /** The one tooltip row for a series' expected-error band, if it has one
+   * and both edges are present at the same step.
+   *
+   * Stated as a single ± figure because that is the one number the pair
+   * carries. Half an envelope says nothing, and two halves taken from
+   * different steps say something untrue, so both must come from the same
+   * step or there is no row at all.
+   */
+  _bandRow(s, t) {
+    if (!s.band) return [];
+    const lo = this._nearestPoint(s, s.band.lo, t);
+    const hi = this._nearestPoint(s, s.band.hi, t);
+    if (!lo || !hi || lo.t !== hi.t) return [];
+    return [
+      {
+        color: s.color,
+        label: L(s.band.labelKey),
+        value: (hi.v - lo.v) / 2,
+        prefix: "\u00b1",
+        dashed: true,
+        unit: this._seriesUnit(s),
+        t: hi.t,
+        field: s.band.hi,
+      },
+    ];
   }
 
   /** True when the lower zone has no thermometer of its own.
@@ -7255,10 +7480,9 @@ class HeatpumpOptimizerCard extends HTMLElement {
     const space = powerSeries("space_power");
     const dhw = powerSeries("dhw_power");
     if (!space || !dhw) return "";
-    const pointsOf = (s) => {
-      const line = s.lines.find((l) => l.primary) || s.lines[0];
-      return line ? line.points : [];
-    };
+    // Through the field helper, not `lines[0]`: a hole anywhere in a power
+    // series splits it into segments, and the span search needs all of them.
+    const pointsOf = (s) => this._fieldPoints(s, s.field);
     const spacePts = pointsOf(space);
     const dhwPts = pointsOf(dhw);
     if (spacePts.length < 2 || dhwPts.length < 2) return "";
@@ -7361,19 +7585,22 @@ class HeatpumpOptimizerCard extends HTMLElement {
     let snapX = vbX;
     let snapped = false;
     for (const s of visible) {
-      // Every line, not just the primary one. The house-temperature series
+      // Every trace, not just the primary one. The house-temperature series
       // draws three traces and the tooltip used to report the room's value
       // for all of them, so hovering a 28 C zone line showed 21 C.
-      for (const line of s.lines) {
-        let best = null;
-        let bestDt = Infinity;
-        for (const p of line.points) {
-          const dt = Math.abs(p.t - t);
-          if (dt < bestDt) {
-            bestDt = dt;
-            best = p;
-          }
-        }
+      //
+      // Iterated per FIELD rather than per line: v5.2.0 lets holes break one
+      // field into several segments, and one row per segment would report
+      // the same trace two or three times over.
+      const traces = [
+        { field: s.field, primary: true, labelKey: s.labelKey },
+      ].concat(this._extraFields(s));
+      // A band's two edges are collapsed into the single ± figure they
+      // actually carry, rather than reported as two absolute temperatures.
+      const bandFields = s.band ? [s.band.lo, s.band.hi] : [];
+      for (const line of traces) {
+        if (bandFields.includes(line.field)) continue;
+        const best = this._nearestPoint(s, line.field, t);
         if (!best) continue;
         if (!snapped) {
           snapX = scaleX(best.t);
@@ -7391,6 +7618,8 @@ class HeatpumpOptimizerCard extends HTMLElement {
           priceKnown: best.priceKnown,
         });
       }
+      // ... and then the band, as one row, right under the line it brackets.
+      for (const row of this._bandRow(s, t)) rows.push(row);
     }
     if (!rows.length) {
       this._onPointerLeave();
@@ -7422,9 +7651,9 @@ class HeatpumpOptimizerCard extends HTMLElement {
               `<div class="tt-row"><span class="dot" style="${dotStyle(
                 r.color,
                 r.dashed
-              )}"></span>${esc(r.label)}: ${esc(fmtTick(r.value))} ${esc(
-                r.unit
-              )}</div>`
+              )}"></span>${esc(r.label)}: ${esc(
+                (r.prefix || "") + fmtTick(r.value)
+              )} ${esc(r.unit)}</div>`
           )
           .join("") +
         sharedHtml +

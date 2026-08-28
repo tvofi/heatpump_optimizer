@@ -80,6 +80,151 @@ byte-for-byte identical. The golden fixtures agree — exactly three move, all
 of them valve + storage, and `valve_storage_small_tank` (below the store
 threshold) is byte-identical.
 
+## v5.3.0
+
+### The heat pump can now tell the optimizer what it is doing
+
+Four new optional entity slots on the setup page, all read-only — the
+integration never writes any of them:
+
+**Operating mode.** Many units cannot heat the house and make hot water at
+the same time, and some cannot do both at all in the mode they are currently
+in. If you point this slot at the pump's mode entity, the plan stops
+promising heat the pump cannot deliver: a cooling or hot-water-only mode
+suppresses space heating, a heating-only mode suppresses hot water, and the
+affected hours are labelled *"The heat pump's mode cannot do this"* in the
+plan rather than reading as an ordinary idle hour. The comfort floor is left
+visibly unmet rather than quietly relaxed, because the fact worth showing you
+is that the mode selection is costing you comfort.
+
+**Defrosting.** Between roughly 0 and +5 °C in damp air, an air-to-water unit
+periodically reverses to clear frost off the evaporator, and both capacity and
+efficiency fall while it does. Until now that loss could only be inferred from
+a power ratio that cannot actually see a defrost. With a real defrost flag it
+is measured: how much of each interval the unit spent defrosting, per
+temperature and humidity band. Two honest caveats — a cloud connection that
+polls every few minutes will miss short defrosts, so the measured figure is
+biased low; and the number of defrosts actually witnessed is reported next to
+the duty, so a coarse estimate can be recognised as one.
+
+The same flag also unblocks the efficiency learner. It used to sit out the
+entire 0–5 °C band to avoid double-counting the defrost loss, which in a
+Swedish shoulder season is a large share of all heating hours. With a flag it
+sits out only the intervals that actually contained a defrost.
+
+**Online status** and **Fault alarm.** Both pause the learners rather than
+change the plan. The online signal closes a specific gap: some cloud
+integrations, when the vendor's API answers successfully but the device's data
+is stale, mark the device offline and hand back the stale data anyway. Every
+entity stays available and keeps looking freshly reported, so nothing about
+freshness can see it — only the signal's own value can.
+
+**None of this is required, and nothing changes if you configure none of it.**
+An empty slot, an unavailable entity, a word the mode table does not recognise
+and a reading past its age limit all mean *no evidence*, and no evidence is
+exactly the previous behaviour. The reverse is never true: silence is never
+read as bad news, because a pump that pushes updates only when something
+changes can leave all four entities untouched for hours while running
+perfectly.
+
+### What the mode entity will and will not do
+
+Three limits worth knowing before you configure it, because each one is a
+deliberate refusal rather than an oversight:
+
+**It never switches your heat pump off.** A mode that blocks both channels —
+cooling, most obviously — leaves the plan with nothing to run, and it would be
+easy for the integration to read that as "turn the pump off". It does not: it
+stops *planning*, and leaves the supply switch exactly where your mode
+selection left it. Turning the pump off because you set it to cool would
+defeat the cooling you asked for.
+
+**It only trusts a mode entity that names its own choices.** A `select`, or an
+`input_select` you built listing your pump's modes, states which options exist,
+so "Heating" from one of those is the mode. A general-purpose *status* sensor
+cycling heating / cooling / defrosting / idle does not, and there "heating"
+means the compressor is running this minute, not that the unit cannot make hot
+water. Words like that from a sensor are ignored rather than guessed at, and
+the diagnostics show the word that was not understood. The same applies to the
+defrosting, online and fault slots: from a plain sensor, activity words like
+"idle" or "running" are not read as flags.
+
+**It stops believing a mode entity that has gone quiet.** If the entity
+becomes unreadable, the last mode it reported keeps acting for up to three
+hours — long enough to ride out a restart or a slow reporting cycle. After
+that the plan goes back to assuming your pump can do everything, and a repair
+notice tells you the entity has stopped reporting. Suppressing your heating
+indefinitely on the last word of a sensor that has since died is the one
+outcome this feature must never produce.
+
+### Notes on the above, and one deliberate change
+
+**The frost-band derate is now bounded at 1.0, not 1.05.** This module models
+a *loss*: it exists to stop the plan over-promising between 0 and +5 °C. The
+old bound let it learn "5 % better than the model", which is not a thing frost
+does to a heat pump. If your system had learned a value above 1.0 there, it is
+brought back to 1.0 when the store loads — the rest of what it learned is kept
+— so plans in that band become slightly more careful and never less. Nothing
+else about an existing derate is discarded.
+
+**The stove or flue override reads its two kinds of entity differently.** If
+you point it at a switch or a helper toggle, that setting stands until you
+change it. If you point it at a *flue temperature probe*, it is trusted for an
+hour after its last report, and the log now says when it stops being trusted —
+a probe stuck reading hot on a flat battery would otherwise hold your heating
+back indefinitely. (This distinction was introduced and corrected during this
+release's development; no released version behaved otherwise.)
+## v5.2.0
+
+### The hot water line now shows how sure it is
+
+The plan chart draws a dashed pair either side of the **hot water tank
+temperature**. That pair is the *expected error* of the prediction: how far
+the tank curve has actually been out, in the past, at that distance ahead.
+Read it as "the tank is probably in here somewhere", not as a plan.
+
+It widens the further right you look, and it should — a promise about two
+hours from now is a much safer promise than one about tomorrow evening, and
+the band says so instead of pretending otherwise. The tooltip names it in
+words: *Hot water, expected error ±1.2 °C*.
+
+**It only appears once there is something to base it on.** A brand new
+install has never had a prediction come true or fail, so there is no error
+to report and no band is drawn at all — you just get the solid line, as
+before. It fills in over the following days. A house with no hot water tank
+sensor configured never gets one, because there is nothing to check the
+prediction against; the same goes for stretches where the sensor is
+unavailable or stuck, which are not measurements and are not counted.
+
+### It shares the room's dashed-line vocabulary rather than inventing one
+
+v5.1.7 gave every trace on the house-temperature series its own name, its own
+tooltip row and its own legend chip. The hot water band rides exactly that
+machinery — same dashed stroke, same colour, same single chip that toggles the
+whole series — so the chart has one visual language for "this line is a
+companion, not a plan", and the two dashed pairs cannot be confused for being
+the same *kind* of thing.
+
+One deliberate difference. The room's two dashed lines are two real predicted
+temperatures, one per floor, and are named and reported separately. The hot
+water pair is a single symmetric envelope, so it gets **one** legend chip and
+**one** tooltip row stating one ± figure, rather than two absolute temperatures
+nobody asked for.
+
+Two things follow for free. Where the band has no value the dashed lines stop
+rather than bridging the gap. And a band with no width at all — a record that
+has scored predictions but never been wrong — is not drawn, caught by the same
+rule that already stopped a single-zone house drawing two dashed copies of its
+own room line.
+
+### Under the hood
+
+The hot-water plan sensor's forecast gains two additive keys,
+`dhw_temp_lo` and `dhw_temp_hi`, alongside the existing `dhw_temp`. They are
+`null` whenever there is no band to draw. Nothing that was already published
+changed shape or value. The tank's accuracy record is stored alongside the
+existing one; upgrading and downgrading both read the store without
+complaint.
 ## v5.1.10
 
 ### Your hot water charge limit is now actually a limit
