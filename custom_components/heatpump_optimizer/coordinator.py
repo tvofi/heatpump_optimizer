@@ -110,6 +110,7 @@ from .const import (
     ECONOMY_ABSOLUTE_FLOOR,
     ECONOMY_MIN_TEMP_WIDENING,
     MODE_ECONOMY,
+    MODE_LAST_GOOD_MAX_AGE_MINUTES,
     OPERATION_MODES,
     MODE_OFF,
     MODE_BOOST,
@@ -1062,11 +1063,20 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # entity that drops out falls back to what the pump last said rather
         # than to "it can do everything". None until one is seen.
         self._pump_mode_last_good = None
+        # When that mode was actually read. The fallback is bounded by it:
+        # see MODE_LAST_GOOD_MAX_AGE_MINUTES for why an unbounded one made
+        # the mode entity's freshness horizon do nothing at all.
+        self._pump_mode_last_good_at: datetime | None = None
+        #: Whether the "your mode entity has gone quiet" notice is raised.
+        self._pump_mode_expired_notice: bool = False
         # Signature of the "disinfection is blocked by the pump's mode"
         # notice currently raised, or None when none is. Coarsened to whole
         # overdue days so a worsening situation updates the text without
         # re-raising the issue every cycle.
         self._legionella_mode_block_notice: int | None = None
+        #: Whether the "flue probe has gone quiet" warning has been logged
+        #: for the current outage. Cleared when the probe reports again.
+        self._external_probe_stale_warned: bool = False
 
         # --- Energy dashboard statistics (item 15) -------------------------
         # Monotonic accumulators, so Home Assistant's Energy dashboard can pick
@@ -2428,17 +2438,27 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # the entity and gates the probe case.
         probe = reader.read(CONF_EXTERNAL_HEAT_ENTITY)
         if probe.ok and probe.value is not None:
+            self._external_probe_stale_warned = False
             return probe.value > 30.0
         if probe.stale:
-            _LOGGER.warning(
-                "External heat override %s has not reported for %.0f min "
-                "(limit %.0f); ignoring it until it does. A flue probe that "
-                "stops reporting would otherwise hold heating back forever",
-                probe.entity_id,
-                probe.age_minutes if probe.age_minutes is not None else -1.0,
-                probe.max_age_minutes if probe.max_age_minutes is not None else -1.0,
-            )
+            # Warned once per outage, not once per cycle: a probe that has
+            # gone quiet stays quiet, and a line every five minutes for days
+            # is how a log stops being read. Re-armed when it reports again.
+            if not self._external_probe_stale_warned:
+                self._external_probe_stale_warned = True
+                _LOGGER.warning(
+                    "External heat override %s has not reported for %.0f min "
+                    "(limit %.0f); ignoring it until it does. A flue probe "
+                    "that stops reporting would otherwise hold heating back "
+                    "forever",
+                    probe.entity_id,
+                    probe.age_minutes if probe.age_minutes is not None else -1.0,
+                    probe.max_age_minutes
+                    if probe.max_age_minutes is not None
+                    else -1.0,
+                )
             return None
+        self._external_probe_stale_warned = False
         if probe.problem != "not_numeric":
             # not_configured, missing_entity or unavailable: nothing to read.
             return None
@@ -3380,6 +3400,56 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if since is None:
             return None
         return round(params.dhw_legionella_interval_days * 24.0 - since, 1)
+
+    def _check_pump_mode_expired(self) -> None:
+        """Say so when the mode entity has gone quiet long enough to stop acting.
+
+        The expiry itself is the safety fix -- an unbounded ``last_good`` left
+        a dead mode entity suppressing a channel for the life of the install.
+        But expiring silently trades one invisible state for another: the
+        integration would go back to planning heat while the pump may well
+        still be in the mode it was last seen in. This is the half the user
+        can act on, by fixing or clearing the entity.
+        """
+        expired = (
+            self._pump_signals.mode_source == pump_signals.MODE_SOURCE_EXPIRED
+        )
+        if expired == self._pump_mode_expired_notice:
+            return
+        self._pump_mode_expired_notice = expired
+        if not expired:
+            try:
+                ir.async_delete_issue(self.hass, DOMAIN, "pump_mode_unreadable")
+            except Exception as err:  # noqa: BLE001 - clearing is best-effort
+                _LOGGER.debug("Could not clear the mode notice: %s", err)
+            return
+        _LOGGER.warning(
+            "The heat pump's operating mode entity has been unreadable for "
+            "over %.0f min; the mode it last reported (%s) has stopped "
+            "acting and the plan is back to assuming full capability",
+            MODE_LAST_GOOD_MAX_AGE_MINUTES,
+            self._pump_mode_last_good.label
+            if self._pump_mode_last_good is not None
+            else "unknown",
+        )
+        ir.async_create_issue(
+            self.hass,
+            DOMAIN,
+            "pump_mode_unreadable",
+            is_fixable=False,
+            # Derived from the live reading, so it is re-raised for as long
+            # as the entity stays unreadable and clears the moment it returns.
+            severity=ir.IssueSeverity.WARNING,
+            translation_key="pump_mode_unreadable",
+            translation_placeholders={
+                "hours": f"{MODE_LAST_GOOD_MAX_AGE_MINUTES / 60.0:.0f}",
+                "mode": (
+                    self._pump_mode_last_good.label
+                    if self._pump_mode_last_good is not None
+                    else "unknown"
+                ),
+            },
+        )
 
     def _check_legionella_mode_block(self, dhw_blocked: bool) -> None:
         """Say so when a mode block is holding disinfection past its deadline.
@@ -4493,11 +4563,21 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # *visible* in the diagnostics, it just does not act. Read before the
         # health snapshot is published because every learner below consults
         # ``_learning_frozen``, which now consults these.
+        _mode_now = dt_util.now()
+        _last_good_age = (
+            (_mode_now - self._pump_mode_last_good_at).total_seconds() / 60.0
+            if self._pump_mode_last_good_at is not None
+            else None
+        )
         self._pump_signals = pump_signals.read(
-            reader, last_good=self._pump_mode_last_good
+            reader,
+            last_good=self._pump_mode_last_good,
+            last_good_age_minutes=_last_good_age,
         )
         if self._pump_signals.mode_source == pump_signals.MODE_SOURCE_LIVE:
             self._pump_mode_last_good = self._pump_signals.mode
+            self._pump_mode_last_good_at = _mode_now
+        self._check_pump_mode_expired()
         # The flag's level, once per cycle. Complements the listener, which
         # only ever sees transitions.
         self._defrost_window.observe(
@@ -5734,8 +5814,30 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         heat_pump_on = bool(self._current_action.get("heat_pump_on", False))
 
         # 1) Toggle heat pump supply (ON/OFF)
+        #
+        # v5.2.0: a mode block suppresses PLANNING, never actuation, and this
+        # is the line where the difference matters. A block hard-zeroes its
+        # channel, so a mode that blocks both — ``cool``, which is the whole
+        # point of a cooling mode — leaves every step with
+        # ``heat_pump_on=False`` and this call would cut the supply to a unit
+        # the owner deliberately set to cool, every cycle, defeating the
+        # cooling he asked for. Before this release the same install left the
+        # switch alone. The feature's own promise is that it is read-only, and
+        # an owner will reasonably read that as "configuring the mode entity
+        # cannot make things worse".
+        #
+        # So while a block is in force this never commands OFF. Turning the
+        # supply ON is still allowed: that is the plan asking for something
+        # the pump can actually deliver on its unblocked channel, and it is
+        # not a decision the block has any claim over. When BOTH channels are
+        # blocked there is genuinely nothing to command, and the correct
+        # action is to command nothing — the pump is left exactly as the
+        # owner's mode selection left it.
+        mode_blocked = (
+            self._pump_signals.space_blocked or self._pump_signals.dhw_blocked
+        )
         switch_entity = self._config.get(CONF_HEAT_PUMP_SWITCH_ENTITY)
-        if switch_entity:
+        if switch_entity and not (mode_blocked and not heat_pump_on):
             try:
                 await self.hass.services.async_call(
                     "switch",
@@ -5745,6 +5847,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 )
             except Exception as err:
                 _LOGGER.error("Error toggling heat pump switch: %s", err)
+        elif switch_entity:
+            _LOGGER.debug(
+                "Not switching %s off: the pump's mode (%s) is suppressing a "
+                "channel, so an empty plan is this integration's doing rather "
+                "than a decision to stop the pump",
+                switch_entity,
+                self._pump_signals.mode.label,
+            )
 
         # 2) Publish ECL110 displace command
         await self.async_publish_current_action(reason="scheduled_update")
@@ -7006,6 +7116,21 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             (a for a in FUSE_LADDER_A if a < amps), default=None
         )
         if smaller is None:
+            return
+        # v5.2.0: a month in which the pump's mode stopped it heating is not
+        # evidence about how many amperes the house needs. Passing the block
+        # into the shadow solve above makes the comparison honest, but an
+        # honest comparison of two crippled plans still answers the wrong
+        # question -- "would a smaller fuse do" is about the house's real
+        # demand, and while a channel is blocked the plan is not showing it.
+        # The last real verdict, if there is one, stays published untouched.
+        if self._pump_signals.space_blocked or self._pump_signals.dhw_blocked:
+            _LOGGER.debug(
+                "Skipping the fuse advisor: the heat pump's mode (%s) is "
+                "suppressing a channel, so this horizon is not evidence "
+                "about the house's demand",
+                self._pump_signals.mode.label,
+            )
             return
         now = dt_util.now()
         if (
@@ -9707,6 +9832,20 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                         horizon.outdoor_temps,
                         target_cap=float(scratch_config.target_temp),
                     ),
+                    # v5.2.0: and the mode block, for the same reason as
+                    # every inherited input above — the what-if is
+                    # DIFFERENCED against the live plan, so anything that
+                    # shaped the live plan and not the shadow one turns the
+                    # difference into a comparison of two different
+                    # questions. This one is the worst of them: the live
+                    # plan under a block heats nothing, so an unblocked
+                    # shadow solve looks warmer than its own baseline,
+                    # ``base_cold - sim_cold`` goes negative, and the fuse
+                    # advisor's clamp turns a real comfort breach into
+                    # "feasible" — a published recommendation to fit a
+                    # smaller main fuse.
+                    space_blocked=self._pump_signals.space_blocked,
+                    dhw_blocked=self._pump_signals.dhw_blocked,
                 )
             )
         except Exception as err:  # noqa: BLE001 - a what-if must never break ops

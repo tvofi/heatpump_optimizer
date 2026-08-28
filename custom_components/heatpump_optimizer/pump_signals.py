@@ -69,6 +69,7 @@ from .const import (
     CONF_HEAT_PUMP_FAULT_ENTITY,
     CONF_HEAT_PUMP_MODE_ENTITY,
     CONF_HEAT_PUMP_ONLINE_ENTITY,
+    MODE_LAST_GOOD_MAX_AGE_MINUTES,
 )
 from .pump_mode import FULL_CAPABILITY, ModeCapability
 
@@ -93,6 +94,11 @@ MODE_SOURCE_ABSENT = "absent"
 #: entity works, we just do not know what it is telling us" — the one case a
 #: user can actually act on, by picking a different entity.
 MODE_SOURCE_UNKNOWN = "unrecognised"
+#: The last recognised mode has outlived :data:`MODE_LAST_GOOD_MAX_AGE_MINUTES`
+#: and stopped counting as evidence. Reported distinctly because "your mode
+#: entity has gone quiet and we have stopped acting on what it last said" is a
+#: different thing to tell a user from "you never configured one".
+MODE_SOURCE_EXPIRED = "expired"
 
 #: Read problems that mean "the sensor stopped telling us", as opposed to
 #: "the sensor told us something we do not understand". Only these fall back
@@ -191,7 +197,12 @@ class PumpSignals:
         }
 
 
-def read(reader: Any, *, last_good: ModeCapability | None = None) -> PumpSignals:
+def read(
+    reader: Any,
+    *,
+    last_good: ModeCapability | None = None,
+    last_good_age_minutes: float | None = None,
+) -> PumpSignals:
     """Read all four slots through ``reader`` and resolve them.
 
     ``reader`` is the cycle's :class:`~.inputs.InputReader`, so every one of
@@ -205,14 +216,27 @@ def read(reader: Any, *, last_good: ModeCapability | None = None) -> PumpSignals
     stopped reporting, and quietly re-enabling a channel the pump cannot
     serve is precisely the promise this feature exists to stop making. Only
     when nothing was ever seen does it fall back to full capability.
+
+    **That fallback is bounded, and the bound is what makes the horizon
+    real.** ``last_good_age_minutes`` is how long ago that mode was actually
+    read. Past :data:`~.const.MODE_LAST_GOOD_MAX_AGE_MINUTES` it stops being
+    evidence and the mode resolves to full capability. Without the bound the
+    fallback silently undid the freshness guard it sits behind — an
+    unreadable reading restored identical capability with ``mode_observed``
+    still true, forever, so a mode entity that died while the pump was last
+    seen cooling left space heating suppressed and the learners frozen with
+    no recovery path a user could find. ``None`` means "not known", which is
+    treated as unbounded for callers that do not track it.
     """
-    # A select's state is one of a list its integration declared, so its
-    # words can be taken at face value. A plain sensor's cannot: see
-    # ``pump_mode._STATUS_AMBIGUOUS``.
+    # An entity that declares its own state among its options -- a select, or
+    # an input_select somebody built to list the pump's modes -- can be taken
+    # at face value. A plain sensor cannot: see ``pump_mode._STATUS_AMBIGUOUS``.
     mode_entity = reader.config.get(CONF_HEAT_PUMP_MODE_ENTITY)
-    strict = pump_mode.validator_for(mode_entity) is not pump_mode.is_known
+    mode_state = reader.hass.states.get(mode_entity) if mode_entity else None
+    mode_validator = pump_mode.validator_for(mode_state)
+    strict = mode_validator is not pump_mode.is_known
     mode_reading = reader.read_state(
-        CONF_HEAT_PUMP_MODE_ENTITY, valid=pump_mode.validator_for(mode_entity)
+        CONF_HEAT_PUMP_MODE_ENTITY, valid=mode_validator
     )
     if mode_reading.ok and mode_reading.text:
         capability = pump_mode.capability(mode_reading.text, strict=strict)
@@ -234,10 +258,30 @@ def read(reader: Any, *, last_good: ModeCapability | None = None) -> PumpSignals
         last_good is not None
         and mode_reading.entity_id
         and mode_reading.problem in _UNREADABLE_PROBLEMS
+        and (
+            last_good_age_minutes is None
+            or last_good_age_minutes <= MODE_LAST_GOOD_MAX_AGE_MINUTES
+        )
     ):
         capability = last_good
         source = MODE_SOURCE_LAST_GOOD
         observed = True
+    elif (
+        last_good is not None
+        and mode_reading.entity_id
+        and mode_reading.problem in _UNREADABLE_PROBLEMS
+    ):
+        # Read, once, but too long ago to still be describing the pump.
+        capability = FULL_CAPABILITY
+        source = MODE_SOURCE_EXPIRED
+        observed = False
+        _LOGGER.debug(
+            "Heat pump mode entity %s has been unreadable for %.0f min "
+            "(limit %.0f); the mode it last reported has stopped acting",
+            mode_reading.entity_id,
+            last_good_age_minutes if last_good_age_minutes is not None else -1.0,
+            MODE_LAST_GOOD_MAX_AGE_MINUTES,
+        )
     else:
         capability = FULL_CAPABILITY
         source = MODE_SOURCE_ABSENT

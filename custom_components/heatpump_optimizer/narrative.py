@@ -122,8 +122,15 @@ def build(
             into = merged.setdefault(
                 reason, {"kwh": 0.0, "sek": 0.0, "hours": 0.0}
             )
-            for key, value in entry.items():
-                into[key] += value
+            into["kwh"] += entry["kwh"]
+            into["sek"] += entry["sek"]
+            # Hours are WALL CLOCK, so they do not add across channels the
+            # way energy does: the two schedules run over the same horizon,
+            # and a reason carried on both sides of one step happened once.
+            # Summing them reported "idle for 48 h" on a 24 h horizon —
+            # visible on every zero-energy line, which is the only kind of
+            # line whose hours are the whole message.
+            into["hours"] = max(into["hours"], entry["hours"])
     items = []
     for reason, entry in merged.items():
         # These two carry no energy by definition; every other zero-energy

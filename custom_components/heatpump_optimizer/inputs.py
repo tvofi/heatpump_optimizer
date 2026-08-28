@@ -241,7 +241,37 @@ BOOL_FALSE: frozenset[str] = frozenset(
 )
 
 
-def parse_bool(raw: Any) -> bool | None:
+#: Tokens in the two tables above that describe what a machine is DOING
+#: rather than the position of a flag.
+#:
+#: The flag slots accept a plain ``sensor`` as well as the three real flag
+#: domains, and a generic heat-pump status sensor cycling
+#: ``heating``/``running``/``idle``/``defrosting`` is exactly what a user
+#: drops into one. Read as flags those words are actively wrong in every
+#: slot: ``idle`` in the online slot reads as "the pump is off the network"
+#: and freezes every learner, ``heating`` in the fault slot reads as an
+#: alarm, and ``heating`` in the defrost slot marks every heating interval a
+#: defrost — excluding it from COP learning and folding it into the duty.
+#:
+#: A ``binary_sensor``, ``switch`` or ``input_boolean`` cannot make that
+#: mistake: its state is on/off by construction. So these words are accepted
+#: from those domains and refused from free-text ones, where refusing means
+#: "no evidence" — which for all three flags is the pre-v5.2.0 behaviour.
+AMBIGUOUS_ACTIVITY_TOKENS: frozenset[str] = frozenset(
+    {"heat", "heating", "running", "active", "idle", "inactive",
+     "standby", "stopped"}
+)
+
+#: Domains whose state is a flag by construction rather than free text.
+FLAG_DOMAINS: tuple[str, ...] = ("binary_sensor", "switch", "input_boolean")
+
+
+def is_flag_domain(entity_id: str | None) -> bool:
+    """Whether this entity's state is on/off by construction."""
+    return str(entity_id or "").split(".", 1)[0] in FLAG_DOMAINS
+
+
+def parse_bool(raw: Any, *, strict: bool = False) -> bool | None:
     """Interpret a state string as a flag, or ``None`` if it is not one.
 
     Numbers are read as "non-zero means yes". That is not a guess: the Tuya
@@ -260,6 +290,8 @@ def parse_bool(raw: Any) -> bool | None:
     if isinstance(raw, bool):
         return raw
     token = str(raw).strip().lower()
+    if strict and token in AMBIGUOUS_ACTIVITY_TOKENS:
+        return None
     if token in BOOL_TRUE:
         return True
     if token in BOOL_FALSE:
@@ -457,6 +489,7 @@ class InputReader:
         *,
         max_age_minutes: float | _Unbounded | None = None,
         entity_id: str | None = None,
+        strict: Any = None,
     ) -> InputReading:
         """Read one configured entity as a flag.
 
@@ -471,7 +504,15 @@ class InputReader:
         )
         if reading.text is None:
             return reading
-        flag = parse_bool(reading.text)
+        # Default: strict for anything that is not a flag domain by
+        # construction, so a status sensor cannot be read as a flag. Callers
+        # may force it either way, but nobody has to remember to.
+        strict_now = (
+            is_flag_domain(reading.entity_id) is False
+            if strict is None
+            else bool(strict)
+        )
+        flag = parse_bool(reading.text, strict=strict_now)
         if flag is None:
             if reading.problem is None:
                 reading.problem = "not_boolean"

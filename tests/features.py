@@ -13117,11 +13117,38 @@ _um_cfg = {"heat_pump_mode_entity": "sensor.hp_status"}
 _um_now = datetime(2026, 2, 1, 12, 0, tzinfo=UTC)
 
 
-def _um_read(state, last_good=None, entity="sensor.hp_status", age=2):
+#: What the reference integration's select actually publishes as `options`.
+_UM_OPTIONS = [
+    "Cooling",
+    "Heating",
+    "DHW (Hot Water)",
+    "Cooling + DHW",
+    "Heating + DHW",
+]
+
+
+def _um_read(
+    state,
+    last_good=None,
+    entity="sensor.hp_status",
+    age=2,
+    options=None,
+    last_good_age=None,
+):
     cfg = {"heat_pump_mode_entity": entity}
-    hass = FakeHass({entity: FakeState(state, last_updated=minutes_ago(age, _um_now))})
+    # A select declares its options; a bare status sensor declares nothing,
+    # and that difference is what decides which vocabulary it gets.
+    if options is None and entity.split(".")[0] in ("select", "input_select"):
+        options = _UM_OPTIONS
+    attrs = {"options": list(options)} if options else None
+    hass = FakeHass(
+        {entity: FakeState(state, last_updated=minutes_ago(age, _um_now),
+                           attributes=attrs)}
+    )
     return pump_signals.read(
-        InputReader(hass, cfg, now=lambda: _um_now), last_good=last_good
+        InputReader(hass, cfg, now=lambda: _um_now),
+        last_good=last_good,
+        last_good_age_minutes=last_good_age,
     )
 
 
@@ -13217,12 +13244,35 @@ for _word in ("Heating + DHW", "HEATDHW", "Cooling + DHW", "COOLDHW"):
         pump_mode.is_known(_word, strict=True),
         "no status sensor reports 'Heating + DHW' as a momentary activity",
     )
+# What chooses the vocabulary is whether the ENTITY declares its own state
+# among its options — not its domain. That is the property the trust rests
+# on, it is visible at runtime, and it fails safe for any entity type nobody
+# has thought of yet.
+_um_declared = FakeState("Heating", attributes={"options": _UM_OPTIONS})
+_um_undeclared = FakeState("Heating")
+_um_off_list = FakeState("Turbo Eco", attributes={"options": _UM_OPTIONS})
 R.check(
-    "the domain, not the word, chooses the vocabulary",
-    pump_mode.validator_for("select.x") is pump_mode.is_known
-    and pump_mode.validator_for("input_select.x") is pump_mode.is_known
-    and pump_mode.validator_for("sensor.x") is not pump_mode.is_known
+    "an entity that declares this state among its options is taken at face value",
+    pump_mode.validator_for(_um_declared) is pump_mode.is_known
+    and pump_mode.declares_current_option(_um_declared),
+)
+R.check(
+    "one that declares nothing gets the careful vocabulary",
+    pump_mode.validator_for(_um_undeclared) is not pump_mode.is_known
     and pump_mode.validator_for(None) is not pump_mode.is_known,
+)
+R.check(
+    "and so does one reporting a word it never declared",
+    pump_mode.validator_for(_um_off_list) is not pump_mode.is_known,
+    "a select whose state is off its own list is not a select doing its job",
+)
+R.check(
+    "a user-built input_select listing the modes is a declaration too",
+    pump_mode.declares_current_option(
+        FakeState("Cooling", attributes={"options": _UM_OPTIONS})
+    ),
+    "somebody who builds a helper listing the pump's modes and sets it to "
+    "one is telling us the mode; that is the input this slot wants",
 )
 _sm_sensor = _um_read("heating", entity="sensor.hp_status")
 R.check(
@@ -13242,6 +13292,16 @@ R.check(
     "and a sensor carrying a real mode label is still read as one",
     _sm_sensor_multi.mode.key == pump_mode.MODE_HEAT_DHW,
     "a template sensor mirroring the select must not be collateral damage",
+)
+_sm_mirror = _um_read(
+    "Cooling", entity="sensor.hp_mode_mirror", options=_UM_OPTIONS
+)
+R.check(
+    "a template sensor that also mirrors the OPTIONS gets the full vocabulary",
+    _sm_mirror.mode.key == pump_mode.MODE_COOL and _sm_mirror.space_blocked,
+    f"{_sm_mirror.mode.label} — the single-word spellings are reachable from "
+    f"any domain that declares them, so mirroring a select properly is not "
+    f"collateral damage either",
 )
 
 

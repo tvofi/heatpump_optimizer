@@ -313,9 +313,37 @@ class DefrostDerate:
             return
         t, h = self._bucket(outdoor_temp, humidity)
         current = self.duty[t][h]
+        was = self.duty_counts[t][h]
         self.duty[t][h] = (1.0 - DUTY_ALPHA) * current + DUTY_ALPHA * duty
         self.duty_counts[t][h] += 1
         self.duty_events[t][h] += max(0, int(events))
+        if (
+            was < DERATE_CONFIDENCE_SAMPLES
+            <= self.duty_counts[t][h]
+            and self.counts[t][h] > 0
+        ):
+            # The handover from the inferred estimator to the measured one is
+            # a step, and deliberately so: the two are selected between, never
+            # blended, because averaging a measurement with an inference of
+            # the same quantity produces a number that is neither. A step at
+            # one documented threshold is the honest shape for that, but it
+            # can move a frost-band plan in a single interval, so it says so
+            # rather than happening silently.
+            _LOGGER.info(
+                "Defrost derate for %.0f..%.0f °C / %.0f..%.0f%% RH now rests "
+                "on %d counted duty samples and takes over from the inferred "
+                "estimate: %.3f -> %.3f",
+                TEMP_EDGES[t],
+                TEMP_EDGES[t + 1],
+                HUMIDITY_EDGES[h],
+                HUMIDITY_EDGES[h + 1],
+                self.duty_counts[t][h],
+                self._trusted(self.factors[t][h], self.counts[t][h]) or 1.0,
+                self._trusted(
+                    derate_from_duty(self.duty[t][h]), self.duty_counts[t][h]
+                )
+                or 1.0,
+            )
 
     # -- persistence --------------------------------------------------------
 
@@ -427,7 +455,7 @@ class DefrostDerate:
         out = []
         for t in range(len(TEMP_EDGES) - 1):
             for h in range(len(HUMIDITY_EDGES) - 1):
-                source, _value, count = self._decide(t, h)
+                source, value, count = self._decide(t, h)
                 if source is None:
                     continue
                 measured = source == "measured"
@@ -438,7 +466,16 @@ class DefrostDerate:
                         HUMIDITY_EDGES[h + 1],
                     ],
                     "source": source,
-                    "derate": round(
+                    # What the plan is ACTUALLY multiplying by: the value
+                    # ``factor`` returns, trust ramp and all. Reporting the
+                    # raw estimator here instead showed a user 0.80 while
+                    # the plan used 0.95, which is the one number on the row
+                    # they would act on.
+                    "derate": round(value, 3),
+                    # And what this bucket has learned, before the trust
+                    # ramp — the pair is how "we believe 0.80 but have not
+                    # earned it yet" becomes visible rather than confusing.
+                    "learned": round(
                         derate_from_duty(self.duty[t][h])
                         if measured
                         else self.factors[t][h],
@@ -517,6 +554,11 @@ class DefrostWindow:
         self._state: bool | None = None
         self._since: Any = None
         self._observed: bool = False
+        #: True once any reading in THIS interval came back unreadable.
+        #: Legibility is a property of the whole interval, not of its last
+        #: sample: the duty's denominator is the whole interval, so a stretch
+        #: nobody could see makes the duty a claim about time nobody watched.
+        self._dark: bool = False
 
     @staticmethod
     def _elapsed(now: Any, then: Any) -> float | None:
@@ -546,7 +588,24 @@ class DefrostWindow:
         ``flag is None`` means the signal was unreadable — unconfigured,
         unavailable, or past its horizon. Any open on-period is closed out at
         ``now`` (the pump was defrosting up to the moment the evidence
-        stopped, and no further), and the interval is *not* marked observed.
+        stopped, and no further), and the interval is disqualified from
+        reporting itself observed.
+
+        **Legibility belongs to the interval, not to its latest sample.**
+        Clearing it on close was not enough: within one interval a single
+        legible read used to mark the whole of it observed, so a flag that
+        was readable at the boundary and dark for the twenty-five minutes
+        after it still reported a confident duty of zero. A real defrost in
+        that dark stretch then went unseen twice over — ``_learn_measured_cop``
+        admitted a frost-band sample whose electricity went into melting ice,
+        and ``_settle_defrost`` folded a measured zero into the bucket. Both
+        are exactly what :attr:`DefrostObservation.observed` exists to
+        prevent, and the interval is the unit it has to be judged over
+        because the interval is the duty's own denominator.
+
+        A dark stretch anywhere therefore disqualifies the whole interval,
+        in either order — dark-then-legible is the same claim as
+        legible-then-dark, and neither is one this class may make.
         """
         if self._opened is None:
             self._opened = now
@@ -554,6 +613,7 @@ class DefrostWindow:
         self._accrue(now)
         if flag is None:
             self._state = None
+            self._dark = True
             return
         if flag and not self._state:
             self._events += 1
@@ -580,7 +640,7 @@ class DefrostWindow:
         return DefrostObservation(
             duty=min(1.0, seconds_on / total) if total > 0 else 0.0,
             events=self._events,
-            observed=self._observed,
+            observed=self._observed and not self._dark,
             seconds=total,
         )
 
@@ -609,4 +669,5 @@ class DefrostWindow:
         self._events = 0
         self._since = now
         self._observed = False
+        self._dark = False
         return result

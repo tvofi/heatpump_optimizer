@@ -270,20 +270,40 @@ def is_known(raw: object, *, strict: bool = False) -> bool:
     return resolve(raw, strict=strict) is not None
 
 
-#: Entity domains whose state is one of a list the source integration
-#: declared, rather than whatever word it felt like publishing.
-DECLARED_OPTION_DOMAINS: tuple[str, ...] = ("select", "input_select")
+def declares_current_option(state: Any) -> bool:
+    """Whether this entity declares its own state as one of a fixed list.
+
+    The test that decides whether a mode word may be taken at face value, and
+    it is a question about the ENTITY rather than about its domain. A
+    ``select`` publishes ``options`` and its state is always one of them, so
+    "Heating" there is a mode somebody declared. An ``input_select`` does the
+    same, and its options being user-typed is the point: a person who builds
+    a helper listing the pump's modes and sets it to one is telling us the
+    mode, which is exactly the input this slot wants.
+
+    A plain ``sensor`` declares nothing, so the same word could equally be
+    this minute's activity — see :data:`_STATUS_AMBIGUOUS`. Asking about
+    declared options rather than about the domain also fails in the right
+    direction for anything new: an entity type nobody thought of gets the
+    careful vocabulary until it proves it has a fixed list.
+    """
+    attributes = getattr(state, "attributes", None)
+    if not isinstance(attributes, dict):
+        return False
+    options = attributes.get("options")
+    if not isinstance(options, (list, tuple)):
+        return False
+    current = _fold(getattr(state, "state", ""))
+    return any(_fold(option) == current for option in options)
 
 
-def validator_for(entity_id: str | None) -> Any:
+def validator_for(state: Any) -> Any:
     """The ``read_state(valid=...)`` predicate to use for this mode entity.
 
-    A ``select`` gets the full vocabulary; anything else gets the strict one.
+    An entity that declares its state among its own options gets the full
+    vocabulary; anything else gets the strict one.
     """
-    domain = str(entity_id or "").split(".", 1)[0]
-    if domain in DECLARED_OPTION_DOMAINS:
-        return is_known
-    return _is_known_strict
+    return is_known if declares_current_option(state) else _is_known_strict
 
 
 def _is_known_strict(raw: object) -> bool:

@@ -1124,6 +1124,22 @@ INPUT_MAX_AGE_MINUTES[CONF_EXTERNAL_HEAT_ENTITY] = 60.0
 # threshold at which "what the pump last said" stops being evidence about
 # what it is doing now.
 INPUT_MAX_AGE_MINUTES[CONF_HEAT_PUMP_MODE_ENTITY] = 60.0
+#: How long the LAST RECOGNISED mode may keep acting after the entity stopped
+#: being readable. Without a bound this fallback made the horizon above
+#: functionally inert: an unreadable reading fell back to the last good mode,
+#: which restored identical capability with ``mode_observed`` still true, and
+#: nothing ever cleared it. A pump last seen cooling whose mode entity then
+#: died left space heating hard-zeroed and the learners frozen for the life of
+#: the install, recoverable only by clearing the slot or restarting Home
+#: Assistant. ``pump_signals``' own rule says it plainly: "a cooling mode read
+#: six hours ago must not still be freezing the learners".
+#:
+#: Three hours: comfortably longer than the reading's own 60 minute horizon,
+#: so an ordinary poll gap or a brief restart never disturbs a real mode; and
+#: comfortably shorter than the six hours the rule names as too long. Past it
+#: the mode resolves to full capability -- "plan normally", the documented
+#: safe direction -- and a repair issue says the entity has gone quiet.
+MODE_LAST_GOOD_MAX_AGE_MINUTES: Final = 180.0
 INPUT_MAX_AGE_MINUTES[CONF_HEAT_PUMP_FAULT_ENTITY] = 60.0
 # Defrost is an event, not a state: an old defrost flag describes a cycle
 # that finished long ago, and a stuck "on" would read as a pump permanently

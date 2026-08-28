@@ -47,47 +47,54 @@ read as bad news, because a pump that pushes updates only when something
 changes can leave all four entities untouched for hours while running
 perfectly.
 
-### Fixes found while reviewing the above
+### What the mode entity will and will not do
 
-**A stove or flue override no longer expires.** If you had told the
-integration about a wood fire with a switch or a helper toggle, that setting
-was being discarded an hour after you set it — in both directions: the
-deliberate "yes" that holds electric heating back, and the deliberate "no"
-that overrules the automatic detection. This affected installs with no heat
-pump signals configured at all. A *flue temperature probe* still ages out
-after an hour, and now says so in the log rather than only in debug: a probe
-stuck reading hot on a flat battery would otherwise hold heating back forever.
-A switch or helper does not age out, because nothing rewrites it — its
-timestamp records when you last decided something, not when anyone last
-checked.
+Three limits worth knowing before you configure it, because each one is a
+deliberate refusal rather than an oversight:
 
-**A single defrost measurement no longer overrides a season of learning.**
-The first measured interval after you add a defrost flag is usually one with
-no defrost in it, and that one sample was replacing an entire learned derate
-with "no derate at all". The measurement now has to earn its place before it
-takes over; until it does, whatever was already learned stands as a floor.
+**It never switches your heat pump off.** A mode that blocks both channels —
+cooling, most obviously — leaves the plan with nothing to run, and it would be
+easy for the integration to read that as "turn the pump off". It does not: it
+stops *planning*, and leaves the supply switch exactly where your mode
+selection left it. Turning the pump off because you set it to cool would
+defeat the cooling you asked for.
 
-**An unrecognised operating mode can no longer get stuck.** A word the mode
-table does not know now means "we do not know what the pump is doing, so
-assume it can do everything" — the documented behaviour — instead of holding
-on to the last mode it did recognise for ever. And a generic *status* sensor
-reporting "heating" or "cooling" is no longer read as a mode: on such a
-sensor "heating" means the compressor is running right now, not that the unit
-cannot make hot water, and reading it the other way suppressed hot water on a
-misreading. A real mode selector is unaffected.
+**It only trusts a mode entity that names its own choices.** A `select`, or an
+`input_select` you built listing your pump's modes, states which options exist,
+so "Heating" from one of those is the mode. A general-purpose *status* sensor
+cycling heating / cooling / defrosting / idle does not, and there "heating"
+means the compressor is running this minute, not that the unit cannot make hot
+water. Words like that from a sensor are ignored rather than guessed at, and
+the diagnostics show the word that was not understood. The same applies to the
+defrosting, online and fault slots: from a plain sensor, activity words like
+"idle" or "running" are not read as flags.
 
-**A blocked hot-water channel now says when it is holding up the
-anti-legionella cycle.** A pump left in a heating-only mode simply never got
-the disinfection cycle scheduled, and nothing said so. There is now a repair
-notice once the cycle is overdue, which clears as soon as hot water can be
-planned again.
+**It stops believing a mode entity that has gone quiet.** If the entity
+becomes unreadable, the last mode it reported keeps acting for up to three
+hours — long enough to ride out a restart or a slow reporting cycle. After
+that the plan goes back to assuming your pump can do everything, and a repair
+notice tells you the entity has stopped reporting. Suppressing your heating
+indefinitely on the last word of a sensor that has since died is the one
+outcome this feature must never produce.
 
-**Smaller things.** A one-off measurement experiment no longer runs while the
-pump is cooling, faulted or offline, and cooling intervals no longer widen the
-plan's confidence margins. A suppressed channel's hours now get a sentence in
-the plan narrative in both languages instead of vanishing from it. A blocked
-channel is reported with a figure for how far short the tank fell, which
-previously existed only for space heating.
+### Notes on the above, and one deliberate change
+
+**The frost-band derate is now bounded at 1.0, not 1.05.** This module models
+a *loss*: it exists to stop the plan over-promising between 0 and +5 °C. The
+old bound let it learn "5 % better than the model", which is not a thing frost
+does to a heat pump. If your system had learned a value above 1.0 there, it is
+brought back to 1.0 when the store loads — the rest of what it learned is kept
+— so plans in that band become slightly more careful and never less. Nothing
+else about an existing derate is discarded.
+
+**The stove or flue override reads its two kinds of entity differently.** If
+you point it at a switch or a helper toggle, that setting stands until you
+change it. If you point it at a *flue temperature probe*, it is trusted for an
+hour after its last report, and the log now says when it stops being trusted —
+a probe stuck reading hot on a flat battery would otherwise hold your heating
+back indefinitely. (This distinction was introduced and corrected during this
+release's development; no released version behaved otherwise.)
+
 
 ## v5.1.7
 
