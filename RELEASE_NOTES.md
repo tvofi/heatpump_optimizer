@@ -1,5 +1,74 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v5.4.1
+
+### The Setup tab is reachable before the first solve
+
+`sensor.py` publishes `setup_topology` with no plan for exactly this case, and
+says so in as many words — but both the expand affordance and the dialog were
+gated on plan data. The one page that can tell you *which* sensor is missing
+was reachable only after a solve that the missing sensor was preventing.
+
+The dialog now renders whenever the card believes it is expanded, opens on the
+setup page when there is no plan, and its Plan tab explains the absence rather
+than drawing an empty box. An install with nothing published at all still
+offers no expansion: no plan and no topology is nothing to expand to.
+
+### A hot-water schedule that runs to midnight can be priced again
+
+`dhw_schedule.format_windows` renders a window ending at the end of the day as
+`20:00-24:00` on purpose, and `parse_windows` reads `20:00-00:00` straight
+back to the same window — the round trip is lossless. The card's `hourOf` has
+no `24:00`, and should not: it also parses `<input type="time">` values, where
+no such time exists.
+
+The consequence was narrow and total. The SAVE path and the Apply button were
+never affected, because both call `_onSlotEdit` first and re-read the rows out
+of the DOM. The slider path does not touch the DOM at all, so what
+`_runWhatIf` validated was the memoised draft seeded straight from the sensor:
+a household whose hot water is guaranteed until midnight could not price a
+single change, and every simulate was refused by the card, blaming the
+schedule the integration had just published. Normalised once, in the draft
+seed. The refusal also names the window it is refusing now, so a house with
+four windows does not have to check all four by hand.
+
+### The slot menu stops leaking an Escape handler
+
+The menu parks its Escape handler on the document, because a mouse-opened menu
+leaves focus on the chart and the menu element never sees the key. Two paths
+dropped the menu without dropping the handler: `_render`, which replaces the
+shadow root on every plan refresh, and `disconnectedCallback`, which never
+closed the menu at all. One leaked listener per card visit, for the lifetime
+of the page. One `_teardown()`, called from both.
+
+### The setup picker's safeguards are now actually tested
+
+The picker already prepends a missing assigned entity as the selected option
+labelled with its raw id, already applies the 200-option cap after the text
+filter, and already confirms an Assign that would clear a configured slot —
+all of it landed in v5.1.4. The scenario claiming to cover the prepend did
+not. It assigns `sensor.vedpanna_temperatur_temperature_2`, which sorts
+*before* the 400 `sensor.zz_probe_*` it was supposed to be buried under, so it
+landed inside the cap on its own merits: replacing the entire prepend with
+`if (false)` left the whole suite green — a production line with no assertion
+behind it, in the one place where its absence rewrites the user's
+configuration.
+
+Three cases reach it now: an assignment last of 400 alphabetically, one
+excluded by the filter the user is typing, and one that is not a candidate at
+all because the entity has been renamed away. Each dies under that mutation.
+
+### The expected device class moves to where the slot is defined
+
+It lived in a second table inside the card, keyed by slot id, that no test
+reached. It now sits in `topology._SLOTS`, in the same row as the domains it
+belongs beside, and is published on every slot. It stays a *ranking*, not a
+filter: a house full of sensors carrying no device class is normal, and a
+picker that hid those would hide the very probe the user came to assign.
+
+Every assertion added across these four surfaces was killed by a named
+single-line production mutation before being kept.
+
 ## v5.4.0
 
 ### Stored heat is credited at what the next window can actually spend

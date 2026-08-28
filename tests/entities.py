@@ -994,6 +994,85 @@ R.check(
     "an empty slot is shown empty; that is the point of the diagram",
 )
 
+# What a slot is ASKING FOR, beside the domains it accepts. The card's picker
+# ranks a matching device class to the top, which is what makes a temperature
+# slot usable on an install with hundreds of sensors -- and that expectation
+# used to live in a second table inside the card, keyed by slot id, reachable
+# by no test at all. Published on the slot now, from the same row as the
+# domains, so the two cannot describe different slots.
+#
+# The configuration below has every conditional place present, so every slot in
+# the table is in the answer: two zones, a hot water tank, a wood tank, a valve.
+_dc_setup = topology.describe_setup(
+    {
+        "indoor_temp_entity": "sensor.indoor",
+        "outdoor_temp_entity": "sensor.outdoor",
+        "upper_floor_thermal_mass": 3.0,
+        "lower_floor_thermal_mass": 4.5,
+        "dhw_tank_volume": 200.0,
+        "mixing_valve_mode": "manual",
+        "buffer_tank_volume": 750.0,
+        const.CONF_EXTERNAL_HEAT_ENABLED: True,
+        const.CONF_WOOD_TANK_TOP_ENTITY: "sensor.wood_top",
+    }
+)
+_dc_slots = {s["key"]: s for s in _dc_setup["slots"]}
+R.check(
+    "every slot says what it is asking for, even when the answer is nothing",
+    all("device_class" in s for s in _dc_setup["slots"]),
+    str([s["key"] for s in _dc_setup["slots"] if "device_class" not in s]),
+)
+_dc_expected = {
+    const.CONF_INDOOR_TEMP_ENTITY: "temperature",
+    const.CONF_OUTDOOR_TEMP_ENTITY: "temperature",
+    const.CONF_DHW_TEMP_ENTITY: "temperature",
+    const.CONF_BUFFER_TANK_TEMP_ENTITY: "temperature",
+    const.CONF_LOWER_FLOOR_TEMP_ENTITY: "temperature",
+    const.CONF_POWER_ENTITY: "power",
+    const.CONF_ENERGY_ENTITY: "energy",
+    const.CONF_HOUSE_POWER_ENTITY: "power",
+    const.CONF_SOLAR_RADIATION_ENTITY: "irradiance",
+    const.CONF_PV_PRODUCTION_ENTITY: "power",
+}
+for _key, _want in _dc_expected.items():
+    R.check(
+        f"{_key} asks for a {_want} probe",
+        _dc_slots.get(_key, {}).get("device_class") == _want,
+        f"published {_dc_slots.get(_key, {}).get('device_class')!r}",
+    )
+_dc_unranked = (
+    const.CONF_HEAT_PUMP_SWITCH_ENTITY,
+    const.CONF_HEAT_PUMP_MODE_ENTITY,
+    const.CONF_HEAT_PUMP_DEFROST_ENTITY,
+    const.CONF_EXTERNAL_HEAT_ENTITY,
+)
+R.check(
+    "a slot with no narrower answer than its domains says so, not a guess",
+    # Presence asserted, not filtered for: `all()` over a set that quietly
+    # filtered itself empty is True, and this file has six documented
+    # vacuous tests already.
+    all(_k in _dc_slots for _k in _dc_unranked)
+    and all(_dc_slots[_k].get("device_class") is None for _k in _dc_unranked),
+    "a flag that arrives as any of four domains has no class to rank on: "
+    + str({_k: _dc_slots.get(_k, {}).get("device_class") for _k in _dc_unranked}),
+)
+R.check(
+    "and nothing asks for a class its own domains could never carry",
+    all(
+        "sensor" in s["domains"]
+        for s in _dc_setup["slots"]
+        if s.get("device_class") is not None
+    ),
+    str(
+        [
+            s["key"]
+            for s in _dc_setup["slots"]
+            if s.get("device_class") is not None
+            and "sensor" not in s["domains"]
+        ]
+    ),
+)
+
 # The building page owns the valve and wood entities (v4.0.0 merged the
 # mixing-valve page and the learning page's wood block into it), so it has to
 # clear them itself — it used to lean on the entities page's global nulling,

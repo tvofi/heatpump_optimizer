@@ -11,7 +11,7 @@
 
 const CARD_TAG = "heatpump-optimizer-card";
 const EDITOR_TAG = "heatpump-optimizer-card-editor";
-const CARD_VERSION = "5.4.0";
+const CARD_VERSION = "5.4.1";
 
 // The de-duplication key `_extraFields` files a confidence band's two
 // edges under, so the pair counts as the one named trace it is. A Symbol
@@ -306,7 +306,7 @@ const STRINGS = {
     // errors and diagnostics
     "errors.not_connected": "Not connected to Home Assistant.",
     "errors.invalid_window_time":
-      "One of the hot water windows is not a valid time.",
+      "The hot water window “{window}” is not a valid time.",
     "errors.day_start_equals_end":
       "The heating day starts and ends at the same hour, which would " +
       "leave no comfort period at all.",
@@ -638,7 +638,7 @@ const STRINGS = {
 
     "errors.not_connected": "Inte ansluten till Home Assistant.",
     "errors.invalid_window_time":
-      "Ett av varmvattenfönstren är inte en giltig tid.",
+      "Varmvattenfönstret ”{window}” är inte en giltig tid.",
     "errors.day_start_equals_end":
       "Värmedagen börjar och slutar vid samma timme, vilket inte skulle " +
       "lämna någon komfortperiod alls.",
@@ -1026,31 +1026,6 @@ const DIALOG_FONT_PX_MAX = 21;
 // or its id, and the footnote says when the list is standing on more than it
 // shows.
 const PICKER_MAX_OPTIONS = 200;
-
-// What a slot is asking for, where the answer is narrower than its accepted
-// domains. `sensor` covers every reading a house produces, so on an install
-// with hundreds of them the temperature probes are ranked to the top of the
-// picker for the slots that want one. Ranking only -- nothing is hidden,
-// because plenty of working sensors carry no device class at all. Keyed by
-// slot id, and superseded by a `device_class` the backend publishes on the
-// slot itself if a later version ever does.
-const SLOT_DEVICE_CLASS = {
-  outdoor_temp_entity: "temperature",
-  indoor_temp_entity: "temperature",
-  lower_floor_temp_entity: "temperature",
-  floor_return_temp_entity: "temperature",
-  buffer_tank_temp_entity: "temperature",
-  dhw_temp_entity: "temperature",
-  wood_tank_top_entity: "temperature",
-  wood_tank_bottom_entity: "temperature",
-  valve_outlet_temp_entity: "temperature",
-  mixing_valve_target_entity: "temperature",
-  power_entity: "power",
-  house_power_entity: "power",
-  energy_entity: "energy",
-  pv_production_entity: "power",
-  solar_radiation_entity: "irradiance",
-};
 
 // The setup diagram's viewBox width, and how far down a dragged box may be
 // parked. Both are needed outside the drawing itself: the layout editor turns
@@ -1477,6 +1452,23 @@ function hourOf(value, fallback) {
   const min = Number(m[2]);
   if (h > 23 || min > 59) return fallback;
   return h + min / 60;
+}
+
+/** `24:00` written the way a time input can hold it.
+ *
+ * The integration renders a window that runs to the end of the day as
+ * `20:00-24:00` on purpose (`dhw_schedule.format_windows`), and reads
+ * `20:00-00:00` straight back to the same window -- the round trip is
+ * lossless, and `00:00-00:00` is its own documented spelling of a full day.
+ * There is no 24:00 in an `<input type="time">`, and `hourOf` parses those,
+ * so the conversion happens once here rather than by loosening a parser that
+ * would then accept 24:00 from the user as well.
+ *
+ * Only 24:00 exactly: 24:30 is not a time at all, and turning it into 00:30
+ * would invent a window nobody asked for.
+ */
+function endOfDayAsMidnight(value) {
+  return String(value).trim() === "24:00" ? "00:00" : value;
 }
 
 /** '06:00-08:30, 17:00-22:00' -> [{start,end}, ...] */
@@ -1922,7 +1914,26 @@ class HeatpumpOptimizerCard extends HTMLElement {
     }
   }
 
+  /** Everything attached OUTSIDE this card's own shadow root.
+   *
+   * `_render` replaces the shadow root wholesale, so anything inside it dies
+   * with the rebuild and needs no help. The slot menu's Escape handler does
+   * not: it is parked on the DOCUMENT, because a mouse-opened menu leaves
+   * focus on the chart and the menu element never sees the key. Two paths
+   * used to drop the menu without dropping the handler -- a plan refresh,
+   * which happens on the coordinator's schedule rather than the user's, and
+   * the card being removed from the dashboard, which leaked one listener per
+   * card visit for the lifetime of the page.
+   *
+   * One method, called from both, rather than two lists that agree today.
+   */
+  _teardown() {
+    this._closeSlotMenu();
+  }
+
   disconnectedCallback() {
+    // Nothing of this card may outlive it on the document.
+    this._teardown();
     // A modal dialog left open would outlive the card in the top layer.
     if (this._expanded) this._closeExpandedQuietly();
     // A pending what-if solve would otherwise fire after the card is gone,
@@ -2515,6 +2526,9 @@ class HeatpumpOptimizerCard extends HTMLElement {
   }
 
   _render() {
+    // Before anything else: the rebuild below destroys the slot menu's
+    // element but not the Escape listener it parked on the document.
+    this._teardown();
     // The dialog body scrolls now, and `_render` replaces the whole shadow root
     // on every plan refresh -- which happens on the coordinator's schedule, not
     // the user's. Without carrying the offset across the rebuild the panel would
@@ -2529,19 +2543,38 @@ class HeatpumpOptimizerCard extends HTMLElement {
     const style = this._styleBlock();
     const legend = this._legendHtml();
 
+    // The setup page is drawn from configuration alone: `sensor.py` publishes
+    // `setup_topology` with no plan at all, saying so in as many words --
+    // "the card's setup page should not need a solve to draw". Gating the
+    // only way in on plan data made the one page that can say WHICH sensor is
+    // missing reachable only after a solve the missing sensor was preventing.
+    const topo = this._planAttrRaw("setup_topology", null);
+    const anySetup = !!(topo && Array.isArray(topo.slots) && topo.slots.length);
+    // An install with genuinely nothing published stays as it was: no plan
+    // and no topology is nothing to expand to, and the diagnostics below are
+    // the whole answer.
+    const expandable = anyData || anySetup;
+
     let body;
     if (!anyData) {
-      body = `<div class="empty">${L("errors.no_plan_data")}<br>
-        ${this._diagnose("space")}<br>
-        ${this._diagnose("dhw")}</div>`;
+      body = this._noPlanHtml();
       this._plot = null;
     } else {
       body = this._chartBlock(built, false);
     }
 
+    // Which page an expanded dialog opens on. Decided here, where `anyData`
+    // is known, and only while the dialog is actually open, so a tab the user
+    // chose themselves is never overridden by a later refresh.
+    if (this._expanded && this._dialogPage === undefined) {
+      this._dialogPage = anyData ? "plan" : "setup";
+    }
+
     // The dialog is a sibling of ha-card, not a child, so a click inside it
-    // never bubbles into the card's own open-on-click handler.
-    const dialog = this._expanded && anyData ? this._dialogHtml(built) : "";
+    // never bubbles into the card's own open-on-click handler. Rendered
+    // whenever the card believes it is expanded: a flag that draws nothing is
+    // the state the Setup tab was unreachable behind.
+    const dialog = this._expanded ? this._dialogHtml(built, anyData) : "";
 
     // The rebuild below replaces the <dialog> element wholesale, so the font
     // memo must forget the old element's size or _scaleDialogFont will skip
@@ -2549,12 +2582,12 @@ class HeatpumpOptimizerCard extends HTMLElement {
     this._dialogFontPx = 0;
 
     this.shadowRoot.innerHTML = `
-      <ha-card class="${anyData ? "clickable" : ""}">
+      <ha-card class="${expandable ? "clickable" : ""}">
         ${style}
         <div class="header">
           <span class="title">${esc(this._title())}</span>
           ${
-            anyData
+            expandable
               ? `<button type="button" class="expand" title="${esc(
                   L("header.enlarge")
                 )}"
@@ -2575,7 +2608,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     if (expandBtn) expandBtn.addEventListener("click", this._onExpandClick);
 
     const card = this.shadowRoot.querySelector("ha-card");
-    if (card && anyData) card.addEventListener("click", this._onCardClick);
+    if (card && expandable) card.addEventListener("click", this._onCardClick);
 
     this._syncDialog();
     this._cacheRect();
@@ -2598,7 +2631,17 @@ class HeatpumpOptimizerCard extends HTMLElement {
       <div class="tooltip" hidden></div></div>`;
   }
 
-  _dialogHtml(built) {
+  /** Why there is no chart, and which sensor to look at. Shared by the card
+   * and the dialog's plan page: before the first solve both have to say the
+   * same thing, and a dialog that drew an empty box instead would be the
+   * worse half of the pair. */
+  _noPlanHtml() {
+    return `<div class="empty">${L("errors.no_plan_data")}<br>
+      ${this._diagnose("space")}<br>
+      ${this._diagnose("dhw")}</div>`;
+  }
+
+  _dialogHtml(built, anyData) {
     // Which page the dialog shows is instance state on purpose: `_render`
     // rebuilds the shadow root on every plan refresh, on the coordinator's
     // schedule, and a refresh must not yank the user off the setup page they
@@ -2610,7 +2653,9 @@ class HeatpumpOptimizerCard extends HTMLElement {
     const body =
       page === "setup"
         ? this._setupPageHtml()
-        : `${this._chartBlock(built, true)}${this._whatIfHtml()}`;
+        : anyData
+          ? `${this._chartBlock(built, true)}${this._whatIfHtml()}`
+          : this._noPlanHtml();
     const tab = (id, label) =>
       `<button type="button" class="dlg-tab${page === id ? " active" : ""}"
          data-page="${id}" role="tab"
@@ -2626,7 +2671,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
           <button type="button" class="close" title="${esc(L("header.close"))}"
             aria-label="${esc(L("header.close"))}">${CLOSE_ICON}</button>
         </div>
-        ${page === "plan" ? this._legendHtml() : ""}
+        ${page === "plan" && anyData ? this._legendHtml() : ""}
         <div class="dlg-body">
           ${body}
         </div>
@@ -2826,7 +2871,13 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // ranked first so the probe the slot is for is near the top before a
     // single character is typed. Ranking only -- nothing is hidden by it,
     // because a house full of unclassified sensors is normal.
-    const want = slot.device_class || SLOT_DEVICE_CLASS[slot.key] || null;
+    //
+    // What the slot is asking for comes from the slot, published by
+    // `topology._SLOTS` beside the domains it sits in the same row as. The
+    // card used to keep a second copy of that table keyed by slot id, which
+    // no test touched and which would have gone quietly stale the first time
+    // a slot was added.
+    const want = slot.device_class || null;
     const classOf = (id) => {
       const st = states[id];
       return (st && st.attributes && st.attributes.device_class) || "";
@@ -4442,11 +4493,24 @@ class HeatpumpOptimizerCard extends HTMLElement {
     )}${note}</div>`;
   }
 
-  /** Demand windows the DHW plan sensor is currently planning against. */
+  /** Demand windows the DHW plan sensor is currently planning against.
+   *
+   * Normalised to what the editor's own validator accepts, which is what an
+   * `<input type="time">` can hold. The SAVE path never needed this -- it
+   * calls `_onSlotEdit` first, which re-reads the window rows out of the DOM
+   * -- but the slider path does not touch the DOM at all: `_onWhatIfInput`
+   * writes one number into this memoised draft and `_runWhatIf` validates
+   * the draft. A household whose hot water is guaranteed until midnight
+   * therefore could not price a single change; every simulate was refused by
+   * the card, blaming the schedule the integration had just published.
+   */
   _currentDhwWindows() {
     const st = this._stateOf(this._resolveEntity("dhw"));
     const spec = ((st && st.attributes) || {}).dhw_windows;
-    return parseWindows(spec);
+    return parseWindows(spec).map((w) => ({
+      start: endOfDayAsMidnight(w.start),
+      end: endOfDayAsMidnight(w.end),
+    }));
   }
 
   /** Wire the buttons that act on today's hand-arranged slots. */
@@ -4729,7 +4793,9 @@ class HeatpumpOptimizerCard extends HTMLElement {
     );
     if (invalid) {
       out.className = "wi-result dearer";
-      out.textContent = L("errors.invalid_window_time");
+      out.textContent = L("errors.invalid_window_time", {
+        window: `${invalid.start}-${invalid.end}`,
+      });
       return;
     }
     if (draft.dayStart === draft.dayEnd) {
@@ -4820,7 +4886,9 @@ class HeatpumpOptimizerCard extends HTMLElement {
     );
     if (invalid) {
       out.className = "wi-result dearer";
-      out.textContent = L("errors.invalid_window_time");
+      out.textContent = L("errors.invalid_window_time", {
+        window: `${invalid.start}-${invalid.end}`,
+      });
       return;
     }
 
