@@ -369,6 +369,17 @@ model. Drift, oscillation and learner divergence only appear there.
   reason codes in the tooltip, the shading of estimated prices, and the what-if
   simulator's debounce and error handling.
 
+Two files in `tests/` are not tests at all and are excluded from the
+"every script must be wired into `run.sh`" accounting:
+
+- **closure.py** is the scoping instrument. It runs the tests in order to
+  measure what they touch, derives each one's dependency closure, folds the
+  records into `tests/closures.json`, decides what a given diff needs, and
+  (`closure.py check`) fails when the committed closures miss something a real
+  run touched. Wiring it into the suite would make the suite run itself.
+- **derive_closures.sh** drives it across every script, in three lanes, and
+  rewrites `tests/closures.json`. See "The scoped gate" above.
+
 ## Note on browser checks
 
 `card.mjs` does not lay anything out, so it cannot catch a visual overflow. For
