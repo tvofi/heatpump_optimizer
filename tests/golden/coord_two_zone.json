@@ -118,7 +118,7 @@
   "dhw_energy_kwh": 0.0,
   "dhw_heating_active": false,
   "dhw_heating_cost": 0.0,
-  "dhw_hold_hours": 39.2,
+  "dhw_hold_hours": 28.0,
   "dhw_idle_min_temperature": 20.0,
   "dhw_in_demand_window": false,
   "dhw_inlet_temperature": 10.0,

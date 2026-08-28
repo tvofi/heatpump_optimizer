@@ -58,7 +58,7 @@ reported as a connection problem rather than as a bad token.
 | Solar irradiance location | your Home Assistant home location | The coordinate Open-Meteo is asked about. Only used when the source is Open-Meteo. |
 | Floor heating return temperature sensor | none | Water coming back from the floor loops. Used to gauge how much heat the slab is holding. |
 | Lower floor temperature sensor | none | Two-zone houses only. Without it the lower zone is modelled from the main room sensor and labelled as modelled on the plan chart; a repair notice says so. |
-| Hot water tank temperature sensor | none | Recommended. Lets a manual hot-water boost reset the anti-legionella timer, and unlocks the learned draw quantiles. |
+| Hot water tank temperature sensor | none | Recommended. Lets a manual hot-water boost reset the anti-legionella timer, and unlocks the learned draw quantiles. Without one, a disinfection cycle the plan commands resets the countdown but is recorded as an *attempt* rather than a verified cycle, and a note in Repairs says the cycle cannot be verified. |
 | Buffer tank temperature sensor | none | When set, the tank's cooling rate is learned instead of assumed. |
 
 The Danfoss ECL110 MQTT fields were asked here until v4.1.0. Eight questions
@@ -169,7 +169,7 @@ the saving comes from.
 | When you need hot water | `06:00-08:30, 17:00-22:00` | 24-hour times, comma separated | The tank is heated in the cheapest hours before each period. Leave empty to let the integration learn your habits from actual usage. |
 | Let the tank cool to | 20 °C | 10–55 | How cold the tank may get between periods. The default is roughly room temperature — nothing is spent at all. |
 | Run an anti-legionella cycle | on | on/off | Because the tank now spends long stretches cool, it is periodically heated hot enough to kill legionella. Strongly recommended. |
-| Anti-legionella temperature | 60 °C | 55–70 | The usual recommendation is 60 °C. Check what applies where you live. |
+| Anti-legionella temperature | 60 °C | 55–70 | The usual recommendation is 60 °C. Check what applies where you live. This applies only while a cycle is running: if it is above the charge limit above, the tank goes above that limit for the cycle and at no other time. |
 | Anti-legionella interval | 7 days | 1–30 | Placed in the cheapest hour before each deadline. |
 
 ### 5 · Weather sensitivity

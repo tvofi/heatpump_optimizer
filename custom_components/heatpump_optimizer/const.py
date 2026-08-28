@@ -624,6 +624,14 @@ CONF_SPACE_PUMP_ENTITY: Final = "space_circulation_pump_entity"
 #: #24 — minutes the tank must HOLD the disinfection temperature before the
 #: cycle counts. Momentary blips at temperature kill nothing.
 DHW_LEGIONELLA_HOLD_MINUTES: Final = 20.0
+# How long a commanded disinfection boost may stay commanded before the
+# integration stops waiting for it to finish and judges what it achieved. A
+# cycle the plan cannot complete — a pump that tops out below the disinfection
+# temperature, a tank too big to reach it inside a horizon — is re-commanded on
+# every solve, so without a bound the "boost window" never closes, nothing is
+# ever recorded, and the countdown latches overdue for ever. Long enough that
+# any healthy tank finishes well inside it; far shorter than the interval.
+DHW_LEGIONELLA_BOOST_MAX_HOURS: Final = 12.0
 #: #20 — events per window before the p90 fully replaces the mean (ramp).
 DHW_QUANTILE_MIN_EVENTS: Final = 8
 #: #18 — day-type samples at which the blend is half day-type, half pooled.

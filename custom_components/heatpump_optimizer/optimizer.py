@@ -51,6 +51,7 @@ from . import mixing_valve, pv
 from .const import (
     DEFAULT_CYCLING_COST,
     DEFAULT_PRICE_RISK_LAMBDA,
+    DHW_MIXED_USE_TEMP,
     DHW_QUANTILE_MIN_EVENTS,
     WOOD_TANK_MAX_TEMP,
 )
@@ -2804,12 +2805,66 @@ class HeatPumpOptimizer:
             hours_remaining = interval_hours - float(hours_since)
             deadline_step = int(np.floor(hours_remaining / dt))
             place_idx: int | None = None
+            # The earliest step the tank can physically be AT the disinfection
+            # temperature by, charging flat out from where it is now. Both
+            # branches below need it: a cycle target the tank cannot reach by
+            # its step is not a plan, it is a constraint the solver quietly
+            # relaxes. (The elastic branch has always applied this; the hard
+            # deadline used not to, which is what let an overdue cycle pin
+            # step 0 — see below.)
+            # Simulated rather than estimated. A closed-form lift ÷ rate
+            # ignores the draws and the standby losses the charge has to pay
+            # for on the way, and one fixed COP ignores how the same pump
+            # slows down as the tank warms. On a big tank with a small pump
+            # that was wrong by hours: it called step 91 of 96 reachable on a
+            # 3000 L tank that actually tops out at 52 °C, so the cycle was
+            # pinned near the end of every plan, never became the current
+            # action, and the shortfall was never observed, never reported
+            # and never retried. This is the same simulation every later
+            # stage runs, so the two cannot disagree about what is reachable.
+            ramp = np.asarray(
+                self.model.simulate_dhw_only(
+                    initial_temp=float(initial_state.dhw_temperature),
+                    dhw_power_schedule=np.full(n_steps, p_dhw_run),
+                    outdoor_temps=outdoor_temps,
+                    draw_rates=draw_rates,
+                    dt_hours=dt,
+                )
+            )
+            hot = np.where(ramp[1:] >= params.dhw_legionella_temp - 1e-6)[0]
+            reach_step = int(hot[0]) if hot.size else n_steps
             if deadline_step < n_steps:
                 # The hard deadline is inside this horizon: place the cycle
                 # at the cheapest hour before it, elastic or not. Hygiene
                 # never waits for a better price.
-                limit = max(1, min(deadline_step + 1, n_steps))
-                place_idx = int(np.argmin(dhw_prices[:limit]))
+                #
+                # An OVERDUE cycle (a negative deadline, from a timer that
+                # never got its reset) used to collapse this to
+                # ``limit = 1`` and pin the requirement on step 0 of every
+                # single solve. Step 0 is the one step the tank provably
+                # cannot reach 60 °C in, so the requirement was missed, the
+                # timer stayed overdue, and the next solve pinned step 0
+                # again — a latch that never disinfected anything. Overdue
+                # therefore means "at the cheapest step from the moment the
+                # tank can actually be there", not "now".
+                if reach_step >= n_steps:
+                    # The tank cannot be AT the disinfection temperature
+                    # anywhere in this horizon — a big tank, a small pump, or
+                    # simply a cold start. Clamping the placement to the
+                    # last step is the worst of the three options: the
+                    # cycle is then never the current action, so the boost
+                    # is never commanded, the tracker never runs, and the
+                    # "cannot reach temperature" notice can never be
+                    # raised — a permanent latch nobody is told about.
+                    # Starting now is what makes progress: the tank charges,
+                    # the next solve starts warmer, `reach_step` shrinks, and
+                    # if it never does, the shortfall is observed and
+                    # reported.
+                    place_idx = 0
+                else:
+                    first = min(max(reach_step, 0), n_steps - 1)
+                    limit = max(first + 1, min(deadline_step + 1, n_steps))
+                    place_idx = first + int(np.argmin(dhw_prices[first:limit]))
             elif (
                 params.dhw_elastic_legionella_enabled
                 and params.dhw_legionella_price_ceiling is not None
@@ -2836,21 +2891,10 @@ class HeatPumpOptimizer:
                 # A cycle target the tank cannot physically reach by its
                 # step is not a plan, it is a constraint the solver will
                 # quietly relax. Only steps the pump can actually heat to
-                # the disinfection temperature by are candidates.
-                lift = max(
-                    0.0,
-                    params.dhw_legionella_temp
-                    - float(initial_state.dhw_temperature),
-                )
-                thermal_kw = p_dhw_run * max(
-                    self.model.compute_cop_dhw(
-                        float(outdoor_temps[0]) if n_steps else 0.0,
-                        params.dhw_legionella_temp,
-                    ),
-                    0.5,
-                )
-                min_step = int(np.ceil(lift * c_dhw / max(thermal_kw, 0.1) / dt))
-                known_mask[: min(min_step, n_steps)] = False
+                # the disinfection temperature by are candidates —
+                # `reach_step`, shared with the hard-deadline branch above
+                # so the two can never disagree about what is reachable.
+                known_mask[: min(reach_step, n_steps)] = False
                 candidates = np.where(known_mask)[0]
                 if candidates.size:
                     idx = int(candidates[np.argmin(dhw_prices[candidates])])
@@ -2866,12 +2910,123 @@ class HeatPumpOptimizer:
                 legionella_hour = float(hours_mod[place_idx])
                 legionella_step = place_idx
 
-        max_temp = params.dhw_max_temp
+        # --- The planning ceiling, per step ---------------------------------
+        #
+        # `dhw_max_temp` is the user's own charge limit ("Highest tank
+        # temperature to charge to"), and every ordinary step gets exactly
+        # that. Until v5.1.10 the disinfection temperature was folded into it
+        # permanently, which made a hygiene setting the everyday ceiling the
+        # cost planner *spends*: pre-buying at the night trough beats heating
+        # at the evening window even after standby losses, so the plan
+        # over-charged right up to whatever number this was. A 52/60 pair ran
+        # the tank to ~58 °C on a day with no cycle due.
+        #
+        # A disinfection cycle is the one thing allowed above the charge
+        # limit, and only around the cycle the planner has actually placed.
+        # `legionella_step` is that step (None when no cycle is due), so the
+        # raise is scoped to three bands:
+        #
+        #   * the run-up, because an 8 °C lift does not happen in one 15-minute
+        #     step; the ceiling rises along the *latest* ramp that still
+        #     arrives on time, so the tank may climb only as fast as it must;
+        #   * the cycle step itself, at the disinfection temperature;
+        #   * the coast-down — and this one is FOR THE LINEAR PROGRAM ONLY.
+        #     The LP's ceiling rows are written against a tank that was never
+        #     boosted, so without a band that decays the way the boost heat
+        #     really does, the row after the cycle contradicts the cycle's own
+        #     floor and the solve answers with expensive shortfall slack
+        #     instead of disinfecting. The four stages that work against the
+        #     SIMULATED trajectory need no such band: they can see the tank is
+        #     already hot, and holding them to the charge limit there is
+        #     exactly right — it forbids re-heating in the hours after a
+        #     cycle, which a shared band would have quietly licensed (the
+        #     tank sat ~1 °C over the limit twelve hours later).
+        #
+        # Each stage below documents whether it wants the per-step value or
+        # the whole array.
+        max_temp = np.full(max(n_steps, 0), float(params.dhw_max_temp))
+        lp_max_temp = max_temp
+        # The run-up the cycle needs, as a per-step FLOOR. Folded into
+        # ``requirement`` below rather than into ``ready_temps``, so the step
+        # reason codes and the published "required now" keep meaning what
+        # they meant.
+        runup_temps = np.zeros(max(n_steps, 0))
+        boost_top = min(70.0, float(params.dhw_hard_max_temp))
+        if legionella_step is not None and n_steps > 0 and boost_top > float(
+            params.dhw_max_temp
+        ):
+            ua = max(params.dhw_tank_heat_loss_coefficient, 1e-6)
+            decay = float(np.clip(1.0 - ua * dt / c_dhw, 0.0, 1.0))
+            gain = ua * DHW_AMBIENT_TEMP * dt / c_dhw
+            everyday = float(params.dhw_max_temp)
+            max_temp[legionella_step] = boost_top
+
+            # Run-up: walk backwards along the fastest charge the pump can
+            # actually deliver, inverting the same tank recursion the LP
+            # uses. `need` is the coolest the tank may be at the end of a
+            # step and still reach `boost_top` on time, so a ceiling of
+            # `need` grants the cycle exactly the headroom it needs and not
+            # a degree more. Draws are carried, because water taken during
+            # the run-up is heat the charge has to make up as well.
+            #
+            # The ramp is an OBLIGATION, not merely a permission, so each
+            # step of the walk records `need` as a floor too and the walk
+            # runs all the way down to the floor the plan already has to
+            # honour rather than stopping at the charge limit. Raising the
+            # ceiling alone would say the tank MAY climb without anything
+            # making it, which is only safe while something else happens to
+            # leave it at the charge limit when the ramp starts — and with
+            # the limit honoured a summer plan legitimately parks the tank at
+            # ~37 °C. The repair stage does find the ramp from the cycle's
+            # own requirement, so this is belt and braces rather than the
+            # only thing holding the cycle up; it is cheap, it is what the
+            # linear program needs to seed a sensible shape, and it states
+            # the obligation where the ramp is computed instead of leaving it
+            # to be rediscovered.
+            need = boost_top
+            for m in range(legionella_step - 1, -1, -1):
+                # The transition from the END of step m to the END of step
+                # m+1 is step m+1's own weather and draw, not step m's.
+                nxt = m + 1
+                cop = max(
+                    self.model.compute_cop_dhw(float(outdoor_temps[nxt]), need),
+                    0.5,
+                )
+                rise = p_dhw_run * cop * dt / c_dhw
+                drawn = float(draw_rates[nxt]) * dt / c_dhw
+                need = (need + drawn - gain - rise) / max(decay, 1e-6)
+                if need > boost_top:
+                    # Even starting AT the disinfection temperature the pump
+                    # could not carry the ramp from here. Nothing earlier can
+                    # help, and demanding it would only buy heat the cycle
+                    # cannot use.
+                    break
+                if need > everyday:
+                    max_temp[m] = min(boost_top, need)
+                runup_temps[m] = need
+                if need <= floor_temps[m]:
+                    # From here the ordinary availability floor is already at
+                    # least as high as the ramp needs, so the plan is obliged
+                    # to be there anyway.
+                    break
+
+            # Coast-down, LP only: a tank left alone from `boost_top`.
+            # Standby-only, so it is the upper envelope of what the cycle can
+            # leave behind — the linear program needs room for heat that is
+            # genuinely in the tank, and nothing more.
+            lp_max_temp = max_temp.copy()
+            temp = boost_top
+            for m in range(legionella_step + 1, n_steps):
+                temp = decay * temp + gain
+                if temp <= everyday:
+                    break
+                lp_max_temp[m] = max(lp_max_temp[m], temp)
+
         # How long stored heat actually survives in this tank. The learned
         # cooling rate drives it, so a well-insulated tank is allowed to
         # pre-heat much further ahead than a leaky one.
         max_lead_hours = self.model.dhw_hold_hours()
-        requirement = np.maximum(floor_temps, ready_temps)
+        requirement = np.maximum(np.maximum(floor_temps, ready_temps), runup_temps)
 
         # Steps a manual plan forces off. The planners must know these up
         # front: overlaying the pins on a finished schedule deleted the energy
@@ -2917,7 +3072,8 @@ class HeatPumpOptimizer:
             dt=dt,
             p_dhw_max=p_dhw_run,
             c_dhw=c_dhw,
-            max_temp=max_temp,
+            # The LP alone gets the coast-down band — see the ceiling block.
+            max_temp=lp_max_temp,
             space_demand=space_demand,
             p_total_max=p_max,
             forced_off=forced_off,
@@ -3008,13 +3164,14 @@ class HeatPumpOptimizer:
             c_dhw=c_dhw,
             forced_off=forced_off,
         )
-        # Deliberately NOT re-clamped: the external clamp predicts the tank
-        # without draw relief (conservative by design), so it reads the
-        # repair's in-window top-ups — which exist precisely because the
-        # window is draining the tank — as rating breaches and truncates
-        # them back out. The repair's own simulation runs the real step,
-        # whose internal rating clamp books any genuinely refused heat, so
-        # a repaired plan cannot overshoot where it matters.
+        # Not re-clamped here, because the repair now carries the clamp
+        # inside its own loop: every top-up it places is followed by one,
+        # so a plan leaves this stage already bounded by the per-step
+        # ceiling and already free of sub-minimum trickles. Doing it there
+        # rather than here is what lets the two agree — the repair sizes its
+        # room on the END of a step, draw and standby loss included, and so
+        # does the clamp, so a block placed to close a breach is no longer
+        # deleted by the very check meant to bound it.
 
         # --- External heat source (item 5) ---------------------------------
         # While something else is charging the tank for free, buying electric
@@ -3091,7 +3248,11 @@ class HeatPumpOptimizer:
             "ready_temps": ready_temps,
             "draw_rates": draw_rates,
             "in_window": in_window,
-            "max_temp": max_temp,
+            # The everyday charge limit, as one number: this is the plan's
+            # published ceiling, and a disinfection cycle is an exception to
+            # it rather than a redefinition of it. The per-step array stays
+            # internal to the planning stages above.
+            "max_temp": float(params.dhw_max_temp),
             "schedule": schedule,
             "windows_text": format_windows(windows),
             "windows_learned": learned_windows,
@@ -3136,7 +3297,7 @@ class HeatPumpOptimizer:
         dt: float,
         p_dhw_max: float,
         c_dhw: float,
-        max_temp: float,
+        max_temp: np.ndarray,
         space_demand: np.ndarray | None = None,
         p_total_max: float | None = None,
         forced_off: np.ndarray | None = None,
@@ -3176,12 +3337,19 @@ class HeatPumpOptimizer:
         has spare capacity. DHW therefore fills the cheap hours only up to the
         point where it starts competing, and pays the real price beyond it.
 
+        ``max_temp`` is a per-step ceiling. The program wants the whole array:
+        its tank-maximum block is one row per step, so a ceiling that rises
+        for a disinfection cycle and decays afterwards is expressed exactly,
+        with no scalar compromise between "hot enough to disinfect" and "no
+        hotter than the user asked for on an ordinary evening".
+
         Returns ``None`` when the solve fails, so the caller can fall back to
         the greedy planner.
         """
         if n_steps == 0:
             return None
 
+        max_temp = np.asarray(max_temp, dtype=float)
         requirement = np.minimum(np.asarray(requirement, dtype=float), max_temp)
         params = self.model.params
         ua = max(params.dhw_tank_heat_loss_coefficient, 1e-6)
@@ -3357,7 +3525,7 @@ class HeatPumpOptimizer:
         draw_rates: np.ndarray,
         dt: float,
         requirement: np.ndarray,
-        max_temp: float,
+        max_temp: np.ndarray,
         p_dhw_max: float,
         min_run_power: float,
         prices: np.ndarray,
@@ -3371,15 +3539,42 @@ class HeatPumpOptimizer:
         energy at the tank's own marginal COP, and adds it at the cheapest
         step with headroom that can still reach the breach — after the last
         rating-pinned step before it, since heat added ahead of a full tank
-        is refused, not stored. A demand no rating-legal plan can meet exits
-        after the round limit with the closest achievable trajectory; the
-        rating clamp re-runs after and always wins.
+        is refused, not stored. A demand no ceiling-legal plan can meet exits
+        after the round limit with the closest achievable trajectory.
+
+        ``max_temp`` is the per-step ceiling and is read per step: "full" is
+        a local property once the ceiling moves. In the hours after a
+        disinfection cycle the tank really is full against the everyday
+        charge limit, and a top-up placed before one of those steps would be
+        refused by the capacity clamp rather than stored — which is exactly
+        what this search is trying to avoid.
+
+        This stage runs AFTER the capacity clamp and is deliberately not
+        re-clamped (see the caller), so it has to carry its own ceiling: it
+        is the last word on the plan, and until v5.1.10 it relied on the
+        model's tank-rating clamp to bound it, which only worked while the
+        charge limit and the rating were the same number.
         """
         plan = np.asarray(plan, dtype=float).copy()
         n = plan.size
         if n == 0 or requirement is None:
             return plan
-        req = np.asarray(requirement, dtype=float)[:n]
+        ceiling = np.asarray(max_temp, dtype=float)[:n]
+        # Clipped to the ceiling, exactly as both planners clip it: a floor
+        # the tank is not allowed to reach is not a target, it is a loop that
+        # keeps buying blocks the tank cannot hold.
+        req = np.minimum(np.asarray(requirement, dtype=float)[:n], ceiling)
+        # The tank's own per-step decay, the same factor the linear program
+        # uses: heat added now is worth less later, so the ceiling bound
+        # below can price how much of a top-up still survives at each step.
+        ua = max(self.model.params.dhw_tank_heat_loss_coefficient, 1e-6)
+        decay = float(np.clip(1.0 - ua * dt / max(c_dhw, 0.05), 0.0, 1.0))
+        # Breaches no ceiling-legal top-up can close. Skipped rather than
+        # returned on: a demand window later in the day is not helped by
+        # giving up at the first step the tank cannot quite reach, and a
+        # "ready" target that sits exactly ON the ceiling is exactly such a
+        # step. Same shape as the greedy planner's `unreachable`.
+        unreachable: set[int] = set()
         # Convergence is a min-run trickle per round in the worst case (a
         # cheap-step landscape already near the run cap), so the bound is
         # sized for a multi-degree breach at trickle pace, not for elegance.
@@ -3394,35 +3589,126 @@ class HeatPumpOptimizer:
                 )
             )
             deficit = req - temps[1 : n + 1]
-            breach = np.where(deficit > 0.05)[0]
-            if breach.size == 0:
+            breach = [
+                int(i)
+                for i in np.where(deficit > 0.05)[0]
+                if int(i) not in unreachable
+            ]
+            if not breach:
                 return plan
-            b = int(breach[0])
+            b = breach[0]
             # Heat added before a rating-pinned step is refused, so only
             # steps after the last full-tank moment can feed the breach.
-            pinned = np.where(temps[: b + 1] >= max_temp - 0.1)[0]
+            pinned = np.where(temps[: b + 1] >= ceiling[: b + 1] - 0.1)[0]
             lo = int(pinned[-1]) if pinned.size else 0
             headroom = p_dhw_max - plan[lo : b + 1]
             usable = headroom > 1e-6
             if forced_off is not None:
                 usable &= ~np.asarray(forced_off[lo : b + 1], dtype=bool)
-            if not np.any(usable):
-                return plan
+            # Degrees of room under the ceiling for heat added at each
+            # candidate. The heat is stored from the candidate to the breach,
+            # decaying as it leaks away, so the bound is the tightest of
+            # (room at m) / decay^(m-j) across that stretch — a step already
+            # at its limit refuses the heat rather than passing it on.
+            #
+            # Beyond the breach the ceiling is not *bounded* here, it is
+            # ENFORCED: heat the tank cannot hold later is refused, not
+            # stored, so a top-up displaces the plan's own later charging
+            # instead of stacking on top of it, and the capacity clamp below
+            # performs exactly that displacement. Stating the bound over
+            # the whole tail instead — the first cut of this change — made
+            # every later step sitting ON the charge limit read as zero
+            # room, the suffix-minimum carried that zero back over every
+            # earlier candidate, and the repair refused every top-up there
+            # was: a 24 h matrix went from a worst deficit of 0.03 °C to
+            # 1.11 °C, inside a demand window, with no cycle due, and the
+            # run-up to a disinfection cycle was refused the same way.
+            gap = ceiling[lo : b + 1] - temps[lo + 1 : b + 2]
+            if decay > 1e-6:
+                weight = np.power(decay, np.arange(b + 1 - lo))
+                scaled = gap / weight
+                room_c = np.minimum.accumulate(scaled[::-1])[::-1] * weight
+            else:
+                room_c = gap
+            usable &= room_c > 0.01
+            # Cheapest first, and the whole ranking is walked here rather than
+            # one candidate per re-simulation: a step that cannot take a
+            # runnable block is not a reason to re-solve, only a reason to try
+            # the next one.
             costs = np.where(usable, prices[lo : b + 1], np.inf)
-            j_local = int(np.argmin(costs))
-            j = lo + j_local
-            cop_j = max(
-                self.model.marginal_cop(
-                    float(outdoor_temps[j]), "dhw", store_temp=float(temps[j])
-                ),
-                0.5,
-            )
-            needed = float(deficit[b]) * c_dhw / max(dt * cop_j, 1e-6)
-            add = float(np.clip(needed, min_run_power, headroom[j_local]))
-            new_level = plan[j] + add
-            if new_level < min_run_power - 1e-9:
-                new_level = min(min_run_power, p_dhw_max)
-            plan[j] = min(p_dhw_max, new_level)
+            before = plan.copy()
+            placed = False
+            for j_local in np.argsort(costs, kind="stable"):
+                j_local = int(j_local)
+                if not usable[j_local]:
+                    break
+                j = lo + j_local
+                cop_j = max(
+                    self.model.marginal_cop(
+                        float(outdoor_temps[j]), "dhw", store_temp=float(temps[j])
+                    ),
+                    0.5,
+                )
+                needed = float(deficit[b]) * c_dhw / max(dt * cop_j, 1e-6)
+                # The room bound is sized against the HIGHEST COP that could
+                # apply at this step, not the marginal one used to size the
+                # need: the simulation delivers `compute_cop_dhw` thermal kWh
+                # per electrical kWh, so a bound computed at a lower COP lets
+                # the top-up quietly overshoot the ceiling it exists to
+                # respect.
+                cop_room = max(
+                    cop_j,
+                    self.model.compute_cop_dhw(
+                        float(outdoor_temps[j]), float(temps[j])
+                    ),
+                )
+                room_kw = float(room_c[j_local]) * c_dhw / max(dt * cop_room, 1e-6)
+                add = min(
+                    float(np.clip(needed, min_run_power, headroom[j_local])),
+                    room_kw,
+                )
+                new_level = plan[j] + add
+                if new_level < min_run_power - 1e-9:
+                    runnable = min(min_run_power, p_dhw_max)
+                    if runnable > plan[j] + room_kw + 1e-9:
+                        # A block the pump could actually run would push the
+                        # tank past the charge limit. Overshooting the user's
+                        # own ceiling to close a fraction of a degree is the
+                        # wrong trade, so this step drops out.
+                        continue
+                    new_level = runnable
+                plan[j] = min(p_dhw_max, new_level)
+                placed = True
+                break
+            if placed:
+                # The top-up is legal up to the breach by construction; past
+                # it, the tank simply has less room left for what the plan
+                # was going to buy anyway. The clamp takes that back — it is
+                # exact against the same simulation this loop runs, so it
+                # removes only heat the tank would genuinely have refused,
+                # and it cannot touch the step just topped up. A step it
+                # truncates below a runnable block is zeroed, the same rule
+                # the caller applies to its own clamp: a published trickle is
+                # a power the on/off hardware cannot deliver.
+                plan = self._clamp_dhw_to_capacity(
+                    plan=plan,
+                    initial_temp=initial_temp,
+                    outdoor_temps=outdoor_temps,
+                    draw_rates=draw_rates,
+                    dt=dt,
+                    max_temp=ceiling,
+                )
+                plan = np.where(plan < min_run_power - 1e-9, 0.0, plan)
+                if np.array_equal(plan, before):
+                    # The block went in and came straight back out. Repeating
+                    # it is a loop, not a repair, so this breach is recorded
+                    # as one nothing ceiling-legal closes and the search moves
+                    # on to the next.
+                    unreachable.add(b)
+            else:
+                # Nothing ceiling-legal can fix this step; move on rather than
+                # abandoning every later breach with it.
+                unreachable.add(b)
         return plan
 
     def _clamp_dhw_to_capacity(
@@ -3432,7 +3718,7 @@ class HeatPumpOptimizer:
         outdoor_temps: np.ndarray,
         draw_rates: np.ndarray,
         dt: float,
-        max_temp: float,
+        max_temp: np.ndarray,
     ) -> np.ndarray:
         """Never deliver more heat than the tank has room for.
 
@@ -3450,13 +3736,24 @@ class HeatPumpOptimizer:
         step that would exceed the rating. It is a physical bound rather than a
         preference, so it belongs after the economics rather than inside them:
         no plan may boil the tank, however cheap the electricity.
+
+        Takes the per-step value of ``max_temp``: this walks the trajectory
+        one step at a time, so each step is truncated against its own
+        ceiling. That is what lets a disinfection cycle charge past the
+        everyday limit at the step it was placed at, and what stops the plan
+        re-heating the tank in the hours after it while the boost heat is
+        still coasting out.
         """
         plan = np.array(plan, dtype=float)
         if plan.size == 0:
             return plan
 
+        ceiling = np.asarray(max_temp, dtype=float)
         params = self.model.params
         capacity = max(params.dhw_tank_thermal_mass, 1e-6)
+        ua = params.dhw_tank_heat_loss_coefficient
+        inlet = params.dhw_inlet_reference
+        span = max(DHW_MIXED_USE_TEMP - inlet, 1e-6)
         temp = float(initial_temp)
 
         for i in range(len(plan)):
@@ -3468,8 +3765,36 @@ class HeatPumpOptimizer:
             # already over, which happens when it *starts* over — heating is
             # then simply forbidden rather than reversed, because the plan
             # cannot un-heat water.
-            headroom_c = max_temp - temp
-            allowed = headroom_c * capacity / (cop * dt) if headroom_c > 0 else 0.0
+            #
+            # The step the tank actually runs is
+            #
+            #     T' = T + (cop·P − q_draw − q_loss)·dt / C
+            #
+            # so the power that lands exactly ON the ceiling has to pay for
+            # the draw and the standby loss as well as the rise. Sizing the
+            # allowance from the rise alone (as this did until v5.1.10) made
+            # the clamp systematically tight: every truncated step landed
+            # BELOW the ceiling it was aimed at, which is why a disinfection
+            # ramp pinned to its own per-step band topped out at 59.90
+            # instead of 60.00, and why the floor repair's in-window top-ups
+            # read as rating breaches and were truncated back out. Both
+            # terms are taken at the same tank temperature and the same COP
+            # the simulation below uses, so the two cannot disagree.
+            # Bounding on the step's END rather than its start is what makes
+            # this agree with the floor repair, which measures its room the
+            # same way: a tank that begins a step ON the limit and is drawn
+            # 2 °C down during it does have room, and a clamp that answered
+            # "none" there deleted the very top-up the repair had just placed,
+            # round after round. A tank genuinely over the limit still cannot
+            # be heated — `allowed` comes out negative and floors at zero,
+            # so the hours after a disinfection cycle stay closed to
+            # re-heating exactly as before.
+            q_draw = float(draw_rates[i]) * min(
+                1.0, max(0.0, temp - inlet) / span
+            )
+            q_loss = ua * (temp - DHW_AMBIENT_TEMP)
+            headroom_c = float(ceiling[i]) - temp
+            allowed = (headroom_c * capacity / dt + q_draw + q_loss) / cop
             plan[i] = float(np.clip(plan[i], 0.0, max(0.0, allowed)))
 
             # Stepped through the same simulation the planners use, so the
@@ -3495,7 +3820,7 @@ class HeatPumpOptimizer:
         dt: float,
         p_dhw_max: float,
         min_run_power: float,
-        max_temp: float,
+        max_temp: np.ndarray,
     ) -> np.ndarray:
         """Round sub-minimum runs up to a power the pump can actually deliver.
 
@@ -3507,27 +3832,54 @@ class HeatPumpOptimizer:
         them all at once would overshoot, and published a plan full of powers
         the hardware cannot run. The energy a zeroed slot was carrying is
         re-bought by the greedy pass the caller runs after this.
+
+        ``max_temp`` is the per-step ceiling, and this test needs it aligned
+        with the trajectory rather than reduced to one number: after a
+        disinfection cycle the tank sits legitimately above the everyday
+        charge limit while the boost heat coasts out of it, and a
+        ``max(trajectory) <= one scalar`` test would read that as a breach
+        and refuse every weak slot for the rest of the day. The reference is
+        therefore the ceiling *or* the trajectory the plan already produces,
+        whichever is higher — raising a slot has to make nothing worse, which
+        is the question this repair is actually asking.
         """
         plan = np.array(plan, dtype=float)
         weak = np.where((plan > 1e-6) & (plan < min_run_power))[0]
         if weak.size == 0:
             return np.clip(plan, 0.0, p_dhw_max)
 
+        # temps[0] is the tank as found, which no plan can change, so it is
+        # held to the first step's ceiling exactly as the flat test did.
+        ceiling = np.asarray(max_temp, dtype=float)
+        ceiling = np.concatenate([ceiling[:1], ceiling]) + 0.5
+
+        def trajectory(schedule: np.ndarray) -> np.ndarray:
+            return np.asarray(
+                self.model.simulate_dhw_only(
+                    initial_temp=initial_temp,
+                    dhw_power_schedule=schedule,
+                    outdoor_temps=outdoor_temps,
+                    draw_rates=draw_rates,
+                    dt_hours=dt,
+                )
+            )
+
         run_power = min(min_run_power, p_dhw_max)
+        base = trajectory(plan)
         for i in weak:
             raised = plan.copy()
             raised[i] = run_power
-            temps = self.model.simulate_dhw_only(
-                initial_temp=initial_temp,
-                dhw_power_schedule=raised,
-                outdoor_temps=outdoor_temps,
-                draw_rates=draw_rates,
-                dt_hours=dt,
-            )
-            if float(np.max(temps)) <= max_temp + 0.5:
+            temps = trajectory(raised)
+            limit = np.maximum(ceiling[: temps.size], base[: temps.size])
+            if bool(np.all(temps <= limit + 1e-9)):
                 plan = raised
+                base = temps
             else:
                 plan[i] = 0.0
+                # Zeroing a slot only lowers the trajectory, so the reference
+                # is refreshed rather than left describing a plan that no
+                # longer exists.
+                base = trajectory(plan)
         return np.clip(plan, 0.0, p_dhw_max)
 
     def _plan_dhw_cheapest_first(
@@ -3543,7 +3895,7 @@ class HeatPumpOptimizer:
         min_run_power: float,
         max_lead_steps: int,
         c_dhw: float,
-        max_temp: float,
+        max_temp: np.ndarray,
         initial_plan: np.ndarray | None = None,
         forced_off: np.ndarray | None = None,
     ) -> np.ndarray:
@@ -3580,8 +3932,11 @@ class HeatPumpOptimizer:
         if n_steps == 0:
             return plan
 
-        # A requirement above the tank's rated maximum can never be met; asking
-        # for it would only make the planner give up.
+        # A requirement above the step's own ceiling can never be met; asking
+        # for it would only make the planner give up. Elementwise, so the
+        # disinfection requirement survives at the one step whose ceiling was
+        # raised for it while everything else is held to the charge limit.
+        max_temp = np.asarray(max_temp, dtype=float)
         requirement = np.minimum(np.asarray(requirement, dtype=float), max_temp)
 
         # Fraction of stored heat lost per hour of storage: raising the tank by
@@ -3610,15 +3965,20 @@ class HeatPumpOptimizer:
             k = violations[0]
             needed_kwh = float(gaps[k]) * c_dhw
 
-            # The tank may not be planned above its rating, except that a
+            # The tank may not be planned above its ceiling, except that a
             # requirement (an anti-legionella cycle, typically) always has to
-            # remain reachable.
-            temp_ceiling = max(max_temp - 1.0, float(requirement[k]))
+            # remain reachable. Per step, because the ceiling itself is: the
+            # 1 °C working margin comes off each step's own limit, and the
+            # step carrying the disinfection requirement keeps it.
+            ceiling = np.maximum(max_temp - 1.0, float(requirement[k]))
 
             def usable(j: int) -> bool:
                 if forced_off is not None and forced_off[j]:
                     return False
-                return plan[j] < p_dhw_max - 1e-6 and temps[j + 1] < temp_ceiling - 0.1
+                return (
+                    plan[j] < p_dhw_max - 1e-6
+                    and temps[j + 1] < ceiling[j] - 0.1
+                )
 
             candidates = [
                 j for j in range(max(0, k - max_lead_steps), k + 1) if usable(j)
@@ -3652,9 +4012,15 @@ class HeatPumpOptimizer:
                 spare_thermal_kwh = (p_dhw_max - plan[j]) * cop * dt
                 # Heat added at step j raises every later tank temperature, so
                 # the ceiling has to be respected across the whole stretch the
-                # heat is stored for — not just at step j.
-                peak_ahead = float(np.max(temps[j + 1 : k + 2]))
-                headroom_kwh = max(0.0, (temp_ceiling - peak_ahead) * c_dhw)
+                # heat is stored for — not just at step j. With a per-step
+                # ceiling the binding step is whichever has the least room
+                # left, which is the same "peak against a flat ceiling" test
+                # when the ceiling does not move.
+                headroom_kwh = max(
+                    0.0,
+                    float(np.min(ceiling[j : k + 1] - temps[j + 1 : k + 2]))
+                    * c_dhw,
+                )
                 take = min(
                     needed_kwh / retained_fraction(j),
                     spare_thermal_kwh,
