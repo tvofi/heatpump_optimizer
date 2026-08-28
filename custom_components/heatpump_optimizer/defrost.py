@@ -587,8 +587,20 @@ class DefrostWindow:
     def close(self, now: Any) -> DefrostObservation:
         """Settle the interval and start the next one at ``now``.
 
-        The flag's current level carries over: an interval boundary in the
-        middle of a defrost must not lose the second half of it.
+        The flag's *level* carries over — an interval boundary in the middle
+        of a defrost must not lose the second half of it — but its
+        *legibility* does not. Seeding the new interval as already observed,
+        on the grounds that the flag was readable at the boundary, meant that
+        the first interval after a flag went unreadable was reported observed
+        with a duty of zero: exactly the confident claim
+        :attr:`DefrostObservation.observed` exists to prevent. It cost twice
+        over, because ``_settle_defrost`` then admitted a frost-band COP
+        sample with no defrost evidence behind it *and* folded a measured
+        zero duty into the bucket.
+
+        Legibility is re-established by the next :meth:`observe`, which the
+        coordinator makes once per cycle from the flag's level, so a healthy
+        flag is marked observed again within one cycle of the boundary.
         """
         self._accrue(now)
         result = self.peek(now)
@@ -596,5 +608,5 @@ class DefrostWindow:
         self._seconds_on = 0.0
         self._events = 0
         self._since = now
-        self._observed = self._state is not None
+        self._observed = False
         return result

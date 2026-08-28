@@ -12993,5 +12993,69 @@ R.check(
 _dm_params.defrost_derate = None
 
 
+R.section("v5.2.0 review — an unreadable flag makes no confident claim")
+
+# DefrostWindow.close carried _observed into the NEXT interval, so exactly one
+# interval after the flag went unreadable was reported observed with duty 0 —
+# which _settle_defrost then folded as a measured zero AND used to admit a
+# frost-band COP sample with no defrost evidence behind it.
+_dw_t0 = datetime(2026, 1, 10, 3, 0, tzinfo=UTC)
+_dw_cycle = timedelta(minutes=5)
+
+
+def _dw_run(flags_per_interval):
+    """Drive a window through intervals of six cycles each."""
+    w = DefrostWindow()
+    now = _dw_t0
+    out = []
+    for flag in flags_per_interval:
+        for _ in range(6):
+            w.observe(now, flag)
+            now += _dw_cycle
+        out.append(w.close(now))
+    return out
+
+
+_dw = _dw_run([False, None, None])
+R.check(
+    "a readable flag reporting 'not defrosting' IS an observation",
+    _dw[0].observed and _dw[0].duty == 0.0,
+)
+R.check(
+    "the first interval after the flag dies is NOT reported as observed",
+    not _dw[1].observed,
+    "before the fix this one interval came back observed with duty 0 — 'a "
+    "duty of 0 from an unreadable flag is a confident claim nobody can make', "
+    "and per the derate above one folded zero was enough to flip the bucket",
+)
+R.check(
+    "and neither is any interval after it",
+    not _dw[2].observed,
+)
+_dw_back = _dw_run([None, False])
+R.check(
+    "legibility comes back with the next reading, within one cycle",
+    (not _dw_back[0].observed) and _dw_back[1].observed,
+    "resetting on close must not cost a healthy flag its next interval",
+)
+# The level still carries across the boundary; only legibility resets.
+_dw_w = DefrostWindow()
+_dw_now = _dw_t0
+for _ in range(6):
+    _dw_w.observe(_dw_now, True)
+    _dw_now += _dw_cycle
+_dw_w.close(_dw_now)
+for _ in range(6):
+    _dw_w.observe(_dw_now, True)
+    _dw_now += _dw_cycle
+_dw_half = _dw_w.close(_dw_now)
+R.check(
+    "a defrost spanning the boundary keeps its second half",
+    _dw_half.observed and _dw_half.duty > 0.99,
+    f"duty {_dw_half.duty:.4f} — the flag's LEVEL still carries over; only "
+    f"its legibility is re-established",
+)
+
+
 
 sys.exit(R.close("FEATURE CHECKS"))
