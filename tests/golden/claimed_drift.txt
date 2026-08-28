@@ -43,40 +43,25 @@
 # does not expire with the stamp and is not part of the inherited-claims
 # comparison.
 #
-# claims-for: 5.1.7
+# claims-for: 5.1.9
 #
 #
-# v5.1.7 moves fixtures for two deliberate reasons, and nothing else.
-#
-# 1. The plan reason codes. `preheat_weather` was both the high-heat-loss
-#    branch of classify_space_steps AND its fall-through default, so an
-#    ordinary mid-price step published itself as "pre-heating before colder
-#    weather". The fall-through is now the neutral `scheduled`. Only
-#    `space_reasons` moves on these fixtures -- no power, no trajectory, no
-#    cost -- and the scenarios whose preheat_weather steps come from the
-#    genuine heat-loss branch are byte-identical, which is the check that the
-#    branch survived. Measured: the weather factor is a constant 1.3652 on
-#    mild_windy_rain and precip_snow, 1.3570 on cool_rainy_summer and 1.1200
-#    on shoulder_two_zone -- all above the 1.1 threshold, so every
-#    preheat_weather in them is the real branch and none of them move.
-#
-# 2. The virtual battery's slab ceiling, in the coordinator fixtures. It was
-#    `comfort_max + 6.0`, a fixed 29.0 C, and is now the optimizer's own
-#    settlement cap for the slab, clamped for the report. Only `data.battery`
-#    moves. Report-only: the optimizer is not involved.
+# v5.1.9 is card-only: one file of Lovelace JavaScript, its own test lane and
+# the release metadata. Nothing under custom_components/heatpump_optimizer/
+# outside www/ is touched, no planning code runs differently, and no fixture
+# is expected to move. The list below is therefore empty, which is the whole
+# claim: byte-identical behaviour everywhere.
 
-
-# All five sensitive fixtures run a weather profile whose heat-loss factor is
-# a constant 1.0600 -- below the 1.1 threshold everywhere -- so classify's
-# genuine preheat_weather branch is unreachable in them and every such label
-# they carry is a fall-through this release relabels. WHICH steps fall
-# through is decided by the local optimum, which is exactly what does not
-# travel: on this machine only valve_upper_direct_slab has one, while the
-# committed fixtures (recorded elsewhere) show them in
-# valve_storage_smart_write and wood_two_tank_smart_write. Any fixed list of
-# claims is therefore wrong on some machine. None of the five is re-recorded.
-# may-drift: valve_storage_smart_write -- space_reasons fall-through, per local optimum
-# may-drift: wood_two_tank -- space_reasons fall-through, per local optimum
-# may-drift: wood_two_tank_smart_write -- space_reasons fall-through, per local optimum
-# may-drift: wood_coil -- space_reasons fall-through, per local optimum
-# may-drift: valve_upper_direct_slab -- space_reasons fall-through, per local optimum
+# These five are the fixtures this gate declares non-reproducible across BLAS
+# builds: each machine solves them to a different local optimum, so whether
+# one differs from the committed recording is a fact about the runner, not
+# about the diff. This release changes no Python at all, so any difference
+# they show against main is entirely the machine -- which is exactly what
+# may-drift is for, and why these entries do not expire with the stamp. The
+# reasons below name the last release whose change could plausibly reach
+# them; nothing in this one can.
+# may-drift: valve_storage_smart_write -- machine-sensitive; last touched by the v5.1.7 fall-through relabel
+# may-drift: wood_two_tank -- machine-sensitive; last touched by the v5.1.7 fall-through relabel
+# may-drift: wood_two_tank_smart_write -- machine-sensitive; last touched by the v5.1.7 fall-through relabel
+# may-drift: wood_coil -- machine-sensitive; last touched by the v5.1.7 fall-through relabel
+# may-drift: valve_upper_direct_slab -- machine-sensitive; last touched by the v5.1.7 fall-through relabel

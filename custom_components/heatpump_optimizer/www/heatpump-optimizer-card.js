@@ -11,7 +11,7 @@
 
 const CARD_TAG = "heatpump-optimizer-card";
 const EDITOR_TAG = "heatpump-optimizer-card-editor";
-const CARD_VERSION = "5.1.7";
+const CARD_VERSION = "5.1.9";
 
 // ---- i18n ------------------------------------------------------------------
 //
@@ -52,6 +52,14 @@ const STRINGS = {
     // running open-loop with nothing to correct it. Worth saying, because it
     // can drift from the real downstairs over a few hours.
     "series.lower_floor_modelled": "Lower floor (modelled)",
+    // One chip stands for the whole series, extra traces included: every
+    // chip carries the series' `data-key`, which is the only granularity
+    // the visibility model has, so a chip per trace was three controls
+    // doing one job. The chip's title says what else rides on its line;
+    // the chart's tooltip is where an individual trace is read.
+    "legend.multi_trace_title":
+      "{label} ({unit}) — also drawn: {names}. " +
+      "Hover the chart to read each trace.",
 
     // chart / plan annotations
     "plan.now": "now",
@@ -380,6 +388,9 @@ const STRINGS = {
     "series.upper_floor": "Övre plan",
     "series.lower_floor": "Nedre plan",
     "series.lower_floor_modelled": "Nedre plan (modellerad)",
+    "legend.multi_trace_title":
+      "{label} ({unit}) — ritas också: {names}. " +
+      "Håll pekaren över diagrammet för att läsa varje kurva.",
 
     "plan.now": "nu",
     "plan.estimated_prices": "uppskattade priser",
@@ -1375,9 +1386,10 @@ function samePoints(a, b) {
 
 /** The swatch for one trace: solid for a primary line, dashed for an extra.
  *
- * The chart already distinguishes them by stroke, so the legend chip and the
- * tooltip dot have to as well — otherwise two rows in the same colour look
- * like the same line reported twice.
+ * The chart already distinguishes them by stroke, so the tooltip dot has to
+ * as well — otherwise two rows in the same colour look like the same line
+ * reported twice. The legend has one chip for the whole series and draws it
+ * solid; only the tooltip speaks about individual traces.
  */
 function dotStyle(color, dashed) {
   return dashed
@@ -5487,24 +5499,38 @@ class HeatpumpOptimizerCard extends HTMLElement {
       const hasData = s ? s.hasData : false;
       const hidden = !!this._hidden[def.key];
       const cls = "chip" + (hidden ? " off" : "") + (hasData ? "" : " nodata");
-      const unit = esc(this._seriesUnit(def));
-      const chip = (label, dashed) =>
-        `<button type="button" class="${cls}" data-key="${def.key}" title="${esc(
-          label
-        )} (${unit})">
-        <span class="dot" style="${dotStyle(def.color, dashed)}"></span>${esc(
-          label
-        )}
+      const label = L(def.labelKey);
+      // One chip per series, never one per rendered line.
+      //
+      // v5.1.7 gave every trace of a multi-line series its own chip so the
+      // house-temperature zones could be named. Every chip carries the
+      // series' `data-key`, because per-line visibility does not exist — so
+      // that series showed three chips in one colour, any of which hid all
+      // three lines at once. Three controls doing one job is worse than one,
+      // so the naming stays where it points at a single trace: the tooltip
+      // has a row per line, and the chip's title lists what else rides on
+      // the line it toggles.
+      //
+      // The chip now stands for the series rather than for its primary
+      // trace, which also settles a case the per-line version got wrong:
+      // with the primary field absent but the extras present, a solid
+      // "House temperature" chip was emitted for a line nothing drew.
+      const extras = (s ? s.lines : []).filter((line) => !line.primary);
+      const unit = this._seriesUnit(def);
+      const title = extras.length
+        ? L("legend.multi_trace_title", {
+            label,
+            unit,
+            names: extras.map((line) => this._lineLabel(def, line)).join(", "),
+          })
+        : `${label} (${unit})`;
+      return `<button type="button" class="${cls}" data-key="${
+        def.key
+      }" title="${esc(title)}">
+        <span class="dot" style="${dotStyle(def.color, false)}"></span>${esc(
+        label
+      )}
       </button>`;
-      // The extra traces of a multi-line series get chips of their own, named
-      // and drawn dashed like the lines they stand for. They carry the same
-      // data-key, so clicking any of them toggles the series as a whole —
-      // which is the only granularity the visibility model has.
-      const extras = (s ? s.lines : [])
-        .filter((line) => !line.primary)
-        .map((line) => chip(this._lineLabel(def, line), true))
-        .join("");
-      return chip(L(def.labelKey), false) + extras;
     }).join("");
     return `<div class="legend">${chips}</div>`;
   }

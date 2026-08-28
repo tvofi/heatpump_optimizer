@@ -4799,7 +4799,7 @@ const setupBox = (card, place) =>
     place(300) > 0 && place(300) + TT_W <= rect.width, `left ${place(300)}`);
 }
 
-// --- Scenario: the zone traces are named (v5.1.7) --------------------------
+// --- Scenario: the zone traces are named, in one legend entry ------------
 //
 // The house-temperature series draws `room` solid and `upper`/`lower` dashed
 // in one colour. Until v5.1.7 all three shared one legend chip and one label,
@@ -4807,6 +4807,13 @@ const setupBox = (card, place) =>
 // for whichever line the pointer was over. A two-zone house whose downstairs
 // trace sat at 28 °C therefore hovered as 21 °C, which is how a display defect
 // reads as the optimizer overheating the house.
+//
+// v5.1.7 named every trace in both places at once, which put three chips in
+// the legend under one colour. They all carry the series' data-key — the only
+// granularity the visibility model has — so clicking any of them toggled all
+// three lines together, and the owner reported three legend entries that
+// resolve to one line. The naming belongs in the tooltip, which points at the
+// trace under the pointer; the legend gets one entry per series.
 {
   const twoZone = (opts) => {
     const st = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
@@ -4842,29 +4849,47 @@ const setupBox = (card, place) =>
     const end = dump.indexOf("</div>", i);
     return dump.slice(i, end < 0 ? undefined : end);
   };
+  const chipsFor = (lg, key) =>
+    (lg.match(new RegExp(`<button[^>]*data-key="${key}"`, "g")) || []).length;
   const zc = build(twoZone());
   const zdump = collect(zc.shadowRoot).join("\n");
   const zlegend = legendOf(zdump);
-  check("the legend names the dashed zone traces, not just the series",
-    /Upper floor/.test(zlegend) && /Lower floor/.test(zlegend), zlegend);
-  check("the extra chips toggle the series they belong to",
-    (zlegend.match(/<button[^>]*data-key="house_temp"/g) || []).length === 3,
-    zlegend);
-  check("a dashed trace gets a dashed swatch, not a solid dot",
-    /repeating-linear-gradient/.test(zlegend));
 
-  // Hover: three rows, each with its own name and its OWN value.
-  const hovered = () => {
-    zc._onPointerMove({
+  // The regression the owner reported. Three lines are drawn — the count
+  // below proves the drop rule kept all three — and the legend still gets
+  // exactly one entry for them, because one chip is all the visibility model
+  // can act on.
+  const zlines = zc._series.find((s) => s.key === "house_temp").lines;
+  check("a two-zone house draws all three house-temperature traces",
+    zlines.length === 3 &&
+    zlines.map((l) => l.field).join(",") === "room,upper,lower",
+    JSON.stringify(zlines.map((l) => l.field)));
+  check("a multi-line series gets one legend entry, not one per line",
+    chipsFor(zlegend, "house_temp") === 1, zlegend);
+  check("and the zone names are not chips of their own",
+    !/>\s*Upper floor/.test(zlegend) && !/>\s*Lower floor/.test(zlegend),
+    zlegend);
+  // Every other series keeps exactly one chip too, so the count above is not
+  // passing because the legend lost entries wholesale.
+  check("the legend still carries one chip per series",
+    (zlegend.match(/<button[^>]*data-key=/g) || []).length === 7, zlegend);
+  check("the one chip still says what else rides on its line",
+    /also drawn: Upper floor, Lower floor/.test(zlegend), zlegend);
+
+  // Hover: three rows, each with its own name and its OWN value. This is
+  // where the disambiguation lives now, and it is the half of v5.1.7 the
+  // owner did not ask to lose.
+  const hovered = (card) => {
+    card._onPointerMove({
       clientX: 450,
       currentTarget: {
         getBoundingClientRect: () => ({ width: 900, left: 0, top: 0 }),
       },
     });
-    const tt = zc.shadowRoot.querySelector(".tooltip");
+    const tt = card.shadowRoot.querySelector(".tooltip");
     return tt ? tt.innerHTML : "";
   };
-  const tip = hovered();
+  const tip = hovered(zc);
   check("the tooltip names all three house-temperature traces",
     /House temperature/.test(tip) && /Upper floor/.test(tip) &&
     /Lower floor/.test(tip), tip);
@@ -4872,6 +4897,17 @@ const setupBox = (card, place) =>
     /House temperature: 22 °C/.test(tip) &&
     /Upper floor: 20 °C/.test(tip) &&
     /Lower floor: 28 °C/.test(tip), tip);
+  // One row per rendered line, with no two rows sharing a label: a tooltip
+  // that lost a row, or repeated one, is the pre-v5.1.7 defect coming back.
+  const ttRows = (tt) =>
+    (tt.match(/<div class="tt-row">.*?<\/div>/g) || []).map((r) =>
+      r.replace(/<[^>]*>/g, "").split(":")[0].trim()
+    );
+  const zoneRows = ttRows(tip).filter((l) => /floor|House temperature/i.test(l));
+  check("the tooltip carries one row per drawn trace, all distinctly labelled",
+    zoneRows.length === 3 && new Set(zoneRows).size === 3, zoneRows.join(" | "));
+  check("a dashed trace gets a dashed swatch in the tooltip, not a solid dot",
+    /repeating-linear-gradient/.test(tip), tip);
 
   // A single-zone house publishes upper == lower == room (the one-zone
   // dynamics assign both from the room temperature every step). Naming those
@@ -4879,31 +4915,48 @@ const setupBox = (card, place) =>
   // zone, so an exact duplicate is dropped instead.
   const oneZone = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
   const olegend = legendOf(collect(oneZone.shadowRoot).join("\n"));
-  check("a single-zone house gets one house-temperature chip, not three",
-    (olegend.match(/<button[^>]*data-key="house_temp"/g) || []).length === 1 &&
-    !/Upper floor/.test(olegend), olegend);
+  check("a single-zone house still gets one house-temperature chip",
+    chipsFor(olegend, "house_temp") === 1 && !/Upper floor/.test(olegend),
+    olegend);
+  check("and the duplicate traces are dropped rather than drawn",
+    oneZone._series.find((s) => s.key === "house_temp").lines.length === 1);
+  check("so its chip claims no extra traces",
+    !/also drawn/.test(olegend), olegend);
+  const otip = ttRows(hovered(oneZone)).filter((l) =>
+    /floor|House temperature/i.test(l));
+  check("and its tooltip carries the one house row",
+    otip.length === 1 && otip[0] === "House temperature", otip.join(" | "));
 
   // Modelled vs measured. With no lower-floor thermometer the trace is the
-  // model running open-loop, and the label has to say so.
+  // model running open-loop, and the tooltip has to say so.
   const modelled = build(twoZone({ topology: true }));
-  const mlegend = legendOf(collect(modelled.shadowRoot).join("\n"));
-  check("an unmeasured lower zone is labelled as modelled",
-    /Lower floor \(modelled\)/.test(mlegend), mlegend);
+  const mtip = hovered(modelled);
+  check("an unmeasured lower zone is labelled as modelled in the tooltip",
+    /Lower floor \(modelled\): 28 °C/.test(mtip), mtip);
   const measured = build(twoZone({ topology: true, lowerEntity: "sensor.down" }));
-  const slegend = legendOf(collect(measured.shadowRoot).join("\n"));
+  const stip = hovered(measured);
   check("a lower zone with its own thermometer is not",
-    /Lower floor\s*</.test(slegend) && !/modelled/.test(slegend), slegend);
+    /Lower floor: 28 °C/.test(stip) && !/modelled/.test(stip), stip);
   check("no topology published means no claim either way",
-    !/modelled/.test(zlegend), zlegend);
+    !/modelled/.test(tip), tip);
+  // The distinction reaches the legend too, without costing a second chip.
+  check("the chip's title carries the modelled wording as well",
+    /also drawn: Upper floor, Lower floor \(modelled\)/.test(
+      legendOf(collect(modelled.shadowRoot).join("\n"))),
+    legendOf(collect(modelled.shadowRoot).join("\n")));
 
   // Swedish, like every other user-visible string on this card.
   const svZone = new Card();
   svZone.setConfig({ type: "custom:heatpump-optimizer-card" });
   svZone.hass = { states: twoZone({ topology: true }), language: "sv-SE" };
-  const svZoneLegend = legendOf(collect(svZone.shadowRoot).join("\n"));
+  const svTip = hovered(svZone);
   check("the zone traces are named in Swedish too",
-    /Övre plan/.test(svZoneLegend) &&
-    /Nedre plan \(modellerad\)/.test(svZoneLegend), svZoneLegend);
+    /Övre plan/.test(svTip) && /Nedre plan \(modellerad\)/.test(svTip), svTip);
+  const svLegend = legendOf(collect(svZone.shadowRoot).join("\n"));
+  check("and the Swedish legend says one thing, in Swedish",
+    chipsFor(svLegend, "house_temp") === 1 &&
+    /ritas också: Övre plan, Nedre plan \(modellerad\)/.test(svLegend),
+    svLegend);
 }
 
 console.log(fails ? `\n${fails} CARD CHECK(S) FAILED` : "\nALL CARD CHECKS PASSED");
