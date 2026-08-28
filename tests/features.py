@@ -12961,16 +12961,23 @@ R.check(
     "a number that is neither",
 )
 
-# A measurement is still allowed to argue the derate DEEPER at any count:
-# the selection takes the more careful of the two, not always the inference.
+# A measurement is still allowed to argue the derate DEEPER before it reaches
+# full trust: the selection takes the more careful of the two, not always the
+# inference. Six samples of a 30% duty is well short of the twelve that would
+# hand the bucket over, and already deeper than a 0.95 inference.
 _rv_deep = _rv_mature(factor=0.95, counts=200)
-for _ in range(3):
+for _ in range(6):
     _rv_deep.observe_duty(_RV_T, _RV_H, 0.30)
+_rv_deep_t, _rv_deep_h = _rv_deep._bucket(_RV_T, _RV_H)
 R.check(
-    "a measured duty deeper than the inference wins immediately",
-    _rv_deep.factor(_RV_T, _RV_H) < 0.95 - 1e-9 and _rv_deep.measured(_RV_T, _RV_H),
-    f"factor {_rv_deep.factor(_RV_T, _RV_H):.4f} against an inferred 0.95 — "
-    f"selection is by which is more careful, not by which is older",
+    "a measured duty deeper than the inference wins before full trust",
+    _rv_deep.factor(_RV_T, _RV_H) < 0.95 - 1e-9
+    and _rv_deep.measured(_RV_T, _RV_H)
+    and _rv_deep.duty_counts[_rv_deep_t][_rv_deep_h] < DERATE_CONFIDENCE_SAMPLES,
+    f"factor {_rv_deep.factor(_RV_T, _RV_H):.4f} against an inferred 0.95 on "
+    f"{_rv_deep.duty_counts[_rv_deep_t][_rv_deep_h]} duty samples — selection "
+    f"is by which is more careful, not by which is older; the floor must not "
+    f"become a ceiling",
 )
 _rv_fresh = DefrostDerate()
 _rv_fresh.observe_duty(_RV_T, _RV_H, 0.20)
