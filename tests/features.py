@@ -13238,5 +13238,49 @@ R.check(
 )
 
 
+R.section("v5.2.0 review — the narrative explains a blocked channel")
+
+from heatpump_optimizer.optimizer import REASON_PUMP_MODE  # noqa: E402
+
+R.check(
+    "pump_mode has a sentence in BOTH languages",
+    all(
+        REASON_PUMP_MODE in narrative_mod.TEMPLATES[lang]
+        for lang in narrative_mod.LANGUAGES
+    ),
+    "the en/sv parity test passes when a key is missing from both, so parity "
+    "alone could never catch this",
+)
+_nb_items = narrative_mod.build(
+    {"powers": [0.0] * 8, "prices": [1.0] * 8, "reasons": [REASON_PUMP_MODE] * 8},
+    {"powers": [], "prices": [], "reasons": []},
+    0.5,
+)
+R.check(
+    "a blocked channel survives the zero-energy filter, as idle does",
+    [i["reason"] for i in _nb_items] == [REASON_PUMP_MODE]
+    and _nb_items[0]["hours"] == 4.0,
+    f"{_nb_items} — the blocked slots were relabelled away from 'idle', so "
+    f"filtering them out leaves silence where the explanation belongs",
+)
+for _lang in narrative_mod.LANGUAGES:
+    _nb_lines = narrative_mod.render(_nb_items, _lang)
+    R.check(
+        f"and it renders a real sentence in {_lang}",
+        len(_nb_lines) == 1 and "4.0" in _nb_lines[0] and "{" not in _nb_lines[0],
+        f"{_nb_lines}",
+    )
+R.check(
+    "an ordinary zero-energy reason is still filtered out",
+    narrative_mod.build(
+        {"powers": [0.0] * 4, "prices": [1.0] * 4, "reasons": ["cheap_price"] * 4},
+        {"powers": [], "prices": [], "reasons": []},
+        0.5,
+    )
+    == [],
+    "only reasons whose whole meaning is 'no energy' are exempt",
+)
+
+
 
 sys.exit(R.close("FEATURE CHECKS"))
