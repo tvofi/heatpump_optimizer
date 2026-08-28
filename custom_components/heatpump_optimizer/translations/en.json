@@ -762,6 +762,18 @@
       "title": "Optimization keeps failing; the plan is going stale",
       "description": "The last {count} optimization runs failed, so the integration is still showing — and until recently acting on — a plan computed at {last_success}. Once the plan is older than a few update intervals the heat pump is handed back to its own heating curve rather than driven from an outdated schedule. The usual suspects are a lost price or weather connection, or an error in the log from the solver itself. This notice clears on the next successful optimization."
     },
+    "dhw_legionella_unreachable": {
+      "title": "Hot water is not reaching the disinfection temperature",
+      "description": "The anti-legionella cycle ran, but the tank only reached {reached} °C against the {target} °C it was asked for, so the water is not being disinfected. Heat pumps often cannot get a tank that hot on their own; the usual answer is an immersion heater that takes the last few degrees, or lowering the disinfection temperature to something this system can actually hold. Until then the cycle will be retried once per interval rather than on every plan. This notice clears itself as soon as a cycle reaches temperature."
+    },
+    "dhw_legionella_unverified": {
+      "title": "The disinfection cycle cannot be verified",
+      "description": "The anti-legionella cycle was commanded, but no hot water tank temperature sensor is configured, so nothing confirms the tank ever reached {target} °C — or that the pump acted on the request at all. The countdown is reset as if the cycle had run, because refusing to reset it would not disinfect anything either; what is not claimed is that it worked. Point the \"Hot water tank temperature\" sensor at a real probe and the cycle is verified from then on, and this notice clears as soon as one is observed at temperature."
+    },
+    "dhw_legionella_above_setpoint": {
+      "title": "Disinfection goes above your hot water charge limit",
+      "description": "The anti-legionella cycle is set to {legionella_temp} °C, which is above the {setpoint} °C you set as the highest tank temperature to charge to. That is allowed and nothing is wrong: every {interval_days} days the tank is taken up to {legionella_temp} °C for the cycle, and the rest of the time it is never charged above {setpoint} °C. This notice is here so the one hot day a week does not come as a surprise. Raise the charge limit, lower the disinfection temperature, or switch the cycle off to change it."
+    },
     "grid_fee_magnitude": {
       "title": "A configured grid fee looks 100× too large",
       "description": "The grid fee layer contains a rate of {rate} SEK/kWh (from the {source} input). Swedish DSO transfer fees run a few tenths of a krona per kWh, so a value this size is almost always öre entered where SEK was meant — 25 instead of 0.25. Nothing is changed or capped: the plan keeps pricing with exactly the value configured. Correct the value under the DSO fee options (or fix the fee sensor) and this notice clears on the next planning cycle."

@@ -271,6 +271,26 @@ SCENARIOS: dict[str, dict] = {
     "legionella_due": dict(
         state_overrides={"dhw_hours_since_legionella": 170.0},
     ),
+    # The control that separates the two halves of v5.1.10. With
+    # disinfection switched off the everyday ceiling *is* the setpoint on
+    # both sides of the per-step ceiling change, so anything that moves here
+    # moved ORDINARY hot-water planning rather than the cycle. It does move,
+    # and the claim file says exactly what by: the capacity clamp is exact
+    # now, and the floor repair no longer buys heat the tank refuses — 13.34
+    # kWh of published schedule against 6.53, for the same peak, the same
+    # end state, and the same heat actually delivered. A shift here that the
+    # claim file does not account for is a leak from the cycle work into
+    # everyday planning, which is what this fixture is here to catch.
+    "legionella_off": dict(
+        config_overrides={"dhw_legionella_enabled": False},
+    ),
+    # A cycle due against a charge limit well below the disinfection
+    # temperature: the owner's 52/60 pair. Pins that the boost still
+    # reaches 60 while the rest of the day stays at 52.
+    "legionella_due_low_setpoint": dict(
+        config_overrides={"dhw_setpoint": 52.0},
+        state_overrides={"dhw_hours_since_legionella": 150.0},
+    ),
     "dhw_schedule_off": dict(
         config_overrides={"dhw_schedule_enabled": False},
     ),
