@@ -13140,5 +13140,60 @@ R.check(
 )
 
 
+R.section("v5.2.0 review — a status sensor is not a mode selector")
+
+# The alias table mapped bare `heating`/`cooling`/`hot water` to single-duty
+# MODES, and topology accepts `sensor` for this slot. A generic status sensor
+# cycling heating/cooling/defrosting/idle is exactly what a user drops into a
+# field labelled "Heat pump operating mode" — and there "heating" means "the
+# compressor is making heat now", not "this unit cannot make hot water".
+for _word in ("heating", "heat", "cooling", "cool", "hot water", "DHW"):
+    R.check(
+        f"a select still recognises {_word!r} — the vocabulary is unchanged there",
+        pump_mode.is_known(_word) and pump_mode.resolve(_word) is not None,
+        "a select's state is one of a list its integration declared, so its "
+        "words can be taken at face value",
+    )
+    R.check(
+        f"a plain sensor's {_word!r} is refused as a mode",
+        not pump_mode.is_known(_word, strict=True)
+        and pump_mode.capability(_word, strict=True) is pump_mode.FULL_CAPABILITY,
+        "refusing means full capability, which is the documented safe "
+        "direction; accepting means suppressing a channel on a misreading",
+    )
+for _word in ("Heating + DHW", "HEATDHW", "Cooling + DHW", "COOLDHW"):
+    R.check(
+        f"the multi-duty spelling {_word!r} survives strict mode",
+        pump_mode.is_known(_word, strict=True),
+        "no status sensor reports 'Heating + DHW' as a momentary activity",
+    )
+R.check(
+    "the domain, not the word, chooses the vocabulary",
+    pump_mode.validator_for("select.x") is pump_mode.is_known
+    and pump_mode.validator_for("input_select.x") is pump_mode.is_known
+    and pump_mode.validator_for("sensor.x") is not pump_mode.is_known
+    and pump_mode.validator_for(None) is not pump_mode.is_known,
+)
+_sm_sensor = _um_read("heating", entity="sensor.hp_status")
+R.check(
+    "so a status sensor reading 'heating' does NOT block hot water",
+    not _sm_sensor.dhw_blocked and not _sm_sensor.space_blocked,
+    f"dhw_blocked={_sm_sensor.dhw_blocked} — with the latch above this was "
+    f"a permanent hot-water suppression on a word that meant something else",
+)
+_sm_select = _um_read("Heating", entity="select.hp_mode")
+R.check(
+    "while a real select reading 'Heating' still does",
+    _sm_select.dhw_blocked and not _sm_select.space_blocked,
+    "the feature must keep working for the hardware it was written for",
+)
+_sm_sensor_multi = _um_read("Heating + DHW", entity="sensor.hp_mode")
+R.check(
+    "and a sensor carrying a real mode label is still read as one",
+    _sm_sensor_multi.mode.key == pump_mode.MODE_HEAT_DHW,
+    "a template sensor mirroring the select must not be collateral damage",
+)
+
+
 
 sys.exit(R.close("FEATURE CHECKS"))

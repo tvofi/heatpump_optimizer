@@ -44,6 +44,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+from typing import Any
 
 #: The device's own enum values (Tuya DP 2 on the reference unit).
 MODE_COOL = "cool"
@@ -192,28 +193,73 @@ def _build_aliases() -> dict[str, str]:
 
 _ALIASES: dict[str, str] = _build_aliases()
 
+#: Spellings a heat-pump *status* sensor is at least as likely to be using for
+#: what the unit is doing this minute as for the mode it is configured in.
+#:
+#: This is the one place the vocabulary is genuinely dangerous. A generic
+#: status sensor cycling ``heating`` / ``cooling`` / ``defrosting`` / ``idle``
+#: is exactly what a user drops into a field labelled "Heat pump operating
+#: mode" — and there ``heating`` means "the compressor is making heat right
+#: now", NOT "this unit cannot make hot water". Reading it as the single-duty
+#: ``heat`` mode suppresses the hot-water channel on a misreading, which is
+#: the failure this module's own docstring calls out as the expensive one.
+#:
+#: A ``select`` cannot make that mistake: its state is one of a fixed list the
+#: source integration declared, so ``Heating`` there really is the mode. So
+#: these spellings are accepted from a ``select``/``input_select`` and refused
+#: from anything else, where refusing means falling back to full capability —
+#: the documented safe direction — with the word visible in the diagnostics.
+#:
+#: The multi-duty spellings are not listed: no status sensor reports
+#: "Heating + DHW" as a momentary activity, so those stay readable from any
+#: domain.
+_STATUS_AMBIGUOUS: frozenset[str] = frozenset(
+    _fold(spelling)
+    for spelling in (
+        "heat",
+        "heating",
+        "space heating",
+        "heat only",
+        "cool",
+        "cooling",
+        "cool only",
+        "DHW",
+        "hot water",
+        "hotwater",
+        "water heating",
+        "dhw only",
+    )
+)
 
-def resolve(raw: object) -> str | None:
-    """The device enum value a reported state means, or ``None``."""
+
+def resolve(raw: object, *, strict: bool = False) -> str | None:
+    """The device enum value a reported state means, or ``None``.
+
+    ``strict`` refuses the spellings in :data:`_STATUS_AMBIGUOUS`, for a
+    source whose state is free text rather than one of a declared list.
+    """
     if raw is None:
         return None
-    return _ALIASES.get(_fold(raw))
+    folded = _fold(raw)
+    if strict and folded in _STATUS_AMBIGUOUS:
+        return None
+    return _ALIASES.get(folded)
 
 
-def capability(raw: object) -> ModeCapability:
+def capability(raw: object, *, strict: bool = False) -> ModeCapability:
     """What the pump can do in the mode this state describes.
 
     Tolerant by design: unknown in, full capability out. ``known`` on the
     result is how a caller tells "the pump told us it can do everything" from
     "we have no idea, so we are assuming it can".
     """
-    key = resolve(raw)
+    key = resolve(raw, strict=strict)
     if key is None:
         return FULL_CAPABILITY
     return MODES[key]
 
 
-def is_known(raw: object) -> bool:
+def is_known(raw: object, *, strict: bool = False) -> bool:
     """Whether this state names a mode the table recognises.
 
     Written to be passed straight to ``InputReader.read_state(valid=...)``,
@@ -221,4 +267,24 @@ def is_known(raw: object) -> bool:
     problem — visible in the diagnostics, with the entity named — than folded
     silently into full capability. Both are safe; only one is legible.
     """
-    return resolve(raw) is not None
+    return resolve(raw, strict=strict) is not None
+
+
+#: Entity domains whose state is one of a list the source integration
+#: declared, rather than whatever word it felt like publishing.
+DECLARED_OPTION_DOMAINS: tuple[str, ...] = ("select", "input_select")
+
+
+def validator_for(entity_id: str | None) -> Any:
+    """The ``read_state(valid=...)`` predicate to use for this mode entity.
+
+    A ``select`` gets the full vocabulary; anything else gets the strict one.
+    """
+    domain = str(entity_id or "").split(".", 1)[0]
+    if domain in DECLARED_OPTION_DOMAINS:
+        return is_known
+    return _is_known_strict
+
+
+def _is_known_strict(raw: object) -> bool:
+    return is_known(raw, strict=True)

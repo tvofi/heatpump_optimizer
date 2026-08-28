@@ -206,11 +206,16 @@ def read(reader: Any, *, last_good: ModeCapability | None = None) -> PumpSignals
     serve is precisely the promise this feature exists to stop making. Only
     when nothing was ever seen does it fall back to full capability.
     """
+    # A select's state is one of a list its integration declared, so its
+    # words can be taken at face value. A plain sensor's cannot: see
+    # ``pump_mode._STATUS_AMBIGUOUS``.
+    mode_entity = reader.config.get(CONF_HEAT_PUMP_MODE_ENTITY)
+    strict = pump_mode.validator_for(mode_entity) is not pump_mode.is_known
     mode_reading = reader.read_state(
-        CONF_HEAT_PUMP_MODE_ENTITY, valid=pump_mode.is_known
+        CONF_HEAT_PUMP_MODE_ENTITY, valid=pump_mode.validator_for(mode_entity)
     )
     if mode_reading.ok and mode_reading.text:
-        capability = pump_mode.capability(mode_reading.text)
+        capability = pump_mode.capability(mode_reading.text, strict=strict)
         source = MODE_SOURCE_LIVE
         observed = True
     elif mode_reading.problem == "unknown_value":
