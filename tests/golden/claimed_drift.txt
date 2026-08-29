@@ -45,35 +45,20 @@
 #
 # claims-for: 5.5.0
 #
+# This branch is documentation only: docs/backlog.md, tests/README.md and two
+# explanatory comments in coordinator.py. Nothing under custom_components/
+# changes behaviour, VERSION is untouched by this branch, and no planning code
+# runs differently. The list below is therefore EMPTY, which is the whole
+# claim: byte-identical behaviour everywhere.
 #
-# This branch changes what the coordinator PUBLISHES, and nothing about how
-# it plans. Every one of the 53 optimizer fixtures is byte-identical to the
-# baseline; the five below are the coordinator captures, and they move only
-# by gaining keys.
+# Emptying it is not housekeeping. A behaviour-free branch that leaves this
+# file alone inherits the baseline's claims verbatim -- here, v5.5.0's five
+# coordinator captures -- and inheritance rule 2 fails the run. That is how
+# main went red after v5.1.7 (#77, fixed in #78).
 #
-# `reading_ok` is a new map in `_thermal_view` saying which of the published
-# temperatures stood on an entity that actually read this cycle. It is
-# additive: no existing leaf changes value, and every scenario that captures
-# a coordinator gains exactly this one key.
-#
-# `coord_all_features` moves by one leaf more. It carries a capacity tariff
-# with no main fuse, so on the baseline `_power_headroom` filtered out both
-# of its candidate limits -- an infinite threshold and a zero fuse -- and
-# returned `{"available": False}`, which is why `baseline_source`,
-# `headroom_kw`, `limit_kw` and `limit_source` are absent there and present
-# here, and why `available` reads False on the baseline and True on this
-# branch. That is the defect being fixed, captured: the entity used to
-# disappear for the first metering window of every month, which is the hour
-# the month's peak is set.
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_coil -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: valve_upper_direct_slab -- machine-sensitive; the DHW plan can reach it, per local optimum
-
-coord_all_features  # gains power_headroom's four keys and flips its `available`: a capacity tariff with no fuse used to lose the entity entirely
-coord_dhw  # gains the additive `reading_ok` map
-coord_grid_fee  # gains the additive `reading_ok` map
-coord_minimal  # gains the additive `reading_ok` map
-coord_two_zone  # gains the additive `reading_ok` map
