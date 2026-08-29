@@ -223,8 +223,8 @@ collide.
 | 5 | Negative-price arithmetic | **open** |
 | 6 | Settlement caps honour the learned heat-loss scale | **open**, see #87 |
 | 7 | Restore paths survive a corrupt store | **open** |
-| 8 | Sensors say what they actually know | PENDING-8 |
-| 9 | Card setup and what-if surfaces | PENDING-9 |
+| 8 | Sensors say what they actually know | shipped, **v5.5.0** |
+| 9 | Card setup and what-if surfaces | shipped, **v5.4.1** |
 | 10 | Config-flow guards | **open** |
 | 11 | Currency and translation seams | **open** |
 | 12 | Docs: what the integration actually does | **open** |

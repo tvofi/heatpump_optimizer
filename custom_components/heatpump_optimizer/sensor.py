@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import math
 from datetime import datetime
 from typing import Any
 
@@ -27,6 +28,51 @@ from .const import DHW_MIN_TEMP_SETPOINT_MARGIN, DOMAIN, MANUAL_PLAN_WINDOW_HOUR
 from .coordinator import HeatPumpOptimizerCoordinator
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _finite(value):
+    """Replace non-finite floats with ``None``, recursively.
+
+    ``inf`` and ``nan`` are not JSON. orjson -- the serializer Home Assistant
+    uses for the websocket and the recorder -- writes them as ``null``, so the
+    frontend and the database already see "unknown" while a Jinja template
+    reading the same attribute in-process sees Python's ``inf`` and compares
+    ``> 100`` as true. One published number, two different meanings depending
+    on who reads it.
+
+    The values are not accidents. ``PeakTracker.threshold_kw`` returns ``inf``
+    on purpose, as a sentinel meaning "the capacity term has no reference yet,
+    do not let it distort the plan" -- which is a decision variable, and
+    ``None`` ("unknown") is what it means once it becomes a published
+    attribute. It is +inf on the 1st of every month, for every install with a
+    capacity tariff.
+
+    Applied at the publication boundary rather than at the two sites that
+    produce it today, because the interesting case is the one nobody
+    predicted: the next attribute that divides by a zero sample count is
+    covered without anyone remembering to ask.
+    """
+    if isinstance(value, float):
+        return value if math.isfinite(value) else None
+    if isinstance(value, dict):
+        return {key: _finite(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_finite(item) for item in value]
+    if isinstance(value, tuple):
+        return tuple(_finite(item) for item in value)
+    return value
+
+
+def _reading_ok(coordinator: Any, key: str) -> bool:
+    """Whether the input behind a published temperature actually read OK.
+
+    The coordinator publishes one ``reading_ok`` map per cycle. A missing key
+    is ``False``: an entity that cannot find its own freshness answer must not
+    fall back to claiming the number is good.
+    """
+    data = getattr(coordinator, "data", None) or {}
+    flags = data.get("reading_ok") or {}
+    return bool(flags.get(key))
 
 
 async def async_setup_entry(
@@ -123,6 +169,31 @@ class HeatPumpOptimizerSensorBase(CoordinatorEntity, SensorEntity):
 
     _attr_has_entity_name = True
 
+    #: The two properties Home Assistant reads to build a state write. Every
+    #: number this integration publishes leaves through one of them, which is
+    #: why the non-finite scrub is installed here rather than repeated at each
+    #: of the fifty-five sensors -- and why a sensor added next year gets it
+    #: without anyone remembering to ask for it.
+    _PUBLISHED = ("native_value", "extra_state_attributes")
+
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        """Wrap every subclass's published properties in the finite scrub."""
+        super().__init_subclass__(**kwargs)
+        for name in HeatPumpOptimizerSensorBase._PUBLISHED:
+            prop = cls.__dict__.get(name)
+            if not isinstance(prop, property) or prop.fget is None:
+                continue
+            if getattr(prop.fget, "_finite_scrubbed", False):
+                continue
+
+            def scrubbed(self, _fget=prop.fget):
+                return _finite(_fget(self))
+
+            scrubbed.__name__ = name
+            scrubbed.__doc__ = prop.fget.__doc__
+            scrubbed._finite_scrubbed = True
+            setattr(cls, name, property(scrubbed, prop.fset, prop.fdel))
+
     def __init__(
         self,
         coordinator: HeatPumpOptimizerCoordinator,
@@ -150,6 +221,87 @@ class HeatPumpOptimizerSensorBase(CoordinatorEntity, SensorEntity):
     def device_info(self) -> DeviceInfo:
         """Return device info."""
         return self.coordinator.device_info
+
+
+class _MeasuredTemperatureMixin:
+    """A published temperature that is real only while its input reads OK.
+
+    ``ThermalState`` is a dataclass with constructor defaults: 55.0 °C for the
+    hot water tank, 40.0 °C for the buffer, 22.0 °C for the slab, 21.0 °C for
+    either floor. The coordinator overwrites a field only when the entity
+    behind it produced a usable value this cycle, so an install with no tank
+    thermometer published a rock-steady 55.0 °C — indistinguishable, in the
+    UI, in history and in an automation, from a tank that really is at 55.0 °C
+    and holding. The same number with the same unit and the same device class,
+    with nothing anywhere saying it is a constructor default.
+
+    Availability is the mechanism Home Assistant already has for "this entity
+    has nothing to report", and it is the one every consumer already handles:
+    the history chart breaks the line rather than drawing a flat one, the
+    recorder stops writing, and a template that checks ``is_state('unknown')``
+    or ``has_value`` sees the truth.
+    """
+
+    #: Key in the coordinator's ``reading_ok`` map that produces this value.
+    _reading_key: str = ""
+
+    @property
+    def available(self) -> bool:
+        return bool(
+            super().available and _reading_ok(self.coordinator, self._reading_key)
+        )
+
+
+class _DHWEntityMixin:
+    """A hot-water entity, gated on the install actually having hot water.
+
+    Six entities were offered unconditionally, hot water configured or not.
+    Two of them are Energy dashboard sources: with DHW disabled the optimizer
+    plans no hot water at all, so ``dhw_energy_kwh`` and ``dhw_cost`` stay at
+    0.0 forever, and a user who wires "Hot Water Energy" into the Energy
+    dashboard's water-heating slot gets a permanent flat zero that looks like
+    a working meter reporting a heat pump that never heats water.
+
+    One gate rather than six copies of the same condition, so a seventh hot
+    water entity inherits it by construction.
+    """
+
+    @property
+    def available(self) -> bool:
+        return bool(
+            super().available and (self.coordinator.data or {}).get("dhw_enabled")
+        )
+
+
+class _WaitsForEvidenceMixin:
+    """An entity whose source is configured but whose evidence has not arrived.
+
+    Three sensors were available the moment their *source* existed and then
+    published ``None`` until their first sample landed — hours for the COP
+    baseline, a full billing month for the contract comparison. Home Assistant
+    renders that as "Unknown", which is the same thing it renders for a sensor
+    whose integration has thrown, so the honest state "I have not measured this
+    yet" was indistinguishable from "this is broken". Unavailable is the state
+    that means "nothing to report", and it is the one the recorder, the history
+    chart and ``has_value`` all already understand.
+
+    ``waiting_for`` names which of the several preconditions is the missing
+    one, as a stable machine-readable code. Home Assistant suppresses extra
+    state attributes while an entity is unavailable, so its reader is whoever
+    holds the entity object — the diagnostics dump, a test, the platform —
+    plus the state written on the cycle the evidence finally arrives; the
+    value is that the reason lives in one place and is named, instead of being
+    reconstructed from three unrelated keys of the published payload.
+    """
+
+    @property
+    def _waiting_for(self) -> str | None:
+        """The missing precondition, or ``None`` when there is none."""
+        raise NotImplementedError
+
+    @property
+    def available(self) -> bool:
+        return bool(super().available and self._waiting_for is None)
 
 
 # ---------------------------------------------------------------------------
@@ -468,7 +620,17 @@ class SolarIrradianceSensor(HeatPumpOptimizerSensorBase):
         return attrs
 
 
-class SlabTempSensor(HeatPumpOptimizerSensorBase):
+class SlabTempSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase):
+    """The modelled slab temperature, while there is something modelling it.
+
+    The slab is never measured. It is integrated forward from the floor
+    heating return through ``update_slab_from_return_temp``, so it is a real
+    estimate exactly while that sensor is reading and a one-off
+    ``room + 1.0`` seed otherwise — which, on the default room temperature,
+    is the 22.0 °C the dataclass would have given anyway.
+    """
+
+    _reading_key = "slab_temperature"
     _attr_icon = "mdi:floor-plan"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
@@ -580,9 +742,31 @@ class ScheduleSensor(HeatPumpOptimizerSensorBase):
 # ---------------------------------------------------------------------------
 
 
-class UpperFloorTempSensor(HeatPumpOptimizerSensorBase):
-    """Sensor showing upper floor (radiator zone) temperature."""
+class UpperFloorTempSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase):
+    """The upper zone's temperature — which is the indoor thermometer.
 
+    There is no separate upper-floor input. The coordinator sets
+    ``upper_floor_temperature = indoor.value`` in the same branch that sets
+    ``room_temperature``, on the integration's stated two-zone convention
+    that the indoor sensor is the upper floor, and no ``UPPER_FLOOR_TEMP``
+    configuration key exists anywhere in the package. So this entity has
+    always published, to the last decimal, the value Indoor Temperature
+    publishes.
+
+    It is kept rather than dropped, and the duplication is now stated
+    instead of implied: ``source`` names where the number comes from, and
+    availability follows the indoor reading, so the pair go unknown together
+    rather than this one holding 21.0 °C on its own. Removing it would take
+    a registry cleanup for the retired unique id, a README count change and
+    a breaking-change note, and would silently orphan every dashboard card,
+    automation and long-term statistic pointing at
+    ``sensor.heat_pump_optimizer_upper_floor_temperature`` — a migration
+    that belongs to a release that can announce it, not to an availability
+    pass. Giving it a genuinely distinct source needs a new configuration
+    entity and a config-flow page for it.
+    """
+
+    _reading_key = "upper_floor_temperature"
     _attr_icon = "mdi:home-floor-1"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
@@ -601,10 +785,25 @@ class UpperFloorTempSensor(HeatPumpOptimizerSensorBase):
             return round(val, 1) if val is not None else None
         return None
 
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        # Stated, not implied: two entities carrying the same number look
+        # like corroboration until one of them admits it is the other one.
+        return {"source": "indoor_temperature"}
 
-class LowerFloorTempSensor(HeatPumpOptimizerSensorBase):
-    """Sensor showing lower floor (slab/floor heating zone) temperature."""
 
+class LowerFloorTempSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase):
+    """The lower zone's temperature, when a thermometer reports it.
+
+    With no lower-floor sensor the coordinator falls back to the room
+    temperature as an honest *modelling* stand-in — and says so in a repair
+    issue — but publishing that stand-in here as "Lower Floor Temperature"
+    turns a documented assumption into what looks like a second measurement
+    of a different room. It is the upstairs number wearing a downstairs
+    label, and it tracks upstairs exactly.
+    """
+
+    _reading_key = "lower_floor_temperature"
     _attr_icon = "mdi:home-floor-0"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
@@ -624,9 +823,16 @@ class LowerFloorTempSensor(HeatPumpOptimizerSensorBase):
         return None
 
 
-class FloorReturnTempSensor(HeatPumpOptimizerSensorBase):
-    """Sensor showing the floor heating return temperature (from real sensor)."""
+class FloorReturnTempSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase):
+    """The floor heating return temperature, straight from the sensor.
 
+    ``_floor_return_temp`` holds the last good reading and is never cleared,
+    so a sensor that dies mid-winter left this entity publishing the last
+    temperature it ever saw, indefinitely and without a mark. The state is
+    the same either way; only availability can tell the two apart.
+    """
+
+    _reading_key = "floor_return_temperature"
     _attr_icon = "mdi:pipe-valve"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
@@ -679,9 +885,16 @@ class SolarHeatGainSensor(HeatPumpOptimizerSensorBase):
         return {}
 
 
-class BufferTankTempSensor(HeatPumpOptimizerSensorBase):
-    """Sensor showing the modeled buffer tank temperature."""
+class BufferTankTempSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase):
+    """The buffer tank temperature, while a sensor is reporting it.
 
+    The buffer tank probe is optional and most installs do not have one.
+    Without it nothing ever writes ``buffer_tank_temperature`` and this
+    entity published ``ThermalState``'s 40.0 °C default for the life of the
+    install — a tank that never charges, never cools and never drifts.
+    """
+
+    _reading_key = "buffer_tank_temperature"
     _attr_icon = "mdi:water-boiler"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
@@ -706,9 +919,18 @@ class BufferTankTempSensor(HeatPumpOptimizerSensorBase):
 # ---------------------------------------------------------------------------
 
 
-class DHWTemperatureSensor(HeatPumpOptimizerSensorBase):
-    """Sensor showing current DHW tank temperature."""
+class DHWTemperatureSensor(
+    _DHWEntityMixin, _MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase
+):
+    """The hot water tank temperature, while a thermometer reports it.
 
+    Without a tank sensor this published 55.0 °C — ``ThermalState``'s
+    default, and a plausible setpoint — with a temperature device class and
+    a measurement state class, for ever. It is the most convincing of the
+    constants because it is the one a user is most likely to believe.
+    """
+
+    _reading_key = "dhw_temperature"
     _attr_icon = "mdi:water-thermometer"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
@@ -755,7 +977,7 @@ class DHWTemperatureSensor(HeatPumpOptimizerSensorBase):
         return {}
 
 
-class DHWScheduleSensor(HeatPumpOptimizerSensorBase):
+class DHWScheduleSensor(_DHWEntityMixin, HeatPumpOptimizerSensorBase):
     """Sensor showing the planned DHW heating schedule for the next 24 hours."""
 
     _attr_icon = "mdi:water-boiler-auto"
@@ -799,7 +1021,7 @@ class DHWScheduleSensor(HeatPumpOptimizerSensorBase):
         return {}
 
 
-class DHWHeatingCostSensor(HeatPumpOptimizerSensorBase):
+class DHWHeatingCostSensor(_DHWEntityMixin, HeatPumpOptimizerSensorBase):
     """Sensor showing the estimated DHW heating cost."""
 
     _attr_icon = "mdi:cash-minus"
@@ -1081,7 +1303,7 @@ class SpaceHeatingPlanSensor(_PlanSensorBase):
         )
 
 
-class DHWHeatingPlanSensor(_PlanSensorBase):
+class DHWHeatingPlanSensor(_DHWEntityMixin, _PlanSensorBase):
     """Planned DHW heating slots for the full optimization horizon."""
 
     _attr_icon = "mdi:water-boiler"
@@ -1118,7 +1340,7 @@ class MeasuredPowerSensor(HeatPumpOptimizerSensorBase):
     @property
     def available(self) -> bool:
         data = self.coordinator.data or {}
-        return bool(data.get("measured_power_available"))
+        return bool(super().available and data.get("measured_power_available"))
 
     @property
     def native_value(self) -> float | None:
@@ -1136,7 +1358,7 @@ class MeasuredPowerSensor(HeatPumpOptimizerSensorBase):
         }
 
 
-class ObservedCOPSensor(HeatPumpOptimizerSensorBase):
+class ObservedCOPSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase):
     """COP derived from measured electrical input, not from the nameplate curve.
 
     Every plan is priced through COP, so an error here is an error in every
@@ -1158,8 +1380,15 @@ class ObservedCOPSensor(HeatPumpOptimizerSensorBase):
         return round(model.compute_cop(data.get("outdoor_temperature", 5.0)), 2)
 
     @property
-    def available(self) -> bool:
-        return bool((self.coordinator.data or {}).get("measured_power_available"))
+    def _waiting_for(self) -> str | None:
+        data = self.coordinator.data or {}
+        if not data.get("measured_power_available"):
+            return "measured_power_entity"
+        if not isinstance(data.get("measured_cop"), (int, float)):
+            # A power entity is not a COP: the learner needs the pump to run,
+            # against a known outdoor temperature, for long enough to divide.
+            return "first_cop_sample"
+        return None
 
     @property
     def native_value(self) -> float | None:
@@ -1170,6 +1399,7 @@ class ObservedCOPSensor(HeatPumpOptimizerSensorBase):
     def extra_state_attributes(self) -> dict[str, Any]:
         data = self.coordinator.data or {}
         return {
+            "waiting_for": self._waiting_for,
             "cop_scale": data.get("cop_scale"),
             "cop_samples": data.get("cop_samples"),
             # The same curve the Estimated COP sensor publishes, so observed
@@ -1234,7 +1464,7 @@ class SpaceEnergySensor(_AccumulatingSensor):
         )
 
 
-class DHWEnergySensor(_AccumulatingSensor):
+class DHWEnergySensor(_DHWEntityMixin, _AccumulatingSensor):
     _attr_icon = "mdi:water-boiler"
     _attr_native_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
     _attr_device_class = SensorDeviceClass.ENERGY
@@ -1279,7 +1509,7 @@ class SpaceCostSensor(_AccumulatingCostSensor):
         super().__init__(coordinator, entry, "space_cost", "space_heating_cost")
 
 
-class DHWCostSensor(_AccumulatingCostSensor):
+class DHWCostSensor(_DHWEntityMixin, _AccumulatingCostSensor):
     _attr_icon = "mdi:cash"
     _data_key = "dhw_cost"
 
@@ -1358,7 +1588,10 @@ class MonthlyPeakSensor(HeatPumpOptimizerSensorBase):
 
     @property
     def available(self) -> bool:
-        return bool((self.coordinator.data or {}).get("peak_tariff_enabled"))
+        return bool(
+            super().available
+            and (self.coordinator.data or {}).get("peak_tariff_enabled")
+        )
 
     @property
     def native_value(self) -> float | None:
@@ -1404,7 +1637,9 @@ class PVSurplusSensor(HeatPumpOptimizerSensorBase):
 
     @property
     def available(self) -> bool:
-        return bool((self.coordinator.data or {}).get("pv_enabled"))
+        return bool(
+            super().available and (self.coordinator.data or {}).get("pv_enabled")
+        )
 
     @property
     def native_value(self) -> float | None:
@@ -1461,6 +1696,10 @@ class ThermalBatteryEnergySensor(HeatPumpOptimizerSensorBase):
     _attr_icon = "mdi:battery-charging"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
+    # Stored energy, not consumed energy. ENERGY_STORAGE is the device class
+    # for a state of charge in kWh and is the one that accepts MEASUREMENT;
+    # plain ENERGY would demand TOTAL/TOTAL_INCREASING and be rejected.
+    _attr_device_class = SensorDeviceClass.ENERGY_STORAGE
     _attr_suggested_display_precision = 2
 
     def __init__(self, coordinator, entry):
@@ -1561,7 +1800,9 @@ class ComfortWeightSensor(HeatPumpOptimizerSensorBase):
         return dict((self.coordinator.data or {}).get("comfort_learning", {}) or {})
 
 
-class ContractComparisonSensor(HeatPumpOptimizerSensorBase):
+class ContractComparisonSensor(
+    _WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase
+):
     """This month's consumption settled under each contract type (#23).
 
     The state is the load-profile value: how many SEK/kWh below the month's
@@ -1587,6 +1828,17 @@ class ContractComparisonSensor(HeatPumpOptimizerSensorBase):
         self._attr_native_unit_of_measurement = f"{coordinator.currency}/kWh"
 
     @property
+    def _waiting_for(self) -> str | None:
+        data = (self.coordinator.data or {}).get("contract_comparison") or {}
+        if not data:
+            return "contract_comparison_configuration"
+        if not isinstance(data.get("load_profile_value_per_kwh"), (int, float)):
+            # The comparison is settled per metered month; a fresh install has
+            # the configuration but no month to settle yet.
+            return "settled_metered_month"
+        return None
+
+    @property
     def native_value(self) -> float | None:
         data = (self.coordinator.data or {}).get("contract_comparison") or {}
         value = data.get("load_profile_value_per_kwh")
@@ -1597,6 +1849,7 @@ class ContractComparisonSensor(HeatPumpOptimizerSensorBase):
         attrs = dict(
             (self.coordinator.data or {}).get("contract_comparison", {}) or {}
         )
+        attrs["waiting_for"] = self._waiting_for
         # T6 #40: the latest frozen month's itemised receipt rides on the
         # month-money sensor — the receipt is that comparison, settled.
         report = ((self.coordinator.data or {}).get("insight") or {}).get(
@@ -1632,7 +1885,7 @@ class PowerHeadroomSensor(HeatPumpOptimizerSensorBase):
     @property
     def available(self) -> bool:
         data = (self.coordinator.data or {}).get("power_headroom") or {}
-        return bool(data.get("available"))
+        return bool(super().available and data.get("available"))
 
     @property
     def native_value(self) -> float | None:
@@ -1661,6 +1914,10 @@ class DHWSetpointAdvisorSensor(HeatPumpOptimizerSensorBase):
     _attr_icon = "mdi:thermometer-check"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+    # An absolute tank temperature, so it converts and formats like one: a
+    # household on Fahrenheit was reading a bare "52" in a °C-labelled box.
+    # MEASUREMENT is the state class DEVICE_CLASS_STATE_CLASSES allows here.
+    _attr_device_class = SensorDeviceClass.TEMPERATURE
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     # The advisor sweeps whole-degree candidate setpoints.
     _attr_suggested_display_precision = 0
@@ -1673,7 +1930,9 @@ class DHWSetpointAdvisorSensor(HeatPumpOptimizerSensorBase):
     @property
     def available(self) -> bool:
         data = (self.coordinator.data or {}).get("dhw_advisor") or {}
-        return data.get("recommended_setpoint") is not None
+        return bool(
+            super().available and data.get("recommended_setpoint") is not None
+        )
 
     @property
     def native_value(self) -> float | None:
@@ -1697,6 +1956,9 @@ class MixedHotWaterSensor(HeatPumpOptimizerSensorBase):
     _attr_icon = "mdi:shower-head"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfVolume.LITERS
+    # A quantity *held*, not a quantity delivered, which is exactly what
+    # VOLUME_STORAGE means; VOLUME would invite HA to treat it as throughput.
+    _attr_device_class = SensorDeviceClass.VOLUME_STORAGE
     _attr_suggested_display_precision = 0
 
     def __init__(self, coordinator, entry):
@@ -1706,7 +1968,9 @@ class MixedHotWaterSensor(HeatPumpOptimizerSensorBase):
 
     @property
     def available(self) -> bool:
-        return bool((self.coordinator.data or {}).get("dhw_mixed"))
+        return bool(
+            super().available and (self.coordinator.data or {}).get("dhw_mixed")
+        )
 
     @property
     def native_value(self) -> float | None:
@@ -1745,7 +2009,10 @@ class DHWHeavyDaySensor(HeatPumpOptimizerSensorBase):
     @property
     def available(self) -> bool:
         stats = (self.coordinator.data or {}).get("dhw_draw_stats") or {}
-        return any((v or {}).get("events") for v in stats.values())
+        return bool(
+            super().available
+            and any((v or {}).get("events") for v in stats.values())
+        )
 
     @property
     def native_value(self) -> float | None:
@@ -1835,7 +2102,7 @@ class OptimizationScoreSensor(HeatPumpOptimizerSensorBase):
         scores = (
             ((self.coordinator.data or {}).get("insight") or {}).get("scores")
         ) or {}
-        return scores.get("overall") is not None
+        return bool(super().available and scores.get("overall") is not None)
 
     @property
     def native_value(self) -> float | None:
@@ -1878,7 +2145,7 @@ class CompressorStartsSensor(HeatPumpOptimizerSensorBase):
     @property
     def available(self) -> bool:
         data = (self.coordinator.data or {}).get("measured_power_available")
-        return bool(data)
+        return bool(super().available and data)
 
     @property
     def native_value(self) -> int | None:
@@ -1900,7 +2167,7 @@ class CompressorStartsSensor(HeatPumpOptimizerSensorBase):
         return dict(starts)
 
 
-class FrequencyAdvisorSensor(HeatPumpOptimizerSensorBase):
+class FrequencyAdvisorSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase):
     """What compressor frequency the plan's power asks for (T7 #61).
 
     State: the recommended Hz for the current commanded power, from the
@@ -1926,9 +2193,14 @@ class FrequencyAdvisorSensor(HeatPumpOptimizerSensorBase):
         )
 
     @property
-    def available(self) -> bool:
+    def _waiting_for(self) -> str | None:
         view = (self.coordinator.data or {}).get("freq_control") or {}
-        return view.get("mode") not in (None, "unconfigured")
+        if view.get("mode") in (None, "unconfigured"):
+            return "compressor_frequency_entity"
+        if not isinstance(view.get("recommended_hz"), (int, float)):
+            # Observe mode with an entity but no learned kW-per-Hz map yet.
+            return "first_frequency_map_sample"
+        return None
 
     @property
     def native_value(self) -> float | None:
@@ -1938,4 +2210,6 @@ class FrequencyAdvisorSensor(HeatPumpOptimizerSensorBase):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        return dict((self.coordinator.data or {}).get("freq_control", {}) or {})
+        attrs = dict((self.coordinator.data or {}).get("freq_control", {}) or {})
+        attrs["waiting_for"] = self._waiting_for
+        return attrs

@@ -5343,5 +5343,364 @@ const setupBox = (card, place) =>
     svTt);
 }
 
+
+// ===========================================================================
+// Card setup and what-if surfaces (a2)
+// ===========================================================================
+
+// --- Scenario: hot water guaranteed until midnight -------------------------
+// `dhw_schedule.format_windows` renders a window that runs to the end of the
+// day as "20:00-24:00" ON PURPOSE, and `parse_windows` reads it straight back
+// to the same window. The card's `hourOf` has no 24:00 — nor should it, since
+// it also parses `<input type="time">` values and there is no 24:00 in one.
+//
+// The two paths differ, and only one of them was broken:
+//
+//   * The SAVE path and the Apply button both call `_onSlotEdit` first, which
+//     re-reads the window rows out of the DOM, where the browser has already
+//     turned an unrepresentable 24:00 into something a time input can hold.
+//   * The slider path does NOT. `_onWhatIfInput` writes one number into the
+//     memoised draft and schedules `_runWhatIf`, which validates that draft —
+//     the one seeded straight from the sensor's published "20:00-24:00".
+//
+// So a household whose hot water is guaranteed until midnight could not price
+// a single change: every simulate was refused by the card itself, with a
+// message blaming the schedule the integration had just published.
+{
+  const calls = [];
+  const st = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  st[DEFAULT_SPACE].attributes.day_start_hour = 7;
+  st[DEFAULT_SPACE].attributes.day_end_hour = 22;
+  st[DEFAULT_DHW].attributes.dhw_windows = "20:00-24:00";
+  const mid = build(st, { what_if: true });
+  mid._hass = {
+    states: st,
+    callService: async (domain, service, data) => {
+      calls.push({ domain, service, data });
+      return { response: { results: { abc: simResult } } };
+    },
+  };
+  mid._onCardClick({});
+
+  const seeded = mid._whatIfDraft().dhwWindows;
+  check("the editor seeds one window from the published schedule",
+    seeded.length === 1 && seeded[0].start === "20:00",
+    JSON.stringify(seeded));
+
+  // The slider path: nothing re-reads the DOM, so what is validated is the
+  // seeded draft itself.
+  mid._onWhatIfInput({
+    stopPropagation() {},
+    target: { value: "21.5", classList: { contains: () => false } },
+  });
+  clearTimeout(mid._whatIfTimer);
+  mid._whatIfTimer = null;
+  await mid._runWhatIf();
+  const sims = calls.filter((c) => c.service === "simulate_plan");
+  check("a 20:00-24:00 household reaches simulate_plan",
+    sims.length === 1,
+    `${calls.length} service call(s): ${JSON.stringify(calls.map((c) => c.service))}`);
+  check("and the panel does not call the house's own schedule invalid",
+    !/not a valid time/.test(
+      mid.shadowRoot.querySelector(".wi-result").textContent || ""),
+    mid.shadowRoot.querySelector(".wi-result").textContent);
+  // What it prices has to still be the window the house runs. "20:00-00:00"
+  // is the same window to `parse_windows`; anything else is a different
+  // schedule wearing the same label.
+  check("and the window it prices is still the one the house runs",
+    sims.length === 1 && sims[0].data.dhw_windows === "20:00-00:00",
+    sims.length === 1 ? JSON.stringify(sims[0].data.dhw_windows) : "no call");
+
+  // A window that is genuinely not a time still stops the run — and now says
+  // WHICH one, because a household with four windows given "one of them is
+  // wrong" has to check all four by hand.
+  mid._whatIfDraft().dhwWindows = [
+    { start: "06:00", end: "08:00" },
+    { start: "17:00", end: "25:70" },
+  ];
+  const beforeBad = calls.length;
+  await mid._runWhatIf();
+  check("a genuinely malformed window still stops the run",
+    calls.length === beforeBad,
+    JSON.stringify(calls.slice(beforeBad).map((c) => c.service)));
+  check("and the error names the window that is wrong",
+    /17:00-25:70/.test(
+      mid.shadowRoot.querySelector(".wi-result").textContent || ""),
+    mid.shadowRoot.querySelector(".wi-result").textContent);
+  check("without naming the windows that are fine",
+    !/06:00-08:00/.test(
+      mid.shadowRoot.querySelector(".wi-result").textContent || ""),
+    mid.shadowRoot.querySelector(".wi-result").textContent);
+}
+
+// --- Scenario: the slot menu's document listener is not for keeps ----------
+// The menu parks an Escape handler on the DOCUMENT, because a mouse-opened
+// menu leaves focus on the chart and the menu element never sees the key.
+// Two paths dropped the menu without dropping the listener:
+//
+//   * `_render` replaces the whole shadow root — on the coordinator's
+//     schedule, not the user's — so the menu element is destroyed under the
+//     open menu on the next plan refresh.
+//   * `disconnectedCallback` never called `_closeSlotMenu` at all, so a card
+//     scrolled off a dashboard left its listener behind for the lifetime of
+//     the page: one per card visit.
+{
+  const kb = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
+  const count = () => (docListeners.keydown || []).length;
+  const base = count();
+  const openMenu = (card) => {
+    const svg = card._chartSvgs(card.shadowRoot)[0];
+    const slot = svg.querySelector(".slot");
+    const runs = card._draftRuns()[slot.dataset.channel] || [];
+    const run = runs[Number(slot.dataset.index)];
+    card._openSlotMenu(slot.dataset.channel,
+      (run.start + run.end) / 2, 120, 300, svg);
+  };
+
+  check("no card leaves a document keydown listener behind at rest",
+    base === 0, `${base} listener(s) already parked`);
+  openMenu(kb);
+  check("an open slot menu parks exactly one document keydown listener",
+    !!kb._slotMenu && count() === base + 1, `${count()} listener(s)`);
+
+  // A plan refresh. The menu's markup goes with the shadow root either way;
+  // the question is whether its listener does.
+  kb._render();
+  check("a re-render takes the menu's document listener with the menu",
+    count() === base, `${count()} listener(s), expected ${base}`);
+  check("and leaves no menu state behind on the card",
+    kb._slotMenu === null && kb._menuEscape === null,
+    `slotMenu=${kb._slotMenu} escape=${kb._menuEscape}`);
+
+  // Repeated refreshes with a menu open each time must not accumulate.
+  for (let i = 0; i < 5; i++) { openMenu(kb); kb._render(); }
+  check("five open-and-refresh cycles leak nothing",
+    count() === base, `${count()} listener(s), expected ${base}`);
+
+  // Teardown: the card is removed from the dashboard with its menu open.
+  openMenu(kb);
+  check("the menu is open before the card goes away",
+    count() === base + 1, `${count()} listener(s)`);
+  kb.disconnectedCallback();
+  check("disconnecting the card releases the document listener too",
+    count() === base, `${count()} listener(s), expected ${base}`);
+  check("and the whole page is back to no parked keydown listeners",
+    count() === 0, `${count()} listener(s)`);
+}
+
+// --- Scenario: the Setup tab before the first solve ------------------------
+// `sensor.py` publishes `setup_topology` with no plan at all, and says why in
+// as many words: "Configuration-derived, so it exists before the first plan
+// does; the card's setup page should not need a solve to draw." The card
+// gated the expand affordance AND the dialog on plan data, so the one page
+// that could have told a user which sensor is missing was reachable only
+// after a solve that the missing sensor was preventing.
+{
+  const preStates = {};
+  preStates[DEFAULT_SPACE] = {
+    state: "unknown",
+    attributes: {
+      plan_kind: "space",
+      friendly_name: "Space Heating Plan",
+      manual_plan_window_hours: 6,
+      setup_topology: setupTopo(),
+      currency: "SEK",
+    },
+  };
+  preStates[DEFAULT_DHW] = {
+    state: "unknown",
+    attributes: { plan_kind: "dhw", friendly_name: "DHW Heating Plan",
+      currency: "SEK" },
+  };
+  preStates["sensor.livingroom"] = { state: "21.3",
+    attributes: { unit_of_measurement: "°C", friendly_name: "Living room" } };
+  const pre = build(preStates);
+  const preDump = collect(pre.shadowRoot).join("\n");
+  check("with no plan the card still says there is no plan",
+    /no plan data/i.test(preDump), preDump.slice(0, 200));
+  check("but it still offers a way in to the setup page",
+    /class="expand"/.test(preDump),
+    "no expand affordance rendered");
+
+  pre._onExpandClick({ stopPropagation() {} });
+  const openDump = collect(pre.shadowRoot).join("\n");
+  check("expanding before the first solve opens the dialog",
+    pre._expanded === true && /<dialog/.test(openDump),
+    `expanded=${pre._expanded}`);
+  check("and it lands on the setup page rather than an empty plan",
+    pre._dialogPage === "setup" && /class="setup-page"/.test(openDump),
+    `page=${pre._dialogPage}`);
+  check("the diagram is drawn from the published topology",
+    /class="setup-hit"/.test(openDump) && /Indoor temperature/.test(openDump),
+    "no clickable slots rendered");
+  check("so an unassigned sensor can be assigned without a plan first",
+    pre.shadowRoot.querySelectorAll(".setup-hit")
+      .some((h) => h.dataset.key === "lower_floor_temp_entity"),
+    pre.shadowRoot.querySelectorAll(".setup-hit")
+      .map((h) => h.dataset.key).join(", "));
+  // The Plan tab is still there and still honest about having nothing.
+  const planTab = pre.shadowRoot.querySelectorAll(".dlg-tab")
+    .find((t) => t.dataset.page === "plan");
+  check("the Plan tab is still offered", !!planTab);
+  ((planTab && planTab._listeners.click) || []).forEach((f) =>
+    f({ currentTarget: planTab, stopPropagation() {} }));
+  // Scoped to the DIALOG's own body: the card underneath says "no plan data"
+  // too, so a match anywhere in the shadow root would pass against a dialog
+  // page that drew nothing at all.
+  const dlgBody = pre.shadowRoot.querySelector("dialog .dlg-body");
+  check("and switching to it explains the absence rather than drawing nothing",
+    pre._dialogPage === "plan" && !!dlgBody &&
+    /no plan data/i.test(dlgBody.textContent || ""),
+    `page=${pre._dialogPage} body=${JSON.stringify(
+      (dlgBody && dlgBody.textContent) || null)}`);
+
+  // An install with genuinely nothing published has nothing to expand to:
+  // no plan, and no topology either. That empty state stays as it was.
+  const nothing = build({});
+  check("an install with nothing published still offers no expansion",
+    !/class="expand"/.test(collect(nothing.shadowRoot).join("\n")) &&
+    !/<ha-card class="clickable"/.test(collect(nothing.shadowRoot).join("\n")));
+}
+
+// --- Scenario: what a slot is asking for comes from the slot ---------------
+// The picker ranks a matching device_class to the top, which is what makes a
+// temperature slot usable on an install with hundreds of sensors. That
+// expectation used to live in a hardcoded map inside the card, keyed by slot
+// id — a second copy of something `topology._SLOTS` already describes, and
+// one that no test touched. It is published on the slot now, beside the
+// domains it sits with in the same table.
+{
+  const bigStates = {};
+  for (let i = 0; i < 250; i++) {
+    bigStates[`sensor.aaa_meter_${String(i).padStart(3, "0")}`] = {
+      state: "3.2",
+      attributes: { device_class: "power", unit_of_measurement: "kW",
+        friendly_name: `Meter ${String(i).padStart(3, "0")}` },
+    };
+  }
+  bigStates["sensor.zzz_wood_probe"] = {
+    state: "71.2",
+    attributes: { device_class: "temperature", unit_of_measurement: "°C",
+      friendly_name: "Wood probe" },
+  };
+  const topo = setupTopo();
+  topo.slots = topo.slots.map((s) =>
+    s.key === "wood_tank_top_entity"
+      ? { ...s, device_class: "temperature" }
+      : s);
+  const card = mkSetup(topo, bigStates);
+  const hit = card.shadowRoot.querySelectorAll(".setup-hit")
+    .find((h) => h.dataset.key === "wood_tank_top_entity");
+  (hit._listeners.click || []).forEach((f) =>
+    f({ currentTarget: hit, preventDefault() {}, stopPropagation() {} }));
+  const pickerHtml = collect(card.shadowRoot).join("\n");
+  const opts = [...pickerHtml.matchAll(/<option value="([^"]*)"/g)]
+    .map((m) => m[1]).filter(Boolean);
+  check("a slot that wants a temperature ranks one above 250 power meters",
+    opts[0] === "sensor.zzz_wood_probe",
+    `first five: ${opts.slice(0, 5).join(", ")}`);
+  // Ranking, not filtering. A house full of sensors carrying no device
+  // class at all is normal, and a picker that hid them would hide the very
+  // probe the user is trying to assign.
+  check("and hides none of the ones it did not ask for",
+    opts.some((id) => /aaa_meter/.test(id)) &&
+    opts.length === vm.runInContext("PICKER_MAX_OPTIONS", ctx),
+    `${opts.length} options, ${opts.filter((id) => /aaa_meter/.test(id)).length} of them power meters`);
+}
+
+// --- Scenario: the assignment the picker could not see ---------------------
+// The picker prepends the slot's own entity as the SELECTED option, outside
+// the text filter and outside the 200-option cap, because an option that is
+// absent reads as "(not configured)" and Assign writes that absence back as a
+// clearance. That production line has been there since v5.1.4 — and until now
+// nothing reached it. The scenario above assigns
+// `sensor.vedpanna_temperatur_temperature_2`, which sorts BEFORE 400
+// `sensor.zz_probe_*` and therefore lands inside the cap on its own merits;
+// replacing `if (chosen && !listed.has(chosen))` with `if (false)` left the
+// whole suite green. Three ordinary ways an assignment falls outside the list
+// the picker would otherwise build, and the write that used to follow.
+{
+  const MAX = vm.runInContext("PICKER_MAX_OPTIONS", ctx);
+  const bigStates = {};
+  for (let i = 0; i < 400; i++) {
+    bigStates[`sensor.zz_probe_${String(i).padStart(3, "0")}`] = {
+      state: "20.0",
+      attributes: { unit_of_measurement: "°C",
+        friendly_name: `Probe ${String(i).padStart(3, "0")}` },
+    };
+  }
+  const assignedTo = (id) => {
+    const t = setupTopo();
+    t.slots = t.slots.map((s) =>
+      s.key === "wood_tank_top_entity" ? { ...s, entity: id } : s);
+    return t;
+  };
+  const openAndRead = (card, filter) => {
+    const hit = card.shadowRoot.querySelectorAll(".setup-hit")
+      .find((h) => h.dataset.key === "wood_tank_top_entity");
+    (hit._listeners.click || []).forEach((f) =>
+      f({ currentTarget: hit, preventDefault() {}, stopPropagation() {} }));
+    if (filter !== undefined) {
+      const box = card.shadowRoot.querySelector(".sp-filter");
+      box.value = filter;
+      (box._listeners.input || []).forEach((f) =>
+        f({ currentTarget: box, target: box }));
+    }
+    const page = collect(card.shadowRoot).join("\n");
+    return [...page.matchAll(
+      /<option value="([^"]*)"( selected)?>([^<]*)<\/option>/g)]
+      .map((mm) => ({ value: mm[1], selected: !!mm[2], text: mm[3] }));
+  };
+
+  // (a) Past the cap on its own merits: 400 candidates, and the assigned one
+  //     is the last of them alphabetically. The cap is a RENDER bound, so the
+  //     answer is 200 listed candidates PLUS the one that is already
+  //     configured — not 200 that happen to exclude it.
+  const past = mkSetup(assignedTo("sensor.zz_probe_399"), bigStates);
+  const pastOpts = openAndRead(past);
+  const pastMine = pastOpts.find((o) => o.value === "sensor.zz_probe_399");
+  check("an assignment 200 places past the cap is still offered",
+    !!pastMine && pastOpts.filter((o) => o.value).length === MAX + 1,
+    `${pastOpts.filter((o) => o.value).length} options for 400 candidates, ` +
+    `cap ${MAX}`);
+  check("and it is the one and only option the picker comes up on",
+    !!pastMine && pastMine.selected &&
+    pastOpts.filter((o) => o.selected).length === 1,
+    JSON.stringify(pastOpts.filter((o) => o.selected)));
+
+  // (b) A filter the assignment does not match. Narrowing the list to look
+  //     for something else must not quietly deselect what is configured.
+  const filtered = mkSetup(assignedTo("sensor.zz_probe_399"), bigStates);
+  const fOpts = openAndRead(filtered, "probe 012");
+  check("a filter that excludes the assignment does not drop it",
+    fOpts.some((o) => o.value === "sensor.zz_probe_399" && o.selected),
+    fOpts.map((o) => o.value).join(", ").slice(0, 120));
+
+  // (c) The strongest form: the assignment is in no list the picker builds,
+  //     because the entity is not in `states` at all — renamed, removed, or
+  //     an integration that has not come up yet. Ranking and filtering can
+  //     never reach it; only the prepend can.
+  const gone = mkSetup(assignedTo("sensor.renamed_away"), bigStates);
+  const goneOpts = openAndRead(gone);
+  const ghost = goneOpts.find((o) => o.value === "sensor.renamed_away");
+  check("an assignment that is not a candidate at all is still shown",
+    !!ghost && ghost.selected,
+    JSON.stringify(goneOpts.slice(0, 3)));
+  check("and it is labelled with its raw id, and said to be unavailable",
+    !!ghost && ghost.text.includes("sensor.renamed_away") &&
+    /not available/i.test(ghost.text),
+    ghost && ghost.text);
+  // The payload. This is the write that used to arrive as a clearance.
+  const calls = [];
+  gone._hass.callService = async (d, s2, data) => { calls.push([d, s2, data]); };
+  const saveBtn = gone.shadowRoot.querySelector(".sp-save");
+  await Promise.all((saveBtn._listeners.click || [])
+    .map((f) => f({ stopPropagation() {}, preventDefault() {} })));
+  check("and Assign on an untouched picker writes it back, not a clearance",
+    calls.length === 1 && calls[0][2].entity_id === "sensor.renamed_away",
+    JSON.stringify(calls));
+}
+
+
 console.log(fails ? `\n${fails} CARD CHECK(S) FAILED` : "\nALL CARD CHECKS PASSED");
 process.exit(fails?1:0);

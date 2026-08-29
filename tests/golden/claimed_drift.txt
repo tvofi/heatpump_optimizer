@@ -43,27 +43,51 @@
 # does not expire with the stamp and is not part of the inherited-claims
 # comparison.
 #
-# claims-for: 5.4.0
+# claims-for: 5.5.0
 #
 #
-# Documentation and comments only: docs/backlog.md, tests/README.md and two
-# explanatory comments in coordinator.py. No executable line changes, so the
-# list below is EMPTY, which is the whole claim: byte-identical behaviour
-# everywhere.
+# This branch is documentation only: docs/backlog.md, tests/README.md and
+# two explanatory comments in coordinator.py. Nothing under
+# custom_components/ changes behaviour, VERSION is untouched, and no
+# planning code runs differently. The list below is therefore EMPTY, which
+# is the whole claim: byte-identical behaviour everywhere.
 #
-# Emptying this list is not housekeeping, and it is the one thing a
-# behaviour-free branch has to remember. Such a branch inherits the
-# baseline's claims verbatim, every one of them is then stale, and
-# inheritance rule 2 fails the run -- which is exactly how main went red
-# after the v5.1.7 gate work (#77, fixed in #78). The stamp cannot catch it
-# either, because a branch that changes no behaviour usually does not bump
-# VERSION, so the inherited stamp still matches. Rule 2 is the only thing
-# between such a branch and a false green.
+# Emptying it is not housekeeping. A behaviour-free branch that leaves this
+# file alone inherits the baseline's claims verbatim -- here, v5.5.0's five
+# coordinator captures -- and inheritance rule 2 fails the run. That is how
+# main went red after v5.1.7 (#77, fixed in #78).
+
+# may-drift: <name> -- <reason>`. It
+# asserts nothing: the fixture moved here, or it did not, and either is fine.
+# It exists only for the five fixtures this gate itself declares
+# non-reproducible across BLAS builds, and env_drift.py refuses any other
+# name -- see `_may_drift` there for the full reasoning. Because it is a
+# statement about those fixtures rather than about one release's diff, it
+# does not expire with the stamp and is not part of the inherited-claims
+# comparison.
 #
-# The corollary, for whoever writes the next one: this block describes the
-# branch that last edited it, so on main it is always one merge out of date.
-# Read the list and the stamp, which are machine-checked; treat the prose as
-# the reason the last author gave.
+# claims-for: 5.5.0
+#
+#
+# This branch changes what the coordinator PUBLISHES, and nothing about how
+# it plans. Every one of the 53 optimizer fixtures is byte-identical to the
+# baseline; the five below are the coordinator captures, and they move only
+# by gaining keys.
+#
+# `reading_ok` is a new map in `_thermal_view` saying which of the published
+# temperatures stood on an entity that actually read this cycle. It is
+# additive: no existing leaf changes value, and every scenario that captures
+# a coordinator gains exactly this one key.
+#
+# `coord_all_features` moves by one leaf more. It carries a capacity tariff
+# with no main fuse, so on the baseline `_power_headroom` filtered out both
+# of its candidate limits -- an infinite threshold and a zero fuse -- and
+# returned `{"available": False}`, which is why `baseline_source`,
+# `headroom_kw`, `limit_kw` and `limit_source` are absent there and present
+# here, and why `available` reads False on the baseline and True on this
+# branch. That is the defect being fixed, captured: the entity used to
+# disappear for the first metering window of every month, which is the hour
+# the month's peak is set.
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum

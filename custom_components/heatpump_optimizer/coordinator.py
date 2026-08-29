@@ -6304,9 +6304,31 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     # field is added next to its siblings rather than appended to a
     # two-hundred-line literal where nothing has a natural home.
 
+    def _reading_ok(self, key: str) -> bool:
+        """Whether ``key``'s configured entity produced a usable value.
+
+        ``False`` for an unconfigured entity as well as for a stale, missing
+        or non-numeric one, because all three publish the same thing: the
+        thermal model's constructor default or its last seed, never a
+        measurement. The entities gate on this so a default cannot be read as
+        a reading.
+        """
+        health = self._input_health
+        if health is None:
+            return False
+        reading = health.readings.get(key)
+        return bool(reading is not None and reading.entity_id and reading.ok)
+
     def _thermal_view(self) -> dict[str, Any]:
         """Measured and modelled temperatures, and the solar input."""
         state = self._current_state
+        # Which of the temperatures below are standing on a reading that
+        # actually came in this cycle. ``ThermalState`` has constructor
+        # defaults -- 55.0 for the tank, 40.0 for the buffer, 22.0 for the
+        # slab, 21.0 for either floor -- and a field is overwritten only when
+        # its entity read OK, so without this map the entities cannot tell a
+        # measurement from a default that has never moved.
+        floor_return_ok = self._reading_ok(CONF_FLOOR_RETURN_TEMP_ENTITY)
         # Conditional keys, not null keys: installs without the two-tank
         # topology publish exactly the attributes they published before
         # (issue #40's conditional-key pattern).
@@ -6325,6 +6347,29 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             "lower_floor_temperature": state.lower_floor_temperature,
             "buffer_tank_temperature": state.buffer_tank_temperature,
             "floor_return_temperature": self._floor_return_temp,
+            "reading_ok": {
+                # The indoor thermometer is the upper zone, by the two-zone
+                # convention `_update_current_state` states and applies.
+                "upper_floor_temperature": self._reading_ok(
+                    CONF_INDOOR_TEMP_ENTITY
+                ),
+                # Only a real lower-floor thermometer; the room-temperature
+                # fallback is a modelling stand-in, not a second measurement.
+                "lower_floor_temperature": self._reading_ok(
+                    CONF_LOWER_FLOOR_TEMP_ENTITY
+                ),
+                "floor_return_temperature": floor_return_ok,
+                # The slab is never sensed. It is integrated from the floor
+                # return, so it is a live estimate exactly while that sensor
+                # reads and a one-off `room + 1.0` seed otherwise.
+                "slab_temperature": floor_return_ok,
+                "buffer_tank_temperature": self._reading_ok(
+                    CONF_BUFFER_TANK_TEMP_ENTITY
+                ),
+                # Published by `_dhw_view`; the freshness of every temperature
+                # this integration publishes belongs in one map.
+                "dhw_temperature": self._reading_ok(CONF_DHW_TEMP_ENTITY),
+            },
             "solar_radiation": self._solar_radiation,
             "solar_heat_gain": self._thermal_model.compute_solar_gain(
                 self._solar_radiation
@@ -7517,9 +7562,33 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             for v in (fuse, threshold)
             if v is not None and np.isfinite(v)
         ]
-        if not limits:
+        if limits:
+            limit = float(min(limits))
+            limit_source = "main fuse" if limit == fuse else "capacity threshold"
+        elif tariff.enabled and tariff.sample_factor(dt_util.now()) > 0.0:
+            # A capacity tariff with no reference peak yet. `threshold_kw`
+            # answers +inf there, which means "do not let the peak term
+            # distort the plan" -- it does not mean the house may draw
+            # freely, and this sensor asks a different question: how many kW
+            # can be drawn right now *without new cost*. With no peak
+            # recorded the month's bill is set from the first window, so no
+            # kW is free and the true answer is 0.0.
+            #
+            # It used to be no answer at all. An install with a capacity
+            # tariff and no `main_fuse_amperes` -- the default, since the
+            # fuse defaults to 0 -- had both candidate limits filtered out
+            # here and lost the entity entirely for the first metering window
+            # of every month. A charger automation following it saw its input
+            # disappear monthly, at the exact hour the month's peak was being
+            # set. Installs with a fuse are unaffected: their limit is finite
+            # and this branch is not reached.
+            limit = 0.0
+            limit_source = "capacity tariff with no peak reference yet"
+        else:
+            # Neither a fuse nor a capacity term that bills this window.
+            # Nothing bounds the house that this integration knows about,
+            # and saying nothing is the honest answer.
             return {"available": False}
-        limit = float(min(limits))
 
         if self._measured_house_power is not None:
             house_now = float(self._measured_house_power)
@@ -7538,6 +7607,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             "limit_kw": round(limit, 3),
             "headroom_kw": round(max(0.0, limit - house_now), 3),
             "baseline_source": source,
+            "limit_source": limit_source,
         }
         result = self._optimization_result
         if result is not None and result.power_schedule:

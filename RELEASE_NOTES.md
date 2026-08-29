@@ -1,5 +1,174 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v5.5.0
+
+### Sensors say what they know, and say nothing when they do not
+
+Five published temperatures were `ThermalState` constructor defaults wearing a
+temperature device class. On an install with only an indoor and an outdoor
+thermometer — measured on a real coordinator — the hot water sensor published
+55.0 °C for the life of the install, the buffer published 40.0 °C, the slab
+22.4 °C on a 21.4 °C room, and both floor sensors published the indoor
+reading. All six reported `available = True`. With `state_class=measurement`
+on top, each drew a flat line in long-term statistics that an owner cannot
+tell apart from a real probe.
+
+The coordinator now publishes one `reading_ok` map saying which of those
+numbers came from an entity that actually read this cycle, and the entities
+gate on it. The floor return joins them: it held its last good value forever,
+so a thermometer that died in January read 48.2 °C all spring with nothing
+marking it.
+
+**Upgrading.** Sensors that were showing a plausible constant will now show
+*unavailable* until the matching thermometer is configured. That is the
+correction, not a regression — but a dashboard card or template that read one
+of them will change what it shows, so it is worth a look after upgrading.
+Nothing is renamed and no entity id changes.
+
+### Upper Floor Temperature keeps its name, and admits its source
+
+There is no upper-floor input anywhere in the package: the coordinator assigns
+it `indoor.value` in the same branch that sets the room temperature, so it has
+always been the Indoor Temperature sensor under a second name. It now says so
+in a `source` attribute and follows the indoor reading's availability. It is
+kept rather than removed, because removing it would orphan every dashboard,
+automation and long-term statistic pointing at
+`sensor.heat_pump_optimizer_upper_floor_temperature`, and giving it a distinct
+source needs a configuration entity that does not exist.
+
+### Hot water entities only exist on installs that heat water
+
+Six of them were offered either way. Two are Energy dashboard sources, so
+`hot_water_energy` and `hot_water_cost` recorded a flat 0.0 forever —
+indistinguishable from a working meter on a pump that never heats water. One
+shared `dhw_enabled` gate now covers all six.
+
+### No infinities on the wire
+
+`PeakTracker.threshold_kw` answers `+inf` when the month has no reference peak
+yet — which is the 1st of every month, for every install with a capacity
+tariff, because the tracker starts each month with an empty peak list. That
+sentinel reached the Monthly Peak sensor's `free_headroom_threshold_kw`
+attribute verbatim, and orjson (Home Assistant's websocket and recorder
+serializer) writes it as `null`. The frontend and the database recorded
+"unknown" while a Jinja template reading the same attribute in-process got
+Python's `inf` and compared `> 100` as true: one number, two meanings,
+depending on the reader. Non-finite floats now map to `None` at the
+publication boundary — the base class wraps every subclass's `native_value`
+and `extra_state_attributes`, so the next attribute that divides by a zero
+sample count is covered without anyone remembering to ask.
+
+The same infinity had a second consequence. `_power_headroom` filters
+non-finite limits out of its `min()`, so a capacity-tariff install with no
+`main_fuse_amperes` — the default, since the fuse defaults to 0 — had both
+candidates dropped and the entity disappeared entirely for the first metering
+window of every month, which is exactly the hour the month's peak is set. The
+infinity means "do not let the peak term distort the plan"; it does not mean
+the house may draw freely, and this sensor asks a different question. With no
+peak recorded the bill is set from the first window, so no kW is free and the
+honest answer is 0.0. `limit_source` now names which of the three cases
+produced the number. Installs with a fuse have a finite limit and are
+untouched.
+
+### Availability that narrows the coordinator's answer instead of replacing it
+
+All eleven `available` overrides ignored `super().available`. With a payload
+satisfying every one of their own gates and `last_update_success` False,
+eleven entities still claimed to be available. They now conjoin it.
+
+Observed COP, the frequency advisor and the contract comparison went available
+the moment their source existed and then published `None` until the first
+sample — hours, or a billing month. Home Assistant renders that as *Unknown*,
+which is what it renders for an integration that has thrown. They now wait,
+and name what they are waiting for.
+
+### Device classes
+
+The DHW setpoint advisor is a temperature. Mixed hot water is
+`VOLUME_STORAGE` — a quantity held, not delivered. Thermal battery energy is
+`ENERGY_STORAGE`, which accepts `MEASUREMENT`, where plain `ENERGY` would
+demand `TOTAL` and be rejected. ECL110 Displace and Prediction Accuracy stay
+bare and are now pinned that way: both are deltas in °C, and a temperature
+device class would have Home Assistant convert a difference as though it were
+an absolute reading. Valve Target Recommendation's missing state class is not
+a violation — verified against Home Assistant's own
+`DEVICE_CLASS_STATE_CLASSES`, which lists allowed pairs and is consulted only
+when a state class is set — and the test stub now mirrors that table, so no
+sensor can pair a device class with a state class Home Assistant forbids.
+
+Behind all of it, `tests/entities.py` sweeps every entity of every platform
+across five coordinator payloads, including one carrying the `+inf`. The sweep
+is two-sided: nulling everything, or marking everything unavailable, fails it
+just as loudly as the original defect did.
+## v5.4.1
+
+### The Setup tab is reachable before the first solve
+
+`sensor.py` publishes `setup_topology` with no plan for exactly this case, and
+says so in as many words — but both the expand affordance and the dialog were
+gated on plan data. The one page that can tell you *which* sensor is missing
+was reachable only after a solve that the missing sensor was preventing.
+
+The dialog now renders whenever the card believes it is expanded, opens on the
+setup page when there is no plan, and its Plan tab explains the absence rather
+than drawing an empty box. An install with nothing published at all still
+offers no expansion: no plan and no topology is nothing to expand to.
+
+### A hot-water schedule that runs to midnight can be priced again
+
+`dhw_schedule.format_windows` renders a window ending at the end of the day as
+`20:00-24:00` on purpose, and `parse_windows` reads `20:00-00:00` straight
+back to the same window — the round trip is lossless. The card's `hourOf` has
+no `24:00`, and should not: it also parses `<input type="time">` values, where
+no such time exists.
+
+The consequence was narrow and total. The SAVE path and the Apply button were
+never affected, because both call `_onSlotEdit` first and re-read the rows out
+of the DOM. The slider path does not touch the DOM at all, so what
+`_runWhatIf` validated was the memoised draft seeded straight from the sensor:
+a household whose hot water is guaranteed until midnight could not price a
+single change, and every simulate was refused by the card, blaming the
+schedule the integration had just published. Normalised once, in the draft
+seed. The refusal also names the window it is refusing now, so a house with
+four windows does not have to check all four by hand.
+
+### The slot menu stops leaking an Escape handler
+
+The menu parks its Escape handler on the document, because a mouse-opened menu
+leaves focus on the chart and the menu element never sees the key. Two paths
+dropped the menu without dropping the handler: `_render`, which replaces the
+shadow root on every plan refresh, and `disconnectedCallback`, which never
+closed the menu at all. One leaked listener per card visit, for the lifetime
+of the page. One `_teardown()`, called from both.
+
+### The setup picker's safeguards are now actually tested
+
+The picker already prepends a missing assigned entity as the selected option
+labelled with its raw id, already applies the 200-option cap after the text
+filter, and already confirms an Assign that would clear a configured slot —
+all of it landed in v5.1.4. The scenario claiming to cover the prepend did
+not. It assigns `sensor.vedpanna_temperatur_temperature_2`, which sorts
+*before* the 400 `sensor.zz_probe_*` it was supposed to be buried under, so it
+landed inside the cap on its own merits: replacing the entire prepend with
+`if (false)` left the whole suite green — a production line with no assertion
+behind it, in the one place where its absence rewrites the user's
+configuration.
+
+Three cases reach it now: an assignment last of 400 alphabetically, one
+excluded by the filter the user is typing, and one that is not a candidate at
+all because the entity has been renamed away. Each dies under that mutation.
+
+### The expected device class moves to where the slot is defined
+
+It lived in a second table inside the card, keyed by slot id, that no test
+reached. It now sits in `topology._SLOTS`, in the same row as the domains it
+belongs beside, and is published on every slot. It stays a *ranking*, not a
+filter: a house full of sensors carrying no device class is normal, and a
+picker that hid those would hide the very probe the user came to assign.
+
+Every assertion added across these four surfaces was killed by a named
+single-line production mutation before being kept.
+
 ## v5.4.0
 
 ### Stored heat is credited at what the next window can actually spend
