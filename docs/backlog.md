@@ -103,6 +103,23 @@ and deliberately not built.
     every call and the content-hash skip in `_async_save_if_changed` cannot
     gate that store at all — the gate has to be in the loader.
 
+  **Status: FIXED, fifth attempt (issue #86).** The recorded law shipped
+  with the one guard the open question demanded: the re-anchor applies
+  only when the nameplate change exceeds the learner's own step limit
+  (`HOUSE_LOSS_MAX_STEP`), so a sub-threshold edit keeps today's
+  behaviour — the measured better side of the 30-hop walk — and the
+  learner absorbs it in one step. The anchor is the zone total with the
+  learned ratio applied, the confidence curve is
+  `house_loss_confidence()` at module level (imported by the tests, not
+  re-implemented), an inexpressible measurement resets rather than
+  clips, the gated write sits in the loader, and the weekly-snapshot
+  restore runs the same law. Three mutations kill the suite: removing
+  the gate, disabling the law (which reproduces the 1.937× headline
+  number exactly), and re-introducing the round-1 upper-zone basis.
+
+  The historical account of the four failed attempts, kept because it
+  is the reason the fifth looks like it does:
+
   **What still blocks it.** Below convergence the law is a measured
   *regression* against today's behaviour, not merely a residue: the same
   30-hop sub-threshold nameplate walk costs main +2.5 % and the law 18.2 %

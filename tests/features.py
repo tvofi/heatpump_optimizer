@@ -2418,6 +2418,9 @@ class _LearnPersist:
     _thermal_learning_payload = Coord._thermal_learning_payload
     _load_t4b_learners = Coord._load_t4b_learners
     _apply_cop_scale = Coord._apply_cop_scale
+    _house_heat_loss_anchor = Coord._house_heat_loss_anchor
+    _reanchor_house_heat_loss_scale = Coord._reanchor_house_heat_loss_scale
+    _apply_learner_payloads = Coord._apply_learner_payloads
 
     def __init__(self, store) -> None:
         self._thermal_learning_store = store
@@ -2469,6 +2472,180 @@ R.check(
     "the learned COP scale is saved and restored",
     abs(_restarted._cop_scale - 0.85) < 1e-9 and _restarted._cop_samples == 20,
     f"restored scale {_restarted._cop_scale}, {_restarted._cop_samples} samples",
+)
+
+# --- The learned heat-loss scale survives an options edit (issue #86) --------
+#
+# The store now records the UA the scale was fitted against, and the
+# loader re-expresses the scale against the configuration in force with
+# the law U_eff' = (1 - phi)*nameplate_new + phi*measured_UA, in absolute
+# UA on the zone-total basis. Every number below comes from the
+# production confidence curve and threshold -- imported, never
+# re-implemented here (the rule tests/README.md states, and the failure
+# mode that rule was written for).
+from heatpump_optimizer.coordinator import (
+    HOUSE_LOSS_MAX_STEP as _HL_STEP,
+    house_loss_confidence as _hl_phi,
+)
+
+R.section("The learned heat-loss scale is re-anchored, not restored verbatim")
+
+
+class _CountingLearnStore(_FakeLearnStore):
+    """The fake store, counting saves so the gated write can be pinned."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.saves = 0
+
+    async def async_save(self, data) -> None:
+        self.saves += 1
+        await super().async_save(data)
+
+
+def _anchored_store(coef, scale, samples):
+    """A store as the coordinator itself would have written it."""
+    holder = _LearnPersist(_CountingLearnStore())
+    holder._thermal_params.heat_loss_coefficient = coef
+    holder._apply_house_heat_loss_scale(scale)
+    holder._house_heat_loss_samples = samples
+    _aio.run(holder._async_save_thermal_learning())
+    return holder._thermal_learning_store
+
+
+def _reloaded(coef, store):
+    """A fresh coordinator over that store, configured with `coef`."""
+    fresh = _LearnPersist(store)
+    fresh._thermal_params.heat_loss_coefficient = coef
+    _aio.run(fresh._async_load_thermal_learning())
+    return fresh
+
+
+# The questionnaire re-answer from the issue, at convergence: 150 m²,
+# 1980-2005 -> pre-1960, configured U 0.12 -> 0.2325 with a learned
+# scale of 1.25 in the store.
+_OLD, _NEW, _SCALE = 0.12, 0.2325, 1.25
+_conv = _reloaded(_NEW, _anchored_store(_OLD, _SCALE, 300))
+_phi_conv = _hl_phi(300)
+_expected_eff = (1.0 - _phi_conv) * _NEW + _phi_conv * _SCALE * _OLD
+R.check(
+    "a converged scale is re-anchored onto the new nameplate, not restored",
+    abs(_conv._house_heat_loss_scale * _NEW - _expected_eff) < 1e-9,
+    f"effective {_conv._house_heat_loss_scale * _NEW:.4f} kW/°C, "
+    f"expected {_expected_eff:.4f}",
+)
+R.check(
+    "which is no longer ~1.94x the UA the learner measured",
+    abs(_conv._house_heat_loss_scale * _NEW - _SCALE * _OLD) < (1.0 - _phi_conv) * _NEW + 1e-9,
+    f"effective {_conv._house_heat_loss_scale * _NEW:.4f} vs measured "
+    f"{_SCALE * _OLD:.4f} kW/°C",
+)
+
+# Below the learner's own step limit, today's behaviour stands: the law
+# is a measured regression on exactly that path (the 30-hop walk), and
+# the learner absorbs a small edit in one step.
+_sub = _reloaded(_OLD * 1.03, _anchored_store(_OLD, _SCALE, 300))
+R.check(
+    "a sub-threshold nameplate edit keeps the stored scale verbatim",
+    abs(_sub._house_heat_loss_scale - _SCALE) < 1e-12
+    and 0.03 < _HL_STEP,
+    f"scale {_sub._house_heat_loss_scale} vs stored {_SCALE}",
+)
+
+# Round 1's failure mode stays dead: an install that has learned
+# nothing keeps its configuration edits.
+_zero = _reloaded(_NEW, _anchored_store(_OLD, 1.0, 0))
+R.check(
+    "an unlearned install keeps its configuration edit",
+    abs(_zero._house_heat_loss_scale - 1.0) < 1e-12,
+    f"scale {_zero._house_heat_loss_scale} -- the config edit was "
+    "silently cancelled, the round-1 regression",
+)
+
+# The clamp is decided before clipping: a measurement that cannot be
+# expressed against the new nameplate resets explicitly, never onto a
+# bound the next edit would read as the learner's own signal.
+_reset = _reloaded(0.4, _anchored_store(0.05, 1.0, 300))
+R.check(
+    "an inexpressible measurement resets, not clips onto a bound",
+    abs(_reset._house_heat_loss_scale - 1.0) < 1e-12
+    and _reset._house_heat_loss_samples == 0,
+    f"scale {_reset._house_heat_loss_scale}, "
+    f"{_reset._house_heat_loss_samples} samples",
+)
+
+# The gated write: exactly one save adopts the anchor or persists the
+# re-anchor, and a second load over the same configuration is a no-op.
+_gated_store = _anchored_store(_OLD, _SCALE, 300)
+_saves_before = _gated_store.saves
+_gated = _reloaded(_NEW, _gated_store)
+R.check(
+    "a re-anchor persists exactly once",
+    _gated_store.saves - _saves_before == 1,
+    f"{_gated_store.saves - _saves_before} save(s)",
+)
+R.check(
+    "and the persisted anchor is the configuration now in force",
+    abs(_gated_store.saved["house_heat_loss_anchor"] - _NEW) < 1e-9,
+    f"anchor {_gated_store.saved['house_heat_loss_anchor']}",
+)
+_gated2 = _reloaded(_NEW, _gated_store)
+_saves_mid = _gated_store.saves
+R.check(
+    "a second load over the same configuration re-anchors nothing",
+    abs(_gated2._house_heat_loss_scale - _gated._house_heat_loss_scale) < 1e-12
+    and _gated_store.saves == _saves_mid,
+    f"scale {_gated2._house_heat_loss_scale}, "
+    f"{_gated_store.saves - _saves_mid} extra save(s)",
+)
+
+# Round 1's theorem, killed by the basis: the law is written on the
+# zone TOTAL, so a single-zone edit in a two-zone house moves the scale
+# the right way -- the learned LEVEL survives instead of going
+# sign-negative on the upper nameplate.
+_tz_store = _CountingLearnStore()
+_tz = _LearnPersist(_tz_store)
+_tz._thermal_params.two_zone_enabled = True
+_tz._thermal_params.upper_floor_heat_loss = 0.10
+_tz._thermal_params.lower_floor_heat_loss = 0.10
+_tz._apply_lower_floor_loss_ratio(1.0)
+_tz._apply_house_heat_loss_scale(2.0)
+_tz._house_heat_loss_samples = 300
+_aio.run(_tz._async_save_thermal_learning())
+_tz_new = _LearnPersist(_tz_store)
+_tz_new._thermal_params.two_zone_enabled = True
+_tz_new._thermal_params.upper_floor_heat_loss = 0.20
+_tz_new._thermal_params.lower_floor_heat_loss = 0.10
+_tz_new._apply_lower_floor_loss_ratio(1.0)
+_aio.run(_tz_new._async_load_thermal_learning())
+_phi_tz = _hl_phi(300)
+_tz_eff = _tz_new._house_heat_loss_scale * (0.20 + 0.10)
+R.check(
+    "a two-zone edit re-anchors on the zone total, not the upper zone",
+    abs(_tz_eff - ((1.0 - _phi_tz) * 0.30 + _phi_tz * 0.40)) < 1e-9
+    and _tz_eff > 0.30,
+    f"effective total {_tz_eff:.4f} kW/°C (learned level was 0.40)",
+)
+
+# The weekly-snapshot restore path honours the same law: a rollback to
+# a pre-edit snapshot no longer re-installs the pre-edit correction.
+_snap = _LearnPersist(_CountingLearnStore())
+_snap._thermal_params.heat_loss_coefficient = _NEW
+_snap._apply_house_heat_loss_scale(1.0)
+_snap._house_heat_loss_samples = 300
+_snap._apply_learner_payloads(
+    {
+        "thermal_learning": {
+            "house_heat_loss_scale": _SCALE,
+            "house_heat_loss_anchor": _OLD,
+        }
+    }
+)
+R.check(
+    "a snapshot restore re-anchors a pre-edit scale, not restores it",
+    abs(_snap._house_heat_loss_scale * _NEW - _expected_eff) < 1e-9,
+    f"effective {_snap._house_heat_loss_scale * _NEW:.4f} kW/°C after "
+    "rollback",
 )
 
 # --- The savings baseline follows the comfort schedule ---------------------
