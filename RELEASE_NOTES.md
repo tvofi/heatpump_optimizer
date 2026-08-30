@@ -1,5 +1,16 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v5.6.1
+
+### The fix program for everything currently open
+
+`docs/plan-open-issues.md` records the delivery plan for all sixteen
+open issues and the eleven open CodeQL alerts: five waves, one PR and
+one release per item, with the two live design forks settled in
+writing (the threshold-gated re-anchor law for #86, and wiring up —
+not deleting — the QA renderer for #101). No behaviour changes in this
+release; the document is the contract the next releases execute.
+
 ## v5.6.0
 
 ### The test harness's file and network sinks are confined
