@@ -13,6 +13,7 @@ serving a file.
 from __future__ import annotations
 
 import asyncio
+import importlib.util
 import logging
 import pathlib
 import sys
@@ -39,14 +40,23 @@ def _load_frontend():
     stub = str(pathlib.Path(__file__).resolve().parent / "hastub")
     if stub not in sys.path:
         sys.path.insert(0, stub)
-    src = pathlib.Path(
-        "custom_components/heatpump_optimizer/frontend.py"
-    ).read_text()
-    module = types.ModuleType("hpo_frontend")
-    code = src.replace(
-        "from .const import DOMAIN", 'DOMAIN = "heatpump_optimizer"'
+    # Importing the real package would pull in the solver and its
+    # dependencies (see the module docstring), so the parent package is a
+    # namespace shell whose path is the component directory. frontend loads
+    # as a genuine submodule -- its ``from .const import`` resolves against
+    # the real const.py -- without executing the package __init__.
+    component = pathlib.Path("custom_components/heatpump_optimizer").resolve()
+    if "heatpump_optimizer" in sys.modules:
+        raise SystemExit("heatpump_optimizer already imported; cannot load standalone")
+    pkg = types.ModuleType("heatpump_optimizer")
+    pkg.__path__ = [str(component)]
+    sys.modules["heatpump_optimizer"] = pkg
+    spec = importlib.util.spec_from_file_location(
+        "heatpump_optimizer.frontend", component / "frontend.py"
     )
-    exec(compile(code, "frontend.py", "exec"), module.__dict__)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules["heatpump_optimizer.frontend"] = module
+    spec.loader.exec_module(module)
     return module
 
 
