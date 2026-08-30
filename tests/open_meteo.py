@@ -361,23 +361,28 @@ if os.environ.get("HEATPUMP_LIVE"):
 
     lat, lon = 60.061, 16.995
 
-    def get(url: str, params: dict) -> dict:
-        full = url + "?" + urllib.parse.urlencode(params)
-        with urllib.request.urlopen(full, timeout=20, context=ssl_context) as resp:
-            return json.load(resp)
+    def q(params: dict) -> str:
+        return "?" + urllib.parse.urlencode(params)
 
-    fc = get(
-        om.OPEN_METEO_FORECAST_URL,
-        {
-            "latitude": lat,
-            "longitude": lon,
-            "minutely_15": "shortwave_radiation",
-            "hourly": "shortwave_radiation",
-            "daily": "sunrise,sunset",
-            "timezone": "UTC",
-            "forecast_days": 2,
-        },
-    )
+    # Each fetch is spelled with its production endpoint directly in the
+    # request expression -- the live check must not be pointable anywhere
+    # but the endpoints the module under test itself uses.
+    with urllib.request.urlopen(
+        om.OPEN_METEO_FORECAST_URL + q(
+            {
+                "latitude": lat,
+                "longitude": lon,
+                "minutely_15": "shortwave_radiation",
+                "hourly": "shortwave_radiation",
+                "daily": "sunrise,sunset",
+                "timezone": "UTC",
+                "forecast_days": 2,
+            }
+        ),
+        timeout=20,
+        context=ssl_context,
+    ) as resp:
+        fc = json.load(resp)
     fine = om._parse_block(fc.get("minutely_15", {}), "shortwave_radiation")
     coarse = om._parse_block(fc.get("hourly", {}), "shortwave_radiation")
     check("live forecast returns hourly data", bool(coarse))
@@ -400,17 +405,21 @@ if os.environ.get("HEATPUMP_LIVE"):
             f"sunrise={sunrise} first_nonzero={first}",
         )
 
-    sat = get(
-        om.OPEN_METEO_SATELLITE_URL,
-        {
-            "latitude": lat,
-            "longitude": lon,
-            "hourly": "shortwave_radiation",
-            "models": om.OPEN_METEO_SATELLITE_MODEL,
-            "timezone": "UTC",
-            "temporal_resolution": "native",
-        },
-    )
+    with urllib.request.urlopen(
+        om.OPEN_METEO_SATELLITE_URL + q(
+            {
+                "latitude": lat,
+                "longitude": lon,
+                "hourly": "shortwave_radiation",
+                "models": om.OPEN_METEO_SATELLITE_MODEL,
+                "timezone": "UTC",
+                "temporal_resolution": "native",
+            }
+        ),
+        timeout=20,
+        context=ssl_context,
+    ) as resp:
+        sat = json.load(resp)
     observed = om._parse_block(sat.get("hourly", {}), "shortwave_radiation")
     check("live satellite archive returns data", bool(observed))
     if observed:

@@ -123,14 +123,26 @@ if abs(slot_d - dw) > 0.01:
 # here can never satisfy (or be satisfied by) a stale file another checkout
 # wrote. card.mjs derives the identical default.
 import hashlib
+import pathlib
+import tempfile
 _tests_dir = os.path.dirname(os.path.abspath(__file__))
 _default = os.path.join(
-    "/tmp", "plandata-%s.json" % hashlib.sha1(_tests_dir.encode()).hexdigest()[:12]
+    "/tmp", "plandata-%s.json" % hashlib.sha256(_tests_dir.encode()).hexdigest()[:12]
 )
 plandata_path = os.environ.get("HPO_PLANDATA", _default)
-with open(plandata_path, "w") as f:
-    json.dump(views, f)
-print("wrote", plandata_path)
+# The payload is scratch shared with card.mjs, and every documented path
+# lives in the temp area (the default hardcodes /tmp, which is not always
+# tempfile.gettempdir() on every platform, so both roots are allowed).
+# Normalize, then confine: an override that escapes both roots -- via ..
+# or an absolute path elsewhere -- is a mistake worth refusing, not writing.
+_resolved = pathlib.Path(plandata_path).resolve()
+_roots = [pathlib.Path(r).resolve() for r in ("/tmp", tempfile.gettempdir())]
+if not any(_resolved.is_relative_to(r) for r in _roots):
+    raise SystemExit(
+        f"HPO_PLANDATA must live under a temp root ({', '.join(str(r) for r in _roots)}): {plandata_path}"
+    )
+_resolved.write_text(json.dumps(views))
+print("wrote", _resolved)
 
 if issues:
     print("PLAN VIEW ISSUES:")

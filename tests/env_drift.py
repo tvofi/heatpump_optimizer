@@ -97,6 +97,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import pathlib
 import platform
 import shutil
 import struct
@@ -532,8 +533,15 @@ def capture_tree(root: str, out_path: str, everything: bool) -> None:
         payloads["config_flow"] = golden.capture_config_flow()
     else:
         payloads = {n: golden.capture(n, golden.SCENARIOS[n]) for n in SENSITIVE}
-    with open(out_path, "w") as f:
-        json.dump(payloads, f, indent=1, sort_keys=True)
+    # The worker writes exactly one file, and its only caller passes a
+    # path inside a tempfile.mkdtemp() directory. Refuse anything outside
+    # the system temp root so a mistyped or hostile --capture argument
+    # cannot turn the worker into an arbitrary-file writer.
+    tmp_root = pathlib.Path(tempfile.gettempdir()).resolve()
+    resolved = pathlib.Path(out_path).resolve()
+    if not resolved.is_relative_to(tmp_root):
+        raise SystemExit(f"capture output must live under {tmp_root}: {out_path}")
+    resolved.write_text(json.dumps(payloads, indent=1, sort_keys=True))
 
 
 def _diff_leaves(a, b, path, out) -> None:

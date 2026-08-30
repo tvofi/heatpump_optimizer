@@ -14,7 +14,7 @@ import { fileURLToPath } from "url";
 const _testsDir = path.dirname(fileURLToPath(import.meta.url));
 const _defaultPlan = path.join(
   "/tmp",
-  `plandata-${crypto.createHash("sha1").update(_testsDir).digest("hex").slice(0, 12)}.json`
+  `plandata-${crypto.createHash("sha256").update(_testsDir).digest("hex").slice(0, 12)}.json`
 );
 const _planPath = process.argv[2] || process.env.HPO_PLANDATA || _defaultPlan;
 const plan = JSON.parse(fs.readFileSync(_planPath, "utf8"));

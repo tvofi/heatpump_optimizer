@@ -1,5 +1,36 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v5.6.0
+
+### The test harness's file and network sinks are confined
+
+Five findings from a pre-commit security scan of the test harness, all
+in code that runs on developer machines and CI rather than in the
+integration itself:
+
+- `tests/env_drift.py`'s capture worker writes exactly one file, and its
+  only caller passes a path inside a `tempfile.mkdtemp()` directory — it
+  now refuses a `--capture` output path outside the system temp root.
+- `tests/plan_view.py` writes the shared plan payload to
+  `HPO_PLANDATA` or a per-checkout default; an override outside the temp
+  area is now refused rather than written. The default's checkout
+  discriminator moved from SHA-1 to SHA-256, and `tests/card.mjs` and
+  `tests/setup_qa_render.mjs` derive their identical defaults with the
+  same change, so writer and readers stay in lockstep. Old payloads
+  under the SHA-1 names are simply orphaned scratch.
+- `tests/frontend.py` loaded the production module by `exec` of a source
+  string with the relative import patched out. It now loads
+  `frontend.py` as a genuine submodule of a namespace-only parent
+  package, so `from .const import DOMAIN` resolves against the real
+  `const.py` — still without importing the package `__init__` and its
+  solver dependencies, which is what the standalone load was for.
+- `tests/open_meteo.py`'s live-API check (run only with `HEATPUMP_LIVE`
+  set) spells each request with its production endpoint directly in the
+  request expression, so the check cannot be pointed anywhere but the
+  endpoints the module under test itself uses.
+
+No production code changes; all four touched suites pass unchanged.
+
 ## v5.5.0
 
 ### Sensors say what they know, and say nothing when they do not

@@ -12,7 +12,7 @@ import { fileURLToPath } from "url";
 const testsDir = path.dirname(fileURLToPath(import.meta.url));
 const defaultPath = path.join(
   "/tmp",
-  `plandata-${crypto.createHash("sha1").update(testsDir).digest("hex").slice(0, 12)}.json`
+  `plandata-${crypto.createHash("sha256").update(testsDir).digest("hex").slice(0, 12)}.json`
 );
 let planPath = process.argv[2] || process.env.HPO_PLANDATA || defaultPath;
 if (!fs.existsSync(planPath)) {
