@@ -43,7 +43,7 @@
 # does not expire with the stamp and is not part of the inherited-claims
 # comparison.
 #
-# claims-for: 5.5.0
+# claims-for: 5.6.0
 #
 # This branch is documentation only: docs/backlog.md, tests/README.md and two
 # explanatory comments in coordinator.py. Nothing under custom_components/
