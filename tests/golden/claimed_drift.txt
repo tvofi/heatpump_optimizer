@@ -45,17 +45,14 @@
 #
 # claims-for: 5.6.0
 #
-# This branch is documentation only: docs/backlog.md, tests/README.md and two
-# explanatory comments in coordinator.py. Nothing under custom_components/
-# changes behaviour, VERSION is untouched by this branch, and no planning code
-# runs differently. The list below is therefore EMPTY, which is the whole
-# claim: byte-identical behaviour everywhere.
+# This branch moves the building questionnaire's derived physics for
+# slab-bearing structures over a crawl-space foundation (issue #93):
+# the floor stops counting once as the structure table's slow store and
+# again as the foundation's loss path. The building_preset capture
+# moves with it; scenarios whose configs do not pair a slab-bearing
+# structure with a crawl-space foundation do not.
 #
-# Emptying it is not housekeeping. A behaviour-free branch that leaves this
-# file alone inherits the baseline's claims verbatim -- here, v5.5.0's five
-# coordinator captures -- and inheritance rule 2 fails the run. That is how
-# main went red after v5.1.7 (#77, fixed in #78).
-#
+building_preset -- crawl-space double count removed from presets.derive (issue #93)
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
