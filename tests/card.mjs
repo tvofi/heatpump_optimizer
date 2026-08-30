@@ -4907,7 +4907,7 @@ const setupBox = (card, place) =>
   // that lost a row, or repeated one, is the pre-v5.1.7 defect coming back.
   const ttRows = (tt) =>
     (tt.match(/<div class="tt-row">.*?<\/div>/g) || []).map((r) =>
-      r.replace(/<[^>]*>/g, "").split(":")[0].trim()
+      parseHtml(r, (t) => new Node(t))[0].textContent.split(":")[0].trim()
     );
   const zoneRows = ttRows(tip).filter((l) => /floor|House temperature/i.test(l));
   check("the tooltip carries one row per drawn trace, all distinctly labelled",
