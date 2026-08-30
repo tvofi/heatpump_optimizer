@@ -217,6 +217,7 @@
       "max_below_target": "The maximum temperature is below the target temperature.",
       "night_above_day": "The night temperature is above the day temperature.",
       "day_window_empty": "The day would end at or before it starts, leaving no daytime period at all.",
+      "comfort_outside_band": "Day and night comfort temperatures must sit inside the comfort band",
       "min_power_above_max": "The heat pump's minimum power is above its maximum power.",
       "stored_value_out_of_range": "This value is outside the range this field normally accepts. The range was widened so the page can still be saved — check the value, and correct it if it looks wrong."
     },
@@ -681,6 +682,7 @@
       "max_below_target": "The maximum temperature is below the target temperature.",
       "night_above_day": "The night temperature is above the day temperature.",
       "day_window_empty": "The day would end at or before it starts, leaving no daytime period at all.",
+      "comfort_outside_band": "Day and night comfort temperatures must sit inside the comfort band",
       "min_power_above_max": "The heat pump's minimum power is above its maximum power.",
       "stored_value_out_of_range": "This value is outside the range this field normally accepts. The range was widened so the page can still be saved — check the value, and correct it if it looks wrong."
     }

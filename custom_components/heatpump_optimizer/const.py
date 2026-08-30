@@ -811,6 +811,14 @@ DEFAULT_MIN_TEMP: Final = 19.0
 DEFAULT_MAX_TEMP: Final = 23.0
 DEFAULT_COMFORT_TEMP_DAY: Final = 21.0
 DEFAULT_COMFORT_TEMP_NIGHT: Final = 19.5
+#: The day/night comfort selectors' own range. The cross-field rules in
+#: ``comfort_band`` demand nothing a slider cannot produce, so the rule
+#: and the selector share these bounds (issue #92) instead of each
+#: carrying its own copy of the numbers.
+COMFORT_TEMP_DAY_SELECTOR_MIN: Final = 16.0
+COMFORT_TEMP_DAY_SELECTOR_MAX: Final = 26.0
+COMFORT_TEMP_NIGHT_SELECTOR_MIN: Final = 15.0
+COMFORT_TEMP_NIGHT_SELECTOR_MAX: Final = 24.0
 DEFAULT_DAY_START_HOUR: Final = 7
 DEFAULT_DAY_END_HOUR: Final = 22
 
