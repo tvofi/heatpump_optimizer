@@ -189,7 +189,33 @@ def derive(preset: BuildingPreset) -> dict[str, Any]:
     adjust = _FOUNDATION_ADJUST[preset.foundation]
 
     fast_mass = mass["fast"] * area * adjust["mass"]
-    slow_mass = mass["slow"] * area * adjust["mass"]
+    slow_per_m2 = mass["slow"]
+    if preset.foundation == FOUNDATION_CRAWLSPACE and preset.structure in (
+        STRUCTURE_TIMBER_SLAB,
+        STRUCTURE_CONCRETE_SLAB,
+    ):
+        # A slab-bearing structure paired with a crawl-space foundation
+        # counted the floor twice: once as the structure table's heavy
+        # slow store and once as the foundation's loss path. Subtract the
+        # slab exactly once -- the delta between the timber table's own
+        # slab-on-grade and crawl-space rows, so it moves with a future
+        # table edit -- floored at the crawl-space row, which is what is
+        # actually under that house (issue #93). Scoped to slab-bearing
+        # structures: "stone or masonry" makes no claim about what is
+        # under the floor, so masonry + crawl space is two honest
+        # answers with nothing to remove, and the timber crawl-space row
+        # is already floorless. Timber-on-slab over a crawl space now
+        # derives identically to the crawl-space structure, which the
+        # features suite pins as this rule's mutation anchor.
+        slow_per_m2 = max(
+            slow_per_m2
+            - (
+                _STRUCTURE_MASS[STRUCTURE_TIMBER_SLAB]["slow"]
+                - _STRUCTURE_MASS[STRUCTURE_TIMBER_CRAWLSPACE]["slow"]
+            ),
+            _STRUCTURE_MASS[STRUCTURE_TIMBER_CRAWLSPACE]["slow"],
+        )
+    slow_mass = slow_per_m2 * area * adjust["mass"]
 
     # The model pushes every watt of space heat through the "slab" store, so
     # these two keys describe the *emitter loop* — the slab circuit of the
@@ -286,7 +312,7 @@ def _radiator_fraction(preset: BuildingPreset) -> float:
 def response_hours(preset: BuildingPreset) -> float:
     """How long the heating system takes to move the room temperature.
 
-    This bounds how far ahead the optimizer can usefully shift load and how
+    This bounds how far the optimizer can usefully shift load and how
     quickly it can recover from a setback. A slow emitter makes pre-heating
     both more valuable and more necessary, which is why it is derived and
     published rather than left implicit in the thermal masses.
