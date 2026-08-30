@@ -1687,6 +1687,81 @@ R.check(
     "this bounds how far ahead load can usefully be shifted",
 )
 
+# v5.7.0 (issue #93): a slab-bearing structure over a crawl-space
+# foundation counted the floor twice -- as the structure table's slow
+# store and as the foundation's loss path. With radiators the slow mass
+# rides house_thermal_mass, so these comparisons see the structural
+# store directly. Deleting the subtraction in presets.derive fails the
+# equality below, because 0.055 is no longer 0.010.
+_rad_kw = dict(
+    era=presets.ERA_PRE_1960, heated_area_m2=140,
+    lower_emitter=presets.EMITTER_RADIATORS,
+)
+_slab_over_crawl = presets.derive(
+    presets.BuildingPreset(
+        structure=presets.STRUCTURE_TIMBER_SLAB,
+        foundation=presets.FOUNDATION_CRAWLSPACE, **_rad_kw,
+    )
+)
+_crawl_structure = presets.derive(
+    presets.BuildingPreset(
+        structure=presets.STRUCTURE_TIMBER_CRAWLSPACE,
+        foundation=presets.FOUNDATION_CRAWLSPACE, **_rad_kw,
+    )
+)
+R.check(
+    "timber-on-slab over a crawl space is the crawl-space house, exactly",
+    _slab_over_crawl["house_thermal_mass"]
+    == _crawl_structure["house_thermal_mass"]
+    and _slab_over_crawl["slab_thermal_mass"]
+    == _crawl_structure["slab_thermal_mass"],
+    f"{_slab_over_crawl['house_thermal_mass']} vs "
+    f"{_crawl_structure['house_thermal_mass']} kWh/°C",
+)
+R.check(
+    "the subtraction only fires under a crawl-space foundation",
+    presets.derive(
+        presets.BuildingPreset(
+            structure=presets.STRUCTURE_TIMBER_SLAB,
+            foundation=presets.FOUNDATION_NONE, **_rad_kw,
+        )
+    )["house_thermal_mass"]
+    > _slab_over_crawl["house_thermal_mass"],
+    "a slab on grade keeps the slab's store",
+)
+_masonry_crawl = presets.derive(
+    presets.BuildingPreset(
+        structure=presets.STRUCTURE_MASONRY,
+        foundation=presets.FOUNDATION_CRAWLSPACE, **_rad_kw,
+    )
+)
+R.check(
+    "masonry over a crawl space keeps its walls -- nothing was removed twice",
+    _masonry_crawl["house_thermal_mass"]
+    > 1.5 * _crawl_structure["house_thermal_mass"],
+    f"{_masonry_crawl['house_thermal_mass']} vs "
+    f"{_crawl_structure['house_thermal_mass']} kWh/°C -- the rejected "
+    "min(slow, 0.010) cap collapsed these to the same number",
+)
+_concrete_crawl = presets.derive(
+    presets.BuildingPreset(
+        structure=presets.STRUCTURE_CONCRETE_SLAB,
+        foundation=presets.FOUNDATION_CRAWLSPACE, **_rad_kw,
+    )
+)
+R.check(
+    "a concrete slab over a crawl space loses the slab but keeps the concrete",
+    _crawl_structure["house_thermal_mass"]
+    < _concrete_crawl["house_thermal_mass"]
+    < presets.derive(
+        presets.BuildingPreset(
+            structure=presets.STRUCTURE_CONCRETE_SLAB,
+            foundation=presets.FOUNDATION_NONE, **_rad_kw,
+        )
+    )["house_thermal_mass"],
+    f"{_concrete_crawl['house_thermal_mass']} kWh/°C",
+)
+
 basement = presets.derive(
     presets.BuildingPreset(foundation=presets.FOUNDATION_BASEMENT)
 )
