@@ -55,7 +55,15 @@ CLOSURES = ROOT / "tests" / "closures.json"
 
 # Scripts that are shared plumbing or are driven by another script, and so are
 # never selected on their own. Mirrors the exclusions in tests/run.sh.
-NOT_A_TEST = {"harness.py", "profiles.py", "closure.py", "setup_qa_render.mjs"}
+# card_browser.mjs, the real-browser layout lane (issue #96), is excluded
+# because it needs Chromium, which no other lane installs: the closures job
+# could not record it without growing a browser. Its dependency closure is
+# the card source, the plan payload and itself -- nothing the gate could
+# skip on its behalf. It runs in its own job in the workflow.
+NOT_A_TEST = {
+    "harness.py", "profiles.py", "closure.py", "setup_qa_render.mjs",
+    "card_browser.mjs",
+}
 # dst_checks.py is a test, but features.py runs it in a subprocess; it is
 # recorded so its closure can be folded into features.py's, never selected.
 DRIVEN_BY_OTHERS = {"dst_checks.py": "features.py"}
