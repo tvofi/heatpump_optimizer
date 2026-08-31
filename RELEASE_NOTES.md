@@ -1,5 +1,51 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.0.0
+
+### The learned heat-loss scale survives an options edit
+
+The coordinator learns a dimensionless `house_heat_loss_scale` fitted
+against the *configured* heat-loss coefficient, and the store recorded
+the scale but not the coefficient it was fitted against. An options
+edit — above all a building-questionnaire re-answer, which rewrites
+the coefficient without the user typing a number — reloaded the entry
+and restored the old scale verbatim against the new nameplate,
+leaving the model up to 1.94× wrong: measured as +87.8 kWh/day of heat
+the plan buys at −5 °C, and a 12-hour coast predicted 2.72 K colder
+than the house actually gets, so the optimizer refused coasts it could
+safely have taken. The reverse edit coasts the house through its
+comfort floor (issue #86).
+
+The store now records the anchor, and the loader re-expresses the
+scale with `U_eff' = (1 − φ)·nameplate_new + φ·measured_UA` — absolute
+UA, on the zone-total basis, with φ the learner's own
+`house_loss_confidence(samples)`. Two guards from the recorded
+decisions:
+
+- **Sub-threshold edits keep today's behaviour.** The re-anchor applies
+  only when the coefficient change exceeds the learner's own step
+  limit (`HOUSE_LOSS_MAX_STEP`); below convergence the ungated law was
+  a measured regression on exactly that path, and the learner absorbs
+  a small edit in one step anyway.
+- **An inexpressible measurement resets, never clips.** If the
+  re-anchored scale falls outside `[0.3, 3.0]`, the learner resets
+  explicitly with a warning, so the next edit cannot read a clip bound
+  as the learner's own signal.
+
+Both collateral defects go with it: a drift rollback can no longer
+re-install a pre-edit scale from a weekly snapshot (the restore runs
+the same law), and the `set_thermal_parameters` reset records its
+anchor so the restart self-heals instead of pairing a reset scale with
+an unchanged option.
+
+**Upgrading.** The first start after this release adopts an anchor for
+any pre-existing learning store (one extra write) and re-anchors
+immediately if the configured coefficient has changed since the
+learning was last saved — the visible symptom is one
+`Re-anchored learned house heat loss scale ...` log line, and
+`house_heat_loss_learned` in the learning view finally meaning what it
+says.
+
 ## v5.7.1
 
 ### The optimality gate can see the solver's iteration budget
