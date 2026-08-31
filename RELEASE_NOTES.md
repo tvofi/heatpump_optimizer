@@ -1,5 +1,32 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.0.5
+
+### A test may no longer define a production symbol
+
+The rule tests/README.md states — import the real thing, never
+re-implement it — is now enforced (issue #91). `tests/closure.py
+no-copies` fails when a test file defines a top-level symbol production
+also defines, whatever the body looks like: the name is the copy claim.
+
+The failure mode this guards against is subtle enough to have shipped
+twice in one session: a test re-implements a production formula and
+asserts against its own copy, so its assertion *can* fail — surviving
+the review that catches tests that cannot — but it fails when the test
+file's arithmetic changes rather than when production's does, and its
+mutation proofs prove the copy. On the re-anchor branch that meant
+deleting the real constant from the coordinator left the entire suite
+green.
+
+Mutation-proven by defining a local `house_loss_confidence` in
+features.py — the exact shape that invalidated those proofs — which the
+check flags on sight. It found two live collisions on landing, both
+benign name accidents (local fixture builders called `build`, sharing a
+name with `narrative.build`); renamed to `build_case`, with no
+whitelist, so the next collision costs a rename rather than a judgement
+call. Runs in the closures job on main. Test-only; no behaviour
+changes.
+
 ## v6.0.4
 
 ### The options-flow tests can no longer pass by asserting nothing
