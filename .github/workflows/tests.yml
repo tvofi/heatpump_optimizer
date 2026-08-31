@@ -241,10 +241,13 @@ jobs:
         run: python tests/plan_view.py
 
       - name: Run the layout lane
-        env:
-          NODE_PATH: ${{ runner.temp }}/pwlane/node_modules
-          PLAYWRIGHT_BROWSERS_PATH: ~/.cache/pw-browsers
-        run: node tests/card_browser.mjs
+        # PLAYWRIGHT_BROWSERS_PATH in the run command, not the step env:
+        # a `~` in a workflow env var is a literal tilde, which Playwright
+        # resolves relative to the repository -- the shell expands $HOME.
+        run: >
+          PLAYWRIGHT_BROWSERS_PATH="$HOME/.cache/pw-browsers"
+          NODE_PATH="${{ runner.temp }}/pwlane/node_modules"
+          node tests/card_browser.mjs
 
   slow:
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
