@@ -77,7 +77,7 @@ rec() {
 if [ -n "$SINGLE" ]; then
   rec "$SINGLE" "$@"
   echo
-  $PYTHON tests/closure.py merge --in-dir "$OUTDIR"
+  $PYTHON tests/closure.py merge --in-dir "$OUTDIR" --partial
   exit $?
 fi
 
