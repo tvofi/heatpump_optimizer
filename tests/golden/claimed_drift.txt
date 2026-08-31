@@ -43,14 +43,11 @@
 # does not expire with the stamp and is not part of the inherited-claims
 # comparison.
 #
-# claims-for: 6.0.1
+# claims-for: 6.0.2
 #
-# The crawl-space subtraction changes what presets.derive computes
-# for slab-bearing structures over a crawl-space foundation, and no
-# captured scenario runs that combination (the building_preset
-# fixture is a timber slab over no foundation) -- measured by the
-# gate, which is why an earlier building_preset claim was STALE. No
-# golden moves.
+# The comfort-band rule is validation only -- no solver path reads
+# it -- and the selectors keep their integral bounds, so the
+# config_flow capture is byte-identical and no golden moves.
 #
 # Emptying it is not housekeeping. A behaviour-free branch that leaves this
 # file alone inherits the baseline's claims verbatim, and inheritance

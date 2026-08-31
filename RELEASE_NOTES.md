@@ -1,5 +1,37 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.0.2
+
+### Day and night comfort temperatures are validated against the band
+
+`comfort_temp_day` and `comfort_temp_night` were never checked against
+`[min_temperature, max_temperature]`, so an out-of-band day or night
+temperature saved fine. The plan itself was essentially unchanged —
+but the reported savings were computed against a comfort reference the
+user cannot actually experience (issue #92).
+
+The rule lives in `comfort_band` with its fellow cross-field checks, so
+all three write paths get it at once: the config flow, the
+`apply_schedule` service, and the climate entity's slider.
+
+Two traps from the issue are load-bearing in the implementation:
+
+- **The night lower edge is demanded only while the night selector can
+  express it.** The floor selector reaches 25 °C while the night slider
+  stops at 24, and demanding the impossible dead-ends every form that
+  pair reaches — exactly how a first attempt at this rule broke initial
+  setup. A standing satisfiability sweep now walks every
+  floor/ceiling pair the sliders can produce (0.5 °C steps, jointly
+  rather than per-rule) and requires a submittable form for each.
+- **An existing entry can already be in the forbidden state**, from a
+  pre-v5.4 service write. The rule judges the pair a save would leave
+  in force, so `apply_schedule` can no longer push a day temperature to
+  30 °C on a 20–23 band — the regression the issue's second attempt
+  introduced.
+
+The selectors' own bounds moved to `const.py`, shared by the schema and
+the rule, so the validation cannot drift from what the form offers.
+
 ## v6.0.1
 
 ### The crawl-space floor stops counting twice
