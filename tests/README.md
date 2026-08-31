@@ -134,6 +134,27 @@ Scoping turns itself off and runs everything whenever it cannot be sure:
 * `closure.py` fails for any reason at all;
 * the diff cannot be determined.
 
+### Adding a test script
+
+A new runnable script in `tests/` has no closure until one is recorded, and an
+unclosed script makes the gate above refuse to scope — silently, on every PR,
+with only a line in the run log. The `closures` job on main therefore **fails**
+when a selectable script went unrecorded: the omission costs one red main run
+instead of weeks of quiet full gates.
+
+Recording one script is deliberately cheap (a full re-derivation runs the
+whole suite and takes as long):
+
+```
+./tests/derive_closures.sh --single tests/<the-new-script>.py
+```
+
+which records just that script and merges the result into
+`tests/closures.json`. Commit both together. (`golden.py` and `env_drift.py`
+get their cheap recorded arguments automatically; `card.mjs` is recorded
+through strace.) If the script belongs in a lane permanently, add it to
+`tests/derive_closures.sh` as well, so full re-derivations keep it fresh.
+
 ### What you see when something is skipped
 
 Both before and after the run, every scoped-out script is printed by name with

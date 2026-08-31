@@ -425,6 +425,27 @@ def check(in_dir: Path) -> int:
     if not records:
         print("closure: no fresh recordings to check against", file=sys.stderr)
         return 1
+    # LOUD, before anything else: a selectable script with no recording at
+    # all is the silent-degradation case (issue #90). The lanes in
+    # tests/derive_closures.sh record a fixed roster, so a newly added test
+    # script is invisible to the under-approximation comparison below -- it
+    # was never run -- and the only symptom used to be the PR gate quietly
+    # reverting to full mode while CI stayed green. Failing here, on main,
+    # does not block the PR that added the script but does not let the
+    # omission survive either.
+    unmeasured = [s for s in selectable_scripts() if s not in records]
+    if unmeasured:
+        print("closure: selectable script(s) with NO recording this run:")
+        for s in unmeasured:
+            print(f"    {s}")
+        print()
+        print("No closure can be recorded for a script the lanes never ran,")
+        print("so the scoped gate silently runs FULL on every PR until this")
+        print("is fixed. Add the script to a lane in tests/derive_closures.sh")
+        print("(or record just it with: ./tests/derive_closures.sh --single")
+        print("                         <script>), then commit the re-derived")
+        print("tests/closures.json.")
+        return 1
     # Fold only when the recordings cover everything a re-derivation produces
     # -- a partial run cannot fold, because a driver may be missing the very
     # recording that would be folded into it. SLOW_GATED scripts are never
