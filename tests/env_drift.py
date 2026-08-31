@@ -194,6 +194,16 @@ CACHE_DIR_ENV = "DRIFT_CACHE_DIR"
 CACHE_OFF_ENV = "DRIFT_NO_CACHE"
 CACHE_KEEP_ENV = "DRIFT_CACHE_KEEP"
 CACHE_KEEP_DEFAULT = 24
+#: Set by the push-to-main gate (issue #94). A merge to main moves every
+#: open PR's merge-base at once, so they all miss the cache and each pays
+#: a full cold capture -- the dominant CI cost with several PRs open.
+#: With this set, the run stores the branch-side capture it already made
+#: (the new main tree, captured for this run's own comparison) under the
+#: key those PRs will compute, turning their next cold capture into a
+#: restore. The entry goes through the same ``cache_store``, so it keeps
+#: the built-in key re-check: a wrong restore is a miss, never a stale
+#: baseline.
+WARM_ENV = "DRIFT_WARM_CACHE"
 
 #: Environment variables that can change what a capture computes: the tree's
 #: own HASTUB_TZ, the timezone and locale beneath it, every BLAS/OpenMP
@@ -833,6 +843,10 @@ def main() -> int:
 
     args = [a for a in sys.argv[1:] if a != "--all"]
     everything = "--all" in sys.argv[1:]
+    # WARM_ENV, not a CLI flag: the gate calls this script through
+    # tests/run.sh, and threading a new flag through it buys nothing an
+    # environment variable does not.
+    warm = os.environ.get(WARM_ENV, "").strip().lower() in ("1", "true", "yes")
     ref = args[0] if args and args[0] else "origin/main"
     repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     # Before anything else, in both modes: a claim file stamped for another
@@ -951,6 +965,25 @@ def main() -> int:
                     print(f"  cached   the {ref} baseline under key {key[:16]} "
                           f"in {entry_path}")
                     cache_prune(os.path.dirname(entry_path), cache_keep())
+            if label == "branch" and warm and not cache_disabled():
+                # The warm store (WARM_ENV above): this run's branch capture
+                # IS the new main tree, already captured for its own
+                # comparison. Storing it under the key computed for HEAD
+                # costs nothing extra and is what the PRs that fork from
+                # this commit will look up.
+                try:
+                    head_sha = _rev(repo, "HEAD")
+                    if head_sha is not None:
+                        w_inputs = cache_key_inputs(repo, head_sha, everything)
+                        w_key = cache_key(w_inputs)
+                        w_path = cache_entry_path(cache_dir(), w_key)
+                        cache_store(w_path, w_key, w_inputs, head_sha, capture_text)
+                        cache_prune(os.path.dirname(w_path), cache_keep())
+                        print(f"  warmed   the cache for the PRs that fork "
+                              f"from {head_sha[:12]} (key {w_key[:16]} in "
+                              f"{w_path})")
+                except Exception as err:  # noqa: BLE001 - never fail for a cache
+                    print(f"  NOT WARMED: {err.__class__.__name__}: {err}")
 
         branch, baseline = outputs["branch"], outputs["baseline"]
         drifted = 0

@@ -131,6 +131,26 @@ jobs:
           path: ~/.cache/heatpump_optimizer/drift-baseline
           key: drift-baseline-${{ steps.driftkey.outputs.key }}
 
+      # Warm the cache for the PRs that fork from this main commit
+      # (issue #94). A merge moves every open PR's merge-base at once, so
+      # they all miss the cache and each pays a ~25-minute cold capture.
+      # This run already captures the new main tree for its own
+      # comparison; DRIFT_WARM_CACHE tells env_drift to store it under
+      # the key those PRs will compute -- same cache_store, so the entry
+      # keeps its built-in key re-check: a wrong restore is a miss, never
+      # a stale baseline. The nightly warms too, keeping the entry fresh
+      # for the fork point even on quiet days.
+      - name: Key the warmed drift baseline
+        id: warmkey
+        if: >-
+          (github.event_name == 'push' && github.ref == 'refs/heads/main')
+          || github.event_name == 'schedule'
+        env:
+          PYTHONPATH: tests/hastub
+        run: |
+          echo "key=$(python tests/env_drift.py --cache-key "$GITHUB_SHA" --all)" >> "$GITHUB_OUTPUT"
+          echo "DRIFT_WARM_CACHE=1" >> "$GITHUB_ENV"
+
       # Pull requests get the scoped gate; everything else -- pushes to
       # main above all -- gets the whole suite. Written as an explicit
       # equality on the event name so an event this file has not thought
@@ -165,6 +185,19 @@ jobs:
           OPENBLAS_NUM_THREADS: "1"
           MKL_NUM_THREADS: "1"
         run: ./tests/run.sh
+
+      # The save half of the warm cache: the entry env_drift wrote under
+      # the key from the step above, persisted where the PRs' restore
+      # looks. save@v4 (not the post-step of a restore) because this key
+      # is computed for a different ref than anything restored here.
+      - name: Save the warmed drift baseline
+        if: >-
+          (github.event_name == 'push' && github.ref == 'refs/heads/main')
+          || github.event_name == 'schedule'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cache/heatpump_optimizer/drift-baseline
+          key: drift-baseline-${{ steps.warmkey.outputs.key }}
 
   slow:
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
