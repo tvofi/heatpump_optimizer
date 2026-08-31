@@ -6,10 +6,16 @@
 #   ./tests/derive_closures.sh                 # everything, three lanes
 #   ./tests/derive_closures.sh --out-dir D     # keep the raw records in D
 #   ./tests/derive_closures.sh --record-only   # record, do not rewrite the file
+#   ./tests/derive_closures.sh --single S      # record just S, merge it in
 #
 # This runs the whole suite once, under instrumentation (see tests/closure.py):
 # the closures are what the runs actually opened and imported, not what
 # anybody thought they would. Expect it to take as long as a full gate.
+#
+# --single exists because that cost is the friction (#90): ~25 minutes to
+# record one new script is what made people skip it, and the scoped gate
+# silently ran full on every PR until main's closures job failed. One
+# script, one recording, one merge into tests/closures.json.
 #
 # Two scripts are recorded with cheap arguments on purpose:
 #
@@ -29,6 +35,7 @@ GOLDEN_REF="${GOLDEN_REF:-origin/main}"
 
 OUTDIR=""
 MERGE=1
+SINGLE=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --out-dir) OUTDIR="$2"; shift 2 ;;
@@ -37,9 +44,22 @@ while [ $# -gt 0 ]; do
     # this run just measured, and the check that follows would then compare
     # the file against itself and pass no matter how stale it was.
     --record-only) MERGE=0; shift ;;
+    --single) SINGLE="$2"; shift 2 ;;
     *) echo "unknown argument: $1" >&2; exit 2 ;;
   esac
 done
+if [ -n "$SINGLE" ]; then
+  # One script, recorded and merged into the committed file. The two
+  # cheap-argument special cases in the lanes below apply here too, for
+  # the same reasons. Parsed here, executed after rec() exists.
+  case "$SINGLE" in
+    tests/golden.py) set -- "--only" "__no_such_scenario__" ;;
+    tests/env_drift.py) set -- "--cache-key" "$GOLDEN_REF" "--all" ;;
+    *) set -- ;;
+  esac
+else
+  set --
+fi
 if [ -z "$OUTDIR" ]; then
   OUTDIR=$(mktemp -d "${TMPDIR:-/tmp}/hpo-closure-XXXXXX")
   trap 'rm -rf "$OUTDIR"' EXIT
@@ -53,6 +73,13 @@ rec() {
     > "$OUTDIR/$(basename "$script").out" 2>&1
   echo "  [$(date +%H:%M:%S)] done   $script (exit $?)"
 }
+
+if [ -n "$SINGLE" ]; then
+  rec "$SINGLE" "$@"
+  echo
+  $PYTHON tests/closure.py merge --in-dir "$OUTDIR" --partial
+  exit $?
+fi
 
 # Lane 1: the single longest script, alone.
 ( rec tests/stress.py ) &

@@ -352,7 +352,8 @@ def _fold(records: dict[str, dict]) -> dict[str, list[str]]:
     return {k: sorted(v) for k, v in sorted(closures.items())}
 
 
-def merge(in_dir: Path, out: Path, allow_failures: bool = False) -> int:
+def merge(in_dir: Path, out: Path, allow_failures: bool = False,
+          partial: bool = False) -> int:
     records = {}
     for f in sorted(in_dir.glob("*.json")):
         rec = json.loads(f.read_text())
@@ -363,8 +364,11 @@ def merge(in_dir: Path, out: Path, allow_failures: bool = False) -> int:
     # recorded at all, so demanding them here would fail every re-derivation.
     expected = [s for s in test_scripts() if Path(s).name not in SLOW_GATED]
     missing = [s for s in expected if s not in records]
-    if missing:
+    if missing and not partial:
         print(f"closure: no recording for {', '.join(missing)}", file=sys.stderr)
+        return 1
+    if not records:
+        print("closure: nothing recorded to merge", file=sys.stderr)
         return 1
     # A recording that ended early records only what the run reached before it
     # stopped, which is an UNDER-approximation -- exactly the direction that
@@ -382,6 +386,38 @@ def merge(in_dir: Path, out: Path, allow_failures: bool = False) -> int:
         print("that the run still exercised every import and every file read.",
               file=sys.stderr)
         return 1
+    if partial:
+        # Overlay just what was recorded onto the committed file: the
+        # `--single` path (#90). Every other script's closure stays exactly
+        # as committed -- untouched is more trustworthy than stale, and the
+        # closures job on main re-derives everything on its own schedule.
+        if not out.exists():
+            print(f"closure: {out} does not exist; a partial merge needs it",
+                  file=sys.stderr)
+            return 1
+        payload = json.loads(out.read_text())
+        closures = payload["closures"]
+        recorded = payload.setdefault("recorded", {})
+        for k, r in records.items():
+            fresh = sorted(set(r["files"]) | {k})
+            old = set(closures.get(k, ()))
+            dropped = sorted(old - set(fresh))
+            if dropped:
+                print(f"closure: {k} drops {len(dropped)} file(s) the committed "
+                      f"closure listed:")
+                for d in dropped:
+                    print(f"    {d}")
+                print("  Refusing: a partial update may not shrink a closure. "
+                      "Run a full re-derivation instead.", file=sys.stderr)
+                return 1
+            closures[k] = fresh
+            recorded[k] = {"seconds": r["seconds"], "rc": r["rc"]}
+        payload["closures"] = closures
+        out.write_text(json.dumps(payload, indent=1) + "\n")
+        print(f"closure: updated {len(records)} closure(s) in {out}")
+        for k in records:
+            print(f"  {k:26s} {len(closures[k]):4d} files")
+        return 0
     closures = _fold(records)
     bad = sorted({f for files in closures.values() for f in files if is_inert(f)})
     if bad:
@@ -424,6 +460,27 @@ def check(in_dir: Path) -> int:
         records[rec["script"]] = rec
     if not records:
         print("closure: no fresh recordings to check against", file=sys.stderr)
+        return 1
+    # LOUD, before anything else: a selectable script with no recording at
+    # all is the silent-degradation case (issue #90). The lanes in
+    # tests/derive_closures.sh record a fixed roster, so a newly added test
+    # script is invisible to the under-approximation comparison below -- it
+    # was never run -- and the only symptom used to be the PR gate quietly
+    # reverting to full mode while CI stayed green. Failing here, on main,
+    # does not block the PR that added the script but does not let the
+    # omission survive either.
+    unmeasured = [s for s in selectable_scripts() if s not in records]
+    if unmeasured:
+        print("closure: selectable script(s) with NO recording this run:")
+        for s in unmeasured:
+            print(f"    {s}")
+        print()
+        print("No closure can be recorded for a script the lanes never ran,")
+        print("so the scoped gate silently runs FULL on every PR until this")
+        print("is fixed. Add the script to a lane in tests/derive_closures.sh")
+        print("(or record just it with: ./tests/derive_closures.sh --single")
+        print("                         <script>), then commit the re-derived")
+        print("tests/closures.json.")
         return 1
     # Fold only when the recordings cover everything a re-derivation produces
     # -- a partial run cannot fold, because a driver may be missing the very
@@ -615,6 +672,7 @@ def main() -> int:
     m = sub.add_parser("merge"); m.add_argument("--in-dir", required=True)
     m.add_argument("--out", default=str(CLOSURES))
     m.add_argument("--allow-failures", action="store_true")
+    m.add_argument("--partial", action="store_true")
     c = sub.add_parser("check"); c.add_argument("--in-dir", required=True)
     s = sub.add_parser("select")
     s.add_argument("--files", nargs="*"); s.add_argument("--diff")
@@ -625,7 +683,8 @@ def main() -> int:
     if a.cmd == "record":
         return record(a.script, Path(a.out_dir), a.args)
     if a.cmd == "merge":
-        return merge(Path(a.in_dir), Path(a.out), a.allow_failures)
+        return merge(Path(a.in_dir), Path(a.out), a.allow_failures,
+                      partial=a.partial)
     if a.cmd == "check":
         return check(Path(a.in_dir))
     if a.cmd == "show":
