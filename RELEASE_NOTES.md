@@ -1,5 +1,24 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.0.9
+
+### The drift baseline cache warms on main, once per merge
+
+A merge to main moved every open PR's merge-base at once, so they all
+missed the drift cache simultaneously and each paid a full ~25-minute
+cold capture — with several PRs open, the dominant CI cost (issue #94;
+four merges in a day meant most of the day's minutes went on
+re-capturing the same baselines).
+
+The push-to-main run already captures the new main tree for its own
+comparison; it now stores that capture under the key the following PRs
+will compute — one capture that was happening anyway, saved once, hit
+by every PR that forks from the merge commit. The nightly keeps the
+entry fresh on quiet days. The entry keeps its built-in key re-check,
+so a wrong restore is a miss, never a stale baseline.
+
+No integration behaviour changes.
+
 ## v6.0.8
 
 ### Retention is measured, and the recorder stops writing what nothing

@@ -43,10 +43,10 @@
 # does not expire with the stamp and is not part of the inherited-claims
 # comparison.
 #
-# claims-for: 6.0.8
+# claims-for: 6.0.9
 #
-# The retention section is test-side and the unrecorded-attributes
-# change touches no solver path, so no golden moves. The releases since v5.6.0 have each moved no goldens, and the list
+# CI infrastructure only (the drift cache warms on main); no
+# production code changes, so no golden moves. The releases since v5.6.0 have each moved no goldens, and the list
 # below is empty for all of them: the code-scanning fixes are
 # behaviour-neutral, the settlement cap's bound is inert at every
 # captured configuration, the re-anchor fires only when a stored
