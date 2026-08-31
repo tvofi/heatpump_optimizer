@@ -1,5 +1,27 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.0.3
+
+### An unrecorded test script fails loudly on main
+
+Adding a test script used to leave the scoped gate silently running
+FULL on every PR — the saving gone, the only symptom a reason string
+in the run log (issue #90). The `closures` job on main now fails when
+a selectable script has no recording at all: the omission costs one
+red main run instead of weeks of quiet full gates.
+
+Recording one script is now cheap. `./tests/derive_closures.sh --single
+tests/<script>` records just it and overlays the result into
+`tests/closures.json`, instead of a full re-derivation that runs the
+whole suite — the ~25-minute friction that made people skip the step.
+A partial overlay may only grow a closure, never shrink one.
+
+The tool proves itself on landing: v5.6.0's submodule load made
+`tests/frontend.py` genuinely read `const.py`, the committed closure
+predated that, and main's closures job went red for exactly that
+under-scoping — the gate working as designed. `--single` re-records
+`frontend.py`; the overlay adds the one file.
+
 ## v6.0.2
 
 ### Day and night comfort temperatures are validated against the band

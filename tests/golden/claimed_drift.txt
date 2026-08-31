@@ -43,11 +43,12 @@
 # does not expire with the stamp and is not part of the inherited-claims
 # comparison.
 #
-# claims-for: 6.0.2
+# claims-for: 6.0.3
 #
-# The comfort-band rule is validation only -- no solver path reads
-# it -- and the selectors keep their integral bounds, so the
-# config_flow capture is byte-identical and no golden moves.
+# Test infrastructure only: the closures gate fails loudly on an
+# unrecorded script, and frontend.py's closure gains the const.py
+# read it has really done since the submodule load. No production
+# code changes, so no golden moves.
 #
 # Emptying it is not housekeeping. A behaviour-free branch that leaves this
 # file alone inherits the baseline's claims verbatim, and inheritance
