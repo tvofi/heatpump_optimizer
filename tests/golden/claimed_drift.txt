@@ -43,10 +43,11 @@
 # does not expire with the stamp and is not part of the inherited-claims
 # comparison.
 #
-# claims-for: 5.6.2
+# claims-for: 5.7.0
 #
-# This release moves no goldens: the eleven code scanning
-# alerts are cleared without touching behaviour.
+# The settlement cap's new bound is inert at every captured
+# configuration (the derive-span raw worst sits under the default
+# plant ceiling), so no golden moves.
 #
 # Emptying it is not housekeeping. A behaviour-free branch that leaves this
 # file alone inherits the baseline's claims verbatim, and inheritance

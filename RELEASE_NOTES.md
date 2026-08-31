@@ -1,5 +1,25 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v5.7.0
+
+### The slab settlement cap is bounded by the plant's own ceiling
+
+`slab_settlement_cap` ended in `target + q_demand /
+max(slab_heat_transfer, 1e-6)` with no upper bound, which reaches
+roughly 195 °C where `slab_heat_transfer` lands low — valuing slab heat
+no physical slab can hold. The cap is now `min`'d with
+`buffer_max_temp`: the slab is fed by store water that ceiling caps, so
+it cannot stand above it however weak the coupling. The bound rides
+existing configuration rather than a magic constant, so a future
+ceiling change moves it (issue #87).
+
+At default settings the bound is inert — the reporting owner's cap
+measured 21.17 °C, and the worst raw cap across every coefficient
+`presets.derive` can emit is about 63 °C under the 70 °C default
+ceiling — but a reachable low-temperature store (the selector runs
+40–90 °C) now clamps the cap to a temperature that plant can actually
+put under the house.
+
 ## v5.6.2
 
 ### The eleven code scanning alerts are cleared
