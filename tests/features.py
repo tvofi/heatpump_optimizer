@@ -11946,9 +11946,10 @@ _tiny_slab = next(
     if c.name == "slab"
 )
 R.check(
-    "the raw cap really does run away at the schema's minimum transfer",
-    _tiny_cap > 500.0,
-    f"cap {_tiny_cap:.0f} °C at slab_heat_transfer=0.01",
+    "the raw cap is itself bounded at the schema's minimum transfer",
+    abs(_tiny_cap - _tiny.buffer_max_temp) < 1e-9,
+    f"cap {_tiny_cap:.0f} °C at slab_heat_transfer=0.01 "
+    f"(plant ceiling {_tiny.buffer_max_temp} °C)",
 )
 R.check(
     "but the REPORTED ceiling is clamped to the tank's rating",
@@ -11960,6 +11961,82 @@ R.check(
     abs(_slab_new.max_temperature - _bat_cap) < 1e-9
     and _bat_cap < _bat_params.buffer_max_temp,
     f"{_slab_new.max_temperature} vs {_bat_cap}",
+)
+
+# The bound is not just for the schema minimum: across EVERY coefficient
+# `presets.derive` can emit — swept at the area and upper-ratio bounds,
+# every structure, era, foundation, emitter and zone combination — the
+# cap must stay inside physically reachable temperatures (issue #87).
+# At the default 70 °C plant ceiling the raw worst across that span is
+# ~63 °C, so two checks below pin the bound from both sides: the schema
+# minimum (0.01 kW/°C, raw cap in the hundreds) and a reachable LOW
+# ceiling (45 °C, a low-temperature store) against derive's own worst
+# case. Deleting the `buffer_max_temp` min() in slab_settlement_cap
+# fails both.
+_span_transfers = set()
+_span_worst = 0.0
+_span_worst_cfg = None
+for _structure in (
+    presets.STRUCTURE_TIMBER_CRAWLSPACE, presets.STRUCTURE_TIMBER_SLAB,
+    presets.STRUCTURE_CONCRETE_SLAB, presets.STRUCTURE_MASONRY,
+):
+    for _era in (
+        presets.ERA_LOW_ENERGY, presets.ERA_1980_2005,
+        presets.ERA_PRE_1960,
+    ):
+        for _foundation in (
+            presets.FOUNDATION_NONE, presets.FOUNDATION_CRAWLSPACE,
+            presets.FOUNDATION_BASEMENT,
+        ):
+            for _emitter in (presets.EMITTER_FLOOR, presets.EMITTER_RADIATORS):
+                for _two_zone in (False, True):
+                    for _area in (20.0, 1000.0):
+                        for _ratio in (0.2, 0.8):
+                            _cfg = presets.derive(
+                                presets.BuildingPreset(
+                                    structure=_structure, era=_era,
+                                    foundation=_foundation,
+                                    heated_area_m2=_area,
+                                    lower_emitter=_emitter,
+                                    two_zone=_two_zone,
+                                    upper_area_ratio=_ratio,
+                                )
+                            )
+                            _cfg.pop("heating_response_hours", None)
+                            _p = ThermalParameters.from_config(
+                                {"tibber_token": "x",
+                                 "weather_entity": "weather.home", **_cfg}
+                            )
+                            _span_transfers.add(_p.slab_heat_transfer)
+                            _c = _slab_cap(_p, 21.0, -25.0)
+                            if _c > _span_worst:
+                                _span_worst = _c
+                                _span_worst_cfg = _cfg
+R.check(
+    "the settlement cap never leaves physical temperatures across derive's span",
+    _span_worst <= 70.0 and _span_worst > 21.0,
+    f"worst cap {_span_worst:.1f} °C across {len(_span_transfers)} "
+    f"distinct transfer values, min {min(_span_transfers):.3f}",
+)
+R.check(
+    "and the sweep really reached derive's own floor",
+    abs(min(_span_transfers) - 0.05) < 1e-9,
+    f"minimum emitted slab_heat_transfer {min(_span_transfers)}",
+)
+# A low-temperature store (the selector runs 40-90 °C) cannot put a
+# 63 °C slab under the house: the bound must clamp derive's own worst
+# case to the plant it is attached to.
+_low_cfg = dict(_span_worst_cfg)
+_low_p = ThermalParameters.from_config(
+    {"tibber_token": "x", "weather_entity": "weather.home",
+     "buffer_max_temperature": 45.0, **_low_cfg}
+)
+R.check(
+    "a low-temperature plant clamps derive's worst case to its own ceiling",
+    abs(_slab_cap(_low_p, 21.0, -25.0) - 45.0) < 1e-9
+    and _span_worst > 45.0,
+    f"capped {_slab_cap(_low_p, 21.0, -25.0):.1f} vs unclamped "
+    f"{_span_worst:.1f} °C",
 )
 
 R.check(

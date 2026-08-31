@@ -937,6 +937,14 @@ def slab_settlement_cap(params, target: float, out_mean: float) -> float:
     a fixed 29.0 °C against this function's weather-dependent 24.5-28.5,
     overstating usable capacity by around a quarter and understating the
     charge in it by the same. One formula, both readers.
+
+    Bounded above by the plant: the slab is fed by store water that
+    ``buffer_max_temp`` caps, so it cannot stand above that however weak
+    the coupling. Without the bound the term grows without limit as
+    ``slab_heat_transfer`` falls — roughly 195 °C at ``presets.derive``'s
+    own floor — crediting heat no slab can physically hold. The bound
+    rides existing configuration rather than a constant, so a future
+    ceiling change moves it (issue #87).
     """
     if params.two_zone_enabled:
         # The slab feeds ONLY the lower zone (`q_slab_to_lower` in the
@@ -954,7 +962,10 @@ def slab_settlement_cap(params, target: float, out_mean: float) -> float:
     else:
         u_eff = params.heat_loss_coefficient
         q_demand = max(0.0, u_eff * (target - out_mean) - params.internal_gains)
-    return target + q_demand / max(params.slab_heat_transfer, 1e-6)
+    return min(
+        target + q_demand / max(params.slab_heat_transfer, 1e-6),
+        params.buffer_max_temp,
+    )
 
 
 class HeatPumpOptimizer:
