@@ -1,5 +1,30 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.0.8
+
+### Retention is measured, and the recorder stops writing what nothing
+reads back
+
+Nothing measured what the learners retained (issue #99): several
+collections looked unbounded by construction, and the only detector was
+a user's Home Assistant running out of memory.
+
+The rolling suite — which drives the real coordinator round a multi-day
+closed loop — now measures, after the run, every collection the audit
+flagged: the lead-error maps, the pending-promise list, the accuracy
+sample ring, the COP baseline and capacity-envelope buckets, the
+step-response samples, and the retained buffer trajectory, each with an
+asserted ceiling. First measurement: everything is bounded. The
+lead-error maps sit at their bucket count (the float-keyed drift the
+audit feared is not happening), the promise list is under its 512 cap,
+the ring at its 672 maxlen, and the buffer trajectory is one horizon.
+
+The recorder half: `manual_override` (a whole manual-plan dict) and
+`dhw_windows` were written to the recorder database on every state
+write. Both are card-facing and read live from the coordinator; they
+join `forecast`, `slots` and `setup_topology` in the unrecorded set —
+on Pi-class hardware with an SD card, recorder volume is a real cost.
+
 ## v6.0.7
 
 ### The plan file records what has been delivered
