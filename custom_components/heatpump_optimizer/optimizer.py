@@ -119,6 +119,30 @@ _COMFORT_PULL_TWO_ZONE = 0.0125
 # again on the low-powered hardware Home Assistant usually runs on.
 _MULTI_START_SOLVES = 2
 
+try:  # pragma: no cover - present via the manifest requirement
+    from threadpoolctl import threadpool_limits as _threadpool_limits
+except ImportError:  # bare test imports without installed requirements
+    _threadpool_limits = None
+
+
+def _scoped_minimize(*args, **kwargs):
+    """``minimize`` with BLAS threads pinned to one for the call's duration.
+
+    The arrays here are 96 steps, far below any threshold where BLAS
+    parallelism repays its synchronisation, and the unscoped pool sized to
+    the machine's core count spent ~21% of solve CPU spinning (issue #88) --
+    CPU a Raspberry-Pi-class host running all of Home Assistant does not
+    have. Scoped to the call and never process-wide, because other
+    components share this interpreter; a bare environment-variable set would
+    be both process-wide and too late (numpy is long since imported).
+    Identical results by construction: no operation at these sizes is
+    threaded, which is precisely why the threads were pure overhead.
+    """
+    if _threadpool_limits is None:
+        return minimize(*args, **kwargs)
+    with _threadpool_limits(limits=1):
+        return minimize(*args, **kwargs)
+
 
 def _multi_start_minimize(
     objective,
@@ -166,7 +190,7 @@ def _multi_start_minimize(
             # breathing. No effect on any numerical result.
             _time_mod.sleep(0.002)
         try:
-            res = minimize(
+            res = _scoped_minimize(
                 objective,
                 guess,
                 args=args,

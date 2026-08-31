@@ -5,5 +5,9 @@
 numpy==2.4.6
 scipy==1.17.1
 voluptuous==0.16.0
+# The solve scopes BLAS threads through threadpoolctl (issue #88); the
+# pin keeps the drift gate's two captures on one solver stack, per the
+# comment above.
+threadpoolctl==3.6.0
 aiohttp==3.14.3
 PyYAML==6.0.1
