@@ -43,12 +43,19 @@
 # does not expire with the stamp and is not part of the inherited-claims
 # comparison.
 #
-# claims-for: 6.0.5
+# claims-for: 6.0.6
 #
-# Test infrastructure only: the closures gate fails loudly on an
-# unrecorded script, and frontend.py's closure gains the const.py
-# read it has really done since the submodule load. No production
-# code changes, so no golden moves.
+# The releases since v5.6.0 have each moved no goldens, and the list
+# below is empty for all of them: the code-scanning fixes are
+# behaviour-neutral, the settlement cap's bound is inert at every
+# captured configuration, the re-anchor fires only when a stored
+# learning's anchor differs from the configured UA (no captured
+# scenario carries one), the crawl-space subtraction changes no
+# captured preset, the comfort-band rule is validation only with
+# integral selector bounds, and the BLAS thread pin is results-neutral
+# by construction. The comment bodies for the intervening stamps went
+# stale without any claim list ever being wrong; this one restates the
+# whole span so the history reads true.
 #
 # Emptying it is not housekeeping. A behaviour-free branch that leaves this
 # file alone inherits the baseline's claims verbatim, and inheritance

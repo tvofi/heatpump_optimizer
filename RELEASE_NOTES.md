@@ -1,5 +1,28 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.0.6
+
+### BLAS threads are pinned to one for the duration of each solve
+
+The solver's L-BFGS calls landed in numpy/scipy whose BLAS backend
+spawned a pool sized to the machine's core count, and the arrays (96
+steps) are far below any size where BLAS parallelism repays its
+synchronisation — so roughly 21 % of solve CPU was spent spinning
+(thread factor 1.26–1.27, measured on the real solve path), on the
+Raspberry-Pi-class hardware where it matters most (issue #88).
+
+`threadpoolctl` — now a manifest requirement, so Home Assistant
+installs it with the integration — pins the pool to one thread around
+each minimize call. Scoped to the call, never process-wide (other
+components share this interpreter). Plan fingerprints are
+byte-identical scoped and unscoped: no operation at these sizes is
+threaded, which is precisely why the threads were pure overhead.
+
+**Upgrading.** Home Assistant installs the new requirement on restart
+or when the integration reloads. If it cannot (an unusually locked-down
+install), the solve runs unscoped exactly as before — the pin is an
+optimization, not a dependency.
+
 ## v6.0.5
 
 ### A test may no longer define a production symbol
