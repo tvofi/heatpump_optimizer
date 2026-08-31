@@ -1,5 +1,22 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v5.7.1
+
+### The optimality gate can see the solver's iteration budget
+
+Cutting the solver's budget from 300 to 3 iterations left
+`tests/optimality.py` green (issue #89). Measured first: the cut costs
+0.3 % on the single-zone scenario — genuinely almost as good — but
+16.2 % on two-zone, a real regression the gate could not see.
+
+The gate now races the production-budget solve against a second solve
+with `maxiter` slashed to 3 (the exact cut from the issue) and requires
+the production solve to be materially cheaper on two-zone. It pins a
+property, not a number: if production's budget is ever cut, the two
+solves coincide and the check fails by construction. Mutation-proven
+against the exact cut in `optimizer.py` — the gap collapses to 0.0 %
+and the check fails.
+
 ## v5.7.0
 
 ### The slab settlement cap is bounded by the plant's own ceiling

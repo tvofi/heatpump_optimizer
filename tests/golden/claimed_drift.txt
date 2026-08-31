@@ -43,11 +43,11 @@
 # does not expire with the stamp and is not part of the inherited-claims
 # comparison.
 #
-# claims-for: 5.7.0
+# claims-for: 5.7.1
 #
-# The settlement cap's new bound is inert at every captured
-# configuration (the derive-span raw worst sits under the default
-# plant ceiling), so no golden moves.
+# Test-infrastructure only: the optimality gate races the
+# production-budget solve against a starved one. No production code
+# changes, so no golden moves.
 #
 # Emptying it is not housekeeping. A behaviour-free branch that leaves this
 # file alone inherits the baseline's claims verbatim, and inheritance
