@@ -1,5 +1,24 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.0.4
+
+### The options-flow tests can no longer pass by asserting nothing
+
+The options pages are about to learn to return to the section menu
+after a save (#100), and the test loops were not ready for it: the
+untouched-save sweep silently skipped any page that did not return
+`create_entry`, so flipping all pages to menu-return would have left
+it reporting green while asserting nothing. That is exactly how the
+feature would have shipped untested by construction — the failure mode
+#100 itself records as its first prerequisite.
+
+The sweep now classifies every page's outcome — save, menu (verified
+to carry `menu_options`), or rejected — and accounts for all of them.
+The accepts-displayed-values loop verifies a menu hand-back is a real
+menu and a save carries data. And the sites that indexed
+`["data"]` unguarded now fail the check instead of KeyError-ing the
+suite when a page's shape changes. Test-only; no behaviour changes.
+
 ## v6.0.3
 
 ### An unrecorded test script fails loudly on main
