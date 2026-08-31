@@ -56,6 +56,10 @@ from .const import (
     CONF_MAX_TEMP,
     CONF_COMFORT_TEMP_DAY,
     CONF_COMFORT_TEMP_NIGHT,
+    COMFORT_TEMP_DAY_SELECTOR_MAX,
+    COMFORT_TEMP_DAY_SELECTOR_MIN,
+    COMFORT_TEMP_NIGHT_SELECTOR_MAX,
+    COMFORT_TEMP_NIGHT_SELECTOR_MIN,
     CONF_DAY_START_HOUR,
     CONF_DAY_END_HOUR,
     CONF_HOUSE_THERMAL_MASS,
@@ -1021,10 +1025,18 @@ class HeatPumpOptimizerConfigFlow(
                     ): _number(18, 28, 0.5, "°C", slider=True),
                     vol.Required(
                         CONF_COMFORT_TEMP_DAY, default=DEFAULT_COMFORT_TEMP_DAY
-                    ): _number(16, 26, 0.5, "°C", slider=True),
+                    ): _number(
+                        COMFORT_TEMP_DAY_SELECTOR_MIN,
+                        COMFORT_TEMP_DAY_SELECTOR_MAX,
+                        0.5, "°C", slider=True,
+                    ),
                     vol.Required(
                         CONF_COMFORT_TEMP_NIGHT, default=DEFAULT_COMFORT_TEMP_NIGHT
-                    ): _number(15, 24, 0.5, "°C", slider=True),
+                    ): _number(
+                        COMFORT_TEMP_NIGHT_SELECTOR_MIN,
+                        COMFORT_TEMP_NIGHT_SELECTOR_MAX,
+                        0.5, "°C", slider=True,
+                    ),
                     vol.Required(
                         CONF_DAY_START_HOUR, default=DEFAULT_DAY_START_HOUR
                     ): _number(0, 12, 1, slider=True),
@@ -1683,13 +1695,21 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
                         default=current.get(
                             CONF_COMFORT_TEMP_DAY, DEFAULT_COMFORT_TEMP_DAY
                         ),
-                    ): _number(16, 26, 0.5, "°C", slider=True),
+                    ): _number(
+                        COMFORT_TEMP_DAY_SELECTOR_MIN,
+                        COMFORT_TEMP_DAY_SELECTOR_MAX,
+                        0.5, "°C", slider=True,
+                    ),
                     vol.Required(
                         CONF_COMFORT_TEMP_NIGHT,
                         default=current.get(
                             CONF_COMFORT_TEMP_NIGHT, DEFAULT_COMFORT_TEMP_NIGHT
                         ),
-                    ): _number(15, 24, 0.5, "°C", slider=True),
+                    ): _number(
+                        COMFORT_TEMP_NIGHT_SELECTOR_MIN,
+                        COMFORT_TEMP_NIGHT_SELECTOR_MAX,
+                        0.5, "°C", slider=True,
+                    ),
                     vol.Required(
                         CONF_DAY_START_HOUR,
                         default=current.get(

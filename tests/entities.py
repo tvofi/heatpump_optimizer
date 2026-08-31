@@ -3419,6 +3419,30 @@ _band_cases = (
         const.CONF_DAY_END_HOUR,
         "day_window_empty",
     ),
+    (
+        "a day comfort below the band floor",
+        {const.CONF_COMFORT_TEMP_DAY: 18.5},
+        const.CONF_COMFORT_TEMP_DAY,
+        "comfort_outside_band",
+    ),
+    (
+        "a day comfort above the band ceiling",
+        {const.CONF_COMFORT_TEMP_DAY: 24.0},
+        const.CONF_COMFORT_TEMP_DAY,
+        "comfort_outside_band",
+    ),
+    (
+        "a night comfort above the band ceiling",
+        {const.CONF_COMFORT_TEMP_NIGHT: 23.5, const.CONF_COMFORT_TEMP_DAY: 23.0},
+        const.CONF_COMFORT_TEMP_NIGHT,
+        "comfort_outside_band",
+    ),
+    (
+        "a night comfort below the band floor",
+        {const.CONF_COMFORT_TEMP_NIGHT: 18.0},
+        const.CONF_COMFORT_TEMP_NIGHT,
+        "comfort_outside_band",
+    ),
 )
 
 for label, bad, field, code in _band_cases:
@@ -3453,6 +3477,77 @@ _okres = asyncio.run(
     )
 )
 R.check("a consistent temperature step passes", _okres["type"] == "menu")
+
+# v5.7.0 (issue #92): the band floor can sit where the night selector
+# cannot reach it -- `minimum` spans 14-25 while night stops at 24. The
+# rule exempts exactly that window, so the hottest legal bands stay
+# submittable; deleting the exemption in comfort_band.dead-ends this
+# form, which is the trap the first attempt at the rule fell into.
+_hot = _fresh_flow()
+_hotres = asyncio.run(
+    _hot.async_step_temperature(
+        {
+            const.CONF_TARGET_TEMP: 25.5,
+            const.CONF_MIN_TEMP: 25.0,
+            const.CONF_MAX_TEMP: 26.0,
+            const.CONF_COMFORT_TEMP_DAY: 25.0,
+            const.CONF_COMFORT_TEMP_NIGHT: 24.0,
+            const.CONF_DAY_START_HOUR: 7,
+            const.CONF_DAY_END_HOUR: 22,
+        }
+    )
+)
+R.check(
+    "a band floor above the night selector still submits",
+    _hotres["type"] == "menu",
+    str(_hotres.get("errors")),
+)
+
+# The standing satisfiability sweep the issue demands: for EVERY floor
+# and ceiling pair the sliders can produce, some full assignment of all
+# five fields must pass every rule in comfort_band -- jointly, not one
+# rule at a time. A future selector edit that breaks this fails here
+# instead of dead-ending a user's setup. The slider spans below are the
+# schema's own (target 15-28, min 14-25, max 18-28, day 16-26, night
+# 15-24, all at 0.5 °C steps).
+def _steps(lo, hi):
+    return [round(lo + 0.5 * i, 2) for i in range(int(round((hi - lo) / 0.5)) + 1)]
+
+
+_target_pos = _steps(15, 28)
+_min_pos = _steps(14, 25)
+_max_pos = _steps(18, 28)
+_day_pos = _steps(16, 26)
+_night_pos = _steps(15, 24)
+_unsatisfiable = []
+for _mn in _min_pos:
+    for _mx in _max_pos:
+        if _mn > _mx:
+            continue
+        _ok_any = any(
+            not comfort_band.violations(
+                {
+                    const.CONF_TARGET_TEMP: _tg,
+                    const.CONF_MIN_TEMP: _mn,
+                    const.CONF_MAX_TEMP: _mx,
+                    const.CONF_COMFORT_TEMP_DAY: _dy,
+                    const.CONF_COMFORT_TEMP_NIGHT: _nt,
+                },
+                {},
+            )
+            for _tg in _target_pos
+            if _mn <= _tg <= _mx
+            for _dy in _day_pos
+            for _nt in _night_pos
+        )
+        if not _ok_any:
+            _unsatisfiable.append((_mn, _mx))
+R.check(
+    "every floor/ceiling pair the sliders can produce has a submittable form",
+    not _unsatisfiable,
+    f"unsatisfiable bands: {_unsatisfiable[:5]}",
+    )
+
 _okopt = options(FakeEntry())
 _okopt.hass = FakeHass()
 _okform = asyncio.run(_okopt.async_step_comfort(None))
@@ -3526,6 +3621,7 @@ _error_codes = {
     "max_below_target",
     "night_above_day",
     "day_window_empty",
+    "comfort_outside_band",
     "min_power_above_max",
 }
 for _name, _data in (("strings", strings),) + tuple(files.items()):

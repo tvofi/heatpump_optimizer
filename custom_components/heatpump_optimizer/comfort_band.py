@@ -32,6 +32,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from .const import (
+    COMFORT_TEMP_NIGHT_SELECTOR_MAX,
     CONF_COMFORT_TEMP_DAY,
     CONF_COMFORT_TEMP_NIGHT,
     CONF_DAY_END_HOUR,
@@ -128,6 +129,36 @@ def violations(
                 "day_window_empty",
                 f"The heating day would start at {start}:00 and end at "
                 f"{end}:00, leaving no daytime period at all",
+            )
+        )
+    # Day and night comfort must sit inside the band itself: the reported
+    # savings are computed against the comfort reference in force, so an
+    # out-of-band day or night leaves the plan essentially unchanged while
+    # the savings figure is measured against a comfort the user cannot
+    # actually experience (issue #92). The night lower edge is demanded
+    # only while the night selector can express it: `minimum` reaches 25
+    # on its own slider while night stops at 24, and demanding the
+    # impossible would dead-end every form that pair reaches -- the trap
+    # the first attempt at this rule fell into. The joint satisfiability
+    # sweep in tests/entities.py pins the whole rule set against exactly
+    # that, at every slider extreme.
+    if day < minimum or day > maximum:
+        found.append(
+            BandViolation(
+                CONF_COMFORT_TEMP_DAY,
+                "comfort_outside_band",
+                f"A daytime comfort temperature of {day:g} °C is outside "
+                f"the {minimum:g}-{maximum:g} °C comfort band",
+            )
+        )
+    night_below_band = night < minimum and minimum <= COMFORT_TEMP_NIGHT_SELECTOR_MAX
+    if night_below_band or night > maximum:
+        found.append(
+            BandViolation(
+                CONF_COMFORT_TEMP_NIGHT,
+                "comfort_outside_band",
+                f"A night-time comfort temperature of {night:g} °C is "
+                f"outside the {minimum:g}-{maximum:g} °C comfort band",
             )
         )
     return found
