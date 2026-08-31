@@ -575,6 +575,21 @@ HOUSE_LOSS_MAX_RESIDUAL = 1.0  # °C
 # midpoint of a fixed range is not the current estimate.
 _LEARNER_TRUST_REGION = 0.5
 
+
+def house_loss_confidence(samples: int) -> float:
+    """The fraction of an EWMA walk from 1.0 the learner has traversed.
+
+    The learner moves ``scale`` toward its target by ``HOUSE_LOSS_ALPHA``
+    per sample, so after ``n`` samples the distance still to travel is
+    ``(1 - alpha) ** n`` and the traversed fraction is one minus that.
+    This is the phi of the re-anchor law: how much of the stored scale
+    is measurement rather than starting prior. It is derived from the
+    learner's own constant and nothing else, and it lives at module
+    level so tests import it rather than re-implement it (issue #91).
+    """
+    return 1.0 - (1.0 - HOUSE_LOSS_ALPHA) ** max(0, int(samples))
+
+
 THERMAL_LEARNING_STORE_VERSION = 1
 
 # COP learning. Slower than the house-loss learner because a single interval's
@@ -1843,6 +1858,20 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             except (TypeError, ValueError) as err:
                 _LOGGER.debug("Could not load lower floor loss ratio: %s", err)
 
+        # v5.7.0 (issue #86): the store now records the UA the scale was
+        # fitted against, and an options edit that changed it is corrected
+        # here -- on load, before anything solves -- rather than restored
+        # verbatim against the new nameplate. The gated write adopts an
+        # anchor for a pre-fix store and persists a re-anchor; unconditional
+        # saves are useless here because `updated_at` defeats the store's
+        # content-hash skip.
+        _had_anchor = "house_heat_loss_anchor" in stored
+        _reanchored = self._reanchor_house_heat_loss_scale(
+            stored.get("house_heat_loss_anchor")
+        )
+        if _reanchored or not _had_anchor:
+            await self._async_save_thermal_learning()
+
         cop_scale = stored.get("cop_scale")
         if cop_scale is not None:
             try:
@@ -1975,18 +2004,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         return {
             "buffer_cooling_rate": self._buffer_cooling_rate,
             "buffer_cooling_samples": self._buffer_cooling_samples,
-            # KNOWN DEFECT, unfixed as of v5.4.0: this records the scale
-            # but NOT the configured coefficient it was fitted against, so
-            # an options edit reloads the entry and the loader restores this
-            # scale verbatim against the NEW coefficient. Measured at 1.937x
-            # the UA the learner itself measured, on a questionnaire
-            # re-answer. The only reset lives in async_update_thermal_params,
-            # which only the set_thermal_parameters service reaches.
-            # Four fix attempts are written up in docs/backlog.md: read the
-            # "Open" entry AND the recorded decision before trying a fifth.
-            # The obvious fix -- reset the scale on an edit -- was built,
-            # measured against the alternative on a 26-scenario grid, and
-            # lost 4.3x on the damage it does where it does damage.
+            # The configured UA the scale was fitted against, so an options
+            # edit that changes it can be corrected on load instead of
+            # multiplying a correction fitted against the old nameplate by
+            # the new one (issue #86). The KNOWN DEFECT note that was here
+            # is resolved by _reanchor_house_heat_loss_scale; the shape of
+            # the fix and the four attempts that did not ship are recorded
+            # in docs/backlog.md's "Open" entry and its decisions.
+            "house_heat_loss_anchor": round(self._house_heat_loss_anchor(), 6),
             "house_heat_loss_scale": self._house_heat_loss_scale,
             "house_heat_loss_samples": self._house_heat_loss_samples,
             "lower_floor_loss_ratio": self._lower_floor_loss_ratio,
@@ -2922,6 +2947,107 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             np.clip(ratio, LOWER_FLOOR_LOSS_RATIO_MIN, LOWER_FLOOR_LOSS_RATIO_MAX)
         )
         self._thermal_params.lower_floor_loss_ratio = self._lower_floor_loss_ratio
+
+    def _house_heat_loss_anchor(self) -> float:
+        """The total base UA the learned scale currently multiplies.
+
+        In two-zone mode the scale owns the *level* of both zones -- the
+        ratio owns the split -- so the quantity it multiplies is the zone
+        total with the learned ratio applied, not the upper zone the fit
+        reads. Round 1 of the re-anchor got exactly this wrong and went
+        sign-negative on every single-zone edit in a two-zone house.
+        """
+        p = self._thermal_params
+        if p.two_zone_enabled:
+            return (
+                p.upper_floor_heat_loss
+                + p.lower_floor_heat_loss * self._lower_floor_loss_ratio
+            )
+        return p.heat_loss_coefficient
+
+    def _reanchor_house_heat_loss_scale(self, anchor: float | None) -> bool:
+        """Re-express the learned scale against the UA now configured.
+
+        An options edit reloads the entry with a new nameplate while the
+        store still holds a scale fitted against the old one; restoring
+        it verbatim left the model up to 1.94x wrong (issue #86, four
+        prior attempts recorded in docs/backlog.md). The law, from the
+        recorded decisions:
+
+        ``U_eff' = (1 - phi) * nameplate_new + phi * measured_UA``
+
+        written in absolute UA on the zone-total basis, where
+        ``measured_UA = scale * anchor`` and phi is
+        ``house_loss_confidence(samples)``. Path-independent and sign-
+        preserving at convergence, and the nameplate at zero samples --
+        an install that has learned nothing keeps its configuration
+        edits, which is where round 1 did its damage.
+
+        Two guards, both from the recorded decisions:
+
+        * **Threshold gate.** Below a ``HOUSE_LOSS_MAX_STEP`` nameplate
+          change the stored scale is kept verbatim: below convergence
+          the law is a measured regression against today's behaviour on
+          exactly that path (the 30-hop walk: +2.5% for today against
+          the ungated law's 18.2%), and the learner absorbs a small
+          edit in one step anyway.
+        * **Clamp means reset.** If the re-anchored scale falls outside
+          ``[0.3, 3.0]`` the measurement cannot be expressed against
+          the new nameplate: reset explicitly and log it. Clipping onto
+          a bound instead lets the next edit read that bound as the
+          learner's own signal.
+
+        Returns whether the stored state changed, so callers can gate
+        the one persistence write (``updated_at`` moves every save, so
+        the content-hash skip cannot gate this store).
+        """
+        if anchor is None:
+            # A pre-fix store carries no anchor: nothing to re-express,
+            # and the caller adopts one on its next save.
+            return False
+        try:
+            anchor = float(anchor)
+        except (TypeError, ValueError):
+            return False
+        current = self._house_heat_loss_anchor()
+        if anchor <= 1e-9 or current <= 1e-9 or not np.isfinite(anchor):
+            return False
+        if abs(current / anchor - 1.0) <= HOUSE_LOSS_MAX_STEP:
+            return False
+        phi = house_loss_confidence(self._house_heat_loss_samples)
+        measured_ua = self._house_heat_loss_scale * anchor
+        effective = (1.0 - phi) * current + phi * measured_ua
+        new_scale = effective / current
+        if (
+            new_scale < HOUSE_HEAT_LOSS_SCALE_MIN
+            or new_scale > HOUSE_HEAT_LOSS_SCALE_MAX
+        ):
+            _LOGGER.warning(
+                "Learned house heat loss scale %.3f (fitted against "
+                "%.4f kW/°C, %d samples) cannot be expressed against the "
+                "newly configured %.4f kW/°C: resetting to the "
+                "configuration",
+                self._house_heat_loss_scale,
+                anchor,
+                self._house_heat_loss_samples,
+                current,
+            )
+            self._apply_house_heat_loss_scale(DEFAULT_HOUSE_HEAT_LOSS_SCALE)
+            self._house_heat_loss_samples = 0
+            return True
+        _LOGGER.info(
+            "Re-anchored learned house heat loss scale %.3f -> %.3f "
+            "against the configured UA %.4f -> %.4f kW/°C (%d samples, "
+            "confidence %.2f)",
+            self._house_heat_loss_scale,
+            new_scale,
+            anchor,
+            current,
+            self._house_heat_loss_samples,
+            phi,
+        )
+        self._apply_house_heat_loss_scale(new_scale)
+        return True
 
     async def _async_learn_buffer_cooling(self, buffer_temp: float) -> None:
         """Refine the buffer tank standby loss from quiet decay.
@@ -4748,7 +4874,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 "house_heat_loss_coefficient"
             ]
             # A new nameplate value invalidates the correction learned against
-            # the old one, so start over from "trust the configuration".
+            # the old one, so start over from "trust the configuration". The
+            # save below records the anchor for the coefficient just applied,
+            # so the restart pairs this reset with whatever the options carry
+            # (issue #86: the old defect was the reset outliving an in-memory-
+            # only coefficient change, leaving the next start 0.80x wrong).
             self._apply_house_heat_loss_scale(DEFAULT_HOUSE_HEAT_LOSS_SCALE)
             self._house_heat_loss_samples = 0
             await self._async_save_thermal_learning()
@@ -8344,6 +8474,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             # NOT ride this path — see _async_load_thermal_learning.
             self._freq_map = FrequencyMap()
             self._load_t4b_learners(thermal)
+            # v5.7.0 (issue #86): a snapshot from before an options edit
+            # carries a scale fitted against the pre-edit anchor; restoring
+            # it verbatim here would re-install the pre-edit correction
+            # against the new configuration. The same law the loader uses,
+            # without the save -- snapshots are restores, and the next
+            # regular save records the fresh anchor.
+            self._reanchor_house_heat_loss_scale(
+                thermal.get("house_heat_loss_anchor")
+            )
         profile = learners.get("dhw_profile")
         if isinstance(profile, dict):
             hourly = profile.get("hourly_profile")
