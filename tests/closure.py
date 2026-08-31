@@ -55,11 +55,16 @@ CLOSURES = ROOT / "tests" / "closures.json"
 
 # Scripts that are shared plumbing or are driven by another script, and so are
 # never selected on their own. Mirrors the exclusions in tests/run.sh.
+# setup_qa_render.mjs is WIRED into the card lane (runs every gate, #101)
+# but stays unselectable, the rolling.py pattern: making it selectable
+# would need it recorded in the Linux-only derive lanes plus a
+# coordinated closures.json update, and its dependencies are the card
+# source and the payload -- both already covered by card.mjs's closure,
+# which the strace re-recording on main will grow to include dom_stub.mjs
+# the next time it runs.
 # card_browser.mjs, the real-browser layout lane (issue #96), is excluded
 # because it needs Chromium, which no other lane installs: the closures job
-# could not record it without growing a browser. Its dependency closure is
-# the card source, the plan payload and itself -- nothing the gate could
-# skip on its behalf. It runs in its own job in the workflow.
+# could not record it without growing a browser. It runs in its own job.
 NOT_A_TEST = {
     "harness.py", "profiles.py", "closure.py", "setup_qa_render.mjs",
     "card_browser.mjs",
