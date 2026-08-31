@@ -1,5 +1,28 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v5.6.2
+
+### The eleven code scanning alerts are cleared
+
+All open CodeQL findings, no behaviour changes:
+
+- The solar-fetch failure warning no longer logs the coordinates —
+  four decimals of geolocation is identifying, and the diagnostics
+  payload already publishes rounded ones where they are wanted.
+- The two test-harness findings are cleared by construction: the QA
+  renderer splices its style block with `indexOf` + slice instead of a
+  non-global `replace(/>/, …)`, and the card test reads tooltip labels
+  through the DOM stub's `textContent` instead of regex tag-stripping.
+- `hassfest.yml`, `validate.yml` and `tests.yml` declare
+  `permissions: contents: read` — the convention the release workflow
+  already followed.
+- The two third-party actions (`home-assistant/actions/hassfest`,
+  `hacs/action`) are pinned by commit SHA, with the upstream branch
+  recorded in a trailing comment.
+
+The QA renderer also executed end-to-end for the first time while this
+was verified — three self-contained setup SVGs, written correctly.
+
 ## v5.6.1
 
 ### The fix program for everything currently open

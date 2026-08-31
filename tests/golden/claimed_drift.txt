@@ -43,13 +43,10 @@
 # does not expire with the stamp and is not part of the inherited-claims
 # comparison.
 #
-# claims-for: 5.6.1
+# claims-for: 5.6.2
 #
-# This branch is documentation only: the fix program in
-# docs/plan-open-issues.md plus the release stamp. Nothing under
-# custom_components/ changes behaviour, and no planning code runs
-# differently. The list below is therefore EMPTY, which is the whole
-# claim: byte-identical behaviour everywhere.
+# This release moves no goldens: the eleven code scanning
+# alerts are cleared without touching behaviour.
 #
 # Emptying it is not housekeeping. A behaviour-free branch that leaves this
 # file alone inherits the baseline's claims verbatim, and inheritance
