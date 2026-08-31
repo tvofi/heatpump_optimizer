@@ -226,6 +226,9 @@ for f in tests/*.py tests/*.mjs; do
   base=$(basename "$f")
   case "$base" in
     harness.py|profiles.py) continue ;;  # shared plumbing, not tests
+    # The shared DOM-stub module (#101): imported by card.mjs and
+    # setup_qa_render.mjs, never run on its own.
+    dom_stub.mjs) continue ;;
     # The scoping instrument, not a test: it RUNS the tests to measure what
     # they touch. Wiring it into the suite would make the suite run itself.
     closure.py) continue ;;
@@ -370,7 +373,7 @@ done
 for f in tests/*.py tests/*.mjs; do
   base=$(basename "$f")
   case "$base" in
-    harness.py|profiles.py|dst_checks.py|closure.py|card_browser.mjs) continue ;;
+    harness.py|profiles.py|dst_checks.py|closure.py|dom_stub.mjs|card_browser.mjs) continue ;;
   esac
   if ! cat "$WORKDIR"/*.manifest 2>/dev/null | grep -Fq "tests/$base"; then
     echo "TEST NEVER RAN: tests/$base is wired into tests/run.sh but no lane"
