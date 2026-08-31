@@ -1741,9 +1741,19 @@ _off_entry = FakeEntry(
 )
 _off_flow = options(_off_entry)
 _off_flow.hass = FakeHass()
-_off_saved = asyncio.run(
+_off_result = asyncio.run(
     _off_flow.async_step_thermal_model({const.CONF_TWO_ZONE_MODE: "off"})
-)["data"]
+)
+# Guarded before indexing (#100's prerequisite): a page that stops
+# returning create_entry must fail the check, not KeyError the suite.
+R.check(
+    "turning two-zone off reaches the save",
+    _off_result.get("type") == "create_entry" and isinstance(
+        _off_result.get("data"), dict
+    ),
+    str(_off_result.get("type")),
+)
+_off_saved = _off_result.get("data") or {}
 R.check(
     "the mode select can turn two-zone off despite stored zone keys",
     not ThermalParameters.from_config(
@@ -1753,9 +1763,17 @@ R.check(
 )
 _on_flow = options(_legacy)
 _on_flow.hass = FakeHass()
-_on_saved = asyncio.run(
+_on_result = asyncio.run(
     _on_flow.async_step_thermal_model({const.CONF_TWO_ZONE_MODE: "on"})
-)["data"]
+)
+R.check(
+    "turning two-zone on reaches the save",
+    _on_result.get("type") == "create_entry" and isinstance(
+        _on_result.get("data"), dict
+    ),
+    str(_on_result.get("type")),
+)
+_on_saved = _on_result.get("data") or {}
 R.check(
     "and can turn two-zone on for a legacy entry with no zone keys",
     ThermalParameters.from_config(
@@ -1775,16 +1793,31 @@ _presence_quad = (
     const.CONF_INTER_ZONE_TRANSFER,
     const.CONF_RADIATOR_POWER_FRACTION,
 )
+_saved_pages: list[str] = []
+_menu_pages: list[str] = []
+_odd_outcomes: list[str] = []
 for _step in options._MENU_LABELS:
     _sf = options(FakeEntry(data=dict(_legacy.data)))
     _sf.hass = FakeHass()
     _sform = asyncio.run(getattr(_sf, f"async_step_{_step}")(None))
     _sschema = _sform.get("data_schema")
     if _sschema is None:
+        _odd_outcomes.append(f"{_step}: rendered without a schema")
         continue
     _sresult = asyncio.run(getattr(_sf, f"async_step_{_step}")(_sschema({})))
-    if _sresult.get("type") != "create_entry":
-        continue  # pages like setup_overview just return to the menu
+    _kind = _sresult.get("type")
+    if _kind == "menu":
+        # A page that hands straight back to the menu saves nothing here
+        # (the read-only overview does); the two-zone invariant is vacuous
+        # for it, but the outcome is still classified, never skipped.
+        _menu_pages.append(_step)
+        if not _sresult.get("menu_options"):
+            _odd_outcomes.append(f"{_step}: menu without menu_options")
+        continue
+    if _kind != "create_entry":
+        _odd_outcomes.append(f"{_step}: untouched submit returned {_kind!r}")
+        continue
+    _saved_pages.append(_step)
     _ssaved = _sresult["data"]
     _wrote = [k for k in _presence_quad if k in _ssaved]
     R.check(
@@ -1795,6 +1828,24 @@ for _step in options._MENU_LABELS:
         ).two_zone_enabled,
         f"wrote presence keys {_wrote}",
     )
+# The net's own net (#100's prerequisite): the sweep must EXERCISE every
+# page and account for each outcome. When the options pages move to
+# returning to the menu after a save, the create_entry branch above goes
+# quiet for them -- without these two checks the loop would report green
+# while asserting nothing, which is exactly how a menu-return feature
+# would ship untested by construction.
+R.check(
+    "every options page answers an untouched submit with a save or the menu",
+    not _odd_outcomes,
+    "; ".join(_odd_outcomes),
+)
+R.check(
+    "the untouched-save sweep exercised every page",
+    len(_saved_pages) + len(_menu_pages) == len(options._MENU_LABELS)
+    and bool(_saved_pages),
+    f"saved {len(_saved_pages)}, menu {len(_menu_pages)}, "
+    f"of {len(options._MENU_LABELS)} pages",
+)
 
 # A stored value is *suggested* back, not defaulted: the form pre-fills, but
 # an untouched submission still writes nothing.
@@ -2185,6 +2236,15 @@ for _step in options._MENU_LABELS:
     _rt_result = asyncio.run(getattr(_rt_flow, f"async_step_{_step}")(_rt_valid))
     if _rt_result.get("type") not in ("create_entry", "menu"):
         _rejected.append(f"{_step}: submit returned {_rt_result.get('type')}")
+    elif _rt_result.get("type") == "menu" and not _rt_result.get("menu_options"):
+        # A menu hand-back must actually be the menu; anything else is a
+        # page that lost its way home (#100's prerequisite).
+        _rejected.append(f"{_step}: menu without menu_options")
+    elif (
+        _rt_result.get("type") == "create_entry"
+        and not isinstance(_rt_result.get("data"), dict)
+    ):
+        _rejected.append(f"{_step}: save without data")
 R.check(
     "every options page accepts the values it displays, on a full configuration",
     not _rejected,
@@ -3554,7 +3614,8 @@ _okform = asyncio.run(_okopt.async_step_comfort(None))
 _oksaved = asyncio.run(_okopt.async_step_comfort(_okform["data_schema"]({})))
 R.check(
     "an untouched comfort page still saves",
-    _oksaved["type"] == "create_entry",
+    _oksaved.get("type") == "create_entry",
+    str(_oksaved.get("type")),
 )
 
 # The power pair, initial thermal step and options thermal_model page.
@@ -3611,8 +3672,9 @@ _tm2res = asyncio.run(
 )
 R.check(
     "and saves a floor that fits under it",
-    _tm2res["type"] == "create_entry"
-    and _tm2res["data"].get(const.CONF_HEAT_PUMP_MIN_POWER) == 2.0,
+    _tm2res.get("type") == "create_entry"
+    and (_tm2res.get("data") or {}).get(const.CONF_HEAT_PUMP_MIN_POWER) == 2.0,
+    str(_tm2res.get("type")),
 )
 
 # Every error key used by the validators exists in all three string files.
