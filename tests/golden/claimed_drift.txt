@@ -43,9 +43,10 @@
 # does not expire with the stamp and is not part of the inherited-claims
 # comparison.
 #
-# claims-for: 6.0.6
+# claims-for: 6.0.7
 #
-# The releases since v5.6.0 have each moved no goldens, and the list
+# Documentation only (the plan file's delivery
+# status); this release moves no goldens. The releases since v5.6.0 have each moved no goldens, and the list
 # below is empty for all of them: the code-scanning fixes are
 # behaviour-neutral, the settlement cap's bound is inert at every
 # captured configuration, the re-anchor fires only when a stored

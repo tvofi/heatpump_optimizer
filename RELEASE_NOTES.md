@@ -1,5 +1,17 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.0.7
+
+### The plan file records what has been delivered
+
+`docs/plan-open-issues.md` gains a delivery-status section: the eleven
+items delivered across v5.6.0–v6.0.6, #98 closed by measurement, #99
+and #97's `maxfun` cap in review, and the five still to build — plus
+the two unplanned items that joined the program on the way (the v5.6.0
+harness confinement and the `frontend.py` closure fix). Where the
+status section and a wave body disagree, the status section is the
+truth. Documentation only; no behaviour changes.
+
 ## v6.0.6
 
 ### BLAS threads are pinned to one for the duration of each solve
