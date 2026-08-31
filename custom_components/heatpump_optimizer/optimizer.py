@@ -119,6 +119,17 @@ _COMFORT_PULL_TWO_ZONE = 0.0125
 # again on the low-powered hardware Home Assistant usually runs on.
 _MULTI_START_SOLVES = 2
 
+# Hard ceiling on objective evaluations per L-BFGS-B start (issue #97).
+# scipy's own default (15000) leaves only ~2x headroom over the measured
+# worst start (7,178 evaluations on the two-zone winter scenario, where
+# the line search costs ~326 evaluations per iteration); 10000 binds 40%
+# above that worst while cutting the pathological ceiling by a third.
+# Every measured scenario converges far below it -- the cap is a
+# worst-case bound for cold-start storms on weak hardware, not a budget
+# the healthy path ever notices -- and the drift gate holds the plans
+# byte-identical wherever it does not bind.
+_SOLVE_MAX_FUNCTION_EVALS = 10_000
+
 try:  # pragma: no cover - present via the manifest requirement
     from threadpoolctl import threadpool_limits as _threadpool_limits
 except ImportError:  # bare test imports without installed requirements
@@ -196,7 +207,12 @@ def _multi_start_minimize(
                 args=args,
                 method="L-BFGS-B",
                 bounds=bounds,
-                options={"maxiter": maxiter, "ftol": 1e-6, "eps": 1e-4},
+                options={
+                    "maxiter": maxiter,
+                    "maxfun": _SOLVE_MAX_FUNCTION_EVALS,
+                    "ftol": 1e-6,
+                    "eps": 1e-4,
+                },
             )
         except Exception as err:  # pragma: no cover - solver blow-up
             last_error = err
