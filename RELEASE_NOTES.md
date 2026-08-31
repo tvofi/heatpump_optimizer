@@ -1,5 +1,30 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.0.1
+
+### The crawl-space floor stops counting twice
+
+A slab-bearing structure paired with a crawl-space foundation counted
+the floor twice in the building questionnaire's derived physics: once
+as the structure table's heavy slow store and once as the foundation's
+loss path. The subtraction now removes the slab exactly once, derived
+from the timber table's own slab-on-grade vs crawl-space rows so it
+moves with a future table edit, floored at the crawl-space row
+(issue #93).
+
+Scoped to slab-bearing structures: "stone or masonry" makes no claim
+about what is under the floor, so a stone house on a `torpargrund` is
+two honest answers with nothing to remove — the shape the rejected
+`min(slow, 0.010)` cap got wrong, which would have collapsed masonry
+over crawl space to the same mass as bare timber.
+
+Timber-on-slab over a crawl space now derives identically to the
+crawl-space structure — which is also the test's mutation anchor. And
+with the re-anchor from v6.0.0 in place, re-answering the questionnaire
+now actually reaches an install that has already learned something:
+the uplift survives the reload instead of being absorbed by the old
+scale.
+
 ## v6.0.0
 
 ### The learned heat-loss scale survives an options edit

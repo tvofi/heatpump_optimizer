@@ -43,11 +43,14 @@
 # does not expire with the stamp and is not part of the inherited-claims
 # comparison.
 #
-# claims-for: 6.0.0
+# claims-for: 6.0.1
 #
-# The re-anchor fires only when a stored learning's anchor differs
-# from the configured UA, which no golden scenario carries (fresh
-# coordinators have no store), so no golden moves.
+# The crawl-space subtraction changes what presets.derive computes
+# for slab-bearing structures over a crawl-space foundation, and no
+# captured scenario runs that combination (the building_preset
+# fixture is a timber slab over no foundation) -- measured by the
+# gate, which is why an earlier building_preset claim was STALE. No
+# golden moves.
 #
 # Emptying it is not housekeeping. A behaviour-free branch that leaves this
 # file alone inherits the baseline's claims verbatim, and inheritance
