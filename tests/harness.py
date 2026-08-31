@@ -171,6 +171,23 @@ class FakeConfigEntries:
     def __init__(self) -> None:
         self.entries = []
         self.reloaded = []
+        # One name per async_update_entry call (#100): the options pages that
+        # stay in the dialog persist through here, and tests assert both the
+        # write and its count.
+        self.updated = []
+
+    def async_update_entry(self, entry, options=None, **kwargs):
+        """Record the write-through (#100) and apply it, as HA does.
+
+        The pre-existing tail version of this method (a generic kwargs
+        setter) silently shadowed the recording one when both were
+        defined; merged here into the one definition.
+        """
+        if options is not None:
+            kwargs["options"] = options
+        for key, value in kwargs.items():
+            setattr(entry, key, value)
+        self.updated.append(getattr(entry, "entry_id", None))
 
     def async_entries(self, domain=None):
         return list(self.entries)
@@ -184,10 +201,6 @@ class FakeConfigEntries:
 
     async def async_unload_platforms(self, entry, platforms):
         return True
-
-    def async_update_entry(self, entry, **kwargs):
-        for key, value in kwargs.items():
-            setattr(entry, key, value)
 
 
 class FakeHttp:

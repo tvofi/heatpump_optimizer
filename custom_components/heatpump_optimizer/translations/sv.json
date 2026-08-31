@@ -282,7 +282,8 @@
           "heat_pump_mode_entity": "Värmepumpens driftläge",
           "heat_pump_defrost_entity": "Avfrostning",
           "heat_pump_online_entity": "Pumpen är uppkopplad",
-          "heat_pump_fault_entity": "Felindikering"
+          "heat_pump_fault_entity": "Felindikering",
+          "after_save": "Efter sparande"
         },
         "data_description": {
           "tibber_token": "Används för att läsa dina timpriser på el. Skapa en på developer.tibber.com. Lämna som den är om den inte har ändrats.",
@@ -306,7 +307,8 @@
           "heat_pump_mode_entity": "Valfritt. Pumpens eget lägesval - kyla, värme, varmvatten eller en kombination av två. Läses bara av: optimeringen ändrar aldrig läget. En pump som står i kylläge eller enbart varmvatten kan inte värma huset, och en som står i enbart värmeläge kan inte göra varmvatten. Utan det här kan planen alltså lova värme som pumpen just då inte kan leverera. Lämnas fältet tomt antar optimeringen att pumpen klarar allt, precis som förut.",
           "heat_pump_defrost_entity": "Valfritt. På medan pumpen vänder cykeln för att smälta bort frost från utomhusbatteriet. Elen som köps under en avfrostning går till batteriet i stället för in i huset. Tänk på att många pumpar bara avfrågas med några minuters mellanrum, så korta avfrostningar missas helt: det här är ett stickprov på avfrostning, inte ett tidtagarur.",
           "heat_pump_online_entity": "Valfritt, men varmt rekommenderat för en molnansluten pump. På medan pumpen faktiskt går att nå. En molnintegration kan fortsätta publicera sina senast kända värden medan pumpen själv har tappat nätverket, vilket får alla andra givare att se alldeles färska ut. Det här är den enda signal som avslöjar det. Vid lokal anslutning (LAN) blir givarna otillgängliga av sig själva och fältet tillför då lite.",
-          "heat_pump_fault_entity": "Valfritt. På medan pumpen larmar om ett fel. Bara om det finns ett fel används, aldrig själva felkoden."
+          "heat_pump_fault_entity": "Valfritt. På medan pumpen larmar om ett fel. Bara om det finns ett fel används, aldrig själva felkoden.",
+          "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst."
         }
       },
       "comfort": {
@@ -322,7 +324,8 @@
           "day_end_hour": "Dagen slutar",
           "mold_guard_enabled": "Håll kalla ytor under mögelfuktighet",
           "indoor_humidity_entity": "Inomhusfuktsensor (valfri)",
-          "thermal_bridge_frsi": "Sämsta köldbryggans faktor (fRsi)"
+          "thermal_bridge_frsi": "Sämsta köldbryggans faktor (fRsi)",
+          "after_save": "Efter sparande"
         },
         "data_description": {
           "target_temperature": "Vad du faktiskt vill att huset ska ligga på. Optimeringen siktar hit och avviker bara för att undvika dyra timmar.",
@@ -334,7 +337,8 @@
           "day_end_hour": "Timmen på kvällen då nattemperaturen tar över.",
           "mold_guard_enabled": "Husets kallaste punkt — en fönstersmyg, ett hörn bakom en garderob — ligger långt under rumstemperaturen, och mögel börjar växa där ytans fuktighet stannar över 80 %. Med detta på låter optimeraren inte huset svalna under den temperatur som håller den punkten säker, beräknad ur uppmätt inomhusfukt och utomhusprognosen. Kräver fuktsensorn nedan; den värmer aldrig förbi ditt komfortmål — ihållande hög fukt är ett ventilationsproblem, inte ett värmeproblem.",
           "indoor_humidity_entity": "En relativ fuktsensor i bostadsutrymmet. Utan en förblir mögelvakten av oavsett omkopplaren.",
-          "thermal_bridge_frsi": "Hur kall din sämsta yta blir, som andel: yta = ute + fRsi × (rum − ute). 0,75 är svenska byggreglernas riktvärde; lägre betyder en kallare värsta punkt och en försiktigare vakt."
+          "thermal_bridge_frsi": "Hur kall din sämsta yta blir, som andel: yta = ute + fRsi × (rum − ute). 0,75 är svenska byggreglernas riktvärde; lägre betyder en kallare värsta punkt och en försiktigare vakt.",
+          "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst."
         }
       },
       "hot_water": {
@@ -363,7 +367,8 @@
           "shower_flow_lpm": "Duschens flöde",
           "vvc_pump_entity": "Brytare för VVC-pump (valfritt)",
           "vvc_lead_minutes": "Starta cirkulationen före tidsfönstret",
-          "space_circulation_pump_entity": "Brytare för värmesystemets cirkulationspump (valfritt)"
+          "space_circulation_pump_entity": "Brytare för värmesystemets cirkulationspump (valfritt)",
+          "after_save": "Efter sparande"
         },
         "data_description": {
           "dhw_schedule_enabled": "På: varmvatten garanteras bara under tiderna nedan, och beredaren får svalna däremellan. Av: beredaren hålls varm dygnet runt, vilket kostar märkbart mer.",
@@ -388,7 +393,8 @@
           "shower_flow_lpm": "Ditt duschmunstyckes flöde. Används bara för att räkna om tankens innehåll till duschminuter på sensorn Mixed Hot Water.",
           "vvc_pump_entity": "En brytare som styr VVC-pumpen. Om satt körs pumpen bara under dina varmvattenfönster, plus förvarmningstiden nedan.",
           "vvc_lead_minutes": "Hur långt före ett varmvattenfönster cirkulationspumpen startar, så att slingan redan är varm när fönstret öppnar.",
-          "space_circulation_pump_entity": "En brytare som styr värmesystemets cirkulationspump. Om satt pausas pumpen bara i stunder som bevisligen är sysslolösa och varma — den går alltid när värme är planerad, när det är minusgrader ute eller när något rum är nära sin komfortgräns."
+          "space_circulation_pump_entity": "En brytare som styr värmesystemets cirkulationspump. Om satt pausas pumpen bara i stunder som bevisligen är sysslolösa och varma — den går alltid när värme är planerad, när det är minusgrader ute eller när något rum är nära sin komfortgräns.",
+          "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst."
         }
       },
       "building": {
@@ -405,7 +411,8 @@
           "wood_tank_top_entity": "Vedtankens toppgivare (valfri)",
           "wood_tank_bottom_entity": "Vedtankens bottengivare (valfri)",
           "wood_tank_volume": "Vedtankens volym",
-          "dhw_wood_coil_enabled": "Varmvattnet fylls på genom vedtanken"
+          "dhw_wood_coil_enabled": "Varmvattnet fylls på genom vedtanken",
+          "after_save": "Efter sparande"
         },
         "data_description": {
           "mixing_valve_mode": "\"Ställs in för hand\" är en ventil du själv ställer in; ange nedan vad du ställde den på. \"Läs från givare\" innebär att integrationen kan se börvärdet men inte ändra det. \"Styrs av optimeraren\" skriver det rekommenderade börvärdet till ventilens egen styrning via styrenheten nedan.",
@@ -418,7 +425,8 @@
           "wood_tank_top_entity": "Tillsammans med bottengivaren säger den hur mycket en brasa har kvar. En varm topp över en kall botten betyder att laddningen nästan är slut.",
           "wood_tank_bottom_entity": "Se toppgivaren. Båda behövs för uppskattningen av återstående energi; en ensam läses försiktigt.",
           "wood_tank_volume": "Buffertanken på vedsidan, används för att begränsa hur mycket gratis värme en brasa fortfarande kan leverera.",
-          "dhw_wood_coil_enabled": "Varmvattenberedarens kallvatteninlopp går genom en slinga i vedbuffertanken, så påfyllningsvattnet kommer in förvärmt när den tanken är varm. Får bara effekt när vedtanken modelleras som ett eget lager."
+          "dhw_wood_coil_enabled": "Varmvattenberedarens kallvatteninlopp går genom en slinga i vedbuffertanken, så påfyllningsvattnet kommer in förvärmt när den tanken är varm. Får bara effekt när vedtanken modelleras som ett eget lager.",
+          "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst."
         }
       },
       "tuning": {
@@ -434,7 +442,8 @@
           "compressor_replacement_cost": "Kostnad för kompressorbyte (SEK)",
           "compressor_rated_starts": "Kompressorns märkantal starter",
           "wear_autotune_enabled": "Låt faktiskt slitage styra cyklingskostnaden",
-          "price_tiles_enabled": "Uppdatera prisplattor efter varje optimering"
+          "price_tiles_enabled": "Uppdatera prisplattor efter varje optimering",
+          "after_save": "Efter sparande"
         },
         "data_description": {
           "price_weight": "Högre värde gör att optimeringen jobbar hårdare för att flytta värmen till billiga timmar, till priset av större temperatursvängningar.",
@@ -446,7 +455,8 @@
           "compressor_replacement_cost": "Vad ett kompressorbyte kostar, inklusive arbete. Delat med märkantalet starter nedan prissätter det varje faktisk kompressorstart; lämna på 0 så förblir starträknaren ren observation utan pengar inblandade.",
           "compressor_rated_starts": "Hur många starter tillverkaren anger att kompressorn tål. Byteskostnaden ovan slås ut över detta antal.",
           "wear_autotune_enabled": "När detta är på blir slitagepriset per start (byteskostnad delat med märkantal starter) ett golv under kompressorns cyklingskostnad ovan, så att planerna inte underskattar en kostnad du gjort explicit. Detta är den enda insiktsfunktionen som påverkar planerna.",
-          "price_tiles_enabled": "Efter varje schemalagd optimering prissätts en tänk-om-platta — måltemperatur en grad lägre, en grad högre och effekten begränsad till 75 %, i tur och ordning. Av som standard eftersom varje platta är en hel extra optimering av riktig CPU-tid."
+          "price_tiles_enabled": "Efter varje schemalagd optimering prissätts en tänk-om-platta — måltemperatur en grad lägre, en grad högre och effekten begränsad till 75 %, i tur och ordning. Av som standard eftersom varje platta är en hel extra optimering av riktig CPU-tid.",
+          "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst."
         }
       },
       "heat_curve": {
@@ -460,7 +470,8 @@
           "ecl110_mqtt_retain": "Behåll MQTT-meddelanden",
           "ecl110_displace_min": "Största nedåtförskjutning",
           "ecl110_displace_max": "Största uppåtförskjutning",
-          "ecl110_pid_time_constant_hours": "Regulatorns svarstid"
+          "ecl110_pid_time_constant_hours": "Regulatorns svarstid",
+          "after_save": "Efter sparande"
         },
         "data_description": {
           "ecl110_displace_set_topic": "MQTT-topic dit parallellförskjutningen av värmekurvan publiceras. Lämna tomt om du inte har en Danfoss ECL110.",
@@ -470,7 +481,8 @@
           "ecl110_mqtt_retain": "Sparar den senaste förskjutningen på mäklaren så att regulatorn hämtar den efter en omstart.",
           "ecl110_displace_min": "Hur långt ned värmekurvan får förskjutas under dyra timmar.",
           "ecl110_displace_max": "Hur långt upp värmekurvan får förskjutas när billig värme lagras.",
-          "ecl110_pid_time_constant_hours": "Ungefär hur lång tid regulatorn behöver för att verkställa en ny förskjutning. Används så att optimeringen inte begär snabbare ändringar än systemet hinner följa."
+          "ecl110_pid_time_constant_hours": "Ungefär hur lång tid regulatorn behöver för att verkställa en ny förskjutning. Används så att optimeringen inte begär snabbare ändringar än systemet hinner följa.",
+          "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst."
         }
       },
       "building_preset": {
@@ -487,7 +499,8 @@
           "window_area": "Fönsteryta mot solen",
           "solar_heat_gain_coefficient": "Hur mycket solljus fönstren släpper in",
           "wind_sensitivity_factor": "Vindkänslighet",
-          "rain_heat_loss_multiplier": "Regnkänslighet"
+          "rain_heat_loss_multiplier": "Regnkänslighet",
+          "after_save": "Efter sparande"
         },
         "data_description": {
           "building_preset_enabled": "Slår du på detta skrivs värmekapacitet, värmeförlust och värmesystemsvärden på sidan Termisk modell (expert) över varje gång den här sidan sparas.",
@@ -500,7 +513,8 @@
           "solar_heat_gain_coefficient": "0,6 är typiskt för modern treglasruta. Högre värde ger mer gratis värme soliga dagar.",
           "wind_sensitivity_factor": "Hur mycket extra värme huset förlorar per m/s vind. Höj den om huset märkbart kyls ned blåsiga dagar, så förvärmer optimeringen i förväg.",
           "rain_heat_loss_multiplier": "Extra värmeförlust när det regnar. 1,0 betyder att regn inte spelar någon roll.",
-          "building_foundation": "En krypgrund ökar värmeförlusterna; en uppvärmd källare ger både mer förlustyta och mer termisk massa."
+          "building_foundation": "En krypgrund ökar värmeförlusterna; en uppvärmd källare ger både mer förlustyta och mer termisk massa.",
+          "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst."
         }
       },
       "thermal_model": {
@@ -522,7 +536,8 @@
           "inter_zone_heat_transfer": "Värmeöverföring mellan zoner (kW/°C)",
           "radiator_power_fraction": "Andel värme till radiatorer",
           "upper_floor_area_ratio": "Övervåning ytförhållande",
-          "solar_orientation_factor": "Solorientering (1.0=full söder)"
+          "solar_orientation_factor": "Solorientering (1.0=full söder)",
+          "after_save": "Efter sparande"
         },
         "data_description": {
           "house_thermal_mass": "Hur mycket värme rumsluften, inredningen och den lätta stommen lagrar per grad — ungefär 0,02 kWh/°C per m² uppvärmd yta för ett trähus, 0,05 eller mer för sten. Tunga golv och en värmd platta räknas separat under Plattans termiska massa, så den här siffran ensam är inte hela byggnaden.",
@@ -540,7 +555,8 @@
           "inter_zone_heat_transfer": "Hur mycket värme som vandrar mellan planen. Högre värde innebär att värme till ett plan också värmer det andra, typiskt vid öppen trappa.",
           "radiator_power_fraction": "Gäller endast tvåzonssystem. 0 betyder att all värme går till golvplattan, 1 att allt går till radiatorerna. 0,4 betyder 40 procent till radiatorer.",
           "upper_floor_area_ratio": "Andel av total golvyta som ligger på övre planet. 0,5 betyder att planen är lika stora.",
-          "solar_orientation_factor": "Hur väl fönstren möter solen över dagen. 1,0 passar mest södervända fönster; sänk för öster- eller västerläge som bara får sol en del av dagen."
+          "solar_orientation_factor": "Hur väl fönstren möter solen över dagen. 1,0 passar mest södervända fönster; sänk för öster- eller västerläge som bara får sol en del av dagen.",
+          "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst."
         }
       },
       "grid": {
@@ -564,7 +580,8 @@
           "main_fuse_phases": "Faser",
           "fuse_guard_enabled": "Håll planen under huvudsäkringen",
           "peak_guard_enabled": "Effektvakt i realtid",
-          "peak_guard_margin_kw": "Effektvaktens marginal"
+          "peak_guard_margin_kw": "Effektvaktens marginal",
+          "after_save": "Efter sparande"
         },
         "data_description": {
           "peak_tariff_price_per_kw": "Hämta siffran från din nätfaktura — den varierar kraftigt mellan nätbolag.",
@@ -584,7 +601,8 @@
           "fuse_guard_enabled": "Begränsar värmepumpens planerade effekt till vad säkringen lämnar efter resten av huset. Om en begränsning skulle göra komfortgolvet onåbart säger planen det på sina sensorer i stället för att tyst bli kall.",
           "peak_guard_enabled": "Bevakar effektmätaren live och håller tillbaka eldrivet varmvatten samt sänker värmekurvan resten av mätfönstret när fönstret beräknas sätta en ny fakturerad topp. Kräver en effektmätare; en kall tank eller ett brutet komfortgolv vinner alltid över vakten.",
           "peak_guard_margin_kw": "Hur långt under den fakturerade tröskeln vakten börjar agera. Större fångar fler toppar och ingriper oftare.",
-          "peak_tariff_enabled": "Lägger in elnätsbolagets månadsavgift för effekttoppar i målet, så att utjämnade toppar är värda riktiga pengar."
+          "peak_tariff_enabled": "Lägger in elnätsbolagets månadsavgift för effekttoppar i målet, så att utjämnade toppar är värda riktiga pengar.",
+          "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst."
         }
       },
       "solar_pv": {
@@ -596,7 +614,8 @@
           "pv_system_efficiency": "Systemets totala verkningsgrad",
           "pv_export_price": "Ersättning per såld kWh",
           "pv_export_price_entity": "Entitet för ersättning (valfritt)",
-          "pv_production_entity": "Sensor för solproduktion (valfritt)"
+          "pv_production_entity": "Sensor för solproduktion (valfritt)",
+          "after_save": "Efter sparande"
         },
         "data_description": {
           "pv_system_efficiency": "Allt mellan solljus och mätare: växelriktarförluster, panelernas temperatur, smuts, väderstreck. 0,8 är typiskt.",
@@ -604,7 +623,8 @@
           "pv_export_price_entity": "Använd denna i stället om din ersättning följer spotpriset.",
           "pv_enabled": "Låter planen köra värmepumpen på ditt eget överskott i stället för att sälja det för mindre än vad köpt el kostar.",
           "pv_peak_kw": "Anläggningens installerade toppeffekt. Används för att skala produktionsprognosen.",
-          "pv_production_entity": "Valfritt. En sensor med faktisk produktion låter prognosen rätta sig efter vad taket verkligen levererar."
+          "pv_production_entity": "Valfritt. En sensor med faktisk produktion låter prognosen rätta sig efter vad taket verkligen levererar.",
+          "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst."
         }
       },
       "away": {
@@ -615,14 +635,16 @@
           "away_presence_entity": "Indikator för bortavaro",
           "away_return_entity": "Förväntad hemkomst (valfritt)",
           "away_temperature": "Temperatur när ingen är hemma",
-          "away_dhw_min_temperature": "Lägsta varmvattentemperatur vid bortavaro"
+          "away_dhw_min_temperature": "Lägsta varmvattentemperatur vid bortavaro",
+          "after_save": "Efter sparande"
         },
         "data_description": {
           "away_presence_entity": "En semesterbrytare, en person eller enhetsspårare, eller en kalender. Polariteten sköts åt dig: att en person är 'inte hemma' och att en semesterbrytare är 'på' betyder båda bortavaro.",
           "away_return_entity": "Utan denna ligger huset kvar på sänkningen tills du själv slår om, och uppvärmningen kostar då vad priset råkar vara.",
           "away_dhw_min_temperature": "Legionellacykeln körs fortfarande, och tidsätts så att den hinner bli klar innan du är tillbaka.",
           "away_enabled": "Djup sänkning när huset står tomt, med återhämtning tidsatt så att huset är varmt igen när du kommer hem.",
-          "away_temperature": "Temperaturen som hålls under bortavaron. Låg nog att spara, hög nog att skydda hus och rör."
+          "away_temperature": "Temperaturen som hålls under bortavaron. Låg nog att spara, hög nog att skydda hus och rör.",
+          "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst."
         }
       },
       "learning": {
@@ -646,7 +668,8 @@
           "capacity_curve_enabled": "Planera inom uppmätt värmepumpskapacitet",
           "solar_aperture_learning_enabled": "Lär hur mycket sol fönstren verkligen släpper in",
           "internal_gains_learning_enabled": "Lär hushållets dagliga värmerytm",
-          "curve_learning_enabled": "Lär en korrigering av värmekurvan"
+          "curve_learning_enabled": "Lär en korrigering av värmekurvan",
+          "after_save": "Efter sparande"
         },
         "data_description": {
           "staleness_watchdog_enabled": "Ett dött batteri lämnar ett helt normalt utseende värde kvar för alltid. Utan åtgärd lär sig modellen av den platta kurvan, och skadan överlever en omstart. Med detta på behandlas ett gammalt värde som saknat och inlärningen pausas i stället.",
@@ -666,7 +689,8 @@
           "solar_aperture_learning_enabled": "Fönsterarea och skuggning är konfigurerade gissningar. Detta jämför soltimmarnas prognoser med vad som faktiskt hände och skalar solvinsten därefter, mellan en tredjedel och det dubbla av det konfigurerade värdet.",
           "internal_gains_learning_enabled": "Människor, matlagning och apparater värmer huset i en dygnsrytm som den platta konstanten inte ser. Detta lär en timprofil ur mörkertimmarnas prognosfel, varsamt förankrad i det konfigurerade värdet så att den förblir en förfining, inte en omskrivning.",
           "curve_learning_enabled": "De flesta värmekurvor ställdes in en gång, försiktigt, av en installatör som aldrig kom tillbaka. Detta lär en stående korrigering ur dagar som höll komforten med marginal — kryper svalare med högst en halv grad per vecka, och återgår omedelbart till installatörens kurva vid varje komfortmiss. Den kan bara kyla en för het kurva, aldrig värma.",
-          "external_heat_decay_minutes": "Hur länge upptäckt extern värme antas fortsätta bidra efter att bevisen klingat av. Längre tid håller tillbaka planen längre efter att en brasa brunnit ut."
+          "external_heat_decay_minutes": "Hur länge upptäckt extern värme antas fortsätta bidra efter att bevisen klingat av. Längre tid håller tillbaka planen längre efter att en brasa brunnit ut.",
+          "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst."
         }
       }
     },
@@ -757,6 +781,12 @@
         "observe": "Observera (lär och rekommendera enbart)",
         "control": "Styrning (skriv frekvensen)"
       }
+    },
+    "after_save": {
+      "options": {
+        "menu": "Tillbaka till menyvalen",
+        "close": "Stäng dialogen"
+      }
     }
   },
   "issues": {
@@ -782,7 +812,7 @@
     },
     "pump_mode_unreadable": {
       "title": "Värmepumpens driftlägesenhet rapporterar inte",
-      "description": "Enheten du valt för värmepumpens driftläge har inte gått att läsa på över {hours} timmar. Det senaste läget den rapporterade var \u201d{mode}\u201d, och fram tills nu har planen fortfarande hållits till vad det läget klarar. Så är det inte längre: ett driftläge som ingen kunnat läsa på timmar säger inget om vad pumpen gör, och att fortsätta stänga av värme eller varmvatten utifrån det vore att låta dig frysa på en död givares ord. Planen utgår återigen från att pumpen klarar allt, precis som innan du konfigurerade enheten. Kontrollera att enheten fortfarande finns och är tillgänglig, eller töm fältet om du inte vill använda den. Meddelandet försvinner så snart enheten rapporterar igen."
+      "description": "Enheten du valt för värmepumpens driftläge har inte gått att läsa på över {hours} timmar. Det senaste läget den rapporterade var ”{mode}”, och fram tills nu har planen fortfarande hållits till vad det läget klarar. Så är det inte längre: ett driftläge som ingen kunnat läsa på timmar säger inget om vad pumpen gör, och att fortsätta stänga av värme eller varmvatten utifrån det vore att låta dig frysa på en död givares ord. Planen utgår återigen från att pumpen klarar allt, precis som innan du konfigurerade enheten. Kontrollera att enheten fortfarande finns och är tillgänglig, eller töm fältet om du inte vill använda den. Meddelandet försvinner så snart enheten rapporterar igen."
     },
     "dhw_legionella_mode_blocked": {
       "title": "Desinfektionen av varmvattnet är försenad: värmepumpens driftläge blockerar den",

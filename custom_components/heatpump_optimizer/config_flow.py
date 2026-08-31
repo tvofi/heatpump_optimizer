@@ -56,6 +56,9 @@ from .const import (
     CONF_MAX_TEMP,
     CONF_COMFORT_TEMP_DAY,
     CONF_COMFORT_TEMP_NIGHT,
+    AFTER_SAVE_CLOSE,
+    AFTER_SAVE_MENU,
+    CONF_AFTER_SAVE,
     COMFORT_TEMP_DAY_SELECTOR_MAX,
     COMFORT_TEMP_DAY_SELECTOR_MIN,
     COMFORT_TEMP_NIGHT_SELECTOR_MAX,
@@ -787,6 +790,24 @@ def _solar_location_selector() -> selector.LocationSelector:
     return selector.LocationSelector(selector.LocationSelectorConfig(radius=False))
 
 
+def _options_schema(fields: dict) -> vol.Schema:
+    """One options-page schema, with the after-save choice appended (#100).
+
+    Every saving page in the options flow carries the same last field: what
+    the dialog should do after this save. A Home Assistant form renders
+    exactly one submit button, so a schema field is the only mechanism that
+    can express two outcomes from one submit. Optional with a default, so
+    it can never make a page unsubmittable, and the value is stripped by
+    ``_save_or_menu`` before anything persists.
+    """
+    return vol.Schema({
+        **fields,
+        vol.Optional(CONF_AFTER_SAVE, default=AFTER_SAVE_MENU): _select(
+            [AFTER_SAVE_MENU, AFTER_SAVE_CLOSE], "after_save"
+        ),
+    })
+
+
 def _default_location(hass: HomeAssistant, current: dict[str, Any]) -> dict[str, float]:
     """Pre-fill the map with the configured point, else the HA home location."""
     existing = current.get(CONF_SOLAR_LOCATION)
@@ -1482,6 +1503,37 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
             title="", data={**self._entry.options, **user_input}
         )
 
+    async def _save_or_menu(self, user_input: dict[str, Any]) -> FlowResult:
+        """Persist one page, then stay in the dialog or close it (#100).
+
+        The default is the section menu: changing settings in two sections
+        used to mean opening the dialog, saving, watching it close, and
+        opening it again. The write goes through immediately -- an
+        ``async_update_entry`` the whole integration reacts to at once,
+        exactly as a save-and-close always did -- and never a deferral
+        keyed on flow liveness, whose leaked flow ids would suppress
+        reloads permanently (the silent-save failure this project has
+        been bitten by once already; see the issue for the design that
+        was rejected).
+
+        The after-save choice is read here and stripped before the merge,
+        so it can never persist. ``cur_step`` -- set by
+        ``async_show_form`` on every render -- says which section's menu
+        to come back to, so the advanced pages return to the advanced
+        menu rather than the top one.
+        """
+        user_input = dict(user_input)
+        choice = user_input.pop(CONF_AFTER_SAVE, AFTER_SAVE_MENU)
+        if choice == AFTER_SAVE_CLOSE:
+            return self._save(user_input)
+        self.hass.config_entries.async_update_entry(
+            self._entry, options={**self._entry.options, **user_input}
+        )
+        step_id = (getattr(self, "cur_step", None) or {}).get("step_id")
+        if step_id in self._ADVANCED_MENU:
+            return await self.async_step_advanced()
+        return await self.async_step_init()
+
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
@@ -1522,6 +1574,8 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         if user_input is not None:
             return await self.async_step_init()
         setup = topology.describe_setup(self._current)
+        # Read-only: no after-save choice, because this page saves nothing
+        # -- offering the choice here would be a button that lies.
         return self.async_show_form(
             step_id="setup_overview",
             data_schema=vol.Schema({}),
@@ -1550,7 +1604,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
                 for key in self._ENTITIES_PAGE_KEYS:
                     if not cleaned.get(key):
                         cleaned[key] = None
-                return self._save(cleaned)
+                return await self._save_or_menu(cleaned)
             current = {**current, **user_input}
 
         def _entity(key: str) -> Any:
@@ -1563,7 +1617,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         return self.async_show_form(
             step_id="entities",
             errors=errors,
-            data_schema=vol.Schema(
+            data_schema=_options_schema(
                 {
                     vol.Required(
                         CONF_TIBBER_TOKEN,
@@ -1660,7 +1714,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
                 # written back as None so clearing genuinely clears.
                 if not cleaned.get(CONF_INDOOR_HUMIDITY_ENTITY):
                     cleaned[CONF_INDOOR_HUMIDITY_ENTITY] = None
-                return self._save(cleaned)
+                return await self._save_or_menu(cleaned)
 
         current = self._current
         if user_input is not None:
@@ -1676,7 +1730,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         return self.async_show_form(
             step_id="comfort",
             errors=errors,
-            data_schema=vol.Schema(
+            data_schema=_options_schema(
                 {
                     vol.Required(
                         CONF_TARGET_TEMP,
@@ -1776,7 +1830,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
                 ):
                     if not cleaned.get(key):
                         cleaned[key] = None
-                return self._save(cleaned)
+                return await self._save_or_menu(cleaned)
 
         current = self._current
         if user_input is not None:
@@ -1791,7 +1845,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         return self.async_show_form(
             step_id="hot_water",
             errors=errors,
-            data_schema=vol.Schema(
+            data_schema=_options_schema(
                 {
                     vol.Optional(
                         CONF_DHW_SCHEDULE_ENABLED,
@@ -1959,7 +2013,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
             ):
                 if not cleaned.get(key):
                     cleaned[key] = None
-            return self._save(cleaned)
+            return await self._save_or_menu(cleaned)
 
         current = self._current
 
@@ -1972,7 +2026,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
 
         return self.async_show_form(
             step_id="building",
-            data_schema=vol.Schema(
+            data_schema=_options_schema(
                 {
                     vol.Optional(
                         CONF_MIXING_VALVE_MODE,
@@ -2093,7 +2147,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
                     # it disarmed the questionnaire for every user who had
                     # ever opened this page and pressed the button.
                     saved[CONF_BUILDING_PRESET_ENABLED] = False
-                return self._save(saved)
+                return await self._save_or_menu(saved)
 
         current = self._current
         if user_input is not None:
@@ -2121,7 +2175,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
             step_id="thermal_model",
             errors=errors,
             description_placeholders={"preset_warning": preset_warning},
-            data_schema=vol.Schema(
+            data_schema=_options_schema(
                 {
                     _numeric(CONF_HOUSE_THERMAL_MASS): _number(
                         *RANGE_HOUSE_THERMAL_MASS, 0.5, "kWh/°C"
@@ -2185,12 +2239,12 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
     ) -> FlowResult:
         """Balance between saving money and holding the setpoint."""
         if user_input is not None:
-            return self._save(user_input)
+            return await self._save_or_menu(user_input)
 
         current = self._current
         return self.async_show_form(
             step_id="tuning",
-            data_schema=vol.Schema(
+            data_schema=_options_schema(
                 {
                     vol.Required(
                         CONF_PRICE_WEIGHT,
@@ -2278,12 +2332,12 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
     ) -> FlowResult:
         """Danfoss ECL110 heat-curve offset control over MQTT."""
         if user_input is not None:
-            return self._save(user_input)
+            return await self._save_or_menu(user_input)
 
         current = self._current
         return self.async_show_form(
             step_id="heat_curve",
-            data_schema=vol.Schema(
+            data_schema=_options_schema(
                 {
                     vol.Optional(
                         CONF_ECL110_DISPLACE_SET_TOPIC,
@@ -2355,11 +2409,11 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
             saved = dict(user_input)
             if saved.get(CONF_BUILDING_PRESET_ENABLED):
                 saved.update(_derive_preset(saved, current))
-            return self._save(saved)
+            return await self._save_or_menu(saved)
 
         return self.async_show_form(
             step_id="building_preset",
-            data_schema=vol.Schema(
+            data_schema=_options_schema(
                 {
                     vol.Optional(
                         CONF_BUILDING_PRESET_ENABLED,
@@ -2436,7 +2490,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
                         )
                 if not cleaned.get(CONF_GRID_FEE_ENTITY):
                     cleaned[CONF_GRID_FEE_ENTITY] = None
-                return self._save(cleaned)
+                return await self._save_or_menu(cleaned)
 
         current = self._current
         if user_input is not None:
@@ -2457,7 +2511,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         return self.async_show_form(
             step_id="grid",
             errors=errors,
-            data_schema=vol.Schema(
+            data_schema=_options_schema(
                 {
                     vol.Optional(
                         CONF_PEAK_TARIFF_ENABLED,
@@ -2606,7 +2660,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
             for key in (CONF_PV_PRODUCTION_ENTITY, CONF_PV_EXPORT_PRICE_ENTITY):
                 if not cleaned.get(key):
                     cleaned[key] = None
-            return self._save(cleaned)
+            return await self._save_or_menu(cleaned)
 
         current = self._current
 
@@ -2618,7 +2672,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
 
         return self.async_show_form(
             step_id="solar_pv",
-            data_schema=vol.Schema(
+            data_schema=_options_schema(
                 {
                     vol.Optional(
                         CONF_PV_ENABLED,
@@ -2655,7 +2709,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
             for key in (CONF_AWAY_PRESENCE_ENTITY, CONF_AWAY_RETURN_ENTITY):
                 if not cleaned.get(key):
                     cleaned[key] = None
-            return self._save(cleaned)
+            return await self._save_or_menu(cleaned)
 
         current = self._current
 
@@ -2667,7 +2721,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
 
         return self.async_show_form(
             step_id="away",
-            data_schema=vol.Schema(
+            data_schema=_options_schema(
                 {
                     vol.Optional(
                         CONF_AWAY_ENABLED,
@@ -2700,7 +2754,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
             for key in (CONF_EXTERNAL_HEAT_ENTITY,):
                 if not cleaned.get(key):
                     cleaned[key] = None
-            return self._save(cleaned)
+            return await self._save_or_menu(cleaned)
 
         current = self._current
 
@@ -2712,7 +2766,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
 
         return self.async_show_form(
             step_id="learning",
-            data_schema=vol.Schema(
+            data_schema=_options_schema(
                 {
                     vol.Optional(
                         CONF_STALENESS_ENABLED,
