@@ -45,14 +45,17 @@
 #
 # claims-for: 5.6.0
 #
-# This branch moves the building questionnaire's derived physics for
-# slab-bearing structures over a crawl-space foundation (issue #93):
-# the floor stops counting once as the structure table's slow store and
-# again as the foundation's loss path. The building_preset capture
-# moves with it; scenarios whose configs do not pair a slab-bearing
-# structure with a crawl-space foundation do not.
+# This branch changes what presets.derive computes for slab-bearing
+# structures over a crawl-space foundation (issue #93), and no golden
+# capture moves: the building_preset fixture runs the default preset
+# (timber slab, no foundation), where the subtraction does not fire,
+# and no coordinator scenario pairs a slab-bearing structure with a
+# crawl-space foundation either. Measured by the gate itself, which is
+# why an earlier claim for building_preset here was STALE. The list
+# below is EMPTY: byte-identical behaviour in every captured scenario,
+# with the change reachable only through a questionnaire answer no
+# fixture exercises.
 #
-building_preset -- crawl-space double count removed from presets.derive (issue #93)
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
