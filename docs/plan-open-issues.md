@@ -18,6 +18,71 @@ decisions, not proposals:
   joins the visual-QA lane with a DOM stub shared with `card.mjs`
   instead of a drifting copy.
 
+## Delivery status
+
+Updated as the program lands; each item names the release that carried
+it. Where this section and a wave body below disagree, this section is
+the truth.
+
+**Delivered:**
+
+- **The eleven CodeQL alerts** — cleared in v5.6.2 (verified empty on
+  the default branch after merge).
+- **#87, the settlement cap's bound** — v5.7.0. Inert at every captured
+  configuration; the mutation anchors are the schema-minimum case and a
+  reachable 45 °C plant.
+- **#89, the optimality gate's budget check** — v5.7.1. The gate now
+  races the production-budget solve against a starved one; the cut it
+  could not see cost 16.2 % on two-zone.
+- **#86, the re-anchor** — v6.0.0. The threshold-gated law, the zone-
+  total basis, clamp-means-reset, the gated write, and both collateral
+  defects, mutation-proven three ways (the disabled-law mutation
+  reproduces the issue's 1.937× headline number exactly).
+- **#93, the crawl-space double count** — v6.0.1. No golden moves: the
+  captured presets never pair a slab-bearing structure with a crawl
+  space. With the re-anchor in place, a questionnaire re-answer now
+  reaches an install that has already learned something.
+- **#92, the comfort-band validation** — v6.0.2. The night-selector
+  exemption, the joint satisfiability sweep, and the shared selector
+  bounds in `const.py`.
+- **#90, the loud closures gate** — v6.0.3. `derive_closures.sh
+  --single` shipped with it and immediately proved itself by fixing the
+  `frontend.py` closure under-scoping that main's gate had just caught.
+- **The entities.py repair (#100's prerequisite)** — v6.0.4. The
+  options-flow loops classify every page's outcome instead of skipping
+  silently.
+- **#91, the no-copies rule** — v6.0.5. `closure.py no-copies` fails on
+  a test-defined symbol that matches production; runs in the closures
+  job on main.
+- **#88, the BLAS thread pin** — v6.0.6. `threadpoolctl` as a manifest
+  requirement, scoped to each minimize call; plan fingerprints
+  byte-identical.
+- **#98, the GIL-yield bound** — closed by measurement, no code change:
+  the longest contiguous GIL hold during a realistic cold solve is
+  ~34 ms (median ~7 ms, the 5 ms switch interval plus scheduling),
+  recorded on the issue with the Pi extrapolation stated.
+
+**In flight:**
+
+- **#99, retention** — the rolling-suite harness plus the recorder fix
+  (`manual_override`, `dhw_windows` unrecorded) is in review; the first
+  measurement found every audited collection bounded.
+- **#97, gradient cost** — the measurement is on the issue (9,998
+  trajectory evaluations per solve; the line search dominates at ~326
+  evaluations per iteration) and the `maxfun` cap is in review. The
+  analytic-gradient item remains open as its own decision; the
+  vectorized-FD item is not available (the simulation is sequential
+  pure Python).
+
+**Still to build:** #94 (drift-cache warming on main), #96 (browser
+lane), #101 (QA renderer wiring), #95 (card seams, after #96), #100
+(menu-return; its test prerequisite is delivered above).
+
+Two unplanned items joined the program on the way and are part of the
+record above: v5.6.0 (the test harness's file and network sinks — five
+pre-existing security-scan findings that were blocking all commits) and
+v6.0.3's closure fix for `frontend.py`.
+
 ## Standing rules for every item
 
 - One PR per issue (or one tightly themed group), squash-merged, closing
