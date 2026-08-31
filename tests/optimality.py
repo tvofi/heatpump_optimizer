@@ -86,4 +86,30 @@ for tz in (False,True):
     R.check("no perturbation finds a materially cheaper comfort-safe plan",
             best >= c0 * 0.965, f"best {best:.2f} vs optimizer {c0:.2f}")
 
+    # Challenger 3 (two-zone only): the solver's own iteration budget,
+    # raced against itself. A second solve with maxiter slashed to 3 --
+    # the exact 300 -> 3 cut this gate once could not see (issue #89) --
+    # must be materially cheaper when solved at the production budget:
+    # measured 16.2% costlier starved on this scenario, against 0.3%
+    # single-zone (which is why the check lives here and only here). The
+    # bound is not a hardcoded objective: if production's budget is ever
+    # cut, the two solves coincide and the check fails by construction.
+    # Headroom is generous over the measured gap, like every threshold
+    # in this file, so BLAS-to-BLAS noise cannot trip it.
+    if tz:
+        from unittest import mock
+        from heatpump_optimizer import optimizer as _opt_mod
+        _full_ms = _opt_mod._multi_start_minimize
+        def _starved_ms(objective, starts, bounds, *a, **kw):
+            kw["maxiter"] = 3
+            return _full_ms(objective, starts, bounds, *a, **kw)
+        with mock.patch.object(_opt_mod, "_multi_start_minimize", _starved_ms):
+            r3 = opt.optimize(st,pr,ot,wi,ra,so,start)
+        c3,v3,_,_ = evaluate(m,np.asarray(r3.power_schedule),st,ot,wi,ra,so,pr)
+        print(f" starved  : cost {c3:7.2f}  viol {v3:.3f}")
+        R.check("the production iteration budget buys a materially better plan",
+                v3 <= 1e-6 and c0 <= c3 * 0.95,
+                f"full-budget {c0:.2f} vs starved {c3:.2f} "
+                f"({100.0*(c3-c0)/c3:.1f}% gap)")
+
 sys.exit(R.close("OPTIMALITY CHECKS"))
