@@ -58,6 +58,11 @@ on:
   schedule:
     - cron: "17 2 * * *"
 
+# The suite needs the code it tests and the cache it reuses, nothing
+# more; every job inherits this read-only floor.
+permissions:
+  contents: read
+
 jobs:
   fast:
     if: github.event_name == 'push' || github.event_name == 'pull_request'

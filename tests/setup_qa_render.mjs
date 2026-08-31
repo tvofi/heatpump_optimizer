@@ -265,12 +265,13 @@ function renderTopo(name, topo) {
   const page = collect(card.shadowRoot).join("\n");
   const svg = (page.match(/<svg class="setup-svg[\s\S]*?<\/svg>/) || [""])[0];
   if (!svg) { console.error(`FAIL: no setup svg for ${name}`); process.exit(1); }
-  // Self-contained file: white ground + inlined card CSS with vars resolved.
-  const withStyle = svg.replace(
-    />/,
-    `><style>svg { background: #fff; font-family: sans-serif; }\n${layoutCss}</style>` +
-    `<rect x="0" y="0" width="100%" height="100%" fill="#ffffff" />`
-  );
+  // Self-contained file: white ground + inlined card CSS with vars
+  // resolved, spliced in right after the opening <svg ...> tag.
+  const openEnd = svg.indexOf(">");
+  const inject =
+    `<style>svg { background: #fff; font-family: sans-serif; }\n${layoutCss}</style>` +
+    `<rect x="0" y="0" width="100%" height="100%" fill="#ffffff" />`;
+  const withStyle = openEnd < 0 ? svg : svg.slice(0, openEnd + 1) + inject + svg.slice(openEnd + 1);
   const file = path.join(outDir, `${name}.svg`);
   fs.writeFileSync(file, withStyle);
   console.log(`${name}: ${file}`);

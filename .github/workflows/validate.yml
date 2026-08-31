@@ -8,6 +8,10 @@ on:
   pull_request:
   workflow_dispatch:
 
+# Read-only validation: the GITHUB_TOKEN needs nothing beyond checkout.
+permissions:
+  contents: read
+
 jobs:
   validate-hacs:
     runs-on: ubuntu-latest
@@ -16,6 +20,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: HACS validation
-        uses: hacs/action@main
+        # Pinned by commit: this is a moving branch upstream.
+        uses: hacs/action@1ebf01c408f29afcb6406bd431bc98fd8cbb15aa # main
         with:
           category: integration

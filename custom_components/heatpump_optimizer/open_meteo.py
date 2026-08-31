@@ -345,11 +345,12 @@ class OpenMeteoSolar:
             # Log loudly once, then stay quiet: a multi-hour outage should not
             # fill the log with one warning per coordinator cycle.
             if self._failures == 1:
+                # No coordinates in the message: four decimals of
+                # geolocation is identifying, and diagnostics() already
+                # publishes rounded ones where they are wanted.
                 _LOGGER.warning(
-                    "Could not fetch solar irradiance from Open-Meteo for "
-                    "%.4f,%.4f; continuing with cached data",
-                    self.latitude,
-                    self.longitude,
+                    "Could not fetch solar irradiance from Open-Meteo; "
+                    "continuing with cached data"
                 )
             else:
                 _LOGGER.debug(
