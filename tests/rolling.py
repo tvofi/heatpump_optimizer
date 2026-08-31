@@ -35,6 +35,7 @@ from homeassistant.util import dt as dt_util
 
 from profiles import DT, house, prices, weather
 from heatpump_optimizer.dhw_schedule import hour_in_windows, parse_windows
+from heatpump_optimizer import accuracy as accuracy_mod
 from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator
 from heatpump_optimizer.optimizer import HeatPumpOptimizer, OptimizationConfig
 from heatpump_optimizer.thermal_model import (
@@ -248,6 +249,9 @@ def run_rolling(
         "windows": windows,
         "days": days,
         "total_steps": total_steps,
+        # The live coordinator that was driven, when learn=True, so the
+        # retention section can measure what it actually retained.
+        "learner": learner,
     }
 
 
@@ -501,6 +505,75 @@ R.check(
     "a correct model is not corrupted by the learner",
     abs(float(drift[-1]) - 1.0) < 0.12,
     f"scale drifted to {float(drift[-1]):.3f} on a model that was already right",
+)
+
+
+# ===========================================================================
+# Retention: nothing the learner keeps may grow without bound (issue #99)
+# ===========================================================================
+R.section("Retention over the long run")
+
+# The audit's finding was that nothing measures retention at all: several
+# collections LOOK unbounded by construction (dicts keyed by floats, lists
+# with no visible trim) and the only detector was a user's Home Assistant
+# running out of memory. This measures them after the multi-day closed loop
+# above, on the live coordinator that was driven, and asserts a ceiling each.
+# The ceilings are deliberately generous: the point is to catch growth, not
+# to pin exact sizes -- a collection that legitimately needs more room says
+# so in its check message and gets the ceiling raised with a reason, not
+# silently.
+_learner = learned["learner"]
+R.check(
+    "the retention section measured a live learner",
+    _learner is not None,
+    "run_rolling(learn=True) returned no coordinator to inspect",
+)
+
+_lead_keys = set(_learner._accuracy.lead_sigma) | set(
+    _learner._accuracy.lead_counts
+)
+R.check(
+    "the lead-error maps stay at their bucket count, not one key per float",
+    len(_lead_keys) <= 2 * len(accuracy_mod.LEAD_BUCKETS),
+    f"{len(_lead_keys)} distinct lead keys after three days; buckets are "
+    f"{accuracy_mod.LEAD_BUCKETS} -- anything past this is float drift "
+    "keying the maps",
+)
+R.check(
+    "the pending-promise list stays under its hard cap",
+    len(_learner._accuracy.lead_pending)
+    <= 512,  # the cap itself, read from the module's documented limit
+    f"{len(_learner._accuracy.lead_pending)} pending promises",
+)
+R.check(
+    "the accuracy sample ring keeps its documented size",
+    len(_learner._accuracy.samples)
+    <= accuracy_mod.HISTORY_LENGTH,
+    f"{len(_learner._accuracy.samples)} samples "
+    f"(ring maxlen {accuracy_mod.HISTORY_LENGTH})",
+)
+R.check(
+    "the COP baseline stays within its temperature-bucket count",
+    len(_learner._cop_baseline) <= 40,
+    f"{len(_learner._cop_baseline)} baseline buckets",
+)
+R.check(
+    "the capacity envelope stays within its bucket count",
+    len(_learner._capacity_envelope) <= 40,
+    f"{len(_learner._capacity_envelope)} envelope buckets",
+)
+R.check(
+    "a step-response experiment does not accumulate samples across runs",
+    len(_learner._sysid.samples) <= 24 * 60,
+    f"{len(_learner._sysid.samples)} sysid samples retained "
+    "(arm() clears per run)",
+)
+_traj = _learner._thermal_model.last_buffer_trajectory
+R.check(
+    "the retained buffer trajectory is one horizon, not one per solve",
+    _traj is None or len(_traj) <= int(24 / DT) + 1,
+    f"{0 if _traj is None else len(_traj)} points retained "
+    "(one horizon; +1 is the initial state every trajectory carries)",
 )
 
 

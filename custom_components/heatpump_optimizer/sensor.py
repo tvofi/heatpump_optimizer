@@ -1191,7 +1191,14 @@ class _PlanSensorBase(HeatPumpOptimizerSensorBase):
     still recorded and remain usable in history and automations.
     """
 
-    _unrecorded_attributes = frozenset({"forecast", "slots", "setup_topology"})
+    # manual_override and dhw_windows ride along for the card (issue #99):
+    # one is a whole manual-plan dict, the other a window list, and both are
+    # read from the live coordinator where the card reads them -- writing
+    # them to the recorder database on every state change costs an SD card
+    # for nothing history can use.
+    _unrecorded_attributes = frozenset(
+        {"forecast", "slots", "setup_topology", "manual_override", "dhw_windows"}
+    )
     _plan_key: str = ""
     # Stable machine-readable marker. Entity ids depend on the device name and
     # can be renamed by the user, so the dashboard card discovers these sensors
