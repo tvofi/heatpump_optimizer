@@ -50,7 +50,7 @@ R = Results("Replay backtest")
 START = datetime(2026, 1, 15, 0, 0)
 
 
-def build(two_zone: bool, dhw: bool):
+def build_case(two_zone: bool, dhw: bool):
     cfg = house(two_zone=two_zone, dhw=dhw)
     params = ThermalParameters.from_config(cfg)
     params.dhw_enabled = dhw
@@ -154,7 +154,7 @@ print(
 )
 
 for label, two_zone, price_key, weather_key in SCENARIOS:
-    model, opt_cfg, optimizer = build(two_zone, dhw=False)
+    model, opt_cfg, optimizer = build_case(two_zone, dhw=False)
     price_series = prices(price_key, START)
     outdoor, wind, rain, solar = weather(weather_key, START)
     state = ThermalState(

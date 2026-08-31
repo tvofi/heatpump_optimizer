@@ -41,6 +41,7 @@ Nothing here imports the integration; recording does, by running the tests.
 from __future__ import annotations
 
 import argparse
+import ast
 import json
 import os
 import re
@@ -443,6 +444,111 @@ def merge(in_dir: Path, out: Path, allow_failures: bool = False,
     return 0
 
 
+def production_names() -> dict[str, str]:
+    """Every top-level name a production module defines, name -> module.
+
+    The ``_``-private majority is deliberately included: a test file
+    defining its own ``_apply_house_heat_loss_scale`` is exactly as bad
+    as one defining ``HOUSE_LOSS_ALPHA`` -- worse, actually, because the
+    underscore reads like an import alias.
+    """
+    names: dict[str, str] = {}
+    comp = ROOT / "custom_components" / "heatpump_optimizer"
+    for p in sorted(comp.glob("*.py")):
+        try:
+            tree = ast.parse(p.read_text())
+        except SyntaxError:
+            continue
+        for node in tree.body:
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef,
+                                 ast.ClassDef)):
+                names[node.name] = p.stem
+            elif isinstance(node, ast.Assign):
+                for t in node.targets:
+                    if isinstance(t, ast.Name):
+                        names[t.id] = p.stem
+            elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
+                names[node.target.id] = p.stem
+    return names
+
+
+def no_copies() -> int:
+    """Fail when a test file defines a symbol production also defines.
+
+    The rule this enforces is written in tests/README.md and was violated
+    twice in one session (issue #91): a test re-implements a production
+    formula -- a local confidence curve, a local materiality guard -- and
+    asserts against its own copy. The assertion CAN fail, so it survives
+    the review that catches tests that cannot, but it fails when the
+    TEST FILE's arithmetic changes rather than when production's does,
+    and its mutation proofs prove the copy.
+
+    This is deliberately the cheap version the issue proposes: a name
+    collision. It is not airtight against a copy that renames the local,
+    and it does not try to be -- it raises the cost of the accident,
+    which is what this is. Nobody did it on purpose.
+
+    Judged per top-level scope, because that is where a test file's
+    helpers live; a same-named LOCAL inside a function is shadowing a
+    production name only within those few lines, which the collision
+    list would make noisy rather than useful.
+    """
+    prod = production_names()
+    # ``DOMAIN`` and friends are generic enough that a test-local use of
+    # the WORD is not a copy claim; anything the tests import is usage,
+    # not a definition. Only definitions collide.
+    imported_ok = set()
+    failed = 0
+    for script in test_scripts() + ["tests/harness.py", "tests/profiles.py"]:
+        if not script.endswith(".py") or script in NOT_A_TEST:
+            if script not in ("tests/harness.py", "tests/profiles.py"):
+                continue
+        path = ROOT / script
+        if not path.exists():
+            continue
+        tree = ast.parse(path.read_text())
+        # What this file legitimately brings in from production: direct
+        # from-imports and attributes of imported production modules.
+        prod_modules = set()
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom) and node.module and (
+                node.module.startswith("heatpump_optimizer")
+            ):
+                for a in node.names:
+                    imported_ok.add(a.asname or a.name)
+            elif isinstance(node, ast.Import):
+                for a in node.names:
+                    if a.name.startswith("heatpump_optimizer"):
+                        prod_modules.add(a.asname or a.name.split(".")[-1])
+            elif (isinstance(node, ast.Attribute)
+                  and isinstance(node.value, ast.Name)
+                  and node.value.id in prod_modules):
+                imported_ok.add(node.attr)
+        for node in tree.body:
+            defined: str | None = None
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef,
+                                 ast.ClassDef)):
+                defined = node.name
+            elif isinstance(node, ast.Assign):
+                if len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
+                    defined = node.targets[0].id
+            if defined is None or defined not in prod:
+                continue
+            print(f"COPY-CLAIMED: {script} defines '{defined}', which is "
+                  f"production's {prod[defined]}.{defined}")
+            failed += 1
+    if failed:
+        print()
+        print(f"{failed} test-file symbol(s) share a name with production.")
+        print("A test must import the production symbol, not re-implement")
+        print("it: an assertion against a copy fails when the copy changes,")
+        print("not when production does. See tests/README.md -- 'import the")
+        print("real thing'.")
+        return 1
+    print("closure: no test file defines a symbol production also defines")
+    return 0
+
+
 def check(in_dir: Path) -> int:
     """Fail if the committed closures MISS anything a fresh run touched.
 
@@ -679,6 +785,7 @@ def main() -> int:
     s.add_argument("--json", action="store_true")
     s.add_argument("--workdir")
     sub.add_parser("show")
+    sub.add_parser("no-copies")
     a = ap.parse_args()
     if a.cmd == "record":
         return record(a.script, Path(a.out_dir), a.args)
@@ -687,6 +794,8 @@ def main() -> int:
                       partial=a.partial)
     if a.cmd == "check":
         return check(Path(a.in_dir))
+    if a.cmd == "no-copies":
+        return no_copies()
     if a.cmd == "show":
         print(CLOSURES.read_text())
         return 0

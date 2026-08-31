@@ -397,7 +397,7 @@ BUILDINGS = {
 }
 
 
-def build(
+def build_case(
     *,
     season: str,
     building: str | None = None,
@@ -754,7 +754,7 @@ for combo in combinations:
     sample_ms = calibration.sample()
     unit_ms = max(calibration.unit_ms, 1e-6)
     budget_ms = SOLVE_BUDGET_RATIO * unit_ms
-    run = build(**combo)
+    run = build_case(**combo)
     solve_ms = float(run["solve_cpu_ms"])          # CPU: the load-free clock
     wall_ms = float(run["result"].solve_time_ms)   # wall: for the ceiling only
     ratio = solve_ms / unit_ms
@@ -932,7 +932,7 @@ def thermostat_cost(run: dict) -> float:
 
 
 for season in ("winter", "winter_extreme", "shoulder"):
-    run = build(season=season, two_zone=False, dhw=False)
+    run = build_case(season=season, two_zone=False, dhw=False)
     result = run["result"]
     baseline = thermostat_cost(run)
     R.check(
@@ -944,7 +944,7 @@ for season in ("winter", "winter_extreme", "shoulder"):
 # With a flat price curve there is nothing to arbitrage, so the optimizer
 # should not be *worse* than a thermostat -- but neither should it claim a
 # large saving, which would mean it is simply running colder.
-flat = build(season="flat", two_zone=False, dhw=False)
+flat = build_case(season="flat", two_zone=False, dhw=False)
 R.check(
     "a flat price curve produces no fictitious saving",
     flat["result"].savings_percentage < 35.0,
@@ -960,7 +960,7 @@ R.check(
 # actually responding to price.
 spread_savings = {}
 for season in ("flat", "winter", "winter_extreme"):
-    run = build(season=season, two_zone=False, dhw=False)
+    run = build_case(season=season, two_zone=False, dhw=False)
     prices_arr = np.asarray(run["result"].prices)
     spread = float(prices_arr.max() - prices_arr.min())
     spread_savings[season] = (spread, run["result"].savings_percentage)
@@ -980,7 +980,7 @@ R.check(
 # solver noise discussed below.
 comfort_curve = []
 for weight in (5.0, 10.0, 20.0, 40.0):
-    run = build(season="winter", two_zone=False, dhw=False)
+    run = build_case(season="winter", two_zone=False, dhw=False)
     run["config"].comfort_weight = weight
     optimizer = HeatPumpOptimizer(run["model"], run["config"])
     result = optimizer.optimize(
@@ -1029,7 +1029,7 @@ R.check("the README's comfort-weight table still holds", not drift, "; ".join(dr
 # could ever see, so whatever it moves is pure solver instability.
 adjacent = []
 for scale in (0.0, 1.0):
-    run = build(season="winter", two_zone=False, dhw=False)
+    run = build_case(season="winter", two_zone=False, dhw=False)
     optimizer = HeatPumpOptimizer(run["model"], run["config"])
     wobble = np.where(np.arange(run["n"]) % 2 == 0, 1e-6, -1e-6) * scale
     result = optimizer.optimize(
@@ -1044,8 +1044,8 @@ R.check(
 )
 
 # The capacity tariff must actually flatten the peak it is priced against.
-plain = build(season="winter", two_zone=True, dhw=True)
-tariffed = build(season="winter", two_zone=True, dhw=True, tariff=True)
+plain = build_case(season="winter", two_zone=True, dhw=True)
+tariffed = build_case(season="winter", two_zone=True, dhw=True, tariff=True)
 plain_peak = plain["result"].projected_peak_kw
 tariff_peak = tariffed["result"].projected_peak_kw
 R.check(
@@ -1060,8 +1060,8 @@ R.check(
 )
 
 # A cycling cost must reduce cycling.
-smooth = build(season="winter", two_zone=False, dhw=True, cycling=3.0)
-rough = build(season="winter", two_zone=False, dhw=True, cycling=0.0)
+smooth = build_case(season="winter", two_zone=False, dhw=True, cycling=3.0)
+rough = build_case(season="winter", two_zone=False, dhw=True, cycling=0.0)
 R.check(
     "a cycling cost reduces compressor starts",
     smooth["result"].compressor_starts <= rough["result"].compressor_starts,
@@ -1069,7 +1069,7 @@ R.check(
 )
 
 # PV surplus must pull consumption into the surplus hours.
-sunny = build(season="shoulder", two_zone=False, dhw=True, pv=True)
+sunny = build_case(season="shoulder", two_zone=False, dhw=True, pv=True)
 R.check(
     "PV surplus is self-consumed",
     sunny["result"].pv_self_consumed_kwh > 0.0,
@@ -1091,8 +1091,8 @@ R.check(
 #
 # So the honest invariant is dominance: never worse on either axis, and
 # strictly better on at least one.
-efficient = build(season="winter", two_zone=False, dhw=False, cop_scale=1.4)
-standard = build(season="winter", two_zone=False, dhw=False, cop_scale=1.0)
+efficient = build_case(season="winter", two_zone=False, dhw=False, cop_scale=1.4)
+standard = build_case(season="winter", two_zone=False, dhw=False, cop_scale=1.0)
 
 
 def _warmth(run):
@@ -1119,8 +1119,8 @@ R.check(
 )
 
 # A leakier house must cost more than a tight one, all else equal.
-tight = build(season="winter", building="light_new", dhw=False)
-leaky = build(season="winter", building="heavy_old", dhw=False)
+tight = build_case(season="winter", building="light_new", dhw=False)
+leaky = build_case(season="winter", building="heavy_old", dhw=False)
 R.check(
     "a leakier, larger house costs more to heat",
     leaky["result"].predicted_cost > tight["result"].predicted_cost,
@@ -1171,7 +1171,7 @@ edges = {
 edge_failures = 0
 for label, spec in edges.items():
     try:
-        run = build(**spec)
+        run = build_case(**spec)
     except Exception as err:  # noqa: BLE001 - a crash is the finding
         edge_failures += 1
         print(f"  FAIL {label}: raised {type(err).__name__}: {err}")
@@ -1191,7 +1191,7 @@ R.check(
 
 # A pump that physically cannot keep up must still produce its best effort
 # rather than an infeasible or nonsensical plan.
-tiny = build(season="winter", config={"heat_pump_max_power": 0.5}, dhw=False)
+tiny = build_case(season="winter", config={"heat_pump_max_power": 0.5}, dhw=False)
 R.check(
     "an undersized pump runs flat out rather than giving up",
     float(np.mean(tiny["result"].power_schedule)) > 0.3,
@@ -1199,7 +1199,7 @@ R.check(
 )
 
 # Negative prices mean being paid to consume; the plan should take some.
-negative = build(season="summer_negative", dhw=True)
+negative = build_case(season="summer_negative", dhw=True)
 cheapest = float(np.min(negative["result"].prices))
 if cheapest < 0:
     total = np.asarray(negative["result"].power_schedule) + np.asarray(
@@ -1236,10 +1236,10 @@ if cheapest < 0:
 # first two hours and the suppression check measures nothing — which is
 # precisely what the guard caught.
 _fire_spec = dict(season="winter")
-with_fire = build(
+with_fire = build_case(
     **_fire_spec, state={"external_heat_active": True, "dhw_temperature": 52.0}
 )
-without_fire = build(**_fire_spec, state={"dhw_temperature": 52.0})
+without_fire = build_case(**_fire_spec, state={"dhw_temperature": 52.0})
 _horizon_steps = int(round(2.0 / DT))
 _fire_early = float(np.sum(with_fire["result"].dhw_power_schedule[:_horizon_steps]))
 _base_early = float(

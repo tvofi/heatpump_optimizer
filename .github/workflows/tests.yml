@@ -272,3 +272,13 @@ jobs:
         env:
           PYTHONPATH: tests/hastub
         run: python tests/closure.py check --in-dir "$RUNNER_TEMP/closures"
+
+      - name: Fail if a test file re-implements a production symbol
+        # The rule tests/README.md states, enforced (issue #91): a test
+        # defining its own copy of a production constant or helper asserts
+        # against its own arithmetic, and its mutation proofs prove the
+        # copy. Cheap by design -- a name collision -- but the accident
+        # this exists for was a name collision.
+        env:
+          PYTHONPATH: tests/hastub
+        run: python tests/closure.py no-copies
