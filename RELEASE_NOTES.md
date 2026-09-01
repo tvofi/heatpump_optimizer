@@ -1,5 +1,32 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.2.1
+
+### The options dialog stays open after a save
+
+Changing settings in two sections used to mean opening the dialog,
+saving, watching it close, and opening it again (issue #100). Every
+saving page now offers the after-save choice — return to the section
+menu (the default) or close the dialog — and since a Home Assistant
+form renders exactly one submit button, a schema field is the only
+mechanism that can express two outcomes from one submit.
+
+The write goes through immediately via `async_update_entry` — the same
+write a save-and-close always triggered — and never a deferral keyed on
+flow liveness: HA's `_progress` dict has no TTL and no sweep, a leaked
+flow id would suppress reloads permanently, and that is the
+silent-save failure class this project has already been bitten by.
+
+Details the issue demanded: the choice never persists (stripped before
+the merge); the read-only overview offers no choice — it saves nothing
+and the button would lie; advanced pages return to the *advanced* menu;
+and the config-flow golden's 12 moved leaves are exactly the new field
+on each saving page, claimed and justified.
+
+**Upgrading**: after updating, opening any options page shows the new
+"After saving" selector at the bottom. Existing entries load unchanged;
+nothing about what gets saved changes.
+
 ## v6.2.0
 
 ### The solver's gradient arrives as one batched evaluation

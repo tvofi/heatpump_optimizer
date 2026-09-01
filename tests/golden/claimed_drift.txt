@@ -43,14 +43,11 @@
 # does not expire with the stamp and is not part of the inherited-claims
 # comparison.
 #
-# claims-for: 6.2.0
+# claims-for: 6.2.1
 #
-# The options dialog's menu-return (#100): every saving page's schema
-# gains the after_save choice field, and the config_flow capture
-# records schemas -- 12 leaves, one per page, exactly the new field.
-# No solver path is touched, so no other scenario moves.
+# The menu-return landed in 6.2.1 itself; this stamp claims
+# nothing further.
 #
-config_flow # every saving page's schema gains the after_save field, issue 100
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
