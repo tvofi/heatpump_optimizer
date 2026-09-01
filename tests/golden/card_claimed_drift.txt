@@ -21,6 +21,8 @@
 #
 # claims-for: 6.2.14
 #
-# #140: the entity picker's slot is read from the topology by key rather than
-# remembered by its markup builder. No markup moves; the list is empty.
+# #141: the shared-band <pattern> ids are the card's own and start over
+# every render, so the two states that draw the band carry new ids.
 #
+shared_steps  # the pattern ids: per card, per render, no longer a page-global count
+shared_steps_hover  # the pattern ids: per card, per render, no longer a page-global count

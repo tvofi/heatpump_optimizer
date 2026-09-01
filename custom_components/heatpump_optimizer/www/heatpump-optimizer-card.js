@@ -11,7 +11,7 @@
 
 const CARD_TAG = "heatpump-optimizer-card";
 const EDITOR_TAG = "heatpump-optimizer-card-editor";
-const CARD_VERSION = "5.4.17";
+const CARD_VERSION = "5.4.18";
 
 // The de-duplication key `_extraFields` files a confidence band's two
 // edges under, so the pair counts as the one named trace it is. A Symbol
@@ -8112,6 +8112,8 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // The last build's series, and the chart's hover geometry.
     this._series = [];
     this._plot = null;
+    // The shared-band <pattern> ids handed out during one render (#141).
+    this._patternSeq = 0;
     this._resizeObserver = null;
     this._suppressClick = false;
     // The lane geometry the pan gesture and the slot lanes hit-test against,
@@ -8336,6 +8338,9 @@ class HeatpumpOptimizerCard extends HTMLElement {
     this.dialog.saveScroll(this.shadowRoot);
     const built = this._buildSeries();
     this._series = built.series;
+    // Pattern ids start over every render, so the markup a render produces
+    // depends on nothing that happened before it (#141).
+    this._patternSeq = 0;
 
     const anyData = this._series.some((s) => s.hasData);
 
@@ -8492,9 +8497,10 @@ class HeatpumpOptimizerCard extends HTMLElement {
         this._geom = g;
         return this.lanes.laneGroupInner(g);
       },
-      // Document-unique per chart: with the dialog open two charts render
-      // into one shadow root.
-      nextPatternId: () => `hpoShared${++HeatpumpOptimizerCard._sharedPatternSeq}`,
+      // Unique per chart within this render: with the dialog open two charts
+      // render into one shadow root, and ids resolve within the shadow tree,
+      // so a per-card, per-render sequence is all that is needed (#141).
+      nextPatternId: () => `hpoShared${++this._patternSeq}`,
     });
     this._plot = plot;
     this._geom = geom;
@@ -8744,8 +8750,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
 // say so loudly and record which version actually won.
 // Exposed so the editing model can be exercised without a browser.
 HeatpumpOptimizerCard.slots = SlotModel;
-// Per-render sequence for the shared-band pattern ids (see _sharedSpanBands).
-HeatpumpOptimizerCard._sharedPatternSeq = 0;
 
 // ---- The visual config editor ---------------------------------------------
 //
