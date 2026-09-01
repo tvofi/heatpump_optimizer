@@ -43,11 +43,11 @@
 # does not expire with the stamp and is not part of the inherited-claims
 # comparison.
 #
-# claims-for: 6.2.10
+# claims-for: 6.2.11
 #
-# Store-robustness release: the new quarantine paths only touch
-# corrupt payloads, which no golden fixture carries, so no golden
-# moves and the list stays empty.
+# The card at phone width (#135) and the decomposition's PR 0 (#143):
+# no solver, sensor or store path touched, so no golden moves and the
+# list is empty.
 #
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum

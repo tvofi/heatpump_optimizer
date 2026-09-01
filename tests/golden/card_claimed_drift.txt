@@ -19,8 +19,9 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 6.2.10
+# claims-for: 6.2.11
 #
-# The decomposition's PR 0 (the gate itself, the shared rig, the card's
-# field declarations and render helpers) moves no markup.
+# The card at phone width (#135) and the decomposition's PR 0 (#143):
+# no solver, sensor or store path touched, so no golden moves and the
+# list is empty.
 #

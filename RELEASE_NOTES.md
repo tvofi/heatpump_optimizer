@@ -1,5 +1,53 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.2.11
+
+### The card reads at phone width, single points draw, the savings baseline is visible
+
+Audit round-1 fix wave (D4-01, D4-02, D4-03, D4-06; #135). The chart's text is
+authored in viewBox units and shrank with the container: on a 287 px
+dashboard tile the axis labels rendered at 3.19 px — outlines gone,
+reproduced exactly by the browser lane. The compact chart now floors its
+rendered font (`clamp(8 × 900 / measuredWidth, 10, 28)` viewBox units; a
+900 px chart is byte-for-byte the historical layout, the expanded dialog is
+untouched), and the margins, axis-title strip and slot-lane geometry scale
+with any boost beyond the expanded font so labels keep their space instead
+of colliding. Measured in real Chromium at 287 px: 3.19 px → 8.00 px.
+
+A single-point series drew nothing while its legend chip read active; one
+sample now renders as a visible dot. The "Estimated prices" label no longer
+overlaps the lane-row labels at the plot's bottom edge. The "Projected
+savings" headline says what it is measured against — *vs. unoptimized
+heating*, *jämfört med ooptimerad drift* — as an always-visible line rather
+than a hover tooltip a touch user cannot reach.
+
+### The card markup gate, and the decomposition's first step
+
+The card is being taken apart (`docs/plan-card-decomposition.md`, the
+program #95 left for "whoever finds the third seam"; tracked in #136,
+PR 0 is #143).
+Every step claims "no behaviour change", and nothing in the suite could
+check that claim. `tests/card_drift.mjs` does now, the way `env_drift.py`
+does for the solver: this tree's card and the comparison ref's card run in
+one process through 23 states — inline, Swedish, expanded, zoomed, a dirty
+slot draft with its menu open, an edited what-if draft, the tooltip, the
+setup pages, a layout drag, a filtered picker — and every rendered tree must
+be byte-identical unless `tests/golden/card_claimed_drift.txt` claims the
+moved state, under the same stamp-and-claim rules as the solver's file.
+The three Node harnesses now share one rig (`tests/card_rig.mjs`) instead of
+the renderer carrying a copy.
+
+The card itself moves no markup: the dead `_styleBlock` seam is gone, every
+field is declared in the constructor, the two render idioms have names, and
+the contract a collaborator may use on the host is written above the class.
+Card 5.4.2.
+
+Found on the way: `tests/dom_stub.mjs` was never excluded from the test
+roster, so every scoped PR gate since v6.1.2 quietly ran the full suite and
+the closures job on main failed on every push. Fixed.
+
+Card-only release: no integration behaviour, entities or plans change.
+
 ## v6.2.10
 
 ### A corrupted store no longer wedges the update cycle
