@@ -1,5 +1,46 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.2.0
+
+### The solver's gradient arrives as one batched evaluation
+
+Measured on issue #97: 9,998 simulate_trajectory calls per two-zone
+solve, the finite-difference gradient and its line searches effectively
+the whole cost — and scipy re-estimates the gradient at every trial
+point, so 96 of every 97 evaluations reconstruct derivatives the physics
+already implies.
+
+Two pieces landed:
+
+**`simulate_trajectory_batch`** — B schedules simulated as one
+vectorized pass, the twin of the scalar step written under a
+bitwise-parity contract: every row equals the scalar path to the last
+bit, because anything coarser moves plans. Branches become `np.where`
+selections of already-computed values, `min`/`max` become
+`np.minimum`/`np.maximum`, and every expression keeps the scalar code's
+exact operation order. `wood_share`'s three regions got an element-wise
+twin. The parity is test-asserted across single-zone, two-zone, valve,
+true two-tank and stability-substep configurations — and the harness
+earned its keep three times on the way up (a 0/0 NaN from `np.where`'s
+both-arms division, a Carnot COP boost applied below the reference flow
+temperature, an array fed to a scalar branch).
+
+**`jac=`** — the exact 2-point estimate scipy would compute itself
+(same `eps`, same zero-step fallback, same one-sided bounds rule),
+evaluated as one batched call instead of 97 sequential simulations.
+Two guardrails keep it honest: solves whose bounds are anything but
+uniform (capped, pinned, tariff-windowed — the CI drift gate caught the
+capped-tariff scenarios moving on Linux, exactly what it exists for)
+keep the historical path; and `tests/optimality.py` races the batched
+jac against a control solve with it stripped, requiring bit-identical
+schedules.
+
+**Measured: two-zone solve CPU 11.5 s → 1.0 s, single-zone
+0.8 s → 0.1 s, plans byte-identical across every suite.** On the
+Pi-class host, the coldest solve's GIL hold drops from eleven seconds
+to one — and with it the event-loop exposure the v5.1.1 freeze class
+was made of.
+
 ## v6.1.2
 
 ### The visual-QA renderer runs in every gate, on one shared DOM stub
