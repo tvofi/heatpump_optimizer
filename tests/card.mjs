@@ -888,6 +888,48 @@ check("a wide dialog gets larger chrome than a narrow one",
 check("a phone-width dialog stays legible", dlgOf(320) >= 12 - 1e-9);
 check("a very wide dialog does not turn the legend into a headline",
   dlgOf(4000) <= 21 + 1e-9);
+
+// D4-01: the COMPACT chart's rendered font is floored, not left to shrink
+// with the container. The audit measured a 287 px dashboard tile rendering
+// axis text at 3.19 px glyph height -- the label outlines were gone. The
+// card boosts the viewBox-unit font as the measured width falls, so the
+// rendered size (font units x width / 900) stays >= the floor, and the
+// margins scale with any boost so labels keep their relative space.
+{
+  const renderedFontOf = (w) => {
+    const c = withAllSeries();
+    c.getBoundingClientRect = () => ({ width: w, height: (w * 380) / 900, left: 0, top: 0 });
+    c._render();
+    const dump = collect(c.shadowRoot).join("\n");
+    const cut = dump.indexOf("chartwrap big");
+    const scoped = cut === -1 ? dump : dump.slice(0, cut);
+    const fonts = [...scoped.matchAll(/font-size="([\d.]+)"/g)].map((m) => Number(m[1]));
+    return { max: Math.max(0, ...fonts), dump: scoped };
+  };
+  const wide = renderedFontOf(900);
+  const phone = renderedFontOf(287);
+  // 287 px: the floor demands 8 x 900 / 287 = 25.087 viewBox units, below
+  // the 28-unit cap, so the floor is what the tile actually gets.
+  check("a phone-width tile boosts the chart font to the floor",
+    Math.abs(phone.max - (8 * 900) / 287) < 1e-9,
+    `max font-size ${phone.max} at 287 px, floor ${(8 * 900) / 287}`);
+  check("the rendered size at phone width is at least the 8 px floor",
+    (phone.max * 287) / 900 >= 8 - 1e-9,
+    `${((phone.max * 287) / 900).toFixed(2)} px rendered`);
+  check("a 900 px chart is untouched (the historical 10-unit font)",
+    wide.max <= 10 + 1e-9,
+    `max font-size ${wide.max} at 900 px`);
+  // The margins scale with the boost: the plot frame starts further right
+  // than the authored 92-unit left margin, or the boosted labels would
+  // collide with the axis they describe.
+  const frameX = (dump) => {
+    const m = dump.match(/<rect x="([\d.]+)" y="[\d.]+" width="[\d.]+" height="[\d.]+" fill="none" stroke="var\(--divider-color/);
+    return m ? Number(m[1]) : null;
+  };
+  check("the boosted font carries the left margin with it",
+    frameX(phone.dump) > 92 + 1e-9 && (frameX(wide.dump) === 92 || frameX(wide.dump) === null || Math.abs(frameX(wide.dump) - 92) < 1e-9),
+    `phone frame x ${frameX(phone.dump)}, wide ${frameX(wide.dump)}`);
+}
 check("an unmeasured dialog is left alone rather than sized from zero",
   dlgOf(0) === 0);
 

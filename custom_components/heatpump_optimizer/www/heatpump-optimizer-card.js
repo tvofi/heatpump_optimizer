@@ -375,6 +375,7 @@ const STRINGS = {
     "headline.savings": "Projected savings",
     "headline.savings_title":
       "Estimated saving of the current plan against unoptimized heating.",
+    "headline.savings_caveat": "vs. unoptimized heating",
     "headline.score": "Optimization score",
     "headline.score_title":
       "How well the whole installation is set up and running, 0–100.",
@@ -743,6 +744,7 @@ const STRINGS = {
     "headline.savings": "Beräknad besparing",
     "headline.savings_title":
       "Uppskattad besparing för nuvarande plan jämfört med ooptimerad drift.",
+    "headline.savings_caveat": "jämfört med ooptimerad drift",
     "headline.score": "Optimeringsbetyg",
     "headline.score_title":
       "Hur väl hela anläggningen är inställd och fungerar, 0–100.",
@@ -990,6 +992,35 @@ const MARGIN_RIGHT_WITH_SOLAR = MARGIN.right + SOLAR_AXIS_INSET;
 // geometry rather than as a free preference.
 const FONT_BASE = 10;
 const FONT_EXPANDED = 15;
+
+// D4-01: viewBox-unit fonts shrink with the container, and a phone-width
+// dashboard tile rendered the axis text at ~3.2 px -- glyph outlines gone,
+// unreadable. The compact chart therefore floors its rendered size: the
+// font in viewBox units grows as the measured width falls, so
+//   rendered px  =  font units  x  measured width / VIEW_W
+// never drops below this floor. The boosted font carries the layout with
+// it (margins scale by font / FONT_EXPANDED, the largest font the authored
+// margins already accommodate), so labels keep their relative space and
+// the axis just reads bigger on small tiles instead of colliding. The
+// expanded dialog renders near the full viewBox width already and keeps
+// FONT_EXPANDED.
+const MIN_AXIS_FONT_PX = 8;
+// The cap exists so a pathological 60 px-wide host degrades to a legible
+// axis rather than to a chart that is all margin. It must still clear the
+// floor at the narrowest real tile (~257 px at 8 px), or phones would ride
+// the cap below the floor the constant exists to guarantee.
+const MAX_COMPACT_FONT = 28;
+
+/** Compact-chart font in viewBox units for a measured rendered width.
+ *
+ * Unmeasured hosts (the DOM stub's constant rect, a first paint before
+ * layout) fall back to the historical FONT_BASE.
+ */
+function compactFontUnits(measuredWidthPx) {
+  if (!measuredWidthPx || measuredWidthPx <= 0) return FONT_BASE;
+  const floored = (MIN_AXIS_FONT_PX * VIEW_W) / measuredWidthPx;
+  return Math.min(MAX_COMPACT_FONT, Math.max(FONT_BASE, floored));
+}
 
 // Estimating how wide a rendered label will be, so labels can be thinned out
 // before they collide. Characters of the default sans-serif face average a
@@ -2395,6 +2426,13 @@ function cardStyleBlock() {
       }
       .hl-label { color: var(--secondary-text-color); }
       .hl-value { font-weight: 600; color: var(--primary-text-color); }
+      /* D4-06: the always-visible form of the baseline qualifier that used
+         to live only in the hover title. Kept small and muted so it reads
+         as a footnote, not a second value competing with the number. */
+      .hl-caveat {
+        display: block; font-size: 0.82em; font-weight: 400;
+        color: var(--secondary-text-color);
+      }
       .hl-narrative {
         font-size: 0.82em; font-style: italic;
         color: var(--secondary-text-color);
@@ -3719,6 +3757,11 @@ class HeatpumpOptimizerCard extends HTMLElement {
         title: L("headline.savings_title"),
         label: L("headline.savings"),
         value,
+        // D4-06: the baseline qualifier used to live only in the `title`
+        // attribute above -- a hover tooltip, unreachable on touch, which is
+        // most Home Assistant dashboards. A short visible caveat carries the
+        // same claim as plain text; the tooltip stays for the fuller wording.
+        caveat: L("headline.savings_caveat"),
       });
     }
 
@@ -3769,7 +3812,11 @@ class HeatpumpOptimizerCard extends HTMLElement {
           `<span class="hl-stat hl-${it.cls}" data-stat="${it.cls}" ` +
           `title="${esc(it.title)}">` +
           `<span class="hl-label">${esc(it.label)}</span> ` +
-          `<span class="hl-value">${esc(it.value)}</span></span>`
+          `<span class="hl-value">${esc(it.value)}</span>` +
+          (it.caveat
+            ? `<span class="hl-caveat">${esc(it.caveat)}</span>`
+            : "") +
+          `</span>`
       )
       .join("");
     return `<div class="headline">
@@ -6099,7 +6146,14 @@ class HeatpumpOptimizerCard extends HTMLElement {
   _chartSvg(built, expanded) {
     const { windowStart, windowEnd } = built;
     const visible = this._series.filter((s) => s.visible && s.hasData);
-    const font = expanded ? FONT_EXPANDED : FONT_BASE;
+    // D4-01: the compact chart floors its rendered font (see
+    // compactFontUnits); the margins then scale with any boost beyond what
+    // the authored layout already accommodates, so axis labels keep their
+    // relative space instead of colliding.
+    const font = expanded
+      ? FONT_EXPANDED
+      : compactFontUnits(this._measuredCardWidth());
+    const marginScale = expanded ? 1 : Math.max(1, font / FONT_EXPANDED);
 
     // Axis domains from visible series grouped by axis.
     const groups = { temp: [], power: [], price: [], solar: [] };
@@ -6122,14 +6176,18 @@ class HeatpumpOptimizerCard extends HTMLElement {
       solar: axisRange(groups.solar, true),
     };
 
-    const plotL = MARGIN.left;
+    // The compact chart's boosted font (D4-01) widens these with it; the
+    // authored values below are already laid out for FONT_EXPANDED, so the
+    // scale only engages past that.
+    const plotL = MARGIN.left * marginScale;
     // Only pay for the solar axis's width when it is actually drawn; a
     // permanently narrower plot would be a real cost to every user who does
     // not use the series.
-    const rightMargin = axes.solar ? MARGIN_RIGHT_WITH_SOLAR : MARGIN.right;
+    const rightMargin =
+      (axes.solar ? MARGIN_RIGHT_WITH_SOLAR : MARGIN.right) * marginScale;
     const plotR = VIEW_W - rightMargin;
-    const plotT = MARGIN.top;
-    const plotB = VIEW_H - MARGIN.bottom;
+    const plotT = MARGIN.top * marginScale;
+    const plotB = VIEW_H - MARGIN.bottom * marginScale;
     const plotW = plotR - plotL;
     const plotH = plotB - plotT;
 
@@ -6189,28 +6247,28 @@ class HeatpumpOptimizerCard extends HTMLElement {
     if (axes.temp)
       parts.push(
         this._valueAxis(
-          axes.temp, plotL, plotB, plotH, "left", 0,
+          axes.temp, plotL, plotT, plotB, plotH, "left", 0,
           scaleY, "temp", "\u00b0C", font, tempAnchor
         )
       );
     if (axes.power)
       parts.push(
         this._valueAxis(
-          axes.power, plotL, plotB, plotH, "left", powerTitleInset,
+          axes.power, plotL, plotT, plotB, plotH, "left", powerTitleInset,
           scaleY, "power", "kW", font
         )
       );
     if (axes.price)
       parts.push(
         this._valueAxis(
-          axes.price, plotR, plotB, plotH, "right", 0,
+          axes.price, plotR, plotT, plotB, plotH, "right", 0,
           scaleY, "price", priceUnit, font, priceAnchor
         )
       );
     if (axes.solar)
       parts.push(
         this._valueAxis(
-          axes.solar, plotR, plotB, plotH, "right", SOLAR_AXIS_INSET,
+          axes.solar, plotR, plotT, plotB, plotH, "right", SOLAR_AXIS_INSET,
           scaleY, "solar", "W/m\u00b2", font
         )
       );
@@ -6241,18 +6299,28 @@ class HeatpumpOptimizerCard extends HTMLElement {
           plotR - ex
         )}" height="${plotH}" fill="var(--secondary-text-color,#888)" fill-opacity="0.07"/>`
       );
+      // D4-03: this used to sit at `plotB - 5`, directly on top of the
+      // lane-row labels drawn near the bottom of the plot (`_laneGroupInner`),
+      // garbling both. Anchored just under the top margin instead -- a strip
+      // that is otherwise empty except for the "now" marker's label, which
+      // lives at a different x (by the current-time line, not the start of
+      // the estimated region) whenever both happen to be visible together.
       parts.push(
-        `<text x="${ex + 4}" y="${plotB - 5}" font-size="${font}" fill="var(--secondary-text-color,#888)">${esc(
+        `<text x="${ex + 4}" y="${plotT + font + 4}" font-size="${font}" fill="var(--secondary-text-color,#888)">${esc(
           L("plan.estimated_prices")
         )}</text>`
       );
     }
 
     // Editable slot lanes, and the geometry a pointer event needs to turn a
-    // screen coordinate back into a time.
+    // screen coordinate back into a time. The lane metrics travel with the
+    // geometry (D4-01): a boosted compact font scales the lanes with it, and
+    // hit-testing must use the same numbers the drawing used.
     if (this._editingEnabled()) {
       this._geom = {
         windowStart, windowEnd, plotL, plotW, plotR, plotB, font,
+        laneH: LANE_H * marginScale, laneGap: LANE_GAP * marginScale,
+        laneInset: LANE_BOTTOM_INSET * marginScale,
       };
       parts.push(`<g class="lanes">${this._laneGroupInner()}</g>`);
     } else {
@@ -6807,6 +6875,19 @@ class HeatpumpOptimizerCard extends HTMLElement {
         : setTimeout(run, 16);
   }
 
+  /** The card's current rendered width in px, or 0 before layout.
+   *
+   * D4-01 floors the compact chart's rendered font against this value; the
+   * ResizeObserver re-renders on size change, so a rotated phone picks the
+   * boosted font up on the next frame rather than staying unreadable until
+   * a manual refresh.
+   */
+  _measuredCardWidth() {
+    if (!this.getBoundingClientRect) return 0;
+    const rect = this.getBoundingClientRect();
+    return rect && rect.width ? rect.width : 0;
+  }
+
   /** Turn a screen x into a time on the chart's axis.
    *
    * The chart is drawn in a fixed viewBox and stretched to fit, so screen
@@ -7099,7 +7180,9 @@ class HeatpumpOptimizerCard extends HTMLElement {
           geom.plotL + ((at - geom.windowStart) / span) * geom.plotW;
         clientX = rect.left + (vx / VIEW_W) * rect.width;
         clientY =
-          rect.top + ((geom.plotB - LANE_H) / VIEW_H) * (rect.height || 0);
+          rect.top +
+          ((geom.plotB - (geom.laneH || LANE_H)) / VIEW_H) *
+            (rect.height || 0);
       }
       this._openSlotMenu(channel, at, clientX, clientY, svg, true);
     };
@@ -7278,7 +7361,10 @@ class HeatpumpOptimizerCard extends HTMLElement {
   _laneGroupInner() {
     const geom = this._geom;
     if (!geom) return "";
-    const { windowStart, windowEnd, plotL, plotW, plotR, plotB, font } = geom;
+    const {
+      windowStart, windowEnd, plotL, plotW, plotR, plotB, font,
+      laneH = LANE_H, laneGap = LANE_GAP, laneInset = LANE_BOTTOM_INSET,
+    } = geom;
     const span = windowEnd - windowStart || 1;
     const scaleX = (t) => plotL + ((t - windowStart) / span) * plotW;
     const runs = this._draftRuns();
@@ -7288,8 +7374,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     const clampX = (t) => Math.max(plotL, Math.min(plotR, scaleX(t)));
 
     specs.forEach((spec, row) => {
-      const y =
-        plotB - LANE_BOTTOM_INSET - (specs.length - row) * (LANE_H + LANE_GAP);
+      const y = plotB - laneInset - (specs.length - row) * (laneH + laneGap);
       // The track, so an empty lane is still an obvious drop target. Also a
       // tab stop: Enter on it opens the same add-slot menu a right-click
       // does, which is the whole editor without a pointer.
@@ -7298,11 +7383,11 @@ class HeatpumpOptimizerCard extends HTMLElement {
           L("slots.lane_aria", { lane: spec.label })
         )}" x="${plotL}" y="${y}" width="${
           plotR - plotL
-        }" height="${LANE_H}" rx="2" fill="var(--secondary-text-color,#888)" fill-opacity="0.07"/>`
+        }" height="${laneH}" rx="2" fill="var(--secondary-text-color,#888)" fill-opacity="0.07"/>`
       );
       out.push(
         `<text class="lane-label" x="${plotL + 4}" y="${
-          y + LANE_H - 4
+          y + laneH - 4 * (laneH / LANE_H)
         }" font-size="${font * 0.8}" fill="var(--secondary-text-color,#888)">${esc(
           spec.label
         )}</text>`
@@ -7314,7 +7399,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
         out.push(
           `<rect class="lane-past" x="${plotL}" y="${y}" width="${
             floorX - plotL
-          }" height="${LANE_H}" fill="var(--secondary-text-color,#888)" fill-opacity="0.12"/>`
+          }" height="${laneH}" fill="var(--secondary-text-color,#888)" fill-opacity="0.12"/>`
         );
       }
       const ceilX = clampX(hi);
@@ -7322,7 +7407,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
         out.push(
           `<rect class="lane-past" x="${ceilX}" y="${y}" width="${
             plotR - ceilX
-          }" height="${LANE_H}" fill="var(--secondary-text-color,#888)" fill-opacity="0.12"/>`
+          }" height="${laneH}" fill="var(--secondary-text-color,#888)" fill-opacity="0.12"/>`
         );
       }
       // The lane runs out at the zoomed window, not at any rule of the
@@ -7330,7 +7415,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
       if (this._viewLimitsEditing()) {
         out.push(
           `<text class="lane-more" x="${plotR - 3}" y="${
-            y + LANE_H - 3
+            y + laneH - 3 * (laneH / LANE_H)
           }" font-size="${font}" text-anchor="end" fill="var(--primary-color,#03a9f4)">»</text>`
         );
       }
@@ -7364,7 +7449,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
         out.push(
           `<rect class="slot${locked ? " locked" : ""}" data-channel="${
             spec.channel
-          }" data-index="${index}"${kbd} x="${x1}" y="${y}" width="${w}" height="${LANE_H}" rx="2" fill="${
+          }" data-index="${index}"${kbd} x="${x1}" y="${y}" width="${w}" height="${laneH}" rx="2" fill="${
             spec.color
           }" fill-opacity="${locked ? 0.35 : 0.85}"/>`
         );
@@ -7375,7 +7460,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
         for (const edge of ["start", "end"]) {
           const ex = edge === "start" ? x1 : x2 - grab;
           out.push(
-            `<rect class="slot-handle" data-channel="${spec.channel}" data-index="${index}" data-edge="${edge}" x="${ex}" y="${y}" width="${grab}" height="${LANE_H}" fill="#fff" fill-opacity="0.001"/>`
+            `<rect class="slot-handle" data-channel="${spec.channel}" data-index="${index}" data-edge="${edge}" x="${ex}" y="${y}" width="${grab}" height="${laneH}" fill="#fff" fill-opacity="0.001"/>`
           );
         }
       });
@@ -7447,8 +7532,8 @@ class HeatpumpOptimizerCard extends HTMLElement {
   }
 
   _valueAxis(
-    axis, xBase, plotB, plotH, side, inset, scaleY, axisName, unit, font,
-    titleAnchor
+    axis, xBase, plotT, plotB, plotH, side, inset, scaleY, axisName, unit,
+    font, titleAnchor
   ) {
     const size = font || FONT_BASE;
     const out = [];
@@ -7470,8 +7555,9 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // The title sits on the strip above the plot frame, normally running away
     // from the chart like the tick labels do. When that would run it into the
     // next axis out, the caller flips it to the other side of its own axis
-    // line, where the strip above the plot is empty.
-    const uy = MARGIN.top - 4;
+    // line, where the strip above the plot is empty. The gap scales with the
+    // font (D4-01) so a boosted compact font does not sit on the frame.
+    const uy = plotT - 4 * (size / FONT_BASE);
     const ta = titleAnchor || anchor;
     const ux = ta === "end" ? x - 5 : x + 5;
     out.push(
@@ -7504,6 +7590,19 @@ class HeatpumpOptimizerCard extends HTMLElement {
         y: scaleY(p.v, s.axis),
       }));
       if (!pts.length) continue;
+
+      // D4-02: a single-point line has no second vertex to draw a
+      // line-to from, so `<path>` alone paints nothing (a bare "M x y", or
+      // for the area styles a zero-area triangle collapsed onto one x) --
+      // yet the series still counts as `hasData` and its legend chip still
+      // shows fully active. A visible dot is the honest reading of "one
+      // sample exists", and keeps the chip's claim true.
+      if (pts.length === 1) {
+        out.push(
+          `<circle class="series" data-key="${s.key}" pointer-events="none" cx="${pts[0].x.toFixed(2)}" cy="${pts[0].y.toFixed(2)}" r="3" fill="${s.color}"/>`
+        );
+        continue;
+      }
 
       if (s.style === "stepArea" || s.style === "stepBars") {
         const stepD = this._steppedLine(pts);
