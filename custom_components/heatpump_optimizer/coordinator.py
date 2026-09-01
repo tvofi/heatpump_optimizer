@@ -9,6 +9,7 @@ The coordinator manages:
 """
 from __future__ import annotations
 
+import asyncio
 import copy
 import hashlib
 import json
@@ -667,7 +668,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._init_ecl110()
 
         # Deferred: MQTT may not be up yet, and the stores are on disk.
-        hass.async_create_task(self._async_setup_ecl110_state_subscription())
+        # Tracked (D1-02 hygiene): the panel's refuted leak does not
+        # reproduce through the config-entry state machine, but an
+        # untracked task still runs against whatever hass becomes after
+        # unload, and tracking costs one set entry.
+        self._spawn(self._async_setup_ecl110_state_subscription())
         for load in (
             self._async_load_dhw_profile,
             self._async_load_dhw_draws,
@@ -682,7 +687,22 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._async_setup_defrost_watch,
             self._async_load_manual_plan,
         ):
-            hass.async_create_task(load())
+            self._spawn(load())
+
+    def _spawn(self, coro) -> Any:
+        """Fire-and-forget a coroutine, but keep the task until it lands.
+
+        Home Assistant tracks tasks itself; this set exists so
+        ``async_shutdown`` can let in-flight store writes finish rather
+        than orphan them against a torn-down entry. The bare test stub
+        closes the coroutine and returns None -- nothing to track then.
+        """
+        task = self.hass.async_create_task(coro)
+        if task is None:
+            return None
+        self._background_tasks.add(task)
+        task.add_done_callback(self._background_tasks.discard)
+        return task
 
     def _init_insurance(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         """The learners' insurance and the drift detectors (v4.0.0 T4a).
@@ -818,6 +838,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._current_state = ThermalState()
         self._current_action: dict[str, Any] = {}
         self._unsub_timer: Any = None
+        # Fire-and-forget tasks (store saves, listener registrations), held
+        # so shutdown can let them finish instead of orphaning them against
+        # a torn-down entry; and the Tibber outage latch (D10-09).
+        self._background_tasks: set[Any] = set()
+        self._tibber_outage_cycles: int = 0
 
         # Solar irradiance and the floor return temperature sensor.
         self._solar_radiation: float = 0.0
@@ -4961,7 +4986,17 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         await self.async_request_refresh()
 
     async def async_shutdown(self) -> None:
-        """Shut down the coordinator."""
+        """Shut down the coordinator.
+
+        The base class's shutdown runs FIRST (D10-06): it stops the refresh
+        debouncer and any in-flight refresh, and an override that skips it
+        leaks both on every unload/reload -- the config-entry-unloading rule
+        exists precisely because this was forgotten once. Then our own
+        listeners go, then any still-pending fire-and-forget tasks are
+        awaited (store writes must land, not die with the entry; a capped
+        wait so a wedged save cannot hang the unload).
+        """
+        await super().async_shutdown()
         if self._unsub_timer:
             self._unsub_timer()
             self._unsub_timer = None
@@ -4974,6 +5009,19 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if self._unsub_defrost:
             self._unsub_defrost()
             self._unsub_defrost = None
+        pending = [t for t in self._background_tasks if not t.done()]
+        if pending:
+            _LOGGER.debug(
+                "Shutdown awaiting %d background task(s)", len(pending)
+            )
+            done, still_pending = await asyncio.wait(pending, timeout=5.0)
+            if still_pending:
+                _LOGGER.warning(
+                    "%d background task(s) did not finish within 5 s of "
+                    "shutdown; they run on regardless",
+                    len(still_pending),
+                )
+        self._background_tasks.clear()
 
     async def _update_current_state(self) -> None:
         """Update current thermal state from HA entities.
@@ -5310,10 +5358,19 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         return None
 
     async def _fetch_tibber_prices(self) -> None:
-        """Fetch electricity prices from Tibber API."""
+        """Fetch electricity prices from Tibber API.
+
+        A failed fetch raises :class:`UpdateFailed` (D10-07): the update
+        cycle then reports failure through the coordinator base, which
+        flips ``last_update_success`` and takes the entities unavailable --
+        the honest signal that no fresh data arrived, instead of a silent
+        eternity of stale prices behind a green integration. The outage is
+        logged once (D10-09), not on every cycle; recovery logs the
+        outage's length.
+        """
         token = self._config.get(CONF_TIBBER_TOKEN)
         if not token:
-            _LOGGER.error("No Tibber token configured")
+            self._tibber_fetch_failed("No Tibber token configured")
             return
 
         headers = {
@@ -5341,17 +5398,17 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 timeout=aiohttp.ClientTimeout(total=15),
             ) as resp:
                 if resp.status != 200:
-                    _LOGGER.error("Tibber API error: %s", resp.status)
+                    self._tibber_fetch_failed(f"Tibber API error: {resp.status}")
                     return
                 data = await resp.json()
 
             if "errors" in data:
-                _LOGGER.error("Tibber API errors: %s", data["errors"])
+                self._tibber_fetch_failed(f"Tibber API errors: {data['errors']}")
                 return
 
             homes = data.get("data", {}).get("viewer", {}).get("homes", [])
             if not homes:
-                _LOGGER.error("No homes found in Tibber data")
+                self._tibber_fetch_failed("No homes found in Tibber data")
                 return
 
             price_info = (
@@ -5372,14 +5429,38 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                         )
 
             self._prices = prices
+            self._tibber_fetch_recovered()
             _LOGGER.debug("Fetched %d price entries from Tibber", len(prices))
 
         except aiohttp.ClientError as err:
-            _LOGGER.error("Error fetching Tibber prices: %s", err)
+            self._tibber_fetch_failed(f"Error fetching Tibber prices: {err}")
         except Exception as err:
-            _LOGGER.error(
-                "Unexpected error fetching prices: %s", err, exc_info=True
+            self._tibber_fetch_failed(
+                f"Unexpected error fetching prices: {err}", exc_info=True
             )
+
+    def _tibber_fetch_failed(self, reason: str, *, exc_info: bool = False) -> None:
+        """Record one failed price fetch: log once, raise as a failed update.
+
+        D10-09: an outage lasting a day used to print the same ERROR on
+        every cycle. The first failure logs ERROR; the rest log DEBUG until
+        a fetch succeeds again, which logs the outage's length at INFO.
+        """
+        if not self._tibber_outage_cycles:
+            _LOGGER.error("%s", reason, exc_info=exc_info)
+        else:
+            _LOGGER.debug("Tibber still failing (%s)", reason)
+        self._tibber_outage_cycles += 1
+        raise UpdateFailed(reason)
+
+    def _tibber_fetch_recovered(self) -> None:
+        """Clear the outage latch after a successful fetch."""
+        if self._tibber_outage_cycles:
+            _LOGGER.info(
+                "Tibber prices recovered after %d failed cycle(s)",
+                self._tibber_outage_cycles,
+            )
+        self._tibber_outage_cycles = 0
 
     async def _fetch_weather_forecast(self) -> None:
         """Fetch full 24-hour weather forecast from Home Assistant weather entity.
@@ -7109,7 +7190,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
     def _schedule_ledger_save(self) -> None:
         """Persist the ledger without blocking the settlement path."""
-        self.hass.async_create_task(self._async_save_ledger())
+        self._spawn(self._async_save_ledger())
 
     async def _async_save_ledger(self) -> None:
         try:
@@ -7326,7 +7407,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if override.is_expired(solve_now):
             # Drop it eagerly; the next save persists the cleared state.
             self._manual_override = None
-            self.hass.async_create_task(self._async_save_manual_plan())
+            self._spawn(self._async_save_manual_plan())
             return None, None
         step_starts = self._horizon_step_starts(solve_now, n_steps)
         space = override.channel_pins(CHANNEL_SPACE, step_starts)
@@ -7714,7 +7795,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         )
         if changed:
             self._current_state.peak_guard_active = self._peak_guard.suppressing
-            self.hass.async_create_task(self._async_peak_guard_transition())
+            self._spawn(self._async_peak_guard_transition())
 
     def _guard_floor_hold(self) -> bool:
         """Whether a hard floor outranks suppression right now.
@@ -10186,7 +10267,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._freq_fallback = False
             self._freq_watchdog.reset()
             ir.async_delete_issue(self.hass, DOMAIN, "freq_watchdog")
-            self.hass.async_create_task(self._async_save_thermal_learning())
+            self._spawn(self._async_save_thermal_learning())
         reported, hz_min, hz_max = self._freq_entity_reading()
         if reported is None:
             return
@@ -10206,9 +10287,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 # write path that silently drops). Stand down and say so;
                 # the latch survives restarts.
                 self._freq_fallback = True
-                self.hass.async_create_task(
-                    self._async_save_thermal_learning()
-                )
+                self._spawn(self._async_save_thermal_learning())
                 entity_id = str(
                     self._config.get(CONF_COMPRESSOR_FREQ_ENTITY) or ""
                 )
@@ -10532,7 +10611,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # Persist immediately: the whole point of an experiment is a result
         # good enough to outlive a restart, and the passive learner's periodic
         # save may be many samples away.
-        self.hass.async_create_task(self._async_save_thermal_learning())
+        self._spawn(self._async_save_thermal_learning())
         _LOGGER.info(
             "Adopted system identification result: heat loss scale now %.3f",
             self._house_heat_loss_scale,

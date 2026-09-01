@@ -11,7 +11,7 @@
 
 const CARD_TAG = "heatpump-optimizer-card";
 const EDITOR_TAG = "heatpump-optimizer-card-editor";
-const CARD_VERSION = "5.4.2";
+const CARD_VERSION = "5.4.7";
 
 // The de-duplication key `_extraFields` files a confidence band's two
 // edges under, so the pair counts as the one named trace it is. A Symbol
@@ -3016,6 +3016,2138 @@ function cardStyleBlock() {
   `;
 }
 
+// ---- The series: pure functions of forecasts and a window -----------------
+// What the chart, the legend and the tooltip draw, computed from the plan
+// sensors' forecasts with no reference to the card: the host resolves the
+// forecasts and the window, these turn them into series and answer questions
+// about the traces. Same bodies as the methods they were (PR 1 of #136).
+
+const parseStamp = (p) => {
+  const t = Date.parse(p.t);
+  return Number.isNaN(t) ? null : t;
+};
+
+/** The default plot window: [now, now + hours], or -- when nothing falls
+ * inside it (purely historical or test data) -- the data's own extent, so
+ * the card still shows something instead of an empty plot. `dataEnd` is the
+ * last sample, which is what the zoom window clamps against. */
+function defaultWindow(spFc, dhwFc, hours, now) {
+  const parse = parseStamp;
+
+  let windowStart = now;
+  let windowEnd = now + hours * 3600 * 1000;
+
+  // Determine whether any data actually falls inside [now, now+hours]. If not
+  // (e.g. purely historical or test data), fall back to the full extent so the
+  // card still shows something instead of an empty plot.
+  const allTimes = [];
+  for (const p of spFc) {
+    const t = parse(p);
+    if (t !== null) allTimes.push(t);
+  }
+  for (const p of dhwFc) {
+    const t = parse(p);
+    if (t !== null) allTimes.push(t);
+  }
+  const inWindow = allTimes.some((t) => t >= windowStart && t <= windowEnd);
+  if (!inWindow && allTimes.length) {
+    windowStart = Math.min(...allTimes);
+    windowEnd = Math.min(
+      Math.max(...allTimes),
+      windowStart + hours * 3600 * 1000
+    );
+  }
+
+  return {
+    start: windowStart,
+    end: windowEnd,
+    dataEnd: allTimes.length ? Math.max(...allTimes) : windowEnd,
+  };
+}
+
+/** Every series definition, cut to the window. `hidden` is the legend's
+ * toggle state (a hidden series is still built, so its chip knows whether
+ * there is data behind it); `zoomed` rides along for the view controls. */
+function buildSeries({ spFc, dhwFc, solarFc, windowStart, windowEnd, hidden, zoomed }) {
+  const parse = parseStamp;
+
+  const pick = (sensor) =>
+    sensor === "dhw" ? dhwFc : sensor === "solar" ? solarFc : spFc;
+  const either = (field) => {
+    // prefer space forecast, fall back to dhw
+    if (spFc.some((p) => p[field] !== undefined && p[field] !== null))
+      return spFc;
+    return dhwFc;
+  };
+
+  const series = [];
+  for (const def of SERIES_DEFS) {
+    const fc = def.sensor === "either" ? either(def.field) : pick(def.sensor);
+    const lines = [];
+    let primaryPts = null;
+    const fields = [def.field].concat(def.extra || []);
+    for (const field of fields) {
+      // Every in-window sample, with a missing value kept as a HOLE
+      // rather than dropped. v5.2.0: the hot-water band is null wherever
+      // the accuracy record cannot answer, and a dropped null let the
+      // curve bridge straight across the gap — drawing an envelope over
+      // a stretch there is no evidence for. The room's zone traces were
+      // only ever accidentally safe from this: they have no holes.
+      const raw = [];
+      for (const p of fc) {
+        const t = parse(p);
+        if (t === null) continue;
+        if (t < windowStart || t > windowEnd) continue;
+        const v = p[field];
+        const usable =
+          v !== null && v !== undefined && !Number.isNaN(Number(v));
+        raw.push({
+          t,
+          v: usable ? Number(v) : null,
+          // Reason codes and price provenance ride along on the point so the
+          // tooltip can explain a slot without a second lookup.
+          reason: p.reason,
+          priceKnown: p.price_known,
+        });
+      }
+      raw.sort((a, b) => a.t - b.t);
+      // The field's real samples, holes removed: what "is this trace a
+      // copy of the primary?" has to be asked about, and what the primary
+      // is remembered as. Asking it per segment would compare a fragment
+      // against the whole and never match.
+      const pts = raw.filter((q) => q.v !== null);
+      if (!pts.length) continue;
+      const primary = field === def.field;
+      // A single-zone house still publishes `upper` and `lower`: the
+      // one-zone dynamics set both to the room temperature step by step,
+      // so the extras are exact copies of the primary. Drawing them put
+      // two dashed lines under the solid one, and naming them would put
+      // two more chips in the legend and two more rows in the tooltip for
+      // a house that has one zone. Drop a duplicate rather than label it.
+      //
+      // v5.2.0: this catches a second case for free. A tank record that
+      // has scored pairs but never been wrong answers sigma 0, so both
+      // band edges land exactly on the curve; dropping them is right for
+      // the same reason it is right for the zones, and it is the same
+      // rule doing it.
+      if (!primary && samePoints(pts, primaryPts)) continue;
+      if (primary) primaryPts = pts;
+      const labelKey = primary
+        ? def.labelKey
+        : (def.extraLabels || {})[field] || def.labelKey;
+      // A hole BREAKS the trace into a new segment rather than being
+      // skipped over. One field can therefore own several lines; every
+      // consumer reaches them through `_fieldPoints`, and the per-field
+      // identity (`field`, `primary`, `labelKey`) is carried on each.
+      let seg = [];
+      const flush = () => {
+        if (seg.length) {
+          lines.push({
+            field,
+            points: seg,
+            primary,
+            // Named per line, not per series: `_lineLabel` resolves the
+            // dictionary key so the tooltip and the legend cannot disagree
+            // about what a trace is called.
+            labelKey,
+          });
+        }
+        seg = [];
+      };
+      for (const q of raw) {
+        if (q.v === null) flush();
+        else seg.push(q);
+      }
+      flush();
+    }
+    // A band is a PAIR or it is nothing. Either edge can go missing on its
+    // own -- one key absent from the payload, one published null all the
+    // way across, or one edge dropped by the duplicate rule above -- and a
+    // single dashed line hugging the curve is not half an envelope, it is
+    // a different and wrong claim. Worse, the legend would still offer the
+    // "expected error" chip while the tooltip, which rightly demands both
+    // edges at the same step, reported nothing: three parts of the card
+    // disagreeing about whether a band exists at all.
+    if (def.band) {
+      const edges = new Set(
+        lines.filter((l) => !l.primary).map((l) => l.field)
+      );
+      if (!edges.has(def.band.lo) || !edges.has(def.band.hi)) {
+        for (let i = lines.length - 1; i >= 0; i--) {
+          if (
+            lines[i].field === def.band.lo ||
+            lines[i].field === def.band.hi
+          ) {
+            lines.splice(i, 1);
+          }
+        }
+      }
+    }
+    series.push({
+      ...def,
+      lines,
+      hasData: lines.length > 0,
+      visible: !hidden[def.key],
+    });
+  }
+
+  return { series, windowStart, windowEnd, zoomed };
+}
+
+/** Every plotted point of one field, across the segments holes broke it
+ * into. A field is one trace to every caller; that it may be drawn as
+ * several paths is a rendering detail. */
+function fieldPoints(s, field) {
+  const out = [];
+  for (const line of s.lines || []) {
+    if (line.field === field) out.push(...line.points);
+  }
+  return out;
+}
+
+/** One representative line per NAMED non-primary trace, in draw order.
+ *
+ * Two collapses, both because a reader counts traces by name and not by
+ * path. `lines` may hold several segments of one field, because a hole
+ * breaks a field into several paths; and a band's two edges are one
+ * envelope with one name.
+ *
+ * Every caller that names traces goes through here — this card's per-trace
+ * legend chips, its tooltip, and equally a legend that draws ONE chip per
+ * series and lists the rest in that chip's title. Iterating `lines`
+ * directly instead would name a gapped zone three times and a band twice.
+ */
+function extraFields(s) {
+  const band = s && s.band;
+  const seen = new Set();
+  const out = [];
+  for (const line of (s && s.lines) || []) {
+    if (line.primary) continue;
+    const key =
+      band && (line.field === band.lo || line.field === band.hi)
+        // A Symbol, never a string: a de-duplication key that cannot
+        // collide with a field name, whatever a later series calls its
+        // fields.
+        ? BAND_TRACE_KEY
+        : line.field;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(line);
+  }
+  return out;
+}
+
+/** The sentence a trace needs on hover, or "" when its name is enough.
+ *
+ * Only the expected-error band has one: "Upper floor" explains itself, a
+ * dashed pair hugging the tank curve does not. Keyed off the series
+ * definition beside `_lineLabel`, so anywhere a trace can be named the
+ * explanation can be asked for too.
+ */
+function lineNote(def, line) {
+  const band = def && def.band;
+  if (
+    band &&
+    band.noteKey &&
+    line &&
+    (line.field === band.lo || line.field === band.hi)
+  ) {
+    return L(band.noteKey);
+  }
+  return "";
+}
+
+/** The point of `field` nearest `t`, or null when the field has none. */
+function nearestPoint(s, field, t) {
+  let best = null;
+  let bestDt = Infinity;
+  for (const p of fieldPoints(s, field)) {
+    const dt = Math.abs(p.t - t);
+    if (dt < bestDt) {
+      bestDt = dt;
+      best = p;
+    }
+  }
+  return best;
+}
+
+/** What one trace inside a series is called.
+ *
+ * A series can carry several lines — the house-temperature series draws the
+ * whole-house room average solid and the two zones dashed — and every one of
+ * them needs its own name. The lower zone gets a second name when nothing
+ * measures it, so a modelled trace is never mistaken for a reading.
+ */
+function lineLabel(def, line, isLowerModelled) {
+  if (!line || line.primary) return L(def.labelKey);
+  if (line.field === "lower" && isLowerModelled()) {
+    return L("series.lower_floor_modelled");
+  }
+  return L(line.labelKey || def.labelKey);
+}
+
+/** The one tooltip row for a series' expected-error band, if it has one
+ * and both edges are present at the same step.
+ *
+ * Stated as a single ± figure because that is the one number the pair
+ * carries. Half an envelope says nothing, and two halves taken from
+ * different steps say something untrue, so both must come from the same
+ * step or there is no row at all.
+ */
+function bandRow(s, t, unit) {
+  if (!s.band) return [];
+  const lo = nearestPoint(s, s.band.lo, t);
+  const hi = nearestPoint(s, s.band.hi, t);
+  if (!lo || !hi || lo.t !== hi.t) return [];
+  return [
+    {
+      color: s.color,
+      label: L(s.band.labelKey),
+      value: (hi.v - lo.v) / 2,
+      prefix: "\u00b1",
+      dashed: true,
+      unit,
+      t: hi.t,
+      field: s.band.hi,
+    },
+  ];
+}
+
+// ---- PlanSource -----------------------------------------------------------
+// What the card knows about the plan sensors: which entities they are, what
+// they publish, and the memos that make asking cheap. Reads `host.hass` and
+// `host.config` and nothing else on the host; owns no DOM and renders
+// nothing. The first collaborator out of the god class (PR 1 of #136).
+class PlanSource {
+  constructor(host) {
+    this.host = host;
+    // Entity discovery: the sensor found for each plan kind, kept while it
+    // still exists (`resolveEntity`).
+    this.resolvedCache = null;
+    // Headline sensors: id per suffix, and the `sensor.` count a miss was
+    // recorded at, so a late-arriving backend is still found without
+    // rescanning every state batch (`statEntity`, `sensorCount`).
+    this.statCache = null;
+    this.statMissAt = null;
+    this.sensorCountFor = null;
+    this.sensorCountN = 0;
+  }
+
+  get hass() {
+    return this.host.hass;
+  }
+
+  get config() {
+    return this.host.config;
+  }
+
+  // Resolve which entity to read for a plan kind ("space" | "dhw").
+  //
+  // Entity ids are not a stable contract: they are derived from the device
+  // name and the user can rename them. So the configured id wins if it exists,
+  // otherwise fall back to discovering the sensor that advertises the matching
+  // `plan_kind` attribute, and finally to a naming-convention match for
+  // integration versions predating that attribute.
+  resolveEntity(kind) {
+    const cfg = this.config;
+    const configured =
+      kind === "space"
+        ? cfg.space_entity
+        : kind === "dhw"
+        ? cfg.dhw_entity
+        : cfg.solar_entity;
+    if (!this.hass || !this.hass.states) return configured;
+    const states = this.hass.states;
+    if (states[configured]) return configured;
+
+    if (!this.resolvedCache) this.resolvedCache = {};
+    const cached = this.resolvedCache[kind];
+    if (cached && states[cached]) return cached;
+
+    const suffix =
+      kind === "space"
+        ? "space_heating_plan"
+        : kind === "dhw"
+        ? "dhw_heating_plan"
+        : "solar_irradiance";
+    let byMarker = null;
+    let bySuffix = null;
+    for (const id of Object.keys(states).sort()) {
+      if (!id.startsWith("sensor.")) continue;
+      const attrs = states[id].attributes || {};
+      if (attrs.plan_kind === kind) {
+        byMarker = id;
+        break;
+      }
+      if (bySuffix === null && id.endsWith(suffix)) bySuffix = id;
+    }
+    const found = byMarker || bySuffix;
+    if (found) {
+      this.resolvedCache[kind] = found;
+      return found;
+    }
+    return configured;
+  }
+
+  stateOf(entityId) {
+    if (!this.hass || !this.hass.states) return undefined;
+    return this.hass.states[entityId];
+  }
+
+  forecast(entityId) {
+    const st = this.stateOf(entityId);
+    if (!st || st.state === "unavailable" || st.state === "unknown") return null;
+    const attrs = st.attributes || {};
+    let fc = attrs.forecast;
+    if (typeof fc === "string") {
+      try {
+        fc = JSON.parse(fc);
+      } catch (e) {
+        return null;
+      }
+    }
+    if (!Array.isArray(fc)) return null;
+    return fc;
+  }
+
+  forecastOf(channel) {
+    const st = this.stateOf(this.resolveEntity(channel));
+    const fc = ((st && st.attributes) || {}).forecast;
+    return Array.isArray(fc) ? fc : [];
+  }
+
+  attr(name, fallback) {
+    const st = this.stateOf(this.resolveEntity("space"));
+    const raw = ((st && st.attributes) || {})[name];
+    // `Number(null)` is 0, and 0 is finite -- so without this guard an
+    // attribute the coordinator published as None would read as a real
+    // measurement of zero rather than "not known", silently producing a 0 °C
+    // comfort target or a hot water ceiling of nothing.
+    if (raw === null || raw === undefined || raw === "") return fallback;
+    const value = Number(raw);
+    return Number.isFinite(value) ? value : fallback;
+  }
+
+  /** A plan-sensor attribute as-is, for the ones that are not numbers. */
+  attrRaw(name, fallback) {
+    const st = this.stateOf(this.resolveEntity("space"));
+    const raw = ((st && st.attributes) || {})[name];
+    return raw === null || raw === undefined ? fallback : raw;
+  }
+
+  /** The manual override the integration is currently honouring, if any.
+   *
+   * Published by both plan sensors, so either will do; the space sensor is the
+   * one the rest of the card already resolves.
+   */
+  manualOverride() {
+    for (const which of ["space", "dhw"]) {
+      const st = this.stateOf(this.resolveEntity(which));
+      const info = ((st && st.attributes) || {}).manual_override;
+      if (info && info.active) return info;
+    }
+    return null;
+  }
+
+  /** The currency to price the delta in.
+   *
+   * The plan carries prices but not a currency, so take Home Assistant's own
+   * configured currency rather than assuming the author's. `currency:` in the
+   * card config still wins, for installs where the two disagree.
+   */
+  currency() {
+    const hass = this.hass || {};
+    return (
+      this.config.currency ||
+      // v4.1.0+: the integration publishes the currency its prices are in on
+      // the plan sensors. That beats Home Assistant's global currency, which
+      // describes the install, not the price feed.
+      this.attrRaw("currency", null) ||
+      (hass.config && hass.config.currency) ||
+      "SEK"
+    );
+  }
+
+  /** "SEK/kWh", "EUR/kWh", ... from the resolved currency. */
+  priceUnit() {
+    return `${this.currency()}/kWh`;
+  }
+
+  /** The unit a series renders with. Only the price unit is dynamic: its
+   * currency comes from the config, the plan sensor or Home Assistant. */
+  seriesUnit(def) {
+    return def.axis === "price" ? this.priceUnit() : def.unit;
+  }
+
+  /** True when the lower zone has no thermometer of its own.
+   *
+   * Read from the published `setup_topology` slots rather than guessed: the
+   * integration already says there which sensor slots are filled, so the
+   * chart's label and the setup page cannot disagree. Unknown topology
+   * claims nothing — a missing attribute is not evidence of a missing
+   * sensor.
+   */
+  lowerFloorModelled() {
+    const topo = this.attrRaw("setup_topology", null);
+    const slots = topo && Array.isArray(topo.slots) ? topo.slots : null;
+    if (!slots) return false;
+    const slot = slots.find(
+      (x) => x && x.key === "lower_floor_temp_entity"
+    );
+    return !!slot && !slot.entity;
+  }
+
+  /** Timestamp from which the plan's prices are the learned prior, or null. */
+  estimatedPricesFrom() {
+    const spFc = this.forecast(this.resolveEntity("space")) || [];
+    const dhwFc = this.forecast(this.resolveEntity("dhw")) || [];
+    const fc = spFc.length ? spFc : dhwFc;
+    for (const p of fc) {
+      if (p.price_known === false) {
+        const t = Date.parse(p.t);
+        return Number.isNaN(t) ? null : t;
+      }
+    }
+    return null;
+  }
+
+  // Explain precisely why a plan is missing. "Waiting for an entity" is not
+  // actionable when the real problem is that the entity is named something
+  // else, so distinguish not-found from present-but-empty.
+  diagnose(kind) {
+    const id = this.resolveEntity(kind);
+    const label = L(kind === "space" ? "errors.diag_space" : "errors.diag_dhw");
+    const st = this.stateOf(id);
+    if (!st) {
+      return L("errors.diag_not_found", { label, id: esc(id), kind });
+    }
+    if (st.state === "unavailable" || st.state === "unknown") {
+      return L("errors.diag_unavailable", {
+        label,
+        id: esc(id),
+        state: esc(st.state),
+      });
+    }
+    const fc = this.forecast(id);
+    if (!fc) {
+      return L("errors.diag_no_forecast", { label, id: esc(id) });
+    }
+    if (!fc.length) {
+      return L("errors.diag_empty_forecast", { label, id: esc(id) });
+    }
+    return L("errors.diag_out_of_window", {
+      label,
+      id: esc(id),
+      n: fc.length,
+    });
+  }
+
+  /** The state object of a headline sensor, found by id suffix and cached.
+   *
+   * The savings/score/narrative sensors publish no `plan_kind`-style marker,
+   * so the suffix — which has_entity_name keeps stable under any device
+   * name — is the discovery contract.
+   *
+   * They also share a device with the plan sensors, which means they share
+   * an entity-id prefix. Deriving the stat id from the RESOLVED plan sensor
+   * (config first, then plan_kind discovery — `_resolveEntity` already owns
+   * that) is both cheap and scoped to this card's config entry; a global
+   * scan could bind the headline to another entry's — or a foreign
+   * integration's — sensors. The scan survives only as a fallback for
+   * hand-renamed stat entities, and its result is cached even when it is a
+   * miss: the negative cache is keyed to the number of `sensor.` ids, so a
+   * late-arriving backend is still found without rescanning every state
+   * batch.
+   */
+  statEntity(suffix) {
+    const states = this.hass && this.hass.states;
+    if (!states) return null;
+    if (!this.statCache) this.statCache = {};
+    if (!this.statMissAt) this.statMissAt = {};
+    const cached = this.statCache[suffix];
+    if (cached && states[cached]) return states[cached];
+
+    for (const [kind, planSuffix] of [
+      ["space", "_space_heating_plan"],
+      ["dhw", "_dhw_heating_plan"],
+    ]) {
+      const planId = this.resolveEntity(kind);
+      if (!planId || !states[planId] || !planId.endsWith(planSuffix)) {
+        continue;
+      }
+      const candidate = planId.slice(0, -planSuffix.length) + suffix;
+      if (states[candidate]) {
+        this.statCache[suffix] = candidate;
+        delete this.statMissAt[suffix];
+        return states[candidate];
+      }
+    }
+
+    const count = this.sensorCount(states);
+    if (this.statMissAt[suffix] === count) return null;
+    // Sorted iteration makes a tie deterministic, the same choice
+    // `_resolveEntity` makes.
+    for (const id of Object.keys(states).sort()) {
+      if (!id.startsWith("sensor.") || !id.endsWith(suffix)) continue;
+      this.statCache[suffix] = id;
+      delete this.statMissAt[suffix];
+      return states[id];
+    }
+    this.statMissAt[suffix] = count;
+    return null;
+  }
+
+  /** How many `sensor.` entity ids this state batch holds.
+   *
+   * Memoized per batch object — hass replaces `states` wholesale on every
+   * update, so object identity is the batch's identity. This is what the
+   * negative cache above is keyed to.
+   */
+  sensorCount(states) {
+    if (this.sensorCountFor !== states) {
+      let n = 0;
+      for (const id of Object.keys(states)) {
+        if (id.startsWith("sensor.")) n++;
+      }
+      this.sensorCountFor = states;
+      this.sensorCountN = n;
+    }
+    return this.sensorCountN;
+  }
+
+  /** A headline sensor's state as a finite number, or null. */
+  statNumber(suffix) {
+    const st = this.statEntity(suffix);
+    if (!st || st.state === "unavailable" || st.state === "unknown") {
+      return null;
+    }
+    const v = Number(st.state);
+    return Number.isFinite(v) ? v : null;
+  }
+}
+
+// ---- Chart geometry: screen <-> chart ---------------------------------------
+// The chart is drawn in a fixed viewBox and stretched to fit, so screen pixels
+// and viewBox units are not interchangeable; these relate the two, and find
+// the chart copies inside a root. Pure functions of their arguments.
+
+/** Turn a screen x into a time on the chart's axis.
+ *
+ * The chart is drawn in a fixed viewBox and stretched to fit, so screen
+ * pixels and viewBox units are not interchangeable; the measured width is
+ * the only thing that relates them.
+ */
+function timeAtClientX(svg, clientX, geom) {
+  if (!geom || !svg) return null;
+  const rect = svg.getBoundingClientRect ? svg.getBoundingClientRect() : null;
+  if (!rect || !rect.width) return null;
+  const vx = ((clientX - rect.left) / rect.width) * VIEW_W;
+  return geom.windowStart + ((vx - geom.plotL) / geom.plotW) *
+    (geom.windowEnd - geom.windowStart);
+}
+
+/** The chart wrapper owning an element, so each copy finds its own parts. */
+function wrapOf(el, root) {
+  let node = el;
+  while (node && node !== root) {
+    if (node.classList && node.classList.contains("chartwrap")) return node;
+    node = node.parentNode;
+  }
+  return null;
+}
+
+/** The chart svgs, and only those.
+ *
+ * The expand button carries an inline `<svg>` icon and sits above the chart
+ * in the markup, so `querySelector("svg")` returns an 18px icon rather than
+ * the plot. Every chart is wrapped in a `.chartwrap`; the icon is not.
+ */
+function chartSvgs(scope) {
+  if (!scope) return [];
+  return [...scope.querySelectorAll(".chartwrap svg")];
+}
+
+// ---- ViewWindow -----------------------------------------------------------
+// The pan/zoom window over the plan (item 23): the user's range, the limits
+// the plan allows, the wheel and drag gestures, the zoom buttons, and the
+// once-per-frame redraw they share. `range` is null until the user touches a
+// control, so an untouched card renders exactly as it did before this
+// existed. Uses `host.geom` (the chart's last geometry, for hit-testing),
+// `host.render()` and `host.suppressNextClick()`. The second collaborator
+// out of the god class (PR 2 of #136).
+class ViewWindow {
+  constructor(host) {
+    this.host = host;
+    // The user's window, {start, span}; `null` means "the default window".
+    this.range = null;
+    // What the last `apply` recorded: floor, defaultEnd, rightBound,
+    // minSpan, maxSpan. Null until the first build.
+    this.limits = null;
+    // The animation frame a redraw is waiting on (`renderView`).
+    this.pendingFrame = 0;
+    // The pan gesture in progress, with the window listeners it parked.
+    this.panGesture = null;
+    this.onWheel = this.onWheel.bind(this);
+    this.onPanDown = this.onPanDown.bind(this);
+  }
+
+  /** Whether the user has zoomed or panned away from the default window. */
+  get zoomed() {
+    return this.range !== null;
+  }
+
+  /** Move the window to `start` without redrawing, keeping its span: the
+   * slot editor's edge auto-pan renders on its own schedule (a full render
+   * every tick, mid-gesture) rather than through `renderView`'s frame. */
+  setStart(start) {
+    const cur = this.current();
+    this.range = { start, span: cur.span };
+  }
+
+  /** The pan/zoom view dies with the dialog session it belonged to. It used
+   * to persist for the lifetime of the card element -- on a wall-mounted
+   * dashboard, indefinitely -- so one accidental trackpad pinch or
+   * two-finger swipe over the chart quietly capped slot editing at the
+   * narrowed window's edge for days, while re-anchoring itself to "now" so
+   * it never scrolled out of relevance. A dismissed dialog is a finished
+   * session; the next open shows the whole plan. */
+  onDialogClosed() {
+    this.range = null;
+  }
+
+  /** Narrow the default window to the panned/zoomed view, and record its limits.
+   *
+   * Called on every build so the limits track incoming data: the plan's extent
+   * moves forward as new forecasts arrive, and a view clamped against the
+   * extent of ten minutes ago would slowly drift out of range.
+   *
+   * Returns the default window untouched while `range` is null, so a card
+   * nobody has interacted with renders exactly as it did before this existed.
+   */
+  apply(defaultStart, defaultEnd, dataEnd) {
+    const defaultSpan = Math.max(defaultEnd - defaultStart, 1);
+    // Zooming out stops at the plan, not at the configured plot width:
+    // `cfg.hours` goes up to a week, while the optimizer's horizon defaults to
+    // 24 h, and the difference is empty chart.
+    const maxSpan = Math.max(
+      Math.min(defaultSpan, Math.max(dataEnd - defaultStart, VIEW_MIN_SPAN_MS)),
+      VIEW_MIN_SPAN_MS
+    );
+    const minSpan = Math.min(VIEW_MIN_SPAN_MS, maxSpan);
+    // The right edge the window may not pass: the plan's end, and never beyond
+    // the configured plot width.
+    const rightBound = Math.max(
+      Math.min(dataEnd, defaultEnd),
+      defaultStart + minSpan
+    );
+    // `defaultEnd` is kept as well as `rightBound`: the two differ whenever the
+    // configured plot window is wider than the plan, and a zoom that mistook
+    // the plan's extent for what is currently on screen would compute its
+    // anchor against a window the user is not looking at.
+    this.limits = {
+      floor: defaultStart,
+      defaultEnd,
+      rightBound,
+      minSpan,
+      maxSpan,
+    };
+
+    if (!this.range) return { start: defaultStart, end: defaultEnd };
+
+    const span = clampNum(this.range.span, minSpan, maxSpan);
+    const maxStart = Math.max(defaultStart, rightBound - span);
+    const start = clampNum(this.range.start, defaultStart, maxStart);
+    this.range = { start, span };
+    return { start, end: start + span };
+  }
+
+  /** Whether panning and zooming can do anything at all.
+   *
+   * With a plan no longer than the minimum span there is nothing to pan across
+   * and nothing to zoom out to, and controls that cannot move are worse than
+   * no controls.
+   */
+  adjustable() {
+    const lim = this.limits;
+    return !!lim && lim.rightBound - lim.floor > lim.minSpan * 1.05;
+  }
+
+  /** The span currently on screen, view or default. */
+  span() {
+    if (this.range) return this.range.span;
+    const lim = this.limits;
+    return lim ? lim.defaultEnd - lim.floor : 1;
+  }
+
+  /** The window currently on screen, as the zoom and pan maths sees it. */
+  current() {
+    const lim = this.limits;
+    if (this.range) return this.range;
+    return { start: lim.floor, span: lim.defaultEnd - lim.floor };
+  }
+
+  /** Zoom by `factor`, holding the time under `anchorT` still.
+   *
+   * Anchoring matters: zooming around the window centre walks whatever the user
+   * is pointing at off the screen, which makes repeated zooming feel like it is
+   * fighting back.
+   */
+  zoom(factor, anchorT) {
+    const lim = this.limits;
+    if (!lim) return;
+    const current = this.current();
+    const span = clampNum(current.span * factor, lim.minSpan, lim.maxSpan);
+    const anchor =
+      anchorT === undefined || anchorT === null
+        ? current.start + current.span / 2
+        : clampNum(anchorT, current.start, current.start + current.span);
+    // Keep the anchor at the same fraction across the window.
+    const frac = (anchor - current.start) / (current.span || 1);
+    this.range = { start: anchor - frac * span, span };
+    this.renderView();
+  }
+
+  /** Slide the window by `deltaMs`, without changing its span. */
+  panBy(deltaMs) {
+    const lim = this.limits;
+    if (!lim) return;
+    const current = this.current();
+    this.range = { start: current.start + deltaMs, span: current.span };
+    this.renderView();
+  }
+
+  reset() {
+    if (!this.range) return;
+    this.range = null;
+    this.renderView();
+  }
+
+  /** Redraw after a view change, at most once per frame.
+   *
+   * A view change moves every series, not just the lanes, so unlike a slot drag
+   * there is nothing narrower to refresh. `_render` replaces the shadow root,
+   * which is why the pan gesture listens on the window rather than on the svg:
+   * the element under the pointer is gone by the next event.
+   */
+  renderView() {
+    if (this.pendingFrame) return;
+    const run = () => {
+      this.pendingFrame = 0;
+      // Deliberately not clearing `_sig`: it is what stops the next data
+      // refresh from throwing away an in-progress slot edit, and a view change
+      // is not a reason to discard the draft the user is arranging.
+      this.host.render();
+    };
+    this.pendingFrame =
+      typeof requestAnimationFrame === "function"
+        ? requestAnimationFrame(run)
+        : setTimeout(run, 16);
+  }
+
+  /** Wheel over the chart: pinch to zoom, two fingers sideways to pan.
+   *
+   * A plain vertical wheel is deliberately left alone. The card sits in a
+   * dashboard the user scrolls, and a chart that swallowed the scroll wheel
+   * would trap the page the moment the pointer crossed it. Trackpad pinch
+   * arrives as a wheel with `ctrlKey` set, which is the gesture people already
+   * expect to zoom.
+   */
+  onWheel(ev) {
+    if (!this.adjustable()) return;
+    const zooming = ev.ctrlKey || ev.metaKey;
+    const sideways = Math.abs(ev.deltaX) > Math.abs(ev.deltaY);
+    const panning = !zooming && (ev.shiftKey || sideways);
+    if (!zooming && !panning) return;
+    if (ev.preventDefault) ev.preventDefault();
+    stop(ev);
+
+    if (zooming) {
+      const at = timeAtClientX(ev.currentTarget, ev.clientX, this.host.geom);
+      this.zoom(ev.deltaY > 0 ? VIEW_ZOOM_STEP : 1 / VIEW_ZOOM_STEP, at);
+      return;
+    }
+    const span = this.span();
+    const delta = sideways ? ev.deltaX : ev.deltaY;
+    this.panBy((delta / 600) * span);
+  }
+
+  /** Drag the chart background sideways to pan.
+   *
+   * Only the background: a pointerdown that landed on a lane belongs to the
+   * slot editor, and stealing it would make slots undraggable. The move and up
+   * handlers go on `window` rather than the svg because panning re-renders,
+   * which replaces the element the gesture started on -- listeners bound to it
+   * would stop firing halfway through the drag.
+   */
+  onPanDown(ev) {
+    if (!this.adjustable()) return;
+    if (((ev.target || {}).dataset || {}).channel) return;
+    const svg = ev.currentTarget;
+    const rect = svg && svg.getBoundingClientRect ? svg.getBoundingClientRect() : null;
+    if (!rect || !rect.width) return;
+    // `host.geom` only exists while the lanes do (what_if enabled). Without it,
+    // fall back to the nominal plot width rather than the whole viewBox, or a
+    // drag would track noticeably slower than the pointer.
+    const plotW = this.host.geom
+      ? this.host.geom.plotW
+      : VIEW_W - MARGIN.left - MARGIN.right;
+    const pxPerViewUnit = rect.width / VIEW_W;
+    const plotPx = plotW * pxPerViewUnit;
+    if (!plotPx) return;
+
+    // Without this the drag selects the axis labels and, on some browsers,
+    // starts a native image drag of the svg.
+    if (ev.preventDefault) ev.preventDefault();
+    const pan = {
+      last: ev.clientX,
+      perPx: this.span() / plotPx,
+      moved: false,
+      move: null,
+      up: null,
+    };
+    pan.move = (moveEv) => {
+      const dx = moveEv.clientX - pan.last;
+      if (!dx) return;
+      pan.last = moveEv.clientX;
+      // A drag only counts as a pan once it has actually moved, so a plain
+      // click on the chart still opens the expanded view.
+      pan.moved = true;
+      // Drag left to move forward in time: the content follows the pointer.
+      this.panBy(-dx * pan.perPx);
+    };
+    pan.up = () => {
+      if (pan.moved) this.host.suppressNextClick();
+      this.panGesture = null;
+      if (typeof window === "undefined") return;
+      window.removeEventListener("pointermove", pan.move);
+      window.removeEventListener("pointerup", pan.up);
+      window.removeEventListener("pointercancel", pan.up);
+    };
+    this.panGesture = pan;
+    if (typeof window !== "undefined") {
+      window.addEventListener("pointermove", pan.move);
+      window.addEventListener("pointerup", pan.up);
+      window.addEventListener("pointercancel", pan.up);
+    }
+  }
+
+  /** Zoom and reset buttons: the keyboard- and touch-reachable path.
+   *
+   * Wheel and drag cover a trackpad, but neither is available to someone on a
+   * phone or tabbing through the card, and a zoom that only exists as a gesture
+   * is a zoom half the users never find.
+   */
+  controlsHtml() {
+    if (!this.adjustable()) return "";
+    const zoomed = this.range !== null;
+    return `
+      <div class="viewctl">
+        <button type="button" class="vc-out" title="${esc(L("plan.zoom_out"))}"
+          aria-label="${esc(L("plan.zoom_out"))}">&minus;</button>
+        <button type="button" class="vc-in" title="${esc(L("plan.zoom_in"))}"
+          aria-label="${esc(L("plan.zoom_in"))}">+</button>
+        <button type="button" class="vc-reset" title="${esc(
+          L("plan.show_whole_plan")
+        )}"
+          aria-label="${esc(L("plan.show_whole_plan"))}"${zoomed ? "" : " disabled"}>&#8634;</button>
+      </div>`;
+  }
+
+  attach(root) {
+    chartSvgs(root).forEach((svg) => {
+      svg.addEventListener("wheel", this.onWheel, { passive: false });
+      svg.addEventListener("pointerdown", this.onPanDown);
+    });
+    const wire = (sel, fn) =>
+      root.querySelectorAll(sel).forEach((el) =>
+        el.addEventListener("click", (ev) => {
+          stop(ev);
+          fn();
+        })
+      );
+    wire(".vc-in", () => this.zoom(1 / VIEW_ZOOM_STEP, null));
+    wire(".vc-out", () => this.zoom(VIEW_ZOOM_STEP, null));
+    wire(".vc-reset", () => this.reset());
+  }
+}
+
+// ---- The chart: pure functions from a frame to SVG ------------------------
+// `renderChart(frame, opts)` draws one copy of the plan chart -- the axes,
+// the series paths, the now marker, the estimated-price shading, the
+// shared-step bands and, when editing, the lanes -- and returns the markup
+// with the geometry the hover (`plot`) and the lane editor (`geom`) hit-test
+// against. It reads nothing but its arguments: `opts` carries what the host
+// resolves (`expanded`, `measuredWidth` as a thunk, `priceUnit`,
+// `estimatedFrom`, `editing`, `title`, `now`), the `overlay(geom)` callback
+// that draws the lanes, and `nextPatternId()`, which hands out the
+// document-unique ids the shared-band pattern needs. The same bodies as the
+// methods they were (PR 3 of #136); the host publishes `plot` and `geom` in
+// the order it always did.
+
+function renderChart(frame, opts) {
+  const { windowStart, windowEnd, series } = frame;
+  const {
+    expanded, measuredWidth, priceUnit, estimatedFrom, editing, title, now,
+    overlay, nextPatternId,
+  } = opts;
+  const visible = series.filter((s) => s.visible && s.hasData);
+  // D4-01: the compact chart floors its rendered font (see
+  // compactFontUnits); the margins then scale with any boost beyond what
+  // the authored layout already accommodates, so axis labels keep their
+  // relative space instead of colliding.
+  const font = expanded
+    ? FONT_EXPANDED
+    : compactFontUnits(measuredWidth());
+  const marginScale = expanded ? 1 : Math.max(1, font / FONT_EXPANDED);
+
+  // Axis domains from visible series grouped by axis.
+  const groups = { temp: [], power: [], price: [], solar: [] };
+  for (const s of visible) {
+    for (const line of s.lines) {
+      for (const p of line.points) groups[s.axis].push(p.v);
+    }
+  }
+  const axisRange = (vals, forceZero) => {
+    if (!vals.length) return null;
+    let lo = Math.min(...vals);
+    let hi = Math.max(...vals);
+    if (forceZero) lo = Math.min(0, lo);
+    return niceAxis(lo, hi, 6);
+  };
+  const axes = {
+    temp: axisRange(groups.temp, false),
+    power: axisRange(groups.power, true),
+    price: axisRange(groups.price, true),
+    solar: axisRange(groups.solar, true),
+  };
+
+  // The compact chart's boosted font (D4-01) widens these with it; the
+  // authored values below are already laid out for FONT_EXPANDED, so the
+  // scale only engages past that.
+  const plotL = MARGIN.left * marginScale;
+  // Only pay for the solar axis's width when it is actually drawn; a
+  // permanently narrower plot would be a real cost to every user who does
+  // not use the series.
+  const rightMargin =
+    (axes.solar ? MARGIN_RIGHT_WITH_SOLAR : MARGIN.right) * marginScale;
+  const plotR = VIEW_W - rightMargin;
+  const plotT = MARGIN.top * marginScale;
+  const plotB = VIEW_H - MARGIN.bottom * marginScale;
+  const plotW = plotR - plotL;
+  const plotH = plotB - plotT;
+
+  const xSpan = windowEnd - windowStart || 1;
+  const scaleX = (t) => plotL + ((t - windowStart) / xSpan) * plotW;
+  const scaleY = (v, axisName) => {
+    const a = axes[axisName];
+    if (!a) return plotB;
+    const span = a.max - a.min || 1;
+    return plotB - ((v - a.min) / span) * plotH;
+  };
+
+  // The geometry the hover hit-tests against.
+  const plot = {
+    windowStart,
+    windowEnd,
+    scaleX,
+    scaleY,
+    axes,
+    plotL,
+    plotR,
+    plotT,
+    plotB,
+  };
+
+  const parts = [];
+
+  // Plot frame
+  parts.push(
+    `<rect x="${plotL}" y="${plotT}" width="${plotW}" height="${plotH}" fill="none" stroke="var(--divider-color,#e0e0e0)" stroke-width="1"/>`
+  );
+
+  // Hourly gridlines. How often they are labelled is worked out from the
+  // space available, so a wider chart or a shorter horizon labels more.
+  parts.push(
+    timeAxis(scaleX, plotT, plotB, windowStart, windowEnd, font)
+  );
+
+  // Value axes. Where two axes share a side, the inner one's title has only
+  // the gap to the outer axis to live in, and that gap does not grow with
+  // the font: at the expanded size "SEK/kWh" is wider than the 46 units
+  // between the price and solar axes, so it used to run straight through
+  // "W/m2". Measure the title and, when it does not fit, hang it off the
+  // inside of its own axis line instead -- the strip above the plot frame
+  // is empty, so the title stays beside the axis it names either way.
+  const titleFits = (unit, room) =>
+    textWidth(unit, font) + font * 0.6 <= room;
+  const powerTitleInset = 44;
+  // The price axis title carries the resolved currency, so the measured
+  // string and the drawn string must be the same value.
+  const tempAnchor =
+    axes.power && !titleFits("\u00b0C", powerTitleInset) ? "start" : "end";
+  const priceAnchor =
+    axes.solar && !titleFits(priceUnit, SOLAR_AXIS_INSET) ? "end" : "start";
+
+  if (axes.temp)
+    parts.push(
+      valueAxis(
+        axes.temp, plotL, plotT, plotB, plotH, "left", 0,
+        scaleY, "temp", "\u00b0C", font, tempAnchor
+      )
+    );
+  if (axes.power)
+    parts.push(
+      valueAxis(
+        axes.power, plotL, plotT, plotB, plotH, "left", powerTitleInset,
+        scaleY, "power", "kW", font
+      )
+    );
+  if (axes.price)
+    parts.push(
+      valueAxis(
+        axes.price, plotR, plotT, plotB, plotH, "right", 0,
+        scaleY, "price", priceUnit, font, priceAnchor
+      )
+    );
+  if (axes.solar)
+    parts.push(
+      valueAxis(
+        axes.solar, plotR, plotT, plotB, plotH, "right", SOLAR_AXIS_INSET,
+        scaleY, "solar", "W/m\u00b2", font
+      )
+    );
+
+  // Now marker
+  if (now >= windowStart && now <= windowEnd) {
+    const nx = scaleX(now);
+    parts.push(
+      `<line x1="${nx}" y1="${plotT}" x2="${nx}" y2="${plotB}" stroke="var(--primary-color,#03a9f4)" stroke-width="1.5" stroke-dasharray="4 3"/>`
+    );
+    parts.push(
+      `<text x="${nx + 3}" y="${plotT + font + 1}" font-size="${font}" fill="var(--primary-color,#03a9f4)">${esc(
+          L("plan.now")
+        )}</text>`
+    );
+  }
+
+  // Shade the stretch of the horizon whose prices are the learned diurnal
+  // prior rather than published market data. A plan that looks identical
+  // whether or not it rests on real prices cannot be audited.
+  if (estimatedFrom !== null && estimatedFrom < windowEnd) {
+    const ex = Math.max(plotL, scaleX(Math.max(estimatedFrom, windowStart)));
+    parts.push(
+      `<rect class="estimated" pointer-events="none" x="${ex}" y="${plotT}" width="${Math.max(
+          0,
+          plotR - ex
+        )}" height="${plotH}" fill="var(--secondary-text-color,#888)" fill-opacity="0.07"/>`
+    );
+    // D4-03: this used to sit at `plotB - 5`, directly on top of the
+    // lane-row labels drawn near the bottom of the plot (`_laneGroupInner`),
+    // garbling both. Anchored just under the top margin instead -- a strip
+    // that is otherwise empty except for the "now" marker's label, which
+    // lives at a different x (by the current-time line, not the start of
+    // the estimated region) whenever both happen to be visible together.
+    parts.push(
+      `<text x="${ex + 4}" y="${plotT + font + 4}" font-size="${font}" fill="var(--secondary-text-color,#888)">${esc(
+          L("plan.estimated_prices")
+        )}</text>`
+    );
+  }
+
+  // Editable slot lanes, drawn by the caller's overlay into the geometry a
+  // pointer event needs to turn a screen coordinate back into a time. The lane metrics travel with the
+  // geometry (D4-01): a boosted compact font scales the lanes with it, and
+  // hit-testing must use the same numbers the drawing used.
+  let geom = null;
+  if (editing) {
+    geom = {
+      windowStart, windowEnd, plotL, plotW, plotR, plotB, font,
+      laneH: LANE_H * marginScale, laneGap: LANE_GAP * marginScale,
+      laneInset: LANE_BOTTOM_INSET * marginScale,
+    };
+    parts.push(`<g class="lanes">${overlay(geom)}</g>`);
+  }
+
+  // Where BOTH circuits are planned in the same quarter hour the pump is
+  // time-sharing the step — hot water first, then heating. That is a
+  // deliberate relaxation (space + hot water ≤ nameplate per step), not
+  // double-booking, and two full-height bars with nothing said implied
+  // the impossible. Drawn under the bars so the bars stay readable.
+  parts.push(
+    sharedSpanBands(visible, scaleX, plotT, plotB, plotL, plotR, nextPatternId)
+  );
+
+  // Series paths (filled/area series first, lines on top)
+  const order = ["stepArea", "stepBars", "smooth"];
+  for (const st of order) {
+    for (const s of visible) {
+      if (s.style !== st) continue;
+      parts.push(seriesPath(s, scaleX, scaleY, plotB));
+    }
+  }
+
+  // Crosshair placeholder (updated on hover)
+  parts.push(
+    `<line class="crosshair" pointer-events="none" x1="0" y1="${plotT}" x2="0" y2="${plotB}" stroke="var(--secondary-text-color,#888)" stroke-width="1" visibility="hidden"/>`
+  );
+
+  // role="img" flattens every descendant for assistive tech, which is
+  // right for a pure picture but wrong the moment the lanes put focusable
+  // slots inside it — those need "group" so they stay in the tree. The
+  // editable chart also takes tabindex="-1": it is the last-resort home
+  // for restored focus (`_restoreSlotFocus`), and an svg without a
+  // tabindex refuses programmatic focus.
+  const svg = `<svg viewBox="0 0 ${VIEW_W} ${VIEW_H}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" role="${
+      editing ? "group" : "img"
+    }"${editing ? ' tabindex="-1"' : ""} aria-label="${esc(
+      title
+    )}">${parts.join("")}</svg>`;
+  return { svg, plot, geom };
+}
+
+/** Hourly gridlines, labelled as often as the width actually allows.
+ *
+ * Label density cannot be a fixed choice. The horizon is configurable, the
+ * chart is drawn in a fixed coordinate system, and the labels are formatted
+ * for the user's locale, so their width is not known in advance either --
+ * "13:00" is five characters but "12:00 AM" is eight. Build the labels
+ * first, measure the widest, and only then decide how many to show.
+ */
+function timeAxis(scaleX, plotT, plotB, windowStart, windowEnd, font) {
+  const size = font || FONT_BASE;
+  const hour = 3600 * 1000;
+
+  const first = new Date(windowStart);
+  first.setMinutes(0, 0, 0);
+  if (first.getTime() < windowStart) first.setHours(first.getHours() + 1);
+
+  const ticks = [];
+  for (let t = first.getTime(); t <= windowEnd; t += hour) {
+    const d = new Date(t);
+    ticks.push({
+      t,
+      x: scaleX(t),
+      hours: d.getHours(),
+      label: d.toLocaleTimeString(ACTIVE_LANG, {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+    });
+  }
+  if (!ticks.length) return "";
+
+  // Widest rendered label, plus a gap, in viewBox units. The chart uses the
+  // default sans-serif face, whose characters average a little over half an
+  // em at these sizes.
+  const widest = ticks.reduce((n, tick) => Math.max(n, tick.label.length), 0);
+  const labelWidth = size * widest * CHAR_WIDTH_EM + size * 0.6;
+  const unitsPerHour = Math.abs(scaleX(windowStart + hour) - scaleX(windowStart));
+  const needed = unitsPerHour > 0 ? Math.ceil(labelWidth / unitsPerHour) : 3;
+  // Intervals that divide the day, so labels land on the same clock times
+  // each day rather than drifting across midnight.
+  const every =
+    TIME_LABEL_STEPS.find((step) => step >= Math.max(1, needed)) ||
+    TIME_LABEL_STEPS[TIME_LABEL_STEPS.length - 1];
+
+  const out = [];
+  for (const tick of ticks) {
+    const labelled = tick.hours % every === 0;
+    out.push(
+      `<line x1="${tick.x}" y1="${plotT}" x2="${tick.x}" y2="${plotB}" stroke="var(--divider-color,#eee)" stroke-width="${
+          labelled ? 1 : 0.5
+        }" opacity="${labelled ? 0.7 : 0.35}"/>`
+    );
+    if (labelled) {
+      out.push(
+        `<text x="${tick.x}" y="${plotB + size + 4}" font-size="${size}" text-anchor="middle" fill="var(--secondary-text-color,#888)">${esc(
+            tick.label
+          )}</text>`
+      );
+    }
+  }
+  return out.join("");
+}
+
+function valueAxis(
+  axis, xBase, plotT, plotB, plotH, side, inset, scaleY, axisName, unit,
+  font, titleAnchor
+) {
+  const size = font || FONT_BASE;
+  const out = [];
+  const x = side === "left" ? xBase - inset : xBase + inset;
+  const anchor = side === "left" ? "end" : "start";
+  const tx = side === "left" ? x - 5 : x + 5;
+  for (const tick of axis.ticks) {
+    const y = scaleY(tick, axisName);
+    out.push(
+      `<text x="${tx}" y="${y + size / 3}" font-size="${size}" text-anchor="${anchor}" fill="var(--secondary-text-color,#888)">${esc(
+          fmtTick(tick)
+        )}</text>`
+    );
+    const t1 = side === "left" ? x - 3 : x + 3;
+    out.push(
+      `<line x1="${x}" y1="${y}" x2="${t1}" y2="${y}" stroke="var(--secondary-text-color,#aaa)" stroke-width="0.75"/>`
+    );
+  }
+  // The title sits on the strip above the plot frame, normally running away
+  // from the chart like the tick labels do. When that would run it into the
+  // next axis out, the caller flips it to the other side of its own axis
+  // line, where the strip above the plot is empty. The gap scales with the
+  // font (D4-01) so a boosted compact font does not sit on the frame.
+  const uy = plotT - 4 * (size / FONT_BASE);
+  const ta = titleAnchor || anchor;
+  const ux = ta === "end" ? x - 5 : x + 5;
+  out.push(
+    `<text x="${ux}" y="${uy}" font-size="${size}" text-anchor="${ta}" fill="var(--secondary-text-color,#888)">${esc(
+        unit
+      )}</text>`
+  );
+  return out.join("");
+}
+
+function seriesPath(s, scaleX, scaleY, plotB) {
+  const out = [];
+  for (const line of s.lines) {
+    const pts = line.points.map((p) => ({
+      x: scaleX(p.t),
+      y: scaleY(p.v, s.axis),
+    }));
+    if (!pts.length) continue;
+
+    // D4-02: a single-point line has no second vertex to draw a
+    // line-to from, so `<path>` alone paints nothing (a bare "M x y", or
+    // for the area styles a zero-area triangle collapsed onto one x) --
+    // yet the series still counts as `hasData` and its legend chip still
+    // shows fully active. A visible dot is the honest reading of "one
+    // sample exists", and keeps the chip's claim true.
+    if (pts.length === 1) {
+      out.push(
+        `<circle class="series" data-key="${s.key}" pointer-events="none" cx="${pts[0].x.toFixed(2)}" cy="${pts[0].y.toFixed(2)}" r="3" fill="${s.color}"/>`
+      );
+      continue;
+    }
+
+    if (s.style === "stepArea" || s.style === "stepBars") {
+      const stepD = steppedLine(pts);
+      const baseY = plotB;
+      const areaD =
+        stepD +
+        ` L ${pts[pts.length - 1].x.toFixed(2)} ${baseY.toFixed(2)}` +
+        ` L ${pts[0].x.toFixed(2)} ${baseY.toFixed(2)} Z`;
+      const fillOpacity = s.style === "stepBars" ? 0.35 : 0.18;
+      out.push(
+        `<path class="series" data-key="${s.key}" pointer-events="none" d="${areaD}" fill="${s.color}" fill-opacity="${fillOpacity}" stroke="none"/>`
+      );
+      out.push(
+        `<path class="series" data-key="${s.key}" pointer-events="none" d="${stepD}" fill="none" stroke="${s.color}" stroke-width="1.5"/>`
+      );
+    } else {
+      const d = smoothLine(pts);
+      const dash = line.primary
+        ? ""
+        : ` stroke-dasharray="3 3" stroke-opacity="0.7"`;
+      out.push(
+        `<path class="series" data-key="${s.key}" pointer-events="none" d="${d}" fill="none" stroke="${s.color}" stroke-width="1.8"${dash}/>`
+      );
+    }
+  }
+  return out.join("");
+}
+
+function steppedLine(pts) {
+  let d = `M ${pts[0].x.toFixed(2)} ${pts[0].y.toFixed(2)}`;
+  for (let i = 1; i < pts.length; i++) {
+    d += ` L ${pts[i].x.toFixed(2)} ${pts[i - 1].y.toFixed(2)}`;
+    d += ` L ${pts[i].x.toFixed(2)} ${pts[i].y.toFixed(2)}`;
+  }
+  return d;
+}
+
+function smoothLine(pts) {
+  if (pts.length < 3) {
+    let d = `M ${pts[0].x.toFixed(2)} ${pts[0].y.toFixed(2)}`;
+    for (let i = 1; i < pts.length; i++)
+      d += ` L ${pts[i].x.toFixed(2)} ${pts[i].y.toFixed(2)}`;
+    return d;
+  }
+  let d = `M ${pts[0].x.toFixed(2)} ${pts[0].y.toFixed(2)}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i - 1] || pts[i];
+    const p1 = pts[i];
+    const p2 = pts[i + 1];
+    const p3 = pts[i + 2] || p2;
+    const c1x = p1.x + (p2.x - p0.x) / 6;
+    const c1y = p1.y + (p2.y - p0.y) / 6;
+    const c2x = p2.x - (p3.x - p1.x) / 6;
+    const c2y = p2.y - (p3.y - p1.y) / 6;
+    d += ` C ${c1x.toFixed(2)} ${c1y.toFixed(2)} ${c2x.toFixed(2)} ${c2y.toFixed(
+        2
+      )} ${p2.x.toFixed(2)} ${p2.y.toFixed(2)}`;
+  }
+  return d;
+}
+
+/** Hatched bands over every span where space and hot water share steps.
+ *
+ * Only when both power series are visible — hiding a channel hides its
+ * half of the story, and a band explaining an invisible series would be
+ * noise. The native <title> answers the "is this double-booking?"
+ * question right where it is asked.
+ */
+function sharedSpanBands(
+  seriesList, scaleX, plotT, plotB, plotL, plotR, nextPatternId
+) {
+  const powerSeries = (field) =>
+    (seriesList || []).find(
+      (s) => s.field === field && s.visible && s.hasData
+    );
+  const space = powerSeries("space_power");
+  const dhw = powerSeries("dhw_power");
+  if (!space || !dhw) return "";
+  // Through the field helper, not `lines[0]`: a hole anywhere in a power
+  // series splits it into segments, and the span search needs all of them.
+  const pointsOf = (s) => fieldPoints(s, s.field);
+  const spacePts = pointsOf(space);
+  const dhwPts = pointsOf(dhw);
+  if (spacePts.length < 2 || dhwPts.length < 2) return "";
+  const spaceAt = new Map(spacePts.map((p) => [p.t, p.v]));
+  let step = Infinity;
+  for (let i = 1; i < dhwPts.length; i++) {
+    step = Math.min(step, dhwPts[i].t - dhwPts[i - 1].t);
+  }
+  if (!Number.isFinite(step) || step <= 0) return "";
+  const spans = [];
+  for (const p of dhwPts) {
+    const sv = spaceAt.get(p.t);
+    if (p.v > 0.05 && sv !== undefined && sv > 0.05) {
+      const last = spans[spans.length - 1];
+      if (last && p.t <= last.end + step / 2) last.end = p.t + step;
+      else spans.push({ start: p.t, end: p.t + step });
+    }
+  }
+  if (!spans.length) return "";
+  // The pattern id must be unique per chart: with the dialog open the
+  // inline and expanded charts render into one shadow root, and two
+  // <pattern> elements sharing an id is invalid markup that would
+  // silently couple them. The caller hands the ids out.
+  const pid = nextPatternId();
+  const out = [
+    `<defs><pattern id="${pid}" width="6" height="6"
+        patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+        <line x1="0" y1="0" x2="0" y2="6"
+          stroke="var(--secondary-text-color,#888)" stroke-width="1.4"/>
+      </pattern></defs>`,
+  ];
+  for (const span of spans) {
+    const x1 = Math.max(plotL, scaleX(span.start));
+    const x2 = Math.min(plotR, scaleX(span.end));
+    if (x2 <= x1) continue;
+    // pointer-events none is load-bearing: the band spans the full plot
+    // and paints after the what-if lanes, so without it a low-power
+    // shared span would swallow the slot editor's drags and clicks.
+    out.push(`<rect class="shared-band" pointer-events="none" x="${x1}" y="${plotT}" width="${
+        x2 - x1
+      }" height="${plotB - plotT}" fill="url(#${pid})" fill-opacity="0.18">
+        <title>${esc(L("plan.shared_band_title"))}</title>
+      </rect>`);
+  }
+  return out.join("");
+}
+
+// ---- The tooltip: pure functions from rows to markup -------------------------
+// What the hover says. The host's `_onPointerMove` turns the pointer into a
+// time, asks `tooltipRows` what is there, and writes the crosshair and the
+// tooltip box; everything about WHAT is said lives here (PR 3 of #136).
+
+/** The tooltip's rows at time `t`: one per named trace of every visible
+ * series, then each series' expected-error band as a single ± row. `snapT`
+ * is the first trace's nearest sample, which the crosshair snaps to; null
+ * when no series has a point. `deps` are what the rows need from the plan:
+ * the unit a series renders with, and whether the lower floor is modelled. */
+function tooltipRows(series, t, { seriesUnit, isLowerModelled }) {
+  const visible = series.filter((s) => s.visible && s.hasData);
+  const rows = [];
+  let snapT = null;
+  for (const s of visible) {
+    // Every trace, not just the primary one. The house-temperature series
+    // draws three traces and the tooltip used to report the room's value
+    // for all of them, so hovering a 28 C zone line showed 21 C.
+    //
+    // Iterated per FIELD rather than per line: v5.2.0 lets holes break one
+    // field into several segments, and one row per segment would report
+    // the same trace two or three times over.
+    const traces = [
+      { field: s.field, primary: true, labelKey: s.labelKey },
+    ].concat(extraFields(s));
+    // A band's two edges are collapsed into the single ± figure they
+    // actually carry, rather than reported as two absolute temperatures.
+    const bandFields = s.band ? [s.band.lo, s.band.hi] : [];
+    for (const line of traces) {
+      if (bandFields.includes(line.field)) continue;
+      const best = nearestPoint(s, line.field, t);
+      if (!best) continue;
+      if (snapT === null) snapT = best.t;
+      rows.push({
+        color: s.color,
+        label: lineLabel(s, line, isLowerModelled),
+        dashed: !line.primary,
+        value: best.v,
+        unit: seriesUnit(s),
+        t: best.t,
+        field: line.field,
+        reason: best.reason,
+        priceKnown: best.priceKnown,
+      });
+    }
+    // ... and then the band, as one row, right under the line it brackets.
+    for (const row of bandRow(s, t, seriesUnit(s))) rows.push(row);
+  }
+  return { rows, snapT };
+}
+
+/** The tooltip's body: the time, one line per row, the shared-step
+ * sentence when the step is shared, and why the plan is heating. */
+function tooltipHtml(rows) {
+  const time = new Date(rows[0].t).toLocaleString(ACTIVE_LANG, {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  const sharedHtml = sharedTooltipHtml(rows);
+  const bodyHtml =
+    `<div class="tt-time">${esc(time)}</div>` +
+    rows
+      .map(
+        (r) =>
+          `<div class="tt-row"><span class="dot" style="${dotStyle(
+                r.color,
+                r.dashed
+              )}"></span>${esc(r.label)}: ${esc(
+                (r.prefix || "") + fmtTick(r.value)
+              )} ${esc(r.unit)}</div>`
+      )
+      .join("") +
+    sharedHtml +
+    reasonHtml(rows);
+  return bodyHtml;
+}
+
+/** Why the plan is heating at the hovered step, plus price provenance.
+ *
+ * Only reasons for steps that are actually heating are shown; "not heating"
+ * is not an explanation anyone needs, and printing it for every idle hour
+ * would bury the ones that matter. The one exception is a channel paused
+ * by the pump's own operating mode: those steps carry no power, so the
+ * hover would otherwise show nothing at all, and "the optimizer chose not
+ * to" is exactly the wrong reading of a mode the unit itself enforces.
+ */
+function reasonHtml(rows) {
+  const out = [];
+  const seen = new Set();
+  // Which channel a pump_mode reason belongs to: several series read the
+  // same forecast (the house temperatures ride the space plan's points),
+  // so the reason can surface on a row whose field says nothing about the
+  // channel. Decide once, from the channel rows themselves, before the
+  // per-row loop dedupes the code away.
+  const pumpModeChannel = rows.some((r) => r.reason === "pump_mode")
+    ? rows.find((r) => r.reason === "pump_mode" &&
+        (r.field === "dhw_power" || r.field === "space_power"))
+    : undefined;
+  const pumpModeKey = !pumpModeChannel
+    ? null
+    : pumpModeChannel.field === "dhw_power"
+      ? "reasons.pump_mode_dhw"
+      : "reasons.pump_mode_space";
+  for (const r of rows) {
+    const pumpMode = r.reason === "pump_mode";
+    if ((!r.reason || r.reason === "idle") && !pumpMode) continue;
+    if (seen.has(r.reason)) continue;
+    seen.add(r.reason);
+    let label;
+    if (pumpMode) {
+      // Channel-aware where the channel is known; the generic wording
+      // otherwise. "Cannot do this" was true but never actionable.
+      label = L(pumpModeKey || "reasons.pump_mode");
+    } else {
+      label = REASON_LABELS[r.reason]
+        ? L(REASON_LABELS[r.reason])
+        : r.reason;
+    }
+    out.push(`<div class="tt-reason">${esc(label)}</div>`);
+  }
+  if (rows.some((r) => r.priceKnown === false)) {
+    out.push(
+      `<div class="tt-reason">${esc(L("plan.price_estimated"))}</div>`
+    );
+  }
+  return out.join("");
+}
+
+/** The tooltip's shared-step line, or "" when this step is not shared.
+ *
+ * A step carrying both circuits is the pump splitting the quarter hour,
+ * and the hover tooltip is where that question is actually asked. Both
+ * rows must come from the SAME timestamp: each series snaps to its own
+ * nearest point, and with mismatched grids (a stale third-party sensor)
+ * the two nearest points can be hours apart — pairing those would claim
+ * sharing the band correctly refuses to draw.
+ */
+function sharedTooltipHtml(rows) {
+  const rowByField = (f) => (rows || []).find((r) => r.field === f);
+  const spaceRow = rowByField("space_power");
+  const dhwRow = rowByField("dhw_power");
+  if (
+    !spaceRow ||
+    !dhwRow ||
+    spaceRow.t !== dhwRow.t ||
+    !(spaceRow.value > 0.05) ||
+    !(dhwRow.value > 0.05)
+  ) {
+    return "";
+  }
+  return `<div class="tt-shared">${L("plan.shared_step_tooltip", {
+      kw: esc(fmtTick(spaceRow.value + dhwRow.value)),
+    })}</div>`;
+}
+
+// ---- Legend ---------------------------------------------------------------
+// The series chips under the header and in the dialog, and the one piece of
+// state they toggle: which series are hidden. Seeded from the config's
+// `series` map and the browser's localStorage when the config arrives, saved
+// on every click, and part of the render signature so a toggle redraws.
+// Uses `host.config`, `host.plan` (units and labels) and
+// `host.renderForced()`. PR 4a of #136.
+class Legend {
+  constructor(host) {
+    this.host = host;
+    // key -> true when hidden.
+    this.hidden = {};
+    this.onChipClick = this.onChipClick.bind(this);
+  }
+
+  /** The legend's part of the render signature: a toggle must redraw even
+   * when no plan data changed. */
+  signature() {
+    return JSON.stringify(this.hidden);
+  }
+
+  /** Wire every chip in `root` -- both copies, when the dialog is open. */
+  attach(root) {
+    root
+      .querySelectorAll(".chip")
+      .forEach((el) => el.addEventListener("click", this.onChipClick));
+  }
+
+  // Two cards can plot the same entities — a 24 h card on the wall panel
+  // dashboard and a 48 h card with its own title on another — so the key
+  // carries the card's config identity (title + hours), not just its data
+  // sources. Otherwise a series toggled off on one card silently disappears
+  // from the other.
+  storageKey(cfg) {
+    const title = cfg.title !== undefined ? cfg.title : "";
+    return `${CARD_TAG}:${cfg.space_entity}:${cfg.dhw_entity}:${title}:${cfg.hours}`;
+  }
+
+  /** The pre-v4.2.0 key, read as a fallback so an upgrade does not silently
+   * drop every saved series toggle. Writes always go to the new key. */
+  storageKeyLegacy(cfg) {
+    return `${CARD_TAG}:${cfg.space_entity}:${cfg.dhw_entity}`;
+  }
+
+  load(cfg) {
+    const hidden = {};
+    // Config-provided initial visibility (false => hidden).
+    if (cfg.series) {
+      for (const [k, v] of Object.entries(cfg.series)) {
+        if (v === false) hidden[k] = true;
+      }
+    }
+    // localStorage overrides config so user toggles survive reloads.
+    try {
+      if (typeof localStorage !== "undefined") {
+        const raw =
+          localStorage.getItem(this.storageKey(cfg)) ||
+          localStorage.getItem(this.storageKeyLegacy(cfg));
+        if (raw) {
+          const saved = JSON.parse(raw);
+          if (saved && typeof saved === "object") {
+            for (const s of SERIES_DEFS) {
+              if (typeof saved[s.key] === "boolean") {
+                hidden[s.key] = saved[s.key];
+              }
+            }
+          }
+        }
+      }
+    } catch (e) {
+      /* ignore malformed storage */
+    }
+    return hidden;
+  }
+
+  save() {
+    try {
+      if (typeof localStorage !== "undefined" && this.host.config) {
+        localStorage.setItem(
+          this.storageKey(this.host.config),
+          JSON.stringify(this.hidden)
+        );
+      }
+    } catch (e) {
+      /* ignore quota / disabled storage */
+    }
+  }
+
+  html(series) {
+    const isLowerModelled = () => this.host.plan.lowerFloorModelled();
+    const chips = SERIES_DEFS.map((def) => {
+      const s = series.find((x) => x.key === def.key);
+      const hasData = s ? s.hasData : false;
+      const hidden = !!this.hidden[def.key];
+      const cls = "chip" + (hidden ? " off" : "") + (hasData ? "" : " nodata");
+      const label = L(def.labelKey);
+      // One chip per series, never one per rendered line.
+      //
+      // v5.1.7 gave every trace of a multi-line series its own chip so the
+      // house-temperature zones could be named. Every chip carries the
+      // series' `data-key`, because per-line visibility does not exist — so
+      // that series showed three chips in one colour, any of which hid all
+      // three lines at once. Three controls doing one job is worse than one,
+      // so the naming stays where it points at a single trace: the tooltip
+      // has a row per line, and the chip's title lists what else rides on
+      // the line it toggles.
+      //
+      // The chip now stands for the series rather than for its primary
+      // trace, which also settles a case the per-line version got wrong:
+      // with the primary field absent but the extras present, a solid
+      // "House temperature" chip was emitted for a line nothing drew.
+      //
+      // v5.2.0 enumerates them with `_extraFields`, not `lines`: a hole now
+      // splits one field into several drawn paths, and a confidence band's
+      // two edges are one envelope with one name. Listing `lines` here would
+      // print "Lower floor, Lower floor, Lower floor" — saying a thing three
+      // times, in the title written to stop saying it twice.
+      const extras = extraFields(s);
+      const unit = this.host.plan.seriesUnit(def);
+      // ... and any sentence a trace needs beyond its name rides along
+      // after them. Only the expected-error band has one: "Upper floor"
+      // explains itself, a dashed pair hugging the tank curve does not, and
+      // this title is now the one place a puzzled reader can look.
+      const notes = extras
+        .map((line) => lineNote(def, line))
+        .filter(Boolean)
+        .map((note) => " " + note)
+        .join("");
+      const title = extras.length
+        ? L("legend.multi_trace_title", {
+            label,
+            unit,
+            names: extras.map((line) => lineLabel(def, line, isLowerModelled)).join(", "),
+          }) + notes
+        : `${label} (${unit})`;
+      return `<button type="button" class="${cls}" data-key="${
+        def.key
+      }" title="${esc(title)}">
+        <span class="dot" style="${dotStyle(def.color, false)}"></span>${esc(
+        label
+      )}
+      </button>`;
+    }).join("");
+    return `<div class="legend">${chips}</div>`;
+  }
+
+  onChipClick(ev) {
+    // A legend click must not also count as a click on the card, or toggling a
+    // series would open the expanded view every time.
+    if (ev && typeof ev.stopPropagation === "function") ev.stopPropagation();
+    const el = ev.currentTarget;
+    const key = el.getAttribute("data-key");
+    if (!key) return;
+    this.hidden[key] = !this.hidden[key];
+    this.save();
+    this.host.renderForced();
+  }
+}
+
+// ---- The headline row: pure functions of the plan source ------------------
+// The compact stats row under the header -- projected savings, the
+// optimization score with its click-opened breakdown, the first line of the
+// plan narrative -- and its part of the render signature. Everything here is
+// a function of `PlanSource` and the config; the one piece of state, whether
+// the breakdown is open, stays on the card (`_scoreOpen`) with the click
+// handlers that flip it. PR 4a of #136.
+
+/** The headline sensors' contribution to the re-render signature. */
+function headlineSignature(plan, cfg) {
+  if (!cfg.show_stats) return "off";
+  return HEADLINE_SUFFIXES.map((sfx) => {
+    const st = plan.statEntity(sfx);
+    return st ? `${st.state}@${st.last_updated || ""}` : "-";
+  }).join("~");
+}
+
+/** The score sensor's three sub-scores, in display order.
+ *
+ * Read from the same entity the headline number comes from, so the two
+ * can never disagree. A null value is "no evidence yet", never zero --
+ * a fresh install has no grades, not failing ones, and the panel says
+ * so rather than printing 0/100 for something unmeasured.
+ */
+function scoreParts(plan) {
+  const st = plan.statEntity("_optimization_score");
+  const attrs = (st && st.attributes) || {};
+  return [
+    { key: "envelope", label: L("score.label_envelope"), value: finiteScore(attrs.envelope) },
+    { key: "machine", label: L("score.label_machine"), value: finiteScore(attrs.machine) },
+    { key: "operation", label: L("score.label_operation"), value: finiteScore(attrs.operation) },
+  ];
+}
+
+function finiteScore(v) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+/** The click-opened panel: each sub-score, its value, and what it means.
+ *
+ * Rendered under the stats row when the host's `_scoreOpen` is set; the
+ * flag lives on the card instance, so it survives the shadow-root rebuild
+ * that every plan refresh performs.
+ */
+function scoreBreakdownHtml(plan) {
+  const rows = scoreParts(plan)
+    .map((p) => {
+      const value =
+        p.value === null
+          ? `<span class="sb-na">${esc(L("score.no_evidence"))}</span>`
+          : `<span class="sb-val">${Math.round(p.value)}/100</span>`;
+      const bar = p.value === null ? "" : `<span class="sb-bar"><span class="sb-fill" style="width:${Math.max(0, Math.min(100, p.value))}%"></span></span>`;
+      return (
+        `<div class="sb-row" data-part="${p.key}">` +
+        `<div class="sb-head"><span class="sb-name">${esc(p.label)}</span>` +
+        `${bar}${value}</div>` +
+        `<div class="sb-text">${esc(L(`score.part_${p.key}`))}</div>` +
+        `</div>`
+      );
+    })
+    .join("");
+  return `<div class="score-breakdown">${rows}</div>`;
+}
+
+/** The compact stats row under the header, or nothing at all.
+ *
+ * Every part is optional because every source sensor is: the score sensor
+ * is unavailable until enough history exists, the savings sensors null out
+ * between optimizer runs, and old integrations publish none of them. A row
+ * with nothing to say renders no chrome rather than an empty strip.
+ */
+function headlineHtml(plan, cfg, scoreOpen) {
+  if (!cfg.show_stats) return "";
+  const items = [];
+
+  const savings = plan.statNumber("_predicted_savings");
+  if (savings !== null) {
+    const pct = plan.statNumber("_savings_percentage");
+    // The savings sensor declares the unit its value is denominated in;
+    // nothing here converts, so a card-config `currency:` must not relabel
+    // it. `_currency()` only fills in when the sensor declares no unit.
+    const savingsSt = plan.statEntity("_predicted_savings");
+    const unit =
+      (savingsSt &&
+        savingsSt.attributes &&
+        savingsSt.attributes.unit_of_measurement) ||
+      plan.currency();
+    const value =
+      `${savings.toFixed(2)} ${unit}` +
+      (pct !== null
+        ? ` ${L("headline.savings_pct", { pct: pct.toFixed(0) })}`
+        : "");
+    items.push({
+      cls: "savings",
+      title: L("headline.savings_title"),
+      label: L("headline.savings"),
+      value,
+      // D4-06: the baseline qualifier used to live only in the `title`
+      // attribute above -- a hover tooltip, unreachable on touch, which is
+      // most Home Assistant dashboards. A short visible caveat carries the
+      // same claim as plain text; the tooltip stays for the fuller wording.
+      caveat: L("headline.savings_caveat"),
+    });
+  }
+
+  const score = plan.statNumber("_optimization_score");
+  if (score !== null) {
+    // The hover says what the score is; the sub-scores ride the same
+    // sensor's attributes, so the hover can also say what it is MADE OF
+    // -- an owner staring at 5/100 wants to know where the 95 went
+    // before deciding anything.
+    const parts = scoreParts(plan);
+    const breakdown = parts
+      .map(
+        (p) =>
+          `${p.label}: ${
+              p.value === null ? L("score.no_evidence") : `${Math.round(p.value)}/100`
+            }`
+      )
+      .join(" · ");
+    items.push({
+      cls: "score",
+      title:
+        L("headline.score_title") +
+        (breakdown ? `\n${breakdown}` : "") +
+        `\n${L("headline.score_click_hint")}`,
+      label: L("headline.score"),
+      value: `${Math.round(score)}/100`,
+    });
+  }
+
+  // The narrative arrives already rendered in Home Assistant's language
+  // (the coordinator owns those templates), so the first line is shown
+  // verbatim rather than re-keyed here.
+  const narrative = plan.statEntity("_plan_narrative");
+  const lines =
+    narrative && narrative.attributes && narrative.attributes.lines;
+  const line =
+    Array.isArray(lines) && typeof lines[0] === "string" && lines[0]
+      ? lines[0]
+      : null;
+
+  if (!items.length && !line) return "";
+  const stats = items
+    .map(
+      (it) =>
+        // data-stat gives the DOM stub's selector a single-attribute
+        // handle (its matches() knows tag[attr=value], not multi-class)
+        // and costs the real DOM nothing.
+        `<span class="hl-stat hl-${it.cls}" data-stat="${it.cls}" ` +
+        `title="${esc(it.title)}">` +
+        `<span class="hl-label">${esc(it.label)}</span> ` +
+        `<span class="hl-value">${esc(it.value)}</span>` +
+        (it.caveat
+          ? `<span class="hl-caveat">${esc(it.caveat)}</span>`
+          : "") +
+        `</span>`
+    )
+    .join("");
+  return `<div class="headline">
+      ${stats ? `<div class="hl-stats">${stats}</div>` : ""}
+      ${scoreOpen && score !== null ? scoreBreakdownHtml(plan) : ""}
+      ${line ? `<div class="hl-narrative">${esc(line)}</div>` : ""}
+    </div>`;
+}
+
+// ---- ExpandedDialog -------------------------------------------------------
+// The enlarged view: a native <dialog> shown with showModal(), its Plan and
+// Setup tabs, the scroll offset carried across the rebuild every plan
+// refresh performs, and the font size its chrome derives from its measured
+// width. Owns whether the card is expanded and which page shows; the host
+// composes the page's body and wires it through `sync`'s hooks. Uses
+// `host.shadowRoot`, `host.renderForced()` and `host.view.onDialogClosed()`.
+// PR 4b of #136.
+class ExpandedDialog {
+  constructor(host) {
+    this.host = host;
+    this.expanded = false;
+    // Which page the dialog shows. `undefined` means "not chosen yet": the
+    // render cycle picks the first page once it knows whether there is a
+    // plan (`pickDefaultPage`), and only then, so a tab the user chose is
+    // never overridden by a later refresh.
+    this.page = undefined;
+    // The body's scroll offset, carried across the rebuild.
+    this.scroll = 0;
+    // The font size last written to the dialog, so an unchanged value is
+    // not rewritten on every pointer move (`scaleFont`).
+    this.fontPx = 0;
+    this.onDialogClick = this.onDialogClick.bind(this);
+    this.onDialogClose = this.onDialogClose.bind(this);
+  }
+
+  /** The page to draw: "setup" when chosen, "plan" otherwise. */
+  activePage() {
+    return this.page === "setup" ? "setup" : "plan";
+  }
+
+  /** Remember where the user was before `root` is rebuilt: the body scrolls,
+   * and a plan refresh on the coordinator's schedule must not jump it back
+   * to the top mid-edit. */
+  saveScroll(root) {
+    const openBody = root.querySelector("dialog.expanded .dlg-body");
+    this.scroll = openBody ? openBody.scrollTop : this.scroll || 0;
+  }
+
+  /** Which page an expanded dialog opens on, decided once `anyData` is known
+   * and only while the dialog is actually open. */
+  pickDefaultPage(anyData) {
+    if (this.expanded && this.page === undefined) {
+      this.page = anyData ? "plan" : "setup";
+    }
+  }
+
+  /** The rebuild replaces the <dialog> element wholesale, so the font memo
+   * must forget the old element's size or `scaleFont` will skip the write
+   * and leave the fresh dialog's chrome at card size. */
+  resetFontMemo() {
+    this.fontPx = 0;
+  }
+
+  /** The dialog's markup: head, tabs, the legend when the plan page has
+   * one, and `body` -- the page the host composed for `activePage()`. */
+  html({ title, legend, body }) {
+    const page = this.activePage();
+    const tab = (id, label) =>
+      `<button type="button" class="dlg-tab${page === id ? " active" : ""}"
+         data-page="${id}" role="tab"
+         aria-selected="${page === id}">${label}</button>`;
+    return `
+      <dialog class="expanded" aria-label="${esc(title)}">
+        <div class="dlg-head">
+          <span class="title">${esc(title)}</span>
+          <div class="dlg-tabs" role="tablist">
+            ${tab("plan", esc(L("header.tab_plan")))}
+            ${tab("setup", esc(L("header.tab_setup")))}
+          </div>
+          <button type="button" class="close" title="${esc(L("header.close"))}"
+            aria-label="${esc(L("header.close"))}">${CLOSE_ICON}</button>
+        </div>
+        ${legend}
+        <div class="dlg-body">
+          ${body}
+        </div>
+      </dialog>
+    `;
+  }
+
+  /** Bring the dialog element in `root` into line with `expanded`.
+   *
+   * `_render` rebuilds the shadow root wholesale, so on every data refresh the
+   * open dialog is replaced by a fresh element that has to be shown again.
+   * `attachBody(dlg)` wires whatever page is inside (the host's business),
+   * before `showModal` because the setup page's picker takes focus when it
+   * opens; `onPageChange()` is what a tab click asks the host to do once the
+   * page and the scroll offset are reset.
+   */
+  sync(root, { attachBody, onPageChange }) {
+    const dlg = root.querySelector("dialog");
+    if (!dlg) return;
+
+    dlg.addEventListener("click", this.onDialogClick);
+    dlg.addEventListener("close", this.onDialogClose);
+    dlg.addEventListener("cancel", this.onDialogClose);
+    const closeBtn = dlg.querySelector(".close");
+    if (closeBtn) closeBtn.addEventListener("click", this.onDialogClick);
+
+    // Page tabs. Switching re-renders so the hidden page is genuinely gone
+    // from the DOM, and the scroll offset is reset because carrying the plan
+    // page's position into a differently sized setup page lands nowhere.
+    for (const tab of dlg.querySelectorAll(".dlg-tab")) {
+      tab.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        const page = ev.currentTarget.dataset.page;
+        if (page && page !== this.page) {
+          this.page = page;
+          this.scroll = 0;
+          onPageChange();
+        }
+      });
+    }
+
+    attachBody(dlg);
+
+    if (this.expanded && !dlg.open) {
+      // showModal promotes the dialog to the top layer, which is what keeps it
+      // clear of the dashboard's stacking contexts and any clipping ancestor.
+      if (typeof dlg.showModal === "function") dlg.showModal();
+      else dlg.setAttribute("open", "");
+    }
+
+    // Restore where the user was. Done after showModal, because a dialog that
+    // is not yet in the top layer has no laid-out scroll height to set against.
+    const body = dlg.querySelector(".dlg-body");
+    if (body && this.scroll) body.scrollTop = this.scroll;
+  }
+
+  onDialogClick(ev) {
+    const dlg = this.host.shadowRoot && this.host.shadowRoot.querySelector("dialog");
+    if (!dlg) return;
+    // A click on the dialog element itself is a click on the backdrop: the
+    // content sits in child elements, so anything else has a deeper target.
+    const onBackdrop = ev && ev.target === dlg;
+    const onClose =
+      ev &&
+      ev.currentTarget &&
+      ev.currentTarget.classList &&
+      ev.currentTarget.classList.contains("close");
+    if (onBackdrop || onClose) this.close();
+  }
+
+  onDialogClose() {
+    // Fires for Escape and for close() alike, so this is the single place the
+    // flag is cleared and the two cannot drift apart.
+    this.expanded = false;
+    // Reopening should start at the top rather than resuming a scroll position
+    // from a session the user has already dismissed.
+    this.scroll = 0;
+    // The pan/zoom view dies with the session it belonged to (see
+    // ViewWindow.onDialogClosed for why).
+    this.host.view.onDialogClosed();
+  }
+
+  open() {
+    if (this.expanded) return;
+    this.expanded = true;
+    this.host.renderForced();
+  }
+
+  close() {
+    this.closeQuietly();
+    this.host.renderForced();
+  }
+
+  /** Dismiss the dialog without re-rendering, for teardown paths. */
+  closeQuietly() {
+    const dlg = this.host.shadowRoot && this.host.shadowRoot.querySelector("dialog");
+    this.expanded = false;
+    if (dlg && dlg.open && typeof dlg.close === "function") {
+      dlg.close(); // triggers onDialogClose, which is idempotent
+    }
+  }
+
+  /** Size the dialog's own text from how wide the dialog actually is.
+   *
+   * The chart scales itself, because it is stretched from a fixed coordinate
+   * system. The chrome around it -- header, legend, tooltip, what-if panel --
+   * is ordinary HTML inheriting the card's font, so it stays at card size no
+   * matter how large the dialog gets, which is what made it look cramped
+   * beside a chart three times its size.
+   *
+   * Setting one font size on the dialog fixes all of it at once, because every
+   * measurement in the chrome is expressed in `em`. This is done here rather
+   * than with container query units because `container-type: inline-size`
+   * applies inline-axis containment, and a dialog sized by its own contents
+   * then has nothing to size itself from.
+   */
+  scaleFont() {
+    const root = this.host.shadowRoot;
+    if (!root || !this.expanded) return;
+    const dlg = root.querySelector("dialog");
+    if (!dlg || typeof dlg.getBoundingClientRect !== "function") return;
+    const rect = dlg.getBoundingClientRect();
+    const width = (rect && Number(rect.width)) || 0;
+    if (!Number.isFinite(width) || width <= 0) return;
+
+    // Clamped at both ends: a phone-width dialog has to stay legible, and a
+    // very wide monitor must not turn the legend into a headline.
+    const px = Math.min(
+      DIALOG_FONT_PX_MAX,
+      Math.max(DIALOG_FONT_PX_MIN, width * DIALOG_FONT_RATIO)
+    );
+    // Writing an unchanged value would dirty style on every pointer move.
+    if (significantlyDifferent(px, this.fontPx)) {
+      this.fontPx = px;
+      dlg.style.fontSize = `${px.toFixed(2)}px`;
+    }
+  }
+}
+
 // ===========================================================================
 // The card element, and the contract its collaborators get.
 //
@@ -3026,6 +5158,11 @@ function cardStyleBlock() {
 //
 //   host.hass, host.config     the Lovelace inputs
 //   host.shadowRoot            the DOM it renders into
+//   host.plan                  PlanSource: the plan sensors, what they publish
+//   host.view                  ViewWindow: the pan/zoom window over the plan
+//   host.legend                Legend: the series chips and which are hidden
+//   host.dialog                ExpandedDialog: the enlarged view and its pages
+//   host.geom                  the chart's last geometry (null: no lanes)
 //   host.render()              rebuild, keeping the render signature
 //   host.renderForced()        rebuild and forget it (the next hass redraws)
 //   host.suppressNextClick()   the next card click is the tail of a gesture
@@ -3038,17 +5175,21 @@ class HeatpumpOptimizerCard extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: "open" });
+    // The collaborators (docs/plan-card-decomposition.md), in dependency
+    // order. Each is handed this element and uses only the host contract.
+    this.plan = new PlanSource(this);
+    this.view = new ViewWindow(this);
+    this.legend = new Legend(this);
+    this.dialog = new ExpandedDialog(this);
     this._config = null;
     this._hass = null;
     this._sig = null;
-    this._hidden = {}; // key -> true when hidden
     // Whether the score breakdown panel is open (#2). Instance state, not
     // DOM state, so it survives the shadow-root rebuild every refresh does.
     this._scoreOpen = false;
     this._series = [];
     this._plot = null;
     this._resizeObserver = null;
-    this._expanded = false;
     // What-if simulator state (item 21). Kept on the instance so a re-render
     // triggered by a data refresh does not reset the slider under the user.
     this._whatIf = null;
@@ -3065,14 +5206,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
     this._pickerChoice = null;
     this._pendingClear = false;
     this._clearTimer = null;
-    this._dialogFontPx = 0;
-    this._dialogScroll = 0;
-    // Pan/zoom window (item 23). `null` means "the default window", so an
-    // untouched card behaves exactly as it did before this existed.
-    this._view = null;
-    this._viewLimits = null;
-    this._viewFrame = 0;
-    this._pan = null;
     this._suppressClick = false;
     // The layout editor (v3.16.0, issue #40). Instance state, like the what-if
     // draft and for the same reason: `_render` rebuilds the shadow root on the
@@ -3086,10 +5219,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // Everything else the card owns, declared here rather than on first
     // use somewhere in the body (the decomposition's PR 0): the only way to
     // learn what state this class carried used to be reading all of it. The
-    // sentinels are the ones the readers test for -- `_dialogPage` must stay
-    // `undefined` (`_render` uses `=== undefined` for "no page chosen yet");
-    // the rest are read with `!x` or `if (x)`.
-    this._dialogPage = undefined;
+    // sentinels are the ones the readers test for: `!x` or `if (x)`.
     // Chart geometry the pan gesture and the slot lanes hit-test against,
     // published by `_chartSvg` while editing is enabled.
     this._geom = null;
@@ -3109,12 +5239,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
     this._svgRect = null;
     // The setup page's status line, re-applied after every rebuild.
     this._setupNote = null;
-    // Entity-discovery and headline-sensor memos.
-    this._resolvedCache = null;
-    this._statCache = null;
-    this._statMissAt = null;
-    this._sensorCountFor = null;
-    this._sensorCountN = 0;
     // Whether the picker was opened from the keyboard: focus goes into it,
     // and back to the row on the way out.
     this._pickerFocus = false;
@@ -3123,15 +5247,10 @@ class HeatpumpOptimizerCard extends HTMLElement {
     this._onLayoutMove = this._onLayoutMove.bind(this);
     this._onLayoutUp = this._onLayoutUp.bind(this);
     this._onLayoutClick = this._onLayoutClick.bind(this);
-    this._onLegendClick = this._onLegendClick.bind(this);
-    this._onChartWheel = this._onChartWheel.bind(this);
-    this._onPanDown = this._onPanDown.bind(this);
     this._onPointerMove = this._onPointerMove.bind(this);
     this._onPointerLeave = this._onPointerLeave.bind(this);
     this._onCardClick = this._onCardClick.bind(this);
     this._onExpandClick = this._onExpandClick.bind(this);
-    this._onDialogClick = this._onDialogClick.bind(this);
-    this._onDialogClose = this._onDialogClose.bind(this);
     this._onWhatIfInput = this._onWhatIfInput.bind(this);
     this._onSlotEdit = this._onSlotEdit.bind(this);
     this._onAddWindow = this._onAddWindow.bind(this);
@@ -3187,7 +5306,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     }
 
     this._config = cfg;
-    this._hidden = this._loadHidden(cfg);
+    this.legend.hidden = this.legend.load(cfg);
     this._sig = null; // force re-render on next hass
     if (this._hass) this._maybeRender(true);
   }
@@ -3203,6 +5322,17 @@ class HeatpumpOptimizerCard extends HTMLElement {
 
   get hass() {
     return this._hass;
+  }
+
+  /** The validated config, read-only: what `setConfig` accepted. */
+  get config() {
+    return this._config;
+  }
+
+  /** The chart's last geometry, for hit-testing; null while the lanes are
+   * off. Published by `_chartSvg`; PR 3 of #136 moves it onto the frame. */
+  get geom() {
+    return this._geom;
   }
 
   getCardSize() {
@@ -3260,7 +5390,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // Nothing of this card may outlive it on the document.
     this._teardown();
     // A modal dialog left open would outlive the card in the top layer.
-    if (this._expanded) this._closeExpandedQuietly();
+    if (this.dialog.expanded) this.dialog.closeQuietly();
     // A pending what-if solve would otherwise fire after the card is gone,
     // spending seconds of coordinator CPU to write into a detached DOM.
     if (this._whatIfTimer) {
@@ -3287,148 +5417,19 @@ class HeatpumpOptimizerCard extends HTMLElement {
 
   // ---- persistence -------------------------------------------------------
 
-  // Two cards can plot the same entities — a 24 h card on the wall panel
-  // dashboard and a 48 h card with its own title on another — so the key
-  // carries the card's config identity (title + hours), not just its data
-  // sources. Otherwise a series toggled off on one card silently disappears
-  // from the other.
-  _storageKey(cfg) {
-    const title = cfg.title !== undefined ? cfg.title : "";
-    return `${CARD_TAG}:${cfg.space_entity}:${cfg.dhw_entity}:${title}:${cfg.hours}`;
-  }
-
-  /** The pre-v4.2.0 key, read as a fallback so an upgrade does not silently
-   * drop every saved series toggle. Writes always go to the new key. */
-  _storageKeyLegacy(cfg) {
-    return `${CARD_TAG}:${cfg.space_entity}:${cfg.dhw_entity}`;
-  }
-
-  _loadHidden(cfg) {
-    const hidden = {};
-    // Config-provided initial visibility (false => hidden).
-    if (cfg.series) {
-      for (const [k, v] of Object.entries(cfg.series)) {
-        if (v === false) hidden[k] = true;
-      }
-    }
-    // localStorage overrides config so user toggles survive reloads.
-    try {
-      if (typeof localStorage !== "undefined") {
-        const raw =
-          localStorage.getItem(this._storageKey(cfg)) ||
-          localStorage.getItem(this._storageKeyLegacy(cfg));
-        if (raw) {
-          const saved = JSON.parse(raw);
-          if (saved && typeof saved === "object") {
-            for (const s of SERIES_DEFS) {
-              if (typeof saved[s.key] === "boolean") {
-                hidden[s.key] = saved[s.key];
-              }
-            }
-          }
-        }
-      }
-    } catch (e) {
-      /* ignore malformed storage */
-    }
-    return hidden;
-  }
-
-  _saveHidden() {
-    try {
-      if (typeof localStorage !== "undefined" && this._config) {
-        localStorage.setItem(
-          this._storageKey(this._config),
-          JSON.stringify(this._hidden)
-        );
-      }
-    } catch (e) {
-      /* ignore quota / disabled storage */
-    }
-  }
-
   // ---- data extraction ---------------------------------------------------
-
-  // Resolve which entity to read for a plan kind ("space" | "dhw").
-  //
-  // Entity ids are not a stable contract: they are derived from the device
-  // name and the user can rename them. So the configured id wins if it exists,
-  // otherwise fall back to discovering the sensor that advertises the matching
-  // `plan_kind` attribute, and finally to a naming-convention match for
-  // integration versions predating that attribute.
-  _resolveEntity(kind) {
-    const cfg = this._config;
-    const configured =
-      kind === "space"
-        ? cfg.space_entity
-        : kind === "dhw"
-        ? cfg.dhw_entity
-        : cfg.solar_entity;
-    if (!this._hass || !this._hass.states) return configured;
-    const states = this._hass.states;
-    if (states[configured]) return configured;
-
-    if (!this._resolvedCache) this._resolvedCache = {};
-    const cached = this._resolvedCache[kind];
-    if (cached && states[cached]) return cached;
-
-    const suffix =
-      kind === "space"
-        ? "space_heating_plan"
-        : kind === "dhw"
-        ? "dhw_heating_plan"
-        : "solar_irradiance";
-    let byMarker = null;
-    let bySuffix = null;
-    for (const id of Object.keys(states).sort()) {
-      if (!id.startsWith("sensor.")) continue;
-      const attrs = states[id].attributes || {};
-      if (attrs.plan_kind === kind) {
-        byMarker = id;
-        break;
-      }
-      if (bySuffix === null && id.endsWith(suffix)) bySuffix = id;
-    }
-    const found = byMarker || bySuffix;
-    if (found) {
-      this._resolvedCache[kind] = found;
-      return found;
-    }
-    return configured;
-  }
-
-  _stateOf(entityId) {
-    if (!this._hass || !this._hass.states) return undefined;
-    return this._hass.states[entityId];
-  }
-
-  _forecast(entityId) {
-    const st = this._stateOf(entityId);
-    if (!st || st.state === "unavailable" || st.state === "unknown") return null;
-    const attrs = st.attributes || {};
-    let fc = attrs.forecast;
-    if (typeof fc === "string") {
-      try {
-        fc = JSON.parse(fc);
-      } catch (e) {
-        return null;
-      }
-    }
-    if (!Array.isArray(fc)) return null;
-    return fc;
-  }
 
   _signature() {
     const cfg = this._config;
-    const spId = this._resolveEntity("space");
-    const dhwId = this._resolveEntity("dhw");
-    const solarId = this._resolveEntity("solar");
-    const space = this._stateOf(spId);
-    const dhw = this._stateOf(dhwId);
-    const solar = this._stateOf(solarId);
-    const spFc = this._forecast(spId);
-    const dhwFc = this._forecast(dhwId);
-    const solarFc = this._forecast(solarId);
+    const spId = this.plan.resolveEntity("space");
+    const dhwId = this.plan.resolveEntity("dhw");
+    const solarId = this.plan.resolveEntity("solar");
+    const space = this.plan.stateOf(spId);
+    const dhw = this.plan.stateOf(dhwId);
+    const solar = this.plan.stateOf(solarId);
+    const spFc = this.plan.forecast(spId);
+    const dhwFc = this.plan.forecast(dhwId);
+    const solarFc = this.plan.forecast(solarId);
     return [
       spId,
       dhwId,
@@ -3443,24 +5444,15 @@ class HeatpumpOptimizerCard extends HTMLElement {
       spFc ? spFc.length : -1,
       dhwFc ? dhwFc.length : -1,
       solarFc ? solarFc.length : -1,
-      JSON.stringify(this._hidden),
+      this.legend.signature(),
       // A language switch or a currency change redraws text without any
       // plan data changing, so both belong in the signature.
       ACTIVE_LANG,
-      this._currency(),
+      this.plan.currency(),
       // The headline reads its own sensors; leaving them out would freeze
       // the row at whatever the first render saw.
-      this._headlineSignature(),
+      headlineSignature(this.plan, this._config),
     ].join("|");
-  }
-
-  /** The headline sensors' contribution to the re-render signature. */
-  _headlineSignature() {
-    if (!this._config.show_stats) return "off";
-    return HEADLINE_SUFFIXES.map((sfx) => {
-      const st = this._statEntity(sfx);
-      return st ? `${st.state}@${st.last_updated || ""}` : "-";
-    }).join("~");
   }
 
   _maybeRender(force) {
@@ -3505,214 +5497,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     this._suppressClick = true;
   }
 
-  // Build this._series from the current forecasts.
-  _buildSeries() {
-    const cfg = this._config;
-    const spFc = this._forecast(this._resolveEntity("space")) || [];
-    const dhwFc = this._forecast(this._resolveEntity("dhw")) || [];
-    // The irradiance sensor publishes its own horizon. Its timestamps are
-    // already interval *starts* — `_solar_forecast_view` converts Open-Meteo's
-    // end-of-interval stamps on the way out — so they must not be shifted again.
-    const solarFc = this._forecast(this._resolveEntity("solar")) || [];
-
-    const now = Date.now();
-    let windowStart = now;
-    let windowEnd = now + cfg.hours * 3600 * 1000;
-
-    const parse = (p) => {
-      const t = Date.parse(p.t);
-      return Number.isNaN(t) ? null : t;
-    };
-
-    // Determine whether any data actually falls inside [now, now+hours]. If not
-    // (e.g. purely historical or test data), fall back to the full extent so the
-    // card still shows something instead of an empty plot.
-    const allTimes = [];
-    for (const p of spFc) {
-      const t = parse(p);
-      if (t !== null) allTimes.push(t);
-    }
-    for (const p of dhwFc) {
-      const t = parse(p);
-      if (t !== null) allTimes.push(t);
-    }
-    const inWindow = allTimes.some((t) => t >= windowStart && t <= windowEnd);
-    if (!inWindow && allTimes.length) {
-      windowStart = Math.min(...allTimes);
-      windowEnd = Math.min(
-        Math.max(...allTimes),
-        windowStart + cfg.hours * 3600 * 1000
-      );
-    }
-
-    // Everything above is the default window. `_applyView` narrows it to
-    // whatever the user has panned or zoomed to, and is a no-op until they
-    // touch a control -- so the untouched card renders exactly as before.
-    // Filtering below this point then happens against the visible window, which
-    // is what keeps the value axis scaled to what is actually on screen.
-    const view = this._applyView(
-      windowStart,
-      windowEnd,
-      allTimes.length ? Math.max(...allTimes) : windowEnd
-    );
-    windowStart = view.start;
-    windowEnd = view.end;
-
-    const pick = (sensor) =>
-      sensor === "dhw" ? dhwFc : sensor === "solar" ? solarFc : spFc;
-    const either = (field) => {
-      // prefer space forecast, fall back to dhw
-      if (spFc.some((p) => p[field] !== undefined && p[field] !== null))
-        return spFc;
-      return dhwFc;
-    };
-
-    const series = [];
-    for (const def of SERIES_DEFS) {
-      const fc = def.sensor === "either" ? either(def.field) : pick(def.sensor);
-      const lines = [];
-      let primaryPts = null;
-      const fields = [def.field].concat(def.extra || []);
-      for (const field of fields) {
-        // Every in-window sample, with a missing value kept as a HOLE
-        // rather than dropped. v5.2.0: the hot-water band is null wherever
-        // the accuracy record cannot answer, and a dropped null let the
-        // curve bridge straight across the gap — drawing an envelope over
-        // a stretch there is no evidence for. The room's zone traces were
-        // only ever accidentally safe from this: they have no holes.
-        const raw = [];
-        for (const p of fc) {
-          const t = parse(p);
-          if (t === null) continue;
-          if (t < windowStart || t > windowEnd) continue;
-          const v = p[field];
-          const usable =
-            v !== null && v !== undefined && !Number.isNaN(Number(v));
-          raw.push({
-            t,
-            v: usable ? Number(v) : null,
-            // Reason codes and price provenance ride along on the point so the
-            // tooltip can explain a slot without a second lookup.
-            reason: p.reason,
-            priceKnown: p.price_known,
-          });
-        }
-        raw.sort((a, b) => a.t - b.t);
-        // The field's real samples, holes removed: what "is this trace a
-        // copy of the primary?" has to be asked about, and what the primary
-        // is remembered as. Asking it per segment would compare a fragment
-        // against the whole and never match.
-        const pts = raw.filter((q) => q.v !== null);
-        if (!pts.length) continue;
-        const primary = field === def.field;
-        // A single-zone house still publishes `upper` and `lower`: the
-        // one-zone dynamics set both to the room temperature step by step,
-        // so the extras are exact copies of the primary. Drawing them put
-        // two dashed lines under the solid one, and naming them would put
-        // two more chips in the legend and two more rows in the tooltip for
-        // a house that has one zone. Drop a duplicate rather than label it.
-        //
-        // v5.2.0: this catches a second case for free. A tank record that
-        // has scored pairs but never been wrong answers sigma 0, so both
-        // band edges land exactly on the curve; dropping them is right for
-        // the same reason it is right for the zones, and it is the same
-        // rule doing it.
-        if (!primary && samePoints(pts, primaryPts)) continue;
-        if (primary) primaryPts = pts;
-        const labelKey = primary
-          ? def.labelKey
-          : (def.extraLabels || {})[field] || def.labelKey;
-        // A hole BREAKS the trace into a new segment rather than being
-        // skipped over. One field can therefore own several lines; every
-        // consumer reaches them through `_fieldPoints`, and the per-field
-        // identity (`field`, `primary`, `labelKey`) is carried on each.
-        let seg = [];
-        const flush = () => {
-          if (seg.length) {
-            lines.push({
-              field,
-              points: seg,
-              primary,
-              // Named per line, not per series: `_lineLabel` resolves the
-              // dictionary key so the tooltip and the legend cannot disagree
-              // about what a trace is called.
-              labelKey,
-            });
-          }
-          seg = [];
-        };
-        for (const q of raw) {
-          if (q.v === null) flush();
-          else seg.push(q);
-        }
-        flush();
-      }
-      // A band is a PAIR or it is nothing. Either edge can go missing on its
-      // own -- one key absent from the payload, one published null all the
-      // way across, or one edge dropped by the duplicate rule above -- and a
-      // single dashed line hugging the curve is not half an envelope, it is
-      // a different and wrong claim. Worse, the legend would still offer the
-      // "expected error" chip while the tooltip, which rightly demands both
-      // edges at the same step, reported nothing: three parts of the card
-      // disagreeing about whether a band exists at all.
-      if (def.band) {
-        const edges = new Set(
-          lines.filter((l) => !l.primary).map((l) => l.field)
-        );
-        if (!edges.has(def.band.lo) || !edges.has(def.band.hi)) {
-          for (let i = lines.length - 1; i >= 0; i--) {
-            if (
-              lines[i].field === def.band.lo ||
-              lines[i].field === def.band.hi
-            ) {
-              lines.splice(i, 1);
-            }
-          }
-        }
-      }
-      series.push({
-        ...def,
-        lines,
-        hasData: lines.length > 0,
-        visible: !this._hidden[def.key],
-      });
-    }
-
-    return { series, windowStart, windowEnd, zoomed: this._view !== null };
-  }
-
   // ---- rendering ---------------------------------------------------------
-
-  // Explain precisely why a plan is missing. "Waiting for an entity" is not
-  // actionable when the real problem is that the entity is named something
-  // else, so distinguish not-found from present-but-empty.
-  _diagnose(kind) {
-    const id = this._resolveEntity(kind);
-    const label = L(kind === "space" ? "errors.diag_space" : "errors.diag_dhw");
-    const st = this._stateOf(id);
-    if (!st) {
-      return L("errors.diag_not_found", { label, id: esc(id), kind });
-    }
-    if (st.state === "unavailable" || st.state === "unknown") {
-      return L("errors.diag_unavailable", {
-        label,
-        id: esc(id),
-        state: esc(st.state),
-      });
-    }
-    const fc = this._forecast(id);
-    if (!fc) {
-      return L("errors.diag_no_forecast", { label, id: esc(id) });
-    }
-    if (!fc.length) {
-      return L("errors.diag_empty_forecast", { label, id: esc(id) });
-    }
-    return L("errors.diag_out_of_window", {
-      label,
-      id: esc(id),
-      n: fc.length,
-    });
-  }
 
   /** The card's display title: the configured one, or the localized default. */
   _title() {
@@ -3722,239 +5507,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
 
   // ---- headline stats ----------------------------------------------------
 
-  /** The state object of a headline sensor, found by id suffix and cached.
-   *
-   * The savings/score/narrative sensors publish no `plan_kind`-style marker,
-   * so the suffix — which has_entity_name keeps stable under any device
-   * name — is the discovery contract.
-   *
-   * They also share a device with the plan sensors, which means they share
-   * an entity-id prefix. Deriving the stat id from the RESOLVED plan sensor
-   * (config first, then plan_kind discovery — `_resolveEntity` already owns
-   * that) is both cheap and scoped to this card's config entry; a global
-   * scan could bind the headline to another entry's — or a foreign
-   * integration's — sensors. The scan survives only as a fallback for
-   * hand-renamed stat entities, and its result is cached even when it is a
-   * miss: the negative cache is keyed to the number of `sensor.` ids, so a
-   * late-arriving backend is still found without rescanning every state
-   * batch.
-   */
-  _statEntity(suffix) {
-    const states = this._hass && this._hass.states;
-    if (!states) return null;
-    if (!this._statCache) this._statCache = {};
-    if (!this._statMissAt) this._statMissAt = {};
-    const cached = this._statCache[suffix];
-    if (cached && states[cached]) return states[cached];
-
-    for (const [kind, planSuffix] of [
-      ["space", "_space_heating_plan"],
-      ["dhw", "_dhw_heating_plan"],
-    ]) {
-      const planId = this._resolveEntity(kind);
-      if (!planId || !states[planId] || !planId.endsWith(planSuffix)) {
-        continue;
-      }
-      const candidate = planId.slice(0, -planSuffix.length) + suffix;
-      if (states[candidate]) {
-        this._statCache[suffix] = candidate;
-        delete this._statMissAt[suffix];
-        return states[candidate];
-      }
-    }
-
-    const count = this._sensorCount(states);
-    if (this._statMissAt[suffix] === count) return null;
-    // Sorted iteration makes a tie deterministic, the same choice
-    // `_resolveEntity` makes.
-    for (const id of Object.keys(states).sort()) {
-      if (!id.startsWith("sensor.") || !id.endsWith(suffix)) continue;
-      this._statCache[suffix] = id;
-      delete this._statMissAt[suffix];
-      return states[id];
-    }
-    this._statMissAt[suffix] = count;
-    return null;
-  }
-
-  /** How many `sensor.` entity ids this state batch holds.
-   *
-   * Memoized per batch object — hass replaces `states` wholesale on every
-   * update, so object identity is the batch's identity. This is what the
-   * negative cache above is keyed to.
-   */
-  _sensorCount(states) {
-    if (this._sensorCountFor !== states) {
-      let n = 0;
-      for (const id of Object.keys(states)) {
-        if (id.startsWith("sensor.")) n++;
-      }
-      this._sensorCountFor = states;
-      this._sensorCountN = n;
-    }
-    return this._sensorCountN;
-  }
-
-  /** A headline sensor's state as a finite number, or null. */
-  _statNumber(suffix) {
-    const st = this._statEntity(suffix);
-    if (!st || st.state === "unavailable" || st.state === "unknown") {
-      return null;
-    }
-    const v = Number(st.state);
-    return Number.isFinite(v) ? v : null;
-  }
-
-  /** The compact stats row under the header, or nothing at all.
-   *
-   * Every part is optional because every source sensor is: the score sensor
-   * is unavailable until enough history exists, the savings sensors null out
-   * between optimizer runs, and old integrations publish none of them. A row
-   * with nothing to say renders no chrome rather than an empty strip.
-   */
-  _headlineHtml() {
-    if (!this._config.show_stats) return "";
-    const items = [];
-
-    const savings = this._statNumber("_predicted_savings");
-    if (savings !== null) {
-      const pct = this._statNumber("_savings_percentage");
-      // The savings sensor declares the unit its value is denominated in;
-      // nothing here converts, so a card-config `currency:` must not relabel
-      // it. `_currency()` only fills in when the sensor declares no unit.
-      const savingsSt = this._statEntity("_predicted_savings");
-      const unit =
-        (savingsSt &&
-          savingsSt.attributes &&
-          savingsSt.attributes.unit_of_measurement) ||
-        this._currency();
-      const value =
-        `${savings.toFixed(2)} ${unit}` +
-        (pct !== null
-          ? ` ${L("headline.savings_pct", { pct: pct.toFixed(0) })}`
-          : "");
-      items.push({
-        cls: "savings",
-        title: L("headline.savings_title"),
-        label: L("headline.savings"),
-        value,
-        // D4-06: the baseline qualifier used to live only in the `title`
-        // attribute above -- a hover tooltip, unreachable on touch, which is
-        // most Home Assistant dashboards. A short visible caveat carries the
-        // same claim as plain text; the tooltip stays for the fuller wording.
-        caveat: L("headline.savings_caveat"),
-      });
-    }
-
-    const score = this._statNumber("_optimization_score");
-    if (score !== null) {
-      // The hover says what the score is; the sub-scores ride the same
-      // sensor's attributes, so the hover can also say what it is MADE OF
-      // -- an owner staring at 5/100 wants to know where the 95 went
-      // before deciding anything.
-      const parts = this._scoreParts();
-      const breakdown = parts
-        .map(
-          (p) =>
-            `${p.label}: ${
-              p.value === null ? L("score.no_evidence") : `${Math.round(p.value)}/100`
-            }`
-        )
-        .join(" · ");
-      items.push({
-        cls: "score",
-        title:
-          L("headline.score_title") +
-          (breakdown ? `\n${breakdown}` : "") +
-          `\n${L("headline.score_click_hint")}`,
-        label: L("headline.score"),
-        value: `${Math.round(score)}/100`,
-      });
-    }
-
-    // The narrative arrives already rendered in Home Assistant's language
-    // (the coordinator owns those templates), so the first line is shown
-    // verbatim rather than re-keyed here.
-    const narrative = this._statEntity("_plan_narrative");
-    const lines =
-      narrative && narrative.attributes && narrative.attributes.lines;
-    const line =
-      Array.isArray(lines) && typeof lines[0] === "string" && lines[0]
-        ? lines[0]
-        : null;
-
-    if (!items.length && !line) return "";
-    const stats = items
-      .map(
-        (it) =>
-          // data-stat gives the DOM stub's selector a single-attribute
-          // handle (its matches() knows tag[attr=value], not multi-class)
-          // and costs the real DOM nothing.
-          `<span class="hl-stat hl-${it.cls}" data-stat="${it.cls}" ` +
-          `title="${esc(it.title)}">` +
-          `<span class="hl-label">${esc(it.label)}</span> ` +
-          `<span class="hl-value">${esc(it.value)}</span>` +
-          (it.caveat
-            ? `<span class="hl-caveat">${esc(it.caveat)}</span>`
-            : "") +
-          `</span>`
-      )
-      .join("");
-    return `<div class="headline">
-      ${stats ? `<div class="hl-stats">${stats}</div>` : ""}
-      ${this._scoreOpen && score !== null ? this._scoreBreakdownHtml() : ""}
-      ${line ? `<div class="hl-narrative">${esc(line)}</div>` : ""}
-    </div>`;
-  }
-
-  /** The score sensor's three sub-scores, in display order.
-   *
-   * Read from the same entity the headline number comes from, so the two
-   * can never disagree. A null value is "no evidence yet", never zero --
-   * a fresh install has no grades, not failing ones, and the panel says
-   * so rather than printing 0/100 for something unmeasured.
-   */
-  _scoreParts() {
-    const st = this._statEntity("_optimization_score");
-    const attrs = (st && st.attributes) || {};
-    return [
-      { key: "envelope", label: L("score.label_envelope"), value: this._finiteScore(attrs.envelope) },
-      { key: "machine", label: L("score.label_machine"), value: this._finiteScore(attrs.machine) },
-      { key: "operation", label: L("score.label_operation"), value: this._finiteScore(attrs.operation) },
-    ];
-  }
-
-  _finiteScore(v) {
-    const n = Number(v);
-    return Number.isFinite(n) ? n : null;
-  }
-
-  /** The click-opened panel: each sub-score, its value, and what it means.
-   *
-   * Rendered under the stats row when `this._scoreOpen` is set; the flag
-   * lives on the instance, so it survives the shadow-root rebuild that
-   * every plan refresh performs.
-   */
-  _scoreBreakdownHtml() {
-    const rows = this._scoreParts()
-      .map((p) => {
-        const value =
-          p.value === null
-            ? `<span class="sb-na">${esc(L("score.no_evidence"))}</span>`
-            : `<span class="sb-val">${Math.round(p.value)}/100</span>`;
-        const bar = p.value === null ? "" : `<span class="sb-bar"><span class="sb-fill" style="width:${Math.max(0, Math.min(100, p.value))}%"></span></span>`;
-        return (
-          `<div class="sb-row" data-part="${p.key}">` +
-          `<div class="sb-head"><span class="sb-name">${esc(p.label)}</span>` +
-          `${bar}${value}</div>` +
-          `<div class="sb-text">${esc(L(`score.part_${p.key}`))}</div>` +
-          `</div>`
-        );
-      })
-      .join("");
-    return `<div class="score-breakdown">${rows}</div>`;
-  }
-
   _render() {
     // Before anything else: the rebuild below destroys the slot menu's
     // element but not the Escape listener it parked on the document.
@@ -3963,22 +5515,21 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // on every plan refresh -- which happens on the coordinator's schedule, not
     // the user's. Without carrying the offset across the rebuild the panel would
     // jump back to the top by itself every few minutes, mid-edit.
-    const openBody = this.shadowRoot.querySelector("dialog.expanded .dlg-body");
-    this._dialogScroll = openBody ? openBody.scrollTop : this._dialogScroll || 0;
+    this.dialog.saveScroll(this.shadowRoot);
     const built = this._buildSeries();
     this._series = built.series;
 
     const anyData = this._series.some((s) => s.hasData);
 
     const style = cardStyleBlock();
-    const legend = this._legendHtml();
+    const legend = this.legend.html(this._series);
 
     // The setup page is drawn from configuration alone: `sensor.py` publishes
     // `setup_topology` with no plan at all, saying so in as many words --
     // "the card's setup page should not need a solve to draw". Gating the
     // only way in on plan data made the one page that can say WHICH sensor is
     // missing reachable only after a solve the missing sensor was preventing.
-    const topo = this._planAttrRaw("setup_topology", null);
+    const topo = this.plan.attrRaw("setup_topology", null);
     const anySetup = !!(topo && Array.isArray(topo.slots) && topo.slots.length);
     // An install with genuinely nothing published stays as it was: no plan
     // and no topology is nothing to expand to, and the diagnostics below are
@@ -3996,20 +5547,34 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // Which page an expanded dialog opens on. Decided here, where `anyData`
     // is known, and only while the dialog is actually open, so a tab the user
     // chose themselves is never overridden by a later refresh.
-    if (this._expanded && this._dialogPage === undefined) {
-      this._dialogPage = anyData ? "plan" : "setup";
-    }
+    this.dialog.pickDefaultPage(anyData);
 
     // The dialog is a sibling of ha-card, not a child, so a click inside it
     // never bubbles into the card's own open-on-click handler. Rendered
     // whenever the card believes it is expanded: a flag that draws nothing is
     // the state the Setup tab was unreachable behind.
-    const dialog = this._expanded ? this._dialogHtml(built, anyData) : "";
+    let dialog = "";
+    if (this.dialog.expanded) {
+      const page = this.dialog.activePage();
+      // The hidden page is genuinely unrendered, not `display: none`:
+      // `getBoundingClientRect()` returns zeroes for a hidden element, so
+      // `timeAtClientX` would compute garbage drag times rather than fail.
+      const body =
+        page === "setup"
+          ? this._setupPageHtml()
+          : anyData
+            ? `${this._chartBlock(built, true)}${this._whatIfHtml()}`
+            : this._noPlanHtml();
+      dialog = this.dialog.html({
+        title: this._title(),
+        legend: page === "plan" && anyData ? this.legend.html(this._series) : "",
+        body,
+      });
+    }
 
-    // The rebuild below replaces the <dialog> element wholesale, so the font
-    // memo must forget the old element's size or _scaleDialogFont will skip
-    // the write and leave the fresh dialog's chrome at card size.
-    this._dialogFontPx = 0;
+    // The rebuild below replaces the <dialog> element wholesale (see
+    // ExpandedDialog.resetFontMemo).
+    this.dialog.resetFontMemo();
 
     this.shadowRoot.innerHTML = `
       <ha-card class="${expandable ? "clickable" : ""}">
@@ -4025,7 +5590,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
               : ""
           }
         </div>
-        ${this._headlineHtml()}
+        ${headlineHtml(this.plan, this._config, this._scoreOpen)}
         ${legend}
         ${body}
       </ha-card>
@@ -4065,7 +5630,21 @@ class HeatpumpOptimizerCard extends HTMLElement {
     const card = this.shadowRoot.querySelector("ha-card");
     if (card && expandable) card.addEventListener("click", this._onCardClick);
 
-    this._syncDialog();
+    this.dialog.sync(this.shadowRoot, {
+      // The page inside is the host's: the setup page's own wiring, and its
+      // status line re-applied after the rebuild.
+      attachBody: (dlg) => {
+        this._attachSetupEvents(dlg);
+        const note = dlg.querySelector(".setup-result");
+        if (note && this._setupNote) note.textContent = this._setupNote;
+      },
+      // Leaving the setup page abandons a half-made assignment rather than
+      // keeping a picker open behind the chart.
+      onPageChange: () => {
+        this._closePicker();
+        this._render();
+      },
+    });
     this._cacheRect();
   }
   /** Chart markup plus the tooltip that belongs to it.
@@ -4076,13 +5655,34 @@ class HeatpumpOptimizerCard extends HTMLElement {
    * a positioned ancestor.
    */
   _chartBlock(built, expanded) {
-    const chart = this._chartSvg(built, expanded);
+    const { svg: chart, plot, geom } = renderChart(built, {
+      expanded,
+      measuredWidth: () => this._measuredCardWidth(),
+      priceUnit: this.plan.priceUnit(),
+      estimatedFrom: this.plan.estimatedPricesFrom(),
+      editing: this._editingEnabled(),
+      title: this._title(),
+      now: Date.now(),
+      // The lanes hit-test against the geometry they are drawn into, so
+      // it is published before the overlay draws, not after the chart
+      // returns. (`geom.font` is the expanded copy's while the dialog is
+      // open, since the expanded chart renders last -- #138.)
+      overlay: (g) => {
+        this._geom = g;
+        return this._laneGroupInner();
+      },
+      // Document-unique per chart: with the dialog open two charts render
+      // into one shadow root.
+      nextPatternId: () => `hpoShared${++HeatpumpOptimizerCard._sharedPatternSeq}`,
+    });
+    this._plot = plot;
+    this._geom = geom;
     // The controls overlay the chart rather than sitting under it: the expanded
     // dialog budgets its height from a fixed guess at how tall the chrome is
     // (item 26), and a new row of buttons would eat straight into that budget.
-    const pannable = this._viewAdjustable() ? " pannable" : "";
+    const pannable = this.view.adjustable() ? " pannable" : "";
     return `<div class="chartwrap${expanded ? " big" : ""}${pannable}">${chart}
-      ${this._viewControlsHtml()}
+      ${this.view.controlsHtml()}
       <div class="tooltip" hidden></div></div>`;
   }
 
@@ -4092,46 +5692,8 @@ class HeatpumpOptimizerCard extends HTMLElement {
    * worse half of the pair. */
   _noPlanHtml() {
     return `<div class="empty">${L("errors.no_plan_data")}<br>
-      ${this._diagnose("space")}<br>
-      ${this._diagnose("dhw")}</div>`;
-  }
-
-  _dialogHtml(built, anyData) {
-    // Which page the dialog shows is instance state on purpose: `_render`
-    // rebuilds the shadow root on every plan refresh, on the coordinator's
-    // schedule, and a refresh must not yank the user off the setup page they
-    // are reading (the `_runs` memoisation bug class from v3.2.0).
-    const page = this._dialogPage === "setup" ? "setup" : "plan";
-    // The hidden page is genuinely unrendered, not `display: none`:
-    // `getBoundingClientRect()` returns zeroes for a hidden element, so
-    // `_timeAtClientX` would compute garbage drag times rather than fail.
-    const body =
-      page === "setup"
-        ? this._setupPageHtml()
-        : anyData
-          ? `${this._chartBlock(built, true)}${this._whatIfHtml()}`
-          : this._noPlanHtml();
-    const tab = (id, label) =>
-      `<button type="button" class="dlg-tab${page === id ? " active" : ""}"
-         data-page="${id}" role="tab"
-         aria-selected="${page === id}">${label}</button>`;
-    return `
-      <dialog class="expanded" aria-label="${esc(this._title())}">
-        <div class="dlg-head">
-          <span class="title">${esc(this._title())}</span>
-          <div class="dlg-tabs" role="tablist">
-            ${tab("plan", esc(L("header.tab_plan")))}
-            ${tab("setup", esc(L("header.tab_setup")))}
-          </div>
-          <button type="button" class="close" title="${esc(L("header.close"))}"
-            aria-label="${esc(L("header.close"))}">${CLOSE_ICON}</button>
-        </div>
-        ${page === "plan" && anyData ? this._legendHtml() : ""}
-        <div class="dlg-body">
-          ${body}
-        </div>
-      </dialog>
-    `;
+      ${this.plan.diagnose("space")}<br>
+      ${this.plan.diagnose("dhw")}</div>`;
   }
 
   /** Item 33: the configured system as a picture, with live values in place.
@@ -4146,7 +5708,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
    * step, no dependencies, and nothing interactive to begin with.
    */
   _setupPageHtml() {
-    const topo = this._planAttrRaw("setup_topology", null);
+    const topo = this.plan.attrRaw("setup_topology", null);
     if (!topo || !Array.isArray(topo.slots)) {
       return `<div class="setup-page"><div class="empty">
         ${L("setup.not_published")}</div></div>`;
@@ -4693,7 +6255,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
       // screen would show a system that does not exist.
       this._layoutEdit = null;
     } else {
-      const topo = this._planAttrRaw("setup_topology", null) || {};
+      const topo = this.plan.attrRaw("setup_topology", null) || {};
       const positions =
         topo.positions && typeof topo.positions === "object"
           ? topo.positions
@@ -4748,7 +6310,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
   _layoutEvaluate() {
     const ed = this._layoutEdit;
     if (!ed) return;
-    const topo = this._planAttrRaw("setup_topology", null) || {};
+    const topo = this.plan.attrRaw("setup_topology", null) || {};
     const catalog = Array.isArray(topo.catalog) ? topo.catalog : [];
     const name = (e) => `${e[0]}>${e[1]}`;
     const drawn = new Set(ed.edges.map(name));
@@ -4841,7 +6403,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
   _refreshLayout() {
     const root = this.shadowRoot;
     if (!root) return;
-    const topo = this._planAttrRaw("setup_topology", null);
+    const topo = this.plan.attrRaw("setup_topology", null);
     const canvas = root.querySelector(".setup-canvas");
     if (canvas && topo && Array.isArray(topo.slots)) {
       canvas.innerHTML = this._setupSvg(topo);
@@ -5103,7 +6665,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
    * forecast for a roof sensor.
    */
   _solarFallback() {
-    const st = this._stateOf(this._resolveEntity("solar"));
+    const st = this.plan.stateOf(this.plan.resolveEntity("solar"));
     if (!st) return null;
     const v = Number(st.state);
     if (!Number.isFinite(v)) return null;
@@ -5160,7 +6722,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     if (!this._config.what_if) return "";
     const draft = this._whatIfDraft();
     const windows = draft.dhwWindows;
-    const setpoint = this._planAttr("dhw_setpoint", null);
+    const setpoint = this.plan.attr("dhw_setpoint", null);
     const ceiling = this._dhwMinCeiling();
     // Re-clamp on every render rather than only when the draft is seeded: the
     // setpoint is configurable and may have moved since, and a slider whose
@@ -5173,7 +6735,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
       clamped = draft.dhwMin;
       draft.dhwMin = ceiling;
     }
-    const windowHours = this._planAttr(
+    const windowHours = this.plan.attr(
       "manual_plan_window_hours",
       MANUAL_PLAN_WINDOW_FALLBACK_H
     );
@@ -5203,7 +6765,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
               L("whatif.undo_changes")
             )}</button>
             ${
-              this._manualOverride()
+              this.plan.manualOverride()
                 ? `<button type="button" class="wi-auto">${esc(
                     L("whatif.back_to_auto")
                   )}</button>`
@@ -5345,8 +6907,8 @@ class HeatpumpOptimizerCard extends HTMLElement {
       this._whatIf = {
         comfort: this._currentComfortTemp(),
         dhwMin: this._currentDhwMin(),
-        dayStart: this._planAttr("day_start_hour", 7),
-        dayEnd: this._planAttr("day_end_hour", 22),
+        dayStart: this.plan.attr("day_start_hour", 7),
+        dayEnd: this.plan.attr("day_end_hour", 22),
         dhwWindows: this._currentDhwWindows(),
       };
     }
@@ -5360,13 +6922,13 @@ class HeatpumpOptimizerCard extends HTMLElement {
    * whose setpoint has nothing to do with the space-heating plan.
    */
   _currentComfortTemp() {
-    return this._planAttr("comfort_temp_day", 21);
+    return this.plan.attr("comfort_temp_day", 21);
   }
 
   /** Current usable hot water minimum, as configured. */
   _currentDhwMin() {
     return Math.min(
-      this._planAttr("dhw_min_temperature", DHW_MIN_FALLBACK),
+      this.plan.attr("dhw_min_temperature", DHW_MIN_FALLBACK),
       this._dhwMinCeiling()
     );
   }
@@ -5379,41 +6941,8 @@ class HeatpumpOptimizerCard extends HTMLElement {
    * before the first plan arrives, when no setpoint has been published yet.
    */
   _dhwMinCeiling() {
-    const published = this._planAttr("dhw_min_temperature_max", null);
+    const published = this.plan.attr("dhw_min_temperature_max", null);
     return published === null ? DHW_MIN_FALLBACK : published;
-  }
-
-  _planAttr(name, fallback) {
-    const st = this._stateOf(this._resolveEntity("space"));
-    const raw = ((st && st.attributes) || {})[name];
-    // `Number(null)` is 0, and 0 is finite -- so without this guard an
-    // attribute the coordinator published as None would read as a real
-    // measurement of zero rather than "not known", silently producing a 0 °C
-    // comfort target or a hot water ceiling of nothing.
-    if (raw === null || raw === undefined || raw === "") return fallback;
-    const value = Number(raw);
-    return Number.isFinite(value) ? value : fallback;
-  }
-
-  /** A plan-sensor attribute as-is, for the ones that are not numbers. */
-  _planAttrRaw(name, fallback) {
-    const st = this._stateOf(this._resolveEntity("space"));
-    const raw = ((st && st.attributes) || {})[name];
-    return raw === null || raw === undefined ? fallback : raw;
-  }
-
-  /** The manual override the integration is currently honouring, if any.
-   *
-   * Published by both plan sensors, so either will do; the space sensor is the
-   * one the rest of the card already resolves.
-   */
-  _manualOverride() {
-    for (const which of ["space", "dhw"]) {
-      const st = this._stateOf(this._resolveEntity(which));
-      const info = ((st && st.attributes) || {}).manual_override;
-      if (info && info.active) return info;
-    }
-    return null;
   }
 
   /** How the override is going, in the user's terms.
@@ -5424,7 +6953,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
    * user believes the plan they see is the plan that will run.
    */
   _overrideHtml() {
-    const info = this._manualOverride();
+    const info = this.plan.manualOverride();
     if (!info) return "";
     const until = info.expires_at ? new Date(info.expires_at) : null;
     const when =
@@ -5459,7 +6988,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
    * the card, blaming the schedule the integration had just published.
    */
   _currentDhwWindows() {
-    const st = this._stateOf(this._resolveEntity("dhw"));
+    const st = this.plan.stateOf(this.plan.resolveEntity("dhw"));
     const spec = ((st && st.attributes) || {}).dhw_windows;
     return parseWindows(spec).map((w) => ({
       start: endOfDayAsMidnight(w.start),
@@ -5515,7 +7044,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
       // missing or has not published yet has an empty draft that means neither
       // of those things, so it must be left out rather than silently switched
       // off for the rest of the day.
-      if (!this._forecastOf(spec.channel).length) continue;
+      if (!this.plan.forecastOf(spec.channel).length) continue;
       payload[`${spec.channel}_slots`] = (runs[spec.channel] || [])
         .filter((r) => r.end > lo)
         .map((r) => ({
@@ -5615,7 +7144,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     const reset = root.querySelector(".wi-reset");
     if (reset) reset.addEventListener("click", this._onResetWhatIf);
     const viewReset = root.querySelector(".wi-viewreset");
-    if (viewReset) viewReset.addEventListener("click", () => this._resetView());
+    if (viewReset) viewReset.addEventListener("click", () => this.view.reset());
   }
 
   _onWhatIfInput(ev) {
@@ -5943,501 +7472,21 @@ class HeatpumpOptimizerCard extends HTMLElement {
 
   /** Wire hover and legend handling for every chart in a root. */
   _attachChartEvents(root) {
-    root
-      .querySelectorAll(".chip")
-      .forEach((el) => el.addEventListener("click", this._onLegendClick));
+    this.legend.attach(root);
 
-    this._chartSvgs(root).forEach((svg) => {
+    chartSvgs(root).forEach((svg) => {
       svg.addEventListener("mousemove", this._onPointerMove);
       svg.addEventListener("mouseleave", this._onPointerLeave);
       svg.addEventListener("touchmove", this._onPointerMove, { passive: true });
       svg.addEventListener("touchend", this._onPointerLeave);
     });
 
-    this._attachViewControls(root);
+    this.view.attach(root);
     this._attachWhatIf(root);
     this._attachSlotActions(root);
     this._attachSlotEditing(root);
   }
 
-  /** Bring the dialog element in the DOM into line with `_expanded`.
-   *
-   * `_render` rebuilds the shadow root wholesale, so on every data refresh the
-   * open dialog is replaced by a fresh element that has to be shown again.
-   */
-  _syncDialog() {
-    const dlg = this.shadowRoot.querySelector("dialog");
-    if (!dlg) return;
-
-    dlg.addEventListener("click", this._onDialogClick);
-    dlg.addEventListener("close", this._onDialogClose);
-    dlg.addEventListener("cancel", this._onDialogClose);
-    const closeBtn = dlg.querySelector(".close");
-    if (closeBtn) closeBtn.addEventListener("click", this._onDialogClick);
-
-    // Page tabs. Switching re-renders so the hidden page is genuinely gone
-    // from the DOM, and the scroll offset is reset because carrying the plan
-    // page's position into a differently sized setup page lands nowhere.
-    for (const tab of dlg.querySelectorAll(".dlg-tab")) {
-      tab.addEventListener("click", (ev) => {
-        ev.stopPropagation();
-        const page = ev.currentTarget.dataset.page;
-        if (page && page !== this._dialogPage) {
-          this._dialogPage = page;
-          this._dialogScroll = 0;
-          // Leaving the setup page abandons a half-made assignment rather
-          // than keeping a picker open behind the chart.
-          this._closePicker();
-          this._render();
-        }
-      });
-    }
-
-    this._attachSetupEvents(dlg);
-    const note = dlg.querySelector(".setup-result");
-    if (note && this._setupNote) note.textContent = this._setupNote;
-
-    if (this._expanded && !dlg.open) {
-      // showModal promotes the dialog to the top layer, which is what keeps it
-      // clear of the dashboard's stacking contexts and any clipping ancestor.
-      if (typeof dlg.showModal === "function") dlg.showModal();
-      else dlg.setAttribute("open", "");
-    }
-
-    // Restore where the user was. Done after showModal, because a dialog that
-    // is not yet in the top layer has no laid-out scroll height to set against.
-    const body = dlg.querySelector(".dlg-body");
-    if (body && this._dialogScroll) body.scrollTop = this._dialogScroll;
-  }
-
-
-  _legendHtml() {
-    const chips = SERIES_DEFS.map((def) => {
-      const s = this._series.find((x) => x.key === def.key);
-      const hasData = s ? s.hasData : false;
-      const hidden = !!this._hidden[def.key];
-      const cls = "chip" + (hidden ? " off" : "") + (hasData ? "" : " nodata");
-      const label = L(def.labelKey);
-      // One chip per series, never one per rendered line.
-      //
-      // v5.1.7 gave every trace of a multi-line series its own chip so the
-      // house-temperature zones could be named. Every chip carries the
-      // series' `data-key`, because per-line visibility does not exist — so
-      // that series showed three chips in one colour, any of which hid all
-      // three lines at once. Three controls doing one job is worse than one,
-      // so the naming stays where it points at a single trace: the tooltip
-      // has a row per line, and the chip's title lists what else rides on
-      // the line it toggles.
-      //
-      // The chip now stands for the series rather than for its primary
-      // trace, which also settles a case the per-line version got wrong:
-      // with the primary field absent but the extras present, a solid
-      // "House temperature" chip was emitted for a line nothing drew.
-      //
-      // v5.2.0 enumerates them with `_extraFields`, not `lines`: a hole now
-      // splits one field into several drawn paths, and a confidence band's
-      // two edges are one envelope with one name. Listing `lines` here would
-      // print "Lower floor, Lower floor, Lower floor" — saying a thing three
-      // times, in the title written to stop saying it twice.
-      const extras = this._extraFields(s);
-      const unit = this._seriesUnit(def);
-      // ... and any sentence a trace needs beyond its name rides along
-      // after them. Only the expected-error band has one: "Upper floor"
-      // explains itself, a dashed pair hugging the tank curve does not, and
-      // this title is now the one place a puzzled reader can look.
-      const notes = extras
-        .map((line) => this._lineNote(def, line))
-        .filter(Boolean)
-        .map((note) => " " + note)
-        .join("");
-      const title = extras.length
-        ? L("legend.multi_trace_title", {
-            label,
-            unit,
-            names: extras.map((line) => this._lineLabel(def, line)).join(", "),
-          }) + notes
-        : `${label} (${unit})`;
-      return `<button type="button" class="${cls}" data-key="${
-        def.key
-      }" title="${esc(title)}">
-        <span class="dot" style="${dotStyle(def.color, false)}"></span>${esc(
-        label
-      )}
-      </button>`;
-    }).join("");
-    return `<div class="legend">${chips}</div>`;
-  }
-
-  /** Every plotted point of one field, across the segments holes broke it
-   * into. A field is one trace to every caller; that it may be drawn as
-   * several paths is a rendering detail. */
-  _fieldPoints(s, field) {
-    const out = [];
-    for (const line of s.lines || []) {
-      if (line.field === field) out.push(...line.points);
-    }
-    return out;
-  }
-
-  /** One representative line per NAMED non-primary trace, in draw order.
-   *
-   * Two collapses, both because a reader counts traces by name and not by
-   * path. `lines` may hold several segments of one field, because a hole
-   * breaks a field into several paths; and a band's two edges are one
-   * envelope with one name.
-   *
-   * Every caller that names traces goes through here — this card's per-trace
-   * legend chips, its tooltip, and equally a legend that draws ONE chip per
-   * series and lists the rest in that chip's title. Iterating `lines`
-   * directly instead would name a gapped zone three times and a band twice.
-   */
-  _extraFields(s) {
-    const band = s && s.band;
-    const seen = new Set();
-    const out = [];
-    for (const line of (s && s.lines) || []) {
-      if (line.primary) continue;
-      const key =
-        band && (line.field === band.lo || line.field === band.hi)
-          // A Symbol, never a string: a de-duplication key that cannot
-          // collide with a field name, whatever a later series calls its
-          // fields.
-          ? BAND_TRACE_KEY
-          : line.field;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      out.push(line);
-    }
-    return out;
-  }
-
-  /** The sentence a trace needs on hover, or "" when its name is enough.
-   *
-   * Only the expected-error band has one: "Upper floor" explains itself, a
-   * dashed pair hugging the tank curve does not. Keyed off the series
-   * definition beside `_lineLabel`, so anywhere a trace can be named the
-   * explanation can be asked for too.
-   */
-  _lineNote(def, line) {
-    const band = def && def.band;
-    if (
-      band &&
-      band.noteKey &&
-      line &&
-      (line.field === band.lo || line.field === band.hi)
-    ) {
-      return L(band.noteKey);
-    }
-    return "";
-  }
-
-  /** The point of `field` nearest `t`, or null when the field has none. */
-  _nearestPoint(s, field, t) {
-    let best = null;
-    let bestDt = Infinity;
-    for (const p of this._fieldPoints(s, field)) {
-      const dt = Math.abs(p.t - t);
-      if (dt < bestDt) {
-        bestDt = dt;
-        best = p;
-      }
-    }
-    return best;
-  }
-
-  /** What one trace inside a series is called.
-   *
-   * A series can carry several lines — the house-temperature series draws the
-   * whole-house room average solid and the two zones dashed — and every one of
-   * them needs its own name. The lower zone gets a second name when nothing
-   * measures it, so a modelled trace is never mistaken for a reading.
-   */
-  _lineLabel(def, line) {
-    if (!line || line.primary) return L(def.labelKey);
-    if (line.field === "lower" && this._lowerFloorModelled()) {
-      return L("series.lower_floor_modelled");
-    }
-    return L(line.labelKey || def.labelKey);
-  }
-
-  /** The one tooltip row for a series' expected-error band, if it has one
-   * and both edges are present at the same step.
-   *
-   * Stated as a single ± figure because that is the one number the pair
-   * carries. Half an envelope says nothing, and two halves taken from
-   * different steps say something untrue, so both must come from the same
-   * step or there is no row at all.
-   */
-  _bandRow(s, t) {
-    if (!s.band) return [];
-    const lo = this._nearestPoint(s, s.band.lo, t);
-    const hi = this._nearestPoint(s, s.band.hi, t);
-    if (!lo || !hi || lo.t !== hi.t) return [];
-    return [
-      {
-        color: s.color,
-        label: L(s.band.labelKey),
-        value: (hi.v - lo.v) / 2,
-        prefix: "\u00b1",
-        dashed: true,
-        unit: this._seriesUnit(s),
-        t: hi.t,
-        field: s.band.hi,
-      },
-    ];
-  }
-
-  /** True when the lower zone has no thermometer of its own.
-   *
-   * Read from the published `setup_topology` slots rather than guessed: the
-   * integration already says there which sensor slots are filled, so the
-   * chart's label and the setup page cannot disagree. Unknown topology
-   * claims nothing — a missing attribute is not evidence of a missing
-   * sensor.
-   */
-  _lowerFloorModelled() {
-    const topo = this._planAttrRaw("setup_topology", null);
-    const slots = topo && Array.isArray(topo.slots) ? topo.slots : null;
-    if (!slots) return false;
-    const slot = slots.find(
-      (x) => x && x.key === "lower_floor_temp_entity"
-    );
-    return !!slot && !slot.entity;
-  }
-
-  /** The unit a series renders with. Only the price unit is dynamic: its
-   * currency comes from the config, the plan sensor or Home Assistant. */
-  _seriesUnit(def) {
-    return def.axis === "price" ? this._priceUnit() : def.unit;
-  }
-
-  /** "SEK/kWh", "EUR/kWh", ... from the resolved currency. */
-  _priceUnit() {
-    return `${this._currency()}/kWh`;
-  }
-
-  _chartSvg(built, expanded) {
-    const { windowStart, windowEnd } = built;
-    const visible = this._series.filter((s) => s.visible && s.hasData);
-    // D4-01: the compact chart floors its rendered font (see
-    // compactFontUnits); the margins then scale with any boost beyond what
-    // the authored layout already accommodates, so axis labels keep their
-    // relative space instead of colliding.
-    const font = expanded
-      ? FONT_EXPANDED
-      : compactFontUnits(this._measuredCardWidth());
-    const marginScale = expanded ? 1 : Math.max(1, font / FONT_EXPANDED);
-
-    // Axis domains from visible series grouped by axis.
-    const groups = { temp: [], power: [], price: [], solar: [] };
-    for (const s of visible) {
-      for (const line of s.lines) {
-        for (const p of line.points) groups[s.axis].push(p.v);
-      }
-    }
-    const axisRange = (vals, forceZero) => {
-      if (!vals.length) return null;
-      let lo = Math.min(...vals);
-      let hi = Math.max(...vals);
-      if (forceZero) lo = Math.min(0, lo);
-      return niceAxis(lo, hi, 6);
-    };
-    const axes = {
-      temp: axisRange(groups.temp, false),
-      power: axisRange(groups.power, true),
-      price: axisRange(groups.price, true),
-      solar: axisRange(groups.solar, true),
-    };
-
-    // The compact chart's boosted font (D4-01) widens these with it; the
-    // authored values below are already laid out for FONT_EXPANDED, so the
-    // scale only engages past that.
-    const plotL = MARGIN.left * marginScale;
-    // Only pay for the solar axis's width when it is actually drawn; a
-    // permanently narrower plot would be a real cost to every user who does
-    // not use the series.
-    const rightMargin =
-      (axes.solar ? MARGIN_RIGHT_WITH_SOLAR : MARGIN.right) * marginScale;
-    const plotR = VIEW_W - rightMargin;
-    const plotT = MARGIN.top * marginScale;
-    const plotB = VIEW_H - MARGIN.bottom * marginScale;
-    const plotW = plotR - plotL;
-    const plotH = plotB - plotT;
-
-    const xSpan = windowEnd - windowStart || 1;
-    const scaleX = (t) => plotL + ((t - windowStart) / xSpan) * plotW;
-    const scaleY = (v, axisName) => {
-      const a = axes[axisName];
-      if (!a) return plotB;
-      const span = a.max - a.min || 1;
-      return plotB - ((v - a.min) / span) * plotH;
-    };
-
-    // Store geometry for hover.
-    this._plot = {
-      windowStart,
-      windowEnd,
-      scaleX,
-      scaleY,
-      axes,
-      plotL,
-      plotR,
-      plotT,
-      plotB,
-    };
-
-    const parts = [];
-
-    // Plot frame
-    parts.push(
-      `<rect x="${plotL}" y="${plotT}" width="${plotW}" height="${plotH}" fill="none" stroke="var(--divider-color,#e0e0e0)" stroke-width="1"/>`
-    );
-
-    // Hourly gridlines. How often they are labelled is worked out from the
-    // space available, so a wider chart or a shorter horizon labels more.
-    parts.push(
-      this._timeAxis(scaleX, plotT, plotB, windowStart, windowEnd, font)
-    );
-
-    // Value axes. Where two axes share a side, the inner one's title has only
-    // the gap to the outer axis to live in, and that gap does not grow with
-    // the font: at the expanded size "SEK/kWh" is wider than the 46 units
-    // between the price and solar axes, so it used to run straight through
-    // "W/m2". Measure the title and, when it does not fit, hang it off the
-    // inside of its own axis line instead -- the strip above the plot frame
-    // is empty, so the title stays beside the axis it names either way.
-    const titleFits = (unit, room) =>
-      textWidth(unit, font) + font * 0.6 <= room;
-    const powerTitleInset = 44;
-    // The price axis title carries the resolved currency, so the measured
-    // string and the drawn string must be the same value.
-    const priceUnit = this._priceUnit();
-    const tempAnchor =
-      axes.power && !titleFits("\u00b0C", powerTitleInset) ? "start" : "end";
-    const priceAnchor =
-      axes.solar && !titleFits(priceUnit, SOLAR_AXIS_INSET) ? "end" : "start";
-
-    if (axes.temp)
-      parts.push(
-        this._valueAxis(
-          axes.temp, plotL, plotT, plotB, plotH, "left", 0,
-          scaleY, "temp", "\u00b0C", font, tempAnchor
-        )
-      );
-    if (axes.power)
-      parts.push(
-        this._valueAxis(
-          axes.power, plotL, plotT, plotB, plotH, "left", powerTitleInset,
-          scaleY, "power", "kW", font
-        )
-      );
-    if (axes.price)
-      parts.push(
-        this._valueAxis(
-          axes.price, plotR, plotT, plotB, plotH, "right", 0,
-          scaleY, "price", priceUnit, font, priceAnchor
-        )
-      );
-    if (axes.solar)
-      parts.push(
-        this._valueAxis(
-          axes.solar, plotR, plotT, plotB, plotH, "right", SOLAR_AXIS_INSET,
-          scaleY, "solar", "W/m\u00b2", font
-        )
-      );
-
-    // Now marker
-    const now = Date.now();
-    if (now >= windowStart && now <= windowEnd) {
-      const nx = scaleX(now);
-      parts.push(
-        `<line x1="${nx}" y1="${plotT}" x2="${nx}" y2="${plotB}" stroke="var(--primary-color,#03a9f4)" stroke-width="1.5" stroke-dasharray="4 3"/>`
-      );
-      parts.push(
-        `<text x="${nx + 3}" y="${plotT + font + 1}" font-size="${font}" fill="var(--primary-color,#03a9f4)">${esc(
-          L("plan.now")
-        )}</text>`
-      );
-    }
-
-    // Shade the stretch of the horizon whose prices are the learned diurnal
-    // prior rather than published market data. A plan that looks identical
-    // whether or not it rests on real prices cannot be audited.
-    const estimatedFrom = this._estimatedPricesFrom();
-    if (estimatedFrom !== null && estimatedFrom < windowEnd) {
-      const ex = Math.max(plotL, scaleX(Math.max(estimatedFrom, windowStart)));
-      parts.push(
-        `<rect class="estimated" pointer-events="none" x="${ex}" y="${plotT}" width="${Math.max(
-          0,
-          plotR - ex
-        )}" height="${plotH}" fill="var(--secondary-text-color,#888)" fill-opacity="0.07"/>`
-      );
-      // D4-03: this used to sit at `plotB - 5`, directly on top of the
-      // lane-row labels drawn near the bottom of the plot (`_laneGroupInner`),
-      // garbling both. Anchored just under the top margin instead -- a strip
-      // that is otherwise empty except for the "now" marker's label, which
-      // lives at a different x (by the current-time line, not the start of
-      // the estimated region) whenever both happen to be visible together.
-      parts.push(
-        `<text x="${ex + 4}" y="${plotT + font + 4}" font-size="${font}" fill="var(--secondary-text-color,#888)">${esc(
-          L("plan.estimated_prices")
-        )}</text>`
-      );
-    }
-
-    // Editable slot lanes, and the geometry a pointer event needs to turn a
-    // screen coordinate back into a time. The lane metrics travel with the
-    // geometry (D4-01): a boosted compact font scales the lanes with it, and
-    // hit-testing must use the same numbers the drawing used.
-    if (this._editingEnabled()) {
-      this._geom = {
-        windowStart, windowEnd, plotL, plotW, plotR, plotB, font,
-        laneH: LANE_H * marginScale, laneGap: LANE_GAP * marginScale,
-        laneInset: LANE_BOTTOM_INSET * marginScale,
-      };
-      parts.push(`<g class="lanes">${this._laneGroupInner()}</g>`);
-    } else {
-      this._geom = null;
-    }
-
-    // Where BOTH circuits are planned in the same quarter hour the pump is
-    // time-sharing the step — hot water first, then heating. That is a
-    // deliberate relaxation (space + hot water ≤ nameplate per step), not
-    // double-booking, and two full-height bars with nothing said implied
-    // the impossible. Drawn under the bars so the bars stay readable.
-    // The list is passed in rather than read from this._series so the
-    // helper stays a pure function of its inputs.
-    parts.push(
-      this._sharedSpanBands(visible, scaleX, plotT, plotB, plotL, plotR)
-    );
-
-    // Series paths (filled/area series first, lines on top)
-    const order = ["stepArea", "stepBars", "smooth"];
-    for (const st of order) {
-      for (const s of visible) {
-        if (s.style !== st) continue;
-        parts.push(this._seriesPath(s, scaleX, scaleY, plotB));
-      }
-    }
-
-    // Crosshair placeholder (updated on hover)
-    parts.push(
-      `<line class="crosshair" pointer-events="none" x1="0" y1="${plotT}" x2="0" y2="${plotB}" stroke="var(--secondary-text-color,#888)" stroke-width="1" visibility="hidden"/>`
-    );
-
-    // role="img" flattens every descendant for assistive tech, which is
-    // right for a pure picture but wrong the moment the lanes put focusable
-    // slots inside it — those need "group" so they stay in the tree. The
-    // editable chart also takes tabindex="-1": it is the last-resort home
-    // for restored focus (`_restoreSlotFocus`), and an svg without a
-    // tabindex refuses programmatic focus.
-    const editing = this._editingEnabled();
-    return `<svg viewBox="0 0 ${VIEW_W} ${VIEW_H}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" role="${
-      editing ? "group" : "img"
-    }"${editing ? ' tabindex="-1"' : ""} aria-label="${esc(
-      this._title()
-    )}">${parts.join("")}</svg>`;
-  }
 
   /** The right-click menu for a lane.
    *
@@ -6455,7 +7504,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
 
     // Anchored to the chart it was opened from: when the card is expanded
     // there are two, and the menu must not land on the wrong one.
-    const host = this._wrapOf(svg);
+    const host = wrapOf(svg, this.shadowRoot);
     if (!host) return;
     const rect = host.getBoundingClientRect
       ? host.getBoundingClientRect()
@@ -6475,7 +7524,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
           L(dhw ? "menu.add_slot_dhw" : "menu.add_slot_space")
         )}</button>`;
 
-    const svgIndex = this._chartSvgs().indexOf(svg);
+    const svgIndex = chartSvgs(this.shadowRoot).indexOf(svg);
     menu.addEventListener("click", (ev) => {
       const act = ((ev.target || {}).dataset || {}).act;
       stop(ev);
@@ -6560,7 +7609,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
    * the chart svg itself — never document.body.
    */
   _restoreSlotFocus(channel, index, svgIndex) {
-    const svgs = this._chartSvgs(this.shadowRoot);
+    const svgs = chartSvgs(this.shadowRoot);
     const svg = svgs[svgIndex] || svgs[svgs.length - 1];
     if (!svg) return;
     const focus = (el) =>
@@ -6629,7 +7678,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     let edited = 0;
     const runs = this._draftRuns();
     for (const spec of this._laneSpecs()) {
-      const forecast = this._forecastOf(spec.channel);
+      const forecast = this.plan.forecastOf(spec.channel);
       if (!forecast.length) continue;
       const power = SlotModel.typicalPower(forecast, spec.field);
       const base = SlotModel.runsFrom(
@@ -6643,31 +7692,12 @@ class HeatpumpOptimizerCard extends HTMLElement {
     return { planned, edited, delta: edited - planned };
   }
 
-  /** The currency to price the delta in.
-   *
-   * The plan carries prices but not a currency, so take Home Assistant's own
-   * configured currency rather than assuming the author's. `currency:` in the
-   * card config still wins, for installs where the two disagree.
-   */
-  _currency() {
-    const hass = this._hass || {};
-    return (
-      this._config.currency ||
-      // v4.1.0+: the integration publishes the currency its prices are in on
-      // the plan sensors. That beats Home Assistant's global currency, which
-      // describes the install, not the price feed.
-      this._planAttrRaw("currency", null) ||
-      (hass.config && hass.config.currency) ||
-      "SEK"
-    );
-  }
-
   _deltaHtml() {
     const { planned, edited, delta } = this._costDelta();
     if (!Number.isFinite(delta) || (!planned && !edited)) {
       return `<span class="wi-hint">${L("stats.no_plan_to_compare")}</span>`;
     }
-    const cur = this._currency();
+    const cur = this.plan.currency();
     const cls = delta < -0.005 ? "cheaper" : delta > 0.005 ? "dearer" : "";
     const sign = delta > 0 ? "+" : "";
     const verdict = L(
@@ -6693,261 +7723,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
     if (box) box.innerHTML = this._deltaHtml();
   }
 
-  /** Wheel over the chart: pinch to zoom, two fingers sideways to pan.
-   *
-   * A plain vertical wheel is deliberately left alone. The card sits in a
-   * dashboard the user scrolls, and a chart that swallowed the scroll wheel
-   * would trap the page the moment the pointer crossed it. Trackpad pinch
-   * arrives as a wheel with `ctrlKey` set, which is the gesture people already
-   * expect to zoom.
-   */
-  _onChartWheel(ev) {
-    if (!this._viewAdjustable()) return;
-    const zooming = ev.ctrlKey || ev.metaKey;
-    const sideways = Math.abs(ev.deltaX) > Math.abs(ev.deltaY);
-    const panning = !zooming && (ev.shiftKey || sideways);
-    if (!zooming && !panning) return;
-    if (ev.preventDefault) ev.preventDefault();
-    stop(ev);
-
-    if (zooming) {
-      const at = this._timeAtClientX(ev.currentTarget, ev.clientX);
-      this._zoomView(ev.deltaY > 0 ? VIEW_ZOOM_STEP : 1 / VIEW_ZOOM_STEP, at);
-      return;
-    }
-    const span = this._viewSpan();
-    const delta = sideways ? ev.deltaX : ev.deltaY;
-    this._panView((delta / 600) * span);
-  }
-
-  /** The span currently on screen, view or default. */
-  _viewSpan() {
-    if (this._view) return this._view.span;
-    const lim = this._viewLimits;
-    return lim ? lim.defaultEnd - lim.floor : 1;
-  }
-
-  /** The window currently on screen, as the zoom and pan maths sees it. */
-  _viewCurrent() {
-    const lim = this._viewLimits;
-    if (this._view) return this._view;
-    return { start: lim.floor, span: lim.defaultEnd - lim.floor };
-  }
-
-  /** Drag the chart background sideways to pan.
-   *
-   * Only the background: a pointerdown that landed on a lane belongs to the
-   * slot editor, and stealing it would make slots undraggable. The move and up
-   * handlers go on `window` rather than the svg because panning re-renders,
-   * which replaces the element the gesture started on -- listeners bound to it
-   * would stop firing halfway through the drag.
-   */
-  _onPanDown(ev) {
-    if (!this._viewAdjustable()) return;
-    if (((ev.target || {}).dataset || {}).channel) return;
-    const svg = ev.currentTarget;
-    const rect = svg && svg.getBoundingClientRect ? svg.getBoundingClientRect() : null;
-    if (!rect || !rect.width) return;
-    // `_geom` only exists while the lanes do (what_if enabled). Without it,
-    // fall back to the nominal plot width rather than the whole viewBox, or a
-    // drag would track noticeably slower than the pointer.
-    const plotW = this._geom
-      ? this._geom.plotW
-      : VIEW_W - MARGIN.left - MARGIN.right;
-    const pxPerViewUnit = rect.width / VIEW_W;
-    const plotPx = plotW * pxPerViewUnit;
-    if (!plotPx) return;
-
-    // Without this the drag selects the axis labels and, on some browsers,
-    // starts a native image drag of the svg.
-    if (ev.preventDefault) ev.preventDefault();
-    const pan = {
-      last: ev.clientX,
-      perPx: this._viewSpan() / plotPx,
-      moved: false,
-      move: null,
-      up: null,
-    };
-    pan.move = (moveEv) => {
-      const dx = moveEv.clientX - pan.last;
-      if (!dx) return;
-      pan.last = moveEv.clientX;
-      // A drag only counts as a pan once it has actually moved, so a plain
-      // click on the chart still opens the expanded view.
-      pan.moved = true;
-      // Drag left to move forward in time: the content follows the pointer.
-      this._panView(-dx * pan.perPx);
-    };
-    pan.up = () => {
-      if (pan.moved) this.suppressNextClick();
-      this._pan = null;
-      if (typeof window === "undefined") return;
-      window.removeEventListener("pointermove", pan.move);
-      window.removeEventListener("pointerup", pan.up);
-      window.removeEventListener("pointercancel", pan.up);
-    };
-    this._pan = pan;
-    if (typeof window !== "undefined") {
-      window.addEventListener("pointermove", pan.move);
-      window.addEventListener("pointerup", pan.up);
-      window.addEventListener("pointercancel", pan.up);
-    }
-  }
-
-  /** Zoom and reset buttons: the keyboard- and touch-reachable path.
-   *
-   * Wheel and drag cover a trackpad, but neither is available to someone on a
-   * phone or tabbing through the card, and a zoom that only exists as a gesture
-   * is a zoom half the users never find.
-   */
-  _viewControlsHtml() {
-    if (!this._viewAdjustable()) return "";
-    const zoomed = this._view !== null;
-    return `
-      <div class="viewctl">
-        <button type="button" class="vc-out" title="${esc(L("plan.zoom_out"))}"
-          aria-label="${esc(L("plan.zoom_out"))}">&minus;</button>
-        <button type="button" class="vc-in" title="${esc(L("plan.zoom_in"))}"
-          aria-label="${esc(L("plan.zoom_in"))}">+</button>
-        <button type="button" class="vc-reset" title="${esc(
-          L("plan.show_whole_plan")
-        )}"
-          aria-label="${esc(L("plan.show_whole_plan"))}"${zoomed ? "" : " disabled"}>&#8634;</button>
-      </div>`;
-  }
-
-  _attachViewControls(root) {
-    this._chartSvgs(root).forEach((svg) => {
-      svg.addEventListener("wheel", this._onChartWheel, { passive: false });
-      svg.addEventListener("pointerdown", this._onPanDown);
-    });
-    const wire = (sel, fn) =>
-      root.querySelectorAll(sel).forEach((el) =>
-        el.addEventListener("click", (ev) => {
-          stop(ev);
-          fn();
-        })
-      );
-    wire(".vc-in", () => this._zoomView(1 / VIEW_ZOOM_STEP, null));
-    wire(".vc-out", () => this._zoomView(VIEW_ZOOM_STEP, null));
-    wire(".vc-reset", () => this._resetView());
-  }
-
-  /** Narrow the default window to the panned/zoomed view, and record its limits.
-   *
-   * Called on every build so the limits track incoming data: the plan's extent
-   * moves forward as new forecasts arrive, and a view clamped against the
-   * extent of ten minutes ago would slowly drift out of range.
-   *
-   * Returns the default window untouched while `_view` is null, so a card
-   * nobody has interacted with renders exactly as it did before this existed.
-   */
-  _applyView(defaultStart, defaultEnd, dataEnd) {
-    const defaultSpan = Math.max(defaultEnd - defaultStart, 1);
-    // Zooming out stops at the plan, not at the configured plot width:
-    // `cfg.hours` goes up to a week, while the optimizer's horizon defaults to
-    // 24 h, and the difference is empty chart.
-    const maxSpan = Math.max(
-      Math.min(defaultSpan, Math.max(dataEnd - defaultStart, VIEW_MIN_SPAN_MS)),
-      VIEW_MIN_SPAN_MS
-    );
-    const minSpan = Math.min(VIEW_MIN_SPAN_MS, maxSpan);
-    // The right edge the window may not pass: the plan's end, and never beyond
-    // the configured plot width.
-    const rightBound = Math.max(
-      Math.min(dataEnd, defaultEnd),
-      defaultStart + minSpan
-    );
-    // `defaultEnd` is kept as well as `rightBound`: the two differ whenever the
-    // configured plot window is wider than the plan, and a zoom that mistook
-    // the plan's extent for what is currently on screen would compute its
-    // anchor against a window the user is not looking at.
-    this._viewLimits = {
-      floor: defaultStart,
-      defaultEnd,
-      rightBound,
-      minSpan,
-      maxSpan,
-    };
-
-    if (!this._view) return { start: defaultStart, end: defaultEnd };
-
-    const span = clampNum(this._view.span, minSpan, maxSpan);
-    const maxStart = Math.max(defaultStart, rightBound - span);
-    const start = clampNum(this._view.start, defaultStart, maxStart);
-    this._view = { start, span };
-    return { start, end: start + span };
-  }
-
-  /** Whether panning and zooming can do anything at all.
-   *
-   * With a plan no longer than the minimum span there is nothing to pan across
-   * and nothing to zoom out to, and controls that cannot move are worse than
-   * no controls.
-   */
-  _viewAdjustable() {
-    const lim = this._viewLimits;
-    return !!lim && lim.rightBound - lim.floor > lim.minSpan * 1.05;
-  }
-
-  /** Zoom by `factor`, holding the time under `anchorT` still.
-   *
-   * Anchoring matters: zooming around the window centre walks whatever the user
-   * is pointing at off the screen, which makes repeated zooming feel like it is
-   * fighting back.
-   */
-  _zoomView(factor, anchorT) {
-    const lim = this._viewLimits;
-    if (!lim) return;
-    const current = this._viewCurrent();
-    const span = clampNum(current.span * factor, lim.minSpan, lim.maxSpan);
-    const anchor =
-      anchorT === undefined || anchorT === null
-        ? current.start + current.span / 2
-        : clampNum(anchorT, current.start, current.start + current.span);
-    // Keep the anchor at the same fraction across the window.
-    const frac = (anchor - current.start) / (current.span || 1);
-    this._view = { start: anchor - frac * span, span };
-    this._renderView();
-  }
-
-  /** Slide the window by `deltaMs`, without changing its span. */
-  _panView(deltaMs) {
-    const lim = this._viewLimits;
-    if (!lim) return;
-    const current = this._viewCurrent();
-    this._view = { start: current.start + deltaMs, span: current.span };
-    this._renderView();
-  }
-
-  _resetView() {
-    if (!this._view) return;
-    this._view = null;
-    this._renderView();
-  }
-
-  /** Redraw after a view change, at most once per frame.
-   *
-   * A view change moves every series, not just the lanes, so unlike a slot drag
-   * there is nothing narrower to refresh. `_render` replaces the shadow root,
-   * which is why the pan gesture listens on the window rather than on the svg:
-   * the element under the pointer is gone by the next event.
-   */
-  _renderView() {
-    if (this._viewFrame) return;
-    const run = () => {
-      this._viewFrame = 0;
-      // Deliberately not clearing `_sig`: it is what stops the next data
-      // refresh from throwing away an in-progress slot edit, and a view change
-      // is not a reason to discard the draft the user is arranging.
-      this._render();
-    };
-    this._viewFrame =
-      typeof requestAnimationFrame === "function"
-        ? requestAnimationFrame(run)
-        : setTimeout(run, 16);
-  }
-
   /** The card's current rendered width in px, or 0 before layout.
    *
    * D4-01 floors the compact chart's rendered font against this value; the
@@ -6961,22 +7736,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
     return rect && rect.width ? rect.width : 0;
   }
 
-  /** Turn a screen x into a time on the chart's axis.
-   *
-   * The chart is drawn in a fixed viewBox and stretched to fit, so screen
-   * pixels and viewBox units are not interchangeable; the measured width is
-   * the only thing that relates them.
-   */
-  _timeAtClientX(svg, clientX) {
-    const geom = this._geom;
-    if (!geom || !svg) return null;
-    const rect = svg.getBoundingClientRect ? svg.getBoundingClientRect() : null;
-    if (!rect || !rect.width) return null;
-    const vx = ((clientX - rect.left) / rect.width) * VIEW_W;
-    return geom.windowStart + ((vx - geom.plotL) / geom.plotW) *
-      (geom.windowEnd - geom.windowStart);
-  }
-
   /** Drag to move a slot, drag its edge to resize, right-click to add or
    * remove. Wired by delegation on the svg, because the chart markup is
    * rebuilt wholesale on every refresh and per-rect listeners would not
@@ -6984,14 +7743,14 @@ class HeatpumpOptimizerCard extends HTMLElement {
    */
   _attachSlotEditing(root) {
     if (!this._editingEnabled()) return;
-    const svgs = this._chartSvgs(root);
+    const svgs = chartSvgs(root);
     if (!svgs.length) return;
 
     const onDown = (svg, ev) => {
       const target = ev.target || {};
       const data = target.dataset || {};
       if (!data.channel) return;
-      const at = this._timeAtClientX(svg, ev.clientX);
+      const at = timeAtClientX(svg, ev.clientX, this._geom);
       if (at === null) return;
       const channel = data.channel;
       const runs = this._draftRuns()[channel] || [];
@@ -7052,14 +7811,14 @@ class HeatpumpOptimizerCard extends HTMLElement {
     const svgAt = (index) => {
       // Auto-pan re-renders, replacing the svg the gesture started on; the
       // chart at the same position in the fresh shadow root is its heir.
-      const current = this._chartSvgs(this.shadowRoot || root);
+      const current = chartSvgs(this.shadowRoot || root);
       return current[index] || current[current.length - 1] || null;
     };
 
     const applyDragAt = (svg, clientX) => {
       const drag = this._drag;
       if (!drag || drag.menuOnly) return;
-      const at = this._timeAtClientX(svg, clientX);
+      const at = timeAtClientX(svg, clientX, this._geom);
       if (at === null) return;
       drag.moved = true;
       const delta = at - drag.from;
@@ -7092,7 +7851,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // reach), so a user who zoomed — often accidentally, by pinch or
     // ctrl-wheel — finds editing "stops" at an arbitrary-looking time.
     const maybeAutoPan = (index, clientX) => {
-      if (!this._drag || this._drag.menuOnly || !this._viewAdjustable()) {
+      if (!this._drag || this._drag.menuOnly || !this.view.adjustable()) {
         stopAutoPan();
         return;
       }
@@ -7116,12 +7875,12 @@ class HeatpumpOptimizerCard extends HTMLElement {
       if (this._dragPan) return;
       this._dragPan = setInterval(() => {
         const drag = this._drag;
-        const lim = this._viewLimits;
+        const lim = this.view.limits;
         if (!drag || !lim) {
           stopAutoPan();
           return;
         }
-        const cur = this._viewCurrent();
+        const cur = this.view.current();
         const step = dir * Math.max(PLAN_STEP_MS, cur.span * 0.04);
         const maxStart = Math.max(lim.floor, lim.rightBound - cur.span);
         const start = clampNum(cur.start + step, lim.floor, maxStart);
@@ -7129,7 +7888,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
           stopAutoPan();
           return;
         }
-        this._view = { start, span: cur.span };
+        this.view.setStart(start);
         // A full render: the gesture survives it because move/up also live
         // on `window` (registered per drag below), exactly as the pan
         // gesture does and for the same reason.
@@ -7169,7 +7928,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
         this.suppressNextClick();
         const fresh = svgAt(drag.svgIndex);
         if (fresh) {
-          const at = this._timeAtClientX(fresh, drag.lastClientX);
+          const at = timeAtClientX(fresh, drag.lastClientX, this._geom);
           if (at !== null) {
             this._openSlotMenu(
               drag.channel, at, drag.lastClientX, drag.lastClientY, fresh
@@ -7182,7 +7941,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     const onContext = (svg, ev) => {
       const data = (ev.target || {}).dataset || {};
       if (!data.channel) return;
-      const at = this._timeAtClientX(svg, ev.clientX);
+      const at = timeAtClientX(svg, ev.clientX, this._geom);
       if (at === null) return;
       if (ev.preventDefault) ev.preventDefault();
       stop(ev);
@@ -7359,7 +8118,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
    */
   _editCeilingParts() {
     const visibleEnd = this._geom ? this._geom.windowEnd : Infinity;
-    const windowHours = this._planAttr(
+    const windowHours = this.plan.attr(
       "manual_plan_window_hours",
       MANUAL_PLAN_WINDOW_FALLBACK_H
     );
@@ -7383,7 +8142,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
   _planEnd() {
     let end = -Infinity;
     for (const channel of ["space", "dhw"]) {
-      const fc = this._forecastOf(channel);
+      const fc = this.plan.forecastOf(channel);
       if (!fc.length) continue;
       const t = Date.parse(fc[fc.length - 1].t);
       if (Number.isFinite(t)) end = Math.max(end, t + PLAN_STEP_MS);
@@ -7406,7 +8165,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
       this._runs = {};
       for (const spec of this._laneSpecs()) {
         this._runs[spec.channel] = SlotModel.runsFrom(
-          this._forecastOf(spec.channel), spec.field, 0.05, PLAN_STEP_MS
+          this.plan.forecastOf(spec.channel), spec.field, 0.05, PLAN_STEP_MS
         );
       }
       this._runsDirty = false;
@@ -7418,12 +8177,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
   _resetRuns() {
     this._runs = null;
     this._runsDirty = false;
-  }
-
-  _forecastOf(channel) {
-    const st = this._stateOf(this._resolveEntity(channel));
-    const fc = ((st && st.attributes) || {}).forecast;
-    return Array.isArray(fc) ? fc : [];
   }
 
   /** The lanes, their slots and the grab handles, as SVG.
@@ -7541,215 +8294,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     return out.join("");
   }
 
-  /** Hourly gridlines, labelled as often as the width actually allows.
-   *
-   * Label density cannot be a fixed choice. The horizon is configurable, the
-   * chart is drawn in a fixed coordinate system, and the labels are formatted
-   * for the user's locale, so their width is not known in advance either --
-   * "13:00" is five characters but "12:00 AM" is eight. Build the labels
-   * first, measure the widest, and only then decide how many to show.
-   */
-  _timeAxis(scaleX, plotT, plotB, windowStart, windowEnd, font) {
-    const size = font || FONT_BASE;
-    const hour = 3600 * 1000;
-
-    const first = new Date(windowStart);
-    first.setMinutes(0, 0, 0);
-    if (first.getTime() < windowStart) first.setHours(first.getHours() + 1);
-
-    const ticks = [];
-    for (let t = first.getTime(); t <= windowEnd; t += hour) {
-      const d = new Date(t);
-      ticks.push({
-        t,
-        x: scaleX(t),
-        hours: d.getHours(),
-        label: d.toLocaleTimeString(ACTIVE_LANG, {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-      });
-    }
-    if (!ticks.length) return "";
-
-    // Widest rendered label, plus a gap, in viewBox units. The chart uses the
-    // default sans-serif face, whose characters average a little over half an
-    // em at these sizes.
-    const widest = ticks.reduce((n, tick) => Math.max(n, tick.label.length), 0);
-    const labelWidth = size * widest * CHAR_WIDTH_EM + size * 0.6;
-    const unitsPerHour = Math.abs(scaleX(windowStart + hour) - scaleX(windowStart));
-    const needed = unitsPerHour > 0 ? Math.ceil(labelWidth / unitsPerHour) : 3;
-    // Intervals that divide the day, so labels land on the same clock times
-    // each day rather than drifting across midnight.
-    const every =
-      TIME_LABEL_STEPS.find((step) => step >= Math.max(1, needed)) ||
-      TIME_LABEL_STEPS[TIME_LABEL_STEPS.length - 1];
-
-    const out = [];
-    for (const tick of ticks) {
-      const labelled = tick.hours % every === 0;
-      out.push(
-        `<line x1="${tick.x}" y1="${plotT}" x2="${tick.x}" y2="${plotB}" stroke="var(--divider-color,#eee)" stroke-width="${
-          labelled ? 1 : 0.5
-        }" opacity="${labelled ? 0.7 : 0.35}"/>`
-      );
-      if (labelled) {
-        out.push(
-          `<text x="${tick.x}" y="${plotB + size + 4}" font-size="${size}" text-anchor="middle" fill="var(--secondary-text-color,#888)">${esc(
-            tick.label
-          )}</text>`
-        );
-      }
-    }
-    return out.join("");
-  }
-
-  _valueAxis(
-    axis, xBase, plotT, plotB, plotH, side, inset, scaleY, axisName, unit,
-    font, titleAnchor
-  ) {
-    const size = font || FONT_BASE;
-    const out = [];
-    const x = side === "left" ? xBase - inset : xBase + inset;
-    const anchor = side === "left" ? "end" : "start";
-    const tx = side === "left" ? x - 5 : x + 5;
-    for (const tick of axis.ticks) {
-      const y = scaleY(tick, axisName);
-      out.push(
-        `<text x="${tx}" y="${y + size / 3}" font-size="${size}" text-anchor="${anchor}" fill="var(--secondary-text-color,#888)">${esc(
-          fmtTick(tick)
-        )}</text>`
-      );
-      const t1 = side === "left" ? x - 3 : x + 3;
-      out.push(
-        `<line x1="${x}" y1="${y}" x2="${t1}" y2="${y}" stroke="var(--secondary-text-color,#aaa)" stroke-width="0.75"/>`
-      );
-    }
-    // The title sits on the strip above the plot frame, normally running away
-    // from the chart like the tick labels do. When that would run it into the
-    // next axis out, the caller flips it to the other side of its own axis
-    // line, where the strip above the plot is empty. The gap scales with the
-    // font (D4-01) so a boosted compact font does not sit on the frame.
-    const uy = plotT - 4 * (size / FONT_BASE);
-    const ta = titleAnchor || anchor;
-    const ux = ta === "end" ? x - 5 : x + 5;
-    out.push(
-      `<text x="${ux}" y="${uy}" font-size="${size}" text-anchor="${ta}" fill="var(--secondary-text-color,#888)">${esc(
-        unit
-      )}</text>`
-    );
-    return out.join("");
-  }
-
-  /** Timestamp from which the plan's prices are the learned prior, or null. */
-  _estimatedPricesFrom() {
-    const spFc = this._forecast(this._resolveEntity("space")) || [];
-    const dhwFc = this._forecast(this._resolveEntity("dhw")) || [];
-    const fc = spFc.length ? spFc : dhwFc;
-    for (const p of fc) {
-      if (p.price_known === false) {
-        const t = Date.parse(p.t);
-        return Number.isNaN(t) ? null : t;
-      }
-    }
-    return null;
-  }
-
-  _seriesPath(s, scaleX, scaleY, plotB) {
-    const out = [];
-    for (const line of s.lines) {
-      const pts = line.points.map((p) => ({
-        x: scaleX(p.t),
-        y: scaleY(p.v, s.axis),
-      }));
-      if (!pts.length) continue;
-
-      // D4-02: a single-point line has no second vertex to draw a
-      // line-to from, so `<path>` alone paints nothing (a bare "M x y", or
-      // for the area styles a zero-area triangle collapsed onto one x) --
-      // yet the series still counts as `hasData` and its legend chip still
-      // shows fully active. A visible dot is the honest reading of "one
-      // sample exists", and keeps the chip's claim true.
-      if (pts.length === 1) {
-        out.push(
-          `<circle class="series" data-key="${s.key}" pointer-events="none" cx="${pts[0].x.toFixed(2)}" cy="${pts[0].y.toFixed(2)}" r="3" fill="${s.color}"/>`
-        );
-        continue;
-      }
-
-      if (s.style === "stepArea" || s.style === "stepBars") {
-        const stepD = this._steppedLine(pts);
-        const baseY = plotB;
-        const areaD =
-          stepD +
-          ` L ${pts[pts.length - 1].x.toFixed(2)} ${baseY.toFixed(2)}` +
-          ` L ${pts[0].x.toFixed(2)} ${baseY.toFixed(2)} Z`;
-        const fillOpacity = s.style === "stepBars" ? 0.35 : 0.18;
-        out.push(
-          `<path class="series" data-key="${s.key}" pointer-events="none" d="${areaD}" fill="${s.color}" fill-opacity="${fillOpacity}" stroke="none"/>`
-        );
-        out.push(
-          `<path class="series" data-key="${s.key}" pointer-events="none" d="${stepD}" fill="none" stroke="${s.color}" stroke-width="1.5"/>`
-        );
-      } else {
-        const d = this._smoothLine(pts);
-        const dash = line.primary
-          ? ""
-          : ` stroke-dasharray="3 3" stroke-opacity="0.7"`;
-        out.push(
-          `<path class="series" data-key="${s.key}" pointer-events="none" d="${d}" fill="none" stroke="${s.color}" stroke-width="1.8"${dash}/>`
-        );
-      }
-    }
-    return out.join("");
-  }
-
-  _steppedLine(pts) {
-    let d = `M ${pts[0].x.toFixed(2)} ${pts[0].y.toFixed(2)}`;
-    for (let i = 1; i < pts.length; i++) {
-      d += ` L ${pts[i].x.toFixed(2)} ${pts[i - 1].y.toFixed(2)}`;
-      d += ` L ${pts[i].x.toFixed(2)} ${pts[i].y.toFixed(2)}`;
-    }
-    return d;
-  }
-
-  _smoothLine(pts) {
-    if (pts.length < 3) {
-      let d = `M ${pts[0].x.toFixed(2)} ${pts[0].y.toFixed(2)}`;
-      for (let i = 1; i < pts.length; i++)
-        d += ` L ${pts[i].x.toFixed(2)} ${pts[i].y.toFixed(2)}`;
-      return d;
-    }
-    let d = `M ${pts[0].x.toFixed(2)} ${pts[0].y.toFixed(2)}`;
-    for (let i = 0; i < pts.length - 1; i++) {
-      const p0 = pts[i - 1] || pts[i];
-      const p1 = pts[i];
-      const p2 = pts[i + 1];
-      const p3 = pts[i + 2] || p2;
-      const c1x = p1.x + (p2.x - p0.x) / 6;
-      const c1y = p1.y + (p2.y - p0.y) / 6;
-      const c2x = p2.x - (p3.x - p1.x) / 6;
-      const c2y = p2.y - (p3.y - p1.y) / 6;
-      d += ` C ${c1x.toFixed(2)} ${c1y.toFixed(2)} ${c2x.toFixed(2)} ${c2y.toFixed(
-        2
-      )} ${p2.x.toFixed(2)} ${p2.y.toFixed(2)}`;
-    }
-    return d;
-  }
-
   // ---- interaction -------------------------------------------------------
-
-  _onLegendClick(ev) {
-    // A legend click must not also count as a click on the card, or toggling a
-    // series would open the expanded view every time.
-    if (ev && typeof ev.stopPropagation === "function") ev.stopPropagation();
-    const el = ev.currentTarget;
-    const key = el.getAttribute("data-key");
-    if (!key) return;
-    this._hidden[key] = !this._hidden[key];
-    this._saveHidden();
-    this.renderForced();
-  }
 
   _onCardClick(ev) {
     // Ignore clicks that a control has already handled, and text selection.
@@ -7764,133 +8309,24 @@ class HeatpumpOptimizerCard extends HTMLElement {
       ? this.shadowRoot.getSelection()
       : null;
     if (sel && String(sel).length) return;
-    this._openExpanded();
+    this.dialog.open();
   }
 
   _onExpandClick(ev) {
     if (ev && typeof ev.stopPropagation === "function") ev.stopPropagation();
-    this._openExpanded();
-  }
-
-  _onDialogClick(ev) {
-    const dlg = this.shadowRoot && this.shadowRoot.querySelector("dialog");
-    if (!dlg) return;
-    // A click on the dialog element itself is a click on the backdrop: the
-    // content sits in child elements, so anything else has a deeper target.
-    const onBackdrop = ev && ev.target === dlg;
-    const onClose =
-      ev &&
-      ev.currentTarget &&
-      ev.currentTarget.classList &&
-      ev.currentTarget.classList.contains("close");
-    if (onBackdrop || onClose) this._closeExpanded();
-  }
-
-  _onDialogClose() {
-    // Fires for Escape and for close() alike, so this is the single place the
-    // flag is cleared and the two cannot drift apart.
-    this._expanded = false;
-    // Reopening should start at the top rather than resuming a scroll position
-    // from a session the user has already dismissed.
-    this._dialogScroll = 0;
-    // The pan/zoom view dies with the session it belonged to. It used to
-    // persist for the lifetime of the card element — on a wall-mounted
-    // dashboard, indefinitely — so one accidental trackpad pinch or
-    // two-finger swipe over the chart quietly capped slot editing at the
-    // narrowed window's edge for days, while re-anchoring itself to "now"
-    // so it never scrolled out of relevance. A dismissed dialog is a
-    // finished session; the next open shows the whole plan.
-    this._view = null;
-  }
-
-  _openExpanded() {
-    if (this._expanded) return;
-    this._expanded = true;
-    this.renderForced();
-  }
-
-  _closeExpanded() {
-    this._closeExpandedQuietly();
-    this.renderForced();
-  }
-
-  /** Dismiss the dialog without re-rendering, for teardown paths. */
-  _closeExpandedQuietly() {
-    const dlg = this.shadowRoot && this.shadowRoot.querySelector("dialog");
-    this._expanded = false;
-    if (dlg && dlg.open && typeof dlg.close === "function") {
-      dlg.close(); // triggers _onDialogClose, which is idempotent
-    }
-  }
-
-  /** The chart wrapper owning an element, so each copy finds its own parts. */
-  _wrapOf(el) {
-    let node = el;
-    while (node && node !== this.shadowRoot) {
-      if (node.classList && node.classList.contains("chartwrap")) return node;
-      node = node.parentNode;
-    }
-    return null;
-  }
-
-  /** The chart svgs, and only those.
-   *
-   * The expand button carries an inline `<svg>` icon and sits above the chart
-   * in the markup, so `querySelector("svg")` returns an 18px icon rather than
-   * the plot. Every chart is wrapped in a `.chartwrap`; the icon is not.
-   */
-  _chartSvgs(root) {
-    const scope = root || this.shadowRoot;
-    if (!scope) return [];
-    return [...scope.querySelectorAll(".chartwrap svg")];
+    this.dialog.open();
   }
 
   _cacheRect() {
-    const svg = this._chartSvgs()[0];
+    const svg = chartSvgs(this.shadowRoot)[0];
     if (svg && typeof svg.getBoundingClientRect === "function") {
       this._svgRect = svg.getBoundingClientRect();
     }
-    this._scaleDialogFont();
-  }
-
-  /** Size the dialog's own text from how wide the dialog actually is.
-   *
-   * The chart scales itself, because it is stretched from a fixed coordinate
-   * system. The chrome around it -- header, legend, tooltip, what-if panel --
-   * is ordinary HTML inheriting the card's font, so it stays at card size no
-   * matter how large the dialog gets, which is what made it look cramped
-   * beside a chart three times its size.
-   *
-   * Setting one font size on the dialog fixes all of it at once, because every
-   * measurement in the chrome is expressed in `em`. This is done here rather
-   * than with container query units because `container-type: inline-size`
-   * applies inline-axis containment, and a dialog sized by its own contents
-   * then has nothing to size itself from.
-   */
-  _scaleDialogFont() {
-    const root = this.shadowRoot;
-    if (!root || !this._expanded) return;
-    const dlg = root.querySelector("dialog");
-    if (!dlg || typeof dlg.getBoundingClientRect !== "function") return;
-    const rect = dlg.getBoundingClientRect();
-    const width = (rect && Number(rect.width)) || 0;
-    if (!Number.isFinite(width) || width <= 0) return;
-
-    // Clamped at both ends: a phone-width dialog has to stay legible, and a
-    // very wide monitor must not turn the legend into a headline.
-    const px = Math.min(
-      DIALOG_FONT_PX_MAX,
-      Math.max(DIALOG_FONT_PX_MIN, width * DIALOG_FONT_RATIO)
-    );
-    // Writing an unchanged value would dirty style on every pointer move.
-    if (significantlyDifferent(px, this._dialogFontPx)) {
-      this._dialogFontPx = px;
-      dlg.style.fontSize = `${px.toFixed(2)}px`;
-    }
+    this.dialog.scaleFont();
   }
 
   _onPointerLeave(ev) {
-    const wrap = ev && ev.currentTarget ? this._wrapOf(ev.currentTarget) : null;
+    const wrap = ev && ev.currentTarget ? wrapOf(ev.currentTarget, this.shadowRoot) : null;
     const roots = wrap ? [wrap] : [this.shadowRoot];
     for (const root of roots) {
       if (!root) continue;
@@ -7901,154 +8337,12 @@ class HeatpumpOptimizerCard extends HTMLElement {
     }
   }
 
-  /** Why the plan is heating at the hovered step, plus price provenance.
-   *
-   * Only reasons for steps that are actually heating are shown; "not heating"
-   * is not an explanation anyone needs, and printing it for every idle hour
-   * would bury the ones that matter. The one exception is a channel paused
-   * by the pump's own operating mode: those steps carry no power, so the
-   * hover would otherwise show nothing at all, and "the optimizer chose not
-   * to" is exactly the wrong reading of a mode the unit itself enforces.
-   */
-  _reasonHtml(rows) {
-    const out = [];
-    const seen = new Set();
-    // Which channel a pump_mode reason belongs to: several series read the
-    // same forecast (the house temperatures ride the space plan's points),
-    // so the reason can surface on a row whose field says nothing about the
-    // channel. Decide once, from the channel rows themselves, before the
-    // per-row loop dedupes the code away.
-    const pumpModeChannel = rows.some((r) => r.reason === "pump_mode")
-      ? rows.find((r) => r.reason === "pump_mode" &&
-          (r.field === "dhw_power" || r.field === "space_power"))
-      : undefined;
-    const pumpModeKey = !pumpModeChannel
-      ? null
-      : pumpModeChannel.field === "dhw_power"
-        ? "reasons.pump_mode_dhw"
-        : "reasons.pump_mode_space";
-    for (const r of rows) {
-      const pumpMode = r.reason === "pump_mode";
-      if ((!r.reason || r.reason === "idle") && !pumpMode) continue;
-      if (seen.has(r.reason)) continue;
-      seen.add(r.reason);
-      let label;
-      if (pumpMode) {
-        // Channel-aware where the channel is known; the generic wording
-        // otherwise. "Cannot do this" was true but never actionable.
-        label = L(pumpModeKey || "reasons.pump_mode");
-      } else {
-        label = REASON_LABELS[r.reason]
-          ? L(REASON_LABELS[r.reason])
-          : r.reason;
-      }
-      out.push(`<div class="tt-reason">${esc(label)}</div>`);
-    }
-    if (rows.some((r) => r.priceKnown === false)) {
-      out.push(
-        `<div class="tt-reason">${esc(L("plan.price_estimated"))}</div>`
-      );
-    }
-    return out.join("");
-  }
-
-  /** Hatched bands over every span where space and hot water share steps.
-   *
-   * Only when both power series are visible — hiding a channel hides its
-   * half of the story, and a band explaining an invisible series would be
-   * noise. The native <title> answers the "is this double-booking?"
-   * question right where it is asked.
-   */
-  _sharedSpanBands(seriesList, scaleX, plotT, plotB, plotL, plotR) {
-    const powerSeries = (field) =>
-      (seriesList || []).find(
-        (s) => s.field === field && s.visible && s.hasData
-      );
-    const space = powerSeries("space_power");
-    const dhw = powerSeries("dhw_power");
-    if (!space || !dhw) return "";
-    // Through the field helper, not `lines[0]`: a hole anywhere in a power
-    // series splits it into segments, and the span search needs all of them.
-    const pointsOf = (s) => this._fieldPoints(s, s.field);
-    const spacePts = pointsOf(space);
-    const dhwPts = pointsOf(dhw);
-    if (spacePts.length < 2 || dhwPts.length < 2) return "";
-    const spaceAt = new Map(spacePts.map((p) => [p.t, p.v]));
-    let step = Infinity;
-    for (let i = 1; i < dhwPts.length; i++) {
-      step = Math.min(step, dhwPts[i].t - dhwPts[i - 1].t);
-    }
-    if (!Number.isFinite(step) || step <= 0) return "";
-    const spans = [];
-    for (const p of dhwPts) {
-      const sv = spaceAt.get(p.t);
-      if (p.v > 0.05 && sv !== undefined && sv > 0.05) {
-        const last = spans[spans.length - 1];
-        if (last && p.t <= last.end + step / 2) last.end = p.t + step;
-        else spans.push({ start: p.t, end: p.t + step });
-      }
-    }
-    if (!spans.length) return "";
-    // The pattern id must be unique per chart: with the dialog open the
-    // inline and expanded charts render into one shadow root, and two
-    // <pattern> elements sharing an id is invalid markup that would
-    // silently couple them.
-    const pid = `hpoShared${++HeatpumpOptimizerCard._sharedPatternSeq}`;
-    const out = [
-      `<defs><pattern id="${pid}" width="6" height="6"
-        patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-        <line x1="0" y1="0" x2="0" y2="6"
-          stroke="var(--secondary-text-color,#888)" stroke-width="1.4"/>
-      </pattern></defs>`,
-    ];
-    for (const span of spans) {
-      const x1 = Math.max(plotL, scaleX(span.start));
-      const x2 = Math.min(plotR, scaleX(span.end));
-      if (x2 <= x1) continue;
-      // pointer-events none is load-bearing: the band spans the full plot
-      // and paints after the what-if lanes, so without it a low-power
-      // shared span would swallow the slot editor's drags and clicks.
-      out.push(`<rect class="shared-band" pointer-events="none" x="${x1}" y="${plotT}" width="${
-        x2 - x1
-      }" height="${plotB - plotT}" fill="url(#${pid})" fill-opacity="0.18">
-        <title>${esc(L("plan.shared_band_title"))}</title>
-      </rect>`);
-    }
-    return out.join("");
-  }
-
-  /** The tooltip's shared-step line, or "" when this step is not shared.
-   *
-   * A step carrying both circuits is the pump splitting the quarter hour,
-   * and the hover tooltip is where that question is actually asked. Both
-   * rows must come from the SAME timestamp: each series snaps to its own
-   * nearest point, and with mismatched grids (a stale third-party sensor)
-   * the two nearest points can be hours apart — pairing those would claim
-   * sharing the band correctly refuses to draw.
-   */
-  _sharedTooltipHtml(rows) {
-    const rowByField = (f) => (rows || []).find((r) => r.field === f);
-    const spaceRow = rowByField("space_power");
-    const dhwRow = rowByField("dhw_power");
-    if (
-      !spaceRow ||
-      !dhwRow ||
-      spaceRow.t !== dhwRow.t ||
-      !(spaceRow.value > 0.05) ||
-      !(dhwRow.value > 0.05)
-    ) {
-      return "";
-    }
-    return `<div class="tt-shared">${L("plan.shared_step_tooltip", {
-      kw: esc(fmtTick(spaceRow.value + dhwRow.value)),
-    })}</div>`;
-  }
-
   _onPointerMove(ev) {
     if (!this._plot) return;
+    const isLowerModelled = () => this.plan.lowerFloorModelled();
     const svg = ev && ev.currentTarget;
     if (!svg || typeof svg.getBoundingClientRect !== "function") return;
-    const wrap = this._wrapOf(svg);
+    const wrap = wrapOf(svg, this.shadowRoot);
     const rect = svg.getBoundingClientRect() || this._svgRect;
     if (!rect || !rect.width) return;
 
@@ -8067,47 +8361,11 @@ class HeatpumpOptimizerCard extends HTMLElement {
     const span = windowEnd - windowStart || 1;
     const t = windowStart + ((vbX - plotL) / (plotR - plotL)) * span;
 
-    const visible = this._series.filter((s) => s.visible && s.hasData);
-    const rows = [];
-    let snapX = vbX;
-    let snapped = false;
-    for (const s of visible) {
-      // Every trace, not just the primary one. The house-temperature series
-      // draws three traces and the tooltip used to report the room's value
-      // for all of them, so hovering a 28 C zone line showed 21 C.
-      //
-      // Iterated per FIELD rather than per line: v5.2.0 lets holes break one
-      // field into several segments, and one row per segment would report
-      // the same trace two or three times over.
-      const traces = [
-        { field: s.field, primary: true, labelKey: s.labelKey },
-      ].concat(this._extraFields(s));
-      // A band's two edges are collapsed into the single ± figure they
-      // actually carry, rather than reported as two absolute temperatures.
-      const bandFields = s.band ? [s.band.lo, s.band.hi] : [];
-      for (const line of traces) {
-        if (bandFields.includes(line.field)) continue;
-        const best = this._nearestPoint(s, line.field, t);
-        if (!best) continue;
-        if (!snapped) {
-          snapX = scaleX(best.t);
-          snapped = true;
-        }
-        rows.push({
-          color: s.color,
-          label: this._lineLabel(s, line),
-          dashed: !line.primary,
-          value: best.v,
-          unit: this._seriesUnit(s),
-          t: best.t,
-          field: line.field,
-          reason: best.reason,
-          priceKnown: best.priceKnown,
-        });
-      }
-      // ... and then the band, as one row, right under the line it brackets.
-      for (const row of this._bandRow(s, t)) rows.push(row);
-    }
+    const { rows, snapT } = tooltipRows(this._series, t, {
+      seriesUnit: (s) => this.plan.seriesUnit(s),
+      isLowerModelled,
+    });
+    const snapX = snapT === null ? vbX : scaleX(snapT);
     if (!rows.length) {
       this._onPointerLeave();
       return;
@@ -8125,27 +8383,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
 
     const tt = scope.querySelector(".tooltip");
     if (tt) {
-      const time = new Date(rows[0].t).toLocaleString(ACTIVE_LANG, {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-      const sharedHtml = this._sharedTooltipHtml(rows);
-      const bodyHtml =
-        `<div class="tt-time">${esc(time)}</div>` +
-        rows
-          .map(
-            (r) =>
-              `<div class="tt-row"><span class="dot" style="${dotStyle(
-                r.color,
-                r.dashed
-              )}"></span>${esc(r.label)}: ${esc(
-                (r.prefix || "") + fmtTick(r.value)
-              )} ${esc(r.unit)}</div>`
-          )
-          .join("") +
-        sharedHtml +
-        this._reasonHtml(rows);
-      tt.innerHTML = bodyHtml;
+      tt.innerHTML = tooltipHtml(rows);
       tt.hidden = false;
       const leftPx = clientX - rect.left;
       const place = leftPx > rect.width * 0.6 ? leftPx - 160 : leftPx + 14;
@@ -8164,6 +8402,242 @@ class HeatpumpOptimizerCard extends HTMLElement {
       tt.style.top = `8px`;
     }
   }
+
+  // ---- seams for tests/card.mjs (PR 9 of #136 deletes them) ---------------
+  // The test suite drives these by their old names. Each is one line onto
+  // the collaborator or function that owns the behaviour now.
+
+  _buildSeries() {
+    const cfg = this._config;
+    const plan = this.plan;
+    const spFc = plan.forecast(plan.resolveEntity("space")) || [];
+    const dhwFc = plan.forecast(plan.resolveEntity("dhw")) || [];
+    // The irradiance sensor publishes its own horizon. Its timestamps are
+    // already interval *starts* — `_solar_forecast_view` converts Open-Meteo's
+    // end-of-interval stamps on the way out — so they must not be shifted again.
+    const solarFc = plan.forecast(plan.resolveEntity("solar")) || [];
+    const dw = defaultWindow(spFc, dhwFc, cfg.hours, Date.now());
+    // `_applyView` narrows the default window to whatever the user has
+    // panned or zoomed to, and is a no-op until they touch a control -- so
+    // the untouched card renders exactly as before. Filtering then happens
+    // against the visible window, which is what keeps the value axis scaled
+    // to what is actually on screen. Still a host seam because the tests
+    // call `_buildSeries()` for exactly this side effect.
+    const view = this.view.apply(dw.start, dw.end, dw.dataEnd);
+    return buildSeries({
+      spFc, dhwFc, solarFc,
+      windowStart: view.start,
+      windowEnd: view.end,
+      hidden: this.legend.hidden,
+      zoomed: this.view.zoomed,
+    });
+  }
+
+  get _resolvedCache() {
+    return this.plan.resolvedCache;
+  }
+  set _resolvedCache(v) {
+    this.plan.resolvedCache = v;
+  }
+  _resolveEntity(kind) {
+    return this.plan.resolveEntity(kind);
+  }
+  _stateOf(entityId) {
+    return this.plan.stateOf(entityId);
+  }
+  _forecast(entityId) {
+    return this.plan.forecast(entityId);
+  }
+  _forecastOf(channel) {
+    return this.plan.forecastOf(channel);
+  }
+  _planAttr(name, fallback) {
+    return this.plan.attr(name, fallback);
+  }
+  _planAttrRaw(name, fallback) {
+    return this.plan.attrRaw(name, fallback);
+  }
+  _manualOverride() {
+    return this.plan.manualOverride();
+  }
+  _currency() {
+    return this.plan.currency();
+  }
+  _priceUnit() {
+    return this.plan.priceUnit();
+  }
+  _seriesUnit(def) {
+    return this.plan.seriesUnit(def);
+  }
+  _lowerFloorModelled() {
+    return this.plan.lowerFloorModelled();
+  }
+  _estimatedPricesFrom() {
+    return this.plan.estimatedPricesFrom();
+  }
+  _diagnose(kind) {
+    return this.plan.diagnose(kind);
+  }
+  _statEntity(suffix) {
+    return this.plan.statEntity(suffix);
+  }
+  _sensorCount(states) {
+    return this.plan.sensorCount(states);
+  }
+  _statNumber(suffix) {
+    return this.plan.statNumber(suffix);
+  }
+  _fieldPoints(s, field) {
+    return fieldPoints(s, field);
+  }
+  _extraFields(s) {
+    return extraFields(s);
+  }
+  _lineNote(def, line) {
+    return lineNote(def, line);
+  }
+  _nearestPoint(s, field, t) {
+    return nearestPoint(s, field, t);
+  }
+  _lineLabel(def, line) {
+    return lineLabel(def, line, () => this.plan.lowerFloorModelled());
+  }
+  _bandRow(s, t) {
+    return bandRow(s, t, this.plan.seriesUnit(s));
+  }
+  get _view() {
+    return this.view.range;
+  }
+  set _view(v) {
+    this.view.range = v;
+  }
+  get _viewLimits() {
+    return this.view.limits;
+  }
+  set _viewLimits(v) {
+    this.view.limits = v;
+  }
+  get _pan() {
+    return this.view.panGesture;
+  }
+  set _pan(v) {
+    this.view.panGesture = v;
+  }
+  _applyView(defaultStart, defaultEnd, dataEnd) {
+    return this.view.apply(defaultStart, defaultEnd, dataEnd);
+  }
+  _viewAdjustable() {
+    return this.view.adjustable();
+  }
+  _viewSpan() {
+    return this.view.span();
+  }
+  _viewCurrent() {
+    return this.view.current();
+  }
+  _zoomView(factor, anchorT) {
+    return this.view.zoom(factor, anchorT);
+  }
+  _panView(deltaMs) {
+    return this.view.panBy(deltaMs);
+  }
+  _resetView() {
+    return this.view.reset();
+  }
+  _renderView() {
+    return this.view.renderView();
+  }
+  _onChartWheel(ev) {
+    return this.view.onWheel(ev);
+  }
+  _onPanDown(ev) {
+    return this.view.onPanDown(ev);
+  }
+  _viewControlsHtml() {
+    return this.view.controlsHtml();
+  }
+  _attachViewControls(root) {
+    return this.view.attach(root);
+  }
+  _timeAtClientX(svg, clientX) {
+    return timeAtClientX(svg, clientX, this._geom);
+  }
+  _wrapOf(el) {
+    return wrapOf(el, this.shadowRoot);
+  }
+  _chartSvgs(root) {
+    return chartSvgs(root || this.shadowRoot);
+  }
+
+  _reasonHtml(rows) {
+    return reasonHtml(rows);
+  }
+  _sharedTooltipHtml(rows) {
+    return sharedTooltipHtml(rows);
+  }
+
+  get _hidden() {
+    return this.legend.hidden;
+  }
+  set _hidden(v) {
+    this.legend.hidden = v;
+  }
+  _storageKey(cfg) {
+    return this.legend.storageKey(cfg);
+  }
+  _storageKeyLegacy(cfg) {
+    return this.legend.storageKeyLegacy(cfg);
+  }
+  _loadHidden(cfg) {
+    return this.legend.load(cfg);
+  }
+  _saveHidden() {
+    return this.legend.save();
+  }
+  _legendHtml() {
+    return this.legend.html(this._series);
+  }
+  _onLegendClick(ev) {
+    return this.legend.onChipClick(ev);
+  }
+
+  get _expanded() {
+    return this.dialog.expanded;
+  }
+  set _expanded(v) {
+    this.dialog.expanded = v;
+  }
+  get _dialogPage() {
+    return this.dialog.page;
+  }
+  set _dialogPage(v) {
+    this.dialog.page = v;
+  }
+  get _dialogFontPx() {
+    return this.dialog.fontPx;
+  }
+  set _dialogFontPx(v) {
+    this.dialog.fontPx = v;
+  }
+  _openExpanded() {
+    return this.dialog.open();
+  }
+  _closeExpanded() {
+    return this.dialog.close();
+  }
+  _closeExpandedQuietly() {
+    return this.dialog.closeQuietly();
+  }
+  _onDialogClick(ev) {
+    return this.dialog.onDialogClick(ev);
+  }
+  _onDialogClose() {
+    return this.dialog.onDialogClose();
+  }
+  _scaleDialogFont() {
+    return this.dialog.scaleFont();
+  }
+
 }
 
 // A custom element name can only be claimed once per page. If an older copy of
