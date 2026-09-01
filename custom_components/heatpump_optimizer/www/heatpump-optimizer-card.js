@@ -1748,6 +1748,1141 @@ const SlotModel = {
   },
 };
 
+
+// The setup diagram, as one top-level function (#95): its own rendering
+// path, taking the layout-editing state explicitly instead of reaching
+// back into the class. Returns the svg markup and the laid-out boxes --
+// the geometry carrier the drag editor and the QA renderer read.
+function setupSvgHtml(topo, ctx) {
+  let boxesOut = null;
+  const W = SETUP_W;
+  // Whether the model runs the wood tank as its own store (issue #40).
+  // Published by `describe_setup`; absent on older descriptions, where
+  // false is the right answer because that is the model they ran.
+  const twoTank = !!topo.two_tank_modelled;
+  // The wood valve stopped being a box in v4.0.0 (#40 feedback, item 3):
+  // its one slot lives on the 4-way valve or the wood tank now. An old
+  // coordinator can still publish the slot at the removed place, so the
+  // same re-homing is applied here rather than letting the slot vanish.
+  const normPlace = (p) =>
+    p === "wood_valve" ? (twoTank ? "mixing_valve" : "wood_tank") : p;
+  const slotsAt = (place) =>
+    topo.slots.filter((s) => normPlace(s.place) === place);
+  const boxes = [];
+  // SVG text does not wrap, and a caption longer than the box runs
+  // straight past its border — measured in a real browser, the no-valve
+  // caption overflowed by 19 viewBox units. Captions are therefore
+  // wrapped here, before layout, where the box height still follows the
+  // line count. The rule is the measured width of the row's text area
+  // (v5.1.4 -- it was a 34-character count, which cannot tell "iiii"
+  // from "WWWW" and had to be re-guessed every time the padding moved).
+  // A caption is one line of prose and reads badly broken mid-phrase, so
+  // it is allowed to lean into the right padding before it wraps: what it
+  // must not do is reach the contour. Eight units clear of the wall.
+  const captionW = SETUP_COL_W - SETUP_PAD - 8;
+  const wrapExtra = (s) => {
+    const lines = [];
+    let cur = "";
+    for (const w of String(s).split(/\s+/)) {
+      const next = cur ? `${cur} ${w}` : w;
+      if (setupTextW(next, 12, false) > captionW && cur) {
+        lines.push(cur);
+        cur = w;
+      } else cur = next;
+    }
+    if (cur) lines.push(cur);
+    return lines;
+  };
+  // A box is a titled list of slot rows; its height follows its contents.
+  // The first place is the box's identity -- the id edges and saved
+  // positions name it by -- and any others are slots that live on the same
+  // physical thing (the floor loop's return probe is on the slab).
+  const box = (col, title, places, extra) => {
+    const rows = [];
+    for (const p of places) {
+      for (const s of slotsAt(p)) rows.push(s);
+    }
+    boxes.push({
+      col, title, rows, place: places[0],
+      extra: (extra || []).flatMap(wrapExtra),
+    });
+  };
+
+  const valve =
+    topo.valve_mode && topo.valve_mode !== "none";
+  // The hot water tank refills through a coil in the wood tank (v3.15.1).
+  // `describe_setup` only sets this when the coil can actually preheat
+  // anything, so the drawing follows the flag rather than re-deriving the
+  // conditions and risking a picture the model disagrees with.
+  const dhwCoil = !!topo.dhw_wood_coil;
+  // With two modelled stores the names have to say which tank is which,
+  // and the one valve is the physical 4-way device the wood tank, the
+  // heat-pump tank and both floors all meet at.
+  const tankTitle = L(twoTank ? "setup.box_hp_tank" : "setup.box_buffer_tank");
+  const valveTitle = L(
+    twoTank ? "setup.box_4way_valve" : "setup.box_mixing_valve"
+  );
+  box(0, L("setup.box_outside"), ["outdoor"]);
+  box(0, L("setup.box_heat_pump"), ["heat_pump"]);
+  if (topo.wood && topo.wood.present) {
+    // Honest caption: while wood heat is a single-tank abstraction the
+    // drawing must say so rather than let the separate box imply
+    // separately modelled physics. Under the two-tank model the box is
+    // the physics, so the caption comes off (issue #40).
+    box(0, L("setup.box_wood_tank", { v: Math.round(topo.wood.volume_l) }),
+      ["wood_tank"],
+      twoTank ? [] : [L("setup.wood_caption")]);
+  }
+  const buf = topo.buffer || {};
+  const bufExtra = valve
+    ? [buf.is_store
+        ? L("setup.buffer_stores", { t: Math.round(buf.max_temp) })
+        : L("setup.buffer_too_small")]
+    : [L("setup.no_valve_caption")];
+  if (valve) {
+    box(1, `${valveTitle} (${esc(String(topo.valve_mode))})`,
+      ["mixing_valve"]);
+  }
+  box(1, `${tankTitle} (${Math.round(buf.volume_l || 0)} L)`,
+    ["buffer_tank"], bufExtra);
+  if (topo.dhw) box(1, L("setup.box_dhw_tank"), ["dhw_tank"],
+    dhwCoil ? [L("setup.dhw_coil_caption")] : []);
+  box(2, L(topo.two_zone ? "setup.box_upper_floor" : "setup.box_house"),
+    ["upper_zone"]);
+  if (topo.two_zone) {
+    box(2, L("setup.box_lower_floor"), ["lower_zone", "floor_loop"]);
+  }
+
+  // Lay the columns out top to bottom, then draw. All sizes in viewBox
+  // units; the SVG scales to the dialog like the chart does.
+  const colX = [16, 260, 504];
+  const colW = SETUP_COL_W;
+  const rowH = 17;
+  const pad = 8;
+  const colY = [16, 16, 16];
+  for (const b of boxes) {
+    b.x = colX[b.col];
+    b.y = colY[b.col];
+    b.h = 24 + (b.rows.length + b.extra.length) * rowH + pad;
+    colY[b.col] = b.y + b.h + 14;
+  }
+  let H = Math.max(...colY) + 4;
+
+  // Cosmetic positions (v3.16.0): the column layout above still runs, so a
+  // position for one box leaves every other box where it was, and a place
+  // that no longer has a box is simply ignored rather than erroring. The
+  // editor's own working positions win over the stored ones while it is
+  // open, which is what makes a drag visible.
+  const editing = ctx.editing;
+  const stored =
+    topo.positions && typeof topo.positions === "object" ? topo.positions : {};
+  const placed = editing
+    ? { ...stored, ...(ctx.edit.positions || {}) }
+    : stored;
+  for (const b of boxes) {
+    const at = placed[b.place];
+    if (!Array.isArray(at) || at.length < 2) continue;
+    const x = Number(at[0]);
+    const y = Number(at[1]);
+    if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
+    // Clamped to the drawing: a box parked outside the viewBox is a box
+    // nobody can drag back.
+    b.x = Math.max(0, Math.min(W - colW, x));
+    b.y = Math.max(0, Math.min(SETUP_MAX_Y, y));
+    H = Math.max(H, b.y + b.h + 4);
+  }
+  // Where the boxes ended up, for the editor's drop tests.
+  boxesOut = boxes.map((b) => ({
+    place: b.place, x: b.x, y: b.y, w: colW, h: b.h,
+  }));
+
+  const parts = [];
+  // Connections first, under the boxes: pump and furnace feed the buffer
+  // column, which feeds the house column.
+  const anchor = (b) => ({ x: b.x + colW, y: b.y + b.h / 2 });
+  const to = (b) => ({ x: b.x, y: b.y + b.h / 2 });
+  // Boxes are found by their place id, never by their (localized) title:
+  // matching on display text is exactly what would silently drop pipes the
+  // moment a title is translated.
+  const findPlace = (p) => boxes.find((b) => b.place === p);
+  // Boxes in the same column stack vertically, so their connection is a
+  // short vertical pipe; a right-to-left curve between them crosses every
+  // box in between and reads as spaghetti. `edge` names the connection so
+  // tests can assert the drawn topology instead of path coordinates.
+  // Same-column is asked as "same x" so a box the user has dragged still
+  // gets the pipe its new position deserves; with nothing dragged the two
+  // questions have identical answers, because a column is one x.
+  // The silhouette each box wears (unknown places fall back to the plain
+  // cabinet), consulted for how far a pipe endpoint pulls inside the
+  // bounding box so pipes meet ink rather than the invisible rect.
+  const KIND = (b) => NODE_SHAPES[PLACE_KIND[b.place]] || NODE_SHAPES.hp;
+  // One pipe departs somewhere other than a wall midpoint: the DHW
+  // pre-heating coil hangs on the wood tank's upper-right wall, and its
+  // pipe must leave from the coil's bulge -- in every branch, including
+  // the same-column one a drag can create -- or the helix reads as
+  // ornament next to a pipe that ignores it. Keyed by place pair so the
+  // published edge and the legacy `wood-dhw` name both hit it.
+  // The pipe leaves from the midpoint of the helix's stub pair, which is
+  // height-dependent: a row-less wood tank (h < 49) wears the single-loop
+  // coil (stubs y+13/y+20), a taller one the two-loop coil (y+16/y+30).
+  const ANCHOR_OVERRIDES = {
+    "wood_tank>dhw_tank": {
+      from: (bb) => ({
+        x: bb.x + colW + 13,
+        y: bb.y + (bb.h < 49 ? 16.5 : 23),
+      }),
+    },
+  };
+  // Endpoint dots weld pipe to silhouette, and one midpoint chevron says
+  // which way the water flows (skipped on rejected pipes -- an arrow on a
+  // connection that cannot exist would endorse it). None of these carry
+  // `data-edge`: the tests scrape it to read the drawn topology, and must
+  // keep seeing exactly one occurrence per pipe.
+  const pipeDeco = (fx, fy, tx, ty, vertical, s, invalid) => {
+    const dots =
+      `<circle class="setup-pipe-dot" cx="${fx}" cy="${fy}" r="2" />` +
+      `<circle class="setup-pipe-dot" cx="${tx}" cy="${ty}" r="2" />`;
+    if (invalid) return dots;
+    // The chevron sits at the pipe's midpoint and must lie ALONG it.
+    // Both branches used to draw an axis-aligned glyph -- horizontal for
+    // every cross-column pipe, vertical for every stacked one -- so on
+    // the many pipes whose ends differ in height the arrow crossed the
+    // pipe at right angles instead of pointing down it.
+    //
+    // A cross-column pipe is the cubic `M f C f+40 fy, tx-40 ty, t`, and
+    // for it both the midpoint and the direction are exact:
+    //   B(0.5)  = (P0 + 3P1 + 3P2 + P3) / 8 = ((fx+tx)/2, (fy+ty)/2)
+    //             -- the control handles cancel, so the midpoint is the
+    //             chord's midpoint, which is where the glyph already was.
+    //   B'(0.5) = 3[(P1-P0)/4 + (P2-P1)/2 + (P3-P2)/4]
+    //           ∝ (dx/2 - 20, dy/2)
+    //             -- horizontal only when dy is 0. The -20 is the two
+    //             40-unit handles pulling back against the run.
+    // A stacked pipe is a straight segment, so its direction is simply
+    // the flow: `s` is +1 when the box the water leaves is the upper one.
+    const mx = (fx + tx) / 2;
+    const my = (fy + ty) / 2;
+    let ux = 0;
+    let uy = s;
+    if (!vertical) {
+      const vx = (tx - fx) / 2 - 20;
+      const vy = (ty - fy) / 2;
+      const len = Math.hypot(vx, vy);
+      // A tangent of zero length has no direction to draw along; fall
+      // back to the caller's left/right hint rather than dividing by 0.
+      if (len < 1e-6) {
+        ux = s;
+        uy = 0;
+      } else {
+        ux = vx / len;
+        uy = vy / len;
+      }
+    }
+    // Apex 2 units ahead of the midpoint, tails 3 behind and 3 to each
+    // side: the same glyph as before, now in the pipe's own frame.
+    const nx = -uy;
+    const ny = ux;
+    const r = (n) => Math.round(n * 1000) / 1000;
+    const flow =
+      `M ${r(mx - 3 * ux + 3 * nx)} ${r(my - 3 * uy + 3 * ny)} ` +
+      `L ${r(mx + 2 * ux)} ${r(my + 2 * uy)} ` +
+      `L ${r(mx - 3 * ux - 3 * nx)} ${r(my - 3 * uy - 3 * ny)}`;
+    return `${dots}<path class="setup-flow" d="${flow}" />`;
+  };
+  const line = (a, b, edge, cls) => {
+    if (!a || !b) return "";
+    const extra = cls || "";
+    const invalid = extra === " invalid";
+    const over = ANCHOR_OVERRIDES[`${a.place}>${b.place}`];
+    if (!over && a.x === b.x) {
+      const upper = a.y < b.y ? a : b;
+      const lower = a.y < b.y ? b : a;
+      const x = a.x + 24;
+      const yTop = upper.y + upper.h - KIND(upper).inset.b;
+      const yBot = lower.y + KIND(lower).inset.t;
+      // The valve's bowtie accent straddles its bottom edge at this same
+      // abscissa, and the chevron's apex would land close enough to merge
+      // ink with it -- so the pipe into the valve keeps its dots but
+      // drops the chevron (pipeDeco's `invalid` path is exactly that).
+      const noFlow = invalid || b.place === "mixing_valve";
+      return `<path class="setup-pipe${extra}" data-edge="${edge}"
+        d="M ${x} ${yTop}
+        L ${x} ${yBot}" />` +
+        pipeDeco(x, yTop, x, yBot, true, a === upper ? 1 : -1, noFlow);
+    }
+    const f = over
+      ? over.from(a)
+      : { x: anchor(a).x - KIND(a).inset.r, y: anchor(a).y };
+    const t = { x: to(b).x + KIND(b).inset.l, y: to(b).y };
+    return `<path class="setup-pipe${extra}" data-edge="${edge}"
+      d="M ${f.x} ${f.y}
+      C ${f.x + 40} ${f.y},
+        ${t.x - 40} ${t.y}, ${t.x} ${t.y}" />` +
+      pipeDeco(f.x, f.y, t.x, t.y, false, t.x > f.x ? 1 : -1, invalid);
+  };
+  const bufferBox = findPlace("buffer_tank");
+  const houseBox = findPlace("upper_zone");
+  // One shared flow serves every circuit: whatever regulates the supply —
+  // the mixing valve when one exists, the raw tank when not — feeds BOTH
+  // floors in parallel. Drawing the lower floor from the tank while a
+  // valve throttled the upper one contradicted the model, which computes
+  // one t_mix and delivers both circuits from it (issue #40).
+  const supplyBox = valve ? findPlace("mixing_valve") : bufferBox;
+  const supplyName = valve ? "valve" : "buffer";
+
+  // The place each edge endpoint is drawn at. Two places fold: the
+  // two-tank layout has no separate wood valve (its outlet probe is a slot
+  // on the one 4-way device), and the lower floor's box carries the floor
+  // loop. A place with no box drops its pipes rather than drawing them
+  // into empty space -- `slab_shunt` has no box on any modelled layout.
+  const byPlace = new Map();
+  for (const b of boxes) if (b.place) byPlace.set(b.place, b);
+  // An old coordinator's edge list can still name the removed wood-valve
+  // place; anchor those pipes where the slot went, so a stale payload
+  // degrades to the new drawing instead of dropping its wood chain.
+  if (!byPlace.has("wood_valve")) {
+    const home = byPlace.get(twoTank ? "mixing_valve" : "wood_tank");
+    if (home) byPlace.set("wood_valve", home);
+  }
+
+  // v3.16.0: the pipes are the coordinator's edge list, drawn as published.
+  // Hardcoding them here is what let the drawing and the physics drift
+  // apart in the first place. `topo.edges` is absent on a coordinator from
+  // before this release, and that fallback is the old drawing exactly.
+  const drawnEdges = editing
+    ? ctx.edit.edges
+    : Array.isArray(topo.edges)
+      ? topo.edges
+      : null;
+  // The coil helix (drawn on the wood tank below) follows the drawing, not
+  // the flag: while the editor is open the wood>DHW pipe is what claims a
+  // coil, so the helix must appear and vanish with it live. Without an
+  // edge list the flag is all there is, exactly like the legacy pipe
+  // branch below.
+  const coilDrawn = drawnEdges
+    ? drawnEdges.some((e) => e[0] === "wood_tank" && e[1] === "dhw_tank")
+    : dhwCoil && !!findPlace("dhw_tank");
+  if (drawnEdges) {
+    const rejected = new Set(
+      editing && Array.isArray(ctx.edit.invalid)
+        ? ctx.edit.invalid
+        : []
+    );
+    const matched = editing && ctx.edit.match ? " layout-match" : "";
+    for (const e of drawnEdges) {
+      const edge = `${e[0]}>${e[1]}`;
+      parts.push(line(byPlace.get(e[0]), byPlace.get(e[1]), edge,
+        rejected.has(edge) ? " invalid" : matched));
+    }
+    // The connection being dragged, from its box to the pointer.
+    const drag = editing ? ctx.edit.drag : null;
+    if (drag && drag.kind === "edge" && byPlace.has(drag.from)) {
+      const src = byPlace.get(drag.from);
+      parts.push(`<path class="layout-ghost"
+        d="M ${src.x + colW / 2} ${src.y + src.h / 2}
+        L ${drag.x} ${drag.y}" />`);
+    }
+  } else {
+    parts.push(line(findPlace("heat_pump"), bufferBox, "hp-buffer"));
+    if (twoTank) {
+      // Both stores feed the same 4-way valve; there is no wood-side valve
+      // and no path that pours the wood tank into the heat-pump tank.
+      parts.push(line(findPlace("wood_tank"), supplyBox, "wood-valve"));
+    } else {
+      // Tank to tank: the wood-side blending valve stopped being a box of
+      // its own in v4.0.0 (#40 feedback, item 3).
+      parts.push(line(findPlace("wood_tank"), bufferBox, "wood-buffer"));
+    }
+    // A second, separate path out of the wood tank: mains water on its way
+    // into the hot water tank, not heating water on its way to the house.
+    // No other edge stands for it, so without this pipe the diagram shows a
+    // hot water tank that the wood tank cannot reach.
+    if (dhwCoil) {
+      parts.push(line(findPlace("wood_tank"), findPlace("dhw_tank"),
+        "wood-dhw"));
+    }
+    parts.push(line(supplyBox, houseBox, `${supplyName}-upper`));
+    if (valve) parts.push(line(bufferBox, supplyBox, "buffer-valve"));
+    if (topo.two_zone) parts.push(line(supplyBox, findPlace("lower_zone"),
+      `${supplyName}-lower`));
+    // Electric hot water: the pump heats the DHW tank on every layout
+    // (#40 feedback, item 2) — stale payloads deserve the pipe too.
+    if (topo.dhw) {
+      parts.push(line(findPlace("heat_pump"), findPlace("dhw_tank"),
+        "hp-dhw"));
+    }
+  }
+
+  for (const b of boxes) {
+    const rows = [];
+    let y = b.y + 20 + rowH;
+    for (const s of b.rows) {
+      const live = ctx.slotLive(s);
+      let cls = s.entity ? "setup-slot" : "setup-slot empty";
+      let value = live === null ? L("setup.not_configured") : live;
+      // A value the plan actively uses must never read as absent: with no
+      // radiation sensor the irradiance still comes from Open-Meteo or
+      // the weather forecast, and the box says which.
+      if (live === null && s.key === "solar_radiation_entity") {
+        const fallback = ctx.solarFallback();
+        if (fallback) {
+          value = fallback;
+          cls = "setup-slot";
+        }
+      }
+      // Spellings of this value from longest to shortest, for the row to
+      // choose between. Anything tagged with its provenance after a
+      // middot ("123 W/m² · Open-Meteo") can fall back to the reading on
+      // its own; the tag then rides in the row's tooltip, where it is
+      // still one hover away, instead of overwriting the label.
+      const valueAlts = value.includes(" · ")
+        ? [value, value.split(" · ")[0]]
+        : [value];
+      // The label and the right-anchored value share one 200-unit row;
+      // SVG text does not wrap, so whatever does not fit collides. Both
+      // strings are MEASURED (`fitSlotRow`) and the value is given its
+      // room first: the label is ellipsized into what is left, and only a
+      // value that would squeeze the label below readability is itself
+      // shortened -- never by cutting the reading, only by dropping the
+      // provenance tag after the middot. The old rule counted characters
+      // and let "123 W/m² · Open-Meteo" run through the label beside it.
+      //
+      // A row whose text was shortened says the whole thing in its
+      // tooltip and its accessible name, so nothing is only visible to
+      // someone with a wide screen.
+      const fit = fitSlotRow(s.label, valueAlts, colW - 2 * SETUP_PAD, 12);
+      // The tooltip and the accessible name always carry the whole label
+      // (they are built from it), and additionally the whole value when
+      // the row had to shorten it.
+      const title = L("setup.click_to_assign_title", { label: s.label });
+      const full = fit.shortened ? `${title} — ${fit.full}` : title;
+      rows.push(`<text class="${cls}" x="${b.x + SETUP_PAD}" y="${y}">
+        <tspan>${esc(fit.label)}</tspan>
+        <tspan class="setup-value" x="${b.x + colW - SETUP_PAD}"
+          text-anchor="end">${esc(fit.value)}</tspan></text>`);
+      // A transparent rect over the row, not a handler on the text: text
+      // is a thin target, and the gap between label and value would not
+      // respond at all -- which reads as a diagram that is only sometimes
+      // clickable.
+      rows.push(`<rect class="setup-hit" data-key="${esc(s.key)}"
+        tabindex="0" role="button" aria-label="${esc(full)}"
+        x="${b.x + 4}" y="${y - rowH + 5}" width="${colW - 8}"
+        height="${rowH - 2}" rx="3">
+        <title>${esc(full)}</title></rect>`);
+      y += rowH;
+    }
+    for (const ex of b.extra) {
+      rows.push(`<text class="setup-slot extra" x="${b.x + SETUP_PAD}"
+        y="${y}">${esc(ex)}</text>`);
+      y += rowH;
+    }
+    // One port per edge midpoint, drawn only while editing: they are drag
+    // handles for connections, and a diagram nobody is editing should not
+    // sprout handles that do nothing.
+    // Each port is two circles: the visible 5-unit dot, and a much larger
+    // invisible twin that actually takes the pointer. Measured in a real
+    // browser, the dot alone renders around two CSS pixels — a drag aimed
+    // at its exact center landed on the box instead, and no fingertip
+    // would ever fare better. The twin is painted after the dot so hit
+    // testing prefers it, and carries the same data attributes so the
+    // handler cannot tell them apart.
+    const ports = editing
+      ? [
+          [b.x + colW / 2, b.y, "top"],
+          [b.x + colW / 2, b.y + b.h, "bottom"],
+          [b.x, b.y + b.h / 2, "left"],
+          [b.x + colW, b.y + b.h / 2, "right"],
+        ]
+        .map(([px, py, side]) =>
+          `<circle class="layout-port" data-place="${esc(b.place || "")}"
+            data-port="${side}" cx="${px}" cy="${py}" r="5" />
+          <circle class="layout-port-hit" data-place="${esc(b.place || "")}"
+            data-port="${side}" cx="${px}" cy="${py}" r="16" />`)
+        .join("")
+      : "";
+    // The place id rides on the box only while editing: outside the editor
+    // nothing reads it, and a drawing that is byte-identical to the one
+    // before this feature is the cheapest possible proof it changed nothing.
+    const at = editing ? ` data-place="${esc(b.place || "")}"` : "";
+    // The visible silhouette, painted right after the invisible carrier
+    // rect. Everything here is inert (`pointer-events: none`), so the hit
+    // rects, pipe clicks and drags behave exactly as before; the per-kind
+    // class rides on the contour path because the `<g>` must stay bare --
+    // three tests split the page on the literal "<g>".
+    const kindKey = PLACE_KIND[b.place];
+    const shape = NODE_SHAPES[kindKey] || NODE_SHAPES.hp;
+    const deco = [
+      `<path class="setup-contour kind-${esc(b.place || "")}"
+        d="${shape.contour(b.x, b.y, colW, b.h)}" />`,
+    ];
+    // An unknown place keeps the plain cabinet outline but none of the
+    // hp accents -- a fan on a box nobody named would be a claim.
+    if (kindKey) {
+      for (const acc of shape.accents(b.x, b.y, colW, b.h)) {
+        // The divider returns null for a row-less box; skip it.
+        if (!acc) continue;
+        deco.push(
+          acc.d
+            ? `<path class="${acc.cls || "setup-accent"}" d="${acc.d}" />`
+            : `<circle class="${acc.cls || "setup-accent"}" cx="${acc.cx}"
+                cy="${acc.cy}" r="${acc.r}" />`
+        );
+      }
+    }
+    // The DHW pre-heating helix on the wood tank's upper-right wall: two
+    // overlapping loops whose stubs pierce the straight wall below the
+    // dome. Part of the tank's own markup so it moves with the box during
+    // drags and survives `_refreshLayout`'s innerHTML rebuild.
+    if (b.place === "wood_tank" && coilDrawn) {
+      // A row-less tank (h = 32, two-tank mode with the caption re-homed)
+      // only has straight wall from y+9 to y+23, so the two-loop coil's
+      // lower stub at y+30 would pierce empty air below the dome. It gets
+      // one loop, stubs at y+13 and y+20; anything taller keeps the
+      // two-loop helix, byte for byte. ANCHOR_OVERRIDES above computes
+      // the pipe's departure from the same stub pair.
+      deco.push(b.h < 49
+        ? `<path class="setup-coil"
+        d="M ${b.x + colW - 2} ${b.y + 13} H ${b.x + colW + 6}
+        A 4.5 4.5 0 1 1 ${b.x + colW + 6} ${b.y + 20}
+        H ${b.x + colW - 2}" />`
+        : `<path class="setup-coil"
+        d="M ${b.x + colW - 2} ${b.y + 16} H ${b.x + colW + 6}
+        A 4.5 4.5 0 1 1 ${b.x + colW + 6} ${b.y + 23}
+        A 4.5 4.5 0 1 1 ${b.x + colW + 6} ${b.y + 30}
+        H ${b.x + colW - 2}" />`);
+    }
+    parts.push(`
+      <g>
+        <rect class="setup-box"${at} x="${b.x}" y="${b.y}" width="${colW}"
+          height="${b.h}" rx="8" />
+        ${deco.join("")}
+        <text class="setup-title" x="${b.x + SETUP_PAD}"
+          y="${b.y + 17}">${esc(b.title)}</text>
+        ${rows.join("")}${ports}
+      </g>`);
+  }
+
+  // role="group", not "img": the assignment hit targets inside are
+  // focusable buttons, and "img" would flatten them out of the
+  // accessibility tree.
+  const out = `<svg class="setup-svg${editing ? " editing" : ""}" viewBox="0 0 ${W} ${H}"
+    xmlns="http://www.w3.org/2000/svg" role="group"
+    aria-label="${esc(L("setup.svg_aria"))}">${parts.join("")}</svg>`;
+  return { html: out, boxes: boxesOut };
+}
+
+// The card's whole stylesheet, as one top-level function (#95): a
+// self-contained string with no instance state, moved out of the class
+// so the largest pure member of a 7,900-line god class is a visible
+// seam instead of one method among one hundred and eighty.
+function cardStyleBlock() {
+  return `
+    <style>
+      ha-card { padding: 12px 12px 8px 12px; }
+      ha-card.clickable { cursor: pointer; }
+      .header {
+        font-size: 1.15em; font-weight: 500; padding: 2px 4px 8px 4px;
+        color: var(--primary-text-color);
+        display: flex; align-items: center; gap: 8px;
+      }
+      .header .title { flex: 1 1 auto; min-width: 0; }
+      .expand, .close {
+        flex: 0 0 auto; display: inline-flex; align-items: center;
+        justify-content: center; background: transparent; border: none;
+        padding: 4px; margin: -4px; border-radius: 50%; cursor: pointer;
+        color: var(--secondary-text-color); font: inherit;
+      }
+      .expand:hover, .close:hover { color: var(--primary-text-color); }
+      .expand:focus-visible, .close:focus-visible,
+      .chip:focus-visible {
+        outline: 2px solid var(--primary-color, #03a9f4); outline-offset: 2px;
+      }
+      /* The SVG's keyboard-reachable parts: slots and lanes. */
+      .slot:focus-visible, .lane:focus-visible {
+        outline: 2px solid var(--primary-color, #03a9f4); outline-offset: 1px;
+      }
+      /* The setup rows ring themselves with their own stroke rather than
+         an outline. An outline on an SVG rect is painted around the
+         element's box in the viewport, where the row's neighbours and the
+         diagram's edges cut it: the reporter saw a ring with only its top
+         and left sides left. A stroke is part of the drawing, so all four
+         sides are visible, and the rect is inset far enough to keep them
+         so: it starts 4 units inside the box, which is 2 clear of the
+         contour at x+2, and is 2 units shorter than the 17-unit row
+         pitch, which leaves 1 unit of air above and below. At
+         stroke-width 2, centred on the path, the ring needs exactly 1 of
+         those units on each side and touches nothing.
+         It is a :focus-visible rule, not :focus, so a mouse click leaves
+         no ring behind while a keyboard user keeps one. */
+      .setup-hit:focus-visible {
+        outline: none;
+        fill: var(--primary-color, #03a9f4); fill-opacity: 0.12;
+        stroke: var(--primary-color, #03a9f4); stroke-width: 2;
+      }
+      .headline {
+        display: flex; flex-direction: column; gap: 2px;
+        padding: 0 4px 8px 4px;
+      }
+      .hl-stats {
+        display: flex; flex-wrap: wrap; gap: 2px 16px; font-size: 0.85em;
+      }
+      .hl-label { color: var(--secondary-text-color); }
+      .hl-value { font-weight: 600; color: var(--primary-text-color); }
+      .hl-narrative {
+        font-size: 0.82em; font-style: italic;
+        color: var(--secondary-text-color);
+      }
+      .legend {
+        display: flex; flex-wrap: wrap; gap: 6px; padding: 0 2px 8px 2px;
+      }
+      .chip {
+        display: inline-flex; align-items: center; gap: 6px;
+        border: 1px solid var(--divider-color, #e0e0e0);
+        border-radius: 14px; padding: 3px 10px; cursor: pointer;
+        font-size: 0.82em; user-select: none; background: transparent;
+        color: var(--primary-text-color); font-family: inherit;
+      }
+      .chip .dot {
+        width: 10px; height: 10px; border-radius: 50%;
+        display: inline-block; flex: 0 0 auto;
+      }
+      .chip.off { opacity: 0.4; text-decoration: line-through; }
+      .chip.nodata { cursor: not-allowed; opacity: 0.3; }
+      .chartwrap { position: relative; width: 100%; }
+      /* Overlaid on the chart so the row costs no layout height -- the
+         expanded dialog's height budget is already the tight one. Kept out of
+         the top-right corner, which the solar axis uses. */
+      .viewctl {
+        position: absolute; top: 4px; left: 50%; transform: translateX(-50%);
+        display: flex; gap: 2px; z-index: 4;
+        opacity: 0;${
+          /* The fade is the card's only animation, and it is decorative:
+             reduced-motion users get an instant show/hide instead. Checked
+             here because the style block is rebuilt per render, with the
+             media query below as the live fallback between renders. */
+          _reducedMotion() ? "" : " transition: opacity 120ms ease-in-out;"
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .viewctl { transition: none; }
+      }
+      .chartwrap:hover .viewctl,
+      .viewctl:focus-within { opacity: 1; }
+      /* No hover on touch, so the controls have to be permanently visible
+         there: they are the only way to zoom without a trackpad. */
+      @media (hover: none) {
+        .viewctl { opacity: 1; }
+      }
+      .viewctl button {
+        width: 1.7em; height: 1.7em; padding: 0; line-height: 1;
+        font: inherit; font-size: 0.85em; cursor: pointer;
+        border: 1px solid var(--divider-color, #ccc); border-radius: 0.35em;
+        background: var(--card-background-color, #fff);
+        color: var(--primary-text-color);
+      }
+      .viewctl button:disabled { opacity: 0.4; cursor: default; }
+      .chartwrap.pannable svg { cursor: grab; }
+      svg { width: 100%; height: auto; display: block; }
+      /* Only the chart claims raw touch input — a horizontal drag on it is
+         a pan, not a scroll. Claiming it on every svg also swallowed touch
+         on the setup diagram, where nothing consumes the gesture outside
+         the editor: on a phone the diagram fills the dialog, so a finger
+         landing on it could not scroll the page at all, which read as a
+         setup page that cannot be seen (#40 feedback, item 1). The editor
+         re-claims the diagram while a drag must move a box, below. */
+      .chartwrap svg { touch-action: none; }
+      .empty {
+        padding: 28px 12px; text-align: center;
+        color: var(--secondary-text-color); line-height: 1.5em;
+      }
+      .empty code { color: var(--primary-text-color); }
+      .tooltip {
+        position: absolute; pointer-events: none; z-index: 5;
+        background: var(--card-background-color, #fff);
+        border: 1px solid var(--divider-color, #ccc);
+        border-radius: 6px; padding: 6px 8px; font-size: 0.78em;
+        color: var(--primary-text-color);
+        box-shadow: 0 2px 6px rgba(0,0,0,0.2); white-space: nowrap;
+      }
+      /* The value rows keep the tooltip's nowrap: "House temperature:
+         22 °C" broken across two lines is worse than a wider box, and these
+         rows are short by construction.
+
+         The prose blocks below must NOT. tt-shared carried a
+         max-width of 180px that could never do anything, because it
+         inherited white-space: nowrap from .tooltip and never overrode
+         it: a ~110-character sentence rendered as one unbroken ~500 px line
+         inside a box told to be 180 px wide, and spilled out of it and over
+         whatever sat beside the chart. tt-reason is prose too and had no
+         width bound at all. Both now wrap, and both carry a width. */
+      .tooltip .tt-row { display: flex; align-items: center; gap: 6px; }
+      .tooltip .tt-time { font-weight: 600; margin-bottom: 3px; }
+      .tooltip .tt-shared {
+        margin-top: 3px;
+        font-size: 0.85em;
+        font-style: italic;
+        color: var(--secondary-text-color, #888);
+        white-space: normal;
+        max-width: 220px;
+      }
+      .tooltip .tt-reason {
+        margin-top: 4px; padding-top: 4px; font-style: italic;
+        border-top: 1px solid var(--divider-color, #eee);
+        color: var(--secondary-text-color);
+        white-space: normal;
+        max-width: 220px;
+      }
+      .tooltip .dot {
+        width: 8px; height: 8px; border-radius: 50%; display: inline-block;
+      }
+
+      /* Expanded view.
+
+         The width used to be min(96vw, calc((100vh - 168px) * RATIO)), where
+         168px was a hardcoded guess at how tall the chrome around the chart
+         would be. That guess was made when the dialog was a header, a legend
+         and a chart; it never grew with the override banner, the delta row,
+         the third button, the status line or the Temperatures section. Once
+         the real chrome passed the budget the content ran past the dialog's
+         painted background instead of being contained -- 449px past it at
+         1400x700, measured.
+
+         Worse than a stale number, it was a feedback loop: a shorter viewport
+         made the dialog *wider*, and _scaleDialogFont derives the font every
+         piece of chrome is sized from off the measured width, so the chrome
+         grew in the same direction as the overflow.
+
+         So the height budget is gone. The dialog is a flex column bounded by
+         the viewport; the header and legend keep their natural height and
+         everything below them scrolls. The width is still tied to viewport
+         height, but only to keep the chart a sensible size -- nothing depends
+         on guessing the chrome, and being wrong now costs a scrollbar rather
+         than spilled content.
+
+         The chart keeps its exact aspect ratio deliberately. It is drawn with
+         preserveAspectRatio="none", so constraining its height instead would
+         stretch every axis label horizontally. */
+      dialog.expanded {
+        box-sizing: border-box;
+        width: min(96vw, calc(78vh * ${VIEW_RATIO}), 1700px);
+        max-width: 96vw;
+        /* vh is the *large* viewport: on a phone it includes the strip behind
+           a retracted URL bar, so a dialog sized in vh can sit partly under
+           browser chrome. dvh tracks what is actually visible. The vh line is
+           the fallback for engines without dvh, and is no worse than the
+           unbounded height this replaced. */
+        max-height: 92vh;
+        max-height: 92dvh;
+        display: flex;
+        flex-direction: column;
+        border: none; border-radius: 12px; padding: 16px;
+        background: var(--card-background-color, #fff);
+        color: var(--primary-text-color);
+        box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+        overflow: hidden;
+      }
+      .dlg-body {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        overflow-x: hidden;
+        /* Room for the scrollbar so it never lands on top of the chart. */
+        scrollbar-gutter: stable;
+      }
+      dialog.expanded::backdrop {
+        background: rgba(0, 0, 0, 0.55);
+      }
+      .dlg-head {
+        display: flex; align-items: center; gap: 8px;
+        font-size: 1.25em; font-weight: 500; padding: 0 2px 10px 2px;
+      }
+      .dlg-head .title { flex: 1 1 auto; min-width: 0; }
+      dialog.expanded .dlg-head,
+      dialog.expanded .legend { flex: 0 0 auto; }
+      .chartwrap.big { aspect-ratio: ${VIEW_W} / ${VIEW_H}; }
+      .chartwrap.big svg { height: 100%; }
+
+      /* The legend, header and what-if panel are plain HTML, so unlike the
+         chart they do not scale with the dialog: left alone they stay at card
+         size no matter how large the dialog gets, which is what made them
+         look cramped beside a chart three times their size.
+
+         Everything below is therefore in em, and _scaleDialogFont sets the
+         one font size they all derive from once the dialog has been laid
+         out. Container query units would express this in CSS alone, but
+         container-type: inline-size also applies inline-axis containment,
+         and a dialog sized by its contents then has nothing to size from. */
+      dialog.expanded .legend {
+        font-size: 1em; gap: 0.5em; padding: 0 2px 0.75em 2px;
+      }
+      dialog.expanded .dlg-head {
+        font-size: 1.4em; padding: 0 2px 0.55em 2px; gap: 0.45em;
+      }
+      dialog.expanded .chip {
+        font-size: 1em; padding: 0.32em 0.85em; border-radius: 1.3em;
+        gap: 0.45em; border-width: 1.5px;
+      }
+      dialog.expanded .chip .dot { width: 0.72em; height: 0.72em; }
+      dialog.expanded .tooltip {
+        font-size: 0.92em; padding: 0.5em 0.7em; border-radius: 0.4em;
+      }
+      dialog.expanded .tooltip .dot { width: 0.6em; height: 0.6em; }
+      dialog.expanded .whatif { font-size: 1em; }
+      dialog.expanded .close svg { width: 1.4em; height: 1.4em; }
+
+      /* Dialog page tabs and the setup page (item 33) */
+      .dlg-tabs { display: flex; gap: 0.3em; flex: 0 0 auto; }
+      .dlg-tab {
+        border: 1px solid var(--divider-color, #e0e0e0);
+        background: transparent; color: var(--secondary-text-color);
+        border-radius: 1em; padding: 0.2em 0.9em; cursor: pointer;
+        font: inherit; font-size: 0.85em;
+      }
+      .dlg-tab.active {
+        color: var(--primary-text-color);
+        border-color: var(--primary-color, #03a9f4);
+      }
+      .dlg-tab:focus-visible {
+        outline: 2px solid var(--primary-color, #03a9f4);
+        outline-offset: 2px;
+      }
+      .setup-page { padding: 0.5em 0.25em; }
+      .setup-svg { width: 100%; height: auto; display: block; }
+      /* The rect stays in the markup as the geometry carrier the tests
+         and the drag editor read; the contour paths draw the visible
+         outline (v4.3.0). */
+      .setup-box { fill: none; stroke: none; }
+      .setup-contour {
+        fill: none; stroke: var(--primary-text-color, #212121);
+        stroke-width: 2; opacity: 0.75;
+        stroke-linecap: round; stroke-linejoin: round;
+        pointer-events: none;
+      }
+      .setup-accent {
+        fill: none; stroke: var(--secondary-text-color, #757575);
+        stroke-width: 1.25; opacity: 0.6;
+        stroke-linecap: round; pointer-events: none;
+      }
+      .setup-accent.divider { opacity: 0.5; }
+      .setup-accent.hub {
+        stroke: var(--primary-color, #03a9f4); opacity: 0.9;
+      }
+      .setup-coil {
+        fill: none; stroke: var(--primary-color, #03a9f4);
+        stroke-width: 2; opacity: 0.85;
+        stroke-linecap: round; pointer-events: none;
+      }
+      .setup-pipe-dot {
+        fill: var(--card-background-color, #fff);
+        stroke: var(--secondary-text-color, #888);
+        stroke-width: 1.5; opacity: 0.8; pointer-events: none;
+      }
+      .setup-flow {
+        fill: none; stroke: var(--secondary-text-color, #888);
+        stroke-width: 1.5; opacity: 0.55; pointer-events: none;
+      }
+      .setup-pipe {
+        fill: none; stroke: var(--secondary-text-color, #888);
+        stroke-width: 1.5; opacity: 0.55;
+      }
+      .setup-title {
+        font-size: 13px; font-weight: 600;
+        fill: var(--primary-text-color, #222);
+      }
+      .setup-slot { font-size: 12px; fill: var(--primary-text-color, #222); }
+      .setup-slot.empty {
+        fill: var(--secondary-text-color, #888);
+        opacity: 0.75; font-style: italic;
+      }
+      .setup-slot.extra { fill: var(--secondary-text-color, #888); }
+      .setup-value { font-weight: 600; }
+      .setup-hint {
+        color: var(--secondary-text-color);
+        font-size: 0.85em; padding: 0.5em 0.25em;
+      }
+      .setup-result {
+        color: var(--secondary-text-color);
+        font-size: 0.85em; padding: 0 0.25em 0.5em 0.25em;
+      }
+      .setup-hit { fill: transparent; cursor: pointer; }
+      /* fill-opacity, not opacity: element opacity would fade the focus
+         ring stroked on this same rect down to 12% as soon as the pointer
+         crossed a keyboard-focused row -- and :hover and :focus-visible
+         have equal specificity, so the later rule would win. Tinting only
+         the fill leaves the ring alone. */
+      .setup-hit:hover {
+        fill: var(--primary-color, #03a9f4); fill-opacity: 0.12;
+      }
+
+      /* The layout editor (v3.16.0, issue #40) */
+      .layout-bar {
+        display: flex; align-items: center; gap: 0.5em;
+        flex-wrap: wrap; padding: 0 0.25em 0.4em 0.25em;
+      }
+      .layout-bar button {
+        font: inherit; font-size: 0.85em; cursor: pointer;
+        border: 1px solid var(--divider-color, #e0e0e0);
+        background: transparent; color: var(--primary-text-color);
+        border-radius: 1em; padding: 0.2em 0.9em;
+      }
+      .layout-bar button:focus-visible {
+        outline: 2px solid var(--primary-color, #03a9f4);
+        outline-offset: 2px;
+      }
+      .layout-edit-toggle.on { border-color: var(--primary-color, #03a9f4); }
+      .layout-bar button[disabled] { opacity: 0.45; cursor: default; }
+      .layout-verdict {
+        flex: 1 1 100%; font-size: 0.85em;
+        color: var(--secondary-text-color);
+      }
+      .layout-verdict.match { color: var(--primary-color, #03a9f4); }
+      /* Editing widens the pipes: a 1.5-unit stroke is a hopeless click
+         target, and clicking a pipe is how one is removed. */
+      .setup-svg.editing .setup-pipe { stroke-width: 3.5; cursor: pointer; }
+      /* With stroke: none an unfilled rect catches no pointer, so the
+         move cursor needs pointer-events back on the surface; hit rects
+         painted later still win over their own rows, and drags themselves
+         are geometric via _layoutBoxAt either way. */
+      .setup-svg.editing .setup-box { cursor: move; pointer-events: all; }
+      /* Ornament off while editing: pipes widen into click targets and
+         ports appear, and dots or chevrons under the pointer would only
+         lie about what is clickable. */
+      .setup-svg.editing .setup-pipe-dot,
+      .setup-svg.editing .setup-flow { display: none; }
+      /* A drag on a touch screen must move the box, not scroll the page. */
+      .setup-svg.editing { touch-action: none; }
+      .setup-pipe.layout-match {
+        stroke: var(--primary-color, #03a9f4); opacity: 0.9;
+      }
+      .setup-pipe.invalid {
+        stroke: var(--error-color, #db4437); opacity: 0.95;
+        stroke-dasharray: 6 4;
+      }
+      .layout-port {
+        fill: var(--card-background-color, #fff);
+        stroke: var(--primary-color, #03a9f4); stroke-width: 1.5;
+        cursor: crosshair;
+      }
+      .layout-port-hit {
+        fill: #fff; fill-opacity: 0.001; stroke: none;
+        cursor: crosshair;
+      }
+      .layout-ghost {
+        fill: none; stroke: var(--primary-color, #03a9f4);
+        stroke-width: 1.5; stroke-dasharray: 4 3;
+      }
+      .setup-page { position: relative; }
+      .setup-picker {
+        position: absolute; left: 50%; top: 1em;
+        transform: translateX(-50%); z-index: 6;
+        background: var(--card-background-color, #fff);
+        border: 1px solid var(--divider-color, #ccc);
+        border-radius: 0.5em; padding: 0.7em 0.8em;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.25);
+        min-width: 16em; max-width: 90%;
+      }
+      .sp-title { font-weight: 600; padding-bottom: 0.4em; }
+      /* The filter and the list it narrows are one control, so they are
+         built out of one rule: an input that did not inherit the card's
+         colours would be unreadable on a dark theme, which is the sort of
+         thing that only shows up on somebody else's screen. */
+      .sp-filter, .sp-select {
+        width: 100%; font: inherit; padding: 0.3em;
+        color: var(--primary-text-color);
+        background: var(--card-background-color, #fff);
+        border: 1px solid var(--divider-color, #ccc);
+        border-radius: 0.3em;
+      }
+      .sp-filter {
+        box-sizing: border-box; margin-bottom: 0.4em;
+      }
+      .sp-filter:focus-visible, .sp-select:focus-visible {
+        outline: 2px solid var(--primary-color, #03a9f4);
+        outline-offset: 1px;
+      }
+      .sp-actions {
+        display: flex; gap: 0.4em; padding-top: 0.5em;
+      }
+      .sp-actions button {
+        font: inherit; cursor: pointer; border-radius: 0.3em;
+        border: 1px solid var(--divider-color, #ccc);
+        background: transparent; color: var(--primary-text-color);
+        padding: 0.25em 0.8em;
+      }
+      .sp-save { border-color: var(--primary-color, #03a9f4) !important; }
+      /* An Assign that is armed to CLEAR the slot is not the same button
+         any more, and it should not look like it. Same treatment as the
+         what-if save's confirmation, which this flow is modelled on. */
+      .sp-save.confirm {
+        border-color: var(--error-color, #e0544e) !important;
+        background: var(--error-color, #e0544e);
+        color: var(--text-primary-color, #fff); font-weight: 600;
+      }
+      .sp-note {
+        color: var(--secondary-text-color);
+        font-size: 0.8em; padding-top: 0.4em;
+      }
+
+      /* Editable slot lanes */
+      .slot { cursor: grab; }
+      .slot.locked { cursor: not-allowed; }
+      .slot-handle { cursor: ew-resize; }
+      .lane { cursor: context-menu; }
+      /* A drag that selects the chart's text instead of moving the slot is
+         the single most common way this kind of editor feels broken. */
+      .lanes { user-select: none; }
+      .slot-menu {
+        position: absolute; z-index: 5;
+        background: var(--card-background-color, #fff);
+        border: 1px solid var(--divider-color, #ccc);
+        border-radius: 0.4em; padding: 0.2em;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      }
+      .slot-menu button {
+        display: block; width: 100%; text-align: left;
+        font: inherit; border: none; background: none; cursor: pointer;
+        padding: 0.4em 0.7em; border-radius: 0.3em;
+        color: var(--primary-text-color);
+      }
+      .slot-menu button:hover {
+        background: var(--secondary-background-color, #eee);
+      }
+      .whatif .wi-section + .wi-section {
+        margin-top: 0.9em; padding-top: 0.7em;
+        border-top: 1px solid var(--divider-color, #e0e0e0);
+      }
+      .whatif .wi-delta { align-items: baseline; gap: 0.6em; }
+      .whatif .delta {
+        font-size: 1.25em; font-weight: 600;
+        font-variant-numeric: tabular-nums;
+      }
+      .whatif .wi-pin {
+        border-color: var(--primary-color, #03a9f4);
+        color: var(--primary-color, #03a9f4);
+      }
+      .whatif .wi-pin-result { margin-top: 0.4em; min-height: 1.2em; }
+
+      /* What-if simulator */
+      .whatif {
+        padding: 0.8em 0.3em 0.15em 0.3em; margin-top: 0.7em;
+        border-top: 1px solid var(--divider-color, #e0e0e0);
+        font-size: 0.95rem; color: var(--primary-text-color);
+      }
+      .whatif .wi-row {
+        display: flex; flex-wrap: wrap; align-items: flex-start; gap: 1.2em;
+        margin-bottom: 0.7em;
+      }
+      .whatif .wi-field {
+        display: flex; align-items: center; gap: 0.55em;
+      }
+      .whatif .wi-field > span { white-space: nowrap; }
+      .whatif input[type="range"] { width: 10em; max-width: 100%; }
+      .whatif input[type="time"] {
+        font: inherit; padding: 0.2em 0.4em; border-radius: 0.4em;
+        border: 1px solid var(--divider-color, #ccc);
+        background: var(--card-background-color, #fff);
+        color: var(--primary-text-color);
+      }
+      .whatif .wi-value {
+        min-width: 3.5em; font-variant-numeric: tabular-nums;
+        font-weight: 600;
+      }
+      .whatif .wi-group {
+        flex: 1 1 16em; min-width: 14em;
+        display: flex; flex-direction: column; gap: 0.4em;
+      }
+      .whatif .wi-group-title {
+        font-weight: 600; font-size: 0.9em;
+        color: var(--secondary-text-color);
+        text-transform: uppercase; letter-spacing: 0.04em;
+      }
+      .whatif .wi-hint {
+        font-size: 0.85em; color: var(--secondary-text-color);
+        line-height: 1.35em;
+      }
+      .whatif .wi-viewlimit {
+        font-size: 12px;
+        color: var(--secondary-text-color, #888);
+        margin: 4px 0 6px;
+      }
+      .whatif .wi-viewreset {
+        font-size: 12px;
+        padding: 1px 8px;
+        border: 1px solid var(--divider-color, #e0e0e0);
+        border-radius: 10px;
+        background: none;
+        color: var(--primary-color, #03a9f4);
+        cursor: pointer;
+      }
+      .lane-more { pointer-events: none; font-weight: 700; }
+      /* A stored value the setpoint no longer allows. Warning rather than
+         error: nothing is broken, but the number on screen is not the number
+         that was saved, and that must not pass unremarked. */
+      .whatif .wi-hint.wi-warn {
+        color: var(--warning-color, #d98e00);
+      }
+      .whatif .wi-windows {
+        display: flex; flex-direction: column; gap: 0.4em;
+      }
+      .whatif .wi-window {
+        display: flex; align-items: center; gap: 0.4em;
+      }
+      .whatif button {
+        font: inherit; cursor: pointer; border-radius: 1.1em;
+        border: 1px solid var(--divider-color, #ccc);
+        background: transparent; color: var(--primary-text-color);
+        padding: 0.35em 0.8em;
+      }
+      .whatif button:hover { border-color: var(--primary-color, #03a9f4); }
+      .whatif .wi-remove {
+        border: none; padding: 0 0.4em; font-size: 1.1em; line-height: 1;
+        color: var(--secondary-text-color);
+      }
+      .whatif .wi-remove:hover { color: var(--error-color, #e0544e); }
+      .whatif .wi-add { align-self: flex-start; font-size: 0.9em; }
+      .whatif .wi-apply {
+        border-color: var(--primary-color, #03a9f4);
+        color: var(--primary-color, #03a9f4); font-weight: 600;
+      }
+      .whatif .wi-save {
+        border-color: var(--primary-color, #03a9f4);
+        background: var(--primary-color, #03a9f4);
+        color: var(--text-primary-color, #fff); font-weight: 600;
+      }
+      .whatif .wi-save.confirm {
+        border-color: var(--error-color, #e0544e);
+        background: var(--error-color, #e0544e);
+      }
+      .whatif .wi-save[disabled] { opacity: 0.6; cursor: default; }
+      .whatif .wi-result {
+        flex: 1 1 100%; min-height: 1.4em; line-height: 1.5em;
+        color: var(--secondary-text-color);
+      }
+      .whatif .wi-result .wi-detail {
+        font-size: 0.88em; margin-top: 2px;
+      }
+      .whatif .wi-result.cheaper, .whatif .cheaper {
+        color: var(--success-color, #2fae7a);
+      }
+      .whatif .wi-result.dearer, .whatif .dearer {
+        color: var(--error-color, #e0544e);
+      }
+      @media (max-width: 600px) {
+        dialog.expanded { width: 96vw; padding: 12px; }
+        dialog.expanded .legend { font-size: 1rem; }
+        /* Phone-width dialogs (#40 feedback, item 1): the header must be
+           allowed to wrap, or the Plan/Setup tabs are pushed out of reach
+           by the title; and the setup diagram scrolls sideways at a
+           readable, tappable size instead of shrinking every slot row to
+           fingernail height. */
+        .dlg-head { flex-wrap: wrap; row-gap: 6px; }
+        .setup-canvas { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .setup-canvas svg { min-width: 560px; }
+      }
+    </style>
+  `;
+}
+
 class HeatpumpOptimizerCard extends HTMLElement {
   constructor() {
     super();
@@ -2540,7 +3675,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
 
     const anyData = this._series.some((s) => s.hasData);
 
-    const style = this._styleBlock();
+    const style = cardStyleBlock();
     const legend = this._legendHtml();
 
     // The setup page is drawn from configuration alone: `sensor.py` publishes
@@ -3660,520 +4795,19 @@ class HeatpumpOptimizerCard extends HTMLElement {
   }
 
   _setupSvg(topo) {
-    const W = SETUP_W;
-    // Whether the model runs the wood tank as its own store (issue #40).
-    // Published by `describe_setup`; absent on older descriptions, where
-    // false is the right answer because that is the model they ran.
-    const twoTank = !!topo.two_tank_modelled;
-    // The wood valve stopped being a box in v4.0.0 (#40 feedback, item 3):
-    // its one slot lives on the 4-way valve or the wood tank now. An old
-    // coordinator can still publish the slot at the removed place, so the
-    // same re-homing is applied here rather than letting the slot vanish.
-    const normPlace = (p) =>
-      p === "wood_valve" ? (twoTank ? "mixing_valve" : "wood_tank") : p;
-    const slotsAt = (place) =>
-      topo.slots.filter((s) => normPlace(s.place) === place);
-    const boxes = [];
-    // SVG text does not wrap, and a caption longer than the box runs
-    // straight past its border — measured in a real browser, the no-valve
-    // caption overflowed by 19 viewBox units. Captions are therefore
-    // wrapped here, before layout, where the box height still follows the
-    // line count. The rule is the measured width of the row's text area
-    // (v5.1.4 -- it was a 34-character count, which cannot tell "iiii"
-    // from "WWWW" and had to be re-guessed every time the padding moved).
-    // A caption is one line of prose and reads badly broken mid-phrase, so
-    // it is allowed to lean into the right padding before it wraps: what it
-    // must not do is reach the contour. Eight units clear of the wall.
-    const captionW = SETUP_COL_W - SETUP_PAD - 8;
-    const wrapExtra = (s) => {
-      const lines = [];
-      let cur = "";
-      for (const w of String(s).split(/\s+/)) {
-        const next = cur ? `${cur} ${w}` : w;
-        if (setupTextW(next, 12, false) > captionW && cur) {
-          lines.push(cur);
-          cur = w;
-        } else cur = next;
-      }
-      if (cur) lines.push(cur);
-      return lines;
-    };
-    // A box is a titled list of slot rows; its height follows its contents.
-    // The first place is the box's identity -- the id edges and saved
-    // positions name it by -- and any others are slots that live on the same
-    // physical thing (the floor loop's return probe is on the slab).
-    const box = (col, title, places, extra) => {
-      const rows = [];
-      for (const p of places) {
-        for (const s of slotsAt(p)) rows.push(s);
-      }
-      boxes.push({
-        col, title, rows, place: places[0],
-        extra: (extra || []).flatMap(wrapExtra),
-      });
-    };
-
-    const valve =
-      topo.valve_mode && topo.valve_mode !== "none";
-    // The hot water tank refills through a coil in the wood tank (v3.15.1).
-    // `describe_setup` only sets this when the coil can actually preheat
-    // anything, so the drawing follows the flag rather than re-deriving the
-    // conditions and risking a picture the model disagrees with.
-    const dhwCoil = !!topo.dhw_wood_coil;
-    // With two modelled stores the names have to say which tank is which,
-    // and the one valve is the physical 4-way device the wood tank, the
-    // heat-pump tank and both floors all meet at.
-    const tankTitle = L(twoTank ? "setup.box_hp_tank" : "setup.box_buffer_tank");
-    const valveTitle = L(
-      twoTank ? "setup.box_4way_valve" : "setup.box_mixing_valve"
-    );
-    box(0, L("setup.box_outside"), ["outdoor"]);
-    box(0, L("setup.box_heat_pump"), ["heat_pump"]);
-    if (topo.wood && topo.wood.present) {
-      // Honest caption: while wood heat is a single-tank abstraction the
-      // drawing must say so rather than let the separate box imply
-      // separately modelled physics. Under the two-tank model the box is
-      // the physics, so the caption comes off (issue #40).
-      box(0, L("setup.box_wood_tank", { v: Math.round(topo.wood.volume_l) }),
-        ["wood_tank"],
-        twoTank ? [] : [L("setup.wood_caption")]);
-    }
-    const buf = topo.buffer || {};
-    const bufExtra = valve
-      ? [buf.is_store
-          ? L("setup.buffer_stores", { t: Math.round(buf.max_temp) })
-          : L("setup.buffer_too_small")]
-      : [L("setup.no_valve_caption")];
-    if (valve) {
-      box(1, `${valveTitle} (${esc(String(topo.valve_mode))})`,
-        ["mixing_valve"]);
-    }
-    box(1, `${tankTitle} (${Math.round(buf.volume_l || 0)} L)`,
-      ["buffer_tank"], bufExtra);
-    if (topo.dhw) box(1, L("setup.box_dhw_tank"), ["dhw_tank"],
-      dhwCoil ? [L("setup.dhw_coil_caption")] : []);
-    box(2, L(topo.two_zone ? "setup.box_upper_floor" : "setup.box_house"),
-      ["upper_zone"]);
-    if (topo.two_zone) {
-      box(2, L("setup.box_lower_floor"), ["lower_zone", "floor_loop"]);
-    }
-
-    // Lay the columns out top to bottom, then draw. All sizes in viewBox
-    // units; the SVG scales to the dialog like the chart does.
-    const colX = [16, 260, 504];
-    const colW = SETUP_COL_W;
-    const rowH = 17;
-    const pad = 8;
-    const colY = [16, 16, 16];
-    for (const b of boxes) {
-      b.x = colX[b.col];
-      b.y = colY[b.col];
-      b.h = 24 + (b.rows.length + b.extra.length) * rowH + pad;
-      colY[b.col] = b.y + b.h + 14;
-    }
-    let H = Math.max(...colY) + 4;
-
-    // Cosmetic positions (v3.16.0): the column layout above still runs, so a
-    // position for one box leaves every other box where it was, and a place
-    // that no longer has a box is simply ignored rather than erroring. The
-    // editor's own working positions win over the stored ones while it is
-    // open, which is what makes a drag visible.
-    const editing = this._layoutEditing();
-    const stored =
-      topo.positions && typeof topo.positions === "object" ? topo.positions : {};
-    const placed = editing
-      ? { ...stored, ...(this._layoutEdit.positions || {}) }
-      : stored;
-    for (const b of boxes) {
-      const at = placed[b.place];
-      if (!Array.isArray(at) || at.length < 2) continue;
-      const x = Number(at[0]);
-      const y = Number(at[1]);
-      if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
-      // Clamped to the drawing: a box parked outside the viewBox is a box
-      // nobody can drag back.
-      b.x = Math.max(0, Math.min(W - colW, x));
-      b.y = Math.max(0, Math.min(SETUP_MAX_Y, y));
-      H = Math.max(H, b.y + b.h + 4);
-    }
-    // Where the boxes ended up, for the editor's drop tests.
-    this._layoutBoxes = boxes.map((b) => ({
-      place: b.place, x: b.x, y: b.y, w: colW, h: b.h,
-    }));
-
-    const parts = [];
-    // Connections first, under the boxes: pump and furnace feed the buffer
-    // column, which feeds the house column.
-    const anchor = (b) => ({ x: b.x + colW, y: b.y + b.h / 2 });
-    const to = (b) => ({ x: b.x, y: b.y + b.h / 2 });
-    // Boxes are found by their place id, never by their (localized) title:
-    // matching on display text is exactly what would silently drop pipes the
-    // moment a title is translated.
-    const findPlace = (p) => boxes.find((b) => b.place === p);
-    // Boxes in the same column stack vertically, so their connection is a
-    // short vertical pipe; a right-to-left curve between them crosses every
-    // box in between and reads as spaghetti. `edge` names the connection so
-    // tests can assert the drawn topology instead of path coordinates.
-    // Same-column is asked as "same x" so a box the user has dragged still
-    // gets the pipe its new position deserves; with nothing dragged the two
-    // questions have identical answers, because a column is one x.
-    // The silhouette each box wears (unknown places fall back to the plain
-    // cabinet), consulted for how far a pipe endpoint pulls inside the
-    // bounding box so pipes meet ink rather than the invisible rect.
-    const KIND = (b) => NODE_SHAPES[PLACE_KIND[b.place]] || NODE_SHAPES.hp;
-    // One pipe departs somewhere other than a wall midpoint: the DHW
-    // pre-heating coil hangs on the wood tank's upper-right wall, and its
-    // pipe must leave from the coil's bulge -- in every branch, including
-    // the same-column one a drag can create -- or the helix reads as
-    // ornament next to a pipe that ignores it. Keyed by place pair so the
-    // published edge and the legacy `wood-dhw` name both hit it.
-    // The pipe leaves from the midpoint of the helix's stub pair, which is
-    // height-dependent: a row-less wood tank (h < 49) wears the single-loop
-    // coil (stubs y+13/y+20), a taller one the two-loop coil (y+16/y+30).
-    const ANCHOR_OVERRIDES = {
-      "wood_tank>dhw_tank": {
-        from: (bb) => ({
-          x: bb.x + colW + 13,
-          y: bb.y + (bb.h < 49 ? 16.5 : 23),
-        }),
-      },
-    };
-    // Endpoint dots weld pipe to silhouette, and one midpoint chevron says
-    // which way the water flows (skipped on rejected pipes -- an arrow on a
-    // connection that cannot exist would endorse it). None of these carry
-    // `data-edge`: the tests scrape it to read the drawn topology, and must
-    // keep seeing exactly one occurrence per pipe.
-    const pipeDeco = (fx, fy, tx, ty, vertical, s, invalid) => {
-      const dots =
-        `<circle class="setup-pipe-dot" cx="${fx}" cy="${fy}" r="2" />` +
-        `<circle class="setup-pipe-dot" cx="${tx}" cy="${ty}" r="2" />`;
-      if (invalid) return dots;
-      // The chevron sits at the pipe's midpoint and must lie ALONG it.
-      // Both branches used to draw an axis-aligned glyph -- horizontal for
-      // every cross-column pipe, vertical for every stacked one -- so on
-      // the many pipes whose ends differ in height the arrow crossed the
-      // pipe at right angles instead of pointing down it.
-      //
-      // A cross-column pipe is the cubic `M f C f+40 fy, tx-40 ty, t`, and
-      // for it both the midpoint and the direction are exact:
-      //   B(0.5)  = (P0 + 3P1 + 3P2 + P3) / 8 = ((fx+tx)/2, (fy+ty)/2)
-      //             -- the control handles cancel, so the midpoint is the
-      //             chord's midpoint, which is where the glyph already was.
-      //   B'(0.5) = 3[(P1-P0)/4 + (P2-P1)/2 + (P3-P2)/4]
-      //           ∝ (dx/2 - 20, dy/2)
-      //             -- horizontal only when dy is 0. The -20 is the two
-      //             40-unit handles pulling back against the run.
-      // A stacked pipe is a straight segment, so its direction is simply
-      // the flow: `s` is +1 when the box the water leaves is the upper one.
-      const mx = (fx + tx) / 2;
-      const my = (fy + ty) / 2;
-      let ux = 0;
-      let uy = s;
-      if (!vertical) {
-        const vx = (tx - fx) / 2 - 20;
-        const vy = (ty - fy) / 2;
-        const len = Math.hypot(vx, vy);
-        // A tangent of zero length has no direction to draw along; fall
-        // back to the caller's left/right hint rather than dividing by 0.
-        if (len < 1e-6) {
-          ux = s;
-          uy = 0;
-        } else {
-          ux = vx / len;
-          uy = vy / len;
-        }
-      }
-      // Apex 2 units ahead of the midpoint, tails 3 behind and 3 to each
-      // side: the same glyph as before, now in the pipe's own frame.
-      const nx = -uy;
-      const ny = ux;
-      const r = (n) => Math.round(n * 1000) / 1000;
-      const flow =
-        `M ${r(mx - 3 * ux + 3 * nx)} ${r(my - 3 * uy + 3 * ny)} ` +
-        `L ${r(mx + 2 * ux)} ${r(my + 2 * uy)} ` +
-        `L ${r(mx - 3 * ux - 3 * nx)} ${r(my - 3 * uy - 3 * ny)}`;
-      return `${dots}<path class="setup-flow" d="${flow}" />`;
-    };
-    const line = (a, b, edge, cls) => {
-      if (!a || !b) return "";
-      const extra = cls || "";
-      const invalid = extra === " invalid";
-      const over = ANCHOR_OVERRIDES[`${a.place}>${b.place}`];
-      if (!over && a.x === b.x) {
-        const upper = a.y < b.y ? a : b;
-        const lower = a.y < b.y ? b : a;
-        const x = a.x + 24;
-        const yTop = upper.y + upper.h - KIND(upper).inset.b;
-        const yBot = lower.y + KIND(lower).inset.t;
-        // The valve's bowtie accent straddles its bottom edge at this same
-        // abscissa, and the chevron's apex would land close enough to merge
-        // ink with it -- so the pipe into the valve keeps its dots but
-        // drops the chevron (pipeDeco's `invalid` path is exactly that).
-        const noFlow = invalid || b.place === "mixing_valve";
-        return `<path class="setup-pipe${extra}" data-edge="${edge}"
-          d="M ${x} ${yTop}
-          L ${x} ${yBot}" />` +
-          pipeDeco(x, yTop, x, yBot, true, a === upper ? 1 : -1, noFlow);
-      }
-      const f = over
-        ? over.from(a)
-        : { x: anchor(a).x - KIND(a).inset.r, y: anchor(a).y };
-      const t = { x: to(b).x + KIND(b).inset.l, y: to(b).y };
-      return `<path class="setup-pipe${extra}" data-edge="${edge}"
-        d="M ${f.x} ${f.y}
-        C ${f.x + 40} ${f.y},
-          ${t.x - 40} ${t.y}, ${t.x} ${t.y}" />` +
-        pipeDeco(f.x, f.y, t.x, t.y, false, t.x > f.x ? 1 : -1, invalid);
-    };
-    const bufferBox = findPlace("buffer_tank");
-    const houseBox = findPlace("upper_zone");
-    // One shared flow serves every circuit: whatever regulates the supply —
-    // the mixing valve when one exists, the raw tank when not — feeds BOTH
-    // floors in parallel. Drawing the lower floor from the tank while a
-    // valve throttled the upper one contradicted the model, which computes
-    // one t_mix and delivers both circuits from it (issue #40).
-    const supplyBox = valve ? findPlace("mixing_valve") : bufferBox;
-    const supplyName = valve ? "valve" : "buffer";
-
-    // The place each edge endpoint is drawn at. Two places fold: the
-    // two-tank layout has no separate wood valve (its outlet probe is a slot
-    // on the one 4-way device), and the lower floor's box carries the floor
-    // loop. A place with no box drops its pipes rather than drawing them
-    // into empty space -- `slab_shunt` has no box on any modelled layout.
-    const byPlace = new Map();
-    for (const b of boxes) if (b.place) byPlace.set(b.place, b);
-    // An old coordinator's edge list can still name the removed wood-valve
-    // place; anchor those pipes where the slot went, so a stale payload
-    // degrades to the new drawing instead of dropping its wood chain.
-    if (!byPlace.has("wood_valve")) {
-      const home = byPlace.get(twoTank ? "mixing_valve" : "wood_tank");
-      if (home) byPlace.set("wood_valve", home);
-    }
-
-    // v3.16.0: the pipes are the coordinator's edge list, drawn as published.
-    // Hardcoding them here is what let the drawing and the physics drift
-    // apart in the first place. `topo.edges` is absent on a coordinator from
-    // before this release, and that fallback is the old drawing exactly.
-    const drawnEdges = editing
-      ? this._layoutEdit.edges
-      : Array.isArray(topo.edges)
-        ? topo.edges
-        : null;
-    // The coil helix (drawn on the wood tank below) follows the drawing, not
-    // the flag: while the editor is open the wood>DHW pipe is what claims a
-    // coil, so the helix must appear and vanish with it live. Without an
-    // edge list the flag is all there is, exactly like the legacy pipe
-    // branch below.
-    const coilDrawn = drawnEdges
-      ? drawnEdges.some((e) => e[0] === "wood_tank" && e[1] === "dhw_tank")
-      : dhwCoil && !!findPlace("dhw_tank");
-    if (drawnEdges) {
-      const rejected = new Set(
-        editing && Array.isArray(this._layoutEdit.invalid)
-          ? this._layoutEdit.invalid
-          : []
-      );
-      const matched = editing && this._layoutEdit.match ? " layout-match" : "";
-      for (const e of drawnEdges) {
-        const edge = `${e[0]}>${e[1]}`;
-        parts.push(line(byPlace.get(e[0]), byPlace.get(e[1]), edge,
-          rejected.has(edge) ? " invalid" : matched));
-      }
-      // The connection being dragged, from its box to the pointer.
-      const drag = editing ? this._layoutEdit.drag : null;
-      if (drag && drag.kind === "edge" && byPlace.has(drag.from)) {
-        const src = byPlace.get(drag.from);
-        parts.push(`<path class="layout-ghost"
-          d="M ${src.x + colW / 2} ${src.y + src.h / 2}
-          L ${drag.x} ${drag.y}" />`);
-      }
-    } else {
-      parts.push(line(findPlace("heat_pump"), bufferBox, "hp-buffer"));
-      if (twoTank) {
-        // Both stores feed the same 4-way valve; there is no wood-side valve
-        // and no path that pours the wood tank into the heat-pump tank.
-        parts.push(line(findPlace("wood_tank"), supplyBox, "wood-valve"));
-      } else {
-        // Tank to tank: the wood-side blending valve stopped being a box of
-        // its own in v4.0.0 (#40 feedback, item 3).
-        parts.push(line(findPlace("wood_tank"), bufferBox, "wood-buffer"));
-      }
-      // A second, separate path out of the wood tank: mains water on its way
-      // into the hot water tank, not heating water on its way to the house.
-      // No other edge stands for it, so without this pipe the diagram shows a
-      // hot water tank that the wood tank cannot reach.
-      if (dhwCoil) {
-        parts.push(line(findPlace("wood_tank"), findPlace("dhw_tank"),
-          "wood-dhw"));
-      }
-      parts.push(line(supplyBox, houseBox, `${supplyName}-upper`));
-      if (valve) parts.push(line(bufferBox, supplyBox, "buffer-valve"));
-      if (topo.two_zone) parts.push(line(supplyBox, findPlace("lower_zone"),
-        `${supplyName}-lower`));
-      // Electric hot water: the pump heats the DHW tank on every layout
-      // (#40 feedback, item 2) — stale payloads deserve the pipe too.
-      if (topo.dhw) {
-        parts.push(line(findPlace("heat_pump"), findPlace("dhw_tank"),
-          "hp-dhw"));
-      }
-    }
-
-    for (const b of boxes) {
-      const rows = [];
-      let y = b.y + 20 + rowH;
-      for (const s of b.rows) {
-        const live = this._slotLive(s);
-        let cls = s.entity ? "setup-slot" : "setup-slot empty";
-        let value = live === null ? L("setup.not_configured") : live;
-        // A value the plan actively uses must never read as absent: with no
-        // radiation sensor the irradiance still comes from Open-Meteo or
-        // the weather forecast, and the box says which.
-        if (live === null && s.key === "solar_radiation_entity") {
-          const fallback = this._solarFallback();
-          if (fallback) {
-            value = fallback;
-            cls = "setup-slot";
-          }
-        }
-        // Spellings of this value from longest to shortest, for the row to
-        // choose between. Anything tagged with its provenance after a
-        // middot ("123 W/m² · Open-Meteo") can fall back to the reading on
-        // its own; the tag then rides in the row's tooltip, where it is
-        // still one hover away, instead of overwriting the label.
-        const valueAlts = value.includes(" · ")
-          ? [value, value.split(" · ")[0]]
-          : [value];
-        // The label and the right-anchored value share one 200-unit row;
-        // SVG text does not wrap, so whatever does not fit collides. Both
-        // strings are MEASURED (`fitSlotRow`) and the value is given its
-        // room first: the label is ellipsized into what is left, and only a
-        // value that would squeeze the label below readability is itself
-        // shortened -- never by cutting the reading, only by dropping the
-        // provenance tag after the middot. The old rule counted characters
-        // and let "123 W/m² · Open-Meteo" run through the label beside it.
-        //
-        // A row whose text was shortened says the whole thing in its
-        // tooltip and its accessible name, so nothing is only visible to
-        // someone with a wide screen.
-        const fit = fitSlotRow(s.label, valueAlts, colW - 2 * SETUP_PAD, 12);
-        // The tooltip and the accessible name always carry the whole label
-        // (they are built from it), and additionally the whole value when
-        // the row had to shorten it.
-        const title = L("setup.click_to_assign_title", { label: s.label });
-        const full = fit.shortened ? `${title} — ${fit.full}` : title;
-        rows.push(`<text class="${cls}" x="${b.x + SETUP_PAD}" y="${y}">
-          <tspan>${esc(fit.label)}</tspan>
-          <tspan class="setup-value" x="${b.x + colW - SETUP_PAD}"
-            text-anchor="end">${esc(fit.value)}</tspan></text>`);
-        // A transparent rect over the row, not a handler on the text: text
-        // is a thin target, and the gap between label and value would not
-        // respond at all -- which reads as a diagram that is only sometimes
-        // clickable.
-        rows.push(`<rect class="setup-hit" data-key="${esc(s.key)}"
-          tabindex="0" role="button" aria-label="${esc(full)}"
-          x="${b.x + 4}" y="${y - rowH + 5}" width="${colW - 8}"
-          height="${rowH - 2}" rx="3">
-          <title>${esc(full)}</title></rect>`);
-        y += rowH;
-      }
-      for (const ex of b.extra) {
-        rows.push(`<text class="setup-slot extra" x="${b.x + SETUP_PAD}"
-          y="${y}">${esc(ex)}</text>`);
-        y += rowH;
-      }
-      // One port per edge midpoint, drawn only while editing: they are drag
-      // handles for connections, and a diagram nobody is editing should not
-      // sprout handles that do nothing.
-      // Each port is two circles: the visible 5-unit dot, and a much larger
-      // invisible twin that actually takes the pointer. Measured in a real
-      // browser, the dot alone renders around two CSS pixels — a drag aimed
-      // at its exact center landed on the box instead, and no fingertip
-      // would ever fare better. The twin is painted after the dot so hit
-      // testing prefers it, and carries the same data attributes so the
-      // handler cannot tell them apart.
-      const ports = editing
-        ? [
-            [b.x + colW / 2, b.y, "top"],
-            [b.x + colW / 2, b.y + b.h, "bottom"],
-            [b.x, b.y + b.h / 2, "left"],
-            [b.x + colW, b.y + b.h / 2, "right"],
-          ]
-          .map(([px, py, side]) =>
-            `<circle class="layout-port" data-place="${esc(b.place || "")}"
-              data-port="${side}" cx="${px}" cy="${py}" r="5" />
-            <circle class="layout-port-hit" data-place="${esc(b.place || "")}"
-              data-port="${side}" cx="${px}" cy="${py}" r="16" />`)
-          .join("")
-        : "";
-      // The place id rides on the box only while editing: outside the editor
-      // nothing reads it, and a drawing that is byte-identical to the one
-      // before this feature is the cheapest possible proof it changed nothing.
-      const at = editing ? ` data-place="${esc(b.place || "")}"` : "";
-      // The visible silhouette, painted right after the invisible carrier
-      // rect. Everything here is inert (`pointer-events: none`), so the hit
-      // rects, pipe clicks and drags behave exactly as before; the per-kind
-      // class rides on the contour path because the `<g>` must stay bare --
-      // three tests split the page on the literal "<g>".
-      const kindKey = PLACE_KIND[b.place];
-      const shape = NODE_SHAPES[kindKey] || NODE_SHAPES.hp;
-      const deco = [
-        `<path class="setup-contour kind-${esc(b.place || "")}"
-          d="${shape.contour(b.x, b.y, colW, b.h)}" />`,
-      ];
-      // An unknown place keeps the plain cabinet outline but none of the
-      // hp accents -- a fan on a box nobody named would be a claim.
-      if (kindKey) {
-        for (const acc of shape.accents(b.x, b.y, colW, b.h)) {
-          // The divider returns null for a row-less box; skip it.
-          if (!acc) continue;
-          deco.push(
-            acc.d
-              ? `<path class="${acc.cls || "setup-accent"}" d="${acc.d}" />`
-              : `<circle class="${acc.cls || "setup-accent"}" cx="${acc.cx}"
-                  cy="${acc.cy}" r="${acc.r}" />`
-          );
-        }
-      }
-      // The DHW pre-heating helix on the wood tank's upper-right wall: two
-      // overlapping loops whose stubs pierce the straight wall below the
-      // dome. Part of the tank's own markup so it moves with the box during
-      // drags and survives `_refreshLayout`'s innerHTML rebuild.
-      if (b.place === "wood_tank" && coilDrawn) {
-        // A row-less tank (h = 32, two-tank mode with the caption re-homed)
-        // only has straight wall from y+9 to y+23, so the two-loop coil's
-        // lower stub at y+30 would pierce empty air below the dome. It gets
-        // one loop, stubs at y+13 and y+20; anything taller keeps the
-        // two-loop helix, byte for byte. ANCHOR_OVERRIDES above computes
-        // the pipe's departure from the same stub pair.
-        deco.push(b.h < 49
-          ? `<path class="setup-coil"
-          d="M ${b.x + colW - 2} ${b.y + 13} H ${b.x + colW + 6}
-          A 4.5 4.5 0 1 1 ${b.x + colW + 6} ${b.y + 20}
-          H ${b.x + colW - 2}" />`
-          : `<path class="setup-coil"
-          d="M ${b.x + colW - 2} ${b.y + 16} H ${b.x + colW + 6}
-          A 4.5 4.5 0 1 1 ${b.x + colW + 6} ${b.y + 23}
-          A 4.5 4.5 0 1 1 ${b.x + colW + 6} ${b.y + 30}
-          H ${b.x + colW - 2}" />`);
-      }
-      parts.push(`
-        <g>
-          <rect class="setup-box"${at} x="${b.x}" y="${b.y}" width="${colW}"
-            height="${b.h}" rx="8" />
-          ${deco.join("")}
-          <text class="setup-title" x="${b.x + SETUP_PAD}"
-            y="${b.y + 17}">${esc(b.title)}</text>
-          ${rows.join("")}${ports}
-        </g>`);
-    }
-
-    // role="group", not "img": the assignment hit targets inside are
-    // focusable buttons, and "img" would flatten them out of the
-    // accessibility tree.
-    return `<svg class="setup-svg${editing ? " editing" : ""}" viewBox="0 0 ${W} ${H}"
-      xmlns="http://www.w3.org/2000/svg" role="group"
-      aria-label="${esc(L("setup.svg_aria"))}">${parts.join("")}</svg>`;
+    // Thin seam (#95): the diagram is a top-level function; the method
+    // keeps the name -- call sites and the tests read it -- and keeps the
+    // one side effect the class owns: publishing the laid-out boxes.
+    const built = setupSvgHtml(topo, {
+      editing: this._layoutEditing(),
+      edit: this._layoutEdit,
+      slotLive: (s) => this._slotLive(s),
+      solarFallback: () => this._solarFallback(),
+    });
+    this._layoutBoxes = built.boxes;
+    return built.html;
   }
+
 
   /** The what-if panel, shown in the expanded view only.
    *
@@ -5060,612 +5694,10 @@ class HeatpumpOptimizerCard extends HTMLElement {
   }
 
   _styleBlock() {
-    return `
-      <style>
-        ha-card { padding: 12px 12px 8px 12px; }
-        ha-card.clickable { cursor: pointer; }
-        .header {
-          font-size: 1.15em; font-weight: 500; padding: 2px 4px 8px 4px;
-          color: var(--primary-text-color);
-          display: flex; align-items: center; gap: 8px;
-        }
-        .header .title { flex: 1 1 auto; min-width: 0; }
-        .expand, .close {
-          flex: 0 0 auto; display: inline-flex; align-items: center;
-          justify-content: center; background: transparent; border: none;
-          padding: 4px; margin: -4px; border-radius: 50%; cursor: pointer;
-          color: var(--secondary-text-color); font: inherit;
-        }
-        .expand:hover, .close:hover { color: var(--primary-text-color); }
-        .expand:focus-visible, .close:focus-visible,
-        .chip:focus-visible {
-          outline: 2px solid var(--primary-color, #03a9f4); outline-offset: 2px;
-        }
-        /* The SVG's keyboard-reachable parts: slots and lanes. */
-        .slot:focus-visible, .lane:focus-visible {
-          outline: 2px solid var(--primary-color, #03a9f4); outline-offset: 1px;
-        }
-        /* The setup rows ring themselves with their own stroke rather than
-           an outline. An outline on an SVG rect is painted around the
-           element's box in the viewport, where the row's neighbours and the
-           diagram's edges cut it: the reporter saw a ring with only its top
-           and left sides left. A stroke is part of the drawing, so all four
-           sides are visible, and the rect is inset far enough to keep them
-           so: it starts 4 units inside the box, which is 2 clear of the
-           contour at x+2, and is 2 units shorter than the 17-unit row
-           pitch, which leaves 1 unit of air above and below. At
-           stroke-width 2, centred on the path, the ring needs exactly 1 of
-           those units on each side and touches nothing.
-           It is a :focus-visible rule, not :focus, so a mouse click leaves
-           no ring behind while a keyboard user keeps one. */
-        .setup-hit:focus-visible {
-          outline: none;
-          fill: var(--primary-color, #03a9f4); fill-opacity: 0.12;
-          stroke: var(--primary-color, #03a9f4); stroke-width: 2;
-        }
-        .headline {
-          display: flex; flex-direction: column; gap: 2px;
-          padding: 0 4px 8px 4px;
-        }
-        .hl-stats {
-          display: flex; flex-wrap: wrap; gap: 2px 16px; font-size: 0.85em;
-        }
-        .hl-label { color: var(--secondary-text-color); }
-        .hl-value { font-weight: 600; color: var(--primary-text-color); }
-        .hl-narrative {
-          font-size: 0.82em; font-style: italic;
-          color: var(--secondary-text-color);
-        }
-        .legend {
-          display: flex; flex-wrap: wrap; gap: 6px; padding: 0 2px 8px 2px;
-        }
-        .chip {
-          display: inline-flex; align-items: center; gap: 6px;
-          border: 1px solid var(--divider-color, #e0e0e0);
-          border-radius: 14px; padding: 3px 10px; cursor: pointer;
-          font-size: 0.82em; user-select: none; background: transparent;
-          color: var(--primary-text-color); font-family: inherit;
-        }
-        .chip .dot {
-          width: 10px; height: 10px; border-radius: 50%;
-          display: inline-block; flex: 0 0 auto;
-        }
-        .chip.off { opacity: 0.4; text-decoration: line-through; }
-        .chip.nodata { cursor: not-allowed; opacity: 0.3; }
-        .chartwrap { position: relative; width: 100%; }
-        /* Overlaid on the chart so the row costs no layout height -- the
-           expanded dialog's height budget is already the tight one. Kept out of
-           the top-right corner, which the solar axis uses. */
-        .viewctl {
-          position: absolute; top: 4px; left: 50%; transform: translateX(-50%);
-          display: flex; gap: 2px; z-index: 4;
-          opacity: 0;${
-            /* The fade is the card's only animation, and it is decorative:
-               reduced-motion users get an instant show/hide instead. Checked
-               here because the style block is rebuilt per render, with the
-               media query below as the live fallback between renders. */
-            _reducedMotion() ? "" : " transition: opacity 120ms ease-in-out;"
-          }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .viewctl { transition: none; }
-        }
-        .chartwrap:hover .viewctl,
-        .viewctl:focus-within { opacity: 1; }
-        /* No hover on touch, so the controls have to be permanently visible
-           there: they are the only way to zoom without a trackpad. */
-        @media (hover: none) {
-          .viewctl { opacity: 1; }
-        }
-        .viewctl button {
-          width: 1.7em; height: 1.7em; padding: 0; line-height: 1;
-          font: inherit; font-size: 0.85em; cursor: pointer;
-          border: 1px solid var(--divider-color, #ccc); border-radius: 0.35em;
-          background: var(--card-background-color, #fff);
-          color: var(--primary-text-color);
-        }
-        .viewctl button:disabled { opacity: 0.4; cursor: default; }
-        .chartwrap.pannable svg { cursor: grab; }
-        svg { width: 100%; height: auto; display: block; }
-        /* Only the chart claims raw touch input — a horizontal drag on it is
-           a pan, not a scroll. Claiming it on every svg also swallowed touch
-           on the setup diagram, where nothing consumes the gesture outside
-           the editor: on a phone the diagram fills the dialog, so a finger
-           landing on it could not scroll the page at all, which read as a
-           setup page that cannot be seen (#40 feedback, item 1). The editor
-           re-claims the diagram while a drag must move a box, below. */
-        .chartwrap svg { touch-action: none; }
-        .empty {
-          padding: 28px 12px; text-align: center;
-          color: var(--secondary-text-color); line-height: 1.5em;
-        }
-        .empty code { color: var(--primary-text-color); }
-        .tooltip {
-          position: absolute; pointer-events: none; z-index: 5;
-          background: var(--card-background-color, #fff);
-          border: 1px solid var(--divider-color, #ccc);
-          border-radius: 6px; padding: 6px 8px; font-size: 0.78em;
-          color: var(--primary-text-color);
-          box-shadow: 0 2px 6px rgba(0,0,0,0.2); white-space: nowrap;
-        }
-        /* The value rows keep the tooltip's nowrap: "House temperature:
-           22 °C" broken across two lines is worse than a wider box, and these
-           rows are short by construction.
-
-           The prose blocks below must NOT. tt-shared carried a
-           max-width of 180px that could never do anything, because it
-           inherited white-space: nowrap from .tooltip and never overrode
-           it: a ~110-character sentence rendered as one unbroken ~500 px line
-           inside a box told to be 180 px wide, and spilled out of it and over
-           whatever sat beside the chart. tt-reason is prose too and had no
-           width bound at all. Both now wrap, and both carry a width. */
-        .tooltip .tt-row { display: flex; align-items: center; gap: 6px; }
-        .tooltip .tt-time { font-weight: 600; margin-bottom: 3px; }
-        .tooltip .tt-shared {
-          margin-top: 3px;
-          font-size: 0.85em;
-          font-style: italic;
-          color: var(--secondary-text-color, #888);
-          white-space: normal;
-          max-width: 220px;
-        }
-        .tooltip .tt-reason {
-          margin-top: 4px; padding-top: 4px; font-style: italic;
-          border-top: 1px solid var(--divider-color, #eee);
-          color: var(--secondary-text-color);
-          white-space: normal;
-          max-width: 220px;
-        }
-        .tooltip .dot {
-          width: 8px; height: 8px; border-radius: 50%; display: inline-block;
-        }
-
-        /* Expanded view.
-
-           The width used to be min(96vw, calc((100vh - 168px) * RATIO)), where
-           168px was a hardcoded guess at how tall the chrome around the chart
-           would be. That guess was made when the dialog was a header, a legend
-           and a chart; it never grew with the override banner, the delta row,
-           the third button, the status line or the Temperatures section. Once
-           the real chrome passed the budget the content ran past the dialog's
-           painted background instead of being contained -- 449px past it at
-           1400x700, measured.
-
-           Worse than a stale number, it was a feedback loop: a shorter viewport
-           made the dialog *wider*, and _scaleDialogFont derives the font every
-           piece of chrome is sized from off the measured width, so the chrome
-           grew in the same direction as the overflow.
-
-           So the height budget is gone. The dialog is a flex column bounded by
-           the viewport; the header and legend keep their natural height and
-           everything below them scrolls. The width is still tied to viewport
-           height, but only to keep the chart a sensible size -- nothing depends
-           on guessing the chrome, and being wrong now costs a scrollbar rather
-           than spilled content.
-
-           The chart keeps its exact aspect ratio deliberately. It is drawn with
-           preserveAspectRatio="none", so constraining its height instead would
-           stretch every axis label horizontally. */
-        dialog.expanded {
-          box-sizing: border-box;
-          width: min(96vw, calc(78vh * ${VIEW_RATIO}), 1700px);
-          max-width: 96vw;
-          /* vh is the *large* viewport: on a phone it includes the strip behind
-             a retracted URL bar, so a dialog sized in vh can sit partly under
-             browser chrome. dvh tracks what is actually visible. The vh line is
-             the fallback for engines without dvh, and is no worse than the
-             unbounded height this replaced. */
-          max-height: 92vh;
-          max-height: 92dvh;
-          display: flex;
-          flex-direction: column;
-          border: none; border-radius: 12px; padding: 16px;
-          background: var(--card-background-color, #fff);
-          color: var(--primary-text-color);
-          box-shadow: 0 8px 32px rgba(0,0,0,0.35);
-          overflow: hidden;
-        }
-        .dlg-body {
-          flex: 1 1 auto;
-          min-height: 0;
-          overflow-y: auto;
-          overflow-x: hidden;
-          /* Room for the scrollbar so it never lands on top of the chart. */
-          scrollbar-gutter: stable;
-        }
-        dialog.expanded::backdrop {
-          background: rgba(0, 0, 0, 0.55);
-        }
-        .dlg-head {
-          display: flex; align-items: center; gap: 8px;
-          font-size: 1.25em; font-weight: 500; padding: 0 2px 10px 2px;
-        }
-        .dlg-head .title { flex: 1 1 auto; min-width: 0; }
-        dialog.expanded .dlg-head,
-        dialog.expanded .legend { flex: 0 0 auto; }
-        .chartwrap.big { aspect-ratio: ${VIEW_W} / ${VIEW_H}; }
-        .chartwrap.big svg { height: 100%; }
-
-        /* The legend, header and what-if panel are plain HTML, so unlike the
-           chart they do not scale with the dialog: left alone they stay at card
-           size no matter how large the dialog gets, which is what made them
-           look cramped beside a chart three times their size.
-
-           Everything below is therefore in em, and _scaleDialogFont sets the
-           one font size they all derive from once the dialog has been laid
-           out. Container query units would express this in CSS alone, but
-           container-type: inline-size also applies inline-axis containment,
-           and a dialog sized by its contents then has nothing to size from. */
-        dialog.expanded .legend {
-          font-size: 1em; gap: 0.5em; padding: 0 2px 0.75em 2px;
-        }
-        dialog.expanded .dlg-head {
-          font-size: 1.4em; padding: 0 2px 0.55em 2px; gap: 0.45em;
-        }
-        dialog.expanded .chip {
-          font-size: 1em; padding: 0.32em 0.85em; border-radius: 1.3em;
-          gap: 0.45em; border-width: 1.5px;
-        }
-        dialog.expanded .chip .dot { width: 0.72em; height: 0.72em; }
-        dialog.expanded .tooltip {
-          font-size: 0.92em; padding: 0.5em 0.7em; border-radius: 0.4em;
-        }
-        dialog.expanded .tooltip .dot { width: 0.6em; height: 0.6em; }
-        dialog.expanded .whatif { font-size: 1em; }
-        dialog.expanded .close svg { width: 1.4em; height: 1.4em; }
-
-        /* Dialog page tabs and the setup page (item 33) */
-        .dlg-tabs { display: flex; gap: 0.3em; flex: 0 0 auto; }
-        .dlg-tab {
-          border: 1px solid var(--divider-color, #e0e0e0);
-          background: transparent; color: var(--secondary-text-color);
-          border-radius: 1em; padding: 0.2em 0.9em; cursor: pointer;
-          font: inherit; font-size: 0.85em;
-        }
-        .dlg-tab.active {
-          color: var(--primary-text-color);
-          border-color: var(--primary-color, #03a9f4);
-        }
-        .dlg-tab:focus-visible {
-          outline: 2px solid var(--primary-color, #03a9f4);
-          outline-offset: 2px;
-        }
-        .setup-page { padding: 0.5em 0.25em; }
-        .setup-svg { width: 100%; height: auto; display: block; }
-        /* The rect stays in the markup as the geometry carrier the tests
-           and the drag editor read; the contour paths draw the visible
-           outline (v4.3.0). */
-        .setup-box { fill: none; stroke: none; }
-        .setup-contour {
-          fill: none; stroke: var(--primary-text-color, #212121);
-          stroke-width: 2; opacity: 0.75;
-          stroke-linecap: round; stroke-linejoin: round;
-          pointer-events: none;
-        }
-        .setup-accent {
-          fill: none; stroke: var(--secondary-text-color, #757575);
-          stroke-width: 1.25; opacity: 0.6;
-          stroke-linecap: round; pointer-events: none;
-        }
-        .setup-accent.divider { opacity: 0.5; }
-        .setup-accent.hub {
-          stroke: var(--primary-color, #03a9f4); opacity: 0.9;
-        }
-        .setup-coil {
-          fill: none; stroke: var(--primary-color, #03a9f4);
-          stroke-width: 2; opacity: 0.85;
-          stroke-linecap: round; pointer-events: none;
-        }
-        .setup-pipe-dot {
-          fill: var(--card-background-color, #fff);
-          stroke: var(--secondary-text-color, #888);
-          stroke-width: 1.5; opacity: 0.8; pointer-events: none;
-        }
-        .setup-flow {
-          fill: none; stroke: var(--secondary-text-color, #888);
-          stroke-width: 1.5; opacity: 0.55; pointer-events: none;
-        }
-        .setup-pipe {
-          fill: none; stroke: var(--secondary-text-color, #888);
-          stroke-width: 1.5; opacity: 0.55;
-        }
-        .setup-title {
-          font-size: 13px; font-weight: 600;
-          fill: var(--primary-text-color, #222);
-        }
-        .setup-slot { font-size: 12px; fill: var(--primary-text-color, #222); }
-        .setup-slot.empty {
-          fill: var(--secondary-text-color, #888);
-          opacity: 0.75; font-style: italic;
-        }
-        .setup-slot.extra { fill: var(--secondary-text-color, #888); }
-        .setup-value { font-weight: 600; }
-        .setup-hint {
-          color: var(--secondary-text-color);
-          font-size: 0.85em; padding: 0.5em 0.25em;
-        }
-        .setup-result {
-          color: var(--secondary-text-color);
-          font-size: 0.85em; padding: 0 0.25em 0.5em 0.25em;
-        }
-        .setup-hit { fill: transparent; cursor: pointer; }
-        /* fill-opacity, not opacity: element opacity would fade the focus
-           ring stroked on this same rect down to 12% as soon as the pointer
-           crossed a keyboard-focused row -- and :hover and :focus-visible
-           have equal specificity, so the later rule would win. Tinting only
-           the fill leaves the ring alone. */
-        .setup-hit:hover {
-          fill: var(--primary-color, #03a9f4); fill-opacity: 0.12;
-        }
-
-        /* The layout editor (v3.16.0, issue #40) */
-        .layout-bar {
-          display: flex; align-items: center; gap: 0.5em;
-          flex-wrap: wrap; padding: 0 0.25em 0.4em 0.25em;
-        }
-        .layout-bar button {
-          font: inherit; font-size: 0.85em; cursor: pointer;
-          border: 1px solid var(--divider-color, #e0e0e0);
-          background: transparent; color: var(--primary-text-color);
-          border-radius: 1em; padding: 0.2em 0.9em;
-        }
-        .layout-bar button:focus-visible {
-          outline: 2px solid var(--primary-color, #03a9f4);
-          outline-offset: 2px;
-        }
-        .layout-edit-toggle.on { border-color: var(--primary-color, #03a9f4); }
-        .layout-bar button[disabled] { opacity: 0.45; cursor: default; }
-        .layout-verdict {
-          flex: 1 1 100%; font-size: 0.85em;
-          color: var(--secondary-text-color);
-        }
-        .layout-verdict.match { color: var(--primary-color, #03a9f4); }
-        /* Editing widens the pipes: a 1.5-unit stroke is a hopeless click
-           target, and clicking a pipe is how one is removed. */
-        .setup-svg.editing .setup-pipe { stroke-width: 3.5; cursor: pointer; }
-        /* With stroke: none an unfilled rect catches no pointer, so the
-           move cursor needs pointer-events back on the surface; hit rects
-           painted later still win over their own rows, and drags themselves
-           are geometric via _layoutBoxAt either way. */
-        .setup-svg.editing .setup-box { cursor: move; pointer-events: all; }
-        /* Ornament off while editing: pipes widen into click targets and
-           ports appear, and dots or chevrons under the pointer would only
-           lie about what is clickable. */
-        .setup-svg.editing .setup-pipe-dot,
-        .setup-svg.editing .setup-flow { display: none; }
-        /* A drag on a touch screen must move the box, not scroll the page. */
-        .setup-svg.editing { touch-action: none; }
-        .setup-pipe.layout-match {
-          stroke: var(--primary-color, #03a9f4); opacity: 0.9;
-        }
-        .setup-pipe.invalid {
-          stroke: var(--error-color, #db4437); opacity: 0.95;
-          stroke-dasharray: 6 4;
-        }
-        .layout-port {
-          fill: var(--card-background-color, #fff);
-          stroke: var(--primary-color, #03a9f4); stroke-width: 1.5;
-          cursor: crosshair;
-        }
-        .layout-port-hit {
-          fill: #fff; fill-opacity: 0.001; stroke: none;
-          cursor: crosshair;
-        }
-        .layout-ghost {
-          fill: none; stroke: var(--primary-color, #03a9f4);
-          stroke-width: 1.5; stroke-dasharray: 4 3;
-        }
-        .setup-page { position: relative; }
-        .setup-picker {
-          position: absolute; left: 50%; top: 1em;
-          transform: translateX(-50%); z-index: 6;
-          background: var(--card-background-color, #fff);
-          border: 1px solid var(--divider-color, #ccc);
-          border-radius: 0.5em; padding: 0.7em 0.8em;
-          box-shadow: 0 2px 12px rgba(0,0,0,0.25);
-          min-width: 16em; max-width: 90%;
-        }
-        .sp-title { font-weight: 600; padding-bottom: 0.4em; }
-        /* The filter and the list it narrows are one control, so they are
-           built out of one rule: an input that did not inherit the card's
-           colours would be unreadable on a dark theme, which is the sort of
-           thing that only shows up on somebody else's screen. */
-        .sp-filter, .sp-select {
-          width: 100%; font: inherit; padding: 0.3em;
-          color: var(--primary-text-color);
-          background: var(--card-background-color, #fff);
-          border: 1px solid var(--divider-color, #ccc);
-          border-radius: 0.3em;
-        }
-        .sp-filter {
-          box-sizing: border-box; margin-bottom: 0.4em;
-        }
-        .sp-filter:focus-visible, .sp-select:focus-visible {
-          outline: 2px solid var(--primary-color, #03a9f4);
-          outline-offset: 1px;
-        }
-        .sp-actions {
-          display: flex; gap: 0.4em; padding-top: 0.5em;
-        }
-        .sp-actions button {
-          font: inherit; cursor: pointer; border-radius: 0.3em;
-          border: 1px solid var(--divider-color, #ccc);
-          background: transparent; color: var(--primary-text-color);
-          padding: 0.25em 0.8em;
-        }
-        .sp-save { border-color: var(--primary-color, #03a9f4) !important; }
-        /* An Assign that is armed to CLEAR the slot is not the same button
-           any more, and it should not look like it. Same treatment as the
-           what-if save's confirmation, which this flow is modelled on. */
-        .sp-save.confirm {
-          border-color: var(--error-color, #e0544e) !important;
-          background: var(--error-color, #e0544e);
-          color: var(--text-primary-color, #fff); font-weight: 600;
-        }
-        .sp-note {
-          color: var(--secondary-text-color);
-          font-size: 0.8em; padding-top: 0.4em;
-        }
-
-        /* Editable slot lanes */
-        .slot { cursor: grab; }
-        .slot.locked { cursor: not-allowed; }
-        .slot-handle { cursor: ew-resize; }
-        .lane { cursor: context-menu; }
-        /* A drag that selects the chart's text instead of moving the slot is
-           the single most common way this kind of editor feels broken. */
-        .lanes { user-select: none; }
-        .slot-menu {
-          position: absolute; z-index: 5;
-          background: var(--card-background-color, #fff);
-          border: 1px solid var(--divider-color, #ccc);
-          border-radius: 0.4em; padding: 0.2em;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-        }
-        .slot-menu button {
-          display: block; width: 100%; text-align: left;
-          font: inherit; border: none; background: none; cursor: pointer;
-          padding: 0.4em 0.7em; border-radius: 0.3em;
-          color: var(--primary-text-color);
-        }
-        .slot-menu button:hover {
-          background: var(--secondary-background-color, #eee);
-        }
-        .whatif .wi-section + .wi-section {
-          margin-top: 0.9em; padding-top: 0.7em;
-          border-top: 1px solid var(--divider-color, #e0e0e0);
-        }
-        .whatif .wi-delta { align-items: baseline; gap: 0.6em; }
-        .whatif .delta {
-          font-size: 1.25em; font-weight: 600;
-          font-variant-numeric: tabular-nums;
-        }
-        .whatif .wi-pin {
-          border-color: var(--primary-color, #03a9f4);
-          color: var(--primary-color, #03a9f4);
-        }
-        .whatif .wi-pin-result { margin-top: 0.4em; min-height: 1.2em; }
-
-        /* What-if simulator */
-        .whatif {
-          padding: 0.8em 0.3em 0.15em 0.3em; margin-top: 0.7em;
-          border-top: 1px solid var(--divider-color, #e0e0e0);
-          font-size: 0.95rem; color: var(--primary-text-color);
-        }
-        .whatif .wi-row {
-          display: flex; flex-wrap: wrap; align-items: flex-start; gap: 1.2em;
-          margin-bottom: 0.7em;
-        }
-        .whatif .wi-field {
-          display: flex; align-items: center; gap: 0.55em;
-        }
-        .whatif .wi-field > span { white-space: nowrap; }
-        .whatif input[type="range"] { width: 10em; max-width: 100%; }
-        .whatif input[type="time"] {
-          font: inherit; padding: 0.2em 0.4em; border-radius: 0.4em;
-          border: 1px solid var(--divider-color, #ccc);
-          background: var(--card-background-color, #fff);
-          color: var(--primary-text-color);
-        }
-        .whatif .wi-value {
-          min-width: 3.5em; font-variant-numeric: tabular-nums;
-          font-weight: 600;
-        }
-        .whatif .wi-group {
-          flex: 1 1 16em; min-width: 14em;
-          display: flex; flex-direction: column; gap: 0.4em;
-        }
-        .whatif .wi-group-title {
-          font-weight: 600; font-size: 0.9em;
-          color: var(--secondary-text-color);
-          text-transform: uppercase; letter-spacing: 0.04em;
-        }
-        .whatif .wi-hint {
-          font-size: 0.85em; color: var(--secondary-text-color);
-          line-height: 1.35em;
-        }
-        .whatif .wi-viewlimit {
-          font-size: 12px;
-          color: var(--secondary-text-color, #888);
-          margin: 4px 0 6px;
-        }
-        .whatif .wi-viewreset {
-          font-size: 12px;
-          padding: 1px 8px;
-          border: 1px solid var(--divider-color, #e0e0e0);
-          border-radius: 10px;
-          background: none;
-          color: var(--primary-color, #03a9f4);
-          cursor: pointer;
-        }
-        .lane-more { pointer-events: none; font-weight: 700; }
-        /* A stored value the setpoint no longer allows. Warning rather than
-           error: nothing is broken, but the number on screen is not the number
-           that was saved, and that must not pass unremarked. */
-        .whatif .wi-hint.wi-warn {
-          color: var(--warning-color, #d98e00);
-        }
-        .whatif .wi-windows {
-          display: flex; flex-direction: column; gap: 0.4em;
-        }
-        .whatif .wi-window {
-          display: flex; align-items: center; gap: 0.4em;
-        }
-        .whatif button {
-          font: inherit; cursor: pointer; border-radius: 1.1em;
-          border: 1px solid var(--divider-color, #ccc);
-          background: transparent; color: var(--primary-text-color);
-          padding: 0.35em 0.8em;
-        }
-        .whatif button:hover { border-color: var(--primary-color, #03a9f4); }
-        .whatif .wi-remove {
-          border: none; padding: 0 0.4em; font-size: 1.1em; line-height: 1;
-          color: var(--secondary-text-color);
-        }
-        .whatif .wi-remove:hover { color: var(--error-color, #e0544e); }
-        .whatif .wi-add { align-self: flex-start; font-size: 0.9em; }
-        .whatif .wi-apply {
-          border-color: var(--primary-color, #03a9f4);
-          color: var(--primary-color, #03a9f4); font-weight: 600;
-        }
-        .whatif .wi-save {
-          border-color: var(--primary-color, #03a9f4);
-          background: var(--primary-color, #03a9f4);
-          color: var(--text-primary-color, #fff); font-weight: 600;
-        }
-        .whatif .wi-save.confirm {
-          border-color: var(--error-color, #e0544e);
-          background: var(--error-color, #e0544e);
-        }
-        .whatif .wi-save[disabled] { opacity: 0.6; cursor: default; }
-        .whatif .wi-result {
-          flex: 1 1 100%; min-height: 1.4em; line-height: 1.5em;
-          color: var(--secondary-text-color);
-        }
-        .whatif .wi-result .wi-detail {
-          font-size: 0.88em; margin-top: 2px;
-        }
-        .whatif .wi-result.cheaper, .whatif .cheaper {
-          color: var(--success-color, #2fae7a);
-        }
-        .whatif .wi-result.dearer, .whatif .dearer {
-          color: var(--error-color, #e0544e);
-        }
-        @media (max-width: 600px) {
-          dialog.expanded { width: 96vw; padding: 12px; }
-          dialog.expanded .legend { font-size: 1rem; }
-          /* Phone-width dialogs (#40 feedback, item 1): the header must be
-             allowed to wrap, or the Plan/Setup tabs are pushed out of reach
-             by the title; and the setup diagram scrolls sideways at a
-             readable, tappable size instead of shrinking every slot row to
-             fingernail height. */
-          .dlg-head { flex-wrap: wrap; row-gap: 6px; }
-          .setup-canvas { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-          .setup-canvas svg { min-width: 560px; }
-        }
-      </style>
-    `;
+    // Delegate (#95): the stylesheet is pure and lives at top level now.
+    return cardStyleBlock();
   }
+
 
   _legendHtml() {
     const chips = SERIES_DEFS.map((def) => {
