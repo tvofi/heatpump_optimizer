@@ -1,0 +1,73 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Audit finder report",
+  "type": "object",
+  "required": ["dimension", "baseline_sha", "findings", "non_findings", "harnesses"],
+  "properties": {
+    "dimension": {"type": "string", "pattern": "^D(10|[0-9])$"},
+    "baseline_sha": {"type": "string", "minLength": 7},
+    "exposure": {"type": "string", "description": "Sources the finder had to read that carry earlier audit findings (D5/D6 only); empty otherwise"},
+    "findings": {"type": "array", "items": {"$ref": "#/definitions/finding"}},
+    "non_findings": {
+      "type": "array",
+      "description": "What was checked and held, each with the executed number that showed it",
+      "items": {
+        "type": "object",
+        "required": ["claim", "command", "value"],
+        "properties": {"claim": {"type": "string"}, "command": {"type": "string"}, "value": {"type": "string"}}
+      }
+    },
+    "harnesses": {"type": "array", "items": {"type": "string", "pattern": "^tools/audit/round[0-9]+/D(10|[0-9])/"}}
+  },
+  "definitions": {
+    "evidence": {
+      "type": "object",
+      "required": ["command", "harness_path", "value", "unit", "baseline_sha", "machine", "cpu_or_wall", "contention_note", "tolerance", "load1", "thread_factor"],
+      "properties": {
+        "command": {"type": "string"},
+        "harness_path": {"type": "string", "pattern": "^tools/audit/round[0-9]+/D(10|[0-9])/"},
+        "value": {"type": ["number", "string"]},
+        "unit": {"type": "string"},
+        "baseline_sha": {"type": "string"},
+        "machine": {"type": "string"},
+        "cpu_or_wall": {"enum": ["cpu", "wall", "count", "bytes", "ratio", "n/a"]},
+        "contention_note": {"type": "string", "description": "What else was running; 'quiet' only for a quiet-window re-take"},
+        "tolerance": {"type": "string", "description": "e.g. '±3 %' or 'exact'"},
+        "load1": {"type": "number"},
+        "thread_factor": {"type": "number"}
+      }
+    },
+    "finding": {
+      "type": "object",
+      "required": ["id", "title", "severity", "claim", "evidence", "instrumented_symbol", "perturbation", "metric_definition", "stop_rule_class", "files", "proposed_fix_scope"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^D(10|[0-9])-[0-9]{2}$"},
+        "title": {"type": "string", "maxLength": 120},
+        "severity": {"enum": ["critical", "high", "medium", "low"]},
+        "claim": {"type": "string", "description": "One sentence, falsifiable"},
+        "mechanism": {"type": "string"},
+        "evidence": {"$ref": "#/definitions/evidence"},
+        "instrumented_symbol": {"type": "string", "description": "module:symbol the harness hooks"},
+        "perturbation": {
+          "type": "object",
+          "required": ["change", "expected_direction"],
+          "properties": {"change": {"type": "string"}, "expected_direction": {"enum": ["up", "down", "to_zero", "sign_flip"]}, "observed_value": {"type": ["number", "string"]}}
+        },
+        "metric_definition": {"type": "string", "maxLength": 200},
+        "null_control": {"type": "object", "properties": {"command": {"type": "string"}, "value": {"type": ["number", "string"]}, "note": {"type": "string"}}},
+        "leave_one_out": {"type": "object", "properties": {"cells": {"type": "integer", "minimum": 5}, "min": {"type": "number"}, "max": {"type": "number"}, "drop_most_favourable": {"type": "number"}}},
+        "reproduction_steps": {"type": "array", "items": {"type": "string"}},
+        "proposed_fix_scope": {"type": "string"},
+        "files": {"type": "array", "items": {"type": "string"}},
+        "expected_golden_drift": {"type": "array", "items": {"type": "string"}},
+        "stop_rule_class": {"enum": ["bug", "hygiene"]}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"evidence": {"properties": {"cpu_or_wall": {"enum": ["cpu", "wall"]}}}}},
+          "then": {"required": ["null_control"]}
+        }
+      ]
+    }
+  }
+}
