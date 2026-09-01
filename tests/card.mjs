@@ -5950,6 +5950,36 @@ const setupBox = (card, place) =>
     calls.length === 1 && calls[0].entity_id === "sensor.tank_b", JSON.stringify(calls));
 }
 
+
+// --- #141: shared-band pattern ids are the card's own, and start over per render
+// They used to come from a page-global counter shared by every card, so the
+// ids in one card's markup depended on how often any other card had rendered.
+{
+  const shared = (() => {
+    const st = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+    const sp = st[DEFAULT_SPACE].attributes.forecast;
+    const heating = new Set(sp.filter((p) => Number(p.space_power) > 0.05).map((p) => p.t));
+    st[DEFAULT_DHW].attributes.forecast = st[DEFAULT_DHW].attributes.forecast.map((p) =>
+      heating.has(p.t) ? { ...p, dhw_power: 1.5 } : p);
+    return st;
+  })();
+  const ids = (card) => (collect(card.shadowRoot).join("\n").match(/<pattern id="([^"]+)"/g) || [])
+    .map((m) => m.slice(13, -1));
+  const a = build(shared);
+  a._onCardClick({});
+  const first = ids(a);
+  check("the two charts of one render get distinct ids",
+    first.length === 2 && first[0] !== first[1], first.join(","));
+  a._render();
+  check("and a second render hands out the same ids again",
+    JSON.stringify(ids(a)) === JSON.stringify(first), ids(a).join(","));
+  const b = build(shared);
+  b._onCardClick({});
+  check("a second card on the page starts from the same ids, not after the first's",
+    JSON.stringify(ids(b)) === JSON.stringify(first), ids(b).join(","));
+  check("the page-global counter is gone", !("_sharedPatternSeq" in Card));
+}
+
 // --- The host stays small ---------------------------------------------------
 // The decomposition (#136) left the element with the Lovelace contract, the
 // render cycle and its compositions, and nothing else. A ratchet, not a
