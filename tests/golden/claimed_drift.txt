@@ -50,7 +50,7 @@
 # records schemas -- 12 leaves, one per page, exactly the new field.
 # No solver path is touched, so no other scenario moves.
 #
-config_flow -- every saving page's schema gains the after_save field, issue 100
+config_flow # every saving page's schema gains the after_save field, issue 100
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
