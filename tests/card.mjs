@@ -64,6 +64,7 @@ const lineNote = fn("lineNote");
 const lineLabel = fn("lineLabel");
 const chartSvgs = fn("chartSvgs");
 const timeAtClientX = fn("timeAtClientX");
+const geomOfChart = fn("geomOfChart");
 // `lineLabel` asks whether the lower floor is modelled only for the one line
 // that needs it; a card's answer is bound here so a test reads as it did.
 const lineLabelOf = (c) => (def, line) =>
@@ -5978,6 +5979,46 @@ const setupBox = (card, place) =>
   check("a second card on the page starts from the same ids, not after the first's",
     JSON.stringify(ids(b)) === JSON.stringify(first), ids(b).join(","));
   check("the page-global counter is gone", !("_sharedPatternSeq" in Card));
+}
+
+
+// --- #138: each chart copy keeps its own lane geometry --------------------------
+// With the dialog open two charts render into one shadow root, and the
+// geometry the lanes and the hit-tests used was whichever was drawn last --
+// the expanded copy's. Its font is 15 against the compact chart's 10, and on
+// a phone the compact chart's boosted font moves its margins too, so a drag
+// on the inline chart was hit-tested against the dialog's plot.
+{
+  const c = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), { what_if: true });
+  c._onCardClick({});
+  const svgs = chartSvgs(c.shadowRoot);
+  check("two chart copies, two geometries",
+    svgs.length === 2 && c.geomAt(0) !== c.geomAt(1) && c.geomAt(0).font === 10 && c.geomAt(1).font === 15,
+    `fonts ${c.geomAt(0) && c.geomAt(0).font}, ${c.geomAt(1) && c.geomAt(1).font}`);
+  check("and the one the event's chart gets is its own",
+    geomOfChart(c, svgs[0]) === c.geomAt(0) && geomOfChart(c, svgs[1]) === c.geomAt(1) &&
+    c.geomAt() === c.geomAt(1));
+  const labelFont = (svg) => (svg.querySelector(".lanes").innerHTML.match(/class="lane-label"[^>]*font-size="([\d.]+)"/) || [])[1];
+  c.lanes.refreshLanes();
+  check("a redraw draws the inline lanes at the inline font and the dialog's at the dialog's",
+    labelFont(svgs[0]) === "8" && labelFont(svgs[1]) === "12",
+    `inline ${labelFont(svgs[0])}, expanded ${labelFont(svgs[1])}`);
+
+  // On a phone-width card the compact chart's boosted font widens its margins
+  // (D4-01), so the same screen x is a different time on the two copies; the
+  // inline chart's own geometry is what a pointer on it must be read with.
+  const narrow = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), { what_if: true });
+  narrow._measuredCardWidth = () => 287;
+  narrow._onCardClick({});
+  const [inl, exp] = chartSvgs(narrow.shadowRoot);
+  const gi = geomOfChart(narrow, inl), ge = geomOfChart(narrow, exp);
+  check("the compact copy's margins differ from the dialog's", gi.plotL !== ge.plotL, `${gi.plotL} vs ${ge.plotL}`);
+  const t = gi.windowStart + 4 * HOUR;
+  const x = gi.plotL + ((t - gi.windowStart) / (gi.windowEnd - gi.windowStart)) * gi.plotW;
+  check("a point on the inline chart maps back to its own time",
+    Math.abs(timeAtClientX(inl, x, geomOfChart(narrow, inl)) - t) < 60000 &&
+    Math.abs(timeAtClientX(inl, x, ge) - t) > 60000,
+    "the dialog's geometry would have read it as a different time");
 }
 
 // --- The host stays small ---------------------------------------------------
