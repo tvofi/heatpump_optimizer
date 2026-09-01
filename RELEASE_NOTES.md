@@ -1,5 +1,32 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.2.7
+
+### The docs say what the code does (audit round 1, part 1)
+
+The September 2026 audit verified every documentation claim against the
+shipped tree and found six wrong. All six corrected, no behaviour
+change:
+
+- **configuration.md** — the "1 · Basics" table was missing the four
+  pump-status fields shipped in v5.3.0 (`heat_pump_mode_entity`,
+  `heat_pump_defrost_entity`, `heat_pump_online_entity`,
+  `heat_pump_fault_entity`); the setup step offers **17** fields, not
+  13. "17 assignable configuration keys" is **21**
+  (`topology.ASSIGNABLE_KEYS`), and the Sensors-and-entities options
+  page has **22** fields, 16 shared with setup step 1.
+- **architecture.md** — 45 modules, not 42; `pump_mode.py` and
+  `pump_signals.py` added to the module map (stale since v5.1.7).
+- **plan-open-issues.md** — the delivery record now states what
+  RELEASE_NOTES.md already did (all of #94–#101 shipped; the batched-FD
+  gradient shipped in full in v6.2.0, not "in review").
+- **tests/README.md** — `manual_plan.py` and `setup_qa_render.mjs`
+  added to the individually-runnable script list; both were already
+  wired into `run.sh`.
+- **manifest.json** — `documentation`/`issue_tracker` pointed at a
+  GitHub identity that does not exist (HTTP 404, verified); both, and
+  `codeowners`, repointed at `tvofi/heatpump_optimizer`.
+
 ## v6.2.6
 
 ### The money and energy numbers say what they are
