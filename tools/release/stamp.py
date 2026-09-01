@@ -116,7 +116,7 @@ def rewrite_claims(text: str, new_version: str, title: str) -> tuple[str, str | 
             out.append("# next branch restates its own footprint, claims included.")
             out.append("#")
             i += 1
-            while i < len(lines) and lines[i].startswith("#"):
+            while i < len(lines) and lines[i].startswith("#") and not lines[i].startswith("# may-drift:"):
                 i += 1
             continue
         if line.strip() and not line.startswith("#"):
@@ -155,6 +155,11 @@ def self_test() -> int:
     check("claims: may-drift kept", "# may-drift: wood_coil" in new)
     check("claims: old reason gone", "old reason" not in new)
     check("claims: no bare lines", all(not l.strip() or l.startswith("#") for l in new.splitlines()))
+    tight = "# claims-for: 6.2.12\n# reason\n# may-drift: wood_coil -- x\nfoo  # claim\n"
+    new2, _, deleted2 = rewrite_claims(tight, "6.2.13", "t")
+    check("claims: may-drift survives without a blank line", "# may-drift: wood_coil" in new2 and deleted2 == 1)
+    check("notes: #16 is not covered by #165", not re.search(r"#16(?!\d)", "fixed in #165"))
+    check("tags: pre-release tags are ignored", not TAG_RE.match("v6.2.15-rc1") and bool(TAG_RE.match("v6.2.15")))
     print(f"RESULT stamp_self_test={'pass' if ok else 'fail'}")
     return 0 if ok else 1
 
@@ -186,7 +191,7 @@ def main() -> int:
         raise Refuse(1, f"working tree has changes beyond RELEASE_NOTES.md: {dirty}")
 
     # Rule 2: HEAD's unscoped gate is green.
-    runs = json.loads(sh("gh", "run", "list", "--workflow", "Tests", "--commit", head,
+    runs = json.loads(sh("gh", "run", "list", "--workflow", "Tests", "--commit", head, "--event", "push",
                          "--json", "status,conclusion,databaseId", "--limit", "5"))
     done = [r for r in runs if r["status"] == "completed"]
     green = any(r["conclusion"] == "success" for r in done)
@@ -204,8 +209,8 @@ def main() -> int:
     current = VERSION_FILE.read_text().strip()
     nxt = bump(current, args.bump)
     tags = [t for t in sh("git", "tag", "--list").split() if TAG_RE.match(t)]
-    remote = [l.split("refs/tags/")[1] for l in sh("git", "ls-remote", "--tags", "origin").splitlines()
-              if "refs/tags/v" in l and not l.endswith("^{}")]
+    remote = [t for t in (l.split("refs/tags/")[1] for l in sh("git", "ls-remote", "--tags", "origin").splitlines()
+                            if "refs/tags/v" in l and not l.endswith("^{}")) if TAG_RE.match(t)]
     if f"v{nxt}" in tags or f"v{nxt}" in remote:
         raise Refuse(3, f"tag v{nxt} already exists")
     top = max((version_tuple(t) for t in tags + remote), default=(0, 0, 0))
@@ -218,7 +223,7 @@ def main() -> int:
     if not body:
         raise Refuse(4, f"RELEASE_NOTES.md must open with a non-empty '## v{nxt}' section")
     subjects = sh("git", "log", f"{last_tag}..HEAD", "--format=%s").splitlines() if last_tag else []
-    missing = sorted(pr for pr in merged_prs(subjects) if f"#{pr}" not in body)
+    missing = sorted(pr for pr in merged_prs(subjects) if not re.search(rf"#{pr}(?!\d)", body))
     if missing:
         raise Refuse(4, f"merged since {last_tag} but not mentioned in the v{nxt} notes: #{', #'.join(missing)}")
 

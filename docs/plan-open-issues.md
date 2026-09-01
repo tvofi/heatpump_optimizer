@@ -123,7 +123,8 @@ issues' own measure-first discipline, honoured.
   empties both claim files, and pushes the tag; the release workflow
   quotes the notes onto the release page. Four branches each picking
   "the next version" once cost real cycles; the stamp script refuses a
-  tag that exists and a claim file whose stamp disagrees with `VERSION`.
+  tag that exists, a red gate, and notes that omit a merged PR, and it
+  restamps both claim files whatever stamp they carried.
 
 ## Wave 0 — the eleven CodeQL alerts
 
