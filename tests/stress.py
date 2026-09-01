@@ -1077,11 +1077,19 @@ if __name__ == "__main__":
     # differs by tens of MiB across platforms, and this check exists to
     # catch retained-growth regressions, not interpreter noise.
     R.section("Memory (D9-04)")
+    # Check mode probes the MEMORY_TOP_N dearest scenarios; record mode
+    # probes ALL of them -- which scenarios land in a machine's top-N
+    # depends on the machine, and a peak recorded only for this
+    # machine's own top six failed CI on a runner whose dearest set
+    # differed (unrecorded: shoulder/tariff, shoulder/cycle).
+    _by_cost = sorted(
+        ((r[1], r[0]) for r in ratios), key=lambda kv: -kv[1]
+    )
     mem_labels = [
         label
-        for label, _ in sorted(
-            ((r[1], r[0]) for r in ratios), key=lambda kv: -kv[1]
-        )[:MEMORY_TOP_N]
+        for label, _ in (
+            _by_cost if record_mode else _by_cost[:MEMORY_TOP_N]
+        )
     ]
     rss_before_mb = rss_mb()
     mem_over: list[str] = []

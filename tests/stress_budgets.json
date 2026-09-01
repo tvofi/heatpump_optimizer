@@ -1,158 +1,242 @@
 {
  "flat/1z/dhw": {
-  "ratio": 19.62
+  "ratio": 23.61,
+  "rss_peak_mb": 95.3,
+  "traced_peak_mb": 2.03
  },
  "flat/1z/space": {
-  "ratio": 15.88
+  "ratio": 16.18,
+  "rss_peak_mb": 85.2,
+  "traced_peak_mb": 0.85
  },
  "flat/2z/dhw": {
-  "ratio": 53.26
+  "ratio": 41.16,
+  "rss_peak_mb": 93.7,
+  "traced_peak_mb": 1.83
  },
  "flat/2z/space": {
-  "ratio": 52.47
+  "ratio": 49.19,
+  "rss_peak_mb": 85.1,
+  "traced_peak_mb": 0.87
  },
  "heavy_old/shoulder": {
-  "ratio": 34.49
+  "ratio": 30.71,
+  "rss_peak_mb": 93.4,
+  "traced_peak_mb": 3.46
  },
  "heavy_old/winter": {
-  "ratio": 27.82
+  "ratio": 22.68,
+  "rss_peak_mb": 94.9,
+  "traced_peak_mb": 3.46
  },
  "light_new/shoulder": {
-  "ratio": 9.13
+  "ratio": 12.06,
+  "rss_peak_mb": 94.0,
+  "traced_peak_mb": 1.83
  },
  "light_new/winter": {
-  "ratio": 21.97
+  "ratio": 36.01,
+  "rss_peak_mb": 94.1,
+  "traced_peak_mb": 2.03
  },
  "shoulder/1z/dhw": {
-  "ratio": 17.21
+  "ratio": 15.85,
+  "rss_peak_mb": 93.4,
+  "traced_peak_mb": 1.83
  },
  "shoulder/1z/space": {
-  "ratio": 26.74
+  "ratio": 25.3,
+  "rss_peak_mb": 84.8,
+  "traced_peak_mb": 0.86
  },
  "shoulder/2z/dhw": {
-  "ratio": 51.83
+  "ratio": 50.94,
+  "rss_peak_mb": 90.5,
+  "traced_peak_mb": 2.04
  },
  "shoulder/2z/space": {
-  "ratio": 38.05
+  "ratio": 39.02,
+  "rss_peak_mb": 89.2,
+  "traced_peak_mb": 0.86
  },
  "shoulder/cycle": {
-  "ratio": 70.02
+  "ratio": 65.79,
+  "rss_peak_mb": 95.5,
+  "traced_peak_mb": 1.83
  },
  "shoulder/pv": {
-  "ratio": 69.62
+  "ratio": 61.16,
+  "rss_peak_mb": 93.7,
+  "traced_peak_mb": 1.83
  },
  "shoulder/pv+cycle": {
-  "ratio": 150.33,
-  "rss_peak_mb": 93.2,
+  "ratio": 144.65,
+  "rss_peak_mb": 94.2,
   "traced_peak_mb": 1.83
  },
  "shoulder/tariff": {
-  "ratio": 69.4
+  "ratio": 70.33,
+  "rss_peak_mb": 94.0,
+  "traced_peak_mb": 1.83
  },
  "shoulder/tariff+cycle": {
-  "ratio": 105.75,
-  "rss_peak_mb": 94.3,
+  "ratio": 114.97,
+  "rss_peak_mb": 87.9,
   "traced_peak_mb": 1.83
  },
  "shoulder/tariff+pv": {
-  "ratio": 175.17,
-  "rss_peak_mb": 87.5,
+  "ratio": 221.04,
+  "rss_peak_mb": 94.2,
   "traced_peak_mb": 1.83
  },
  "shoulder/tariff+pv+cycle": {
-  "ratio": 254.74,
-  "rss_peak_mb": 92.5,
+  "ratio": 454.94,
+  "rss_peak_mb": 93.9,
   "traced_peak_mb": 1.83
  },
  "summer/1z/dhw": {
-  "ratio": 4.29
+  "ratio": 4.24,
+  "rss_peak_mb": 95.4,
+  "traced_peak_mb": 1.83
  },
  "summer/1z/space": {
-  "ratio": 0.74
+  "ratio": 0.72,
+  "rss_peak_mb": 87.8,
+  "traced_peak_mb": 0.8
  },
  "summer/2z/dhw": {
-  "ratio": 3.64
+  "ratio": 3.63,
+  "rss_peak_mb": 95.0,
+  "traced_peak_mb": 1.83
  },
  "summer/2z/space": {
-  "ratio": 1.59
+  "ratio": 1.63,
+  "rss_peak_mb": 88.9,
+  "traced_peak_mb": 0.84
  },
  "summer_negative/1z/dhw": {
-  "ratio": 4.77
+  "ratio": 4.82,
+  "rss_peak_mb": 94.7,
+  "traced_peak_mb": 1.83
  },
  "summer_negative/1z/space": {
-  "ratio": 0.74
+  "ratio": 0.75,
+  "rss_peak_mb": 84.8,
+  "traced_peak_mb": 0.8
  },
  "summer_negative/2z/dhw": {
-  "ratio": 4.1
+  "ratio": 3.89,
+  "rss_peak_mb": 94.3,
+  "traced_peak_mb": 1.83
  },
  "summer_negative/2z/space": {
-  "ratio": 1.62
+  "ratio": 1.55,
+  "rss_peak_mb": 88.3,
+  "traced_peak_mb": 0.84
  },
  "typical_slab/shoulder": {
-  "ratio": 19.26
+  "ratio": 16.1,
+  "rss_peak_mb": 88.4,
+  "traced_peak_mb": 1.83
  },
  "typical_slab/winter": {
-  "ratio": 5.33
+  "ratio": 4.9,
+  "rss_peak_mb": 96.6,
+  "traced_peak_mb": 3.45
  },
  "winter/1z/dhw": {
-  "ratio": 7.02
+  "ratio": 6.52,
+  "rss_peak_mb": 95.3,
+  "traced_peak_mb": 3.44
  },
  "winter/1z/space": {
-  "ratio": 2.63
+  "ratio": 2.65,
+  "rss_peak_mb": 89.4,
+  "traced_peak_mb": 0.84
  },
  "winter/2z/dhw": {
-  "ratio": 32.33
+  "ratio": 31.91,
+  "rss_peak_mb": 90.7,
+  "traced_peak_mb": 3.46
  },
  "winter/2z/space": {
-  "ratio": 32.79
+  "ratio": 33.45,
+  "rss_peak_mb": 82.7,
+  "traced_peak_mb": 0.86
  },
  "winter/cycle": {
-  "ratio": 71.95
+  "ratio": 49.81,
+  "rss_peak_mb": 94.6,
+  "traced_peak_mb": 3.46
  },
  "winter/pv": {
-  "ratio": 33.81
+  "ratio": 30.59,
+  "rss_peak_mb": 85.9,
+  "traced_peak_mb": 3.46
  },
  "winter/pv+cycle": {
-  "ratio": 48.69
+  "ratio": 51.09,
+  "rss_peak_mb": 88.0,
+  "traced_peak_mb": 3.46
  },
  "winter/tariff": {
-  "ratio": 67.41
+  "ratio": 77.54,
+  "rss_peak_mb": 93.8,
+  "traced_peak_mb": 1.83
  },
  "winter/tariff+cycle": {
-  "ratio": 109.03,
-  "rss_peak_mb": 96.6,
+  "ratio": 118.61,
+  "rss_peak_mb": 90.7,
   "traced_peak_mb": 1.83
  },
  "winter/tariff+pv": {
-  "ratio": 67.96
+  "ratio": 76.31,
+  "rss_peak_mb": 90.4,
+  "traced_peak_mb": 1.83
  },
  "winter/tariff+pv+cycle": {
-  "ratio": 110.56,
-  "rss_peak_mb": 94.4,
+  "ratio": 134.53,
+  "rss_peak_mb": 87.8,
   "traced_peak_mb": 1.83
  },
  "winter_extreme/1z/dhw": {
-  "ratio": 5.3
+  "ratio": 5.06,
+  "rss_peak_mb": 93.5,
+  "traced_peak_mb": 3.44
  },
  "winter_extreme/1z/space": {
-  "ratio": 2.96
+  "ratio": 2.86,
+  "rss_peak_mb": 89.1,
+  "traced_peak_mb": 0.84
  },
  "winter_extreme/2z/dhw": {
-  "ratio": 53.68
+  "ratio": 62.17,
+  "rss_peak_mb": 93.6,
+  "traced_peak_mb": 3.47
  },
  "winter_extreme/2z/space": {
-  "ratio": 81.52
+  "ratio": 88.02,
+  "rss_peak_mb": 88.8,
+  "traced_peak_mb": 0.87
  },
  "winter_mild/1z/dhw": {
-  "ratio": 29.22
+  "ratio": 35.52,
+  "rss_peak_mb": 94.2,
+  "traced_peak_mb": 3.46
  },
  "winter_mild/1z/space": {
-  "ratio": 16.57
+  "ratio": 18.54,
+  "rss_peak_mb": 88.7,
+  "traced_peak_mb": 0.85
  },
  "winter_mild/2z/dhw": {
-  "ratio": 49.37
+  "ratio": 45.42,
+  "rss_peak_mb": 89.1,
+  "traced_peak_mb": 1.83
  },
  "winter_mild/2z/space": {
-  "ratio": 36.06
+  "ratio": 34.28,
+  "rss_peak_mb": 89.0,
+  "traced_peak_mb": 0.86
  }
 }
