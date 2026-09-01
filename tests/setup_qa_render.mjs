@@ -64,7 +64,7 @@ function renderTopo(name, topo) {
   if (card.connectedCallback) card.connectedCallback();
   card.hass = { states };
   card._onCardClick({});
-  card._dialogPage = "setup";
+  card.dialog.page = "setup";
   card._render();
   const page = collect(card.shadowRoot).join("\n");
   const svg = (page.match(/<svg class="setup-svg[\s\S]*?<\/svg>/) || [""])[0];
@@ -79,8 +79,8 @@ function renderTopo(name, topo) {
   const file = path.join(outDir, `${name}.svg`);
   fs.writeFileSync(file, withStyle);
   console.log(`${name}: ${file}`);
-  console.log(`  boxes: ${JSON.stringify(card._layoutBoxes)}`);
-  return { svg, boxes: card._layoutBoxes };
+  console.log(`  boxes: ${JSON.stringify(card.layout.boxes)}`);
+  return { svg, boxes: card.layout.boxes };
 }
 
 renderTopo("coil", coil);

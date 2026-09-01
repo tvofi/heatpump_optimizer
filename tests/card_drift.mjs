@@ -97,10 +97,37 @@ const setupStates = (plan, topo, extra) => {
   return st;
 };
 
+
+// The two sides of a comparison need not speak the same dialect: the
+// baseline is the comparison ref's card, which may predate the decomposition
+// (#136), and the tree's card has no `_` seams once PR 9 landed. Every
+// driver goes through these, which take whichever the card offers.
+const api = {
+  open: (c) => (c.dialog ? c.dialog.open() : c._openExpanded()),
+  setPage: (c, page) => {
+    if (c.dialog) c.dialog.page = page;
+    else c._dialogPage = page;
+  },
+  draft: (c) => (c.manual ? c.manual.draft() : c._draftRuns()),
+  bounds: (c) => (c.manual ? c.manual.bounds() : c._editBounds()),
+  zoom: (c, f) => (c.view ? c.view.zoom(f) : c._zoomView(f)),
+  openMenu: (c, ...a) => (c.lanes ? c.lanes.openMenu(...a) : c._openSlotMenu(...a)),
+  whatIfInput: (c, ev) => (c.whatIf ? c.whatIf.onInput(ev) : c._onWhatIfInput(ev)),
+  addWindow: (c, ev) => (c.whatIf ? c.whatIf.onAddWindow(ev) : c._onAddWindow(ev)),
+  disarmWhatIf: (c) => {
+    if (c.whatIf) { clearTimeout(c.whatIf.timer); c.whatIf.timer = null; }
+    else { clearTimeout(c._whatIfTimer); c._whatIfTimer = null; }
+  },
+  boxes: (c) => (c.layout ? c.layout.boxes : c._layoutBoxes) || [],
+  layoutDown: (c, ev) => (c.layout ? c.layout.onDown(ev) : c._onLayoutDown(ev)),
+  layoutMove: (c, ev) => (c.layout ? c.layout.onMove(ev) : c._onLayoutMove(ev)),
+  layoutUp: (c, ev) => (c.layout ? c.layout.onUp(ev) : c._onLayoutUp(ev)),
+};
+
 const setupPage = (side, topo, extra) => {
   const c = buildCard(side.Card, setupStates(side.plan, topo, extra));
   c._onCardClick({});
-  c._dialogPage = "setup";
+  api.setPage(c, "setup");
   c._render();
   return c;
 };
@@ -129,7 +156,7 @@ const STATES = [
   { name: "no_plan",
     drive: (s) => buildCard(s.Card, {}) },
   { name: "no_plan_expanded",
-    drive: (s) => { const c = buildCard(s.Card, {}); c._openExpanded(); return c; } },
+    drive: (s) => { const c = buildCard(s.Card, {}); api.open(c); return c; } },
   { name: "plan_inline",
     drive: (s) => buildCard(s.Card, planStates(s.plan)) },
   { name: "plan_inline_sv",
@@ -166,7 +193,7 @@ const STATES = [
     drive: (s) => {
       const c = buildCard(s.Card, planStates(s.plan));
       c._onCardClick({});
-      c._zoomView(0.25);
+      api.zoom(c, 0.25);
       return c;
     } },
   { name: "draft_dirty_menu_open",
@@ -174,8 +201,8 @@ const STATES = [
       const c = buildCard(s.Card, planStates(s.plan), { what_if: true });
       c._onCardClick({});
       const geom = c._geom;
-      const runs = c._draftRuns().dhw;
-      const [lo] = c._editBounds();
+      const runs = api.draft(c).dhw;
+      const [lo] = api.bounds(c);
       const i = runs.findIndex((r) => r.end > lo && r.start >= lo);
       const svg = svgOf(c);
       if (i >= 0) {
@@ -185,7 +212,7 @@ const STATES = [
         fire(svg, "pointermove", evAt(geom, before.start + 60000 + HOUR, target));
         fire(svg, "pointerup", {});
       }
-      c._openSlotMenu("space", geom.windowStart + 2 * HOUR, 120, 40, svg, false);
+      api.openMenu(c, "space", geom.windowStart + 2 * HOUR, 120, 40, svg, false);
       return c;
     } },
   { name: "whatif_edited",
@@ -193,14 +220,13 @@ const STATES = [
       const c = buildCard(s.Card, scheduleStates(s.plan), { what_if: true });
       c._hass = { states: c._hass.states, callService: async () => ({ response: { results: {} } }) };
       c._onCardClick({});
-      c._onWhatIfInput({
+      api.whatIfInput(c, {
         ...noop,
         target: { value: "42", classList: { contains: (x) => x === "wi-dhw-min" } },
       });
       // The slider armed a simulate; nothing here should reach a service.
-      clearTimeout(c._whatIfTimer);
-      c._whatIfTimer = null;
-      c._onAddWindow({ ...noop });
+      api.disarmWhatIf(c);
+      api.addWindow(c, { ...noop });
       return c;
     } },
   { name: "override_active",
@@ -214,7 +240,7 @@ const STATES = [
       st[DEFAULT_SPACE].attributes.manual_override = info;
       st[DEFAULT_DHW].attributes.manual_override = info;
       const c = buildCard(s.Card, st, { what_if: true });
-      c._openExpanded();
+      api.open(c);
       return c;
     } },
   // The shared-step band and its tooltip sentence need both circuits planned
@@ -270,13 +296,13 @@ const STATES = [
       const c = setupPage(s, layoutCatalogTopo());
       const toggle = c.shadowRoot.querySelector(".layout-edit-toggle");
       if (toggle) fire(toggle, "click", { ...noop });
-      const box = (c._layoutBoxes || []).find((b) => b.place === "buffer_tank");
+      const box = api.boxes(c).find((b) => b.place === "buffer_tank");
       if (box) {
         const from = { x: box.x + box.w / 2, y: box.y + box.h / 2 };
         const to = { x: from.x + 40, y: from.y + 30 };
-        c._onLayoutDown(layoutEv(from, { dataset: {} }));
-        c._onLayoutMove(layoutEv({ x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 }));
-        c._onLayoutUp(layoutEv(to));
+        api.layoutDown(c, layoutEv(from, { dataset: {} }));
+        api.layoutMove(c, layoutEv({ x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 }));
+        api.layoutUp(c, layoutEv(to));
       }
       return c;
     } },

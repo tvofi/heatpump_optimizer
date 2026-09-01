@@ -251,7 +251,7 @@ try {
     // renders inside it, and setting _dialogPage alone leaves the dialog
     // closed and the svg absent.
     card._onCardClick({});
-    card._dialogPage = "setup";
+    card.dialog.page = "setup";
     card._render();
     const svg = card.shadowRoot && card.shadowRoot.querySelector("svg.setup-svg");
     if (!svg) return null;
