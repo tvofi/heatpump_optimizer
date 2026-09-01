@@ -43,10 +43,10 @@
 # does not expire with the stamp and is not part of the inherited-claims
 # comparison.
 #
-# claims-for: 6.2.2
+# claims-for: 6.2.3
 #
-# Documentation only (the plan file's completion record);
-# no behaviour changes, so no golden moves.
+# Card-string changes only (tooltip wording); no solver path
+# touched, so no golden moves.
 #
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum

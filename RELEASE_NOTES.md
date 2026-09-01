@@ -1,5 +1,22 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.2.3
+
+### A mode-paused channel explains itself, in its own words
+
+"The heat pump's mode cannot do this" was true and useless: it named no
+channel, said where the setting lives, or what to do about it. A user
+reading it against hot water that never gets hot had no way to know
+the fix is the mode selector on the physical unit — heat-only makes no
+hot water, hot-water-only heats no rooms — and not anything in the
+integration.
+
+The tooltip now shows a channel-aware explanation: "No hot water: the
+pump's operating mode — set on the unit — cannot heat water (heat-only
+or cooling). Switch the unit to a mode that includes hot water", and
+the heating mirror image. Those steps carry no power, so the hover is
+the only place the explanation can live. Swedish carries the same.
+
 ## v6.2.2
 
 ### The fix program, complete on the record
