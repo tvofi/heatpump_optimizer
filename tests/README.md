@@ -151,8 +151,8 @@ whole suite and takes as long):
 
 which records just that script and merges the result into
 `tests/closures.json`. Commit both together. (`golden.py` and `env_drift.py`
-get their cheap recorded arguments automatically; `card.mjs` is recorded
-through strace.) If the script belongs in a lane permanently, add it to
+get their cheap recorded arguments automatically; `card.mjs` and
+`card_drift.mjs` are recorded through strace.) If the script belongs in a lane permanently, add it to
 `tests/derive_closures.sh` as well, so full re-derivations keep it fresh.
 
 ### What you see when something is skipped
@@ -228,6 +228,7 @@ python tests/env_drift.py    # sensitive fixtures vs origin/main, same machine
 python tests/plan_view.py    # plan sensor payloads, writes /tmp/plandata.json
 node   tests/card.mjs        # renders the dashboard card against that payload
 node   tests/setup_qa_render.mjs  # setup-page SVGs off the same payload, for designer review
+node   tests/card_drift.mjs       # the card's markup gate: this tree vs GOLDEN_REF, byte for byte
 ```
 
 `profiles.py` holds Nord Pool SE3 price curves and Swedish weather profiles for
@@ -466,9 +467,32 @@ model. Drift, oscillation and learner divergence only appear there.
   discovery by `plan_kind`, the expanded dialog, legend scaling in the popup,
   reason codes in the tooltip, the shading of estimated prices, and the what-if
   simulator's debounce and error handling.
+- **card_drift.mjs** is the card's markup gate, the `env_drift.py` idea
+  applied to the dashboard card. It runs the working tree's card and the
+  comparison ref's card (`git show`, the card is one file) through the same
+  twenty-odd states -- inline, expanded, zoomed, a dirty slot draft with its
+  menu open, an edited what-if draft, an override in force, the tooltip,
+  the three QA topologies' setup pages, a layout drag, a filtered entity
+  picker, the config editor's schema -- in one process, against the same
+  payload and the same frozen clock, and requires every rendered tree to be
+  byte-identical. A state that moves must be claimed, with a reason, in
+  `tests/golden/card_claimed_drift.txt`, whose `claims-for:` stamp must equal
+  `VERSION` (checked by `card.mjs` too, so a strict local run without a ref
+  still sees a stale stamp). Differential rather than golden-based because a
+  committed rendering would move with Node's ICU, the time zone and every
+  optimizer change; two cards in one process share all of those. `run.sh`
+  skips it when `GOLDEN_REF` is unreachable or is this commit, exactly as it
+  does for `env_drift.py`.
 
-Two files in `tests/` are not tests at all and are excluded from the
+Four files in `tests/` are not tests at all and are excluded from the
 "every script must be wired into `run.sh`" accounting:
+
+- **dom_stub.mjs** is the DOM the Node card harnesses run against (#101),
+  and **card_rig.mjs** the rest of what they share: the vm context around
+  that stub, the plan-sensor states built from `plan_view.py`'s payload,
+  the three setup-page topologies, the frozen clock, and the claim-file
+  parser `card.mjs` and `card_drift.mjs` both use. One copy, three
+  importers, for the reason #101 records.
 
 - **closure.py** is the scoping instrument. It runs the tests in order to
   measure what they touch, derives each one's dependency closure, folds the

@@ -277,6 +277,57 @@ try {
       outside.length === 0,
       outside.map((h) => h.key).join(", "));
   }
+
+  // --- D4-01: the compact chart's text at phone width ----------------------
+  // The shipped defect, measured by the audit on a 287 px tile: axis text
+  // at 3.19 px glyph height -- outlines gone. The card now floors the
+  // rendered font (the viewBox-unit font grows as the tile narrows), and
+  // the only honest place to prove it is a real layout engine: shrink the
+  // host, re-render, and measure ON-SCREEN sizes. getComputedStyle is
+  // useless here -- it reports the font-size attribute in user units,
+  // with no viewBox scaling -- so the screen size is reconstructed from
+  // the svg's own rect, the one transform that actually applies.
+  const phoneFont = await page.evaluate(async () => {
+    const card = window.__card;
+    card.style.width = "287px";
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    card._render();
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    const root = card.shadowRoot;
+    if (!root) return null;
+    const chart = root.querySelector(".chartwrap svg");
+    if (!chart) return null;
+    const svgRect = chart.getBoundingClientRect();
+    const scale = svgRect.width / 900;
+    const labels = [...chart.querySelectorAll("text")]
+      .filter((t) => (t.getAttribute("font-size") || "").length > 0);
+    if (!labels.length) return null;
+    const sizes = labels.map((t) => {
+      const attr = Number(t.getAttribute("font-size"));
+      const bbox = t.getBBox ? t.getBBox() : { height: 0 };
+      return {
+        screenFontPx: attr * scale,
+        glyphScreenPx: bbox.height * scale,
+        text: (t.textContent || "").trim().slice(0, 12),
+      };
+    });
+    return {
+      hostW: card.getBoundingClientRect().width,
+      maxScreenFont: Math.max(...sizes.map((s) => s.screenFontPx)),
+      maxGlyph: Math.max(...sizes.map((s) => s.glyphScreenPx)),
+      n: sizes.length,
+    };
+  });
+  check("a phone-width tile renders axis text at or above the 8 px floor",
+    phoneFont !== null && phoneFont.maxScreenFont >= 8 - 0.05,
+    phoneFont
+      ? `host ${phoneFont.hostW.toFixed(0)} px, ${phoneFont.n} labels, ` +
+        `largest on-screen font ${phoneFont.maxScreenFont.toFixed(2)} px, ` +
+        `largest glyph box ${phoneFont.maxGlyph.toFixed(2)} px`
+      : "no chart labels found");
+  check("and the glyphs have real outlines again (height > 5 px)",
+    phoneFont !== null && phoneFont.maxGlyph > 5,
+    phoneFont ? `largest glyph ${phoneFont.maxGlyph.toFixed(2)} px on screen` : "none");
 } finally {
   await browser.close();
 }
