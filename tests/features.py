@@ -12413,6 +12413,16 @@ _fr_coord = Coord(_fr_hass, _FakeEntry(data=_LC_DATA))
 _fr_calls: list[str] = []
 
 
+async def _fr_prices_ok() -> None:
+    # D10-07 made a failed Tibber fetch fail the whole update (entities go
+    # unavailable -- the honest signal). These two checks are about the
+    # solve-skip flag, not the fetch, so the fetch succeeds trivially.
+    _fr_coord._prices = [{"total": 1.0, "starts_at": "2026-03-28T00:00:00Z"}] * 24
+
+
+_fr_coord._fetch_tibber_prices = _fr_prices_ok
+
+
 async def _fr_boom() -> None:
     _fr_calls.append("boom")
     raise AssertionError("the setup refresh ran the solve")
@@ -12448,6 +12458,101 @@ R.check(
     "the second refresh solves normally — the flag never latches",
     _fr_calls == ["solved"] and isinstance(_fr_data2, dict),
     f"solve calls: {_fr_calls}",
+)
+
+# --- D10-06 / D10-07 / D10-09: unload lifecycle and Tibber failure --------
+R.section("Unload lifecycle and Tibber failure semantics (D10-06/07/09)")
+
+from heatpump_optimizer.const import CONF_TIBBER_TOKEN as _CONF_TIBBER_TOKEN  # noqa: E402
+
+# D10-07: a failed price fetch must FAIL the update. Every failure path used
+# to return silently, so last_update_success never moved and the entities
+# stayed available forever behind stale prices. The stub's session getter
+# raises, which is exactly one such failure.
+_tib = Coord(_FakeHass(), _FakeEntry(data=_LC_DATA))
+_tib._config[_CONF_TIBBER_TOKEN] = "stub-token"
+_tib_raised = None
+try:
+    _asyncio.run(_tib._fetch_tibber_prices())
+except Exception as err:  # noqa: BLE001 - the specific class is the assertion
+    _tib_raised = err
+R.check(
+    "a failed Tibber fetch raises UpdateFailed, failing the update cycle",
+    type(_tib_raised).__name__ == "UpdateFailed",
+    f"raised {type(_tib_raised).__name__}: {_tib_raised}",
+)
+
+# D10-09: the outage latches. The first failure logs ERROR; the second must
+# not -- a day-long outage used to print the same ERROR on every cycle.
+_tib._tibber_outage_cycles = 0
+for _ in range(2):
+    try:
+        _asyncio.run(_tib._fetch_tibber_prices())
+    except Exception:  # noqa: BLE001 - expected
+        pass
+R.check(
+    "two failed fetches count two outage cycles (the ERROR logged once)",
+    _tib._tibber_outage_cycles == 2,
+    f"cycles: {_tib._tibber_outage_cycles}",
+)
+_tib._tibber_fetch_recovered()
+R.check(
+    "a successful fetch clears the outage latch",
+    _tib._tibber_outage_cycles == 0,
+    f"cycles: {_tib._tibber_outage_cycles}",
+)
+
+# D10-06: the override must run the base class's shutdown. Real HA's
+# async_shutdown stops the refresh debouncer and any in-flight refresh; an
+# override that drops super() leaks both on every unload/reload. The stub
+# records the call for exactly this assertion.
+_shut = Coord(_FakeHass(), _FakeEntry(data=_LC_DATA))
+_asyncio.run(_shut.async_shutdown())
+R.check(
+    "async_shutdown runs the base class's shutdown (timer/debouncer leak)",
+    _shut.base_shutdown_called,
+    "the override dropped super().async_shutdown()",
+)
+
+# D1-02 hygiene: fire-and-forget tasks are tracked, and shutdown lets them
+# finish rather than orphaning them against a torn-down entry. The shared
+# FakeHass closes spawned coroutines (nothing awaits setup tasks there), so
+# this one runs on a local hass stand-in whose create_task is real.
+class _TaskHass(_FakeHass):
+    def async_create_task(self, coro):
+        import asyncio as _aio
+
+        try:
+            loop = _aio.get_running_loop()
+        except RuntimeError:
+            # Constructed outside a loop, like the shared fake: close.
+            coro.close()
+            return None
+        return loop.create_task(coro)
+
+
+_bg = Coord(_TaskHass(), _FakeEntry(data=_LC_DATA))
+_bg_done = {"n": 0}
+
+
+async def _bg_drive() -> None:
+    async def _bg_save() -> None:
+        _bg_done["n"] += 1
+
+    _bg_task = _bg._spawn(_bg_save())
+    R.check(
+        "a spawned task is tracked until it lands",
+        _bg_task in _bg._background_tasks and not _bg_task.done(),
+        "the tracker never saw the task",
+    )
+    await _bg.async_shutdown()
+
+
+_asyncio.run(_bg_drive())
+R.check(
+    "shutdown lets a pending background save finish",
+    _bg_done["n"] == 1 and not _bg._background_tasks,
+    f"saves done: {_bg_done['n']}, still tracked: {len(_bg._background_tasks)}",
 )
 
 # A save that changes nothing must not reload. The options flow rewrites the
@@ -16855,6 +16960,117 @@ R.check(
         i[1] == "dhw_legionella_above_setpoint"
         for i in getattr(_lg_edited_leg.hass, "issues", [])
     ),
+)
+
+
+# --- M2: a weather outage is surfaced, never silently papered over ---------
+R.section("Weather staleness is surfaced (M2)")
+
+_WX_ENTITY = "weather.home"
+_wx_cfg = dict(_LC_DATA)
+_wx_cfg["weather_entity"] = _WX_ENTITY
+_wx = Coord(_FakeHass(), _FakeEntry(data=_wx_cfg))
+
+
+async def _wx_call(domain, service, data=None, **kwargs):
+    # No handler registered for get_forecasts: the fetch fails exactly as
+    # it does against an unresponsive weather integration.
+    return None
+
+
+_wx.hass.services.async_call = _wx_call
+
+_asyncio.run(_wx._fetch_weather_forecast())
+R.check(
+    "a failed weather fetch latches the outage and marks the forecast stale",
+    _wx._weather_outage_cycles == 1
+    and _wx._weather_stale_since is not None
+    and _wx.weather_stale_hours() is not None
+    and _wx.weather_stale_hours() >= 0.0,
+    f"cycles {_wx._weather_outage_cycles}, stale since "
+    f"{_wx._weather_stale_since}, age {_wx.weather_stale_hours()}",
+)
+
+_asyncio.run(_wx._fetch_weather_forecast())
+R.check(
+    "a second failed cycle counts the outage but keeps one staleness start",
+    _wx._weather_outage_cycles == 2 and _wx.weather_stale_hours() is not None,
+    f"cycles {_wx._weather_outage_cycles}",
+)
+
+# A failing FIRST fetch with a live entity state fabricates the constant
+# 48 h trajectory -- and it is stale from birth, disclosed as such.
+_wx_fab = Coord(_FakeHass(), _FakeEntry(data=_wx_cfg))
+
+
+async def _wx_raising_call(domain, service, data=None, **kwargs):
+    # The fallback fabrication lives in the except path: the service call
+    # itself must blow up, as it does when the weather integration is
+    # broken rather than merely empty.
+    raise RuntimeError("weather integration broken")
+
+
+_wx_fab.hass.services.async_call = _wx_raising_call
+_wx_fab.hass.states.set(
+    _WX_ENTITY,
+    FakeState("cold", attributes={"temperature": "-8.0", "wind_speed": "3.0"}),
+)
+_asyncio.run(_wx_fab._fetch_weather_forecast())
+R.check(
+    "the fabricated fallback forecast exists and is stale from birth",
+    len(_wx_fab._weather_forecast) == 48
+    and _wx_fab._weather_stale_since is not None
+    and all(
+        fc["temperature"] == -8.0 for fc in _wx_fab._weather_forecast
+    ),
+    f"entries {len(_wx_fab._weather_forecast)}, stale "
+    f"{_wx_fab.weather_stale_hours()} h",
+)
+
+# Recovery: a good fetch clears the latch and the staleness.
+_wx_ok = Coord(_FakeHass(), _FakeEntry(data=_wx_cfg))
+
+
+async def _wx_good_call(domain, service, data=None, **kwargs):
+    return {_WX_ENTITY: {"forecast": [
+        {"datetime": "2026-03-28T%02d:00:00Z" % h, "temperature": 1.5,
+         "wind_speed": 2.0, "precipitation": 0.0, "solar_irradiance": 10.0}
+        for h in range(24)
+    ]}}
+
+
+_wx_ok.hass.services.async_call = _wx_good_call
+_asyncio.run(_wx_ok._fetch_weather_forecast())
+R.check(
+    "a successful fetch clears the outage and the staleness",
+    _wx_ok._weather_outage_cycles == 0
+    and _wx_ok._weather_stale_since is None
+    and _wx_ok.weather_stale_hours() is None
+    and len(_wx_ok._weather_forecast) == 24
+    and _wx_ok._solar_radiation_forecast[:1] == [10.0],
+    f"cycles {_wx_ok._weather_outage_cycles}, stale "
+    f"{_wx_ok.weather_stale_hours()}, entries {len(_wx_ok._weather_forecast)}",
+)
+
+# D8-02's half: an EMPTY result keeps the previous forecast -- marked
+# stale, not silently fresh forever.
+_wx_empty = Coord(_FakeHass(), _FakeEntry(data=_wx_cfg))
+
+
+async def _wx_empty_call(domain, service, data=None, **kwargs):
+    return {_WX_ENTITY: {"forecast": []}}
+
+
+_wx_empty.hass.services.async_call = _wx_empty_call
+_wx_empty._weather_forecast = [{"temperature": 2.0}] * 24
+_asyncio.run(_wx_empty._fetch_weather_forecast())
+R.check(
+    "an empty result keeps the previous forecast, marked stale",
+    len(_wx_empty._weather_forecast) == 24
+    and _wx_empty._weather_stale_since is not None
+    and _wx_empty._weather_outage_cycles == 1,
+    f"entries {len(_wx_empty._weather_forecast)}, stale since "
+    f"{_wx_empty._weather_stale_since}",
 )
 
 sys.exit(R.close("FEATURE CHECKS"))

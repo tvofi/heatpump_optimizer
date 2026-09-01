@@ -7,6 +7,11 @@ class DataUpdateCoordinator:
         self.data = None
         self.refresh_requests = 0
         self.last_update_success = True
+        # Real HA's async_shutdown stops the refresh debouncer and any
+        # in-flight refresh (config-entry-unloading, Silver). The stub does
+        # none of that machinery but records the call, so an override that
+        # forgets `super().async_shutdown()` is visible to a test.
+        self.base_shutdown_called = False
 
     async def async_request_refresh(self):
         # Counted rather than executed: a test that exercises a setter should
@@ -20,6 +25,9 @@ class DataUpdateCoordinator:
         # Counted like the other refreshes: entry-lifecycle tests need setup
         # to complete, not to run a full optimization as a side effect.
         await self.async_request_refresh()
+
+    async def async_shutdown(self) -> None:
+        self.base_shutdown_called = True
 
     def async_update_listeners(self):
         return None

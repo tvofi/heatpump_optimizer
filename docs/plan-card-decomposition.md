@@ -218,6 +218,12 @@ protocol methods. The `disconnectedCallback` sequence is preserved exactly
    float digits change), do not reorder attach calls, do not swap
    `undefined` sentinels (`_dialogPage === undefined` is load-bearing), do
    not route auto-pan through rAF.
+   A method that becomes a module function loses one level of indentation
+   -- on its CODE lines only. The continuation lines of a multi-line
+   template literal are string content, and their leading spaces are part of
+   the rendered markup; re-indenting them is a behaviour change the gate
+   catches only in a state that renders that markup (PR 3 learned this from
+   the shared-step band, and added the state).
 2. **Seams.** Every moved method leaves a one-line same-named `_` delegate on
    the host; every moved field that `tests/card.mjs` reads *or writes* gets
    a `get _x()` / `set _x(v)` accessor pair on the host (fields tests write:
@@ -313,10 +319,23 @@ passing layout facts into `pageHtml` and returning boxes from `svg()`.
 calls `setup.redrawCanvas(edit)` then updates verdict/buttons. PRs 7a/7b
 can run in parallel with 5a–6 after PR 4b.
 
+*Landed as one PR (7): splitting it would have left the page reaching into
+the host's layout methods for one release. `SetupPage.svg(topo, {editing,
+edit})` returns `{html, boxes}` and the host's `_setupPageHtml` composes the
+page from both collaborators, so the only dependency is layout → setup.*
+
 **PR 8 — Host cleanup.** `_render` is pure composition; `_signature` and
 `disconnectedCallback` are explicit compositions in today's order;
 `parseConfig`; remaining `this.shadowRoot` reach-ins from collaborators go
 through `host.shadowRoot`.
+
+*As landed: `parseConfig` and the constructor's comments. `_render`,
+`_signature` and `disconnectedCallback` were already compositions by then,
+and every collaborator reaches the DOM through `host.shadowRoot`. The frame
+object was NOT introduced: `_series`, `_plot` and `_geom` stay host fields
+published by `_chartBlock`, because a frame rebuilt per render would either
+reset `_geom` on the no-data path (a behaviour change, #142) or carry the
+stale one forward on purpose, and neither is worth a field rename.*
 
 **PR 9 (a/b/c) — Test migration + seam removal.** `tests/card.mjs` moves to
 `card.view`, `card.manual`, `card.lanes`, `card.whatIf`, `card.setup`,

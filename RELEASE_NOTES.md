@@ -1,5 +1,48 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.2.13
+
+### A weather outage is surfaced, never silently papered over
+
+A failed weather fetch used to fabricate a 48 h flat forecast from the
+current temperature that read as real data — measured at **+41.9 %
+realized cost** on the audit's cold-front scenario — and an empty
+result kept the previous forecast forever with no signal at all.
+Every failure path now latches an outage (logged once, not per cycle),
+and the payload publishes `weather_forecast_stale_hours` so the card,
+sensors and diagnostics can disclose what a plan was built on. The
+fabricated constant trajectory is only built when nothing better
+exists, and it is stale from birth. Weather failure deliberately does
+not fail the update the way a price-fetch failure does: planning on
+marked-stale weather is the honest degradation. Mutation-proved:
+deleting the staleness latch fails four of the five new checks.
+
+## v6.2.12
+
+### Unload runs the base shutdown; a Tibber outage fails the update, once
+
+Three Home Assistant quality-scale fixes (audit round 1):
+
+- **`async_shutdown` now calls `super()`** (config-entry-unloading,
+  Silver). The override leaked the base coordinator's refresh debouncer
+  and any in-flight refresh on every unload/reload, and then awaits
+  still-pending store writes (capped at 5 s) instead of orphaning them.
+- **A failed Tibber fetch fails the update** (entity-unavailable,
+  Silver). Every failure path used to return silently, so
+  `last_update_success` never flipped and the entities stayed available
+  forever behind stale prices. The entities now go unavailable and
+  recover with the next successful cycle.
+- **The outage logs once** (log-when-unavailable, Silver): first
+  failure ERROR, the rest DEBUG while a latch counts, recovery INFO
+  with the outage's length.
+
+Also: the deferred `hass.async_create_task` calls are tracked so
+shutdown can let in-flight saves finish (the hygiene residue of the
+refuted D1-02 leak finding). Mutation-proved: deleting the `super()`
+call fails the new check. This release also carries the first four
+card-decomposition refactors (#146, #147, #149, #157),
+behaviour-neutral.
+
 ## v6.2.11
 
 ### The card reads at phone width, single points draw, the savings baseline is visible

@@ -11,7 +11,7 @@
 
 const CARD_TAG = "heatpump-optimizer-card";
 const EDITOR_TAG = "heatpump-optimizer-card-editor";
-const CARD_VERSION = "5.4.2";
+const CARD_VERSION = "5.4.12";
 
 // The de-duplication key `_extraFields` files a confidence band's two
 // edges under, so the pair counts as the one named trace it is. A Symbol
@@ -3016,338 +3016,330 @@ function cardStyleBlock() {
   `;
 }
 
-// ===========================================================================
-// The card element, and the contract its collaborators get.
-//
-// This class is being taken apart (docs/plan-card-decomposition.md): each
-// feature -- the plan source, the chart, the zoom window, the slot lanes,
-// the what-if panel, the setup page, the dialog -- leaves as a collaborator
-// that is handed THIS object and may use only what is listed here:
-//
-//   host.hass, host.config     the Lovelace inputs
-//   host.shadowRoot            the DOM it renders into
-//   host.render()              rebuild, keeping the render signature
-//   host.renderForced()        rebuild and forget it (the next hass redraws)
-//   host.suppressNextClick()   the next card click is the tail of a gesture
-//
-// A collaborator never reaches into a sibling; what it needs from one is
-// handed to its constructor, and the graph stays acyclic. Until a feature
-// has left, its methods live here as they always did.
-// ===========================================================================
-class HeatpumpOptimizerCard extends HTMLElement {
-  constructor() {
-    super();
-    this.attachShadow({ mode: "open" });
-    this._config = null;
-    this._hass = null;
-    this._sig = null;
-    this._hidden = {}; // key -> true when hidden
-    // Whether the score breakdown panel is open (#2). Instance state, not
-    // DOM state, so it survives the shadow-root rebuild every refresh does.
-    this._scoreOpen = false;
-    this._series = [];
-    this._plot = null;
-    this._resizeObserver = null;
-    this._expanded = false;
-    // What-if simulator state (item 21). Kept on the instance so a re-render
-    // triggered by a data refresh does not reset the slider under the user.
-    this._whatIf = null;
-    this._whatIfTimer = null;
-    this._pendingSave = false;
-    this._saveTimer = null;
-    // The entity picker's per-visit state: which slot is open, what has been
-    // typed into its filter, which entity is chosen (null = "whatever the
-    // slot already holds") and whether an Assign that would CLEAR the slot
-    // has been armed.
-    this._pickerKey = null;
-    this._pickerSlot = null;
-    this._pickerFilter = "";
-    this._pickerChoice = null;
-    this._pendingClear = false;
-    this._clearTimer = null;
-    this._dialogFontPx = 0;
-    this._dialogScroll = 0;
-    // Pan/zoom window (item 23). `null` means "the default window", so an
-    // untouched card behaves exactly as it did before this existed.
-    this._view = null;
-    this._viewLimits = null;
-    this._viewFrame = 0;
-    this._pan = null;
-    this._suppressClick = false;
-    // The layout editor (v3.16.0, issue #40). Instance state, like the what-if
-    // draft and for the same reason: `_render` rebuilds the shadow root on the
-    // coordinator's schedule, and a half-drawn layout that vanished on a plan
-    // refresh would be worse than no editor. `null` means "not editing", so an
-    // untouched setup page behaves exactly as it did before this existed.
-    this._layoutEdit = null;
-    // Where the last drawing put each box, in viewBox units, so a drop can be
-    // tested against real geometry instead of guessing from the event target.
-    this._layoutBoxes = [];
-    // Everything else the card owns, declared here rather than on first
-    // use somewhere in the body (the decomposition's PR 0): the only way to
-    // learn what state this class carried used to be reading all of it. The
-    // sentinels are the ones the readers test for -- `_dialogPage` must stay
-    // `undefined` (`_render` uses `=== undefined` for "no page chosen yet");
-    // the rest are read with `!x` or `if (x)`.
-    this._dialogPage = undefined;
-    // Chart geometry the pan gesture and the slot lanes hit-test against,
-    // published by `_chartSvg` while editing is enabled.
-    this._geom = null;
-    // The slot draft (`_draftRuns`) and whether the user has edited it.
-    this._runs = null;
-    this._runsDirty = false;
-    // A slot drag in progress, and the edge auto-pan interval it may run.
-    this._drag = null;
-    this._dragPan = null;
-    // The open slot menu, where it was opened from, and the Escape
-    // listener it parked on the document.
-    this._slotMenu = null;
-    this._menuOrigin = null;
-    this._menuEscape = null;
-    this._menuEscapeTarget = null;
-    // The chart's last measured rectangle, a hover fallback.
-    this._svgRect = null;
-    // The setup page's status line, re-applied after every rebuild.
-    this._setupNote = null;
-    // Entity-discovery and headline-sensor memos.
-    this._resolvedCache = null;
-    this._statCache = null;
-    this._statMissAt = null;
-    this._sensorCountFor = null;
-    this._sensorCountN = 0;
-    // Whether the picker was opened from the keyboard: focus goes into it,
-    // and back to the row on the way out.
-    this._pickerFocus = false;
-    this._pickerViaKeyboard = false;
-    this._onLayoutDown = this._onLayoutDown.bind(this);
-    this._onLayoutMove = this._onLayoutMove.bind(this);
-    this._onLayoutUp = this._onLayoutUp.bind(this);
-    this._onLayoutClick = this._onLayoutClick.bind(this);
-    this._onLegendClick = this._onLegendClick.bind(this);
-    this._onChartWheel = this._onChartWheel.bind(this);
-    this._onPanDown = this._onPanDown.bind(this);
-    this._onPointerMove = this._onPointerMove.bind(this);
-    this._onPointerLeave = this._onPointerLeave.bind(this);
-    this._onCardClick = this._onCardClick.bind(this);
-    this._onExpandClick = this._onExpandClick.bind(this);
-    this._onDialogClick = this._onDialogClick.bind(this);
-    this._onDialogClose = this._onDialogClose.bind(this);
-    this._onWhatIfInput = this._onWhatIfInput.bind(this);
-    this._onSlotEdit = this._onSlotEdit.bind(this);
-    this._onAddWindow = this._onAddWindow.bind(this);
-    this._onRemoveWindow = this._onRemoveWindow.bind(this);
-    this._onApplySlots = this._onApplySlots.bind(this);
-    this._onSaveSchedule = this._onSaveSchedule.bind(this);
-    this._onResetWhatIf = this._onResetWhatIf.bind(this);
+// ---- The series: pure functions of forecasts and a window -----------------
+// What the chart, the legend and the tooltip draw, computed from the plan
+// sensors' forecasts with no reference to the card: the host resolves the
+// forecasts and the window, these turn them into series and answer questions
+// about the traces. Same bodies as the methods they were (PR 1 of #136).
+
+const parseStamp = (p) => {
+  const t = Date.parse(p.t);
+  return Number.isNaN(t) ? null : t;
+};
+
+/** The default plot window: [now, now + hours], or -- when nothing falls
+ * inside it (purely historical or test data) -- the data's own extent, so
+ * the card still shows something instead of an empty plot. `dataEnd` is the
+ * last sample, which is what the zoom window clamps against. */
+function defaultWindow(spFc, dhwFc, hours, now) {
+  const parse = parseStamp;
+
+  let windowStart = now;
+  let windowEnd = now + hours * 3600 * 1000;
+
+  // Determine whether any data actually falls inside [now, now+hours]. If not
+  // (e.g. purely historical or test data), fall back to the full extent so the
+  // card still shows something instead of an empty plot.
+  const allTimes = [];
+  for (const p of spFc) {
+    const t = parse(p);
+    if (t !== null) allTimes.push(t);
+  }
+  for (const p of dhwFc) {
+    const t = parse(p);
+    if (t !== null) allTimes.push(t);
+  }
+  const inWindow = allTimes.some((t) => t >= windowStart && t <= windowEnd);
+  if (!inWindow && allTimes.length) {
+    windowStart = Math.min(...allTimes);
+    windowEnd = Math.min(
+      Math.max(...allTimes),
+      windowStart + hours * 3600 * 1000
+    );
   }
 
-  // ---- Lovelace contract -------------------------------------------------
+  return {
+    start: windowStart,
+    end: windowEnd,
+    dataEnd: allTimes.length ? Math.max(...allTimes) : windowEnd,
+  };
+}
 
-  setConfig(config) {
-    if (config === null || typeof config !== "object") {
-      throw new Error(L("errors.cfg_not_object"));
-    }
-    const cfg = { ...DEFAULTS, ...config };
+/** Every series definition, cut to the window. `hidden` is the legend's
+ * toggle state (a hidden series is still built, so its chip knows whether
+ * there is data behind it); `zoomed` rides along for the view controls. */
+function buildSeries({ spFc, dhwFc, solarFc, windowStart, windowEnd, hidden, zoomed }) {
+  const parse = parseStamp;
 
-    if (typeof cfg.space_entity !== "string" || !cfg.space_entity.includes(".")) {
-      throw new Error(L("errors.cfg_space_entity"));
-    }
-    if (typeof cfg.dhw_entity !== "string" || !cfg.dhw_entity.includes(".")) {
-      throw new Error(L("errors.cfg_dhw_entity"));
-    }
-    if (typeof cfg.solar_entity !== "string" || !cfg.solar_entity.includes(".")) {
-      throw new Error(L("errors.cfg_solar_entity"));
-    }
-    if (typeof cfg.what_if !== "boolean") {
-      throw new Error(L("errors.cfg_what_if"));
-    }
-    if (typeof cfg.show_stats !== "boolean") {
-      throw new Error(L("errors.cfg_show_stats"));
-    }
-    const hours = Number(cfg.hours);
-    if (!Number.isFinite(hours) || hours <= 0 || hours > 168) {
-      throw new Error(L("errors.cfg_hours"));
-    }
-    cfg.hours = hours;
-    if (cfg.title !== undefined && typeof cfg.title !== "string") {
-      throw new Error(L("errors.cfg_title"));
-    }
-    if (cfg.series !== undefined) {
-      if (typeof cfg.series !== "object" || cfg.series === null) {
-        throw new Error(L("errors.cfg_series"));
+  const pick = (sensor) =>
+    sensor === "dhw" ? dhwFc : sensor === "solar" ? solarFc : spFc;
+  const either = (field) => {
+    // prefer space forecast, fall back to dhw
+    if (spFc.some((p) => p[field] !== undefined && p[field] !== null))
+      return spFc;
+    return dhwFc;
+  };
+
+  const series = [];
+  for (const def of SERIES_DEFS) {
+    const fc = def.sensor === "either" ? either(def.field) : pick(def.sensor);
+    const lines = [];
+    let primaryPts = null;
+    const fields = [def.field].concat(def.extra || []);
+    for (const field of fields) {
+      // Every in-window sample, with a missing value kept as a HOLE
+      // rather than dropped. v5.2.0: the hot-water band is null wherever
+      // the accuracy record cannot answer, and a dropped null let the
+      // curve bridge straight across the gap — drawing an envelope over
+      // a stretch there is no evidence for. The room's zone traces were
+      // only ever accidentally safe from this: they have no holes.
+      const raw = [];
+      for (const p of fc) {
+        const t = parse(p);
+        if (t === null) continue;
+        if (t < windowStart || t > windowEnd) continue;
+        const v = p[field];
+        const usable =
+          v !== null && v !== undefined && !Number.isNaN(Number(v));
+        raw.push({
+          t,
+          v: usable ? Number(v) : null,
+          // Reason codes and price provenance ride along on the point so the
+          // tooltip can explain a slot without a second lookup.
+          reason: p.reason,
+          priceKnown: p.price_known,
+        });
       }
-      for (const k of Object.keys(cfg.series)) {
-        if (!SERIES_DEFS.some((s) => s.key === k)) {
-          throw new Error(L("errors.cfg_series_unknown", { k }));
+      raw.sort((a, b) => a.t - b.t);
+      // The field's real samples, holes removed: what "is this trace a
+      // copy of the primary?" has to be asked about, and what the primary
+      // is remembered as. Asking it per segment would compare a fragment
+      // against the whole and never match.
+      const pts = raw.filter((q) => q.v !== null);
+      if (!pts.length) continue;
+      const primary = field === def.field;
+      // A single-zone house still publishes `upper` and `lower`: the
+      // one-zone dynamics set both to the room temperature step by step,
+      // so the extras are exact copies of the primary. Drawing them put
+      // two dashed lines under the solid one, and naming them would put
+      // two more chips in the legend and two more rows in the tooltip for
+      // a house that has one zone. Drop a duplicate rather than label it.
+      //
+      // v5.2.0: this catches a second case for free. A tank record that
+      // has scored pairs but never been wrong answers sigma 0, so both
+      // band edges land exactly on the curve; dropping them is right for
+      // the same reason it is right for the zones, and it is the same
+      // rule doing it.
+      if (!primary && samePoints(pts, primaryPts)) continue;
+      if (primary) primaryPts = pts;
+      const labelKey = primary
+        ? def.labelKey
+        : (def.extraLabels || {})[field] || def.labelKey;
+      // A hole BREAKS the trace into a new segment rather than being
+      // skipped over. One field can therefore own several lines; every
+      // consumer reaches them through `_fieldPoints`, and the per-field
+      // identity (`field`, `primary`, `labelKey`) is carried on each.
+      let seg = [];
+      const flush = () => {
+        if (seg.length) {
+          lines.push({
+            field,
+            points: seg,
+            primary,
+            // Named per line, not per series: `_lineLabel` resolves the
+            // dictionary key so the tooltip and the legend cannot disagree
+            // about what a trace is called.
+            labelKey,
+          });
         }
-        if (typeof cfg.series[k] !== "boolean") {
-          throw new Error(L("errors.cfg_series_visibility", { k }));
-        }
+        seg = [];
+      };
+      for (const q of raw) {
+        if (q.v === null) flush();
+        else seg.push(q);
       }
+      flush();
     }
-
-    this._config = cfg;
-    this._hidden = this._loadHidden(cfg);
-    this._sig = null; // force re-render on next hass
-    if (this._hass) this._maybeRender(true);
-  }
-
-  set hass(hass) {
-    this._hass = hass;
-    // The frontend's language rides on the hass object; keep the dictionary
-    // in step before anything renders. `_signature` includes the language,
-    // so a switch re-renders even when the data has not changed.
-    setLanguage(hass && hass.language);
-    this._maybeRender(false);
-  }
-
-  get hass() {
-    return this._hass;
-  }
-
-  getCardSize() {
-    return 8;
-  }
-
-  static getStubConfig() {
-    return {
-      type: `custom:${CARD_TAG}`,
-      space_entity: DEFAULTS.space_entity,
-      dhw_entity: DEFAULTS.dhw_entity,
-    };
-  }
-
-  /** The visual editor, defined in this same file (no build step, no lazy
-   * chunk to fetch). Home Assistant awaits the return value, so returning
-   * the element directly is part of the contract. */
-  static getConfigElement() {
-    return document.createElement(EDITOR_TAG);
-  }
-
-  connectedCallback() {
-    if (typeof ResizeObserver !== "undefined" && !this._resizeObserver) {
-      this._resizeObserver = new ResizeObserver(() => {
-        // Width changes don't alter the viewBox model, but refreshing the
-        // cached bounding rect keeps hover geometry accurate after layout.
-        this._cacheRect();
-      });
-      try {
-        this._resizeObserver.observe(this);
-      } catch (e) {
-        /* ignore */
-      }
-    }
-  }
-
-  /** Everything attached OUTSIDE this card's own shadow root.
-   *
-   * `_render` replaces the shadow root wholesale, so anything inside it dies
-   * with the rebuild and needs no help. The slot menu's Escape handler does
-   * not: it is parked on the DOCUMENT, because a mouse-opened menu leaves
-   * focus on the chart and the menu element never sees the key. Two paths
-   * used to drop the menu without dropping the handler -- a plan refresh,
-   * which happens on the coordinator's schedule rather than the user's, and
-   * the card being removed from the dashboard, which leaked one listener per
-   * card visit for the lifetime of the page.
-   *
-   * One method, called from both, rather than two lists that agree today.
-   */
-  _teardown() {
-    this._closeSlotMenu();
-  }
-
-  disconnectedCallback() {
-    // Nothing of this card may outlive it on the document.
-    this._teardown();
-    // A modal dialog left open would outlive the card in the top layer.
-    if (this._expanded) this._closeExpandedQuietly();
-    // A pending what-if solve would otherwise fire after the card is gone,
-    // spending seconds of coordinator CPU to write into a detached DOM.
-    if (this._whatIfTimer) {
-      clearTimeout(this._whatIfTimer);
-      this._whatIfTimer = null;
-    }
-    // Likewise an armed save confirmation: it must not survive the card.
-    if (this._saveTimer) {
-      clearTimeout(this._saveTimer);
-      this._saveTimer = null;
-    }
-    this._pendingSave = false;
-    // Nor an armed "clear this slot" confirmation in the entity picker.
-    this._cancelPendingClear();
-    if (this._resizeObserver) {
-      try {
-        this._resizeObserver.disconnect();
-      } catch (e) {
-        /* ignore */
-      }
-      this._resizeObserver = null;
-    }
-  }
-
-  // ---- persistence -------------------------------------------------------
-
-  // Two cards can plot the same entities — a 24 h card on the wall panel
-  // dashboard and a 48 h card with its own title on another — so the key
-  // carries the card's config identity (title + hours), not just its data
-  // sources. Otherwise a series toggled off on one card silently disappears
-  // from the other.
-  _storageKey(cfg) {
-    const title = cfg.title !== undefined ? cfg.title : "";
-    return `${CARD_TAG}:${cfg.space_entity}:${cfg.dhw_entity}:${title}:${cfg.hours}`;
-  }
-
-  /** The pre-v4.2.0 key, read as a fallback so an upgrade does not silently
-   * drop every saved series toggle. Writes always go to the new key. */
-  _storageKeyLegacy(cfg) {
-    return `${CARD_TAG}:${cfg.space_entity}:${cfg.dhw_entity}`;
-  }
-
-  _loadHidden(cfg) {
-    const hidden = {};
-    // Config-provided initial visibility (false => hidden).
-    if (cfg.series) {
-      for (const [k, v] of Object.entries(cfg.series)) {
-        if (v === false) hidden[k] = true;
-      }
-    }
-    // localStorage overrides config so user toggles survive reloads.
-    try {
-      if (typeof localStorage !== "undefined") {
-        const raw =
-          localStorage.getItem(this._storageKey(cfg)) ||
-          localStorage.getItem(this._storageKeyLegacy(cfg));
-        if (raw) {
-          const saved = JSON.parse(raw);
-          if (saved && typeof saved === "object") {
-            for (const s of SERIES_DEFS) {
-              if (typeof saved[s.key] === "boolean") {
-                hidden[s.key] = saved[s.key];
-              }
-            }
+    // A band is a PAIR or it is nothing. Either edge can go missing on its
+    // own -- one key absent from the payload, one published null all the
+    // way across, or one edge dropped by the duplicate rule above -- and a
+    // single dashed line hugging the curve is not half an envelope, it is
+    // a different and wrong claim. Worse, the legend would still offer the
+    // "expected error" chip while the tooltip, which rightly demands both
+    // edges at the same step, reported nothing: three parts of the card
+    // disagreeing about whether a band exists at all.
+    if (def.band) {
+      const edges = new Set(
+        lines.filter((l) => !l.primary).map((l) => l.field)
+      );
+      if (!edges.has(def.band.lo) || !edges.has(def.band.hi)) {
+        for (let i = lines.length - 1; i >= 0; i--) {
+          if (
+            lines[i].field === def.band.lo ||
+            lines[i].field === def.band.hi
+          ) {
+            lines.splice(i, 1);
           }
         }
       }
-    } catch (e) {
-      /* ignore malformed storage */
     }
-    return hidden;
+    series.push({
+      ...def,
+      lines,
+      hasData: lines.length > 0,
+      visible: !hidden[def.key],
+    });
   }
 
-  _saveHidden() {
-    try {
-      if (typeof localStorage !== "undefined" && this._config) {
-        localStorage.setItem(
-          this._storageKey(this._config),
-          JSON.stringify(this._hidden)
-        );
-      }
-    } catch (e) {
-      /* ignore quota / disabled storage */
+  return { series, windowStart, windowEnd, zoomed };
+}
+
+/** Every plotted point of one field, across the segments holes broke it
+ * into. A field is one trace to every caller; that it may be drawn as
+ * several paths is a rendering detail. */
+function fieldPoints(s, field) {
+  const out = [];
+  for (const line of s.lines || []) {
+    if (line.field === field) out.push(...line.points);
+  }
+  return out;
+}
+
+/** One representative line per NAMED non-primary trace, in draw order.
+ *
+ * Two collapses, both because a reader counts traces by name and not by
+ * path. `lines` may hold several segments of one field, because a hole
+ * breaks a field into several paths; and a band's two edges are one
+ * envelope with one name.
+ *
+ * Every caller that names traces goes through here — this card's per-trace
+ * legend chips, its tooltip, and equally a legend that draws ONE chip per
+ * series and lists the rest in that chip's title. Iterating `lines`
+ * directly instead would name a gapped zone three times and a band twice.
+ */
+function extraFields(s) {
+  const band = s && s.band;
+  const seen = new Set();
+  const out = [];
+  for (const line of (s && s.lines) || []) {
+    if (line.primary) continue;
+    const key =
+      band && (line.field === band.lo || line.field === band.hi)
+        // A Symbol, never a string: a de-duplication key that cannot
+        // collide with a field name, whatever a later series calls its
+        // fields.
+        ? BAND_TRACE_KEY
+        : line.field;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(line);
+  }
+  return out;
+}
+
+/** The sentence a trace needs on hover, or "" when its name is enough.
+ *
+ * Only the expected-error band has one: "Upper floor" explains itself, a
+ * dashed pair hugging the tank curve does not. Keyed off the series
+ * definition beside `_lineLabel`, so anywhere a trace can be named the
+ * explanation can be asked for too.
+ */
+function lineNote(def, line) {
+  const band = def && def.band;
+  if (
+    band &&
+    band.noteKey &&
+    line &&
+    (line.field === band.lo || line.field === band.hi)
+  ) {
+    return L(band.noteKey);
+  }
+  return "";
+}
+
+/** The point of `field` nearest `t`, or null when the field has none. */
+function nearestPoint(s, field, t) {
+  let best = null;
+  let bestDt = Infinity;
+  for (const p of fieldPoints(s, field)) {
+    const dt = Math.abs(p.t - t);
+    if (dt < bestDt) {
+      bestDt = dt;
+      best = p;
     }
   }
+  return best;
+}
 
-  // ---- data extraction ---------------------------------------------------
+/** What one trace inside a series is called.
+ *
+ * A series can carry several lines — the house-temperature series draws the
+ * whole-house room average solid and the two zones dashed — and every one of
+ * them needs its own name. The lower zone gets a second name when nothing
+ * measures it, so a modelled trace is never mistaken for a reading.
+ */
+function lineLabel(def, line, isLowerModelled) {
+  if (!line || line.primary) return L(def.labelKey);
+  if (line.field === "lower" && isLowerModelled()) {
+    return L("series.lower_floor_modelled");
+  }
+  return L(line.labelKey || def.labelKey);
+}
+
+/** The one tooltip row for a series' expected-error band, if it has one
+ * and both edges are present at the same step.
+ *
+ * Stated as a single ± figure because that is the one number the pair
+ * carries. Half an envelope says nothing, and two halves taken from
+ * different steps say something untrue, so both must come from the same
+ * step or there is no row at all.
+ */
+function bandRow(s, t, unit) {
+  if (!s.band) return [];
+  const lo = nearestPoint(s, s.band.lo, t);
+  const hi = nearestPoint(s, s.band.hi, t);
+  if (!lo || !hi || lo.t !== hi.t) return [];
+  return [
+    {
+      color: s.color,
+      label: L(s.band.labelKey),
+      value: (hi.v - lo.v) / 2,
+      prefix: "\u00b1",
+      dashed: true,
+      unit,
+      t: hi.t,
+      field: s.band.hi,
+    },
+  ];
+}
+
+// ---- PlanSource -----------------------------------------------------------
+// What the card knows about the plan sensors: which entities they are, what
+// they publish, and the memos that make asking cheap. Reads `host.hass` and
+// `host.config` and nothing else on the host; owns no DOM and renders
+// nothing. The first collaborator out of the god class (PR 1 of #136).
+class PlanSource {
+  constructor(host) {
+    this.host = host;
+    // Entity discovery: the sensor found for each plan kind, kept while it
+    // still exists (`resolveEntity`).
+    this.resolvedCache = null;
+    // Headline sensors: id per suffix, and the `sensor.` count a miss was
+    // recorded at, so a late-arriving backend is still found without
+    // rescanning every state batch (`statEntity`, `sensorCount`).
+    this.statCache = null;
+    this.statMissAt = null;
+    this.sensorCountFor = null;
+    this.sensorCountN = 0;
+  }
+
+  get hass() {
+    return this.host.hass;
+  }
+
+  get config() {
+    return this.host.config;
+  }
 
   // Resolve which entity to read for a plan kind ("space" | "dhw").
   //
@@ -3356,20 +3348,20 @@ class HeatpumpOptimizerCard extends HTMLElement {
   // otherwise fall back to discovering the sensor that advertises the matching
   // `plan_kind` attribute, and finally to a naming-convention match for
   // integration versions predating that attribute.
-  _resolveEntity(kind) {
-    const cfg = this._config;
+  resolveEntity(kind) {
+    const cfg = this.config;
     const configured =
       kind === "space"
         ? cfg.space_entity
         : kind === "dhw"
         ? cfg.dhw_entity
         : cfg.solar_entity;
-    if (!this._hass || !this._hass.states) return configured;
-    const states = this._hass.states;
+    if (!this.hass || !this.hass.states) return configured;
+    const states = this.hass.states;
     if (states[configured]) return configured;
 
-    if (!this._resolvedCache) this._resolvedCache = {};
-    const cached = this._resolvedCache[kind];
+    if (!this.resolvedCache) this.resolvedCache = {};
+    const cached = this.resolvedCache[kind];
     if (cached && states[cached]) return cached;
 
     const suffix =
@@ -3391,19 +3383,19 @@ class HeatpumpOptimizerCard extends HTMLElement {
     }
     const found = byMarker || bySuffix;
     if (found) {
-      this._resolvedCache[kind] = found;
+      this.resolvedCache[kind] = found;
       return found;
     }
     return configured;
   }
 
-  _stateOf(entityId) {
-    if (!this._hass || !this._hass.states) return undefined;
-    return this._hass.states[entityId];
+  stateOf(entityId) {
+    if (!this.hass || !this.hass.states) return undefined;
+    return this.hass.states[entityId];
   }
 
-  _forecast(entityId) {
-    const st = this._stateOf(entityId);
+  forecast(entityId) {
+    const st = this.stateOf(entityId);
     if (!st || st.state === "unavailable" || st.state === "unknown") return null;
     const attrs = st.attributes || {};
     let fc = attrs.forecast;
@@ -3418,278 +3410,114 @@ class HeatpumpOptimizerCard extends HTMLElement {
     return fc;
   }
 
-  _signature() {
-    const cfg = this._config;
-    const spId = this._resolveEntity("space");
-    const dhwId = this._resolveEntity("dhw");
-    const solarId = this._resolveEntity("solar");
-    const space = this._stateOf(spId);
-    const dhw = this._stateOf(dhwId);
-    const solar = this._stateOf(solarId);
-    const spFc = this._forecast(spId);
-    const dhwFc = this._forecast(dhwId);
-    const solarFc = this._forecast(solarId);
-    return [
-      spId,
-      dhwId,
-      solarId,
-      cfg.hours,
-      cfg.title,
-      space ? space.last_updated : "-",
-      space ? space.state : "-",
-      dhw ? dhw.last_updated : "-",
-      dhw ? dhw.state : "-",
-      solar ? solar.last_updated : "-",
-      spFc ? spFc.length : -1,
-      dhwFc ? dhwFc.length : -1,
-      solarFc ? solarFc.length : -1,
-      JSON.stringify(this._hidden),
-      // A language switch or a currency change redraws text without any
-      // plan data changing, so both belong in the signature.
-      ACTIVE_LANG,
-      this._currency(),
-      // The headline reads its own sensors; leaving them out would freeze
-      // the row at whatever the first render saw.
-      this._headlineSignature(),
-    ].join("|");
+  forecastOf(channel) {
+    const st = this.stateOf(this.resolveEntity(channel));
+    const fc = ((st && st.attributes) || {}).forecast;
+    return Array.isArray(fc) ? fc : [];
   }
 
-  /** The headline sensors' contribution to the re-render signature. */
-  _headlineSignature() {
-    if (!this._config.show_stats) return "off";
-    return HEADLINE_SUFFIXES.map((sfx) => {
-      const st = this._statEntity(sfx);
-      return st ? `${st.state}@${st.last_updated || ""}` : "-";
-    }).join("~");
+  attr(name, fallback) {
+    const st = this.stateOf(this.resolveEntity("space"));
+    const raw = ((st && st.attributes) || {})[name];
+    // `Number(null)` is 0, and 0 is finite -- so without this guard an
+    // attribute the coordinator published as None would read as a real
+    // measurement of zero rather than "not known", silently producing a 0 °C
+    // comfort target or a hot water ceiling of nothing.
+    if (raw === null || raw === undefined || raw === "") return fallback;
+    const value = Number(raw);
+    return Number.isFinite(value) ? value : fallback;
   }
 
-  _maybeRender(force) {
-    if (!this._config || !this._hass) return;
-    const sig = this._signature();
-    if (!force && sig === this._sig) return;
-    // A newly published plan replaces the slot draft, unless the user is part
-    // way through rearranging it. Their edits have to survive a refresh -- but
-    // an untouched draft must not survive one, or the lanes would keep showing
-    // an arrangement the optimizer has already moved on from, the cost delta
-    // would compare against a plan that no longer exists, and Apply would pin
-    // something the user is not looking at.
-    if (!this._runsDirty) this._runs = null;
-    this._sig = sig;
-    this._render();
+  /** A plan-sensor attribute as-is, for the ones that are not numbers. */
+  attrRaw(name, fallback) {
+    const st = this.stateOf(this.resolveEntity("space"));
+    const raw = ((st && st.attributes) || {})[name];
+    return raw === null || raw === undefined ? fallback : raw;
   }
 
-  // ---- render idioms -----------------------------------------------------
-
-  /** Rebuild the shadow root, keeping the render signature.
+  /** The manual override the integration is currently honouring, if any.
    *
-   * The unforced form. A redraw the user caused -- a zoom, a pan, a slot
-   * edit -- leaves `_sig` alone, so the next `hass` still compares against
-   * the last plan it saw and `_maybeRender` does not throw away a clean
-   * draft for a refresh that brought no new plan. */
-  render() {
-    this._render();
+   * Published by both plan sensors, so either will do; the space sensor is the
+   * one the rest of the card already resolves.
+   */
+  manualOverride() {
+    for (const which of ["space", "dhw"]) {
+      const st = this.stateOf(this.resolveEntity(which));
+      const info = ((st && st.attributes) || {}).manual_override;
+      if (info && info.active) return info;
+    }
+    return null;
   }
 
-  /** Rebuild and forget the signature, so the next `hass` re-renders too:
-   * something outside the plan data changed what the card shows (a
-   * toggled series, an edited draft, the dialog opening or closing). */
-  renderForced() {
-    this._sig = null;
-    this._render();
-  }
-
-  /** The next click on the card is the tail of a gesture -- a pan or a slot
-   * drag ends with a click on the chart -- and must not open the expanded
-   * view. One-shot; `_onCardClick` consumes it. */
-  suppressNextClick() {
-    this._suppressClick = true;
-  }
-
-  // Build this._series from the current forecasts.
-  _buildSeries() {
-    const cfg = this._config;
-    const spFc = this._forecast(this._resolveEntity("space")) || [];
-    const dhwFc = this._forecast(this._resolveEntity("dhw")) || [];
-    // The irradiance sensor publishes its own horizon. Its timestamps are
-    // already interval *starts* — `_solar_forecast_view` converts Open-Meteo's
-    // end-of-interval stamps on the way out — so they must not be shifted again.
-    const solarFc = this._forecast(this._resolveEntity("solar")) || [];
-
-    const now = Date.now();
-    let windowStart = now;
-    let windowEnd = now + cfg.hours * 3600 * 1000;
-
-    const parse = (p) => {
-      const t = Date.parse(p.t);
-      return Number.isNaN(t) ? null : t;
-    };
-
-    // Determine whether any data actually falls inside [now, now+hours]. If not
-    // (e.g. purely historical or test data), fall back to the full extent so the
-    // card still shows something instead of an empty plot.
-    const allTimes = [];
-    for (const p of spFc) {
-      const t = parse(p);
-      if (t !== null) allTimes.push(t);
-    }
-    for (const p of dhwFc) {
-      const t = parse(p);
-      if (t !== null) allTimes.push(t);
-    }
-    const inWindow = allTimes.some((t) => t >= windowStart && t <= windowEnd);
-    if (!inWindow && allTimes.length) {
-      windowStart = Math.min(...allTimes);
-      windowEnd = Math.min(
-        Math.max(...allTimes),
-        windowStart + cfg.hours * 3600 * 1000
-      );
-    }
-
-    // Everything above is the default window. `_applyView` narrows it to
-    // whatever the user has panned or zoomed to, and is a no-op until they
-    // touch a control -- so the untouched card renders exactly as before.
-    // Filtering below this point then happens against the visible window, which
-    // is what keeps the value axis scaled to what is actually on screen.
-    const view = this._applyView(
-      windowStart,
-      windowEnd,
-      allTimes.length ? Math.max(...allTimes) : windowEnd
+  /** The currency to price the delta in.
+   *
+   * The plan carries prices but not a currency, so take Home Assistant's own
+   * configured currency rather than assuming the author's. `currency:` in the
+   * card config still wins, for installs where the two disagree.
+   */
+  currency() {
+    const hass = this.hass || {};
+    return (
+      this.config.currency ||
+      // v4.1.0+: the integration publishes the currency its prices are in on
+      // the plan sensors. That beats Home Assistant's global currency, which
+      // describes the install, not the price feed.
+      this.attrRaw("currency", null) ||
+      (hass.config && hass.config.currency) ||
+      "SEK"
     );
-    windowStart = view.start;
-    windowEnd = view.end;
-
-    const pick = (sensor) =>
-      sensor === "dhw" ? dhwFc : sensor === "solar" ? solarFc : spFc;
-    const either = (field) => {
-      // prefer space forecast, fall back to dhw
-      if (spFc.some((p) => p[field] !== undefined && p[field] !== null))
-        return spFc;
-      return dhwFc;
-    };
-
-    const series = [];
-    for (const def of SERIES_DEFS) {
-      const fc = def.sensor === "either" ? either(def.field) : pick(def.sensor);
-      const lines = [];
-      let primaryPts = null;
-      const fields = [def.field].concat(def.extra || []);
-      for (const field of fields) {
-        // Every in-window sample, with a missing value kept as a HOLE
-        // rather than dropped. v5.2.0: the hot-water band is null wherever
-        // the accuracy record cannot answer, and a dropped null let the
-        // curve bridge straight across the gap — drawing an envelope over
-        // a stretch there is no evidence for. The room's zone traces were
-        // only ever accidentally safe from this: they have no holes.
-        const raw = [];
-        for (const p of fc) {
-          const t = parse(p);
-          if (t === null) continue;
-          if (t < windowStart || t > windowEnd) continue;
-          const v = p[field];
-          const usable =
-            v !== null && v !== undefined && !Number.isNaN(Number(v));
-          raw.push({
-            t,
-            v: usable ? Number(v) : null,
-            // Reason codes and price provenance ride along on the point so the
-            // tooltip can explain a slot without a second lookup.
-            reason: p.reason,
-            priceKnown: p.price_known,
-          });
-        }
-        raw.sort((a, b) => a.t - b.t);
-        // The field's real samples, holes removed: what "is this trace a
-        // copy of the primary?" has to be asked about, and what the primary
-        // is remembered as. Asking it per segment would compare a fragment
-        // against the whole and never match.
-        const pts = raw.filter((q) => q.v !== null);
-        if (!pts.length) continue;
-        const primary = field === def.field;
-        // A single-zone house still publishes `upper` and `lower`: the
-        // one-zone dynamics set both to the room temperature step by step,
-        // so the extras are exact copies of the primary. Drawing them put
-        // two dashed lines under the solid one, and naming them would put
-        // two more chips in the legend and two more rows in the tooltip for
-        // a house that has one zone. Drop a duplicate rather than label it.
-        //
-        // v5.2.0: this catches a second case for free. A tank record that
-        // has scored pairs but never been wrong answers sigma 0, so both
-        // band edges land exactly on the curve; dropping them is right for
-        // the same reason it is right for the zones, and it is the same
-        // rule doing it.
-        if (!primary && samePoints(pts, primaryPts)) continue;
-        if (primary) primaryPts = pts;
-        const labelKey = primary
-          ? def.labelKey
-          : (def.extraLabels || {})[field] || def.labelKey;
-        // A hole BREAKS the trace into a new segment rather than being
-        // skipped over. One field can therefore own several lines; every
-        // consumer reaches them through `_fieldPoints`, and the per-field
-        // identity (`field`, `primary`, `labelKey`) is carried on each.
-        let seg = [];
-        const flush = () => {
-          if (seg.length) {
-            lines.push({
-              field,
-              points: seg,
-              primary,
-              // Named per line, not per series: `_lineLabel` resolves the
-              // dictionary key so the tooltip and the legend cannot disagree
-              // about what a trace is called.
-              labelKey,
-            });
-          }
-          seg = [];
-        };
-        for (const q of raw) {
-          if (q.v === null) flush();
-          else seg.push(q);
-        }
-        flush();
-      }
-      // A band is a PAIR or it is nothing. Either edge can go missing on its
-      // own -- one key absent from the payload, one published null all the
-      // way across, or one edge dropped by the duplicate rule above -- and a
-      // single dashed line hugging the curve is not half an envelope, it is
-      // a different and wrong claim. Worse, the legend would still offer the
-      // "expected error" chip while the tooltip, which rightly demands both
-      // edges at the same step, reported nothing: three parts of the card
-      // disagreeing about whether a band exists at all.
-      if (def.band) {
-        const edges = new Set(
-          lines.filter((l) => !l.primary).map((l) => l.field)
-        );
-        if (!edges.has(def.band.lo) || !edges.has(def.band.hi)) {
-          for (let i = lines.length - 1; i >= 0; i--) {
-            if (
-              lines[i].field === def.band.lo ||
-              lines[i].field === def.band.hi
-            ) {
-              lines.splice(i, 1);
-            }
-          }
-        }
-      }
-      series.push({
-        ...def,
-        lines,
-        hasData: lines.length > 0,
-        visible: !this._hidden[def.key],
-      });
-    }
-
-    return { series, windowStart, windowEnd, zoomed: this._view !== null };
   }
 
-  // ---- rendering ---------------------------------------------------------
+  /** "SEK/kWh", "EUR/kWh", ... from the resolved currency. */
+  priceUnit() {
+    return `${this.currency()}/kWh`;
+  }
+
+  /** The unit a series renders with. Only the price unit is dynamic: its
+   * currency comes from the config, the plan sensor or Home Assistant. */
+  seriesUnit(def) {
+    return def.axis === "price" ? this.priceUnit() : def.unit;
+  }
+
+  /** True when the lower zone has no thermometer of its own.
+   *
+   * Read from the published `setup_topology` slots rather than guessed: the
+   * integration already says there which sensor slots are filled, so the
+   * chart's label and the setup page cannot disagree. Unknown topology
+   * claims nothing — a missing attribute is not evidence of a missing
+   * sensor.
+   */
+  lowerFloorModelled() {
+    const topo = this.attrRaw("setup_topology", null);
+    const slots = topo && Array.isArray(topo.slots) ? topo.slots : null;
+    if (!slots) return false;
+    const slot = slots.find(
+      (x) => x && x.key === "lower_floor_temp_entity"
+    );
+    return !!slot && !slot.entity;
+  }
+
+  /** Timestamp from which the plan's prices are the learned prior, or null. */
+  estimatedPricesFrom() {
+    const spFc = this.forecast(this.resolveEntity("space")) || [];
+    const dhwFc = this.forecast(this.resolveEntity("dhw")) || [];
+    const fc = spFc.length ? spFc : dhwFc;
+    for (const p of fc) {
+      if (p.price_known === false) {
+        const t = Date.parse(p.t);
+        return Number.isNaN(t) ? null : t;
+      }
+    }
+    return null;
+  }
 
   // Explain precisely why a plan is missing. "Waiting for an entity" is not
   // actionable when the real problem is that the entity is named something
   // else, so distinguish not-found from present-but-empty.
-  _diagnose(kind) {
-    const id = this._resolveEntity(kind);
+  diagnose(kind) {
+    const id = this.resolveEntity(kind);
     const label = L(kind === "space" ? "errors.diag_space" : "errors.diag_dhw");
-    const st = this._stateOf(id);
+    const st = this.stateOf(id);
     if (!st) {
       return L("errors.diag_not_found", { label, id: esc(id), kind });
     }
@@ -3700,7 +3528,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
         state: esc(st.state),
       });
     }
-    const fc = this._forecast(id);
+    const fc = this.forecast(id);
     if (!fc) {
       return L("errors.diag_no_forecast", { label, id: esc(id) });
     }
@@ -3713,14 +3541,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
       n: fc.length,
     });
   }
-
-  /** The card's display title: the configured one, or the localized default. */
-  _title() {
-    const t = this._config && this._config.title;
-    return t !== undefined ? t : L("header.default_title");
-  }
-
-  // ---- headline stats ----------------------------------------------------
 
   /** The state object of a headline sensor, found by id suffix and cached.
    *
@@ -3739,41 +3559,41 @@ class HeatpumpOptimizerCard extends HTMLElement {
    * late-arriving backend is still found without rescanning every state
    * batch.
    */
-  _statEntity(suffix) {
-    const states = this._hass && this._hass.states;
+  statEntity(suffix) {
+    const states = this.hass && this.hass.states;
     if (!states) return null;
-    if (!this._statCache) this._statCache = {};
-    if (!this._statMissAt) this._statMissAt = {};
-    const cached = this._statCache[suffix];
+    if (!this.statCache) this.statCache = {};
+    if (!this.statMissAt) this.statMissAt = {};
+    const cached = this.statCache[suffix];
     if (cached && states[cached]) return states[cached];
 
     for (const [kind, planSuffix] of [
       ["space", "_space_heating_plan"],
       ["dhw", "_dhw_heating_plan"],
     ]) {
-      const planId = this._resolveEntity(kind);
+      const planId = this.resolveEntity(kind);
       if (!planId || !states[planId] || !planId.endsWith(planSuffix)) {
         continue;
       }
       const candidate = planId.slice(0, -planSuffix.length) + suffix;
       if (states[candidate]) {
-        this._statCache[suffix] = candidate;
-        delete this._statMissAt[suffix];
+        this.statCache[suffix] = candidate;
+        delete this.statMissAt[suffix];
         return states[candidate];
       }
     }
 
-    const count = this._sensorCount(states);
-    if (this._statMissAt[suffix] === count) return null;
+    const count = this.sensorCount(states);
+    if (this.statMissAt[suffix] === count) return null;
     // Sorted iteration makes a tie deterministic, the same choice
     // `_resolveEntity` makes.
     for (const id of Object.keys(states).sort()) {
       if (!id.startsWith("sensor.") || !id.endsWith(suffix)) continue;
-      this._statCache[suffix] = id;
-      delete this._statMissAt[suffix];
+      this.statCache[suffix] = id;
+      delete this.statMissAt[suffix];
       return states[id];
     }
-    this._statMissAt[suffix] = count;
+    this.statMissAt[suffix] = count;
     return null;
   }
 
@@ -3783,342 +3603,1404 @@ class HeatpumpOptimizerCard extends HTMLElement {
    * update, so object identity is the batch's identity. This is what the
    * negative cache above is keyed to.
    */
-  _sensorCount(states) {
-    if (this._sensorCountFor !== states) {
+  sensorCount(states) {
+    if (this.sensorCountFor !== states) {
       let n = 0;
       for (const id of Object.keys(states)) {
         if (id.startsWith("sensor.")) n++;
       }
-      this._sensorCountFor = states;
-      this._sensorCountN = n;
+      this.sensorCountFor = states;
+      this.sensorCountN = n;
     }
-    return this._sensorCountN;
+    return this.sensorCountN;
   }
 
   /** A headline sensor's state as a finite number, or null. */
-  _statNumber(suffix) {
-    const st = this._statEntity(suffix);
+  statNumber(suffix) {
+    const st = this.statEntity(suffix);
     if (!st || st.state === "unavailable" || st.state === "unknown") {
       return null;
     }
     const v = Number(st.state);
     return Number.isFinite(v) ? v : null;
   }
+}
 
-  /** The compact stats row under the header, or nothing at all.
+// ---- Chart geometry: screen <-> chart ---------------------------------------
+// The chart is drawn in a fixed viewBox and stretched to fit, so screen pixels
+// and viewBox units are not interchangeable; these relate the two, and find
+// the chart copies inside a root. Pure functions of their arguments.
+
+/** Turn a screen x into a time on the chart's axis.
+ *
+ * The chart is drawn in a fixed viewBox and stretched to fit, so screen
+ * pixels and viewBox units are not interchangeable; the measured width is
+ * the only thing that relates them.
+ */
+function timeAtClientX(svg, clientX, geom) {
+  if (!geom || !svg) return null;
+  const rect = svg.getBoundingClientRect ? svg.getBoundingClientRect() : null;
+  if (!rect || !rect.width) return null;
+  const vx = ((clientX - rect.left) / rect.width) * VIEW_W;
+  return geom.windowStart + ((vx - geom.plotL) / geom.plotW) *
+    (geom.windowEnd - geom.windowStart);
+}
+
+/** The chart wrapper owning an element, so each copy finds its own parts. */
+function wrapOf(el, root) {
+  let node = el;
+  while (node && node !== root) {
+    if (node.classList && node.classList.contains("chartwrap")) return node;
+    node = node.parentNode;
+  }
+  return null;
+}
+
+/** The chart svgs, and only those.
+ *
+ * The expand button carries an inline `<svg>` icon and sits above the chart
+ * in the markup, so `querySelector("svg")` returns an 18px icon rather than
+ * the plot. Every chart is wrapped in a `.chartwrap`; the icon is not.
+ */
+function chartSvgs(scope) {
+  if (!scope) return [];
+  return [...scope.querySelectorAll(".chartwrap svg")];
+}
+
+// ---- ViewWindow -----------------------------------------------------------
+// The pan/zoom window over the plan (item 23): the user's range, the limits
+// the plan allows, the wheel and drag gestures, the zoom buttons, and the
+// once-per-frame redraw they share. `range` is null until the user touches a
+// control, so an untouched card renders exactly as it did before this
+// existed. Uses `host.geom` (the chart's last geometry, for hit-testing),
+// `host.render()` and `host.suppressNextClick()`. The second collaborator
+// out of the god class (PR 2 of #136).
+class ViewWindow {
+  constructor(host) {
+    this.host = host;
+    // The user's window, {start, span}; `null` means "the default window".
+    this.range = null;
+    // What the last `apply` recorded: floor, defaultEnd, rightBound,
+    // minSpan, maxSpan. Null until the first build.
+    this.limits = null;
+    // The animation frame a redraw is waiting on (`renderView`).
+    this.pendingFrame = 0;
+    // The pan gesture in progress, with the window listeners it parked.
+    this.panGesture = null;
+    this.onWheel = this.onWheel.bind(this);
+    this.onPanDown = this.onPanDown.bind(this);
+  }
+
+  /** Whether the user has zoomed or panned away from the default window. */
+  get zoomed() {
+    return this.range !== null;
+  }
+
+  /** Move the window to `start` without redrawing, keeping its span: the
+   * slot editor's edge auto-pan renders on its own schedule (a full render
+   * every tick, mid-gesture) rather than through `renderView`'s frame. */
+  setStart(start) {
+    const cur = this.current();
+    this.range = { start, span: cur.span };
+  }
+
+  /** The pan/zoom view dies with the dialog session it belonged to. It used
+   * to persist for the lifetime of the card element -- on a wall-mounted
+   * dashboard, indefinitely -- so one accidental trackpad pinch or
+   * two-finger swipe over the chart quietly capped slot editing at the
+   * narrowed window's edge for days, while re-anchoring itself to "now" so
+   * it never scrolled out of relevance. A dismissed dialog is a finished
+   * session; the next open shows the whole plan. */
+  onDialogClosed() {
+    this.range = null;
+  }
+
+  /** Narrow the default window to the panned/zoomed view, and record its limits.
    *
-   * Every part is optional because every source sensor is: the score sensor
-   * is unavailable until enough history exists, the savings sensors null out
-   * between optimizer runs, and old integrations publish none of them. A row
-   * with nothing to say renders no chrome rather than an empty strip.
+   * Called on every build so the limits track incoming data: the plan's extent
+   * moves forward as new forecasts arrive, and a view clamped against the
+   * extent of ten minutes ago would slowly drift out of range.
+   *
+   * Returns the default window untouched while `range` is null, so a card
+   * nobody has interacted with renders exactly as it did before this existed.
    */
-  _headlineHtml() {
-    if (!this._config.show_stats) return "";
-    const items = [];
+  apply(defaultStart, defaultEnd, dataEnd) {
+    const defaultSpan = Math.max(defaultEnd - defaultStart, 1);
+    // Zooming out stops at the plan, not at the configured plot width:
+    // `cfg.hours` goes up to a week, while the optimizer's horizon defaults to
+    // 24 h, and the difference is empty chart.
+    const maxSpan = Math.max(
+      Math.min(defaultSpan, Math.max(dataEnd - defaultStart, VIEW_MIN_SPAN_MS)),
+      VIEW_MIN_SPAN_MS
+    );
+    const minSpan = Math.min(VIEW_MIN_SPAN_MS, maxSpan);
+    // The right edge the window may not pass: the plan's end, and never beyond
+    // the configured plot width.
+    const rightBound = Math.max(
+      Math.min(dataEnd, defaultEnd),
+      defaultStart + minSpan
+    );
+    // `defaultEnd` is kept as well as `rightBound`: the two differ whenever the
+    // configured plot window is wider than the plan, and a zoom that mistook
+    // the plan's extent for what is currently on screen would compute its
+    // anchor against a window the user is not looking at.
+    this.limits = {
+      floor: defaultStart,
+      defaultEnd,
+      rightBound,
+      minSpan,
+      maxSpan,
+    };
 
-    const savings = this._statNumber("_predicted_savings");
-    if (savings !== null) {
-      const pct = this._statNumber("_savings_percentage");
-      // The savings sensor declares the unit its value is denominated in;
-      // nothing here converts, so a card-config `currency:` must not relabel
-      // it. `_currency()` only fills in when the sensor declares no unit.
-      const savingsSt = this._statEntity("_predicted_savings");
-      const unit =
-        (savingsSt &&
-          savingsSt.attributes &&
-          savingsSt.attributes.unit_of_measurement) ||
-        this._currency();
-      const value =
-        `${savings.toFixed(2)} ${unit}` +
-        (pct !== null
-          ? ` ${L("headline.savings_pct", { pct: pct.toFixed(0) })}`
-          : "");
-      items.push({
-        cls: "savings",
-        title: L("headline.savings_title"),
-        label: L("headline.savings"),
-        value,
-        // D4-06: the baseline qualifier used to live only in the `title`
-        // attribute above -- a hover tooltip, unreachable on touch, which is
-        // most Home Assistant dashboards. A short visible caveat carries the
-        // same claim as plain text; the tooltip stays for the fuller wording.
-        caveat: L("headline.savings_caveat"),
-      });
+    if (!this.range) return { start: defaultStart, end: defaultEnd };
+
+    const span = clampNum(this.range.span, minSpan, maxSpan);
+    const maxStart = Math.max(defaultStart, rightBound - span);
+    const start = clampNum(this.range.start, defaultStart, maxStart);
+    this.range = { start, span };
+    return { start, end: start + span };
+  }
+
+  /** Whether panning and zooming can do anything at all.
+   *
+   * With a plan no longer than the minimum span there is nothing to pan across
+   * and nothing to zoom out to, and controls that cannot move are worse than
+   * no controls.
+   */
+  adjustable() {
+    const lim = this.limits;
+    return !!lim && lim.rightBound - lim.floor > lim.minSpan * 1.05;
+  }
+
+  /** The span currently on screen, view or default. */
+  span() {
+    if (this.range) return this.range.span;
+    const lim = this.limits;
+    return lim ? lim.defaultEnd - lim.floor : 1;
+  }
+
+  /** The window currently on screen, as the zoom and pan maths sees it. */
+  current() {
+    const lim = this.limits;
+    if (this.range) return this.range;
+    return { start: lim.floor, span: lim.defaultEnd - lim.floor };
+  }
+
+  /** Zoom by `factor`, holding the time under `anchorT` still.
+   *
+   * Anchoring matters: zooming around the window centre walks whatever the user
+   * is pointing at off the screen, which makes repeated zooming feel like it is
+   * fighting back.
+   */
+  zoom(factor, anchorT) {
+    const lim = this.limits;
+    if (!lim) return;
+    const current = this.current();
+    const span = clampNum(current.span * factor, lim.minSpan, lim.maxSpan);
+    const anchor =
+      anchorT === undefined || anchorT === null
+        ? current.start + current.span / 2
+        : clampNum(anchorT, current.start, current.start + current.span);
+    // Keep the anchor at the same fraction across the window.
+    const frac = (anchor - current.start) / (current.span || 1);
+    this.range = { start: anchor - frac * span, span };
+    this.renderView();
+  }
+
+  /** Slide the window by `deltaMs`, without changing its span. */
+  panBy(deltaMs) {
+    const lim = this.limits;
+    if (!lim) return;
+    const current = this.current();
+    this.range = { start: current.start + deltaMs, span: current.span };
+    this.renderView();
+  }
+
+  reset() {
+    if (!this.range) return;
+    this.range = null;
+    this.renderView();
+  }
+
+  /** Redraw after a view change, at most once per frame.
+   *
+   * A view change moves every series, not just the lanes, so unlike a slot drag
+   * there is nothing narrower to refresh. `_render` replaces the shadow root,
+   * which is why the pan gesture listens on the window rather than on the svg:
+   * the element under the pointer is gone by the next event.
+   */
+  renderView() {
+    if (this.pendingFrame) return;
+    const run = () => {
+      this.pendingFrame = 0;
+      // Deliberately not clearing `_sig`: it is what stops the next data
+      // refresh from throwing away an in-progress slot edit, and a view change
+      // is not a reason to discard the draft the user is arranging.
+      this.host.render();
+    };
+    this.pendingFrame =
+      typeof requestAnimationFrame === "function"
+        ? requestAnimationFrame(run)
+        : setTimeout(run, 16);
+  }
+
+  /** Wheel over the chart: pinch to zoom, two fingers sideways to pan.
+   *
+   * A plain vertical wheel is deliberately left alone. The card sits in a
+   * dashboard the user scrolls, and a chart that swallowed the scroll wheel
+   * would trap the page the moment the pointer crossed it. Trackpad pinch
+   * arrives as a wheel with `ctrlKey` set, which is the gesture people already
+   * expect to zoom.
+   */
+  onWheel(ev) {
+    if (!this.adjustable()) return;
+    const zooming = ev.ctrlKey || ev.metaKey;
+    const sideways = Math.abs(ev.deltaX) > Math.abs(ev.deltaY);
+    const panning = !zooming && (ev.shiftKey || sideways);
+    if (!zooming && !panning) return;
+    if (ev.preventDefault) ev.preventDefault();
+    stop(ev);
+
+    if (zooming) {
+      const at = timeAtClientX(ev.currentTarget, ev.clientX, this.host.geom);
+      this.zoom(ev.deltaY > 0 ? VIEW_ZOOM_STEP : 1 / VIEW_ZOOM_STEP, at);
+      return;
+    }
+    const span = this.span();
+    const delta = sideways ? ev.deltaX : ev.deltaY;
+    this.panBy((delta / 600) * span);
+  }
+
+  /** Drag the chart background sideways to pan.
+   *
+   * Only the background: a pointerdown that landed on a lane belongs to the
+   * slot editor, and stealing it would make slots undraggable. The move and up
+   * handlers go on `window` rather than the svg because panning re-renders,
+   * which replaces the element the gesture started on -- listeners bound to it
+   * would stop firing halfway through the drag.
+   */
+  onPanDown(ev) {
+    if (!this.adjustable()) return;
+    if (((ev.target || {}).dataset || {}).channel) return;
+    const svg = ev.currentTarget;
+    const rect = svg && svg.getBoundingClientRect ? svg.getBoundingClientRect() : null;
+    if (!rect || !rect.width) return;
+    // `host.geom` only exists while the lanes do (what_if enabled). Without it,
+    // fall back to the nominal plot width rather than the whole viewBox, or a
+    // drag would track noticeably slower than the pointer.
+    const plotW = this.host.geom
+      ? this.host.geom.plotW
+      : VIEW_W - MARGIN.left - MARGIN.right;
+    const pxPerViewUnit = rect.width / VIEW_W;
+    const plotPx = plotW * pxPerViewUnit;
+    if (!plotPx) return;
+
+    // Without this the drag selects the axis labels and, on some browsers,
+    // starts a native image drag of the svg.
+    if (ev.preventDefault) ev.preventDefault();
+    const pan = {
+      last: ev.clientX,
+      perPx: this.span() / plotPx,
+      moved: false,
+      move: null,
+      up: null,
+    };
+    pan.move = (moveEv) => {
+      const dx = moveEv.clientX - pan.last;
+      if (!dx) return;
+      pan.last = moveEv.clientX;
+      // A drag only counts as a pan once it has actually moved, so a plain
+      // click on the chart still opens the expanded view.
+      pan.moved = true;
+      // Drag left to move forward in time: the content follows the pointer.
+      this.panBy(-dx * pan.perPx);
+    };
+    pan.up = () => {
+      if (pan.moved) this.host.suppressNextClick();
+      this.panGesture = null;
+      if (typeof window === "undefined") return;
+      window.removeEventListener("pointermove", pan.move);
+      window.removeEventListener("pointerup", pan.up);
+      window.removeEventListener("pointercancel", pan.up);
+    };
+    this.panGesture = pan;
+    if (typeof window !== "undefined") {
+      window.addEventListener("pointermove", pan.move);
+      window.addEventListener("pointerup", pan.up);
+      window.addEventListener("pointercancel", pan.up);
+    }
+  }
+
+  /** Zoom and reset buttons: the keyboard- and touch-reachable path.
+   *
+   * Wheel and drag cover a trackpad, but neither is available to someone on a
+   * phone or tabbing through the card, and a zoom that only exists as a gesture
+   * is a zoom half the users never find.
+   */
+  controlsHtml() {
+    if (!this.adjustable()) return "";
+    const zoomed = this.range !== null;
+    return `
+      <div class="viewctl">
+        <button type="button" class="vc-out" title="${esc(L("plan.zoom_out"))}"
+          aria-label="${esc(L("plan.zoom_out"))}">&minus;</button>
+        <button type="button" class="vc-in" title="${esc(L("plan.zoom_in"))}"
+          aria-label="${esc(L("plan.zoom_in"))}">+</button>
+        <button type="button" class="vc-reset" title="${esc(
+          L("plan.show_whole_plan")
+        )}"
+          aria-label="${esc(L("plan.show_whole_plan"))}"${zoomed ? "" : " disabled"}>&#8634;</button>
+      </div>`;
+  }
+
+  attach(root) {
+    chartSvgs(root).forEach((svg) => {
+      svg.addEventListener("wheel", this.onWheel, { passive: false });
+      svg.addEventListener("pointerdown", this.onPanDown);
+    });
+    const wire = (sel, fn) =>
+      root.querySelectorAll(sel).forEach((el) =>
+        el.addEventListener("click", (ev) => {
+          stop(ev);
+          fn();
+        })
+      );
+    wire(".vc-in", () => this.zoom(1 / VIEW_ZOOM_STEP, null));
+    wire(".vc-out", () => this.zoom(VIEW_ZOOM_STEP, null));
+    wire(".vc-reset", () => this.reset());
+  }
+}
+
+// ---- The chart: pure functions from a frame to SVG ------------------------
+// `renderChart(frame, opts)` draws one copy of the plan chart -- the axes,
+// the series paths, the now marker, the estimated-price shading, the
+// shared-step bands and, when editing, the lanes -- and returns the markup
+// with the geometry the hover (`plot`) and the lane editor (`geom`) hit-test
+// against. It reads nothing but its arguments: `opts` carries what the host
+// resolves (`expanded`, `measuredWidth` as a thunk, `priceUnit`,
+// `estimatedFrom`, `editing`, `title`, `now`), the `overlay(geom)` callback
+// that draws the lanes, and `nextPatternId()`, which hands out the
+// document-unique ids the shared-band pattern needs. The same bodies as the
+// methods they were (PR 3 of #136); the host publishes `plot` and `geom` in
+// the order it always did.
+
+function renderChart(frame, opts) {
+  const { windowStart, windowEnd, series } = frame;
+  const {
+    expanded, measuredWidth, priceUnit, estimatedFrom, editing, title, now,
+    overlay, nextPatternId,
+  } = opts;
+  const visible = series.filter((s) => s.visible && s.hasData);
+  // D4-01: the compact chart floors its rendered font (see
+  // compactFontUnits); the margins then scale with any boost beyond what
+  // the authored layout already accommodates, so axis labels keep their
+  // relative space instead of colliding.
+  const font = expanded
+    ? FONT_EXPANDED
+    : compactFontUnits(measuredWidth());
+  const marginScale = expanded ? 1 : Math.max(1, font / FONT_EXPANDED);
+
+  // Axis domains from visible series grouped by axis.
+  const groups = { temp: [], power: [], price: [], solar: [] };
+  for (const s of visible) {
+    for (const line of s.lines) {
+      for (const p of line.points) groups[s.axis].push(p.v);
+    }
+  }
+  const axisRange = (vals, forceZero) => {
+    if (!vals.length) return null;
+    let lo = Math.min(...vals);
+    let hi = Math.max(...vals);
+    if (forceZero) lo = Math.min(0, lo);
+    return niceAxis(lo, hi, 6);
+  };
+  const axes = {
+    temp: axisRange(groups.temp, false),
+    power: axisRange(groups.power, true),
+    price: axisRange(groups.price, true),
+    solar: axisRange(groups.solar, true),
+  };
+
+  // The compact chart's boosted font (D4-01) widens these with it; the
+  // authored values below are already laid out for FONT_EXPANDED, so the
+  // scale only engages past that.
+  const plotL = MARGIN.left * marginScale;
+  // Only pay for the solar axis's width when it is actually drawn; a
+  // permanently narrower plot would be a real cost to every user who does
+  // not use the series.
+  const rightMargin =
+    (axes.solar ? MARGIN_RIGHT_WITH_SOLAR : MARGIN.right) * marginScale;
+  const plotR = VIEW_W - rightMargin;
+  const plotT = MARGIN.top * marginScale;
+  const plotB = VIEW_H - MARGIN.bottom * marginScale;
+  const plotW = plotR - plotL;
+  const plotH = plotB - plotT;
+
+  const xSpan = windowEnd - windowStart || 1;
+  const scaleX = (t) => plotL + ((t - windowStart) / xSpan) * plotW;
+  const scaleY = (v, axisName) => {
+    const a = axes[axisName];
+    if (!a) return plotB;
+    const span = a.max - a.min || 1;
+    return plotB - ((v - a.min) / span) * plotH;
+  };
+
+  // The geometry the hover hit-tests against.
+  const plot = {
+    windowStart,
+    windowEnd,
+    scaleX,
+    scaleY,
+    axes,
+    plotL,
+    plotR,
+    plotT,
+    plotB,
+  };
+
+  const parts = [];
+
+  // Plot frame
+  parts.push(
+    `<rect x="${plotL}" y="${plotT}" width="${plotW}" height="${plotH}" fill="none" stroke="var(--divider-color,#e0e0e0)" stroke-width="1"/>`
+  );
+
+  // Hourly gridlines. How often they are labelled is worked out from the
+  // space available, so a wider chart or a shorter horizon labels more.
+  parts.push(
+    timeAxis(scaleX, plotT, plotB, windowStart, windowEnd, font)
+  );
+
+  // Value axes. Where two axes share a side, the inner one's title has only
+  // the gap to the outer axis to live in, and that gap does not grow with
+  // the font: at the expanded size "SEK/kWh" is wider than the 46 units
+  // between the price and solar axes, so it used to run straight through
+  // "W/m2". Measure the title and, when it does not fit, hang it off the
+  // inside of its own axis line instead -- the strip above the plot frame
+  // is empty, so the title stays beside the axis it names either way.
+  const titleFits = (unit, room) =>
+    textWidth(unit, font) + font * 0.6 <= room;
+  const powerTitleInset = 44;
+  // The price axis title carries the resolved currency, so the measured
+  // string and the drawn string must be the same value.
+  const tempAnchor =
+    axes.power && !titleFits("\u00b0C", powerTitleInset) ? "start" : "end";
+  const priceAnchor =
+    axes.solar && !titleFits(priceUnit, SOLAR_AXIS_INSET) ? "end" : "start";
+
+  if (axes.temp)
+    parts.push(
+      valueAxis(
+        axes.temp, plotL, plotT, plotB, plotH, "left", 0,
+        scaleY, "temp", "\u00b0C", font, tempAnchor
+      )
+    );
+  if (axes.power)
+    parts.push(
+      valueAxis(
+        axes.power, plotL, plotT, plotB, plotH, "left", powerTitleInset,
+        scaleY, "power", "kW", font
+      )
+    );
+  if (axes.price)
+    parts.push(
+      valueAxis(
+        axes.price, plotR, plotT, plotB, plotH, "right", 0,
+        scaleY, "price", priceUnit, font, priceAnchor
+      )
+    );
+  if (axes.solar)
+    parts.push(
+      valueAxis(
+        axes.solar, plotR, plotT, plotB, plotH, "right", SOLAR_AXIS_INSET,
+        scaleY, "solar", "W/m\u00b2", font
+      )
+    );
+
+  // Now marker
+  if (now >= windowStart && now <= windowEnd) {
+    const nx = scaleX(now);
+    parts.push(
+      `<line x1="${nx}" y1="${plotT}" x2="${nx}" y2="${plotB}" stroke="var(--primary-color,#03a9f4)" stroke-width="1.5" stroke-dasharray="4 3"/>`
+    );
+    parts.push(
+      `<text x="${nx + 3}" y="${plotT + font + 1}" font-size="${font}" fill="var(--primary-color,#03a9f4)">${esc(
+          L("plan.now")
+        )}</text>`
+    );
+  }
+
+  // Shade the stretch of the horizon whose prices are the learned diurnal
+  // prior rather than published market data. A plan that looks identical
+  // whether or not it rests on real prices cannot be audited.
+  if (estimatedFrom !== null && estimatedFrom < windowEnd) {
+    const ex = Math.max(plotL, scaleX(Math.max(estimatedFrom, windowStart)));
+    parts.push(
+      `<rect class="estimated" pointer-events="none" x="${ex}" y="${plotT}" width="${Math.max(
+          0,
+          plotR - ex
+        )}" height="${plotH}" fill="var(--secondary-text-color,#888)" fill-opacity="0.07"/>`
+    );
+    // D4-03: this used to sit at `plotB - 5`, directly on top of the
+    // lane-row labels drawn near the bottom of the plot (`_laneGroupInner`),
+    // garbling both. Anchored just under the top margin instead -- a strip
+    // that is otherwise empty except for the "now" marker's label, which
+    // lives at a different x (by the current-time line, not the start of
+    // the estimated region) whenever both happen to be visible together.
+    parts.push(
+      `<text x="${ex + 4}" y="${plotT + font + 4}" font-size="${font}" fill="var(--secondary-text-color,#888)">${esc(
+          L("plan.estimated_prices")
+        )}</text>`
+    );
+  }
+
+  // Editable slot lanes, drawn by the caller's overlay into the geometry a
+  // pointer event needs to turn a screen coordinate back into a time. The lane metrics travel with the
+  // geometry (D4-01): a boosted compact font scales the lanes with it, and
+  // hit-testing must use the same numbers the drawing used.
+  let geom = null;
+  if (editing) {
+    geom = {
+      windowStart, windowEnd, plotL, plotW, plotR, plotB, font,
+      laneH: LANE_H * marginScale, laneGap: LANE_GAP * marginScale,
+      laneInset: LANE_BOTTOM_INSET * marginScale,
+    };
+    parts.push(`<g class="lanes">${overlay(geom)}</g>`);
+  }
+
+  // Where BOTH circuits are planned in the same quarter hour the pump is
+  // time-sharing the step — hot water first, then heating. That is a
+  // deliberate relaxation (space + hot water ≤ nameplate per step), not
+  // double-booking, and two full-height bars with nothing said implied
+  // the impossible. Drawn under the bars so the bars stay readable.
+  parts.push(
+    sharedSpanBands(visible, scaleX, plotT, plotB, plotL, plotR, nextPatternId)
+  );
+
+  // Series paths (filled/area series first, lines on top)
+  const order = ["stepArea", "stepBars", "smooth"];
+  for (const st of order) {
+    for (const s of visible) {
+      if (s.style !== st) continue;
+      parts.push(seriesPath(s, scaleX, scaleY, plotB));
+    }
+  }
+
+  // Crosshair placeholder (updated on hover)
+  parts.push(
+    `<line class="crosshair" pointer-events="none" x1="0" y1="${plotT}" x2="0" y2="${plotB}" stroke="var(--secondary-text-color,#888)" stroke-width="1" visibility="hidden"/>`
+  );
+
+  // role="img" flattens every descendant for assistive tech, which is
+  // right for a pure picture but wrong the moment the lanes put focusable
+  // slots inside it — those need "group" so they stay in the tree. The
+  // editable chart also takes tabindex="-1": it is the last-resort home
+  // for restored focus (`_restoreSlotFocus`), and an svg without a
+  // tabindex refuses programmatic focus.
+  const svg = `<svg viewBox="0 0 ${VIEW_W} ${VIEW_H}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" role="${
+      editing ? "group" : "img"
+    }"${editing ? ' tabindex="-1"' : ""} aria-label="${esc(
+      title
+    )}">${parts.join("")}</svg>`;
+  return { svg, plot, geom };
+}
+
+/** Hourly gridlines, labelled as often as the width actually allows.
+ *
+ * Label density cannot be a fixed choice. The horizon is configurable, the
+ * chart is drawn in a fixed coordinate system, and the labels are formatted
+ * for the user's locale, so their width is not known in advance either --
+ * "13:00" is five characters but "12:00 AM" is eight. Build the labels
+ * first, measure the widest, and only then decide how many to show.
+ */
+function timeAxis(scaleX, plotT, plotB, windowStart, windowEnd, font) {
+  const size = font || FONT_BASE;
+  const hour = 3600 * 1000;
+
+  const first = new Date(windowStart);
+  first.setMinutes(0, 0, 0);
+  if (first.getTime() < windowStart) first.setHours(first.getHours() + 1);
+
+  const ticks = [];
+  for (let t = first.getTime(); t <= windowEnd; t += hour) {
+    const d = new Date(t);
+    ticks.push({
+      t,
+      x: scaleX(t),
+      hours: d.getHours(),
+      label: d.toLocaleTimeString(ACTIVE_LANG, {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+    });
+  }
+  if (!ticks.length) return "";
+
+  // Widest rendered label, plus a gap, in viewBox units. The chart uses the
+  // default sans-serif face, whose characters average a little over half an
+  // em at these sizes.
+  const widest = ticks.reduce((n, tick) => Math.max(n, tick.label.length), 0);
+  const labelWidth = size * widest * CHAR_WIDTH_EM + size * 0.6;
+  const unitsPerHour = Math.abs(scaleX(windowStart + hour) - scaleX(windowStart));
+  const needed = unitsPerHour > 0 ? Math.ceil(labelWidth / unitsPerHour) : 3;
+  // Intervals that divide the day, so labels land on the same clock times
+  // each day rather than drifting across midnight.
+  const every =
+    TIME_LABEL_STEPS.find((step) => step >= Math.max(1, needed)) ||
+    TIME_LABEL_STEPS[TIME_LABEL_STEPS.length - 1];
+
+  const out = [];
+  for (const tick of ticks) {
+    const labelled = tick.hours % every === 0;
+    out.push(
+      `<line x1="${tick.x}" y1="${plotT}" x2="${tick.x}" y2="${plotB}" stroke="var(--divider-color,#eee)" stroke-width="${
+          labelled ? 1 : 0.5
+        }" opacity="${labelled ? 0.7 : 0.35}"/>`
+    );
+    if (labelled) {
+      out.push(
+        `<text x="${tick.x}" y="${plotB + size + 4}" font-size="${size}" text-anchor="middle" fill="var(--secondary-text-color,#888)">${esc(
+            tick.label
+          )}</text>`
+      );
+    }
+  }
+  return out.join("");
+}
+
+function valueAxis(
+  axis, xBase, plotT, plotB, plotH, side, inset, scaleY, axisName, unit,
+  font, titleAnchor
+) {
+  const size = font || FONT_BASE;
+  const out = [];
+  const x = side === "left" ? xBase - inset : xBase + inset;
+  const anchor = side === "left" ? "end" : "start";
+  const tx = side === "left" ? x - 5 : x + 5;
+  for (const tick of axis.ticks) {
+    const y = scaleY(tick, axisName);
+    out.push(
+      `<text x="${tx}" y="${y + size / 3}" font-size="${size}" text-anchor="${anchor}" fill="var(--secondary-text-color,#888)">${esc(
+          fmtTick(tick)
+        )}</text>`
+    );
+    const t1 = side === "left" ? x - 3 : x + 3;
+    out.push(
+      `<line x1="${x}" y1="${y}" x2="${t1}" y2="${y}" stroke="var(--secondary-text-color,#aaa)" stroke-width="0.75"/>`
+    );
+  }
+  // The title sits on the strip above the plot frame, normally running away
+  // from the chart like the tick labels do. When that would run it into the
+  // next axis out, the caller flips it to the other side of its own axis
+  // line, where the strip above the plot is empty. The gap scales with the
+  // font (D4-01) so a boosted compact font does not sit on the frame.
+  const uy = plotT - 4 * (size / FONT_BASE);
+  const ta = titleAnchor || anchor;
+  const ux = ta === "end" ? x - 5 : x + 5;
+  out.push(
+    `<text x="${ux}" y="${uy}" font-size="${size}" text-anchor="${ta}" fill="var(--secondary-text-color,#888)">${esc(
+        unit
+      )}</text>`
+  );
+  return out.join("");
+}
+
+function seriesPath(s, scaleX, scaleY, plotB) {
+  const out = [];
+  for (const line of s.lines) {
+    const pts = line.points.map((p) => ({
+      x: scaleX(p.t),
+      y: scaleY(p.v, s.axis),
+    }));
+    if (!pts.length) continue;
+
+    // D4-02: a single-point line has no second vertex to draw a
+    // line-to from, so `<path>` alone paints nothing (a bare "M x y", or
+    // for the area styles a zero-area triangle collapsed onto one x) --
+    // yet the series still counts as `hasData` and its legend chip still
+    // shows fully active. A visible dot is the honest reading of "one
+    // sample exists", and keeps the chip's claim true.
+    if (pts.length === 1) {
+      out.push(
+        `<circle class="series" data-key="${s.key}" pointer-events="none" cx="${pts[0].x.toFixed(2)}" cy="${pts[0].y.toFixed(2)}" r="3" fill="${s.color}"/>`
+      );
+      continue;
     }
 
-    const score = this._statNumber("_optimization_score");
-    if (score !== null) {
-      // The hover says what the score is; the sub-scores ride the same
-      // sensor's attributes, so the hover can also say what it is MADE OF
-      // -- an owner staring at 5/100 wants to know where the 95 went
-      // before deciding anything.
-      const parts = this._scoreParts();
-      const breakdown = parts
-        .map(
-          (p) =>
-            `${p.label}: ${
+    if (s.style === "stepArea" || s.style === "stepBars") {
+      const stepD = steppedLine(pts);
+      const baseY = plotB;
+      const areaD =
+        stepD +
+        ` L ${pts[pts.length - 1].x.toFixed(2)} ${baseY.toFixed(2)}` +
+        ` L ${pts[0].x.toFixed(2)} ${baseY.toFixed(2)} Z`;
+      const fillOpacity = s.style === "stepBars" ? 0.35 : 0.18;
+      out.push(
+        `<path class="series" data-key="${s.key}" pointer-events="none" d="${areaD}" fill="${s.color}" fill-opacity="${fillOpacity}" stroke="none"/>`
+      );
+      out.push(
+        `<path class="series" data-key="${s.key}" pointer-events="none" d="${stepD}" fill="none" stroke="${s.color}" stroke-width="1.5"/>`
+      );
+    } else {
+      const d = smoothLine(pts);
+      const dash = line.primary
+        ? ""
+        : ` stroke-dasharray="3 3" stroke-opacity="0.7"`;
+      out.push(
+        `<path class="series" data-key="${s.key}" pointer-events="none" d="${d}" fill="none" stroke="${s.color}" stroke-width="1.8"${dash}/>`
+      );
+    }
+  }
+  return out.join("");
+}
+
+function steppedLine(pts) {
+  let d = `M ${pts[0].x.toFixed(2)} ${pts[0].y.toFixed(2)}`;
+  for (let i = 1; i < pts.length; i++) {
+    d += ` L ${pts[i].x.toFixed(2)} ${pts[i - 1].y.toFixed(2)}`;
+    d += ` L ${pts[i].x.toFixed(2)} ${pts[i].y.toFixed(2)}`;
+  }
+  return d;
+}
+
+function smoothLine(pts) {
+  if (pts.length < 3) {
+    let d = `M ${pts[0].x.toFixed(2)} ${pts[0].y.toFixed(2)}`;
+    for (let i = 1; i < pts.length; i++)
+      d += ` L ${pts[i].x.toFixed(2)} ${pts[i].y.toFixed(2)}`;
+    return d;
+  }
+  let d = `M ${pts[0].x.toFixed(2)} ${pts[0].y.toFixed(2)}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i - 1] || pts[i];
+    const p1 = pts[i];
+    const p2 = pts[i + 1];
+    const p3 = pts[i + 2] || p2;
+    const c1x = p1.x + (p2.x - p0.x) / 6;
+    const c1y = p1.y + (p2.y - p0.y) / 6;
+    const c2x = p2.x - (p3.x - p1.x) / 6;
+    const c2y = p2.y - (p3.y - p1.y) / 6;
+    d += ` C ${c1x.toFixed(2)} ${c1y.toFixed(2)} ${c2x.toFixed(2)} ${c2y.toFixed(
+        2
+      )} ${p2.x.toFixed(2)} ${p2.y.toFixed(2)}`;
+  }
+  return d;
+}
+
+/** Hatched bands over every span where space and hot water share steps.
+ *
+ * Only when both power series are visible — hiding a channel hides its
+ * half of the story, and a band explaining an invisible series would be
+ * noise. The native <title> answers the "is this double-booking?"
+ * question right where it is asked.
+ */
+function sharedSpanBands(
+  seriesList, scaleX, plotT, plotB, plotL, plotR, nextPatternId
+) {
+  const powerSeries = (field) =>
+    (seriesList || []).find(
+      (s) => s.field === field && s.visible && s.hasData
+    );
+  const space = powerSeries("space_power");
+  const dhw = powerSeries("dhw_power");
+  if (!space || !dhw) return "";
+  // Through the field helper, not `lines[0]`: a hole anywhere in a power
+  // series splits it into segments, and the span search needs all of them.
+  const pointsOf = (s) => fieldPoints(s, s.field);
+  const spacePts = pointsOf(space);
+  const dhwPts = pointsOf(dhw);
+  if (spacePts.length < 2 || dhwPts.length < 2) return "";
+  const spaceAt = new Map(spacePts.map((p) => [p.t, p.v]));
+  let step = Infinity;
+  for (let i = 1; i < dhwPts.length; i++) {
+    step = Math.min(step, dhwPts[i].t - dhwPts[i - 1].t);
+  }
+  if (!Number.isFinite(step) || step <= 0) return "";
+  const spans = [];
+  for (const p of dhwPts) {
+    const sv = spaceAt.get(p.t);
+    if (p.v > 0.05 && sv !== undefined && sv > 0.05) {
+      const last = spans[spans.length - 1];
+      if (last && p.t <= last.end + step / 2) last.end = p.t + step;
+      else spans.push({ start: p.t, end: p.t + step });
+    }
+  }
+  if (!spans.length) return "";
+  // The pattern id must be unique per chart: with the dialog open the
+  // inline and expanded charts render into one shadow root, and two
+  // <pattern> elements sharing an id is invalid markup that would
+  // silently couple them. The caller hands the ids out.
+  const pid = nextPatternId();
+  const out = [
+    `<defs><pattern id="${pid}" width="6" height="6"
+        patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+        <line x1="0" y1="0" x2="0" y2="6"
+          stroke="var(--secondary-text-color,#888)" stroke-width="1.4"/>
+      </pattern></defs>`,
+  ];
+  for (const span of spans) {
+    const x1 = Math.max(plotL, scaleX(span.start));
+    const x2 = Math.min(plotR, scaleX(span.end));
+    if (x2 <= x1) continue;
+    // pointer-events none is load-bearing: the band spans the full plot
+    // and paints after the what-if lanes, so without it a low-power
+    // shared span would swallow the slot editor's drags and clicks.
+    out.push(`<rect class="shared-band" pointer-events="none" x="${x1}" y="${plotT}" width="${
+        x2 - x1
+      }" height="${plotB - plotT}" fill="url(#${pid})" fill-opacity="0.18">
+        <title>${esc(L("plan.shared_band_title"))}</title>
+      </rect>`);
+  }
+  return out.join("");
+}
+
+// ---- The tooltip: pure functions from rows to markup -------------------------
+// What the hover says. The host's `_onPointerMove` turns the pointer into a
+// time, asks `tooltipRows` what is there, and writes the crosshair and the
+// tooltip box; everything about WHAT is said lives here (PR 3 of #136).
+
+/** The tooltip's rows at time `t`: one per named trace of every visible
+ * series, then each series' expected-error band as a single ± row. `snapT`
+ * is the first trace's nearest sample, which the crosshair snaps to; null
+ * when no series has a point. `deps` are what the rows need from the plan:
+ * the unit a series renders with, and whether the lower floor is modelled. */
+function tooltipRows(series, t, { seriesUnit, isLowerModelled }) {
+  const visible = series.filter((s) => s.visible && s.hasData);
+  const rows = [];
+  let snapT = null;
+  for (const s of visible) {
+    // Every trace, not just the primary one. The house-temperature series
+    // draws three traces and the tooltip used to report the room's value
+    // for all of them, so hovering a 28 C zone line showed 21 C.
+    //
+    // Iterated per FIELD rather than per line: v5.2.0 lets holes break one
+    // field into several segments, and one row per segment would report
+    // the same trace two or three times over.
+    const traces = [
+      { field: s.field, primary: true, labelKey: s.labelKey },
+    ].concat(extraFields(s));
+    // A band's two edges are collapsed into the single ± figure they
+    // actually carry, rather than reported as two absolute temperatures.
+    const bandFields = s.band ? [s.band.lo, s.band.hi] : [];
+    for (const line of traces) {
+      if (bandFields.includes(line.field)) continue;
+      const best = nearestPoint(s, line.field, t);
+      if (!best) continue;
+      if (snapT === null) snapT = best.t;
+      rows.push({
+        color: s.color,
+        label: lineLabel(s, line, isLowerModelled),
+        dashed: !line.primary,
+        value: best.v,
+        unit: seriesUnit(s),
+        t: best.t,
+        field: line.field,
+        reason: best.reason,
+        priceKnown: best.priceKnown,
+      });
+    }
+    // ... and then the band, as one row, right under the line it brackets.
+    for (const row of bandRow(s, t, seriesUnit(s))) rows.push(row);
+  }
+  return { rows, snapT };
+}
+
+/** The tooltip's body: the time, one line per row, the shared-step
+ * sentence when the step is shared, and why the plan is heating. */
+function tooltipHtml(rows) {
+  const time = new Date(rows[0].t).toLocaleString(ACTIVE_LANG, {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  const sharedHtml = sharedTooltipHtml(rows);
+  const bodyHtml =
+    `<div class="tt-time">${esc(time)}</div>` +
+    rows
+      .map(
+        (r) =>
+          `<div class="tt-row"><span class="dot" style="${dotStyle(
+                r.color,
+                r.dashed
+              )}"></span>${esc(r.label)}: ${esc(
+                (r.prefix || "") + fmtTick(r.value)
+              )} ${esc(r.unit)}</div>`
+      )
+      .join("") +
+    sharedHtml +
+    reasonHtml(rows);
+  return bodyHtml;
+}
+
+/** Why the plan is heating at the hovered step, plus price provenance.
+ *
+ * Only reasons for steps that are actually heating are shown; "not heating"
+ * is not an explanation anyone needs, and printing it for every idle hour
+ * would bury the ones that matter. The one exception is a channel paused
+ * by the pump's own operating mode: those steps carry no power, so the
+ * hover would otherwise show nothing at all, and "the optimizer chose not
+ * to" is exactly the wrong reading of a mode the unit itself enforces.
+ */
+function reasonHtml(rows) {
+  const out = [];
+  const seen = new Set();
+  // Which channel a pump_mode reason belongs to: several series read the
+  // same forecast (the house temperatures ride the space plan's points),
+  // so the reason can surface on a row whose field says nothing about the
+  // channel. Decide once, from the channel rows themselves, before the
+  // per-row loop dedupes the code away.
+  const pumpModeChannel = rows.some((r) => r.reason === "pump_mode")
+    ? rows.find((r) => r.reason === "pump_mode" &&
+        (r.field === "dhw_power" || r.field === "space_power"))
+    : undefined;
+  const pumpModeKey = !pumpModeChannel
+    ? null
+    : pumpModeChannel.field === "dhw_power"
+      ? "reasons.pump_mode_dhw"
+      : "reasons.pump_mode_space";
+  for (const r of rows) {
+    const pumpMode = r.reason === "pump_mode";
+    if ((!r.reason || r.reason === "idle") && !pumpMode) continue;
+    if (seen.has(r.reason)) continue;
+    seen.add(r.reason);
+    let label;
+    if (pumpMode) {
+      // Channel-aware where the channel is known; the generic wording
+      // otherwise. "Cannot do this" was true but never actionable.
+      label = L(pumpModeKey || "reasons.pump_mode");
+    } else {
+      label = REASON_LABELS[r.reason]
+        ? L(REASON_LABELS[r.reason])
+        : r.reason;
+    }
+    out.push(`<div class="tt-reason">${esc(label)}</div>`);
+  }
+  if (rows.some((r) => r.priceKnown === false)) {
+    out.push(
+      `<div class="tt-reason">${esc(L("plan.price_estimated"))}</div>`
+    );
+  }
+  return out.join("");
+}
+
+/** The tooltip's shared-step line, or "" when this step is not shared.
+ *
+ * A step carrying both circuits is the pump splitting the quarter hour,
+ * and the hover tooltip is where that question is actually asked. Both
+ * rows must come from the SAME timestamp: each series snaps to its own
+ * nearest point, and with mismatched grids (a stale third-party sensor)
+ * the two nearest points can be hours apart — pairing those would claim
+ * sharing the band correctly refuses to draw.
+ */
+function sharedTooltipHtml(rows) {
+  const rowByField = (f) => (rows || []).find((r) => r.field === f);
+  const spaceRow = rowByField("space_power");
+  const dhwRow = rowByField("dhw_power");
+  if (
+    !spaceRow ||
+    !dhwRow ||
+    spaceRow.t !== dhwRow.t ||
+    !(spaceRow.value > 0.05) ||
+    !(dhwRow.value > 0.05)
+  ) {
+    return "";
+  }
+  return `<div class="tt-shared">${L("plan.shared_step_tooltip", {
+      kw: esc(fmtTick(spaceRow.value + dhwRow.value)),
+    })}</div>`;
+}
+
+// ---- Legend ---------------------------------------------------------------
+// The series chips under the header and in the dialog, and the one piece of
+// state they toggle: which series are hidden. Seeded from the config's
+// `series` map and the browser's localStorage when the config arrives, saved
+// on every click, and part of the render signature so a toggle redraws.
+// Uses `host.config`, `host.plan` (units and labels) and
+// `host.renderForced()`. PR 4a of #136.
+class Legend {
+  constructor(host) {
+    this.host = host;
+    // key -> true when hidden.
+    this.hidden = {};
+    this.onChipClick = this.onChipClick.bind(this);
+  }
+
+  /** The legend's part of the render signature: a toggle must redraw even
+   * when no plan data changed. */
+  signature() {
+    return JSON.stringify(this.hidden);
+  }
+
+  /** Wire every chip in `root` -- both copies, when the dialog is open. */
+  attach(root) {
+    root
+      .querySelectorAll(".chip")
+      .forEach((el) => el.addEventListener("click", this.onChipClick));
+  }
+
+  // Two cards can plot the same entities — a 24 h card on the wall panel
+  // dashboard and a 48 h card with its own title on another — so the key
+  // carries the card's config identity (title + hours), not just its data
+  // sources. Otherwise a series toggled off on one card silently disappears
+  // from the other.
+  storageKey(cfg) {
+    const title = cfg.title !== undefined ? cfg.title : "";
+    return `${CARD_TAG}:${cfg.space_entity}:${cfg.dhw_entity}:${title}:${cfg.hours}`;
+  }
+
+  /** The pre-v4.2.0 key, read as a fallback so an upgrade does not silently
+   * drop every saved series toggle. Writes always go to the new key. */
+  storageKeyLegacy(cfg) {
+    return `${CARD_TAG}:${cfg.space_entity}:${cfg.dhw_entity}`;
+  }
+
+  load(cfg) {
+    const hidden = {};
+    // Config-provided initial visibility (false => hidden).
+    if (cfg.series) {
+      for (const [k, v] of Object.entries(cfg.series)) {
+        if (v === false) hidden[k] = true;
+      }
+    }
+    // localStorage overrides config so user toggles survive reloads.
+    try {
+      if (typeof localStorage !== "undefined") {
+        const raw =
+          localStorage.getItem(this.storageKey(cfg)) ||
+          localStorage.getItem(this.storageKeyLegacy(cfg));
+        if (raw) {
+          const saved = JSON.parse(raw);
+          if (saved && typeof saved === "object") {
+            for (const s of SERIES_DEFS) {
+              if (typeof saved[s.key] === "boolean") {
+                hidden[s.key] = saved[s.key];
+              }
+            }
+          }
+        }
+      }
+    } catch (e) {
+      /* ignore malformed storage */
+    }
+    return hidden;
+  }
+
+  save() {
+    try {
+      if (typeof localStorage !== "undefined" && this.host.config) {
+        localStorage.setItem(
+          this.storageKey(this.host.config),
+          JSON.stringify(this.hidden)
+        );
+      }
+    } catch (e) {
+      /* ignore quota / disabled storage */
+    }
+  }
+
+  html(series) {
+    const isLowerModelled = () => this.host.plan.lowerFloorModelled();
+    const chips = SERIES_DEFS.map((def) => {
+      const s = series.find((x) => x.key === def.key);
+      const hasData = s ? s.hasData : false;
+      const hidden = !!this.hidden[def.key];
+      const cls = "chip" + (hidden ? " off" : "") + (hasData ? "" : " nodata");
+      const label = L(def.labelKey);
+      // One chip per series, never one per rendered line.
+      //
+      // v5.1.7 gave every trace of a multi-line series its own chip so the
+      // house-temperature zones could be named. Every chip carries the
+      // series' `data-key`, because per-line visibility does not exist — so
+      // that series showed three chips in one colour, any of which hid all
+      // three lines at once. Three controls doing one job is worse than one,
+      // so the naming stays where it points at a single trace: the tooltip
+      // has a row per line, and the chip's title lists what else rides on
+      // the line it toggles.
+      //
+      // The chip now stands for the series rather than for its primary
+      // trace, which also settles a case the per-line version got wrong:
+      // with the primary field absent but the extras present, a solid
+      // "House temperature" chip was emitted for a line nothing drew.
+      //
+      // v5.2.0 enumerates them with `_extraFields`, not `lines`: a hole now
+      // splits one field into several drawn paths, and a confidence band's
+      // two edges are one envelope with one name. Listing `lines` here would
+      // print "Lower floor, Lower floor, Lower floor" — saying a thing three
+      // times, in the title written to stop saying it twice.
+      const extras = extraFields(s);
+      const unit = this.host.plan.seriesUnit(def);
+      // ... and any sentence a trace needs beyond its name rides along
+      // after them. Only the expected-error band has one: "Upper floor"
+      // explains itself, a dashed pair hugging the tank curve does not, and
+      // this title is now the one place a puzzled reader can look.
+      const notes = extras
+        .map((line) => lineNote(def, line))
+        .filter(Boolean)
+        .map((note) => " " + note)
+        .join("");
+      const title = extras.length
+        ? L("legend.multi_trace_title", {
+            label,
+            unit,
+            names: extras.map((line) => lineLabel(def, line, isLowerModelled)).join(", "),
+          }) + notes
+        : `${label} (${unit})`;
+      return `<button type="button" class="${cls}" data-key="${
+        def.key
+      }" title="${esc(title)}">
+        <span class="dot" style="${dotStyle(def.color, false)}"></span>${esc(
+        label
+      )}
+      </button>`;
+    }).join("");
+    return `<div class="legend">${chips}</div>`;
+  }
+
+  onChipClick(ev) {
+    // A legend click must not also count as a click on the card, or toggling a
+    // series would open the expanded view every time.
+    if (ev && typeof ev.stopPropagation === "function") ev.stopPropagation();
+    const el = ev.currentTarget;
+    const key = el.getAttribute("data-key");
+    if (!key) return;
+    this.hidden[key] = !this.hidden[key];
+    this.save();
+    this.host.renderForced();
+  }
+}
+
+// ---- The headline row: pure functions of the plan source ------------------
+// The compact stats row under the header -- projected savings, the
+// optimization score with its click-opened breakdown, the first line of the
+// plan narrative -- and its part of the render signature. Everything here is
+// a function of `PlanSource` and the config; the one piece of state, whether
+// the breakdown is open, stays on the card (`_scoreOpen`) with the click
+// handlers that flip it. PR 4a of #136.
+
+/** The headline sensors' contribution to the re-render signature. */
+function headlineSignature(plan, cfg) {
+  if (!cfg.show_stats) return "off";
+  return HEADLINE_SUFFIXES.map((sfx) => {
+    const st = plan.statEntity(sfx);
+    return st ? `${st.state}@${st.last_updated || ""}` : "-";
+  }).join("~");
+}
+
+/** The score sensor's three sub-scores, in display order.
+ *
+ * Read from the same entity the headline number comes from, so the two
+ * can never disagree. A null value is "no evidence yet", never zero --
+ * a fresh install has no grades, not failing ones, and the panel says
+ * so rather than printing 0/100 for something unmeasured.
+ */
+function scoreParts(plan) {
+  const st = plan.statEntity("_optimization_score");
+  const attrs = (st && st.attributes) || {};
+  return [
+    { key: "envelope", label: L("score.label_envelope"), value: finiteScore(attrs.envelope) },
+    { key: "machine", label: L("score.label_machine"), value: finiteScore(attrs.machine) },
+    { key: "operation", label: L("score.label_operation"), value: finiteScore(attrs.operation) },
+  ];
+}
+
+function finiteScore(v) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+/** The click-opened panel: each sub-score, its value, and what it means.
+ *
+ * Rendered under the stats row when the host's `_scoreOpen` is set; the
+ * flag lives on the card instance, so it survives the shadow-root rebuild
+ * that every plan refresh performs.
+ */
+function scoreBreakdownHtml(plan) {
+  const rows = scoreParts(plan)
+    .map((p) => {
+      const value =
+        p.value === null
+          ? `<span class="sb-na">${esc(L("score.no_evidence"))}</span>`
+          : `<span class="sb-val">${Math.round(p.value)}/100</span>`;
+      const bar = p.value === null ? "" : `<span class="sb-bar"><span class="sb-fill" style="width:${Math.max(0, Math.min(100, p.value))}%"></span></span>`;
+      return (
+        `<div class="sb-row" data-part="${p.key}">` +
+        `<div class="sb-head"><span class="sb-name">${esc(p.label)}</span>` +
+        `${bar}${value}</div>` +
+        `<div class="sb-text">${esc(L(`score.part_${p.key}`))}</div>` +
+        `</div>`
+      );
+    })
+    .join("");
+  return `<div class="score-breakdown">${rows}</div>`;
+}
+
+/** The compact stats row under the header, or nothing at all.
+ *
+ * Every part is optional because every source sensor is: the score sensor
+ * is unavailable until enough history exists, the savings sensors null out
+ * between optimizer runs, and old integrations publish none of them. A row
+ * with nothing to say renders no chrome rather than an empty strip.
+ */
+function headlineHtml(plan, cfg, scoreOpen) {
+  if (!cfg.show_stats) return "";
+  const items = [];
+
+  const savings = plan.statNumber("_predicted_savings");
+  if (savings !== null) {
+    const pct = plan.statNumber("_savings_percentage");
+    // The savings sensor declares the unit its value is denominated in;
+    // nothing here converts, so a card-config `currency:` must not relabel
+    // it. `_currency()` only fills in when the sensor declares no unit.
+    const savingsSt = plan.statEntity("_predicted_savings");
+    const unit =
+      (savingsSt &&
+        savingsSt.attributes &&
+        savingsSt.attributes.unit_of_measurement) ||
+      plan.currency();
+    const value =
+      `${savings.toFixed(2)} ${unit}` +
+      (pct !== null
+        ? ` ${L("headline.savings_pct", { pct: pct.toFixed(0) })}`
+        : "");
+    items.push({
+      cls: "savings",
+      title: L("headline.savings_title"),
+      label: L("headline.savings"),
+      value,
+      // D4-06: the baseline qualifier used to live only in the `title`
+      // attribute above -- a hover tooltip, unreachable on touch, which is
+      // most Home Assistant dashboards. A short visible caveat carries the
+      // same claim as plain text; the tooltip stays for the fuller wording.
+      caveat: L("headline.savings_caveat"),
+    });
+  }
+
+  const score = plan.statNumber("_optimization_score");
+  if (score !== null) {
+    // The hover says what the score is; the sub-scores ride the same
+    // sensor's attributes, so the hover can also say what it is MADE OF
+    // -- an owner staring at 5/100 wants to know where the 95 went
+    // before deciding anything.
+    const parts = scoreParts(plan);
+    const breakdown = parts
+      .map(
+        (p) =>
+          `${p.label}: ${
               p.value === null ? L("score.no_evidence") : `${Math.round(p.value)}/100`
             }`
-        )
-        .join(" · ");
-      items.push({
-        cls: "score",
-        title:
-          L("headline.score_title") +
-          (breakdown ? `\n${breakdown}` : "") +
-          `\n${L("headline.score_click_hint")}`,
-        label: L("headline.score"),
-        value: `${Math.round(score)}/100`,
-      });
-    }
-
-    // The narrative arrives already rendered in Home Assistant's language
-    // (the coordinator owns those templates), so the first line is shown
-    // verbatim rather than re-keyed here.
-    const narrative = this._statEntity("_plan_narrative");
-    const lines =
-      narrative && narrative.attributes && narrative.attributes.lines;
-    const line =
-      Array.isArray(lines) && typeof lines[0] === "string" && lines[0]
-        ? lines[0]
-        : null;
-
-    if (!items.length && !line) return "";
-    const stats = items
-      .map(
-        (it) =>
-          // data-stat gives the DOM stub's selector a single-attribute
-          // handle (its matches() knows tag[attr=value], not multi-class)
-          // and costs the real DOM nothing.
-          `<span class="hl-stat hl-${it.cls}" data-stat="${it.cls}" ` +
-          `title="${esc(it.title)}">` +
-          `<span class="hl-label">${esc(it.label)}</span> ` +
-          `<span class="hl-value">${esc(it.value)}</span>` +
-          (it.caveat
-            ? `<span class="hl-caveat">${esc(it.caveat)}</span>`
-            : "") +
-          `</span>`
       )
-      .join("");
-    return `<div class="headline">
+      .join(" · ");
+    items.push({
+      cls: "score",
+      title:
+        L("headline.score_title") +
+        (breakdown ? `\n${breakdown}` : "") +
+        `\n${L("headline.score_click_hint")}`,
+      label: L("headline.score"),
+      value: `${Math.round(score)}/100`,
+    });
+  }
+
+  // The narrative arrives already rendered in Home Assistant's language
+  // (the coordinator owns those templates), so the first line is shown
+  // verbatim rather than re-keyed here.
+  const narrative = plan.statEntity("_plan_narrative");
+  const lines =
+    narrative && narrative.attributes && narrative.attributes.lines;
+  const line =
+    Array.isArray(lines) && typeof lines[0] === "string" && lines[0]
+      ? lines[0]
+      : null;
+
+  if (!items.length && !line) return "";
+  const stats = items
+    .map(
+      (it) =>
+        // data-stat gives the DOM stub's selector a single-attribute
+        // handle (its matches() knows tag[attr=value], not multi-class)
+        // and costs the real DOM nothing.
+        `<span class="hl-stat hl-${it.cls}" data-stat="${it.cls}" ` +
+        `title="${esc(it.title)}">` +
+        `<span class="hl-label">${esc(it.label)}</span> ` +
+        `<span class="hl-value">${esc(it.value)}</span>` +
+        (it.caveat
+          ? `<span class="hl-caveat">${esc(it.caveat)}</span>`
+          : "") +
+        `</span>`
+    )
+    .join("");
+  return `<div class="headline">
       ${stats ? `<div class="hl-stats">${stats}</div>` : ""}
-      ${this._scoreOpen && score !== null ? this._scoreBreakdownHtml() : ""}
+      ${scoreOpen && score !== null ? scoreBreakdownHtml(plan) : ""}
       ${line ? `<div class="hl-narrative">${esc(line)}</div>` : ""}
     </div>`;
+}
+
+// ---- ExpandedDialog -------------------------------------------------------
+// The enlarged view: a native <dialog> shown with showModal(), its Plan and
+// Setup tabs, the scroll offset carried across the rebuild every plan
+// refresh performs, and the font size its chrome derives from its measured
+// width. Owns whether the card is expanded and which page shows; the host
+// composes the page's body and wires it through `sync`'s hooks. Uses
+// `host.shadowRoot`, `host.renderForced()` and `host.view.onDialogClosed()`.
+// PR 4b of #136.
+class ExpandedDialog {
+  constructor(host) {
+    this.host = host;
+    this.expanded = false;
+    // Which page the dialog shows. `undefined` means "not chosen yet": the
+    // render cycle picks the first page once it knows whether there is a
+    // plan (`pickDefaultPage`), and only then, so a tab the user chose is
+    // never overridden by a later refresh.
+    this.page = undefined;
+    // The body's scroll offset, carried across the rebuild.
+    this.scroll = 0;
+    // The font size last written to the dialog, so an unchanged value is
+    // not rewritten on every pointer move (`scaleFont`).
+    this.fontPx = 0;
+    this.onDialogClick = this.onDialogClick.bind(this);
+    this.onDialogClose = this.onDialogClose.bind(this);
   }
 
-  /** The score sensor's three sub-scores, in display order.
-   *
-   * Read from the same entity the headline number comes from, so the two
-   * can never disagree. A null value is "no evidence yet", never zero --
-   * a fresh install has no grades, not failing ones, and the panel says
-   * so rather than printing 0/100 for something unmeasured.
-   */
-  _scoreParts() {
-    const st = this._statEntity("_optimization_score");
-    const attrs = (st && st.attributes) || {};
-    return [
-      { key: "envelope", label: L("score.label_envelope"), value: this._finiteScore(attrs.envelope) },
-      { key: "machine", label: L("score.label_machine"), value: this._finiteScore(attrs.machine) },
-      { key: "operation", label: L("score.label_operation"), value: this._finiteScore(attrs.operation) },
-    ];
+  /** The page to draw: "setup" when chosen, "plan" otherwise. */
+  activePage() {
+    return this.page === "setup" ? "setup" : "plan";
   }
 
-  _finiteScore(v) {
-    const n = Number(v);
-    return Number.isFinite(n) ? n : null;
+  /** Remember where the user was before `root` is rebuilt: the body scrolls,
+   * and a plan refresh on the coordinator's schedule must not jump it back
+   * to the top mid-edit. */
+  saveScroll(root) {
+    const openBody = root.querySelector("dialog.expanded .dlg-body");
+    this.scroll = openBody ? openBody.scrollTop : this.scroll || 0;
   }
 
-  /** The click-opened panel: each sub-score, its value, and what it means.
-   *
-   * Rendered under the stats row when `this._scoreOpen` is set; the flag
-   * lives on the instance, so it survives the shadow-root rebuild that
-   * every plan refresh performs.
-   */
-  _scoreBreakdownHtml() {
-    const rows = this._scoreParts()
-      .map((p) => {
-        const value =
-          p.value === null
-            ? `<span class="sb-na">${esc(L("score.no_evidence"))}</span>`
-            : `<span class="sb-val">${Math.round(p.value)}/100</span>`;
-        const bar = p.value === null ? "" : `<span class="sb-bar"><span class="sb-fill" style="width:${Math.max(0, Math.min(100, p.value))}%"></span></span>`;
-        return (
-          `<div class="sb-row" data-part="${p.key}">` +
-          `<div class="sb-head"><span class="sb-name">${esc(p.label)}</span>` +
-          `${bar}${value}</div>` +
-          `<div class="sb-text">${esc(L(`score.part_${p.key}`))}</div>` +
-          `</div>`
-        );
-      })
-      .join("");
-    return `<div class="score-breakdown">${rows}</div>`;
-  }
-
-  _render() {
-    // Before anything else: the rebuild below destroys the slot menu's
-    // element but not the Escape listener it parked on the document.
-    this._teardown();
-    // The dialog body scrolls now, and `_render` replaces the whole shadow root
-    // on every plan refresh -- which happens on the coordinator's schedule, not
-    // the user's. Without carrying the offset across the rebuild the panel would
-    // jump back to the top by itself every few minutes, mid-edit.
-    const openBody = this.shadowRoot.querySelector("dialog.expanded .dlg-body");
-    this._dialogScroll = openBody ? openBody.scrollTop : this._dialogScroll || 0;
-    const built = this._buildSeries();
-    this._series = built.series;
-
-    const anyData = this._series.some((s) => s.hasData);
-
-    const style = cardStyleBlock();
-    const legend = this._legendHtml();
-
-    // The setup page is drawn from configuration alone: `sensor.py` publishes
-    // `setup_topology` with no plan at all, saying so in as many words --
-    // "the card's setup page should not need a solve to draw". Gating the
-    // only way in on plan data made the one page that can say WHICH sensor is
-    // missing reachable only after a solve the missing sensor was preventing.
-    const topo = this._planAttrRaw("setup_topology", null);
-    const anySetup = !!(topo && Array.isArray(topo.slots) && topo.slots.length);
-    // An install with genuinely nothing published stays as it was: no plan
-    // and no topology is nothing to expand to, and the diagnostics below are
-    // the whole answer.
-    const expandable = anyData || anySetup;
-
-    let body;
-    if (!anyData) {
-      body = this._noPlanHtml();
-      this._plot = null;
-    } else {
-      body = this._chartBlock(built, false);
+  /** Which page an expanded dialog opens on, decided once `anyData` is known
+   * and only while the dialog is actually open. */
+  pickDefaultPage(anyData) {
+    if (this.expanded && this.page === undefined) {
+      this.page = anyData ? "plan" : "setup";
     }
-
-    // Which page an expanded dialog opens on. Decided here, where `anyData`
-    // is known, and only while the dialog is actually open, so a tab the user
-    // chose themselves is never overridden by a later refresh.
-    if (this._expanded && this._dialogPage === undefined) {
-      this._dialogPage = anyData ? "plan" : "setup";
-    }
-
-    // The dialog is a sibling of ha-card, not a child, so a click inside it
-    // never bubbles into the card's own open-on-click handler. Rendered
-    // whenever the card believes it is expanded: a flag that draws nothing is
-    // the state the Setup tab was unreachable behind.
-    const dialog = this._expanded ? this._dialogHtml(built, anyData) : "";
-
-    // The rebuild below replaces the <dialog> element wholesale, so the font
-    // memo must forget the old element's size or _scaleDialogFont will skip
-    // the write and leave the fresh dialog's chrome at card size.
-    this._dialogFontPx = 0;
-
-    this.shadowRoot.innerHTML = `
-      <ha-card class="${expandable ? "clickable" : ""}">
-        ${style}
-        <div class="header">
-          <span class="title">${esc(this._title())}</span>
-          ${
-            expandable
-              ? `<button type="button" class="expand" title="${esc(
-                  L("header.enlarge")
-                )}"
-                   aria-label="${esc(L("header.enlarge_chart"))}">${EXPAND_ICON}</button>`
-              : ""
-          }
-        </div>
-        ${this._headlineHtml()}
-        ${legend}
-        ${body}
-      </ha-card>
-      ${dialog}
-    `;
-
-    this._attachChartEvents(this.shadowRoot);
-
-    const expandBtn = this.shadowRoot.querySelector(".expand");
-    if (expandBtn) expandBtn.addEventListener("click", this._onExpandClick);
-
-    // The score stat's click toggles the breakdown panel (#2). stopPropagation
-    // matters: the card's own open-on-click handler sits on ha-card and would
-    // otherwise swallow the toggle into "open the expanded dialog", which is
-    // exactly the wrong response to a click that asks "what does 5/100 mean".
-    const scoreStat = this.shadowRoot.querySelector('[data-stat="score"]');
-    if (scoreStat) {
-      scoreStat.setAttribute("role", "button");
-      scoreStat.setAttribute("tabindex", "0");
-      scoreStat.setAttribute(
-        "aria-label", `${L("headline.score")} — ${L("headline.score_click_hint")}`
-      );
-      scoreStat.addEventListener("click", (ev) => {
-        ev.stopPropagation();
-        this._scoreOpen = !this._scoreOpen;
-        this._render();
-      });
-      scoreStat.addEventListener("keydown", (ev) => {
-        if (ev.key !== "Enter" && ev.key !== " ") return;
-        ev.preventDefault();
-        ev.stopPropagation();
-        this._scoreOpen = !this._scoreOpen;
-        this._render();
-      });
-    }
-
-    const card = this.shadowRoot.querySelector("ha-card");
-    if (card && expandable) card.addEventListener("click", this._onCardClick);
-
-    this._syncDialog();
-    this._cacheRect();
-  }
-  /** Chart markup plus the tooltip that belongs to it.
-   *
-   * The tooltip lives inside the wrapper rather than beside it so that the two
-   * copies of the chart, inline and expanded, each own theirs. Positioning it
-   * against the wrapper also removes a dependency on `ha-card` happening to be
-   * a positioned ancestor.
-   */
-  _chartBlock(built, expanded) {
-    const chart = this._chartSvg(built, expanded);
-    // The controls overlay the chart rather than sitting under it: the expanded
-    // dialog budgets its height from a fixed guess at how tall the chrome is
-    // (item 26), and a new row of buttons would eat straight into that budget.
-    const pannable = this._viewAdjustable() ? " pannable" : "";
-    return `<div class="chartwrap${expanded ? " big" : ""}${pannable}">${chart}
-      ${this._viewControlsHtml()}
-      <div class="tooltip" hidden></div></div>`;
   }
 
-  /** Why there is no chart, and which sensor to look at. Shared by the card
-   * and the dialog's plan page: before the first solve both have to say the
-   * same thing, and a dialog that drew an empty box instead would be the
-   * worse half of the pair. */
-  _noPlanHtml() {
-    return `<div class="empty">${L("errors.no_plan_data")}<br>
-      ${this._diagnose("space")}<br>
-      ${this._diagnose("dhw")}</div>`;
+  /** The rebuild replaces the <dialog> element wholesale, so the font memo
+   * must forget the old element's size or `scaleFont` will skip the write
+   * and leave the fresh dialog's chrome at card size. */
+  resetFontMemo() {
+    this.fontPx = 0;
   }
 
-  _dialogHtml(built, anyData) {
-    // Which page the dialog shows is instance state on purpose: `_render`
-    // rebuilds the shadow root on every plan refresh, on the coordinator's
-    // schedule, and a refresh must not yank the user off the setup page they
-    // are reading (the `_runs` memoisation bug class from v3.2.0).
-    const page = this._dialogPage === "setup" ? "setup" : "plan";
-    // The hidden page is genuinely unrendered, not `display: none`:
-    // `getBoundingClientRect()` returns zeroes for a hidden element, so
-    // `_timeAtClientX` would compute garbage drag times rather than fail.
-    const body =
-      page === "setup"
-        ? this._setupPageHtml()
-        : anyData
-          ? `${this._chartBlock(built, true)}${this._whatIfHtml()}`
-          : this._noPlanHtml();
+  /** The dialog's markup: head, tabs, the legend when the plan page has
+   * one, and `body` -- the page the host composed for `activePage()`. */
+  html({ title, legend, body }) {
+    const page = this.activePage();
     const tab = (id, label) =>
       `<button type="button" class="dlg-tab${page === id ? " active" : ""}"
          data-page="${id}" role="tab"
          aria-selected="${page === id}">${label}</button>`;
     return `
-      <dialog class="expanded" aria-label="${esc(this._title())}">
+      <dialog class="expanded" aria-label="${esc(title)}">
         <div class="dlg-head">
-          <span class="title">${esc(this._title())}</span>
+          <span class="title">${esc(title)}</span>
           <div class="dlg-tabs" role="tablist">
             ${tab("plan", esc(L("header.tab_plan")))}
             ${tab("setup", esc(L("header.tab_setup")))}
@@ -4126,7 +5008,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
           <button type="button" class="close" title="${esc(L("header.close"))}"
             aria-label="${esc(L("header.close"))}">${CLOSE_ICON}</button>
         </div>
-        ${page === "plan" && anyData ? this._legendHtml() : ""}
+        ${legend}
         <div class="dlg-body">
           ${body}
         </div>
@@ -4134,1000 +5016,1201 @@ class HeatpumpOptimizerCard extends HTMLElement {
     `;
   }
 
-  /** Item 33: the configured system as a picture, with live values in place.
+  /** Bring the dialog element in `root` into line with `expanded`.
    *
-   * Drawn from the `setup_topology` attribute the plan sensors publish --
-   * the same description the options flow's overview renders, emitted by the
-   * coordinator so the two can never disagree. Live readings come straight
-   * from `hass.states`, which is fresher than anything routed through the
-   * coordinator and free.
-   *
-   * Static inline SVG, hand-written like the rest of the card: no build
-   * step, no dependencies, and nothing interactive to begin with.
+   * `_render` rebuilds the shadow root wholesale, so on every data refresh the
+   * open dialog is replaced by a fresh element that has to be shown again.
+   * `attachBody(dlg)` wires whatever page is inside (the host's business),
+   * before `showModal` because the setup page's picker takes focus when it
+   * opens; `onPageChange()` is what a tab click asks the host to do once the
+   * page and the scroll offset are reset.
    */
-  _setupPageHtml() {
-    const topo = this._planAttrRaw("setup_topology", null);
-    if (!topo || !Array.isArray(topo.slots)) {
-      return `<div class="setup-page"><div class="empty">
-        ${L("setup.not_published")}</div></div>`;
-    }
-    const editing = this._layoutEditing();
-    // The svg lives in a wrapper of its own so an edit can redraw the diagram
-    // without rebuilding the page around it: the pointer handlers are attached
-    // to the wrapper, and a drag that replaced its own listeners mid-gesture
-    // would drop the pointer.
-    return `<div class="setup-page${editing ? " editing" : ""}">
-      ${this._layoutBarHtml(topo)}
-      <div class="setup-canvas">${this._setupSvg(topo)}</div>
-      ${this._setupPickerHtml(topo)}
-      <div class="setup-hint">${
-        editing ? L("setup.editing_hint") : L("setup.assign_hint")
-      }</div>
-      <div class="setup-result" role="status"></div></div>`;
-  }
+  sync(root, { attachBody, onPageChange }) {
+    const dlg = root.querySelector("dialog");
+    if (!dlg) return;
 
-  /** True while the layout editor is open. */
-  _layoutEditing() {
-    return !!(this._layoutEdit && this._layoutEdit.active);
-  }
+    dlg.addEventListener("click", this.onDialogClick);
+    dlg.addEventListener("close", this.onDialogClose);
+    dlg.addEventListener("cancel", this.onDialogClose);
+    const closeBtn = dlg.querySelector(".close");
+    if (closeBtn) closeBtn.addEventListener("click", this.onDialogClick);
 
-  /** True when there is an edit worth writing: a change, and a layout to
-   * name it. Either alone is not something to offer to save. */
-  _layoutSaveable() {
-    const ed = this._layoutEdit;
-    return !!(ed && ed.active && ed.match && ed.dirty);
-  }
-
-  /** True when there is something to take back: a change made since the
-   * editor opened. An untouched drawing already IS the layout in use, so
-   * Undo would do nothing and must not pretend otherwise. */
-  _layoutUndoable() {
-    const ed = this._layoutEdit;
-    return !!(ed && ed.active && ed.dirty && ed.baseline);
-  }
-
-  /** A position map copied down to its coordinate pairs. */
-  _copyPositions(positions) {
-    const out = {};
-    for (const key of Object.keys(positions || {})) {
-      const at = positions[key];
-      out[key] = Array.isArray(at) ? at.slice() : at;
-    }
-    return out;
-  }
-
-  /** The editor's own controls: the toggle, Save, and the verdict line.
-   *
-   * Offered only when the coordinator publishes a catalog. Without one there
-   * is nothing to validate a drawing against, and an editor that could not
-   * tell a supported layout from an invented one is exactly the "diagram that
-   * lies about the physics" this feature exists to end.
-   */
-  _layoutBarHtml(topo) {
-    // An editor already open keeps its toggle even if the catalog goes away
-    // under it (an integration downgrade mid-session); a bar that vanished
-    // would leave the editor open with no way out of it.
-    if (
-      (!Array.isArray(topo.catalog) || !topo.catalog.length) &&
-      !this._layoutEditing()
-    ) {
-      return "";
-    }
-    const ed = this._layoutEdit;
-    const active = this._layoutEditing();
-    const match = active && ed.match ? ed.match : null;
-    return `
-      <div class="layout-bar">
-        <button type="button" class="layout-edit-toggle${active ? " on" : ""}"
-          aria-pressed="${active}">${
-            active ? esc(L("setup.done_editing")) : esc(L("setup.edit_layout"))
-          }</button>
-        ${
-          active
-            ? `<button type="button" class="layout-save"${
-                this._layoutSaveable() ? "" : ` disabled="disabled"`
-              }>${esc(L("setup.save_layout"))}</button>`
-            : ""
-        }
-        ${
-          active
-            ? `<button type="button" class="layout-undo"${
-                this._layoutUndoable() ? "" : ` disabled="disabled"`
-              } title="${esc(L("setup.undo_layout_aria"))}"
-              aria-label="${esc(L("setup.undo_layout_aria"))}">${
-                esc(L("setup.undo_layout"))
-              }</button>`
-            : ""
-        }
-        ${
-          active
-            ? `<span class="layout-verdict${match ? " match" : ""}"
-                 role="status">${esc((ed && ed.verdict) || "")}</span>`
-            : ""
-        }
-      </div>`;
-  }
-
-  /** The entity picker for one slot, or nothing when none is open.
-   *
-   * Item 32's click-to-assign, on the card rather than in a custom panel: the
-   * card is already authenticated, already draws the diagram and already has
-   * `hass`, so this needs one validated service instead of a second frontend
-   * with its own hand-rolled config-write path.
-   *
-   * Candidates come from `hass.states`, filtered to the domains the slot
-   * accepts -- the same list the service validates against, published on the
-   * slot itself so the picker cannot offer what the service would refuse.
-   */
-  _setupPickerHtml(topo) {
-    const key = this._pickerKey;
-    if (!key) return "";
-    const slot = (topo.slots || []).find((s) => s.key === key);
-    if (!slot) return "";
-    // The open picker's slot, for the handlers: the filter box rebuilds the
-    // option list without re-rendering the page (which would take the focus
-    // out of the input the user is typing into), and needs the same slot
-    // this render used.
-    this._pickerSlot = slot;
-    const model = this._pickerModel(slot);
-    const filter = this._pickerFilter || "";
-    return `
-      <div class="setup-picker">
-        <div class="sp-title">${esc(slot.label)}</div>
-        <input class="sp-filter" type="text" value="${esc(filter)}"
-          placeholder="${esc(L("setup.picker_filter_placeholder"))}"
-          aria-label="${esc(
-            L("setup.picker_filter_aria", { slot: slot.label })
-          )}" />
-        <select class="sp-select" size="8" aria-label="${esc(
-          L("setup.picker_aria", { slot: slot.label })
-        )}">${model.options}</select>
-        <div class="sp-actions">
-          <button type="button" class="sp-save">${esc(L("setup.assign"))}</button>
-          <button type="button" class="sp-cancel">${esc(L("setup.cancel"))}</button>
-        </div>
-        <div class="sp-note">${esc(model.note)}</div>
-      </div>`;
-  }
-
-  /** The picker's option list and its footnote, for one slot.
-   *
-   * Three rules this had wrong before v5.1.4, each of them destructive:
-   *
-   *  - The entity the slot ALREADY holds is always an option, and always the
-   *    selected one. It used to be offered only if it happened to fall
-   *    inside the candidate list; when it did not -- a renamed entity, one
-   *    past the cap, one whose domain the slot no longer lists -- the
-   *    `<select>` fell back to "(not configured)", and pressing Assign
-   *    wrote that emptiness back and reloaded the integration. The user was
-   *    shown a cleared slot and a destructive default in the same control.
-   *  - The cap applies AFTER the filter, so every entity on the install is
-   *    reachable by typing. It used to truncate the alphabetical candidate
-   *    list, which on a large install simply hid the user's own probe with
-   *    no way to reach it.
-   *  - Every option shows the entity id next to the friendly name.
-   *    Auto-generated names collide ("Vedpanna temperatur" twice, one of
-   *    them silently `..._2`), and a list of identical labels is a list
-   *    nobody can choose from.
-   */
-  _pickerModel(slot) {
-    const domains = slot.domains || [];
-    const states = (this._hass && this._hass.states) || {};
-    const nameOf = (id) => {
-      const st = states[id];
-      return (st && st.attributes && st.attributes.friendly_name) || id;
-    };
-    const labelOf = (id) => {
-      if (!states[id]) return `${id} — ${L("setup.picker_missing")}`;
-      const friendly = nameOf(id);
-      return friendly === id ? id : `${friendly} — ${id}`;
-    };
-    // A slot that wants a temperature says so; a matching device class is
-    // ranked first so the probe the slot is for is near the top before a
-    // single character is typed. Ranking only -- nothing is hidden by it,
-    // because a house full of unclassified sensors is normal.
-    //
-    // What the slot is asking for comes from the slot, published by
-    // `topology._SLOTS` beside the domains it sits in the same row as. The
-    // card used to keep a second copy of that table keyed by slot id, which
-    // no test touched and which would have gone quietly stale the first time
-    // a slot was added.
-    const want = slot.device_class || null;
-    const classOf = (id) => {
-      const st = states[id];
-      return (st && st.attributes && st.attributes.device_class) || "";
-    };
-    const all = Object.keys(states).filter((id) =>
-      domains.includes(id.split(".")[0])
-    );
-    const q = String(this._pickerFilter || "").trim().toLowerCase();
-    const matching = q
-      ? all.filter((id) => labelOf(id).toLowerCase().includes(q))
-      : all;
-    matching.sort((a, b) => {
-      if (want) {
-        const ra = classOf(a) === want ? 0 : 1;
-        const rb = classOf(b) === want ? 0 : 1;
-        if (ra !== rb) return ra - rb;
-      }
-      return a < b ? -1 : a > b ? 1 : 0;
-    });
-    const shown = matching.slice(0, PICKER_MAX_OPTIONS);
-    // What the select must come up on: the user's own pick this time round,
-    // otherwise whatever the slot is configured with.
-    const chosen =
-      this._pickerChoice === null || this._pickerChoice === undefined
-        ? slot.entity || ""
-        : this._pickerChoice;
-    const listed = new Set(shown);
-    const options = [
-      `<option value=""${chosen ? "" : " selected"}>${esc(
-        L("setup.picker_none")
-      )}</option>`,
-    ];
-    // The current entity rides at the top of the list, outside the filter
-    // and outside the cap: it is the one option whose absence would rewrite
-    // the configuration.
-    if (chosen && !listed.has(chosen)) {
-      options.push(
-        `<option value="${esc(chosen)}" selected>${esc(labelOf(chosen))}</option>`
-      );
-    }
-    for (const id of shown) {
-      options.push(
-        `<option value="${esc(id)}"${id === chosen ? " selected" : ""}>${esc(
-          labelOf(id)
-        )}</option>`
-      );
-    }
-    let note;
-    if (matching.length > shown.length) {
-      note = L("setup.picker_showing", {
-        n: shown.length,
-        total: matching.length,
-      });
-    } else if (q && !matching.length) {
-      note = L("setup.picker_no_match", { q });
-    } else {
-      note = L("setup.picker_count", {
-        n: matching.length,
-        domains: domains.join("/"),
-      });
-    }
-    return { options: options.join(""), note, total: matching.length,
-      shown: shown.length };
-  }
-
-  /** Close the picker, dropping everything that belonged to that visit. */
-  _closePicker() {
-    this._pickerKey = null;
-    this._pickerSlot = null;
-    this._pickerViaKeyboard = false;
-    this._pickerFilter = "";
-    this._pickerChoice = null;
-    this._cancelPendingClear();
-  }
-
-  /** Disarm the "this would clear the slot" confirmation. */
-  _cancelPendingClear() {
-    if (this._clearTimer) {
-      clearTimeout(this._clearTimer);
-      this._clearTimer = null;
-    }
-    this._pendingClear = false;
-  }
-
-  /** Disarm it and put the Assign button back the way it was. */
-  _disarmClear(picker) {
-    this._cancelPendingClear();
-    const root = picker || (this.shadowRoot && this.shadowRoot.querySelector(
-      ".setup-picker"));
-    const save = root && root.querySelector(".sp-save");
-    if (save) {
-      save.textContent = L("setup.assign");
-      save.classList.remove("confirm");
-    }
-  }
-
-  /** Wire the setup page's clickable slots and its picker. */
-  _attachSetupEvents(root) {
-    this._attachLayoutEditor(root);
-    const openPicker = (key, viaKeyboard) => {
-      // While the layout editor is open a click on a box is the start of a
-      // drag, not a request to assign a sensor. Opening the picker over the
-      // diagram being edited would put a dialog on top of the drag.
-      if (this._layoutEditing()) return;
-      // A fresh visit: no filter, no half-made choice, no armed clear left
-      // over from the row before this one.
-      this._closePicker();
-      this._pickerKey = key;
-      // Opened from the keyboard, focus must land in the picker: the hit
-      // target that had it is rebuilt by the render below, so without this
-      // the keyboard user is dropped back at the top of the dialog.
-      this._pickerFocus = !!viaKeyboard;
-      // ...and remembered for the way back out. Handing focus to a row a
-      // MOUSE user is no longer looking at is what left a focus ring stuck
-      // on the sensor field after Cancel (v5.1.4).
-      this._pickerViaKeyboard = !!viaKeyboard;
-      this._render();
-    };
-    // Any pointer gesture that is not on a row takes focus off whichever row
-    // has it. Without this a ring can outlive the gesture that caused it --
-    // the reported "thin blue line beside the sensor field" after cancelling
-    // the picker and clicking away.
-    root.addEventListener("pointerdown", (ev) => {
-      const t = ev && ev.target;
-      if (t && t.classList && t.classList.contains("setup-hit")) return;
-      this._blurSetupRow();
-    });
-    for (const hit of root.querySelectorAll(".setup-hit")) {
-      hit.addEventListener("click", (ev) => {
+    // Page tabs. Switching re-renders so the hidden page is genuinely gone
+    // from the DOM, and the scroll offset is reset because carrying the plan
+    // page's position into a differently sized setup page lands nowhere.
+    for (const tab of dlg.querySelectorAll(".dlg-tab")) {
+      tab.addEventListener("click", (ev) => {
         ev.stopPropagation();
-        openPicker(ev.currentTarget.dataset.key, false);
-      });
-      // The hits are focusable buttons (role="button"), so Enter and Space
-      // must do what a click does.
-      hit.addEventListener("keydown", (ev) => {
-        if (ev.key !== "Enter" && ev.key !== " ") return;
-        if (ev.preventDefault) ev.preventDefault();
-        stop(ev);
-        openPicker(ev.currentTarget.dataset.key, true);
+        const page = ev.currentTarget.dataset.page;
+        if (page && page !== this.page) {
+          this.page = page;
+          this.scroll = 0;
+          onPageChange();
+        }
       });
     }
-    const picker = root.querySelector(".setup-picker");
-    if (!picker) return;
-    // Every control stops propagation: the dialog closes on a click that
-    // lands on its backdrop, and a click inside the picker is not that.
-    picker.addEventListener("click", (ev) => ev.stopPropagation());
-    // Escape backs out of the picker without assigning, from any of its
-    // controls — the keyboard twin of the Cancel button. Closing re-renders,
-    // which destroys whichever picker control held focus, so focus is
-    // walked back to the setup row the picker was opened from.
-    picker.addEventListener("keydown", (ev) => {
+
+    attachBody(dlg);
+
+    if (this.expanded && !dlg.open) {
+      // showModal promotes the dialog to the top layer, which is what keeps it
+      // clear of the dashboard's stacking contexts and any clipping ancestor.
+      if (typeof dlg.showModal === "function") dlg.showModal();
+      else dlg.setAttribute("open", "");
+    }
+
+    // Restore where the user was. Done after showModal, because a dialog that
+    // is not yet in the top layer has no laid-out scroll height to set against.
+    const body = dlg.querySelector(".dlg-body");
+    if (body && this.scroll) body.scrollTop = this.scroll;
+  }
+
+  onDialogClick(ev) {
+    const dlg = this.host.shadowRoot && this.host.shadowRoot.querySelector("dialog");
+    if (!dlg) return;
+    // A click on the dialog element itself is a click on the backdrop: the
+    // content sits in child elements, so anything else has a deeper target.
+    const onBackdrop = ev && ev.target === dlg;
+    const onClose =
+      ev &&
+      ev.currentTarget &&
+      ev.currentTarget.classList &&
+      ev.currentTarget.classList.contains("close");
+    if (onBackdrop || onClose) this.close();
+  }
+
+  onDialogClose() {
+    // Fires for Escape and for close() alike, so this is the single place the
+    // flag is cleared and the two cannot drift apart.
+    this.expanded = false;
+    // Reopening should start at the top rather than resuming a scroll position
+    // from a session the user has already dismissed.
+    this.scroll = 0;
+    // The pan/zoom view dies with the session it belonged to (see
+    // ViewWindow.onDialogClosed for why).
+    this.host.view.onDialogClosed();
+  }
+
+  open() {
+    if (this.expanded) return;
+    this.expanded = true;
+    this.host.renderForced();
+  }
+
+  close() {
+    this.closeQuietly();
+    this.host.renderForced();
+  }
+
+  /** Dismiss the dialog without re-rendering, for teardown paths. */
+  closeQuietly() {
+    const dlg = this.host.shadowRoot && this.host.shadowRoot.querySelector("dialog");
+    this.expanded = false;
+    if (dlg && dlg.open && typeof dlg.close === "function") {
+      dlg.close(); // triggers onDialogClose, which is idempotent
+    }
+  }
+
+  /** Size the dialog's own text from how wide the dialog actually is.
+   *
+   * The chart scales itself, because it is stretched from a fixed coordinate
+   * system. The chrome around it -- header, legend, tooltip, what-if panel --
+   * is ordinary HTML inheriting the card's font, so it stays at card size no
+   * matter how large the dialog gets, which is what made it look cramped
+   * beside a chart three times its size.
+   *
+   * Setting one font size on the dialog fixes all of it at once, because every
+   * measurement in the chrome is expressed in `em`. This is done here rather
+   * than with container query units because `container-type: inline-size`
+   * applies inline-axis containment, and a dialog sized by its own contents
+   * then has nothing to size itself from.
+   */
+  scaleFont() {
+    const root = this.host.shadowRoot;
+    if (!root || !this.expanded) return;
+    const dlg = root.querySelector("dialog");
+    if (!dlg || typeof dlg.getBoundingClientRect !== "function") return;
+    const rect = dlg.getBoundingClientRect();
+    const width = (rect && Number(rect.width)) || 0;
+    if (!Number.isFinite(width) || width <= 0) return;
+
+    // Clamped at both ends: a phone-width dialog has to stay legible, and a
+    // very wide monitor must not turn the legend into a headline.
+    const px = Math.min(
+      DIALOG_FONT_PX_MAX,
+      Math.max(DIALOG_FONT_PX_MIN, width * DIALOG_FONT_RATIO)
+    );
+    // Writing an unchanged value would dirty style on every pointer move.
+    if (significantlyDifferent(px, this.fontPx)) {
+      this.fontPx = px;
+      dlg.style.fontSize = `${px.toFixed(2)}px`;
+    }
+  }
+}
+
+// ---- ManualPlan -----------------------------------------------------------
+// Today's hand-arranged slots: the draft the lanes edit (seeded from the
+// published plan, kept while the user is part way through rearranging it),
+// the bounds an edit may reach (the current step, the manual-plan window,
+// the plan's end, the visible window), what the arrangement costs against
+// the plan in force, and the apply / undo / back-to-automatic actions that
+// reach `apply_manual_plan` and `clear_manual_plan`. Uses `host.plan`,
+// `host.geom` (the chart's window), `host.view.reset()`, `host.hass`,
+// `host.shadowRoot` and `host.render()`. The lane editor (PR 5b) edits the
+// draft through `set`. PR 5a of #136.
+class ManualPlan {
+  constructor(host) {
+    this.host = host;
+    // The draft: {dhw: [...runs], space: [...runs]}, or null until seeded.
+    this.runs = null;
+    // Whether the user has edited it since it was seeded.
+    this.dirty = false;
+  }
+
+  /** A newly published plan replaces the slot draft, unless the user is part
+   * way through rearranging it. Their edits have to survive a refresh -- but
+   * an untouched draft must not survive one, or the lanes would keep showing
+   * an arrangement the optimizer has already moved on from, the cost delta
+   * would compare against a plan that no longer exists, and Apply would pin
+   * something the user is not looking at. */
+  onPlanRefresh() {
+    if (!this.dirty) this.runs = null;
+  }
+
+  /** Replace one channel's runs with an edited arrangement. */
+  set(channel, runs) {
+    this.draft();
+    this.runs[channel] = runs;
+    this.dirty = true;
+  }
+
+  /** The arrangement being edited, seeded from the published plan.
+   *
+   * Held on the instance because a data refresh rebuilds the whole shadow
+   * root; without this, an incoming plan update would throw away a drag the
+   * user was halfway through.
+   */
+  draft() {
+    if (!this.runs) {
+      this.runs = {};
+      for (const spec of this.laneSpecs()) {
+        this.runs[spec.channel] = SlotModel.runsFrom(
+          this.host.plan.forecastOf(spec.channel), spec.field, 0.05, PLAN_STEP_MS
+        );
+      }
+      this.dirty = false;
+    }
+    return this.runs;
+  }
+
+  /** Discard local edits and follow the published plan again. */
+  reset() {
+    this.runs = null;
+    this.dirty = false;
+  }
+
+  /** The two editable channels, in the order they are drawn. */
+  laneSpecs() {
+    return [
+      {
+        channel: "dhw",
+        label: L("slots.lane_dhw"),
+        field: "dhw_power",
+        color: "#e0544e",
+      },
+      {
+        channel: "space",
+        label: L("slots.lane_space"),
+        field: "space_power",
+        color: "#4a90e2",
+      },
+    ];
+  }
+
+  /** Whether the on-chart schedule editor is available. */
+  enabled() {
+    return !!this.host.config.what_if;
+  }
+
+  /** Earliest time a slot may be edited.
+   *
+   * The past cannot be rescheduled, and an override only ever applies from now
+   * on, so editing has to stop at the current step boundary rather than at the
+   * start of the horizon.
+   */
+  editFloor() {
+    const start = this.host.geom ? this.host.geom.windowStart : Date.now();
+    return Math.max(start, SlotModel.snap(Date.now(), PLAN_STEP_MS));
+  }
+
+  /** The last instant a hand-arranged slot can reach.
+   *
+   * Three separate limits, and the smallest wins:
+   *
+   * 1. **The expiry this card would send if the user applied right now** --
+   *    `now + MANUAL_PLAN_WINDOW_HOURS`, published by the integration rather
+   *    than copied here so the two cannot drift. Deliberately *not* the expiry
+   *    of the override currently in force: an override applied 15 hours ago
+   *    expires in 5, but the user editing now is composing a new plan that will
+   *    last the full window from this moment. Deriving the ceiling from the
+   *    active override would shrink the editable window as the day wore on and
+   *    stop the user extending their own plan.
+   * 2. **The end of the plan.** Past it there is nothing to pin.
+   * 3. **The visible window**, which pan and zoom can narrow. Without this a
+   *    slot could be dragged out of the region the pointer can actually reach.
+   *
+   * Beyond the first of these, `manual_plan.channel_pins` frees every step at or
+   * after the expiry, so a slot shown as pinned there would quietly do nothing.
+   */
+  editCeiling() {
+    const p = this.ceilingParts();
+    return Math.min(p.visibleEnd, p.applyEnd, p.planEnd);
+  }
+
+  /** The ceiling's three inputs, separately, so the lanes can say WHICH one
+   * is in charge. When the visible window is the binding limit the user is
+   * zoomed in, and an edit stopping there reads as an arbitrary rule unless
+   * the card says so — a real user diagnosed it as "slots end at midnight".
+   */
+  ceilingParts() {
+    const visibleEnd = this.host.geom ? this.host.geom.windowEnd : Infinity;
+    const windowHours = this.host.plan.attr(
+      "manual_plan_window_hours",
+      MANUAL_PLAN_WINDOW_FALLBACK_H
+    );
+    return {
+      visibleEnd,
+      applyEnd: Date.now() + windowHours * 3600 * 1000,
+      planEnd: this.planEnd(),
+    };
+  }
+
+  /** Whether the zoomed-in view, not the plan or the 20 h window, is what
+   * currently stops editing. The one-second slack keeps float noise from
+   * flickering the hint on an unzoomed card whose window ends at the plan.
+   */
+  viewLimitsEditing() {
+    const p = this.ceilingParts();
+    return p.visibleEnd < Math.min(p.applyEnd, p.planEnd) - 1000;
+  }
+
+  /** The last timestamp the published plan covers. */
+  planEnd() {
+    let end = -Infinity;
+    for (const channel of ["space", "dhw"]) {
+      const fc = this.host.plan.forecastOf(channel);
+      if (!fc.length) continue;
+      const t = Date.parse(fc[fc.length - 1].t);
+      if (Number.isFinite(t)) end = Math.max(end, t + PLAN_STEP_MS);
+    }
+    return end === -Infinity ? Infinity : end;
+  }
+
+  bounds() {
+    return [this.editFloor(), this.editCeiling()];
+  }
+
+  /** What the current arrangement would cost against the published plan.
+   *
+   * Both sides are priced over the same horizon at the same prices, so the
+   * difference isolates the effect of moving the slots. It is an estimate:
+   * the arrangement fixes when the pump runs, not how hard, and the optimizer
+   * still chooses the power within each slot.
+   */
+  costDelta() {
+    let planned = 0;
+    let edited = 0;
+    const runs = this.draft();
+    for (const spec of this.laneSpecs()) {
+      const forecast = this.host.plan.forecastOf(spec.channel);
+      if (!forecast.length) continue;
+      const power = SlotModel.typicalPower(forecast, spec.field);
+      const base = SlotModel.runsFrom(
+        forecast, spec.field, 0.05, PLAN_STEP_MS
+      );
+      planned += SlotModel.cost(base, forecast, power, PLAN_STEP_MS);
+      edited += SlotModel.cost(
+        runs[spec.channel] || [], forecast, power, PLAN_STEP_MS
+      );
+    }
+    return { planned, edited, delta: edited - planned };
+  }
+
+  deltaHtml() {
+    const { planned, edited, delta } = this.costDelta();
+    if (!Number.isFinite(delta) || (!planned && !edited)) {
+      return `<span class="wi-hint">${L("stats.no_plan_to_compare")}</span>`;
+    }
+    const cur = this.host.plan.currency();
+    const cls = delta < -0.005 ? "cheaper" : delta > 0.005 ? "dearer" : "";
+    const sign = delta > 0 ? "+" : "";
+    const verdict = L(
+      cls === "cheaper"
+        ? "stats.cheaper"
+        : cls === "dearer"
+          ? "stats.dearer"
+          : "stats.the_same"
+    );
+    return `
+      <span class="delta ${cls}">${sign}${delta.toFixed(2)}&nbsp;${esc(cur)}</span>
+      <span class="wi-hint">${L("stats.delta_detail", {
+        verdict,
+        planned: planned.toFixed(2),
+        edited: edited.toFixed(2),
+        currency: esc(cur),
+      })}</span>`;
+  }
+
+  updateDelta() {
+    const root = this.host.shadowRoot;
+    const box = root && root.querySelector(".wi-delta");
+    if (box) box.innerHTML = this.deltaHtml();
+  }
+
+  /** How the override is going, in the user's terms.
+   *
+   * A pinned slot is not a guarantee: the optimizer releases pins that would
+   * take the house below its comfort floor or the tank below its minimum. That
+   * has to be said out loud, because the whole point of pinning is that the
+   * user believes the plan they see is the plan that will run.
+   */
+  overrideHtml() {
+    const info = this.host.plan.manualOverride();
+    if (!info) return "";
+    const until = info.expires_at ? new Date(info.expires_at) : null;
+    const when =
+      until && !Number.isNaN(until.getTime())
+        ? L("slots.until_suffix", { expiry: fmtExpiry(until) })
+        : "";
+    const released =
+      (info.released_space || []).length + (info.released_dhw || []).length;
+    const note = released
+      ? ` <span class="dearer">${esc(
+          L(
+            released === 1 ? "slots.released_one" : "slots.released_other",
+            { n: released }
+          )
+        )}</span>`
+      : "";
+    return `<div class="wi-row wi-override" role="status">${L(
+      "slots.pinned_status",
+      { until: esc(when) }
+    )}${note}</div>`;
+  }
+
+  /** Pin the current arrangement for the manual-plan window.
+   *
+   * Only the editable part of the horizon is sent: the past cannot be
+   * rescheduled, and pinning a slot that has already happened would be
+   * meaningless.
+   */
+  apply() {
+    if (!this.host.hass || !this.host.hass.callService) return;
+    const [lo] = this.bounds();
+    const runs = this.draft();
+    const payload = {};
+    for (const spec of this.laneSpecs()) {
+      // Omitting a channel leaves it automatic; sending an empty list means
+      // "off until the override expires". A channel whose plan sensor is
+      // missing or has not published yet has an empty draft that means neither
+      // of those things, so it must be left out rather than silently switched
+      // off for the rest of the day.
+      if (!this.host.plan.forecastOf(spec.channel).length) continue;
+      payload[`${spec.channel}_slots`] = (runs[spec.channel] || [])
+        .filter((r) => r.end > lo)
+        .map((r) => ({
+          start: new Date(Math.max(r.start, lo)).toISOString(),
+          end: new Date(r.end).toISOString(),
+        }));
+    }
+    if (!Object.keys(payload).length) {
+      this.slotResult(L("slots.no_plan_to_pin"), "dearer");
+      return;
+    }
+    this.slotResult(L("slots.applying"));
+    Promise.resolve(
+      this.host.hass.callService(
+        "heatpump_optimizer",
+        "apply_manual_plan",
+        payload,
+        undefined,
+        false,
+        true
+      )
+    )
+      .then((response) => {
+        this.dirty = false;
+        const applied = Object.values(
+          (response && response.response && response.response.applied) || {}
+        )[0];
+        const until = applied && applied.expires_at
+          ? new Date(applied.expires_at)
+          : null;
+        const when =
+          until && !Number.isNaN(until.getTime())
+            ? L("slots.until_suffix", { expiry: fmtExpiry(until) })
+            : "";
+        // Deliberately not a promise that these slots will run: the optimizer
+        // releases a pin that would take the house or the tank below its
+        // limits, and saying otherwise would be a lie the user acts on.
+        this.slotResult(L("slots.pinned_result", { until: when }), "cheaper");
+      })
+      .catch((err) => {
+        this.slotResult(
+          L("errors.could_not_apply", { err: (err && err.message) || err }),
+          "dearer"
+        );
+      });
+  }
+
+  clear() {
+    if (!this.host.hass || !this.host.hass.callService) return;
+    this.slotResult(L("slots.clearing"));
+    Promise.resolve(
+      this.host.hass.callService("heatpump_optimizer", "clear_manual_plan", {})
+    )
+      .then(() => {
+        this.reset();
+        this.slotResult(L("slots.back_to_auto_result"));
+        this.host.render();
+      })
+      .catch((err) => {
+        this.slotResult(
+          L("errors.could_not_clear", { err: (err && err.message) || err }),
+          "dearer"
+        );
+      });
+  }
+
+  /** Wire the buttons that act on today's hand-arranged slots, and the
+   * zoom-limit hint's show-the-whole-plan button that sits among them. */
+  attach(root) {
+    const viewReset = root.querySelector(".wi-viewreset");
+    if (viewReset) viewReset.addEventListener("click", () => this.host.view.reset());
+    const pin = root.querySelector(".wi-pin");
+    if (pin) {
+      pin.addEventListener("click", (ev) => {
+        stop(ev);
+        this.apply();
+      });
+    }
+    const revert = root.querySelector(".wi-revert");
+    if (revert) {
+      revert.addEventListener("click", (ev) => {
+        stop(ev);
+        this.reset();
+        this.host.render();
+      });
+    }
+    const auto = root.querySelector(".wi-auto");
+    if (auto) {
+      auto.addEventListener("click", (ev) => {
+        stop(ev);
+        this.clear();
+      });
+    }
+  }
+
+  slotResult(message, cls) {
+    const box = this.host.shadowRoot && this.host.shadowRoot.querySelector(".wi-pin-result");
+    if (box) box.innerHTML = `<span class="${cls || ""}">${esc(message)}</span>`;
+  }
+
+  /** "Today's slots": the what-if panel's first section. The hint carries
+   * the manual-plan window, the zoom-limit line appears when the view is
+   * what stops editing, then the override banner, the running cost delta,
+   * the apply / undo / back-to-automatic buttons and the result line. The
+   * markup is the host's what-if template's, verbatim; the host places it
+   * with the same indentation it always had. */
+  sectionHtml(windowHours) {
+    return `<div class="wi-section">
+          <div class="wi-group-title">${esc(L("whatif.todays_slots"))}</div>
+          <div class="wi-hint">
+            ${L("whatif.slots_hint", { hours: windowHours })}
+          </div>
+          ${
+            this.viewLimitsEditing()
+              ? `<div class="wi-viewlimit">${L("whatif.zoom_limit_hint", {
+                  button:
+                    `<button type="button" class="wi-viewreset">` +
+                    `${esc(L("whatif.show_whole_plan_button"))}</button>`,
+                })}</div>`
+              : ""
+          }
+          ${this.overrideHtml()}
+          <div class="wi-row wi-delta">${this.deltaHtml()}</div>
+          <div class="wi-row wi-actions">
+            <button type="button" class="wi-pin">${esc(
+              L("whatif.apply_plan")
+            )}</button>
+            <button type="button" class="wi-revert">${esc(
+              L("whatif.undo_changes")
+            )}</button>
+            ${
+              this.host.plan.manualOverride()
+                ? `<button type="button" class="wi-auto">${esc(
+                    L("whatif.back_to_auto")
+                  )}</button>`
+                : ""
+            }
+          </div>
+          <div class="wi-pin-result" role="status"></div>
+        </div>`;
+  }
+}
+
+// ---- LaneEditor -----------------------------------------------------------
+// The editable lanes drawn along the bottom of the chart: the lane and slot
+// markup the chart's overlay asks for, the drag that moves or resizes a
+// slot (with the edge auto-pan that carries a zoomed view along), the slot
+// menu -- with the Escape listener it parks on the document, which
+// `teardown` must remove because a rebuild destroys the menu but not the
+// listener -- the keyboard form of all of it, and where focus goes after a
+// render destroyed the element that had it. Edits go to `host.manual`;
+// gestures read `host.geom` and `host.view`; a drag redraws through
+// `host.render()`. PR 5b of #136. The gesture closures inside `attach` are
+// as they were: promoting them to methods is a later cleanup, not a move.
+class LaneEditor {
+  constructor(host) {
+    this.host = host;
+    // A slot drag in progress, and the edge auto-pan interval it may run.
+    this.drag = null;
+    this.dragPan = null;
+    // The open slot menu, where it was opened from, and the Escape listener
+    // it parked on the document.
+    this.menu = null;
+    this.menuOrigin = null;
+    this.menuEscape = null;
+    this.menuEscapeTarget = null;
+  }
+
+  /** Everything this editor attached OUTSIDE the card's shadow root: the
+   * menu's document-level Escape listener. Called before every rebuild and
+   * when the card leaves the document. */
+  teardown() {
+    this.closeMenu();
+  }
+
+  /** The lanes, their slots and the grab handles, as SVG.
+   *
+   * Rebuilt from the recorded geometry rather than from the chart's locals, so
+   * a drag can redraw the lanes alone without re-rendering the whole card.
+   */
+  laneGroupInner(geom) {
+    if (!geom) return "";
+    const {
+      windowStart, windowEnd, plotL, plotW, plotR, plotB, font,
+      laneH = LANE_H, laneGap = LANE_GAP, laneInset = LANE_BOTTOM_INSET,
+    } = geom;
+    const span = windowEnd - windowStart || 1;
+    const scaleX = (t) => plotL + ((t - windowStart) / span) * plotW;
+    const runs = this.host.manual.draft();
+    const [lo, hi] = this.host.manual.bounds();
+    const specs = this.host.manual.laneSpecs();
+    const out = [];
+    const clampX = (t) => Math.max(plotL, Math.min(plotR, scaleX(t)));
+
+    specs.forEach((spec, row) => {
+      const y = plotB - laneInset - (specs.length - row) * (laneH + laneGap);
+      // The track, so an empty lane is still an obvious drop target. Also a
+      // tab stop: Enter on it opens the same add-slot menu a right-click
+      // does, which is the whole editor without a pointer.
+      out.push(
+        `<rect class="lane" data-channel="${spec.channel}" tabindex="0" role="button" aria-label="${esc(
+          L("slots.lane_aria", { lane: spec.label })
+        )}" x="${plotL}" y="${y}" width="${
+          plotR - plotL
+        }" height="${laneH}" rx="2" fill="var(--secondary-text-color,#888)" fill-opacity="0.07"/>`
+      );
+      out.push(
+        `<text class="lane-label" x="${plotL + 4}" y="${
+          y + laneH - 4 * (laneH / LANE_H)
+        }" font-size="${font * 0.8}" fill="var(--secondary-text-color,#888)">${esc(
+          spec.label
+        )}</text>`
+      );
+      // The parts of the lane that cannot be changed: what has already run,
+      // and what lies beyond the point where the override expires.
+      const floorX = clampX(lo);
+      if (floorX > plotL) {
+        out.push(
+          `<rect class="lane-past" x="${plotL}" y="${y}" width="${
+            floorX - plotL
+          }" height="${laneH}" fill="var(--secondary-text-color,#888)" fill-opacity="0.12"/>`
+        );
+      }
+      const ceilX = clampX(hi);
+      if (ceilX < plotR) {
+        out.push(
+          `<rect class="lane-past" x="${ceilX}" y="${y}" width="${
+            plotR - ceilX
+          }" height="${laneH}" fill="var(--secondary-text-color,#888)" fill-opacity="0.12"/>`
+        );
+      }
+      // The lane runs out at the zoomed window, not at any rule of the
+      // plan's: mark it, or the invisible remainder reads as a hard limit.
+      if (this.host.manual.viewLimitsEditing()) {
+        out.push(
+          `<text class="lane-more" x="${plotR - 3}" y="${
+            y + laneH - 3 * (laneH / LANE_H)
+          }" font-size="${font}" text-anchor="end" fill="var(--primary-color,#03a9f4)">»</text>`
+        );
+      }
+
+      (runs[spec.channel] || []).forEach((run, index) => {
+        // Zooming can put a run wholly outside the window. Clamping alone would
+        // collapse it onto the edge and leave a one-pixel sliver pretending to
+        // be a slot, so drop it instead. `index` still refers to its place in
+        // the full array, which is what hit-testing and editing use.
+        if (run.end <= windowStart || run.start >= windowEnd) return;
+        const x1 = clampX(run.start);
+        const x2 = clampX(run.end);
+        const w = Math.max(1, x2 - x1);
+        const locked = run.end <= lo || run.start >= hi;
+        // Editable slots are tab stops with the keyboard menu (Enter) and
+        // removal (Delete) announced; locked ones stay presentational.
+        const fmtT = (t) =>
+          new Date(t).toLocaleTimeString(ACTIVE_LANG, {
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+        const kbd = locked
+          ? ""
+          : ` tabindex="0" role="button" aria-label="${esc(
+              L("slots.slot_aria", {
+                lane: spec.label,
+                start: fmtT(run.start),
+                end: fmtT(run.end),
+              })
+            )}"`;
+        out.push(
+          `<rect class="slot${locked ? " locked" : ""}" data-channel="${
+            spec.channel
+          }" data-index="${index}"${kbd} x="${x1}" y="${y}" width="${w}" height="${laneH}" rx="2" fill="${
+            spec.color
+          }" fill-opacity="${locked ? 0.35 : 0.85}"/>`
+        );
+        if (locked) return;
+        // Explicit edge handles: without them a narrow slot is impossible to
+        // resize, because the whole rect reads as "move".
+        const grab = _coarsePointer() ? LANE_EDGE_GRAB_COARSE : LANE_EDGE_GRAB;
+        for (const edge of ["start", "end"]) {
+          const ex = edge === "start" ? x1 : x2 - grab;
+          out.push(
+            `<rect class="slot-handle" data-channel="${spec.channel}" data-index="${index}" data-edge="${edge}" x="${ex}" y="${y}" width="${grab}" height="${laneH}" fill="#fff" fill-opacity="0.001"/>`
+          );
+        }
+      });
+    });
+    return out.join("");
+  }
+
+  /** Redraw only what a drag changes.
+   *
+   * A full re-render on every pointer move would rebuild the shadow root
+   * dozens of times a second and lose the drag with it.
+   */
+  refreshLanes() {
+    const root = this.host.shadowRoot;
+    if (!root) return;
+    if (this.host.geom) {
+      const inner = this.laneGroupInner(this.host.geom);
+      root.querySelectorAll(".lanes").forEach((group) => {
+        group.innerHTML = inner;
+      });
+    }
+    this.host.manual.updateDelta();
+  }
+
+  /** An edit: replace one channel's runs in the draft and redraw only
+   * what a drag changes. */
+  commitRuns(channel, runs) {
+    this.host.manual.set(channel, runs);
+    this.refreshLanes();
+  }
+
+  /** The right-click menu for a lane.
+   *
+   * Rendered as plain HTML positioned over the card rather than as SVG, so it
+   * is not clipped by the chart and inherits the dialog's font.
+   */
+  openMenu(channel, at, clientX, clientY, svg, focusMenu) {
+    const root = this.host.shadowRoot;
+    if (!root) return;
+    this.closeMenu();
+    const runs = this.host.manual.draft()[channel] || [];
+    const index = SlotModel.indexAt(runs, at);
+    const [lo] = this.host.manual.bounds();
+    const editable = index >= 0 && runs[index].end > lo;
+
+    // Anchored to the chart it was opened from: when the card is expanded
+    // there are two, and the menu must not land on the wrong one.
+    const host = wrapOf(svg, this.host.shadowRoot);
+    if (!host) return;
+    const rect = host.getBoundingClientRect
+      ? host.getBoundingClientRect()
+      : { left: 0, top: 0 };
+    const menu = document.createElement("div");
+    menu.className = "slot-menu";
+    menu.style.left = `${clientX - (rect.left || 0)}px`;
+    menu.style.top = `${clientY - (rect.top || 0)}px`;
+    // Whole sentences per channel rather than an interpolated noun: gendered
+    // articles and compound nouns make "Remove this {channel} slot" untranslatable.
+    const dhw = channel === "dhw";
+    menu.innerHTML = editable
+      ? `<button type="button" data-act="remove">${esc(
+          L(dhw ? "menu.remove_slot_dhw" : "menu.remove_slot_space")
+        )}</button>`
+      : `<button type="button" data-act="add">${esc(
+          L(dhw ? "menu.add_slot_dhw" : "menu.add_slot_space")
+        )}</button>`;
+
+    const svgIndex = chartSvgs(this.host.shadowRoot).indexOf(svg);
+    menu.addEventListener("click", (ev) => {
+      const act = ((ev.target || {}).dataset || {}).act;
+      stop(ev);
+      if (act === "add") {
+        this.commitRuns(
+          channel,
+          SlotModel.add(runs, at, PLAN_STEP_MS, this.host.manual.bounds())
+        );
+      } else if (act === "remove") {
+        this.commitRuns(channel, SlotModel.remove(runs, index));
+      }
+      this.closeMenu();
+      this.host.render();
+      // The render just destroyed the element that had focus (the menu's
+      // button, or the slot). Falling to document.body strands a keyboard
+      // user; the lane the action happened in is the logical successor —
+      // the acted-on slot itself no longer exists (removed) or has a new
+      // index (added).
+      this.restoreFocus(channel, null, svgIndex);
+    });
+    // Escape dismisses the menu whichever way it was opened. The menu's own
+    // listener covers the keyboard-opened case, where its button holds
+    // focus; a MOUSE-opened menu leaves focus on the chart, so Escape must
+    // also be caught at the document (registered below, removed on close).
+    const onEscape = (ev) => {
       if (ev.key !== "Escape") return;
       stop(ev);
-      const key = this._pickerKey;
-      this._closePicker();
-      this._render();
-      this._restoreSetupFocus(key);
-    });
-    const select = picker.querySelector(".sp-select");
-    if (select && this._pickerFocus) {
-      this._pickerFocus = false;
-      if (typeof select.focus === "function") select.focus();
-    }
-    // Typing narrows the list in place. A full `_render()` would rebuild the
-    // input and take the caret with it, so only the options and the footnote
-    // are replaced; the select keeps whatever the user had highlighted when
-    // that entity is still on the list.
-    const filterBox = picker.querySelector(".sp-filter");
-    if (filterBox) {
-      filterBox.addEventListener("input", (ev) => {
-        const target = ev.currentTarget || ev.target;
-        this._pickerFilter = (target && target.value) || "";
-        const slot = this._pickerSlot;
-        if (!slot) return;
-        const model = this._pickerModel(slot);
-        const list = picker.querySelector(".sp-select");
-        if (list) list.innerHTML = model.options;
-        const foot = picker.querySelector(".sp-note");
-        if (foot) foot.textContent = model.note;
-      });
-    }
-    // The chosen entity is remembered on the card, not only in the DOM: the
-    // list is rebuilt on every keystroke, and a choice that lived only in
-    // the `<select>` would be forgotten by the next one.
-    if (select) {
-      select.addEventListener("change", (ev) => {
-        const target = ev.currentTarget || ev.target;
-        this._pickerChoice = (target && target.value) || "";
-        // Choosing again disarms a clear that was armed for a different
-        // answer than the one now selected.
-        if (this._pendingClear) this._disarmClear(picker);
-      });
-    }
-    const cancel = picker.querySelector(".sp-cancel");
-    if (cancel) {
-      cancel.addEventListener("click", (ev) => {
-        ev.stopPropagation();
-        const key = this._pickerKey;
-        const viaKeyboard = this._pickerViaKeyboard;
-        this._closePicker();
-        this._render();
-        // A keyboard user must land back on the row they came from, or they
-        // are dropped at the top of the dialog. A mouse user must NOT: the
-        // row would light up with a focus ring around a field they have
-        // just backed out of, and clicking elsewhere does not always take
-        // it off an SVG element again.
-        if (viaKeyboard) this._restoreSetupFocus(key);
-        else this._blurSetupRow();
-      });
-    }
-    const save = picker.querySelector(".sp-save");
-    if (save) {
-      const assign = async (ev) => {
-        ev.stopPropagation();
-        const select = picker.querySelector(".sp-select");
-        const key = this._pickerKey;
-        const slot = this._pickerSlot;
-        // What Assign will write is the choice the card remembered, not
-        // whatever the `<select>` reports. That element is rebuilt on every
-        // keystroke of the filter, and reading an answer back out of a
-        // control that has just been replaced is the same class of mistake
-        // as the one this whole item is about: a slot with a perfectly good
-        // sensor in it must never be emptied by the UI's own bookkeeping.
-        // `null` means "the user did not choose anything this visit", which
-        // is a request to keep what the slot already has.
-        const chose = this._pickerChoice;
-        const picked = chose === null || chose === undefined ? null : chose;
-        const fromDom =
-          select && typeof select.value === "string" && select.value
-            ? select.value
-            : null;
-        // An empty `<select>` that the user never touched is the control's
-        // own default, not a decision -- and acting on it is precisely the
-        // reported bug -- so it degrades to what the slot already holds.
-        // Choosing "(not configured)" deliberately still clears, through
-        // the confirmation below.
-        const entityId =
-          picked !== null ? picked
-            : fromDom !== null ? fromDom
-              : (slot && slot.entity) || "";
-        const note = this.shadowRoot.querySelector(".setup-result");
-        // Assigning nothing to a slot that HAS something is a deletion: it
-        // writes the config entry and reloads the integration, and the user
-        // usually got here believing they were fixing a slot rather than
-        // emptying one. Same pattern as the what-if save -- the button
-        // itself becomes the confirmation, since a nested browser prompt
-        // inside this modal is easy to miss behind the backdrop.
-        if (!entityId && slot && slot.entity && !this._pendingClear) {
-          this._pendingClear = true;
-          save.textContent = L("setup.confirm_clear");
-          save.classList.add("confirm");
-          this._setupNote = L("setup.confirm_clear_hint", {
-            entity: slot.entity,
-            label: slot.label,
-          });
-          if (note) note.textContent = this._setupNote;
-          const foot = picker.querySelector(".sp-note");
-          if (foot) foot.textContent = this._setupNote;
-          // Let the decision lapse rather than sit armed: a stray second
-          // click minutes later must not empty a slot.
-          clearTimeout(this._clearTimer);
-          this._clearTimer = setTimeout(() => this._disarmClear(picker), 8000);
-          return;
-        }
-        this._cancelPendingClear();
-        try {
-          await this._hass.callService(
-            "heatpump_optimizer",
-            "assign_entity",
-            { key, entity_id: entityId }
-          );
-          this._closePicker();
-          // The write reloads the integration, so the topology the card is
-          // drawn from is replaced a moment later. Say what happened rather
-          // than leaving a diagram that has not caught up yet looking wrong.
-          this._setupNote = entityId
-            ? L("setup.assigned_reloading", { entity: entityId })
-            : L("setup.cleared_reloading");
-        } catch (err) {
-          this._setupNote = L("errors.could_not_assign", {
-            err: (err && err.message) || err,
-          });
-        }
-        this._render();
-        if (note) note.textContent = this._setupNote || "";
-        // Success closed the picker (and the render destroyed the control
-        // that had focus): return focus to the row that was assigned. A
-        // failure keeps the picker open, and focus with it.
-        if (this._pickerKey === null) this._restoreSetupFocus(key);
-      };
-      save.addEventListener("click", assign);
-      // Enter on the select assigns the chosen entity — the picker's one
-      // "submit" action, without a Tab trip to the button.
-      if (select) {
-        select.addEventListener("keydown", (ev) => {
-          if (ev.key !== "Enter") return;
-          if (ev.preventDefault) ev.preventDefault();
-          assign(ev);
-        });
+      const origin = this.menuOrigin;
+      this.closeMenu();
+      // Nothing re-rendered, but a keyboard-opened menu moved focus into
+      // its button, which is now gone: send it back where the menu came
+      // from.
+      if (origin) {
+        this.restoreFocus(origin.channel, origin.index, origin.svgIndex);
       }
-    }
-  }
-
-  // ---- The layout editor (v3.16.0, issue #40) ----------------------------
-  //
-  // Free-form graphs are never stored. The editor is a drawing surface whose
-  // only output is a catalog KEY: after every change the working edge set is
-  // matched against the catalog the coordinator published for THIS
-  // configuration, and Save is enabled only when it equals an entry the
-  // configuration could actually run. Anything else is drawn as a rejection
-  // with the reason on the page, which is the whole point -- a diagram that
-  // cannot be wrong about the physics.
-
-  /** Wire the editor's controls and the diagram's pointer gestures.
-   *
-   * The buttons take listeners directly because `_refreshLayout` never
-   * rebuilds them; only the canvas's contents are replaced mid-edit, and its
-   * listeners live on the wrapper, which survives.
-   */
-  _attachLayoutEditor(root) {
-    const toggle = root.querySelector(".layout-edit-toggle");
-    if (toggle) {
-      toggle.addEventListener("click", (ev) => {
-        stop(ev);
-        this._toggleLayoutEdit();
-      });
-    }
-    const save = root.querySelector(".layout-save");
-    if (save) {
-      // Returns the promise so a caller (and the tests) can await the call.
-      save.addEventListener("click", (ev) => {
-        stop(ev);
-        return this._saveLayout();
-      });
-    }
-    const undo = root.querySelector(".layout-undo");
-    if (undo) {
-      // A plain <button>, so the browser already turns Enter and Space into
-      // this same click; nothing keyboard-specific is needed here.
-      undo.addEventListener("click", (ev) => {
-        stop(ev);
-        this._undoLayout();
-      });
-    }
-    const canvas = root.querySelector(".setup-canvas");
-    if (!canvas) return;
-    canvas.addEventListener("pointerdown", this._onLayoutDown);
-    canvas.addEventListener("pointermove", this._onLayoutMove);
-    canvas.addEventListener("pointerup", this._onLayoutUp);
-    canvas.addEventListener("pointerleave", this._onLayoutUp);
-    canvas.addEventListener("click", this._onLayoutClick);
-  }
-
-  /** Open the editor on the published layout, or close it, discarding. */
-  _toggleLayoutEdit() {
-    if (this._layoutEditing()) {
-      // Cancel discards. Nothing was written, so keeping the working set on
-      // screen would show a system that does not exist.
-      this._layoutEdit = null;
-    } else {
-      const topo = this._planAttrRaw("setup_topology", null) || {};
-      const positions =
-        topo.positions && typeof topo.positions === "object"
-          ? topo.positions
-          : {};
-      // One reading of the published layout, copied out twice: the working
-      // set the user draws on, and the baseline Undo goes back to. Both are
-      // deep copies down to the individual edge and position pairs, so no
-      // edit can reach through a shared array into the other copy.
-      const snapshot = () => ({
-        edges: (Array.isArray(topo.edges) ? topo.edges : []).map((e) => [
-          e[0],
-          e[1],
-        ]),
-        positions: this._copyPositions(positions),
-      });
-      const working = snapshot();
-      this._layoutEdit = {
-        active: true,
-        edges: working.edges,
-        positions: working.positions,
-        // The layout Undo restores: the one in force when the editor opened,
-        // taken now rather than re-read from `setup_topology` at undo time.
-        // The integration republishes the topology on its own schedule, so a
-        // late read could hand back a different layout than the one the user
-        // started from -- and "back to where I was" is the whole promise of
-        // the button. A snapshot cannot be swapped underneath them.
-        baseline: snapshot(),
-        drag: null,
-        match: null,
-        invalid: [],
-        verdict: "",
-        // Nothing has been drawn yet, so there is nothing to save. Without
-        // this, Save is lit the moment the editor opens and offers to write
-        // the layout the system already has.
-        dirty: false,
-      };
-      this._layoutEvaluate();
-    }
-    // Editing suppresses click-to-assign, so a picker left open would be
-    // unreachable behind the diagram.
-    this._closePicker();
-    this._render();
-  }
-
-  /** Match the working edge set against the catalog, and say what it is.
-   *
-   * Sets `match` (the entry Save would store, or null), `invalid` (the drawn
-   * edges no near layout has, drawn as rejected pipes) and `verdict` (one
-   * line for the page). Matching is exact: a nearly-right graph is a graph
-   * the model would nearly honour.
-   */
-  _layoutEvaluate() {
-    const ed = this._layoutEdit;
-    if (!ed) return;
-    const topo = this._planAttrRaw("setup_topology", null) || {};
-    const catalog = Array.isArray(topo.catalog) ? topo.catalog : [];
-    const name = (e) => `${e[0]}>${e[1]}`;
-    const drawn = new Set(ed.edges.map(name));
-    const equals = (set) =>
-      set.size === drawn.size && [...drawn].every((k) => set.has(k));
-
-    let match = null;
-    let sameButUnusable = null;
-    let nearest = null;
-    let nearestSet = null;
-    let nearestDiff = null;
-    for (const entry of catalog) {
-      const set = new Set((entry.edges || []).map(name));
-      if (equals(set)) {
-        if (entry.valid) match = match || entry;
-        else sameButUnusable = sameButUnusable || entry;
-      }
-      let diff = 0;
-      for (const k of set) if (!drawn.has(k)) diff++;
-      for (const k of drawn) if (!set.has(k)) diff++;
-      // Ties go to the earlier catalog entry, which is the order the
-      // integration lists them in -- stable, so the same drawing always gets
-      // the same explanation.
-      if (nearestDiff === null || diff < nearestDiff) {
-        nearest = entry;
-        nearestSet = set;
-        nearestDiff = diff;
-      }
-    }
-
-    if (match) {
-      ed.match = match;
-      ed.invalid = [];
-      ed.verdict = L("setup.verdict_match", { label: match.label });
-      return;
-    }
-    ed.match = null;
-    if (sameButUnusable) {
-      // The drawing IS a known layout; what fails is the configuration, so
-      // the requirement is the only useful thing to say. No pipe is at
-      // fault, so none is marked. A catalog from before the field existed
-      // ships no requirement, and interpolating undefined here is exactly
-      // the "needs: undefined" bug from the user's #40 report — degrade to
-      // a sentence that at least says which side is at fault.
-      ed.invalid = [];
-      const req = sameButUnusable.requirement;
-      const label = sameButUnusable.label;
-      ed.verdict =
-        sameButUnusable.selectable === false
-          ? req
-            ? L("setup.verdict_req", { label, requirement: req })
-            : L("setup.verdict_not_modelled", { label })
-          : req
-            ? L("setup.verdict_needs", { label, requirement: req })
-            : L("setup.verdict_cannot_store", { label });
-      return;
-    }
-    if (!nearest) {
-      ed.invalid = [];
-      ed.verdict = L("setup.no_catalog");
-      return;
-    }
-    const extra = [...drawn].filter((k) => !nearestSet.has(k));
-    const missing = [...nearestSet].filter((k) => !drawn.has(k));
-    ed.invalid = extra;
-    const parts = [L("setup.verdict_no_match", { label: nearest.label })];
-    if (extra.length) {
-      parts.push(
-        L("setup.verdict_extra_edges", {
-          edges: extra.map(edgeLabel).join("; "),
-        })
-      );
-    }
-    if (missing.length) {
-      parts.push(
-        L("setup.verdict_missing_edges", {
-          edges: missing.map(edgeLabel).join("; "),
-        })
-      );
-    }
-    ed.verdict = parts.join(" ");
-  }
-
-  /** Redraw only what an edit changes.
-   *
-   * A full `_render` per pointer move would rebuild the shadow root dozens of
-   * times a second and take the drag's own listeners with it -- the same
-   * reason the plan lanes refresh in place.
-   */
-  _refreshLayout() {
-    const root = this.shadowRoot;
-    if (!root) return;
-    const topo = this._planAttrRaw("setup_topology", null);
-    const canvas = root.querySelector(".setup-canvas");
-    if (canvas && topo && Array.isArray(topo.slots)) {
-      canvas.innerHTML = this._setupSvg(topo);
-    }
-    const ed = this._layoutEdit;
-    const verdict = root.querySelector(".layout-verdict");
-    if (verdict) {
-      verdict.textContent = (ed && ed.verdict) || "";
-      if (verdict.classList) {
-        verdict.classList.toggle("match", !!(ed && ed.match));
-      }
-    }
-    const save = root.querySelector(".layout-save");
-    if (save) save.disabled = !this._layoutSaveable();
-    const undo = root.querySelector(".layout-undo");
-    if (undo) undo.disabled = !this._layoutUndoable();
-  }
-
-  /** Pointer client coordinates as viewBox units on the setup diagram. */
-  _layoutPoint(ev) {
-    const root = this.shadowRoot;
-    const svg = root && root.querySelector(".setup-svg");
-    if (!svg || !svg.getBoundingClientRect || !ev) return null;
-    const rect = svg.getBoundingClientRect();
-    if (!rect || !rect.width) return null;
-    // The diagram keeps its aspect ratio (`width: 100%; height: auto`), so a
-    // single scale relates both axes; measuring y against the measured height
-    // would skew every drop test further down the page.
-    const scale = SETUP_W / rect.width;
-    return {
-      x: (ev.clientX - rect.left) * scale,
-      y: (ev.clientY - rect.top) * scale,
     };
+    menu.addEventListener("keydown", onEscape);
+    host.appendChild(menu);
+    this.menu = menu;
+    this.menuOrigin = { channel, index: editable ? index : null, svgIndex };
+    const escTarget = this.globalKeyTarget();
+    if (escTarget) {
+      this.menuEscape = onEscape;
+      this.menuEscapeTarget = escTarget;
+      escTarget.addEventListener("keydown", onEscape);
+    }
+    if (focusMenu) {
+      const btn = menu.querySelector("button");
+      if (btn && typeof btn.focus === "function") btn.focus();
+    }
   }
 
-  /** The box under a point, in viewBox units, or null. */
-  _layoutBoxAt(x, y) {
-    const boxes = this._layoutBoxes || [];
-    for (let i = boxes.length - 1; i >= 0; i--) {
-      const b = boxes[i];
-      if (x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) return b;
+  closeMenu() {
+    const menu = this.menu;
+    if (menu && menu.parentNode && menu.parentNode.removeChild) {
+      menu.parentNode.removeChild(menu);
+    }
+    this.menu = null;
+    this.menuOrigin = null;
+    if (this.menuEscapeTarget && this.menuEscape) {
+      this.menuEscapeTarget.removeEventListener("keydown", this.menuEscape);
+    }
+    this.menuEscape = null;
+    this.menuEscapeTarget = null;
+  }
+
+  /** Where a while-the-menu-is-open key listener can live: keydown events
+   * are composed, so they bubble out of the shadow root to the document. */
+  globalKeyTarget() {
+    if (typeof document !== "undefined" && document.addEventListener) {
+      return document;
+    }
+    if (typeof window !== "undefined" && window.addEventListener) {
+      return window;
     }
     return null;
   }
 
-  _onLayoutDown(ev) {
-    const ed = this._layoutEdit;
-    if (!ed || !ed.active) return;
-    const pt = this._layoutPoint(ev);
-    if (!pt) return;
-    // A new gesture cancels any click still owed from the last one. The click
-    // after a drag that ended on a slot row is stopped by the row's own
-    // handler, so the flag would otherwise survive and eat the next real
-    // click -- the one asking for a pipe to be removed.
-    ed.suppressClick = false;
-    let data = (ev.target && ev.target.dataset) || {};
-    if (!data.port && this.shadowRoot.elementFromPoint) {
-      // Browser input routing can hit-test a pointerdown against a
-      // frame-old layout (observed with synthesized input; touch rides the
-      // same compositor path), so a down that claims the bare svg at a
-      // port's coordinates would silently become a box drag. Re-test
-      // against the live DOM before deciding what the gesture is.
-      const live = this.shadowRoot.elementFromPoint(ev.clientX, ev.clientY);
-      if (live && live.dataset && live.dataset.port) data = live.dataset;
+  /** Put keyboard focus back near a slot action after the DOM it happened
+   * in was rebuilt (or its menu closed): the same slot re-located by its
+   * channel and index in the fresh chart, else that channel's lane, else
+   * the chart svg itself — never document.body.
+   */
+  restoreFocus(channel, index, svgIndex) {
+    const svgs = chartSvgs(this.host.shadowRoot);
+    const svg = svgs[svgIndex] || svgs[svgs.length - 1];
+    if (!svg) return;
+    const focus = (el) =>
+      !!(el && typeof el.focus === "function" && (el.focus(), true));
+    if (index !== null && index !== undefined && index >= 0) {
+      for (const slot of svg.querySelectorAll(".slot")) {
+        const d = slot.dataset || {};
+        if (
+          d.channel === channel &&
+          Number(d.index) === Number(index) &&
+          !slot.classList.contains("locked")
+        ) {
+          if (focus(slot)) return;
+        }
+      }
     }
-    if (data.port && data.place) {
-      // A connection in the making. It is only a proposal until it lands on
-      // another box, so nothing is added here.
-      ed.drag = { kind: "edge", from: data.place, x: pt.x, y: pt.y };
-    } else {
-      const box = this._layoutBoxAt(pt.x, pt.y);
-      if (!box) return;
-      ed.drag = {
-        kind: "box",
-        place: box.place,
-        dx: pt.x - box.x,
-        dy: pt.y - box.y,
+    for (const lane of svg.querySelectorAll(".lane")) {
+      if ((lane.dataset || {}).channel === channel) {
+        if (focus(lane)) return;
+      }
+    }
+    focus(svg);
+  }
+
+  /** Drag to move a slot, drag its edge to resize, right-click to add or
+   * remove. Wired by delegation on the svg, because the chart markup is
+   * rebuilt wholesale on every refresh and per-rect listeners would not
+   * survive it.
+   */
+  attach(root) {
+    if (!this.host.manual.enabled()) return;
+    const svgs = chartSvgs(root);
+    if (!svgs.length) return;
+
+    const onDown = (svg, ev) => {
+      const target = ev.target || {};
+      const data = target.dataset || {};
+      if (!data.channel) return;
+      const at = timeAtClientX(svg, ev.clientX, this.host.geom);
+      if (at === null) return;
+      const channel = data.channel;
+      const runs = this.host.manual.draft()[channel] || [];
+      let index = data.index === undefined ? -1 : Number(data.index);
+      if (index < 0) index = SlotModel.indexAt(runs, at);
+      // No slot under the press: not draggable, but a press RELEASED here
+      // without movement must still open the add-slot menu — on touch it
+      // is the only way to reach it. menuOnly presses ignore movement.
+      let menuOnly = index < 0;
+      if (!menuOnly) {
+        // A slot outside the editable range -- already run, or beyond the
+        // point where the override expires -- must not be draggable.
+        const [lo, hi] = this.host.manual.bounds();
+        const run = runs[index];
+        if (run && (run.end <= lo || run.start >= hi)) menuOnly = true;
+      }
+
+      this.drag = {
+        channel,
+        index,
+        menuOnly,
+        edge: data.edge || null,
+        from: at,
+        svgIndex: svgs.indexOf(svg),
+        lastClientX: ev.clientX,
+        lastClientY: ev.clientY,
+        // Edits apply to the arrangement as it was when the drag began, so a
+        // slow drag does not compound its own deltas.
+        original: runs.map((r) => ({ ...r })),
       };
-    }
-    stop(ev);
-    if (ev.preventDefault) ev.preventDefault();
-  }
-
-  _onLayoutMove(ev) {
-    const ed = this._layoutEdit;
-    if (!ed || !ed.active || !ed.drag) return;
-    const pt = this._layoutPoint(ev);
-    if (!pt) return;
-    ed.drag.moved = true;
-    if (ed.drag.kind === "box") {
-      // Cosmetic only: a position never changes an edge, and therefore never
-      // changes which layout the drawing matches.
-      ed.positions[ed.drag.place] = [
-        Math.round(pt.x - ed.drag.dx),
-        Math.round(pt.y - ed.drag.dy),
-      ];
-      ed.dirty = true;
-    } else {
-      ed.drag.x = pt.x;
-      ed.drag.y = pt.y;
-    }
-    this._refreshLayout();
-  }
-
-  _onLayoutUp(ev) {
-    const ed = this._layoutEdit;
-    if (!ed || !ed.active || !ed.drag) return;
-    const drag = ed.drag;
-    ed.drag = null;
-    if (drag.kind === "edge") {
-      const pt = this._layoutPoint(ev) || { x: drag.x, y: drag.y };
-      const box = this._layoutBoxAt(pt.x, pt.y);
-      // A pipe from a box to itself is not a pipe; a release over nothing
-      // abandons the proposal, which is how a drag is cancelled.
-      if (box && box.place !== drag.from) {
-        this._layoutAddEdge(drag.from, box.place);
-      }
-    }
-    // The browser synthesises a click after pointerup, and on the diagram
-    // that click would land on whatever the drag ended over -- removing the
-    // pipe the user just drew.
-    if (drag.moved) ed.suppressClick = true;
-    this._layoutEvaluate();
-    this._refreshLayout();
-  }
-
-  _onLayoutClick(ev) {
-    const ed = this._layoutEdit;
-    if (!ed || !ed.active) return;
-    if (ed.suppressClick) {
-      ed.suppressClick = false;
+      // The svg-bound listeners below serve the common case, but an auto-pan
+      // re-render replaces the svg mid-gesture and its listeners with it, so
+      // the gesture's continuation also lives on `window` for the duration —
+      // the same survival trick the chart's pan drag uses. Both firing for
+      // one event is harmless: the second apply lands on identical state.
+      const winMove = (e) => {
+        const d = this.drag;
+        if (!d) return;
+        d.lastClientX = e.clientX;
+        const cur = svgAt(d.svgIndex);
+        if (cur) applyDragAt(cur, e.clientX);
+        maybeAutoPan(d.svgIndex, e.clientX);
+      };
+      const winUp = () => {
+        window.removeEventListener("pointermove", winMove);
+        window.removeEventListener("pointerup", winUp);
+        window.removeEventListener("pointercancel", winUp);
+        stopAutoPan();
+        onUp();
+      };
+      window.addEventListener("pointermove", winMove);
+      window.addEventListener("pointerup", winUp);
+      window.addEventListener("pointercancel", winUp);
       stop(ev);
-      return;
-    }
-    const data = (ev.target && ev.target.dataset) || {};
-    if (!data.edge) return;
-    stop(ev);
-    this._layoutRemoveEdge(data.edge);
-  }
+      if (ev.preventDefault) ev.preventDefault();
+    };
 
-  _layoutAddEdge(from, to) {
-    const ed = this._layoutEdit;
-    if (!ed) return;
-    if (ed.edges.some((e) => e[0] === from && e[1] === to)) return;
-    // The same pipe drawn backwards is the same pipe. Keeping both would
-    // match no catalog entry and read as a bug in the editor rather than a
-    // second connection.
-    ed.edges = ed.edges.filter((e) => !(e[0] === to && e[1] === from));
-    ed.edges.push([from, to]);
-    ed.dirty = true;
-  }
+    const svgAt = (index) => {
+      // Auto-pan re-renders, replacing the svg the gesture started on; the
+      // chart at the same position in the fresh shadow root is its heir.
+      const current = chartSvgs(this.host.shadowRoot || root);
+      return current[index] || current[current.length - 1] || null;
+    };
 
-  _layoutRemoveEdge(name) {
-    const ed = this._layoutEdit;
-    if (!ed) return;
-    const before = ed.edges.length;
-    ed.edges = ed.edges.filter((e) => `${e[0]}>${e[1]}` !== name);
-    if (ed.edges.length !== before) ed.dirty = true;
-    this._layoutEvaluate();
-    this._refreshLayout();
-  }
+    const applyDragAt = (svg, clientX) => {
+      const drag = this.drag;
+      if (!drag || drag.menuOnly) return;
+      const at = timeAtClientX(svg, clientX, this.host.geom);
+      if (at === null) return;
+      drag.moved = true;
+      const delta = at - drag.from;
+      const bounds = this.host.manual.bounds();
+      const next = drag.edge
+        ? SlotModel.resize(
+            drag.original, drag.index, drag.edge, delta, PLAN_STEP_MS, bounds
+          )
+        : SlotModel.move(
+            drag.original, drag.index, delta, PLAN_STEP_MS, bounds
+          );
+      this.commitRuns(drag.channel, next);
+    };
 
-  /** Take the drawing back to the layout the editor opened on.
-   *
-   * The way out of a half-finished rearrangement that is not worth saving.
-   * Cancel already discards, but it also closes the editor, so starting
-   * over meant reopening it; this restores the same starting point and
-   * leaves the user where they are, still editing.
-   *
-   * Restoring is a revert to the baseline, not a step backwards through a
-   * history: what was asked for is the layout in force, and one button that
-   * always lands there is worth more here than a stack that has to be
-   * unwound to reach it.
-   */
-  _undoLayout() {
-    const ed = this._layoutEdit;
-    if (!this._layoutUndoable()) return;
-    // Copied out of the baseline rather than handed over: a later drag
-    // writes into these, and the baseline has to survive to serve a second
-    // Undo.
-    ed.edges = ed.baseline.edges.map((e) => [e[0], e[1]]);
-    ed.positions = this._copyPositions(ed.baseline.positions);
-    // A gesture still in flight belongs to the drawing that just went away:
-    // its pointerup would land an edge nobody asked for, or drop a box at a
-    // position the restore had already taken back.
-    ed.drag = null;
-    ed.suppressClick = false;
-    ed.dirty = false;
-    this._layoutEvaluate();
-    // The in-place redraw, not `_render`: a full rebuild would replace the
-    // bar and take the focus off the Undo button the keyboard just pressed.
-    this._refreshLayout();
-  }
+    const onMove = (svg, ev) => {
+      if (this.drag) this.drag.lastClientX = ev.clientX;
+      applyDragAt(svg, ev.clientX);
+    };
 
-  /** Store the matched layout key and the box positions.
-   *
-   * Only the key travels: the service re-derives the edges from it, so a
-   * drawing can never smuggle in physics the model does not implement. A
-   * rejection is reported on the page and leaves the editor open, because
-   * the drawing is the user's work and losing it is not a way to say no.
-   */
-  async _saveLayout() {
-    const ed = this._layoutEdit;
-    if (!this._layoutSaveable()) return;
-    if (!this._hass || typeof this._hass.callService !== "function") return;
-    const note = this.shadowRoot.querySelector(".setup-result");
-    const label = ed.match.label;
-    try {
-      await this._hass.callService("heatpump_optimizer", "apply_topology", {
-        layout: ed.match.key,
-        positions: ed.positions,
-      });
-      // The write reloads the integration, so the topology the card draws
-      // from is replaced a moment later; say so rather than leaving a
-      // diagram that has not caught up looking wrong.
-      this._setupNote = L("setup.saved_reloading", { label });
-      this._layoutEdit = null;
-    } catch (err) {
-      this._setupNote = L("errors.could_not_save_layout", {
-        err: (err && err.message) || err,
-      });
-    }
-    this._render();
-    if (note) note.textContent = this._setupNote || "";
-  }
-
-  /** One live reading, formatted, or null for an empty slot. */
-  _slotLive(slot) {
-    if (!slot.entity) return null;
-    const st = this._hass && this._hass.states
-      ? this._hass.states[slot.entity]
-      : null;
-    if (!st || st.state === "unavailable" || st.state === "unknown") {
-      return L("setup.unavailable");
-    }
-    // HA's own formatter applies the user's unit system and any per-entity
-    // display override, so a natively-°F probe reads in °C on a metric
-    // install here exactly as it does everywhere else in the frontend.
-    // Raw state + unit stays as the fallback for older frontends.
-    if (this._hass && typeof this._hass.formatEntityState === "function") {
-      try {
-        const formatted = this._hass.formatEntityState(st);
-        if (formatted) return formatted;
-      } catch (e) {
-        // fall through to the raw concatenation
+    const stopAutoPan = () => {
+      if (this.dragPan) {
+        clearInterval(this.dragPan);
+        this.dragPan = null;
       }
+    };
+
+    // Holding a dragged slot against the plot's edge pans the view under it.
+    // Without this, a zoomed-in view is a wall: the edit ceiling clamps to
+    // the visible window (a slot must not land where the pointer cannot
+    // reach), so a user who zoomed — often accidentally, by pinch or
+    // ctrl-wheel — finds editing "stops" at an arbitrary-looking time.
+    const maybeAutoPan = (index, clientX) => {
+      if (!this.drag || this.drag.menuOnly || !this.host.view.adjustable()) {
+        stopAutoPan();
+        return;
+      }
+      const svg = svgAt(index);
+      const rect =
+        svg && svg.getBoundingClientRect ? svg.getBoundingClientRect() : null;
+      if (!rect || !rect.width) {
+        stopAutoPan();
+        return;
+      }
+      const dir =
+        clientX > rect.left + rect.width - AUTOPAN_MARGIN_PX
+          ? 1
+          : clientX < rect.left + AUTOPAN_MARGIN_PX
+            ? -1
+            : 0;
+      if (!dir) {
+        stopAutoPan();
+        return;
+      }
+      if (this.dragPan) return;
+      this.dragPan = setInterval(() => {
+        const drag = this.drag;
+        const lim = this.host.view.limits;
+        if (!drag || !lim) {
+          stopAutoPan();
+          return;
+        }
+        const cur = this.host.view.current();
+        const step = dir * Math.max(PLAN_STEP_MS, cur.span * 0.04);
+        const maxStart = Math.max(lim.floor, lim.rightBound - cur.span);
+        const start = clampNum(cur.start + step, lim.floor, maxStart);
+        if (start === cur.start) {
+          stopAutoPan();
+          return;
+        }
+        this.host.view.setStart(start);
+        // A full render: the gesture survives it because move/up also live
+        // on `window` (registered per drag below), exactly as the pan
+        // gesture does and for the same reason.
+        this.host.render();
+        const fresh = svgAt(drag.svgIndex);
+        if (fresh && drag.lastClientX !== undefined) {
+          applyDragAt(fresh, drag.lastClientX);
+        }
+      }, AUTOPAN_INTERVAL_MS);
+    };
+
+    const onUp = () => {
+      if (!this.drag) return;
+      const drag = this.drag;
+      // The browser synthesises a click after pointerup — preventDefault on
+      // pointerdown suppresses compatibility mouse events but not click — and
+      // on the inline chart that click bubbles to ha-card and pops the
+      // expanded dialog open at the end of every drag. Same one-shot
+      // suppression the pan gesture uses; a drag ending off-svg spends it on
+      // nothing, which the pan path already accepts.
+      if (drag.moved) this.host.suppressNextClick();
+      this.drag = null;
+      this.host.render();
+      // A press released without movement is a tap: open the slot menu the
+      // desktop reaches by right-click. iOS Safari never synthesises
+      // contextmenu (no long-press equivalent), so before this a touch
+      // user could not add or remove a slot at all. Desktop gains the
+      // same affordance — a menu on plain click is more discoverable than
+      // one hidden behind the right button. After _render so the menu
+      // attaches to the fresh shadow root, and suppressClick still spends
+      // the synthetic click before it can pop the dialog.
+      if (
+        !drag.moved &&
+        drag.lastClientX !== undefined &&
+        drag.lastClientY !== undefined
+      ) {
+        this.host.suppressNextClick();
+        const fresh = svgAt(drag.svgIndex);
+        if (fresh) {
+          const at = timeAtClientX(fresh, drag.lastClientX, this.host.geom);
+          if (at !== null) {
+            this.openMenu(
+              drag.channel, at, drag.lastClientX, drag.lastClientY, fresh
+            );
+          }
+        }
+      }
+    };
+
+    const onContext = (svg, ev) => {
+      const data = (ev.target || {}).dataset || {};
+      if (!data.channel) return;
+      const at = timeAtClientX(svg, ev.clientX, this.host.geom);
+      if (at === null) return;
+      if (ev.preventDefault) ev.preventDefault();
+      stop(ev);
+      this.openMenu(data.channel, at, ev.clientX, ev.clientY, svg);
+    };
+
+    // The keyboard equivalent of the pointer gestures, delegated on the svg
+    // like everything else here (the rects are rebuilt on every refresh).
+    // Enter/Space on a focused slot or lane opens the same menu a
+    // right-click does; Delete removes the focused slot outright. Dragging
+    // has no keyboard form — the menu's add/remove covers the same edits,
+    // just in more steps.
+    const onKeydown = (svg, ev) => {
+      const data = (ev.target || {}).dataset || {};
+      if (!data.channel) return;
+      const key = ev.key;
+      const wantsMenu =
+        key === "Enter" || key === " " || key === "ContextMenu";
+      const wantsRemove = key === "Delete" || key === "Backspace";
+      if (!wantsMenu && !wantsRemove) return;
+      const geom = this.host.geom;
+      if (!geom) return;
+      if (ev.preventDefault) ev.preventDefault();
+      stop(ev);
+
+      const channel = data.channel;
+      const runs = this.host.manual.draft()[channel] || [];
+      const index = data.index === undefined ? -1 : Number(data.index);
+      const run = index >= 0 ? runs[index] : null;
+      const [lo, hi] = this.host.manual.bounds();
+
+      if (wantsRemove) {
+        if (run && run.end > lo && run.start < hi) {
+          this.commitRuns(channel, SlotModel.remove(runs, index));
+          this.host.render();
+          // The focused slot is gone and the render rebuilt everything
+          // around it; without this, focus drops to document.body and a
+          // keyboard user restarts from the top. Its lane is the successor.
+          this.restoreFocus(channel, null, svgs.indexOf(svg));
+        }
+        return;
+      }
+
+      // The menu asks "what is at this time?", so aim it at the middle of
+      // the focused slot — or, from a lane, at the middle of the editable
+      // stretch of the visible window.
+      let at;
+      if (run) {
+        at = (run.start + run.end) / 2;
+      } else {
+        const s = Math.max(lo, geom.windowStart);
+        const e = Math.min(hi, geom.windowEnd);
+        if (e <= s) return;
+        at = (s + e) / 2;
+      }
+      // Anchor the menu where that time is drawn. The pointer paths get
+      // client coordinates for free; here they are reconstructed from the
+      // viewBox geometry, and degrade to the svg's own corner when the
+      // element cannot be measured.
+      const rect = svg.getBoundingClientRect
+        ? svg.getBoundingClientRect()
+        : null;
+      let clientX = rect ? rect.left : 0;
+      let clientY = rect ? rect.top : 0;
+      if (rect && rect.width) {
+        const span = geom.windowEnd - geom.windowStart || 1;
+        const vx =
+          geom.plotL + ((at - geom.windowStart) / span) * geom.plotW;
+        clientX = rect.left + (vx / VIEW_W) * rect.width;
+        clientY =
+          rect.top +
+          ((geom.plotB - (geom.laneH || LANE_H)) / VIEW_H) *
+            (rect.height || 0);
+      }
+      this.openMenu(channel, at, clientX, clientY, svg, true);
+    };
+
+    for (const svg of svgs) {
+      svg.addEventListener("pointerdown", (ev) => onDown(svg, ev));
+      svg.addEventListener("pointermove", (ev) => onMove(svg, ev));
+      svg.addEventListener("pointerup", onUp);
+      svg.addEventListener("pointerleave", onUp);
+      svg.addEventListener("contextmenu", (ev) => onContext(svg, ev));
+      svg.addEventListener("keydown", (ev) => onKeydown(svg, ev));
     }
-    const unit =
-      (st.attributes && st.attributes.unit_of_measurement) || "";
-    return `${st.state}${unit ? " " + unit : ""}`;
+  }
+}
+
+// ---- WhatIfPanel ----------------------------------------------------------
+// The schedule editor and what-if simulator in the expanded view: the draft
+// of the heating hours, the hot water windows and the two temperatures
+// (held here so a plan refresh does not throw away half-finished edits),
+// the sliders' shared debounce, the simulate call, and the two-press save
+// through `apply_schedule`. Its first section, "Today's slots", belongs to
+// `host.manual`; this panel places it. Uses `host.plan`, `host.hass`,
+// `host.shadowRoot`, `host.config` and `host.renderForced()`. PR 6 of #136.
+class WhatIfPanel {
+  constructor(host) {
+    this.host = host;
+    // The values the editor is showing; null until first asked for (`draft`).
+    this.values = null;
+    // The sliders' one shared debounce timer (see `attach`).
+    this.timer = null;
+    // The save confirmation: armed by the first press, lapses on its own.
+    this.pendingSave = false;
+    this.saveTimer = null;
+    this.onInput = this.onInput.bind(this);
+    this.onSlotEdit = this.onSlotEdit.bind(this);
+    this.onAddWindow = this.onAddWindow.bind(this);
+    this.onRemoveWindow = this.onRemoveWindow.bind(this);
+    this.onApplySlots = this.onApplySlots.bind(this);
+    this.onSaveSchedule = this.onSaveSchedule.bind(this);
+    this.onReset = this.onReset.bind(this);
   }
 
-  /** The irradiance the plan actually runs on when no sensor is configured.
-   *
-   * The Outside box used to say "not configured" while the plan solved
-   * against Open-Meteo or weather-derived irradiance every cycle — a value
-   * in active use displayed as absent. The solar plan sensor carries both
-   * the number and its source, so show them, tagged so nobody mistakes a
-   * forecast for a roof sensor.
-   */
-  _solarFallback() {
-    const st = this._stateOf(this._resolveEntity("solar"));
-    if (!st) return null;
-    const v = Number(st.state);
-    if (!Number.isFinite(v)) return null;
-    const source = (st.attributes || {}).source;
-    if (!source) return null;
-    const label =
-      source === "open_meteo" ? "Open-Meteo" : L("setup.source_weather");
-    return `${Math.round(v)} W/m² · ${label}`;
+  /** Nothing of this panel may outlive the card: a pending what-if solve
+   * would fire after the card is gone, spending seconds of coordinator CPU
+   * to write into a detached DOM, and an armed save confirmation must not
+   * survive it either. */
+  disconnect() {
+    if (this.timer) {
+      clearTimeout(this.timer);
+      this.timer = null;
+    }
+    if (this.saveTimer) {
+      clearTimeout(this.saveTimer);
+      this.saveTimer = null;
+    }
+    this.pendingSave = false;
   }
-
-  _setupSvg(topo) {
-    // Thin seam (#95): the diagram is a top-level function; the method
-    // keeps the name -- call sites and the tests read it -- and keeps the
-    // one side effect the class owns: publishing the laid-out boxes.
-    const built = setupSvgHtml(topo, {
-      editing: this._layoutEditing(),
-      edit: this._layoutEdit,
-      slotLive: (s) => this._slotLive(s),
-      solarFallback: () => this._solarFallback(),
-    });
-    this._layoutBoxes = built.boxes;
-    return built.html;
-  }
-
 
   /** The what-if panel, shown in the expanded view only.
    *
@@ -5156,12 +6239,12 @@ class HeatpumpOptimizerCard extends HTMLElement {
    * should not trigger a solve. "Save as my schedule" writes all of it into the
    * config entry through `apply_schedule`, and asks for confirmation first.
    */
-  _whatIfHtml() {
-    if (!this._config.what_if) return "";
-    const draft = this._whatIfDraft();
+  html() {
+    if (!this.host.config.what_if) return "";
+    const draft = this.draft();
     const windows = draft.dhwWindows;
-    const setpoint = this._planAttr("dhw_setpoint", null);
-    const ceiling = this._dhwMinCeiling();
+    const setpoint = this.host.plan.attr("dhw_setpoint", null);
+    const ceiling = this.dhwMinCeiling();
     // Re-clamp on every render rather than only when the draft is seeded: the
     // setpoint is configurable and may have moved since, and a slider whose
     // maximum was computed against a stale setpoint is precisely the bug this
@@ -5173,45 +6256,13 @@ class HeatpumpOptimizerCard extends HTMLElement {
       clamped = draft.dhwMin;
       draft.dhwMin = ceiling;
     }
-    const windowHours = this._planAttr(
+    const windowHours = this.host.plan.attr(
       "manual_plan_window_hours",
       MANUAL_PLAN_WINDOW_FALLBACK_H
     );
     return `
       <div class="whatif">
-        <div class="wi-section">
-          <div class="wi-group-title">${esc(L("whatif.todays_slots"))}</div>
-          <div class="wi-hint">
-            ${L("whatif.slots_hint", { hours: windowHours })}
-          </div>
-          ${
-            this._viewLimitsEditing()
-              ? `<div class="wi-viewlimit">${L("whatif.zoom_limit_hint", {
-                  button:
-                    `<button type="button" class="wi-viewreset">` +
-                    `${esc(L("whatif.show_whole_plan_button"))}</button>`,
-                })}</div>`
-              : ""
-          }
-          ${this._overrideHtml()}
-          <div class="wi-row wi-delta">${this._deltaHtml()}</div>
-          <div class="wi-row wi-actions">
-            <button type="button" class="wi-pin">${esc(
-              L("whatif.apply_plan")
-            )}</button>
-            <button type="button" class="wi-revert">${esc(
-              L("whatif.undo_changes")
-            )}</button>
-            ${
-              this._manualOverride()
-                ? `<button type="button" class="wi-auto">${esc(
-                    L("whatif.back_to_auto")
-                  )}</button>`
-                : ""
-            }
-          </div>
-          <div class="wi-pin-result" role="status"></div>
-        </div>
+        ${this.host.manual.sectionHtml(windowHours)}
 
         <div class="wi-section">
           <div class="wi-group-title">${esc(L("whatif.usual_schedule"))}</div>
@@ -5340,17 +6391,17 @@ class HeatpumpOptimizerCard extends HTMLElement {
    * Held on the instance so a data refresh, which rebuilds the whole shadow
    * root, does not throw away half-finished edits.
    */
-  _whatIfDraft() {
-    if (!this._whatIf) {
-      this._whatIf = {
-        comfort: this._currentComfortTemp(),
-        dhwMin: this._currentDhwMin(),
-        dayStart: this._planAttr("day_start_hour", 7),
-        dayEnd: this._planAttr("day_end_hour", 22),
-        dhwWindows: this._currentDhwWindows(),
+  draft() {
+    if (!this.values) {
+      this.values = {
+        comfort: this.currentComfortTemp(),
+        dhwMin: this.currentDhwMin(),
+        dayStart: this.host.plan.attr("day_start_hour", 7),
+        dayEnd: this.host.plan.attr("day_end_hour", 22),
+        dhwWindows: this.currentDhwWindows(),
       };
     }
-    return this._whatIf;
+    return this.values;
   }
 
   /** Current comfort target, as the optimizer itself is planning against.
@@ -5359,15 +6410,15 @@ class HeatpumpOptimizerCard extends HTMLElement {
    * arbitrary thermostat -- a frost-protection TRV, an AC, a towel rail --
    * whose setpoint has nothing to do with the space-heating plan.
    */
-  _currentComfortTemp() {
-    return this._planAttr("comfort_temp_day", 21);
+  currentComfortTemp() {
+    return this.host.plan.attr("comfort_temp_day", 21);
   }
 
   /** Current usable hot water minimum, as configured. */
-  _currentDhwMin() {
+  currentDhwMin() {
     return Math.min(
-      this._planAttr("dhw_min_temperature", DHW_MIN_FALLBACK),
-      this._dhwMinCeiling()
+      this.host.plan.attr("dhw_min_temperature", DHW_MIN_FALLBACK),
+      this.dhwMinCeiling()
     );
   }
 
@@ -5378,73 +6429,9 @@ class HeatpumpOptimizerCard extends HTMLElement {
    * number, and the card cannot drift away from it. The fallback only matters
    * before the first plan arrives, when no setpoint has been published yet.
    */
-  _dhwMinCeiling() {
-    const published = this._planAttr("dhw_min_temperature_max", null);
+  dhwMinCeiling() {
+    const published = this.host.plan.attr("dhw_min_temperature_max", null);
     return published === null ? DHW_MIN_FALLBACK : published;
-  }
-
-  _planAttr(name, fallback) {
-    const st = this._stateOf(this._resolveEntity("space"));
-    const raw = ((st && st.attributes) || {})[name];
-    // `Number(null)` is 0, and 0 is finite -- so without this guard an
-    // attribute the coordinator published as None would read as a real
-    // measurement of zero rather than "not known", silently producing a 0 °C
-    // comfort target or a hot water ceiling of nothing.
-    if (raw === null || raw === undefined || raw === "") return fallback;
-    const value = Number(raw);
-    return Number.isFinite(value) ? value : fallback;
-  }
-
-  /** A plan-sensor attribute as-is, for the ones that are not numbers. */
-  _planAttrRaw(name, fallback) {
-    const st = this._stateOf(this._resolveEntity("space"));
-    const raw = ((st && st.attributes) || {})[name];
-    return raw === null || raw === undefined ? fallback : raw;
-  }
-
-  /** The manual override the integration is currently honouring, if any.
-   *
-   * Published by both plan sensors, so either will do; the space sensor is the
-   * one the rest of the card already resolves.
-   */
-  _manualOverride() {
-    for (const which of ["space", "dhw"]) {
-      const st = this._stateOf(this._resolveEntity(which));
-      const info = ((st && st.attributes) || {}).manual_override;
-      if (info && info.active) return info;
-    }
-    return null;
-  }
-
-  /** How the override is going, in the user's terms.
-   *
-   * A pinned slot is not a guarantee: the optimizer releases pins that would
-   * take the house below its comfort floor or the tank below its minimum. That
-   * has to be said out loud, because the whole point of pinning is that the
-   * user believes the plan they see is the plan that will run.
-   */
-  _overrideHtml() {
-    const info = this._manualOverride();
-    if (!info) return "";
-    const until = info.expires_at ? new Date(info.expires_at) : null;
-    const when =
-      until && !Number.isNaN(until.getTime())
-        ? L("slots.until_suffix", { expiry: fmtExpiry(until) })
-        : "";
-    const released =
-      (info.released_space || []).length + (info.released_dhw || []).length;
-    const note = released
-      ? ` <span class="dearer">${esc(
-          L(
-            released === 1 ? "slots.released_one" : "slots.released_other",
-            { n: released }
-          )
-        )}</span>`
-      : "";
-    return `<div class="wi-row wi-override" role="status">${L(
-      "slots.pinned_status",
-      { until: esc(when) }
-    )}${note}</div>`;
   }
 
   /** Demand windows the DHW plan sensor is currently planning against.
@@ -5458,8 +6445,8 @@ class HeatpumpOptimizerCard extends HTMLElement {
    * therefore could not price a single change; every simulate was refused by
    * the card, blaming the schedule the integration had just published.
    */
-  _currentDhwWindows() {
-    const st = this._stateOf(this._resolveEntity("dhw"));
+  currentDhwWindows() {
+    const st = this.host.plan.stateOf(this.host.plan.resolveEntity("dhw"));
     const spec = ((st && st.attributes) || {}).dhw_windows;
     return parseWindows(spec).map((w) => ({
       start: endOfDayAsMidnight(w.start),
@@ -5467,123 +6454,8 @@ class HeatpumpOptimizerCard extends HTMLElement {
     }));
   }
 
-  /** Wire the buttons that act on today's hand-arranged slots. */
-  _attachSlotActions(root) {
-    const pin = root.querySelector(".wi-pin");
-    if (pin) {
-      pin.addEventListener("click", (ev) => {
-        stop(ev);
-        this._applyManualPlan();
-      });
-    }
-    const revert = root.querySelector(".wi-revert");
-    if (revert) {
-      revert.addEventListener("click", (ev) => {
-        stop(ev);
-        this._resetRuns();
-        this._render();
-      });
-    }
-    const auto = root.querySelector(".wi-auto");
-    if (auto) {
-      auto.addEventListener("click", (ev) => {
-        stop(ev);
-        this._clearManualPlan();
-      });
-    }
-  }
-
-  _slotResult(message, cls) {
-    const box = this.shadowRoot && this.shadowRoot.querySelector(".wi-pin-result");
-    if (box) box.innerHTML = `<span class="${cls || ""}">${esc(message)}</span>`;
-  }
-
-  /** Pin the current arrangement for the manual-plan window.
-   *
-   * Only the editable part of the horizon is sent: the past cannot be
-   * rescheduled, and pinning a slot that has already happened would be
-   * meaningless.
-   */
-  _applyManualPlan() {
-    if (!this._hass || !this._hass.callService) return;
-    const [lo] = this._editBounds();
-    const runs = this._draftRuns();
-    const payload = {};
-    for (const spec of this._laneSpecs()) {
-      // Omitting a channel leaves it automatic; sending an empty list means
-      // "off until the override expires". A channel whose plan sensor is
-      // missing or has not published yet has an empty draft that means neither
-      // of those things, so it must be left out rather than silently switched
-      // off for the rest of the day.
-      if (!this._forecastOf(spec.channel).length) continue;
-      payload[`${spec.channel}_slots`] = (runs[spec.channel] || [])
-        .filter((r) => r.end > lo)
-        .map((r) => ({
-          start: new Date(Math.max(r.start, lo)).toISOString(),
-          end: new Date(r.end).toISOString(),
-        }));
-    }
-    if (!Object.keys(payload).length) {
-      this._slotResult(L("slots.no_plan_to_pin"), "dearer");
-      return;
-    }
-    this._slotResult(L("slots.applying"));
-    Promise.resolve(
-      this._hass.callService(
-        "heatpump_optimizer",
-        "apply_manual_plan",
-        payload,
-        undefined,
-        false,
-        true
-      )
-    )
-      .then((response) => {
-        this._runsDirty = false;
-        const applied = Object.values(
-          (response && response.response && response.response.applied) || {}
-        )[0];
-        const until = applied && applied.expires_at
-          ? new Date(applied.expires_at)
-          : null;
-        const when =
-          until && !Number.isNaN(until.getTime())
-            ? L("slots.until_suffix", { expiry: fmtExpiry(until) })
-            : "";
-        // Deliberately not a promise that these slots will run: the optimizer
-        // releases a pin that would take the house or the tank below its
-        // limits, and saying otherwise would be a lie the user acts on.
-        this._slotResult(L("slots.pinned_result", { until: when }), "cheaper");
-      })
-      .catch((err) => {
-        this._slotResult(
-          L("errors.could_not_apply", { err: (err && err.message) || err }),
-          "dearer"
-        );
-      });
-  }
-
-  _clearManualPlan() {
-    if (!this._hass || !this._hass.callService) return;
-    this._slotResult(L("slots.clearing"));
-    Promise.resolve(
-      this._hass.callService("heatpump_optimizer", "clear_manual_plan", {})
-    )
-      .then(() => {
-        this._resetRuns();
-        this._slotResult(L("slots.back_to_auto_result"));
-        this._render();
-      })
-      .catch((err) => {
-        this._slotResult(
-          L("errors.could_not_clear", { err: (err && err.message) || err }),
-          "dearer"
-        );
-      });
-  }
-
   /** Wire the what-if controls, if the panel is present. */
-  _attachWhatIf(root) {
+  attach(root) {
     const panel = root.querySelector(".whatif");
     if (!panel) return;
 
@@ -5595,34 +6467,32 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // price of whichever drag happened to land second.
     [".wi-temp", ".wi-dhw-min"].forEach((sel) => {
       root.querySelectorAll(sel).forEach((slider) => {
-        slider.addEventListener("input", this._onWhatIfInput);
+        slider.addEventListener("input", this.onInput);
         slider.addEventListener("click", stop);
       });
     });
     root.querySelectorAll("input[type=time]").forEach((el) => {
       el.addEventListener("click", stop);
-      el.addEventListener("change", this._onSlotEdit);
+      el.addEventListener("change", this.onSlotEdit);
     });
     const add = root.querySelector(".wi-add");
-    if (add) add.addEventListener("click", this._onAddWindow);
+    if (add) add.addEventListener("click", this.onAddWindow);
     root
       .querySelectorAll(".wi-remove")
-      .forEach((el) => el.addEventListener("click", this._onRemoveWindow));
+      .forEach((el) => el.addEventListener("click", this.onRemoveWindow));
     const apply = root.querySelector(".wi-apply");
-    if (apply) apply.addEventListener("click", this._onApplySlots);
+    if (apply) apply.addEventListener("click", this.onApplySlots);
     const save = root.querySelector(".wi-save");
-    if (save) save.addEventListener("click", this._onSaveSchedule);
+    if (save) save.addEventListener("click", this.onSaveSchedule);
     const reset = root.querySelector(".wi-reset");
-    if (reset) reset.addEventListener("click", this._onResetWhatIf);
-    const viewReset = root.querySelector(".wi-viewreset");
-    if (viewReset) viewReset.addEventListener("click", () => this._resetView());
+    if (reset) reset.addEventListener("click", this.onReset);
   }
 
-  _onWhatIfInput(ev) {
+  onInput(ev) {
     stop(ev);
     const value = Number(ev.target.value);
     if (!Number.isFinite(value)) return;
-    const draft = this._whatIfDraft();
+    const draft = this.draft();
     const target = ev.target || {};
     const isDhw = !!(
       target.classList &&
@@ -5635,23 +6505,23 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // Each readout carries its own class. There are two `.wi-value` spans now,
     // so a lookup on the shared class would keep rewriting whichever came
     // first regardless of which slider actually moved.
-    const label = this.shadowRoot.querySelector(
+    const label = this.host.shadowRoot.querySelector(
       isDhw ? ".wi-dhw-value" : ".wi-comfort-value"
     );
     if (label) label.textContent = `${value.toFixed(1)}\u00a0°C`;
 
     // Debounce so a drag does not fire a solve per pixel. The coordinator
     // rate-limits as well, but sending the calls at all is wasteful.
-    if (this._whatIfTimer) clearTimeout(this._whatIfTimer);
-    this._whatIfTimer = setTimeout(() => this._runWhatIf(), 400);
+    if (this.timer) clearTimeout(this.timer);
+    this.timer = setTimeout(() => this.run(), 400);
   }
 
   /** Read the editors back into the draft, without simulating. */
-  _onSlotEdit(ev) {
+  onSlotEdit(ev) {
     stop(ev);
-    const root = this.shadowRoot;
-    const draft = this._whatIfDraft();
-    const before = this._draftSignature();
+    const root = this.host.shadowRoot;
+    const draft = this.draft();
+    const before = this.draftSignature();
 
     const dayStart = root.querySelector(".wi-day-start");
     const dayEnd = root.querySelector(".wi-day-end");
@@ -5667,14 +6537,14 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // was armed. Only disarm if they actually changed — the save handler
     // itself calls this to flush the editors, and that must not cancel the
     // confirmation it is in the middle of.
-    if (this._pendingSave && this._draftSignature() !== before) {
-      this._cancelPendingSave();
+    if (this.pendingSave && this.draftSignature() !== before) {
+      this.cancelPendingSave();
     }
   }
 
   /** A comparable summary of the draft, for spotting real edits. */
-  _draftSignature() {
-    const d = this._whatIfDraft();
+  draftSignature() {
+    const d = this.draft();
     return JSON.stringify([
       d.comfort,
       d.dhwMin,
@@ -5684,34 +6554,34 @@ class HeatpumpOptimizerCard extends HTMLElement {
     ]);
   }
 
-  _onAddWindow(ev) {
+  onAddWindow(ev) {
     stop(ev);
-    this._onSlotEdit(ev);
-    this._whatIfDraft().dhwWindows.push({ start: "06:00", end: "08:00" });
-    this.renderForced();
+    this.onSlotEdit(ev);
+    this.draft().dhwWindows.push({ start: "06:00", end: "08:00" });
+    this.host.renderForced();
   }
 
-  _onRemoveWindow(ev) {
+  onRemoveWindow(ev) {
     stop(ev);
-    this._onSlotEdit(ev);
+    this.onSlotEdit(ev);
     const index = Number(ev.currentTarget.getAttribute("data-index"));
-    const draft = this._whatIfDraft();
+    const draft = this.draft();
     if (Number.isFinite(index)) draft.dhwWindows.splice(index, 1);
-    this.renderForced();
+    this.host.renderForced();
   }
 
-  _onApplySlots(ev) {
+  onApplySlots(ev) {
     stop(ev);
-    this._onSlotEdit(ev);
-    if (this._whatIfTimer) clearTimeout(this._whatIfTimer);
-    this._runWhatIf();
+    this.onSlotEdit(ev);
+    if (this.timer) clearTimeout(this.timer);
+    this.run();
   }
 
-  _onResetWhatIf(ev) {
+  onReset(ev) {
     stop(ev);
-    this._whatIf = null;
-    this._pendingSave = false;
-    this.renderForced();
+    this.values = null;
+    this.pendingSave = false;
+    this.host.renderForced();
   }
 
   /** Persist the edited schedule, on a deliberate second press.
@@ -5723,22 +6593,22 @@ class HeatpumpOptimizerCard extends HTMLElement {
    * modal, and a nested browser prompt inside a `showModal()` dialog is easy
    * to miss behind the backdrop.
    */
-  async _onSaveSchedule(ev) {
+  async onSaveSchedule(ev) {
     stop(ev);
-    this._onSlotEdit(ev);
+    this.onSlotEdit(ev);
 
-    const root = this.shadowRoot;
+    const root = this.host.shadowRoot;
     const out = root && root.querySelector(".wi-result");
     const button = root && root.querySelector(".wi-save");
     if (!out || !button) return;
 
-    if (!this._hass || typeof this._hass.callService !== "function") {
+    if (!this.host.hass || typeof this.host.hass.callService !== "function") {
       out.className = "wi-result dearer";
       out.textContent = L("errors.not_connected");
       return;
     }
 
-    const draft = this._whatIfDraft();
+    const draft = this.draft();
     const invalid = draft.dhwWindows.find(
       (w) => hourOf(w.start, null) === null || hourOf(w.end, null) === null
     );
@@ -5755,25 +6625,25 @@ class HeatpumpOptimizerCard extends HTMLElement {
       return;
     }
 
-    if (!this._pendingSave) {
-      this._pendingSave = true;
+    if (!this.pendingSave) {
+      this.pendingSave = true;
       button.textContent = L("whatif.confirm_overwrite");
       button.classList.add("confirm");
       out.className = "wi-result";
       out.textContent = L("whatif.confirm_hint");
       // Let the decision lapse rather than sit armed indefinitely: a stray
       // click minutes later should not rewrite the configuration.
-      clearTimeout(this._saveTimer);
-      this._saveTimer = setTimeout(() => this._cancelPendingSave(), 8000);
+      clearTimeout(this.saveTimer);
+      this.saveTimer = setTimeout(() => this.cancelPendingSave(), 8000);
       return;
     }
 
-    this._cancelPendingSave();
+    this.cancelPendingSave();
     out.className = "wi-result";
     out.textContent = L("whatif.saving");
     button.disabled = true;
     try {
-      await this._hass.callService("heatpump_optimizer", "apply_schedule", {
+      await this.host.hass.callService("heatpump_optimizer", "apply_schedule", {
         day_start_hour: draft.dayStart,
         day_end_hour: draft.dayEnd,
         dhw_windows: formatWindows(draft.dhwWindows),
@@ -5784,7 +6654,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
       out.textContent = L("whatif.saved_result");
       // The draft has become the configuration, so drop it: keeping it would
       // leave the editor showing an "unsaved" copy of what is now saved.
-      this._whatIf = null;
+      this.values = null;
     } catch (err) {
       out.className = "wi-result dearer";
       out.textContent = L("errors.could_not_save", {
@@ -5795,12 +6665,12 @@ class HeatpumpOptimizerCard extends HTMLElement {
     }
   }
 
-  _cancelPendingSave() {
-    clearTimeout(this._saveTimer);
-    this._saveTimer = null;
-    this._pendingSave = false;
+  cancelPendingSave() {
+    clearTimeout(this.saveTimer);
+    this.saveTimer = null;
+    this.pendingSave = false;
     const button =
-      this.shadowRoot && this.shadowRoot.querySelector(".wi-save");
+      this.host.shadowRoot && this.host.shadowRoot.querySelector(".wi-save");
     if (button) {
       button.textContent = L("whatif.save_schedule");
       button.classList.remove("confirm");
@@ -5808,8 +6678,8 @@ class HeatpumpOptimizerCard extends HTMLElement {
   }
 
   /** Everything the draft changes, as service call arguments. */
-  _whatIfOverrides() {
-    const draft = this._whatIfDraft();
+  overrides() {
+    const draft = this.draft();
     return {
       target_temp: draft.comfort,
       comfort_temp_day: draft.comfort,
@@ -5826,12 +6696,12 @@ class HeatpumpOptimizerCard extends HTMLElement {
     };
   }
 
-  async _runWhatIf() {
-    const out = this.shadowRoot && this.shadowRoot.querySelector(".wi-result");
-    if (!out || !this._hass || typeof this._hass.callService !== "function") {
+  async run() {
+    const out = this.host.shadowRoot && this.host.shadowRoot.querySelector(".wi-result");
+    if (!out || !this.host.hass || typeof this.host.hass.callService !== "function") {
       return;
     }
-    const draft = this._whatIfDraft();
+    const draft = this.draft();
     const invalid = draft.dhwWindows.find(
       (w) => hourOf(w.start, null) === null || hourOf(w.end, null) === null
     );
@@ -5846,10 +6716,10 @@ class HeatpumpOptimizerCard extends HTMLElement {
     out.className = "wi-result";
     out.textContent = L("whatif.simulating");
     try {
-      const response = await this._hass.callService(
+      const response = await this.host.hass.callService(
         "heatpump_optimizer",
         "simulate_plan",
-        this._whatIfOverrides(),
+        this.overrides(),
         undefined,
         false,
         true
@@ -5865,7 +6735,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
         return;
       }
       out.className = "wi-result";
-      out.innerHTML = this._whatIfSummary(first);
+      out.innerHTML = this.summary(first);
     } catch (err) {
       out.className = "wi-result dearer";
       out.textContent = L("errors.could_not_simulate", {
@@ -5879,7 +6749,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
    * Reporting only the saving would invite the obvious mistake: a plan is
    * always cheaper if it is allowed to be colder, or to let the tank run down.
    */
-  _whatIfSummary(result) {
+  summary(result) {
     const delta = Number(result.monthly_cost_delta);
     const parts = [];
 
@@ -5940,649 +6810,280 @@ class HeatpumpOptimizerCard extends HTMLElement {
       `<div class="wi-detail">${parts.slice(1).join(" · ")}</div>`
     );
   }
+}
 
-  /** Wire hover and legend handling for every chart in a root. */
-  _attachChartEvents(root) {
-    root
-      .querySelectorAll(".chip")
-      .forEach((el) => el.addEventListener("click", this._onLegendClick));
-
-    this._chartSvgs(root).forEach((svg) => {
-      svg.addEventListener("mousemove", this._onPointerMove);
-      svg.addEventListener("mouseleave", this._onPointerLeave);
-      svg.addEventListener("touchmove", this._onPointerMove, { passive: true });
-      svg.addEventListener("touchend", this._onPointerLeave);
-    });
-
-    this._attachViewControls(root);
-    this._attachWhatIf(root);
-    this._attachSlotActions(root);
-    this._attachSlotEditing(root);
+// ---- SetupPage ------------------------------------------------------------
+// The Setup tab: the configured system as a picture with live readings in
+// place (drawn by the top-level `setupSvgHtml`, #95), the click-to-assign
+// entity picker with its per-visit state and its clear-confirmation, the
+// page's status line, and where focus goes on the way in and out. Knows
+// nothing of the layout editor: the host composes the page from both and
+// tells `attach` whether the editor is open. Uses `host.plan`, `host.hass`,
+// `host.shadowRoot` and `host.render()`. PR 7 of #136.
+class SetupPage {
+  constructor(host) {
+    this.host = host;
+    // The picker's per-visit state: which slot is open, what has been typed
+    // into its filter, which entity is chosen (null = "whatever the slot
+    // already holds"), whether it was opened from the keyboard (focus goes
+    // into it, and back to the row on the way out), and whether an Assign
+    // that would CLEAR the slot has been armed.
+    this.pickerKey = null;
+    this.pickerSlot = null;
+    this.pickerFilter = "";
+    this.pickerChoice = null;
+    this.pickerFocus = false;
+    this.pickerViaKeyboard = false;
+    this.pendingClear = false;
+    this.clearTimer = null;
+    // The status line under the diagram, re-applied after every rebuild.
+    this.note = null;
   }
 
-  /** Bring the dialog element in the DOM into line with `_expanded`.
+  /** Put the status line back after a rebuild replaced its element. */
+  applyNote(root) {
+    const note = root.querySelector(".setup-result");
+    if (note && this.note) note.textContent = this.note;
+  }
+
+  /** The entity picker for one slot, or nothing when none is open.
    *
-   * `_render` rebuilds the shadow root wholesale, so on every data refresh the
-   * open dialog is replaced by a fresh element that has to be shown again.
+   * Item 32's click-to-assign, on the card rather than in a custom panel: the
+   * card is already authenticated, already draws the diagram and already has
+   * `hass`, so this needs one validated service instead of a second frontend
+   * with its own hand-rolled config-write path.
+   *
+   * Candidates come from `hass.states`, filtered to the domains the slot
+   * accepts -- the same list the service validates against, published on the
+   * slot itself so the picker cannot offer what the service would refuse.
    */
-  _syncDialog() {
-    const dlg = this.shadowRoot.querySelector("dialog");
-    if (!dlg) return;
+  pickerHtml(topo) {
+    const key = this.pickerKey;
+    if (!key) return "";
+    const slot = (topo.slots || []).find((s) => s.key === key);
+    if (!slot) return "";
+    // The open picker's slot, for the handlers: the filter box rebuilds the
+    // option list without re-rendering the page (which would take the focus
+    // out of the input the user is typing into), and needs the same slot
+    // this render used.
+    this.pickerSlot = slot;
+    const model = this.pickerModel(slot);
+    const filter = this.pickerFilter || "";
+    return `
+      <div class="setup-picker">
+        <div class="sp-title">${esc(slot.label)}</div>
+        <input class="sp-filter" type="text" value="${esc(filter)}"
+          placeholder="${esc(L("setup.picker_filter_placeholder"))}"
+          aria-label="${esc(
+            L("setup.picker_filter_aria", { slot: slot.label })
+          )}" />
+        <select class="sp-select" size="8" aria-label="${esc(
+          L("setup.picker_aria", { slot: slot.label })
+        )}">${model.options}</select>
+        <div class="sp-actions">
+          <button type="button" class="sp-save">${esc(L("setup.assign"))}</button>
+          <button type="button" class="sp-cancel">${esc(L("setup.cancel"))}</button>
+        </div>
+        <div class="sp-note">${esc(model.note)}</div>
+      </div>`;
+  }
 
-    dlg.addEventListener("click", this._onDialogClick);
-    dlg.addEventListener("close", this._onDialogClose);
-    dlg.addEventListener("cancel", this._onDialogClose);
-    const closeBtn = dlg.querySelector(".close");
-    if (closeBtn) closeBtn.addEventListener("click", this._onDialogClick);
-
-    // Page tabs. Switching re-renders so the hidden page is genuinely gone
-    // from the DOM, and the scroll offset is reset because carrying the plan
-    // page's position into a differently sized setup page lands nowhere.
-    for (const tab of dlg.querySelectorAll(".dlg-tab")) {
-      tab.addEventListener("click", (ev) => {
-        ev.stopPropagation();
-        const page = ev.currentTarget.dataset.page;
-        if (page && page !== this._dialogPage) {
-          this._dialogPage = page;
-          this._dialogScroll = 0;
-          // Leaving the setup page abandons a half-made assignment rather
-          // than keeping a picker open behind the chart.
-          this._closePicker();
-          this._render();
-        }
+  /** The picker's option list and its footnote, for one slot.
+   *
+   * Three rules this had wrong before v5.1.4, each of them destructive:
+   *
+   *  - The entity the slot ALREADY holds is always an option, and always the
+   *    selected one. It used to be offered only if it happened to fall
+   *    inside the candidate list; when it did not -- a renamed entity, one
+   *    past the cap, one whose domain the slot no longer lists -- the
+   *    `<select>` fell back to "(not configured)", and pressing Assign
+   *    wrote that emptiness back and reloaded the integration. The user was
+   *    shown a cleared slot and a destructive default in the same control.
+   *  - The cap applies AFTER the filter, so every entity on the install is
+   *    reachable by typing. It used to truncate the alphabetical candidate
+   *    list, which on a large install simply hid the user's own probe with
+   *    no way to reach it.
+   *  - Every option shows the entity id next to the friendly name.
+   *    Auto-generated names collide ("Vedpanna temperatur" twice, one of
+   *    them silently `..._2`), and a list of identical labels is a list
+   *    nobody can choose from.
+   */
+  pickerModel(slot) {
+    const domains = slot.domains || [];
+    const states = (this.host.hass && this.host.hass.states) || {};
+    const nameOf = (id) => {
+      const st = states[id];
+      return (st && st.attributes && st.attributes.friendly_name) || id;
+    };
+    const labelOf = (id) => {
+      if (!states[id]) return `${id} — ${L("setup.picker_missing")}`;
+      const friendly = nameOf(id);
+      return friendly === id ? id : `${friendly} — ${id}`;
+    };
+    // A slot that wants a temperature says so; a matching device class is
+    // ranked first so the probe the slot is for is near the top before a
+    // single character is typed. Ranking only -- nothing is hidden by it,
+    // because a house full of unclassified sensors is normal.
+    //
+    // What the slot is asking for comes from the slot, published by
+    // `topology._SLOTS` beside the domains it sits in the same row as. The
+    // card used to keep a second copy of that table keyed by slot id, which
+    // no test touched and which would have gone quietly stale the first time
+    // a slot was added.
+    const want = slot.device_class || null;
+    const classOf = (id) => {
+      const st = states[id];
+      return (st && st.attributes && st.attributes.device_class) || "";
+    };
+    const all = Object.keys(states).filter((id) =>
+      domains.includes(id.split(".")[0])
+    );
+    const q = String(this.pickerFilter || "").trim().toLowerCase();
+    const matching = q
+      ? all.filter((id) => labelOf(id).toLowerCase().includes(q))
+      : all;
+    matching.sort((a, b) => {
+      if (want) {
+        const ra = classOf(a) === want ? 0 : 1;
+        const rb = classOf(b) === want ? 0 : 1;
+        if (ra !== rb) return ra - rb;
+      }
+      return a < b ? -1 : a > b ? 1 : 0;
+    });
+    const shown = matching.slice(0, PICKER_MAX_OPTIONS);
+    // What the select must come up on: the user's own pick this time round,
+    // otherwise whatever the slot is configured with.
+    const chosen =
+      this.pickerChoice === null || this.pickerChoice === undefined
+        ? slot.entity || ""
+        : this.pickerChoice;
+    const listed = new Set(shown);
+    const options = [
+      `<option value=""${chosen ? "" : " selected"}>${esc(
+        L("setup.picker_none")
+      )}</option>`,
+    ];
+    // The current entity rides at the top of the list, outside the filter
+    // and outside the cap: it is the one option whose absence would rewrite
+    // the configuration.
+    if (chosen && !listed.has(chosen)) {
+      options.push(
+        `<option value="${esc(chosen)}" selected>${esc(labelOf(chosen))}</option>`
+      );
+    }
+    for (const id of shown) {
+      options.push(
+        `<option value="${esc(id)}"${id === chosen ? " selected" : ""}>${esc(
+          labelOf(id)
+        )}</option>`
+      );
+    }
+    let note;
+    if (matching.length > shown.length) {
+      note = L("setup.picker_showing", {
+        n: shown.length,
+        total: matching.length,
+      });
+    } else if (q && !matching.length) {
+      note = L("setup.picker_no_match", { q });
+    } else {
+      note = L("setup.picker_count", {
+        n: matching.length,
+        domains: domains.join("/"),
       });
     }
+    return { options: options.join(""), note, total: matching.length,
+      shown: shown.length };
+  }
 
-    this._attachSetupEvents(dlg);
-    const note = dlg.querySelector(".setup-result");
-    if (note && this._setupNote) note.textContent = this._setupNote;
+  /** Close the picker, dropping everything that belonged to that visit. */
+  closePicker() {
+    this.pickerKey = null;
+    this.pickerSlot = null;
+    this.pickerViaKeyboard = false;
+    this.pickerFilter = "";
+    this.pickerChoice = null;
+    this.cancelPendingClear();
+  }
 
-    if (this._expanded && !dlg.open) {
-      // showModal promotes the dialog to the top layer, which is what keeps it
-      // clear of the dashboard's stacking contexts and any clipping ancestor.
-      if (typeof dlg.showModal === "function") dlg.showModal();
-      else dlg.setAttribute("open", "");
+  /** Disarm the "this would clear the slot" confirmation. */
+  cancelPendingClear() {
+    if (this.clearTimer) {
+      clearTimeout(this.clearTimer);
+      this.clearTimer = null;
     }
-
-    // Restore where the user was. Done after showModal, because a dialog that
-    // is not yet in the top layer has no laid-out scroll height to set against.
-    const body = dlg.querySelector(".dlg-body");
-    if (body && this._dialogScroll) body.scrollTop = this._dialogScroll;
+    this.pendingClear = false;
   }
 
-
-  _legendHtml() {
-    const chips = SERIES_DEFS.map((def) => {
-      const s = this._series.find((x) => x.key === def.key);
-      const hasData = s ? s.hasData : false;
-      const hidden = !!this._hidden[def.key];
-      const cls = "chip" + (hidden ? " off" : "") + (hasData ? "" : " nodata");
-      const label = L(def.labelKey);
-      // One chip per series, never one per rendered line.
-      //
-      // v5.1.7 gave every trace of a multi-line series its own chip so the
-      // house-temperature zones could be named. Every chip carries the
-      // series' `data-key`, because per-line visibility does not exist — so
-      // that series showed three chips in one colour, any of which hid all
-      // three lines at once. Three controls doing one job is worse than one,
-      // so the naming stays where it points at a single trace: the tooltip
-      // has a row per line, and the chip's title lists what else rides on
-      // the line it toggles.
-      //
-      // The chip now stands for the series rather than for its primary
-      // trace, which also settles a case the per-line version got wrong:
-      // with the primary field absent but the extras present, a solid
-      // "House temperature" chip was emitted for a line nothing drew.
-      //
-      // v5.2.0 enumerates them with `_extraFields`, not `lines`: a hole now
-      // splits one field into several drawn paths, and a confidence band's
-      // two edges are one envelope with one name. Listing `lines` here would
-      // print "Lower floor, Lower floor, Lower floor" — saying a thing three
-      // times, in the title written to stop saying it twice.
-      const extras = this._extraFields(s);
-      const unit = this._seriesUnit(def);
-      // ... and any sentence a trace needs beyond its name rides along
-      // after them. Only the expected-error band has one: "Upper floor"
-      // explains itself, a dashed pair hugging the tank curve does not, and
-      // this title is now the one place a puzzled reader can look.
-      const notes = extras
-        .map((line) => this._lineNote(def, line))
-        .filter(Boolean)
-        .map((note) => " " + note)
-        .join("");
-      const title = extras.length
-        ? L("legend.multi_trace_title", {
-            label,
-            unit,
-            names: extras.map((line) => this._lineLabel(def, line)).join(", "),
-          }) + notes
-        : `${label} (${unit})`;
-      return `<button type="button" class="${cls}" data-key="${
-        def.key
-      }" title="${esc(title)}">
-        <span class="dot" style="${dotStyle(def.color, false)}"></span>${esc(
-        label
-      )}
-      </button>`;
-    }).join("");
-    return `<div class="legend">${chips}</div>`;
-  }
-
-  /** Every plotted point of one field, across the segments holes broke it
-   * into. A field is one trace to every caller; that it may be drawn as
-   * several paths is a rendering detail. */
-  _fieldPoints(s, field) {
-    const out = [];
-    for (const line of s.lines || []) {
-      if (line.field === field) out.push(...line.points);
+  /** Disarm it and put the Assign button back the way it was. */
+  disarmClear(picker) {
+    this.cancelPendingClear();
+    const root = picker || (this.host.shadowRoot && this.host.shadowRoot.querySelector(
+      ".setup-picker"));
+    const save = root && root.querySelector(".sp-save");
+    if (save) {
+      save.textContent = L("setup.assign");
+      save.classList.remove("confirm");
     }
-    return out;
   }
 
-  /** One representative line per NAMED non-primary trace, in draw order.
-   *
-   * Two collapses, both because a reader counts traces by name and not by
-   * path. `lines` may hold several segments of one field, because a hole
-   * breaks a field into several paths; and a band's two edges are one
-   * envelope with one name.
-   *
-   * Every caller that names traces goes through here — this card's per-trace
-   * legend chips, its tooltip, and equally a legend that draws ONE chip per
-   * series and lists the rest in that chip's title. Iterating `lines`
-   * directly instead would name a gapped zone three times and a band twice.
-   */
-  _extraFields(s) {
-    const band = s && s.band;
-    const seen = new Set();
-    const out = [];
-    for (const line of (s && s.lines) || []) {
-      if (line.primary) continue;
-      const key =
-        band && (line.field === band.lo || line.field === band.hi)
-          // A Symbol, never a string: a de-duplication key that cannot
-          // collide with a field name, whatever a later series calls its
-          // fields.
-          ? BAND_TRACE_KEY
-          : line.field;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      out.push(line);
+  /** One live reading, formatted, or null for an empty slot. */
+  slotLive(slot) {
+    if (!slot.entity) return null;
+    const st = this.host.hass && this.host.hass.states
+      ? this.host.hass.states[slot.entity]
+      : null;
+    if (!st || st.state === "unavailable" || st.state === "unknown") {
+      return L("setup.unavailable");
     }
-    return out;
-  }
-
-  /** The sentence a trace needs on hover, or "" when its name is enough.
-   *
-   * Only the expected-error band has one: "Upper floor" explains itself, a
-   * dashed pair hugging the tank curve does not. Keyed off the series
-   * definition beside `_lineLabel`, so anywhere a trace can be named the
-   * explanation can be asked for too.
-   */
-  _lineNote(def, line) {
-    const band = def && def.band;
-    if (
-      band &&
-      band.noteKey &&
-      line &&
-      (line.field === band.lo || line.field === band.hi)
-    ) {
-      return L(band.noteKey);
-    }
-    return "";
-  }
-
-  /** The point of `field` nearest `t`, or null when the field has none. */
-  _nearestPoint(s, field, t) {
-    let best = null;
-    let bestDt = Infinity;
-    for (const p of this._fieldPoints(s, field)) {
-      const dt = Math.abs(p.t - t);
-      if (dt < bestDt) {
-        bestDt = dt;
-        best = p;
+    // HA's own formatter applies the user's unit system and any per-entity
+    // display override, so a natively-°F probe reads in °C on a metric
+    // install here exactly as it does everywhere else in the frontend.
+    // Raw state + unit stays as the fallback for older frontends.
+    if (this.host.hass && typeof this.host.hass.formatEntityState === "function") {
+      try {
+        const formatted = this.host.hass.formatEntityState(st);
+        if (formatted) return formatted;
+      } catch (e) {
+        // fall through to the raw concatenation
       }
     }
-    return best;
+    const unit =
+      (st.attributes && st.attributes.unit_of_measurement) || "";
+    return `${st.state}${unit ? " " + unit : ""}`;
   }
 
-  /** What one trace inside a series is called.
+  /** The irradiance the plan actually runs on when no sensor is configured.
    *
-   * A series can carry several lines — the house-temperature series draws the
-   * whole-house room average solid and the two zones dashed — and every one of
-   * them needs its own name. The lower zone gets a second name when nothing
-   * measures it, so a modelled trace is never mistaken for a reading.
+   * The Outside box used to say "not configured" while the plan solved
+   * against Open-Meteo or weather-derived irradiance every cycle — a value
+   * in active use displayed as absent. The solar plan sensor carries both
+   * the number and its source, so show them, tagged so nobody mistakes a
+   * forecast for a roof sensor.
    */
-  _lineLabel(def, line) {
-    if (!line || line.primary) return L(def.labelKey);
-    if (line.field === "lower" && this._lowerFloorModelled()) {
-      return L("series.lower_floor_modelled");
-    }
-    return L(line.labelKey || def.labelKey);
+  solarFallback() {
+    const st = this.host.plan.stateOf(this.host.plan.resolveEntity("solar"));
+    if (!st) return null;
+    const v = Number(st.state);
+    if (!Number.isFinite(v)) return null;
+    const source = (st.attributes || {}).source;
+    if (!source) return null;
+    const label =
+      source === "open_meteo" ? "Open-Meteo" : L("setup.source_weather");
+    return `${Math.round(v)} W/m² · ${label}`;
   }
 
-  /** The one tooltip row for a series' expected-error band, if it has one
-   * and both edges are present at the same step.
-   *
-   * Stated as a single ± figure because that is the one number the pair
-   * carries. Half an envelope says nothing, and two halves taken from
-   * different steps say something untrue, so both must come from the same
-   * step or there is no row at all.
-   */
-  _bandRow(s, t) {
-    if (!s.band) return [];
-    const lo = this._nearestPoint(s, s.band.lo, t);
-    const hi = this._nearestPoint(s, s.band.hi, t);
-    if (!lo || !hi || lo.t !== hi.t) return [];
-    return [
-      {
-        color: s.color,
-        label: L(s.band.labelKey),
-        value: (hi.v - lo.v) / 2,
-        prefix: "\u00b1",
-        dashed: true,
-        unit: this._seriesUnit(s),
-        t: hi.t,
-        field: s.band.hi,
-      },
-    ];
-  }
-
-  /** True when the lower zone has no thermometer of its own.
-   *
-   * Read from the published `setup_topology` slots rather than guessed: the
-   * integration already says there which sensor slots are filled, so the
-   * chart's label and the setup page cannot disagree. Unknown topology
-   * claims nothing — a missing attribute is not evidence of a missing
-   * sensor.
-   */
-  _lowerFloorModelled() {
-    const topo = this._planAttrRaw("setup_topology", null);
-    const slots = topo && Array.isArray(topo.slots) ? topo.slots : null;
-    if (!slots) return false;
-    const slot = slots.find(
-      (x) => x && x.key === "lower_floor_temp_entity"
-    );
-    return !!slot && !slot.entity;
-  }
-
-  /** The unit a series renders with. Only the price unit is dynamic: its
-   * currency comes from the config, the plan sensor or Home Assistant. */
-  _seriesUnit(def) {
-    return def.axis === "price" ? this._priceUnit() : def.unit;
-  }
-
-  /** "SEK/kWh", "EUR/kWh", ... from the resolved currency. */
-  _priceUnit() {
-    return `${this._currency()}/kWh`;
-  }
-
-  _chartSvg(built, expanded) {
-    const { windowStart, windowEnd } = built;
-    const visible = this._series.filter((s) => s.visible && s.hasData);
-    // D4-01: the compact chart floors its rendered font (see
-    // compactFontUnits); the margins then scale with any boost beyond what
-    // the authored layout already accommodates, so axis labels keep their
-    // relative space instead of colliding.
-    const font = expanded
-      ? FONT_EXPANDED
-      : compactFontUnits(this._measuredCardWidth());
-    const marginScale = expanded ? 1 : Math.max(1, font / FONT_EXPANDED);
-
-    // Axis domains from visible series grouped by axis.
-    const groups = { temp: [], power: [], price: [], solar: [] };
-    for (const s of visible) {
-      for (const line of s.lines) {
-        for (const p of line.points) groups[s.axis].push(p.v);
-      }
-    }
-    const axisRange = (vals, forceZero) => {
-      if (!vals.length) return null;
-      let lo = Math.min(...vals);
-      let hi = Math.max(...vals);
-      if (forceZero) lo = Math.min(0, lo);
-      return niceAxis(lo, hi, 6);
-    };
-    const axes = {
-      temp: axisRange(groups.temp, false),
-      power: axisRange(groups.power, true),
-      price: axisRange(groups.price, true),
-      solar: axisRange(groups.solar, true),
-    };
-
-    // The compact chart's boosted font (D4-01) widens these with it; the
-    // authored values below are already laid out for FONT_EXPANDED, so the
-    // scale only engages past that.
-    const plotL = MARGIN.left * marginScale;
-    // Only pay for the solar axis's width when it is actually drawn; a
-    // permanently narrower plot would be a real cost to every user who does
-    // not use the series.
-    const rightMargin =
-      (axes.solar ? MARGIN_RIGHT_WITH_SOLAR : MARGIN.right) * marginScale;
-    const plotR = VIEW_W - rightMargin;
-    const plotT = MARGIN.top * marginScale;
-    const plotB = VIEW_H - MARGIN.bottom * marginScale;
-    const plotW = plotR - plotL;
-    const plotH = plotB - plotT;
-
-    const xSpan = windowEnd - windowStart || 1;
-    const scaleX = (t) => plotL + ((t - windowStart) / xSpan) * plotW;
-    const scaleY = (v, axisName) => {
-      const a = axes[axisName];
-      if (!a) return plotB;
-      const span = a.max - a.min || 1;
-      return plotB - ((v - a.min) / span) * plotH;
-    };
-
-    // Store geometry for hover.
-    this._plot = {
-      windowStart,
-      windowEnd,
-      scaleX,
-      scaleY,
-      axes,
-      plotL,
-      plotR,
-      plotT,
-      plotB,
-    };
-
-    const parts = [];
-
-    // Plot frame
-    parts.push(
-      `<rect x="${plotL}" y="${plotT}" width="${plotW}" height="${plotH}" fill="none" stroke="var(--divider-color,#e0e0e0)" stroke-width="1"/>`
-    );
-
-    // Hourly gridlines. How often they are labelled is worked out from the
-    // space available, so a wider chart or a shorter horizon labels more.
-    parts.push(
-      this._timeAxis(scaleX, plotT, plotB, windowStart, windowEnd, font)
-    );
-
-    // Value axes. Where two axes share a side, the inner one's title has only
-    // the gap to the outer axis to live in, and that gap does not grow with
-    // the font: at the expanded size "SEK/kWh" is wider than the 46 units
-    // between the price and solar axes, so it used to run straight through
-    // "W/m2". Measure the title and, when it does not fit, hang it off the
-    // inside of its own axis line instead -- the strip above the plot frame
-    // is empty, so the title stays beside the axis it names either way.
-    const titleFits = (unit, room) =>
-      textWidth(unit, font) + font * 0.6 <= room;
-    const powerTitleInset = 44;
-    // The price axis title carries the resolved currency, so the measured
-    // string and the drawn string must be the same value.
-    const priceUnit = this._priceUnit();
-    const tempAnchor =
-      axes.power && !titleFits("\u00b0C", powerTitleInset) ? "start" : "end";
-    const priceAnchor =
-      axes.solar && !titleFits(priceUnit, SOLAR_AXIS_INSET) ? "end" : "start";
-
-    if (axes.temp)
-      parts.push(
-        this._valueAxis(
-          axes.temp, plotL, plotT, plotB, plotH, "left", 0,
-          scaleY, "temp", "\u00b0C", font, tempAnchor
-        )
-      );
-    if (axes.power)
-      parts.push(
-        this._valueAxis(
-          axes.power, plotL, plotT, plotB, plotH, "left", powerTitleInset,
-          scaleY, "power", "kW", font
-        )
-      );
-    if (axes.price)
-      parts.push(
-        this._valueAxis(
-          axes.price, plotR, plotT, plotB, plotH, "right", 0,
-          scaleY, "price", priceUnit, font, priceAnchor
-        )
-      );
-    if (axes.solar)
-      parts.push(
-        this._valueAxis(
-          axes.solar, plotR, plotT, plotB, plotH, "right", SOLAR_AXIS_INSET,
-          scaleY, "solar", "W/m\u00b2", font
-        )
-      );
-
-    // Now marker
-    const now = Date.now();
-    if (now >= windowStart && now <= windowEnd) {
-      const nx = scaleX(now);
-      parts.push(
-        `<line x1="${nx}" y1="${plotT}" x2="${nx}" y2="${plotB}" stroke="var(--primary-color,#03a9f4)" stroke-width="1.5" stroke-dasharray="4 3"/>`
-      );
-      parts.push(
-        `<text x="${nx + 3}" y="${plotT + font + 1}" font-size="${font}" fill="var(--primary-color,#03a9f4)">${esc(
-          L("plan.now")
-        )}</text>`
-      );
-    }
-
-    // Shade the stretch of the horizon whose prices are the learned diurnal
-    // prior rather than published market data. A plan that looks identical
-    // whether or not it rests on real prices cannot be audited.
-    const estimatedFrom = this._estimatedPricesFrom();
-    if (estimatedFrom !== null && estimatedFrom < windowEnd) {
-      const ex = Math.max(plotL, scaleX(Math.max(estimatedFrom, windowStart)));
-      parts.push(
-        `<rect class="estimated" pointer-events="none" x="${ex}" y="${plotT}" width="${Math.max(
-          0,
-          plotR - ex
-        )}" height="${plotH}" fill="var(--secondary-text-color,#888)" fill-opacity="0.07"/>`
-      );
-      // D4-03: this used to sit at `plotB - 5`, directly on top of the
-      // lane-row labels drawn near the bottom of the plot (`_laneGroupInner`),
-      // garbling both. Anchored just under the top margin instead -- a strip
-      // that is otherwise empty except for the "now" marker's label, which
-      // lives at a different x (by the current-time line, not the start of
-      // the estimated region) whenever both happen to be visible together.
-      parts.push(
-        `<text x="${ex + 4}" y="${plotT + font + 4}" font-size="${font}" fill="var(--secondary-text-color,#888)">${esc(
-          L("plan.estimated_prices")
-        )}</text>`
-      );
-    }
-
-    // Editable slot lanes, and the geometry a pointer event needs to turn a
-    // screen coordinate back into a time. The lane metrics travel with the
-    // geometry (D4-01): a boosted compact font scales the lanes with it, and
-    // hit-testing must use the same numbers the drawing used.
-    if (this._editingEnabled()) {
-      this._geom = {
-        windowStart, windowEnd, plotL, plotW, plotR, plotB, font,
-        laneH: LANE_H * marginScale, laneGap: LANE_GAP * marginScale,
-        laneInset: LANE_BOTTOM_INSET * marginScale,
-      };
-      parts.push(`<g class="lanes">${this._laneGroupInner()}</g>`);
-    } else {
-      this._geom = null;
-    }
-
-    // Where BOTH circuits are planned in the same quarter hour the pump is
-    // time-sharing the step — hot water first, then heating. That is a
-    // deliberate relaxation (space + hot water ≤ nameplate per step), not
-    // double-booking, and two full-height bars with nothing said implied
-    // the impossible. Drawn under the bars so the bars stay readable.
-    // The list is passed in rather than read from this._series so the
-    // helper stays a pure function of its inputs.
-    parts.push(
-      this._sharedSpanBands(visible, scaleX, plotT, plotB, plotL, plotR)
-    );
-
-    // Series paths (filled/area series first, lines on top)
-    const order = ["stepArea", "stepBars", "smooth"];
-    for (const st of order) {
-      for (const s of visible) {
-        if (s.style !== st) continue;
-        parts.push(this._seriesPath(s, scaleX, scaleY, plotB));
-      }
-    }
-
-    // Crosshair placeholder (updated on hover)
-    parts.push(
-      `<line class="crosshair" pointer-events="none" x1="0" y1="${plotT}" x2="0" y2="${plotB}" stroke="var(--secondary-text-color,#888)" stroke-width="1" visibility="hidden"/>`
-    );
-
-    // role="img" flattens every descendant for assistive tech, which is
-    // right for a pure picture but wrong the moment the lanes put focusable
-    // slots inside it — those need "group" so they stay in the tree. The
-    // editable chart also takes tabindex="-1": it is the last-resort home
-    // for restored focus (`_restoreSlotFocus`), and an svg without a
-    // tabindex refuses programmatic focus.
-    const editing = this._editingEnabled();
-    return `<svg viewBox="0 0 ${VIEW_W} ${VIEW_H}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" role="${
-      editing ? "group" : "img"
-    }"${editing ? ' tabindex="-1"' : ""} aria-label="${esc(
-      this._title()
-    )}">${parts.join("")}</svg>`;
-  }
-
-  /** The right-click menu for a lane.
-   *
-   * Rendered as plain HTML positioned over the card rather than as SVG, so it
-   * is not clipped by the chart and inherits the dialog's font.
-   */
-  _openSlotMenu(channel, at, clientX, clientY, svg, focusMenu) {
-    const root = this.shadowRoot;
-    if (!root) return;
-    this._closeSlotMenu();
-    const runs = this._draftRuns()[channel] || [];
-    const index = SlotModel.indexAt(runs, at);
-    const [lo] = this._editBounds();
-    const editable = index >= 0 && runs[index].end > lo;
-
-    // Anchored to the chart it was opened from: when the card is expanded
-    // there are two, and the menu must not land on the wrong one.
-    const host = this._wrapOf(svg);
-    if (!host) return;
-    const rect = host.getBoundingClientRect
-      ? host.getBoundingClientRect()
-      : { left: 0, top: 0 };
-    const menu = document.createElement("div");
-    menu.className = "slot-menu";
-    menu.style.left = `${clientX - (rect.left || 0)}px`;
-    menu.style.top = `${clientY - (rect.top || 0)}px`;
-    // Whole sentences per channel rather than an interpolated noun: gendered
-    // articles and compound nouns make "Remove this {channel} slot" untranslatable.
-    const dhw = channel === "dhw";
-    menu.innerHTML = editable
-      ? `<button type="button" data-act="remove">${esc(
-          L(dhw ? "menu.remove_slot_dhw" : "menu.remove_slot_space")
-        )}</button>`
-      : `<button type="button" data-act="add">${esc(
-          L(dhw ? "menu.add_slot_dhw" : "menu.add_slot_space")
-        )}</button>`;
-
-    const svgIndex = this._chartSvgs().indexOf(svg);
-    menu.addEventListener("click", (ev) => {
-      const act = ((ev.target || {}).dataset || {}).act;
-      stop(ev);
-      if (act === "add") {
-        this._commitRuns(
-          channel,
-          SlotModel.add(runs, at, PLAN_STEP_MS, this._editBounds())
-        );
-      } else if (act === "remove") {
-        this._commitRuns(channel, SlotModel.remove(runs, index));
-      }
-      this._closeSlotMenu();
-      this._render();
-      // The render just destroyed the element that had focus (the menu's
-      // button, or the slot). Falling to document.body strands a keyboard
-      // user; the lane the action happened in is the logical successor —
-      // the acted-on slot itself no longer exists (removed) or has a new
-      // index (added).
-      this._restoreSlotFocus(channel, null, svgIndex);
+  /** The diagram, with live readings in place: the top-level
+   * `setupSvgHtml` (#95) fed this page's readings. Returns `{html, boxes}`;
+   * the laid-out boxes are the layout editor's to keep, and it is the
+   * caller that hands them over. */
+  svg(topo, { editing, edit }) {
+    return setupSvgHtml(topo, {
+      editing,
+      edit,
+      slotLive: (s) => this.slotLive(s),
+      solarFallback: () => this.solarFallback(),
     });
-    // Escape dismisses the menu whichever way it was opened. The menu's own
-    // listener covers the keyboard-opened case, where its button holds
-    // focus; a MOUSE-opened menu leaves focus on the chart, so Escape must
-    // also be caught at the document (registered below, removed on close).
-    const onEscape = (ev) => {
-      if (ev.key !== "Escape") return;
-      stop(ev);
-      const origin = this._menuOrigin;
-      this._closeSlotMenu();
-      // Nothing re-rendered, but a keyboard-opened menu moved focus into
-      // its button, which is now gone: send it back where the menu came
-      // from.
-      if (origin) {
-        this._restoreSlotFocus(origin.channel, origin.index, origin.svgIndex);
-      }
-    };
-    menu.addEventListener("keydown", onEscape);
-    host.appendChild(menu);
-    this._slotMenu = menu;
-    this._menuOrigin = { channel, index: editable ? index : null, svgIndex };
-    const escTarget = this._globalKeyTarget();
-    if (escTarget) {
-      this._menuEscape = onEscape;
-      this._menuEscapeTarget = escTarget;
-      escTarget.addEventListener("keydown", onEscape);
-    }
-    if (focusMenu) {
-      const btn = menu.querySelector("button");
-      if (btn && typeof btn.focus === "function") btn.focus();
-    }
-  }
-
-  _closeSlotMenu() {
-    const menu = this._slotMenu;
-    if (menu && menu.parentNode && menu.parentNode.removeChild) {
-      menu.parentNode.removeChild(menu);
-    }
-    this._slotMenu = null;
-    this._menuOrigin = null;
-    if (this._menuEscapeTarget && this._menuEscape) {
-      this._menuEscapeTarget.removeEventListener("keydown", this._menuEscape);
-    }
-    this._menuEscape = null;
-    this._menuEscapeTarget = null;
-  }
-
-  /** Where a while-the-menu-is-open key listener can live: keydown events
-   * are composed, so they bubble out of the shadow root to the document. */
-  _globalKeyTarget() {
-    if (typeof document !== "undefined" && document.addEventListener) {
-      return document;
-    }
-    if (typeof window !== "undefined" && window.addEventListener) {
-      return window;
-    }
-    return null;
-  }
-
-  /** Put keyboard focus back near a slot action after the DOM it happened
-   * in was rebuilt (or its menu closed): the same slot re-located by its
-   * channel and index in the fresh chart, else that channel's lane, else
-   * the chart svg itself — never document.body.
-   */
-  _restoreSlotFocus(channel, index, svgIndex) {
-    const svgs = this._chartSvgs(this.shadowRoot);
-    const svg = svgs[svgIndex] || svgs[svgs.length - 1];
-    if (!svg) return;
-    const focus = (el) =>
-      !!(el && typeof el.focus === "function" && (el.focus(), true));
-    if (index !== null && index !== undefined && index >= 0) {
-      for (const slot of svg.querySelectorAll(".slot")) {
-        const d = slot.dataset || {};
-        if (
-          d.channel === channel &&
-          Number(d.index) === Number(index) &&
-          !slot.classList.contains("locked")
-        ) {
-          if (focus(slot)) return;
-        }
-      }
-    }
-    for (const lane of svg.querySelectorAll(".lane")) {
-      if ((lane.dataset || {}).channel === channel) {
-        if (focus(lane)) return;
-      }
-    }
-    focus(svg);
   }
 
   /** Take focus off a setup row that no longer deserves it.
@@ -6593,8 +7094,8 @@ class HeatpumpOptimizerCard extends HTMLElement {
    * click on the diagram's empty space does not reliably move focus off an
    * SVG element -- which is how a ring survived a cancelled picker.
    */
-  _blurSetupRow() {
-    const root = this.shadowRoot;
+  blurRow() {
+    const root = this.host.shadowRoot;
     const active =
       (root && root.activeElement) ||
       (typeof document !== "undefined" ? document.activeElement : null);
@@ -6607,9 +7108,9 @@ class HeatpumpOptimizerCard extends HTMLElement {
   /** Focus the setup row the entity picker was opened from, once the picker
    * has closed and the render that removed it has finished. The row is
    * re-located by its data-key: the element that had focus was rebuilt. */
-  _restoreSetupFocus(key) {
-    if (!key || !this.shadowRoot) return;
-    for (const hit of this.shadowRoot.querySelectorAll(".setup-hit")) {
+  restoreFocus(key) {
+    if (!key || !this.host.shadowRoot) return;
+    for (const hit of this.host.shadowRoot.querySelectorAll(".setup-hit")) {
       if ((hit.dataset || {}).key === key) {
         if (typeof hit.focus === "function") hit.focus();
         return;
@@ -6617,336 +7118,1309 @@ class HeatpumpOptimizerCard extends HTMLElement {
     }
   }
 
-  /** What the current arrangement would cost against the published plan.
-   *
-   * Both sides are priced over the same horizon at the same prices, so the
-   * difference isolates the effect of moving the slots. It is an estimate:
-   * the arrangement fixes when the pump runs, not how hard, and the optimizer
-   * still chooses the power within each slot.
-   */
-  _costDelta() {
-    let planned = 0;
-    let edited = 0;
-    const runs = this._draftRuns();
-    for (const spec of this._laneSpecs()) {
-      const forecast = this._forecastOf(spec.channel);
-      if (!forecast.length) continue;
-      const power = SlotModel.typicalPower(forecast, spec.field);
-      const base = SlotModel.runsFrom(
-        forecast, spec.field, 0.05, PLAN_STEP_MS
-      );
-      planned += SlotModel.cost(base, forecast, power, PLAN_STEP_MS);
-      edited += SlotModel.cost(
-        runs[spec.channel] || [], forecast, power, PLAN_STEP_MS
-      );
+  /** Wire the page's clickable slots and its picker. `layoutEditing()` says
+   * whether the layout editor is open, in which case a click on a box is the
+   * start of a drag, not a request to assign a sensor. */
+  attach(root, { layoutEditing }) {
+    const openPicker = (key, viaKeyboard) => {
+      // While the layout editor is open a click on a box is the start of a
+      // drag, not a request to assign a sensor. Opening the picker over the
+      // diagram being edited would put a dialog on top of the drag.
+      if (layoutEditing()) return;
+      // A fresh visit: no filter, no half-made choice, no armed clear left
+      // over from the row before this one.
+      this.closePicker();
+      this.pickerKey = key;
+      // Opened from the keyboard, focus must land in the picker: the hit
+      // target that had it is rebuilt by the render below, so without this
+      // the keyboard user is dropped back at the top of the dialog.
+      this.pickerFocus = !!viaKeyboard;
+      // ...and remembered for the way back out. Handing focus to a row a
+      // MOUSE user is no longer looking at is what left a focus ring stuck
+      // on the sensor field after Cancel (v5.1.4).
+      this.pickerViaKeyboard = !!viaKeyboard;
+      this.host.render();
+    };
+    // Any pointer gesture that is not on a row takes focus off whichever row
+    // has it. Without this a ring can outlive the gesture that caused it --
+    // the reported "thin blue line beside the sensor field" after cancelling
+    // the picker and clicking away.
+    root.addEventListener("pointerdown", (ev) => {
+      const t = ev && ev.target;
+      if (t && t.classList && t.classList.contains("setup-hit")) return;
+      this.blurRow();
+    });
+    for (const hit of root.querySelectorAll(".setup-hit")) {
+      hit.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        openPicker(ev.currentTarget.dataset.key, false);
+      });
+      // The hits are focusable buttons (role="button"), so Enter and Space
+      // must do what a click does.
+      hit.addEventListener("keydown", (ev) => {
+        if (ev.key !== "Enter" && ev.key !== " ") return;
+        if (ev.preventDefault) ev.preventDefault();
+        stop(ev);
+        openPicker(ev.currentTarget.dataset.key, true);
+      });
     }
-    return { planned, edited, delta: edited - planned };
+    const picker = root.querySelector(".setup-picker");
+    if (!picker) return;
+    // Every control stops propagation: the dialog closes on a click that
+    // lands on its backdrop, and a click inside the picker is not that.
+    picker.addEventListener("click", (ev) => ev.stopPropagation());
+    // Escape backs out of the picker without assigning, from any of its
+    // controls — the keyboard twin of the Cancel button. Closing re-renders,
+    // which destroys whichever picker control held focus, so focus is
+    // walked back to the setup row the picker was opened from.
+    picker.addEventListener("keydown", (ev) => {
+      if (ev.key !== "Escape") return;
+      stop(ev);
+      const key = this.pickerKey;
+      this.closePicker();
+      this.host.render();
+      this.restoreFocus(key);
+    });
+    const select = picker.querySelector(".sp-select");
+    if (select && this.pickerFocus) {
+      this.pickerFocus = false;
+      if (typeof select.focus === "function") select.focus();
+    }
+    // Typing narrows the list in place. A full `_render()` would rebuild the
+    // input and take the caret with it, so only the options and the footnote
+    // are replaced; the select keeps whatever the user had highlighted when
+    // that entity is still on the list.
+    const filterBox = picker.querySelector(".sp-filter");
+    if (filterBox) {
+      filterBox.addEventListener("input", (ev) => {
+        const target = ev.currentTarget || ev.target;
+        this.pickerFilter = (target && target.value) || "";
+        const slot = this.pickerSlot;
+        if (!slot) return;
+        const model = this.pickerModel(slot);
+        const list = picker.querySelector(".sp-select");
+        if (list) list.innerHTML = model.options;
+        const foot = picker.querySelector(".sp-note");
+        if (foot) foot.textContent = model.note;
+      });
+    }
+    // The chosen entity is remembered on the card, not only in the DOM: the
+    // list is rebuilt on every keystroke, and a choice that lived only in
+    // the `<select>` would be forgotten by the next one.
+    if (select) {
+      select.addEventListener("change", (ev) => {
+        const target = ev.currentTarget || ev.target;
+        this.pickerChoice = (target && target.value) || "";
+        // Choosing again disarms a clear that was armed for a different
+        // answer than the one now selected.
+        if (this.pendingClear) this.disarmClear(picker);
+      });
+    }
+    const cancel = picker.querySelector(".sp-cancel");
+    if (cancel) {
+      cancel.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        const key = this.pickerKey;
+        const viaKeyboard = this.pickerViaKeyboard;
+        this.closePicker();
+        this.host.render();
+        // A keyboard user must land back on the row they came from, or they
+        // are dropped at the top of the dialog. A mouse user must NOT: the
+        // row would light up with a focus ring around a field they have
+        // just backed out of, and clicking elsewhere does not always take
+        // it off an SVG element again.
+        if (viaKeyboard) this.restoreFocus(key);
+        else this.blurRow();
+      });
+    }
+    const save = picker.querySelector(".sp-save");
+    if (save) {
+      const assign = async (ev) => {
+        ev.stopPropagation();
+        const select = picker.querySelector(".sp-select");
+        const key = this.pickerKey;
+        const slot = this.pickerSlot;
+        // What Assign will write is the choice the card remembered, not
+        // whatever the `<select>` reports. That element is rebuilt on every
+        // keystroke of the filter, and reading an answer back out of a
+        // control that has just been replaced is the same class of mistake
+        // as the one this whole item is about: a slot with a perfectly good
+        // sensor in it must never be emptied by the UI's own bookkeeping.
+        // `null` means "the user did not choose anything this visit", which
+        // is a request to keep what the slot already has.
+        const chose = this.pickerChoice;
+        const picked = chose === null || chose === undefined ? null : chose;
+        const fromDom =
+          select && typeof select.value === "string" && select.value
+            ? select.value
+            : null;
+        // An empty `<select>` that the user never touched is the control's
+        // own default, not a decision -- and acting on it is precisely the
+        // reported bug -- so it degrades to what the slot already holds.
+        // Choosing "(not configured)" deliberately still clears, through
+        // the confirmation below.
+        const entityId =
+          picked !== null ? picked
+            : fromDom !== null ? fromDom
+              : (slot && slot.entity) || "";
+        const note = this.host.shadowRoot.querySelector(".setup-result");
+        // Assigning nothing to a slot that HAS something is a deletion: it
+        // writes the config entry and reloads the integration, and the user
+        // usually got here believing they were fixing a slot rather than
+        // emptying one. Same pattern as the what-if save -- the button
+        // itself becomes the confirmation, since a nested browser prompt
+        // inside this modal is easy to miss behind the backdrop.
+        if (!entityId && slot && slot.entity && !this.pendingClear) {
+          this.pendingClear = true;
+          save.textContent = L("setup.confirm_clear");
+          save.classList.add("confirm");
+          this.note = L("setup.confirm_clear_hint", {
+            entity: slot.entity,
+            label: slot.label,
+          });
+          if (note) note.textContent = this.note;
+          const foot = picker.querySelector(".sp-note");
+          if (foot) foot.textContent = this.note;
+          // Let the decision lapse rather than sit armed: a stray second
+          // click minutes later must not empty a slot.
+          clearTimeout(this.clearTimer);
+          this.clearTimer = setTimeout(() => this.disarmClear(picker), 8000);
+          return;
+        }
+        this.cancelPendingClear();
+        try {
+          await this.host.hass.callService(
+            "heatpump_optimizer",
+            "assign_entity",
+            { key, entity_id: entityId }
+          );
+          this.closePicker();
+          // The write reloads the integration, so the topology the card is
+          // drawn from is replaced a moment later. Say what happened rather
+          // than leaving a diagram that has not caught up yet looking wrong.
+          this.note = entityId
+            ? L("setup.assigned_reloading", { entity: entityId })
+            : L("setup.cleared_reloading");
+        } catch (err) {
+          this.note = L("errors.could_not_assign", {
+            err: (err && err.message) || err,
+          });
+        }
+        this.host.render();
+        if (note) note.textContent = this.note || "";
+        // Success closed the picker (and the render destroyed the control
+        // that had focus): return focus to the row that was assigned. A
+        // failure keeps the picker open, and focus with it.
+        if (this.pickerKey === null) this.restoreFocus(key);
+      };
+      save.addEventListener("click", assign);
+      // Enter on the select assigns the chosen entity — the picker's one
+      // "submit" action, without a Tab trip to the button.
+      if (select) {
+        select.addEventListener("keydown", (ev) => {
+          if (ev.key !== "Enter") return;
+          if (ev.preventDefault) ev.preventDefault();
+          assign(ev);
+        });
+      }
+    }
+  }
+}
+
+// ---- LayoutEditor ---------------------------------------------------------
+// The layout editor over the setup diagram (v3.16.0, issue #40): the working
+// drawing and the baseline Undo returns to, the match against the catalog
+// the coordinator publishes (only a key is ever saved, so a drawing cannot
+// smuggle in physics the model does not run), the box and pipe gestures,
+// the in-place redraw a drag needs, and `apply_topology`. Owns `edit` --
+// null means "not editing", so an untouched setup page behaves exactly as
+// it did before the editor existed -- and `boxes`, where the last drawing
+// put each box. Uses `host.setup` (the diagram, the picker, the note),
+// `host.plan`, `host.hass`, `host.shadowRoot` and `host.render()`.
+// PR 7 of #136.
+class LayoutEditor {
+  constructor(host) {
+    this.host = host;
+    this.edit = null;
+    // Where the last drawing put each box, in viewBox units, so a drop can be
+    // tested against real geometry instead of guessing from the event target.
+    this.boxes = [];
+    this.onDown = this.onDown.bind(this);
+    this.onMove = this.onMove.bind(this);
+    this.onUp = this.onUp.bind(this);
+    this.onClick = this.onClick.bind(this);
   }
 
-  /** The currency to price the delta in.
-   *
-   * The plan carries prices but not a currency, so take Home Assistant's own
-   * configured currency rather than assuming the author's. `currency:` in the
-   * card config still wins, for installs where the two disagree.
-   */
-  _currency() {
-    const hass = this._hass || {};
-    return (
-      this._config.currency ||
-      // v4.1.0+: the integration publishes the currency its prices are in on
-      // the plan sensors. That beats Home Assistant's global currency, which
-      // describes the install, not the price feed.
-      this._planAttrRaw("currency", null) ||
-      (hass.config && hass.config.currency) ||
-      "SEK"
-    );
+  /** True while the layout editor is open. */
+  editing() {
+    return !!(this.edit && this.edit.active);
   }
 
-  _deltaHtml() {
-    const { planned, edited, delta } = this._costDelta();
-    if (!Number.isFinite(delta) || (!planned && !edited)) {
-      return `<span class="wi-hint">${L("stats.no_plan_to_compare")}</span>`;
+  /** True when there is an edit worth writing: a change, and a layout to
+   * name it. Either alone is not something to offer to save. */
+  saveable() {
+    const ed = this.edit;
+    return !!(ed && ed.active && ed.match && ed.dirty);
+  }
+
+  /** True when there is something to take back: a change made since the
+   * editor opened. An untouched drawing already IS the layout in use, so
+   * Undo would do nothing and must not pretend otherwise. */
+  undoable() {
+    const ed = this.edit;
+    return !!(ed && ed.active && ed.dirty && ed.baseline);
+  }
+
+  /** A position map copied down to its coordinate pairs. */
+  copyPositions(positions) {
+    const out = {};
+    for (const key of Object.keys(positions || {})) {
+      const at = positions[key];
+      out[key] = Array.isArray(at) ? at.slice() : at;
     }
-    const cur = this._currency();
-    const cls = delta < -0.005 ? "cheaper" : delta > 0.005 ? "dearer" : "";
-    const sign = delta > 0 ? "+" : "";
-    const verdict = L(
-      cls === "cheaper"
-        ? "stats.cheaper"
-        : cls === "dearer"
-          ? "stats.dearer"
-          : "stats.the_same"
-    );
+    return out;
+  }
+
+  /** The editor's own controls: the toggle, Save, and the verdict line.
+   *
+   * Offered only when the coordinator publishes a catalog. Without one there
+   * is nothing to validate a drawing against, and an editor that could not
+   * tell a supported layout from an invented one is exactly the "diagram that
+   * lies about the physics" this feature exists to end.
+   */
+  barHtml(topo) {
+    // An editor already open keeps its toggle even if the catalog goes away
+    // under it (an integration downgrade mid-session); a bar that vanished
+    // would leave the editor open with no way out of it.
+    if (
+      (!Array.isArray(topo.catalog) || !topo.catalog.length) &&
+      !this.editing()
+    ) {
+      return "";
+    }
+    const ed = this.edit;
+    const active = this.editing();
+    const match = active && ed.match ? ed.match : null;
     return `
-      <span class="delta ${cls}">${sign}${delta.toFixed(2)}&nbsp;${esc(cur)}</span>
-      <span class="wi-hint">${L("stats.delta_detail", {
-        verdict,
-        planned: planned.toFixed(2),
-        edited: edited.toFixed(2),
-        currency: esc(cur),
-      })}</span>`;
-  }
-
-  _updateDelta() {
-    const root = this.shadowRoot;
-    const box = root && root.querySelector(".wi-delta");
-    if (box) box.innerHTML = this._deltaHtml();
-  }
-
-  /** Wheel over the chart: pinch to zoom, two fingers sideways to pan.
-   *
-   * A plain vertical wheel is deliberately left alone. The card sits in a
-   * dashboard the user scrolls, and a chart that swallowed the scroll wheel
-   * would trap the page the moment the pointer crossed it. Trackpad pinch
-   * arrives as a wheel with `ctrlKey` set, which is the gesture people already
-   * expect to zoom.
-   */
-  _onChartWheel(ev) {
-    if (!this._viewAdjustable()) return;
-    const zooming = ev.ctrlKey || ev.metaKey;
-    const sideways = Math.abs(ev.deltaX) > Math.abs(ev.deltaY);
-    const panning = !zooming && (ev.shiftKey || sideways);
-    if (!zooming && !panning) return;
-    if (ev.preventDefault) ev.preventDefault();
-    stop(ev);
-
-    if (zooming) {
-      const at = this._timeAtClientX(ev.currentTarget, ev.clientX);
-      this._zoomView(ev.deltaY > 0 ? VIEW_ZOOM_STEP : 1 / VIEW_ZOOM_STEP, at);
-      return;
-    }
-    const span = this._viewSpan();
-    const delta = sideways ? ev.deltaX : ev.deltaY;
-    this._panView((delta / 600) * span);
-  }
-
-  /** The span currently on screen, view or default. */
-  _viewSpan() {
-    if (this._view) return this._view.span;
-    const lim = this._viewLimits;
-    return lim ? lim.defaultEnd - lim.floor : 1;
-  }
-
-  /** The window currently on screen, as the zoom and pan maths sees it. */
-  _viewCurrent() {
-    const lim = this._viewLimits;
-    if (this._view) return this._view;
-    return { start: lim.floor, span: lim.defaultEnd - lim.floor };
-  }
-
-  /** Drag the chart background sideways to pan.
-   *
-   * Only the background: a pointerdown that landed on a lane belongs to the
-   * slot editor, and stealing it would make slots undraggable. The move and up
-   * handlers go on `window` rather than the svg because panning re-renders,
-   * which replaces the element the gesture started on -- listeners bound to it
-   * would stop firing halfway through the drag.
-   */
-  _onPanDown(ev) {
-    if (!this._viewAdjustable()) return;
-    if (((ev.target || {}).dataset || {}).channel) return;
-    const svg = ev.currentTarget;
-    const rect = svg && svg.getBoundingClientRect ? svg.getBoundingClientRect() : null;
-    if (!rect || !rect.width) return;
-    // `_geom` only exists while the lanes do (what_if enabled). Without it,
-    // fall back to the nominal plot width rather than the whole viewBox, or a
-    // drag would track noticeably slower than the pointer.
-    const plotW = this._geom
-      ? this._geom.plotW
-      : VIEW_W - MARGIN.left - MARGIN.right;
-    const pxPerViewUnit = rect.width / VIEW_W;
-    const plotPx = plotW * pxPerViewUnit;
-    if (!plotPx) return;
-
-    // Without this the drag selects the axis labels and, on some browsers,
-    // starts a native image drag of the svg.
-    if (ev.preventDefault) ev.preventDefault();
-    const pan = {
-      last: ev.clientX,
-      perPx: this._viewSpan() / plotPx,
-      moved: false,
-      move: null,
-      up: null,
-    };
-    pan.move = (moveEv) => {
-      const dx = moveEv.clientX - pan.last;
-      if (!dx) return;
-      pan.last = moveEv.clientX;
-      // A drag only counts as a pan once it has actually moved, so a plain
-      // click on the chart still opens the expanded view.
-      pan.moved = true;
-      // Drag left to move forward in time: the content follows the pointer.
-      this._panView(-dx * pan.perPx);
-    };
-    pan.up = () => {
-      if (pan.moved) this.suppressNextClick();
-      this._pan = null;
-      if (typeof window === "undefined") return;
-      window.removeEventListener("pointermove", pan.move);
-      window.removeEventListener("pointerup", pan.up);
-      window.removeEventListener("pointercancel", pan.up);
-    };
-    this._pan = pan;
-    if (typeof window !== "undefined") {
-      window.addEventListener("pointermove", pan.move);
-      window.addEventListener("pointerup", pan.up);
-      window.addEventListener("pointercancel", pan.up);
-    }
-  }
-
-  /** Zoom and reset buttons: the keyboard- and touch-reachable path.
-   *
-   * Wheel and drag cover a trackpad, but neither is available to someone on a
-   * phone or tabbing through the card, and a zoom that only exists as a gesture
-   * is a zoom half the users never find.
-   */
-  _viewControlsHtml() {
-    if (!this._viewAdjustable()) return "";
-    const zoomed = this._view !== null;
-    return `
-      <div class="viewctl">
-        <button type="button" class="vc-out" title="${esc(L("plan.zoom_out"))}"
-          aria-label="${esc(L("plan.zoom_out"))}">&minus;</button>
-        <button type="button" class="vc-in" title="${esc(L("plan.zoom_in"))}"
-          aria-label="${esc(L("plan.zoom_in"))}">+</button>
-        <button type="button" class="vc-reset" title="${esc(
-          L("plan.show_whole_plan")
-        )}"
-          aria-label="${esc(L("plan.show_whole_plan"))}"${zoomed ? "" : " disabled"}>&#8634;</button>
+      <div class="layout-bar">
+        <button type="button" class="layout-edit-toggle${active ? " on" : ""}"
+          aria-pressed="${active}">${
+            active ? esc(L("setup.done_editing")) : esc(L("setup.edit_layout"))
+          }</button>
+        ${
+          active
+            ? `<button type="button" class="layout-save"${
+                this.saveable() ? "" : ` disabled="disabled"`
+              }>${esc(L("setup.save_layout"))}</button>`
+            : ""
+        }
+        ${
+          active
+            ? `<button type="button" class="layout-undo"${
+                this.undoable() ? "" : ` disabled="disabled"`
+              } title="${esc(L("setup.undo_layout_aria"))}"
+              aria-label="${esc(L("setup.undo_layout_aria"))}">${
+                esc(L("setup.undo_layout"))
+              }</button>`
+            : ""
+        }
+        ${
+          active
+            ? `<span class="layout-verdict${match ? " match" : ""}"
+                 role="status">${esc((ed && ed.verdict) || "")}</span>`
+            : ""
+        }
       </div>`;
   }
 
-  _attachViewControls(root) {
-    this._chartSvgs(root).forEach((svg) => {
-      svg.addEventListener("wheel", this._onChartWheel, { passive: false });
-      svg.addEventListener("pointerdown", this._onPanDown);
-    });
-    const wire = (sel, fn) =>
-      root.querySelectorAll(sel).forEach((el) =>
-        el.addEventListener("click", (ev) => {
-          stop(ev);
-          fn();
+  /** Wire the editor's controls and the diagram's pointer gestures.
+   *
+   * The buttons take listeners directly because `_refreshLayout` never
+   * rebuilds them; only the canvas's contents are replaced mid-edit, and its
+   * listeners live on the wrapper, which survives.
+   */
+  attach(root) {
+    const toggle = root.querySelector(".layout-edit-toggle");
+    if (toggle) {
+      toggle.addEventListener("click", (ev) => {
+        stop(ev);
+        this.toggle();
+      });
+    }
+    const save = root.querySelector(".layout-save");
+    if (save) {
+      // Returns the promise so a caller (and the tests) can await the call.
+      save.addEventListener("click", (ev) => {
+        stop(ev);
+        return this.save();
+      });
+    }
+    const undo = root.querySelector(".layout-undo");
+    if (undo) {
+      // A plain <button>, so the browser already turns Enter and Space into
+      // this same click; nothing keyboard-specific is needed here.
+      undo.addEventListener("click", (ev) => {
+        stop(ev);
+        this.undo();
+      });
+    }
+    const canvas = root.querySelector(".setup-canvas");
+    if (!canvas) return;
+    canvas.addEventListener("pointerdown", this.onDown);
+    canvas.addEventListener("pointermove", this.onMove);
+    canvas.addEventListener("pointerup", this.onUp);
+    canvas.addEventListener("pointerleave", this.onUp);
+    canvas.addEventListener("click", this.onClick);
+  }
+
+  /** Open the editor on the published layout, or close it, discarding. */
+  toggle() {
+    if (this.editing()) {
+      // Cancel discards. Nothing was written, so keeping the working set on
+      // screen would show a system that does not exist.
+      this.edit = null;
+    } else {
+      const topo = this.host.plan.attrRaw("setup_topology", null) || {};
+      const positions =
+        topo.positions && typeof topo.positions === "object"
+          ? topo.positions
+          : {};
+      // One reading of the published layout, copied out twice: the working
+      // set the user draws on, and the baseline Undo goes back to. Both are
+      // deep copies down to the individual edge and position pairs, so no
+      // edit can reach through a shared array into the other copy.
+      const snapshot = () => ({
+        edges: (Array.isArray(topo.edges) ? topo.edges : []).map((e) => [
+          e[0],
+          e[1],
+        ]),
+        positions: this.copyPositions(positions),
+      });
+      const working = snapshot();
+      this.edit = {
+        active: true,
+        edges: working.edges,
+        positions: working.positions,
+        // The layout Undo restores: the one in force when the editor opened,
+        // taken now rather than re-read from `setup_topology` at undo time.
+        // The integration republishes the topology on its own schedule, so a
+        // late read could hand back a different layout than the one the user
+        // started from -- and "back to where I was" is the whole promise of
+        // the button. A snapshot cannot be swapped underneath them.
+        baseline: snapshot(),
+        drag: null,
+        match: null,
+        invalid: [],
+        verdict: "",
+        // Nothing has been drawn yet, so there is nothing to save. Without
+        // this, Save is lit the moment the editor opens and offers to write
+        // the layout the system already has.
+        dirty: false,
+      };
+      this.evaluate();
+    }
+    // Editing suppresses click-to-assign, so a picker left open would be
+    // unreachable behind the diagram.
+    this.host.setup.closePicker();
+    this.host.render();
+  }
+
+  /** Match the working edge set against the catalog, and say what it is.
+   *
+   * Sets `match` (the entry Save would store, or null), `invalid` (the drawn
+   * edges no near layout has, drawn as rejected pipes) and `verdict` (one
+   * line for the page). Matching is exact: a nearly-right graph is a graph
+   * the model would nearly honour.
+   */
+  evaluate() {
+    const ed = this.edit;
+    if (!ed) return;
+    const topo = this.host.plan.attrRaw("setup_topology", null) || {};
+    const catalog = Array.isArray(topo.catalog) ? topo.catalog : [];
+    const name = (e) => `${e[0]}>${e[1]}`;
+    const drawn = new Set(ed.edges.map(name));
+    const equals = (set) =>
+      set.size === drawn.size && [...drawn].every((k) => set.has(k));
+
+    let match = null;
+    let sameButUnusable = null;
+    let nearest = null;
+    let nearestSet = null;
+    let nearestDiff = null;
+    for (const entry of catalog) {
+      const set = new Set((entry.edges || []).map(name));
+      if (equals(set)) {
+        if (entry.valid) match = match || entry;
+        else sameButUnusable = sameButUnusable || entry;
+      }
+      let diff = 0;
+      for (const k of set) if (!drawn.has(k)) diff++;
+      for (const k of drawn) if (!set.has(k)) diff++;
+      // Ties go to the earlier catalog entry, which is the order the
+      // integration lists them in -- stable, so the same drawing always gets
+      // the same explanation.
+      if (nearestDiff === null || diff < nearestDiff) {
+        nearest = entry;
+        nearestSet = set;
+        nearestDiff = diff;
+      }
+    }
+
+    if (match) {
+      ed.match = match;
+      ed.invalid = [];
+      ed.verdict = L("setup.verdict_match", { label: match.label });
+      return;
+    }
+    ed.match = null;
+    if (sameButUnusable) {
+      // The drawing IS a known layout; what fails is the configuration, so
+      // the requirement is the only useful thing to say. No pipe is at
+      // fault, so none is marked. A catalog from before the field existed
+      // ships no requirement, and interpolating undefined here is exactly
+      // the "needs: undefined" bug from the user's #40 report — degrade to
+      // a sentence that at least says which side is at fault.
+      ed.invalid = [];
+      const req = sameButUnusable.requirement;
+      const label = sameButUnusable.label;
+      ed.verdict =
+        sameButUnusable.selectable === false
+          ? req
+            ? L("setup.verdict_req", { label, requirement: req })
+            : L("setup.verdict_not_modelled", { label })
+          : req
+            ? L("setup.verdict_needs", { label, requirement: req })
+            : L("setup.verdict_cannot_store", { label });
+      return;
+    }
+    if (!nearest) {
+      ed.invalid = [];
+      ed.verdict = L("setup.no_catalog");
+      return;
+    }
+    const extra = [...drawn].filter((k) => !nearestSet.has(k));
+    const missing = [...nearestSet].filter((k) => !drawn.has(k));
+    ed.invalid = extra;
+    const parts = [L("setup.verdict_no_match", { label: nearest.label })];
+    if (extra.length) {
+      parts.push(
+        L("setup.verdict_extra_edges", {
+          edges: extra.map(edgeLabel).join("; "),
         })
       );
-    wire(".vc-in", () => this._zoomView(1 / VIEW_ZOOM_STEP, null));
-    wire(".vc-out", () => this._zoomView(VIEW_ZOOM_STEP, null));
-    wire(".vc-reset", () => this._resetView());
+    }
+    if (missing.length) {
+      parts.push(
+        L("setup.verdict_missing_edges", {
+          edges: missing.map(edgeLabel).join("; "),
+        })
+      );
+    }
+    ed.verdict = parts.join(" ");
   }
 
-  /** Narrow the default window to the panned/zoomed view, and record its limits.
+  /** Redraw only what an edit changes.
    *
-   * Called on every build so the limits track incoming data: the plan's extent
-   * moves forward as new forecasts arrive, and a view clamped against the
-   * extent of ten minutes ago would slowly drift out of range.
-   *
-   * Returns the default window untouched while `_view` is null, so a card
-   * nobody has interacted with renders exactly as it did before this existed.
+   * A full `_render` per pointer move would rebuild the shadow root dozens of
+   * times a second and take the drag's own listeners with it -- the same
+   * reason the plan lanes refresh in place.
    */
-  _applyView(defaultStart, defaultEnd, dataEnd) {
-    const defaultSpan = Math.max(defaultEnd - defaultStart, 1);
-    // Zooming out stops at the plan, not at the configured plot width:
-    // `cfg.hours` goes up to a week, while the optimizer's horizon defaults to
-    // 24 h, and the difference is empty chart.
-    const maxSpan = Math.max(
-      Math.min(defaultSpan, Math.max(dataEnd - defaultStart, VIEW_MIN_SPAN_MS)),
-      VIEW_MIN_SPAN_MS
-    );
-    const minSpan = Math.min(VIEW_MIN_SPAN_MS, maxSpan);
-    // The right edge the window may not pass: the plan's end, and never beyond
-    // the configured plot width.
-    const rightBound = Math.max(
-      Math.min(dataEnd, defaultEnd),
-      defaultStart + minSpan
-    );
-    // `defaultEnd` is kept as well as `rightBound`: the two differ whenever the
-    // configured plot window is wider than the plan, and a zoom that mistook
-    // the plan's extent for what is currently on screen would compute its
-    // anchor against a window the user is not looking at.
-    this._viewLimits = {
-      floor: defaultStart,
-      defaultEnd,
-      rightBound,
-      minSpan,
-      maxSpan,
+  refresh() {
+    const root = this.host.shadowRoot;
+    if (!root) return;
+    const topo = this.host.plan.attrRaw("setup_topology", null);
+    const canvas = root.querySelector(".setup-canvas");
+    if (canvas && topo && Array.isArray(topo.slots)) {
+      const drawn = this.host.setup.svg(topo, { editing: this.editing(), edit: this.edit });
+      this.boxes = drawn.boxes;
+      canvas.innerHTML = drawn.html;
+    }
+    const ed = this.edit;
+    const verdict = root.querySelector(".layout-verdict");
+    if (verdict) {
+      verdict.textContent = (ed && ed.verdict) || "";
+      if (verdict.classList) {
+        verdict.classList.toggle("match", !!(ed && ed.match));
+      }
+    }
+    const save = root.querySelector(".layout-save");
+    if (save) save.disabled = !this.saveable();
+    const undo = root.querySelector(".layout-undo");
+    if (undo) undo.disabled = !this.undoable();
+  }
+
+  /** Pointer client coordinates as viewBox units on the setup diagram. */
+  point(ev) {
+    const root = this.host.shadowRoot;
+    const svg = root && root.querySelector(".setup-svg");
+    if (!svg || !svg.getBoundingClientRect || !ev) return null;
+    const rect = svg.getBoundingClientRect();
+    if (!rect || !rect.width) return null;
+    // The diagram keeps its aspect ratio (`width: 100%; height: auto`), so a
+    // single scale relates both axes; measuring y against the measured height
+    // would skew every drop test further down the page.
+    const scale = SETUP_W / rect.width;
+    return {
+      x: (ev.clientX - rect.left) * scale,
+      y: (ev.clientY - rect.top) * scale,
     };
-
-    if (!this._view) return { start: defaultStart, end: defaultEnd };
-
-    const span = clampNum(this._view.span, minSpan, maxSpan);
-    const maxStart = Math.max(defaultStart, rightBound - span);
-    const start = clampNum(this._view.start, defaultStart, maxStart);
-    this._view = { start, span };
-    return { start, end: start + span };
   }
 
-  /** Whether panning and zooming can do anything at all.
+  /** The box under a point, in viewBox units, or null. */
+  boxAt(x, y) {
+    const boxes = this.boxes || [];
+    for (let i = boxes.length - 1; i >= 0; i--) {
+      const b = boxes[i];
+      if (x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) return b;
+    }
+    return null;
+  }
+
+  onDown(ev) {
+    const ed = this.edit;
+    if (!ed || !ed.active) return;
+    const pt = this.point(ev);
+    if (!pt) return;
+    // A new gesture cancels any click still owed from the last one. The click
+    // after a drag that ended on a slot row is stopped by the row's own
+    // handler, so the flag would otherwise survive and eat the next real
+    // click -- the one asking for a pipe to be removed.
+    ed.suppressClick = false;
+    let data = (ev.target && ev.target.dataset) || {};
+    if (!data.port && this.host.shadowRoot.elementFromPoint) {
+      // Browser input routing can hit-test a pointerdown against a
+      // frame-old layout (observed with synthesized input; touch rides the
+      // same compositor path), so a down that claims the bare svg at a
+      // port's coordinates would silently become a box drag. Re-test
+      // against the live DOM before deciding what the gesture is.
+      const live = this.host.shadowRoot.elementFromPoint(ev.clientX, ev.clientY);
+      if (live && live.dataset && live.dataset.port) data = live.dataset;
+    }
+    if (data.port && data.place) {
+      // A connection in the making. It is only a proposal until it lands on
+      // another box, so nothing is added here.
+      ed.drag = { kind: "edge", from: data.place, x: pt.x, y: pt.y };
+    } else {
+      const box = this.boxAt(pt.x, pt.y);
+      if (!box) return;
+      ed.drag = {
+        kind: "box",
+        place: box.place,
+        dx: pt.x - box.x,
+        dy: pt.y - box.y,
+      };
+    }
+    stop(ev);
+    if (ev.preventDefault) ev.preventDefault();
+  }
+
+  onMove(ev) {
+    const ed = this.edit;
+    if (!ed || !ed.active || !ed.drag) return;
+    const pt = this.point(ev);
+    if (!pt) return;
+    ed.drag.moved = true;
+    if (ed.drag.kind === "box") {
+      // Cosmetic only: a position never changes an edge, and therefore never
+      // changes which layout the drawing matches.
+      ed.positions[ed.drag.place] = [
+        Math.round(pt.x - ed.drag.dx),
+        Math.round(pt.y - ed.drag.dy),
+      ];
+      ed.dirty = true;
+    } else {
+      ed.drag.x = pt.x;
+      ed.drag.y = pt.y;
+    }
+    this.refresh();
+  }
+
+  onUp(ev) {
+    const ed = this.edit;
+    if (!ed || !ed.active || !ed.drag) return;
+    const drag = ed.drag;
+    ed.drag = null;
+    if (drag.kind === "edge") {
+      const pt = this.point(ev) || { x: drag.x, y: drag.y };
+      const box = this.boxAt(pt.x, pt.y);
+      // A pipe from a box to itself is not a pipe; a release over nothing
+      // abandons the proposal, which is how a drag is cancelled.
+      if (box && box.place !== drag.from) {
+        this.addEdge(drag.from, box.place);
+      }
+    }
+    // The browser synthesises a click after pointerup, and on the diagram
+    // that click would land on whatever the drag ended over -- removing the
+    // pipe the user just drew.
+    if (drag.moved) ed.suppressClick = true;
+    this.evaluate();
+    this.refresh();
+  }
+
+  onClick(ev) {
+    const ed = this.edit;
+    if (!ed || !ed.active) return;
+    if (ed.suppressClick) {
+      ed.suppressClick = false;
+      stop(ev);
+      return;
+    }
+    const data = (ev.target && ev.target.dataset) || {};
+    if (!data.edge) return;
+    stop(ev);
+    this.removeEdge(data.edge);
+  }
+
+  addEdge(from, to) {
+    const ed = this.edit;
+    if (!ed) return;
+    if (ed.edges.some((e) => e[0] === from && e[1] === to)) return;
+    // The same pipe drawn backwards is the same pipe. Keeping both would
+    // match no catalog entry and read as a bug in the editor rather than a
+    // second connection.
+    ed.edges = ed.edges.filter((e) => !(e[0] === to && e[1] === from));
+    ed.edges.push([from, to]);
+    ed.dirty = true;
+  }
+
+  removeEdge(name) {
+    const ed = this.edit;
+    if (!ed) return;
+    const before = ed.edges.length;
+    ed.edges = ed.edges.filter((e) => `${e[0]}>${e[1]}` !== name);
+    if (ed.edges.length !== before) ed.dirty = true;
+    this.evaluate();
+    this.refresh();
+  }
+
+  /** Take the drawing back to the layout the editor opened on.
    *
-   * With a plan no longer than the minimum span there is nothing to pan across
-   * and nothing to zoom out to, and controls that cannot move are worse than
-   * no controls.
-   */
-  _viewAdjustable() {
-    const lim = this._viewLimits;
-    return !!lim && lim.rightBound - lim.floor > lim.minSpan * 1.05;
-  }
-
-  /** Zoom by `factor`, holding the time under `anchorT` still.
+   * The way out of a half-finished rearrangement that is not worth saving.
+   * Cancel already discards, but it also closes the editor, so starting
+   * over meant reopening it; this restores the same starting point and
+   * leaves the user where they are, still editing.
    *
-   * Anchoring matters: zooming around the window centre walks whatever the user
-   * is pointing at off the screen, which makes repeated zooming feel like it is
-   * fighting back.
+   * Restoring is a revert to the baseline, not a step backwards through a
+   * history: what was asked for is the layout in force, and one button that
+   * always lands there is worth more here than a stack that has to be
+   * unwound to reach it.
    */
-  _zoomView(factor, anchorT) {
-    const lim = this._viewLimits;
-    if (!lim) return;
-    const current = this._viewCurrent();
-    const span = clampNum(current.span * factor, lim.minSpan, lim.maxSpan);
-    const anchor =
-      anchorT === undefined || anchorT === null
-        ? current.start + current.span / 2
-        : clampNum(anchorT, current.start, current.start + current.span);
-    // Keep the anchor at the same fraction across the window.
-    const frac = (anchor - current.start) / (current.span || 1);
-    this._view = { start: anchor - frac * span, span };
-    this._renderView();
+  undo() {
+    const ed = this.edit;
+    if (!this.undoable()) return;
+    // Copied out of the baseline rather than handed over: a later drag
+    // writes into these, and the baseline has to survive to serve a second
+    // Undo.
+    ed.edges = ed.baseline.edges.map((e) => [e[0], e[1]]);
+    ed.positions = this.copyPositions(ed.baseline.positions);
+    // A gesture still in flight belongs to the drawing that just went away:
+    // its pointerup would land an edge nobody asked for, or drop a box at a
+    // position the restore had already taken back.
+    ed.drag = null;
+    ed.suppressClick = false;
+    ed.dirty = false;
+    this.evaluate();
+    // The in-place redraw, not `_render`: a full rebuild would replace the
+    // bar and take the focus off the Undo button the keyboard just pressed.
+    this.refresh();
   }
 
-  /** Slide the window by `deltaMs`, without changing its span. */
-  _panView(deltaMs) {
-    const lim = this._viewLimits;
-    if (!lim) return;
-    const current = this._viewCurrent();
-    this._view = { start: current.start + deltaMs, span: current.span };
-    this._renderView();
-  }
-
-  _resetView() {
-    if (!this._view) return;
-    this._view = null;
-    this._renderView();
-  }
-
-  /** Redraw after a view change, at most once per frame.
+  /** Store the matched layout key and the box positions.
    *
-   * A view change moves every series, not just the lanes, so unlike a slot drag
-   * there is nothing narrower to refresh. `_render` replaces the shadow root,
-   * which is why the pan gesture listens on the window rather than on the svg:
-   * the element under the pointer is gone by the next event.
+   * Only the key travels: the service re-derives the edges from it, so a
+   * drawing can never smuggle in physics the model does not implement. A
+   * rejection is reported on the page and leaves the editor open, because
+   * the drawing is the user's work and losing it is not a way to say no.
    */
-  _renderView() {
-    if (this._viewFrame) return;
-    const run = () => {
-      this._viewFrame = 0;
-      // Deliberately not clearing `_sig`: it is what stops the next data
-      // refresh from throwing away an in-progress slot edit, and a view change
-      // is not a reason to discard the draft the user is arranging.
-      this._render();
+  async save() {
+    const ed = this.edit;
+    if (!this.saveable()) return;
+    if (!this.host.hass || typeof this.host.hass.callService !== "function") return;
+    const note = this.host.shadowRoot.querySelector(".setup-result");
+    const label = ed.match.label;
+    try {
+      await this.host.hass.callService("heatpump_optimizer", "apply_topology", {
+        layout: ed.match.key,
+        positions: ed.positions,
+      });
+      // The write reloads the integration, so the topology the card draws
+      // from is replaced a moment later; say so rather than leaving a
+      // diagram that has not caught up looking wrong.
+      this.host.setup.note = L("setup.saved_reloading", { label });
+      this.edit = null;
+    } catch (err) {
+      this.host.setup.note = L("errors.could_not_save_layout", {
+        err: (err && err.message) || err,
+      });
+    }
+    this.host.render();
+    if (note) note.textContent = this.host.setup.note || "";
+  }
+}
+
+// ---- The card config ------------------------------------------------------
+// What `setConfig` accepts, validated the way Lovelace expects: a descriptive,
+// localized error for anything malformed, and every default filled in.
+function parseConfig(config) {
+  if (config === null || typeof config !== "object") {
+    throw new Error(L("errors.cfg_not_object"));
+  }
+  const cfg = { ...DEFAULTS, ...config };
+
+  if (typeof cfg.space_entity !== "string" || !cfg.space_entity.includes(".")) {
+    throw new Error(L("errors.cfg_space_entity"));
+  }
+  if (typeof cfg.dhw_entity !== "string" || !cfg.dhw_entity.includes(".")) {
+    throw new Error(L("errors.cfg_dhw_entity"));
+  }
+  if (typeof cfg.solar_entity !== "string" || !cfg.solar_entity.includes(".")) {
+    throw new Error(L("errors.cfg_solar_entity"));
+  }
+  if (typeof cfg.what_if !== "boolean") {
+    throw new Error(L("errors.cfg_what_if"));
+  }
+  if (typeof cfg.show_stats !== "boolean") {
+    throw new Error(L("errors.cfg_show_stats"));
+  }
+  const hours = Number(cfg.hours);
+  if (!Number.isFinite(hours) || hours <= 0 || hours > 168) {
+    throw new Error(L("errors.cfg_hours"));
+  }
+  cfg.hours = hours;
+  if (cfg.title !== undefined && typeof cfg.title !== "string") {
+    throw new Error(L("errors.cfg_title"));
+  }
+  if (cfg.series !== undefined) {
+    if (typeof cfg.series !== "object" || cfg.series === null) {
+      throw new Error(L("errors.cfg_series"));
+    }
+    for (const k of Object.keys(cfg.series)) {
+      if (!SERIES_DEFS.some((s) => s.key === k)) {
+        throw new Error(L("errors.cfg_series_unknown", { k }));
+      }
+      if (typeof cfg.series[k] !== "boolean") {
+        throw new Error(L("errors.cfg_series_visibility", { k }));
+      }
+    }
+  }
+  return cfg;
+}
+
+// ===========================================================================
+// The card element, and the contract its collaborators get.
+//
+// This class is being taken apart (docs/plan-card-decomposition.md): each
+// feature -- the plan source, the chart, the zoom window, the slot lanes,
+// the what-if panel, the setup page, the dialog -- leaves as a collaborator
+// that is handed THIS object and may use only what is listed here:
+//
+//   host.hass, host.config     the Lovelace inputs
+//   host.shadowRoot            the DOM it renders into
+//   host.plan                  PlanSource: the plan sensors, what they publish
+//   host.view                  ViewWindow: the pan/zoom window over the plan
+//   host.legend                Legend: the series chips and which are hidden
+//   host.dialog                ExpandedDialog: the enlarged view and its pages
+//   host.manual                ManualPlan: today's slot draft, its bounds and cost
+//   host.lanes                 LaneEditor: the lanes, the drag, the slot menu
+//   host.whatIf                WhatIfPanel: the schedule editor and simulator
+//   host.setup                 SetupPage: the diagram, the picker, the note
+//   host.layout                LayoutEditor: the drawing, its match, its gestures
+//   host.geom                  the chart's last geometry (null: no lanes)
+//   host.render()              rebuild, keeping the render signature
+//   host.renderForced()        rebuild and forget it (the next hass redraws)
+//   host.suppressNextClick()   the next card click is the tail of a gesture
+//
+// A collaborator never reaches into a sibling except through the ones
+// named in its own header comment, and the graph is acyclic: plan → view →
+// legend → dialog → manual → lanes → whatIf → setup → layout, each using
+// only earlier ones. What is left on the element is the Lovelace contract,
+// the render cycle and its composition, and the seams the test suite still
+// drives (PR 9 of #136 migrates the tests and deletes them).
+// ===========================================================================
+class HeatpumpOptimizerCard extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: "open" });
+    // The collaborators (docs/plan-card-decomposition.md), in dependency
+    // order. Each is handed this element and uses only the host contract.
+    this.plan = new PlanSource(this);
+    this.view = new ViewWindow(this);
+    this.legend = new Legend(this);
+    this.dialog = new ExpandedDialog(this);
+    this.manual = new ManualPlan(this);
+    this.lanes = new LaneEditor(this);
+    this.whatIf = new WhatIfPanel(this);
+    this.setup = new SetupPage(this);
+    this.layout = new LayoutEditor(this);
+    this._config = null;
+    this._hass = null;
+    this._sig = null;
+    // Whether the score breakdown panel is open (#2). Instance state, not
+    // DOM state, so it survives the shadow-root rebuild every refresh does.
+    this._scoreOpen = false;
+    // The last build's series, and the chart's hover geometry.
+    this._series = [];
+    this._plot = null;
+    this._resizeObserver = null;
+    this._suppressClick = false;
+    // The lane geometry the pan gesture and the slot lanes hit-test against,
+    // published by `_chartBlock` from what `renderChart` returns while the
+    // lanes are on; null otherwise. Last writer wins when two charts render
+    // (#138).
+    this._geom = null;
+    // The chart's last measured rectangle, a hover fallback.
+    this._svgRect = null;
+    this._onPointerMove = this._onPointerMove.bind(this);
+    this._onPointerLeave = this._onPointerLeave.bind(this);
+    this._onCardClick = this._onCardClick.bind(this);
+    this._onExpandClick = this._onExpandClick.bind(this);
+  }
+
+  // ---- Lovelace contract -------------------------------------------------
+
+  setConfig(config) {
+    const cfg = parseConfig(config);
+    this._config = cfg;
+    this.legend.hidden = this.legend.load(cfg);
+    this._sig = null; // force re-render on next hass
+    if (this._hass) this._maybeRender(true);
+  }
+
+  set hass(hass) {
+    this._hass = hass;
+    // The frontend's language rides on the hass object; keep the dictionary
+    // in step before anything renders. `_signature` includes the language,
+    // so a switch re-renders even when the data has not changed.
+    setLanguage(hass && hass.language);
+    this._maybeRender(false);
+  }
+
+  get hass() {
+    return this._hass;
+  }
+
+  /** The validated config, read-only: what `setConfig` accepted. */
+  get config() {
+    return this._config;
+  }
+
+  /** The chart's last geometry, for hit-testing; null while the lanes are
+   * off. Published by `_chartSvg`; PR 3 of #136 moves it onto the frame. */
+  get geom() {
+    return this._geom;
+  }
+
+  getCardSize() {
+    return 8;
+  }
+
+  static getStubConfig() {
+    return {
+      type: `custom:${CARD_TAG}`,
+      space_entity: DEFAULTS.space_entity,
+      dhw_entity: DEFAULTS.dhw_entity,
     };
-    this._viewFrame =
-      typeof requestAnimationFrame === "function"
-        ? requestAnimationFrame(run)
-        : setTimeout(run, 16);
   }
+
+  /** The visual editor, defined in this same file (no build step, no lazy
+   * chunk to fetch). Home Assistant awaits the return value, so returning
+   * the element directly is part of the contract. */
+  static getConfigElement() {
+    return document.createElement(EDITOR_TAG);
+  }
+
+  connectedCallback() {
+    if (typeof ResizeObserver !== "undefined" && !this._resizeObserver) {
+      this._resizeObserver = new ResizeObserver(() => {
+        // Width changes don't alter the viewBox model, but refreshing the
+        // cached bounding rect keeps hover geometry accurate after layout.
+        this._cacheRect();
+      });
+      try {
+        this._resizeObserver.observe(this);
+      } catch (e) {
+        /* ignore */
+      }
+    }
+  }
+
+  /** Everything attached OUTSIDE this card's own shadow root.
+   *
+   * `_render` replaces the shadow root wholesale, so anything inside it dies
+   * with the rebuild and needs no help. The slot menu's Escape handler does
+   * not: it is parked on the DOCUMENT, because a mouse-opened menu leaves
+   * focus on the chart and the menu element never sees the key. Two paths
+   * used to drop the menu without dropping the handler -- a plan refresh,
+   * which happens on the coordinator's schedule rather than the user's, and
+   * the card being removed from the dashboard, which leaked one listener per
+   * card visit for the lifetime of the page.
+   *
+   * One method, called from both, rather than two lists that agree today.
+   */
+  _teardown() {
+    this.lanes.teardown();
+  }
+
+  disconnectedCallback() {
+    // Nothing of this card may outlive it on the document.
+    this._teardown();
+    // A modal dialog left open would outlive the card in the top layer.
+    if (this.dialog.expanded) this.dialog.closeQuietly();
+    // A pending what-if solve, or an armed save confirmation, must not
+    // survive the card (see WhatIfPanel.disconnect).
+    this.whatIf.disconnect();
+    // Nor an armed "clear this slot" confirmation in the entity picker.
+    this.setup.cancelPendingClear();
+    if (this._resizeObserver) {
+      try {
+        this._resizeObserver.disconnect();
+      } catch (e) {
+        /* ignore */
+      }
+      this._resizeObserver = null;
+    }
+  }
+
+  // ---- persistence -------------------------------------------------------
+
+  // ---- data extraction ---------------------------------------------------
+
+  _signature() {
+    const cfg = this._config;
+    const spId = this.plan.resolveEntity("space");
+    const dhwId = this.plan.resolveEntity("dhw");
+    const solarId = this.plan.resolveEntity("solar");
+    const space = this.plan.stateOf(spId);
+    const dhw = this.plan.stateOf(dhwId);
+    const solar = this.plan.stateOf(solarId);
+    const spFc = this.plan.forecast(spId);
+    const dhwFc = this.plan.forecast(dhwId);
+    const solarFc = this.plan.forecast(solarId);
+    return [
+      spId,
+      dhwId,
+      solarId,
+      cfg.hours,
+      cfg.title,
+      space ? space.last_updated : "-",
+      space ? space.state : "-",
+      dhw ? dhw.last_updated : "-",
+      dhw ? dhw.state : "-",
+      solar ? solar.last_updated : "-",
+      spFc ? spFc.length : -1,
+      dhwFc ? dhwFc.length : -1,
+      solarFc ? solarFc.length : -1,
+      this.legend.signature(),
+      // A language switch or a currency change redraws text without any
+      // plan data changing, so both belong in the signature.
+      ACTIVE_LANG,
+      this.plan.currency(),
+      // The headline reads its own sensors; leaving them out would freeze
+      // the row at whatever the first render saw.
+      headlineSignature(this.plan, this._config),
+    ].join("|");
+  }
+
+  _maybeRender(force) {
+    if (!this._config || !this._hass) return;
+    const sig = this._signature();
+    if (!force && sig === this._sig) return;
+    // A newly published plan replaces the slot draft unless the user is part
+    // way through rearranging it (see ManualPlan.onPlanRefresh).
+    this.manual.onPlanRefresh();
+    this._sig = sig;
+    this._render();
+  }
+
+  // ---- render idioms -----------------------------------------------------
+
+  /** Rebuild the shadow root, keeping the render signature.
+   *
+   * The unforced form. A redraw the user caused -- a zoom, a pan, a slot
+   * edit -- leaves `_sig` alone, so the next `hass` still compares against
+   * the last plan it saw and `_maybeRender` does not throw away a clean
+   * draft for a refresh that brought no new plan. */
+  render() {
+    this._render();
+  }
+
+  /** Rebuild and forget the signature, so the next `hass` re-renders too:
+   * something outside the plan data changed what the card shows (a
+   * toggled series, an edited draft, the dialog opening or closing). */
+  renderForced() {
+    this._sig = null;
+    this._render();
+  }
+
+  /** The next click on the card is the tail of a gesture -- a pan or a slot
+   * drag ends with a click on the chart -- and must not open the expanded
+   * view. One-shot; `_onCardClick` consumes it. */
+  suppressNextClick() {
+    this._suppressClick = true;
+  }
+
+  // ---- rendering ---------------------------------------------------------
+
+  /** The card's display title: the configured one, or the localized default. */
+  _title() {
+    const t = this._config && this._config.title;
+    return t !== undefined ? t : L("header.default_title");
+  }
+
+  // ---- headline stats ----------------------------------------------------
+
+  _render() {
+    // Before anything else: the rebuild below destroys the slot menu's
+    // element but not the Escape listener it parked on the document.
+    this._teardown();
+    // The dialog body scrolls now, and `_render` replaces the whole shadow root
+    // on every plan refresh -- which happens on the coordinator's schedule, not
+    // the user's. Without carrying the offset across the rebuild the panel would
+    // jump back to the top by itself every few minutes, mid-edit.
+    this.dialog.saveScroll(this.shadowRoot);
+    const built = this._buildSeries();
+    this._series = built.series;
+
+    const anyData = this._series.some((s) => s.hasData);
+
+    const style = cardStyleBlock();
+    const legend = this.legend.html(this._series);
+
+    // The setup page is drawn from configuration alone: `sensor.py` publishes
+    // `setup_topology` with no plan at all, saying so in as many words --
+    // "the card's setup page should not need a solve to draw". Gating the
+    // only way in on plan data made the one page that can say WHICH sensor is
+    // missing reachable only after a solve the missing sensor was preventing.
+    const topo = this.plan.attrRaw("setup_topology", null);
+    const anySetup = !!(topo && Array.isArray(topo.slots) && topo.slots.length);
+    // An install with genuinely nothing published stays as it was: no plan
+    // and no topology is nothing to expand to, and the diagnostics below are
+    // the whole answer.
+    const expandable = anyData || anySetup;
+
+    let body;
+    if (!anyData) {
+      body = this._noPlanHtml();
+      this._plot = null;
+    } else {
+      body = this._chartBlock(built, false);
+    }
+
+    // Which page an expanded dialog opens on. Decided here, where `anyData`
+    // is known, and only while the dialog is actually open, so a tab the user
+    // chose themselves is never overridden by a later refresh.
+    this.dialog.pickDefaultPage(anyData);
+
+    // The dialog is a sibling of ha-card, not a child, so a click inside it
+    // never bubbles into the card's own open-on-click handler. Rendered
+    // whenever the card believes it is expanded: a flag that draws nothing is
+    // the state the Setup tab was unreachable behind.
+    let dialog = "";
+    if (this.dialog.expanded) {
+      const page = this.dialog.activePage();
+      // The hidden page is genuinely unrendered, not `display: none`:
+      // `getBoundingClientRect()` returns zeroes for a hidden element, so
+      // `timeAtClientX` would compute garbage drag times rather than fail.
+      const body =
+        page === "setup"
+          ? this._setupPageHtml()
+          : anyData
+            ? `${this._chartBlock(built, true)}${this.whatIf.html()}`
+            : this._noPlanHtml();
+      dialog = this.dialog.html({
+        title: this._title(),
+        legend: page === "plan" && anyData ? this.legend.html(this._series) : "",
+        body,
+      });
+    }
+
+    // The rebuild below replaces the <dialog> element wholesale (see
+    // ExpandedDialog.resetFontMemo).
+    this.dialog.resetFontMemo();
+
+    this.shadowRoot.innerHTML = `
+      <ha-card class="${expandable ? "clickable" : ""}">
+        ${style}
+        <div class="header">
+          <span class="title">${esc(this._title())}</span>
+          ${
+            expandable
+              ? `<button type="button" class="expand" title="${esc(
+                  L("header.enlarge")
+                )}"
+                   aria-label="${esc(L("header.enlarge_chart"))}">${EXPAND_ICON}</button>`
+              : ""
+          }
+        </div>
+        ${headlineHtml(this.plan, this._config, this._scoreOpen)}
+        ${legend}
+        ${body}
+      </ha-card>
+      ${dialog}
+    `;
+
+    this._attachChartEvents(this.shadowRoot);
+
+    const expandBtn = this.shadowRoot.querySelector(".expand");
+    if (expandBtn) expandBtn.addEventListener("click", this._onExpandClick);
+
+    // The score stat's click toggles the breakdown panel (#2). stopPropagation
+    // matters: the card's own open-on-click handler sits on ha-card and would
+    // otherwise swallow the toggle into "open the expanded dialog", which is
+    // exactly the wrong response to a click that asks "what does 5/100 mean".
+    const scoreStat = this.shadowRoot.querySelector('[data-stat="score"]');
+    if (scoreStat) {
+      scoreStat.setAttribute("role", "button");
+      scoreStat.setAttribute("tabindex", "0");
+      scoreStat.setAttribute(
+        "aria-label", `${L("headline.score")} — ${L("headline.score_click_hint")}`
+      );
+      scoreStat.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        this._scoreOpen = !this._scoreOpen;
+        this._render();
+      });
+      scoreStat.addEventListener("keydown", (ev) => {
+        if (ev.key !== "Enter" && ev.key !== " ") return;
+        ev.preventDefault();
+        ev.stopPropagation();
+        this._scoreOpen = !this._scoreOpen;
+        this._render();
+      });
+    }
+
+    const card = this.shadowRoot.querySelector("ha-card");
+    if (card && expandable) card.addEventListener("click", this._onCardClick);
+
+    this.dialog.sync(this.shadowRoot, {
+      // The page inside is the host's: the setup page's own wiring, and its
+      // status line re-applied after the rebuild.
+      attachBody: (dlg) => {
+        this.layout.attach(dlg);
+        this.setup.attach(dlg, { layoutEditing: () => this.layout.editing() });
+        this.setup.applyNote(dlg);
+      },
+      // Leaving the setup page abandons a half-made assignment rather than
+      // keeping a picker open behind the chart.
+      onPageChange: () => {
+        this.setup.closePicker();
+        this._render();
+      },
+    });
+    this._cacheRect();
+  }
+  /** Chart markup plus the tooltip that belongs to it.
+   *
+   * The tooltip lives inside the wrapper rather than beside it so that the two
+   * copies of the chart, inline and expanded, each own theirs. Positioning it
+   * against the wrapper also removes a dependency on `ha-card` happening to be
+   * a positioned ancestor.
+   */
+  _chartBlock(built, expanded) {
+    const { svg: chart, plot, geom } = renderChart(built, {
+      expanded,
+      measuredWidth: () => this._measuredCardWidth(),
+      priceUnit: this.plan.priceUnit(),
+      estimatedFrom: this.plan.estimatedPricesFrom(),
+      editing: this.manual.enabled(),
+      title: this._title(),
+      now: Date.now(),
+      // The lanes hit-test against the geometry they are drawn into, so
+      // it is published before the overlay draws, not after the chart
+      // returns. (`geom.font` is the expanded copy's while the dialog is
+      // open, since the expanded chart renders last -- #138.)
+      overlay: (g) => {
+        this._geom = g;
+        return this.lanes.laneGroupInner(g);
+      },
+      // Document-unique per chart: with the dialog open two charts render
+      // into one shadow root.
+      nextPatternId: () => `hpoShared${++HeatpumpOptimizerCard._sharedPatternSeq}`,
+    });
+    this._plot = plot;
+    this._geom = geom;
+    // The controls overlay the chart rather than sitting under it: the expanded
+    // dialog budgets its height from a fixed guess at how tall the chrome is
+    // (item 26), and a new row of buttons would eat straight into that budget.
+    const pannable = this.view.adjustable() ? " pannable" : "";
+    return `<div class="chartwrap${expanded ? " big" : ""}${pannable}">${chart}
+      ${this.view.controlsHtml()}
+      <div class="tooltip" hidden></div></div>`;
+  }
+
+  /** Why there is no chart, and which sensor to look at. Shared by the card
+   * and the dialog's plan page: before the first solve both have to say the
+   * same thing, and a dialog that drew an empty box instead would be the
+   * worse half of the pair. */
+  _noPlanHtml() {
+    return `<div class="empty">${L("errors.no_plan_data")}<br>
+      ${this.plan.diagnose("space")}<br>
+      ${this.plan.diagnose("dhw")}</div>`;
+  }
+
+  /** Item 33: the configured system as a picture, with live values in place.
+   *
+   * Drawn from the `setup_topology` attribute the plan sensors publish --
+   * the same description the options flow's overview renders, emitted by the
+   * coordinator so the two can never disagree. Live readings come straight
+   * from `hass.states`, which is fresher than anything routed through the
+   * coordinator and free.
+   *
+   * Static inline SVG, hand-written like the rest of the card: no build
+   * step, no dependencies. Composed here from `setup` (the diagram, the
+   * picker) and `layout` (the editor's bar and its working drawing).
+   */
+  _setupPageHtml() {
+    const topo = this.plan.attrRaw("setup_topology", null);
+    if (!topo || !Array.isArray(topo.slots)) {
+      return `<div class="setup-page"><div class="empty">
+        ${L("setup.not_published")}</div></div>`;
+    }
+    const editing = this.layout.editing();
+    const drawn = this.setup.svg(topo, { editing, edit: this.layout.edit });
+    this.layout.boxes = drawn.boxes;
+    // The svg lives in a wrapper of its own so an edit can redraw the diagram
+    // without rebuilding the page around it: the pointer handlers are attached
+    // to the wrapper, and a drag that replaced its own listeners mid-gesture
+    // would drop the pointer.
+    return `<div class="setup-page${editing ? " editing" : ""}">
+      ${this.layout.barHtml(topo)}
+      <div class="setup-canvas">${drawn.html}</div>
+      ${this.setup.pickerHtml(topo)}
+      <div class="setup-hint">${
+        editing ? L("setup.editing_hint") : L("setup.assign_hint")
+      }</div>
+      <div class="setup-result" role="status"></div></div>`;
+  }
+
+  // ---- The layout editor (v3.16.0, issue #40) ----------------------------
+  //
+  // Free-form graphs are never stored. The editor is a drawing surface whose
+  // only output is a catalog KEY: after every change the working edge set is
+  // matched against the catalog the coordinator published for THIS
+  // configuration, and Save is enabled only when it equals an entry the
+  // configuration could actually run. Anything else is drawn as a rejection
+  // with the reason on the page, which is the whole point -- a diagram that
+  // cannot be wrong about the physics.
+
+
+  /** Wire hover and legend handling for every chart in a root. */
+  _attachChartEvents(root) {
+    this.legend.attach(root);
+
+    chartSvgs(root).forEach((svg) => {
+      svg.addEventListener("mousemove", this._onPointerMove);
+      svg.addEventListener("mouseleave", this._onPointerLeave);
+      svg.addEventListener("touchmove", this._onPointerMove, { passive: true });
+      svg.addEventListener("touchend", this._onPointerLeave);
+    });
+
+    this.view.attach(root);
+    this.whatIf.attach(root);
+    this.manual.attach(root);
+    this.lanes.attach(root);
+  }
+
 
   /** The card's current rendered width in px, or 0 before layout.
    *
@@ -6961,795 +8435,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     return rect && rect.width ? rect.width : 0;
   }
 
-  /** Turn a screen x into a time on the chart's axis.
-   *
-   * The chart is drawn in a fixed viewBox and stretched to fit, so screen
-   * pixels and viewBox units are not interchangeable; the measured width is
-   * the only thing that relates them.
-   */
-  _timeAtClientX(svg, clientX) {
-    const geom = this._geom;
-    if (!geom || !svg) return null;
-    const rect = svg.getBoundingClientRect ? svg.getBoundingClientRect() : null;
-    if (!rect || !rect.width) return null;
-    const vx = ((clientX - rect.left) / rect.width) * VIEW_W;
-    return geom.windowStart + ((vx - geom.plotL) / geom.plotW) *
-      (geom.windowEnd - geom.windowStart);
-  }
-
-  /** Drag to move a slot, drag its edge to resize, right-click to add or
-   * remove. Wired by delegation on the svg, because the chart markup is
-   * rebuilt wholesale on every refresh and per-rect listeners would not
-   * survive it.
-   */
-  _attachSlotEditing(root) {
-    if (!this._editingEnabled()) return;
-    const svgs = this._chartSvgs(root);
-    if (!svgs.length) return;
-
-    const onDown = (svg, ev) => {
-      const target = ev.target || {};
-      const data = target.dataset || {};
-      if (!data.channel) return;
-      const at = this._timeAtClientX(svg, ev.clientX);
-      if (at === null) return;
-      const channel = data.channel;
-      const runs = this._draftRuns()[channel] || [];
-      let index = data.index === undefined ? -1 : Number(data.index);
-      if (index < 0) index = SlotModel.indexAt(runs, at);
-      // No slot under the press: not draggable, but a press RELEASED here
-      // without movement must still open the add-slot menu — on touch it
-      // is the only way to reach it. menuOnly presses ignore movement.
-      let menuOnly = index < 0;
-      if (!menuOnly) {
-        // A slot outside the editable range -- already run, or beyond the
-        // point where the override expires -- must not be draggable.
-        const [lo, hi] = this._editBounds();
-        const run = runs[index];
-        if (run && (run.end <= lo || run.start >= hi)) menuOnly = true;
-      }
-
-      this._drag = {
-        channel,
-        index,
-        menuOnly,
-        edge: data.edge || null,
-        from: at,
-        svgIndex: svgs.indexOf(svg),
-        lastClientX: ev.clientX,
-        lastClientY: ev.clientY,
-        // Edits apply to the arrangement as it was when the drag began, so a
-        // slow drag does not compound its own deltas.
-        original: runs.map((r) => ({ ...r })),
-      };
-      // The svg-bound listeners below serve the common case, but an auto-pan
-      // re-render replaces the svg mid-gesture and its listeners with it, so
-      // the gesture's continuation also lives on `window` for the duration —
-      // the same survival trick the chart's pan drag uses. Both firing for
-      // one event is harmless: the second apply lands on identical state.
-      const winMove = (e) => {
-        const d = this._drag;
-        if (!d) return;
-        d.lastClientX = e.clientX;
-        const cur = svgAt(d.svgIndex);
-        if (cur) applyDragAt(cur, e.clientX);
-        maybeAutoPan(d.svgIndex, e.clientX);
-      };
-      const winUp = () => {
-        window.removeEventListener("pointermove", winMove);
-        window.removeEventListener("pointerup", winUp);
-        window.removeEventListener("pointercancel", winUp);
-        stopAutoPan();
-        onUp();
-      };
-      window.addEventListener("pointermove", winMove);
-      window.addEventListener("pointerup", winUp);
-      window.addEventListener("pointercancel", winUp);
-      stop(ev);
-      if (ev.preventDefault) ev.preventDefault();
-    };
-
-    const svgAt = (index) => {
-      // Auto-pan re-renders, replacing the svg the gesture started on; the
-      // chart at the same position in the fresh shadow root is its heir.
-      const current = this._chartSvgs(this.shadowRoot || root);
-      return current[index] || current[current.length - 1] || null;
-    };
-
-    const applyDragAt = (svg, clientX) => {
-      const drag = this._drag;
-      if (!drag || drag.menuOnly) return;
-      const at = this._timeAtClientX(svg, clientX);
-      if (at === null) return;
-      drag.moved = true;
-      const delta = at - drag.from;
-      const bounds = this._editBounds();
-      const next = drag.edge
-        ? SlotModel.resize(
-            drag.original, drag.index, drag.edge, delta, PLAN_STEP_MS, bounds
-          )
-        : SlotModel.move(
-            drag.original, drag.index, delta, PLAN_STEP_MS, bounds
-          );
-      this._commitRuns(drag.channel, next);
-    };
-
-    const onMove = (svg, ev) => {
-      if (this._drag) this._drag.lastClientX = ev.clientX;
-      applyDragAt(svg, ev.clientX);
-    };
-
-    const stopAutoPan = () => {
-      if (this._dragPan) {
-        clearInterval(this._dragPan);
-        this._dragPan = null;
-      }
-    };
-
-    // Holding a dragged slot against the plot's edge pans the view under it.
-    // Without this, a zoomed-in view is a wall: the edit ceiling clamps to
-    // the visible window (a slot must not land where the pointer cannot
-    // reach), so a user who zoomed — often accidentally, by pinch or
-    // ctrl-wheel — finds editing "stops" at an arbitrary-looking time.
-    const maybeAutoPan = (index, clientX) => {
-      if (!this._drag || this._drag.menuOnly || !this._viewAdjustable()) {
-        stopAutoPan();
-        return;
-      }
-      const svg = svgAt(index);
-      const rect =
-        svg && svg.getBoundingClientRect ? svg.getBoundingClientRect() : null;
-      if (!rect || !rect.width) {
-        stopAutoPan();
-        return;
-      }
-      const dir =
-        clientX > rect.left + rect.width - AUTOPAN_MARGIN_PX
-          ? 1
-          : clientX < rect.left + AUTOPAN_MARGIN_PX
-            ? -1
-            : 0;
-      if (!dir) {
-        stopAutoPan();
-        return;
-      }
-      if (this._dragPan) return;
-      this._dragPan = setInterval(() => {
-        const drag = this._drag;
-        const lim = this._viewLimits;
-        if (!drag || !lim) {
-          stopAutoPan();
-          return;
-        }
-        const cur = this._viewCurrent();
-        const step = dir * Math.max(PLAN_STEP_MS, cur.span * 0.04);
-        const maxStart = Math.max(lim.floor, lim.rightBound - cur.span);
-        const start = clampNum(cur.start + step, lim.floor, maxStart);
-        if (start === cur.start) {
-          stopAutoPan();
-          return;
-        }
-        this._view = { start, span: cur.span };
-        // A full render: the gesture survives it because move/up also live
-        // on `window` (registered per drag below), exactly as the pan
-        // gesture does and for the same reason.
-        this._render();
-        const fresh = svgAt(drag.svgIndex);
-        if (fresh && drag.lastClientX !== undefined) {
-          applyDragAt(fresh, drag.lastClientX);
-        }
-      }, AUTOPAN_INTERVAL_MS);
-    };
-
-    const onUp = () => {
-      if (!this._drag) return;
-      const drag = this._drag;
-      // The browser synthesises a click after pointerup — preventDefault on
-      // pointerdown suppresses compatibility mouse events but not click — and
-      // on the inline chart that click bubbles to ha-card and pops the
-      // expanded dialog open at the end of every drag. Same one-shot
-      // suppression the pan gesture uses; a drag ending off-svg spends it on
-      // nothing, which the pan path already accepts.
-      if (drag.moved) this.suppressNextClick();
-      this._drag = null;
-      this._render();
-      // A press released without movement is a tap: open the slot menu the
-      // desktop reaches by right-click. iOS Safari never synthesises
-      // contextmenu (no long-press equivalent), so before this a touch
-      // user could not add or remove a slot at all. Desktop gains the
-      // same affordance — a menu on plain click is more discoverable than
-      // one hidden behind the right button. After _render so the menu
-      // attaches to the fresh shadow root, and suppressClick still spends
-      // the synthetic click before it can pop the dialog.
-      if (
-        !drag.moved &&
-        drag.lastClientX !== undefined &&
-        drag.lastClientY !== undefined
-      ) {
-        this.suppressNextClick();
-        const fresh = svgAt(drag.svgIndex);
-        if (fresh) {
-          const at = this._timeAtClientX(fresh, drag.lastClientX);
-          if (at !== null) {
-            this._openSlotMenu(
-              drag.channel, at, drag.lastClientX, drag.lastClientY, fresh
-            );
-          }
-        }
-      }
-    };
-
-    const onContext = (svg, ev) => {
-      const data = (ev.target || {}).dataset || {};
-      if (!data.channel) return;
-      const at = this._timeAtClientX(svg, ev.clientX);
-      if (at === null) return;
-      if (ev.preventDefault) ev.preventDefault();
-      stop(ev);
-      this._openSlotMenu(data.channel, at, ev.clientX, ev.clientY, svg);
-    };
-
-    // The keyboard equivalent of the pointer gestures, delegated on the svg
-    // like everything else here (the rects are rebuilt on every refresh).
-    // Enter/Space on a focused slot or lane opens the same menu a
-    // right-click does; Delete removes the focused slot outright. Dragging
-    // has no keyboard form — the menu's add/remove covers the same edits,
-    // just in more steps.
-    const onKeydown = (svg, ev) => {
-      const data = (ev.target || {}).dataset || {};
-      if (!data.channel) return;
-      const key = ev.key;
-      const wantsMenu =
-        key === "Enter" || key === " " || key === "ContextMenu";
-      const wantsRemove = key === "Delete" || key === "Backspace";
-      if (!wantsMenu && !wantsRemove) return;
-      const geom = this._geom;
-      if (!geom) return;
-      if (ev.preventDefault) ev.preventDefault();
-      stop(ev);
-
-      const channel = data.channel;
-      const runs = this._draftRuns()[channel] || [];
-      const index = data.index === undefined ? -1 : Number(data.index);
-      const run = index >= 0 ? runs[index] : null;
-      const [lo, hi] = this._editBounds();
-
-      if (wantsRemove) {
-        if (run && run.end > lo && run.start < hi) {
-          this._commitRuns(channel, SlotModel.remove(runs, index));
-          this._render();
-          // The focused slot is gone and the render rebuilt everything
-          // around it; without this, focus drops to document.body and a
-          // keyboard user restarts from the top. Its lane is the successor.
-          this._restoreSlotFocus(channel, null, svgs.indexOf(svg));
-        }
-        return;
-      }
-
-      // The menu asks "what is at this time?", so aim it at the middle of
-      // the focused slot — or, from a lane, at the middle of the editable
-      // stretch of the visible window.
-      let at;
-      if (run) {
-        at = (run.start + run.end) / 2;
-      } else {
-        const s = Math.max(lo, geom.windowStart);
-        const e = Math.min(hi, geom.windowEnd);
-        if (e <= s) return;
-        at = (s + e) / 2;
-      }
-      // Anchor the menu where that time is drawn. The pointer paths get
-      // client coordinates for free; here they are reconstructed from the
-      // viewBox geometry, and degrade to the svg's own corner when the
-      // element cannot be measured.
-      const rect = svg.getBoundingClientRect
-        ? svg.getBoundingClientRect()
-        : null;
-      let clientX = rect ? rect.left : 0;
-      let clientY = rect ? rect.top : 0;
-      if (rect && rect.width) {
-        const span = geom.windowEnd - geom.windowStart || 1;
-        const vx =
-          geom.plotL + ((at - geom.windowStart) / span) * geom.plotW;
-        clientX = rect.left + (vx / VIEW_W) * rect.width;
-        clientY =
-          rect.top +
-          ((geom.plotB - (geom.laneH || LANE_H)) / VIEW_H) *
-            (rect.height || 0);
-      }
-      this._openSlotMenu(channel, at, clientX, clientY, svg, true);
-    };
-
-    for (const svg of svgs) {
-      svg.addEventListener("pointerdown", (ev) => onDown(svg, ev));
-      svg.addEventListener("pointermove", (ev) => onMove(svg, ev));
-      svg.addEventListener("pointerup", onUp);
-      svg.addEventListener("pointerleave", onUp);
-      svg.addEventListener("contextmenu", (ev) => onContext(svg, ev));
-      svg.addEventListener("keydown", (ev) => onKeydown(svg, ev));
-    }
-  }
-
-  _commitRuns(channel, runs) {
-    this._draftRuns();
-    this._runs[channel] = runs;
-    this._runsDirty = true;
-    this._refreshLanes();
-  }
-
-  /** Redraw only what a drag changes.
-   *
-   * A full re-render on every pointer move would rebuild the shadow root
-   * dozens of times a second and lose the drag with it.
-   */
-  _refreshLanes() {
-    const root = this.shadowRoot;
-    if (!root) return;
-    if (this._geom) {
-      const inner = this._laneGroupInner();
-      root.querySelectorAll(".lanes").forEach((group) => {
-        group.innerHTML = inner;
-      });
-    }
-    this._updateDelta();
-  }
-
-  /** Whether the on-chart schedule editor is available. */
-  _editingEnabled() {
-    return !!this._config.what_if;
-  }
-
-  /** The two editable channels, in the order they are drawn. */
-  _laneSpecs() {
-    return [
-      {
-        channel: "dhw",
-        label: L("slots.lane_dhw"),
-        field: "dhw_power",
-        color: "#e0544e",
-      },
-      {
-        channel: "space",
-        label: L("slots.lane_space"),
-        field: "space_power",
-        color: "#4a90e2",
-      },
-    ];
-  }
-
-  /** Earliest time a slot may be edited.
-   *
-   * The past cannot be rescheduled, and an override only ever applies from now
-   * on, so editing has to stop at the current step boundary rather than at the
-   * start of the horizon.
-   */
-  _editFloor() {
-    const start = this._geom ? this._geom.windowStart : Date.now();
-    return Math.max(start, SlotModel.snap(Date.now(), PLAN_STEP_MS));
-  }
-
-  /** The last instant a hand-arranged slot can reach.
-   *
-   * Three separate limits, and the smallest wins:
-   *
-   * 1. **The expiry this card would send if the user applied right now** --
-   *    `now + MANUAL_PLAN_WINDOW_HOURS`, published by the integration rather
-   *    than copied here so the two cannot drift. Deliberately *not* the expiry
-   *    of the override currently in force: an override applied 15 hours ago
-   *    expires in 5, but the user editing now is composing a new plan that will
-   *    last the full window from this moment. Deriving the ceiling from the
-   *    active override would shrink the editable window as the day wore on and
-   *    stop the user extending their own plan.
-   * 2. **The end of the plan.** Past it there is nothing to pin.
-   * 3. **The visible window**, which pan and zoom can narrow. Without this a
-   *    slot could be dragged out of the region the pointer can actually reach.
-   *
-   * Beyond the first of these, `manual_plan.channel_pins` frees every step at or
-   * after the expiry, so a slot shown as pinned there would quietly do nothing.
-   */
-  _editCeiling() {
-    const p = this._editCeilingParts();
-    return Math.min(p.visibleEnd, p.applyEnd, p.planEnd);
-  }
-
-  /** The ceiling's three inputs, separately, so the lanes can say WHICH one
-   * is in charge. When the visible window is the binding limit the user is
-   * zoomed in, and an edit stopping there reads as an arbitrary rule unless
-   * the card says so — a real user diagnosed it as "slots end at midnight".
-   */
-  _editCeilingParts() {
-    const visibleEnd = this._geom ? this._geom.windowEnd : Infinity;
-    const windowHours = this._planAttr(
-      "manual_plan_window_hours",
-      MANUAL_PLAN_WINDOW_FALLBACK_H
-    );
-    return {
-      visibleEnd,
-      applyEnd: Date.now() + windowHours * 3600 * 1000,
-      planEnd: this._planEnd(),
-    };
-  }
-
-  /** Whether the zoomed-in view, not the plan or the 20 h window, is what
-   * currently stops editing. The one-second slack keeps float noise from
-   * flickering the hint on an unzoomed card whose window ends at the plan.
-   */
-  _viewLimitsEditing() {
-    const p = this._editCeilingParts();
-    return p.visibleEnd < Math.min(p.applyEnd, p.planEnd) - 1000;
-  }
-
-  /** The last timestamp the published plan covers. */
-  _planEnd() {
-    let end = -Infinity;
-    for (const channel of ["space", "dhw"]) {
-      const fc = this._forecastOf(channel);
-      if (!fc.length) continue;
-      const t = Date.parse(fc[fc.length - 1].t);
-      if (Number.isFinite(t)) end = Math.max(end, t + PLAN_STEP_MS);
-    }
-    return end === -Infinity ? Infinity : end;
-  }
-
-  _editBounds() {
-    return [this._editFloor(), this._editCeiling()];
-  }
-
-  /** The arrangement being edited, seeded from the published plan.
-   *
-   * Held on the instance because a data refresh rebuilds the whole shadow
-   * root; without this, an incoming plan update would throw away a drag the
-   * user was halfway through.
-   */
-  _draftRuns() {
-    if (!this._runs) {
-      this._runs = {};
-      for (const spec of this._laneSpecs()) {
-        this._runs[spec.channel] = SlotModel.runsFrom(
-          this._forecastOf(spec.channel), spec.field, 0.05, PLAN_STEP_MS
-        );
-      }
-      this._runsDirty = false;
-    }
-    return this._runs;
-  }
-
-  /** Discard local edits and follow the published plan again. */
-  _resetRuns() {
-    this._runs = null;
-    this._runsDirty = false;
-  }
-
-  _forecastOf(channel) {
-    const st = this._stateOf(this._resolveEntity(channel));
-    const fc = ((st && st.attributes) || {}).forecast;
-    return Array.isArray(fc) ? fc : [];
-  }
-
-  /** The lanes, their slots and the grab handles, as SVG.
-   *
-   * Rebuilt from the recorded geometry rather than from the chart's locals, so
-   * a drag can redraw the lanes alone without re-rendering the whole card.
-   */
-  _laneGroupInner() {
-    const geom = this._geom;
-    if (!geom) return "";
-    const {
-      windowStart, windowEnd, plotL, plotW, plotR, plotB, font,
-      laneH = LANE_H, laneGap = LANE_GAP, laneInset = LANE_BOTTOM_INSET,
-    } = geom;
-    const span = windowEnd - windowStart || 1;
-    const scaleX = (t) => plotL + ((t - windowStart) / span) * plotW;
-    const runs = this._draftRuns();
-    const [lo, hi] = this._editBounds();
-    const specs = this._laneSpecs();
-    const out = [];
-    const clampX = (t) => Math.max(plotL, Math.min(plotR, scaleX(t)));
-
-    specs.forEach((spec, row) => {
-      const y = plotB - laneInset - (specs.length - row) * (laneH + laneGap);
-      // The track, so an empty lane is still an obvious drop target. Also a
-      // tab stop: Enter on it opens the same add-slot menu a right-click
-      // does, which is the whole editor without a pointer.
-      out.push(
-        `<rect class="lane" data-channel="${spec.channel}" tabindex="0" role="button" aria-label="${esc(
-          L("slots.lane_aria", { lane: spec.label })
-        )}" x="${plotL}" y="${y}" width="${
-          plotR - plotL
-        }" height="${laneH}" rx="2" fill="var(--secondary-text-color,#888)" fill-opacity="0.07"/>`
-      );
-      out.push(
-        `<text class="lane-label" x="${plotL + 4}" y="${
-          y + laneH - 4 * (laneH / LANE_H)
-        }" font-size="${font * 0.8}" fill="var(--secondary-text-color,#888)">${esc(
-          spec.label
-        )}</text>`
-      );
-      // The parts of the lane that cannot be changed: what has already run,
-      // and what lies beyond the point where the override expires.
-      const floorX = clampX(lo);
-      if (floorX > plotL) {
-        out.push(
-          `<rect class="lane-past" x="${plotL}" y="${y}" width="${
-            floorX - plotL
-          }" height="${laneH}" fill="var(--secondary-text-color,#888)" fill-opacity="0.12"/>`
-        );
-      }
-      const ceilX = clampX(hi);
-      if (ceilX < plotR) {
-        out.push(
-          `<rect class="lane-past" x="${ceilX}" y="${y}" width="${
-            plotR - ceilX
-          }" height="${laneH}" fill="var(--secondary-text-color,#888)" fill-opacity="0.12"/>`
-        );
-      }
-      // The lane runs out at the zoomed window, not at any rule of the
-      // plan's: mark it, or the invisible remainder reads as a hard limit.
-      if (this._viewLimitsEditing()) {
-        out.push(
-          `<text class="lane-more" x="${plotR - 3}" y="${
-            y + laneH - 3 * (laneH / LANE_H)
-          }" font-size="${font}" text-anchor="end" fill="var(--primary-color,#03a9f4)">»</text>`
-        );
-      }
-
-      (runs[spec.channel] || []).forEach((run, index) => {
-        // Zooming can put a run wholly outside the window. Clamping alone would
-        // collapse it onto the edge and leave a one-pixel sliver pretending to
-        // be a slot, so drop it instead. `index` still refers to its place in
-        // the full array, which is what hit-testing and editing use.
-        if (run.end <= windowStart || run.start >= windowEnd) return;
-        const x1 = clampX(run.start);
-        const x2 = clampX(run.end);
-        const w = Math.max(1, x2 - x1);
-        const locked = run.end <= lo || run.start >= hi;
-        // Editable slots are tab stops with the keyboard menu (Enter) and
-        // removal (Delete) announced; locked ones stay presentational.
-        const fmtT = (t) =>
-          new Date(t).toLocaleTimeString(ACTIVE_LANG, {
-            hour: "2-digit",
-            minute: "2-digit",
-          });
-        const kbd = locked
-          ? ""
-          : ` tabindex="0" role="button" aria-label="${esc(
-              L("slots.slot_aria", {
-                lane: spec.label,
-                start: fmtT(run.start),
-                end: fmtT(run.end),
-              })
-            )}"`;
-        out.push(
-          `<rect class="slot${locked ? " locked" : ""}" data-channel="${
-            spec.channel
-          }" data-index="${index}"${kbd} x="${x1}" y="${y}" width="${w}" height="${laneH}" rx="2" fill="${
-            spec.color
-          }" fill-opacity="${locked ? 0.35 : 0.85}"/>`
-        );
-        if (locked) return;
-        // Explicit edge handles: without them a narrow slot is impossible to
-        // resize, because the whole rect reads as "move".
-        const grab = _coarsePointer() ? LANE_EDGE_GRAB_COARSE : LANE_EDGE_GRAB;
-        for (const edge of ["start", "end"]) {
-          const ex = edge === "start" ? x1 : x2 - grab;
-          out.push(
-            `<rect class="slot-handle" data-channel="${spec.channel}" data-index="${index}" data-edge="${edge}" x="${ex}" y="${y}" width="${grab}" height="${laneH}" fill="#fff" fill-opacity="0.001"/>`
-          );
-        }
-      });
-    });
-    return out.join("");
-  }
-
-  /** Hourly gridlines, labelled as often as the width actually allows.
-   *
-   * Label density cannot be a fixed choice. The horizon is configurable, the
-   * chart is drawn in a fixed coordinate system, and the labels are formatted
-   * for the user's locale, so their width is not known in advance either --
-   * "13:00" is five characters but "12:00 AM" is eight. Build the labels
-   * first, measure the widest, and only then decide how many to show.
-   */
-  _timeAxis(scaleX, plotT, plotB, windowStart, windowEnd, font) {
-    const size = font || FONT_BASE;
-    const hour = 3600 * 1000;
-
-    const first = new Date(windowStart);
-    first.setMinutes(0, 0, 0);
-    if (first.getTime() < windowStart) first.setHours(first.getHours() + 1);
-
-    const ticks = [];
-    for (let t = first.getTime(); t <= windowEnd; t += hour) {
-      const d = new Date(t);
-      ticks.push({
-        t,
-        x: scaleX(t),
-        hours: d.getHours(),
-        label: d.toLocaleTimeString(ACTIVE_LANG, {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-      });
-    }
-    if (!ticks.length) return "";
-
-    // Widest rendered label, plus a gap, in viewBox units. The chart uses the
-    // default sans-serif face, whose characters average a little over half an
-    // em at these sizes.
-    const widest = ticks.reduce((n, tick) => Math.max(n, tick.label.length), 0);
-    const labelWidth = size * widest * CHAR_WIDTH_EM + size * 0.6;
-    const unitsPerHour = Math.abs(scaleX(windowStart + hour) - scaleX(windowStart));
-    const needed = unitsPerHour > 0 ? Math.ceil(labelWidth / unitsPerHour) : 3;
-    // Intervals that divide the day, so labels land on the same clock times
-    // each day rather than drifting across midnight.
-    const every =
-      TIME_LABEL_STEPS.find((step) => step >= Math.max(1, needed)) ||
-      TIME_LABEL_STEPS[TIME_LABEL_STEPS.length - 1];
-
-    const out = [];
-    for (const tick of ticks) {
-      const labelled = tick.hours % every === 0;
-      out.push(
-        `<line x1="${tick.x}" y1="${plotT}" x2="${tick.x}" y2="${plotB}" stroke="var(--divider-color,#eee)" stroke-width="${
-          labelled ? 1 : 0.5
-        }" opacity="${labelled ? 0.7 : 0.35}"/>`
-      );
-      if (labelled) {
-        out.push(
-          `<text x="${tick.x}" y="${plotB + size + 4}" font-size="${size}" text-anchor="middle" fill="var(--secondary-text-color,#888)">${esc(
-            tick.label
-          )}</text>`
-        );
-      }
-    }
-    return out.join("");
-  }
-
-  _valueAxis(
-    axis, xBase, plotT, plotB, plotH, side, inset, scaleY, axisName, unit,
-    font, titleAnchor
-  ) {
-    const size = font || FONT_BASE;
-    const out = [];
-    const x = side === "left" ? xBase - inset : xBase + inset;
-    const anchor = side === "left" ? "end" : "start";
-    const tx = side === "left" ? x - 5 : x + 5;
-    for (const tick of axis.ticks) {
-      const y = scaleY(tick, axisName);
-      out.push(
-        `<text x="${tx}" y="${y + size / 3}" font-size="${size}" text-anchor="${anchor}" fill="var(--secondary-text-color,#888)">${esc(
-          fmtTick(tick)
-        )}</text>`
-      );
-      const t1 = side === "left" ? x - 3 : x + 3;
-      out.push(
-        `<line x1="${x}" y1="${y}" x2="${t1}" y2="${y}" stroke="var(--secondary-text-color,#aaa)" stroke-width="0.75"/>`
-      );
-    }
-    // The title sits on the strip above the plot frame, normally running away
-    // from the chart like the tick labels do. When that would run it into the
-    // next axis out, the caller flips it to the other side of its own axis
-    // line, where the strip above the plot is empty. The gap scales with the
-    // font (D4-01) so a boosted compact font does not sit on the frame.
-    const uy = plotT - 4 * (size / FONT_BASE);
-    const ta = titleAnchor || anchor;
-    const ux = ta === "end" ? x - 5 : x + 5;
-    out.push(
-      `<text x="${ux}" y="${uy}" font-size="${size}" text-anchor="${ta}" fill="var(--secondary-text-color,#888)">${esc(
-        unit
-      )}</text>`
-    );
-    return out.join("");
-  }
-
-  /** Timestamp from which the plan's prices are the learned prior, or null. */
-  _estimatedPricesFrom() {
-    const spFc = this._forecast(this._resolveEntity("space")) || [];
-    const dhwFc = this._forecast(this._resolveEntity("dhw")) || [];
-    const fc = spFc.length ? spFc : dhwFc;
-    for (const p of fc) {
-      if (p.price_known === false) {
-        const t = Date.parse(p.t);
-        return Number.isNaN(t) ? null : t;
-      }
-    }
-    return null;
-  }
-
-  _seriesPath(s, scaleX, scaleY, plotB) {
-    const out = [];
-    for (const line of s.lines) {
-      const pts = line.points.map((p) => ({
-        x: scaleX(p.t),
-        y: scaleY(p.v, s.axis),
-      }));
-      if (!pts.length) continue;
-
-      // D4-02: a single-point line has no second vertex to draw a
-      // line-to from, so `<path>` alone paints nothing (a bare "M x y", or
-      // for the area styles a zero-area triangle collapsed onto one x) --
-      // yet the series still counts as `hasData` and its legend chip still
-      // shows fully active. A visible dot is the honest reading of "one
-      // sample exists", and keeps the chip's claim true.
-      if (pts.length === 1) {
-        out.push(
-          `<circle class="series" data-key="${s.key}" pointer-events="none" cx="${pts[0].x.toFixed(2)}" cy="${pts[0].y.toFixed(2)}" r="3" fill="${s.color}"/>`
-        );
-        continue;
-      }
-
-      if (s.style === "stepArea" || s.style === "stepBars") {
-        const stepD = this._steppedLine(pts);
-        const baseY = plotB;
-        const areaD =
-          stepD +
-          ` L ${pts[pts.length - 1].x.toFixed(2)} ${baseY.toFixed(2)}` +
-          ` L ${pts[0].x.toFixed(2)} ${baseY.toFixed(2)} Z`;
-        const fillOpacity = s.style === "stepBars" ? 0.35 : 0.18;
-        out.push(
-          `<path class="series" data-key="${s.key}" pointer-events="none" d="${areaD}" fill="${s.color}" fill-opacity="${fillOpacity}" stroke="none"/>`
-        );
-        out.push(
-          `<path class="series" data-key="${s.key}" pointer-events="none" d="${stepD}" fill="none" stroke="${s.color}" stroke-width="1.5"/>`
-        );
-      } else {
-        const d = this._smoothLine(pts);
-        const dash = line.primary
-          ? ""
-          : ` stroke-dasharray="3 3" stroke-opacity="0.7"`;
-        out.push(
-          `<path class="series" data-key="${s.key}" pointer-events="none" d="${d}" fill="none" stroke="${s.color}" stroke-width="1.8"${dash}/>`
-        );
-      }
-    }
-    return out.join("");
-  }
-
-  _steppedLine(pts) {
-    let d = `M ${pts[0].x.toFixed(2)} ${pts[0].y.toFixed(2)}`;
-    for (let i = 1; i < pts.length; i++) {
-      d += ` L ${pts[i].x.toFixed(2)} ${pts[i - 1].y.toFixed(2)}`;
-      d += ` L ${pts[i].x.toFixed(2)} ${pts[i].y.toFixed(2)}`;
-    }
-    return d;
-  }
-
-  _smoothLine(pts) {
-    if (pts.length < 3) {
-      let d = `M ${pts[0].x.toFixed(2)} ${pts[0].y.toFixed(2)}`;
-      for (let i = 1; i < pts.length; i++)
-        d += ` L ${pts[i].x.toFixed(2)} ${pts[i].y.toFixed(2)}`;
-      return d;
-    }
-    let d = `M ${pts[0].x.toFixed(2)} ${pts[0].y.toFixed(2)}`;
-    for (let i = 0; i < pts.length - 1; i++) {
-      const p0 = pts[i - 1] || pts[i];
-      const p1 = pts[i];
-      const p2 = pts[i + 1];
-      const p3 = pts[i + 2] || p2;
-      const c1x = p1.x + (p2.x - p0.x) / 6;
-      const c1y = p1.y + (p2.y - p0.y) / 6;
-      const c2x = p2.x - (p3.x - p1.x) / 6;
-      const c2y = p2.y - (p3.y - p1.y) / 6;
-      d += ` C ${c1x.toFixed(2)} ${c1y.toFixed(2)} ${c2x.toFixed(2)} ${c2y.toFixed(
-        2
-      )} ${p2.x.toFixed(2)} ${p2.y.toFixed(2)}`;
-    }
-    return d;
-  }
-
   // ---- interaction -------------------------------------------------------
-
-  _onLegendClick(ev) {
-    // A legend click must not also count as a click on the card, or toggling a
-    // series would open the expanded view every time.
-    if (ev && typeof ev.stopPropagation === "function") ev.stopPropagation();
-    const el = ev.currentTarget;
-    const key = el.getAttribute("data-key");
-    if (!key) return;
-    this._hidden[key] = !this._hidden[key];
-    this._saveHidden();
-    this.renderForced();
-  }
 
   _onCardClick(ev) {
     // Ignore clicks that a control has already handled, and text selection.
@@ -7764,133 +8450,24 @@ class HeatpumpOptimizerCard extends HTMLElement {
       ? this.shadowRoot.getSelection()
       : null;
     if (sel && String(sel).length) return;
-    this._openExpanded();
+    this.dialog.open();
   }
 
   _onExpandClick(ev) {
     if (ev && typeof ev.stopPropagation === "function") ev.stopPropagation();
-    this._openExpanded();
-  }
-
-  _onDialogClick(ev) {
-    const dlg = this.shadowRoot && this.shadowRoot.querySelector("dialog");
-    if (!dlg) return;
-    // A click on the dialog element itself is a click on the backdrop: the
-    // content sits in child elements, so anything else has a deeper target.
-    const onBackdrop = ev && ev.target === dlg;
-    const onClose =
-      ev &&
-      ev.currentTarget &&
-      ev.currentTarget.classList &&
-      ev.currentTarget.classList.contains("close");
-    if (onBackdrop || onClose) this._closeExpanded();
-  }
-
-  _onDialogClose() {
-    // Fires for Escape and for close() alike, so this is the single place the
-    // flag is cleared and the two cannot drift apart.
-    this._expanded = false;
-    // Reopening should start at the top rather than resuming a scroll position
-    // from a session the user has already dismissed.
-    this._dialogScroll = 0;
-    // The pan/zoom view dies with the session it belonged to. It used to
-    // persist for the lifetime of the card element — on a wall-mounted
-    // dashboard, indefinitely — so one accidental trackpad pinch or
-    // two-finger swipe over the chart quietly capped slot editing at the
-    // narrowed window's edge for days, while re-anchoring itself to "now"
-    // so it never scrolled out of relevance. A dismissed dialog is a
-    // finished session; the next open shows the whole plan.
-    this._view = null;
-  }
-
-  _openExpanded() {
-    if (this._expanded) return;
-    this._expanded = true;
-    this.renderForced();
-  }
-
-  _closeExpanded() {
-    this._closeExpandedQuietly();
-    this.renderForced();
-  }
-
-  /** Dismiss the dialog without re-rendering, for teardown paths. */
-  _closeExpandedQuietly() {
-    const dlg = this.shadowRoot && this.shadowRoot.querySelector("dialog");
-    this._expanded = false;
-    if (dlg && dlg.open && typeof dlg.close === "function") {
-      dlg.close(); // triggers _onDialogClose, which is idempotent
-    }
-  }
-
-  /** The chart wrapper owning an element, so each copy finds its own parts. */
-  _wrapOf(el) {
-    let node = el;
-    while (node && node !== this.shadowRoot) {
-      if (node.classList && node.classList.contains("chartwrap")) return node;
-      node = node.parentNode;
-    }
-    return null;
-  }
-
-  /** The chart svgs, and only those.
-   *
-   * The expand button carries an inline `<svg>` icon and sits above the chart
-   * in the markup, so `querySelector("svg")` returns an 18px icon rather than
-   * the plot. Every chart is wrapped in a `.chartwrap`; the icon is not.
-   */
-  _chartSvgs(root) {
-    const scope = root || this.shadowRoot;
-    if (!scope) return [];
-    return [...scope.querySelectorAll(".chartwrap svg")];
+    this.dialog.open();
   }
 
   _cacheRect() {
-    const svg = this._chartSvgs()[0];
+    const svg = chartSvgs(this.shadowRoot)[0];
     if (svg && typeof svg.getBoundingClientRect === "function") {
       this._svgRect = svg.getBoundingClientRect();
     }
-    this._scaleDialogFont();
-  }
-
-  /** Size the dialog's own text from how wide the dialog actually is.
-   *
-   * The chart scales itself, because it is stretched from a fixed coordinate
-   * system. The chrome around it -- header, legend, tooltip, what-if panel --
-   * is ordinary HTML inheriting the card's font, so it stays at card size no
-   * matter how large the dialog gets, which is what made it look cramped
-   * beside a chart three times its size.
-   *
-   * Setting one font size on the dialog fixes all of it at once, because every
-   * measurement in the chrome is expressed in `em`. This is done here rather
-   * than with container query units because `container-type: inline-size`
-   * applies inline-axis containment, and a dialog sized by its own contents
-   * then has nothing to size itself from.
-   */
-  _scaleDialogFont() {
-    const root = this.shadowRoot;
-    if (!root || !this._expanded) return;
-    const dlg = root.querySelector("dialog");
-    if (!dlg || typeof dlg.getBoundingClientRect !== "function") return;
-    const rect = dlg.getBoundingClientRect();
-    const width = (rect && Number(rect.width)) || 0;
-    if (!Number.isFinite(width) || width <= 0) return;
-
-    // Clamped at both ends: a phone-width dialog has to stay legible, and a
-    // very wide monitor must not turn the legend into a headline.
-    const px = Math.min(
-      DIALOG_FONT_PX_MAX,
-      Math.max(DIALOG_FONT_PX_MIN, width * DIALOG_FONT_RATIO)
-    );
-    // Writing an unchanged value would dirty style on every pointer move.
-    if (significantlyDifferent(px, this._dialogFontPx)) {
-      this._dialogFontPx = px;
-      dlg.style.fontSize = `${px.toFixed(2)}px`;
-    }
+    this.dialog.scaleFont();
   }
 
   _onPointerLeave(ev) {
-    const wrap = ev && ev.currentTarget ? this._wrapOf(ev.currentTarget) : null;
+    const wrap = ev && ev.currentTarget ? wrapOf(ev.currentTarget, this.shadowRoot) : null;
     const roots = wrap ? [wrap] : [this.shadowRoot];
     for (const root of roots) {
       if (!root) continue;
@@ -7901,154 +8478,12 @@ class HeatpumpOptimizerCard extends HTMLElement {
     }
   }
 
-  /** Why the plan is heating at the hovered step, plus price provenance.
-   *
-   * Only reasons for steps that are actually heating are shown; "not heating"
-   * is not an explanation anyone needs, and printing it for every idle hour
-   * would bury the ones that matter. The one exception is a channel paused
-   * by the pump's own operating mode: those steps carry no power, so the
-   * hover would otherwise show nothing at all, and "the optimizer chose not
-   * to" is exactly the wrong reading of a mode the unit itself enforces.
-   */
-  _reasonHtml(rows) {
-    const out = [];
-    const seen = new Set();
-    // Which channel a pump_mode reason belongs to: several series read the
-    // same forecast (the house temperatures ride the space plan's points),
-    // so the reason can surface on a row whose field says nothing about the
-    // channel. Decide once, from the channel rows themselves, before the
-    // per-row loop dedupes the code away.
-    const pumpModeChannel = rows.some((r) => r.reason === "pump_mode")
-      ? rows.find((r) => r.reason === "pump_mode" &&
-          (r.field === "dhw_power" || r.field === "space_power"))
-      : undefined;
-    const pumpModeKey = !pumpModeChannel
-      ? null
-      : pumpModeChannel.field === "dhw_power"
-        ? "reasons.pump_mode_dhw"
-        : "reasons.pump_mode_space";
-    for (const r of rows) {
-      const pumpMode = r.reason === "pump_mode";
-      if ((!r.reason || r.reason === "idle") && !pumpMode) continue;
-      if (seen.has(r.reason)) continue;
-      seen.add(r.reason);
-      let label;
-      if (pumpMode) {
-        // Channel-aware where the channel is known; the generic wording
-        // otherwise. "Cannot do this" was true but never actionable.
-        label = L(pumpModeKey || "reasons.pump_mode");
-      } else {
-        label = REASON_LABELS[r.reason]
-          ? L(REASON_LABELS[r.reason])
-          : r.reason;
-      }
-      out.push(`<div class="tt-reason">${esc(label)}</div>`);
-    }
-    if (rows.some((r) => r.priceKnown === false)) {
-      out.push(
-        `<div class="tt-reason">${esc(L("plan.price_estimated"))}</div>`
-      );
-    }
-    return out.join("");
-  }
-
-  /** Hatched bands over every span where space and hot water share steps.
-   *
-   * Only when both power series are visible — hiding a channel hides its
-   * half of the story, and a band explaining an invisible series would be
-   * noise. The native <title> answers the "is this double-booking?"
-   * question right where it is asked.
-   */
-  _sharedSpanBands(seriesList, scaleX, plotT, plotB, plotL, plotR) {
-    const powerSeries = (field) =>
-      (seriesList || []).find(
-        (s) => s.field === field && s.visible && s.hasData
-      );
-    const space = powerSeries("space_power");
-    const dhw = powerSeries("dhw_power");
-    if (!space || !dhw) return "";
-    // Through the field helper, not `lines[0]`: a hole anywhere in a power
-    // series splits it into segments, and the span search needs all of them.
-    const pointsOf = (s) => this._fieldPoints(s, s.field);
-    const spacePts = pointsOf(space);
-    const dhwPts = pointsOf(dhw);
-    if (spacePts.length < 2 || dhwPts.length < 2) return "";
-    const spaceAt = new Map(spacePts.map((p) => [p.t, p.v]));
-    let step = Infinity;
-    for (let i = 1; i < dhwPts.length; i++) {
-      step = Math.min(step, dhwPts[i].t - dhwPts[i - 1].t);
-    }
-    if (!Number.isFinite(step) || step <= 0) return "";
-    const spans = [];
-    for (const p of dhwPts) {
-      const sv = spaceAt.get(p.t);
-      if (p.v > 0.05 && sv !== undefined && sv > 0.05) {
-        const last = spans[spans.length - 1];
-        if (last && p.t <= last.end + step / 2) last.end = p.t + step;
-        else spans.push({ start: p.t, end: p.t + step });
-      }
-    }
-    if (!spans.length) return "";
-    // The pattern id must be unique per chart: with the dialog open the
-    // inline and expanded charts render into one shadow root, and two
-    // <pattern> elements sharing an id is invalid markup that would
-    // silently couple them.
-    const pid = `hpoShared${++HeatpumpOptimizerCard._sharedPatternSeq}`;
-    const out = [
-      `<defs><pattern id="${pid}" width="6" height="6"
-        patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-        <line x1="0" y1="0" x2="0" y2="6"
-          stroke="var(--secondary-text-color,#888)" stroke-width="1.4"/>
-      </pattern></defs>`,
-    ];
-    for (const span of spans) {
-      const x1 = Math.max(plotL, scaleX(span.start));
-      const x2 = Math.min(plotR, scaleX(span.end));
-      if (x2 <= x1) continue;
-      // pointer-events none is load-bearing: the band spans the full plot
-      // and paints after the what-if lanes, so without it a low-power
-      // shared span would swallow the slot editor's drags and clicks.
-      out.push(`<rect class="shared-band" pointer-events="none" x="${x1}" y="${plotT}" width="${
-        x2 - x1
-      }" height="${plotB - plotT}" fill="url(#${pid})" fill-opacity="0.18">
-        <title>${esc(L("plan.shared_band_title"))}</title>
-      </rect>`);
-    }
-    return out.join("");
-  }
-
-  /** The tooltip's shared-step line, or "" when this step is not shared.
-   *
-   * A step carrying both circuits is the pump splitting the quarter hour,
-   * and the hover tooltip is where that question is actually asked. Both
-   * rows must come from the SAME timestamp: each series snaps to its own
-   * nearest point, and with mismatched grids (a stale third-party sensor)
-   * the two nearest points can be hours apart — pairing those would claim
-   * sharing the band correctly refuses to draw.
-   */
-  _sharedTooltipHtml(rows) {
-    const rowByField = (f) => (rows || []).find((r) => r.field === f);
-    const spaceRow = rowByField("space_power");
-    const dhwRow = rowByField("dhw_power");
-    if (
-      !spaceRow ||
-      !dhwRow ||
-      spaceRow.t !== dhwRow.t ||
-      !(spaceRow.value > 0.05) ||
-      !(dhwRow.value > 0.05)
-    ) {
-      return "";
-    }
-    return `<div class="tt-shared">${L("plan.shared_step_tooltip", {
-      kw: esc(fmtTick(spaceRow.value + dhwRow.value)),
-    })}</div>`;
-  }
-
   _onPointerMove(ev) {
     if (!this._plot) return;
+    const isLowerModelled = () => this.plan.lowerFloorModelled();
     const svg = ev && ev.currentTarget;
     if (!svg || typeof svg.getBoundingClientRect !== "function") return;
-    const wrap = this._wrapOf(svg);
+    const wrap = wrapOf(svg, this.shadowRoot);
     const rect = svg.getBoundingClientRect() || this._svgRect;
     if (!rect || !rect.width) return;
 
@@ -8067,47 +8502,11 @@ class HeatpumpOptimizerCard extends HTMLElement {
     const span = windowEnd - windowStart || 1;
     const t = windowStart + ((vbX - plotL) / (plotR - plotL)) * span;
 
-    const visible = this._series.filter((s) => s.visible && s.hasData);
-    const rows = [];
-    let snapX = vbX;
-    let snapped = false;
-    for (const s of visible) {
-      // Every trace, not just the primary one. The house-temperature series
-      // draws three traces and the tooltip used to report the room's value
-      // for all of them, so hovering a 28 C zone line showed 21 C.
-      //
-      // Iterated per FIELD rather than per line: v5.2.0 lets holes break one
-      // field into several segments, and one row per segment would report
-      // the same trace two or three times over.
-      const traces = [
-        { field: s.field, primary: true, labelKey: s.labelKey },
-      ].concat(this._extraFields(s));
-      // A band's two edges are collapsed into the single ± figure they
-      // actually carry, rather than reported as two absolute temperatures.
-      const bandFields = s.band ? [s.band.lo, s.band.hi] : [];
-      for (const line of traces) {
-        if (bandFields.includes(line.field)) continue;
-        const best = this._nearestPoint(s, line.field, t);
-        if (!best) continue;
-        if (!snapped) {
-          snapX = scaleX(best.t);
-          snapped = true;
-        }
-        rows.push({
-          color: s.color,
-          label: this._lineLabel(s, line),
-          dashed: !line.primary,
-          value: best.v,
-          unit: this._seriesUnit(s),
-          t: best.t,
-          field: line.field,
-          reason: best.reason,
-          priceKnown: best.priceKnown,
-        });
-      }
-      // ... and then the band, as one row, right under the line it brackets.
-      for (const row of this._bandRow(s, t)) rows.push(row);
-    }
+    const { rows, snapT } = tooltipRows(this._series, t, {
+      seriesUnit: (s) => this.plan.seriesUnit(s),
+      isLowerModelled,
+    });
+    const snapX = snapT === null ? vbX : scaleX(snapT);
     if (!rows.length) {
       this._onPointerLeave();
       return;
@@ -8125,27 +8524,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
 
     const tt = scope.querySelector(".tooltip");
     if (tt) {
-      const time = new Date(rows[0].t).toLocaleString(ACTIVE_LANG, {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-      const sharedHtml = this._sharedTooltipHtml(rows);
-      const bodyHtml =
-        `<div class="tt-time">${esc(time)}</div>` +
-        rows
-          .map(
-            (r) =>
-              `<div class="tt-row"><span class="dot" style="${dotStyle(
-                r.color,
-                r.dashed
-              )}"></span>${esc(r.label)}: ${esc(
-                (r.prefix || "") + fmtTick(r.value)
-              )} ${esc(r.unit)}</div>`
-          )
-          .join("") +
-        sharedHtml +
-        this._reasonHtml(rows);
-      tt.innerHTML = bodyHtml;
+      tt.innerHTML = tooltipHtml(rows);
       tt.hidden = false;
       const leftPx = clientX - rect.left;
       const place = leftPx > rect.width * 0.6 ? leftPx - 160 : leftPx + 14;
@@ -8164,6 +8543,489 @@ class HeatpumpOptimizerCard extends HTMLElement {
       tt.style.top = `8px`;
     }
   }
+
+  // ---- seams for tests/card.mjs (PR 9 of #136 deletes them) ---------------
+  // The test suite drives these by their old names. Each is one line onto
+  // the collaborator or function that owns the behaviour now.
+
+  _buildSeries() {
+    const cfg = this._config;
+    const plan = this.plan;
+    const spFc = plan.forecast(plan.resolveEntity("space")) || [];
+    const dhwFc = plan.forecast(plan.resolveEntity("dhw")) || [];
+    // The irradiance sensor publishes its own horizon. Its timestamps are
+    // already interval *starts* — `_solar_forecast_view` converts Open-Meteo's
+    // end-of-interval stamps on the way out — so they must not be shifted again.
+    const solarFc = plan.forecast(plan.resolveEntity("solar")) || [];
+    const dw = defaultWindow(spFc, dhwFc, cfg.hours, Date.now());
+    // `_applyView` narrows the default window to whatever the user has
+    // panned or zoomed to, and is a no-op until they touch a control -- so
+    // the untouched card renders exactly as before. Filtering then happens
+    // against the visible window, which is what keeps the value axis scaled
+    // to what is actually on screen. Still a host seam because the tests
+    // call `_buildSeries()` for exactly this side effect.
+    const view = this.view.apply(dw.start, dw.end, dw.dataEnd);
+    return buildSeries({
+      spFc, dhwFc, solarFc,
+      windowStart: view.start,
+      windowEnd: view.end,
+      hidden: this.legend.hidden,
+      zoomed: this.view.zoomed,
+    });
+  }
+
+  get _resolvedCache() {
+    return this.plan.resolvedCache;
+  }
+  set _resolvedCache(v) {
+    this.plan.resolvedCache = v;
+  }
+  _resolveEntity(kind) {
+    return this.plan.resolveEntity(kind);
+  }
+  _stateOf(entityId) {
+    return this.plan.stateOf(entityId);
+  }
+  _forecast(entityId) {
+    return this.plan.forecast(entityId);
+  }
+  _forecastOf(channel) {
+    return this.plan.forecastOf(channel);
+  }
+  _planAttr(name, fallback) {
+    return this.plan.attr(name, fallback);
+  }
+  _planAttrRaw(name, fallback) {
+    return this.plan.attrRaw(name, fallback);
+  }
+  _manualOverride() {
+    return this.plan.manualOverride();
+  }
+  _currency() {
+    return this.plan.currency();
+  }
+  _priceUnit() {
+    return this.plan.priceUnit();
+  }
+  _seriesUnit(def) {
+    return this.plan.seriesUnit(def);
+  }
+  _lowerFloorModelled() {
+    return this.plan.lowerFloorModelled();
+  }
+  _estimatedPricesFrom() {
+    return this.plan.estimatedPricesFrom();
+  }
+  _diagnose(kind) {
+    return this.plan.diagnose(kind);
+  }
+  _statEntity(suffix) {
+    return this.plan.statEntity(suffix);
+  }
+  _sensorCount(states) {
+    return this.plan.sensorCount(states);
+  }
+  _statNumber(suffix) {
+    return this.plan.statNumber(suffix);
+  }
+  _fieldPoints(s, field) {
+    return fieldPoints(s, field);
+  }
+  _extraFields(s) {
+    return extraFields(s);
+  }
+  _lineNote(def, line) {
+    return lineNote(def, line);
+  }
+  _nearestPoint(s, field, t) {
+    return nearestPoint(s, field, t);
+  }
+  _lineLabel(def, line) {
+    return lineLabel(def, line, () => this.plan.lowerFloorModelled());
+  }
+  _bandRow(s, t) {
+    return bandRow(s, t, this.plan.seriesUnit(s));
+  }
+  get _view() {
+    return this.view.range;
+  }
+  set _view(v) {
+    this.view.range = v;
+  }
+  get _viewLimits() {
+    return this.view.limits;
+  }
+  set _viewLimits(v) {
+    this.view.limits = v;
+  }
+  get _pan() {
+    return this.view.panGesture;
+  }
+  set _pan(v) {
+    this.view.panGesture = v;
+  }
+  _applyView(defaultStart, defaultEnd, dataEnd) {
+    return this.view.apply(defaultStart, defaultEnd, dataEnd);
+  }
+  _viewAdjustable() {
+    return this.view.adjustable();
+  }
+  _viewSpan() {
+    return this.view.span();
+  }
+  _viewCurrent() {
+    return this.view.current();
+  }
+  _zoomView(factor, anchorT) {
+    return this.view.zoom(factor, anchorT);
+  }
+  _panView(deltaMs) {
+    return this.view.panBy(deltaMs);
+  }
+  _resetView() {
+    return this.view.reset();
+  }
+  _renderView() {
+    return this.view.renderView();
+  }
+  _onChartWheel(ev) {
+    return this.view.onWheel(ev);
+  }
+  _onPanDown(ev) {
+    return this.view.onPanDown(ev);
+  }
+  _viewControlsHtml() {
+    return this.view.controlsHtml();
+  }
+  _attachViewControls(root) {
+    return this.view.attach(root);
+  }
+  _timeAtClientX(svg, clientX) {
+    return timeAtClientX(svg, clientX, this._geom);
+  }
+  _wrapOf(el) {
+    return wrapOf(el, this.shadowRoot);
+  }
+  _chartSvgs(root) {
+    return chartSvgs(root || this.shadowRoot);
+  }
+
+  _reasonHtml(rows) {
+    return reasonHtml(rows);
+  }
+  _sharedTooltipHtml(rows) {
+    return sharedTooltipHtml(rows);
+  }
+
+  get _hidden() {
+    return this.legend.hidden;
+  }
+  set _hidden(v) {
+    this.legend.hidden = v;
+  }
+  _storageKey(cfg) {
+    return this.legend.storageKey(cfg);
+  }
+  _storageKeyLegacy(cfg) {
+    return this.legend.storageKeyLegacy(cfg);
+  }
+  _loadHidden(cfg) {
+    return this.legend.load(cfg);
+  }
+  _saveHidden() {
+    return this.legend.save();
+  }
+  _legendHtml() {
+    return this.legend.html(this._series);
+  }
+  _onLegendClick(ev) {
+    return this.legend.onChipClick(ev);
+  }
+
+  get _expanded() {
+    return this.dialog.expanded;
+  }
+  set _expanded(v) {
+    this.dialog.expanded = v;
+  }
+  get _dialogPage() {
+    return this.dialog.page;
+  }
+  set _dialogPage(v) {
+    this.dialog.page = v;
+  }
+  get _dialogFontPx() {
+    return this.dialog.fontPx;
+  }
+  set _dialogFontPx(v) {
+    this.dialog.fontPx = v;
+  }
+  _openExpanded() {
+    return this.dialog.open();
+  }
+  _closeExpanded() {
+    return this.dialog.close();
+  }
+  _closeExpandedQuietly() {
+    return this.dialog.closeQuietly();
+  }
+  _onDialogClick(ev) {
+    return this.dialog.onDialogClick(ev);
+  }
+  _onDialogClose() {
+    return this.dialog.onDialogClose();
+  }
+  _scaleDialogFont() {
+    return this.dialog.scaleFont();
+  }
+
+  get _runs() {
+    return this.manual.runs;
+  }
+  set _runs(v) {
+    this.manual.runs = v;
+  }
+  get _runsDirty() {
+    return this.manual.dirty;
+  }
+  set _runsDirty(v) {
+    this.manual.dirty = v;
+  }
+  _draftRuns() {
+    return this.manual.draft();
+  }
+  _resetRuns() {
+    return this.manual.reset();
+  }
+  _laneSpecs() {
+    return this.manual.laneSpecs();
+  }
+  _editingEnabled() {
+    return this.manual.enabled();
+  }
+  _editFloor() {
+    return this.manual.editFloor();
+  }
+  _editCeiling() {
+    return this.manual.editCeiling();
+  }
+  _editCeilingParts() {
+    return this.manual.ceilingParts();
+  }
+  _viewLimitsEditing() {
+    return this.manual.viewLimitsEditing();
+  }
+  _planEnd() {
+    return this.manual.planEnd();
+  }
+  _editBounds() {
+    return this.manual.bounds();
+  }
+  _costDelta() {
+    return this.manual.costDelta();
+  }
+  _deltaHtml() {
+    return this.manual.deltaHtml();
+  }
+  _updateDelta() {
+    return this.manual.updateDelta();
+  }
+  _overrideHtml() {
+    return this.manual.overrideHtml();
+  }
+  _applyManualPlan() {
+    return this.manual.apply();
+  }
+  _clearManualPlan() {
+    return this.manual.clear();
+  }
+  _attachSlotActions(root) {
+    return this.manual.attach(root);
+  }
+  _slotResult(message, cls) {
+    return this.manual.slotResult(message, cls);
+  }
+
+  get _drag() {
+    return this.lanes.drag;
+  }
+  set _drag(v) {
+    this.lanes.drag = v;
+  }
+  get _dragPan() {
+    return this.lanes.dragPan;
+  }
+  set _dragPan(v) {
+    this.lanes.dragPan = v;
+  }
+  get _slotMenu() {
+    return this.lanes.menu;
+  }
+  set _slotMenu(v) {
+    this.lanes.menu = v;
+  }
+  get _menuOrigin() {
+    return this.lanes.menuOrigin;
+  }
+  get _menuEscape() {
+    return this.lanes.menuEscape;
+  }
+  get _menuEscapeTarget() {
+    return this.lanes.menuEscapeTarget;
+  }
+  _laneGroupInner() {
+    return this.lanes.laneGroupInner(this._geom);
+  }
+  _refreshLanes() {
+    return this.lanes.refreshLanes();
+  }
+  _commitRuns(channel, runs) {
+    return this.lanes.commitRuns(channel, runs);
+  }
+  _openSlotMenu(channel, at, clientX, clientY, svg, focusMenu) {
+    return this.lanes.openMenu(channel, at, clientX, clientY, svg, focusMenu);
+  }
+  _closeSlotMenu() {
+    return this.lanes.closeMenu();
+  }
+  _globalKeyTarget() {
+    return this.lanes.globalKeyTarget();
+  }
+  _restoreSlotFocus(channel, index, svgIndex) {
+    return this.lanes.restoreFocus(channel, index, svgIndex);
+  }
+  _attachSlotEditing(root) {
+    return this.lanes.attach(root);
+  }
+
+  get _whatIf() {
+    return this.whatIf.values;
+  }
+  set _whatIf(v) {
+    this.whatIf.values = v;
+  }
+  get _whatIfTimer() {
+    return this.whatIf.timer;
+  }
+  set _whatIfTimer(v) {
+    this.whatIf.timer = v;
+  }
+  get _pendingSave() {
+    return this.whatIf.pendingSave;
+  }
+  set _pendingSave(v) {
+    this.whatIf.pendingSave = v;
+  }
+  _whatIfDraft() {
+    return this.whatIf.draft();
+  }
+  _dhwMinCeiling() {
+    return this.whatIf.dhwMinCeiling();
+  }
+  _onWhatIfInput(ev) {
+    return this.whatIf.onInput(ev);
+  }
+  _onSlotEdit(ev) {
+    return this.whatIf.onSlotEdit(ev);
+  }
+  _onAddWindow(ev) {
+    return this.whatIf.onAddWindow(ev);
+  }
+  _onRemoveWindow(ev) {
+    return this.whatIf.onRemoveWindow(ev);
+  }
+  _onApplySlots(ev) {
+    return this.whatIf.onApplySlots(ev);
+  }
+  _onResetWhatIf(ev) {
+    return this.whatIf.onReset(ev);
+  }
+  _onSaveSchedule(ev) {
+    return this.whatIf.onSaveSchedule(ev);
+  }
+  _runWhatIf() {
+    return this.whatIf.run();
+  }
+
+  get _layoutEdit() {
+    return this.layout.edit;
+  }
+  set _layoutEdit(v) {
+    this.layout.edit = v;
+  }
+
+  get _layoutBoxes() {
+    return this.layout.boxes;
+  }
+  set _layoutBoxes(v) {
+    this.layout.boxes = v;
+  }
+
+  get _pickerKey() {
+    return this.setup.pickerKey;
+  }
+  set _pickerKey(v) {
+    this.setup.pickerKey = v;
+  }
+
+  get _pickerFilter() {
+    return this.setup.pickerFilter;
+  }
+  set _pickerFilter(v) {
+    this.setup.pickerFilter = v;
+  }
+
+  get _pickerChoice() {
+    return this.setup.pickerChoice;
+  }
+  set _pickerChoice(v) {
+    this.setup.pickerChoice = v;
+  }
+
+  get _pendingClear() {
+    return this.setup.pendingClear;
+  }
+  set _pendingClear(v) {
+    this.setup.pendingClear = v;
+  }
+
+  get _setupNote() {
+    return this.setup.note;
+  }
+  set _setupNote(v) {
+    this.setup.note = v;
+  }
+  _layoutEditing() {
+    return this.layout.editing();
+  }
+  _layoutEvaluate() {
+    return this.layout.evaluate();
+  }
+  _layoutRemoveEdge(name) {
+    return this.layout.removeEdge(name);
+  }
+  _refreshLayout() {
+    return this.layout.refresh();
+  }
+  _onLayoutDown(ev) {
+    return this.layout.onDown(ev);
+  }
+  _onLayoutMove(ev) {
+    return this.layout.onMove(ev);
+  }
+  _onLayoutUp(ev) {
+    return this.layout.onUp(ev);
+  }
+  _onLayoutClick(ev) {
+    return this.layout.onClick(ev);
+  }
+  _closePicker() {
+    return this.setup.closePicker();
+  }
+  _cancelPendingClear() {
+    return this.setup.cancelPendingClear();
+  }
+
 }
 
 // A custom element name can only be claimed once per page. If an older copy of
