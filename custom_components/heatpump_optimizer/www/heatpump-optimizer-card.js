@@ -11,7 +11,7 @@
 
 const CARD_TAG = "heatpump-optimizer-card";
 const EDITOR_TAG = "heatpump-optimizer-card-editor";
-const CARD_VERSION = "5.4.5";
+const CARD_VERSION = "5.4.6";
 
 // The de-duplication key `_extraFields` files a confidence band's two
 // edges under, so the pair counts as the one named trace it is. A Symbol
@@ -4609,6 +4609,332 @@ function sharedTooltipHtml(rows) {
     })}</div>`;
 }
 
+// ---- Legend ---------------------------------------------------------------
+// The series chips under the header and in the dialog, and the one piece of
+// state they toggle: which series are hidden. Seeded from the config's
+// `series` map and the browser's localStorage when the config arrives, saved
+// on every click, and part of the render signature so a toggle redraws.
+// Uses `host.config`, `host.plan` (units and labels) and
+// `host.renderForced()`. PR 4a of #136.
+class Legend {
+  constructor(host) {
+    this.host = host;
+    // key -> true when hidden.
+    this.hidden = {};
+    this.onChipClick = this.onChipClick.bind(this);
+  }
+
+  /** The legend's part of the render signature: a toggle must redraw even
+   * when no plan data changed. */
+  signature() {
+    return JSON.stringify(this.hidden);
+  }
+
+  /** Wire every chip in `root` -- both copies, when the dialog is open. */
+  attach(root) {
+    root
+      .querySelectorAll(".chip")
+      .forEach((el) => el.addEventListener("click", this.onChipClick));
+  }
+
+  // Two cards can plot the same entities — a 24 h card on the wall panel
+  // dashboard and a 48 h card with its own title on another — so the key
+  // carries the card's config identity (title + hours), not just its data
+  // sources. Otherwise a series toggled off on one card silently disappears
+  // from the other.
+  storageKey(cfg) {
+    const title = cfg.title !== undefined ? cfg.title : "";
+    return `${CARD_TAG}:${cfg.space_entity}:${cfg.dhw_entity}:${title}:${cfg.hours}`;
+  }
+
+  /** The pre-v4.2.0 key, read as a fallback so an upgrade does not silently
+   * drop every saved series toggle. Writes always go to the new key. */
+  storageKeyLegacy(cfg) {
+    return `${CARD_TAG}:${cfg.space_entity}:${cfg.dhw_entity}`;
+  }
+
+  load(cfg) {
+    const hidden = {};
+    // Config-provided initial visibility (false => hidden).
+    if (cfg.series) {
+      for (const [k, v] of Object.entries(cfg.series)) {
+        if (v === false) hidden[k] = true;
+      }
+    }
+    // localStorage overrides config so user toggles survive reloads.
+    try {
+      if (typeof localStorage !== "undefined") {
+        const raw =
+          localStorage.getItem(this.storageKey(cfg)) ||
+          localStorage.getItem(this.storageKeyLegacy(cfg));
+        if (raw) {
+          const saved = JSON.parse(raw);
+          if (saved && typeof saved === "object") {
+            for (const s of SERIES_DEFS) {
+              if (typeof saved[s.key] === "boolean") {
+                hidden[s.key] = saved[s.key];
+              }
+            }
+          }
+        }
+      }
+    } catch (e) {
+      /* ignore malformed storage */
+    }
+    return hidden;
+  }
+
+  save() {
+    try {
+      if (typeof localStorage !== "undefined" && this.host.config) {
+        localStorage.setItem(
+          this.storageKey(this.host.config),
+          JSON.stringify(this.hidden)
+        );
+      }
+    } catch (e) {
+      /* ignore quota / disabled storage */
+    }
+  }
+
+  html(series) {
+    const isLowerModelled = () => this.host.plan.lowerFloorModelled();
+    const chips = SERIES_DEFS.map((def) => {
+      const s = series.find((x) => x.key === def.key);
+      const hasData = s ? s.hasData : false;
+      const hidden = !!this.hidden[def.key];
+      const cls = "chip" + (hidden ? " off" : "") + (hasData ? "" : " nodata");
+      const label = L(def.labelKey);
+      // One chip per series, never one per rendered line.
+      //
+      // v5.1.7 gave every trace of a multi-line series its own chip so the
+      // house-temperature zones could be named. Every chip carries the
+      // series' `data-key`, because per-line visibility does not exist — so
+      // that series showed three chips in one colour, any of which hid all
+      // three lines at once. Three controls doing one job is worse than one,
+      // so the naming stays where it points at a single trace: the tooltip
+      // has a row per line, and the chip's title lists what else rides on
+      // the line it toggles.
+      //
+      // The chip now stands for the series rather than for its primary
+      // trace, which also settles a case the per-line version got wrong:
+      // with the primary field absent but the extras present, a solid
+      // "House temperature" chip was emitted for a line nothing drew.
+      //
+      // v5.2.0 enumerates them with `_extraFields`, not `lines`: a hole now
+      // splits one field into several drawn paths, and a confidence band's
+      // two edges are one envelope with one name. Listing `lines` here would
+      // print "Lower floor, Lower floor, Lower floor" — saying a thing three
+      // times, in the title written to stop saying it twice.
+      const extras = extraFields(s);
+      const unit = this.host.plan.seriesUnit(def);
+      // ... and any sentence a trace needs beyond its name rides along
+      // after them. Only the expected-error band has one: "Upper floor"
+      // explains itself, a dashed pair hugging the tank curve does not, and
+      // this title is now the one place a puzzled reader can look.
+      const notes = extras
+        .map((line) => lineNote(def, line))
+        .filter(Boolean)
+        .map((note) => " " + note)
+        .join("");
+      const title = extras.length
+        ? L("legend.multi_trace_title", {
+            label,
+            unit,
+            names: extras.map((line) => lineLabel(def, line, isLowerModelled)).join(", "),
+          }) + notes
+        : `${label} (${unit})`;
+      return `<button type="button" class="${cls}" data-key="${
+        def.key
+      }" title="${esc(title)}">
+        <span class="dot" style="${dotStyle(def.color, false)}"></span>${esc(
+        label
+      )}
+      </button>`;
+    }).join("");
+    return `<div class="legend">${chips}</div>`;
+  }
+
+  onChipClick(ev) {
+    // A legend click must not also count as a click on the card, or toggling a
+    // series would open the expanded view every time.
+    if (ev && typeof ev.stopPropagation === "function") ev.stopPropagation();
+    const el = ev.currentTarget;
+    const key = el.getAttribute("data-key");
+    if (!key) return;
+    this.hidden[key] = !this.hidden[key];
+    this.save();
+    this.host.renderForced();
+  }
+}
+
+// ---- The headline row: pure functions of the plan source ------------------
+// The compact stats row under the header -- projected savings, the
+// optimization score with its click-opened breakdown, the first line of the
+// plan narrative -- and its part of the render signature. Everything here is
+// a function of `PlanSource` and the config; the one piece of state, whether
+// the breakdown is open, stays on the card (`_scoreOpen`) with the click
+// handlers that flip it. PR 4a of #136.
+
+/** The headline sensors' contribution to the re-render signature. */
+function headlineSignature(plan, cfg) {
+  if (!cfg.show_stats) return "off";
+  return HEADLINE_SUFFIXES.map((sfx) => {
+    const st = plan.statEntity(sfx);
+    return st ? `${st.state}@${st.last_updated || ""}` : "-";
+  }).join("~");
+}
+
+/** The score sensor's three sub-scores, in display order.
+ *
+ * Read from the same entity the headline number comes from, so the two
+ * can never disagree. A null value is "no evidence yet", never zero --
+ * a fresh install has no grades, not failing ones, and the panel says
+ * so rather than printing 0/100 for something unmeasured.
+ */
+function scoreParts(plan) {
+  const st = plan.statEntity("_optimization_score");
+  const attrs = (st && st.attributes) || {};
+  return [
+    { key: "envelope", label: L("score.label_envelope"), value: finiteScore(attrs.envelope) },
+    { key: "machine", label: L("score.label_machine"), value: finiteScore(attrs.machine) },
+    { key: "operation", label: L("score.label_operation"), value: finiteScore(attrs.operation) },
+  ];
+}
+
+function finiteScore(v) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+/** The click-opened panel: each sub-score, its value, and what it means.
+ *
+ * Rendered under the stats row when the host's `_scoreOpen` is set; the
+ * flag lives on the card instance, so it survives the shadow-root rebuild
+ * that every plan refresh performs.
+ */
+function scoreBreakdownHtml(plan) {
+  const rows = scoreParts(plan)
+    .map((p) => {
+      const value =
+        p.value === null
+          ? `<span class="sb-na">${esc(L("score.no_evidence"))}</span>`
+          : `<span class="sb-val">${Math.round(p.value)}/100</span>`;
+      const bar = p.value === null ? "" : `<span class="sb-bar"><span class="sb-fill" style="width:${Math.max(0, Math.min(100, p.value))}%"></span></span>`;
+      return (
+        `<div class="sb-row" data-part="${p.key}">` +
+        `<div class="sb-head"><span class="sb-name">${esc(p.label)}</span>` +
+        `${bar}${value}</div>` +
+        `<div class="sb-text">${esc(L(`score.part_${p.key}`))}</div>` +
+        `</div>`
+      );
+    })
+    .join("");
+  return `<div class="score-breakdown">${rows}</div>`;
+}
+
+/** The compact stats row under the header, or nothing at all.
+ *
+ * Every part is optional because every source sensor is: the score sensor
+ * is unavailable until enough history exists, the savings sensors null out
+ * between optimizer runs, and old integrations publish none of them. A row
+ * with nothing to say renders no chrome rather than an empty strip.
+ */
+function headlineHtml(plan, cfg, scoreOpen) {
+  if (!cfg.show_stats) return "";
+  const items = [];
+
+  const savings = plan.statNumber("_predicted_savings");
+  if (savings !== null) {
+    const pct = plan.statNumber("_savings_percentage");
+    // The savings sensor declares the unit its value is denominated in;
+    // nothing here converts, so a card-config `currency:` must not relabel
+    // it. `_currency()` only fills in when the sensor declares no unit.
+    const savingsSt = plan.statEntity("_predicted_savings");
+    const unit =
+      (savingsSt &&
+        savingsSt.attributes &&
+        savingsSt.attributes.unit_of_measurement) ||
+      plan.currency();
+    const value =
+      `${savings.toFixed(2)} ${unit}` +
+      (pct !== null
+        ? ` ${L("headline.savings_pct", { pct: pct.toFixed(0) })}`
+        : "");
+    items.push({
+      cls: "savings",
+      title: L("headline.savings_title"),
+      label: L("headline.savings"),
+      value,
+      // D4-06: the baseline qualifier used to live only in the `title`
+      // attribute above -- a hover tooltip, unreachable on touch, which is
+      // most Home Assistant dashboards. A short visible caveat carries the
+      // same claim as plain text; the tooltip stays for the fuller wording.
+      caveat: L("headline.savings_caveat"),
+    });
+  }
+
+  const score = plan.statNumber("_optimization_score");
+  if (score !== null) {
+    // The hover says what the score is; the sub-scores ride the same
+    // sensor's attributes, so the hover can also say what it is MADE OF
+    // -- an owner staring at 5/100 wants to know where the 95 went
+    // before deciding anything.
+    const parts = scoreParts(plan);
+    const breakdown = parts
+      .map(
+        (p) =>
+          `${p.label}: ${
+              p.value === null ? L("score.no_evidence") : `${Math.round(p.value)}/100`
+            }`
+      )
+      .join(" · ");
+    items.push({
+      cls: "score",
+      title:
+        L("headline.score_title") +
+        (breakdown ? `\n${breakdown}` : "") +
+        `\n${L("headline.score_click_hint")}`,
+      label: L("headline.score"),
+      value: `${Math.round(score)}/100`,
+    });
+  }
+
+  // The narrative arrives already rendered in Home Assistant's language
+  // (the coordinator owns those templates), so the first line is shown
+  // verbatim rather than re-keyed here.
+  const narrative = plan.statEntity("_plan_narrative");
+  const lines =
+    narrative && narrative.attributes && narrative.attributes.lines;
+  const line =
+    Array.isArray(lines) && typeof lines[0] === "string" && lines[0]
+      ? lines[0]
+      : null;
+
+  if (!items.length && !line) return "";
+  const stats = items
+    .map(
+      (it) =>
+        // data-stat gives the DOM stub's selector a single-attribute
+        // handle (its matches() knows tag[attr=value], not multi-class)
+        // and costs the real DOM nothing.
+        `<span class="hl-stat hl-${it.cls}" data-stat="${it.cls}" ` +
+        `title="${esc(it.title)}">` +
+        `<span class="hl-label">${esc(it.label)}</span> ` +
+        `<span class="hl-value">${esc(it.value)}</span>` +
+        (it.caveat
+          ? `<span class="hl-caveat">${esc(it.caveat)}</span>`
+          : "") +
+        `</span>`
+    )
+    .join("");
+  return `<div class="headline">
+      ${stats ? `<div class="hl-stats">${stats}</div>` : ""}
+      ${scoreOpen && score !== null ? scoreBreakdownHtml(plan) : ""}
+      ${line ? `<div class="hl-narrative">${esc(line)}</div>` : ""}
+    </div>`;
+}
+
 // ===========================================================================
 // The card element, and the contract its collaborators get.
 //
@@ -4621,6 +4947,7 @@ function sharedTooltipHtml(rows) {
 //   host.shadowRoot            the DOM it renders into
 //   host.plan                  PlanSource: the plan sensors, what they publish
 //   host.view                  ViewWindow: the pan/zoom window over the plan
+//   host.legend                Legend: the series chips and which are hidden
 //   host.geom                  the chart's last geometry (null: no lanes)
 //   host.render()              rebuild, keeping the render signature
 //   host.renderForced()        rebuild and forget it (the next hass redraws)
@@ -4638,10 +4965,10 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // order. Each is handed this element and uses only the host contract.
     this.plan = new PlanSource(this);
     this.view = new ViewWindow(this);
+    this.legend = new Legend(this);
     this._config = null;
     this._hass = null;
     this._sig = null;
-    this._hidden = {}; // key -> true when hidden
     // Whether the score breakdown panel is open (#2). Instance state, not
     // DOM state, so it survives the shadow-root rebuild every refresh does.
     this._scoreOpen = false;
@@ -4711,7 +5038,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
     this._onLayoutMove = this._onLayoutMove.bind(this);
     this._onLayoutUp = this._onLayoutUp.bind(this);
     this._onLayoutClick = this._onLayoutClick.bind(this);
-    this._onLegendClick = this._onLegendClick.bind(this);
     this._onPointerMove = this._onPointerMove.bind(this);
     this._onPointerLeave = this._onPointerLeave.bind(this);
     this._onCardClick = this._onCardClick.bind(this);
@@ -4773,7 +5099,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     }
 
     this._config = cfg;
-    this._hidden = this._loadHidden(cfg);
+    this.legend.hidden = this.legend.load(cfg);
     this._sig = null; // force re-render on next hass
     if (this._hass) this._maybeRender(true);
   }
@@ -4884,66 +5210,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
 
   // ---- persistence -------------------------------------------------------
 
-  // Two cards can plot the same entities — a 24 h card on the wall panel
-  // dashboard and a 48 h card with its own title on another — so the key
-  // carries the card's config identity (title + hours), not just its data
-  // sources. Otherwise a series toggled off on one card silently disappears
-  // from the other.
-  _storageKey(cfg) {
-    const title = cfg.title !== undefined ? cfg.title : "";
-    return `${CARD_TAG}:${cfg.space_entity}:${cfg.dhw_entity}:${title}:${cfg.hours}`;
-  }
-
-  /** The pre-v4.2.0 key, read as a fallback so an upgrade does not silently
-   * drop every saved series toggle. Writes always go to the new key. */
-  _storageKeyLegacy(cfg) {
-    return `${CARD_TAG}:${cfg.space_entity}:${cfg.dhw_entity}`;
-  }
-
-  _loadHidden(cfg) {
-    const hidden = {};
-    // Config-provided initial visibility (false => hidden).
-    if (cfg.series) {
-      for (const [k, v] of Object.entries(cfg.series)) {
-        if (v === false) hidden[k] = true;
-      }
-    }
-    // localStorage overrides config so user toggles survive reloads.
-    try {
-      if (typeof localStorage !== "undefined") {
-        const raw =
-          localStorage.getItem(this._storageKey(cfg)) ||
-          localStorage.getItem(this._storageKeyLegacy(cfg));
-        if (raw) {
-          const saved = JSON.parse(raw);
-          if (saved && typeof saved === "object") {
-            for (const s of SERIES_DEFS) {
-              if (typeof saved[s.key] === "boolean") {
-                hidden[s.key] = saved[s.key];
-              }
-            }
-          }
-        }
-      }
-    } catch (e) {
-      /* ignore malformed storage */
-    }
-    return hidden;
-  }
-
-  _saveHidden() {
-    try {
-      if (typeof localStorage !== "undefined" && this._config) {
-        localStorage.setItem(
-          this._storageKey(this._config),
-          JSON.stringify(this._hidden)
-        );
-      }
-    } catch (e) {
-      /* ignore quota / disabled storage */
-    }
-  }
-
   // ---- data extraction ---------------------------------------------------
 
   _signature() {
@@ -4971,24 +5237,15 @@ class HeatpumpOptimizerCard extends HTMLElement {
       spFc ? spFc.length : -1,
       dhwFc ? dhwFc.length : -1,
       solarFc ? solarFc.length : -1,
-      JSON.stringify(this._hidden),
+      this.legend.signature(),
       // A language switch or a currency change redraws text without any
       // plan data changing, so both belong in the signature.
       ACTIVE_LANG,
       this.plan.currency(),
       // The headline reads its own sensors; leaving them out would freeze
       // the row at whatever the first render saw.
-      this._headlineSignature(),
+      headlineSignature(this.plan, this._config),
     ].join("|");
-  }
-
-  /** The headline sensors' contribution to the re-render signature. */
-  _headlineSignature() {
-    if (!this._config.show_stats) return "off";
-    return HEADLINE_SUFFIXES.map((sfx) => {
-      const st = this.plan.statEntity(sfx);
-      return st ? `${st.state}@${st.last_updated || ""}` : "-";
-    }).join("~");
   }
 
   _maybeRender(force) {
@@ -5043,156 +5300,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
 
   // ---- headline stats ----------------------------------------------------
 
-  /** The compact stats row under the header, or nothing at all.
-   *
-   * Every part is optional because every source sensor is: the score sensor
-   * is unavailable until enough history exists, the savings sensors null out
-   * between optimizer runs, and old integrations publish none of them. A row
-   * with nothing to say renders no chrome rather than an empty strip.
-   */
-  _headlineHtml() {
-    if (!this._config.show_stats) return "";
-    const items = [];
-
-    const savings = this.plan.statNumber("_predicted_savings");
-    if (savings !== null) {
-      const pct = this.plan.statNumber("_savings_percentage");
-      // The savings sensor declares the unit its value is denominated in;
-      // nothing here converts, so a card-config `currency:` must not relabel
-      // it. `_currency()` only fills in when the sensor declares no unit.
-      const savingsSt = this.plan.statEntity("_predicted_savings");
-      const unit =
-        (savingsSt &&
-          savingsSt.attributes &&
-          savingsSt.attributes.unit_of_measurement) ||
-        this.plan.currency();
-      const value =
-        `${savings.toFixed(2)} ${unit}` +
-        (pct !== null
-          ? ` ${L("headline.savings_pct", { pct: pct.toFixed(0) })}`
-          : "");
-      items.push({
-        cls: "savings",
-        title: L("headline.savings_title"),
-        label: L("headline.savings"),
-        value,
-        // D4-06: the baseline qualifier used to live only in the `title`
-        // attribute above -- a hover tooltip, unreachable on touch, which is
-        // most Home Assistant dashboards. A short visible caveat carries the
-        // same claim as plain text; the tooltip stays for the fuller wording.
-        caveat: L("headline.savings_caveat"),
-      });
-    }
-
-    const score = this.plan.statNumber("_optimization_score");
-    if (score !== null) {
-      // The hover says what the score is; the sub-scores ride the same
-      // sensor's attributes, so the hover can also say what it is MADE OF
-      // -- an owner staring at 5/100 wants to know where the 95 went
-      // before deciding anything.
-      const parts = this._scoreParts();
-      const breakdown = parts
-        .map(
-          (p) =>
-            `${p.label}: ${
-              p.value === null ? L("score.no_evidence") : `${Math.round(p.value)}/100`
-            }`
-        )
-        .join(" · ");
-      items.push({
-        cls: "score",
-        title:
-          L("headline.score_title") +
-          (breakdown ? `\n${breakdown}` : "") +
-          `\n${L("headline.score_click_hint")}`,
-        label: L("headline.score"),
-        value: `${Math.round(score)}/100`,
-      });
-    }
-
-    // The narrative arrives already rendered in Home Assistant's language
-    // (the coordinator owns those templates), so the first line is shown
-    // verbatim rather than re-keyed here.
-    const narrative = this.plan.statEntity("_plan_narrative");
-    const lines =
-      narrative && narrative.attributes && narrative.attributes.lines;
-    const line =
-      Array.isArray(lines) && typeof lines[0] === "string" && lines[0]
-        ? lines[0]
-        : null;
-
-    if (!items.length && !line) return "";
-    const stats = items
-      .map(
-        (it) =>
-          // data-stat gives the DOM stub's selector a single-attribute
-          // handle (its matches() knows tag[attr=value], not multi-class)
-          // and costs the real DOM nothing.
-          `<span class="hl-stat hl-${it.cls}" data-stat="${it.cls}" ` +
-          `title="${esc(it.title)}">` +
-          `<span class="hl-label">${esc(it.label)}</span> ` +
-          `<span class="hl-value">${esc(it.value)}</span>` +
-          (it.caveat
-            ? `<span class="hl-caveat">${esc(it.caveat)}</span>`
-            : "") +
-          `</span>`
-      )
-      .join("");
-    return `<div class="headline">
-      ${stats ? `<div class="hl-stats">${stats}</div>` : ""}
-      ${this._scoreOpen && score !== null ? this._scoreBreakdownHtml() : ""}
-      ${line ? `<div class="hl-narrative">${esc(line)}</div>` : ""}
-    </div>`;
-  }
-
-  /** The score sensor's three sub-scores, in display order.
-   *
-   * Read from the same entity the headline number comes from, so the two
-   * can never disagree. A null value is "no evidence yet", never zero --
-   * a fresh install has no grades, not failing ones, and the panel says
-   * so rather than printing 0/100 for something unmeasured.
-   */
-  _scoreParts() {
-    const st = this.plan.statEntity("_optimization_score");
-    const attrs = (st && st.attributes) || {};
-    return [
-      { key: "envelope", label: L("score.label_envelope"), value: this._finiteScore(attrs.envelope) },
-      { key: "machine", label: L("score.label_machine"), value: this._finiteScore(attrs.machine) },
-      { key: "operation", label: L("score.label_operation"), value: this._finiteScore(attrs.operation) },
-    ];
-  }
-
-  _finiteScore(v) {
-    const n = Number(v);
-    return Number.isFinite(n) ? n : null;
-  }
-
-  /** The click-opened panel: each sub-score, its value, and what it means.
-   *
-   * Rendered under the stats row when `this._scoreOpen` is set; the flag
-   * lives on the instance, so it survives the shadow-root rebuild that
-   * every plan refresh performs.
-   */
-  _scoreBreakdownHtml() {
-    const rows = this._scoreParts()
-      .map((p) => {
-        const value =
-          p.value === null
-            ? `<span class="sb-na">${esc(L("score.no_evidence"))}</span>`
-            : `<span class="sb-val">${Math.round(p.value)}/100</span>`;
-        const bar = p.value === null ? "" : `<span class="sb-bar"><span class="sb-fill" style="width:${Math.max(0, Math.min(100, p.value))}%"></span></span>`;
-        return (
-          `<div class="sb-row" data-part="${p.key}">` +
-          `<div class="sb-head"><span class="sb-name">${esc(p.label)}</span>` +
-          `${bar}${value}</div>` +
-          `<div class="sb-text">${esc(L(`score.part_${p.key}`))}</div>` +
-          `</div>`
-        );
-      })
-      .join("");
-    return `<div class="score-breakdown">${rows}</div>`;
-  }
-
   _render() {
     // Before anything else: the rebuild below destroys the slot menu's
     // element but not the Escape listener it parked on the document.
@@ -5209,7 +5316,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     const anyData = this._series.some((s) => s.hasData);
 
     const style = cardStyleBlock();
-    const legend = this._legendHtml();
+    const legend = this.legend.html(this._series);
 
     // The setup page is drawn from configuration alone: `sensor.py` publishes
     // `setup_topology` with no plan at all, saying so in as many words --
@@ -5263,7 +5370,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
               : ""
           }
         </div>
-        ${this._headlineHtml()}
+        ${headlineHtml(this.plan, this._config, this._scoreOpen)}
         ${legend}
         ${body}
       </ha-card>
@@ -5385,7 +5492,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
           <button type="button" class="close" title="${esc(L("header.close"))}"
             aria-label="${esc(L("header.close"))}">${CLOSE_ICON}</button>
         </div>
-        ${page === "plan" && anyData ? this._legendHtml() : ""}
+        ${page === "plan" && anyData ? this.legend.html(this._series) : ""}
         <div class="dlg-body">
           ${body}
         </div>
@@ -7169,9 +7276,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
 
   /** Wire hover and legend handling for every chart in a root. */
   _attachChartEvents(root) {
-    root
-      .querySelectorAll(".chip")
-      .forEach((el) => el.addEventListener("click", this._onLegendClick));
+    this.legend.attach(root);
 
     chartSvgs(root).forEach((svg) => {
       svg.addEventListener("mousemove", this._onPointerMove);
@@ -7236,64 +7341,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
     if (body && this._dialogScroll) body.scrollTop = this._dialogScroll;
   }
 
-
-  _legendHtml() {
-    const isLowerModelled = () => this.plan.lowerFloorModelled();
-    const chips = SERIES_DEFS.map((def) => {
-      const s = this._series.find((x) => x.key === def.key);
-      const hasData = s ? s.hasData : false;
-      const hidden = !!this._hidden[def.key];
-      const cls = "chip" + (hidden ? " off" : "") + (hasData ? "" : " nodata");
-      const label = L(def.labelKey);
-      // One chip per series, never one per rendered line.
-      //
-      // v5.1.7 gave every trace of a multi-line series its own chip so the
-      // house-temperature zones could be named. Every chip carries the
-      // series' `data-key`, because per-line visibility does not exist — so
-      // that series showed three chips in one colour, any of which hid all
-      // three lines at once. Three controls doing one job is worse than one,
-      // so the naming stays where it points at a single trace: the tooltip
-      // has a row per line, and the chip's title lists what else rides on
-      // the line it toggles.
-      //
-      // The chip now stands for the series rather than for its primary
-      // trace, which also settles a case the per-line version got wrong:
-      // with the primary field absent but the extras present, a solid
-      // "House temperature" chip was emitted for a line nothing drew.
-      //
-      // v5.2.0 enumerates them with `_extraFields`, not `lines`: a hole now
-      // splits one field into several drawn paths, and a confidence band's
-      // two edges are one envelope with one name. Listing `lines` here would
-      // print "Lower floor, Lower floor, Lower floor" — saying a thing three
-      // times, in the title written to stop saying it twice.
-      const extras = extraFields(s);
-      const unit = this.plan.seriesUnit(def);
-      // ... and any sentence a trace needs beyond its name rides along
-      // after them. Only the expected-error band has one: "Upper floor"
-      // explains itself, a dashed pair hugging the tank curve does not, and
-      // this title is now the one place a puzzled reader can look.
-      const notes = extras
-        .map((line) => lineNote(def, line))
-        .filter(Boolean)
-        .map((note) => " " + note)
-        .join("");
-      const title = extras.length
-        ? L("legend.multi_trace_title", {
-            label,
-            unit,
-            names: extras.map((line) => lineLabel(def, line, isLowerModelled)).join(", "),
-          }) + notes
-        : `${label} (${unit})`;
-      return `<button type="button" class="${cls}" data-key="${
-        def.key
-      }" title="${esc(title)}">
-        <span class="dot" style="${dotStyle(def.color, false)}"></span>${esc(
-        label
-      )}
-      </button>`;
-    }).join("");
-    return `<div class="legend">${chips}</div>`;
-  }
 
   /** The right-click menu for a lane.
    *
@@ -8103,18 +8150,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
 
   // ---- interaction -------------------------------------------------------
 
-  _onLegendClick(ev) {
-    // A legend click must not also count as a click on the card, or toggling a
-    // series would open the expanded view every time.
-    if (ev && typeof ev.stopPropagation === "function") ev.stopPropagation();
-    const el = ev.currentTarget;
-    const key = el.getAttribute("data-key");
-    if (!key) return;
-    this._hidden[key] = !this._hidden[key];
-    this._saveHidden();
-    this.renderForced();
-  }
-
   _onCardClick(ev) {
     // Ignore clicks that a control has already handled, and text selection.
     if (ev && ev.defaultPrevented) return;
@@ -8329,7 +8364,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
       spFc, dhwFc, solarFc,
       windowStart: view.start,
       windowEnd: view.end,
-      hidden: this._hidden,
+      hidden: this.legend.hidden,
       zoomed: this.view.zoomed,
     });
   }
@@ -8475,6 +8510,31 @@ class HeatpumpOptimizerCard extends HTMLElement {
   }
   _sharedTooltipHtml(rows) {
     return sharedTooltipHtml(rows);
+  }
+
+  get _hidden() {
+    return this.legend.hidden;
+  }
+  set _hidden(v) {
+    this.legend.hidden = v;
+  }
+  _storageKey(cfg) {
+    return this.legend.storageKey(cfg);
+  }
+  _storageKeyLegacy(cfg) {
+    return this.legend.storageKeyLegacy(cfg);
+  }
+  _loadHidden(cfg) {
+    return this.legend.load(cfg);
+  }
+  _saveHidden() {
+    return this.legend.save();
+  }
+  _legendHtml() {
+    return this.legend.html(this._series);
+  }
+  _onLegendClick(ev) {
+    return this.legend.onChipClick(ev);
   }
 
 }
