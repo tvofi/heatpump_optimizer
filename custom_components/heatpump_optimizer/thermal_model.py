@@ -1101,6 +1101,39 @@ def wood_share(
     return min(1.0, max(0.0, (wood_temp - hp_temp) / max(margin, 1e-6)))
 
 
+def _wood_share_vec(
+    wood_temp: np.ndarray,
+    hp_temp: np.ndarray,
+    flow_set: float,
+    floor_temp: np.ndarray,
+    margin: float = WOOD_TANK_MIN_MARGIN,
+) -> np.ndarray:
+    """``wood_share`` element-wise for the batched trajectory (issue #97).
+
+    The three regions are disjoint, so every element's value comes from
+    exactly one region's formula -- computed on guarded denominators and
+    selected with ``np.where``, which is bitwise-faithful to the scalar
+    law for each element (the guard never touches the region that
+    element actually lands in).
+    """
+    r1 = wood_temp >= flow_set
+    r2 = (~r1) & (hp_temp > flow_set)
+    # Region 2: the maximum-wood blend. span is per element (floor_temp
+    # varies across the batch), guarded so the division never sees the
+    # denominator of a region this element is not in.
+    denom2 = np.where(r2, hp_temp - wood_temp, 1.0)
+    f_w = np.where(r2, (hp_temp - flow_set) / denom2, 0.0)
+    useful = np.maximum(0.0, wood_temp - floor_temp)
+    span = np.maximum(flow_set - floor_temp, 1e-6)
+    v2 = np.minimum(1.0, np.maximum(0.0, f_w * useful / span))
+    # Region 3: the smooth switch to the hotter source.
+    v3 = np.minimum(
+        1.0,
+        np.maximum(0.0, (wood_temp - hp_temp) / max(margin, 1e-6)),
+    )
+    return np.where(r1, 1.0, np.where(r2, v2, v3))
+
+
 def dhw_coil_draw_reduction(
     draw_kw: float,
     wood_temp: float,
@@ -2176,6 +2209,377 @@ class ThermalModel:
         self.last_buffer_refused = buffer_refused
         self.last_wood_trajectory = wood_temps
         return room_temps, slab_temps, upper_temps, lower_temps
+
+    def simulate_trajectory_batch(
+        self,
+        initial_state: ThermalState,
+        power_matrix: np.ndarray,
+        outdoor_temps: np.ndarray,
+        wind_speeds: np.ndarray | None = None,
+        precipitation: np.ndarray | None = None,
+        solar_radiation: np.ndarray | None = None,
+        dt_hours: float = 0.25,
+        external_heat_kw: np.ndarray | None = None,
+        valve_targets: np.ndarray | None = None,
+        humidity: np.ndarray | None = None,
+        start_hour: float | None = None,
+    ) -> dict[str, np.ndarray]:
+        """Simulate B trajectories at once: ``power_matrix`` is [B, n].
+
+        The vectorized twin of ``simulate_trajectory``, built for the
+        solver's finite-difference gradient (issue #97): the 97 perturbed
+        schedules a gradient costs are simulated as one batch, cutting the
+        gradient's simulation cost from 97 sequential scalar loops to one
+        vectorized one.
+
+        **Bitwise parity is the contract.** Every row must equal what the
+        scalar path produces for the same schedule, to the last bit -- the
+        solver's iterates depend on it, and the equivalence harness in
+        tests/features.py plus the drift gate hold it. The rules that make
+        that true: ``min``/``max`` become ``np.minimum``/``np.maximum``
+        (IEEE-identical for the finite values states carry), branch
+        conditionals become ``np.where`` selections of already-computed
+        values (never re-associated arithmetic), and every expression keeps
+        the scalar code's exact operation order -- the comments in the
+        two-zone step about division-vs-reciprocal ulps apply here doubly.
+
+        Returns dict of arrays shaped [B, n+1]: room, slab, upper, lower,
+        buffer, wood (None when not modelled), plus refused [B, n].
+        """
+        p = self.params
+        power_matrix = np.asarray(power_matrix, dtype=float)
+        n_steps = power_matrix.shape[1]
+        if wind_speeds is None:
+            wind_speeds = np.zeros(n_steps)
+        if precipitation is None:
+            precipitation = np.zeros(n_steps)
+        if solar_radiation is None:
+            solar_radiation = np.zeros(n_steps)
+
+        room = np.zeros((power_matrix.shape[0], n_steps + 1))
+        slab = np.zeros_like(room)
+        upper = np.zeros_like(room)
+        lower = np.zeros_like(room)
+        buf = np.zeros_like(room)
+        refused = np.zeros((power_matrix.shape[0], n_steps))
+        wood = None
+        if initial_state.wood_tank_temperature is not None:
+            wood = np.zeros_like(room)
+            wood[:, 0] = initial_state.wood_tank_temperature
+        room[:, 0] = initial_state.room_temperature
+        slab[:, 0] = initial_state.slab_temperature
+        upper[:, 0] = initial_state.upper_floor_temperature
+        lower[:, 0] = initial_state.lower_floor_temperature
+        buf[:, 0] = initial_state.buffer_tank_temperature
+
+        throttled = mixing_valve.is_throttling(p.mixing_valve_mode)
+        # Uniform across the batch by construction: every row shares the
+        # initial state, so the wood probe's presence cannot vary per row.
+        two_tank = (
+            throttled
+            and p.two_tank_modelled
+            and initial_state.wood_tank_temperature is not None
+        )
+        hours_matter = (
+            start_hour is not None and p.internal_gains_profile is not None
+        )
+        # Configuration constants hoisted out of the step (uniform per batch).
+        C_buf = p.buffer_tank_thermal_mass
+        if C_buf < 1e-6:
+            C_buf = 0.04
+        C_buf_div = max(C_buf, 0.01)
+        rad_fraction = p.radiator_power_fraction
+        area_ratio = p.upper_floor_area_ratio
+        q_internal_upper_base = None
+        # Two-zone valve geometry: uniform per batch.
+        if p.two_zone_enabled and throttled:
+            design_power = p.max_electrical_power * max(p.cop_nominal, 1.0)
+            design_dt = max(p.emitter_design_delta_t, 1.0)
+            ua_rad = rad_fraction * design_power / design_dt
+            ua_floor = (1.0 - rad_fraction) * design_power / design_dt
+        if two_tank:
+            C_w = p.wood_tank_thermal_mass
+            C_w_div = max(C_w, 0.01)
+
+        T_upper = upper[:, 0].copy()
+        T_lower = lower[:, 0].copy()
+        T_slab = slab[:, 0].copy()
+        T_buf = buf[:, 0].copy()
+        T_wood = wood[:, 0].copy() if wood is not None else None
+
+        for i in range(n_steps):
+            out_i = outdoor_temps[i]
+            wind_i = float(wind_speeds[i])
+            rain_i = float(precipitation[i])
+            sol_i = float(solar_radiation[i])
+            power_i = power_matrix[:, i]
+            ext_i = (
+                float(external_heat_kw[i])
+                if external_heat_kw is not None
+                else 0.0
+            )
+            ext = np.maximum(0.0, ext_i)
+            hum_i = float(humidity[i]) if humidity is not None else None
+            hour_i = (
+                (start_hour + i * dt_hours) % 24.0
+                if hours_matter
+                else None
+            )
+
+            n_sub = self._stability_substeps(wind_i, rain_i, dt_hours)
+            # Uniform across the batch: substeps depend on weather and
+            # dt only. The scalar path subdivides the same way; the
+            # refused figure averages over substeps exactly as it does.
+            refused_acc = np.zeros_like(buf[:, 0])
+            for _sub in range(n_sub):
+                dt = dt_hours / n_sub
+                if p.two_zone_enabled:
+                    u_upper = self.effective_heat_loss_coefficient(
+                        p.upper_floor_heat_loss, wind_i, rain_i
+                    )
+                    u_lower = self.effective_heat_loss_coefficient(
+                        p.lower_floor_heat_loss_learned, wind_i * 0.5, rain_i * 0.5
+                    )
+                    q_solar_upper, q_solar_lower = self.solar_gain_per_zone(sol_i)
+                    q_internal = (
+                        self.internal_gains_at(hour_i)
+                        if hour_i is not None
+                        else p.internal_gains
+                    )
+                    q_int_up = q_internal * area_ratio
+                    q_int_lo = q_internal * (1.0 - area_ratio)
+                    q_buf_loss = p.buffer_tank_heat_loss_coefficient * (
+                        T_buf - 20.0
+                    )
+                    # COP: only the flow-temp correction varies per element.
+                    # The scalar path computes cop = nameplate*factor*scale
+                    # [*derate] [*carnot]; replicate the exact order with the
+                    # per-element carnot factor applied where the scalar does.
+                    delta = out_i - p.cop_reference_temp
+                    factor = max(0.3, 1.0 + 0.025 * delta)
+                    cop = p.cop_nominal * min(factor, 1.5) * p.cop_scale
+                    derate = p.defrost_derate
+                    if derate is not None:
+                        if hum_i is not None and not np.isfinite(hum_i):
+                            hum_i = None
+                        if hum_i is None:
+                            hum_i = p.ambient_humidity
+                        cop = cop * derate.factor(out_i, hum_i)
+                    if throttled and p.cop_flow_carnot:
+                        ref = p.cop_flow_reference_temp
+                        t_out = out_i + 273.15
+                        carnot_flow = (T_buf + 273.15) / np.maximum(
+                            T_buf + 273.15 - t_out, 1.0
+                        )
+                        carnot_ref = (ref + 273.15) / max(ref + 273.15 - t_out, 1.0)
+                        if carnot_ref > 1e-9:
+                            # The scalar applies the lift cost only ABOVE the
+                            # reference flow temperature; below it the term is
+                            # skipped, not clipped -- a below-ref tank must not
+                            # earn a COP boost it never gets.
+                            carnot_mult = np.where(
+                                T_buf > ref,
+                                np.maximum(0.25, carnot_flow / carnot_ref),
+                                1.0,
+                            )
+                            cop = cop * carnot_mult
+                    cop = np.maximum(cop, 0.5)
+                    thermal_power = (
+                        cop * power_i + (0.0 if two_tank else ext)
+                    )
+                    if throttled:
+                        target = (
+                            float(valve_targets[i])
+                            if valve_targets is not None
+                            else (p.mixing_valve_target or p.comfort_ceiling)
+                        )
+                        flow_set = mixing_valve.flow_setpoint(
+                            target_temp=target,
+                            outdoor_temp=out_i,
+                            heat_loss_coefficient=u_upper + u_lower,
+                            emitter_ua=ua_rad + ua_floor,
+                        )
+                        supply = (
+                            np.maximum(T_wood, T_buf) if two_tank else T_buf
+                        )
+                        t_mix = np.minimum(supply, flow_set)
+                        q_rad = np.maximum(0.0, ua_rad * (t_mix - T_upper))
+                        q_floor = np.maximum(
+                            0.0,
+                            ua_floor
+                            * ((T_buf if p.slab_fed_direct else t_mix) - T_slab),
+                        )
+                        floor_temp = np.minimum(T_upper, T_slab)
+                        drawn = q_rad + q_floor
+                        if two_tank:
+                            q_wood_loss = p.wood_tank_heat_loss_coefficient * (
+                                T_wood - 20.0
+                            )
+                            w = _wood_share_vec(
+                                T_wood, T_buf, flow_set, floor_temp
+                            )
+                            avail_wood = ext - q_wood_loss + C_w * np.maximum(
+                                0.0, T_wood - floor_temp
+                            ) / max(dt, 1e-6)
+                            avail_hp = (
+                                thermal_power
+                                - q_buf_loss
+                                + C_buf
+                                * np.maximum(0.0, T_buf - floor_temp)
+                                / max(dt, 1e-6)
+                            )
+                            wood_draw = np.minimum(
+                                w * drawn, np.maximum(avail_wood, 0.0)
+                            )
+                            hp_draw = np.minimum(
+                                drawn - wood_draw, np.maximum(avail_hp, 0.0)
+                            )
+                            delivered = wood_draw + hp_draw
+                        else:
+                            available = (
+                                thermal_power
+                                - q_buf_loss
+                                + C_buf
+                                * np.maximum(0.0, T_buf - floor_temp)
+                                / max(dt, 1e-6)
+                            )
+                            delivered = np.minimum(
+                                drawn, np.maximum(available, 0.0)
+                            )
+                        # The scalar three-way branch, as multiplicative
+                        # selectors on already-computed values: bit-identical
+                        # in every arm (q*scale, q*1.0, or 0.0 exactly). The
+                        # division guards drawn==0 -- np.where evaluates both
+                        # arms, and an unguarded 0/0 NaN would poison states
+                        # through the subsequent multiplications.
+                        cond_scale = (drawn > delivered) & (delivered > 0.0)
+                        drawn_safe = np.where(drawn > 0.0, drawn, 1.0)
+                        scale = np.where(cond_scale, delivered / drawn_safe, 1.0)
+                        zero = np.where(delivered <= 0.0, 0.0, 1.0)
+                        q_rad = q_rad * scale * zero
+                        q_floor = q_floor * scale * zero
+                    else:
+                        q_rad = rad_fraction * thermal_power
+                        q_floor = (1.0 - rad_fraction) * thermal_power
+
+                    if two_tank:
+                        # One expression, exactly as the scalar step writes it:
+                        # the wood_draw joins the numerator before the division,
+                        # never as a separate add of quotients -- that
+                        # re-association is a different float (the ulp class the
+                        # scalar comment here warns about).
+                        dT_buf = (
+                            thermal_power
+                            - q_rad
+                            - q_floor
+                            - q_buf_loss
+                            + wood_draw
+                        ) / C_buf_div
+                        dT_wood = (ext - wood_draw - q_wood_loss) / C_w_div
+                        dT_wood_cap = np.maximum(
+                            0.0, WOOD_TANK_MAX_TEMP - T_wood
+                        ) / max(dt, 1e-6)
+                        T_wood = T_wood + np.minimum(
+                            dT_wood, dT_wood_cap
+                        ) * dt
+                    else:
+                        dT_buf = (
+                            thermal_power - q_rad - q_floor - q_buf_loss
+                        ) / C_buf_div
+                    pass  # refused handled after the substep below
+                    if throttled:
+                        dT_cap = np.maximum(
+                            0.0, p.buffer_max_temp - T_buf
+                        ) / max(dt, 1e-6)
+                        over = dT_buf > dT_cap
+                        # Accumulated per substep, averaged at record time --
+                        # exactly the scalar path's refused += / n_sub.
+                        refused_acc = refused_acc + np.where(
+                            over, (dT_buf - dT_cap) * C_buf_div, 0.0
+                        )
+                        dT_buf = np.where(over, dT_cap, dT_buf)
+
+                    q_slab_to_lower = p.slab_heat_transfer * (T_slab - T_lower)
+                    dT_slab = (
+                        q_floor - q_slab_to_lower
+                    ) / p.slab_thermal_mass
+                    q_inter = p.inter_zone_transfer * (T_lower - T_upper)
+                    q_loss_upper = u_upper * (T_upper - out_i)
+                    dT_upper = (
+                        q_rad - q_loss_upper + q_inter + q_solar_upper + q_int_up
+                    ) / p.upper_floor_thermal_mass
+                    q_loss_lower = u_lower * (T_lower - out_i)
+                    dT_lower = (
+                        q_slab_to_lower
+                        - q_loss_lower
+                        - q_inter
+                        + q_solar_lower
+                        + q_int_lo
+                    ) / p.lower_floor_thermal_mass
+                    T_upper = T_upper + dT_upper * dt
+                    T_lower = T_lower + dT_lower * dt
+                    T_slab = T_slab + dT_slab * dt
+                    T_buf = T_buf + dT_buf * dt
+                    avg_room = T_upper * area_ratio + T_lower * (1.0 - area_ratio)
+                    room[:, i + 1] = avg_room
+                    slab[:, i + 1] = T_slab
+                    upper[:, i + 1] = T_upper
+                    lower[:, i + 1] = T_lower
+                    buf[:, i + 1] = T_buf
+                    if wood is not None:
+                        wood[:, i + 1] = T_wood
+                    refused[:, i] = refused_acc / n_sub
+                else:
+                    # Single-zone twin of _simulate_step_single. The room is
+                    # its own state here (upper/lower are set to it by the
+                    # scalar step), so it carries its own initial value --
+                    # starting it from the upper-floor field is the classic
+                    # parity bug when the two differ in the initial state.
+                    if i == 0:
+                        T_room = initial_state.room_temperature
+                    delta = out_i - p.cop_reference_temp
+                    factor = max(0.3, 1.0 + 0.025 * delta)
+                    cop = p.cop_nominal * min(factor, 1.5) * p.cop_scale
+                    derate = p.defrost_derate
+                    if derate is not None:
+                        if hum_i is not None and not np.isfinite(hum_i):
+                            hum_i = None
+                        if hum_i is None:
+                            hum_i = p.ambient_humidity
+                        cop = cop * derate.factor(out_i, hum_i)
+                    cop = np.maximum(cop, 0.5)
+                    thermal_power = cop * power_i + ext
+                    u_eff = self.effective_heat_loss_coefficient(
+                        p.heat_loss_coefficient, wind_i, rain_i
+                    )
+                    q_slab_to_room = p.slab_heat_transfer * (T_slab - T_room)
+                    q_loss = u_eff * (T_room - out_i)
+                    q_internal = (
+                        self.internal_gains_at(hour_i)
+                        if hour_i is not None
+                        else p.internal_gains
+                    )
+                    q_solar = self.compute_solar_gain(sol_i)
+                    dT_room = (
+                        q_slab_to_room - q_loss + q_internal + q_solar
+                    ) / p.room_thermal_mass
+                    dT_slab = (
+                        thermal_power - q_slab_to_room
+                    ) / p.slab_thermal_mass
+                    T_room = T_room + dT_room * dt_hours
+                    T_slab = T_slab + dT_slab * dt_hours
+                    room[:, i + 1] = T_room
+                    slab[:, i + 1] = T_slab
+                    upper[:, i + 1] = T_room
+                    lower[:, i + 1] = T_room
+                    buf[:, i + 1] = T_buf
+                    if wood is not None:
+                        wood[:, i + 1] = T_wood
+
+        return {
+            "room": room, "slab": slab, "upper": upper, "lower": lower,
+            "buffer": buf, "wood": wood, "refused": refused,
+        }
 
     def simulate_trajectory_with_dhw(
         self,
