@@ -218,6 +218,12 @@ protocol methods. The `disconnectedCallback` sequence is preserved exactly
    float digits change), do not reorder attach calls, do not swap
    `undefined` sentinels (`_dialogPage === undefined` is load-bearing), do
    not route auto-pan through rAF.
+   A method that becomes a module function loses one level of indentation
+   -- on its CODE lines only. The continuation lines of a multi-line
+   template literal are string content, and their leading spaces are part of
+   the rendered markup; re-indenting them is a behaviour change the gate
+   catches only in a state that renders that markup (PR 3 learned this from
+   the shared-step band, and added the state).
 2. **Seams.** Every moved method leaves a one-line same-named `_` delegate on
    the host; every moved field that `tests/card.mjs` reads *or writes* gets
    a `get _x()` / `set _x(v)` accessor pair on the host (fields tests write:
