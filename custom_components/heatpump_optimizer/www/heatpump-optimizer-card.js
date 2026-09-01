@@ -11,7 +11,7 @@
 
 const CARD_TAG = "heatpump-optimizer-card";
 const EDITOR_TAG = "heatpump-optimizer-card-editor";
-const CARD_VERSION = "5.4.15";
+const CARD_VERSION = "5.4.16";
 
 // The de-duplication key `_extraFields` files a confidence band's two
 // edges under, so the pair counts as the one named trace it is. A Symbol
@@ -3494,10 +3494,14 @@ class PlanSource {
     return fc;
   }
 
+  /** A channel's forecast, or [] -- the same reading `forecast` gives
+   * (#139): an unavailable or unknown sensor has no forecast, whatever its
+   * attribute still holds, and a forecast published as a JSON string is a
+   * forecast. The lanes, the edit bounds, the cost delta and the apply
+   * payload used to read the attribute raw, so a sensor that had gone
+   * unavailable was "no plan" to the chart and "a plan" to the editor. */
   forecastOf(channel) {
-    const st = this.stateOf(this.resolveEntity(channel));
-    const fc = ((st && st.attributes) || {}).forecast;
-    return Array.isArray(fc) ? fc : [];
+    return this.forecast(this.resolveEntity(channel)) || [];
   }
 
   attr(name, fallback) {
