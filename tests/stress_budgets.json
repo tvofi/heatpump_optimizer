@@ -1,0 +1,158 @@
+{
+ "flat/1z/dhw": {
+  "ratio": 19.62
+ },
+ "flat/1z/space": {
+  "ratio": 15.88
+ },
+ "flat/2z/dhw": {
+  "ratio": 53.26
+ },
+ "flat/2z/space": {
+  "ratio": 52.47
+ },
+ "heavy_old/shoulder": {
+  "ratio": 34.49
+ },
+ "heavy_old/winter": {
+  "ratio": 27.82
+ },
+ "light_new/shoulder": {
+  "ratio": 9.13
+ },
+ "light_new/winter": {
+  "ratio": 21.97
+ },
+ "shoulder/1z/dhw": {
+  "ratio": 17.21
+ },
+ "shoulder/1z/space": {
+  "ratio": 26.74
+ },
+ "shoulder/2z/dhw": {
+  "ratio": 51.83
+ },
+ "shoulder/2z/space": {
+  "ratio": 38.05
+ },
+ "shoulder/cycle": {
+  "ratio": 70.02
+ },
+ "shoulder/pv": {
+  "ratio": 69.62
+ },
+ "shoulder/pv+cycle": {
+  "ratio": 150.33,
+  "rss_peak_mb": 93.2,
+  "traced_peak_mb": 1.83
+ },
+ "shoulder/tariff": {
+  "ratio": 69.4
+ },
+ "shoulder/tariff+cycle": {
+  "ratio": 105.75,
+  "rss_peak_mb": 94.3,
+  "traced_peak_mb": 1.83
+ },
+ "shoulder/tariff+pv": {
+  "ratio": 175.17,
+  "rss_peak_mb": 87.5,
+  "traced_peak_mb": 1.83
+ },
+ "shoulder/tariff+pv+cycle": {
+  "ratio": 254.74,
+  "rss_peak_mb": 92.5,
+  "traced_peak_mb": 1.83
+ },
+ "summer/1z/dhw": {
+  "ratio": 4.29
+ },
+ "summer/1z/space": {
+  "ratio": 0.74
+ },
+ "summer/2z/dhw": {
+  "ratio": 3.64
+ },
+ "summer/2z/space": {
+  "ratio": 1.59
+ },
+ "summer_negative/1z/dhw": {
+  "ratio": 4.77
+ },
+ "summer_negative/1z/space": {
+  "ratio": 0.74
+ },
+ "summer_negative/2z/dhw": {
+  "ratio": 4.1
+ },
+ "summer_negative/2z/space": {
+  "ratio": 1.62
+ },
+ "typical_slab/shoulder": {
+  "ratio": 19.26
+ },
+ "typical_slab/winter": {
+  "ratio": 5.33
+ },
+ "winter/1z/dhw": {
+  "ratio": 7.02
+ },
+ "winter/1z/space": {
+  "ratio": 2.63
+ },
+ "winter/2z/dhw": {
+  "ratio": 32.33
+ },
+ "winter/2z/space": {
+  "ratio": 32.79
+ },
+ "winter/cycle": {
+  "ratio": 71.95
+ },
+ "winter/pv": {
+  "ratio": 33.81
+ },
+ "winter/pv+cycle": {
+  "ratio": 48.69
+ },
+ "winter/tariff": {
+  "ratio": 67.41
+ },
+ "winter/tariff+cycle": {
+  "ratio": 109.03,
+  "rss_peak_mb": 96.6,
+  "traced_peak_mb": 1.83
+ },
+ "winter/tariff+pv": {
+  "ratio": 67.96
+ },
+ "winter/tariff+pv+cycle": {
+  "ratio": 110.56,
+  "rss_peak_mb": 94.4,
+  "traced_peak_mb": 1.83
+ },
+ "winter_extreme/1z/dhw": {
+  "ratio": 5.3
+ },
+ "winter_extreme/1z/space": {
+  "ratio": 2.96
+ },
+ "winter_extreme/2z/dhw": {
+  "ratio": 53.68
+ },
+ "winter_extreme/2z/space": {
+  "ratio": 81.52
+ },
+ "winter_mild/1z/dhw": {
+  "ratio": 29.22
+ },
+ "winter_mild/1z/space": {
+  "ratio": 16.57
+ },
+ "winter_mild/2z/dhw": {
+  "ratio": 49.37
+ },
+ "winter_mild/2z/space": {
+  "ratio": 36.06
+ }
+}
