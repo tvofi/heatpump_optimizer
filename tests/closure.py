@@ -135,6 +135,11 @@ INERT = (
     "docs/",
     "tests/README.md",
     ".gitignore",
+    # Audit harnesses and release tooling: scripts people run by hand,
+    # outside the gate. Nothing under tests/ imports or opens them, and
+    # the `merge` check below proves it every time the closures are
+    # re-derived.
+    "tools/",
 )
 
 # Changing the gate itself, or how the closures are derived, invalidates every
