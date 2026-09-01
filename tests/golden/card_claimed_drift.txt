@@ -21,8 +21,9 @@
 #
 # claims-for: 6.2.14
 #
-# #138: each chart copy keeps its own lane geometry, so a drag in flight
-# redraws the inline copy's lanes at the inline font. Only the new mid-drag
-# state shows it; a released drag renders everything afresh.
+# After #164 (each chart copy keeps its own lane geometry) and ahead of
+# its stamp: #164 claimed draft_mid_drag, and the next commit on main
+# (#202) inherited that claim unchanged, which the gate refuses. This
+# branch moves no state; the list is emptied here so that main's gate
+# stops inheriting a claim the stamp would otherwise empty.
 #
-draft_mid_drag  # new state; the inline lanes redraw at the inline font, not the dialog's
