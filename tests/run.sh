@@ -235,6 +235,9 @@ for f in tests/*.py tests/*.mjs; do
     # Visual-QA render helper for designer review (added v4.3.0): run by
     # hand to produce setup-page SVGs, not a test — nothing to wire here.
     setup_qa_render.mjs) continue ;;
+    # The real-browser layout lane (issue #96): its own job in the
+    # workflow installs Chromium for it, which this suite does not have.
+    card_browser.mjs) continue ;;
   esac
   if ! grep -Eq '^[[:space:]]*run .*tests/'"$base"'( |$)' tests/run.sh; then
     echo "UNWIRED TEST: tests/$base is not referenced by tests/run.sh"
@@ -361,7 +364,7 @@ done
 for f in tests/*.py tests/*.mjs; do
   base=$(basename "$f")
   case "$base" in
-    harness.py|profiles.py|dst_checks.py|setup_qa_render.mjs|closure.py) continue ;;
+    harness.py|profiles.py|dst_checks.py|setup_qa_render.mjs|closure.py|card_browser.mjs) continue ;;
   esac
   if ! cat "$WORKDIR"/*.manifest 2>/dev/null | grep -Fq "tests/$base"; then
     echo "TEST NEVER RAN: tests/$base is wired into tests/run.sh but no lane"

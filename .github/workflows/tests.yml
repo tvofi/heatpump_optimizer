@@ -199,6 +199,56 @@ jobs:
           path: ~/.cache/heatpump_optimizer/drift-baseline
           key: drift-baseline-${{ steps.warmkey.outputs.key }}
 
+  # The real-browser layout lane (issue #96): positions, sizes and
+  # visibility, the three things the DOM-stub lanes cannot see. Own job
+  # because it needs Chromium, which nothing else installs; it consumes
+  # the same plan payload card.mjs does. The scoped gate does not decide
+  # anything for this lane (it is in NOT_A_TEST) -- the card source is
+  # in every closure that matters, and the lane runs on every PR.
+  browser:
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install pinned test dependencies
+        run: pip install -r tests/requirements-ci.txt
+
+      - name: Cache the lane's Chromium
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pw-browsers
+          key: pw-chromium-1.49.0
+
+      - name: Install playwright and Chromium
+        run: |
+          npm install --prefix "$RUNNER_TEMP/pwlane" playwright@1.49.0
+          PLAYWRIGHT_BROWSERS_PATH=~/.cache/pw-browsers \
+            npx --yes playwright@1.49.0 install chromium
+
+      - name: Write the plan payload
+        env:
+          PYTHONPATH: tests/hastub
+        run: python tests/plan_view.py
+
+      - name: Run the layout lane
+        # PLAYWRIGHT_BROWSERS_PATH in the run command, not the step env:
+        # a `~` in a workflow env var is a literal tilde, which Playwright
+        # resolves relative to the repository -- the shell expands $HOME.
+        run: >
+          PLAYWRIGHT_BROWSERS_PATH="$HOME/.cache/pw-browsers"
+          NODE_PATH="${{ runner.temp }}/pwlane/node_modules"
+          node tests/card_browser.mjs
+
   slow:
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
     runs-on: ubuntu-latest
