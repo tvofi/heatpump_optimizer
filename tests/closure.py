@@ -332,20 +332,13 @@ def _is_real_file(rel: str) -> bool:
     return p.is_file()
 
 
-def _fold(records: dict[str, dict]) -> dict[str, list[str]]:
-    """Records -> closures, applying the rules a trace cannot know.
-
-    Filtering happens here rather than in the tracer so that it applies
-    identically to every record, including ones taken before the filter
-    existed.
-    """
-    closures: dict[str, set[str]] = {}
-    for name, rec in records.items():
-        closures[name] = {f for f in rec["files"] if _is_real_file(f)}
-        # The script's own file is a dependency of itself, even if the tracer
-        # somehow missed the read.
-        closures[name].add(name)
-
+def _widen(closures: dict[str, set[str]]) -> None:
+    """Apply, in place, the rules a trace cannot know. Shared by the full fold
+    and by the partial (``--single``) overlay, so that re-recording one script
+    keeps its rule-widened closure current instead of replacing it with the raw
+    trace -- which is how ``env_drift.py`` and ``golden.py`` came to lack
+    ``tests/golden/card_claimed_drift.txt`` after it was added, and the
+    closures job on main went red for every push."""
     # A script another script drives contributes its whole closure to its
     # driver, and is not selectable on its own.
     for child, parent in DRIVEN_BY_OTHERS.items():
@@ -378,6 +371,23 @@ def _fold(records: dict[str, dict]) -> dict[str, list[str]]:
     if g in closures and ed in closures:
         closures[g] |= closures[ed]
 
+
+
+def _fold(records: dict[str, dict]) -> dict[str, list[str]]:
+    """Records -> closures, applying the rules a trace cannot know.
+
+    Filtering happens here rather than in the tracer so that it applies
+    identically to every record, including ones taken before the filter
+    existed.
+    """
+    closures: dict[str, set[str]] = {}
+    for name, rec in records.items():
+        closures[name] = {f for f in rec["files"] if _is_real_file(f)}
+        # The script's own file is a dependency of itself, even if the tracer
+        # somehow missed the read.
+        closures[name].add(name)
+
+    _widen(closures)
     return {k: sorted(v) for k, v in sorted(closures.items())}
 
 
@@ -427,8 +437,27 @@ def merge(in_dir: Path, out: Path, allow_failures: bool = False,
         payload = json.loads(out.read_text())
         closures = payload["closures"]
         recorded = payload.setdefault("recorded", {})
+        # Overlay the fresh records on the committed closures and apply the
+        # same rules the full fold applies. Without this a single re-record
+        # wrote the raw trace, and a rule-widened closure (env_drift.py,
+        # golden.py: the whole integration plus every file in tests/golden/)
+        # silently lost its widening.
+        overlay = {k: set(v) for k, v in closures.items()}
         for k, r in records.items():
-            fresh = sorted(set(r["files"]) | {k})
+            overlay[k] = {f for f in r["files"] if _is_real_file(f)} | {k}
+        _widen(overlay)
+        touched = set(records)
+        for child, parent in DRIVEN_BY_OTHERS.items():
+            if f"tests/{child}" in records:
+                touched.discard(f"tests/{child}")
+                touched.add(f"tests/{parent}")
+        if "tests/plan_view.py" in records and "tests/card.mjs" in overlay:
+            touched.add("tests/card.mjs")
+        pair = {"tests/golden.py", "tests/env_drift.py"}
+        if touched & pair:
+            touched |= pair & set(overlay)
+        for k in sorted(touched):
+            fresh = sorted(overlay[k])
             old = set(closures.get(k, ()))
             dropped = sorted(old - set(fresh))
             if dropped:
@@ -440,11 +469,12 @@ def merge(in_dir: Path, out: Path, allow_failures: bool = False,
                       "Run a full re-derivation instead.", file=sys.stderr)
                 return 1
             closures[k] = fresh
-            recorded[k] = {"seconds": r["seconds"], "rc": r["rc"]}
+            if k in records:
+                recorded[k] = {"seconds": records[k]["seconds"], "rc": records[k]["rc"]}
         payload["closures"] = closures
         out.write_text(json.dumps(payload, indent=1) + "\n")
-        print(f"closure: updated {len(records)} closure(s) in {out}")
-        for k in records:
+        print(f"closure: updated {len(touched)} closure(s) in {out}")
+        for k in sorted(touched):
             print(f"  {k:26s} {len(closures[k]):4d} files")
         return 0
     closures = _fold(records)
