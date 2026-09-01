@@ -249,17 +249,30 @@ def _multi_start_minimize(
             _time_mod.sleep(0.002)
         try:
             jac = None
-            # Degenerate bounds (lower == upper) arise in the with-DHW
-            # solve when a DHW block consumes the entire cap: the space
-            # schedule's bounds are then (0, 0) for those steps. scipy's
-            # own FD produces a NaN gradient component there (0/0), and
-            # L-BFGS-B's behaviour once NaN enters the iterate stream
-            # differs between the jac-estimated and jac-supplied paths in
-            # ways nobody outside scipy can reconcile. Those solves keep
-            # the historical path -- byte-identical to today by
-            # construction -- and the batch jac serves everything else.
-            degenerate_bounds = any(hi - lo <= 0.0 for lo, hi in bounds)
-            if batch_objective is not None and not degenerate_bounds:
+            # The batched jac serves UNIFORM bounds only (every step
+            # (0, P)): the plain and two-zone solves that carry ~all the
+            # cost, measured 11.5 s -> 1.0 s. Everything more shaped
+            # keeps the historical scipy-FD path, byte-identical to
+            # today, for two recorded reasons:
+            #
+            # * Degenerate bounds (lower == upper) arise in the with-DHW
+            #   solve when a DHW block consumes the entire cap -- the
+            #   space bounds are (0, 0) for those steps, scipy's own FD
+            #   gradient is NaN there, and L-BFGS-B's behaviour once NaN
+            #   enters the iterate stream differs between the
+            #   jac-estimated and jac-supplied paths in ways nobody
+            #   outside scipy can reconcile.
+            # * The CI drift gate caught the capped-tariff scenarios
+            #   (per-step power_caps_extra, pins, tariff windows) moving
+            #   under the batched jac on Linux while staying identical
+            #   locally: per-step caps interact with the one-sided bounds
+            #   rule in something platform-sensitive. Uniform bounds have
+            #   no one-sided adjustments at all, which is precisely why
+            #   they are the one shape that holds everywhere.
+            uniform_bounds = bool(bounds) and all(
+                lo == 0.0 for lo, _ in bounds
+            ) and len({hi for _, hi in bounds}) == 1
+            if batch_objective is not None and uniform_bounds:
                 # The batched-FD jac (#97): scipy calls the gradient at
                 # every trial point, so a supplied jac removes 96/97 of
                 # ALL evaluations, not just of the gradient's own. It
