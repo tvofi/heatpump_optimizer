@@ -887,27 +887,6 @@ def _derive_preset(answers: dict[str, Any], current: dict[str, Any]) -> dict[str
     return derived
 
 
-async def _translated_text(
-    hass: HomeAssistant, flow_type: str, path: str, fallback: str
-) -> str:
-    """One translated sentence for a description placeholder.
-
-    Placeholder *values* are substituted verbatim by the frontend, so a
-    sentence composed here would ship in English whatever the user's
-    language is. The catalogue is read the same way ``_translated_menu``
-    reads it, and the English text stays in code as the fallback for the
-    moment the lookup fails.
-    """
-    try:
-        translations = await async_get_translations(
-            hass, hass.config.language, flow_type, {DOMAIN}
-        )
-    except Exception:  # noqa: BLE001 - a form must never fail to render
-        _LOGGER.debug("Could not load %s translations", flow_type, exc_info=True)
-        return fallback
-    return translations.get(f"component.{DOMAIN}.{flow_type}.{path}") or fallback
-
-
 async def _translated_menu(
     hass: HomeAssistant, flow_type: str, step_id: str, labels: dict[str, str]
 ) -> dict[str, str]:

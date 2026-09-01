@@ -390,7 +390,7 @@
           "dhw_free_disinfection_enabled": "Om en vedpanna, solslinga eller elpatron redan får tanken till legionellatemperatur och håller den där, räkna det som en genomförd cykel i stället för att köra en till.",
           "dhw_elastic_legionella_enabled": "Låt legionellacykeln köras en dag eller två tidigare när elen är ovanligt billig, i stället för att alltid vänta till sista dagen. Sista dagen hålls alltid.",
           "dhw_legionella_min_interval_days": "Kör aldrig legionellacykler tätare än så här, även på mycket billiga dagar.",
-          "shower_flow_lpm": "Ditt duschmunstyckes flöde. Används bara för att räkna om tankens innehåll till duschminuter på sensorn Mixed Hot Water.",
+          "shower_flow_lpm": "Ditt duschmunstyckes flöde. Används bara för att räkna om tankens innehåll till duschminuter på sensorn DHW Mixed Water.",
           "vvc_pump_entity": "En brytare som styr VVC-pumpen. Om satt körs pumpen bara under dina varmvattenfönster, plus förvarmningstiden nedan.",
           "vvc_lead_minutes": "Hur långt före ett varmvattenfönster cirkulationspumpen startar, så att slingan redan är varm när fönstret öppnar.",
           "space_circulation_pump_entity": "En brytare som styr värmesystemets cirkulationspump. Om satt pausas pumpen bara i stunder som bevisligen är sysslolösa och varma — den går alltid när värme är planerad, när det är minusgrader ute eller när något rum är nära sin komfortgräns.",
@@ -866,6 +866,12 @@
       "current_electricity_price": {
         "name": "Aktuellt elpris"
       },
+      "dhw_cost": {
+        "name": "Varmvattenkostnad (totalt)"
+      },
+      "dhw_energy": {
+        "name": "Varmvattenenergi (totalt)"
+      },
       "dhw_heating_cost": {
         "name": "Varmvattenkostnad (nästa 24 h)"
       },
@@ -877,6 +883,9 @@
       },
       "dhw_heavy_day_demand": {
         "name": "Varmvattenbehov tunga dagar"
+      },
+      "dhw_mixed_water": {
+        "name": "Blandat varmvatten"
       },
       "dhw_setpoint_advisor": {
         "name": "Rådgivare för varmvattenbörvärde"
@@ -899,12 +908,6 @@
       "heat_pump_action": {
         "name": "Värmepumpens åtgärd"
       },
-      "hot_water_cost": {
-        "name": "Varmvattenkostnad (totalt)"
-      },
-      "hot_water_energy": {
-        "name": "Varmvattenenergi (totalt)"
-      },
       "indoor_temperature_optimizer": {
         "name": "Inomhustemperatur (optimeraren)"
       },
@@ -916,9 +919,6 @@
       },
       "measured_power": {
         "name": "Uppmätt effekt"
-      },
-      "mixed_hot_water": {
-        "name": "Blandat varmvatten"
       },
       "monthly_peak_power": {
         "name": "Månadens effekttopp"
