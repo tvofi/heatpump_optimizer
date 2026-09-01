@@ -11,7 +11,7 @@
 
 const CARD_TAG = "heatpump-optimizer-card";
 const EDITOR_TAG = "heatpump-optimizer-card-editor";
-const CARD_VERSION = "5.4.2";
+const CARD_VERSION = "5.4.3";
 
 // The de-duplication key `_extraFields` files a confidence band's two
 // edges under, so the pair counts as the one named trace it is. A Symbol
@@ -3016,6 +3016,616 @@ function cardStyleBlock() {
   `;
 }
 
+// ---- The series: pure functions of forecasts and a window -----------------
+// What the chart, the legend and the tooltip draw, computed from the plan
+// sensors' forecasts with no reference to the card: the host resolves the
+// forecasts and the window, these turn them into series and answer questions
+// about the traces. Same bodies as the methods they were (PR 1 of #136).
+
+const parseStamp = (p) => {
+  const t = Date.parse(p.t);
+  return Number.isNaN(t) ? null : t;
+};
+
+/** The default plot window: [now, now + hours], or -- when nothing falls
+ * inside it (purely historical or test data) -- the data's own extent, so
+ * the card still shows something instead of an empty plot. `dataEnd` is the
+ * last sample, which is what the zoom window clamps against. */
+function defaultWindow(spFc, dhwFc, hours, now) {
+  const parse = parseStamp;
+
+  let windowStart = now;
+  let windowEnd = now + hours * 3600 * 1000;
+
+  // Determine whether any data actually falls inside [now, now+hours]. If not
+  // (e.g. purely historical or test data), fall back to the full extent so the
+  // card still shows something instead of an empty plot.
+  const allTimes = [];
+  for (const p of spFc) {
+    const t = parse(p);
+    if (t !== null) allTimes.push(t);
+  }
+  for (const p of dhwFc) {
+    const t = parse(p);
+    if (t !== null) allTimes.push(t);
+  }
+  const inWindow = allTimes.some((t) => t >= windowStart && t <= windowEnd);
+  if (!inWindow && allTimes.length) {
+    windowStart = Math.min(...allTimes);
+    windowEnd = Math.min(
+      Math.max(...allTimes),
+      windowStart + hours * 3600 * 1000
+    );
+  }
+
+  return {
+    start: windowStart,
+    end: windowEnd,
+    dataEnd: allTimes.length ? Math.max(...allTimes) : windowEnd,
+  };
+}
+
+/** Every series definition, cut to the window. `hidden` is the legend's
+ * toggle state (a hidden series is still built, so its chip knows whether
+ * there is data behind it); `zoomed` rides along for the view controls. */
+function buildSeries({ spFc, dhwFc, solarFc, windowStart, windowEnd, hidden, zoomed }) {
+  const parse = parseStamp;
+
+  const pick = (sensor) =>
+    sensor === "dhw" ? dhwFc : sensor === "solar" ? solarFc : spFc;
+  const either = (field) => {
+    // prefer space forecast, fall back to dhw
+    if (spFc.some((p) => p[field] !== undefined && p[field] !== null))
+      return spFc;
+    return dhwFc;
+  };
+
+  const series = [];
+  for (const def of SERIES_DEFS) {
+    const fc = def.sensor === "either" ? either(def.field) : pick(def.sensor);
+    const lines = [];
+    let primaryPts = null;
+    const fields = [def.field].concat(def.extra || []);
+    for (const field of fields) {
+      // Every in-window sample, with a missing value kept as a HOLE
+      // rather than dropped. v5.2.0: the hot-water band is null wherever
+      // the accuracy record cannot answer, and a dropped null let the
+      // curve bridge straight across the gap — drawing an envelope over
+      // a stretch there is no evidence for. The room's zone traces were
+      // only ever accidentally safe from this: they have no holes.
+      const raw = [];
+      for (const p of fc) {
+        const t = parse(p);
+        if (t === null) continue;
+        if (t < windowStart || t > windowEnd) continue;
+        const v = p[field];
+        const usable =
+          v !== null && v !== undefined && !Number.isNaN(Number(v));
+        raw.push({
+          t,
+          v: usable ? Number(v) : null,
+          // Reason codes and price provenance ride along on the point so the
+          // tooltip can explain a slot without a second lookup.
+          reason: p.reason,
+          priceKnown: p.price_known,
+        });
+      }
+      raw.sort((a, b) => a.t - b.t);
+      // The field's real samples, holes removed: what "is this trace a
+      // copy of the primary?" has to be asked about, and what the primary
+      // is remembered as. Asking it per segment would compare a fragment
+      // against the whole and never match.
+      const pts = raw.filter((q) => q.v !== null);
+      if (!pts.length) continue;
+      const primary = field === def.field;
+      // A single-zone house still publishes `upper` and `lower`: the
+      // one-zone dynamics set both to the room temperature step by step,
+      // so the extras are exact copies of the primary. Drawing them put
+      // two dashed lines under the solid one, and naming them would put
+      // two more chips in the legend and two more rows in the tooltip for
+      // a house that has one zone. Drop a duplicate rather than label it.
+      //
+      // v5.2.0: this catches a second case for free. A tank record that
+      // has scored pairs but never been wrong answers sigma 0, so both
+      // band edges land exactly on the curve; dropping them is right for
+      // the same reason it is right for the zones, and it is the same
+      // rule doing it.
+      if (!primary && samePoints(pts, primaryPts)) continue;
+      if (primary) primaryPts = pts;
+      const labelKey = primary
+        ? def.labelKey
+        : (def.extraLabels || {})[field] || def.labelKey;
+      // A hole BREAKS the trace into a new segment rather than being
+      // skipped over. One field can therefore own several lines; every
+      // consumer reaches them through `_fieldPoints`, and the per-field
+      // identity (`field`, `primary`, `labelKey`) is carried on each.
+      let seg = [];
+      const flush = () => {
+        if (seg.length) {
+          lines.push({
+            field,
+            points: seg,
+            primary,
+            // Named per line, not per series: `_lineLabel` resolves the
+            // dictionary key so the tooltip and the legend cannot disagree
+            // about what a trace is called.
+            labelKey,
+          });
+        }
+        seg = [];
+      };
+      for (const q of raw) {
+        if (q.v === null) flush();
+        else seg.push(q);
+      }
+      flush();
+    }
+    // A band is a PAIR or it is nothing. Either edge can go missing on its
+    // own -- one key absent from the payload, one published null all the
+    // way across, or one edge dropped by the duplicate rule above -- and a
+    // single dashed line hugging the curve is not half an envelope, it is
+    // a different and wrong claim. Worse, the legend would still offer the
+    // "expected error" chip while the tooltip, which rightly demands both
+    // edges at the same step, reported nothing: three parts of the card
+    // disagreeing about whether a band exists at all.
+    if (def.band) {
+      const edges = new Set(
+        lines.filter((l) => !l.primary).map((l) => l.field)
+      );
+      if (!edges.has(def.band.lo) || !edges.has(def.band.hi)) {
+        for (let i = lines.length - 1; i >= 0; i--) {
+          if (
+            lines[i].field === def.band.lo ||
+            lines[i].field === def.band.hi
+          ) {
+            lines.splice(i, 1);
+          }
+        }
+      }
+    }
+    series.push({
+      ...def,
+      lines,
+      hasData: lines.length > 0,
+      visible: !hidden[def.key],
+    });
+  }
+
+  return { series, windowStart, windowEnd, zoomed };
+}
+
+/** Every plotted point of one field, across the segments holes broke it
+ * into. A field is one trace to every caller; that it may be drawn as
+ * several paths is a rendering detail. */
+function fieldPoints(s, field) {
+  const out = [];
+  for (const line of s.lines || []) {
+    if (line.field === field) out.push(...line.points);
+  }
+  return out;
+}
+
+/** One representative line per NAMED non-primary trace, in draw order.
+ *
+ * Two collapses, both because a reader counts traces by name and not by
+ * path. `lines` may hold several segments of one field, because a hole
+ * breaks a field into several paths; and a band's two edges are one
+ * envelope with one name.
+ *
+ * Every caller that names traces goes through here — this card's per-trace
+ * legend chips, its tooltip, and equally a legend that draws ONE chip per
+ * series and lists the rest in that chip's title. Iterating `lines`
+ * directly instead would name a gapped zone three times and a band twice.
+ */
+function extraFields(s) {
+  const band = s && s.band;
+  const seen = new Set();
+  const out = [];
+  for (const line of (s && s.lines) || []) {
+    if (line.primary) continue;
+    const key =
+      band && (line.field === band.lo || line.field === band.hi)
+        // A Symbol, never a string: a de-duplication key that cannot
+        // collide with a field name, whatever a later series calls its
+        // fields.
+        ? BAND_TRACE_KEY
+        : line.field;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(line);
+  }
+  return out;
+}
+
+/** The sentence a trace needs on hover, or "" when its name is enough.
+ *
+ * Only the expected-error band has one: "Upper floor" explains itself, a
+ * dashed pair hugging the tank curve does not. Keyed off the series
+ * definition beside `_lineLabel`, so anywhere a trace can be named the
+ * explanation can be asked for too.
+ */
+function lineNote(def, line) {
+  const band = def && def.band;
+  if (
+    band &&
+    band.noteKey &&
+    line &&
+    (line.field === band.lo || line.field === band.hi)
+  ) {
+    return L(band.noteKey);
+  }
+  return "";
+}
+
+/** The point of `field` nearest `t`, or null when the field has none. */
+function nearestPoint(s, field, t) {
+  let best = null;
+  let bestDt = Infinity;
+  for (const p of fieldPoints(s, field)) {
+    const dt = Math.abs(p.t - t);
+    if (dt < bestDt) {
+      bestDt = dt;
+      best = p;
+    }
+  }
+  return best;
+}
+
+/** What one trace inside a series is called.
+ *
+ * A series can carry several lines — the house-temperature series draws the
+ * whole-house room average solid and the two zones dashed — and every one of
+ * them needs its own name. The lower zone gets a second name when nothing
+ * measures it, so a modelled trace is never mistaken for a reading.
+ */
+function lineLabel(def, line, isLowerModelled) {
+  if (!line || line.primary) return L(def.labelKey);
+  if (line.field === "lower" && isLowerModelled()) {
+    return L("series.lower_floor_modelled");
+  }
+  return L(line.labelKey || def.labelKey);
+}
+
+/** The one tooltip row for a series' expected-error band, if it has one
+ * and both edges are present at the same step.
+ *
+ * Stated as a single ± figure because that is the one number the pair
+ * carries. Half an envelope says nothing, and two halves taken from
+ * different steps say something untrue, so both must come from the same
+ * step or there is no row at all.
+ */
+function bandRow(s, t, unit) {
+  if (!s.band) return [];
+  const lo = nearestPoint(s, s.band.lo, t);
+  const hi = nearestPoint(s, s.band.hi, t);
+  if (!lo || !hi || lo.t !== hi.t) return [];
+  return [
+    {
+      color: s.color,
+      label: L(s.band.labelKey),
+      value: (hi.v - lo.v) / 2,
+      prefix: "\u00b1",
+      dashed: true,
+      unit,
+      t: hi.t,
+      field: s.band.hi,
+    },
+  ];
+}
+
+// ---- PlanSource -----------------------------------------------------------
+// What the card knows about the plan sensors: which entities they are, what
+// they publish, and the memos that make asking cheap. Reads `host.hass` and
+// `host.config` and nothing else on the host; owns no DOM and renders
+// nothing. The first collaborator out of the god class (PR 1 of #136).
+class PlanSource {
+  constructor(host) {
+    this.host = host;
+    // Entity discovery: the sensor found for each plan kind, kept while it
+    // still exists (`resolveEntity`).
+    this.resolvedCache = null;
+    // Headline sensors: id per suffix, and the `sensor.` count a miss was
+    // recorded at, so a late-arriving backend is still found without
+    // rescanning every state batch (`statEntity`, `sensorCount`).
+    this.statCache = null;
+    this.statMissAt = null;
+    this.sensorCountFor = null;
+    this.sensorCountN = 0;
+  }
+
+  get hass() {
+    return this.host.hass;
+  }
+
+  get config() {
+    return this.host.config;
+  }
+
+  // Resolve which entity to read for a plan kind ("space" | "dhw").
+  //
+  // Entity ids are not a stable contract: they are derived from the device
+  // name and the user can rename them. So the configured id wins if it exists,
+  // otherwise fall back to discovering the sensor that advertises the matching
+  // `plan_kind` attribute, and finally to a naming-convention match for
+  // integration versions predating that attribute.
+  resolveEntity(kind) {
+    const cfg = this.config;
+    const configured =
+      kind === "space"
+        ? cfg.space_entity
+        : kind === "dhw"
+        ? cfg.dhw_entity
+        : cfg.solar_entity;
+    if (!this.hass || !this.hass.states) return configured;
+    const states = this.hass.states;
+    if (states[configured]) return configured;
+
+    if (!this.resolvedCache) this.resolvedCache = {};
+    const cached = this.resolvedCache[kind];
+    if (cached && states[cached]) return cached;
+
+    const suffix =
+      kind === "space"
+        ? "space_heating_plan"
+        : kind === "dhw"
+        ? "dhw_heating_plan"
+        : "solar_irradiance";
+    let byMarker = null;
+    let bySuffix = null;
+    for (const id of Object.keys(states).sort()) {
+      if (!id.startsWith("sensor.")) continue;
+      const attrs = states[id].attributes || {};
+      if (attrs.plan_kind === kind) {
+        byMarker = id;
+        break;
+      }
+      if (bySuffix === null && id.endsWith(suffix)) bySuffix = id;
+    }
+    const found = byMarker || bySuffix;
+    if (found) {
+      this.resolvedCache[kind] = found;
+      return found;
+    }
+    return configured;
+  }
+
+  stateOf(entityId) {
+    if (!this.hass || !this.hass.states) return undefined;
+    return this.hass.states[entityId];
+  }
+
+  forecast(entityId) {
+    const st = this.stateOf(entityId);
+    if (!st || st.state === "unavailable" || st.state === "unknown") return null;
+    const attrs = st.attributes || {};
+    let fc = attrs.forecast;
+    if (typeof fc === "string") {
+      try {
+        fc = JSON.parse(fc);
+      } catch (e) {
+        return null;
+      }
+    }
+    if (!Array.isArray(fc)) return null;
+    return fc;
+  }
+
+  forecastOf(channel) {
+    const st = this.stateOf(this.resolveEntity(channel));
+    const fc = ((st && st.attributes) || {}).forecast;
+    return Array.isArray(fc) ? fc : [];
+  }
+
+  attr(name, fallback) {
+    const st = this.stateOf(this.resolveEntity("space"));
+    const raw = ((st && st.attributes) || {})[name];
+    // `Number(null)` is 0, and 0 is finite -- so without this guard an
+    // attribute the coordinator published as None would read as a real
+    // measurement of zero rather than "not known", silently producing a 0 °C
+    // comfort target or a hot water ceiling of nothing.
+    if (raw === null || raw === undefined || raw === "") return fallback;
+    const value = Number(raw);
+    return Number.isFinite(value) ? value : fallback;
+  }
+
+  /** A plan-sensor attribute as-is, for the ones that are not numbers. */
+  attrRaw(name, fallback) {
+    const st = this.stateOf(this.resolveEntity("space"));
+    const raw = ((st && st.attributes) || {})[name];
+    return raw === null || raw === undefined ? fallback : raw;
+  }
+
+  /** The manual override the integration is currently honouring, if any.
+   *
+   * Published by both plan sensors, so either will do; the space sensor is the
+   * one the rest of the card already resolves.
+   */
+  manualOverride() {
+    for (const which of ["space", "dhw"]) {
+      const st = this.stateOf(this.resolveEntity(which));
+      const info = ((st && st.attributes) || {}).manual_override;
+      if (info && info.active) return info;
+    }
+    return null;
+  }
+
+  /** The currency to price the delta in.
+   *
+   * The plan carries prices but not a currency, so take Home Assistant's own
+   * configured currency rather than assuming the author's. `currency:` in the
+   * card config still wins, for installs where the two disagree.
+   */
+  currency() {
+    const hass = this.hass || {};
+    return (
+      this.config.currency ||
+      // v4.1.0+: the integration publishes the currency its prices are in on
+      // the plan sensors. That beats Home Assistant's global currency, which
+      // describes the install, not the price feed.
+      this.attrRaw("currency", null) ||
+      (hass.config && hass.config.currency) ||
+      "SEK"
+    );
+  }
+
+  /** "SEK/kWh", "EUR/kWh", ... from the resolved currency. */
+  priceUnit() {
+    return `${this.currency()}/kWh`;
+  }
+
+  /** The unit a series renders with. Only the price unit is dynamic: its
+   * currency comes from the config, the plan sensor or Home Assistant. */
+  seriesUnit(def) {
+    return def.axis === "price" ? this.priceUnit() : def.unit;
+  }
+
+  /** True when the lower zone has no thermometer of its own.
+   *
+   * Read from the published `setup_topology` slots rather than guessed: the
+   * integration already says there which sensor slots are filled, so the
+   * chart's label and the setup page cannot disagree. Unknown topology
+   * claims nothing — a missing attribute is not evidence of a missing
+   * sensor.
+   */
+  lowerFloorModelled() {
+    const topo = this.attrRaw("setup_topology", null);
+    const slots = topo && Array.isArray(topo.slots) ? topo.slots : null;
+    if (!slots) return false;
+    const slot = slots.find(
+      (x) => x && x.key === "lower_floor_temp_entity"
+    );
+    return !!slot && !slot.entity;
+  }
+
+  /** Timestamp from which the plan's prices are the learned prior, or null. */
+  estimatedPricesFrom() {
+    const spFc = this.forecast(this.resolveEntity("space")) || [];
+    const dhwFc = this.forecast(this.resolveEntity("dhw")) || [];
+    const fc = spFc.length ? spFc : dhwFc;
+    for (const p of fc) {
+      if (p.price_known === false) {
+        const t = Date.parse(p.t);
+        return Number.isNaN(t) ? null : t;
+      }
+    }
+    return null;
+  }
+
+  // Explain precisely why a plan is missing. "Waiting for an entity" is not
+  // actionable when the real problem is that the entity is named something
+  // else, so distinguish not-found from present-but-empty.
+  diagnose(kind) {
+    const id = this.resolveEntity(kind);
+    const label = L(kind === "space" ? "errors.diag_space" : "errors.diag_dhw");
+    const st = this.stateOf(id);
+    if (!st) {
+      return L("errors.diag_not_found", { label, id: esc(id), kind });
+    }
+    if (st.state === "unavailable" || st.state === "unknown") {
+      return L("errors.diag_unavailable", {
+        label,
+        id: esc(id),
+        state: esc(st.state),
+      });
+    }
+    const fc = this.forecast(id);
+    if (!fc) {
+      return L("errors.diag_no_forecast", { label, id: esc(id) });
+    }
+    if (!fc.length) {
+      return L("errors.diag_empty_forecast", { label, id: esc(id) });
+    }
+    return L("errors.diag_out_of_window", {
+      label,
+      id: esc(id),
+      n: fc.length,
+    });
+  }
+
+  /** The state object of a headline sensor, found by id suffix and cached.
+   *
+   * The savings/score/narrative sensors publish no `plan_kind`-style marker,
+   * so the suffix — which has_entity_name keeps stable under any device
+   * name — is the discovery contract.
+   *
+   * They also share a device with the plan sensors, which means they share
+   * an entity-id prefix. Deriving the stat id from the RESOLVED plan sensor
+   * (config first, then plan_kind discovery — `_resolveEntity` already owns
+   * that) is both cheap and scoped to this card's config entry; a global
+   * scan could bind the headline to another entry's — or a foreign
+   * integration's — sensors. The scan survives only as a fallback for
+   * hand-renamed stat entities, and its result is cached even when it is a
+   * miss: the negative cache is keyed to the number of `sensor.` ids, so a
+   * late-arriving backend is still found without rescanning every state
+   * batch.
+   */
+  statEntity(suffix) {
+    const states = this.hass && this.hass.states;
+    if (!states) return null;
+    if (!this.statCache) this.statCache = {};
+    if (!this.statMissAt) this.statMissAt = {};
+    const cached = this.statCache[suffix];
+    if (cached && states[cached]) return states[cached];
+
+    for (const [kind, planSuffix] of [
+      ["space", "_space_heating_plan"],
+      ["dhw", "_dhw_heating_plan"],
+    ]) {
+      const planId = this.resolveEntity(kind);
+      if (!planId || !states[planId] || !planId.endsWith(planSuffix)) {
+        continue;
+      }
+      const candidate = planId.slice(0, -planSuffix.length) + suffix;
+      if (states[candidate]) {
+        this.statCache[suffix] = candidate;
+        delete this.statMissAt[suffix];
+        return states[candidate];
+      }
+    }
+
+    const count = this.sensorCount(states);
+    if (this.statMissAt[suffix] === count) return null;
+    // Sorted iteration makes a tie deterministic, the same choice
+    // `_resolveEntity` makes.
+    for (const id of Object.keys(states).sort()) {
+      if (!id.startsWith("sensor.") || !id.endsWith(suffix)) continue;
+      this.statCache[suffix] = id;
+      delete this.statMissAt[suffix];
+      return states[id];
+    }
+    this.statMissAt[suffix] = count;
+    return null;
+  }
+
+  /** How many `sensor.` entity ids this state batch holds.
+   *
+   * Memoized per batch object — hass replaces `states` wholesale on every
+   * update, so object identity is the batch's identity. This is what the
+   * negative cache above is keyed to.
+   */
+  sensorCount(states) {
+    if (this.sensorCountFor !== states) {
+      let n = 0;
+      for (const id of Object.keys(states)) {
+        if (id.startsWith("sensor.")) n++;
+      }
+      this.sensorCountFor = states;
+      this.sensorCountN = n;
+    }
+    return this.sensorCountN;
+  }
+
+  /** A headline sensor's state as a finite number, or null. */
+  statNumber(suffix) {
+    const st = this.statEntity(suffix);
+    if (!st || st.state === "unavailable" || st.state === "unknown") {
+      return null;
+    }
+    const v = Number(st.state);
+    return Number.isFinite(v) ? v : null;
+  }
+}
+
 // ===========================================================================
 // The card element, and the contract its collaborators get.
 //
@@ -3026,6 +3636,7 @@ function cardStyleBlock() {
 //
 //   host.hass, host.config     the Lovelace inputs
 //   host.shadowRoot            the DOM it renders into
+//   host.plan                  PlanSource: the plan sensors, what they publish
 //   host.render()              rebuild, keeping the render signature
 //   host.renderForced()        rebuild and forget it (the next hass redraws)
 //   host.suppressNextClick()   the next card click is the tail of a gesture
@@ -3038,6 +3649,9 @@ class HeatpumpOptimizerCard extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: "open" });
+    // The collaborators (docs/plan-card-decomposition.md), in dependency
+    // order. Each is handed this element and uses only the host contract.
+    this.plan = new PlanSource(this);
     this._config = null;
     this._hass = null;
     this._sig = null;
@@ -3109,12 +3723,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
     this._svgRect = null;
     // The setup page's status line, re-applied after every rebuild.
     this._setupNote = null;
-    // Entity-discovery and headline-sensor memos.
-    this._resolvedCache = null;
-    this._statCache = null;
-    this._statMissAt = null;
-    this._sensorCountFor = null;
-    this._sensorCountN = 0;
     // Whether the picker was opened from the keyboard: focus goes into it,
     // and back to the row on the way out.
     this._pickerFocus = false;
@@ -3203,6 +3811,11 @@ class HeatpumpOptimizerCard extends HTMLElement {
 
   get hass() {
     return this._hass;
+  }
+
+  /** The validated config, read-only: what `setConfig` accepted. */
+  get config() {
+    return this._config;
   }
 
   getCardSize() {
@@ -3349,86 +3962,17 @@ class HeatpumpOptimizerCard extends HTMLElement {
 
   // ---- data extraction ---------------------------------------------------
 
-  // Resolve which entity to read for a plan kind ("space" | "dhw").
-  //
-  // Entity ids are not a stable contract: they are derived from the device
-  // name and the user can rename them. So the configured id wins if it exists,
-  // otherwise fall back to discovering the sensor that advertises the matching
-  // `plan_kind` attribute, and finally to a naming-convention match for
-  // integration versions predating that attribute.
-  _resolveEntity(kind) {
-    const cfg = this._config;
-    const configured =
-      kind === "space"
-        ? cfg.space_entity
-        : kind === "dhw"
-        ? cfg.dhw_entity
-        : cfg.solar_entity;
-    if (!this._hass || !this._hass.states) return configured;
-    const states = this._hass.states;
-    if (states[configured]) return configured;
-
-    if (!this._resolvedCache) this._resolvedCache = {};
-    const cached = this._resolvedCache[kind];
-    if (cached && states[cached]) return cached;
-
-    const suffix =
-      kind === "space"
-        ? "space_heating_plan"
-        : kind === "dhw"
-        ? "dhw_heating_plan"
-        : "solar_irradiance";
-    let byMarker = null;
-    let bySuffix = null;
-    for (const id of Object.keys(states).sort()) {
-      if (!id.startsWith("sensor.")) continue;
-      const attrs = states[id].attributes || {};
-      if (attrs.plan_kind === kind) {
-        byMarker = id;
-        break;
-      }
-      if (bySuffix === null && id.endsWith(suffix)) bySuffix = id;
-    }
-    const found = byMarker || bySuffix;
-    if (found) {
-      this._resolvedCache[kind] = found;
-      return found;
-    }
-    return configured;
-  }
-
-  _stateOf(entityId) {
-    if (!this._hass || !this._hass.states) return undefined;
-    return this._hass.states[entityId];
-  }
-
-  _forecast(entityId) {
-    const st = this._stateOf(entityId);
-    if (!st || st.state === "unavailable" || st.state === "unknown") return null;
-    const attrs = st.attributes || {};
-    let fc = attrs.forecast;
-    if (typeof fc === "string") {
-      try {
-        fc = JSON.parse(fc);
-      } catch (e) {
-        return null;
-      }
-    }
-    if (!Array.isArray(fc)) return null;
-    return fc;
-  }
-
   _signature() {
     const cfg = this._config;
-    const spId = this._resolveEntity("space");
-    const dhwId = this._resolveEntity("dhw");
-    const solarId = this._resolveEntity("solar");
-    const space = this._stateOf(spId);
-    const dhw = this._stateOf(dhwId);
-    const solar = this._stateOf(solarId);
-    const spFc = this._forecast(spId);
-    const dhwFc = this._forecast(dhwId);
-    const solarFc = this._forecast(solarId);
+    const spId = this.plan.resolveEntity("space");
+    const dhwId = this.plan.resolveEntity("dhw");
+    const solarId = this.plan.resolveEntity("solar");
+    const space = this.plan.stateOf(spId);
+    const dhw = this.plan.stateOf(dhwId);
+    const solar = this.plan.stateOf(solarId);
+    const spFc = this.plan.forecast(spId);
+    const dhwFc = this.plan.forecast(dhwId);
+    const solarFc = this.plan.forecast(solarId);
     return [
       spId,
       dhwId,
@@ -3447,7 +3991,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
       // A language switch or a currency change redraws text without any
       // plan data changing, so both belong in the signature.
       ACTIVE_LANG,
-      this._currency(),
+      this.plan.currency(),
       // The headline reads its own sensors; leaving them out would freeze
       // the row at whatever the first render saw.
       this._headlineSignature(),
@@ -3458,7 +4002,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
   _headlineSignature() {
     if (!this._config.show_stats) return "off";
     return HEADLINE_SUFFIXES.map((sfx) => {
-      const st = this._statEntity(sfx);
+      const st = this.plan.statEntity(sfx);
       return st ? `${st.state}@${st.last_updated || ""}` : "-";
     }).join("~");
   }
@@ -3505,214 +4049,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     this._suppressClick = true;
   }
 
-  // Build this._series from the current forecasts.
-  _buildSeries() {
-    const cfg = this._config;
-    const spFc = this._forecast(this._resolveEntity("space")) || [];
-    const dhwFc = this._forecast(this._resolveEntity("dhw")) || [];
-    // The irradiance sensor publishes its own horizon. Its timestamps are
-    // already interval *starts* — `_solar_forecast_view` converts Open-Meteo's
-    // end-of-interval stamps on the way out — so they must not be shifted again.
-    const solarFc = this._forecast(this._resolveEntity("solar")) || [];
-
-    const now = Date.now();
-    let windowStart = now;
-    let windowEnd = now + cfg.hours * 3600 * 1000;
-
-    const parse = (p) => {
-      const t = Date.parse(p.t);
-      return Number.isNaN(t) ? null : t;
-    };
-
-    // Determine whether any data actually falls inside [now, now+hours]. If not
-    // (e.g. purely historical or test data), fall back to the full extent so the
-    // card still shows something instead of an empty plot.
-    const allTimes = [];
-    for (const p of spFc) {
-      const t = parse(p);
-      if (t !== null) allTimes.push(t);
-    }
-    for (const p of dhwFc) {
-      const t = parse(p);
-      if (t !== null) allTimes.push(t);
-    }
-    const inWindow = allTimes.some((t) => t >= windowStart && t <= windowEnd);
-    if (!inWindow && allTimes.length) {
-      windowStart = Math.min(...allTimes);
-      windowEnd = Math.min(
-        Math.max(...allTimes),
-        windowStart + cfg.hours * 3600 * 1000
-      );
-    }
-
-    // Everything above is the default window. `_applyView` narrows it to
-    // whatever the user has panned or zoomed to, and is a no-op until they
-    // touch a control -- so the untouched card renders exactly as before.
-    // Filtering below this point then happens against the visible window, which
-    // is what keeps the value axis scaled to what is actually on screen.
-    const view = this._applyView(
-      windowStart,
-      windowEnd,
-      allTimes.length ? Math.max(...allTimes) : windowEnd
-    );
-    windowStart = view.start;
-    windowEnd = view.end;
-
-    const pick = (sensor) =>
-      sensor === "dhw" ? dhwFc : sensor === "solar" ? solarFc : spFc;
-    const either = (field) => {
-      // prefer space forecast, fall back to dhw
-      if (spFc.some((p) => p[field] !== undefined && p[field] !== null))
-        return spFc;
-      return dhwFc;
-    };
-
-    const series = [];
-    for (const def of SERIES_DEFS) {
-      const fc = def.sensor === "either" ? either(def.field) : pick(def.sensor);
-      const lines = [];
-      let primaryPts = null;
-      const fields = [def.field].concat(def.extra || []);
-      for (const field of fields) {
-        // Every in-window sample, with a missing value kept as a HOLE
-        // rather than dropped. v5.2.0: the hot-water band is null wherever
-        // the accuracy record cannot answer, and a dropped null let the
-        // curve bridge straight across the gap — drawing an envelope over
-        // a stretch there is no evidence for. The room's zone traces were
-        // only ever accidentally safe from this: they have no holes.
-        const raw = [];
-        for (const p of fc) {
-          const t = parse(p);
-          if (t === null) continue;
-          if (t < windowStart || t > windowEnd) continue;
-          const v = p[field];
-          const usable =
-            v !== null && v !== undefined && !Number.isNaN(Number(v));
-          raw.push({
-            t,
-            v: usable ? Number(v) : null,
-            // Reason codes and price provenance ride along on the point so the
-            // tooltip can explain a slot without a second lookup.
-            reason: p.reason,
-            priceKnown: p.price_known,
-          });
-        }
-        raw.sort((a, b) => a.t - b.t);
-        // The field's real samples, holes removed: what "is this trace a
-        // copy of the primary?" has to be asked about, and what the primary
-        // is remembered as. Asking it per segment would compare a fragment
-        // against the whole and never match.
-        const pts = raw.filter((q) => q.v !== null);
-        if (!pts.length) continue;
-        const primary = field === def.field;
-        // A single-zone house still publishes `upper` and `lower`: the
-        // one-zone dynamics set both to the room temperature step by step,
-        // so the extras are exact copies of the primary. Drawing them put
-        // two dashed lines under the solid one, and naming them would put
-        // two more chips in the legend and two more rows in the tooltip for
-        // a house that has one zone. Drop a duplicate rather than label it.
-        //
-        // v5.2.0: this catches a second case for free. A tank record that
-        // has scored pairs but never been wrong answers sigma 0, so both
-        // band edges land exactly on the curve; dropping them is right for
-        // the same reason it is right for the zones, and it is the same
-        // rule doing it.
-        if (!primary && samePoints(pts, primaryPts)) continue;
-        if (primary) primaryPts = pts;
-        const labelKey = primary
-          ? def.labelKey
-          : (def.extraLabels || {})[field] || def.labelKey;
-        // A hole BREAKS the trace into a new segment rather than being
-        // skipped over. One field can therefore own several lines; every
-        // consumer reaches them through `_fieldPoints`, and the per-field
-        // identity (`field`, `primary`, `labelKey`) is carried on each.
-        let seg = [];
-        const flush = () => {
-          if (seg.length) {
-            lines.push({
-              field,
-              points: seg,
-              primary,
-              // Named per line, not per series: `_lineLabel` resolves the
-              // dictionary key so the tooltip and the legend cannot disagree
-              // about what a trace is called.
-              labelKey,
-            });
-          }
-          seg = [];
-        };
-        for (const q of raw) {
-          if (q.v === null) flush();
-          else seg.push(q);
-        }
-        flush();
-      }
-      // A band is a PAIR or it is nothing. Either edge can go missing on its
-      // own -- one key absent from the payload, one published null all the
-      // way across, or one edge dropped by the duplicate rule above -- and a
-      // single dashed line hugging the curve is not half an envelope, it is
-      // a different and wrong claim. Worse, the legend would still offer the
-      // "expected error" chip while the tooltip, which rightly demands both
-      // edges at the same step, reported nothing: three parts of the card
-      // disagreeing about whether a band exists at all.
-      if (def.band) {
-        const edges = new Set(
-          lines.filter((l) => !l.primary).map((l) => l.field)
-        );
-        if (!edges.has(def.band.lo) || !edges.has(def.band.hi)) {
-          for (let i = lines.length - 1; i >= 0; i--) {
-            if (
-              lines[i].field === def.band.lo ||
-              lines[i].field === def.band.hi
-            ) {
-              lines.splice(i, 1);
-            }
-          }
-        }
-      }
-      series.push({
-        ...def,
-        lines,
-        hasData: lines.length > 0,
-        visible: !this._hidden[def.key],
-      });
-    }
-
-    return { series, windowStart, windowEnd, zoomed: this._view !== null };
-  }
-
   // ---- rendering ---------------------------------------------------------
-
-  // Explain precisely why a plan is missing. "Waiting for an entity" is not
-  // actionable when the real problem is that the entity is named something
-  // else, so distinguish not-found from present-but-empty.
-  _diagnose(kind) {
-    const id = this._resolveEntity(kind);
-    const label = L(kind === "space" ? "errors.diag_space" : "errors.diag_dhw");
-    const st = this._stateOf(id);
-    if (!st) {
-      return L("errors.diag_not_found", { label, id: esc(id), kind });
-    }
-    if (st.state === "unavailable" || st.state === "unknown") {
-      return L("errors.diag_unavailable", {
-        label,
-        id: esc(id),
-        state: esc(st.state),
-      });
-    }
-    const fc = this._forecast(id);
-    if (!fc) {
-      return L("errors.diag_no_forecast", { label, id: esc(id) });
-    }
-    if (!fc.length) {
-      return L("errors.diag_empty_forecast", { label, id: esc(id) });
-    }
-    return L("errors.diag_out_of_window", {
-      label,
-      id: esc(id),
-      n: fc.length,
-    });
-  }
 
   /** The card's display title: the configured one, or the localized default. */
   _title() {
@@ -3721,89 +4058,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
   }
 
   // ---- headline stats ----------------------------------------------------
-
-  /** The state object of a headline sensor, found by id suffix and cached.
-   *
-   * The savings/score/narrative sensors publish no `plan_kind`-style marker,
-   * so the suffix — which has_entity_name keeps stable under any device
-   * name — is the discovery contract.
-   *
-   * They also share a device with the plan sensors, which means they share
-   * an entity-id prefix. Deriving the stat id from the RESOLVED plan sensor
-   * (config first, then plan_kind discovery — `_resolveEntity` already owns
-   * that) is both cheap and scoped to this card's config entry; a global
-   * scan could bind the headline to another entry's — or a foreign
-   * integration's — sensors. The scan survives only as a fallback for
-   * hand-renamed stat entities, and its result is cached even when it is a
-   * miss: the negative cache is keyed to the number of `sensor.` ids, so a
-   * late-arriving backend is still found without rescanning every state
-   * batch.
-   */
-  _statEntity(suffix) {
-    const states = this._hass && this._hass.states;
-    if (!states) return null;
-    if (!this._statCache) this._statCache = {};
-    if (!this._statMissAt) this._statMissAt = {};
-    const cached = this._statCache[suffix];
-    if (cached && states[cached]) return states[cached];
-
-    for (const [kind, planSuffix] of [
-      ["space", "_space_heating_plan"],
-      ["dhw", "_dhw_heating_plan"],
-    ]) {
-      const planId = this._resolveEntity(kind);
-      if (!planId || !states[planId] || !planId.endsWith(planSuffix)) {
-        continue;
-      }
-      const candidate = planId.slice(0, -planSuffix.length) + suffix;
-      if (states[candidate]) {
-        this._statCache[suffix] = candidate;
-        delete this._statMissAt[suffix];
-        return states[candidate];
-      }
-    }
-
-    const count = this._sensorCount(states);
-    if (this._statMissAt[suffix] === count) return null;
-    // Sorted iteration makes a tie deterministic, the same choice
-    // `_resolveEntity` makes.
-    for (const id of Object.keys(states).sort()) {
-      if (!id.startsWith("sensor.") || !id.endsWith(suffix)) continue;
-      this._statCache[suffix] = id;
-      delete this._statMissAt[suffix];
-      return states[id];
-    }
-    this._statMissAt[suffix] = count;
-    return null;
-  }
-
-  /** How many `sensor.` entity ids this state batch holds.
-   *
-   * Memoized per batch object — hass replaces `states` wholesale on every
-   * update, so object identity is the batch's identity. This is what the
-   * negative cache above is keyed to.
-   */
-  _sensorCount(states) {
-    if (this._sensorCountFor !== states) {
-      let n = 0;
-      for (const id of Object.keys(states)) {
-        if (id.startsWith("sensor.")) n++;
-      }
-      this._sensorCountFor = states;
-      this._sensorCountN = n;
-    }
-    return this._sensorCountN;
-  }
-
-  /** A headline sensor's state as a finite number, or null. */
-  _statNumber(suffix) {
-    const st = this._statEntity(suffix);
-    if (!st || st.state === "unavailable" || st.state === "unknown") {
-      return null;
-    }
-    const v = Number(st.state);
-    return Number.isFinite(v) ? v : null;
-  }
 
   /** The compact stats row under the header, or nothing at all.
    *
@@ -3816,18 +4070,18 @@ class HeatpumpOptimizerCard extends HTMLElement {
     if (!this._config.show_stats) return "";
     const items = [];
 
-    const savings = this._statNumber("_predicted_savings");
+    const savings = this.plan.statNumber("_predicted_savings");
     if (savings !== null) {
-      const pct = this._statNumber("_savings_percentage");
+      const pct = this.plan.statNumber("_savings_percentage");
       // The savings sensor declares the unit its value is denominated in;
       // nothing here converts, so a card-config `currency:` must not relabel
       // it. `_currency()` only fills in when the sensor declares no unit.
-      const savingsSt = this._statEntity("_predicted_savings");
+      const savingsSt = this.plan.statEntity("_predicted_savings");
       const unit =
         (savingsSt &&
           savingsSt.attributes &&
           savingsSt.attributes.unit_of_measurement) ||
-        this._currency();
+        this.plan.currency();
       const value =
         `${savings.toFixed(2)} ${unit}` +
         (pct !== null
@@ -3846,7 +4100,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
       });
     }
 
-    const score = this._statNumber("_optimization_score");
+    const score = this.plan.statNumber("_optimization_score");
     if (score !== null) {
       // The hover says what the score is; the sub-scores ride the same
       // sensor's attributes, so the hover can also say what it is MADE OF
@@ -3875,7 +4129,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // The narrative arrives already rendered in Home Assistant's language
     // (the coordinator owns those templates), so the first line is shown
     // verbatim rather than re-keyed here.
-    const narrative = this._statEntity("_plan_narrative");
+    const narrative = this.plan.statEntity("_plan_narrative");
     const lines =
       narrative && narrative.attributes && narrative.attributes.lines;
     const line =
@@ -3915,7 +4169,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
    * so rather than printing 0/100 for something unmeasured.
    */
   _scoreParts() {
-    const st = this._statEntity("_optimization_score");
+    const st = this.plan.statEntity("_optimization_score");
     const attrs = (st && st.attributes) || {};
     return [
       { key: "envelope", label: L("score.label_envelope"), value: this._finiteScore(attrs.envelope) },
@@ -3978,7 +4232,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // "the card's setup page should not need a solve to draw". Gating the
     // only way in on plan data made the one page that can say WHICH sensor is
     // missing reachable only after a solve the missing sensor was preventing.
-    const topo = this._planAttrRaw("setup_topology", null);
+    const topo = this.plan.attrRaw("setup_topology", null);
     const anySetup = !!(topo && Array.isArray(topo.slots) && topo.slots.length);
     // An install with genuinely nothing published stays as it was: no plan
     // and no topology is nothing to expand to, and the diagnostics below are
@@ -4092,8 +4346,8 @@ class HeatpumpOptimizerCard extends HTMLElement {
    * worse half of the pair. */
   _noPlanHtml() {
     return `<div class="empty">${L("errors.no_plan_data")}<br>
-      ${this._diagnose("space")}<br>
-      ${this._diagnose("dhw")}</div>`;
+      ${this.plan.diagnose("space")}<br>
+      ${this.plan.diagnose("dhw")}</div>`;
   }
 
   _dialogHtml(built, anyData) {
@@ -4146,7 +4400,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
    * step, no dependencies, and nothing interactive to begin with.
    */
   _setupPageHtml() {
-    const topo = this._planAttrRaw("setup_topology", null);
+    const topo = this.plan.attrRaw("setup_topology", null);
     if (!topo || !Array.isArray(topo.slots)) {
       return `<div class="setup-page"><div class="empty">
         ${L("setup.not_published")}</div></div>`;
@@ -4693,7 +4947,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
       // screen would show a system that does not exist.
       this._layoutEdit = null;
     } else {
-      const topo = this._planAttrRaw("setup_topology", null) || {};
+      const topo = this.plan.attrRaw("setup_topology", null) || {};
       const positions =
         topo.positions && typeof topo.positions === "object"
           ? topo.positions
@@ -4748,7 +5002,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
   _layoutEvaluate() {
     const ed = this._layoutEdit;
     if (!ed) return;
-    const topo = this._planAttrRaw("setup_topology", null) || {};
+    const topo = this.plan.attrRaw("setup_topology", null) || {};
     const catalog = Array.isArray(topo.catalog) ? topo.catalog : [];
     const name = (e) => `${e[0]}>${e[1]}`;
     const drawn = new Set(ed.edges.map(name));
@@ -4841,7 +5095,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
   _refreshLayout() {
     const root = this.shadowRoot;
     if (!root) return;
-    const topo = this._planAttrRaw("setup_topology", null);
+    const topo = this.plan.attrRaw("setup_topology", null);
     const canvas = root.querySelector(".setup-canvas");
     if (canvas && topo && Array.isArray(topo.slots)) {
       canvas.innerHTML = this._setupSvg(topo);
@@ -5103,7 +5357,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
    * forecast for a roof sensor.
    */
   _solarFallback() {
-    const st = this._stateOf(this._resolveEntity("solar"));
+    const st = this.plan.stateOf(this.plan.resolveEntity("solar"));
     if (!st) return null;
     const v = Number(st.state);
     if (!Number.isFinite(v)) return null;
@@ -5160,7 +5414,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     if (!this._config.what_if) return "";
     const draft = this._whatIfDraft();
     const windows = draft.dhwWindows;
-    const setpoint = this._planAttr("dhw_setpoint", null);
+    const setpoint = this.plan.attr("dhw_setpoint", null);
     const ceiling = this._dhwMinCeiling();
     // Re-clamp on every render rather than only when the draft is seeded: the
     // setpoint is configurable and may have moved since, and a slider whose
@@ -5173,7 +5427,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
       clamped = draft.dhwMin;
       draft.dhwMin = ceiling;
     }
-    const windowHours = this._planAttr(
+    const windowHours = this.plan.attr(
       "manual_plan_window_hours",
       MANUAL_PLAN_WINDOW_FALLBACK_H
     );
@@ -5203,7 +5457,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
               L("whatif.undo_changes")
             )}</button>
             ${
-              this._manualOverride()
+              this.plan.manualOverride()
                 ? `<button type="button" class="wi-auto">${esc(
                     L("whatif.back_to_auto")
                   )}</button>`
@@ -5345,8 +5599,8 @@ class HeatpumpOptimizerCard extends HTMLElement {
       this._whatIf = {
         comfort: this._currentComfortTemp(),
         dhwMin: this._currentDhwMin(),
-        dayStart: this._planAttr("day_start_hour", 7),
-        dayEnd: this._planAttr("day_end_hour", 22),
+        dayStart: this.plan.attr("day_start_hour", 7),
+        dayEnd: this.plan.attr("day_end_hour", 22),
         dhwWindows: this._currentDhwWindows(),
       };
     }
@@ -5360,13 +5614,13 @@ class HeatpumpOptimizerCard extends HTMLElement {
    * whose setpoint has nothing to do with the space-heating plan.
    */
   _currentComfortTemp() {
-    return this._planAttr("comfort_temp_day", 21);
+    return this.plan.attr("comfort_temp_day", 21);
   }
 
   /** Current usable hot water minimum, as configured. */
   _currentDhwMin() {
     return Math.min(
-      this._planAttr("dhw_min_temperature", DHW_MIN_FALLBACK),
+      this.plan.attr("dhw_min_temperature", DHW_MIN_FALLBACK),
       this._dhwMinCeiling()
     );
   }
@@ -5379,41 +5633,8 @@ class HeatpumpOptimizerCard extends HTMLElement {
    * before the first plan arrives, when no setpoint has been published yet.
    */
   _dhwMinCeiling() {
-    const published = this._planAttr("dhw_min_temperature_max", null);
+    const published = this.plan.attr("dhw_min_temperature_max", null);
     return published === null ? DHW_MIN_FALLBACK : published;
-  }
-
-  _planAttr(name, fallback) {
-    const st = this._stateOf(this._resolveEntity("space"));
-    const raw = ((st && st.attributes) || {})[name];
-    // `Number(null)` is 0, and 0 is finite -- so without this guard an
-    // attribute the coordinator published as None would read as a real
-    // measurement of zero rather than "not known", silently producing a 0 °C
-    // comfort target or a hot water ceiling of nothing.
-    if (raw === null || raw === undefined || raw === "") return fallback;
-    const value = Number(raw);
-    return Number.isFinite(value) ? value : fallback;
-  }
-
-  /** A plan-sensor attribute as-is, for the ones that are not numbers. */
-  _planAttrRaw(name, fallback) {
-    const st = this._stateOf(this._resolveEntity("space"));
-    const raw = ((st && st.attributes) || {})[name];
-    return raw === null || raw === undefined ? fallback : raw;
-  }
-
-  /** The manual override the integration is currently honouring, if any.
-   *
-   * Published by both plan sensors, so either will do; the space sensor is the
-   * one the rest of the card already resolves.
-   */
-  _manualOverride() {
-    for (const which of ["space", "dhw"]) {
-      const st = this._stateOf(this._resolveEntity(which));
-      const info = ((st && st.attributes) || {}).manual_override;
-      if (info && info.active) return info;
-    }
-    return null;
   }
 
   /** How the override is going, in the user's terms.
@@ -5424,7 +5645,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
    * user believes the plan they see is the plan that will run.
    */
   _overrideHtml() {
-    const info = this._manualOverride();
+    const info = this.plan.manualOverride();
     if (!info) return "";
     const until = info.expires_at ? new Date(info.expires_at) : null;
     const when =
@@ -5459,7 +5680,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
    * the card, blaming the schedule the integration had just published.
    */
   _currentDhwWindows() {
-    const st = this._stateOf(this._resolveEntity("dhw"));
+    const st = this.plan.stateOf(this.plan.resolveEntity("dhw"));
     const spec = ((st && st.attributes) || {}).dhw_windows;
     return parseWindows(spec).map((w) => ({
       start: endOfDayAsMidnight(w.start),
@@ -5515,7 +5736,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
       // missing or has not published yet has an empty draft that means neither
       // of those things, so it must be left out rather than silently switched
       // off for the rest of the day.
-      if (!this._forecastOf(spec.channel).length) continue;
+      if (!this.plan.forecastOf(spec.channel).length) continue;
       payload[`${spec.channel}_slots`] = (runs[spec.channel] || [])
         .filter((r) => r.end > lo)
         .map((r) => ({
@@ -6012,6 +6233,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
 
 
   _legendHtml() {
+    const isLowerModelled = () => this.plan.lowerFloorModelled();
     const chips = SERIES_DEFS.map((def) => {
       const s = this._series.find((x) => x.key === def.key);
       const hasData = s ? s.hasData : false;
@@ -6039,14 +6261,14 @@ class HeatpumpOptimizerCard extends HTMLElement {
       // two edges are one envelope with one name. Listing `lines` here would
       // print "Lower floor, Lower floor, Lower floor" — saying a thing three
       // times, in the title written to stop saying it twice.
-      const extras = this._extraFields(s);
-      const unit = this._seriesUnit(def);
+      const extras = extraFields(s);
+      const unit = this.plan.seriesUnit(def);
       // ... and any sentence a trace needs beyond its name rides along
       // after them. Only the expected-error band has one: "Upper floor"
       // explains itself, a dashed pair hugging the tank curve does not, and
       // this title is now the one place a puzzled reader can look.
       const notes = extras
-        .map((line) => this._lineNote(def, line))
+        .map((line) => lineNote(def, line))
         .filter(Boolean)
         .map((note) => " " + note)
         .join("");
@@ -6054,7 +6276,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
         ? L("legend.multi_trace_title", {
             label,
             unit,
-            names: extras.map((line) => this._lineLabel(def, line)).join(", "),
+            names: extras.map((line) => lineLabel(def, line, isLowerModelled)).join(", "),
           }) + notes
         : `${label} (${unit})`;
       return `<button type="button" class="${cls}" data-key="${
@@ -6066,154 +6288,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
       </button>`;
     }).join("");
     return `<div class="legend">${chips}</div>`;
-  }
-
-  /** Every plotted point of one field, across the segments holes broke it
-   * into. A field is one trace to every caller; that it may be drawn as
-   * several paths is a rendering detail. */
-  _fieldPoints(s, field) {
-    const out = [];
-    for (const line of s.lines || []) {
-      if (line.field === field) out.push(...line.points);
-    }
-    return out;
-  }
-
-  /** One representative line per NAMED non-primary trace, in draw order.
-   *
-   * Two collapses, both because a reader counts traces by name and not by
-   * path. `lines` may hold several segments of one field, because a hole
-   * breaks a field into several paths; and a band's two edges are one
-   * envelope with one name.
-   *
-   * Every caller that names traces goes through here — this card's per-trace
-   * legend chips, its tooltip, and equally a legend that draws ONE chip per
-   * series and lists the rest in that chip's title. Iterating `lines`
-   * directly instead would name a gapped zone three times and a band twice.
-   */
-  _extraFields(s) {
-    const band = s && s.band;
-    const seen = new Set();
-    const out = [];
-    for (const line of (s && s.lines) || []) {
-      if (line.primary) continue;
-      const key =
-        band && (line.field === band.lo || line.field === band.hi)
-          // A Symbol, never a string: a de-duplication key that cannot
-          // collide with a field name, whatever a later series calls its
-          // fields.
-          ? BAND_TRACE_KEY
-          : line.field;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      out.push(line);
-    }
-    return out;
-  }
-
-  /** The sentence a trace needs on hover, or "" when its name is enough.
-   *
-   * Only the expected-error band has one: "Upper floor" explains itself, a
-   * dashed pair hugging the tank curve does not. Keyed off the series
-   * definition beside `_lineLabel`, so anywhere a trace can be named the
-   * explanation can be asked for too.
-   */
-  _lineNote(def, line) {
-    const band = def && def.band;
-    if (
-      band &&
-      band.noteKey &&
-      line &&
-      (line.field === band.lo || line.field === band.hi)
-    ) {
-      return L(band.noteKey);
-    }
-    return "";
-  }
-
-  /** The point of `field` nearest `t`, or null when the field has none. */
-  _nearestPoint(s, field, t) {
-    let best = null;
-    let bestDt = Infinity;
-    for (const p of this._fieldPoints(s, field)) {
-      const dt = Math.abs(p.t - t);
-      if (dt < bestDt) {
-        bestDt = dt;
-        best = p;
-      }
-    }
-    return best;
-  }
-
-  /** What one trace inside a series is called.
-   *
-   * A series can carry several lines — the house-temperature series draws the
-   * whole-house room average solid and the two zones dashed — and every one of
-   * them needs its own name. The lower zone gets a second name when nothing
-   * measures it, so a modelled trace is never mistaken for a reading.
-   */
-  _lineLabel(def, line) {
-    if (!line || line.primary) return L(def.labelKey);
-    if (line.field === "lower" && this._lowerFloorModelled()) {
-      return L("series.lower_floor_modelled");
-    }
-    return L(line.labelKey || def.labelKey);
-  }
-
-  /** The one tooltip row for a series' expected-error band, if it has one
-   * and both edges are present at the same step.
-   *
-   * Stated as a single ± figure because that is the one number the pair
-   * carries. Half an envelope says nothing, and two halves taken from
-   * different steps say something untrue, so both must come from the same
-   * step or there is no row at all.
-   */
-  _bandRow(s, t) {
-    if (!s.band) return [];
-    const lo = this._nearestPoint(s, s.band.lo, t);
-    const hi = this._nearestPoint(s, s.band.hi, t);
-    if (!lo || !hi || lo.t !== hi.t) return [];
-    return [
-      {
-        color: s.color,
-        label: L(s.band.labelKey),
-        value: (hi.v - lo.v) / 2,
-        prefix: "\u00b1",
-        dashed: true,
-        unit: this._seriesUnit(s),
-        t: hi.t,
-        field: s.band.hi,
-      },
-    ];
-  }
-
-  /** True when the lower zone has no thermometer of its own.
-   *
-   * Read from the published `setup_topology` slots rather than guessed: the
-   * integration already says there which sensor slots are filled, so the
-   * chart's label and the setup page cannot disagree. Unknown topology
-   * claims nothing — a missing attribute is not evidence of a missing
-   * sensor.
-   */
-  _lowerFloorModelled() {
-    const topo = this._planAttrRaw("setup_topology", null);
-    const slots = topo && Array.isArray(topo.slots) ? topo.slots : null;
-    if (!slots) return false;
-    const slot = slots.find(
-      (x) => x && x.key === "lower_floor_temp_entity"
-    );
-    return !!slot && !slot.entity;
-  }
-
-  /** The unit a series renders with. Only the price unit is dynamic: its
-   * currency comes from the config, the plan sensor or Home Assistant. */
-  _seriesUnit(def) {
-    return def.axis === "price" ? this._priceUnit() : def.unit;
-  }
-
-  /** "SEK/kWh", "EUR/kWh", ... from the resolved currency. */
-  _priceUnit() {
-    return `${this._currency()}/kWh`;
   }
 
   _chartSvg(built, expanded) {
@@ -6311,7 +6385,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     const powerTitleInset = 44;
     // The price axis title carries the resolved currency, so the measured
     // string and the drawn string must be the same value.
-    const priceUnit = this._priceUnit();
+    const priceUnit = this.plan.priceUnit();
     const tempAnchor =
       axes.power && !titleFits("\u00b0C", powerTitleInset) ? "start" : "end";
     const priceAnchor =
@@ -6363,7 +6437,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // Shade the stretch of the horizon whose prices are the learned diurnal
     // prior rather than published market data. A plan that looks identical
     // whether or not it rests on real prices cannot be audited.
-    const estimatedFrom = this._estimatedPricesFrom();
+    const estimatedFrom = this.plan.estimatedPricesFrom();
     if (estimatedFrom !== null && estimatedFrom < windowEnd) {
       const ex = Math.max(plotL, scaleX(Math.max(estimatedFrom, windowStart)));
       parts.push(
@@ -6629,7 +6703,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     let edited = 0;
     const runs = this._draftRuns();
     for (const spec of this._laneSpecs()) {
-      const forecast = this._forecastOf(spec.channel);
+      const forecast = this.plan.forecastOf(spec.channel);
       if (!forecast.length) continue;
       const power = SlotModel.typicalPower(forecast, spec.field);
       const base = SlotModel.runsFrom(
@@ -6643,31 +6717,12 @@ class HeatpumpOptimizerCard extends HTMLElement {
     return { planned, edited, delta: edited - planned };
   }
 
-  /** The currency to price the delta in.
-   *
-   * The plan carries prices but not a currency, so take Home Assistant's own
-   * configured currency rather than assuming the author's. `currency:` in the
-   * card config still wins, for installs where the two disagree.
-   */
-  _currency() {
-    const hass = this._hass || {};
-    return (
-      this._config.currency ||
-      // v4.1.0+: the integration publishes the currency its prices are in on
-      // the plan sensors. That beats Home Assistant's global currency, which
-      // describes the install, not the price feed.
-      this._planAttrRaw("currency", null) ||
-      (hass.config && hass.config.currency) ||
-      "SEK"
-    );
-  }
-
   _deltaHtml() {
     const { planned, edited, delta } = this._costDelta();
     if (!Number.isFinite(delta) || (!planned && !edited)) {
       return `<span class="wi-hint">${L("stats.no_plan_to_compare")}</span>`;
     }
-    const cur = this._currency();
+    const cur = this.plan.currency();
     const cls = delta < -0.005 ? "cheaper" : delta > 0.005 ? "dearer" : "";
     const sign = delta > 0 ? "+" : "";
     const verdict = L(
@@ -7359,7 +7414,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
    */
   _editCeilingParts() {
     const visibleEnd = this._geom ? this._geom.windowEnd : Infinity;
-    const windowHours = this._planAttr(
+    const windowHours = this.plan.attr(
       "manual_plan_window_hours",
       MANUAL_PLAN_WINDOW_FALLBACK_H
     );
@@ -7383,7 +7438,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
   _planEnd() {
     let end = -Infinity;
     for (const channel of ["space", "dhw"]) {
-      const fc = this._forecastOf(channel);
+      const fc = this.plan.forecastOf(channel);
       if (!fc.length) continue;
       const t = Date.parse(fc[fc.length - 1].t);
       if (Number.isFinite(t)) end = Math.max(end, t + PLAN_STEP_MS);
@@ -7406,7 +7461,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
       this._runs = {};
       for (const spec of this._laneSpecs()) {
         this._runs[spec.channel] = SlotModel.runsFrom(
-          this._forecastOf(spec.channel), spec.field, 0.05, PLAN_STEP_MS
+          this.plan.forecastOf(spec.channel), spec.field, 0.05, PLAN_STEP_MS
         );
       }
       this._runsDirty = false;
@@ -7418,12 +7473,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
   _resetRuns() {
     this._runs = null;
     this._runsDirty = false;
-  }
-
-  _forecastOf(channel) {
-    const st = this._stateOf(this._resolveEntity(channel));
-    const fc = ((st && st.attributes) || {}).forecast;
-    return Array.isArray(fc) ? fc : [];
   }
 
   /** The lanes, their slots and the grab handles, as SVG.
@@ -7639,20 +7688,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
       )}</text>`
     );
     return out.join("");
-  }
-
-  /** Timestamp from which the plan's prices are the learned prior, or null. */
-  _estimatedPricesFrom() {
-    const spFc = this._forecast(this._resolveEntity("space")) || [];
-    const dhwFc = this._forecast(this._resolveEntity("dhw")) || [];
-    const fc = spFc.length ? spFc : dhwFc;
-    for (const p of fc) {
-      if (p.price_known === false) {
-        const t = Date.parse(p.t);
-        return Number.isNaN(t) ? null : t;
-      }
-    }
-    return null;
   }
 
   _seriesPath(s, scaleX, scaleY, plotB) {
@@ -7969,7 +8004,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     if (!space || !dhw) return "";
     // Through the field helper, not `lines[0]`: a hole anywhere in a power
     // series splits it into segments, and the span search needs all of them.
-    const pointsOf = (s) => this._fieldPoints(s, s.field);
+    const pointsOf = (s) => fieldPoints(s, s.field);
     const spacePts = pointsOf(space);
     const dhwPts = pointsOf(dhw);
     if (spacePts.length < 2 || dhwPts.length < 2) return "";
@@ -8046,6 +8081,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
 
   _onPointerMove(ev) {
     if (!this._plot) return;
+    const isLowerModelled = () => this.plan.lowerFloorModelled();
     const svg = ev && ev.currentTarget;
     if (!svg || typeof svg.getBoundingClientRect !== "function") return;
     const wrap = this._wrapOf(svg);
@@ -8081,13 +8117,13 @@ class HeatpumpOptimizerCard extends HTMLElement {
       // the same trace two or three times over.
       const traces = [
         { field: s.field, primary: true, labelKey: s.labelKey },
-      ].concat(this._extraFields(s));
+      ].concat(extraFields(s));
       // A band's two edges are collapsed into the single ± figure they
       // actually carry, rather than reported as two absolute temperatures.
       const bandFields = s.band ? [s.band.lo, s.band.hi] : [];
       for (const line of traces) {
         if (bandFields.includes(line.field)) continue;
-        const best = this._nearestPoint(s, line.field, t);
+        const best = nearestPoint(s, line.field, t);
         if (!best) continue;
         if (!snapped) {
           snapX = scaleX(best.t);
@@ -8095,10 +8131,10 @@ class HeatpumpOptimizerCard extends HTMLElement {
         }
         rows.push({
           color: s.color,
-          label: this._lineLabel(s, line),
+          label: lineLabel(s, line, isLowerModelled),
           dashed: !line.primary,
           value: best.v,
-          unit: this._seriesUnit(s),
+          unit: this.plan.seriesUnit(s),
           t: best.t,
           field: line.field,
           reason: best.reason,
@@ -8106,7 +8142,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
         });
       }
       // ... and then the band, as one row, right under the line it brackets.
-      for (const row of this._bandRow(s, t)) rows.push(row);
+      for (const row of bandRow(s, t, this.plan.seriesUnit(s))) rows.push(row);
     }
     if (!rows.length) {
       this._onPointerLeave();
@@ -8163,6 +8199,109 @@ class HeatpumpOptimizerCard extends HTMLElement {
       // small inset keeps it clear of the plot frame in both views.
       tt.style.top = `8px`;
     }
+  }
+
+  // ---- seams for tests/card.mjs (PR 9 of #136 deletes them) ---------------
+  // The test suite drives these by their old names. Each is one line onto
+  // the collaborator or function that owns the behaviour now.
+
+  _buildSeries() {
+    const cfg = this._config;
+    const plan = this.plan;
+    const spFc = plan.forecast(plan.resolveEntity("space")) || [];
+    const dhwFc = plan.forecast(plan.resolveEntity("dhw")) || [];
+    // The irradiance sensor publishes its own horizon. Its timestamps are
+    // already interval *starts* — `_solar_forecast_view` converts Open-Meteo's
+    // end-of-interval stamps on the way out — so they must not be shifted again.
+    const solarFc = plan.forecast(plan.resolveEntity("solar")) || [];
+    const dw = defaultWindow(spFc, dhwFc, cfg.hours, Date.now());
+    // `_applyView` narrows the default window to whatever the user has
+    // panned or zoomed to, and is a no-op until they touch a control -- so
+    // the untouched card renders exactly as before. Filtering then happens
+    // against the visible window, which is what keeps the value axis scaled
+    // to what is actually on screen. Still a host seam because the tests
+    // call `_buildSeries()` for exactly this side effect.
+    const view = this._applyView(dw.start, dw.end, dw.dataEnd);
+    return buildSeries({
+      spFc, dhwFc, solarFc,
+      windowStart: view.start,
+      windowEnd: view.end,
+      hidden: this._hidden,
+      zoomed: this._view !== null,
+    });
+  }
+
+  get _resolvedCache() {
+    return this.plan.resolvedCache;
+  }
+  set _resolvedCache(v) {
+    this.plan.resolvedCache = v;
+  }
+  _resolveEntity(kind) {
+    return this.plan.resolveEntity(kind);
+  }
+  _stateOf(entityId) {
+    return this.plan.stateOf(entityId);
+  }
+  _forecast(entityId) {
+    return this.plan.forecast(entityId);
+  }
+  _forecastOf(channel) {
+    return this.plan.forecastOf(channel);
+  }
+  _planAttr(name, fallback) {
+    return this.plan.attr(name, fallback);
+  }
+  _planAttrRaw(name, fallback) {
+    return this.plan.attrRaw(name, fallback);
+  }
+  _manualOverride() {
+    return this.plan.manualOverride();
+  }
+  _currency() {
+    return this.plan.currency();
+  }
+  _priceUnit() {
+    return this.plan.priceUnit();
+  }
+  _seriesUnit(def) {
+    return this.plan.seriesUnit(def);
+  }
+  _lowerFloorModelled() {
+    return this.plan.lowerFloorModelled();
+  }
+  _estimatedPricesFrom() {
+    return this.plan.estimatedPricesFrom();
+  }
+  _diagnose(kind) {
+    return this.plan.diagnose(kind);
+  }
+  _statEntity(suffix) {
+    return this.plan.statEntity(suffix);
+  }
+  _sensorCount(states) {
+    return this.plan.sensorCount(states);
+  }
+  _statNumber(suffix) {
+    return this.plan.statNumber(suffix);
+  }
+  _fieldPoints(s, field) {
+    return fieldPoints(s, field);
+  }
+  _extraFields(s) {
+    return extraFields(s);
+  }
+  _lineNote(def, line) {
+    return lineNote(def, line);
+  }
+  _nearestPoint(s, field, t) {
+    return nearestPoint(s, field, t);
+  }
+  _lineLabel(def, line) {
+    return lineLabel(def, line, () => this.plan.lowerFloorModelled());
+  }
+  _bandRow(s, t) {
+    return bandRow(s, t, this.plan.seriesUnit(s));
   }
 }
 
