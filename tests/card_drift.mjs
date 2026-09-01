@@ -229,6 +229,15 @@ const STATES = [
       api.addWindow(c, { ...noop });
       return c;
     } },
+  { name: "whatif_weekly",
+    drive: (s) => {
+      const st = planStates(s.plan);
+      st[DEFAULT_DHW].attributes.dhw_windows = "06:00-08:30";
+      st[DEFAULT_DHW].attributes.dhw_windows_spec = "weekdays 06:00-08:30, weekend 08:00-09:30";
+      const c = buildCard(s.Card, st, { what_if: true });
+      c._onCardClick({});
+      return c;
+    } },
   { name: "override_active",
     drive: (s) => {
       const st = planStates(s.plan);

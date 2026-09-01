@@ -11,7 +11,7 @@
 
 const CARD_TAG = "heatpump-optimizer-card";
 const EDITOR_TAG = "heatpump-optimizer-card-editor";
-const CARD_VERSION = "5.4.13";
+const CARD_VERSION = "5.4.14";
 
 // The de-duplication key `_extraFields` files a confidence band's two
 // edges under, so the pair counts as the one named trace it is. A Symbol
@@ -169,6 +169,10 @@ const STRINGS = {
     "whatif.window_end_aria": "Window {n} end",
     "whatif.remove": "Remove",
     "whatif.remove_window_aria": "Remove window {n}",
+    "whatif.window_days_aria": "Window {n} days",
+    "whatif.days_daily": "Every day",
+    "whatif.days_weekdays": "Weekdays",
+    "whatif.days_weekend": "Weekend",
     "whatif.no_windows_hint":
       "No windows: hot water is never required, so the tank is only kept " +
       "above its idle minimum.",
@@ -536,6 +540,10 @@ const STRINGS = {
     "whatif.window_end_aria": "Fönster {n} slut",
     "whatif.remove": "Ta bort",
     "whatif.remove_window_aria": "Ta bort fönster {n}",
+    "whatif.window_days_aria": "Fönster {n} dagar",
+    "whatif.days_daily": "Alla dagar",
+    "whatif.days_weekdays": "Vardagar",
+    "whatif.days_weekend": "Helg",
     "whatif.no_windows_hint":
       "Inga fönster: varmvatten krävs aldrig, så tanken hålls bara över " +
       "sitt vilominimum.",
@@ -1569,22 +1577,92 @@ function endOfDayAsMidnight(value) {
   return String(value).trim() === "24:00" ? "00:00" : value;
 }
 
-/** '06:00-08:30, 17:00-22:00' -> [{start,end}, ...] */
+/** The day selector a window carries, canonicalised the way the integration's
+ * `dhw_schedule` reads it: "daily" (the default, and what a range without one
+ * means), "weekdays", "weekend", or a day list such as "Tu-Fr" or "Sa,Su" --
+ * kept, capitalised as the integration renders it. `null` for anything else. */
+const DAY_TOKENS = ["mo", "tu", "we", "th", "fr", "sa", "su"];
+function daySelector(token) {
+  const t = String(token || "").trim().toLowerCase();
+  if (!t || t === "daily" || t === "everyday" || t === "all") return "daily";
+  if (t === "weekdays") return "weekdays";
+  if (t === "weekend" || t === "weekends") return "weekend";
+  const compact = t.replace(/\s+/g, "");
+  if (!/^[a-z]{2}(?:[-,][a-z]{2})*$/.test(compact)) return null;
+  if (!compact.split(/[-,]/).every((d) => DAY_TOKENS.includes(d))) return null;
+  return compact.replace(/[a-z]{2}/g, (d) => d[0].toUpperCase() + d[1]);
+}
+
+/** '06:00-08:30, 17:00-22:00' -> [{days, start, end}, ...]
+ *
+ * A weekly spec (v6.2.5) puts a day selector before a range -- "weekdays
+ * 06:00-08:30, weekend 08:00-09:30"; "Mo 05:30-07:00, Tu-Fr 06:00-08:00,
+ * Sa,Su 08:00-09:30" -- and is read here the way `parse_weekly_windows`
+ * reads it: the comma is both the segment separator and, inside a day list,
+ * the day separator, so a chunk with no digits that parses as day names is
+ * the next chunk's selector. A range without a selector is "daily", which is
+ * what every flat spec is. */
 function parseWindows(spec) {
   if (typeof spec !== "string" || !spec.trim()) return [];
+  const chunks = [];
+  let pending = "";
+  for (const raw of spec.replace(/[;\n]/g, ",").split(",")) {
+    const chunk = raw.trim();
+    if (!chunk) continue;
+    if (!/\d/.test(chunk) && daySelector(chunk)) {
+      pending = pending ? `${pending},${chunk}` : chunk;
+      continue;
+    }
+    chunks.push(pending ? `${pending},${chunk}` : chunk);
+    pending = "";
+  }
   const out = [];
-  for (const part of spec.split(",")) {
-    const m = /^\s*(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})\s*$/.exec(part);
-    if (m) out.push({ start: m[1], end: m[2] });
+  for (const chunk of chunks) {
+    let days = "daily";
+    let range = chunk.replace(/[\u2013\u2014]/g, "-");
+    const m = /^([A-Za-z][A-Za-z,\s-]*?)\s+(?=\d)/.exec(range);
+    if (m) {
+      const sel = daySelector(m[1]);
+      if (sel) {
+        days = sel;
+        range = range.slice(m[0].length);
+      }
+    }
+    const r = /^\s*(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})\s*$/.exec(range);
+    if (r) out.push({ days, start: r[1], end: r[2] });
   }
   return out;
 }
 
-/** The inverse, in the format the integration's parser expects. */
+/** The inverse, in the format the integration's parser expects: the selector
+ * before its range, and none for "daily" -- a flat spec stays a flat spec. */
 function formatWindows(windows) {
   return (windows || [])
-    .map((w) => `${w.start}-${w.end}`)
+    .map((w) => {
+      const days = w.days && w.days !== "daily" ? `${w.days} ` : "";
+      return `${days}${w.start}-${w.end}`;
+    })
     .join(", ");
+}
+
+/** The day selector's options: the three named sets, plus the window's own
+ * selector when it is a day list the picker does not offer, so a schedule
+ * typed in the options flow survives a round trip through the card. */
+function daysOptionsHtml(days) {
+  const current = days || "daily";
+  const named = [
+    ["daily", L("whatif.days_daily")],
+    ["weekdays", L("whatif.days_weekdays")],
+    ["weekend", L("whatif.days_weekend")],
+  ];
+  const out = named.map(
+    ([value, label]) =>
+      `<option value="${value}"${value === current ? " selected" : ""}>${esc(label)}</option>`
+  );
+  if (!named.some(([value]) => value === current)) {
+    out.unshift(`<option value="${esc(current)}" selected>${esc(current)}</option>`);
+  }
+  return out.join("");
 }
 
 function esc(str) {
@@ -2958,7 +3036,13 @@ function cardStyleBlock() {
         display: flex; flex-direction: column; gap: 0.4em;
       }
       .whatif .wi-window {
-        display: flex; align-items: center; gap: 0.4em;
+        display: flex; align-items: center; gap: 0.4em; flex-wrap: wrap;
+      }
+      .whatif .wi-win-days {
+        font: inherit; font-size: 0.9em; max-width: 8.5em;
+        border: 1px solid var(--divider-color, #ccc); border-radius: 0.3em;
+        background: transparent; color: var(--primary-text-color);
+        padding: 0.15em 0.2em;
       }
       .whatif button {
         font: inherit; cursor: pointer; border-radius: 1.1em;
@@ -6297,6 +6381,9 @@ class WhatIfPanel {
                     .map(
                       (w, i) => `
                 <div class="wi-window" data-index="${i}">
+                  <select class="wi-win-days" aria-label="${esc(
+                    L("whatif.window_days_aria", { n: i + 1 })
+                  )}">${daysOptionsHtml(w.days)}</select>
                   <input type="time" class="wi-win-start" step="900"
                     value="${esc(w.start)}" aria-label="${esc(
                       L("whatif.window_start_aria", { n: i + 1 })
@@ -6447,8 +6534,19 @@ class WhatIfPanel {
    */
   currentDhwWindows() {
     const st = this.host.plan.stateOf(this.host.plan.resolveEntity("dhw"));
-    const spec = ((st && st.attributes) || {}).dhw_windows;
+    const attrs = (st && st.attributes) || {};
+    // The configuration itself when the integration publishes it
+    // (`dhw_windows_spec`, v6.2.12+), in the grammar this editor writes back;
+    // the plan's flat reading of the windows otherwise -- what older
+    // integrations publish, and what a fresh install with nothing configured
+    // plans against (learned windows). A weekly schedule is only editable
+    // through the former: the latter is one day's set of it.
+    const spec =
+      typeof attrs.dhw_windows_spec === "string" && attrs.dhw_windows_spec.trim()
+        ? attrs.dhw_windows_spec
+        : attrs.dhw_windows;
     return parseWindows(spec).map((w) => ({
+      days: w.days,
       start: endOfDayAsMidnight(w.start),
       end: endOfDayAsMidnight(w.end),
     }));
@@ -6529,6 +6627,7 @@ class WhatIfPanel {
     if (dayEnd) draft.dayEnd = hourOf(dayEnd.value, draft.dayEnd);
 
     draft.dhwWindows = [...root.querySelectorAll(".wi-window")].map((row) => ({
+      days: (row.querySelector(".wi-win-days") || {}).value || "daily",
       start: (row.querySelector(".wi-win-start") || {}).value || "00:00",
       end: (row.querySelector(".wi-win-end") || {}).value || "00:00",
     }));
@@ -6550,14 +6649,14 @@ class WhatIfPanel {
       d.dhwMin,
       d.dayStart,
       d.dayEnd,
-      d.dhwWindows.map((w) => `${w.start}-${w.end}`),
+      d.dhwWindows.map((w) => `${w.days || "daily"} ${w.start}-${w.end}`),
     ]);
   }
 
   onAddWindow(ev) {
     stop(ev);
     this.onSlotEdit(ev);
-    this.draft().dhwWindows.push({ start: "06:00", end: "08:00" });
+    this.draft().dhwWindows.push({ days: "daily", start: "06:00", end: "08:00" });
     this.host.renderForced();
   }
 

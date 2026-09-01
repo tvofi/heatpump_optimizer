@@ -5699,6 +5699,103 @@ const setupBox = (card, place) =>
 
 
 
+
+// --- Weekly hot-water windows in the schedule editor -------------------------
+// v6.2.5 let a hot-water window carry a day selector; the editor showed such a
+// schedule flattened to one day and would have saved it that way. The plan
+// sensors now publish the configured spec (`dhw_windows_spec`) beside the
+// plan's flat reading, every window row carries a day selector, and what is
+// sent back is the integration's own grammar.
+{
+  const weekly = "weekdays 06:00-08:30, weekend 08:00-09:30";
+  const st = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  st[DEFAULT_DHW].attributes.dhw_windows = "06:00-08:30"; // the plan's reading: today's set
+  st[DEFAULT_DHW].attributes.dhw_windows_spec = weekly;
+  const wk = build(st, { what_if: true });
+  wk._hass = mkHass(wk._hass.states);
+  wk._onCardClick({});
+  const rows = wk.whatIf.draft().dhwWindows;
+  check("the editor pre-fills from the configured spec, not the plan's flat reading",
+    rows.length === 2 && rows[0].days === "weekdays" && rows[0].start === "06:00" &&
+    rows[1].days === "weekend" && rows[1].end === "09:30", JSON.stringify(rows));
+  const dump = collect(wk.shadowRoot).join("\n");
+  check("every window row carries a day selector",
+    (dump.match(/class="wi-win-days"/g) || []).length === 2);
+  check("with the window's own days selected",
+    /<option value="weekdays" selected>Weekdays<\/option>/.test(dump) &&
+    /<option value="weekend" selected>Weekend<\/option>/.test(dump));
+  check("and the selector is labelled for a screen reader",
+    /aria-label="Window 1 days"/.test(dump));
+  called = null;
+  await wk.whatIf.run();
+  check("simulating sends the weekly spec back in the integration's grammar",
+    called && called.data.dhw_windows === weekly, called && called.data.dhw_windows);
+  // Changing a selector in the editor changes what is sent.
+  const sel = wk.shadowRoot.querySelectorAll(".wi-win-days")[1];
+  sel.value = "daily";
+  wk.whatIf.onSlotEdit({ stopPropagation(){} });
+  called = null;
+  await wk.whatIf.onApplySlots({ stopPropagation(){} });
+  check("a window switched to every day drops its selector",
+    called && called.data.dhw_windows === "weekdays 06:00-08:30, 08:00-09:30",
+    called && called.data.dhw_windows);
+  wk.whatIf.onAddWindow({ stopPropagation(){} });
+  check("a new window applies every day",
+    wk.whatIf.draft().dhwWindows[2].days === "daily");
+
+  // A day list typed in the options flow is not something the picker offers,
+  // but it must survive a round trip through the card untouched.
+  const listSpec = "Mo 05:30-07:00, Tu-Fr 06:00-08:00, Sa,Su 08:00-09:30";
+  const st2 = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  st2[DEFAULT_DHW].attributes.dhw_windows_spec = listSpec;
+  const custom = build(st2, { what_if: true });
+  custom._hass = mkHass(custom._hass.states);
+  custom._onCardClick({});
+  const cw = custom.whatIf.draft().dhwWindows;
+  check("a day list is read as one selector, its comma and all",
+    cw.length === 3 && cw[0].days === "Mo" && cw[1].days === "Tu-Fr" && cw[2].days === "Sa,Su",
+    JSON.stringify(cw));
+  check("and offered as the row's own option",
+    /<option value="Sa,Su" selected>Sa,Su<\/option>/.test(collect(custom.shadowRoot).join("\n")));
+  custom.whatIf.onSlotEdit({ stopPropagation(){} });
+  called = null;
+  await custom.whatIf.run();
+  check("and sent back exactly as configured after a pass through the editors",
+    called && called.data.dhw_windows === listSpec, called && called.data.dhw_windows);
+  // The Swedish editor names the same three sets.
+  const sv = new Card();
+  sv.setConfig({ type: "custom:heatpump-optimizer-card", what_if: true });
+  sv.hass = { states: st, language: "sv-SE" };
+  sv._onCardClick({});
+  check("the day sets are named in Swedish too",
+    /<option value="weekdays" selected>Vardagar<\/option>/.test(collect(sv.shadowRoot).join("\n")));
+  build(st); // leave the module back in English
+
+  // Older integrations publish no spec; the plan's reading is still the source,
+  // and an empty spec (nothing configured, windows learned) defers to it too.
+  const st3 = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  st3[DEFAULT_DHW].attributes.dhw_windows = "17:00-22:00";
+  const old = build(st3, { what_if: true });
+  old._onCardClick({});
+  check("without a published spec the plan's windows still pre-fill the editor",
+    old.whatIf.draft().dhwWindows.length === 1 && old.whatIf.draft().dhwWindows[0].days === "daily",
+    JSON.stringify(old.whatIf.draft().dhwWindows));
+  st3[DEFAULT_DHW].attributes.dhw_windows_spec = "";
+  const learned = build(st3, { what_if: true });
+  learned._onCardClick({});
+  check("an empty spec defers to the learned windows the plan runs on",
+    learned.whatIf.draft().dhwWindows.length === 1);
+  // A flat spec keeps sending the flat string: nothing changes for a flat install.
+  const flat = build((() => { const t = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+    t[DEFAULT_DHW].attributes.dhw_windows_spec = "06:00-08:30, 17:00-22:00"; return t; })(), { what_if: true });
+  flat._hass = mkHass(flat._hass.states);
+  flat._onCardClick({});
+  called = null;
+  await flat.whatIf.run();
+  check("a flat schedule is sent back flat",
+    called && called.data.dhw_windows === "06:00-08:30, 17:00-22:00", called && called.data.dhw_windows);
+}
+
 // --- The host stays small ---------------------------------------------------
 // The decomposition (#136) left the element with the Lovelace contract, the
 // render cycle and its compositions, and nothing else. A ratchet, not a

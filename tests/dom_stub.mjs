@@ -52,6 +52,13 @@ export function makeDomStub(domRef) {
         else if (name.startsWith("data-")) node.dataset[name.slice(5).replace(/-(\w)/g, (x, c) => c.toUpperCase())] = value;
         node.setAttribute(name, value);
       }
+      // A bare `selected` on an <option> is what a browser reports as the
+      // enclosing <select>'s value; the card's day selector and the entity
+      // picker both read it back through `.value`.
+      if (tag.toLowerCase() === "option" && /(^|\s)selected(\s|$)/.test(attrsRaw)
+          && stack.length && stack[stack.length - 1].tagName === "SELECT") {
+        stack[stack.length - 1].value = node.value === undefined ? "" : node.value;
+      }
       push(node);
       if (!selfClose && !VOID_TAGS.has(tag.toLowerCase())) stack.push(node);
     }
