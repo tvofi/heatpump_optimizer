@@ -3,7 +3,7 @@ import vm from "vm";
 import path from "path";
 import crypto from "crypto";
 import { fileURLToPath } from "url";
-import { makeDomStub } from "./dom_stub.mjs";
+import { makeCardContext, CLAIM_FILE, parseClaims, claimVersionError } from "./card_rig.mjs";
 
 // Plan payload written by tests/plan_view.py earlier in the run. The path is
 // argv[2], or HPO_PLANDATA, or a default derived from this checkout's tests/
@@ -31,74 +31,19 @@ if (!fs.existsSync(planPath)) {
 }
 const plan = JSON.parse(fs.readFileSync(planPath, "utf8"));
 
-// Minimal DOM stub sufficient for the card's inline-SVG rendering.
-//
-// `innerHTML` is parsed rather than merely stored. The card queries its own
-// output for controls it then wires up — the legend chips, the expand button,
-// the what-if slider — so a stub that keeps the markup as an opaque string
-// silently skips every one of those paths and reports a pass. The parser only
-// needs tag names, classes, other attributes and text, which is all the card
-// selects on.
-const domRef = { document: null };
-const { VOID_TAGS, parseHtml, Node, matches, HTMLElement } = makeDomStub(domRef);
-
-const document = {
-  createElement:(t)=>new Node(t),
-  createElementNS:(ns,t)=>new Node(t),
-  head:new Node("head"), body:new Node("body"),
-  activeElement:null,
-  // Real registries, same pattern as window's below: the slot menu parks an
-  // Escape listener on the document while it is open, so a mouse-opened menu
-  // (focus still on the chart) can be dismissed from the keyboard.
-  addEventListener(t,f){ (docListeners[t]=docListeners[t]||[]).push(f); },
-  removeEventListener(t,f){ const a=docListeners[t]||[]; const i=a.indexOf(f); if(i>=0)a.splice(i,1); },
-};
-document.activeElement = document.body;
-// The stub's focus/blur track the active element on THIS document; the
-// ref was empty while the document was being built (its head and body
-// are stub Nodes, so the classes had to exist first).
-domRef.document = document;
-const store={};
-const ctx = {
-  HTMLElement, document, console,
-  window:{ customCards:[], localStorage:{ getItem:k=>store[k]??null, setItem:(k,v)=>{store[k]=String(v);}, removeItem:k=>{delete store[k];} },
-           // Real registries: the drag and pan gestures park their move/up
-           // handlers on window so they survive mid-gesture re-renders, and a
-           // no-op here would make those paths untestable.
-           addEventListener(t,f){ (winListeners[t]=winListeners[t]||[]).push(f); },
-           removeEventListener(t,f){ const a=winListeners[t]||[]; const i=a.indexOf(f); if(i>=0)a.splice(i,1); },
-           matchMedia:(q)=>({matches:
-             (q === "(pointer: coarse)" && coarseTouch.on) ||
-             (q === "(prefers-reduced-motion: reduce)" && reducedMotion.on),
-             addEventListener(){}}) },
-  localStorage:{ getItem:k=>store[k]??null, setItem:(k,v)=>{store[k]=String(v);}, removeItem:k=>{delete store[k];} },
-  customElements:{ _d:{}, define(n,c){ this._d[n]=c; }, get(n){ return this._d[n]; } },
-  ResizeObserver: class { observe(){} unobserve(){} disconnect(){} },
-  requestAnimationFrame:(f)=>f(),
-  setTimeout, clearTimeout,
-  // Deterministic intervals: the edge auto-pan runs on one, and a test that
-  // slept for real time would be both slow and flaky.
-  setInterval:(f)=>{ intervals.set(++intervalId, f); return intervalId; },
-  clearInterval:(id)=>{ intervals.delete(id); },
-};
-const winListeners = {};
-const docListeners = {};
-const fireDocument = (t, ev) => (docListeners[t]||[]).slice().forEach((f)=>f(ev));
-const coarseTouch = { on: false };
-const reducedMotion = { on: false };
-// The editor dispatches config-changed as a CustomEvent; the stub only needs
-// the shape the listeners read.
-ctx.CustomEvent = class {
-  constructor(type, opts = {}) {
-    this.type = type; this.detail = opts.detail;
-    this.bubbles = !!opts.bubbles; this.composed = !!opts.composed;
-  }
-};
-const fireWindow = (t, ev) => (winListeners[t]||[]).slice().forEach((f)=>f(ev));
-const intervals = new Map(); let intervalId = 0;
-const tickIntervals = () => { for (const f of [...intervals.values()]) f(); };
-ctx.globalThis = ctx; ctx.self = ctx; ctx.window.document = document;
-vm.createContext(ctx);
+// The vm context, its DOM stub and the listener registries come from the
+// shared rig (tests/card_rig.mjs), one copy for every Node card harness, so
+// the stub this file grew one shim at a time cannot drift from the renderer's
+// or the markup gate's again (#101). `innerHTML` is parsed rather than merely
+// stored: the card queries its own output for the controls it then wires up
+// -- the legend chips, the expand button, the what-if slider -- so a stub
+// that kept the markup as an opaque string would silently skip every one of
+// those paths and report a pass.
+const {
+  ctx, document, store, winListeners, docListeners, intervals,
+  fireWindow, fireDocument, tickIntervals, coarseTouch, reducedMotion,
+  VOID_TAGS, parseHtml, Node, matches, HTMLElement,
+} = makeCardContext();
 const cardSrc = fs.readFileSync("custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js","utf8");
 vm.runInContext(cardSrc, ctx);
 
@@ -5737,6 +5682,19 @@ const setupBox = (card, place) =>
     JSON.stringify(calls));
 }
 
+
+
+// --- The markup gate's claim file is stamped for this release ---------------
+// tests/card_drift.mjs compares this tree's card against GOLDEN_REF and runs
+// only when that ref resolves; this check runs always, so a claim list left
+// over from an earlier release fails a strict local run too -- the
+// tests/entities.py precedent for tests/golden/claimed_drift.txt.
+{
+  const version = fs.readFileSync("VERSION", "utf8").trim();
+  const { declared } = parseClaims(fs.readFileSync(CLAIM_FILE, "utf8"));
+  const err = claimVersionError(declared, version);
+  check(`the card markup gate's claim file is stamped for v${version}`, !err, err || "");
+}
 
 console.log(fails ? `\n${fails} CARD CHECK(S) FAILED` : "\nALL CARD CHECKS PASSED");
 process.exit(fails?1:0);
