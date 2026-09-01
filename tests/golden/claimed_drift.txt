@@ -45,8 +45,23 @@
 #
 # claims-for: 6.2.6
 #
-# The labels landed with their own claims on the branch; this
-# stamp moves nothing further.
+# D9-01 (the batched gradient serving DHW solves) removes an evaluation-
+# starvation ceiling, and exactly the two most expensive tariff solves
+# were sitting on it. Under jac=None, scipy counts every finite-difference
+# row of every gradient into the default maxfun budget of 15,000
+# evaluations, so a long solve stops early on "TOTAL NO. OF F-G
+# EVALUATIONS EXCEEDS LIMIT" (executed on tariff_plus_two_zone: nit 43,
+# nfev 15,035, status 1). The supplied batched jac does not burn that
+# budget -- its 97-row gradient is one call -- so the same solve runs to
+# convergence (nit 69, nfev 283, status 0) and lands on a genuinely
+# cheaper plan: 72.54 vs 78.23 SEK, 7.3 % better on the same objective,
+# comfort feasibility unchanged (the capture's physical-invariant layer
+# passes on record). The other 48 plan fixtures are byte-identical, and
+# the batched gradient is bit-equal to scipy's own estimate at every jac
+# call of the moved solves -- the moved plans are the ceiling coming
+# off, not a parity break.
+capacity_tariff_15min  # was maxfun-starved at nit ~40; now converges, cheaper plan
+tariff_plus_two_zone   # was maxfun-starved (nfev 15,035, status 1); now converges (nfev 283), 7.3 % cheaper
 #
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
