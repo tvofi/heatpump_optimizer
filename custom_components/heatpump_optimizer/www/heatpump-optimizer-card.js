@@ -11,7 +11,7 @@
 
 const CARD_TAG = "heatpump-optimizer-card";
 const EDITOR_TAG = "heatpump-optimizer-card-editor";
-const CARD_VERSION = "5.4.3";
+const CARD_VERSION = "5.4.4";
 
 // The de-duplication key `_extraFields` files a confidence band's two
 // edges under, so the pair counts as the one named trace it is. A Symbol
@@ -3626,6 +3626,351 @@ class PlanSource {
   }
 }
 
+// ---- Chart geometry: screen <-> chart ---------------------------------------
+// The chart is drawn in a fixed viewBox and stretched to fit, so screen pixels
+// and viewBox units are not interchangeable; these relate the two, and find
+// the chart copies inside a root. Pure functions of their arguments.
+
+/** Turn a screen x into a time on the chart's axis.
+ *
+ * The chart is drawn in a fixed viewBox and stretched to fit, so screen
+ * pixels and viewBox units are not interchangeable; the measured width is
+ * the only thing that relates them.
+ */
+function timeAtClientX(svg, clientX, geom) {
+  if (!geom || !svg) return null;
+  const rect = svg.getBoundingClientRect ? svg.getBoundingClientRect() : null;
+  if (!rect || !rect.width) return null;
+  const vx = ((clientX - rect.left) / rect.width) * VIEW_W;
+  return geom.windowStart + ((vx - geom.plotL) / geom.plotW) *
+    (geom.windowEnd - geom.windowStart);
+}
+
+/** The chart wrapper owning an element, so each copy finds its own parts. */
+function wrapOf(el, root) {
+  let node = el;
+  while (node && node !== root) {
+    if (node.classList && node.classList.contains("chartwrap")) return node;
+    node = node.parentNode;
+  }
+  return null;
+}
+
+/** The chart svgs, and only those.
+ *
+ * The expand button carries an inline `<svg>` icon and sits above the chart
+ * in the markup, so `querySelector("svg")` returns an 18px icon rather than
+ * the plot. Every chart is wrapped in a `.chartwrap`; the icon is not.
+ */
+function chartSvgs(scope) {
+  if (!scope) return [];
+  return [...scope.querySelectorAll(".chartwrap svg")];
+}
+
+// ---- ViewWindow -----------------------------------------------------------
+// The pan/zoom window over the plan (item 23): the user's range, the limits
+// the plan allows, the wheel and drag gestures, the zoom buttons, and the
+// once-per-frame redraw they share. `range` is null until the user touches a
+// control, so an untouched card renders exactly as it did before this
+// existed. Uses `host.geom` (the chart's last geometry, for hit-testing),
+// `host.render()` and `host.suppressNextClick()`. The second collaborator
+// out of the god class (PR 2 of #136).
+class ViewWindow {
+  constructor(host) {
+    this.host = host;
+    // The user's window, {start, span}; `null` means "the default window".
+    this.range = null;
+    // What the last `apply` recorded: floor, defaultEnd, rightBound,
+    // minSpan, maxSpan. Null until the first build.
+    this.limits = null;
+    // The animation frame a redraw is waiting on (`renderView`).
+    this.pendingFrame = 0;
+    // The pan gesture in progress, with the window listeners it parked.
+    this.panGesture = null;
+    this.onWheel = this.onWheel.bind(this);
+    this.onPanDown = this.onPanDown.bind(this);
+  }
+
+  /** Whether the user has zoomed or panned away from the default window. */
+  get zoomed() {
+    return this.range !== null;
+  }
+
+  /** Move the window to `start` without redrawing, keeping its span: the
+   * slot editor's edge auto-pan renders on its own schedule (a full render
+   * every tick, mid-gesture) rather than through `renderView`'s frame. */
+  setStart(start) {
+    const cur = this.current();
+    this.range = { start, span: cur.span };
+  }
+
+  /** The pan/zoom view dies with the dialog session it belonged to. It used
+   * to persist for the lifetime of the card element -- on a wall-mounted
+   * dashboard, indefinitely -- so one accidental trackpad pinch or
+   * two-finger swipe over the chart quietly capped slot editing at the
+   * narrowed window's edge for days, while re-anchoring itself to "now" so
+   * it never scrolled out of relevance. A dismissed dialog is a finished
+   * session; the next open shows the whole plan. */
+  onDialogClosed() {
+    this.range = null;
+  }
+
+  /** Narrow the default window to the panned/zoomed view, and record its limits.
+   *
+   * Called on every build so the limits track incoming data: the plan's extent
+   * moves forward as new forecasts arrive, and a view clamped against the
+   * extent of ten minutes ago would slowly drift out of range.
+   *
+   * Returns the default window untouched while `range` is null, so a card
+   * nobody has interacted with renders exactly as it did before this existed.
+   */
+  apply(defaultStart, defaultEnd, dataEnd) {
+    const defaultSpan = Math.max(defaultEnd - defaultStart, 1);
+    // Zooming out stops at the plan, not at the configured plot width:
+    // `cfg.hours` goes up to a week, while the optimizer's horizon defaults to
+    // 24 h, and the difference is empty chart.
+    const maxSpan = Math.max(
+      Math.min(defaultSpan, Math.max(dataEnd - defaultStart, VIEW_MIN_SPAN_MS)),
+      VIEW_MIN_SPAN_MS
+    );
+    const minSpan = Math.min(VIEW_MIN_SPAN_MS, maxSpan);
+    // The right edge the window may not pass: the plan's end, and never beyond
+    // the configured plot width.
+    const rightBound = Math.max(
+      Math.min(dataEnd, defaultEnd),
+      defaultStart + minSpan
+    );
+    // `defaultEnd` is kept as well as `rightBound`: the two differ whenever the
+    // configured plot window is wider than the plan, and a zoom that mistook
+    // the plan's extent for what is currently on screen would compute its
+    // anchor against a window the user is not looking at.
+    this.limits = {
+      floor: defaultStart,
+      defaultEnd,
+      rightBound,
+      minSpan,
+      maxSpan,
+    };
+
+    if (!this.range) return { start: defaultStart, end: defaultEnd };
+
+    const span = clampNum(this.range.span, minSpan, maxSpan);
+    const maxStart = Math.max(defaultStart, rightBound - span);
+    const start = clampNum(this.range.start, defaultStart, maxStart);
+    this.range = { start, span };
+    return { start, end: start + span };
+  }
+
+  /** Whether panning and zooming can do anything at all.
+   *
+   * With a plan no longer than the minimum span there is nothing to pan across
+   * and nothing to zoom out to, and controls that cannot move are worse than
+   * no controls.
+   */
+  adjustable() {
+    const lim = this.limits;
+    return !!lim && lim.rightBound - lim.floor > lim.minSpan * 1.05;
+  }
+
+  /** The span currently on screen, view or default. */
+  span() {
+    if (this.range) return this.range.span;
+    const lim = this.limits;
+    return lim ? lim.defaultEnd - lim.floor : 1;
+  }
+
+  /** The window currently on screen, as the zoom and pan maths sees it. */
+  current() {
+    const lim = this.limits;
+    if (this.range) return this.range;
+    return { start: lim.floor, span: lim.defaultEnd - lim.floor };
+  }
+
+  /** Zoom by `factor`, holding the time under `anchorT` still.
+   *
+   * Anchoring matters: zooming around the window centre walks whatever the user
+   * is pointing at off the screen, which makes repeated zooming feel like it is
+   * fighting back.
+   */
+  zoom(factor, anchorT) {
+    const lim = this.limits;
+    if (!lim) return;
+    const current = this.current();
+    const span = clampNum(current.span * factor, lim.minSpan, lim.maxSpan);
+    const anchor =
+      anchorT === undefined || anchorT === null
+        ? current.start + current.span / 2
+        : clampNum(anchorT, current.start, current.start + current.span);
+    // Keep the anchor at the same fraction across the window.
+    const frac = (anchor - current.start) / (current.span || 1);
+    this.range = { start: anchor - frac * span, span };
+    this.renderView();
+  }
+
+  /** Slide the window by `deltaMs`, without changing its span. */
+  panBy(deltaMs) {
+    const lim = this.limits;
+    if (!lim) return;
+    const current = this.current();
+    this.range = { start: current.start + deltaMs, span: current.span };
+    this.renderView();
+  }
+
+  reset() {
+    if (!this.range) return;
+    this.range = null;
+    this.renderView();
+  }
+
+  /** Redraw after a view change, at most once per frame.
+   *
+   * A view change moves every series, not just the lanes, so unlike a slot drag
+   * there is nothing narrower to refresh. `_render` replaces the shadow root,
+   * which is why the pan gesture listens on the window rather than on the svg:
+   * the element under the pointer is gone by the next event.
+   */
+  renderView() {
+    if (this.pendingFrame) return;
+    const run = () => {
+      this.pendingFrame = 0;
+      // Deliberately not clearing `_sig`: it is what stops the next data
+      // refresh from throwing away an in-progress slot edit, and a view change
+      // is not a reason to discard the draft the user is arranging.
+      this.host.render();
+    };
+    this.pendingFrame =
+      typeof requestAnimationFrame === "function"
+        ? requestAnimationFrame(run)
+        : setTimeout(run, 16);
+  }
+
+  /** Wheel over the chart: pinch to zoom, two fingers sideways to pan.
+   *
+   * A plain vertical wheel is deliberately left alone. The card sits in a
+   * dashboard the user scrolls, and a chart that swallowed the scroll wheel
+   * would trap the page the moment the pointer crossed it. Trackpad pinch
+   * arrives as a wheel with `ctrlKey` set, which is the gesture people already
+   * expect to zoom.
+   */
+  onWheel(ev) {
+    if (!this.adjustable()) return;
+    const zooming = ev.ctrlKey || ev.metaKey;
+    const sideways = Math.abs(ev.deltaX) > Math.abs(ev.deltaY);
+    const panning = !zooming && (ev.shiftKey || sideways);
+    if (!zooming && !panning) return;
+    if (ev.preventDefault) ev.preventDefault();
+    stop(ev);
+
+    if (zooming) {
+      const at = timeAtClientX(ev.currentTarget, ev.clientX, this.host.geom);
+      this.zoom(ev.deltaY > 0 ? VIEW_ZOOM_STEP : 1 / VIEW_ZOOM_STEP, at);
+      return;
+    }
+    const span = this.span();
+    const delta = sideways ? ev.deltaX : ev.deltaY;
+    this.panBy((delta / 600) * span);
+  }
+
+  /** Drag the chart background sideways to pan.
+   *
+   * Only the background: a pointerdown that landed on a lane belongs to the
+   * slot editor, and stealing it would make slots undraggable. The move and up
+   * handlers go on `window` rather than the svg because panning re-renders,
+   * which replaces the element the gesture started on -- listeners bound to it
+   * would stop firing halfway through the drag.
+   */
+  onPanDown(ev) {
+    if (!this.adjustable()) return;
+    if (((ev.target || {}).dataset || {}).channel) return;
+    const svg = ev.currentTarget;
+    const rect = svg && svg.getBoundingClientRect ? svg.getBoundingClientRect() : null;
+    if (!rect || !rect.width) return;
+    // `host.geom` only exists while the lanes do (what_if enabled). Without it,
+    // fall back to the nominal plot width rather than the whole viewBox, or a
+    // drag would track noticeably slower than the pointer.
+    const plotW = this.host.geom
+      ? this.host.geom.plotW
+      : VIEW_W - MARGIN.left - MARGIN.right;
+    const pxPerViewUnit = rect.width / VIEW_W;
+    const plotPx = plotW * pxPerViewUnit;
+    if (!plotPx) return;
+
+    // Without this the drag selects the axis labels and, on some browsers,
+    // starts a native image drag of the svg.
+    if (ev.preventDefault) ev.preventDefault();
+    const pan = {
+      last: ev.clientX,
+      perPx: this.span() / plotPx,
+      moved: false,
+      move: null,
+      up: null,
+    };
+    pan.move = (moveEv) => {
+      const dx = moveEv.clientX - pan.last;
+      if (!dx) return;
+      pan.last = moveEv.clientX;
+      // A drag only counts as a pan once it has actually moved, so a plain
+      // click on the chart still opens the expanded view.
+      pan.moved = true;
+      // Drag left to move forward in time: the content follows the pointer.
+      this.panBy(-dx * pan.perPx);
+    };
+    pan.up = () => {
+      if (pan.moved) this.host.suppressNextClick();
+      this.panGesture = null;
+      if (typeof window === "undefined") return;
+      window.removeEventListener("pointermove", pan.move);
+      window.removeEventListener("pointerup", pan.up);
+      window.removeEventListener("pointercancel", pan.up);
+    };
+    this.panGesture = pan;
+    if (typeof window !== "undefined") {
+      window.addEventListener("pointermove", pan.move);
+      window.addEventListener("pointerup", pan.up);
+      window.addEventListener("pointercancel", pan.up);
+    }
+  }
+
+  /** Zoom and reset buttons: the keyboard- and touch-reachable path.
+   *
+   * Wheel and drag cover a trackpad, but neither is available to someone on a
+   * phone or tabbing through the card, and a zoom that only exists as a gesture
+   * is a zoom half the users never find.
+   */
+  controlsHtml() {
+    if (!this.adjustable()) return "";
+    const zoomed = this.range !== null;
+    return `
+      <div class="viewctl">
+        <button type="button" class="vc-out" title="${esc(L("plan.zoom_out"))}"
+          aria-label="${esc(L("plan.zoom_out"))}">&minus;</button>
+        <button type="button" class="vc-in" title="${esc(L("plan.zoom_in"))}"
+          aria-label="${esc(L("plan.zoom_in"))}">+</button>
+        <button type="button" class="vc-reset" title="${esc(
+          L("plan.show_whole_plan")
+        )}"
+          aria-label="${esc(L("plan.show_whole_plan"))}"${zoomed ? "" : " disabled"}>&#8634;</button>
+      </div>`;
+  }
+
+  attach(root) {
+    chartSvgs(root).forEach((svg) => {
+      svg.addEventListener("wheel", this.onWheel, { passive: false });
+      svg.addEventListener("pointerdown", this.onPanDown);
+    });
+    const wire = (sel, fn) =>
+      root.querySelectorAll(sel).forEach((el) =>
+        el.addEventListener("click", (ev) => {
+          stop(ev);
+          fn();
+        })
+      );
+    wire(".vc-in", () => this.zoom(1 / VIEW_ZOOM_STEP, null));
+    wire(".vc-out", () => this.zoom(VIEW_ZOOM_STEP, null));
+    wire(".vc-reset", () => this.reset());
+  }
+}
+
 // ===========================================================================
 // The card element, and the contract its collaborators get.
 //
@@ -3637,6 +3982,8 @@ class PlanSource {
 //   host.hass, host.config     the Lovelace inputs
 //   host.shadowRoot            the DOM it renders into
 //   host.plan                  PlanSource: the plan sensors, what they publish
+//   host.view                  ViewWindow: the pan/zoom window over the plan
+//   host.geom                  the chart's last geometry (null: no lanes)
 //   host.render()              rebuild, keeping the render signature
 //   host.renderForced()        rebuild and forget it (the next hass redraws)
 //   host.suppressNextClick()   the next card click is the tail of a gesture
@@ -3652,6 +3999,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // The collaborators (docs/plan-card-decomposition.md), in dependency
     // order. Each is handed this element and uses only the host contract.
     this.plan = new PlanSource(this);
+    this.view = new ViewWindow(this);
     this._config = null;
     this._hass = null;
     this._sig = null;
@@ -3681,12 +4029,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
     this._clearTimer = null;
     this._dialogFontPx = 0;
     this._dialogScroll = 0;
-    // Pan/zoom window (item 23). `null` means "the default window", so an
-    // untouched card behaves exactly as it did before this existed.
-    this._view = null;
-    this._viewLimits = null;
-    this._viewFrame = 0;
-    this._pan = null;
     this._suppressClick = false;
     // The layout editor (v3.16.0, issue #40). Instance state, like the what-if
     // draft and for the same reason: `_render` rebuilds the shadow root on the
@@ -3732,8 +4074,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
     this._onLayoutUp = this._onLayoutUp.bind(this);
     this._onLayoutClick = this._onLayoutClick.bind(this);
     this._onLegendClick = this._onLegendClick.bind(this);
-    this._onChartWheel = this._onChartWheel.bind(this);
-    this._onPanDown = this._onPanDown.bind(this);
     this._onPointerMove = this._onPointerMove.bind(this);
     this._onPointerLeave = this._onPointerLeave.bind(this);
     this._onCardClick = this._onCardClick.bind(this);
@@ -3816,6 +4156,12 @@ class HeatpumpOptimizerCard extends HTMLElement {
   /** The validated config, read-only: what `setConfig` accepted. */
   get config() {
     return this._config;
+  }
+
+  /** The chart's last geometry, for hit-testing; null while the lanes are
+   * off. Published by `_chartSvg`; PR 3 of #136 moves it onto the frame. */
+  get geom() {
+    return this._geom;
   }
 
   getCardSize() {
@@ -4334,9 +4680,9 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // The controls overlay the chart rather than sitting under it: the expanded
     // dialog budgets its height from a fixed guess at how tall the chrome is
     // (item 26), and a new row of buttons would eat straight into that budget.
-    const pannable = this._viewAdjustable() ? " pannable" : "";
+    const pannable = this.view.adjustable() ? " pannable" : "";
     return `<div class="chartwrap${expanded ? " big" : ""}${pannable}">${chart}
-      ${this._viewControlsHtml()}
+      ${this.view.controlsHtml()}
       <div class="tooltip" hidden></div></div>`;
   }
 
@@ -5836,7 +6182,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     const reset = root.querySelector(".wi-reset");
     if (reset) reset.addEventListener("click", this._onResetWhatIf);
     const viewReset = root.querySelector(".wi-viewreset");
-    if (viewReset) viewReset.addEventListener("click", () => this._resetView());
+    if (viewReset) viewReset.addEventListener("click", () => this.view.reset());
   }
 
   _onWhatIfInput(ev) {
@@ -6168,14 +6514,14 @@ class HeatpumpOptimizerCard extends HTMLElement {
       .querySelectorAll(".chip")
       .forEach((el) => el.addEventListener("click", this._onLegendClick));
 
-    this._chartSvgs(root).forEach((svg) => {
+    chartSvgs(root).forEach((svg) => {
       svg.addEventListener("mousemove", this._onPointerMove);
       svg.addEventListener("mouseleave", this._onPointerLeave);
       svg.addEventListener("touchmove", this._onPointerMove, { passive: true });
       svg.addEventListener("touchend", this._onPointerLeave);
     });
 
-    this._attachViewControls(root);
+    this.view.attach(root);
     this._attachWhatIf(root);
     this._attachSlotActions(root);
     this._attachSlotEditing(root);
@@ -6529,7 +6875,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
 
     // Anchored to the chart it was opened from: when the card is expanded
     // there are two, and the menu must not land on the wrong one.
-    const host = this._wrapOf(svg);
+    const host = wrapOf(svg, this.shadowRoot);
     if (!host) return;
     const rect = host.getBoundingClientRect
       ? host.getBoundingClientRect()
@@ -6549,7 +6895,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
           L(dhw ? "menu.add_slot_dhw" : "menu.add_slot_space")
         )}</button>`;
 
-    const svgIndex = this._chartSvgs().indexOf(svg);
+    const svgIndex = chartSvgs(this.shadowRoot).indexOf(svg);
     menu.addEventListener("click", (ev) => {
       const act = ((ev.target || {}).dataset || {}).act;
       stop(ev);
@@ -6634,7 +6980,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
    * the chart svg itself — never document.body.
    */
   _restoreSlotFocus(channel, index, svgIndex) {
-    const svgs = this._chartSvgs(this.shadowRoot);
+    const svgs = chartSvgs(this.shadowRoot);
     const svg = svgs[svgIndex] || svgs[svgs.length - 1];
     if (!svg) return;
     const focus = (el) =>
@@ -6748,261 +7094,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
     if (box) box.innerHTML = this._deltaHtml();
   }
 
-  /** Wheel over the chart: pinch to zoom, two fingers sideways to pan.
-   *
-   * A plain vertical wheel is deliberately left alone. The card sits in a
-   * dashboard the user scrolls, and a chart that swallowed the scroll wheel
-   * would trap the page the moment the pointer crossed it. Trackpad pinch
-   * arrives as a wheel with `ctrlKey` set, which is the gesture people already
-   * expect to zoom.
-   */
-  _onChartWheel(ev) {
-    if (!this._viewAdjustable()) return;
-    const zooming = ev.ctrlKey || ev.metaKey;
-    const sideways = Math.abs(ev.deltaX) > Math.abs(ev.deltaY);
-    const panning = !zooming && (ev.shiftKey || sideways);
-    if (!zooming && !panning) return;
-    if (ev.preventDefault) ev.preventDefault();
-    stop(ev);
-
-    if (zooming) {
-      const at = this._timeAtClientX(ev.currentTarget, ev.clientX);
-      this._zoomView(ev.deltaY > 0 ? VIEW_ZOOM_STEP : 1 / VIEW_ZOOM_STEP, at);
-      return;
-    }
-    const span = this._viewSpan();
-    const delta = sideways ? ev.deltaX : ev.deltaY;
-    this._panView((delta / 600) * span);
-  }
-
-  /** The span currently on screen, view or default. */
-  _viewSpan() {
-    if (this._view) return this._view.span;
-    const lim = this._viewLimits;
-    return lim ? lim.defaultEnd - lim.floor : 1;
-  }
-
-  /** The window currently on screen, as the zoom and pan maths sees it. */
-  _viewCurrent() {
-    const lim = this._viewLimits;
-    if (this._view) return this._view;
-    return { start: lim.floor, span: lim.defaultEnd - lim.floor };
-  }
-
-  /** Drag the chart background sideways to pan.
-   *
-   * Only the background: a pointerdown that landed on a lane belongs to the
-   * slot editor, and stealing it would make slots undraggable. The move and up
-   * handlers go on `window` rather than the svg because panning re-renders,
-   * which replaces the element the gesture started on -- listeners bound to it
-   * would stop firing halfway through the drag.
-   */
-  _onPanDown(ev) {
-    if (!this._viewAdjustable()) return;
-    if (((ev.target || {}).dataset || {}).channel) return;
-    const svg = ev.currentTarget;
-    const rect = svg && svg.getBoundingClientRect ? svg.getBoundingClientRect() : null;
-    if (!rect || !rect.width) return;
-    // `_geom` only exists while the lanes do (what_if enabled). Without it,
-    // fall back to the nominal plot width rather than the whole viewBox, or a
-    // drag would track noticeably slower than the pointer.
-    const plotW = this._geom
-      ? this._geom.plotW
-      : VIEW_W - MARGIN.left - MARGIN.right;
-    const pxPerViewUnit = rect.width / VIEW_W;
-    const plotPx = plotW * pxPerViewUnit;
-    if (!plotPx) return;
-
-    // Without this the drag selects the axis labels and, on some browsers,
-    // starts a native image drag of the svg.
-    if (ev.preventDefault) ev.preventDefault();
-    const pan = {
-      last: ev.clientX,
-      perPx: this._viewSpan() / plotPx,
-      moved: false,
-      move: null,
-      up: null,
-    };
-    pan.move = (moveEv) => {
-      const dx = moveEv.clientX - pan.last;
-      if (!dx) return;
-      pan.last = moveEv.clientX;
-      // A drag only counts as a pan once it has actually moved, so a plain
-      // click on the chart still opens the expanded view.
-      pan.moved = true;
-      // Drag left to move forward in time: the content follows the pointer.
-      this._panView(-dx * pan.perPx);
-    };
-    pan.up = () => {
-      if (pan.moved) this.suppressNextClick();
-      this._pan = null;
-      if (typeof window === "undefined") return;
-      window.removeEventListener("pointermove", pan.move);
-      window.removeEventListener("pointerup", pan.up);
-      window.removeEventListener("pointercancel", pan.up);
-    };
-    this._pan = pan;
-    if (typeof window !== "undefined") {
-      window.addEventListener("pointermove", pan.move);
-      window.addEventListener("pointerup", pan.up);
-      window.addEventListener("pointercancel", pan.up);
-    }
-  }
-
-  /** Zoom and reset buttons: the keyboard- and touch-reachable path.
-   *
-   * Wheel and drag cover a trackpad, but neither is available to someone on a
-   * phone or tabbing through the card, and a zoom that only exists as a gesture
-   * is a zoom half the users never find.
-   */
-  _viewControlsHtml() {
-    if (!this._viewAdjustable()) return "";
-    const zoomed = this._view !== null;
-    return `
-      <div class="viewctl">
-        <button type="button" class="vc-out" title="${esc(L("plan.zoom_out"))}"
-          aria-label="${esc(L("plan.zoom_out"))}">&minus;</button>
-        <button type="button" class="vc-in" title="${esc(L("plan.zoom_in"))}"
-          aria-label="${esc(L("plan.zoom_in"))}">+</button>
-        <button type="button" class="vc-reset" title="${esc(
-          L("plan.show_whole_plan")
-        )}"
-          aria-label="${esc(L("plan.show_whole_plan"))}"${zoomed ? "" : " disabled"}>&#8634;</button>
-      </div>`;
-  }
-
-  _attachViewControls(root) {
-    this._chartSvgs(root).forEach((svg) => {
-      svg.addEventListener("wheel", this._onChartWheel, { passive: false });
-      svg.addEventListener("pointerdown", this._onPanDown);
-    });
-    const wire = (sel, fn) =>
-      root.querySelectorAll(sel).forEach((el) =>
-        el.addEventListener("click", (ev) => {
-          stop(ev);
-          fn();
-        })
-      );
-    wire(".vc-in", () => this._zoomView(1 / VIEW_ZOOM_STEP, null));
-    wire(".vc-out", () => this._zoomView(VIEW_ZOOM_STEP, null));
-    wire(".vc-reset", () => this._resetView());
-  }
-
-  /** Narrow the default window to the panned/zoomed view, and record its limits.
-   *
-   * Called on every build so the limits track incoming data: the plan's extent
-   * moves forward as new forecasts arrive, and a view clamped against the
-   * extent of ten minutes ago would slowly drift out of range.
-   *
-   * Returns the default window untouched while `_view` is null, so a card
-   * nobody has interacted with renders exactly as it did before this existed.
-   */
-  _applyView(defaultStart, defaultEnd, dataEnd) {
-    const defaultSpan = Math.max(defaultEnd - defaultStart, 1);
-    // Zooming out stops at the plan, not at the configured plot width:
-    // `cfg.hours` goes up to a week, while the optimizer's horizon defaults to
-    // 24 h, and the difference is empty chart.
-    const maxSpan = Math.max(
-      Math.min(defaultSpan, Math.max(dataEnd - defaultStart, VIEW_MIN_SPAN_MS)),
-      VIEW_MIN_SPAN_MS
-    );
-    const minSpan = Math.min(VIEW_MIN_SPAN_MS, maxSpan);
-    // The right edge the window may not pass: the plan's end, and never beyond
-    // the configured plot width.
-    const rightBound = Math.max(
-      Math.min(dataEnd, defaultEnd),
-      defaultStart + minSpan
-    );
-    // `defaultEnd` is kept as well as `rightBound`: the two differ whenever the
-    // configured plot window is wider than the plan, and a zoom that mistook
-    // the plan's extent for what is currently on screen would compute its
-    // anchor against a window the user is not looking at.
-    this._viewLimits = {
-      floor: defaultStart,
-      defaultEnd,
-      rightBound,
-      minSpan,
-      maxSpan,
-    };
-
-    if (!this._view) return { start: defaultStart, end: defaultEnd };
-
-    const span = clampNum(this._view.span, minSpan, maxSpan);
-    const maxStart = Math.max(defaultStart, rightBound - span);
-    const start = clampNum(this._view.start, defaultStart, maxStart);
-    this._view = { start, span };
-    return { start, end: start + span };
-  }
-
-  /** Whether panning and zooming can do anything at all.
-   *
-   * With a plan no longer than the minimum span there is nothing to pan across
-   * and nothing to zoom out to, and controls that cannot move are worse than
-   * no controls.
-   */
-  _viewAdjustable() {
-    const lim = this._viewLimits;
-    return !!lim && lim.rightBound - lim.floor > lim.minSpan * 1.05;
-  }
-
-  /** Zoom by `factor`, holding the time under `anchorT` still.
-   *
-   * Anchoring matters: zooming around the window centre walks whatever the user
-   * is pointing at off the screen, which makes repeated zooming feel like it is
-   * fighting back.
-   */
-  _zoomView(factor, anchorT) {
-    const lim = this._viewLimits;
-    if (!lim) return;
-    const current = this._viewCurrent();
-    const span = clampNum(current.span * factor, lim.minSpan, lim.maxSpan);
-    const anchor =
-      anchorT === undefined || anchorT === null
-        ? current.start + current.span / 2
-        : clampNum(anchorT, current.start, current.start + current.span);
-    // Keep the anchor at the same fraction across the window.
-    const frac = (anchor - current.start) / (current.span || 1);
-    this._view = { start: anchor - frac * span, span };
-    this._renderView();
-  }
-
-  /** Slide the window by `deltaMs`, without changing its span. */
-  _panView(deltaMs) {
-    const lim = this._viewLimits;
-    if (!lim) return;
-    const current = this._viewCurrent();
-    this._view = { start: current.start + deltaMs, span: current.span };
-    this._renderView();
-  }
-
-  _resetView() {
-    if (!this._view) return;
-    this._view = null;
-    this._renderView();
-  }
-
-  /** Redraw after a view change, at most once per frame.
-   *
-   * A view change moves every series, not just the lanes, so unlike a slot drag
-   * there is nothing narrower to refresh. `_render` replaces the shadow root,
-   * which is why the pan gesture listens on the window rather than on the svg:
-   * the element under the pointer is gone by the next event.
-   */
-  _renderView() {
-    if (this._viewFrame) return;
-    const run = () => {
-      this._viewFrame = 0;
-      // Deliberately not clearing `_sig`: it is what stops the next data
-      // refresh from throwing away an in-progress slot edit, and a view change
-      // is not a reason to discard the draft the user is arranging.
-      this._render();
-    };
-    this._viewFrame =
-      typeof requestAnimationFrame === "function"
-        ? requestAnimationFrame(run)
-        : setTimeout(run, 16);
-  }
-
   /** The card's current rendered width in px, or 0 before layout.
    *
    * D4-01 floors the compact chart's rendered font against this value; the
@@ -7016,22 +7107,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
     return rect && rect.width ? rect.width : 0;
   }
 
-  /** Turn a screen x into a time on the chart's axis.
-   *
-   * The chart is drawn in a fixed viewBox and stretched to fit, so screen
-   * pixels and viewBox units are not interchangeable; the measured width is
-   * the only thing that relates them.
-   */
-  _timeAtClientX(svg, clientX) {
-    const geom = this._geom;
-    if (!geom || !svg) return null;
-    const rect = svg.getBoundingClientRect ? svg.getBoundingClientRect() : null;
-    if (!rect || !rect.width) return null;
-    const vx = ((clientX - rect.left) / rect.width) * VIEW_W;
-    return geom.windowStart + ((vx - geom.plotL) / geom.plotW) *
-      (geom.windowEnd - geom.windowStart);
-  }
-
   /** Drag to move a slot, drag its edge to resize, right-click to add or
    * remove. Wired by delegation on the svg, because the chart markup is
    * rebuilt wholesale on every refresh and per-rect listeners would not
@@ -7039,14 +7114,14 @@ class HeatpumpOptimizerCard extends HTMLElement {
    */
   _attachSlotEditing(root) {
     if (!this._editingEnabled()) return;
-    const svgs = this._chartSvgs(root);
+    const svgs = chartSvgs(root);
     if (!svgs.length) return;
 
     const onDown = (svg, ev) => {
       const target = ev.target || {};
       const data = target.dataset || {};
       if (!data.channel) return;
-      const at = this._timeAtClientX(svg, ev.clientX);
+      const at = timeAtClientX(svg, ev.clientX, this._geom);
       if (at === null) return;
       const channel = data.channel;
       const runs = this._draftRuns()[channel] || [];
@@ -7107,14 +7182,14 @@ class HeatpumpOptimizerCard extends HTMLElement {
     const svgAt = (index) => {
       // Auto-pan re-renders, replacing the svg the gesture started on; the
       // chart at the same position in the fresh shadow root is its heir.
-      const current = this._chartSvgs(this.shadowRoot || root);
+      const current = chartSvgs(this.shadowRoot || root);
       return current[index] || current[current.length - 1] || null;
     };
 
     const applyDragAt = (svg, clientX) => {
       const drag = this._drag;
       if (!drag || drag.menuOnly) return;
-      const at = this._timeAtClientX(svg, clientX);
+      const at = timeAtClientX(svg, clientX, this._geom);
       if (at === null) return;
       drag.moved = true;
       const delta = at - drag.from;
@@ -7147,7 +7222,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // reach), so a user who zoomed — often accidentally, by pinch or
     // ctrl-wheel — finds editing "stops" at an arbitrary-looking time.
     const maybeAutoPan = (index, clientX) => {
-      if (!this._drag || this._drag.menuOnly || !this._viewAdjustable()) {
+      if (!this._drag || this._drag.menuOnly || !this.view.adjustable()) {
         stopAutoPan();
         return;
       }
@@ -7171,12 +7246,12 @@ class HeatpumpOptimizerCard extends HTMLElement {
       if (this._dragPan) return;
       this._dragPan = setInterval(() => {
         const drag = this._drag;
-        const lim = this._viewLimits;
+        const lim = this.view.limits;
         if (!drag || !lim) {
           stopAutoPan();
           return;
         }
-        const cur = this._viewCurrent();
+        const cur = this.view.current();
         const step = dir * Math.max(PLAN_STEP_MS, cur.span * 0.04);
         const maxStart = Math.max(lim.floor, lim.rightBound - cur.span);
         const start = clampNum(cur.start + step, lim.floor, maxStart);
@@ -7184,7 +7259,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
           stopAutoPan();
           return;
         }
-        this._view = { start, span: cur.span };
+        this.view.setStart(start);
         // A full render: the gesture survives it because move/up also live
         // on `window` (registered per drag below), exactly as the pan
         // gesture does and for the same reason.
@@ -7224,7 +7299,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
         this.suppressNextClick();
         const fresh = svgAt(drag.svgIndex);
         if (fresh) {
-          const at = this._timeAtClientX(fresh, drag.lastClientX);
+          const at = timeAtClientX(fresh, drag.lastClientX, this._geom);
           if (at !== null) {
             this._openSlotMenu(
               drag.channel, at, drag.lastClientX, drag.lastClientY, fresh
@@ -7237,7 +7312,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     const onContext = (svg, ev) => {
       const data = (ev.target || {}).dataset || {};
       if (!data.channel) return;
-      const at = this._timeAtClientX(svg, ev.clientX);
+      const at = timeAtClientX(svg, ev.clientX, this._geom);
       if (at === null) return;
       if (ev.preventDefault) ev.preventDefault();
       stop(ev);
@@ -7828,14 +7903,9 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // Reopening should start at the top rather than resuming a scroll position
     // from a session the user has already dismissed.
     this._dialogScroll = 0;
-    // The pan/zoom view dies with the session it belonged to. It used to
-    // persist for the lifetime of the card element — on a wall-mounted
-    // dashboard, indefinitely — so one accidental trackpad pinch or
-    // two-finger swipe over the chart quietly capped slot editing at the
-    // narrowed window's edge for days, while re-anchoring itself to "now"
-    // so it never scrolled out of relevance. A dismissed dialog is a
-    // finished session; the next open shows the whole plan.
-    this._view = null;
+    // The pan/zoom view dies with the session it belonged to (see
+    // ViewWindow.onDialogClosed for why).
+    this.view.onDialogClosed();
   }
 
   _openExpanded() {
@@ -7858,30 +7928,8 @@ class HeatpumpOptimizerCard extends HTMLElement {
     }
   }
 
-  /** The chart wrapper owning an element, so each copy finds its own parts. */
-  _wrapOf(el) {
-    let node = el;
-    while (node && node !== this.shadowRoot) {
-      if (node.classList && node.classList.contains("chartwrap")) return node;
-      node = node.parentNode;
-    }
-    return null;
-  }
-
-  /** The chart svgs, and only those.
-   *
-   * The expand button carries an inline `<svg>` icon and sits above the chart
-   * in the markup, so `querySelector("svg")` returns an 18px icon rather than
-   * the plot. Every chart is wrapped in a `.chartwrap`; the icon is not.
-   */
-  _chartSvgs(root) {
-    const scope = root || this.shadowRoot;
-    if (!scope) return [];
-    return [...scope.querySelectorAll(".chartwrap svg")];
-  }
-
   _cacheRect() {
-    const svg = this._chartSvgs()[0];
+    const svg = chartSvgs(this.shadowRoot)[0];
     if (svg && typeof svg.getBoundingClientRect === "function") {
       this._svgRect = svg.getBoundingClientRect();
     }
@@ -7925,7 +7973,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
   }
 
   _onPointerLeave(ev) {
-    const wrap = ev && ev.currentTarget ? this._wrapOf(ev.currentTarget) : null;
+    const wrap = ev && ev.currentTarget ? wrapOf(ev.currentTarget, this.shadowRoot) : null;
     const roots = wrap ? [wrap] : [this.shadowRoot];
     for (const root of roots) {
       if (!root) continue;
@@ -8084,7 +8132,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     const isLowerModelled = () => this.plan.lowerFloorModelled();
     const svg = ev && ev.currentTarget;
     if (!svg || typeof svg.getBoundingClientRect !== "function") return;
-    const wrap = this._wrapOf(svg);
+    const wrap = wrapOf(svg, this.shadowRoot);
     const rect = svg.getBoundingClientRect() || this._svgRect;
     if (!rect || !rect.width) return;
 
@@ -8221,13 +8269,13 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // against the visible window, which is what keeps the value axis scaled
     // to what is actually on screen. Still a host seam because the tests
     // call `_buildSeries()` for exactly this side effect.
-    const view = this._applyView(dw.start, dw.end, dw.dataEnd);
+    const view = this.view.apply(dw.start, dw.end, dw.dataEnd);
     return buildSeries({
       spFc, dhwFc, solarFc,
       windowStart: view.start,
       windowEnd: view.end,
       hidden: this._hidden,
-      zoomed: this._view !== null,
+      zoomed: this.view.zoomed,
     });
   }
 
@@ -8303,6 +8351,70 @@ class HeatpumpOptimizerCard extends HTMLElement {
   _bandRow(s, t) {
     return bandRow(s, t, this.plan.seriesUnit(s));
   }
+  get _view() {
+    return this.view.range;
+  }
+  set _view(v) {
+    this.view.range = v;
+  }
+  get _viewLimits() {
+    return this.view.limits;
+  }
+  set _viewLimits(v) {
+    this.view.limits = v;
+  }
+  get _pan() {
+    return this.view.panGesture;
+  }
+  set _pan(v) {
+    this.view.panGesture = v;
+  }
+  _applyView(defaultStart, defaultEnd, dataEnd) {
+    return this.view.apply(defaultStart, defaultEnd, dataEnd);
+  }
+  _viewAdjustable() {
+    return this.view.adjustable();
+  }
+  _viewSpan() {
+    return this.view.span();
+  }
+  _viewCurrent() {
+    return this.view.current();
+  }
+  _zoomView(factor, anchorT) {
+    return this.view.zoom(factor, anchorT);
+  }
+  _panView(deltaMs) {
+    return this.view.panBy(deltaMs);
+  }
+  _resetView() {
+    return this.view.reset();
+  }
+  _renderView() {
+    return this.view.renderView();
+  }
+  _onChartWheel(ev) {
+    return this.view.onWheel(ev);
+  }
+  _onPanDown(ev) {
+    return this.view.onPanDown(ev);
+  }
+  _viewControlsHtml() {
+    return this.view.controlsHtml();
+  }
+  _attachViewControls(root) {
+    return this.view.attach(root);
+  }
+  _timeAtClientX(svg, clientX) {
+    return timeAtClientX(svg, clientX, this._geom);
+  }
+  _wrapOf(el) {
+    return wrapOf(el, this.shadowRoot);
+  }
+  _chartSvgs(root) {
+    return chartSvgs(root || this.shadowRoot);
+  }
+
 }
 
 // A custom element name can only be claimed once per page. If an older copy of
