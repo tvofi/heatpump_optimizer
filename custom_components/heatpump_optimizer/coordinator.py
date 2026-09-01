@@ -810,6 +810,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._next_optimization: datetime | None = None
         self._prices: list[dict] = []
         self._weather_forecast: list[dict] = []
+        # Weather staleness (M2): a failed or empty fetch marks the forecast
+        # stale from that moment; the payload publishes the age so a plan
+        # built on stale weather can say so. None means fresh.
+        self._weather_stale_since: datetime | None = None
+        self._weather_outage_cycles: int = 0
         self._current_state = ThermalState()
         self._current_action: dict[str, Any] = {}
         self._unsub_timer: Any = None
@@ -5386,11 +5391,22 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         - Solar radiation / irradiance (W/m²)
 
         These FORECAST values (not current conditions) are what enable
-        true predictive/anticipatory control in the MPC optimizer.
+        true predictive/anticipative control in the MPC optimizer.
+
+        A failed or empty fetch is never silently papered over (M2): a
+        48 h flat forecast fabricated from the current temperature read
+        as real data and cost +41.9 % realized on the verification
+        panel's cold-front scenario, and an empty result used to keep a
+        stale forecast forever with no signal at all. Failures now mark
+        the forecast stale (``_weather_stale_since``, published as
+        ``weather_forecast_stale_hours``) and the outage logs once, not
+        per cycle. The fabricated constant trajectory is only built when
+        nothing better exists -- a first fetch failure with no prior
+        forecast -- and it is stale from birth.
         """
         weather_entity = self._config.get(CONF_WEATHER_ENTITY)
         if not weather_entity:
-            _LOGGER.warning("No weather entity configured")
+            self._weather_fetch_failed("No weather entity configured")
             return
 
         try:
@@ -5404,33 +5420,44 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
             if result and weather_entity in result:
                 forecast_data = result[weather_entity].get("forecast", [])
-                self._weather_forecast = forecast_data
+                if forecast_data:
+                    self._weather_forecast = forecast_data
 
-                # Extract solar radiation forecast if present in weather data
-                self._solar_radiation_forecast = []
-                for fc in forecast_data:
-                    # Some weather integrations provide solar irradiance
-                    sr = fc.get("solar_irradiance") or fc.get(
-                        "native_solar_irradiance", 0.0
+                    # Extract solar radiation forecast if present in weather data
+                    self._solar_radiation_forecast = []
+                    for fc in forecast_data:
+                        # Some weather integrations provide solar irradiance
+                        sr = fc.get("solar_irradiance") or fc.get(
+                            "native_solar_irradiance", 0.0
+                        )
+                        self._solar_radiation_forecast.append(float(sr or 0.0))
+
+                    self._weather_fetch_recovered()
+                    _LOGGER.debug(
+                        "Fetched %d weather forecast entries (full 24h+ "
+                        "trajectory: temp, wind, rain, solar)",
+                        len(forecast_data),
                     )
-                    self._solar_radiation_forecast.append(float(sr or 0.0))
-
-                _LOGGER.debug(
-                    "Fetched %d weather forecast entries (full 24h+ trajectory: "
-                    "temp, wind, rain, solar)",
-                    len(forecast_data),
-                )
+                else:
+                    # D8-02's half: an empty result used to keep the
+                    # previous forecast forever with no signal. The
+                    # previous forecast is still the best data -- but it
+                    # is stale data now, and the plan built on it says so.
+                    self._weather_fetch_failed(
+                        f"Empty forecast returned for {weather_entity}"
+                    )
             else:
-                _LOGGER.warning(
-                    "No forecast data returned for %s", weather_entity
+                self._weather_fetch_failed(
+                    f"No forecast data returned for {weather_entity}"
                 )
 
         except Exception as err:
-            _LOGGER.warning(
-                "Error fetching weather forecast: %s. Using fallback.", err
-            )
+            self._weather_fetch_failed(f"Error fetching weather forecast: {err}")
             state = self.hass.states.get(weather_entity)
-            if state:
+            if state and not self._weather_forecast:
+                # Nothing better exists: fabricate the constant trajectory,
+                # already marked stale by the failure above -- a plan built
+                # on it discloses what it is standing on.
                 try:
                     temp = _as_float(state.attributes.get("temperature"), 5.0)
                     wind = _as_float(
@@ -5450,6 +5477,43 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     self._solar_radiation_forecast = [0.0] * 48
                 except (ValueError, TypeError):
                     pass
+
+    def _weather_fetch_failed(self, reason: str) -> None:
+        """Latch one failed weather fetch: log once, mark the data stale."""
+        if not self._weather_outage_cycles:
+            _LOGGER.warning(
+                "%s. Plans continue on the last forecast, marked stale.", reason
+            )
+        else:
+            _LOGGER.debug("Weather forecast still failing (%s)", reason)
+        self._weather_outage_cycles += 1
+        if self._weather_stale_since is None:
+            self._weather_stale_since = dt_util.now()
+
+    def _weather_fetch_recovered(self) -> None:
+        """Clear the outage and the staleness after a successful fetch."""
+        if self._weather_outage_cycles:
+            _LOGGER.info(
+                "Weather forecast recovered after %d failed cycle(s)",
+                self._weather_outage_cycles,
+            )
+        self._weather_outage_cycles = 0
+        self._weather_stale_since = None
+
+    def weather_stale_hours(self) -> float | None:
+        """How long the forecast has been stale, in hours; None when fresh.
+
+        Published in the data dict so the card, sensors and diagnostics
+        can disclose it -- the whole point of M2 is that a plan built on
+        stale weather must be able to say so.
+        """
+        if self._weather_stale_since is None:
+            return None
+        return round(
+            (dt_util.now() - self._weather_stale_since).total_seconds() / 3600.0,
+            1,
+        )
+
 
     def _solar_forecast_source(self) -> str:
         """Configured irradiance source."""
@@ -6805,6 +6869,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 else None
             ),
             "plan_stale": self._plan_is_stale(),
+            # M2: the same honesty for the weather the plan was built on.
+            # None when the forecast is fresh; hours since the last
+            # successful fetch when every fetch since has failed or come
+            # back empty.
+            "weather_forecast_stale_hours": self.weather_stale_hours(),
         }
         for view in (
             self._thermal_view,
