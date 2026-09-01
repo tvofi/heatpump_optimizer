@@ -110,6 +110,13 @@ p1=$!
   rec tests/plan_view.py
   rec tests/frontend.py
   rec tests/card.mjs
+  # The card's markup gate (v6.2.11, #143) is selectable -- it is not in
+  # NOT_A_TEST -- but was never recorded here, so every `closures` job on
+  # main since then failed with "selectable script with NO recording".
+  # It reads the same payload card.mjs does and the comparison ref's card
+  # via `git show`; GOLDEN_REF reaches it as an environment variable,
+  # exactly as run.sh passes it.
+  rec tests/card_drift.mjs
 ) &
 p3=$!
 wait $p1 $p3

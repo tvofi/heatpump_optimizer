@@ -115,9 +115,16 @@ issues' own measure-first discipline, honoured.
   scoped gate keeps working (#90 makes forgetting this loud).
 - Golden fixtures are re-recorded deliberately, with the drift explained
   in the PR, never as an accident of the run.
-- `RELEASE_NOTES.md` gains the version's section and `VERSION` is bumped
-  in the same PR; the tag follows the merge and the workflow quotes the
-  notes onto the release page.
+- **Versions are assigned at merge time, never in a branch.** A PR does
+  not touch `VERSION`, the manifest version or the `RELEASE_NOTES.md`
+  heading. After the merge commit's unscoped gate on `main` is green, a
+  stamp commit on `main` (`tools/release/stamp.py`) assigns the next
+  version, writes the notes section from the PR body, restamps and
+  empties both claim files, and pushes the tag; the release workflow
+  quotes the notes onto the release page. Four branches each picking
+  "the next version" once cost real cycles; the stamp script refuses a
+  tag that exists, a red gate, and notes that omit a merged PR, and it
+  restamps both claim files whatever stamp they carried.
 
 ## Wave 0 — the eleven CodeQL alerts
 

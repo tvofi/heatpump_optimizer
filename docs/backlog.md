@@ -2959,10 +2959,12 @@ hand-writes inline SVG with no build step and no dependencies; keep it that way.
   fails. Several assertions written this session passed against the bug they
   were meant to catch until they were strengthened.
 - Delete `custom_components/heatpump_optimizer/__pycache__` after source edits.
-- Bump `VERSION`, `manifest.json` and `CARD_VERSION` together, and add a
-  `RELEASE_NOTES.md` entry. The Lovelace resource cache-buster derives from the
-  integration version, so a card change without a bump keeps serving the cached
-  old file to browsers.
+- A card change bumps `CARD_VERSION` in its PR. `VERSION`, `manifest.json`
+  and the `RELEASE_NOTES.md` section are **not** touched in a branch: they are
+  assigned at merge time on `main` by `tools/release/stamp.py` (see
+  `docs/plan-open-issues.md`, "Standing rules"). The Lovelace resource
+  cache-buster derives from the integration version, so every merge is
+  stamped before it is released.
 - Watch the merge race seen in the v2.7.0 session: PR #9 was merged before a
   later commit was pushed, so `main` briefly claimed a feature it did not
   contain. Confirm `main` actually contains the code before tagging, and verify
