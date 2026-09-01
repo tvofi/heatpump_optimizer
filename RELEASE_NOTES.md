@@ -1,5 +1,32 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.2.9
+
+### Seven assertions the suite could not fail on
+
+Mutation testing against the shipped tree (audit round 1) found seven
+production lines whose deletion no test noticed — the paths ran, but
+nothing asserted their values. This release adds those assertions; no
+behaviour changes:
+
+- the COP-learner trust-region clamp bounds an outlier sample to
+  `COP_LEARNING_MAX_STEP` (deleting the clamp now fails 7 checks);
+- the ECL110 first-order-lag trajectory shows partial progress after
+  one/two ticks and convergence after many;
+- the COP-degradation repair notice's monthly figure is proportional to
+  the shortfall (it could previously claim a full bill for 1 %);
+- an expired/unreadable pump-mode signal raises — and recovery clears —
+  the repair issue, end to end;
+- `climate.hvac_action` asserts HEATING / IDLE / OFF / None per state
+  (previously zero test references);
+- the grid-fee day-range parser handles the wrap-around (`"Fri-Mon"`)
+  case;
+- the config flows reject a DHW minimum inside the required deadband on
+  both setup and options, with a passing boundary case.
+
+Each gap's finder mutant was applied in isolation and the new test
+confirmed to fail, then restored and confirmed to pass.
+
 ## v6.2.8
 
 ### The batched gradient finally serves the installs that needed it
