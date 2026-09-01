@@ -1,5 +1,25 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.2.4
+
+### The optimization score explains where the points went
+
+A score of 5/100 was a number and nothing else: no hint that it is an
+average of three independent grades — house, machine, driving — let
+alone which of the three the 95 points went missing from. The
+sub-scores were already riding the score sensor's attributes,
+published and unused.
+
+**Hover** now lists all three with their values and invites the
+click. **Clicking** opens a breakdown panel under the stats row: one
+row per sub-score with a bar, its value, and a line of what it
+measures and what a low value points at — the house grade at
+insulation and the learned loss, the machine grade at the COP health
+watch, the driving grade at whether yesterday's energy was bought
+below the day's flat average price. An unmeasured part says "No
+evidence yet — not a zero" and gets no bar. Enter and Space work
+too, and the whole panel is in Swedish on a Swedish install.
+
 ## v6.2.3
 
 ### A mode-paused channel explains itself, in its own words

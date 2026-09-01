@@ -43,9 +43,9 @@
 # does not expire with the stamp and is not part of the inherited-claims
 # comparison.
 #
-# claims-for: 6.2.3
+# claims-for: 6.2.4
 #
-# Card-string changes only (tooltip wording); no solver path
+# Card-only change (the score breakdown panel); no solver path
 # touched, so no golden moves.
 #
 
