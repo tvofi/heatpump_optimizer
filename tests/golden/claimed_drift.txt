@@ -43,11 +43,11 @@
 # does not expire with the stamp and is not part of the inherited-claims
 # comparison.
 #
-# claims-for: 6.2.11
+# claims-for: 6.2.12
 #
-# The card at phone width (#135) and the decomposition's PR 0 (#143):
-# no solver, sensor or store path touched, so no golden moves and the
-# list is empty.
+# Unload/Tibber semantics (#144) and the card decomposition's first
+# three PRs (#146, #147, #157): no solver or store path touched, no
+# golden moves; the list stays empty.
 #
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
