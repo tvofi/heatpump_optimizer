@@ -79,6 +79,7 @@ from .dhw_schedule import (
     hour_in_windows,
     hours_until_next_window,
     parse_windows,
+    windows_for_day,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -898,6 +899,9 @@ class _Horizon:
     #: that channel is fully automatic. Encoding: NaN free, 0 off, 1 on.
     space_pins: np.ndarray | None = None
     dhw_pins: np.ndarray | None = None
+    #: Weekday lookup for weekly DHW windows (#3), n+1 entries (entry i is
+    #: the weekday of the step before step i), or None on a flat spec.
+    step_weekdays: np.ndarray | None = None
     #: Optional per-step ceiling on space-heating power, kW. The pin encoding
     #: can force a step on or off but cannot say "at most this much", which is
     #: what the buffer tank's hard temperature cap needs: the tighten-and-
@@ -1573,6 +1577,7 @@ class HeatPumpOptimizer:
                     if h.power_caps_extra is not None
                     else None
                 ),
+                step_weekdays=h.step_weekdays,
             )["schedule"]
             if np.allclose(replanned, dhw_power, atol=1e-4):
                 return space_power, dhw_power, status
@@ -1985,13 +1990,29 @@ class HeatPumpOptimizer:
         # Hour of day at each step. Computed once: the comfort target, both
         # temperature bounds and the DHW draw pattern all key off it, and it
         # was previously rebuilt from scratch for each of the four.
+        step_datetimes = [
+            start_time + timedelta(hours=i * dt) for i in range(n_steps)
+        ]
         step_hours = np.array([
-            (
-                (start_time + timedelta(hours=i * dt)).hour
-                + (start_time + timedelta(hours=i * dt)).minute / 60.0
-            )
-            for i in range(n_steps)
+            d.hour + d.minute / 60.0 for d in step_datetimes
         ])
+        # Weekday per step, for weekly DHW windows (#3). Computed here,
+        # once, next to the hours it derives from; None on the flat window
+        # spec every install already has, so nothing downstream pays for it.
+        # The array carries n+1 entries: entry i is the weekday of the
+        # step BEFORE step i (the pre-horizon step for i=0), entry i+1 the
+        # weekday of step i itself -- the two lookups the window-start edge
+        # test needs, without re-deriving datetimes inside the builder.
+        step_weekdays = (
+            np.array(
+                [
+                    (step_datetimes[0] - timedelta(hours=dt)).weekday()
+                ]
+                + [d.weekday() for d in step_datetimes]
+            )
+            if self.model.params.dhw_weekly_windows is not None
+            else None
+        )
 
         comfort_targets = np.array(
             [self.config.get_comfort_temp(hour) for hour in step_hours]
@@ -2117,6 +2138,7 @@ class HeatPumpOptimizer:
                 temp_min_bounds=temp_min_bounds,
                 temp_max_bounds=temp_max_bounds,
                 step_hours=step_hours,
+                step_weekdays=step_weekdays,
                 solar_gains=solar_gains_per_step,
                 heat_loss_factors=forecast_heat_loss_factors,
                 forecast=forecast_analysis,
@@ -3007,6 +3029,7 @@ class HeatPumpOptimizer:
         dhw_pins: np.ndarray | None = None,
         p_run_cap: float | None = None,
         blocked: bool = False,
+        step_weekdays: np.ndarray | None = None,
     ) -> dict[str, Any]:
         """Build the DHW availability requirements and a cheapest-first plan.
 
@@ -3032,11 +3055,39 @@ class HeatPumpOptimizer:
         c_dhw = max(params.dhw_tank_thermal_mass, 0.05)
 
         hours_mod = np.asarray(step_hours, dtype=float) % 24.0
+        # Weekly windows (#3): when the configured spec names days, the
+        # window set is chosen per step from that step's own weekday.
+        # `step_weekdays` is None on the flat (dayless) spec every install
+        # already has, and `windows_for_day` then returns the fallback
+        # unchanged -- the every-day behaviour, bit for bit.
+        weekly = params.dhw_weekly_windows
         in_window = np.array(
-            [hour_in_windows(float(h), windows) for h in hours_mod], dtype=bool
+            [
+                hour_in_windows(
+                    float(h),
+                    windows_for_day(
+                        weekly,
+                        None if step_weekdays is None else int(step_weekdays[i + 1]),
+                        windows,
+                    ),
+                )
+                for i, h in enumerate(hours_mod)
+            ],
+            dtype=bool,
         )
         prev_in_window = np.array(
-            [hour_in_windows(float(h) - dt, windows) for h in hours_mod], dtype=bool
+            [
+                hour_in_windows(
+                    float(h) - dt,
+                    windows_for_day(
+                        weekly,
+                        None if step_weekdays is None else int(step_weekdays[i]),
+                        windows,
+                    ),
+                )
+                for i, h in enumerate(hours_mod)
+            ],
+            dtype=bool,
         )
         window_starts = np.where(in_window & ~prev_in_window)[0].tolist()
 
@@ -4425,6 +4476,7 @@ class HeatPumpOptimizer:
                 else None
             ),
             blocked=h.dhw_blocked,
+            step_weekdays=h.step_weekdays,
         )
 
         dhw_floor_temps = dhw_plan["floor_temps"]

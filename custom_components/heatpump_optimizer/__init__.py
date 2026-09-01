@@ -65,7 +65,13 @@ from . import comfort_band
 from . import mixing_valve
 from .coordinator import HeatPumpOptimizerCoordinator
 from .thermal_model import ThermalParameters
-from .dhw_schedule import DHWWindowError, format_windows, parse_windows
+from .dhw_schedule import (
+    DHWWindowError,
+    format_weekly_windows,
+    format_windows,
+    parse_weekly_windows,
+    parse_windows,
+)
 from .frontend import async_register_frontend
 from . import topology
 from .manual_plan import ManualPlanError, build_override
@@ -633,7 +639,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if data.get(CONF_DHW_WINDOWS) is not None:
             raw = data[CONF_DHW_WINDOWS]
             try:
-                updates[CONF_DHW_WINDOWS] = format_windows(parse_windows(raw))
+                # Weekly specs (#3) normalise through their own round trip;
+                # the flat formatter would silently drop the day selectors
+                # and turn "weekdays 06-07, weekend 08-09" into "06-07,
+                # 08-09" every day -- a behaviour change wearing a
+                # canonicalisation costume.
+                weekly = parse_weekly_windows(raw)
+                updates[CONF_DHW_WINDOWS] = (
+                    format_weekly_windows(weekly)
+                    if weekly is not None
+                    else format_windows(parse_windows(raw))
+                )
             except DHWWindowError as err:
                 raise ServiceValidationError(
                     f"Invalid hot water windows {raw!r}: {err}"

@@ -1,5 +1,116 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.2.6
+
+### The money and energy numbers say what they are
+
+Reading "Hot Water Cost" next to "DHW Heating Cost" gave no way to
+know one is a lifetime accumulator that never resets and the other is
+the current plan's projection over the next 24 hours — the numbers
+looked like the same figure at wildly different magnitudes, and
+"Hot Water Energy" read as *very high* because nothing stated since
+when.
+
+**The names now carry the period:** Hot Water Cost (lifetime), Hot
+Water Energy (lifetime), Space Heating Cost/Energy (lifetime), Total
+Energy/Cost (lifetime), DHW Heating Cost (next 24 h), and both
+heating-plan sensors (next 24 h). Entity ids do not change; only the
+display names move. Swedish carries the same.
+
+**The attributes say it in full:** the accumulators state "lifetime
+accumulator; never reset. The state is the whole history, not today's
+or this month's figure" and carry `this_month_kwh` /
+`this_month_cost` — booked per settlement onto the monthly ledger's
+new per-channel lines, from the same numbers the lifetime fold uses,
+so the two can never disagree — plus `counting_since`, the date this
+integration started recording (an upgrade states the upgrade day
+honestly, never a claim about the install itself). The plan sensors
+state "planned for the optimization horizon ahead; recomputed on
+every replan. Not a measurement and not accumulated." with their
+`horizon_hours`, on the no-plan-yet path as well.
+
+**Upgrading**: display names move on existing installs; entity ids,
+history and the Energy dashboard are untouched. The new month
+attributes start accruing with the next settlement.
+
+## v6.2.5
+
+### Weekly hot-water windows: different days, different times
+
+Hot-water demand windows applied identically to all seven days, so a
+household whose mornings differ — weekdays early, weekends late, or
+one specific day with its own pattern — could not say so. The window
+spec now carries an optional day selector per range:
+
+    weekdays 06:00-08:30, weekend 08:00-09:30
+    Mo 05:30-07:00, Tu-Fr 06:00-08:00, Sa,Su 08:00-09:30
+
+A selector is `daily` (the default when absent), `weekdays`,
+`weekend`, or a comma/range list of two-letter day tokens (Mo Tu We
+Th Fr Sa Su). A range without one applies to every day — exactly the
+previous behaviour: **an existing flat spec loads unchanged and solves
+through the same code path as before**; the whole feature activates
+only when a day selector is present.
+
+The optimizer chooses the window set per step from that step's own
+weekday, including across the midnight the horizon spans. The
+config-flow field help documents the grammar in English and Swedish,
+and the service path normalises weekly specs through their own round
+trip (the flat formatter would silently drop the day selectors).
+
+**Upgrading**: nothing changes until you add a day selector to your
+hot-water windows. When you do, a day with no segment genuinely has
+no hot-water requirement that day — that is the point, and it is
+visible in the plan.
+
+## v6.2.4
+
+### The optimization score explains where the points went
+
+A score of 5/100 was a number and nothing else: no hint that it is an
+average of three independent grades — house, machine, driving — let
+alone which of the three the 95 points went missing from. The
+sub-scores were already riding the score sensor's attributes,
+published and unused.
+
+**Hover** now lists all three with their values and invites the
+click. **Clicking** opens a breakdown panel under the stats row: one
+row per sub-score with a bar, its value, and a line of what it
+measures and what a low value points at — the house grade at
+insulation and the learned loss, the machine grade at the COP health
+watch, the driving grade at whether yesterday's energy was bought
+below the day's flat average price. An unmeasured part says "No
+evidence yet — not a zero" and gets no bar. Enter and Space work
+too, and the whole panel is in Swedish on a Swedish install.
+
+## v6.2.3
+
+### A mode-paused channel explains itself, in its own words
+
+"The heat pump's mode cannot do this" was true and useless: it named no
+channel, said where the setting lives, or what to do about it. A user
+reading it against hot water that never gets hot had no way to know
+the fix is the mode selector on the physical unit — heat-only makes no
+hot water, hot-water-only heats no rooms — and not anything in the
+integration.
+
+The tooltip now shows a channel-aware explanation: "No hot water: the
+pump's operating mode — set on the unit — cannot heat water (heat-only
+or cooling). Switch the unit to a mode that includes hot water", and
+the heating mirror image. Those steps carry no power, so the hover is
+the only place the explanation can live. Swedish carries the same.
+
+## v6.2.2
+
+### The fix program, complete on the record
+
+`docs/plan-open-issues.md` marks the program complete: all sixteen
+open issues (#86–#101) and all eleven code-scanning alerts closed,
+across nineteen releases from v5.6.0 to v6.2.2. The delivery-status
+section names the release that carried each item, including the two
+closed by measurement rather than code. Documentation only; no
+behaviour changes.
+
 ## v6.2.1
 
 ### The options dialog stays open after a save

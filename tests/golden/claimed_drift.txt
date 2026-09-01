@@ -43,10 +43,10 @@
 # does not expire with the stamp and is not part of the inherited-claims
 # comparison.
 #
-# claims-for: 6.2.1
+# claims-for: 6.2.6
 #
-# The menu-return landed in 6.2.1 itself; this stamp claims
-# nothing further.
+# The labels landed with their own claims on the branch; this
+# stamp moves nothing further.
 #
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
