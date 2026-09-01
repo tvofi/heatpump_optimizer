@@ -1,5 +1,31 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.1.0
+
+### The real-browser layout lane: geometry the DOM stub cannot see
+
+Every layout defect this project has shipped was invisible to the
+suite, because the card tests run against a DOM stub whose
+`getBoundingClientRect` returns a constant 900×400. Three reached a
+user: the zoom-limited editing trap (v4.0.5 hotfix), tooltip text
+overflowing its box (inherited `white-space: nowrap` plus a clamp on
+the left edge only), and three legend chips 0.33 px apart that read as
+one chip hiding three traces (issue #96).
+
+`tests/card_browser.mjs` runs the real card in real Chromium and
+asserts geometry: the chart svg at real size on a dashboard tile,
+legend chips pairwise separated with labels that fit, tooltips
+contained on **both** edges with text inside the box
+(`scrollWidth` vs `clientWidth` — the nowrap defect's exact
+signature), and every setup-editor hit target at least 8×8 px and
+inside its svg. A vacuous-pass guard refuses to report "tooltips stay
+inside" from a run where no tooltip ever appeared.
+
+Its own job in the workflow (Playwright, Chromium cached), excluded
+from the run.sh lanes and the closures roster because nothing else
+installs a browser. This lane is what makes the card refactor (#95)
+safe, which is why it went first.
+
 ## v6.0.9
 
 ### The drift baseline cache warms on main, once per merge
