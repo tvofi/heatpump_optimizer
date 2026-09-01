@@ -61,27 +61,48 @@ the truth.
   the longest contiguous GIL hold during a realistic cold solve is
   ~34 ms (median ~7 ms, the 5 ms switch interval plus scheduling),
   recorded on the issue with the Pi extrapolation stated.
+- **#99, retention** — v6.0.8. The rolling-suite harness measured every
+  audited collection bounded (the lead-error maps at their bucket count,
+  the promise list under its 512 cap, the ring at its 672 maxlen), and
+  `manual_override`/`dhw_windows` left the recorder.
+- **#94, drift-cache warming** — v6.0.9. The push-to-main run stores the
+  main-tree capture it already makes under the key the following PRs
+  compute; the nightly keeps it fresh. Verified on its first
+  beneficiary: PR #121's re-run restored the warmed entry.
+- **#96, the browser lane** — v6.1.0. Real Chromium asserting real
+  geometry for the three historically-shipped defect classes, with a
+  vacuous-pass guard; its own workflow job.
+- **#95, the card seams** — v6.1.1. `cardStyleBlock()` and
+  `setupSvgHtml()` left the god class as top-level functions; the class
+  shrank from ~7,600 to 4,895 lines behind same-named thin seams.
+- **#101, the QA renderer** — v6.1.2. Wired into the card lane of every
+  gate on one shared DOM stub (`tests/dom_stub.mjs`); the drifted copy
+  is gone.
+- **#97, the gradient** — v6.2.0. The `maxfun` cap was rejected by the
+  drift gate (five scenarios moved: the default 15,000 evaluations is
+  load-bearing, recorded on the issue). What shipped is the real fix:
+  `simulate_trajectory_batch`, the bitwise-parity vectorized twin of the
+  scalar step, plus a `jac=` that reproduces scipy's own 2-point
+  estimate as one batched call. Measured **11.5 s → 1.0 s** per
+  two-zone solve, plans byte-identical, with the batch serving uniform
+  bounds only — the drift gate caught the capped-tariff scenarios moving
+  on Linux and the guard is the record of that catch.
+- **#100, the menu-return** — v6.2.1. Write-through with immediate
+  reload, the choice stripped before persisting, advanced pages back to
+  the advanced menu; the config_flow golden's 12 new leaves are the
+  field itself, claimed.
 
-**In flight:**
+**All sixteen issues and all eleven alerts are closed. The program is
+complete.**
 
-- **#99, retention** — the rolling-suite harness plus the recorder fix
-  (`manual_override`, `dhw_windows` unrecorded) is in review; the first
-  measurement found every audited collection bounded.
-- **#97, gradient cost** — the measurement is on the issue (9,998
-  trajectory evaluations per solve; the line search dominates at ~326
-  evaluations per iteration) and the `maxfun` cap is in review. The
-  analytic-gradient item remains open as its own decision; the
-  vectorized-FD item is not available (the simulation is sequential
-  pure Python).
-
-**Still to build:** #94 (drift-cache warming on main), #96 (browser
-lane), #101 (QA renderer wiring), #95 (card seams, after #96), #100
-(menu-return; its test prerequisite is delivered above).
-
-Two unplanned items joined the program on the way and are part of the
+The final count: 19 releases (v5.6.0 through v6.2.1), every merge
+stamped, tagged and released per the release workflow's contract. Two
+unplanned items joined the program on the way and are part of the
 record above: v5.6.0 (the test harness's file and network sinks — five
 pre-existing security-scan findings that were blocking all commits) and
-v6.0.3's closure fix for `frontend.py`.
+v6.0.3's closure fix for `frontend.py`. Two findings were closed by
+measurement rather than code (#98, and #97's `maxfun` item) — the
+issues' own measure-first discipline, honoured.
 
 ## Standing rules for every item
 
