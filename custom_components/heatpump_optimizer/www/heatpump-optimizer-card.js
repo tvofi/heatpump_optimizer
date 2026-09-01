@@ -11,7 +11,7 @@
 
 const CARD_TAG = "heatpump-optimizer-card";
 const EDITOR_TAG = "heatpump-optimizer-card-editor";
-const CARD_VERSION = "5.4.10";
+const CARD_VERSION = "5.4.11";
 
 // The de-duplication key `_extraFields` files a confidence band's two
 // edges under, so the pair counts as the one named trace it is. A Symbol
@@ -6812,6 +6812,1052 @@ class WhatIfPanel {
   }
 }
 
+// ---- SetupPage ------------------------------------------------------------
+// The Setup tab: the configured system as a picture with live readings in
+// place (drawn by the top-level `setupSvgHtml`, #95), the click-to-assign
+// entity picker with its per-visit state and its clear-confirmation, the
+// page's status line, and where focus goes on the way in and out. Knows
+// nothing of the layout editor: the host composes the page from both and
+// tells `attach` whether the editor is open. Uses `host.plan`, `host.hass`,
+// `host.shadowRoot` and `host.render()`. PR 7 of #136.
+class SetupPage {
+  constructor(host) {
+    this.host = host;
+    // The picker's per-visit state: which slot is open, what has been typed
+    // into its filter, which entity is chosen (null = "whatever the slot
+    // already holds"), whether it was opened from the keyboard (focus goes
+    // into it, and back to the row on the way out), and whether an Assign
+    // that would CLEAR the slot has been armed.
+    this.pickerKey = null;
+    this.pickerSlot = null;
+    this.pickerFilter = "";
+    this.pickerChoice = null;
+    this.pickerFocus = false;
+    this.pickerViaKeyboard = false;
+    this.pendingClear = false;
+    this.clearTimer = null;
+    // The status line under the diagram, re-applied after every rebuild.
+    this.note = null;
+  }
+
+  /** Put the status line back after a rebuild replaced its element. */
+  applyNote(root) {
+    const note = root.querySelector(".setup-result");
+    if (note && this.note) note.textContent = this.note;
+  }
+
+  /** The entity picker for one slot, or nothing when none is open.
+   *
+   * Item 32's click-to-assign, on the card rather than in a custom panel: the
+   * card is already authenticated, already draws the diagram and already has
+   * `hass`, so this needs one validated service instead of a second frontend
+   * with its own hand-rolled config-write path.
+   *
+   * Candidates come from `hass.states`, filtered to the domains the slot
+   * accepts -- the same list the service validates against, published on the
+   * slot itself so the picker cannot offer what the service would refuse.
+   */
+  pickerHtml(topo) {
+    const key = this.pickerKey;
+    if (!key) return "";
+    const slot = (topo.slots || []).find((s) => s.key === key);
+    if (!slot) return "";
+    // The open picker's slot, for the handlers: the filter box rebuilds the
+    // option list without re-rendering the page (which would take the focus
+    // out of the input the user is typing into), and needs the same slot
+    // this render used.
+    this.pickerSlot = slot;
+    const model = this.pickerModel(slot);
+    const filter = this.pickerFilter || "";
+    return `
+      <div class="setup-picker">
+        <div class="sp-title">${esc(slot.label)}</div>
+        <input class="sp-filter" type="text" value="${esc(filter)}"
+          placeholder="${esc(L("setup.picker_filter_placeholder"))}"
+          aria-label="${esc(
+            L("setup.picker_filter_aria", { slot: slot.label })
+          )}" />
+        <select class="sp-select" size="8" aria-label="${esc(
+          L("setup.picker_aria", { slot: slot.label })
+        )}">${model.options}</select>
+        <div class="sp-actions">
+          <button type="button" class="sp-save">${esc(L("setup.assign"))}</button>
+          <button type="button" class="sp-cancel">${esc(L("setup.cancel"))}</button>
+        </div>
+        <div class="sp-note">${esc(model.note)}</div>
+      </div>`;
+  }
+
+  /** The picker's option list and its footnote, for one slot.
+   *
+   * Three rules this had wrong before v5.1.4, each of them destructive:
+   *
+   *  - The entity the slot ALREADY holds is always an option, and always the
+   *    selected one. It used to be offered only if it happened to fall
+   *    inside the candidate list; when it did not -- a renamed entity, one
+   *    past the cap, one whose domain the slot no longer lists -- the
+   *    `<select>` fell back to "(not configured)", and pressing Assign
+   *    wrote that emptiness back and reloaded the integration. The user was
+   *    shown a cleared slot and a destructive default in the same control.
+   *  - The cap applies AFTER the filter, so every entity on the install is
+   *    reachable by typing. It used to truncate the alphabetical candidate
+   *    list, which on a large install simply hid the user's own probe with
+   *    no way to reach it.
+   *  - Every option shows the entity id next to the friendly name.
+   *    Auto-generated names collide ("Vedpanna temperatur" twice, one of
+   *    them silently `..._2`), and a list of identical labels is a list
+   *    nobody can choose from.
+   */
+  pickerModel(slot) {
+    const domains = slot.domains || [];
+    const states = (this.host.hass && this.host.hass.states) || {};
+    const nameOf = (id) => {
+      const st = states[id];
+      return (st && st.attributes && st.attributes.friendly_name) || id;
+    };
+    const labelOf = (id) => {
+      if (!states[id]) return `${id} — ${L("setup.picker_missing")}`;
+      const friendly = nameOf(id);
+      return friendly === id ? id : `${friendly} — ${id}`;
+    };
+    // A slot that wants a temperature says so; a matching device class is
+    // ranked first so the probe the slot is for is near the top before a
+    // single character is typed. Ranking only -- nothing is hidden by it,
+    // because a house full of unclassified sensors is normal.
+    //
+    // What the slot is asking for comes from the slot, published by
+    // `topology._SLOTS` beside the domains it sits in the same row as. The
+    // card used to keep a second copy of that table keyed by slot id, which
+    // no test touched and which would have gone quietly stale the first time
+    // a slot was added.
+    const want = slot.device_class || null;
+    const classOf = (id) => {
+      const st = states[id];
+      return (st && st.attributes && st.attributes.device_class) || "";
+    };
+    const all = Object.keys(states).filter((id) =>
+      domains.includes(id.split(".")[0])
+    );
+    const q = String(this.pickerFilter || "").trim().toLowerCase();
+    const matching = q
+      ? all.filter((id) => labelOf(id).toLowerCase().includes(q))
+      : all;
+    matching.sort((a, b) => {
+      if (want) {
+        const ra = classOf(a) === want ? 0 : 1;
+        const rb = classOf(b) === want ? 0 : 1;
+        if (ra !== rb) return ra - rb;
+      }
+      return a < b ? -1 : a > b ? 1 : 0;
+    });
+    const shown = matching.slice(0, PICKER_MAX_OPTIONS);
+    // What the select must come up on: the user's own pick this time round,
+    // otherwise whatever the slot is configured with.
+    const chosen =
+      this.pickerChoice === null || this.pickerChoice === undefined
+        ? slot.entity || ""
+        : this.pickerChoice;
+    const listed = new Set(shown);
+    const options = [
+      `<option value=""${chosen ? "" : " selected"}>${esc(
+        L("setup.picker_none")
+      )}</option>`,
+    ];
+    // The current entity rides at the top of the list, outside the filter
+    // and outside the cap: it is the one option whose absence would rewrite
+    // the configuration.
+    if (chosen && !listed.has(chosen)) {
+      options.push(
+        `<option value="${esc(chosen)}" selected>${esc(labelOf(chosen))}</option>`
+      );
+    }
+    for (const id of shown) {
+      options.push(
+        `<option value="${esc(id)}"${id === chosen ? " selected" : ""}>${esc(
+          labelOf(id)
+        )}</option>`
+      );
+    }
+    let note;
+    if (matching.length > shown.length) {
+      note = L("setup.picker_showing", {
+        n: shown.length,
+        total: matching.length,
+      });
+    } else if (q && !matching.length) {
+      note = L("setup.picker_no_match", { q });
+    } else {
+      note = L("setup.picker_count", {
+        n: matching.length,
+        domains: domains.join("/"),
+      });
+    }
+    return { options: options.join(""), note, total: matching.length,
+      shown: shown.length };
+  }
+
+  /** Close the picker, dropping everything that belonged to that visit. */
+  closePicker() {
+    this.pickerKey = null;
+    this.pickerSlot = null;
+    this.pickerViaKeyboard = false;
+    this.pickerFilter = "";
+    this.pickerChoice = null;
+    this.cancelPendingClear();
+  }
+
+  /** Disarm the "this would clear the slot" confirmation. */
+  cancelPendingClear() {
+    if (this.clearTimer) {
+      clearTimeout(this.clearTimer);
+      this.clearTimer = null;
+    }
+    this.pendingClear = false;
+  }
+
+  /** Disarm it and put the Assign button back the way it was. */
+  disarmClear(picker) {
+    this.cancelPendingClear();
+    const root = picker || (this.host.shadowRoot && this.host.shadowRoot.querySelector(
+      ".setup-picker"));
+    const save = root && root.querySelector(".sp-save");
+    if (save) {
+      save.textContent = L("setup.assign");
+      save.classList.remove("confirm");
+    }
+  }
+
+  /** One live reading, formatted, or null for an empty slot. */
+  slotLive(slot) {
+    if (!slot.entity) return null;
+    const st = this.host.hass && this.host.hass.states
+      ? this.host.hass.states[slot.entity]
+      : null;
+    if (!st || st.state === "unavailable" || st.state === "unknown") {
+      return L("setup.unavailable");
+    }
+    // HA's own formatter applies the user's unit system and any per-entity
+    // display override, so a natively-°F probe reads in °C on a metric
+    // install here exactly as it does everywhere else in the frontend.
+    // Raw state + unit stays as the fallback for older frontends.
+    if (this.host.hass && typeof this.host.hass.formatEntityState === "function") {
+      try {
+        const formatted = this.host.hass.formatEntityState(st);
+        if (formatted) return formatted;
+      } catch (e) {
+        // fall through to the raw concatenation
+      }
+    }
+    const unit =
+      (st.attributes && st.attributes.unit_of_measurement) || "";
+    return `${st.state}${unit ? " " + unit : ""}`;
+  }
+
+  /** The irradiance the plan actually runs on when no sensor is configured.
+   *
+   * The Outside box used to say "not configured" while the plan solved
+   * against Open-Meteo or weather-derived irradiance every cycle — a value
+   * in active use displayed as absent. The solar plan sensor carries both
+   * the number and its source, so show them, tagged so nobody mistakes a
+   * forecast for a roof sensor.
+   */
+  solarFallback() {
+    const st = this.host.plan.stateOf(this.host.plan.resolveEntity("solar"));
+    if (!st) return null;
+    const v = Number(st.state);
+    if (!Number.isFinite(v)) return null;
+    const source = (st.attributes || {}).source;
+    if (!source) return null;
+    const label =
+      source === "open_meteo" ? "Open-Meteo" : L("setup.source_weather");
+    return `${Math.round(v)} W/m² · ${label}`;
+  }
+
+  /** The diagram, with live readings in place: the top-level
+   * `setupSvgHtml` (#95) fed this page's readings. Returns `{html, boxes}`;
+   * the laid-out boxes are the layout editor's to keep, and it is the
+   * caller that hands them over. */
+  svg(topo, { editing, edit }) {
+    return setupSvgHtml(topo, {
+      editing,
+      edit,
+      slotLive: (s) => this.slotLive(s),
+      solarFallback: () => this.solarFallback(),
+    });
+  }
+
+  /** Take focus off a setup row that no longer deserves it.
+   *
+   * The rows are focusable (`tabindex="0"`, `role="button"`) so the diagram
+   * can be assigned from the keyboard. The cost is that a pointer gesture
+   * can leave one focused with nothing on screen explaining why, and a
+   * click on the diagram's empty space does not reliably move focus off an
+   * SVG element -- which is how a ring survived a cancelled picker.
+   */
+  blurRow() {
+    const root = this.host.shadowRoot;
+    const active =
+      (root && root.activeElement) ||
+      (typeof document !== "undefined" ? document.activeElement : null);
+    if (!active || !active.classList || !active.classList.contains("setup-hit")) {
+      return;
+    }
+    if (typeof active.blur === "function") active.blur();
+  }
+
+  /** Focus the setup row the entity picker was opened from, once the picker
+   * has closed and the render that removed it has finished. The row is
+   * re-located by its data-key: the element that had focus was rebuilt. */
+  restoreFocus(key) {
+    if (!key || !this.host.shadowRoot) return;
+    for (const hit of this.host.shadowRoot.querySelectorAll(".setup-hit")) {
+      if ((hit.dataset || {}).key === key) {
+        if (typeof hit.focus === "function") hit.focus();
+        return;
+      }
+    }
+  }
+
+  /** Wire the page's clickable slots and its picker. `layoutEditing()` says
+   * whether the layout editor is open, in which case a click on a box is the
+   * start of a drag, not a request to assign a sensor. */
+  attach(root, { layoutEditing }) {
+    const openPicker = (key, viaKeyboard) => {
+      // While the layout editor is open a click on a box is the start of a
+      // drag, not a request to assign a sensor. Opening the picker over the
+      // diagram being edited would put a dialog on top of the drag.
+      if (layoutEditing()) return;
+      // A fresh visit: no filter, no half-made choice, no armed clear left
+      // over from the row before this one.
+      this.closePicker();
+      this.pickerKey = key;
+      // Opened from the keyboard, focus must land in the picker: the hit
+      // target that had it is rebuilt by the render below, so without this
+      // the keyboard user is dropped back at the top of the dialog.
+      this.pickerFocus = !!viaKeyboard;
+      // ...and remembered for the way back out. Handing focus to a row a
+      // MOUSE user is no longer looking at is what left a focus ring stuck
+      // on the sensor field after Cancel (v5.1.4).
+      this.pickerViaKeyboard = !!viaKeyboard;
+      this.host.render();
+    };
+    // Any pointer gesture that is not on a row takes focus off whichever row
+    // has it. Without this a ring can outlive the gesture that caused it --
+    // the reported "thin blue line beside the sensor field" after cancelling
+    // the picker and clicking away.
+    root.addEventListener("pointerdown", (ev) => {
+      const t = ev && ev.target;
+      if (t && t.classList && t.classList.contains("setup-hit")) return;
+      this.blurRow();
+    });
+    for (const hit of root.querySelectorAll(".setup-hit")) {
+      hit.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        openPicker(ev.currentTarget.dataset.key, false);
+      });
+      // The hits are focusable buttons (role="button"), so Enter and Space
+      // must do what a click does.
+      hit.addEventListener("keydown", (ev) => {
+        if (ev.key !== "Enter" && ev.key !== " ") return;
+        if (ev.preventDefault) ev.preventDefault();
+        stop(ev);
+        openPicker(ev.currentTarget.dataset.key, true);
+      });
+    }
+    const picker = root.querySelector(".setup-picker");
+    if (!picker) return;
+    // Every control stops propagation: the dialog closes on a click that
+    // lands on its backdrop, and a click inside the picker is not that.
+    picker.addEventListener("click", (ev) => ev.stopPropagation());
+    // Escape backs out of the picker without assigning, from any of its
+    // controls — the keyboard twin of the Cancel button. Closing re-renders,
+    // which destroys whichever picker control held focus, so focus is
+    // walked back to the setup row the picker was opened from.
+    picker.addEventListener("keydown", (ev) => {
+      if (ev.key !== "Escape") return;
+      stop(ev);
+      const key = this.pickerKey;
+      this.closePicker();
+      this.host.render();
+      this.restoreFocus(key);
+    });
+    const select = picker.querySelector(".sp-select");
+    if (select && this.pickerFocus) {
+      this.pickerFocus = false;
+      if (typeof select.focus === "function") select.focus();
+    }
+    // Typing narrows the list in place. A full `_render()` would rebuild the
+    // input and take the caret with it, so only the options and the footnote
+    // are replaced; the select keeps whatever the user had highlighted when
+    // that entity is still on the list.
+    const filterBox = picker.querySelector(".sp-filter");
+    if (filterBox) {
+      filterBox.addEventListener("input", (ev) => {
+        const target = ev.currentTarget || ev.target;
+        this.pickerFilter = (target && target.value) || "";
+        const slot = this.pickerSlot;
+        if (!slot) return;
+        const model = this.pickerModel(slot);
+        const list = picker.querySelector(".sp-select");
+        if (list) list.innerHTML = model.options;
+        const foot = picker.querySelector(".sp-note");
+        if (foot) foot.textContent = model.note;
+      });
+    }
+    // The chosen entity is remembered on the card, not only in the DOM: the
+    // list is rebuilt on every keystroke, and a choice that lived only in
+    // the `<select>` would be forgotten by the next one.
+    if (select) {
+      select.addEventListener("change", (ev) => {
+        const target = ev.currentTarget || ev.target;
+        this.pickerChoice = (target && target.value) || "";
+        // Choosing again disarms a clear that was armed for a different
+        // answer than the one now selected.
+        if (this.pendingClear) this.disarmClear(picker);
+      });
+    }
+    const cancel = picker.querySelector(".sp-cancel");
+    if (cancel) {
+      cancel.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        const key = this.pickerKey;
+        const viaKeyboard = this.pickerViaKeyboard;
+        this.closePicker();
+        this.host.render();
+        // A keyboard user must land back on the row they came from, or they
+        // are dropped at the top of the dialog. A mouse user must NOT: the
+        // row would light up with a focus ring around a field they have
+        // just backed out of, and clicking elsewhere does not always take
+        // it off an SVG element again.
+        if (viaKeyboard) this.restoreFocus(key);
+        else this.blurRow();
+      });
+    }
+    const save = picker.querySelector(".sp-save");
+    if (save) {
+      const assign = async (ev) => {
+        ev.stopPropagation();
+        const select = picker.querySelector(".sp-select");
+        const key = this.pickerKey;
+        const slot = this.pickerSlot;
+        // What Assign will write is the choice the card remembered, not
+        // whatever the `<select>` reports. That element is rebuilt on every
+        // keystroke of the filter, and reading an answer back out of a
+        // control that has just been replaced is the same class of mistake
+        // as the one this whole item is about: a slot with a perfectly good
+        // sensor in it must never be emptied by the UI's own bookkeeping.
+        // `null` means "the user did not choose anything this visit", which
+        // is a request to keep what the slot already has.
+        const chose = this.pickerChoice;
+        const picked = chose === null || chose === undefined ? null : chose;
+        const fromDom =
+          select && typeof select.value === "string" && select.value
+            ? select.value
+            : null;
+        // An empty `<select>` that the user never touched is the control's
+        // own default, not a decision -- and acting on it is precisely the
+        // reported bug -- so it degrades to what the slot already holds.
+        // Choosing "(not configured)" deliberately still clears, through
+        // the confirmation below.
+        const entityId =
+          picked !== null ? picked
+            : fromDom !== null ? fromDom
+              : (slot && slot.entity) || "";
+        const note = this.host.shadowRoot.querySelector(".setup-result");
+        // Assigning nothing to a slot that HAS something is a deletion: it
+        // writes the config entry and reloads the integration, and the user
+        // usually got here believing they were fixing a slot rather than
+        // emptying one. Same pattern as the what-if save -- the button
+        // itself becomes the confirmation, since a nested browser prompt
+        // inside this modal is easy to miss behind the backdrop.
+        if (!entityId && slot && slot.entity && !this.pendingClear) {
+          this.pendingClear = true;
+          save.textContent = L("setup.confirm_clear");
+          save.classList.add("confirm");
+          this.note = L("setup.confirm_clear_hint", {
+            entity: slot.entity,
+            label: slot.label,
+          });
+          if (note) note.textContent = this.note;
+          const foot = picker.querySelector(".sp-note");
+          if (foot) foot.textContent = this.note;
+          // Let the decision lapse rather than sit armed: a stray second
+          // click minutes later must not empty a slot.
+          clearTimeout(this.clearTimer);
+          this.clearTimer = setTimeout(() => this.disarmClear(picker), 8000);
+          return;
+        }
+        this.cancelPendingClear();
+        try {
+          await this.host.hass.callService(
+            "heatpump_optimizer",
+            "assign_entity",
+            { key, entity_id: entityId }
+          );
+          this.closePicker();
+          // The write reloads the integration, so the topology the card is
+          // drawn from is replaced a moment later. Say what happened rather
+          // than leaving a diagram that has not caught up yet looking wrong.
+          this.note = entityId
+            ? L("setup.assigned_reloading", { entity: entityId })
+            : L("setup.cleared_reloading");
+        } catch (err) {
+          this.note = L("errors.could_not_assign", {
+            err: (err && err.message) || err,
+          });
+        }
+        this.host.render();
+        if (note) note.textContent = this.note || "";
+        // Success closed the picker (and the render destroyed the control
+        // that had focus): return focus to the row that was assigned. A
+        // failure keeps the picker open, and focus with it.
+        if (this.pickerKey === null) this.restoreFocus(key);
+      };
+      save.addEventListener("click", assign);
+      // Enter on the select assigns the chosen entity — the picker's one
+      // "submit" action, without a Tab trip to the button.
+      if (select) {
+        select.addEventListener("keydown", (ev) => {
+          if (ev.key !== "Enter") return;
+          if (ev.preventDefault) ev.preventDefault();
+          assign(ev);
+        });
+      }
+    }
+  }
+}
+
+// ---- LayoutEditor ---------------------------------------------------------
+// The layout editor over the setup diagram (v3.16.0, issue #40): the working
+// drawing and the baseline Undo returns to, the match against the catalog
+// the coordinator publishes (only a key is ever saved, so a drawing cannot
+// smuggle in physics the model does not run), the box and pipe gestures,
+// the in-place redraw a drag needs, and `apply_topology`. Owns `edit` --
+// null means "not editing", so an untouched setup page behaves exactly as
+// it did before the editor existed -- and `boxes`, where the last drawing
+// put each box. Uses `host.setup` (the diagram, the picker, the note),
+// `host.plan`, `host.hass`, `host.shadowRoot` and `host.render()`.
+// PR 7 of #136.
+class LayoutEditor {
+  constructor(host) {
+    this.host = host;
+    this.edit = null;
+    // Where the last drawing put each box, in viewBox units, so a drop can be
+    // tested against real geometry instead of guessing from the event target.
+    this.boxes = [];
+    this.onDown = this.onDown.bind(this);
+    this.onMove = this.onMove.bind(this);
+    this.onUp = this.onUp.bind(this);
+    this.onClick = this.onClick.bind(this);
+  }
+
+  /** True while the layout editor is open. */
+  editing() {
+    return !!(this.edit && this.edit.active);
+  }
+
+  /** True when there is an edit worth writing: a change, and a layout to
+   * name it. Either alone is not something to offer to save. */
+  saveable() {
+    const ed = this.edit;
+    return !!(ed && ed.active && ed.match && ed.dirty);
+  }
+
+  /** True when there is something to take back: a change made since the
+   * editor opened. An untouched drawing already IS the layout in use, so
+   * Undo would do nothing and must not pretend otherwise. */
+  undoable() {
+    const ed = this.edit;
+    return !!(ed && ed.active && ed.dirty && ed.baseline);
+  }
+
+  /** A position map copied down to its coordinate pairs. */
+  copyPositions(positions) {
+    const out = {};
+    for (const key of Object.keys(positions || {})) {
+      const at = positions[key];
+      out[key] = Array.isArray(at) ? at.slice() : at;
+    }
+    return out;
+  }
+
+  /** The editor's own controls: the toggle, Save, and the verdict line.
+   *
+   * Offered only when the coordinator publishes a catalog. Without one there
+   * is nothing to validate a drawing against, and an editor that could not
+   * tell a supported layout from an invented one is exactly the "diagram that
+   * lies about the physics" this feature exists to end.
+   */
+  barHtml(topo) {
+    // An editor already open keeps its toggle even if the catalog goes away
+    // under it (an integration downgrade mid-session); a bar that vanished
+    // would leave the editor open with no way out of it.
+    if (
+      (!Array.isArray(topo.catalog) || !topo.catalog.length) &&
+      !this.editing()
+    ) {
+      return "";
+    }
+    const ed = this.edit;
+    const active = this.editing();
+    const match = active && ed.match ? ed.match : null;
+    return `
+      <div class="layout-bar">
+        <button type="button" class="layout-edit-toggle${active ? " on" : ""}"
+          aria-pressed="${active}">${
+            active ? esc(L("setup.done_editing")) : esc(L("setup.edit_layout"))
+          }</button>
+        ${
+          active
+            ? `<button type="button" class="layout-save"${
+                this.saveable() ? "" : ` disabled="disabled"`
+              }>${esc(L("setup.save_layout"))}</button>`
+            : ""
+        }
+        ${
+          active
+            ? `<button type="button" class="layout-undo"${
+                this.undoable() ? "" : ` disabled="disabled"`
+              } title="${esc(L("setup.undo_layout_aria"))}"
+              aria-label="${esc(L("setup.undo_layout_aria"))}">${
+                esc(L("setup.undo_layout"))
+              }</button>`
+            : ""
+        }
+        ${
+          active
+            ? `<span class="layout-verdict${match ? " match" : ""}"
+                 role="status">${esc((ed && ed.verdict) || "")}</span>`
+            : ""
+        }
+      </div>`;
+  }
+
+  /** Wire the editor's controls and the diagram's pointer gestures.
+   *
+   * The buttons take listeners directly because `_refreshLayout` never
+   * rebuilds them; only the canvas's contents are replaced mid-edit, and its
+   * listeners live on the wrapper, which survives.
+   */
+  attach(root) {
+    const toggle = root.querySelector(".layout-edit-toggle");
+    if (toggle) {
+      toggle.addEventListener("click", (ev) => {
+        stop(ev);
+        this.toggle();
+      });
+    }
+    const save = root.querySelector(".layout-save");
+    if (save) {
+      // Returns the promise so a caller (and the tests) can await the call.
+      save.addEventListener("click", (ev) => {
+        stop(ev);
+        return this.save();
+      });
+    }
+    const undo = root.querySelector(".layout-undo");
+    if (undo) {
+      // A plain <button>, so the browser already turns Enter and Space into
+      // this same click; nothing keyboard-specific is needed here.
+      undo.addEventListener("click", (ev) => {
+        stop(ev);
+        this.undo();
+      });
+    }
+    const canvas = root.querySelector(".setup-canvas");
+    if (!canvas) return;
+    canvas.addEventListener("pointerdown", this.onDown);
+    canvas.addEventListener("pointermove", this.onMove);
+    canvas.addEventListener("pointerup", this.onUp);
+    canvas.addEventListener("pointerleave", this.onUp);
+    canvas.addEventListener("click", this.onClick);
+  }
+
+  /** Open the editor on the published layout, or close it, discarding. */
+  toggle() {
+    if (this.editing()) {
+      // Cancel discards. Nothing was written, so keeping the working set on
+      // screen would show a system that does not exist.
+      this.edit = null;
+    } else {
+      const topo = this.host.plan.attrRaw("setup_topology", null) || {};
+      const positions =
+        topo.positions && typeof topo.positions === "object"
+          ? topo.positions
+          : {};
+      // One reading of the published layout, copied out twice: the working
+      // set the user draws on, and the baseline Undo goes back to. Both are
+      // deep copies down to the individual edge and position pairs, so no
+      // edit can reach through a shared array into the other copy.
+      const snapshot = () => ({
+        edges: (Array.isArray(topo.edges) ? topo.edges : []).map((e) => [
+          e[0],
+          e[1],
+        ]),
+        positions: this.copyPositions(positions),
+      });
+      const working = snapshot();
+      this.edit = {
+        active: true,
+        edges: working.edges,
+        positions: working.positions,
+        // The layout Undo restores: the one in force when the editor opened,
+        // taken now rather than re-read from `setup_topology` at undo time.
+        // The integration republishes the topology on its own schedule, so a
+        // late read could hand back a different layout than the one the user
+        // started from -- and "back to where I was" is the whole promise of
+        // the button. A snapshot cannot be swapped underneath them.
+        baseline: snapshot(),
+        drag: null,
+        match: null,
+        invalid: [],
+        verdict: "",
+        // Nothing has been drawn yet, so there is nothing to save. Without
+        // this, Save is lit the moment the editor opens and offers to write
+        // the layout the system already has.
+        dirty: false,
+      };
+      this.evaluate();
+    }
+    // Editing suppresses click-to-assign, so a picker left open would be
+    // unreachable behind the diagram.
+    this.host.setup.closePicker();
+    this.host.render();
+  }
+
+  /** Match the working edge set against the catalog, and say what it is.
+   *
+   * Sets `match` (the entry Save would store, or null), `invalid` (the drawn
+   * edges no near layout has, drawn as rejected pipes) and `verdict` (one
+   * line for the page). Matching is exact: a nearly-right graph is a graph
+   * the model would nearly honour.
+   */
+  evaluate() {
+    const ed = this.edit;
+    if (!ed) return;
+    const topo = this.host.plan.attrRaw("setup_topology", null) || {};
+    const catalog = Array.isArray(topo.catalog) ? topo.catalog : [];
+    const name = (e) => `${e[0]}>${e[1]}`;
+    const drawn = new Set(ed.edges.map(name));
+    const equals = (set) =>
+      set.size === drawn.size && [...drawn].every((k) => set.has(k));
+
+    let match = null;
+    let sameButUnusable = null;
+    let nearest = null;
+    let nearestSet = null;
+    let nearestDiff = null;
+    for (const entry of catalog) {
+      const set = new Set((entry.edges || []).map(name));
+      if (equals(set)) {
+        if (entry.valid) match = match || entry;
+        else sameButUnusable = sameButUnusable || entry;
+      }
+      let diff = 0;
+      for (const k of set) if (!drawn.has(k)) diff++;
+      for (const k of drawn) if (!set.has(k)) diff++;
+      // Ties go to the earlier catalog entry, which is the order the
+      // integration lists them in -- stable, so the same drawing always gets
+      // the same explanation.
+      if (nearestDiff === null || diff < nearestDiff) {
+        nearest = entry;
+        nearestSet = set;
+        nearestDiff = diff;
+      }
+    }
+
+    if (match) {
+      ed.match = match;
+      ed.invalid = [];
+      ed.verdict = L("setup.verdict_match", { label: match.label });
+      return;
+    }
+    ed.match = null;
+    if (sameButUnusable) {
+      // The drawing IS a known layout; what fails is the configuration, so
+      // the requirement is the only useful thing to say. No pipe is at
+      // fault, so none is marked. A catalog from before the field existed
+      // ships no requirement, and interpolating undefined here is exactly
+      // the "needs: undefined" bug from the user's #40 report — degrade to
+      // a sentence that at least says which side is at fault.
+      ed.invalid = [];
+      const req = sameButUnusable.requirement;
+      const label = sameButUnusable.label;
+      ed.verdict =
+        sameButUnusable.selectable === false
+          ? req
+            ? L("setup.verdict_req", { label, requirement: req })
+            : L("setup.verdict_not_modelled", { label })
+          : req
+            ? L("setup.verdict_needs", { label, requirement: req })
+            : L("setup.verdict_cannot_store", { label });
+      return;
+    }
+    if (!nearest) {
+      ed.invalid = [];
+      ed.verdict = L("setup.no_catalog");
+      return;
+    }
+    const extra = [...drawn].filter((k) => !nearestSet.has(k));
+    const missing = [...nearestSet].filter((k) => !drawn.has(k));
+    ed.invalid = extra;
+    const parts = [L("setup.verdict_no_match", { label: nearest.label })];
+    if (extra.length) {
+      parts.push(
+        L("setup.verdict_extra_edges", {
+          edges: extra.map(edgeLabel).join("; "),
+        })
+      );
+    }
+    if (missing.length) {
+      parts.push(
+        L("setup.verdict_missing_edges", {
+          edges: missing.map(edgeLabel).join("; "),
+        })
+      );
+    }
+    ed.verdict = parts.join(" ");
+  }
+
+  /** Redraw only what an edit changes.
+   *
+   * A full `_render` per pointer move would rebuild the shadow root dozens of
+   * times a second and take the drag's own listeners with it -- the same
+   * reason the plan lanes refresh in place.
+   */
+  refresh() {
+    const root = this.host.shadowRoot;
+    if (!root) return;
+    const topo = this.host.plan.attrRaw("setup_topology", null);
+    const canvas = root.querySelector(".setup-canvas");
+    if (canvas && topo && Array.isArray(topo.slots)) {
+      const drawn = this.host.setup.svg(topo, { editing: this.editing(), edit: this.edit });
+      this.boxes = drawn.boxes;
+      canvas.innerHTML = drawn.html;
+    }
+    const ed = this.edit;
+    const verdict = root.querySelector(".layout-verdict");
+    if (verdict) {
+      verdict.textContent = (ed && ed.verdict) || "";
+      if (verdict.classList) {
+        verdict.classList.toggle("match", !!(ed && ed.match));
+      }
+    }
+    const save = root.querySelector(".layout-save");
+    if (save) save.disabled = !this.saveable();
+    const undo = root.querySelector(".layout-undo");
+    if (undo) undo.disabled = !this.undoable();
+  }
+
+  /** Pointer client coordinates as viewBox units on the setup diagram. */
+  point(ev) {
+    const root = this.host.shadowRoot;
+    const svg = root && root.querySelector(".setup-svg");
+    if (!svg || !svg.getBoundingClientRect || !ev) return null;
+    const rect = svg.getBoundingClientRect();
+    if (!rect || !rect.width) return null;
+    // The diagram keeps its aspect ratio (`width: 100%; height: auto`), so a
+    // single scale relates both axes; measuring y against the measured height
+    // would skew every drop test further down the page.
+    const scale = SETUP_W / rect.width;
+    return {
+      x: (ev.clientX - rect.left) * scale,
+      y: (ev.clientY - rect.top) * scale,
+    };
+  }
+
+  /** The box under a point, in viewBox units, or null. */
+  boxAt(x, y) {
+    const boxes = this.boxes || [];
+    for (let i = boxes.length - 1; i >= 0; i--) {
+      const b = boxes[i];
+      if (x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) return b;
+    }
+    return null;
+  }
+
+  onDown(ev) {
+    const ed = this.edit;
+    if (!ed || !ed.active) return;
+    const pt = this.point(ev);
+    if (!pt) return;
+    // A new gesture cancels any click still owed from the last one. The click
+    // after a drag that ended on a slot row is stopped by the row's own
+    // handler, so the flag would otherwise survive and eat the next real
+    // click -- the one asking for a pipe to be removed.
+    ed.suppressClick = false;
+    let data = (ev.target && ev.target.dataset) || {};
+    if (!data.port && this.host.shadowRoot.elementFromPoint) {
+      // Browser input routing can hit-test a pointerdown against a
+      // frame-old layout (observed with synthesized input; touch rides the
+      // same compositor path), so a down that claims the bare svg at a
+      // port's coordinates would silently become a box drag. Re-test
+      // against the live DOM before deciding what the gesture is.
+      const live = this.host.shadowRoot.elementFromPoint(ev.clientX, ev.clientY);
+      if (live && live.dataset && live.dataset.port) data = live.dataset;
+    }
+    if (data.port && data.place) {
+      // A connection in the making. It is only a proposal until it lands on
+      // another box, so nothing is added here.
+      ed.drag = { kind: "edge", from: data.place, x: pt.x, y: pt.y };
+    } else {
+      const box = this.boxAt(pt.x, pt.y);
+      if (!box) return;
+      ed.drag = {
+        kind: "box",
+        place: box.place,
+        dx: pt.x - box.x,
+        dy: pt.y - box.y,
+      };
+    }
+    stop(ev);
+    if (ev.preventDefault) ev.preventDefault();
+  }
+
+  onMove(ev) {
+    const ed = this.edit;
+    if (!ed || !ed.active || !ed.drag) return;
+    const pt = this.point(ev);
+    if (!pt) return;
+    ed.drag.moved = true;
+    if (ed.drag.kind === "box") {
+      // Cosmetic only: a position never changes an edge, and therefore never
+      // changes which layout the drawing matches.
+      ed.positions[ed.drag.place] = [
+        Math.round(pt.x - ed.drag.dx),
+        Math.round(pt.y - ed.drag.dy),
+      ];
+      ed.dirty = true;
+    } else {
+      ed.drag.x = pt.x;
+      ed.drag.y = pt.y;
+    }
+    this.refresh();
+  }
+
+  onUp(ev) {
+    const ed = this.edit;
+    if (!ed || !ed.active || !ed.drag) return;
+    const drag = ed.drag;
+    ed.drag = null;
+    if (drag.kind === "edge") {
+      const pt = this.point(ev) || { x: drag.x, y: drag.y };
+      const box = this.boxAt(pt.x, pt.y);
+      // A pipe from a box to itself is not a pipe; a release over nothing
+      // abandons the proposal, which is how a drag is cancelled.
+      if (box && box.place !== drag.from) {
+        this.addEdge(drag.from, box.place);
+      }
+    }
+    // The browser synthesises a click after pointerup, and on the diagram
+    // that click would land on whatever the drag ended over -- removing the
+    // pipe the user just drew.
+    if (drag.moved) ed.suppressClick = true;
+    this.evaluate();
+    this.refresh();
+  }
+
+  onClick(ev) {
+    const ed = this.edit;
+    if (!ed || !ed.active) return;
+    if (ed.suppressClick) {
+      ed.suppressClick = false;
+      stop(ev);
+      return;
+    }
+    const data = (ev.target && ev.target.dataset) || {};
+    if (!data.edge) return;
+    stop(ev);
+    this.removeEdge(data.edge);
+  }
+
+  addEdge(from, to) {
+    const ed = this.edit;
+    if (!ed) return;
+    if (ed.edges.some((e) => e[0] === from && e[1] === to)) return;
+    // The same pipe drawn backwards is the same pipe. Keeping both would
+    // match no catalog entry and read as a bug in the editor rather than a
+    // second connection.
+    ed.edges = ed.edges.filter((e) => !(e[0] === to && e[1] === from));
+    ed.edges.push([from, to]);
+    ed.dirty = true;
+  }
+
+  removeEdge(name) {
+    const ed = this.edit;
+    if (!ed) return;
+    const before = ed.edges.length;
+    ed.edges = ed.edges.filter((e) => `${e[0]}>${e[1]}` !== name);
+    if (ed.edges.length !== before) ed.dirty = true;
+    this.evaluate();
+    this.refresh();
+  }
+
+  /** Take the drawing back to the layout the editor opened on.
+   *
+   * The way out of a half-finished rearrangement that is not worth saving.
+   * Cancel already discards, but it also closes the editor, so starting
+   * over meant reopening it; this restores the same starting point and
+   * leaves the user where they are, still editing.
+   *
+   * Restoring is a revert to the baseline, not a step backwards through a
+   * history: what was asked for is the layout in force, and one button that
+   * always lands there is worth more here than a stack that has to be
+   * unwound to reach it.
+   */
+  undo() {
+    const ed = this.edit;
+    if (!this.undoable()) return;
+    // Copied out of the baseline rather than handed over: a later drag
+    // writes into these, and the baseline has to survive to serve a second
+    // Undo.
+    ed.edges = ed.baseline.edges.map((e) => [e[0], e[1]]);
+    ed.positions = this.copyPositions(ed.baseline.positions);
+    // A gesture still in flight belongs to the drawing that just went away:
+    // its pointerup would land an edge nobody asked for, or drop a box at a
+    // position the restore had already taken back.
+    ed.drag = null;
+    ed.suppressClick = false;
+    ed.dirty = false;
+    this.evaluate();
+    // The in-place redraw, not `_render`: a full rebuild would replace the
+    // bar and take the focus off the Undo button the keyboard just pressed.
+    this.refresh();
+  }
+
+  /** Store the matched layout key and the box positions.
+   *
+   * Only the key travels: the service re-derives the edges from it, so a
+   * drawing can never smuggle in physics the model does not implement. A
+   * rejection is reported on the page and leaves the editor open, because
+   * the drawing is the user's work and losing it is not a way to say no.
+   */
+  async save() {
+    const ed = this.edit;
+    if (!this.saveable()) return;
+    if (!this.host.hass || typeof this.host.hass.callService !== "function") return;
+    const note = this.host.shadowRoot.querySelector(".setup-result");
+    const label = ed.match.label;
+    try {
+      await this.host.hass.callService("heatpump_optimizer", "apply_topology", {
+        layout: ed.match.key,
+        positions: ed.positions,
+      });
+      // The write reloads the integration, so the topology the card draws
+      // from is replaced a moment later; say so rather than leaving a
+      // diagram that has not caught up looking wrong.
+      this.host.setup.note = L("setup.saved_reloading", { label });
+      this.edit = null;
+    } catch (err) {
+      this.host.setup.note = L("errors.could_not_save_layout", {
+        err: (err && err.message) || err,
+      });
+    }
+    this.host.render();
+    if (note) note.textContent = this.host.setup.note || "";
+  }
+}
+
 // ===========================================================================
 // The card element, and the contract its collaborators get.
 //
@@ -6829,6 +7875,8 @@ class WhatIfPanel {
 //   host.manual                ManualPlan: today's slot draft, its bounds and cost
 //   host.lanes                 LaneEditor: the lanes, the drag, the slot menu
 //   host.whatIf                WhatIfPanel: the schedule editor and simulator
+//   host.setup                 SetupPage: the diagram, the picker, the note
+//   host.layout                LayoutEditor: the drawing, its match, its gestures
 //   host.geom                  the chart's last geometry (null: no lanes)
 //   host.render()              rebuild, keeping the render signature
 //   host.renderForced()        rebuild and forget it (the next hass redraws)
@@ -6851,6 +7899,8 @@ class HeatpumpOptimizerCard extends HTMLElement {
     this.manual = new ManualPlan(this);
     this.lanes = new LaneEditor(this);
     this.whatIf = new WhatIfPanel(this);
+    this.setup = new SetupPage(this);
+    this.layout = new LayoutEditor(this);
     this._config = null;
     this._hass = null;
     this._sig = null;
@@ -6860,26 +7910,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     this._series = [];
     this._plot = null;
     this._resizeObserver = null;
-    // The entity picker's per-visit state: which slot is open, what has been
-    // typed into its filter, which entity is chosen (null = "whatever the
-    // slot already holds") and whether an Assign that would CLEAR the slot
-    // has been armed.
-    this._pickerKey = null;
-    this._pickerSlot = null;
-    this._pickerFilter = "";
-    this._pickerChoice = null;
-    this._pendingClear = false;
-    this._clearTimer = null;
     this._suppressClick = false;
-    // The layout editor (v3.16.0, issue #40). Instance state, like the what-if
-    // draft and for the same reason: `_render` rebuilds the shadow root on the
-    // coordinator's schedule, and a half-drawn layout that vanished on a plan
-    // refresh would be worse than no editor. `null` means "not editing", so an
-    // untouched setup page behaves exactly as it did before this existed.
-    this._layoutEdit = null;
-    // Where the last drawing put each box, in viewBox units, so a drop can be
-    // tested against real geometry instead of guessing from the event target.
-    this._layoutBoxes = [];
     // Everything else the card owns, declared here rather than on first
     // use somewhere in the body (the decomposition's PR 0): the only way to
     // learn what state this class carried used to be reading all of it. The
@@ -6889,16 +7920,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
     this._geom = null;
     // The chart's last measured rectangle, a hover fallback.
     this._svgRect = null;
-    // The setup page's status line, re-applied after every rebuild.
-    this._setupNote = null;
-    // Whether the picker was opened from the keyboard: focus goes into it,
-    // and back to the row on the way out.
-    this._pickerFocus = false;
-    this._pickerViaKeyboard = false;
-    this._onLayoutDown = this._onLayoutDown.bind(this);
-    this._onLayoutMove = this._onLayoutMove.bind(this);
-    this._onLayoutUp = this._onLayoutUp.bind(this);
-    this._onLayoutClick = this._onLayoutClick.bind(this);
     this._onPointerMove = this._onPointerMove.bind(this);
     this._onPointerLeave = this._onPointerLeave.bind(this);
     this._onCardClick = this._onCardClick.bind(this);
@@ -7040,7 +8061,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // survive the card (see WhatIfPanel.disconnect).
     this.whatIf.disconnect();
     // Nor an armed "clear this slot" confirmation in the entity picker.
-    this._cancelPendingClear();
+    this.setup.cancelPendingClear();
     if (this._resizeObserver) {
       try {
         this._resizeObserver.disconnect();
@@ -7266,14 +8287,14 @@ class HeatpumpOptimizerCard extends HTMLElement {
       // The page inside is the host's: the setup page's own wiring, and its
       // status line re-applied after the rebuild.
       attachBody: (dlg) => {
-        this._attachSetupEvents(dlg);
-        const note = dlg.querySelector(".setup-result");
-        if (note && this._setupNote) note.textContent = this._setupNote;
+        this.layout.attach(dlg);
+        this.setup.attach(dlg, { layoutEditing: () => this.layout.editing() });
+        this.setup.applyNote(dlg);
       },
       // Leaving the setup page abandons a half-made assignment rather than
       // keeping a picker open behind the chart.
       onPageChange: () => {
-        this._closePicker();
+        this.setup.closePicker();
         this._render();
       },
     });
@@ -7337,7 +8358,8 @@ class HeatpumpOptimizerCard extends HTMLElement {
    * coordinator and free.
    *
    * Static inline SVG, hand-written like the rest of the card: no build
-   * step, no dependencies, and nothing interactive to begin with.
+   * step, no dependencies. Composed here from `setup` (the diagram, the
+   * picker) and `layout` (the editor's bar and its working drawing).
    */
   _setupPageHtml() {
     const topo = this.plan.attrRaw("setup_topology", null);
@@ -7345,489 +8367,21 @@ class HeatpumpOptimizerCard extends HTMLElement {
       return `<div class="setup-page"><div class="empty">
         ${L("setup.not_published")}</div></div>`;
     }
-    const editing = this._layoutEditing();
+    const editing = this.layout.editing();
+    const drawn = this.setup.svg(topo, { editing, edit: this.layout.edit });
+    this.layout.boxes = drawn.boxes;
     // The svg lives in a wrapper of its own so an edit can redraw the diagram
     // without rebuilding the page around it: the pointer handlers are attached
     // to the wrapper, and a drag that replaced its own listeners mid-gesture
     // would drop the pointer.
     return `<div class="setup-page${editing ? " editing" : ""}">
-      ${this._layoutBarHtml(topo)}
-      <div class="setup-canvas">${this._setupSvg(topo)}</div>
-      ${this._setupPickerHtml(topo)}
+      ${this.layout.barHtml(topo)}
+      <div class="setup-canvas">${drawn.html}</div>
+      ${this.setup.pickerHtml(topo)}
       <div class="setup-hint">${
         editing ? L("setup.editing_hint") : L("setup.assign_hint")
       }</div>
       <div class="setup-result" role="status"></div></div>`;
-  }
-
-  /** True while the layout editor is open. */
-  _layoutEditing() {
-    return !!(this._layoutEdit && this._layoutEdit.active);
-  }
-
-  /** True when there is an edit worth writing: a change, and a layout to
-   * name it. Either alone is not something to offer to save. */
-  _layoutSaveable() {
-    const ed = this._layoutEdit;
-    return !!(ed && ed.active && ed.match && ed.dirty);
-  }
-
-  /** True when there is something to take back: a change made since the
-   * editor opened. An untouched drawing already IS the layout in use, so
-   * Undo would do nothing and must not pretend otherwise. */
-  _layoutUndoable() {
-    const ed = this._layoutEdit;
-    return !!(ed && ed.active && ed.dirty && ed.baseline);
-  }
-
-  /** A position map copied down to its coordinate pairs. */
-  _copyPositions(positions) {
-    const out = {};
-    for (const key of Object.keys(positions || {})) {
-      const at = positions[key];
-      out[key] = Array.isArray(at) ? at.slice() : at;
-    }
-    return out;
-  }
-
-  /** The editor's own controls: the toggle, Save, and the verdict line.
-   *
-   * Offered only when the coordinator publishes a catalog. Without one there
-   * is nothing to validate a drawing against, and an editor that could not
-   * tell a supported layout from an invented one is exactly the "diagram that
-   * lies about the physics" this feature exists to end.
-   */
-  _layoutBarHtml(topo) {
-    // An editor already open keeps its toggle even if the catalog goes away
-    // under it (an integration downgrade mid-session); a bar that vanished
-    // would leave the editor open with no way out of it.
-    if (
-      (!Array.isArray(topo.catalog) || !topo.catalog.length) &&
-      !this._layoutEditing()
-    ) {
-      return "";
-    }
-    const ed = this._layoutEdit;
-    const active = this._layoutEditing();
-    const match = active && ed.match ? ed.match : null;
-    return `
-      <div class="layout-bar">
-        <button type="button" class="layout-edit-toggle${active ? " on" : ""}"
-          aria-pressed="${active}">${
-            active ? esc(L("setup.done_editing")) : esc(L("setup.edit_layout"))
-          }</button>
-        ${
-          active
-            ? `<button type="button" class="layout-save"${
-                this._layoutSaveable() ? "" : ` disabled="disabled"`
-              }>${esc(L("setup.save_layout"))}</button>`
-            : ""
-        }
-        ${
-          active
-            ? `<button type="button" class="layout-undo"${
-                this._layoutUndoable() ? "" : ` disabled="disabled"`
-              } title="${esc(L("setup.undo_layout_aria"))}"
-              aria-label="${esc(L("setup.undo_layout_aria"))}">${
-                esc(L("setup.undo_layout"))
-              }</button>`
-            : ""
-        }
-        ${
-          active
-            ? `<span class="layout-verdict${match ? " match" : ""}"
-                 role="status">${esc((ed && ed.verdict) || "")}</span>`
-            : ""
-        }
-      </div>`;
-  }
-
-  /** The entity picker for one slot, or nothing when none is open.
-   *
-   * Item 32's click-to-assign, on the card rather than in a custom panel: the
-   * card is already authenticated, already draws the diagram and already has
-   * `hass`, so this needs one validated service instead of a second frontend
-   * with its own hand-rolled config-write path.
-   *
-   * Candidates come from `hass.states`, filtered to the domains the slot
-   * accepts -- the same list the service validates against, published on the
-   * slot itself so the picker cannot offer what the service would refuse.
-   */
-  _setupPickerHtml(topo) {
-    const key = this._pickerKey;
-    if (!key) return "";
-    const slot = (topo.slots || []).find((s) => s.key === key);
-    if (!slot) return "";
-    // The open picker's slot, for the handlers: the filter box rebuilds the
-    // option list without re-rendering the page (which would take the focus
-    // out of the input the user is typing into), and needs the same slot
-    // this render used.
-    this._pickerSlot = slot;
-    const model = this._pickerModel(slot);
-    const filter = this._pickerFilter || "";
-    return `
-      <div class="setup-picker">
-        <div class="sp-title">${esc(slot.label)}</div>
-        <input class="sp-filter" type="text" value="${esc(filter)}"
-          placeholder="${esc(L("setup.picker_filter_placeholder"))}"
-          aria-label="${esc(
-            L("setup.picker_filter_aria", { slot: slot.label })
-          )}" />
-        <select class="sp-select" size="8" aria-label="${esc(
-          L("setup.picker_aria", { slot: slot.label })
-        )}">${model.options}</select>
-        <div class="sp-actions">
-          <button type="button" class="sp-save">${esc(L("setup.assign"))}</button>
-          <button type="button" class="sp-cancel">${esc(L("setup.cancel"))}</button>
-        </div>
-        <div class="sp-note">${esc(model.note)}</div>
-      </div>`;
-  }
-
-  /** The picker's option list and its footnote, for one slot.
-   *
-   * Three rules this had wrong before v5.1.4, each of them destructive:
-   *
-   *  - The entity the slot ALREADY holds is always an option, and always the
-   *    selected one. It used to be offered only if it happened to fall
-   *    inside the candidate list; when it did not -- a renamed entity, one
-   *    past the cap, one whose domain the slot no longer lists -- the
-   *    `<select>` fell back to "(not configured)", and pressing Assign
-   *    wrote that emptiness back and reloaded the integration. The user was
-   *    shown a cleared slot and a destructive default in the same control.
-   *  - The cap applies AFTER the filter, so every entity on the install is
-   *    reachable by typing. It used to truncate the alphabetical candidate
-   *    list, which on a large install simply hid the user's own probe with
-   *    no way to reach it.
-   *  - Every option shows the entity id next to the friendly name.
-   *    Auto-generated names collide ("Vedpanna temperatur" twice, one of
-   *    them silently `..._2`), and a list of identical labels is a list
-   *    nobody can choose from.
-   */
-  _pickerModel(slot) {
-    const domains = slot.domains || [];
-    const states = (this._hass && this._hass.states) || {};
-    const nameOf = (id) => {
-      const st = states[id];
-      return (st && st.attributes && st.attributes.friendly_name) || id;
-    };
-    const labelOf = (id) => {
-      if (!states[id]) return `${id} — ${L("setup.picker_missing")}`;
-      const friendly = nameOf(id);
-      return friendly === id ? id : `${friendly} — ${id}`;
-    };
-    // A slot that wants a temperature says so; a matching device class is
-    // ranked first so the probe the slot is for is near the top before a
-    // single character is typed. Ranking only -- nothing is hidden by it,
-    // because a house full of unclassified sensors is normal.
-    //
-    // What the slot is asking for comes from the slot, published by
-    // `topology._SLOTS` beside the domains it sits in the same row as. The
-    // card used to keep a second copy of that table keyed by slot id, which
-    // no test touched and which would have gone quietly stale the first time
-    // a slot was added.
-    const want = slot.device_class || null;
-    const classOf = (id) => {
-      const st = states[id];
-      return (st && st.attributes && st.attributes.device_class) || "";
-    };
-    const all = Object.keys(states).filter((id) =>
-      domains.includes(id.split(".")[0])
-    );
-    const q = String(this._pickerFilter || "").trim().toLowerCase();
-    const matching = q
-      ? all.filter((id) => labelOf(id).toLowerCase().includes(q))
-      : all;
-    matching.sort((a, b) => {
-      if (want) {
-        const ra = classOf(a) === want ? 0 : 1;
-        const rb = classOf(b) === want ? 0 : 1;
-        if (ra !== rb) return ra - rb;
-      }
-      return a < b ? -1 : a > b ? 1 : 0;
-    });
-    const shown = matching.slice(0, PICKER_MAX_OPTIONS);
-    // What the select must come up on: the user's own pick this time round,
-    // otherwise whatever the slot is configured with.
-    const chosen =
-      this._pickerChoice === null || this._pickerChoice === undefined
-        ? slot.entity || ""
-        : this._pickerChoice;
-    const listed = new Set(shown);
-    const options = [
-      `<option value=""${chosen ? "" : " selected"}>${esc(
-        L("setup.picker_none")
-      )}</option>`,
-    ];
-    // The current entity rides at the top of the list, outside the filter
-    // and outside the cap: it is the one option whose absence would rewrite
-    // the configuration.
-    if (chosen && !listed.has(chosen)) {
-      options.push(
-        `<option value="${esc(chosen)}" selected>${esc(labelOf(chosen))}</option>`
-      );
-    }
-    for (const id of shown) {
-      options.push(
-        `<option value="${esc(id)}"${id === chosen ? " selected" : ""}>${esc(
-          labelOf(id)
-        )}</option>`
-      );
-    }
-    let note;
-    if (matching.length > shown.length) {
-      note = L("setup.picker_showing", {
-        n: shown.length,
-        total: matching.length,
-      });
-    } else if (q && !matching.length) {
-      note = L("setup.picker_no_match", { q });
-    } else {
-      note = L("setup.picker_count", {
-        n: matching.length,
-        domains: domains.join("/"),
-      });
-    }
-    return { options: options.join(""), note, total: matching.length,
-      shown: shown.length };
-  }
-
-  /** Close the picker, dropping everything that belonged to that visit. */
-  _closePicker() {
-    this._pickerKey = null;
-    this._pickerSlot = null;
-    this._pickerViaKeyboard = false;
-    this._pickerFilter = "";
-    this._pickerChoice = null;
-    this._cancelPendingClear();
-  }
-
-  /** Disarm the "this would clear the slot" confirmation. */
-  _cancelPendingClear() {
-    if (this._clearTimer) {
-      clearTimeout(this._clearTimer);
-      this._clearTimer = null;
-    }
-    this._pendingClear = false;
-  }
-
-  /** Disarm it and put the Assign button back the way it was. */
-  _disarmClear(picker) {
-    this._cancelPendingClear();
-    const root = picker || (this.shadowRoot && this.shadowRoot.querySelector(
-      ".setup-picker"));
-    const save = root && root.querySelector(".sp-save");
-    if (save) {
-      save.textContent = L("setup.assign");
-      save.classList.remove("confirm");
-    }
-  }
-
-  /** Wire the setup page's clickable slots and its picker. */
-  _attachSetupEvents(root) {
-    this._attachLayoutEditor(root);
-    const openPicker = (key, viaKeyboard) => {
-      // While the layout editor is open a click on a box is the start of a
-      // drag, not a request to assign a sensor. Opening the picker over the
-      // diagram being edited would put a dialog on top of the drag.
-      if (this._layoutEditing()) return;
-      // A fresh visit: no filter, no half-made choice, no armed clear left
-      // over from the row before this one.
-      this._closePicker();
-      this._pickerKey = key;
-      // Opened from the keyboard, focus must land in the picker: the hit
-      // target that had it is rebuilt by the render below, so without this
-      // the keyboard user is dropped back at the top of the dialog.
-      this._pickerFocus = !!viaKeyboard;
-      // ...and remembered for the way back out. Handing focus to a row a
-      // MOUSE user is no longer looking at is what left a focus ring stuck
-      // on the sensor field after Cancel (v5.1.4).
-      this._pickerViaKeyboard = !!viaKeyboard;
-      this._render();
-    };
-    // Any pointer gesture that is not on a row takes focus off whichever row
-    // has it. Without this a ring can outlive the gesture that caused it --
-    // the reported "thin blue line beside the sensor field" after cancelling
-    // the picker and clicking away.
-    root.addEventListener("pointerdown", (ev) => {
-      const t = ev && ev.target;
-      if (t && t.classList && t.classList.contains("setup-hit")) return;
-      this._blurSetupRow();
-    });
-    for (const hit of root.querySelectorAll(".setup-hit")) {
-      hit.addEventListener("click", (ev) => {
-        ev.stopPropagation();
-        openPicker(ev.currentTarget.dataset.key, false);
-      });
-      // The hits are focusable buttons (role="button"), so Enter and Space
-      // must do what a click does.
-      hit.addEventListener("keydown", (ev) => {
-        if (ev.key !== "Enter" && ev.key !== " ") return;
-        if (ev.preventDefault) ev.preventDefault();
-        stop(ev);
-        openPicker(ev.currentTarget.dataset.key, true);
-      });
-    }
-    const picker = root.querySelector(".setup-picker");
-    if (!picker) return;
-    // Every control stops propagation: the dialog closes on a click that
-    // lands on its backdrop, and a click inside the picker is not that.
-    picker.addEventListener("click", (ev) => ev.stopPropagation());
-    // Escape backs out of the picker without assigning, from any of its
-    // controls — the keyboard twin of the Cancel button. Closing re-renders,
-    // which destroys whichever picker control held focus, so focus is
-    // walked back to the setup row the picker was opened from.
-    picker.addEventListener("keydown", (ev) => {
-      if (ev.key !== "Escape") return;
-      stop(ev);
-      const key = this._pickerKey;
-      this._closePicker();
-      this._render();
-      this._restoreSetupFocus(key);
-    });
-    const select = picker.querySelector(".sp-select");
-    if (select && this._pickerFocus) {
-      this._pickerFocus = false;
-      if (typeof select.focus === "function") select.focus();
-    }
-    // Typing narrows the list in place. A full `_render()` would rebuild the
-    // input and take the caret with it, so only the options and the footnote
-    // are replaced; the select keeps whatever the user had highlighted when
-    // that entity is still on the list.
-    const filterBox = picker.querySelector(".sp-filter");
-    if (filterBox) {
-      filterBox.addEventListener("input", (ev) => {
-        const target = ev.currentTarget || ev.target;
-        this._pickerFilter = (target && target.value) || "";
-        const slot = this._pickerSlot;
-        if (!slot) return;
-        const model = this._pickerModel(slot);
-        const list = picker.querySelector(".sp-select");
-        if (list) list.innerHTML = model.options;
-        const foot = picker.querySelector(".sp-note");
-        if (foot) foot.textContent = model.note;
-      });
-    }
-    // The chosen entity is remembered on the card, not only in the DOM: the
-    // list is rebuilt on every keystroke, and a choice that lived only in
-    // the `<select>` would be forgotten by the next one.
-    if (select) {
-      select.addEventListener("change", (ev) => {
-        const target = ev.currentTarget || ev.target;
-        this._pickerChoice = (target && target.value) || "";
-        // Choosing again disarms a clear that was armed for a different
-        // answer than the one now selected.
-        if (this._pendingClear) this._disarmClear(picker);
-      });
-    }
-    const cancel = picker.querySelector(".sp-cancel");
-    if (cancel) {
-      cancel.addEventListener("click", (ev) => {
-        ev.stopPropagation();
-        const key = this._pickerKey;
-        const viaKeyboard = this._pickerViaKeyboard;
-        this._closePicker();
-        this._render();
-        // A keyboard user must land back on the row they came from, or they
-        // are dropped at the top of the dialog. A mouse user must NOT: the
-        // row would light up with a focus ring around a field they have
-        // just backed out of, and clicking elsewhere does not always take
-        // it off an SVG element again.
-        if (viaKeyboard) this._restoreSetupFocus(key);
-        else this._blurSetupRow();
-      });
-    }
-    const save = picker.querySelector(".sp-save");
-    if (save) {
-      const assign = async (ev) => {
-        ev.stopPropagation();
-        const select = picker.querySelector(".sp-select");
-        const key = this._pickerKey;
-        const slot = this._pickerSlot;
-        // What Assign will write is the choice the card remembered, not
-        // whatever the `<select>` reports. That element is rebuilt on every
-        // keystroke of the filter, and reading an answer back out of a
-        // control that has just been replaced is the same class of mistake
-        // as the one this whole item is about: a slot with a perfectly good
-        // sensor in it must never be emptied by the UI's own bookkeeping.
-        // `null` means "the user did not choose anything this visit", which
-        // is a request to keep what the slot already has.
-        const chose = this._pickerChoice;
-        const picked = chose === null || chose === undefined ? null : chose;
-        const fromDom =
-          select && typeof select.value === "string" && select.value
-            ? select.value
-            : null;
-        // An empty `<select>` that the user never touched is the control's
-        // own default, not a decision -- and acting on it is precisely the
-        // reported bug -- so it degrades to what the slot already holds.
-        // Choosing "(not configured)" deliberately still clears, through
-        // the confirmation below.
-        const entityId =
-          picked !== null ? picked
-            : fromDom !== null ? fromDom
-              : (slot && slot.entity) || "";
-        const note = this.shadowRoot.querySelector(".setup-result");
-        // Assigning nothing to a slot that HAS something is a deletion: it
-        // writes the config entry and reloads the integration, and the user
-        // usually got here believing they were fixing a slot rather than
-        // emptying one. Same pattern as the what-if save -- the button
-        // itself becomes the confirmation, since a nested browser prompt
-        // inside this modal is easy to miss behind the backdrop.
-        if (!entityId && slot && slot.entity && !this._pendingClear) {
-          this._pendingClear = true;
-          save.textContent = L("setup.confirm_clear");
-          save.classList.add("confirm");
-          this._setupNote = L("setup.confirm_clear_hint", {
-            entity: slot.entity,
-            label: slot.label,
-          });
-          if (note) note.textContent = this._setupNote;
-          const foot = picker.querySelector(".sp-note");
-          if (foot) foot.textContent = this._setupNote;
-          // Let the decision lapse rather than sit armed: a stray second
-          // click minutes later must not empty a slot.
-          clearTimeout(this._clearTimer);
-          this._clearTimer = setTimeout(() => this._disarmClear(picker), 8000);
-          return;
-        }
-        this._cancelPendingClear();
-        try {
-          await this._hass.callService(
-            "heatpump_optimizer",
-            "assign_entity",
-            { key, entity_id: entityId }
-          );
-          this._closePicker();
-          // The write reloads the integration, so the topology the card is
-          // drawn from is replaced a moment later. Say what happened rather
-          // than leaving a diagram that has not caught up yet looking wrong.
-          this._setupNote = entityId
-            ? L("setup.assigned_reloading", { entity: entityId })
-            : L("setup.cleared_reloading");
-        } catch (err) {
-          this._setupNote = L("errors.could_not_assign", {
-            err: (err && err.message) || err,
-          });
-        }
-        this._render();
-        if (note) note.textContent = this._setupNote || "";
-        // Success closed the picker (and the render destroyed the control
-        // that had focus): return focus to the row that was assigned. A
-        // failure keeps the picker open, and focus with it.
-        if (this._pickerKey === null) this._restoreSetupFocus(key);
-      };
-      save.addEventListener("click", assign);
-      // Enter on the select assigns the chosen entity — the picker's one
-      // "submit" action, without a Tab trip to the button.
-      if (select) {
-        select.addEventListener("keydown", (ev) => {
-          if (ev.key !== "Enter") return;
-          if (ev.preventDefault) ev.preventDefault();
-          assign(ev);
-        });
-      }
-    }
   }
 
   // ---- The layout editor (v3.16.0, issue #40) ----------------------------
@@ -7839,488 +8393,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
   // configuration could actually run. Anything else is drawn as a rejection
   // with the reason on the page, which is the whole point -- a diagram that
   // cannot be wrong about the physics.
-
-  /** Wire the editor's controls and the diagram's pointer gestures.
-   *
-   * The buttons take listeners directly because `_refreshLayout` never
-   * rebuilds them; only the canvas's contents are replaced mid-edit, and its
-   * listeners live on the wrapper, which survives.
-   */
-  _attachLayoutEditor(root) {
-    const toggle = root.querySelector(".layout-edit-toggle");
-    if (toggle) {
-      toggle.addEventListener("click", (ev) => {
-        stop(ev);
-        this._toggleLayoutEdit();
-      });
-    }
-    const save = root.querySelector(".layout-save");
-    if (save) {
-      // Returns the promise so a caller (and the tests) can await the call.
-      save.addEventListener("click", (ev) => {
-        stop(ev);
-        return this._saveLayout();
-      });
-    }
-    const undo = root.querySelector(".layout-undo");
-    if (undo) {
-      // A plain <button>, so the browser already turns Enter and Space into
-      // this same click; nothing keyboard-specific is needed here.
-      undo.addEventListener("click", (ev) => {
-        stop(ev);
-        this._undoLayout();
-      });
-    }
-    const canvas = root.querySelector(".setup-canvas");
-    if (!canvas) return;
-    canvas.addEventListener("pointerdown", this._onLayoutDown);
-    canvas.addEventListener("pointermove", this._onLayoutMove);
-    canvas.addEventListener("pointerup", this._onLayoutUp);
-    canvas.addEventListener("pointerleave", this._onLayoutUp);
-    canvas.addEventListener("click", this._onLayoutClick);
-  }
-
-  /** Open the editor on the published layout, or close it, discarding. */
-  _toggleLayoutEdit() {
-    if (this._layoutEditing()) {
-      // Cancel discards. Nothing was written, so keeping the working set on
-      // screen would show a system that does not exist.
-      this._layoutEdit = null;
-    } else {
-      const topo = this.plan.attrRaw("setup_topology", null) || {};
-      const positions =
-        topo.positions && typeof topo.positions === "object"
-          ? topo.positions
-          : {};
-      // One reading of the published layout, copied out twice: the working
-      // set the user draws on, and the baseline Undo goes back to. Both are
-      // deep copies down to the individual edge and position pairs, so no
-      // edit can reach through a shared array into the other copy.
-      const snapshot = () => ({
-        edges: (Array.isArray(topo.edges) ? topo.edges : []).map((e) => [
-          e[0],
-          e[1],
-        ]),
-        positions: this._copyPositions(positions),
-      });
-      const working = snapshot();
-      this._layoutEdit = {
-        active: true,
-        edges: working.edges,
-        positions: working.positions,
-        // The layout Undo restores: the one in force when the editor opened,
-        // taken now rather than re-read from `setup_topology` at undo time.
-        // The integration republishes the topology on its own schedule, so a
-        // late read could hand back a different layout than the one the user
-        // started from -- and "back to where I was" is the whole promise of
-        // the button. A snapshot cannot be swapped underneath them.
-        baseline: snapshot(),
-        drag: null,
-        match: null,
-        invalid: [],
-        verdict: "",
-        // Nothing has been drawn yet, so there is nothing to save. Without
-        // this, Save is lit the moment the editor opens and offers to write
-        // the layout the system already has.
-        dirty: false,
-      };
-      this._layoutEvaluate();
-    }
-    // Editing suppresses click-to-assign, so a picker left open would be
-    // unreachable behind the diagram.
-    this._closePicker();
-    this._render();
-  }
-
-  /** Match the working edge set against the catalog, and say what it is.
-   *
-   * Sets `match` (the entry Save would store, or null), `invalid` (the drawn
-   * edges no near layout has, drawn as rejected pipes) and `verdict` (one
-   * line for the page). Matching is exact: a nearly-right graph is a graph
-   * the model would nearly honour.
-   */
-  _layoutEvaluate() {
-    const ed = this._layoutEdit;
-    if (!ed) return;
-    const topo = this.plan.attrRaw("setup_topology", null) || {};
-    const catalog = Array.isArray(topo.catalog) ? topo.catalog : [];
-    const name = (e) => `${e[0]}>${e[1]}`;
-    const drawn = new Set(ed.edges.map(name));
-    const equals = (set) =>
-      set.size === drawn.size && [...drawn].every((k) => set.has(k));
-
-    let match = null;
-    let sameButUnusable = null;
-    let nearest = null;
-    let nearestSet = null;
-    let nearestDiff = null;
-    for (const entry of catalog) {
-      const set = new Set((entry.edges || []).map(name));
-      if (equals(set)) {
-        if (entry.valid) match = match || entry;
-        else sameButUnusable = sameButUnusable || entry;
-      }
-      let diff = 0;
-      for (const k of set) if (!drawn.has(k)) diff++;
-      for (const k of drawn) if (!set.has(k)) diff++;
-      // Ties go to the earlier catalog entry, which is the order the
-      // integration lists them in -- stable, so the same drawing always gets
-      // the same explanation.
-      if (nearestDiff === null || diff < nearestDiff) {
-        nearest = entry;
-        nearestSet = set;
-        nearestDiff = diff;
-      }
-    }
-
-    if (match) {
-      ed.match = match;
-      ed.invalid = [];
-      ed.verdict = L("setup.verdict_match", { label: match.label });
-      return;
-    }
-    ed.match = null;
-    if (sameButUnusable) {
-      // The drawing IS a known layout; what fails is the configuration, so
-      // the requirement is the only useful thing to say. No pipe is at
-      // fault, so none is marked. A catalog from before the field existed
-      // ships no requirement, and interpolating undefined here is exactly
-      // the "needs: undefined" bug from the user's #40 report — degrade to
-      // a sentence that at least says which side is at fault.
-      ed.invalid = [];
-      const req = sameButUnusable.requirement;
-      const label = sameButUnusable.label;
-      ed.verdict =
-        sameButUnusable.selectable === false
-          ? req
-            ? L("setup.verdict_req", { label, requirement: req })
-            : L("setup.verdict_not_modelled", { label })
-          : req
-            ? L("setup.verdict_needs", { label, requirement: req })
-            : L("setup.verdict_cannot_store", { label });
-      return;
-    }
-    if (!nearest) {
-      ed.invalid = [];
-      ed.verdict = L("setup.no_catalog");
-      return;
-    }
-    const extra = [...drawn].filter((k) => !nearestSet.has(k));
-    const missing = [...nearestSet].filter((k) => !drawn.has(k));
-    ed.invalid = extra;
-    const parts = [L("setup.verdict_no_match", { label: nearest.label })];
-    if (extra.length) {
-      parts.push(
-        L("setup.verdict_extra_edges", {
-          edges: extra.map(edgeLabel).join("; "),
-        })
-      );
-    }
-    if (missing.length) {
-      parts.push(
-        L("setup.verdict_missing_edges", {
-          edges: missing.map(edgeLabel).join("; "),
-        })
-      );
-    }
-    ed.verdict = parts.join(" ");
-  }
-
-  /** Redraw only what an edit changes.
-   *
-   * A full `_render` per pointer move would rebuild the shadow root dozens of
-   * times a second and take the drag's own listeners with it -- the same
-   * reason the plan lanes refresh in place.
-   */
-  _refreshLayout() {
-    const root = this.shadowRoot;
-    if (!root) return;
-    const topo = this.plan.attrRaw("setup_topology", null);
-    const canvas = root.querySelector(".setup-canvas");
-    if (canvas && topo && Array.isArray(topo.slots)) {
-      canvas.innerHTML = this._setupSvg(topo);
-    }
-    const ed = this._layoutEdit;
-    const verdict = root.querySelector(".layout-verdict");
-    if (verdict) {
-      verdict.textContent = (ed && ed.verdict) || "";
-      if (verdict.classList) {
-        verdict.classList.toggle("match", !!(ed && ed.match));
-      }
-    }
-    const save = root.querySelector(".layout-save");
-    if (save) save.disabled = !this._layoutSaveable();
-    const undo = root.querySelector(".layout-undo");
-    if (undo) undo.disabled = !this._layoutUndoable();
-  }
-
-  /** Pointer client coordinates as viewBox units on the setup diagram. */
-  _layoutPoint(ev) {
-    const root = this.shadowRoot;
-    const svg = root && root.querySelector(".setup-svg");
-    if (!svg || !svg.getBoundingClientRect || !ev) return null;
-    const rect = svg.getBoundingClientRect();
-    if (!rect || !rect.width) return null;
-    // The diagram keeps its aspect ratio (`width: 100%; height: auto`), so a
-    // single scale relates both axes; measuring y against the measured height
-    // would skew every drop test further down the page.
-    const scale = SETUP_W / rect.width;
-    return {
-      x: (ev.clientX - rect.left) * scale,
-      y: (ev.clientY - rect.top) * scale,
-    };
-  }
-
-  /** The box under a point, in viewBox units, or null. */
-  _layoutBoxAt(x, y) {
-    const boxes = this._layoutBoxes || [];
-    for (let i = boxes.length - 1; i >= 0; i--) {
-      const b = boxes[i];
-      if (x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) return b;
-    }
-    return null;
-  }
-
-  _onLayoutDown(ev) {
-    const ed = this._layoutEdit;
-    if (!ed || !ed.active) return;
-    const pt = this._layoutPoint(ev);
-    if (!pt) return;
-    // A new gesture cancels any click still owed from the last one. The click
-    // after a drag that ended on a slot row is stopped by the row's own
-    // handler, so the flag would otherwise survive and eat the next real
-    // click -- the one asking for a pipe to be removed.
-    ed.suppressClick = false;
-    let data = (ev.target && ev.target.dataset) || {};
-    if (!data.port && this.shadowRoot.elementFromPoint) {
-      // Browser input routing can hit-test a pointerdown against a
-      // frame-old layout (observed with synthesized input; touch rides the
-      // same compositor path), so a down that claims the bare svg at a
-      // port's coordinates would silently become a box drag. Re-test
-      // against the live DOM before deciding what the gesture is.
-      const live = this.shadowRoot.elementFromPoint(ev.clientX, ev.clientY);
-      if (live && live.dataset && live.dataset.port) data = live.dataset;
-    }
-    if (data.port && data.place) {
-      // A connection in the making. It is only a proposal until it lands on
-      // another box, so nothing is added here.
-      ed.drag = { kind: "edge", from: data.place, x: pt.x, y: pt.y };
-    } else {
-      const box = this._layoutBoxAt(pt.x, pt.y);
-      if (!box) return;
-      ed.drag = {
-        kind: "box",
-        place: box.place,
-        dx: pt.x - box.x,
-        dy: pt.y - box.y,
-      };
-    }
-    stop(ev);
-    if (ev.preventDefault) ev.preventDefault();
-  }
-
-  _onLayoutMove(ev) {
-    const ed = this._layoutEdit;
-    if (!ed || !ed.active || !ed.drag) return;
-    const pt = this._layoutPoint(ev);
-    if (!pt) return;
-    ed.drag.moved = true;
-    if (ed.drag.kind === "box") {
-      // Cosmetic only: a position never changes an edge, and therefore never
-      // changes which layout the drawing matches.
-      ed.positions[ed.drag.place] = [
-        Math.round(pt.x - ed.drag.dx),
-        Math.round(pt.y - ed.drag.dy),
-      ];
-      ed.dirty = true;
-    } else {
-      ed.drag.x = pt.x;
-      ed.drag.y = pt.y;
-    }
-    this._refreshLayout();
-  }
-
-  _onLayoutUp(ev) {
-    const ed = this._layoutEdit;
-    if (!ed || !ed.active || !ed.drag) return;
-    const drag = ed.drag;
-    ed.drag = null;
-    if (drag.kind === "edge") {
-      const pt = this._layoutPoint(ev) || { x: drag.x, y: drag.y };
-      const box = this._layoutBoxAt(pt.x, pt.y);
-      // A pipe from a box to itself is not a pipe; a release over nothing
-      // abandons the proposal, which is how a drag is cancelled.
-      if (box && box.place !== drag.from) {
-        this._layoutAddEdge(drag.from, box.place);
-      }
-    }
-    // The browser synthesises a click after pointerup, and on the diagram
-    // that click would land on whatever the drag ended over -- removing the
-    // pipe the user just drew.
-    if (drag.moved) ed.suppressClick = true;
-    this._layoutEvaluate();
-    this._refreshLayout();
-  }
-
-  _onLayoutClick(ev) {
-    const ed = this._layoutEdit;
-    if (!ed || !ed.active) return;
-    if (ed.suppressClick) {
-      ed.suppressClick = false;
-      stop(ev);
-      return;
-    }
-    const data = (ev.target && ev.target.dataset) || {};
-    if (!data.edge) return;
-    stop(ev);
-    this._layoutRemoveEdge(data.edge);
-  }
-
-  _layoutAddEdge(from, to) {
-    const ed = this._layoutEdit;
-    if (!ed) return;
-    if (ed.edges.some((e) => e[0] === from && e[1] === to)) return;
-    // The same pipe drawn backwards is the same pipe. Keeping both would
-    // match no catalog entry and read as a bug in the editor rather than a
-    // second connection.
-    ed.edges = ed.edges.filter((e) => !(e[0] === to && e[1] === from));
-    ed.edges.push([from, to]);
-    ed.dirty = true;
-  }
-
-  _layoutRemoveEdge(name) {
-    const ed = this._layoutEdit;
-    if (!ed) return;
-    const before = ed.edges.length;
-    ed.edges = ed.edges.filter((e) => `${e[0]}>${e[1]}` !== name);
-    if (ed.edges.length !== before) ed.dirty = true;
-    this._layoutEvaluate();
-    this._refreshLayout();
-  }
-
-  /** Take the drawing back to the layout the editor opened on.
-   *
-   * The way out of a half-finished rearrangement that is not worth saving.
-   * Cancel already discards, but it also closes the editor, so starting
-   * over meant reopening it; this restores the same starting point and
-   * leaves the user where they are, still editing.
-   *
-   * Restoring is a revert to the baseline, not a step backwards through a
-   * history: what was asked for is the layout in force, and one button that
-   * always lands there is worth more here than a stack that has to be
-   * unwound to reach it.
-   */
-  _undoLayout() {
-    const ed = this._layoutEdit;
-    if (!this._layoutUndoable()) return;
-    // Copied out of the baseline rather than handed over: a later drag
-    // writes into these, and the baseline has to survive to serve a second
-    // Undo.
-    ed.edges = ed.baseline.edges.map((e) => [e[0], e[1]]);
-    ed.positions = this._copyPositions(ed.baseline.positions);
-    // A gesture still in flight belongs to the drawing that just went away:
-    // its pointerup would land an edge nobody asked for, or drop a box at a
-    // position the restore had already taken back.
-    ed.drag = null;
-    ed.suppressClick = false;
-    ed.dirty = false;
-    this._layoutEvaluate();
-    // The in-place redraw, not `_render`: a full rebuild would replace the
-    // bar and take the focus off the Undo button the keyboard just pressed.
-    this._refreshLayout();
-  }
-
-  /** Store the matched layout key and the box positions.
-   *
-   * Only the key travels: the service re-derives the edges from it, so a
-   * drawing can never smuggle in physics the model does not implement. A
-   * rejection is reported on the page and leaves the editor open, because
-   * the drawing is the user's work and losing it is not a way to say no.
-   */
-  async _saveLayout() {
-    const ed = this._layoutEdit;
-    if (!this._layoutSaveable()) return;
-    if (!this._hass || typeof this._hass.callService !== "function") return;
-    const note = this.shadowRoot.querySelector(".setup-result");
-    const label = ed.match.label;
-    try {
-      await this._hass.callService("heatpump_optimizer", "apply_topology", {
-        layout: ed.match.key,
-        positions: ed.positions,
-      });
-      // The write reloads the integration, so the topology the card draws
-      // from is replaced a moment later; say so rather than leaving a
-      // diagram that has not caught up looking wrong.
-      this._setupNote = L("setup.saved_reloading", { label });
-      this._layoutEdit = null;
-    } catch (err) {
-      this._setupNote = L("errors.could_not_save_layout", {
-        err: (err && err.message) || err,
-      });
-    }
-    this._render();
-    if (note) note.textContent = this._setupNote || "";
-  }
-
-  /** One live reading, formatted, or null for an empty slot. */
-  _slotLive(slot) {
-    if (!slot.entity) return null;
-    const st = this._hass && this._hass.states
-      ? this._hass.states[slot.entity]
-      : null;
-    if (!st || st.state === "unavailable" || st.state === "unknown") {
-      return L("setup.unavailable");
-    }
-    // HA's own formatter applies the user's unit system and any per-entity
-    // display override, so a natively-°F probe reads in °C on a metric
-    // install here exactly as it does everywhere else in the frontend.
-    // Raw state + unit stays as the fallback for older frontends.
-    if (this._hass && typeof this._hass.formatEntityState === "function") {
-      try {
-        const formatted = this._hass.formatEntityState(st);
-        if (formatted) return formatted;
-      } catch (e) {
-        // fall through to the raw concatenation
-      }
-    }
-    const unit =
-      (st.attributes && st.attributes.unit_of_measurement) || "";
-    return `${st.state}${unit ? " " + unit : ""}`;
-  }
-
-  /** The irradiance the plan actually runs on when no sensor is configured.
-   *
-   * The Outside box used to say "not configured" while the plan solved
-   * against Open-Meteo or weather-derived irradiance every cycle — a value
-   * in active use displayed as absent. The solar plan sensor carries both
-   * the number and its source, so show them, tagged so nobody mistakes a
-   * forecast for a roof sensor.
-   */
-  _solarFallback() {
-    const st = this.plan.stateOf(this.plan.resolveEntity("solar"));
-    if (!st) return null;
-    const v = Number(st.state);
-    if (!Number.isFinite(v)) return null;
-    const source = (st.attributes || {}).source;
-    if (!source) return null;
-    const label =
-      source === "open_meteo" ? "Open-Meteo" : L("setup.source_weather");
-    return `${Math.round(v)} W/m² · ${label}`;
-  }
-
-  _setupSvg(topo) {
-    // Thin seam (#95): the diagram is a top-level function; the method
-    // keeps the name -- call sites and the tests read it -- and keeps the
-    // one side effect the class owns: publishing the laid-out boxes.
-    const built = setupSvgHtml(topo, {
-      editing: this._layoutEditing(),
-      edit: this._layoutEdit,
-      slotLive: (s) => this._slotLive(s),
-      solarFallback: () => this._solarFallback(),
-    });
-    this._layoutBoxes = built.boxes;
-    return built.html;
-  }
 
 
   /** Wire hover and legend handling for every chart in a root. */
@@ -8340,38 +8412,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
     this.lanes.attach(root);
   }
 
-
-  /** Take focus off a setup row that no longer deserves it.
-   *
-   * The rows are focusable (`tabindex="0"`, `role="button"`) so the diagram
-   * can be assigned from the keyboard. The cost is that a pointer gesture
-   * can leave one focused with nothing on screen explaining why, and a
-   * click on the diagram's empty space does not reliably move focus off an
-   * SVG element -- which is how a ring survived a cancelled picker.
-   */
-  _blurSetupRow() {
-    const root = this.shadowRoot;
-    const active =
-      (root && root.activeElement) ||
-      (typeof document !== "undefined" ? document.activeElement : null);
-    if (!active || !active.classList || !active.classList.contains("setup-hit")) {
-      return;
-    }
-    if (typeof active.blur === "function") active.blur();
-  }
-
-  /** Focus the setup row the entity picker was opened from, once the picker
-   * has closed and the render that removed it has finished. The row is
-   * re-located by its data-key: the element that had focus was rebuilt. */
-  _restoreSetupFocus(key) {
-    if (!key || !this.shadowRoot) return;
-    for (const hit of this.shadowRoot.querySelectorAll(".setup-hit")) {
-      if ((hit.dataset || {}).key === key) {
-        if (typeof hit.focus === "function") hit.focus();
-        return;
-      }
-    }
-  }
 
   /** The card's current rendered width in px, or 0 before layout.
    *
@@ -8896,6 +8936,85 @@ class HeatpumpOptimizerCard extends HTMLElement {
   }
   _runWhatIf() {
     return this.whatIf.run();
+  }
+
+  get _layoutEdit() {
+    return this.layout.edit;
+  }
+  set _layoutEdit(v) {
+    this.layout.edit = v;
+  }
+
+  get _layoutBoxes() {
+    return this.layout.boxes;
+  }
+  set _layoutBoxes(v) {
+    this.layout.boxes = v;
+  }
+
+  get _pickerKey() {
+    return this.setup.pickerKey;
+  }
+  set _pickerKey(v) {
+    this.setup.pickerKey = v;
+  }
+
+  get _pickerFilter() {
+    return this.setup.pickerFilter;
+  }
+  set _pickerFilter(v) {
+    this.setup.pickerFilter = v;
+  }
+
+  get _pickerChoice() {
+    return this.setup.pickerChoice;
+  }
+  set _pickerChoice(v) {
+    this.setup.pickerChoice = v;
+  }
+
+  get _pendingClear() {
+    return this.setup.pendingClear;
+  }
+  set _pendingClear(v) {
+    this.setup.pendingClear = v;
+  }
+
+  get _setupNote() {
+    return this.setup.note;
+  }
+  set _setupNote(v) {
+    this.setup.note = v;
+  }
+  _layoutEditing() {
+    return this.layout.editing();
+  }
+  _layoutEvaluate() {
+    return this.layout.evaluate();
+  }
+  _layoutRemoveEdge(name) {
+    return this.layout.removeEdge(name);
+  }
+  _refreshLayout() {
+    return this.layout.refresh();
+  }
+  _onLayoutDown(ev) {
+    return this.layout.onDown(ev);
+  }
+  _onLayoutMove(ev) {
+    return this.layout.onMove(ev);
+  }
+  _onLayoutUp(ev) {
+    return this.layout.onUp(ev);
+  }
+  _onLayoutClick(ev) {
+    return this.layout.onClick(ev);
+  }
+  _closePicker() {
+    return this.setup.closePicker();
+  }
+  _cancelPendingClear() {
+    return this.setup.cancelPendingClear();
   }
 
 }

@@ -319,6 +319,11 @@ passing layout facts into `pageHtml` and returning boxes from `svg()`.
 calls `setup.redrawCanvas(edit)` then updates verdict/buttons. PRs 7a/7b
 can run in parallel with 5a–6 after PR 4b.
 
+*Landed as one PR (7): splitting it would have left the page reaching into
+the host's layout methods for one release. `SetupPage.svg(topo, {editing,
+edit})` returns `{html, boxes}` and the host's `_setupPageHtml` composes the
+page from both collaborators, so the only dependency is layout → setup.*
+
 **PR 8 — Host cleanup.** `_render` is pure composition; `_signature` and
 `disconnectedCallback` are explicit compositions in today's order;
 `parseConfig`; remaining `this.shadowRoot` reach-ins from collaborators go
