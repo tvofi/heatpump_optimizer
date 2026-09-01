@@ -1,5 +1,16 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.2.2
+
+### The fix program, complete on the record
+
+`docs/plan-open-issues.md` marks the program complete: all sixteen
+open issues (#86–#101) and all eleven code-scanning alerts closed,
+across nineteen releases from v5.6.0 to v6.2.2. The delivery-status
+section names the release that carried each item, including the two
+closed by measurement rather than code. Documentation only; no
+behaviour changes.
+
 ## v6.2.1
 
 ### The options dialog stays open after a save
