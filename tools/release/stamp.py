@@ -261,7 +261,17 @@ def main() -> int:
        f"v{nxt}: stamp {args.title}\n\nCo-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>")
     sh("git", "tag", f"v{nxt}")
     if args.push:
-        sh("git", "push", "origin", "HEAD:main")
+        # main moves between fetch and push when another session is merging.
+        # A rejected push must leave nothing behind: no local tag that would
+        # make the retry refuse under rule 3, no stamp commit off main.
+        try:
+            sh("git", "push", "origin", "HEAD:main")
+        except subprocess.CalledProcessError as exc:
+            sh("git", "tag", "-d", f"v{nxt}")
+            sh("git", "reset", "--hard", "origin/main")
+            raise Refuse(1, "push to main was rejected (main moved); the stamp commit and tag were "
+                            "discarded -- fetch, rewrite the notes for the new HEAD, run again: "
+                            + exc.stderr.strip().splitlines()[-1]) from exc
         sh("git", "push", "origin", f"v{nxt}")
     print(f"RESULT stamped=v{nxt}")
     return 0
