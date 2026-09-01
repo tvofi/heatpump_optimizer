@@ -17,10 +17,13 @@ coordinator owns the Store; this owns the arithmetic.
 """
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from datetime import datetime
 
 import numpy as np
+
+_LOGGER = logging.getLogger(__name__)
 
 #: Months kept before pruning. Two years covers a year-over-year comparison
 #: with a margin, and keeps the store size bounded forever.
@@ -93,12 +96,15 @@ class MonthlyLedger:
         data = self.months.get(month)
         if not isinstance(data, dict):
             return {}
+        lines = data.get("lines")
+        if not isinstance(lines, dict):
+            return {}
         return {
             name: {
                 "kwh": round(float(entry.get("kwh", 0.0)), 3),
                 "sek": round(float(entry.get("sek", 0.0)), 2),
             }
-            for name, entry in data.get("lines", {}).items()
+            for name, entry in lines.items()
             if isinstance(entry, dict)
         }
 
@@ -114,10 +120,26 @@ class MonthlyLedger:
             return ledger
         months = data.get("months")
         if isinstance(months, dict):
-            ledger.months = {
-                str(key): value
-                for key, value in months.items()
-                if isinstance(value, dict)
-            }
+            clean: dict[str, dict] = {}
+            dropped = 0
+            for key, value in months.items():
+                if (
+                    isinstance(value, dict)
+                    and isinstance(value.get("lines", {}), dict)
+                    and isinstance(value.get("meta", {}), dict)
+                ):
+                    clean[str(key)] = {
+                        "lines": value.get("lines", {}),
+                        "meta": value.get("meta", {}),
+                    }
+                else:
+                    dropped += 1
+            if dropped:
+                _LOGGER.warning(
+                    "Quarantined %d malformed ledger month(s) on load; "
+                    "the rest of the ledger was kept",
+                    dropped,
+                )
+            ledger.months = clean
             ledger._prune()
         return ledger
