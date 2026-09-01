@@ -43,10 +43,10 @@
 # does not expire with the stamp and is not part of the inherited-claims
 # comparison.
 #
-# claims-for: 6.2.4
+# claims-for: 6.2.5
 #
-# Card-only change (the score breakdown panel); no solver path
-# touched, so no golden moves.
+# The weekly-windows release itself: the grammar is opt-in and no
+# captured scenario carries a day selector, so no golden moves.
 #
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum

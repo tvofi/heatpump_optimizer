@@ -1,5 +1,35 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.2.5
+
+### Weekly hot-water windows: different days, different times
+
+Hot-water demand windows applied identically to all seven days, so a
+household whose mornings differ — weekdays early, weekends late, or
+one specific day with its own pattern — could not say so. The window
+spec now carries an optional day selector per range:
+
+    weekdays 06:00-08:30, weekend 08:00-09:30
+    Mo 05:30-07:00, Tu-Fr 06:00-08:00, Sa,Su 08:00-09:30
+
+A selector is `daily` (the default when absent), `weekdays`,
+`weekend`, or a comma/range list of two-letter day tokens (Mo Tu We
+Th Fr Sa Su). A range without one applies to every day — exactly the
+previous behaviour: **an existing flat spec loads unchanged and solves
+through the same code path as before**; the whole feature activates
+only when a day selector is present.
+
+The optimizer chooses the window set per step from that step's own
+weekday, including across the midnight the horizon spans. The
+config-flow field help documents the grammar in English and Swedish,
+and the service path normalises weekly specs through their own round
+trip (the flat formatter would silently drop the day selectors).
+
+**Upgrading**: nothing changes until you add a day selector to your
+hot-water windows. When you do, a day with no segment genuinely has
+no hot-water requirement that day — that is the point, and it is
+visible in the plan.
+
 ## v6.2.4
 
 ### The optimization score explains where the points went
