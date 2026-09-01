@@ -3003,6 +3003,55 @@ R.check(
     f"raised={_reject_raised}, learner saw {_reject.pressed}",
 )
 
+# D3-06: ``hvac_action`` has zero test references anywhere in the suite
+# despite being the property Home Assistant's thermostat card reads to show
+# "Heating"/"Idle"/"Off" — one of the most visible always-on pieces of
+# state in the whole integration. This asserts the actual contract for all
+# three branches directly against the real property.
+_hvac_heating = climate_mod.HeatPumpOptimizerClimate(
+    FakeCoordinator(
+        {**DATA, "mode": const.MODE_AUTO,
+         "current_action": {"power": 4.0, "power_normalized": 0.85}}
+    ),
+    clim._entry,
+)
+R.check(
+    "hvac_action reports HEATING while the compressor runs at high power",
+    _hvac_heating.hvac_action == climate_mod.HVACAction.HEATING,
+    str(_hvac_heating.hvac_action),
+)
+_hvac_idle = climate_mod.HeatPumpOptimizerClimate(
+    FakeCoordinator(
+        {**DATA, "mode": const.MODE_AUTO,
+         "current_action": {"power": 0.0, "power_normalized": 0.0}}
+    ),
+    clim._entry,
+)
+R.check(
+    "hvac_action reports IDLE while auto but the compressor is not running",
+    _hvac_idle.hvac_action == climate_mod.HVACAction.IDLE,
+    str(_hvac_idle.hvac_action),
+)
+_hvac_off = climate_mod.HeatPumpOptimizerClimate(
+    FakeCoordinator(
+        {**DATA, "mode": const.MODE_OFF,
+         "current_action": {"power": 4.0, "power_normalized": 0.85}}
+    ),
+    clim._entry,
+)
+R.check(
+    "hvac_action reports OFF for the off mode even with a nonzero action",
+    _hvac_off.hvac_action == climate_mod.HVACAction.OFF,
+    str(_hvac_off.hvac_action),
+)
+_hvac_none = climate_mod.HeatPumpOptimizerClimate(
+    FakeCoordinator(None), clim._entry
+)
+R.check(
+    "hvac_action is None with no coordinator data at all",
+    _hvac_none.hvac_action is None,
+)
+
 switches = collect(switch_mod)
 R.check("the switch platform adds exactly one entity", len(switches) == 1)
 sw = switches[0]
@@ -3745,6 +3794,77 @@ R.check(
     _tm2res.get("type") == "create_entry"
     and (_tm2res.get("data") or {}).get(const.CONF_HEAT_PUMP_MIN_POWER) == 2.0,
     str(_tm2res.get("type")),
+)
+
+# D3-08: ``_dhw_min_too_close`` guards against a DHW minimum that leaves less
+# than ``DHW_MIN_TEMP_SETPOINT_MARGIN`` (5.0°C) of deadband below the
+# setpoint -- an impossible configuration the solver cannot express (tank
+# limits are soft penalties, so it never errors downstream, it just sits in
+# permanent slight violation). Only key-presence-style closure checks exist
+# elsewhere; this drives both the initial setup flow's ``async_step_dhw``
+# and the options flow's ``async_step_hot_water`` end-to-end with a
+# violating submission (setpoint 50, minimum 47 -- 3°C of deadband, inside
+# the 5°C margin) and a passing boundary case (minimum 40 -- 10°C of
+# deadband).
+_dhw_bad = _fresh_flow()
+_dhw_bad_res = asyncio.run(
+    _dhw_bad.async_step_dhw(
+        {
+            const.CONF_DHW_SETPOINT: 50.0,
+            const.CONF_DHW_MIN_TEMP: 47.0,
+            const.CONF_DHW_WINDOWS: "",
+        }
+    )
+)
+R.check(
+    "the setup flow rejects a DHW minimum inside the required margin",
+    _dhw_bad_res["type"] == "form"
+    and _dhw_bad_res.get("errors", {}).get(const.CONF_DHW_MIN_TEMP)
+    == "dhw_min_too_close",
+    f"got type={_dhw_bad_res.get('type')} errors={_dhw_bad_res.get('errors')}; "
+    "a disabled validator would silently accept a config the solver can "
+    "never fully satisfy",
+)
+_dhw_good = _fresh_flow()
+_dhw_good_res = asyncio.run(
+    _dhw_good.async_step_dhw(
+        {
+            const.CONF_DHW_SETPOINT: 50.0,
+            const.CONF_DHW_MIN_TEMP: 40.0,
+            const.CONF_DHW_WINDOWS: "",
+        }
+    )
+)
+R.check(
+    "a safely-spaced DHW minimum is accepted, so this is not a blanket rejector",
+    not _dhw_good_res.get("errors", {}).get(const.CONF_DHW_MIN_TEMP),
+    str(_dhw_good_res.get("errors")),
+)
+_dhw_opt_bad = options(FakeEntry(data={const.CONF_DHW_SETPOINT: 50.0}))
+_dhw_opt_bad.hass = FakeHass()
+_dhw_opt_bad_res = asyncio.run(
+    _dhw_opt_bad.async_step_hot_water(
+        {const.CONF_DHW_MIN_TEMP: 47.0, const.CONF_DHW_WINDOWS: ""}
+    )
+)
+R.check(
+    "the options flow enforces the same deadband against the stored setpoint",
+    _dhw_opt_bad_res["type"] == "form"
+    and _dhw_opt_bad_res.get("errors", {}).get(const.CONF_DHW_MIN_TEMP)
+    == "dhw_min_too_close",
+    str(_dhw_opt_bad_res.get("errors")),
+)
+_dhw_opt_good = options(FakeEntry(data={const.CONF_DHW_SETPOINT: 50.0}))
+_dhw_opt_good.hass = FakeHass()
+_dhw_opt_good_res = asyncio.run(
+    _dhw_opt_good.async_step_hot_water(
+        {const.CONF_DHW_MIN_TEMP: 40.0, const.CONF_DHW_WINDOWS: ""}
+    )
+)
+R.check(
+    "the options flow's boundary case still saves",
+    not _dhw_opt_good_res.get("errors", {}).get(const.CONF_DHW_MIN_TEMP),
+    str(_dhw_opt_good_res.get("errors")),
 )
 
 # --- The dialog behaviour itself (#100) -------------------------------------
