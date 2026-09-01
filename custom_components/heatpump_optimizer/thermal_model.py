@@ -1188,6 +1188,59 @@ def dhw_coil_draw_reduction(
     return reduced, draw_kw - reduced
 
 
+class _StaleTrajectory(np.ndarray):
+    """A poison array left on the ``last_*_trajectory`` side-channels by
+    ``simulate_trajectory_batch``.
+
+    The batch returns every row's buffer/wood trajectory in its result dict,
+    so it has no single trajectory to publish on the scalar path's
+    ``last_buffer_trajectory`` / ``last_wood_trajectory`` attributes -- yet it
+    used to leave whatever the previous scalar ``simulate_trajectory`` wrote
+    there, so any code reading the attribute after a batch call silently got a
+    trajectory belonging to a different power schedule. That is a quiet
+    correctness trap.
+
+    This sentinel makes the contract explicit and safe: the batch overwrites
+    the attributes with a poison value that reads fine when merely stored or
+    identity-checked, but raises loudly the instant anyone tries to USE it as
+    a trajectory (index it, or do arithmetic on it). The message points the
+    caller at the batch result dict, which carries the per-row trajectories.
+    """
+
+    def __new__(cls):
+        return np.empty(0, dtype=float).view(cls)
+
+    @staticmethod
+    def _boom(*_a, **_k):
+        raise RuntimeError(
+            "last_buffer_trajectory/last_wood_trajectory were poisoned by "
+            "simulate_trajectory_batch: the batch has no single scalar "
+            "trajectory to publish -- read the per-row 'buffer'/'wood' arrays "
+            "from the batch result dict instead. Call simulate_trajectory for "
+            "a fresh scalar side-channel before reading these attributes."
+        )
+
+    def __array_function__(self, *_a, **_k):
+        self._boom()
+
+    def __array_ufunc__(self, *_a, **_k):
+        self._boom()
+
+    def __getitem__(self, _key):
+        self._boom()
+
+    def __len__(self):
+        self._boom()
+
+    def __iter__(self):
+        self._boom()
+
+
+#: Singleton poison written by the batch. It is a distinct object so callers
+#: may still cheaply test ``x is _STALE_TRAJECTORY`` without tripping it.
+_STALE_TRAJECTORY = _StaleTrajectory()
+
+
 class ThermalModel:
     """Thermal model supporting single-zone, two-zone, and DHW operation."""
 
@@ -2590,6 +2643,14 @@ class ThermalModel:
                     if wood is not None:
                         wood[:, i + 1] = T_wood
 
+        # The batch has no single scalar trajectory to publish on the
+        # ``last_*_trajectory`` side-channels the scalar path maintains: every
+        # row's buffer/wood trajectory is in the result dict below. Leaving the
+        # attributes holding a previous scalar call's arrays let a later read
+        # silently pick up a trajectory for a different power schedule, so poison
+        # them -- a stale read now raises loudly and points at the result dict.
+        self.last_buffer_trajectory = _STALE_TRAJECTORY
+        self.last_wood_trajectory = _STALE_TRAJECTORY
         return {
             "room": room, "slab": slab, "upper": upper, "lower": lower,
             "buffer": buf, "wood": wood, "refused": refused,

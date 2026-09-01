@@ -1837,7 +1837,8 @@ R.section("The batched trajectory is the scalar trajectory, bit for bit")
 # floats that are not NaN, which trajectories here never are.
 from datetime import datetime as _dt_grad
 
-def _grad_parity(two_zone, wood=False, valve=None, extra_cfg=None, label=""):
+def _grad_parity(two_zone, wood=False, valve=None, extra_cfg=None, label="",
+                 weather_p="winter_cold", state_over=None, bounds_over=None):
     cfg = _grad_house(two_zone=two_zone)
     extra = dict(extra_cfg or {})
     if valve:
@@ -1850,15 +1851,17 @@ def _grad_parity(two_zone, wood=False, valve=None, extra_cfg=None, label=""):
     rng = np.random.default_rng(7)
     powers = rng.uniform(0, 3.0, size=(5, n))
     start = _dt_grad(2026, 1, 15)
-    ot, wi, ra, so = (a[:n] for a in _grad_weather("winter_cold", start))
+    ot, wi, ra, so = (a[:n] for a in _grad_weather(weather_p, start))
     hum = np.full(n, 78.0)
     ext = rng.uniform(0, 2.0, size=n)
-    st = ThermalState(
+    st_kwargs = dict(
         room_temperature=20.5, slab_temperature=22.0,
         outdoor_temperature=float(ot[0]), upper_floor_temperature=21.2,
         lower_floor_temperature=20.1, buffer_tank_temperature=48.0,
         wood_tank_temperature=52.0 if wood else None,
     )
+    st_kwargs.update(state_over or {})
+    st = ThermalState(**st_kwargs)
     batch = m.simulate_trajectory_batch(
         st, powers, ot, wi, ra, so, 0.25, ext, None, hum, 7.0)
     mism = []
@@ -1879,6 +1882,68 @@ def _grad_parity(two_zone, wood=False, valve=None, extra_cfg=None, label=""):
         f"first divergences: {mism[:4]}",
     )
 
+    # The gradient contract (D9-01): with the batched jac now serving
+    # NON-UNIFORM bounds (any DHW block or per-step cap pins the space bounds
+    # unevenly), _batch_fd_gradient must reproduce scipy's own 2-point
+    # approx_derivative bit-for-bit on those bounds, or the DHW solves it now
+    # serves would drift. Assert it directly on a scalarised space objective
+    # over these trajectories, at DHW-pinned bounds when asked, so the
+    # one-sided/zero-step rules are exercised per variable.
+    from scipy.optimize._numdiff import approx_derivative
+
+    targets = np.full(n, 21.0)
+
+    def space_obj(x):
+        rr, _, _, _ = m.simulate_trajectory(
+            st, np.clip(x, 0.0, None), ot, wi, ra, so, 0.25, ext, None, hum, 7.0)
+        room = rr[1:]
+        return float(np.sum((room - targets) ** 2) + 0.01 * np.sum(x))
+
+    def space_obj_batch(mat, *a):
+        tr = m.simulate_trajectory_batch(
+            st, np.clip(mat, 0.0, None), ot, wi, ra, so, 0.25,
+            ext, None, hum, 7.0)
+        out = np.empty(mat.shape[0])
+        for bi in range(mat.shape[0]):
+            room = tr["room"][bi][1:]
+            out[bi] = float(np.sum((room - targets) ** 2)
+                            + 0.01 * np.sum(mat[bi]))
+        return out
+
+    p_max = 6.0
+    if bounds_over == "dhw_pinned":
+        # Emulate a DHW block: some steps have shrunken headroom, a few are
+        # pinned to zero range (lb == ub), the shape the with-DHW solve makes.
+        ub = np.full(n, p_max)
+        ub[5:9] = 0.0          # full DHW block -> zero-range space bounds
+        ub[20:24] = 1.2        # partial headroom
+        bounds = [(0.0, float(ub[i])) for i in range(n)]
+    elif bounds_over == "capped":
+        rc = np.random.default_rng(3).uniform(0.5, p_max, size=n)
+        bounds = [(0.0, float(rc[i])) for i in range(n)]
+    else:
+        bounds = [(0.0, p_max)] * n
+    lb = np.array([b[0] for b in bounds])
+    ubv = np.array([b[1] for b in bounds])
+    x0 = np.minimum(rng.uniform(0, 3.0, size=n), ubv)
+    f0 = space_obj(x0)
+    g_batch = _grad_optmod._batch_fd_gradient(
+        space_obj_batch, (), x0, f0, 1e-4, bounds)
+    g_scipy = approx_derivative(
+        space_obj, x0, method="2-point", abs_step=1e-4, f0=f0,
+        bounds=(lb, ubv))
+    R.check(
+        f"batched jac == scipy 2-point FD bit-for-bit: {label}",
+        np.array_equal(g_batch, g_scipy, equal_nan=True)
+        and np.array_equal(np.isnan(g_batch), np.isnan(g_scipy)),
+        f"gradient differs from scipy's estimate "
+        f"(maxabs={float(np.nanmax(np.abs(g_batch - g_scipy))):.2e})",
+    )
+
+
+import heatpump_optimizer.optimizer as _grad_optmod
+
+# Space-only, uniform bounds (the historical five, unchanged).
 _grad_parity(False, label="single-zone")
 _grad_parity(True, label="two-zone")
 _grad_parity(True, valve="manual", label="two-zone with valve")
@@ -1890,10 +1955,65 @@ _grad_parity(
         "upper_floor_thermal_mass": 0.3, "lower_floor_thermal_mass": 0.5,
     },
 )
+# D9-01/D7-03: broaden to the shapes the batched jac now serves -- more
+# weather, more initial states, and the non-uniform (DHW-pinned and capped)
+# bounds that the uniform-bounds gate used to route to the scalar path.
+_grad_parity(False, label="single-zone shoulder mild-start",
+             weather_p="shoulder",
+             state_over={"room_temperature": 19.0, "buffer_tank_temperature": 42.0})
+_grad_parity(True, label="two-zone summer-cool warm-start",
+             weather_p="summer_cool",
+             state_over={"room_temperature": 22.5, "slab_temperature": 23.5,
+                         "buffer_tank_temperature": 51.0})
+_grad_parity(False, label="single-zone winter-mild",
+             weather_p="winter_mild",
+             state_over={"room_temperature": 18.0})
+_grad_parity(True, label="two-zone DHW-pinned bounds",
+             weather_p="winter_cold", bounds_over="dhw_pinned",
+             state_over={"room_temperature": 20.0})
+_grad_parity(False, label="single-zone DHW-pinned bounds shoulder",
+             weather_p="shoulder", bounds_over="dhw_pinned",
+             state_over={"room_temperature": 19.5})
+_grad_parity(True, valve="manual", label="two-zone capped bounds summer-cool",
+             weather_p="summer_cool", bounds_over="capped",
+             state_over={"room_temperature": 21.5})
 # Mutation anchor: the batch twin once applied the Carnot lift below the
 # reference flow temperature (a boost the scalar never grants) and once
 # let np.where's both-arms division poison states with 0/0 NaN -- each
 # divergence appeared here as a step-37 room mismatch within seconds.
+
+# The gate itself (D9-01): which bound shapes the batched jac may serve. The
+# zero-range rejection is not style -- at a pinned variable the one-sided FD
+# step is zero, the divided difference is 0/0 = NaN, and L-BFGS-B's iterate
+# stream then differs between the jac-estimated and jac-supplied paths
+# (executed on the fuse-guard shape: scipy's own path iterates to 67.19,
+# the supplied-jac path dies in the first line search at 78.66). Deleting
+# the `lo >= hi` rejection below re-routes those solves onto the batch and
+# the fuse-guard cap checks in this file fail -- that is the mutation proof
+# this assertion exists to survive.
+_gate = _grad_optmod._bounds_supported_by_batch
+R.section("Which bounds the batched jac may serve (D9-01)")
+R.check(
+    "uniform bounds are served",
+    _gate([(0.0, 6.0)] * 8),
+    "the historical #97 shape must keep its fast path",
+)
+R.check(
+    "per-step caps and DHW-pinned headroom are served",
+    _gate([(0.0, 6.0), (0.0, 1.2), (0.0, 6.0), (1.4, 6.0)]),
+    "non-uniform-but-nonzero bounds are the shapes D9-01 widened the gate for",
+)
+R.check(
+    "a zero-range bound (full DHW block or manual pin) is refused",
+    not _gate([(0.0, 6.0)] * 3 + [(0.0, 0.0)]),
+    "at lb == ub the FD step is zero, the gradient is 0/0 NaN, and the "
+    "supplied-jac iterate stream provably diverges from scipy's own",
+)
+R.check(
+    "degenerate classes are refused: empty, inverted, non-finite",
+    not _gate([]) and not _gate([(2.0, 1.0)]) and not _gate([(0.0, np.inf)]),
+    "L-BFGS-B could not solve these on any path",
+)
 
 
 # ===========================================================================
