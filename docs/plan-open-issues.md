@@ -61,22 +61,37 @@ the truth.
   the longest contiguous GIL hold during a realistic cold solve is
   ~34 ms (median ~7 ms, the 5 ms switch interval plus scheduling),
   recorded on the issue with the Pi extrapolation stated.
+- **This file's own delivery-status section** — v6.0.7.
+- **#99, retention** — v6.0.8. The rolling-suite harness measures
+  every flagged collection bounded on first run, and the recorder fix
+  (`manual_override`, `dhw_windows` unrecorded) shipped with it.
+- **#94, the drift-cache warming** — v6.0.9. The push-to-main run
+  stores its own capture under the key forking PRs will compute, so a
+  merge no longer sends every open PR through a cold ~25-minute
+  recapture at once.
+- **#96, the real-browser layout lane** — v6.1.0. `tests/card_browser.mjs`
+  asserts real geometry in Chromium — the class of defect the DOM
+  stub's constant 900×400 rect cannot see.
+- **#95, the card's clean seams** — v6.1.1. `cardStyleBlock()` and the
+  setup-diagram path are top-level functions, out of the god class.
+- **#101, the QA renderer wiring** — v6.1.2. `setup_qa_render.mjs` runs
+  in the card lane of every gate against the shared `tests/dom_stub.mjs`.
+- **#97, the finite-difference gradient cost** — v6.2.0. Shipped in
+  full: `simulate_trajectory_batch`'s bitwise-parity vectorized pass
+  plus a batched `jac=` that replaces 97 sequential simulations with
+  one call, guarded for non-uniform bounds and raced bit-identical
+  against the unbatched path. Two-zone solve CPU dropped 11.5 s → 1.0 s.
+- **#100, the options menu-return** — v6.2.1. Every saving page offers
+  the after-save choice, written through immediately via
+  `async_update_entry`, never a flow-liveness deferral.
 
 **In flight:**
 
-- **#99, retention** — the rolling-suite harness plus the recorder fix
-  (`manual_override`, `dhw_windows` unrecorded) is in review; the first
-  measurement found every audited collection bounded.
-- **#97, gradient cost** — the measurement is on the issue (9,998
-  trajectory evaluations per solve; the line search dominates at ~326
-  evaluations per iteration) and the `maxfun` cap is in review. The
-  analytic-gradient item remains open as its own decision; the
-  vectorized-FD item is not available (the simulation is sequential
-  pure Python).
+None — every item below "Still to build" in the original worklist has
+shipped as of v6.2.1.
 
-**Still to build:** #94 (drift-cache warming on main), #96 (browser
-lane), #101 (QA renderer wiring), #95 (card seams, after #96), #100
-(menu-return; its test prerequisite is delivered above).
+**Still to build:** none outstanding from the original #86–#101 /
+CodeQL worklist.
 
 Two unplanned items joined the program on the way and are part of the
 record above: v5.6.0 (the test harness's file and network sinks — five

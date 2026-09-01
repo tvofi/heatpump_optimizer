@@ -5,7 +5,7 @@ integration does rather than how it is built, start with
 [how-it-works.md](how-it-works.md).
 
 The shape is a thin Home Assistant layer wrapped around a much larger core that
-knows nothing about Home Assistant: 42 modules, of which ten touch the
+knows nothing about Home Assistant: 45 modules, of which ten touch the
 `homeassistant` package and the rest take numbers in and give numbers back.
 
 ## How the pieces fit
@@ -99,6 +99,13 @@ custom_components/heatpump_optimizer/
 ├── sysid.py              # Active step-response identification
 ├── presets.py            # Building archetypes to thermal parameters
 ├── external_heat.py      # Wood-furnace detection with hysteresis and decay
+│
+│   # The pump's own account of itself
+├── pump_mode.py          # Operating-mode vocabulary: can it heat, can it make
+│                         #   hot water right now
+├── pump_signals.py       # Mode, defrost, online and fault slots read together
+│                         #   and resolved to the decisions the rest of the
+│                         #   integration asks
 │
 │   # People, safety and actuation
 ├── away.py               # Away state, return time and deadline-driven recovery
