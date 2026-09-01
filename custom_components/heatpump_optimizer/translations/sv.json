@@ -867,10 +867,10 @@
         "name": "Aktuellt elpris"
       },
       "dhw_heating_cost": {
-        "name": "Kostnad för varmvattenuppvärmning"
+        "name": "Varmvattenkostnad (nästa 24 h)"
       },
       "dhw_heating_plan": {
-        "name": "Varmvattenplan"
+        "name": "Varmvattenplan (nästa 24 h)"
       },
       "dhw_heating_schedule": {
         "name": "Schema för varmvatten"
@@ -900,10 +900,10 @@
         "name": "Värmepumpens åtgärd"
       },
       "hot_water_cost": {
-        "name": "Varmvattenkostnad"
+        "name": "Varmvattenkostnad (totalt)"
       },
       "hot_water_energy": {
-        "name": "Varmvattenenergi"
+        "name": "Varmvattenenergi (totalt)"
       },
       "indoor_temperature_optimizer": {
         "name": "Inomhustemperatur (optimeraren)"
@@ -984,13 +984,13 @@
         "name": "Prognos för solöverskott"
       },
       "space_heating_cost": {
-        "name": "Uppvärmningskostnad"
+        "name": "Uppvärmningskostnad (totalt)"
       },
       "space_heating_energy": {
-        "name": "Uppvärmningsenergi"
+        "name": "Uppvärmningsenergi (totalt)"
       },
       "space_heating_plan": {
-        "name": "Uppvärmningsplan"
+        "name": "Värmeplan (nästa 24 h)"
       },
       "thermal_battery_charge": {
         "name": "Termiskt batteri – laddningsgrad"
@@ -999,10 +999,10 @@
         "name": "Termiskt batteri – lagrad energi"
       },
       "total_energy": {
-        "name": "Total energi"
+        "name": "Total energi (totalt)"
       },
       "total_heating_cost": {
-        "name": "Total värmekostnad"
+        "name": "Total kostnad (totalt)"
       },
       "upper_floor_temperature": {
         "name": "Temperatur övervåning"

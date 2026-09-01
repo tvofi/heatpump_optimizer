@@ -45,9 +45,16 @@
 #
 # claims-for: 6.2.5
 #
-# The weekly-windows release itself: the grammar is opt-in and no
-# captured scenario carries a day selector, so no golden moves.
+# The labels' period clarity (#4): the coordinator publishes one new
+# key (energy_totals_counting_since, the date the lifetime
+# accumulators started recording) and the sensor names move, both
+# visible in the coordinator captures. No solver path is touched.
 #
+coord_minimal # gains energy_totals_counting_since (owner request 4)
+coord_dhw # gains energy_totals_counting_since (owner request 4)
+coord_all_features # gains energy_totals_counting_since (owner request 4)
+coord_two_zone # gains energy_totals_counting_since (owner request 4)
+coord_grid_fee # gains energy_totals_counting_since (owner request 4)
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
