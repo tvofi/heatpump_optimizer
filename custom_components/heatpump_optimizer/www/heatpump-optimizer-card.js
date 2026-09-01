@@ -103,7 +103,21 @@ const STRINGS = {
     "reasons.dhw_preheat": "Charging the tank while electricity is cheap",
     "reasons.legionella": "Anti-legionella cycle",
     "reasons.manual_plan": "You scheduled this",
-    "reasons.pump_mode": "The heat pump's mode cannot do this",
+    // The generic fallback; the channel-aware variants below are what a
+    // user actually sees. The mode is the setting on the physical unit
+    // (heat / hot-water-only / cool), not anything this integration
+    // controls -- which is the whole point of the label: the optimizer
+    // is not choosing to skip the channel, the pump cannot serve it.
+    "reasons.pump_mode":
+      "Paused by the pump's operating mode (set on the unit itself)",
+    "reasons.pump_mode_dhw":
+      "No hot water: the pump's operating mode -- set on the unit -- " +
+      "cannot heat water (heat-only or cooling). Switch the unit to a " +
+      "mode that includes hot water.",
+    "reasons.pump_mode_space":
+      "No heating: the pump's operating mode -- set on the unit -- " +
+      "cannot heat rooms (hot-water-only or cooling). Switch the unit " +
+      "to a heating mode.",
     "reasons.idle": "Not heating",
 
     // slot lanes and the slot menu
@@ -437,7 +451,16 @@ const STRINGS = {
     "reasons.dhw_preheat": "Laddar tanken medan elen är billig",
     "reasons.legionella": "Legionellaskyddscykel",
     "reasons.manual_plan": "Du har schemalagt detta",
-    "reasons.pump_mode": "Värmepumpens driftläge klarar inte detta",
+    "reasons.pump_mode":
+      "Pausat av värmepumpens driftläge (ställs på aggregatet)",
+    "reasons.pump_mode_dhw":
+      "Inget varmvatten: värmepumpens driftläge -- som ställs på " +
+      "aggregatet -- kan inte värma vatten (endast värme eller kylning). " +
+      "Ställ om aggregatet till ett läge som inkluderar varmvatten.",
+    "reasons.pump_mode_space":
+      "Ingen värme: värmepumpens driftläge -- som ställs på aggregatet " +
+      "-- kan inte värma huset (endast varmvatten eller kylning). Ställ " +
+      "om aggregatet till ett värmeläge.",
     "reasons.idle": "Värmer inte",
 
     "slots.lane_dhw": "Varmvatten",
@@ -7544,17 +7567,43 @@ class HeatpumpOptimizerCard extends HTMLElement {
    *
    * Only reasons for steps that are actually heating are shown; "not heating"
    * is not an explanation anyone needs, and printing it for every idle hour
-   * would bury the ones that matter.
+   * would bury the ones that matter. The one exception is a channel paused
+   * by the pump's own operating mode: those steps carry no power, so the
+   * hover would otherwise show nothing at all, and "the optimizer chose not
+   * to" is exactly the wrong reading of a mode the unit itself enforces.
    */
   _reasonHtml(rows) {
     const out = [];
     const seen = new Set();
+    // Which channel a pump_mode reason belongs to: several series read the
+    // same forecast (the house temperatures ride the space plan's points),
+    // so the reason can surface on a row whose field says nothing about the
+    // channel. Decide once, from the channel rows themselves, before the
+    // per-row loop dedupes the code away.
+    const pumpModeChannel = rows.some((r) => r.reason === "pump_mode")
+      ? rows.find((r) => r.reason === "pump_mode" &&
+          (r.field === "dhw_power" || r.field === "space_power"))
+      : undefined;
+    const pumpModeKey = !pumpModeChannel
+      ? null
+      : pumpModeChannel.field === "dhw_power"
+        ? "reasons.pump_mode_dhw"
+        : "reasons.pump_mode_space";
     for (const r of rows) {
-      if (!r.reason || r.reason === "idle" || seen.has(r.reason)) continue;
+      const pumpMode = r.reason === "pump_mode";
+      if ((!r.reason || r.reason === "idle") && !pumpMode) continue;
+      if (seen.has(r.reason)) continue;
       seen.add(r.reason);
-      const label = REASON_LABELS[r.reason]
-        ? L(REASON_LABELS[r.reason])
-        : r.reason;
+      let label;
+      if (pumpMode) {
+        // Channel-aware where the channel is known; the generic wording
+        // otherwise. "Cannot do this" was true but never actionable.
+        label = L(pumpModeKey || "reasons.pump_mode");
+      } else {
+        label = REASON_LABELS[r.reason]
+          ? L(REASON_LABELS[r.reason])
+          : r.reason;
+      }
       out.push(`<div class="tt-reason">${esc(label)}</div>`);
     }
     if (rows.some((r) => r.priceKnown === false)) {

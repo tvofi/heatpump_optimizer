@@ -4852,6 +4852,53 @@ const setupBox = (card, place) =>
     chipsFor(svLegend, "house_temp") === 1 &&
     /ritas också: Övre plan, Nedre plan \(modellerad\)/.test(svLegend),
     svLegend);
+
+  // A channel paused by the pump's own operating mode carries no power, so
+  // the hover would show nothing at all -- and "cannot do this", the old
+  // label, was true but never actionable. The explanation is channel-aware
+  // and says where the setting lives: on the unit, not in this card.
+  const pumpBlocked = (dhwBlocked, spaceBlocked) => {
+    const states = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+    states[DEFAULT_DHW].attributes.forecast =
+      plan.dhw_plan.forecast.map((p) => ({
+        ...p, dhw_power: 0,
+        reason: dhwBlocked ? "pump_mode" : p.reason,
+      }));
+    states[DEFAULT_SPACE].attributes.forecast =
+      plan.space_plan.forecast.map((p) => ({
+        ...p, space_power: 0,
+        reason: spaceBlocked ? "pump_mode" : p.reason,
+      }));
+    return states;
+  };
+  const dhwBlockedCard = (() => {
+    const c = new Card();
+    c.setConfig({ type: "custom:heatpump-optimizer-card" });
+    c.hass = { states: pumpBlocked(true, false) };
+    return c;
+  })();
+  const dbTip = hovered(dhwBlockedCard);
+  check("a mode-blocked hot-water channel explains itself on hover",
+    /cannot heat water/.test(dbTip) && /heat-only or cooling/.test(dbTip),
+    dbTip);
+  check("and points at the setting on the unit, not at the optimizer",
+    /set on the unit/.test(dbTip), dbTip);
+  const spaceBlockedCard = (() => {
+    const c = new Card();
+    c.setConfig({ type: "custom:heatpump-optimizer-card" });
+    c.hass = { states: pumpBlocked(false, true) };
+    return c;
+  })();
+  check("a mode-blocked heating channel gets its own half of the explanation",
+    /cannot heat rooms/.test(hovered(spaceBlockedCard)) &&
+    !/cannot heat water/.test(hovered(spaceBlockedCard)),
+    hovered(spaceBlockedCard));
+  const svBlocked = new Card();
+  svBlocked.setConfig({ type: "custom:heatpump-optimizer-card" });
+  svBlocked.hass = { states: pumpBlocked(true, false), language: "sv-SE" };
+  check("and the mode explanation is in Swedish too",
+    /kan inte värma vatten/.test(hovered(svBlocked)),
+    hovered(svBlocked));
 }
 
 // --- Scenario: the hot-water expected-error band (v5.2.0) ------------------
