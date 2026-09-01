@@ -1435,7 +1435,9 @@ _flow = options(FakeEntry(options={const.CONF_TIBBER_TOKEN: "t", **_cross_page})
 _flow.hass = FakeHass()
 _form = asyncio.run(_flow.async_step_entities(None))
 _untouched = _form["data_schema"]({})  # defaults only, as a real untouched save
-_saved = asyncio.run(_flow.async_step_entities(_untouched))["data"]
+_saved = asyncio.run(
+    _flow.async_step_entities({**_untouched, const.CONF_AFTER_SAVE: const.AFTER_SAVE_CLOSE})
+)["data"]
 for key, value in _cross_page.items():
     R.check(
         f"saving the entities page leaves {key} alone",
@@ -1505,9 +1507,18 @@ _sig_values = {
     const.CONF_HEAT_PUMP_FAULT_ENTITY: "binary_sensor.pump_fault",
 }
 _sig_form = asyncio.run(_sig_flow.async_step_entities(None))
-_sig_saved = asyncio.run(
-    _sig_flow.async_step_entities({**_sig_form["data_schema"]({}), **_sig_values})
-)["data"]
+_sig_result = asyncio.run(
+    _sig_flow.async_step_entities(
+        {**_sig_form["data_schema"]({}), **_sig_values,
+         const.CONF_AFTER_SAVE: const.AFTER_SAVE_CLOSE}
+    )
+)
+_sig_saved = _sig_result.get("data") or {}
+R.check(
+    "the entities page reaches a close-save",
+    _sig_result.get("type") == "create_entry",
+    str(_sig_result.get("type")),
+)
 for _key, _value in _sig_values.items():
     R.check(
         f"{_key} survives a save of the page it lives on",
@@ -1527,15 +1538,17 @@ R.check(
     ),
     "a page that forgets what is configured invites the user to re-enter it",
 )
-_sig_cleared = asyncio.run(
+_sig_cleared_result = asyncio.run(
     _sig_flow2.async_step_entities(
         {
             k: v
             for k, v in _sig_form2["data_schema"]({}).items()
             if k not in _sig_values
         }
+        | {const.CONF_AFTER_SAVE: const.AFTER_SAVE_CLOSE}
     )
-)["data"]
+)
+_sig_cleared = _sig_cleared_result.get("data") or {}
 R.check(
     "and clearing all four sticks",
     all(_sig_cleared.get(_key) is None for _key in _SIGNAL_KEYS),
@@ -1546,11 +1559,13 @@ R.check(
 # configured, nothing changed.
 _bare = options(FakeEntry(options={const.CONF_TIBBER_TOKEN: "t"}))
 _bare.hass = FakeHass()
-_bare_saved = asyncio.run(
+_bare_result = asyncio.run(
     _bare.async_step_entities(
         asyncio.run(_bare.async_step_entities(None))["data_schema"]({})
+        | {const.CONF_AFTER_SAVE: const.AFTER_SAVE_CLOSE}
     )
-)["data"]
+)
+_bare_saved = _bare_result.get("data") or {}
 R.check(
     "an install that configures none of them stores none of them set",
     all(_bare_saved.get(_key) is None for _key in _SIGNAL_KEYS),
@@ -1665,7 +1680,9 @@ _vflow = options(
     )
 )
 _vflow.hass = FakeHass()
-_vsaved = asyncio.run(_vflow.async_step_building({}))["data"]
+_vsaved = asyncio.run(
+    _vflow.async_step_building({const.CONF_AFTER_SAVE: const.AFTER_SAVE_CLOSE})
+)["data"]
 for _key in (const.CONF_MIXING_VALVE_TARGET_ENTITY, const.CONF_WOOD_TANK_TOP_ENTITY):
     R.check(
         f"the building page clears its own absent {_key}",
@@ -1689,10 +1706,14 @@ _tform = asyncio.run(_tflow.async_step_thermal_model(None))
 _tuntouched = _tform["data_schema"]({})
 R.check(
     "an untouched thermal model form submits nothing at all",
-    _tuntouched == {},
+    # after_save rides every form (#100) and is stripped by the flow; it
+    # is not a thermal default and must not count as a leak.
+    {k: v for k, v in _tuntouched.items() if k != const.CONF_AFTER_SAVE} == {},
     f"defaults leaked into the submission: {_tuntouched}",
 )
-_tsaved = asyncio.run(_tflow.async_step_thermal_model(_tuntouched))["data"]
+_tsaved = asyncio.run(
+    _tflow.async_step_thermal_model({**_tuntouched, const.CONF_AFTER_SAVE: const.AFTER_SAVE_CLOSE})
+)["data"]
 _tmerged = {**_legacy.data, **_tsaved}
 R.check(
     "an untouched save leaves a legacy entry single-zone",
@@ -1710,7 +1731,10 @@ R.check(
 _eflow = options(_legacy)
 _eflow.hass = FakeHass()
 _esaved = asyncio.run(
-    _eflow.async_step_thermal_model({const.CONF_HEAT_PUMP_MAX_POWER: 9.0})
+    _eflow.async_step_thermal_model(
+        {const.CONF_HEAT_PUMP_MAX_POWER: 9.0,
+         const.CONF_AFTER_SAVE: const.AFTER_SAVE_CLOSE}
+    )
 )["data"]
 R.check(
     "an edited number saves without touching the zone inference",
@@ -1723,7 +1747,10 @@ R.check(
 _zflow = options(_legacy)
 _zflow.hass = FakeHass()
 _zsaved = asyncio.run(
-    _zflow.async_step_thermal_model({const.CONF_UPPER_FLOOR_THERMAL_MASS: 3.0})
+    _zflow.async_step_thermal_model(
+        {const.CONF_UPPER_FLOOR_THERMAL_MASS: 3.0,
+         const.CONF_AFTER_SAVE: const.AFTER_SAVE_CLOSE}
+    )
 )["data"]
 R.check(
     "an explicit zone value is what turns two-zone on",
@@ -1742,7 +1769,9 @@ _off_entry = FakeEntry(
 _off_flow = options(_off_entry)
 _off_flow.hass = FakeHass()
 _off_result = asyncio.run(
-    _off_flow.async_step_thermal_model({const.CONF_TWO_ZONE_MODE: "off"})
+    _off_flow.async_step_thermal_model(
+        {const.CONF_TWO_ZONE_MODE: "off", const.CONF_AFTER_SAVE: const.AFTER_SAVE_CLOSE}
+    )
 )
 # Guarded before indexing (#100's prerequisite): a page that stops
 # returning create_entry must fail the check, not KeyError the suite.
@@ -1764,7 +1793,9 @@ R.check(
 _on_flow = options(_legacy)
 _on_flow.hass = FakeHass()
 _on_result = asyncio.run(
-    _on_flow.async_step_thermal_model({const.CONF_TWO_ZONE_MODE: "on"})
+    _on_flow.async_step_thermal_model(
+        {const.CONF_TWO_ZONE_MODE: "on", const.CONF_AFTER_SAVE: const.AFTER_SAVE_CLOSE}
+    )
 )
 R.check(
     "turning two-zone on reaches the save",
@@ -1795,6 +1826,7 @@ _presence_quad = (
 )
 _saved_pages: list[str] = []
 _menu_pages: list[str] = []
+_unwritten_menus: list[str] = []
 _odd_outcomes: list[str] = []
 for _step in options._MENU_LABELS:
     _sf = options(FakeEntry(data=dict(_legacy.data)))
@@ -1806,20 +1838,36 @@ for _step in options._MENU_LABELS:
         continue
     _sresult = asyncio.run(getattr(_sf, f"async_step_{_step}")(_sschema({})))
     _kind = _sresult.get("type")
-    if _kind == "menu":
-        # A page that hands straight back to the menu saves nothing here
-        # (the read-only overview does); the two-zone invariant is vacuous
-        # for it, but the outcome is still classified, never skipped.
-        _menu_pages.append(_step)
-        if not _sresult.get("menu_options"):
-            _odd_outcomes.append(f"{_step}: menu without menu_options")
+    if _kind == "create_entry":
+        # The explicit close choice (#100). Untouched submissions default
+        # to the menu, so an untouched run never lands here -- a page that
+        # closes on an untouched submit is a regression to report.
+        _saved_pages.append(_step)
+        _odd_outcomes.append(f"{_step}: untouched submit closed the dialog")
         continue
-    if _kind != "create_entry":
+    if _kind != "menu":
         _odd_outcomes.append(f"{_step}: untouched submit returned {_kind!r}")
         continue
-    _saved_pages.append(_step)
-    _ssaved = _sresult["data"]
-    _wrote = [k for k in _presence_quad if k in _ssaved]
+    _menu_pages.append(_step)
+    if not _sresult.get("menu_options"):
+        _odd_outcomes.append(f"{_step}: menu without menu_options")
+        continue
+    if _step == "setup_overview":
+        # The one read-only page: back to the menu with nothing written.
+        if _sf._entry.options or _sf.hass.config_entries.updated:
+            _unwritten_menus.append(_step)
+        continue
+    # Every saving page now writes through and returns to the menu (#100).
+    # The write is the assertion: a menu hand-back that saved nothing is
+    # the feature silently missing.
+    if not _sf.hass.config_entries.updated:
+        _unwritten_menus.append(_step)
+        continue
+    _ssaved = dict(_sf._entry.options)
+    if const.CONF_AFTER_SAVE in _ssaved:
+        _odd_outcomes.append(f"{_step}: the after-save choice persisted")
+        continue
+    _wrote = [k for k in _presence_quad if k in _ssaved and k not in _legacy.data]
     R.check(
         f"an untouched save of the {_step} page cannot flip two-zone",
         not _wrote
@@ -1828,23 +1876,26 @@ for _step in options._MENU_LABELS:
         ).two_zone_enabled,
         f"wrote presence keys {_wrote}",
     )
-# The net's own net (#100's prerequisite): the sweep must EXERCISE every
-# page and account for each outcome. When the options pages move to
-# returning to the menu after a save, the create_entry branch above goes
-# quiet for them -- without these two checks the loop would report green
-# while asserting nothing, which is exactly how a menu-return feature
-# would ship untested by construction.
+# The net's own net (the #100 prerequisite, delivered in v6.0.4): the sweep
+# must EXERCISE every page and account for each outcome -- the menu-return
+# feature changed what the outcomes are, and these checks are what made
+# that change visible instead of silent.
 R.check(
-    "every options page answers an untouched submit with a save or the menu",
+    "every options page answers an untouched submit with the menu",
     not _odd_outcomes,
     "; ".join(_odd_outcomes),
 )
 R.check(
+    "and every saving page wrote its settings through before returning",
+    not _unwritten_menus,
+    f"no write-through from: {_unwritten_menus}",
+)
+R.check(
     "the untouched-save sweep exercised every page",
-    len(_saved_pages) + len(_menu_pages) == len(options._MENU_LABELS)
-    and bool(_saved_pages),
-    f"saved {len(_saved_pages)}, menu {len(_menu_pages)}, "
-    f"of {len(options._MENU_LABELS)} pages",
+    len(_menu_pages) == len(options._MENU_LABELS)
+    and len(_menu_pages) > 1,
+    f"menu {len(_menu_pages)} of {len(options._MENU_LABELS)} pages "
+    f"(read-only overview included)",
 )
 
 # A stored value is *suggested* back, not defaulted: the form pre-fills, but
@@ -1862,7 +1913,8 @@ _pmarker = next(
 R.check(
     "a stored value is suggested back rather than defaulted",
     getattr(_pmarker, "description", None) == {"suggested_value": 6.0}
-    and _pform["data_schema"]({}) == {},
+    and {k: v for k, v in _pform["data_schema"]({}).items()
+         if k != const.CONF_AFTER_SAVE} == {},
     f"description={getattr(_pmarker, 'description', None)!r}",
 )
 
@@ -2182,11 +2234,15 @@ R.check(
     and _edit_valid.get(const.CONF_HOUSE_THERMAL_MASS) == 4.5,
     _edit_error or str(_edit_valid),
 )
-_edit_saved = asyncio.run(_edit_flow.async_step_thermal_model(_edit_valid or {}))
+_edit_saved = asyncio.run(
+    _edit_flow.async_step_thermal_model(
+        {**(_edit_valid or {}), const.CONF_AFTER_SAVE: const.AFTER_SAVE_CLOSE}
+    )
+)
 R.check(
     "and reaches the save rather than dying in the schema",
     _edit_saved.get("type") == "create_entry"
-    and _edit_saved["data"].get(const.CONF_HOUSE_THERMAL_MASS) == 4.5,
+    and (_edit_saved.get("data") or {}).get(const.CONF_HOUSE_THERMAL_MASS) == 4.5,
     str(_edit_saved.get("type")),
 )
 
@@ -2423,7 +2479,15 @@ def _thermal_save(overrides):
     flow.hass = FakeHass()
     schema = asyncio.run(flow.async_step_thermal_model(None))["data_schema"]
     payload = schema(_submission(schema, **overrides))
-    return asyncio.run(flow.async_step_thermal_model(payload))["data"]
+    # Close-choice: these checks read the create_entry payload, which now
+    # requires asking for it (#100); the default menu-return writes through
+    # to entry.options instead.
+    result = asyncio.run(
+        flow.async_step_thermal_model(
+            {**payload, const.CONF_AFTER_SAVE: const.AFTER_SAVE_CLOSE}
+        )
+    )
+    return result.get("data") or {}
 
 
 # The case that matters most, because it is the cheapest thing a user can do
@@ -2474,7 +2538,7 @@ R.check(
 _still_armed_flow = options(FakeEntry(data=dict(_armed), options=dict(_noop)))
 _still_armed_flow.hass = FakeHass()
 _preset_form = asyncio.run(_still_armed_flow.async_step_building_preset(None))
-_preset_saved = asyncio.run(
+_preset_result = asyncio.run(
     _still_armed_flow.async_step_building_preset(
         _preset_form["data_schema"](
             _submission(
@@ -2482,8 +2546,10 @@ _preset_saved = asyncio.run(
                 **{const.CONF_BUILDING_ERA: presets.ERA_POST_2005},
             )
         )
+        | {const.CONF_AFTER_SAVE: const.AFTER_SAVE_CLOSE}
     )
-)["data"]
+)
+_preset_saved = _preset_result.get("data") or {}
 R.check(
     "and the questionnaire still recalculates after a no-op Submit",
     _preset_saved.get(const.CONF_HOUSE_HEAT_LOSS_COEFFICIENT)
@@ -3613,9 +3679,11 @@ _okopt.hass = FakeHass()
 _okform = asyncio.run(_okopt.async_step_comfort(None))
 _oksaved = asyncio.run(_okopt.async_step_comfort(_okform["data_schema"]({})))
 R.check(
-    "an untouched comfort page still saves",
-    _oksaved.get("type") == "create_entry",
-    str(_oksaved.get("type")),
+    "an untouched comfort page still saves -- through the menu return",
+    _oksaved.get("type") == "menu"
+    and bool(_okopt.hass.config_entries.updated)
+    and const.CONF_COMFORT_TEMP_DAY in _okopt._entry.options,
+    f"type {_oksaved.get('type')}, updated {_okopt.hass.config_entries.updated}",
 )
 
 # The power pair, initial thermal step and options thermal_model page.
@@ -3668,13 +3736,74 @@ R.check(
 _tm2 = options(FakeEntry(data={const.CONF_HEAT_PUMP_MAX_POWER: 5.0}))
 _tm2.hass = FakeHass()
 _tm2res = asyncio.run(
-    _tm2.async_step_thermal_model({const.CONF_HEAT_PUMP_MIN_POWER: 2.0})
+    _tm2.async_step_thermal_model(
+        {const.CONF_HEAT_PUMP_MIN_POWER: 2.0, const.CONF_AFTER_SAVE: const.AFTER_SAVE_CLOSE}
+    )
 )
 R.check(
     "and saves a floor that fits under it",
     _tm2res.get("type") == "create_entry"
     and (_tm2res.get("data") or {}).get(const.CONF_HEAT_PUMP_MIN_POWER) == 2.0,
     str(_tm2res.get("type")),
+)
+
+# --- The dialog behaviour itself (#100) -------------------------------------
+R.section("The options dialog stays open after a save")
+# Write-through, immediately: the same async_update_entry a save-and-close
+# always triggered via create_entry, not a deferral keyed on anything.
+# (Fresh entry, not _legacy: that name is a sorted list by this point.)
+_wt = options(FakeEntry())
+_wt.hass = FakeHass()
+asyncio.run(_wt.async_step_comfort(None))
+_wtres = asyncio.run(
+    _wt.async_step_comfort(
+        {const.CONF_COMFORT_TEMP_DAY: 21.5, const.CONF_COMFORT_TEMP_NIGHT: 19.0}
+    )
+)
+R.check(
+    "a save returns to the section menu and writes through at once",
+    _wtres.get("type") == "menu"
+    and _wt._entry.options.get(const.CONF_COMFORT_TEMP_DAY) == 21.5
+    and _wt.hass.config_entries.updated,
+    f"type {_wtres.get('type')}, options {_wt._entry.options}",
+)
+R.check(
+    "the after-save choice itself never persists",
+    const.CONF_AFTER_SAVE not in _wt._entry.options,
+    str(sorted(_wt._entry.options)),
+)
+# An advanced page comes back to the advanced menu, not the top one.
+# (_translated_menu under the stub resolves to the step keys, so the
+# assertion reads keys, not labels.)
+_adv = options(FakeEntry())
+_adv.hass = FakeHass()
+asyncio.run(_adv.async_step_solar_pv(None))
+_advres = asyncio.run(_adv.async_step_solar_pv(_adv._entry.options))
+_adv_keys = [m[0] if isinstance(m, (tuple, list)) else m
+             for m in (_advres.get("menu_options") or [])]
+R.check(
+    "an advanced page returns to the advanced menu",
+    _advres.get("type") == "menu"
+    and "solar_pv" in _adv_keys
+    and "comfort" not in _adv_keys
+    and "advanced" not in _adv_keys,
+    f"menu: {_adv_keys}",
+)
+# The close choice keeps the historical behaviour exactly.
+_cl = options(FakeEntry())
+_cl.hass = FakeHass()
+asyncio.run(_cl.async_step_comfort(None))
+_clres = asyncio.run(
+    _cl.async_step_comfort(
+        {const.CONF_COMFORT_TEMP_DAY: 21.5, const.CONF_AFTER_SAVE: const.AFTER_SAVE_CLOSE}
+    )
+)
+R.check(
+    "the close choice ends the dialog with a create_entry, as before",
+    _clres.get("type") == "create_entry"
+    and (_clres.get("data") or {}).get(const.CONF_COMFORT_TEMP_DAY) == 21.5
+    and not _cl.hass.config_entries.updated,
+    f"type {_clres.get('type')}, mid-flow updates {_cl.hass.config_entries.updated}",
 )
 
 # Every error key used by the validators exists in all three string files.

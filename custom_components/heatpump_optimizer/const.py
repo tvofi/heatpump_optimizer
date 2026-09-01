@@ -500,6 +500,16 @@ CONF_COMFORT_TEMP_NIGHT: Final = "comfort_temp_night"
 CONF_DAY_START_HOUR: Final = "day_start_hour"
 CONF_DAY_END_HOUR: Final = "day_end_hour"
 
+# Options-flow dialog behaviour (#100): after saving a page, return to the
+# section menu (the default -- changing settings in two sections used to
+# mean open, save, watch it close, open again) or close the dialog. A
+# schema field is the only mechanism a form has for expressing two
+# outcomes from one submit, and the value never persists: the flow strips
+# it before merging the page into the entry's options.
+CONF_AFTER_SAVE: Final = "after_save"
+AFTER_SAVE_MENU: Final = "menu"
+AFTER_SAVE_CLOSE: Final = "close"
+
 # Thermal model parameters (legacy / general)
 CONF_HOUSE_THERMAL_MASS: Final = "house_thermal_mass"  # kWh/°C
 CONF_HOUSE_HEAT_LOSS_COEFFICIENT: Final = "house_heat_loss_coefficient"  # kW/°C

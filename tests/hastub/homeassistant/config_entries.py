@@ -17,9 +17,15 @@ class ConfigFlow:
         cls.domain = domain
 
     def async_show_form(self, **kwargs):
+        # The real flow manager records the step it showed on the handler as
+        # ``cur_step``; the options flow's menu-return path (#100) reads it
+        # to know which section's menu to come back to. Without this, every
+        # save looks like it came from the top menu.
+        self.cur_step = {"step_id": kwargs.get("step_id")}
         return {"type": "form", **kwargs}
 
     def async_show_menu(self, **kwargs):
+        self.cur_step = {"step_id": kwargs.get("step_id")}
         return {"type": "menu", **kwargs}
 
     def async_create_entry(self, **kwargs):
