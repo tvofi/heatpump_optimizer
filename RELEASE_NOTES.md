@@ -1,5 +1,32 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.2.10
+
+### A corrupted store no longer wedges the update cycle
+
+Two robustness fixes for what a corrupted persistent store used to do:
+
+- **A malformed ledger month permanently wedged every future cycle.**
+  `from_dict` accepted a month whose JSON parsed but whose nested
+  `lines`/`meta` had the wrong shape; the first rollover then crashed
+  *before* the month was marked closed, so `_roll_month` re-raised on
+  every cycle, forever. Malformed months are now quarantined at load
+  (one warning; healthy months survive), `month_summary()` degrades to
+  empty instead of raising, and a month that still crashes the freezer
+  is marked closed with an empty receipt — the cycle completes and the
+  month is never retried.
+- **A corrupt snapshot `accuracy` field killed both restore paths.** A
+  truthy-but-wrong `accuracy` (string, list, number) raised
+  `AttributeError` through the manual `restore_snapshot` service and
+  the automatic drift-rollback insurance. The malformed snapshot is
+  skipped with a warning and the ring keeps evaluating — a corrupted
+  newest snapshot falls through to a valid older one.
+
+Normal-path payloads are byte-identical; no golden moves. The new tests
+fail against the pre-fix code (the ledger test crashes with
+`AttributeError` on unpatched `month_summary`; the wedge test fails when
+the try/except is removed).
+
 ## v6.2.9
 
 ### Seven assertions the suite could not fail on

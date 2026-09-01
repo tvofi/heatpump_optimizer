@@ -43,10 +43,11 @@
 # does not expire with the stamp and is not part of the inherited-claims
 # comparison.
 #
-# claims-for: 6.2.9
+# claims-for: 6.2.10
 #
-# Test-only release: the seven new assertions change no behaviour,
-# so no golden moves and the list stays empty.
+# Store-robustness release: the new quarantine paths only touch
+# corrupt payloads, which no golden fixture carries, so no golden
+# moves and the list stays empty.
 #
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
