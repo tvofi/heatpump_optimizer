@@ -19,6 +19,7 @@ const reg = await agent(
   `In ${repo}, check out ${branch}. Read the Round ${round} findings register in docs/audit-2026-09.md and every tools/audit/round${round}/D*/REPORT.md. Return JSON {findings: [{id, dimension, severity, title, claim, report_path, harness_paths: [..], attached_refutation: string|null}]} for every finding with status reported. Do not include corroborations of open issues.`,
   { label: 'read', schema: { type: 'object', required: ['findings'] } },
 )
+if (!reg) throw new Error('register read failed (agent returned null); relaunch')
 const byDim = {}
 for (const f of reg.findings) (byDim[f.dimension] ??= []).push(f)
 const panels = []
@@ -60,6 +61,8 @@ For every survivor and every kill that rested on a number: re-run the harness, r
 Write tools/audit/round${round}/JUDGE.md and return JSON {verdicts: [{id, verdict: "verified"|"weakened"|"refuted"|"unreproduced", severity, value, stop_rule_class, note}]}.`,
   { label: 'judge', schema: { type: 'object', required: ['verdicts'] } },
 )
+
+if (!judge) throw new Error('judge failed (agent returned null); relaunch to re-run the judge')
 
 phase('Issues and register')
 const writer = await agent(

@@ -36,10 +36,12 @@ const reportSchema = {
       type: 'array',
       items: {
         type: 'object',
-        required: ['id', 'title', 'severity', 'claim', 'evidence', 'instrumented_symbol', 'perturbation', 'metric_definition', 'stop_rule_class'],
+        required: ['id', 'title', 'severity', 'claim', 'evidence', 'instrumented_symbol', 'perturbation', 'metric_definition', 'stop_rule_class', 'files', 'proposed_fix_scope'],
         properties: {
           id: { type: 'string' }, title: { type: 'string' }, severity: { type: 'string' }, claim: { type: 'string' },
-          evidence: { type: 'object', required: ['command', 'harness_path', 'value', 'unit', 'cpu_or_wall', 'contention_note', 'tolerance', 'load1', 'thread_factor'] },
+          evidence: { type: 'object', required: ['command', 'harness_path', 'value', 'unit', 'baseline_sha', 'machine', 'cpu_or_wall', 'contention_note', 'tolerance', 'load1', 'thread_factor'] },
+          files: { type: 'array', items: { type: 'string' } },
+          proposed_fix_scope: { type: 'string' },
           instrumented_symbol: { type: 'string' },
           perturbation: { type: 'object', required: ['change', 'expected_direction'] },
           metric_definition: { type: 'string' },
@@ -63,6 +65,8 @@ const prep = await agent(
 Return JSON {exportDir, worktrees: {D0, D3, D9}, python, node}.`,
   { label: 'prepare', schema: { type: 'object', required: ['exportDir', 'worktrees', 'python'], properties: { exportDir: { type: 'string' }, worktrees: { type: 'object' }, python: { type: 'string' }, node: { type: 'string' } } } },
 )
+
+if (!prep) throw new Error('baseline preparation failed (agent returned null); relaunch')
 
 const finder = (dim) => agent(
   `You are the ${dim} auditor of round ${round}. Work only in ${ISOLATED.has(dim) ? prep.worktrees[dim] : prep.exportDir} (an export/worktree of baseline ${baseline}; no earlier audit records are in it and you must not go looking for them; do not run gh). Use the interpreter ${prep.python} with PYTHONPATH=tests/hastub from that directory's root.
@@ -95,10 +99,12 @@ Return JSON {quiet_path, retaken: [{id, value, load1, thread_factor, reproduced}
 )
 
 phase('Dedup')
+if (!quiet) log('quiet window agent returned null; provisional numbers stay provisional')
 if (missing.length) {
   log(`dedup refused: ${missing.join(', ')} not reported`)
   return { missing, reports, quiet }
 }
+if (!quiet) throw new Error('quiet window failed; relaunch to re-run it before dedup')
 const dedup = await agent(
   `You are the dedup step of audit round ${round}. Read the eleven reports at ${DIMS.map((d) => reports[d].report_path).join(', ')} and ${quiet.quiet_path}, and the register docs/audit-2026-09.md in ${repo} (Round 1 section: its findings, verdicts, issue numbers). Validate every finding's JSON against tools/audit/finding.schema.json (pip install jsonschema into the venv if needed); a finding that fails validation is listed as "rejected at intake" with the reason.
 Merge same-phenomenon findings into M-ids. Classify each finding: new; corroborates open issue #N (say which); regression of a released D-id (which release); matches a round-1 refuted finding (attach the refutation as one argument for the panel). Replace provisional numbers with the quiet ones; D3 findings are only the confirmed mutants.

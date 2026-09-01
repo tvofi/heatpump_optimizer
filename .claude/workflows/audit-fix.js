@@ -17,6 +17,8 @@ const fix = await agent(
   { label: `fix ${group}`, schema: { type: 'object', required: ['pr', 'head_sha'] } },
 )
 
+if (!fix?.pr) throw new Error('fixer returned no PR (agent null or refused); relaunch')
+
 phase('Review')
 const review = await agent(
   `You are the adversarial fix reviewer for PR #${fix.pr} (group ${group}). From ${repo}: git fetch origin; git worktree add ../audit-review-${group} ${fix.head_sha}. Read tools/audit/briefs/fix-review.md and follow it: re-run the mutation proof, measure with the finder's harness at ${baseline ?? 'origin/main before the PR'} and at ${fix.head_sha} printing your own RESULT lines, re-run null controls, compare claim files against env_drift.py --all (and card_drift.mjs for card changes) at the merge base, check VERSION/manifest/notes untouched, attack the fix at other configurations, confirm the head SHA in the body. Post your verdict as a PR comment (gh pr comment) beginning "Fix review: merge" or "Fix review: blocked — <why>", with the RESULT lines. Return {verdict, comment_url}.`,

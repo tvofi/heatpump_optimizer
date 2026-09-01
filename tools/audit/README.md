@@ -69,7 +69,7 @@ moves.
 | Need | Reuse | Note |
 |---|---|---|
 | A realistic coordinator payload | `tests/golden.py:_capture_coordinator(config)` and `coordinator_scenarios()` | 5 topologies (`coord_minimal`, `coord_dhw`, `coord_two_zone`, `coord_grid_fee`, `coord_all_features`); freezes the clock at `START`; injects 48 h of prices and forecasts; `_build_data_dict()` gives ~149 keys |
-| A plan scenario | `tests/golden.py:make(...)` and `SCENARIOS` (55) | `capture(name, spec)` records everything; `assert_invariants` runs on record and check |
+| A plan scenario | `tests/golden.py:make(...)` and `SCENARIOS` (49) | `capture(name, spec)` records everything; `assert_invariants` runs on record and check |
 | Every entity through the real setup | `tests/entities.py:collect(module, data, coordinator)` | drives `async_setup_entry`; `_honest_coordinator(extra_config, states, dhw)` builds a coordinator with one input cycle done |
 | A coordinator in feature tests | `tests/features.py:_t2_coord(states, **extra)` (131 uses), `_zone_coord`, `_write_coord` | `features.py` cannot be imported — copy the two-liner `HeatPumpOptimizerCoordinator(FakeHass(states), FakeEntry(data=cfg))` |
 | The CPU-time ruler | `tests/stress.py:reference_solve()` and `Calibration` | fixed L-BFGS-B over a seeded vector; never "improve" it |
