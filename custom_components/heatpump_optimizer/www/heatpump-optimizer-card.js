@@ -378,6 +378,30 @@ const STRINGS = {
     "headline.score": "Optimization score",
     "headline.score_title":
       "How well the whole installation is set up and running, 0–100.",
+    "headline.score_click_hint": "Click for what makes up the score.",
+    // The per-score explanations: one line each of what it measures and
+    // what a low value points at. Written for an owner staring at a 5/100
+    // and wanting to know where the 95 went.
+    "score.part_overall":
+      "The average of whichever scores below have evidence. " +
+      "Not a score of its own.",
+    "score.part_envelope":
+      "House: how long the building holds its stored heat " +
+      "(time constant). Low points at a leaky envelope — insulation, or a " +
+      "learned heat loss worse than configured.",
+    "score.part_machine":
+      "Machine: the heat pump's observed efficiency against its own " +
+      "baseline. Low points at the pump drawing more electricity than its " +
+      "history says it should — see the COP health diagnostics.",
+    "score.part_operation":
+      "Driving: whether the plan buys at the cheap hours. Yesterday's " +
+      "energy replayed against the day's flat average price — buying 20% " +
+      "below flat scores 100, buying at or above flat scores 0.",
+    "score.no_evidence": "No evidence yet — not a zero.",
+    // Short names for the breakdown rows; the explanations follow below.
+    "score.label_envelope": "House",
+    "score.label_machine": "Heat pump",
+    "score.label_operation": "Driving",
     // The percent is a template because the spacing is orthographic:
     // English sets "(8%)", Swedish "(8 %)".
     "headline.savings_pct": "({pct}%)",
@@ -722,6 +746,26 @@ const STRINGS = {
     "headline.score": "Optimeringsbetyg",
     "headline.score_title":
       "Hur väl hela anläggningen är inställd och fungerar, 0–100.",
+    "headline.score_click_hint": "Klicka för att se vad betyget består av.",
+    "score.part_overall":
+      "Genomsnittet av de delbetyg nedan som har underlag. " +
+      "Intet eget betyg.",
+    "score.part_envelope":
+      "Huset: hur länge byggnaden håller kvar sin lagrade värme " +
+      "(tidskonstant). Lågt pekar på ett läckande klimatskal — isolering, " +
+      "eller en inlärd värmeförlust sämre än den konfigurerade.",
+    "score.part_machine":
+      "Maskinen: värmepumpens uppmätta effektivitet mot sitt eget " +
+      "baslinjevärde. Lågt pekar på att pumpen drar mer el än sitt eget " +
+      "historik säger — se COP-hälsodiagnostiken.",
+    "score.part_operation":
+      "Körningen: om planen köper på de billiga timmarna. Gårdagens " +
+      "energi omspelad mot dagens platta medelpris — 20% under platt " +
+      "ger 100, på eller över platt ger 0.",
+    "score.no_evidence": "Inget underlag ännu — inte noll.",
+    "score.label_envelope": "Huset",
+    "score.label_machine": "Värmepumpen",
+    "score.label_operation": "Körningen",
     "headline.savings_pct": "({pct} %)",
 
     "slots.slot_aria":
@@ -2355,6 +2399,34 @@ function cardStyleBlock() {
         font-size: 0.82em; font-style: italic;
         color: var(--secondary-text-color);
       }
+      .hl-stat.hl-score { cursor: pointer; }
+      /* Click-opened score breakdown (#2): one row per sub-score. */
+      .score-breakdown {
+        display: flex; flex-direction: column; gap: 6px;
+        padding: 6px 8px; margin-top: 2px;
+        border: 1px solid var(--divider-color, #e0e0e0);
+        border-radius: 6px;
+      }
+      .sb-row { display: flex; flex-direction: column; gap: 1px; }
+      .sb-head {
+        display: flex; align-items: center; gap: 8px; font-size: 0.82em;
+      }
+      .sb-name { font-weight: 600; color: var(--primary-text-color); }
+      .sb-bar {
+        flex: 1; height: 4px; border-radius: 2px;
+        background: var(--divider-color, #e0e0e0);
+        overflow: hidden; display: inline-block;
+      }
+      .sb-fill {
+        display: block; height: 100%;
+        background: var(--primary-color, #03a9f4);
+      }
+      .sb-val { font-weight: 600; color: var(--primary-text-color); }
+      .sb-na {
+        font-weight: 400; color: var(--secondary-text-color);
+        font-style: italic;
+      }
+      .sb-text { font-size: 0.78em; color: var(--secondary-text-color); }
       .legend {
         display: flex; flex-wrap: wrap; gap: 6px; padding: 0 2px 8px 2px;
       }
@@ -2914,6 +2986,9 @@ class HeatpumpOptimizerCard extends HTMLElement {
     this._hass = null;
     this._sig = null;
     this._hidden = {}; // key -> true when hidden
+    // Whether the score breakdown panel is open (#2). Instance state, not
+    // DOM state, so it survives the shadow-root rebuild every refresh does.
+    this._scoreOpen = false;
     this._series = [];
     this._plot = null;
     this._resizeObserver = null;
@@ -3649,9 +3724,25 @@ class HeatpumpOptimizerCard extends HTMLElement {
 
     const score = this._statNumber("_optimization_score");
     if (score !== null) {
+      // The hover says what the score is; the sub-scores ride the same
+      // sensor's attributes, so the hover can also say what it is MADE OF
+      // -- an owner staring at 5/100 wants to know where the 95 went
+      // before deciding anything.
+      const parts = this._scoreParts();
+      const breakdown = parts
+        .map(
+          (p) =>
+            `${p.label}: ${
+              p.value === null ? L("score.no_evidence") : `${Math.round(p.value)}/100`
+            }`
+        )
+        .join(" · ");
       items.push({
         cls: "score",
-        title: L("headline.score_title"),
+        title:
+          L("headline.score_title") +
+          (breakdown ? `\n${breakdown}` : "") +
+          `\n${L("headline.score_click_hint")}`,
         label: L("headline.score"),
         value: `${Math.round(score)}/100`,
       });
@@ -3672,15 +3763,68 @@ class HeatpumpOptimizerCard extends HTMLElement {
     const stats = items
       .map(
         (it) =>
-          `<span class="hl-stat hl-${it.cls}" title="${esc(it.title)}">` +
+          // data-stat gives the DOM stub's selector a single-attribute
+          // handle (its matches() knows tag[attr=value], not multi-class)
+          // and costs the real DOM nothing.
+          `<span class="hl-stat hl-${it.cls}" data-stat="${it.cls}" ` +
+          `title="${esc(it.title)}">` +
           `<span class="hl-label">${esc(it.label)}</span> ` +
           `<span class="hl-value">${esc(it.value)}</span></span>`
       )
       .join("");
     return `<div class="headline">
       ${stats ? `<div class="hl-stats">${stats}</div>` : ""}
+      ${this._scoreOpen && score !== null ? this._scoreBreakdownHtml() : ""}
       ${line ? `<div class="hl-narrative">${esc(line)}</div>` : ""}
     </div>`;
+  }
+
+  /** The score sensor's three sub-scores, in display order.
+   *
+   * Read from the same entity the headline number comes from, so the two
+   * can never disagree. A null value is "no evidence yet", never zero --
+   * a fresh install has no grades, not failing ones, and the panel says
+   * so rather than printing 0/100 for something unmeasured.
+   */
+  _scoreParts() {
+    const st = this._statEntity("_optimization_score");
+    const attrs = (st && st.attributes) || {};
+    return [
+      { key: "envelope", label: L("score.label_envelope"), value: this._finiteScore(attrs.envelope) },
+      { key: "machine", label: L("score.label_machine"), value: this._finiteScore(attrs.machine) },
+      { key: "operation", label: L("score.label_operation"), value: this._finiteScore(attrs.operation) },
+    ];
+  }
+
+  _finiteScore(v) {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  /** The click-opened panel: each sub-score, its value, and what it means.
+   *
+   * Rendered under the stats row when `this._scoreOpen` is set; the flag
+   * lives on the instance, so it survives the shadow-root rebuild that
+   * every plan refresh performs.
+   */
+  _scoreBreakdownHtml() {
+    const rows = this._scoreParts()
+      .map((p) => {
+        const value =
+          p.value === null
+            ? `<span class="sb-na">${esc(L("score.no_evidence"))}</span>`
+            : `<span class="sb-val">${Math.round(p.value)}/100</span>`;
+        const bar = p.value === null ? "" : `<span class="sb-bar"><span class="sb-fill" style="width:${Math.max(0, Math.min(100, p.value))}%"></span></span>`;
+        return (
+          `<div class="sb-row" data-part="${p.key}">` +
+          `<div class="sb-head"><span class="sb-name">${esc(p.label)}</span>` +
+          `${bar}${value}</div>` +
+          `<div class="sb-text">${esc(L(`score.part_${p.key}`))}</div>` +
+          `</div>`
+        );
+      })
+      .join("");
+    return `<div class="score-breakdown">${rows}</div>`;
   }
 
   _render() {
@@ -3764,6 +3908,31 @@ class HeatpumpOptimizerCard extends HTMLElement {
 
     const expandBtn = this.shadowRoot.querySelector(".expand");
     if (expandBtn) expandBtn.addEventListener("click", this._onExpandClick);
+
+    // The score stat's click toggles the breakdown panel (#2). stopPropagation
+    // matters: the card's own open-on-click handler sits on ha-card and would
+    // otherwise swallow the toggle into "open the expanded dialog", which is
+    // exactly the wrong response to a click that asks "what does 5/100 mean".
+    const scoreStat = this.shadowRoot.querySelector('[data-stat="score"]');
+    if (scoreStat) {
+      scoreStat.setAttribute("role", "button");
+      scoreStat.setAttribute("tabindex", "0");
+      scoreStat.setAttribute(
+        "aria-label", `${L("headline.score")} — ${L("headline.score_click_hint")}`
+      );
+      scoreStat.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        this._scoreOpen = !this._scoreOpen;
+        this._render();
+      });
+      scoreStat.addEventListener("keydown", (ev) => {
+        if (ev.key !== "Enter" && ev.key !== " ") return;
+        ev.preventDefault();
+        ev.stopPropagation();
+        this._scoreOpen = !this._scoreOpen;
+        this._render();
+      });
+    }
 
     const card = this.shadowRoot.querySelector("ha-card");
     if (card && expandable) card.addEventListener("click", this._onCardClick);
