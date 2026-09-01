@@ -12413,6 +12413,16 @@ _fr_coord = Coord(_fr_hass, _FakeEntry(data=_LC_DATA))
 _fr_calls: list[str] = []
 
 
+async def _fr_prices_ok() -> None:
+    # D10-07 made a failed Tibber fetch fail the whole update (entities go
+    # unavailable -- the honest signal). These two checks are about the
+    # solve-skip flag, not the fetch, so the fetch succeeds trivially.
+    _fr_coord._prices = [{"total": 1.0, "starts_at": "2026-03-28T00:00:00Z"}] * 24
+
+
+_fr_coord._fetch_tibber_prices = _fr_prices_ok
+
+
 async def _fr_boom() -> None:
     _fr_calls.append("boom")
     raise AssertionError("the setup refresh ran the solve")
@@ -12448,6 +12458,101 @@ R.check(
     "the second refresh solves normally — the flag never latches",
     _fr_calls == ["solved"] and isinstance(_fr_data2, dict),
     f"solve calls: {_fr_calls}",
+)
+
+# --- D10-06 / D10-07 / D10-09: unload lifecycle and Tibber failure --------
+R.section("Unload lifecycle and Tibber failure semantics (D10-06/07/09)")
+
+from heatpump_optimizer.const import CONF_TIBBER_TOKEN as _CONF_TIBBER_TOKEN  # noqa: E402
+
+# D10-07: a failed price fetch must FAIL the update. Every failure path used
+# to return silently, so last_update_success never moved and the entities
+# stayed available forever behind stale prices. The stub's session getter
+# raises, which is exactly one such failure.
+_tib = Coord(_FakeHass(), _FakeEntry(data=_LC_DATA))
+_tib._config[_CONF_TIBBER_TOKEN] = "stub-token"
+_tib_raised = None
+try:
+    _asyncio.run(_tib._fetch_tibber_prices())
+except Exception as err:  # noqa: BLE001 - the specific class is the assertion
+    _tib_raised = err
+R.check(
+    "a failed Tibber fetch raises UpdateFailed, failing the update cycle",
+    type(_tib_raised).__name__ == "UpdateFailed",
+    f"raised {type(_tib_raised).__name__}: {_tib_raised}",
+)
+
+# D10-09: the outage latches. The first failure logs ERROR; the second must
+# not -- a day-long outage used to print the same ERROR on every cycle.
+_tib._tibber_outage_cycles = 0
+for _ in range(2):
+    try:
+        _asyncio.run(_tib._fetch_tibber_prices())
+    except Exception:  # noqa: BLE001 - expected
+        pass
+R.check(
+    "two failed fetches count two outage cycles (the ERROR logged once)",
+    _tib._tibber_outage_cycles == 2,
+    f"cycles: {_tib._tibber_outage_cycles}",
+)
+_tib._tibber_fetch_recovered()
+R.check(
+    "a successful fetch clears the outage latch",
+    _tib._tibber_outage_cycles == 0,
+    f"cycles: {_tib._tibber_outage_cycles}",
+)
+
+# D10-06: the override must run the base class's shutdown. Real HA's
+# async_shutdown stops the refresh debouncer and any in-flight refresh; an
+# override that drops super() leaks both on every unload/reload. The stub
+# records the call for exactly this assertion.
+_shut = Coord(_FakeHass(), _FakeEntry(data=_LC_DATA))
+_asyncio.run(_shut.async_shutdown())
+R.check(
+    "async_shutdown runs the base class's shutdown (timer/debouncer leak)",
+    _shut.base_shutdown_called,
+    "the override dropped super().async_shutdown()",
+)
+
+# D1-02 hygiene: fire-and-forget tasks are tracked, and shutdown lets them
+# finish rather than orphaning them against a torn-down entry. The shared
+# FakeHass closes spawned coroutines (nothing awaits setup tasks there), so
+# this one runs on a local hass stand-in whose create_task is real.
+class _TaskHass(_FakeHass):
+    def async_create_task(self, coro):
+        import asyncio as _aio
+
+        try:
+            loop = _aio.get_running_loop()
+        except RuntimeError:
+            # Constructed outside a loop, like the shared fake: close.
+            coro.close()
+            return None
+        return loop.create_task(coro)
+
+
+_bg = Coord(_TaskHass(), _FakeEntry(data=_LC_DATA))
+_bg_done = {"n": 0}
+
+
+async def _bg_drive() -> None:
+    async def _bg_save() -> None:
+        _bg_done["n"] += 1
+
+    _bg_task = _bg._spawn(_bg_save())
+    R.check(
+        "a spawned task is tracked until it lands",
+        _bg_task in _bg._background_tasks and not _bg_task.done(),
+        "the tracker never saw the task",
+    )
+    await _bg.async_shutdown()
+
+
+_asyncio.run(_bg_drive())
+R.check(
+    "shutdown lets a pending background save finish",
+    _bg_done["n"] == 1 and not _bg._background_tasks,
+    f"saves done: {_bg_done['n']}, still tracked: {len(_bg._background_tasks)}",
 )
 
 # A save that changes nothing must not reload. The options flow rewrites the
