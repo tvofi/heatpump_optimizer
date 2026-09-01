@@ -60,6 +60,10 @@ reported as a connection problem rather than as a bad token.
 | Lower floor temperature sensor | none | Two-zone houses only. Without it the lower zone is modelled from the main room sensor and labelled as modelled on the plan chart; a repair notice says so. |
 | Hot water tank temperature sensor | none | Recommended. Lets a manual hot-water boost reset the anti-legionella timer, and unlocks the learned draw quantiles. Without one, a disinfection cycle the plan commands resets the countdown but is recorded as an *attempt* rather than a verified cycle, and a note in Repairs says the cycle cannot be verified. |
 | Buffer tank temperature sensor | none | When set, the tank's cooling rate is learned instead of assumed. |
+| Heat pump operating mode | none | The pump's own mode selector — cooling, heating, hot water, or a combination of two. Read only: the optimizer never changes it. Left empty, the optimizer assumes the pump can do everything, exactly as before. |
+| Defrosting | none | On while the pump reverses to melt frost off the outdoor coil. A sample of defrost activity, not a stopwatch — many pumps are only polled every few minutes. |
+| Pump online | none | Strongly recommended for a cloud-connected pump. On while the pump is actually reachable, which a stale cloud republish cannot tell you on its own. |
+| Fault alarm | none | On while the pump is reporting a fault. Only whether there is a fault is used, never the code itself. |
 
 The Danfoss ECL110 MQTT fields were asked here until v4.1.0. Eight questions
 only ECL110 owners can answer do not belong on everyone's first screen, so they
@@ -315,8 +319,8 @@ beforehand instead of at whatever the price is when you walk in.
 
 ### Sensors and entities
 
-Everything the optimizer reads — eighteen fields in all. Clearing a field
-genuinely clears it. Twelve of them are the same fields offered during setup
+Everything the optimizer reads — 22 fields in all. Clearing a field
+genuinely clears it. Sixteen of them are the same fields offered during setup
 step 1, with the same meanings; the remaining six are the meters and the
 compressor-frequency path.
 
@@ -328,6 +332,7 @@ compressor-frequency path.
 | Solar radiation sensor, source, location | from setup | — | See setup step 1. |
 | Hot water tank, buffer tank, floor return, lower floor sensors | from setup | temperature sensors | See setup step 1. |
 | Heat pump on/off switch | from setup | a `switch` | See setup step 1. |
+| Heat pump mode, defrost, online, fault | from setup | see setup step 1 | See setup step 1. |
 | Heat pump power meter | none | a `power` sensor | Actual electrical draw. With it, efficiency becomes measurable, predicted cost gets a real counterpart, and a wood fire is detected reliably. Several sensors stay unavailable without it. |
 | Heat pump energy meter | none | an `energy` sensor | A cumulative kWh meter is more accurate than adding up power readings, which misses short runs. |
 | Whole-house power meter | none | a `power` sensor | A capacity tariff is billed on the whole house, so without this the peak being avoided is only part of the real one. |
@@ -600,11 +605,13 @@ would never open is rejected — checked against the values that *would* be
 stored, not only against the ones in the call.
 
 **`assign_entity`** assigns or clears one optional sensor slot: `key` is one of
-the 17 assignable configuration keys (`outdoor_temp_entity`,
+the 21 assignable configuration keys (`outdoor_temp_entity`,
 `solar_radiation_entity`, `pv_production_entity`, `indoor_temp_entity`,
 `lower_floor_temp_entity`, `floor_return_temp_entity`,
 `heat_pump_switch_entity`, `heat_pump_power_entity`, `heat_pump_energy_entity`,
-`house_power_entity`, `buffer_tank_temp_entity`, `mixing_valve_target_entity`,
+`house_power_entity`, `heat_pump_mode_entity`, `heat_pump_defrost_entity`,
+`heat_pump_online_entity`, `heat_pump_fault_entity`,
+`buffer_tank_temp_entity`, `mixing_valve_target_entity`,
 `dhw_temp_entity`, `external_heat_entity`, `wood_tank_top_entity`,
 `wood_tank_bottom_entity`, `valve_outlet_temp_entity`) and `entity_id` is the
 entity to put there — an empty string clears the slot. The entity must exist
