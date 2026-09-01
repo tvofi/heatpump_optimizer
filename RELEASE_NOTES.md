@@ -1,5 +1,31 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.1.1
+
+### The card's two clean seams leave the god class
+
+The card file was a 7,900-line god class with 182 methods at the last
+audit, growing ~50 % since the second audit flagged it (issue #95).
+The two seams that audit identified — the stylesheet and the setup
+diagram — are now top-level functions instead of members:
+
+- `cardStyleBlock()`: the whole CSS as one pure string — 607 lines,
+  zero instance state.
+- `setupSvgHtml(topo, ctx)`: the setup diagram's own rendering path —
+  515 lines — taking the layout-editing state explicitly and returning
+  the laid-out boxes so the thin method keeps the one side effect the
+  class owns.
+
+The class proper shrank from ~7,600 to 4,895 lines. No behaviour
+change: every literal-tested contract is unmoved, and the card test
+suite plus the QA renderer's three SVGs pass unchanged. The browser
+lane from v6.1.0 is the geometry net that makes a refactor of this
+size safe, which is why this was queued behind it.
+
+A 4,895-line class is still a god class; this takes the two seams that
+extract cleanly, as the issue scoped, and leaves the rest for whoever
+finds the third.
+
 ## v6.1.0
 
 ### The real-browser layout lane: geometry the DOM stub cannot see
