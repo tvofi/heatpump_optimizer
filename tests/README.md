@@ -214,6 +214,7 @@ export PYTHONPATH=tests/hastub
 
 python tests/features.py     # the feature modules, driven directly
 python tests/entities.py     # entities, platforms, options pages, translations
+python tests/manual_plan.py  # manual plan pinning: parsing, solver interaction, safety release
 python tests/open_meteo.py   # the irradiance client
 python tests/solar_alignment.py  # irradiance lands on the right optimizer steps
 python tests/golden.py       # exact behaviour, pinned (--record to re-record)
@@ -226,6 +227,7 @@ python tests/optimality.py   # solution-quality floor against cheap challengers
 python tests/env_drift.py    # sensitive fixtures vs origin/main, same machine
 python tests/plan_view.py    # plan sensor payloads, writes /tmp/plandata.json
 node   tests/card.mjs        # renders the dashboard card against that payload
+node   tests/setup_qa_render.mjs  # setup-page SVGs off the same payload, for designer review
 ```
 
 `profiles.py` holds Nord Pool SE3 price curves and Swedish weather profiles for
