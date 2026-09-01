@@ -183,7 +183,7 @@
         },
         "data_description": {
           "dhw_schedule_enabled": "On: hot water is guaranteed only during the times below, and the tank may cool down in between. Off: the tank is kept hot around the clock, which costs noticeably more.",
-          "dhw_windows": "24-hour times separated by commas, for example 06:00-08:30, 17:00-22:00. The tank is heated in the cheapest hours before each period. Leave empty to let the integration learn your habits from actual usage.",
+          "dhw_windows": "Times hot water must be available, e.g. 06:00-08:30, 17:00-22:00. Different days can get different times with a day selector: 'weekdays 06:00-08:30, weekend 08:00-09:30', or specific days: 'Mo 05:30-07:00, Tu-Fr 06:00-08:00, Sa,Su 08:00-09:30'. Without a selector the times apply every day.",
           "dhw_min_temperature": "The temperature the tank is guaranteed to reach during the periods above. Around 45 C is enough for a normal shower.",
           "dhw_idle_min_temperature": "How cold the tank is allowed to get outside those periods. Lower saves more. The default is roughly room temperature, meaning no energy is spent at all.",
           "dhw_setpoint": "An upper limit on charging, not a target. The tank is only filled this high when storing extra cheap heat pays off. It is never heated to this just for the sake of it.",
@@ -372,7 +372,7 @@
         },
         "data_description": {
           "dhw_schedule_enabled": "On: hot water is guaranteed only during the times below, and the tank may cool down in between. Off: the tank is kept hot around the clock, which costs noticeably more.",
-          "dhw_windows": "24-hour times separated by commas, for example 06:00-08:30, 17:00-22:00. The tank is heated in the cheapest hours before each period. Leave empty to let the integration learn your habits from actual usage.",
+          "dhw_windows": "Times hot water must be available, e.g. 06:00-08:30, 17:00-22:00. Different days can get different times with a day selector: 'weekdays 06:00-08:30, weekend 08:00-09:30', or specific days: 'Mo 05:30-07:00, Tu-Fr 06:00-08:00, Sa,Su 08:00-09:30'. Without a selector the times apply every day.",
           "dhw_min_temperature": "The temperature the tank is guaranteed to reach during the periods above. Around 45 C is enough for a normal shower.",
           "dhw_idle_min_temperature": "How cold the tank is allowed to get outside those periods. Lower saves more. The default is roughly room temperature, meaning no energy is spent at all.",
           "dhw_setpoint": "An upper limit on charging, not a target. The tank is only filled this high when storing extra cheap heat pays off. It is never heated to this just for the sake of it.",

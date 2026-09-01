@@ -110,6 +110,7 @@ from .dhw_schedule import (
     FULL_DAY,
     Window,
     overlap_fraction,
+    parse_weekly_windows,
     parse_windows,
 )
 
@@ -373,6 +374,13 @@ class ThermalParameters:
     # DHW demand windows (time frames where hot water must be available)
     dhw_schedule_enabled: bool = DEFAULT_DHW_SCHEDULE_ENABLED
     dhw_windows: list[Window] = field(default_factory=list)
+    #: The seven-day window structure when the configured spec carries day
+    #: selectors (weekly windows, owner request #3); None when it does not,
+    #: which is every spec written before the feature and the common case.
+    #: ``dhw_windows`` above is always the merged every-day view, so every
+    #: existing consumer keeps working unchanged; day-aware consumers ask
+    #: this instead.
+    dhw_weekly_windows: list[list[Window]] | None = None
     dhw_idle_min_temp: float = DEFAULT_DHW_IDLE_MIN_TEMP  # °C outside windows
 
     # Anti-legionella cycle
@@ -938,6 +946,11 @@ class ThermalParameters:
         windows_spec = config.get(const.CONF_DHW_WINDOWS, DEFAULT_DHW_WINDOWS)
         try:
             values["dhw_windows"] = parse_windows(windows_spec)
+            # Weekly windows (#3): None unless the spec names days, so the
+            # field costs nothing on the flat specs every install has.
+            # Parsed with the same call the optimizer will use, so the two
+            # structures can never disagree about what was configured.
+            values["dhw_weekly_windows"] = parse_weekly_windows(windows_spec)
         except DHWWindowError as err:
             _LOGGER.warning(
                 "Invalid DHW window configuration %r (%s); falling back to "
@@ -946,6 +959,7 @@ class ThermalParameters:
                 err,
             )
             values["dhw_windows"] = []
+            values["dhw_weekly_windows"] = None
 
         return cls(**values)
 

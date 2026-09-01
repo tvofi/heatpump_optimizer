@@ -183,7 +183,7 @@
         },
         "data_description": {
           "dhw_schedule_enabled": "På: varmvatten garanteras bara under tiderna nedan, och beredaren får svalna däremellan. Av: beredaren hålls varm dygnet runt, vilket kostar märkbart mer.",
-          "dhw_windows": "Tider i 24-timmarsformat separerade med komma, till exempel 06:00-08:30, 17:00-22:00. Beredaren laddas under de billigaste timmarna före varje period. Lämna tomt så lär sig integrationen dina vanor från faktisk användning.",
+          "dhw_windows": "Tider då varmvatten måste finnas, t.ex. 06:00-08:30, 17:00-22:00. Olika dagar kan få olika tider med en dagväljare: 'weekdays 06:00-08:30, weekend 08:00-09:30' eller 'Mo 05:30-07:00, Tu-Fr 06:00-08:00, Sa,Su 08:00-09:30'. Utan väljare gäller tiderna varje dag.",
           "dhw_min_temperature": "Temperaturen beredaren garanterat når under perioderna ovan. Runt 45 C räcker för en vanlig dusch.",
           "dhw_idle_min_temperature": "Hur kall beredaren får bli utanför dessa perioder. Lägre sparar mer. Standardvärdet motsvarar ungefär rumstemperatur, alltså att ingen energi alls läggs på beredaren.",
           "dhw_setpoint": "En övre gräns för laddning, inte ett mål. Beredaren fylls bara så här högt när det lönar sig att lagra extra billig värme. Den värms aldrig hit bara för sakens skull.",
@@ -372,7 +372,7 @@
         },
         "data_description": {
           "dhw_schedule_enabled": "På: varmvatten garanteras bara under tiderna nedan, och beredaren får svalna däremellan. Av: beredaren hålls varm dygnet runt, vilket kostar märkbart mer.",
-          "dhw_windows": "Tider i 24-timmarsformat separerade med komma, till exempel 06:00-08:30, 17:00-22:00. Beredaren laddas under de billigaste timmarna före varje period. Lämna tomt så lär sig integrationen dina vanor från faktisk användning.",
+          "dhw_windows": "Tider då varmvatten måste finnas, t.ex. 06:00-08:30, 17:00-22:00. Olika dagar kan få olika tider med en dagväljare: 'weekdays 06:00-08:30, weekend 08:00-09:30' eller 'Mo 05:30-07:00, Tu-Fr 06:00-08:00, Sa,Su 08:00-09:30'. Utan väljare gäller tiderna varje dag.",
           "dhw_min_temperature": "Temperaturen beredaren garanterat når under perioderna ovan. Runt 45 C räcker för en vanlig dusch.",
           "dhw_idle_min_temperature": "Hur kall beredaren får bli utanför dessa perioder. Lägre sparar mer. Standardvärdet motsvarar ungefär rumstemperatur, alltså att ingen energi alls läggs på beredaren.",
           "dhw_setpoint": "En övre gräns för laddning, inte ett mål. Beredaren fylls bara så här högt när det lönar sig att lagra extra billig värme. Den värms aldrig hit bara för sakens skull.",
