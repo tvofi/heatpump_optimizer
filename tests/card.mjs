@@ -5870,6 +5870,41 @@ const setupBox = (card, place) =>
     `${renders} render(s) after removal`);
 }
 
+
+// --- #139: one reading of a plan sensor's forecast ------------------------------
+// The chart read a forecast through `forecast` (unavailable means none; a
+// JSON string is parsed) and the slot editor through `forecastOf` (the raw
+// attribute, array or nothing). A sensor gone unavailable with its last
+// forecast still attached was therefore "no plan" to the chart and "a plan"
+// to the lanes, the bounds, the delta and the apply payload.
+{
+  const st = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  st[DEFAULT_DHW].state = "unavailable";
+  const gone = build(st, { what_if: true });
+  gone._onCardClick({});
+  check("an unavailable channel has no forecast for the editor either",
+    gone.plan.forecastOf("dhw").length === 0 && gone.manual.draft().dhw.length === 0,
+    `${gone.plan.forecastOf("dhw").length} steps, ${gone.manual.draft().dhw.length} runs`);
+  check("while the other channel still does",
+    gone.plan.forecastOf("space").length > 0 && gone.manual.draft().space.length > 0);
+  // ...so Apply leaves the unavailable channel automatic rather than pinning
+  // the stale arrangement: the payload omits it.
+  const calls = [];
+  gone._hass = { states: gone._hass.states, callService: async (d, s2, data) => { calls.push(data); return {}; } };
+  gone.manual.apply();
+  await new Promise((r) => setTimeout(r, 0));
+  check("and Apply omits it instead of pinning stale slots",
+    calls.length === 1 && !("dhw_slots" in calls[0]) && "space_slots" in calls[0],
+    JSON.stringify(calls[0] || null));
+
+  const st2 = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  st2[DEFAULT_DHW].attributes.forecast = JSON.stringify(st2[DEFAULT_DHW].attributes.forecast);
+  const stringy = build(st2, { what_if: true });
+  stringy._onCardClick({});
+  check("a forecast published as a JSON string reaches the editor as the chart already saw it",
+    stringy.plan.forecastOf("dhw").length > 0 && stringy.manual.draft().dhw.length > 0);
+}
+
 // --- The host stays small ---------------------------------------------------
 // The decomposition (#136) left the element with the Lovelace contract, the
 // render cycle and its compositions, and nothing else. A ratchet, not a
