@@ -22,8 +22,9 @@ Three Home Assistant quality-scale fixes (audit round 1):
 Also: the deferred `hass.async_create_task` calls are tracked so
 shutdown can let in-flight saves finish (the hygiene residue of the
 refuted D1-02 leak finding). Mutation-proved: deleting the `super()`
-call fails the new check. This release also carries the first three
-card-decomposition refactors (#146, #147, #157), behaviour-neutral.
+call fails the new check. This release also carries the first four
+card-decomposition refactors (#146, #147, #149, #157),
+behaviour-neutral.
 
 ## v6.2.11
 
