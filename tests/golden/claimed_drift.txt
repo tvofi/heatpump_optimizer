@@ -43,11 +43,11 @@
 # does not expire with the stamp and is not part of the inherited-claims
 # comparison.
 #
-# claims-for: 6.1.1
+# claims-for: 6.1.2
 #
-# Card-source restructuring only (#95): pure code movement behind
-# same-named thin seams, no rendering arithmetic touched, so no
-# golden moves.
+# Test-infrastructure only (the renderer joins the card lane
+# on one shared stub); no solver path touched, so no golden
+# moves.
 #
 # Emptying it is not housekeeping. A behaviour-free branch that leaves this
 # file alone inherits the baseline's claims verbatim, and inheritance

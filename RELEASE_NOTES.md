@@ -1,5 +1,24 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.1.2
+
+### The visual-QA renderer runs in every gate, on one shared DOM stub
+
+The renderer was referenced three times and every reference was an
+exclusion — never ran, never could — while carrying a verbatim copy of
+an *earlier* revision of the card test's DOM stub, already drifted
+(issue #101): no `blur()`, terse `textContent`, none of the focus
+semantics. A dormant file whose whole value is being right when
+someone reaches for it.
+
+`tests/dom_stub.mjs` now owns the stub; both harnesses build it
+against their own document. The renderer runs in the card lane of
+every gate, right after the card test, reading the payload
+`plan_view.py` just wrote: three setup SVGs per run, failing if any
+topology's svg comes out empty. It stays unselectable in the closures
+roster (the rolling.py pattern) — its dependencies are the card source
+and the payload, both already covered.
+
 ## v6.1.1
 
 ### The card's two clean seams leave the god class
