@@ -11,7 +11,7 @@
 
 const CARD_TAG = "heatpump-optimizer-card";
 const EDITOR_TAG = "heatpump-optimizer-card-editor";
-const CARD_VERSION = "5.4.16";
+const CARD_VERSION = "5.4.17";
 
 // The de-duplication key `_extraFields` files a confidence band's two
 // edges under, so the pair counts as the one named trace it is. A Symbol
@@ -6976,7 +6976,6 @@ class SetupPage {
     // into it, and back to the row on the way out), and whether an Assign
     // that would CLEAR the slot has been armed.
     this.pickerKey = null;
-    this.pickerSlot = null;
     this.pickerFilter = "";
     this.pickerChoice = null;
     this.pickerFocus = false;
@@ -6985,6 +6984,17 @@ class SetupPage {
     this.clearTimer = null;
     // The status line under the diagram, re-applied after every rebuild.
     this.note = null;
+  }
+
+  /** The slot the open picker is for, read afresh from the topology the
+   * card holds now (#140). It used to be remembered from inside the
+   * picker's own markup builder -- a render with a side effect -- and a
+   * topology republished mid-visit (an assignment reloads the integration)
+   * could leave the memo describing a slot that no longer says that. */
+  openSlot() {
+    if (!this.pickerKey) return null;
+    const topo = this.host.plan.attrRaw("setup_topology", null);
+    return ((topo && topo.slots) || []).find((s) => s.key === this.pickerKey) || null;
   }
 
   /** Put the status line back after a rebuild replaced its element. */
@@ -7009,11 +7019,6 @@ class SetupPage {
     if (!key) return "";
     const slot = (topo.slots || []).find((s) => s.key === key);
     if (!slot) return "";
-    // The open picker's slot, for the handlers: the filter box rebuilds the
-    // option list without re-rendering the page (which would take the focus
-    // out of the input the user is typing into), and needs the same slot
-    // this render used.
-    this.pickerSlot = slot;
     const model = this.pickerModel(slot);
     const filter = this.pickerFilter || "";
     return `
@@ -7146,7 +7151,6 @@ class SetupPage {
   /** Close the picker, dropping everything that belonged to that visit. */
   closePicker() {
     this.pickerKey = null;
-    this.pickerSlot = null;
     this.pickerViaKeyboard = false;
     this.pickerFilter = "";
     this.pickerChoice = null;
@@ -7342,7 +7346,7 @@ class SetupPage {
       filterBox.addEventListener("input", (ev) => {
         const target = ev.currentTarget || ev.target;
         this.pickerFilter = (target && target.value) || "";
-        const slot = this.pickerSlot;
+        const slot = this.openSlot();
         if (!slot) return;
         const model = this.pickerModel(slot);
         const list = picker.querySelector(".sp-select");
@@ -7386,7 +7390,7 @@ class SetupPage {
         ev.stopPropagation();
         const select = picker.querySelector(".sp-select");
         const key = this.pickerKey;
-        const slot = this.pickerSlot;
+        const slot = this.openSlot();
         // What Assign will write is the choice the card remembered, not
         // whatever the `<select>` reports. That element is rebuilt on every
         // keystroke of the filter, and reading an answer back out of a
