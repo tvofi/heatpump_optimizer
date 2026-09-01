@@ -1824,6 +1824,69 @@ R.check(
 )
 
 
+# --- D4-08 (#171): the form's verdict on a window spec ----------------------
+# ``parse_windows`` stays permissive on purpose (a stored spec must keep
+# loading); ``spec_problem`` is the form's stricter view, and it is a
+# separate function so the two cannot drift into one.
+from heatpump_optimizer.const import DEFAULT_DHW_WINDOWS as _win_default
+from heatpump_optimizer.dhw_schedule import (
+    ERROR_INVALID as _win_invalid,
+    ERROR_TOO_SHORT as _win_short,
+    MIN_WINDOW_MINUTES as _win_min,
+    hour_in_windows as _win_in,
+    spec_problem as _win_problem,
+    window_minutes as _win_len,
+)
+from heatpump_optimizer.optimizer import OptimizationConfig as _WinCfg
+
+R.check(
+    "the shortest window the form accepts is one planning step",
+    _win_min == _WinCfg().time_step_minutes,
+    f"{_win_min} vs {_WinCfg().time_step_minutes}",
+)
+R.check(
+    "a window shorter than a step binds no step start at all",
+    not any(_win_in(i / 4.0, _parse_w("06:05-06:06")) for i in range(96)),
+    "if it bound one, the finding's 'meaningless' would be wrong",
+)
+R.check(
+    "the form's verdict names the one-minute window",
+    _win_problem("06:05-06:06") == _win_short
+    and _win_problem("06:00-08:30, 17:00-17:01") == _win_short,
+    f"{_win_problem('06:05-06:06')!r}",
+)
+R.check(
+    "a window of exactly one step is fine, and so is the default",
+    _win_problem("06:00-06:15") is None and _win_problem(_win_default) is None,
+)
+R.check(
+    "a wrapping window is measured through midnight",
+    abs(_win_len((23.0 + 55 / 60.0, 5 / 60.0)) - 10.0) < 1e-9
+    and _win_problem("23:55-00:05") == _win_short
+    and _win_problem("22:00-06:00") is None,
+    f"{_win_len((23.0 + 55 / 60.0, 5 / 60.0))} min",
+)
+R.check(
+    "the judgement is per segment, before normalisation can merge one away",
+    _win_problem("06:00-08:30, 08:29-08:30") == _win_short,
+    "merged with its neighbour, the one-minute segment would vanish",
+)
+R.check(
+    "a weekly spec's segments are judged too, and 00:00-00:00 stays a full day",
+    _win_problem("weekdays 06:00-08:30, weekend 08:00-08:01") == _win_short
+    and _win_problem("00:00-00:00") is None,
+)
+R.check(
+    "an unreadable spec keeps its original error, and empty is no problem",
+    _win_problem("banana") == _win_invalid and _win_problem("") is None,
+)
+R.check(
+    "the permissive parser still loads the window the form refuses",
+    _parse_w("06:05-06:06") == [(6.0 + 5 / 60.0, 6.0 + 6 / 60.0)],
+    "a stored spec that stopped loading would be the fix worse than its bug",
+)
+
+
 # ===========================================================================
 # The batched simulation: bitwise parity with the scalar path (issue #97)
 # ===========================================================================
@@ -6352,6 +6415,65 @@ R.check(
     and not _gf.is_valid_spec("Frunday = 0.2")
     and not _gf.is_valid_spec("06:00-22:00"),
 )
+# D4-05 (#169): the form's verdict. The parser stays permissive -- a stored
+# spec must keep loading -- and ``spec_problem`` is the stricter view the
+# config flow applies, naming which of the three things is wrong.
+R.check(
+    "a negative rate is named as such by the form's verdict",
+    _gf.spec_problem("Nov-Mar Mon-Fri 06:00-22:00 = -0.25") == _gf.ERROR_NEGATIVE
+    and _gf.spec_problem("= 0.10, Mon-Fri = -0.20") == _gf.ERROR_NEGATIVE,
+    f"{_gf.spec_problem('= -0.25')!r}",
+)
+R.check(
+    "a rate above the implausibility bound is named, and the bound itself is not",
+    _gf.spec_problem("= 25") == _gf.ERROR_IMPLAUSIBLE
+    and _gf.spec_problem(f"= {_gf.IMPLAUSIBLE_FEE_SEK_PER_KWH + 0.01}")
+    == _gf.ERROR_IMPLAUSIBLE
+    and _gf.spec_problem(f"= {_gf.IMPLAUSIBLE_FEE_SEK_PER_KWH}") is None,
+    f"{_gf.spec_problem('= 25')!r}",
+)
+R.check(
+    "a negative rate outranks an implausible one: the sign is the worse slip",
+    _gf.spec_problem("= 25, Jul = -0.10") == _gf.ERROR_NEGATIVE,
+)
+R.check(
+    "the documented rules, zero, and an empty spec are no problem",
+    _gf.spec_problem("Nov-Mar Mon-Fri 06:00-22:00 = 0.25, Jul = 0.10") is None
+    and _gf.spec_problem("= 0") is None
+    and _gf.spec_problem("") is None,
+)
+R.check(
+    "an unreadable spec keeps its original error",
+    _gf.spec_problem("Nov-Mar = banana") == _gf.ERROR_INVALID,
+)
+R.check(
+    "the permissive parser still loads the negative rule the form refuses",
+    _gf.parse_rules("= -0.25")[0].rate == -0.25,
+    "a stored spec that stopped loading would silently zero every fee",
+)
+_neg_sched = _gf.GridFeeSchedule(
+    mode=_gf.MODE_RULES, fixed=0.05, rules=_gf.parse_rules("= 0.10, Jul = -0.30")
+)
+R.check(
+    "min_component finds the most negative component and its source",
+    _gf.min_component(_neg_sched) == (-0.30, "rules")
+    and _gf.min_component(
+        _gf.GridFeeSchedule(mode=_gf.MODE_ENTITY, fixed=0.05), entity_value=-0.4
+    )
+    == (-0.4, "entity")
+    and _gf.min_component(
+        _gf.GridFeeSchedule(mode=_gf.MODE_RULES, fixed=-0.02, rules=_rules)
+    )
+    == (-0.02, "fixed"),
+    f"{_gf.min_component(_neg_sched)}",
+)
+R.check(
+    "and reports the fixed component when nothing is negative",
+    _gf.min_component(_sched) == (0.05, "fixed")
+    and _gf.min_component(_gf.GridFeeSchedule(mode=_gf.MODE_NONE, fixed=-9.0))
+    == (0.0, "fixed"),
+    f"{_gf.min_component(_sched)}",
+)
 R.check(
     "mode none is a sentinel: zero vector and inactive, whatever else is set",
     not _gf.GridFeeSchedule(mode=_gf.MODE_NONE, fixed=9.9, rules=_rules).active
@@ -8493,9 +8615,35 @@ R.check(
     "the issue prices the shortfall for the user and survives a restart",
     _cop_issues[0][2].get("translation_key") == "cop_degradation"
     and set(_cop_issues[0][2].get("translation_placeholders", {}))
-    == {"shortfall_percent", "sek_month"}
+    == {"shortfall_percent", "cost_month", "currency"}
     and _cop_issues[0][2].get("is_persistent") is True,
     "a non-persistent issue vanishes on reboot while the fault stays",
+)
+# D4-04 (#168): the notice prices the shortfall in the instance's currency,
+# not in the SEK the placeholder used to be named after.
+_eur_hass = _FakeHass(dict(_METER))
+_eur_hass.config.currency = "EUR"
+_eur_cop = _Coord(
+    _eur_hass,
+    _FakeEntry(
+        data={
+            "tibber_token": "x",
+            "weather_entity": "weather.home",
+            "indoor_temp_entity": "sensor.indoor",
+            "outdoor_temp_entity": "sensor.outdoor",
+        }
+    ),
+)
+_eur_cop._last_measured_cop = 2.4
+_eur_cop._raise_cop_issue(3.0)
+_eur_cop_issues = [
+    i for i in getattr(_eur_hass, "issues", []) if i[1] == "cop_degradation"
+]
+R.check(
+    "the notice carries the instance currency as a placeholder",
+    bool(_eur_cop_issues)
+    and _eur_cop_issues[0][2]["translation_placeholders"].get("currency") == "EUR",
+    "an EUR instance was told its shortfall in SEK",
 )
 
 # D3-04: ``sek_month`` is supposed to be ``monthly_kwh * mean_price *
@@ -8528,7 +8676,7 @@ def _raise_and_read(coord, baseline, current):
     coord._raise_cop_issue(baseline)
     issues = [i for i in coord.hass.issues if i[1] == "cop_degradation"]
     placeholders = issues[-1][2]["translation_placeholders"]
-    return float(placeholders["shortfall_percent"]), float(placeholders["sek_month"])
+    return float(placeholders["shortfall_percent"]), float(placeholders["cost_month"])
 
 
 _shortfall_1pct, _sek_1pct = _raise_and_read(_sek_coord, baseline=3.0, current=2.97)
@@ -11757,7 +11905,8 @@ R.check(
     len(_gf_issues) == 1
     and _gf_issues[0][2].get("translation_key") == "grid_fee_magnitude"
     and set(_gf_issues[0][2].get("translation_placeholders", {}))
-    == {"rate", "source"},
+    == {"rate", "source", "currency"},
+    # D4-04 (#168): the notice names the instance currency, not SEK.
 )
 R.check(
     "warn-only: the plan still prices with exactly what was typed",
@@ -11819,6 +11968,98 @@ R.check(
     "a fee sensor publishing öre trips the same issue, attributed to it",
     len(_gf_ent_issues) == 1
     and _gf_ent_issues[0][2]["translation_placeholders"]["source"] == "entity",
+)
+
+# D4-05 (#169), the store layer: the form now refuses a negative rate, but a
+# store written before the fix, or a fee sensor publishing a negative value,
+# still reaches the plan as a subsidy. Warn-only like the magnitude audit --
+# the plan keeps pricing with exactly what is configured -- and named.
+
+
+def _sign_issues(hass):
+    return [i for i in getattr(hass, "issues", []) if i[1] == "grid_fee_sign"]
+
+
+_gf_neg = HeatPumpOptimizerCoordinator(
+    FakeHass(),
+    FakeEntry(
+        data={**_LC_DATA, "grid_fee_mode": "rules", "grid_fee_rules": "= -0.25"}
+    ),
+)
+_gf_neg_vec = _gf_neg._fee_series(_gf_steps)
+R.check(
+    "a stored negative rule raises the sign notice, attributed to the rules",
+    len(_sign_issues(_gf_neg.hass)) == 1
+    and _sign_issues(_gf_neg.hass)[0][2].get("translation_key") == "grid_fee_sign"
+    and _sign_issues(_gf_neg.hass)[0][2]["translation_placeholders"]
+    == {"rate": "-0.25", "source": "rules", "currency": _gf_neg.currency}
+    and _sign_issues(_gf_neg.hass)[0][2].get("is_persistent") is True,
+    str(_sign_issues(_gf_neg.hass)),
+)
+R.check(
+    "warn-only: the plan still prices with the negative value it was given",
+    bool(np.all(_gf_neg_vec == -0.25)),
+    f"vector {_gf_neg_vec[:2]}",
+)
+_gf_neg._fee_series(_gf_steps)
+R.check(
+    "the sign notice is raised once per offending value, not every cycle",
+    len(_sign_issues(_gf_neg.hass)) == 1,
+)
+R.check(
+    "and a negative rate of ordinary size is not mistaken for a magnitude slip",
+    not [
+        i
+        for i in getattr(_gf_neg.hass, "issues", [])
+        if i[1] == "grid_fee_magnitude"
+    ],
+)
+_gf_neg._config["grid_fee_rules"] = "= 0.25"
+_gf_neg._fee_series(_gf_steps)
+R.check(
+    "correcting the sign clears the notice on the next cycle",
+    not _sign_issues(_gf_neg.hass),
+)
+_gf_neg_ent = HeatPumpOptimizerCoordinator(
+    FakeHass({"sensor.fee": FakeState("-0.4")}),
+    FakeEntry(
+        data={**_LC_DATA, "grid_fee_mode": "entity", "grid_fee_entity": "sensor.fee"}
+    ),
+)
+_gf_neg_ent._fee_series(_gf_steps)
+R.check(
+    "a fee sensor publishing a negative value trips the same notice, attributed to it",
+    len(_sign_issues(_gf_neg_ent.hass)) == 1
+    and _sign_issues(_gf_neg_ent.hass)[0][2]["translation_placeholders"]["source"]
+    == "entity",
+)
+R.check(
+    "the magnitude notice and the sign notice are independent: -25 raises both",
+    (
+        lambda c: (
+            c._fee_series(_gf_steps) is not None
+            and len(_sign_issues(c.hass)) == 1
+            and len(
+                [
+                    i
+                    for i in getattr(c.hass, "issues", [])
+                    if i[1] == "grid_fee_magnitude"
+                ]
+            )
+            == 1
+        )
+    )(
+        HeatPumpOptimizerCoordinator(
+            FakeHass(),
+            FakeEntry(
+                data={**_LC_DATA, "grid_fee_mode": "rules", "grid_fee_rules": "= -25"}
+            ),
+        )
+    ),
+)
+R.check(
+    "0.25 SEK/kWh raises neither",
+    not _sign_issues(_gf_ok.hass),
 )
 
 # ---------------------------------------------------------------------------

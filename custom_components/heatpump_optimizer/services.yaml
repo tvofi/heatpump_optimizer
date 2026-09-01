@@ -630,8 +630,9 @@ apply_manual_plan:
         When space heating should run, as a list of {start, end} objects with
         ISO 8601 datetimes. An empty list forces space heating off for the whole
         period; omit the field entirely to leave space heating fully automatic.
-      example: >-
-        [{"start": "2024-01-01T06:00:00+01:00", "end": "2024-01-01T08:00:00+01:00"}]
+      example:
+        - start: "2024-01-01T06:00:00+01:00"
+          end: "2024-01-01T08:00:00+01:00"
       selector:
         object:
     dhw_slots:
@@ -640,8 +641,9 @@ apply_manual_plan:
         When hot water should run, as a list of {start, end} objects with ISO
         8601 datetimes. An empty list forces hot water off for the whole period;
         omit the field entirely to leave hot water fully automatic.
-      example: >-
-        [{"start": "2024-01-01T17:00:00+01:00", "end": "2024-01-01T18:30:00+01:00"}]
+      example:
+        - start: "2024-01-01T17:00:00+01:00"
+          end: "2024-01-01T18:30:00+01:00"
       selector:
         object:
     expires_at:

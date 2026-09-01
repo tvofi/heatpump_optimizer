@@ -212,6 +212,7 @@
       "invalid_tibber_token": "That Tibber token was not accepted. Check it at developer.tibber.com and try again.",
       "cannot_connect": "Could not reach Tibber to check the token. Check the internet connection and try again.",
       "invalid_dhw_windows": "Those time frames could not be read. Use 24-hour times separated by commas, for example \"06:00-08:30, 17:00-22:00\".",
+      "dhw_window_too_short": "A hot water time frame is shorter than {min_window_minutes} minutes. The plan is made in {min_window_minutes}-minute steps, so a shorter frame can fall between two steps and never take effect.",
       "dhw_min_too_close": "A hot water minimum this close to the setpoint leaves the tank no working band; keep it at least 5 \\u00b0C below the setpoint.",
       "min_above_target": "The minimum temperature is above the target temperature.",
       "max_below_target": "The maximum temperature is below the target temperature.",
@@ -439,7 +440,7 @@
           "compressor_cycling_cost": "Cost of one compressor start",
           "price_risk_lambda": "Caution with guessed prices",
           "confidence_margins_enabled": "Hold a safety margin where the model is unsure",
-          "compressor_replacement_cost": "Compressor replacement cost (SEK)",
+          "compressor_replacement_cost": "Compressor replacement cost",
           "compressor_rated_starts": "Compressor rated starts",
           "wear_autotune_enabled": "Let realised wear tune the cycling cost",
           "price_tiles_enabled": "Refresh price tiles after each solve",
@@ -572,10 +573,10 @@
           "peak_tariff_weekdays_only": "Weekends are off-peak",
           "peak_tariff_offpeak_factor": "What off-peak hours count at",
           "grid_fee_mode": "Grid transfer fee",
-          "grid_fee_fixed": "Fixed transfer fee (SEK/kWh)",
+          "grid_fee_fixed": "Fixed transfer fee",
           "grid_fee_rules": "Time-of-use fee rules",
           "grid_fee_entity": "Live fee sensor (optional)",
-          "contract_fixed_price": "Fixed contract price to compare (SEK/kWh)",
+          "contract_fixed_price": "Fixed contract price to compare",
           "main_fuse_amperes": "Main fuse size",
           "main_fuse_phases": "Phases",
           "fuse_guard_enabled": "Keep the plan under the main fuse",
@@ -594,8 +595,8 @@
           "grid_fee_mode": "The fee your grid company adds per kWh transferred. Tibber's price does not include it, so with it configured the plan finally sees the whole marginal price. \"Rules\" uses the schedule below; \"Live sensor\" follows an entity.",
           "grid_fee_fixed": "A flat fee added in every hour, on top of any rules. Take it from your grid invoice.",
           "grid_fee_rules": "One rule per line, for example \"Nov-Mar Mon-Fri 06:00-22:00 = 0.25\". Month, weekday and time parts are each optional; overlapping rules add together, which matches a base fee plus a high-load surcharge.",
-          "grid_fee_entity": "A sensor reporting the current fee in SEK/kWh, for grids with dynamic fees. Its value is added to every planned hour.",
-          "contract_fixed_price": "If you could have a fixed-price contract, its SEK/kWh. The Contract Comparison sensor then shows what this month would have cost on it. 0 leaves that column out.",
+          "grid_fee_entity": "A sensor reporting the current fee in {currency}/kWh, for grids with dynamic fees. Its value is added to every planned hour.",
+          "contract_fixed_price": "If you could have a fixed-price contract, its {currency}/kWh. The Contract Comparison sensor then shows what this month would have cost on it. 0 leaves that column out.",
           "main_fuse_amperes": "The house's main fuse in amperes, from your grid contract. 0 leaves it unconfigured, which keeps the fuse advisor, the fuse guard and the headroom sensor dormant — there is no safe default to guess, and a wrong one would cap a bigger house.",
           "main_fuse_phases": "Nearly every Swedish house is 3-phase.",
           "fuse_guard_enabled": "Caps the heat pump's planned power at what the fuse leaves after the rest of the house. If a cap would make the comfort floor unreachable, the plan says so on its sensors instead of silently going cold.",
@@ -698,8 +699,11 @@
       "invalid_tibber_token": "That Tibber token was not accepted. Check it at developer.tibber.com and try again.",
       "cannot_connect": "Could not reach Tibber to check the token. Check the internet connection and try again.",
       "invalid_dhw_windows": "Those time frames could not be read. Use 24-hour times separated by commas, for example \"06:00-08:30, 17:00-22:00\".",
+      "dhw_window_too_short": "A hot water time frame is shorter than {min_window_minutes} minutes. The plan is made in {min_window_minutes}-minute steps, so a shorter frame can fall between two steps and never take effect.",
       "dhw_min_too_close": "A hot water minimum this close to the setpoint leaves the tank no working band; keep it at least 5 \\u00b0C below the setpoint.",
       "invalid_grid_fee_rules": "Those fee rules could not be read. One rule per line, like \"Nov-Mar Mon-Fri 06:00-22:00 = 0.25\".",
+      "grid_fee_rules_negative": "A fee rule has a negative rate. A transfer fee is a charge, so every rate must be zero or above — a minus sign here would make the plan treat those hours as subsidised.",
+      "grid_fee_rules_implausible": "A fee rule has a rate above {fee_bound} {currency}/kWh. Transfer fees run a few tenths per kWh, so a value this size is almost always öre or cents typed where whole {currency} were meant — 25 instead of 0.25.",
       "invalid_peak_months": "Those months could not be read. Use ranges like \"Nov-Mar\" or single months like \"Jul\".",
       "invalid_peak_hours": "Those hours could not be read. Use 24-hour ranges like \"07:00-19:00\".",
       "min_above_target": "The minimum temperature is above the target temperature.",
@@ -792,7 +796,7 @@
   "issues": {
     "cop_degradation": {
       "title": "Heat pump efficiency has dropped",
-      "description": "The heat pump has been delivering about {shortfall_percent} % less heat per kWh than it used to under the same conditions, which is costing roughly {sek_month} SEK per month at recent prices. The usual suspects are a clogged filter, low refrigerant, or a defrost problem — worth a look before the season gets colder. This notice clears itself if efficiency recovers."
+      "description": "The heat pump has been delivering about {shortfall_percent} % less heat per kWh than it used to under the same conditions, which is costing roughly {cost_month} {currency} per month at recent prices. The usual suspects are a clogged filter, low refrigerant, or a defrost problem — worth a look before the season gets colder. This notice clears itself if efficiency recovers."
     },
     "accuracy_drift": {
       "title": "Learned model is drifting",
@@ -832,7 +836,11 @@
     },
     "grid_fee_magnitude": {
       "title": "A configured grid fee looks 100× too large",
-      "description": "The grid fee layer contains a rate of {rate} SEK/kWh (from the {source} input). Swedish DSO transfer fees run a few tenths of a krona per kWh, so a value this size is almost always öre entered where SEK was meant — 25 instead of 0.25. Nothing is changed or capped: the plan keeps pricing with exactly the value configured. Correct the value under the DSO fee options (or fix the fee sensor) and this notice clears on the next planning cycle."
+      "description": "The grid fee layer contains a rate of {rate} {currency}/kWh (from the {source} input). Transfer fees run a few tenths of a {currency} per kWh, so a value this size is almost always öre or cents entered where whole {currency} were meant — 25 instead of 0.25. Nothing is changed or capped: the plan keeps pricing with exactly the value configured. Correct the value under the DSO fee options (or fix the fee sensor) and this notice clears on the next planning cycle."
+    },
+    "grid_fee_sign": {
+      "title": "A configured grid fee is negative",
+      "description": "The grid fee layer contains a rate of {rate} {currency}/kWh (from the {source} input). A transfer fee is a charge, so a negative one is almost always a sign slip — and the plan is pricing every hour it applies to as subsidised, favouring exactly the hours the grid company charges for. Nothing is changed or capped: the plan keeps pricing with exactly the value configured. Correct the value under the DSO fee options (or fix the fee sensor) and this notice clears on the next planning cycle."
     },
     "lower_floor_modelled": {
       "title": "The downstairs temperature is modelled, not measured",
