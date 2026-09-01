@@ -82,6 +82,15 @@ const scheduleStates = (plan) => {
   return st;
 };
 
+const sharedStepStates = (plan) => {
+  const st = planStates(plan);
+  const sp = st[DEFAULT_SPACE].attributes.forecast;
+  const heating = new Set(sp.filter((p) => Number(p.space_power) > 0.05).map((p) => p.t));
+  st[DEFAULT_DHW].attributes.forecast = st[DEFAULT_DHW].attributes.forecast.map((p) =>
+    heating.has(p.t) ? { ...p, dhw_power: 1.5 } : p);
+  return st;
+};
+
 const setupStates = (plan, topo, extra) => {
   const st = { ...planStates(plan), ...setupSensorStates(), ...(extra || {}) };
   st[DEFAULT_SPACE].attributes.setup_topology = topo;
@@ -206,6 +215,27 @@ const STATES = [
       st[DEFAULT_DHW].attributes.manual_override = info;
       const c = buildCard(s.Card, st, { what_if: true });
       c._openExpanded();
+      return c;
+    } },
+  // The shared-step band and its tooltip sentence need both circuits planned
+  // in the same quarter hour, which the recorded plan may not contain: force
+  // hot water onto the heating steps so the <pattern> and the sentence render.
+  { name: "shared_steps",
+    drive: (s) => {
+      const c = buildCard(s.Card, sharedStepStates(s.plan));
+      c._onCardClick({});
+      return c;
+    } },
+  { name: "shared_steps_hover",
+    drive: (s) => {
+      const c = buildCard(s.Card, sharedStepStates(s.plan));
+      c._onCardClick({});
+      const svg = svgOf(c);
+      const plot = c._plot;
+      const sp = sharedStepStates(s.plan)[DEFAULT_SPACE].attributes.forecast;
+      const first = sp.find((p) => Number(p.space_power) > 0.05 && Date.parse(p.t) >= plot.windowStart);
+      const t = first ? Date.parse(first.t) : plot.windowStart + 5 * HOUR;
+      c._onPointerMove({ currentTarget: svg, clientX: plot.scaleX(t) });
       return c;
     } },
   { name: "tooltip_hover",
