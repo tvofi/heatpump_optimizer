@@ -1638,6 +1638,193 @@ params.cop_scale = 1.0
 
 
 # ===========================================================================
+# Weekly DHW windows: different days, different windows (owner request #3)
+# ===========================================================================
+R.section("Weekly hot-water windows: different days, different times")
+
+from datetime import datetime as _WDT
+from profiles import house as _grad_house, prices as _grad_prices, weather as _grad_weather
+from heatpump_optimizer.dhw_schedule import (
+    parse_windows as _parse_w,
+    parse_weekly_windows as _pw,
+    format_weekly_windows as _fw,
+    windows_for_day as _wfd,
+    is_valid_spec as _ivs,
+)
+
+def _try_exc(fn):
+    """Run fn(); return the exception it raised, or None."""
+    try:
+        fn()
+        return None
+    except Exception as err:  # noqa: BLE001
+        return err
+
+# The flat spec every install has is unchanged: no weekly structure, the
+# every-day view is the only one.
+R.check(
+    "a flat spec carries no weekly structure",
+    _pw("06:00-08:30, 17:00-22:00") is None,
+    "the weekly view must be opt-in, or every existing install pays for it",
+)
+_wk = _pw("weekdays 06:00-08:30, weekend 08:00-09:30")
+R.check(
+    "the weekday/weekend split lands on the right days",
+    _wk is not None
+    and all(_wk[d] == [(6.0, 8.5)] for d in range(5))
+    and _wk[5] == [(8.0, 9.5)]
+    and _wk[6] == [(8.0, 9.5)],
+    str(_wk),
+)
+R.check(
+    "and renders back to the string the user typed",
+    _fw(_wk) == "weekdays 06:00-08:30, weekend 08:00-09:30",
+    _fw(_wk),
+)
+_wk2 = _pw("Mo 05:30-07:00, Tu-Fr 06:00-08:00, Sa,Su 08:00-09:30")
+R.check(
+    "single days and day lists name exactly their own days",
+    _wk2 is not None
+    and _wk2[0] == [(5.5, 7.0)]
+    and all(_wk2[d] == [(6.0, 8.0)] for d in (1, 2, 3, 4))
+    and _wk2[5] == [(8.0, 9.5)],
+    str(_wk2),
+)
+R.check(
+    "the rendered form re-parses to the same structure",
+    _pw(_fw(_wk2)) == _wk2,
+    _fw(_wk2),
+)
+R.check(
+    "a dayless segment inside a weekly spec applies to every day",
+    _pw("weekdays 06:00-07:00, 18:00-19:00")[5] == [(18.0, 19.0)],
+    "same reading the flat grammar gives a bare range",
+)
+R.check(
+    "a wrapping weekly window splits at midnight like the flat one",
+    _pw("weekend 22:00-06:00")[5] == [(0.0, 6.0), (22.0, 24.0)],
+    str(_pw("weekend 22:00-06:00")[5]),
+)
+R.check(
+    "a day with no segment has no windows -- no requirement that day",
+    not _pw("Mo 06:00-07:00")[2],
+    "an empty day is the point: Tuesday genuinely needs no hot water",
+)
+for _bad in ("Mo 25:00-26:00", "weekdays", "Mox 06:00-07:00"):
+    R.check(
+        f"a malformed weekly spec raises, not silently empties ({_bad!r})",
+        isinstance(_try_exc(lambda: _pw(_bad)), Exception),
+        "",
+    )
+R.check(
+    "the validator accepts the weekly grammar",
+    _ivs("weekdays 06:00-08:30, weekend 08:00-09:30")
+    and not _ivs("Mo 99:00-07:00"),
+    "",
+)
+_flat_view = _parse_w("weekdays 06:00-08:30, weekend 08:00-09:30")
+R.check(
+    "the every-day view of a weekly spec is the merged union of its times",
+    _flat_view == [(6.0, 9.5)],
+    f"{_flat_view}",
+)
+
+# End to end: the plan honours the day it is solving for. A Monday-start
+# horizon heats the weekday window; a Saturday-start horizon the weekend
+# one -- the heating hours are the observable, and they must differ.
+def _weekly_solve(spec, start):
+    _cfg = _grad_house(two_zone=False, dhw=True)
+    _cfg["dhw_windows"] = spec
+    _p = ThermalParameters.from_config(_cfg)
+    _o = _PvOpt(
+        ThermalModel(_p),
+        _PvOptCfg(
+            horizon_hours=24, time_step_minutes=15,
+            target_temp=21.0, min_temp=17.0, max_temp=23.0,
+        ),
+    )
+    _pr = _grad_prices("winter_typical", start)
+    _ot, _wi, _ra, _so = _grad_weather("winter_cold", start)
+    _st = ThermalState(
+        room_temperature=21.0, slab_temperature=22.0,
+        outdoor_temperature=float(_ot[0]), dhw_temperature=48.0,
+        dhw_hours_since_legionella=20.0, buffer_tank_temperature=40.0,
+    )
+    return _o.optimize(_st, _pr, _ot, _wi, _ra, _so, start)
+
+_SPEC = "weekdays 06:00-08:00, weekend 10:00-12:00"
+# The requirement mask is the honest observable: when each step's floor
+# temperature is the in-window minimum rather than the idle one, hot water
+# is REQUIRED there. Heating power alone cannot say this -- the optimizer
+# legitimately preheats hours before a window when electricity is cheap, so
+# "power inside the window" and "power outside" both happen for any window.
+def _weekly_requirement_hours(spec, start):
+    _cfg = _grad_house(two_zone=False, dhw=True)
+    _cfg["dhw_windows"] = spec
+    _p = ThermalParameters.from_config(_cfg)
+    _m = ThermalModel(_p)
+    _o = _PvOpt(_m, _PvOptCfg(
+        horizon_hours=24, time_step_minutes=15,
+        target_temp=21.0, min_temp=17.0, max_temp=23.0))
+    _n = 96
+    _hours = np.array([
+        (_WDT.combine(start.date(), _WDT.min.time())
+         + __import__("datetime").timedelta(hours=i * 0.25)).hour
+        + ((_WDT.combine(start.date(), _WDT.min.time())
+            + __import__("datetime").timedelta(hours=i * 0.25)).minute) / 60.0
+        for i in range(_n)
+    ])
+    _plan = _o._build_dhw_requirements(
+        initial_state=ThermalState(
+            room_temperature=21.0, slab_temperature=22.0,
+            outdoor_temperature=-5.0, dhw_temperature=48.0,
+            dhw_hours_since_legionella=20.0, buffer_tank_temperature=40.0),
+        prices=np.full(_n, 1.0),
+        outdoor_temps=np.full(_n, -5.0),
+        step_hours=_hours,
+        n_steps=_n, dt=0.25, p_max=4.0,
+        step_weekdays=np.array(
+            [(start + __import__("datetime").timedelta(hours=(i - 1) * 0.25)).weekday()
+             for i in range(_n + 1)]),
+    )
+    _idle = min(_p.dhw_idle_min_temp, _p.dhw_min_temp)
+    _floors = np.asarray(_plan["floor_temps"])
+    _in = np.where(_floors > _idle + 1e-9)[0]
+    return sorted(set(round(float(_hours[i]), 2) for i in _in))
+
+_mon_req = _weekly_requirement_hours(_SPEC, _WDT(2026, 1, 5))
+_sat_req = _weekly_requirement_hours(_SPEC, _WDT(2026, 1, 10))
+R.check(
+    "a Monday plan requires hot water in the weekday window",
+    _mon_req and min(_mon_req) >= 6.0 and max(_mon_req) < 8.0,
+    f"requirement hours {_mon_req}",
+)
+R.check(
+    "a Saturday plan requires it in the weekend window instead",
+    _sat_req and min(_sat_req) >= 10.0 and max(_sat_req) < 12.0,
+    f"requirement hours {_sat_req}",
+)
+R.check(
+    "the two requirement sets do not overlap at all",
+    not (set(_mon_req) & set(_sat_req)),
+    f"mon {_mon_req} vs sat {_sat_req}",
+)
+# The flat spec is byte-identical to before: the weekly path is entirely
+# gated on dhw_weekly_windows, which is None here. (The drift gate holds
+# this across every captured scenario; this is the local statement.)
+_flata = _weekly_solve("06:00-08:00", _WDT(2026, 1, 5))
+_flatb = _weekly_solve("06:00-08:00", _WDT(2026, 1, 5))
+R.check(
+    "a flat spec solves identically regardless (deterministic)",
+    np.array_equal(
+        np.asarray(_flata.dhw_power_schedule),
+        np.asarray(_flatb.dhw_power_schedule),
+    ),
+    "",
+)
+
+
+# ===========================================================================
 # The batched simulation: bitwise parity with the scalar path (issue #97)
 # ===========================================================================
 R.section("The batched trajectory is the scalar trajectory, bit for bit")
@@ -1649,7 +1836,6 @@ R.section("The batched trajectory is the scalar trajectory, bit for bit")
 # estimate exactly or the plans move. np.array_equal is bitwise for
 # floats that are not NaN, which trajectories here never are.
 from datetime import datetime as _dt_grad
-from profiles import house as _grad_house, prices as _grad_prices, weather as _grad_weather
 
 def _grad_parity(two_zone, wood=False, valve=None, extra_cfg=None, label=""):
     cfg = _grad_house(two_zone=two_zone)
@@ -2896,6 +3082,7 @@ runtime_only = {
     "cop_reference_temp",       # a property of the COP curve, not the house
     "internal_gains",           # not exposed in the config flow
     "dhw_windows",              # parsed separately from a string spec
+    "dhw_weekly_windows",       # parsed with it (#3): the same spec's day view
     "two_zone_enabled",         # inferred from presence, overridable by mode
     "dhw_enabled",              # inferred from which keys are present
     "cop_flow_carnot",          # follows the mixing valve mode

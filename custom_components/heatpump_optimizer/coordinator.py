@@ -385,6 +385,7 @@ from .dhw_schedule import (
     hour_in_windows,
     hours_until_next_window,
     overlap_fraction,
+    parse_weekly_windows,
     parse_windows,
 )
 from .optimizer import (
@@ -4912,6 +4913,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if CONF_DHW_WINDOWS in params:
             try:
                 self._thermal_params.dhw_windows = parse_windows(
+                    params[CONF_DHW_WINDOWS]
+                )
+                # Both structures from one parse (#3): the every-day view
+                # and the weekly one can then never disagree about what
+                # was configured, the same guarantee from_config gives.
+                self._thermal_params.dhw_weekly_windows = parse_weekly_windows(
                     params[CONF_DHW_WINDOWS]
                 )
             except DHWWindowError as err:
@@ -10523,9 +10530,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 # is a legitimate thing to simulate: it is what the plan looks
                 # like with hot water availability unconstrained.
                 scratch_params.dhw_windows = []
+                scratch_params.dhw_weekly_windows = None
             else:
                 try:
                     scratch_params.dhw_windows = parse_windows(spec)
+                    scratch_params.dhw_weekly_windows = parse_weekly_windows(spec)
                 except DHWWindowError as err:
                     return {
                         "error": f"invalid_windows: {err}",
