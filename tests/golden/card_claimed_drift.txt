@@ -21,6 +21,6 @@
 #
 # claims-for: 6.2.14
 #
-# #139: one reading of a plan sensor's forecast for the chart and the
-# editor alike. No markup moves; the list is empty.
+# #140: the entity picker's slot is read from the topology by key rather than
+# remembered by its markup builder. No markup moves; the list is empty.
 #

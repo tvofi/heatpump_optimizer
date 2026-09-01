@@ -5905,6 +5905,51 @@ const setupBox = (card, place) =>
     stringy.plan.forecastOf("dhw").length > 0 && stringy.manual.draft().dhw.length > 0);
 }
 
+
+// --- #140: the picker's slot is read, not remembered by the markup builder -----
+{
+  const TEMP = ["sensor", "number", "input_number"];
+  const topoWith = (entity) => ({
+    two_zone: false, dhw: true, valve_mode: "none", positions: {},
+    edges: [["heat_pump", "buffer_tank"], ["buffer_tank", "upper_zone"]],
+    slots: [
+      { key: "buffer_tank_temp_entity", label: "Buffer tank temperature",
+        place: "buffer_tank", entity, domains: TEMP },
+      { key: "indoor_temp_entity", label: "Indoor temperature",
+        place: "upper_zone", entity: "sensor.livingroom", domains: TEMP },
+    ],
+  });
+  const states = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  states[DEFAULT_SPACE].attributes.setup_topology = topoWith("sensor.tank_a");
+  states["sensor.tank_a"] = { state: "47.5", attributes: { unit_of_measurement: "°C" } };
+  states["sensor.tank_b"] = { state: "48.0", attributes: { unit_of_measurement: "°C" } };
+  states["sensor.livingroom"] = { state: "21.3", attributes: { unit_of_measurement: "°C" } };
+  const c = build(states);
+  c._onCardClick({});
+  c.dialog.page = "setup";
+  c._render();
+  check("rendering the setup page keeps no memo of a slot",
+    !("pickerSlot" in c.setup) && c.setup.openSlot() === null);
+  const hit = c.shadowRoot.querySelectorAll(".setup-hit").find((h) => h.dataset.key === "buffer_tank_temp_entity");
+  (hit._listeners.click || []).forEach((f) => f({ currentTarget: hit, preventDefault() {}, stopPropagation() {} }));
+  check("the open picker's slot is the one the topology holds now",
+    c.setup.pickerKey === "buffer_tank_temp_entity" && c.setup.openSlot().entity === "sensor.tank_a");
+  // The integration republishes the topology while the picker is open (an
+  // assignment elsewhere reloaded it): what Assign writes back for an
+  // untouched picker is what the slot holds NOW, not what it held at open.
+  const fresh = { ...states };
+  fresh[DEFAULT_SPACE] = { ...states[DEFAULT_SPACE], last_updated: "later",
+    attributes: { ...states[DEFAULT_SPACE].attributes, setup_topology: topoWith("sensor.tank_b") } };
+  const calls = [];
+  c.hass = { states: fresh, callService: async (d, s2, data) => { calls.push(data); return {}; } };
+  check("the picker survives the republish", c.setup.pickerKey === "buffer_tank_temp_entity" &&
+    !!c.shadowRoot.querySelector(".setup-picker"));
+  const save = c.shadowRoot.querySelector(".sp-save");
+  await Promise.all((save._listeners.click || []).map((f) => f({ stopPropagation() {} })));
+  check("Assign on an untouched picker writes the slot's current entity, not a stale memo",
+    calls.length === 1 && calls[0].entity_id === "sensor.tank_b", JSON.stringify(calls));
+}
+
 // --- The host stays small ---------------------------------------------------
 // The decomposition (#136) left the element with the Lovelace contract, the
 // render cycle and its compositions, and nothing else. A ratchet, not a
