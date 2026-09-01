@@ -11,7 +11,7 @@
 
 const CARD_TAG = "heatpump-optimizer-card";
 const EDITOR_TAG = "heatpump-optimizer-card-editor";
-const CARD_VERSION = "5.4.14";
+const CARD_VERSION = "5.4.15";
 
 // The de-duplication key `_extraFields` files a confidence band's two
 // edges under, so the pair counts as the one named trace it is. A Symbol
@@ -3771,6 +3771,8 @@ class ViewWindow {
     this.pendingFrame = 0;
     // The pan gesture in progress, with the window listeners it parked.
     this.panGesture = null;
+    // How to cancel the pending frame, whichever timer it is on.
+    this.cancelFrame = null;
     this.onWheel = this.onWheel.bind(this);
     this.onPanDown = this.onPanDown.bind(this);
   }
@@ -3922,10 +3924,27 @@ class ViewWindow {
       // is not a reason to discard the draft the user is arranging.
       this.host.render();
     };
-    this.pendingFrame =
-      typeof requestAnimationFrame === "function"
-        ? requestAnimationFrame(run)
-        : setTimeout(run, 16);
+    if (typeof requestAnimationFrame === "function") {
+      this.pendingFrame = requestAnimationFrame(run);
+      this.cancelFrame = () => {
+        if (typeof cancelAnimationFrame === "function") {
+          cancelAnimationFrame(this.pendingFrame);
+        }
+      };
+    } else {
+      this.pendingFrame = setTimeout(run, 16);
+      this.cancelFrame = () => clearTimeout(this.pendingFrame);
+    }
+  }
+
+  /** Nothing of this window may outlive the card (#137): a pan gesture in
+   * flight parked its move/up handlers on `window`, and a redraw waiting on
+   * a frame would render into a detached shadow root. */
+  disconnect() {
+    if (this.panGesture) this.panGesture.up();
+    if (this.pendingFrame && this.cancelFrame) this.cancelFrame();
+    this.pendingFrame = 0;
+    this.cancelFrame = null;
   }
 
   /** Wheel over the chart: pinch to zoom, two fingers sideways to pan.
@@ -5657,9 +5676,11 @@ class ManualPlan {
 class LaneEditor {
   constructor(host) {
     this.host = host;
-    // A slot drag in progress, and the edge auto-pan interval it may run.
+    // A slot drag in progress, the edge auto-pan interval it may run, and
+    // the move/up handlers it parked on `window` for the duration.
     this.drag = null;
     this.dragPan = null;
+    this.gesture = null;
     // The open slot menu, where it was opened from, and the Escape listener
     // it parked on the document.
     this.menu = null;
@@ -5673,6 +5694,31 @@ class LaneEditor {
    * when the card leaves the document. */
   teardown() {
     this.closeMenu();
+  }
+
+  /** End the edge auto-pan, if it is running. */
+  stopAutoPan() {
+    if (this.dragPan) {
+      clearInterval(this.dragPan);
+      this.dragPan = null;
+    }
+  }
+
+  /** Nothing of this editor may outlive the card (#137): the auto-pan
+   * interval would keep rendering into a detached shadow root every 90 ms,
+   * and a drag in flight parked its move/up handlers on `window`. The drag
+   * is abandoned, not finished: finishing it would render, and open a
+   * menu, on a card that is gone. */
+  disconnect() {
+    this.stopAutoPan();
+    if (this.gesture && typeof window !== "undefined") {
+      window.removeEventListener("pointermove", this.gesture.move);
+      window.removeEventListener("pointerup", this.gesture.up);
+      window.removeEventListener("pointercancel", this.gesture.up);
+    }
+    this.gesture = null;
+    this.drag = null;
+    this.teardown();
   }
 
   /** The lanes, their slots and the grab handles, as SVG.
@@ -6021,12 +6067,15 @@ class LaneEditor {
         window.removeEventListener("pointermove", winMove);
         window.removeEventListener("pointerup", winUp);
         window.removeEventListener("pointercancel", winUp);
+        this.gesture = null;
         stopAutoPan();
         onUp();
       };
       window.addEventListener("pointermove", winMove);
       window.addEventListener("pointerup", winUp);
       window.addEventListener("pointercancel", winUp);
+      // Remembered so `disconnect` can take them off again (#137).
+      this.gesture = { move: winMove, up: winUp };
       stop(ev);
       if (ev.preventDefault) ev.preventDefault();
     };
@@ -6061,12 +6110,7 @@ class LaneEditor {
       applyDragAt(svg, ev.clientX);
     };
 
-    const stopAutoPan = () => {
-      if (this.dragPan) {
-        clearInterval(this.dragPan);
-        this.dragPan = null;
-      }
-    };
+    const stopAutoPan = () => this.stopAutoPan();
 
     // Holding a dragged slot against the plot's edge pans the view under it.
     // Without this, a zoomed-in view is a wall: the edit ceiling clamps to
@@ -8163,6 +8207,11 @@ class HeatpumpOptimizerCard extends HTMLElement {
   disconnectedCallback() {
     // Nothing of this card may outlive it on the document.
     this._teardown();
+    // A slot drag or a pan in flight parked handlers on `window`, and the
+    // edge auto-pan and a pending redraw would keep rendering into a
+    // detached shadow root (#137).
+    this.lanes.disconnect();
+    this.view.disconnect();
     // A modal dialog left open would outlive the card in the top layer.
     if (this.dialog.expanded) this.dialog.closeQuietly();
     // A pending what-if solve, or an armed save confirmation, must not
@@ -8301,6 +8350,9 @@ class HeatpumpOptimizerCard extends HTMLElement {
     if (!anyData) {
       body = this._noPlanHtml();
       this._plot = null;
+      // And the lane geometry with it (#142): a stale one would let the edit
+      // floor and a pointer hit-test answer against a chart that is not there.
+      this._geom = null;
     } else {
       body = this._chartBlock(built, false);
     }

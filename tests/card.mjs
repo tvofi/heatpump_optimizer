@@ -5796,6 +5796,80 @@ const setupBox = (card, place) =>
     called && called.data.dhw_windows === "06:00-08:30, 17:00-22:00", called && called.data.dhw_windows);
 }
 
+
+// --- #142: a no-data render forgets the lane geometry ---------------------------
+{
+  const c = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), { what_if: true });
+  check("a rendered plan records the lane geometry", !!c._geom);
+  c.hass = { states: {} };
+  check("a render with no plan forgets it, as it forgets the hover geometry",
+    c._geom === null && c._plot === null);
+}
+
+// --- #137: a card removed mid-gesture takes its listeners and timers with it ----
+// The drag and the pan park their move/up handlers on `window` so they survive
+// a mid-gesture rebuild; the edge auto-pan renders on an interval; a view
+// change waits on a frame. None of them may outlive the card.
+{
+  const xOfGeom = (geom, t) =>
+    geom.plotL + ((t - geom.windowStart) / (geom.windowEnd - geom.windowStart)) * geom.plotW;
+  const listeners = () => (winListeners.pointermove || []).length;
+
+  // A slot drag, held against the plot's right edge in a zoomed view: the
+  // handlers are on window and the auto-pan interval is armed.
+  const c = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), { what_if: true });
+  c._onCardClick({});
+  c.view.zoom(0.25);
+  const geom = c._geom;
+  const runs = c.manual.draft().dhw;
+  const [lo] = c.manual.bounds();
+  const i = runs.findIndex((r) => r.end > lo && r.start >= lo);
+  const before = listeners();
+  const intervalsBefore = intervals.size;
+  if (i >= 0) {
+    const target = { dataset: { channel: "dhw", index: String(i) } };
+    fire(svgOf(c), "pointerdown", { clientX: xOfGeom(geom, runs[i].start + 60000), clientY: 0,
+      target, stopPropagation() {}, preventDefault() {} });
+    fireWindow("pointermove", { clientX: 899 });
+  }
+  check("a drag parks its handlers on window and arms the edge auto-pan",
+    i >= 0 && listeners() === before + 1 && intervals.size === intervalsBefore + 1 && c.lanes.drag !== null,
+    `slot ${i}, listeners ${before} -> ${listeners()}, intervals ${intervalsBefore} -> ${intervals.size}`);
+  c.disconnectedCallback();
+  check("removing the card mid-drag takes them off again",
+    listeners() === before && intervals.size === intervalsBefore &&
+    c.lanes.drag === null && c.lanes.dragPan === null && c.lanes.gesture === null,
+    `listeners ${listeners()}, intervals ${intervals.size}`);
+
+  // A pan gesture likewise.
+  const p = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
+  p._onCardClick({});
+  const b2 = listeners();
+  p.view.onPanDown({ currentTarget: svgOf(p), target: {}, clientX: 100, preventDefault() {} });
+  check("a pan parks its handlers on window", listeners() === b2 + 1 && p.view.panGesture !== null);
+  p.disconnectedCallback();
+  check("removing the card mid-pan takes them off again",
+    listeners() === b2 && p.view.panGesture === null);
+
+  // A redraw waiting on a frame. The stub's requestAnimationFrame is
+  // synchronous, so the timer fallback is what can be caught in flight.
+  const q = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
+  q._onCardClick({});
+  const savedRaf = ctx.requestAnimationFrame;
+  ctx.requestAnimationFrame = undefined;
+  let renders = 0;
+  const realRender = q._render.bind(q);
+  q._render = () => { renders++; realRender(); };
+  q.view.zoom(0.5);
+  check("a view change waits on a frame", q.view.pendingFrame !== 0 && renders === 0);
+  q.disconnectedCallback();
+  ctx.requestAnimationFrame = savedRaf;
+  await new Promise((r) => setTimeout(r, 40));
+  check("removing the card cancels the pending redraw",
+    renders === 0 && q.view.pendingFrame === 0 && q.view.cancelFrame === null,
+    `${renders} render(s) after removal`);
+}
+
 // --- The host stays small ---------------------------------------------------
 // The decomposition (#136) left the element with the Lovelace contract, the
 // render cycle and its compositions, and nothing else. A ratchet, not a
