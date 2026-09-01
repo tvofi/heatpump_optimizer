@@ -21,8 +21,8 @@
 #
 # claims-for: 6.2.14
 #
-# #141: the shared-band <pattern> ids are the card's own and start over
-# every render, so the two states that draw the band carry new ids.
+# #138: each chart copy keeps its own lane geometry, so a drag in flight
+# redraws the inline copy's lanes at the inline font. Only the new mid-drag
+# state shows it; a released drag renders everything afresh.
 #
-shared_steps  # the pattern ids: per card, per render, no longer a page-global count
-shared_steps_hover  # the pattern ids: per card, per render, no longer a page-global count
+draft_mid_drag  # new state; the inline lanes redraw at the inline font, not the dialog's
