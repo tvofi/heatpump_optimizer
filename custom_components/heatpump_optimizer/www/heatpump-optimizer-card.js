@@ -11,7 +11,7 @@
 
 const CARD_TAG = "heatpump-optimizer-card";
 const EDITOR_TAG = "heatpump-optimizer-card-editor";
-const CARD_VERSION = "5.4.8";
+const CARD_VERSION = "5.4.9";
 
 // The de-duplication key `_extraFields` files a confidence band's two
 // edges under, so the pair counts as the one named trace it is. A Symbol
@@ -5559,6 +5559,616 @@ class ManualPlan {
   }
 }
 
+// ---- LaneEditor -----------------------------------------------------------
+// The editable lanes drawn along the bottom of the chart: the lane and slot
+// markup the chart's overlay asks for, the drag that moves or resizes a
+// slot (with the edge auto-pan that carries a zoomed view along), the slot
+// menu -- with the Escape listener it parks on the document, which
+// `teardown` must remove because a rebuild destroys the menu but not the
+// listener -- the keyboard form of all of it, and where focus goes after a
+// render destroyed the element that had it. Edits go to `host.manual`;
+// gestures read `host.geom` and `host.view`; a drag redraws through
+// `host.render()`. PR 5b of #136. The gesture closures inside `attach` are
+// as they were: promoting them to methods is a later cleanup, not a move.
+class LaneEditor {
+  constructor(host) {
+    this.host = host;
+    // A slot drag in progress, and the edge auto-pan interval it may run.
+    this.drag = null;
+    this.dragPan = null;
+    // The open slot menu, where it was opened from, and the Escape listener
+    // it parked on the document.
+    this.menu = null;
+    this.menuOrigin = null;
+    this.menuEscape = null;
+    this.menuEscapeTarget = null;
+  }
+
+  /** Everything this editor attached OUTSIDE the card's shadow root: the
+   * menu's document-level Escape listener. Called before every rebuild and
+   * when the card leaves the document. */
+  teardown() {
+    this.closeMenu();
+  }
+
+  /** The lanes, their slots and the grab handles, as SVG.
+   *
+   * Rebuilt from the recorded geometry rather than from the chart's locals, so
+   * a drag can redraw the lanes alone without re-rendering the whole card.
+   */
+  laneGroupInner(geom) {
+    if (!geom) return "";
+    const {
+      windowStart, windowEnd, plotL, plotW, plotR, plotB, font,
+      laneH = LANE_H, laneGap = LANE_GAP, laneInset = LANE_BOTTOM_INSET,
+    } = geom;
+    const span = windowEnd - windowStart || 1;
+    const scaleX = (t) => plotL + ((t - windowStart) / span) * plotW;
+    const runs = this.host.manual.draft();
+    const [lo, hi] = this.host.manual.bounds();
+    const specs = this.host.manual.laneSpecs();
+    const out = [];
+    const clampX = (t) => Math.max(plotL, Math.min(plotR, scaleX(t)));
+
+    specs.forEach((spec, row) => {
+      const y = plotB - laneInset - (specs.length - row) * (laneH + laneGap);
+      // The track, so an empty lane is still an obvious drop target. Also a
+      // tab stop: Enter on it opens the same add-slot menu a right-click
+      // does, which is the whole editor without a pointer.
+      out.push(
+        `<rect class="lane" data-channel="${spec.channel}" tabindex="0" role="button" aria-label="${esc(
+          L("slots.lane_aria", { lane: spec.label })
+        )}" x="${plotL}" y="${y}" width="${
+          plotR - plotL
+        }" height="${laneH}" rx="2" fill="var(--secondary-text-color,#888)" fill-opacity="0.07"/>`
+      );
+      out.push(
+        `<text class="lane-label" x="${plotL + 4}" y="${
+          y + laneH - 4 * (laneH / LANE_H)
+        }" font-size="${font * 0.8}" fill="var(--secondary-text-color,#888)">${esc(
+          spec.label
+        )}</text>`
+      );
+      // The parts of the lane that cannot be changed: what has already run,
+      // and what lies beyond the point where the override expires.
+      const floorX = clampX(lo);
+      if (floorX > plotL) {
+        out.push(
+          `<rect class="lane-past" x="${plotL}" y="${y}" width="${
+            floorX - plotL
+          }" height="${laneH}" fill="var(--secondary-text-color,#888)" fill-opacity="0.12"/>`
+        );
+      }
+      const ceilX = clampX(hi);
+      if (ceilX < plotR) {
+        out.push(
+          `<rect class="lane-past" x="${ceilX}" y="${y}" width="${
+            plotR - ceilX
+          }" height="${laneH}" fill="var(--secondary-text-color,#888)" fill-opacity="0.12"/>`
+        );
+      }
+      // The lane runs out at the zoomed window, not at any rule of the
+      // plan's: mark it, or the invisible remainder reads as a hard limit.
+      if (this.host.manual.viewLimitsEditing()) {
+        out.push(
+          `<text class="lane-more" x="${plotR - 3}" y="${
+            y + laneH - 3 * (laneH / LANE_H)
+          }" font-size="${font}" text-anchor="end" fill="var(--primary-color,#03a9f4)">»</text>`
+        );
+      }
+
+      (runs[spec.channel] || []).forEach((run, index) => {
+        // Zooming can put a run wholly outside the window. Clamping alone would
+        // collapse it onto the edge and leave a one-pixel sliver pretending to
+        // be a slot, so drop it instead. `index` still refers to its place in
+        // the full array, which is what hit-testing and editing use.
+        if (run.end <= windowStart || run.start >= windowEnd) return;
+        const x1 = clampX(run.start);
+        const x2 = clampX(run.end);
+        const w = Math.max(1, x2 - x1);
+        const locked = run.end <= lo || run.start >= hi;
+        // Editable slots are tab stops with the keyboard menu (Enter) and
+        // removal (Delete) announced; locked ones stay presentational.
+        const fmtT = (t) =>
+          new Date(t).toLocaleTimeString(ACTIVE_LANG, {
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+        const kbd = locked
+          ? ""
+          : ` tabindex="0" role="button" aria-label="${esc(
+              L("slots.slot_aria", {
+                lane: spec.label,
+                start: fmtT(run.start),
+                end: fmtT(run.end),
+              })
+            )}"`;
+        out.push(
+          `<rect class="slot${locked ? " locked" : ""}" data-channel="${
+            spec.channel
+          }" data-index="${index}"${kbd} x="${x1}" y="${y}" width="${w}" height="${laneH}" rx="2" fill="${
+            spec.color
+          }" fill-opacity="${locked ? 0.35 : 0.85}"/>`
+        );
+        if (locked) return;
+        // Explicit edge handles: without them a narrow slot is impossible to
+        // resize, because the whole rect reads as "move".
+        const grab = _coarsePointer() ? LANE_EDGE_GRAB_COARSE : LANE_EDGE_GRAB;
+        for (const edge of ["start", "end"]) {
+          const ex = edge === "start" ? x1 : x2 - grab;
+          out.push(
+            `<rect class="slot-handle" data-channel="${spec.channel}" data-index="${index}" data-edge="${edge}" x="${ex}" y="${y}" width="${grab}" height="${laneH}" fill="#fff" fill-opacity="0.001"/>`
+          );
+        }
+      });
+    });
+    return out.join("");
+  }
+
+  /** Redraw only what a drag changes.
+   *
+   * A full re-render on every pointer move would rebuild the shadow root
+   * dozens of times a second and lose the drag with it.
+   */
+  refreshLanes() {
+    const root = this.host.shadowRoot;
+    if (!root) return;
+    if (this.host.geom) {
+      const inner = this.laneGroupInner(this.host.geom);
+      root.querySelectorAll(".lanes").forEach((group) => {
+        group.innerHTML = inner;
+      });
+    }
+    this.host.manual.updateDelta();
+  }
+
+  /** An edit: replace one channel's runs in the draft and redraw only
+   * what a drag changes. */
+  commitRuns(channel, runs) {
+    this.host.manual.set(channel, runs);
+    this.refreshLanes();
+  }
+
+  /** The right-click menu for a lane.
+   *
+   * Rendered as plain HTML positioned over the card rather than as SVG, so it
+   * is not clipped by the chart and inherits the dialog's font.
+   */
+  openMenu(channel, at, clientX, clientY, svg, focusMenu) {
+    const root = this.host.shadowRoot;
+    if (!root) return;
+    this.closeMenu();
+    const runs = this.host.manual.draft()[channel] || [];
+    const index = SlotModel.indexAt(runs, at);
+    const [lo] = this.host.manual.bounds();
+    const editable = index >= 0 && runs[index].end > lo;
+
+    // Anchored to the chart it was opened from: when the card is expanded
+    // there are two, and the menu must not land on the wrong one.
+    const host = wrapOf(svg, this.host.shadowRoot);
+    if (!host) return;
+    const rect = host.getBoundingClientRect
+      ? host.getBoundingClientRect()
+      : { left: 0, top: 0 };
+    const menu = document.createElement("div");
+    menu.className = "slot-menu";
+    menu.style.left = `${clientX - (rect.left || 0)}px`;
+    menu.style.top = `${clientY - (rect.top || 0)}px`;
+    // Whole sentences per channel rather than an interpolated noun: gendered
+    // articles and compound nouns make "Remove this {channel} slot" untranslatable.
+    const dhw = channel === "dhw";
+    menu.innerHTML = editable
+      ? `<button type="button" data-act="remove">${esc(
+          L(dhw ? "menu.remove_slot_dhw" : "menu.remove_slot_space")
+        )}</button>`
+      : `<button type="button" data-act="add">${esc(
+          L(dhw ? "menu.add_slot_dhw" : "menu.add_slot_space")
+        )}</button>`;
+
+    const svgIndex = chartSvgs(this.host.shadowRoot).indexOf(svg);
+    menu.addEventListener("click", (ev) => {
+      const act = ((ev.target || {}).dataset || {}).act;
+      stop(ev);
+      if (act === "add") {
+        this.commitRuns(
+          channel,
+          SlotModel.add(runs, at, PLAN_STEP_MS, this.host.manual.bounds())
+        );
+      } else if (act === "remove") {
+        this.commitRuns(channel, SlotModel.remove(runs, index));
+      }
+      this.closeMenu();
+      this.host.render();
+      // The render just destroyed the element that had focus (the menu's
+      // button, or the slot). Falling to document.body strands a keyboard
+      // user; the lane the action happened in is the logical successor —
+      // the acted-on slot itself no longer exists (removed) or has a new
+      // index (added).
+      this.restoreFocus(channel, null, svgIndex);
+    });
+    // Escape dismisses the menu whichever way it was opened. The menu's own
+    // listener covers the keyboard-opened case, where its button holds
+    // focus; a MOUSE-opened menu leaves focus on the chart, so Escape must
+    // also be caught at the document (registered below, removed on close).
+    const onEscape = (ev) => {
+      if (ev.key !== "Escape") return;
+      stop(ev);
+      const origin = this.menuOrigin;
+      this.closeMenu();
+      // Nothing re-rendered, but a keyboard-opened menu moved focus into
+      // its button, which is now gone: send it back where the menu came
+      // from.
+      if (origin) {
+        this.restoreFocus(origin.channel, origin.index, origin.svgIndex);
+      }
+    };
+    menu.addEventListener("keydown", onEscape);
+    host.appendChild(menu);
+    this.menu = menu;
+    this.menuOrigin = { channel, index: editable ? index : null, svgIndex };
+    const escTarget = this.globalKeyTarget();
+    if (escTarget) {
+      this.menuEscape = onEscape;
+      this.menuEscapeTarget = escTarget;
+      escTarget.addEventListener("keydown", onEscape);
+    }
+    if (focusMenu) {
+      const btn = menu.querySelector("button");
+      if (btn && typeof btn.focus === "function") btn.focus();
+    }
+  }
+
+  closeMenu() {
+    const menu = this.menu;
+    if (menu && menu.parentNode && menu.parentNode.removeChild) {
+      menu.parentNode.removeChild(menu);
+    }
+    this.menu = null;
+    this.menuOrigin = null;
+    if (this.menuEscapeTarget && this.menuEscape) {
+      this.menuEscapeTarget.removeEventListener("keydown", this.menuEscape);
+    }
+    this.menuEscape = null;
+    this.menuEscapeTarget = null;
+  }
+
+  /** Where a while-the-menu-is-open key listener can live: keydown events
+   * are composed, so they bubble out of the shadow root to the document. */
+  globalKeyTarget() {
+    if (typeof document !== "undefined" && document.addEventListener) {
+      return document;
+    }
+    if (typeof window !== "undefined" && window.addEventListener) {
+      return window;
+    }
+    return null;
+  }
+
+  /** Put keyboard focus back near a slot action after the DOM it happened
+   * in was rebuilt (or its menu closed): the same slot re-located by its
+   * channel and index in the fresh chart, else that channel's lane, else
+   * the chart svg itself — never document.body.
+   */
+  restoreFocus(channel, index, svgIndex) {
+    const svgs = chartSvgs(this.host.shadowRoot);
+    const svg = svgs[svgIndex] || svgs[svgs.length - 1];
+    if (!svg) return;
+    const focus = (el) =>
+      !!(el && typeof el.focus === "function" && (el.focus(), true));
+    if (index !== null && index !== undefined && index >= 0) {
+      for (const slot of svg.querySelectorAll(".slot")) {
+        const d = slot.dataset || {};
+        if (
+          d.channel === channel &&
+          Number(d.index) === Number(index) &&
+          !slot.classList.contains("locked")
+        ) {
+          if (focus(slot)) return;
+        }
+      }
+    }
+    for (const lane of svg.querySelectorAll(".lane")) {
+      if ((lane.dataset || {}).channel === channel) {
+        if (focus(lane)) return;
+      }
+    }
+    focus(svg);
+  }
+
+  /** Drag to move a slot, drag its edge to resize, right-click to add or
+   * remove. Wired by delegation on the svg, because the chart markup is
+   * rebuilt wholesale on every refresh and per-rect listeners would not
+   * survive it.
+   */
+  attach(root) {
+    if (!this.host.manual.enabled()) return;
+    const svgs = chartSvgs(root);
+    if (!svgs.length) return;
+
+    const onDown = (svg, ev) => {
+      const target = ev.target || {};
+      const data = target.dataset || {};
+      if (!data.channel) return;
+      const at = timeAtClientX(svg, ev.clientX, this.host.geom);
+      if (at === null) return;
+      const channel = data.channel;
+      const runs = this.host.manual.draft()[channel] || [];
+      let index = data.index === undefined ? -1 : Number(data.index);
+      if (index < 0) index = SlotModel.indexAt(runs, at);
+      // No slot under the press: not draggable, but a press RELEASED here
+      // without movement must still open the add-slot menu — on touch it
+      // is the only way to reach it. menuOnly presses ignore movement.
+      let menuOnly = index < 0;
+      if (!menuOnly) {
+        // A slot outside the editable range -- already run, or beyond the
+        // point where the override expires -- must not be draggable.
+        const [lo, hi] = this.host.manual.bounds();
+        const run = runs[index];
+        if (run && (run.end <= lo || run.start >= hi)) menuOnly = true;
+      }
+
+      this.drag = {
+        channel,
+        index,
+        menuOnly,
+        edge: data.edge || null,
+        from: at,
+        svgIndex: svgs.indexOf(svg),
+        lastClientX: ev.clientX,
+        lastClientY: ev.clientY,
+        // Edits apply to the arrangement as it was when the drag began, so a
+        // slow drag does not compound its own deltas.
+        original: runs.map((r) => ({ ...r })),
+      };
+      // The svg-bound listeners below serve the common case, but an auto-pan
+      // re-render replaces the svg mid-gesture and its listeners with it, so
+      // the gesture's continuation also lives on `window` for the duration —
+      // the same survival trick the chart's pan drag uses. Both firing for
+      // one event is harmless: the second apply lands on identical state.
+      const winMove = (e) => {
+        const d = this.drag;
+        if (!d) return;
+        d.lastClientX = e.clientX;
+        const cur = svgAt(d.svgIndex);
+        if (cur) applyDragAt(cur, e.clientX);
+        maybeAutoPan(d.svgIndex, e.clientX);
+      };
+      const winUp = () => {
+        window.removeEventListener("pointermove", winMove);
+        window.removeEventListener("pointerup", winUp);
+        window.removeEventListener("pointercancel", winUp);
+        stopAutoPan();
+        onUp();
+      };
+      window.addEventListener("pointermove", winMove);
+      window.addEventListener("pointerup", winUp);
+      window.addEventListener("pointercancel", winUp);
+      stop(ev);
+      if (ev.preventDefault) ev.preventDefault();
+    };
+
+    const svgAt = (index) => {
+      // Auto-pan re-renders, replacing the svg the gesture started on; the
+      // chart at the same position in the fresh shadow root is its heir.
+      const current = chartSvgs(this.host.shadowRoot || root);
+      return current[index] || current[current.length - 1] || null;
+    };
+
+    const applyDragAt = (svg, clientX) => {
+      const drag = this.drag;
+      if (!drag || drag.menuOnly) return;
+      const at = timeAtClientX(svg, clientX, this.host.geom);
+      if (at === null) return;
+      drag.moved = true;
+      const delta = at - drag.from;
+      const bounds = this.host.manual.bounds();
+      const next = drag.edge
+        ? SlotModel.resize(
+            drag.original, drag.index, drag.edge, delta, PLAN_STEP_MS, bounds
+          )
+        : SlotModel.move(
+            drag.original, drag.index, delta, PLAN_STEP_MS, bounds
+          );
+      this.commitRuns(drag.channel, next);
+    };
+
+    const onMove = (svg, ev) => {
+      if (this.drag) this.drag.lastClientX = ev.clientX;
+      applyDragAt(svg, ev.clientX);
+    };
+
+    const stopAutoPan = () => {
+      if (this.dragPan) {
+        clearInterval(this.dragPan);
+        this.dragPan = null;
+      }
+    };
+
+    // Holding a dragged slot against the plot's edge pans the view under it.
+    // Without this, a zoomed-in view is a wall: the edit ceiling clamps to
+    // the visible window (a slot must not land where the pointer cannot
+    // reach), so a user who zoomed — often accidentally, by pinch or
+    // ctrl-wheel — finds editing "stops" at an arbitrary-looking time.
+    const maybeAutoPan = (index, clientX) => {
+      if (!this.drag || this.drag.menuOnly || !this.host.view.adjustable()) {
+        stopAutoPan();
+        return;
+      }
+      const svg = svgAt(index);
+      const rect =
+        svg && svg.getBoundingClientRect ? svg.getBoundingClientRect() : null;
+      if (!rect || !rect.width) {
+        stopAutoPan();
+        return;
+      }
+      const dir =
+        clientX > rect.left + rect.width - AUTOPAN_MARGIN_PX
+          ? 1
+          : clientX < rect.left + AUTOPAN_MARGIN_PX
+            ? -1
+            : 0;
+      if (!dir) {
+        stopAutoPan();
+        return;
+      }
+      if (this.dragPan) return;
+      this.dragPan = setInterval(() => {
+        const drag = this.drag;
+        const lim = this.host.view.limits;
+        if (!drag || !lim) {
+          stopAutoPan();
+          return;
+        }
+        const cur = this.host.view.current();
+        const step = dir * Math.max(PLAN_STEP_MS, cur.span * 0.04);
+        const maxStart = Math.max(lim.floor, lim.rightBound - cur.span);
+        const start = clampNum(cur.start + step, lim.floor, maxStart);
+        if (start === cur.start) {
+          stopAutoPan();
+          return;
+        }
+        this.host.view.setStart(start);
+        // A full render: the gesture survives it because move/up also live
+        // on `window` (registered per drag below), exactly as the pan
+        // gesture does and for the same reason.
+        this.host.render();
+        const fresh = svgAt(drag.svgIndex);
+        if (fresh && drag.lastClientX !== undefined) {
+          applyDragAt(fresh, drag.lastClientX);
+        }
+      }, AUTOPAN_INTERVAL_MS);
+    };
+
+    const onUp = () => {
+      if (!this.drag) return;
+      const drag = this.drag;
+      // The browser synthesises a click after pointerup — preventDefault on
+      // pointerdown suppresses compatibility mouse events but not click — and
+      // on the inline chart that click bubbles to ha-card and pops the
+      // expanded dialog open at the end of every drag. Same one-shot
+      // suppression the pan gesture uses; a drag ending off-svg spends it on
+      // nothing, which the pan path already accepts.
+      if (drag.moved) this.host.suppressNextClick();
+      this.drag = null;
+      this.host.render();
+      // A press released without movement is a tap: open the slot menu the
+      // desktop reaches by right-click. iOS Safari never synthesises
+      // contextmenu (no long-press equivalent), so before this a touch
+      // user could not add or remove a slot at all. Desktop gains the
+      // same affordance — a menu on plain click is more discoverable than
+      // one hidden behind the right button. After _render so the menu
+      // attaches to the fresh shadow root, and suppressClick still spends
+      // the synthetic click before it can pop the dialog.
+      if (
+        !drag.moved &&
+        drag.lastClientX !== undefined &&
+        drag.lastClientY !== undefined
+      ) {
+        this.host.suppressNextClick();
+        const fresh = svgAt(drag.svgIndex);
+        if (fresh) {
+          const at = timeAtClientX(fresh, drag.lastClientX, this.host.geom);
+          if (at !== null) {
+            this.openMenu(
+              drag.channel, at, drag.lastClientX, drag.lastClientY, fresh
+            );
+          }
+        }
+      }
+    };
+
+    const onContext = (svg, ev) => {
+      const data = (ev.target || {}).dataset || {};
+      if (!data.channel) return;
+      const at = timeAtClientX(svg, ev.clientX, this.host.geom);
+      if (at === null) return;
+      if (ev.preventDefault) ev.preventDefault();
+      stop(ev);
+      this.openMenu(data.channel, at, ev.clientX, ev.clientY, svg);
+    };
+
+    // The keyboard equivalent of the pointer gestures, delegated on the svg
+    // like everything else here (the rects are rebuilt on every refresh).
+    // Enter/Space on a focused slot or lane opens the same menu a
+    // right-click does; Delete removes the focused slot outright. Dragging
+    // has no keyboard form — the menu's add/remove covers the same edits,
+    // just in more steps.
+    const onKeydown = (svg, ev) => {
+      const data = (ev.target || {}).dataset || {};
+      if (!data.channel) return;
+      const key = ev.key;
+      const wantsMenu =
+        key === "Enter" || key === " " || key === "ContextMenu";
+      const wantsRemove = key === "Delete" || key === "Backspace";
+      if (!wantsMenu && !wantsRemove) return;
+      const geom = this.host.geom;
+      if (!geom) return;
+      if (ev.preventDefault) ev.preventDefault();
+      stop(ev);
+
+      const channel = data.channel;
+      const runs = this.host.manual.draft()[channel] || [];
+      const index = data.index === undefined ? -1 : Number(data.index);
+      const run = index >= 0 ? runs[index] : null;
+      const [lo, hi] = this.host.manual.bounds();
+
+      if (wantsRemove) {
+        if (run && run.end > lo && run.start < hi) {
+          this.commitRuns(channel, SlotModel.remove(runs, index));
+          this.host.render();
+          // The focused slot is gone and the render rebuilt everything
+          // around it; without this, focus drops to document.body and a
+          // keyboard user restarts from the top. Its lane is the successor.
+          this.restoreFocus(channel, null, svgs.indexOf(svg));
+        }
+        return;
+      }
+
+      // The menu asks "what is at this time?", so aim it at the middle of
+      // the focused slot — or, from a lane, at the middle of the editable
+      // stretch of the visible window.
+      let at;
+      if (run) {
+        at = (run.start + run.end) / 2;
+      } else {
+        const s = Math.max(lo, geom.windowStart);
+        const e = Math.min(hi, geom.windowEnd);
+        if (e <= s) return;
+        at = (s + e) / 2;
+      }
+      // Anchor the menu where that time is drawn. The pointer paths get
+      // client coordinates for free; here they are reconstructed from the
+      // viewBox geometry, and degrade to the svg's own corner when the
+      // element cannot be measured.
+      const rect = svg.getBoundingClientRect
+        ? svg.getBoundingClientRect()
+        : null;
+      let clientX = rect ? rect.left : 0;
+      let clientY = rect ? rect.top : 0;
+      if (rect && rect.width) {
+        const span = geom.windowEnd - geom.windowStart || 1;
+        const vx =
+          geom.plotL + ((at - geom.windowStart) / span) * geom.plotW;
+        clientX = rect.left + (vx / VIEW_W) * rect.width;
+        clientY =
+          rect.top +
+          ((geom.plotB - (geom.laneH || LANE_H)) / VIEW_H) *
+            (rect.height || 0);
+      }
+      this.openMenu(channel, at, clientX, clientY, svg, true);
+    };
+
+    for (const svg of svgs) {
+      svg.addEventListener("pointerdown", (ev) => onDown(svg, ev));
+      svg.addEventListener("pointermove", (ev) => onMove(svg, ev));
+      svg.addEventListener("pointerup", onUp);
+      svg.addEventListener("pointerleave", onUp);
+      svg.addEventListener("contextmenu", (ev) => onContext(svg, ev));
+      svg.addEventListener("keydown", (ev) => onKeydown(svg, ev));
+    }
+  }
+}
+
 // ===========================================================================
 // The card element, and the contract its collaborators get.
 //
@@ -5574,6 +6184,7 @@ class ManualPlan {
 //   host.legend                Legend: the series chips and which are hidden
 //   host.dialog                ExpandedDialog: the enlarged view and its pages
 //   host.manual                ManualPlan: today's slot draft, its bounds and cost
+//   host.lanes                 LaneEditor: the lanes, the drag, the slot menu
 //   host.geom                  the chart's last geometry (null: no lanes)
 //   host.render()              rebuild, keeping the render signature
 //   host.renderForced()        rebuild and forget it (the next hass redraws)
@@ -5594,6 +6205,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     this.legend = new Legend(this);
     this.dialog = new ExpandedDialog(this);
     this.manual = new ManualPlan(this);
+    this.lanes = new LaneEditor(this);
     this._config = null;
     this._hass = null;
     this._sig = null;
@@ -5636,15 +6248,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // Chart geometry the pan gesture and the slot lanes hit-test against,
     // published by `_chartSvg` while editing is enabled.
     this._geom = null;
-    // A slot drag in progress, and the edge auto-pan interval it may run.
-    this._drag = null;
-    this._dragPan = null;
-    // The open slot menu, where it was opened from, and the Escape
-    // listener it parked on the document.
-    this._slotMenu = null;
-    this._menuOrigin = null;
-    this._menuEscape = null;
-    this._menuEscapeTarget = null;
     // The chart's last measured rectangle, a hover fallback.
     this._svgRect = null;
     // The setup page's status line, re-applied after every rebuild.
@@ -5793,7 +6396,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
    * One method, called from both, rather than two lists that agree today.
    */
   _teardown() {
-    this._closeSlotMenu();
+    this.lanes.teardown();
   }
 
   disconnectedCallback() {
@@ -6075,7 +6678,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
       // open, since the expanded chart renders last -- #138.)
       overlay: (g) => {
         this._geom = g;
-        return this._laneGroupInner();
+        return this.lanes.laneGroupInner(g);
       },
       // Document-unique per chart: with the dialog open two charts render
       // into one shadow root.
@@ -7710,155 +8313,9 @@ class HeatpumpOptimizerCard extends HTMLElement {
     this.view.attach(root);
     this._attachWhatIf(root);
     this.manual.attach(root);
-    this._attachSlotEditing(root);
+    this.lanes.attach(root);
   }
 
-
-  /** The right-click menu for a lane.
-   *
-   * Rendered as plain HTML positioned over the card rather than as SVG, so it
-   * is not clipped by the chart and inherits the dialog's font.
-   */
-  _openSlotMenu(channel, at, clientX, clientY, svg, focusMenu) {
-    const root = this.shadowRoot;
-    if (!root) return;
-    this._closeSlotMenu();
-    const runs = this.manual.draft()[channel] || [];
-    const index = SlotModel.indexAt(runs, at);
-    const [lo] = this.manual.bounds();
-    const editable = index >= 0 && runs[index].end > lo;
-
-    // Anchored to the chart it was opened from: when the card is expanded
-    // there are two, and the menu must not land on the wrong one.
-    const host = wrapOf(svg, this.shadowRoot);
-    if (!host) return;
-    const rect = host.getBoundingClientRect
-      ? host.getBoundingClientRect()
-      : { left: 0, top: 0 };
-    const menu = document.createElement("div");
-    menu.className = "slot-menu";
-    menu.style.left = `${clientX - (rect.left || 0)}px`;
-    menu.style.top = `${clientY - (rect.top || 0)}px`;
-    // Whole sentences per channel rather than an interpolated noun: gendered
-    // articles and compound nouns make "Remove this {channel} slot" untranslatable.
-    const dhw = channel === "dhw";
-    menu.innerHTML = editable
-      ? `<button type="button" data-act="remove">${esc(
-          L(dhw ? "menu.remove_slot_dhw" : "menu.remove_slot_space")
-        )}</button>`
-      : `<button type="button" data-act="add">${esc(
-          L(dhw ? "menu.add_slot_dhw" : "menu.add_slot_space")
-        )}</button>`;
-
-    const svgIndex = chartSvgs(this.shadowRoot).indexOf(svg);
-    menu.addEventListener("click", (ev) => {
-      const act = ((ev.target || {}).dataset || {}).act;
-      stop(ev);
-      if (act === "add") {
-        this._commitRuns(
-          channel,
-          SlotModel.add(runs, at, PLAN_STEP_MS, this.manual.bounds())
-        );
-      } else if (act === "remove") {
-        this._commitRuns(channel, SlotModel.remove(runs, index));
-      }
-      this._closeSlotMenu();
-      this._render();
-      // The render just destroyed the element that had focus (the menu's
-      // button, or the slot). Falling to document.body strands a keyboard
-      // user; the lane the action happened in is the logical successor —
-      // the acted-on slot itself no longer exists (removed) or has a new
-      // index (added).
-      this._restoreSlotFocus(channel, null, svgIndex);
-    });
-    // Escape dismisses the menu whichever way it was opened. The menu's own
-    // listener covers the keyboard-opened case, where its button holds
-    // focus; a MOUSE-opened menu leaves focus on the chart, so Escape must
-    // also be caught at the document (registered below, removed on close).
-    const onEscape = (ev) => {
-      if (ev.key !== "Escape") return;
-      stop(ev);
-      const origin = this._menuOrigin;
-      this._closeSlotMenu();
-      // Nothing re-rendered, but a keyboard-opened menu moved focus into
-      // its button, which is now gone: send it back where the menu came
-      // from.
-      if (origin) {
-        this._restoreSlotFocus(origin.channel, origin.index, origin.svgIndex);
-      }
-    };
-    menu.addEventListener("keydown", onEscape);
-    host.appendChild(menu);
-    this._slotMenu = menu;
-    this._menuOrigin = { channel, index: editable ? index : null, svgIndex };
-    const escTarget = this._globalKeyTarget();
-    if (escTarget) {
-      this._menuEscape = onEscape;
-      this._menuEscapeTarget = escTarget;
-      escTarget.addEventListener("keydown", onEscape);
-    }
-    if (focusMenu) {
-      const btn = menu.querySelector("button");
-      if (btn && typeof btn.focus === "function") btn.focus();
-    }
-  }
-
-  _closeSlotMenu() {
-    const menu = this._slotMenu;
-    if (menu && menu.parentNode && menu.parentNode.removeChild) {
-      menu.parentNode.removeChild(menu);
-    }
-    this._slotMenu = null;
-    this._menuOrigin = null;
-    if (this._menuEscapeTarget && this._menuEscape) {
-      this._menuEscapeTarget.removeEventListener("keydown", this._menuEscape);
-    }
-    this._menuEscape = null;
-    this._menuEscapeTarget = null;
-  }
-
-  /** Where a while-the-menu-is-open key listener can live: keydown events
-   * are composed, so they bubble out of the shadow root to the document. */
-  _globalKeyTarget() {
-    if (typeof document !== "undefined" && document.addEventListener) {
-      return document;
-    }
-    if (typeof window !== "undefined" && window.addEventListener) {
-      return window;
-    }
-    return null;
-  }
-
-  /** Put keyboard focus back near a slot action after the DOM it happened
-   * in was rebuilt (or its menu closed): the same slot re-located by its
-   * channel and index in the fresh chart, else that channel's lane, else
-   * the chart svg itself — never document.body.
-   */
-  _restoreSlotFocus(channel, index, svgIndex) {
-    const svgs = chartSvgs(this.shadowRoot);
-    const svg = svgs[svgIndex] || svgs[svgs.length - 1];
-    if (!svg) return;
-    const focus = (el) =>
-      !!(el && typeof el.focus === "function" && (el.focus(), true));
-    if (index !== null && index !== undefined && index >= 0) {
-      for (const slot of svg.querySelectorAll(".slot")) {
-        const d = slot.dataset || {};
-        if (
-          d.channel === channel &&
-          Number(d.index) === Number(index) &&
-          !slot.classList.contains("locked")
-        ) {
-          if (focus(slot)) return;
-        }
-      }
-    }
-    for (const lane of svg.querySelectorAll(".lane")) {
-      if ((lane.dataset || {}).channel === channel) {
-        if (focus(lane)) return;
-      }
-    }
-    focus(svg);
-  }
 
   /** Take focus off a setup row that no longer deserves it.
    *
@@ -7903,436 +8360,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
     if (!this.getBoundingClientRect) return 0;
     const rect = this.getBoundingClientRect();
     return rect && rect.width ? rect.width : 0;
-  }
-
-  /** Drag to move a slot, drag its edge to resize, right-click to add or
-   * remove. Wired by delegation on the svg, because the chart markup is
-   * rebuilt wholesale on every refresh and per-rect listeners would not
-   * survive it.
-   */
-  _attachSlotEditing(root) {
-    if (!this.manual.enabled()) return;
-    const svgs = chartSvgs(root);
-    if (!svgs.length) return;
-
-    const onDown = (svg, ev) => {
-      const target = ev.target || {};
-      const data = target.dataset || {};
-      if (!data.channel) return;
-      const at = timeAtClientX(svg, ev.clientX, this._geom);
-      if (at === null) return;
-      const channel = data.channel;
-      const runs = this.manual.draft()[channel] || [];
-      let index = data.index === undefined ? -1 : Number(data.index);
-      if (index < 0) index = SlotModel.indexAt(runs, at);
-      // No slot under the press: not draggable, but a press RELEASED here
-      // without movement must still open the add-slot menu — on touch it
-      // is the only way to reach it. menuOnly presses ignore movement.
-      let menuOnly = index < 0;
-      if (!menuOnly) {
-        // A slot outside the editable range -- already run, or beyond the
-        // point where the override expires -- must not be draggable.
-        const [lo, hi] = this.manual.bounds();
-        const run = runs[index];
-        if (run && (run.end <= lo || run.start >= hi)) menuOnly = true;
-      }
-
-      this._drag = {
-        channel,
-        index,
-        menuOnly,
-        edge: data.edge || null,
-        from: at,
-        svgIndex: svgs.indexOf(svg),
-        lastClientX: ev.clientX,
-        lastClientY: ev.clientY,
-        // Edits apply to the arrangement as it was when the drag began, so a
-        // slow drag does not compound its own deltas.
-        original: runs.map((r) => ({ ...r })),
-      };
-      // The svg-bound listeners below serve the common case, but an auto-pan
-      // re-render replaces the svg mid-gesture and its listeners with it, so
-      // the gesture's continuation also lives on `window` for the duration —
-      // the same survival trick the chart's pan drag uses. Both firing for
-      // one event is harmless: the second apply lands on identical state.
-      const winMove = (e) => {
-        const d = this._drag;
-        if (!d) return;
-        d.lastClientX = e.clientX;
-        const cur = svgAt(d.svgIndex);
-        if (cur) applyDragAt(cur, e.clientX);
-        maybeAutoPan(d.svgIndex, e.clientX);
-      };
-      const winUp = () => {
-        window.removeEventListener("pointermove", winMove);
-        window.removeEventListener("pointerup", winUp);
-        window.removeEventListener("pointercancel", winUp);
-        stopAutoPan();
-        onUp();
-      };
-      window.addEventListener("pointermove", winMove);
-      window.addEventListener("pointerup", winUp);
-      window.addEventListener("pointercancel", winUp);
-      stop(ev);
-      if (ev.preventDefault) ev.preventDefault();
-    };
-
-    const svgAt = (index) => {
-      // Auto-pan re-renders, replacing the svg the gesture started on; the
-      // chart at the same position in the fresh shadow root is its heir.
-      const current = chartSvgs(this.shadowRoot || root);
-      return current[index] || current[current.length - 1] || null;
-    };
-
-    const applyDragAt = (svg, clientX) => {
-      const drag = this._drag;
-      if (!drag || drag.menuOnly) return;
-      const at = timeAtClientX(svg, clientX, this._geom);
-      if (at === null) return;
-      drag.moved = true;
-      const delta = at - drag.from;
-      const bounds = this.manual.bounds();
-      const next = drag.edge
-        ? SlotModel.resize(
-            drag.original, drag.index, drag.edge, delta, PLAN_STEP_MS, bounds
-          )
-        : SlotModel.move(
-            drag.original, drag.index, delta, PLAN_STEP_MS, bounds
-          );
-      this._commitRuns(drag.channel, next);
-    };
-
-    const onMove = (svg, ev) => {
-      if (this._drag) this._drag.lastClientX = ev.clientX;
-      applyDragAt(svg, ev.clientX);
-    };
-
-    const stopAutoPan = () => {
-      if (this._dragPan) {
-        clearInterval(this._dragPan);
-        this._dragPan = null;
-      }
-    };
-
-    // Holding a dragged slot against the plot's edge pans the view under it.
-    // Without this, a zoomed-in view is a wall: the edit ceiling clamps to
-    // the visible window (a slot must not land where the pointer cannot
-    // reach), so a user who zoomed — often accidentally, by pinch or
-    // ctrl-wheel — finds editing "stops" at an arbitrary-looking time.
-    const maybeAutoPan = (index, clientX) => {
-      if (!this._drag || this._drag.menuOnly || !this.view.adjustable()) {
-        stopAutoPan();
-        return;
-      }
-      const svg = svgAt(index);
-      const rect =
-        svg && svg.getBoundingClientRect ? svg.getBoundingClientRect() : null;
-      if (!rect || !rect.width) {
-        stopAutoPan();
-        return;
-      }
-      const dir =
-        clientX > rect.left + rect.width - AUTOPAN_MARGIN_PX
-          ? 1
-          : clientX < rect.left + AUTOPAN_MARGIN_PX
-            ? -1
-            : 0;
-      if (!dir) {
-        stopAutoPan();
-        return;
-      }
-      if (this._dragPan) return;
-      this._dragPan = setInterval(() => {
-        const drag = this._drag;
-        const lim = this.view.limits;
-        if (!drag || !lim) {
-          stopAutoPan();
-          return;
-        }
-        const cur = this.view.current();
-        const step = dir * Math.max(PLAN_STEP_MS, cur.span * 0.04);
-        const maxStart = Math.max(lim.floor, lim.rightBound - cur.span);
-        const start = clampNum(cur.start + step, lim.floor, maxStart);
-        if (start === cur.start) {
-          stopAutoPan();
-          return;
-        }
-        this.view.setStart(start);
-        // A full render: the gesture survives it because move/up also live
-        // on `window` (registered per drag below), exactly as the pan
-        // gesture does and for the same reason.
-        this._render();
-        const fresh = svgAt(drag.svgIndex);
-        if (fresh && drag.lastClientX !== undefined) {
-          applyDragAt(fresh, drag.lastClientX);
-        }
-      }, AUTOPAN_INTERVAL_MS);
-    };
-
-    const onUp = () => {
-      if (!this._drag) return;
-      const drag = this._drag;
-      // The browser synthesises a click after pointerup — preventDefault on
-      // pointerdown suppresses compatibility mouse events but not click — and
-      // on the inline chart that click bubbles to ha-card and pops the
-      // expanded dialog open at the end of every drag. Same one-shot
-      // suppression the pan gesture uses; a drag ending off-svg spends it on
-      // nothing, which the pan path already accepts.
-      if (drag.moved) this.suppressNextClick();
-      this._drag = null;
-      this._render();
-      // A press released without movement is a tap: open the slot menu the
-      // desktop reaches by right-click. iOS Safari never synthesises
-      // contextmenu (no long-press equivalent), so before this a touch
-      // user could not add or remove a slot at all. Desktop gains the
-      // same affordance — a menu on plain click is more discoverable than
-      // one hidden behind the right button. After _render so the menu
-      // attaches to the fresh shadow root, and suppressClick still spends
-      // the synthetic click before it can pop the dialog.
-      if (
-        !drag.moved &&
-        drag.lastClientX !== undefined &&
-        drag.lastClientY !== undefined
-      ) {
-        this.suppressNextClick();
-        const fresh = svgAt(drag.svgIndex);
-        if (fresh) {
-          const at = timeAtClientX(fresh, drag.lastClientX, this._geom);
-          if (at !== null) {
-            this._openSlotMenu(
-              drag.channel, at, drag.lastClientX, drag.lastClientY, fresh
-            );
-          }
-        }
-      }
-    };
-
-    const onContext = (svg, ev) => {
-      const data = (ev.target || {}).dataset || {};
-      if (!data.channel) return;
-      const at = timeAtClientX(svg, ev.clientX, this._geom);
-      if (at === null) return;
-      if (ev.preventDefault) ev.preventDefault();
-      stop(ev);
-      this._openSlotMenu(data.channel, at, ev.clientX, ev.clientY, svg);
-    };
-
-    // The keyboard equivalent of the pointer gestures, delegated on the svg
-    // like everything else here (the rects are rebuilt on every refresh).
-    // Enter/Space on a focused slot or lane opens the same menu a
-    // right-click does; Delete removes the focused slot outright. Dragging
-    // has no keyboard form — the menu's add/remove covers the same edits,
-    // just in more steps.
-    const onKeydown = (svg, ev) => {
-      const data = (ev.target || {}).dataset || {};
-      if (!data.channel) return;
-      const key = ev.key;
-      const wantsMenu =
-        key === "Enter" || key === " " || key === "ContextMenu";
-      const wantsRemove = key === "Delete" || key === "Backspace";
-      if (!wantsMenu && !wantsRemove) return;
-      const geom = this._geom;
-      if (!geom) return;
-      if (ev.preventDefault) ev.preventDefault();
-      stop(ev);
-
-      const channel = data.channel;
-      const runs = this.manual.draft()[channel] || [];
-      const index = data.index === undefined ? -1 : Number(data.index);
-      const run = index >= 0 ? runs[index] : null;
-      const [lo, hi] = this.manual.bounds();
-
-      if (wantsRemove) {
-        if (run && run.end > lo && run.start < hi) {
-          this._commitRuns(channel, SlotModel.remove(runs, index));
-          this._render();
-          // The focused slot is gone and the render rebuilt everything
-          // around it; without this, focus drops to document.body and a
-          // keyboard user restarts from the top. Its lane is the successor.
-          this._restoreSlotFocus(channel, null, svgs.indexOf(svg));
-        }
-        return;
-      }
-
-      // The menu asks "what is at this time?", so aim it at the middle of
-      // the focused slot — or, from a lane, at the middle of the editable
-      // stretch of the visible window.
-      let at;
-      if (run) {
-        at = (run.start + run.end) / 2;
-      } else {
-        const s = Math.max(lo, geom.windowStart);
-        const e = Math.min(hi, geom.windowEnd);
-        if (e <= s) return;
-        at = (s + e) / 2;
-      }
-      // Anchor the menu where that time is drawn. The pointer paths get
-      // client coordinates for free; here they are reconstructed from the
-      // viewBox geometry, and degrade to the svg's own corner when the
-      // element cannot be measured.
-      const rect = svg.getBoundingClientRect
-        ? svg.getBoundingClientRect()
-        : null;
-      let clientX = rect ? rect.left : 0;
-      let clientY = rect ? rect.top : 0;
-      if (rect && rect.width) {
-        const span = geom.windowEnd - geom.windowStart || 1;
-        const vx =
-          geom.plotL + ((at - geom.windowStart) / span) * geom.plotW;
-        clientX = rect.left + (vx / VIEW_W) * rect.width;
-        clientY =
-          rect.top +
-          ((geom.plotB - (geom.laneH || LANE_H)) / VIEW_H) *
-            (rect.height || 0);
-      }
-      this._openSlotMenu(channel, at, clientX, clientY, svg, true);
-    };
-
-    for (const svg of svgs) {
-      svg.addEventListener("pointerdown", (ev) => onDown(svg, ev));
-      svg.addEventListener("pointermove", (ev) => onMove(svg, ev));
-      svg.addEventListener("pointerup", onUp);
-      svg.addEventListener("pointerleave", onUp);
-      svg.addEventListener("contextmenu", (ev) => onContext(svg, ev));
-      svg.addEventListener("keydown", (ev) => onKeydown(svg, ev));
-    }
-  }
-
-  _commitRuns(channel, runs) {
-    this.manual.set(channel, runs);
-    this._refreshLanes();
-  }
-
-  /** Redraw only what a drag changes.
-   *
-   * A full re-render on every pointer move would rebuild the shadow root
-   * dozens of times a second and lose the drag with it.
-   */
-  _refreshLanes() {
-    const root = this.shadowRoot;
-    if (!root) return;
-    if (this._geom) {
-      const inner = this._laneGroupInner();
-      root.querySelectorAll(".lanes").forEach((group) => {
-        group.innerHTML = inner;
-      });
-    }
-    this.manual.updateDelta();
-  }
-
-  /** The lanes, their slots and the grab handles, as SVG.
-   *
-   * Rebuilt from the recorded geometry rather than from the chart's locals, so
-   * a drag can redraw the lanes alone without re-rendering the whole card.
-   */
-  _laneGroupInner() {
-    const geom = this._geom;
-    if (!geom) return "";
-    const {
-      windowStart, windowEnd, plotL, plotW, plotR, plotB, font,
-      laneH = LANE_H, laneGap = LANE_GAP, laneInset = LANE_BOTTOM_INSET,
-    } = geom;
-    const span = windowEnd - windowStart || 1;
-    const scaleX = (t) => plotL + ((t - windowStart) / span) * plotW;
-    const runs = this.manual.draft();
-    const [lo, hi] = this.manual.bounds();
-    const specs = this.manual.laneSpecs();
-    const out = [];
-    const clampX = (t) => Math.max(plotL, Math.min(plotR, scaleX(t)));
-
-    specs.forEach((spec, row) => {
-      const y = plotB - laneInset - (specs.length - row) * (laneH + laneGap);
-      // The track, so an empty lane is still an obvious drop target. Also a
-      // tab stop: Enter on it opens the same add-slot menu a right-click
-      // does, which is the whole editor without a pointer.
-      out.push(
-        `<rect class="lane" data-channel="${spec.channel}" tabindex="0" role="button" aria-label="${esc(
-          L("slots.lane_aria", { lane: spec.label })
-        )}" x="${plotL}" y="${y}" width="${
-          plotR - plotL
-        }" height="${laneH}" rx="2" fill="var(--secondary-text-color,#888)" fill-opacity="0.07"/>`
-      );
-      out.push(
-        `<text class="lane-label" x="${plotL + 4}" y="${
-          y + laneH - 4 * (laneH / LANE_H)
-        }" font-size="${font * 0.8}" fill="var(--secondary-text-color,#888)">${esc(
-          spec.label
-        )}</text>`
-      );
-      // The parts of the lane that cannot be changed: what has already run,
-      // and what lies beyond the point where the override expires.
-      const floorX = clampX(lo);
-      if (floorX > plotL) {
-        out.push(
-          `<rect class="lane-past" x="${plotL}" y="${y}" width="${
-            floorX - plotL
-          }" height="${laneH}" fill="var(--secondary-text-color,#888)" fill-opacity="0.12"/>`
-        );
-      }
-      const ceilX = clampX(hi);
-      if (ceilX < plotR) {
-        out.push(
-          `<rect class="lane-past" x="${ceilX}" y="${y}" width="${
-            plotR - ceilX
-          }" height="${laneH}" fill="var(--secondary-text-color,#888)" fill-opacity="0.12"/>`
-        );
-      }
-      // The lane runs out at the zoomed window, not at any rule of the
-      // plan's: mark it, or the invisible remainder reads as a hard limit.
-      if (this.manual.viewLimitsEditing()) {
-        out.push(
-          `<text class="lane-more" x="${plotR - 3}" y="${
-            y + laneH - 3 * (laneH / LANE_H)
-          }" font-size="${font}" text-anchor="end" fill="var(--primary-color,#03a9f4)">»</text>`
-        );
-      }
-
-      (runs[spec.channel] || []).forEach((run, index) => {
-        // Zooming can put a run wholly outside the window. Clamping alone would
-        // collapse it onto the edge and leave a one-pixel sliver pretending to
-        // be a slot, so drop it instead. `index` still refers to its place in
-        // the full array, which is what hit-testing and editing use.
-        if (run.end <= windowStart || run.start >= windowEnd) return;
-        const x1 = clampX(run.start);
-        const x2 = clampX(run.end);
-        const w = Math.max(1, x2 - x1);
-        const locked = run.end <= lo || run.start >= hi;
-        // Editable slots are tab stops with the keyboard menu (Enter) and
-        // removal (Delete) announced; locked ones stay presentational.
-        const fmtT = (t) =>
-          new Date(t).toLocaleTimeString(ACTIVE_LANG, {
-            hour: "2-digit",
-            minute: "2-digit",
-          });
-        const kbd = locked
-          ? ""
-          : ` tabindex="0" role="button" aria-label="${esc(
-              L("slots.slot_aria", {
-                lane: spec.label,
-                start: fmtT(run.start),
-                end: fmtT(run.end),
-              })
-            )}"`;
-        out.push(
-          `<rect class="slot${locked ? " locked" : ""}" data-channel="${
-            spec.channel
-          }" data-index="${index}"${kbd} x="${x1}" y="${y}" width="${w}" height="${laneH}" rx="2" fill="${
-            spec.color
-          }" fill-opacity="${locked ? 0.35 : 0.85}"/>`
-        );
-        if (locked) return;
-        // Explicit edge handles: without them a narrow slot is impossible to
-        // resize, because the whole rect reads as "move".
-        const grab = _coarsePointer() ? LANE_EDGE_GRAB_COARSE : LANE_EDGE_GRAB;
-        for (const edge of ["start", "end"]) {
-          const ex = edge === "start" ? x1 : x2 - grab;
-          out.push(
-            `<rect class="slot-handle" data-channel="${spec.channel}" data-index="${index}" data-edge="${edge}" x="${ex}" y="${y}" width="${grab}" height="${laneH}" fill="#fff" fill-opacity="0.001"/>`
-          );
-        }
-      });
-    });
-    return out.join("");
   }
 
   // ---- interaction -------------------------------------------------------
@@ -8744,6 +8771,58 @@ class HeatpumpOptimizerCard extends HTMLElement {
   }
   _slotResult(message, cls) {
     return this.manual.slotResult(message, cls);
+  }
+
+  get _drag() {
+    return this.lanes.drag;
+  }
+  set _drag(v) {
+    this.lanes.drag = v;
+  }
+  get _dragPan() {
+    return this.lanes.dragPan;
+  }
+  set _dragPan(v) {
+    this.lanes.dragPan = v;
+  }
+  get _slotMenu() {
+    return this.lanes.menu;
+  }
+  set _slotMenu(v) {
+    this.lanes.menu = v;
+  }
+  get _menuOrigin() {
+    return this.lanes.menuOrigin;
+  }
+  get _menuEscape() {
+    return this.lanes.menuEscape;
+  }
+  get _menuEscapeTarget() {
+    return this.lanes.menuEscapeTarget;
+  }
+  _laneGroupInner() {
+    return this.lanes.laneGroupInner(this._geom);
+  }
+  _refreshLanes() {
+    return this.lanes.refreshLanes();
+  }
+  _commitRuns(channel, runs) {
+    return this.lanes.commitRuns(channel, runs);
+  }
+  _openSlotMenu(channel, at, clientX, clientY, svg, focusMenu) {
+    return this.lanes.openMenu(channel, at, clientX, clientY, svg, focusMenu);
+  }
+  _closeSlotMenu() {
+    return this.lanes.closeMenu();
+  }
+  _globalKeyTarget() {
+    return this.lanes.globalKeyTarget();
+  }
+  _restoreSlotFocus(channel, index, svgIndex) {
+    return this.lanes.restoreFocus(channel, index, svgIndex);
+  }
+  _attachSlotEditing(root) {
+    return this.lanes.attach(root);
   }
 
 }
