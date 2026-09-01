@@ -1,5 +1,38 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.2.6
+
+### The money and energy numbers say what they are
+
+Reading "Hot Water Cost" next to "DHW Heating Cost" gave no way to
+know one is a lifetime accumulator that never resets and the other is
+the current plan's projection over the next 24 hours — the numbers
+looked like the same figure at wildly different magnitudes, and
+"Hot Water Energy" read as *very high* because nothing stated since
+when.
+
+**The names now carry the period:** Hot Water Cost (lifetime), Hot
+Water Energy (lifetime), Space Heating Cost/Energy (lifetime), Total
+Energy/Cost (lifetime), DHW Heating Cost (next 24 h), and both
+heating-plan sensors (next 24 h). Entity ids do not change; only the
+display names move. Swedish carries the same.
+
+**The attributes say it in full:** the accumulators state "lifetime
+accumulator; never reset. The state is the whole history, not today's
+or this month's figure" and carry `this_month_kwh` /
+`this_month_cost` — booked per settlement onto the monthly ledger's
+new per-channel lines, from the same numbers the lifetime fold uses,
+so the two can never disagree — plus `counting_since`, the date this
+integration started recording (an upgrade states the upgrade day
+honestly, never a claim about the install itself). The plan sensors
+state "planned for the optimization horizon ahead; recomputed on
+every replan. Not a measurement and not accumulated." with their
+`horizon_hours`, on the no-plan-yet path as well.
+
+**Upgrading**: display names move on existing installs; entity ids,
+history and the Energy dashboard are untouched. The new month
+attributes start accruing with the next settlement.
+
 ## v6.2.5
 
 ### Weekly hot-water windows: different days, different times
