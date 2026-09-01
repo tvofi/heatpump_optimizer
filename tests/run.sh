@@ -226,15 +226,17 @@ for f in tests/*.py tests/*.mjs; do
   base=$(basename "$f")
   case "$base" in
     harness.py|profiles.py) continue ;;  # shared plumbing, not tests
+    # The shared DOM-stub module (#101): imported by card.mjs and
+    # setup_qa_render.mjs, never run on its own.
+    dom_stub.mjs) continue ;;
     # The scoping instrument, not a test: it RUNS the tests to measure what
     # they touch. Wiring it into the suite would make the suite run itself.
     closure.py) continue ;;
     # Run by features.py in a subprocess: HASTUB_TZ must be set before the
     # dt stub is imported, which an in-process import cannot arrange.
     dst_checks.py) continue ;;
-    # Visual-QA render helper for designer review (added v4.3.0): run by
-    # hand to produce setup-page SVGs, not a test — nothing to wire here.
-    setup_qa_render.mjs) continue ;;
+    # The visual-QA renderer is WIRED into the card lane (v6.x, #101); no
+    # exclusion here -- the UNWIRED check below must see it referenced.
     # The real-browser layout lane (issue #96): its own job in the
     # workflow installs Chromium for it, which this suite does not have.
     card_browser.mjs) continue ;;
@@ -310,8 +312,15 @@ lane_e2e() {
   run "$PYTHON" tests/frontend.py
   if command -v node >/dev/null 2>&1; then
     run node tests/card.mjs
+    # The visual-QA renderer rides the same lane as the card test: it reads
+    # the payload plan_view.py just wrote (same ordering constraint as
+    # card.mjs) and fails if any topology's setup svg comes out empty, so a
+    # dormant renderer can no longer drift unnoticed (#101). Its SVGs land
+    # in ../setup-qa/ for designer review.
+    run node tests/setup_qa_render.mjs
   else
     skip tests/card.mjs "SKIP: node not found, skipping tests/card.mjs"
+    skip tests/setup_qa_render.mjs "SKIP: node not found, skipping tests/setup_qa_render.mjs"
   fi
 }
 
@@ -364,7 +373,7 @@ done
 for f in tests/*.py tests/*.mjs; do
   base=$(basename "$f")
   case "$base" in
-    harness.py|profiles.py|dst_checks.py|setup_qa_render.mjs|closure.py|card_browser.mjs) continue ;;
+    harness.py|profiles.py|dst_checks.py|closure.py|dom_stub.mjs|card_browser.mjs) continue ;;
   esac
   if ! cat "$WORKDIR"/*.manifest 2>/dev/null | grep -Fq "tests/$base"; then
     echo "TEST NEVER RAN: tests/$base is wired into tests/run.sh but no lane"
