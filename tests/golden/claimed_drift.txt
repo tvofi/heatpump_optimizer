@@ -43,19 +43,9 @@
 # does not expire with the stamp and is not part of the inherited-claims
 # comparison.
 #
-# claims-for: 6.2.13
+# claims-for: 6.2.14
 #
-# M2 (weather staleness surfaced): the coordinator's published payload
-# gains exactly one key, "weather_forecast_stale_hours" (None on every
-# fixture -- the captures set the forecast directly and never fail a
-# fetch). The five coordinator captures move because the payload dict
-# itself is what they freeze; no solver input, schedule or numeric leaf
-# changes, and no plan scenario moves.
-coord_all_features  # payload gains weather_forecast_stale_hours: null
-coord_dhw           # payload gains weather_forecast_stale_hours: null
-coord_grid_fee      # payload gains weather_forecast_stale_hours: null
-coord_minimal       # payload gains weather_forecast_stale_hours: null
-coord_two_zone      # payload gains weather_forecast_stale_hours: null
+# The card decomposition (#136): nine refactors, each byte-identical in the card gate, and no solver, sensor or store path touched -- so no golden moves and the list is empty.
 #
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum

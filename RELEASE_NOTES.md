@@ -1,5 +1,55 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.2.14
+
+### The card is a host and nine collaborators, not a god class
+
+Issue #95 left `heatpump-optimizer-card.js` as "a god class of 4,895 lines
+... for whoever finds the third seam". This release is the rest of the
+program (#136, `docs/plan-card-decomposition.md`): the custom element now
+keeps the Lovelace contract, the render cycle and its compositions -- about
+650 lines and 26 members, ratcheted by the test suite so it can only shrink
+-- and everything else left as a collaborator with one owner for its state:
+
+- **`PlanSource`** -- which entities the plan sensors are, what they publish,
+  the currency and units, the headline sensors (PR 1, #146).
+- **`ViewWindow`** -- the pan/zoom window, its limits, the wheel and drag
+  gestures, the zoom buttons (PR 2, #147).
+- **`Legend`** -- the series chips and which series are hidden (PR 4a, #149).
+- **`ExpandedDialog`** -- the enlarged view, its tabs, its scroll offset
+  across rebuilds, its font (PR 4b, #150).
+- **`ManualPlan`** -- today's slot draft, the bounds an edit may reach, the
+  running cost delta, apply / undo / back-to-automatic (PR 5a, #151).
+- **`LaneEditor`** -- the lanes, the drag with its edge auto-pan, the slot
+  menu with the document-level Escape listener it tears down, the keyboard
+  form (PR 5b, #152).
+- **`WhatIfPanel`** -- the schedule editor and simulator, its draft, its
+  shared debounce, the two-press save (PR 6, #153).
+- **`SetupPage`** and **`LayoutEditor`** -- the diagram with the entity
+  picker, and the layout editor over it (PR 7, #154).
+
+The chart, the tooltip, the series builder, the headline row, screen-to-chart
+geometry and config validation are pure functions beside them (PRs 1, 3, 4a,
+8; #146, #148, #149, #155). The cross-feature state the old class hid --
+`_geom` written by the chart and read by the lanes and the pan, `_view` written
+by three features, `_runs` reset by the render cycle -- is explicit now: the
+chart *returns* its geometry, the lane editor asks the view to move, and "a
+new plan replaces an unedited draft" has one owner and a name.
+
+**Every step was byte-identical.** `tests/card_drift.mjs` (v6.2.11) rendered
+each PR's card and its predecessor's through 25 states in one process and
+required identical markup; it caught the one slip (a re-indented template
+literal in the shared-step band) and gained the two states that render that
+band. Card 5.4.13; no integration behaviour, entities or plans change.
+
+The test suite drives the collaborators directly (`card.manual.draft()`,
+`card.layout.edit`, ...) and the module functions by name; the ninety
+`_`-prefixed seams are gone (PR 9, #156). Six latent defects the survey found
+are logged rather than fixed here, so that every step stayed identical:
+#137--#142.
+
+Card-only release: no integration behaviour, entities or plans change.
+
 ## v6.2.13
 
 ### A weather outage is surfaced, never silently papered over
