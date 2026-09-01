@@ -382,6 +382,7 @@ from .thermal_model import (
 )
 from .dhw_schedule import (
     DHWWindowError,
+    format_weekly_windows,
     format_windows,
     hour_in_windows,
     hours_until_next_window,
@@ -6885,6 +6886,25 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             "external_heat_suppressing": self._external_heat.suppressing,
             "external_heat": self._external_heat.state.as_dict(),
         }
+
+    def configured_dhw_windows(self) -> str:
+        """The hot-water windows as CONFIGURED, in the grammar the config flow
+        and `apply_schedule` accept: the weekly form when the configuration
+        names days ("weekdays 06:00-08:30, weekend 08:00-09:30"), the flat
+        form otherwise, and "" when none are configured.
+
+        Distinct from the plan sensor's `dhw_windows`, which is what the last
+        solve planned against -- learned windows when nothing is configured,
+        and one day's set of a weekly spec. The card's schedule editor edits
+        the configuration, so it needs the configuration, not the plan's
+        reading of it; before this the editor could neither show a weekly
+        schedule nor save one without flattening it.
+        """
+        params = self._thermal_params
+        weekly = params.dhw_weekly_windows
+        if weekly is not None:
+            return format_weekly_windows(weekly)
+        return format_windows(params.dhw_windows)
 
     def describe_setup(self) -> dict[str, Any]:
         """The configured topology, for every picture of the system.

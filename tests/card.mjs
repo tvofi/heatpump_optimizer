@@ -54,6 +54,21 @@ console.log("customCards:", JSON.stringify(ctx.window.customCards));
 const Card = ctx.customElements.get("heatpump-optimizer-card");
 if (!Card) { console.error("FAIL: card not registered"); process.exit(1); }
 
+// Module-level functions the tests call directly, reached the way the setup
+// constants already are: by name, in the card's own realm (#136, PR 9).
+const fn = (name) => vm.runInContext(name, ctx);
+const reasonHtml = fn("reasonHtml");
+const sharedTooltipHtml = fn("sharedTooltipHtml");
+const extraFields = fn("extraFields");
+const lineNote = fn("lineNote");
+const lineLabel = fn("lineLabel");
+const chartSvgs = fn("chartSvgs");
+const timeAtClientX = fn("timeAtClientX");
+// `lineLabel` asks whether the lower floor is modelled only for the one line
+// that needs it; a card's answer is bound here so a test reads as it did.
+const lineLabelOf = (c) => (def, line) =>
+  lineLabel(def, line, () => c.plan.lowerFloorModelled());
+
 const SOLAR_ID = "sensor.heat_pump_optimizer_solar_irradiance";
 
 // The irradiance sensor publishes its own {t, ghi} horizon. Its timestamps are
@@ -117,7 +132,7 @@ check("default entity ids match a real install", !/No plan data available yet/.t
 
 // Toggling a series off must change the rendered output.
 const before = dump;
-card._onLegendClick({ currentTarget: { getAttribute: (k) => (k === "data-key" ? "dhw_temp" : null) } });
+card.legend.onChipClick({ currentTarget: { getAttribute: (k) => (k === "data-key" ? "dhw_temp" : null) } });
 const after = collect(card.shadowRoot).join("\n");
 check("toggling a series changes the chart", after !== before);
 check("toggle persisted to localStorage", Object.keys(store).length > 0);
@@ -142,7 +157,7 @@ const explicit = build(
   { ...mkStates("sensor.a_plan", "sensor.b_plan", true), ...mkStates(DEFAULT_SPACE, DEFAULT_DHW, true) },
   { space_entity: "sensor.a_plan", dhw_entity: "sensor.b_plan" }
 );
-check("explicit config is honoured", explicit._resolveEntity("space") === "sensor.a_plan");
+check("explicit config is honoured", explicit.plan.resolveEntity("space") === "sensor.a_plan");
 
 // --- Scenario 6: click to expand ------------------------------------------
 const exp = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
@@ -153,7 +168,7 @@ check("no dialog is rendered until asked for", !/<dialog/.test(collapsed));
 
 exp._onCardClick({});
 const opened = collect(exp.shadowRoot).join("\n");
-check("clicking the card opens a dialog", exp._expanded && /<dialog/.test(opened));
+check("clicking the card opens a dialog", exp.dialog.expanded && /<dialog/.test(opened));
 check("the dialog uses showModal-capable markup", /dialog class="expanded"/.test(opened));
 check("the dialog carries its own chart", (opened.match(/<svg/g) || []).length >
   (collapsed.match(/<svg/g) || []).length);
@@ -171,25 +186,25 @@ check("the enlarged chart labels more of the time axis",
 // --- Scenario 7: toggles must not open the popup ---------------------------
 const tog = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
 let stopped = false;
-tog._onLegendClick({
+tog.legend.onChipClick({
   stopPropagation: () => { stopped = true; },
   currentTarget: { getAttribute: (k) => (k === "data-key" ? "price" : null) },
 });
 check("a legend click stops propagating to the card", stopped);
-check("a legend click does not expand the card", tog._expanded === false);
+check("a legend click does not expand the card", tog.dialog.expanded === false);
 
 // Toggling while expanded must keep the popup open, not dismiss it.
 tog._onCardClick({});
-tog._onLegendClick({
+tog.legend.onChipClick({
   stopPropagation: () => {},
   currentTarget: { getAttribute: (k) => (k === "data-key" ? "price" : null) },
 });
 check("toggling inside the popup keeps it open",
-  tog._expanded && /<dialog/.test(collect(tog.shadowRoot).join("\n")));
+  tog.dialog.expanded && /<dialog/.test(collect(tog.shadowRoot).join("\n")));
 
-tog._closeExpanded();
+tog.dialog.close();
 check("closing removes the dialog",
-  !tog._expanded && !/<dialog/.test(collect(tog.shadowRoot).join("\n")));
+  !tog.dialog.expanded && !/<dialog/.test(collect(tog.shadowRoot).join("\n")));
 
 // --- Scenario 8: nothing to show, nothing to expand ------------------------
 const emptyExp = build({});
@@ -215,7 +230,7 @@ check("the solar axis does not share the power scale",
 // Turning the series off must give the plot its width back rather than
 // permanently reserving room for an axis most users will not show.
 const plotRWithSolar = solarCard._plot.plotR;
-solarCard._onLegendClick({ currentTarget: { getAttribute: k => k === "data-key" ? "solar" : null } });
+solarCard.legend.onChipClick({ currentTarget: { getAttribute: k => k === "data-key" ? "solar" : null } });
 check("hiding solar returns the reserved axis width", solarCard._plot.plotR > plotRWithSolar);
 
 const renamedSolar = build({
@@ -223,9 +238,9 @@ const renamedSolar = build({
   "sensor.my_sun": { state:"90", attributes:{ forecast: solarForecast, plan_kind:"solar" } },
 });
 delete renamedSolar._hass.states[SOLAR_ID];
-renamedSolar._resolvedCache = null;
+renamedSolar.plan.resolvedCache = null;
 check("discovers a renamed solar sensor by plan_kind",
-  renamedSolar._resolveEntity("solar") === "sensor.my_sun");
+  renamedSolar.plan.resolveEntity("solar") === "sensor.my_sun");
 
 // A missing solar sensor must not break the rest of the card.
 const noSolar = build((() => { const st = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true); delete st[SOLAR_ID]; return st; })());
@@ -260,7 +275,7 @@ check("the popup chart uses a larger in-viewBox font",
 // Without these an unexpected slot is indistinguishable from a bug, which is
 // what makes bug reports weak and the optimizer hard to trust.
 const reasonCard = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
-const withReason = reasonCard._reasonHtml([
+const withReason = reasonHtml([
   { reason: "cheap_price" }, { reason: "cheap_price" }, { reason: "dhw_window" },
 ]);
 check("reason codes render as readable text",
@@ -268,9 +283,9 @@ check("reason codes render as readable text",
 check("a repeated reason is not repeated in the tooltip",
   (withReason.match(/Cheapest hours/g) || []).length === 1);
 check("idle steps produce no explanation",
-  reasonCard._reasonHtml([{ reason: "idle" }, {}]) === "");
+  reasonHtml([{ reason: "idle" }, {}]) === "");
 check("an unknown reason code still shows something",
-  /brand_new_code/.test(reasonCard._reasonHtml([{ reason: "brand_new_code" }])));
+  /brand_new_code/.test(reasonHtml([{ reason: "brand_new_code" }])));
 
 // --- Scenario 12: estimated prices are marked (item 7) ---------------------
 //
@@ -287,7 +302,7 @@ const markedDump = collect(markedCard.shadowRoot).join("\n");
 check("the estimated stretch of the horizon is shaded",
   /class="estimated"/.test(markedDump) && /estimated prices/.test(markedDump));
 check("the tooltip says a price is estimated",
-  /estimated, not published/.test(markedCard._reasonHtml([{ priceKnown: false }])));
+  /estimated, not published/.test(reasonHtml([{ priceKnown: false }])));
 check("a fully published horizon is not shaded",
   !/class="estimated"/.test(collect(build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true)).shadowRoot).join("\n")));
 
@@ -299,7 +314,7 @@ onCard._onCardClick({});
 check("the schedule editor is available without extra configuration",
   /class="whatif"/.test(collect(onCard.shadowRoot).join("\n")));
 check("and it is reachable in the expanded view specifically",
-  /class="whatif"/.test(collect(onCard.shadowRoot).join("\n")) && onCard._expanded === true);
+  /class="whatif"/.test(collect(onCard.shadowRoot).join("\n")) && onCard.dialog.expanded === true);
 
 const offCard = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), { what_if: false });
 offCard._onCardClick({});
@@ -360,25 +375,25 @@ check("each slider has its own readout",
 // racing on one service call is how the delta ends up pricing the *previous*
 // drag rather than the current one.
 {
-  const comfortBefore = whatIf._whatIfDraft().comfort;
-  const timerBefore = whatIf._whatIfTimer;
-  whatIf._onWhatIfInput({
+  const comfortBefore = whatIf.whatIf.draft().comfort;
+  const timerBefore = whatIf.whatIf.timer;
+  whatIf.whatIf.onInput({
     stopPropagation(){},
     target:{ value:"42", classList:{ contains:(c)=>c === "wi-dhw-min" } },
   });
   check("the hot water slider writes its own draft field, not the comfort one",
-    whatIf._whatIfDraft().dhwMin === 42 &&
-    whatIf._whatIfDraft().comfort === comfortBefore);
+    whatIf.whatIf.draft().dhwMin === 42 &&
+    whatIf.whatIf.draft().comfort === comfortBefore);
   check("moving either slider uses the one shared debounce",
-    whatIf._whatIfTimer !== timerBefore && whatIf._whatIfTimer !== null);
+    whatIf.whatIf.timer !== timerBefore && whatIf.whatIf.timer !== null);
   check("the hot water readout follows its own slider",
     /42/.test(whatIf.shadowRoot.querySelector(".wi-dhw-value").textContent) &&
     !/42/.test(whatIf.shadowRoot.querySelector(".wi-comfort-value").textContent));
   // Leave no armed timer behind: it would fire mid-await further down and
   // overwrite `called` with a simulate the next assertion never asked for.
-  clearTimeout(whatIf._whatIfTimer);
-  whatIf._whatIfTimer = null;
-  whatIf._whatIfDraft().dhwMin = 45;
+  clearTimeout(whatIf.whatIf.timer);
+  whatIf.whatIf.timer = null;
+  whatIf.whatIf.draft().dhwMin = 45;
 }
 
 // The ceiling is published by the integration rather than recomputed here, so
@@ -399,8 +414,8 @@ check("each slider has its own readout",
   clamped._onCardClick({});
   const dump = collect(clamped.shadowRoot).join("\n");
   check("a stored minimum above the ceiling is clamped to it",
-    clamped._whatIfDraft().dhwMin === 47,
-    `got ${clamped._whatIfDraft().dhwMin}`);
+    clamped.whatIf.draft().dhwMin === 47,
+    `got ${clamped.whatIf.draft().dhwMin}`);
   check("and the clamp is visible rather than silent",
     /wi-warn/.test(dump) && /50/.test(dump));
   check("the slider's maximum comes from the published ceiling",
@@ -424,10 +439,10 @@ check("each slider has its own readout",
   const blank = build(blankStates, { what_if: true });
   blank._hass = mkHass(blank._hass.states);
   check("a null ceiling falls back instead of collapsing to zero",
-    blank._dhwMinCeiling() === 45, `got ${blank._dhwMinCeiling()}`);
+    blank.whatIf.dhwMinCeiling() === 45, `got ${blank.whatIf.dhwMinCeiling()}`);
   check("a null comfort target falls back instead of reading as 0 °C",
-    blank._whatIfDraft().comfort === 21,
-    `got ${blank._whatIfDraft().comfort}`);
+    blank.whatIf.draft().comfort === 21,
+    `got ${blank.whatIf.draft().comfort}`);
 }
 
 // The comfort target must come from our own plan, not from whatever climate
@@ -446,25 +461,25 @@ const strayStates = (() => {
 const strayCard = build(strayStates, { what_if: true });
 strayCard._hass = mkHass(strayCard._hass.states);
 check("the comfort target comes from the plan, not a stray thermostat",
-  strayCard._whatIfDraft().comfort === 19.5,
-  `got ${strayCard._whatIfDraft().comfort}`);
+  strayCard.whatIf.draft().comfort === 19.5,
+  `got ${strayCard.whatIf.draft().comfort}`);
 
 // Pre-filling from the live plan matters: an editor that starts from defaults
 // would silently propose changes the user never asked for.
 check("the heating hours are pre-filled from the plan",
   /value="07:00"/.test(whatIfDump) && /value="22:00"/.test(whatIfDump));
 check("the hot water windows are pre-filled from the plan",
-  whatIf._whatIfDraft().dhwWindows.length === 2 &&
-  whatIf._whatIfDraft().dhwWindows[0].start === "06:00" &&
-  whatIf._whatIfDraft().dhwWindows[1].end === "22:00");
+  whatIf.whatIf.draft().dhwWindows.length === 2 &&
+  whatIf.whatIf.draft().dhwWindows[0].start === "06:00" &&
+  whatIf.whatIf.draft().dhwWindows[1].end === "22:00");
 
 // Temperature: debounced, then reported.
-whatIf._onWhatIfInput({ stopPropagation(){}, target:{ value:"19.5" } });
+whatIf.whatIf.onInput({ stopPropagation(){}, target:{ value:"19.5" } });
 check("dragging does not call the service immediately", called === null);
 check("the label follows the slider straight away",
   /19\.5/.test(whatIf.shadowRoot.querySelector(".wi-value").textContent));
 
-await whatIf._runWhatIf();
+await whatIf.whatIf.run();
 check("the simulator calls the right service",
   called && called.domain === "heatpump_optimizer" && called.service === "simulate_plan");
 check("the simulator sends the dragged temperature",
@@ -494,24 +509,24 @@ editor._onCardClick({});
 const root = editor.shadowRoot;
 root.querySelector(".wi-day-start").value = "05:00";
 called = null;
-editor._onSlotEdit({ stopPropagation(){} });
+editor.whatIf.onSlotEdit({ stopPropagation(){} });
 check("editing an hour does not simulate on its own", called === null);
-check("editing an hour updates the draft", editor._whatIfDraft().dayStart === 5);
+check("editing an hour updates the draft", editor.whatIf.draft().dayStart === 5);
 
-editor._onAddWindow({ stopPropagation(){} });
-check("a window can be added", editor._whatIfDraft().dhwWindows.length === 3);
+editor.whatIf.onAddWindow({ stopPropagation(){} });
+check("a window can be added", editor.whatIf.draft().dhwWindows.length === 3);
 check("the added window is rendered",
   (collect(editor.shadowRoot).join("\n").match(/class="wi-window"/g) || []).length === 3);
 
-editor._onRemoveWindow({
+editor.whatIf.onRemoveWindow({
   stopPropagation(){},
   currentTarget: { getAttribute: (k) => (k === "data-index" ? "0" : null) },
 });
-const remaining = editor._whatIfDraft().dhwWindows;
+const remaining = editor.whatIf.draft().dhwWindows;
 check("a window can be removed", remaining.length === 2);
 check("the right window was removed", remaining[0].start === "17:00");
 
-await editor._onApplySlots({ stopPropagation(){} });
+await editor.whatIf.onApplySlots({ stopPropagation(){} });
 check("applying sends the edited hours",
   called && called.data.day_start_hour === 5);
 check("applying sends the edited windows",
@@ -522,8 +537,8 @@ check("applying sends the edited windows",
 // guaranteeing hot water at fixed times?"), so it must be sent as an explicit
 // empty schedule rather than omitted. Driven through the UI, because the
 // editors are the source of truth on apply.
-while (editor._whatIfDraft().dhwWindows.length) {
-  editor._onRemoveWindow({
+while (editor.whatIf.draft().dhwWindows.length) {
+  editor.whatIf.onRemoveWindow({
     stopPropagation(){},
     currentTarget: { getAttribute: (k) => (k === "data-index" ? "0" : null) },
   });
@@ -531,32 +546,32 @@ while (editor._whatIfDraft().dhwWindows.length) {
 check("all windows can be removed",
   !/class="wi-window"/.test(collect(editor.shadowRoot).join("\n")));
 called = null;
-await editor._onApplySlots({ stopPropagation(){} });
+await editor.whatIf.onApplySlots({ stopPropagation(){} });
 check("an empty schedule is sent explicitly, not omitted",
   called && called.data.dhw_windows === "" && "dhw_windows" in called.data);
 
 // A malformed time must be caught before a solve is spent on it.
-editor._whatIfDraft().dhwWindows = [{ start: "notatime", end: "08:00" }];
+editor.whatIf.draft().dhwWindows = [{ start: "notatime", end: "08:00" }];
 called = null;
-await editor._runWhatIf();
+await editor.whatIf.run();
 check("an invalid window is rejected without calling the service",
   called === null &&
   /not a valid time/.test(editor.shadowRoot.querySelector(".wi-result").textContent));
 
 // Reset must restore the plan's own schedule, not a hardcoded default.
-editor._onResetWhatIf({ stopPropagation(){} });
+editor.whatIf.onReset({ stopPropagation(){} });
 check("reset restores the live schedule",
-  editor._whatIfDraft().dayStart === 7 &&
-  editor._whatIfDraft().dhwWindows.length === 2);
+  editor.whatIf.draft().dayStart === 7 &&
+  editor.whatIf.draft().dhwWindows.length === 2);
 
 // Controls must not reach the card's expand handler underneath.
 // Without this, a click anywhere in the panel reaches the card handler and
 // collapses the dialog the panel lives in.
 for (const [name, handler] of [
-  ["add", editor._onAddWindow],
-  ["reset", editor._onResetWhatIf],
-  ["apply", editor._onApplySlots],
-  ["edit", editor._onSlotEdit],
+  ["add", editor.whatIf.onAddWindow],
+  ["reset", editor.whatIf.onReset],
+  ["apply", editor.whatIf.onApplySlots],
+  ["edit", editor.whatIf.onSlotEdit],
 ]) {
   let stopCount = 0;
   handler.call(editor, { stopPropagation: () => { stopCount++; } });
@@ -567,12 +582,12 @@ for (const [name, handler] of [
 editor._hass = mkHass(editor._hass.states, () => ({
   response: { results: { abc: { error: "invalid_windows: bad" } } },
 }));
-await editor._runWhatIf();
+await editor.whatIf.run();
 check("a rejected simulation reports why",
   /invalid_windows: bad/.test(editor.shadowRoot.querySelector(".wi-result").textContent));
 
 editor._hass = { states: editor._hass.states, callService: async () => { throw new Error("boom"); } };
-await editor._runWhatIf();
+await editor.whatIf.run();
 check("a failed simulation is reported, not swallowed",
   /Could not simulate: boom/.test(editor.shadowRoot.querySelector(".wi-result").textContent));
 
@@ -582,7 +597,7 @@ check("a failed simulation is reported, not swallowed",
 // Simulating is reversible; saving rewrites the schedule the house runs on, so
 // it takes two deliberate presses and must not fire on the first one.
 const saver = build(slotStates, { what_if: true });
-saver._openExpanded();
+saver.dialog.open();
 saver._hass = mkHass(saver._hass.states, () => ({}));
 called = null;
 
@@ -590,14 +605,14 @@ const saveRoot = saver.shadowRoot;
 check("the expanded card offers a save button",
   !!saveRoot.querySelector(".wi-save"));
 
-await saver._onSaveSchedule({ stopPropagation: () => {} });
+await saver.whatIf.onSaveSchedule({ stopPropagation: () => {} });
 check("the first press does not call the service", called === null);
 check("the first press asks for confirmation",
   /Confirm/i.test(saveRoot.querySelector(".wi-save").textContent));
 check("the first press says what saving will do",
   /replaces your configured/i.test(saveRoot.querySelector(".wi-result").textContent));
 
-await saver._onSaveSchedule({ stopPropagation: () => {} });
+await saver.whatIf.onSaveSchedule({ stopPropagation: () => {} });
 check("the second press calls apply_schedule",
   called && called.domain === "heatpump_optimizer" && called.service === "apply_schedule");
 check("it sends the whole schedule, not a fragment",
@@ -610,41 +625,41 @@ check("the button returns to its resting label",
 // An edit between the two presses invalidates the confirmation: the user would
 // otherwise confirm one schedule and save a different one.
 const armed = build(slotStates, { what_if: true });
-armed._openExpanded();
+armed.dialog.open();
 armed._hass = mkHass(armed._hass.states, () => ({}));
 called = null;
-await armed._onSaveSchedule({ stopPropagation: () => {} });
-check("the confirmation is armed", armed._pendingSave === true);
+await armed.whatIf.onSaveSchedule({ stopPropagation: () => {} });
+check("the confirmation is armed", armed.whatIf.pendingSave === true);
 armed.shadowRoot.querySelector(".wi-day-start").value = "04:00";
-armed._onSlotEdit({ stopPropagation: () => {} });
-check("editing a slot disarms the confirmation", armed._pendingSave === false);
-await armed._onSaveSchedule({ stopPropagation: () => {} });
+armed.whatIf.onSlotEdit({ stopPropagation: () => {} });
+check("editing a slot disarms the confirmation", armed.whatIf.pendingSave === false);
+await armed.whatIf.onSaveSchedule({ stopPropagation: () => {} });
 check("so the next press only re-arms, it does not save", called === null);
 
 // Pressing save twice with no edit in between must still save: `_onSaveSchedule`
 // runs `_onSlotEdit` itself, and an unchanged draft is not an edit.
 called = null;
-await armed._onSaveSchedule({ stopPropagation: () => {} });
+await armed.whatIf.onSaveSchedule({ stopPropagation: () => {} });
 check("an unchanged draft still confirms on the second press",
   called && called.service === "apply_schedule");
 
 // Nonsense must be caught here rather than written to the configuration, where
 // it would fail on every subsequent load.
 const bad = build(slotStates, { what_if: true });
-bad._openExpanded();
+bad.dialog.open();
 bad._hass = mkHass(bad._hass.states, () => ({}));
 called = null;
 bad.shadowRoot.querySelector(".wi-day-start").value = "07:00";
 bad.shadowRoot.querySelector(".wi-day-end").value = "07:00";
-await bad._onSaveSchedule({ stopPropagation: () => {} });
+await bad.whatIf.onSaveSchedule({ stopPropagation: () => {} });
 check("an empty comfort period is refused before it is saved",
   called === null && /no comfort period/i.test(bad.shadowRoot.querySelector(".wi-result").textContent));
 
 const boom = build(slotStates, { what_if: true });
-boom._openExpanded();
+boom.dialog.open();
 boom._hass = { states: boom._hass.states, callService: async () => { throw new Error("nope"); } };
-await boom._onSaveSchedule({ stopPropagation: () => {} });
-await boom._onSaveSchedule({ stopPropagation: () => {} });
+await boom.whatIf.onSaveSchedule({ stopPropagation: () => {} });
+await boom.whatIf.onSaveSchedule({ stopPropagation: () => {} });
 check("a failed save is reported, not swallowed",
   /Could not save: nope/.test(boom.shadowRoot.querySelector(".wi-result").textContent));
 check("and the button is usable again afterwards",
@@ -659,7 +674,7 @@ check("and the button is usable again afterwards",
 // labels overlap, so the sizes are pinned here as part of the layout.
 const svgFont = (expanded) => {
   const c = build(slotStates, {});
-  if (expanded) c._openExpanded();
+  if (expanded) c.dialog.open();
   const dump = collect(c.shadowRoot).join("\n");
   const wrap = expanded
     ? dump.slice(dump.indexOf('chartwrap big'))
@@ -697,7 +712,7 @@ const collisions = (labels) => {
 
 for (const expanded of [false, true]) {
   const c = build(slotStates, {});
-  if (expanded) c._openExpanded();
+  if (expanded) c.dialog.open();
   const dump = collect(c.shadowRoot).join("\n");
   // The shadow root holds the inline chart and, once opened, the expanded one
   // too. Compare labels within a single chart, or every label pairs with its
@@ -738,14 +753,14 @@ const axisTitles = (svg) => {
 // right-hand axis and this stops testing the case it exists for.
 const withAllSeries = (config) => {
   const c = build(slotStates, config || {});
-  c._hidden = {};
+  c.legend.hidden = {};
   c._sig = null;
   return c;
 };
 
 for (const expanded of [false, true]) {
   const c = withAllSeries();
-  if (expanded) c._openExpanded();
+  if (expanded) c.dialog.open();
   else c._render();
   const dump = collect(c.shadowRoot).join("\n");
   const cut = dump.indexOf("chartwrap big");
@@ -776,14 +791,14 @@ for (const expanded of [false, true]) {
   };
 
   const withSolar = withAllSeries();
-  withSolar._openExpanded();
+  withSolar.dialog.open();
   const a = expandedTitles(withSolar);
   const priceWith = a.find((t) => t.text === "SEK/kWh");
 
   const noSolar = withAllSeries();
-  noSolar._hidden = { solar: true };
+  noSolar.legend.hidden = { solar: true };
   noSolar._sig = null;
-  noSolar._openExpanded();
+  noSolar.dialog.open();
   const b = expandedTitles(noSolar);
   const priceWithout = b.find((t) => t.text === "SEK/kWh");
 
@@ -819,14 +834,14 @@ check("the chart scales by being stretched, not by inflating its font",
 // The chrome around the chart is plain HTML and cannot scale by itself, so the
 // dialog font is set from the measured width. Clamped at both ends.
 const fontCard = build(slotStates, {});
-fontCard._openExpanded();
+fontCard.dialog.open();
 const dlgOf = (w) => {
   const d = fontCard.shadowRoot.querySelector("dialog");
   d.getBoundingClientRect = () => ({ width: w });
   if (!d.style) d.style = {};
-  fontCard._dialogFontPx = 0;
-  fontCard._scaleDialogFont();
-  return fontCard._dialogFontPx;
+  fontCard.dialog.fontPx = 0;
+  fontCard.dialog.scaleFont();
+  return fontCard.dialog.fontPx;
 };
 check("a wide dialog gets larger chrome than a narrow one",
   dlgOf(1800) > dlgOf(700));
@@ -999,7 +1014,7 @@ const xOf = (t) =>
 // Round-tripping a time through the geometry is the whole basis of dragging.
 const probe = geom.windowStart + 5 * HOUR;
 check("a screen position maps back to the time under it",
-  Math.abs(drag._timeAtClientX(svgOf(drag), xOf(probe)) - probe) < 60000);
+  Math.abs(timeAtClientX(svgOf(drag), xOf(probe), drag._geom) - probe) < 60000);
 
 const evAt = (t, target) => ({
   clientX: xOf(t), clientY: 0, target,
@@ -1009,8 +1024,8 @@ const evAt = (t, target) => ({
 // A slot that is entirely in the past cannot be rescheduled, so pick one that
 // the editor will actually let us move.
 const editable = () => {
-  const runs = drag._draftRuns().dhw;
-  const [lo] = drag._editBounds();
+  const runs = drag.manual.draft().dhw;
+  const [lo] = drag.manual.bounds();
   const i = runs.findIndex((r) => r.end > lo && r.start >= lo);
   return { runs, i };
 };
@@ -1020,13 +1035,13 @@ const editable = () => {
   check("there is a future hot water slot to edit", i >= 0);
   if (i >= 0) {
     const before = { ...runs[i] };
-    const [lo0] = drag._editBounds();
+    const [lo0] = drag.manual.bounds();
     const pastBefore = JSON.stringify(runs.filter((r) => r.end <= lo0));
     const svg = svgOf(drag);
     const target = { dataset: { channel: "dhw", index: String(i) } };
     fire(svg, "pointerdown", evAt(before.start + 60000, target));
     fire(svg, "pointermove", evAt(before.start + 60000 + HOUR, target));
-    const moved = drag._draftRuns().dhw[i];
+    const moved = drag.manual.draft().dhw[i];
     check("dragging a slot moves it",
       moved && moved.start === before.start + HOUR,
       `${before.start} -> ${moved && moved.start}`);
@@ -1035,7 +1050,7 @@ const editable = () => {
     // Making room for an edit must not rewrite what already happened: the
     // editable range starts at the present, and clamping every slot into it
     // would haul this morning's runs forward and merge them together.
-    const history = drag._draftRuns().dhw.filter((r) => r.end <= lo0);
+    const history = drag.manual.draft().dhw.filter((r) => r.end <= lo0);
     check("editing leaves slots that have already run untouched",
       JSON.stringify(history) === pastBefore,
       `${pastBefore} -> ${JSON.stringify(history)}`);
@@ -1045,7 +1060,7 @@ const editable = () => {
 
 {
   // Re-seed from the plan so the resize starts from a known arrangement.
-  drag._resetRuns();
+  drag.manual.reset();
   drag._render();
   const { runs, i } = editable();
   if (i >= 0) {
@@ -1054,7 +1069,7 @@ const editable = () => {
     const target = { dataset: { channel: "dhw", index: String(i), edge: "end" } };
     fire(svg, "pointerdown", evAt(before.end, target));
     fire(svg, "pointermove", evAt(before.end + HOUR, target));
-    const sized = drag._draftRuns().dhw[i];
+    const sized = drag.manual.draft().dhw[i];
     check("dragging an edge resizes the slot",
       sized && sized.end === before.end + HOUR && sized.start === before.start,
       JSON.stringify(sized));
@@ -1064,17 +1079,17 @@ const editable = () => {
 
 // Editing must never rewrite history.
 {
-  drag._resetRuns();
-  const [lo] = drag._editBounds();
-  const past = drag._draftRuns().dhw.findIndex((r) => r.end <= lo);
+  drag.manual.reset();
+  const [lo] = drag.manual.bounds();
+  const past = drag.manual.draft().dhw.findIndex((r) => r.end <= lo);
   if (past >= 0) {
-    const before = JSON.stringify(drag._draftRuns().dhw[past]);
+    const before = JSON.stringify(drag.manual.draft().dhw[past]);
     const svg = svgOf(drag);
     const target = { dataset: { channel: "dhw", index: String(past) } };
     fire(svg, "pointerdown", evAt(lo - HOUR, target));
     fire(svg, "pointermove", evAt(lo, target));
     check("a slot that has already happened cannot be dragged",
-      JSON.stringify(drag._draftRuns().dhw[past]) === before);
+      JSON.stringify(drag.manual.draft().dhw[past]) === before);
     fire(svg, "pointerup", {});
   } else {
     check("a slot that has already happened cannot be dragged", true);
@@ -1083,11 +1098,11 @@ const editable = () => {
 
 // Right-click: add where there is nothing, remove where there is something.
 {
-  drag._resetRuns();
+  drag.manual.reset();
   drag._render();
   const svg = svgOf(drag);
-  const runs = drag._draftRuns().space;
-  const [lo, hi] = drag._editBounds();
+  const runs = drag.manual.draft().space;
+  const [lo, hi] = drag.manual.bounds();
   // A time inside the editable range that no slot covers, and that is clear of
   // its neighbours: a slot added flush against another correctly merges with
   // it, which is a different behaviour and is covered by the model checks.
@@ -1104,23 +1119,23 @@ const editable = () => {
     check("right-clicking an empty lane offers to add a slot",
       !!menu && /Add a heating slot here/.test(collect(menu).join("")));
     if (menu) {
-      const n = drag._draftRuns().space.length;
+      const n = drag.manual.draft().space.length;
       fire(menu, "click", { target: { dataset: { act: "add" } }, stopPropagation() {} });
       check("choosing add creates a slot",
-        drag._draftRuns().space.length === n + 1,
-        JSON.stringify(drag._draftRuns().space));
+        drag.manual.draft().space.length === n + 1,
+        JSON.stringify(drag.manual.draft().space));
       check("and the menu closes", !drag.shadowRoot.querySelector(".slot-menu"));
     }
   }
 }
 
 {
-  drag._resetRuns();
+  drag.manual.reset();
   drag._render();
   const svg = svgOf(drag);
   const { runs, i } = (() => {
-    const list = drag._draftRuns().space;
-    const [lo] = drag._editBounds();
+    const list = drag.manual.draft().space;
+    const [lo] = drag.manual.bounds();
     return { runs: list, i: list.findIndex((r) => r.end > lo) };
   })();
   if (i >= 0) {
@@ -1130,9 +1145,9 @@ const editable = () => {
     check("right-clicking a slot offers to remove it",
       !!menu && /Remove this heating slot/.test(collect(menu).join("")));
     if (menu) {
-      const n = drag._draftRuns().space.length;
+      const n = drag.manual.draft().space.length;
       fire(menu, "click", { target: { dataset: { act: "remove" } }, stopPropagation() {} });
-      check("choosing remove deletes it", drag._draftRuns().space.length === n - 1);
+      check("choosing remove deletes it", drag.manual.draft().space.length === n - 1);
     }
   }
 }
@@ -1140,17 +1155,17 @@ const editable = () => {
 // The price delta is the point of the exercise: it has to move, and in the
 // right direction, when the arrangement changes.
 {
-  drag._resetRuns();
-  const base = drag._costDelta();
+  drag.manual.reset();
+  const base = drag.manual.costDelta();
   check("an untouched arrangement costs the same as the plan",
     Math.abs(base.delta) < 1e-9, JSON.stringify(base));
 
-  const runs = drag._draftRuns().dhw;
-  const [lo] = drag._editBounds();
+  const runs = drag.manual.draft().dhw;
+  const [lo] = drag.manual.bounds();
   const i = runs.findIndex((r) => r.end > lo);
   if (i >= 0) {
-    drag._commitRuns("dhw", SlotModelOf(drag).remove(runs, i));
-    const less = drag._costDelta();
+    drag.lanes.commitRuns("dhw", SlotModelOf(drag).remove(runs, i));
+    const less = drag.manual.costDelta();
     check("removing a slot is reported as cheaper", less.delta < 0,
       JSON.stringify(less));
   }
@@ -1159,10 +1174,10 @@ const editable = () => {
 
 // Applying pins the arrangement through the service the backend exposes.
 {
-  drag._resetRuns();
+  drag.manual.reset();
   drag._render();
   called = null;
-  drag._applyManualPlan();
+  drag.manual.apply();
   check("applying calls the manual plan service",
     called && called.domain === "heatpump_optimizer" &&
     called.service === "apply_manual_plan",
@@ -1170,7 +1185,7 @@ const editable = () => {
   const sent = (called && called.data) || {};
   check("it sends both channels",
     Array.isArray(sent.dhw_slots) && Array.isArray(sent.space_slots));
-  const [lo] = drag._editBounds();
+  const [lo] = drag.manual.bounds();
   const allFuture = [...(sent.dhw_slots || []), ...(sent.space_slots || [])]
     .every((s) => Date.parse(s.end) > lo && Date.parse(s.start) >= lo);
   check("it never tries to reschedule the past", allFuture,
@@ -1186,14 +1201,14 @@ const editable = () => {
   const saved = drag._hass;
   drag._hass = { ...saved, config: { currency: "EUR" } };
   check("Home Assistant's configured currency is used",
-    /EUR/.test(drag._deltaHtml()), drag._deltaHtml());
+    /EUR/.test(drag.manual.deltaHtml()), drag.manual.deltaHtml());
   drag._config = { ...drag._config, currency: "NOK" };
   check("an explicit card setting still wins",
-    /NOK/.test(drag._deltaHtml()), drag._deltaHtml());
+    /NOK/.test(drag.manual.deltaHtml()), drag.manual.deltaHtml());
   drag._config = { ...drag._config, currency: undefined };
   drag._hass = saved;
   check("with neither, it falls back rather than showing nothing",
-    /SEK/.test(drag._deltaHtml()), drag._deltaHtml());
+    /SEK/.test(drag.manual.deltaHtml()), drag.manual.deltaHtml());
 }
 
 // Every reason the optimizer can emit needs a human label, or the tooltip
@@ -1207,7 +1222,7 @@ check("the hand-scheduled reason has a label",
   const fresh = build(slotStates, { what_if: true });
   fresh._hass = mkHass(slotStates);
   fresh._onCardClick({});
-  const seeded = JSON.stringify(fresh._draftRuns().dhw);
+  const seeded = JSON.stringify(fresh.manual.draft().dhw);
 
   // A refresh carrying a different plan must be picked up.
   const moved = JSON.parse(JSON.stringify(slotStates));
@@ -1215,25 +1230,25 @@ check("the hand-scheduled reason has a label",
   fc.forEach((f) => { f.dhw_power = 0; });
   for (let i = 60; i < 66; i++) fc[i].dhw_power = 3;
   fresh.hass = { ...mkHass(moved), states: moved };
-  const followed = JSON.stringify(fresh._draftRuns().dhw);
+  const followed = JSON.stringify(fresh.manual.draft().dhw);
   check("an untouched draft follows a newly published plan",
     followed !== seeded, followed);
 
   // But an edit in progress must not be thrown away by a refresh landing
   // mid-drag: that would discard work the user can see themselves doing.
-  const edited = fresh._draftRuns().dhw;
-  const [lo] = fresh._editBounds();
+  const edited = fresh.manual.draft().dhw;
+  const [lo] = fresh.manual.bounds();
   const i = edited.findIndex((r) => r.end > lo && r.start >= lo);
   if (i >= 0) {
-    fresh._commitRuns("dhw", Card.slots.move(
-      edited, i, HOUR, 15 * 60000, fresh._editBounds()
+    fresh.lanes.commitRuns("dhw", Card.slots.move(
+      edited, i, HOUR, 15 * 60000, fresh.manual.bounds()
     ));
-    const mine = JSON.stringify(fresh._draftRuns().dhw);
+    const mine = JSON.stringify(fresh.manual.draft().dhw);
     const again = JSON.parse(JSON.stringify(moved));
     again[DEFAULT_DHW].attributes.forecast[70].dhw_power = 2;
     fresh.hass = { ...mkHass(again), states: again };
     check("but edits in progress survive a refresh",
-      JSON.stringify(fresh._draftRuns().dhw) === mine);
+      JSON.stringify(fresh.manual.draft().dhw) === mine);
   }
 }
 
@@ -1246,7 +1261,7 @@ check("the hand-scheduled reason has a label",
   c._hass = mkHass(partial);
   c._onCardClick({});
   called = null;
-  c._applyManualPlan();
+  c.manual.apply();
   check("a channel with no plan data is left automatic",
     called && called.data && !("dhw_slots" in called.data),
     JSON.stringify(called && called.data));
@@ -1260,7 +1275,7 @@ check("the hand-scheduled reason has a label",
   empty._hass = mkHass(blank);
   empty._onCardClick({});
   called = null;
-  empty._applyManualPlan();
+  empty.manual.apply();
   check("with no plan at all, nothing is pinned", called === null);
 }
 
@@ -1272,7 +1287,7 @@ check("the hand-scheduled reason has a label",
 // which said nothing once the rule changed. The ceiling is now clock-independent
 // -- it is measured from `now` -- so it can be asserted directly.
 {
-  const [, hi] = drag._editBounds();
+  const [, hi] = drag.manual.bounds();
   const WINDOW_H = 20;
   const applyEnd = FROZEN + WINDOW_H * HOUR;
   check("editing stops at the window the card would actually send",
@@ -1303,21 +1318,21 @@ check("the hand-scheduled reason has a label",
       st[DEFAULT_DHW].attributes.manual_override = info;
       return st;
     })(), { what_if: true });
-    stale._openExpanded();
-    const [, staleHi] = stale._editBounds();
+    stale.dialog.open();
+    const [, staleHi] = stale.manual.bounds();
     check("the ceiling ignores the expiry already in force",
       staleHi > FROZEN + 5 * HOUR,
       `ceiling ${new Date(staleHi).toISOString()} would shrink to the old expiry`);
   }
 
   // Dragging hard to the right must stop there rather than run past it.
-  drag._resetRuns();
-  const runs = drag._draftRuns().dhw;
-  const [lo] = drag._editBounds();
+  drag.manual.reset();
+  const runs = drag.manual.draft().dhw;
+  const [lo] = drag.manual.bounds();
   const i = runs.findIndex((r) => r.end > lo && r.start >= lo);
   if (i >= 0) {
     const pushed = Card.slots.move(
-      runs, i, 72 * HOUR, 15 * 60000, drag._editBounds()
+      runs, i, 72 * HOUR, 15 * 60000, drag.manual.bounds()
     );
     check("a slot cannot be dragged past the expiry",
       pushed.every((r) => r.end <= hi), JSON.stringify(pushed));
@@ -1325,9 +1340,9 @@ check("the hand-scheduled reason has a label",
 
   // And nothing sent to the backend may reach past it either, since the
   // backend frees every step at or beyond the expiry.
-  drag._resetRuns();
+  drag.manual.reset();
   called = null;
-  drag._applyManualPlan();
+  drag.manual.apply();
   const sent = [
     ...((called && called.data && called.data.dhw_slots) || []),
     ...((called && called.data && called.data.space_slots) || []),
@@ -1386,7 +1401,7 @@ check("the hand-scheduled reason has a label",
 
 {
   called = null;
-  drag._clearManualPlan();
+  drag.manual.clear();
   check("going back to automatic clears the override",
     called && called.service === "clear_manual_plan");
 }
@@ -1397,8 +1412,8 @@ check("the hand-scheduled reason has a label",
 // Safari never synthesises, and the resize handles were ~7 px wide).
 // ---------------------------------------------------------------------------
 {
-  drag._resetRuns();
-  drag._view = null;
+  drag.manual.reset();
+  drag.view.range = null;
   drag._render();
   const svg = svgOf(drag);
   const { runs, i } = editable();
@@ -1413,16 +1428,16 @@ check("the hand-scheduled reason has a label",
       !!menu && /Remove this hot water slot/.test(collect(menu).join("")),
       menu ? collect(menu).join("") : "no menu");
     if (menu) {
-      const n = drag._draftRuns().dhw.length;
+      const n = drag.manual.draft().dhw.length;
       fire(menu, "click", { target: { dataset: { act: "remove" } }, stopPropagation() {} });
-      check("and Remove removes it", drag._draftRuns().dhw.length === n - 1);
+      check("and Remove removes it", drag.manual.draft().dhw.length === n - 1);
     }
 
     // Tap on an EMPTY editable stretch: the add menu, from a bare press.
-    drag._resetRuns();
+    drag.manual.reset();
     drag._render();
-    const [lo2, hi2] = drag._editBounds();
-    const space = drag._draftRuns().space;
+    const [lo2, hi2] = drag.manual.bounds();
+    const space = drag.manual.draft().space;
     let gap2 = null;
     for (let t = lo2 + HOUR; t < hi2 - HOUR; t += 15 * 60000) {
       if (!space.some((r) => t >= r.start - HOUR && t < r.end + HOUR)) { gap2 = t; break; }
@@ -1435,11 +1450,11 @@ check("the hand-scheduled reason has a label",
       check("tapping an empty lane offers to add a slot",
         !!menu && /Add a heating slot here/.test(collect(menu).join("")));
       if (menu) fire(menu, "click", { target: { dataset: {} }, stopPropagation() {} });
-      drag._closeSlotMenu();
+      drag.lanes.closeMenu();
     }
 
     // A DRAG must not open the menu on release.
-    drag._resetRuns();
+    drag.manual.reset();
     drag._render();
     const e2 = editable();
     if (e2.i >= 0) {
@@ -1454,7 +1469,7 @@ check("the hand-scheduled reason has a label",
 
   // Coarse pointers get finger-sized resize handles; fine pointers keep the
   // slim ones the mouse tests above rely on.
-  drag._resetRuns();
+  drag.manual.reset();
   coarseTouch.on = true;
   drag._render();
   const dumpCoarse = collect(drag.shadowRoot).join("\n");
@@ -1477,19 +1492,19 @@ check("the hand-scheduled reason has a label",
 // a forgotten zoom had clamped the edit ceiling to the visible window).
 // ---------------------------------------------------------------------------
 {
-  drag._resetRuns();
-  drag._view = null;
+  drag.manual.reset();
+  drag.view.range = null;
   drag._render();
   const dump0 = collect(drag.shadowRoot).join("\n");
   check("an unzoomed card shows no view-limit hint", !/class="wi-viewlimit"/.test(dump0));
   check("and no lane chevron", !/class="lane-more"/.test(dump0));
 
-  drag._zoomView(0.25);
-  const parts = drag._editCeilingParts();
+  drag.view.zoom(0.25);
+  const parts = drag.manual.ceilingParts();
   check("zoomed: the visible edge is the binding edit limit",
-    drag._editCeiling() === drag._geom.windowEnd &&
+    drag.manual.editCeiling() === drag._geom.windowEnd &&
       parts.visibleEnd < Math.min(parts.applyEnd, parts.planEnd),
-    JSON.stringify({ceiling: drag._editCeiling(), parts}));
+    JSON.stringify({ceiling: drag.manual.editCeiling(), parts}));
   const dump1 = collect(drag.shadowRoot).join("\n");
   check("the lanes flag the zoom with a chevron", /class="lane-more"/.test(dump1));
   check("the what-if panel says the zoom is the limit", /class="wi-viewlimit"/.test(dump1));
@@ -1501,12 +1516,12 @@ check("the hand-scheduled reason has a label",
     zoomGeom.plotL +
     ((t - zoomGeom.windowStart) / (zoomGeom.windowEnd - zoomGeom.windowStart)) *
       zoomGeom.plotW;
-  const zRuns = drag._draftRuns().dhw;
-  const [zlo] = drag._editBounds();
+  const zRuns = drag.manual.draft().dhw;
+  const [zlo] = drag.manual.bounds();
   const zi = zRuns.findIndex((r) => r.end > zlo && r.start >= zlo && r.start < zoomGeom.windowEnd);
   check("there is a visible slot to drag against the edge", zi >= 0);
   if (zi >= 0) {
-    const startView = drag._viewCurrent().start;
+    const startView = drag.view.current().start;
     const target = { dataset: { channel: "dhw", index: String(zi) } };
     fire(svgOf(drag), "pointerdown", {
       clientX: zx(zRuns[zi].start + 60000), clientY: 0, target,
@@ -1517,24 +1532,24 @@ check("the hand-scheduled reason has a label",
     tickIntervals();
     tickIntervals();
     check("holding the drag at the edge pans the view forward",
-      drag._viewCurrent().start > startView,
-      `${startView} -> ${drag._viewCurrent().start}`);
+      drag.view.current().start > startView,
+      `${startView} -> ${drag.view.current().start}`);
     fireWindow("pointerup", {});
-    check("releasing the drag stops the auto-pan", !drag._dragPan);
+    check("releasing the drag stops the auto-pan", !drag.lanes.dragPan);
   }
 
   // Closing the dialog ends the session, and the view with it: one
   // accidental pinch used to cap editing for days on a wall-mounted
   // dashboard, because the view re-anchored to "now" and never expired.
-  drag._zoomView(0.25);
-  check("(setup) the view is narrowed again", !!drag._view);
-  drag._onDialogClose();
-  check("closing the dialog discards the pan/zoom view", drag._view === null);
+  drag.view.zoom(0.25);
+  check("(setup) the view is narrowed again", !!drag.view.range);
+  drag.dialog.onDialogClose();
+  check("closing the dialog discards the pan/zoom view", drag.view.range === null);
   // Reopen directly: the drag above armed the one-shot click suppression,
   // which would silently spend a simulated card click.
-  drag._openExpanded();
+  drag.dialog.open();
   // Narrow again: the reset-button checks below need a zoomed card.
-  drag._zoomView(0.25);
+  drag.view.zoom(0.25);
 
   // The hint's button is the escape hatch: one press, whole plan back.
   drag._render();
@@ -1542,7 +1557,7 @@ check("the hand-scheduled reason has a label",
   check("the hint carries a reset button", !!resetBtn);
   if (resetBtn) {
     fire(resetBtn, "click", { stopPropagation() {} });
-    check("pressing it clears the zoom", drag._view === null);
+    check("pressing it clears the zoom", drag.view.range === null);
     const dump2 = collect(drag.shadowRoot).join("\n");
     check("and the hint disappears with it", !/class="wi-viewlimit"/.test(dump2));
   }
@@ -1585,13 +1600,13 @@ check("the hand-scheduled reason has a label",
 
   const base = windowOf(zoom);
   check("an untouched card renders the default window",
-    zoom._view === null && base.span > 0);
+    zoom.view.range === null && base.span > 0);
 
   // Zooming has to hold the pointed-at time still. Zooming about the centre
   // walks whatever the user is looking at off the edge, so repeated zooming
   // feels like it is fighting back.
   const anchor = base.start + base.span / 4;
-  zoom._zoomView(1 / 4, anchor);
+  zoom.view.zoom(1 / 4, anchor);
   const zoomed = windowOf(zoom);
   check("zooming in narrows the window", zoomed.span < base.span,
     `${zoomed.span} vs ${base.span}`);
@@ -1603,11 +1618,11 @@ check("the hand-scheduled reason has a label",
 
   // Forward-only: there is no recorded history to scroll back into, so the
   // window must not be draggable to before the start of the plan.
-  zoom._panView(-base.span * 10);
+  zoom.view.panBy(-base.span * 10);
   check("panning backwards stops at the start of the plan",
     windowOf(zoom).start >= base.start - 1);
 
-  zoom._panView(base.span * 10);
+  zoom.view.panBy(base.span * 10);
   const far = windowOf(zoom);
   check("panning forwards stops at the end of the plan",
     far.end <= base.end + 1, `${far.end} > ${base.end}`);
@@ -1616,15 +1631,15 @@ check("the hand-scheduled reason has a label",
 
   // Zooming out is bounded by the plan, not by the configured plot width: past
   // the optimizer's horizon there is empty chart, not more plan.
-  zoom._zoomView(1000, null);
+  zoom.view.zoom(1000, null);
   const out = windowOf(zoom);
   check("zooming out stops at the extent of the plan",
     out.span <= base.span + 1, `${out.span} > ${base.span}`);
 
-  zoom._resetView();
+  zoom.view.reset();
   const back = windowOf(zoom);
   check("reset restores the default window exactly",
-    zoom._view === null &&
+    zoom.view.range === null &&
     back.start === base.start && back.end === base.end);
 
   // The controls are the only route for touch and keyboard users; a gesture
@@ -1643,43 +1658,43 @@ check("the hand-scheduled reason has a label",
   const guard = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), { what_if: true });
   guard._hass = mkHass(guard._hass.states);
   guard._buildSeries();
-  const before = guard._view;
-  guard._onPanDown({
+  const before = guard.view.range;
+  guard.view.onPanDown({
     stopPropagation(){}, clientX: 400,
     target: { dataset: { channel: "space" } },
     currentTarget: { getBoundingClientRect: () => ({ width: 900, left: 0 }) },
   });
   check("a pointerdown on a lane does not start a pan",
-    guard._pan === null && guard._view === before);
+    guard.view.panGesture === null && guard.view.range === before);
 
   // A pan finishes with a click on the chart, and a click on the chart opens
   // the expanded view. Without suppression, every drag would pop the dialog.
   const svgRect = { getBoundingClientRect: () => ({ width: 900, left: 0 }) };
-  guard._onPanDown({
+  guard.view.onPanDown({
     stopPropagation(){}, preventDefault(){}, clientX: 400,
     target: { dataset: {} }, currentTarget: svgRect,
   });
-  check("a pointerdown on the background does start a pan", guard._pan !== null);
-  const pan = guard._pan;
+  check("a pointerdown on the background does start a pan", guard.view.panGesture !== null);
+  const pan = guard.view.panGesture;
   pan.move({ clientX: 340 });
   pan.up();
   check("a drag suppresses the click that ends it", guard._suppressClick === true);
-  guard._expanded = false;
+  guard.dialog.expanded = false;
   guard._onCardClick({});
-  check("so the drag does not open the expanded view", guard._expanded === false);
+  check("so the drag does not open the expanded view", guard.dialog.expanded === false);
   check("and the suppression is spent, not sticky", guard._suppressClick === false);
   guard._onCardClick({});
-  check("a real click still opens the expanded view", guard._expanded === true);
+  check("a real click still opens the expanded view", guard.dialog.expanded === true);
 
   // A click with no movement is not a pan and must stay a click.
   const still = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), { what_if: true });
   still._hass = mkHass(still._hass.states);
   still._buildSeries();
-  still._onPanDown({
+  still.view.onPanDown({
     stopPropagation(){}, preventDefault(){}, clientX: 400,
     target: { dataset: {} }, currentTarget: svgRect,
   });
-  if (still._pan) still._pan.up();
+  if (still.view.panGesture) still.view.panGesture.up();
   check("a click that never moved is not treated as a pan",
     still._suppressClick === false);
 }
@@ -1694,8 +1709,8 @@ check("the hand-scheduled reason has a label",
   inline._buildSeries();
   const g = inline._geom;
   const svg = svgOf(inline);
-  const runs = inline._draftRuns().dhw;
-  const [lo] = inline._editBounds();
+  const runs = inline.manual.draft().dhw;
+  const [lo] = inline.manual.bounds();
   const i = runs.findIndex((r) => r.end > lo && r.start >= lo);
   check("the inline chart has an editable slot to drag", i >= 0 && !!g && !!svg);
   if (i >= 0) {
@@ -1715,10 +1730,10 @@ check("the hand-scheduled reason has a label",
       inline._suppressClick === true);
     inline._onCardClick({});
     check("so the drag does not open the expanded view",
-      inline._expanded === false);
+      inline.dialog.expanded === false);
     inline._onCardClick({});
     check("a real click after the drag still opens it",
-      inline._expanded === true);
+      inline.dialog.expanded === true);
   }
 }
 
@@ -1727,14 +1742,14 @@ check("the hand-scheduled reason has a label",
   // to be forgotten or _scaleDialogFont skips the write and the fresh
   // dialog's chrome collapses back to card size mid-session.
   const refont = build(slotStates, {});
-  refont._openExpanded();
+  refont.dialog.open();
   // Measured at the stub's constant width, as a real browser would measure a
   // constant viewport: a changed width would re-trigger the write and mask
   // exactly the bug this guards against.
   const size = (card) => {
     const d = card.shadowRoot.querySelector("dialog");
     if (!d.style) d.style = {};
-    card._scaleDialogFont();
+    card.dialog.scaleFont();
     return d.style.fontSize;
   };
   const first = size(refont);
@@ -1795,7 +1810,7 @@ check("the hand-scheduled reason has a label",
     /dlg-tab[^>]*data-page="plan"/.test(planPage) &&
     /dlg-tab[^>]*data-page="setup"/.test(planPage));
 
-  su._dialogPage = "setup";
+  su.dialog.page = "setup";
   su._render();
   const setupPage = collect(su.shadowRoot).join("\n");
   check("the setup page draws the system", /setup-svg/.test(setupPage) &&
@@ -1841,9 +1856,9 @@ check("the hand-scheduled reason has a label",
     "a place without a contour is a box that lost its shape");
   check("no box goes without a contour",
     (setupPage.match(/class="setup-contour/g) || []).length >=
-      (su._layoutBoxes || []).length,
+      (su.layout.boxes || []).length,
     `${(setupPage.match(/class="setup-contour/g) || []).length} contours for `
-    + `${(su._layoutBoxes || []).length} boxes`);
+    + `${(su.layout.boxes || []).length} boxes`);
   check("the carrier rect is invisible, not gone",
     /\.setup-box \{ fill: none; stroke: none; \}/.test(cardSrc),
     "the rect is geometry for the tests and the editor; the contours are "
@@ -1936,7 +1951,7 @@ check("the hand-scheduled reason has a label",
     stStates[DEFAULT_SPACE].attributes.setup_topology = stale;
     const st = build(stStates);
     st._onCardClick({});
-    st._dialogPage = "setup";
+    st.dialog.page = "setup";
     st._render();
     const stPage = collect(st.shadowRoot).join("\n");
     const woodGroup = stPage.split("<g>")
@@ -1957,7 +1972,7 @@ check("the hand-scheduled reason has a label",
     lgStates[DEFAULT_SPACE].attributes.setup_topology = legacyTopo;
     const lg = build(lgStates);
     lg._onCardClick({});
-    lg._dialogPage = "setup";
+    lg.dialog.page = "setup";
     lg._render();
     const lgDrawn = edges(collect(lg.shadowRoot).join("\n"));
     check("a coordinator that publishes no edges still gets the old drawing",
@@ -2002,7 +2017,7 @@ check("the hand-scheduled reason has a label",
     ttStates[DEFAULT_SPACE].attributes.setup_topology = twoTank;
     const tt = build(ttStates);
     tt._onCardClick({});
-    tt._dialogPage = "setup";
+    tt.dialog.page = "setup";
     tt._render();
     const ttPage = collect(tt.shadowRoot).join("\n");
     const ttDrawn = edges(ttPage);
@@ -2055,7 +2070,7 @@ check("the hand-scheduled reason has a label",
     coStates[DEFAULT_SPACE].attributes.setup_topology = coil;
     const co = build(coStates);
     co._onCardClick({});
-    co._dialogPage = "setup";
+    co.dialog.page = "setup";
     co._render();
     const coPage = collect(co.shadowRoot).join("\n");
     const coDrawn = edges(coPage);
@@ -2083,7 +2098,7 @@ check("the hand-scheduled reason has a label",
       /class="setup-coil"/.test(coPage) && !/class="setup-coil"/.test(ttPage),
       "the helix exists exactly when the wood>DHW connection does");
     {
-      const wb = (co._layoutBoxes || []).find((b) => b.place === "wood_tank");
+      const wb = (co.layout.boxes || []).find((b) => b.place === "wood_tank");
       const coilPipe = new RegExp(
         `data-edge="wood_tank>dhw_tank"\\s+d="M ${wb.x + wb.w + 13} ` +
         `${wb.y + 23}`);
@@ -2106,7 +2121,7 @@ check("the hand-scheduled reason has a label",
     nvStates[DEFAULT_SPACE].attributes.setup_topology = noValve;
     const nv = build(nvStates);
     nv._onCardClick({});
-    nv._dialogPage = "setup";
+    nv.dialog.page = "setup";
     nv._render();
     const nvDrawn = edges(collect(nv.shadowRoot).join("\n"));
     check("without a valve the tank feeds both floors directly",
@@ -2126,16 +2141,16 @@ check("the hand-scheduled reason has a label",
   su._maybeRender(true);
   const afterRefresh = collect(su.shadowRoot).join("\n");
   check("the current page survives a plan refresh",
-    su._dialogPage === "setup" && /setup-svg/.test(afterRefresh));
+    su.dialog.page === "setup" && /setup-svg/.test(afterRefresh));
 
-  su._dialogPage = "plan";
+  su.dialog.page = "plan";
   su._render();
   const backToPlan = collect(su.shadowRoot).join("\n");
   check("switching back restores the chart and the what-if panel",
     /chartwrap big/.test(backToPlan) && !/class="setup-svg"/.test(backToPlan));
 
   // --- click-to-assign (item 32's second stage) ---------------------------
-  su._dialogPage = "setup";
+  su.dialog.page = "setup";
   su._render();
   const clickable = collect(su.shadowRoot).join("\n");
   check("every slot is a click target, not just the configured ones",
@@ -2144,7 +2159,7 @@ check("the hand-scheduled reason has a label",
     + `${topo.slots.length} slots -- an empty slot is the one you most need `
     + `to click`);
 
-  su._pickerKey = "lower_floor_temp_entity";
+  su.setup.pickerKey = "lower_floor_temp_entity";
   su._render();
   const picking = collect(su.shadowRoot).join("\n");
   check("clicking a slot opens a picker for it",
@@ -2156,14 +2171,14 @@ check("the hand-scheduled reason has a label",
   // The service validates domains too, but a picker that offers what the
   // service will refuse turns a wrong click into an error message instead of
   // an impossibility.
-  su._pickerKey = "heat_pump_switch_entity";
+  su.setup.pickerKey = "heat_pump_switch_entity";
   su._render();
   const switchPick = collect(su.shadowRoot).join("\n");
   check("a switch slot does not offer temperature sensors",
     !/sensor\.livingroom/.test(switchPick),
     "the picker is filtered by the same domain list the service enforces");
 
-  su._pickerKey = "lower_floor_temp_entity";
+  su.setup.pickerKey = "lower_floor_temp_entity";
   su._render();
   const calls = [];
   su._hass.callService = async (domain, service, data) => {
@@ -2183,10 +2198,10 @@ check("the hand-scheduled reason has a label",
     && calls[0][2].entity_id === "sensor.tank",
     JSON.stringify(calls[0] && calls[0][2]));
   check("the picker closes once the assignment is away",
-    su._pickerKey === null);
+    su.setup.pickerKey === null);
 
   // A failed call must say so rather than looking like it worked.
-  su._pickerKey = "lower_floor_temp_entity";
+  su.setup.pickerKey = "lower_floor_temp_entity";
   su._render();
   su._hass.callService = async () => {
     throw new Error("Entity does not exist");
@@ -2195,10 +2210,10 @@ check("the hand-scheduled reason has a label",
   if (saveBtn2) await Promise.all(
     (saveBtn2._listeners.click || []).map((f) => f({ stopPropagation() {} })));
   check("a rejected assignment is reported, not swallowed",
-    /Could not assign/.test(su._setupNote || ""),
-    `note was ${JSON.stringify(su._setupNote)}`);
+    /Could not assign/.test(su.setup.note || ""),
+    `note was ${JSON.stringify(su.setup.note)}`);
   check("and the picker stays open so the choice can be corrected",
-    su._pickerKey === "lower_floor_temp_entity");
+    su.setup.pickerKey === "lower_floor_temp_entity");
 }
 
 // --- Scenario: the layout editor (v3.16.0, issue #40) ----------------------
@@ -2283,7 +2298,7 @@ check("the hand-scheduled reason has a label",
     states["sensor.outside"] = { state: "3.0", attributes: {} };
     const c = build(states);
     c._onCardClick({});
-    c._dialogPage = "setup";
+    c.dialog.page = "setup";
     c._render();
     return c;
   };
@@ -2305,7 +2320,7 @@ check("the hand-scheduled reason has a label",
   // these drags mean anything.
   const pxOf = (u) => (u * 900) / 720;
   const boxAt = (card, place) =>
-    (card._layoutBoxes || []).find((b) => b.place === place);
+    (card.layout.boxes || []).find((b) => b.place === place);
   const centre = (card, place) => {
     const b = boxAt(card, place);
     return { x: b.x + b.w / 2, y: b.y + b.h / 2 };
@@ -2318,9 +2333,9 @@ check("the hand-scheduled reason has a label",
   const connect = (card, from, to) => {
     const src = centre(card, from);
     const dst = centre(card, to);
-    card._onLayoutDown(ev(src, { dataset: { place: from, port: "right" } }));
-    card._onLayoutMove(ev({ x: (src.x + dst.x) / 2, y: (src.y + dst.y) / 2 }));
-    card._onLayoutUp(ev(dst));
+    card.layout.onDown(ev(src, { dataset: { place: from, port: "right" } }));
+    card.layout.onMove(ev({ x: (src.x + dst.x) / 2, y: (src.y + dst.y) / 2 }));
+    card.layout.onUp(ev(dst));
   };
 
   {
@@ -2335,9 +2350,9 @@ check("the hand-scheduled reason has a label",
     const dump = pageHtml(c);
     check("the editor draws a port on every box edge",
       (dump.match(/class="layout-port"/g) || []).length ===
-        (c._layoutBoxes || []).length * 4,
+        (c.layout.boxes || []).length * 4,
       `${(dump.match(/class="layout-port"/g) || []).length} ports for `
-      + `${(c._layoutBoxes || []).length} boxes`);
+      + `${(c.layout.boxes || []).length} boxes`);
     // v4.3.0: the pipe ornament (endpoint dots, flow chevrons) is styled
     // away while editing -- it would sit right on the widened pipes that
     // are the editor's click targets. The stub computes no styles, so what
@@ -2355,14 +2370,14 @@ check("the hand-scheduled reason has a label",
     check("and the editor says which layout is on screen",
       /Valve on the radiators, slab fed direct/
         .test(collect(c.shadowRoot).join("\n")),
-      `verdict was ${JSON.stringify(c._layoutEdit.verdict)}`);
+      `verdict was ${JSON.stringify(c.layout.edit.verdict)}`);
     // Editing takes the diagram over; a picker opening on top of a drag is
     // the interaction that made the whole page feel broken.
     const hit = c.shadowRoot.querySelector(".setup-hit");
     if (hit) (hit._listeners.click || []).forEach((f) =>
       f({ stopPropagation() {}, currentTarget: hit }));
     check("click-to-assign is off while the layout is being edited",
-      !c._pickerKey);
+      !c.setup.pickerKey);
   }
 
   {
@@ -2371,29 +2386,29 @@ check("the hand-scheduled reason has a label",
     // exactly `single_tank_valve`, and the editor has to recognise it.
     const c = mkEditor();
     clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
-    c._onLayoutClick({ target: { dataset: { edge: "buffer_tank>lower_zone" } },
+    c.layout.onClick({ target: { dataset: { edge: "buffer_tank>lower_zone" } },
       stopPropagation() {} });
     check("clicking a pipe while editing removes it",
       !edgesOf(c).includes("buffer_tank>lower_zone"),
       `edges drawn: ${edgesOf(c).join(", ")}`);
     check("and a drawing that is no layout is rejected, with a reason",
-      !c._layoutEdit.match &&
-      /No supported layout matches/.test(c._layoutEdit.verdict) &&
-      /Lower floor/.test(c._layoutEdit.verdict),
-      `verdict was ${JSON.stringify(c._layoutEdit.verdict)}`);
+      !c.layout.edit.match &&
+      /No supported layout matches/.test(c.layout.edit.verdict) &&
+      /Lower floor/.test(c.layout.edit.verdict),
+      `verdict was ${JSON.stringify(c.layout.edit.verdict)}`);
     connect(c, "mixing_valve", "lower_zone");
     check("dragging a port onto another box proposes that connection",
       edgesOf(c).includes("mixing_valve>lower_zone"),
       `edges drawn: ${edgesOf(c).join(", ")}`);
     check("the finished drawing snaps to the layout it equals",
-      !!c._layoutEdit.match &&
-      c._layoutEdit.match.key === "single_tank_valve",
-      `matched ${JSON.stringify(c._layoutEdit.match)}`);
+      !!c.layout.edit.match &&
+      c.layout.edit.match.key === "single_tank_valve",
+      `matched ${JSON.stringify(c.layout.edit.match)}`);
     const dump = pageHtml(c);
     check("a matched layout is highlighted and Save is enabled",
       /setup-pipe layout-match/.test(dump) &&
       !c.shadowRoot.querySelector(".layout-save").disabled &&
-      /One tank behind a valve/.test(c._layoutEdit.verdict));
+      /One tank behind a valve/.test(c.layout.edit.verdict));
 
     // (4) Only the key travels. A free-form graph is never stored, which is
     // what keeps the model from being asked to run physics nobody wrote.
@@ -2410,8 +2425,8 @@ check("the hand-scheduled reason has a label",
       !("edges" in calls[0][2]),
       JSON.stringify(calls));
     check("and the editor closes once the write is away",
-      c._layoutEdit === null && /Saved/.test(c._setupNote || ""),
-      `note was ${JSON.stringify(c._setupNote)}`);
+      c.layout.edit === null && /Saved/.test(c.setup.note || ""),
+      `note was ${JSON.stringify(c.setup.note)}`);
   }
 
   {
@@ -2419,7 +2434,7 @@ check("the hand-scheduled reason has a label",
     // it is not a way to say no.
     const c = mkEditor();
     clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
-    c._onLayoutClick({ target: { dataset: { edge: "buffer_tank>lower_zone" } },
+    c.layout.onClick({ target: { dataset: { edge: "buffer_tank>lower_zone" } },
       stopPropagation() {} });
     connect(c, "mixing_valve", "lower_zone");
     c._hass.callService = async () => {
@@ -2427,12 +2442,12 @@ check("the hand-scheduled reason has a label",
     };
     await Promise.all(clickOn(c.shadowRoot.querySelector(".layout-save")));
     check("a rejected layout write is reported, not swallowed",
-      /Could not save the layout/.test(c._setupNote || "") &&
-      /wood-tank top probe/.test(c._setupNote || ""),
-      `note was ${JSON.stringify(c._setupNote)}`);
+      /Could not save the layout/.test(c.setup.note || "") &&
+      /wood-tank top probe/.test(c.setup.note || ""),
+      `note was ${JSON.stringify(c.setup.note)}`);
     check("and the editor stays open with the drawing intact",
-      c._layoutEditing() &&
-      c._layoutEdit.edges.some((e) => e[1] === "lower_zone" &&
+      c.layout.editing() &&
+      c.layout.edit.edges.some((e) => e[1] === "lower_zone" &&
         e[0] === "mixing_valve"));
   }
 
@@ -2443,12 +2458,12 @@ check("the hand-scheduled reason has a label",
     connect(c, "heat_pump", "upper_zone");
     const dump = pageHtml(c);
     check("an unsupported drawing names the nearest layout and what differs",
-      !c._layoutEdit.match &&
-      /No supported layout matches/.test(c._layoutEdit.verdict) &&
+      !c.layout.edit.match &&
+      /No supported layout matches/.test(c.layout.edit.verdict) &&
       /Closest: Valve on the radiators, slab fed direct/
-        .test(c._layoutEdit.verdict) &&
-      /Heat pump → Upper floor/.test(c._layoutEdit.verdict),
-      `verdict was ${JSON.stringify(c._layoutEdit.verdict)}`);
+        .test(c.layout.edit.verdict) &&
+      /Heat pump → Upper floor/.test(c.layout.edit.verdict),
+      `verdict was ${JSON.stringify(c.layout.edit.verdict)}`);
     check("the offending pipe is drawn as rejected, and Save stays disabled",
       /setup-pipe invalid" data-edge="heat_pump>upper_zone"/.test(dump) &&
       !!c.shadowRoot.querySelector(".layout-save").disabled,
@@ -2459,20 +2474,20 @@ check("the hand-scheduled reason has a label",
 
     // A drawing that IS a known layout this configuration cannot run gets the
     // requirement instead: nothing is mis-drawn, the house is just not that.
-    c._layoutEdit.edges = EDGES.two_tank_4way.map((e) => [e[0], e[1]]);
-    c._layoutEvaluate();
+    c.layout.edit.edges = EDGES.two_tank_4way.map((e) => [e[0], e[1]]);
+    c.layout.evaluate();
     check("a layout the configuration cannot run explains what it needs",
-      !c._layoutEdit.match &&
-      /Two tanks, one 4-way valve/.test(c._layoutEdit.verdict) &&
-      /wood-tank top probe/.test(c._layoutEdit.verdict),
-      `verdict was ${JSON.stringify(c._layoutEdit.verdict)}`);
-    c._layoutEdit.edges = EDGES.slab_shunt.map((e) => [e[0], e[1]]);
-    c._layoutEvaluate();
+      !c.layout.edit.match &&
+      /Two tanks, one 4-way valve/.test(c.layout.edit.verdict) &&
+      /wood-tank top probe/.test(c.layout.edit.verdict),
+      `verdict was ${JSON.stringify(c.layout.edit.verdict)}`);
+    c.layout.edit.edges = EDGES.slab_shunt.map((e) => [e[0], e[1]]);
+    c.layout.evaluate();
     check("and a known-but-unmodelled layout says it is not selectable",
-      !c._layoutEdit.match &&
-      /Separate slab shunt/.test(c._layoutEdit.verdict) &&
-      /no model variant exists yet/.test(c._layoutEdit.verdict),
-      `verdict was ${JSON.stringify(c._layoutEdit.verdict)}`);
+      !c.layout.edit.match &&
+      /Separate slab shunt/.test(c.layout.edit.verdict) &&
+      /no model variant exists yet/.test(c.layout.edit.verdict),
+      `verdict was ${JSON.stringify(c.layout.edit.verdict)}`);
   }
 
   {
@@ -2486,20 +2501,20 @@ check("the hand-scheduled reason has a label",
     });
     const c = mkEditor({ catalog: bare });
     clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
-    c._layoutEdit.edges = EDGES.two_tank_4way.map((e) => [e[0], e[1]]);
-    c._layoutEvaluate();
+    c.layout.edit.edges = EDGES.two_tank_4way.map((e) => [e[0], e[1]]);
+    c.layout.evaluate();
     check("a catalog without requirement text degrades, never 'undefined'",
-      !c._layoutEdit.match &&
-      /Two tanks, one 4-way valve/.test(c._layoutEdit.verdict) &&
-      !/undefined/.test(c._layoutEdit.verdict) &&
-      /cannot store/.test(c._layoutEdit.verdict),
-      `verdict was ${JSON.stringify(c._layoutEdit.verdict)}`);
-    c._layoutEdit.edges = EDGES.slab_shunt.map((e) => [e[0], e[1]]);
-    c._layoutEvaluate();
+      !c.layout.edit.match &&
+      /Two tanks, one 4-way valve/.test(c.layout.edit.verdict) &&
+      !/undefined/.test(c.layout.edit.verdict) &&
+      /cannot store/.test(c.layout.edit.verdict),
+      `verdict was ${JSON.stringify(c.layout.edit.verdict)}`);
+    c.layout.edit.edges = EDGES.slab_shunt.map((e) => [e[0], e[1]]);
+    c.layout.evaluate();
     check("and the unmodelled layout degrades the same way",
-      !/undefined/.test(c._layoutEdit.verdict) &&
-      /not modelled yet/.test(c._layoutEdit.verdict),
-      `verdict was ${JSON.stringify(c._layoutEdit.verdict)}`);
+      !/undefined/.test(c.layout.edit.verdict) &&
+      /not modelled yet/.test(c.layout.edit.verdict),
+      `verdict was ${JSON.stringify(c.layout.edit.verdict)}`);
   }
 
   {
@@ -2508,26 +2523,26 @@ check("the hand-scheduled reason has a label",
     // wiped out mid-drawing every few minutes.
     const c = mkEditor();
     clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
-    c._onLayoutClick({ target: { dataset: { edge: "buffer_tank>lower_zone" } },
+    c.layout.onClick({ target: { dataset: { edge: "buffer_tank>lower_zone" } },
       stopPropagation() {} });
     connect(c, "mixing_valve", "lower_zone");
     c._sig = null;
     c._maybeRender(true);
     const dump = pageHtml(c);
     check("the layout editor survives a plan refresh",
-      c._layoutEditing() && /class="layout-port"/.test(dump) &&
+      c.layout.editing() && /class="layout-port"/.test(dump) &&
       edgesOf(c).includes("mixing_valve>lower_zone") &&
       !edgesOf(c).includes("buffer_tank>lower_zone"),
       `edges drawn: ${edgesOf(c).join(", ")}`);
     check("and so does the match it had made",
-      !!c._layoutEdit.match &&
-      c._layoutEdit.match.key === "single_tank_valve" &&
+      !!c.layout.edit.match &&
+      c.layout.edit.match.key === "single_tank_valve" &&
       !c.shadowRoot.querySelector(".layout-save").disabled);
     // Cancel discards: nothing was written, so the working set must not
     // outlive the editor.
     clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
     check("closing the editor discards the drawing",
-      c._layoutEdit === null &&
+      c.layout.edit === null &&
       edgesOf(c).includes("buffer_tank>lower_zone"),
       `edges drawn: ${edgesOf(c).join(", ")}`);
   }
@@ -2566,25 +2581,25 @@ check("the hand-scheduled reason has a label",
     // must not change which layout the drawing is.
     const c = mkEditor();
     clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
-    const before = c._layoutEdit.edges.map((e) => `${e[0]}>${e[1]}`).join();
+    const before = c.layout.edit.edges.map((e) => `${e[0]}>${e[1]}`).join();
     const from = centre(c, "buffer_tank");
-    c._onLayoutDown(ev(from, { dataset: {} }));
-    c._onLayoutMove(ev({ x: from.x + 30, y: from.y + 40 }));
-    c._onLayoutUp(ev({ x: from.x + 30, y: from.y + 40 }));
-    const at = c._layoutEdit.positions.buffer_tank;
+    c.layout.onDown(ev(from, { dataset: {} }));
+    c.layout.onMove(ev({ x: from.x + 30, y: from.y + 40 }));
+    c.layout.onUp(ev({ x: from.x + 30, y: from.y + 40 }));
+    const at = c.layout.edit.positions.buffer_tank;
     check("dragging a box records its position and leaves the pipes alone",
       Array.isArray(at) && at.length === 2 &&
-      c._layoutEdit.edges.map((e) => `${e[0]}>${e[1]}`).join() === before,
+      c.layout.edit.edges.map((e) => `${e[0]}>${e[1]}`).join() === before,
       `position ${JSON.stringify(at)}`);
     check("and a moved box is still the layout it was, now saveable",
-      !!c._layoutEdit.match &&
-      c._layoutEdit.match.key === "valve_upper_direct_slab" &&
+      !!c.layout.edit.match &&
+      c.layout.edit.match.key === "valve_upper_direct_slab" &&
       !c.shadowRoot.querySelector(".layout-save").disabled);
     // The click a drag owes is swallowed by whatever it ended over -- a slot
     // row stops it before the diagram sees it -- so the next gesture must
     // clear the debt rather than spend it on the user's next real click.
-    c._onLayoutDown(ev({ x: 4, y: 4 }, { dataset: {} }));
-    c._onLayoutClick({
+    c.layout.onDown(ev({ x: 4, y: 4 }, { dataset: {} }));
+    c.layout.onClick({
       target: { dataset: { edge: "buffer_tank>lower_zone" } },
       stopPropagation() {} });
     check("a click after a drag is not silently eaten",
@@ -2607,7 +2622,7 @@ check("the hand-scheduled reason has a label",
       /class="setup-coil"/.test(pageHtml(c)),
       "the drawn wood>DHW edge is the coil's existence condition");
     clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
-    c._layoutRemoveEdge("wood_tank>dhw_tank");
+    c.layout.removeEdge("wood_tank>dhw_tank");
     check("removing the wood>DHW pipe removes the helix with it",
       !/class="setup-coil"/.test(pageHtml(c)),
       `edges drawn: ${edgesOf(c).join(", ")}`);
@@ -2635,9 +2650,9 @@ check("the hand-scheduled reason has a label",
       if (key !== "Enter" && key !== " ") return [];
       return clickOn(el);
     };
-    const posOf = (card) => JSON.stringify(card._layoutEdit.positions);
+    const posOf = (card) => JSON.stringify(card.layout.edit.positions);
     const edgeNames = (card) =>
-      card._layoutEdit.edges.map((e) => `${e[0]}>${e[1]}`).join();
+      card.layout.edit.edges.map((e) => `${e[0]}>${e[1]}`).join();
     const PUBLISHED = EDGES.valve_upper_direct_slab
       .map((e) => `${e[0]}>${e[1]}`).join();
 
@@ -2661,12 +2676,12 @@ check("the hand-scheduled reason has a label",
 
       // One drag and one new pipe: both halves of the working set moved.
       const from = centre(c, "buffer_tank");
-      c._onLayoutDown(ev(from, { dataset: {} }));
-      c._onLayoutMove(ev({ x: from.x + 30, y: from.y + 40 }));
-      c._onLayoutUp(ev({ x: from.x + 30, y: from.y + 40 }));
+      c.layout.onDown(ev(from, { dataset: {} }));
+      c.layout.onMove(ev({ x: from.x + 30, y: from.y + 40 }));
+      c.layout.onUp(ev({ x: from.x + 30, y: from.y + 40 }));
       connect(c, "heat_pump", "upper_zone");
       check("Undo lights up as soon as something is changed",
-        !undoBtn(c).disabled && c._layoutEdit.dirty &&
+        !undoBtn(c).disabled && c.layout.edit.dirty &&
         posOf(c) !== "{}" && edgeNames(c) !== PUBLISHED,
         `edges ${edgeNames(c)}, positions ${posOf(c)}`);
 
@@ -2675,35 +2690,35 @@ check("the hand-scheduled reason has a label",
         edgeNames(c) === PUBLISHED && posOf(c) === "{}",
         `edges ${edgeNames(c)}, positions ${posOf(c)}`);
       check("and re-derives the verdict for the restored drawing",
-        !!c._layoutEdit.match &&
-        c._layoutEdit.match.key === "valve_upper_direct_slab" &&
+        !!c.layout.edit.match &&
+        c.layout.edit.match.key === "valve_upper_direct_slab" &&
         /Valve on the radiators, slab fed direct/
-          .test(c._layoutEdit.verdict) &&
+          .test(c.layout.edit.verdict) &&
         /Valve on the radiators, slab fed direct/.test(
           (c.shadowRoot.querySelector(".layout-verdict") || {}).textContent
           || ""),
-        `verdict was ${JSON.stringify(c._layoutEdit.verdict)}`);
+        `verdict was ${JSON.stringify(c.layout.edit.verdict)}`);
       check("the editor stays open, unlike Cancel",
-        c._layoutEditing() && /class="layout-port"/.test(pageHtml(c)),
+        c.layout.editing() && /class="layout-port"/.test(pageHtml(c)),
         "Undo is the way to start over without reopening the editor");
       check("and Undo goes dark again, with nothing left to take back",
-        !c._layoutEdit.dirty && !!undoBtn(c).disabled &&
+        !c.layout.edit.dirty && !!undoBtn(c).disabled &&
         !!c.shadowRoot.querySelector(".layout-save").disabled,
         "an editor back at its starting point has nothing to save either");
       check("no drag survives the restore",
-        c._layoutEdit.drag === null && !c._layoutEdit.suppressClick,
+        c.layout.edit.drag === null && !c.layout.edit.suppressClick,
         "a pointerup still owed would land an edge against a drawing that "
         + "no longer exists");
 
       // The baseline is a deep copy, so touching the working set cannot
       // reach into the layout Undo owes on the NEXT press.
-      c._layoutEdit.positions.buffer_tank = [1, 2];
-      c._layoutEdit.edges.push(["heat_pump", "upper_zone"]);
+      c.layout.edit.positions.buffer_tank = [1, 2];
+      c.layout.edit.edges.push(["heat_pump", "upper_zone"]);
       check("the baseline is a copy the working set cannot corrupt",
-        JSON.stringify(c._layoutEdit.baseline.positions) === "{}" &&
-        c._layoutEdit.baseline.edges.map((e) => `${e[0]}>${e[1]}`).join()
+        JSON.stringify(c.layout.edit.baseline.positions) === "{}" &&
+        c.layout.edit.baseline.edges.map((e) => `${e[0]}>${e[1]}`).join()
           === PUBLISHED,
-        JSON.stringify(c._layoutEdit.baseline));
+        JSON.stringify(c.layout.edit.baseline));
     }
 
     {
@@ -2712,17 +2727,17 @@ check("the hand-scheduled reason has a label",
       const c = mkEditor({ positions: { heat_pump: [430, 360] } });
       clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
       const from = centre(c, "heat_pump");
-      c._onLayoutDown(ev(from, { dataset: {} }));
-      c._onLayoutMove(ev({ x: from.x + 40, y: from.y + 20 }));
-      c._onLayoutUp(ev({ x: from.x + 40, y: from.y + 20 }));
-      const moved = JSON.stringify(c._layoutEdit.positions.heat_pump);
+      c.layout.onDown(ev(from, { dataset: {} }));
+      c.layout.onMove(ev({ x: from.x + 40, y: from.y + 20 }));
+      c.layout.onUp(ev({ x: from.x + 40, y: from.y + 20 }));
+      const moved = JSON.stringify(c.layout.edit.positions.heat_pump);
       clickOn(undoBtn(c));
       check("Undo after a drag alone puts the box back where it was",
-        JSON.stringify(c._layoutEdit.positions.heat_pump) === "[430,360]" &&
+        JSON.stringify(c.layout.edit.positions.heat_pump) === "[430,360]" &&
         moved !== "[430,360]" && boxAt(c, "heat_pump").x === 430 &&
         boxAt(c, "heat_pump").y === 360,
         `moved to ${moved}, restored to `
-        + JSON.stringify(c._layoutEdit.positions.heat_pump));
+        + JSON.stringify(c.layout.edit.positions.heat_pump));
       check("and the pipes it never touched are still the published ones",
         edgeNames(c) === PUBLISHED, `edges ${edgeNames(c)}`);
     }
@@ -2731,12 +2746,12 @@ check("the hand-scheduled reason has a label",
       // Only an edge change: the pipes half must come back on its own.
       const c = mkEditor();
       clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
-      c._onLayoutClick({
+      c.layout.onClick({
         target: { dataset: { edge: "buffer_tank>lower_zone" } },
         stopPropagation() {} });
       connect(c, "mixing_valve", "lower_zone");
       check("a rearranged drawing is a different layout before Undo",
-        c._layoutEdit.match.key === "single_tank_valve");
+        c.layout.edit.match.key === "single_tank_valve");
       clickOn(undoBtn(c));
       check("Undo after pipe edits alone restores the published pipe set",
         edgeNames(c) === PUBLISHED &&
@@ -2746,7 +2761,7 @@ check("the hand-scheduled reason has a label",
 
       // Nothing stale left behind: the editor still works exactly as it did
       // before the Undo, all the way through a real write.
-      c._onLayoutClick({
+      c.layout.onClick({
         target: { dataset: { edge: "buffer_tank>lower_zone" } },
         stopPropagation() {} });
       connect(c, "mixing_valve", "lower_zone");
@@ -2757,7 +2772,7 @@ check("the hand-scheduled reason has a label",
       await Promise.all(clickOn(c.shadowRoot.querySelector(".layout-save")));
       check("Save still works normally after an Undo",
         calls.length === 1 && calls[0][1] === "apply_topology" &&
-        calls[0][2].layout === "single_tank_valve" && c._layoutEdit === null,
+        calls[0][2].layout === "single_tank_valve" && c.layout.edit === null,
         JSON.stringify(calls));
     }
 
@@ -2775,11 +2790,11 @@ check("the hand-scheduled reason has a label",
       connect(c, "heat_pump", "upper_zone");
       pressKey(undoBtn(c), "Enter");
       check("Enter on Undo restores the layout, from the keyboard alone",
-        edgeNames(c) === PUBLISHED && c._layoutEditing());
+        edgeNames(c) === PUBLISHED && c.layout.editing());
       connect(c, "heat_pump", "upper_zone");
       pressKey(undoBtn(c), " ");
       check("and so does Space",
-        edgeNames(c) === PUBLISHED && c._layoutEditing());
+        edgeNames(c) === PUBLISHED && c.layout.editing());
       check("the bar's buttons ring themselves with :focus-visible, no more",
         /\.layout-bar button:focus-visible \{\s*outline: 2px solid/
           .test(cardSrc),
@@ -2796,7 +2811,7 @@ check("the hand-scheduled reason has a label",
       clickOn(undoBtn(c));
       clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
       check("Cancel still closes the editor, Undo or no Undo",
-        c._layoutEdit === null && !c._layoutEditing() &&
+        c.layout.edit === null && !c.layout.editing() &&
         !/class="layout-port"/.test(pageHtml(c)) &&
         edgesOf(c).includes("buffer_tank>lower_zone"),
         `edges drawn: ${edgesOf(c).join(", ")}`);
@@ -2866,7 +2881,7 @@ check("the hand-scheduled reason has a label",
 
   // Hiding one channel hides its half of the story: no orphan bands.
   const hid = build(states);
-  hid._hidden = { dhw_slots: true };
+  hid.legend.hidden = { dhw_slots: true };
   hid._render();
   check("a hidden channel takes its shared bands with it",
     !/shared-band/.test(collect(hid.shadowRoot).join("\n")));
@@ -2877,19 +2892,19 @@ check("the hand-scheduled reason has a label",
   // apart and the tooltip claims a sharing the band refuses to draw.
   const T0 = 1700000000000;
   const row = (field, value, t) => ({ field, value, t });
-  const shared = sh._sharedTooltipHtml([
+  const shared = sharedTooltipHtml([
     row("space_power", 1.2, T0), row("dhw_power", 4.8, T0),
   ]);
   check("the tooltip explains a genuinely shared step, with the sum",
     /Shared step/.test(shared) && /alternates/.test(shared) && /6/.test(shared));
   check("nearest points from different timestamps are never called shared",
-    sh._sharedTooltipHtml([
+    sharedTooltipHtml([
       row("space_power", 1.2, T0), row("dhw_power", 4.8, T0 + 3600000),
     ]) === "");
   check("one idle channel means no shared line",
-    sh._sharedTooltipHtml([
+    sharedTooltipHtml([
       row("space_power", 1.2, T0), row("dhw_power", 0.0, T0),
-    ]) === "" && sh._sharedTooltipHtml([row("space_power", 1.2, T0)]) === "");
+    ]) === "" && sharedTooltipHtml([row("space_power", 1.2, T0)]) === "");
 }
 
 // --- Scenario: the Outside box and the plan's real irradiance (T3b) --------
@@ -2914,7 +2929,7 @@ check("the hand-scheduled reason has a label",
   states[DEFAULT_SPACE].attributes.setup_topology = mkTopo();
   const su = build(states);
   su._onCardClick({});
-  su._dialogPage = "setup";
+  su.dialog.page = "setup";
   su._render();
   const page = collect(su.shadowRoot).join("\n");
   check("an unconfigured solar slot shows the irradiance the plan uses",
@@ -2929,7 +2944,7 @@ check("the hand-scheduled reason has a label",
   bare[DEFAULT_SPACE].attributes.setup_topology = mkTopo();
   const suBare = build(bare);
   suBare._onCardClick({});
-  suBare._dialogPage = "setup";
+  suBare.dialog.page = "setup";
   suBare._render();
   check("no source at all still says not configured",
     !/W\/m² ·/.test(collect(suBare.shadowRoot).join("\n")));
@@ -2961,7 +2976,7 @@ check("the hand-scheduled reason has a label",
   fmt.hass = { states, formatEntityState: (st) =>
     st === states["sensor.wood_top"] ? "60.0 °C" : `${st.state}` };
   fmt._onCardClick({});
-  fmt._dialogPage = "setup";
+  fmt.dialog.page = "setup";
   fmt._render();
   const fmtPage = collect(fmt.shadowRoot).join("\n");
   check("the frontend's formatter wins: the probe reads in the user's units",
@@ -2969,7 +2984,7 @@ check("the hand-scheduled reason has a label",
 
   const raw = build(states);
   raw._onCardClick({});
-  raw._dialogPage = "setup";
+  raw.dialog.page = "setup";
   raw._render();
   check("an older frontend without the formatter still gets the raw value",
     /140\.0 °F/.test(collect(raw.shadowRoot).join("\n")));
@@ -2994,8 +3009,8 @@ check("the hand-scheduled reason has a label",
   check("the default title localizes too (it is not baked in at setConfig)",
     /Värmepumpsplan/.test(svDump) && !/Heat pump plan/.test(svDump));
   check("reason codes explain themselves in Swedish",
-    /Billigaste timmarna/.test(sv._reasonHtml([{ reason: "cheap_price" }])) &&
-    /Varmvatten behövs nu/.test(sv._reasonHtml([{ reason: "dhw_window" }])));
+    /Billigaste timmarna/.test(reasonHtml([{ reason: "cheap_price" }])) &&
+    /Varmvatten behövs nu/.test(reasonHtml([{ reason: "dhw_window" }])));
   check("wire contracts stay untranslated under sv",
     /data-key="price"/.test(svDump) && /data-key="dhw_slots"/.test(svDump));
 
@@ -3009,7 +3024,7 @@ check("the hand-scheduled reason has a label",
   check("the slot menu strings are whole Swedish sentences",
     /värmepass/.test(
       (() => { // exercise the L() path the menu uses
-        sv._closeExpanded();
+        sv.dialog.close();
         return ctxL(sv, "menu.add_slot_space");
       })()
     ));
@@ -3055,7 +3070,7 @@ check("the hand-scheduled reason has a label",
 // what the i18n scenario cares about is only that the per-channel sentence
 // exists in the active language.
 function ctxL(card, key) {
-  card._closeSlotMenu();
+  card.lanes.closeMenu();
   // The card file keeps L private; the menu markup is the observable. Build
   // it via a minimal fake wrapper.
   const host = new (Object.getPrototypeOf(card.shadowRoot).constructor)("div");
@@ -3063,11 +3078,11 @@ function ctxL(card, key) {
   card.shadowRoot.appendChild(host);
   card._geom = null;
   try {
-    card._openSlotMenu("space", Date.now(), 0, 0, host);
-    const menu = card._slotMenu;
+    card.lanes.openMenu("space", Date.now(), 0, 0, host);
+    const menu = card.lanes.menu;
     return menu ? menu.innerHTML : "";
   } finally {
-    card._closeSlotMenu();
+    card.lanes.closeMenu();
   }
 }
 
@@ -3363,15 +3378,15 @@ function ctxL(card, key) {
   const b = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true),
     { title: "Downstairs", hours: 48 });
   check("cards with different config identities get different keys",
-    a._storageKey(a._config) !== b._storageKey(b._config) &&
-    a._storageKey(a._config).includes("Upstairs") &&
-    a._storageKey(a._config).includes(DEFAULT_SPACE));
-  a._onLegendClick({ stopPropagation(){}, currentTarget: {
+    a.legend.storageKey(a._config) !== b.legend.storageKey(b._config) &&
+    a.legend.storageKey(a._config).includes("Upstairs") &&
+    a.legend.storageKey(a._config).includes(DEFAULT_SPACE));
+  a.legend.onChipClick({ stopPropagation(){}, currentTarget: {
     getAttribute: (k) => (k === "data-key" ? "outdoor" : null) } });
   const bReloaded = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true),
     { title: "Downstairs", hours: 48 });
   check("a toggle on one card does not leak into the other",
-    a._hidden.outdoor === true && !bReloaded._hidden.outdoor);
+    a.legend.hidden.outdoor === true && !bReloaded.legend.hidden.outdoor);
 
   // A pre-v4.2.0 key (no identity suffix) still loads, so an upgrade keeps
   // the user's saved toggles; writes then move to the new key.
@@ -3382,7 +3397,7 @@ function ctxL(card, key) {
   const legacy = build(mkStates(legacySpace, legacyDhw, true),
     { space_entity: legacySpace, dhw_entity: legacyDhw });
   check("a legacy storage key is still honoured after the upgrade",
-    legacy._hidden.price === true);
+    legacy.legend.hidden.price === true);
 }
 
 // --- Scenario: keyboard access to the plan slots (v4.2.0) -------------------
@@ -3399,7 +3414,7 @@ function ctxL(card, key) {
   check("an svg with focusable children is not role=img",
     /<svg viewBox="0 0 900[^>]*role="group"/.test(kbDump));
 
-  const svg = kb._chartSvgs(kb.shadowRoot)[0];
+  const svg = chartSvgs(kb.shadowRoot)[0];
   const slot = svg.querySelector(".slot");
   check("there is a slot to drive", !!slot && slot.dataset.index !== undefined);
   const keydown = (target, key) => svg._listeners.keydown.forEach((f) =>
@@ -3408,17 +3423,17 @@ function ctxL(card, key) {
   const kdBase = (docListeners.keydown || []).length;
   keydown(slot, "Enter");
   check("Enter on a slot opens the slot menu",
-    !!kb._slotMenu && /slot/.test(kb._slotMenu.innerHTML));
+    !!kb.lanes.menu && /slot/.test(kb.lanes.menu.innerHTML));
   check("an open menu parks an Escape listener on the document",
     (docListeners.keydown || []).length === kdBase + 1);
   check("a keyboard-opened menu takes focus onto its button",
     document.activeElement &&
     document.activeElement.tagName === "BUTTON");
-  kb._slotMenu._listeners.keydown.forEach((f) =>
+  kb.lanes.menu._listeners.keydown.forEach((f) =>
     f({ key: "Escape", stopPropagation(){} }));
-  check("Escape dismisses the menu", kb._slotMenu === null);
+  check("Escape dismisses the menu", kb.lanes.menu === null);
   check("and hands focus back to the slot it came from",
-    document.activeElement === kb._chartSvgs(kb.shadowRoot)[0]
+    document.activeElement === chartSvgs(kb.shadowRoot)[0]
       .querySelector(".slot") ||
     (document.activeElement &&
       document.activeElement.classList.contains &&
@@ -3427,9 +3442,9 @@ function ctxL(card, key) {
     (docListeners.keydown || []).length === kdBase);
 
   const channel = slot.dataset.channel;
-  const before = (kb._draftRuns()[channel] || []).length;
+  const before = (kb.manual.draft()[channel] || []).length;
   keydown(slot, "Delete");
-  const after = (kb._draftRuns()[channel] || []).length;
+  const after = (kb.manual.draft()[channel] || []).length;
   check("Delete removes the focused slot", before > 0 && after === before - 1);
   // The render that removed the slot destroyed the element holding focus;
   // the card must not let it fall to document.body. The slot is gone, so
@@ -3445,32 +3460,32 @@ function ctxL(card, key) {
   // A MOUSE-opened menu leaves focus on the chart, so the menu element
   // itself never sees the keydown: Escape is caught at the document while
   // the menu is open.
-  const freshSvg = kb._chartSvgs(kb.shadowRoot)[0];
+  const freshSvg = chartSvgs(kb.shadowRoot)[0];
   const freshSlot = freshSvg.querySelector(".slot");
-  const freshRuns = kb._draftRuns()[freshSlot.dataset.channel] || [];
+  const freshRuns = kb.manual.draft()[freshSlot.dataset.channel] || [];
   const freshRun = freshRuns[Number(freshSlot.dataset.index)];
-  kb._openSlotMenu(freshSlot.dataset.channel,
+  kb.lanes.openMenu(freshSlot.dataset.channel,
     (freshRun.start + freshRun.end) / 2, 120, 300, freshSvg);
   check("a mouse-opened menu does not steal focus",
-    !!kb._slotMenu && document.activeElement !== kb._slotMenu &&
+    !!kb.lanes.menu && document.activeElement !== kb.lanes.menu &&
     (document.activeElement === null ||
       document.activeElement.tagName !== "BUTTON"));
   fireDocument("keydown",
     { key: "Escape", stopPropagation(){}, preventDefault(){} });
   check("Escape closes a mouse-opened menu via the document listener",
-    kb._slotMenu === null);
+    kb.lanes.menu === null);
   check("the document Escape listener is removed with the menu",
     (docListeners.keydown || []).length === kdBase);
 
-  const lane = kb._chartSvgs(kb.shadowRoot)[0].querySelector(".lane");
+  const lane = chartSvgs(kb.shadowRoot)[0].querySelector(".lane");
   const laneChannel = lane.dataset.channel;
-  const laneBefore = (kb._draftRuns()[laneChannel] || []).length;
-  kb._chartSvgs(kb.shadowRoot)[0]._listeners.keydown.forEach((f) =>
+  const laneBefore = (kb.manual.draft()[laneChannel] || []).length;
+  chartSvgs(kb.shadowRoot)[0]._listeners.keydown.forEach((f) =>
     f({ key: "Enter", target: lane, preventDefault(){}, stopPropagation(){} }));
-  check("Enter on a lane offers the menu there too", !!kb._slotMenu);
+  check("Enter on a lane offers the menu there too", !!kb.lanes.menu);
   // Acting on the menu re-renders; focus must follow to the fresh lane.
-  kb._slotMenu._listeners.click.forEach((f) => f({
-    target: kb._slotMenu.querySelector("button"), stopPropagation(){} }));
+  kb.lanes.menu._listeners.click.forEach((f) => f({
+    target: kb.lanes.menu.querySelector("button"), stopPropagation(){} }));
   const laneActive = document.activeElement;
   check("a menu action returns focus to the lane in the fresh DOM",
     !!laneActive && laneActive !== document.body &&
@@ -3499,7 +3514,7 @@ function ctxL(card, key) {
     state: "21.0", attributes: { unit_of_measurement: "°C" } };
   const su = build(states);
   su._onCardClick({});
-  su._dialogPage = "setup";
+  su.dialog.page = "setup";
   su._render();
   const page = collect(su.shadowRoot).join("\n");
   check("setup rows are focusable buttons",
@@ -3516,7 +3531,7 @@ function ctxL(card, key) {
   picker._listeners.keydown.forEach((f) =>
     f({ key: "Escape", stopPropagation(){} }));
   check("Escape closes the picker without assigning",
-    !su.shadowRoot.querySelector(".setup-picker") && su._pickerKey === null);
+    !su.shadowRoot.querySelector(".setup-picker") && su.setup.pickerKey === null);
   // The close re-rendered the page, destroying the focused select; focus
   // must come back to the row the picker was opened from, re-located by
   // its data-key in the fresh DOM.
@@ -3581,14 +3596,14 @@ function mkSetup(over, extraStates) {
   Object.assign(states, extraStates || {});
   const c = build(states);
   c._onCardClick({});
-  c._dialogPage = "setup";
+  c.dialog.page = "setup";
   c._render();
   return c;
 }
 const setupPage = (over, extraStates) =>
   collect(mkSetup(over, extraStates).shadowRoot).join("\n");
 const setupBox = (card, place) =>
-  (card._layoutBoxes || []).find((b) => b.place === place);
+  (card.layout.boxes || []).find((b) => b.place === place);
 
 // --- Scenario: the heat pump lost its louvres (item A, v5.1.4) --------------
 // Two horizontal strokes used to sit in the cabinet's bottom-left band as
@@ -3655,7 +3670,7 @@ const setupBox = (card, place) =>
   // flow direction has to come from the edge's own place names.
   const pipesOf = (card, html) => {
     const page = html || collect(card.shadowRoot).join("\n");
-    const boxes = card._layoutBoxes || [];
+    const boxes = card.layout.boxes || [];
     const boxOf = (place) => boxes.find((b) => b.place === place);
     const re = new RegExp(
       '<path class="setup-pipe([^"]*)" data-edge="([^"]+)"\\s+' +
@@ -3846,11 +3861,11 @@ const setupBox = (card, place) =>
   // An invalid pipe is drawn to be rejected, and an arrow on it would
   // endorse a connection the model refuses.
   const ed = mkSetup();
-  ed._layoutEdit = { active: true,
+  ed.layout.edit = { active: true,
     edges: setupTopo().edges.map((e) => e.slice()),
     positions: {}, invalid: ["heat_pump>buffer_tank"], match: null,
     drag: null, verdict: null };
-  ed._refreshLayout();
+  ed.layout.refresh();
   const canvas = ed.shadowRoot.querySelector(".setup-canvas");
   const edited = pipesOf(ed, (canvas && canvas.innerHTML) || "");
   const bad = edited.filter((p) => / invalid/.test(p.cls));
@@ -3889,7 +3904,7 @@ const setupBox = (card, place) =>
 {
   const card = mkSetup();
   const page = collect(card.shadowRoot).join("\n");
-  const boxes = card._layoutBoxes || [];
+  const boxes = card.layout.boxes || [];
   const PAD = 16;
   const COLW = 200;
 
@@ -4401,7 +4416,7 @@ const setupBox = (card, place) =>
   await clickBtn(clearing, ".sp-save");
   const saveBtn = clearing.shadowRoot.querySelector(".sp-save");
   check("choosing (not configured) does not clear the slot on one click",
-    clearCalls.length === 0 && clearing._pendingClear === true,
+    clearCalls.length === 0 && clearing.setup.pendingClear === true,
     JSON.stringify(clearCalls));
   check("the button says what the second click will do",
     /confirm/i.test(saveBtn.textContent || "") &&
@@ -4409,8 +4424,8 @@ const setupBox = (card, place) =>
     `${JSON.stringify(saveBtn.textContent)} ` +
     `class=${saveBtn.className}`);
   check("and the warning names the entity that would be lost",
-    /vedpanna_temperatur_temperature_2/.test(clearing._setupNote || ""),
-    clearing._setupNote);
+    /vedpanna_temperatur_temperature_2/.test(clearing.setup.note || ""),
+    clearing.setup.note);
   await clickBtn(clearing, ".sp-save");
   check("a second, deliberate click does clear it",
     clearCalls.length === 1 && clearCalls[0][1] === "assign_entity" &&
@@ -4439,9 +4454,9 @@ const setupBox = (card, place) =>
   await clickBtn(rearm, ".sp-save");
   chooseInSelect(rearm, "sensor.vedpanna_temperatur_temperature");
   check("picking something else disarms the clear",
-    rearm._pendingClear === false &&
+    rearm.setup.pendingClear === false &&
     !rearm.shadowRoot.querySelector(".sp-save").classList.contains("confirm"),
-    `pendingClear=${rearm._pendingClear}`);
+    `pendingClear=${rearm.setup.pendingClear}`);
   // Leaving the picker drops the arming with it.
   const leave = mkSetup(assignedTopo, bigStates);
   leave._hass.callService = async () => {};
@@ -4450,10 +4465,10 @@ const setupBox = (card, place) =>
   await clickBtn(leave, ".sp-save");
   await clickBtn(leave, ".sp-cancel");
   check("and cancelling out of the picker disarms it too",
-    leave._pendingClear === false && leave._pickerKey === null &&
-    leave._pickerFilter === "" && leave._pickerChoice === null,
-    `pendingClear=${leave._pendingClear} key=${leave._pickerKey} ` +
-    `filter=${JSON.stringify(leave._pickerFilter)}`);
+    leave.setup.pendingClear === false && leave.setup.pickerKey === null &&
+    leave.setup.pickerFilter === "" && leave.setup.pickerChoice === null,
+    `pendingClear=${leave.setup.pendingClear} key=${leave.setup.pickerKey} ` +
+    `filter=${JSON.stringify(leave.setup.pickerFilter)}`);
 
   // Keyboard access has to survive all of that.
   const kb = mkSetup(assignedTopo, bigStates);
@@ -4463,7 +4478,7 @@ const setupBox = (card, place) =>
   (kbPicker._listeners.keydown || []).forEach((f) =>
     f({ key: "Escape", stopPropagation() {} }));
   check("Escape still closes it without assigning",
-    !kb.shadowRoot.querySelector(".setup-picker") && kb._pickerKey === null);
+    !kb.shadowRoot.querySelector(".setup-picker") && kb.setup.pickerKey === null);
   check("and still hands focus back to the row it came from",
     !!document.activeElement &&
     document.activeElement.classList.contains("setup-hit") &&
@@ -4614,7 +4629,7 @@ const setupBox = (card, place) =>
   const rects = [...page.matchAll(
     /<rect class="setup-hit" data-key="([^"]+)"[^>]*?x="([\d.]+)" y="([\d.]+)"\s*width="([\d.]+)"\s*height="([\d.]+)"/g)]
     .map((m) => ({ key: m[1], x: +m[2], y: +m[3], w: +m[4], h: +m[5] }));
-  const boxes = geoCard._layoutBoxes || [];
+  const boxes = geoCard.layout.boxes || [];
   const clipped = [];
   for (const r of rects) {
     const b = boxes.find((bb) => r.x > bb.x && r.x < bb.x + bb.w &&
@@ -4970,7 +4985,7 @@ const setupBox = (card, place) =>
     c.hass = { states, ...(lang ? { language: lang } : {}) };
     // Legend toggles persist to the shared localStorage stub and earlier
     // scenarios switch series off; these assertions are about the band.
-    c._hidden = {};
+    c.legend.hidden = {};
     c.hass = { states, ...(lang ? { language: lang } : {}) };
     return { card: c, dump: collect(c.shadowRoot).join("\n") };
   };
@@ -5024,7 +5039,7 @@ const setupBox = (card, place) =>
     const c = new Card();
     c.setConfig({ type: "custom:heatpump-optimizer-card" });
     c.hass = { states };
-    c._hidden = {};
+    c.legend.hidden = {};
     c.hass = { states };
     return c;
   })();
@@ -5278,7 +5293,7 @@ const setupBox = (card, place) =>
   {
     const traces = (c, key) => {
       const s = c._series.find((x) => x.key === key);
-      return c._extraFields(s).map((line) => c._lineLabel(s, line));
+      return extraFields(s).map((line) => lineLabelOf(c)(s, line));
     };
     check("the band is ONE named trace, however many paths draw it",
       JSON.stringify(traces(on.card, "dhw_temp")) ===
@@ -5306,8 +5321,8 @@ const setupBox = (card, place) =>
         const s = on.card._series.find((x) => x.key === "dhw_temp");
         const zs = twoZoneEl._series.find((x) => x.key === "house_temp");
         return /widens further ahead/.test(
-          on.card._lineNote(s, on.card._extraFields(s)[0])) &&
-          twoZoneEl._lineNote(zs, twoZoneEl._extraFields(zs)[0]) === "";
+          lineNote(s, extraFields(s)[0])) &&
+          lineNote(zs, extraFields(zs)[0]) === "";
       })());
   }
 
@@ -5363,20 +5378,20 @@ const setupBox = (card, place) =>
   };
   mid._onCardClick({});
 
-  const seeded = mid._whatIfDraft().dhwWindows;
+  const seeded = mid.whatIf.draft().dhwWindows;
   check("the editor seeds one window from the published schedule",
     seeded.length === 1 && seeded[0].start === "20:00",
     JSON.stringify(seeded));
 
   // The slider path: nothing re-reads the DOM, so what is validated is the
   // seeded draft itself.
-  mid._onWhatIfInput({
+  mid.whatIf.onInput({
     stopPropagation() {},
     target: { value: "21.5", classList: { contains: () => false } },
   });
-  clearTimeout(mid._whatIfTimer);
-  mid._whatIfTimer = null;
-  await mid._runWhatIf();
+  clearTimeout(mid.whatIf.timer);
+  mid.whatIf.timer = null;
+  await mid.whatIf.run();
   const sims = calls.filter((c) => c.service === "simulate_plan");
   check("a 20:00-24:00 household reaches simulate_plan",
     sims.length === 1,
@@ -5395,12 +5410,12 @@ const setupBox = (card, place) =>
   // A window that is genuinely not a time still stops the run — and now says
   // WHICH one, because a household with four windows given "one of them is
   // wrong" has to check all four by hand.
-  mid._whatIfDraft().dhwWindows = [
+  mid.whatIf.draft().dhwWindows = [
     { start: "06:00", end: "08:00" },
     { start: "17:00", end: "25:70" },
   ];
   const beforeBad = calls.length;
-  await mid._runWhatIf();
+  await mid.whatIf.run();
   check("a genuinely malformed window still stops the run",
     calls.length === beforeBad,
     JSON.stringify(calls.slice(beforeBad).map((c) => c.service)));
@@ -5430,11 +5445,11 @@ const setupBox = (card, place) =>
   const count = () => (docListeners.keydown || []).length;
   const base = count();
   const openMenu = (card) => {
-    const svg = card._chartSvgs(card.shadowRoot)[0];
+    const svg = chartSvgs(card.shadowRoot)[0];
     const slot = svg.querySelector(".slot");
-    const runs = card._draftRuns()[slot.dataset.channel] || [];
+    const runs = card.manual.draft()[slot.dataset.channel] || [];
     const run = runs[Number(slot.dataset.index)];
-    card._openSlotMenu(slot.dataset.channel,
+    card.lanes.openMenu(slot.dataset.channel,
       (run.start + run.end) / 2, 120, 300, svg);
   };
 
@@ -5442,7 +5457,7 @@ const setupBox = (card, place) =>
     base === 0, `${base} listener(s) already parked`);
   openMenu(kb);
   check("an open slot menu parks exactly one document keydown listener",
-    !!kb._slotMenu && count() === base + 1, `${count()} listener(s)`);
+    !!kb.lanes.menu && count() === base + 1, `${count()} listener(s)`);
 
   // A plan refresh. The menu's markup goes with the shadow root either way;
   // the question is whether its listener does.
@@ -5450,8 +5465,8 @@ const setupBox = (card, place) =>
   check("a re-render takes the menu's document listener with the menu",
     count() === base, `${count()} listener(s), expected ${base}`);
   check("and leaves no menu state behind on the card",
-    kb._slotMenu === null && kb._menuEscape === null,
-    `slotMenu=${kb._slotMenu} escape=${kb._menuEscape}`);
+    kb.lanes.menu === null && kb.lanes.menuEscape === null,
+    `slotMenu=${kb.lanes.menu} escape=${kb.lanes.menuEscape}`);
 
   // Repeated refreshes with a menu open each time must not accumulate.
   for (let i = 0; i < 5; i++) { openMenu(kb); kb._render(); }
@@ -5506,11 +5521,11 @@ const setupBox = (card, place) =>
   pre._onExpandClick({ stopPropagation() {} });
   const openDump = collect(pre.shadowRoot).join("\n");
   check("expanding before the first solve opens the dialog",
-    pre._expanded === true && /<dialog/.test(openDump),
-    `expanded=${pre._expanded}`);
+    pre.dialog.expanded === true && /<dialog/.test(openDump),
+    `expanded=${pre.dialog.expanded}`);
   check("and it lands on the setup page rather than an empty plan",
-    pre._dialogPage === "setup" && /class="setup-page"/.test(openDump),
-    `page=${pre._dialogPage}`);
+    pre.dialog.page === "setup" && /class="setup-page"/.test(openDump),
+    `page=${pre.dialog.page}`);
   check("the diagram is drawn from the published topology",
     /class="setup-hit"/.test(openDump) && /Indoor temperature/.test(openDump),
     "no clickable slots rendered");
@@ -5530,9 +5545,9 @@ const setupBox = (card, place) =>
   // page that drew nothing at all.
   const dlgBody = pre.shadowRoot.querySelector("dialog .dlg-body");
   check("and switching to it explains the absence rather than drawing nothing",
-    pre._dialogPage === "plan" && !!dlgBody &&
+    pre.dialog.page === "plan" && !!dlgBody &&
     /no plan data/i.test(dlgBody.textContent || ""),
-    `page=${pre._dialogPage} body=${JSON.stringify(
+    `page=${pre.dialog.page} body=${JSON.stringify(
       (dlgBody && dlgBody.textContent) || null)}`);
 
   // An install with genuinely nothing published has nothing to expand to:
@@ -5683,6 +5698,191 @@ const setupBox = (card, place) =>
 }
 
 
+
+
+// --- Weekly hot-water windows in the schedule editor -------------------------
+// v6.2.5 let a hot-water window carry a day selector; the editor showed such a
+// schedule flattened to one day and would have saved it that way. The plan
+// sensors now publish the configured spec (`dhw_windows_spec`) beside the
+// plan's flat reading, every window row carries a day selector, and what is
+// sent back is the integration's own grammar.
+{
+  const weekly = "weekdays 06:00-08:30, weekend 08:00-09:30";
+  const st = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  st[DEFAULT_DHW].attributes.dhw_windows = "06:00-08:30"; // the plan's reading: today's set
+  st[DEFAULT_DHW].attributes.dhw_windows_spec = weekly;
+  const wk = build(st, { what_if: true });
+  wk._hass = mkHass(wk._hass.states);
+  wk._onCardClick({});
+  const rows = wk.whatIf.draft().dhwWindows;
+  check("the editor pre-fills from the configured spec, not the plan's flat reading",
+    rows.length === 2 && rows[0].days === "weekdays" && rows[0].start === "06:00" &&
+    rows[1].days === "weekend" && rows[1].end === "09:30", JSON.stringify(rows));
+  const dump = collect(wk.shadowRoot).join("\n");
+  check("every window row carries a day selector",
+    (dump.match(/class="wi-win-days"/g) || []).length === 2);
+  check("with the window's own days selected",
+    /<option value="weekdays" selected>Weekdays<\/option>/.test(dump) &&
+    /<option value="weekend" selected>Weekend<\/option>/.test(dump));
+  check("and the selector is labelled for a screen reader",
+    /aria-label="Window 1 days"/.test(dump));
+  called = null;
+  await wk.whatIf.run();
+  check("simulating sends the weekly spec back in the integration's grammar",
+    called && called.data.dhw_windows === weekly, called && called.data.dhw_windows);
+  // Changing a selector in the editor changes what is sent.
+  const sel = wk.shadowRoot.querySelectorAll(".wi-win-days")[1];
+  sel.value = "daily";
+  wk.whatIf.onSlotEdit({ stopPropagation(){} });
+  called = null;
+  await wk.whatIf.onApplySlots({ stopPropagation(){} });
+  check("a window switched to every day drops its selector",
+    called && called.data.dhw_windows === "weekdays 06:00-08:30, 08:00-09:30",
+    called && called.data.dhw_windows);
+  wk.whatIf.onAddWindow({ stopPropagation(){} });
+  check("a new window applies every day",
+    wk.whatIf.draft().dhwWindows[2].days === "daily");
+
+  // A day list typed in the options flow is not something the picker offers,
+  // but it must survive a round trip through the card untouched.
+  const listSpec = "Mo 05:30-07:00, Tu-Fr 06:00-08:00, Sa,Su 08:00-09:30";
+  const st2 = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  st2[DEFAULT_DHW].attributes.dhw_windows_spec = listSpec;
+  const custom = build(st2, { what_if: true });
+  custom._hass = mkHass(custom._hass.states);
+  custom._onCardClick({});
+  const cw = custom.whatIf.draft().dhwWindows;
+  check("a day list is read as one selector, its comma and all",
+    cw.length === 3 && cw[0].days === "Mo" && cw[1].days === "Tu-Fr" && cw[2].days === "Sa,Su",
+    JSON.stringify(cw));
+  check("and offered as the row's own option",
+    /<option value="Sa,Su" selected>Sa,Su<\/option>/.test(collect(custom.shadowRoot).join("\n")));
+  custom.whatIf.onSlotEdit({ stopPropagation(){} });
+  called = null;
+  await custom.whatIf.run();
+  check("and sent back exactly as configured after a pass through the editors",
+    called && called.data.dhw_windows === listSpec, called && called.data.dhw_windows);
+  // The Swedish editor names the same three sets.
+  const sv = new Card();
+  sv.setConfig({ type: "custom:heatpump-optimizer-card", what_if: true });
+  sv.hass = { states: st, language: "sv-SE" };
+  sv._onCardClick({});
+  check("the day sets are named in Swedish too",
+    /<option value="weekdays" selected>Vardagar<\/option>/.test(collect(sv.shadowRoot).join("\n")));
+  build(st); // leave the module back in English
+
+  // Older integrations publish no spec; the plan's reading is still the source,
+  // and an empty spec (nothing configured, windows learned) defers to it too.
+  const st3 = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  st3[DEFAULT_DHW].attributes.dhw_windows = "17:00-22:00";
+  const old = build(st3, { what_if: true });
+  old._onCardClick({});
+  check("without a published spec the plan's windows still pre-fill the editor",
+    old.whatIf.draft().dhwWindows.length === 1 && old.whatIf.draft().dhwWindows[0].days === "daily",
+    JSON.stringify(old.whatIf.draft().dhwWindows));
+  st3[DEFAULT_DHW].attributes.dhw_windows_spec = "";
+  const learned = build(st3, { what_if: true });
+  learned._onCardClick({});
+  check("an empty spec defers to the learned windows the plan runs on",
+    learned.whatIf.draft().dhwWindows.length === 1);
+  // A flat spec keeps sending the flat string: nothing changes for a flat install.
+  const flat = build((() => { const t = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+    t[DEFAULT_DHW].attributes.dhw_windows_spec = "06:00-08:30, 17:00-22:00"; return t; })(), { what_if: true });
+  flat._hass = mkHass(flat._hass.states);
+  flat._onCardClick({});
+  called = null;
+  await flat.whatIf.run();
+  check("a flat schedule is sent back flat",
+    called && called.data.dhw_windows === "06:00-08:30, 17:00-22:00", called && called.data.dhw_windows);
+}
+
+
+// --- #142: a no-data render forgets the lane geometry ---------------------------
+{
+  const c = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), { what_if: true });
+  check("a rendered plan records the lane geometry", !!c._geom);
+  c.hass = { states: {} };
+  check("a render with no plan forgets it, as it forgets the hover geometry",
+    c._geom === null && c._plot === null);
+}
+
+// --- #137: a card removed mid-gesture takes its listeners and timers with it ----
+// The drag and the pan park their move/up handlers on `window` so they survive
+// a mid-gesture rebuild; the edge auto-pan renders on an interval; a view
+// change waits on a frame. None of them may outlive the card.
+{
+  const xOfGeom = (geom, t) =>
+    geom.plotL + ((t - geom.windowStart) / (geom.windowEnd - geom.windowStart)) * geom.plotW;
+  const listeners = () => (winListeners.pointermove || []).length;
+
+  // A slot drag, held against the plot's right edge in a zoomed view: the
+  // handlers are on window and the auto-pan interval is armed.
+  const c = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), { what_if: true });
+  c._onCardClick({});
+  c.view.zoom(0.25);
+  const geom = c._geom;
+  const runs = c.manual.draft().dhw;
+  const [lo] = c.manual.bounds();
+  const i = runs.findIndex((r) => r.end > lo && r.start >= lo);
+  const before = listeners();
+  const intervalsBefore = intervals.size;
+  if (i >= 0) {
+    const target = { dataset: { channel: "dhw", index: String(i) } };
+    fire(svgOf(c), "pointerdown", { clientX: xOfGeom(geom, runs[i].start + 60000), clientY: 0,
+      target, stopPropagation() {}, preventDefault() {} });
+    fireWindow("pointermove", { clientX: 899 });
+  }
+  check("a drag parks its handlers on window and arms the edge auto-pan",
+    i >= 0 && listeners() === before + 1 && intervals.size === intervalsBefore + 1 && c.lanes.drag !== null,
+    `slot ${i}, listeners ${before} -> ${listeners()}, intervals ${intervalsBefore} -> ${intervals.size}`);
+  c.disconnectedCallback();
+  check("removing the card mid-drag takes them off again",
+    listeners() === before && intervals.size === intervalsBefore &&
+    c.lanes.drag === null && c.lanes.dragPan === null && c.lanes.gesture === null,
+    `listeners ${listeners()}, intervals ${intervals.size}`);
+
+  // A pan gesture likewise.
+  const p = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
+  p._onCardClick({});
+  const b2 = listeners();
+  p.view.onPanDown({ currentTarget: svgOf(p), target: {}, clientX: 100, preventDefault() {} });
+  check("a pan parks its handlers on window", listeners() === b2 + 1 && p.view.panGesture !== null);
+  p.disconnectedCallback();
+  check("removing the card mid-pan takes them off again",
+    listeners() === b2 && p.view.panGesture === null);
+
+  // A redraw waiting on a frame. The stub's requestAnimationFrame is
+  // synchronous, so the timer fallback is what can be caught in flight.
+  const q = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
+  q._onCardClick({});
+  const savedRaf = ctx.requestAnimationFrame;
+  ctx.requestAnimationFrame = undefined;
+  let renders = 0;
+  const realRender = q._render.bind(q);
+  q._render = () => { renders++; realRender(); };
+  q.view.zoom(0.5);
+  check("a view change waits on a frame", q.view.pendingFrame !== 0 && renders === 0);
+  q.disconnectedCallback();
+  ctx.requestAnimationFrame = savedRaf;
+  await new Promise((r) => setTimeout(r, 40));
+  check("removing the card cancels the pending redraw",
+    renders === 0 && q.view.pendingFrame === 0 && q.view.cancelFrame === null,
+    `${renders} render(s) after removal`);
+}
+
+// --- The host stays small ---------------------------------------------------
+// The decomposition (#136) left the element with the Lovelace contract, the
+// render cycle and its compositions, and nothing else. A ratchet, not a
+// target: the ceiling may be lowered, never raised, and a feature that needs
+// a new member on the element should ask whether it belongs to a
+// collaborator instead.
+{
+  const HOST_MEMBER_CEILING = 26;
+  const members = Object.getOwnPropertyNames(Card.prototype)
+    .filter((n) => n !== "constructor");
+  check(`the card element defines at most ${HOST_MEMBER_CEILING} members of its own (${members.length})`,
+    members.length <= HOST_MEMBER_CEILING, members.join(", "));
+}
 
 // --- The markup gate's claim file is stamped for this release ---------------
 // tests/card_drift.mjs compares this tree's card against GOLDEN_REF and runs

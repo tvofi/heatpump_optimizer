@@ -1197,7 +1197,14 @@ class _PlanSensorBase(HeatPumpOptimizerSensorBase):
     # them to the recorder database on every state change costs an SD card
     # for nothing history can use.
     _unrecorded_attributes = frozenset(
-        {"forecast", "slots", "setup_topology", "manual_override", "dhw_windows"}
+        {
+            "forecast",
+            "slots",
+            "setup_topology",
+            "manual_override",
+            "dhw_windows",
+            "dhw_windows_spec",
+        }
     )
     _plan_key: str = ""
     # Stable machine-readable marker. Entity ids depend on the device name and
@@ -1240,6 +1247,9 @@ class _PlanSensorBase(HeatPumpOptimizerSensorBase):
                 # Configuration-derived, so it exists before the first plan
                 # does; the card's setup page should not need a solve to draw.
                 "setup_topology": self.coordinator.describe_setup(),
+                # Likewise the configured hot-water windows, in the spec
+                # grammar, so the schedule editor can be used before a solve.
+                "dhw_windows_spec": self.coordinator.configured_dhw_windows(),
                 # The currency every cost figure on this device is priced in,
                 # published so the dashboard card labels its axis from the
                 # integration's own answer rather than guessing from the
@@ -1290,6 +1300,14 @@ class _PlanSensorBase(HeatPumpOptimizerSensorBase):
             "comfort_temp_day": data.get("comfort_temp_day"),
             "comfort_temp_night": data.get("comfort_temp_night"),
             "dhw_windows": data.get("dhw_windows"),
+            # `dhw_windows` above is what the plan was made against -- learned
+            # windows when none are configured, one day's set of a weekly
+            # spec. This is the configuration itself, in the grammar the
+            # config flow and `apply_schedule` accept ("weekdays 06:00-08:30,
+            # weekend 08:00-09:30"), which is what the card's schedule editor
+            # edits: without it a weekly schedule could neither be shown nor
+            # saved without flattening it.
+            "dhw_windows_spec": self.coordinator.configured_dhw_windows(),
             "dhw_min_temperature": data.get("dhw_min_temperature"),
             "dhw_setpoint": data.get("dhw_setpoint"),
             # The ceiling the hot water minimum has to stay under, computed

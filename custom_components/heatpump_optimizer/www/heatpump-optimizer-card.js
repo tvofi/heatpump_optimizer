@@ -11,7 +11,7 @@
 
 const CARD_TAG = "heatpump-optimizer-card";
 const EDITOR_TAG = "heatpump-optimizer-card-editor";
-const CARD_VERSION = "5.4.12";
+const CARD_VERSION = "5.4.15";
 
 // The de-duplication key `_extraFields` files a confidence band's two
 // edges under, so the pair counts as the one named trace it is. A Symbol
@@ -169,6 +169,10 @@ const STRINGS = {
     "whatif.window_end_aria": "Window {n} end",
     "whatif.remove": "Remove",
     "whatif.remove_window_aria": "Remove window {n}",
+    "whatif.window_days_aria": "Window {n} days",
+    "whatif.days_daily": "Every day",
+    "whatif.days_weekdays": "Weekdays",
+    "whatif.days_weekend": "Weekend",
     "whatif.no_windows_hint":
       "No windows: hot water is never required, so the tank is only kept " +
       "above its idle minimum.",
@@ -536,6 +540,10 @@ const STRINGS = {
     "whatif.window_end_aria": "Fönster {n} slut",
     "whatif.remove": "Ta bort",
     "whatif.remove_window_aria": "Ta bort fönster {n}",
+    "whatif.window_days_aria": "Fönster {n} dagar",
+    "whatif.days_daily": "Alla dagar",
+    "whatif.days_weekdays": "Vardagar",
+    "whatif.days_weekend": "Helg",
     "whatif.no_windows_hint":
       "Inga fönster: varmvatten krävs aldrig, så tanken hålls bara över " +
       "sitt vilominimum.",
@@ -1569,22 +1577,92 @@ function endOfDayAsMidnight(value) {
   return String(value).trim() === "24:00" ? "00:00" : value;
 }
 
-/** '06:00-08:30, 17:00-22:00' -> [{start,end}, ...] */
+/** The day selector a window carries, canonicalised the way the integration's
+ * `dhw_schedule` reads it: "daily" (the default, and what a range without one
+ * means), "weekdays", "weekend", or a day list such as "Tu-Fr" or "Sa,Su" --
+ * kept, capitalised as the integration renders it. `null` for anything else. */
+const DAY_TOKENS = ["mo", "tu", "we", "th", "fr", "sa", "su"];
+function daySelector(token) {
+  const t = String(token || "").trim().toLowerCase();
+  if (!t || t === "daily" || t === "everyday" || t === "all") return "daily";
+  if (t === "weekdays") return "weekdays";
+  if (t === "weekend" || t === "weekends") return "weekend";
+  const compact = t.replace(/\s+/g, "");
+  if (!/^[a-z]{2}(?:[-,][a-z]{2})*$/.test(compact)) return null;
+  if (!compact.split(/[-,]/).every((d) => DAY_TOKENS.includes(d))) return null;
+  return compact.replace(/[a-z]{2}/g, (d) => d[0].toUpperCase() + d[1]);
+}
+
+/** '06:00-08:30, 17:00-22:00' -> [{days, start, end}, ...]
+ *
+ * A weekly spec (v6.2.5) puts a day selector before a range -- "weekdays
+ * 06:00-08:30, weekend 08:00-09:30"; "Mo 05:30-07:00, Tu-Fr 06:00-08:00,
+ * Sa,Su 08:00-09:30" -- and is read here the way `parse_weekly_windows`
+ * reads it: the comma is both the segment separator and, inside a day list,
+ * the day separator, so a chunk with no digits that parses as day names is
+ * the next chunk's selector. A range without a selector is "daily", which is
+ * what every flat spec is. */
 function parseWindows(spec) {
   if (typeof spec !== "string" || !spec.trim()) return [];
+  const chunks = [];
+  let pending = "";
+  for (const raw of spec.replace(/[;\n]/g, ",").split(",")) {
+    const chunk = raw.trim();
+    if (!chunk) continue;
+    if (!/\d/.test(chunk) && daySelector(chunk)) {
+      pending = pending ? `${pending},${chunk}` : chunk;
+      continue;
+    }
+    chunks.push(pending ? `${pending},${chunk}` : chunk);
+    pending = "";
+  }
   const out = [];
-  for (const part of spec.split(",")) {
-    const m = /^\s*(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})\s*$/.exec(part);
-    if (m) out.push({ start: m[1], end: m[2] });
+  for (const chunk of chunks) {
+    let days = "daily";
+    let range = chunk.replace(/[\u2013\u2014]/g, "-");
+    const m = /^([A-Za-z][A-Za-z,\s-]*?)\s+(?=\d)/.exec(range);
+    if (m) {
+      const sel = daySelector(m[1]);
+      if (sel) {
+        days = sel;
+        range = range.slice(m[0].length);
+      }
+    }
+    const r = /^\s*(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})\s*$/.exec(range);
+    if (r) out.push({ days, start: r[1], end: r[2] });
   }
   return out;
 }
 
-/** The inverse, in the format the integration's parser expects. */
+/** The inverse, in the format the integration's parser expects: the selector
+ * before its range, and none for "daily" -- a flat spec stays a flat spec. */
 function formatWindows(windows) {
   return (windows || [])
-    .map((w) => `${w.start}-${w.end}`)
+    .map((w) => {
+      const days = w.days && w.days !== "daily" ? `${w.days} ` : "";
+      return `${days}${w.start}-${w.end}`;
+    })
     .join(", ");
+}
+
+/** The day selector's options: the three named sets, plus the window's own
+ * selector when it is a day list the picker does not offer, so a schedule
+ * typed in the options flow survives a round trip through the card. */
+function daysOptionsHtml(days) {
+  const current = days || "daily";
+  const named = [
+    ["daily", L("whatif.days_daily")],
+    ["weekdays", L("whatif.days_weekdays")],
+    ["weekend", L("whatif.days_weekend")],
+  ];
+  const out = named.map(
+    ([value, label]) =>
+      `<option value="${value}"${value === current ? " selected" : ""}>${esc(label)}</option>`
+  );
+  if (!named.some(([value]) => value === current)) {
+    out.unshift(`<option value="${esc(current)}" selected>${esc(current)}</option>`);
+  }
+  return out.join("");
 }
 
 function esc(str) {
@@ -2958,7 +3036,13 @@ function cardStyleBlock() {
         display: flex; flex-direction: column; gap: 0.4em;
       }
       .whatif .wi-window {
-        display: flex; align-items: center; gap: 0.4em;
+        display: flex; align-items: center; gap: 0.4em; flex-wrap: wrap;
+      }
+      .whatif .wi-win-days {
+        font: inherit; font-size: 0.9em; max-width: 8.5em;
+        border: 1px solid var(--divider-color, #ccc); border-radius: 0.3em;
+        background: transparent; color: var(--primary-text-color);
+        padding: 0.15em 0.2em;
       }
       .whatif button {
         font: inherit; cursor: pointer; border-radius: 1.1em;
@@ -3687,6 +3771,8 @@ class ViewWindow {
     this.pendingFrame = 0;
     // The pan gesture in progress, with the window listeners it parked.
     this.panGesture = null;
+    // How to cancel the pending frame, whichever timer it is on.
+    this.cancelFrame = null;
     this.onWheel = this.onWheel.bind(this);
     this.onPanDown = this.onPanDown.bind(this);
   }
@@ -3838,10 +3924,27 @@ class ViewWindow {
       // is not a reason to discard the draft the user is arranging.
       this.host.render();
     };
-    this.pendingFrame =
-      typeof requestAnimationFrame === "function"
-        ? requestAnimationFrame(run)
-        : setTimeout(run, 16);
+    if (typeof requestAnimationFrame === "function") {
+      this.pendingFrame = requestAnimationFrame(run);
+      this.cancelFrame = () => {
+        if (typeof cancelAnimationFrame === "function") {
+          cancelAnimationFrame(this.pendingFrame);
+        }
+      };
+    } else {
+      this.pendingFrame = setTimeout(run, 16);
+      this.cancelFrame = () => clearTimeout(this.pendingFrame);
+    }
+  }
+
+  /** Nothing of this window may outlive the card (#137): a pan gesture in
+   * flight parked its move/up handlers on `window`, and a redraw waiting on
+   * a frame would render into a detached shadow root. */
+  disconnect() {
+    if (this.panGesture) this.panGesture.up();
+    if (this.pendingFrame && this.cancelFrame) this.cancelFrame();
+    this.pendingFrame = 0;
+    this.cancelFrame = null;
   }
 
   /** Wheel over the chart: pinch to zoom, two fingers sideways to pan.
@@ -5573,9 +5676,11 @@ class ManualPlan {
 class LaneEditor {
   constructor(host) {
     this.host = host;
-    // A slot drag in progress, and the edge auto-pan interval it may run.
+    // A slot drag in progress, the edge auto-pan interval it may run, and
+    // the move/up handlers it parked on `window` for the duration.
     this.drag = null;
     this.dragPan = null;
+    this.gesture = null;
     // The open slot menu, where it was opened from, and the Escape listener
     // it parked on the document.
     this.menu = null;
@@ -5589,6 +5694,31 @@ class LaneEditor {
    * when the card leaves the document. */
   teardown() {
     this.closeMenu();
+  }
+
+  /** End the edge auto-pan, if it is running. */
+  stopAutoPan() {
+    if (this.dragPan) {
+      clearInterval(this.dragPan);
+      this.dragPan = null;
+    }
+  }
+
+  /** Nothing of this editor may outlive the card (#137): the auto-pan
+   * interval would keep rendering into a detached shadow root every 90 ms,
+   * and a drag in flight parked its move/up handlers on `window`. The drag
+   * is abandoned, not finished: finishing it would render, and open a
+   * menu, on a card that is gone. */
+  disconnect() {
+    this.stopAutoPan();
+    if (this.gesture && typeof window !== "undefined") {
+      window.removeEventListener("pointermove", this.gesture.move);
+      window.removeEventListener("pointerup", this.gesture.up);
+      window.removeEventListener("pointercancel", this.gesture.up);
+    }
+    this.gesture = null;
+    this.drag = null;
+    this.teardown();
   }
 
   /** The lanes, their slots and the grab handles, as SVG.
@@ -5937,12 +6067,15 @@ class LaneEditor {
         window.removeEventListener("pointermove", winMove);
         window.removeEventListener("pointerup", winUp);
         window.removeEventListener("pointercancel", winUp);
+        this.gesture = null;
         stopAutoPan();
         onUp();
       };
       window.addEventListener("pointermove", winMove);
       window.addEventListener("pointerup", winUp);
       window.addEventListener("pointercancel", winUp);
+      // Remembered so `disconnect` can take them off again (#137).
+      this.gesture = { move: winMove, up: winUp };
       stop(ev);
       if (ev.preventDefault) ev.preventDefault();
     };
@@ -5977,12 +6110,7 @@ class LaneEditor {
       applyDragAt(svg, ev.clientX);
     };
 
-    const stopAutoPan = () => {
-      if (this.dragPan) {
-        clearInterval(this.dragPan);
-        this.dragPan = null;
-      }
-    };
+    const stopAutoPan = () => this.stopAutoPan();
 
     // Holding a dragged slot against the plot's edge pans the view under it.
     // Without this, a zoomed-in view is a wall: the edit ceiling clamps to
@@ -6297,6 +6425,9 @@ class WhatIfPanel {
                     .map(
                       (w, i) => `
                 <div class="wi-window" data-index="${i}">
+                  <select class="wi-win-days" aria-label="${esc(
+                    L("whatif.window_days_aria", { n: i + 1 })
+                  )}">${daysOptionsHtml(w.days)}</select>
                   <input type="time" class="wi-win-start" step="900"
                     value="${esc(w.start)}" aria-label="${esc(
                       L("whatif.window_start_aria", { n: i + 1 })
@@ -6447,8 +6578,19 @@ class WhatIfPanel {
    */
   currentDhwWindows() {
     const st = this.host.plan.stateOf(this.host.plan.resolveEntity("dhw"));
-    const spec = ((st && st.attributes) || {}).dhw_windows;
+    const attrs = (st && st.attributes) || {};
+    // The configuration itself when the integration publishes it
+    // (`dhw_windows_spec`, v6.2.12+), in the grammar this editor writes back;
+    // the plan's flat reading of the windows otherwise -- what older
+    // integrations publish, and what a fresh install with nothing configured
+    // plans against (learned windows). A weekly schedule is only editable
+    // through the former: the latter is one day's set of it.
+    const spec =
+      typeof attrs.dhw_windows_spec === "string" && attrs.dhw_windows_spec.trim()
+        ? attrs.dhw_windows_spec
+        : attrs.dhw_windows;
     return parseWindows(spec).map((w) => ({
+      days: w.days,
       start: endOfDayAsMidnight(w.start),
       end: endOfDayAsMidnight(w.end),
     }));
@@ -6529,6 +6671,7 @@ class WhatIfPanel {
     if (dayEnd) draft.dayEnd = hourOf(dayEnd.value, draft.dayEnd);
 
     draft.dhwWindows = [...root.querySelectorAll(".wi-window")].map((row) => ({
+      days: (row.querySelector(".wi-win-days") || {}).value || "daily",
       start: (row.querySelector(".wi-win-start") || {}).value || "00:00",
       end: (row.querySelector(".wi-win-end") || {}).value || "00:00",
     }));
@@ -6550,14 +6693,14 @@ class WhatIfPanel {
       d.dhwMin,
       d.dayStart,
       d.dayEnd,
-      d.dhwWindows.map((w) => `${w.start}-${w.end}`),
+      d.dhwWindows.map((w) => `${w.days || "daily"} ${w.start}-${w.end}`),
     ]);
   }
 
   onAddWindow(ev) {
     stop(ev);
     this.onSlotEdit(ev);
-    this.draft().dhwWindows.push({ start: "06:00", end: "08:00" });
+    this.draft().dhwWindows.push({ days: "daily", start: "06:00", end: "08:00" });
     this.host.renderForced();
   }
 
@@ -7934,8 +8077,8 @@ function parseConfig(config) {
 // named in its own header comment, and the graph is acyclic: plan → view →
 // legend → dialog → manual → lanes → whatIf → setup → layout, each using
 // only earlier ones. What is left on the element is the Lovelace contract,
-// the render cycle and its composition, and the seams the test suite still
-// drives (PR 9 of #136 migrates the tests and deletes them).
+// the render cycle and its composition; the test suite drives the
+// collaborators directly, and a ratchet in tests/card.mjs keeps it so.
 // ===========================================================================
 class HeatpumpOptimizerCard extends HTMLElement {
   constructor() {
@@ -8064,6 +8207,11 @@ class HeatpumpOptimizerCard extends HTMLElement {
   disconnectedCallback() {
     // Nothing of this card may outlive it on the document.
     this._teardown();
+    // A slot drag or a pan in flight parked handlers on `window`, and the
+    // edge auto-pan and a pending redraw would keep rendering into a
+    // detached shadow root (#137).
+    this.lanes.disconnect();
+    this.view.disconnect();
     // A modal dialog left open would outlive the card in the top layer.
     if (this.dialog.expanded) this.dialog.closeQuietly();
     // A pending what-if solve, or an armed save confirmation, must not
@@ -8202,6 +8350,9 @@ class HeatpumpOptimizerCard extends HTMLElement {
     if (!anyData) {
       body = this._noPlanHtml();
       this._plot = null;
+      // And the lane geometry with it (#142): a stale one would let the edit
+      // floor and a pointer hit-test answer against a chart that is not there.
+      this._geom = null;
     } else {
       body = this._chartBlock(built, false);
     }
@@ -8544,10 +8695,11 @@ class HeatpumpOptimizerCard extends HTMLElement {
     }
   }
 
-  // ---- seams for tests/card.mjs (PR 9 of #136 deletes them) ---------------
-  // The test suite drives these by their old names. Each is one line onto
-  // the collaborator or function that owns the behaviour now.
-
+  /** The series for the current forecasts and window. The one step the
+   * host does between two pure functions: `view.apply` narrows the default
+   * window to whatever the user has panned or zoomed to (a no-op until they
+   * touch a control) and records its limits, and the series are cut to what
+   * is actually on screen. */
   _buildSeries() {
     const cfg = this._config;
     const plan = this.plan;
@@ -8572,458 +8724,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
       hidden: this.legend.hidden,
       zoomed: this.view.zoomed,
     });
-  }
-
-  get _resolvedCache() {
-    return this.plan.resolvedCache;
-  }
-  set _resolvedCache(v) {
-    this.plan.resolvedCache = v;
-  }
-  _resolveEntity(kind) {
-    return this.plan.resolveEntity(kind);
-  }
-  _stateOf(entityId) {
-    return this.plan.stateOf(entityId);
-  }
-  _forecast(entityId) {
-    return this.plan.forecast(entityId);
-  }
-  _forecastOf(channel) {
-    return this.plan.forecastOf(channel);
-  }
-  _planAttr(name, fallback) {
-    return this.plan.attr(name, fallback);
-  }
-  _planAttrRaw(name, fallback) {
-    return this.plan.attrRaw(name, fallback);
-  }
-  _manualOverride() {
-    return this.plan.manualOverride();
-  }
-  _currency() {
-    return this.plan.currency();
-  }
-  _priceUnit() {
-    return this.plan.priceUnit();
-  }
-  _seriesUnit(def) {
-    return this.plan.seriesUnit(def);
-  }
-  _lowerFloorModelled() {
-    return this.plan.lowerFloorModelled();
-  }
-  _estimatedPricesFrom() {
-    return this.plan.estimatedPricesFrom();
-  }
-  _diagnose(kind) {
-    return this.plan.diagnose(kind);
-  }
-  _statEntity(suffix) {
-    return this.plan.statEntity(suffix);
-  }
-  _sensorCount(states) {
-    return this.plan.sensorCount(states);
-  }
-  _statNumber(suffix) {
-    return this.plan.statNumber(suffix);
-  }
-  _fieldPoints(s, field) {
-    return fieldPoints(s, field);
-  }
-  _extraFields(s) {
-    return extraFields(s);
-  }
-  _lineNote(def, line) {
-    return lineNote(def, line);
-  }
-  _nearestPoint(s, field, t) {
-    return nearestPoint(s, field, t);
-  }
-  _lineLabel(def, line) {
-    return lineLabel(def, line, () => this.plan.lowerFloorModelled());
-  }
-  _bandRow(s, t) {
-    return bandRow(s, t, this.plan.seriesUnit(s));
-  }
-  get _view() {
-    return this.view.range;
-  }
-  set _view(v) {
-    this.view.range = v;
-  }
-  get _viewLimits() {
-    return this.view.limits;
-  }
-  set _viewLimits(v) {
-    this.view.limits = v;
-  }
-  get _pan() {
-    return this.view.panGesture;
-  }
-  set _pan(v) {
-    this.view.panGesture = v;
-  }
-  _applyView(defaultStart, defaultEnd, dataEnd) {
-    return this.view.apply(defaultStart, defaultEnd, dataEnd);
-  }
-  _viewAdjustable() {
-    return this.view.adjustable();
-  }
-  _viewSpan() {
-    return this.view.span();
-  }
-  _viewCurrent() {
-    return this.view.current();
-  }
-  _zoomView(factor, anchorT) {
-    return this.view.zoom(factor, anchorT);
-  }
-  _panView(deltaMs) {
-    return this.view.panBy(deltaMs);
-  }
-  _resetView() {
-    return this.view.reset();
-  }
-  _renderView() {
-    return this.view.renderView();
-  }
-  _onChartWheel(ev) {
-    return this.view.onWheel(ev);
-  }
-  _onPanDown(ev) {
-    return this.view.onPanDown(ev);
-  }
-  _viewControlsHtml() {
-    return this.view.controlsHtml();
-  }
-  _attachViewControls(root) {
-    return this.view.attach(root);
-  }
-  _timeAtClientX(svg, clientX) {
-    return timeAtClientX(svg, clientX, this._geom);
-  }
-  _wrapOf(el) {
-    return wrapOf(el, this.shadowRoot);
-  }
-  _chartSvgs(root) {
-    return chartSvgs(root || this.shadowRoot);
-  }
-
-  _reasonHtml(rows) {
-    return reasonHtml(rows);
-  }
-  _sharedTooltipHtml(rows) {
-    return sharedTooltipHtml(rows);
-  }
-
-  get _hidden() {
-    return this.legend.hidden;
-  }
-  set _hidden(v) {
-    this.legend.hidden = v;
-  }
-  _storageKey(cfg) {
-    return this.legend.storageKey(cfg);
-  }
-  _storageKeyLegacy(cfg) {
-    return this.legend.storageKeyLegacy(cfg);
-  }
-  _loadHidden(cfg) {
-    return this.legend.load(cfg);
-  }
-  _saveHidden() {
-    return this.legend.save();
-  }
-  _legendHtml() {
-    return this.legend.html(this._series);
-  }
-  _onLegendClick(ev) {
-    return this.legend.onChipClick(ev);
-  }
-
-  get _expanded() {
-    return this.dialog.expanded;
-  }
-  set _expanded(v) {
-    this.dialog.expanded = v;
-  }
-  get _dialogPage() {
-    return this.dialog.page;
-  }
-  set _dialogPage(v) {
-    this.dialog.page = v;
-  }
-  get _dialogFontPx() {
-    return this.dialog.fontPx;
-  }
-  set _dialogFontPx(v) {
-    this.dialog.fontPx = v;
-  }
-  _openExpanded() {
-    return this.dialog.open();
-  }
-  _closeExpanded() {
-    return this.dialog.close();
-  }
-  _closeExpandedQuietly() {
-    return this.dialog.closeQuietly();
-  }
-  _onDialogClick(ev) {
-    return this.dialog.onDialogClick(ev);
-  }
-  _onDialogClose() {
-    return this.dialog.onDialogClose();
-  }
-  _scaleDialogFont() {
-    return this.dialog.scaleFont();
-  }
-
-  get _runs() {
-    return this.manual.runs;
-  }
-  set _runs(v) {
-    this.manual.runs = v;
-  }
-  get _runsDirty() {
-    return this.manual.dirty;
-  }
-  set _runsDirty(v) {
-    this.manual.dirty = v;
-  }
-  _draftRuns() {
-    return this.manual.draft();
-  }
-  _resetRuns() {
-    return this.manual.reset();
-  }
-  _laneSpecs() {
-    return this.manual.laneSpecs();
-  }
-  _editingEnabled() {
-    return this.manual.enabled();
-  }
-  _editFloor() {
-    return this.manual.editFloor();
-  }
-  _editCeiling() {
-    return this.manual.editCeiling();
-  }
-  _editCeilingParts() {
-    return this.manual.ceilingParts();
-  }
-  _viewLimitsEditing() {
-    return this.manual.viewLimitsEditing();
-  }
-  _planEnd() {
-    return this.manual.planEnd();
-  }
-  _editBounds() {
-    return this.manual.bounds();
-  }
-  _costDelta() {
-    return this.manual.costDelta();
-  }
-  _deltaHtml() {
-    return this.manual.deltaHtml();
-  }
-  _updateDelta() {
-    return this.manual.updateDelta();
-  }
-  _overrideHtml() {
-    return this.manual.overrideHtml();
-  }
-  _applyManualPlan() {
-    return this.manual.apply();
-  }
-  _clearManualPlan() {
-    return this.manual.clear();
-  }
-  _attachSlotActions(root) {
-    return this.manual.attach(root);
-  }
-  _slotResult(message, cls) {
-    return this.manual.slotResult(message, cls);
-  }
-
-  get _drag() {
-    return this.lanes.drag;
-  }
-  set _drag(v) {
-    this.lanes.drag = v;
-  }
-  get _dragPan() {
-    return this.lanes.dragPan;
-  }
-  set _dragPan(v) {
-    this.lanes.dragPan = v;
-  }
-  get _slotMenu() {
-    return this.lanes.menu;
-  }
-  set _slotMenu(v) {
-    this.lanes.menu = v;
-  }
-  get _menuOrigin() {
-    return this.lanes.menuOrigin;
-  }
-  get _menuEscape() {
-    return this.lanes.menuEscape;
-  }
-  get _menuEscapeTarget() {
-    return this.lanes.menuEscapeTarget;
-  }
-  _laneGroupInner() {
-    return this.lanes.laneGroupInner(this._geom);
-  }
-  _refreshLanes() {
-    return this.lanes.refreshLanes();
-  }
-  _commitRuns(channel, runs) {
-    return this.lanes.commitRuns(channel, runs);
-  }
-  _openSlotMenu(channel, at, clientX, clientY, svg, focusMenu) {
-    return this.lanes.openMenu(channel, at, clientX, clientY, svg, focusMenu);
-  }
-  _closeSlotMenu() {
-    return this.lanes.closeMenu();
-  }
-  _globalKeyTarget() {
-    return this.lanes.globalKeyTarget();
-  }
-  _restoreSlotFocus(channel, index, svgIndex) {
-    return this.lanes.restoreFocus(channel, index, svgIndex);
-  }
-  _attachSlotEditing(root) {
-    return this.lanes.attach(root);
-  }
-
-  get _whatIf() {
-    return this.whatIf.values;
-  }
-  set _whatIf(v) {
-    this.whatIf.values = v;
-  }
-  get _whatIfTimer() {
-    return this.whatIf.timer;
-  }
-  set _whatIfTimer(v) {
-    this.whatIf.timer = v;
-  }
-  get _pendingSave() {
-    return this.whatIf.pendingSave;
-  }
-  set _pendingSave(v) {
-    this.whatIf.pendingSave = v;
-  }
-  _whatIfDraft() {
-    return this.whatIf.draft();
-  }
-  _dhwMinCeiling() {
-    return this.whatIf.dhwMinCeiling();
-  }
-  _onWhatIfInput(ev) {
-    return this.whatIf.onInput(ev);
-  }
-  _onSlotEdit(ev) {
-    return this.whatIf.onSlotEdit(ev);
-  }
-  _onAddWindow(ev) {
-    return this.whatIf.onAddWindow(ev);
-  }
-  _onRemoveWindow(ev) {
-    return this.whatIf.onRemoveWindow(ev);
-  }
-  _onApplySlots(ev) {
-    return this.whatIf.onApplySlots(ev);
-  }
-  _onResetWhatIf(ev) {
-    return this.whatIf.onReset(ev);
-  }
-  _onSaveSchedule(ev) {
-    return this.whatIf.onSaveSchedule(ev);
-  }
-  _runWhatIf() {
-    return this.whatIf.run();
-  }
-
-  get _layoutEdit() {
-    return this.layout.edit;
-  }
-  set _layoutEdit(v) {
-    this.layout.edit = v;
-  }
-
-  get _layoutBoxes() {
-    return this.layout.boxes;
-  }
-  set _layoutBoxes(v) {
-    this.layout.boxes = v;
-  }
-
-  get _pickerKey() {
-    return this.setup.pickerKey;
-  }
-  set _pickerKey(v) {
-    this.setup.pickerKey = v;
-  }
-
-  get _pickerFilter() {
-    return this.setup.pickerFilter;
-  }
-  set _pickerFilter(v) {
-    this.setup.pickerFilter = v;
-  }
-
-  get _pickerChoice() {
-    return this.setup.pickerChoice;
-  }
-  set _pickerChoice(v) {
-    this.setup.pickerChoice = v;
-  }
-
-  get _pendingClear() {
-    return this.setup.pendingClear;
-  }
-  set _pendingClear(v) {
-    this.setup.pendingClear = v;
-  }
-
-  get _setupNote() {
-    return this.setup.note;
-  }
-  set _setupNote(v) {
-    this.setup.note = v;
-  }
-  _layoutEditing() {
-    return this.layout.editing();
-  }
-  _layoutEvaluate() {
-    return this.layout.evaluate();
-  }
-  _layoutRemoveEdge(name) {
-    return this.layout.removeEdge(name);
-  }
-  _refreshLayout() {
-    return this.layout.refresh();
-  }
-  _onLayoutDown(ev) {
-    return this.layout.onDown(ev);
-  }
-  _onLayoutMove(ev) {
-    return this.layout.onMove(ev);
-  }
-  _onLayoutUp(ev) {
-    return this.layout.onUp(ev);
-  }
-  _onLayoutClick(ev) {
-    return this.layout.onClick(ev);
-  }
-  _closePicker() {
-    return this.setup.closePicker();
-  }
-  _cancelPendingClear() {
-    return this.setup.cancelPendingClear();
   }
 
 }
