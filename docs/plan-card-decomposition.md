@@ -329,6 +329,14 @@ page from both collaborators, so the only dependency is layout → setup.*
 `parseConfig`; remaining `this.shadowRoot` reach-ins from collaborators go
 through `host.shadowRoot`.
 
+*As landed: `parseConfig` and the constructor's comments. `_render`,
+`_signature` and `disconnectedCallback` were already compositions by then,
+and every collaborator reaches the DOM through `host.shadowRoot`. The frame
+object was NOT introduced: `_series`, `_plot` and `_geom` stay host fields
+published by `_chartBlock`, because a frame rebuilt per render would either
+reset `_geom` on the no-data path (a behaviour change, #142) or carry the
+stale one forward on purpose, and neither is worth a field rename.*
+
 **PR 9 (a/b/c) — Test migration + seam removal.** `tests/card.mjs` moves to
 `card.view`, `card.manual`, `card.lanes`, `card.whatIf`, `card.setup`,
 `card.layout`, `card.dialog`, `card.legend`, `card.plan` and the module

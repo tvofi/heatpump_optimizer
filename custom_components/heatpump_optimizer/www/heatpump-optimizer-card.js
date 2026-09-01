@@ -11,7 +11,7 @@
 
 const CARD_TAG = "heatpump-optimizer-card";
 const EDITOR_TAG = "heatpump-optimizer-card-editor";
-const CARD_VERSION = "5.4.11";
+const CARD_VERSION = "5.4.12";
 
 // The de-duplication key `_extraFields` files a confidence band's two
 // edges under, so the pair counts as the one named trace it is. A Symbol
@@ -7858,6 +7858,54 @@ class LayoutEditor {
   }
 }
 
+// ---- The card config ------------------------------------------------------
+// What `setConfig` accepts, validated the way Lovelace expects: a descriptive,
+// localized error for anything malformed, and every default filled in.
+function parseConfig(config) {
+  if (config === null || typeof config !== "object") {
+    throw new Error(L("errors.cfg_not_object"));
+  }
+  const cfg = { ...DEFAULTS, ...config };
+
+  if (typeof cfg.space_entity !== "string" || !cfg.space_entity.includes(".")) {
+    throw new Error(L("errors.cfg_space_entity"));
+  }
+  if (typeof cfg.dhw_entity !== "string" || !cfg.dhw_entity.includes(".")) {
+    throw new Error(L("errors.cfg_dhw_entity"));
+  }
+  if (typeof cfg.solar_entity !== "string" || !cfg.solar_entity.includes(".")) {
+    throw new Error(L("errors.cfg_solar_entity"));
+  }
+  if (typeof cfg.what_if !== "boolean") {
+    throw new Error(L("errors.cfg_what_if"));
+  }
+  if (typeof cfg.show_stats !== "boolean") {
+    throw new Error(L("errors.cfg_show_stats"));
+  }
+  const hours = Number(cfg.hours);
+  if (!Number.isFinite(hours) || hours <= 0 || hours > 168) {
+    throw new Error(L("errors.cfg_hours"));
+  }
+  cfg.hours = hours;
+  if (cfg.title !== undefined && typeof cfg.title !== "string") {
+    throw new Error(L("errors.cfg_title"));
+  }
+  if (cfg.series !== undefined) {
+    if (typeof cfg.series !== "object" || cfg.series === null) {
+      throw new Error(L("errors.cfg_series"));
+    }
+    for (const k of Object.keys(cfg.series)) {
+      if (!SERIES_DEFS.some((s) => s.key === k)) {
+        throw new Error(L("errors.cfg_series_unknown", { k }));
+      }
+      if (typeof cfg.series[k] !== "boolean") {
+        throw new Error(L("errors.cfg_series_visibility", { k }));
+      }
+    }
+  }
+  return cfg;
+}
+
 // ===========================================================================
 // The card element, and the contract its collaborators get.
 //
@@ -7882,9 +7930,12 @@ class LayoutEditor {
 //   host.renderForced()        rebuild and forget it (the next hass redraws)
 //   host.suppressNextClick()   the next card click is the tail of a gesture
 //
-// A collaborator never reaches into a sibling; what it needs from one is
-// handed to its constructor, and the graph stays acyclic. Until a feature
-// has left, its methods live here as they always did.
+// A collaborator never reaches into a sibling except through the ones
+// named in its own header comment, and the graph is acyclic: plan → view →
+// legend → dialog → manual → lanes → whatIf → setup → layout, each using
+// only earlier ones. What is left on the element is the Lovelace contract,
+// the render cycle and its composition, and the seams the test suite still
+// drives (PR 9 of #136 migrates the tests and deletes them).
 // ===========================================================================
 class HeatpumpOptimizerCard extends HTMLElement {
   constructor() {
@@ -7907,16 +7958,15 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // Whether the score breakdown panel is open (#2). Instance state, not
     // DOM state, so it survives the shadow-root rebuild every refresh does.
     this._scoreOpen = false;
+    // The last build's series, and the chart's hover geometry.
     this._series = [];
     this._plot = null;
     this._resizeObserver = null;
     this._suppressClick = false;
-    // Everything else the card owns, declared here rather than on first
-    // use somewhere in the body (the decomposition's PR 0): the only way to
-    // learn what state this class carried used to be reading all of it. The
-    // sentinels are the ones the readers test for: `!x` or `if (x)`.
-    // Chart geometry the pan gesture and the slot lanes hit-test against,
-    // published by `_chartSvg` while editing is enabled.
+    // The lane geometry the pan gesture and the slot lanes hit-test against,
+    // published by `_chartBlock` from what `renderChart` returns while the
+    // lanes are on; null otherwise. Last writer wins when two charts render
+    // (#138).
     this._geom = null;
     // The chart's last measured rectangle, a hover fallback.
     this._svgRect = null;
@@ -7929,48 +7979,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
   // ---- Lovelace contract -------------------------------------------------
 
   setConfig(config) {
-    if (config === null || typeof config !== "object") {
-      throw new Error(L("errors.cfg_not_object"));
-    }
-    const cfg = { ...DEFAULTS, ...config };
-
-    if (typeof cfg.space_entity !== "string" || !cfg.space_entity.includes(".")) {
-      throw new Error(L("errors.cfg_space_entity"));
-    }
-    if (typeof cfg.dhw_entity !== "string" || !cfg.dhw_entity.includes(".")) {
-      throw new Error(L("errors.cfg_dhw_entity"));
-    }
-    if (typeof cfg.solar_entity !== "string" || !cfg.solar_entity.includes(".")) {
-      throw new Error(L("errors.cfg_solar_entity"));
-    }
-    if (typeof cfg.what_if !== "boolean") {
-      throw new Error(L("errors.cfg_what_if"));
-    }
-    if (typeof cfg.show_stats !== "boolean") {
-      throw new Error(L("errors.cfg_show_stats"));
-    }
-    const hours = Number(cfg.hours);
-    if (!Number.isFinite(hours) || hours <= 0 || hours > 168) {
-      throw new Error(L("errors.cfg_hours"));
-    }
-    cfg.hours = hours;
-    if (cfg.title !== undefined && typeof cfg.title !== "string") {
-      throw new Error(L("errors.cfg_title"));
-    }
-    if (cfg.series !== undefined) {
-      if (typeof cfg.series !== "object" || cfg.series === null) {
-        throw new Error(L("errors.cfg_series"));
-      }
-      for (const k of Object.keys(cfg.series)) {
-        if (!SERIES_DEFS.some((s) => s.key === k)) {
-          throw new Error(L("errors.cfg_series_unknown", { k }));
-        }
-        if (typeof cfg.series[k] !== "boolean") {
-          throw new Error(L("errors.cfg_series_visibility", { k }));
-        }
-      }
-    }
-
+    const cfg = parseConfig(config);
     this._config = cfg;
     this.legend.hidden = this.legend.load(cfg);
     this._sig = null; // force re-render on next hass
