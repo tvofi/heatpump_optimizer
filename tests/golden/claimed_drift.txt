@@ -45,9 +45,17 @@
 #
 # claims-for: 6.2.12
 #
-# Unload/Tibber semantics (#144) and the card decomposition's first
-# three PRs (#146, #147, #157): no solver or store path touched, no
-# golden moves; the list stays empty.
+# M2 (weather staleness surfaced): the coordinator's published payload
+# gains exactly one key, "weather_forecast_stale_hours" (None on every
+# fixture -- the captures set the forecast directly and never fail a
+# fetch). The five coordinator captures move because the payload dict
+# itself is what they freeze; no solver input, schedule or numeric leaf
+# changes, and no plan scenario moves.
+coord_all_features  # payload gains weather_forecast_stale_hours: null
+coord_dhw           # payload gains weather_forecast_stale_hours: null
+coord_grid_fee      # payload gains weather_forecast_stale_hours: null
+coord_minimal       # payload gains weather_forecast_stale_hours: null
+coord_two_zone      # payload gains weather_forecast_stale_hours: null
 #
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum

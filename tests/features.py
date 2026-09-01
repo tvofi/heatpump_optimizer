@@ -16962,4 +16962,115 @@ R.check(
     ),
 )
 
+
+# --- M2: a weather outage is surfaced, never silently papered over ---------
+R.section("Weather staleness is surfaced (M2)")
+
+_WX_ENTITY = "weather.home"
+_wx_cfg = dict(_LC_DATA)
+_wx_cfg["weather_entity"] = _WX_ENTITY
+_wx = Coord(_FakeHass(), _FakeEntry(data=_wx_cfg))
+
+
+async def _wx_call(domain, service, data=None, **kwargs):
+    # No handler registered for get_forecasts: the fetch fails exactly as
+    # it does against an unresponsive weather integration.
+    return None
+
+
+_wx.hass.services.async_call = _wx_call
+
+_asyncio.run(_wx._fetch_weather_forecast())
+R.check(
+    "a failed weather fetch latches the outage and marks the forecast stale",
+    _wx._weather_outage_cycles == 1
+    and _wx._weather_stale_since is not None
+    and _wx.weather_stale_hours() is not None
+    and _wx.weather_stale_hours() >= 0.0,
+    f"cycles {_wx._weather_outage_cycles}, stale since "
+    f"{_wx._weather_stale_since}, age {_wx.weather_stale_hours()}",
+)
+
+_asyncio.run(_wx._fetch_weather_forecast())
+R.check(
+    "a second failed cycle counts the outage but keeps one staleness start",
+    _wx._weather_outage_cycles == 2 and _wx.weather_stale_hours() is not None,
+    f"cycles {_wx._weather_outage_cycles}",
+)
+
+# A failing FIRST fetch with a live entity state fabricates the constant
+# 48 h trajectory -- and it is stale from birth, disclosed as such.
+_wx_fab = Coord(_FakeHass(), _FakeEntry(data=_wx_cfg))
+
+
+async def _wx_raising_call(domain, service, data=None, **kwargs):
+    # The fallback fabrication lives in the except path: the service call
+    # itself must blow up, as it does when the weather integration is
+    # broken rather than merely empty.
+    raise RuntimeError("weather integration broken")
+
+
+_wx_fab.hass.services.async_call = _wx_raising_call
+_wx_fab.hass.states.set(
+    _WX_ENTITY,
+    FakeState("cold", attributes={"temperature": "-8.0", "wind_speed": "3.0"}),
+)
+_asyncio.run(_wx_fab._fetch_weather_forecast())
+R.check(
+    "the fabricated fallback forecast exists and is stale from birth",
+    len(_wx_fab._weather_forecast) == 48
+    and _wx_fab._weather_stale_since is not None
+    and all(
+        fc["temperature"] == -8.0 for fc in _wx_fab._weather_forecast
+    ),
+    f"entries {len(_wx_fab._weather_forecast)}, stale "
+    f"{_wx_fab.weather_stale_hours()} h",
+)
+
+# Recovery: a good fetch clears the latch and the staleness.
+_wx_ok = Coord(_FakeHass(), _FakeEntry(data=_wx_cfg))
+
+
+async def _wx_good_call(domain, service, data=None, **kwargs):
+    return {_WX_ENTITY: {"forecast": [
+        {"datetime": "2026-03-28T%02d:00:00Z" % h, "temperature": 1.5,
+         "wind_speed": 2.0, "precipitation": 0.0, "solar_irradiance": 10.0}
+        for h in range(24)
+    ]}}
+
+
+_wx_ok.hass.services.async_call = _wx_good_call
+_asyncio.run(_wx_ok._fetch_weather_forecast())
+R.check(
+    "a successful fetch clears the outage and the staleness",
+    _wx_ok._weather_outage_cycles == 0
+    and _wx_ok._weather_stale_since is None
+    and _wx_ok.weather_stale_hours() is None
+    and len(_wx_ok._weather_forecast) == 24
+    and _wx_ok._solar_radiation_forecast[:1] == [10.0],
+    f"cycles {_wx_ok._weather_outage_cycles}, stale "
+    f"{_wx_ok.weather_stale_hours()}, entries {len(_wx_ok._weather_forecast)}",
+)
+
+# D8-02's half: an EMPTY result keeps the previous forecast -- marked
+# stale, not silently fresh forever.
+_wx_empty = Coord(_FakeHass(), _FakeEntry(data=_wx_cfg))
+
+
+async def _wx_empty_call(domain, service, data=None, **kwargs):
+    return {_WX_ENTITY: {"forecast": []}}
+
+
+_wx_empty.hass.services.async_call = _wx_empty_call
+_wx_empty._weather_forecast = [{"temperature": 2.0}] * 24
+_asyncio.run(_wx_empty._fetch_weather_forecast())
+R.check(
+    "an empty result keeps the previous forecast, marked stale",
+    len(_wx_empty._weather_forecast) == 24
+    and _wx_empty._weather_stale_since is not None
+    and _wx_empty._weather_outage_cycles == 1,
+    f"entries {len(_wx_empty._weather_forecast)}, stale since "
+    f"{_wx_empty._weather_stale_since}",
+)
+
 sys.exit(R.close("FEATURE CHECKS"))
