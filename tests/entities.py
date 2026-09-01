@@ -100,6 +100,10 @@ def collect(module, data=None, coordinator=None):
 
     if coordinator is None:
         coordinator = FakeCoordinator(DATA if data is None else data)
+        # The month figures and the counting-since date the accumulators
+        # publish (#4): set here so every entity test sees a coordinator
+        # that has been running, not one booted this minute.
+        coordinator._month_totals = {"dhw": (41.5, 62.25), "space": (120.0, 180.0)}
     hass = FakeHass()
     hass.data[const.DOMAIN] = {ENTRY.entry_id: coordinator}
     asyncio.run(module.async_setup_entry(hass, ENTRY, add_entities))
@@ -108,6 +112,7 @@ def collect(module, data=None, coordinator=None):
 
 # A representative published payload, covering every key the new entities read.
 DATA = {
+    "energy_totals_counting_since": "2026-08-15",
     "mode": "auto",
     "indoor_temperature": 21.3,
     "current_action": {"power": 2.5, "setpoint": 21.0},
@@ -278,6 +283,9 @@ DATA = {
     "solar_forecast": [{"t": "2026-02-01T10:00:00", "ghi": 210.0}],
     "space_plan": {},
     "dhw_plan": {},
+    # The horizon the plan sensors publish (#4): the projection attribute
+    # reads it off the optimizer's own configuration.
+    "horizon_hours": 24.0,
 }
 
 
@@ -314,12 +322,12 @@ R.check(
 for name in (
     "Measured Power",
     "Observed COP",
-    "Space Heating Energy",
-    "Hot Water Energy",
-    "Total Energy",
-    "Space Heating Cost",
-    "Hot Water Cost",
-    "Total Heating Cost",
+    "Space Heating Energy (lifetime)",
+    "Hot Water Energy (lifetime)",
+    "Total Energy (lifetime)",
+    "Space Heating Cost (lifetime)",
+    "Hot Water Cost (lifetime)",
+    "Total Heating Cost (lifetime)",
     "Prediction Accuracy",
     "Monthly Peak Power",
     "Solar Surplus Forecast",
@@ -344,9 +352,9 @@ R.check("observed COP is published", by_name["Observed COP"].native_value == 3.1
 # The Energy dashboard only picks up TOTAL_INCREASING. A MEASUREMENT here would
 # silently keep every one of these out of it, with no error anywhere.
 for name in (
-    "Space Heating Energy",
-    "Hot Water Energy",
-    "Total Energy",
+    "Space Heating Energy (lifetime)",
+    "Hot Water Energy (lifetime)",
+    "Total Energy (lifetime)",
 ):
     R.check(
         f"{name} is TOTAL_INCREASING",
@@ -356,9 +364,9 @@ for name in (
 # device class MONETARY, and long-term statistics need a currency unit.
 # TOTAL_INCREASING here (as previously pinned) made HA reject the statistics.
 for name in (
-    "Space Heating Cost",
-    "Hot Water Cost",
-    "Total Heating Cost",
+    "Space Heating Cost (lifetime)",
+    "Hot Water Cost (lifetime)",
+    "Total Heating Cost (lifetime)",
 ):
     R.check(
         f"{name} is a TOTAL in a currency",
@@ -368,17 +376,44 @@ for name in (
 R.check(
     "the DHW/space split is described rather than implied",
     "apportioned"
-    in by_name["Space Heating Energy"].extra_state_attributes["split_method"],
+    in by_name["Space Heating Energy (lifetime)"].extra_state_attributes["split_method"],
     "one meter cannot separate two circuits, and pretending otherwise is worse",
 )
 R.check(
     "the energy split reconciles with the total",
     abs(
-        by_name["Space Heating Energy"].native_value
-        + by_name["Hot Water Energy"].native_value
-        - by_name["Total Energy"].native_value
+        by_name["Space Heating Energy (lifetime)"].native_value
+        + by_name["Hot Water Energy (lifetime)"].native_value
+        - by_name["Total Energy (lifetime)"].native_value
     )
     < 1e-6,
+)
+# The period clarity (owner report #4): a lifetime number that states no
+# period reads as "very high", and the plan sensors' horizon numbers read
+# as the same figure with a different magnitude. Both now say what they
+# are, in the name and in the attributes.
+_hwc = by_name["Hot Water Cost (lifetime)"].extra_state_attributes
+R.check(
+    "the accumulators state their period in words",
+    "never reset" in _hwc["period"] and "whole history" in _hwc["period"],
+    _hwc["period"],
+)
+R.check(
+    "and carry this month's figures next to the lifetime state",
+    _hwc["this_month_kwh"] == 41.5 and _hwc["this_month_cost"] == 62.25,
+    str({k: _hwc.get(k) for k in ("this_month_kwh", "this_month_cost")}),
+)
+R.check(
+    "and the date they started counting, when the store has one",
+    _hwc["counting_since"] == "2026-08-15",
+    str(_hwc.get("counting_since")),
+)
+_plan_attrs = by_name["DHW Heating Plan (next 24 h)"].extra_state_attributes
+R.check(
+    "the plan sensors say their numbers are projections, not history",
+    "recomputed" in _plan_attrs["projection"]
+    and _plan_attrs["horizon_hours"] == 24.0,
+    _plan_attrs["projection"],
 )
 
 R.check("accuracy is published", by_name["Prediction Accuracy"].native_value == 0.3)
@@ -469,7 +504,7 @@ R.check(
 # The chart's edit ceiling and the service's expiry default have to be the same
 # number, or the card shows slots as pinned past the point `channel_pins` frees
 # them. The integration owns it and publishes it; the card reads it.
-space_plan = by_name["Space Heating Plan"]
+space_plan = by_name["Space Heating Plan (next 24 h)"]
 R.check(
     "the plan sensor publishes the manual-plan window for the card",
     space_plan.extra_state_attributes.get("manual_plan_window_hours")
@@ -3164,15 +3199,15 @@ R.check(
 # translation key cannot silently move the goalposts of the check above.
 for _display, _expected_id in (
     ("Solar Irradiance", "sensor.heat_pump_optimizer_solar_irradiance"),
-    ("Space Heating Plan", "sensor.heat_pump_optimizer_space_heating_plan"),
-    ("DHW Heating Plan", "sensor.heat_pump_optimizer_dhw_heating_plan"),
+    ("Space Heating Plan (next 24 h)", "sensor.heat_pump_optimizer_space_heating_plan"),
+    ("DHW Heating Plan (next 24 h)", "sensor.heat_pump_optimizer_dhw_heating_plan"),
     ("Predicted Savings", "sensor.heat_pump_optimizer_predicted_savings"),
     ("Savings Percentage", "sensor.heat_pump_optimizer_savings_percentage"),
     ("Optimization Score", "sensor.heat_pump_optimizer_optimization_score"),
     ("Plan Narrative", "sensor.heat_pump_optimizer_plan_narrative"),
     ("Optimal Setpoint", "sensor.heat_pump_optimizer_optimal_setpoint"),
     ("Recommended Power", "sensor.heat_pump_optimizer_recommended_power"),
-    ("Hot Water Cost", "sensor.heat_pump_optimizer_hot_water_cost"),
+    ("Hot Water Cost (lifetime)", "sensor.heat_pump_optimizer_hot_water_cost"),
 ):
     R.check(
         f"{_display} keeps its v4.x entity id on new installs",
@@ -3181,7 +3216,7 @@ for _display, _expected_id in (
     )
 # The card derives headline-stat ids from the plan sensor id by suffix swap;
 # that derivation must keep landing on real ids.
-_plan_id = by_name["Space Heating Plan"].entity_id
+_plan_id = by_name["Space Heating Plan (next 24 h)"].entity_id
 for _stat_suffix in (
     "_predicted_savings",
     "_savings_percentage",
@@ -3309,7 +3344,7 @@ R.check(
 # Money that HA can only accept as TOTAL statistics is the settled kind; the
 # horizon predictions stay MEASUREMENT without MONETARY, or HA rejects their
 # long-term statistics (documented on PredictedSavingsSensor).
-for name in ("Predicted Savings", "Predicted Cost", "Baseline Cost", "DHW Heating Cost"):
+for name in ("Predicted Savings", "Predicted Cost", "Baseline Cost", "DHW Heating Cost (next 24 h)"):
     entity = by_name[name]
     R.check(
         f"{name} stays MEASUREMENT without a MONETARY device class",
