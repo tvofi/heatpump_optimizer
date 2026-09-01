@@ -19,7 +19,7 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 6.2.12
+# claims-for: 6.2.13
 #
 # The card at phone width (#135) and the decomposition's PR 0 (#143):
 # no solver, sensor or store path touched, so no golden moves and the

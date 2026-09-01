@@ -1,5 +1,22 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.2.13
+
+### A weather outage is surfaced, never silently papered over
+
+A failed weather fetch used to fabricate a 48 h flat forecast from the
+current temperature that read as real data — measured at **+41.9 %
+realized cost** on the audit's cold-front scenario — and an empty
+result kept the previous forecast forever with no signal at all.
+Every failure path now latches an outage (logged once, not per cycle),
+and the payload publishes `weather_forecast_stale_hours` so the card,
+sensors and diagnostics can disclose what a plan was built on. The
+fabricated constant trajectory is only built when nothing better
+exists, and it is stale from birth. Weather failure deliberately does
+not fail the update the way a price-fetch failure does: planning on
+marked-stale weather is the honest degradation. Mutation-proved:
+deleting the staleness latch fails four of the five new checks.
+
 ## v6.2.12
 
 ### Unload runs the base shutdown; a Tibber outage fails the update, once
