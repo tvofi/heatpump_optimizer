@@ -2760,6 +2760,45 @@ R.check(
     _out_band._cop_samples == 1 and _out_band._cop_scale > 1.0,
 )
 
+# D3-02: the trust-region clamp (``max_step``/``np.clip``) around
+# ``_learn_measured_cop``'s EWMA update is the only thing that bounds *how
+# fast* a single persistently bad sample can move ``cop_scale`` — a sensor
+# glitch or a CT-clamp misconfiguration walks the tracking-error EWMA gate
+# open over a handful of intervals (rejected samples still update the EWMA)
+# and then, once accepted, would be free to jump the scale in one step by
+# however far the raw EWMA update wants, absent the clamp. Every existing
+# check above feeds a single, tame sample and never observes the clamp
+# itself engage. This asserts the clamp's actual contract directly: no
+# accepted sample may move ``cop_scale`` by more than ``cop_scale *
+# COP_LEARNING_MAX_STEP`` in one call, however far the raw EWMA target sits.
+from heatpump_optimizer.coordinator import (  # noqa: E402
+    COP_LEARNING_MAX_STEP as _COP_MAX_STEP,
+)
+
+_clamp_gate = _CopGate(outdoor=8.0, action={"power": 3.0})
+_clamp_gate._thermal_params.max_electrical_power = 3.0
+_clamp_gate._measured_power = 0.9
+_clamp_prev_scale = _clamp_gate._cop_scale
+_clamp_max_observed_step = 0.0
+for _ in range(30):
+    _clamp_gate._learn_measured_cop()
+    _clamp_step = abs(_clamp_gate._cop_scale - _clamp_prev_scale)
+    if _clamp_gate._cop_samples > 0:
+        _clamp_max_observed_step = max(_clamp_max_observed_step, _clamp_step)
+        R.check(
+            "an extreme COP sample moves cop_scale by at most the clamp's max_step",
+            _clamp_step
+            <= _clamp_prev_scale * _COP_MAX_STEP + 1e-9,
+            f"step {_clamp_step:.5f} exceeded {_clamp_prev_scale * _COP_MAX_STEP:.5f} "
+            f"(prev scale {_clamp_prev_scale:.5f})",
+        )
+    _clamp_prev_scale = _clamp_gate._cop_scale
+R.check(
+    "the clamp scenario actually engaged the clamp at least once",
+    _clamp_gate._cop_samples >= 8 and _clamp_max_observed_step > 0.0,
+    "a fixture that never triggers the clamp cannot prove it bounds anything",
+)
+
 # --- Standby loss is not hot water usage ----------------------------------
 #
 # The tank cools all the time — about 0.42 °C/h for a 55 °C tank at the
@@ -3332,6 +3371,42 @@ R.check("configured max power arrives", built.max_electrical_power == 9.0)
 R.check("configured DHW setpoint arrives", built.dhw_setpoint == 58.0)
 R.check("configured wind sensitivity arrives", built.wind_sensitivity == 0.25)
 R.check("configured displace limit arrives", built.ecl110_displace_max == 12.0)
+
+# D3-03: ``update_ecl110_displace_state`` models the ECL110's real PI/PID
+# response as a first-order lag (``effective += alpha*(cmd-effective)``),
+# not instant tracking. Every other reference to
+# ``ecl110_effective_displace``/``ecl110_displace_command`` in this suite
+# checks presence or static config round-tripping, never a value trajectory
+# — so deleting the lag term entirely (making effective == cmd on tick one)
+# passes unnoticed. This asserts the trajectory shape directly: a step
+# command from rest must land strictly between the old and new value after
+# one tick (proving lag exists) and must still not have fully arrived after
+# one tick, but must converge to the command over enough ticks.
+_ecl_model = ThermalModel(ThermalParameters())
+_ecl_state = ThermalState(room_temperature=21.0, outdoor_temperature=0.0)
+R.check(
+    "ECL110 effective displace starts at rest",
+    _ecl_state.ecl110_effective_displace == 0.0,
+)
+_ecl_model.update_ecl110_displace_state(_ecl_state, displace_command=4.0, dt_hours=0.25)
+R.check(
+    "one tick of a step command lags strictly behind it, not tracks instantly",
+    0.0 < _ecl_state.ecl110_effective_displace < 4.0,
+    f"got {_ecl_state.ecl110_effective_displace!r} after one tick; a deleted "
+    "first-order lag would jump straight to 4.0",
+)
+_ecl_after_one_tick = _ecl_state.ecl110_effective_displace
+_ecl_model.update_ecl110_displace_state(_ecl_state, displace_command=4.0, dt_hours=0.25)
+R.check(
+    "a second tick keeps closing the gap towards the command, not overshooting",
+    _ecl_after_one_tick < _ecl_state.ecl110_effective_displace < 4.0,
+)
+for _ in range(400):
+    _ecl_model.update_ecl110_displace_state(_ecl_state, displace_command=4.0, dt_hours=0.25)
+R.check(
+    "enough ticks let the lag converge on the commanded value",
+    abs(_ecl_state.ecl110_effective_displace - 4.0) < 1e-6,
+)
 
 R.check(
     "an empty config yields the documented defaults",
@@ -6469,6 +6544,47 @@ R.check(
     _Ledger.from_dict({"months": "nonsense"}).months == {}
     and _Ledger.from_dict(None).months == {},
 )
+# D1-01: a month whose persisted JSON parses but has a wrong-shaped nested
+# "lines"/"meta" field used to load silently, then wedge every future
+# _roll_month -> _freeze_month_report -> month_summary() cycle forever
+# because the crash happened before the month was marked closed. from_dict
+# now quarantines any month whose "lines"/"meta" aren't dicts, with one
+# WARNING, and keeps everything else.
+_bad_shapes = ["CORRUPT-NOT-A-DICT", ["not", "a", "dict"], 12345, None]
+for _bad in _bad_shapes:
+    _quarantined = _Ledger.from_dict(
+        {
+            "months": {
+                "2025-01": {"lines": _bad, "meta": {}},
+                "2025-02": {"lines": {"spot": {"kwh": 1.0, "sek": 2.0}}, "meta": {}},
+            }
+        }
+    )
+    R.check(
+        f"a wrong-shape 'lines' field ({type(_bad).__name__}) is quarantined, "
+        "the healthy month survives",
+        "2025-01" not in _quarantined.months
+        and _quarantined.month_summary("2025-01") == {}
+        and _quarantined.line("2025-02", "spot")["kwh"] == 1.0,
+        f"months kept: {sorted(_quarantined.months)}",
+    )
+# A malformed "meta" is quarantined the same way as a malformed "lines".
+_bad_meta = _Ledger.from_dict(
+    {"months": {"2025-03": {"lines": {}, "meta": "CORRUPT-NOT-A-DICT"}}}
+)
+R.check(
+    "a wrong-shape 'meta' field is quarantined too",
+    "2025-03" not in _bad_meta.months,
+)
+# Even if a malformed month slipped through some other path,
+# month_summary() itself must degrade to empty rather than raise --
+# the crash site gets defensive handling too, per the fix's second half.
+_led_direct = _Ledger()
+_led_direct.months["2025-04"] = {"lines": "CORRUPT-NOT-A-DICT", "meta": {}}
+R.check(
+    "month_summary() never raises on a malformed month, even reached directly",
+    _led_direct.month_summary("2025-04") == {},
+)
 
 # --- #34 at the solver: λ=0 is byte-identity, λ>0 pulls load off the guess ----
 from golden import make as _mk_golden, START as _G_START
@@ -8345,6 +8461,57 @@ R.check(
     and _cop_issues[0][2].get("is_persistent") is True,
     "a non-persistent issue vanishes on reboot while the fault stays",
 )
+
+# D3-04: ``sek_month`` is supposed to be ``monthly_kwh * mean_price *
+# shortfall`` — only the correction attributable to the *actual* measured
+# shortfall, not the household's entire monthly bill. The check above only
+# asserts the placeholder *keys* are present, which cannot tell a correct
+# formula apart from one that dropped ``* shortfall`` and always claims the
+# full bill. This drives ``_raise_cop_issue`` directly with a known ledger
+# and price so the claimed SEK/month can be checked by value and for
+# proportionality across two different shortfall magnitudes.
+import homeassistant.util.dt as _cop_dt_mod
+from heatpump_optimizer.ledger import month_key as _cop_month_key
+
+_sek_coord = _t2_coord()
+_sek_now = _cop_dt_mod.now()
+_sek_month = _cop_month_key(_sek_now)
+# 900 kWh/month scaled down to month-to-date the same way the real ledger
+# is read, so the ``* 30.0 / now.day`` re-scale in ``_raise_cop_issue``
+# lands back on 900.0 regardless of what day this runs.
+_sek_coord._ledger._month(_sek_month)["lines"]["spot"] = {
+    "kwh": 900.0 * _sek_now.day / 30.0,
+    "sek": 0.0,
+}
+_sek_coord._prices = [{"total": 1.2}]
+
+
+def _raise_and_read(coord, baseline, current):
+    coord.hass.issues = []
+    coord._last_measured_cop = current
+    coord._raise_cop_issue(baseline)
+    issues = [i for i in coord.hass.issues if i[1] == "cop_degradation"]
+    placeholders = issues[-1][2]["translation_placeholders"]
+    return float(placeholders["shortfall_percent"]), float(placeholders["sek_month"])
+
+
+_shortfall_1pct, _sek_1pct = _raise_and_read(_sek_coord, baseline=3.0, current=2.97)
+_shortfall_20pct, _sek_20pct = _raise_and_read(_sek_coord, baseline=3.0, current=2.4)
+R.check(
+    "a modest 1% shortfall claims roughly monthly_kwh*price*shortfall, not the full bill",
+    abs(_shortfall_1pct - 1.0) < 0.5 and abs(_sek_1pct - (900.0 * 1.2 * 0.01)) < 2.0,
+    f"got shortfall={_shortfall_1pct}% sek_month={_sek_1pct} "
+    f"(expected ~{900.0 * 1.2 * 0.01:.0f} SEK, not ~{900.0 * 1.2:.0f} SEK)",
+)
+R.check(
+    "the claimed cost scales with the shortfall, not a fixed full-bill number",
+    abs(_shortfall_20pct - 20.0) < 0.5
+    and abs(_sek_20pct - (900.0 * 1.2 * 0.20)) < 2.0
+    and _sek_20pct > 10 * _sek_1pct,
+    f"1%% -> {_sek_1pct} SEK, 20%% -> {_sek_20pct} SEK: a dropped '* shortfall' "
+    "term would make both numbers identical (~1080 SEK)",
+)
+
 _baseline_at_trip = _ch._cop_baseline[(3, False)][0]
 for _ in range(5):
     _ch._observe_cop_health(2.4)
@@ -8471,6 +8638,68 @@ R.check(
     _r6.alarmed
     and len(_r6.snapshots) == 1
     and SnapshotRing.from_dict({"snapshots": "garbage"}).snapshots == [],
+)
+# D1-05: a snapshot's "accuracy" field can be corrupt to a non-dict, truthy
+# value (partial write, hand-edited store). best_restore()'s old
+# `(snap.get("accuracy") or {}).get(...)` only fell back to {} on a FALSY
+# value, so a truthy-but-wrong "accuracy" raised AttributeError and killed
+# both the manual restore_snapshot service and the automatic drift
+# rollback. It must now skip the malformed snapshot (with a warning) and
+# keep evaluating the rest of the ring instead of raising.
+for _bad_accuracy in ("CORRUPT-NOT-A-DICT", ["not", "a", "dict"], 42):
+    _bad_ring = SnapshotRing.from_dict(
+        {
+            "snapshots": [
+                {
+                    "taken_at": "2026-06-01T00:00:00",
+                    "healthy": True,
+                    "alarmed_at_capture": False,
+                    "accuracy": _bad_accuracy,
+                    "learners": {},
+                }
+            ],
+        }
+    )
+    R.check(
+        f"a malformed 'accuracy' field ({type(_bad_accuracy).__name__}) is "
+        "skipped by best_restore(), not raised",
+        _bad_ring.best_restore() is None,
+    )
+# A corrupted NEWEST snapshot must not block recovery to a valid OLDER one.
+_bad_newest_ring = SnapshotRing.from_dict(
+    {
+        "snapshots": [
+            {
+                "taken_at": "2026-05-01T00:00:00",
+                "healthy": True,
+                "alarmed_at_capture": False,
+                "accuracy": {"temperature_bias": 0.1},
+                "learners": {"marker": "OLDER_VALID_SNAPSHOT"},
+            },
+            {
+                "taken_at": "2026-06-01T00:00:00",
+                "healthy": True,
+                "alarmed_at_capture": False,
+                "accuracy": "CORRUPT-NOT-A-DICT",
+                "learners": {"marker": "NEWER_CORRUPT_SNAPSHOT"},
+            },
+        ],
+    }
+)
+R.check(
+    "a corrupted newest snapshot is skipped, falling through to the valid older one",
+    (_bad_newest_ring.best_restore() or {}).get("learners", {}).get("marker")
+    == "OLDER_VALID_SNAPSHOT",
+)
+# Non-dict entries in the raw "snapshots" list are quarantined at load time.
+R.check(
+    "malformed snapshot entries are quarantined on load, valid ones kept",
+    len(
+        SnapshotRing.from_dict(
+            {"snapshots": [{"taken_at": "x", "healthy": True}, "garbage", 1, None]}
+        ).snapshots
+    )
+    == 1,
 )
 _r7 = SnapshotRing()
 _live = {"thermal": {"scale": 1.0}}
@@ -10413,6 +10642,48 @@ R.check(
     _crr._freeze_month_report("2026-03")["reasons_reconcile"] is True,
 )
 
+# D1-01's coordinator half: a month that CRASHES the freezer must not wedge
+# every future cycle. The pre-fix loop ran _freeze_month_report unguarded,
+# so one raising month aborted _roll_month before the month was marked
+# closed -- and since the month stayed unmarked, the next cycle raised
+# again, forever, with the receipt save never reached either. The fix skips
+# the month with an empty receipt, which also marks it closed: the wedge is
+# broken and the retry never happens.
+_wedge = _t2_coord()
+_wedge._ledger.add(_T6, "spot", kwh=1.0, sek=2.0)
+_freeze_calls = {"n": 0}
+
+
+def _exploding_freeze(month):
+    _freeze_calls["n"] += 1
+    raise ValueError("D1-01: malformed month wedges the freezer")
+
+
+_wedge._freeze_month_report = _exploding_freeze
+try:
+    _wedge._roll_month(_apr)
+    _rolled_ok = True
+except Exception:
+    _rolled_ok = False
+R.check(
+    "a crashing month no longer takes _roll_month down with it",
+    _rolled_ok,
+    "the freeze loop must complete; the coordinator's month bookkeeping "
+    "cannot depend on every historical month parsing",
+)
+R.check(
+    "the crashed month is marked closed with an empty receipt",
+    _wedge._month_reports.get("2026-03") == {"month": "2026-03", "lines": {}},
+    f"reports: {_wedge._month_reports}",
+)
+_wedge._roll_month(_apr)
+R.check(
+    "and it is never retried: the second roll freezes nothing",
+    _freeze_calls["n"] == 1,
+    f"freeze called {_freeze_calls['n']} times; the pre-fix loop retried "
+    "the crashing month on every cycle forever",
+)
+
 # The debounce streak dies with the meter: two noise spikes separated by
 # an outage are not two CONSECUTIVE samples.
 _sc8 = StartCounter()
@@ -11237,6 +11508,7 @@ from heatpump_optimizer.grid_fee import (
     GridFeeSchedule as _FeeSchedule,
     IMPLAUSIBLE_FEE_SEK_PER_KWH as _FEE_BOUND,
     max_abs_component as _fee_worst,
+    parse_day_range as _fee_day_range,
     parse_rules as _fee_parse,
 )
 from heatpump_optimizer.optimizer import (
@@ -11245,6 +11517,40 @@ from heatpump_optimizer.optimizer import (
 )
 from heatpump_optimizer.price_model import (
     quarters_from_entries as _quarters_from_entries,
+)
+
+# D3-07: ``parse_day_range``'s wrap-around branch (``start > end`` -> Fri..Sun..Mon)
+# is only reached when a configured day-range string actually wraps across the
+# week boundary; every day-range string used anywhere else in this suite
+# ("Mon-Fri", "Mån-Fre", "Lör-Sön") is non-wrapping and takes the other branch.
+# Deleting the wrap branch silently resolves a wrapping spec to an empty set
+# (Python's own ``range(start, end+1)`` is empty when start > end) with no
+# error and no log. Fri=4, Sat=5, Sun=6, Mon=0, Tue=1 in this module's own
+# weekday numbering.
+R.check(
+    "a Fri-Mon wrap covers Friday through Monday, inclusive",
+    _fee_day_range("Fri-Mon") == frozenset({4, 5, 6, 0}),
+    str(_fee_day_range("Fri-Mon")),
+)
+R.check(
+    "Saturday, Sunday and Monday are all inside a Fri-Mon wrap",
+    5 in _fee_day_range("Fri-Mon")
+    and 6 in _fee_day_range("Fri-Mon")
+    and 0 in _fee_day_range("Fri-Mon"),
+)
+R.check(
+    "Tuesday is outside a Fri-Mon wrap",
+    1 not in _fee_day_range("Fri-Mon"),
+    "a deleted wrap branch resolves to an EMPTY set, which would also "
+    "(vacuously) satisfy 'Tuesday is not in it' — paired with the "
+    "membership check above, this closes that gap",
+)
+R.check(
+    "a Fri-Mon wrap is not silently empty",
+    len(_fee_day_range("Fri-Mon")) == 4,
+    "the exact failure mode this asserts against: the deleted branch's "
+    "start>end range() is empty, so a wrapping rule would silently apply "
+    "on zero days",
 )
 
 _STHLM = _ZoneInfo("Europe/Stockholm")
@@ -14854,6 +15160,56 @@ for _lang_file in ("strings.json", "translations/en.json", "translations/sv.json
         "pump_mode_unreadable" in _ex_doc.get("issues", {})
         and "{hours}" in _ex_doc["issues"]["pump_mode_unreadable"]["description"],
     )
+
+# D3-05: everything checked above is the *pure* signal-reading side of an
+# expired mode (``pump_signals``/``pump_mode``). The coordinator-level
+# trigger that actually surfaces this to the user —
+# ``_check_pump_mode_expired``, which calls ``ir.async_create_issue``/
+# ``async_delete_issue`` for "pump_mode_unreadable" — has no test anywhere
+# in the suite; making the whole method an unconditional no-op passes every
+# closure script unnoticed. This drives the real coordinator end-to-end:
+# force the mode source to expired, call the method, and assert the repair
+# issue was actually raised; then force it back and assert it is cleared.
+_pme_coord = _t2_coord()
+R.check(
+    "a fresh coordinator starts with no pump-mode-unreadable issue and no notice latched",
+    not _pme_coord._pump_mode_expired_notice
+    and not [
+        i
+        for i in getattr(_pme_coord.hass, "issues", [])
+        if i[1] == "pump_mode_unreadable"
+    ],
+)
+_pme_coord._pump_signals = dataclasses.replace(
+    _pme_coord._pump_signals, mode_source=pump_signals.MODE_SOURCE_EXPIRED
+)
+_pme_coord._check_pump_mode_expired()
+_pme_raised = [
+    i
+    for i in getattr(_pme_coord.hass, "issues", [])
+    if i[1] == "pump_mode_unreadable"
+]
+R.check(
+    "an expired pump-mode source actually raises the repair issue end-to-end",
+    len(_pme_raised) == 1
+    and _pme_raised[0][2].get("translation_key") == "pump_mode_unreadable"
+    and _pme_coord._pump_mode_expired_notice is True,
+    f"got issues={_pme_raised}; a no-op'd _check_pump_mode_expired would "
+    "leave the user with no warning that the mode entity died",
+)
+_pme_coord._pump_signals = dataclasses.replace(
+    _pme_coord._pump_signals, mode_source=pump_signals.MODE_SOURCE_LIVE
+)
+_pme_coord._check_pump_mode_expired()
+R.check(
+    "recovery of the mode source clears the repair issue again",
+    not [
+        i
+        for i in getattr(_pme_coord.hass, "issues", [])
+        if i[1] == "pump_mode_unreadable"
+    ]
+    and _pme_coord._pump_mode_expired_notice is False,
+)
 
 
 R.section("v5.3.0 review 2 — a status sensor is not a flag either")

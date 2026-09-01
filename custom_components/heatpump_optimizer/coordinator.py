@@ -9693,7 +9693,22 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             if key < current and key not in self._month_reports
         )
         for month in closed:
-            self._month_reports[month] = self._freeze_month_report(month)
+            # Defense in depth: MonthlyLedger.from_dict already quarantines
+            # malformed months at load time, but a still-live month can in
+            # principle be freezable-yet-broken (a bug in this file, not the
+            # ledger's shape). Never let one bad month wedge every future
+            # cycle forever (#D1-01) -- skip it and mark it closed with an
+            # empty receipt so the cycle completes and it is not retried.
+            try:
+                self._month_reports[month] = self._freeze_month_report(month)
+            except Exception:  # noqa: BLE001 -- must never wedge the coordinator
+                _LOGGER.warning(
+                    "Skipping malformed ledger month %s while freezing "
+                    "monthly receipts; recording an empty receipt instead",
+                    month,
+                    exc_info=True,
+                )
+                self._month_reports[month] = {"month": month, "lines": {}}
         if closed:
             # Receipts follow the ledger's retention; a receipt for a month
             # the ledger no longer holds cannot be reconciled anyway.

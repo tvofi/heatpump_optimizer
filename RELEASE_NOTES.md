@@ -1,5 +1,59 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.2.10
+
+### A corrupted store no longer wedges the update cycle
+
+Two robustness fixes for what a corrupted persistent store used to do:
+
+- **A malformed ledger month permanently wedged every future cycle.**
+  `from_dict` accepted a month whose JSON parsed but whose nested
+  `lines`/`meta` had the wrong shape; the first rollover then crashed
+  *before* the month was marked closed, so `_roll_month` re-raised on
+  every cycle, forever. Malformed months are now quarantined at load
+  (one warning; healthy months survive), `month_summary()` degrades to
+  empty instead of raising, and a month that still crashes the freezer
+  is marked closed with an empty receipt — the cycle completes and the
+  month is never retried.
+- **A corrupt snapshot `accuracy` field killed both restore paths.** A
+  truthy-but-wrong `accuracy` (string, list, number) raised
+  `AttributeError` through the manual `restore_snapshot` service and
+  the automatic drift-rollback insurance. The malformed snapshot is
+  skipped with a warning and the ring keeps evaluating — a corrupted
+  newest snapshot falls through to a valid older one.
+
+Normal-path payloads are byte-identical; no golden moves. The new tests
+fail against the pre-fix code (the ledger test crashes with
+`AttributeError` on unpatched `month_summary`; the wedge test fails when
+the try/except is removed).
+
+## v6.2.9
+
+### Seven assertions the suite could not fail on
+
+Mutation testing against the shipped tree (audit round 1) found seven
+production lines whose deletion no test noticed — the paths ran, but
+nothing asserted their values. This release adds those assertions; no
+behaviour changes:
+
+- the COP-learner trust-region clamp bounds an outlier sample to
+  `COP_LEARNING_MAX_STEP` (deleting the clamp now fails 7 checks);
+- the ECL110 first-order-lag trajectory shows partial progress after
+  one/two ticks and convergence after many;
+- the COP-degradation repair notice's monthly figure is proportional to
+  the shortfall (it could previously claim a full bill for 1 %);
+- an expired/unreadable pump-mode signal raises — and recovery clears —
+  the repair issue, end to end;
+- `climate.hvac_action` asserts HEATING / IDLE / OFF / None per state
+  (previously zero test references);
+- the grid-fee day-range parser handles the wrap-around (`"Fri-Mon"`)
+  case;
+- the config flows reject a DHW minimum inside the required deadband on
+  both setup and options, with a passing boundary case.
+
+Each gap's finder mutant was applied in isolation and the new test
+confirmed to fail, then restored and confirmed to pass.
+
 ## v6.2.8
 
 ### The batched gradient finally serves the installs that needed it
