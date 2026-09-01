@@ -11,7 +11,7 @@
 
 const CARD_TAG = "heatpump-optimizer-card";
 const EDITOR_TAG = "heatpump-optimizer-card-editor";
-const CARD_VERSION = "5.4.4";
+const CARD_VERSION = "5.4.5";
 
 // The de-duplication key `_extraFields` files a confidence band's two
 // edges under, so the pair counts as the one named trace it is. A Symbol
@@ -3971,6 +3971,644 @@ class ViewWindow {
   }
 }
 
+// ---- The chart: pure functions from a frame to SVG ------------------------
+// `renderChart(frame, opts)` draws one copy of the plan chart -- the axes,
+// the series paths, the now marker, the estimated-price shading, the
+// shared-step bands and, when editing, the lanes -- and returns the markup
+// with the geometry the hover (`plot`) and the lane editor (`geom`) hit-test
+// against. It reads nothing but its arguments: `opts` carries what the host
+// resolves (`expanded`, `measuredWidth` as a thunk, `priceUnit`,
+// `estimatedFrom`, `editing`, `title`, `now`), the `overlay(geom)` callback
+// that draws the lanes, and `nextPatternId()`, which hands out the
+// document-unique ids the shared-band pattern needs. The same bodies as the
+// methods they were (PR 3 of #136); the host publishes `plot` and `geom` in
+// the order it always did.
+
+function renderChart(frame, opts) {
+  const { windowStart, windowEnd, series } = frame;
+  const {
+    expanded, measuredWidth, priceUnit, estimatedFrom, editing, title, now,
+    overlay, nextPatternId,
+  } = opts;
+  const visible = series.filter((s) => s.visible && s.hasData);
+  // D4-01: the compact chart floors its rendered font (see
+  // compactFontUnits); the margins then scale with any boost beyond what
+  // the authored layout already accommodates, so axis labels keep their
+  // relative space instead of colliding.
+  const font = expanded
+    ? FONT_EXPANDED
+    : compactFontUnits(measuredWidth());
+  const marginScale = expanded ? 1 : Math.max(1, font / FONT_EXPANDED);
+
+  // Axis domains from visible series grouped by axis.
+  const groups = { temp: [], power: [], price: [], solar: [] };
+  for (const s of visible) {
+    for (const line of s.lines) {
+      for (const p of line.points) groups[s.axis].push(p.v);
+    }
+  }
+  const axisRange = (vals, forceZero) => {
+    if (!vals.length) return null;
+    let lo = Math.min(...vals);
+    let hi = Math.max(...vals);
+    if (forceZero) lo = Math.min(0, lo);
+    return niceAxis(lo, hi, 6);
+  };
+  const axes = {
+    temp: axisRange(groups.temp, false),
+    power: axisRange(groups.power, true),
+    price: axisRange(groups.price, true),
+    solar: axisRange(groups.solar, true),
+  };
+
+  // The compact chart's boosted font (D4-01) widens these with it; the
+  // authored values below are already laid out for FONT_EXPANDED, so the
+  // scale only engages past that.
+  const plotL = MARGIN.left * marginScale;
+  // Only pay for the solar axis's width when it is actually drawn; a
+  // permanently narrower plot would be a real cost to every user who does
+  // not use the series.
+  const rightMargin =
+    (axes.solar ? MARGIN_RIGHT_WITH_SOLAR : MARGIN.right) * marginScale;
+  const plotR = VIEW_W - rightMargin;
+  const plotT = MARGIN.top * marginScale;
+  const plotB = VIEW_H - MARGIN.bottom * marginScale;
+  const plotW = plotR - plotL;
+  const plotH = plotB - plotT;
+
+  const xSpan = windowEnd - windowStart || 1;
+  const scaleX = (t) => plotL + ((t - windowStart) / xSpan) * plotW;
+  const scaleY = (v, axisName) => {
+    const a = axes[axisName];
+    if (!a) return plotB;
+    const span = a.max - a.min || 1;
+    return plotB - ((v - a.min) / span) * plotH;
+  };
+
+  // The geometry the hover hit-tests against.
+  const plot = {
+    windowStart,
+    windowEnd,
+    scaleX,
+    scaleY,
+    axes,
+    plotL,
+    plotR,
+    plotT,
+    plotB,
+  };
+
+  const parts = [];
+
+  // Plot frame
+  parts.push(
+    `<rect x="${plotL}" y="${plotT}" width="${plotW}" height="${plotH}" fill="none" stroke="var(--divider-color,#e0e0e0)" stroke-width="1"/>`
+  );
+
+  // Hourly gridlines. How often they are labelled is worked out from the
+  // space available, so a wider chart or a shorter horizon labels more.
+  parts.push(
+    timeAxis(scaleX, plotT, plotB, windowStart, windowEnd, font)
+  );
+
+  // Value axes. Where two axes share a side, the inner one's title has only
+  // the gap to the outer axis to live in, and that gap does not grow with
+  // the font: at the expanded size "SEK/kWh" is wider than the 46 units
+  // between the price and solar axes, so it used to run straight through
+  // "W/m2". Measure the title and, when it does not fit, hang it off the
+  // inside of its own axis line instead -- the strip above the plot frame
+  // is empty, so the title stays beside the axis it names either way.
+  const titleFits = (unit, room) =>
+    textWidth(unit, font) + font * 0.6 <= room;
+  const powerTitleInset = 44;
+  // The price axis title carries the resolved currency, so the measured
+  // string and the drawn string must be the same value.
+  const tempAnchor =
+    axes.power && !titleFits("\u00b0C", powerTitleInset) ? "start" : "end";
+  const priceAnchor =
+    axes.solar && !titleFits(priceUnit, SOLAR_AXIS_INSET) ? "end" : "start";
+
+  if (axes.temp)
+    parts.push(
+      valueAxis(
+        axes.temp, plotL, plotT, plotB, plotH, "left", 0,
+        scaleY, "temp", "\u00b0C", font, tempAnchor
+      )
+    );
+  if (axes.power)
+    parts.push(
+      valueAxis(
+        axes.power, plotL, plotT, plotB, plotH, "left", powerTitleInset,
+        scaleY, "power", "kW", font
+      )
+    );
+  if (axes.price)
+    parts.push(
+      valueAxis(
+        axes.price, plotR, plotT, plotB, plotH, "right", 0,
+        scaleY, "price", priceUnit, font, priceAnchor
+      )
+    );
+  if (axes.solar)
+    parts.push(
+      valueAxis(
+        axes.solar, plotR, plotT, plotB, plotH, "right", SOLAR_AXIS_INSET,
+        scaleY, "solar", "W/m\u00b2", font
+      )
+    );
+
+  // Now marker
+  if (now >= windowStart && now <= windowEnd) {
+    const nx = scaleX(now);
+    parts.push(
+      `<line x1="${nx}" y1="${plotT}" x2="${nx}" y2="${plotB}" stroke="var(--primary-color,#03a9f4)" stroke-width="1.5" stroke-dasharray="4 3"/>`
+    );
+    parts.push(
+      `<text x="${nx + 3}" y="${plotT + font + 1}" font-size="${font}" fill="var(--primary-color,#03a9f4)">${esc(
+          L("plan.now")
+        )}</text>`
+    );
+  }
+
+  // Shade the stretch of the horizon whose prices are the learned diurnal
+  // prior rather than published market data. A plan that looks identical
+  // whether or not it rests on real prices cannot be audited.
+  if (estimatedFrom !== null && estimatedFrom < windowEnd) {
+    const ex = Math.max(plotL, scaleX(Math.max(estimatedFrom, windowStart)));
+    parts.push(
+      `<rect class="estimated" pointer-events="none" x="${ex}" y="${plotT}" width="${Math.max(
+          0,
+          plotR - ex
+        )}" height="${plotH}" fill="var(--secondary-text-color,#888)" fill-opacity="0.07"/>`
+    );
+    // D4-03: this used to sit at `plotB - 5`, directly on top of the
+    // lane-row labels drawn near the bottom of the plot (`_laneGroupInner`),
+    // garbling both. Anchored just under the top margin instead -- a strip
+    // that is otherwise empty except for the "now" marker's label, which
+    // lives at a different x (by the current-time line, not the start of
+    // the estimated region) whenever both happen to be visible together.
+    parts.push(
+      `<text x="${ex + 4}" y="${plotT + font + 4}" font-size="${font}" fill="var(--secondary-text-color,#888)">${esc(
+          L("plan.estimated_prices")
+        )}</text>`
+    );
+  }
+
+  // Editable slot lanes, drawn by the caller's overlay into the geometry a
+  // pointer event needs to turn a screen coordinate back into a time. The lane metrics travel with the
+  // geometry (D4-01): a boosted compact font scales the lanes with it, and
+  // hit-testing must use the same numbers the drawing used.
+  let geom = null;
+  if (editing) {
+    geom = {
+      windowStart, windowEnd, plotL, plotW, plotR, plotB, font,
+      laneH: LANE_H * marginScale, laneGap: LANE_GAP * marginScale,
+      laneInset: LANE_BOTTOM_INSET * marginScale,
+    };
+    parts.push(`<g class="lanes">${overlay(geom)}</g>`);
+  }
+
+  // Where BOTH circuits are planned in the same quarter hour the pump is
+  // time-sharing the step — hot water first, then heating. That is a
+  // deliberate relaxation (space + hot water ≤ nameplate per step), not
+  // double-booking, and two full-height bars with nothing said implied
+  // the impossible. Drawn under the bars so the bars stay readable.
+  parts.push(
+    sharedSpanBands(visible, scaleX, plotT, plotB, plotL, plotR, nextPatternId)
+  );
+
+  // Series paths (filled/area series first, lines on top)
+  const order = ["stepArea", "stepBars", "smooth"];
+  for (const st of order) {
+    for (const s of visible) {
+      if (s.style !== st) continue;
+      parts.push(seriesPath(s, scaleX, scaleY, plotB));
+    }
+  }
+
+  // Crosshair placeholder (updated on hover)
+  parts.push(
+    `<line class="crosshair" pointer-events="none" x1="0" y1="${plotT}" x2="0" y2="${plotB}" stroke="var(--secondary-text-color,#888)" stroke-width="1" visibility="hidden"/>`
+  );
+
+  // role="img" flattens every descendant for assistive tech, which is
+  // right for a pure picture but wrong the moment the lanes put focusable
+  // slots inside it — those need "group" so they stay in the tree. The
+  // editable chart also takes tabindex="-1": it is the last-resort home
+  // for restored focus (`_restoreSlotFocus`), and an svg without a
+  // tabindex refuses programmatic focus.
+  const svg = `<svg viewBox="0 0 ${VIEW_W} ${VIEW_H}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" role="${
+      editing ? "group" : "img"
+    }"${editing ? ' tabindex="-1"' : ""} aria-label="${esc(
+      title
+    )}">${parts.join("")}</svg>`;
+  return { svg, plot, geom };
+}
+
+/** Hourly gridlines, labelled as often as the width actually allows.
+ *
+ * Label density cannot be a fixed choice. The horizon is configurable, the
+ * chart is drawn in a fixed coordinate system, and the labels are formatted
+ * for the user's locale, so their width is not known in advance either --
+ * "13:00" is five characters but "12:00 AM" is eight. Build the labels
+ * first, measure the widest, and only then decide how many to show.
+ */
+function timeAxis(scaleX, plotT, plotB, windowStart, windowEnd, font) {
+  const size = font || FONT_BASE;
+  const hour = 3600 * 1000;
+
+  const first = new Date(windowStart);
+  first.setMinutes(0, 0, 0);
+  if (first.getTime() < windowStart) first.setHours(first.getHours() + 1);
+
+  const ticks = [];
+  for (let t = first.getTime(); t <= windowEnd; t += hour) {
+    const d = new Date(t);
+    ticks.push({
+      t,
+      x: scaleX(t),
+      hours: d.getHours(),
+      label: d.toLocaleTimeString(ACTIVE_LANG, {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+    });
+  }
+  if (!ticks.length) return "";
+
+  // Widest rendered label, plus a gap, in viewBox units. The chart uses the
+  // default sans-serif face, whose characters average a little over half an
+  // em at these sizes.
+  const widest = ticks.reduce((n, tick) => Math.max(n, tick.label.length), 0);
+  const labelWidth = size * widest * CHAR_WIDTH_EM + size * 0.6;
+  const unitsPerHour = Math.abs(scaleX(windowStart + hour) - scaleX(windowStart));
+  const needed = unitsPerHour > 0 ? Math.ceil(labelWidth / unitsPerHour) : 3;
+  // Intervals that divide the day, so labels land on the same clock times
+  // each day rather than drifting across midnight.
+  const every =
+    TIME_LABEL_STEPS.find((step) => step >= Math.max(1, needed)) ||
+    TIME_LABEL_STEPS[TIME_LABEL_STEPS.length - 1];
+
+  const out = [];
+  for (const tick of ticks) {
+    const labelled = tick.hours % every === 0;
+    out.push(
+      `<line x1="${tick.x}" y1="${plotT}" x2="${tick.x}" y2="${plotB}" stroke="var(--divider-color,#eee)" stroke-width="${
+          labelled ? 1 : 0.5
+        }" opacity="${labelled ? 0.7 : 0.35}"/>`
+    );
+    if (labelled) {
+      out.push(
+        `<text x="${tick.x}" y="${plotB + size + 4}" font-size="${size}" text-anchor="middle" fill="var(--secondary-text-color,#888)">${esc(
+            tick.label
+          )}</text>`
+      );
+    }
+  }
+  return out.join("");
+}
+
+function valueAxis(
+  axis, xBase, plotT, plotB, plotH, side, inset, scaleY, axisName, unit,
+  font, titleAnchor
+) {
+  const size = font || FONT_BASE;
+  const out = [];
+  const x = side === "left" ? xBase - inset : xBase + inset;
+  const anchor = side === "left" ? "end" : "start";
+  const tx = side === "left" ? x - 5 : x + 5;
+  for (const tick of axis.ticks) {
+    const y = scaleY(tick, axisName);
+    out.push(
+      `<text x="${tx}" y="${y + size / 3}" font-size="${size}" text-anchor="${anchor}" fill="var(--secondary-text-color,#888)">${esc(
+          fmtTick(tick)
+        )}</text>`
+    );
+    const t1 = side === "left" ? x - 3 : x + 3;
+    out.push(
+      `<line x1="${x}" y1="${y}" x2="${t1}" y2="${y}" stroke="var(--secondary-text-color,#aaa)" stroke-width="0.75"/>`
+    );
+  }
+  // The title sits on the strip above the plot frame, normally running away
+  // from the chart like the tick labels do. When that would run it into the
+  // next axis out, the caller flips it to the other side of its own axis
+  // line, where the strip above the plot is empty. The gap scales with the
+  // font (D4-01) so a boosted compact font does not sit on the frame.
+  const uy = plotT - 4 * (size / FONT_BASE);
+  const ta = titleAnchor || anchor;
+  const ux = ta === "end" ? x - 5 : x + 5;
+  out.push(
+    `<text x="${ux}" y="${uy}" font-size="${size}" text-anchor="${ta}" fill="var(--secondary-text-color,#888)">${esc(
+        unit
+      )}</text>`
+  );
+  return out.join("");
+}
+
+function seriesPath(s, scaleX, scaleY, plotB) {
+  const out = [];
+  for (const line of s.lines) {
+    const pts = line.points.map((p) => ({
+      x: scaleX(p.t),
+      y: scaleY(p.v, s.axis),
+    }));
+    if (!pts.length) continue;
+
+    // D4-02: a single-point line has no second vertex to draw a
+    // line-to from, so `<path>` alone paints nothing (a bare "M x y", or
+    // for the area styles a zero-area triangle collapsed onto one x) --
+    // yet the series still counts as `hasData` and its legend chip still
+    // shows fully active. A visible dot is the honest reading of "one
+    // sample exists", and keeps the chip's claim true.
+    if (pts.length === 1) {
+      out.push(
+        `<circle class="series" data-key="${s.key}" pointer-events="none" cx="${pts[0].x.toFixed(2)}" cy="${pts[0].y.toFixed(2)}" r="3" fill="${s.color}"/>`
+      );
+      continue;
+    }
+
+    if (s.style === "stepArea" || s.style === "stepBars") {
+      const stepD = steppedLine(pts);
+      const baseY = plotB;
+      const areaD =
+        stepD +
+        ` L ${pts[pts.length - 1].x.toFixed(2)} ${baseY.toFixed(2)}` +
+        ` L ${pts[0].x.toFixed(2)} ${baseY.toFixed(2)} Z`;
+      const fillOpacity = s.style === "stepBars" ? 0.35 : 0.18;
+      out.push(
+        `<path class="series" data-key="${s.key}" pointer-events="none" d="${areaD}" fill="${s.color}" fill-opacity="${fillOpacity}" stroke="none"/>`
+      );
+      out.push(
+        `<path class="series" data-key="${s.key}" pointer-events="none" d="${stepD}" fill="none" stroke="${s.color}" stroke-width="1.5"/>`
+      );
+    } else {
+      const d = smoothLine(pts);
+      const dash = line.primary
+        ? ""
+        : ` stroke-dasharray="3 3" stroke-opacity="0.7"`;
+      out.push(
+        `<path class="series" data-key="${s.key}" pointer-events="none" d="${d}" fill="none" stroke="${s.color}" stroke-width="1.8"${dash}/>`
+      );
+    }
+  }
+  return out.join("");
+}
+
+function steppedLine(pts) {
+  let d = `M ${pts[0].x.toFixed(2)} ${pts[0].y.toFixed(2)}`;
+  for (let i = 1; i < pts.length; i++) {
+    d += ` L ${pts[i].x.toFixed(2)} ${pts[i - 1].y.toFixed(2)}`;
+    d += ` L ${pts[i].x.toFixed(2)} ${pts[i].y.toFixed(2)}`;
+  }
+  return d;
+}
+
+function smoothLine(pts) {
+  if (pts.length < 3) {
+    let d = `M ${pts[0].x.toFixed(2)} ${pts[0].y.toFixed(2)}`;
+    for (let i = 1; i < pts.length; i++)
+      d += ` L ${pts[i].x.toFixed(2)} ${pts[i].y.toFixed(2)}`;
+    return d;
+  }
+  let d = `M ${pts[0].x.toFixed(2)} ${pts[0].y.toFixed(2)}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i - 1] || pts[i];
+    const p1 = pts[i];
+    const p2 = pts[i + 1];
+    const p3 = pts[i + 2] || p2;
+    const c1x = p1.x + (p2.x - p0.x) / 6;
+    const c1y = p1.y + (p2.y - p0.y) / 6;
+    const c2x = p2.x - (p3.x - p1.x) / 6;
+    const c2y = p2.y - (p3.y - p1.y) / 6;
+    d += ` C ${c1x.toFixed(2)} ${c1y.toFixed(2)} ${c2x.toFixed(2)} ${c2y.toFixed(
+        2
+      )} ${p2.x.toFixed(2)} ${p2.y.toFixed(2)}`;
+  }
+  return d;
+}
+
+/** Hatched bands over every span where space and hot water share steps.
+ *
+ * Only when both power series are visible — hiding a channel hides its
+ * half of the story, and a band explaining an invisible series would be
+ * noise. The native <title> answers the "is this double-booking?"
+ * question right where it is asked.
+ */
+function sharedSpanBands(
+  seriesList, scaleX, plotT, plotB, plotL, plotR, nextPatternId
+) {
+  const powerSeries = (field) =>
+    (seriesList || []).find(
+      (s) => s.field === field && s.visible && s.hasData
+    );
+  const space = powerSeries("space_power");
+  const dhw = powerSeries("dhw_power");
+  if (!space || !dhw) return "";
+  // Through the field helper, not `lines[0]`: a hole anywhere in a power
+  // series splits it into segments, and the span search needs all of them.
+  const pointsOf = (s) => fieldPoints(s, s.field);
+  const spacePts = pointsOf(space);
+  const dhwPts = pointsOf(dhw);
+  if (spacePts.length < 2 || dhwPts.length < 2) return "";
+  const spaceAt = new Map(spacePts.map((p) => [p.t, p.v]));
+  let step = Infinity;
+  for (let i = 1; i < dhwPts.length; i++) {
+    step = Math.min(step, dhwPts[i].t - dhwPts[i - 1].t);
+  }
+  if (!Number.isFinite(step) || step <= 0) return "";
+  const spans = [];
+  for (const p of dhwPts) {
+    const sv = spaceAt.get(p.t);
+    if (p.v > 0.05 && sv !== undefined && sv > 0.05) {
+      const last = spans[spans.length - 1];
+      if (last && p.t <= last.end + step / 2) last.end = p.t + step;
+      else spans.push({ start: p.t, end: p.t + step });
+    }
+  }
+  if (!spans.length) return "";
+  // The pattern id must be unique per chart: with the dialog open the
+  // inline and expanded charts render into one shadow root, and two
+  // <pattern> elements sharing an id is invalid markup that would
+  // silently couple them. The caller hands the ids out.
+  const pid = nextPatternId();
+  const out = [
+    `<defs><pattern id="${pid}" width="6" height="6"
+        patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+        <line x1="0" y1="0" x2="0" y2="6"
+          stroke="var(--secondary-text-color,#888)" stroke-width="1.4"/>
+      </pattern></defs>`,
+  ];
+  for (const span of spans) {
+    const x1 = Math.max(plotL, scaleX(span.start));
+    const x2 = Math.min(plotR, scaleX(span.end));
+    if (x2 <= x1) continue;
+    // pointer-events none is load-bearing: the band spans the full plot
+    // and paints after the what-if lanes, so without it a low-power
+    // shared span would swallow the slot editor's drags and clicks.
+    out.push(`<rect class="shared-band" pointer-events="none" x="${x1}" y="${plotT}" width="${
+        x2 - x1
+      }" height="${plotB - plotT}" fill="url(#${pid})" fill-opacity="0.18">
+        <title>${esc(L("plan.shared_band_title"))}</title>
+      </rect>`);
+  }
+  return out.join("");
+}
+
+// ---- The tooltip: pure functions from rows to markup -------------------------
+// What the hover says. The host's `_onPointerMove` turns the pointer into a
+// time, asks `tooltipRows` what is there, and writes the crosshair and the
+// tooltip box; everything about WHAT is said lives here (PR 3 of #136).
+
+/** The tooltip's rows at time `t`: one per named trace of every visible
+ * series, then each series' expected-error band as a single ± row. `snapT`
+ * is the first trace's nearest sample, which the crosshair snaps to; null
+ * when no series has a point. `deps` are what the rows need from the plan:
+ * the unit a series renders with, and whether the lower floor is modelled. */
+function tooltipRows(series, t, { seriesUnit, isLowerModelled }) {
+  const visible = series.filter((s) => s.visible && s.hasData);
+  const rows = [];
+  let snapT = null;
+  for (const s of visible) {
+    // Every trace, not just the primary one. The house-temperature series
+    // draws three traces and the tooltip used to report the room's value
+    // for all of them, so hovering a 28 C zone line showed 21 C.
+    //
+    // Iterated per FIELD rather than per line: v5.2.0 lets holes break one
+    // field into several segments, and one row per segment would report
+    // the same trace two or three times over.
+    const traces = [
+      { field: s.field, primary: true, labelKey: s.labelKey },
+    ].concat(extraFields(s));
+    // A band's two edges are collapsed into the single ± figure they
+    // actually carry, rather than reported as two absolute temperatures.
+    const bandFields = s.band ? [s.band.lo, s.band.hi] : [];
+    for (const line of traces) {
+      if (bandFields.includes(line.field)) continue;
+      const best = nearestPoint(s, line.field, t);
+      if (!best) continue;
+      if (snapT === null) snapT = best.t;
+      rows.push({
+        color: s.color,
+        label: lineLabel(s, line, isLowerModelled),
+        dashed: !line.primary,
+        value: best.v,
+        unit: seriesUnit(s),
+        t: best.t,
+        field: line.field,
+        reason: best.reason,
+        priceKnown: best.priceKnown,
+      });
+    }
+    // ... and then the band, as one row, right under the line it brackets.
+    for (const row of bandRow(s, t, seriesUnit(s))) rows.push(row);
+  }
+  return { rows, snapT };
+}
+
+/** The tooltip's body: the time, one line per row, the shared-step
+ * sentence when the step is shared, and why the plan is heating. */
+function tooltipHtml(rows) {
+  const time = new Date(rows[0].t).toLocaleString(ACTIVE_LANG, {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  const sharedHtml = sharedTooltipHtml(rows);
+  const bodyHtml =
+    `<div class="tt-time">${esc(time)}</div>` +
+    rows
+      .map(
+        (r) =>
+          `<div class="tt-row"><span class="dot" style="${dotStyle(
+                r.color,
+                r.dashed
+              )}"></span>${esc(r.label)}: ${esc(
+                (r.prefix || "") + fmtTick(r.value)
+              )} ${esc(r.unit)}</div>`
+      )
+      .join("") +
+    sharedHtml +
+    reasonHtml(rows);
+  return bodyHtml;
+}
+
+/** Why the plan is heating at the hovered step, plus price provenance.
+ *
+ * Only reasons for steps that are actually heating are shown; "not heating"
+ * is not an explanation anyone needs, and printing it for every idle hour
+ * would bury the ones that matter. The one exception is a channel paused
+ * by the pump's own operating mode: those steps carry no power, so the
+ * hover would otherwise show nothing at all, and "the optimizer chose not
+ * to" is exactly the wrong reading of a mode the unit itself enforces.
+ */
+function reasonHtml(rows) {
+  const out = [];
+  const seen = new Set();
+  // Which channel a pump_mode reason belongs to: several series read the
+  // same forecast (the house temperatures ride the space plan's points),
+  // so the reason can surface on a row whose field says nothing about the
+  // channel. Decide once, from the channel rows themselves, before the
+  // per-row loop dedupes the code away.
+  const pumpModeChannel = rows.some((r) => r.reason === "pump_mode")
+    ? rows.find((r) => r.reason === "pump_mode" &&
+        (r.field === "dhw_power" || r.field === "space_power"))
+    : undefined;
+  const pumpModeKey = !pumpModeChannel
+    ? null
+    : pumpModeChannel.field === "dhw_power"
+      ? "reasons.pump_mode_dhw"
+      : "reasons.pump_mode_space";
+  for (const r of rows) {
+    const pumpMode = r.reason === "pump_mode";
+    if ((!r.reason || r.reason === "idle") && !pumpMode) continue;
+    if (seen.has(r.reason)) continue;
+    seen.add(r.reason);
+    let label;
+    if (pumpMode) {
+      // Channel-aware where the channel is known; the generic wording
+      // otherwise. "Cannot do this" was true but never actionable.
+      label = L(pumpModeKey || "reasons.pump_mode");
+    } else {
+      label = REASON_LABELS[r.reason]
+        ? L(REASON_LABELS[r.reason])
+        : r.reason;
+    }
+    out.push(`<div class="tt-reason">${esc(label)}</div>`);
+  }
+  if (rows.some((r) => r.priceKnown === false)) {
+    out.push(
+      `<div class="tt-reason">${esc(L("plan.price_estimated"))}</div>`
+    );
+  }
+  return out.join("");
+}
+
+/** The tooltip's shared-step line, or "" when this step is not shared.
+ *
+ * A step carrying both circuits is the pump splitting the quarter hour,
+ * and the hover tooltip is where that question is actually asked. Both
+ * rows must come from the SAME timestamp: each series snaps to its own
+ * nearest point, and with mismatched grids (a stale third-party sensor)
+ * the two nearest points can be hours apart — pairing those would claim
+ * sharing the band correctly refuses to draw.
+ */
+function sharedTooltipHtml(rows) {
+  const rowByField = (f) => (rows || []).find((r) => r.field === f);
+  const spaceRow = rowByField("space_power");
+  const dhwRow = rowByField("dhw_power");
+  if (
+    !spaceRow ||
+    !dhwRow ||
+    spaceRow.t !== dhwRow.t ||
+    !(spaceRow.value > 0.05) ||
+    !(dhwRow.value > 0.05)
+  ) {
+    return "";
+  }
+  return `<div class="tt-shared">${L("plan.shared_step_tooltip", {
+      kw: esc(fmtTick(spaceRow.value + dhwRow.value)),
+    })}</div>`;
+}
+
 // ===========================================================================
 // The card element, and the contract its collaborators get.
 //
@@ -4676,7 +5314,28 @@ class HeatpumpOptimizerCard extends HTMLElement {
    * a positioned ancestor.
    */
   _chartBlock(built, expanded) {
-    const chart = this._chartSvg(built, expanded);
+    const { svg: chart, plot, geom } = renderChart(built, {
+      expanded,
+      measuredWidth: () => this._measuredCardWidth(),
+      priceUnit: this.plan.priceUnit(),
+      estimatedFrom: this.plan.estimatedPricesFrom(),
+      editing: this._editingEnabled(),
+      title: this._title(),
+      now: Date.now(),
+      // The lanes hit-test against the geometry they are drawn into, so
+      // it is published before the overlay draws, not after the chart
+      // returns. (`geom.font` is the expanded copy's while the dialog is
+      // open, since the expanded chart renders last -- #138.)
+      overlay: (g) => {
+        this._geom = g;
+        return this._laneGroupInner();
+      },
+      // Document-unique per chart: with the dialog open two charts render
+      // into one shadow root.
+      nextPatternId: () => `hpoShared${++HeatpumpOptimizerCard._sharedPatternSeq}`,
+    });
+    this._plot = plot;
+    this._geom = geom;
     // The controls overlay the chart rather than sitting under it: the expanded
     // dialog budgets its height from a fixed guess at how tall the chrome is
     // (item 26), and a new row of buttons would eat straight into that budget.
@@ -6636,229 +7295,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
     return `<div class="legend">${chips}</div>`;
   }
 
-  _chartSvg(built, expanded) {
-    const { windowStart, windowEnd } = built;
-    const visible = this._series.filter((s) => s.visible && s.hasData);
-    // D4-01: the compact chart floors its rendered font (see
-    // compactFontUnits); the margins then scale with any boost beyond what
-    // the authored layout already accommodates, so axis labels keep their
-    // relative space instead of colliding.
-    const font = expanded
-      ? FONT_EXPANDED
-      : compactFontUnits(this._measuredCardWidth());
-    const marginScale = expanded ? 1 : Math.max(1, font / FONT_EXPANDED);
-
-    // Axis domains from visible series grouped by axis.
-    const groups = { temp: [], power: [], price: [], solar: [] };
-    for (const s of visible) {
-      for (const line of s.lines) {
-        for (const p of line.points) groups[s.axis].push(p.v);
-      }
-    }
-    const axisRange = (vals, forceZero) => {
-      if (!vals.length) return null;
-      let lo = Math.min(...vals);
-      let hi = Math.max(...vals);
-      if (forceZero) lo = Math.min(0, lo);
-      return niceAxis(lo, hi, 6);
-    };
-    const axes = {
-      temp: axisRange(groups.temp, false),
-      power: axisRange(groups.power, true),
-      price: axisRange(groups.price, true),
-      solar: axisRange(groups.solar, true),
-    };
-
-    // The compact chart's boosted font (D4-01) widens these with it; the
-    // authored values below are already laid out for FONT_EXPANDED, so the
-    // scale only engages past that.
-    const plotL = MARGIN.left * marginScale;
-    // Only pay for the solar axis's width when it is actually drawn; a
-    // permanently narrower plot would be a real cost to every user who does
-    // not use the series.
-    const rightMargin =
-      (axes.solar ? MARGIN_RIGHT_WITH_SOLAR : MARGIN.right) * marginScale;
-    const plotR = VIEW_W - rightMargin;
-    const plotT = MARGIN.top * marginScale;
-    const plotB = VIEW_H - MARGIN.bottom * marginScale;
-    const plotW = plotR - plotL;
-    const plotH = plotB - plotT;
-
-    const xSpan = windowEnd - windowStart || 1;
-    const scaleX = (t) => plotL + ((t - windowStart) / xSpan) * plotW;
-    const scaleY = (v, axisName) => {
-      const a = axes[axisName];
-      if (!a) return plotB;
-      const span = a.max - a.min || 1;
-      return plotB - ((v - a.min) / span) * plotH;
-    };
-
-    // Store geometry for hover.
-    this._plot = {
-      windowStart,
-      windowEnd,
-      scaleX,
-      scaleY,
-      axes,
-      plotL,
-      plotR,
-      plotT,
-      plotB,
-    };
-
-    const parts = [];
-
-    // Plot frame
-    parts.push(
-      `<rect x="${plotL}" y="${plotT}" width="${plotW}" height="${plotH}" fill="none" stroke="var(--divider-color,#e0e0e0)" stroke-width="1"/>`
-    );
-
-    // Hourly gridlines. How often they are labelled is worked out from the
-    // space available, so a wider chart or a shorter horizon labels more.
-    parts.push(
-      this._timeAxis(scaleX, plotT, plotB, windowStart, windowEnd, font)
-    );
-
-    // Value axes. Where two axes share a side, the inner one's title has only
-    // the gap to the outer axis to live in, and that gap does not grow with
-    // the font: at the expanded size "SEK/kWh" is wider than the 46 units
-    // between the price and solar axes, so it used to run straight through
-    // "W/m2". Measure the title and, when it does not fit, hang it off the
-    // inside of its own axis line instead -- the strip above the plot frame
-    // is empty, so the title stays beside the axis it names either way.
-    const titleFits = (unit, room) =>
-      textWidth(unit, font) + font * 0.6 <= room;
-    const powerTitleInset = 44;
-    // The price axis title carries the resolved currency, so the measured
-    // string and the drawn string must be the same value.
-    const priceUnit = this.plan.priceUnit();
-    const tempAnchor =
-      axes.power && !titleFits("\u00b0C", powerTitleInset) ? "start" : "end";
-    const priceAnchor =
-      axes.solar && !titleFits(priceUnit, SOLAR_AXIS_INSET) ? "end" : "start";
-
-    if (axes.temp)
-      parts.push(
-        this._valueAxis(
-          axes.temp, plotL, plotT, plotB, plotH, "left", 0,
-          scaleY, "temp", "\u00b0C", font, tempAnchor
-        )
-      );
-    if (axes.power)
-      parts.push(
-        this._valueAxis(
-          axes.power, plotL, plotT, plotB, plotH, "left", powerTitleInset,
-          scaleY, "power", "kW", font
-        )
-      );
-    if (axes.price)
-      parts.push(
-        this._valueAxis(
-          axes.price, plotR, plotT, plotB, plotH, "right", 0,
-          scaleY, "price", priceUnit, font, priceAnchor
-        )
-      );
-    if (axes.solar)
-      parts.push(
-        this._valueAxis(
-          axes.solar, plotR, plotT, plotB, plotH, "right", SOLAR_AXIS_INSET,
-          scaleY, "solar", "W/m\u00b2", font
-        )
-      );
-
-    // Now marker
-    const now = Date.now();
-    if (now >= windowStart && now <= windowEnd) {
-      const nx = scaleX(now);
-      parts.push(
-        `<line x1="${nx}" y1="${plotT}" x2="${nx}" y2="${plotB}" stroke="var(--primary-color,#03a9f4)" stroke-width="1.5" stroke-dasharray="4 3"/>`
-      );
-      parts.push(
-        `<text x="${nx + 3}" y="${plotT + font + 1}" font-size="${font}" fill="var(--primary-color,#03a9f4)">${esc(
-          L("plan.now")
-        )}</text>`
-      );
-    }
-
-    // Shade the stretch of the horizon whose prices are the learned diurnal
-    // prior rather than published market data. A plan that looks identical
-    // whether or not it rests on real prices cannot be audited.
-    const estimatedFrom = this.plan.estimatedPricesFrom();
-    if (estimatedFrom !== null && estimatedFrom < windowEnd) {
-      const ex = Math.max(plotL, scaleX(Math.max(estimatedFrom, windowStart)));
-      parts.push(
-        `<rect class="estimated" pointer-events="none" x="${ex}" y="${plotT}" width="${Math.max(
-          0,
-          plotR - ex
-        )}" height="${plotH}" fill="var(--secondary-text-color,#888)" fill-opacity="0.07"/>`
-      );
-      // D4-03: this used to sit at `plotB - 5`, directly on top of the
-      // lane-row labels drawn near the bottom of the plot (`_laneGroupInner`),
-      // garbling both. Anchored just under the top margin instead -- a strip
-      // that is otherwise empty except for the "now" marker's label, which
-      // lives at a different x (by the current-time line, not the start of
-      // the estimated region) whenever both happen to be visible together.
-      parts.push(
-        `<text x="${ex + 4}" y="${plotT + font + 4}" font-size="${font}" fill="var(--secondary-text-color,#888)">${esc(
-          L("plan.estimated_prices")
-        )}</text>`
-      );
-    }
-
-    // Editable slot lanes, and the geometry a pointer event needs to turn a
-    // screen coordinate back into a time. The lane metrics travel with the
-    // geometry (D4-01): a boosted compact font scales the lanes with it, and
-    // hit-testing must use the same numbers the drawing used.
-    if (this._editingEnabled()) {
-      this._geom = {
-        windowStart, windowEnd, plotL, plotW, plotR, plotB, font,
-        laneH: LANE_H * marginScale, laneGap: LANE_GAP * marginScale,
-        laneInset: LANE_BOTTOM_INSET * marginScale,
-      };
-      parts.push(`<g class="lanes">${this._laneGroupInner()}</g>`);
-    } else {
-      this._geom = null;
-    }
-
-    // Where BOTH circuits are planned in the same quarter hour the pump is
-    // time-sharing the step — hot water first, then heating. That is a
-    // deliberate relaxation (space + hot water ≤ nameplate per step), not
-    // double-booking, and two full-height bars with nothing said implied
-    // the impossible. Drawn under the bars so the bars stay readable.
-    // The list is passed in rather than read from this._series so the
-    // helper stays a pure function of its inputs.
-    parts.push(
-      this._sharedSpanBands(visible, scaleX, plotT, plotB, plotL, plotR)
-    );
-
-    // Series paths (filled/area series first, lines on top)
-    const order = ["stepArea", "stepBars", "smooth"];
-    for (const st of order) {
-      for (const s of visible) {
-        if (s.style !== st) continue;
-        parts.push(this._seriesPath(s, scaleX, scaleY, plotB));
-      }
-    }
-
-    // Crosshair placeholder (updated on hover)
-    parts.push(
-      `<line class="crosshair" pointer-events="none" x1="0" y1="${plotT}" x2="0" y2="${plotB}" stroke="var(--secondary-text-color,#888)" stroke-width="1" visibility="hidden"/>`
-    );
-
-    // role="img" flattens every descendant for assistive tech, which is
-    // right for a pure picture but wrong the moment the lanes put focusable
-    // slots inside it — those need "group" so they stay in the tree. The
-    // editable chart also takes tabindex="-1": it is the last-resort home
-    // for restored focus (`_restoreSlotFocus`), and an svg without a
-    // tabindex refuses programmatic focus.
-    const editing = this._editingEnabled();
-    return `<svg viewBox="0 0 ${VIEW_W} ${VIEW_H}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" role="${
-      editing ? "group" : "img"
-    }"${editing ? ' tabindex="-1"' : ""} aria-label="${esc(
-      this._title()
-    )}">${parts.join("")}</svg>`;
-  }
-
   /** The right-click menu for a lane.
    *
    * Rendered as plain HTML positioned over the card rather than as SVG, so it
@@ -7665,188 +8101,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
     return out.join("");
   }
 
-  /** Hourly gridlines, labelled as often as the width actually allows.
-   *
-   * Label density cannot be a fixed choice. The horizon is configurable, the
-   * chart is drawn in a fixed coordinate system, and the labels are formatted
-   * for the user's locale, so their width is not known in advance either --
-   * "13:00" is five characters but "12:00 AM" is eight. Build the labels
-   * first, measure the widest, and only then decide how many to show.
-   */
-  _timeAxis(scaleX, plotT, plotB, windowStart, windowEnd, font) {
-    const size = font || FONT_BASE;
-    const hour = 3600 * 1000;
-
-    const first = new Date(windowStart);
-    first.setMinutes(0, 0, 0);
-    if (first.getTime() < windowStart) first.setHours(first.getHours() + 1);
-
-    const ticks = [];
-    for (let t = first.getTime(); t <= windowEnd; t += hour) {
-      const d = new Date(t);
-      ticks.push({
-        t,
-        x: scaleX(t),
-        hours: d.getHours(),
-        label: d.toLocaleTimeString(ACTIVE_LANG, {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-      });
-    }
-    if (!ticks.length) return "";
-
-    // Widest rendered label, plus a gap, in viewBox units. The chart uses the
-    // default sans-serif face, whose characters average a little over half an
-    // em at these sizes.
-    const widest = ticks.reduce((n, tick) => Math.max(n, tick.label.length), 0);
-    const labelWidth = size * widest * CHAR_WIDTH_EM + size * 0.6;
-    const unitsPerHour = Math.abs(scaleX(windowStart + hour) - scaleX(windowStart));
-    const needed = unitsPerHour > 0 ? Math.ceil(labelWidth / unitsPerHour) : 3;
-    // Intervals that divide the day, so labels land on the same clock times
-    // each day rather than drifting across midnight.
-    const every =
-      TIME_LABEL_STEPS.find((step) => step >= Math.max(1, needed)) ||
-      TIME_LABEL_STEPS[TIME_LABEL_STEPS.length - 1];
-
-    const out = [];
-    for (const tick of ticks) {
-      const labelled = tick.hours % every === 0;
-      out.push(
-        `<line x1="${tick.x}" y1="${plotT}" x2="${tick.x}" y2="${plotB}" stroke="var(--divider-color,#eee)" stroke-width="${
-          labelled ? 1 : 0.5
-        }" opacity="${labelled ? 0.7 : 0.35}"/>`
-      );
-      if (labelled) {
-        out.push(
-          `<text x="${tick.x}" y="${plotB + size + 4}" font-size="${size}" text-anchor="middle" fill="var(--secondary-text-color,#888)">${esc(
-            tick.label
-          )}</text>`
-        );
-      }
-    }
-    return out.join("");
-  }
-
-  _valueAxis(
-    axis, xBase, plotT, plotB, plotH, side, inset, scaleY, axisName, unit,
-    font, titleAnchor
-  ) {
-    const size = font || FONT_BASE;
-    const out = [];
-    const x = side === "left" ? xBase - inset : xBase + inset;
-    const anchor = side === "left" ? "end" : "start";
-    const tx = side === "left" ? x - 5 : x + 5;
-    for (const tick of axis.ticks) {
-      const y = scaleY(tick, axisName);
-      out.push(
-        `<text x="${tx}" y="${y + size / 3}" font-size="${size}" text-anchor="${anchor}" fill="var(--secondary-text-color,#888)">${esc(
-          fmtTick(tick)
-        )}</text>`
-      );
-      const t1 = side === "left" ? x - 3 : x + 3;
-      out.push(
-        `<line x1="${x}" y1="${y}" x2="${t1}" y2="${y}" stroke="var(--secondary-text-color,#aaa)" stroke-width="0.75"/>`
-      );
-    }
-    // The title sits on the strip above the plot frame, normally running away
-    // from the chart like the tick labels do. When that would run it into the
-    // next axis out, the caller flips it to the other side of its own axis
-    // line, where the strip above the plot is empty. The gap scales with the
-    // font (D4-01) so a boosted compact font does not sit on the frame.
-    const uy = plotT - 4 * (size / FONT_BASE);
-    const ta = titleAnchor || anchor;
-    const ux = ta === "end" ? x - 5 : x + 5;
-    out.push(
-      `<text x="${ux}" y="${uy}" font-size="${size}" text-anchor="${ta}" fill="var(--secondary-text-color,#888)">${esc(
-        unit
-      )}</text>`
-    );
-    return out.join("");
-  }
-
-  _seriesPath(s, scaleX, scaleY, plotB) {
-    const out = [];
-    for (const line of s.lines) {
-      const pts = line.points.map((p) => ({
-        x: scaleX(p.t),
-        y: scaleY(p.v, s.axis),
-      }));
-      if (!pts.length) continue;
-
-      // D4-02: a single-point line has no second vertex to draw a
-      // line-to from, so `<path>` alone paints nothing (a bare "M x y", or
-      // for the area styles a zero-area triangle collapsed onto one x) --
-      // yet the series still counts as `hasData` and its legend chip still
-      // shows fully active. A visible dot is the honest reading of "one
-      // sample exists", and keeps the chip's claim true.
-      if (pts.length === 1) {
-        out.push(
-          `<circle class="series" data-key="${s.key}" pointer-events="none" cx="${pts[0].x.toFixed(2)}" cy="${pts[0].y.toFixed(2)}" r="3" fill="${s.color}"/>`
-        );
-        continue;
-      }
-
-      if (s.style === "stepArea" || s.style === "stepBars") {
-        const stepD = this._steppedLine(pts);
-        const baseY = plotB;
-        const areaD =
-          stepD +
-          ` L ${pts[pts.length - 1].x.toFixed(2)} ${baseY.toFixed(2)}` +
-          ` L ${pts[0].x.toFixed(2)} ${baseY.toFixed(2)} Z`;
-        const fillOpacity = s.style === "stepBars" ? 0.35 : 0.18;
-        out.push(
-          `<path class="series" data-key="${s.key}" pointer-events="none" d="${areaD}" fill="${s.color}" fill-opacity="${fillOpacity}" stroke="none"/>`
-        );
-        out.push(
-          `<path class="series" data-key="${s.key}" pointer-events="none" d="${stepD}" fill="none" stroke="${s.color}" stroke-width="1.5"/>`
-        );
-      } else {
-        const d = this._smoothLine(pts);
-        const dash = line.primary
-          ? ""
-          : ` stroke-dasharray="3 3" stroke-opacity="0.7"`;
-        out.push(
-          `<path class="series" data-key="${s.key}" pointer-events="none" d="${d}" fill="none" stroke="${s.color}" stroke-width="1.8"${dash}/>`
-        );
-      }
-    }
-    return out.join("");
-  }
-
-  _steppedLine(pts) {
-    let d = `M ${pts[0].x.toFixed(2)} ${pts[0].y.toFixed(2)}`;
-    for (let i = 1; i < pts.length; i++) {
-      d += ` L ${pts[i].x.toFixed(2)} ${pts[i - 1].y.toFixed(2)}`;
-      d += ` L ${pts[i].x.toFixed(2)} ${pts[i].y.toFixed(2)}`;
-    }
-    return d;
-  }
-
-  _smoothLine(pts) {
-    if (pts.length < 3) {
-      let d = `M ${pts[0].x.toFixed(2)} ${pts[0].y.toFixed(2)}`;
-      for (let i = 1; i < pts.length; i++)
-        d += ` L ${pts[i].x.toFixed(2)} ${pts[i].y.toFixed(2)}`;
-      return d;
-    }
-    let d = `M ${pts[0].x.toFixed(2)} ${pts[0].y.toFixed(2)}`;
-    for (let i = 0; i < pts.length - 1; i++) {
-      const p0 = pts[i - 1] || pts[i];
-      const p1 = pts[i];
-      const p2 = pts[i + 1];
-      const p3 = pts[i + 2] || p2;
-      const c1x = p1.x + (p2.x - p0.x) / 6;
-      const c1y = p1.y + (p2.y - p0.y) / 6;
-      const c2x = p2.x - (p3.x - p1.x) / 6;
-      const c2y = p2.y - (p3.y - p1.y) / 6;
-      d += ` C ${c1x.toFixed(2)} ${c1y.toFixed(2)} ${c2x.toFixed(2)} ${c2y.toFixed(
-        2
-      )} ${p2.x.toFixed(2)} ${p2.y.toFixed(2)}`;
-    }
-    return d;
-  }
-
   // ---- interaction -------------------------------------------------------
 
   _onLegendClick(ev) {
@@ -7984,149 +8238,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
     }
   }
 
-  /** Why the plan is heating at the hovered step, plus price provenance.
-   *
-   * Only reasons for steps that are actually heating are shown; "not heating"
-   * is not an explanation anyone needs, and printing it for every idle hour
-   * would bury the ones that matter. The one exception is a channel paused
-   * by the pump's own operating mode: those steps carry no power, so the
-   * hover would otherwise show nothing at all, and "the optimizer chose not
-   * to" is exactly the wrong reading of a mode the unit itself enforces.
-   */
-  _reasonHtml(rows) {
-    const out = [];
-    const seen = new Set();
-    // Which channel a pump_mode reason belongs to: several series read the
-    // same forecast (the house temperatures ride the space plan's points),
-    // so the reason can surface on a row whose field says nothing about the
-    // channel. Decide once, from the channel rows themselves, before the
-    // per-row loop dedupes the code away.
-    const pumpModeChannel = rows.some((r) => r.reason === "pump_mode")
-      ? rows.find((r) => r.reason === "pump_mode" &&
-          (r.field === "dhw_power" || r.field === "space_power"))
-      : undefined;
-    const pumpModeKey = !pumpModeChannel
-      ? null
-      : pumpModeChannel.field === "dhw_power"
-        ? "reasons.pump_mode_dhw"
-        : "reasons.pump_mode_space";
-    for (const r of rows) {
-      const pumpMode = r.reason === "pump_mode";
-      if ((!r.reason || r.reason === "idle") && !pumpMode) continue;
-      if (seen.has(r.reason)) continue;
-      seen.add(r.reason);
-      let label;
-      if (pumpMode) {
-        // Channel-aware where the channel is known; the generic wording
-        // otherwise. "Cannot do this" was true but never actionable.
-        label = L(pumpModeKey || "reasons.pump_mode");
-      } else {
-        label = REASON_LABELS[r.reason]
-          ? L(REASON_LABELS[r.reason])
-          : r.reason;
-      }
-      out.push(`<div class="tt-reason">${esc(label)}</div>`);
-    }
-    if (rows.some((r) => r.priceKnown === false)) {
-      out.push(
-        `<div class="tt-reason">${esc(L("plan.price_estimated"))}</div>`
-      );
-    }
-    return out.join("");
-  }
-
-  /** Hatched bands over every span where space and hot water share steps.
-   *
-   * Only when both power series are visible — hiding a channel hides its
-   * half of the story, and a band explaining an invisible series would be
-   * noise. The native <title> answers the "is this double-booking?"
-   * question right where it is asked.
-   */
-  _sharedSpanBands(seriesList, scaleX, plotT, plotB, plotL, plotR) {
-    const powerSeries = (field) =>
-      (seriesList || []).find(
-        (s) => s.field === field && s.visible && s.hasData
-      );
-    const space = powerSeries("space_power");
-    const dhw = powerSeries("dhw_power");
-    if (!space || !dhw) return "";
-    // Through the field helper, not `lines[0]`: a hole anywhere in a power
-    // series splits it into segments, and the span search needs all of them.
-    const pointsOf = (s) => fieldPoints(s, s.field);
-    const spacePts = pointsOf(space);
-    const dhwPts = pointsOf(dhw);
-    if (spacePts.length < 2 || dhwPts.length < 2) return "";
-    const spaceAt = new Map(spacePts.map((p) => [p.t, p.v]));
-    let step = Infinity;
-    for (let i = 1; i < dhwPts.length; i++) {
-      step = Math.min(step, dhwPts[i].t - dhwPts[i - 1].t);
-    }
-    if (!Number.isFinite(step) || step <= 0) return "";
-    const spans = [];
-    for (const p of dhwPts) {
-      const sv = spaceAt.get(p.t);
-      if (p.v > 0.05 && sv !== undefined && sv > 0.05) {
-        const last = spans[spans.length - 1];
-        if (last && p.t <= last.end + step / 2) last.end = p.t + step;
-        else spans.push({ start: p.t, end: p.t + step });
-      }
-    }
-    if (!spans.length) return "";
-    // The pattern id must be unique per chart: with the dialog open the
-    // inline and expanded charts render into one shadow root, and two
-    // <pattern> elements sharing an id is invalid markup that would
-    // silently couple them.
-    const pid = `hpoShared${++HeatpumpOptimizerCard._sharedPatternSeq}`;
-    const out = [
-      `<defs><pattern id="${pid}" width="6" height="6"
-        patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-        <line x1="0" y1="0" x2="0" y2="6"
-          stroke="var(--secondary-text-color,#888)" stroke-width="1.4"/>
-      </pattern></defs>`,
-    ];
-    for (const span of spans) {
-      const x1 = Math.max(plotL, scaleX(span.start));
-      const x2 = Math.min(plotR, scaleX(span.end));
-      if (x2 <= x1) continue;
-      // pointer-events none is load-bearing: the band spans the full plot
-      // and paints after the what-if lanes, so without it a low-power
-      // shared span would swallow the slot editor's drags and clicks.
-      out.push(`<rect class="shared-band" pointer-events="none" x="${x1}" y="${plotT}" width="${
-        x2 - x1
-      }" height="${plotB - plotT}" fill="url(#${pid})" fill-opacity="0.18">
-        <title>${esc(L("plan.shared_band_title"))}</title>
-      </rect>`);
-    }
-    return out.join("");
-  }
-
-  /** The tooltip's shared-step line, or "" when this step is not shared.
-   *
-   * A step carrying both circuits is the pump splitting the quarter hour,
-   * and the hover tooltip is where that question is actually asked. Both
-   * rows must come from the SAME timestamp: each series snaps to its own
-   * nearest point, and with mismatched grids (a stale third-party sensor)
-   * the two nearest points can be hours apart — pairing those would claim
-   * sharing the band correctly refuses to draw.
-   */
-  _sharedTooltipHtml(rows) {
-    const rowByField = (f) => (rows || []).find((r) => r.field === f);
-    const spaceRow = rowByField("space_power");
-    const dhwRow = rowByField("dhw_power");
-    if (
-      !spaceRow ||
-      !dhwRow ||
-      spaceRow.t !== dhwRow.t ||
-      !(spaceRow.value > 0.05) ||
-      !(dhwRow.value > 0.05)
-    ) {
-      return "";
-    }
-    return `<div class="tt-shared">${L("plan.shared_step_tooltip", {
-      kw: esc(fmtTick(spaceRow.value + dhwRow.value)),
-    })}</div>`;
-  }
-
   _onPointerMove(ev) {
     if (!this._plot) return;
     const isLowerModelled = () => this.plan.lowerFloorModelled();
@@ -8151,47 +8262,11 @@ class HeatpumpOptimizerCard extends HTMLElement {
     const span = windowEnd - windowStart || 1;
     const t = windowStart + ((vbX - plotL) / (plotR - plotL)) * span;
 
-    const visible = this._series.filter((s) => s.visible && s.hasData);
-    const rows = [];
-    let snapX = vbX;
-    let snapped = false;
-    for (const s of visible) {
-      // Every trace, not just the primary one. The house-temperature series
-      // draws three traces and the tooltip used to report the room's value
-      // for all of them, so hovering a 28 C zone line showed 21 C.
-      //
-      // Iterated per FIELD rather than per line: v5.2.0 lets holes break one
-      // field into several segments, and one row per segment would report
-      // the same trace two or three times over.
-      const traces = [
-        { field: s.field, primary: true, labelKey: s.labelKey },
-      ].concat(extraFields(s));
-      // A band's two edges are collapsed into the single ± figure they
-      // actually carry, rather than reported as two absolute temperatures.
-      const bandFields = s.band ? [s.band.lo, s.band.hi] : [];
-      for (const line of traces) {
-        if (bandFields.includes(line.field)) continue;
-        const best = nearestPoint(s, line.field, t);
-        if (!best) continue;
-        if (!snapped) {
-          snapX = scaleX(best.t);
-          snapped = true;
-        }
-        rows.push({
-          color: s.color,
-          label: lineLabel(s, line, isLowerModelled),
-          dashed: !line.primary,
-          value: best.v,
-          unit: this.plan.seriesUnit(s),
-          t: best.t,
-          field: line.field,
-          reason: best.reason,
-          priceKnown: best.priceKnown,
-        });
-      }
-      // ... and then the band, as one row, right under the line it brackets.
-      for (const row of bandRow(s, t, this.plan.seriesUnit(s))) rows.push(row);
-    }
+    const { rows, snapT } = tooltipRows(this._series, t, {
+      seriesUnit: (s) => this.plan.seriesUnit(s),
+      isLowerModelled,
+    });
+    const snapX = snapT === null ? vbX : scaleX(snapT);
     if (!rows.length) {
       this._onPointerLeave();
       return;
@@ -8209,27 +8284,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
 
     const tt = scope.querySelector(".tooltip");
     if (tt) {
-      const time = new Date(rows[0].t).toLocaleString(ACTIVE_LANG, {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-      const sharedHtml = this._sharedTooltipHtml(rows);
-      const bodyHtml =
-        `<div class="tt-time">${esc(time)}</div>` +
-        rows
-          .map(
-            (r) =>
-              `<div class="tt-row"><span class="dot" style="${dotStyle(
-                r.color,
-                r.dashed
-              )}"></span>${esc(r.label)}: ${esc(
-                (r.prefix || "") + fmtTick(r.value)
-              )} ${esc(r.unit)}</div>`
-          )
-          .join("") +
-        sharedHtml +
-        this._reasonHtml(rows);
-      tt.innerHTML = bodyHtml;
+      tt.innerHTML = tooltipHtml(rows);
       tt.hidden = false;
       const leftPx = clientX - rect.left;
       const place = leftPx > rect.width * 0.6 ? leftPx - 160 : leftPx + 14;
@@ -8413,6 +8468,13 @@ class HeatpumpOptimizerCard extends HTMLElement {
   }
   _chartSvgs(root) {
     return chartSvgs(root || this.shadowRoot);
+  }
+
+  _reasonHtml(rows) {
+    return reasonHtml(rows);
+  }
+  _sharedTooltipHtml(rows) {
+    return sharedTooltipHtml(rows);
   }
 
 }
