@@ -1,5 +1,40 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.2.8
+
+### The batched gradient finally serves the installs that needed it
+
+v6.2.0's batched finite-difference gradient only served solves with
+uniform bounds — but hot water is on by default, and any DHW block pins
+the space bounds unevenly. 44 of 58 golden-sweep solves (38 of 39
+DHW-enabled scenarios) silently fell back to the slow scalar path; the
+batch effectively never reached real users.
+
+The gate now serves every usable bound list **except zero-range entries**
+(`lb == ub`: manual pins, or a DHW block consuming the entire cap). At a
+pinned variable the one-sided FD step is zero and the divided difference
+is 0/0 = NaN — for the batch and for scipy's own estimate alike — and
+there the jac-supplied path demonstrably diverges from scipy's own
+(scipy's first Fortran evaluation lands one ULP off the pin, which turns
+the 0/0 into 0/dx; nothing outside scipy guarantees that nudge).
+
+**Measured: all 49 golden scenarios' optimize() calls 250.8 s → 35.8 s
+(7.0×); the worst case went 31.8 s → 1.8 s. 57 of 58 solves now take
+the batch (was 13).** The executor-wrapped GIL window shrinks by the
+same factor on every DHW install, and CI's own stress sweep visibly
+sped up.
+
+Two tariff fixtures legitimately moved and are claimed: under `jac=None`
+scipy books every FD row into the 15,000-evaluation budget, so those
+solves stopped at the limit (nit 43, nfev 15,035) while the batched path
+converged (nit 69, nfev 283) to plans **7.3 % cheaper** on the same
+objective. The other 48 fixtures are byte-identical.
+
+Also in this release: the batch simulation no longer leaves stale
+`last_buffer_trajectory` side-channels (a poison sentinel now raises on
+use — no production reader is affected today, and none can be added
+silently).
+
 ## v6.2.7
 
 ### The docs say what the code does (audit round 1, part 1)

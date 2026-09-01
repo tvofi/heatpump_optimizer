@@ -43,7 +43,7 @@
 # does not expire with the stamp and is not part of the inherited-claims
 # comparison.
 #
-# claims-for: 6.2.7
+# claims-for: 6.2.8
 #
 # D9-01 (the batched gradient serving DHW solves) removes an evaluation-
 # starvation ceiling, and exactly the two most expensive tariff solves
