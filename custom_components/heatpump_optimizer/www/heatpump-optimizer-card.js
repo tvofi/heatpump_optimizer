@@ -11,7 +11,7 @@
 
 const CARD_TAG = "heatpump-optimizer-card";
 const EDITOR_TAG = "heatpump-optimizer-card-editor";
-const CARD_VERSION = "5.4.9";
+const CARD_VERSION = "5.4.10";
 
 // The de-duplication key `_extraFields` files a confidence band's two
 // edges under, so the pair counts as the one named trace it is. A Symbol
@@ -6169,6 +6169,649 @@ class LaneEditor {
   }
 }
 
+// ---- WhatIfPanel ----------------------------------------------------------
+// The schedule editor and what-if simulator in the expanded view: the draft
+// of the heating hours, the hot water windows and the two temperatures
+// (held here so a plan refresh does not throw away half-finished edits),
+// the sliders' shared debounce, the simulate call, and the two-press save
+// through `apply_schedule`. Its first section, "Today's slots", belongs to
+// `host.manual`; this panel places it. Uses `host.plan`, `host.hass`,
+// `host.shadowRoot`, `host.config` and `host.renderForced()`. PR 6 of #136.
+class WhatIfPanel {
+  constructor(host) {
+    this.host = host;
+    // The values the editor is showing; null until first asked for (`draft`).
+    this.values = null;
+    // The sliders' one shared debounce timer (see `attach`).
+    this.timer = null;
+    // The save confirmation: armed by the first press, lapses on its own.
+    this.pendingSave = false;
+    this.saveTimer = null;
+    this.onInput = this.onInput.bind(this);
+    this.onSlotEdit = this.onSlotEdit.bind(this);
+    this.onAddWindow = this.onAddWindow.bind(this);
+    this.onRemoveWindow = this.onRemoveWindow.bind(this);
+    this.onApplySlots = this.onApplySlots.bind(this);
+    this.onSaveSchedule = this.onSaveSchedule.bind(this);
+    this.onReset = this.onReset.bind(this);
+  }
+
+  /** Nothing of this panel may outlive the card: a pending what-if solve
+   * would fire after the card is gone, spending seconds of coordinator CPU
+   * to write into a detached DOM, and an armed save confirmation must not
+   * survive it either. */
+  disconnect() {
+    if (this.timer) {
+      clearTimeout(this.timer);
+      this.timer = null;
+    }
+    if (this.saveTimer) {
+      clearTimeout(this.saveTimer);
+      this.saveTimer = null;
+    }
+    this.pendingSave = false;
+  }
+
+  /** The what-if panel, shown in the expanded view only.
+   *
+   * Two different questions live here, so they are kept visibly apart.
+   *
+   * "Today's slots" is about *this* day. The plan is drawn as draggable slots
+   * on their own lanes under the chart, and moving them re-prices the day
+   * against the published plan so the cost of the change is visible before it
+   * is made. "Apply this plan" pins the arrangement through the
+   * `apply_manual_plan` service; the optimizer then keeps the timing but is
+   * still free to choose how hard to run, and safety limits still override it.
+   *
+   * "My usual schedule" is about *every* day: the hours the house is heated
+   * and the hot water demand windows. "Temperatures" holds the two setpoints
+   * those hours are measured against -- the comfort target and the usable hot
+   * water minimum. They are split because a lone temperature slider inside a
+   * section about scheduling reads as a stray control with no context; paired
+   * under a heading of their own, both are obviously the same kind of setting.
+   *
+   * All of it is priced per month against a copy of the configuration on the
+   * coordinator side, so exploring cannot disturb operation. Both temperature
+   * sliders are debounced, and deliberately share one timer: two independent
+   * debounces racing on one service call is how the delta ends up showing the
+   * price of the previous drag. The time fields apply on an explicit button,
+   * because editing a time range is not a drag gesture and half-typed times
+   * should not trigger a solve. "Save as my schedule" writes all of it into the
+   * config entry through `apply_schedule`, and asks for confirmation first.
+   */
+  html() {
+    if (!this.host.config.what_if) return "";
+    const draft = this.draft();
+    const windows = draft.dhwWindows;
+    const setpoint = this.host.plan.attr("dhw_setpoint", null);
+    const ceiling = this.dhwMinCeiling();
+    // Re-clamp on every render rather than only when the draft is seeded: the
+    // setpoint is configurable and may have moved since, and a slider whose
+    // maximum was computed against a stale setpoint is precisely the bug this
+    // item warns about. `clamped` is the value the user had *before* the clamp,
+    // and is non-null only when it genuinely had to be lowered -- silently
+    // reducing someone's hot water minimum deserves saying so out loud.
+    let clamped = null;
+    if (draft.dhwMin > ceiling) {
+      clamped = draft.dhwMin;
+      draft.dhwMin = ceiling;
+    }
+    const windowHours = this.host.plan.attr(
+      "manual_plan_window_hours",
+      MANUAL_PLAN_WINDOW_FALLBACK_H
+    );
+    return `
+      <div class="whatif">
+        ${this.host.manual.sectionHtml(windowHours)}
+
+        <div class="wi-section">
+          <div class="wi-group-title">${esc(L("whatif.usual_schedule"))}</div>
+          <div class="wi-hint">
+            ${L("whatif.schedule_hint")}
+          </div>
+        <div class="wi-row wi-slots">
+          <div class="wi-group">
+            <div class="wi-group-title">${esc(L("whatif.heating_hours"))}</div>
+            <label class="wi-field">
+              <span>${esc(L("whatif.day_from"))}</span>
+              <input type="time" class="wi-day-start" step="3600"
+                value="${hhmm(draft.dayStart)}" aria-label="${esc(
+                  L("whatif.day_start_aria")
+                )}">
+            </label>
+            <label class="wi-field">
+              <span>${esc(L("whatif.day_to"))}</span>
+              <input type="time" class="wi-day-end" step="3600"
+                value="${hhmm(draft.dayEnd)}" aria-label="${esc(
+                  L("whatif.day_end_aria")
+                )}">
+            </label>
+            <div class="wi-hint">${L("whatif.setback_hint")}</div>
+          </div>
+
+          <div class="wi-group">
+            <div class="wi-group-title">${esc(L("whatif.dhw_windows"))}</div>
+            <div class="wi-windows">
+              ${windows.length
+                ? windows
+                    .map(
+                      (w, i) => `
+                <div class="wi-window" data-index="${i}">
+                  <input type="time" class="wi-win-start" step="900"
+                    value="${esc(w.start)}" aria-label="${esc(
+                      L("whatif.window_start_aria", { n: i + 1 })
+                    )}">
+                  <span>–</span>
+                  <input type="time" class="wi-win-end" step="900"
+                    value="${esc(w.end)}" aria-label="${esc(
+                      L("whatif.window_end_aria", { n: i + 1 })
+                    )}">
+                  <button type="button" class="wi-remove" data-index="${i}"
+                    title="${esc(L("whatif.remove"))}" aria-label="${esc(
+                      L("whatif.remove_window_aria", { n: i + 1 })
+                    )}">×</button>
+                </div>`
+                    )
+                    .join("")
+                : `<div class="wi-hint">${L("whatif.no_windows_hint")}</div>`}
+            </div>
+            <button type="button" class="wi-add">${esc(
+              L("whatif.add_window")
+            )}</button>
+          </div>
+        </div>
+
+        <div class="wi-row wi-actions">
+          <button type="button" class="wi-apply">${esc(
+            L("whatif.simulate")
+          )}</button>
+          <button type="button" class="wi-save">${esc(
+            L("whatif.save_schedule")
+          )}</button>
+          <button type="button" class="wi-reset">${esc(
+            L("whatif.reset")
+          )}</button>
+        </div>
+
+        <div class="wi-result" role="status">
+          ${L("whatif.idle_status")}
+        </div>
+        </div>
+
+        <div class="wi-section">
+          <div class="wi-group-title">${esc(L("whatif.temperatures"))}</div>
+          <div class="wi-hint">
+            ${L("whatif.temperatures_hint")}
+          </div>
+          <div class="wi-row">
+            <label class="wi-field">
+              <span>${esc(L("whatif.comfort_temp"))}</span>
+              <input type="range" class="wi-temp" min="16" max="24" step="0.5"
+                value="${draft.comfort}" aria-label="${esc(
+                  L("whatif.comfort_temp")
+                )}">
+              <span class="wi-value wi-comfort-value">${draft.comfort.toFixed(1)}&nbsp;°C</span>
+            </label>
+          </div>
+          <div class="wi-row">
+            <label class="wi-field">
+              <span>${esc(L("whatif.dhw_min"))}</span>
+              <input type="range" class="wi-dhw-min" min="${DHW_MIN_FLOOR}"
+                max="${ceiling}" step="0.5" value="${draft.dhwMin}"
+                aria-label="${esc(L("whatif.dhw_min_aria"))}">
+              <span class="wi-value wi-dhw-value">${draft.dhwMin.toFixed(1)}&nbsp;°C</span>
+            </label>
+          </div>
+          <div class="wi-hint">
+            ${
+              setpoint === null
+                ? L("whatif.cap_no_setpoint", { t: fmtTemp(ceiling) })
+                : L("whatif.cap_with_setpoint", {
+                    t: fmtTemp(ceiling),
+                    band: fmtTemp(setpoint - ceiling),
+                    setpoint: fmtTemp(setpoint),
+                  })
+            }
+          </div>
+          ${
+            clamped
+              ? `<div class="wi-hint wi-warn">${L("whatif.clamped_warning", {
+                  a: fmtTemp(clamped),
+                  b: fmtTemp(draft.dhwMin),
+                })}</div>`
+              : ""
+          }
+        </div>
+      </div>
+    `;
+  }
+
+  /** The values the editor is currently showing.
+   *
+   * Held on the instance so a data refresh, which rebuilds the whole shadow
+   * root, does not throw away half-finished edits.
+   */
+  draft() {
+    if (!this.values) {
+      this.values = {
+        comfort: this.currentComfortTemp(),
+        dhwMin: this.currentDhwMin(),
+        dayStart: this.host.plan.attr("day_start_hour", 7),
+        dayEnd: this.host.plan.attr("day_end_hour", 22),
+        dhwWindows: this.currentDhwWindows(),
+      };
+    }
+    return this.values;
+  }
+
+  /** Current comfort target, as the optimizer itself is planning against.
+   *
+   * This has to come from our own plan sensor. Scanning `climate.*` picks an
+   * arbitrary thermostat -- a frost-protection TRV, an AC, a towel rail --
+   * whose setpoint has nothing to do with the space-heating plan.
+   */
+  currentComfortTemp() {
+    return this.host.plan.attr("comfort_temp_day", 21);
+  }
+
+  /** Current usable hot water minimum, as configured. */
+  currentDhwMin() {
+    return Math.min(
+      this.host.plan.attr("dhw_min_temperature", DHW_MIN_FALLBACK),
+      this.dhwMinCeiling()
+    );
+  }
+
+  /** Highest hot water minimum that still leaves a deadband under the setpoint.
+   *
+   * Computed by the integration and published on the plan sensor, so the margin
+   * exists in one place: the backend validates `apply_schedule` against the same
+   * number, and the card cannot drift away from it. The fallback only matters
+   * before the first plan arrives, when no setpoint has been published yet.
+   */
+  dhwMinCeiling() {
+    const published = this.host.plan.attr("dhw_min_temperature_max", null);
+    return published === null ? DHW_MIN_FALLBACK : published;
+  }
+
+  /** Demand windows the DHW plan sensor is currently planning against.
+   *
+   * Normalised to what the editor's own validator accepts, which is what an
+   * `<input type="time">` can hold. The SAVE path never needed this -- it
+   * calls `_onSlotEdit` first, which re-reads the window rows out of the DOM
+   * -- but the slider path does not touch the DOM at all: `_onWhatIfInput`
+   * writes one number into this memoised draft and `_runWhatIf` validates
+   * the draft. A household whose hot water is guaranteed until midnight
+   * therefore could not price a single change; every simulate was refused by
+   * the card, blaming the schedule the integration had just published.
+   */
+  currentDhwWindows() {
+    const st = this.host.plan.stateOf(this.host.plan.resolveEntity("dhw"));
+    const spec = ((st && st.attributes) || {}).dhw_windows;
+    return parseWindows(spec).map((w) => ({
+      start: endOfDayAsMidnight(w.start),
+      end: endOfDayAsMidnight(w.end),
+    }));
+  }
+
+  /** Wire the what-if controls, if the panel is present. */
+  attach(root) {
+    const panel = root.querySelector(".whatif");
+    if (!panel) return;
+
+    // Every control stops propagation: without it, a click inside the panel
+    // reaches the card handler and toggles the expanded view underneath.
+    // Both temperature sliders share this handler, and therefore share the
+    // single debounce timer it sets. Giving each its own timer would let two
+    // solves race on one service call, and the delta would end up reporting the
+    // price of whichever drag happened to land second.
+    [".wi-temp", ".wi-dhw-min"].forEach((sel) => {
+      root.querySelectorAll(sel).forEach((slider) => {
+        slider.addEventListener("input", this.onInput);
+        slider.addEventListener("click", stop);
+      });
+    });
+    root.querySelectorAll("input[type=time]").forEach((el) => {
+      el.addEventListener("click", stop);
+      el.addEventListener("change", this.onSlotEdit);
+    });
+    const add = root.querySelector(".wi-add");
+    if (add) add.addEventListener("click", this.onAddWindow);
+    root
+      .querySelectorAll(".wi-remove")
+      .forEach((el) => el.addEventListener("click", this.onRemoveWindow));
+    const apply = root.querySelector(".wi-apply");
+    if (apply) apply.addEventListener("click", this.onApplySlots);
+    const save = root.querySelector(".wi-save");
+    if (save) save.addEventListener("click", this.onSaveSchedule);
+    const reset = root.querySelector(".wi-reset");
+    if (reset) reset.addEventListener("click", this.onReset);
+  }
+
+  onInput(ev) {
+    stop(ev);
+    const value = Number(ev.target.value);
+    if (!Number.isFinite(value)) return;
+    const draft = this.draft();
+    const target = ev.target || {};
+    const isDhw = !!(
+      target.classList &&
+      target.classList.contains &&
+      target.classList.contains("wi-dhw-min")
+    );
+    if (isDhw) draft.dhwMin = value;
+    else draft.comfort = value;
+
+    // Each readout carries its own class. There are two `.wi-value` spans now,
+    // so a lookup on the shared class would keep rewriting whichever came
+    // first regardless of which slider actually moved.
+    const label = this.host.shadowRoot.querySelector(
+      isDhw ? ".wi-dhw-value" : ".wi-comfort-value"
+    );
+    if (label) label.textContent = `${value.toFixed(1)}\u00a0°C`;
+
+    // Debounce so a drag does not fire a solve per pixel. The coordinator
+    // rate-limits as well, but sending the calls at all is wasteful.
+    if (this.timer) clearTimeout(this.timer);
+    this.timer = setTimeout(() => this.run(), 400);
+  }
+
+  /** Read the editors back into the draft, without simulating. */
+  onSlotEdit(ev) {
+    stop(ev);
+    const root = this.host.shadowRoot;
+    const draft = this.draft();
+    const before = this.draftSignature();
+
+    const dayStart = root.querySelector(".wi-day-start");
+    const dayEnd = root.querySelector(".wi-day-end");
+    if (dayStart) draft.dayStart = hourOf(dayStart.value, draft.dayStart);
+    if (dayEnd) draft.dayEnd = hourOf(dayEnd.value, draft.dayEnd);
+
+    draft.dhwWindows = [...root.querySelectorAll(".wi-window")].map((row) => ({
+      start: (row.querySelector(".wi-win-start") || {}).value || "00:00",
+      end: (row.querySelector(".wi-win-end") || {}).value || "00:00",
+    }));
+
+    // An armed confirmation refers to the values that were on screen when it
+    // was armed. Only disarm if they actually changed — the save handler
+    // itself calls this to flush the editors, and that must not cancel the
+    // confirmation it is in the middle of.
+    if (this.pendingSave && this.draftSignature() !== before) {
+      this.cancelPendingSave();
+    }
+  }
+
+  /** A comparable summary of the draft, for spotting real edits. */
+  draftSignature() {
+    const d = this.draft();
+    return JSON.stringify([
+      d.comfort,
+      d.dhwMin,
+      d.dayStart,
+      d.dayEnd,
+      d.dhwWindows.map((w) => `${w.start}-${w.end}`),
+    ]);
+  }
+
+  onAddWindow(ev) {
+    stop(ev);
+    this.onSlotEdit(ev);
+    this.draft().dhwWindows.push({ start: "06:00", end: "08:00" });
+    this.host.renderForced();
+  }
+
+  onRemoveWindow(ev) {
+    stop(ev);
+    this.onSlotEdit(ev);
+    const index = Number(ev.currentTarget.getAttribute("data-index"));
+    const draft = this.draft();
+    if (Number.isFinite(index)) draft.dhwWindows.splice(index, 1);
+    this.host.renderForced();
+  }
+
+  onApplySlots(ev) {
+    stop(ev);
+    this.onSlotEdit(ev);
+    if (this.timer) clearTimeout(this.timer);
+    this.run();
+  }
+
+  onReset(ev) {
+    stop(ev);
+    this.values = null;
+    this.pendingSave = false;
+    this.host.renderForced();
+  }
+
+  /** Persist the edited schedule, on a deliberate second press.
+   *
+   * Simulating is free and reversible, so it happens on one click. Saving
+   * replaces the schedule the house actually runs on and reloads the
+   * integration, so it asks first. The confirmation lives in the button label
+   * rather than a `confirm()` dialog because the card is already inside a
+   * modal, and a nested browser prompt inside a `showModal()` dialog is easy
+   * to miss behind the backdrop.
+   */
+  async onSaveSchedule(ev) {
+    stop(ev);
+    this.onSlotEdit(ev);
+
+    const root = this.host.shadowRoot;
+    const out = root && root.querySelector(".wi-result");
+    const button = root && root.querySelector(".wi-save");
+    if (!out || !button) return;
+
+    if (!this.host.hass || typeof this.host.hass.callService !== "function") {
+      out.className = "wi-result dearer";
+      out.textContent = L("errors.not_connected");
+      return;
+    }
+
+    const draft = this.draft();
+    const invalid = draft.dhwWindows.find(
+      (w) => hourOf(w.start, null) === null || hourOf(w.end, null) === null
+    );
+    if (invalid) {
+      out.className = "wi-result dearer";
+      out.textContent = L("errors.invalid_window_time", {
+        window: `${invalid.start}-${invalid.end}`,
+      });
+      return;
+    }
+    if (draft.dayStart === draft.dayEnd) {
+      out.className = "wi-result dearer";
+      out.textContent = L("errors.day_start_equals_end");
+      return;
+    }
+
+    if (!this.pendingSave) {
+      this.pendingSave = true;
+      button.textContent = L("whatif.confirm_overwrite");
+      button.classList.add("confirm");
+      out.className = "wi-result";
+      out.textContent = L("whatif.confirm_hint");
+      // Let the decision lapse rather than sit armed indefinitely: a stray
+      // click minutes later should not rewrite the configuration.
+      clearTimeout(this.saveTimer);
+      this.saveTimer = setTimeout(() => this.cancelPendingSave(), 8000);
+      return;
+    }
+
+    this.cancelPendingSave();
+    out.className = "wi-result";
+    out.textContent = L("whatif.saving");
+    button.disabled = true;
+    try {
+      await this.host.hass.callService("heatpump_optimizer", "apply_schedule", {
+        day_start_hour: draft.dayStart,
+        day_end_hour: draft.dayEnd,
+        dhw_windows: formatWindows(draft.dhwWindows),
+        comfort_temp_day: draft.comfort,
+        dhw_min_temperature: draft.dhwMin,
+      });
+      out.className = "wi-result cheaper";
+      out.textContent = L("whatif.saved_result");
+      // The draft has become the configuration, so drop it: keeping it would
+      // leave the editor showing an "unsaved" copy of what is now saved.
+      this.values = null;
+    } catch (err) {
+      out.className = "wi-result dearer";
+      out.textContent = L("errors.could_not_save", {
+        err: (err && err.message) || err,
+      });
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  cancelPendingSave() {
+    clearTimeout(this.saveTimer);
+    this.saveTimer = null;
+    this.pendingSave = false;
+    const button =
+      this.host.shadowRoot && this.host.shadowRoot.querySelector(".wi-save");
+    if (button) {
+      button.textContent = L("whatif.save_schedule");
+      button.classList.remove("confirm");
+    }
+  }
+
+  /** Everything the draft changes, as service call arguments. */
+  overrides() {
+    const draft = this.draft();
+    return {
+      target_temp: draft.comfort,
+      comfort_temp_day: draft.comfort,
+      // Already accepted by SERVICE_SCHEMA_SIMULATE_PLAN and applied to the
+      // scratch parameters by the coordinator, so pricing this needs no
+      // backend change; only the save path below did.
+      dhw_min_temperature: draft.dhwMin,
+      day_start_hour: draft.dayStart,
+      day_end_hour: draft.dayEnd,
+      // Deliberately sent even when empty: an empty schedule is a legitimate
+      // thing to price, and it is how a user asks "what if I stopped
+      // guaranteeing hot water at fixed times?"
+      dhw_windows: formatWindows(draft.dhwWindows),
+    };
+  }
+
+  async run() {
+    const out = this.host.shadowRoot && this.host.shadowRoot.querySelector(".wi-result");
+    if (!out || !this.host.hass || typeof this.host.hass.callService !== "function") {
+      return;
+    }
+    const draft = this.draft();
+    const invalid = draft.dhwWindows.find(
+      (w) => hourOf(w.start, null) === null || hourOf(w.end, null) === null
+    );
+    if (invalid) {
+      out.className = "wi-result dearer";
+      out.textContent = L("errors.invalid_window_time", {
+        window: `${invalid.start}-${invalid.end}`,
+      });
+      return;
+    }
+
+    out.className = "wi-result";
+    out.textContent = L("whatif.simulating");
+    try {
+      const response = await this.host.hass.callService(
+        "heatpump_optimizer",
+        "simulate_plan",
+        this.overrides(),
+        undefined,
+        false,
+        true
+      );
+      const results =
+        (response && response.response && response.response.results) || {};
+      const first = Object.values(results)[0];
+      if (!first || first.error) {
+        out.className = "wi-result dearer";
+        out.textContent = first && first.error
+          ? L("errors.could_not_simulate", { err: first.error })
+          : L("errors.no_answer");
+        return;
+      }
+      out.className = "wi-result";
+      out.innerHTML = this.summary(first);
+    } catch (err) {
+      out.className = "wi-result dearer";
+      out.textContent = L("errors.could_not_simulate", {
+        err: err && err.message ? err.message : err,
+      });
+    }
+  }
+
+  /** Money first, then what it costs in comfort.
+   *
+   * Reporting only the saving would invite the obvious mistake: a plan is
+   * always cheaper if it is allowed to be colder, or to let the tank run down.
+   */
+  summary(result) {
+    const delta = Number(result.monthly_cost_delta);
+    const parts = [];
+
+    if (!Number.isFinite(delta)) {
+      return L("errors.no_answer");
+    }
+    if (Math.abs(delta) < 0.5) {
+      parts.push(L("whatif.same_cost"));
+    } else {
+      const cheaper = delta < 0;
+      parts.push(
+        L(cheaper ? "whatif.cheaper_per_month" : "whatif.dearer_per_month", {
+          amount: Math.abs(delta).toFixed(0),
+        })
+      );
+    }
+
+    const room = Number(result.min_room_temperature);
+    const roomBase = Number(result.baseline_min_room_temperature);
+    if (Number.isFinite(room)) {
+      const drop = Number.isFinite(roomBase) ? room - roomBase : null;
+      parts.push(
+        L("whatif.min_room_temp", { t: room.toFixed(1) }) +
+          (drop !== null && Math.abs(drop) >= 0.1
+            ? ` (${drop > 0 ? "+" : ""}${drop.toFixed(1)})`
+            : "")
+      );
+    }
+
+    const dhw = Number(result.min_dhw_temperature);
+    const dhwBase = Number(result.baseline_min_dhw_temperature);
+    if (Number.isFinite(dhw)) {
+      const drop = Number.isFinite(dhwBase) ? dhw - dhwBase : null;
+      parts.push(
+        L("whatif.min_dhw_temp", { t: dhw.toFixed(1) }) +
+          (drop !== null && Math.abs(drop) >= 0.1
+            ? ` (${drop > 0 ? "+" : ""}${drop.toFixed(1)})`
+            : "")
+      );
+    }
+
+    if (Number.isFinite(Number(result.compressor_starts))) {
+      parts.push(
+        L(
+          Number(result.compressor_starts) === 1
+            ? "whatif.compressor_starts_one"
+            : "whatif.compressor_starts_other",
+          { n: result.compressor_starts }
+        )
+      );
+    }
+    if (result.rate_limited) {
+      parts.push(L("whatif.rate_limited"));
+    }
+
+    return (
+      `<div>${parts[0]}</div>` +
+      `<div class="wi-detail">${parts.slice(1).join(" · ")}</div>`
+    );
+  }
+}
+
 // ===========================================================================
 // The card element, and the contract its collaborators get.
 //
@@ -6185,6 +6828,7 @@ class LaneEditor {
 //   host.dialog                ExpandedDialog: the enlarged view and its pages
 //   host.manual                ManualPlan: today's slot draft, its bounds and cost
 //   host.lanes                 LaneEditor: the lanes, the drag, the slot menu
+//   host.whatIf                WhatIfPanel: the schedule editor and simulator
 //   host.geom                  the chart's last geometry (null: no lanes)
 //   host.render()              rebuild, keeping the render signature
 //   host.renderForced()        rebuild and forget it (the next hass redraws)
@@ -6206,6 +6850,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     this.dialog = new ExpandedDialog(this);
     this.manual = new ManualPlan(this);
     this.lanes = new LaneEditor(this);
+    this.whatIf = new WhatIfPanel(this);
     this._config = null;
     this._hass = null;
     this._sig = null;
@@ -6215,12 +6860,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
     this._series = [];
     this._plot = null;
     this._resizeObserver = null;
-    // What-if simulator state (item 21). Kept on the instance so a re-render
-    // triggered by a data refresh does not reset the slider under the user.
-    this._whatIf = null;
-    this._whatIfTimer = null;
-    this._pendingSave = false;
-    this._saveTimer = null;
     // The entity picker's per-visit state: which slot is open, what has been
     // typed into its filter, which entity is chosen (null = "whatever the
     // slot already holds") and whether an Assign that would CLEAR the slot
@@ -6264,13 +6903,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
     this._onPointerLeave = this._onPointerLeave.bind(this);
     this._onCardClick = this._onCardClick.bind(this);
     this._onExpandClick = this._onExpandClick.bind(this);
-    this._onWhatIfInput = this._onWhatIfInput.bind(this);
-    this._onSlotEdit = this._onSlotEdit.bind(this);
-    this._onAddWindow = this._onAddWindow.bind(this);
-    this._onRemoveWindow = this._onRemoveWindow.bind(this);
-    this._onApplySlots = this._onApplySlots.bind(this);
-    this._onSaveSchedule = this._onSaveSchedule.bind(this);
-    this._onResetWhatIf = this._onResetWhatIf.bind(this);
   }
 
   // ---- Lovelace contract -------------------------------------------------
@@ -6404,18 +7036,9 @@ class HeatpumpOptimizerCard extends HTMLElement {
     this._teardown();
     // A modal dialog left open would outlive the card in the top layer.
     if (this.dialog.expanded) this.dialog.closeQuietly();
-    // A pending what-if solve would otherwise fire after the card is gone,
-    // spending seconds of coordinator CPU to write into a detached DOM.
-    if (this._whatIfTimer) {
-      clearTimeout(this._whatIfTimer);
-      this._whatIfTimer = null;
-    }
-    // Likewise an armed save confirmation: it must not survive the card.
-    if (this._saveTimer) {
-      clearTimeout(this._saveTimer);
-      this._saveTimer = null;
-    }
-    this._pendingSave = false;
+    // A pending what-if solve, or an armed save confirmation, must not
+    // survive the card (see WhatIfPanel.disconnect).
+    this.whatIf.disconnect();
     // Nor an armed "clear this slot" confirmation in the entity picker.
     this._cancelPendingClear();
     if (this._resizeObserver) {
@@ -6572,7 +7195,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
         page === "setup"
           ? this._setupPageHtml()
           : anyData
-            ? `${this._chartBlock(built, true)}${this._whatIfHtml()}`
+            ? `${this._chartBlock(built, true)}${this.whatIf.html()}`
             : this._noPlanHtml();
       dialog = this.dialog.html({
         title: this._title(),
@@ -7700,605 +8323,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
   }
 
 
-  /** The what-if panel, shown in the expanded view only.
-   *
-   * Two different questions live here, so they are kept visibly apart.
-   *
-   * "Today's slots" is about *this* day. The plan is drawn as draggable slots
-   * on their own lanes under the chart, and moving them re-prices the day
-   * against the published plan so the cost of the change is visible before it
-   * is made. "Apply this plan" pins the arrangement through the
-   * `apply_manual_plan` service; the optimizer then keeps the timing but is
-   * still free to choose how hard to run, and safety limits still override it.
-   *
-   * "My usual schedule" is about *every* day: the hours the house is heated
-   * and the hot water demand windows. "Temperatures" holds the two setpoints
-   * those hours are measured against -- the comfort target and the usable hot
-   * water minimum. They are split because a lone temperature slider inside a
-   * section about scheduling reads as a stray control with no context; paired
-   * under a heading of their own, both are obviously the same kind of setting.
-   *
-   * All of it is priced per month against a copy of the configuration on the
-   * coordinator side, so exploring cannot disturb operation. Both temperature
-   * sliders are debounced, and deliberately share one timer: two independent
-   * debounces racing on one service call is how the delta ends up showing the
-   * price of the previous drag. The time fields apply on an explicit button,
-   * because editing a time range is not a drag gesture and half-typed times
-   * should not trigger a solve. "Save as my schedule" writes all of it into the
-   * config entry through `apply_schedule`, and asks for confirmation first.
-   */
-  _whatIfHtml() {
-    if (!this._config.what_if) return "";
-    const draft = this._whatIfDraft();
-    const windows = draft.dhwWindows;
-    const setpoint = this.plan.attr("dhw_setpoint", null);
-    const ceiling = this._dhwMinCeiling();
-    // Re-clamp on every render rather than only when the draft is seeded: the
-    // setpoint is configurable and may have moved since, and a slider whose
-    // maximum was computed against a stale setpoint is precisely the bug this
-    // item warns about. `clamped` is the value the user had *before* the clamp,
-    // and is non-null only when it genuinely had to be lowered -- silently
-    // reducing someone's hot water minimum deserves saying so out loud.
-    let clamped = null;
-    if (draft.dhwMin > ceiling) {
-      clamped = draft.dhwMin;
-      draft.dhwMin = ceiling;
-    }
-    const windowHours = this.plan.attr(
-      "manual_plan_window_hours",
-      MANUAL_PLAN_WINDOW_FALLBACK_H
-    );
-    return `
-      <div class="whatif">
-        ${this.manual.sectionHtml(windowHours)}
-
-        <div class="wi-section">
-          <div class="wi-group-title">${esc(L("whatif.usual_schedule"))}</div>
-          <div class="wi-hint">
-            ${L("whatif.schedule_hint")}
-          </div>
-        <div class="wi-row wi-slots">
-          <div class="wi-group">
-            <div class="wi-group-title">${esc(L("whatif.heating_hours"))}</div>
-            <label class="wi-field">
-              <span>${esc(L("whatif.day_from"))}</span>
-              <input type="time" class="wi-day-start" step="3600"
-                value="${hhmm(draft.dayStart)}" aria-label="${esc(
-                  L("whatif.day_start_aria")
-                )}">
-            </label>
-            <label class="wi-field">
-              <span>${esc(L("whatif.day_to"))}</span>
-              <input type="time" class="wi-day-end" step="3600"
-                value="${hhmm(draft.dayEnd)}" aria-label="${esc(
-                  L("whatif.day_end_aria")
-                )}">
-            </label>
-            <div class="wi-hint">${L("whatif.setback_hint")}</div>
-          </div>
-
-          <div class="wi-group">
-            <div class="wi-group-title">${esc(L("whatif.dhw_windows"))}</div>
-            <div class="wi-windows">
-              ${windows.length
-                ? windows
-                    .map(
-                      (w, i) => `
-                <div class="wi-window" data-index="${i}">
-                  <input type="time" class="wi-win-start" step="900"
-                    value="${esc(w.start)}" aria-label="${esc(
-                      L("whatif.window_start_aria", { n: i + 1 })
-                    )}">
-                  <span>–</span>
-                  <input type="time" class="wi-win-end" step="900"
-                    value="${esc(w.end)}" aria-label="${esc(
-                      L("whatif.window_end_aria", { n: i + 1 })
-                    )}">
-                  <button type="button" class="wi-remove" data-index="${i}"
-                    title="${esc(L("whatif.remove"))}" aria-label="${esc(
-                      L("whatif.remove_window_aria", { n: i + 1 })
-                    )}">×</button>
-                </div>`
-                    )
-                    .join("")
-                : `<div class="wi-hint">${L("whatif.no_windows_hint")}</div>`}
-            </div>
-            <button type="button" class="wi-add">${esc(
-              L("whatif.add_window")
-            )}</button>
-          </div>
-        </div>
-
-        <div class="wi-row wi-actions">
-          <button type="button" class="wi-apply">${esc(
-            L("whatif.simulate")
-          )}</button>
-          <button type="button" class="wi-save">${esc(
-            L("whatif.save_schedule")
-          )}</button>
-          <button type="button" class="wi-reset">${esc(
-            L("whatif.reset")
-          )}</button>
-        </div>
-
-        <div class="wi-result" role="status">
-          ${L("whatif.idle_status")}
-        </div>
-        </div>
-
-        <div class="wi-section">
-          <div class="wi-group-title">${esc(L("whatif.temperatures"))}</div>
-          <div class="wi-hint">
-            ${L("whatif.temperatures_hint")}
-          </div>
-          <div class="wi-row">
-            <label class="wi-field">
-              <span>${esc(L("whatif.comfort_temp"))}</span>
-              <input type="range" class="wi-temp" min="16" max="24" step="0.5"
-                value="${draft.comfort}" aria-label="${esc(
-                  L("whatif.comfort_temp")
-                )}">
-              <span class="wi-value wi-comfort-value">${draft.comfort.toFixed(1)}&nbsp;°C</span>
-            </label>
-          </div>
-          <div class="wi-row">
-            <label class="wi-field">
-              <span>${esc(L("whatif.dhw_min"))}</span>
-              <input type="range" class="wi-dhw-min" min="${DHW_MIN_FLOOR}"
-                max="${ceiling}" step="0.5" value="${draft.dhwMin}"
-                aria-label="${esc(L("whatif.dhw_min_aria"))}">
-              <span class="wi-value wi-dhw-value">${draft.dhwMin.toFixed(1)}&nbsp;°C</span>
-            </label>
-          </div>
-          <div class="wi-hint">
-            ${
-              setpoint === null
-                ? L("whatif.cap_no_setpoint", { t: fmtTemp(ceiling) })
-                : L("whatif.cap_with_setpoint", {
-                    t: fmtTemp(ceiling),
-                    band: fmtTemp(setpoint - ceiling),
-                    setpoint: fmtTemp(setpoint),
-                  })
-            }
-          </div>
-          ${
-            clamped
-              ? `<div class="wi-hint wi-warn">${L("whatif.clamped_warning", {
-                  a: fmtTemp(clamped),
-                  b: fmtTemp(draft.dhwMin),
-                })}</div>`
-              : ""
-          }
-        </div>
-      </div>
-    `;
-  }
-
-  /** The values the editor is currently showing.
-   *
-   * Held on the instance so a data refresh, which rebuilds the whole shadow
-   * root, does not throw away half-finished edits.
-   */
-  _whatIfDraft() {
-    if (!this._whatIf) {
-      this._whatIf = {
-        comfort: this._currentComfortTemp(),
-        dhwMin: this._currentDhwMin(),
-        dayStart: this.plan.attr("day_start_hour", 7),
-        dayEnd: this.plan.attr("day_end_hour", 22),
-        dhwWindows: this._currentDhwWindows(),
-      };
-    }
-    return this._whatIf;
-  }
-
-  /** Current comfort target, as the optimizer itself is planning against.
-   *
-   * This has to come from our own plan sensor. Scanning `climate.*` picks an
-   * arbitrary thermostat -- a frost-protection TRV, an AC, a towel rail --
-   * whose setpoint has nothing to do with the space-heating plan.
-   */
-  _currentComfortTemp() {
-    return this.plan.attr("comfort_temp_day", 21);
-  }
-
-  /** Current usable hot water minimum, as configured. */
-  _currentDhwMin() {
-    return Math.min(
-      this.plan.attr("dhw_min_temperature", DHW_MIN_FALLBACK),
-      this._dhwMinCeiling()
-    );
-  }
-
-  /** Highest hot water minimum that still leaves a deadband under the setpoint.
-   *
-   * Computed by the integration and published on the plan sensor, so the margin
-   * exists in one place: the backend validates `apply_schedule` against the same
-   * number, and the card cannot drift away from it. The fallback only matters
-   * before the first plan arrives, when no setpoint has been published yet.
-   */
-  _dhwMinCeiling() {
-    const published = this.plan.attr("dhw_min_temperature_max", null);
-    return published === null ? DHW_MIN_FALLBACK : published;
-  }
-
-  /** Demand windows the DHW plan sensor is currently planning against.
-   *
-   * Normalised to what the editor's own validator accepts, which is what an
-   * `<input type="time">` can hold. The SAVE path never needed this -- it
-   * calls `_onSlotEdit` first, which re-reads the window rows out of the DOM
-   * -- but the slider path does not touch the DOM at all: `_onWhatIfInput`
-   * writes one number into this memoised draft and `_runWhatIf` validates
-   * the draft. A household whose hot water is guaranteed until midnight
-   * therefore could not price a single change; every simulate was refused by
-   * the card, blaming the schedule the integration had just published.
-   */
-  _currentDhwWindows() {
-    const st = this.plan.stateOf(this.plan.resolveEntity("dhw"));
-    const spec = ((st && st.attributes) || {}).dhw_windows;
-    return parseWindows(spec).map((w) => ({
-      start: endOfDayAsMidnight(w.start),
-      end: endOfDayAsMidnight(w.end),
-    }));
-  }
-
-  /** Wire the what-if controls, if the panel is present. */
-  _attachWhatIf(root) {
-    const panel = root.querySelector(".whatif");
-    if (!panel) return;
-
-    // Every control stops propagation: without it, a click inside the panel
-    // reaches the card handler and toggles the expanded view underneath.
-    // Both temperature sliders share this handler, and therefore share the
-    // single debounce timer it sets. Giving each its own timer would let two
-    // solves race on one service call, and the delta would end up reporting the
-    // price of whichever drag happened to land second.
-    [".wi-temp", ".wi-dhw-min"].forEach((sel) => {
-      root.querySelectorAll(sel).forEach((slider) => {
-        slider.addEventListener("input", this._onWhatIfInput);
-        slider.addEventListener("click", stop);
-      });
-    });
-    root.querySelectorAll("input[type=time]").forEach((el) => {
-      el.addEventListener("click", stop);
-      el.addEventListener("change", this._onSlotEdit);
-    });
-    const add = root.querySelector(".wi-add");
-    if (add) add.addEventListener("click", this._onAddWindow);
-    root
-      .querySelectorAll(".wi-remove")
-      .forEach((el) => el.addEventListener("click", this._onRemoveWindow));
-    const apply = root.querySelector(".wi-apply");
-    if (apply) apply.addEventListener("click", this._onApplySlots);
-    const save = root.querySelector(".wi-save");
-    if (save) save.addEventListener("click", this._onSaveSchedule);
-    const reset = root.querySelector(".wi-reset");
-    if (reset) reset.addEventListener("click", this._onResetWhatIf);
-  }
-
-  _onWhatIfInput(ev) {
-    stop(ev);
-    const value = Number(ev.target.value);
-    if (!Number.isFinite(value)) return;
-    const draft = this._whatIfDraft();
-    const target = ev.target || {};
-    const isDhw = !!(
-      target.classList &&
-      target.classList.contains &&
-      target.classList.contains("wi-dhw-min")
-    );
-    if (isDhw) draft.dhwMin = value;
-    else draft.comfort = value;
-
-    // Each readout carries its own class. There are two `.wi-value` spans now,
-    // so a lookup on the shared class would keep rewriting whichever came
-    // first regardless of which slider actually moved.
-    const label = this.shadowRoot.querySelector(
-      isDhw ? ".wi-dhw-value" : ".wi-comfort-value"
-    );
-    if (label) label.textContent = `${value.toFixed(1)}\u00a0°C`;
-
-    // Debounce so a drag does not fire a solve per pixel. The coordinator
-    // rate-limits as well, but sending the calls at all is wasteful.
-    if (this._whatIfTimer) clearTimeout(this._whatIfTimer);
-    this._whatIfTimer = setTimeout(() => this._runWhatIf(), 400);
-  }
-
-  /** Read the editors back into the draft, without simulating. */
-  _onSlotEdit(ev) {
-    stop(ev);
-    const root = this.shadowRoot;
-    const draft = this._whatIfDraft();
-    const before = this._draftSignature();
-
-    const dayStart = root.querySelector(".wi-day-start");
-    const dayEnd = root.querySelector(".wi-day-end");
-    if (dayStart) draft.dayStart = hourOf(dayStart.value, draft.dayStart);
-    if (dayEnd) draft.dayEnd = hourOf(dayEnd.value, draft.dayEnd);
-
-    draft.dhwWindows = [...root.querySelectorAll(".wi-window")].map((row) => ({
-      start: (row.querySelector(".wi-win-start") || {}).value || "00:00",
-      end: (row.querySelector(".wi-win-end") || {}).value || "00:00",
-    }));
-
-    // An armed confirmation refers to the values that were on screen when it
-    // was armed. Only disarm if they actually changed — the save handler
-    // itself calls this to flush the editors, and that must not cancel the
-    // confirmation it is in the middle of.
-    if (this._pendingSave && this._draftSignature() !== before) {
-      this._cancelPendingSave();
-    }
-  }
-
-  /** A comparable summary of the draft, for spotting real edits. */
-  _draftSignature() {
-    const d = this._whatIfDraft();
-    return JSON.stringify([
-      d.comfort,
-      d.dhwMin,
-      d.dayStart,
-      d.dayEnd,
-      d.dhwWindows.map((w) => `${w.start}-${w.end}`),
-    ]);
-  }
-
-  _onAddWindow(ev) {
-    stop(ev);
-    this._onSlotEdit(ev);
-    this._whatIfDraft().dhwWindows.push({ start: "06:00", end: "08:00" });
-    this.renderForced();
-  }
-
-  _onRemoveWindow(ev) {
-    stop(ev);
-    this._onSlotEdit(ev);
-    const index = Number(ev.currentTarget.getAttribute("data-index"));
-    const draft = this._whatIfDraft();
-    if (Number.isFinite(index)) draft.dhwWindows.splice(index, 1);
-    this.renderForced();
-  }
-
-  _onApplySlots(ev) {
-    stop(ev);
-    this._onSlotEdit(ev);
-    if (this._whatIfTimer) clearTimeout(this._whatIfTimer);
-    this._runWhatIf();
-  }
-
-  _onResetWhatIf(ev) {
-    stop(ev);
-    this._whatIf = null;
-    this._pendingSave = false;
-    this.renderForced();
-  }
-
-  /** Persist the edited schedule, on a deliberate second press.
-   *
-   * Simulating is free and reversible, so it happens on one click. Saving
-   * replaces the schedule the house actually runs on and reloads the
-   * integration, so it asks first. The confirmation lives in the button label
-   * rather than a `confirm()` dialog because the card is already inside a
-   * modal, and a nested browser prompt inside a `showModal()` dialog is easy
-   * to miss behind the backdrop.
-   */
-  async _onSaveSchedule(ev) {
-    stop(ev);
-    this._onSlotEdit(ev);
-
-    const root = this.shadowRoot;
-    const out = root && root.querySelector(".wi-result");
-    const button = root && root.querySelector(".wi-save");
-    if (!out || !button) return;
-
-    if (!this._hass || typeof this._hass.callService !== "function") {
-      out.className = "wi-result dearer";
-      out.textContent = L("errors.not_connected");
-      return;
-    }
-
-    const draft = this._whatIfDraft();
-    const invalid = draft.dhwWindows.find(
-      (w) => hourOf(w.start, null) === null || hourOf(w.end, null) === null
-    );
-    if (invalid) {
-      out.className = "wi-result dearer";
-      out.textContent = L("errors.invalid_window_time", {
-        window: `${invalid.start}-${invalid.end}`,
-      });
-      return;
-    }
-    if (draft.dayStart === draft.dayEnd) {
-      out.className = "wi-result dearer";
-      out.textContent = L("errors.day_start_equals_end");
-      return;
-    }
-
-    if (!this._pendingSave) {
-      this._pendingSave = true;
-      button.textContent = L("whatif.confirm_overwrite");
-      button.classList.add("confirm");
-      out.className = "wi-result";
-      out.textContent = L("whatif.confirm_hint");
-      // Let the decision lapse rather than sit armed indefinitely: a stray
-      // click minutes later should not rewrite the configuration.
-      clearTimeout(this._saveTimer);
-      this._saveTimer = setTimeout(() => this._cancelPendingSave(), 8000);
-      return;
-    }
-
-    this._cancelPendingSave();
-    out.className = "wi-result";
-    out.textContent = L("whatif.saving");
-    button.disabled = true;
-    try {
-      await this._hass.callService("heatpump_optimizer", "apply_schedule", {
-        day_start_hour: draft.dayStart,
-        day_end_hour: draft.dayEnd,
-        dhw_windows: formatWindows(draft.dhwWindows),
-        comfort_temp_day: draft.comfort,
-        dhw_min_temperature: draft.dhwMin,
-      });
-      out.className = "wi-result cheaper";
-      out.textContent = L("whatif.saved_result");
-      // The draft has become the configuration, so drop it: keeping it would
-      // leave the editor showing an "unsaved" copy of what is now saved.
-      this._whatIf = null;
-    } catch (err) {
-      out.className = "wi-result dearer";
-      out.textContent = L("errors.could_not_save", {
-        err: (err && err.message) || err,
-      });
-    } finally {
-      button.disabled = false;
-    }
-  }
-
-  _cancelPendingSave() {
-    clearTimeout(this._saveTimer);
-    this._saveTimer = null;
-    this._pendingSave = false;
-    const button =
-      this.shadowRoot && this.shadowRoot.querySelector(".wi-save");
-    if (button) {
-      button.textContent = L("whatif.save_schedule");
-      button.classList.remove("confirm");
-    }
-  }
-
-  /** Everything the draft changes, as service call arguments. */
-  _whatIfOverrides() {
-    const draft = this._whatIfDraft();
-    return {
-      target_temp: draft.comfort,
-      comfort_temp_day: draft.comfort,
-      // Already accepted by SERVICE_SCHEMA_SIMULATE_PLAN and applied to the
-      // scratch parameters by the coordinator, so pricing this needs no
-      // backend change; only the save path below did.
-      dhw_min_temperature: draft.dhwMin,
-      day_start_hour: draft.dayStart,
-      day_end_hour: draft.dayEnd,
-      // Deliberately sent even when empty: an empty schedule is a legitimate
-      // thing to price, and it is how a user asks "what if I stopped
-      // guaranteeing hot water at fixed times?"
-      dhw_windows: formatWindows(draft.dhwWindows),
-    };
-  }
-
-  async _runWhatIf() {
-    const out = this.shadowRoot && this.shadowRoot.querySelector(".wi-result");
-    if (!out || !this._hass || typeof this._hass.callService !== "function") {
-      return;
-    }
-    const draft = this._whatIfDraft();
-    const invalid = draft.dhwWindows.find(
-      (w) => hourOf(w.start, null) === null || hourOf(w.end, null) === null
-    );
-    if (invalid) {
-      out.className = "wi-result dearer";
-      out.textContent = L("errors.invalid_window_time", {
-        window: `${invalid.start}-${invalid.end}`,
-      });
-      return;
-    }
-
-    out.className = "wi-result";
-    out.textContent = L("whatif.simulating");
-    try {
-      const response = await this._hass.callService(
-        "heatpump_optimizer",
-        "simulate_plan",
-        this._whatIfOverrides(),
-        undefined,
-        false,
-        true
-      );
-      const results =
-        (response && response.response && response.response.results) || {};
-      const first = Object.values(results)[0];
-      if (!first || first.error) {
-        out.className = "wi-result dearer";
-        out.textContent = first && first.error
-          ? L("errors.could_not_simulate", { err: first.error })
-          : L("errors.no_answer");
-        return;
-      }
-      out.className = "wi-result";
-      out.innerHTML = this._whatIfSummary(first);
-    } catch (err) {
-      out.className = "wi-result dearer";
-      out.textContent = L("errors.could_not_simulate", {
-        err: err && err.message ? err.message : err,
-      });
-    }
-  }
-
-  /** Money first, then what it costs in comfort.
-   *
-   * Reporting only the saving would invite the obvious mistake: a plan is
-   * always cheaper if it is allowed to be colder, or to let the tank run down.
-   */
-  _whatIfSummary(result) {
-    const delta = Number(result.monthly_cost_delta);
-    const parts = [];
-
-    if (!Number.isFinite(delta)) {
-      return L("errors.no_answer");
-    }
-    if (Math.abs(delta) < 0.5) {
-      parts.push(L("whatif.same_cost"));
-    } else {
-      const cheaper = delta < 0;
-      parts.push(
-        L(cheaper ? "whatif.cheaper_per_month" : "whatif.dearer_per_month", {
-          amount: Math.abs(delta).toFixed(0),
-        })
-      );
-    }
-
-    const room = Number(result.min_room_temperature);
-    const roomBase = Number(result.baseline_min_room_temperature);
-    if (Number.isFinite(room)) {
-      const drop = Number.isFinite(roomBase) ? room - roomBase : null;
-      parts.push(
-        L("whatif.min_room_temp", { t: room.toFixed(1) }) +
-          (drop !== null && Math.abs(drop) >= 0.1
-            ? ` (${drop > 0 ? "+" : ""}${drop.toFixed(1)})`
-            : "")
-      );
-    }
-
-    const dhw = Number(result.min_dhw_temperature);
-    const dhwBase = Number(result.baseline_min_dhw_temperature);
-    if (Number.isFinite(dhw)) {
-      const drop = Number.isFinite(dhwBase) ? dhw - dhwBase : null;
-      parts.push(
-        L("whatif.min_dhw_temp", { t: dhw.toFixed(1) }) +
-          (drop !== null && Math.abs(drop) >= 0.1
-            ? ` (${drop > 0 ? "+" : ""}${drop.toFixed(1)})`
-            : "")
-      );
-    }
-
-    if (Number.isFinite(Number(result.compressor_starts))) {
-      parts.push(
-        L(
-          Number(result.compressor_starts) === 1
-            ? "whatif.compressor_starts_one"
-            : "whatif.compressor_starts_other",
-          { n: result.compressor_starts }
-        )
-      );
-    }
-    if (result.rate_limited) {
-      parts.push(L("whatif.rate_limited"));
-    }
-
-    return (
-      `<div>${parts[0]}</div>` +
-      `<div class="wi-detail">${parts.slice(1).join(" · ")}</div>`
-    );
-  }
-
   /** Wire hover and legend handling for every chart in a root. */
   _attachChartEvents(root) {
     this.legend.attach(root);
@@ -8311,7 +8335,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     });
 
     this.view.attach(root);
-    this._attachWhatIf(root);
+    this.whatIf.attach(root);
     this.manual.attach(root);
     this.lanes.attach(root);
   }
@@ -8823,6 +8847,55 @@ class HeatpumpOptimizerCard extends HTMLElement {
   }
   _attachSlotEditing(root) {
     return this.lanes.attach(root);
+  }
+
+  get _whatIf() {
+    return this.whatIf.values;
+  }
+  set _whatIf(v) {
+    this.whatIf.values = v;
+  }
+  get _whatIfTimer() {
+    return this.whatIf.timer;
+  }
+  set _whatIfTimer(v) {
+    this.whatIf.timer = v;
+  }
+  get _pendingSave() {
+    return this.whatIf.pendingSave;
+  }
+  set _pendingSave(v) {
+    this.whatIf.pendingSave = v;
+  }
+  _whatIfDraft() {
+    return this.whatIf.draft();
+  }
+  _dhwMinCeiling() {
+    return this.whatIf.dhwMinCeiling();
+  }
+  _onWhatIfInput(ev) {
+    return this.whatIf.onInput(ev);
+  }
+  _onSlotEdit(ev) {
+    return this.whatIf.onSlotEdit(ev);
+  }
+  _onAddWindow(ev) {
+    return this.whatIf.onAddWindow(ev);
+  }
+  _onRemoveWindow(ev) {
+    return this.whatIf.onRemoveWindow(ev);
+  }
+  _onApplySlots(ev) {
+    return this.whatIf.onApplySlots(ev);
+  }
+  _onResetWhatIf(ev) {
+    return this.whatIf.onReset(ev);
+  }
+  _onSaveSchedule(ev) {
+    return this.whatIf.onSaveSchedule(ev);
+  }
+  _runWhatIf() {
+    return this.whatIf.run();
   }
 
 }
