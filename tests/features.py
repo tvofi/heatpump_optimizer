@@ -6349,6 +6349,47 @@ R.check(
     _Ledger.from_dict({"months": "nonsense"}).months == {}
     and _Ledger.from_dict(None).months == {},
 )
+# D1-01: a month whose persisted JSON parses but has a wrong-shaped nested
+# "lines"/"meta" field used to load silently, then wedge every future
+# _roll_month -> _freeze_month_report -> month_summary() cycle forever
+# because the crash happened before the month was marked closed. from_dict
+# now quarantines any month whose "lines"/"meta" aren't dicts, with one
+# WARNING, and keeps everything else.
+_bad_shapes = ["CORRUPT-NOT-A-DICT", ["not", "a", "dict"], 12345, None]
+for _bad in _bad_shapes:
+    _quarantined = _Ledger.from_dict(
+        {
+            "months": {
+                "2025-01": {"lines": _bad, "meta": {}},
+                "2025-02": {"lines": {"spot": {"kwh": 1.0, "sek": 2.0}}, "meta": {}},
+            }
+        }
+    )
+    R.check(
+        f"a wrong-shape 'lines' field ({type(_bad).__name__}) is quarantined, "
+        "the healthy month survives",
+        "2025-01" not in _quarantined.months
+        and _quarantined.month_summary("2025-01") == {}
+        and _quarantined.line("2025-02", "spot")["kwh"] == 1.0,
+        f"months kept: {sorted(_quarantined.months)}",
+    )
+# A malformed "meta" is quarantined the same way as a malformed "lines".
+_bad_meta = _Ledger.from_dict(
+    {"months": {"2025-03": {"lines": {}, "meta": "CORRUPT-NOT-A-DICT"}}}
+)
+R.check(
+    "a wrong-shape 'meta' field is quarantined too",
+    "2025-03" not in _bad_meta.months,
+)
+# Even if a malformed month slipped through some other path,
+# month_summary() itself must degrade to empty rather than raise --
+# the crash site gets defensive handling too, per the fix's second half.
+_led_direct = _Ledger()
+_led_direct.months["2025-04"] = {"lines": "CORRUPT-NOT-A-DICT", "meta": {}}
+R.check(
+    "month_summary() never raises on a malformed month, even reached directly",
+    _led_direct.month_summary("2025-04") == {},
+)
 
 # --- #34 at the solver: λ=0 is byte-identity, λ>0 pulls load off the guess ----
 from golden import make as _mk_golden, START as _G_START
@@ -8352,6 +8393,68 @@ R.check(
     and len(_r6.snapshots) == 1
     and SnapshotRing.from_dict({"snapshots": "garbage"}).snapshots == [],
 )
+# D1-05: a snapshot's "accuracy" field can be corrupt to a non-dict, truthy
+# value (partial write, hand-edited store). best_restore()'s old
+# `(snap.get("accuracy") or {}).get(...)` only fell back to {} on a FALSY
+# value, so a truthy-but-wrong "accuracy" raised AttributeError and killed
+# both the manual restore_snapshot service and the automatic drift
+# rollback. It must now skip the malformed snapshot (with a warning) and
+# keep evaluating the rest of the ring instead of raising.
+for _bad_accuracy in ("CORRUPT-NOT-A-DICT", ["not", "a", "dict"], 42):
+    _bad_ring = SnapshotRing.from_dict(
+        {
+            "snapshots": [
+                {
+                    "taken_at": "2026-06-01T00:00:00",
+                    "healthy": True,
+                    "alarmed_at_capture": False,
+                    "accuracy": _bad_accuracy,
+                    "learners": {},
+                }
+            ],
+        }
+    )
+    R.check(
+        f"a malformed 'accuracy' field ({type(_bad_accuracy).__name__}) is "
+        "skipped by best_restore(), not raised",
+        _bad_ring.best_restore() is None,
+    )
+# A corrupted NEWEST snapshot must not block recovery to a valid OLDER one.
+_bad_newest_ring = SnapshotRing.from_dict(
+    {
+        "snapshots": [
+            {
+                "taken_at": "2026-05-01T00:00:00",
+                "healthy": True,
+                "alarmed_at_capture": False,
+                "accuracy": {"temperature_bias": 0.1},
+                "learners": {"marker": "OLDER_VALID_SNAPSHOT"},
+            },
+            {
+                "taken_at": "2026-06-01T00:00:00",
+                "healthy": True,
+                "alarmed_at_capture": False,
+                "accuracy": "CORRUPT-NOT-A-DICT",
+                "learners": {"marker": "NEWER_CORRUPT_SNAPSHOT"},
+            },
+        ],
+    }
+)
+R.check(
+    "a corrupted newest snapshot is skipped, falling through to the valid older one",
+    (_bad_newest_ring.best_restore() or {}).get("learners", {}).get("marker")
+    == "OLDER_VALID_SNAPSHOT",
+)
+# Non-dict entries in the raw "snapshots" list are quarantined at load time.
+R.check(
+    "malformed snapshot entries are quarantined on load, valid ones kept",
+    len(
+        SnapshotRing.from_dict(
+            {"snapshots": [{"taken_at": "x", "healthy": True}, "garbage", 1, None]}
+        ).snapshots
+    )
+    == 1,
+)
 _r7 = SnapshotRing()
 _live = {"thermal": {"scale": 1.0}}
 _r7.take(_T4, _live, {"temperature_bias": 0.1}, True)
@@ -10291,6 +10394,48 @@ _crr._ledger.add(_T6, "spot", kwh=0.03, sek=0.005017 * 30)
 R.check(
     "a perfectly partitioned month reconciles whatever the rounding does",
     _crr._freeze_month_report("2026-03")["reasons_reconcile"] is True,
+)
+
+# D1-01's coordinator half: a month that CRASHES the freezer must not wedge
+# every future cycle. The pre-fix loop ran _freeze_month_report unguarded,
+# so one raising month aborted _roll_month before the month was marked
+# closed -- and since the month stayed unmarked, the next cycle raised
+# again, forever, with the receipt save never reached either. The fix skips
+# the month with an empty receipt, which also marks it closed: the wedge is
+# broken and the retry never happens.
+_wedge = _t2_coord()
+_wedge._ledger.add(_T6, "spot", kwh=1.0, sek=2.0)
+_freeze_calls = {"n": 0}
+
+
+def _exploding_freeze(month):
+    _freeze_calls["n"] += 1
+    raise ValueError("D1-01: malformed month wedges the freezer")
+
+
+_wedge._freeze_month_report = _exploding_freeze
+try:
+    _wedge._roll_month(_apr)
+    _rolled_ok = True
+except Exception:
+    _rolled_ok = False
+R.check(
+    "a crashing month no longer takes _roll_month down with it",
+    _rolled_ok,
+    "the freeze loop must complete; the coordinator's month bookkeeping "
+    "cannot depend on every historical month parsing",
+)
+R.check(
+    "the crashed month is marked closed with an empty receipt",
+    _wedge._month_reports.get("2026-03") == {"month": "2026-03", "lines": {}},
+    f"reports: {_wedge._month_reports}",
+)
+_wedge._roll_month(_apr)
+R.check(
+    "and it is never retried: the second roll freezes nothing",
+    _freeze_calls["n"] == 1,
+    f"freeze called {_freeze_calls['n']} times; the pre-fix loop retried "
+    "the crashing month on every cycle forever",
 )
 
 # The debounce streak dies with the meter: two noise spikes separated by

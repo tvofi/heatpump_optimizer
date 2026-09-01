@@ -164,6 +164,12 @@ class SnapshotRing:
         slow drift keeps its bias tag in band for days after the learners
         have already walked away, so in-band-at-capture alone is not
         proof of innocence.
+
+        A malformed snapshot (e.g. a corrupt "accuracy" field from a
+        partial write or a hand-edited store) is skipped with a warning
+        rather than crashing the caller -- both the manual restore_snapshot
+        service and the automatic drift rollback depend on this never
+        raising (#D1-05).
         """
         for snap in reversed(self.snapshots):
             if not snap.get("healthy"):
@@ -174,7 +180,16 @@ class SnapshotRing:
                 taken_day = str(snap.get("taken_at", ""))[:10]
                 if not taken_day or taken_day >= self._streak_started:
                     continue
-            bias = (snap.get("accuracy") or {}).get("temperature_bias")
+            accuracy = snap.get("accuracy")
+            if not isinstance(accuracy, dict):
+                if accuracy is not None:
+                    _LOGGER.warning(
+                        "Skipping snapshot taken at %s with a malformed "
+                        "accuracy field; it cannot be evaluated for restore",
+                        snap.get("taken_at", "?"),
+                    )
+                continue
+            bias = accuracy.get("temperature_bias")
             if bias is not None and (
                 not np.isfinite(bias) or abs(float(bias)) > BIAS_BAND_C
             ):
@@ -201,7 +216,15 @@ class SnapshotRing:
             return ring
         raw = data.get("snapshots")
         if isinstance(raw, list):
-            ring.snapshots = [s for s in raw if isinstance(s, dict)][-RING_SIZE:]
+            clean = [s for s in raw if isinstance(s, dict)]
+            dropped = len(raw) - len(clean)
+            if dropped:
+                _LOGGER.warning(
+                    "Quarantined %d malformed snapshot(s) on load; "
+                    "the rest of the ring was kept",
+                    dropped,
+                )
+            ring.snapshots = clean[-RING_SIZE:]
         try:
             ring._bias_days = max(0, int(data.get("bias_days", 0)))
         except (TypeError, ValueError):
