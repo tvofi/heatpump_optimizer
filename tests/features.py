@@ -5388,6 +5388,42 @@ R.check(
     param_coord._thermal_params.dhw_windows == before,
 )
 
+# The card's schedule editor edits the CONFIGURED windows, so the coordinator
+# answers them in the grammar the config flow accepts: the flat form for a
+# flat spec, the weekly form when the spec names days, "" when none are set --
+# and not the plan's flat reading, which is what `dhw_windows` carries.
+R.check(
+    "the configured windows are answered in the flat grammar",
+    param_coord.configured_dhw_windows() == "07:00-09:00",
+    param_coord.configured_dhw_windows(),
+)
+asyncio.run(
+    param_coord.async_update_thermal_params(
+        {"dhw_windows": "weekdays 06:00-08:30, weekend 08:00-09:30"}
+    )
+)
+R.check(
+    "and in the weekly grammar when the configuration names days",
+    param_coord.configured_dhw_windows()
+    == "weekdays 06:00-08:30, weekend 08:00-09:30",
+    param_coord.configured_dhw_windows(),
+)
+R.check(
+    "which the plan's flat view could not carry: it merges the two days into one",
+    param_coord._thermal_params.dhw_weekly_windows is not None
+    and param_coord._thermal_params.dhw_windows == [(6.0, 9.5)],
+    str(param_coord._thermal_params.dhw_windows),
+)
+asyncio.run(param_coord.async_update_thermal_params({"dhw_windows": ""}))
+R.check(
+    "and empty when none are configured",
+    param_coord.configured_dhw_windows() == "",
+    repr(param_coord.configured_dhw_windows()),
+)
+asyncio.run(
+    param_coord.async_update_thermal_params({"dhw_windows": "07:00-09:00"})
+)
+
 param_coord._dhw_cooling_samples = 30
 asyncio.run(param_coord.async_update_thermal_params({"dhw_cooling_rate": 0.5}))
 R.check(

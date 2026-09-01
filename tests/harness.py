@@ -239,6 +239,10 @@ class FakeCoordinator:
         self.currency = "SEK"
         # What the climate thermostat card shows as the user's target.
         self.target_temperature = 21.0
+        # What `configured_dhw_windows()` answers: the hot-water windows as
+        # configured, in the spec grammar (a weekly one here, so a test can
+        # tell it from the flat `dhw_windows` the plan carries).
+        self.configured_windows = "weekdays 06:00-08:30, weekend 08:00-09:30"
         self.mode_calls: list[str] = []
         # The month figures the accumulators publish (#4): None until a test
         # sets them, mirroring "no bookings this month yet" on a real
@@ -262,6 +266,9 @@ class FakeCoordinator:
 
     async def async_publish_current_action(self, reason=None):
         self.pressed.append(f"publish:{reason}")
+
+    def configured_dhw_windows(self) -> str:
+        return self.configured_windows
 
     def describe_setup(self) -> dict:
         """The topology the plan sensors publish for the card's setup page."""

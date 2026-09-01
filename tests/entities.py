@@ -527,6 +527,35 @@ R.check(
     == no_plan_coord.currency,
 )
 
+# The schedule editor edits the CONFIGURED hot-water windows, which are not
+# what `dhw_windows` carries (the plan's reading: learned windows when none
+# are configured, one day's set of a weekly spec). The configuration travels
+# on its own attribute, in the spec grammar, on both paths and unrecorded.
+dhw_plan = by_name["DHW Heating Plan (next 24 h)"]
+R.check(
+    "the plan sensor publishes the configured hot-water windows for the card",
+    dhw_plan.extra_state_attributes.get("dhw_windows_spec")
+    == dhw_plan.coordinator.configured_dhw_windows()
+    == "weekdays 06:00-08:30, weekend 08:00-09:30",
+    "the editor would otherwise show a weekly schedule flattened to one day",
+)
+R.check(
+    "and it differs from the plan's own reading of the windows",
+    dhw_plan.extra_state_attributes.get("dhw_windows")
+    != dhw_plan.extra_state_attributes.get("dhw_windows_spec"),
+)
+R.check(
+    "and publishes it before the first plan exists",
+    sensor.DHWHeatingPlanSensor(no_plan_coord, ENTRY).extra_state_attributes.get(
+        "dhw_windows_spec"
+    )
+    == no_plan_coord.configured_dhw_windows(),
+)
+R.check(
+    "and keeps it out of the recorder, like the windows it explains",
+    "dhw_windows_spec" in sensor._PlanSensorBase._unrecorded_attributes,
+)
+
 # Optional inputs must degrade cleanly.
 no_power = FakeCoordinator({**DATA, "measured_power_available": False, "measured_power": None})
 R.check(

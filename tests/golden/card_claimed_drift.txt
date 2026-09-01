@@ -21,5 +21,33 @@
 #
 # claims-for: 6.2.14
 #
-# The card decomposition (#136): nine refactors, each byte-identical in the card gate, and no solver, sensor or store path touched -- so no golden moves and the list is empty.
+# Weekday/weekend hot-water windows in the schedule editor: every window
+# row grew a day selector and the stylesheet grew its rule, which every
+# render carries -- so every state moves, and the two what-if states move
+# in their rows as well.
 #
+no_plan  # the day selector's stylesheet rule
+no_plan_expanded  # the day selector's stylesheet rule
+plan_inline  # the day selector's stylesheet rule
+plan_inline_sv  # the day selector's stylesheet rule
+plan_short_window  # the day selector's stylesheet rule
+custom_title_currency  # the day selector's stylesheet rule
+hidden_series  # the day selector's stylesheet rule
+score_open  # the day selector's stylesheet rule
+expanded_plan  # the day selector's stylesheet rule
+what_if_off  # the day selector's stylesheet rule
+expanded_zoomed  # the day selector's stylesheet rule
+draft_dirty_menu_open  # the day selector's stylesheet rule
+whatif_edited  # the day selector on every window row
+whatif_weekly  # the day selector on every window row
+override_active  # the day selector's stylesheet rule
+shared_steps  # the day selector's stylesheet rule
+shared_steps_hover  # the day selector's stylesheet rule
+tooltip_hover  # the day selector's stylesheet rule
+coarse_pointer  # the day selector's stylesheet rule
+reduced_motion  # the day selector's stylesheet rule
+setup_single_buffer  # the day selector's stylesheet rule
+setup_two_tank  # the day selector's stylesheet rule
+setup_coil  # the day selector's stylesheet rule
+layout_editing_dragged  # the day selector's stylesheet rule
+picker_open_filtered  # the day selector's stylesheet rule

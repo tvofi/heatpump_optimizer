@@ -280,6 +280,16 @@ setpoint so the tank keeps a band to work in — the cap moves on its own when y
 change the setpoint, and a saved value above it is lowered with a visible note
 rather than silently.
 
+Each hot water window carries a day selector — *Every day*, *Weekdays* or
+*Weekend* — so a household whose mornings differ can say so from the card, in
+the grammar the integration's weekly windows use (v6.2.5). A schedule typed in
+the options flow with specific days (`Tu-Fr 06:00-08:00`) shows that day list
+as the row's own choice and is saved back unchanged. The editor pre-fills from
+the configured schedule the plan sensors publish as `dhw_windows_spec`, not
+from the plan's reading of it (`dhw_windows`), which on a weekly schedule is
+one day's windows; an integration that publishes no spec, or an install with
+nothing configured, still pre-fills from the plan.
+
 Editing only builds a draft inside the card. Two buttons act on it: **Simulate
 these slots** prices the draft against the plan currently in force, and **Save
 as my schedule** writes it into the configuration through `apply_schedule`,
