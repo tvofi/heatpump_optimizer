@@ -349,6 +349,14 @@ rest). Add the **ratchet**: a card.mjs check that
 `Object.getOwnPropertyNames(Card.prototype)` (minus `constructor`) is at most
 the count PR 9 lands at, with a comment that it may only go down.
 
+*As landed: one PR, not three. `tests/card.mjs` reaches the collaborators
+(`card.layout.edit`, `card.manual.draft()`, …) and the module functions by
+name in the card's realm; the seams are gone; `_buildSeries` stays a real
+host method (the step between two pure functions); the ratchet is 26
+members. `tests/card_drift.mjs` drives both sides through a small
+dialect-neutral layer, because its baseline may be a card from before the
+decomposition.*
+
 ## Issues filed in PR 0 (fixed after the program, one PR each)
 
 1. `disconnectedCallback` leaves the auto-pan interval (`_dragPan`), the pan
