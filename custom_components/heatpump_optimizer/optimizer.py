@@ -144,12 +144,70 @@ def _scoped_minimize(*args, **kwargs):
         return minimize(*args, **kwargs)
 
 
+def _batch_fd_gradient(
+    batch_objective,
+    args: tuple,
+    x0: np.ndarray,
+    f0: float,
+    eps: float,
+    bounds: list[tuple[float, float]],
+) -> np.ndarray:
+    """The gradient scipy would estimate itself -- computed as ONE batch.
+
+    Replicates, exactly, what ``approx_derivative`` does for L-BFGS-B with
+    ``jac=None`` and the ``eps`` option: a 2-point forward difference with
+    the absolute step ``eps``, adjusted one-sided at the bounds by
+    scipy's own rule (flip the step when it fits; otherwise take the full
+    distance to the roomier side), and the division ``((x0+h)-x0)`` on
+    the same footing. Byte-identical to scipy's estimate wherever the
+    batched objective's rows are byte-identical to the scalar one --
+    which is the batched simulation's contract (issue #97).
+
+    The 97 perturbed schedules are evaluated by ONE call to
+    ``batch_objective``: the simulation, which is nearly the whole cost,
+    runs vectorized across the batch instead of 97 times sequentially.
+    """
+    n = x0.size
+    lb = np.array([b[0] for b in bounds], dtype=float)
+    ub = np.array([b[1] for b in bounds], dtype=float)
+    h = np.full(n, eps, dtype=float)
+    # scipy's zero-step fallback, replicated (issue #97): when x0 + eps
+    # lands on the same float -- a zero-range bound, which the with-DHW
+    # solve produces for space heating inside a full DHW block -- scipy
+    # falls back to a relative step of sqrt(machine eps). Without this
+    # the difference is 0/0 NaN and the iterate path diverges.
+    sign_x0 = (x0 >= 0).astype(float) * 2 - 1
+    dx_probe = (x0 + h) - x0
+    h = np.where(
+        dx_probe == 0,
+        np.finfo(np.float64).eps ** 0.5 * sign_x0 * np.maximum(1.0, np.abs(x0)),
+        h,
+    )
+    lower_dist = x0 - lb
+    upper_dist = ub - x0
+    x = x0 + h
+    violated = (x < lb) | (x > ub)
+    fitting = np.abs(h) <= np.maximum(lower_dist, upper_dist)
+    h[violated & fitting] *= -1
+    forward = (upper_dist >= lower_dist) & ~fitting
+    h[forward] = upper_dist[forward]
+    backward = (upper_dist < lower_dist) & ~fitting
+    h[backward] = -lower_dist[backward]
+    perturbed = np.tile(x0, (n, 1))
+    perturbed[np.arange(n), np.arange(n)] = x0 + h
+    f = batch_objective(perturbed, *args)
+    dx = (x0 + h) - x0
+    return (f - f0) / dx
+
+
 def _multi_start_minimize(
     objective,
     candidates: list[np.ndarray],
     bounds: list[tuple[float, float]],
     args: tuple = (),
     maxiter: int = 300,
+    batch_objective=None,
+    fd_eps: float = 1e-4,
 ):
     """Run L-BFGS-B from several starting points and keep the best result.
 
@@ -190,10 +248,34 @@ def _multi_start_minimize(
             # breathing. No effect on any numerical result.
             _time_mod.sleep(0.002)
         try:
+            jac = None
+            # Degenerate bounds (lower == upper) arise in the with-DHW
+            # solve when a DHW block consumes the entire cap: the space
+            # schedule's bounds are then (0, 0) for those steps. scipy's
+            # own FD produces a NaN gradient component there (0/0), and
+            # L-BFGS-B's behaviour once NaN enters the iterate stream
+            # differs between the jac-estimated and jac-supplied paths in
+            # ways nobody outside scipy can reconcile. Those solves keep
+            # the historical path -- byte-identical to today by
+            # construction -- and the batch jac serves everything else.
+            degenerate_bounds = any(hi - lo <= 0.0 for lo, hi in bounds)
+            if batch_objective is not None and not degenerate_bounds:
+                # The batched-FD jac (#97): scipy calls the gradient at
+                # every trial point, so a supplied jac removes 96/97 of
+                # ALL evaluations, not just of the gradient's own. It
+                # reproduces scipy's own 2-point estimate to the bit --
+                # same eps, same bounds rule -- so the iterate path, and
+                # therefore the plan, does not move.
+                def jac(x, *a):
+                    return _batch_fd_gradient(
+                        batch_objective, a, x,
+                        float(objective(x, *a)), fd_eps, bounds,
+                    )
             res = _scoped_minimize(
                 objective,
                 guess,
                 args=args,
+                jac=jac,
                 method="L-BFGS-B",
                 bounds=bounds,
                 options={"maxiter": maxiter, "ftol": 1e-6, "eps": 1e-4},
@@ -2617,6 +2699,49 @@ class HeatPumpOptimizer:
                 )
             )
 
+        def objective_batch(power_matrix: np.ndarray) -> np.ndarray:
+            """The same objective, for B schedules at once (issue #97).
+
+            One batched simulation replaces B scalar ones; the cost terms
+            run per row with expressions verbatim from ``objective`` --
+            the equivalence is asserted by test, not assumed, because a
+            divergence here would move plans silently.
+            """
+            traj = self.model.simulate_trajectory_batch(
+                initial_state=initial_state,
+                power_matrix=power_matrix,
+                outdoor_temps=outdoor_temps,
+                wind_speeds=wind_speeds,
+                precipitation=precipitation,
+                solar_radiation=solar_radiation,
+                dt_hours=dt,
+                external_heat_kw=h.external_heat_kw,
+                valve_targets=h.valve_targets,
+                humidity=h.humidity,
+                start_hour=float(h.step_hours[0]),
+            )
+            values = np.empty(power_matrix.shape[0])
+            for b in range(power_matrix.shape[0]):
+                pw = power_matrix[b]
+                energy_cost = energy_cost_of(pw) * self.config.price_weight
+                penalty, comfort_cost = self._comfort_terms(
+                    traj["room"][b], traj["upper"][b], traj["lower"][b],
+                    comfort_targets, temp_min_bounds, temp_max_bounds,
+                    comfort_band,
+                )
+                values[b] = (
+                    energy_cost + penalty + comfort_cost
+                    + (cycling(pw) + capacity(pw)) * self.config.price_weight
+                    + terminal_cost(
+                        traj["room"][b],
+                        traj["slab"][b],
+                        traj["upper"][b],
+                        traj["lower"][b],
+                        traj["buffer"][b],
+                    )
+                )
+            return values
+
         # Initial guess: smart initialization considering forecasts
         initial_power = p_max * _price_guess_weights(prices)
 
@@ -2661,7 +2786,8 @@ class HeatPumpOptimizer:
 
         try:
             result = _multi_start_minimize(
-                objective, starts, bounds, maxiter=200
+                objective, starts, bounds, maxiter=200,
+                batch_objective=objective_batch,
             )
             optimal_power = result.x
             status = _solver_status(result, objective, initial_power)
@@ -4386,6 +4512,55 @@ class HeatPumpOptimizer:
                 )
             )
 
+        def objective_batch(
+            space_matrix: np.ndarray,
+            dhw_plan_power: np.ndarray | None = None,
+        ) -> np.ndarray:
+            """The same objective, for B space schedules at once (#97).
+
+            Same shape as ``objective``'s batch twin on the space-only
+            path: one batched simulation, cost terms verbatim per row,
+            equivalence asserted by test.
+            """
+            traj = self.model.simulate_trajectory_batch(
+                initial_state=initial_state,
+                power_matrix=space_matrix,
+                outdoor_temps=outdoor_temps,
+                wind_speeds=wind_speeds,
+                precipitation=precipitation,
+                solar_radiation=solar_radiation,
+                dt_hours=dt,
+                external_heat_kw=h.external_heat_kw,
+                valve_targets=h.valve_targets,
+                humidity=h.humidity,
+                start_hour=float(h.step_hours[0]),
+            )
+            values = np.empty(space_matrix.shape[0])
+            for b in range(space_matrix.shape[0]):
+                pw = space_matrix[b]
+                combined = (
+                    pw if dhw_plan_power is None else pw + dhw_plan_power
+                )
+                energy_cost = energy_cost_of(combined) * self.config.price_weight
+                space_penalty, comfort_cost = self._comfort_terms(
+                    traj["room"][b], traj["upper"][b], traj["lower"][b],
+                    comfort_targets, temp_min_bounds, temp_max_bounds,
+                    comfort_band,
+                )
+                values[b] = (
+                    energy_cost + space_penalty + comfort_cost
+                    + (cycling(combined) + capacity(combined))
+                    * self.config.price_weight
+                    + terminal_cost(
+                        traj["room"][b],
+                        traj["slab"][b],
+                        traj["upper"][b],
+                        traj["lower"][b],
+                        traj["buffer"][b],
+                    )
+                )
+            return values
+
         # Initial guess: space heating inversely proportional to price.
         init_base = p_max * 0.6 * _price_guess_weights(prices)
         for i in range(n_steps):
@@ -4434,7 +4609,8 @@ class HeatPumpOptimizer:
                 starts.append(headroom * 0.5)
             try:
                 res = _multi_start_minimize(
-                    objective, starts, bounds, args=(dhw_plan,), maxiter=300
+                    objective, starts, bounds, args=(dhw_plan,), maxiter=300,
+                    batch_objective=objective_batch,
                 )
                 power = np.clip(res.x, 0.0, headroom)
                 return (

@@ -1638,6 +1638,79 @@ params.cop_scale = 1.0
 
 
 # ===========================================================================
+# The batched simulation: bitwise parity with the scalar path (issue #97)
+# ===========================================================================
+R.section("The batched trajectory is the scalar trajectory, bit for bit")
+
+# simulate_trajectory_batch exists so the solver's finite-difference
+# gradient can evaluate its 97 perturbations as one vectorized pass. Its
+# contract is bitwise: every row must equal the scalar path's output to
+# the last bit, because the jac built on it must reproduce scipy's own
+# estimate exactly or the plans move. np.array_equal is bitwise for
+# floats that are not NaN, which trajectories here never are.
+from datetime import datetime as _dt_grad
+from profiles import house as _grad_house, prices as _grad_prices, weather as _grad_weather
+
+def _grad_parity(two_zone, wood=False, valve=None, extra_cfg=None, label=""):
+    cfg = _grad_house(two_zone=two_zone)
+    extra = dict(extra_cfg or {})
+    if valve:
+        extra.setdefault("mixing_valve_mode", valve)
+    if wood:
+        extra.setdefault("two_tank_modelled", True)
+    p = ThermalParameters.from_config({**cfg, **extra})
+    m = ThermalModel(p)
+    n = 48
+    rng = np.random.default_rng(7)
+    powers = rng.uniform(0, 3.0, size=(5, n))
+    start = _dt_grad(2026, 1, 15)
+    ot, wi, ra, so = (a[:n] for a in _grad_weather("winter_cold", start))
+    hum = np.full(n, 78.0)
+    ext = rng.uniform(0, 2.0, size=n)
+    st = ThermalState(
+        room_temperature=20.5, slab_temperature=22.0,
+        outdoor_temperature=float(ot[0]), upper_floor_temperature=21.2,
+        lower_floor_temperature=20.1, buffer_tank_temperature=48.0,
+        wood_tank_temperature=52.0 if wood else None,
+    )
+    batch = m.simulate_trajectory_batch(
+        st, powers, ot, wi, ra, so, 0.25, ext, None, hum, 7.0)
+    mism = []
+    for b in range(powers.shape[0]):
+        r, s, u, l = m.simulate_trajectory(
+            st, powers[b], ot, wi, ra, so, 0.25, ext, None, hum, 7.0)
+        refs = (("room", batch["room"][b], r), ("slab", batch["slab"][b], s),
+                ("upper", batch["upper"][b], u), ("lower", batch["lower"][b], l),
+                ("buffer", batch["buffer"][b], m.last_buffer_trajectory))
+        if batch["wood"] is not None:
+            refs += (("wood", batch["wood"][b], m.last_wood_trajectory),)
+        for name, arr, ref in refs:
+            if not np.array_equal(arr, ref):
+                mism.append(f"{name}[{b}]@{int(np.argmax(arr != ref))}")
+    R.check(
+        f"batched simulation is bitwise-identical: {label}",
+        not mism,
+        f"first divergences: {mism[:4]}",
+    )
+
+_grad_parity(False, label="single-zone")
+_grad_parity(True, label="two-zone")
+_grad_parity(True, valve="manual", label="two-zone with valve")
+_grad_parity(True, wood=True, valve="manual", label="two-tank")
+_grad_parity(
+    True, valve="manual", label="stability substeps",
+    extra_cfg={
+        "room_thermal_mass": 0.3, "slab_thermal_mass": 0.5,
+        "upper_floor_thermal_mass": 0.3, "lower_floor_thermal_mass": 0.5,
+    },
+)
+# Mutation anchor: the batch twin once applied the Carnot lift below the
+# reference flow temperature (a boost the scalar never grants) and once
+# let np.where's both-arms division poison states with 0/0 NaN -- each
+# divergence appeared here as a step-37 room mismatch within seconds.
+
+
+# ===========================================================================
 # Item 17: building presets
 # ===========================================================================
 R.section("Building presets (item 17)")

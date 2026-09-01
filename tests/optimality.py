@@ -112,4 +112,30 @@ for tz in (False,True):
                 f"full-budget {c0:.2f} vs starved {c3:.2f} "
                 f"({100.0*(c3-c0)/c3:.1f}% gap)")
 
+    # Challenger 4: the batched-FD jac (issue #97) must move no plan. The
+    # production path solves through objective_batch/_batch_fd_gradient; a
+    # control solve with the batch stripped falls back to scipy's own FD,
+    # and the two schedules must agree bit for bit -- the jac reproduces
+    # scipy's 2-point estimate exactly (same eps, same bounds rule) or
+    # the iterate path, and the plan with it, would diverge. This is the
+    # equivalence the drift gate holds across every captured scenario;
+    # here it is asserted directly on the solve this file already runs.
+    # Run for both zones: the single-zone and two-zone objectives each
+    # carry their own batch twin.
+    from unittest import mock
+    from heatpump_optimizer import optimizer as _opt_mod
+    _full_ms = _opt_mod._multi_start_minimize
+    def _nobatch_ms(objective, starts, bounds, *a, **kw):
+        kw.pop("batch_objective", None)
+        return _full_ms(objective, starts, bounds, *a, **kw)
+    with mock.patch.object(_opt_mod, "_multi_start_minimize", _nobatch_ms):
+        r_fd = opt.optimize(st, pr, ot, wi, ra, so, start)
+    same = np.array_equal(
+        np.round(np.asarray(r_fd.power_schedule), 12),
+        np.round(base, 12),
+    )
+    R.check("the batched-FD jac reproduces scipy's own gradient path exactly",
+            same,
+            "schedules differ -- the jac is not bit-identical to scipy's FD")
+
 sys.exit(R.close("OPTIMALITY CHECKS"))
