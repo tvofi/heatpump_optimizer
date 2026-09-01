@@ -1245,6 +1245,16 @@ class _PlanSensorBase(HeatPumpOptimizerSensorBase):
                 # integration's own answer rather than guessing from the
                 # browser or the HA install.
                 "currency": self.coordinator.currency,
+                # The projection statement rides the empty path too: the
+                # period question is about what the numbers MEAN, and it has
+                # the same answer before the first plan as after it.
+                "projection": (
+                    "planned for the optimization horizon ahead; recomputed "
+                    "on every replan. Not a measurement and not accumulated."
+                ),
+                "horizon_hours": float(
+                    (self.coordinator.data or {}).get("horizon_hours", 24.0)
+                ),
             }
         slots = plan.get("slots", [])
         next_slot = None
@@ -1258,6 +1268,16 @@ class _PlanSensorBase(HeatPumpOptimizerSensorBase):
             "forecast": plan.get("forecast", []),
             "slots": slots,
             "slot_count": len(slots),
+            # Projection, not history: these are what the CURRENT plan is
+            # expected to use and cost over the horizon, recomputed on every
+            # replan. Stated so the plan sensors and the lifetime
+            # accumulators (Hot Water Cost (lifetime) and friends) cannot be
+            # read as the same number with different magnitudes.
+            "projection": (
+                "planned for the optimization horizon ahead; recomputed on "
+                "every replan. Not a measurement and not accumulated."
+            ),
+            "horizon_hours": float((self.coordinator.data or {}).get("horizon_hours", 24.0)),
             "total_energy_kwh": plan.get("total_energy_kwh", 0.0),
             "total_cost": plan.get("total_cost", 0.0),
             "active_now": plan.get("active_now", False),
@@ -1431,11 +1451,18 @@ class _AccumulatingSensor(HeatPumpOptimizerSensorBase):
     reached Home Assistant's Energy dashboard and there was no long-term cost
     history. The result was that the integration's central claim — that it
     saves money — was invisible in the one place users look for exactly that.
+
+    The friendly names carry ``(lifetime)`` and the attributes state the
+    period outright: a lifetime number that answers to no stated period reads
+    as "very high", because nothing says since when (an owner report). The
+    plan sensors carry ``(next 24 h)`` for the mirror reason.
     """
 
     _attr_state_class = SensorStateClass.TOTAL_INCREASING
     _attr_suggested_display_precision = 2
     _data_key: str = ""
+    #: The ledger line this channel books under, for the month attribute.
+    _ledger_line: str | None = None
 
     @property
     def native_value(self) -> float | None:
@@ -1445,7 +1472,7 @@ class _AccumulatingSensor(HeatPumpOptimizerSensorBase):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        return {
+        attrs = {
             # Stated rather than implied: one meter cannot separate two
             # circuits, so the split is apportioned by what the plan asked each
             # circuit to draw.
@@ -1456,7 +1483,25 @@ class _AccumulatingSensor(HeatPumpOptimizerSensorBase):
             "measured": bool(
                 (self.coordinator.data or {}).get("measured_power_available")
             ),
+            # The period, in words and as a date: "very high" was the owner
+            # reading a lifetime figure with no stated period. The date is
+            # when this integration started RECORDING (an upgrade states
+            # the upgrade day), never a claim about the install itself.
+            "period": (
+                "lifetime accumulator; never reset. The state is the whole "
+                "history, not today's or this month's figure; "
+                "this_month_kwh / this_month_cost carry the current month."
+            ),
         }
+        since = (self.coordinator.data or {}).get("energy_totals_counting_since")
+        if since:
+            attrs["counting_since"] = since
+        if self._ledger_line:
+            month = self.coordinator.month_channel_totals(self._ledger_line)
+            if month is not None:
+                attrs["this_month_kwh"] = round(month[0], 3)
+                attrs["this_month_cost"] = round(month[1], 2)
+        return attrs
 
 
 class SpaceEnergySensor(_AccumulatingSensor):
@@ -1464,6 +1509,7 @@ class SpaceEnergySensor(_AccumulatingSensor):
     _attr_native_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
     _attr_device_class = SensorDeviceClass.ENERGY
     _data_key = "space_energy_kwh"
+    _ledger_line = "space"
 
     def __init__(self, coordinator, entry):
         super().__init__(
@@ -1476,6 +1522,7 @@ class DHWEnergySensor(_DHWEntityMixin, _AccumulatingSensor):
     _attr_native_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
     _attr_device_class = SensorDeviceClass.ENERGY
     _data_key = "dhw_energy_kwh"
+    _ledger_line = "dhw"
 
     def __init__(self, coordinator, entry):
         super().__init__(coordinator, entry, "dhw_energy", "hot_water_energy")
@@ -1511,6 +1558,7 @@ class _AccumulatingCostSensor(_AccumulatingSensor):
 class SpaceCostSensor(_AccumulatingCostSensor):
     _attr_icon = "mdi:cash"
     _data_key = "space_cost"
+    _ledger_line = "space"
 
     def __init__(self, coordinator, entry):
         super().__init__(coordinator, entry, "space_cost", "space_heating_cost")
@@ -1519,6 +1567,7 @@ class SpaceCostSensor(_AccumulatingCostSensor):
 class DHWCostSensor(_DHWEntityMixin, _AccumulatingCostSensor):
     _attr_icon = "mdi:cash"
     _data_key = "dhw_cost"
+    _ledger_line = "dhw"
 
     def __init__(self, coordinator, entry):
         super().__init__(coordinator, entry, "dhw_cost_total", "hot_water_cost")

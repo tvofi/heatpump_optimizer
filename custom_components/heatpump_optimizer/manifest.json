@@ -5,19 +5,19 @@
     "mqtt"
   ],
   "codeowners": [
-    "@heatpump-optimizer"
+    "@tvofi"
   ],
   "config_flow": true,
   "dependencies": [
     "http"
   ],
-  "documentation": "https://github.com/heatpump-optimizer/ha-heatpump-optimizer",
+  "documentation": "https://github.com/tvofi/heatpump_optimizer",
   "iot_class": "cloud_polling",
-  "issue_tracker": "https://github.com/heatpump-optimizer/ha-heatpump-optimizer/issues",
+  "issue_tracker": "https://github.com/tvofi/heatpump_optimizer/issues",
   "requirements": [
     "numpy>=1.24.0",
     "scipy>=1.10.0",
     "threadpoolctl>=3.5.0"
   ],
-  "version": "6.2.1"
+  "version": "6.2.7"
 }

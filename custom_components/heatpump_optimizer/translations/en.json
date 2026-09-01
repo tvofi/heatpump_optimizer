@@ -183,7 +183,7 @@
         },
         "data_description": {
           "dhw_schedule_enabled": "On: hot water is guaranteed only during the times below, and the tank may cool down in between. Off: the tank is kept hot around the clock, which costs noticeably more.",
-          "dhw_windows": "24-hour times separated by commas, for example 06:00-08:30, 17:00-22:00. The tank is heated in the cheapest hours before each period. Leave empty to let the integration learn your habits from actual usage.",
+          "dhw_windows": "Times hot water must be available, e.g. 06:00-08:30, 17:00-22:00. Different days can get different times with a day selector: 'weekdays 06:00-08:30, weekend 08:00-09:30', or specific days: 'Mo 05:30-07:00, Tu-Fr 06:00-08:00, Sa,Su 08:00-09:30'. Without a selector the times apply every day.",
           "dhw_min_temperature": "The temperature the tank is guaranteed to reach during the periods above. Around 45 C is enough for a normal shower.",
           "dhw_idle_min_temperature": "How cold the tank is allowed to get outside those periods. Lower saves more. The default is roughly room temperature, meaning no energy is spent at all.",
           "dhw_setpoint": "An upper limit on charging, not a target. The tank is only filled this high when storing extra cheap heat pays off. It is never heated to this just for the sake of it.",
@@ -372,7 +372,7 @@
         },
         "data_description": {
           "dhw_schedule_enabled": "On: hot water is guaranteed only during the times below, and the tank may cool down in between. Off: the tank is kept hot around the clock, which costs noticeably more.",
-          "dhw_windows": "24-hour times separated by commas, for example 06:00-08:30, 17:00-22:00. The tank is heated in the cheapest hours before each period. Leave empty to let the integration learn your habits from actual usage.",
+          "dhw_windows": "Times hot water must be available, e.g. 06:00-08:30, 17:00-22:00. Different days can get different times with a day selector: 'weekdays 06:00-08:30, weekend 08:00-09:30', or specific days: 'Mo 05:30-07:00, Tu-Fr 06:00-08:00, Sa,Su 08:00-09:30'. Without a selector the times apply every day.",
           "dhw_min_temperature": "The temperature the tank is guaranteed to reach during the periods above. Around 45 C is enough for a normal shower.",
           "dhw_idle_min_temperature": "How cold the tank is allowed to get outside those periods. Lower saves more. The default is roughly room temperature, meaning no energy is spent at all.",
           "dhw_setpoint": "An upper limit on charging, not a target. The tank is only filled this high when storing extra cheap heat pays off. It is never heated to this just for the sake of it.",
@@ -867,10 +867,10 @@
         "name": "Current Electricity Price"
       },
       "dhw_heating_cost": {
-        "name": "DHW Heating Cost"
+        "name": "DHW Heating Cost (next 24 h)"
       },
       "dhw_heating_plan": {
-        "name": "DHW Heating Plan"
+        "name": "DHW Heating Plan (next 24 h)"
       },
       "dhw_heating_schedule": {
         "name": "DHW Heating Schedule"
@@ -900,10 +900,10 @@
         "name": "Heat Pump Action"
       },
       "hot_water_cost": {
-        "name": "Hot Water Cost"
+        "name": "Hot Water Cost (lifetime)"
       },
       "hot_water_energy": {
-        "name": "Hot Water Energy"
+        "name": "Hot Water Energy (lifetime)"
       },
       "indoor_temperature_optimizer": {
         "name": "Indoor Temperature (Optimizer)"
@@ -984,13 +984,13 @@
         "name": "Solar Surplus Forecast"
       },
       "space_heating_cost": {
-        "name": "Space Heating Cost"
+        "name": "Space Heating Cost (lifetime)"
       },
       "space_heating_energy": {
-        "name": "Space Heating Energy"
+        "name": "Space Heating Energy (lifetime)"
       },
       "space_heating_plan": {
-        "name": "Space Heating Plan"
+        "name": "Space Heating Plan (next 24 h)"
       },
       "thermal_battery_charge": {
         "name": "Thermal Battery Charge"
@@ -999,10 +999,10 @@
         "name": "Thermal Battery Energy"
       },
       "total_energy": {
-        "name": "Total Energy"
+        "name": "Total Energy (lifetime)"
       },
       "total_heating_cost": {
-        "name": "Total Heating Cost"
+        "name": "Total Heating Cost (lifetime)"
       },
       "upper_floor_temperature": {
         "name": "Upper Floor Temperature"

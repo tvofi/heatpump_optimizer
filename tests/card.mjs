@@ -3328,6 +3328,69 @@ function ctxL(card, key) {
   try { new Card().setConfig({ show_stats: "yes" }); } catch (e) { err = e; }
   check("a non-boolean show_stats is rejected",
     !!err && /show_stats/.test(err.message));
+
+  // The score's hover says what the score is MADE OF (owner request #2):
+  // the sub-scores ride the same sensor's attributes, and an owner staring
+  // at a low number wants to know where the rest went before deciding
+  // anything. The hover title carries all three, evidence or not.
+  const scoreTitle =
+    (hlDump.match(/data-stat="score" title="([^"]*)"/) || ["", ""])[1];
+  check("the score's hover lists the sub-scores it is made of",
+    /House: 90\/100/.test(scoreTitle) && /Heat pump: 75\/100/.test(scoreTitle),
+    scoreTitle);
+  check("and says the unmeasured part has no evidence, not zero",
+    /Driving: No evidence yet/.test(scoreTitle), scoreTitle);
+  check("and invites the click that opens the panel",
+    /Click for/.test(scoreTitle), scoreTitle);
+
+  // The click opens a panel: one row per sub-score, each with its value
+  // (or the no-evidence wording) and one line of what it measures and what
+  // a low value points at. Closed by default, closed again by a second
+  // click, and the click must NOT open the expanded dialog.
+  check("the breakdown panel is closed by default",
+    !/class="score-breakdown"/.test(collect(hl.shadowRoot).join("\n")));
+  const scoreEl = hl.shadowRoot.querySelector('[data-stat="score"]');
+  let clickOpenedDialog = false;
+  hl._onCardClick = () => { clickOpenedDialog = true; };
+  scoreEl.dispatchEvent({ type: "click", stopPropagation() {} });
+  const openDump = collect(hl.shadowRoot).join("\n");
+  check("clicking the score opens the breakdown panel",
+    /class="score-breakdown"/.test(openDump) && /sb-row/.test(openDump), openDump);
+  check("and the click does not open the expanded dialog",
+    !clickOpenedDialog);
+  check("each row carries its plain-language explanation",
+    /how long the building holds its stored heat/.test(openDump) &&
+    /against its own\s+baseline/.test(openDump) &&
+    /buying at or above flat scores 0/.test(openDump),
+    (openDump.match(/score-breakdown[\s\S]{0,900}/) || [""])[0]);
+  check("an unmeasured part shows no-evidence, never 0/100",
+    /sb-na">No evidence yet/.test(openDump) && !/sb-na">0\/100/.test(openDump));
+  check("a measured part gets its bar and value",
+    /sb-fill[^>]*width:90%/.test(openDump) && /sb-val">90\/100/.test(openDump));
+  hl.shadowRoot.querySelector('[data-stat="score"]')
+    .dispatchEvent({ type: "click", stopPropagation() {} });
+  check("a second click closes the panel",
+    !/class="score-breakdown"/.test(collect(hl.shadowRoot).join("\n")));
+  // The keyboard path opens it too, for the same reason every other
+  // control here has one.
+  const kbCard = build(full);
+  kbCard.shadowRoot.querySelector('[data-stat="score"]')
+    .dispatchEvent({ type: "keydown", key: "Enter",
+      preventDefault() {}, stopPropagation() {} });
+  check("Enter opens the panel as well",
+    /class="score-breakdown"/.test(collect(kbCard.shadowRoot).join("\n")));
+  // And the whole thing speaks Swedish with the install.
+  const svScore = new Card();
+  svScore.setConfig({ type: "custom:heatpump-optimizer-card" });
+  svScore.hass = { states: full, language: "sv-SE" };
+  svScore.shadowRoot.querySelector('[data-stat="score"]')
+    .dispatchEvent({ type: "click", stopPropagation() {} });
+  const svOpen = collect(svScore.shadowRoot).join("\n");
+  check("the panel is in Swedish too",
+    /Huset/.test(svOpen) && /Värmepumpen/.test(svOpen) &&
+    /Körningen/.test(svOpen) && /Inget underlag ännu/.test(svOpen),
+    (svOpen.match(/score-breakdown[\s\S]{0,500}/) || [""])[0]);
+  build(full); // back to English
 }
 
 // --- Scenario: reduced motion is honored (v4.2.0) ---------------------------
@@ -4894,6 +4957,53 @@ const setupBox = (card, place) =>
     chipsFor(svLegend, "house_temp") === 1 &&
     /ritas också: Övre plan, Nedre plan \(modellerad\)/.test(svLegend),
     svLegend);
+
+  // A channel paused by the pump's own operating mode carries no power, so
+  // the hover would show nothing at all -- and "cannot do this", the old
+  // label, was true but never actionable. The explanation is channel-aware
+  // and says where the setting lives: on the unit, not in this card.
+  const pumpBlocked = (dhwBlocked, spaceBlocked) => {
+    const states = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+    states[DEFAULT_DHW].attributes.forecast =
+      plan.dhw_plan.forecast.map((p) => ({
+        ...p, dhw_power: 0,
+        reason: dhwBlocked ? "pump_mode" : p.reason,
+      }));
+    states[DEFAULT_SPACE].attributes.forecast =
+      plan.space_plan.forecast.map((p) => ({
+        ...p, space_power: 0,
+        reason: spaceBlocked ? "pump_mode" : p.reason,
+      }));
+    return states;
+  };
+  const dhwBlockedCard = (() => {
+    const c = new Card();
+    c.setConfig({ type: "custom:heatpump-optimizer-card" });
+    c.hass = { states: pumpBlocked(true, false) };
+    return c;
+  })();
+  const dbTip = hovered(dhwBlockedCard);
+  check("a mode-blocked hot-water channel explains itself on hover",
+    /cannot heat water/.test(dbTip) && /heat-only or cooling/.test(dbTip),
+    dbTip);
+  check("and points at the setting on the unit, not at the optimizer",
+    /set on the unit/.test(dbTip), dbTip);
+  const spaceBlockedCard = (() => {
+    const c = new Card();
+    c.setConfig({ type: "custom:heatpump-optimizer-card" });
+    c.hass = { states: pumpBlocked(false, true) };
+    return c;
+  })();
+  check("a mode-blocked heating channel gets its own half of the explanation",
+    /cannot heat rooms/.test(hovered(spaceBlockedCard)) &&
+    !/cannot heat water/.test(hovered(spaceBlockedCard)),
+    hovered(spaceBlockedCard));
+  const svBlocked = new Card();
+  svBlocked.setConfig({ type: "custom:heatpump-optimizer-card" });
+  svBlocked.hass = { states: pumpBlocked(true, false), language: "sv-SE" };
+  check("and the mode explanation is in Swedish too",
+    /kan inte värma vatten/.test(hovered(svBlocked)),
+    hovered(svBlocked));
 }
 
 // --- Scenario: the hot-water expected-error band (v5.2.0) ------------------

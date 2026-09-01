@@ -43,10 +43,10 @@
 # does not expire with the stamp and is not part of the inherited-claims
 # comparison.
 #
-# claims-for: 6.2.1
+# claims-for: 6.2.7
 #
-# The menu-return landed in 6.2.1 itself; this stamp claims
-# nothing further.
+# Documentation-only release: no solver, sensor or store path
+# touched, so no golden moves and the list stays empty.
 #
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum

@@ -240,8 +240,16 @@ class FakeCoordinator:
         # What the climate thermostat card shows as the user's target.
         self.target_temperature = 21.0
         self.mode_calls: list[str] = []
+        # The month figures the accumulators publish (#4): None until a test
+        # sets them, mirroring "no bookings this month yet" on a real
+        # coordinator at month start.
+        self._month_totals: dict[str, tuple[float, float]] = {}
         for key, value in extra.items():
             setattr(self, key, value)
+
+    def month_channel_totals(self, line: str):
+        """The real coordinator reads this from the monthly ledger."""
+        return self._month_totals.get(line)
 
     async def async_set_mode(self, mode):
         self.mode_calls.append(mode)
