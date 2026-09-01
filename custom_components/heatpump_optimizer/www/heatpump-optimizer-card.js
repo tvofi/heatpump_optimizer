@@ -11,7 +11,7 @@
 
 const CARD_TAG = "heatpump-optimizer-card";
 const EDITOR_TAG = "heatpump-optimizer-card-editor";
-const CARD_VERSION = "5.4.7";
+const CARD_VERSION = "5.4.8";
 
 // The de-duplication key `_extraFields` files a confidence band's two
 // edges under, so the pair counts as the one named trace it is. A Symbol
@@ -5148,6 +5148,417 @@ class ExpandedDialog {
   }
 }
 
+// ---- ManualPlan -----------------------------------------------------------
+// Today's hand-arranged slots: the draft the lanes edit (seeded from the
+// published plan, kept while the user is part way through rearranging it),
+// the bounds an edit may reach (the current step, the manual-plan window,
+// the plan's end, the visible window), what the arrangement costs against
+// the plan in force, and the apply / undo / back-to-automatic actions that
+// reach `apply_manual_plan` and `clear_manual_plan`. Uses `host.plan`,
+// `host.geom` (the chart's window), `host.view.reset()`, `host.hass`,
+// `host.shadowRoot` and `host.render()`. The lane editor (PR 5b) edits the
+// draft through `set`. PR 5a of #136.
+class ManualPlan {
+  constructor(host) {
+    this.host = host;
+    // The draft: {dhw: [...runs], space: [...runs]}, or null until seeded.
+    this.runs = null;
+    // Whether the user has edited it since it was seeded.
+    this.dirty = false;
+  }
+
+  /** A newly published plan replaces the slot draft, unless the user is part
+   * way through rearranging it. Their edits have to survive a refresh -- but
+   * an untouched draft must not survive one, or the lanes would keep showing
+   * an arrangement the optimizer has already moved on from, the cost delta
+   * would compare against a plan that no longer exists, and Apply would pin
+   * something the user is not looking at. */
+  onPlanRefresh() {
+    if (!this.dirty) this.runs = null;
+  }
+
+  /** Replace one channel's runs with an edited arrangement. */
+  set(channel, runs) {
+    this.draft();
+    this.runs[channel] = runs;
+    this.dirty = true;
+  }
+
+  /** The arrangement being edited, seeded from the published plan.
+   *
+   * Held on the instance because a data refresh rebuilds the whole shadow
+   * root; without this, an incoming plan update would throw away a drag the
+   * user was halfway through.
+   */
+  draft() {
+    if (!this.runs) {
+      this.runs = {};
+      for (const spec of this.laneSpecs()) {
+        this.runs[spec.channel] = SlotModel.runsFrom(
+          this.host.plan.forecastOf(spec.channel), spec.field, 0.05, PLAN_STEP_MS
+        );
+      }
+      this.dirty = false;
+    }
+    return this.runs;
+  }
+
+  /** Discard local edits and follow the published plan again. */
+  reset() {
+    this.runs = null;
+    this.dirty = false;
+  }
+
+  /** The two editable channels, in the order they are drawn. */
+  laneSpecs() {
+    return [
+      {
+        channel: "dhw",
+        label: L("slots.lane_dhw"),
+        field: "dhw_power",
+        color: "#e0544e",
+      },
+      {
+        channel: "space",
+        label: L("slots.lane_space"),
+        field: "space_power",
+        color: "#4a90e2",
+      },
+    ];
+  }
+
+  /** Whether the on-chart schedule editor is available. */
+  enabled() {
+    return !!this.host.config.what_if;
+  }
+
+  /** Earliest time a slot may be edited.
+   *
+   * The past cannot be rescheduled, and an override only ever applies from now
+   * on, so editing has to stop at the current step boundary rather than at the
+   * start of the horizon.
+   */
+  editFloor() {
+    const start = this.host.geom ? this.host.geom.windowStart : Date.now();
+    return Math.max(start, SlotModel.snap(Date.now(), PLAN_STEP_MS));
+  }
+
+  /** The last instant a hand-arranged slot can reach.
+   *
+   * Three separate limits, and the smallest wins:
+   *
+   * 1. **The expiry this card would send if the user applied right now** --
+   *    `now + MANUAL_PLAN_WINDOW_HOURS`, published by the integration rather
+   *    than copied here so the two cannot drift. Deliberately *not* the expiry
+   *    of the override currently in force: an override applied 15 hours ago
+   *    expires in 5, but the user editing now is composing a new plan that will
+   *    last the full window from this moment. Deriving the ceiling from the
+   *    active override would shrink the editable window as the day wore on and
+   *    stop the user extending their own plan.
+   * 2. **The end of the plan.** Past it there is nothing to pin.
+   * 3. **The visible window**, which pan and zoom can narrow. Without this a
+   *    slot could be dragged out of the region the pointer can actually reach.
+   *
+   * Beyond the first of these, `manual_plan.channel_pins` frees every step at or
+   * after the expiry, so a slot shown as pinned there would quietly do nothing.
+   */
+  editCeiling() {
+    const p = this.ceilingParts();
+    return Math.min(p.visibleEnd, p.applyEnd, p.planEnd);
+  }
+
+  /** The ceiling's three inputs, separately, so the lanes can say WHICH one
+   * is in charge. When the visible window is the binding limit the user is
+   * zoomed in, and an edit stopping there reads as an arbitrary rule unless
+   * the card says so — a real user diagnosed it as "slots end at midnight".
+   */
+  ceilingParts() {
+    const visibleEnd = this.host.geom ? this.host.geom.windowEnd : Infinity;
+    const windowHours = this.host.plan.attr(
+      "manual_plan_window_hours",
+      MANUAL_PLAN_WINDOW_FALLBACK_H
+    );
+    return {
+      visibleEnd,
+      applyEnd: Date.now() + windowHours * 3600 * 1000,
+      planEnd: this.planEnd(),
+    };
+  }
+
+  /** Whether the zoomed-in view, not the plan or the 20 h window, is what
+   * currently stops editing. The one-second slack keeps float noise from
+   * flickering the hint on an unzoomed card whose window ends at the plan.
+   */
+  viewLimitsEditing() {
+    const p = this.ceilingParts();
+    return p.visibleEnd < Math.min(p.applyEnd, p.planEnd) - 1000;
+  }
+
+  /** The last timestamp the published plan covers. */
+  planEnd() {
+    let end = -Infinity;
+    for (const channel of ["space", "dhw"]) {
+      const fc = this.host.plan.forecastOf(channel);
+      if (!fc.length) continue;
+      const t = Date.parse(fc[fc.length - 1].t);
+      if (Number.isFinite(t)) end = Math.max(end, t + PLAN_STEP_MS);
+    }
+    return end === -Infinity ? Infinity : end;
+  }
+
+  bounds() {
+    return [this.editFloor(), this.editCeiling()];
+  }
+
+  /** What the current arrangement would cost against the published plan.
+   *
+   * Both sides are priced over the same horizon at the same prices, so the
+   * difference isolates the effect of moving the slots. It is an estimate:
+   * the arrangement fixes when the pump runs, not how hard, and the optimizer
+   * still chooses the power within each slot.
+   */
+  costDelta() {
+    let planned = 0;
+    let edited = 0;
+    const runs = this.draft();
+    for (const spec of this.laneSpecs()) {
+      const forecast = this.host.plan.forecastOf(spec.channel);
+      if (!forecast.length) continue;
+      const power = SlotModel.typicalPower(forecast, spec.field);
+      const base = SlotModel.runsFrom(
+        forecast, spec.field, 0.05, PLAN_STEP_MS
+      );
+      planned += SlotModel.cost(base, forecast, power, PLAN_STEP_MS);
+      edited += SlotModel.cost(
+        runs[spec.channel] || [], forecast, power, PLAN_STEP_MS
+      );
+    }
+    return { planned, edited, delta: edited - planned };
+  }
+
+  deltaHtml() {
+    const { planned, edited, delta } = this.costDelta();
+    if (!Number.isFinite(delta) || (!planned && !edited)) {
+      return `<span class="wi-hint">${L("stats.no_plan_to_compare")}</span>`;
+    }
+    const cur = this.host.plan.currency();
+    const cls = delta < -0.005 ? "cheaper" : delta > 0.005 ? "dearer" : "";
+    const sign = delta > 0 ? "+" : "";
+    const verdict = L(
+      cls === "cheaper"
+        ? "stats.cheaper"
+        : cls === "dearer"
+          ? "stats.dearer"
+          : "stats.the_same"
+    );
+    return `
+      <span class="delta ${cls}">${sign}${delta.toFixed(2)}&nbsp;${esc(cur)}</span>
+      <span class="wi-hint">${L("stats.delta_detail", {
+        verdict,
+        planned: planned.toFixed(2),
+        edited: edited.toFixed(2),
+        currency: esc(cur),
+      })}</span>`;
+  }
+
+  updateDelta() {
+    const root = this.host.shadowRoot;
+    const box = root && root.querySelector(".wi-delta");
+    if (box) box.innerHTML = this.deltaHtml();
+  }
+
+  /** How the override is going, in the user's terms.
+   *
+   * A pinned slot is not a guarantee: the optimizer releases pins that would
+   * take the house below its comfort floor or the tank below its minimum. That
+   * has to be said out loud, because the whole point of pinning is that the
+   * user believes the plan they see is the plan that will run.
+   */
+  overrideHtml() {
+    const info = this.host.plan.manualOverride();
+    if (!info) return "";
+    const until = info.expires_at ? new Date(info.expires_at) : null;
+    const when =
+      until && !Number.isNaN(until.getTime())
+        ? L("slots.until_suffix", { expiry: fmtExpiry(until) })
+        : "";
+    const released =
+      (info.released_space || []).length + (info.released_dhw || []).length;
+    const note = released
+      ? ` <span class="dearer">${esc(
+          L(
+            released === 1 ? "slots.released_one" : "slots.released_other",
+            { n: released }
+          )
+        )}</span>`
+      : "";
+    return `<div class="wi-row wi-override" role="status">${L(
+      "slots.pinned_status",
+      { until: esc(when) }
+    )}${note}</div>`;
+  }
+
+  /** Pin the current arrangement for the manual-plan window.
+   *
+   * Only the editable part of the horizon is sent: the past cannot be
+   * rescheduled, and pinning a slot that has already happened would be
+   * meaningless.
+   */
+  apply() {
+    if (!this.host.hass || !this.host.hass.callService) return;
+    const [lo] = this.bounds();
+    const runs = this.draft();
+    const payload = {};
+    for (const spec of this.laneSpecs()) {
+      // Omitting a channel leaves it automatic; sending an empty list means
+      // "off until the override expires". A channel whose plan sensor is
+      // missing or has not published yet has an empty draft that means neither
+      // of those things, so it must be left out rather than silently switched
+      // off for the rest of the day.
+      if (!this.host.plan.forecastOf(spec.channel).length) continue;
+      payload[`${spec.channel}_slots`] = (runs[spec.channel] || [])
+        .filter((r) => r.end > lo)
+        .map((r) => ({
+          start: new Date(Math.max(r.start, lo)).toISOString(),
+          end: new Date(r.end).toISOString(),
+        }));
+    }
+    if (!Object.keys(payload).length) {
+      this.slotResult(L("slots.no_plan_to_pin"), "dearer");
+      return;
+    }
+    this.slotResult(L("slots.applying"));
+    Promise.resolve(
+      this.host.hass.callService(
+        "heatpump_optimizer",
+        "apply_manual_plan",
+        payload,
+        undefined,
+        false,
+        true
+      )
+    )
+      .then((response) => {
+        this.dirty = false;
+        const applied = Object.values(
+          (response && response.response && response.response.applied) || {}
+        )[0];
+        const until = applied && applied.expires_at
+          ? new Date(applied.expires_at)
+          : null;
+        const when =
+          until && !Number.isNaN(until.getTime())
+            ? L("slots.until_suffix", { expiry: fmtExpiry(until) })
+            : "";
+        // Deliberately not a promise that these slots will run: the optimizer
+        // releases a pin that would take the house or the tank below its
+        // limits, and saying otherwise would be a lie the user acts on.
+        this.slotResult(L("slots.pinned_result", { until: when }), "cheaper");
+      })
+      .catch((err) => {
+        this.slotResult(
+          L("errors.could_not_apply", { err: (err && err.message) || err }),
+          "dearer"
+        );
+      });
+  }
+
+  clear() {
+    if (!this.host.hass || !this.host.hass.callService) return;
+    this.slotResult(L("slots.clearing"));
+    Promise.resolve(
+      this.host.hass.callService("heatpump_optimizer", "clear_manual_plan", {})
+    )
+      .then(() => {
+        this.reset();
+        this.slotResult(L("slots.back_to_auto_result"));
+        this.host.render();
+      })
+      .catch((err) => {
+        this.slotResult(
+          L("errors.could_not_clear", { err: (err && err.message) || err }),
+          "dearer"
+        );
+      });
+  }
+
+  /** Wire the buttons that act on today's hand-arranged slots, and the
+   * zoom-limit hint's show-the-whole-plan button that sits among them. */
+  attach(root) {
+    const viewReset = root.querySelector(".wi-viewreset");
+    if (viewReset) viewReset.addEventListener("click", () => this.host.view.reset());
+    const pin = root.querySelector(".wi-pin");
+    if (pin) {
+      pin.addEventListener("click", (ev) => {
+        stop(ev);
+        this.apply();
+      });
+    }
+    const revert = root.querySelector(".wi-revert");
+    if (revert) {
+      revert.addEventListener("click", (ev) => {
+        stop(ev);
+        this.reset();
+        this.host.render();
+      });
+    }
+    const auto = root.querySelector(".wi-auto");
+    if (auto) {
+      auto.addEventListener("click", (ev) => {
+        stop(ev);
+        this.clear();
+      });
+    }
+  }
+
+  slotResult(message, cls) {
+    const box = this.host.shadowRoot && this.host.shadowRoot.querySelector(".wi-pin-result");
+    if (box) box.innerHTML = `<span class="${cls || ""}">${esc(message)}</span>`;
+  }
+
+  /** "Today's slots": the what-if panel's first section. The hint carries
+   * the manual-plan window, the zoom-limit line appears when the view is
+   * what stops editing, then the override banner, the running cost delta,
+   * the apply / undo / back-to-automatic buttons and the result line. The
+   * markup is the host's what-if template's, verbatim; the host places it
+   * with the same indentation it always had. */
+  sectionHtml(windowHours) {
+    return `<div class="wi-section">
+          <div class="wi-group-title">${esc(L("whatif.todays_slots"))}</div>
+          <div class="wi-hint">
+            ${L("whatif.slots_hint", { hours: windowHours })}
+          </div>
+          ${
+            this.viewLimitsEditing()
+              ? `<div class="wi-viewlimit">${L("whatif.zoom_limit_hint", {
+                  button:
+                    `<button type="button" class="wi-viewreset">` +
+                    `${esc(L("whatif.show_whole_plan_button"))}</button>`,
+                })}</div>`
+              : ""
+          }
+          ${this.overrideHtml()}
+          <div class="wi-row wi-delta">${this.deltaHtml()}</div>
+          <div class="wi-row wi-actions">
+            <button type="button" class="wi-pin">${esc(
+              L("whatif.apply_plan")
+            )}</button>
+            <button type="button" class="wi-revert">${esc(
+              L("whatif.undo_changes")
+            )}</button>
+            ${
+              this.host.plan.manualOverride()
+                ? `<button type="button" class="wi-auto">${esc(
+                    L("whatif.back_to_auto")
+                  )}</button>`
+                : ""
+            }
+          </div>
+          <div class="wi-pin-result" role="status"></div>
+        </div>`;
+  }
+}
+
 // ===========================================================================
 // The card element, and the contract its collaborators get.
 //
@@ -5162,6 +5573,7 @@ class ExpandedDialog {
 //   host.view                  ViewWindow: the pan/zoom window over the plan
 //   host.legend                Legend: the series chips and which are hidden
 //   host.dialog                ExpandedDialog: the enlarged view and its pages
+//   host.manual                ManualPlan: today's slot draft, its bounds and cost
 //   host.geom                  the chart's last geometry (null: no lanes)
 //   host.render()              rebuild, keeping the render signature
 //   host.renderForced()        rebuild and forget it (the next hass redraws)
@@ -5181,6 +5593,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     this.view = new ViewWindow(this);
     this.legend = new Legend(this);
     this.dialog = new ExpandedDialog(this);
+    this.manual = new ManualPlan(this);
     this._config = null;
     this._hass = null;
     this._sig = null;
@@ -5223,9 +5636,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // Chart geometry the pan gesture and the slot lanes hit-test against,
     // published by `_chartSvg` while editing is enabled.
     this._geom = null;
-    // The slot draft (`_draftRuns`) and whether the user has edited it.
-    this._runs = null;
-    this._runsDirty = false;
     // A slot drag in progress, and the edge auto-pan interval it may run.
     this._drag = null;
     this._dragPan = null;
@@ -5459,13 +5869,9 @@ class HeatpumpOptimizerCard extends HTMLElement {
     if (!this._config || !this._hass) return;
     const sig = this._signature();
     if (!force && sig === this._sig) return;
-    // A newly published plan replaces the slot draft, unless the user is part
-    // way through rearranging it. Their edits have to survive a refresh -- but
-    // an untouched draft must not survive one, or the lanes would keep showing
-    // an arrangement the optimizer has already moved on from, the cost delta
-    // would compare against a plan that no longer exists, and Apply would pin
-    // something the user is not looking at.
-    if (!this._runsDirty) this._runs = null;
+    // A newly published plan replaces the slot draft unless the user is part
+    // way through rearranging it (see ManualPlan.onPlanRefresh).
+    this.manual.onPlanRefresh();
     this._sig = sig;
     this._render();
   }
@@ -5660,7 +6066,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
       measuredWidth: () => this._measuredCardWidth(),
       priceUnit: this.plan.priceUnit(),
       estimatedFrom: this.plan.estimatedPricesFrom(),
-      editing: this._editingEnabled(),
+      editing: this.manual.enabled(),
       title: this._title(),
       now: Date.now(),
       // The lanes hit-test against the geometry they are drawn into, so
@@ -6741,39 +7147,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     );
     return `
       <div class="whatif">
-        <div class="wi-section">
-          <div class="wi-group-title">${esc(L("whatif.todays_slots"))}</div>
-          <div class="wi-hint">
-            ${L("whatif.slots_hint", { hours: windowHours })}
-          </div>
-          ${
-            this._viewLimitsEditing()
-              ? `<div class="wi-viewlimit">${L("whatif.zoom_limit_hint", {
-                  button:
-                    `<button type="button" class="wi-viewreset">` +
-                    `${esc(L("whatif.show_whole_plan_button"))}</button>`,
-                })}</div>`
-              : ""
-          }
-          ${this._overrideHtml()}
-          <div class="wi-row wi-delta">${this._deltaHtml()}</div>
-          <div class="wi-row wi-actions">
-            <button type="button" class="wi-pin">${esc(
-              L("whatif.apply_plan")
-            )}</button>
-            <button type="button" class="wi-revert">${esc(
-              L("whatif.undo_changes")
-            )}</button>
-            ${
-              this.plan.manualOverride()
-                ? `<button type="button" class="wi-auto">${esc(
-                    L("whatif.back_to_auto")
-                  )}</button>`
-                : ""
-            }
-          </div>
-          <div class="wi-pin-result" role="status"></div>
-        </div>
+        ${this.manual.sectionHtml(windowHours)}
 
         <div class="wi-section">
           <div class="wi-group-title">${esc(L("whatif.usual_schedule"))}</div>
@@ -6945,37 +7319,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
     return published === null ? DHW_MIN_FALLBACK : published;
   }
 
-  /** How the override is going, in the user's terms.
-   *
-   * A pinned slot is not a guarantee: the optimizer releases pins that would
-   * take the house below its comfort floor or the tank below its minimum. That
-   * has to be said out loud, because the whole point of pinning is that the
-   * user believes the plan they see is the plan that will run.
-   */
-  _overrideHtml() {
-    const info = this.plan.manualOverride();
-    if (!info) return "";
-    const until = info.expires_at ? new Date(info.expires_at) : null;
-    const when =
-      until && !Number.isNaN(until.getTime())
-        ? L("slots.until_suffix", { expiry: fmtExpiry(until) })
-        : "";
-    const released =
-      (info.released_space || []).length + (info.released_dhw || []).length;
-    const note = released
-      ? ` <span class="dearer">${esc(
-          L(
-            released === 1 ? "slots.released_one" : "slots.released_other",
-            { n: released }
-          )
-        )}</span>`
-      : "";
-    return `<div class="wi-row wi-override" role="status">${L(
-      "slots.pinned_status",
-      { until: esc(when) }
-    )}${note}</div>`;
-  }
-
   /** Demand windows the DHW plan sensor is currently planning against.
    *
    * Normalised to what the editor's own validator accepts, which is what an
@@ -6994,121 +7337,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
       start: endOfDayAsMidnight(w.start),
       end: endOfDayAsMidnight(w.end),
     }));
-  }
-
-  /** Wire the buttons that act on today's hand-arranged slots. */
-  _attachSlotActions(root) {
-    const pin = root.querySelector(".wi-pin");
-    if (pin) {
-      pin.addEventListener("click", (ev) => {
-        stop(ev);
-        this._applyManualPlan();
-      });
-    }
-    const revert = root.querySelector(".wi-revert");
-    if (revert) {
-      revert.addEventListener("click", (ev) => {
-        stop(ev);
-        this._resetRuns();
-        this._render();
-      });
-    }
-    const auto = root.querySelector(".wi-auto");
-    if (auto) {
-      auto.addEventListener("click", (ev) => {
-        stop(ev);
-        this._clearManualPlan();
-      });
-    }
-  }
-
-  _slotResult(message, cls) {
-    const box = this.shadowRoot && this.shadowRoot.querySelector(".wi-pin-result");
-    if (box) box.innerHTML = `<span class="${cls || ""}">${esc(message)}</span>`;
-  }
-
-  /** Pin the current arrangement for the manual-plan window.
-   *
-   * Only the editable part of the horizon is sent: the past cannot be
-   * rescheduled, and pinning a slot that has already happened would be
-   * meaningless.
-   */
-  _applyManualPlan() {
-    if (!this._hass || !this._hass.callService) return;
-    const [lo] = this._editBounds();
-    const runs = this._draftRuns();
-    const payload = {};
-    for (const spec of this._laneSpecs()) {
-      // Omitting a channel leaves it automatic; sending an empty list means
-      // "off until the override expires". A channel whose plan sensor is
-      // missing or has not published yet has an empty draft that means neither
-      // of those things, so it must be left out rather than silently switched
-      // off for the rest of the day.
-      if (!this.plan.forecastOf(spec.channel).length) continue;
-      payload[`${spec.channel}_slots`] = (runs[spec.channel] || [])
-        .filter((r) => r.end > lo)
-        .map((r) => ({
-          start: new Date(Math.max(r.start, lo)).toISOString(),
-          end: new Date(r.end).toISOString(),
-        }));
-    }
-    if (!Object.keys(payload).length) {
-      this._slotResult(L("slots.no_plan_to_pin"), "dearer");
-      return;
-    }
-    this._slotResult(L("slots.applying"));
-    Promise.resolve(
-      this._hass.callService(
-        "heatpump_optimizer",
-        "apply_manual_plan",
-        payload,
-        undefined,
-        false,
-        true
-      )
-    )
-      .then((response) => {
-        this._runsDirty = false;
-        const applied = Object.values(
-          (response && response.response && response.response.applied) || {}
-        )[0];
-        const until = applied && applied.expires_at
-          ? new Date(applied.expires_at)
-          : null;
-        const when =
-          until && !Number.isNaN(until.getTime())
-            ? L("slots.until_suffix", { expiry: fmtExpiry(until) })
-            : "";
-        // Deliberately not a promise that these slots will run: the optimizer
-        // releases a pin that would take the house or the tank below its
-        // limits, and saying otherwise would be a lie the user acts on.
-        this._slotResult(L("slots.pinned_result", { until: when }), "cheaper");
-      })
-      .catch((err) => {
-        this._slotResult(
-          L("errors.could_not_apply", { err: (err && err.message) || err }),
-          "dearer"
-        );
-      });
-  }
-
-  _clearManualPlan() {
-    if (!this._hass || !this._hass.callService) return;
-    this._slotResult(L("slots.clearing"));
-    Promise.resolve(
-      this._hass.callService("heatpump_optimizer", "clear_manual_plan", {})
-    )
-      .then(() => {
-        this._resetRuns();
-        this._slotResult(L("slots.back_to_auto_result"));
-        this._render();
-      })
-      .catch((err) => {
-        this._slotResult(
-          L("errors.could_not_clear", { err: (err && err.message) || err }),
-          "dearer"
-        );
-      });
   }
 
   /** Wire the what-if controls, if the panel is present. */
@@ -7143,8 +7371,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
     if (save) save.addEventListener("click", this._onSaveSchedule);
     const reset = root.querySelector(".wi-reset");
     if (reset) reset.addEventListener("click", this._onResetWhatIf);
-    const viewReset = root.querySelector(".wi-viewreset");
-    if (viewReset) viewReset.addEventListener("click", () => this.view.reset());
   }
 
   _onWhatIfInput(ev) {
@@ -7483,7 +7709,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
 
     this.view.attach(root);
     this._attachWhatIf(root);
-    this._attachSlotActions(root);
+    this.manual.attach(root);
     this._attachSlotEditing(root);
   }
 
@@ -7497,9 +7723,9 @@ class HeatpumpOptimizerCard extends HTMLElement {
     const root = this.shadowRoot;
     if (!root) return;
     this._closeSlotMenu();
-    const runs = this._draftRuns()[channel] || [];
+    const runs = this.manual.draft()[channel] || [];
     const index = SlotModel.indexAt(runs, at);
-    const [lo] = this._editBounds();
+    const [lo] = this.manual.bounds();
     const editable = index >= 0 && runs[index].end > lo;
 
     // Anchored to the chart it was opened from: when the card is expanded
@@ -7531,7 +7757,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
       if (act === "add") {
         this._commitRuns(
           channel,
-          SlotModel.add(runs, at, PLAN_STEP_MS, this._editBounds())
+          SlotModel.add(runs, at, PLAN_STEP_MS, this.manual.bounds())
         );
       } else if (act === "remove") {
         this._commitRuns(channel, SlotModel.remove(runs, index));
@@ -7666,63 +7892,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
     }
   }
 
-  /** What the current arrangement would cost against the published plan.
-   *
-   * Both sides are priced over the same horizon at the same prices, so the
-   * difference isolates the effect of moving the slots. It is an estimate:
-   * the arrangement fixes when the pump runs, not how hard, and the optimizer
-   * still chooses the power within each slot.
-   */
-  _costDelta() {
-    let planned = 0;
-    let edited = 0;
-    const runs = this._draftRuns();
-    for (const spec of this._laneSpecs()) {
-      const forecast = this.plan.forecastOf(spec.channel);
-      if (!forecast.length) continue;
-      const power = SlotModel.typicalPower(forecast, spec.field);
-      const base = SlotModel.runsFrom(
-        forecast, spec.field, 0.05, PLAN_STEP_MS
-      );
-      planned += SlotModel.cost(base, forecast, power, PLAN_STEP_MS);
-      edited += SlotModel.cost(
-        runs[spec.channel] || [], forecast, power, PLAN_STEP_MS
-      );
-    }
-    return { planned, edited, delta: edited - planned };
-  }
-
-  _deltaHtml() {
-    const { planned, edited, delta } = this._costDelta();
-    if (!Number.isFinite(delta) || (!planned && !edited)) {
-      return `<span class="wi-hint">${L("stats.no_plan_to_compare")}</span>`;
-    }
-    const cur = this.plan.currency();
-    const cls = delta < -0.005 ? "cheaper" : delta > 0.005 ? "dearer" : "";
-    const sign = delta > 0 ? "+" : "";
-    const verdict = L(
-      cls === "cheaper"
-        ? "stats.cheaper"
-        : cls === "dearer"
-          ? "stats.dearer"
-          : "stats.the_same"
-    );
-    return `
-      <span class="delta ${cls}">${sign}${delta.toFixed(2)}&nbsp;${esc(cur)}</span>
-      <span class="wi-hint">${L("stats.delta_detail", {
-        verdict,
-        planned: planned.toFixed(2),
-        edited: edited.toFixed(2),
-        currency: esc(cur),
-      })}</span>`;
-  }
-
-  _updateDelta() {
-    const root = this.shadowRoot;
-    const box = root && root.querySelector(".wi-delta");
-    if (box) box.innerHTML = this._deltaHtml();
-  }
-
   /** The card's current rendered width in px, or 0 before layout.
    *
    * D4-01 floors the compact chart's rendered font against this value; the
@@ -7742,7 +7911,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
    * survive it.
    */
   _attachSlotEditing(root) {
-    if (!this._editingEnabled()) return;
+    if (!this.manual.enabled()) return;
     const svgs = chartSvgs(root);
     if (!svgs.length) return;
 
@@ -7753,7 +7922,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
       const at = timeAtClientX(svg, ev.clientX, this._geom);
       if (at === null) return;
       const channel = data.channel;
-      const runs = this._draftRuns()[channel] || [];
+      const runs = this.manual.draft()[channel] || [];
       let index = data.index === undefined ? -1 : Number(data.index);
       if (index < 0) index = SlotModel.indexAt(runs, at);
       // No slot under the press: not draggable, but a press RELEASED here
@@ -7763,7 +7932,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
       if (!menuOnly) {
         // A slot outside the editable range -- already run, or beyond the
         // point where the override expires -- must not be draggable.
-        const [lo, hi] = this._editBounds();
+        const [lo, hi] = this.manual.bounds();
         const run = runs[index];
         if (run && (run.end <= lo || run.start >= hi)) menuOnly = true;
       }
@@ -7822,7 +7991,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
       if (at === null) return;
       drag.moved = true;
       const delta = at - drag.from;
-      const bounds = this._editBounds();
+      const bounds = this.manual.bounds();
       const next = drag.edge
         ? SlotModel.resize(
             drag.original, drag.index, drag.edge, delta, PLAN_STEP_MS, bounds
@@ -7968,10 +8137,10 @@ class HeatpumpOptimizerCard extends HTMLElement {
       stop(ev);
 
       const channel = data.channel;
-      const runs = this._draftRuns()[channel] || [];
+      const runs = this.manual.draft()[channel] || [];
       const index = data.index === undefined ? -1 : Number(data.index);
       const run = index >= 0 ? runs[index] : null;
-      const [lo, hi] = this._editBounds();
+      const [lo, hi] = this.manual.bounds();
 
       if (wantsRemove) {
         if (run && run.end > lo && run.start < hi) {
@@ -8030,9 +8199,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
   }
 
   _commitRuns(channel, runs) {
-    this._draftRuns();
-    this._runs[channel] = runs;
-    this._runsDirty = true;
+    this.manual.set(channel, runs);
     this._refreshLanes();
   }
 
@@ -8050,133 +8217,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
         group.innerHTML = inner;
       });
     }
-    this._updateDelta();
-  }
-
-  /** Whether the on-chart schedule editor is available. */
-  _editingEnabled() {
-    return !!this._config.what_if;
-  }
-
-  /** The two editable channels, in the order they are drawn. */
-  _laneSpecs() {
-    return [
-      {
-        channel: "dhw",
-        label: L("slots.lane_dhw"),
-        field: "dhw_power",
-        color: "#e0544e",
-      },
-      {
-        channel: "space",
-        label: L("slots.lane_space"),
-        field: "space_power",
-        color: "#4a90e2",
-      },
-    ];
-  }
-
-  /** Earliest time a slot may be edited.
-   *
-   * The past cannot be rescheduled, and an override only ever applies from now
-   * on, so editing has to stop at the current step boundary rather than at the
-   * start of the horizon.
-   */
-  _editFloor() {
-    const start = this._geom ? this._geom.windowStart : Date.now();
-    return Math.max(start, SlotModel.snap(Date.now(), PLAN_STEP_MS));
-  }
-
-  /** The last instant a hand-arranged slot can reach.
-   *
-   * Three separate limits, and the smallest wins:
-   *
-   * 1. **The expiry this card would send if the user applied right now** --
-   *    `now + MANUAL_PLAN_WINDOW_HOURS`, published by the integration rather
-   *    than copied here so the two cannot drift. Deliberately *not* the expiry
-   *    of the override currently in force: an override applied 15 hours ago
-   *    expires in 5, but the user editing now is composing a new plan that will
-   *    last the full window from this moment. Deriving the ceiling from the
-   *    active override would shrink the editable window as the day wore on and
-   *    stop the user extending their own plan.
-   * 2. **The end of the plan.** Past it there is nothing to pin.
-   * 3. **The visible window**, which pan and zoom can narrow. Without this a
-   *    slot could be dragged out of the region the pointer can actually reach.
-   *
-   * Beyond the first of these, `manual_plan.channel_pins` frees every step at or
-   * after the expiry, so a slot shown as pinned there would quietly do nothing.
-   */
-  _editCeiling() {
-    const p = this._editCeilingParts();
-    return Math.min(p.visibleEnd, p.applyEnd, p.planEnd);
-  }
-
-  /** The ceiling's three inputs, separately, so the lanes can say WHICH one
-   * is in charge. When the visible window is the binding limit the user is
-   * zoomed in, and an edit stopping there reads as an arbitrary rule unless
-   * the card says so — a real user diagnosed it as "slots end at midnight".
-   */
-  _editCeilingParts() {
-    const visibleEnd = this._geom ? this._geom.windowEnd : Infinity;
-    const windowHours = this.plan.attr(
-      "manual_plan_window_hours",
-      MANUAL_PLAN_WINDOW_FALLBACK_H
-    );
-    return {
-      visibleEnd,
-      applyEnd: Date.now() + windowHours * 3600 * 1000,
-      planEnd: this._planEnd(),
-    };
-  }
-
-  /** Whether the zoomed-in view, not the plan or the 20 h window, is what
-   * currently stops editing. The one-second slack keeps float noise from
-   * flickering the hint on an unzoomed card whose window ends at the plan.
-   */
-  _viewLimitsEditing() {
-    const p = this._editCeilingParts();
-    return p.visibleEnd < Math.min(p.applyEnd, p.planEnd) - 1000;
-  }
-
-  /** The last timestamp the published plan covers. */
-  _planEnd() {
-    let end = -Infinity;
-    for (const channel of ["space", "dhw"]) {
-      const fc = this.plan.forecastOf(channel);
-      if (!fc.length) continue;
-      const t = Date.parse(fc[fc.length - 1].t);
-      if (Number.isFinite(t)) end = Math.max(end, t + PLAN_STEP_MS);
-    }
-    return end === -Infinity ? Infinity : end;
-  }
-
-  _editBounds() {
-    return [this._editFloor(), this._editCeiling()];
-  }
-
-  /** The arrangement being edited, seeded from the published plan.
-   *
-   * Held on the instance because a data refresh rebuilds the whole shadow
-   * root; without this, an incoming plan update would throw away a drag the
-   * user was halfway through.
-   */
-  _draftRuns() {
-    if (!this._runs) {
-      this._runs = {};
-      for (const spec of this._laneSpecs()) {
-        this._runs[spec.channel] = SlotModel.runsFrom(
-          this.plan.forecastOf(spec.channel), spec.field, 0.05, PLAN_STEP_MS
-        );
-      }
-      this._runsDirty = false;
-    }
-    return this._runs;
-  }
-
-  /** Discard local edits and follow the published plan again. */
-  _resetRuns() {
-    this._runs = null;
-    this._runsDirty = false;
+    this.manual.updateDelta();
   }
 
   /** The lanes, their slots and the grab handles, as SVG.
@@ -8193,9 +8234,9 @@ class HeatpumpOptimizerCard extends HTMLElement {
     } = geom;
     const span = windowEnd - windowStart || 1;
     const scaleX = (t) => plotL + ((t - windowStart) / span) * plotW;
-    const runs = this._draftRuns();
-    const [lo, hi] = this._editBounds();
-    const specs = this._laneSpecs();
+    const runs = this.manual.draft();
+    const [lo, hi] = this.manual.bounds();
+    const specs = this.manual.laneSpecs();
     const out = [];
     const clampX = (t) => Math.max(plotL, Math.min(plotR, scaleX(t)));
 
@@ -8238,7 +8279,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
       }
       // The lane runs out at the zoomed window, not at any rule of the
       // plan's: mark it, or the invisible remainder reads as a hard limit.
-      if (this._viewLimitsEditing()) {
+      if (this.manual.viewLimitsEditing()) {
         out.push(
           `<text class="lane-more" x="${plotR - 3}" y="${
             y + laneH - 3 * (laneH / LANE_H)
@@ -8636,6 +8677,73 @@ class HeatpumpOptimizerCard extends HTMLElement {
   }
   _scaleDialogFont() {
     return this.dialog.scaleFont();
+  }
+
+  get _runs() {
+    return this.manual.runs;
+  }
+  set _runs(v) {
+    this.manual.runs = v;
+  }
+  get _runsDirty() {
+    return this.manual.dirty;
+  }
+  set _runsDirty(v) {
+    this.manual.dirty = v;
+  }
+  _draftRuns() {
+    return this.manual.draft();
+  }
+  _resetRuns() {
+    return this.manual.reset();
+  }
+  _laneSpecs() {
+    return this.manual.laneSpecs();
+  }
+  _editingEnabled() {
+    return this.manual.enabled();
+  }
+  _editFloor() {
+    return this.manual.editFloor();
+  }
+  _editCeiling() {
+    return this.manual.editCeiling();
+  }
+  _editCeilingParts() {
+    return this.manual.ceilingParts();
+  }
+  _viewLimitsEditing() {
+    return this.manual.viewLimitsEditing();
+  }
+  _planEnd() {
+    return this.manual.planEnd();
+  }
+  _editBounds() {
+    return this.manual.bounds();
+  }
+  _costDelta() {
+    return this.manual.costDelta();
+  }
+  _deltaHtml() {
+    return this.manual.deltaHtml();
+  }
+  _updateDelta() {
+    return this.manual.updateDelta();
+  }
+  _overrideHtml() {
+    return this.manual.overrideHtml();
+  }
+  _applyManualPlan() {
+    return this.manual.apply();
+  }
+  _clearManualPlan() {
+    return this.manual.clear();
+  }
+  _attachSlotActions(root) {
+    return this.manual.attach(root);
+  }
+  _slotResult(message, cls) {
+    return this.manual.slotResult(message, cls);
   }
 
 }
