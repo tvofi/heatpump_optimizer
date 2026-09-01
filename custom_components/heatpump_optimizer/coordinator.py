@@ -385,6 +385,7 @@ from .dhw_schedule import (
     hour_in_windows,
     hours_until_next_window,
     overlap_fraction,
+    parse_weekly_windows,
     parse_windows,
 )
 from .optimizer import (
@@ -1138,6 +1139,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             "total_cost": 0.0,
         }
         self._last_energy_sample: datetime | None = None
+        #: The date the lifetime accumulators started, restored from the
+        #: energy store; set on first publish when the store has none.
+        self._energy_totals_since: str | None = None
         self._energy_store: Store = Store(
             hass,
             ENERGY_STORE_VERSION,
@@ -4914,6 +4918,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 self._thermal_params.dhw_windows = parse_windows(
                     params[CONF_DHW_WINDOWS]
                 )
+                # Both structures from one parse (#3): the every-day view
+                # and the weekly one can then never disagree about what
+                # was configured, the same guarantee from_config gives.
+                self._thermal_params.dhw_weekly_windows = parse_weekly_windows(
+                    params[CONF_DHW_WINDOWS]
+                )
             except DHWWindowError as err:
                 _LOGGER.warning("Ignoring invalid DHW demand windows: %s", err)
         if CONF_DHW_IDLE_MIN_TEMP in params:
@@ -6810,6 +6820,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             data.update(view())
         data.update(self._away_state.as_dict())
         data.update({k: round(v, 4) for k, v in self._energy_totals.items()})
+        # The date the lifetime accumulators started: a number that answers
+        # to no stated period reads as "very high", and this is the since.
+        if self._energy_totals_since is None:
+            self._energy_totals_since = dt_util.now().date().isoformat()
+        data["energy_totals_counting_since"] = self._energy_totals_since
         data["battery"] = self._battery_view()
         # T6: narrative, scores, starts, receipts, tiles and the last
         # diagnosis — one additive block, present even while everything in
@@ -7130,6 +7145,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 self._energy_totals[key] = max(
                     self._energy_totals[key], float(value)
                 )
+        since = stored.get("since")
+        if isinstance(since, str) and since:
+            self._energy_totals_since = since
         # A long silence before this restart reads as a power cut (#22).
         self._detect_outage(stored.get("last_tick"))
 
@@ -7140,6 +7158,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 self._energy_store,
                 {
                     **self._energy_totals,
+                    # The accumulators' stated period ("since"): written once
+                    # and then never -- a lifetime counter's start date does
+                    # not move, and the content-hash skip is what keeps this
+                    # store from writing every cycle for an unchanging field.
+                    "since": self._energy_totals_since,
                     # The outage detector's heartbeat (#22): the last instant
                     # this coordinator was alive. Numeric-key loaders skip it.
                     # It advances every cycle, so this store writes every
@@ -7150,6 +7173,19 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             )
         except Exception as err:  # noqa: BLE001
             _LOGGER.debug("Could not persist energy totals: %s", err)
+
+    def month_channel_totals(self, line: str) -> tuple[float, float] | None:
+        """This month's (kWh, cost) for one accumulator channel.
+
+        Booked per settlement alongside the lifetime fold, from the same
+        numbers, so the two can never disagree. None while the month is
+        still empty — an absent figure, never a zero that would read as
+        "measured nothing".
+        """
+        entry = self._ledger.line(month_key(dt_util.now()), line)
+        if not entry:
+            return None
+        return float(entry.get("kwh", 0.0)), float(entry.get("sek", 0.0))
 
     # ==================================================================
     # Manual plan override
@@ -9374,6 +9410,16 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._energy_totals["space_cost"] += space_energy * price
         self._energy_totals["dhw_cost"] += dhw_energy * price
         self._energy_totals["total_cost"] += energy * price
+        # Per-channel monthly lines, so the accumulators can state a period
+        # smaller than "lifetime" without a second store. Same numbers the
+        # accumulators just folded, booked where the month's other receipts
+        # live; the wear and immersion lines below book the same way.
+        self._ledger.add(
+            when, "dhw", kwh=dhw_energy, sek=dhw_energy * price
+        )
+        self._ledger.add(
+            when, "space", kwh=space_energy, sek=space_energy * price
+        )
 
         # The monthly ledger (T1): spot and DSO fee booked as separate lines,
         # so every later SEK claim can reconcile against the month's
@@ -10523,9 +10569,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 # is a legitimate thing to simulate: it is what the plan looks
                 # like with hot water availability unconstrained.
                 scratch_params.dhw_windows = []
+                scratch_params.dhw_weekly_windows = None
             else:
                 try:
                     scratch_params.dhw_windows = parse_windows(spec)
+                    scratch_params.dhw_weekly_windows = parse_weekly_windows(spec)
                 except DHWWindowError as err:
                     return {
                         "error": f"invalid_windows: {err}",
