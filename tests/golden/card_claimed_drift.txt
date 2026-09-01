@@ -1,0 +1,26 @@
+# States of the dashboard card this branch deliberately moves, one name per
+# line, reason after the hash. tests/card_drift.mjs renders the working
+# tree's card and the comparison ref's card through the same states in one
+# process and requires every rendered tree to be byte-identical; a state
+# named here may differ, and its diff is printed rather than failed. A
+# stale claim (a listed state that did not move) DOES fail, so entries
+# cannot outlive the change that needed them. Empty list = this branch
+# claims byte-identical card markup everywhere.
+#
+# Same rules as tests/golden/claimed_drift.txt, the solver's claim file:
+#
+#   1. The `claims-for:` line below is machine-read and MUST equal the
+#      repo-root VERSION file. Both tests/card_drift.mjs (before it renders
+#      anything) and tests/card.mjs (always, so a strict local run without
+#      a comparison ref still sees it) fail when the two disagree.
+#   2. The list below must DIFFER from the baseline's when it is not empty
+#      -- the same names with the same reasons were written for the
+#      baseline's diff, not this one.
+#
+# The state names are the ones `node tests/card_drift.mjs --list` prints.
+#
+# claims-for: 6.2.10
+#
+# The decomposition's PR 0 (the gate itself, the shared rig, the card's
+# field declarations and render helpers) moves no markup.
+#

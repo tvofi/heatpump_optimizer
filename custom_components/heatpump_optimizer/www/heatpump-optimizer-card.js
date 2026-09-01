@@ -11,7 +11,7 @@
 
 const CARD_TAG = "heatpump-optimizer-card";
 const EDITOR_TAG = "heatpump-optimizer-card-editor";
-const CARD_VERSION = "5.4.1";
+const CARD_VERSION = "5.4.2";
 
 // The de-duplication key `_extraFields` files a confidence band's two
 // edges under, so the pair counts as the one named trace it is. A Symbol
@@ -3016,6 +3016,24 @@ function cardStyleBlock() {
   `;
 }
 
+// ===========================================================================
+// The card element, and the contract its collaborators get.
+//
+// This class is being taken apart (docs/plan-card-decomposition.md): each
+// feature -- the plan source, the chart, the zoom window, the slot lanes,
+// the what-if panel, the setup page, the dialog -- leaves as a collaborator
+// that is handed THIS object and may use only what is listed here:
+//
+//   host.hass, host.config     the Lovelace inputs
+//   host.shadowRoot            the DOM it renders into
+//   host.render()              rebuild, keeping the render signature
+//   host.renderForced()        rebuild and forget it (the next hass redraws)
+//   host.suppressNextClick()   the next card click is the tail of a gesture
+//
+// A collaborator never reaches into a sibling; what it needs from one is
+// handed to its constructor, and the graph stays acyclic. Until a feature
+// has left, its methods live here as they always did.
+// ===========================================================================
 class HeatpumpOptimizerCard extends HTMLElement {
   constructor() {
     super();
@@ -3065,6 +3083,42 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // Where the last drawing put each box, in viewBox units, so a drop can be
     // tested against real geometry instead of guessing from the event target.
     this._layoutBoxes = [];
+    // Everything else the card owns, declared here rather than on first
+    // use somewhere in the body (the decomposition's PR 0): the only way to
+    // learn what state this class carried used to be reading all of it. The
+    // sentinels are the ones the readers test for -- `_dialogPage` must stay
+    // `undefined` (`_render` uses `=== undefined` for "no page chosen yet");
+    // the rest are read with `!x` or `if (x)`.
+    this._dialogPage = undefined;
+    // Chart geometry the pan gesture and the slot lanes hit-test against,
+    // published by `_chartSvg` while editing is enabled.
+    this._geom = null;
+    // The slot draft (`_draftRuns`) and whether the user has edited it.
+    this._runs = null;
+    this._runsDirty = false;
+    // A slot drag in progress, and the edge auto-pan interval it may run.
+    this._drag = null;
+    this._dragPan = null;
+    // The open slot menu, where it was opened from, and the Escape
+    // listener it parked on the document.
+    this._slotMenu = null;
+    this._menuOrigin = null;
+    this._menuEscape = null;
+    this._menuEscapeTarget = null;
+    // The chart's last measured rectangle, a hover fallback.
+    this._svgRect = null;
+    // The setup page's status line, re-applied after every rebuild.
+    this._setupNote = null;
+    // Entity-discovery and headline-sensor memos.
+    this._resolvedCache = null;
+    this._statCache = null;
+    this._statMissAt = null;
+    this._sensorCountFor = null;
+    this._sensorCountN = 0;
+    // Whether the picker was opened from the keyboard: focus goes into it,
+    // and back to the row on the way out.
+    this._pickerFocus = false;
+    this._pickerViaKeyboard = false;
     this._onLayoutDown = this._onLayoutDown.bind(this);
     this._onLayoutMove = this._onLayoutMove.bind(this);
     this._onLayoutUp = this._onLayoutUp.bind(this);
@@ -3422,6 +3476,33 @@ class HeatpumpOptimizerCard extends HTMLElement {
     if (!this._runsDirty) this._runs = null;
     this._sig = sig;
     this._render();
+  }
+
+  // ---- render idioms -----------------------------------------------------
+
+  /** Rebuild the shadow root, keeping the render signature.
+   *
+   * The unforced form. A redraw the user caused -- a zoom, a pan, a slot
+   * edit -- leaves `_sig` alone, so the next `hass` still compares against
+   * the last plan it saw and `_maybeRender` does not throw away a clean
+   * draft for a refresh that brought no new plan. */
+  render() {
+    this._render();
+  }
+
+  /** Rebuild and forget the signature, so the next `hass` re-renders too:
+   * something outside the plan data changed what the card shows (a
+   * toggled series, an edited draft, the dialog opening or closing). */
+  renderForced() {
+    this._sig = null;
+    this._render();
+  }
+
+  /** The next click on the card is the tail of a gesture -- a pan or a slot
+   * drag ends with a click on the chart -- and must not open the expanded
+   * view. One-shot; `_onCardClick` consumes it. */
+  suppressNextClick() {
+    this._suppressClick = true;
   }
 
   // Build this._series from the current forecasts.
@@ -5607,8 +5688,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     stop(ev);
     this._onSlotEdit(ev);
     this._whatIfDraft().dhwWindows.push({ start: "06:00", end: "08:00" });
-    this._sig = null;
-    this._render();
+    this.renderForced();
   }
 
   _onRemoveWindow(ev) {
@@ -5617,8 +5697,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     const index = Number(ev.currentTarget.getAttribute("data-index"));
     const draft = this._whatIfDraft();
     if (Number.isFinite(index)) draft.dhwWindows.splice(index, 1);
-    this._sig = null;
-    this._render();
+    this.renderForced();
   }
 
   _onApplySlots(ev) {
@@ -5631,9 +5710,8 @@ class HeatpumpOptimizerCard extends HTMLElement {
   _onResetWhatIf(ev) {
     stop(ev);
     this._whatIf = null;
-    this._sig = null;
     this._pendingSave = false;
-    this._render();
+    this.renderForced();
   }
 
   /** Persist the edited schedule, on a deliberate second press.
@@ -5930,11 +6008,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // is not yet in the top layer has no laid-out scroll height to set against.
     const body = dlg.querySelector(".dlg-body");
     if (body && this._dialogScroll) body.scrollTop = this._dialogScroll;
-  }
-
-  _styleBlock() {
-    // Delegate (#95): the stylesheet is pure and lives at top level now.
-    return cardStyleBlock();
   }
 
 
@@ -6706,7 +6779,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
       this._panView(-dx * pan.perPx);
     };
     pan.up = () => {
-      if (pan.moved) this._suppressClick = true;
+      if (pan.moved) this.suppressNextClick();
       this._pan = null;
       if (typeof window === "undefined") return;
       window.removeEventListener("pointermove", pan.move);
@@ -7077,7 +7150,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
       // expanded dialog open at the end of every drag. Same one-shot
       // suppression the pan gesture uses; a drag ending off-svg spends it on
       // nothing, which the pan path already accepts.
-      if (drag.moved) this._suppressClick = true;
+      if (drag.moved) this.suppressNextClick();
       this._drag = null;
       this._render();
       // A press released without movement is a tap: open the slot menu the
@@ -7093,7 +7166,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
         drag.lastClientX !== undefined &&
         drag.lastClientY !== undefined
       ) {
-        this._suppressClick = true;
+        this.suppressNextClick();
         const fresh = svgAt(drag.svgIndex);
         if (fresh) {
           const at = this._timeAtClientX(fresh, drag.lastClientX);
@@ -7675,8 +7748,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     if (!key) return;
     this._hidden[key] = !this._hidden[key];
     this._saveHidden();
-    this._sig = null; // force
-    this._render();
+    this.renderForced();
   }
 
   _onCardClick(ev) {
@@ -7734,14 +7806,12 @@ class HeatpumpOptimizerCard extends HTMLElement {
   _openExpanded() {
     if (this._expanded) return;
     this._expanded = true;
-    this._sig = null; // force
-    this._render();
+    this.renderForced();
   }
 
   _closeExpanded() {
     this._closeExpandedQuietly();
-    this._sig = null;
-    this._render();
+    this.renderForced();
   }
 
   /** Dismiss the dialog without re-rendering, for teardown paths. */

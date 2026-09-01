@@ -226,9 +226,10 @@ for f in tests/*.py tests/*.mjs; do
   base=$(basename "$f")
   case "$base" in
     harness.py|profiles.py) continue ;;  # shared plumbing, not tests
-    # The shared DOM-stub module (#101): imported by card.mjs and
-    # setup_qa_render.mjs, never run on its own.
-    dom_stub.mjs) continue ;;
+    # The shared DOM stub (#101) and the rig around it: imported by
+    # card.mjs, setup_qa_render.mjs and card_drift.mjs, never run on
+    # their own.
+    dom_stub.mjs|card_rig.mjs) continue ;;
     # The scoping instrument, not a test: it RUNS the tests to measure what
     # they touch. Wiring it into the suite would make the suite run itself.
     closure.py) continue ;;
@@ -318,9 +319,22 @@ lane_e2e() {
     # dormant renderer can no longer drift unnoticed (#101). Its SVGs land
     # in ../setup-qa/ for designer review.
     run node tests/setup_qa_render.mjs
+    # The card's markup gate: the working tree's card and GOLDEN_REF's,
+    # rendered through the same states in one process, must agree byte
+    # for byte unless tests/golden/card_claimed_drift.txt claims the
+    # moved states. Same three-way ref logic as lane_golden's env_drift
+    # step, for the same reasons.
+    if ! git rev-parse --verify --quiet "${GOLDEN_REF}^{commit}" >/dev/null 2>&1; then
+      skip tests/card_drift.mjs "SKIP: tests/card_drift.mjs ($GOLDEN_REF is not available here)"
+    elif [ "$(git rev-parse "${GOLDEN_REF}^{commit}")" = "$(git rev-parse HEAD)" ]; then
+      skip tests/card_drift.mjs "SKIP: tests/card_drift.mjs ($GOLDEN_REF is this commit; use GOLDEN_REF=HEAD^1 to check it)"
+    else
+      run node tests/card_drift.mjs "$GOLDEN_REF"
+    fi
   else
     skip tests/card.mjs "SKIP: node not found, skipping tests/card.mjs"
     skip tests/setup_qa_render.mjs "SKIP: node not found, skipping tests/setup_qa_render.mjs"
+    skip tests/card_drift.mjs "SKIP: node not found, skipping tests/card_drift.mjs"
   fi
 }
 
@@ -373,7 +387,7 @@ done
 for f in tests/*.py tests/*.mjs; do
   base=$(basename "$f")
   case "$base" in
-    harness.py|profiles.py|dst_checks.py|closure.py|dom_stub.mjs|card_browser.mjs) continue ;;
+    harness.py|profiles.py|dst_checks.py|closure.py|dom_stub.mjs|card_rig.mjs|card_browser.mjs) continue ;;
   esac
   if ! cat "$WORKDIR"/*.manifest 2>/dev/null | grep -Fq "tests/$base"; then
     echo "TEST NEVER RAN: tests/$base is wired into tests/run.sh but no lane"
