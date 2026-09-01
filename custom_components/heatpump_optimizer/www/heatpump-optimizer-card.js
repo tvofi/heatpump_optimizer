@@ -11,7 +11,7 @@
 
 const CARD_TAG = "heatpump-optimizer-card";
 const EDITOR_TAG = "heatpump-optimizer-card-editor";
-const CARD_VERSION = "5.4.6";
+const CARD_VERSION = "5.4.7";
 
 // The de-duplication key `_extraFields` files a confidence band's two
 // edges under, so the pair counts as the one named trace it is. A Symbol
@@ -4935,6 +4935,219 @@ function headlineHtml(plan, cfg, scoreOpen) {
     </div>`;
 }
 
+// ---- ExpandedDialog -------------------------------------------------------
+// The enlarged view: a native <dialog> shown with showModal(), its Plan and
+// Setup tabs, the scroll offset carried across the rebuild every plan
+// refresh performs, and the font size its chrome derives from its measured
+// width. Owns whether the card is expanded and which page shows; the host
+// composes the page's body and wires it through `sync`'s hooks. Uses
+// `host.shadowRoot`, `host.renderForced()` and `host.view.onDialogClosed()`.
+// PR 4b of #136.
+class ExpandedDialog {
+  constructor(host) {
+    this.host = host;
+    this.expanded = false;
+    // Which page the dialog shows. `undefined` means "not chosen yet": the
+    // render cycle picks the first page once it knows whether there is a
+    // plan (`pickDefaultPage`), and only then, so a tab the user chose is
+    // never overridden by a later refresh.
+    this.page = undefined;
+    // The body's scroll offset, carried across the rebuild.
+    this.scroll = 0;
+    // The font size last written to the dialog, so an unchanged value is
+    // not rewritten on every pointer move (`scaleFont`).
+    this.fontPx = 0;
+    this.onDialogClick = this.onDialogClick.bind(this);
+    this.onDialogClose = this.onDialogClose.bind(this);
+  }
+
+  /** The page to draw: "setup" when chosen, "plan" otherwise. */
+  activePage() {
+    return this.page === "setup" ? "setup" : "plan";
+  }
+
+  /** Remember where the user was before `root` is rebuilt: the body scrolls,
+   * and a plan refresh on the coordinator's schedule must not jump it back
+   * to the top mid-edit. */
+  saveScroll(root) {
+    const openBody = root.querySelector("dialog.expanded .dlg-body");
+    this.scroll = openBody ? openBody.scrollTop : this.scroll || 0;
+  }
+
+  /** Which page an expanded dialog opens on, decided once `anyData` is known
+   * and only while the dialog is actually open. */
+  pickDefaultPage(anyData) {
+    if (this.expanded && this.page === undefined) {
+      this.page = anyData ? "plan" : "setup";
+    }
+  }
+
+  /** The rebuild replaces the <dialog> element wholesale, so the font memo
+   * must forget the old element's size or `scaleFont` will skip the write
+   * and leave the fresh dialog's chrome at card size. */
+  resetFontMemo() {
+    this.fontPx = 0;
+  }
+
+  /** The dialog's markup: head, tabs, the legend when the plan page has
+   * one, and `body` -- the page the host composed for `activePage()`. */
+  html({ title, legend, body }) {
+    const page = this.activePage();
+    const tab = (id, label) =>
+      `<button type="button" class="dlg-tab${page === id ? " active" : ""}"
+         data-page="${id}" role="tab"
+         aria-selected="${page === id}">${label}</button>`;
+    return `
+      <dialog class="expanded" aria-label="${esc(title)}">
+        <div class="dlg-head">
+          <span class="title">${esc(title)}</span>
+          <div class="dlg-tabs" role="tablist">
+            ${tab("plan", esc(L("header.tab_plan")))}
+            ${tab("setup", esc(L("header.tab_setup")))}
+          </div>
+          <button type="button" class="close" title="${esc(L("header.close"))}"
+            aria-label="${esc(L("header.close"))}">${CLOSE_ICON}</button>
+        </div>
+        ${legend}
+        <div class="dlg-body">
+          ${body}
+        </div>
+      </dialog>
+    `;
+  }
+
+  /** Bring the dialog element in `root` into line with `expanded`.
+   *
+   * `_render` rebuilds the shadow root wholesale, so on every data refresh the
+   * open dialog is replaced by a fresh element that has to be shown again.
+   * `attachBody(dlg)` wires whatever page is inside (the host's business),
+   * before `showModal` because the setup page's picker takes focus when it
+   * opens; `onPageChange()` is what a tab click asks the host to do once the
+   * page and the scroll offset are reset.
+   */
+  sync(root, { attachBody, onPageChange }) {
+    const dlg = root.querySelector("dialog");
+    if (!dlg) return;
+
+    dlg.addEventListener("click", this.onDialogClick);
+    dlg.addEventListener("close", this.onDialogClose);
+    dlg.addEventListener("cancel", this.onDialogClose);
+    const closeBtn = dlg.querySelector(".close");
+    if (closeBtn) closeBtn.addEventListener("click", this.onDialogClick);
+
+    // Page tabs. Switching re-renders so the hidden page is genuinely gone
+    // from the DOM, and the scroll offset is reset because carrying the plan
+    // page's position into a differently sized setup page lands nowhere.
+    for (const tab of dlg.querySelectorAll(".dlg-tab")) {
+      tab.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        const page = ev.currentTarget.dataset.page;
+        if (page && page !== this.page) {
+          this.page = page;
+          this.scroll = 0;
+          onPageChange();
+        }
+      });
+    }
+
+    attachBody(dlg);
+
+    if (this.expanded && !dlg.open) {
+      // showModal promotes the dialog to the top layer, which is what keeps it
+      // clear of the dashboard's stacking contexts and any clipping ancestor.
+      if (typeof dlg.showModal === "function") dlg.showModal();
+      else dlg.setAttribute("open", "");
+    }
+
+    // Restore where the user was. Done after showModal, because a dialog that
+    // is not yet in the top layer has no laid-out scroll height to set against.
+    const body = dlg.querySelector(".dlg-body");
+    if (body && this.scroll) body.scrollTop = this.scroll;
+  }
+
+  onDialogClick(ev) {
+    const dlg = this.host.shadowRoot && this.host.shadowRoot.querySelector("dialog");
+    if (!dlg) return;
+    // A click on the dialog element itself is a click on the backdrop: the
+    // content sits in child elements, so anything else has a deeper target.
+    const onBackdrop = ev && ev.target === dlg;
+    const onClose =
+      ev &&
+      ev.currentTarget &&
+      ev.currentTarget.classList &&
+      ev.currentTarget.classList.contains("close");
+    if (onBackdrop || onClose) this.close();
+  }
+
+  onDialogClose() {
+    // Fires for Escape and for close() alike, so this is the single place the
+    // flag is cleared and the two cannot drift apart.
+    this.expanded = false;
+    // Reopening should start at the top rather than resuming a scroll position
+    // from a session the user has already dismissed.
+    this.scroll = 0;
+    // The pan/zoom view dies with the session it belonged to (see
+    // ViewWindow.onDialogClosed for why).
+    this.host.view.onDialogClosed();
+  }
+
+  open() {
+    if (this.expanded) return;
+    this.expanded = true;
+    this.host.renderForced();
+  }
+
+  close() {
+    this.closeQuietly();
+    this.host.renderForced();
+  }
+
+  /** Dismiss the dialog without re-rendering, for teardown paths. */
+  closeQuietly() {
+    const dlg = this.host.shadowRoot && this.host.shadowRoot.querySelector("dialog");
+    this.expanded = false;
+    if (dlg && dlg.open && typeof dlg.close === "function") {
+      dlg.close(); // triggers onDialogClose, which is idempotent
+    }
+  }
+
+  /** Size the dialog's own text from how wide the dialog actually is.
+   *
+   * The chart scales itself, because it is stretched from a fixed coordinate
+   * system. The chrome around it -- header, legend, tooltip, what-if panel --
+   * is ordinary HTML inheriting the card's font, so it stays at card size no
+   * matter how large the dialog gets, which is what made it look cramped
+   * beside a chart three times its size.
+   *
+   * Setting one font size on the dialog fixes all of it at once, because every
+   * measurement in the chrome is expressed in `em`. This is done here rather
+   * than with container query units because `container-type: inline-size`
+   * applies inline-axis containment, and a dialog sized by its own contents
+   * then has nothing to size itself from.
+   */
+  scaleFont() {
+    const root = this.host.shadowRoot;
+    if (!root || !this.expanded) return;
+    const dlg = root.querySelector("dialog");
+    if (!dlg || typeof dlg.getBoundingClientRect !== "function") return;
+    const rect = dlg.getBoundingClientRect();
+    const width = (rect && Number(rect.width)) || 0;
+    if (!Number.isFinite(width) || width <= 0) return;
+
+    // Clamped at both ends: a phone-width dialog has to stay legible, and a
+    // very wide monitor must not turn the legend into a headline.
+    const px = Math.min(
+      DIALOG_FONT_PX_MAX,
+      Math.max(DIALOG_FONT_PX_MIN, width * DIALOG_FONT_RATIO)
+    );
+    // Writing an unchanged value would dirty style on every pointer move.
+    if (significantlyDifferent(px, this.fontPx)) {
+      this.fontPx = px;
+      dlg.style.fontSize = `${px.toFixed(2)}px`;
+    }
+  }
+}
+
 // ===========================================================================
 // The card element, and the contract its collaborators get.
 //
@@ -4948,6 +5161,7 @@ function headlineHtml(plan, cfg, scoreOpen) {
 //   host.plan                  PlanSource: the plan sensors, what they publish
 //   host.view                  ViewWindow: the pan/zoom window over the plan
 //   host.legend                Legend: the series chips and which are hidden
+//   host.dialog                ExpandedDialog: the enlarged view and its pages
 //   host.geom                  the chart's last geometry (null: no lanes)
 //   host.render()              rebuild, keeping the render signature
 //   host.renderForced()        rebuild and forget it (the next hass redraws)
@@ -4966,6 +5180,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     this.plan = new PlanSource(this);
     this.view = new ViewWindow(this);
     this.legend = new Legend(this);
+    this.dialog = new ExpandedDialog(this);
     this._config = null;
     this._hass = null;
     this._sig = null;
@@ -4975,7 +5190,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
     this._series = [];
     this._plot = null;
     this._resizeObserver = null;
-    this._expanded = false;
     // What-if simulator state (item 21). Kept on the instance so a re-render
     // triggered by a data refresh does not reset the slider under the user.
     this._whatIf = null;
@@ -4992,8 +5206,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
     this._pickerChoice = null;
     this._pendingClear = false;
     this._clearTimer = null;
-    this._dialogFontPx = 0;
-    this._dialogScroll = 0;
     this._suppressClick = false;
     // The layout editor (v3.16.0, issue #40). Instance state, like the what-if
     // draft and for the same reason: `_render` rebuilds the shadow root on the
@@ -5007,10 +5219,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // Everything else the card owns, declared here rather than on first
     // use somewhere in the body (the decomposition's PR 0): the only way to
     // learn what state this class carried used to be reading all of it. The
-    // sentinels are the ones the readers test for -- `_dialogPage` must stay
-    // `undefined` (`_render` uses `=== undefined` for "no page chosen yet");
-    // the rest are read with `!x` or `if (x)`.
-    this._dialogPage = undefined;
+    // sentinels are the ones the readers test for: `!x` or `if (x)`.
     // Chart geometry the pan gesture and the slot lanes hit-test against,
     // published by `_chartSvg` while editing is enabled.
     this._geom = null;
@@ -5042,8 +5251,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
     this._onPointerLeave = this._onPointerLeave.bind(this);
     this._onCardClick = this._onCardClick.bind(this);
     this._onExpandClick = this._onExpandClick.bind(this);
-    this._onDialogClick = this._onDialogClick.bind(this);
-    this._onDialogClose = this._onDialogClose.bind(this);
     this._onWhatIfInput = this._onWhatIfInput.bind(this);
     this._onSlotEdit = this._onSlotEdit.bind(this);
     this._onAddWindow = this._onAddWindow.bind(this);
@@ -5183,7 +5390,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // Nothing of this card may outlive it on the document.
     this._teardown();
     // A modal dialog left open would outlive the card in the top layer.
-    if (this._expanded) this._closeExpandedQuietly();
+    if (this.dialog.expanded) this.dialog.closeQuietly();
     // A pending what-if solve would otherwise fire after the card is gone,
     // spending seconds of coordinator CPU to write into a detached DOM.
     if (this._whatIfTimer) {
@@ -5308,8 +5515,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // on every plan refresh -- which happens on the coordinator's schedule, not
     // the user's. Without carrying the offset across the rebuild the panel would
     // jump back to the top by itself every few minutes, mid-edit.
-    const openBody = this.shadowRoot.querySelector("dialog.expanded .dlg-body");
-    this._dialogScroll = openBody ? openBody.scrollTop : this._dialogScroll || 0;
+    this.dialog.saveScroll(this.shadowRoot);
     const built = this._buildSeries();
     this._series = built.series;
 
@@ -5341,20 +5547,34 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // Which page an expanded dialog opens on. Decided here, where `anyData`
     // is known, and only while the dialog is actually open, so a tab the user
     // chose themselves is never overridden by a later refresh.
-    if (this._expanded && this._dialogPage === undefined) {
-      this._dialogPage = anyData ? "plan" : "setup";
-    }
+    this.dialog.pickDefaultPage(anyData);
 
     // The dialog is a sibling of ha-card, not a child, so a click inside it
     // never bubbles into the card's own open-on-click handler. Rendered
     // whenever the card believes it is expanded: a flag that draws nothing is
     // the state the Setup tab was unreachable behind.
-    const dialog = this._expanded ? this._dialogHtml(built, anyData) : "";
+    let dialog = "";
+    if (this.dialog.expanded) {
+      const page = this.dialog.activePage();
+      // The hidden page is genuinely unrendered, not `display: none`:
+      // `getBoundingClientRect()` returns zeroes for a hidden element, so
+      // `timeAtClientX` would compute garbage drag times rather than fail.
+      const body =
+        page === "setup"
+          ? this._setupPageHtml()
+          : anyData
+            ? `${this._chartBlock(built, true)}${this._whatIfHtml()}`
+            : this._noPlanHtml();
+      dialog = this.dialog.html({
+        title: this._title(),
+        legend: page === "plan" && anyData ? this.legend.html(this._series) : "",
+        body,
+      });
+    }
 
-    // The rebuild below replaces the <dialog> element wholesale, so the font
-    // memo must forget the old element's size or _scaleDialogFont will skip
-    // the write and leave the fresh dialog's chrome at card size.
-    this._dialogFontPx = 0;
+    // The rebuild below replaces the <dialog> element wholesale (see
+    // ExpandedDialog.resetFontMemo).
+    this.dialog.resetFontMemo();
 
     this.shadowRoot.innerHTML = `
       <ha-card class="${expandable ? "clickable" : ""}">
@@ -5410,7 +5630,21 @@ class HeatpumpOptimizerCard extends HTMLElement {
     const card = this.shadowRoot.querySelector("ha-card");
     if (card && expandable) card.addEventListener("click", this._onCardClick);
 
-    this._syncDialog();
+    this.dialog.sync(this.shadowRoot, {
+      // The page inside is the host's: the setup page's own wiring, and its
+      // status line re-applied after the rebuild.
+      attachBody: (dlg) => {
+        this._attachSetupEvents(dlg);
+        const note = dlg.querySelector(".setup-result");
+        if (note && this._setupNote) note.textContent = this._setupNote;
+      },
+      // Leaving the setup page abandons a half-made assignment rather than
+      // keeping a picker open behind the chart.
+      onPageChange: () => {
+        this._closePicker();
+        this._render();
+      },
+    });
     this._cacheRect();
   }
   /** Chart markup plus the tooltip that belongs to it.
@@ -5460,44 +5694,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
     return `<div class="empty">${L("errors.no_plan_data")}<br>
       ${this.plan.diagnose("space")}<br>
       ${this.plan.diagnose("dhw")}</div>`;
-  }
-
-  _dialogHtml(built, anyData) {
-    // Which page the dialog shows is instance state on purpose: `_render`
-    // rebuilds the shadow root on every plan refresh, on the coordinator's
-    // schedule, and a refresh must not yank the user off the setup page they
-    // are reading (the `_runs` memoisation bug class from v3.2.0).
-    const page = this._dialogPage === "setup" ? "setup" : "plan";
-    // The hidden page is genuinely unrendered, not `display: none`:
-    // `getBoundingClientRect()` returns zeroes for a hidden element, so
-    // `_timeAtClientX` would compute garbage drag times rather than fail.
-    const body =
-      page === "setup"
-        ? this._setupPageHtml()
-        : anyData
-          ? `${this._chartBlock(built, true)}${this._whatIfHtml()}`
-          : this._noPlanHtml();
-    const tab = (id, label) =>
-      `<button type="button" class="dlg-tab${page === id ? " active" : ""}"
-         data-page="${id}" role="tab"
-         aria-selected="${page === id}">${label}</button>`;
-    return `
-      <dialog class="expanded" aria-label="${esc(this._title())}">
-        <div class="dlg-head">
-          <span class="title">${esc(this._title())}</span>
-          <div class="dlg-tabs" role="tablist">
-            ${tab("plan", esc(L("header.tab_plan")))}
-            ${tab("setup", esc(L("header.tab_setup")))}
-          </div>
-          <button type="button" class="close" title="${esc(L("header.close"))}"
-            aria-label="${esc(L("header.close"))}">${CLOSE_ICON}</button>
-        </div>
-        ${page === "plan" && anyData ? this.legend.html(this._series) : ""}
-        <div class="dlg-body">
-          ${body}
-        </div>
-      </dialog>
-    `;
   }
 
   /** Item 33: the configured system as a picture, with live values in place.
@@ -7291,56 +7487,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
     this._attachSlotEditing(root);
   }
 
-  /** Bring the dialog element in the DOM into line with `_expanded`.
-   *
-   * `_render` rebuilds the shadow root wholesale, so on every data refresh the
-   * open dialog is replaced by a fresh element that has to be shown again.
-   */
-  _syncDialog() {
-    const dlg = this.shadowRoot.querySelector("dialog");
-    if (!dlg) return;
-
-    dlg.addEventListener("click", this._onDialogClick);
-    dlg.addEventListener("close", this._onDialogClose);
-    dlg.addEventListener("cancel", this._onDialogClose);
-    const closeBtn = dlg.querySelector(".close");
-    if (closeBtn) closeBtn.addEventListener("click", this._onDialogClick);
-
-    // Page tabs. Switching re-renders so the hidden page is genuinely gone
-    // from the DOM, and the scroll offset is reset because carrying the plan
-    // page's position into a differently sized setup page lands nowhere.
-    for (const tab of dlg.querySelectorAll(".dlg-tab")) {
-      tab.addEventListener("click", (ev) => {
-        ev.stopPropagation();
-        const page = ev.currentTarget.dataset.page;
-        if (page && page !== this._dialogPage) {
-          this._dialogPage = page;
-          this._dialogScroll = 0;
-          // Leaving the setup page abandons a half-made assignment rather
-          // than keeping a picker open behind the chart.
-          this._closePicker();
-          this._render();
-        }
-      });
-    }
-
-    this._attachSetupEvents(dlg);
-    const note = dlg.querySelector(".setup-result");
-    if (note && this._setupNote) note.textContent = this._setupNote;
-
-    if (this._expanded && !dlg.open) {
-      // showModal promotes the dialog to the top layer, which is what keeps it
-      // clear of the dashboard's stacking contexts and any clipping ancestor.
-      if (typeof dlg.showModal === "function") dlg.showModal();
-      else dlg.setAttribute("open", "");
-    }
-
-    // Restore where the user was. Done after showModal, because a dialog that
-    // is not yet in the top layer has no laid-out scroll height to set against.
-    const body = dlg.querySelector(".dlg-body");
-    if (body && this._dialogScroll) body.scrollTop = this._dialogScroll;
-  }
-
 
   /** The right-click menu for a lane.
    *
@@ -8163,58 +8309,12 @@ class HeatpumpOptimizerCard extends HTMLElement {
       ? this.shadowRoot.getSelection()
       : null;
     if (sel && String(sel).length) return;
-    this._openExpanded();
+    this.dialog.open();
   }
 
   _onExpandClick(ev) {
     if (ev && typeof ev.stopPropagation === "function") ev.stopPropagation();
-    this._openExpanded();
-  }
-
-  _onDialogClick(ev) {
-    const dlg = this.shadowRoot && this.shadowRoot.querySelector("dialog");
-    if (!dlg) return;
-    // A click on the dialog element itself is a click on the backdrop: the
-    // content sits in child elements, so anything else has a deeper target.
-    const onBackdrop = ev && ev.target === dlg;
-    const onClose =
-      ev &&
-      ev.currentTarget &&
-      ev.currentTarget.classList &&
-      ev.currentTarget.classList.contains("close");
-    if (onBackdrop || onClose) this._closeExpanded();
-  }
-
-  _onDialogClose() {
-    // Fires for Escape and for close() alike, so this is the single place the
-    // flag is cleared and the two cannot drift apart.
-    this._expanded = false;
-    // Reopening should start at the top rather than resuming a scroll position
-    // from a session the user has already dismissed.
-    this._dialogScroll = 0;
-    // The pan/zoom view dies with the session it belonged to (see
-    // ViewWindow.onDialogClosed for why).
-    this.view.onDialogClosed();
-  }
-
-  _openExpanded() {
-    if (this._expanded) return;
-    this._expanded = true;
-    this.renderForced();
-  }
-
-  _closeExpanded() {
-    this._closeExpandedQuietly();
-    this.renderForced();
-  }
-
-  /** Dismiss the dialog without re-rendering, for teardown paths. */
-  _closeExpandedQuietly() {
-    const dlg = this.shadowRoot && this.shadowRoot.querySelector("dialog");
-    this._expanded = false;
-    if (dlg && dlg.open && typeof dlg.close === "function") {
-      dlg.close(); // triggers _onDialogClose, which is idempotent
-    }
+    this.dialog.open();
   }
 
   _cacheRect() {
@@ -8222,43 +8322,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     if (svg && typeof svg.getBoundingClientRect === "function") {
       this._svgRect = svg.getBoundingClientRect();
     }
-    this._scaleDialogFont();
-  }
-
-  /** Size the dialog's own text from how wide the dialog actually is.
-   *
-   * The chart scales itself, because it is stretched from a fixed coordinate
-   * system. The chrome around it -- header, legend, tooltip, what-if panel --
-   * is ordinary HTML inheriting the card's font, so it stays at card size no
-   * matter how large the dialog gets, which is what made it look cramped
-   * beside a chart three times its size.
-   *
-   * Setting one font size on the dialog fixes all of it at once, because every
-   * measurement in the chrome is expressed in `em`. This is done here rather
-   * than with container query units because `container-type: inline-size`
-   * applies inline-axis containment, and a dialog sized by its own contents
-   * then has nothing to size itself from.
-   */
-  _scaleDialogFont() {
-    const root = this.shadowRoot;
-    if (!root || !this._expanded) return;
-    const dlg = root.querySelector("dialog");
-    if (!dlg || typeof dlg.getBoundingClientRect !== "function") return;
-    const rect = dlg.getBoundingClientRect();
-    const width = (rect && Number(rect.width)) || 0;
-    if (!Number.isFinite(width) || width <= 0) return;
-
-    // Clamped at both ends: a phone-width dialog has to stay legible, and a
-    // very wide monitor must not turn the legend into a headline.
-    const px = Math.min(
-      DIALOG_FONT_PX_MAX,
-      Math.max(DIALOG_FONT_PX_MIN, width * DIALOG_FONT_RATIO)
-    );
-    // Writing an unchanged value would dirty style on every pointer move.
-    if (significantlyDifferent(px, this._dialogFontPx)) {
-      this._dialogFontPx = px;
-      dlg.style.fontSize = `${px.toFixed(2)}px`;
-    }
+    this.dialog.scaleFont();
   }
 
   _onPointerLeave(ev) {
@@ -8535,6 +8599,43 @@ class HeatpumpOptimizerCard extends HTMLElement {
   }
   _onLegendClick(ev) {
     return this.legend.onChipClick(ev);
+  }
+
+  get _expanded() {
+    return this.dialog.expanded;
+  }
+  set _expanded(v) {
+    this.dialog.expanded = v;
+  }
+  get _dialogPage() {
+    return this.dialog.page;
+  }
+  set _dialogPage(v) {
+    this.dialog.page = v;
+  }
+  get _dialogFontPx() {
+    return this.dialog.fontPx;
+  }
+  set _dialogFontPx(v) {
+    this.dialog.fontPx = v;
+  }
+  _openExpanded() {
+    return this.dialog.open();
+  }
+  _closeExpanded() {
+    return this.dialog.close();
+  }
+  _closeExpandedQuietly() {
+    return this.dialog.closeQuietly();
+  }
+  _onDialogClick(ev) {
+    return this.dialog.onDialogClick(ev);
+  }
+  _onDialogClose() {
+    return this.dialog.onDialogClose();
+  }
+  _scaleDialogFont() {
+    return this.dialog.scaleFont();
   }
 
 }
