@@ -68,6 +68,12 @@ CLOSURES = ROOT / "tests" / "closures.json"
 NOT_A_TEST = {
     "harness.py", "profiles.py", "closure.py", "setup_qa_render.mjs",
     "card_browser.mjs",
+    # The shared DOM stub (#101) and the rig around it, imported by the three
+    # Node harnesses (card.mjs, setup_qa_render.mjs, card_drift.mjs): libraries,
+    # never run. dom_stub.mjs was missing from this set from v6.1.2 to v6.2.7,
+    # and a selectable script with no closure forces a FULL run, so every
+    # scoped PR gate in between quietly ran everything.
+    "dom_stub.mjs", "card_rig.mjs",
 }
 # dst_checks.py is a test, but features.py runs it in a subprocess; it is
 # recorded so its closure can be folded into features.py's, never selected.
@@ -98,7 +104,11 @@ SLOW_GATED = {"rolling.py"}
 # card.mjs and drops plan_view.py leaves the card with no payload -- or, worse
 # on a developer's box, with a stale one another run left behind. Selecting
 # card.mjs selects its producer too.
-PRODUCERS = {"tests/card.mjs": ["tests/plan_view.py"]}
+PRODUCERS = {
+    "tests/card.mjs": ["tests/plan_view.py"],
+    # The markup gate renders both sides against the same payload.
+    "tests/card_drift.mjs": ["tests/plan_view.py"],
+}
 
 # ---------------------------------------------------------------------------
 # Paths that no test can read, so a change to them cannot break one. This is
