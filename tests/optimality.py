@@ -138,4 +138,60 @@ for tz in (False,True):
             same,
             "schedules differ -- the jac is not bit-identical to scipy's FD")
 
+# Challenger 5: the same batched-jac bit-identity race, but for a DHW-ENABLED
+# solve -- the class the batched jac was blocked from until D9-01. Enabling DHW
+# pins the space bounds unevenly (per-step headroom under the DHW block), which
+# is exactly the non-uniform shape the old uniform-bounds gate refused to hand
+# the batch. Now that it serves them, the batched path must still land on the
+# byte-identical schedule scipy's own FD would, or the 38/39 DHW golden
+# scenarios we just moved onto the batch would drift. Run single- and two-zone;
+# the two-zone-DHW case additionally exercises the tariff/valve one-sided rule.
+R.section("batched-FD jac on DHW-enabled solves (D9-01)")
+from unittest import mock as _mock_dhw
+from heatpump_optimizer import optimizer as _optm_dhw
+
+
+def _dhw_setup(tz, start=datetime(2026, 1, 15)):
+    cfg = house(two_zone=tz)
+    p = ThermalParameters.from_config(cfg)
+    p.dhw_enabled = True
+    m = ThermalModel(p)
+    o = HeatPumpOptimizer(m, OptimizationConfig(
+        horizon_hours=24, time_step_minutes=15,
+        target_temp=21.0, min_temp=17.0, max_temp=23.0))
+    pr = prices("winter_typical", start)
+    ot, wi, ra, so = weather("winter_cold", start)
+    st = ThermalState(
+        room_temperature=21.0, slab_temperature=22.0,
+        outdoor_temperature=float(ot[0]), upper_floor_temperature=21.0,
+        lower_floor_temperature=21.0, buffer_tank_temperature=40.0,
+        dhw_temperature=48.0)
+    return o, m, pr, ot, wi, ra, so, st, start
+
+
+for _tz in (False, True):
+    o, m, pr, ot, wi, ra, so, st, start = _dhw_setup(_tz)
+    r_batch = o.optimize(st, pr, ot, wi, ra, so, start)
+    base_dhw = np.asarray(r_batch.power_schedule)
+
+    _full_ms_d = _optm_dhw._multi_start_minimize
+
+    def _nobatch_ms_d(objective, starts, bounds, *a, **kw):
+        kw.pop("batch_objective", None)
+        return _full_ms_d(objective, starts, bounds, *a, **kw)
+
+    with _mock_dhw.patch.object(
+            _optm_dhw, "_multi_start_minimize", _nobatch_ms_d):
+        r_fd = o.optimize(st, pr, ot, wi, ra, so, start)
+    same_dhw = np.array_equal(
+        np.round(np.asarray(r_fd.power_schedule), 12),
+        np.round(base_dhw, 12),
+    )
+    R.check(
+        f"DHW-enabled batched-FD jac matches scipy's gradient path "
+        f"(two_zone={_tz})",
+        same_dhw,
+        "DHW schedules differ -- the batched jac diverges from scipy's FD "
+        "on non-uniform (DHW-pinned) bounds")
+
 sys.exit(R.close("OPTIMALITY CHECKS"))

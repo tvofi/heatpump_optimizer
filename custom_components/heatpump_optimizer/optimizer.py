@@ -201,6 +201,47 @@ def _batch_fd_gradient(
     return (f - f0) / dx
 
 
+def _bounds_supported_by_batch(bounds: list[tuple[float, float]]) -> bool:
+    """Whether the batched jac may serve a solve with these bounds.
+
+    The batched finite-difference gradient (``_batch_fd_gradient``) is a
+    vectorized replica of scipy's own 2-point ``approx_derivative``. Where it
+    serves a solve, it is bitwise-identical to scipy's estimate on every jac
+    evaluation -- verified directly at uniform, per-step-capped and
+    DHW-pinned-headroom bounds, and end-to-end by the schedule race in
+    ``tests/optimality.py``. Serving those shapes is the point of D9-01: any
+    DHW block pins the space bounds unevenly, so the old uniform-bounds-only
+    gate left the fast path unreachable for real users (38 of 39 DHW-enabled
+    golden scenarios; the default two-zone DHW solve was 941,472
+    simulate_step calls, x40 the batched cost).
+
+    ONE bound class stays on the scalar scipy path: a zero-range entry
+    (``lo == hi``), which the with-DHW solve produces for space heating
+    inside a DHW block that consumes the entire cap, and manual pins produce
+    by definition. At such a variable the one-sided rule takes a zero step,
+    and the divided difference is 0/0 = NaN -- for the batch AND for scipy's
+    own estimate alike. The gradient is then identical but the solver paths
+    are not: L-BFGS-B's behaviour once NaN enters the iterate stream differs
+    between the jac-estimated and jac-supplied paths (executed on the
+    fuse-guard shape -- one pinned step of 96: jac-estimated iterates 5 times
+    to 67.19, jac-supplied dies in the first line search at 78.66, status 2).
+    scipy's own path survives only because its first Fortran evaluation lands
+    one ULP off the pin (x=4.44e-16 against a (0, 0) bound), which turns the
+    0/0 into 0/dx = -0.0; nothing outside scipy guarantees that nudge. This
+    function is the single, documented gate for that decision, so any bound
+    class that ever proves impossible to match bit-for-bit has exactly one
+    place to be carved out and explained.
+    """
+    if not bounds:
+        return False
+    for lo, hi in bounds:
+        if not (np.isfinite(lo) and np.isfinite(hi)):
+            return False
+        if lo >= hi:
+            return False
+    return True
+
+
 def _multi_start_minimize(
     objective,
     candidates: list[np.ndarray],
@@ -250,30 +291,28 @@ def _multi_start_minimize(
             _time_mod.sleep(0.002)
         try:
             jac = None
-            # The batched jac serves UNIFORM bounds only (every step
-            # (0, P)): the plain and two-zone solves that carry ~all the
-            # cost, measured 11.5 s -> 1.0 s. Everything more shaped
-            # keeps the historical scipy-FD path, byte-identical to
-            # today, for two recorded reasons:
+            jac = None
+            # The batched jac (#97, widened by D9-01) serves NON-UNIFORM
+            # bounds, which is where the cost actually is: DHW is on by
+            # default, and any DHW block or per-step power cap pins the space
+            # bounds unevenly, so the old uniform-bounds-only gate left 38 of
+            # 39 DHW-enabled golden scenarios on the scalar scipy-FD path --
+            # the batched gradient effectively never reached real users
+            # (winter_two_zone_dhw: 941,472 simulate_step per solve, x40).
             #
-            # * Degenerate bounds (lower == upper) arise in the with-DHW
-            #   solve when a DHW block consumes the entire cap -- the
-            #   space bounds are (0, 0) for those steps, scipy's own FD
-            #   gradient is NaN there, and L-BFGS-B's behaviour once NaN
-            #   enters the iterate stream differs between the
-            #   jac-estimated and jac-supplied paths in ways nobody
-            #   outside scipy can reconcile.
-            # * The CI drift gate caught the capped-tariff scenarios
-            #   (per-step power_caps_extra, pins, tariff windows) moving
-            #   under the batched jac on Linux while staying identical
-            #   locally: per-step caps interact with the one-sided bounds
-            #   rule in something platform-sensitive. Uniform bounds have
-            #   no one-sided adjustments at all, which is precisely why
-            #   they are the one shape that holds everywhere.
-            uniform_bounds = bool(bounds) and all(
-                lo == 0.0 for lo, _ in bounds
-            ) and len({hi for _, hi in bounds}) == 1
-            if batch_objective is not None and uniform_bounds:
+            # ``_batch_fd_gradient`` replicates scipy's own 2-point
+            # ``approx_derivative`` (abs_step=eps, the exact settings
+            # L-BFGS-B passes) PER VARIABLE, including the one-sided bounds
+            # rule and the zero-step fallback, so where it serves a solve the
+            # iterate path does not move: asserted per-variable by
+            # tests/features.py::_grad_parity (uniform, capped and
+            # DHW-pinned-headroom bounds) and raced end-to-end by
+            # tests/optimality.py on DHW-enabled solves. Zero-range bounds
+            # (lb == ub) are the one carved-out class -- see
+            # ``_bounds_supported_by_batch`` for the executed reason. The CI
+            # drift gate on Linux is the final arbiter.
+            can_batch = _bounds_supported_by_batch(bounds)
+            if batch_objective is not None and can_batch:
                 # The batched-FD jac (#97): scipy calls the gradient at
                 # every trial point, so a supplied jac removes 96/97 of
                 # ALL evaluations, not just of the gradient's own. It
