@@ -5,11 +5,10 @@ from datetime import timedelta
 from typing import Final
 
 DOMAIN: Final = "heatpump_optimizer"
-# "diagnostics" serves no entities: it is the Download-diagnostics
-# hook (D10-12), listed so the forwarding machinery loads it.
+# The platforms that set entities up, mirrored from ``PLATFORM_LIST`` in
+# __init__.py. Diagnostics is not one: it is discovered from diagnostics.py.
 PLATFORMS: Final = [
     "sensor", "binary_sensor", "button", "climate", "switch",
-    "diagnostics",
 ]
 
 # Schema version of the config entry. Bump when stored keys change in a way

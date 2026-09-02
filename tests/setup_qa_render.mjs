@@ -79,8 +79,8 @@ function renderTopo(name, topo) {
   const file = path.join(outDir, `${name}.svg`);
   fs.writeFileSync(file, withStyle);
   console.log(`${name}: ${file}`);
-  console.log(`  boxes: ${JSON.stringify(card.layout.boxes)}`);
-  return { svg, boxes: card.layout.boxes };
+  console.log(`  boxes: ${JSON.stringify(card.layoutEditor.boxes)}`);
+  return { svg, boxes: card.layoutEditor.boxes };
 }
 
 renderTopo("coil", coil);

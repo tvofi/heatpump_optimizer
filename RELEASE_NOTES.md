@@ -1,5 +1,171 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.3.4
+
+### Expanding the card no longer breaks it
+
+Reported against v6.3.3 and present since v6.2.13 (#220). Expanding the card
+threw `TypeError: undefined is not an object (evaluating 'this.layout.attach')`
+and Home Assistant replaced the card with its "Configuration error" card.
+
+The cause is a name collision. Lovelace's `hui-card` writes its own properties
+straight onto the card element -- `preview`, `editMode` and `layout` among
+them -- and the card kept its layout editor on `this.layout`, which Lovelace
+overwrote. Only the expanded view reads it, because the dialog's `sync`
+returns early when there is no dialog in the shadow root, so a collapsed card
+never touched the clobbered property and looked perfect until it was expanded.
+
+The collaborator is now `layoutEditor`, and the card's host contract records
+the rule: every collaborator is an own property of an element Lovelace also
+writes to, so the name must be one Lovelace will never assign.
+
+The suite could not have caught this -- it handed the card `hass` and `config`
+and nothing else, so no test ever put the card in the state a dashboard puts
+it in. The new check writes `preview`, `editMode` and `layout` exactly as
+`hui-card` does before expanding, and fails with the reported error when the
+collaborator is put back on the old name. All 27 card states stay
+byte-identical.
+
+### The batched gradient integrates its own sub-steps again
+
+Audit round 2, finding D2-01 (#211). `simulate_trajectory_batch` is the
+solver's gradient twin and its contract is bitwise equality with
+`simulate_trajectory`. In the single-zone branch it was not: the sub-step loop
+computes `dt = dt_hours / n_sub` and the two Euler updates integrated with
+`dt_hours` anyway, so a step the stability guard had subdivided into `n_sub`
+pieces was advanced `n_sub` whole steps. The room state was also re-seeded
+from the initial state on every sub-step of the first step. The two-zone
+branch always used `dt`, which is why the parity contract never saw it.
+
+Whenever the guard subdivides, the gradient the solver plans on was computed
+on a diverged model, and it failed silently with `status = optimal`. At the
+one cell one field off the defaults, slab thermal mass at the config flow's
+own selector minimum:
+
+| | plan cost | electricity |
+|---|---|---|
+| batched jacobian, before | 100.79 SEK/day | +54 % |
+| scipy scalar jacobian, same model | 30.94 SEK/day | reference |
+
+Parity error there was 37.9 degC over 48 steps, up to 2.5e74 on stiffer cells
+and non-finite at nine sub-steps. It is now 0.0 exactly on every stiff cell in
+both zonings.
+
+**No golden fixture moves, and that is measured rather than assumed.** All
+501,936 single-zone and 616,608 two-zone sub-step decisions the 49 plan
+scenarios make run at one sub-step, which is exactly why nothing caught this.
+The parity contract had zero sub-step coverage in either zoning; it now
+asserts the sub-step count per step from the production guard.
+
+### A release stamp that keeps its claims fails its own gate
+
+The inherited-claims rule fired one commit too late and at the wrong person:
+it caught whoever forked a `main` that was stamped with claims still in the
+file (#213). v6.3.2 was stamped by hand, left twelve claims behind, and every
+push to `main` was red until the v6.3.1 import hotfix cleaned them up. A tree
+whose VERSION is strictly ahead of the baseline's is the release commit, a
+release moves no fixture, so its claim list must now be empty.
+
+### Audit round 2 and its record
+
+The eleven-dimension audit's second round: the D10 quality-scale pass with its
+54-rule tier table, three verified findings and one refuted candidate, plus the
+round's register and harnesses (#219). Documentation and audit tooling only --
+no behaviour changes ride in it.
+
+The v6.3.3 notes also gain the two sections they shipped without (#215): the
+`Platform.DIAGNOSTICS` import fix that had stopped the integration loading at
+all, and the closure re-record that made `main` green enough to release from.
+
+## v6.3.3
+
+### The self-learning experiment becomes trustworthy: noise-gated sysid
+
+Audit round 1, group C2 (#212; closes #190, #191, #192) — the last
+queued group of the round-1 fix wave.
+
+- **D2-01**: the experiment's regression put the previous temperature
+  on both sides, so sensor noise biased the identified heat-loss
+  coefficient upward (audit-measured +44 % at 0.05 °C noise, +108 % at
+  0.10 °C — and the biased fits cleared the adoption gate). The noise
+  variance is now estimated from the room series' within-phase second
+  differences, the known errors-in-variables terms are subtracted from
+  the normal equations, a window whose noise exceeds a third of the
+  signal spread is refused outright, and confidence gains an SNR
+  factor. **Executed on a 40-seed truth-known simulation: ensemble
+  |UA bias| p90 ≤ 15 % (pre-fix production: +54 %); the raw
+  uncorrected fit spans +30 % to −790 %.**
+- **D7-02**: at the default protocol the confidence formula capped at
+  ≈ 0.13 against the 0.3 adoption gate — **no experiment could ever be
+  adopted, on any install.** Rescaled to the protocol's own geometry;
+  clean default-protocol windows now measure 0.45–0.49 and are
+  adoptable.
+- **D7-05**: an interval with detected free heat (open window,
+  fireplace) no longer poisons the accuracy learner — the freeze gate
+  is symmetric now: skip the sample, keep the energy accounting.
+
+Mutation-proved in all three directions, executed both ways. One
+vacuous test was caught by its own mutation proof (the Bayesian prior
+alone passed a single-seed bias bound with the correction deleted) and
+rewritten as the ensemble-p90 assertion that ships.
+
+### The integration imports again
+
+A regression in v6.3.1 (#210), and the reason anyone on v6.3.1 or v6.3.2
+should update. `Platform.DIAGNOSTICS` does not exist in Home Assistant: the
+diagnostics component discovers `diagnostics.py` by name when a user asks for
+a download, and the platform list is only for platforms that set entities up.
+Naming it there raised an `AttributeError` at import time, so setup of the
+whole integration failed:
+
+```
+Setup failed for custom integration 'heatpump_optimizer':
+Unable to import component: ... __init__.py, line 95, in <module>
+    Platform.DIAGNOSTICS,
+AttributeError: type object 'EntityPlatforms' has no attribute 'DIAGNOSTICS'
+```
+
+Diagnostics downloads are unaffected and keep working; they never needed the
+entry.
+
+Nothing caught it because the test stub had invented the member. The stub enum
+gained `DIAGNOSTICS = "diagnostics"` in the same change, so the suite exercised
+a Home Assistant that does not exist. `tests/entities.py` now transcribes the
+real enum and asserts four things on every run: every stub member exists in the
+real one, every entry in `PLATFORMS` and in `PLATFORM_LIST` is a real platform,
+and `diagnostics.py` exists while `"diagnostics"` is not forwarded. The stub's
+docstring states the rule it broke: a stub may be smaller than the real thing,
+never different.
+
+### The closures job on main is green again
+
+`diagnostics.py` arrived in v6.3.1 and no dependency closure was re-recorded
+(#214), so `tests/entities.py`, `tests/golden.py` and `tests/env_drift.py` each
+really read a file their committed closure did not list, and the `closures` job
+failed on every push. Re-recorded, three lines.
+
+## v6.3.2
+
+### The solver starts from a low-energy basin, and every candidate is refined
+
+Audit round 1, group B6 (#208; price-optimality findings D0-01 and D0-02).
+Every multi-start candidate used to anchor to the same total energy -- the
+baseline's -- so on arbitrage-shaped prices all of them refined into one
+basin and strictly cheaper comfort-feasible plans went unfound. Both solve
+paths now seed a low-energy bang-bang start (35 % of the baseline energy),
+and every candidate is refined rather than two-of-four by a raw pre-score.
+
+**Measured on the audit's adversarial shapes (15-scenario harness, comfort
+parity enforced, leave-one-out on the aggregate): cheaper on 4 of 15 --
+winter_two_zone_dhw −1.57 %, cheap_late single-zone −1.40 %, mid-spike
+two-zone −0.48 %; regressions 0; comfort violations 0; flat days
+unchanged.** Twelve plan fixtures move to the cheaper basin on CI's Linux
+runners (the boundary is solver-noise-sensitive; the claim list records
+the CI mover set). Solve cost rises on the cheap scenarios (fixed
+per-start overhead) and the per-scenario stress budgets caught exactly
+that on the first CI run -- the table is re-recorded for the fuller
+sweep: worst scenario 511.6x, shoulder/tariff 158.5x (was 69.1x).
+
 ## v6.3.1
 
 ### Reauthentication for a refused Tibber token, and a diagnostics payload

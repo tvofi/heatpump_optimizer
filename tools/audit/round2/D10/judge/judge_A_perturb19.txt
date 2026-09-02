@@ -1,0 +1,307 @@
+RESULT action-setup.register_sites=11
+RESULT action-setup.sites_in_async_setup_chain=11
+RESULT action-setup.sites_elsewhere=0
+RESULT appropriate-polling.update_interval_sites=1
+RESULT appropriate-polling.default_interval_minutes=30
+RESULT appropriate-polling.ui_bounds_minutes=10-120
+RESULT appropriate-polling.scan_interval_defs=0
+RESULT common-modules.coordinator_py_dataupdatecoordinator=1
+RESULT common-modules.entity_py_exists=0
+RESULT common-modules.sensor_own_base_classes=2
+RESULT common-modules.binary_sensor_own_base_classes=1
+RESULT common-modules.button_own_base_classes=1
+RESULT common-modules.climate_own_base_classes=0
+RESULT common-modules.switch_own_base_classes=0
+RESULT common-modules.platform_files_importing_shared_entity_base=0
+RESULT config-flow.flow_step_functions=26
+RESULT config-flow.data_description_kwargs=0
+RESULT config-flow.data_description_in_comments=1
+RESULT config-flow.create_entry_data_kwarg_sites=2
+RESULT config-flow.options_writes=1
+RESULT entity-event-setup.subscription_sites_entity_platform_files=0
+RESULT entity-event-setup.subscription_sites_coordinator=3
+RESULT entity-event-setup.subscriptions_in_async_added_to_hass=0
+RESULT entity-event-setup.subscriptions_in_init_or_other=3
+RESULT entity-unique-id.entity_classes_total=65
+RESULT entity-unique-id.derived_unique_ids=65
+RESULT entity-unique-id.dynamic_underivable=0
+RESULT entity-unique-id.collisions=0
+RESULT entity-unique-id.per_platform=sensor=55,binary_sensor=4,button=4,climate=1,switch=1
+RESULT entity-unique-id.suffix_shared_across_platforms=0
+RESULT has-entity-name.entities_total=65
+RESULT has-entity-name.with_has_entity_name_true=65
+RESULT has-entity-name.exceptions=0
+RESULT runtime-data.typed_alias_sites=1
+RESULT runtime-data.runtime_data_reads=11
+RESULT runtime-data.hass_data_DOMAIN_reads=0
+RESULT runtime-data.alias_name_occurrences=16
+RESULT test-before-setup.first_refresh_calls=1
+RESULT test-before-setup.except_handlers_in_setup_entry=1
+RESULT test-before-setup.updatefailed_raises_in_coordinator=3
+RESULT action-exceptions.raise_sites_total=13
+RESULT action-exceptions.raises_with_translation_kwargs=0
+RESULT action-exceptions.raises_without_translation_kwargs=13
+RESULT action-exceptions.silent_swallow_except_in_handlers=0
+RESULT parallel-updates.sensor=0
+RESULT parallel-updates.binary_sensor=0
+RESULT parallel-updates.button=1
+RESULT parallel-updates.climate=1
+RESULT parallel-updates.switch=1
+RESULT devices.deviceinfo_sites=1
+RESULT devices.sites_with_identifiers=1
+RESULT devices.sites_with_manufacturer=1
+RESULT devices.sites_with_model=1
+RESULT devices.sites_with_sw_version=1
+RESULT entity-category.entities_total=65
+RESULT entity-category.with_entity_category=17
+RESULT entity-category.without_entity_category=48
+RESULT entity-device-class.sensors_total=55
+RESULT entity-device-class.sensors_with_device_class=29
+RESULT entity-device-class.sensors_without_device_class=26
+RESULT entity-disabled-by-default.disabled_entities=6
+RESULT entity-disabled-by-default.total_entities=65
+RESULT entity-translations.entities_total=65
+RESULT entity-translations.device_named_exempt=1
+RESULT entity-translations.uncovered_entries=0
+RESULT entity-translations.strings_entity_sensor_names=55
+RESULT entity-translations.strings_entity_binary_sensor_names=4
+RESULT entity-translations.strings_entity_button_names=4
+RESULT entity-translations.strings_entity_climate_names=0
+RESULT entity-translations.strings_entity_switch_names=1
+RESULT exception-translations.raise_sites_total=13
+RESULT exception-translations.raises_with_translation_domain_key=0
+RESULT exception-translations.raises_translatable=0
+RESULT exception-translations.exceptions_section_strings.json=0
+RESULT exception-translations.exceptions_section_en.json=0
+RESULT exception-translations.issues_section_strings.json=14
+RESULT repair-issues.async_create_issue_sites=13
+RESULT repair-issues.sites_with_severity=13
+RESULT repair-issues.sites_with_translation_key=13
+RESULT repair-issues.strings_issues_keys=14
+RESULT repair-issues.issue_keys_missing_from_strings=0
+RESULT discovery.discovery_mechanism_imports=0
+RESULT discovery-update-info.same_basis_zero_imports=0
+RESULT dynamic-devices.device_registry_create_sites=0
+RESULT stale-devices.async_remove_config_entry_device_sites=0
+RESULT stale-devices.deviceinfo_sites_static=1
+RESULT async-dependency.blocking_calls_directly_in_async_defs=0
+RESULT async-dependency.time_sleep_sites=1
+RESULT async-dependency.executor_dispatch_sites=5
+RESULT async-dependency.to_thread_sites=0
+RESULT inject-websession.adhoc_aiohttp_clientsession_constructions=0
+RESULT inject-websession.async_get_clientsession_sites=3
+RESULT integration-owner.manifest_codeowners_count=1
+RESULT integration-owner.first_codeowner=@tvofi
+
+EVIDENCE DETAIL
+    action-setup.register_sites=11  (hass.services.async_register call sites)
+    action-setup.sites_in_async_setup_chain=11  (sites whose enclosing fn is called from async_setup)
+    action-setup.sites_elsewhere=0
+      site __init__.py:895 enclosing=_async_register_services
+      site __init__.py:901 enclosing=_async_register_services
+      site __init__.py:907 enclosing=_async_register_services
+      site __init__.py:913 enclosing=_async_register_services
+      site __init__.py:920 enclosing=_async_register_services
+      site __init__.py:927 enclosing=_async_register_services
+      site __init__.py:934 enclosing=_async_register_services
+      site __init__.py:941 enclosing=_async_register_services
+      site __init__.py:948 enclosing=_async_register_services
+      site __init__.py:955 enclosing=_async_register_services
+      site __init__.py:962 enclosing=_async_register_services
+    appropriate-polling.update_interval_sites=1
+      coordinator.py:652 update_interval=timedelta(minutes=self._config.get(CONF_OPTIMIZATION_INTERVAL, DEFAULT_OPTIMIZATION_INTERVAL))
+    appropriate-polling.default_interval_minutes=30
+    appropriate-polling.ui_bounds_minutes=10-120
+    appropriate-polling.scan_interval_defs=0
+    common-modules.coordinator_py_dataupdatecoordinator=1
+    common-modules.entity_py_exists=0
+    common-modules.sensor_own_base_classes=2  (HeatPumpOptimizerSensorBase,_PlanSensorBase)
+    common-modules.binary_sensor_own_base_classes=1  (_OptimizerBinarySensorBase)
+    common-modules.button_own_base_classes=1  (_OptimizerButtonBase)
+    common-modules.climate_own_base_classes=0  (-)
+    common-modules.switch_own_base_classes=0  (-)
+    common-modules.platform_files_importing_shared_entity_base=0
+    config-flow.flow_step_functions=26
+    config-flow.data_description_kwargs=0
+    config-flow.data_description_in_comments=1
+    config-flow.create_entry_data_kwarg_sites=2
+    config-flow.options_writes=1
+    entity-event-setup.subscription_sites_entity_platform_files=0
+    entity-event-setup.subscription_sites_coordinator=3
+    entity-event-setup.subscriptions_in_async_added_to_hass=0
+    entity-event-setup.subscriptions_in_init_or_other=3
+      sub coordinator.py:7760 async_track_state_change_event in _async_setup_defrost_watch
+      sub coordinator.py:7807 async_track_state_change_event in _async_setup_peak_guard
+      sub coordinator.py:1278 mqtt.async_subscribe in _async_setup_ecl110_state_subscription
+    entity-unique-id.entity_classes_total=65
+    entity-unique-id.derived_unique_ids=65  (unique_id suffixes statically derived)
+    entity-unique-id.dynamic_underivable=0
+    entity-unique-id.collisions=0
+    entity-unique-id.per_platform=sensor=55,binary_sensor=4,button=4,climate=1,switch=1
+    entity-unique-id.suffix_shared_across_platforms=0
+    has-entity-name.entities_total=65
+    has-entity-name.with_has_entity_name_true=65
+    has-entity-name.exceptions=0
+    runtime-data.typed_alias_sites=1
+    runtime-data.runtime_data_reads=11
+    runtime-data.hass_data_DOMAIN_reads=0
+    runtime-data.alias_name_occurrences=16
+    test-before-setup.first_refresh_calls=1
+    test-before-setup.except_handlers_in_setup_entry=1
+      except Exception at __init__.py:457
+    test-before-setup.updatefailed_raises_in_coordinator=3
+    action-exceptions.raise_sites_total=13
+    action-exceptions.raises_with_translation_kwargs=0
+    action-exceptions.raises_without_translation_kwargs=13
+    action-exceptions.silent_swallow_except_in_handlers=0
+      raise ServiceValidationError __init__.py:427 in _loaded_entries translation_kwargs=False
+      raise ServiceValidationError __init__.py:413 in _loaded_entries translation_kwargs=False
+      raise ServiceValidationError __init__.py:417 in _loaded_entries translation_kwargs=False
+      raise ServiceValidationError __init__.py:605 in _async_register_services translation_kwargs=False
+      raise ServiceValidationError __init__.py:611 in _async_register_services translation_kwargs=False
+      raise ServiceValidationError __init__.py:656 in _async_register_services translation_kwargs=False
+      raise ServiceValidationError __init__.py:765 in _async_register_services translation_kwargs=False
+      raise ServiceValidationError __init__.py:832 in _async_register_services translation_kwargs=False
+      raise ServiceValidationError __init__.py:846 in _async_register_services translation_kwargs=False
+      raise ServiceValidationError __init__.py:558 in _async_register_services translation_kwargs=False
+      raise ServiceValidationError __init__.py:722 in _async_register_services translation_kwargs=False
+      raise ServiceValidationError __init__.py:788 in _async_register_services translation_kwargs=False
+      raise ServiceValidationError coordinator.py:1370 in async_set_target_temperature translation_kwargs=False
+    parallel-updates.sensor=0
+    parallel-updates.binary_sensor=0
+    parallel-updates.button=1
+    parallel-updates.climate=1
+    parallel-updates.switch=1
+    devices.deviceinfo_sites=1
+    devices.sites_with_identifiers=1
+    devices.sites_with_manufacturer=1
+    devices.sites_with_model=1
+    devices.sites_with_sw_version=1
+      DeviceInfo coordinator.py:1328 fields=['identifiers', 'manufacturer', 'model', 'name', 'sw_version']
+    entity-category.entities_total=65
+    entity-category.with_entity_category=17
+    entity-category.without_entity_category=48
+      uncategorized: OptimizationModeSensor (unset)
+      uncategorized: PredictedSavingsSensor (unset)
+      uncategorized: SavingsPercentageSensor (unset)
+      uncategorized: PredictedCostSensor (unset)
+      uncategorized: BaselineCostSensor (unset)
+      uncategorized: CurrentPriceSensor (unset)
+      uncategorized: CurrentSetpointSensor (unset)
+      uncategorized: CurrentPowerSensor (unset)
+      uncategorized: CurrentCOPSensor (unset)
+      uncategorized: IndoorTempSensor (unset)
+      uncategorized: OutdoorTempSensor (unset)
+      uncategorized: SolarIrradianceSensor (unset)
+      uncategorized: SlabTempSensor (unset)
+      uncategorized: HeatPumpActionSensor (unset)
+      uncategorized: UpperFloorTempSensor (unset)
+      uncategorized: LowerFloorTempSensor (unset)
+      uncategorized: FloorReturnTempSensor (unset)
+      uncategorized: SolarHeatGainSensor (unset)
+      uncategorized: BufferTankTempSensor (unset)
+      uncategorized: DHWTemperatureSensor (unset)
+      uncategorized: DHWScheduleSensor (unset)
+      uncategorized: DHWHeatingCostSensor (unset)
+      uncategorized: SpaceHeatingPlanSensor (unset)
+      uncategorized: DHWHeatingPlanSensor (unset)
+      uncategorized: MeasuredPowerSensor (unset)
+      uncategorized: ObservedCOPSensor (unset)
+      uncategorized: SpaceEnergySensor (unset)
+      uncategorized: DHWEnergySensor (unset)
+      uncategorized: TotalEnergySensor (unset)
+      uncategorized: SpaceCostSensor (unset)
+      uncategorized: DHWCostSensor (unset)
+      uncategorized: TotalCostSensor (unset)
+      uncategorized: MonthlyPeakSensor (unset)
+      uncategorized: PVSurplusSensor (unset)
+      uncategorized: ThermalBatterySensor (unset)
+      uncategorized: ThermalBatteryEnergySensor (unset)
+      uncategorized: PowerHeadroomSensor (unset)
+      uncategorized: MixedHotWaterSensor (unset)
+      uncategorized: PlanNarrativeSensor (unset)
+      uncategorized: OptimizationScoreSensor (unset)
+      uncategorized: ExternalHeatBinarySensor (unset)
+      uncategorized: AwayModeBinarySensor (unset)
+      uncategorized: ForceOptimizationButton (unset)
+      uncategorized: SystemIdentificationButton (None)
+      uncategorized: ResetComfortWeightButton (unset)
+      uncategorized: DiagnoseIntervalButton (None)
+      uncategorized: HeatPumpOptimizerClimate (unset)
+      uncategorized: OptimizerEnableSwitch (unset)
+    entity-device-class.sensors_total=55
+    entity-device-class.sensors_with_device_class=29
+    entity-device-class.sensors_without_device_class=26
+      sensor without device_class: OptimizationModeSensor
+      sensor without device_class: OptimizationStatusSensor
+      sensor without device_class: PredictedSavingsSensor
+      sensor without device_class: SavingsPercentageSensor
+      sensor without device_class: PredictedCostSensor
+      sensor without device_class: BaselineCostSensor
+      sensor without device_class: CurrentPriceSensor
+      sensor without device_class: CurrentCOPSensor
+      sensor without device_class: HeatPumpActionSensor
+      sensor without device_class: ScheduleSensor
+      sensor without device_class: DHWScheduleSensor
+      sensor without device_class: DHWHeatingCostSensor
+      sensor without device_class: PredictiveInsightSensor
+      sensor without device_class: ECL110DisplaceSensor
+      sensor without device_class: ECL110EffectiveDisplaceSensor
+      sensor without device_class: SpaceHeatingPlanSensor
+      sensor without device_class: DHWHeatingPlanSensor
+      sensor without device_class: ObservedCOPSensor
+      sensor without device_class: PredictionAccuracySensor
+      sensor without device_class: PVSurplusSensor
+      sensor without device_class: ComfortWeightSensor
+      sensor without device_class: ContractComparisonSensor
+      sensor without device_class: DHWHeavyDaySensor
+      sensor without device_class: PlanNarrativeSensor
+      sensor without device_class: OptimizationScoreSensor
+      sensor without device_class: CompressorStartsSensor
+    entity-disabled-by-default.disabled_entities=6
+    entity-disabled-by-default.total_entities=65
+      disabled by default: ECL110DisplaceSensor
+      disabled by default: ECL110EffectiveDisplaceSensor
+      disabled by default: ContractComparisonSensor
+      disabled by default: DHWHeavyDaySensor
+      disabled by default: ValveTargetRecommendationSensor
+      disabled by default: FrequencyAdvisorSensor
+    entity-translations.entities_total=65
+    entity-translations.device_named_exempt=1
+    entity-translations.uncovered_entries=0
+    entity-translations.strings_entity_sensor_names=55
+    entity-translations.strings_entity_binary_sensor_names=4
+    entity-translations.strings_entity_button_names=4
+    entity-translations.strings_entity_climate_names=0
+    entity-translations.strings_entity_switch_names=1
+    exception-translations.raise_sites_total=13
+    exception-translations.raises_with_translation_domain_key=0
+    exception-translations.raises_translatable=0
+    exception-translations.exceptions_section_strings.json=0
+    exception-translations.exceptions_section_en.json=0
+    exception-translations.issues_section_strings.json=14
+    repair-issues.async_create_issue_sites=13
+    repair-issues.sites_with_severity=13
+    repair-issues.sites_with_translation_key=13
+    repair-issues.strings_issues_keys=14
+    repair-issues.issue_keys_missing_from_strings=0
+    discovery.discovery_mechanism_imports=0
+    discovery-update-info.same_basis_zero_imports=0
+    dynamic-devices.device_registry_create_sites=0
+    stale-devices.async_remove_config_entry_device_sites=0
+    stale-devices.deviceinfo_sites_static=1
+    async-dependency.blocking_calls_directly_in_async_defs=0
+    async-dependency.time_sleep_sites=1
+      time.sleep optimizer.py:4777 in _optimize_with_dhw (sync)
+    async-dependency.executor_dispatch_sites=5
+    async-dependency.to_thread_sites=0
+    inject-websession.adhoc_aiohttp_clientsession_constructions=0
+    inject-websession.async_get_clientsession_sites=3
+      async_get_clientsession config_flow.py:347
+      async_get_clientsession coordinator.py:5409
+      async_get_clientsession open_meteo.py:325
+    integration-owner.manifest_codeowners_count=1
+    integration-owner.first_codeowner=@tvofi
+RESULT thread_factor=1.0
+RESULT load1=2.68
+RESULT swapins=0

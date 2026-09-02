@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import pathlib
 import sys
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -43,6 +44,7 @@ from harness import (
 from homeassistant.components.sensor import SensorStateClass
 
 import heatpump_optimizer as integration
+from homeassistant import const as ha_const
 from heatpump_optimizer import (
     binary_sensor,
     button,
@@ -83,6 +85,69 @@ R.check(
     sorted(const.PLATFORMS) == sorted(platform_list),
     f"{sorted(const.PLATFORMS)} vs {sorted(platform_list)}",
 )
+# Home Assistant's real ``Platform`` enum, transcribed from
+# homeassistant/const.py. The stub in tests/hastub carries only the members
+# this integration uses, and nothing stops it carrying one Home Assistant
+# does not have -- which is exactly what happened: v6.3.1 added
+# ``DIAGNOSTICS`` to the stub AND to PLATFORM_LIST, every gate stayed green,
+# and the integration failed to import in Home Assistant with
+# ``AttributeError: type object 'Platform' has no attribute 'DIAGNOSTICS'``.
+# A stub may be SMALLER than the real thing; it may never be different.
+_REAL_HA_PLATFORMS = frozenset(
+    {
+        "air_quality", "alarm_control_panel", "assist_satellite",
+        "binary_sensor", "button", "calendar", "camera", "climate",
+        "conversation", "cover", "date", "datetime", "device_tracker",
+        "event", "fan", "geo_location", "humidifier", "image",
+        "image_processing", "lawn_mower", "light", "lock", "media_player",
+        "notify", "number", "remote", "scene", "select", "sensor", "siren",
+        "stt", "switch", "text", "time", "todo", "tts", "update", "vacuum",
+        "valve", "wake_word", "water_heater", "weather",
+    }
+)
+
+_stub_platform_members = {
+    name: value
+    for name, value in vars(ha_const.Platform).items()
+    if not name.startswith("_") and isinstance(value, str)
+}
+_invented = sorted(
+    v for v in _stub_platform_members.values() if v not in _REAL_HA_PLATFORMS
+)
+R.check(
+    "every member of the test stub's Platform exists in Home Assistant's own",
+    not _invented,
+    f"invented by the stub: {_invented}",
+)
+_unreal = sorted(p for p in const.PLATFORMS if p not in _REAL_HA_PLATFORMS)
+R.check(
+    "every entry of PLATFORMS is a real Home Assistant platform",
+    not _unreal,
+    f"not platforms Home Assistant knows: {_unreal}",
+)
+_unreal_list = sorted(p for p in platform_list if p not in _REAL_HA_PLATFORMS)
+R.check(
+    "every entry of PLATFORM_LIST is a real Home Assistant platform",
+    not _unreal_list,
+    f"not platforms Home Assistant knows: {_unreal_list}",
+)
+# Diagnostics is a module Home Assistant discovers by name, never a platform
+# to forward. Forwarding it is what broke setup in v6.3.1.
+R.check(
+    "diagnostics.py exists",
+    (
+        pathlib.Path(__file__).resolve().parents[1]
+        / "custom_components"
+        / "heatpump_optimizer"
+        / "diagnostics.py"
+    ).is_file(),
+)
+R.check(
+    "diagnostics is NOT forwarded as a platform",
+    "diagnostics" not in const.PLATFORMS and "diagnostics" not in platform_list,
+    f"PLATFORMS={const.PLATFORMS} PLATFORM_LIST={platform_list}",
+)
+
 for name in ("binary_sensor", "button"):
     R.check(f"the {name} platform is registered", name in const.PLATFORMS)
     R.check(
@@ -419,6 +484,25 @@ R.check(
 R.check(
     "and the README badge agrees",
     f"Home%20Assistant-{_hacs_floor}%2B" in readme,
+)
+# issue #227 (hacs.json floor): ConfigEntry.runtime_data (read by every
+# platform since B5, #207) is the only API in this integration with a
+# minimum Home Assistant release established from repo evidence --
+# tests/hastub/homeassistant/config_entries.py's docstring ("Mirrored from
+# Home Assistant 2024.6.0 ... the release that introduced
+# ConfigEntry.runtime_data") and RELEASE_NOTES.md's v6.3.0 entry ("verified
+# against the upstream tags: absent at 2024.5.0, present ... at 2024.6.0").
+# The reconfigure flow (#196), config-flow sections, and icon translations
+# (#189) queued behind #227 have NO minimum release established anywhere in
+# this repository -- nothing here pins, stubs, or documents one -- so they
+# are not factored into the floor pinned below. Whoever lands #196/#189 must
+# establish their own minimum (an upstream lookup, per B5's precedent)
+# before assuming 2024.6.0 already covers it.
+_hacs_floor_tuple = tuple(int(part) for part in _hacs_floor.split("."))
+R.check(
+    "hacs.json's Home Assistant floor is at least 2024.6.0 (ConfigEntry.runtime_data, the one API establishable from repo evidence)",
+    _hacs_floor_tuple >= (2024, 6, 0),
+    f"hacs.json says {_hacs_floor}",
 )
 
 for name in (
@@ -969,6 +1053,33 @@ R.check(
     "but the entity goes unavailable rather than holding it out as current",
     not sensor.DHWTemperatureSensor(FakeCoordinator(_stale), ENTRY).available,
     "a thermometer that died in January reads 48.2 all spring",
+)
+
+# Round-2 audit, D8-01. The gate above protects the temperature sensor and
+# stops there. Mixed Hot Water is the SAME number in shower clothes --
+# V*(T_tank - T_inlet)/(40 - T_inlet) litres -- and it was ungated, so on the
+# install the config flow produces with every form left untouched (no tank
+# thermometer; hot water on with a 200 L tank) it published 270 litres and
+# 33.8 shower minutes, rock-steady across cycles, while DHW Temperature beside
+# it was correctly unavailable and the input-problem binary sensor read "ok".
+#
+# A litre count carries a state_class, so Home Assistant writes long-term
+# statistics for it: the constructor default does not merely show once, it is
+# recorded as history. Availability is the mechanism, exactly as it is for the
+# temperature the litres are computed from.
+_mixed_stale = sensor.MixedHotWaterSensor(FakeCoordinator(_stale), ENTRY)
+R.check(
+    "mixed hot water follows the thermometer it is computed from",
+    not _mixed_stale.available,
+    "270 litres of shower water derived from a tank reading nobody trusts",
+)
+# And the null control: with the reading good, it is available as before, so
+# the gate is not simply switching the entity off.
+_mixed_ok = sensor.MixedHotWaterSensor(FakeCoordinator(DATA), ENTRY)
+R.check(
+    "and it is still available when the tank really is being read",
+    _mixed_ok.available,
+    "the gate must not take the sensor away from installs that have a probe",
 )
 
 # --- hot water that is not configured is not a zero -------------------------
@@ -5341,6 +5452,103 @@ import re as _re
 import tempfile as _tempfile
 
 import env_drift as _env_drift
+import closure as _closure
+
+# --- the scoped gate's one exception to "the whole integration" -------------
+#
+# `_widen` gives env_drift.py the whole integration because no tracer can see
+# which files a capture in another worktree depended on, and a second rule in
+# `select` runs it for any custom_components/ change whether or not the
+# closure saw the file. Both exclude the bundled card, and the exclusion was
+# measured rather than argued -- two captures on the same tree with
+# `env_drift.py --capture . <out> --all`:
+#
+#   null control      the card asset edited (an added statement, CARD_VERSION
+#                     5.4.19 -> 9.9.99): all 55 scenarios byte-identical,
+#                     sha256 1f1dcb966bdf7ae9... on both sides
+#   positive control  one token in thermal_model.py (`* dt` -> `* dt * 1.0001`):
+#                     the captures differ
+#
+# frontend.py registers `www/` as a static path and never opens the file, so
+# there is no path by which its bytes reach a capture. These checks hold the
+# rule to exactly that: the card is out, and everything else stays in.
+_ED = "tests/env_drift.py"
+_CARD_ASSET = "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+_ed_closure = set(
+    __import__("json").loads(_closure.CLOSURES.read_text())["closures"][_ED]
+)
+R.check(
+    "the drift capture's closure excludes the bundled card",
+    _CARD_ASSET not in _ed_closure,
+    "a capture cannot read the card, so it must not select on it",
+)
+_integration_py = {
+    str(q.relative_to(_closure.ROOT))
+    for q in (_closure.ROOT / "custom_components" / "heatpump_optimizer")
+    .rglob("*.py")
+    if "__pycache__" not in str(q)
+}
+R.check(
+    "and still covers every python file of the integration",
+    _integration_py <= _ed_closure,
+    f"missing {sorted(_integration_py - _ed_closure)[:3]}",
+)
+R.check(
+    "a card-only change does not select the drift capture",
+    _ED not in _closure.select([_CARD_ASSET])["run"],
+    "the most expensive script in the suite ran to prove a plan that "
+    "could not have moved",
+)
+R.check(
+    "an integration python change still does",
+    _ED in _closure.select(
+        ["custom_components/heatpump_optimizer/optimizer.py"])["run"],
+    "the belt-and-braces rule must survive being narrowed",
+)
+# The two rules are independent and each has to be pinned. The one above is
+# about SELECTION and reads the committed closures; this one is about the
+# WIDENING that produces them, which otherwise only the `closures` job on main
+# would catch -- one merge later, and only after a full re-derivation.
+_widened = {_ED: set(), "tests/golden.py": set()}
+_closure._widen(_widened)
+R.check(
+    "the widening rule itself leaves the card out",
+    _CARD_ASSET not in _widened[_ED],
+    "re-widening to the whole integration puts the card back in the closure",
+)
+R.check(
+    "while still widening to the rest of the integration",
+    "custom_components/heatpump_optimizer/coordinator.py" in _widened[_ED],
+    "the rule must narrow by one subtree, not collapse",
+)
+
+# The scoped gate refuses to skip anything when a changed file is in no
+# closure -- an unmeasured file is not a safe skip. That is right, and it was
+# quietly making gates full: renaming one identifier in setup_qa_render.mjs, a
+# script people run by hand, ran all sixteen scripts including stress.py.
+# Every tracked file must therefore sit in exactly one of four places: a
+# measured closure, INERT, GATE_FILES, or SLOW_GATED. This is the check that
+# says so, and it is the reason a new file cannot silently cost every future
+# pull request a full suite.
+_orphans = _closure.orphan_files()
+R.check(
+    "every tracked file is either measured or deliberately classified",
+    not _orphans,
+    "these force the FULL suite when touched: " + ", ".join(_orphans[:8]),
+)
+R.check(
+    "a hand-run QA script does not drag the whole suite in",
+    "tests/setup_qa_render.mjs" not in _closure.select(
+        ["tests/setup_qa_render.mjs"])["run"]
+    or _closure.select(["tests/setup_qa_render.mjs"])["mode"] == "scoped",
+    "an unmeasured helper forced sixteen scripts to run",
+)
+R.check(
+    "but changing how the closures are derived still runs everything",
+    _closure.select(["tests/derive_closures.sh"])["mode"] == "full",
+    "the lanes decide how every recording is taken; that invalidates them all",
+)
+
 
 _version = Path("VERSION").read_text().strip()
 R.check(
@@ -5512,6 +5720,52 @@ R.check(
     ) is None,
     "an empty list claims nothing and a changed reason is a rewrite; "
     "neither is an inherited list",
+)
+
+# The other end of the same rule (v6.3.3). The inherited-claims check fires
+# on whoever forks a main that was stamped with claims still in the file --
+# the wrong person, one commit too late. This one fires on the stamp itself:
+# a tree whose VERSION is strictly ahead of the baseline's is the release
+# commit, a release moves no fixture, so its claim list must be empty. main
+# went red exactly this way after v6.3.2, and the branch that paid for it was
+# a one-line import hotfix.
+R.check(
+    "a stamp that leaves claims behind is refused",
+    (_env_drift.stamp_claims_error(
+        {"wood_coil": "moved by the release being closed"}, "6.3.3", "6.3.2",
+    ) or "").startswith("STAMPED WITH CLAIMS"),
+    "env_drift accepted a version bump that still claimed a fixture",
+)
+R.check(
+    "the stamped-with-claims message names both versions and the fixture",
+    all(part in (_env_drift.stamp_claims_error(
+        {"wood_coil": "r"}, "6.3.3", "6.3.2") or "")
+        for part in ("6.3.2", "6.3.3", "wood_coil")),
+    "the message must say which release it is closing and what it still claims",
+)
+R.check(
+    "a stamp claiming nothing is accepted",
+    _env_drift.stamp_claims_error({}, "6.3.3", "6.3.2") is None,
+    "an empty claim list is the right answer for a release that moves nothing",
+)
+# A branch cut before a stamp is compared against a main that has since
+# stamped: its VERSION is BEHIND the baseline's, and its claims describe its
+# own diff. Firing there would refuse honest work, and every branch open
+# across a release would hit it.
+R.check(
+    "a branch behind the baseline's version may still claim its own drift",
+    _env_drift.stamp_claims_error({"wood_coil": "r"}, "6.3.2", "6.3.3") is None
+    and _env_drift.stamp_claims_error({"wood_coil": "r"}, "6.3.2", "6.3.2")
+    is None,
+    "only a tree strictly ahead of the baseline is the one doing the stamping",
+)
+# Non-version strings reach this from a tree mid-edit; the malformed-VERSION
+# rule owns that complaint, and two errors for one mistake help nobody.
+R.check(
+    "a malformed version is left to the rule that owns it",
+    _env_drift.stamp_claims_error({"wood_coil": "r"}, "next", "6.3.2") is None
+    and _env_drift.stamp_claims_error({"wood_coil": "r"}, "6.3.3", "") is None,
+    "stamp_claims_error must not duplicate the MALFORMED VERSION complaint",
 )
 
 # The may-drift category (v5.1.7). A claim asserts "this release moved this

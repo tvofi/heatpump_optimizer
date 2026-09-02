@@ -1901,7 +1901,8 @@ R.section("The batched trajectory is the scalar trajectory, bit for bit")
 from datetime import datetime as _dt_grad
 
 def _grad_parity(two_zone, wood=False, valve=None, extra_cfg=None, label="",
-                 weather_p="winter_cold", state_over=None, bounds_over=None):
+                 weather_p="winter_cold", state_over=None, bounds_over=None,
+                 min_substeps=1):
     cfg = _grad_house(two_zone=two_zone)
     extra = dict(extra_cfg or {})
     if valve:
@@ -1925,6 +1926,23 @@ def _grad_parity(two_zone, wood=False, valve=None, extra_cfg=None, label="",
     )
     st_kwargs.update(state_over or {})
     st = ThermalState(**st_kwargs)
+    # D2-01: a cell claiming to cover the Euler sub-step regime has to
+    # actually be in it. The regime is what the batch and the scalar path
+    # disagreed about for as long as this contract has existed, and the one
+    # cell that *said* "stability substeps" ran at n_sub = 1 -- its
+    # `room_thermal_mass` override was not a config key at all, and the
+    # masses that did land left the two-zone ratio at 0.746 against the 1.5
+    # threshold. Assert the count per step, from the production guard, so
+    # the label can never again outrun the configuration.
+    subs = [m._stability_substeps(float(wi[k]), float(ra[k]), 0.25)
+            for k in range(n)]
+    R.check(
+        f"grad-parity cell subdivides as claimed (n_sub >= {min_substeps}): "
+        f"{label}",
+        min(subs) >= min_substeps,
+        f"_stability_substeps gave min={min(subs)} max={max(subs)} "
+        f"over {n} steps, wanted every step >= {min_substeps}",
+    )
     batch = m.simulate_trajectory_batch(
         st, powers, ot, wi, ra, so, 0.25, ext, None, hum, 7.0)
     mism = []
@@ -2011,12 +2029,45 @@ _grad_parity(False, label="single-zone")
 _grad_parity(True, label="two-zone")
 _grad_parity(True, valve="manual", label="two-zone with valve")
 _grad_parity(True, wood=True, valve="manual", label="two-tank")
+# D2-01: the Euler sub-step regime, in both zonings, asserted rather than
+# named. `_stability_substeps` subdivides a step whose worst u*dt/C exceeds
+# EULER_STABILITY_MAX_RATIO, and the batch has to subdivide it the way the
+# scalar path does -- same dt = dt_hours / n_sub, same carried state across
+# sub-steps. Every configuration below sits inside the config flow's own
+# selector ranges: RANGE_SLAB_THERMAL_MASS = (0.1, 60.0),
+# RANGE_SLAB_HEAT_TRANSFER = (0.02, 5.0), RANGE_HOUSE_THERMAL_MASS =
+# (0.5, 80.0), so none of it is a corner the product forbids.
 _grad_parity(
-    True, valve="manual", label="stability substeps",
+    # Was labelled "stability substeps" and ran at n_sub = 1:
+    # `room_thermal_mass` is not a config key (`from_config` reads
+    # CONF_HOUSE_THERMAL_MASS = "house_thermal_mass"), and with only the
+    # three mass overrides that landed the two-zone ratio was 0.746 x dt
+    # against the 1.5 threshold. The key is corrected to the real one at its
+    # selector minimum and the slab loop is opened to its selector maximum,
+    # which puts every step of the horizon at n_sub = 2.
+    True, valve="manual", label="two-zone stability substeps",
     extra_cfg={
-        "room_thermal_mass": 0.3, "slab_thermal_mass": 0.5,
+        "house_thermal_mass": 0.5, "slab_thermal_mass": 0.5,
+        "slab_heat_transfer": 5.0,
         "upper_floor_thermal_mass": 0.3, "lower_floor_thermal_mass": 0.5,
     },
+    min_substeps=2,
+)
+_grad_parity(
+    # The single-zone half of the same contract, which had no coverage at
+    # all: the slab-mass field at its own selector minimum, everything else
+    # stock. One field off the defaults puts the whole horizon at n_sub = 2.
+    False, label="single-zone stability substeps",
+    extra_cfg={"slab_thermal_mass": 0.1},
+    min_substeps=2,
+)
+_grad_parity(
+    # Deeper into the regime (n_sub = 9), where a sub-step the batch
+    # integrates with the full dt_hours diverges without bound rather than
+    # merely differing -- the shape that made this silent.
+    False, label="single-zone deep substeps",
+    extra_cfg={"slab_thermal_mass": 0.1, "slab_heat_transfer": 5.0},
+    min_substeps=9,
 )
 # D9-01/D7-03: broaden to the shapes the batched jac now serves -- more
 # weather, more initial states, and the non-uniform (DHW-pinned and capped)
@@ -12519,6 +12570,154 @@ R.check(
     "an implausible fitted gain rejects the experiment instead of adopting it",
     not _sid_wild.identify().completed,
     _sid_wild.identify().reason,
+)
+
+# --- D2-01/D7-02: noise-robust sysid, and an adoption gate that can open --
+R.section("sysid under sensor noise (D2-01) and a reachable gate (D7-02)")
+
+_NOISE_SEED = 20260902
+
+
+def _noisy_sid_samples(noise_c, cadence_min=30, seed=_NOISE_SEED):
+    """A truth-known step/relax window with iid sensor noise, one seed."""
+    rng = np.random.default_rng(seed)
+    ua, cap, gains = 0.28, 12.0, 0.3
+    p_step, t_out = 10.8, -3.0
+    temp = 20.5
+    when = datetime(2026, 2, 12, 23, 30, tzinfo=UTC)
+    dt_h = cadence_min / 60.0
+    out = []
+    t = 0.0
+    while t < 5.0:
+        phase = (
+            _PH_STEP if 1.0 <= t < 3.0
+            else (_PH_RELAX if 3.0 <= t < 5.0 else "settle")
+        )
+        power = p_step if phase == _PH_STEP else 0.0
+        if phase in (_PH_STEP, _PH_RELAX):
+            out.append(_SidSample(
+                when, temp + rng.normal(0.0, noise_c),
+                t_out + rng.normal(0.0, noise_c * 0.5), power, phase,
+            ))
+        temp += (power + gains - ua * (temp - t_out)) / cap * dt_h
+        when += timedelta(minutes=cadence_min)
+        t += dt_h
+    return out
+
+
+# Ensemble-level assertion (single-seed checks cannot separate the
+# correction from the Bayesian prior: the mutation proof caught exactly
+# that -- a one-seed bias bound passed with the correction deleted).
+# The pre-C2 production code measured p90 +54 % at 0.10 degC noise on
+# this same harness; the load-bearing half of the fix is the noise
+# gate, and the p90 over an ensemble is what it protects.
+_ens_bias, _ens_done, _ens_refused = [], 0, 0
+for _seed in range(20260902, 20260942):
+    _e = SystemIdentification()
+    _e.samples = _noisy_sid_samples(0.10, seed=_seed)
+    _er = _e.identify()
+    if _er.completed and _er.heat_loss_kw_per_c is not None:
+        _ens_done += 1
+        _ens_bias.append(
+            (_er.heat_loss_kw_per_c - 0.28) / 0.28 * 100.0
+        )
+    elif _er.reason == "sensor noise dominates the excursion":
+        _ens_refused += 1
+R.check(
+    "a 40-seed 0.10 degC ensemble: the worst-window noise gate engages",
+    _ens_refused >= 10 and _ens_done >= 15,
+    f"completed {_ens_done}, refused-for-noise {_ens_refused} of 40",
+)
+R.check(
+    "the ensemble's UA bias p90 is inside 15 % (pre-fix production: +54 %)",
+    bool(_ens_bias)
+    and float(np.percentile(np.abs(_ens_bias), 90)) < 15.0
+    and abs(float(np.median(_ens_bias))) < 8.0,
+    f"n={len(_ens_bias)}, median {np.median(_ens_bias):+.1f} %, "
+    f"|bias| p90 {np.percentile(np.abs(_ens_bias), 90):.1f} %",
+)
+# The uncorrected comparator on the worst completing seed's rows -- the
+# v4.0.5 section's own technique -- showing what the gate + correction
+# stand between.
+_worst_i = int(np.argmax(np.abs(_ens_bias))) if _ens_bias else 0
+_WORST = SystemIdentification()
+_WORST.samples = _noisy_sid_samples(0.10, seed=20260902 + _worst_i)
+_wr = _WORST.identify()
+_nr, _nt = [], []
+for _prv, _cur in zip(_WORST.samples, _WORST.samples[1:]):
+    _dth = (_cur.when - _prv.when).total_seconds() / 3600.0
+    _nr.append([-(_prv.room_temp - _prv.outdoor_temp), _prv.power_kw, 1.0])
+    _nt.append((_cur.room_temp - _prv.room_temp) / _dth)
+_ols, *_ = np.linalg.lstsq(np.asarray(_nr), np.asarray(_nt), rcond=None)
+_uncorrected_bias = (float(_ols[0]) / float(_ols[1]) - 0.28) / 0.28 * 100.0
+R.check(
+    "raw uncorrected OLS on the same rows is far worse (the comparator)",
+    abs(_uncorrected_bias) > 20.0,
+    f"raw OLS {_uncorrected_bias:+.1f} % vs production "
+    f"{_wr.heat_loss_kw_per_c and round((_wr.heat_loss_kw_per_c - 0.28) / 0.28 * 100, 1):+} %"
+    if _wr.completed
+    else f"raw OLS {_uncorrected_bias:+.1f} % (production refused: {_wr.reason})",
+)
+_BRUTAL = SystemIdentification()
+_BRUTAL.samples = _noisy_sid_samples(0.45)
+R.check(
+    "a window whose noise swamps the excursion is refused outright",
+    (not _BRUTAL.identify().completed)
+    and _BRUTAL.identify().reason == "sensor noise dominates the excursion",
+    _BRUTAL.identify().reason,
+)
+# D7-02: at the DEFAULT protocol (30-min cadence, excursion bounded by the
+# 0.8 °C comfort constraint) the gate can actually open. The old formula
+# capped confidence at rows/20 x excursion/2 ~ 0.13 -- unreachable.
+_CLEAN = SystemIdentification()
+_CLEAN.samples = _noisy_sid_samples(0.0)
+_clean_res = _CLEAN.identify()
+R.check(
+    "a clean default-protocol experiment is adoptable (gate can open)",
+    _clean_res.completed and _clean_res.confidence >= 0.3,
+    f"confidence {_clean_res.confidence:.3f} (reason {_clean_res.reason})",
+)
+_NOISY2 = SystemIdentification()
+_NOISY2.samples = _noisy_sid_samples(0.08, cadence_min=15, seed=20260904)
+R.check(
+    "a noisy experiment's confidence is discounted, not just its bias",
+    _NOISY2.identify().confidence < _clean_res.confidence,
+    f"noisy {_NOISY2.identify().confidence:.3f} vs clean "
+    f"{_clean_res.confidence:.3f}",
+)
+
+# --- D7-05: detected free heat skips the accuracy sample, like a freeze ---
+R.section("Free heat skips the accuracy sample (D7-05)")
+
+_xh_pending = {
+    "when": dt_util.now() - timedelta(minutes=30),
+    "predicted_temp": 20.5,
+    "power_kw": 2.0,
+    "space_power": 2.0,
+    "dhw_power": 0.0,
+    "outdoor_temp": -2.0,
+    "indoor_entity": "sensor.indoor",
+}
+# The control's pending must be armed BEFORE the first call consumes and
+# replaces the dict it copied -- an early draft copied it after, inherited
+# the fresh zero-elapsed pending, and recorded nothing either way.
+_xh = _t2_coord()
+_xh._external_heat_active = True
+_xh._pending_prediction = dict(_xh_pending)
+_xh.hass.states.set("sensor.indoor", FakeState("21.9"))
+_xh._record_accuracy()
+_xh_kept = len(_xh._accuracy.samples)
+_xh2 = _t2_coord()
+_xh2._external_heat_active = False
+_xh2._pending_prediction = dict(_xh_pending)
+_xh2.hass.states.set("sensor.indoor", FakeState("21.9"))
+_xh2._record_accuracy()
+_xh2_kept = len(_xh2._accuracy.samples)
+R.check(
+    "an interval with detected free heat records no accuracy sample",
+    _xh2_kept > _xh_kept,
+    f"external-heat kept {_xh_kept}, control kept {_xh2_kept}; "
+    f"freeze={_xh2._pump_signals.freeze_reason}",
 )
 
 # ---------------------------------------------------------------------------

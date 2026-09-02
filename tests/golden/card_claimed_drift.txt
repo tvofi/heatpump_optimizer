@@ -19,8 +19,8 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 6.3.1
+# claims-for: 6.3.4
 #
-# v6.3.0: the quality-scale Bronze/Silver release. The stamp empties the list; the
+# v6.3.4: the card expand fix. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #

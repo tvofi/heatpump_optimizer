@@ -88,12 +88,14 @@ PLATFORM_LIST = [
     Platform.BUTTON,
     Platform.CLIMATE,
     Platform.SWITCH,
-    # Not a platform that creates entities: the diagnostics hook under
-    # ``Download diagnostics`` (D10-12). Listed so the forwarding machinery
-    # loads it like any other, and so PLATFORM_LIST keeps naming everything
-    # the integration serves (entities.py checks that it does).
-    Platform.DIAGNOSTICS,
 ]
+# Diagnostics is deliberately NOT here. Home Assistant has no
+# ``Platform.DIAGNOSTICS``: the diagnostics component discovers
+# ``diagnostics.py`` by name when the user asks for a download, and this list
+# is only for platforms that set entities up. Naming it here raised
+# ``AttributeError: type object 'Platform' has no attribute 'DIAGNOSTICS'``
+# at import time, which failed the whole integration's setup (v6.3.1-v6.3.2).
+
 
 # hass.data key of the one object that legitimately outlives an entry's
 # runtime data: the last published plan, carried across ONE reload. Written

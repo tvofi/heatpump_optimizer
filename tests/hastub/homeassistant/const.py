@@ -8,12 +8,21 @@ a Home Assistant install, not to reimplement it.
 
 
 class Platform(str):
+    """The subset of Home Assistant's Platform enum this integration uses.
+
+    Every name here MUST exist in the real enum. A member invented for the
+    stub's convenience makes the suite pass on code that cannot import in
+    Home Assistant: ``DIAGNOSTICS`` was added here in v6.3.1 and every gate
+    stayed green while the integration failed to load with
+    ``AttributeError: type object 'Platform' has no attribute 'DIAGNOSTICS'``.
+    tests/entities.py now pins this class against the real roster.
+    """
+
     SENSOR = "sensor"
     BINARY_SENSOR = "binary_sensor"
     BUTTON = "button"
     CLIMATE = "climate"
     SWITCH = "switch"
-    DIAGNOSTICS = "diagnostics"
 
 
 CONF_NAME = "name"
