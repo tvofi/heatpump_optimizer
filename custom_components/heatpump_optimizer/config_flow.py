@@ -967,6 +967,61 @@ async def _translated_menu(
     return labels
 
 
+def _first_screen_schema(hass: HomeAssistant) -> vol.Schema:
+    """The first screen: API credentials and entity selection.
+
+    One builder serves both ways in (the plain setup flow and the
+    reconfigure step that reopens this screen over an existing entry), so a
+    field added for one is offered by the other too.
+    """
+    return vol.Schema(
+        {
+            vol.Required(CONF_NAME, default="Heat Pump Optimizer"): str,
+            vol.Required(CONF_TIBBER_TOKEN): str,
+            vol.Required(CONF_WEATHER_ENTITY): _entity_of("weather"),
+            vol.Optional(CONF_INDOOR_TEMP_ENTITY): _entity_of("sensor", "temperature"),
+            vol.Optional(CONF_OUTDOOR_TEMP_ENTITY): _entity_of("sensor", "temperature"),
+            vol.Optional(CONF_HEAT_PUMP_SWITCH_ENTITY): _entity_of("switch"),
+            vol.Optional(CONF_SOLAR_RADIATION_ENTITY): _entity_of("sensor"),
+            vol.Optional(
+                CONF_SOLAR_FORECAST_SOURCE,
+                default=DEFAULT_SOLAR_FORECAST_SOURCE,
+            ): _solar_source_selector(),
+            vol.Optional(
+                CONF_SOLAR_LOCATION,
+                default=_default_location(hass, {}),
+            ): _solar_location_selector(),
+            vol.Optional(CONF_FLOOR_RETURN_TEMP_ENTITY): _entity_of("sensor", "temperature"),
+            vol.Optional(CONF_LOWER_FLOOR_TEMP_ENTITY): _entity_of("sensor", "temperature"),
+            vol.Optional(CONF_DHW_TEMP_ENTITY): _entity_of("sensor", "temperature"),
+            vol.Optional(
+                CONF_BUFFER_TANK_TEMP_ENTITY
+            ): _entity_of("sensor", "temperature"),
+            # v5.3.0: what the pump reports about itself. Read only —
+            # the optimizer never writes the mode — and every one of
+            # them optional, so an install that leaves all four empty
+            # behaves exactly as it did before they existed.
+            vol.Optional(CONF_HEAT_PUMP_MODE_ENTITY): _entity_of(
+                list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_MODE_ENTITY])
+            ),
+            vol.Optional(CONF_HEAT_PUMP_DEFROST_ENTITY): _entity_of(
+                list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_DEFROST_ENTITY])
+            ),
+            vol.Optional(CONF_HEAT_PUMP_ONLINE_ENTITY): _entity_of(
+                list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_ONLINE_ENTITY])
+            ),
+            vol.Optional(CONF_HEAT_PUMP_FAULT_ENTITY): _entity_of(
+                list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_FAULT_ENTITY])
+            ),
+            # The Danfoss ECL110 MQTT fields lived here until v4.1.0.
+            # Eight fields only ECL110 owners can answer do not belong
+            # on everyone's first screen; the options page "Heat curve
+            # control (ECL110)" owns them, and every reader falls back
+            # to the same defaults when the keys are absent.
+        }
+    )
+
+
 class HeatPumpOptimizerConfigFlow(
     _StoredValuesAlwaysFit, config_entries.ConfigFlow, domain=DOMAIN
 ):
@@ -977,6 +1032,30 @@ class HeatPumpOptimizerConfigFlow(
     def __init__(self) -> None:
         """Initialize the config flow."""
         self._data: dict[str, Any] = {}
+        # Set by async_step_reconfigure (D10-14): the entry being
+        # reconfigured, or None while this is a plain setup flow.
+        self._reconfigure_entry: config_entries.ConfigEntry | None = None
+
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Handle a reconfigure flow initialized by the user (D10-14).
+
+        A rotated token, a renamed sensor, a second pump where the first
+        used to be: before this step existed the only way through was to
+        delete the entry and walk all of setup again. Home Assistant
+        (2024.4+) starts the step from the entry's own page -- the manager
+        stamps ``context={"source": "reconfigure", "entry_id": ...}`` and
+        the entry's ``supports_reconfigure`` is what offers the button --
+        and the step itself reopens the first screen over the entry's
+        current answers, the 2024.6 pattern the shelly and tado flows set
+        (resolve the entry, suggest its values, save back to it) rather
+        than re-walking the whole wizard, whose pages 2-9 would clobber
+        settings the first screen never asks about.
+        """
+        self._reconfigure_entry = self._entry_from_context()
+        assert self._reconfigure_entry is not None
+        return await self.async_step_user(user_input)
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -997,65 +1076,64 @@ class HeatPumpOptimizerConfigFlow(
                 # first screen, before four more pages of answers are asked
                 # for nothing (unique-config-entry). A second heat pump --
                 # its own switch, its own sensors -- is a different identity
-                # and goes through.
+                # and goes through. Reconfiguring is the one caller that
+                # legitimately lands on an identity the registry already
+                # holds: re-entering THIS entry's plant is what the flow is
+                # for, so the guard runs only when the identity moved, and
+                # then it means the picks now name someone else's install.
                 await self.async_set_unique_id(entry_identity(user_input))
-                self._abort_if_unique_id_configured()
+                if (
+                    self._reconfigure_entry is None
+                    or self.unique_id != self._reconfigure_entry.unique_id
+                ):
+                    self._abort_if_unique_id_configured()
                 self._data.update(user_input)
+                if self._reconfigure_entry is not None:
+                    return await self._async_save_reconfigure(user_input)
                 return await self.async_step_temperature()
 
+        schema = _first_screen_schema(self.hass)
+        if self._reconfigure_entry is not None:
+            # Current values as defaults (the suggested-value mechanism the
+            # frontend prefills from), never as silent submissions: the form
+            # still returns exactly what the user leaves in it.
+            schema = self.add_suggested_values_to_schema(
+                schema, self._reconfigure_entry.data
+            )
         return self.async_show_form(
             step_id="user",
-            data_schema=vol.Schema(
-                {
-                    vol.Required(CONF_NAME, default="Heat Pump Optimizer"): str,
-                    vol.Required(CONF_TIBBER_TOKEN): str,
-                    vol.Required(CONF_WEATHER_ENTITY): _entity_of("weather"),
-                    vol.Optional(CONF_INDOOR_TEMP_ENTITY): _entity_of("sensor", "temperature"),
-                    vol.Optional(CONF_OUTDOOR_TEMP_ENTITY): _entity_of("sensor", "temperature"),
-                    vol.Optional(CONF_HEAT_PUMP_SWITCH_ENTITY): _entity_of("switch"),
-                    vol.Optional(CONF_SOLAR_RADIATION_ENTITY): _entity_of("sensor"),
-                    vol.Optional(
-                        CONF_SOLAR_FORECAST_SOURCE,
-                        default=DEFAULT_SOLAR_FORECAST_SOURCE,
-                    ): _solar_source_selector(),
-                    vol.Optional(
-                        CONF_SOLAR_LOCATION,
-                        default=_default_location(self.hass, {}),
-                    ): _solar_location_selector(),
-                    vol.Optional(CONF_FLOOR_RETURN_TEMP_ENTITY): _entity_of("sensor", "temperature"),
-                    vol.Optional(CONF_LOWER_FLOOR_TEMP_ENTITY): _entity_of("sensor", "temperature"),
-                    vol.Optional(CONF_DHW_TEMP_ENTITY): _entity_of("sensor", "temperature"),
-                    vol.Optional(
-                        CONF_BUFFER_TANK_TEMP_ENTITY
-                    ): _entity_of("sensor", "temperature"),
-                    # v5.3.0: what the pump reports about itself. Read only —
-                    # the optimizer never writes the mode — and every one of
-                    # them optional, so an install that leaves all four empty
-                    # behaves exactly as it did before they existed.
-                    vol.Optional(CONF_HEAT_PUMP_MODE_ENTITY): _entity_of(
-                        list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_MODE_ENTITY])
-                    ),
-                    vol.Optional(CONF_HEAT_PUMP_DEFROST_ENTITY): _entity_of(
-                        list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_DEFROST_ENTITY])
-                    ),
-                    vol.Optional(CONF_HEAT_PUMP_ONLINE_ENTITY): _entity_of(
-                        list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_ONLINE_ENTITY])
-                    ),
-                    vol.Optional(CONF_HEAT_PUMP_FAULT_ENTITY): _entity_of(
-                        list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_FAULT_ENTITY])
-                    ),
-                    # The Danfoss ECL110 MQTT fields lived here until v4.1.0.
-                    # Eight fields only ECL110 owners can answer do not belong
-                    # on everyone's first screen; the options page "Heat curve
-                    # control (ECL110)" owns them, and every reader falls back
-                    # to the same defaults when the keys are absent.
-                }
-            ),
+            data_schema=schema,
             errors=errors,
             description_placeholders={
                 "tibber_info": "Get your token from https://developer.tibber.com",
             },
         )
+
+    async def _async_save_reconfigure(
+        self, user_input: dict[str, Any]
+    ) -> FlowResult:
+        """Write the first screen's answers back onto the entry they came from."""
+        entry = self._reconfigure_entry
+        data = dict(entry.data)
+        for key in (
+            str(getattr(marker, "schema", marker))
+            for marker in _first_screen_schema(self.hass).schema
+        ):
+            # A first-screen slot the user cleared is a sensor they stopped
+            # using; the user step's own description promises exactly that,
+            # so the cleared value must not survive the update.
+            if key in user_input:
+                data[key] = user_input[key]
+            else:
+                data.pop(key, None)
+        self.hass.config_entries.async_update_entry(
+            entry,
+            data=data,
+            unique_id=self.unique_id,
+            title=data.get(CONF_NAME, entry.title),
+        )
+        await self.hass.config_entries.async_reload(entry.entry_id)
+        return self.async_abort(reason="reconfigure_successful")
 
     async def async_step_temperature(
         self, user_input: dict[str, Any] | None = None
@@ -1440,7 +1518,12 @@ class HeatPumpOptimizerConfigFlow(
         return await self.async_step_reauth_confirm()
 
     def _entry_from_context(self) -> config_entries.ConfigEntry | None:
-        """The entry being reauthenticated, on cores without the helper."""
+        """The entry a sourced flow (reauth, reconfigure) is here to change.
+
+        The manager stamps the entry's id into the flow's context; this
+        resolves it without assuming a manager did, the way the reauth step
+        has had to since D10-08.
+        """
         context = getattr(self, "context", None) or {}
         entry_id = context.get("entry_id")
         entries = self.hass.config_entries.async_entries(DOMAIN)

@@ -231,7 +231,8 @@
     },
     "abort": {
       "already_configured": "This integration is already set up.",
-      "reauth_successful": "Reauthentication successful; reloading with the new token."
+      "reauth_successful": "Reauthentication successful; reloading with the new token.",
+      "reconfigure_successful": "Reconfiguration successful; reloading with the new settings."
     }
   },
   "options": {

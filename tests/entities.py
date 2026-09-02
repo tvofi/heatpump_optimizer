@@ -493,12 +493,13 @@ R.check(
 # Home Assistant 2024.6.0 ... the release that introduced
 # ConfigEntry.runtime_data") and RELEASE_NOTES.md's v6.3.0 entry ("verified
 # against the upstream tags: absent at 2024.5.0, present ... at 2024.6.0").
-# The reconfigure flow (#196), config-flow sections, and icon translations
-# (#189) queued behind #227 have NO minimum release established anywhere in
-# this repository -- nothing here pins, stubs, or documents one -- so they
-# are not factored into the floor pinned below. Whoever lands #196/#189 must
-# establish their own minimum (an upstream lookup, per B5's precedent)
-# before assuming 2024.6.0 already covers it.
+# The reconfigure flow (#196) has since established its minimum the way
+# this comment asked: upstream homeassistant/config_entries.py carries
+# SOURCE_RECONFIGURE, async_start_reconfigure and ConfigEntry.
+# supports_reconfigure from 2024.4.0 (verified against the 2024.4.0 and
+# 2024.6.0 tags when #196 landed), so the 2024.6.0 floor below covers it
+# and no bump was needed. Config-flow sections and icon translations
+# (#189) still have no minimum established anywhere in this repository.
 _hacs_floor_tuple = tuple(int(part) for part in _hacs_floor.split("."))
 R.check(
     "hacs.json's Home Assistant floor is at least 2024.6.0 (ConfigEntry.runtime_data, the one API establishable from repo evidence)",
@@ -6077,6 +6078,199 @@ R.check(
     and _ra_updates[0]["data"][_CONF_TOKEN] == "new-token"
     and _ra_reloads == ["reauth-1"],
     f"result {_ra_out}, updates {_ra_updates}, reloads {_ra_reloads}",
+)
+
+# --- D10-14: the reconfigure flow (#196) ------------------------------------
+R.section("Reconfigure (D10-14)")
+
+# Reconfigure (the Gold-tier reconfiguration-flow rule) is the "change the
+# token / point at a renamed sensor without deleting the entry" flow. Home
+# Assistant 2024.4+ starts it from the entry's page: the manager sets
+# context={"source": "reconfigure", "entry_id": ...} and calls
+# async_step_reconfigure with the entry's data, and the entry's own
+# ConfigEntry.supports_reconfigure -- hasattr(handler, "async_step_reconfigure")
+# in the 2024.6 source -- decides whether the UI offers the button at all.
+# The stub mirrors that discovery through its HANDLERS registry, so the first
+# check asks it the way the UI would.
+_rc_hass = FakeHass()
+_rc_entry_data = {
+    **_first_screen,  # tok-a / weather.home / switch.pump_a
+    _CONF_NAME: "Annex pump",
+    const.CONF_INDOOR_TEMP_ENTITY: "sensor.annex_indoor",
+    "target_temp": 21.5,  # a second-screen setting the first screen never asks
+}
+_rc_identity = _entry_identity(_rc_entry_data)
+_rc_entry = FakeEntry(
+    data=dict(_rc_entry_data), entry_id="plant_a", unique_id=_rc_identity
+)
+_rc_other_data = {
+    **_first_screen, const.CONF_HEAT_PUMP_SWITCH_ENTITY: "switch.pump_b"
+}
+_rc_other = FakeEntry(
+    data=dict(_rc_other_data),
+    entry_id="plant_b",
+    unique_id=_entry_identity(_rc_other_data),
+)
+_rc_hass.config_entries.entries = [_rc_entry, _rc_other]
+
+_rc_updates = []
+_rc_reloads = []
+
+
+def _rc_update(entry, **kw):
+    _rc_updates.append(kw)
+
+
+async def _rc_reload(entry_id):
+    _rc_reloads.append(entry_id)
+
+
+_rc_hass.config_entries.async_update_entry = _rc_update
+_rc_hass.config_entries.async_reload = _rc_reload
+
+R.check(
+    "an entry for this handler reports reconfigure support the way HA 2024.6 discovers it",
+    config_flow.config_entries.ConfigEntry(domain=const.DOMAIN).supports_reconfigure,
+    "ConfigEntry.supports_reconfigure is hasattr(handler, 'async_step_reconfigure')",
+)
+R.check(
+    "the config flow carries the reconfigure step",
+    hasattr(initial, "async_step_reconfigure"),
+    "no async_step_reconfigure on HeatPumpOptimizerConfigFlow",
+)
+
+
+def _rc_flow(entry_id="plant_a"):
+    """A flow as the 2024.6 manager starts one: source and entry stamped."""
+    flow = initial()
+    flow.hass = _rc_hass
+    flow.context = {
+        "source": config_flow.config_entries.SOURCE_RECONFIGURE,
+        "entry_id": entry_id,
+    }
+    return flow
+
+
+def _run_reconfigure(flow, answers):
+    try:
+        return asyncio.run(flow.async_step_reconfigure(None if answers is None else dict(answers)))
+    except _AbortFlow as err:
+        return {"type": "abort", "reason": err.reason}
+    except AttributeError as err:
+        return {"type": "error", "reason": f"AttributeError: {err}"}
+
+
+_rc_real_validate = config_flow.validate_tibber_token
+config_flow.validate_tibber_token = _accept_any_token
+try:
+    _rc_form = _run_reconfigure(_rc_flow(), None)
+finally:
+    config_flow.validate_tibber_token = _rc_real_validate
+
+R.check(
+    "reconfigure reopens the first screen rather than a fresh wizard",
+    _rc_form.get("type") == "form" and _rc_form.get("step_id") == "user",
+    f"got {_rc_form.get('type')}/{_rc_form.get('step_id')} ({_rc_form.get('reason')})",
+)
+# The form is the user step's own schema with this entry's answers carried as
+# suggested values -- current values as defaults, never as silent submissions.
+_rc_schema = _rc_form.get("data_schema")
+_rc_suggested = (
+    {
+        str(getattr(k, "schema", k)): (getattr(k, "description", None) or {}).get(
+            "suggested_value"
+        )
+        for k in _rc_schema.schema
+    }
+    if _rc_schema is not None
+    else {}
+)
+R.check(
+    "the reopened screen is prefilled with this entry's answers",
+    _rc_suggested.get(_CONF_NAME) == "Annex pump"
+    and _rc_suggested.get(const.CONF_TIBBER_TOKEN) == "tok-a"
+    and _rc_suggested.get(const.CONF_INDOOR_TEMP_ENTITY) == "sensor.annex_indoor",
+    f"suggested name {_rc_suggested.get(_CONF_NAME)!r}, "
+    f"token {_rc_suggested.get(const.CONF_TIBBER_TOKEN)!r}",
+)
+R.check(
+    "a slot this entry leaves empty is not invented",
+    _rc_suggested.get(const.CONF_OUTDOOR_TEMP_ENTITY) is None,
+    f"suggested outdoor {_rc_suggested.get(const.CONF_OUTDOOR_TEMP_ENTITY)!r}",
+)
+
+_rc_submit_same = {
+    **_first_screen,
+    _CONF_NAME: "Annex pump",
+    const.CONF_INDOOR_TEMP_ENTITY: "sensor.annex_indoor",
+}
+
+
+def _drive_reconfigure(answers):
+    flow = _rc_flow()
+    config_flow.validate_tibber_token = _accept_any_token
+    try:
+        return _run_reconfigure(flow, answers)
+    finally:
+        config_flow.validate_tibber_token = _rc_real_validate
+
+
+# Re-submitting this entry's own identity is the case the plain duplicate
+# guard would get wrong: async_entry_for_domain_unique_id finds THIS entry,
+# and a naive _abort_if_unique_id_configured would refuse the reconfigure it
+# exists to perform.
+_rc_out_same = _drive_reconfigure(_rc_submit_same)
+R.check(
+    "re-submitting this entry's own identity updates it instead of aborting",
+    _rc_out_same.get("type") == "abort"
+    and _rc_out_same.get("reason") == "reconfigure_successful"
+    and _rc_updates
+    and _rc_updates[-1]["data"]["target_temp"] == 21.5,
+    f"result {_rc_out_same}, updates {[k for k in _rc_updates]}",
+)
+R.check(
+    "the entry reloads on the new answers",
+    _rc_reloads == ["plant_a"],
+    f"reloads {_rc_reloads}",
+)
+R.check(
+    "a rename is written through, title and all",
+    bool(_rc_updates)
+    and _drive_reconfigure(
+        {**_rc_submit_same, _CONF_NAME: "Annex (renamed)"}
+    ).get("reason")
+    == "reconfigure_successful"
+    and _rc_updates[-1]["data"][_CONF_NAME] == "Annex (renamed)"
+    and _rc_updates[-1].get("title") == "Annex (renamed)",
+    f"update kwargs keys {sorted(_rc_updates[-1]) if _rc_updates else []}",
+)
+_rc_cleared = {
+    k: v for k, v in _rc_submit_same.items() if k != const.CONF_INDOOR_TEMP_ENTITY
+}
+R.check(
+    "a slot the user cleared is dropped, not silently kept",
+    bool(_rc_updates)
+    and _drive_reconfigure(_rc_cleared).get("reason") == "reconfigure_successful"
+    and const.CONF_INDOOR_TEMP_ENTITY not in _rc_updates[-1]["data"],
+    f"cleared slot still in data: "
+    f"{_rc_updates[-1]['data'].get(const.CONF_INDOOR_TEMP_ENTITY) if _rc_updates else None!r}",
+)
+R.check(
+    "and the entry's unique id follows the picks, as a delete-and-recreate would",
+    bool(_rc_updates)
+    and _rc_updates[-1].get("unique_id") == _entry_identity(_rc_cleared),
+    f"unique_id kwarg {_rc_updates[-1].get('unique_id') if _rc_updates else None!r}",
+)
+R.check(
+    "reconfiguring into another entry's plant is refused",
+    _drive_reconfigure(
+        {**_first_screen, const.CONF_HEAT_PUMP_SWITCH_ENTITY: "switch.pump_b"}
+    )
+    == {"type": "abort", "reason": "already_configured"},
+)
+R.check(
+    "the reconfigure success abort has a string to show",
+    "reconfigure_successful" in strings["config"]["abort"],
 )
 
 # --- D10-12: the diagnostics payload ---------------------------------------

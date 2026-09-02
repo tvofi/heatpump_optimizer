@@ -231,7 +231,8 @@
     },
     "abort": {
       "already_configured": "Den här integrationen är redan konfigurerad.",
-      "reauth_successful": "Autentiseringen lyckades; laddar om med den nya token."
+      "reauth_successful": "Autentiseringen lyckades; laddar om med den nya token.",
+      "reconfigure_successful": "Rekonfigureringen lyckades; laddar om med de nya inställningarna."
     }
   },
   "options": {

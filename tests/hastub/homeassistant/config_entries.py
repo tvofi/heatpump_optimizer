@@ -21,13 +21,37 @@ the semantics the integration and its tests lean on:
   catches the exception). ``raise_on_progress`` -- the real method's abort
   on a *second in-flight flow* with the same id -- has no in-progress list
   to consult and is accepted and ignored.
+* The reconfigure entry point (2024.4+, the #196 mirror) has no flow manager
+  either, so what is mirrored is the two halves a test can drive directly:
+  the handler registry the real ``ConfigFlow.__init_subclass__`` populates
+  (``HANDLERS.register(domain)(cls)``) feeding ``ConfigEntry.supports_reconfigure``
+  -- in the real class a memoised ``hasattr(handler, "async_step_reconfigure")``
+  and the exact test for whether the UI offers "Reconfigure" on an entry --
+  and ``FlowHandler.add_suggested_values_to_schema``, copied from the 2024.6.0
+  ``data_entry_flow.FlowHandler`` verbatim (minus typing) because it is how a
+  reconfigure step shows the entry's current values without defaulting them.
+  ``context`` defaults to an immutable empty mapping and ``source`` /
+  ``show_advanced_options`` read it, as the real ``FlowHandler`` attributes do;
+  a test that wants the manager's stamp assigns ``flow.context = {...}``.
 """
 from __future__ import annotations
 
+import copy
 from enum import Enum
+from types import MappingProxyType
 from typing import Any, Generic, TypeVar
 
+import voluptuous as vol
+
 _DataT = TypeVar("_DataT")
+
+# Mirrors homeassistant.config_entries.SOURCE_RECONFIGURE (2024.4+): the
+# flow source the real manager stamps on a reconfigure flow's context.
+SOURCE_RECONFIGURE = "reconfigure"
+
+# Mirrors homeassistant.config_entries.HANDLERS: domain -> flow class, what
+# HANDLERS.register(domain)(cls) populates from ConfigFlow.__init_subclass__.
+HANDLERS: dict[str, type] = {}
 
 
 class ConfigEntryState(Enum):
@@ -66,13 +90,32 @@ class ConfigEntry(Generic[_DataT]):
         self.title = title
         self.state = ConfigEntryState.NOT_LOADED
 
+    @property
+    def supports_reconfigure(self) -> bool:
+        """Whether this entry's handler carries a reconfigure step.
+
+        The real property (2024.6.0, homeassistant/config_entries.py) memoises
+        ``hasattr(handler, "async_step_reconfigure")`` per entry and is what
+        decides whether the UI offers "Reconfigure"; a handler with no such
+        step never shows one. No memo here: the registry is a plain dict and
+        a test that swaps the step sees the swap.
+        """
+        handler = HANDLERS.get(self.domain)
+        return handler is not None and hasattr(handler, "async_step_reconfigure")
+
 
 class ConfigFlow:
     """Accepts the ``domain=`` keyword the real class uses for registration."""
 
+    # The real FlowHandler's class attributes, as of 2024.6.0: the manager
+    # stamps per-instance values over these.
+    context: dict[str, Any] = MappingProxyType({})
+
     def __init_subclass__(cls, domain=None, **kwargs):
         super().__init_subclass__(**kwargs)
         cls.domain = domain
+        if domain is not None:
+            HANDLERS[domain] = cls
 
     @property
     def handler(self) -> str | None:
@@ -80,9 +123,52 @@ class ConfigFlow:
         return getattr(self, "domain", None)
 
     @property
+    def source(self) -> str | None:
+        """Source that initialized the flow (the real FlowHandler property)."""
+        return self.context.get("source", None)
+
+    @property
+    def show_advanced_options(self) -> bool:
+        """If we should show advanced options (the real FlowHandler property)."""
+        return bool(self.context.get("show_advanced_options", False))
+
+    @property
     def unique_id(self) -> str | None:
         """What ``async_set_unique_id`` recorded, or None."""
         return getattr(self, "_stub_unique_id", None)
+
+    def add_suggested_values_to_schema(
+        self, data_schema: vol.Schema, suggested_values: dict[str, Any] | None
+    ) -> vol.Schema:
+        """Make a copy of the schema, populated with suggested values.
+
+        Copied from 2024.6.0's data_entry_flow.FlowHandler (minus typing):
+        for each schema marker matching items in ``suggested_values``, the
+        ``suggested_value`` is set. The existing ``suggested_value`` will be
+        left untouched if there is no matching item.
+        """
+        schema = {}
+        for key, val in data_schema.schema.items():
+            if isinstance(key, vol.Marker):
+                # Exclude advanced field
+                if (
+                    key.description
+                    and key.description.get("advanced")
+                    and not self.show_advanced_options
+                ):
+                    continue
+
+            new_key = key
+            if (
+                suggested_values
+                and key in suggested_values
+                and isinstance(key, vol.Marker)
+            ):
+                # Copy the marker to not modify the flow schema
+                new_key = copy.copy(key)
+                new_key.description = {"suggested_value": suggested_values[key]}
+            schema[new_key] = val
+        return vol.Schema(schema)
 
     async def async_set_unique_id(
         self, unique_id: str | None = None, *, raise_on_progress: bool = True
