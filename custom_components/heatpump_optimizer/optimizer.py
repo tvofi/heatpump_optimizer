@@ -115,10 +115,25 @@ _COMFORT_PULL_TWO_ZONE = 0.0125
 
 # How many of the candidate starting points are actually optimized. Going from
 # one to two removes most of the local-optimum gap in the two-zone model
-# (2.2% cheaper in the validation scenarios); a third start buys a further
-# 0.2% for another full solve, which is not worth roughly doubling the runtime
-# again on the low-powered hardware Home Assistant usually runs on.
-_MULTI_START_SOLVES = 2
+# (2.2% cheaper in the validation scenarios). The audit's D0-02 finding then
+# measured the DISCARDED candidate refining below the shipped result in 5 of
+# 10 price profiles (marginal on flat days, up to ~0.1 SEK/day), so every
+# candidate is now refined: with v6.2.8's batched gradient a solve is ~7x
+# cheaper than when the two-solve cap was set, and the stress gate's
+# per-scenario budgets (v6.2.16) police the runtime cost. The candidates
+# number four, so this is the whole list.
+_MULTI_START_SOLVES = 4
+
+# The low-energy bang-bang seed (D0-01): the historical candidates all
+# anchored to the same TOTAL energy (the baseline's), and on
+# arbitrage-structured prices all three refined into one basin -- measured
+# by the audit at a 0.52-0.55 energy-fraction cluster, leaving strictly
+# cheaper comfort-feasible plans unfound (1.1-1.6 % net on adversarial
+# shapes, with a different step-0 action so MPC re-planning does not mask
+# it). This seed buys only the cheapest ~35 % of that energy: a genuinely
+# different basin the solver can climb out of cheaply when comfort wants
+# more, but which wins outright when pre-heating less is the better plan.
+_LOW_ENERGY_START_FRACTION = 0.35
 
 try:  # pragma: no cover - present via the manifest requirement
     from threadpoolctl import threadpool_limits as _threadpool_limits
@@ -2842,8 +2857,11 @@ class HeatPumpOptimizer:
         initial_power = self._seed_pinned_guess(initial_power, bounds)
 
         # Multiple starting points: the smooth price-weighted guess above, a
-        # bang-bang schedule that buys the cheapest steps first, and a flat
-        # schedule. See _multi_start_minimize for why one guess is not enough.
+        # bang-bang schedule that buys the cheapest steps first, a flat
+        # schedule, and the low-energy bang-bang seed (D0-01 -- see
+        # _LOW_ENERGY_START_FRACTION for why the same-energy candidates all
+        # refine into one basin on arbitrage prices). See
+        # _multi_start_minimize for why one guess is not enough.
         # Computed once and reused below for the savings reference; the same
         # simulation also makes a good solver start.
         baseline_power, baseline_end = self._compute_baseline_power(
@@ -2856,6 +2874,12 @@ class HeatPumpOptimizer:
             initial_power,
             _price_ranked_start(prices, baseline_energy, p_max, dt),
             np.clip(baseline_power, 0.0, p_max),
+            _price_ranked_start(
+                prices,
+                baseline_energy * _LOW_ENERGY_START_FRACTION,
+                p_max,
+                dt,
+            ),
         ]
 
         try:
@@ -4702,6 +4726,9 @@ class HeatPumpOptimizer:
             guess = self._seed_pinned_guess(guess, bounds)
             # A warm start is a genuinely good lead, so keep it first; the
             # extra structural candidates only matter on the initial solve.
+            # The low-energy seed rides along for the same D0-01 reason as
+            # in the space-only path: without it every candidate anchors to
+            # the same total energy and arbitrage days refine into one basin.
             starts = [guess]
             if warm_start is None:
                 energy = float(np.sum(np.minimum(init_base, headroom)) * dt)
@@ -4711,6 +4738,17 @@ class HeatPumpOptimizer:
                     )
                 )
                 starts.append(headroom * 0.5)
+                starts.append(
+                    np.minimum(
+                        _price_ranked_start(
+                            prices,
+                            energy * _LOW_ENERGY_START_FRACTION,
+                            p_max,
+                            dt,
+                        ),
+                        headroom,
+                    )
+                )
             try:
                 res = _multi_start_minimize(
                     objective, starts, bounds, args=(dhw_plan,), maxiter=300,
