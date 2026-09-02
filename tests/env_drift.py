@@ -104,6 +104,7 @@ import struct
 import subprocess
 import sys
 import tempfile
+import textwrap
 import time
 
 SENSITIVE = (
@@ -801,11 +802,14 @@ def stamp_claims_error(
     theirs = tuple(int(part) for part in baseline_version.split("."))
     if mine <= theirs:
         return None
-    names = ", ".join(sorted(claims))
+    names = textwrap.fill(
+        ", ".join(sorted(claims)), width=70, initial_indent="  ",
+        subsequent_indent="  ",
+    )
     return (
         f"STAMPED WITH CLAIMS: {VERSION_FILE} moves {baseline_version} ->\n"
         f"{version}, so this tree is a release stamp, and a stamp moves no\n"
-        f"fixture. {CLAIM_FILE} still claims {names}.\n"
+        f"fixture. {CLAIM_FILE} still claims\n{names}\n"
         "\n"
         "Those claims describe the diff of the release being closed, not this\n"
         "commit. Leaving them makes them the next branch's inherited list and\n"
