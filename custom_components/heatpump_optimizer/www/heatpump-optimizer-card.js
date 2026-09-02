@@ -11,7 +11,7 @@
 
 const CARD_TAG = "heatpump-optimizer-card";
 const EDITOR_TAG = "heatpump-optimizer-card-editor";
-const CARD_VERSION = "5.4.19";
+const CARD_VERSION = "5.4.20";
 
 // The de-duplication key `_extraFields` files a confidence band's two
 // edges under, so the pair counts as the one named trace it is. A Symbol
@@ -8084,7 +8084,16 @@ function parseConfig(config) {
 //   host.lanes                 LaneEditor: the lanes, the drag, the slot menu
 //   host.whatIf                WhatIfPanel: the schedule editor and simulator
 //   host.setup                 SetupPage: the diagram, the picker, the note
-//   host.layout                LayoutEditor: the drawing, its match, its gestures
+//   host.layoutEditor          LayoutEditor: the drawing, its match, its gestures
+//
+// Every name above is an OWN PROPERTY of a custom element that Lovelace also
+// writes to. `hui-card` assigns `hass`, `config`, `preview`, `editMode` and
+// `layout` straight onto the card, so a collaborator called `layout` was
+// silently replaced by Lovelace's value the moment the card was placed on a
+// dashboard -- and only the expanded view read it, so the card looked
+// perfect until it was expanded (v6.2.13 to v6.3.3). Hence `layoutEditor`.
+// A new collaborator needs a name Lovelace will never assign; when in doubt,
+// suffix it.
 //   host.geomAt(i)             one chart copy's lane geometry; the last one without i
 //   host.render()              rebuild, keeping the render signature
 //   host.renderForced()        rebuild and forget it (the next hass redraws)
@@ -8111,7 +8120,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     this.lanes = new LaneEditor(this);
     this.whatIf = new WhatIfPanel(this);
     this.setup = new SetupPage(this);
-    this.layout = new LayoutEditor(this);
+    this.layoutEditor = new LayoutEditor(this);
     this._config = null;
     this._hass = null;
     this._sig = null;
@@ -8477,8 +8486,8 @@ class HeatpumpOptimizerCard extends HTMLElement {
       // The page inside is the host's: the setup page's own wiring, and its
       // status line re-applied after the rebuild.
       attachBody: (dlg) => {
-        this.layout.attach(dlg);
-        this.setup.attach(dlg, { layoutEditing: () => this.layout.editing() });
+        this.layoutEditor.attach(dlg);
+        this.setup.attach(dlg, { layoutEditing: () => this.layoutEditor.editing() });
         this.setup.applyNote(dlg);
       },
       // Leaving the setup page abandons a half-made assignment rather than
@@ -8560,15 +8569,15 @@ class HeatpumpOptimizerCard extends HTMLElement {
       return `<div class="setup-page"><div class="empty">
         ${L("setup.not_published")}</div></div>`;
     }
-    const editing = this.layout.editing();
-    const drawn = this.setup.svg(topo, { editing, edit: this.layout.edit });
-    this.layout.boxes = drawn.boxes;
+    const editing = this.layoutEditor.editing();
+    const drawn = this.setup.svg(topo, { editing, edit: this.layoutEditor.edit });
+    this.layoutEditor.boxes = drawn.boxes;
     // The svg lives in a wrapper of its own so an edit can redraw the diagram
     // without rebuilding the page around it: the pointer handlers are attached
     // to the wrapper, and a drag that replaced its own listeners mid-gesture
     // would drop the pointer.
     return `<div class="setup-page${editing ? " editing" : ""}">
-      ${this.layout.barHtml(topo)}
+      ${this.layoutEditor.barHtml(topo)}
       <div class="setup-canvas">${drawn.html}</div>
       ${this.setup.pickerHtml(topo)}
       <div class="setup-hint">${

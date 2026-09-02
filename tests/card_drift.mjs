@@ -118,10 +118,27 @@ const api = {
     if (c.whatIf) { clearTimeout(c.whatIf.timer); c.whatIf.timer = null; }
     else { clearTimeout(c._whatIfTimer); c._whatIfTimer = null; }
   },
-  boxes: (c) => (c.layout ? c.layout.boxes : c._layoutBoxes) || [],
-  layoutDown: (c, ev) => (c.layout ? c.layout.onDown(ev) : c._onLayoutDown(ev)),
-  layoutMove: (c, ev) => (c.layout ? c.layout.onMove(ev) : c._onLayoutMove(ev)),
-  layoutUp: (c, ev) => (c.layout ? c.layout.onUp(ev) : c._onLayoutUp(ev)),
+  // The layout editor has had three homes: `_onLayout*` before the
+  // decomposition, `layout` after it, and `layoutEditor` since v5.4.20 --
+  // `layout` had to go because Lovelace assigns `card.layout` itself and
+  // silently replaced ours. This gate renders BOTH trees with the harness
+  // from HEAD, so every name a comparison ref might still use has to be
+  // tried here. Miss one and the drag is a no-op on that side, which shows
+  // up as drift in the editor's buttons rather than as the failure it is.
+  layoutOf: (c) => c.layoutEditor || c.layout || null,
+  boxes: (c) => (api.layoutOf(c) ? api.layoutOf(c).boxes : c._layoutBoxes) || [],
+  layoutDown: (c, ev) => {
+    const l = api.layoutOf(c);
+    return l ? l.onDown(ev) : c._onLayoutDown(ev);
+  },
+  layoutMove: (c, ev) => {
+    const l = api.layoutOf(c);
+    return l ? l.onMove(ev) : c._onLayoutMove(ev);
+  },
+  layoutUp: (c, ev) => {
+    const l = api.layoutOf(c);
+    return l ? l.onUp(ev) : c._onLayoutUp(ev);
+  },
 };
 
 const setupPage = (side, topo, extra) => {
