@@ -332,6 +332,34 @@ def _is_real_file(rel: str) -> bool:
     return p.is_file()
 
 
+# The one part of the integration a behaviour capture cannot reach.
+#
+# `_widen` gives env_drift the WHOLE integration because no tracer can see
+# which files a capture in another worktree depended on. That argument covers
+# every Python file, and it does not cover the bundled card: frontend.py
+# registers `www/` as a static path (a directory handed to the HTTP layer) and
+# never opens the file, so nothing in a capture can read its bytes.
+#
+# Measured before narrowing the rule, both captures on the same tree with
+# `env_drift.py --capture . <out> --all`:
+#
+#   null control     card asset edited (a new statement, CARD_VERSION
+#                    5.4.19 -> 9.9.99): all 55 scenarios byte-identical,
+#                    sha256 1f1dcb966bdf7ae9... on both sides
+#   positive control one token in thermal_model.py (`* dt` -> `* dt * 1.0001`):
+#                    captures differ
+#
+# So the card cannot move a capture, and the capture would notice if it could.
+# Without this, every card-only pull request ran env_drift's 55-scenario double
+# capture -- the most expensive script in the suite -- to prove a plan that
+# could not have changed.
+FRONTEND_ASSETS = ("custom_components/heatpump_optimizer/www/",)
+
+
+def _is_frontend_asset(rel: str) -> bool:
+    return any(rel.startswith(prefix) for prefix in FRONTEND_ASSETS)
+
+
 def _widen(closures: dict[str, set[str]]) -> None:
     """Apply, in place, the rules a trace cannot know. Shared by the full fold
     and by the partial (``--single``) overlay, so that re-recording one script
@@ -360,7 +388,7 @@ def _widen(closures: dict[str, set[str]]) -> None:
     if ed in closures:
         for p in sorted((ROOT / "custom_components").rglob("*")):
             rel = str(p.relative_to(ROOT))
-            if p.is_file() and "__pycache__" not in rel:
+            if p.is_file() and "__pycache__" not in rel and not _is_frontend_asset(rel):
                 closures[ed].add(rel)
         for p in sorted((ROOT / "tests" / "golden").glob("*")):
             if p.is_file():
@@ -747,8 +775,16 @@ def select(files: list[str]) -> dict:
                            + " -- an unmeasured file is not a safe skip"),
                 "run": scripts, "skip": {}, "changed": files}
 
+    # The belt to the closure's braces: any integration change gets a
+    # behavioural diff whether or not the closure saw the file. The bundled
+    # card is excluded for the same measured reason `_widen` excludes it --
+    # a capture cannot read it (see FRONTEND_ASSETS). Without this, the rule
+    # above re-selected env_drift for card-only changes even once its closure
+    # no longer listed the card, and the most expensive script in the suite
+    # ran on every card pull request to prove a plan that could not move.
     touched_integration = [f for f in files
-                           if f.startswith("custom_components/") ]
+                           if f.startswith("custom_components/")
+                           and not _is_frontend_asset(f)]
 
     run, skip = [], {}
     for s in scripts:
