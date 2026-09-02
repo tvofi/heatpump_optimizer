@@ -5406,6 +5406,103 @@ import re as _re
 import tempfile as _tempfile
 
 import env_drift as _env_drift
+import closure as _closure
+
+# --- the scoped gate's one exception to "the whole integration" -------------
+#
+# `_widen` gives env_drift.py the whole integration because no tracer can see
+# which files a capture in another worktree depended on, and a second rule in
+# `select` runs it for any custom_components/ change whether or not the
+# closure saw the file. Both exclude the bundled card, and the exclusion was
+# measured rather than argued -- two captures on the same tree with
+# `env_drift.py --capture . <out> --all`:
+#
+#   null control      the card asset edited (an added statement, CARD_VERSION
+#                     5.4.19 -> 9.9.99): all 55 scenarios byte-identical,
+#                     sha256 1f1dcb966bdf7ae9... on both sides
+#   positive control  one token in thermal_model.py (`* dt` -> `* dt * 1.0001`):
+#                     the captures differ
+#
+# frontend.py registers `www/` as a static path and never opens the file, so
+# there is no path by which its bytes reach a capture. These checks hold the
+# rule to exactly that: the card is out, and everything else stays in.
+_ED = "tests/env_drift.py"
+_CARD_ASSET = "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+_ed_closure = set(
+    __import__("json").loads(_closure.CLOSURES.read_text())["closures"][_ED]
+)
+R.check(
+    "the drift capture's closure excludes the bundled card",
+    _CARD_ASSET not in _ed_closure,
+    "a capture cannot read the card, so it must not select on it",
+)
+_integration_py = {
+    str(q.relative_to(_closure.ROOT))
+    for q in (_closure.ROOT / "custom_components" / "heatpump_optimizer")
+    .rglob("*.py")
+    if "__pycache__" not in str(q)
+}
+R.check(
+    "and still covers every python file of the integration",
+    _integration_py <= _ed_closure,
+    f"missing {sorted(_integration_py - _ed_closure)[:3]}",
+)
+R.check(
+    "a card-only change does not select the drift capture",
+    _ED not in _closure.select([_CARD_ASSET])["run"],
+    "the most expensive script in the suite ran to prove a plan that "
+    "could not have moved",
+)
+R.check(
+    "an integration python change still does",
+    _ED in _closure.select(
+        ["custom_components/heatpump_optimizer/optimizer.py"])["run"],
+    "the belt-and-braces rule must survive being narrowed",
+)
+# The two rules are independent and each has to be pinned. The one above is
+# about SELECTION and reads the committed closures; this one is about the
+# WIDENING that produces them, which otherwise only the `closures` job on main
+# would catch -- one merge later, and only after a full re-derivation.
+_widened = {_ED: set(), "tests/golden.py": set()}
+_closure._widen(_widened)
+R.check(
+    "the widening rule itself leaves the card out",
+    _CARD_ASSET not in _widened[_ED],
+    "re-widening to the whole integration puts the card back in the closure",
+)
+R.check(
+    "while still widening to the rest of the integration",
+    "custom_components/heatpump_optimizer/coordinator.py" in _widened[_ED],
+    "the rule must narrow by one subtree, not collapse",
+)
+
+# The scoped gate refuses to skip anything when a changed file is in no
+# closure -- an unmeasured file is not a safe skip. That is right, and it was
+# quietly making gates full: renaming one identifier in setup_qa_render.mjs, a
+# script people run by hand, ran all sixteen scripts including stress.py.
+# Every tracked file must therefore sit in exactly one of four places: a
+# measured closure, INERT, GATE_FILES, or SLOW_GATED. This is the check that
+# says so, and it is the reason a new file cannot silently cost every future
+# pull request a full suite.
+_orphans = _closure.orphan_files()
+R.check(
+    "every tracked file is either measured or deliberately classified",
+    not _orphans,
+    "these force the FULL suite when touched: " + ", ".join(_orphans[:8]),
+)
+R.check(
+    "a hand-run QA script does not drag the whole suite in",
+    "tests/setup_qa_render.mjs" not in _closure.select(
+        ["tests/setup_qa_render.mjs"])["run"]
+    or _closure.select(["tests/setup_qa_render.mjs"])["mode"] == "scoped",
+    "an unmeasured helper forced sixteen scripts to run",
+)
+R.check(
+    "but changing how the closures are derived still runs everything",
+    _closure.select(["tests/derive_closures.sh"])["mode"] == "full",
+    "the lanes decide how every recording is taken; that invalidates them all",
+)
+
 
 _version = Path("VERSION").read_text().strip()
 R.check(
