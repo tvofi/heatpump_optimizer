@@ -1,0 +1,11 @@
+--- a/custom_components/heatpump_optimizer/topology.py
++++ b/custom_components/heatpump_optimizer/topology.py
+@@ -595,8 +595,6 @@
+             f"Wood furnace tank: {setup['wood']['volume_l']:.0f} L"
+             + (", modelled as its own store" if two_tank else "")
+         ]
+-        if not two_tank:
+-            wood.append("  (modelled as heat into the heat-pump tank)")
+         # The valve-outlet probe's slot lives on the wood tank here (or on
+         # the 4-way valve in the two-tank layout, rendered above) — there is
+         # no separate wood-valve section since v4.0.0.

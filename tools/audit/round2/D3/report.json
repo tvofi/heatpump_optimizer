@@ -1,0 +1,1554 @@
+{
+ "dimension": "D3",
+ "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+ "exposure": "",
+ "findings": [
+  {
+   "id": "D3-01",
+   "title": "PredictiveInsightSensor can lose all 21 attributes and no script notices",
+   "severity": "medium",
+   "provisional": true,
+   "claim": "Deleting the whole attribute-building branch of PredictiveInsightSensor.extra_state_attributes (21 published attributes become {}) fails none of entities.py (538 checks), env_drift --all (55 scenarios) or golden.py's coordinator captures.",
+   "mechanism": "entities.py drives async_setup_entry and asserts on many entities' values, but never on this sensor's attributes; golden's coordinator capture records _build_data_dict(), not entity attributes, so an entity-layer regression on published attributes is invisible to the gate.",
+   "evidence": {
+    "command": "OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 PYTHONPATH=tests/hastub .venv/bin/python tools/audit/round2/D3/prescreen.py --scratch <tmpdir> --jobs 2 --ids M31",
+    "harness_path": "tools/audit/round2/D3/prescreen.py",
+    "value": 0,
+    "unit": "closure scripts failing",
+    "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+    "machine": "8-core Apple M1, 8 GB, numpy on OpenBLAS (audit box)",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: 2 scratch jobs + env_drift capture from this audit plus other auditors; load1 3.0-5.0 during the run",
+    "tolerance": "exact",
+    "load1": 2.98,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.sensor:PredictiveInsightSensor.extra_state_attributes",
+   "perturbation": {
+    "change": "add the check named under `should_have_failed` to the test script; re-run the prescreen for M31",
+    "expected_direction": "up",
+    "observed_value": "0 of 2 scripts failed (entities.py, env_drift.py); env_drift --all: NO UNCLAIMED DRIFT: 55 scenario(s) checked against c398fc84eec25fc44b60d74aae05b9a2da205884"
+   },
+   "metric_definition": "number of scripts in the mutant's measured closure (fast set + env_drift --all vs the baseline) that exit non-zero with the mutant applied",
+   "mutant": {
+    "id": "M31",
+    "patch": "tools/audit/round2/D3/mutants/M31.patch",
+    "module": "sensor.py",
+    "line": 1086,
+    "kind": "general_if",
+    "weight": 3,
+    "closure": [
+     "tests/entities.py",
+     "tests/env_drift.py",
+     "tests/golden.py"
+    ],
+    "scripts_run": [
+     "entities.py",
+     "env_drift.py"
+    ],
+    "not_run": {
+     "tests/golden.py": "strict fixture comparison does not reproduce on this machine; env_drift --all stands in (as in CI drift mode)"
+    },
+    "quiet_window": [],
+    "production_line": "custom_components/heatpump_optimizer/sensor.py:1086 (`if self.coordinator.data:` block; with it gone the method returns {} unconditionally)",
+    "should_have_failed": "tests/entities.py: the collected `sensor.*_predictive_optimization_insight` entity's attributes should be asserted (at least the key set: solar_reduction_factor, pre_heat_urgency, dhw_next_window_in_hours, ...); grep finds no `predictive_optimization_insight` in tests/entities.py or tests/features.py"
+   },
+   "reproduction_steps": [
+    "git apply tools/audit/round2/D3/mutants/M31.patch",
+    "commit on a throwaway branch (env_drift refuses HEAD == baseline)",
+    "PYTHONPATH=tests/hastub python tests/env_drift.py --all c398fc84eec25fc44b60d74aae05b9a2da205884",
+    "run the closure scripts from tests/closures.json; all exit 0",
+    "quiet window: GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=<baseline> ./tests/run.sh"
+   ],
+   "files": [
+    "custom_components/heatpump_optimizer/sensor.py",
+    "tests/entities.py"
+   ],
+   "proposed_fix_scope": "tests/entities.py: one attribute-key assertion per entity whose extra_state_attributes is built from coordinator.data (PredictiveInsightSensor first).",
+   "stop_rule_class": "hygiene"
+  },
+  {
+   "id": "D3-02",
+   "title": "hours_until_next_window's inside-a-window branch is never exercised: every golden solve starts at 00:00",
+   "severity": "medium",
+   "provisional": true,
+   "claim": "With the inside-a-window early return deleted, `dhw_next_window_in_hours` (published in predictive_info via optimizer.py:3672/4887 and in the DHW view via coordinator.py:4121/6704) would read the time to the FOLLOWING window while inside one, and no script fails.",
+   "mechanism": "The published value is only ever computed at hour 0.0 in the golden set (outside every window), pump_schedule.dhw_pump_should_run tests hour_in_windows itself before calling, and no unit check targets the function; the branch is dead to the suite although it is the documented contract of the function.",
+   "evidence": {
+    "command": "OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 PYTHONPATH=tests/hastub .venv/bin/python tools/audit/round2/D3/prescreen.py --scratch <tmpdir> --jobs 2 --ids M19",
+    "harness_path": "tools/audit/round2/D3/prescreen.py",
+    "value": 0,
+    "unit": "closure scripts failing",
+    "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+    "machine": "8-core Apple M1, 8 GB, numpy on OpenBLAS (audit box)",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: 2 scratch jobs + env_drift capture from this audit plus other auditors; load1 3.0-5.0 during the run",
+    "tolerance": "exact",
+    "load1": 4.51,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.dhw_schedule:hours_until_next_window",
+   "perturbation": {
+    "change": "add the check named under `should_have_failed` to the test script; re-run the prescreen for M19",
+    "expected_direction": "up",
+    "observed_value": "0 of 9 scripts failed (card.mjs, entities.py, env_drift.py, features.py, manual_plan.py, optimality.py, plan_view.py, solar_alignment.py, validate.py); env_drift --all: NO UNCLAIMED DRIFT: 55 scenario(s) checked against c398fc84eec25fc44b60d74aae05b9a2da205884"
+   },
+   "metric_definition": "number of scripts in the mutant's measured closure (fast set + env_drift --all vs the baseline) that exit non-zero with the mutant applied",
+   "mutant": {
+    "id": "M19",
+    "patch": "tools/audit/round2/D3/mutants/M19.patch",
+    "module": "dhw_schedule.py",
+    "line": 433,
+    "kind": "guard_return",
+    "weight": 12,
+    "closure": [
+     "tests/backtest.py",
+     "tests/card.mjs",
+     "tests/card_drift.mjs",
+     "tests/edge.py",
+     "tests/entities.py",
+     "tests/env_drift.py",
+     "tests/features.py",
+     "tests/golden.py",
+     "tests/manual_plan.py",
+     "tests/optimality.py",
+     "tests/plan_view.py",
+     "tests/solar_alignment.py",
+     "tests/stress.py",
+     "tests/validate.py"
+    ],
+    "scripts_run": [
+     "card.mjs",
+     "entities.py",
+     "env_drift.py",
+     "features.py",
+     "manual_plan.py",
+     "optimality.py",
+     "plan_view.py",
+     "solar_alignment.py",
+     "validate.py"
+    ],
+    "not_run": {
+     "tests/card_drift.mjs": "compares the card JavaScript at two git refs; identical for every Python mutant",
+     "tests/golden.py": "strict fixture comparison does not reproduce on this machine; env_drift --all stands in (as in CI drift mode)"
+    },
+    "quiet_window": [
+     "tests/backtest.py",
+     "tests/edge.py",
+     "tests/stress.py"
+    ],
+    "production_line": "custom_components/heatpump_optimizer/dhw_schedule.py:433-434 (`if hour_in_windows(hour, windows): return 0.0`)",
+    "should_have_failed": "tests/features.py: a direct check `hours_until_next_window(18.0, parse_windows('06:00-08:30, 17:00-22:00')) == 0.0`; and/or one golden scenario whose START lies inside a DHW window (all 49 plan scenarios and 5 coordinator scenarios use START = 2026-01-15 00:00, tests/golden.py:48)"
+   },
+   "reproduction_steps": [
+    "git apply tools/audit/round2/D3/mutants/M19.patch",
+    "commit on a throwaway branch (env_drift refuses HEAD == baseline)",
+    "PYTHONPATH=tests/hastub python tests/env_drift.py --all c398fc84eec25fc44b60d74aae05b9a2da205884",
+    "run the closure scripts from tests/closures.json; all exit 0",
+    "quiet window: GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=<baseline> ./tests/run.sh"
+   ],
+   "files": [
+    "custom_components/heatpump_optimizer/dhw_schedule.py",
+    "tests/features.py"
+   ],
+   "proposed_fix_scope": "tests/features.py: direct checks of hours_until_next_window inside / outside / wrapping windows; tests/golden.py: one scenario with a start time inside a demand window.",
+   "stop_rule_class": "hygiene"
+  },
+  {
+   "id": "D3-03",
+   "title": "The DHW setpoint advisor's negative-price floor is untested: a worthless-energy day is never fed to the sweep",
+   "severity": "medium",
+   "provisional": true,
+   "claim": "Deleting the floor that keeps the advisor's cost ranking meaningful on a non-positive mean price (the code comment says min-cost then 'crowns the candidate using the MOST energy') fails none of features.py's three sweep checks, entities.py or env_drift --all.",
+   "mechanism": "Every coordinator scenario and every sweep check uses positive prices; the guard sits on a path the suite never reaches, so the published `dhw_advisor` recommendation on a negative-price day is unprotected.",
+   "evidence": {
+    "command": "OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 PYTHONPATH=tests/hastub .venv/bin/python tools/audit/round2/D3/prescreen.py --scratch <tmpdir> --jobs 2 --ids M13",
+    "harness_path": "tools/audit/round2/D3/prescreen.py",
+    "value": 0,
+    "unit": "closure scripts failing",
+    "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+    "machine": "8-core Apple M1, 8 GB, numpy on OpenBLAS (audit box)",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: 2 scratch jobs + env_drift capture from this audit plus other auditors; load1 3.0-5.0 during the run",
+    "tolerance": "exact",
+    "load1": 7.14,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._dhw_setpoint_sweep",
+   "perturbation": {
+    "change": "add the check named under `should_have_failed` to the test script; re-run the prescreen for M13",
+    "expected_direction": "up",
+    "observed_value": "0 of 9 scripts failed (card.mjs, entities.py, env_drift.py, features.py, manual_plan.py, optimality.py, plan_view.py, solar_alignment.py, validate.py); env_drift --all: NO UNCLAIMED DRIFT: 55 scenario(s) checked against c398fc84eec25fc44b60d74aae05b9a2da205884"
+   },
+   "metric_definition": "number of scripts in the mutant's measured closure (fast set + env_drift --all vs the baseline) that exit non-zero with the mutant applied",
+   "mutant": {
+    "id": "M13",
+    "patch": "tools/audit/round2/D3/mutants/M13.patch",
+    "module": "coordinator.py",
+    "line": 1676,
+    "kind": "general_if",
+    "weight": 5,
+    "closure": [
+     "tests/backtest.py",
+     "tests/card.mjs",
+     "tests/card_drift.mjs",
+     "tests/edge.py",
+     "tests/entities.py",
+     "tests/env_drift.py",
+     "tests/features.py",
+     "tests/golden.py",
+     "tests/manual_plan.py",
+     "tests/optimality.py",
+     "tests/plan_view.py",
+     "tests/solar_alignment.py",
+     "tests/stress.py",
+     "tests/validate.py"
+    ],
+    "scripts_run": [
+     "card.mjs",
+     "entities.py",
+     "env_drift.py",
+     "features.py",
+     "manual_plan.py",
+     "optimality.py",
+     "plan_view.py",
+     "solar_alignment.py",
+     "validate.py"
+    ],
+    "not_run": {
+     "tests/card_drift.mjs": "compares the card JavaScript at two git refs; identical for every Python mutant",
+     "tests/golden.py": "strict fixture comparison does not reproduce on this machine; env_drift --all stands in (as in CI drift mode)"
+    },
+    "quiet_window": [
+     "tests/backtest.py",
+     "tests/edge.py",
+     "tests/stress.py"
+    ],
+    "production_line": "custom_components/heatpump_optimizer/coordinator.py:1676-1677 (`if mean_price <= 1e-6: mean_price = max(abs(mean_price), 0.1)`)",
+    "should_have_failed": "tests/features.py around line 7744 ('#9 the setpoint sweep'): a sweep with a negative or zero mean price (tests/profiles.py has `summer_negative`) asserting the recommendation is still the cheapest candidate that covers the heaviest window"
+   },
+   "reproduction_steps": [
+    "git apply tools/audit/round2/D3/mutants/M13.patch",
+    "commit on a throwaway branch (env_drift refuses HEAD == baseline)",
+    "PYTHONPATH=tests/hastub python tests/env_drift.py --all c398fc84eec25fc44b60d74aae05b9a2da205884",
+    "run the closure scripts from tests/closures.json; all exit 0",
+    "quiet window: GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=<baseline> ./tests/run.sh"
+   ],
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "tests/features.py around line 7744 ('#9 the setpoint sweep')"
+   ],
+   "proposed_fix_scope": "tests/features.py: one sweep check under summer_negative prices.",
+   "stop_rule_class": "hygiene"
+  },
+  {
+   "id": "D3-04",
+   "title": "A non-finite grid-fee rate ('= nan', '= inf') passes rule validation unnoticed",
+   "severity": "low",
+   "provisional": true,
+   "claim": "With the finiteness check deleted, `is_valid_spec('Mon-Fri = nan')` is True and a NaN rate reaches fee_vector (the coordinator's magnitude audit compares with `>` and never sees NaN); no script fails.",
+   "mechanism": "The validation checks in features.py cover unparsable tokens ('banana', 'Frunday', missing rate) but not the one float() accepts and the planner cannot price.",
+   "evidence": {
+    "command": "OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 PYTHONPATH=tests/hastub .venv/bin/python tools/audit/round2/D3/prescreen.py --scratch <tmpdir> --jobs 2 --ids M32",
+    "harness_path": "tools/audit/round2/D3/prescreen.py",
+    "value": 0,
+    "unit": "closure scripts failing",
+    "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+    "machine": "8-core Apple M1, 8 GB, numpy on OpenBLAS (audit box)",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: 2 scratch jobs + env_drift capture from this audit plus other auditors; load1 3.0-5.0 during the run",
+    "tolerance": "exact",
+    "load1": 2.93,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.grid_fee:_parse_rule",
+   "perturbation": {
+    "change": "add the check named under `should_have_failed` to the test script; re-run the prescreen for M32",
+    "expected_direction": "up",
+    "observed_value": "0 of 9 scripts failed (card.mjs, entities.py, env_drift.py, features.py, manual_plan.py, optimality.py, plan_view.py, solar_alignment.py, validate.py); env_drift --all: NO UNCLAIMED DRIFT: 55 scenario(s) checked against c398fc84eec25fc44b60d74aae05b9a2da205884"
+   },
+   "metric_definition": "number of scripts in the mutant's measured closure (fast set + env_drift --all vs the baseline) that exit non-zero with the mutant applied",
+   "mutant": {
+    "id": "M32",
+    "patch": "tools/audit/round2/D3/mutants/M32.patch",
+    "module": "grid_fee.py",
+    "line": 141,
+    "kind": "guard_return",
+    "weight": 12,
+    "closure": [
+     "tests/backtest.py",
+     "tests/card.mjs",
+     "tests/card_drift.mjs",
+     "tests/edge.py",
+     "tests/entities.py",
+     "tests/env_drift.py",
+     "tests/features.py",
+     "tests/golden.py",
+     "tests/manual_plan.py",
+     "tests/optimality.py",
+     "tests/plan_view.py",
+     "tests/solar_alignment.py",
+     "tests/stress.py",
+     "tests/validate.py"
+    ],
+    "scripts_run": [
+     "card.mjs",
+     "entities.py",
+     "env_drift.py",
+     "features.py",
+     "manual_plan.py",
+     "optimality.py",
+     "plan_view.py",
+     "solar_alignment.py",
+     "validate.py"
+    ],
+    "not_run": {
+     "tests/card_drift.mjs": "compares the card JavaScript at two git refs; identical for every Python mutant",
+     "tests/golden.py": "strict fixture comparison does not reproduce on this machine; env_drift --all stands in (as in CI drift mode)"
+    },
+    "quiet_window": [
+     "tests/backtest.py",
+     "tests/edge.py",
+     "tests/stress.py"
+    ],
+    "production_line": "custom_components/heatpump_optimizer/grid_fee.py:141-142 (`if not np.isfinite(rate): raise GridFeeError`)",
+    "should_have_failed": "tests/features.py ~6351 (`not _gf.is_valid_spec(...)` family): add `not is_valid_spec('06:00-22:00 = nan')` and `= inf`"
+   },
+   "reproduction_steps": [
+    "git apply tools/audit/round2/D3/mutants/M32.patch",
+    "commit on a throwaway branch (env_drift refuses HEAD == baseline)",
+    "PYTHONPATH=tests/hastub python tests/env_drift.py --all c398fc84eec25fc44b60d74aae05b9a2da205884",
+    "run the closure scripts from tests/closures.json; all exit 0",
+    "quiet window: GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=<baseline> ./tests/run.sh"
+   ],
+   "files": [
+    "custom_components/heatpump_optimizer/grid_fee.py",
+    "tests/features.py ~6351 (`not _gf.is_valid_spec(...)` family)"
+   ],
+   "proposed_fix_scope": "tests/features.py: two is_valid_spec negatives.",
+   "stop_rule_class": "hygiene"
+  },
+  {
+   "id": "D3-05",
+   "title": "A corrupt lead_sigma KEY in the accuracy store would abort coordinator setup; only corrupt values are tested",
+   "severity": "low",
+   "provisional": true,
+   "claim": "Neutralising the handler that skips a non-numeric lead_sigma key fails no script: the existing malformed-store check exercises a NaN value and a 'junk' value but every key is numeric.",
+   "mechanism": "The store-hardening checks were written from the values side; the key side of the same dict has its own try/except that nothing reaches.",
+   "evidence": {
+    "command": "OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 PYTHONPATH=tests/hastub .venv/bin/python tools/audit/round2/D3/prescreen.py --scratch <tmpdir> --jobs 2 --ids M21",
+    "harness_path": "tools/audit/round2/D3/prescreen.py",
+    "value": 0,
+    "unit": "closure scripts failing",
+    "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+    "machine": "8-core Apple M1, 8 GB, numpy on OpenBLAS (audit box)",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: 2 scratch jobs + env_drift capture from this audit plus other auditors; load1 3.0-5.0 during the run",
+    "tolerance": "exact",
+    "load1": 4.3,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.accuracy:AccuracyTracker.from_dict",
+   "perturbation": {
+    "change": "add the check named under `should_have_failed` to the test script; re-run the prescreen for M21",
+    "expected_direction": "up",
+    "observed_value": "0 of 9 scripts failed (card.mjs, entities.py, env_drift.py, features.py, manual_plan.py, optimality.py, plan_view.py, solar_alignment.py, validate.py); env_drift --all: NO UNCLAIMED DRIFT: 55 scenario(s) checked against c398fc84eec25fc44b60d74aae05b9a2da205884"
+   },
+   "metric_definition": "number of scripts in the mutant's measured closure (fast set + env_drift --all vs the baseline) that exit non-zero with the mutant applied",
+   "mutant": {
+    "id": "M21",
+    "patch": "tools/audit/round2/D3/mutants/M21.patch",
+    "module": "accuracy.py",
+    "line": 382,
+    "kind": "except_handler",
+    "weight": 4,
+    "closure": [
+     "tests/backtest.py",
+     "tests/card.mjs",
+     "tests/card_drift.mjs",
+     "tests/edge.py",
+     "tests/entities.py",
+     "tests/env_drift.py",
+     "tests/features.py",
+     "tests/golden.py",
+     "tests/manual_plan.py",
+     "tests/optimality.py",
+     "tests/plan_view.py",
+     "tests/solar_alignment.py",
+     "tests/stress.py",
+     "tests/validate.py"
+    ],
+    "scripts_run": [
+     "card.mjs",
+     "entities.py",
+     "env_drift.py",
+     "features.py",
+     "manual_plan.py",
+     "optimality.py",
+     "plan_view.py",
+     "solar_alignment.py",
+     "validate.py"
+    ],
+    "not_run": {
+     "tests/card_drift.mjs": "compares the card JavaScript at two git refs; identical for every Python mutant",
+     "tests/golden.py": "strict fixture comparison does not reproduce on this machine; env_drift --all stands in (as in CI drift mode)"
+    },
+    "quiet_window": [
+     "tests/backtest.py",
+     "tests/edge.py",
+     "tests/stress.py"
+    ],
+    "production_line": "custom_components/heatpump_optimizer/accuracy.py:382-383 (`except (TypeError, ValueError): continue` around `float(key)`)",
+    "should_have_failed": "tests/features.py ~9845 (the malformed lead_sigma store check) should also carry a non-numeric key, e.g. `{'abc': 0.4}`; `_async_load_accuracy` (coordinator.py:7230) only guards async_load, not from_dict"
+   },
+   "reproduction_steps": [
+    "git apply tools/audit/round2/D3/mutants/M21.patch",
+    "commit on a throwaway branch (env_drift refuses HEAD == baseline)",
+    "PYTHONPATH=tests/hastub python tests/env_drift.py --all c398fc84eec25fc44b60d74aae05b9a2da205884",
+    "run the closure scripts from tests/closures.json; all exit 0",
+    "quiet window: GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=<baseline> ./tests/run.sh"
+   ],
+   "files": [
+    "custom_components/heatpump_optimizer/accuracy.py",
+    "tests/features.py ~9845 (the malformed lead_sigma store check) should also carry a non-numeric key, e.g. `{'abc'"
+   ],
+   "proposed_fix_scope": "tests/features.py: extend the malformed-store fixture with one bad key.",
+   "stop_rule_class": "hygiene"
+  },
+  {
+   "id": "D3-06",
+   "title": "One unparsable Open-Meteo timestamp would discard the whole forecast block; the skip is untested",
+   "severity": "low",
+   "provisional": true,
+   "claim": "Neutralising the per-sample timestamp handler fails none of open_meteo.py's 30 checks or features.py; a ValueError would then propagate out of fetch() and lose the block instead of the sample.",
+   "mechanism": "open_meteo.py's checks cover nulls, out-of-range values and missing variables, not a malformed time string.",
+   "evidence": {
+    "command": "OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 PYTHONPATH=tests/hastub .venv/bin/python tools/audit/round2/D3/prescreen.py --scratch <tmpdir> --jobs 2 --ids M30",
+    "harness_path": "tools/audit/round2/D3/prescreen.py",
+    "value": 0,
+    "unit": "closure scripts failing",
+    "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+    "machine": "8-core Apple M1, 8 GB, numpy on OpenBLAS (audit box)",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: 2 scratch jobs + env_drift capture from this audit plus other auditors; load1 3.0-5.0 during the run",
+    "tolerance": "exact",
+    "load1": 2.98,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.open_meteo:_parse_block",
+   "perturbation": {
+    "change": "add the check named under `should_have_failed` to the test script; re-run the prescreen for M30",
+    "expected_direction": "up",
+    "observed_value": "0 of 10 scripts failed (card.mjs, entities.py, env_drift.py, features.py, manual_plan.py, open_meteo.py, optimality.py, plan_view.py, solar_alignment.py, validate.py); env_drift --all: NO UNCLAIMED DRIFT: 55 scenario(s) checked against c398fc84eec25fc44b60d74aae05b9a2da205884"
+   },
+   "metric_definition": "number of scripts in the mutant's measured closure (fast set + env_drift --all vs the baseline) that exit non-zero with the mutant applied",
+   "mutant": {
+    "id": "M30",
+    "patch": "tools/audit/round2/D3/mutants/M30.patch",
+    "module": "open_meteo.py",
+    "line": 194,
+    "kind": "except_handler",
+    "weight": 4,
+    "closure": [
+     "tests/backtest.py",
+     "tests/card.mjs",
+     "tests/card_drift.mjs",
+     "tests/edge.py",
+     "tests/entities.py",
+     "tests/env_drift.py",
+     "tests/features.py",
+     "tests/golden.py",
+     "tests/manual_plan.py",
+     "tests/open_meteo.py",
+     "tests/optimality.py",
+     "tests/plan_view.py",
+     "tests/solar_alignment.py",
+     "tests/stress.py",
+     "tests/validate.py"
+    ],
+    "scripts_run": [
+     "card.mjs",
+     "entities.py",
+     "env_drift.py",
+     "features.py",
+     "manual_plan.py",
+     "open_meteo.py",
+     "optimality.py",
+     "plan_view.py",
+     "solar_alignment.py",
+     "validate.py"
+    ],
+    "not_run": {
+     "tests/card_drift.mjs": "compares the card JavaScript at two git refs; identical for every Python mutant",
+     "tests/golden.py": "strict fixture comparison does not reproduce on this machine; env_drift --all stands in (as in CI drift mode)"
+    },
+    "quiet_window": [
+     "tests/backtest.py",
+     "tests/edge.py",
+     "tests/stress.py"
+    ],
+    "production_line": "custom_components/heatpump_optimizer/open_meteo.py:194-195 (`except ValueError: continue` around datetime.fromisoformat)",
+    "should_have_failed": "tests/open_meteo.py: a block with one malformed `time` entry keeps the other samples (30 checks today, none with a bad stamp)"
+   },
+   "reproduction_steps": [
+    "git apply tools/audit/round2/D3/mutants/M30.patch",
+    "commit on a throwaway branch (env_drift refuses HEAD == baseline)",
+    "PYTHONPATH=tests/hastub python tests/env_drift.py --all c398fc84eec25fc44b60d74aae05b9a2da205884",
+    "run the closure scripts from tests/closures.json; all exit 0",
+    "quiet window: GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=<baseline> ./tests/run.sh"
+   ],
+   "files": [
+    "custom_components/heatpump_optimizer/open_meteo.py",
+    "tests/open_meteo.py"
+   ],
+   "proposed_fix_scope": "tests/open_meteo.py: one malformed-stamp sample.",
+   "stop_rule_class": "hygiene"
+  },
+  {
+   "id": "D3-07",
+   "title": "A future-stamped sensor state yields a negative published age_minutes; the clamp is untested",
+   "severity": "low",
+   "provisional": true,
+   "claim": "Dropping the clamp fails no script; a state stamped in the future (clock skew) would publish a negative age in the input-health details.",
+   "mechanism": "No freshness check uses a future timestamp.",
+   "evidence": {
+    "command": "OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 PYTHONPATH=tests/hastub .venv/bin/python tools/audit/round2/D3/prescreen.py --scratch <tmpdir> --jobs 2 --ids M15",
+    "harness_path": "tools/audit/round2/D3/prescreen.py",
+    "value": 0,
+    "unit": "closure scripts failing",
+    "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+    "machine": "8-core Apple M1, 8 GB, numpy on OpenBLAS (audit box)",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: 2 scratch jobs + env_drift capture from this audit plus other auditors; load1 3.0-5.0 during the run",
+    "tolerance": "exact",
+    "load1": 4.49,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.inputs:InputReader._age_minutes",
+   "perturbation": {
+    "change": "add the check named under `should_have_failed` to the test script; re-run the prescreen for M15",
+    "expected_direction": "up",
+    "observed_value": "0 of 9 scripts failed (card.mjs, entities.py, env_drift.py, features.py, manual_plan.py, optimality.py, plan_view.py, solar_alignment.py, validate.py); env_drift --all: NO UNCLAIMED DRIFT: 55 scenario(s) checked against c398fc84eec25fc44b60d74aae05b9a2da205884"
+   },
+   "metric_definition": "number of scripts in the mutant's measured closure (fast set + env_drift --all vs the baseline) that exit non-zero with the mutant applied",
+   "mutant": {
+    "id": "M15",
+    "patch": "tools/audit/round2/D3/mutants/M15.patch",
+    "module": "inputs.py",
+    "line": 352,
+    "kind": "clamp",
+    "weight": 12,
+    "closure": [
+     "tests/backtest.py",
+     "tests/card.mjs",
+     "tests/card_drift.mjs",
+     "tests/edge.py",
+     "tests/entities.py",
+     "tests/env_drift.py",
+     "tests/features.py",
+     "tests/golden.py",
+     "tests/manual_plan.py",
+     "tests/optimality.py",
+     "tests/plan_view.py",
+     "tests/solar_alignment.py",
+     "tests/stress.py",
+     "tests/validate.py"
+    ],
+    "scripts_run": [
+     "card.mjs",
+     "entities.py",
+     "env_drift.py",
+     "features.py",
+     "manual_plan.py",
+     "optimality.py",
+     "plan_view.py",
+     "solar_alignment.py",
+     "validate.py"
+    ],
+    "not_run": {
+     "tests/card_drift.mjs": "compares the card JavaScript at two git refs; identical for every Python mutant",
+     "tests/golden.py": "strict fixture comparison does not reproduce on this machine; env_drift --all stands in (as in CI drift mode)"
+    },
+    "quiet_window": [
+     "tests/backtest.py",
+     "tests/edge.py",
+     "tests/stress.py"
+    ],
+    "production_line": "custom_components/heatpump_optimizer/inputs.py:352 (`max(0.0, ...)`)",
+    "should_have_failed": "tests/features.py freshness checks: a state whose last_reported is ahead of now reads age 0.0, not negative"
+   },
+   "reproduction_steps": [
+    "git apply tools/audit/round2/D3/mutants/M15.patch",
+    "commit on a throwaway branch (env_drift refuses HEAD == baseline)",
+    "PYTHONPATH=tests/hastub python tests/env_drift.py --all c398fc84eec25fc44b60d74aae05b9a2da205884",
+    "run the closure scripts from tests/closures.json; all exit 0",
+    "quiet window: GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=<baseline> ./tests/run.sh"
+   ],
+   "files": [
+    "custom_components/heatpump_optimizer/inputs.py",
+    "tests/features.py freshness checks"
+   ],
+   "proposed_fix_scope": "tests/features.py: one future-stamp reading.",
+   "stop_rule_class": "hygiene"
+  },
+  {
+   "id": "D3-08",
+   "title": "Six closure scripts ran 30-34 mutants each and killed none; between them they solve 53 optimizations per gate",
+   "severity": "low",
+   "provisional": false,
+   "claim": "On the 36-mutant sample, optimality.py, validate.py, manual_plan.py, plan_view.py, card.mjs, solar_alignment.py exited 0 for every mutant they ran on (30, 30, 30, 34, 34, 34 runs respectively), while features.py killed 12 of 30, entities.py 3 of 37, env_drift 2 of 37.",
+   "mechanism": "validate.py (22 solves, 21 invariant sites, 0 harness checks), optimality.py (9 solves, 30,498 simulate calls, 11 checks), manual_plan.py (21 solves, 71 checks) and plan_view.py (1 solve, 10 issue sites) assert solver-quality properties that survive every guard deletion in the sample; the closure rule still runs them for any change to any of 38 modules (recorded 223 + 21 + 26 + 2 CI seconds per gate).",
+   "evidence": {
+    "command": "OMP_NUM_THREADS=1 ... PYTHONPATH=tests/hastub .venv/bin/python tools/audit/round2/D3/solve_census.py; kills from tools/audit/round2/D3/prescreen_results.json",
+    "harness_path": "tools/audit/round2/D3/solve_census.py",
+    "value": 53,
+    "unit": "optimize() calls per gate in scripts with 0 kills",
+    "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+    "machine": "8-core Apple M1, 8 GB, numpy on OpenBLAS (audit box)",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: 2 scratch jobs + env_drift capture from this audit plus other auditors; load1 3.0-5.0 during the run",
+    "tolerance": "exact",
+    "load1": 5.0,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.optimizer:HeatPumpOptimizer.optimize (call count) and scipy.optimize:minimize",
+   "perturbation": {
+    "change": "delete one `run(...)` line in tests/validate.py",
+    "expected_direction": "down",
+    "observed_value": "not executed (would remove one solve: 22 -> 21)"
+   },
+   "metric_definition": "per script: HeatPumpOptimizer.optimize calls, `  ok`/`  FAIL` lines printed, and mutants killed / mutants run in the prescreen",
+   "census": {
+    "open_meteo.py": {
+     "optimize_calls": 0,
+     "minimize_calls": 0,
+     "sim_calls": 0,
+     "ok": 30,
+     "fail": 0,
+     "cpu_s": 0.6,
+     "wall_s": 0.0
+    },
+    "solar_alignment.py": {
+     "optimize_calls": 0,
+     "minimize_calls": 0,
+     "sim_calls": 0,
+     "ok": 12,
+     "fail": 0,
+     "cpu_s": 0.6,
+     "wall_s": 0.0
+    },
+    "plan_view.py": {
+     "optimize_calls": 1,
+     "minimize_calls": 2,
+     "sim_calls": 35,
+     "ok": 0,
+     "fail": 0,
+     "cpu_s": 0.7,
+     "wall_s": 0.2
+    },
+    "entities.py": {
+     "optimize_calls": 0,
+     "minimize_calls": 0,
+     "sim_calls": 0,
+     "ok": 538,
+     "fail": 0,
+     "cpu_s": 2.5,
+     "wall_s": 2.0
+    },
+    "optimality.py": {
+     "optimize_calls": 9,
+     "minimize_calls": 18,
+     "sim_calls": 30498,
+     "ok": 11,
+     "fail": 0,
+     "cpu_s": 33.8,
+     "wall_s": 33.6
+    },
+    "manual_plan.py": {
+     "optimize_calls": 21,
+     "minimize_calls": 64,
+     "sim_calls": 927,
+     "ok": 71,
+     "fail": 0,
+     "cpu_s": 4.1,
+     "wall_s": 3.8
+    },
+    "validate.py": {
+     "optimize_calls": 22,
+     "minimize_calls": 44,
+     "sim_calls": 5206,
+     "ok": 0,
+     "fail": 0,
+     "cpu_s": 12.7,
+     "wall_s": 12.3
+    },
+    "features.py": {
+     "optimize_calls": 94,
+     "minimize_calls": 190,
+     "sim_calls": 21460,
+     "ok": 1576,
+     "fail": 0,
+     "cpu_s": 31.4,
+     "wall_s": 32.1
+    }
+   },
+   "note": "closures.json recorded seconds are CI seconds (~14x this box); kills are first-killer-in-cost-order, so overlap among the expensive scripts is a lower bound",
+   "kills": {
+    "card.mjs": "0/34",
+    "entities.py": "3/37",
+    "env_drift.py": "2/37",
+    "features.py": "12/30",
+    "frontend.py": "1/1",
+    "manual_plan.py": "0/30",
+    "open_meteo.py": "1/2",
+    "optimality.py": "0/30",
+    "plan_view.py": "0/34",
+    "solar_alignment.py": "0/34",
+    "validate.py": "0/30"
+   },
+   "files": [
+    "tests/validate.py",
+    "tests/optimality.py",
+    "tests/manual_plan.py",
+    "tests/plan_view.py",
+    "tests/closures.json"
+   ],
+   "proposed_fix_scope": "not a deletion: the four scripts guard solver quality, which deletion mutants of guards do not probe. The finding is that their closure (all 38 modules via the package import, see D3-09) makes them run for changes they cannot detect.",
+   "stop_rule_class": "hygiene"
+  },
+  {
+   "id": "D3-09",
+   "title": "Measured closures are the transitive package import: validate.py executes 8 of its 38 closure modules",
+   "severity": "low",
+   "provisional": false,
+   "claim": "closures.json lists 38-44 production modules for every solver script because importing any heatpump_optimizer submodule runs the package __init__.py, which imports coordinator.py (and through it the whole integration); the scripts execute far fewer.",
+   "mechanism": "Caveat: 'executed' counts function bodies, so a module that matters only through import-time data (const.py for open_meteo/solar_alignment/plan_view) shows as forced although it is a real dependency; every other forced module is code the script never calls. tests/closure.py records sys.modules at exit; custom_components/heatpump_optimizer/__init__.py lines 64-77 import coordinator, thermal_model, topology, frontend, manual_plan at package import time, so `from heatpump_optimizer.optimizer import ...` in validate.py pulls in all of them. A change to a module a script never executes (e.g. away.py, narrative.py, pump_mode.py) then forces every solver script -- 2424 recorded CI seconds -- to run.",
+   "evidence": {
+    "command": "OMP_NUM_THREADS=1 ... PYTHONPATH=tests/hastub .venv/bin/python tools/audit/round2/D3/closure_precision.py",
+    "harness_path": "tools/audit/round2/D3/closure_precision.py",
+    "value": 30,
+    "unit": "closure modules validate.py never executes",
+    "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+    "machine": "8-core Apple M1, 8 GB, numpy on OpenBLAS (audit box)",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: 2 scratch jobs + env_drift capture from this audit plus other auditors; load1 3.0-5.0 during the run",
+    "tolerance": "exact",
+    "load1": 5.0,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "every function under custom_components/heatpump_optimizer (sys.setprofile call events, filename); custom_components/heatpump_optimizer/__init__.py:64-77 package-level imports",
+   "perturbation": {
+    "change": "lazy-import coordinator/frontend/topology/manual_plan inside async_setup_entry in __init__.py, re-derive closures (tests/derive_closures.sh)",
+    "expected_direction": "down",
+    "observed_value": "not executed"
+   },
+   "metric_definition": "per script: production modules in its closures.json closure minus production modules in which at least one function call executed during the run",
+   "precision": {
+    "results": {
+     "open_meteo.py.closure_prod": "2",
+     "open_meteo.py.executed_prod": "1",
+     "open_meteo.py.forced_modules": "1",
+     "solar_alignment.py.closure_prod": "38",
+     "solar_alignment.py.executed_prod": "8",
+     "solar_alignment.py.forced_modules": "30",
+     "plan_view.py.closure_prod": "38",
+     "plan_view.py.executed_prod": "9",
+     "plan_view.py.forced_modules": "29",
+     "entities.py.closure_prod": "45",
+     "entities.py.executed_prod": "36",
+     "entities.py.forced_modules": "9",
+     "optimality.py.closure_prod": "38",
+     "optimality.py.executed_prod": "8",
+     "optimality.py.forced_modules": "30",
+     "manual_plan.py.closure_prod": "38",
+     "manual_plan.py.executed_prod": "16",
+     "manual_plan.py.forced_modules": "22",
+     "validate.py.closure_prod": "38",
+     "validate.py.executed_prod": "8",
+     "validate.py.forced_modules": "30",
+     "features.py.closure_prod": "40",
+     "features.py.executed_prod": "38",
+     "features.py.forced_modules": "2",
+     "modules_forced_somewhere": "34",
+     "load1": "31"
+    },
+    "per_script": [
+     "open_meteo.py: rc=0 forced=['const.py'] executed_not_in_closure=[]",
+     "solar_alignment.py: rc=0 forced=['accuracy.py', 'away.py', 'battery.py', 'comfort_band.py', 'comfort_learning.py', 'const.py', 'currency.py', 'curve_learning.py",
+     "plan_view.py: rc=0 forced=['away.py', 'battery.py', 'comfort_band.py', 'comfort_learning.py', 'const.py', 'currency.py', 'curve_learning.py', 'defrost.py', 'dhw",
+     "entities.py: rc=0 forced=['diagnosis.py', 'drift.py', 'freq_control.py', 'narrative.py', 'open_meteo.py', 'power_guard.py', 'pump_schedule.py', 'pv.py', 'snapsh",
+     "optimality.py: rc=0 forced=['accuracy.py', 'away.py', 'battery.py', 'comfort_band.py', 'comfort_learning.py', 'coordinator.py', 'currency.py', 'curve_learning.p",
+     "manual_plan.py: rc=0 forced=['away.py', 'battery.py', 'comfort_band.py', 'comfort_learning.py', 'curve_learning.py', 'dhw_draws.py', 'diagnosis.py', 'drift.py',",
+     "validate.py: rc=0 forced=['accuracy.py', 'away.py', 'battery.py', 'comfort_band.py', 'comfort_learning.py', 'coordinator.py', 'currency.py', 'curve_learning.py'",
+     "features.py: rc=0 forced=['manual_plan.py', 'open_meteo.py'] executed_not_in_closure=[]"
+    ],
+    "per_module_forced_ci_seconds_top8": [
+     "open_meteo.py          forced_ci_s=  785.7 forced_by=['plan_view.py', 'entities.py', 'optimality.py', 'manual_plan.py', 'validate.py', 'features.py'] executed_by=['open_meteo.py', 'solar_alignment.py'",
+     "manual_plan.py         forced_ci_s=  756.8 forced_by=['solar_alignment.py', 'plan_view.py', 'optimality.py', 'validate.py', 'features.py'] executed_by=['entities.py', 'manual_plan.py'] unmeasured_quie",
+     "snapshots.py           forced_ci_s=  276.9 forced_by=['solar_alignment.py', 'plan_view.py', 'entities.py', 'optimality.py', 'manual_plan.py', 'validate.py'] executed_by=['features.py'] unmeasured_quie",
+     "pv.py                  forced_ci_s=  276.9 forced_by=['solar_alignment.py', 'plan_view.py', 'entities.py', 'optimality.py', 'manual_plan.py', 'validate.py'] executed_by=['features.py'] unmeasured_quie",
+     "pump_schedule.py       forced_ci_s=  276.9 forced_by=['solar_alignment.py', 'plan_view.py', 'entities.py', 'optimality.py', 'manual_plan.py', 'validate.py'] executed_by=['features.py'] unmeasured_quie",
+     "power_guard.py         forced_ci_s=  276.9 forced_by=['solar_alignment.py', 'plan_view.py', 'entities.py', 'optimality.py', 'manual_plan.py', 'validate.py'] executed_by=['features.py'] unmeasured_quie",
+     "narrative.py           forced_ci_s=  276.9 forced_by=['solar_alignment.py', 'plan_view.py', 'entities.py', 'optimality.py', 'manual_plan.py', 'validate.py'] executed_by=['features.py'] unmeasured_quie",
+     "freq_control.py        forced_ci_s=  276.9 forced_by=['solar_alignment.py', 'plan_view.py', 'entities.py', 'optimality.py', 'manual_plan.py', 'validate.py'] executed_by=['features.py'] unmeasured_quie"
+    ]
+   },
+   "files": [
+    "custom_components/heatpump_optimizer/__init__.py",
+    "tests/closure.py",
+    "tests/closures.json"
+   ],
+   "proposed_fix_scope": "either accept (the README calls the optimizer row 'the point, not an embarrassment') or make the package import lazy so closures shrink to what runs; the quiet-window trio (stress/edge/backtest) is unmeasured here.",
+   "stop_rule_class": "hygiene"
+  },
+  {
+   "id": "D3-10",
+   "title": "Drift gate cannot fail on the five SENSITIVE fixtures: M01 moved wood_coil baseline_cost 4.3x, env_drift rc 0",
+   "severity": "medium",
+   "provisional": false,
+   "claim": "With mutant M01 applied (thermal_model.dhw_coil_draw_reduction's max(0, ...) clamp deleted), tests/env_drift.py --all reports wood_coil as MAY-DRIFT with 458 leaves moved (baseline_cost 156.162896 -> 677.817758) and still returns rc 0 / NO UNCLAIMED DRIFT, because wood_coil is on the SENSITIVE list whose diffs are 'printed rather than judged'.",
+   "mechanism": "tests/env_drift.py:109 (SENSITIVE) and the MAY-DRIFT branch of main(): any diff in valve_storage_smart_write, wood_two_tank, wood_two_tank_smart_write, wood_coil or valve_upper_direct_slab is unjudged by design (BLAS-dependent local optima), so a regression whose effect is confined to the wood/valve topologies passes CI's behavioural gate; only features.py's direct checks stood between M01 and a green gate (it was killed there: 'coil identity holds at T_w=70').",
+   "evidence": {
+    "command": "OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 PYTHONPATH=tests/hastub .venv/bin/python tools/audit/round2/D3/prescreen.py --scratch <tmpdir> --jobs 2 --ids M01  (see <scratch>/logs/M01/env_drift.log)",
+    "harness_path": "tools/audit/round2/D3/prescreen.py",
+    "value": 458,
+    "unit": "leaves moved in wood_coil with verdict rc=0",
+    "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+    "machine": "8-core Apple M1, 8 GB, numpy on OpenBLAS (audit box)",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: 2 scratch jobs + env_drift capture from this audit plus other auditors; load1 3.0-5.0 during the run",
+    "tolerance": "exact",
+    "load1": 4.81,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "tests/env_drift.py:main (MAY-DRIFT branch) driven through heatpump_optimizer.thermal_model:dhw_coil_draw_reduction (mutant M01)",
+   "perturbation": {
+    "change": "remove wood_coil from SENSITIVE in tests/env_drift.py (line 109) and re-run env_drift --all with M01 applied",
+    "expected_direction": "up",
+    "observed_value": "rc=0, n_drift=0, cache_hit=True, tail: NO UNCLAIMED DRIFT: 55 scenario(s) checked against c398fc84eec25fc44b60d74aae05b9a2da205884"
+   },
+   "metric_definition": "leaves moved in a SENSITIVE scenario (env_drift's _diff_leaves count) versus the run's exit status",
+   "files": [
+    "tests/env_drift.py",
+    "tests/golden.py",
+    "custom_components/heatpump_optimizer/thermal_model.py"
+   ],
+   "proposed_fix_scope": "judge SENSITIVE scenarios on a coarse, BLAS-stable projection (e.g. baseline_cost and predicted_cost within 5 %, compressor starts within 2) instead of leaving them unjudged; keep the exact comparison unjudged.",
+   "stop_rule_class": "bug"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "null control: a comment-only production change survives every closure script and env_drift --all (the prescreen does not kill everything)",
+   "command": "OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 PYTHONPATH=tests/hastub .venv/bin/python tools/audit/round2/D3/prescreen.py --scratch <tmpdir> --jobs 2 --ids NULL",
+   "value": "0 of 9 scripts failed; env_drift: NO UNCLAIMED DRIFT: 55 scenario(s) checked"
+  },
+  {
+   "claim": "M01 thermal_model.py:1187 clamp (max(0.0, dhw_setpoint - t_in)) is killed",
+   "command": "tools/audit/round2/D3/prescreen.py --ids M01 (full command: findings[0].evidence.command)",
+   "value": "killed by features.py:   FAIL coil identity holds at T_w=70  [reduced 109.11111111111111 + coil -107.11111111111111 != draw 2.0]"
+  },
+  {
+   "claim": "M03 coordinator.py:3975 guard_return (if last is None:) is killed",
+   "command": "tools/audit/round2/D3/prescreen.py --ids M03 (full command: findings[0].evidence.command)",
+   "value": "killed by env_drift.py,entities.py: TypeError: unsupported operand type(s) for -: 'datetime.datetime' and 'NoneType'"
+  },
+  {
+   "claim": "M05 price_model.py:402 general_if (if shape_mean > 1e-6:) is killed",
+   "command": "tools/audit/round2/D3/prescreen.py --ids M05 (full command: findings[0].evidence.command)",
+   "value": "killed by features.py:   FAIL the guessed tail is scaled by the true daily level  [known 3.0 sits on shape 1.5 \u2192 level 2.0; hour 12 at shape 0.5 must be 1.0, not 1.5, got 1.5]"
+  },
+  {
+   "claim": "M06 frontend.py:156 guard_return (if not item_url or item_url.split(\"?\")[0] != base:) is killed",
+   "command": "tools/audit/round2/D3/prescreen.py --ids M06 (full command: findings[0].evidence.command)",
+   "value": "killed by frontend.py:   FAIL  a shadowing copy does not stop the bundled card registering"
+  },
+  {
+   "claim": "M09 coordinator.py:4926 general_if (if CONF_DHW_COOLING_RATE in params:) is killed",
+   "command": "tools/audit/round2/D3/prescreen.py --ids M09 (full command: findings[0].evidence.command)",
+   "value": "killed by features.py:   FAIL an explicit cooling rate restarts the learner from it"
+  },
+  {
+   "claim": "M14 inputs.py:565 guard_return (if reading is None or not reading.ok or reading.flag is None) is killed",
+   "command": "tools/audit/round2/D3/prescreen.py --ids M14 (full command: findings[0].evidence.command)",
+   "value": "killed by features.py:   FAIL the convenience accessors mirror value()  [an unusable or unread key falls back to the caller's default]"
+  },
+  {
+   "claim": "M16 dhw_schedule.py:103 guard_return (if ordered == [5, 6]:) is killed",
+   "command": "tools/audit/round2/D3/prescreen.py --ids M16 (full command: findings[0].evidence.command)",
+   "value": "killed by features.py:   FAIL and renders back to the string the user typed  [weekdays 06:00-08:30, Sa,Su 08:00-09:30]"
+  },
+  {
+   "claim": "M17 topology.py:598 general_if (if not two_tank:) is killed",
+   "command": "tools/audit/round2/D3/prescreen.py --ids M17 (full command: findings[0].evidence.command)",
+   "value": "killed by features.py:   FAIL the wood abstraction is admitted in prose where it still runs  [issue #40: a flue switch without a probe still folds wood heat into the heat-pump tank, a"
+  },
+  {
+   "claim": "M20 away.py:141 general_if (if domain == \"binary_sensor\":) is killed",
+   "command": "tools/audit/round2/D3/prescreen.py --ids M20 (full command: findings[0].evidence.command)",
+   "value": "killed by features.py:   FAIL a presence-class binary sensor being on means home  [presence semantics are the inverse of a toggle; reading on as away deep-setbacks an occupied house]"
+  },
+  {
+   "claim": "M23 sensor.py:1515 general_if (if since:) is killed",
+   "command": "tools/audit/round2/D3/prescreen.py --ids M23 (full command: findings[0].evidence.command)",
+   "value": "killed by entities.py: KeyError: 'counting_since'"
+  },
+  {
+   "claim": "M24 dhw_schedule.py:131 guard_return (if hour > 23:) is killed",
+   "command": "tools/audit/round2/D3/prescreen.py --ids M24 (full command: findings[0].evidence.command)",
+   "value": "killed by features.py:   FAIL a malformed weekly spec raises, not silently empties ('Mo 25:00-26:00')"
+  },
+  {
+   "claim": "M25 dhw_schedule.py:272 general_if (if m:) is killed",
+   "command": "tools/audit/round2/D3/prescreen.py --ids M25 (full command: findings[0].evidence.command)",
+   "value": "killed by features.py:   FAIL the weekday/weekend split lands on the right days  [None]"
+  },
+  {
+   "claim": "M27 snapshots.py:140 general_if (if not self.alarmed and self._bias_days >= BIAS_TRIP_DAYS:) is killed",
+   "command": "tools/audit/round2/D3/prescreen.py --ids M27 (full command: findings[0].evidence.command)",
+   "value": "killed by features.py: ValueError: D1-01: malformed month wedges the freezer"
+  },
+  {
+   "claim": "M28 grid_fee.py:255 guard_return (if self.mode == MODE_RULES:) is killed",
+   "command": "tools/audit/round2/D3/prescreen.py --ids M28 (full command: findings[0].evidence.command)",
+   "value": "killed by env_drift.py: DRIFT coord_grid_fee: 98 leaves moved vs c398fc84eec25fc44b60d74aae05b9a2da205884"
+  },
+  {
+   "claim": "M29 sensor.py:1520 payload_key (attrs[\"this_month_kwh\"] = round(month[0], 3)) is killed",
+   "command": "tools/audit/round2/D3/prescreen.py --ids M29 (full command: findings[0].evidence.command)",
+   "value": "killed by entities.py: KeyError: 'this_month_kwh'"
+  },
+  {
+   "claim": "M33 defrost.py:441 clamp (max(DERATE_MIN, v)) is killed",
+   "command": "tools/audit/round2/D3/prescreen.py --ids M33 (full command: findings[0].evidence.command)",
+   "value": "killed by features.py:   FAIL the derate survives a restart"
+  },
+  {
+   "claim": "M34 inputs.py:516 general_if (if flag is None:) is killed",
+   "command": "tools/audit/round2/D3/prescreen.py --ids M34 (full command: findings[0].evidence.command)",
+   "value": "killed by features.py:   FAIL an uninterpretable flag is refused rather than guessed  [None]"
+  },
+  {
+   "claim": "M36 open_meteo.py:145 guard_return (if total_weight < 0.5 * requested:) is killed",
+   "command": "tools/audit/round2/D3/prescreen.py --ids M36 (full command: findings[0].evidence.command)",
+   "value": "killed by open_meteo.py:   FAIL a barely-overlapping window returns None instead of a misleading value"
+  },
+  {
+   "claim": "M02 optimizer.py:1421 clamp survived but is equivalent/defensive -- no check should fail: cop_end comes from ThermalModel.compute_cop, whose factor is floored at 0.3 x cop_nominal (thermal_model.py:1311); the 1e-6 floor is unreachable",
+   "command": "tools/audit/round2/D3/prescreen.py --ids M02 (full command: findings[0].evidence.command)",
+   "value": "0 of 9 scripts failed"
+  },
+  {
+   "claim": "M04 thermal_model.py:1943 clamp survived but is equivalent/defensive -- no check should fail: dt_hours is the (sub-)step length, always > 0; the 1e-6 floor is unreachable",
+   "command": "tools/audit/round2/D3/prescreen.py --ids M04 (full command: findings[0].evidence.command)",
+   "value": "0 of 9 scripts failed"
+  },
+  {
+   "claim": "M07 optimizer.py:368 clamp survived but is equivalent/defensive -- no check should fail: the divisor only degenerates for a ONE-step horizon with a non-positive mean price (rank branch); 15-min steps over >= 1 h give n >= 4. Defensive; edge.py (quiet window) is the only script with short horizons",
+   "command": "tools/audit/round2/D3/prescreen.py --ids M07 (full command: findings[0].evidence.command)",
+   "value": "0 of 9 scripts failed"
+  },
+  {
+   "claim": "M08 thermal_model.py:544 guard_return survived but is equivalent/defensive -- no check should fail: a memoisation cache for the wood-tank UA; deleting it is behaviour-preserving (slower only)",
+   "command": "tools/audit/round2/D3/prescreen.py --ids M08 (full command: findings[0].evidence.command)",
+   "value": "0 of 9 scripts failed"
+  },
+  {
+   "claim": "M10 optimizer.py:3371 clamp survived but is equivalent/defensive -- no check should fail: ua only multiplies (decay, gain) in the run-up walk, nothing divides by it; the 1e-6 floor changes nothing observable",
+   "command": "tools/audit/round2/D3/prescreen.py --ids M10 (full command: findings[0].evidence.command)",
+   "value": "0 of 9 scripts failed"
+  },
+  {
+   "claim": "M11 optimizer.py:2401 clamp survived but is equivalent/defensive -- no check should fail: planned is n+1 long (trimmed to n) or already n, so steps == req.size either way; the min() is defensive against a shape the optimizer never produces",
+   "command": "tools/audit/round2/D3/prescreen.py --ids M11 (full command: findings[0].evidence.command)",
+   "value": "0 of 9 scripts failed"
+  },
+  {
+   "claim": "M12 coordinator.py:5401 general_if survived but is equivalent/defensive -- no check should fail: a non-200 Tibber response then reaches resp.json() and either the 'errors' branch, the 'No homes' branch or the outer `except Exception` (coordinator.py:5437-5441); every path still calls _tibber_fetch_failed, only the message differs. Equivalent in effect; no fake-session test exists either way",
+   "command": "tools/audit/round2/D3/prescreen.py --ids M12 (full command: findings[0].evidence.command)",
+   "value": "0 of 9 scripts failed"
+  },
+  {
+   "claim": "M18 thermal_model.py:655 clamp survived but is equivalent/defensive -- no check should fail: dhw_setpoint is bounded 40-65 by the config flow (config_flow.py:1308 `_number(40, 65, ...)`), so min(70, setpoint) is unreachable through validated config (ThermalParameters.clamp does not clamp it, so a hand-edited entry could reach it)",
+   "command": "tools/audit/round2/D3/prescreen.py --ids M18 (full command: findings[0].evidence.command)",
+   "value": "0 of 9 scripts failed"
+  },
+  {
+   "claim": "M22 snapshots.py:185 general_if survived but is equivalent/defensive -- no check should fail: the deleted lines are a _LOGGER.warning only; the `continue` that matters is untouched",
+   "command": "tools/audit/round2/D3/prescreen.py --ids M22 (full command: findings[0].evidence.command)",
+   "value": "0 of 9 scripts failed"
+  },
+  {
+   "claim": "M26 tariff.py:524 guard_return survived but is equivalent/defensive -- no check should fail: without the early return top_k is a slice of zeros and the function returns 0.0 anyway",
+   "command": "tools/audit/round2/D3/prescreen.py --ids M26 (full command: findings[0].evidence.command)",
+   "value": "0 of 9 scripts failed"
+  },
+  {
+   "claim": "M35 grid_fee.py:176 guard_return survived but is equivalent/defensive -- no check should fail: callers pass `config.get(..., '')` / `user_input.get(..., '')`, never None; for '' the loop yields [] anyway. Only spec=None would differ (str(None) -> GridFeeError)",
+   "command": "tools/audit/round2/D3/prescreen.py --ids M35 (full command: findings[0].evidence.command)",
+   "value": "0 of 9 scripts failed"
+  },
+  {
+   "claim": "the shared drift-baseline cache was hit on every env_drift run and nothing was written by this audit (entries added during the window belong to other worktrees: b4d08f7, e403f75, 68cae56)",
+   "command": "ls ~/.cache/heatpump_optimizer/drift-baseline/; python tests/env_drift.py --cache-key --all <baseline> (with the thread pin)",
+   "value": "37/37 CACHE HIT on key cc4aa9befed4...; entry count 7 -> 11, none with ref c398fc8 written after 23:19Z"
+  },
+  {
+   "claim": "golden.py strict comparison at the baseline does not reproduce on this machine (as tests/README.md says), which is why the prescreen uses env_drift --all",
+   "command": "PYTHONPATH=tests/hastub python tests/golden.py",
+   "value": "34 of 55 GOLDEN SCENARIOS CHANGED, rc=1, 53.5 s wall"
+  },
+  {
+   "claim": "thread pin holds: process CPU / thread CPU under the five-variable pin",
+   "command": "python -c '<600x600 matmul x20>' with the pin",
+   "value": "thread_factor=1.000"
+  },
+  {
+   "claim": "closures.json 'seconds' are CI seconds, not this machine's: the fast set runs ~14x faster here",
+   "command": "NULL row of prescreen_results.json vs tests/closures.json recorded",
+   "value": "features.py 36.9 s here vs 509.8 recorded; validate.py 14.5 vs 223.3; manual_plan 3.9 vs 26.4; optimality 29.3 vs 20.8 (slower here); env_drift 46 s here with a warm baseline cache"
+  },
+  {
+   "claim": "the five may-drift (machine-sensitive) fixtures did not move for 36 of 37 mutants; the one that moved (M01, wood_coil) is finding D3-10",
+   "command": "grep -c MAY-DRIFT <scratch>/logs/*/env_drift.log",
+   "value": "1 MAY-DRIFT scenario in 1 of 37 runs (M01: wood_coil 458 leaves), 0 in the other 36"
+  }
+ ],
+ "harnesses": [
+  "tools/audit/round2/D3/candidates.py",
+  "tools/audit/round2/D3/prescreen.py",
+  "tools/audit/round2/D3/solve_census.py",
+  "tools/audit/round2/D3/closure_precision.py"
+ ],
+ "prescreened": [
+  {
+   "id": "M01",
+   "module": "thermal_model.py",
+   "line": 1187,
+   "kind": "clamp",
+   "weight": 15,
+   "patch": "tools/audit/round2/D3/mutants/M01.patch",
+   "closure_size": 14,
+   "n_scripts_run": 9,
+   "killed_by": [
+    "features.py"
+   ],
+   "survived": false,
+   "classification": "killed"
+  },
+  {
+   "id": "M02",
+   "module": "optimizer.py",
+   "line": 1421,
+   "kind": "clamp",
+   "weight": 15,
+   "patch": "tools/audit/round2/D3/mutants/M02.patch",
+   "closure_size": 14,
+   "n_scripts_run": 9,
+   "killed_by": [],
+   "survived": true,
+   "classification": "equivalent: cop_end comes from ThermalModel.compute_cop, whose factor is floored at 0.3 x cop_nominal (thermal_model.py:1311); the 1e-6 floor is unreachable"
+  },
+  {
+   "id": "M03",
+   "module": "coordinator.py",
+   "line": 3975,
+   "kind": "guard_return",
+   "weight": 15,
+   "patch": "tools/audit/round2/D3/mutants/M03.patch",
+   "closure_size": 14,
+   "n_scripts_run": 5,
+   "killed_by": [
+    "env_drift.py",
+    "entities.py"
+   ],
+   "survived": false,
+   "classification": "killed"
+  },
+  {
+   "id": "M04",
+   "module": "thermal_model.py",
+   "line": 1943,
+   "kind": "clamp",
+   "weight": 15,
+   "patch": "tools/audit/round2/D3/mutants/M04.patch",
+   "closure_size": 14,
+   "n_scripts_run": 9,
+   "killed_by": [],
+   "survived": true,
+   "classification": "equivalent: dt_hours is the (sub-)step length, always > 0; the 1e-6 floor is unreachable"
+  },
+  {
+   "id": "M05",
+   "module": "price_model.py",
+   "line": 402,
+   "kind": "general_if",
+   "weight": 3,
+   "patch": "tools/audit/round2/D3/mutants/M05.patch",
+   "closure_size": 14,
+   "n_scripts_run": 9,
+   "killed_by": [
+    "features.py"
+   ],
+   "survived": false,
+   "classification": "killed"
+  },
+  {
+   "id": "M06",
+   "module": "frontend.py",
+   "line": 156,
+   "kind": "guard_return",
+   "weight": 6,
+   "patch": "tools/audit/round2/D3/mutants/M06.patch",
+   "closure_size": 15,
+   "n_scripts_run": 6,
+   "killed_by": [
+    "frontend.py"
+   ],
+   "survived": false,
+   "classification": "killed"
+  },
+  {
+   "id": "M07",
+   "module": "optimizer.py",
+   "line": 368,
+   "kind": "clamp",
+   "weight": 15,
+   "patch": "tools/audit/round2/D3/mutants/M07.patch",
+   "closure_size": 14,
+   "n_scripts_run": 9,
+   "killed_by": [],
+   "survived": true,
+   "classification": "equivalent: the divisor only degenerates for a ONE-step horizon with a non-positive mean price (rank branch); 15-min steps over >= 1 h give n >= 4. Defensive; edge.py (quiet window) is the only script with short horizons"
+  },
+  {
+   "id": "M08",
+   "module": "thermal_model.py",
+   "line": 544,
+   "kind": "guard_return",
+   "weight": 15,
+   "patch": "tools/audit/round2/D3/mutants/M08.patch",
+   "closure_size": 14,
+   "n_scripts_run": 9,
+   "killed_by": [],
+   "survived": true,
+   "classification": "equivalent: a memoisation cache for the wood-tank UA; deleting it is behaviour-preserving (slower only)"
+  },
+  {
+   "id": "M09",
+   "module": "coordinator.py",
+   "line": 4926,
+   "kind": "general_if",
+   "weight": 5,
+   "patch": "tools/audit/round2/D3/mutants/M09.patch",
+   "closure_size": 14,
+   "n_scripts_run": 9,
+   "killed_by": [
+    "features.py"
+   ],
+   "survived": false,
+   "classification": "killed"
+  },
+  {
+   "id": "M10",
+   "module": "optimizer.py",
+   "line": 3371,
+   "kind": "clamp",
+   "weight": 15,
+   "patch": "tools/audit/round2/D3/mutants/M10.patch",
+   "closure_size": 14,
+   "n_scripts_run": 9,
+   "killed_by": [],
+   "survived": true,
+   "classification": "equivalent: ua only multiplies (decay, gain) in the run-up walk, nothing divides by it; the 1e-6 floor changes nothing observable"
+  },
+  {
+   "id": "M11",
+   "module": "optimizer.py",
+   "line": 2401,
+   "kind": "clamp",
+   "weight": 15,
+   "patch": "tools/audit/round2/D3/mutants/M11.patch",
+   "closure_size": 14,
+   "n_scripts_run": 9,
+   "killed_by": [],
+   "survived": true,
+   "classification": "equivalent: planned is n+1 long (trimmed to n) or already n, so steps == req.size either way; the min() is defensive against a shape the optimizer never produces"
+  },
+  {
+   "id": "M12",
+   "module": "coordinator.py",
+   "line": 5401,
+   "kind": "general_if",
+   "weight": 5,
+   "patch": "tools/audit/round2/D3/mutants/M12.patch",
+   "closure_size": 14,
+   "n_scripts_run": 9,
+   "killed_by": [],
+   "survived": true,
+   "classification": "equivalent: a non-200 Tibber response then reaches resp.json() and either the 'errors' branch, the 'No homes' branch or the outer `except Exception` (coordinator.py:5437-5441); every path still calls _tibber_fetch_failed, only the message differs. Equivalent in effect; no fake-session test exists either way"
+  },
+  {
+   "id": "M13",
+   "module": "coordinator.py",
+   "line": 1676,
+   "kind": "general_if",
+   "weight": 5,
+   "patch": "tools/audit/round2/D3/mutants/M13.patch",
+   "closure_size": 14,
+   "n_scripts_run": 9,
+   "killed_by": [],
+   "survived": true,
+   "classification": "gap candidate, rank 3"
+  },
+  {
+   "id": "M14",
+   "module": "inputs.py",
+   "line": 565,
+   "kind": "guard_return",
+   "weight": 12,
+   "patch": "tools/audit/round2/D3/mutants/M14.patch",
+   "closure_size": 14,
+   "n_scripts_run": 9,
+   "killed_by": [
+    "features.py"
+   ],
+   "survived": false,
+   "classification": "killed"
+  },
+  {
+   "id": "M15",
+   "module": "inputs.py",
+   "line": 352,
+   "kind": "clamp",
+   "weight": 12,
+   "patch": "tools/audit/round2/D3/mutants/M15.patch",
+   "closure_size": 14,
+   "n_scripts_run": 9,
+   "killed_by": [],
+   "survived": true,
+   "classification": "gap candidate, rank 7"
+  },
+  {
+   "id": "M16",
+   "module": "dhw_schedule.py",
+   "line": 103,
+   "kind": "guard_return",
+   "weight": 12,
+   "patch": "tools/audit/round2/D3/mutants/M16.patch",
+   "closure_size": 14,
+   "n_scripts_run": 9,
+   "killed_by": [
+    "features.py"
+   ],
+   "survived": false,
+   "classification": "killed"
+  },
+  {
+   "id": "M17",
+   "module": "topology.py",
+   "line": 598,
+   "kind": "general_if",
+   "weight": 2,
+   "patch": "tools/audit/round2/D3/mutants/M17.patch",
+   "closure_size": 14,
+   "n_scripts_run": 9,
+   "killed_by": [
+    "features.py"
+   ],
+   "survived": false,
+   "classification": "killed"
+  },
+  {
+   "id": "M18",
+   "module": "thermal_model.py",
+   "line": 655,
+   "kind": "clamp",
+   "weight": 15,
+   "patch": "tools/audit/round2/D3/mutants/M18.patch",
+   "closure_size": 14,
+   "n_scripts_run": 9,
+   "killed_by": [],
+   "survived": true,
+   "classification": "equivalent: dhw_setpoint is bounded 40-65 by the config flow (config_flow.py:1308 `_number(40, 65, ...)`), so min(70, setpoint) is unreachable through validated config (ThermalParameters.clamp does not clamp it, so a hand-edited entry could reach it)"
+  },
+  {
+   "id": "M19",
+   "module": "dhw_schedule.py",
+   "line": 433,
+   "kind": "guard_return",
+   "weight": 12,
+   "patch": "tools/audit/round2/D3/mutants/M19.patch",
+   "closure_size": 14,
+   "n_scripts_run": 9,
+   "killed_by": [],
+   "survived": true,
+   "classification": "gap candidate, rank 2"
+  },
+  {
+   "id": "M20",
+   "module": "away.py",
+   "line": 141,
+   "kind": "general_if",
+   "weight": 3,
+   "patch": "tools/audit/round2/D3/mutants/M20.patch",
+   "closure_size": 14,
+   "n_scripts_run": 9,
+   "killed_by": [
+    "features.py"
+   ],
+   "survived": false,
+   "classification": "killed"
+  },
+  {
+   "id": "M21",
+   "module": "accuracy.py",
+   "line": 382,
+   "kind": "except_handler",
+   "weight": 4,
+   "patch": "tools/audit/round2/D3/mutants/M21.patch",
+   "closure_size": 14,
+   "n_scripts_run": 9,
+   "killed_by": [],
+   "survived": true,
+   "classification": "gap candidate, rank 5"
+  },
+  {
+   "id": "M22",
+   "module": "snapshots.py",
+   "line": 185,
+   "kind": "general_if",
+   "weight": 2,
+   "patch": "tools/audit/round2/D3/mutants/M22.patch",
+   "closure_size": 14,
+   "n_scripts_run": 9,
+   "killed_by": [],
+   "survived": true,
+   "classification": "equivalent: the deleted lines are a _LOGGER.warning only; the `continue` that matters is untouched"
+  },
+  {
+   "id": "M23",
+   "module": "sensor.py",
+   "line": 1515,
+   "kind": "general_if",
+   "weight": 3,
+   "patch": "tools/audit/round2/D3/mutants/M23.patch",
+   "closure_size": 3,
+   "n_scripts_run": 2,
+   "killed_by": [
+    "entities.py"
+   ],
+   "survived": false,
+   "classification": "killed"
+  },
+  {
+   "id": "M24",
+   "module": "dhw_schedule.py",
+   "line": 131,
+   "kind": "guard_return",
+   "weight": 12,
+   "patch": "tools/audit/round2/D3/mutants/M24.patch",
+   "closure_size": 14,
+   "n_scripts_run": 9,
+   "killed_by": [
+    "features.py"
+   ],
+   "survived": false,
+   "classification": "killed"
+  },
+  {
+   "id": "M25",
+   "module": "dhw_schedule.py",
+   "line": 272,
+   "kind": "general_if",
+   "weight": 4,
+   "patch": "tools/audit/round2/D3/mutants/M25.patch",
+   "closure_size": 14,
+   "n_scripts_run": 9,
+   "killed_by": [
+    "features.py"
+   ],
+   "survived": false,
+   "classification": "killed"
+  },
+  {
+   "id": "M26",
+   "module": "tariff.py",
+   "line": 524,
+   "kind": "guard_return",
+   "weight": 12,
+   "patch": "tools/audit/round2/D3/mutants/M26.patch",
+   "closure_size": 14,
+   "n_scripts_run": 9,
+   "killed_by": [],
+   "survived": true,
+   "classification": "equivalent: without the early return top_k is a slice of zeros and the function returns 0.0 anyway"
+  },
+  {
+   "id": "M27",
+   "module": "snapshots.py",
+   "line": 140,
+   "kind": "general_if",
+   "weight": 2,
+   "patch": "tools/audit/round2/D3/mutants/M27.patch",
+   "closure_size": 14,
+   "n_scripts_run": 9,
+   "killed_by": [
+    "features.py"
+   ],
+   "survived": false,
+   "classification": "killed"
+  },
+  {
+   "id": "M28",
+   "module": "grid_fee.py",
+   "line": 255,
+   "kind": "guard_return",
+   "weight": 12,
+   "patch": "tools/audit/round2/D3/mutants/M28.patch",
+   "closure_size": 14,
+   "n_scripts_run": 5,
+   "killed_by": [
+    "env_drift.py"
+   ],
+   "survived": false,
+   "classification": "killed"
+  },
+  {
+   "id": "M29",
+   "module": "sensor.py",
+   "line": 1520,
+   "kind": "payload_key",
+   "weight": 6,
+   "patch": "tools/audit/round2/D3/mutants/M29.patch",
+   "closure_size": 3,
+   "n_scripts_run": 2,
+   "killed_by": [
+    "entities.py"
+   ],
+   "survived": false,
+   "classification": "killed"
+  },
+  {
+   "id": "M30",
+   "module": "open_meteo.py",
+   "line": 194,
+   "kind": "except_handler",
+   "weight": 4,
+   "patch": "tools/audit/round2/D3/mutants/M30.patch",
+   "closure_size": 15,
+   "n_scripts_run": 10,
+   "killed_by": [],
+   "survived": true,
+   "classification": "gap candidate, rank 6"
+  },
+  {
+   "id": "M31",
+   "module": "sensor.py",
+   "line": 1086,
+   "kind": "general_if",
+   "weight": 3,
+   "patch": "tools/audit/round2/D3/mutants/M31.patch",
+   "closure_size": 3,
+   "n_scripts_run": 2,
+   "killed_by": [],
+   "survived": true,
+   "classification": "gap candidate, rank 1"
+  },
+  {
+   "id": "M32",
+   "module": "grid_fee.py",
+   "line": 141,
+   "kind": "guard_return",
+   "weight": 12,
+   "patch": "tools/audit/round2/D3/mutants/M32.patch",
+   "closure_size": 14,
+   "n_scripts_run": 9,
+   "killed_by": [],
+   "survived": true,
+   "classification": "gap candidate, rank 4"
+  },
+  {
+   "id": "M33",
+   "module": "defrost.py",
+   "line": 441,
+   "kind": "clamp",
+   "weight": 9,
+   "patch": "tools/audit/round2/D3/mutants/M33.patch",
+   "closure_size": 14,
+   "n_scripts_run": 9,
+   "killed_by": [
+    "features.py"
+   ],
+   "survived": false,
+   "classification": "killed"
+  },
+  {
+   "id": "M34",
+   "module": "inputs.py",
+   "line": 516,
+   "kind": "general_if",
+   "weight": 4,
+   "patch": "tools/audit/round2/D3/mutants/M34.patch",
+   "closure_size": 14,
+   "n_scripts_run": 9,
+   "killed_by": [
+    "features.py"
+   ],
+   "survived": false,
+   "classification": "killed"
+  },
+  {
+   "id": "M35",
+   "module": "grid_fee.py",
+   "line": 176,
+   "kind": "guard_return",
+   "weight": 12,
+   "patch": "tools/audit/round2/D3/mutants/M35.patch",
+   "closure_size": 14,
+   "n_scripts_run": 9,
+   "killed_by": [],
+   "survived": true,
+   "classification": "equivalent: callers pass `config.get(..., '')` / `user_input.get(..., '')`, never None; for '' the loop yields [] anyway. Only spec=None would differ (str(None) -> GridFeeError)"
+  },
+  {
+   "id": "M36",
+   "module": "open_meteo.py",
+   "line": 145,
+   "kind": "guard_return",
+   "weight": 6,
+   "patch": "tools/audit/round2/D3/mutants/M36.patch",
+   "closure_size": 15,
+   "n_scripts_run": 6,
+   "killed_by": [
+    "open_meteo.py"
+   ],
+   "survived": false,
+   "classification": "killed"
+  },
+  {
+   "id": "NULL",
+   "module": "optimizer.py",
+   "line": 0,
+   "kind": "null",
+   "weight": 0,
+   "patch": null,
+   "closure_size": 14,
+   "n_scripts_run": 9,
+   "killed_by": [],
+   "survived": true,
+   "classification": "null control"
+  }
+ ],
+ "quiet_window_request": {
+  "top_six": [
+   "M31",
+   "M19",
+   "M13",
+   "M32",
+   "M21",
+   "M30"
+  ],
+  "command": "for each: git apply tools/audit/round2/D3/mutants/<id>.patch; GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=c398fc84eec25fc44b60d74aae05b9a2da205884 GATE_JOBS=1 ./tests/run.sh (under /tmp/hpo-gate.lock)"
+ }
+}

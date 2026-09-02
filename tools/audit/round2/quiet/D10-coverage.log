@@ -1,0 +1,48 @@
+QUIET_NAME=D10-coverage
+QUIET_DIR=/Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/audit-r2-baseline
+QUIET_CMD=tools/audit/round2/D10/coverage_suite.sh
+QUIET_START=2026-09-02 09:32:22
+QUIET_LOAD_BEFORE={ 1.74 1.87 1.98 }
+QUIET_CPU_BEFORE=CPU usage: 3.35% user, 3.24% sys, 93.40% idle 
+ran tests/features.py exit=0 wall=110s
+ran tests/entities.py exit=1 wall=18s
+ran tests/manual_plan.py exit=0 wall=9s
+ran tests/open_meteo.py exit=0 wall=1s
+ran tests/solar_alignment.py exit=0 wall=0s
+ran tests/golden.py exit=1 wall=184s
+ran tests/validate.py exit=0 wall=50s
+ran tests/edge.py exit=0 wall=57s
+ran tests/backtest.py exit=0 wall=56s
+ran tests/optimality.py exit=0 wall=211s
+ran tests/plan_view.py exit=0 wall=1s
+ran tests/frontend.py exit=0 wall=0s
+ran tests/stress.py exit=0 wall=285s
+RESULT coverage_total_pct=88.4 pct
+RESULT coverage_statements=12877 count
+RESULT coverage_missing=1491 count
+RESULT coverage_config_flow_pct=86.4 pct
+RESULT coverage_modules_ge95=20 of 45 count
+RESULT module_climate_pct=59.0 pct
+RESULT module_open_meteo_pct=67.2 pct
+RESULT module_diagnosis_pct=76.7 pct
+RESULT module_coordinator_pct=77.8 pct
+RESULT module_frontend_pct=79.8 pct
+RESULT module_curve_learning_pct=85.4 pct
+RESULT module_config_flow_pct=86.4 pct
+RESULT module_grid_fee_pct=86.9 pct
+RESULT module_dhw_schedule_pct=87.0 pct
+RESULT module_switch_pct=88.4 pct
+RESULT module_presets_pct=89.0 pct
+RESULT module_comfort_learning_pct=89.6 pct
+RESULT scripts_run=13 count
+RESULT scripts_nonzero_exit=2 count  # entities golden
+RESULT wall_s=982 s  # PROVISIONAL, shared box
+RESULT thread_factor=1.00
+RESULT load1=1.65
+RESULT swapins=11647165
+temp root kept for inspection: /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T//d10-cov-I376wc
+QUIET_LOAD_AFTER={ 1.65 2.04 2.12 }
+QUIET_CPU_AFTER=CPU usage: 7.72% user, 6.49% sys, 85.77% idle 
+QUIET_EXIT=0
+QUIET_WALL_S=983
+QUIET_END=2026-09-02 09:48:48

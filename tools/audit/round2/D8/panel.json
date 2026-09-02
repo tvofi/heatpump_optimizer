@@ -1,0 +1,31 @@
+{
+  "panel": "D8",
+  "seats": 3,
+  "votes": {
+    "D8-01": ["verify", "verify", "verify"],
+    "D8-02": ["verify", "verify", "verify"],
+    "D8-03": ["verify", "verify", "verify"],
+    "D8-04": ["verify", "verify", "verify"]
+  },
+  "counted": {
+    "D8-01": "3-0 verify",
+    "D8-02": "3-0 verify",
+    "D8-03": "3-0 verify",
+    "D8-04": "3-0 verify"
+  },
+  "severity": {
+    "D8-01": "high",
+    "D8-02": "low",
+    "D8-03": "low",
+    "D8-04": "low"
+  },
+  "voided": [],
+  "notes": {
+    "D8-01": "STRENGTHENED on reach, CORRECTED on title. Seat 2 drove the real HeatPumpOptimizerConfigFlow to create_entry submitting every form untouched: it completes with zero thermometers configured and dhw_tank_volume=200.0, so this is the DEFAULT install, not a matrix corner. 16 default-derived enabled-by-default states, 11 of them carrying a state_class, so real Home Assistant writes long-term statistics for them. Seat 1: Mixed Hot Water is available at 270.0 L / 33.8 shower minutes / tank_temperature 55.0, unchanged over 20 solve cycles, while DHW Temperature is correctly unavailable and input_problem reads ok. Seat 3 measured it causally instead of through the code's own reading_ok map: 4033 publications move when the DHW default moves, holding in 50 of 55 cells, all five probed control cells falling to one noise leaf. TITLE CORRECTION (seat 1): 512 of the finder's 1132 are a live thermometer reading re-labelled, not a constructor default, so the headline over-states by 45 %; 620 are genuine defaults. PERTURBATION CORRECTION (seat 1): 'probes -> 0' is false on the first cycle, where 13 publications still carry the slab integrator seed, gap 1.50 C decaying to 0.0000 by cycle 10; the tank, buffer, indoor and outdoor cases never decay. TIMING (seat 2): __init__.py awaits async_config_entry_first_refresh BEFORE async_forward_entry_setups, and that refresh takes the _skip_solve_once light path, so there is no unavailable window and no cycle corrects it. Severity held at high, not critical: the published outdoor default reaches the horizon only through the no-forecast branch and a weather entity is required by the flow.",
+    "D8-02": "VERIFIED, and the consequence is smaller than the label. Seat 1 found real orjson 3.12.0 on the box and ran Home Assistant's own json_bytes path: 0 failures over 496 payloads, because every numpy leaf is np.float64, which subclasses float. Controls np.float32, np.int64, np.ndarray and np.bool_ all raise, so the hazard is real but latent. RESTATE 'unserialisable_attributes=3630' as '3630 numpy leaves, 0 unserialisable'. Seat 3: the three sites are TWO causes. One float() on _deferred_energy_cost collapses two sites plus the numpy state (predicted_savings inherits numpy through the subtraction); one float() on compute_solar_gain collapses the third and its daylight twin. The proposed optimizer.py fix is therefore redundant at one line and incomplete at both, leaving 2 sites and the state alive when measured.",
+    "D8-03": "VERIFIED, restate the metric. Seat 1: the schedule attribute spans 5 h 45 min against README.md:286's whole-24-h claim, with 96 forecast steps on the same payload. schedule_truncated=170 is 85 cells x 2 cycles x a constant, so the grid contributes nothing and leave-one-out is meaningless: report a span, not a count. Seat 2: the bundled card reads 0 of the 2 sensors and neither is disabled by default, so users see them and nothing shipped consumes them. Seat 3: the declared golden drift DOES NOT EXIST (every coord_* fixture stores schedule: [] because _capture_coordinator never solves), and this fix must be sequenced AFTER D8-02's solar-gain fix or it takes numpy leaves 726 -> 3140.",
+    "D8-04": "VERIFIED as hygiene, aggregate corrected. Seat 1: distinct_rosters=1, so the metric is static text and cannot move with any input; nothing supports more than hygiene. Seat 3: leave-one-out on card_headline takes 15 -> 12, the 15 double-counts four entities, and 8 of the 15 splits come from families no naming scheme could sort adjacent. The proposed rename gets Swedish only 16 -> 15 with the hot-water family still split, because Swedish display names sort by Blandat / Radgivare / Schema, which a translation-key rename cannot touch. Weigh that against three breaking entity-id renames."
+  },
+  "reports": ["D8/verify-1.md", "D8/verify-2.md", "D8/verify-3.md"],
+  "contention": "No timing, CPU or RSS number decides anything in this panel; every decisive number is a count, a dtype, a published value or a span. thread_factor 1.000 on both re-runs, load1 8.2-17.9 under the fan-out."
+}

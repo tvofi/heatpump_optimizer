@@ -1,0 +1,41 @@
+== parsing ==
+  ok   parses an hourly block
+  ok   infers hourly resolution
+  ok   times are timezone aware UTC
+  ok   infers 15 minute resolution
+  ok   infers 10 minute resolution
+  ok   drops null samples rather than zeroing them
+  ok   a single gap does not inflate resolution
+  ok   rejects negative, absurd and non-numeric values
+  ok   an unusable block yields an empty series
+  ok   a missing block yields an empty series
+
+== end-of-interval timestamp convention ==
+  ok   value stamped 03:00 covers 02:00-03:00
+  ok   the preceding hour 01:00-02:00 is still dark
+  ok   series start is one resolution before the first stamp
+
+== resampling onto optimizer steps ==
+  ok   hourly series answers a 15 minute step
+  ok   10 minute series is overlap-weighted onto a 15 minute step
+  ok   a window entirely outside the series returns None
+  ok   a barely-overlapping window returns None instead of a misleading value
+  ok   an inverted window returns None
+
+== freshness ==
+  ok   latest_before picks the newest past sample
+  ok   a stale series is rejected
+  ok   a sample whose interval has not finished is not treated as current
+
+== source precedence ==
+  ok   a fresh client reports unavailable
+  ok   an unavailable client returns None rather than 0
+  ok   forecast alone is used when there is no observation
+  ok   observed satellite data overrides the forecast where both exist
+  ok   forecast still covers steps beyond the observed horizon
+  ok   current_irradiance prefers the newest observation
+  ok   coordinate matching tolerates float noise
+  ok   coordinate matching rejects a different place
+  ok   diagnostics report both series
+
+ALL OPEN-METEO CHECKS PASSED

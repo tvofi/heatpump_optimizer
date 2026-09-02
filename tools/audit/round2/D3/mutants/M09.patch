@@ -1,0 +1,15 @@
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -4923,12 +4923,6 @@
+             self._buffer_cooling_samples = 0
+             await self._async_save_thermal_learning()
+ 
+-        if CONF_DHW_COOLING_RATE in params:
+-            # An explicit value replaces the learned one and resets the sample
+-            # count, so the learner treats it as the new starting point.
+-            self._apply_dhw_cooling_rate(float(params[CONF_DHW_COOLING_RATE]))
+-            self._dhw_cooling_samples = 0
+-            await self._async_save_dhw_profile()
+ 
+         # The displace limits are mirrored on the coordinator because the MQTT
+         # publisher clamps against them without going through the model.

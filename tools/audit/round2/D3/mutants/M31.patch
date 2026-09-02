@@ -1,0 +1,35 @@
+--- a/custom_components/heatpump_optimizer/sensor.py
++++ b/custom_components/heatpump_optimizer/sensor.py
+@@ -1083,32 +1083,6 @@
+ 
+     @property
+     def extra_state_attributes(self) -> dict[str, Any]:
+-        if self.coordinator.data:
+-            info = self.coordinator.data.get("predictive_info", {})
+-            return {
+-                "solar_reduction_factor": info.get("solar_reduction_factor"),
+-                "wind_anticipation_factor": info.get("wind_anticipation_factor"),
+-                "rain_anticipation_factor": info.get("rain_anticipation_factor"),
+-                "pre_heat_urgency": info.get("pre_heat_urgency"),
+-                "future_solar_energy_kwh": info.get("future_solar_energy_kwh"),
+-                "future_solar_6_12h_kwh": info.get("future_solar_6_12h_kwh"),
+-                "avg_future_wind_ms": info.get("avg_future_wind_ms"),
+-                "avg_future_precip_mmh": info.get("avg_future_precip_mmh"),
+-                "dhw_preheat_lead_hours": info.get("dhw_preheat_lead_hours"),
+-                "dhw_peak_usage_hours": info.get("dhw_peak_usage_hours"),
+-                "dhw_min_temperature": info.get("dhw_min_temperature"),
+-                "dhw_target_temperature": info.get("dhw_target_temperature"),
+-                "dhw_windows": info.get("dhw_windows"),
+-                "dhw_in_demand_window": info.get("dhw_in_demand_window"),
+-                "dhw_next_window_in_hours": info.get("dhw_next_window_in_hours"),
+-                "dhw_required_temperature_now": info.get(
+-                    "dhw_required_temperature_now"
+-                ),
+-                "dhw_idle_min_temperature": info.get("dhw_idle_min_temperature"),
+-                "dhw_legionella_due": info.get("dhw_legionella_due"),
+-                "dhw_planned_heating_hours": info.get("dhw_planned_heating_hours"),
+-                "dhw_usage_profile": self.coordinator.data.get("dhw_usage_profile", []),
+-            }
+         return {}
+ 
+ 

@@ -1,0 +1,249 @@
+{
+  "dimension": "D0",
+  "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+  "exposure": "",
+  "findings": [
+    {
+      "id": "D0-01",
+      "title": "Capacity tariff: single-zone solver stalls on the top-k peak plateau, plans 1-4 SEK/day dearer than needed",
+      "severity": "medium",
+      "claim": "With the golden capacity_tariff_15min settings the single-zone plan is beaten on its own objective at comfort parity in 15 of 16 winter_cold price x DHW cells (mean 1.26 SEK per solve excluding the negative-price cell, 2.19 % of objective, 3.28 % of the daily bill; 58.29 SEK on summer_negative/winter_cold/nodhw), and production's answer has |projected gradient| 0.03-20 SEK/kW against PGTOL 1e-5 in 16/16 cells.",
+      "mechanism": "tariff.peak_cost sums the top-k (peak_count=3) window excesses, so a plan with more than k metering windows tied at the peak is a plateau on which the 2-point gradient sees only k windows; the per-iteration reduction is tiny relative to the objective and L-BFGS-B's ftol=1e-6 FACTR test fires at a non-stationary point. A same-settings restart recovers 0.66-0.92 SEK in 7/16 cells; ftol=1e-9 removes the restart gap entirely; peak_count=16 collapses the 58 SEK cell to 0.13 SEK.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D0/race_grid.py --tz 0 --weather winter_cold --quiet --random 3 --tag tariff15_baseline --opt '{\"peak_price_per_kw\":20.0,\"peak_threshold_kw\":6.0,\"peak_window_minutes\":15,\"baseline_load_kw\":1.0}'",
+        "harness_path": "tools/audit/round2/D0/race_grid.py",
+        "value": "cells_with_gap_sz=15 of 16; mean_energy_gap_pct_bill_sz=2.517; mean gap 1.255 SEK with the 58.285 SEK cell dropped; restart_improves_sz=7; pg_above_pgtol_sz=16; mean_restart_gap_sek_sz=0.1661",
+        "unit": "count / SEK / pct_of_bill",
+        "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+        "machine": "Apple M1 8-core 8 GB, macOS 25.6, python 3.13.1, numpy 2.5.2, scipy 1.18.1, OpenBLAS pinned to 1 thread",
+        "cpu_or_wall": "count",
+        "contention_note": "fan-out: ten other auditors on the box, load1 1.5-70 during the day; counts and SEK gaps on the production objective are contention-immune",
+        "tolerance": "counts exact; SEK gaps +/-1e-3 (L-BFGS-B is deterministic on this build)",
+        "load1": 4.97,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "heatpump_optimizer.optimizer:_multi_start_minimize (recorded and re-issued through _scoped_minimize); heatpump_optimizer.tariff:peak_cost",
+      "perturbation": {
+        "change": "D0_PERTURB=ftol9 (equivalent to options[\"ftol\"] = 1e-9 in optimizer._multi_start_minimize); also --opt peak_count 16 (config)",
+        "expected_direction": "to_zero",
+        "observed_value": "ftol9: restart_improves_sz 7 -> 0, mean_restart_gap_sek_sz 0.1661 -> 0.0000, cells_with_gap_sz 15 -> 10, energy gap 2.517 -> 1.385 pct_of_bill; peak_count=16: summer_negative cell gap 58.285 -> 0.130 SEK, 16-cell mean 4.82 -> 0.525 SEK; D0_PERTURB=restart: restart_improves 7 -> 4"
+      },
+      "metric_definition": "Per cell: production objective minus best comfort-parity challenger objective (same closure, bounds, args; challengers = production's L-BFGS-B call from other starts/budgets), SEK/solve.",
+      "null_control": {
+        "command": "the two flat cells of the same run; rolling_gap.py --tz 0 --opt <tariff15> --price flat",
+        "value": "flat single-solve gaps 0.71/0.48 SEK (0.76/0.57 % of objective) with restart gap 0.000; closed loop settled: winter_typical +0.355 SEK/2d (0.33 %), winter_moderate +0.849 (0.65 %), flat +1.445 (0.93 %); realised peak charge 0.000-0.014 SEK both arms",
+        "note": "the stall (restart) component vanishes at flat prices; the residual is the peak term's own kink. Re-planning masks most of the single-solve gap, hence medium not high."
+      },
+      "leave_one_out": {
+        "cells": 16,
+        "min": 0.0,
+        "max": 79.69,
+        "drop_most_favourable": 2.192
+      },
+      "reproduction_steps": [
+        "run the evidence command; read RESULT cells_with_gap_sz, mean_restart_gap_sek_sz, pg_above_pgtol_sz",
+        "re-run with D0_PERTURB=ftol9 (restart gap must go to 0.0000)",
+        "re-run with \"peak_count\":16 added to --opt (the summer_negative/winter_cold/sz/nodhw gap must fall from 58.29 to ~0.13)",
+        "PYTHONPATH=tests/hastub python tools/audit/round2/D0/race_scenarios.py --only tariff --verbose (golden capacity_tariff_15min: gap 0.919 SEK all recovered by restart_same, pg 18)"
+      ],
+      "proposed_fix_scope": "In _multi_start_minimize, re-submit the best result to L-BFGS-B until the objective stops improving (or ftol 1e-9 with maxiter covering it); give peak_cost a gradient on every tied window (smooth top-k). Re-record capacity_tariff, capacity_tariff_15min, tariff_plus_two_zone, peak_masked, everything_on.",
+      "files": [
+        "custom_components/heatpump_optimizer/optimizer.py",
+        "custom_components/heatpump_optimizer/tariff.py"
+      ],
+      "expected_golden_drift": [
+        "capacity_tariff",
+        "capacity_tariff_15min",
+        "tariff_plus_two_zone",
+        "peak_masked",
+        "everything_on"
+      ],
+      "stop_rule_class": "bug"
+    },
+    {
+      "id": "D0-02",
+      "title": "Two-zone solves stop on FACTR at non-stationary points; a restart recovers up to 2.16 SEK/day (masked by re-planning)",
+      "severity": "low",
+      "claim": "On the 24 h price x weather grid, re-submitting production's answer to the identical L-BFGS-B call improves the two-zone plan by more than 1e-3 SEK in 15/80 cells (mean 0.052 SEK; winter_narrow/winter_cold/tz/dhw 2.163 SEK = 1.75 % of a 123.4 SEK bill, winter_typical/winter_cold/tz/dhw 0.954 SEK = 1.4 % of 69.0 SEK); production's answer has |projected gradient| > PGTOL in 64/80 two-zone cells and the restart gap vanishes at flat prices (max 0.0011 SEK).",
+      "mechanism": "L-BFGS-B's relative-reduction stop (ftol=1e-6) fires on a stalled iteration of the two-zone objective when the price signal creates ill-conditioned basins; a fresh curvature memory from the same point continues to descend. The seed-found part of the whole-race gap (49/80 cells, mean 0.109 SEK) survives flat prices (0.155 SEK) and is non-convexity, not price optimality.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D0/race_grid.py --quiet",
+        "harness_path": "tools/audit/round2/D0/race_grid.py",
+        "value": "restart_improves_tz=15 of 80; mean_restart_gap_sek_tz=0.0519; pg_above_pgtol_tz=64; cells_with_gap_tz=49; mean_gap_sek_tz=0.1088 (max 2.5099); mean_gap_pct_tz=0.507 (loo 0.232); null_flat_mean_gap_sek_tz=0.1553 vs nonflat 0.1022; 16-cell subset (--tz 1 --weather winter_cold --random 2): restart_improves 7/16, mean restart gap 0.2183 SEK",
+        "unit": "count / SEK",
+        "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+        "machine": "Apple M1 8-core 8 GB, macOS 25.6, python 3.13.1, numpy 2.5.2, scipy 1.18.1, OpenBLAS pinned to 1 thread",
+        "cpu_or_wall": "count",
+        "contention_note": "fan-out; load1 13.8 at the end of the full-grid run; counts and SEK gaps are contention-immune; production CPU 111.8 s for 160 solves is provisional",
+        "tolerance": "counts exact; SEK gaps +/-1e-3",
+        "load1": 13.8,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "heatpump_optimizer.optimizer:_multi_start_minimize (recorded; challengers re-issue _scoped_minimize with production's jac path)",
+      "perturbation": {
+        "change": "D0_PERTURB=restart (production re-submits its best result to the same call once; a one-line change in _multi_start_minimize) on the 16-cell subset; also D0_PERTURB=solves3 (_MULTI_START_SOLVES = 3) on the full grid and D0_PERTURB=ftol9",
+        "expected_direction": "to_zero",
+        "observed_value": "restart: mean_restart_gap_sek_tz 0.2183 -> 0.0030, mean gap 0.449 -> 0.249 SEK, winter_narrow 2.51 -> 0.53, winter_typical 1.22 -> 0.20; solves3 (80 cells): mean restart gap 0.052 -> 0.010, cells_with_gap 49 -> 41, mean gap 0.109 -> 0.066; ftol9 (subset): mean_restart_gap_sek_tz 0.2183 -> 0.0005, restart_improves 7 -> 2, cells_with_gap 13 -> 7, mean gap 0.449 -> 0.0485 SEK (0.461 -> 0.072 pct of objective), winter_typical 1.22 -> 0.0000 (nit 22 -> 39), winter_narrow 2.51 -> 0.16 (nit 19 -> 76)"
+      },
+      "metric_definition": "Per cell: production objective minus the objective after re-submitting production's x to the identical L-BFGS-B call (same maxiter/ftol/eps/jac/bounds), SEK/solve; plus |projected gradient| at x.",
+      "null_control": {
+        "command": "the 10 flat tz cells of the same run; PYTHONPATH=tests/hastub python tools/audit/round2/D0/rolling_gap.py [--price flat] [--fracs \"\"]",
+        "value": "flat restart gap max 0.0011 SEK (to zero); closed loop 2 d settled: winter_typical full improved +0.100 SEK (0.065 % of bill) for 10.7 SEK of single-solve objective, restart+third +0.208 SEK (0.135 %); winter_narrow restart+third +0.220 SEK (0.089 %); flat -0.341 SEK",
+        "note": "the stall vanishes without a price signal; the receding horizon does not realise the single-solve gap (step-0 action differs in 28/98 gap cells)"
+      },
+      "leave_one_out": {
+        "cells": 80,
+        "min": 0.0,
+        "max": 2.163,
+        "drop_most_favourable": 0.025
+      },
+      "reproduction_steps": [
+        "run the evidence command (about 13 min wall under load); read RESULT restart_improves_tz, mean_restart_gap_sek_tz, pg_above_pgtol_tz, null_flat_*",
+        "PYTHONPATH=tests/hastub python tools/audit/round2/D0/race_grid.py --tz 1 --weather winter_cold --quiet --random 2 (subset baseline), then the same with D0_PERTURB=restart and D0_PERTURB=ftol9",
+        "PYTHONPATH=tests/hastub python tools/audit/round2/D0/rolling_gap.py --price winter_narrow --fracs \"\" (realised gap after settlement)"
+      ],
+      "proposed_fix_scope": "Same restart-until-flat rule as D0-01 in _multi_start_minimize (roughly one extra solve per call); re-record every two-zone golden fixture.",
+      "files": [
+        "custom_components/heatpump_optimizer/optimizer.py"
+      ],
+      "expected_golden_drift": [
+        "winter_two_zone_dhw",
+        "winter_two_zone_no_dhw",
+        "shoulder_two_zone",
+        "tariff_plus_two_zone",
+        "everything_on",
+        "wood_two_tank",
+        "wood_two_tank_smart_write",
+        "wood_coil",
+        "valve_storage_low_target"
+      ],
+      "stop_rule_class": "bug"
+    },
+    {
+      "id": "D0-03",
+      "title": "Small buffer tank with a mixing valve: cap-tightened re-solve stops at a kink, 3.5-4.2 SEK/day dearer, floor breached",
+      "severity": "medium",
+      "claim": "With the golden valve_storage_small_tank config (35 L buffer, manual valve, tank at 32 C) swept over the 8 price profiles (two-zone, no DHW, winter_cold), production's plan is beaten at comfort parity in 5/8 cells, mean 1.13 SEK per solve (4.4 % of the energy bill), max 4.19 SEK (winter_moderate) and 3.47 SEK on winter_typical where production's own plan breaches the comfort floor by 0.112 K-steps while the bang-bang challenger breaches 0.000; |projected gradient| at production's answer is 2 to 1.1e4 SEK/kW in 8/8 cells.",
+      "mechanism": "The _tighten_buffer_caps loop in optimize lowers per-step power caps where the tank clamp refused heat and re-solves from the same three starts; the clamp deletes heat so the objective is kinked at the cap, production's starts descend onto the kink and the FACTR test fires there (winter_typical: 3 multi-start calls, pg 131 at the adopted one).",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D0/race_grid.py --tz 1 --dhw 0 --weather winter_cold --quiet --random 3 --tag smalltank --cfg '{\"mixing_valve_mode\":\"manual\",\"buffer_tank_volume\":35.0,\"buffer_max_temperature\":70.0}' --state '{\"buffer_tank_temperature\":32.0}'",
+        "harness_path": "tools/audit/round2/D0/race_grid.py",
+        "value": "cells_with_gap_tz=5 of 8; mean_gap_sek_tz=1.1333; max_gap_sek_tz=4.1884; mean_energy_gap_pct_bill_tz=4.396; pg_above_pgtol_tz=8; winter_typical gap 3.4708 SEK (3.90 %) with production under=0.1119 K-steps vs challenger 0.0000 (race_scenarios.py --only small_tank --verbose)",
+        "unit": "count / SEK / pct_of_bill",
+        "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+        "machine": "Apple M1 8-core 8 GB, macOS 25.6, python 3.13.1, numpy 2.5.2, scipy 1.18.1, OpenBLAS pinned to 1 thread",
+        "cpu_or_wall": "count",
+        "contention_note": "fan-out; load1 3.3 at the end of the run; counts and SEK gaps are contention-immune",
+        "tolerance": "counts exact; SEK gaps +/-1e-3",
+        "load1": 3.31,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "heatpump_optimizer.optimizer:_multi_start_minimize (recorded, the adopted call after HeatPumpOptimizer._tighten_buffer_caps); challengers re-issue _scoped_minimize",
+      "perturbation": {
+        "change": "config: buffer_tank_volume 35.0 -> 750.0 (the golden valve_storage config), i.e. --cfg '{\"mixing_valve_mode\":\"manual\",\"buffer_tank_volume\":750.0,\"buffer_max_temperature\":70.0}'",
+        "expected_direction": "to_zero",
+        "observed_value": "mean_gap_sek_tz 1.1333 -> 0.2047; winter_typical 3.4708 -> 0.0000; winter_moderate 4.1884 -> 0.1984; max |projected gradient| 1.1e4 -> 0.18"
+      },
+      "metric_definition": "Per cell: production objective minus best comfort-parity challenger objective on the recorded call (same closure, bounds, args), SEK/solve; parity = floor/ceiling violation no worse.",
+      "null_control": {
+        "command": "the flat cell of the same run",
+        "value": "flat gap 0.1411 SEK (0.13 % of objective), restart 0.13",
+        "note": "a residual basin gap only; the kink gaps (3.5-4.2 SEK) appear with a price spread and with a tank too small to absorb the cheap-hour charge"
+      },
+      "leave_one_out": {
+        "cells": 8,
+        "min": 0.0,
+        "max": 4.0,
+        "drop_most_favourable": 0.804
+      },
+      "reproduction_steps": [
+        "run the evidence command; read the per-cell lines and RESULT mean_gap_sek_tz, pg_above_pgtol_tz",
+        "re-run with buffer_tank_volume 750.0 in --cfg (gap must collapse)",
+        "PYTHONPATH=tests/hastub python tools/audit/round2/D0/race_scenarios.py --only small_tank --verbose (production under 0.1119 vs seed_bang1.0 under 0.0000, obj 88.975 vs 85.504)"
+      ],
+      "proposed_fix_scope": "Seed the cap-tightened re-solve from the previous answer clipped to the new caps plus a bang-bang seed at the answer's energy, and apply the restart rule; consider smoothing the tank clamp in the objective. Re-record valve_storage_small_tank (and check valve_storage_low_target).",
+      "files": [
+        "custom_components/heatpump_optimizer/optimizer.py"
+      ],
+      "expected_golden_drift": [
+        "valve_storage_small_tank",
+        "valve_storage_low_target"
+      ],
+      "stop_rule_class": "bug"
+    }
+  ],
+  "non_findings": [
+    {
+      "claim": "Single-zone default solves (no tariff) are at their optimum: all 16 arms tie production to 1e-6 on winter_typical/winter_cold single-zone cells",
+      "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D0/race_grid.py --price winter_typical --weather winter_cold --tz 0",
+      "value": "gap 0.0000 SEK in both cells; sz grid (80 cells) mean 0.041 SEK, max 0.66 (flat/winter_cold/sz/dhw), restart improves 6/80 (mean 0.0026 SEK)"
+    },
+    {
+      "claim": "The seed-found two-zone gap survives flat prices, so it is non-convexity of the comfort/terminal landscape, not price optimality",
+      "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D0/race_grid.py --quiet",
+      "value": "null_flat_mean_gap_sek_tz=0.1553 (8/10 cells) vs nonflat 0.1022 SEK"
+    },
+    {
+      "claim": "A larger budget, tighter ftol or a different eps continued from production's answer does not move single-zone plans",
+      "command": "race_grid.py arms budget_warm / eps1e-3 / eps1e-5 (probe on winter_typical/winter_cold sz)",
+      "value": "0 iterations, identical x; sz restart_improves 6/80"
+    },
+    {
+      "claim": "Iterating the DHW <-> space decomposition a second time never changes the plan",
+      "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D0/dhw_coopt.py",
+      "value": "coopt_triggered 15/20, pass 1 re-solved 7 adopted 3 (0.558 SEK), pass 2 re-solved 4 adopted 0 (pass2_gain_sum 0.0000 SEK)"
+    },
+    {
+      "claim": "The terminal credit changes the plan the way its docstring claims: without it the tail is dumped",
+      "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D0/dhw_coopt.py",
+      "value": "terminal_end_room_drop_mean 2.048 K, terminal_tail_kwh_delta_mean 6.552 kWh, 19/20 cells dumped"
+    },
+    {
+      "claim": "The pre-refinement discard (_MULTI_START_SOLVES=2 of 3) rarely throws away the winner",
+      "command": "race_grid.py / race_scenarios.py best_feasible arm names",
+      "value": "third_cand* best in 0/160 grid cells; polish[third_cand2] best in wood_two_tank and wood_two_tank_smart_write only"
+    },
+    {
+      "claim": "The receding horizon does not realise the two-zone single-solve gap",
+      "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D0/rolling_gap.py [--fracs \"\"] [--price flat|winter_narrow]",
+      "value": "settled 2-day gap +0.100 SEK (0.065 %) full improved, +0.208 restart-only, winter_narrow +0.220 (0.089 %), flat -0.341; comfort degree-hours <= 0.0023 in every arm"
+    },
+    {
+      "claim": "Golden single-zone feature scenarios tie or nearly tie",
+      "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D0/race_scenarios.py",
+      "value": "sz 20 scenarios: 8 with gap > 1e-3, mean 0.163 %, loo 0.105 %; extreme_prices, negative_prices, wide_band, peak_masked, price_risk, building_preset, capacity_curve, horizon_6h, start_above_band, confidence_margins all 0.0000"
+    },
+    {
+      "claim": "Horizon 6 h solves are at their optimum",
+      "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D0/race_scenarios.py (horizon_6h); race_grid.py --hours 6 --tz 1 --weather winter_cold --random 2",
+      "value": "horizon_6h gap 0.0000, pg 0; 6 h subset (16 tz winter_cold cells): cells_with_gap_tz=0, mean_gap_sek_tz=0.0001, max 0.0005, restart 0.0000, null flat 0.0000"
+    },
+    {
+      "claim": "Horizon 48 h (single-zone golden scenario) shows only a small basin gap",
+      "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D0/race_scenarios.py",
+      "value": "horizon_48h gap 0.325 SEK (0.25 % of objective), restart 0.000"
+    },
+    {
+      "claim": "Wood and valve two-zone scenarios show only the D0-02 class of gap",
+      "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D0/race_scenarios.py",
+      "value": "wood_coil 0.855 SEK (0.86 %), everything_on 0.551 (0.71 %), wood_two_tank 0.389 (0.43 %), valve_storage 0.000, valve_storage_smart_write 0.000, valve_upper_direct_slab 0.000"
+    },
+    {
+      "claim": "The race uses the same jac path production would (batched where _bounds_supported_by_batch allows, scalar FD otherwise)",
+      "command": "d0lib.make_jac; race_scenarios.py fuse_guard",
+      "value": "fuse_guard (zero-range bounds) raced on the scalar path: gap 0.281 SEK (0.37 %)"
+    },
+    {
+      "claim": "With a capacity tariff the closed loop realises no peak charge in either arm",
+      "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D0/rolling_gap.py --tz 0 --opt <tariff15> [--price winter_moderate|flat]",
+      "value": "realised_peak_charge 0.000-0.014 SEK both arms; settled gap 0.355 / 0.849 / 1.445 SEK per 2 days"
+    }
+  ],
+  "harnesses": [
+    "tools/audit/round2/D0/d0lib.py",
+    "tools/audit/round2/D0/race_grid.py",
+    "tools/audit/round2/D0/race_scenarios.py",
+    "tools/audit/round2/D0/rolling_gap.py",
+    "tools/audit/round2/D0/dhw_coopt.py"
+  ]
+}

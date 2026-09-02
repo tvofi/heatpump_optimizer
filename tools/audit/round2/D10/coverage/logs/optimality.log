@@ -1,0 +1,28 @@
+
+=== Optimality floor ===
+
+-- two_zone=False
+ optimizer : cost   23.28  room 17.06-20.91  viol 0.000
+  ok   optimizer plan meets the comfort floor
+ greedy    : cost   23.28  room 17.06-20.91  viol 0.000
+  ok   greedy same-energy challenger does not rout the optimizer
+ random    : 0/300 comfort-safe perturbations cheaper; best   23.28
+  ok   no perturbation finds a materially cheaper comfort-safe plan
+  ok   the batched-FD jac reproduces scipy's own gradient path exactly
+
+-- two_zone=True
+ optimizer : cost   58.30  room 17.57-21.48  viol 0.000
+  ok   optimizer plan meets the comfort floor
+ greedy    : cost   57.01  room 17.36-21.57  viol 0.000
+  ok   greedy same-energy challenger does not rout the optimizer
+ random    : 2/300 comfort-safe perturbations cheaper; best   57.39
+  ok   no perturbation finds a materially cheaper comfort-safe plan
+ starved  : cost   67.76  viol 0.000
+  ok   the production iteration budget buys a materially better plan
+  ok   the batched-FD jac reproduces scipy's own gradient path exactly
+
+-- batched-FD jac on DHW-enabled solves (D9-01)
+  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=False)
+  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=True)
+
+ALL 11 OPTIMALITY CHECKS PASSED

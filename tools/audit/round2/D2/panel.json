@@ -1,0 +1,60 @@
+{
+ "panel": "D2",
+ "seats": 3,
+ "votes": {
+  "D2-01": [
+   "verify",
+   "verify",
+   "verify"
+  ],
+  "D2-02": [
+   "verify(medium)",
+   "weaken(low)",
+   "verify(medium)"
+  ],
+  "D2-03": [
+   "verify(medium)",
+   "weaken(low)",
+   "verify(medium)"
+  ],
+  "D2-04": [
+   "weaken(low)",
+   "weaken(low)",
+   "weaken(low)"
+  ],
+  "D2-05": [
+   "verify",
+   "verify",
+   "verify"
+  ]
+ },
+ "counted": {
+  "D2-01": "3-0 verify",
+  "D2-02": "3-0 verify",
+  "D2-03": "3-0 verify",
+  "D2-04": "3-0 verify (weakened)",
+  "D2-05": "3-0 verify"
+ },
+ "severity": {
+  "D2-01": "high",
+  "D2-02": "medium",
+  "D2-03": "medium",
+  "D2-04": "low",
+  "D2-05": "low"
+ },
+ "notes": {
+  "D2-01": "STRENGTHENED and ready to fix. Two seats independently applied the repair (dt=dt_hours/n_sub in the single-zone batch branch + hoist the T_room seed) and got parity 2.5e74 -> 0.0 on every stiff cell with ALL 49/55 goldens byte-identical, features.py 1557/1557. Consequence at the minimal reachable cell (slab_thermal_mass at the selector MINIMUM 0.1, everything else default, n_sub=2): 100.79 vs 30.94 SEK/day, +69.85 (3.26x), fails silently with status=optimal. Reach narrowing on the record: 0 of 1320 questionnaire-derivable buildings fire n_sub>=2, but 2805 of 18513 selector grid points do, and the batch is BITWISE the wrong integrator, not an alternative discretisation. Test gap is wider than reported: EVERY _grad_parity cell runs at n_sub=1, so sub-step parity has zero coverage in either zoning",
+  "D2-02": "physics confirmed (dCOP/dT_out = -0.26/K, 510 of 1540 cells, 3 of 4 valve modes; COP 0.74 at -25 C/70 C flow is below a resistive heater) but the FIX SCOPE IS REFUTED: the proposed formula is algebraically the shipping code and leaves 6 of 6 cells non-monotone. Plan consequence is 0.0000 SEK on the shipped weather profiles (the turnover region and the heating-demand region do not overlap); it bites only on a flat-price shoulder edge (+3.40 SEK on a 7.49 kWh day). The culprit is the base curve's falling Carnot fraction",
+  "D2-03": "verified: 84 of 96 steps mispriced on all six transition days, one step of real duration 1.25 h (autumn) or -0.75 h (spring, the grid runs backwards in real time) against the uniform dt every consumer integrates with. Why dst_checks.py passes: it never runs _price_series/_forecast_arrays/_Horizon.timestamps on a transition day. Consequence is bounded: step 0 is mispriced in 0 of 48 spring solves (wall-clock subtraction cancels) and 2 of 48 autumn; the reported day cost is off +-2.10 SEK (17.8 %) and comfort is untouched (0.0000 K.h). Fix scope short by two lines (_apply_open_meteo, _horizon_step_starts); the wider fix takes phantom energy 6.000 -> 0.000 kWh with 0 goldens moved",
+  "D2-04": "HEADLINE REFUTED, finding weakened to low: the gate ceiling is 0.35 not 0.28 (excursion is the range of T_room - T_out, not the room alone), so a 1 K/h outdoor drift DOES clear the gate - and it is adopted with ZERO bias in 60/60 seeds. No sensor-drift cell cleared the gate in 11 cells x 60 seeds. What survives is the opposite defect: the formula normalises to 20 rows the default interval can never produce, so clean data scores 0.105-0.188 and is DISCARDED. Doubly opt-in (DEFAULT_SYSID_ENABLED=False), and _adopt blends rather than overwrites, so the plan moved 0.0000 SEK. New unclaimed lead: at the default 6 kW nameplate the experiment aborts on the comfort bound before completing (rows=3) because the step is 0.6*max_power_kw and is not sized against max_excursion_c",
+  "D2-05": "verified low: the discontinuity is real (jump 1.0, 13.44 kW of a 13.44 kW draw) against a docstring promising continuity, and _wood_share_vec shares it bitwise; 0 of 4.8 M recorded solver calls come within 0.5 K of the cliff (closest 1.33 K) and trajectories reconverge to 5.5e-05 C over 96 steps. Expected drift over-listed: only wood_two_tank_smart_write moves"
+ },
+ "harness_corrections": [
+  "model_sanity.py header says wood_share_max_jump = 0.5; the value is 1.0"
+ ],
+ "reports": [
+  "D2/verify-1.md",
+  "D2/verify-2.md",
+  "D2/verify-3.md"
+ ]
+}

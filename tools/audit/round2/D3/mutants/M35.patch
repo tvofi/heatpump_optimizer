@@ -1,0 +1,11 @@
+--- a/custom_components/heatpump_optimizer/grid_fee.py
++++ b/custom_components/heatpump_optimizer/grid_fee.py
+@@ -173,8 +173,6 @@
+ 
+ def parse_rules(spec: str | None) -> list[FeeRule]:
+     """Parse a whole rule specification. Empty input is an empty list."""
+-    if not spec:
+-        return []
+     raw = str(spec).replace(";", ",").replace("\n", ",")
+     rules = []
+     for line in raw.split(","):

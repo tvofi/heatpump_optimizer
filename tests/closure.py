@@ -154,6 +154,11 @@ INERT = (
     ".abacus.donotdelete",
     ".claude/",
     "DISCLAIMER.md",
+    # The quality-scale register (#229): a truthful rule-by-rule record in
+    # home-assistant/core's own schema. No gate script reads it (hassfest
+    # skips it for custom repos), and #229 shipped it without a
+    # classification, failing the orphan check on main until this line.
+    "custom_components/heatpump_optimizer/quality_scale.yaml",
     # Driven by the `browser` CI job, which is never scoped and runs on every
     # pull request regardless. It is a real test; it is simply not one of
     # THIS gate's scripts.

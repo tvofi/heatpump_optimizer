@@ -1,0 +1,117 @@
+# D10 rule table -- baseline c398fc84eec25fc44b60d74aae05b9a2da205884
+
+| rule | tier | status | check | result |
+|---|---|---|---|---|
+| action-setup | bronze | todo | AST __init__.py: async_setup defs; hass.services.async_register calls inside async_setup_entry | async_setup defs=0; async_register inside async_setup_entry=11 |
+| appropriate-polling | bronze | done | update_interval kwarg HeatPumpOptimizerCoordinator.__init__ passes to DataUpdateCoordinator.__init__; manifest iot_class | update_interval default=1800 s, optimization_interval=15 => 900 s; iot_class=cloud_polling |
+| brands | bronze | done | sha256(brands.home-assistant.io/_/heatpump_optimizer/icon.png) != sha256(.../_/zz_no_such_domain_d10/icon.png) | served icon digest distinct from placeholder=True (cached 2026-09-02); in-tree brand/icon.png,logo.png present=[True, True] (not a location Home Assistant reads) |
+| common-modules | bronze | todo | ls coordinator.py entity.py; grep '^class .*(CoordinatorEntity, ' platform files | coordinator.py=True; entity.py=False; CoordinatorEntity base classes in platform files=5 (binary_sensor.py, button.py, climate.py, sensor.py, switch.py) |
+| config-flow | bronze | done | manifest config_flow; strings.json step.data vs step.data_description | manifest config_flow=True; steps=9 config + 15 options; fields without data_description=0/237 (none) |
+| config-flow-test-coverage | bronze | todo | coverage_suite.sh -> coverage.json[config_flow.py]; grep tests for async_step_user(<input>) | config_flow.py 86.4% (67 of 493 statements missed); tests calling async_step_user with input=0 (error branches invalid_tibber_token/cannot_connect never driven) |
+| dependency-transparency | bronze | done | importlib.metadata for manifest requirements (License, Project-URL); PyPI JSON with --network | numpy 2.5.2: BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0 src=github; scipy 1.18.1: Copyright (c) 2001-2002 Enthought, Inc.  src=github; threadpoolctl 3.6.0: BSD-3-Clause src=github [local metadata] |
+| docs-actions | bronze | done | services.yaml names vs README '## Services' table and docs/configuration.md field detail | services.yaml=11; README table rows=11; field-level in docs/configuration.md=11 |
+| docs-triggers | bronze | exempt | grep async_attach_trigger|device_trigger | trigger registrations=0 |
+| docs-conditions | bronze | exempt | grep async_condition_from_config|device_condition | condition registrations=0 |
+| docs-high-level-description | bronze | done | grep '^## What it does' README.md | heading=1; first paragraph describes the service and links the upstream project |
+| docs-installation-instructions | bronze | done | grep '^## Installation|^### HACS|^### Manual|^## Requirements' README.md | headings found=4/4 |
+| docs-removal-instructions | bronze | todo | grep -i 'remov(e|ing|al) (the )?integration|uninstall' README.md docs/*.md | matches=0 [] |
+| entity-event-setup | bronze | done | grep async_track_|async_listen|subscribe in platform files; _unsub_*() calls in coordinator.async_shutdown | entity-level subscriptions outside async_added_to_hass=0; coordinator unsubscribes on shutdown=4 |
+| entity-unique-id | bronze | done | roster via each platform's async_setup_entry: _attr_unique_id present and unique | entities=65; missing unique_id=0; duplicates=0 |
+| has-entity-name | bronze | done | roster: _attr_has_entity_name | has_entity_name True on 65/65 entities |
+| runtime-data | bronze | todo | grep runtime_data; grep 'hass.data[DOMAIN]' custom_components/heatpump_optimizer | runtime_data references=0; hass.data[DOMAIN] references=24 in __init__.py, binary_sensor.py, button.py, climate.py, frontend.py, sensor.py, switch.py |
+| test-before-configure | bronze | done | HeatPumpOptimizerConfigFlow.async_step_user with validate_tibber_token patched to each verdict | invalid_auth->invalid_tibber_token, cannot_connect->cannot_connect, ok->step temperature |
+| test-before-setup | bronze | done | grep async_config_entry_first_refresh in async_setup_entry; _fetch_tibber_prices under a 401/403/errors-payload session | first refresh in setup=1; ConfigEntryAuthFailed in code=0; 401->UpdateFailed, 403->UpdateFailed, 200+errors->UpdateFailed (all UpdateFailed => ConfigEntryNotReady retry loop) |
+| unique-config-entry | bronze | todo | grep unique-id/entries-match guards in config_flow.py; manifest single_config_entry; async_step_user with one entry already in hass.config_entries | guards=0; manifest single_config_entry=None; with an existing entry the user step returns type=form step=temperature (no abort); strings.json abort.already_configured exists unused |
+| action-exceptions | silver | todo | grep raise ServiceValidationError|HomeAssistantError; call run_optimization/simulate_plan/restore_learned_snapshot through FakeServices on a coordinator with no prices | ServiceValidationError raises=14; HomeAssistantError raises=0; failure outcomes: run_optimization: returned None; simulate_plan: returned {'results': {'test_entry': {'error': 'no_plan', 'rate_limited': False}}}; restore_learned_snapshot: returned {'restored': []} |
+| config-entry-unloading | silver | done | heatpump_optimizer.async_setup_entry then async_unload_entry on FakeHass | services after setup=11, after unload=0; coordinator left in hass.data=False; coordinator.async_shutdown reached base=True |
+| docs-configuration-parameters | silver | done | strings.json options step titles (steps with fields) as headings in docs/configuration.md | options pages with fields=12; documented as headings=12 |
+| docs-installation-parameters | silver | done | strings.json config.step.user.data labels found in docs/configuration.md '## Initial setup' | config steps with fields=8; user-step labels documented=17/17; 'Initial setup' section=14931 chars |
+| entity-unavailable | silver | todo | roster with coordinator.last_update_success=False: count entity.available | available after a failed refresh=2/65 [('button', 'optimize_now'), ('button', 'run_system_identification')] |
+| integration-owner | silver | done | manifest codeowners | codeowners=['@tvofi'] |
+| log-when-unavailable | silver | todo | _async_update_data x3 with the Tibber fetch failing (stub: no HTTP session); count ERROR records on logger heatpump_optimizer | UpdateFailed raised=3/3; ERROR records=4 (rule: 1) with exc_info on 4: ['Unexpected error fetching prices: no HTTP session available ', 'Error updating Heat Pump Optimizer: Unexpected error fetchin', 'Error updating Heat Pump Optimizer: Unexpected error fetchin', 'Error updating Heat Pump Optimizer: Unexpected error fetchin']; null control _fetch_tibber_prices x3 alone => 1 ERROR |
+| parallel-updates | silver | todo | grep '^PARALLEL_UPDATES' in the five platform files | declared in 0/5 platforms |
+| reauthentication-flow | silver | todo | grep async_step_reauth config_flow.py; ConfigEntryAuthFailed count | async_step_reauth=0; ConfigEntryAuthFailed raises=0; the Tibber token is a credential (not exempt); re-entry only via the options 'entities' page |
+| test-coverage | silver | todo | coverage_suite.sh (every gate script under coverage.py, combined) -> coverage.json | total 88.4% of 12877 statements; modules >= 95%: 20/45; lowest: climate 59%, open_meteo 67%, diagnosis 77%, coordinator 78%, frontend 80% |
+| devices | gold | done | roster: device_info identifiers, entry_type | devices=1 (identifiers=frozenset({('heatpump_optimizer', 'test_entry')})); entry_type set on 0/65; manufacturer='Custom' model='MPC Optimizer' |
+| diagnostics | gold | todo | ls diagnostics.py; grep async_get_config_entry_diagnostics | diagnostics.py=False; async_get_config_entry_diagnostics defs=0 |
+| discovery | gold | exempt | manifest discovery keys | discovery keys=[] |
+| discovery-update-info | gold | exempt | manifest discovery keys | discovery keys=[] |
+| docs-data-update | gold | done | grep 'optimization interval (30 minutes by default)' README.md docs/*.md | matches=5 ['README.md:2', 'docs/architecture.md:1', 'docs/how-it-works.md:2'] |
+| docs-examples | gold | todo | grep -i blueprint; grep '^ *(automation|trigger|alias):' README.md docs/*.md | blueprint mentions=0; automation examples=0; the YAML examples present are card configs (6 fences) |
+| docs-known-limitations | gold | todo | grep '^#* Known limitations' README.md docs/*.md DISCLAIMER.md | sections=0; DISCLAIMER.md carries caveats (2 'not a ...' statements) but no limitations list |
+| docs-supported-devices | gold | todo | grep '^#* (Un)supported devices' README.md docs/*.md | sections=0; the control paths (on/off switch, ECL110 over MQTT, frequency writer) are described separately (README lines 'Inverter frequency', 'ECL110 heat-curve control'; docs/ecl110.md) |
+| docs-supported-functions | gold | done | README '## Entities' section: per-platform totals vs the roster | README totals=['55', '4', '4'] (+ switch and climate) vs roster=65 entities; table rows=63 |
+| docs-troubleshooting | gold | done | grep '^## Troubleshooting' README.md | section=1; bullets=4 |
+| docs-use-cases | gold | done | README '## What it does': bold-lead use-case paragraphs | use-case paragraphs=9 |
+| dynamic-devices | gold | exempt | roster: one device per entry | devices per entry=1; entities=65 |
+| entity-category | gold | done | roster: _attr_entity_category | categories={'None': 53, 'diagnostic': 12}; uncategorised entities with diagnostic-looking keys=4: ['optimization_status', 'run_system_identification', 'reset_learned_comfort_weight', 'diagnose_last_interval'] |
+| entity-device-class | gold | todo | roster sensors: native unit maps to a SensorDeviceClass but _attr_device_class is None | sensors with device_class=29; unit-mappable without one=5: ['ecl110_displace[°C]', 'ecl110_effective_displace[°C]', 'prediction_accuracy[°C]', 'solar_surplus_forecast[kWh]', 'dhw_heavy_day_demand[kWh]'] |
+| entity-disabled-by-default | gold | done | roster: _attr_entity_registry_enabled_default is False | disabled by default=6: ['ecl110_displace', 'ecl110_effective_displace', 'contract_comparison', 'dhw_heavy_day_demand', 'valve_target_recommendation', 'compressor_frequency_advisor'] |
+| entity-translations | gold | done | roster: _attr_translation_key present in strings.json entity.<platform> | entities=65; missing translation=0 []; strings entity keys={'sensor': 55, 'binary_sensor': 4, 'button': 4, 'switch': 1}; translations/sv.json present=True |
+| exception-translations | gold | todo | grep raise ServiceValidationError(...translation_key; strings.json 'exceptions' | raises=14; with translation_key=0; strings.json exceptions block=False |
+| icon-translations | gold | todo | ls icons.json; grep '_attr_icon =' platform files | icons.json=False; _attr_icon assignments=64 |
+| reconfiguration-flow | gold | todo | grep async_step_reconfigure config_flow.py | async_step_reconfigure=0; options flow pages=15 (the 'entities' page re-validates the token, so the function exists outside the reconfigure source) |
+| repair-issues | gold | done | regex async_create_issue(...translation_key=) in coordinator.py vs strings.json issues | create calls=11 over 11 keys; strings issues=13; keys without strings=[]; is_fixable=False on 12 calls |
+| stale-devices | gold | exempt | roster: one device per entry, identifiers=(DOMAIN, entry_id) | the device is the entry; removing the entry removes it |
+| async-dependency | platinum | done | grep sync HTTP libraries; manifest requirements; grep async_add_executor_job | requirements=['numpy>=1.24.0', 'scipy>=1.10.0', 'threadpoolctl>=3.5.0'] (compute libraries, no I/O); sync HTTP imports=0; HTTP via aiohttp; executor offloads=5 |
+| inject-websession | platinum | done | grep async_get_clientsession( vs aiohttp.ClientSession( | shared-session call sites=3 (config_flow.py, coordinator.py, open_meteo.py); private sessions=0 |
+| strict-typing | platinum | todo | mypy --strict --python-version 3.13 custom_components/heatpump_optimizer with MYPYPATH=tests/hastub | errors=722 in 37/45 files (mypy run, 9 s, PROVISIONAL); by code: no-untyped-call=227, type-arg=111, no-untyped-def=106, attr-defined=90, no-any-return=79, union-attr=25; worst files: coordinator.py=172, sensor.py=144, config_flow.py=114, __init__.py=70; py.typed n/a (integration, not a library) |
+
+RESULT bronze_done=12 of 20 count
+RESULT bronze_todo=6 of 20 count
+RESULT bronze_exempt=2 of 20 count
+RESULT silver_done=4 of 10 count
+RESULT silver_todo=6 of 10 count
+RESULT silver_exempt=0 of 10 count
+RESULT gold_done=9 of 21 count
+RESULT gold_todo=8 of 21 count
+RESULT gold_exempt=4 of 21 count
+RESULT platinum_done=2 of 3 count
+RESULT platinum_todo=1 of 3 count
+RESULT platinum_exempt=0 of 3 count
+RESULT done=27 count
+RESULT todo=21 count
+RESULT exempt=6 count
+RESULT rules=54 count
+RESULT services_registered_in_setup_entry=11 count
+RESULT async_setup_defs=0 count
+RESULT update_interval_default_s=1800 s
+RESULT entity_base_classes_outside_entity_py=5 count
+RESULT flow_fields_without_data_description=0 count
+RESULT tests_driving_async_step_user_with_input=0 count
+RESULT coverage_config_flow_pct=86.4 pct
+RESULT services_documented_readme=11 count
+RESULT docs_removal_instructions=0 count
+RESULT entities=65 count
+RESULT runtime_data_refs=0 count
+RESULT hass_data_domain_refs=24 count
+RESULT auth_failures_raising_ConfigEntryAuthFailed=0 count
+RESULT unique_entry_guards=0 count
+RESULT flow_aborts_with_existing_entry=0 count
+RESULT service_failure_paths_returning_silently=3 count
+RESULT entities_available_after_failed_refresh=2 count
+RESULT error_records_over_3_failed_refreshes=4 count
+RESULT error_records_over_3_failed_fetches_direct=1 count
+RESULT platforms_declaring_parallel_updates=0 count
+RESULT reauth_steps=0 count
+RESULT coverage_total_pct=88.4 pct
+RESULT coverage_modules_ge95=20 count
+RESULT coverage_modules=45 count
+RESULT device_entry_type_service=0 count
+RESULT diagnostics_defs=0 count
+RESULT docs_blueprints=0 count
+RESULT docs_known_limitations_sections=0 count
+RESULT entities_with_category=12 count
+RESULT sensors_with_unit_but_no_device_class=5 count
+RESULT entities_disabled_by_default=6 count
+RESULT entities_missing_translation=0 count
+RESULT exception_raises_with_translation_key=0 count
+RESULT icons_in_code=64 count
+RESULT repair_issue_create_calls=11 count
+RESULT mypy_strict_errors=722 count
+RESULT mypy_strict_files_with_errors=37 count
+RESULT mypy_wall_s=8.5 s
+RESULT thread_factor=1.00
+RESULT load1=6.92
+RESULT swapins=11571709
+RESULT swapins_delta_during_run=143

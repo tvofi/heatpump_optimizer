@@ -1,0 +1,11 @@
+--- a/custom_components/heatpump_optimizer/open_meteo.py
++++ b/custom_components/heatpump_optimizer/open_meteo.py
+@@ -191,7 +191,7 @@
+         try:
+             # timezone=UTC is requested, so the naive ISO stamps are UTC.
+             parsed = datetime.fromisoformat(str(raw_t))
+-        except ValueError:
++        except ():
+             continue
+         if parsed.tzinfo is None:
+             parsed = parsed.replace(tzinfo=timezone.utc)

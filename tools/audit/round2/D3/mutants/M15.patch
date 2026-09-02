@@ -1,0 +1,11 @@
+--- a/custom_components/heatpump_optimizer/inputs.py
++++ b/custom_components/heatpump_optimizer/inputs.py
+@@ -349,7 +349,7 @@
+             # Mixing naive and aware datetimes raises; without a comparable
+             # pair the age is unknown, which is not the same as "fresh".
+             return None
+-        return max(0.0, (now - stamp).total_seconds() / 60.0)
++        return (now - stamp).total_seconds() / 60.0
+ 
+     def _begin(
+         self,
