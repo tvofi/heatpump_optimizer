@@ -94,6 +94,10 @@ p1=$!
 (
   rec tests/features.py
   rec tests/entities.py
+  # The config-flow driver (#194), in lane order next to entities.py: a
+  # selectable script the lanes never recorded reads as "no closure" and
+  # fails the closures job on main (the card_drift.mjs trap above).
+  rec tests/config_flow_steps.py
   rec tests/edge.py
   rec tests/validate.py
   rec tests/backtest.py
