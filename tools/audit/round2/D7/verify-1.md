@@ -13,18 +13,21 @@ shared `*.json` output was touched. My own harnesses are in
 |---|---|
 | `v1_sysid_residual.py` | D7-01: one- vs two-exponential fit of the captured step response; randomised admission sweep |
 | `v23_learners.py` | D7-02: d(scale)/df with a power meter configured; D7-03: accuracy-vs-house-loss sample rate |
+| `v2_perturb.py` (+ `v2_perturb_close.py`) | D7-02: the finding's stated gate perturbation, executed |
 | `v4_traj_side_channel.py` | D7-04: terminal-cost spread over the schedules a real solve actually evaluates |
 | `v4b_stale_runtime.py` | D7-04 non-finding: runtime staleness via a write-generation descriptor |
 | `v5_hub_removal.py` | D7-05: largest connected component after hub-attribute removal (no clustering) |
 | `v6_dead_sentinel.py` | D7-06: whole-tree lexical census + raising sentinel with a positive control |
 
 Every number below is a count, a ratio or a deterministic simulation value; none is a
-timing, so none is provisional under contention. `load1` during my runs was 3.4–15.3,
+timing, so none is provisional under contention. `load1` during my runs ranged 3.4–26.3,
 `thread_factor` 1.0, `swapins` 0 on every finder harness.
 
 ## Re-runs of the finder's harnesses
 
-All five fast harnesses reproduce **exactly**, to the last printed digit.
+All six harnesses that carry a finding's evidence reproduce **exactly**, to the last
+printed digit. (`train_mutations.py` was not re-run: no finding rests on it — step 6
+reports 11 of 11 additions detected, which is a non-finding.)
 
 | harness | key RESULTs I got | matches report |
 |---|---|---|
@@ -33,7 +36,10 @@ All five fast harnesses reproduce **exactly**, to the last printed digit.
 | `sysid_plant.py` | `cells=24 admitted_cells=0 aborted_at_production_bound=4 peak_excursion_max_at_production_bound=0.9204 control_cells=8 control_admitted=4 control_abs_bias_pct_max=8.056` | yes |
 | `learner_gates.py` | `ingest_house_loss_defrost=1 ingest_measured_cop_defrost=0 defrost_scale_tz_f20=1.041379 tz_f50=1.095282 tz_f00=1.000000 sz_f50=1.000000 ast_learners_without_defrost_gate=15` | yes |
 | `trajectory_order.py` | `tc_delta_abs_max=5.416717 tc_delta_rel_to_energy=0.070771 null_delta_abs=0.000000 poison_raises=1 readers_with_model_call_between=0` | yes |
-| `dead_code.py` | `defs_total=1062 started_by_suite=983 dead_candidates=5 dead_candidate_lines=46 dynamic_reach_started_unreferenced=7` | yes |
+| `dead_code.py` | `defs_total=1062 started_by_suite=983 static_unreferenced_prod=63 dead_candidates=5 dead_candidate_lines=46 dynamic_reach_started_unreferenced=7 referenced_never_started=63`, the same five names in `dead_candidate_list`, and all thirteen per-script "code objects started" counts (824/740/511/214/249/257/258/299/18/138/255/3/230) | yes |
+
+`dead_code.py` was re-run under `load1=20.98`; every number it prints is a count, so the
+contention rule does not make it provisional.
 
 ---
 
@@ -164,10 +170,27 @@ about the delivery shortfall. `_interval_space_power`'s v4.0.5 shortfall guard i
 precisely the guard that does not cover this case.
 
 **Perturbation** (report.json: add the COP learner's frost-band/defrost gate at the top of
-`_async_learn_house_heat_loss`; expected *to_zero*). Not separately re-run — my f = 0 arm
-is the same edge of the same curve and holds at exactly 1.000000, and the finder's
-executed to_zero is consistent with it. The number is not a constant: it moves
-monotonically with f over seven points with slope 0.219.
+`_async_learn_house_heat_loss`; expected *to_zero*). **Executed** (`v2_perturb.py`, with
+the defrost *signal* asserted on the contaminated intervals at an outdoor temperature
+inside the frost band, and `DefrostWindow.close(now)` called every cycle as
+`_record_accuracy` does in production):
+
+| f | production bias | gated bias | production samples | gated samples |
+|---|---|---|---|---|
+| 0.0 | 0.000000 | 0.000000 | 400 | 400 |
+| 0.1 | 0.018658 | **0.004634** | 400 | 310 |
+| 0.2 | 0.041379 | **0.008396** | 400 | 227 |
+| 0.5 | 0.095282 | **0.009223** | 400 | 70 |
+
+The number moves in the stated direction and by 90 % at f = 0.5, so the harness is not
+measuring a constant. Two things for whoever fixes it, neither of which is in the finding:
+the residual 0.9 % is real (a defrost straddling an interval boundary contaminates the
+neighbouring interval, which the gate does not block), and the gate costs sample
+throughput — 400 → 227 accepted samples at a realistic f = 0.2. Recorded so the judge is
+not surprised: my first pass at this perturbation showed the gate starving the learner to
+1–2 samples of 400; that was my rig, not the fix — I had not called
+`DefrostWindow.close()` per cycle, so `peek(...).any_defrost` accumulated over the whole
+run. The table above is the corrected run.
 
 **Attacks run.**
 - *Is `duty=0.25` a fair defrost?* A 6–8 minute defrost inside a 30-minute interval is a
@@ -404,9 +427,11 @@ RESULT alias_imports_total=230 count
 RESULT alias_imports_hiding_a_d7_06_name=3 count
 ```
 
-Positive control — the same sentinel installed on the six "test-only" defs **does** trip
-(`features.py` exit 1 with 2 hits, `golden.py` exit 1 with 2 hits), so the method has
-power and the zero above is a measurement, not a silence.
+Positive control — the same sentinel installed on the six "test-only" defs **does** trip:
+`sentinel_trips_test_only=6` across three distinct names
+(`peak_penalty`, `max_abs_component`, `_prepare_forecast_data`, twice each; `features.py`
+and `golden.py` abort at their first failure, so the other three never get their turn).
+The method has power and the zero above is a measurement, not a silence.
 
 **The first half of the claim verifies.** All five candidates —
 `comfort_learning.ComfortLearner.set_configured`, `config_flow._translated_text`,
@@ -429,8 +454,9 @@ coordinator.py:351     max_abs_component as grid_fee_max_abs_component,
 coordinator.py:6217        worst, source = grid_fee_max_abs_component(schedule, entity_value)
 ```
 
-`coordinator.py:6217` sits inside `_audit_grid_fee`, called from `_fee_series`, which runs
-on **every planning cycle**. Runtime confirmation:
+`coordinator.py:6217` sits inside `_audit_grid_fee`, called from `_fee_series`, called at
+`coordinator.py:5760` on every planning cycle of any install whose grid-fee schedule is
+active. Runtime confirmation:
 `coordinator.grid_fee_max_abs_component is grid_fee.max_abs_component` → `True`.
 
 Cause: the finder's `name_census` (dead_code.py:92) counts `ast.Name`, `ast.Attribute` and
@@ -448,18 +474,22 @@ So the corrected second clause is **5 defs / 114 lines**, not 6 / 140. (The othe
 explaining that it is deliberately inlined, plus its own def.)
 
 **Perturbation** (report.json: delete one listed candidate; expected `dead_candidates`
-*down* by 1 and the suite still passes). My sentinel run is the stronger version of the
-second half: with all five candidates replaced by raising stubs the whole thirteen-script
-gate is unchanged (`golden.py` exit 1 and `dst_checks.py` exit 1 are both pre-existing —
-34 drift DIFFs and the `HASTUB_TZ` "dt_util carries the configured zone" check — and
-neither log contains a sentinel string). The positive control moves the number, so the
-harness is not measuring a constant.
+*down* by 1 and the suite still passes). My sentinel run is the stronger version: with all
+five candidates replaced by raising stubs, all thirteen gate scripts are unchanged and no
+log contains a sentinel string. Two scripts exit non-zero in my run for reasons unrelated
+to the sentinels and identical in both arms: `golden.py` (strict mode against fixtures
+recorded on another machine — the drift DIFFs `tests/README.md` documents) and
+`dst_checks.py` (`FAIL dt_util carries the configured zone` — my harness does not export
+`HASTUB_TZ`, which `dead_code.py` scopes to that one script at its line 147). Neither is a
+sentinel trip; the positive control moves the number, so the harness is not measuring a
+constant.
 
 **Vote: `weaken(low)`.** The headline number is right and I reproduced it two independent
 ways, but the title's second clause is off by one and the cause is a systematic blind spot
 in the census, not a rounding difference. Decisive number: **`coordinator.grid_fee_max_abs_component
-is grid_fee.max_abs_component` → True**, with the call at `coordinator.py:6217` on every
-planning cycle, against the finder's `ref_prod: 0` for that def; `alias_imports_total=230`
+is grid_fee.max_abs_component` → True**, with the call at `coordinator.py:6217` reached
+from `_fee_series` on every planning cycle of a grid-fee install, against the finder's
+`ref_prod: 0` for that def; `alias_imports_total=230`
 is the size of the hole. Severity stays `low`; the finding should be restated as
 "5 dead defs (46 lines) and **5** production functions (114 lines) only tests call", and
 the judge should treat every `ref_prod`/`ref_test` figure in `dead_code.json` as a lower
@@ -476,6 +506,6 @@ bound until the census counts `ast.alias`.
 | D7-03 | exact | 50 of 50 contaminated intervals recorded vs 0 of 50 accepted by the learner; → 0 under the fix | `verify` (low) |
 | D7-04 | exact | 4.818892 SEK off-by-one over 306 real-solve trajectories; 0.000000 in the no-valve null; 0 stale reads of 923 at runtime | `verify` (low) |
 | D7-05 | exact | 244 of 256 methods still one component after dropping 40 hub attrs; second component a singleton at every k | `verify` (low) |
-| D7-06 | exact | 5 lexically-dead defs, 0 sentinel trips over 13 gate scripts (positive control trips); but `max_abs_component` is called every planning cycle → 5, not 6 | `weaken(low)` |
+| D7-06 | exact | 5 lexically-dead defs, 0 sentinel trips over 13 gate scripts (positive control trips 6×); but `max_abs_component` is imported and called by `coordinator.py` → the second clause is 5, not 6 | `weaken(low)` |
 
 Nothing voided: every harness's number moved under its stated perturbation.
