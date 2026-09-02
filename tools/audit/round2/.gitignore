@@ -1,0 +1,7 @@
+# Bulk harness output: regenerable, and 250k lines of it. See LARGE_OUTPUTS.md.
+D4/results.json
+D4/shots/*.png
+D8/matrix_results.json
+D3/pool.json
+D0/out/
+quiet/D0-race_grid_24h_baseline.quiet.json
