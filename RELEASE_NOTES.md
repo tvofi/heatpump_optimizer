@@ -1,5 +1,29 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.3.1
+
+### Reauthentication for a refused Tibber token, and a diagnostics payload
+
+Audit round 1, group C1 (#209):
+
+- **Reauthentication (D10-08, Silver).** A rotated or revoked Tibber
+  token previously meant an unavailable integration until the entry was
+  deleted and recreated. The coordinator detects the unambiguous auth
+  refusals (HTTP 401/403) and starts the config entry's reauth flow --
+  once per outage, re-armed on recovery; Repairs walks the user to a
+  single token field, which is re-validated, written through, and the
+  entry reloads. Mutation-proved: without the once-guard the flow starts
+  per cycle and the check fails.
+- **Diagnostics (D10-12, Gold).** "Download diagnostics" now produces a
+  payload: the config with the token redacted wholesale (a masked token
+  is still a partial credential), and a small coordinator snapshot --
+  the learners' summaries, outage latches, weather-staleness age, solve
+  counters. Mutation-proved: deleting the redaction leaks the token into
+  the payload and fails the check.
+- icons.json (D10-13) deferred with the reason recorded: the 55
+  class-level icons need a class-to-unique-id registry first, and B4's
+  renaming just moved half the family.
+
 ## v6.3.0
 
 ### Services survive the entry, the coordinator rides the entry, duplicates abort
