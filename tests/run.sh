@@ -255,6 +255,10 @@ done
 lane_units() {
   run "$PYTHON" tests/features.py
   run "$PYTHON" tests/entities.py
+  # The initial config flow walked end to end (#194): every step's valid
+  # and invalid submissions, the duplicate abort and the reauth round
+  # trip, against the real validation code over the fake Tibber session.
+  run "$PYTHON" tests/config_flow_steps.py
   run "$PYTHON" tests/manual_plan.py
   run "$PYTHON" tests/open_meteo.py
   run "$PYTHON" tests/solar_alignment.py
