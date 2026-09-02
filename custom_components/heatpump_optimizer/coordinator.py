@@ -9378,7 +9378,17 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 # drawn, and the ledger must stay honest about that.
                 # ``freeze_reason`` is None on any install without the pump
                 # signals configured, so this is inert for them.
-                if self._pump_signals.freeze_reason is None:
+                # D7-05: the same honesty for detected free heat. An open
+                # window or a fireplace is "something else happened" every
+                # bit as much as a faulted pump — the plan's predicted
+                # trajectory assumes the modelled inputs only — and a
+                # poisoned trust score from such an interval widens every
+                # future comfort band for weeks. Symmetric with the pump
+                # freeze: skip the accuracy sample, keep the energy.
+                if (
+                    self._pump_signals.freeze_reason is None
+                    and not self._external_heat_active
+                ):
                     self._accuracy.record(sample)
                 self._accumulate_energy(sample, elapsed, pending)
 
