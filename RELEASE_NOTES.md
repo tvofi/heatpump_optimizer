@@ -1,5 +1,69 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.2.15
+
+### Weekday and weekend hot-water windows, in the card too
+
+v6.2.5 let a hot-water window carry a day selector -- "weekdays
+06:00-08:30, weekend 08:00-09:30", or a day list such as "Tu-Fr" -- and the
+options flow took it, but the card's schedule editor did not know: it
+pre-filled from the plan sensor's `dhw_windows`, which is one day's set of
+a weekly schedule, showed that flattened, and would have saved it back that
+way. The integration now publishes the *configured* windows as well, on
+both plan sensors and before as well as after the first solve, as
+`dhw_windows_spec` in the grammar the options flow and `apply_schedule`
+accept (unrecorded, like the windows it explains). Every window row in the
+editor carries a day selector -- Every day, Weekdays, Weekend, and the
+schedule's own day list when one was typed -- and a new window applies
+every day. Older integrations without the attribute, and installs planning
+against learned windows, fall back to the plan's reading as before. English
+and Swedish (#159).
+
+### Six latent defects the decomposition survey found
+
+Logged during #136 so that every refactor step stayed byte-identical, fixed
+now, one PR each:
+
+- **A card removed mid-gesture takes its listeners and timers with it**
+  (#137, #160). The move/up handlers a drag or a pan parks on `window`, the
+  edge auto-pan interval and a redraw waiting on a frame outlived the card;
+  a card removed mid-drag kept rendering into its detached shadow root every
+  90 ms.
+- **A no-data render forgets the lane geometry** (#142, #160). Only the
+  hover geometry was reset, so the edit floor and a hit-test would have
+  answered against a chart that was not there.
+- **One reading of a plan sensor's forecast** (#139, #161). The chart
+  treated an unavailable sensor as having no forecast and parsed a JSON
+  string; the slot editor read the attribute raw, so a sensor gone
+  unavailable with its last forecast attached was "no plan" to the chart and
+  "a plan" to the lanes, the cost delta and Apply. An unavailable channel
+  now has no draft, and Apply leaves it automatic.
+- **The entity picker's slot is read, not remembered by its markup
+  builder** (#140, #162). Rendering the setup page no longer has a side
+  effect, and a picker open across a topology reload describes the slot as
+  it is now.
+- **Shared-band pattern ids are the card's own** (#141, #163). The hatched
+  band's `<pattern>` id came from a page-global counter that every card on
+  the page advanced and nothing reset; it is per card and starts over every
+  render.
+- **Each chart copy keeps its own lane geometry** (#138, #164). With the
+  dialog open, the geometry the lanes and the hit-tests read was the
+  expanded copy's, so a drag redrew the inline lanes at the dialog's font
+  and, on a phone-width card, a pointer on the inline chart was hit-tested
+  against the dialog's plot. The host keeps one geometry per copy; the
+  element defines no more members than before.
+
+`tests/card_drift.mjs` gained the `whatif_weekly` and `draft_mid_drag`
+states (27 now); the states each change moves are claimed in its PR, the
+rest are identical. Card 5.4.19.
+
+Also merged since v6.2.14:
+
+- A single re-recording keeps a rule-widened closure current (#203).
+- Empty the card claim list after #164, ahead of the stamp (#204).
+- The audit register moves to main, with the briefs, the schema and the workflows (#202).
+- Record the card markup gate's closure, and assign versions only at the stamp (#165).
+
 ## v6.2.14
 
 ### The card is a host and nine collaborators, not a god class

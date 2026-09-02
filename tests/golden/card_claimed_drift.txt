@@ -19,11 +19,8 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 6.2.14
+# claims-for: 6.2.15
 #
-# After #164 (each chart copy keeps its own lane geometry) and ahead of
-# its stamp: #164 claimed draft_mid_drag, and the next commit on main
-# (#202) inherited that claim unchanged, which the gate refuses. This
-# branch moves no state; the list is emptied here so that main's gate
-# stops inheriting a claim the stamp would otherwise empty.
+# v6.2.15: the weekly-windows-and-card-fixes release. The stamp empties the list; the
+# next branch restates its own footprint, claims included.
 #

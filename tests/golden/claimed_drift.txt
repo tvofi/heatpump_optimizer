@@ -43,9 +43,10 @@
 # does not expire with the stamp and is not part of the inherited-claims
 # comparison.
 #
-# claims-for: 6.2.14
+# claims-for: 6.2.15
 #
-# The card decomposition (#136): nine refactors, each byte-identical in the card gate, and no solver, sensor or store path touched -- so no golden moves and the list is empty.
+# v6.2.15: the weekly-windows-and-card-fixes release. The stamp empties the list; the
+# next branch restates its own footprint, claims included.
 #
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
