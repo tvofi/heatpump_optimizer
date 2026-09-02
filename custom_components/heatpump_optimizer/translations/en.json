@@ -235,6 +235,47 @@
       "reconfigure_successful": "Reconfiguration successful; reloading with the new settings."
     }
   },
+  "exceptions": {
+    "config_entry_not_found": {
+      "message": "No Heat Pump Optimizer config entry has the id \"{entry_id}\""
+    },
+    "config_entry_not_loaded": {
+      "message": "Heat Pump Optimizer config entry \"{entry_id}\" is not loaded"
+    },
+    "no_loaded_config_entry": {
+      "message": "No loaded Heat Pump Optimizer config entry matched this call"
+    },
+    "set_thermal_params_dhw_min_no_deadband": {
+      "message": "A hot water minimum of {minimum} °C leaves no deadband below the {setpoint} °C setpoint; it must be at most {ceiling} °C"
+    },
+    "assign_entity_missing": {
+      "message": "Entity {entity_id} does not exist"
+    },
+    "assign_entity_wrong_domain": {
+      "message": "{entity_id} is a {domain} entity; {key} accepts {domains}"
+    },
+    "apply_topology_unsupported": {
+      "message": "This system cannot use the {layout} layout: it needs {requirement}"
+    },
+    "apply_schedule_invalid_dhw_windows": {
+      "message": "Invalid hot water windows \"{windows}\": {error}"
+    },
+    "apply_schedule_comfort_band_violation": {
+      "message": "{violations}"
+    },
+    "apply_schedule_dhw_min_no_deadband": {
+      "message": "A hot water minimum of {minimum} °C leaves no deadband below the {setpoint} °C setpoint; it must be at most {ceiling} °C"
+    },
+    "manual_plan_invalid_expires_at": {
+      "message": "Invalid expires_at \"{expires_at}\": not an ISO 8601 datetime"
+    },
+    "manual_plan_invalid_slots": {
+      "message": "{error}"
+    },
+    "set_temperature_comfort_band_violation": {
+      "message": "{violations}"
+    }
+  },
   "options": {
     "step": {
       "init": {

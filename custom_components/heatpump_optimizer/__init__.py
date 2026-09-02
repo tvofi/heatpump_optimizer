@@ -411,11 +411,19 @@ def _loaded_entries(
         entry = hass.config_entries.async_get_entry(target_entry)
         if entry is None or entry.domain != DOMAIN:
             raise ServiceValidationError(
-                f"No Heat Pump Optimizer config entry has the id {target_entry!r}"
+                f"No Heat Pump Optimizer config entry has the id "
+                f"{target_entry!r}",
+                translation_domain=DOMAIN,
+                translation_key="config_entry_not_found",
+                translation_placeholders={"entry_id": str(target_entry)},
             )
         if entry.state is not ConfigEntryState.LOADED:
             raise ServiceValidationError(
-                f"Heat Pump Optimizer config entry {target_entry!r} is not loaded"
+                f"Heat Pump Optimizer config entry {target_entry!r} "
+                f"is not loaded",
+                translation_domain=DOMAIN,
+                translation_key="config_entry_not_loaded",
+                translation_placeholders={"entry_id": str(target_entry)},
             )
         return [entry]
     loaded = [
@@ -425,7 +433,9 @@ def _loaded_entries(
     ]
     if not loaded:
         raise ServiceValidationError(
-            "No loaded Heat Pump Optimizer config entry matched this call"
+            "No loaded Heat Pump Optimizer config entry matched this call",
+            translation_domain=DOMAIN,
+            translation_key="no_loaded_config_entry",
         )
     return loaded
 
@@ -556,9 +566,16 @@ def _async_register_services(hass: HomeAssistant) -> None:
                 ceiling = float(setpoint) - DHW_MIN_TEMP_SETPOINT_MARGIN
                 if float(minimum) > ceiling:
                     raise ServiceValidationError(
-                        f"A hot water minimum of {float(minimum):g} °C leaves "
-                        f"no deadband below the {float(setpoint):g} °C "
-                        f"setpoint; it must be at most {ceiling:g} °C"
+                        f"A hot water minimum of {float(minimum):g} °C "
+                        f"leaves no deadband below the {float(setpoint):g} °C "
+                        f"setpoint; it must be at most {ceiling:g} °C",
+                        translation_domain=DOMAIN,
+                        translation_key="set_thermal_params_dhw_min_no_deadband",
+                        translation_placeholders={
+                            "minimum": f"{float(minimum):g}",
+                            "setpoint": f"{float(setpoint):g}",
+                            "ceiling": f"{ceiling:g}",
+                        },
                     )
 
         _LOGGER.info("Updating thermal parameters: %s", params)
@@ -603,14 +620,25 @@ def _async_register_services(hass: HomeAssistant) -> None:
         if raw:
             if hass.states.get(raw) is None:
                 raise ServiceValidationError(
-                    f"Entity {raw} does not exist"
+                    f"Entity {raw} does not exist",
+                    translation_domain=DOMAIN,
+                    translation_key="assign_entity_missing",
+                    translation_placeholders={"entity_id": raw},
                 )
             domains = topology.ASSIGNABLE_KEYS[key]
             domain = raw.split(".", 1)[0]
             if domain not in domains:
                 raise ServiceValidationError(
                     f"{raw} is a {domain} entity; {key} accepts "
-                    f"{', '.join(domains)}"
+                    f"{', '.join(domains)}",
+                    translation_domain=DOMAIN,
+                    translation_key="assign_entity_wrong_domain",
+                    translation_placeholders={
+                        "entity_id": raw,
+                        "domain": domain,
+                        "key": key,
+                        "domains": ", ".join(domains),
+                    },
                 )
 
         targets = _loaded_entries(hass, target_entry)
@@ -656,7 +684,13 @@ def _async_register_services(hass: HomeAssistant) -> None:
                 raise ServiceValidationError(
                     f"This system cannot use the "
                     f"'{topology.LAYOUTS[key].label}' layout: it needs "
-                    f"{topology.LAYOUTS[key].requirement}"
+                    f"{topology.LAYOUTS[key].requirement}",
+                    translation_domain=DOMAIN,
+                    translation_key="apply_topology_unsupported",
+                    translation_placeholders={
+                        "layout": topology.LAYOUTS[key].label,
+                        "requirement": topology.LAYOUTS[key].requirement,
+                    },
                 )
 
         for entry in targets:
@@ -720,7 +754,13 @@ def _async_register_services(hass: HomeAssistant) -> None:
                 )
             except DHWWindowError as err:
                 raise ServiceValidationError(
-                    f"Invalid hot water windows {raw!r}: {err}"
+                    f"Invalid hot water windows {raw!r}: {err}",
+                    translation_domain=DOMAIN,
+                    translation_key="apply_schedule_invalid_dhw_windows",
+                    translation_placeholders={
+                        "windows": str(raw),
+                        "error": str(err),
+                    },
                 ) from err
 
         if not updates:
@@ -762,7 +802,14 @@ def _async_register_services(hass: HomeAssistant) -> None:
                 if (v.field, v.code) not in already
             ]
             if introduced:
-                raise ServiceValidationError(comfort_band.describe(introduced))
+                raise ServiceValidationError(
+                    comfort_band.describe(introduced),
+                    translation_domain=DOMAIN,
+                    translation_key="apply_schedule_comfort_band_violation",
+                    translation_placeholders={
+                        "violations": comfort_band.describe(introduced)
+                    },
+                )
 
         # The hot water minimum has to clear a deadband below the setpoint, and
         # the setpoint is per entry, so this cannot live in the schema. Check
@@ -787,8 +834,15 @@ def _async_register_services(hass: HomeAssistant) -> None:
                 if wanted > ceiling:
                     raise ServiceValidationError(
                         f"A hot water minimum of {wanted:g} °C leaves no "
-                        f"deadband below the {setpoint:g} °C setpoint; it must "
-                        f"be at most {ceiling:g} °C"
+                        f"deadband below the {setpoint:g} °C setpoint; it "
+                        f"must be at most {ceiling:g} °C",
+                        translation_domain=DOMAIN,
+                        translation_key="apply_schedule_dhw_min_no_deadband",
+                        translation_placeholders={
+                            "minimum": f"{wanted:g}",
+                            "setpoint": f"{setpoint:g}",
+                            "ceiling": f"{ceiling:g}",
+                        },
                     )
 
         updated: dict[str, Any] = {}
@@ -830,7 +884,11 @@ def _async_register_services(hass: HomeAssistant) -> None:
             expires_at = dt_util.parse_datetime(raw_expires)
             if expires_at is None:
                 raise ServiceValidationError(
-                    f"Invalid expires_at {raw_expires!r}: not an ISO 8601 datetime"
+                    f"Invalid expires_at {raw_expires!r}: "
+                    f"not an ISO 8601 datetime",
+                    translation_domain=DOMAIN,
+                    translation_key="manual_plan_invalid_expires_at",
+                    translation_placeholders={"expires_at": str(raw_expires)},
                 )
 
         # Validate once, up front. build_override raises for a past expiry, an
@@ -843,7 +901,12 @@ def _async_register_services(hass: HomeAssistant) -> None:
                 now=now,
             )
         except ManualPlanError as err:
-            raise ServiceValidationError(str(err)) from err
+            raise ServiceValidationError(
+                str(err),
+                translation_domain=DOMAIN,
+                translation_key="manual_plan_invalid_slots",
+                translation_placeholders={"error": str(err)},
+            ) from err
 
         applied: dict[str, Any] = {}
         first = True

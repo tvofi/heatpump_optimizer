@@ -17769,4 +17769,244 @@ R.check(
     f"{_wx_empty._weather_stale_since}",
 )
 
+# D10-17 (#217, Gold `exception-translations`): every user-facing
+# ServiceValidationError must carry translation_domain + translation_key and
+# placeholders for exactly the values the old English f-string interpolated,
+# and strings.json / en.json / sv.json must carry an exceptions section
+# covering them. Each of the 13 raise sites is driven with input that reaches
+# it -- through hass.services.async_call, which dispatches the real schema to
+# the real handler the way Home Assistant does, and for the coordinator's
+# site through the climate entity's set_temperature path (climate.py:281) --
+# and what is asserted is the raised error's translation payload, not its
+# wording. Config-flow step errors are a different channel (the translated
+# step-errors dict) and are deliberately not asserted here.
+R.section("exception translations (D10-17, #217)")
+
+import json as _et_json  # noqa: E402
+import re as _et_re  # noqa: E402
+
+from homeassistant.exceptions import (  # noqa: E402
+    HomeAssistantError as _ET_HAE,
+    ServiceValidationError as _ET_SVE,
+)
+from heatpump_optimizer.climate import (  # noqa: E402
+    HeatPumpOptimizerClimate as _ET_Climate,
+)
+
+#: translation_key -> the placeholder names the old f-string interpolated.
+#: A bare ``set()`` means the raise had no interpolation to preserve.
+_ET_KEYS = {
+    "config_entry_not_found": {"entry_id"},
+    "config_entry_not_loaded": {"entry_id"},
+    "no_loaded_config_entry": set(),
+    "set_thermal_params_dhw_min_no_deadband": {"minimum", "setpoint", "ceiling"},
+    "assign_entity_missing": {"entity_id"},
+    "assign_entity_wrong_domain": {"entity_id", "domain", "key", "domains"},
+    "apply_topology_unsupported": {"layout", "requirement"},
+    "apply_schedule_invalid_dhw_windows": {"windows", "error"},
+    "apply_schedule_comfort_band_violation": {"violations"},
+    "apply_schedule_dhw_min_no_deadband": {"minimum", "setpoint", "ceiling"},
+    "manual_plan_invalid_expires_at": {"expires_at"},
+    "manual_plan_invalid_slots": {"error"},
+    "set_temperature_comfort_band_violation": {"violations"},
+}
+
+
+def _et_call(hass, service, data):
+    """Drive one service call; return the HomeAssistantError it raised."""
+    try:
+        _asyncio.run(hass.services.async_call(_DOMAIN, service, data))
+    except _ET_HAE as err:
+        return err
+    return None
+
+
+def _et_why(err, key):
+    """Why `err` is not a translatable raise of `key` ("" when it is one)."""
+    problems = []
+    if not isinstance(err, _ET_SVE):
+        problems.append(f"raised {type(err).__name__}, not ServiceValidationError")
+        return "; ".join(problems)
+    ph = getattr(err, "translation_placeholders", None) or {}
+    if getattr(err, "translation_domain", None) != _DOMAIN:
+        problems.append(
+            f"translation_domain={getattr(err, 'translation_domain', None)!r}"
+        )
+    if getattr(err, "translation_key", None) != key:
+        problems.append(
+            f"translation_key={getattr(err, 'translation_key', None)!r} want {key!r}"
+        )
+    if set(ph) != _ET_KEYS[key]:
+        problems.append(
+            f"placeholders={sorted(ph)} want={sorted(_ET_KEYS[key])}"
+        )
+    elif any(not isinstance(v, str) or not v for v in ph.values()):
+        problems.append(f"placeholder values not non-empty strings: {ph!r}")
+    return "; ".join(problems)
+
+
+def _et_check(name, err, key):
+    R.check(name, not _et_why(err, key), _et_why(err, key) or "ok")
+
+
+# Services registered, one NOT_LOADED entry parked in the manager the way an
+# entry that has never been set up (or has been unloaded) sits there: that is
+# the state the two entry-id refusals and the nothing-loaded one live in.
+_et_idle = FakeHass()
+_asyncio.run(_ha_setup_component(_integ, _et_idle))
+_et_idle.config_entries.entries.append(FakeEntry(data=_LC_DATA))
+
+_et_check(
+    "clear_manual_plan with an unknown entry_id raises a translatable error",
+    _et_call(_et_idle, "clear_manual_plan", {"entry_id": "ghost"}),
+    "config_entry_not_found",
+)
+_et_check(
+    "clear_manual_plan with a known but unloaded entry_id raises a translatable error",
+    _et_call(_et_idle, "clear_manual_plan", {"entry_id": "test_entry"}),
+    "config_entry_not_loaded",
+)
+_et_check(
+    "clear_manual_plan with no loaded entry at all raises a translatable error",
+    _et_call(_et_idle, "clear_manual_plan", {}),
+    "no_loaded_config_entry",
+)
+
+# A loaded entry, so the handlers that resolve targets get a coordinator.
+_et_hass = FakeHass()
+_et_entry = FakeEntry(data=_LC_DATA)
+_asyncio.run(_ha_setup_entry(_integ, _et_hass, _et_entry))
+
+_et_check(
+    "set_thermal_parameters with a deadband-less hot water minimum raises a translatable error",
+    _et_call(_et_hass, "set_thermal_parameters", {"dhw_min_temperature": 51}),
+    "set_thermal_params_dhw_min_no_deadband",
+)
+_et_check(
+    "assign_entity with a nonexistent entity raises a translatable error",
+    _et_call(
+        _et_hass,
+        "assign_entity",
+        {"key": "outdoor_temp_entity", "entity_id": "sensor.nope"},
+    ),
+    "assign_entity_missing",
+)
+_et_hass.states.set("light.lamp", "on")
+_et_check(
+    "assign_entity with a wrong-domain entity raises a translatable error",
+    _et_call(
+        _et_hass,
+        "assign_entity",
+        {"key": "outdoor_temp_entity", "entity_id": "light.lamp"},
+    ),
+    "assign_entity_wrong_domain",
+)
+_et_check(
+    "apply_topology with a layout this system cannot use raises a translatable error",
+    _et_call(_et_hass, "apply_topology", {"layout": "single_tank_valve"}),
+    "apply_topology_unsupported",
+)
+_et_check(
+    "apply_schedule with unparseable hot water windows raises a translatable error",
+    _et_call(_et_hass, "apply_schedule", {"dhw_windows": "25-99"}),
+    "apply_schedule_invalid_dhw_windows",
+)
+_et_check(
+    "apply_schedule that introduces a comfort-band violation raises a translatable error",
+    _et_call(
+        _et_hass, "apply_schedule", {"day_start_hour": 22, "day_end_hour": 6}
+    ),
+    "apply_schedule_comfort_band_violation",
+)
+_et_check(
+    "apply_schedule with a deadband-less hot water minimum raises a translatable error",
+    _et_call(_et_hass, "apply_schedule", {"dhw_min_temperature": 51}),
+    "apply_schedule_dhw_min_no_deadband",
+)
+_et_check(
+    "apply_manual_plan with an unparseable expires_at raises a translatable error",
+    _et_call(_et_hass, "apply_manual_plan", {"expires_at": "not-a-datetime"}),
+    "manual_plan_invalid_expires_at",
+)
+_et_check(
+    "apply_manual_plan with an invalid slot raises a translatable error",
+    _et_call(
+        _et_hass,
+        "apply_manual_plan",
+        {
+            "expires_at": "2031-01-01T00:00:00",
+            "space_slots": [
+                {
+                    "start": "2030-06-01T10:00:00",
+                    "end": "2030-06-01T09:00:00",
+                }
+            ],
+        },
+    ),
+    "manual_plan_invalid_slots",
+)
+
+# The thirteenth site is the coordinator's, reached the way a user reaches
+# it: the thermostat's set_temperature (climate.py:281), which refuses a
+# target outside the comfort band (v5.1.7).
+_et_coord = Coord(FakeHass(), FakeEntry(data=_LC_DATA))
+_et_climate = _ET_Climate(_et_coord, FakeEntry(data=_LC_DATA))
+try:
+    _asyncio.run(_et_climate.async_set_temperature(temperature=30.0))
+    _et_err = None
+except _ET_HAE as err:
+    _et_err = err
+_et_check(
+    "climate.set_temperature outside the comfort band raises a translatable error",
+    _et_err,
+    "set_temperature_comfort_band_violation",
+)
+
+# The translations themselves: same key set in all three files, each message
+# naming exactly the placeholders its raise site passes, and strings.json
+# staying parity-identical with translations/en.json (hassfest).
+_ET_FILES = {}
+for _et_label, _et_path in (
+    ("strings", "custom_components/heatpump_optimizer/strings.json"),
+    ("en", "custom_components/heatpump_optimizer/translations/en.json"),
+    ("sv", "custom_components/heatpump_optimizer/translations/sv.json"),
+):
+    with open(_et_path, encoding="utf-8") as _et_fh:
+        _ET_FILES[_et_label] = _et_json.load(_et_fh).get("exceptions", {})
+
+R.check(
+    "every raised exception key exists in strings.json, en.json and sv.json",
+    set(_ET_KEYS)
+    == set(_ET_FILES["strings"])
+    == set(_ET_FILES["en"])
+    == set(_ET_FILES["sv"]),
+    f"strings={sorted(_ET_FILES['strings'])} en={sorted(_ET_FILES['en'])} "
+    f"sv={sorted(_ET_FILES['sv'])}",
+)
+
+
+def _et_names(message):
+    return set(_et_re.findall(r"\{([a-z_]+)\}", message))
+
+
+_et_bad = []
+for _et_key, _et_want in _ET_KEYS.items():
+    for _et_label in ("strings", "en", "sv"):
+        _et_msg = _ET_FILES[_et_label].get(_et_key, {}).get("message", "")
+        if _et_names(_et_msg) != _et_want:
+            _et_bad.append(
+                f"{_et_label}:{_et_key} names {sorted(_et_names(_et_msg))} "
+                f"want {sorted(_et_want)}"
+            )
+R.check(
+    "each exception message names exactly the placeholders its raise passes",
+    not _et_bad,
+    "; ".join(_et_bad),
+)
+R.check(
+    "the exceptions section stays parity-identical between strings.json and en.json",
+    _ET_FILES["strings"] == _ET_FILES["en"],
+    "hassfest requires the two files to match",
+)
+
 sys.exit(R.close("FEATURE CHECKS"))

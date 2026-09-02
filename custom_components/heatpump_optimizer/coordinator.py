@@ -1367,7 +1367,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             {CONF_TARGET_TEMP: float(temperature)}, self._config
         )
         if found:
-            raise ServiceValidationError(comfort_band.describe(found))
+            raise ServiceValidationError(
+                comfort_band.describe(found),
+                translation_domain=DOMAIN,
+                translation_key="set_temperature_comfort_band_violation",
+                translation_placeholders={
+                    "violations": comfort_band.describe(found)
+                },
+            )
         self._opt_config.target_temp = temperature
         self.hass.config_entries.async_update_entry(
             self.entry,
