@@ -1472,6 +1472,89 @@ R.check(
     "HA validates the pair only when a state class is set; it never demands one",
 )
 
+# The two kWh sensors round 2's D10 audit flagged (#305), pinned for the
+# same reason as the deltas above but with the opposite evidence: no device
+# class is honest for either. Home Assistant's own table (sensor/const.py
+# DEVICE_CLASS_STATE_CLASSES, mirrored above) admits ENERGY only with
+# TOTAL/TOTAL_INCREASING -- consumption meters -- and rejects the
+# MEASUREMENT pair on every state write. ENERGY_STORAGE, which Thermal
+# Battery Energy earns by genuinely measuring stored energy, is documented
+# in the floor's own source as "stored energy ... currently stored in a
+# battery or the capacity of a battery"; a rolling PV-surplus forecast and
+# a learned p90 day-demand are estimates recomputed every cycle, not energy
+# sitting anywhere. The Gold rule asks for device classes "where possible"
+# -- for these two it is not.
+R.check(
+    "Solar Surplus Forecast stays bare: a forecast is not a consumption meter",
+    getattr(by_name["Solar Surplus Forecast"], "_attr_device_class", None) is None
+    and by_name["Solar Surplus Forecast"]._attr_state_class
+    == SensorStateClass.MEASUREMENT
+    and by_name["Solar Surplus Forecast"]._attr_native_unit_of_measurement == "kWh",
+    "ENERGY demands TOTAL/TOTAL_INCREASING; ENERGY_STORAGE would claim stored energy",
+)
+R.check(
+    "DHW Heavy Day Demand stays bare: a learned p90 quantile is not a meter either",
+    getattr(by_name["DHW Heavy Day Demand"], "_attr_device_class", None) is None
+    and by_name["DHW Heavy Day Demand"]._attr_state_class
+    == SensorStateClass.MEASUREMENT
+    and by_name["DHW Heavy Day Demand"]._attr_native_unit_of_measurement == "kWh",
+    "no kWh device class admits an estimate that is not a total or a storage",
+)
+
+
+# ===========================================================================
+# The shared device
+# ===========================================================================
+R.section("The one device is a service device")
+
+from homeassistant.helpers.device_registry import DeviceEntryType
+
+# Every platform forwards ``device_info`` to the coordinator's single
+# DeviceInfo, so the device is described in exactly one place (#305). This
+# integration is a cloud API (Tibber) plus the user's own entities -- there
+# is no physical device -- and Home Assistant's device registry has a
+# dedicated kind for that: the Gold "devices" rule asks for
+# entry_type=DeviceEntryType.SERVICE, which the hacs.json floor (2024.6.0)
+# ships in homeassistant.helpers.device_registry (a StrEnum with the single
+# member SERVICE; DeviceInfo has no config_entry field at the floor).
+_dev_coord = HeatPumpOptimizerCoordinator(
+    FakeHass(),
+    FakeEntry(
+        data={
+            const.CONF_INDOOR_TEMP_ENTITY: "sensor.indoor",
+            const.CONF_OUTDOOR_TEMP_ENTITY: "sensor.outdoor",
+        },
+        entry_id="device_info_probe",
+    ),
+)
+R.check(
+    "the shared device declares itself a service device",
+    _dev_coord.device_info.get("entry_type") == DeviceEntryType.SERVICE,
+    repr(_dev_coord.device_info),
+)
+R.check(
+    "and it is identified by the config entry, not by anything physical",
+    _dev_coord.device_info.get("identifiers")
+    == {(const.DOMAIN, "device_info_probe")},
+    repr(_dev_coord.device_info.get("identifiers")),
+)
+
+# The forwarding half of the same claim: driving each platform's real
+# async_setup_entry with a real coordinator, the way HA would, every entity
+# the roster adds must land on that service device.
+for _platform in (sensor, binary_sensor, button, _switch_platform, _climate_platform):
+    _platform_entities = collect(_platform, coordinator=_blind_coord)
+    _not_service = [
+        type(e).__name__
+        for e in _platform_entities
+        if e.device_info.get("entry_type") != DeviceEntryType.SERVICE
+    ]
+    R.check(
+        f"every {_platform.__name__.rsplit('.', 1)[-1]} entity sits on the service device",
+        bool(_platform_entities) and not _not_service,
+        "; ".join(_not_service),
+    )
+
 
 # ===========================================================================
 # Binary sensors

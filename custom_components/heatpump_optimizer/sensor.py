@@ -1708,6 +1708,15 @@ class PVSurplusSensor(HeatPumpOptimizerSensorBase):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
     _attr_suggested_display_precision = 2
+    # Deliberately no device class (#305). kWh suggests ENERGY, but Home
+    # Assistant's own table (sensor/const.py DEVICE_CLASS_STATE_CLASSES)
+    # admits ENERGY only with TOTAL/TOTAL_INCREASING -- consumption meters --
+    # and would reject the MEASUREMENT pair on every state write. This is a
+    # rolling forecast of what the PV will feed over a horizon, recomputed
+    # every cycle: not a meter, and not stored energy either, so
+    # ENERGY_STORAGE (see ThermalBatteryEnergySensor, which does measure
+    # stored energy) would be a lie told to silence a lint. The Gold rule
+    # asks for device classes "where possible"; for a forecast it is not.
 
     def __init__(self, coordinator, entry):
         super().__init__(coordinator, entry, "pv_surplus", "solar_surplus_forecast")
@@ -2082,6 +2091,12 @@ class DHWHeavyDaySensor(HeatPumpOptimizerSensorBase):
     # Stands on the learned per-window draw quantiles, which need weeks of
     # DHW draw evidence few installs collect; disabled until asked for.
     _attr_entity_registry_enabled_default = False
+    # Deliberately no device class (#305), same verdict as PVSurplusSensor:
+    # this is the largest learned p90 occurrence energy across windows -- an
+    # estimate of what a heavy day will draw, recomputed as evidence
+    # accumulates -- not a consumption meter (ENERGY demands
+    # TOTAL/TOTAL_INCREASING) and not stored energy (ENERGY_STORAGE). Bare
+    # kWh + MEASUREMENT is the honest declaration; tests/entities.py pins it.
 
     def __init__(self, coordinator, entry):
         super().__init__(
