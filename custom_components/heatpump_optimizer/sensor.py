@@ -332,8 +332,6 @@ class _WaitsForEvidenceMixin:
 class OptimizationModeSensor(HeatPumpOptimizerSensorBase):
     """Sensor showing the current optimization mode."""
 
-    _attr_icon = "mdi:cog-outline"
-
     def __init__(self, coordinator, entry):
         super().__init__(coordinator, entry, "mode", "optimization_mode")
 
@@ -347,7 +345,6 @@ class OptimizationModeSensor(HeatPumpOptimizerSensorBase):
 class OptimizationStatusSensor(HeatPumpOptimizerSensorBase):
     """Sensor showing the optimization solver status."""
 
-    _attr_icon = "mdi:check-circle-outline"
     # The solver's own health, not a quantity about the house (#179).
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
@@ -381,7 +378,6 @@ class PredictedSavingsSensor(HeatPumpOptimizerSensorBase):
     # their honest state class, and MONETARY on top of it would make HA
     # reject their long-term statistics (the trap the price sensor's comment
     # documents). The settled accumulators further down carry MONETARY.
-    _attr_icon = "mdi:piggy-bank-outline"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_suggested_display_precision = 2
 
@@ -405,7 +401,6 @@ class PredictedSavingsSensor(HeatPumpOptimizerSensorBase):
 
 
 class SavingsPercentageSensor(HeatPumpOptimizerSensorBase):
-    _attr_icon = "mdi:percent"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = PERCENTAGE
     _attr_suggested_display_precision = 1
@@ -436,7 +431,6 @@ class SavingsPercentageSensor(HeatPumpOptimizerSensorBase):
 
 
 class PredictedCostSensor(HeatPumpOptimizerSensorBase):
-    _attr_icon = "mdi:currency-usd"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_suggested_display_precision = 2
 
@@ -453,7 +447,6 @@ class PredictedCostSensor(HeatPumpOptimizerSensorBase):
 
 
 class BaselineCostSensor(HeatPumpOptimizerSensorBase):
-    _attr_icon = "mdi:currency-usd-off"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_suggested_display_precision = 2
 
@@ -470,7 +463,6 @@ class BaselineCostSensor(HeatPumpOptimizerSensorBase):
 
 
 class CurrentPriceSensor(HeatPumpOptimizerSensorBase):
-    _attr_icon = "mdi:flash"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_suggested_display_precision = 2
     # No device_class: this is a unit price, not a monetary total. Home
@@ -490,7 +482,6 @@ class CurrentPriceSensor(HeatPumpOptimizerSensorBase):
 
 
 class CurrentSetpointSensor(HeatPumpOptimizerSensorBase):
-    _attr_icon = "mdi:thermometer"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_device_class = SensorDeviceClass.TEMPERATURE
@@ -520,7 +511,6 @@ class CurrentSetpointSensor(HeatPumpOptimizerSensorBase):
 
 
 class CurrentPowerSensor(HeatPumpOptimizerSensorBase):
-    _attr_icon = "mdi:lightning-bolt"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfPower.KILO_WATT
     _attr_device_class = SensorDeviceClass.POWER
@@ -539,7 +529,6 @@ class CurrentPowerSensor(HeatPumpOptimizerSensorBase):
 
 
 class CurrentCOPSensor(HeatPumpOptimizerSensorBase):
-    _attr_icon = "mdi:gauge"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_suggested_display_precision = 2
 
@@ -556,7 +545,6 @@ class CurrentCOPSensor(HeatPumpOptimizerSensorBase):
 
 
 class IndoorTempSensor(HeatPumpOptimizerSensorBase):
-    _attr_icon = "mdi:home-thermometer"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_device_class = SensorDeviceClass.TEMPERATURE
@@ -574,7 +562,6 @@ class IndoorTempSensor(HeatPumpOptimizerSensorBase):
 
 
 class OutdoorTempSensor(HeatPumpOptimizerSensorBase):
-    _attr_icon = "mdi:thermometer"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_device_class = SensorDeviceClass.TEMPERATURE
@@ -604,7 +591,6 @@ class SolarIrradianceSensor(HeatPumpOptimizerSensorBase):
     and the tests always pointed at.
     """
 
-    _attr_icon = "mdi:weather-sunny"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = "W/m²"
     _attr_device_class = SensorDeviceClass.IRRADIANCE
@@ -653,7 +639,6 @@ class SlabTempSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase):
     """
 
     _reading_key = "slab_temperature"
-    _attr_icon = "mdi:floor-plan"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_device_class = SensorDeviceClass.TEMPERATURE
@@ -671,7 +656,6 @@ class SlabTempSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase):
 
 
 class NextOptimizationSensor(HeatPumpOptimizerSensorBase):
-    _attr_icon = "mdi:clock-outline"
     _attr_device_class = SensorDeviceClass.TIMESTAMP
     # The integration's own cycle clock (#179).
     _attr_entity_category = EntityCategory.DIAGNOSTIC
@@ -687,7 +671,6 @@ class NextOptimizationSensor(HeatPumpOptimizerSensorBase):
 
 
 class LastOptimizationSensor(HeatPumpOptimizerSensorBase):
-    _attr_icon = "mdi:clock-check-outline"
     _attr_device_class = SensorDeviceClass.TIMESTAMP
     # The integration's own cycle clock (#179).
     _attr_entity_category = EntityCategory.DIAGNOSTIC
@@ -703,8 +686,6 @@ class LastOptimizationSensor(HeatPumpOptimizerSensorBase):
 
 
 class HeatPumpActionSensor(HeatPumpOptimizerSensorBase):
-    _attr_icon = "mdi:heat-pump"
-
     def __init__(self, coordinator, entry):
         super().__init__(coordinator, entry, "heat_pump_action", "heat_pump_action")
 
@@ -738,7 +719,6 @@ class HeatPumpActionSensor(HeatPumpOptimizerSensorBase):
 
 
 class ScheduleSensor(HeatPumpOptimizerSensorBase):
-    _attr_icon = "mdi:calendar-clock"
     # The raw solve, step by step; the plan sensors are the product view of
     # the same answer and stay primary (#179).
     _attr_entity_category = EntityCategory.DIAGNOSTIC
@@ -796,7 +776,6 @@ class UpperFloorTempSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBas
     """
 
     _reading_key = "upper_floor_temperature"
-    _attr_icon = "mdi:home-floor-1"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_device_class = SensorDeviceClass.TEMPERATURE
@@ -833,7 +812,6 @@ class LowerFloorTempSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBas
     """
 
     _reading_key = "lower_floor_temperature"
-    _attr_icon = "mdi:home-floor-0"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_device_class = SensorDeviceClass.TEMPERATURE
@@ -862,7 +840,6 @@ class FloorReturnTempSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBa
     """
 
     _reading_key = "floor_return_temperature"
-    _attr_icon = "mdi:pipe-valve"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_device_class = SensorDeviceClass.TEMPERATURE
@@ -884,7 +861,6 @@ class FloorReturnTempSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBa
 class SolarHeatGainSensor(HeatPumpOptimizerSensorBase):
     """Sensor showing the current solar heat gain contribution in kW."""
 
-    _attr_icon = "mdi:solar-power"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfPower.KILO_WATT
     _attr_device_class = SensorDeviceClass.POWER
@@ -924,7 +900,6 @@ class BufferTankTempSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBas
     """
 
     _reading_key = "buffer_tank_temperature"
-    _attr_icon = "mdi:water-boiler"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_device_class = SensorDeviceClass.TEMPERATURE
@@ -960,7 +935,6 @@ class DHWTemperatureSensor(
     """
 
     _reading_key = "dhw_temperature"
-    _attr_icon = "mdi:water-thermometer"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_device_class = SensorDeviceClass.TEMPERATURE
@@ -1009,7 +983,6 @@ class DHWTemperatureSensor(
 class DHWScheduleSensor(_DHWEntityMixin, HeatPumpOptimizerSensorBase):
     """Sensor showing the planned DHW heating schedule for the next 24 hours."""
 
-    _attr_icon = "mdi:water-boiler-auto"
     # Superseded plans are of no interest; see ScheduleSensor.
     _unrecorded_attributes = frozenset({"dhw_schedule"})
 
@@ -1053,7 +1026,6 @@ class DHWScheduleSensor(_DHWEntityMixin, HeatPumpOptimizerSensorBase):
 class DHWHeatingCostSensor(_DHWEntityMixin, HeatPumpOptimizerSensorBase):
     """Sensor showing the estimated DHW heating cost."""
 
-    _attr_icon = "mdi:cash-minus"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_suggested_display_precision = 2
 
@@ -1085,7 +1057,6 @@ class PredictiveInsightSensor(HeatPumpOptimizerSensorBase):
     - Pre-heat urgency (overall urgency to pre-heat)
     """
 
-    _attr_icon = "mdi:crystal-ball"
     # The forecast analysis's internal factors, not a plan quantity (#179).
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
@@ -1146,7 +1117,6 @@ class PredictiveInsightSensor(HeatPumpOptimizerSensorBase):
 class ECL110DisplaceSensor(HeatPumpOptimizerSensorBase):
     """Current ECL110 displace command value."""
 
-    _attr_icon = "mdi:tune-vertical"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_suggested_display_precision = 1
@@ -1173,7 +1143,6 @@ class ECL110DisplaceSensor(HeatPumpOptimizerSensorBase):
 class ECL110EffectiveDisplaceSensor(HeatPumpOptimizerSensorBase):
     """Modeled effective displace after ECL110 PI/PID dynamics."""
 
-    _attr_icon = "mdi:chart-bell-curve"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_suggested_display_precision = 1
@@ -1374,7 +1343,6 @@ class _PlanSensorBase(HeatPumpOptimizerSensorBase):
 class SpaceHeatingPlanSensor(_PlanSensorBase):
     """Planned space heating slots for the full optimization horizon."""
 
-    _attr_icon = "mdi:radiator"
     _plan_key = "space_plan"
     _plan_kind = "space"
 
@@ -1387,7 +1355,6 @@ class SpaceHeatingPlanSensor(_PlanSensorBase):
 class DHWHeatingPlanSensor(_DHWEntityMixin, _PlanSensorBase):
     """Planned DHW heating slots for the full optimization horizon."""
 
-    _attr_icon = "mdi:water-boiler"
     _plan_key = "dhw_plan"
     _plan_kind = "dhw"
 
@@ -1409,7 +1376,6 @@ class MeasuredPowerSensor(HeatPumpOptimizerSensorBase):
     the names say which is which.
     """
 
-    _attr_icon = "mdi:flash"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfPower.KILO_WATT
     _attr_device_class = SensorDeviceClass.POWER
@@ -1447,7 +1413,6 @@ class ObservedCOPSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase):
     an assumption and becomes an observable.
     """
 
-    _attr_icon = "mdi:gauge-full"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_suggested_display_precision = 2
 
@@ -1559,7 +1524,6 @@ class _AccumulatingSensor(HeatPumpOptimizerSensorBase):
 
 
 class SpaceEnergySensor(_AccumulatingSensor):
-    _attr_icon = "mdi:radiator"
     _attr_native_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
     _attr_device_class = SensorDeviceClass.ENERGY
     _data_key = "space_energy_kwh"
@@ -1572,7 +1536,6 @@ class SpaceEnergySensor(_AccumulatingSensor):
 
 
 class DHWEnergySensor(_DHWEntityMixin, _AccumulatingSensor):
-    _attr_icon = "mdi:water-boiler"
     _attr_native_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
     _attr_device_class = SensorDeviceClass.ENERGY
     _data_key = "dhw_energy_kwh"
@@ -1586,7 +1549,6 @@ class DHWEnergySensor(_DHWEntityMixin, _AccumulatingSensor):
 
 
 class TotalEnergySensor(_AccumulatingSensor):
-    _attr_icon = "mdi:counter"
     _attr_native_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
     _attr_device_class = SensorDeviceClass.ENERGY
     _data_key = "total_energy_kwh"
@@ -1613,7 +1575,6 @@ class _AccumulatingCostSensor(_AccumulatingSensor):
 
 
 class SpaceCostSensor(_AccumulatingCostSensor):
-    _attr_icon = "mdi:cash"
     _data_key = "space_cost"
     _ledger_line = "space"
 
@@ -1622,7 +1583,6 @@ class SpaceCostSensor(_AccumulatingCostSensor):
 
 
 class DHWCostSensor(_DHWEntityMixin, _AccumulatingCostSensor):
-    _attr_icon = "mdi:cash"
     _data_key = "dhw_cost"
     _ledger_line = "dhw"
 
@@ -1632,7 +1592,6 @@ class DHWCostSensor(_DHWEntityMixin, _AccumulatingCostSensor):
 
 
 class TotalCostSensor(_AccumulatingCostSensor):
-    _attr_icon = "mdi:cash-multiple"
     _data_key = "total_cost"
 
     def __init__(self, coordinator, entry):
@@ -1657,7 +1616,6 @@ class PredictionAccuracySensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBa
     about yet, and "Unknown" is what a broken sensor shows.
     """
 
-    _attr_icon = "mdi:target"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_entity_category = EntityCategory.DIAGNOSTIC
@@ -1705,7 +1663,6 @@ class PredictionAccuracySensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBa
 class MonthlyPeakSensor(HeatPumpOptimizerSensorBase):
     """The peak level this month's capacity tariff is currently based on."""
 
-    _attr_icon = "mdi:chart-bell-curve"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfPower.KILO_WATT
     _attr_device_class = SensorDeviceClass.POWER
@@ -1755,7 +1712,6 @@ class MonthlyPeakSensor(HeatPumpOptimizerSensorBase):
 class PVSurplusSensor(HeatPumpOptimizerSensorBase):
     """Forecast solar surplus available to the heat pump."""
 
-    _attr_icon = "mdi:solar-power-variant"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
     _attr_suggested_display_precision = 2
@@ -1796,7 +1752,6 @@ class ThermalBatterySensor(HeatPumpOptimizerSensorBase):
     available, and counting the rest would overstate the asset.
     """
 
-    _attr_icon = "mdi:home-battery"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = PERCENTAGE
     _attr_device_class = SensorDeviceClass.BATTERY
@@ -1821,7 +1776,6 @@ class ThermalBatterySensor(HeatPumpOptimizerSensorBase):
 class ThermalBatteryEnergySensor(HeatPumpOptimizerSensorBase):
     """Stored thermal energy available above the comfort floor."""
 
-    _attr_icon = "mdi:battery-charging"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
     # Stored energy, not consumed energy. ENERGY_STORAGE is the device class
@@ -1868,7 +1822,6 @@ class ValveTargetRecommendationSensor(HeatPumpOptimizerSensorBase):
     unless a mixing valve mode is configured.
     """
 
-    _attr_icon = "mdi:valve"
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_device_class = SensorDeviceClass.TEMPERATURE
     _attr_suggested_display_precision = 1
@@ -1910,7 +1863,6 @@ class ComfortWeightSensor(HeatPumpOptimizerSensorBase):
     published, and a button resets it.
     """
 
-    _attr_icon = "mdi:scale-balance"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_suggested_display_precision = 2
@@ -1940,7 +1892,6 @@ class ContractComparisonSensor(
     along as attributes.
     """
 
-    _attr_icon = "mdi:file-compare"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_suggested_display_precision = 3
@@ -1999,7 +1950,6 @@ class PowerHeadroomSensor(HeatPumpOptimizerSensorBase):
     than saying so.
     """
 
-    _attr_icon = "mdi:transmission-tower"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfPower.KILO_WATT
     _attr_device_class = SensorDeviceClass.POWER
@@ -2039,7 +1989,6 @@ class DHWSetpointAdvisorSensor(HeatPumpOptimizerSensorBase):
     each would cost per day. Whether to act on it stays the user's call.
     """
 
-    _attr_icon = "mdi:thermometer-check"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     # An absolute tank temperature, so it converts and formats like one: a
@@ -2094,7 +2043,6 @@ class MixedHotWaterSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase
     #: The reading the litres are computed from; see _MeasuredTemperatureMixin.
     _reading_key = "dhw_temperature"
 
-    _attr_icon = "mdi:shower-head"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfVolume.LITERS
     # A quantity *held*, not a quantity delivered, which is exactly what
@@ -2134,7 +2082,6 @@ class DHWHeavyDaySensor(HeatPumpOptimizerSensorBase):
     has a visible answer.
     """
 
-    _attr_icon = "mdi:chart-box-outline"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
     _attr_entity_category = EntityCategory.DIAGNOSTIC
@@ -2187,7 +2134,6 @@ class PlanNarrativeSensor(HeatPumpOptimizerSensorBase):
     HA language, so an automation can speak the plan aloud verbatim.
     """
 
-    _attr_icon = "mdi:text-long"
     # No entity category: this is one of the card's four headline stats
     # (``stat_kind``), with Predicted Savings and Savings Percentage, and the
     # family is either all primary or all Diagnostic. Half of it buried on
@@ -2232,7 +2178,6 @@ class OptimizationScoreSensor(HeatPumpOptimizerSensorBase):
     different choice cost".
     """
 
-    _attr_icon = "mdi:speedometer"
     _attr_state_class = SensorStateClass.MEASUREMENT
     # Primary, not Diagnostic: a headline stat; see PlanNarrativeSensor (#175).
     _attr_suggested_display_precision = 1
@@ -2278,7 +2223,6 @@ class CompressorStartsSensor(HeatPumpOptimizerSensorBase):
     observation.
     """
 
-    _attr_icon = "mdi:counter"
     _attr_state_class = SensorStateClass.TOTAL_INCREASING
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
@@ -2322,7 +2266,6 @@ class FrequencyAdvisorSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase
     in attributes. Unavailable until a frequency entity is configured.
     """
 
-    _attr_icon = "mdi:sine-wave"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_device_class = SensorDeviceClass.FREQUENCY
     _attr_native_unit_of_measurement = "Hz"
