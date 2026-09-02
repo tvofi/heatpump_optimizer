@@ -1,0 +1,77 @@
+{
+  "dimension": "D10",
+  "baseline_sha": "b39fc6f01f4caee9d3ef17bce5f0b4561392fdb9",
+  "exposure": "",
+  "findings": [
+    {
+      "id": "D10-51",
+      "title": "All 13 service/config exception raise sites are untranslated; strings.json has no exceptions section",
+      "severity": "low",
+      "claim": "All 13 raise sites of HomeAssistantError/ServiceValidationError in the integration build their message as an English f-string with no translation_key/translation_domain, and strings.json and translations/en.json carry 0 exceptions-section keys, so service and config errors are English-only even for users running a translated UI.",
+      "mechanism": "The service handlers in __init__:_async_register_services and _loaded_entries raise ServiceValidationError with inline f-strings (e.g. __init__.py:427 'No loaded Heat Pump Optimizer config entry matched this call'), and coordinator.async_set_target_temperature (coordinator.py:1370) does the same; no exceptions section exists in strings.json/en.json/sv.json for a translation_key to point at, so the gold exception-translations rule cannot be satisfied without adding both the raise-site kwargs and the translation keys.",
+      "evidence": {
+        "command": "cd /Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/audit-r2-D10-export && OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 /Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/tvofi-claude/.venv/bin/python tools/audit/round2/D10/A/ast_checks.py | grep 'RESULT exception-translations'",
+        "harness_path": "tools/audit/round2/D10/A/ast_checks.py",
+        "value": 13,
+        "unit": "count of untranslated raise sites (0 of 13 translatable; 0 exceptions-section keys in strings.json and en.json)",
+        "baseline_sha": "b39fc6f01f4caee9d3ef17bce5f0b4561392fdb9",
+        "machine": "MacBookAir10,1, 8 cores",
+        "cpu_or_wall": "count",
+        "contention_note": "shared 8-core box during the eleven-auditor fan-out (load1 3.81); counts only, contention-immune",
+        "tolerance": "exact",
+        "load1": 3.81,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "__init__:_async_register_services",
+      "perturbation": {
+        "change": "On a /tmp copy of the integration (HPO_D10A_INT=<copy>), add translation_key=\"no_entries\", translation_domain=DOMAIN to the ServiceValidationError raise at __init__.py:427",
+        "expected_direction": "up",
+        "observed_value": 1
+      },
+      "metric_definition": "Count raise sites of HomeAssistantError/ServiceValidationError whose Call node carries translation_key or translation_domain vs total such raise sites, plus key count of the exceptions section in strings.json and translations/en.json.",
+      "stop_rule_class": "hygiene",
+      "reproduction_steps": [
+        "Run the harness command in evidence; read exception-translations.raises_translatable (0), raise_sites_total (13), exceptions_section_strings.json (0).",
+        "Copy custom_components/heatpump_optimizer to /tmp, edit __init__.py:427 to add translation_key/translation_domain kwargs.",
+        "Re-run with HPO_D10A_INT pointing at the copy; raises_translatable moves 0 -> 1."
+      ],
+      "proposed_fix_scope": "Add an exceptions section to strings.json, translations/en.json and translations/sv.json (13 keys, several shareable), and pass translation_domain=DOMAIN, translation_key and translation_placeholders at all 13 raise sites in __init__.py (413, 417, 427, 558, 605, 611, 656, 722, 765, 788, 832, 846) and coordinator.py:1370.",
+      "files": [
+        "custom_components/heatpump_optimizer/__init__.py",
+        "custom_components/heatpump_optimizer/coordinator.py",
+        "custom_components/heatpump_optimizer/strings.json",
+        "custom_components/heatpump_optimizer/translations/en.json",
+        "custom_components/heatpump_optimizer/translations/sv.json"
+      ]
+    }
+  ],
+  "non_findings": [
+    {"claim": "All 11 hass.services.async_register sites sit in the async_setup call chain (via _async_register_services, called at __init__.py:393); 0 elsewhere.", "command": "tools/audit/round2/D10/A/ast_checks.py -> action-setup.*", "value": "register_sites=11, sites_in_async_setup_chain=11, sites_elsewhere=0"},
+    {"claim": "Polling interval is 30 minutes by default, user-bounded 10-120 via a UI slider step 5, on the single DataUpdateCoordinator; no SCAN_INTERVAL.", "command": "tools/audit/round2/D10/A/ast_checks.py -> appropriate-polling.*", "value": "default_interval_minutes=30, ui_bounds_minutes=10-120, update_interval_sites=1, scan_interval_defs=0"},
+    {"claim": "The DataUpdateCoordinator lives in coordinator.py and each platform file carries its own platform-specific base class; no cross-platform entity boilerplate goes unshared.", "command": "tools/audit/round2/D10/A/ast_checks.py -> common-modules.*", "value": "coordinator_py_dataupdatecoordinator=1, entity_py_exists=0, own bases sensor=2/binary_sensor=1/button=1, importing_shared=0"},
+    {"claim": "Config flow provides stepped UI setup (26 step functions) and the options flow persists into entry.options, not entry.data.", "command": "tools/audit/round2/D10/A/ast_checks.py -> config-flow.*", "value": "flow_step_functions=26, options_writes=1 (config_flow.py:1620), data_description_kwargs=0 (recorded observation)"},
+    {"claim": "No entity subscribes to events/state outside the CoordinatorEntity pattern; the 3 real subscriptions live in coordinator helpers with stored unsub cleanup (coordinator.py:5019-5024).", "command": "tools/audit/round2/D10/A/ast_checks.py -> entity-event-setup.*", "value": "subscription_sites_entity_platform_files=0, sites_coordinator=3, in_async_added_to_hass=0, misplaced=0"},
+    {"claim": "All 65 entities set a unique_id (f\"{entry_id}_{key}\"; per-entity keys statically re-derived) and no two collide within or across platforms.", "command": "tools/audit/round2/D10/A/ast_checks.py -> entity-unique-id.*", "value": "entity_classes_total=65, derived_unique_ids=65, collisions=0, suffix_shared_across_platforms=0; collision detector proven by /tmp perturbation 0->1"},
+    {"claim": "Every entity class resolves _attr_has_entity_name=True (set in each platform base).", "command": "tools/audit/round2/D10/A/ast_checks.py -> has-entity-name.*", "value": "with_has_entity_name_true=65, exceptions=0"},
+    {"claim": "A typed ConfigEntry alias is defined and runtime data lives on entry.runtime_data; nothing reads hass.data[DOMAIN].", "command": "tools/audit/round2/D10/A/ast_checks.py -> runtime-data.*", "value": "typed_alias_sites=1 (coordinator.py:11003), runtime_data_reads=11, hass_data_DOMAIN_reads=0"},
+    {"claim": "async_setup_entry validates it can fetch (Tibber/weather/solar) before completing: first refresh raises UpdateFailed on failure in both the full and the light path, which HA converts to ConfigEntryNotReady; the only except in setup is the bounded, logged version lookup.", "command": "tools/audit/round2/D10/A/ast_checks.py -> test-before-setup.*", "value": "first_refresh_calls=1, updatefailed_raises_in_coordinator=3 (coordinator.py:4463, 4506, 5482), except_handlers_in_setup_entry=1 (bounded)"},
+    {"claim": "Service handlers raise ServiceValidationError for invalid usage at 13 sites and no handler silently swallows an exception.", "command": "tools/audit/round2/D10/A/ast_checks.py -> action-exceptions.*", "value": "raise_sites_total=13, silent_swallow_except_in_handlers=0"},
+    {"claim": "PARALLEL_UPDATES is declared in every platform module: 0 for the coordinator-driven read-only sensor/binary_sensor platforms, 1 for the actuating button/climate/switch platforms.", "command": "tools/audit/round2/D10/A/ast_checks.py -> parallel-updates.*", "value": "sensor=0, binary_sensor=0, button=1, climate=1, switch=1"},
+    {"claim": "manifest.json codeowners is non-empty.", "command": "tools/audit/round2/D10/A/ast_checks.py -> integration-owner.*", "value": "manifest_codeowners_count=1, first_codeowner=@tvofi"},
+    {"claim": "The integration creates one well-formed DeviceInfo (identifiers, manufacturer, model, sw_version) shared by every platform.", "command": "tools/audit/round2/D10/A/ast_checks.py -> devices.*", "value": "deviceinfo_sites=1 (coordinator.py:1328), with identifiers=1, manufacturer=1, model=1, sw_version=1"},
+    {"claim": "All internal-signal entities carry EntityCategory.DIAGNOSTIC; the 48 uncategorized entities are primary user-facing values, none is an internal signal left exposed.", "command": "tools/audit/round2/D10/A/ast_checks.py -> entity-category.*", "value": "with_entity_category=17 of 65; status/next/last/schedule/insight/ECL110x2/input-health/ventilation all categorized"},
+    {"claim": "29 of 55 sensors carry a SensorDeviceClass and none of the 26 without has an applicable HA device class (money rolling predictions, percent, ratio, text, plan payloads; MONETARY/ENERGY require state_class TOTAL - deliberate, documented at sensor.py:377).", "command": "tools/audit/round2/D10/A/ast_checks.py -> entity-device-class.*", "value": "sensors_with_device_class=29, sensors_without=26, applicable_missing=0 (per-class audit in REPORT.md)"},
+    {"claim": "The niche/diagnostic tail of the entity set is disabled by default: exactly 6 entities.", "command": "tools/audit/round2/D10/A/ast_checks.py -> entity-disabled-by-default.*", "value": "disabled_entities=6 of 65 (ECL110Displace, ECL110EffectiveDisplace, ContractComparison, DHWHeavyDay, ValveTargetRecommendation, FrequencyAdvisor)"},
+    {"claim": "Every entity has a translation_key present in strings.json, en.json and sv.json entity sections, except the one device-named climate entity which is exempt by design.", "command": "tools/audit/round2/D10/A/ast_checks.py -> entity-translations.*", "value": "uncovered_entries=0, device_named_exempt=1, strings sections sensor=55/binary_sensor=4/button=4/switch=1"},
+    {"claim": "Repair issues are used with actionable metadata: 13 ir.async_create_issue sites, each with severity and translation_key, all keys present in strings.json issues (14 keys).", "command": "tools/audit/round2/D10/A/ast_checks.py -> repair-issues.*", "value": "async_create_issue_sites=13, with_severity=13, with_translation_key=13, issue_keys_missing_from_strings=0"},
+    {"claim": "Exemption basis for discovery: zero discovery-mechanism imports (no zeroconf/ssdp/dhcp/usb/bluetooth); the integration binds a cloud API (Tibber, iot_class=cloud_polling) and user-picked HA entities.", "command": "tools/audit/round2/D10/A/ast_checks.py -> discovery.*", "value": "discovery_mechanism_imports=0"},
+    {"claim": "Exemption basis for discovery-update-info: no network addresses exist in device state to update (same zero-import evidence).", "command": "tools/audit/round2/D10/A/ast_checks.py -> discovery-update-info.*", "value": "same_basis_zero_imports=0"},
+    {"claim": "Exemption basis for dynamic-devices: no device-registry create sites; one static DeviceInfo per config entry.", "command": "tools/audit/round2/D10/A/ast_checks.py -> dynamic-devices.*", "value": "device_registry_create_sites=0, deviceinfo_sites_static=1"},
+    {"claim": "Exemption basis for stale-devices: no async_remove_config_entry_device; device lifetime equals config-entry lifetime, and retired entity-registry entries are already cleaned at every setup (__init__.py:360).", "command": "tools/audit/round2/D10/A/ast_checks.py -> stale-devices.*", "value": "async_remove_config_entry_device_sites=0"},
+    {"claim": "Zero blocking-IO calls inside async defs; the one time.sleep sits in the sync solver dispatched via async_add_executor_job (coordinator.py:4750); persistence uses HA Store.async_save; HTTP is aiohttp.", "command": "tools/audit/round2/D10/A/ast_checks.py -> async-dependency.*", "value": "blocking_calls_directly_in_async_defs=0, time_sleep_sites=1 (sync _optimize_with_dhw), executor_dispatch_sites=5"},
+    {"claim": "No ad-hoc aiohttp.ClientSession is constructed anywhere; all three HTTP entry points obtain the shared session via async_get_clientsession.", "command": "tools/audit/round2/D10/A/ast_checks.py -> inject-websession.*", "value": "adhoc_aiohttp_clientsession_constructions=0, async_get_clientsession_sites=3 (config_flow.py:347, coordinator.py:5409, open_meteo.py:325)"}
+  ],
+  "harnesses": [
+    "tools/audit/round2/D10/A/ast_checks.py"
+  ]
+}

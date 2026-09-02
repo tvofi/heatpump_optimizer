@@ -1,0 +1,101 @@
+# Draft quality_scale.yaml — round 2 D10 pass, baseline b39fc6f (2026-09-02).
+# A custom integration cannot officially declare a tier; this draft records
+# rule-by-rule adherence for the audit register. Statuses per the hassfest
+# quality-scale schema (done / todo / exempt-with-comment). Five rules are
+# tracked by open round-1 issues and were not re-measured (marked todo with
+# the issue). Candidate statuses pending the verification panel are marked
+# todo with the candidate id.
+
+# Bronze
+action-setup: done
+appropriate-polling: done
+brands:
+  status: done
+  comment: adapted check for a custom integration — brand assets shipped in-repo, HACS validate green
+common-modules: done
+config-flow:
+  status: done
+  comment: sub-check candidate D10-19 refuted 3–0 (judge-confirmed) — 237/238 fields carry data_description helper text via strings.json; residue nit tibber_token/reauth_confirm
+config-flow-test-coverage:
+  status: todo
+  comment: tracked in issue #194 (round 1, D10-04)
+dependency-transparency: done
+docs-actions: done
+docs-triggers:
+  status: done
+  comment: vacuous — the integration provides 0 triggers
+docs-conditions:
+  status: done
+  comment: vacuous — the integration provides 0 conditions
+docs-high-level-description: done
+docs-installation-instructions: done
+docs-removal-instructions: done
+entity-event-setup: done
+entity-unique-id: done
+has-entity-name: done
+runtime-data: done
+test-before-configure: done
+test-before-setup: done
+unique-config-entry: done
+
+# Silver
+action-exceptions: done
+config-entry-unloading: done
+docs-configuration-parameters: done
+docs-installation-parameters: done
+entity-unavailable: done
+integration-owner: done
+log-when-unavailable:
+  status: todo
+  comment: verified finding D10-16 (3×verify medium, judge-confirmed) — 6 ERROR per 5 failed polls; latch double-counts in in-try failure modes
+parallel-updates: done
+reauthentication-flow: done
+test-coverage:
+  status: todo
+  comment: tracked in issue #195 (round 1, D10-11)
+
+# Gold
+devices: done
+diagnostics: done
+discovery:
+  status: exempt
+  comment: cloud API (Tibber) + user-picked HA entities; 0 discovery-mechanism imports
+discovery-update-info:
+  status: exempt
+  comment: no network addresses to update; same basis as discovery
+docs-data-update: done
+docs-examples:
+  status: todo
+  comment: verified finding D10-18 (3×verify low, judge-confirmed) — 0 automation examples, 0 blueprint links in shipped docs
+docs-known-limitations: done
+docs-supported-devices: done
+docs-supported-functions: done
+docs-troubleshooting: done
+docs-use-cases: done
+dynamic-devices:
+  status: exempt
+  comment: 0 device-registry create sites; single static DeviceInfo
+entity-category: done
+entity-device-class: done
+entity-disabled-by-default: done
+entity-translations: done
+exception-translations:
+  status: todo
+  comment: verified finding D10-17 (3×verify low, judge-confirmed) — 13/13 raise sites untranslated, 0 exceptions sections in strings/en/sv
+icon-translations:
+  status: todo
+  comment: tracked in issue #189 (round 1, D10-13)
+reconfiguration-flow:
+  status: todo
+  comment: tracked in issue #196 (round 1, D10-14)
+repair-issues: done
+stale-devices:
+  status: exempt
+  comment: device lifetime equals config-entry lifetime; 0 removal sites
+
+# Platinum
+async-dependency: done
+inject-websession: done
+strict-typing:
+  status: todo
+  comment: tracked in issue #197 (round 1, D10-15)

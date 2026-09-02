@@ -1,0 +1,59 @@
+{
+  "dimension": "D10",
+  "baseline_sha": "b39fc6f01f4caee9d3ef17bce5f0b4561392fdb9",
+  "exposure": "None beyond audit subject matter: D10 reads README.md and docs/*.md as the measured corpus; the export had audit register/backlog/release notes stripped. The integration's own GitHub issues/PRs were not read; GitHub was queried only for the three third-party dependency repos and the codeowner account endpoint.",
+  "findings": [
+    {
+      "id": "D10-01",
+      "title": "No automation example anywhere in the shipped documentation (docs-examples, gold)",
+      "severity": "low",
+      "claim": "Zero automation examples exist across README.md and all 8 docs/*.md files (case-insensitive regex 'service:\\s*heatpump_optimizer\\.|action:\\s*-\\s*service'), even though the docs direct users to build automations (configuration.md:55, plan-v4.0.0-program.md:1241) without ever showing one.",
+      "mechanism": "The Services sections document all 11 actions as tables (README:428-457, configuration.md:533-641) but no worked automation: YAML exists anywhere in the corpus; the gold docs-examples rule ('at least one usable automation example exercising integration services/entities') is unmet.",
+      "evidence": {
+        "command": "python3 tools/audit/round2/D10/C/doc_coverage.py",
+        "harness_path": "tools/audit/round2/D10/C/doc_coverage.py",
+        "value": 0,
+        "unit": "examples",
+        "baseline_sha": "b39fc6f01f4caee9d3ef17bce5f0b4561392fdb9",
+        "machine": "MacBookAir10,1 8 cores",
+        "cpu_or_wall": "count",
+        "contention_note": "fan-out shared box during the eleven-dimension audit; grep counts are contention-immune; load1 recorded at run end",
+        "tolerance": "exact",
+        "load1": 2.56,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "services.yaml:actions (11 registered actions) vs README.md+docs/*.md corpus",
+      "perturbation": {
+        "change": "HPO_DOC_PERTURB_FILE=tools/audit/round2/D10/C/perturb_automation_example.md python3 tools/audit/round2/D10/C/doc_coverage.py (adds one worked heatpump_optimizer.set_mode automation to the corpus; the equivalent edit in README '## Services' is the production fix)",
+        "expected_direction": "up",
+        "observed_value": 1
+      },
+      "metric_definition": "Count of YAML automation snippets invoking a heatpump_optimizer service (case-insensitive 'service: heatpump_optimizer.' or 'action: - service') across README.md + docs/*.md.",
+      "stop_rule_class": "hygiene",
+      "files": ["README.md", "docs/configuration.md"],
+      "proposed_fix_scope": "Add one worked automation example under README '## Services' (the Power Headroom -> EV-charger feed plan-v4.0.0-program.md:1241 already describes in prose is the natural candidate), optionally one set_mode price-trigger example in configuration.md's Services section."
+    }
+  ],
+  "non_findings": [
+    {"claim": "docs-actions: all 11 services.yaml actions are named in README.md and docs/configuration.md", "command": "python3 tools/audit/round2/D10/C/doc_coverage.py", "value": "11/11 covered, 0 uncovered (run_optimization, set_mode, set_thermal_parameters, simulate_plan, assign_entity, apply_topology, apply_schedule, apply_manual_plan, clear_manual_plan, restore_learned_snapshot, diagnose_interval)"},
+    {"claim": "docs-triggers: integration provides no trigger platform; rule vacuously satisfied", "command": "python3 tools/audit/round2/D10/C/doc_coverage.py", "value": "0 provided triggers"},
+    {"claim": "docs-conditions: integration provides no condition platform; rule vacuously satisfied", "command": "python3 tools/audit/round2/D10/C/doc_coverage.py", "value": "0 provided conditions"},
+    {"claim": "docs-high-level-description: README.md:1-7 plus '## What it does' at README.md:28 describe the purpose in plain terms", "command": "python3 tools/audit/round2/D10/C/doc_coverage.py", "value": "1 section"},
+    {"claim": "docs-installation-instructions: HACS and manual install steps with prerequisites (README:138 Requirements) present", "command": "python3 tools/audit/round2/D10/C/doc_coverage.py", "value": "5 sections (README:150/152/160, dashboard-card.md:378/398)"},
+    {"claim": "docs-removal-instructions: README.md:167 '### Removal' covers entry deletion, ten leftover .storage learner files, leftover Lovelace resource, and code uninstall", "command": "python3 tools/audit/round2/D10/C/doc_coverage.py", "value": "1 section"},
+    {"claim": "docs-configuration-parameters: every persisted config/options-flow schema field is documented (95 by literal key string, 44 by setting-table label in docs/configuration.md); the one remaining schema key after_save is a dialog field popped before persisting (config_flow.py:1616)", "command": "python3 tools/audit/round2/D10/C/doc_coverage.py", "value": "139/139 persisted documented, 0 undocumented (schema total 140)"},
+    {"claim": "docs-installation-parameters: every persisted setup-flow field (Tibber token, weather entity, all entity selectors, temperatures, building questionnaire, DHW, weather sensitivity) is documented", "command": "python3 tools/audit/round2/D10/C/doc_coverage.py", "value": "64/64 persisted documented, 0 undocumented (schema total 65)"},
+    {"claim": "docs-data-update: polling cadence and sources stated (how-it-works.md:47 'Every optimization interval (30 minutes by default)'; README:459 How it works)", "command": "python3 tools/audit/round2/D10/C/doc_coverage.py", "value": "3 sections"},
+    {"claim": "docs-known-limitations: dedicated non-trivial sections exist (dashboard-card.md:586 'Behaviour when data is missing', how-it-works.md:895 'What freezes them') plus caveat statements (README:417 echo registers, how-it-works.md:1010 defrost resolution bias, README:288 quantile availability)", "command": "python3 tools/audit/round2/D10/C/doc_coverage.py", "value": "2 sections, 6 inline caveat statements"},
+    {"claim": "docs-supported-devices: supported control interfaces (any HA switch entity, ECL110 over MQTT, compressor-frequency number entity) documented; no device models claimed", "command": "python3 tools/audit/round2/D10/C/doc_coverage.py", "value": "6 files mention supported interfaces (README.md, configuration.md, ecl110.md, how-it-works.md, architecture.md, plan-v4.0.0-program.md)"},
+    {"claim": "docs-supported-functions: README entity inventory is exact — 55 sensor instantiations in sensor.py async_setup_entry + 4 binary + 4 button + 1 climate + 1 switch classes = 65 actual, equal to the documented 65; PLATFORMS sensor/binary_sensor/button/climate/switch all documented", "command": "python3 tools/audit/round2/D10/C/doc_coverage.py", "value": "delta 0 entities (65 vs 65), delta 0 platforms (5 vs 5)"},
+    {"claim": "docs-troubleshooting: README.md:601 '## Troubleshooting' with six bold-lead problem entries (zone swings, solar over-heating, slow floor response, hot water complaints, inert predictive optimization, wrong numbers)", "command": "python3 tools/audit/round2/D10/C/doc_coverage.py", "value": "1 section, 6 entries"},
+    {"claim": "docs-use-cases: nine use-case narratives in README 'What it does' (lines 76-134) plus the Quick start walk-through", "command": "python3 tools/audit/round2/D10/C/doc_coverage.py", "value": "9 narratives"},
+    {"claim": "dependency-transparency: numpy (BSD-3-Clause, PyPI 2.5.2, 24 CI workflow files, tags v2.5.2 + floor v1.24.0), scipy (BSD OSI classifier, PyPI 1.18.1, 17 workflows, tags v1.18.1 + floor v1.10.0), threadpoolctl (BSD-3-Clause, PyPI 3.6.0, 2 workflows, tags 3.6.0 + floor 3.5.0)", "command": "bash tools/audit/round2/D10/C/dep_transparency.sh", "value": "12/12 sub-checks pass (3 deps x 4: pypi presence, OSI license, public CI, version-tagged)"},
+    {"claim": "integration-owner: manifest.json codeowners non-empty and the account exists", "command": "bash tools/audit/round2/D10/C/dep_transparency.sh", "value": "1 codeowner (@tvofi), account HTTP 200 (type User, id 70032254)"}
+  ],
+  "harnesses": [
+    "tools/audit/round2/D10/C/doc_coverage.py",
+    "tools/audit/round2/D10/C/dep_transparency.sh"
+  ]
+}

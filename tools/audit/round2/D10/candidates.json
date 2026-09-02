@@ -1,0 +1,101 @@
+{
+  "note": "Candidate findings from the round-2 D10 measurement battery, renumbered into the round-1 D10 ID space (round 1 used D10-01..15). Subject to the refutation panel (3 verifiers, majority-refute kills) and the judge.",
+  "baseline_sha": "b39fc6f01f4caee9d3ef17bce5f0b4561392fdb9",
+  "candidates": [
+    {
+      "id": "D10-16",
+      "rule": "log-when-unavailable",
+      "tier": "silver",
+      "title": "Every failed Tibber poll logs an ERROR with traceback, and the outage latch counts two cycles per poll",
+      "severity": "medium",
+      "stop_rule_class": "bug",
+      "finder": "B",
+      "claim": "During a Tibber outage the integration emits one ERROR record per failed poll (6 over 5 polls; the rule expects 1 per transition) and counts 2 outage cycles per poll, so recovery logs 'recovered after 10 failed cycle(s)' after 5 failed polls.",
+      "mechanism": "_tibber_fetch_failed's raise UpdateFailed is re-caught by _fetch_tibber_prices's own except Exception (coordinator.py:5465, re-entering the latch) and re-logged by _async_update_data's wrapper (coordinator.py:4460, exc_info=True).",
+      "instrumented_symbol": "heatpump_optimizer.coordinator:_async_update_data / _tibber_fetch_failed",
+      "metric_definition": "Count of ERROR log records and outage-latch increments produced by 5 consecutive failed Tibber polls followed by 1 recovery, driven through the real update path with a fake session.",
+      "evidence": {
+        "command": "cd <export-root> && PYTHONPATH=tests/hastub <venv>/python tools/audit/round2/D10/B/harness.py",
+        "harness_path": "tools/audit/round2/D10/B/harness.py",
+        "value": "error_logs_during_5_failed_polls=6 (expected 1); outage_cycles_after_5_polls=10 (expected 5); info_at_recovery=1",
+        "unit": "count",
+        "tolerance": "exact (identical across 5 runs)",
+        "null_control": "recovery half holds: exactly 1 INFO, 0 ERROR at recovery",
+        "perturbations": [
+          {"change": "coordinator.py:4460 error→debug log level", "expected_direction": "down", "observed_value": "6→1"},
+          {"change": "coordinator.py:5465 re-raise UpdateFailed instead of except Exception re-entry", "expected_direction": "down", "observed_value": "10→5"}
+        ],
+        "files": ["custom_components/heatpump_optimizer/coordinator.py"]
+      }
+    },
+    {
+      "id": "D10-17",
+      "rule": "exception-translations",
+      "tier": "gold",
+      "title": "All 13 service/config exception raise sites are untranslated; strings.json has no exceptions section",
+      "severity": "low",
+      "stop_rule_class": "hygiene",
+      "finder": "A",
+      "claim": "All 13 ServiceValidationError/HomeAssistantError raise sites use English f-strings with no translation_key/translation_domain, and strings.json/en.json carry 0 exceptions keys, so errors are English-only even on a translated UI (the integration ships sv.json for everything else).",
+      "instrumented_symbol": "__init__:_async_register_services et al. (13 raise sites)",
+      "metric_definition": "Count of raise sites of HomeAssistantError/ServiceValidationError carrying translation kwargs vs total, plus exceptions-section key count in strings.json/en.json.",
+      "evidence": {
+        "command": "cd <export-root> && PYTHONPATH=tests/hastub <venv>/python tools/audit/round2/D10/A/ast_checks.py",
+        "harness_path": "tools/audit/round2/D10/A/ast_checks.py",
+        "value": "13 untranslated of 13 raise sites; 0 exceptions-section keys. Sites: __init__.py:413,417,427,558,605,611,656,722,765,788,832,846; coordinator.py:1370",
+        "unit": "count",
+        "tolerance": "exact",
+        "perturbations": [
+          {"change": "add translation_key= to the raise at __init__.py:427", "expected_direction": "up", "observed_value": "raises_translatable 0→1"}
+        ],
+        "files": ["custom_components/heatpump_optimizer/__init__.py", "custom_components/heatpump_optimizer/coordinator.py", "custom_components/heatpump_optimizer/strings.json"]
+      }
+    },
+    {
+      "id": "D10-18",
+      "rule": "docs-examples",
+      "tier": "gold",
+      "title": "No automation example anywhere in the shipped documentation",
+      "severity": "low",
+      "stop_rule_class": "hygiene",
+      "finder": "C",
+      "claim": "Zero automation examples exist across README.md and all 8 docs/*.md (service: heatpump_optimizer. / action: - service patterns, case-insensitive), even though the docs direct users to build automations (configuration.md:55, plan-v4.0.0-program.md:1241) without showing one; the 11 services are fully tabled (README:428–457, configuration.md:533–641) — only the worked YAML is missing.",
+      "instrumented_symbol": "services.yaml:actions vs README.md+docs/*.md corpus",
+      "metric_definition": "Count of automation example blocks (YAML automation invoking integration services/entities) in the shipped documentation corpus.",
+      "evidence": {
+        "command": "cd <export-root> && <venv>/python tools/audit/round2/D10/C/doc_coverage.py",
+        "harness_path": "tools/audit/round2/D10/C/doc_coverage.py",
+        "value": "docs_automation_examples=0",
+        "unit": "count",
+        "tolerance": "exact",
+        "perturbations": [
+          {"change": "inject HPO_DOC_PERTURB_FILE=perturb_automation_example.md into the corpus", "expected_direction": "up", "observed_value": "0→1"}
+        ],
+        "files": ["README.md", "docs/"]
+      }
+    },
+    {
+      "id": "D10-19",
+      "rule": "config-flow",
+      "tier": "bronze",
+      "title": "No config-flow field carries data_description across 26 flow steps",
+      "severity": "low",
+      "stop_rule_class": "hygiene",
+      "finder": "A (synthesis from recorded sub-check number; finder passed the rule overall)",
+      "claim": "0 of 26 config/options flow steps use vol.Optional(..., description=...) / data_description (the rule's documented sub-check 'Uses data_description to give context to fields'), so no field-level helper text is shown to users in the UI.",
+      "instrumented_symbol": "config_flow: step schemas",
+      "metric_definition": "Count of schema fields across all config/options flow steps carrying a description/data_description vs total fields.",
+      "evidence": {
+        "command": "cd <export-root> && PYTHONPATH=tests/hastub <venv>/python tools/audit/round2/D10/A/ast_checks.py",
+        "harness_path": "tools/audit/round2/D10/A/ast_checks.py",
+        "value": "data_description=0 across 26 flow steps (recorded RESULT line in A/run_output_baseline.txt)",
+        "unit": "count",
+        "tolerance": "exact",
+        "perturbations": [
+          {"change": "add description= to one field schema in config_flow.py", "expected_direction": "up", "expected_value": "0→1 (not yet executed — verifier or judge to run on a /tmp copy)"}
+        ],
+        "files": ["custom_components/heatpump_optimizer/config_flow.py"]
+      }
+    }
+  ]
+}

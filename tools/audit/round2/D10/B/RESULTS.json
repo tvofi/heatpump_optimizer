@@ -1,0 +1,99 @@
+{
+  "dimension": "D10",
+  "baseline_sha": "b39fc6f01f4caee9d3ef17bce5f0b4561392fdb9",
+  "findings": [
+    {
+      "id": "D10-21",
+      "title": "Every failed Tibber poll logs an ERROR with traceback, and the outage latch counts two cycles per poll",
+      "severity": "medium",
+      "claim": "During a Tibber outage the integration emits one ERROR log record per failed poll (6 over 5 failed polls, expected 1 per transition) and counts 2 outage cycles per poll (10 after 5 polls), so the recovery line reports 'recovered after 10 failed cycle(s)' after 5 failed polls.",
+      "mechanism": "_tibber_fetch_failed raises UpdateFailed inside _fetch_tibber_prices's own try, whose blanket 'except Exception' (coordinator.py:5465) re-calls _tibber_fetch_failed -- double-counting the latch and re-raising -- and _async_update_data's wrapper except (coordinator.py:4459-4463) then logs _LOGGER.error('Error updating Heat Pump Optimizer: ...', exc_info=True) on every failed cycle, defeating the log-once latch the same function's docstring documents (D10-09).",
+      "evidence": {
+        "command": "cd /Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/audit-r2-D10-export && PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 .venv/bin/python tools/audit/round2/D10/B/harness.py",
+        "harness_path": "tools/audit/round2/D10/B/harness.py",
+        "value": "error_logs_during_5_failed_polls=6 (expected 1); outage_cycles_after_5_polls=10 (expected 5); info_logs_at_recovery=1",
+        "unit": "count",
+        "baseline_sha": "b39fc6f01f4caee9d3ef17bce5f0b4561392fdb9",
+        "machine": "MacBookAir10,1 8 cores",
+        "cpu_or_wall": "count",
+        "contention_note": "Shared fan-out box, load1 2.5-4.9 across four identical runs; all values are log-record and latch counts, identical in every run",
+        "tolerance": "exact",
+        "load1": 3.86,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "heatpump_optimizer.coordinator:_async_update_data (driven whole; _fetch_tibber_prices reached through the real async_get_clientsession seam with a scripted HTTP 500/200 session) and heatpump_optimizer.coordinator:_tibber_fetch_failed",
+      "perturbation": {
+        "change": "coordinator.py:4460 _LOGGER.error('Error updating Heat Pump Optimizer: ...') -> _LOGGER.debug; dry-run on /tmp copy",
+        "expected_direction": "down",
+        "observed_value": "error_logs_during_5_failed_polls 6 -> 1"
+      },
+      "metric_definition": "Log records at level >= ERROR from heatpump_optimizer.* loggers while _async_update_data runs 5 polls whose Tibber POST returns HTTP 500 (rule expects 1), plus _tibber_outage_cycles after them.",
+      "null_control": {
+        "command": "harness, RESULT info_logs_at_recovery / error_logs_at_recovery",
+        "value": "1 INFO record at recovery, 0 ERROR records at recovery",
+        "note": "The once-at-recovery half of the rule holds; only the outage side is violated. The recovery poll (HTTP 200) emits exactly one record."
+      },
+      "reproduction_steps": [
+        "Run the harness command in evidence.command",
+        "Read RESULT error_logs_during_5_failed_polls (6), outage_cycles_after_5_polls (10), info_logs_at_recovery (1) and the note lines with the record texts",
+        "Perturbation dry-run: copy the export to /tmp, change coordinator.py:4460 error->debug, re-run: error count drops to 1; separately re-raise UpdateFailed in _fetch_tibber_prices's except (5465) instead of re-calling _tibber_fetch_failed: outage_cycles drops to 5"
+      ],
+      "proposed_fix_scope": "In _fetch_tibber_prices's handlers, re-raise UpdateFailed untouched (if isinstance(err, UpdateFailed): raise) so the latch counts one cycle per poll; demote the _async_update_data wrapper at 4459-4463 to DEBUG (or exempt UpdateFailed) so the per-transition ERROR the _tibber_fetch_failed latch already implements is the only one.",
+      "files": [
+        "custom_components/heatpump_optimizer/coordinator.py"
+      ],
+      "expected_golden_drift": [],
+      "stop_rule_class": "bug"
+    }
+  ],
+  "non_findings": [
+    {
+      "claim": "unique-config-entry holds: a duplicate first-screen submission aborts already_configured while a second heat pump (different switch) proceeds",
+      "command": "PYTHONPATH=tests/hastub .venv/bin/python tools/audit/round2/D10/B/harness.py",
+      "value": "duplicate_flow_aborted=1 (abort reason already_configured), distinct_flow_proceeds=1 (null control), via config_flow.py:1001-1002 async_set_unique_id + _abort_if_unique_id_configured"
+    },
+    {
+      "claim": "test-before-configure holds: the real validate_tibber_token probes Tibber in async_step_user before entry creation and shows distinct errors for bad auth vs no connection",
+      "command": "PYTHONPATH=tests/hastub .venv/bin/python tools/audit/round2/D10/B/harness.py",
+      "value": "user_step_error_on_invalid_auth=1 (invalid_tibber_token on HTTP 401), user_step_error_on_cannot_connect=1 (cannot_connect on transport failure); probe call site config_flow.py:988"
+    },
+    {
+      "claim": "reauthentication-flow holds: 401 during the update starts the reauth flow exactly once per auth outage and the confirm step fixes the token and reloads",
+      "command": "PYTHONPATH=tests/hastub .venv/bin/python tools/audit/round2/D10/B/harness.py",
+      "value": "reauth_flow_started_after_two_401s=1, reauth_confirm_fixes_entry=1 (abort reauth_successful + entry data updated + reload recorded), reauth_steps_present=2 (async_step_reauth config_flow.py:1428, reauth_confirm :1452), contrast arm reauth_started_without_entry_link=0"
+    },
+    {
+      "claim": "config-entry-unloading holds: unload forwards all platforms, the coordinator shutdown chain calls super(), nothing survives unload, the reload handover is popped",
+      "command": "PYTHONPATH=tests/hastub .venv/bin/python tools/audit/round2/D10/B/harness.py",
+      "value": "unload_platforms_forwarded=5, unload_super_shutdown=1 (coordinator.py:5015), unload_leak=0, unload_handover_after_reload=0, unload_new_coordinator=1"
+    },
+    {
+      "claim": "entity-unavailable holds: a failed coordinator update makes every sensor entity unavailable and removed data keys yield unknown, not stale values",
+      "command": "PYTHONPATH=tests/hastub .venv/bin/python tools/audit/round2/D10/B/harness.py",
+      "value": "sensors_unavailable_after_failure=55 of sensors_total=55 (24 already gated on success by design), stale_publishers_after_key_removal=0, empty-payload publishers are string sentinels only ('unknown'/'not_run'/'no schedule'/'no plan')"
+    },
+    {
+      "claim": "diagnostics holds: exposed via async_get_config_entry_diagnostics, not a platform (v6.3.1 regression absent), payload executes, token redacted",
+      "command": "PYTHONPATH=tests/hastub .venv/bin/python tools/audit/round2/D10/B/harness.py",
+      "value": "diagnostics_in_platform_list=0, diagnostics_top_level_key_count=4 (config, coordinator, domain, entry), token_leak_occurrences=0, redacted_field_count=1 of sensitive_candidate_count=1"
+    },
+    {
+      "claim": "appropriate-polling holds: the DataUpdateCoordinator is constructed with a configurable 30-minute default update interval",
+      "command": "PYTHONPATH=tests/hastub .venv/bin/python tools/audit/round2/D10/B/harness.py",
+      "value": "update_interval_default_seconds=1800 (DEFAULT_OPTIMIZATION_INTERVAL=30, const.py:1074), update_interval_configured_seconds=900 with optimization_interval=15"
+    },
+    {
+      "claim": "brands (adapted) holds: integration brand assets and repo-root icon exist as non-zero PNGs and the HACS Validate workflow is green on the pinned SHA",
+      "command": "ls -l custom_components/heatpump_optimizer/brand/ custom_components/heatpump_optimizer/icon.png icon.png; gh run list -R tvofi/heatpump_optimizer --limit 12 --json headSha,workflowName,status,conclusion --jq '.[] | select(.headSha | startswith(\"b39fc6f\"))'",
+      "value": "brand/icon.png 98834 B and brand/logo.png 98834 B (256x256 RGBA), repo-root icon.png 377596 B (512x512); Validate conclusion=success on b39fc6f"
+    },
+    {
+      "claim": "CI gate on the pinned SHA: Hassfest, Validate and CodeQL green; Tests in_progress with parent commit Tests green as proxy",
+      "command": "gh run list -R tvofi/heatpump_optimizer --limit 12 --json headSha,workflowName,status,conclusion,createdAt --jq '.[] | select(.headSha | startswith(\"b39fc6f\"))' (and same with e729182 for Tests)",
+      "value": "b39fc6f: Hassfest=success, Validate=success, CodeQL=success, Tests=in_progress (re-checked twice, 20:24 and 20:33 local); parent e7291826b7037c2c416926e2906abf69db78debd: Tests=success"
+    }
+  ],
+  "harnesses": [
+    "tools/audit/round2/D10/B/harness.py"
+  ]
+}
