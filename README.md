@@ -147,6 +147,45 @@ Everything else — indoor and outdoor thermometers, tank probes, a power meter 
 is optional. The optimizer runs without them and gets steadily better with each
 one you add.
 
+## Supported heat pumps and controls
+
+Control goes through ordinary Home Assistant entities, over three paths. Each
+path is optional, the three are independent of each other, and with none of
+them configured "the plan is published on sensors for your own automations to
+act on" — pricing and planning without actuating anything.
+
+| Control path | You provide | The optimizer writes |
+|---|---|---|
+| **On/off switch** | a `switch` that turns the heat pump on and off | may turn it off during expensive hours |
+| **ECL110 heat curve** | a Danfoss ECL110-compatible weather-compensated controller, reachable over MQTT | a heat-pump on/off decision and an integer parallel shift (*displace*) onto the controller's own heat curve |
+| **Compressor frequency** | the compressor frequency exposed as a `number` entity (typically from Modbus or ESPHome) | the recommended frequency via `number.set_value` — but only once you switch the mode to Control |
+
+Boundaries worth knowing before you pick a path:
+
+- **On/off switch.** The broadest path: any on/off `switch` will do, and it is
+  the only one of the three that needs nothing from the pump's electronics.
+- **ECL110.** MQTT only — the ECL110 page is "only for installs that have such
+  a controller on MQTT", and publishing goes through Home Assistant's own
+  `mqtt.publish` service, "so the MQTT integration has to be set up". If you
+  have no ECL110, clear the two command topics on the options page. Details in
+  [ECL110 heat-curve control](#ecl110-heat-curve-control) and
+  [docs/ecl110.md](docs/ecl110.md).
+- **Compressor frequency.** This path exists only "if your heat pump's
+  compressor frequency is exposed as a `number` entity (Modbus, ESPHome)", and
+  it is deliberately two-stage: the default Observe mode "learns and
+  recommends but never writes"; writing starts only when you switch the mode
+  to Control yourself, at most one `number.set_value` per five minutes and
+  clamped to the entity's own limits.
+- **Heating, not cooling.** The whole model assumes heating; an interval that
+  drew power while the house got colder "is not a noisy heating sample, it is
+  a sign-inverted one".
+
+Each path in full: [Switch and climate entity](#switch-and-climate-entity),
+[Inverter frequency: observe first, control if you say
+so](#inverter-frequency-observe-first-control-if-you-say-so),
+[ECL110 heat-curve control](#ecl110-heat-curve-control); the setup fields for
+all three live in [docs/configuration.md](docs/configuration.md).
+
 ## Installation
 
 ### Minimum Home Assistant version
