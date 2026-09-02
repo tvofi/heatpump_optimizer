@@ -19,7 +19,7 @@ from typing import Any
 
 import voluptuous as vol
 
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.config_entries import ConfigEntry, ConfigEntryState
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 from homeassistant.exceptions import ServiceValidationError
@@ -63,7 +63,7 @@ from .const import (
 )
 from . import comfort_band
 from . import mixing_valve
-from .coordinator import HeatPumpOptimizerCoordinator
+from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
 from .thermal_model import ThermalParameters
 from .dhw_schedule import (
     DHWWindowError,
@@ -78,6 +78,10 @@ from .manual_plan import ManualPlanError, build_override
 
 _LOGGER = logging.getLogger(__name__)
 
+# Configured through the UI only (``config_flow: true``): YAML under this
+# domain is refused with a repair issue rather than silently ignored.
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+
 PLATFORM_LIST = [
     Platform.SENSOR,
     Platform.BINARY_SENSOR,
@@ -86,26 +90,18 @@ PLATFORM_LIST = [
     Platform.SWITCH,
 ]
 
-
-def _config_stash_key(entry_id: str) -> str:
-    """hass.data key holding the effective config the entry was set up with.
-
-    ``async_update_options`` compares against this to skip reloads that would
-    change nothing: the options flow's page-merge writes the options dict on
-    every save, so without the comparison even an untouched form tears the
-    integration down and back up.
-    """
-    return f"effective_config_{entry_id}"
+# hass.data key of the one object that legitimately outlives an entry's
+# runtime data: the last published plan, carried across ONE reload. Written
+# by ``async_unload_entry`` -- after which Home Assistant discards the entry's
+# ``runtime_data`` -- and popped by the ``async_setup_entry`` that follows.
+# Never persisted. Everything else an entry needs while it is loaded lives on
+# ``entry.runtime_data`` (runtime-data, Bronze).
+_PLAN_HANDOVER_KEY = f"{DOMAIN}_plan_handover"
 
 
-def _plan_handover_key(entry_id: str) -> str:
-    """hass.data key carrying the last published plan across one reload.
-
-    Written by ``async_unload_entry``, popped by ``async_setup_entry`` —
-    never persisted. It lets a reload republish the previous plan instantly
-    instead of blocking Home Assistant on a full cold solve.
-    """
-    return f"plan_handover_{entry_id}"
+def _plan_handovers(hass: HomeAssistant) -> dict[str, Any]:
+    """The reload handovers by entry id, created on first use."""
+    return hass.data.setdefault(_PLAN_HANDOVER_KEY, {})
 
 SERVICE_SCHEMA_RUN_OPTIMIZATION = vol.Schema({})
 
@@ -376,10 +372,71 @@ def _async_remove_retired_entities(hass: HomeAssistant, entry: ConfigEntry) -> N
             registry.async_remove(reg_entry.entity_id)
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up Heat Pump Optimizer from a config entry."""
-    hass.data.setdefault(DOMAIN, {})
+async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
+    """Register the domain's services, once, before any entry (action-setup).
 
+    Home Assistant calls this when the integration loads, whether or not a
+    config entry exists yet, so the eleven services are known -- and an
+    automation naming one validates -- while every entry is unloaded. The
+    handlers resolve the entry or entries they act on when a call arrives
+    (``_loaded_entries``) and refuse a call that finds none loaded. Nothing
+    is registered per entry and nothing is removed at unload: the services
+    belong to the domain for the life of the process.
+    """
+    _async_register_services(hass)
+    return True
+
+
+def _loaded_entries(
+    hass: HomeAssistant, target_entry: str | None = None
+) -> list[HeatPumpOptimizerConfigEntry]:
+    """The entries a service call acts on, resolved when the call arrives.
+
+    With an ``entry_id``: that entry, which must exist under this domain and
+    be loaded. Without one: every loaded entry, and at least one -- the
+    services exist even when no entry does, so an empty answer is refused
+    rather than acted on silently. ``LOADED`` is the state Home Assistant
+    gives an entry once ``async_setup_entry`` has returned True and takes
+    away again at unload, so ``runtime_data`` is there on every entry this
+    returns.
+    """
+    if target_entry is not None:
+        entry = hass.config_entries.async_get_entry(target_entry)
+        if entry is None or entry.domain != DOMAIN:
+            raise ServiceValidationError(
+                f"No Heat Pump Optimizer config entry has the id {target_entry!r}"
+            )
+        if entry.state is not ConfigEntryState.LOADED:
+            raise ServiceValidationError(
+                f"Heat Pump Optimizer config entry {target_entry!r} is not loaded"
+            )
+        return [entry]
+    loaded = [
+        entry
+        for entry in hass.config_entries.async_entries(DOMAIN)
+        if entry.state is ConfigEntryState.LOADED
+    ]
+    if not loaded:
+        raise ServiceValidationError(
+            "No loaded Heat Pump Optimizer config entry matched this call"
+        )
+    return loaded
+
+
+def _loaded_coordinators(
+    hass: HomeAssistant, target_entry: str | None = None
+) -> list[tuple[str, HeatPumpOptimizerCoordinator]]:
+    """``_loaded_entries`` as (entry id, coordinator) pairs."""
+    return [
+        (entry.entry_id, entry.runtime_data)
+        for entry in _loaded_entries(hass, target_entry)
+    ]
+
+
+async def async_setup_entry(
+    hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry
+) -> bool:
+    """Set up Heat Pump Optimizer from a config entry."""
     # Clean up entities retired by this release before the platforms register
     # their current rosters. Idempotent and cheap, so it runs on every setup
     # rather than only inside a config-entry version bump — registry state is
@@ -397,7 +454,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # handler stashed the previous plan. Always pop — a stale payload must
     # never outlive the one reload it was made for — and hand it to the
     # coordinator so the first refresh can republish it instantly.
-    handover = hass.data[DOMAIN].pop(_plan_handover_key(entry.entry_id), None)
+    handover = _plan_handovers(hass).pop(entry.entry_id, None)
     if handover is not None:
         coordinator._reload_handover = handover
 
@@ -411,38 +468,64 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     coordinator._skip_solve_once = True
     await coordinator.async_config_entry_first_refresh()
 
-    hass.data[DOMAIN][entry.entry_id] = coordinator
-    # The effective config this setup ran with, for the update listener's
-    # no-op comparison. Removed again on unload.
-    hass.data[DOMAIN][_config_stash_key(entry.entry_id)] = {
-        **entry.data,
-        **entry.options,
-    }
+    # The coordinator is the entry's runtime data (runtime-data, Bronze):
+    # every platform reads it from here, the options listener compares a
+    # save against the config it was built from, and Home Assistant drops it
+    # with the entry at unload. Assigned once the first refresh has
+    # succeeded, so a ``ConfigEntryNotReady`` leaves nothing half-built behind.
+    entry.runtime_data = coordinator
 
     # Serve and register the Lovelace dashboard card (idempotent; runs once).
-    await async_register_frontend(hass)
+    await async_register_frontend(hass, coordinator.integration_version)
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORM_LIST)
 
-    # Register services
+    entry.async_on_unload(entry.add_update_listener(async_update_options))
+
+    # The real first solve, deferred out of setup (see the skip-solve flag
+    # above). Platforms are set up by now, so entities exist and publish the
+    # light payload — the handover plan after a reload, live sensor readings
+    # on a fresh start — while the cold solve runs here in the background and
+    # replaces it within the first update cycle.
+    if hasattr(entry, "async_create_background_task"):
+        entry.async_create_background_task(
+            hass,
+            coordinator.async_request_refresh(),
+            name="heatpump_optimizer_first_solve",
+        )
+    else:
+        task = hass.async_create_task(coordinator.async_request_refresh())
+        if task is not None and hasattr(task, "cancel"):
+            entry.async_on_unload(task.cancel)
+
+    return True
+
+
+def _async_register_services(hass: HomeAssistant) -> None:
+    """The service handlers, registered by ``async_setup``.
+
+    They close over ``hass`` and nothing else: which entries a call acts on
+    is decided when the call arrives, from the entries Home Assistant holds
+    and their state, never from anything captured at setup.
+    """
+
     async def handle_run_optimization(call: ServiceCall) -> None:
         """Handle the run_optimization service call."""
         _LOGGER.info("Manual optimization triggered via service call")
-        for entry_id, coord in hass.data[DOMAIN].items():
-            if isinstance(coord, HeatPumpOptimizerCoordinator):
-                await coord.async_run_optimization()
+        for _entry_id, coord in _loaded_coordinators(hass):
+            await coord.async_run_optimization()
 
     async def handle_set_mode(call: ServiceCall) -> None:
         """Handle the set_mode service call."""
         mode = call.data["mode"]
         _LOGGER.info("Setting optimizer mode to: %s", mode)
-        for entry_id, coord in hass.data[DOMAIN].items():
-            if isinstance(coord, HeatPumpOptimizerCoordinator):
-                await coord.async_set_mode(mode)
+        for _entry_id, coord in _loaded_coordinators(hass):
+            await coord.async_set_mode(mode)
 
     async def handle_set_thermal_params(call: ServiceCall) -> None:
         """Handle the set_thermal_parameters service call."""
         params = dict(call.data)
+        targets = _loaded_coordinators(hass)
 
         # Same deadband rule apply_schedule enforces, checked against the
         # *effective* pair per coordinator before anything is written — the
@@ -452,9 +535,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         wanted_min = params.get("dhw_min_temperature")
         wanted_set = params.get("dhw_setpoint")
         if wanted_min is not None or wanted_set is not None:
-            for coord in hass.data[DOMAIN].values():
-                if not isinstance(coord, HeatPumpOptimizerCoordinator):
-                    continue
+            for _entry_id, coord in targets:
                 setpoint = (
                     wanted_set
                     if wanted_set is not None
@@ -474,9 +555,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     )
 
         _LOGGER.info("Updating thermal parameters: %s", params)
-        for entry_id, coord in hass.data[DOMAIN].items():
-            if isinstance(coord, HeatPumpOptimizerCoordinator):
-                await coord.async_update_thermal_params(params)
+        for _entry_id, coord in targets:
+            await coord.async_update_thermal_params(params)
 
     async def handle_simulate_plan(call: ServiceCall) -> dict[str, Any]:
         """Price a hypothetical comfort choice without disturbing operation.
@@ -490,9 +570,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # simulates removing the hot water demand windows entirely.
         overrides = {k: v for k, v in call.data.items() if v is not None}
         results: dict[str, Any] = {}
-        for entry_id, coord in hass.data[DOMAIN].items():
-            if isinstance(coord, HeatPumpOptimizerCoordinator):
-                results[entry_id] = await coord.async_simulate(overrides)
+        for entry_id, coord in _loaded_coordinators(hass):
+            results[entry_id] = await coord.async_simulate(overrides)
         return {"results": results}
 
     async def handle_assign_entity(call: ServiceCall) -> dict[str, Any]:
@@ -527,16 +606,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     f"{', '.join(domains)}"
                 )
 
-        targets = [
-            entry
-            for entry in hass.config_entries.async_entries(DOMAIN)
-            if (target_entry is None or entry.entry_id == target_entry)
-            and entry.entry_id in hass.data.get(DOMAIN, {})
-        ]
-        if not targets:
-            raise ServiceValidationError(
-                "No loaded Heat Pump Optimizer config entry matched this call"
-            )
+        targets = _loaded_entries(hass, target_entry)
 
         # ``None`` rather than "" for a cleared slot: that is what the options
         # flow stores, and what every reader treats as absent.
@@ -565,16 +635,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         positions = call.data.get("positions")
         target_entry = call.data.get("entry_id")
 
-        targets = [
-            entry
-            for entry in hass.config_entries.async_entries(DOMAIN)
-            if (target_entry is None or entry.entry_id == target_entry)
-            and entry.entry_id in hass.data.get(DOMAIN, {})
-        ]
-        if not targets:
-            raise ServiceValidationError(
-                "No loaded Heat Pump Optimizer config entry matched this call"
-            )
+        targets = _loaded_entries(hass, target_entry)
 
         for entry in targets:
             merged = {**entry.data, **entry.options}
@@ -658,16 +719,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if not updates:
             return {"updated": {}, "reason": "nothing to apply"}
 
-        targets = [
-            entry
-            for entry in hass.config_entries.async_entries(DOMAIN)
-            if (target_entry is None or entry.entry_id == target_entry)
-            and entry.entry_id in hass.data.get(DOMAIN, {})
-        ]
-        if not targets:
-            raise ServiceValidationError(
-                "No loaded Heat Pump Optimizer config entry matched this call"
-            )
+        targets = _loaded_entries(hass, target_entry)
 
         # The comfort band's cross-field rules, the same ones the config flow
         # runs. This service writes `comfort_temp_day` and the day window
@@ -743,12 +795,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     def _manual_targets(target_entry: str | None):
         """Loaded coordinators the manual-plan services should act on."""
-        for entry in hass.config_entries.async_entries(DOMAIN):
-            if target_entry is not None and entry.entry_id != target_entry:
-                continue
-            coord = hass.data.get(DOMAIN, {}).get(entry.entry_id)
-            if coord is not None:
-                yield entry.entry_id, coord
+        return _loaded_coordinators(hass, target_entry)
 
     async def handle_apply_manual_plan(call: ServiceCall) -> dict[str, Any]:
         """Pin *when* space heating and hot water run for the rest of the day.
@@ -805,11 +852,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             )
             first = False
             applied[entry_id] = await coord.async_apply_manual_plan(this_override)
-
-        if not applied:
-            raise ServiceValidationError(
-                "No loaded Heat Pump Optimizer config entry matched this call"
-            )
 
         _LOGGER.info("Applied manual plan to %d entry(ies)", len(applied))
         return {"applied": applied}
@@ -918,28 +960,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         supports_response=SupportsResponse.OPTIONAL,
     )
 
-    entry.async_on_unload(entry.add_update_listener(async_update_options))
 
-    # The real first solve, deferred out of setup (see the skip-solve flag
-    # above). Platforms and services are registered by now, so entities exist
-    # and publish the light payload — the handover plan after a reload, live
-    # sensor readings on a fresh start — while the cold solve runs here in
-    # the background and replaces it within the first update cycle.
-    if hasattr(entry, "async_create_background_task"):
-        entry.async_create_background_task(
-            hass,
-            coordinator.async_request_refresh(),
-            name="heatpump_optimizer_first_solve",
-        )
-    else:
-        task = hass.async_create_task(coordinator.async_request_refresh())
-        if task is not None and hasattr(task, "cancel"):
-            entry.async_on_unload(task.cancel)
-
-    return True
-
-
-async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
+async def async_update_options(
+    hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry
+) -> None:
     """Handle options update.
 
     Reload only when the save actually changed something. The options flow
@@ -948,51 +972,44 @@ async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
     listener. Reloading on those no-op saves tore the whole integration down
     for nothing, which is exactly the freeze the skip-solve flag exists to
     soften; here it is avoided entirely.
+
+    The comparison is against the config the loaded coordinator was built
+    from: after a reload the new coordinator carries the new config, so the
+    same save repeated is a no-op again. With no coordinator on the entry
+    there is nothing to compare against, and the reload goes ahead.
     """
     new_config = {**entry.data, **entry.options}
-    stash_key = _config_stash_key(entry.entry_id)
-    domain_data = hass.data.setdefault(DOMAIN, {})
-    if domain_data.get(stash_key) == new_config:
+    coordinator = getattr(entry, "runtime_data", None)
+    if coordinator is not None and coordinator.effective_config == new_config:
         _LOGGER.debug(
             "Options saved without changes for %s; skipping reload",
             entry.entry_id,
         )
         return
-    domain_data[stash_key] = new_config
     await hass.config_entries.async_reload(entry.entry_id)
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Unload a config entry."""
+async def async_unload_entry(
+    hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry
+) -> bool:
+    """Unload a config entry.
+
+    The services are the domain's, not this entry's (``async_setup``), so
+    nothing is removed here; a call arriving while no entry is loaded is
+    refused by the handler itself.
+    """
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORM_LIST)
 
     if unload_ok:
-        coordinator = hass.data[DOMAIN].pop(entry.entry_id)
-        hass.data[DOMAIN].pop(_config_stash_key(entry.entry_id), None)
+        coordinator = entry.runtime_data
         # Keep the last published payload for the setup that follows a
         # reload: it republishes the previous plan instantly instead of
         # holding Home Assistant hostage to a cold solve. In-process only —
-        # never written to disk — and setup always pops it.
+        # never written to disk — and setup always pops it. It cannot ride
+        # on the entry: Home Assistant deletes ``runtime_data`` right after
+        # this returns.
         if coordinator.data is not None:
-            hass.data[DOMAIN][_plan_handover_key(entry.entry_id)] = (
-                coordinator.data
-            )
+            _plan_handovers(hass)[entry.entry_id] = coordinator.data
         await coordinator.async_shutdown()
-
-    # Remove services if no more entries. Asked of the registry, not kept as
-    # a list here: the hand-written removal tuple drifted twice — first
-    # apply_schedule, then restore_snapshot and diagnose_interval were
-    # registered but never removed, each leaving a dead service behind after
-    # the last entry. Everything in the domain was registered by this
-    # integration, so the registry itself is the one list that cannot drift.
-    # Counted over coordinators, not raw keys: the plan-handover stash above
-    # legitimately outlives its entry's unload (it is what the reload's setup
-    # pops), and a leftover key must not keep dead services registered.
-    if not any(
-        isinstance(value, HeatPumpOptimizerCoordinator)
-        for value in hass.data[DOMAIN].values()
-    ):
-        for service in list(hass.services.async_services().get(DOMAIN, {})):
-            hass.services.async_remove(DOMAIN, service)
 
     return unload_ok

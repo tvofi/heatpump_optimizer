@@ -18,6 +18,8 @@ from datetime import datetime, timedelta, timezone
 sys.path.insert(0, "tests")
 sys.path.insert(0, "custom_components")
 
+from homeassistant.config_entries import ConfigEntryState
+
 UTC = timezone.utc
 
 
@@ -190,7 +192,31 @@ class FakeConfigEntries:
         self.updated.append(getattr(entry, "entry_id", None))
 
     def async_entries(self, domain=None):
-        return list(self.entries)
+        return [
+            entry
+            for entry in self.entries
+            if domain is None or getattr(entry, "domain", domain) == domain
+        ]
+
+    def async_get_entry(self, entry_id):
+        """The entry with this id, or None -- what a service handler given an
+        ``entry_id`` resolves through (action-setup)."""
+        return next((e for e in self.entries if e.entry_id == entry_id), None)
+
+    def async_entry_for_domain_unique_id(self, domain, unique_id):
+        """The entry already configured with this unique id, or None -- what
+        the flow's duplicate guard asks (unique-config-entry)."""
+        if unique_id is None:
+            return None
+        return next(
+            (
+                e
+                for e in self.entries
+                if getattr(e, "domain", domain) == domain
+                and getattr(e, "unique_id", None) == unique_id
+            ),
+            None,
+        )
 
     async def async_reload(self, entry_id):
         self.reloaded.append(entry_id)
@@ -215,6 +241,12 @@ class FakeConfig:
     # What a Swedish install has configured; also what the golden coordinator
     # fixtures pin as the published currency leaf.
     currency = "SEK"
+
+    def __init__(self) -> None:
+        # The domains whose ``async_setup`` has run on this instance, as
+        # ``hass.config.components`` records it; ``ha_setup_entry`` consults
+        # it so the domain is set up once, before its first entry.
+        self.components: set[str] = set()
 
 
 class FakeCoordinator:
@@ -285,11 +317,28 @@ class FakeCoordinator:
 
 
 class FakeEntry:
-    def __init__(self, data: dict | None = None, options: dict | None = None) -> None:
+    def __init__(
+        self,
+        data: dict | None = None,
+        options: dict | None = None,
+        *,
+        entry_id: str = "test_entry",
+        unique_id: str | None = None,
+    ) -> None:
         self.data = dict(data or {})
         self.options = dict(options or {})
-        self.entry_id = "test_entry"
+        self.entry_id = entry_id
         self.version = 1
+        self.domain = "heatpump_optimizer"
+        self.title = "Heat Pump Optimizer"
+        # What a pre-guard entry carries: nothing. The flow's duplicate guard
+        # (unique-config-entry) sets it on entries it creates.
+        self.unique_id = unique_id
+        # Mirrors the real entry: NOT_LOADED until the manager -- here
+        # ``ha_setup_entry`` -- has run the integration's setup. Service
+        # handlers act only on LOADED entries, so a test that calls one must
+        # have gone through that path rather than ``async_setup_entry`` alone.
+        self.state = ConfigEntryState.NOT_LOADED
         self._on_unload = []
 
     def add_update_listener(self, listener):
@@ -297,6 +346,64 @@ class FakeEntry:
 
     def async_on_unload(self, func):
         self._on_unload.append(func)
+
+
+async def ha_setup_component(integration, hass, domain: str | None = None) -> bool:
+    """Run the domain's ``async_setup`` once per instance, as Home Assistant's
+    ``async_setup_component`` does before the domain's first entry -- that is
+    where the services are registered (action-setup). A second call on the
+    same instance is a no-op, exactly as it is there."""
+    domain = domain or getattr(integration, "DOMAIN", None)
+    if domain in hass.config.components:
+        return True
+    setup = getattr(integration, "async_setup", None)
+    if setup is not None and not await setup(hass, {}):
+        return False
+    hass.config.components.add(domain)
+    return True
+
+
+async def ha_setup_entry(integration, hass, entry) -> bool:
+    """Set an entry up the way Home Assistant's entry manager does.
+
+    The domain is set up first (``ha_setup_component``, once), then
+    ``ConfigEntry.async_setup``'s part: ``async_setup_entry``, and the state
+    moved to LOADED on success. Both halves matter to a test that drives a
+    service afterwards: the registry has to hold the handler, and the handler
+    acts only on LOADED entries. The entry is also held by
+    ``hass.config_entries`` from here on, as an entry the manager sets up
+    always is.
+    """
+    if not await ha_setup_component(
+        integration, hass, getattr(entry, "domain", None)
+    ):
+        return False
+    if entry not in hass.config_entries.entries:
+        hass.config_entries.entries.append(entry)
+    entry.state = ConfigEntryState.SETUP_IN_PROGRESS
+    ok = await integration.async_setup_entry(hass, entry)
+    entry.state = ConfigEntryState.LOADED if ok else ConfigEntryState.SETUP_ERROR
+    return ok
+
+
+async def ha_unload_entry(integration, hass, entry) -> bool:
+    """Unload an entry the way ``ConfigEntry.async_unload`` does (2024.6+).
+
+    On success the manager runs the ``async_on_unload`` callbacks, deletes
+    ``runtime_data`` and sets the state back to NOT_LOADED -- so a test that
+    reads ``entry.runtime_data`` after an unload gets the AttributeError a
+    stale reader would get in Home Assistant, not yesterday's coordinator.
+    """
+    ok = await integration.async_unload_entry(hass, entry)
+    if ok:
+        for callback in list(getattr(entry, "_on_unload", ())):
+            callback()
+        if hasattr(entry, "_on_unload"):
+            entry._on_unload.clear()
+        if hasattr(entry, "runtime_data"):
+            delattr(entry, "runtime_data")
+        entry.state = ConfigEntryState.NOT_LOADED
+    return ok
 
 
 def minutes_ago(minutes: float, now: datetime | None = None) -> datetime:

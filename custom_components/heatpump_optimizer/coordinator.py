@@ -1332,6 +1332,16 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         )
 
     @property
+    def effective_config(self) -> dict[str, Any]:
+        """The merged data and options this coordinator was built from.
+
+        ``async_update_options`` compares a save against it: the options
+        flow rewrites the options dict on every page it leaves, so only a
+        save that changes the effective config earns a reload.
+        """
+        return self._config
+
+    @property
     def target_temperature(self) -> float:
         """The comfort target the user configured."""
         return self._opt_config.target_temp
@@ -10937,3 +10947,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._last_simulation = now
         self._simulation_cache = payload
         return payload
+
+
+# The typed config entry (runtime-data, Bronze): ``entry.runtime_data`` is the
+# entry's coordinator from ``async_setup_entry`` until Home Assistant unloads
+# the entry. Platforms and service handlers annotate with this and read the
+# coordinator from the entry, never from ``hass.data``.
+HeatPumpOptimizerConfigEntry = ConfigEntry[HeatPumpOptimizerCoordinator]

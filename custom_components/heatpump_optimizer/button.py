@@ -20,19 +20,23 @@ from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN
-from .coordinator import HeatPumpOptimizerCoordinator
+from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
 
 _LOGGER = logging.getLogger(__name__)
+
+# Every press lands on the coordinator, which commands one heat pump; two
+# presses racing is two commands to one machine, so actions on this platform
+# run one at a time (parallel-updates, Silver).
+PARALLEL_UPDATES = 1
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: HeatPumpOptimizerConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Heat Pump Optimizer buttons from a config entry."""
-    coordinator: HeatPumpOptimizerCoordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator = entry.runtime_data
     async_add_entities(
         [
             ForceOptimizationButton(coordinator, entry),

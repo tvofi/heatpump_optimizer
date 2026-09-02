@@ -26,7 +26,6 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
-    DOMAIN,
     MODE_AUTO,
     MODE_COMFORT,
     MODE_ECONOMY,
@@ -37,9 +36,15 @@ from .const import (
     DEFAULT_MIN_TEMP,
     DEFAULT_MAX_TEMP,
 )
-from .coordinator import HeatPumpOptimizerCoordinator
+from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
 
 _LOGGER = logging.getLogger(__name__)
+
+# A setpoint or mode change lands on the coordinator, which commands one heat
+# pump (and publishes an ECL110 displacement); two of them racing is two
+# commands to one machine, so actions on this platform run one at a time
+# (parallel-updates, Silver).
+PARALLEL_UPDATES = 1
 
 # Map our modes to HVAC modes
 MODE_TO_HVAC = {
@@ -59,11 +64,11 @@ PRESET_BOOST = "boost"
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: HeatPumpOptimizerConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the Heat Pump Optimizer climate entity."""
-    coordinator: HeatPumpOptimizerCoordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator = entry.runtime_data
     async_add_entities([HeatPumpOptimizerClimate(coordinator, entry)])
 
 
