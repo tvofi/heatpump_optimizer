@@ -1,0 +1,48 @@
+QUIET_NAME=D9-h7
+QUIET_DIR=/Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/audit-r2-D9
+QUIET_CMD=/Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/tvofi-claude/.venv/bin/python tools/audit/round2/D9/h7_stress_gate.py
+QUIET_START=2026-09-02 09:14:56
+QUIET_LOAD_BEFORE={ 1.85 2.27 2.25 }
+QUIET_CPU_BEFORE=CPU usage: 2.49% user, 1.92% sys, 95.57% idle 
+
+=== Stress and economics ===
+
+-- Combination sweep
+RESULT combinations=48 count
+RESULT solve_budget_ratio=1400 ratio
+RESULT sweep_budget_ratio=450 ratio
+RESULT plain.reference_unit=18.068 ms_provisional
+RESULT plain.worst_scenario=shoulder/tariff+pv+cycle label
+RESULT plain.worst_ratio=293.932 ratio
+RESULT plain.median_ratio=35.6426 ratio
+RESULT plain.sweep_ratio=53.3809 ratio
+RESULT plain.per_scenario_headroom=4.76301 ratio
+RESULT plain.sweep_headroom=8.42999 ratio
+RESULT plain.per_scenario_tripped=0 count
+RESULT plain.sweep_tripped=0 count
+RESULT plain.solve_cpu_total=46007.3 ms_provisional
+RESULT plain.thread_factor=1.0004 ratio
+RESULT injected_2x.reference_unit=18.143 ms_provisional
+RESULT injected_2x.worst_scenario=shoulder/tariff+pv+cycle label
+RESULT injected_2x.worst_ratio=588.661 ratio
+RESULT injected_2x.median_ratio=70.6971 ratio
+RESULT injected_2x.sweep_ratio=106.545 ratio
+RESULT injected_2x.per_scenario_headroom=2.37828 ratio
+RESULT injected_2x.sweep_headroom=4.22356 ratio
+RESULT injected_2x.per_scenario_tripped=0 count
+RESULT injected_2x.sweep_tripped=0 count
+RESULT injected_2x.solve_cpu_total=92905.3 ms_provisional
+RESULT injected_2x.thread_factor=0.999999 ratio
+RESULT injected_over_plain_worst=2.00271 ratio
+RESULT injected_over_plain_sweep=1.99594 ratio
+RESULT smallest_detectable_uniform_regression=4.76301 ratio
+RESULT ci_sets_stress_ratio=0 count
+RESULT tests_memory_instrumentation=0 count
+RESULT thread_factor=1.0002 ratio
+RESULT load1=1.78418 load
+RESULT swapins=11628892 count
+QUIET_LOAD_AFTER={ 1.78 2.17 2.21 }
+QUIET_CPU_AFTER=CPU usage: 4.76% user, 3.74% sys, 91.49% idle 
+QUIET_EXIT=0
+QUIET_WALL_S=143
+QUIET_END=2026-09-02 09:17:21

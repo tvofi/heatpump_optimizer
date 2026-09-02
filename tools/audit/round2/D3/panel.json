@@ -1,0 +1,34 @@
+{
+ "panel": "D3",
+ "seats": 3,
+ "seats_reported_at_write": [
+  "verify-1.md",
+  "verify-3.md"
+ ],
+ "seat1_votes": {
+  "D3-01": "verify(medium)",
+  "D3-02": "verify(medium), mechanism weakened",
+  "D3-03": "verify(medium)",
+  "D3-04": "verify(low)",
+  "D3-05": "verify(low), consequence weakened",
+  "D3-06": "verify(low)",
+  "D3-07": "verify(low), mechanism weakened",
+  "D3-08": "verify",
+  "D3-09": "verify",
+  "D3-10": "verify"
+ },
+ "quiet_window": "all six top mutants survived the full unscoped gate (16 scripts, ~200 s each); logs in quiet/D3-M*.gate.log",
+ "notes": {
+  "rolling_caveat_settled": "Seat 1 checked the quiet window's own caveat (its gate skips rolling.py): rolling.py would have killed NONE of the six. Five sites are never entered at all (rolling builds the coordinator directly with a stateless FakeHass: no InputReader, no entity layer, no _dhw_setpoint_sweep, no _parse_rule, no from_dict, no HTTP parse). The sixth (M19) was RUN with the mutant: 33/33 checks green despite 106 differing evaluations, because next_window_in_hours is published-only and nothing reads it back into a schedule. The nightly SLOW=1 run adds nothing",
+  "two_kinds": "Seat 1 split the seven into kinds the finder did not distinguish, with different fixes: ASSERTION gaps (M31, M19, M15 - the gate executes the differing code and passes: 4, 2 and 13 differing evaluations) and INPUT-COVERAGE gaps (M13, M32, M21, M30 - the enclosing site runs 5/14/11/39 times, never on the input that matters)",
+  "equivalent_mutant_attack_fails": "observable_total = 7 of 7: every mutant is distinguishable by a legal input, so no finding can be refuted as an equivalent mutant",
+  "D3-01": "20 attributes, not 21 (small correction). Zero suite references to the sensor or 8 of its keys; the two generic sweeps that touch it assert only non-finiteness and non-crashing",
+  "D3-02": "mechanism weakened: the branch is NOT dead to the suite - features.py:16663 drives it through the whole optimizer stack (2 differing evaluations in the gate, 106 in rolling) and still passes. That makes HALF THE FINDER'S FIX SCOPE WRONG: no golden scenario starting inside a window will catch this, because the value never reaches an asserted output",
+  "D3-03": "cheapest to close: the assertion that catches it is ALREADY WRITTEN (features.py:7770 'hotter tanks cost more per day') and merely never fed a negative price; profiles.py ships an unused summer_negative. At -0.4 the recommendation flips 48 -> 60 C and every cost_per_day goes negative",
+  "D3-05": "consequence weakened: it does NOT abort coordinator setup - _async_load_accuracy is one of twelve fire-and-forget tasks, so the ValueError kills one task and silently leaves dhw_accuracy, defrost, peaks, mode and the comfort learner unloaded every startup",
+  "D3-07": "mechanism weakened: 'no freshness check uses a future timestamp' is false - 13 differing evaluations in features.py at age = -306705 min, and it passes. Also date-dependent (the box's clock has drifted past the fixture's frozen NOW), so the count may differ on a re-take; the finding does not depend on it",
+  "D3-08": "53 solves reproduced from a different instrument; kill_rate 0/4 for each of solar_alignment, plan_view, manual_plan, validate, optimality against a positive control of 4/4 on features.py",
+  "D3-09": "validate.py executes 8 of 38 closure modules, name-for-name identical forced list; a stricter definition gives 6 of 38, so the finder's number is generous if anything",
+  "D3-10": "MOST CONSEQUENTIAL of the ten per seat 1: reproduced with an INDEPENDENT mutant (thermal_model.py:547 wood-tank standby loss x25) - three SENSITIVE fixtures moved 2111 leaves, wood_coil's baseline_cost -2.08 %, and env_drift still printed 'NO UNCLAIMED DRIFT: 55 scenario(s) checked' with rc 0. env_drift.py:1021-1027 appends to may_drift_hits and never folds it into drifted; no magnitude test exists on that path, and the committed claim file marks all five SENSITIVE fixtures may-drift in a block that by its own header never expires"
+ }
+}
