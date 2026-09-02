@@ -149,6 +149,20 @@ one you add.
 
 ## Installation
 
+### Minimum Home Assistant version
+
+Issue #227 re-verified the `hacs.json` floor rather than raising it:
+**2024.6.0 stays the minimum**, because `ConfigEntry.runtime_data` — read by
+every platform here — is still the only API in this integration with a
+minimum Home Assistant release established from evidence in this repository
+(`tests/hastub/homeassistant/config_entries.py`'s docstring and
+`RELEASE_NOTES.md`'s v6.3.0 entry, which records that release as verified
+against the upstream `home-assistant/core` tags). The reconfigure flow,
+config-flow sections, and icon translations queued behind issues #196 and
+#189 may raise this floor again once their own minimum releases are
+established — none is pinned anywhere in this repository yet, so this audit
+left the floor where the evidence actually supports it rather than guess.
+
 ### HACS (recommended)
 
 1. Add this repository to HACS as a custom repository.
