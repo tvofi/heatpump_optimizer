@@ -1,0 +1,421 @@
+{
+ "baseline": {
+  "id": "baseline",
+  "scripts": {
+   "tests/features.py": {
+    "exit": 0,
+    "fails": 0,
+    "tail": "Empty forecast returned for weather.home. Plans continue on the last forecast, marked stale.",
+    "secs": 34.9
+   },
+   "tests/entities.py": {
+    "exit": 0,
+    "fails": 0,
+    "tail": "Config entry version 8 is newer than the supported version 7; downgrade is not supported",
+    "secs": 2.4
+   },
+   "tests/golden.py": {
+    "exit": 1,
+    "fails": 34,
+    "tail": "commit message; `--record` is meant to be a decision, not a reflex.",
+    "secs": 67.0
+   },
+   "tests/plan_view.py": {
+    "exit": 0,
+    "fails": 0,
+    "tail": "plan reason codes, price provenance and slot energy OK",
+    "secs": 0.9
+   },
+   "node tests/card.mjs": {
+    "exit": 0,
+    "fails": 0,
+    "tail": "ALL CARD CHECKS PASSED",
+    "secs": 4.3
+   },
+   "tests/frontend.py": {
+    "exit": 0,
+    "fails": 0,
+    "tail": "Another copy of the Heat Pump Optimizer card is registered at /local/heatpump-optimizer-card.js. It may load instead of the bundled card, leaving you on an old ",
+    "secs": 0.1
+   }
+  }
+ },
+ "rows": [
+  {
+   "id": "batched_gradient_gate_off",
+   "addition": "batched gradient (#97) and its bounds gate (D9-01)",
+   "module": "custom_components/heatpump_optimizer/optimizer.py",
+   "symbol": "optimizer:_bounds_supported_by_batch",
+   "detected": 1,
+   "docs_files": 1,
+   "test_files": 2,
+   "scripts": {
+    "tests/features.py": {
+     "exit": 1,
+     "fails": 2,
+     "tail": "Empty forecast returned for weather.home. Plans continue on the last forecast, marked stale.",
+     "secs": 566.7
+    },
+    "tests/entities.py": {
+     "exit": 0,
+     "fails": 0,
+     "tail": "Config entry version 8 is newer than the supported version 7; downgrade is not supported",
+     "secs": 4.3
+    },
+    "tests/golden.py": {
+     "exit": 1,
+     "fails": 34,
+     "tail": "commit message; `--record` is meant to be a decision, not a reflex.",
+     "secs": 594.9
+    }
+   }
+  },
+  {
+   "id": "bounds_gate_zero_range_admitted",
+   "addition": "the bounds gate's zero-range carve-out (D9-01)",
+   "module": "custom_components/heatpump_optimizer/optimizer.py",
+   "symbol": "optimizer:_bounds_supported_by_batch",
+   "detected": 1,
+   "docs_files": 0,
+   "test_files": 2,
+   "scripts": {
+    "tests/features.py": {
+     "exit": 1,
+     "fails": 2,
+     "tail": "Empty forecast returned for weather.home. Plans continue on the last forecast, marked stale.",
+     "secs": 49.4
+    },
+    "tests/entities.py": {
+     "exit": 0,
+     "fails": 0,
+     "tail": "Config entry version 8 is newer than the supported version 7; downgrade is not supported",
+     "secs": 4.5
+    },
+    "tests/golden.py": {
+     "exit": 1,
+     "fails": 34,
+     "tail": "  return (f - f0) / dx",
+     "secs": 89.9
+    }
+   }
+  },
+  {
+   "id": "drift_cusum_never_trips",
+   "addition": "the drift detector primitive (drift.py Cusum, T4a) behind the open-window, COP-health and drift gates",
+   "module": "custom_components/heatpump_optimizer/drift.py",
+   "symbol": "drift:Cusum.update",
+   "detected": 1,
+   "docs_files": 4,
+   "test_files": 8,
+   "scripts": {
+    "tests/features.py": {
+     "exit": 1,
+     "fails": 8,
+     "tail": "IndexError: list index out of range",
+     "secs": 37.3
+    },
+    "tests/entities.py": {
+     "exit": 0,
+     "fails": 0,
+     "tail": "Config entry version 8 is newer than the supported version 7; downgrade is not supported",
+     "secs": 4.3
+    },
+    "tests/golden.py": {
+     "exit": 1,
+     "fails": 34,
+     "tail": "commit message; `--record` is meant to be a decision, not a reflex.",
+     "secs": 99.3
+    }
+   }
+  },
+  {
+   "id": "weekly_windows_off",
+   "addition": "weekly DHW windows (weekdays/weekend selectors)",
+   "module": "custom_components/heatpump_optimizer/dhw_schedule.py",
+   "symbol": "dhw_schedule:windows_for_day",
+   "detected": 1,
+   "docs_files": 5,
+   "test_files": 6,
+   "scripts": {
+    "tests/features.py": {
+     "exit": 1,
+     "fails": 3,
+     "tail": "Empty forecast returned for weather.home. Plans continue on the last forecast, marked stale.",
+     "secs": 80.5
+    },
+    "tests/entities.py": {
+     "exit": 0,
+     "fails": 0,
+     "tail": "Config entry version 8 is newer than the supported version 7; downgrade is not supported",
+     "secs": 7.1
+    },
+    "tests/golden.py": {
+     "exit": 1,
+     "fails": 34,
+     "tail": "commit message; `--record` is meant to be a decision, not a reflex.",
+     "secs": 128.4
+    }
+   }
+  },
+  {
+   "id": "topology_catalogue_never_matches",
+   "addition": "the topology catalogue (topology.py LAYOUTS / match_layout)",
+   "module": "custom_components/heatpump_optimizer/topology.py",
+   "symbol": "topology:match_layout",
+   "detected": 1,
+   "docs_files": 6,
+   "test_files": 11,
+   "scripts": {
+    "tests/features.py": {
+     "exit": 1,
+     "fails": 3,
+     "tail": "Empty forecast returned for weather.home. Plans continue on the last forecast, marked stale.",
+     "secs": 79.9
+    },
+    "tests/entities.py": {
+     "exit": 0,
+     "fails": 0,
+     "tail": "Config entry version 8 is newer than the supported version 7; downgrade is not supported",
+     "secs": 7.3
+    },
+    "tests/golden.py": {
+     "exit": 1,
+     "fails": 34,
+     "tail": "commit message; `--record` is meant to be a decision, not a reflex.",
+     "secs": 129.9
+    }
+   }
+  },
+  {
+   "id": "wood_share_zero",
+   "addition": "the wood two-tank variant (thermal_model.wood_share priority law, #40)",
+   "module": "custom_components/heatpump_optimizer/thermal_model.py",
+   "symbol": "thermal_model:wood_share",
+   "detected": 1,
+   "docs_files": 6,
+   "test_files": 11,
+   "scripts": {
+    "tests/features.py": {
+     "exit": 1,
+     "fails": 5,
+     "tail": "Empty forecast returned for weather.home. Plans continue on the last forecast, marked stale.",
+     "secs": 68.1
+    },
+    "tests/entities.py": {
+     "exit": 0,
+     "fails": 0,
+     "tail": "Config entry version 8 is newer than the supported version 7; downgrade is not supported",
+     "secs": 4.6
+    },
+    "tests/golden.py": {
+     "exit": 1,
+     "fails": 34,
+     "tail": "commit message; `--record` is meant to be a decision, not a reflex.",
+     "secs": 91.6
+    }
+   }
+  },
+  {
+   "id": "coil_reduction_off",
+   "addition": "the DHW wood-coil variant (thermal_model.dhw_coil_draw_reduction, v3.15.1)",
+   "module": "custom_components/heatpump_optimizer/thermal_model.py",
+   "symbol": "thermal_model:dhw_coil_draw_reduction",
+   "detected": 1,
+   "docs_files": 5,
+   "test_files": 8,
+   "scripts": {
+    "tests/features.py": {
+     "exit": 1,
+     "fails": 5,
+     "tail": "Empty forecast returned for weather.home. Plans continue on the last forecast, marked stale.",
+     "secs": 68.0
+    },
+    "tests/entities.py": {
+     "exit": 0,
+     "fails": 0,
+     "tail": "Config entry version 8 is newer than the supported version 7; downgrade is not supported",
+     "secs": 4.4
+    },
+    "tests/golden.py": {
+     "exit": 1,
+     "fails": 34,
+     "tail": "commit message; `--record` is meant to be a decision, not a reflex.",
+     "secs": 99.5
+    }
+   }
+  },
+  {
+   "id": "dhw_confidence_band_off",
+   "addition": "the DHW confidence band (v5.2.0, coordinator._dhw_confidence_band)",
+   "module": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "coordinator:HeatPumpOptimizerCoordinator._dhw_confidence_band",
+   "detected": 1,
+   "docs_files": 1,
+   "test_files": 3,
+   "scripts": {
+    "tests/features.py": {
+     "exit": 1,
+     "fails": 1,
+     "tail": "TypeError: '<=' not supported between instances of 'NoneType' and 'float'",
+     "secs": 51.9
+    },
+    "tests/entities.py": {
+     "exit": 0,
+     "fails": 0,
+     "tail": "Config entry version 8 is newer than the supported version 7; downgrade is not supported",
+     "secs": 4.2
+    },
+    "tests/golden.py": {
+     "exit": 1,
+     "fails": 34,
+     "tail": "commit message; `--record` is meant to be a decision, not a reflex.",
+     "secs": 92.6
+    }
+   }
+  },
+  {
+   "id": "pump_signals_freeze_off",
+   "addition": "the Tuya heat-pump signals (v5.3.0 pump_signals.read: the offline/fault/cooling learner freeze)",
+   "module": "custom_components/heatpump_optimizer/pump_signals.py",
+   "symbol": "pump_signals:read",
+   "detected": 1,
+   "docs_files": 1,
+   "test_files": 2,
+   "scripts": {
+    "tests/features.py": {
+     "exit": 1,
+     "fails": 12,
+     "tail": "Empty forecast returned for weather.home. Plans continue on the last forecast, marked stale.",
+     "secs": 60.2
+    },
+    "tests/entities.py": {
+     "exit": 0,
+     "fails": 0,
+     "tail": "Config entry version 8 is newer than the supported version 7; downgrade is not supported",
+     "secs": 4.5
+    },
+    "tests/golden.py": {
+     "exit": 1,
+     "fails": 34,
+     "tail": "commit message; `--record` is meant to be a decision, not a reflex.",
+     "secs": 88.7
+    }
+   }
+  },
+  {
+   "id": "reanchor_law_off",
+   "addition": "the re-anchor law (#86, coordinator._reanchor_house_heat_loss_scale)",
+   "module": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "coordinator:HeatPumpOptimizerCoordinator._reanchor_house_heat_loss_scale",
+   "detected": 1,
+   "docs_files": 2,
+   "test_files": 2,
+   "scripts": {
+    "tests/features.py": {
+     "exit": 1,
+     "fails": 7,
+     "tail": "Empty forecast returned for weather.home. Plans continue on the last forecast, marked stale.",
+     "secs": 41.9
+    },
+    "tests/entities.py": {
+     "exit": 0,
+     "fails": 0,
+     "tail": "Config entry version 8 is newer than the supported version 7; downgrade is not supported",
+     "secs": 2.7
+    },
+    "tests/golden.py": {
+     "exit": 1,
+     "fails": 34,
+     "tail": "commit message; `--record` is meant to be a decision, not a reflex.",
+     "secs": 61.9
+    }
+   }
+  },
+  {
+   "id": "card_collaborator_lane_editor_removed",
+   "addition": "the card collaborators (PR 5b LaneEditor of the decomposition program, #136)",
+   "module": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "symbol": "heatpump-optimizer-card.js:LaneEditor",
+   "detected": 1,
+   "docs_files": 1,
+   "test_files": 1,
+   "scripts": {
+    "tests/plan_view.py": {
+     "exit": 0,
+     "fails": 0,
+     "tail": "plan reason codes, price provenance and slot energy OK",
+     "secs": 1.2
+    },
+    "node tests/card.mjs": {
+     "exit": 1,
+     "fails": 0,
+     "tail": "Node.js v20.10.0",
+     "secs": 0.1
+    },
+    "tests/frontend.py": {
+     "exit": 0,
+     "fails": 0,
+     "tail": "Another copy of the Heat Pump Optimizer card is registered at /local/heatpump-optimizer-card.js. It may load instead of the bundled card, leaving you on an old ",
+     "secs": 0.1
+    }
+   }
+  }
+ ],
+ "infra": [
+  {
+   "id": "drift_gate_env_drift",
+   "addition": "the drift gate (tests/env_drift.py, CI GOLDEN_MODE=drift)",
+   "module": "tests/env_drift.py",
+   "doc_anchor": "env_drift|GOLDEN_MODE|drift mode",
+   "note": "needs `git worktree add`: not executable in a git-less export; no test tests the gate",
+   "docs_files": 2,
+   "test_files": 7
+  },
+  {
+   "id": "scoped_gate",
+   "addition": "the scoped gate (tests/run.sh GATE_SCOPE=auto, tests/closure.py, closures.json)",
+   "module": "tests/closure.py",
+   "doc_anchor": "GATE_SCOPE|closures\\.json|scoped",
+   "note": "probed below: `closure.py select` with and without closures.json",
+   "docs_files": 3,
+   "test_files": 5
+  },
+  {
+   "id": "stress_budgets",
+   "addition": "the stress solve-time budgets (tests/stress.py Calibration / SOLVE_BUDGET_RATIO)",
+   "module": "tests/stress.py",
+   "doc_anchor": "budget",
+   "note": "a timing guard; needs the quiet box and runs alone -- not mutated here",
+   "docs_files": 2,
+   "test_files": 3
+  }
+ ],
+ "scoped_gate_probe": {
+  "with_closures": {
+   "exit": 0,
+   "head": [
+    "########## scoped gate ##########",
+    "  MODE: SCOPED -- 14 script(s) run, 2 scoped out.",
+    "  changed files (1), measured against the recorded closures in tests/closures.json:",
+    "      custom_components/heatpump_optimizer/optimizer.py",
+    "",
+    "      RUN   tests/backtest.py",
+    "      RUN   tests/card.mjs",
+    "      RUN   tests/card_drift.mjs",
+    "      RUN   tests/edge.py",
+    "      RUN   tests/entities.py",
+    "      RUN   tests/env_drift.py",
+    "      RUN   tests/features.py"
+   ]
+  },
+  "without_closures": {
+   "exit": 0,
+   "head": [
+    "########## scoped gate ##########",
+    "  MODE: FULL -- every test script runs, nothing is scoped out.",
+    "  reason: tests/closures.json is missing"
+   ]
+  }
+ },
+ "tmp": "/private/tmp/claude-501/-Users-timmalmstrom-copilot-worktrees-heatpump-optimizer-tvofi-claude/674d54f9-28e0-459d-9cac-85fee64c0344/scratchpad/mut"
+}

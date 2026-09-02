@@ -1,0 +1,11 @@
+--- a/custom_components/heatpump_optimizer/dhw_schedule.py
++++ b/custom_components/heatpump_optimizer/dhw_schedule.py
+@@ -430,8 +430,6 @@
+     """
+     if not windows:
+         return None
+-    if hour_in_windows(hour, windows):
+-        return 0.0
+     h = hour % 24.0
+     best: float | None = None
+     for start, _ in windows:

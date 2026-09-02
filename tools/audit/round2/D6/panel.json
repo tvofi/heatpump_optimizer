@@ -1,0 +1,60 @@
+{
+ "panel": "D6",
+ "seats": 3,
+ "votes": {
+  "D6-01": [
+   "verify",
+   "verify",
+   "verify"
+  ],
+  "D6-02": [
+   "verify",
+   "verify",
+   "verify"
+  ],
+  "D6-03": [
+   "verify",
+   "verify",
+   "verify"
+  ],
+  "D6-04": [
+   "verify",
+   "verify",
+   "verify"
+  ],
+  "D6-05": [
+   "verify",
+   "weaken(low)",
+   "verify"
+  ]
+ },
+ "severity": {
+  "D6-01": "low",
+  "D6-02": "low",
+  "D6-03": "low",
+  "D6-04": "low",
+  "D6-05": "low"
+ },
+ "counted": {
+  "D6-01": "3-0 verify",
+  "D6-02": "3-0 verify",
+  "D6-03": "3-0 verify",
+  "D6-04": "3-0 verify",
+  "D6-05": "3-0 verify"
+ },
+ "notes": {
+  "D6-01": "9 of 55 names; scope complete (no unqualified form elsewhere)",
+  "D6-02": "1 of 25-28 examples off its default; the description sentence is not false, the example is stale",
+  "D6-03": "2 of 39 selectors; scope INCOMPLETE - config_flow admits 0 at four sites and ThermalParameters keeps a stored 0, so widening _positive reconciles all three surfaces",
+  "D6-04": "title over-stated: 0.044 IS zero at the quoted precision, so 1 of 2 figures fails; degree-hours is a hinge functional and machine-dependent, so the fix must state the asserted property, never re-record the number. Judge re-takes on the quiet box",
+  "D6-05": "seat 2 weakens the claim's wording (0/2 docs state a flat setpoint) but severity stays low; the finder's C305 row is a CONSTANT and is VOID as evidence - seat 3's own harness (1 -> 0 sentences) is the number that counts"
+ },
+ "voided_harness_rows": [
+  "D6-05 claims.py C305 (lambda: ok(False, ...) - asserted, not measured)"
+ ],
+ "reports": [
+  "D6/verify-1.md",
+  "D6/verify-2.md",
+  "D6/verify-3.md"
+ ]
+}

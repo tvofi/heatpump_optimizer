@@ -1,0 +1,348 @@
+{
+ "dimension": "D7",
+ "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+ "exposure": "",
+ "findings": [
+  {
+   "id": "D7-01",
+   "title": "Active system identification cannot identify the production two-store plant",
+   "severity": "medium",
+   "claim": "SystemIdentification.identify() completes with a usable fit in 0 of 24 preset cells driven against the production ThermalModel, so _adopt_system_identification never admits a result, while a first-order control plant is admitted in 4 of 8 cells.",
+   "mechanism": "The step's heat enters the slab store; during RELAX the room rate stays positive at zero input and the first-order regression rate = -(UA/C)*dT + Q/C + G/C resolves that as a wrong-signed coefficient or an intercept outside the gains band. The comfort abort is also checked only at sample instants (0.92 C reached against a 0.8 C bound at the 30-min cycle).",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/tvofi-claude/.venv/bin/python tools/audit/round2/D7/sysid_plant.py",
+    "harness_path": "tools/audit/round2/D7/sysid_plant.py",
+    "value": 0,
+    "unit": "count",
+    "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+    "machine": "8-core Apple M1, 8 GB, shared audit box",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: ten other auditors on the box (load1 3-73 during the runs); counts and deterministic simulation values only, contention-immune",
+    "tolerance": "exact",
+    "load1": 19.08,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.sysid:SystemIdentification.identify (driven by heatpump_optimizer.thermal_model:ThermalModel.simulate_step)",
+   "perturbation": {
+    "change": "config slab_thermal_mass -> 0.5 kWh/C and slab_heat_transfer -> 5 kW/C on typical_slab (the harness's first_order_control cells)",
+    "expected_direction": "up",
+    "observed_value": 4
+   },
+   "metric_definition": "cells (preset x cadence x noise x bound) whose identify() result is completed with confidence >= 0.3, the _adopt_system_identification gate",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/tvofi-claude/.venv/bin/python tools/audit/round2/D7/sysid_plant.py (RESULT control_admitted, control_abs_bias_pct_max)",
+    "value": 4,
+    "note": "positive control: a first-order plant is admitted in 4 of 8 cells with |bias| <= 8.06 %, so the harness can pass"
+   },
+   "leave_one_out": {
+    "cells": 24,
+    "min": 0.0,
+    "max": 0.0,
+    "drop_most_favourable": 0.0
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub /Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/tvofi-claude/.venv/bin/python tools/audit/round2/D7/sysid_plant.py",
+    "read RESULT admitted_cells (0 of cells=24), aborted_at_production_bound (4), control_admitted (4 of 8)"
+   ],
+   "proposed_fix_scope": "Identify against the two-store model: replay ThermalModel.simulate_step over the experiment window with UA and C_room free and the slab state carried (the house learner's per-interval replay, extended to the window); abort on the predicted excursion, not the sampled one.",
+   "files": [
+    "custom_components/heatpump_optimizer/sysid.py",
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "expected_golden_drift": [],
+   "stop_rule_class": "bug"
+  },
+  {
+   "id": "D7-02",
+   "title": "The defrost flag freezes the COP learner but not the fabric learners",
+   "severity": "medium",
+   "claim": "A defrost-flagged interval in the frost band is rejected by _learn_measured_cop and ingested by _async_learn_house_heat_loss and _async_learn_lower_floor_loss, which replay the commanded power; on the two-zone radiator house house_heat_loss_scale reaches 1.0414 at 20 % defrost intervals and 1.0953 at 50 %.",
+   "mechanism": "The fabric learners replay the interval with the commanded electrical power through the model; a defrost delivers less heat than commanded and the shortfall is attributed to the heat loss coefficient. Only the COP learner consults DefrostWindow.peek(now).any_defrost.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/tvofi-claude/.venv/bin/python tools/audit/round2/D7/learner_gates.py",
+    "harness_path": "tools/audit/round2/D7/learner_gates.py",
+    "value": 1.095282,
+    "unit": "ratio",
+    "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+    "machine": "8-core Apple M1, 8 GB, shared audit box",
+    "cpu_or_wall": "ratio",
+    "contention_note": "fan-out: ten other auditors on the box (load1 3-73 during the runs); counts and deterministic simulation values only, contention-immune",
+    "tolerance": "exact (deterministic, seed 0)",
+    "load1": 22.55,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_learn_house_heat_loss",
+   "perturbation": {
+    "change": "add the COP learner's gate (in_frost_band(outdoor) and self._defrost_window.peek(now).any_defrost -> return) at the top of _async_learn_house_heat_loss",
+    "expected_direction": "to_zero",
+    "observed_value": "scale - 1 = 0.0953 at f=0.5 before the change"
+   },
+   "metric_definition": "house_heat_loss_scale after 400 x 30-min intervals of the real learner against a plant delivering 75 % of the command on a fraction f of intervals (two-zone, radiator share 0.4)",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/tvofi-claude/.venv/bin/python tools/audit/round2/D7/learner_gates.py (RESULT defrost_scale_tz_f00, defrost_scale_sz_f50)",
+    "value": 1.0,
+    "note": "f = 0 holds at 1.000000 exactly; single-zone stays 1.000000 at f = 0.5 because all heat passes the slab store"
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub /Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/tvofi-claude/.venv/bin/python tools/audit/round2/D7/learner_gates.py",
+    "read RESULT ingest_house_loss_defrost=1, ingest_measured_cop_defrost=0, defrost_scale_tz_f20, defrost_scale_tz_f50"
+   ],
+   "proposed_fix_scope": "One shared 'this interval contained a defrost' predicate consulted by _learn_measured_cop, _async_learn_house_heat_loss and _async_learn_lower_floor_loss.",
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "expected_golden_drift": [],
+   "stop_rule_class": "bug"
+  },
+  {
+   "id": "D7-03",
+   "title": "The accuracy tracker records through open-window and external-heat intervals",
+   "severity": "low",
+   "claim": "_record_accuracy skips AccuracyTracker.record only on a pump-signal freeze; intervals frozen for every learner by an open window or an external heat source are still recorded and feed _confidence_margins and temperature_bias().",
+   "mechanism": "The record call is guarded by self._pump_signals.freeze_reason is None only, while the lead-time scoring three statements earlier already uses _learning_frozen(CONF_INDOOR_TEMP_ENTITY).",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/tvofi-claude/.venv/bin/python tools/audit/round2/D7/learner_gates.py",
+    "harness_path": "tools/audit/round2/D7/learner_gates.py",
+    "value": 1,
+    "unit": "count",
+    "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+    "machine": "8-core Apple M1, 8 GB, shared audit box",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: ten other auditors on the box (load1 3-73 during the runs); counts and deterministic simulation values only, contention-immune",
+    "tolerance": "exact",
+    "load1": 22.55,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._record_accuracy",
+   "perturbation": {
+    "change": "guard self._accuracy.record(sample) with self._learning_frozen(CONF_INDOOR_TEMP_ENTITY) is None",
+    "expected_direction": "to_zero",
+    "observed_value": 1
+   },
+   "metric_definition": "1 if len(_accuracy.samples) grows when _record_accuracy runs with the contamination injected (external heat active / vent CUSUM tripped), else 0",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/tvofi-claude/.venv/bin/python tools/audit/round2/D7/learner_gates.py (RESULT ingest_accuracy_record_pump_offline)",
+    "value": 0,
+    "note": "the pump-offline arm, which the existing guard covers, is 0"
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub /Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/tvofi-claude/.venv/bin/python tools/audit/round2/D7/learner_gates.py",
+    "read RESULT ingest_accuracy_record_open_window=1, ingest_accuracy_record_external_heat=1"
+   ],
+   "proposed_fix_scope": "One-line guard change in _record_accuracy.",
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "expected_golden_drift": [],
+   "stop_rule_class": "bug"
+  },
+  {
+   "id": "D7-04",
+   "title": "last_buffer_trajectory is a 5 SEK side channel with one poison",
+   "severity": "low",
+   "claim": "On a store configuration the terminal cost read through ThermalModel.last_buffer_trajectory moves by up to 5.42 SEK (7.1 % of the schedule's energy cost) if any simulation intervenes between writer and reader, silently; only the batch path poisons the attribute; today all four readers are adjacent to their writer.",
+   "mechanism": "simulate_trajectory / _with_dhw record the buffer trajectory on the model instead of returning it; _terminal_cost's closure reads it back as its fifth argument.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/tvofi-claude/.venv/bin/python tools/audit/round2/D7/trajectory_order.py",
+    "harness_path": "tools/audit/round2/D7/trajectory_order.py",
+    "value": 5.416717,
+    "unit": "SEK",
+    "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+    "machine": "8-core Apple M1, 8 GB, shared audit box",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: ten other auditors on the box (load1 3-73 during the runs); counts and deterministic simulation values only, contention-immune",
+    "tolerance": "exact to 1e-6 (plain simulation)",
+    "load1": 16.53,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.thermal_model:ThermalModel.last_buffer_trajectory read by heatpump_optimizer.optimizer:HeatPumpOptimizer._terminal_cost",
+   "perturbation": {
+    "change": "config mixing_valve_mode -> none (buffer_is_store False)",
+    "expected_direction": "to_zero",
+    "observed_value": 0.0
+   },
+   "metric_definition": "|terminal cost with the side channel read after one intervening simulate_trajectory of another schedule - terminal cost read immediately after schedule A's own simulate_trajectory|, SEK",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/tvofi-claude/.venv/bin/python tools/audit/round2/D7/trajectory_order.py (RESULT null_delta_abs)",
+    "value": 0.0,
+    "note": "no valve: the buffer is not a store, delta 0.000000"
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub /Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/tvofi-claude/.venv/bin/python tools/audit/round2/D7/trajectory_order.py",
+    "read RESULT tc_delta_abs_max, poison_raises=1, readers_with_model_call_between=0"
+   ],
+   "proposed_fix_scope": "Return the buffer trajectory from simulate_trajectory and simulate_trajectory_with_dhw (four production call sites) and delete the attribute and the poison.",
+   "files": [
+    "custom_components/heatpump_optimizer/thermal_model.py",
+    "custom_components/heatpump_optimizer/optimizer.py"
+   ],
+   "expected_golden_drift": [],
+   "stop_rule_class": "hygiene"
+  },
+  {
+   "id": "D7-05",
+   "title": "coordinator.py has one cheap seam and no others",
+   "severity": "low",
+   "claim": "HeatPumpOptimizerCoordinator is 10,269 lines / 256 methods / 174 instance attributes (132 multi-writer); its _init_* groups share 30.9 % of attribute references and 66.1 % of self-calls across boundaries, no clustering at k=6..16 gets cross-cluster attribute references under 0.33, and the only seam with cut cost under 40 is the manual-plan group (10 methods, cut 17).",
+   "mechanism": "Six hub attributes (_config 77 methods, _thermal_params 63, hass 42, _current_state 36, _opt_config 32, _current_action 23) are read from every functional group, so shared state, not call structure, binds the class.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/tvofi-claude/.venv/bin/python tools/audit/round2/D7/coordinator_clusters.py",
+    "harness_path": "tools/audit/round2/D7/coordinator_clusters.py",
+    "value": 0.3091,
+    "unit": "ratio",
+    "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+    "machine": "8-core Apple M1, 8 GB, shared audit box",
+    "cpu_or_wall": "ratio",
+    "contention_note": "fan-out: ten other auditors on the box (load1 3-73 during the runs); counts and deterministic simulation values only, contention-immune",
+    "tolerance": "exact",
+    "load1": 16.53,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator",
+   "perturbation": {
+    "change": "move the manual-plan group (_async_load_manual_plan, _async_save_manual_plan, _manual_pins, _record_manual_release, _manual_plan_state, async_apply_manual_plan, async_clear_manual_plan, ...) into its own module",
+    "expected_direction": "down",
+    "observed_value": "n_methods 256 -> 246 expected; cross_attr_fraction_k10 0.33 -> lower"
+   },
+   "metric_definition": "attribute references whose attribute is owned (first _init_* assignment) by a cluster other than the referencing method's / all self attribute references in the class",
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub /Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/tvofi-claude/.venv/bin/python tools/audit/round2/D7/metrics_ast.py",
+    "PYTHONPATH=tests/hastub /Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/tvofi-claude/.venv/bin/python tools/audit/round2/D7/coordinator_clusters.py",
+    "read RESULT cross_attr_fraction_seeded, cross_call_fraction_seeded, seam_min_cut_*, attr_max_fan_in"
+   ],
+   "proposed_fix_scope": "Decomposition program: extract the six hub attributes into a context object first, then peel seams in cut-cost order (manual plan 17, ECL110 15, measurements 48, insurance 67).",
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "expected_golden_drift": [],
+   "stop_rule_class": "hygiene"
+  },
+  {
+   "id": "D7-06",
+   "title": "Five dead defs and six production functions only tests call",
+   "severity": "low",
+   "claim": "5 defs (46 lines) are never started by the gate's scripts and never named in production or tests; 6 further production defs (140 lines) are started only because tests call them.",
+   "mechanism": "AST reference census (names, attributes, non-docstring string tokens over production, then tests) joined with a sys.monitoring PY_START sentinel over thirteen gate scripts.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/tvofi-claude/.venv/bin/python tools/audit/round2/D7/dead_code.py",
+    "harness_path": "tools/audit/round2/D7/dead_code.py",
+    "value": 5,
+    "unit": "count",
+    "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+    "machine": "8-core Apple M1, 8 GB, shared audit box",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: ten other auditors on the box (load1 3-73 during the runs); counts and deterministic simulation values only, contention-immune",
+    "tolerance": "exact",
+    "load1": 9.67,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "every def under custom_components/heatpump_optimizer via sys.monitoring co_firstlineno; the list is RESULT dead_candidate_list",
+   "perturbation": {
+    "change": "delete one listed dead candidate (e.g. presets._floor_heated_area)",
+    "expected_direction": "down",
+    "observed_value": 5
+   },
+   "metric_definition": "defs never started by the suite AND unreferenced (Name/attribute/non-docstring string) in production AND in tests AND not a framework-hook name",
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub /Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/tvofi-claude/.venv/bin/python tools/audit/round2/D7/dead_code.py",
+    "read RESULT dead_candidates, dead_candidate_list, dynamic_reach_started_unreferenced"
+   ],
+   "proposed_fix_scope": "Delete the five; for the six test-only defs either wire the production caller they were written for or move them to tests.",
+   "files": [
+    "custom_components/heatpump_optimizer/comfort_learning.py",
+    "custom_components/heatpump_optimizer/config_flow.py",
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/dhw_draws.py",
+    "custom_components/heatpump_optimizer/grid_fee.py",
+    "custom_components/heatpump_optimizer/presets.py",
+    "custom_components/heatpump_optimizer/pv.py",
+    "custom_components/heatpump_optimizer/tariff.py",
+    "custom_components/heatpump_optimizer/topology.py"
+   ],
+   "expected_golden_drift": [],
+   "stop_rule_class": "hygiene"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "The intra-package import graph is acyclic, module-level and with the two function-level imports",
+   "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/tvofi-claude/.venv/bin/python tools/audit/round2/D7/metrics_ast.py",
+   "value": "import_cycle_sccs_module_level=0, import_cycle_sccs_with_deferred=0, import_edges_deferred=2"
+  },
+  {
+   "claim": "Every production reader of last_buffer_trajectory is adjacent to its writer",
+   "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/tvofi-claude/.venv/bin/python tools/audit/round2/D7/trajectory_order.py",
+   "value": "readers_with_model_call_between=0 over reader_sites_optimizer=4"
+  },
+  {
+   "claim": "The batch poison fires on a stale read",
+   "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/tvofi-claude/.venv/bin/python tools/audit/round2/D7/trajectory_order.py",
+   "value": "poison_raises=1"
+  },
+  {
+   "claim": "No-valve configuration is a true null for the side channel",
+   "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/tvofi-claude/.venv/bin/python tools/audit/round2/D7/trajectory_order.py",
+   "value": "null_delta_abs=0.000000 SEK"
+  },
+  {
+   "claim": "_learning_frozen freezes all seven thermal learners on open window, pump offline and external heat",
+   "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/tvofi-claude/.venv/bin/python tools/audit/round2/D7/learner_gates.py",
+   "value": "learners_ingesting_pump_offline=0; learners_ingesting_open_window=1 and learners_ingesting_external_heat=1, the one being the accuracy tracker (D7-03)"
+  },
+  {
+   "claim": "The COP learner's v5.3.0 defrost gate works",
+   "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/tvofi-claude/.venv/bin/python tools/audit/round2/D7/learner_gates.py",
+   "value": "ingest_measured_cop_defrost=0, ingest_measured_cop_clean=1"
+  },
+  {
+   "claim": "Single-zone house learner is immune to delivered-power error (all heat via the slab store)",
+   "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/tvofi-claude/.venv/bin/python tools/audit/round2/D7/learner_gates.py",
+   "value": "defrost_scale_sz_f50=1.000000"
+  },
+  {
+   "claim": "The defrost null holds exactly",
+   "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/tvofi-claude/.venv/bin/python tools/audit/round2/D7/learner_gates.py",
+   "value": "defrost_scale_tz_f00=1.000000 after 400 samples"
+  },
+  {
+   "claim": "The sysid harness can pass: a first-order control completes and is admitted",
+   "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/tvofi-claude/.venv/bin/python tools/audit/round2/D7/sysid_plant.py",
+   "value": "control_admitted=4 of 8, control_abs_bias_pct_max=8.056"
+  },
+  {
+   "claim": "The two-store least-squares fit identifies UA from the same samples (noiseless, 30 min)",
+   "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/tvofi-claude/.venv/bin/python tools/audit/round2/D7/sysid_plant.py",
+   "value": "bias_pct_two_store 0.000 / 5.916 / 6.399 % on light_new / heavy_old / typical_slab"
+  },
+  {
+   "claim": "Comfort bound respected on the heavy and slab presets",
+   "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/tvofi-claude/.venv/bin/python tools/audit/round2/D7/sysid_plant.py",
+   "value": "peak excursion 0.08 C (heavy_old) and 0.33 C (typical_slab) at the production bound"
+  },
+  {
+   "claim": "Every production-side addition of this year's train has a test that fails when it is deleted",
+   "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/tvofi-claude/.venv/bin/python tools/audit/round2/D7/train_mutations.py --jobs 3",
+   "value": "additions_detected=11 of additions_mutated=11"
+  },
+  {
+   "claim": "The scoped gate scopes an optimizer change and falls back to FULL without closures.json",
+   "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/tvofi-claude/.venv/bin/python tools/audit/round2/D7/train_mutations.py --jobs 3 (probe section)",
+   "value": "with closures: 14 scripts run, 2 scoped out; without: MODE FULL"
+  },
+  {
+   "claim": "The gate's Python scripts start most of the package",
+   "command": "PYTHONPATH=tests/hastub /Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/tvofi-claude/.venv/bin/python tools/audit/round2/D7/dead_code.py",
+   "value": "started_by_suite=983 of defs_total=1062"
+  }
+ ],
+ "harnesses": [
+  "tools/audit/round2/D7/metrics_ast.py",
+  "tools/audit/round2/D7/coordinator_clusters.py",
+  "tools/audit/round2/D7/sysid_plant.py",
+  "tools/audit/round2/D7/learner_gates.py",
+  "tools/audit/round2/D7/trajectory_order.py",
+  "tools/audit/round2/D7/train_mutations.py",
+  "tools/audit/round2/D7/dead_code.py",
+  "tools/audit/round2/D7/d7_monitor_boot.py"
+ ]
+}

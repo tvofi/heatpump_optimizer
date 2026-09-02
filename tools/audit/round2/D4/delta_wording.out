@@ -1,0 +1,11 @@
+en stats.cheaper    ok     cheaper than the saved plan (31.97 → 31.97&nbsp;SEK, estimated)
+en stats.dearer     ok     dearer than the saved plan (31.97 → 31.97&nbsp;SEK, estimated)
+en stats.the_same   WRONG  the same than the saved plan (31.97 → 31.97&nbsp;SEK, estimated)
+sv stats.cheaper    ok     billigare jämfört med den sparade planen (31.97 → 31.97&nbsp;SEK, uppskattat)
+sv stats.dearer     ok     dyrare jämfört med den sparade planen (31.97 → 31.97&nbsp;SEK, uppskattat)
+sv stats.the_same   ok     oförändrad jämfört med den sparade planen (31.97 → 31.97&nbsp;SEK, uppskattat)
+RESULT ungrammatical_en=1 count
+RESULT ungrammatical_sv=0 count
+RESULT thread_factor=1.00
+RESULT load1=8.46
+RESULT swapins=0

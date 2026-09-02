@@ -1,0 +1,11 @@
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -3972,8 +3972,6 @@
+         attempt = self._dhw_legionella_attempt
+         if attempt is not None and (last is None or attempt > last):
+             last = attempt
+-        if last is None:
+-            return None
+         delta = (dt_util.now() - last).total_seconds() / 3600.0
+         return max(0.0, delta)
+ 

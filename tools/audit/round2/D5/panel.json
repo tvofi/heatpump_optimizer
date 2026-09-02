@@ -1,0 +1,50 @@
+{
+ "panel": "D5",
+ "seats": 3,
+ "votes": {
+  "D5-01": [
+   "verify",
+   "verify",
+   "verify"
+  ],
+  "D5-02": [
+   "verify",
+   "verify",
+   "verify"
+  ],
+  "D5-03": [
+   "verify",
+   "verify",
+   "verify"
+  ],
+  "D5-04": [
+   "verify",
+   "verify",
+   "verify"
+  ],
+  "D5-05": [
+   "verify",
+   "verify",
+   "verify"
+  ]
+ },
+ "severity": {
+  "D5-01": "low",
+  "D5-02": "low",
+  "D5-03": "low",
+  "D5-04": "low",
+  "D5-05": "low"
+ },
+ "notes": {
+  "D5-01": "scope +2 stale closure rows (l.103/104) and the l.155 wrap; env_drift.py:186 'all 53' stale",
+  "D5-02": "mechanism escalation for D10: default topics make every non-MQTT install log 2 ERRORs per cycle (ServiceNotFound); fix is the code default, docs row stays",
+  "D5-03": "'only inbound links from plan docs' is wrong (0 in-links); count 3 stands; fix needs 3 links not 2",
+  "D5-04": "one more H1-class line tests/README.md:155; S1 needs a paragraph revision",
+  "D5-05": "scope +1: snapshots.py:170 names restore_snapshot (service is restore_learned_snapshot)"
+ },
+ "reports": [
+  "D5/verify-1.md",
+  "D5/verify-2.md",
+  "D5/verify-3.md"
+ ]
+}

@@ -1,0 +1,260 @@
+=== Golden characterization ===
+
+  ok   winter_single_dhw
+  DIFF winter_two_zone_dhw
+         compressor_starts: 5 -> 4
+         deferred_energy_cost: 13.396819 -> 13.197951
+         displace_schedule: 76/96 values differ, first at index 20: 18.8 -> 17.7
+         heat_pump_on_schedule: 3/96 values differ, first at index 88: False -> True
+         lower_setpoints: 42/96 values differ, first at index 20: 23.5 -> 22.4
+         lower_temp_trajectory: 75/97 values differ, first at index 22: 21.137961 -> 21.134927
+         ... and 10 more fields
+  ok   winter_single_no_dhw
+  DIFF winter_two_zone_no_dhw
+         compressor_starts: 3 -> 4
+         deferred_energy_cost: 11.434837 -> 13.340094
+         displace_schedule: 76/96 values differ, first at index 20: 17.4 -> 16.7
+         heat_pump_on_schedule: 5/96 values differ, first at index 87: True -> False
+         lower_setpoints: 44/96 values differ, first at index 20: 21.5 -> 20.8
+         lower_temp_trajectory: 75/97 values differ, first at index 22: 21.303394 -> 21.301408
+         ... and 10 more fields
+  ok   summer_dhw_only
+  DIFF shoulder
+         deferred_energy_cost: -1.827738 -> -1.827781
+         displace_schedule: 1/96 values differ, first at index 62: -17.9 -> -17.8
+         lower_temp_trajectory: 63/97 values differ, first at index 33: 19.903813 -> 19.903799
+         power_schedule: 40/96 values differ, first at index 31: 0.086098 -> 0.081384
+         predicted_cost: 3.781048 -> 3.780744
+         predicted_savings: 11.88779 -> 11.888135
+         ... and 5 more fields
+  DIFF shoulder_two_zone
+         deferred_energy_cost: -0.269921 -> -0.421226
+         displace_schedule: 36/96 values differ, first at index 12: -17.8 -> -18.1
+         heat_pump_on_schedule: 1/96 values differ, first at index 89: False -> True
+         lower_setpoints: 14/96 values differ, first at index 12: 17.6 -> 17.3
+         lower_temp_trajectory: 86/97 values differ, first at index 11: 20.677974 -> 20.678161
+         optimal_setpoints: 14/96 values differ, first at index 12: 17.5 -> 17.3
+         ... and 10 more fields
+  ok   extreme_prices
+  ok   negative_prices
+  DIFF flat_prices
+         deferred_energy_cost: 4.782463 -> 4.782489
+         lower_temp_trajectory: 88/97 values differ, first at index 7: 20.53167 -> 20.531669
+         power_schedule: 55/96 values differ, first at index 1: 5.655348 -> 5.655339
+         predicted_cost: 75.812325 -> 75.81229
+         predicted_savings: 19.584866 -> 19.584875
+         room_temp_trajectory: 88/97 values differ, first at index 7: 20.53167 -> 20.531669
+         ... and 3 more fields
+  DIFF mild_windy_rain
+         power_schedule: 2/96 values differ, first at index 2: 0.389791 -> 0.38979
+         slab_temp_trajectory: 1/97 values differ, first at index 63: 22.973628 -> 22.973629
+  DIFF cool_rainy_summer
+         deferred_energy_cost: 0.010383 -> 0.01382
+         displace_schedule: 2/96 values differ, first at index 60: -15.8 -> -15.9
+         lower_temp_trajectory: 41/97 values differ, first at index 56: 20.663371 -> 20.663406
+         optimal_setpoints: 1/96 values differ, first at index 56: 17.6 -> 17.5
+         power_schedule: 5/96 values differ, first at index 54: 0.106061 -> 0.115168
+         predicted_cost: 2.123665 -> 2.121266
+         ... and 6 more fields
+  ok   legionella_due
+  ok   legionella_off
+  ok   legionella_due_low_setpoint
+  ok   dhw_schedule_off
+  ok   dhw_learned_windows
+  DIFF dhw_cold_tank
+         deferred_energy_cost: 32.087369 -> 32.08751
+         displace_schedule: 6/96 values differ, first at index 20: 11.7 -> 11.8
+         lower_temp_trajectory: 73/97 values differ, first at index 22: 20.259998 -> 20.260139
+         optimal_setpoints: 1/96 values differ, first at index 20: 17.0 -> 17.1
+         power_schedule: 7/96 values differ, first at index 20: 0.976095 -> 1.064499
+         predicted_cost: 30.980964 -> 30.97983
+         ... and 6 more fields
+  ok   dhw_large_tank
+  DIFF start_below_band
+         deferred_energy_cost: 30.37097 -> 30.422246
+         displace_schedule: 27/96 values differ, first at index 51: 16.4 -> 19.6
+         heat_pump_on_schedule: 4/96 values differ, first at index 52: False -> True
+         lower_temp_trajectory: 44/97 values differ, first at index 53: 16.929939 -> 16.934101
+         optimal_setpoints: 6/96 values differ, first at index 51: 19.6 -> 22.5
+         power_schedule: 11/96 values differ, first at index 51: 3.172991 -> 5.585751
+         ... and 6 more fields
+  ok   start_above_band
+  DIFF narrow_band
+         deferred_energy_cost: 0.689792 -> 0.093884
+         dhw_heating_cost: 8.002513 -> 7.961193
+         dhw_power_schedule: 16/96 values differ, first at index 15: 0.6 -> 0.0
+         dhw_reasons: 5/96 values differ, first at index 15: dhw_preheat -> idle
+         dhw_temp_trajectory: 66/97 values differ, first at index 16: 54.075267 -> 53.457649
+         displace_schedule: 81/96 values differ, first at index 15: 18.0 -> 18.6
+         ... and 12 more fields
+  ok   wide_band
+  DIFF horizon_48h
+         lower_temp_trajectory: 1/193 values differ, first at index 146: 18.873519 -> 18.873518
+         power_schedule: 3/192 values differ, first at index 41: 0.047073 -> 0.047074
+         room_temp_trajectory: 1/193 values differ, first at index 146: 18.873519 -> 18.873518
+         slab_temp_trajectory: 4/193 values differ, first at index 44: 24.215994 -> 24.215995
+         upper_temp_trajectory: 1/193 values differ, first at index 146: 18.873519 -> 18.873518
+  ok   horizon_6h
+  DIFF capacity_tariff
+         deferred_energy_cost: 27.526434 -> 27.525539
+         lower_temp_trajectory: 95/97 values differ, first at index 2: 20.824324 -> 20.824325
+         power_schedule: 66/96 values differ, first at index 0: 1.927709 -> 1.928054
+         predicted_cost: 36.68607 -> 36.686749
+         predicted_savings: 59.00891 -> 59.009125
+         room_temp_trajectory: 95/97 values differ, first at index 2: 20.824324 -> 20.824325
+         ... and 3 more fields
+  DIFF capacity_tariff_15min
+         deferred_energy_cost: 28.35406 -> 31.121951
+         displace_schedule: 64/96 values differ, first at index 1: -0.5 -> -0.6
+         heat_pump_on_schedule: 19/96 values differ, first at index 40: True -> False
+         lower_temp_trajectory: 95/97 values differ, first at index 2: 20.822295 -> 20.82158
+         optimal_setpoints: 28/96 values differ, first at index 1: 21.8 -> 21.7
+         power_schedule: 78/96 values differ, first at index 0: 0.919629 -> 0.564053
+         ... and 7 more fields
+  DIFF cycling_cost
+         deferred_energy_cost: 27.756276 -> 27.812804
+         displace_schedule: 22/96 values differ, first at index 21: 9.8 -> 9.4
+         heat_pump_on_schedule: 1/96 values differ, first at index 63: True -> False
+         lower_temp_trajectory: 75/97 values differ, first at index 22: 20.575151 -> 20.575088
+         optimal_setpoints: 7/96 values differ, first at index 20: 18.8 -> 18.7
+         power_schedule: 23/96 values differ, first at index 20: 2.472228 -> 2.432165
+         ... and 7 more fields
+  ok   external_heat_active
+  ok   cop_scale_learned
+  DIFF away_setback
+         deferred_energy_cost: 0.791512 -> 1.492585
+         displace_schedule: 37/96 values differ, first at index 51: -17.3 -> -17.5
+         lower_temp_trajectory: 82/97 values differ, first at index 15: 19.61275 -> 19.612751
+         optimal_setpoints: 8/96 values differ, first at index 51: 17.4 -> 17.3
+         power_schedule: 27/96 values differ, first at index 12: 0.0 -> 1.8e-05
+         predicted_cost: 32.289067 -> 31.520878
+         ... and 6 more fields
+  ok   building_preset
+  DIFF valve_storage
+         buffer_temp_trajectory: 96/97 values differ, first at index 1: 32.951421 -> 32.272645
+         deferred_energy_cost: 16.690614 -> 22.055138
+         displace_schedule: 95/96 values differ, first at index 0: 3.3 -> 1.8
+         heat_pump_on_schedule: 16/96 values differ, first at index 20: True -> False
+         lower_setpoints: 31/96 values differ, first at index 0: 23.9 -> 22.2
+         lower_temp_trajectory: 66/97 values differ, first at index 31: 20.554867 -> 20.555371
+         ... and 10 more fields
+  DIFF valve_storage_low_target
+         buffer_temp_trajectory: 96/97 values differ, first at index 1: 33.800011 -> 33.536555
+         compressor_starts: 3 -> 4
+         deferred_energy_cost: 20.767035 -> 21.819417
+         displace_schedule: 82/96 values differ, first at index 0: 3.2 -> 2.6
+         heat_pump_on_schedule: 18/96 values differ, first at index 20: True -> False
+         lower_setpoints: 53/96 values differ, first at index 0: 23.7 -> 23.1
+         ... and 11 more fields
+  DIFF valve_storage_flat_prices
+         buffer_temp_trajectory: 96/97 values differ, first at index 1: 32.712657 -> 32.778971
+         compressor_starts: 1 -> 2
+         deferred_energy_cost: -11.175629 -> -11.395396
+         displace_schedule: 85/96 values differ, first at index 0: 2.8 -> 3.0
+         heat_pump_on_schedule: 15/96 values differ, first at index 18: True -> False
+         lower_setpoints: 69/96 values differ, first at index 0: 23.3 -> 23.5
+         ... and 12 more fields
+  DIFF valve_storage_small_tank
+         buffer_temp_trajectory: 96/97 values differ, first at index 1: 41.016656 -> 40.436788
+         deferred_energy_cost: 7.474317 -> 6.915048
+         displace_schedule: 73/96 values differ, first at index 0: 2.1 -> 2.0
+         lower_setpoints: 44/96 values differ, first at index 17: 22.6 -> 22.5
+         lower_temp_trajectory: 73/97 values differ, first at index 24: 20.505602 -> 20.502738
+         optimal_setpoints: 54/96 values differ, first at index 0: 21.8 -> 21.7
+         ... and 10 more fields
+  DIFF valve_storage_smart_write
+         buffer_temp_trajectory: 96/97 values differ, first at index 1: 32.959374 -> 32.272645
+         compressor_starts: 6 -> 5
+         deferred_energy_cost: 22.638729 -> 22.055138
+         displace_schedule: 94/96 values differ, first at index 0: 3.3 -> 1.8
+         heat_pump_on_schedule: 9/96 values differ, first at index 24: False -> True
+         lower_setpoints: 24/96 values differ, first at index 0: 23.9 -> 22.2
+         ... and 12 more fields
+  DIFF wood_two_tank
+         buffer_temp_trajectory: 96/97 values differ, first at index 1: 35.37614 -> 35.452722
+         compressor_starts: 3 -> 4
+         deferred_energy_cost: 26.508233 -> 27.105536
+         displace_schedule: 85/96 values differ, first at index 1: 6.1 -> 6.0
+         heat_pump_on_schedule: 2/96 values differ, first at index 46: False -> True
+         lower_setpoints: 36/96 values differ, first at index 0: 23.8 -> 24.0
+         ... and 12 more fields
+  DIFF wood_two_tank_smart_write
+         buffer_temp_trajectory: 96/97 values differ, first at index 1: 34.897601 -> 35.134433
+         compressor_starts: 5 -> 4
+         deferred_energy_cost: 27.339603 -> 28.874135
+         displace_schedule: 88/96 values differ, first at index 0: 2.2 -> 2.8
+         heat_pump_on_schedule: 9/96 values differ, first at index 13: False -> True
+         lower_setpoints: 32/96 values differ, first at index 0: 22.7 -> 23.2
+         ... and 13 more fields
+  DIFF wood_coil
+         buffer_temp_trajectory: 96/97 values differ, first at index 1: 32.462767 -> 32.710352
+         compressor_starts: 6 -> 5
+         deferred_energy_cost: 27.53172 -> 25.000587
+         dhw_heating_cost: 6.657903 -> 8.206833
+         dhw_power_schedule: 19/96 values differ, first at index 0: 4.8 -> 4.000723
+         dhw_reasons: 9/96 values differ, first at index 1: dhw_preheat -> idle
+         ... and 17 more fields
+  DIFF valve_upper_direct_slab
+         buffer_temp_trajectory: 76/97 values differ, first at index 21: 31.043098 -> 32.511779
+         deferred_energy_cost: 19.703375 -> 17.610497
+         displace_schedule: 76/96 values differ, first at index 20: 15.0 -> 19.2
+         heat_pump_on_schedule: 23/96 values differ, first at index 21: True -> False
+         lower_setpoints: 26/96 values differ, first at index 20: 18.9 -> 23.4
+         lower_temp_trajectory: 74/97 values differ, first at index 23: 21.28273 -> 21.285472
+         ... and 10 more fields
+  DIFF tariff_plus_two_zone
+         deferred_energy_cost: 8.756279 -> 9.802582
+         displace_schedule: 85/96 values differ, first at index 0: -2.2 -> -2.0
+         lower_setpoints: 55/96 values differ, first at index 0: 18.0 -> 18.2
+         lower_temp_trajectory: 95/97 values differ, first at index 2: 20.806756 -> 20.807628
+         optimal_setpoints: 53/96 values differ, first at index 0: 17.9 -> 18.1
+         peak_cost: 0.012 -> 0.0
+         ... and 10 more fields
+  DIFF everything_on
+         lower_temp_trajectory: 13/97 values differ, first at index 21: 21.224814 -> 21.224815
+         power_schedule: 27/96 values differ, first at index 2: 5.755414 -> 5.755415
+         room_temp_trajectory: 12/97 values differ, first at index 25: 21.328557 -> 21.328558
+         slab_temp_trajectory: 11/97 values differ, first at index 27: 25.978994 -> 25.978995
+         upper_temp_trajectory: 16/97 values differ, first at index 25: 21.284547 -> 21.284548
+  ok   peak_masked
+  ok   price_risk
+  DIFF fuse_guard
+         compressor_starts: 4 -> 6
+         deferred_energy_cost: 33.262558 -> 34.167282
+         displace_schedule: 62/96 values differ, first at index 20: 0.8 -> 1.7
+         heat_pump_on_schedule: 10/96 values differ, first at index 48: True -> False
+         lower_temp_trajectory: 75/97 values differ, first at index 22: 19.890234 -> 19.89131
+         optimal_setpoints: 16/96 values differ, first at index 20: 19.3 -> 20.1
+         ... and 8 more fields
+  ok   capacity_curve
+  DIFF precip_snow
+         lower_temp_trajectory: 9/97 values differ, first at index 8: 20.621047 -> 20.621048
+         power_schedule: 9/96 values differ, first at index 1: 0.541616 -> 0.541619
+         room_temp_trajectory: 9/97 values differ, first at index 8: 20.621047 -> 20.621048
+         slab_temp_trajectory: 14/97 values differ, first at index 3: 22.107207 -> 22.107209
+         upper_temp_trajectory: 9/97 values differ, first at index 8: 20.621047 -> 20.621048
+  ok   confidence_margins
+  DIFF coord_minimal
+         data.energy_totals_counting_since: new; data.reading_ok: new; data.weather_forecast_stale_hours: new
+  DIFF coord_dhw
+         data.energy_totals_counting_since: new; data.reading_ok: new; data.weather_forecast_stale_hours: new
+  DIFF coord_two_zone
+         data.energy_totals_counting_since: new; data.reading_ok: new; data.weather_forecast_stale_hours: new
+  DIFF coord_grid_fee
+         data.energy_totals_counting_since: new; data.reading_ok: new; data.weather_forecast_stale_hours: new
+  DIFF coord_all_features
+         data.energy_totals_counting_since: new; data.power_headroom.available: False -> True; data.power_headroom.baseline_source: new; data.power_headroom.headroom_kw: new; (+2 more); data.reading_ok: new; (+1 more)
+  DIFF config_flow
+         away.after_save: new
+         building.after_save: new
+         building_preset.after_save: new
+         comfort.after_save: new
+         entities.after_save: new
+         grid.after_save: new
+         ... and 6 more fields
+
+34 of 55 GOLDEN SCENARIOS CHANGED
+
+Read the diffs before re-recording. A change here is either a bug
+or a deliberate behaviour change that should be justified in the
+commit message; `--record` is meant to be a decision, not a reflex.

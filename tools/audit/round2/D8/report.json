@@ -1,0 +1,169 @@
+{
+  "dimension": "D8",
+  "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+  "exposure": "",
+  "findings": [
+    {
+      "id": "D8-01",
+      "title": "ThermalState constructor defaults are published as temperatures through five ungated paths",
+      "severity": "high",
+      "claim": "With no thermometer behind a field, the climate entity, Mixed Hot Water, Thermal Battery Charge and the Indoor/Outdoor sensors publish the ThermalState() constructor default (55/40/22/21/5 degC) or a number derived from it as an available state or attribute, while the sensor platform's _MeasuredTemperatureMixin makes the corresponding temperature sensors unavailable.",
+      "mechanism": "_MeasuredTemperatureMixin gates only DHWTemperature/Buffer/Slab/LowerFloor/FloorReturn/UpperFloor sensors on reading_ok. The same ThermalState fields leave ungated through climate.extra_state_attributes (dhw_temperature, slab_temperature, lower_floor_temperature, upper_floor_temperature, current_temperature), coordinator._dhw_mixed_water (litres from the 55.0 default -> Mixed Hot Water state), coordinator._battery_view (components.dhw_tank/buffer_tank/slab/lower_floor and the SOC state), IndoorTempSensor (21.0) and OutdoorTempSensor (5.0 while the plan is solved on the forecast; Estimated COP follows the 5.0: 3.32 vs 2.62/2.19 at the real -3/-8 degC).",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D8/matrix.py",
+        "harness_path": "tools/audit/round2/D8/matrix.py",
+        "value": 1132,
+        "unit": "publications (RESULT default_temperature_leaks) over 85 cells x 2 cycles; plus RESULT outdoor_default_published=10; Mixed Hot Water available without a tank reading in 38 cells (300.0 L, 37.5 shower minutes)",
+        "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+        "machine": "MacBookAir10,1 Apple M1 8 GB, numpy/OpenBLAS, thread-pinned",
+        "cpu_or_wall": "count",
+        "contention_note": "fan-out; ten other auditors on the box (load1 2.2-6.0); counts are contention-immune; two full runs identical",
+        "tolerance": "exact",
+        "load1": 5.98,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "heatpump_optimizer.thermal_model:ThermalState (read through heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._build_data_dict; published by heatpump_optimizer.climate:HeatPumpOptimizerClimate.extra_state_attributes, heatpump_optimizer.sensor:MixedHotWaterSensor, ThermalBatterySensor, IndoorTempSensor, OutdoorTempSensor)",
+      "perturbation": {
+        "change": "One-line production edit: thermal_model.py ThermalState.dhw_temperature default 55.0 -> 50.0; Mixed Hot Water in coord_dhw+none moves 300.0 -> 266.7 L (shower minutes 37.5 -> 33.3), climate attr dhw_temperature 55.0 -> 50.0. Config alternative: the `probes` feature (tank/buffer/lower/floor-return sensors configured) takes the per-cell count to 0 in all five probes cells.",
+        "expected_direction": "down",
+        "observed_value": "300.0 -> 266.7 L (dhw default 50.0); 0 leaks in every probes cell"
+      },
+      "metric_definition": "Count of (cell, cycle, entity, state-or-attribute) publications of a temperature or a value derived from one, on an available entity whose payload reading_ok[field] is False.",
+      "leave_one_out": {"cells": 85, "min": 0, "max": 24, "drop_most_favourable": 1108},
+      "reproduction_steps": [
+        "PYTHONPATH=tests/hastub python tools/audit/round2/D8/matrix.py --cells coord_dhw+none",
+        "read matrix_results_subset.json: violations.default_temperature_leaks lists climate.dhw_temperature=55.0, mixed_hot_water state=300.0, thermal_battery components",
+        "PYTHONPATH=tests/hastub python tools/audit/round2/D8/matrix.py --cells coord_minimal+weather_only  -> outdoor_temperature_optimizer state=5.0, indoor 21.0, estimated_cop 3.32"
+      ],
+      "proposed_fix_scope": "Gate the derived publications on the reading_ok map the sensors already use: Mixed Hot Water unavailable without a tank reading; climate attributes None where the field has no reading; thermal-battery components flagged or dropped; Indoor/Outdoor sensors gated on their input (outdoor may fall back to the forecast's first step, which is what the plan uses).",
+      "files": [
+        "custom_components/heatpump_optimizer/climate.py",
+        "custom_components/heatpump_optimizer/sensor.py",
+        "custom_components/heatpump_optimizer/coordinator.py",
+        "custom_components/heatpump_optimizer/thermal_model.py"
+      ],
+      "expected_golden_drift": ["tests/golden/coord_*.json only if _dhw_mixed_water/_battery_view change what they publish"],
+      "stop_rule_class": "bug"
+    },
+    {
+      "id": "D8-02",
+      "title": "numpy scalars reach entity attributes (three sites) and the Predicted Savings state, bypassing _plain_types",
+      "severity": "low",
+      "claim": "_build_data_dict copies OptimizationResult scalars and the solar-gain trajectory into the payload without _plain_types, so np.float64 values reach extra_state_attributes of Optimization Schedule (schedule[i].solar_gain, every cell), Savings Percentage (deferred_energy_cost) and the climate entity (predicted_savings), and the Predicted Savings state, in valve-storage topologies.",
+      "mechanism": "optimizer.py:1534 builds solar_gain_trajectory from ndarray elements (compute_solar_gain returns a Python 0.0 only for sr <= 0); optimizer.py:5697 rounds one of them into current_action.solar_gain_kw (daylight); result.predicted_savings/deferred_energy_cost are numpy on the buffer-store path and round() keeps the type. _plain_types is applied to predictive_info only.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D8/matrix.py",
+        "harness_path": "tools/audit/round2/D8/matrix.py",
+        "value": 3,
+        "unit": "distinct attribute sites (RESULT numpy_attribute_sites); RESULT unserialisable_attributes=3630 per value; RESULT numpy_state=30 (predicted_savings in the 15 valve_storage/two_tank/coil cells x 2); schedule.solar_gain in 85/85 cells",
+        "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+        "machine": "MacBookAir10,1 Apple M1 8 GB, numpy/OpenBLAS, thread-pinned",
+        "cpu_or_wall": "count",
+        "contention_note": "fan-out; counts are contention-immune; two full runs identical",
+        "tolerance": "exact",
+        "load1": 5.98,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._build_data_dict (schedule comprehension and result block), fed by heatpump_optimizer.optimizer:HeatPumpOptimizer.optimize",
+      "perturbation": {
+        "change": "Wrap the schedule list and the result scalars in _plain_types(...) in _build_data_dict (or .tolist()/float() at optimizer.py:1534 and :5697).",
+        "expected_direction": "to_zero"
+      },
+      "metric_definition": "Distinct (entity, attribute root, leaf) sites where an np.generic/np.ndarray is found in extra_state_attributes over all snapshots; plus the count of snapshots whose state is a numpy scalar.",
+      "reproduction_steps": [
+        "PYTHONPATH=tests/hastub python tools/audit/round2/D8/matrix.py --cells coord_minimal+valve_storage",
+        "read matrix_results_subset.json violations.unserialisable_attributes / numpy_state"
+      ],
+      "proposed_fix_scope": "coordinator.py:_build_data_dict (two _plain_types wraps) or optimizer.py lines 1534 and 5697; no golden drift expected (golden.py:r rounds through float; confirm with GOLDEN_MODE=drift). Severity is low because Home Assistant's json_encoder_default converts float subclasses; an np.int64 on the same path would not be converted - the judge should confirm the installed core's hook.",
+      "files": [
+        "custom_components/heatpump_optimizer/coordinator.py",
+        "custom_components/heatpump_optimizer/optimizer.py"
+      ],
+      "expected_golden_drift": [],
+      "stop_rule_class": "hygiene"
+    },
+    {
+      "id": "D8-03",
+      "title": "The two legacy schedule sensors describe 6 of the plan's 24 hours while the README says the whole 24 h",
+      "severity": "low",
+      "claim": "Optimization Schedule and DHW Heating Schedule are built from result.*[:24] (6 h at the 15-minute step) while the README row says 'The whole 24 h schedule, in attributes' and the plan sensors carry 96 steps; their states ('24 steps', 'N heating periods' counting 15-minute steps) do not move between cycles.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D8/matrix.py",
+        "harness_path": "tools/audit/round2/D8/matrix.py",
+        "value": 170,
+        "unit": "(cell, cycle) pairs with len(schedule)=24 < len(space_plan.forecast)=96 (RESULT schedule_truncated); 85/85 cells",
+        "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+        "machine": "MacBookAir10,1 Apple M1 8 GB, numpy/OpenBLAS, thread-pinned",
+        "cpu_or_wall": "count",
+        "contention_note": "fan-out; counts are contention-immune; two full runs identical",
+        "tolerance": "exact",
+        "load1": 5.98,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._build_data_dict ([:24]/[1:25] slices); heatpump_optimizer.sensor:ScheduleSensor, DHWScheduleSensor",
+      "perturbation": {
+        "change": "Replace the [:24]/[1:25] slices in _build_data_dict with the horizon length (or read the plan views).",
+        "expected_direction": "to_zero"
+      },
+      "metric_definition": "Count of (cell, cycle) in which len(optimization_schedule.attrs.schedule) < len(space_plan.forecast).",
+      "proposed_fix_scope": "coordinator.py:_build_data_dict slices, or the README rows for Optimization Schedule / DHW Heating Schedule; the '1 heating periods' / '1 slots planned' grammar in sensor.py. Golden drift on every coord_* fixture's schedule/dhw_schedule if the slice changes.",
+      "files": [
+        "custom_components/heatpump_optimizer/coordinator.py",
+        "custom_components/heatpump_optimizer/sensor.py",
+        "README.md"
+      ],
+      "expected_golden_drift": ["tests/golden/coord_*.json (schedule, dhw_schedule length) if the slice changes"],
+      "stop_rule_class": "hygiene"
+    },
+    {
+      "id": "D8-04",
+      "title": "Alphabetical order splits the hot-water family (hot_water_*/mixed_hot_water vs dhw_*) and four other families",
+      "severity": "low",
+      "claim": "Sorting the 55 sensors by entity id or English name breaks the DHW family into three runs (dhw_* | hot_water_cost, hot_water_energy | mixed_hot_water); tariff, learning, card-headline, lifetime and two-zone families are split too; Swedish names split the DHW family the same way and the lifetime accumulators three ways.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D8/matrix.py",
+        "harness_path": "tools/audit/round2/D8/matrix.py",
+        "value": 15,
+        "unit": "family splits in entity-id order (RESULT family_splits_entity_id); name_en 15; name_sv 16; per family (id): dhw 2, tariff 2, learning 2, accuracy 1, card_headline 3, lifetime 2, two_zone 3, ecl110/pv/thermal_battery 0",
+        "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+        "machine": "MacBookAir10,1 Apple M1 8 GB, numpy/OpenBLAS, thread-pinned",
+        "cpu_or_wall": "count",
+        "contention_note": "fan-out; pure roster/translation counts, contention-immune",
+        "tolerance": "exact",
+        "load1": 5.98,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "heatpump_optimizer.sensor:async_setup_entry (roster and translation keys); custom_components/heatpump_optimizer/strings.json, translations/en.json, translations/sv.json",
+      "perturbation": {
+        "change": "Rename hot_water_energy/hot_water_cost/mixed_hot_water translation keys into the dhw_* family with matching translations (a naming release: the suggested object id follows the key).",
+        "expected_direction": "down"
+      },
+      "metric_definition": "Sum over ten hand-listed families (matrix.py:FAMILIES) of (contiguous runs the family forms in the sorted entity-id / name order) minus one.",
+      "proposed_fix_scope": "sensor.py translation keys, strings.json, translations/en.json, translations/sv.json, README entity tables; the card's id-suffix contract (headline stats) is unaffected.",
+      "files": [
+        "custom_components/heatpump_optimizer/sensor.py",
+        "custom_components/heatpump_optimizer/strings.json",
+        "custom_components/heatpump_optimizer/translations/en.json",
+        "custom_components/heatpump_optimizer/translations/sv.json"
+      ],
+      "expected_golden_drift": [],
+      "stop_rule_class": "hygiene"
+    }
+  ],
+  "non_findings": [
+    {"claim": "No entity is unknown where its data exists (60 entities mapped to their source keys)", "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D8/matrix.py", "value": "RESULT unknown_where_data_exists=0 over 11050 snapshots (85 cells x 2 cycles x 65 entities)"},
+    {"claim": "Every MEASUREMENT/TOTAL/TOTAL_INCREASING state is numeric and finite; both TIMESTAMP sensors publish tz-aware datetimes; no ENUM sensors exist", "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D8/matrix.py", "value": "RESULT type_violations=0"},
+    {"claim": "Device class x state class pairs and units are consistent (DEVICE_CLASS_STATE_CLASSES); MONETARY units equal coordinator.currency", "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D8/matrix.py", "value": "RESULT metadata_violations=0"},
+    {"claim": "No NaN/inf, set or non-str key reaches any attribute on any platform, including the unscrubbed binary_sensor/climate/switch paths", "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D8/matrix.py", "value": "RESULT nonfinite_attributes=0, set_attributes=0, nonstr_keys=0"},
+    {"claim": "No entity caches state: entities built on cycle 1 read exactly what fresh entities read from the cycle-2 payload", "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D8/matrix.py", "value": "RESULT stale_entities=0"},
+    {"claim": "41 direct numeric readers follow their payload key within rounding after the inputs change", "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D8/matrix.py", "value": "RESULT follows_payload_mismatch=0"},
+    {"claim": "No entity raises from available, native_value/is_on or extra_state_attributes in any cell", "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D8/matrix.py", "value": "RESULT exceptions=0"},
+    {"claim": "Every non-climate entity pre-assigns <platform>.heat_pump_optimizer_<translation_key>; unique ids are unique; every entity has an icon", "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D8/matrix.py", "value": "RESULT bad_entity_ids=0, duplicate_unique_ids=0, no_icon=0"},
+    {"claim": "strings.json, en.json and sv.json carry identical entity key sets equal to the entity roster; every Swedish name differs from the English", "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D8/matrix.py", "value": "RESULT translation_key_mismatch=0, en_differs_from_strings=0, sv_untranslated=0"},
+    {"claim": "The disabled-by-default set is exactly the six niche sensors the README lists, and nothing the quick start or the card needs is disabled", "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D8/matrix.py", "value": "RESULT disabled_by_default=6, first_hour_disabled=0"},
+    {"claim": "Feature gating works as documented: DHW, two-zone, measured-power, tariff, PV, frequency and contract entities are unavailable without their feature and available with it", "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D8/matrix.py (per-cell availability in matrix_results.json)", "value": "coord_minimal+none: 18 enabled-but-unavailable (RESULT enabled_unavailable_minimal=18); coord_all_features+probes: 0; 85/85 cells solve optimal in both cycles"},
+    {"claim": "Prediction Accuracy is the only enabled sensor available with an Unknown state on the minimal install, and only until the first accuracy pair lands (transient)", "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D8/matrix.py", "value": "RESULT enabled_none_minimal=1"},
+    {"claim": "Harness gap, not a finding: the base-class non-finite scrub keeps every sensor finite (peak_threshold_kw=+inf is scrubbed to None); NextOptimization is set only by the network update path and was mirrored by hand; last_optimization is tz-aware under a tz-aware frozen clock as in Home Assistant", "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D8/matrix.py", "value": "RESULT nonfinite_attributes=0, type_violations=0"}
+  ],
+  "harnesses": ["tools/audit/round2/D8/matrix.py"]
+}

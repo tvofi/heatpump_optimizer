@@ -1,0 +1,11 @@
+--- a/custom_components/heatpump_optimizer/thermal_model.py
++++ b/custom_components/heatpump_optimizer/thermal_model.py
+@@ -541,8 +541,6 @@
+         """
+         key = self.wood_tank_volume
+         cached = self._wood_ua_cache
+-        if cached is not None and cached[0] == key:
+-            return cached[1]
+         rate = default_buffer_cooling_rate(self.wood_tank_volume)
+         value = rate * self.wood_tank_thermal_mass / DHW_COOLING_REFERENCE_DELTA
+         self._wood_ua_cache = (key, value)

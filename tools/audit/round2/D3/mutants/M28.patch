@@ -1,0 +1,13 @@
+--- a/custom_components/heatpump_optimizer/grid_fee.py
++++ b/custom_components/heatpump_optimizer/grid_fee.py
+@@ -252,10 +252,6 @@
+             if not np.isfinite(value):
+                 value = 0.0
+             return self.fixed + float(value)
+-        if self.mode == MODE_RULES:
+-            return self.fixed + sum(
+-                rule.rate for rule in self.rules if rule.applies(when)
+-            )
+         return 0.0
+ 
+     def fee_vector(

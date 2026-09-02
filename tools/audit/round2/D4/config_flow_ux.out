@@ -1,0 +1,67 @@
+== initial flow, recommended path ==
+  user                   form  fields=17 required= 3 {'type': 2, 'EntitySelector': 13, 'SelectSelector': 1, 'LocationSelector': 1}
+  temperature            form  fields= 7 required= 7 {'NumberSelector': 7}
+  building               MENU  options=['building_describe', 'thermal']
+  building_describe      form  fields= 6 required= 0 {'SelectSelector': 5, 'NumberSelector': 1}
+  building_extras        form  fields= 3 required= 3 {'NumberSelector': 3}
+  dhw                    form  fields=11 required= 0 {'NumberSelector': 8, 'BooleanSelector': 2, 'TextSelector': 1}
+  weather_sensitivity    form  fields= 2 required= 0 {'NumberSelector': 2}
+  create_entry reached: True
+== options pages ==
+  setup_overview     top      fields= 0 {}
+  entities           advanced fields=22 {'TextSelector': 1, 'EntitySelector': 18, 'SelectSelector': 2, 'LocationSelector': 1}
+  comfort            top      fields=10 {'NumberSelector': 8, 'type': 1, 'EntitySelector': 1}
+  hot_water          top      fields=23 {'BooleanSelector': 5, 'TextSelector': 1, 'NumberSelector': 14, 'EntitySelector': 3}
+  building           advanced fields=11 {'SelectSelector': 1, 'NumberSelector': 4, 'EntitySelector': 5, 'type': 1}
+  building_preset    advanced fields=11 {'type': 1, 'SelectSelector': 5, 'NumberSelector': 5}
+  thermal_model      advanced fields=16 {'NumberSelector': 15, 'SelectSelector': 1}
+  tuning             top      fields=10 {'NumberSelector': 7, 'type': 3}
+  grid               top      fields=18 {'type': 4, 'NumberSelector': 8, 'SelectSelector': 2, 'TextSelector': 3, 'EntitySelector': 1}
+  solar_pv           advanced fields= 6 {'type': 1, 'NumberSelector': 3, 'EntitySelector': 2}
+  away               top      fields= 5 {'type': 1, 'EntitySelector': 2, 'NumberSelector': 2}
+  learning           advanced fields=18 {'type': 14, 'NumberSelector': 3, 'EntitySelector': 1}
+  heat_curve         advanced fields= 8 {'type': 4, 'NumberSelector': 4}
+== strings ==
+  help_missing=0 []
+  raised error keys=['cannot_connect', 'comfort_outside_band', 'day_window_empty', 'dhw_min_too_close', 'invalid_dhw_windows', 'invalid_grid_fee_rules', 'invalid_peak_hours', 'invalid_peak_months', 'invalid_tibber_token', 'min_power_above_max']
+  error_keys_missing=[]
+  select_options_missing=[]
+  menu_labels_missing=[]
+  defaults_out_of_range=[]
+  untouched_submit_fail=[]
+  duplicate_keys={}
+  sv_identical=['options/step/heat_curve/data/ecl110_mqtt_qos', 'selector/building_era/options/1960_1980', 'selector/building_era/options/1980_2005', 'selector/solar_forecast_source/options/open_meteo']
+  sv_missing=0
+  initial_must_know=['tibber_token', 'weather_entity']
+  user_page_pickers=13: ['weather_entity', 'indoor_temp_entity', 'outdoor_temp_entity', 'heat_pump_switch_entity', 'solar_radiation_entity', 'floor_return_temp_entity', 'lower_floor_temp_entity', 'dhw_temp_entity', 'buffer_tank_temp_entity', 'heat_pump_mode_entity', 'heat_pump_defrost_entity', 'heat_pump_online_entity', 'heat_pump_fault_entity']
+  default_submit_warnings=['Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days']
+  off_theme_fields=['hot_water.space_circulation_pump_entity']
+RESULT initial_screens=7 count
+RESULT initial_forms=6 count
+RESULT initial_fields=46 count
+RESULT initial_required=13 count
+RESULT initial_must_know=2 count
+RESULT initial_entry_created=1 flag
+RESULT user_page_fields=17 count
+RESULT user_page_pickers=13 count
+RESULT options_pages=13 count
+RESULT options_fields=158 count
+RESULT options_max_fields=23 count (hot_water)
+RESULT pages_over_15=5 count ['entities', 'hot_water', 'thermal_model', 'grid', 'learning']
+RESULT top_menu_entries=7 count
+RESULT advanced_menu_entries=7 count
+RESULT after_save_missing=0 count []
+RESULT help_missing=0 count
+RESULT error_keys_missing=0 count
+RESULT select_options_missing=0 count
+RESULT menu_labels_missing=0 count
+RESULT defaults_out_of_range=0 count
+RESULT untouched_submit_fail=0 count
+RESULT duplicate_keys=0 count
+RESULT sv_identical=4 count
+RESULT sv_missing=0 count
+RESULT default_submit_warnings=1 count
+RESULT off_theme_fields=1 count
+RESULT thread_factor=1.00
+RESULT load1=8.75
+RESULT swapins=0

@@ -1,0 +1,11 @@
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -1673,8 +1673,6 @@
+         # sweep is a relative comparison, so on a worthless-energy day a
+         # floored positive level keeps the ranking meaningful — better than
+         # the advisor entity vanishing, which would look like a bug.
+-        if mean_price <= 1e-6:
+-            mean_price = max(abs(mean_price), 0.1)
+         # The heaviest ready energy any window needs, learned where
+         # evidence exists, profile-mean otherwise. Without the fallback a
+         # fresh install has a 0 kWh "heaviest window", every candidate

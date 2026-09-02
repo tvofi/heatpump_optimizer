@@ -1,0 +1,14 @@
+script	exit	wall_s
+features	0	191
+entities	1	33
+manual_plan	0	15
+open_meteo	0	1
+solar_alignment	0	1
+golden	1	422
+validate	0	92
+edge	0	138
+backtest	0	144
+optimality	0	393
+plan_view	0	2
+frontend	0	0
+stress	0	386

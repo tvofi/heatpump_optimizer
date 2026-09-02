@@ -1,0 +1,206 @@
+{
+  "dimension": "D6",
+  "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+  "exposure": "Required: tools/audit/briefs/COMMON.md, briefs/D6.md, tools/audit/README.md, round2/BASELINE.md. Audit-era material opened because README cites it: docs/plan-v4.0.0-program.md (section headers and lines 1-53 via grep, for '36 proposals, T0-T8'); first 30 lines of docs/plan-open-issues.md (program plan naming issues #86-#101 and CodeQL alerts, no findings read) and of docs/plan-card-decomposition.md (card size figures). Code comments citing earlier ids seen in passing (optimizer.py _multi_start_minimize 'widened by D9-01'); not used as leads. docs/backlog.md, audit records and RELEASE_NOTES.md absent and not sought.",
+  "findings": [
+    {
+      "id": "D6-01",
+      "title": "README sensor table omits the '(lifetime)' / '(next 24 h)' qualifiers of nine entity names it calls the English names",
+      "severity": "low",
+      "claim": "README:259 says the tables show the English names, but 9 of the 55 sensor-table names are not the strings.json English names the entities carry.",
+      "mechanism": "The accumulating and plan sensors were renamed with qualifiers in strings.json/en.json/sv.json; the README table rows were not updated.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D6/claims.py  (row C040)",
+        "harness_path": "tools/audit/round2/D6/claims.py",
+        "value": 9,
+        "unit": "README sensor-table names differing from strings.json (of 55)",
+        "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+        "machine": "8-core Apple M1, 8 GB, macOS Darwin 25.6.0, Python 3.13.1, numpy 2.5.2, tests/hastub stub",
+        "cpu_or_wall": "count",
+        "contention_note": "fan-out, ten other auditors active; a count, contention-immune",
+        "tolerance": "exact",
+        "load1": 1.86,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "heatpump_optimizer.sensor:async_setup_entry (roster) against custom_components/heatpump_optimizer/strings.json entity.sensor.<translation_key>.name",
+      "perturbation": {
+        "change": "Rewrite the nine README rows to the strings.json names (DHW Heating Cost (next 24 h), Space Heating Plan (next 24 h), DHW Heating Plan (next 24 h), Space Heating Energy (lifetime), Hot Water Energy (lifetime), Total Energy (lifetime), Space Heating Cost (lifetime), Hot Water Cost (lifetime), Total Heating Cost (lifetime)) — or drop the qualifiers in the three translation files",
+        "expected_direction": "to_zero",
+        "observed_value": 9
+      },
+      "metric_definition": "Count of README '### Sensors' table rows whose name != the strings.json English name of the entity it resolves to (exact match, else name+' (' prefix)",
+      "reproduction_steps": [
+        "PYTHONPATH=tests/hastub python tools/audit/round2/D6/claims.py | grep '^| C040'"
+      ],
+      "files": ["README.md", "custom_components/heatpump_optimizer/strings.json", "custom_components/heatpump_optimizer/translations/en.json", "custom_components/heatpump_optimizer/translations/sv.json"],
+      "proposed_fix_scope": "Nine README table rows (README.md:294,298-299,302-307)",
+      "stop_rule_class": "hygiene"
+    },
+    {
+      "id": "D6-02",
+      "title": "services.yaml still teaches the retired 0.15 wind-sensitivity default",
+      "severity": "low",
+      "claim": "services.yaml set_thermal_parameters.wind_sensitivity_factor has example 0.15 and says '0.15 means 15% more heat loss per m/s' while const.DEFAULT_WIND_SENSITIVITY is 0.03 and const.py documents 0.15 as the replaced, physically implausible default.",
+      "mechanism": "The default was lowered from 0.15 to 0.03 (const.py comment); README, configuration.md and how-it-works.md were updated, services.yaml was not.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D6/claims.py  (row C093)",
+        "harness_path": "tools/audit/round2/D6/claims.py",
+        "value": "example 0.15 vs default 0.03",
+        "unit": "fraction per m/s",
+        "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+        "machine": "8-core Apple M1, 8 GB, macOS Darwin 25.6.0, Python 3.13.1, tests/hastub stub",
+        "cpu_or_wall": "n/a",
+        "contention_note": "fan-out; a constant comparison, contention-immune",
+        "tolerance": "exact",
+        "load1": 1.86,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "heatpump_optimizer.const:DEFAULT_WIND_SENSITIVITY vs services.yaml set_thermal_parameters.fields.wind_sensitivity_factor.example",
+      "perturbation": {
+        "change": "Set the services.yaml example to 0.03 and reword the description ('0.03 means 3 % more heat loss per m/s'); |example − default| goes to 0 and the row flips to true",
+        "expected_direction": "to_zero",
+        "observed_value": 0.12
+      },
+      "metric_definition": "|services.yaml example − const default| for wind_sensitivity_factor",
+      "files": ["custom_components/heatpump_optimizer/services.yaml", "custom_components/heatpump_optimizer/const.py"],
+      "proposed_fix_scope": "Two lines of services.yaml (example and description of wind_sensitivity_factor)",
+      "stop_rule_class": "hygiene"
+    },
+    {
+      "id": "D6-03",
+      "title": "Two services.yaml number selectors admit 0, which the registered schema rejects",
+      "severity": "low",
+      "claim": "services.yaml declares min 0.0 for inter_zone_heat_transfer and min 0 for window_area, but SERVICE_SCHEMA_SET_THERMAL_PARAMS binds both through _positive() with vol.Range(min=0.01), so the Developer Tools form offers a value the call refuses.",
+      "mechanism": "Selector metadata in services.yaml drifted from the voluptuous schema; configuration.md documents 0.01 for both, matching the schema.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D6/claims.py  (rows C092, C094)",
+        "harness_path": "tools/audit/round2/D6/claims.py",
+        "value": 2,
+        "unit": "selector bounds rejected by the registered schema (of 39 number selectors)",
+        "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+        "machine": "8-core Apple M1, 8 GB, macOS Darwin 25.6.0, Python 3.13.1, tests/hastub stub",
+        "cpu_or_wall": "count",
+        "contention_note": "fan-out; a count, contention-immune",
+        "tolerance": "exact",
+        "load1": 1.86,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "heatpump_optimizer.__init__:SERVICE_SCHEMA_SET_THERMAL_PARAMS, read from the service registry after heatpump_optimizer.__init__:async_setup_entry",
+      "perturbation": {
+        "change": "Raise the two selector minima in services.yaml to 0.01 (or let _positive accept 0 for these two keys): the count goes to 0",
+        "expected_direction": "to_zero",
+        "observed_value": 2
+      },
+      "metric_definition": "Count of (service, field, min|max) where the services.yaml number selector bound fails the service's voluptuous schema",
+      "files": ["custom_components/heatpump_optimizer/services.yaml", "custom_components/heatpump_optimizer/__init__.py"],
+      "proposed_fix_scope": "Two selector min values in services.yaml",
+      "stop_rule_class": "hygiene"
+    },
+    {
+      "id": "D6-04",
+      "title": "The '6.7 degree-hours to zero' reference run quoted in README and how-it-works does not reproduce",
+      "severity": "low",
+      "claim": "README:486-487 and how-it-works.md:1237-1238 quote 6.7 -> 0 degree-hours as the reference run recorded in tests/rolling.py; re-executing that arm with the test's own run_rolling gives 9.634 -> 0.044, deterministically, on the audit box.",
+      "mechanism": "The figures are a comment in tests/rolling.py:452-453, not an assertion (the test asserts only breach_learned < breach_plain); the docs quote the comment as a fact, and closed-loop solver output is machine/BLAS-dependent (tools/audit/README.md).",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D6/rolling_learning.py",
+        "harness_path": "tools/audit/round2/D6/rolling_learning.py",
+        "value": "9.634 -> 0.044",
+        "unit": "degree-hours below the comfort floor over 3 days, learner off -> on",
+        "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+        "machine": "8-core Apple M1, 8 GB, macOS Darwin 25.6.0, Python 3.13.1, numpy 2.5.2 (OpenBLAS), scipy 1.18.1, threads pinned to 1",
+        "cpu_or_wall": "n/a",
+        "contention_note": "fan-out (load1 2.8-3.8); a deterministic degree-hour sum, two runs bit-identical (rolling_learning.out, rolling_learning_rerun.out); solver floats are machine-dependent so the fixture machine may give a third pair",
+        "tolerance": "exact on this box; machine-dependent",
+        "load1": 3.77,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "tests/rolling.py:run_rolling driving heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator with learn=True (heat-loss learner) against plant_error=1.35 and a 4.25 kW pump",
+      "perturbation": {
+        "change": "D6_PLANT_ERROR=1.0 PYTHONPATH=tests/hastub python tools/audit/round2/D6/rolling_learning.py (the house is the model): breach_uncorrected goes to zero",
+        "expected_direction": "to_zero",
+        "observed_value": 0.0
+      },
+      "metric_definition": "Sum over the 3-day closed loop of max(0, comfort floor − room) × DT, computed with tests/rolling.py floor_for, for the learner-off and learner-on arms",
+      "null_control": {
+        "command": "D6_PLANT_ERROR=1.0 PYTHONPATH=tests/hastub python tools/audit/round2/D6/rolling_learning.py",
+        "value": "breach_uncorrected=0.000 breach_learned=0.000",
+        "note": "tools/audit/round2/D6/rolling_learning_null.out; the number is entirely the mechanism's"
+      },
+      "reproduction_steps": [
+        "PYTHONPATH=tests/hastub python tools/audit/round2/D6/rolling_learning.py",
+        "compare RESULT breach_uncorrected / breach_learned with README:486-487 (6.7 -> 0)",
+        "re-run: identical numbers; D6_PLANT_ERROR=1.0: both 0.000"
+      ],
+      "files": ["README.md", "docs/how-it-works.md", "tests/rolling.py"],
+      "proposed_fix_scope": "Re-record the comment at tests/rolling.py:452-453 and the two documentation sentences from a current run, or state only the asserted property (as how-it-works.md:1247-1250 recommends)",
+      "stop_rule_class": "hygiene"
+    },
+    {
+      "id": "D6-05",
+      "title": "DISCLAIMER calls the savings baseline an always-on thermostat; the optimizer's baseline follows the comfort schedule",
+      "severity": "low",
+      "claim": "DISCLAIMER.md:71-72 says the baseline is 'a simulated always-on thermostat', but HeatPumpOptimizer._compute_baseline_power simulates a conventional thermostat following the per-step comfort schedule (so a night setback is not booked as savings); only the hot-water baseline is always-hot, which README:271 states correctly.",
+      "mechanism": "The space baseline was changed to track the comfort targets; README was updated, the disclaimer was not.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D6/claims.py  (rows C303, C305)",
+        "harness_path": "tools/audit/round2/D6/claims.py",
+        "value": 1,
+        "unit": "documents (of README:271, DISCLAIMER:71-72) contradicting the optimizer's baseline docstring",
+        "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+        "machine": "8-core Apple M1, 8 GB, macOS Darwin 25.6.0, Python 3.13.1, tests/hastub stub",
+        "cpu_or_wall": "count",
+        "contention_note": "fan-out; a source comparison, contention-immune",
+        "tolerance": "exact",
+        "load1": 1.86,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "heatpump_optimizer.optimizer:HeatPumpOptimizer._compute_baseline_power (docstring, comfort-target tracking) and the always-hot DHW baseline block at optimizer.py:4786-4816",
+      "perturbation": {
+        "change": "Reword DISCLAIMER.md:71-72 to 'a simulated conventional thermostat following your comfort schedule, with the hot-water tank kept permanently hot': C305 flips to true",
+        "expected_direction": "to_zero",
+        "observed_value": 1
+      },
+      "metric_definition": "Count of documents whose savings-baseline description contradicts optimizer._compute_baseline_power's docstring (space follows the schedule) plus the always-hot DHW baseline",
+      "files": ["DISCLAIMER.md", "README.md", "custom_components/heatpump_optimizer/optimizer.py"],
+      "proposed_fix_scope": "One sentence in DISCLAIMER.md",
+      "stop_rule_class": "hygiene"
+    }
+  ],
+  "non_findings": [
+    {"claim": "65 entities = 55 sensors + 4 binary sensors + 4 buttons + 1 switch + 1 climate, through the real platform async_setup_entry", "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D6/claims.py (C030-C034)", "value": "55/4/4/1/1"},
+    {"claim": "README sensor table has 55 rows; binary and button tables match the rosters by name", "command": "claims.py (C035-C037)", "value": "55, 4, 4"},
+    {"claim": "the six disabled-by-default sensors are exactly the six the README names, and no other row is marked", "command": "claims.py (C039, C043)", "value": "6/6, 0 mismatches"},
+    {"claim": "every sensor unit as tabulated (CUR->SEK, CUR/kWh, %, °C, kW, W/m², kWh, L, Hz, none)", "command": "claims.py (C041)", "value": "55/55"},
+    {"claim": "Diagnostic marks equal EntityCategory.DIAGNOSTIC for all 59 sensor/binary rows", "command": "claims.py (C042)", "value": "0 mismatches"},
+    {"claim": "not-recorded marks declare _unrecorded_attributes; Next/Last Optimization are timestamps; energy sensors TOTAL_INCREASING/ENERGY; cost sensors TOTAL/MONETARY", "command": "claims.py (C044-C047)", "value": "true"},
+    {"claim": "Solar Radiation retired in v5.0.0 (RETIRED_ENTITIES); currency = instance currency with SEK fallback", "command": "claims.py (C048-C049)", "value": "true"},
+    {"claim": "documented attributes present: DHW Temperature (7), plan sensors manual_override + manual_plan_window_hours=20 + plan_kind, Measured Power recommended_power, Prediction Accuracy bias+last_diagnosis, _freq_view evidence_exhausted, Input Problem/Away/External Heat", "command": "claims.py (C050-C059)", "value": "all present"},
+    {"claim": "feature-gated sensors flip to unavailable when their gate is off (11 gates) and all 55 exist on a bare payload", "command": "claims.py (C060-C071)", "value": "11/11, 55"},
+    {"claim": "Optimize Now unavailable in flight; switch turn-on acts only from off; climate modes off/heat/auto and presets auto/comfort/economy/boost; set_temperature records an override; Heat Pump Action vocabulary", "command": "claims.py (C072-C078)", "value": "true"},
+    {"claim": "11 services registered = README table = services.yaml; set_thermal_parameters 28 fields; simulate_plan 11; apply_schedule 5+entry_id; 7 services take entry_id; Returns column = supports_response; set_mode = OPERATION_MODES", "command": "claims.py (C080-C088)", "value": "11, 28, 11, 6, 7, match"},
+    {"claim": "services.yaml field sets, required flags and all examples agree with the voluptuous schemas", "command": "claims.py (C089-C091)", "value": "0 mismatches, 35/35 examples"},
+    {"claim": "25 documented set_thermal_parameters ranges hold at both bounds; 21 assignable keys; 4 selectable layouts, slab_shunt refused; manual window 20 h; [] vs omitted; economy 1.5 K / 15 °C; 3 s rate limit; hour bounds", "command": "claims.py (C094-C101)", "value": "true"},
+    {"claim": "41 documented defaults/constants equal const.py and module constants (temperatures, windows, legionella 60/7, wind 0.03, rain 1.15, interval 30, weights 5/1, ring 8, 5-day drift, CUSUM 1.5x, curve 0.5 K/week, 300 s, 3 ticks, 2/2 guard, tank/buffer/solar/zone defaults, tariff, fuse, away, external heat, outage, margins, learners, ECL110, price shape, defrost, fee bound, recovery, 6-h window, 2 starts, 24 h/15 min, p90, hold 20 min, coil)", "command": "claims.py (C110-C161)", "value": "41/41 equal"},
+    {"claim": "FrequencyWatchdog trips on the third consecutive active divergent tick and idle resets; GuardState 2-in/2-out; CurveLearner −0.4 K after 7 comfortable days then 0 on a miss; SnapshotRing keeps 8 of 12", "command": "claims.py (C170-C173)", "value": "as documented"},
+    {"claim": "13 option pages = 6 top + 7 advanced, overview has no fields, labels match README and configuration.md; heat_curve 8 fields; entities 22; comfort 10; hot_water 23; only tibber_token and weather_entity required without default; no ECL110 field at setup", "command": "claims.py (C174-C181)", "value": "true"},
+    {"claim": "71 documented NumberSelector ranges across the rendered setup and options pages match min/max/step", "command": "claims.py (C182-C246)", "value": "71/71"},
+    {"claim": "described mechanisms present in source: half-floor >= 0.1 kW threshold, 8-h anticipation, integer displace, comfort +4/boost max/off min, slab 0.7/0.3, 48 repair rounds, 70 °C cap, irradiance precedence, COP gate 0.3x nameplate, sysid bounds, DHW presence trio, learner freeze", "command": "claims.py (C250-C261)", "value": "12/12"},
+    {"claim": "card: single file, no CDN; /heatpump_optimizer_static/heatpump-optimizer-card.js; 900x380; label steps 1..24; hours <= 168; seven series keys; 232 strings en and sv with none missing; CARD_VERSION 5.4.17 logged; manual_plan_window_hours and plan_kind lookups; legacy storage key; what_if", "command": "claims.py (C262-C272)", "value": "true"},
+    {"claim": "45 modules; exactly the ten named import homeassistant at module level; inputs only inside a function; module map complete both ways", "command": "claims.py (C280-C284)", "value": "45, 10, 0/0"},
+    {"claim": "tests/rolling.py carries the documented constants and assertions (1.35, 4.25 kW, 3 days, >10 samples, +0.15, <0.05, <0.12 over 2 days, 1.25, 5-35 °C, <3 dh, <1.6x)", "command": "claims.py (C290-C292, C294)", "value": "present"},
+    {"claim": "the asserted learning property holds on re-execution: breach 9.634 -> 0.044 degree-hours, scale 1.000 -> 1.331 (truth 1.35), 287 samples, correct-model drift 0.0167", "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D6/rolling_learning.py", "value": "99.5 % of the breach removed; null control 0 -> 0"},
+    {"claim": "VERSION = manifest 6.2.14; HA 2024.1.0 in hacs.json and README; numpy+scipy in the manifest; hacs name; PLATFORMS; LICENSE verbatim MIT; NOTICE names strutsfarm; en.json == strings.json; sv.json 866 keys parity", "command": "claims.py (C001-C004, C007, C014-C016, C024-C025)", "value": "true"},
+    {"claim": "10 external links answer HTTP < 400 (GitHub x4, hacs.xyz, home-assistant.io, developer.tibber.com, shields.io, api.open-meteo.com) and the 5 linked doc files exist", "command": "claims.py (C005-C013, C017-C021, C023)", "value": "10/10, 5/5"},
+    {"claim": "36 proposals and tranches T0-T8 in plan-v4.0.0-program.md; the first refresh skips the solve (README 'first plan within one interval')", "command": "claims.py (C304, C307)", "value": "true"},
+    {"claim": "unverifiable in this round: docs/backlog.md (removed by the export; linked 4 times, backlog items 1-33), six historical measurements in how-it-works.md (C295-C300), card 4.3.0 at v5.0.0, fork point 2.2.0", "command": "claims.py (C022, C295-C302, C308)", "value": "10 rows"}
+  ],
+  "harnesses": [
+    "tools/audit/round2/D6/claims.py",
+    "tools/audit/round2/D6/rolling_learning.py",
+    "tools/audit/round2/D6/claims_table.md",
+    "tools/audit/round2/D6/rolling_learning.out",
+    "tools/audit/round2/D6/rolling_learning_rerun.out",
+    "tools/audit/round2/D6/rolling_learning_null.out"
+  ]
+}
