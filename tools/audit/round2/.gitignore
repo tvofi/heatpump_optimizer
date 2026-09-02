@@ -5,3 +5,5 @@ D8/matrix_results.json
 D3/pool.json
 D0/out/
 quiet/D0-race_grid_24h_baseline.quiet.json
+D7/coordinator_clusters.json
+D7/metrics_ast.json

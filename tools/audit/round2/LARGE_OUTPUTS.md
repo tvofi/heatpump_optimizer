@@ -17,7 +17,13 @@ already recorded two of them as deliberately excluded.
 | `D3/pool.json` (37,521 lines) | `python3 tools/audit/round2/D3/candidates.py` |
 | `D0/out/*.json` (74,000 lines over 4 files) | `python3 tools/audit/round2/D0/race_grid.py` |
 | `quiet/D0-race_grid_24h_baseline.quiet.json` | the same, in the quiet window |
+| `D7/coordinator_clusters.json`, `D7/metrics_ast.json` (17,703 lines) | `python3 tools/audit/round2/D7/coordinator_clusters.py`, `metrics_ast.py` |
 
 Everything a reader needs is still here: every harness, every `REPORT.md`,
 every `report.json`, every `verify-*.md`, every `panel.json`, the quiet-window
 logs and `JUDGE.md`.
+
+The six `quiet/D3-M*.gate.log` files stay, large as they are: each is one
+full unscoped gate run against a mutant, taken in a quiet window that cost
+hours of an idle box, and they are the whole evidence that those six
+mutants survive the gate CI actually runs. They are not cheaply regenerable.
