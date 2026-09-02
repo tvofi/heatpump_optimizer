@@ -5476,6 +5476,33 @@ R.check(
     "the rule must narrow by one subtree, not collapse",
 )
 
+# The scoped gate refuses to skip anything when a changed file is in no
+# closure -- an unmeasured file is not a safe skip. That is right, and it was
+# quietly making gates full: renaming one identifier in setup_qa_render.mjs, a
+# script people run by hand, ran all sixteen scripts including stress.py.
+# Every tracked file must therefore sit in exactly one of four places: a
+# measured closure, INERT, GATE_FILES, or SLOW_GATED. This is the check that
+# says so, and it is the reason a new file cannot silently cost every future
+# pull request a full suite.
+_orphans = _closure.orphan_files()
+R.check(
+    "every tracked file is either measured or deliberately classified",
+    not _orphans,
+    "these force the FULL suite when touched: " + ", ".join(_orphans[:8]),
+)
+R.check(
+    "a hand-run QA script does not drag the whole suite in",
+    "tests/setup_qa_render.mjs" not in _closure.select(
+        ["tests/setup_qa_render.mjs"])["run"]
+    or _closure.select(["tests/setup_qa_render.mjs"])["mode"] == "scoped",
+    "an unmeasured helper forced sixteen scripts to run",
+)
+R.check(
+    "but changing how the closures are derived still runs everything",
+    _closure.select(["tests/derive_closures.sh"])["mode"] == "full",
+    "the lanes decide how every recording is taken; that invalidates them all",
+)
+
 
 _version = Path("VERSION").read_text().strip()
 R.check(

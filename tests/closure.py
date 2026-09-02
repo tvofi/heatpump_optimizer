@@ -140,6 +140,26 @@ INERT = (
     # the `merge` check below proves it every time the closures are
     # re-derived.
     "tools/",
+    # Everything below is here for one reason: a file that is neither in a
+    # closure nor on this list forces the WHOLE suite, because an unmeasured
+    # file is not a safe skip. That rule is right, and it was quietly costing
+    # full runs. Renaming one identifier in setup_qa_render.mjs -- a script
+    # people run by hand to eyeball the setup diagram -- ran all sixteen
+    # scripts, stress.py included, for a change no test can see.
+    #
+    # `orphan_files()` below keeps this list honest: it lists every tracked
+    # file that is in no closure and on no list, and tests/entities.py fails
+    # when that set is not empty. So a new file has to be classified once,
+    # deliberately, instead of silently making every gate full.
+    ".abacus.donotdelete",
+    ".claude/",
+    "DISCLAIMER.md",
+    # Driven by the `browser` CI job, which is never scoped and runs on every
+    # pull request regardless. It is a real test; it is simply not one of
+    # THIS gate's scripts.
+    "tests/card_browser.mjs",
+    # A manual QA render (writes ../setup-qa/). No gate script reads it.
+    "tests/setup_qa_render.mjs",
 )
 
 # Changing the gate itself, or how the closures are derived, invalidates every
@@ -150,11 +170,50 @@ GATE_FILES = (
     "tests/closures.json",
     "tests/requirements-ci.txt",
     ".github/workflows/",
+    # How the closures are DERIVED is as load-bearing as the closures: change
+    # a lane here and every recording that follows is taken differently.
+    "tests/derive_closures.sh",
 )
 
 
 def is_inert(rel: str) -> bool:
     return any(rel == p or (p.endswith("/") and rel.startswith(p)) for p in INERT)
+
+
+def orphan_files() -> list[str]:
+    """Tracked files that are in no closure and on no list.
+
+    Each one forces the FULL suite when touched, because `select` refuses to
+    skip a script on the strength of a file it has never measured. That refusal
+    is correct; a long list of orphans is not. This is the list, so a test can
+    hold it at zero and a new file gets classified once instead of silently
+    making every gate full.
+
+    A file belongs in exactly one of four places: a measured closure (a test
+    reads it), `INERT` (nothing in the gate reads it), `GATE_FILES` (changing
+    it invalidates every closure), or `SLOW_GATED` (a test this gate does not
+    run). Anything else is an oversight.
+    """
+    import subprocess
+
+    tracked = subprocess.run(
+        ["git", "ls-files"], cwd=ROOT, capture_output=True, text=True
+    ).stdout.split()
+    if not CLOSURES.exists():
+        return []
+    closures = json.loads(CLOSURES.read_text())["closures"]
+    covered = {f for files in closures.values() for f in files}
+    selectable = set(selectable_scripts())
+    slow = {f"tests/{name}" for name in SLOW_GATED}
+    return sorted(
+        f
+        for f in tracked
+        if f not in covered
+        and f not in selectable
+        and f not in slow
+        and not is_inert(f)
+        and not is_gate_file(f)
+    )
 
 
 def is_gate_file(rel: str) -> bool:
