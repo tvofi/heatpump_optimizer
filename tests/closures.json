@@ -26,7 +26,7 @@
    "rc": 0
   },
   "tests/env_drift.py": {
-   "seconds": 0.7,
+   "seconds": 0.4,
    "rc": 0
   },
   "tests/features.py": {
@@ -478,6 +478,7 @@
    "tests/golden/capacity_curve.json",
    "tests/golden/capacity_tariff.json",
    "tests/golden/capacity_tariff_15min.json",
+   "tests/golden/card_claimed_drift.txt",
    "tests/golden/claimed_drift.txt",
    "tests/golden/confidence_margins.json",
    "tests/golden/config_flow.json",
@@ -673,6 +674,7 @@
    "tests/golden/capacity_curve.json",
    "tests/golden/capacity_tariff.json",
    "tests/golden/capacity_tariff_15min.json",
+   "tests/golden/card_claimed_drift.txt",
    "tests/golden/claimed_drift.txt",
    "tests/golden/confidence_margins.json",
    "tests/golden/config_flow.json",

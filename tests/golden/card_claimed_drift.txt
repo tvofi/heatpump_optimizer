@@ -19,7 +19,7 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 6.2.14
+# claims-for: 6.2.15
 #
 # Tests-only branch (stress budgets): no card code touched, every
 # state is byte-identical, and the inherited states below were the

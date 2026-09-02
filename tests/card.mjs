@@ -64,6 +64,7 @@ const lineNote = fn("lineNote");
 const lineLabel = fn("lineLabel");
 const chartSvgs = fn("chartSvgs");
 const timeAtClientX = fn("timeAtClientX");
+const geomOfChart = fn("geomOfChart");
 // `lineLabel` asks whether the lower floor is modelled only for the one line
 // that needs it; a card's answer is bound here so a test reads as it did.
 const lineLabelOf = (c) => (def, line) =>
@@ -5868,6 +5869,156 @@ const setupBox = (card, place) =>
   check("removing the card cancels the pending redraw",
     renders === 0 && q.view.pendingFrame === 0 && q.view.cancelFrame === null,
     `${renders} render(s) after removal`);
+}
+
+
+// --- #139: one reading of a plan sensor's forecast ------------------------------
+// The chart read a forecast through `forecast` (unavailable means none; a
+// JSON string is parsed) and the slot editor through `forecastOf` (the raw
+// attribute, array or nothing). A sensor gone unavailable with its last
+// forecast still attached was therefore "no plan" to the chart and "a plan"
+// to the lanes, the bounds, the delta and the apply payload.
+{
+  const st = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  st[DEFAULT_DHW].state = "unavailable";
+  const gone = build(st, { what_if: true });
+  gone._onCardClick({});
+  check("an unavailable channel has no forecast for the editor either",
+    gone.plan.forecastOf("dhw").length === 0 && gone.manual.draft().dhw.length === 0,
+    `${gone.plan.forecastOf("dhw").length} steps, ${gone.manual.draft().dhw.length} runs`);
+  check("while the other channel still does",
+    gone.plan.forecastOf("space").length > 0 && gone.manual.draft().space.length > 0);
+  // ...so Apply leaves the unavailable channel automatic rather than pinning
+  // the stale arrangement: the payload omits it.
+  const calls = [];
+  gone._hass = { states: gone._hass.states, callService: async (d, s2, data) => { calls.push(data); return {}; } };
+  gone.manual.apply();
+  await new Promise((r) => setTimeout(r, 0));
+  check("and Apply omits it instead of pinning stale slots",
+    calls.length === 1 && !("dhw_slots" in calls[0]) && "space_slots" in calls[0],
+    JSON.stringify(calls[0] || null));
+
+  const st2 = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  st2[DEFAULT_DHW].attributes.forecast = JSON.stringify(st2[DEFAULT_DHW].attributes.forecast);
+  const stringy = build(st2, { what_if: true });
+  stringy._onCardClick({});
+  check("a forecast published as a JSON string reaches the editor as the chart already saw it",
+    stringy.plan.forecastOf("dhw").length > 0 && stringy.manual.draft().dhw.length > 0);
+}
+
+
+// --- #140: the picker's slot is read, not remembered by the markup builder -----
+{
+  const TEMP = ["sensor", "number", "input_number"];
+  const topoWith = (entity) => ({
+    two_zone: false, dhw: true, valve_mode: "none", positions: {},
+    edges: [["heat_pump", "buffer_tank"], ["buffer_tank", "upper_zone"]],
+    slots: [
+      { key: "buffer_tank_temp_entity", label: "Buffer tank temperature",
+        place: "buffer_tank", entity, domains: TEMP },
+      { key: "indoor_temp_entity", label: "Indoor temperature",
+        place: "upper_zone", entity: "sensor.livingroom", domains: TEMP },
+    ],
+  });
+  const states = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  states[DEFAULT_SPACE].attributes.setup_topology = topoWith("sensor.tank_a");
+  states["sensor.tank_a"] = { state: "47.5", attributes: { unit_of_measurement: "°C" } };
+  states["sensor.tank_b"] = { state: "48.0", attributes: { unit_of_measurement: "°C" } };
+  states["sensor.livingroom"] = { state: "21.3", attributes: { unit_of_measurement: "°C" } };
+  const c = build(states);
+  c._onCardClick({});
+  c.dialog.page = "setup";
+  c._render();
+  check("rendering the setup page keeps no memo of a slot",
+    !("pickerSlot" in c.setup) && c.setup.openSlot() === null);
+  const hit = c.shadowRoot.querySelectorAll(".setup-hit").find((h) => h.dataset.key === "buffer_tank_temp_entity");
+  (hit._listeners.click || []).forEach((f) => f({ currentTarget: hit, preventDefault() {}, stopPropagation() {} }));
+  check("the open picker's slot is the one the topology holds now",
+    c.setup.pickerKey === "buffer_tank_temp_entity" && c.setup.openSlot().entity === "sensor.tank_a");
+  // The integration republishes the topology while the picker is open (an
+  // assignment elsewhere reloaded it): what Assign writes back for an
+  // untouched picker is what the slot holds NOW, not what it held at open.
+  const fresh = { ...states };
+  fresh[DEFAULT_SPACE] = { ...states[DEFAULT_SPACE], last_updated: "later",
+    attributes: { ...states[DEFAULT_SPACE].attributes, setup_topology: topoWith("sensor.tank_b") } };
+  const calls = [];
+  c.hass = { states: fresh, callService: async (d, s2, data) => { calls.push(data); return {}; } };
+  check("the picker survives the republish", c.setup.pickerKey === "buffer_tank_temp_entity" &&
+    !!c.shadowRoot.querySelector(".setup-picker"));
+  const save = c.shadowRoot.querySelector(".sp-save");
+  await Promise.all((save._listeners.click || []).map((f) => f({ stopPropagation() {} })));
+  check("Assign on an untouched picker writes the slot's current entity, not a stale memo",
+    calls.length === 1 && calls[0].entity_id === "sensor.tank_b", JSON.stringify(calls));
+}
+
+
+// --- #141: shared-band pattern ids are the card's own, and start over per render
+// They used to come from a page-global counter shared by every card, so the
+// ids in one card's markup depended on how often any other card had rendered.
+{
+  const shared = (() => {
+    const st = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+    const sp = st[DEFAULT_SPACE].attributes.forecast;
+    const heating = new Set(sp.filter((p) => Number(p.space_power) > 0.05).map((p) => p.t));
+    st[DEFAULT_DHW].attributes.forecast = st[DEFAULT_DHW].attributes.forecast.map((p) =>
+      heating.has(p.t) ? { ...p, dhw_power: 1.5 } : p);
+    return st;
+  })();
+  const ids = (card) => (collect(card.shadowRoot).join("\n").match(/<pattern id="([^"]+)"/g) || [])
+    .map((m) => m.slice(13, -1));
+  const a = build(shared);
+  a._onCardClick({});
+  const first = ids(a);
+  check("the two charts of one render get distinct ids",
+    first.length === 2 && first[0] !== first[1], first.join(","));
+  a._render();
+  check("and a second render hands out the same ids again",
+    JSON.stringify(ids(a)) === JSON.stringify(first), ids(a).join(","));
+  const b = build(shared);
+  b._onCardClick({});
+  check("a second card on the page starts from the same ids, not after the first's",
+    JSON.stringify(ids(b)) === JSON.stringify(first), ids(b).join(","));
+  check("the page-global counter is gone", !("_sharedPatternSeq" in Card));
+}
+
+
+// --- #138: each chart copy keeps its own lane geometry --------------------------
+// With the dialog open two charts render into one shadow root, and the
+// geometry the lanes and the hit-tests used was whichever was drawn last --
+// the expanded copy's. Its font is 15 against the compact chart's 10, and on
+// a phone the compact chart's boosted font moves its margins too, so a drag
+// on the inline chart was hit-tested against the dialog's plot.
+{
+  const c = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), { what_if: true });
+  c._onCardClick({});
+  const svgs = chartSvgs(c.shadowRoot);
+  check("two chart copies, two geometries",
+    svgs.length === 2 && c.geomAt(0) !== c.geomAt(1) && c.geomAt(0).font === 10 && c.geomAt(1).font === 15,
+    `fonts ${c.geomAt(0) && c.geomAt(0).font}, ${c.geomAt(1) && c.geomAt(1).font}`);
+  check("and the one the event's chart gets is its own",
+    geomOfChart(c, svgs[0]) === c.geomAt(0) && geomOfChart(c, svgs[1]) === c.geomAt(1) &&
+    c.geomAt() === c.geomAt(1));
+  const labelFont = (svg) => (svg.querySelector(".lanes").innerHTML.match(/class="lane-label"[^>]*font-size="([\d.]+)"/) || [])[1];
+  c.lanes.refreshLanes();
+  check("a redraw draws the inline lanes at the inline font and the dialog's at the dialog's",
+    labelFont(svgs[0]) === "8" && labelFont(svgs[1]) === "12",
+    `inline ${labelFont(svgs[0])}, expanded ${labelFont(svgs[1])}`);
+
+  // On a phone-width card the compact chart's boosted font widens its margins
+  // (D4-01), so the same screen x is a different time on the two copies; the
+  // inline chart's own geometry is what a pointer on it must be read with.
+  const narrow = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), { what_if: true });
+  narrow._measuredCardWidth = () => 287;
+  narrow._onCardClick({});
+  const [inl, exp] = chartSvgs(narrow.shadowRoot);
+  const gi = geomOfChart(narrow, inl), ge = geomOfChart(narrow, exp);
+  check("the compact copy's margins differ from the dialog's", gi.plotL !== ge.plotL, `${gi.plotL} vs ${ge.plotL}`);
+  const t = gi.windowStart + 4 * HOUR;
+  const x = gi.plotL + ((t - gi.windowStart) / (gi.windowEnd - gi.windowStart)) * gi.plotW;
+  check("a point on the inline chart maps back to its own time",
+    Math.abs(timeAtClientX(inl, x, geomOfChart(narrow, inl)) - t) < 60000 &&
+    Math.abs(timeAtClientX(inl, x, ge) - t) > 60000,
+    "the dialog's geometry would have read it as a different time");
 }
 
 // --- The host stays small ---------------------------------------------------

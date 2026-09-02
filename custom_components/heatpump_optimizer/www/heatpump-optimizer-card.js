@@ -11,7 +11,7 @@
 
 const CARD_TAG = "heatpump-optimizer-card";
 const EDITOR_TAG = "heatpump-optimizer-card-editor";
-const CARD_VERSION = "5.4.15";
+const CARD_VERSION = "5.4.19";
 
 // The de-duplication key `_extraFields` files a confidence band's two
 // edges under, so the pair counts as the one named trace it is. A Symbol
@@ -3494,10 +3494,14 @@ class PlanSource {
     return fc;
   }
 
+  /** A channel's forecast, or [] -- the same reading `forecast` gives
+   * (#139): an unavailable or unknown sensor has no forecast, whatever its
+   * attribute still holds, and a forecast published as a JSON string is a
+   * forecast. The lanes, the edit bounds, the cost delta and the apply
+   * payload used to read the attribute raw, so a sensor that had gone
+   * unavailable was "no plan" to the chart and "a plan" to the editor. */
   forecastOf(channel) {
-    const st = this.stateOf(this.resolveEntity(channel));
-    const fc = ((st && st.attributes) || {}).forecast;
-    return Array.isArray(fc) ? fc : [];
+    return this.forecast(this.resolveEntity(channel)) || [];
   }
 
   attr(name, fallback) {
@@ -3746,6 +3750,13 @@ function wrapOf(el, root) {
  * in the markup, so `querySelector("svg")` returns an 18px icon rather than
  * the plot. Every chart is wrapped in a `.chartwrap`; the icon is not.
  */
+/** The lane geometry of the chart copy `svg` is, for a pointer event on
+ * it: a drag on the inline chart must hit-test against the inline chart's
+ * margins, not the dialog's (#138). */
+function geomOfChart(host, svg) {
+  return host.geomAt(chartSvgs(host.shadowRoot).indexOf(svg));
+}
+
 function chartSvgs(scope) {
   if (!scope) return [];
   return [...scope.querySelectorAll(".chartwrap svg")];
@@ -3756,7 +3767,7 @@ function chartSvgs(scope) {
 // the plan allows, the wheel and drag gestures, the zoom buttons, and the
 // once-per-frame redraw they share. `range` is null until the user touches a
 // control, so an untouched card renders exactly as it did before this
-// existed. Uses `host.geom` (the chart's last geometry, for hit-testing),
+// existed. Uses `host.geomAt()` (the chart geometry, for hit-testing),
 // `host.render()` and `host.suppressNextClick()`. The second collaborator
 // out of the god class (PR 2 of #136).
 class ViewWindow {
@@ -3965,7 +3976,7 @@ class ViewWindow {
     stop(ev);
 
     if (zooming) {
-      const at = timeAtClientX(ev.currentTarget, ev.clientX, this.host.geom);
+      const at = timeAtClientX(ev.currentTarget, ev.clientX, geomOfChart(this.host, ev.currentTarget));
       this.zoom(ev.deltaY > 0 ? VIEW_ZOOM_STEP : 1 / VIEW_ZOOM_STEP, at);
       return;
     }
@@ -3988,11 +3999,12 @@ class ViewWindow {
     const svg = ev.currentTarget;
     const rect = svg && svg.getBoundingClientRect ? svg.getBoundingClientRect() : null;
     if (!rect || !rect.width) return;
-    // `host.geom` only exists while the lanes do (what_if enabled). Without it,
-    // fall back to the nominal plot width rather than the whole viewBox, or a
-    // drag would track noticeably slower than the pointer.
-    const plotW = this.host.geom
-      ? this.host.geom.plotW
+    // The lane geometry only exists while the lanes do (what_if enabled).
+    // Without it, fall back to the nominal plot width rather than the whole
+    // viewBox, or a drag would track noticeably slower than the pointer.
+    const geom = geomOfChart(this.host, svg);
+    const plotW = geom
+      ? geom.plotW
       : VIEW_W - MARGIN.left - MARGIN.right;
     const pxPerViewUnit = rect.width / VIEW_W;
     const plotPx = plotW * pxPerViewUnit;
@@ -5258,7 +5270,7 @@ class ExpandedDialog {
 // the plan's end, the visible window), what the arrangement costs against
 // the plan in force, and the apply / undo / back-to-automatic actions that
 // reach `apply_manual_plan` and `clear_manual_plan`. Uses `host.plan`,
-// `host.geom` (the chart's window), `host.view.reset()`, `host.hass`,
+// `host.geomAt()` (the chart's window), `host.view.reset()`, `host.hass`,
 // `host.shadowRoot` and `host.render()`. The lane editor (PR 5b) edits the
 // draft through `set`. PR 5a of #136.
 class ManualPlan {
@@ -5342,7 +5354,7 @@ class ManualPlan {
    * start of the horizon.
    */
   editFloor() {
-    const start = this.host.geom ? this.host.geom.windowStart : Date.now();
+    const start = this.host.geomAt() ? this.host.geomAt().windowStart : Date.now();
     return Math.max(start, SlotModel.snap(Date.now(), PLAN_STEP_MS));
   }
 
@@ -5376,7 +5388,7 @@ class ManualPlan {
    * the card says so — a real user diagnosed it as "slots end at midnight".
    */
   ceilingParts() {
-    const visibleEnd = this.host.geom ? this.host.geom.windowEnd : Infinity;
+    const visibleEnd = this.host.geomAt() ? this.host.geomAt().windowEnd : Infinity;
     const windowHours = this.host.plan.attr(
       "manual_plan_window_hours",
       MANUAL_PLAN_WINDOW_FALLBACK_H
@@ -5843,12 +5855,13 @@ class LaneEditor {
   refreshLanes() {
     const root = this.host.shadowRoot;
     if (!root) return;
-    if (this.host.geom) {
-      const inner = this.laneGroupInner(this.host.geom);
-      root.querySelectorAll(".lanes").forEach((group) => {
-        group.innerHTML = inner;
-      });
-    }
+    // Each chart copy's lanes, in that copy's own geometry: the inline
+    // chart's font floor and margins are not the dialog's (#138).
+    chartSvgs(root).forEach((svg, index) => {
+      const geom = this.host.geomAt(index);
+      const group = svg.querySelector(".lanes");
+      if (geom && group) group.innerHTML = this.laneGroupInner(geom);
+    });
     this.host.manual.updateDelta();
   }
 
@@ -6019,7 +6032,7 @@ class LaneEditor {
       const target = ev.target || {};
       const data = target.dataset || {};
       if (!data.channel) return;
-      const at = timeAtClientX(svg, ev.clientX, this.host.geom);
+      const at = timeAtClientX(svg, ev.clientX, geomOfChart(this.host, svg));
       if (at === null) return;
       const channel = data.channel;
       const runs = this.host.manual.draft()[channel] || [];
@@ -6090,7 +6103,7 @@ class LaneEditor {
     const applyDragAt = (svg, clientX) => {
       const drag = this.drag;
       if (!drag || drag.menuOnly) return;
-      const at = timeAtClientX(svg, clientX, this.host.geom);
+      const at = timeAtClientX(svg, clientX, geomOfChart(this.host, svg));
       if (at === null) return;
       drag.moved = true;
       const delta = at - drag.from;
@@ -6195,7 +6208,7 @@ class LaneEditor {
         this.host.suppressNextClick();
         const fresh = svgAt(drag.svgIndex);
         if (fresh) {
-          const at = timeAtClientX(fresh, drag.lastClientX, this.host.geom);
+          const at = timeAtClientX(fresh, drag.lastClientX, geomOfChart(this.host, fresh));
           if (at !== null) {
             this.openMenu(
               drag.channel, at, drag.lastClientX, drag.lastClientY, fresh
@@ -6208,7 +6221,7 @@ class LaneEditor {
     const onContext = (svg, ev) => {
       const data = (ev.target || {}).dataset || {};
       if (!data.channel) return;
-      const at = timeAtClientX(svg, ev.clientX, this.host.geom);
+      const at = timeAtClientX(svg, ev.clientX, geomOfChart(this.host, svg));
       if (at === null) return;
       if (ev.preventDefault) ev.preventDefault();
       stop(ev);
@@ -6229,7 +6242,7 @@ class LaneEditor {
         key === "Enter" || key === " " || key === "ContextMenu";
       const wantsRemove = key === "Delete" || key === "Backspace";
       if (!wantsMenu && !wantsRemove) return;
-      const geom = this.host.geom;
+      const geom = geomOfChart(this.host, svg);
       if (!geom) return;
       if (ev.preventDefault) ev.preventDefault();
       stop(ev);
@@ -6972,7 +6985,6 @@ class SetupPage {
     // into it, and back to the row on the way out), and whether an Assign
     // that would CLEAR the slot has been armed.
     this.pickerKey = null;
-    this.pickerSlot = null;
     this.pickerFilter = "";
     this.pickerChoice = null;
     this.pickerFocus = false;
@@ -6981,6 +6993,17 @@ class SetupPage {
     this.clearTimer = null;
     // The status line under the diagram, re-applied after every rebuild.
     this.note = null;
+  }
+
+  /** The slot the open picker is for, read afresh from the topology the
+   * card holds now (#140). It used to be remembered from inside the
+   * picker's own markup builder -- a render with a side effect -- and a
+   * topology republished mid-visit (an assignment reloads the integration)
+   * could leave the memo describing a slot that no longer says that. */
+  openSlot() {
+    if (!this.pickerKey) return null;
+    const topo = this.host.plan.attrRaw("setup_topology", null);
+    return ((topo && topo.slots) || []).find((s) => s.key === this.pickerKey) || null;
   }
 
   /** Put the status line back after a rebuild replaced its element. */
@@ -7005,11 +7028,6 @@ class SetupPage {
     if (!key) return "";
     const slot = (topo.slots || []).find((s) => s.key === key);
     if (!slot) return "";
-    // The open picker's slot, for the handlers: the filter box rebuilds the
-    // option list without re-rendering the page (which would take the focus
-    // out of the input the user is typing into), and needs the same slot
-    // this render used.
-    this.pickerSlot = slot;
     const model = this.pickerModel(slot);
     const filter = this.pickerFilter || "";
     return `
@@ -7142,7 +7160,6 @@ class SetupPage {
   /** Close the picker, dropping everything that belonged to that visit. */
   closePicker() {
     this.pickerKey = null;
-    this.pickerSlot = null;
     this.pickerViaKeyboard = false;
     this.pickerFilter = "";
     this.pickerChoice = null;
@@ -7338,7 +7355,7 @@ class SetupPage {
       filterBox.addEventListener("input", (ev) => {
         const target = ev.currentTarget || ev.target;
         this.pickerFilter = (target && target.value) || "";
-        const slot = this.pickerSlot;
+        const slot = this.openSlot();
         if (!slot) return;
         const model = this.pickerModel(slot);
         const list = picker.querySelector(".sp-select");
@@ -7382,7 +7399,7 @@ class SetupPage {
         ev.stopPropagation();
         const select = picker.querySelector(".sp-select");
         const key = this.pickerKey;
-        const slot = this.pickerSlot;
+        const slot = this.openSlot();
         // What Assign will write is the choice the card remembered, not
         // whatever the `<select>` reports. That element is rebuilt on every
         // keystroke of the filter, and reading an answer back out of a
@@ -8068,7 +8085,7 @@ function parseConfig(config) {
 //   host.whatIf                WhatIfPanel: the schedule editor and simulator
 //   host.setup                 SetupPage: the diagram, the picker, the note
 //   host.layout                LayoutEditor: the drawing, its match, its gestures
-//   host.geom                  the chart's last geometry (null: no lanes)
+//   host.geomAt(i)             one chart copy's lane geometry; the last one without i
 //   host.render()              rebuild, keeping the render signature
 //   host.renderForced()        rebuild and forget it (the next hass redraws)
 //   host.suppressNextClick()   the next card click is the tail of a gesture
@@ -8104,12 +8121,18 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // The last build's series, and the chart's hover geometry.
     this._series = [];
     this._plot = null;
+    // The shared-band <pattern> ids handed out during one render (#141).
+    this._patternSeq = 0;
     this._resizeObserver = null;
     this._suppressClick = false;
     // The lane geometry the pan gesture and the slot lanes hit-test against,
     // published by `_chartBlock` from what `renderChart` returns while the
-    // lanes are on; null otherwise. Last writer wins when two charts render
-    // (#138).
+    // lanes are on; null otherwise. One per chart copy, in the order
+    // `chartSvgs` finds them (inline, then expanded), because the compact
+    // chart's font floor and its margins differ from the dialog's (#138);
+    // `_geom` is the last one drawn, for the readers that need only the
+    // window, which every copy shares.
+    this._geoms = [];
     this._geom = null;
     // The chart's last measured rectangle, a hover fallback.
     this._svgRect = null;
@@ -8147,10 +8170,12 @@ class HeatpumpOptimizerCard extends HTMLElement {
     return this._config;
   }
 
-  /** The chart's last geometry, for hit-testing; null while the lanes are
-   * off. Published by `_chartSvg`; PR 3 of #136 moves it onto the frame. */
-  get geom() {
-    return this._geom;
+  /** The lane geometry of the chart copy at `index` (inline 0, expanded 1),
+   * or, with no index or none for that copy, the last one drawn -- whose
+   * window is every copy's window, which is all the edit bounds read. Null
+   * while the lanes are off. */
+  geomAt(index) {
+    return (index === undefined ? null : this._geoms[index]) || this._geom;
   }
 
   getCardSize() {
@@ -8328,6 +8353,10 @@ class HeatpumpOptimizerCard extends HTMLElement {
     this.dialog.saveScroll(this.shadowRoot);
     const built = this._buildSeries();
     this._series = built.series;
+    this._geoms = [];
+    // Pattern ids start over every render, so the markup a render produces
+    // depends on nothing that happened before it (#141).
+    this._patternSeq = 0;
 
     const anyData = this._series.some((s) => s.hasData);
 
@@ -8353,6 +8382,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
       // And the lane geometry with it (#142): a stale one would let the edit
       // floor and a pointer hit-test answer against a chart that is not there.
       this._geom = null;
+      this._geoms = [];
     } else {
       body = this._chartBlock(built, false);
     }
@@ -8478,18 +8508,21 @@ class HeatpumpOptimizerCard extends HTMLElement {
       now: Date.now(),
       // The lanes hit-test against the geometry they are drawn into, so
       // it is published before the overlay draws, not after the chart
-      // returns. (`geom.font` is the expanded copy's while the dialog is
-      // open, since the expanded chart renders last -- #138.)
+      // returns -- and per copy, so the inline chart's lanes are drawn and
+      // redrawn with the inline chart's font and margins (#138).
       overlay: (g) => {
         this._geom = g;
+        this._geoms[expanded ? 1 : 0] = g;
         return this.lanes.laneGroupInner(g);
       },
-      // Document-unique per chart: with the dialog open two charts render
-      // into one shadow root.
-      nextPatternId: () => `hpoShared${++HeatpumpOptimizerCard._sharedPatternSeq}`,
+      // Unique per chart within this render: with the dialog open two charts
+      // render into one shadow root, and ids resolve within the shadow tree,
+      // so a per-card, per-render sequence is all that is needed (#141).
+      nextPatternId: () => `hpoShared${++this._patternSeq}`,
     });
     this._plot = plot;
     this._geom = geom;
+    this._geoms[expanded ? 1 : 0] = geom;
     // The controls overlay the chart rather than sitting under it: the expanded
     // dialog budgets its height from a fixed guess at how tall the chrome is
     // (item 26), and a new row of buttons would eat straight into that budget.
@@ -8736,8 +8769,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
 // say so loudly and record which version actually won.
 // Exposed so the editing model can be exercised without a browser.
 HeatpumpOptimizerCard.slots = SlotModel;
-// Per-render sequence for the shared-band pattern ids (see _sharedSpanBands).
-HeatpumpOptimizerCard._sharedPatternSeq = 0;
 
 // ---- The visual config editor ---------------------------------------------
 //

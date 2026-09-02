@@ -215,6 +215,24 @@ const STATES = [
       api.openMenu(c, "space", geom.windowStart + 2 * HOUR, 120, 40, svg, false);
       return c;
     } },
+  // A drag in flight: the lanes redrawn in place, before the pointer is
+  // released and a full render draws everything afresh. The one moment the
+  // inline copy's lanes are not drawn by the chart itself (#138).
+  { name: "draft_mid_drag",
+    drive: (s) => {
+      const c = buildCard(s.Card, planStates(s.plan), { what_if: true });
+      c._onCardClick({});
+      const geom = c._geom;
+      const runs = api.draft(c).dhw;
+      const [lo] = api.bounds(c);
+      const i = runs.findIndex((r) => r.end > lo && r.start >= lo);
+      if (i >= 0) {
+        const target = { dataset: { channel: "dhw", index: String(i) } };
+        fire(svgOf(c), "pointerdown", evAt(geom, runs[i].start + 60000, target));
+        fire(svgOf(c), "pointermove", evAt(geom, runs[i].start + 60000 + HOUR, target));
+      }
+      return c;
+    } },
   { name: "whatif_edited",
     drive: (s) => {
       const c = buildCard(s.Card, scheduleStates(s.plan), { what_if: true });
