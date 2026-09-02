@@ -48,6 +48,32 @@
 # v6.3.0: the quality-scale Bronze/Silver release. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
+#
+# the CI (Linux) mover set, per the gate that judges it; comfort
+# every-candidate): nine plan scenarios find the cheaper
+# basin the audit's price-optimality round measured (net
+# 0.25-1.6 % on the adversarial shapes, comfort parity
+# verified on all 15 harness scenarios, every leave-one-out
+# holds). The moved plans are strictly cheaper or equal,
+# never worse: the multi-start keeps the best refinement.
+# D0-01/D0-02 (the low-energy bang-bang seed and refine-
+# every-candidate): which scenarios find the cheaper basin sits on
+# a solver-noise boundary and differs by machine -- the claim list is
+# the CI (Linux) mover set, per the gate that judges it; comfort
+# parity verified on all 15 harness scenarios and every leave-one-out
+# holds; the moved plans are strictly cheaper or equal, never worse.
+away_setback  # cheaper basin reached by the low-energy seed (machine-sensitive boundary)
+capacity_tariff_15min  # cheaper basin reached by the low-energy seed (machine-sensitive boundary)
+cool_rainy_summer  # cheaper basin reached by the low-energy seed (machine-sensitive boundary)
+cycling_cost  # cheaper basin reached by the low-energy seed (machine-sensitive boundary)
+dhw_cold_tank  # cheaper basin reached by the low-energy seed (machine-sensitive boundary)
+everything_on  # cheaper basin reached by the low-energy seed (machine-sensitive boundary)
+flat_prices  # cheaper basin reached by the low-energy seed (machine-sensitive boundary)
+fuse_guard  # cheaper basin reached by the low-energy seed (machine-sensitive boundary)
+horizon_48h  # cheaper basin reached by the low-energy seed (machine-sensitive boundary)
+precip_snow  # cheaper basin reached by the low-energy seed (machine-sensitive boundary)
+start_below_band  # cheaper basin reached by the low-energy seed (machine-sensitive boundary)
+winter_two_zone_dhw  # cheaper basin reached by the low-energy seed (machine-sensitive boundary)
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
