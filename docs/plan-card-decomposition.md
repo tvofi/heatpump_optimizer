@@ -339,7 +339,7 @@ stale one forward on purpose, and neither is worth a field rename.*
 
 **PR 9 (a/b/c) — Test migration + seam removal.** `tests/card.mjs` moves to
 `card.view`, `card.manual`, `card.lanes`, `card.whatIf`, `card.setup`,
-`card.layout`, `card.dialog`, `card.legend`, `card.plan` and the module
+`card.layoutEditor`, `card.dialog`, `card.legend`, `card.plan` and the module
 functions (via `vm.runInContext` expressions, as it already does for
 `fitSlotRow`); delete the delegate and accessor seams; keep the genuine host
 members (`_hass`, `_config`, `_sig`, `_render`, `_maybeRender`,
@@ -350,7 +350,7 @@ rest). Add the **ratchet**: a card.mjs check that
 the count PR 9 lands at, with a comment that it may only go down.
 
 *As landed: one PR, not three. `tests/card.mjs` reaches the collaborators
-(`card.layout.edit`, `card.manual.draft()`, …) and the module functions by
+(`card.layoutEditor.edit`, `card.manual.draft()`, …) and the module functions by
 name in the card's realm; the seams are gone; `_buildSeries` stays a real
 host method (the step between two pure functions); the ratchet is 26
 members. `tests/card_drift.mjs` drives both sides through a small

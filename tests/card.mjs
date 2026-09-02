@@ -171,6 +171,35 @@ exp._onCardClick({});
 const opened = collect(exp.shadowRoot).join("\n");
 check("clicking the card opens a dialog", exp.dialog.expanded && /<dialog/.test(opened));
 check("the dialog uses showModal-capable markup", /dialog class="expanded"/.test(opened));
+
+// Lovelace does not only hand a card `hass` and `config`. `hui-card` writes
+// its own properties straight onto the card element -- `preview`, `editMode`
+// and `layout` among them -- and an element property the card also uses for
+// its own state is simply overwritten. That is not hypothetical: it shipped.
+// A real install's card carried
+//
+//   props: ...,_onCardClick,_onExpandClick,preview,editMode
+//   hasLayout: false
+//
+// with `layout` still listed but holding Lovelace's value, so the first
+// render that reached `attachBody` died on `this.layout.attach` -- and only
+// the expanded view reaches it, because `sync` returns early when there is no
+// dialog in the shadow root. The card looked perfect until it was expanded.
+//
+// So the contract this asserts is: the card keeps working after Lovelace has
+// written the properties it writes. The names are taken from hui-card, and
+// `layout` is the one that actually collided.
+const hui = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
+hui.preview = false;
+hui.editMode = false;
+hui.layout = undefined;           // what hui-card assigns in a sections view
+hui._onCardClick({});
+const huiOpened = collect(hui.shadowRoot).join("\n");
+check("expanding survives the properties Lovelace writes onto the element",
+  hui.dialog.expanded && /<dialog/.test(huiOpened));
+check("and the layout editor is still the card's own, not Lovelace's",
+  typeof hui.layoutEditor === "object" && hui.layoutEditor !== null
+  && typeof hui.layoutEditor.attach === "function");
 check("the dialog carries its own chart", (opened.match(/<svg/g) || []).length >
   (collapsed.match(/<svg/g) || []).length);
 // data-key also appears on series paths, so count the legend containers.
@@ -1857,9 +1886,9 @@ check("the hand-scheduled reason has a label",
     "a place without a contour is a box that lost its shape");
   check("no box goes without a contour",
     (setupPage.match(/class="setup-contour/g) || []).length >=
-      (su.layout.boxes || []).length,
+      (su.layoutEditor.boxes || []).length,
     `${(setupPage.match(/class="setup-contour/g) || []).length} contours for `
-    + `${(su.layout.boxes || []).length} boxes`);
+    + `${(su.layoutEditor.boxes || []).length} boxes`);
   check("the carrier rect is invisible, not gone",
     /\.setup-box \{ fill: none; stroke: none; \}/.test(cardSrc),
     "the rect is geometry for the tests and the editor; the contours are "
@@ -2099,7 +2128,7 @@ check("the hand-scheduled reason has a label",
       /class="setup-coil"/.test(coPage) && !/class="setup-coil"/.test(ttPage),
       "the helix exists exactly when the wood>DHW connection does");
     {
-      const wb = (co.layout.boxes || []).find((b) => b.place === "wood_tank");
+      const wb = (co.layoutEditor.boxes || []).find((b) => b.place === "wood_tank");
       const coilPipe = new RegExp(
         `data-edge="wood_tank>dhw_tank"\\s+d="M ${wb.x + wb.w + 13} ` +
         `${wb.y + 23}`);
@@ -2321,7 +2350,7 @@ check("the hand-scheduled reason has a label",
   // these drags mean anything.
   const pxOf = (u) => (u * 900) / 720;
   const boxAt = (card, place) =>
-    (card.layout.boxes || []).find((b) => b.place === place);
+    (card.layoutEditor.boxes || []).find((b) => b.place === place);
   const centre = (card, place) => {
     const b = boxAt(card, place);
     return { x: b.x + b.w / 2, y: b.y + b.h / 2 };
@@ -2334,9 +2363,9 @@ check("the hand-scheduled reason has a label",
   const connect = (card, from, to) => {
     const src = centre(card, from);
     const dst = centre(card, to);
-    card.layout.onDown(ev(src, { dataset: { place: from, port: "right" } }));
-    card.layout.onMove(ev({ x: (src.x + dst.x) / 2, y: (src.y + dst.y) / 2 }));
-    card.layout.onUp(ev(dst));
+    card.layoutEditor.onDown(ev(src, { dataset: { place: from, port: "right" } }));
+    card.layoutEditor.onMove(ev({ x: (src.x + dst.x) / 2, y: (src.y + dst.y) / 2 }));
+    card.layoutEditor.onUp(ev(dst));
   };
 
   {
@@ -2351,9 +2380,9 @@ check("the hand-scheduled reason has a label",
     const dump = pageHtml(c);
     check("the editor draws a port on every box edge",
       (dump.match(/class="layout-port"/g) || []).length ===
-        (c.layout.boxes || []).length * 4,
+        (c.layoutEditor.boxes || []).length * 4,
       `${(dump.match(/class="layout-port"/g) || []).length} ports for `
-      + `${(c.layout.boxes || []).length} boxes`);
+      + `${(c.layoutEditor.boxes || []).length} boxes`);
     // v4.3.0: the pipe ornament (endpoint dots, flow chevrons) is styled
     // away while editing -- it would sit right on the widened pipes that
     // are the editor's click targets. The stub computes no styles, so what
@@ -2371,7 +2400,7 @@ check("the hand-scheduled reason has a label",
     check("and the editor says which layout is on screen",
       /Valve on the radiators, slab fed direct/
         .test(collect(c.shadowRoot).join("\n")),
-      `verdict was ${JSON.stringify(c.layout.edit.verdict)}`);
+      `verdict was ${JSON.stringify(c.layoutEditor.edit.verdict)}`);
     // Editing takes the diagram over; a picker opening on top of a drag is
     // the interaction that made the whole page feel broken.
     const hit = c.shadowRoot.querySelector(".setup-hit");
@@ -2387,29 +2416,29 @@ check("the hand-scheduled reason has a label",
     // exactly `single_tank_valve`, and the editor has to recognise it.
     const c = mkEditor();
     clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
-    c.layout.onClick({ target: { dataset: { edge: "buffer_tank>lower_zone" } },
+    c.layoutEditor.onClick({ target: { dataset: { edge: "buffer_tank>lower_zone" } },
       stopPropagation() {} });
     check("clicking a pipe while editing removes it",
       !edgesOf(c).includes("buffer_tank>lower_zone"),
       `edges drawn: ${edgesOf(c).join(", ")}`);
     check("and a drawing that is no layout is rejected, with a reason",
-      !c.layout.edit.match &&
-      /No supported layout matches/.test(c.layout.edit.verdict) &&
-      /Lower floor/.test(c.layout.edit.verdict),
-      `verdict was ${JSON.stringify(c.layout.edit.verdict)}`);
+      !c.layoutEditor.edit.match &&
+      /No supported layout matches/.test(c.layoutEditor.edit.verdict) &&
+      /Lower floor/.test(c.layoutEditor.edit.verdict),
+      `verdict was ${JSON.stringify(c.layoutEditor.edit.verdict)}`);
     connect(c, "mixing_valve", "lower_zone");
     check("dragging a port onto another box proposes that connection",
       edgesOf(c).includes("mixing_valve>lower_zone"),
       `edges drawn: ${edgesOf(c).join(", ")}`);
     check("the finished drawing snaps to the layout it equals",
-      !!c.layout.edit.match &&
-      c.layout.edit.match.key === "single_tank_valve",
-      `matched ${JSON.stringify(c.layout.edit.match)}`);
+      !!c.layoutEditor.edit.match &&
+      c.layoutEditor.edit.match.key === "single_tank_valve",
+      `matched ${JSON.stringify(c.layoutEditor.edit.match)}`);
     const dump = pageHtml(c);
     check("a matched layout is highlighted and Save is enabled",
       /setup-pipe layout-match/.test(dump) &&
       !c.shadowRoot.querySelector(".layout-save").disabled &&
-      /One tank behind a valve/.test(c.layout.edit.verdict));
+      /One tank behind a valve/.test(c.layoutEditor.edit.verdict));
 
     // (4) Only the key travels. A free-form graph is never stored, which is
     // what keeps the model from being asked to run physics nobody wrote.
@@ -2426,7 +2455,7 @@ check("the hand-scheduled reason has a label",
       !("edges" in calls[0][2]),
       JSON.stringify(calls));
     check("and the editor closes once the write is away",
-      c.layout.edit === null && /Saved/.test(c.setup.note || ""),
+      c.layoutEditor.edit === null && /Saved/.test(c.setup.note || ""),
       `note was ${JSON.stringify(c.setup.note)}`);
   }
 
@@ -2435,7 +2464,7 @@ check("the hand-scheduled reason has a label",
     // it is not a way to say no.
     const c = mkEditor();
     clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
-    c.layout.onClick({ target: { dataset: { edge: "buffer_tank>lower_zone" } },
+    c.layoutEditor.onClick({ target: { dataset: { edge: "buffer_tank>lower_zone" } },
       stopPropagation() {} });
     connect(c, "mixing_valve", "lower_zone");
     c._hass.callService = async () => {
@@ -2447,8 +2476,8 @@ check("the hand-scheduled reason has a label",
       /wood-tank top probe/.test(c.setup.note || ""),
       `note was ${JSON.stringify(c.setup.note)}`);
     check("and the editor stays open with the drawing intact",
-      c.layout.editing() &&
-      c.layout.edit.edges.some((e) => e[1] === "lower_zone" &&
+      c.layoutEditor.editing() &&
+      c.layoutEditor.edit.edges.some((e) => e[1] === "lower_zone" &&
         e[0] === "mixing_valve"));
   }
 
@@ -2459,12 +2488,12 @@ check("the hand-scheduled reason has a label",
     connect(c, "heat_pump", "upper_zone");
     const dump = pageHtml(c);
     check("an unsupported drawing names the nearest layout and what differs",
-      !c.layout.edit.match &&
-      /No supported layout matches/.test(c.layout.edit.verdict) &&
+      !c.layoutEditor.edit.match &&
+      /No supported layout matches/.test(c.layoutEditor.edit.verdict) &&
       /Closest: Valve on the radiators, slab fed direct/
-        .test(c.layout.edit.verdict) &&
-      /Heat pump → Upper floor/.test(c.layout.edit.verdict),
-      `verdict was ${JSON.stringify(c.layout.edit.verdict)}`);
+        .test(c.layoutEditor.edit.verdict) &&
+      /Heat pump → Upper floor/.test(c.layoutEditor.edit.verdict),
+      `verdict was ${JSON.stringify(c.layoutEditor.edit.verdict)}`);
     check("the offending pipe is drawn as rejected, and Save stays disabled",
       /setup-pipe invalid" data-edge="heat_pump>upper_zone"/.test(dump) &&
       !!c.shadowRoot.querySelector(".layout-save").disabled,
@@ -2475,20 +2504,20 @@ check("the hand-scheduled reason has a label",
 
     // A drawing that IS a known layout this configuration cannot run gets the
     // requirement instead: nothing is mis-drawn, the house is just not that.
-    c.layout.edit.edges = EDGES.two_tank_4way.map((e) => [e[0], e[1]]);
-    c.layout.evaluate();
+    c.layoutEditor.edit.edges = EDGES.two_tank_4way.map((e) => [e[0], e[1]]);
+    c.layoutEditor.evaluate();
     check("a layout the configuration cannot run explains what it needs",
-      !c.layout.edit.match &&
-      /Two tanks, one 4-way valve/.test(c.layout.edit.verdict) &&
-      /wood-tank top probe/.test(c.layout.edit.verdict),
-      `verdict was ${JSON.stringify(c.layout.edit.verdict)}`);
-    c.layout.edit.edges = EDGES.slab_shunt.map((e) => [e[0], e[1]]);
-    c.layout.evaluate();
+      !c.layoutEditor.edit.match &&
+      /Two tanks, one 4-way valve/.test(c.layoutEditor.edit.verdict) &&
+      /wood-tank top probe/.test(c.layoutEditor.edit.verdict),
+      `verdict was ${JSON.stringify(c.layoutEditor.edit.verdict)}`);
+    c.layoutEditor.edit.edges = EDGES.slab_shunt.map((e) => [e[0], e[1]]);
+    c.layoutEditor.evaluate();
     check("and a known-but-unmodelled layout says it is not selectable",
-      !c.layout.edit.match &&
-      /Separate slab shunt/.test(c.layout.edit.verdict) &&
-      /no model variant exists yet/.test(c.layout.edit.verdict),
-      `verdict was ${JSON.stringify(c.layout.edit.verdict)}`);
+      !c.layoutEditor.edit.match &&
+      /Separate slab shunt/.test(c.layoutEditor.edit.verdict) &&
+      /no model variant exists yet/.test(c.layoutEditor.edit.verdict),
+      `verdict was ${JSON.stringify(c.layoutEditor.edit.verdict)}`);
   }
 
   {
@@ -2502,20 +2531,20 @@ check("the hand-scheduled reason has a label",
     });
     const c = mkEditor({ catalog: bare });
     clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
-    c.layout.edit.edges = EDGES.two_tank_4way.map((e) => [e[0], e[1]]);
-    c.layout.evaluate();
+    c.layoutEditor.edit.edges = EDGES.two_tank_4way.map((e) => [e[0], e[1]]);
+    c.layoutEditor.evaluate();
     check("a catalog without requirement text degrades, never 'undefined'",
-      !c.layout.edit.match &&
-      /Two tanks, one 4-way valve/.test(c.layout.edit.verdict) &&
-      !/undefined/.test(c.layout.edit.verdict) &&
-      /cannot store/.test(c.layout.edit.verdict),
-      `verdict was ${JSON.stringify(c.layout.edit.verdict)}`);
-    c.layout.edit.edges = EDGES.slab_shunt.map((e) => [e[0], e[1]]);
-    c.layout.evaluate();
+      !c.layoutEditor.edit.match &&
+      /Two tanks, one 4-way valve/.test(c.layoutEditor.edit.verdict) &&
+      !/undefined/.test(c.layoutEditor.edit.verdict) &&
+      /cannot store/.test(c.layoutEditor.edit.verdict),
+      `verdict was ${JSON.stringify(c.layoutEditor.edit.verdict)}`);
+    c.layoutEditor.edit.edges = EDGES.slab_shunt.map((e) => [e[0], e[1]]);
+    c.layoutEditor.evaluate();
     check("and the unmodelled layout degrades the same way",
-      !/undefined/.test(c.layout.edit.verdict) &&
-      /not modelled yet/.test(c.layout.edit.verdict),
-      `verdict was ${JSON.stringify(c.layout.edit.verdict)}`);
+      !/undefined/.test(c.layoutEditor.edit.verdict) &&
+      /not modelled yet/.test(c.layoutEditor.edit.verdict),
+      `verdict was ${JSON.stringify(c.layoutEditor.edit.verdict)}`);
   }
 
   {
@@ -2524,26 +2553,26 @@ check("the hand-scheduled reason has a label",
     // wiped out mid-drawing every few minutes.
     const c = mkEditor();
     clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
-    c.layout.onClick({ target: { dataset: { edge: "buffer_tank>lower_zone" } },
+    c.layoutEditor.onClick({ target: { dataset: { edge: "buffer_tank>lower_zone" } },
       stopPropagation() {} });
     connect(c, "mixing_valve", "lower_zone");
     c._sig = null;
     c._maybeRender(true);
     const dump = pageHtml(c);
     check("the layout editor survives a plan refresh",
-      c.layout.editing() && /class="layout-port"/.test(dump) &&
+      c.layoutEditor.editing() && /class="layout-port"/.test(dump) &&
       edgesOf(c).includes("mixing_valve>lower_zone") &&
       !edgesOf(c).includes("buffer_tank>lower_zone"),
       `edges drawn: ${edgesOf(c).join(", ")}`);
     check("and so does the match it had made",
-      !!c.layout.edit.match &&
-      c.layout.edit.match.key === "single_tank_valve" &&
+      !!c.layoutEditor.edit.match &&
+      c.layoutEditor.edit.match.key === "single_tank_valve" &&
       !c.shadowRoot.querySelector(".layout-save").disabled);
     // Cancel discards: nothing was written, so the working set must not
     // outlive the editor.
     clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
     check("closing the editor discards the drawing",
-      c.layout.edit === null &&
+      c.layoutEditor.edit === null &&
       edgesOf(c).includes("buffer_tank>lower_zone"),
       `edges drawn: ${edgesOf(c).join(", ")}`);
   }
@@ -2582,25 +2611,25 @@ check("the hand-scheduled reason has a label",
     // must not change which layout the drawing is.
     const c = mkEditor();
     clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
-    const before = c.layout.edit.edges.map((e) => `${e[0]}>${e[1]}`).join();
+    const before = c.layoutEditor.edit.edges.map((e) => `${e[0]}>${e[1]}`).join();
     const from = centre(c, "buffer_tank");
-    c.layout.onDown(ev(from, { dataset: {} }));
-    c.layout.onMove(ev({ x: from.x + 30, y: from.y + 40 }));
-    c.layout.onUp(ev({ x: from.x + 30, y: from.y + 40 }));
-    const at = c.layout.edit.positions.buffer_tank;
+    c.layoutEditor.onDown(ev(from, { dataset: {} }));
+    c.layoutEditor.onMove(ev({ x: from.x + 30, y: from.y + 40 }));
+    c.layoutEditor.onUp(ev({ x: from.x + 30, y: from.y + 40 }));
+    const at = c.layoutEditor.edit.positions.buffer_tank;
     check("dragging a box records its position and leaves the pipes alone",
       Array.isArray(at) && at.length === 2 &&
-      c.layout.edit.edges.map((e) => `${e[0]}>${e[1]}`).join() === before,
+      c.layoutEditor.edit.edges.map((e) => `${e[0]}>${e[1]}`).join() === before,
       `position ${JSON.stringify(at)}`);
     check("and a moved box is still the layout it was, now saveable",
-      !!c.layout.edit.match &&
-      c.layout.edit.match.key === "valve_upper_direct_slab" &&
+      !!c.layoutEditor.edit.match &&
+      c.layoutEditor.edit.match.key === "valve_upper_direct_slab" &&
       !c.shadowRoot.querySelector(".layout-save").disabled);
     // The click a drag owes is swallowed by whatever it ended over -- a slot
     // row stops it before the diagram sees it -- so the next gesture must
     // clear the debt rather than spend it on the user's next real click.
-    c.layout.onDown(ev({ x: 4, y: 4 }, { dataset: {} }));
-    c.layout.onClick({
+    c.layoutEditor.onDown(ev({ x: 4, y: 4 }, { dataset: {} }));
+    c.layoutEditor.onClick({
       target: { dataset: { edge: "buffer_tank>lower_zone" } },
       stopPropagation() {} });
     check("a click after a drag is not silently eaten",
@@ -2623,7 +2652,7 @@ check("the hand-scheduled reason has a label",
       /class="setup-coil"/.test(pageHtml(c)),
       "the drawn wood>DHW edge is the coil's existence condition");
     clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
-    c.layout.removeEdge("wood_tank>dhw_tank");
+    c.layoutEditor.removeEdge("wood_tank>dhw_tank");
     check("removing the wood>DHW pipe removes the helix with it",
       !/class="setup-coil"/.test(pageHtml(c)),
       `edges drawn: ${edgesOf(c).join(", ")}`);
@@ -2651,9 +2680,9 @@ check("the hand-scheduled reason has a label",
       if (key !== "Enter" && key !== " ") return [];
       return clickOn(el);
     };
-    const posOf = (card) => JSON.stringify(card.layout.edit.positions);
+    const posOf = (card) => JSON.stringify(card.layoutEditor.edit.positions);
     const edgeNames = (card) =>
-      card.layout.edit.edges.map((e) => `${e[0]}>${e[1]}`).join();
+      card.layoutEditor.edit.edges.map((e) => `${e[0]}>${e[1]}`).join();
     const PUBLISHED = EDGES.valve_upper_direct_slab
       .map((e) => `${e[0]}>${e[1]}`).join();
 
@@ -2677,12 +2706,12 @@ check("the hand-scheduled reason has a label",
 
       // One drag and one new pipe: both halves of the working set moved.
       const from = centre(c, "buffer_tank");
-      c.layout.onDown(ev(from, { dataset: {} }));
-      c.layout.onMove(ev({ x: from.x + 30, y: from.y + 40 }));
-      c.layout.onUp(ev({ x: from.x + 30, y: from.y + 40 }));
+      c.layoutEditor.onDown(ev(from, { dataset: {} }));
+      c.layoutEditor.onMove(ev({ x: from.x + 30, y: from.y + 40 }));
+      c.layoutEditor.onUp(ev({ x: from.x + 30, y: from.y + 40 }));
       connect(c, "heat_pump", "upper_zone");
       check("Undo lights up as soon as something is changed",
-        !undoBtn(c).disabled && c.layout.edit.dirty &&
+        !undoBtn(c).disabled && c.layoutEditor.edit.dirty &&
         posOf(c) !== "{}" && edgeNames(c) !== PUBLISHED,
         `edges ${edgeNames(c)}, positions ${posOf(c)}`);
 
@@ -2691,35 +2720,35 @@ check("the hand-scheduled reason has a label",
         edgeNames(c) === PUBLISHED && posOf(c) === "{}",
         `edges ${edgeNames(c)}, positions ${posOf(c)}`);
       check("and re-derives the verdict for the restored drawing",
-        !!c.layout.edit.match &&
-        c.layout.edit.match.key === "valve_upper_direct_slab" &&
+        !!c.layoutEditor.edit.match &&
+        c.layoutEditor.edit.match.key === "valve_upper_direct_slab" &&
         /Valve on the radiators, slab fed direct/
-          .test(c.layout.edit.verdict) &&
+          .test(c.layoutEditor.edit.verdict) &&
         /Valve on the radiators, slab fed direct/.test(
           (c.shadowRoot.querySelector(".layout-verdict") || {}).textContent
           || ""),
-        `verdict was ${JSON.stringify(c.layout.edit.verdict)}`);
+        `verdict was ${JSON.stringify(c.layoutEditor.edit.verdict)}`);
       check("the editor stays open, unlike Cancel",
-        c.layout.editing() && /class="layout-port"/.test(pageHtml(c)),
+        c.layoutEditor.editing() && /class="layout-port"/.test(pageHtml(c)),
         "Undo is the way to start over without reopening the editor");
       check("and Undo goes dark again, with nothing left to take back",
-        !c.layout.edit.dirty && !!undoBtn(c).disabled &&
+        !c.layoutEditor.edit.dirty && !!undoBtn(c).disabled &&
         !!c.shadowRoot.querySelector(".layout-save").disabled,
         "an editor back at its starting point has nothing to save either");
       check("no drag survives the restore",
-        c.layout.edit.drag === null && !c.layout.edit.suppressClick,
+        c.layoutEditor.edit.drag === null && !c.layoutEditor.edit.suppressClick,
         "a pointerup still owed would land an edge against a drawing that "
         + "no longer exists");
 
       // The baseline is a deep copy, so touching the working set cannot
       // reach into the layout Undo owes on the NEXT press.
-      c.layout.edit.positions.buffer_tank = [1, 2];
-      c.layout.edit.edges.push(["heat_pump", "upper_zone"]);
+      c.layoutEditor.edit.positions.buffer_tank = [1, 2];
+      c.layoutEditor.edit.edges.push(["heat_pump", "upper_zone"]);
       check("the baseline is a copy the working set cannot corrupt",
-        JSON.stringify(c.layout.edit.baseline.positions) === "{}" &&
-        c.layout.edit.baseline.edges.map((e) => `${e[0]}>${e[1]}`).join()
+        JSON.stringify(c.layoutEditor.edit.baseline.positions) === "{}" &&
+        c.layoutEditor.edit.baseline.edges.map((e) => `${e[0]}>${e[1]}`).join()
           === PUBLISHED,
-        JSON.stringify(c.layout.edit.baseline));
+        JSON.stringify(c.layoutEditor.edit.baseline));
     }
 
     {
@@ -2728,17 +2757,17 @@ check("the hand-scheduled reason has a label",
       const c = mkEditor({ positions: { heat_pump: [430, 360] } });
       clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
       const from = centre(c, "heat_pump");
-      c.layout.onDown(ev(from, { dataset: {} }));
-      c.layout.onMove(ev({ x: from.x + 40, y: from.y + 20 }));
-      c.layout.onUp(ev({ x: from.x + 40, y: from.y + 20 }));
-      const moved = JSON.stringify(c.layout.edit.positions.heat_pump);
+      c.layoutEditor.onDown(ev(from, { dataset: {} }));
+      c.layoutEditor.onMove(ev({ x: from.x + 40, y: from.y + 20 }));
+      c.layoutEditor.onUp(ev({ x: from.x + 40, y: from.y + 20 }));
+      const moved = JSON.stringify(c.layoutEditor.edit.positions.heat_pump);
       clickOn(undoBtn(c));
       check("Undo after a drag alone puts the box back where it was",
-        JSON.stringify(c.layout.edit.positions.heat_pump) === "[430,360]" &&
+        JSON.stringify(c.layoutEditor.edit.positions.heat_pump) === "[430,360]" &&
         moved !== "[430,360]" && boxAt(c, "heat_pump").x === 430 &&
         boxAt(c, "heat_pump").y === 360,
         `moved to ${moved}, restored to `
-        + JSON.stringify(c.layout.edit.positions.heat_pump));
+        + JSON.stringify(c.layoutEditor.edit.positions.heat_pump));
       check("and the pipes it never touched are still the published ones",
         edgeNames(c) === PUBLISHED, `edges ${edgeNames(c)}`);
     }
@@ -2747,12 +2776,12 @@ check("the hand-scheduled reason has a label",
       // Only an edge change: the pipes half must come back on its own.
       const c = mkEditor();
       clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
-      c.layout.onClick({
+      c.layoutEditor.onClick({
         target: { dataset: { edge: "buffer_tank>lower_zone" } },
         stopPropagation() {} });
       connect(c, "mixing_valve", "lower_zone");
       check("a rearranged drawing is a different layout before Undo",
-        c.layout.edit.match.key === "single_tank_valve");
+        c.layoutEditor.edit.match.key === "single_tank_valve");
       clickOn(undoBtn(c));
       check("Undo after pipe edits alone restores the published pipe set",
         edgeNames(c) === PUBLISHED &&
@@ -2762,7 +2791,7 @@ check("the hand-scheduled reason has a label",
 
       // Nothing stale left behind: the editor still works exactly as it did
       // before the Undo, all the way through a real write.
-      c.layout.onClick({
+      c.layoutEditor.onClick({
         target: { dataset: { edge: "buffer_tank>lower_zone" } },
         stopPropagation() {} });
       connect(c, "mixing_valve", "lower_zone");
@@ -2773,7 +2802,7 @@ check("the hand-scheduled reason has a label",
       await Promise.all(clickOn(c.shadowRoot.querySelector(".layout-save")));
       check("Save still works normally after an Undo",
         calls.length === 1 && calls[0][1] === "apply_topology" &&
-        calls[0][2].layout === "single_tank_valve" && c.layout.edit === null,
+        calls[0][2].layout === "single_tank_valve" && c.layoutEditor.edit === null,
         JSON.stringify(calls));
     }
 
@@ -2791,11 +2820,11 @@ check("the hand-scheduled reason has a label",
       connect(c, "heat_pump", "upper_zone");
       pressKey(undoBtn(c), "Enter");
       check("Enter on Undo restores the layout, from the keyboard alone",
-        edgeNames(c) === PUBLISHED && c.layout.editing());
+        edgeNames(c) === PUBLISHED && c.layoutEditor.editing());
       connect(c, "heat_pump", "upper_zone");
       pressKey(undoBtn(c), " ");
       check("and so does Space",
-        edgeNames(c) === PUBLISHED && c.layout.editing());
+        edgeNames(c) === PUBLISHED && c.layoutEditor.editing());
       check("the bar's buttons ring themselves with :focus-visible, no more",
         /\.layout-bar button:focus-visible \{\s*outline: 2px solid/
           .test(cardSrc),
@@ -2812,7 +2841,7 @@ check("the hand-scheduled reason has a label",
       clickOn(undoBtn(c));
       clickOn(c.shadowRoot.querySelector(".layout-edit-toggle"));
       check("Cancel still closes the editor, Undo or no Undo",
-        c.layout.edit === null && !c.layout.editing() &&
+        c.layoutEditor.edit === null && !c.layoutEditor.editing() &&
         !/class="layout-port"/.test(pageHtml(c)) &&
         edgesOf(c).includes("buffer_tank>lower_zone"),
         `edges drawn: ${edgesOf(c).join(", ")}`);
@@ -3604,7 +3633,7 @@ function mkSetup(over, extraStates) {
 const setupPage = (over, extraStates) =>
   collect(mkSetup(over, extraStates).shadowRoot).join("\n");
 const setupBox = (card, place) =>
-  (card.layout.boxes || []).find((b) => b.place === place);
+  (card.layoutEditor.boxes || []).find((b) => b.place === place);
 
 // --- Scenario: the heat pump lost its louvres (item A, v5.1.4) --------------
 // Two horizontal strokes used to sit in the cabinet's bottom-left band as
@@ -3671,7 +3700,7 @@ const setupBox = (card, place) =>
   // flow direction has to come from the edge's own place names.
   const pipesOf = (card, html) => {
     const page = html || collect(card.shadowRoot).join("\n");
-    const boxes = card.layout.boxes || [];
+    const boxes = card.layoutEditor.boxes || [];
     const boxOf = (place) => boxes.find((b) => b.place === place);
     const re = new RegExp(
       '<path class="setup-pipe([^"]*)" data-edge="([^"]+)"\\s+' +
@@ -3862,11 +3891,11 @@ const setupBox = (card, place) =>
   // An invalid pipe is drawn to be rejected, and an arrow on it would
   // endorse a connection the model refuses.
   const ed = mkSetup();
-  ed.layout.edit = { active: true,
+  ed.layoutEditor.edit = { active: true,
     edges: setupTopo().edges.map((e) => e.slice()),
     positions: {}, invalid: ["heat_pump>buffer_tank"], match: null,
     drag: null, verdict: null };
-  ed.layout.refresh();
+  ed.layoutEditor.refresh();
   const canvas = ed.shadowRoot.querySelector(".setup-canvas");
   const edited = pipesOf(ed, (canvas && canvas.innerHTML) || "");
   const bad = edited.filter((p) => / invalid/.test(p.cls));
@@ -3905,7 +3934,7 @@ const setupBox = (card, place) =>
 {
   const card = mkSetup();
   const page = collect(card.shadowRoot).join("\n");
-  const boxes = card.layout.boxes || [];
+  const boxes = card.layoutEditor.boxes || [];
   const PAD = 16;
   const COLW = 200;
 
@@ -4630,7 +4659,7 @@ const setupBox = (card, place) =>
   const rects = [...page.matchAll(
     /<rect class="setup-hit" data-key="([^"]+)"[^>]*?x="([\d.]+)" y="([\d.]+)"\s*width="([\d.]+)"\s*height="([\d.]+)"/g)]
     .map((m) => ({ key: m[1], x: +m[2], y: +m[3], w: +m[4], h: +m[5] }));
-  const boxes = geoCard.layout.boxes || [];
+  const boxes = geoCard.layoutEditor.boxes || [];
   const clipped = [];
   for (const r of rects) {
     const b = boxes.find((bb) => r.x > bb.x && r.x < bb.x + bb.w &&
