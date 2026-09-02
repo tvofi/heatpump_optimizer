@@ -32,6 +32,41 @@ vacuous test was caught by its own mutation proof (the Bayesian prior
 alone passed a single-seed bias bound with the correction deleted) and
 rewritten as the ensemble-p90 assertion that ships.
 
+### The integration imports again
+
+A regression in v6.3.1 (#210), and the reason anyone on v6.3.1 or v6.3.2
+should update. `Platform.DIAGNOSTICS` does not exist in Home Assistant: the
+diagnostics component discovers `diagnostics.py` by name when a user asks for
+a download, and the platform list is only for platforms that set entities up.
+Naming it there raised an `AttributeError` at import time, so setup of the
+whole integration failed:
+
+```
+Setup failed for custom integration 'heatpump_optimizer':
+Unable to import component: ... __init__.py, line 95, in <module>
+    Platform.DIAGNOSTICS,
+AttributeError: type object 'EntityPlatforms' has no attribute 'DIAGNOSTICS'
+```
+
+Diagnostics downloads are unaffected and keep working; they never needed the
+entry.
+
+Nothing caught it because the test stub had invented the member. The stub enum
+gained `DIAGNOSTICS = "diagnostics"` in the same change, so the suite exercised
+a Home Assistant that does not exist. `tests/entities.py` now transcribes the
+real enum and asserts four things on every run: every stub member exists in the
+real one, every entry in `PLATFORMS` and in `PLATFORM_LIST` is a real platform,
+and `diagnostics.py` exists while `"diagnostics"` is not forwarded. The stub's
+docstring states the rule it broke: a stub may be smaller than the real thing,
+never different.
+
+### The closures job on main is green again
+
+`diagnostics.py` arrived in v6.3.1 and no dependency closure was re-recorded
+(#214), so `tests/entities.py`, `tests/golden.py` and `tests/env_drift.py` each
+really read a file their committed closure did not list, and the `closures` job
+failed on every push. Re-recorded, three lines.
+
 ## v6.3.2
 
 ### The solver starts from a low-energy basin, and every candidate is refined
