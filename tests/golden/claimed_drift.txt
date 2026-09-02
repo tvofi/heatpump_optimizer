@@ -43,7 +43,7 @@
 # does not expire with the stamp and is not part of the inherited-claims
 # comparison.
 #
-# claims-for: 6.3.2
+# claims-for: 6.3.3
 #
 # The v6.3.1 diagnostics-platform hotfix: PLATFORM_LIST and
 # const.PLATFORMS lose an entry that is not a Home Assistant platform,

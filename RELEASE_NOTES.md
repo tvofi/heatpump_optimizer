@@ -1,5 +1,37 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.3.3
+
+### The self-learning experiment becomes trustworthy: noise-gated sysid
+
+Audit round 1, group C2 (#212; closes #190, #191, #192) — the last
+queued group of the round-1 fix wave.
+
+- **D2-01**: the experiment's regression put the previous temperature
+  on both sides, so sensor noise biased the identified heat-loss
+  coefficient upward (audit-measured +44 % at 0.05 °C noise, +108 % at
+  0.10 °C — and the biased fits cleared the adoption gate). The noise
+  variance is now estimated from the room series' within-phase second
+  differences, the known errors-in-variables terms are subtracted from
+  the normal equations, a window whose noise exceeds a third of the
+  signal spread is refused outright, and confidence gains an SNR
+  factor. **Executed on a 40-seed truth-known simulation: ensemble
+  |UA bias| p90 ≤ 15 % (pre-fix production: +54 %); the raw
+  uncorrected fit spans +30 % to −790 %.**
+- **D7-02**: at the default protocol the confidence formula capped at
+  ≈ 0.13 against the 0.3 adoption gate — **no experiment could ever be
+  adopted, on any install.** Rescaled to the protocol's own geometry;
+  clean default-protocol windows now measure 0.45–0.49 and are
+  adoptable.
+- **D7-05**: an interval with detected free heat (open window,
+  fireplace) no longer poisons the accuracy learner — the freeze gate
+  is symmetric now: skip the sample, keep the energy accounting.
+
+Mutation-proved in all three directions, executed both ways. One
+vacuous test was caught by its own mutation proof (the Bayesian prior
+alone passed a single-seed bias bound with the correction deleted) and
+rewritten as the ensemble-p90 assertion that ships.
+
 ## v6.3.2
 
 ### The solver starts from a low-energy basin, and every candidate is refined
