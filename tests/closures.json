@@ -62,7 +62,7 @@
    "rc": 0
   },
   "tests/stress.py": {
-   "seconds": 1340.2,
+   "seconds": 440.8,
    "rc": 0
   },
   "tests/validate.py": {
@@ -1058,7 +1058,8 @@
    "tests/hastub/homeassistant/util/__init__.py",
    "tests/hastub/homeassistant/util/dt.py",
    "tests/profiles.py",
-   "tests/stress.py"
+   "tests/stress.py",
+   "tests/stress_budgets.json"
   ],
   "tests/validate.py": [
    "custom_components/heatpump_optimizer/__init__.py",
