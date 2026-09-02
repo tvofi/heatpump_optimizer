@@ -29,7 +29,16 @@ import sys
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-from harness import FakeCoordinator, FakeEntry, FakeHass, FakeState, Results
+from harness import (
+    FakeCoordinator,
+    FakeEntry,
+    FakeHass,
+    FakeState,
+    Results,
+    ha_setup_component,
+    ha_setup_entry,
+    ha_unload_entry,
+)
 
 from homeassistant.components.sensor import SensorStateClass
 
@@ -84,6 +93,32 @@ for name in ("binary_sensor", "button"):
         ),
     )
 
+# parallel-updates (Silver, #184): every platform states how many of its
+# entities may update or act at once, read from the module so a platform
+# that drops the line fails here rather than silently taking Home
+# Assistant's default. The two coordinator-fed read-only platforms declare
+# 0 -- the coordinator already serialises the inbound refresh and nothing
+# outbound exists to throttle. The three that act (a button press, the mode
+# switch, the thermostat's setpoint and mode) declare 1: every action lands
+# on the coordinator, which commands one heat pump, and two of them racing
+# is two commands to one machine.
+from heatpump_optimizer import climate as _climate_platform
+from heatpump_optimizer import switch as _switch_platform
+
+for _module, _expected in (
+    (sensor, 0),
+    (binary_sensor, 0),
+    (button, 1),
+    (_climate_platform, 1),
+    (_switch_platform, 1),
+):
+    _platform_name = _module.__name__.rsplit(".", 1)[-1]
+    R.check(
+        f"the {_platform_name} platform declares PARALLEL_UPDATES = {_expected}",
+        getattr(_module, "PARALLEL_UPDATES", None) == _expected,
+        f"PARALLEL_UPDATES is {getattr(_module, 'PARALLEL_UPDATES', '<undeclared>')!r}",
+    )
+
 
 def collect(module, data=None, coordinator=None):
     """Instantiate every entity a platform would add, for a given data dict.
@@ -105,7 +140,10 @@ def collect(module, data=None, coordinator=None):
         # that has been running, not one booted this minute.
         coordinator._month_totals = {"dhw": (41.5, 62.25), "space": (120.0, 180.0)}
     hass = FakeHass()
-    hass.data[const.DOMAIN] = {ENTRY.entry_id: coordinator}
+    # Where a platform finds its coordinator: on the entry, as runtime_data
+    # (runtime-data, Bronze). Nothing is put in hass.data -- a platform that
+    # still looked there would find nothing and fail here.
+    ENTRY.runtime_data = coordinator
     asyncio.run(module.async_setup_entry(hass, ENTRY, add_entities))
     return added
 
@@ -317,6 +355,70 @@ for label, count, pattern in (
 R.check(
     "unique ids are unique",
     len({s._attr_unique_id for s in sensors}) == len(sensors),
+)
+
+# docs-removal-instructions (Bronze, #183): the README says how to remove the
+# integration and what removal leaves behind, in the Installation section
+# next to how to install it. Two of its claims are checked against the code
+# rather than trusted: the store files it lists under `.storage/` are the
+# coordinator's own Store keys (the stub Store records its key), and the
+# Home Assistant floor it states is the one hacs.json declares -- both are
+# numbers a user acts on, and both drift silently otherwise.
+from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator as _Coord
+from homeassistant.helpers.storage import Store as _Store
+
+_removal = _re.search(
+    r"^### Removal\n(.*?)(?=^## |^### )", readme, _re.M | _re.S
+)
+_removal_text = _removal.group(1) if _removal else ""
+R.check(
+    "the README has a Removal section, under Installation",
+    _removal is not None
+    and readme.index("## Installation")
+    < readme.index("### Removal")
+    < readme.index("## Quick start"),
+)
+R.check(
+    "it names the standard delete path",
+    "Devices & services" in _removal_text and "Delete" in _removal_text,
+)
+R.check(
+    "it says the card's Lovelace resource stays behind, and where to remove it",
+    "Resources" in _removal_text and "heatpump-optimizer-card.js" in _removal_text,
+)
+R.check(
+    "it says the code is uninstalled through HACS or by deleting the folder",
+    "HACS" in _removal_text and "custom_components/heatpump_optimizer" in _removal_text,
+)
+_removal_coord = _Coord(
+    FakeHass(),
+    FakeEntry(
+        data={const.CONF_TIBBER_TOKEN: "x", const.CONF_WEATHER_ENTITY: "weather.home"}
+    ),
+)
+_store_prefix = f"{const.DOMAIN}_{_removal_coord.entry.entry_id}_"
+_store_suffixes = {
+    value._key.removeprefix(_store_prefix)
+    for value in vars(_removal_coord).values()
+    if isinstance(value, _Store) and value._key.startswith(_store_prefix)
+}
+_listed_suffixes = set(
+    _re.findall(r"heatpump_optimizer_<entry id>_(\w+)", _removal_text)
+)
+R.check(
+    "the store files it says are left under .storage are exactly the ones the coordinator keeps",
+    _store_suffixes and _listed_suffixes == _store_suffixes,
+    f"documented {sorted(_listed_suffixes)}, code keeps {sorted(_store_suffixes)}",
+)
+_hacs_floor = json.loads(Path("hacs.json").read_text())["homeassistant"]
+R.check(
+    "the README's requirement line states the Home Assistant floor hacs.json declares",
+    f"Home Assistant {_hacs_floor} or newer" in readme,
+    f"hacs.json says {_hacs_floor}",
+)
+R.check(
+    "and the README badge agrees",
+    f"Home%20Assistant-{_hacs_floor}%2B" in readme,
 )
 
 for name in (
@@ -3752,6 +3854,132 @@ def _fresh_flow(data=None):
     return flow
 
 
+# unique-config-entry (Bronze, #182). Several entries are deliberate -- a
+# second heat pump gets a second entry -- so what must abort is a TRUE
+# duplicate: the same Tibber account pointed at the same plant, which on the
+# first screen means the same entities in the same slots. The identity is
+# the config flow's own function, imported; a different name, solar source
+# or location is the same plant, a different switch or sensor is not, and
+# the token itself is hashed out of the id so it never lands in the registry.
+from homeassistant.const import CONF_NAME as _CONF_NAME
+from homeassistant.data_entry_flow import AbortFlow as _AbortFlow
+
+from heatpump_optimizer.config_flow import entry_identity as _entry_identity
+
+_first_screen = {
+    _CONF_NAME: "Heat Pump Optimizer",
+    const.CONF_TIBBER_TOKEN: "tok-a",
+    const.CONF_WEATHER_ENTITY: "weather.home",
+    const.CONF_HEAT_PUMP_SWITCH_ENTITY: "switch.pump_a",
+    const.CONF_SOLAR_FORECAST_SOURCE: const.DEFAULT_SOLAR_FORECAST_SOURCE,
+}
+_first_identity = _entry_identity(_first_screen)
+R.check(
+    "the identity is the same for the same answers, whatever their order",
+    _entry_identity(dict(reversed(list(_first_screen.items())))) == _first_identity,
+)
+R.check(
+    "a different name is the same plant",
+    _entry_identity({**_first_screen, _CONF_NAME: "Garage"}) == _first_identity,
+)
+R.check(
+    "a different solar forecast source is the same plant",
+    _entry_identity({**_first_screen, const.CONF_SOLAR_FORECAST_SOURCE: "sensor"})
+    == _first_identity,
+)
+R.check(
+    "a different heat pump switch is a different plant",
+    _entry_identity(
+        {**_first_screen, const.CONF_HEAT_PUMP_SWITCH_ENTITY: "switch.pump_b"}
+    )
+    != _first_identity,
+)
+R.check(
+    "an extra sensor is a different plant",
+    _entry_identity({**_first_screen, const.CONF_DHW_TEMP_ENTITY: "sensor.tank"})
+    != _first_identity,
+)
+R.check(
+    "a different Tibber account is a different plant",
+    _entry_identity({**_first_screen, const.CONF_TIBBER_TOKEN: "tok-b"})
+    != _first_identity,
+)
+R.check(
+    "the token cannot be read back out of the identity",
+    "tok-a" not in _first_identity and len(_first_identity) >= 16,
+    _first_identity,
+)
+
+
+# The flow itself. The token check is swapped for a stub verdict so the step
+# runs to its guard offline (the class-attribute swap idiom, try/finally),
+# and an abort surfaces the way it does in Home Assistant: the step raises
+# AbortFlow, the flow manager turns that into the abort result.
+async def _accept_any_token(hass, token):
+    return "ok"
+
+
+def _run_user_step(flow, answers):
+    try:
+        return asyncio.run(flow.async_step_user(dict(answers)))
+    except _AbortFlow as err:
+        return {"type": "abort", "reason": err.reason}
+
+
+_real_validate_token = config_flow.validate_tibber_token
+config_flow.validate_tibber_token = _accept_any_token
+try:
+    _dup_hass = FakeHass()
+    _dup_first = _fresh_flow()
+    _dup_first.hass = _dup_hass
+    _dup_first_result = _run_user_step(_dup_first, _first_screen)
+    R.check(
+        "the first flow with these answers proceeds to the temperature step",
+        _dup_first_result.get("type") == "form"
+        and _dup_first_result.get("step_id") == "temperature",
+        str(_dup_first_result)[:120],
+    )
+    R.check(
+        "and carries the plant identity as its unique id",
+        _dup_first.unique_id == _first_identity,
+        f"flow unique_id {_dup_first.unique_id!r}",
+    )
+    # What the flow manager does when that flow finishes: an entry that holds
+    # the flow's unique id.
+    _dup_hass.config_entries.entries.append(
+        FakeEntry(
+            data=dict(_first_screen),
+            entry_id="first_pump",
+            unique_id=_dup_first.unique_id,
+        )
+    )
+    _dup_second = _fresh_flow()
+    _dup_second.hass = _dup_hass
+    R.check(
+        "the same answers a second time abort as already configured",
+        _run_user_step(_dup_second, _first_screen)
+        == {"type": "abort", "reason": "already_configured"},
+    )
+    _dup_other = _fresh_flow()
+    _dup_other.hass = _dup_hass
+    _dup_other_result = _run_user_step(
+        _dup_other,
+        {**_first_screen, const.CONF_HEAT_PUMP_SWITCH_ENTITY: "switch.pump_b"},
+    )
+    R.check(
+        "a second heat pump on the same Tibber account proceeds",
+        _dup_other_result.get("type") == "form"
+        and _dup_other_result.get("step_id") == "temperature",
+        str(_dup_other_result)[:120],
+    )
+    R.check(
+        "the abort reason has a string to show",
+        "already_configured" in strings["config"]["abort"],
+    )
+finally:
+    config_flow.validate_tibber_token = _real_validate_token
+
+
 _user_form = asyncio.run(_fresh_flow().async_step_user(None))
 _user_fields = {str(getattr(k, "schema", k)) for k in _user_form["data_schema"].schema}
 R.check(
@@ -4655,6 +4883,60 @@ R.check(
 # ===========================================================================
 # Service handlers, dispatched through the registry
 # ===========================================================================
+R.section("Service registration (action-setup)")
+
+# action-setup (Bronze, #180): the services belong to the domain, not to an
+# entry. ``async_setup`` registers them once, before any entry exists, so an
+# automation naming one validates while every entry is unloaded; an entry's
+# setup adds nothing and re-registers nothing; the last unload removes
+# nothing. The honest FakeServices registry is the witness at each step, and
+# what async_setup leaves in it is compared name for name with the
+# catalogue in services.yaml. A call that finds no loaded entry is refused
+# with a ServiceValidationError rather than silently doing nothing.
+_reg_hass = FakeHass()
+R.check(
+    "the integration has an async_setup that succeeds without any entry",
+    asyncio.run(ha_setup_component(integration, _reg_hass)) is True
+    and const.DOMAIN in _reg_hass.config.components,
+)
+_reg_after_setup = dict(_reg_hass.services.async_services().get(const.DOMAIN, {}))
+R.check(
+    "async_setup registers every service services.yaml documents, with no entry loaded",
+    set(_reg_after_setup) == set(services),
+    f"registered {sorted(_reg_after_setup)}, documented {sorted(services)}",
+)
+_reg_entry = FakeEntry(
+    data={const.CONF_TIBBER_TOKEN: "x", const.CONF_WEATHER_ENTITY: "weather.home"}
+)
+asyncio.run(ha_setup_entry(integration, _reg_hass, _reg_entry))
+R.check(
+    "an entry's setup registers nothing and replaces no handler",
+    dict(_reg_hass.services.async_services().get(const.DOMAIN, {}))
+    == _reg_after_setup,
+)
+asyncio.run(ha_unload_entry(integration, _reg_hass, _reg_entry))
+R.check(
+    "every service is still registered after the last entry unloads",
+    dict(_reg_hass.services.async_services().get(const.DOMAIN, {}))
+    == _reg_after_setup,
+)
+try:
+    asyncio.run(
+        _reg_hass.services.async_call(const.DOMAIN, const.SERVICE_RUN_OPTIMIZATION, {})
+    )
+    _no_entry_outcome = "returned normally"
+except ServiceValidationError as err:
+    _no_entry_outcome = f"refused: {err}"
+R.check(
+    "a call with no loaded entry is refused, naming the reason",
+    _no_entry_outcome.startswith("refused") and "loaded" in _no_entry_outcome,
+    _no_entry_outcome,
+)
+
+
+# ===========================================================================
+# Service handlers, dispatched through the registry
+# ===========================================================================
 R.section("Service handlers")
 
 from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator
@@ -4663,9 +4945,8 @@ _svc_hass = FakeHass()
 _svc_entry = FakeEntry(
     data={const.CONF_TIBBER_TOKEN: "x", const.CONF_WEATHER_ENTITY: "weather.home"}
 )
-_svc_hass.config_entries.entries.append(_svc_entry)
-asyncio.run(integration.async_setup_entry(_svc_hass, _svc_entry))
-_svc_coord = _svc_hass.data[const.DOMAIN][_svc_entry.entry_id]
+asyncio.run(ha_setup_entry(integration, _svc_hass, _svc_entry))
+_svc_coord = _svc_entry.runtime_data
 R.check(
     "setup produced a live coordinator behind the services",
     isinstance(_svc_coord, HeatPumpOptimizerCoordinator),
@@ -4692,6 +4973,84 @@ R.check(
     "every documented service example passes the schema its service registered",
     not _bad_examples,
     "; ".join(_bad_examples)[:300],
+)
+
+# Several entries (runtime-data, action-setup): the handlers resolve their
+# targets at call time from the entries Home Assistant holds, and act on
+# every LOADED one -- or on the one ``entry_id`` names, which must exist and
+# be loaded. A second entry is set up alongside the first, then unloaded
+# again so the single-entry checks below see exactly one.
+_svc_entry2 = FakeEntry(
+    data={const.CONF_TIBBER_TOKEN: "y", const.CONF_WEATHER_ENTITY: "weather.home"},
+    entry_id="second_pump",
+)
+asyncio.run(ha_setup_entry(integration, _svc_hass, _svc_entry2))
+_multi_log: list[str] = []
+
+
+def _multi_record(name):
+    async def _fn(*args, **kwargs):
+        _multi_log.append(name)
+
+    return _fn
+
+
+_svc_coord.async_run_optimization = _multi_record("first")
+_svc_entry2.runtime_data.async_run_optimization = _multi_record("second")
+_svc_coord.async_clear_manual_plan = _multi_record("clear:first")
+_svc_entry2.runtime_data.async_clear_manual_plan = _multi_record("clear:second")
+asyncio.run(
+    _svc_hass.services.async_call(const.DOMAIN, const.SERVICE_RUN_OPTIMIZATION, {})
+)
+R.check(
+    "an untargeted call reaches every loaded entry",
+    sorted(_multi_log) == ["first", "second"],
+    str(_multi_log),
+)
+_multi_log.clear()
+_cleared = asyncio.run(
+    _svc_hass.services.async_call(
+        const.DOMAIN, const.SERVICE_CLEAR_MANUAL_PLAN, {"entry_id": "second_pump"}
+    )
+)
+R.check(
+    "an entry_id-targeted call reaches only that entry",
+    _multi_log == ["clear:second"] and _cleared == {"cleared": ["second_pump"]},
+    f"{_multi_log} {_cleared}",
+)
+
+
+def _targeted_outcome(entry_id):
+    try:
+        asyncio.run(
+            _svc_hass.services.async_call(
+                const.DOMAIN, const.SERVICE_CLEAR_MANUAL_PLAN, {"entry_id": entry_id}
+            )
+        )
+        return "returned normally"
+    except ServiceValidationError as err:
+        return str(err)
+
+
+R.check(
+    "an entry_id nobody has is refused by name",
+    "nobody" in _targeted_outcome("nobody"),
+    _targeted_outcome("nobody"),
+)
+asyncio.run(ha_unload_entry(integration, _svc_hass, _svc_entry2))
+R.check(
+    "an entry that exists but is not loaded is refused as not loaded",
+    "not loaded" in _targeted_outcome("second_pump"),
+    _targeted_outcome("second_pump"),
+)
+_multi_log.clear()
+asyncio.run(
+    _svc_hass.services.async_call(const.DOMAIN, const.SERVICE_RUN_OPTIMIZATION, {})
+)
+R.check(
+    "after the unload an untargeted call reaches only the entry still loaded",
+    _multi_log == ["first"],
+    str(_multi_log),
 )
 
 # The heavy machinery is patched per instance; the point here is that every
@@ -4812,8 +5171,7 @@ _pre_entry = FakeEntry(
     data={const.CONF_TIBBER_TOKEN: "x", const.CONF_WEATHER_ENTITY: "weather.home"}
 )
 _pre_entry.options = {const.CONF_TARGET_TEMP: 24.0}   # max stays at 23.0
-_pre_hass.config_entries.entries.append(_pre_entry)
-asyncio.run(integration.async_setup_entry(_pre_hass, _pre_entry))
+asyncio.run(ha_setup_entry(integration, _pre_hass, _pre_entry))
 
 
 def _pre_call(payload):
@@ -4849,7 +5207,7 @@ R.check(
 # The stored contradiction is worth telling the user about -- as a repair
 # issue, which is where "your configuration disagrees with itself" belongs,
 # not as an exception thrown by an unrelated service call.
-_pre_coord = _pre_hass.data[const.DOMAIN][_pre_entry.entry_id]
+_pre_coord = _pre_entry.runtime_data
 asyncio.run(_pre_coord._update_current_state())
 _band_issues = [
     i for i in getattr(_pre_hass, "issues", [])

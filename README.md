@@ -7,7 +7,7 @@ your own sensors — so the house stays as warm as you asked, bought in better
 hours.
 
 [![HACS: custom](https://img.shields.io/badge/HACS-custom-41BDF5.svg)](https://hacs.xyz)
-[![Home Assistant: 2024.1.0+](https://img.shields.io/badge/Home%20Assistant-2024.1.0%2B-41BDF5.svg)](https://www.home-assistant.io)
+[![Home Assistant: 2024.6.0+](https://img.shields.io/badge/Home%20Assistant-2024.6.0%2B-41BDF5.svg)](https://www.home-assistant.io)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 <!-- Hero image: a screenshot of the dashboard card belongs here. None is
@@ -137,7 +137,8 @@ or history. Monetary units follow your instance currency.
 
 ## Requirements
 
-- Home Assistant 2024.1.0 or newer
+- Home Assistant 2024.6.0 or newer (the release that gave config entries
+  their `runtime_data`, which every platform here reads its coordinator from)
 - A Tibber account with API access ([developer.tibber.com](https://developer.tibber.com))
 - A weather integration with hourly forecasts (Met.no or similar)
 - `numpy` and `scipy`, installed automatically from the integration manifest
@@ -162,6 +163,46 @@ one you add.
    `custom_components` folder.
 2. Restart Home Assistant.
 3. Add the integration from the UI as above.
+
+### Removal
+
+The integration follows Home Assistant's standard removal: **Settings →
+Devices & services → Heat Pump Cost Optimizer → ⋮ → Delete**, once per entry
+if you set up more than one heat pump. Deleting the entry removes its device
+and every one of its entities and stops every command to the heat pump. Three
+things are left behind on purpose, because deleting them is your call:
+
+- **The heat pump keeps its last command.** The last setpoint the optimizer
+  wrote to your thermostat, or the last ECL110 displacement it published, stays
+  in force until you set the pump's own controls back. Nothing is restored on
+  removal.
+- **The learned state.** Every entry keeps its learners and ledgers in ten files
+  under `.storage/` in your configuration directory, and Home Assistant does not
+  delete an integration's store files with the entry:
+  `heatpump_optimizer_<entry id>_thermal_learning`,
+  `heatpump_optimizer_<entry id>_price_model`,
+  `heatpump_optimizer_<entry id>_accuracy`,
+  `heatpump_optimizer_<entry id>_ledger`,
+  `heatpump_optimizer_<entry id>_energy`,
+  `heatpump_optimizer_<entry id>_snapshots`,
+  `heatpump_optimizer_<entry id>_dhw_profile`,
+  `heatpump_optimizer_<entry id>_dhw_draws`,
+  `heatpump_optimizer_<entry id>_dhw_legionella` and
+  `heatpump_optimizer_<entry id>_manual_plan`. Delete them by hand for a clean
+  slate; a re-added entry gets a new id and never reads them.
+- **The dashboard card.** The Lovelace resource the integration registered,
+  `/heatpump_optimizer_static/heatpump-optimizer-card.js`, stays in
+  **Settings → Dashboards → ⋮ → Resources**. Remove it there once no dashboard
+  uses the card; a card left on a dashboard shows "Custom element doesn't
+  exist" afterwards.
+
+Then uninstall the code: in HACS, open **Heat Pump Cost Optimizer** and choose
+**Remove** (for a manual install, delete `custom_components/heatpump_optimizer`),
+and restart Home Assistant. Nothing needs doing on Tibber's side — the token was
+only ever stored in the entry — though you can revoke it at
+[developer.tibber.com](https://developer.tibber.com) if you like. Recorded
+history of the entities stays until the recorder purges it, as for any removed
+integration.
 
 ## Quick start — the first 30 minutes
 

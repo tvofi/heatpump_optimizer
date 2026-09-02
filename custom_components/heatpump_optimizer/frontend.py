@@ -33,20 +33,6 @@ def _www_dir() -> str:
     return os.path.join(os.path.dirname(__file__), "www")
 
 
-def _card_version(hass: HomeAssistant) -> str:
-    """Best-effort integration version string for cache-busting."""
-    try:
-        data = hass.data.get(DOMAIN)
-        if isinstance(data, dict):
-            for value in data.values():
-                version = getattr(value, "integration_version", None)
-                if version:
-                    return str(version)
-    except Exception:  # noqa: BLE001
-        pass
-    return "0"
-
-
 async def _register_static_path(hass: HomeAssistant, www_dir: str) -> None:
     """Register the static path, preferring the modern async API.
 
@@ -185,8 +171,16 @@ async def _register_lovelace_resource(hass: HomeAssistant, url: str) -> None:
         )
 
 
-async def async_register_frontend(hass: HomeAssistant) -> None:
-    """Serve and register the Lovelace card. Idempotent across config entries."""
+async def async_register_frontend(
+    hass: HomeAssistant, version: str | None = None
+) -> None:
+    """Serve and register the Lovelace card. Idempotent across config entries.
+
+    ``version`` is the integration version the calling entry resolved, for
+    the cache-busting query. The card is served once per instance, so the
+    first entry to set up decides the query every entry then shares -- which
+    is fine, since every entry runs the same release.
+    """
     if hass.data.get(_FLAG):
         return
     hass.data[_FLAG] = True
@@ -194,6 +188,5 @@ async def async_register_frontend(hass: HomeAssistant) -> None:
     www_dir = await hass.async_add_executor_job(_www_dir)
     await _register_static_path(hass, www_dir)
 
-    version = _card_version(hass)
-    url = f"{URL_BASE}/{CARD_FILENAME}?v={version}"
+    url = f"{URL_BASE}/{CARD_FILENAME}?v={version or '0'}"
     await _register_lovelace_resource(hass, url)

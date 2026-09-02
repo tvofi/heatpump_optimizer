@@ -11268,32 +11268,59 @@ from pathlib import Path as _Path
 import heatpump_optimizer as _integ
 from heatpump_optimizer.const import DOMAIN as _DOMAIN
 from homeassistant.helpers import storage as _ha_storage
+from harness import (
+    ha_setup_component as _ha_setup_component,
+    ha_setup_entry as _ha_setup_entry,
+    ha_unload_entry as _ha_unload_entry,
+)
 
 _LC_DATA = {
     "tibber_token": "x",
     "weather_entity": "weather.home",
 }
 
-# The full entry lifecycle through the real setup and unload handlers. The
-# FakeServices registry is honest — registration stores, removal deletes — so
-# a service that setup registers and unload forgets stays visible. Two did:
-# restore_snapshot and diagnose_interval outlived the last entry because the
-# hand-written removal tuple had drifted from the registration list again.
+# The full lifecycle through the real handlers, driven the way Home
+# Assistant drives them: the domain's async_setup once, then the entry's
+# setup, then its unload. The FakeServices registry is honest — registration
+# stores, removal deletes — so what it holds at each step is what Home
+# Assistant would hold. The services belong to the domain (action-setup,
+# #180): async_setup registers all eleven before any entry exists, an
+# entry's setup adds and replaces nothing, and the last unload removes
+# nothing — a service that vanished with its entry is exactly what made an
+# automation fail validation while the entry was unloaded. (Under the old
+# per-entry registration two services once leaked past the last unload
+# because a hand-written removal tuple drifted; with nothing to remove,
+# that class of leak has nowhere to live.)
 _lc_hass = FakeHass()
 _lc_entry = FakeEntry(data=_LC_DATA)
-_asyncio.run(_integ.async_setup_entry(_lc_hass, _lc_entry))
+_asyncio.run(_ha_setup_component(_integ, _lc_hass))
 _lc_registered = dict(_lc_hass.services.async_services().get(_DOMAIN, {}))
 R.check(
-    "setup registers the integration's services",
+    "async_setup registers the integration's eleven services before any entry",
     len(_lc_registered) == 11,
     f"{len(_lc_registered)} registered: {sorted(_lc_registered)}",
 )
-_asyncio.run(_integ.async_unload_entry(_lc_hass, _lc_entry))
+_asyncio.run(_ha_setup_entry(_integ, _lc_hass, _lc_entry))
+R.check(
+    "an entry's setup neither adds a service nor replaces a handler",
+    dict(_lc_hass.services.async_services().get(_DOMAIN, {})) == _lc_registered,
+)
+R.check(
+    "setup hands the coordinator to the entry as runtime_data",
+    isinstance(
+        getattr(_lc_entry, "runtime_data", None), HeatPumpOptimizerCoordinator
+    ),
+)
+_asyncio.run(_ha_unload_entry(_integ, _lc_hass, _lc_entry))
 _lc_left = dict(_lc_hass.services.async_services().get(_DOMAIN, {}))
 R.check(
-    "every registered service is gone after the last entry unloads",
-    not _lc_left,
-    f"leaked: {sorted(_lc_left)}",
+    "every service is still registered after the last entry unloads",
+    _lc_left == _lc_registered,
+    f"lost: {sorted(set(_lc_registered) - set(_lc_left))}",
+)
+R.check(
+    "and the unload took the coordinator with it",
+    not hasattr(_lc_entry, "runtime_data"),
 )
 
 # The solve runs in an executor thread while learners, the live peak guard
@@ -12834,11 +12861,12 @@ R.check(
 
 # A save that changes nothing must not reload. The options flow rewrites the
 # options dict on every page it leaves, so "the listener fired" is not "the
-# config changed" — the comparison against the setup-time stash is what tells
-# them apart, and the FakeConfigEntries reload ledger is the honest witness.
+# config changed" — the comparison against the config the loaded coordinator
+# was built from (runtime_data) is what tells them apart, and the
+# FakeConfigEntries reload ledger is the honest witness.
 _nr_hass = _FakeHass()
 _nr_entry = _FakeEntry(data=dict(_LC_DATA), options={"target_temp": 21.0})
-_asyncio.run(_integ.async_setup_entry(_nr_hass, _nr_entry))
+_asyncio.run(_ha_setup_entry(_integ, _nr_hass, _nr_entry))
 _asyncio.run(_integ.async_update_options(_nr_hass, _nr_entry))
 R.check(
     "an options save with an unchanged effective config reloads nothing",
@@ -12861,45 +12889,59 @@ R.check(
     _nr_hass.config_entries.reloaded == [_nr_entry.entry_id],
     f"reloads: {_nr_hass.config_entries.reloaded}",
 )
+# The fake reload only records the request; do what the real one does —
+# unload and set up again — so the new coordinator carries the new config,
+# and the same save repeated is a no-op once more.
+_asyncio.run(_ha_unload_entry(_integ, _nr_hass, _nr_entry))
+_asyncio.run(_ha_setup_entry(_integ, _nr_hass, _nr_entry))
 _asyncio.run(_integ.async_update_options(_nr_hass, _nr_entry))
 R.check(
-    "the stash follows the reload, so repeating the same save skips again",
+    "after the reload the same save skips again: the new coordinator holds the new config",
     _nr_hass.config_entries.reloaded == [_nr_entry.entry_id],
     f"reloads: {_nr_hass.config_entries.reloaded}",
 )
 # Mutation: the zero-reload results above must hinge on the comparison.
-# Delete the stash — the guard's memory — and the very same unchanged save
-# now reloads, which is what an always-reload listener would do every time.
-_nr_hass.data[_DOMAIN].pop(_integ._config_stash_key(_nr_entry.entry_id))
+# Take the loaded coordinator away — the guard's memory — and the very same
+# unchanged save now reloads, which is what an always-reload listener would
+# do every time.
+_nr_memory = _nr_entry.runtime_data
+del _nr_entry.runtime_data
 _asyncio.run(_integ.async_update_options(_nr_hass, _nr_entry))
 R.check(
-    "removing the stash comparison makes the no-op save reload (mutation)",
+    "removing the coordinator comparison makes the no-op save reload (mutation)",
     len(_nr_hass.config_entries.reloaded) == 2,
     f"reloads: {_nr_hass.config_entries.reloaded}",
 )
-_asyncio.run(_integ.async_unload_entry(_nr_hass, _nr_entry))
+_nr_entry.runtime_data = _nr_memory
+_asyncio.run(_ha_unload_entry(_integ, _nr_hass, _nr_entry))
 
 # The plan survives a reload: unload stashes the published payload, the next
 # setup pops it, and the light first refresh returns it without so much as a
 # sensor read — an options save must not wait on Tibber. The fetch methods
-# raising is the proof.
+# raising is the proof. The stash is the one thing that legitimately outlives
+# the entry's runtime_data (Home Assistant deletes that on unload), so it
+# lives under the integration's own hass.data key, never on the entry.
 _ho_hass = _FakeHass()
 _ho_entry = _FakeEntry(data=dict(_LC_DATA))
-_asyncio.run(_integ.async_setup_entry(_ho_hass, _ho_entry))
-_ho_old = _ho_hass.data[_DOMAIN][_ho_entry.entry_id]
+_asyncio.run(_ha_setup_entry(_integ, _ho_hass, _ho_entry))
+_ho_old = _ho_entry.runtime_data
 _ho_payload = {"mode": "auto", "sentinel": "the pre-reload plan"}
 _ho_old.data = _ho_payload
-_asyncio.run(_integ.async_unload_entry(_ho_hass, _ho_entry))
-_ho_key = _integ._plan_handover_key(_ho_entry.entry_id)
+_asyncio.run(_ha_unload_entry(_integ, _ho_hass, _ho_entry))
 R.check(
     "unload stashes the last published payload for the next setup",
-    _ho_hass.data[_DOMAIN].get(_ho_key) is _ho_payload,
+    _integ._plan_handovers(_ho_hass).get(_ho_entry.entry_id) is _ho_payload,
 )
-_asyncio.run(_integ.async_setup_entry(_ho_hass, _ho_entry))
-_ho_new = _ho_hass.data[_DOMAIN][_ho_entry.entry_id]
+R.check(
+    "and the unloaded entry carries no coordinator any more",
+    not hasattr(_ho_entry, "runtime_data"),
+)
+_asyncio.run(_ha_setup_entry(_integ, _ho_hass, _ho_entry))
+_ho_new = _ho_entry.runtime_data
 R.check(
     "setup always pops the handover — it never outlives one reload",
-    _ho_key not in _ho_hass.data[_DOMAIN] and _ho_new is not _ho_old,
+    _ho_entry.entry_id not in _integ._plan_handovers(_ho_hass)
+    and _ho_new is not _ho_old,
 )
 
 
@@ -12929,7 +12971,7 @@ R.check(
     "the handover is single-use on the coordinator too",
     _ho_new._reload_handover is None and not _ho_new._skip_solve_once,
 )
-_asyncio.run(_integ.async_unload_entry(_ho_hass, _ho_entry))
+_asyncio.run(_ha_unload_entry(_integ, _ho_hass, _ho_entry))
 
 R.section("v5.1.3 — an unusable sensor freezes the learners, not just a quiet one")
 

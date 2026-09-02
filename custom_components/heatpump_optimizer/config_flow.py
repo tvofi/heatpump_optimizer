@@ -1,7 +1,9 @@
 """Config flow for Heat Pump Cost Optimizer integration."""
 from __future__ import annotations
 
+import hashlib
 import logging
+from collections.abc import Mapping
 from typing import Any, Final
 
 import aiohttp
@@ -355,6 +357,47 @@ async def validate_tibber_token(hass: HomeAssistant, token: str) -> str:
             return "cannot_connect"
     except Exception:
         return "cannot_connect"
+
+
+# The first-screen answers that identify the plant an entry describes
+# (unique-config-entry, Bronze): the Tibber account, and every entity slot.
+# Several entries are deliberate -- a second heat pump gets a second entry --
+# so the duplicate to refuse is the same account pointed at the same entities
+# in the same slots: one heat pump configured twice. A second heat pump has
+# at least one entity of its own. The name, the solar forecast source and the
+# location are configuration, not identity, and stay out.
+_IDENTITY_ENTITY_KEYS: Final = (
+    CONF_WEATHER_ENTITY,
+    CONF_INDOOR_TEMP_ENTITY,
+    CONF_OUTDOOR_TEMP_ENTITY,
+    CONF_HEAT_PUMP_SWITCH_ENTITY,
+    CONF_SOLAR_RADIATION_ENTITY,
+    CONF_FLOOR_RETURN_TEMP_ENTITY,
+    CONF_LOWER_FLOOR_TEMP_ENTITY,
+    CONF_DHW_TEMP_ENTITY,
+    CONF_BUFFER_TANK_TEMP_ENTITY,
+    CONF_HEAT_PUMP_MODE_ENTITY,
+    CONF_HEAT_PUMP_DEFROST_ENTITY,
+    CONF_HEAT_PUMP_ONLINE_ENTITY,
+    CONF_HEAT_PUMP_FAULT_ENTITY,
+)
+
+
+def entry_identity(user_input: Mapping[str, Any]) -> str:
+    """The unique id for a first-screen answer: a digest, never the token.
+
+    Sorted by key and hashed, so the same answers give the same id whatever
+    order they arrive in, and the token -- which the id would otherwise
+    expose in the entry registry and in diagnostics -- cannot be read back
+    out of it. An empty slot and an absent one are the same slot.
+    """
+    parts = [f"{CONF_TIBBER_TOKEN}={user_input.get(CONF_TIBBER_TOKEN, '')}"]
+    parts.extend(
+        f"{key}={user_input[key]}"
+        for key in sorted(_IDENTITY_ENTITY_KEYS)
+        if user_input.get(key)
+    )
+    return hashlib.sha256("\n".join(parts).encode("utf-8")).hexdigest()[:32]
 
 
 def _number(
@@ -950,6 +993,13 @@ class HeatPumpOptimizerConfigFlow(
             elif verdict != "ok":
                 errors[CONF_TIBBER_TOKEN] = "cannot_connect"
             else:
+                # One heat pump configured twice is refused here, on the
+                # first screen, before four more pages of answers are asked
+                # for nothing (unique-config-entry). A second heat pump --
+                # its own switch, its own sensors -- is a different identity
+                # and goes through.
+                await self.async_set_unique_id(entry_identity(user_input))
+                self._abort_if_unique_id_configured()
                 self._data.update(user_input)
                 return await self.async_step_temperature()
 

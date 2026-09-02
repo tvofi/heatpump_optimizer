@@ -540,6 +540,11 @@ install wants. Of those seven, only `assign_entity`, `apply_topology` and
 the running coordinator. `run_optimization`, `set_mode`, `set_thermal_parameters`
 and `simulate_plan` always act on every loaded entry.
 
+The services are registered when the integration loads and stay registered
+while every entry is unloaded, so an automation that names one still validates.
+A call that finds no loaded entry — or names an `entry_id` that does not exist
+or is not loaded — fails with a validation error rather than doing nothing.
+
 | Service | Fields | Returns |
 |---|---|---|
 | `run_optimization` | none | — |
@@ -643,6 +648,7 @@ input by input and publishes the result on the Prediction Accuracy sensor.
 ## Where else to look
 
 - [../README.md](../README.md) — what the integration does, the entity list, and the first 30 minutes
+- [../README.md#removal](../README.md#removal) — removing the integration: what deleting the entry does, and what it leaves behind
 - [how-it-works.md](how-it-works.md) — the mechanisms behind these settings
 - [dashboard-card.md](dashboard-card.md) — the card, its own configuration keys, and the Setup tab
 - [ecl110.md](ecl110.md) — the Danfoss ECL110 path in full

@@ -24,19 +24,23 @@ from homeassistant.helpers.entity import DeviceInfo, EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN
-from .coordinator import HeatPumpOptimizerCoordinator
+from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
 
 _LOGGER = logging.getLogger(__name__)
+
+# Coordinator-fed and read-only: the coordinator serialises the one inbound
+# refresh, and no entity here calls out, so there is nothing to throttle
+# (parallel-updates, Silver).
+PARALLEL_UPDATES = 0
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: HeatPumpOptimizerConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Heat Pump Optimizer binary sensors from a config entry."""
-    coordinator: HeatPumpOptimizerCoordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator = entry.runtime_data
     async_add_entities(
         [
             InputHealthBinarySensor(coordinator, entry),
