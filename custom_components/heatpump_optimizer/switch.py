@@ -42,8 +42,6 @@ class OptimizerEnableSwitch(CoordinatorEntity, SwitchEntity):
 
     _attr_has_entity_name = True
     _attr_translation_key = "optimizer_active"
-    _attr_icon = "mdi:robot"
-
     def __init__(
         self,
         coordinator: HeatPumpOptimizerCoordinator,
