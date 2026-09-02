@@ -4,7 +4,10 @@ run_optimization:
     Manually trigger the heat pump cost optimization. This will fetch
     the latest electricity prices and weather forecast, then compute
     the optimal heat pump schedule for the next 24 hours using predictive
-    MPC with solar/wind/rain anticipation and DHW coordination.
+    MPC with solar/wind/rain anticipation and DHW coordination. The call
+    fails with an error when the optimization cannot run — for example
+    fewer than four electricity price steps are available, or the solve
+    failed — instead of returning as if a new plan had been computed.
 
 set_mode:
   name: Set Optimizer Mode
@@ -271,7 +274,8 @@ set_thermal_parameters:
       description: >-
         Time frames when hot water must be available, as 24-hour times
         separated by commas. Frames may wrap past midnight. Leave empty to
-        derive them from the learned usage profile.
+        derive them from the learned usage profile. Unparseable frames are
+        rejected, not silently ignored.
       required: false
       example: "06:00-08:30, 17:00-22:00"
       selector:
@@ -386,7 +390,10 @@ simulate_plan:
     Price a hypothetical comfort choice against the current forecast without
     disturbing operation. Returns the cost difference against the live plan.
     Backs the dashboard card's what-if simulator; the underlying solve is
-    rate-limited, so rapid repeat calls return the previous answer.
+    rate-limited, so rapid repeat calls return the previous answer. A what-if
+    that cannot run — no plan yet, not enough price data, unparseable hot
+    water windows — fails with an error rather than an error entry inside
+    the response.
   fields:
     target_temp:
       name: Target temperature
@@ -688,7 +695,8 @@ restore_learned_snapshot:
     same thing automatically when it can prove the inputs were healthy
     throughout; this service is the manual override for when you can see
     what it cannot. Nothing is lost permanently: learning simply continues
-    from the restored point.
+    from the restored point. The call fails with an error when no snapshot
+    qualifies, instead of answering with an empty restore.
   fields:
     entry_id:
       name: Config entry

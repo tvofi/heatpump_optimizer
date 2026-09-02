@@ -22,7 +22,7 @@ import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry, ConfigEntryState
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
-from homeassistant.exceptions import ServiceValidationError
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import entity_registry as er
 from homeassistant.loader import async_get_integration
@@ -527,10 +527,38 @@ def _async_register_services(hass: HomeAssistant) -> None:
     """
 
     async def handle_run_optimization(call: ServiceCall) -> None:
-        """Handle the run_optimization service call."""
+        """Handle the run_optimization service call.
+
+        The coordinator reports a reason code when the solve could not run
+        rather than raising — its own ``except Exception`` fence (which feeds
+        the repair issue) would swallow one — so a run that quietly did not
+        happen is refused here instead of being acknowledged as success
+        (#294, action-exceptions: an automation calling this used to see its
+        call succeed behind a dead price feed).
+        """
         _LOGGER.info("Manual optimization triggered via service call")
-        for _entry_id, coord in _loaded_coordinators(hass):
-            await coord.async_run_optimization()
+        not_run: dict[str, str] = {}
+        for entry_id, coord in _loaded_coordinators(hass):
+            reason = await coord.async_run_optimization()
+            if reason is not None:
+                not_run[entry_id] = reason
+        if not_run:
+            entry_ids = ", ".join(not_run)
+            if "no_prices" in not_run.values():
+                raise HomeAssistantError(
+                    f"The optimization did not run for {entry_ids}: fewer "
+                    "than four electricity price steps were available",
+                    translation_domain=DOMAIN,
+                    translation_key="run_optimization_no_prices",
+                    translation_placeholders={"entry_ids": entry_ids},
+                )
+            raise HomeAssistantError(
+                f"The optimization did not run for {entry_ids}: the solve "
+                "failed; the error is in the integration's log",
+                translation_domain=DOMAIN,
+                translation_key="run_optimization_solve_failed",
+                translation_placeholders={"entry_ids": entry_ids},
+            )
 
     async def handle_set_mode(call: ServiceCall) -> None:
         """Handle the set_mode service call."""
@@ -543,6 +571,28 @@ def _async_register_services(hass: HomeAssistant) -> None:
         """Handle the set_thermal_parameters service call."""
         params = dict(call.data)
         targets = _loaded_coordinators(hass)
+
+        # The hot water windows are parsed before anything is written. The
+        # coordinator used to log a WARNING and silently drop an unparseable
+        # spec while the call reported success — the same swallow class as
+        # #294, found by the handler sweep — and apply_schedule already
+        # refuses the identical input, so this service now does too.
+        if params.get(CONF_DHW_WINDOWS) is not None:
+            raw_windows = params[CONF_DHW_WINDOWS]
+            try:
+                weekly = parse_weekly_windows(raw_windows)
+                if weekly is None:
+                    parse_windows(raw_windows)
+            except DHWWindowError as err:
+                raise ServiceValidationError(
+                    f"Invalid hot water windows {raw_windows!r}: {err}",
+                    translation_domain=DOMAIN,
+                    translation_key="set_thermal_params_invalid_dhw_windows",
+                    translation_placeholders={
+                        "windows": str(raw_windows),
+                        "error": str(err),
+                    },
+                ) from err
 
         # Same deadband rule apply_schedule enforces, checked against the
         # *effective* pair per coordinator before anything is written — the
@@ -589,6 +639,15 @@ def _async_register_services(hass: HomeAssistant) -> None:
         than firing an event so the card can await the answer directly, and the
         coordinator rate-limits the underlying solve so that dragging a slider
         cannot trigger one solve per pixel.
+
+        ``async_simulate`` reports a what-if that could not run as an
+        ``{"error": ...}`` entry in its response — a contract its internal
+        callers (the fuse advisor, the price tiles) consume — so the raise
+        the action-exceptions rule wants (#294) happens here, where the only
+        consumer is a user. The card's what-if call already wraps
+        ``hass.callService`` in a try/except that renders the same localized
+        "could not simulate" line either way, and Home Assistant surfaces the
+        failed call as a toast.
         """
         # ``None`` means "not supplied"; an empty string is a real value that
         # simulates removing the hot water demand windows entirely.
@@ -596,6 +655,50 @@ def _async_register_services(hass: HomeAssistant) -> None:
         results: dict[str, Any] = {}
         for entry_id, coord in _loaded_coordinators(hass):
             results[entry_id] = await coord.async_simulate(overrides)
+        errors = {
+            entry_id: answer["error"]
+            for entry_id, answer in results.items()
+            if isinstance(answer, dict) and answer.get("error")
+        }
+        if errors:
+            entry_ids = ", ".join(errors)
+            error = next(iter(errors.values()))
+            if error == "no_plan":
+                raise HomeAssistantError(
+                    f"The what-if simulation could not run for {entry_ids}: "
+                    "no plan exists yet, so there is nothing to compare "
+                    "against; wait for the first optimization to complete",
+                    translation_domain=DOMAIN,
+                    translation_key="simulate_plan_no_plan",
+                    translation_placeholders={"entry_ids": entry_ids},
+                )
+            if error == "no_prices":
+                raise HomeAssistantError(
+                    f"The what-if simulation could not run for {entry_ids}: "
+                    "fewer than four electricity price steps were available",
+                    translation_domain=DOMAIN,
+                    translation_key="simulate_plan_no_prices",
+                    translation_placeholders={"entry_ids": entry_ids},
+                )
+            if error.startswith("invalid_windows:"):
+                windows = str(overrides.get("dhw_windows", ""))
+                raise ServiceValidationError(
+                    f"Invalid hot water windows {windows!r}: "
+                    f"{error[len('invalid_windows: '):]}",
+                    translation_domain=DOMAIN,
+                    translation_key="simulate_plan_invalid_windows",
+                    translation_placeholders={
+                        "windows": windows,
+                        "error": error[len("invalid_windows: "):],
+                    },
+                )
+            raise HomeAssistantError(
+                f"The what-if simulation could not run for {entry_ids}: "
+                f"{error}",
+                translation_domain=DOMAIN,
+                translation_key="simulate_plan_failed",
+                translation_placeholders={"entry_ids": entry_ids, "error": str(error)},
+            )
         return {"results": results}
 
     async def handle_assign_entity(call: ServiceCall) -> dict[str, Any]:
@@ -936,12 +1039,33 @@ def _async_register_services(hass: HomeAssistant) -> None:
         return {"cleared": cleared}
 
     async def handle_restore_snapshot(call: ServiceCall) -> dict[str, Any]:
-        """Roll the learners back to the newest trustworthy snapshot (#42)."""
+        """Roll the learners back to the newest trustworthy snapshot (#42).
+
+        A rollback that found nothing to roll back to is an operational
+        failure, not an empty success: until #294 the call answered
+        ``{"restored": []}`` and an automation could not tell a refused
+        rollback from a completed one. The qualifying-snapshot rule stays in
+        the coordinator; the raise lives here because that is where the
+        caller is.
+        """
         target_entry = dict(call.data).get("entry_id")
         restored: list[str] = []
+        unqualified: list[str] = []
         for entry_id, coord in _manual_targets(target_entry):
             if await coord.async_restore_learned_snapshot():
                 restored.append(entry_id)
+            else:
+                unqualified.append(entry_id)
+        if unqualified:
+            entry_ids = ", ".join(unqualified)
+            raise HomeAssistantError(
+                f"No learner snapshot qualifies for restore for {entry_ids}: "
+                "a snapshot needs healthy inputs and in-band accuracy at its "
+                "capture time",
+                translation_domain=DOMAIN,
+                translation_key="restore_learned_snapshot_no_snapshot",
+                translation_placeholders={"entry_ids": entry_ids},
+            )
         return {"restored": restored}
 
     async def handle_diagnose_interval(call: ServiceCall) -> dict[str, Any]:

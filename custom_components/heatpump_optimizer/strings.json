@@ -276,6 +276,32 @@
       "message": "{violations}"
     }
   },
+  "exceptions": {
+    "run_optimization_no_prices": {
+      "message": "The optimization did not run for {entry_ids}: fewer than four electricity price steps were available"
+    },
+    "run_optimization_solve_failed": {
+      "message": "The optimization did not run for {entry_ids}: the solve failed; the error is in the integration's log"
+    },
+    "simulate_plan_no_plan": {
+      "message": "The what-if simulation could not run for {entry_ids}: no plan exists yet, so there is nothing to compare against; wait for the first optimization to complete"
+    },
+    "simulate_plan_no_prices": {
+      "message": "The what-if simulation could not run for {entry_ids}: fewer than four electricity price steps were available"
+    },
+    "simulate_plan_invalid_windows": {
+      "message": "Invalid hot water windows \"{windows}\": {error}"
+    },
+    "simulate_plan_failed": {
+      "message": "The what-if simulation could not run for {entry_ids}: {error}"
+    },
+    "restore_learned_snapshot_no_snapshot": {
+      "message": "No learner snapshot qualifies for restore for {entry_ids}: a snapshot needs healthy inputs and in-band accuracy at its capture time"
+    },
+    "set_thermal_params_invalid_dhw_windows": {
+      "message": "Invalid hot water windows \"{windows}\": {error}"
+    }
+  },
   "options": {
     "step": {
       "init": {

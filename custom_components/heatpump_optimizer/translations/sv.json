@@ -276,6 +276,32 @@
       "message": "{violations}"
     }
   },
+  "exceptions": {
+    "run_optimization_no_prices": {
+      "message": "Optimeringen kördes inte för {entry_ids}: det fanns färre än fyra elprissteg tillgängliga"
+    },
+    "run_optimization_solve_failed": {
+      "message": "Optimeringen kördes inte för {entry_ids}: lösaren misslyckades; felet finns i integrationens logg"
+    },
+    "simulate_plan_no_plan": {
+      "message": "Simuleringen kunde inte köras för {entry_ids}: det finns ingen plan än, så det finns inget att jämföra med; vänta tills den första optimeringen är klar"
+    },
+    "simulate_plan_no_prices": {
+      "message": "Simuleringen kunde inte köras för {entry_ids}: det fanns färre än fyra elprissteg tillgängliga"
+    },
+    "simulate_plan_invalid_windows": {
+      "message": "Ogiltiga varmvattentider \"{windows}\": {error}"
+    },
+    "simulate_plan_failed": {
+      "message": "Simuleringen kunde inte köras för {entry_ids}: {error}"
+    },
+    "restore_learned_snapshot_no_snapshot": {
+      "message": "Ingen inlärd ögonblicksbild uppfyller kraven för återställning för {entry_ids}: en ögonblicksbild kräver friska indata och noggrannhet inom bandet när den togs"
+    },
+    "set_thermal_params_invalid_dhw_windows": {
+      "message": "Ogiltiga varmvattentider \"{windows}\": {error}"
+    }
+  },
   "options": {
     "step": {
       "init": {

@@ -560,7 +560,9 @@ or is not loaded — fails with a validation error rather than doing nothing.
 | `diagnose_interval` | `entry_id` | optional |
 
 **`run_optimization`** fetches prices and weather and re-solves the 24-hour plan
-immediately. The **Optimize Now** button does the same thing.
+immediately. The **Optimize Now** button does the same thing. A run that cannot
+happen fails with an error — too few price steps available, or the solve
+itself failed — instead of acknowledging the call while the old plan stands.
 
 **`set_mode`** takes `mode`: `auto` (full optimization), `comfort` (hold the
 comfort temperature and ignore prices), `economy` (allow up to 1.5 °C below your
@@ -568,7 +570,9 @@ comfort floor to ride out expensive hours, never below 15 °C), `boost` (maximum
 heating power) or `off`.
 
 **`set_thermal_parameters`** writes model parameters at runtime. All 28 fields
-are optional and anything omitted is left alone. The ranges below are the
+are optional and anything omitted is left alone. Unparseable `dhw_windows`
+frames are rejected — the call refuses rather than silently keeping the old
+windows. The ranges below are the
 physics bounds rather than the UI's convenience sliders, so several are wider
 than the options pages allow — an automation calling with a zero thermal mass
 would otherwise divide by zero inside the model:
@@ -600,7 +604,10 @@ all optional: `target_temp`, `min_temp`, `max_temp`, `comfort_weight`,
 `dhw_windows`. An empty `dhw_windows` string is meaningful: it simulates having
 no guaranteed hot water periods at all. The underlying solve is rate-limited,
 so dragging a slider cannot trigger one solve per pixel — this is what the
-card's what-if panel calls.
+card's what-if panel calls. A what-if that cannot run fails with an error
+rather than returning an error entry inside the response: there is nothing to
+compare against before the first plan exists, and not enough price data is the
+same failure the live solve would report.
 
 **`apply_schedule`** is the save counterpart: it writes `day_start_hour`,
 `day_end_hour`, `comfort_temp_day`, `dhw_min_temperature` and `dhw_windows`
@@ -639,7 +646,10 @@ breach a hard floor, and the legionella clock is never skipped.
 
 **`clear_manual_plan`** drops the pins immediately.
 **`restore_learned_snapshot`** rolls every learner back to the last healthy
-weekly snapshot — the manual counterpart of the drift watchdog.
+weekly snapshot — the manual counterpart of the drift watchdog. When no
+snapshot qualifies (healthy inputs and in-band accuracy at capture time are
+required) the call fails with an error instead of answering with an empty
+restore.
 **`diagnose_interval`** attributes the last interval's temperature error
 input by input and publishes the result on the Prediction Accuracy sensor.
 
