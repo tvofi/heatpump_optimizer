@@ -2073,13 +2073,26 @@ class DHWSetpointAdvisorSensor(HeatPumpOptimizerSensorBase):
         return dict((self.coordinator.data or {}).get("dhw_advisor", {}) or {})
 
 
-class MixedHotWaterSensor(HeatPumpOptimizerSensorBase):
+class MixedHotWaterSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase):
     """The tank translated into shower terms (#28).
 
     ``V·(T_tank − T_inlet)/(40 − T_inlet)`` litres of 40 °C water. "212
     litres of shower water, 26 minutes" answers the question the tank
     temperature never did.
+
+    It is the tank temperature in shower clothes, so it carries the same gate
+    (round-2 audit, D8-01). Without one, an install with no tank thermometer
+    published 270 litres and 33.8 shower minutes off the ``ThermalState()``
+    constructor default of 55.0 °C -- steady across cycles, while DHW
+    Temperature beside it was correctly unavailable and the input-problem
+    sensor read "ok". That is the default install: the config flow completes
+    with no thermometers and hot water on. A litre count carries a
+    ``state_class``, so the number was not merely displayed but written to
+    long-term statistics.
     """
+
+    #: The reading the litres are computed from; see _MeasuredTemperatureMixin.
+    _reading_key = "dhw_temperature"
 
     _attr_icon = "mdi:shower-head"
     _attr_state_class = SensorStateClass.MEASUREMENT
