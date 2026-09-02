@@ -234,6 +234,47 @@
       "reauth_successful": "Autentiseringen lyckades; laddar om med den nya token."
     }
   },
+  "exceptions": {
+    "config_entry_not_found": {
+      "message": "Ingen konfigurationspost för Heat Pump Optimizer har id:t \"{entry_id}\""
+    },
+    "config_entry_not_loaded": {
+      "message": "Konfigurationsposten \"{entry_id}\" för Heat Pump Optimizer är inte inläst"
+    },
+    "no_loaded_config_entry": {
+      "message": "Ingen inläst konfigurationspost för Heat Pump Optimizer motsvarade det här anropet"
+    },
+    "set_thermal_params_dhw_min_no_deadband": {
+      "message": "Ett varmvattenminimum på {minimum} °C lämnar inget arbetsband under börvärdet {setpoint} °C; det måste vara högst {ceiling} °C"
+    },
+    "assign_entity_missing": {
+      "message": "Enheten {entity_id} finns inte"
+    },
+    "assign_entity_wrong_domain": {
+      "message": "{entity_id} är en {domain}-enhet; {key} accepterar {domains}"
+    },
+    "apply_topology_unsupported": {
+      "message": "Det här systemet kan inte använda layouten \"{layout}\": den kräver {requirement}"
+    },
+    "apply_schedule_invalid_dhw_windows": {
+      "message": "Ogiltiga varmvattentider \"{windows}\": {error}"
+    },
+    "apply_schedule_comfort_band_violation": {
+      "message": "{violations}"
+    },
+    "apply_schedule_dhw_min_no_deadband": {
+      "message": "Ett varmvattenminimum på {minimum} °C lämnar inget arbetsband under börvärdet {setpoint} °C; det måste vara högst {ceiling} °C"
+    },
+    "manual_plan_invalid_expires_at": {
+      "message": "Ogiltigt expires_at \"{expires_at}\": inte en datumtid i ISO 8601-format"
+    },
+    "manual_plan_invalid_slots": {
+      "message": "{error}"
+    },
+    "set_temperature_comfort_band_violation": {
+      "message": "{violations}"
+    }
+  },
   "options": {
     "step": {
       "init": {
