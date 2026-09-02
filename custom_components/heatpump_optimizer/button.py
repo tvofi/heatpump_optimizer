@@ -83,7 +83,7 @@ class ForceOptimizationButton(_OptimizerButtonBase):
     @property
     def available(self) -> bool:
         """Unavailable while a run is in flight, so repeated taps do nothing."""
-        return not self.coordinator.optimization_running
+        return bool(super().available and not self.coordinator.optimization_running)
 
     async def async_press(self) -> None:
         """Force an optimization run."""
@@ -109,7 +109,9 @@ class SystemIdentificationButton(_OptimizerButtonBase):
 
     @property
     def available(self) -> bool:
-        return not self.coordinator.system_identification_active
+        return bool(
+            super().available and not self.coordinator.system_identification_active
+        )
 
     async def async_press(self) -> None:
         await self.coordinator.async_arm_system_identification()

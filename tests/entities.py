@@ -1191,12 +1191,16 @@ R.section("A failed refresh reaches every entity")
 _healthy = FakeCoordinator(DATA)
 _broken = FakeCoordinator(DATA)
 _broken.last_update_success = False
-# Buttons are deliberately out of scope: "run an optimization now" is exactly
-# what a user reaches for when the last refresh failed, so those two overrides
-# are a considered choice rather than the same oversight.
+# Every platform is in the roster (#295). The two action buttons were once
+# held out of it on the theory that "run an optimization now" is exactly what
+# a user reaches for when the last refresh failed -- but a press during an
+# outage lands on the same failing fetch while the button reports ready, so
+# the round-2 panel ruled the omission the same oversight, not a choice.
+# Every entity class is driven through its platform's real setup, so a new
+# entity nobody thought to name cannot sit this sweep out either.
 _dead_when_healthy = []
 _alive_when_broken = []
-for _module in (sensor, binary_sensor):
+for _module in (sensor, binary_sensor, button, _climate_platform, _switch_platform):
     for _entity in collect(_module, coordinator=_healthy):
         if not _entity.available:
             _dead_when_healthy.append(type(_entity).__name__)
