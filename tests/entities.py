@@ -4893,6 +4893,8 @@ R.section("Service registration (action-setup)")
 # what async_setup leaves in it is compared name for name with the
 # catalogue in services.yaml. A call that finds no loaded entry is refused
 # with a ServiceValidationError rather than silently doing nothing.
+from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator
+
 _reg_hass = FakeHass()
 R.check(
     "the integration has an async_setup that succeeds without any entry",
@@ -4909,6 +4911,10 @@ _reg_entry = FakeEntry(
     data={const.CONF_TIBBER_TOKEN: "x", const.CONF_WEATHER_ENTITY: "weather.home"}
 )
 asyncio.run(ha_setup_entry(integration, _reg_hass, _reg_entry))
+R.check(
+    "an entry's setup hands its coordinator to the entry as runtime_data",
+    isinstance(getattr(_reg_entry, "runtime_data", None), HeatPumpOptimizerCoordinator),
+)
 R.check(
     "an entry's setup registers nothing and replaces no handler",
     dict(_reg_hass.services.async_services().get(const.DOMAIN, {}))

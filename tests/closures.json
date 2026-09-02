@@ -384,6 +384,7 @@
    "custom_components/heatpump_optimizer/translations/sv.json",
    "custom_components/heatpump_optimizer/wear.py",
    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "hacs.json",
    "tests/entities.py",
    "tests/env_drift.py",
    "tests/golden/claimed_drift.txt",
