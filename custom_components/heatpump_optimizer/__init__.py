@@ -88,6 +88,11 @@ PLATFORM_LIST = [
     Platform.BUTTON,
     Platform.CLIMATE,
     Platform.SWITCH,
+    # Not a platform that creates entities: the diagnostics hook under
+    # ``Download diagnostics`` (D10-12). Listed so the forwarding machinery
+    # loads it like any other, and so PLATFORM_LIST keeps naming everything
+    # the integration serves (entities.py checks that it does).
+    Platform.DIAGNOSTICS,
 ]
 
 # hass.data key of the one object that legitimately outlives an entry's

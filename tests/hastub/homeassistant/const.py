@@ -13,6 +13,7 @@ class Platform(str):
     BUTTON = "button"
     CLIMATE = "climate"
     SWITCH = "switch"
+    DIAGNOSTICS = "diagnostics"
 
 
 CONF_NAME = "name"

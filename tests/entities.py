@@ -5583,5 +5583,142 @@ R.check(
     _env_drift.may_drift_error(_md_entries, _md_claims) is None,
 )
 
+# --- D10-08: the reauthentication flow -------------------------------------
+R.section("Reauthentication (D10-08)")
+
+_CRED_DATA = {
+    "tibber_token": "secret-token-do-not-ship",
+    "name": "HP", "weather_entity": "weather.home",
+    "indoor_temp_entity": "sensor.indoor",
+    "outdoor_temp_entity": "sensor.outdoor",
+}
+
+from heatpump_optimizer.config_flow import HeatPumpOptimizerConfigFlow as _ReauthFlow  # noqa: E402
+from heatpump_optimizer.const import CONF_TIBBER_TOKEN as _CONF_TOKEN  # noqa: E402
+
+
+class _ReauthEntry:
+    def __init__(self):
+        self.entry_id = "reauth-1"
+        self.data = {_CONF_TOKEN: "expired-token", "name": "HP"}
+        self.started = []
+
+    def async_start_reauth(self, hass):
+        self.started.append(True)
+
+
+_ra_hass = FakeHass()
+_ra_hass.config_entries.async_register = lambda *a, **k: None
+_ra_coord = integration.HeatPumpOptimizerCoordinator(
+    _ra_hass, FakeEntry(data=dict(_CRED_DATA))
+)
+_ra_entry = _ReauthEntry()
+_ra_coord.config_entry = _ra_entry
+
+# A refused token starts the flow exactly once per outage...
+_ra_coord._tibber_start_reauth()
+_ra_coord._tibber_start_reauth()
+R.check(
+    "a refused token starts the reauth flow once, not per cycle",
+    _ra_entry.started == [True],
+    f"started {len(_ra_entry.started)} time(s)",
+)
+# ...recovery re-arms it, so a later revocation gets its own flow.
+_ra_coord._tibber_fetch_recovered()
+_ra_coord._tibber_start_reauth()
+R.check(
+    "recovery re-arms the flow for a future revocation",
+    _ra_entry.started == [True, True],
+    f"started {len(_ra_entry.started)} time(s)",
+)
+
+_ra_flow = _ReauthFlow()
+_ra_flow.hass = _ra_hass
+_ra_hass.config_entries.entries = [FakeEntry(data=dict(_CRED_DATA), entry_id="reauth-1")]
+_ra_form = asyncio.run(_ra_flow.async_step_reauth(_ra_entry.data))
+R.check(
+    "the reauth flow opens a confirm form asking for the token",
+    _ra_form.get("type") == "form"
+    and _ra_form.get("step_id") == "reauth_confirm",
+    f"got {_ra_form.get('type')}/{_ra_form.get('step_id')}",
+)
+
+_ra_updates = []
+_ra_reloads = []
+
+
+def _ra_update(entry, **kw):
+    _ra_updates.append(kw)
+
+
+async def _ra_reload(entry_id):
+    _ra_reloads.append(entry_id)
+
+
+_ra_hass.config_entries.async_update_entry = _ra_update
+_ra_hass.config_entries.async_reload = _ra_reload
+_ra_flow._reauth_entry = _ra_entry
+
+
+class _GoodToken:
+    @staticmethod
+    async def __call__(hass, token):
+        return "ok"
+
+
+_ra_flow_validate = config_flow.validate_tibber_token
+config_flow.validate_tibber_token = _GoodToken()
+try:
+    _ra_out = asyncio.run(
+        _ra_flow.async_step_reauth_confirm({_CONF_TOKEN: "new-token"})
+    )
+finally:
+    config_flow.validate_tibber_token = _ra_flow_validate
+R.check(
+    "a valid token is written through and the entry reloads",
+    _ra_out.get("reason") == "reauth_successful"
+    and _ra_updates
+    and _ra_updates[0]["data"][_CONF_TOKEN] == "new-token"
+    and _ra_reloads == ["reauth-1"],
+    f"result {_ra_out}, updates {_ra_updates}, reloads {_ra_reloads}",
+)
+
+# --- D10-12: the diagnostics payload ---------------------------------------
+R.section("Diagnostics (D10-12)")
+
+from heatpump_optimizer import diagnostics as _diag_mod  # noqa: E402
+import json as _json
+
+_diag_hass = FakeHass()
+_diag_entry = FakeEntry(data=dict(_CRED_DATA))
+_diag_entry.runtime_data = integration.HeatPumpOptimizerCoordinator(
+    _diag_hass, FakeEntry(data=dict(_CRED_DATA))
+)
+_diag = asyncio.run(
+    _diag_mod.async_get_config_entry_diagnostics(_diag_hass, _diag_entry)
+)
+_blob = _json.dumps(_diag, default=str)
+R.check(
+    "the Tibber token never leaves the instance",
+    _diag["config"].get(_CONF_TOKEN) == "REDACTED"
+    and "stub-token" not in _blob
+    and _CRED_DATA[_CONF_TOKEN] not in _blob,
+    "a credential (or a fragment of it) appeared in the payload",
+)
+R.check(
+    "the payload is plain JSON and names the coordinator's state",
+    isinstance(_diag.get("coordinator"), dict)
+    and "tibber_outage_cycles" in _diag["coordinator"]
+    and "mode" in _diag["coordinator"],
+    f"coordinator keys: {sorted((_diag.get('coordinator') or {}).keys())[:8]}",
+)
+R.check(
+    "the learner summaries are present",
+    any(
+        k in (_diag.get("coordinator") or {})
+        for k in ("accuracy", "comfort_learner", "curve_learner", "price_model")
+    ),
+    "none of the four learner summaries appeared",
+)
 
 sys.exit(R.close("ENTITY CHECKS"))
