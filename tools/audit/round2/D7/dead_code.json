@@ -1,0 +1,1346 @@
+{
+ "results": {
+  "defs_total": 1062,
+  "started_by_suite": 983,
+  "static_unreferenced_prod": 63,
+  "dead_candidates": 5,
+  "dead_candidate_lines": 46,
+  "unreferenced_prod_never_started_incl_test_named": 5,
+  "dynamic_reach_started_unreferenced": 7,
+  "referenced_never_started": 63
+ },
+ "suite": {
+  "tests/features.py": {
+   "exit": 0,
+   "code_objects": 824
+  },
+  "tests/entities.py": {
+   "exit": 0,
+   "code_objects": 740
+  },
+  "tests/golden.py": {
+   "exit": 0,
+   "code_objects": 511
+  },
+  "tests/backtest.py": {
+   "exit": 0,
+   "code_objects": 214
+  },
+  "tests/optimality.py": {
+   "exit": 0,
+   "code_objects": 249
+  },
+  "tests/validate.py": {
+   "exit": 0,
+   "code_objects": 257
+  },
+  "tests/edge.py": {
+   "exit": 0,
+   "code_objects": 258
+  },
+  "tests/manual_plan.py": {
+   "exit": 0,
+   "code_objects": 299
+  },
+  "tests/open_meteo.py": {
+   "exit": 0,
+   "code_objects": 18
+  },
+  "tests/solar_alignment.py": {
+   "exit": 0,
+   "code_objects": 138
+  },
+  "tests/plan_view.py": {
+   "exit": 0,
+   "code_objects": 255
+  },
+  "tests/frontend.py": {
+   "exit": 0,
+   "code_objects": 3
+  },
+  "tests/dst_checks.py": {
+   "exit": 0,
+   "code_objects": 230
+  }
+ },
+ "dead": [
+  {
+   "name": "set_configured",
+   "qualname": "ComfortLearner.set_configured",
+   "lineno": 180,
+   "first": 180,
+   "kind": "method",
+   "decorators": [],
+   "lines": 6,
+   "module": "comfort_learning.py",
+   "ref_prod": 0,
+   "ref_test": 0,
+   "started": false,
+   "framework": false,
+   "decorated": false
+  },
+  {
+   "name": "_translated_text",
+   "qualname": "_translated_text",
+   "lineno": 890,
+   "first": 890,
+   "kind": "function",
+   "decorators": [],
+   "lines": 19,
+   "module": "config_flow.py",
+   "ref_prod": 0,
+   "ref_test": 0,
+   "started": false,
+   "framework": false,
+   "decorated": false
+  },
+  {
+   "name": "optimization_result",
+   "qualname": "HeatPumpOptimizerCoordinator.optimization_result",
+   "lineno": 1253,
+   "first": 1252,
+   "kind": "method",
+   "decorators": [
+    "property"
+   ],
+   "lines": 3,
+   "module": "coordinator.py",
+   "ref_prod": 0,
+   "ref_test": 0,
+   "started": false,
+   "framework": false,
+   "decorated": true
+  },
+  {
+   "name": "current_state",
+   "qualname": "HeatPumpOptimizerCoordinator.current_state",
+   "lineno": 1363,
+   "first": 1362,
+   "kind": "method",
+   "decorators": [
+    "property"
+   ],
+   "lines": 2,
+   "module": "coordinator.py",
+   "ref_prod": 0,
+   "ref_test": 0,
+   "started": false,
+   "framework": false,
+   "decorated": true
+  },
+  {
+   "name": "_floor_heated_area",
+   "qualname": "_floor_heated_area",
+   "lineno": 162,
+   "first": 162,
+   "kind": "function",
+   "decorators": [],
+   "lines": 16,
+   "module": "presets.py",
+   "ref_prod": 0,
+   "ref_test": 0,
+   "started": false,
+   "framework": false,
+   "decorated": false
+  }
+ ],
+ "dead_prod_only": [
+  {
+   "name": "set_configured",
+   "qualname": "ComfortLearner.set_configured",
+   "lineno": 180,
+   "first": 180,
+   "kind": "method",
+   "decorators": [],
+   "lines": 6,
+   "module": "comfort_learning.py",
+   "ref_prod": 0,
+   "ref_test": 0,
+   "started": false,
+   "framework": false,
+   "decorated": false
+  },
+  {
+   "name": "_translated_text",
+   "qualname": "_translated_text",
+   "lineno": 890,
+   "first": 890,
+   "kind": "function",
+   "decorators": [],
+   "lines": 19,
+   "module": "config_flow.py",
+   "ref_prod": 0,
+   "ref_test": 0,
+   "started": false,
+   "framework": false,
+   "decorated": false
+  },
+  {
+   "name": "optimization_result",
+   "qualname": "HeatPumpOptimizerCoordinator.optimization_result",
+   "lineno": 1253,
+   "first": 1252,
+   "kind": "method",
+   "decorators": [
+    "property"
+   ],
+   "lines": 3,
+   "module": "coordinator.py",
+   "ref_prod": 0,
+   "ref_test": 0,
+   "started": false,
+   "framework": false,
+   "decorated": true
+  },
+  {
+   "name": "current_state",
+   "qualname": "HeatPumpOptimizerCoordinator.current_state",
+   "lineno": 1363,
+   "first": 1362,
+   "kind": "method",
+   "decorators": [
+    "property"
+   ],
+   "lines": 2,
+   "module": "coordinator.py",
+   "ref_prod": 0,
+   "ref_test": 0,
+   "started": false,
+   "framework": false,
+   "decorated": true
+  },
+  {
+   "name": "_floor_heated_area",
+   "qualname": "_floor_heated_area",
+   "lineno": 162,
+   "first": 162,
+   "kind": "function",
+   "decorators": [],
+   "lines": 16,
+   "module": "presets.py",
+   "ref_prod": 0,
+   "ref_test": 0,
+   "started": false,
+   "framework": false,
+   "decorated": false
+  }
+ ],
+ "dynamic": [
+  {
+   "name": "_async_update_data",
+   "qualname": "HeatPumpOptimizerCoordinator._async_update_data",
+   "lineno": 4342,
+   "first": 4342,
+   "kind": "method",
+   "decorators": [],
+   "lines": 107,
+   "module": "coordinator.py",
+   "ref_prod": 0,
+   "ref_test": 3,
+   "started": true,
+   "framework": false,
+   "decorated": false
+  },
+  {
+   "name": "_prepare_forecast_data",
+   "qualname": "HeatPumpOptimizerCoordinator._prepare_forecast_data",
+   "lineno": 5705,
+   "first": 5705,
+   "kind": "method",
+   "decorators": [],
+   "lines": 5,
+   "module": "coordinator.py",
+   "ref_prod": 0,
+   "ref_test": 6,
+   "started": true,
+   "framework": false,
+   "decorated": false
+  },
+  {
+   "name": "ready_energy",
+   "qualname": "DrawStats.ready_energy",
+   "lineno": 108,
+   "first": 108,
+   "kind": "method",
+   "decorators": [],
+   "lines": 14,
+   "module": "dhw_draws.py",
+   "ref_prod": 0,
+   "ref_test": 3,
+   "started": true,
+   "framework": false,
+   "decorated": false
+  },
+  {
+   "name": "max_abs_component",
+   "qualname": "max_abs_component",
+   "lineno": 282,
+   "first": 282,
+   "kind": "function",
+   "decorators": [],
+   "lines": 26,
+   "module": "grid_fee.py",
+   "ref_prod": 0,
+   "ref_test": 1,
+   "started": true,
+   "framework": false,
+   "decorated": false
+  },
+  {
+   "name": "piecewise_cost",
+   "qualname": "piecewise_cost",
+   "lineno": 104,
+   "first": 104,
+   "kind": "function",
+   "decorators": [],
+   "lines": 18,
+   "module": "pv.py",
+   "ref_prod": 0,
+   "ref_test": 4,
+   "started": true,
+   "framework": false,
+   "decorated": false
+  },
+  {
+   "name": "peak_penalty",
+   "qualname": "peak_penalty",
+   "lineno": 439,
+   "first": 439,
+   "kind": "function",
+   "decorators": [],
+   "lines": 23,
+   "module": "tariff.py",
+   "ref_prod": 0,
+   "ref_test": 4,
+   "started": true,
+   "framework": false,
+   "decorated": false
+  },
+  {
+   "name": "match_layout",
+   "qualname": "match_layout",
+   "lineno": 328,
+   "first": 328,
+   "kind": "function",
+   "decorators": [],
+   "lines": 54,
+   "module": "topology.py",
+   "ref_prod": 0,
+   "ref_test": 0,
+   "started": true,
+   "framework": false,
+   "decorated": false
+  }
+ ],
+ "untested": [
+  {
+   "name": "device_info",
+   "qualname": "_OptimizerBinarySensorBase.device_info",
+   "lineno": 72,
+   "first": 71,
+   "kind": "method",
+   "decorators": [
+    "property"
+   ],
+   "lines": 3,
+   "module": "binary_sensor.py",
+   "ref_prod": 5,
+   "ref_test": 1,
+   "started": false,
+   "framework": true,
+   "decorated": true
+  },
+  {
+   "name": "device_info",
+   "qualname": "_OptimizerButtonBase.device_info",
+   "lineno": 68,
+   "first": 67,
+   "kind": "method",
+   "decorators": [
+    "property"
+   ],
+   "lines": 3,
+   "module": "button.py",
+   "ref_prod": 5,
+   "ref_test": 1,
+   "started": false,
+   "framework": true,
+   "decorated": true
+  },
+  {
+   "name": "device_info",
+   "qualname": "HeatPumpOptimizerClimate.device_info",
+   "lineno": 119,
+   "first": 118,
+   "kind": "method",
+   "decorators": [
+    "property"
+   ],
+   "lines": 3,
+   "module": "climate.py",
+   "ref_prod": 5,
+   "ref_test": 1,
+   "started": false,
+   "framework": true,
+   "decorated": true
+  },
+  {
+   "name": "hvac_mode",
+   "qualname": "HeatPumpOptimizerClimate.hvac_mode",
+   "lineno": 142,
+   "first": 141,
+   "kind": "method",
+   "decorators": [
+    "property"
+   ],
+   "lines": 5,
+   "module": "climate.py",
+   "ref_prod": 3,
+   "ref_test": 0,
+   "started": false,
+   "framework": true,
+   "decorated": true
+  },
+  {
+   "name": "preset_mode",
+   "qualname": "HeatPumpOptimizerClimate.preset_mode",
+   "lineno": 163,
+   "first": 162,
+   "kind": "method",
+   "decorators": [
+    "property"
+   ],
+   "lines": 7,
+   "module": "climate.py",
+   "ref_prod": 1,
+   "ref_test": 0,
+   "started": false,
+   "framework": true,
+   "decorated": true
+  },
+  {
+   "name": "extra_state_attributes",
+   "qualname": "HeatPumpOptimizerClimate.extra_state_attributes",
+   "lineno": 172,
+   "first": 171,
+   "kind": "method",
+   "decorators": [
+    "property"
+   ],
+   "lines": 78,
+   "module": "climate.py",
+   "ref_prod": 1,
+   "ref_test": 46,
+   "started": false,
+   "framework": true,
+   "decorated": true
+  },
+  {
+   "name": "effective_weight",
+   "qualname": "ComfortLearner.effective_weight",
+   "lineno": 190,
+   "first": 189,
+   "kind": "method",
+   "decorators": [
+    "property"
+   ],
+   "lines": 4,
+   "module": "comfort_learning.py",
+   "ref_prod": 1,
+   "ref_test": 0,
+   "started": false,
+   "framework": false,
+   "decorated": true
+  },
+  {
+   "name": "_plain_types",
+   "qualname": "_plain_types",
+   "lineno": 416,
+   "first": 416,
+   "kind": "function",
+   "decorators": [],
+   "lines": 15,
+   "module": "coordinator.py",
+   "ref_prod": 4,
+   "ref_test": 0,
+   "started": false,
+   "framework": false,
+   "decorated": false
+  },
+  {
+   "name": "empty",
+   "qualname": "ForecastArrays.empty",
+   "lineno": 508,
+   "first": 507,
+   "kind": "method",
+   "decorators": [
+    "classmethod"
+   ],
+   "lines": 7,
+   "module": "coordinator.py",
+   "ref_prod": 56,
+   "ref_test": 60,
+   "started": false,
+   "framework": false,
+   "decorated": true
+  },
+  {
+   "name": "mode",
+   "qualname": "HeatPumpOptimizerCoordinator.mode",
+   "lineno": 1248,
+   "first": 1247,
+   "kind": "method",
+   "decorators": [
+    "property"
+   ],
+   "lines": 3,
+   "module": "coordinator.py",
+   "ref_prod": 171,
+   "ref_test": 155,
+   "started": false,
+   "framework": true,
+   "decorated": true
+  },
+  {
+   "name": "last_optimization",
+   "qualname": "HeatPumpOptimizerCoordinator.last_optimization",
+   "lineno": 1258,
+   "first": 1257,
+   "kind": "method",
+   "decorators": [
+    "property"
+   ],
+   "lines": 2,
+   "module": "coordinator.py",
+   "ref_prod": 5,
+   "ref_test": 1,
+   "started": false,
+   "framework": false,
+   "decorated": true
+  },
+  {
+   "name": "next_optimization",
+   "qualname": "HeatPumpOptimizerCoordinator.next_optimization",
+   "lineno": 1262,
+   "first": 1261,
+   "kind": "method",
+   "decorators": [
+    "property"
+   ],
+   "lines": 2,
+   "module": "coordinator.py",
+   "ref_prod": 5,
+   "ref_test": 1,
+   "started": false,
+   "framework": false,
+   "decorated": true
+  },
+  {
+   "name": "current_action",
+   "qualname": "HeatPumpOptimizerCoordinator.current_action",
+   "lineno": 1266,
+   "first": 1265,
+   "kind": "method",
+   "decorators": [
+    "property"
+   ],
+   "lines": 2,
+   "module": "coordinator.py",
+   "ref_prod": 9,
+   "ref_test": 5,
+   "started": false,
+   "framework": false,
+   "decorated": true
+  },
+  {
+   "name": "_async_setup_ecl110_state_subscription",
+   "qualname": "HeatPumpOptimizerCoordinator._async_setup_ecl110_state_subscription",
+   "lineno": 1268,
+   "first": 1268,
+   "kind": "method",
+   "decorators": [],
+   "lines": 14,
+   "module": "coordinator.py",
+   "ref_prod": 1,
+   "ref_test": 0,
+   "started": false,
+   "framework": false,
+   "decorated": false
+  },
+  {
+   "name": "_async_handle_ecl110_state_message",
+   "qualname": "HeatPumpOptimizerCoordinator._async_handle_ecl110_state_message",
+   "lineno": 1284,
+   "first": 1283,
+   "kind": "method",
+   "decorators": [
+    "callback"
+   ],
+   "lines": 30,
+   "module": "coordinator.py",
+   "ref_prod": 1,
+   "ref_test": 0,
+   "started": false,
+   "framework": false,
+   "decorated": true
+  },
+  {
+   "name": "device_info",
+   "qualname": "HeatPumpOptimizerCoordinator.device_info",
+   "lineno": 1316,
+   "first": 1315,
+   "kind": "method",
+   "decorators": [
+    "property"
+   ],
+   "lines": 14,
+   "module": "coordinator.py",
+   "ref_prod": 5,
+   "ref_test": 1,
+   "started": false,
+   "framework": true,
+   "decorated": true
+  },
+  {
+   "name": "target_temperature",
+   "qualname": "HeatPumpOptimizerCoordinator.target_temperature",
+   "lineno": 1332,
+   "first": 1331,
+   "kind": "method",
+   "decorators": [
+    "property"
+   ],
+   "lines": 3,
+   "module": "coordinator.py",
+   "ref_prod": 11,
+   "ref_test": 31,
+   "started": false,
+   "framework": true,
+   "decorated": true
+  },
+  {
+   "name": "prices",
+   "qualname": "HeatPumpOptimizerCoordinator.prices",
+   "lineno": 1367,
+   "first": 1366,
+   "kind": "method",
+   "decorators": [
+    "property"
+   ],
+   "lines": 2,
+   "module": "coordinator.py",
+   "ref_prod": 169,
+   "ref_test": 115,
+   "started": false,
+   "framework": false,
+   "decorated": true
+  },
+  {
+   "name": "solar_radiation",
+   "qualname": "HeatPumpOptimizerCoordinator.solar_radiation",
+   "lineno": 1371,
+   "first": 1370,
+   "kind": "method",
+   "decorators": [
+    "property"
+   ],
+   "lines": 3,
+   "module": "coordinator.py",
+   "ref_prod": 79,
+   "ref_test": 10,
+   "started": false,
+   "framework": false,
+   "decorated": true
+  },
+  {
+   "name": "floor_return_temp",
+   "qualname": "HeatPumpOptimizerCoordinator.floor_return_temp",
+   "lineno": 1376,
+   "first": 1375,
+   "kind": "method",
+   "decorators": [
+    "property"
+   ],
+   "lines": 3,
+   "module": "coordinator.py",
+   "ref_prod": 1,
+   "ref_test": 0,
+   "started": false,
+   "framework": false,
+   "decorated": true
+  },
+  {
+   "name": "dhw_temperature",
+   "qualname": "HeatPumpOptimizerCoordinator.dhw_temperature",
+   "lineno": 1381,
+   "first": 1380,
+   "kind": "method",
+   "decorators": [
+    "property"
+   ],
+   "lines": 3,
+   "module": "coordinator.py",
+   "ref_prod": 38,
+   "ref_test": 28,
+   "started": false,
+   "framework": false,
+   "decorated": true
+  },
+  {
+   "name": "_async_load_dhw_profile",
+   "qualname": "HeatPumpOptimizerCoordinator._async_load_dhw_profile",
+   "lineno": 1401,
+   "first": 1401,
+   "kind": "method",
+   "decorators": [],
+   "lines": 50,
+   "module": "coordinator.py",
+   "ref_prod": 1,
+   "ref_test": 0,
+   "started": false,
+   "framework": false,
+   "decorated": false
+  },
+  {
+   "name": "_async_load_dhw_draws",
+   "qualname": "HeatPumpOptimizerCoordinator._async_load_dhw_draws",
+   "lineno": 1489,
+   "first": 1489,
+   "kind": "method",
+   "decorators": [],
+   "lines": 9,
+   "module": "coordinator.py",
+   "ref_prod": 1,
+   "ref_test": 0,
+   "started": false,
+   "framework": false,
+   "decorated": false
+  },
+  {
+   "name": "_async_load_dhw_legionella",
+   "qualname": "HeatPumpOptimizerCoordinator._async_load_dhw_legionella",
+   "lineno": 3555,
+   "first": 3555,
+   "kind": "method",
+   "decorators": [],
+   "lines": 33,
+   "module": "coordinator.py",
+   "ref_prod": 1,
+   "ref_test": 0,
+   "started": false,
+   "framework": false,
+   "decorated": false
+  },
+  {
+   "name": "_solar_location",
+   "qualname": "HeatPumpOptimizerCoordinator._solar_location",
+   "lineno": 5606,
+   "first": 5606,
+   "kind": "method",
+   "decorators": [],
+   "lines": 24,
+   "module": "coordinator.py",
+   "ref_prod": 1,
+   "ref_test": 0,
+   "started": false,
+   "framework": false,
+   "decorated": false
+  },
+  {
+   "name": "describe_setup",
+   "qualname": "HeatPumpOptimizerCoordinator.describe_setup",
+   "lineno": 6909,
+   "first": 6909,
+   "kind": "method",
+   "decorators": [],
+   "lines": 9,
+   "module": "coordinator.py",
+   "ref_prod": 6,
+   "ref_test": 13,
+   "started": false,
+   "framework": false,
+   "decorated": false
+  },
+  {
+   "name": "_async_load_price_model",
+   "qualname": "HeatPumpOptimizerCoordinator._async_load_price_model",
+   "lineno": 7133,
+   "first": 7133,
+   "kind": "method",
+   "decorators": [],
+   "lines": 16,
+   "module": "coordinator.py",
+   "ref_prod": 1,
+   "ref_test": 0,
+   "started": false,
+   "framework": false,
+   "decorated": false
+  },
+  {
+   "name": "_async_save_ledger",
+   "qualname": "HeatPumpOptimizerCoordinator._async_save_ledger",
+   "lineno": 7215,
+   "first": 7215,
+   "kind": "method",
+   "decorators": [],
+   "lines": 14,
+   "module": "coordinator.py",
+   "ref_prod": 1,
+   "ref_test": 0,
+   "started": false,
+   "framework": false,
+   "decorated": false
+  },
+  {
+   "name": "_async_load_accuracy",
+   "qualname": "HeatPumpOptimizerCoordinator._async_load_accuracy",
+   "lineno": 7230,
+   "first": 7230,
+   "kind": "method",
+   "decorators": [],
+   "lines": 28,
+   "module": "coordinator.py",
+   "ref_prod": 1,
+   "ref_test": 0,
+   "started": false,
+   "framework": false,
+   "decorated": false
+  },
+  {
+   "name": "month_channel_totals",
+   "qualname": "HeatPumpOptimizerCoordinator.month_channel_totals",
+   "lineno": 7347,
+   "first": 7347,
+   "kind": "method",
+   "decorators": [],
+   "lines": 12,
+   "module": "coordinator.py",
+   "ref_prod": 1,
+   "ref_test": 0,
+   "started": false,
+   "framework": false,
+   "decorated": false
+  },
+  {
+   "name": "async_clear_manual_plan",
+   "qualname": "HeatPumpOptimizerCoordinator.async_clear_manual_plan",
+   "lineno": 7508,
+   "first": 7508,
+   "kind": "method",
+   "decorators": [],
+   "lines": 5,
+   "module": "coordinator.py",
+   "ref_prod": 1,
+   "ref_test": 1,
+   "started": false,
+   "framework": false,
+   "decorated": false
+  },
+  {
+   "name": "_async_setup_defrost_watch",
+   "qualname": "HeatPumpOptimizerCoordinator._async_setup_defrost_watch",
+   "lineno": 7663,
+   "first": 7663,
+   "kind": "method",
+   "decorators": [],
+   "lines": 21,
+   "module": "coordinator.py",
+   "ref_prod": 1,
+   "ref_test": 0,
+   "started": false,
+   "framework": false,
+   "decorated": false
+  },
+  {
+   "name": "_on_defrost_event",
+   "qualname": "HeatPumpOptimizerCoordinator._on_defrost_event",
+   "lineno": 7686,
+   "first": 7685,
+   "kind": "method",
+   "decorators": [
+    "callback"
+   ],
+   "lines": 19,
+   "module": "coordinator.py",
+   "ref_prod": 1,
+   "ref_test": 0,
+   "started": false,
+   "framework": false,
+   "decorated": true
+  },
+  {
+   "name": "_entity_state",
+   "qualname": "HeatPumpOptimizerCoordinator._entity_state",
+   "lineno": 9011,
+   "first": 9011,
+   "kind": "method",
+   "decorators": [],
+   "lines": 12,
+   "module": "coordinator.py",
+   "ref_prod": 2,
+   "ref_test": 0,
+   "started": false,
+   "framework": false,
+   "decorated": false
+  },
+  {
+   "name": "async_diagnose_interval",
+   "qualname": "HeatPumpOptimizerCoordinator.async_diagnose_interval",
+   "lineno": 10102,
+   "first": 10102,
+   "kind": "method",
+   "decorators": [],
+   "lines": 11,
+   "module": "coordinator.py",
+   "ref_prod": 1,
+   "ref_test": 0,
+   "started": false,
+   "framework": false,
+   "decorated": false
+  },
+  {
+   "name": "record_setpoint_override",
+   "qualname": "HeatPumpOptimizerCoordinator.record_setpoint_override",
+   "lineno": 10436,
+   "first": 10436,
+   "kind": "method",
+   "decorators": [],
+   "lines": 39,
+   "module": "coordinator.py",
+   "ref_prod": 1,
+   "ref_test": 0,
+   "started": false,
+   "framework": false,
+   "decorated": false
+  },
+  {
+   "name": "async_reset_comfort_weight",
+   "qualname": "HeatPumpOptimizerCoordinator.async_reset_comfort_weight",
+   "lineno": 10523,
+   "first": 10523,
+   "kind": "method",
+   "decorators": [],
+   "lines": 6,
+   "module": "coordinator.py",
+   "ref_prod": 1,
+   "ref_test": 0,
+   "started": false,
+   "framework": false,
+   "decorated": false
+  },
+  {
+   "name": "system_identification_active",
+   "qualname": "HeatPumpOptimizerCoordinator.system_identification_active",
+   "lineno": 10535,
+   "first": 10534,
+   "kind": "method",
+   "decorators": [
+    "property"
+   ],
+   "lines": 2,
+   "module": "coordinator.py",
+   "ref_prod": 1,
+   "ref_test": 1,
+   "started": false,
+   "framework": false,
+   "decorated": true
+  },
+  {
+   "name": "async_arm_system_identification",
+   "qualname": "HeatPumpOptimizerCoordinator.async_arm_system_identification",
+   "lineno": 10538,
+   "first": 10538,
+   "kind": "method",
+   "decorators": [],
+   "lines": 11,
+   "module": "coordinator.py",
+   "ref_prod": 1,
+   "ref_test": 0,
+   "started": false,
+   "framework": false,
+   "decorated": false
+  },
+  {
+   "name": "optimization_running",
+   "qualname": "HeatPumpOptimizerCoordinator.optimization_running",
+   "lineno": 10677,
+   "first": 10676,
+   "kind": "method",
+   "decorators": [
+    "property"
+   ],
+   "lines": 2,
+   "module": "coordinator.py",
+   "ref_prod": 1,
+   "ref_test": 1,
+   "started": false,
+   "framework": false,
+   "decorated": true
+  },
+  {
+   "name": "async_force_optimization",
+   "qualname": "HeatPumpOptimizerCoordinator.async_force_optimization",
+   "lineno": 10680,
+   "first": 10680,
+   "kind": "method",
+   "decorators": [],
+   "lines": 6,
+   "module": "coordinator.py",
+   "ref_prod": 1,
+   "ref_test": 0,
+   "started": false,
+   "framework": false,
+   "decorated": false
+  },
+  {
+   "name": "async_simulate",
+   "qualname": "HeatPumpOptimizerCoordinator.async_simulate",
+   "lineno": 10687,
+   "first": 10687,
+   "kind": "method",
+   "decorators": [],
+   "lines": 216,
+   "module": "coordinator.py",
+   "ref_prod": 3,
+   "ref_test": 8,
+   "started": false,
+   "framework": false,
+   "decorated": false
+  },
+  {
+   "name": "coldest",
+   "qualname": "HeatPumpOptimizerCoordinator.async_simulate.<locals>.coldest",
+   "lineno": 10836,
+   "first": 10836,
+   "kind": "nested",
+   "decorators": [],
+   "lines": 12,
+   "module": "coordinator.py",
+   "ref_prod": 7,
+   "ref_test": 4,
+   "started": false,
+   "framework": false,
+   "decorated": false
+  },
+  {
+   "name": "dhw_low",
+   "qualname": "HeatPumpOptimizerCoordinator.async_simulate.<locals>.dhw_low",
+   "lineno": 10849,
+   "first": 10849,
+   "kind": "nested",
+   "decorators": [],
+   "lines": 4,
+   "module": "coordinator.py",
+   "ref_prod": 2,
+   "ref_test": 0,
+   "started": false,
+   "framework": false,
+   "decorated": false
+  },
+  {
+   "name": "reset",
+   "qualname": "Cusum.reset",
+   "lineno": 112,
+   "first": 112,
+   "kind": "method",
+   "decorators": [],
+   "lines": 3,
+   "module": "drift.py",
+   "ref_prod": 31,
+   "ref_test": 8,
+   "started": false,
+   "framework": false,
+   "decorated": false
+  },
+  {
+   "name": "value",
+   "qualname": "InputReader.value",
+   "lineno": 548,
+   "first": 548,
+   "kind": "method",
+   "decorators": [],
+   "lines": 6,
+   "module": "inputs.py",
+   "ref_prod": 410,
+   "ref_test": 120,
+   "started": false,
+   "framework": false,
+   "decorated": false
+  },
+  {
+   "name": "forecast",
+   "qualname": "OpenMeteoSolar.forecast",
+   "lineno": 248,
+   "first": 247,
+   "kind": "method",
+   "decorators": [
+    "property"
+   ],
+   "lines": 2,
+   "module": "open_meteo.py",
+   "ref_prod": 91,
+   "ref_test": 34,
+   "started": false,
+   "framework": false,
+   "decorated": true
+  },
+  {
+   "name": "observed",
+   "qualname": "OpenMeteoSolar.observed",
+   "lineno": 252,
+   "first": 251,
+   "kind": "method",
+   "decorators": [
+    "property"
+   ],
+   "lines": 2,
+   "module": "open_meteo.py",
+   "ref_prod": 50,
+   "ref_test": 40,
+   "started": false,
+   "framework": false,
+   "decorated": true
+  },
+  {
+   "name": "last_success",
+   "qualname": "OpenMeteoSolar.last_success",
+   "lineno": 260,
+   "first": 259,
+   "kind": "method",
+   "decorators": [
+    "property"
+   ],
+   "lines": 2,
+   "module": "open_meteo.py",
+   "ref_prod": 3,
+   "ref_test": 1,
+   "started": false,
+   "framework": false,
+   "decorated": true
+  },
+  {
+   "name": "_should_refresh",
+   "qualname": "OpenMeteoSolar._should_refresh",
+   "lineno": 308,
+   "first": 308,
+   "kind": "method",
+   "decorators": [],
+   "lines": 5,
+   "module": "open_meteo.py",
+   "ref_prod": 1,
+   "ref_test": 0,
+   "started": false,
+   "framework": false,
+   "decorated": false
+  },
+  {
+   "name": "async_refresh",
+   "qualname": "OpenMeteoSolar.async_refresh",
+   "lineno": 314,
+   "first": 314,
+   "kind": "method",
+   "decorators": [],
+   "lines": 48,
+   "module": "open_meteo.py",
+   "ref_prod": 1,
+   "ref_test": 0,
+   "started": false,
+   "framework": false,
+   "decorated": false
+  },
+  {
+   "name": "_get_json",
+   "qualname": "OpenMeteoSolar._get_json",
+   "lineno": 363,
+   "first": 363,
+   "kind": "method",
+   "decorators": [],
+   "lines": 29,
+   "module": "open_meteo.py",
+   "ref_prod": 2,
+   "ref_test": 0,
+   "started": false,
+   "framework": false,
+   "decorated": false
+  },
+  {
+   "name": "_fetch_forecast",
+   "qualname": "OpenMeteoSolar._fetch_forecast",
+   "lineno": 393,
+   "first": 393,
+   "kind": "method",
+   "decorators": [],
+   "lines": 48,
+   "module": "open_meteo.py",
+   "ref_prod": 1,
+   "ref_test": 0,
+   "started": false,
+   "framework": false,
+   "decorated": false
+  },
+  {
+   "name": "_fetch_observed",
+   "qualname": "OpenMeteoSolar._fetch_observed",
+   "lineno": 442,
+   "first": 442,
+   "kind": "method",
+   "decorators": [],
+   "lines": 21,
+   "module": "open_meteo.py",
+   "ref_prod": 1,
+   "ref_test": 0,
+   "started": false,
+   "framework": false,
+   "decorated": false
+  },
+  {
+   "name": "weather",
+   "qualname": "_Horizon.weather",
+   "lineno": 986,
+   "first": 985,
+   "kind": "method",
+   "decorators": [
+    "property"
+   ],
+   "lines": 8,
+   "module": "optimizer.py",
+   "ref_prod": 26,
+   "ref_test": 58,
+   "started": false,
+   "framework": false,
+   "decorated": true
+  },
+  {
+   "name": "dhw",
+   "qualname": "PumpSignals.dhw",
+   "lineno": 161,
+   "first": 160,
+   "kind": "method",
+   "decorators": [
+    "property"
+   ],
+   "lines": 3,
+   "module": "pump_signals.py",
+   "ref_prod": 112,
+   "ref_test": 74,
+   "started": false,
+   "framework": false,
+   "decorated": true
+  },
+  {
+   "name": "device_info",
+   "qualname": "HeatPumpOptimizerSensorBase.device_info",
+   "lineno": 221,
+   "first": 220,
+   "kind": "method",
+   "decorators": [
+    "property"
+   ],
+   "lines": 3,
+   "module": "sensor.py",
+   "ref_prod": 5,
+   "ref_test": 1,
+   "started": false,
+   "framework": true,
+   "decorated": true
+  },
+  {
+   "name": "_waiting_for",
+   "qualname": "_WaitsForEvidenceMixin._waiting_for",
+   "lineno": 298,
+   "first": 297,
+   "kind": "method",
+   "decorators": [
+    "property"
+   ],
+   "lines": 3,
+   "module": "sensor.py",
+   "ref_prod": 4,
+   "ref_test": 0,
+   "started": false,
+   "framework": false,
+   "decorated": true
+  },
+  {
+   "name": "_dhw_min_ceiling",
+   "qualname": "_dhw_min_ceiling",
+   "lineno": 1172,
+   "first": 1172,
+   "kind": "function",
+   "decorators": [],
+   "lines": 10,
+   "module": "sensor.py",
+   "ref_prod": 1,
+   "ref_test": 0,
+   "started": false,
+   "framework": false,
+   "decorated": false
+  },
+  {
+   "name": "device_info",
+   "qualname": "OptimizerEnableSwitch.device_info",
+   "lineno": 56,
+   "first": 55,
+   "kind": "method",
+   "decorators": [
+    "property"
+   ],
+   "lines": 3,
+   "module": "switch.py",
+   "ref_prod": 5,
+   "ref_test": 1,
+   "started": false,
+   "framework": true,
+   "decorated": true
+  },
+  {
+   "name": "extra_state_attributes",
+   "qualname": "OptimizerEnableSwitch.extra_state_attributes",
+   "lineno": 68,
+   "first": 67,
+   "kind": "method",
+   "decorators": [
+    "property"
+   ],
+   "lines": 8,
+   "module": "switch.py",
+   "ref_prod": 1,
+   "ref_test": 46,
+   "started": false,
+   "framework": true,
+   "decorated": true
+  },
+  {
+   "name": "_boom",
+   "qualname": "_StaleTrajectory._boom",
+   "lineno": 1214,
+   "first": 1213,
+   "kind": "method",
+   "decorators": [
+    "staticmethod"
+   ],
+   "lines": 8,
+   "module": "thermal_model.py",
+   "ref_prod": 5,
+   "ref_test": 0,
+   "started": false,
+   "framework": false,
+   "decorated": true
+  },
+  {
+   "name": "dhw_draw_rate",
+   "qualname": "ThermalModel.dhw_draw_rate",
+   "lineno": 1505,
+   "first": 1505,
+   "kind": "method",
+   "decorators": [],
+   "lines": 9,
+   "module": "thermal_model.py",
+   "ref_prod": 1,
+   "ref_test": 0,
+   "started": false,
+   "framework": false,
+   "decorated": false
+  }
+ ]
+}

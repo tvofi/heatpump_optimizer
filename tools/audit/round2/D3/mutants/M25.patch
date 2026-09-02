@@ -1,0 +1,14 @@
+--- a/custom_components/heatpump_optimizer/dhw_schedule.py
++++ b/custom_components/heatpump_optimizer/dhw_schedule.py
+@@ -269,11 +269,6 @@
+         chunk = chunk.replace("\u2013", "-").replace("\u2014", "-")
+         days = list(range(7))
+         m = re.match(r"^([A-Za-z][A-Za-z,\s-]*?)\s+(?=\d)", chunk)
+-        if m:
+-            selected = _parse_day_selector(m.group(1))
+-            if selected:
+-                days = selected
+-                chunk = chunk[m.end():]
+             # An unparsable leading token is not a selector and will fail
+             # as a time below, with the user's own text in the message.
+         wins = _parse_one_range(chunk)

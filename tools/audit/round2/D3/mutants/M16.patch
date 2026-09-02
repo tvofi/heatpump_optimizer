@@ -1,0 +1,11 @@
+--- a/custom_components/heatpump_optimizer/dhw_schedule.py
++++ b/custom_components/heatpump_optimizer/dhw_schedule.py
+@@ -100,8 +100,6 @@
+     ordered = sorted(set(days))
+     if ordered == [0, 1, 2, 3, 4]:
+         return "weekdays"
+-    if ordered == [5, 6]:
+-        return "weekend"
+     # Contiguous runs (possibly wrapping) render as ranges; anything else
+     # as a comma list. Ranges keep the rendered spec short, which is the
+     # point of rendering back at all.

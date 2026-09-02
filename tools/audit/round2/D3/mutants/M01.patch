@@ -1,0 +1,11 @@
+--- a/custom_components/heatpump_optimizer/thermal_model.py
++++ b/custom_components/heatpump_optimizer/thermal_model.py
+@@ -1184,7 +1184,7 @@
+     )
+     t_in = min(t_in, dhw_setpoint)
+     span = max(dhw_setpoint - inlet_temp, 1e-6)
+-    reduced = draw_kw * max(0.0, dhw_setpoint - t_in) / span
++    reduced = draw_kw * dhw_setpoint - t_in / span
+     return reduced, draw_kw - reduced
+ 
+ 

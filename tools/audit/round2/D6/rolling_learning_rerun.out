@@ -1,0 +1,16 @@
+
+=== Closed-loop rolling simulation ===
+RESULT plant_error=1.35 ratio
+RESULT breach_uncorrected=9.634 degree_hours
+RESULT breach_learned=0.044 degree_hours
+RESULT scale_start=1.0000 ratio
+RESULT scale_end=1.3312 ratio
+RESULT scale_overshoot_past_true=-0.0188 ratio
+RESULT scale_last_quarter_std=0.00770 ratio
+RESULT learner_samples=287 count
+RESULT correct_model_drift=0.0167 ratio
+RESULT cpu_seconds=30.9 s
+RESULT thread_factor=1.000
+RESULT load1=2.76
+RESULT swapins=0
+EXIT 0

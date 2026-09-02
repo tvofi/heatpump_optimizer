@@ -1,0 +1,11 @@
+--- a/custom_components/heatpump_optimizer/price_model.py
++++ b/custom_components/heatpump_optimizer/price_model.py
+@@ -399,8 +399,6 @@
+             for i in range(min(known_count, len(step_start_times)))
+         ]
+         shape_mean = float(np.mean(shape_values)) if shape_values else 1.0
+-        if shape_mean > 1e-6:
+-            level /= shape_mean
+ 
+     for i in range(known_count, n_steps):
+         when = (

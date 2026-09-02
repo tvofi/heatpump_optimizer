@@ -1,0 +1,137 @@
+{
+ "panel": "D10",
+ "seats": 3,
+ "votes": {
+  "D10-01": [
+   "verify",
+   "verify",
+   "verify"
+  ],
+  "D10-02": [
+   "verify",
+   "verify",
+   "verify"
+  ],
+  "D10-03": [
+   "verify",
+   "verify",
+   "verify"
+  ],
+  "D10-04": [
+   "weaken(low)",
+   "verify",
+   "verify"
+  ],
+  "D10-05": [
+   "verify",
+   "verify",
+   "verify"
+  ],
+  "D10-06": [
+   "verify",
+   "verify",
+   "verify"
+  ],
+  "D10-07": [
+   "verify",
+   "verify",
+   "verify"
+  ],
+  "D10-08": [
+   "verify",
+   "verify",
+   "verify"
+  ],
+  "D10-09": [
+   "verify",
+   "verify",
+   "verify"
+  ],
+  "D10-10": [
+   "verify",
+   "verify",
+   "verify"
+  ],
+  "D10-11": [
+   "verify",
+   "verify",
+   "verify"
+  ],
+  "D10-12": [
+   "weaken(low)",
+   "verify",
+   "verify"
+  ],
+  "D10-13": [
+   "weaken(low)",
+   "weaken(low)",
+   "verify"
+  ],
+  "D10-14": [
+   "verify",
+   "split",
+   "verify"
+  ],
+  "D10-15": [
+   "weaken(low)",
+   "weaken(low)",
+   "verify"
+  ]
+ },
+ "counted": {
+  "D10-01": "3-0 verify",
+  "D10-02": "3-0 verify",
+  "D10-03": "3-0 verify",
+  "D10-04": "2-0 verify (weakened)",
+  "D10-05": "3-0 verify",
+  "D10-06": "3-0 verify",
+  "D10-07": "3-0 verify",
+  "D10-08": "3-0 verify",
+  "D10-09": "3-0 verify",
+  "D10-10": "3-0 verify",
+  "D10-11": "3-0 verify",
+  "D10-12": "2-0 verify (weakened)",
+  "D10-13": "1-0 verify (weakened)",
+  "D10-14": "2-0 verify (weakened)",
+  "D10-15": "1-0 verify (weakened)"
+ },
+ "refuted": [],
+ "severity": {
+  "D10-01": "medium",
+  "D10-02": "medium",
+  "D10-03": "low",
+  "D10-04": "low",
+  "D10-05": "low",
+  "D10-06": "low",
+  "D10-07": "low",
+  "D10-08": "low",
+  "D10-09": "low",
+  "D10-10": "low",
+  "D10-11": "low",
+  "D10-12": "low",
+  "D10-13": "low",
+  "D10-14": "low",
+  "D10-15": "low"
+ },
+ "notes": {
+  "D10-02": "worse than reported: _tibber_fetch_failed raises UpdateFailed INSIDE the try, so the trailing except re-wraps the integration's own signal - one failure burns two outage cycles; real HA would start reauth (raise_on_auth_failed on the first refresh)",
+  "D10-03": "understated: the rule wants info-level and once; the home-grown ERROR latch is off-rule before the outer handler re-logs. With real HA's own log-once branch the count is 5, not 4. Scope misses async_run_optimization's per-cycle error and five unlatched actuation sites. Path-independent (re-driven on a real HTTP 401)",
+  "D10-04": "narrowed: 1 of 3 is truly silent (run_optimization, registered with no supports_response); the other two name the failure in a documented response. Cite fix: coordinator.py:4825, not 5536",
+  "D10-12": "narrowed: removal instructions and blueprints genuinely absent; known-limitations and supported-devices exist in prose (discoverability, not information)",
+  "D10-13": "restate the number: 225-296 of 722 are tests/hastub artefacts (no py.typed, truncated classes); the integration-internal floor is 497. Direction of the fix is not obviously down - annotating can add attr-defined errors",
+  "D10-14": "config-flow half verified with a killing mutation (config_flow.py:960); the three coverage percentages are UNRESOLVED under the box constraint - judge re-measures. 88.4 % is a lower bound: coordinator.py is 843 of 1491 missed and its closed-loop driver (rolling.py) is the one excluded script",
+  "D10-15": "SPLIT the row: the ENERGY half is REFUTED as proposed - both sensors are MEASUREMENT forecasts, HA admits ENERGY only with TOTAL/TOTAL_INCREASING, and the finder's one-line fix would fail the repo's own gate at tests/entities.py:1225. The entry_type/manufacturer half stands but maps to no rule (devices is scored done)",
+  "D10-01": "the card-discovery lever does not hold (the card resolves by id suffix); the finding stands on the 5 hard-pinned entity_ids and 5 fan-out service handlers. single_config_entry would break a legitimate two-pump install - use the unique-data shape"
+ },
+ "stub_divergence": "checked against home-assistant/core 2024.6.0: the stub never manufactured a finding; where it diverges it favours the integration (no ConfigEntryAuthFailed at all; FakeServices ignores supports_response). D10-03 re-driven on the production HTTP-401 branch: still 4",
+ "corrections": [
+  "D10-04 cites coordinator.py:5536; the site is 4825",
+  "D10-14 prose says 1493 missed; RESULTS.txt says 1491",
+  "quality_scale.yaml says 15 service exceptions; the count is 14"
+ ],
+ "reports": [
+  "D10/verify-1.md",
+  "D10/verify-2.md",
+  "D10/verify-3.md"
+ ]
+}

@@ -1,0 +1,11 @@
+--- a/custom_components/heatpump_optimizer/sensor.py
++++ b/custom_components/heatpump_optimizer/sensor.py
+@@ -1512,8 +1512,6 @@
+             ),
+         }
+         since = (self.coordinator.data or {}).get("energy_totals_counting_since")
+-        if since:
+-            attrs["counting_since"] = since
+         if self._ledger_line:
+             month = self.coordinator.month_channel_totals(self._ledger_line)
+             if month is not None:

@@ -1,0 +1,10 @@
+--- a/custom_components/heatpump_optimizer/sensor.py
++++ b/custom_components/heatpump_optimizer/sensor.py
+@@ -1517,7 +1517,6 @@
+         if self._ledger_line:
+             month = self.coordinator.month_channel_totals(self._ledger_line)
+             if month is not None:
+-                attrs["this_month_kwh"] = round(month[0], 3)
+                 attrs["this_month_cost"] = round(month[1], 2)
+         return attrs
+ 

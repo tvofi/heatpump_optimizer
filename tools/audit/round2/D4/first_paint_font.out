@@ -1,0 +1,16 @@
+lovelace order : {"svgW":333,"fontUnits":10,"fontPx":3.7,"laneH":5.55,"hostW":359,"renders":1}
+after resize   : {"svgW":274,"fontUnits":10,"fontPx":3.04,"laneH":4.57,"hostW":300,"renders":0}
+after refresh  : {"svgW":274,"fontUnits":24,"fontPx":7.31,"laneH":7.31,"hostW":300,"renders":1}
+attached order : {"svgW":333,"fontUnits":20.055710306406684,"fontPx":7.42,"laneH":7.42,"hostW":359,"renders":1}
+RESULT font_px_lovelace=3.7 px
+RESULT lane_px_lovelace=5.55 px
+RESULT renders_lovelace=1 count
+RESULT font_px_resize=3.04 px
+RESULT renders_resize=0 count
+RESULT font_px_refresh=7.31 px
+RESULT renders_refresh=1 count
+RESULT font_px_attached=7.42 px
+RESULT floor_px=8 px
+RESULT thread_factor=1.00
+RESULT load1=3.28
+RESULT swapins=0

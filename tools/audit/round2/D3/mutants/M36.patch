@@ -1,0 +1,11 @@
+--- a/custom_components/heatpump_optimizer/open_meteo.py
++++ b/custom_components/heatpump_optimizer/open_meteo.py
+@@ -142,8 +142,6 @@
+         # series by a few seconds at its edge would otherwise return a value
+         # derived from almost none of the requested window.
+         requested = (end - start).total_seconds()
+-        if total_weight < 0.5 * requested:
+-            return None
+         return total / total_weight
+ 
+     def latest_before(self, when: datetime, max_age: timedelta) -> float | None:

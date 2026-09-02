@@ -1,0 +1,11 @@
+--- a/custom_components/heatpump_optimizer/grid_fee.py
++++ b/custom_components/heatpump_optimizer/grid_fee.py
+@@ -138,8 +138,6 @@
+         rate = float(rate_token.strip().replace(",", "."))
+     except ValueError as err:
+         raise GridFeeError(f"Bad rate in '{line}'") from err
+-    if not np.isfinite(rate):
+-        raise GridFeeError(f"Bad rate in '{line}'")
+ 
+     months: frozenset[int] | None = None
+     days: frozenset[int] | None = None

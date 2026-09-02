@@ -1,0 +1,319 @@
+{
+  "dimension": "D1",
+  "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+  "exposure": "",
+  "findings": [
+    {
+      "id": "D1-01",
+      "title": "ConfigEntryNotReady from the first refresh leaks the coordinator's listeners and MQTT subscription per retry",
+      "severity": "medium",
+      "claim": "When the first refresh raises ConfigEntryNotReady (Tibber unreachable at boot), the coordinator built by that setup keeps its async_track_state_change_event registrations and ECL110 MQTT subscription forever, and each setup retry leaks another coordinator.",
+      "mechanism": "HeatPumpOptimizerCoordinator.__init__ spawns _async_setup_peak_guard, _async_setup_defrost_watch and _async_setup_ecl110_state_subscription before async_setup_entry awaits async_config_entry_first_refresh; they register directly on hass, not via entry.async_on_unload. On ConfigEntryNotReady Home Assistant runs only entry.async_on_unload callbacks and cancels entry background tasks; async_unload_entry / coordinator.async_shutdown never run. The bound methods on the bus keep the dead coordinator alive and its _on_power_event runs on every meter event. The ECL110 state topic defaults on, so MQTT installs leak the subscription even with both guards off.",
+      "evidence": {
+        "command": "OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 PYTHONPATH=tests/hastub /Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/tvofi-claude/.venv/bin/python tools/audit/round2/D1/lifecycle_realloop.py",
+        "harness_path": "tools/audit/round2/D1/lifecycle_realloop.py",
+        "value": 10,
+        "unit": "leaked state-change listeners after 5 ConfigEntryNotReady retries (RESULT notready_leaked_listeners); also notready_leaked_mqtt_subs=5, notready_zombie_coordinators=5, notready_zombie_handler_runs=5",
+        "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+        "machine": "Apple M1 8-core 8 GB, Darwin 25.6.0, CPython 3.13.1, numpy 2.5.2 (shared audit box)",
+        "cpu_or_wall": "count",
+        "contention_note": "ten other auditors on the box; counts are contention-immune; identical in the eager and lazy task-start arms",
+        "tolerance": "exact",
+        "load1": 2.24,
+        "thread_factor": 58.407
+      },
+      "instrumented_symbol": "heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_setup_peak_guard (with _async_setup_defrost_watch, _async_setup_ecl110_state_subscription), driven through heatpump_optimizer:async_setup_entry under a modelled ConfigEntry.async_setup",
+      "perturbation": {
+        "change": "Config: peak_guard_enabled=False, no heat_pump_defrost_entity, ecl110_state_topic=\"\" (the harness's notready_guards_off arm). Code: register the three subscriptions after async_config_entry_first_refresh succeeds, or through entry.async_on_unload, or wrap the first refresh in async_setup_entry with `except ConfigEntryNotReady: await coordinator.async_shutdown(); raise`.",
+        "expected_direction": "to_zero",
+        "observed_value": 0
+      },
+      "metric_definition": "Bus registrations (and MQTT subscriptions) whose callback is bound to a coordinator from a setup that raised ConfigEntryNotReady, after 5 retries and one successful setup.",
+      "null_control": {
+        "command": "same harness, RESULT notready_leaked_listeners_guards_off (feature-off arm)",
+        "value": 0,
+        "note": "with the guards off and the MQTT topic empty nothing is registered before the first refresh and nothing leaks; zombie_coordinators=0 in that arm"
+      },
+      "reproduction_steps": [
+        "Run the harness command; read RESULT notready_leaked_listeners, notready_leaked_mqtt_subs, notready_zombie_coordinators, notready_zombie_handler_runs.",
+        "Compare with RESULT notready_leaked_listeners_guards_off (0).",
+        "Real HA: configure the peak guard with a power meter (or a defrost entity, or MQTT with the default ECL110 state topic), make api.tibber.com unreachable, restart HA, wait through several setup retries, restore the network; every retry left a coordinator subscribed."
+      ],
+      "proposed_fix_scope": "One place: in async_setup_entry catch ConfigEntryNotReady from the first refresh and call coordinator.async_shutdown() before re-raising; or move the three registrations after the first refresh / behind entry.async_on_unload.",
+      "files": [
+        "custom_components/heatpump_optimizer/coordinator.py",
+        "custom_components/heatpump_optimizer/__init__.py"
+      ],
+      "expected_golden_drift": [],
+      "stop_rule_class": "bug"
+    },
+    {
+      "id": "D1-02",
+      "title": "Reload during a scheduled solve: the torn-down coordinator actuates the pump and writes stores after its own shutdown",
+      "severity": "medium",
+      "claim": "An options reload while the scheduled refresh is inside the executor lets the old coordinator finish _async_update_data after async_shutdown returned: it commands the switch, publishes two MQTT commands from the pre-reload plan and writes two stores, concurrently with the new instance's setup.",
+      "mechanism": "async_shutdown's docstring says the base class stops any in-flight refresh; Home Assistant's DataUpdateCoordinator.async_shutdown cancels only the scheduled timer and the debouncer, and a scheduled refresh is a hass-level task that entry unload does not cancel (only entry background tasks are, which is why the first solve is clean). Nothing after the executor await in async_run_optimization or before _apply_action in _async_update_data checks _shutdown_requested.",
+      "evidence": {
+        "command": "OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 PYTHONPATH=tests/hastub /Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/tvofi-claude/.venv/bin/python tools/audit/round2/D1/lifecycle_realloop.py",
+        "harness_path": "tools/audit/round2/D1/lifecycle_realloop.py",
+        "value": 3,
+        "unit": "service calls (switch.turn_on + mqtt.publish + mqtt.publish) issued by the torn-down coordinator after its async_shutdown returned (RESULT midsolve_eager.sched_zombie_service_calls); also sched_midsolve_zombie_actuations=1, sched_midsolve_zombie_saves=2, sched_shutdown_returned_before_release=1",
+        "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+        "machine": "Apple M1 8-core 8 GB, Darwin 25.6.0, CPython 3.13.1, numpy 2.5.2 (shared audit box)",
+        "cpu_or_wall": "count",
+        "contention_note": "ten other auditors on the box; the solve is held on a threading.Event so the ordering is deterministic, not timing-dependent",
+        "tolerance": "exact for zombie_actuations (1) and zombie_saves (2); service calls 3 in the eager arm, 6 in the lazy arm",
+        "load1": 2.24,
+        "thread_factor": 58.407
+      },
+      "instrumented_symbol": "heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator.async_run_optimization (executor await), _apply_action, async_shutdown; heatpump_optimizer.optimizer:HeatPumpOptimizer.optimize gated by class-attribute swap",
+      "perturbation": {
+        "change": "One line after `result = await self.hass.async_add_executor_job(...)` in async_run_optimization (and before `await self._apply_action()` in _async_update_data): `if getattr(self, \"_shutdown_requested\", False): return`; or cancel the in-flight refresh task in async_shutdown.",
+        "expected_direction": "to_zero"
+      },
+      "metric_definition": "switch./mqtt. service calls and store writes issued by a coordinator after its own async_shutdown() returned, for one reload with a scheduled refresh held inside the executor.",
+      "null_control": {
+        "command": "same harness, phase B: reload during the FIRST solve (entry background task, cancelled by the state machine)",
+        "value": 0,
+        "note": "RESULT midsolve_eager.old_post_shutdown_actuations=0, old_post_shutdown_saves=0, old_tasks_alive=0, old_instance_alive_after_gc=0"
+      },
+      "reproduction_steps": [
+        "Run the harness command; read RESULT midsolve_eager.sched_zombie_service_calls / sched_zombie_service_calls_detail / sched_midsolve_zombie_actuations / sched_midsolve_zombie_saves.",
+        "Real HA: on a Pi, save any options page while the 30-minute cycle is solving (tens of seconds); the old plan's switch/MQTT commands land after the new entry set up."
+      ],
+      "proposed_fix_scope": "Two guard lines in coordinator.py, or one cancellation in async_shutdown; correct the async_shutdown docstring.",
+      "files": [
+        "custom_components/heatpump_optimizer/coordinator.py"
+      ],
+      "expected_golden_drift": [],
+      "stop_rule_class": "bug"
+    },
+    {
+      "id": "D1-03",
+      "title": "Store loaders crash on corrupt payloads; three stores are never reset so the loss repeats on every restart",
+      "severity": "medium",
+      "claim": "152 of 2000 seeded corrupt payloads (200 per store, 10 stores) end the store's fire-and-forget loader with an unhandled exception; for dhw_profile (64/200), thermal_learning (9/200) and dhw_draws (1/200) the corrupt file is never rewritten, so every restart raises again and the learned state stays lost, with thermal_learning left half-applied.",
+      "mechanism": "Each loader guards only store.async_load(); the parsing after it trusts the shape. _normalize_dhw_profile np.clips whatever the 24-element list holds; _async_load_thermal_learning catches (TypeError, ValueError) but int(inf) raises OverflowError, a wrapped freq_map raises KeyError, a top-level list raises AttributeError on .get; PriceShapeModel.from_dict float()s shapes/quarter_factors unguarded; DefrostDerate/StartCounter/AccuracyTracker.from_dict hit the same OverflowError/KeyError paths. accuracy, energy_totals, ledger, price_model are rewritten by the next cycle or learned day (repeat 0, history lost); the three above are written only on learning events. The update loop never fails (cycle1_failed=0, cycle2_failed=0 in 2000/2000).",
+      "evidence": {
+        "command": "OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 PYTHONPATH=tests/hastub /Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/tvofi-claude/.venv/bin/python tools/audit/round2/D1/store_fuzz.py",
+        "harness_path": "tools/audit/round2/D1/store_fuzz.py",
+        "value": 152,
+        "unit": "loader tasks ending with an unhandled exception over 2000 mutants (RESULT fuzz.total_loader_raised); repeat_on_restart total 74 (dhw_profile 64, thermal_learning 9, dhw_draws 1)",
+        "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+        "machine": "Apple M1 8-core 8 GB, Darwin 25.6.0, CPython 3.13.1, numpy 2.5.2 (shared audit box)",
+        "cpu_or_wall": "count",
+        "contention_note": "ten other auditors on the box; seeded RNG (SEED=20260901), counts exact per seed",
+        "tolerance": "exact",
+        "load1": 1.87,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_load_dhw_profile (and _async_load_thermal_learning, _async_load_price_model, _async_load_accuracy, _async_load_energy_totals, _async_load_ledger, _async_load_dhw_draws, _async_load_snapshots, _async_load_dhw_legionella, _async_load_manual_plan) with their from_dict parsers",
+      "perturbation": {
+        "change": "Wrap each loader body after async_load() in `try/except Exception` that logs one WARNING and saves {} (the pattern _async_load_manual_plan already uses); or validate shapes in the from_dict parsers as SnapshotRing.from_dict does.",
+        "expected_direction": "to_zero"
+      },
+      "metric_definition": "Loader tasks ending with an unhandled exception over 200 seeded mutants per store, and the subset whose fresh-coordinator load raises again on the disk left after two update cycles.",
+      "null_control": {
+        "command": "same harness, RESULT fuzz.<store>.identity_failures (the healthy payload as the mutant)",
+        "value": 0,
+        "note": "0 for all ten stores; snapshots, dhw_legionella and manual_plan also score 0/200 on mutants because they validate their shape"
+      },
+      "leave_one_out": {
+        "cells": 10,
+        "min": 0,
+        "max": 64,
+        "drop_most_favourable": 88
+      },
+      "reproduction_steps": [
+        "Run the harness command (about two minutes); read RESULT fuzz.<store>.loader_raised and .repeat_on_restart for the ten stores and fuzz.total_loader_raised.",
+        "Open tools/audit/round2/D1/store_fuzz_failures.json for the mutation label and exception of each failing case (e.g. none@hourly_profile/1, inf@buffer_cooling_samples, top:wrapped_list).",
+        "Real HA: edit .storage/heatpump_optimizer_<entry>_dhw_profile so one hourly_profile entry is null; restart; the loader task logs a traceback on every restart and the learned DHW profile is gone."
+      ],
+      "proposed_fix_scope": "Ten loaders (one try/except and a reset save each) or the six from_dict parsers; the manual-plan loader is the template.",
+      "files": [
+        "custom_components/heatpump_optimizer/coordinator.py",
+        "custom_components/heatpump_optimizer/price_model.py",
+        "custom_components/heatpump_optimizer/defrost.py",
+        "custom_components/heatpump_optimizer/wear.py",
+        "custom_components/heatpump_optimizer/curve_learning.py",
+        "custom_components/heatpump_optimizer/freq_control.py",
+        "custom_components/heatpump_optimizer/dhw_draws.py",
+        "custom_components/heatpump_optimizer/accuracy.py"
+      ],
+      "expected_golden_drift": [],
+      "stop_rule_class": "bug"
+    },
+    {
+      "id": "D1-04",
+      "title": "A price list no longer covering the horizon is planned and actuated on a flat 0.5 price while the cycle stays green",
+      "severity": "medium",
+      "claim": "When _prices is non-empty but no entry covers any step of the horizon, every step is priced at extend_price_series' fallback constant 0.5, the solve runs, publishes savings_percentage and predicted_cost, actuates the switch, and _async_update_data succeeds.",
+      "mechanism": "_price_series returns None (skip the run) only when self._prices is empty; _known_prices_for yields an empty leading run for a stale list and price_model.extend_price_series returns np.full(n_steps, fallback=0.5) with known_count == 0 — the invented flat curve the _price_series docstring says was removed. The only disclosure is price_known_steps=0 in the payload and per-slot price_known flags; no sensor or the card reads price_known_steps. Reach is narrow: a successful fetch with stale content, or a clock more than a day off (a failed fetch is handled honestly as UpdateFailed).",
+      "evidence": {
+        "command": "OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 PYTHONPATH=tests/hastub /Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/tvofi-claude/.venv/bin/python tools/audit/round2/D1/staleness.py",
+        "harness_path": "tools/audit/round2/D1/staleness.py",
+        "value": 96,
+        "unit": "of 96 horizon steps priced at the 0.5 fallback (RESULT stuck_prices_fallback_steps); stuck_prices_known_steps=0, stuck_prices_solved=1, stuck_prices_update_success=1, stuck_prices_switch_calls=1, stuck_prices_savings_pct=13.4, stuck_prices_plan_stale=0",
+        "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+        "machine": "Apple M1 8-core 8 GB, Darwin 25.6.0, CPython 3.13.1, numpy 2.5.2 (shared audit box)",
+        "cpu_or_wall": "count",
+        "contention_note": "ten other auditors on the box; clock frozen at 2026-01-15T12:00Z",
+        "tolerance": "exact",
+        "load1": 4.1,
+        "thread_factor": 1.006
+      },
+      "instrumented_symbol": "heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._price_series and heatpump_optimizer.price_model:extend_price_series (known_count == 0 branch)",
+      "perturbation": {
+        "change": "Shift the injected price list so it covers now (the harness's `covering` arm) -> fallback steps to zero, known steps to 96; or in _price_series after _known_prices_for: `if not known: return None` -> stuck_prices_solved to zero.",
+        "expected_direction": "to_zero",
+        "observed_value": 0
+      },
+      "metric_definition": "Steps of the solve horizon priced at extend_price_series' fallback constant when no published entry covers any step, and whether the cycle still solves, actuates and returns a payload.",
+      "null_control": {
+        "command": "same harness, `covering` arm",
+        "value": 0,
+        "note": "covering_prices_fallback_steps=0, covering_prices_known_steps=96, savings 27.92 % against real prices"
+      },
+      "reproduction_steps": [
+        "Run the harness command; compare RESULT covering_* with stuck_*.",
+        "Real HA: any 200 response whose today/tomorrow lists end before now (or a system clock a day ahead of the list) plans on 0.5 SEK/kWh flat and stays green."
+      ],
+      "proposed_fix_scope": "One condition in _price_series (treat an empty known run like an empty list), plus surfacing price_known_steps on the plan-stale signal.",
+      "files": [
+        "custom_components/heatpump_optimizer/coordinator.py",
+        "custom_components/heatpump_optimizer/price_model.py"
+      ],
+      "expected_golden_drift": [],
+      "stop_rule_class": "bug"
+    },
+    {
+      "id": "D1-05",
+      "title": "The what-if solve shares learner containers with the loop by reference; a mid-solve write tears its answer",
+      "severity": "low",
+      "claim": "async_simulate's shallow replace(self._thermal_params) shares defrost_derate (the live DefrostDerate), internal_gains_profile and dhw_windows with the event loop while the what-if runs in the executor; an in-place write on them mid-solve changes the what-if's answer, whereas the live solve's deep copy is immune.",
+      "mechanism": "_solve_snapshot deep-copies state, params and config for the live solve; async_simulate uses dataclasses.replace, which copies scalars only. The only production in-place writer is _defrost.observe/observe_duty in _record_accuracy at the end of every cycle (draw pattern, gains profile and windows are reassigned, never mutated in place), so the realistic effect is one EWMA step landing mid-what-if; the what-if never actuates.",
+      "evidence": {
+        "command": "OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 PYTHONPATH=tests/hastub /Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/tvofi-claude/.venv/bin/python tools/audit/round2/D1/executor_race.py",
+        "harness_path": "tools/audit/round2/D1/executor_race.py",
+        "value": 10,
+        "unit": "what-if payload fields changed by an in-place mutation of the shared containers while the solve thread was held (RESULT whatif_torn_fields) of 10 changed by the pre-mutation control; per container: defrost_learner 9, gains_profile 7, dhw_windows 9, draw_pattern 0; scalar writes 0",
+        "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+        "machine": "Apple M1 8-core 8 GB, Darwin 25.6.0, CPython 3.13.1, numpy 2.5.2 (shared audit box)",
+        "cpu_or_wall": "count",
+        "contention_note": "ten other auditors on the box; deterministic (whatif_repeat_identical=1, live_repeat_identical=1); the solve is held on a threading.Event",
+        "tolerance": "exact",
+        "load1": 2.28,
+        "thread_factor": 346.113
+      },
+      "instrumented_symbol": "heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator.async_simulate (replace(self._thermal_params)); heatpump_optimizer.optimizer:HeatPumpOptimizer.optimize gated by class-attribute swap",
+      "perturbation": {
+        "change": "In async_simulate use copy.deepcopy(self._thermal_params) (the idiom _solve_snapshot uses) instead of replace(...).",
+        "expected_direction": "to_zero"
+      },
+      "metric_definition": "What-if payload fields differing between a run whose shared containers were mutated in place while the solve thread was held in the executor and an unmutated run with identical inputs.",
+      "null_control": {
+        "command": "same harness, the live solve arm (RESULT live_torn_fields)",
+        "value": 0,
+        "note": "the deep-copying live path shows 0 torn fields against a 26-field positive control with the same mutation applied before the solve"
+      },
+      "reproduction_steps": [
+        "Run the harness command; read RESULT whatif_torn_fields, whatif_torn_defrost_learner, whatif_control_changed, live_torn_fields, live_control_changed."
+      ],
+      "proposed_fix_scope": "One line in async_simulate.",
+      "files": [
+        "custom_components/heatpump_optimizer/coordinator.py"
+      ],
+      "expected_golden_drift": [],
+      "stop_rule_class": "bug"
+    }
+  ],
+  "non_findings": [
+    {
+      "claim": "Reload during the first solve (entry background task) leaks nothing: HA cancels the task and the old instance is collected",
+      "command": "tools/audit/round2/D1/lifecycle_realloop.py",
+      "value": "reload_midsolve_old_tasks_alive=0, old_listeners=0, old_mqtt_subs=0, old_timers=0, old_exec_futures_pending=0, old_instance_alive_after_gc=0, new_first_cycle_ok=1"
+    },
+    {
+      "claim": "Unload during a solve then setup again: nothing left, handover republished, the new first cycle solves",
+      "command": "tools/audit/round2/D1/lifecycle_realloop.py",
+      "value": "unload_midsolve_listeners=0, unload_midsolve_mqtt_subs=0, unload_midsolve_tasks_alive=0, resetup_first_cycle_ok=1, handover_republished=1"
+    },
+    {
+      "claim": "No exception escapes any lifecycle scenario, eager or lazy task start",
+      "command": "tools/audit/round2/D1/lifecycle_realloop.py",
+      "value": "total_escaped_exceptions=0 in every arm"
+    },
+    {
+      "claim": "Tibber down at boot fails setup honestly (ConfigEntryNotReady) and the entry loads and solves on recovery",
+      "command": "tools/audit/round2/D1/lifecycle_realloop.py",
+      "value": "notready_eager.first_cycle_ok=1 after 5 retries"
+    },
+    {
+      "claim": "The live solve reads only copies: every loop-side writer mutated mid-solve changes nothing in the plan",
+      "command": "tools/audit/round2/D1/executor_race.py",
+      "value": "live_torn_fields=0, live_control_changed=26, live_repeat_identical=1, live_exceptions=0"
+    },
+    {
+      "claim": "A 4 h forward clock step marks the plan stale and stops actuation; a backward step clamps the plan age at 0",
+      "command": "tools/audit/round2/D1/staleness.py",
+      "value": "clock_fwd_plan_stale=1, clock_fwd_actuations=0, clock_fwd_plan_age_minutes=240.0, clock_back_plan_age_minutes=0.0, clock_back_plan_stale=0"
+    },
+    {
+      "claim": "unknown, unavailable and a 3 h-old reading are rejected by InputReader; a future last_reported is accepted as the entity's own claim",
+      "command": "tools/audit/round2/D1/staleness.py",
+      "value": "unknown_ok=0, unavailable_ok=0, three_hours_old_ok=0, future_last_reported_ok=1"
+    },
+    {
+      "claim": "Three failed solves raise the solve_failures repair issue, the plan is stale after 100 min and not actuated, recovery clears the issue and the counter",
+      "command": "tools/audit/round2/D1/staleness.py",
+      "value": "solve_fail_counter=3, solve_fail_issue_raised=1, solve_fail_plan_stale_after_100min=1, solve_fail_actuations_when_stale=0, solve_recover_counter=0, solve_recover_issue_cleared=1, solve_recover_plan_stale=0"
+    },
+    {
+      "claim": "A failed first weather fetch builds the 48 h constant series only when nothing better exists and marks it stale from that instant (published as 0.0 h; the key is read by no sensor or card, and goes to -2.0 after a 2 h backward clock step: hygiene)",
+      "command": "tools/audit/round2/D1/staleness.py",
+      "value": "fabricated_forecast_steps=48, fabricated_forecast_all_equal_current=1, fabricated_forecast_published_stale_hours=0.0, clock_back_weather_stale_hours=-2.0"
+    },
+    {
+      "claim": "No corrupt store payload ever takes the update loop down",
+      "command": "tools/audit/round2/D1/store_fuzz.py",
+      "value": "cycle1_failed=0 and cycle2_failed=0 in 2000/2000 mutants; silent_load=0"
+    },
+    {
+      "claim": "Snapshot ring, legionella timestamp and manual plan loaders validate their shape",
+      "command": "tools/audit/round2/D1/store_fuzz.py",
+      "value": "loader_raised=0/200 for snapshots, dhw_legionella, manual_plan"
+    },
+    {
+      "claim": "Healthy payloads load cleanly (null control of the fuzz)",
+      "command": "tools/audit/round2/D1/store_fuzz.py",
+      "value": "identity_failures=0 for all ten stores"
+    },
+    {
+      "claim": "The five DEBUG-swallowed sites (_command_frequency, _async_drive_pumps, _async_watch_learning_drift, _maybe_run_fuse_advisor, _maybe_refresh_price_tile) keep the cycle alive and recover; they never escalate a persistent fault (hygiene)",
+      "command": "tools/audit/round2/D1/guards.py",
+      "value": "cycle_completed=1, update_failed=0, recovered=1, logged_warn_plus=0 and logged_2nd_cycle=0 for each"
+    },
+    {
+      "claim": "A Store that refuses to write (OSError) never breaks the cycle and saves resume after recovery",
+      "command": "tools/audit/round2/D1/guards.py",
+      "value": "store_save_oserror.cycle_completed=1, update_failed=0, logged_warn_plus=0, recovered=1, saves_after_recovery=16"
+    },
+    {
+      "claim": "Faults in _update_current_state, _async_learn_price_shape, _apply_action, _record_accuracy surface as UpdateFailed (entities unavailable) and recover on the next good cycle",
+      "command": "tools/audit/round2/D1/guards.py",
+      "value": "update_failed=1, recovered=1 for each; ERROR logged every cycle (no log-once latch)"
+    },
+    {
+      "claim": "A failure in _command_valve_target or _file_lead_predictions logs 'Optimization failed' every cycle although the solve succeeded and the plan was stored; the failure counter is reset before it is incremented so the repair issue cannot trip (hygiene)",
+      "command": "tools/audit/round2/D1/guards.py",
+      "value": "cycle_completed=1, logged_warn_plus=1, logged_2nd_cycle=1, recovered=1"
+    }
+  ],
+  "harnesses": [
+    "tools/audit/round2/D1/lifecycle_realloop.py",
+    "tools/audit/round2/D1/store_fuzz.py",
+    "tools/audit/round2/D1/staleness.py",
+    "tools/audit/round2/D1/executor_race.py",
+    "tools/audit/round2/D1/guards.py"
+  ]
+}

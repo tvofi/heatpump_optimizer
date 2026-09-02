@@ -1,0 +1,11 @@
+--- a/custom_components/heatpump_optimizer/optimizer.py
++++ b/custom_components/heatpump_optimizer/optimizer.py
+@@ -365,7 +365,7 @@
+     if float(np.mean(prices)) > PRICE_MEAN_GUESS_EPS:
+         return np.clip(1.5 - prices / (np.mean(prices) + 1e-6), 0.2, 1.0)
+     ranks = np.argsort(np.argsort(prices)).astype(float)
+-    return 1.0 - 0.8 * ranks / float(max(len(prices) - 1, 1))
++    return 1.0 - 0.8 * ranks / float(len(prices) - 1)
+ 
+ 
+ def _price_ranked_start(

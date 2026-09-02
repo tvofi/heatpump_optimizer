@@ -1,0 +1,28 @@
+{
+  "panel": "D0",
+  "seats": 3,
+  "votes": {
+    "D0-01": ["verify(medium)", "verify(medium)", "weaken(low)"],
+    "D0-02": ["verify(low)", "verify(low)", "verify(low)"],
+    "D0-03": ["weaken(low)", "verify(medium)", "verify(medium)"]
+  },
+  "counted": {
+    "D0-01": "3-0 verify, severity 2-1 medium",
+    "D0-02": "3-0 verify (low)",
+    "D0-03": "3-0 verify, severity 2-1 medium, null control CONTESTED"
+  },
+  "severity": {
+    "D0-01": "medium",
+    "D0-02": "low",
+    "D0-03": "medium"
+  },
+  "voided": [],
+  "notes": {
+    "D0-01": "All three seats reproduce the finder's numbers to the digit (15/16, 4.8198, 58.2850). Seat 1's own end-to-end race: production returns a 7.000 kW plan carrying 60.00 SEK of its own peak_cost against a challenger's 6.000 kW / 0.00 SEK plan at identical comfort, status 'optimal' after stopping at nit=9 on FACTR; byte-identical on two numpy/scipy stacks; collapses to 0.356 SEK under peak_count=16. Seat 1's no-tariff negative control (mean gap 4.79 -> 0.11, pg_above_pgtol 16/16 -> 8/16) proves the tariff is the cause. Seat 2: realised capacity charge 60.00 vs 0.00 SEK over 3 closed-loop days, 0.00 vs 0.00 at flat prices. Seat 3 weakened: the shipped, settled, parity-checked gap is 0.2953 SEK/day after dropping the most favourable of 16 cells (92 % is one cell needing 1 of 5 weathers), the flat-price cells (1.39 SEK) beat the priced cells (0.14 SEK) by 10x, and the named stall mechanism recovers 0.0232 SEK, not 0.1661, winning no cell. FIX DEFECT (seat 1): the proposed fix passes tests/optimality.py 11/11 but costs mean 3.11 extra L-BFGS-B solves per call (max 6), not 'roughly one', on a codebase whose _MULTI_START_SOLVES=2 is justified by Raspberry-Pi hardware; and tariff.peak_cost feeds the published peak_cost field, so a smooth top-k changes a user-visible figure. JUDGE: the one 58 SEK cell ships a real 60.00 SEK peak_cost that re-planning cannot undo; decide between seat 3's leave-one-out aggregate and seat 1's single-cell consequence.",
+    "D0-02": "Reproduces best of the three (13/16, restart 6-7/16, 0.1997-0.2183). Seat 1's restart-only gap: 0.2583 SEK non-flat against 0.0005 mean / 0.0011 max at flat, a 516x ratio, pg_above_pgtol 16/16 -- the cleanest null in the panel. Money after leave-one-out: 0.0568-0.0645 SEK/day, 0.09 % of the bill; one cell of sixteen is 71.1 % of the shipped benefit and in one other cell the fix is 0.0746 SEK worse. Seat 3: the null passes at 24 h and INVERTS at 48 h, where the flat cell becomes the largest gap (1.2516 SEK). Low, with the fix folded into D0-01's restart rule.",
+    "D0-03": "Mechanism confirmed by all three: the cap-tightened re-solve stops at a kink (prod pg 7.0e3 -> 0.18 under the 35 -> 750 L tank perturbation) and production's shipped plan breaches the comfort floor (0.0229/0.0365 K-steps) where the challenger is at 0.0000. Seat 3 measured the flat-price null CLEAN (0.0000) and the settled, parity-checked gap at 0.74 SEK/day (DHW off) and 1.87 SEK/day (DHW on, max 4.89); two-zone only (single-zone 1/8 cells, LOO -0.043). Seat 1 weakened: the end-to-end mean bill gap +0.98 SEK becomes -0.25 SEK after leave-one-out (challenger dearer on average, 3/8 cells worse), and the 35 L baseline cell is not stack-reproducible (4.1884 -> 0.0000 on numpy 2.4.6/scipy 1.17.1). Seat 2 CONTESTS THE NULL: realised 2.2810 SEK/day (2.40 %) priced against 2.8457 SEK/day (2.90 %) AT FLAT PRICES over 3 closed-loop days -- 'real money, failed null control'. Two seats' nulls disagree because they measure different things (sub-problem objective vs closed-loop realised bill). JUDGE: run both definitions; if the realised gain survives flat prices it is a feasibility/kink defect, not a price-optimality one, and the title changes.",
+    "environment": "Seat 3: the report header's stack (python 3.13.1 / numpy 2.5.2 / scipy 1.18.1) does not exist on this box; the only numpy-bearing interpreter is 3.11.5 / numpy 2.4.6 / scipy 1.17.1, which tests/run.sh uses. Well-conditioned arms reproduce to four decimals; kinked, stalling arms do not, so per-cell SEK figures in the titles are not stack-reproducible."
+  },
+  "reports": ["D0/verify-1.md", "D0/verify-2.md", "D0/verify-3.md"],
+  "contention": "Costs, iteration counts, exit statuses and projected-gradient norms only; no wall-clock offered. thread_factor 1.000-1.024, load1 21-91 under the fan-out. Re-seeding (seeds 0,1,2 x k=0,4,8) shows the gaps are 98.9 % deterministic: not seed artefacts."
+}

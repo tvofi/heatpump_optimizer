@@ -1,0 +1,15 @@
+--- a/custom_components/heatpump_optimizer/snapshots.py
++++ b/custom_components/heatpump_optimizer/snapshots.py
+@@ -182,12 +182,6 @@
+                     continue
+             accuracy = snap.get("accuracy")
+             if not isinstance(accuracy, dict):
+-                if accuracy is not None:
+-                    _LOGGER.warning(
+-                        "Skipping snapshot taken at %s with a malformed "
+-                        "accuracy field; it cannot be evaluated for restore",
+-                        snap.get("taken_at", "?"),
+-                    )
+                 continue
+             bias = accuracy.get("temperature_bias")
+             if bias is not None and (

@@ -22,7 +22,7 @@
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 2.0,
+   "seconds": 3.3,
    "rc": 0
   },
   "tests/env_drift.py": {
@@ -361,6 +361,7 @@
    "custom_components/heatpump_optimizer/freq_control.py",
    "custom_components/heatpump_optimizer/frontend.py",
    "custom_components/heatpump_optimizer/grid_fee.py",
+   "custom_components/heatpump_optimizer/icons.json",
    "custom_components/heatpump_optimizer/inputs.py",
    "custom_components/heatpump_optimizer/ledger.py",
    "custom_components/heatpump_optimizer/manifest.json",
