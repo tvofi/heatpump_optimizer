@@ -184,7 +184,7 @@ VERSION_FILE = "VERSION"
 # category exists because the fixtures differ ACROSS machines, and the key's
 # whole job is to make a hit impossible across machines. Two pieces of
 # evidence rather than the assertion alone: a cold run and a warm run of
-# --all against the same ref both reported the same verdict over all 53
+# --all against the same ref both reported the same verdict over all 55
 # scenarios, the five sensitive ones included; and the optimizer's plan is
 # byte-identical with BLAS threads pinned to one and left at four (12 of 12
 # runs, same fingerprint), so a change in how many cores happened to be idle

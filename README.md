@@ -657,8 +657,10 @@ The integration can drive a Danfoss ECL110-compatible controller over MQTT,
 publishing a heat-pump on/off decision and an integer parallel shift (*displace*)
 onto the controller's own heat curve. Since v4.1.0 the ECL110 settings live only
 on the **Heat curve control (ECL110)** options page, not in initial setup, and
-both ECL110 sensors are disabled by default. Topics, payloads, options and the
-PI/PID lag handling are documented in [docs/ecl110.md](docs/ecl110.md).
+both ECL110 sensors are disabled by default. Both MQTT topics ship non-empty;
+if you do not have an ECL110, clear them on that options page or every cycle
+logs a failed publish attempt. Topics, payloads, options and the PI/PID lag
+handling are documented in [docs/ecl110.md](docs/ecl110.md).
 
 ## Project status
 
@@ -666,10 +668,19 @@ Backlog items 1–33 are all delivered; [docs/backlog.md](docs/backlog.md) keeps
 each one with the investigation behind it — the code that caused it, what was
 measured, and what a fix had to be careful of. The v4.0.0 feature program (36
 selected proposals, delivered as tranches T0 through T8 and recorded in
-[docs/plan-v4.0.0-program.md](docs/plan-v4.0.0-program.md)) followed, and the
-v4.0.x–v5.0.0 releases have been an audit train on top of it. What remains open —
-findings judged real and deliberately not built — is the short list at the top of
-`docs/backlog.md`.
+[docs/plan-v4.0.0-program.md](docs/plan-v4.0.0-program.md)) followed, and every
+release since v4.0.0 has been an audit train on top of it: a full-codebase
+review (August 2026, [docs/audit-2026-08.md](docs/audit-2026-08.md)), then an
+eleven-dimension audit repeated round by round
+([docs/audit-2026-09.md](docs/audit-2026-09.md)) alongside the open-issues
+program ([docs/plan-open-issues.md](docs/plan-open-issues.md)) and the card
+decomposition program
+([docs/plan-card-decomposition.md](docs/plan-card-decomposition.md)), each
+finding fixed and released one PR at a time under the standing gate protocol
+(see [tests/README.md](tests/README.md) for that gate). Every v6.0.0 or later
+release has its detail in [RELEASE_NOTES.md](RELEASE_NOTES.md); what remains
+open — findings judged real and deliberately not built — is the short list at
+the top of `docs/backlog.md`.
 
 ## Documentation
 

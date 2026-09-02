@@ -100,8 +100,8 @@ Measured against a real CI run of the fast job (2435 s: `stress.py` 1254 s,
 | change | scripts run | CI seconds | saved |
 |---|---|---|---|
 | a change to `RELEASE_NOTES.md` | 1 of 16 — `entities.py` | 5 | 100% |
-| a change to `tests/card.mjs` | 2 — `plan_view.py`, `card.mjs` | 11 | 100% |
-| a change to the card's JavaScript | 6 — `plan_view.py`, `card.mjs`, `features.py`, `entities.py`, `golden.py`, `env_drift.py` | 442 | 82% |
+| a change to `tests/card.mjs` | 3 — `plan_view.py`, `card.mjs`, `card_drift.mjs` | 15 | 100% |
+| a change to the card's JavaScript | 5 — `plan_view.py`, `card.mjs`, `card_drift.mjs`, `features.py`, `entities.py` | 430 | 82% |
 | a config-flow change (`config_flow.py`, `strings.json`, both translations) | 4 — `features.py`, `entities.py`, `golden.py`, `env_drift.py` | 431 | 82% |
 | a change to `optimizer.py` | 14 — everything but `frontend.py` and `open_meteo.py` | 2424 | 0% |
 
@@ -126,9 +126,13 @@ Scoping turns itself off and runs everything whenever it cannot be sure:
 * `tests/closures.json` is missing, or has no closure for some script in
   `tests/`, or names a script that no longer exists;
 * a changed file is not mentioned by *any* recorded closure and is not on the
-  short, checked list of files no test can read (`README.md`, `docs/`,
-  `RELEASE_NOTES.md`, the licence files, the brand images). "No test reads it"
-  is not something to assume about a file nobody measured;
+  short, checked list of files no test can read (`docs/`, `tools/`, this
+  file, the licence files, `DISCLAIMER.md`, the quality-scale register). The
+  repository's top-level `README.md` and `RELEASE_NOTES.md` are not on this
+  list — `entities.py` reads both — and neither are the brand images, which
+  `env_drift.py` reads; a change to any of the three is closure-mapped, not
+  assumed safe. "No test reads it" is not something to assume about a file
+  nobody measured;
 * the change touches the gate itself — `run.sh`, `closure.py`,
   `closures.json`, `requirements-ci.txt` or `.github/workflows/`;
 * `closure.py` fails for any reason at all;
@@ -152,8 +156,9 @@ whole suite and takes as long):
 which records just that script and merges the result into
 `tests/closures.json`. Commit both together. (`golden.py` and `env_drift.py`
 get their cheap recorded arguments automatically; `card.mjs` and
-`card_drift.mjs` are recorded through strace.) If the script belongs in a lane permanently, add it to
-`tests/derive_closures.sh` as well, so full re-derivations keep it fresh.
+`card_drift.mjs` are recorded through strace.) If the script belongs in a
+lane permanently, add it to `tests/derive_closures.sh` as well, so full
+re-derivations keep it fresh.
 
 ### What you see when something is skipped
 
@@ -218,14 +223,14 @@ python tests/manual_plan.py  # manual plan pinning: parsing, solver interaction,
 python tests/open_meteo.py   # the irradiance client
 python tests/solar_alignment.py  # irradiance lands on the right optimizer steps
 python tests/golden.py       # exact behaviour, pinned (--record to re-record)
-python tests/validate.py     # 18 seasonal scenarios, asserts invariants
+python tests/validate.py     # 22 seasonal scenarios, asserts invariants
 python tests/edge.py         # degenerate inputs and boundary conditions
 python tests/backtest.py     # replay against alternative strategies
 python tests/stress.py       # 48 combinations, 17 edge cases, economics
 python tests/rolling.py      # days of re-planning against a mismatched house
 python tests/optimality.py   # solution-quality floor against cheap challengers
 python tests/env_drift.py    # sensitive fixtures vs origin/main, same machine
-python tests/plan_view.py    # plan sensor payloads, writes /tmp/plandata.json
+python tests/plan_view.py    # plan sensor payloads, writes HPO_PLANDATA (default /tmp/plandata-<hash>.json)
 node   tests/card.mjs        # renders the dashboard card against that payload
 node   tests/setup_qa_render.mjs  # setup-page SVGs off the same payload, for designer review
 node   tests/card_drift.mjs       # the card's markup gate: this tree vs GOLDEN_REF, byte for byte
@@ -282,7 +287,7 @@ Most of these scripts ask "is the answer good?". Two ask something different,
 and between them they cover the failures that are otherwise invisible.
 
 **`golden.py` asks "has the answer changed?"** It records the complete output of
-53 fixtures (47 plan scenarios, 5 coordinator captures and the config-flow
+55 fixtures (49 plan scenarios, 5 coordinator captures and the config-flow
 schema) — every schedule, trajectory, setpoint, cost, reason code and
 option-page field — and diffs byte for byte. The optimizer is deterministic, so
 any difference is real. This is what makes a refactor safe: the outcome-based
@@ -352,7 +357,7 @@ it was captured, and a digest per key component, so you can see what the reuse
 was conditional on. If a result looks wrong and you want the baseline rebuilt
 from scratch to be certain, re-run with `DRIFT_NO_CACHE=1`; the verdict must
 come out identical, and a cold and a warm run of `--all` against the same ref
-have been checked to agree across all 53 scenarios including the five sensitive
+have been checked to agree across all 55 scenarios including the five sensitive
 ones. A cache hit never changes how a scenario is judged — it only changes
 where one side of the comparison came from. The branch half is always recaptured, so
 even if the environment moved without moving the key, a mismatched baseline
@@ -454,7 +459,11 @@ model. Drift, oscillation and learner divergence only appear there.
 - **plan_view.py** runs a winter scenario and builds the payloads the two plan
   sensors publish, checking that the slot summaries reconcile with the raw step
   schedule and that every heating step carries a reason code and price
-  provenance. It writes the result to `/tmp/plandata.json`.
+  provenance. It writes the result to `HPO_PLANDATA`, which defaults to
+  `/tmp/plandata-<sha256(tests dir)[:12]>.json` (a per-checkout path, so two
+  worktrees never collide); `card.mjs` alone falls back to an unhashed
+  default under `/tmp` with a warning if the variable is unset, but every
+  other Node harness requires it.
 - **frontend.py** checks how the card reaches the browser: that a missing
   resource is created, a stale cache-busting query is refreshed rather than
   left to serve a cached card, a duplicate copy installed elsewhere is
@@ -484,7 +493,7 @@ model. Drift, oscillation and learner divergence only appear there.
   skips it when `GOLDEN_REF` is unreachable or is this commit, exactly as it
   does for `env_drift.py`.
 
-Four files in `tests/` are not tests at all and are excluded from the
+Seven files in `tests/` are not tests at all and are excluded from the
 "every script must be wired into `run.sh`" accounting:
 
 - **dom_stub.mjs** is the DOM the Node card harnesses run against (#101),
@@ -493,7 +502,17 @@ Four files in `tests/` are not tests at all and are excluded from the
   the three setup-page topologies, the frozen clock, and the claim-file
   parser `card.mjs` and `card_drift.mjs` both use. One copy, three
   importers, for the reason #101 records.
-
+- **harness.py** and **profiles.py** are shared fixtures the unit-style and
+  end-to-end scripts import — fakes and price/weather profiles, not scripts
+  with assertions of their own; see "What each script is for" below for what
+  each holds.
+- **setup_qa_render.mjs** is a manual QA render: it writes SVGs to
+  `../setup-qa/`, outside the repository, for a designer to eyeball, and
+  nothing in the gate reads its output.
+- **card_browser.mjs** is a real test — the only one that exercises the card
+  in an actual browser rather than a DOM stub — but it runs in its own
+  `browser` CI job, not this gate's scoped selection; see "Note on browser
+  checks" below.
 - **closure.py** is the scoping instrument. It runs the tests in order to
   measure what they touch, derives each one's dependency closure, folds the
   records into `tests/closures.json`, decides what a given diff needs, and
@@ -504,5 +523,13 @@ Four files in `tests/` are not tests at all and are excluded from the
 
 ## Note on browser checks
 
-`card.mjs` does not lay anything out, so it cannot catch a visual overflow. For
-changes to the chart's geometry, verify in a real browser as well.
+`card.mjs` renders against a DOM stub that returns a constant rectangle for
+every measurement, so it cannot catch a visual overflow, a font that failed to
+load, or anything else that depends on real layout. `tests/card_browser.mjs`
+covers that gap: it drives the card in an actual Chromium (via Playwright,
+resolved from `NODE_PATH`, under `PLAYWRIGHT_BROWSERS_PATH`) and is run by its
+own `browser` job in `.github/workflows/tests.yml` on every push and pull
+request — never scoped, and not one of the sixteen scripts `run.sh` lanes
+above. For changes to the chart's geometry, that job is what actually verifies
+them; running `card_browser.mjs` locally needs the same Playwright/Chromium
+setup CI uses.

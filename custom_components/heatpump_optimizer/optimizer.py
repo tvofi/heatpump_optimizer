@@ -683,7 +683,7 @@ class OptimizationResult:
     predicted_cost: float  # total cost in currency units
     baseline_cost: float  # cost with constant-temp strategy
     predicted_savings: float  # savings vs baseline
-    savings_percentage: float  # savings as percentage
+    savings_percentage: float  # -100..100, not a fraction; see _savings_percentage
     optimal_setpoints: list[float]  # recommended setpoints per step
     status: str  # optimization status
     solve_time_ms: float = 0.0

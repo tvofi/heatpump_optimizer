@@ -210,3 +210,5 @@ to, and the two objectives had silently drifted apart.
   `sv.json` for its name — display names come from the translation key, and
   `tests/entities.py` pins the entity counts the README publishes against the
   entities the platforms actually construct.
+- Running or extending the test suite: [tests/README.md](../tests/README.md)
+  covers the gate, the scoping closures and what each script is for.

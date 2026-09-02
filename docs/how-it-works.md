@@ -561,9 +561,10 @@ heated closer to when the water is needed.
 
 The **buffer** tank rate uses the same estimator, but only when a buffer tank
 temperature sensor is configured. Without one, a prior derived from the tank's
-size is used — and both that prior and the range learning may move within follow
-the tank's **surface area** rather than its volume. Heat escapes through a
-tank's skin, and a large tank has far less skin for the water it holds: a
+size is used — and both that prior and the range the learning may move
+within, follow the tank's **surface area** rather than its volume. Heat
+escapes through a tank's skin, and a large tank has far less skin for the
+water it holds: a
 750-litre accumulator loses proportionally much less than a 35-litre buffer, so
 one "degrees per hour" figure cannot describe both. Applied unscaled, a small
 tank's figure models more heat lost in six hours than a big tank can physically
@@ -1184,11 +1185,12 @@ window would freeze learning for two extra days after it closed.
 Every planned slot carries a **reason code** — cheapest hours, holding the
 minimum temperature, pre-heating before colder weather, using solar surplus, the
 anti-legionella cycle, and so on — in the plan sensor attributes and in the
-card's tooltip. A step that is none of those is `scheduled`, "keeping the house
-at target": until v5.1.7 the fall-through was `preheat_weather`, so an ordinary
-mid-price hour claimed to be anticipating weather nobody had forecast. Without it, an unexpected slot is indistinguishable from a bug,
-which makes the optimizer hard to trust and bug reports much weaker than they
-could be. Everything below is built on those codes:
+card's tooltip. Without it, an unexpected slot is indistinguishable from a
+bug, which makes the optimizer hard to trust and bug reports much weaker than
+they could be. A step that is none of those is `scheduled`, "keeping the
+house at target": until v5.1.7 the fall-through was `preheat_weather`, so an
+ordinary mid-price hour claimed to be anticipating weather nobody had
+forecast. Everything below is built on those codes:
 
 | Where to look | What it explains |
 |---|---|

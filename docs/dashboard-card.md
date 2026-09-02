@@ -28,6 +28,8 @@ A vertical "now" marker is drawn at the current time, and hovering (or touching)
 the plot shows a crosshair and a tooltip with the value of every visible series
 at the nearest sample, plus **why** the plan is heating at that moment.
 
+## Reading the chart
+
 ### The two kinds of dashed line
 
 Two series draw a dashed pair beside their solid curve, and they mean entirely

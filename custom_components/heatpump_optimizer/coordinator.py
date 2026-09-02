@@ -4365,7 +4365,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             # Update current state from sensors
             await self._update_current_state()
 
-            # Fetch prices from Tibber
+            # Raises UpdateFailed on any failure -- see _fetch_tibber_prices.
             await self._fetch_tibber_prices()
 
             # Fetch weather forecast (full 24h for solar, wind, rain, temp)
