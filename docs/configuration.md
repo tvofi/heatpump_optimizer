@@ -52,7 +52,7 @@ reported as a connection problem rather than as a bad token.
 | Weather forecast | — (**required**) | A `weather` entity supplying outdoor temperature, wind and rain for the next 24 hours. The optimizer plans ahead, so a forecast is not optional. |
 | Indoor temperature sensor | none | The real room temperature. Without it the optimizer trusts its own model, which drifts over time — this is the sensor worth finding first. |
 | Outdoor temperature sensor | none | A local thermometer beats the forecast for the current hour. |
-| Heat pump on/off switch | none | A `switch` the optimizer may turn off during expensive hours. Without it — and without the ECL110 or frequency-control paths — the plan is published on sensors for your own automations to act on. |
+| Heat pump on/off switch | none | A `switch` the optimizer may turn off during expensive hours. Without it — and without the ECL110 or frequency-control paths — the plan is published on sensors for your own automations to act on ([worked examples](automations.md)). |
 | Solar radiation sensor | none | Irradiance in W/m². Lets the plan skip heating before a sunny afternoon. |
 | Solar irradiance source | Weather entity | `Weather entity` reads irradiance from your weather integration, which often does not publish any. `Open-Meteo` fetches a free forecast for the location below; no account needed. |
 | Solar irradiance location | your Home Assistant home location | The coordinate Open-Meteo is asked about. Only used when the source is Open-Meteo. |
