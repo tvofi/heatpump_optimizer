@@ -1,5 +1,27 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.3.2
+
+### The solver starts from a low-energy basin, and every candidate is refined
+
+Audit round 1, group B6 (#208; price-optimality findings D0-01 and D0-02).
+Every multi-start candidate used to anchor to the same total energy -- the
+baseline's -- so on arbitrage-shaped prices all of them refined into one
+basin and strictly cheaper comfort-feasible plans went unfound. Both solve
+paths now seed a low-energy bang-bang start (35 % of the baseline energy),
+and every candidate is refined rather than two-of-four by a raw pre-score.
+
+**Measured on the audit's adversarial shapes (15-scenario harness, comfort
+parity enforced, leave-one-out on the aggregate): cheaper on 4 of 15 --
+winter_two_zone_dhw −1.57 %, cheap_late single-zone −1.40 %, mid-spike
+two-zone −0.48 %; regressions 0; comfort violations 0; flat days
+unchanged.** Twelve plan fixtures move to the cheaper basin on CI's Linux
+runners (the boundary is solver-noise-sensitive; the claim list records
+the CI mover set). Solve cost rises on the cheap scenarios (fixed
+per-start overhead) and the per-scenario stress budgets caught exactly
+that on the first CI run -- the table is re-recorded for the fuller
+sweep: worst scenario 511.6x, shoulder/tariff 158.5x (was 69.1x).
+
 ## v6.3.1
 
 ### Reauthentication for a refused Tibber token, and a diagnostics payload
