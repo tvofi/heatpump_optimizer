@@ -1,5 +1,44 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.3.0
+
+### Services survive the entry, the coordinator rides the entry, duplicates abort
+
+Audit round-1 fix group B5 (#207; closes #180, #181, #182, #183, #184), the
+Bronze/Silver quality-scale batch. **Breaking: the Home Assistant floor rises
+from 2024.1.0 to 2024.6.0**, the first release that carries
+`ConfigEntry.runtime_data` (verified against the upstream tags: absent at
+2024.5.0, present with delete-on-unload at 2024.6.0); every other API this
+release uses predates 2024.1. Executed before/after from
+`tools/audit/round1/B5/harness.py`:
+
+- **The eleven services are registered once, in `async_setup`**, and resolve
+  the loaded entry (or every loaded entry) at call time; a missing or unloaded
+  `entry_id` is refused by name. Registrations with two entries: 22 → 11;
+  services still registered after the last unload: 0 → 11.
+- **The coordinator is the entry's `runtime_data`**; `hass.data[DOMAIN]`
+  reads: 24 → 0; platforms reading runtime data: 0 → 5.
+- **A duplicate setup aborts.** The user step sets a unique id from the token
+  and the first-screen entity slots; the same answers a second time abort as
+  already configured, a different heat pump proceeds (null control unchanged).
+  Entries created before this release carry no unique id, so the guard bites
+  for entries created from now on; a setup-time backfill is a one-function
+  follow-up.
+- **`PARALLEL_UPDATES`** is declared on every platform (0 on the read-only
+  sensor platforms, 1 where actions go out).
+- **The README says how to remove the integration**: the delete path, the
+  pump's last command, the ten store files under `.storage` by name (pinned
+  to the coordinator's roster by a test), the Lovelace resource, and the HACS
+  uninstall.
+
+The test stub gains `runtime_data` (deleted on unload, as upstream does),
+`ConfigEntryState`, `async_set_unique_id`/`_abort_if_unique_id_configured`,
+`AbortFlow` and `config_entry_only_config_schema`; the adversarial review
+compared each with the 2024.6.0 source and found no direction in which the
+stub is looser. Mutation-proven by named checks per issue (10 for the service
+move, 5 for the removal section, 5 for `PARALLEL_UPDATES`); no golden moves;
+rebased and re-executed on the v6.2.17 tree before merge.
+
 ## v6.2.17
 
 ### The config flow validates what it asks for, and money fields say which currency

@@ -19,8 +19,8 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 6.2.17
+# claims-for: 6.3.0
 #
-# v6.2.17: the config-flow validation and entity-hygiene release. The stamp empties the list; the
+# v6.3.0: the quality-scale Bronze/Silver release. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
