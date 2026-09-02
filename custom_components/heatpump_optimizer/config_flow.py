@@ -1425,6 +1425,56 @@ class HeatPumpOptimizerConfigFlow(
         """Get the options flow for this handler."""
         return HeatPumpOptimizerOptionsFlow(config_entry)
 
+    async def async_step_reauth(
+        self, entry_data: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Reauthentication entry point (D10-08).
+
+        The coordinator starts this flow when Tibber refuses the token
+        (HTTP 401/403) -- a credential a retry cannot fix. Without it, a
+        rotated or revoked token meant deleting and recreating the entry;
+        with it, Repairs walks the user straight to a single token field.
+        """
+        getter = getattr(self, "_get_reauth_entry", None)
+        self._reauth_entry = getter() if getter else self._entry_from_context()
+        return await self.async_step_reauth_confirm()
+
+    def _entry_from_context(self) -> config_entries.ConfigEntry | None:
+        """The entry being reauthenticated, on cores without the helper."""
+        context = getattr(self, "context", None) or {}
+        entry_id = context.get("entry_id")
+        entries = self.hass.config_entries.async_entries(DOMAIN)
+        for entry in entries:
+            if entry.entry_id == entry_id:
+                return entry
+        return entries[0] if entries else None
+
+    async def async_step_reauth_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Ask for the one credential that can have gone bad."""
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            verdict = await validate_tibber_token(
+                self.hass, user_input[CONF_TIBBER_TOKEN]
+            )
+            if verdict == "ok":
+                entry = self._reauth_entry
+                self.hass.config_entries.async_update_entry(
+                    entry,
+                    data={**entry.data, CONF_TIBBER_TOKEN: user_input[CONF_TIBBER_TOKEN]},
+                )
+                await self.hass.config_entries.async_reload(entry.entry_id)
+                return self.async_abort(reason="reauth_successful")
+            errors[CONF_TIBBER_TOKEN] = (
+                "invalid_tibber_token" if verdict == "invalid_auth" else "cannot_connect"
+            )
+        return self.async_show_form(
+            step_id="reauth_confirm",
+            data_schema=vol.Schema({vol.Required(CONF_TIBBER_TOKEN): str}),
+            errors=errors,
+        )
+
 
 class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.OptionsFlow):
     """Handle options flow for Heat Pump Optimizer.

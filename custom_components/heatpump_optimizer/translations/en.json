@@ -206,6 +206,13 @@
           "wind_sensitivity_factor": "How much extra heat the house loses per m/s of wind. Raise it if the house noticeably cools down on windy days, so the optimizer pre-heats beforehand.",
           "rain_heat_loss_multiplier": "Extra heat loss while it is raining. 1.0 means rain makes no difference."
         }
+      },
+      "reauth_confirm": {
+        "title": "Reauthenticate Tibber",
+        "description": "Tibber refused the configured token. Enter a valid API token to restore price updates.",
+        "data": {
+          "tibber_token": "Tibber API token"
+        }
       }
     },
     "error": {
@@ -223,7 +230,8 @@
       "stored_value_out_of_range": "This value is outside the range this field normally accepts. The range was widened so the page can still be saved — check the value, and correct it if it looks wrong."
     },
     "abort": {
-      "already_configured": "This integration is already set up."
+      "already_configured": "This integration is already set up.",
+      "reauth_successful": "Reauthentication successful; reloading with the new token."
     }
   },
   "options": {

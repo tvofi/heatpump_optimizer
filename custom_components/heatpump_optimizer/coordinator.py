@@ -845,6 +845,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # a torn-down entry; and the Tibber outage latch (D10-09).
         self._background_tasks: set[Any] = set()
         self._tibber_outage_cycles: int = 0
+        # One reauth flow per auth outage (D10-08): re-armed on recovery.
+        self._tibber_reauth_started: bool = False
 
         # Solar irradiance and the floor return temperature sensor.
         self._solar_radiation: float = 0.0
@@ -5411,6 +5413,18 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 headers=headers,
                 timeout=aiohttp.ClientTimeout(total=15),
             ) as resp:
+                if resp.status in (401, 403):
+                    # The token itself was refused: a retry cannot fix it.
+                    # Start the reauthentication flow (D10-08) so Repairs
+                    # offers to fix the credential instead of the
+                    # integration sitting unavailable until the entry is
+                    # deleted and recreated.
+                    self._tibber_start_reauth()
+                    self._tibber_fetch_failed(
+                        f"Tibber refused the token (HTTP {resp.status}); "
+                        "reauthentication started"
+                    )
+                    return
                 if resp.status != 200:
                     self._tibber_fetch_failed(f"Tibber API error: {resp.status}")
                     return
@@ -5475,6 +5489,29 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 self._tibber_outage_cycles,
             )
         self._tibber_outage_cycles = 0
+        # A later revocation of the (new) token deserves its own flow.
+        self._tibber_reauth_started = False
+
+    def _tibber_start_reauth(self) -> None:
+        """Offer the reauthentication flow once per refused token (D10-08).
+
+        Home Assistant raises the Repairs item and walks the user through
+        replacing the credential; without it, a rotated or revoked token
+        meant deleting and recreating the whole entry. Idempotent-guarded
+        because a refused token fails every cycle until fixed: the flow
+        is only started once per auth outage.
+        """
+        if self._tibber_reauth_started:
+            return
+        entry = getattr(self, "config_entry", None)
+        if entry is None or not hasattr(entry, "async_start_reauth"):
+            return
+        self._tibber_reauth_started = True
+        entry.async_start_reauth(self.hass)
+        _LOGGER.warning(
+            "Tibber refused the configured token; reauthentication is "
+            "required (Home Assistant will offer it under Repairs)"
+        )
 
     async def _fetch_weather_forecast(self) -> None:
         """Fetch full 24-hour weather forecast from Home Assistant weather entity.

@@ -5,7 +5,12 @@ from datetime import timedelta
 from typing import Final
 
 DOMAIN: Final = "heatpump_optimizer"
-PLATFORMS: Final = ["sensor", "binary_sensor", "button", "climate", "switch"]
+# "diagnostics" serves no entities: it is the Download-diagnostics
+# hook (D10-12), listed so the forwarding machinery loads it.
+PLATFORMS: Final = [
+    "sensor", "binary_sensor", "button", "climate", "switch",
+    "diagnostics",
+]
 
 # Schema version of the config entry. Bump when stored keys change in a way
 # that needs migrating, and handle it in ``async_migrate_entry``.
