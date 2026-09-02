@@ -45,8 +45,11 @@
 #
 # claims-for: 6.3.2
 #
-# v6.3.0: the quality-scale Bronze/Silver release. The stamp empties the list; the
-# next branch restates its own footprint, claims included.
+# The v6.3.1 diagnostics-platform hotfix: PLATFORM_LIST and
+# const.PLATFORMS lose an entry that is not a Home Assistant platform,
+# the test stub loses the member it invented, and entities.py gains the
+# checks that pin both. No solver, sensor or store path is touched, so
+# no fixture moves and the list is empty.
 #
 #
 # every-candidate): nine plan scenarios find the cheaper
