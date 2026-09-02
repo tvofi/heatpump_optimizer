@@ -1,0 +1,46 @@
+
+=== Stress and economics ===
+
+-- Combination sweep
+  solve-time guard: reference solve 42.6 ms of CPU on this machine, budget 1400x that per scenario (= 59.7 s of CPU), sweep budget 450x, absolute wall ceiling 600000 ms
+  ok   all 48 combinations satisfy the invariants
+  ok   the comfort floor is never breached beyond what physics forces
+  ok   hot water is available when promised
+  ok   the solve-time guard calibrated against a reference solve per scenario
+  reference solve over the sweep: 35.1 / 41.3 / 57.5 ms of CPU (min/median/max of 55 samples); the same samples in wall clock: 35.1 / 41.4 / 59.5 ms -- the wall spread is the machine's load, the CPU spread is all the guard has to tolerate
+  calibration overhead: 2.4 s of wall clock for 55 samples
+  worst scenario: shoulder/tariff+pv+cycle used 32722 ms of CPU = 767.8x its 42.6 ms reference; budget is 1400x
+  ok   every scenario's solve costs what it should, in CPU, for this machine
+  whole sweep: 306.8 s of solver CPU against 2.0 s of reference CPU = 153.03x; budget is 450.00x
+  ok   the sweep as a whole costs what it has always cost, relative to this machine
+  thread factor (process CPU / this-thread CPU): reference 1.000, scenarios 1.000 -- these must match for the ratio above to be a pure work ratio that travels to another machine
+  ok   the reference and the scenarios are parallelised alike, so the thread factor cancels in the ratio
+  ok   no scenario hits the absolute pathological-solve ceiling
+
+-- Economics
+  ok   winter: cheaper than holding the setpoint
+  ok   winter_extreme: cheaper than holding the setpoint
+  ok   shoulder: cheaper than holding the setpoint
+  ok   a flat price curve produces no fictitious saving
+  ok   a flat price curve still respects comfort
+  ok   a wider price spread yields a larger saving
+  ok   a higher comfort weight is warmer, across the documented range
+  ok   a higher comfort weight saves less, across the documented range
+  ok   the README's comfort-weight table still holds
+  ok   solver noise under an economically nil perturbation stays small
+  ok   a capacity tariff lowers the projected peak
+  ok   and does not wreck comfort doing it
+  ok   a cycling cost reduces compressor starts
+  ok   PV surplus is self-consumed
+  ok   a more efficient heat pump is never worse, and is better somewhere
+  ok   a leakier, larger house costs more to heat
+
+-- Edge conditions
+  ok   all 17 edge conditions produce a sound plan
+  ok   an undersized pump runs flat out rather than giving up
+  ok   negative prices are exploited rather than ignored
+  ok   the baseline scenario plans electric hot water inside the 2 h horizon
+  ok   an external heat source suppresses electric hot water
+  ok   suppression lowers total electric DHW energy, not just moves it
+
+ALL 30 STRESS CHECKS PASSED

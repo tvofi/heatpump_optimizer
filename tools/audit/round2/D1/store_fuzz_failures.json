@@ -1,0 +1,1235 @@
+{
+ "snapshots": [],
+ "dhw_profile": [
+  {
+   "index": 0,
+   "mutation": "none@hourly_profile/1",
+   "loader_exc": "TypeError(\"'>=' not supported between instances of 'NoneType' and 'float'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 10,
+   "mutation": "type_swap@profile_weekday/18",
+   "loader_exc": "UFuncTypeError(<ufunc 'clip'>, (dtype('<U5'), dtype('float64'), dtype('float64'), None))",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 14,
+   "mutation": "string_for_dict@hourly_profile/12",
+   "loader_exc": "UFuncTypeError(<ufunc 'clip'>, (dtype('<U7'), dtype('float64'), dtype('float64'), None))",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 17,
+   "mutation": "wrap_list@hourly_profile/18",
+   "loader_exc": "TypeError('only 0-dimensional arrays can be converted to Python scalars')",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 25,
+   "mutation": "wrap_list@hourly_profile/1",
+   "loader_exc": "TypeError('only 0-dimensional arrays can be converted to Python scalars')",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 27,
+   "mutation": "string_for_dict@profile_weekday/7",
+   "loader_exc": "UFuncTypeError(<ufunc 'clip'>, (dtype('<U7'), dtype('float64'), dtype('float64'), None))",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 28,
+   "mutation": "wrap_dict@profile_weekday/9",
+   "loader_exc": "TypeError(\"'>=' not supported between instances of 'dict' and 'float'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 29,
+   "mutation": "wrap_dict@profile_weekday/0",
+   "loader_exc": "TypeError(\"'>=' not supported between instances of 'dict' and 'float'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 31,
+   "mutation": "type_swap@profile_weekend/0",
+   "loader_exc": "UFuncTypeError(<ufunc 'clip'>, (dtype('<U5'), dtype('float64'), dtype('float64'), None))",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 32,
+   "mutation": "wrap_list@profile_weekday/12",
+   "loader_exc": "TypeError('only 0-dimensional arrays can be converted to Python scalars')",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 33,
+   "mutation": "wrap_dict@hourly_profile/7",
+   "loader_exc": "TypeError(\"'>=' not supported between instances of 'dict' and 'float'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 34,
+   "mutation": "string_for_dict@hourly_profile/20",
+   "loader_exc": "UFuncTypeError(<ufunc 'clip'>, (dtype('<U7'), dtype('float64'), dtype('float64'), None))",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 38,
+   "mutation": "wrap_dict@profile_weekend/0",
+   "loader_exc": "TypeError(\"'>=' not supported between instances of 'dict' and 'float'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 42,
+   "mutation": "type_swap@profile_weekend/18",
+   "loader_exc": "UFuncTypeError(<ufunc 'clip'>, (dtype('<U5'), dtype('float64'), dtype('float64'), None))",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 43,
+   "mutation": "none@hourly_profile/22",
+   "loader_exc": "TypeError(\"'>=' not supported between instances of 'NoneType' and 'float'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 44,
+   "mutation": "wrap_dict@hourly_profile/22",
+   "loader_exc": "TypeError(\"'>=' not supported between instances of 'dict' and 'float'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 48,
+   "mutation": "wrap_list@profile_weekday/8",
+   "loader_exc": "TypeError('only 0-dimensional arrays can be converted to Python scalars')",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 49,
+   "mutation": "wrap_list@hourly_profile/1",
+   "loader_exc": "TypeError('only 0-dimensional arrays can be converted to Python scalars')",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 56,
+   "mutation": "wrap_dict@profile_weekend/23",
+   "loader_exc": "TypeError(\"'>=' not supported between instances of 'dict' and 'float'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 67,
+   "mutation": "string_for_dict@profile_weekend/17",
+   "loader_exc": "UFuncTypeError(<ufunc 'clip'>, (dtype('<U7'), dtype('float64'), dtype('float64'), None))",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 68,
+   "mutation": "none@hourly_profile/8",
+   "loader_exc": "TypeError(\"'>=' not supported between instances of 'NoneType' and 'float'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 70,
+   "mutation": "type_swap@hourly_profile/13",
+   "loader_exc": "UFuncTypeError(<ufunc 'clip'>, (dtype('<U5'), dtype('float64'), dtype('float64'), None))",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 72,
+   "mutation": "wrap_dict@profile_weekend/5",
+   "loader_exc": "TypeError(\"'>=' not supported between instances of 'dict' and 'float'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 74,
+   "mutation": "string_for_dict@profile_weekday/23",
+   "loader_exc": "UFuncTypeError(<ufunc 'clip'>, (dtype('<U7'), dtype('float64'), dtype('float64'), None))",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 75,
+   "mutation": "string_for_dict@hourly_profile/2",
+   "loader_exc": "UFuncTypeError(<ufunc 'clip'>, (dtype('<U7'), dtype('float64'), dtype('float64'), None))",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 81,
+   "mutation": "type_swap@profile_weekend/7",
+   "loader_exc": "UFuncTypeError(<ufunc 'clip'>, (dtype('<U5'), dtype('float64'), dtype('float64'), None))",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 82,
+   "mutation": "wrap_list@profile_weekday/9",
+   "loader_exc": "TypeError('only 0-dimensional arrays can be converted to Python scalars')",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 84,
+   "mutation": "wrap_dict@hourly_profile/7",
+   "loader_exc": "TypeError(\"'>=' not supported between instances of 'dict' and 'float'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 92,
+   "mutation": "none@profile_weekend/5",
+   "loader_exc": "TypeError(\"'>=' not supported between instances of 'NoneType' and 'float'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 94,
+   "mutation": "top:wrapped_list",
+   "loader_exc": "AttributeError(\"'list' object has no attribute 'get'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 95,
+   "mutation": "wrap_dict@hourly_profile/4",
+   "loader_exc": "TypeError(\"'>=' not supported between instances of 'dict' and 'float'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 97,
+   "mutation": "none@profile_weekday/3",
+   "loader_exc": "TypeError(\"'>=' not supported between instances of 'NoneType' and 'float'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 100,
+   "mutation": "none@profile_weekday/18",
+   "loader_exc": "TypeError(\"'>=' not supported between instances of 'NoneType' and 'float'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 101,
+   "mutation": "none@hourly_profile/17",
+   "loader_exc": "TypeError(\"'>=' not supported between instances of 'NoneType' and 'float'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 109,
+   "mutation": "string_for_dict@hourly_profile/4",
+   "loader_exc": "UFuncTypeError(<ufunc 'clip'>, (dtype('<U7'), dtype('float64'), dtype('float64'), None))",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 111,
+   "mutation": "type_swap@hourly_profile/5",
+   "loader_exc": "UFuncTypeError(<ufunc 'clip'>, (dtype('<U5'), dtype('float64'), dtype('float64'), None))",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 112,
+   "mutation": "wrap_list@hourly_profile/23",
+   "loader_exc": "TypeError('only 0-dimensional arrays can be converted to Python scalars')",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 113,
+   "mutation": "wrap_dict@hourly_profile/21",
+   "loader_exc": "TypeError(\"'>=' not supported between instances of 'dict' and 'float'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 120,
+   "mutation": "wrap_list@profile_weekday/21",
+   "loader_exc": "TypeError('only 0-dimensional arrays can be converted to Python scalars')",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 125,
+   "mutation": "wrap_dict@profile_weekday/1",
+   "loader_exc": "TypeError(\"'>=' not supported between instances of 'dict' and 'float'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 127,
+   "mutation": "string_for_dict@profile_weekend/18",
+   "loader_exc": "UFuncTypeError(<ufunc 'clip'>, (dtype('<U7'), dtype('float64'), dtype('float64'), None))",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 128,
+   "mutation": "wrap_dict@profile_weekday/0",
+   "loader_exc": "TypeError(\"'>=' not supported between instances of 'dict' and 'float'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 133,
+   "mutation": "string_for_dict@profile_weekday/8",
+   "loader_exc": "UFuncTypeError(<ufunc 'clip'>, (dtype('<U7'), dtype('float64'), dtype('float64'), None))",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 135,
+   "mutation": "type_swap@profile_weekend/15",
+   "loader_exc": "UFuncTypeError(<ufunc 'clip'>, (dtype('<U5'), dtype('float64'), dtype('float64'), None))",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 136,
+   "mutation": "type_swap@profile_weekday/19",
+   "loader_exc": "UFuncTypeError(<ufunc 'clip'>, (dtype('<U5'), dtype('float64'), dtype('float64'), None))",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 138,
+   "mutation": "none@hourly_profile/20",
+   "loader_exc": "TypeError(\"'>=' not supported between instances of 'NoneType' and 'float'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 142,
+   "mutation": "string_for_dict@profile_weekday/4",
+   "loader_exc": "UFuncTypeError(<ufunc 'clip'>, (dtype('<U7'), dtype('float64'), dtype('float64'), None))",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 143,
+   "mutation": "none@hourly_profile/1",
+   "loader_exc": "TypeError(\"'>=' not supported between instances of 'NoneType' and 'float'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 145,
+   "mutation": "wrap_list@hourly_profile/19",
+   "loader_exc": "TypeError('only 0-dimensional arrays can be converted to Python scalars')",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 148,
+   "mutation": "type_swap@profile_weekday/7",
+   "loader_exc": "UFuncTypeError(<ufunc 'clip'>, (dtype('<U5'), dtype('float64'), dtype('float64'), None))",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 149,
+   "mutation": "type_swap@profile_weekday/3",
+   "loader_exc": "UFuncTypeError(<ufunc 'clip'>, (dtype('<U5'), dtype('float64'), dtype('float64'), None))",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 154,
+   "mutation": "none@profile_weekend/10",
+   "loader_exc": "TypeError(\"'>=' not supported between instances of 'NoneType' and 'float'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 156,
+   "mutation": "wrap_dict@profile_weekday/5",
+   "loader_exc": "TypeError(\"'>=' not supported between instances of 'dict' and 'float'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 160,
+   "mutation": "wrap_dict@profile_weekday/14",
+   "loader_exc": "TypeError(\"'>=' not supported between instances of 'dict' and 'float'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 162,
+   "mutation": "none@profile_weekend/21",
+   "loader_exc": "TypeError(\"'>=' not supported between instances of 'NoneType' and 'float'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 165,
+   "mutation": "type_swap@profile_weekend/18",
+   "loader_exc": "UFuncTypeError(<ufunc 'clip'>, (dtype('<U5'), dtype('float64'), dtype('float64'), None))",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 166,
+   "mutation": "none@profile_weekend/19",
+   "loader_exc": "TypeError(\"'>=' not supported between instances of 'NoneType' and 'float'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 172,
+   "mutation": "top:wrapped_list",
+   "loader_exc": "AttributeError(\"'list' object has no attribute 'get'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 174,
+   "mutation": "type_swap@profile_weekend/15",
+   "loader_exc": "UFuncTypeError(<ufunc 'clip'>, (dtype('<U5'), dtype('float64'), dtype('float64'), None))",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 178,
+   "mutation": "type_swap@hourly_profile/2",
+   "loader_exc": "UFuncTypeError(<ufunc 'clip'>, (dtype('<U5'), dtype('float64'), dtype('float64'), None))",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 180,
+   "mutation": "none@hourly_profile/22",
+   "loader_exc": "TypeError(\"'>=' not supported between instances of 'NoneType' and 'float'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 182,
+   "mutation": "string_for_dict@profile_weekend/6",
+   "loader_exc": "UFuncTypeError(<ufunc 'clip'>, (dtype('<U7'), dtype('float64'), dtype('float64'), None))",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 189,
+   "mutation": "wrap_dict@hourly_profile/6",
+   "loader_exc": "TypeError(\"'>=' not supported between instances of 'dict' and 'float'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 199,
+   "mutation": "wrap_dict@profile_weekday/3",
+   "loader_exc": "TypeError(\"'>=' not supported between instances of 'dict' and 'float'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  }
+ ],
+ "dhw_legionella": [],
+ "dhw_draws": [
+  {
+   "index": 5,
+   "mutation": "huge_int@reservoirs/06:00-08:30/0",
+   "loader_exc": "TypeError(\"ufunc 'isfinite' not supported for the input types, and the inputs could not be safely coerced to any supported types according to the casting rule ''safe''\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  }
+ ],
+ "thermal_learning": [
+  {
+   "index": 59,
+   "mutation": "neg_inf@curve_learner/resets",
+   "loader_exc": "OverflowError('cannot convert float infinity to integer')",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 93,
+   "mutation": "inf@buffer_cooling_samples",
+   "loader_exc": "OverflowError('cannot convert float infinity to integer')",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 94,
+   "mutation": "top:wrapped_list",
+   "loader_exc": "AttributeError(\"'list' object has no attribute 'get'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 123,
+   "mutation": "neg_inf@house_heat_loss_samples",
+   "loader_exc": "OverflowError('cannot convert float infinity to integer')",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 126,
+   "mutation": "inf@cop_samples",
+   "loader_exc": "OverflowError('cannot convert float infinity to integer')",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 153,
+   "mutation": "inf@curve_learner/comfortable_days",
+   "loader_exc": "OverflowError('cannot convert float infinity to integer')",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 168,
+   "mutation": "neg_inf@house_heat_loss_samples",
+   "loader_exc": "OverflowError('cannot convert float infinity to integer')",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 172,
+   "mutation": "top:wrapped_list",
+   "loader_exc": "AttributeError(\"'list' object has no attribute 'get'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  },
+  {
+   "index": 198,
+   "mutation": "wrap_dict@freq_map",
+   "loader_exc": "KeyError(0)",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": true
+  }
+ ],
+ "price_model": [
+  {
+   "index": 0,
+   "mutation": "none@model/shapes/0/7",
+   "loader_exc": "TypeError(\"float() argument must be a string or a real number, not 'NoneType'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 1,
+   "mutation": "none@model/quarter_factors/1/31",
+   "loader_exc": "TypeError(\"float() argument must be a string or a real number, not 'NoneType'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 10,
+   "mutation": "type_swap@model/quarter_factors/1/31",
+   "loader_exc": "ValueError(\"could not convert string to float: '12.5x'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 13,
+   "mutation": "wrap_dict@model/quarter_factors/1/85",
+   "loader_exc": "TypeError(\"float() argument must be a string or a real number, not 'dict'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 17,
+   "mutation": "wrap_list@model/quarter_factors/0/21",
+   "loader_exc": "TypeError(\"float() argument must be a string or a real number, not 'list'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 25,
+   "mutation": "wrap_list@model/shapes/0/5",
+   "loader_exc": "TypeError(\"float() argument must be a string or a real number, not 'list'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 28,
+   "mutation": "wrap_dict@model/quarter_factors/0/91",
+   "loader_exc": "TypeError(\"float() argument must be a string or a real number, not 'dict'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 29,
+   "mutation": "wrap_dict@model/quarter_factors/0/56",
+   "loader_exc": "TypeError(\"float() argument must be a string or a real number, not 'dict'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 31,
+   "mutation": "type_swap@model/quarter_factors/1/58",
+   "loader_exc": "ValueError(\"could not convert string to float: '12.5x'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 32,
+   "mutation": "wrap_list@model/quarter_factors/1/8",
+   "loader_exc": "TypeError(\"float() argument must be a string or a real number, not 'list'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 33,
+   "mutation": "wrap_dict@model/shapes/1/7",
+   "loader_exc": "TypeError(\"float() argument must be a string or a real number, not 'dict'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 36,
+   "mutation": "wrap_list@model/shapes/1/16",
+   "loader_exc": "TypeError(\"float() argument must be a string or a real number, not 'list'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 38,
+   "mutation": "wrap_dict@model/quarter_factors/1/61",
+   "loader_exc": "TypeError(\"float() argument must be a string or a real number, not 'dict'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 42,
+   "mutation": "type_swap@model/residual_var/1/5",
+   "loader_exc": "ValueError(\"could not convert string to float: '12.5x'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 43,
+   "mutation": "none@model/quarter_factors/0/35",
+   "loader_exc": "TypeError(\"float() argument must be a string or a real number, not 'NoneType'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 44,
+   "mutation": "wrap_dict@model/quarter_factors/0/35",
+   "loader_exc": "TypeError(\"float() argument must be a string or a real number, not 'dict'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 48,
+   "mutation": "wrap_list@model/quarter_factors/0/89",
+   "loader_exc": "TypeError(\"float() argument must be a string or a real number, not 'list'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 49,
+   "mutation": "wrap_list@model/shapes/0/6",
+   "loader_exc": "TypeError(\"float() argument must be a string or a real number, not 'list'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 68,
+   "mutation": "none@model/shapes/1/9",
+   "loader_exc": "TypeError(\"float() argument must be a string or a real number, not 'NoneType'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 70,
+   "mutation": "type_swap@model/quarter_factors/0/0",
+   "loader_exc": "ValueError(\"could not convert string to float: '12.5x'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 72,
+   "mutation": "wrap_dict@model/quarter_factors/1/81",
+   "loader_exc": "TypeError(\"float() argument must be a string or a real number, not 'dict'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 81,
+   "mutation": "type_swap@model/quarter_factors/1/86",
+   "loader_exc": "ValueError(\"could not convert string to float: '12.5x'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 82,
+   "mutation": "wrap_list@model/quarter_factors/0/94",
+   "loader_exc": "TypeError(\"float() argument must be a string or a real number, not 'list'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 84,
+   "mutation": "wrap_dict@model/shapes/1/6",
+   "loader_exc": "TypeError(\"float() argument must be a string or a real number, not 'dict'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 92,
+   "mutation": "none@model/quarter_factors/1/80",
+   "loader_exc": "TypeError(\"float() argument must be a string or a real number, not 'NoneType'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 94,
+   "mutation": "top:wrapped_list",
+   "loader_exc": "AttributeError(\"'list' object has no attribute 'get'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 95,
+   "mutation": "wrap_dict@model/shapes/0/17",
+   "loader_exc": "TypeError(\"float() argument must be a string or a real number, not 'dict'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 97,
+   "mutation": "none@model/quarter_factors/0/68",
+   "loader_exc": "TypeError(\"float() argument must be a string or a real number, not 'NoneType'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 100,
+   "mutation": "none@model/quarter_factors/1/30",
+   "loader_exc": "TypeError(\"float() argument must be a string or a real number, not 'NoneType'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 101,
+   "mutation": "none@model/quarter_factors/0/15",
+   "loader_exc": "TypeError(\"float() argument must be a string or a real number, not 'NoneType'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 108,
+   "mutation": "none@model/quarter_factors/0/45",
+   "loader_exc": "TypeError(\"float() argument must be a string or a real number, not 'NoneType'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 111,
+   "mutation": "type_swap@model/shapes/0/22",
+   "loader_exc": "ValueError(\"could not convert string to float: '12.5x'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 112,
+   "mutation": "wrap_list@model/quarter_factors/0/42",
+   "loader_exc": "TypeError(\"float() argument must be a string or a real number, not 'list'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 113,
+   "mutation": "wrap_dict@model/quarter_factors/0/32",
+   "loader_exc": "TypeError(\"float() argument must be a string or a real number, not 'dict'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 120,
+   "mutation": "wrap_list@model/quarter_factors/1/43",
+   "loader_exc": "TypeError(\"float() argument must be a string or a real number, not 'list'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 125,
+   "mutation": "wrap_dict@model/quarter_factors/0/59",
+   "loader_exc": "TypeError(\"float() argument must be a string or a real number, not 'dict'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 128,
+   "mutation": "wrap_dict@model/quarter_factors/0/58",
+   "loader_exc": "TypeError(\"float() argument must be a string or a real number, not 'dict'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 135,
+   "mutation": "type_swap@model/residual_var/0/18",
+   "loader_exc": "ValueError(\"could not convert string to float: '12.5x'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 136,
+   "mutation": "type_swap@model/quarter_factors/1/35",
+   "loader_exc": "ValueError(\"could not convert string to float: '12.5x'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 138,
+   "mutation": "none@model/quarter_factors/0/28",
+   "loader_exc": "TypeError(\"float() argument must be a string or a real number, not 'NoneType'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 143,
+   "mutation": "none@model/shapes/0/7",
+   "loader_exc": "TypeError(\"float() argument must be a string or a real number, not 'NoneType'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 145,
+   "mutation": "wrap_list@model/quarter_factors/0/24",
+   "loader_exc": "TypeError(\"float() argument must be a string or a real number, not 'list'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 148,
+   "mutation": "type_swap@model/quarter_factors/0/86",
+   "loader_exc": "ValueError(\"could not convert string to float: '12.5x'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 149,
+   "mutation": "type_swap@model/quarter_factors/0/69",
+   "loader_exc": "ValueError(\"could not convert string to float: '12.5x'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 152,
+   "mutation": "wrap_dict@model/shapes/0/0",
+   "loader_exc": "TypeError(\"float() argument must be a string or a real number, not 'dict'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 156,
+   "mutation": "wrap_dict@model/quarter_factors/0/78",
+   "loader_exc": "TypeError(\"float() argument must be a string or a real number, not 'dict'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 160,
+   "mutation": "wrap_dict@model/quarter_factors/1/16",
+   "loader_exc": "TypeError(\"float() argument must be a string or a real number, not 'dict'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 162,
+   "mutation": "none@model/residual_var/1/19",
+   "loader_exc": "TypeError(\"float() argument must be a string or a real number, not 'NoneType'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 165,
+   "mutation": "type_swap@model/residual_var/1/5",
+   "loader_exc": "ValueError(\"could not convert string to float: '12.5x'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 166,
+   "mutation": "none@model/residual_var/1/10",
+   "loader_exc": "TypeError(\"float() argument must be a string or a real number, not 'NoneType'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 172,
+   "mutation": "top:wrapped_list",
+   "loader_exc": "AttributeError(\"'list' object has no attribute 'get'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 174,
+   "mutation": "type_swap@model/residual_var/0/19",
+   "loader_exc": "ValueError(\"could not convert string to float: '12.5x'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 178,
+   "mutation": "type_swap@model/shapes/0/9",
+   "loader_exc": "ValueError(\"could not convert string to float: '12.5x'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 180,
+   "mutation": "none@model/quarter_factors/0/36",
+   "loader_exc": "TypeError(\"float() argument must be a string or a real number, not 'NoneType'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 183,
+   "mutation": "type_swap@model/quarter_factors/0/51",
+   "loader_exc": "ValueError(\"could not convert string to float: '12.5x'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 189,
+   "mutation": "wrap_dict@model/shapes/1/0",
+   "loader_exc": "TypeError(\"float() argument must be a string or a real number, not 'dict'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 199,
+   "mutation": "wrap_dict@model/quarter_factors/0/69",
+   "loader_exc": "TypeError(\"float() argument must be a string or a real number, not 'dict'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  }
+ ],
+ "ledger": [
+  {
+   "index": 94,
+   "mutation": "top:wrapped_list",
+   "loader_exc": "AttributeError(\"'list' object has no attribute 'get'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 153,
+   "mutation": "inf@starts/months/2026-01",
+   "loader_exc": "OverflowError('cannot convert float infinity to integer')",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 172,
+   "mutation": "top:wrapped_list",
+   "loader_exc": "AttributeError(\"'list' object has no attribute 'get'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  }
+ ],
+ "accuracy": [
+  {
+   "index": 30,
+   "mutation": "neg_inf@defrost/duty_events/4/1",
+   "loader_exc": "OverflowError('cannot convert float infinity to integer')",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 63,
+   "mutation": "inf@defrost/counts/1/1",
+   "loader_exc": "OverflowError('cannot convert float infinity to integer')",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 64,
+   "mutation": "neg_inf@defrost/duty_counts/0/1",
+   "loader_exc": "OverflowError('cannot convert float infinity to integer')",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 83,
+   "mutation": "inf@defrost/counts/5/1",
+   "loader_exc": "OverflowError('cannot convert float infinity to integer')",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 94,
+   "mutation": "top:wrapped_list",
+   "loader_exc": "AttributeError(\"'list' object has no attribute 'get'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 103,
+   "mutation": "neg_inf@defrost/duty_counts/3/1",
+   "loader_exc": "OverflowError('cannot convert float infinity to integer')",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 121,
+   "mutation": "neg_inf@defrost/counts/1/0",
+   "loader_exc": "OverflowError('cannot convert float infinity to integer')",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 122,
+   "mutation": "inf@defrost/duty_counts/5/1",
+   "loader_exc": "OverflowError('cannot convert float infinity to integer')",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 124,
+   "mutation": "inf@defrost/duty_counts/5/1",
+   "loader_exc": "OverflowError('cannot convert float infinity to integer')",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 128,
+   "mutation": "wrap_dict@accuracy/lead_pending/2",
+   "loader_exc": "KeyError(0)",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 172,
+   "mutation": "top:wrapped_list",
+   "loader_exc": "AttributeError(\"'list' object has no attribute 'get'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  }
+ ],
+ "energy_totals": [
+  {
+   "index": 5,
+   "mutation": "huge_int@dhw_cost",
+   "loader_exc": "TypeError(\"ufunc 'isfinite' not supported for the input types, and the inputs could not be safely coerced to any supported types according to the casting rule ''safe''\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 87,
+   "mutation": "huge_int@space_cost",
+   "loader_exc": "TypeError(\"ufunc 'isfinite' not supported for the input types, and the inputs could not be safely coerced to any supported types according to the casting rule ''safe''\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 94,
+   "mutation": "top:wrapped_list",
+   "loader_exc": "AttributeError(\"'list' object has no attribute 'get'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 114,
+   "mutation": "huge_int@space_cost",
+   "loader_exc": "TypeError(\"ufunc 'isfinite' not supported for the input types, and the inputs could not be safely coerced to any supported types according to the casting rule ''safe''\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 158,
+   "mutation": "huge_int@total_energy_kwh",
+   "loader_exc": "TypeError(\"ufunc 'isfinite' not supported for the input types, and the inputs could not be safely coerced to any supported types according to the casting rule ''safe''\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 161,
+   "mutation": "huge_int@dhw_energy_kwh",
+   "loader_exc": "TypeError(\"ufunc 'isfinite' not supported for the input types, and the inputs could not be safely coerced to any supported types according to the casting rule ''safe''\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  },
+  {
+   "index": 172,
+   "mutation": "top:wrapped_list",
+   "loader_exc": "AttributeError(\"'list' object has no attribute 'get'\")",
+   "cycle1_exc": "",
+   "cycle2_failed": false,
+   "repeat_on_restart": false
+  }
+ ],
+ "manual_plan": []
+}

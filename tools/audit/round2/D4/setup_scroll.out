@@ -1,0 +1,9 @@
+{"total":6,"at0":3,"atMax":2,"reach":6,"scroll":230,"canvasW":330,"svgW":560,"overflowX":"auto"}
+RESULT hits_total=6 count
+RESULT hits_visible_at_0=3 count
+RESULT hits_visible_at_max=2 count
+RESULT hits_reachable=6 count
+RESULT canvas_scroll_px=230 px
+RESULT thread_factor=1.00
+RESULT load1=4.91
+RESULT swapins=0

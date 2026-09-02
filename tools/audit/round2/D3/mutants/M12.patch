@@ -1,0 +1,12 @@
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -5398,9 +5398,6 @@
+                 headers=headers,
+                 timeout=aiohttp.ClientTimeout(total=15),
+             ) as resp:
+-                if resp.status != 200:
+-                    self._tibber_fetch_failed(f"Tibber API error: {resp.status}")
+-                    return
+                 data = await resp.json()
+ 
+             if "errors" in data:

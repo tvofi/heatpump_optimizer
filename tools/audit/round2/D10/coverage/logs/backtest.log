@@ -1,0 +1,43 @@
+
+=== Replay backtest ===
+
+scenario               strategy             cost     kWh  min °C   viol  starts
+winter, single zone    optimizer           23.28   36.00   17.06   0.00       2
+winter, single zone    always-on          110.03   74.45   19.68   0.00       1
+winter, single zone    night tariff        57.04   74.45   19.79   0.00       2
+winter, single zone    greedy cheapest     65.09   74.45   20.52   0.00       4
+  ok   winter, single zone: the optimizer beats an always-on thermostat
+  ok   winter, single zone: the optimizer beats a hand-written night schedule
+  ok   winter, single zone: the optimizer respects the comfort floor
+  ok   winter, single zone: the optimizer beats price-only greed outright
+  ok   winter, single zone: reported savings match the replay
+  ok   winter, single zone: the plan does not chatter
+winter, two zone       optimizer           58.30   67.42   16.53   0.00       4
+winter, two zone       always-on          137.14   91.07   19.13   0.00       2
+winter, two zone       night tariff        69.78   91.07   16.77   0.11       2
+winter, two zone       greedy cheapest     85.27   91.07   18.73   0.00       4
+  ok   winter, two zone: the optimizer beats an always-on thermostat
+  ok   winter, two zone: the optimizer beats a hand-written night schedule
+  ok   winter, two zone: the optimizer respects the comfort floor
+  ok   winter, two zone: the optimizer beats price-only greed outright
+  ok   winter, two zone: reported savings match the replay
+  ok   winter, two zone: the plan does not chatter
+shoulder season        optimizer            4.44    8.30   20.49   0.00       2
+shoulder season        always-on           11.11    7.47   19.99   0.00       3
+shoulder season        night tariff         4.48    7.47   20.72   0.00       2
+shoulder season        greedy cheapest      2.99    7.47   20.49   0.00       1
+  ok   shoulder season: the optimizer beats an always-on thermostat
+  ok   shoulder season: the optimizer beats a hand-written night schedule
+  ok   shoulder season: the optimizer respects the comfort floor
+  ok   shoulder season: the optimizer beats price-only greed outright
+  ok   shoulder season: reported savings match the replay
+  ok   shoulder season: the plan does not chatter
+  ok   storage winter_typical: both arms hold comfort
+  ok   storage winter_extreme: both arms hold comfort
+  ok   storage flat: both arms hold comfort
+  ok   storage pays where the spread is wide, beyond any arm asymmetry
+  ok   and an extreme spread is worth more than a typical one
+  ok   knowing about an evening burn is worth real money
+  ok   and the informed plan still holds comfort
+
+ALL 25 BACKTEST CHECKS PASSED

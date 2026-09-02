@@ -1,0 +1,304 @@
+{
+  "dimension": "D9",
+  "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+  "exposure": "",
+  "findings": [
+    {
+      "id": "D9-01",
+      "title": "One zero-range bound (pin off / fuse cap at a DHW step) puts the whole solve on the scalar FD path: 9,222 steps/gradient",
+      "severity": "high",
+      "claim": "With one forced-off manual pin, or a power_caps_extra equal to the DHW run power (0.8 p_max) at the steps hot water is planned, the default two-zone DHW solve costs 9,222 simulate_step per gradient and 1.5-1.6 M steps (710-751x the reference solve) instead of 297 per gradient and 38x.",
+      "mechanism": "optimizer.py:_bounds_supported_by_batch returns False for any lo >= hi, so _multi_start_minimize passes jac=None and scipy estimates every gradient with n scalar objective calls (n scalar trajectories of n simulate_step each). solve_space produces the (0,0) bound whenever headroom = min(p_max - dhw, caps_extra - dhw) is 0; _apply_pins_to_bounds produces it for every forced-off pin. The golden fuse_guard fixture (cap 0.6 p_max) is already on this path: 731,904 simulate_step, 8.2 s. A cap at a single step was dodged by the plan (batched, 294/gradient), so the trigger is a DHW block coinciding with a capped step; a uniform fuse cap or a pin guarantees it. Pi 4 (x7 assumed): 2-3 min per solve every 30 min with the loop starved (D9-05).",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D9/h1_grad_equivalents.py  # RESULT pin_zero_range_two_zone_dhw.equivalents_per_gradient (also dhw_cap_zero_range.*, pin_zero_range.*, two_zone_dhw.* for the batched control)",
+        "harness_path": "tools/audit/round2/D9/h1_grad_equivalents.py",
+        "value": 9221.55,
+        "unit": "simulate-step-equivalents per gradient (count)",
+        "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+        "machine": "Apple M1 8-core 8 GB, macOS, Python 3.13.1, numpy 2.5.2, scipy 1.18.1, OpenBLAS pinned to 1 thread (audit box)",
+        "cpu_or_wall": "count",
+        "contention_note": "fan-out: other auditors on the box, load1 2.3-9.4 during the runs; provisional for wall/CPU/RSS",
+        "tolerance": "exact (deterministic; 9,222 +-1 across pin/cap cases)",
+        "load1": 9.36,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "thermal_model:ThermalModel.simulate_step, thermal_model:ThermalModel.simulate_trajectory_batch, optimizer:_scoped_minimize, optimizer:_batch_fd_gradient",
+      "perturbation": {
+        "change": "Remove the pin (space_pins=None) or the cap (power_caps_extra=None) from the same solve: h1 two_zone_dhw vs pin_zero_range_two_zone_dhw / dhw_cap_zero_range",
+        "expected_direction": "down",
+        "observed_value": "297.32 equivalents/gradient (x31 lower); simulate_step 1,595,328 -> 20,736; solve 751x -> 38.5x reference"
+      },
+      "metric_definition": "Scalar simulate_step calls + rows of simulate_trajectory_batch during one _multi_start_minimize call, divided by the sum of OptimizeResult.njev over its L-BFGS-B runs.",
+      "null_control": {
+        "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D9/h1_grad_equivalents.py  # RESULT two_zone_dhw.equivalents_per_gradient / two_zone_dhw.path",
+        "value": "297.32, batched",
+        "note": "The identical solve without the pin/cap is the control; a count metric, no flat-price arm applies."
+      },
+      "leave_one_out": {
+        "cells": 5,
+        "min": 9036.0,
+        "max": 9294.55,
+        "drop_most_favourable": 9221.85
+      },
+      "reproduction_steps": [
+        "PYTHONPATH=tests/hastub python tools/audit/round2/D9/h1_grad_equivalents.py",
+        "Read RESULT pin_zero_range_two_zone_dhw.path=scalar, .simulate_step_calls=1595328, .equivalents_per_gradient=9221.55, .solve_over_reference~751",
+        "Compare RESULT two_zone_dhw.path=batched, .equivalents_per_gradient=297.32, .solve_over_reference~38",
+        "Golden fixture on the same path: import tests/golden.py, hook simulate_step, capture('fuse_guard') -> 731,904 steps, 0 batch rows"
+      ],
+      "proposed_fix_scope": "optimizer.py: in _bounds_supported_by_batch/_batch_fd_gradient treat lo == hi variables as fixed (zero step, gradient entry 0.0, no 0/0) and keep the batched jac for the rest; or eliminate fixed variables from the L-BFGS-B problem. tests/features.py _grad_parity gets a pinned-bounds case.",
+      "files": [
+        "custom_components/heatpump_optimizer/optimizer.py"
+      ],
+      "expected_golden_drift": [
+        "fuse_guard (currently solved on the ULP-nudged scalar path; last-decimal at most, possibly none)"
+      ],
+      "stop_rule_class": "bug"
+    },
+    {
+      "id": "D9-02",
+      "title": "The stress gate cannot see a 2x or 4x solve regression: budgets 4.7x/8.9x above cost, no CI override, no memory line",
+      "severity": "medium",
+      "claim": "Doubling HeatPumpOptimizer.optimize's work trips neither of tests/stress.py's relative checks: the worst scenario is 298.8x the reference against a 1400x budget and the sweep 50.7x against 450x, so the smallest uniform regression the gate can see is 4.69x.",
+      "mechanism": "SOLVE_BUDGET_RATIO=1400 and SWEEP_BUDGET_RATIO=450 were sized when the dearest scenarios cost 655-662x (tests/stress.py:165 still says so); the batched jac made every combination 10-20x cheaper and the budgets were not re-sized. .github/workflows/tests.yml and tests/run.sh set neither STRESS_SOLVE_RATIO nor STRESS_SWEEP_RATIO (grep 0), and tests/*.py contain no tracemalloc/getrusage/ru_maxrss (grep 0), so the gate sees only per-solve CPU above 4.7x and never memory.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D9/h7_stress_gate.py  # RESULT smallest_detectable_uniform_regression, plain.worst_ratio, plain.sweep_ratio, injected_2x.*_tripped",
+        "harness_path": "tools/audit/round2/D9/h7_stress_gate.py",
+        "value": 4.685,
+        "unit": "ratio (budget / observed worst CPU ratio against reference_solve)",
+        "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+        "machine": "Apple M1 8-core 8 GB, macOS, Python 3.13.1, numpy 2.5.2, scipy 1.18.1, OpenBLAS pinned to 1 thread (audit box)",
+        "cpu_or_wall": "ratio",
+        "contention_note": "fan-out: other auditors on the box, load1 2.3-9.4 during the runs; provisional for wall/CPU/RSS",
+        "tolerance": "+-20 % run to run (4.7 measured twice: 4.69, 4.67)",
+        "load1": 2.58,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "optimizer:HeatPumpOptimizer.optimize (2x injection); tests/stress.py:reference_solve, Calibration, build_case, combinations (the gate's own ruler and cases)",
+      "perturbation": {
+        "change": "STRESS_SOLVE_RATIO=400 STRESS_SWEEP_RATIO=75 in the environment (between the plain and injected ratios), same command",
+        "expected_direction": "up",
+        "observed_value": "plain: 0 per-scenario, 0 sweep tripped; injected 2x: 2 per-scenario, 1 sweep tripped (worst 492.9x, sweep 106.9x)"
+      },
+      "metric_definition": "tests/stress.py's own checks over its 48 combinations: per-scenario solve CPU / trailing-median reference CPU vs SOLVE_BUDGET_RATIO, sweep totals vs SWEEP_BUDGET_RATIO; headroom = budget/observed.",
+      "leave_one_out": {
+        "cells": 48,
+        "min": 0.9,
+        "max": 298.8,
+        "drop_most_favourable": 267.7
+      },
+      "reproduction_steps": [
+        "PYTHONPATH=tests/hastub python tools/audit/round2/D9/h7_stress_gate.py",
+        "Read RESULT plain.worst_ratio~299, plain.sweep_ratio~51, injected_2x.per_scenario_tripped=0, injected_2x.sweep_tripped=0, smallest_detectable_uniform_regression~4.7",
+        "STRESS_SOLVE_RATIO=400 STRESS_SWEEP_RATIO=75 PYTHONPATH=tests/hastub python tools/audit/round2/D9/h7_stress_gate.py  # injected_2x.*_tripped > 0, plain 0"
+      ],
+      "proposed_fix_scope": "tests/stress.py: re-size SOLVE_BUDGET_RATIO/SWEEP_BUDGET_RATIO from the printed run figures (about 600 / 100 leaves 2x headroom), add a memory check (ru_maxrss before/after the sweep or tracemalloc peak per solve) that prints its figure; retire the 655x/662x docstring numbers.",
+      "files": [
+        "tests/stress.py",
+        ".github/workflows/tests.yml"
+      ],
+      "expected_golden_drift": [],
+      "stop_rule_class": "bug"
+    },
+    {
+      "id": "D9-03",
+      "title": "The batched jac re-evaluates f(x) scipy just computed: 2n scalar simulate_steps per gradient where n would do",
+      "severity": "low",
+      "claim": "On the batched path each gradient costs 96 batch rows plus 201 scalar simulate_step (two full scalar trajectories), because the jac closure recomputes objective(x) for its f0 right after scipy evaluated objective(x) at the same point; a one-entry memo halves the scalar steps per gradient to 101 and cuts solve CPU 13 %.",
+      "mechanism": "optimizer.py:_multi_start_minimize builds jac(x) = _batch_fd_gradient(batch_objective, a, x, float(objective(x, *a)), ...); scipy's ScalarFunction has just called objective(x) (nfev == njev == 103 in the two-zone DHW solve). The scalar simulation is 25 % of the solve's thread CPU, the batch 32 %.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D9/h1_grad_equivalents.py  # RESULT two_zone_dhw.scalar_steps_per_gradient, two_zone_dhw.nfev, two_zone_dhw.njev, two_zone_dhw.share_scalar_sim",
+        "harness_path": "tools/audit/round2/D9/h1_grad_equivalents.py",
+        "value": 201.32,
+        "unit": "scalar simulate_step per gradient (count)",
+        "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+        "machine": "Apple M1 8-core 8 GB, macOS, Python 3.13.1, numpy 2.5.2, scipy 1.18.1, OpenBLAS pinned to 1 thread (audit box)",
+        "cpu_or_wall": "count",
+        "contention_note": "fan-out: other auditors on the box, load1 2.3-9.4 during the runs; provisional for wall/CPU/RSS",
+        "tolerance": "exact",
+        "load1": 9.36,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "thermal_model:ThermalModel.simulate_step, thermal_model:ThermalModel.simulate_trajectory, optimizer:_scoped_minimize (nfev, njev)",
+      "perturbation": {
+        "change": "One-entry memo on ThermalModel.simulate_trajectory keyed on (model, initial_state, schedule bytes), restoring the recorded side channels (h1 perturb_memo_two_zone_dhw) - equivalent to reusing scipy's f(x) as f0",
+        "expected_direction": "down",
+        "observed_value": "100.66 scalar steps/gradient (equivalents 297 -> 197); solve CPU 908 -> 789 ms (provisional)"
+      },
+      "metric_definition": "Scalar simulate_step calls during one _multi_start_minimize call divided by the sum of OptimizeResult.njev over its L-BFGS-B runs (the batch rows are reported separately).",
+      "null_control": {
+        "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D9/h1_grad_equivalents.py  # RESULT perturb_memo_two_zone_dhw.batch_rows_per_gradient",
+        "value": "96 (unchanged by the memo)",
+        "note": "Count metric; the batch rows are the arm the memo must not touch, and does not."
+      },
+      "reproduction_steps": [
+        "PYTHONPATH=tests/hastub python tools/audit/round2/D9/h1_grad_equivalents.py",
+        "Read RESULT two_zone_dhw.nfev=103, .njev=103, .scalar_steps_per_gradient=201.32, .share_scalar_sim~0.25",
+        "Read RESULT perturb_memo_two_zone_dhw.scalar_steps_per_gradient=100.66, .batch_rows_per_gradient=96"
+      ],
+      "proposed_fix_scope": "optimizer.py:_multi_start_minimize: wrap objective in a one-entry cache keyed on x.tobytes() and args, shared by scipy's fun and the jac's f0. Same float returned, no golden drift.",
+      "files": [
+        "custom_components/heatpump_optimizer/optimizer.py"
+      ],
+      "expected_golden_drift": [],
+      "stop_rule_class": "bug"
+    },
+    {
+      "id": "D9-04",
+      "title": "DHW planning costs 3.4-3.8x a reference solve and 63 % of a single-zone DHW solve; half is per-slot tank re-simulation",
+      "severity": "low",
+      "claim": "One _build_dhw_requirements call costs 64 simulate_dhw_only calls (6,144 Python-loop tank steps, 7,084 compute_cop_dhw calls) and 70-76 ms of M1 CPU, of which the min-run rounding is 43-59 %; two calls run per winter DHW solve, and in a single-zone winter DHW solve the planner is 63 % of the solve's CPU.",
+      "mechanism": "optimizer.py:_apply_dhw_min_run simulates the whole tank once per weak slot (trajectory(raised) per i in weak, plus a re-simulation after each zeroing); _plan_dhw_cheapest_first re-simulates per repaired violation (2-4 per pass, two passes); simulate_dhw_only is a Python loop with a compute_cop_dhw call per step. _co_optimize re-plans once more when space heating is pinned against the DHW headroom, doubling the planner cost.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D9/h1b_dhw_loops.py  # RESULT single_zone_dhw.planner_share_of_solve, *.simulate_dhw_only_per_planning_call, *.tank_steps_per_planning_call, *.planner_over_reference, *.minrun_share_of_planner",
+        "harness_path": "tools/audit/round2/D9/h1b_dhw_loops.py",
+        "value": 0.6296,
+        "unit": "share of the solve's thread CPU spent in _build_dhw_requirements (ratio)",
+        "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+        "machine": "Apple M1 8-core 8 GB, macOS, Python 3.13.1, numpy 2.5.2, scipy 1.18.1, OpenBLAS pinned to 1 thread (audit box)",
+        "cpu_or_wall": "ratio",
+        "contention_note": "fan-out: other auditors on the box, load1 2.3-9.4 during the runs; provisional for wall/CPU/RSS",
+        "tolerance": "+-15 % (share; the counts are exact)",
+        "load1": 2.85,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "thermal_model:ThermalModel.simulate_dhw_only, thermal_model:ThermalModel.compute_cop_dhw, optimizer:HeatPumpOptimizer._build_dhw_requirements, _plan_dhw_min_cost, _plan_dhw_cheapest_first, _apply_dhw_min_run, optimizer:linprog",
+      "perturbation": {
+        "change": "Horizon 24 h -> 48 h (build_case hours=48), h1b perturb_h48_two_zone_dhw",
+        "expected_direction": "up",
+        "observed_value": "118 simulate_dhw_only calls and 22,656 tank steps per planning call (64 / 6,144 at 24 h); planner 266 ms = 13.5x reference (3.8x at 24 h)"
+      },
+      "metric_definition": "Per _build_dhw_requirements call: simulate_dhw_only calls, tank steps (calls x n), compute_cop_dhw calls; planner thread-CPU as a share of the solve and as a ratio to tests/stress.py:reference_solve.",
+      "leave_one_out": {
+        "cells": 5,
+        "min": 1.68,
+        "max": 3.84,
+        "drop_most_favourable": 2.68
+      },
+      "reproduction_steps": [
+        "PYTHONPATH=tests/hastub python tools/audit/round2/D9/h1b_dhw_loops.py",
+        "Read RESULT single_zone_dhw.planner_share_of_solve~0.63, two_zone_dhw.simulate_dhw_only_per_planning_call=64, two_zone_dhw.tank_steps_per_planning_call=6144, two_zone_dhw.minrun_share_of_planner~0.48"
+      ],
+      "proposed_fix_scope": "optimizer.py:_apply_dhw_min_run: raise all weak slots in one pass and simulate once, falling back to per-slot only when the joint trajectory breaches the ceiling (keeps the per-slot decision order on the fallback); thermal_model.py:simulate_dhw_only: hoist per-step attribute lookups. Order-preserving rewrites carry no golden drift; a joint-raise that changes which slots survive would drift DHW fixtures.",
+      "files": [
+        "custom_components/heatpump_optimizer/optimizer.py",
+        "custom_components/heatpump_optimizer/thermal_model.py"
+      ],
+      "expected_golden_drift": [
+        "none for an order-preserving rewrite; DHW fixtures if the joint-raise changes surviving slots"
+      ],
+      "stop_rule_class": "bug"
+    },
+    {
+      "id": "D9-05",
+      "title": "The solve starves the event loop for its whole duration: 68-74 Hz loop vs 780 Hz idle, starvation share 0.97-0.998",
+      "severity": "medium",
+      "claim": "With the solve in a ThreadPoolExecutor under a real asyncio loop, a 1 ms heartbeat wakes every 13-15 ms instead of every 1.3 ms for 96.7 % (batched two-zone DHW, 0.8 s) to 99.8 % (D9-01 path, 14.7 s) of the solve's wall time, with the longest contiguous hold 39-75 ms inside simulate_trajectory_batch.",
+      "mechanism": "The objective is Python plus small-array numpy, which holds the GIL between ops; the loop thread gets the GIL only through the 5 ms switch-interval hand-off, so every loop turn waits one hand-off plus the executor's current op. The two time.sleep(0.002) yields sit between L-BFGS-B starts and between the DHW and space stages (2 x 2 ms of an 800 ms solve), not inside an iteration. On a Pi 4 (x7 assumed) the same share persists for ~6 s per default solve and 2-3 min per D9-01 solve, every 30 minutes.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D9/h3_gil_hold.py  # RESULT two_zone_dhw.starvation_share, two_zone_dhw.gap_p50, two_zone_dhw.longest_gil_hold, two_zone_dhw.ticks_per_second; dhw_cap_zero_range.*; idle_control.*",
+        "harness_path": "tools/audit/round2/D9/h3_gil_hold.py",
+        "value": 0.967,
+        "unit": "starvation share (summed length of heartbeat gaps > 5 ms / solve wall)",
+        "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+        "machine": "Apple M1 8-core 8 GB, macOS, Python 3.13.1, numpy 2.5.2, scipy 1.18.1, OpenBLAS pinned to 1 thread (audit box)",
+        "cpu_or_wall": "wall",
+        "contention_note": "fan-out: other auditors on the box, load1 2.3-9.4 during the runs; provisional for wall/CPU/RSS",
+        "tolerance": "+-5 % on the share (0.961-0.967 across three runs); longest hold varied 39-75 ms",
+        "load1": 3.67,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "optimizer:HeatPumpOptimizer.optimize (driven via loop.run_in_executor); stage attribution on thermal_model:ThermalModel.simulate_trajectory_batch / simulate_trajectory, optimizer:_batch_fd_gradient, linprog, the DHW planners",
+      "perturbation": {
+        "change": "sys.setswitchinterval(0.05) instead of the default 0.005 (h3 perturb_switch50ms_two_zone_dhw)",
+        "expected_direction": "up",
+        "observed_value": "longest hold 39.4 -> 82.9 ms, gap p99 35.8 -> 62.2 ms, ticks/s 74 -> 59; starvation share unchanged at 0.96"
+      },
+      "metric_definition": "Max gap between 1 ms heartbeat wake-ups on a real event loop while the solve runs in a ThreadPoolExecutor (longest hold); summed gaps over 5 ms divided by solve wall (starvation share).",
+      "null_control": {
+        "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D9/h3_gil_hold.py  # RESULT idle_control.*",
+        "value": "starvation_share 0, longest hold 2.1 ms, 779 ticks/s over 2 s with no solve",
+        "note": "The idle heartbeat on the same loaded box is the control: the box's own scheduling noise produces no gap over 5 ms."
+      },
+      "reproduction_steps": [
+        "PYTHONPATH=tests/hastub python tools/audit/round2/D9/h3_gil_hold.py",
+        "Read RESULT idle_control.starvation_share=0, two_zone_dhw.starvation_share~0.96, two_zone_dhw.gap_p50~13 ms, dhw_cap_zero_range.starvation_share~0.998, two_zone_dhw.long_gap (stage attribution)"
+      ],
+      "proposed_fix_scope": "coordinator.py:async_run_optimization/_solve_snapshot: run the solve in a process (ProcessPoolExecutor or a one-shot subprocess via run_in_executor) so the GIL is not shared - the snapshot is already a deep copy of state, params and config. A time.sleep(0) every k objective evaluations shortens holds but not the share. No golden drift.",
+      "files": [
+        "custom_components/heatpump_optimizer/coordinator.py",
+        "custom_components/heatpump_optimizer/optimizer.py"
+      ],
+      "expected_golden_drift": [],
+      "stop_rule_class": "bug"
+    }
+  ],
+  "non_findings": [
+    {
+      "claim": "Full solves per cycle: the default two-zone DHW cycle runs ONE HeatPumpOptimizer.optimize (2 _multi_start_minimize entries: solve_space + _co_optimize's re-solve, both on the main path); minimal no-DHW: 1 and 1; diagnose runs 0 solves",
+      "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D9/h2_solves_per_cycle.py",
+      "value": "two_zone_dhw.cycle2.optimize_calls=1, multi_start.main=2, what_if_*=0, diagnose=0; minimal_nodhw.cycle2.optimize_calls=1, multi_start.main=1"
+    },
+    {
+      "claim": "Opt-in what-ifs are bounded: price tiles add exactly one solve per cycle (off by default), the fuse advisor one per week, the card what-if is on demand and rate-limited at 3 s",
+      "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D9/h2_solves_per_cycle.py",
+      "value": "perturb_price_tiles.cycle2.optimize_calls=2 (multi_start 4, cycle CPU 526 -> 1036 ms); perturb_fuse_advisor cycle1 optimize=2, cycle2 optimize=1; card_what_if.optimize_calls=1"
+    },
+    {
+      "claim": "Loop-thread work per cycle is negligible: 3.1-3.6 ms of event-loop CPU against 666-857 ms in the executor (0.4-0.5 %), _build_data_dict the largest stage at 1.3 ms",
+      "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D9/h4_loop_thread_work.py",
+      "value": "two_zone_dhw.cycle3.loop_thread_cpu=3.08 ms, executor_cpu=712.6 ms, loop_over_executor=0.0043; stage._build_data_dict=1.31 ms; h48: 4.36 ms; price tiles: 3.73 ms (provisional, load1 3.9)"
+    },
+    {
+      "claim": "No untrimmed coordinator collection: deep-size of every coordinator attribute grows 0.5-0.8 KB/cycle over the second half of 16-24 cycles, nearly all of it _accuracy filling towards HISTORY_LENGTH=672 / lead_pending[-512:] (bounded ~200 KB) and the monthly _ledger; every list found carries a del/slice trim",
+      "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D9/h5_retained_bytes.py",
+      "value": "deep_after_cycle1=361805 B, deep_after_cycle16=381989 B (cycle24: 386184), deep_slope_second_half=521-773 B/cycle, grower._accuracy=547-602 B/cycle, grower._ledger=166 B/cycle, grower.data=18-182 B/cycle; grep: del \u2026[:-6], [-20:], [-90:], RING_SIZE, KEEP_MONTHS"
+    },
+    {
+      "claim": "Process memory over cycles (tracemalloc, harness allocations filtered out): 3.35 KB/cycle traced growth of which the integration's own lines are 1.68 KB/cycle - accuracy samples coordinator.py:9237 235 B (deque maxlen 672), lead_pending accuracy.py:184 180 B (trimmed to 512), datetime parsing in _get_current_price coordinator.py:6156 288 B, threadpoolctl scratch optimizer.py:145/:509/:497 +120/+108/-108 - bounded fills; the rest is the Store stub's JSON strings (0.75 KB) and scipy array_api scratch (0.37 KB); ru_maxrss moves +1.9 MB / +0.5 MB / -1.6 MB across three 12->48-cycle runs (noise, no growth)",
+      "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D9/h5_retained_bytes.py",
+      "value": "traced_slope_second_half=4385 B/cycle, growth_total_traced_excl_harness=3354 B/cycle, growth_own_total=1681 B/cycle; growth_own.coordinator.py:6156=288, :9237=235, accuracy.py:184=180, optimizer.py:145=120; ru_maxrss_after_12_cycles=99991552 B, ru_maxrss_after_48_cycles=101924864 B (provisional, load1 2.9; earlier runs 98.0->96.4 MB and 101.3->101.8 MB)"
+    },
+    {
+      "claim": "Persistence traffic per cycle is small: 2.1 Store saves and 7-10 KB per cycle (the accuracy store is rewritten every cycle) = about 0.3-0.5 MB/day to .storage",
+      "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D9/h5_retained_bytes.py",
+      "value": "store_saves_per_cycle.total=2.125, store_bytes_per_cycle.total=7041-9605 B (grows with the accuracy history); accuracy 1 save/cycle 6642-9237 B, energy 1/cycle 193 B, price_model 0.04-0.06/cycle, thermal_learning 0.06-0.08/cycle"
+    },
+    {
+      "claim": "Payload vs the recorder exclusion set: _build_data_dict is 52.7 KB per cycle in memory; entity attributes 63.1 KB per cycle of which 83 % (52.4 KB) are excluded by _unrecorded_attributes; the recorded remainder is 10.7 KB per cycle, at most 514 KB/day, and the exclusion set holds at a 48 h horizon",
+      "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D9/h6_payload_bytes.py",
+      "value": "two_zone_dhw.payload_bytes_per_cycle=52720 (dhw_plan 17363, space_plan 17199, schedule 5641); attr_bytes_per_cycle=63086, attr_unrecorded_bytes_per_cycle=52387, attr_recorded_bytes_per_cycle=10699, attr_recorded_bytes_per_day=513552; h48: payload 87270, recorded 10800"
+    },
+    {
+      "claim": "Every one of the 48 stress combinations runs on the batched jac path (289-720 equivalents per gradient); the dearest (shoulder/tariff+pv+cycle, 299x) is dear because of 786 gradients, not a different path",
+      "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D9/h7_stress_gate.py  (path survey: the same hooks as h1 over stress combinations, printed in REPORT.md)",
+      "value": "48/48 batched; eq/gradient 289 (shoulder/tariff+pv+cycle) .. 720 (summer/1z/space); ratios 0.9x .. 298.8x, median 33.9x"
+    },
+    {
+      "claim": "Single-zone solves are cheap on the batched path: no-DHW winter 2.7x the reference solve (64 ms), DHW winter 6.1x (144 ms)",
+      "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D9/h1_grad_equivalents.py",
+      "value": "single_zone_nodhw.solve_over_reference=2.72, single_zone_dhw.solve_over_reference=6.10 (CPU ratios)"
+    },
+    {
+      "claim": "The two sleep(0.002) yields are where the brief says: between L-BFGS-B starts (_multi_start_minimize) and between the DHW and space stages (_optimize_with_dhw), never inside an iteration; 2 x 2 ms of an 800 ms solve",
+      "command": "grep -n 'sleep(0.002)' custom_components/heatpump_optimizer/optimizer.py",
+      "value": "optimizer.py:291 and :4739 (2 sites); h3 two_zone_dhw.wall=795 ms"
+    },
+    {
+      "claim": "Thread pin holds on every harness: process CPU / thread CPU = 1.000",
+      "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D9/h1_grad_equivalents.py  (and every other harness; RESULT thread_factor)",
+      "value": "thread_factor 1.0000 +- 0.0002 on h1, h1b, h2, h4, h5, h7; stress-style reference solve 18-33 ms CPU on the loaded box"
+    }
+  ],
+  "harnesses": [
+    "tools/audit/round2/D9/d9lib.py",
+    "tools/audit/round2/D9/h1_grad_equivalents.py",
+    "tools/audit/round2/D9/h1b_dhw_loops.py",
+    "tools/audit/round2/D9/h2_solves_per_cycle.py",
+    "tools/audit/round2/D9/h3_gil_hold.py",
+    "tools/audit/round2/D9/h4_loop_thread_work.py",
+    "tools/audit/round2/D9/h5_retained_bytes.py",
+    "tools/audit/round2/D9/h6_payload_bytes.py",
+    "tools/audit/round2/D9/h7_stress_gate.py"
+  ]
+}

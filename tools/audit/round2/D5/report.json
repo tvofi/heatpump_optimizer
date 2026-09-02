@@ -1,0 +1,299 @@
+{
+  "dimension": "D5",
+  "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+  "exposure": "Export had docs/audit-*.md, docs/backlog.md and RELEASE_NOTES.md removed; none read. Exposed to: earlier finding ids cited in code/tests as context (coordinator.py D1-01 D1-02 D8-02 D10-06 D10-07 D10-09; optimizer.py D9-01; snapshots.py D1-05; the card D4-01 D4-02 D4-03 D4-06; tests/features.py D1-01 D1-02 D1-05 D3-02 D3-03 D3-04 D3-05 D3-07 D7-03 D8-02 D9-01 D10-06/07/09; tests/entities.py D3-06 D3-08; tests/optimality.py D9-01; tests/card.mjs and card_browser.mjs D4-01); tools/audit/README.md (required reading: its traps list names the plan_view.py path scheme and the NOT_A_TEST roster, which overlap D5-01 T4/T5 and were re-derived from the tree); docs/plan-open-issues.md, docs/plan-card-decomposition.md and docs/plan-v4.0.0-program.md (first 40 lines and headings each, to classify them for the link graph; plan-open-issues names #86-#101, the CodeQL alerts and v5.6.2-v6.0.0 deliveries); README 'Project status' (backlog items 1-33, the v4.0.0 program, 'an audit train' v4.0.x-v5.0.0); tests/README.md:170 ('six known instances of a test that ... asserted nothing'). Release-history claims in the docs could not be checked and are listed for D6.",
+  "findings": [
+    {
+      "id": "D5-01",
+      "title": "tests/README.md has drifted from the gate it documents: seven statements the tree contradicts",
+      "severity": "low",
+      "claim": "Seven statements in tests/README.md (the inert-file list, the 53/47 fixture counts, /tmp/plandata.json twice, the not-a-test roster of four, the missing browser lane, 18 validate scenarios) state a path, count or roster that the tree contradicts.",
+      "mechanism": "The document was written against an older gate: closure.py:INERT deliberately excludes README.md, RELEASE_NOTES.md and the brand images (its own comment says entities.py and env_drift.py read them) while tests/README.md:129 lists them as unreadable; golden.py:SCENARIOS grew to 49 (55 fixtures) while the text says 47 (53); plan_view.py moved to a per-checkout hashed path; NOT_A_TEST grew to seven; card_browser.mjs and its CI job were added without a paragraph; validate.py has 22 run() scenarios.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub .venv/bin/python tools/audit/round2/D5/reader_paths.py",
+        "harness_path": "tools/audit/round2/D5/reader_paths.py",
+        "value": 7,
+        "unit": "failed checks T1-T7 (RESULT tests_readme_drift)",
+        "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+        "machine": "Apple M1 (8 cores, 8 GB), macOS 26.6, Python 3.13.1 (tvofi-claude/.venv)",
+        "cpu_or_wall": "count",
+        "contention_note": "fan-out: other auditors active on the box (load1 2.1-3.7 during the runs); counts are contention-immune",
+        "tolerance": "exact",
+        "load1": 3.24,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "tests/closure.py:INERT (+ tests/closure.py:NOT_A_TEST, tests/golden.py:SCENARIOS, tests/plan_view.py:plandata_path, tests/validate.py run() sites, .github/workflows/tests.yml:browser, tests/closures.json)",
+      "perturbation": {
+        "change": "tests/README.md:285: replace '53 fixtures (47 plan scenarios' with '55 fixtures (49 plan scenarios'",
+        "expected_direction": "down",
+        "observed_value": "7 -> 6 (predicted; the doc edit satisfies check T2)"
+      },
+      "metric_definition": "Count of checks T1-T7 (one per tests/README.md statement) whose fact computed from the tree (ast/json/regex) differs from the document's stated path, count or roster.",
+      "reproduction_steps": [
+        "PYTHONPATH=tests/hastub .venv/bin/python tools/audit/round2/D5/reader_paths.py | grep -E 'FAIL T[1-7]|tests_readme_drift'",
+        "grep -n 'no test can read' tests/README.md; sed -n '/^INERT = (/,/^)/p' tests/closure.py",
+        "ls tests/golden/*.json | wc -l; grep -n 'plandata-' tests/plan_view.py; grep -n 'NOT_A_TEST' -A9 tests/closure.py; grep -c '^run(' tests/validate.py"
+      ],
+      "proposed_fix_scope": "Docs only: rewrite tests/README.md lines 129-131, 221, 228, 285, 355, 457, 487-495 and replace 'Note on browser checks' with a paragraph on tests/card_browser.mjs.",
+      "files": [
+        "tests/README.md"
+      ],
+      "expected_golden_drift": [],
+      "stop_rule_class": "hygiene"
+    },
+    {
+      "id": "D5-02",
+      "title": "configuration.md tells non-ECL110 installs to leave the topics blank; they ship non-empty and publish every cycle",
+      "severity": "low",
+      "claim": "docs/configuration.md:457 ('Leave blank if you do not have one') and :70 ('default sensibly when absent') contradict the shipped defaults and docs/ecl110.md:79-82, which says to clear both topics or every cycle attempts an MQTT publish and logs the failure.",
+      "mechanism": "const.py ships DEFAULT_ECL110_DISPLACE_SET_TOPIC='ecl110/flow_temp_control/displace/set' and DEFAULT_ECL110_COMMAND_TOPIC='ecl110/command'; coordinator.py awaits async_publish_current_action(reason='scheduled_update') in the actuation step of every cycle, and async_publish_ecl110_command returns early only when BOTH topics are empty, otherwise calling hass.services.async_call('mqtt','publish',...) and logging _LOGGER.error on any exception. The only page that says so is the one non-owners are told is not for them. For D6/D10: in Home Assistant an unregistered service raises ServiceNotFound, so an install without the MQTT integration logs an ERROR every interval; tests/harness.py:FakeServices.async_call returns None for unregistered services, so no test can observe it.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub .venv/bin/python tools/audit/round2/D5/reader_paths.py",
+        "harness_path": "tools/audit/round2/D5/reader_paths.py",
+        "value": 1,
+        "unit": "failed check E1 (RESULT ecl110_guidance_contradiction)",
+        "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+        "machine": "Apple M1 (8 cores, 8 GB), macOS 26.6, Python 3.13.1 (tvofi-claude/.venv)",
+        "cpu_or_wall": "count",
+        "contention_note": "fan-out: other auditors active on the box (load1 2.1-3.7 during the runs); counts are contention-immune",
+        "tolerance": "exact",
+        "load1": 3.24,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator.async_publish_ecl110_command (+ const.py:DEFAULT_ECL110_DISPLACE_SET_TOPIC, DEFAULT_ECL110_COMMAND_TOPIC)",
+      "perturbation": {
+        "change": "const.py: set DEFAULT_ECL110_DISPLACE_SET_TOPIC and DEFAULT_ECL110_COMMAND_TOPIC to '' (the docs then match the code; the documentation fix is the reverse: make configuration.md say what ecl110.md says)",
+        "expected_direction": "to_zero",
+        "observed_value": "1 -> 0 (predicted)"
+      },
+      "metric_definition": "1 if a user-facing page says a non-ECL110 install may leave the ECL110 topics at their defaults while both shipped defaults are non-empty and the per-cycle publish runs unless both are empty; else 0.",
+      "reproduction_steps": [
+        "PYTHONPATH=tests/hastub .venv/bin/python tools/audit/round2/D5/reader_paths.py | grep -A2 'E1 '",
+        "grep -n 'DEFAULT_ECL110_.*TOPIC' custom_components/heatpump_optimizer/const.py",
+        "grep -n 'async_publish_current_action(reason=\"scheduled_update\")\\|if not self._ecl110_displace_set_topic and not self._ecl110_command_topic' custom_components/heatpump_optimizer/coordinator.py",
+        "grep -n 'Leave blank if you do not have\\|default sensibly when absent' docs/configuration.md; grep -n 'clear the set topic' docs/ecl110.md"
+      ],
+      "proposed_fix_scope": "Docs: configuration.md lines 70 and 457 and one sentence in README's ECL110 section; whether the code should default to empty topics or gate on the MQTT integration is D10's call.",
+      "files": [
+        "docs/configuration.md",
+        "README.md",
+        "docs/ecl110.md"
+      ],
+      "expected_golden_drift": [],
+      "stop_rule_class": "hygiene"
+    },
+    {
+      "id": "D5-03",
+      "title": "tests/README.md and two plan documents are unreachable from README.md by links",
+      "severity": "low",
+      "claim": "Following relative markdown links from README.md never reaches tests/README.md, docs/plan-card-decomposition.md or docs/plan-open-issues.md; the developer path from README via docs/architecture.md has no route to how the tests are run.",
+      "mechanism": "README's Documentation table lists six documents plus DISCLAIMER; docs/architecture.md names tests/features.py and tests/entities.py but never links tests/README.md; the only inbound links to tests/README.md are from the two plan documents, which nothing links.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub .venv/bin/python tools/audit/round2/D5/reader_paths.py",
+        "harness_path": "tools/audit/round2/D5/reader_paths.py",
+        "value": 3,
+        "unit": "documents unreachable from README.md (RESULT unreachable_docs_from_readme)",
+        "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+        "machine": "Apple M1 (8 cores, 8 GB), macOS 26.6, Python 3.13.1 (tvofi-claude/.venv)",
+        "cpu_or_wall": "count",
+        "contention_note": "fan-out: other auditors active on the box (load1 2.1-3.7 during the runs); counts are contention-immune",
+        "tolerance": "exact",
+        "load1": 3.24,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "README.md '## Documentation' table (the markdown link graph over README.md, DISCLAIMER.md, docs/*.md, tests/README.md, rooted at README.md)",
+      "perturbation": {
+        "change": "README.md: add the row '| [tests/README.md](tests/README.md) | ... |' to the Documentation table",
+        "expected_direction": "down",
+        "observed_value": "3 -> 2 (predicted)"
+      },
+      "metric_definition": "Number of documents in {README.md, DISCLAIMER.md, docs/*.md, tests/README.md} not reachable from README.md by following relative markdown links.",
+      "reproduction_steps": [
+        "PYTHONPATH=tests/hastub .venv/bin/python tools/audit/round2/D5/reader_paths.py | grep -A2 'R1 \\|R2 '",
+        "grep -rn 'tests/README' README.md docs/*.md"
+      ],
+      "proposed_fix_scope": "README.md Documentation table (one row) and docs/architecture.md 'Where to start reading' (one bullet); decide where the two program plans are listed.",
+      "files": [
+        "README.md",
+        "docs/architecture.md"
+      ],
+      "expected_golden_drift": [],
+      "stop_rule_class": "hygiene"
+    },
+    {
+      "id": "D5-04",
+      "title": "Five content defects in user docs: garbled sentence, unwrapped edit, stale status, undefined term, heading skip",
+      "severity": "low",
+      "claim": "how-it-works.md:562-565 does not parse ('the range learning may move within follow the tank's surface area'); how-it-works.md:1189 is an unwrapped 134-char inserted sentence; README 'Project status' names v5.0.0 as the newest release at VERSION 6.2.14; 'throttling valve' is used 8 times in configuration.md and defined on no page; dashboard-card.md:31-133 are h3 sections directly under the h1.",
+      "mechanism": "Editing artefacts (two drafts merged; a sentence inserted without re-wrapping so the following 'Without it' now refers to the wrong noun), a status section not revised since v5.0.0 (release history itself unverifiable here: RELEASE_NOTES.md and docs/backlog.md are removed from the export), a term defined only in code (mixing_valve.py:THROTTLING_MODES = every mode except No mixing valve; inferable by the reader), and a heading structure whose first h2 comes at line 134.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub .venv/bin/python tools/audit/round2/D5/reader_paths.py",
+        "harness_path": "tools/audit/round2/D5/reader_paths.py",
+        "value": 5,
+        "unit": "failed checks H1, H2, S1, C6, ST1 (RESULT content_defects_user_docs)",
+        "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+        "machine": "Apple M1 (8 cores, 8 GB), macOS 26.6, Python 3.13.1 (tvofi-claude/.venv)",
+        "cpu_or_wall": "count",
+        "contention_note": "fan-out: other auditors active on the box (load1 2.1-3.7 during the runs); counts are contention-immune",
+        "tolerance": "exact",
+        "load1": 3.24,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "docs/how-it-works.md, README.md '## Project status' vs VERSION, docs/configuration.md, docs/dashboard-card.md (reader_paths.py regexes over the document texts)",
+      "perturbation": {
+        "change": "docs/how-it-works.md:564: repair the sentence so 'may move within follow' no longer appears",
+        "expected_direction": "down",
+        "observed_value": "5 -> 4 (predicted)"
+      },
+      "metric_definition": "Failing checks among H1 (unwrapped prose line), H2 (merged-draft fragment), S1 (Project status newest release < VERSION major), C6 ('throttling' used, undefined), ST1 (heading-level skip).",
+      "reproduction_steps": [
+        "PYTHONPATH=tests/hastub .venv/bin/python tools/audit/round2/D5/reader_paths.py | grep -A2 -E 'H1 |H2 |S1 |C6 |ST1'",
+        "sed -n '562,565p;1189p' docs/how-it-works.md; sed -n '608,617p' README.md; grep -c throttling docs/configuration.md; grep -n '^#' docs/dashboard-card.md | head -12"
+      ],
+      "proposed_fix_scope": "Docs only: two sentences in how-it-works.md, one paragraph in README, one defining clause in configuration.md, one '## ' heading in dashboard-card.md.",
+      "files": [
+        "docs/how-it-works.md",
+        "README.md",
+        "docs/configuration.md",
+        "docs/dashboard-card.md"
+      ],
+      "expected_golden_drift": [],
+      "stop_rule_class": "hygiene"
+    },
+    {
+      "id": "D5-05",
+      "title": "Comments: one misnamed service, one bound the constant does not enforce, three comments that restate the next line",
+      "severity": "low",
+      "claim": "open_meteo.py:66-69 says surface GHI 'cannot exceed' the ~1361 W/m2 solar constant beside _MAX_PLAUSIBLE_GHI = 1400.0; thermal_model.py:191 names 'the set_thermal_params service' (it is set_thermal_parameters); coordinator.py:4353, optimizer.py:671 and thermal_model.py:1830 carry single-line comments that only restate the next line.",
+      "mechanism": "Of 872 strict and 209 loose symbol references in production comments/docstrings and 248+42 in the card, all resolve after vetting except the misnamed service; of 65 constants whose attached comment cites a number, all agree under the listed conversions after vetting except the GHI ceiling, whose comment states a bound 39 W/m2 below what the constant admits without saying why. Two prose roundings ('less than half' for 0.55, 'a third' for 0.3 in defrost.py) are noted, not counted. Long comment blocks (515) sampled with seed 5 (24) are precise and explain why; none was wrong.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub .venv/bin/python tools/audit/round2/D5/comment_numbers.py",
+        "harness_path": "tools/audit/round2/D5/comment_numbers.py",
+        "value": 1,
+        "unit": "constants whose comment cites numbers that disagree with the value, after vetting (RESULT constant_comment_mismatches_vetted; raw 17)",
+        "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+        "machine": "Apple M1 (8 cores, 8 GB), macOS 26.6, Python 3.13.1 (tvofi-claude/.venv)",
+        "cpu_or_wall": "count",
+        "contention_note": "fan-out: other auditors active on the box (load1 2.1-3.7 during the runs); counts are contention-immune",
+        "tolerance": "exact",
+        "load1": 2.77,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "custom_components/heatpump_optimizer/open_meteo.py:_MAX_PLAUSIBLE_GHI (comment_numbers.py); custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.__post_init__ comment (comment_symbols.py, RESULT loose_missing_vetted=1)",
+      "perturbation": {
+        "change": "open_meteo.py:69: _MAX_PLAUSIBLE_GHI = 1361.0 (or reword the comment to state the slack above 1361)",
+        "expected_direction": "to_zero",
+        "observed_value": "1 -> 0 (predicted)"
+      },
+      "metric_definition": "Numeric constants whose attached comment cites >=1 number and none equals the value under the listed conversions, after the reasoned ALLOW list; plus comment-named identifiers the tree never defines.",
+      "reproduction_steps": [
+        "PYTHONPATH=tests/hastub .venv/bin/python tools/audit/round2/D5/comment_numbers.py | grep -B1 -A1 'open_meteo'",
+        "PYTHONPATH=tests/hastub .venv/bin/python tools/audit/round2/D5/comment_symbols.py | grep -A1 'set_thermal_params\\|^  custom_components.*Fetch prices\\|savings as percentage\\|Solar gains per zone'",
+        "sed -n '66,69p' custom_components/heatpump_optimizer/open_meteo.py; sed -n '189,192p' custom_components/heatpump_optimizer/thermal_model.py"
+      ],
+      "proposed_fix_scope": "Five comment edits (open_meteo.py, thermal_model.py x2, coordinator.py, optimizer.py); no behaviour change.",
+      "files": [
+        "custom_components/heatpump_optimizer/open_meteo.py",
+        "custom_components/heatpump_optimizer/thermal_model.py",
+        "custom_components/heatpump_optimizer/coordinator.py",
+        "custom_components/heatpump_optimizer/optimizer.py"
+      ],
+      "expected_golden_drift": [],
+      "stop_rule_class": "hygiene"
+    }
+  ],
+  "non_findings": [
+    {
+      "claim": "No broken internal link outside the export-removed docs/backlog.md; no broken anchor",
+      "command": "PYTHONPATH=tests/hastub .venv/bin/python tools/audit/round2/D5/links.py",
+      "value": "internal_links_total=46, broken_internal_paths=3 (all docs/backlog.md, removed by the export), broken_internal_paths_excluding_export_removed=0, broken_anchors=0"
+    },
+    {
+      "claim": "Every external link answers 200 to HEAD",
+      "command": "PYTHONPATH=tests/hastub .venv/bin/python tools/audit/round2/D5/links.py",
+      "value": "external_links_total=6, external_broken=0, external_inconclusive=0, external_unreachable=0"
+    },
+    {
+      "claim": "README and docs/*.md do not duplicate each other",
+      "command": "PYTHONPATH=tests/hastub .venv/bin/python tools/audit/round2/D5/duplication.py",
+      "value": "538 units / 37454 words; exact_duplicate_units_cross_file=0; near_duplicate_pairs=1 (README.md:420 sequenceDiagram <-> docs/how-it-works.md:54, J=0.57); duplicated_words=237; readme_twin_share=0.043"
+    },
+    {
+      "claim": "Backticked/RST-role symbols in production comments and docstrings exist",
+      "command": "PYTHONPATH=tests/hastub .venv/bin/python tools/audit/round2/D5/comment_symbols.py",
+      "value": "refs_production_strict=872, strict_missing_raw=3, strict_missing_vetted=0 (elided prefix MIN_POWER, external name tuya_heat_pump, MixedHotWater for MixedHotWaterSensor)"
+    },
+    {
+      "claim": "Symbols named in the card's comments exist",
+      "command": "PYTHONPATH=tests/hastub .venv/bin/python tools/audit/round2/D5/comment_symbols.py",
+      "value": "refs_card_strict=248, refs_card_loose=42, missing 0"
+    },
+    {
+      "claim": "Symbols named in tests' comments exist",
+      "command": "PYTHONPATH=tests/hastub .venv/bin/python tools/audit/round2/D5/comment_symbols.py --tests",
+      "value": "refs_tests_strict=357 (raw missing 2: sensor.zz_probe_* glob, HASTUB_TZ=Europe/Stockholm), refs_tests_loose=206 (raw missing 3: marginal_price formula, SelectEntity x2) -- all false positives on reading"
+    },
+    {
+      "claim": "Docstring 'default N' claims match the signature or the config default they name",
+      "command": "PYTHONPATH=tests/hastub .venv/bin/python tools/audit/round2/D5/comment_numbers.py",
+      "value": "docstring_default_claims=2, docstring_default_mismatches_vetted=0"
+    },
+    {
+      "claim": "Redundant single-line comments are rare",
+      "command": "PYTHONPATH=tests/hastub .venv/bin/python tools/audit/round2/D5/comment_symbols.py",
+      "value": "redundant_single_line_comments=11 raw of 5825 comments; 3 restate the next line (D5-05), 8 are section labels or #: attribute docs"
+    },
+    {
+      "claim": "architecture.md: 45 modules; exactly ten import homeassistant at module level; only inputs.py touches it elsewhere, inside a function",
+      "command": "PYTHONPATH=tests/hastub .venv/bin/python tools/audit/round2/D5/reader_paths.py (A1, A2)",
+      "value": "45 .py modules; 10 module-level importers; inputs.py function-level import; no other"
+    },
+    {
+      "claim": "Eleven services in README, architecture.md and configuration.md; set_thermal_parameters 28 fields; simulate_plan 11; assign_entity 21 keys all listed",
+      "command": "PYTHONPATH=tests/hastub .venv/bin/python tools/audit/round2/D5/reader_paths.py (A3, C1-C3)",
+      "value": "services.yaml 11; 28; 11; topology.ASSIGNABLE_KEYS 21 = 21 listed"
+    },
+    {
+      "claim": "README sensor table 55 rows; six sensors disabled by default; README and architecture agree on 65 entities / 55 sensors; manual plan 20 hours",
+      "command": "PYTHONPATH=tests/hastub .venv/bin/python tools/audit/round2/D5/reader_paths.py (M1-M4)",
+      "value": "55 rows; 6 entity_registry_enabled_default=False; 65/55 in both (test-pinned by tests/entities.py, for D6); MANUAL_PLAN_WINDOW_HOURS=20"
+    },
+    {
+      "claim": "dashboard-card.md: 900x380 view box; hours 1..168; 'about 200 keys, no Swedish entry missing'",
+      "command": "PYTHONPATH=tests/hastub .venv/bin/python tools/audit/round2/D5/reader_paths.py (D1-D3)",
+      "value": "VIEW_W=900 VIEW_H=380; 'hours > 168' guard; STRINGS en=232 sv=232 missing 0"
+    },
+    {
+      "claim": "Capacity-tariff measurement window offers 15 min / 1 h as configuration.md says; ECL110 activation threshold and eight settings as ecl110.md says",
+      "command": "PYTHONPATH=tests/hastub .venv/bin/python tools/audit/round2/D5/reader_paths.py (C4, E2, E3)",
+      "value": "_select(['15','60']); on_threshold = max(0.1, p.min_electrical_power * 0.5); 8 rows on both pages (how-it-works' 90/120-minute remark is a code capability the UI does not expose: for D6)"
+    },
+    {
+      "claim": "tests/README.md: stress.py 48 combinations / 17 edge cases; '1 of 16' scripts",
+      "command": "PYTHONPATH=tests/hastub .venv/bin/python tools/audit/round2/D5/reader_paths.py (T8, T9)",
+      "value": "7*2*2 + 2*7 + 3*2 = 48; edges dict 17; 16 closures"
+    },
+    {
+      "claim": "Version strings cited in docs are historical and <= VERSION; the card's 'v4.3.0' console line is framed as an example",
+      "command": "grep -o -n -E '\\bv[0-9]+\\.[0-9]+\\.[0-9]+\\b' README.md DISCLAIMER.md docs/*.md tests/README.md | sort | uniq -c",
+      "value": "25 citations, max v6.2.5 <= 6.2.14; only README 'Project status' reads as current (D5-04/S1); CARD_VERSION=5.4.17"
+    },
+    {
+      "claim": "Heading levels never skip except one place",
+      "command": "PYTHONPATH=tests/hastub .venv/bin/python tools/audit/round2/D5/reader_paths.py (ST1)",
+      "value": "1 skip: docs/dashboard-card.md:31 h1->h3 (D5-04)"
+    },
+    {
+      "claim": "Long comment blocks are precise and explain why (qualitative)",
+      "command": "random.seed(5) sample of 24 of 515 production blocks >3 lines (REPORT.md, D5-05)",
+      "value": "0 wrong against the code beside them; verbose house style (const.py:389 19 lines), no what-the-next-line-does blocks"
+    }
+  ],
+  "harnesses": [
+    "tools/audit/round2/D5/links.py",
+    "tools/audit/round2/D5/duplication.py",
+    "tools/audit/round2/D5/comment_symbols.py",
+    "tools/audit/round2/D5/comment_numbers.py",
+    "tools/audit/round2/D5/reader_paths.py"
+  ]
+}

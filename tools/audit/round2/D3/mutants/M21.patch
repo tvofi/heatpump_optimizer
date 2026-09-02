@@ -1,0 +1,11 @@
+--- a/custom_components/heatpump_optimizer/accuracy.py
++++ b/custom_components/heatpump_optimizer/accuracy.py
+@@ -379,7 +379,7 @@
+                     continue
+                 try:
+                     tracker.lead_sigma[float(key)] = max(0.0, parsed)
+-                except (TypeError, ValueError):
++                except ():
+                     continue
+         raw_counts = data.get("lead_counts")
+         if isinstance(raw_counts, dict):

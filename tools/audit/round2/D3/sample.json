@@ -1,0 +1,672 @@
+[
+ {
+  "module": "thermal_model.py",
+  "kind": "clamp",
+  "line": 1187,
+  "end_line": 1187,
+  "func": "dhw_coil_draw_reduction",
+  "text": "max(0.0, dhw_setpoint - t_in)",
+  "repl": {
+   "op": "replace_span",
+   "line": 1187,
+   "col": 24,
+   "end_col": 53,
+   "new": "dhw_setpoint - t_in"
+  },
+  "note": "max",
+  "site_id": 2094,
+  "weight": 15,
+  "draw": 1,
+  "id": "M01"
+ },
+ {
+  "module": "optimizer.py",
+  "kind": "clamp",
+  "line": 1421,
+  "end_line": 1421,
+  "func": "HeatPumpOptimizer._terminal_cost.cost",
+  "text": "max(cop_end, 1e-6)",
+  "repl": {
+   "op": "replace_span",
+   "line": 1421,
+   "col": 44,
+   "end_col": 62,
+   "new": "cop_end"
+  },
+  "note": "max",
+  "site_id": 1459,
+  "weight": 15,
+  "draw": 2,
+  "id": "M02"
+ },
+ {
+  "module": "coordinator.py",
+  "kind": "guard_return",
+  "line": 3975,
+  "end_line": 3976,
+  "func": "HeatPumpOptimizerCoordinator._dhw_hours_since_legionella",
+  "text": "if last is None:",
+  "repl": {
+   "op": "delete_lines",
+   "start": 3975,
+   "end": 3976
+  },
+  "note": "",
+  "site_id": 480,
+  "weight": 15,
+  "draw": 3,
+  "id": "M03"
+ },
+ {
+  "module": "thermal_model.py",
+  "kind": "clamp",
+  "line": 1943,
+  "end_line": 1943,
+  "func": "ThermalModel._simulate_step_two_zone",
+  "text": "max(dt_hours, 1e-6)",
+  "repl": {
+   "op": "replace_span",
+   "line": 1943,
+   "col": 20,
+   "end_col": 39,
+   "new": "dt_hours"
+  },
+  "note": "max",
+  "site_id": 2140,
+  "weight": 15,
+  "draw": 4,
+  "id": "M04"
+ },
+ {
+  "module": "price_model.py",
+  "kind": "general_if",
+  "line": 402,
+  "end_line": 403,
+  "func": "extend_price_series",
+  "text": "if shape_mean > 1e-6:",
+  "repl": {
+   "op": "delete_lines",
+   "start": 402,
+   "end": 403
+  },
+  "note": "",
+  "site_id": 1817,
+  "weight": 3,
+  "draw": 5,
+  "id": "M05"
+ },
+ {
+  "module": "frontend.py",
+  "kind": "guard_return",
+  "line": 156,
+  "end_line": 157,
+  "func": "_register_lovelace_resource",
+  "text": "if not item_url or item_url.split(\"?\")[0] != base:",
+  "repl": {
+   "op": "delete_lines",
+   "start": 156,
+   "end": 157
+  },
+  "note": "",
+  "site_id": 1229,
+  "weight": 6,
+  "draw": 6,
+  "id": "M06"
+ },
+ {
+  "module": "optimizer.py",
+  "kind": "clamp",
+  "line": 368,
+  "end_line": 368,
+  "func": "_price_guess_weights",
+  "text": "max(len(prices) - 1, 1)",
+  "repl": {
+   "op": "replace_span",
+   "line": 368,
+   "col": 37,
+   "end_col": 60,
+   "new": "len(prices) - 1"
+  },
+  "note": "max",
+  "site_id": 1396,
+  "weight": 15,
+  "draw": 7,
+  "id": "M07"
+ },
+ {
+  "module": "thermal_model.py",
+  "kind": "guard_return",
+  "line": 544,
+  "end_line": 545,
+  "func": "ThermalParameters.wood_tank_heat_loss_coefficient",
+  "text": "if cached is not None and cached[0] == key:",
+  "repl": {
+   "op": "delete_lines",
+   "start": 544,
+   "end": 545
+  },
+  "note": "",
+  "site_id": 2054,
+  "weight": 15,
+  "draw": 8,
+  "id": "M08"
+ },
+ {
+  "module": "coordinator.py",
+  "kind": "general_if",
+  "line": 4926,
+  "end_line": 4931,
+  "func": "HeatPumpOptimizerCoordinator.async_update_thermal_params",
+  "text": "if CONF_DHW_COOLING_RATE in params:",
+  "repl": {
+   "op": "delete_lines",
+   "start": 4926,
+   "end": 4931
+  },
+  "note": "",
+  "site_id": 539,
+  "weight": 5,
+  "draw": 9,
+  "id": "M09"
+ },
+ {
+  "module": "optimizer.py",
+  "kind": "clamp",
+  "line": 3371,
+  "end_line": 3371,
+  "func": "HeatPumpOptimizer._build_dhw_requirements",
+  "text": "max(params.dhw_tank_heat_loss_coefficient, 1e-6)",
+  "repl": {
+   "op": "replace_span",
+   "line": 3371,
+   "col": 17,
+   "end_col": 65,
+   "new": "params.dhw_tank_heat_loss_coefficient"
+  },
+  "note": "max",
+  "site_id": 1597,
+  "weight": 15,
+  "draw": 10,
+  "id": "M10"
+ },
+ {
+  "module": "optimizer.py",
+  "kind": "clamp",
+  "line": 2401,
+  "end_line": 2401,
+  "func": "HeatPumpOptimizer.optimize",
+  "text": "min(planned.size, req.size)",
+  "repl": {
+   "op": "replace_span",
+   "line": 2401,
+   "col": 24,
+   "end_col": 51,
+   "new": "planned.size"
+  },
+  "note": "min",
+  "site_id": 1525,
+  "weight": 15,
+  "draw": 11,
+  "id": "M11"
+ },
+ {
+  "module": "coordinator.py",
+  "kind": "general_if",
+  "line": 5401,
+  "end_line": 5403,
+  "func": "HeatPumpOptimizerCoordinator._fetch_tibber_prices",
+  "text": "if resp.status != 200:",
+  "repl": {
+   "op": "delete_lines",
+   "start": 5401,
+   "end": 5403
+  },
+  "note": "",
+  "site_id": 579,
+  "weight": 5,
+  "draw": 12,
+  "id": "M12"
+ },
+ {
+  "module": "coordinator.py",
+  "kind": "general_if",
+  "line": 1676,
+  "end_line": 1677,
+  "func": "HeatPumpOptimizerCoordinator._dhw_setpoint_sweep",
+  "text": "if mean_price <= 1e-6:",
+  "repl": {
+   "op": "delete_lines",
+   "start": 1676,
+   "end": 1677
+  },
+  "note": "",
+  "site_id": 312,
+  "weight": 5,
+  "draw": 14,
+  "id": "M13"
+ },
+ {
+  "module": "inputs.py",
+  "kind": "guard_return",
+  "line": 565,
+  "end_line": 566,
+  "func": "InputReader.flag",
+  "text": "if reading is None or not reading.ok or reading.flag is None:",
+  "repl": {
+   "op": "delete_lines",
+   "start": 565,
+   "end": 566
+  },
+  "note": "",
+  "site_id": 1304,
+  "weight": 12,
+  "draw": 15,
+  "id": "M14"
+ },
+ {
+  "module": "inputs.py",
+  "kind": "clamp",
+  "line": 352,
+  "end_line": 352,
+  "func": "InputReader._age_minutes",
+  "text": "max(0.0, (now - stamp).total_seconds() / 60.0)",
+  "repl": {
+   "op": "replace_span",
+   "line": 352,
+   "col": 15,
+   "end_col": 61,
+   "new": "(now - stamp).total_seconds() / 60.0"
+  },
+  "note": "max",
+  "site_id": 1284,
+  "weight": 12,
+  "draw": 16,
+  "id": "M15"
+ },
+ {
+  "module": "dhw_schedule.py",
+  "kind": "guard_return",
+  "line": 103,
+  "end_line": 104,
+  "func": "_format_day_selector",
+  "text": "if ordered == [5, 6]:",
+  "repl": {
+   "op": "delete_lines",
+   "start": 103,
+   "end": 104
+  },
+  "note": "",
+  "site_id": 1087,
+  "weight": 12,
+  "draw": 17,
+  "id": "M16"
+ },
+ {
+  "module": "topology.py",
+  "kind": "general_if",
+  "line": 598,
+  "end_line": 599,
+  "func": "render_text_summary",
+  "text": "if not two_tank:",
+  "repl": {
+   "op": "delete_lines",
+   "start": 598,
+   "end": 599
+  },
+  "note": "",
+  "site_id": 2238,
+  "weight": 2,
+  "draw": 19,
+  "id": "M17"
+ },
+ {
+  "module": "thermal_model.py",
+  "kind": "clamp",
+  "line": 655,
+  "end_line": 655,
+  "func": "ThermalParameters.dhw_max_temp",
+  "text": "min(70.0, self.dhw_setpoint)",
+  "repl": {
+   "op": "replace_span",
+   "line": 655,
+   "col": 15,
+   "end_col": 43,
+   "new": "self.dhw_setpoint"
+  },
+  "note": "min",
+  "site_id": 2061,
+  "weight": 15,
+  "draw": 21,
+  "id": "M18"
+ },
+ {
+  "module": "dhw_schedule.py",
+  "kind": "guard_return",
+  "line": 433,
+  "end_line": 434,
+  "func": "hours_until_next_window",
+  "text": "if hour_in_windows(hour, windows):",
+  "repl": {
+   "op": "delete_lines",
+   "start": 433,
+   "end": 434
+  },
+  "note": "",
+  "site_id": 1133,
+  "weight": 12,
+  "draw": 23,
+  "id": "M19"
+ },
+ {
+  "module": "away.py",
+  "kind": "general_if",
+  "line": 141,
+  "end_line": 149,
+  "func": "interpret_presence",
+  "text": "if domain == \"binary_sensor\":",
+  "repl": {
+   "op": "delete_lines",
+   "start": 141,
+   "end": 149
+  },
+  "note": "",
+  "site_id": 75,
+  "weight": 3,
+  "draw": 25,
+  "id": "M20"
+ },
+ {
+  "module": "accuracy.py",
+  "kind": "except_handler",
+  "line": 382,
+  "end_line": 383,
+  "func": "AccuracyTracker.from_dict",
+  "text": "except (TypeError, ValueError):",
+  "repl": {
+   "op": "replace_span",
+   "line": 382,
+   "col": 23,
+   "end_col": 46,
+   "new": "()"
+  },
+  "note": "(TypeError, ValueError)",
+  "site_id": 59,
+  "weight": 4,
+  "draw": 27,
+  "id": "M21"
+ },
+ {
+  "module": "snapshots.py",
+  "kind": "general_if",
+  "line": 185,
+  "end_line": 190,
+  "func": "SnapshotRing.best_restore",
+  "text": "if accuracy is not None:",
+  "repl": {
+   "op": "delete_lines",
+   "start": 185,
+   "end": 190
+  },
+  "note": "",
+  "site_id": 1953,
+  "weight": 2,
+  "draw": 30,
+  "id": "M22"
+ },
+ {
+  "module": "sensor.py",
+  "kind": "general_if",
+  "line": 1515,
+  "end_line": 1516,
+  "func": "_AccumulatingSensor.extra_state_attributes",
+  "text": "if since:",
+  "repl": {
+   "op": "delete_lines",
+   "start": 1515,
+   "end": 1516
+  },
+  "note": "",
+  "site_id": 1917,
+  "weight": 3,
+  "draw": 31,
+  "id": "M23"
+ },
+ {
+  "module": "dhw_schedule.py",
+  "kind": "guard_return",
+  "line": 131,
+  "end_line": 132,
+  "func": "_parse_time",
+  "text": "if hour > 23:",
+  "repl": {
+   "op": "delete_lines",
+   "start": 131,
+   "end": 132
+  },
+  "note": "",
+  "site_id": 1093,
+  "weight": 12,
+  "draw": 36,
+  "id": "M24"
+ },
+ {
+  "module": "dhw_schedule.py",
+  "kind": "general_if",
+  "line": 272,
+  "end_line": 276,
+  "func": "parse_weekly_windows",
+  "text": "if m:",
+  "repl": {
+   "op": "delete_lines",
+   "start": 272,
+   "end": 276
+  },
+  "note": "",
+  "site_id": 1107,
+  "weight": 4,
+  "draw": 39,
+  "id": "M25"
+ },
+ {
+  "module": "tariff.py",
+  "kind": "guard_return",
+  "line": 524,
+  "end_line": 525,
+  "func": "peak_cost",
+  "text": "if not np.any(excess > 0):",
+  "repl": {
+   "op": "delete_lines",
+   "start": 524,
+   "end": 525
+  },
+  "note": "",
+  "site_id": 2043,
+  "weight": 12,
+  "draw": 40,
+  "id": "M26"
+ },
+ {
+  "module": "snapshots.py",
+  "kind": "general_if",
+  "line": 140,
+  "end_line": 142,
+  "func": "SnapshotRing.observe_bias",
+  "text": "if not self.alarmed and self._bias_days >= BIAS_TRIP_DAYS:",
+  "repl": {
+   "op": "delete_lines",
+   "start": 140,
+   "end": 142
+  },
+  "note": "",
+  "site_id": 1947,
+  "weight": 2,
+  "draw": 44,
+  "id": "M27"
+ },
+ {
+  "module": "grid_fee.py",
+  "kind": "guard_return",
+  "line": 255,
+  "end_line": 258,
+  "func": "GridFeeSchedule.current_fee",
+  "text": "if self.mode == MODE_RULES:",
+  "repl": {
+   "op": "delete_lines",
+   "start": 255,
+   "end": 258
+  },
+  "note": "",
+  "site_id": 1264,
+  "weight": 12,
+  "draw": 48,
+  "id": "M28"
+ },
+ {
+  "module": "sensor.py",
+  "kind": "payload_key",
+  "line": 1520,
+  "end_line": 1520,
+  "func": "_AccumulatingSensor.extra_state_attributes",
+  "text": "attrs[\"this_month_kwh\"] = round(month[0], 3)",
+  "repl": {
+   "op": "delete_lines",
+   "start": 1520,
+   "end": 1520
+  },
+  "note": "",
+  "site_id": 1921,
+  "weight": 6,
+  "draw": 49,
+  "id": "M29"
+ },
+ {
+  "module": "open_meteo.py",
+  "kind": "except_handler",
+  "line": 194,
+  "end_line": 195,
+  "func": "_parse_block",
+  "text": "except ValueError:",
+  "repl": {
+   "op": "replace_span",
+   "line": 194,
+   "col": 15,
+   "end_col": 25,
+   "new": "()"
+  },
+  "note": "ValueError",
+  "site_id": 1361,
+  "weight": 4,
+  "draw": 51,
+  "id": "M30"
+ },
+ {
+  "module": "sensor.py",
+  "kind": "general_if",
+  "line": 1086,
+  "end_line": 1111,
+  "func": "PredictiveInsightSensor.extra_state_attributes",
+  "text": "if self.coordinator.data:",
+  "repl": {
+   "op": "delete_lines",
+   "start": 1086,
+   "end": 1111
+  },
+  "note": "",
+  "site_id": 1903,
+  "weight": 3,
+  "draw": 52,
+  "id": "M31"
+ },
+ {
+  "module": "grid_fee.py",
+  "kind": "guard_return",
+  "line": 141,
+  "end_line": 142,
+  "func": "_parse_rule",
+  "text": "if not np.isfinite(rate):",
+  "repl": {
+   "op": "delete_lines",
+   "start": 141,
+   "end": 142
+  },
+  "note": "",
+  "site_id": 1245,
+  "weight": 12,
+  "draw": 59,
+  "id": "M32"
+ },
+ {
+  "module": "defrost.py",
+  "kind": "clamp",
+  "line": 441,
+  "end_line": 441,
+  "func": "DefrostDerate.from_dict",
+  "text": "max(DERATE_MIN, v)",
+  "repl": {
+   "op": "replace_span",
+   "line": 441,
+   "col": 33,
+   "end_col": 51,
+   "new": "DERATE_MIN"
+  },
+  "note": "max",
+  "site_id": 1049,
+  "weight": 9,
+  "draw": 62,
+  "id": "M33"
+ },
+ {
+  "module": "inputs.py",
+  "kind": "general_if",
+  "line": 516,
+  "end_line": 519,
+  "func": "InputReader.read_bool",
+  "text": "if flag is None:",
+  "repl": {
+   "op": "delete_lines",
+   "start": 516,
+   "end": 519
+  },
+  "note": "",
+  "site_id": 1295,
+  "weight": 4,
+  "draw": 64,
+  "id": "M34"
+ },
+ {
+  "module": "grid_fee.py",
+  "kind": "guard_return",
+  "line": 176,
+  "end_line": 177,
+  "func": "parse_rules",
+  "text": "if not spec:",
+  "repl": {
+   "op": "delete_lines",
+   "start": 176,
+   "end": 177
+  },
+  "note": "",
+  "site_id": 1251,
+  "weight": 12,
+  "draw": 67,
+  "id": "M35"
+ },
+ {
+  "module": "open_meteo.py",
+  "kind": "guard_return",
+  "line": 145,
+  "end_line": 146,
+  "func": "IrradianceSeries.mean_over",
+  "text": "if total_weight < 0.5 * requested:",
+  "repl": {
+   "op": "delete_lines",
+   "start": 145,
+   "end": 146
+  },
+  "note": "",
+  "site_id": 1354,
+  "weight": 6,
+  "draw": 70,
+  "id": "M36"
+ }
+]

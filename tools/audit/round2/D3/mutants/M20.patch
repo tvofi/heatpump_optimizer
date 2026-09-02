@@ -1,0 +1,18 @@
+--- a/custom_components/heatpump_optimizer/away.py
++++ b/custom_components/heatpump_optimizer/away.py
+@@ -138,15 +138,6 @@
+         # A calendar event named "holiday" being *on* means away.
+         return value == "on"
+ 
+-    if domain == "binary_sensor":
+-        device_class = str((attributes or {}).get("device_class", "")).lower()
+-        if device_class in _PRESENCE_DEVICE_CLASSES:
+-            # Presence semantics: on = detected = home.
+-            if value in _TOGGLE_ON_STATES:
+-                return False
+-            if value in _TOGGLE_OFF_STATES:
+-                return True
+-            return None
+ 
+     if value in _TOGGLE_ON_STATES:
+         # An input_boolean called "away mode" is on when away.

@@ -1,0 +1,436 @@
+{
+ "dimension": "D2",
+ "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+ "exposure": "",
+ "findings": [
+  {
+   "id": "D2-01",
+   "title": "Batched single-zone simulation ignores the Euler sub-step; solver plans off a diverged model in the stiff regime",
+   "severity": "high",
+   "claim": "For any single-zone configuration where ThermalModel._stability_substeps returns n_sub >= 2 (inside the config-flow ranges: slab_thermal_mass <= 0.83 kWh/K with slab_heat_transfer 5.0, or slab_thermal_mass 0.1 with the default 0.8), simulate_trajectory_batch diverges from simulate_trajectory by >= 5.3 degC within 48 steps while the two-zone twin stays bitwise identical, and HeatPumpOptimizer.optimize with the batched jacobian returns status 'optimal' with objective 108.50 / cost 103.81 SEK where the scalar-jac solve of the same inputs gives 54.62 / 30.08 SEK.",
+   "mechanism": "thermal_model.py:2401-2402 sets dt = dt_hours / n_sub for the sub-step loop, but the single-zone branch of simulate_trajectory_batch integrates with dt_hours per sub-step (:2636-2637) and re-seeds T_room from the initial state on every sub-step of step 0 (:2606). The two-zone branch uses dt. tests/features.py::_grad_parity's only sub-step cell is two-zone, so the single-zone twin is untested there.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D2/parity_substeps.py",
+    "harness_path": "tools/audit/round2/D2/parity_substeps.py",
+    "value": 53.8845,
+    "unit": "objective units (SEK-equivalent): solve_objective_gap_batch_minus_scalar; parity_diff_slab0.5_k5.0 = 1.27e20 degC, parity_min_diff_single_stiff = 5.283 degC",
+    "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+    "machine": "Apple M1 8 GB (Darwin 25.6), python 3.13.1, numpy 2.5.2, scipy 1.18.1, OpenBLAS pinned to 1 thread",
+    "cpu_or_wall": "n/a",
+    "contention_note": "fan-out: ten other auditors on the box, load1 22-72 during the runs; every value is a count/ratio/residual/parity, contention-immune",
+    "tolerance": "objective gap +-1 (solver path); parity diffs exact (bitwise 0 is the contract)",
+    "load1": 69.13,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "thermal_model:ThermalModel.simulate_trajectory_batch (vs ThermalModel.simulate_trajectory), thermal_model:ThermalModel._stability_substeps, optimizer:_bounds_supported_by_batch, optimizer:_batch_fd_gradient",
+   "perturbation": {
+    "change": "--perturb: config slab_heat_transfer 5.0 -> 0.8 on the slab_thermal_mass 0.5 cell (n_sub 2 -> 1)",
+    "expected_direction": "to_zero",
+    "observed_value": "parity diff 0.0 degC; objective gap -0.0000; schedule L1 0.0024 kWh"
+   },
+   "metric_definition": "max |T_batch - T_scalar| (degC) over a 48-step trajectory per config cell; and J_scalar(plan with batched jac) - J_scalar(plan with scipy FD jac) on the same inputs",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D2/parity_substeps.py",
+    "value": "0.0 degC on the 3 n_sub=1 cells and on all 49 golden configs; grad_batch_vs_scipy_maxabs_default = 0.0",
+    "note": "the contract holds everywhere n_sub == 1"
+   },
+   "leave_one_out": {
+    "cells": 6,
+    "min": 5.283,
+    "max": 2.536e+74,
+    "drop_most_favourable": 1.331e+24
+   },
+   "reproduction_steps": [
+    "cd export root",
+    "PYTHONPATH=tests/hastub python tools/audit/round2/D2/parity_substeps.py",
+    "read RESULT parity_max_diff_single_stiff, parity_max_diff_two_zone_stiff (0), solve_cost_batch vs solve_cost_scalar",
+    "PYTHONPATH=tests/hastub python tools/audit/round2/D2/parity_substeps.py --perturb  # diff -> 0"
+   ],
+   "proposed_fix_scope": "thermal_model.py single-zone branch of simulate_trajectory_batch: integrate with dt (dt_hours/n_sub) and hoist the T_room seed out of the sub-step loop; add a single-zone stiff cell to tests/features.py _grad_parity. No golden drift expected (every fixture has n_sub == 1).",
+   "files": [
+    "custom_components/heatpump_optimizer/thermal_model.py",
+    "tests/features.py"
+   ],
+   "expected_golden_drift": [],
+   "stop_rule_class": "bug"
+  },
+  {
+   "id": "D2-02",
+   "title": "With a mixing valve, compute_cop falls as outdoor temperature rises above ~10-17 degC at every flow above the reference",
+   "severity": "medium",
+   "claim": "For every throttling-valve install (from_config sets cop_flow_carnot=True), ThermalModel.compute_cop(T_out, flow_temp=F) for F in 45..70 degC peaks at 17..10 degC outdoor and at 20 degC outdoor is only 0.989..0.887 of that peak (7 of 7 flow cells non-monotone), so marginal_cop(T_out, 'buffer', 60 degC) is 2.034 at 10 degC but 1.880 at 20 degC (-7.6 %), which is the COP the simulation, _terminal_cost and _deferred_energy_cost price the tank at.",
+   "mechanism": "thermal_model.py:1328-1338 multiplies the linear base curve by Carnot(F,T_out)/Carnot(35 degC,T_out). The base curve's implied Carnot fraction falls from 0.33 at -20 degC to 0.17 at +25 degC (carnot_fraction_min/max), while the ratio's derivative in T_out has the sign of (T_ref - T_F) < 0, so the product turns over in mild weather - the opposite of a real unit at fixed flow temperature.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D2/cop_monotone.py",
+    "harness_path": "tools/audit/round2/D2/cop_monotone.py",
+    "value": 7,
+    "unit": "count: cop_flow_cells_nonmonotone of 7; cop_ratio_20_over_peak_min = 0.8874 (flow 70), cop_ratio_20_over_peak_flow55 = 0.9427; marginal_cop_buffer60_out10 = 2.0339, _out20 = 1.8802",
+    "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+    "machine": "Apple M1 8 GB (Darwin 25.6), python 3.13.1, numpy 2.5.2, scipy 1.18.1, OpenBLAS pinned to 1 thread",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: ten other auditors on the box, load1 22-72 during the runs; every value is a count/ratio/residual/parity, contention-immune",
+    "tolerance": "exact (0.5 K grid, diffs rounded at 1e-12)",
+    "load1": 69.13,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "thermal_model:ThermalModel.compute_cop, thermal_model:ThermalModel.marginal_cop, thermal_model:ThermalModel.compute_cop_dhw, optimizer:HeatPumpOptimizer._buffer_charge_ceiling",
+   "perturbation": {
+    "change": "--perturb: cop_flow_carnot=False (the no-valve arithmetic)",
+    "expected_direction": "to_zero",
+    "observed_value": "cop_flow_cells_nonmonotone = 0; marginal_cop_buffer60 monotone 2.89 -> 4.64 over 0..20 degC"
+   },
+   "metric_definition": "sign changes of dCOP/dT_out on a 0.5 K grid over [-25, 30] degC per flow temperature, and COP(20 degC)/COP(peak)",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D2/cop_monotone.py",
+    "value": "flow_temp=None: 0 sign changes; compute_cop_dhw: 0 violations in tank or outdoor temperature",
+    "note": "only the Carnot flow branch turns over"
+   },
+   "leave_one_out": {
+    "cells": 7,
+    "min": 0.8874,
+    "max": 0.999,
+    "drop_most_favourable": 0.9034
+   },
+   "reproduction_steps": [
+    "cd export root",
+    "PYTHONPATH=tests/hastub python tools/audit/round2/D2/cop_monotone.py",
+    "read the CELL flow=F lines (argmax_out, ratio20/peak) and RESULT marginal_cop_buffer60_out10/out20",
+    "PYTHONPATH=tests/hastub python tools/audit/round2/D2/cop_monotone.py --perturb  # all counts 0"
+   ],
+   "proposed_fix_scope": "thermal_model.py compute_cop: derive the flow derate from a Carnot fraction consistent with the base curve (eta = COP_ref*(T_ref-T_out)/T_ref at the reference flow, COP(F) = eta*T_F/(T_F-T_out) with the existing lift floor), then re-record the valve/wood fixtures.",
+   "files": [
+    "custom_components/heatpump_optimizer/thermal_model.py"
+   ],
+   "expected_golden_drift": [
+    "valve_storage",
+    "valve_storage_low_target",
+    "valve_storage_flat_prices",
+    "valve_storage_small_tank",
+    "valve_storage_smart_write",
+    "wood_two_tank",
+    "wood_two_tank_smart_write",
+    "wood_coil",
+    "valve_upper_direct_slab"
+   ],
+   "stop_rule_class": "bug"
+  },
+  {
+   "id": "D2-03",
+   "title": "The planning grid steps wall-clock time: DST days plan 96 steps over 23 or 25 real hours",
+   "severity": "medium",
+   "claim": "On every DST transition day tested (six, 2025-2027), 84 of the coordinator's 96 planning steps carry a price that is not the price in force at t0 + i*15 min real time (plain day: 0); the spring grid maps 96 labels onto 92 real instants and the production optimizer anchored as the coordinator anchors it books 6.0 kWh of the day's 29.96 kWh in the four non-existent 02:xx steps, while the autumn grid holds the step labelled 02:45 CEST for 75 real minutes at 6.0 kW.",
+   "mechanism": "coordinator.py:5728/5849/6035 and optimizer.py:981/2033 build step instants as aware_local_midnight + timedelta(15*i min), which Python defines as wall-clock arithmetic; Tibber entries carry real offsets and are bisected by instant (_known_prices_for), so after the transition every step is one real hour off. price_model._entries_by_day already drops DST days for learning and tariff._window_slot carries fold; the plan grid does neither.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D2/dst_grid.py",
+    "harness_path": "tools/audit/round2/D2/dst_grid.py",
+    "value": 84,
+    "unit": "count: dst_transition_steps_misaligned (min = max = 84 over 6 days); dst_spring_distinct_instants = 92, dst_spring_span_hours = 23, dst_autumn_span_hours = 25, dst_autumn_max_gap_min = 75, dst_spring_plan_phantom_kwh = 6.000 of 29.960",
+    "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+    "machine": "Apple M1 8 GB (Darwin 25.6), python 3.13.1, numpy 2.5.2, scipy 1.18.1, OpenBLAS pinned to 1 thread",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: ten other auditors on the box, load1 22-72 during the runs; every value is a count/ratio/residual/parity, contention-immune",
+    "tolerance": "exact",
+    "load1": 28.59,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "coordinator:HeatPumpOptimizerCoordinator._price_series, coordinator:HeatPumpOptimizerCoordinator._forecast_arrays, optimizer:_Horizon.timestamps",
+   "perturbation": {
+    "change": "--perturb: _price_series builds step_starts by UTC stepping converted to local ((midnight.astimezone(UTC) + i*15 min).astimezone(tz)) - the one-line production edit",
+    "expected_direction": "to_zero",
+    "observed_value": "steps_misaligned = 0 on all six transition days"
+   },
+   "metric_definition": "number of the 96 steps whose assigned price != the price in force at real instant t0 + i*15 min, on a solve anchored at local midnight (HASTUB_TZ=Europe/Stockholm)",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D2/dst_grid.py",
+    "value": "plain day 2026-08-26: 0 misaligned, 96 distinct instants, 24.00 h, phantom 0 kWh",
+    "note": "dst_null_control_plain"
+   },
+   "leave_one_out": {
+    "cells": 6,
+    "min": 84,
+    "max": 84,
+    "drop_most_favourable": 84
+   },
+   "reproduction_steps": [
+    "cd export root",
+    "PYTHONPATH=tests/hastub python tools/audit/round2/D2/dst_grid.py",
+    "read RESULT dst_spring_*, dst_autumn_*, dst_transition_*",
+    "PYTHONPATH=tests/hastub python tools/audit/round2/D2/dst_grid.py --perturb  # misaligned -> 0"
+   ],
+   "proposed_fix_scope": "coordinator.py _price_series/_weather_series/_forecast_arrays and optimizer.py _Horizon.timestamps/step_datetimes: step in UTC and convert to local (as tests/dst_checks.py's real walk does); step_hours follow. No golden drift (fixtures use naive datetimes).",
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/optimizer.py"
+   ],
+   "expected_golden_drift": [],
+   "stop_rule_class": "bug"
+  },
+  {
+   "id": "D2-04",
+   "title": "sysid confidence cannot reach its 0.3 adoption gate at the default interval; a drifting sensor passes it biased",
+   "severity": "medium",
+   "claim": "With the coordinator's default 30-minute sampling (_run_system_identification once per optimization cycle), SystemIdentification.identify's confidence for a noise-free experiment is 0.107 and its ceiling is 0.28 (< the 0.3 gate in _adopt_system_identification), so no result is ever adopted; at 15-minute sampling clean data scores 0.250 (rejected, UA exact) while a 0.10 / 0.15 K/h linear drift scores 0.304 / 0.341, is adopted, and carries UA -12 % / -24 % (tau +15 % / +32 %).",
+   "mechanism": "sysid.py:453-459: confidence = r2 * min(1, rows/20) * clip(excursion/2, 0.3, 1). A 2 h step + 2 h relax at 30-min samples gives 7 rows (0.35) and the 0.8 K comfort abort bounds the excursion factor at 0.8, ceiling 0.28; drift inflates the delta-T range (raising the excursion factor) while biasing the UA column.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D2/sysid_bias.py",
+    "harness_path": "tools/audit/round2/D2/sysid_bias.py",
+    "value": 0.107,
+    "unit": "ratio: sysid_clean_confidence_30min (ceiling 0.280, gate 0.300); sysid_clean_confidence_15min = 0.250; sysid_drift_0.10Kph_mean_confidence = 0.304 with median_rel_err_UA = -0.1216; drift_0.15Kph: 0.341 / -0.2368",
+    "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+    "machine": "Apple M1 8 GB (Darwin 25.6), python 3.13.1, numpy 2.5.2, scipy 1.18.1, OpenBLAS pinned to 1 thread",
+    "cpu_or_wall": "ratio",
+    "contention_note": "fan-out: ten other auditors on the box, load1 22-72 during the runs; every value is a count/ratio/residual/parity, contention-immune",
+    "tolerance": "exact for the deterministic cells; +-0.01 on the 300-seed white-noise medians",
+    "load1": 72.24,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "sysid:SystemIdentification.identify (through SysIdSample records built as SystemIdentification.step records them), coordinator:HeatPumpOptimizerCoordinator._adopt_system_identification gate (confidence < 0.3) replicated as a filter",
+   "perturbation": {
+    "change": "sampling interval 30 -> 15 min (the harness's dt_h cell); noise sigma -> 0 for the bias",
+    "expected_direction": "up",
+    "observed_value": "clean confidence 0.107 -> 0.250, ceiling 0.28 -> 0.60; UA bias at sigma=0: +0.0000"
+   },
+   "metric_definition": "identify().confidence on an exact first-order room (C 8, UA 0.20, G 0.30, 2 h step at 6 kW + 2 h relax) vs the 0.3 gate; median (estimate/truth - 1) of UA, C, tau per noise model",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D2/sysid_bias.py",
+    "value": "white_0: UA bias +0.0000, C +0.0031, completion 1.0; white noise <= 0.1 K and 0.1 K quantisation: |UA bias| <= 1.4 %",
+    "note": "the estimator is unbiased; the gate is what is wrong"
+   },
+   "leave_one_out": {
+    "cells": 9,
+    "min": 0.0,
+    "max": 1.0,
+    "drop_most_favourable": 1.0
+   },
+   "reproduction_steps": [
+    "cd export root",
+    "PYTHONPATH=tests/hastub python tools/audit/round2/D2/sysid_bias.py",
+    "read RESULT sysid_clean_confidence_30min/15min, sysid_confidence_ceiling_*, sysid_adoption_gate, sysid_drift_0.1*Kph_*"
+   ],
+   "proposed_fix_scope": "sysid.py identify: size the confidence to the experiment the comfort bound allows (rows from the configured interval, excursion normalised by max_excursion_c) or lower the coordinator gate accordingly; reject fits whose relax-phase residuals trend (drift).",
+   "files": [
+    "custom_components/heatpump_optimizer/sysid.py",
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "expected_golden_drift": [],
+   "stop_rule_class": "bug"
+  },
+  {
+   "id": "D2-05",
+   "title": "wood_share is discontinuous at the flow curve when the HP tank sits within the switch margin",
+   "severity": "low",
+   "claim": "wood_share (docstring: 'continuous in w * Q_draw across every boundary') jumps from (wood-hp)/margin to 1.0 as wood_temp crosses flow_set while hp_temp is in (flow_set - margin, flow_set]: a jump of 1.0 in share at hp_temp = flow_set (13.44 kW of a 13.44 kW emitter draw moving between tanks for a 1e-6 K change) and 0.5 at flow_set - 1 K; _wood_share_vec reproduces it bitwise.",
+   "mechanism": "thermal_model.py:1108-1115: region 1 (wood >= flow_set) returns 1.0 while region 3 (both tanks at/below the curve) returns (wood - hp)/margin, which only reaches 1.0 when wood - hp >= margin; the two laws agree at the curve only for hp <= flow_set - margin.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D2/model_sanity.py",
+    "harness_path": "tools/audit/round2/D2/model_sanity.py",
+    "value": 1.0,
+    "unit": "ratio: wood_share_max_jump; wood_share_times_drawn_jump = 13.44 kW",
+    "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+    "machine": "Apple M1 8 GB (Darwin 25.6), python 3.13.1, numpy 2.5.2, scipy 1.18.1, OpenBLAS pinned to 1 thread",
+    "cpu_or_wall": "ratio",
+    "contention_note": "fan-out: ten other auditors on the box, load1 22-72 during the runs; every value is a count/ratio/residual/parity, contention-immune",
+    "tolerance": "exact",
+    "load1": 72.24,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "thermal_model:wood_share, thermal_model:_wood_share_vec",
+   "perturbation": {
+    "change": "--perturb: region 3 returns clip(max(wood - hp, wood - flow_set + margin)/margin) so it meets region 1 at the curve (one-line edit at thermal_model.py:1115)",
+    "expected_direction": "to_zero",
+    "observed_value": "wood_share_max_jump = 0.0"
+   },
+   "metric_definition": "|wood_share(flow_set, hp, flow_set, floor) - wood_share(flow_set - 1e-6, hp, flow_set, floor)| over 21 hp_temp cells in [flow_set - margin, flow_set]",
+   "leave_one_out": {
+    "cells": 21,
+    "min": 0.0,
+    "max": 1.0,
+    "drop_most_favourable": 0.95
+   },
+   "reproduction_steps": [
+    "cd export root",
+    "PYTHONPATH=tests/hastub python tools/audit/round2/D2/model_sanity.py",
+    "read CELL wood_share worst jump and RESULT wood_share_max_jump",
+    "PYTHONPATH=tests/hastub python tools/audit/round2/D2/model_sanity.py --perturb  # -> 0"
+   ],
+   "proposed_fix_scope": "thermal_model.py wood_share region 3 (and _wood_share_vec v3): make the switch reach 1.0 at the curve; re-record wood_two_tank* / wood_coil if any plan crosses the corner.",
+   "files": [
+    "custom_components/heatpump_optimizer/thermal_model.py"
+   ],
+   "expected_golden_drift": [
+    "wood_two_tank",
+    "wood_two_tank_smart_write",
+    "wood_coil"
+   ],
+   "stop_rule_class": "bug"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "Batched twin bitwise-identical to the scalar path on all 49 golden configs and 3 stiff two-zone cells",
+   "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D2/parity_substeps.py",
+   "value": "parity_max_diff_golden = 0.000e+00 degC; parity_max_diff_two_zone_stiff = 0.000e+00 degC"
+  },
+  {
+   "claim": "Batched jac equals scipy's 2-point estimate on the default house; forward vs central FD relative error",
+   "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D2/parity_substeps.py",
+   "value": "grad_batch_vs_scipy_maxabs_default = 0.0; grad_forward_vs_central_maxrel_default = 1.04e-6 at step 20"
+  },
+  {
+   "claim": "Energy conservation per kernel call, simulate_trajectory on 49 configs x 3 random schedules x 96 steps",
+   "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D2/conservation.py",
+   "value": "conservation_max_resid_space = 3.98e-13 kWh"
+  },
+  {
+   "claim": "Energy conservation through simulate_trajectory_with_dhw incl. the DHW coil and refused/floor ledgers (39 DHW configs)",
+   "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D2/conservation.py",
+   "value": "conservation_max_resid_dhw = 3.70e-13 kWh"
+  },
+  {
+   "claim": "Energy conservation through simulate_step with n_sub = 3 and with a learned internal-gains profile",
+   "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D2/conservation.py",
+   "value": "2.20e-13 kWh; 9.33e-14 kWh"
+  },
+  {
+   "claim": "Wood ceiling deletes heat without booking it (documented) - only in a forced 94.5 degC cell, never in a golden scenario",
+   "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D2/conservation.py",
+   "value": "wood_cap_deleted_kwh = 20.081 of a 192 kWh burn"
+  },
+  {
+   "claim": "dhw_coil_draw_reduction: reduced + coil == draw (docstring says exactly)",
+   "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D2/conservation.py",
+   "value": "28 of 1426 cells differ by <= 4.44e-16 kW (1 ulp)"
+  },
+  {
+   "claim": "Euler order: err(dt=1 h)/err(4 x 15 min) after 6 h against a 1/64 h reference",
+   "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D2/model_sanity.py",
+   "value": "4.289 (two-zone valve), 4.442 (single-zone): first order as the integrator predicts"
+  },
+  {
+   "claim": "More power never cools any store (single, two-zone valve, two-tank; 5 states x 25 power levels)",
+   "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D2/model_sanity.py",
+   "value": "monotonic_violations = 0 of 2160"
+  },
+  {
+   "claim": "Buffer cap and DHW rating clamp a rate, not a state; charging clamps at the cap with refused heat booked",
+   "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D2/model_sanity.py",
+   "value": "75 -> 72.830 degC, refused 0; cap_charging_clamped_at = 70.000000 with 0.864 kW refused; dhw_rating_rate_semantics = 1"
+  },
+  {
+   "claim": "dhw_coast_hours closed form vs a simulated coast",
+   "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D2/model_sanity.py",
+   "value": "0.011 h (28.04 vs 28.05)"
+  },
+  {
+   "claim": "Objective terms scale with price_weight: energy, cycling, capacity, terminal x pw; comfort x 1",
+   "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D2/model_sanity.py",
+   "value": "price_weight_scaling_resid = 0.000e+00"
+  },
+  {
+   "claim": "stored_heat_survival in [0,1] over 48 cells; slab_settlement_cap <= buffer_max_temp over -25..25 degC",
+   "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D2/model_sanity.py",
+   "value": "1 / 1"
+  },
+  {
+   "claim": "_wood_share_vec == wood_share bitwise on a 101x101 grid, range [0,1]",
+   "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D2/model_sanity.py",
+   "value": "wood_share_vec_parity = 0.0; wood_share_range_ok = 1"
+  },
+  {
+   "claim": "predicted_cost == sum(price * (space + dhw)) * dt, PV piecewise, on all 49 fixtures",
+   "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D2/fixture_identities.py",
+   "value": "cost_identity_max_err = 1.31e-4 SEK (6-dp fixture rounding; worst shoulder)"
+  },
+  {
+   "claim": "dhw_heating_cost, predicted_savings and savings_percentage identities on all 49 fixtures",
+   "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D2/fixture_identities.py",
+   "value": "1.45e-4 / 1.0e-6 / 4.3e-5"
+  },
+  {
+   "claim": "pv_self_consumed_kwh, peak_cost, projected_peak_kw, compressor_starts re-derived via _grid_report",
+   "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D2/fixture_identities.py",
+   "value": "0 / 0 / 0 / 0"
+  },
+  {
+   "claim": "baseline_cost and deferred_energy_cost re-derived by re-running _compute_baseline_power/_replay_end_state/_deferred_energy_cost",
+   "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D2/fixture_identities.py",
+   "value": "baseline 3.45e-5 SEK; deferred 3.45e-5 SEK on fresh captures of the 5 cells whose committed fixture differs (the repository's may-drift set: plans recorded on another BLAS, up to 0.98 SEK apart)"
+  },
+  {
+   "claim": "Physical bounds in every fixture: buffer <= cap, DHW <= rating, wood <= 95, space + dhw <= p_max/caps, savings <= 100 %",
+   "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D2/fixture_identities.py",
+   "value": "0 violations in 5 categories"
+  },
+  {
+   "claim": "COP non-increasing in flow temperature; DHW COP monotone in tank and outdoor temperature",
+   "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D2/cop_monotone.py",
+   "value": "0 / 0 / 0 violations"
+  },
+  {
+   "claim": "Defrost derate bounded after 2000 random observe/observe_duty calls",
+   "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D2/cop_monotone.py",
+   "value": "derate_factor in [0.5500, 1.0000]"
+  },
+  {
+   "claim": "Defrost derate at the 0 degC bucket edge with a fully-earned 0.8 (bucketed by design, not continuous)",
+   "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D2/cop_monotone.py",
+   "value": "derate_jump_at_0C_edge = 0.20; COP -20 % across 1e-9 K"
+  },
+  {
+   "claim": "Implied Carnot fraction of the base curve over -20..25 degC; COP at 70 degC flow peaks at 1.746 (docstring: real units 1.5-2.0)",
+   "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D2/cop_monotone.py",
+   "value": "carnot_fraction 0.165..0.328"
+  },
+  {
+   "claim": "metering_windows conserves energy; a 2-step offset gives 1 + 23 + 1 windows with an exact head mean",
+   "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D2/tariff_arith.py",
+   "value": "5.68e-14 kW; 25 windows; 0.0"
+  },
+  {
+   "claim": "peak_cost == marginal * sum(top-k excess) for 1, 3 and 5 windows above threshold; 0 below; 0 at inf threshold",
+   "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D2/tariff_arith.py",
+   "value": "0.0 / 0.0 / 0.0"
+  },
+  {
+   "claim": "PeakTracker bills the monthly peak once (3 spikes in a month of quarter-hour samples -> billed 8.0, threshold 7.0), resets on month change, marginal = 60/3",
+   "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D2/tariff_arith.py",
+   "value": "1 / 1 / 20.000"
+  },
+  {
+   "claim": "Grid fee rule 'Nov-Mar Mon-Fri 06:00-22:00 = 0.25, 22:00-06:00 = 0.05' + fixed at month, weekday and wrapping boundaries",
+   "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D2/tariff_arith.py",
+   "value": "0 mismatches of 7"
+  },
+  {
+   "claim": "_known_prices_for: hourly, quarter-hour, mixed-spacing, partial (last entry spans 1 h) and stale (yesterday-only) entries",
+   "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D2/tariff_arith.py",
+   "value": "0 mismatches; lengths 96/96/96/48/0"
+  },
+  {
+   "claim": "blended_block_prices * block * dt == piecewise_cost of the block; import_margin floors at 0 when export > import",
+   "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D2/tariff_arith.py",
+   "value": "0.0 / 1"
+  },
+  {
+   "claim": "Learner clamps (cop_scale, house_heat_loss_scale, buffer_cooling_rate by volume, lower_floor_loss_ratio) hold at both band edges",
+   "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D2/learner_clamps.py",
+   "value": "clamp_violations = 0 of 4 (note: np.clip passes NaN through in all 4; reachability not traced)"
+  },
+  {
+   "claim": "sysid under white noise <= 0.1 K and 0.1 K quantisation is unbiased",
+   "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D2/sysid_bias.py",
+   "value": "median UA bias <= 1.4 % (white), +0.08 % (0.1 K quantised); 0.5 K quantised: UA -7 %, C +38 %"
+  }
+ ],
+ "harnesses": [
+  "tools/audit/round2/D2/parity_substeps.py",
+  "tools/audit/round2/D2/cop_monotone.py",
+  "tools/audit/round2/D2/dst_grid.py",
+  "tools/audit/round2/D2/conservation.py",
+  "tools/audit/round2/D2/fixture_identities.py",
+  "tools/audit/round2/D2/sysid_bias.py",
+  "tools/audit/round2/D2/model_sanity.py",
+  "tools/audit/round2/D2/tariff_arith.py",
+  "tools/audit/round2/D2/learner_clamps.py"
+ ]
+}

@@ -1,0 +1,670 @@
+{
+  "dimension": "D10",
+  "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+  "exposure": "README.md, docs/*.md and DISCLAIMER.md were read for the docs-* rules (no audit records exist in the export); code comments in coordinator.py cite D10-07, D10-09 and D1-02 ids from an earlier round as context only.",
+  "findings": [
+    {
+      "id": "D10-01",
+      "title": "Nothing prevents a second config entry: no unique-id or entries-match guard in the config flow",
+      "severity": "medium",
+      "claim": "HeatPumpOptimizerConfigFlow.async_step_user never checks for an existing entry, so a user who adds the integration twice gets two coordinators driving the same heat pump switch.",
+      "mechanism": "config_flow.py contains none of async_set_unique_id/_abort_if_unique_id_configured/_async_abort_entries_match/_async_current_entries and manifest.json has no single_config_entry; strings.json already carries abort.already_configured, unused. Driven under the stub with one entry present, the user step returns the temperature form instead of an abort. Consequence: two entries pin the same suggested entity ids (the second gets _2 suffixes, breaking the card's id-suffix discovery), every service loops over both coordinators, and two MPC solves run per interval on Pi-class hardware.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D10/check_rules.py  # RESULT unique_entry_guards",
+        "harness_path": "tools/audit/round2/D10/check_rules.py",
+        "value": 0,
+        "unit": "count",
+        "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+        "machine": "Apple M1, 8 GB, macOS Darwin 25.6.0, Python 3.13.1, numpy 2.5.2, scipy 1.18.1, mypy 2.3.1, coverage 7.16.0",
+        "cpu_or_wall": "count",
+        "contention_note": "fan-out: ten other auditors plus this dimension's own coverage run on the box; load1 6.9 at the checker run. The metric is a count and does not depend on load.",
+        "tolerance": "exact",
+        "load1": 6.92,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "heatpump_optimizer.config_flow:HeatPumpOptimizerConfigFlow.async_step_user",
+      "perturbation": {
+        "change": "Insert at the top of async_step_user: `if self.hass.config_entries.async_entries(DOMAIN): return self.async_abort(reason=\"already_configured\")` (production idiom: self._async_abort_entries_match()); RESULT unique_entry_guards and flow_aborts_with_existing_entry both go 0 -> 1",
+        "expected_direction": "up",
+        "observed_value": "unique_entry_guards=1, flow_aborts_with_existing_entry=1 (scratch copy, same checker)"
+      },
+      "metric_definition": "Count of duplicate-entry guards in config_flow.py/manifest.json, and whether async_step_user aborts when hass.config_entries already holds an entry (0/1).",
+      "null_control": {
+        "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D10/check_rules.py (flow_user('ok', existing_entries=0))",
+        "value": "form/temperature",
+        "note": "with no existing entry the flow proceeds identically; the guard's absence is the only difference"
+      },
+      "reproduction_steps": [
+        "PYTHONPATH=tests/hastub python tools/audit/round2/D10/check_rules.py",
+        "read RESULT unique_entry_guards=0 and RESULT flow_aborts_with_existing_entry=0"
+      ],
+      "proposed_fix_scope": "config_flow.py: two lines in async_step_user (_async_abort_entries_match() or async_set_unique_id(DOMAIN)+_abort_if_unique_id_configured()); alternatively manifest single_config_entry: true (HA >= 2024.3, above the 2024.1.0 floor).",
+      "files": [
+        "custom_components/heatpump_optimizer/config_flow.py",
+        "custom_components/heatpump_optimizer/manifest.json"
+      ],
+      "stop_rule_class": "bug"
+    },
+    {
+      "id": "D10-02",
+      "title": "A rejected Tibber token is reported as a transient UpdateFailed: no ConfigEntryAuthFailed, no reauth flow",
+      "severity": "medium",
+      "claim": "_fetch_tibber_prices turns HTTP 401, 403 and an errors payload into UpdateFailed, so an invalid token is indistinguishable from an outage: setup retries forever and no reauthentication flow is offered.",
+      "mechanism": "coordinator.py has zero references to ConfigEntryAuthFailed and config_flow.py has no async_step_reauth; under a fake session returning 401, 403 or {'errors': [...]} the exception class raised is UpdateFailed in all three cases. Home Assistant therefore shows 'retrying setup' / unavailable entities and the ERROR-once log line, never the reauth repair. The user's only path is the options flow's 'entities' page. The trailing `except Exception` in _fetch_tibber_prices converts anything raised inside the request block into UpdateFailed, so the fix must re-raise ConfigEntryAuthFailed ahead of it (a first perturbation that only raised on 401/403 inside the block was swallowed: 0 -> 0).",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D10/check_rules.py  # RESULT auth_failures_raising_ConfigEntryAuthFailed",
+        "harness_path": "tools/audit/round2/D10/check_rules.py",
+        "value": 0,
+        "unit": "count",
+        "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+        "machine": "Apple M1, 8 GB, macOS Darwin 25.6.0, Python 3.13.1, numpy 2.5.2, scipy 1.18.1, mypy 2.3.1, coverage 7.16.0",
+        "cpu_or_wall": "count",
+        "contention_note": "fan-out: ten other auditors plus this dimension's own coverage run on the box; load1 6.9 at the checker run. The metric is a count and does not depend on load.",
+        "tolerance": "exact",
+        "load1": 6.92,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._fetch_tibber_prices",
+      "perturbation": {
+        "change": "coordinator.py _fetch_tibber_prices: (a) before the generic status check `if resp.status in (401, 403): raise ConfigEntryAuthFailed(...)` and (b) `except ConfigEntryAuthFailed: raise` ahead of `except aiohttp.ClientError` (import from homeassistant.exceptions); RESULT auth_failures_raising_ConfigEntryAuthFailed goes 0 -> 2 of 3. The export's stub lacks the class, so add `class ConfigEntryAuthFailed(HomeAssistantError)` to tests/hastub/homeassistant/exceptions.py for the run.",
+        "expected_direction": "up",
+        "observed_value": "2 (scratch copy with the stub class added; the same edit without (b) stayed at 0)"
+      },
+      "metric_definition": "Of three auth-failure responses (401, 403, 200+errors payload) driven through _fetch_tibber_prices, the number that raise ConfigEntryAuthFailed rather than UpdateFailed.",
+      "reproduction_steps": [
+        "PYTHONPATH=tests/hastub python tools/audit/round2/D10/check_rules.py",
+        "read the test-before-setup and reauthentication-flow rows and RESULT auth_failures_raising_ConfigEntryAuthFailed=0"
+      ],
+      "proposed_fix_scope": "coordinator.py: raise ConfigEntryAuthFailed on 401/403 (and on an errors payload whose message says the token is invalid); config_flow.py: async_step_reauth + async_step_reauth_confirm reusing validate_tibber_token and async_update_reload_and_abort (~40 lines); strings.json: reauth_confirm step. All within the 2024.1.0 floor.",
+      "files": [
+        "custom_components/heatpump_optimizer/coordinator.py",
+        "custom_components/heatpump_optimizer/config_flow.py",
+        "custom_components/heatpump_optimizer/strings.json"
+      ],
+      "stop_rule_class": "bug"
+    },
+    {
+      "id": "D10-03",
+      "title": "Every failed refresh logs ERROR with a traceback: the outer handler in _async_update_data defeats the log-once latch",
+      "severity": "low",
+      "claim": "Three consecutive failed refreshes produce four ERROR records with tracebacks, where the log-when-unavailable rule (and the integration's own _tibber_fetch_failed latch) intends one.",
+      "mechanism": "_tibber_fetch_failed logs ERROR on the first failure and DEBUG afterwards, then raises UpdateFailed; _async_update_data's trailing `except Exception` catches that UpdateFailed, logs `_LOGGER.error(..., exc_info=True)` and re-raises. Null control: _fetch_tibber_prices alone three times gives exactly one ERROR, so the surplus is the outer handler. In real Home Assistant the DataUpdateCoordinator adds its own single ERROR on top. A day-long Tibber outage at the 30-minute interval is 49 tracebacks in the log.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D10/check_rules.py  # RESULT error_records_over_3_failed_refreshes",
+        "harness_path": "tools/audit/round2/D10/check_rules.py",
+        "value": 4,
+        "unit": "count",
+        "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+        "machine": "Apple M1, 8 GB, macOS Darwin 25.6.0, Python 3.13.1, numpy 2.5.2, scipy 1.18.1, mypy 2.3.1, coverage 7.16.0",
+        "cpu_or_wall": "count",
+        "contention_note": "fan-out: ten other auditors plus this dimension's own coverage run on the box; load1 6.9 at the checker run. The metric is a count and does not depend on load.",
+        "tolerance": "exact",
+        "load1": 6.92,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_update_data",
+      "perturbation": {
+        "change": "coordinator.py, the `except Exception as err:` at the end of _async_update_data: change `_LOGGER.error(` to `_LOGGER.debug(` (the coordinator base already logs the outage once); RESULT error_records_over_3_failed_refreshes goes 4 -> 1",
+        "expected_direction": "down",
+        "observed_value": "1 (scratch copy, same checker)"
+      },
+      "metric_definition": "Number of logging records at level ERROR or above on logger heatpump_optimizer during three consecutive _async_update_data calls whose Tibber fetch fails.",
+      "null_control": {
+        "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D10/check_rules.py  # RESULT error_records_over_3_failed_fetches_direct",
+        "value": 1,
+        "note": "the fetch alone, three times: the latch yields exactly one ERROR"
+      },
+      "reproduction_steps": [
+        "PYTHONPATH=tests/hastub python tools/audit/round2/D10/check_rules.py",
+        "read RESULT error_records_over_3_failed_refreshes=4 and the null control =1"
+      ],
+      "proposed_fix_scope": "coordinator.py: demote the two outer `_LOGGER.error(..., exc_info=True)` calls (_async_update_data and _async_first_refresh_light) to debug, or gate them on the same latch.",
+      "files": [
+        "custom_components/heatpump_optimizer/coordinator.py"
+      ],
+      "stop_rule_class": "bug"
+    },
+    {
+      "id": "D10-04",
+      "title": "Service actions swallow operational failures: run_optimization no-ops, restore_learned_snapshot answers {restored: []}",
+      "severity": "low",
+      "claim": "With no price data, heatpump_optimizer.run_optimization returns None after a WARNING, and restore_learned_snapshot/simulate_plan report failure only inside their response dicts; no HomeAssistantError is raised anywhere in the integration.",
+      "mechanism": "async_run_optimization returns on `len(prices) < 4` after _LOGGER.warning; async_restore_learned_snapshot returns False; async_simulate returns {'error': 'no_plan'}. The handlers in __init__.py raise ServiceValidationError for bad input (14 sites) but never HomeAssistantError for a failed operation, so a user calling run_optimization from an automation sees success. simulate_plan's dict is consumed by the card and is arguably a response contract; the other two are silent. async_run_optimization additionally wraps its body in `except Exception` (coordinator.py:5536), so an exception raised inside it never reaches the service caller either: the raise has to happen in the handler.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D10/check_rules.py  # RESULT service_failure_paths_returning_silently",
+        "harness_path": "tools/audit/round2/D10/check_rules.py",
+        "value": 3,
+        "unit": "count",
+        "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+        "machine": "Apple M1, 8 GB, macOS Darwin 25.6.0, Python 3.13.1, numpy 2.5.2, scipy 1.18.1, mypy 2.3.1, coverage 7.16.0",
+        "cpu_or_wall": "count",
+        "contention_note": "fan-out: ten other auditors plus this dimension's own coverage run on the box; load1 6.9 at the checker run. The metric is a count and does not depend on load.",
+        "tolerance": "exact",
+        "load1": 6.92,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "heatpump_optimizer:async_setup_entry.handle_run_optimization -> coordinator:HeatPumpOptimizerCoordinator.async_run_optimization",
+      "perturbation": {
+        "change": "__init__.py handle_run_optimization: before `await coord.async_run_optimization()` add `if not coord._prices: raise HomeAssistantError(\"No electricity price data; nothing to optimize\")`; RESULT service_failure_paths_returning_silently goes 3 -> 2 (a raise placed inside async_run_optimization is swallowed by its own except: 3 -> 3)",
+        "expected_direction": "down",
+        "observed_value": "2 (scratch copy, same checker)"
+      },
+      "metric_definition": "Of run_optimization, simulate_plan and restore_learned_snapshot called through the registered handlers on a coordinator with no prices/plan/snapshot, how many return instead of raising.",
+      "reproduction_steps": [
+        "PYTHONPATH=tests/hastub python tools/audit/round2/D10/check_rules.py",
+        "read the action-exceptions row"
+      ],
+      "proposed_fix_scope": "coordinator.py/__init__.py: raise HomeAssistantError (translated) from run_optimization when the solve cannot run and from restore_learned_snapshot when no snapshot qualifies; keep simulate_plan's response contract but add the error to the response schema docs.",
+      "files": [
+        "custom_components/heatpump_optimizer/__init__.py",
+        "custom_components/heatpump_optimizer/coordinator.py"
+      ],
+      "stop_rule_class": "bug"
+    },
+    {
+      "id": "D10-05",
+      "title": "Two buttons stay available after a failed refresh: available() overrides drop super().available",
+      "severity": "low",
+      "claim": "With coordinator.last_update_success False, 2 of 65 entities (optimize_now, run_system_identification) still report available.",
+      "mechanism": "ForceOptimizationButton.available and SystemIdentificationButton.available return their own flag without ANDing CoordinatorEntity.available; every sensor mixin in sensor.py does AND it. Pressing Optimize now during an outage triggers another failing refresh and looks like the button works.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D10/check_rules.py  # RESULT entities_available_after_failed_refresh",
+        "harness_path": "tools/audit/round2/D10/check_rules.py",
+        "value": 2,
+        "unit": "count",
+        "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+        "machine": "Apple M1, 8 GB, macOS Darwin 25.6.0, Python 3.13.1, numpy 2.5.2, scipy 1.18.1, mypy 2.3.1, coverage 7.16.0",
+        "cpu_or_wall": "count",
+        "contention_note": "fan-out: ten other auditors plus this dimension's own coverage run on the box; load1 6.9 at the checker run. The metric is a count and does not depend on load.",
+        "tolerance": "exact",
+        "load1": 6.92,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "heatpump_optimizer.button:ForceOptimizationButton.available, SystemIdentificationButton.available",
+      "perturbation": {
+        "change": "button.py: `return super().available and not self.coordinator.optimization_running` (and the same for system_identification_active); RESULT entities_available_after_failed_refresh goes 2 -> 0",
+        "expected_direction": "to_zero",
+        "observed_value": "0 (scratch copy, same checker)"
+      },
+      "metric_definition": "Number of entities from the real platform setups whose .available is True while coordinator.last_update_success is False.",
+      "reproduction_steps": [
+        "PYTHONPATH=tests/hastub python tools/audit/round2/D10/check_rules.py",
+        "read the entity-unavailable row"
+      ],
+      "proposed_fix_scope": "button.py: two one-line changes.",
+      "files": [
+        "custom_components/heatpump_optimizer/button.py"
+      ],
+      "stop_rule_class": "bug"
+    },
+    {
+      "id": "D10-06",
+      "title": "All 11 services are registered in async_setup_entry, not async_setup (action-setup)",
+      "severity": "low",
+      "claim": "__init__.py defines no async_setup; hass.services.async_register is called 11 times inside async_setup_entry and the services are removed after the last unload.",
+      "mechanism": "Service availability is tied to a loaded entry, so automation validation cannot see heatpump_optimizer.* while the entry is unloaded or failed setup, and a user gets 'service not found' instead of the rule's 'entry not loaded' ServiceValidationError.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D10/check_rules.py  # RESULT services_registered_in_setup_entry",
+        "harness_path": "tools/audit/round2/D10/check_rules.py",
+        "value": 11,
+        "unit": "count",
+        "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+        "machine": "Apple M1, 8 GB, macOS Darwin 25.6.0, Python 3.13.1, numpy 2.5.2, scipy 1.18.1, mypy 2.3.1, coverage 7.16.0",
+        "cpu_or_wall": "count",
+        "contention_note": "fan-out: ten other auditors plus this dimension's own coverage run on the box; load1 6.9 at the checker run. The metric is a count and does not depend on load.",
+        "tolerance": "exact",
+        "load1": 6.92,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "heatpump_optimizer:async_setup_entry (hass.services.async_register call sites)",
+      "perturbation": {
+        "change": "Move the eleven async_register calls into a new `async def async_setup(hass, config)` with handlers resolving the loaded coordinator(s) from hass.data; RESULT services_registered_in_setup_entry goes 11 -> 0 and async_setup_defs 0 -> 1",
+        "expected_direction": "to_zero"
+      },
+      "metric_definition": "AST count of hass.services.async_register calls whose enclosing function is async_setup_entry in __init__.py.",
+      "reproduction_steps": [
+        "PYTHONPATH=tests/hastub python tools/audit/round2/D10/check_rules.py",
+        "read the action-setup row"
+      ],
+      "proposed_fix_scope": "__init__.py: add async_setup, move registration, drop the unload-time removal loop (handlers check for a loaded entry).",
+      "files": [
+        "custom_components/heatpump_optimizer/__init__.py"
+      ],
+      "stop_rule_class": "hygiene"
+    },
+    {
+      "id": "D10-07",
+      "title": "No platform declares PARALLEL_UPDATES (parallel-updates)",
+      "severity": "low",
+      "claim": "None of the five platform modules defines PARALLEL_UPDATES.",
+      "mechanism": "The rule wants an explicit value: 0 for the coordinator-fed read-only platforms (sensor, binary_sensor) and 1 where actions go out (button, switch, climate). Functionally harmless here (one coordinator, no outbound device protocol), so hygiene.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D10/check_rules.py  # RESULT platforms_declaring_parallel_updates",
+        "harness_path": "tools/audit/round2/D10/check_rules.py",
+        "value": 0,
+        "unit": "count",
+        "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+        "machine": "Apple M1, 8 GB, macOS Darwin 25.6.0, Python 3.13.1, numpy 2.5.2, scipy 1.18.1, mypy 2.3.1, coverage 7.16.0",
+        "cpu_or_wall": "count",
+        "contention_note": "fan-out: ten other auditors plus this dimension's own coverage run on the box; load1 6.9 at the checker run. The metric is a count and does not depend on load.",
+        "tolerance": "exact",
+        "load1": 6.92,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "heatpump_optimizer.sensor/binary_sensor/button/switch/climate module globals",
+      "perturbation": {
+        "change": "Add `PARALLEL_UPDATES = 0` at module level in sensor.py; RESULT platforms_declaring_parallel_updates goes 0 -> 1",
+        "expected_direction": "up"
+      },
+      "metric_definition": "Number of platform files whose module level assigns PARALLEL_UPDATES.",
+      "proposed_fix_scope": "five one-line additions.",
+      "files": [
+        "custom_components/heatpump_optimizer/sensor.py",
+        "custom_components/heatpump_optimizer/binary_sensor.py",
+        "custom_components/heatpump_optimizer/button.py",
+        "custom_components/heatpump_optimizer/switch.py",
+        "custom_components/heatpump_optimizer/climate.py"
+      ],
+      "stop_rule_class": "hygiene"
+    },
+    {
+      "id": "D10-08",
+      "title": "Runtime state in hass.data[DOMAIN], entity base classes outside entity.py (runtime-data, common-modules)",
+      "severity": "low",
+      "claim": "There are 0 references to ConfigEntry.runtime_data against 24 hass.data[DOMAIN] references in seven files, and the five CoordinatorEntity base classes live in the platform files rather than entity.py.",
+      "mechanism": "Layout conventions only: no user-visible consequence. runtime_data needs HA >= 2024.4 (hacs.json floor is 2024.1.0), so adopting it moves the floor; entity.py is floor-neutral.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D10/check_rules.py  # RESULT hass_data_domain_refs",
+        "harness_path": "tools/audit/round2/D10/check_rules.py",
+        "value": 24,
+        "unit": "count",
+        "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+        "machine": "Apple M1, 8 GB, macOS Darwin 25.6.0, Python 3.13.1, numpy 2.5.2, scipy 1.18.1, mypy 2.3.1, coverage 7.16.0",
+        "cpu_or_wall": "count",
+        "contention_note": "fan-out: ten other auditors plus this dimension's own coverage run on the box; load1 6.9 at the checker run. The metric is a count and does not depend on load.",
+        "tolerance": "exact",
+        "load1": 6.92,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "heatpump_optimizer:async_setup_entry (hass.data[DOMAIN] writes) and the platform base classes",
+      "perturbation": {
+        "change": "In async_setup_entry add `entry.runtime_data = coordinator`; RESULT runtime_data_refs goes 0 -> 1 (hass_data_domain_refs stays until the readers move)",
+        "expected_direction": "up"
+      },
+      "metric_definition": "Regex counts of `runtime_data` and of `hass.data[DOMAIN]`/`.get(DOMAIN`/`.setdefault(DOMAIN` across the integration; count of CoordinatorEntity base classes outside entity.py.",
+      "proposed_fix_scope": "Typed HeatPumpOptimizerConfigEntry = ConfigEntry[HeatPumpOptimizerCoordinator] plus reader updates (24 sites) once the floor is 2024.4; move the five base classes into entity.py.",
+      "files": [
+        "custom_components/heatpump_optimizer/__init__.py",
+        "custom_components/heatpump_optimizer/sensor.py",
+        "custom_components/heatpump_optimizer/binary_sensor.py",
+        "custom_components/heatpump_optimizer/button.py",
+        "custom_components/heatpump_optimizer/switch.py",
+        "custom_components/heatpump_optimizer/climate.py",
+        "custom_components/heatpump_optimizer/frontend.py"
+      ],
+      "stop_rule_class": "hygiene"
+    },
+    {
+      "id": "D10-09",
+      "title": "All 14 service exceptions carry literal English messages; no exceptions block in strings.json (exception-translations)",
+      "severity": "low",
+      "claim": "0 of 14 raise ServiceValidationError(...) sites pass translation_domain/translation_key, and strings.json has no 'exceptions' section.",
+      "mechanism": "Swedish is the second shipped language (translations/sv.json) yet every service error reaches the UI in English. The API (translation_key on HomeAssistantError, 2023.11) is inside the floor.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D10/check_rules.py  # RESULT exception_raises_with_translation_key",
+        "harness_path": "tools/audit/round2/D10/check_rules.py",
+        "value": 0,
+        "unit": "count",
+        "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+        "machine": "Apple M1, 8 GB, macOS Darwin 25.6.0, Python 3.13.1, numpy 2.5.2, scipy 1.18.1, mypy 2.3.1, coverage 7.16.0",
+        "cpu_or_wall": "count",
+        "contention_note": "fan-out: ten other auditors plus this dimension's own coverage run on the box; load1 6.9 at the checker run. The metric is a count and does not depend on load.",
+        "tolerance": "exact",
+        "load1": 6.92,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "heatpump_optimizer:async_setup_entry handlers (raise ServiceValidationError sites)",
+      "perturbation": {
+        "change": "Give one raise `translation_domain=DOMAIN, translation_key=\"no_entry_loaded\"` and add the key under strings.json exceptions; RESULT exception_raises_with_translation_key goes 0 -> 1",
+        "expected_direction": "up"
+      },
+      "metric_definition": "Regex count of raise ServiceValidationError/HomeAssistantError sites whose call carries translation_key, over all such raises.",
+      "proposed_fix_scope": "__init__.py 13 sites + coordinator.py 1 site; strings.json exceptions block; sv.json.",
+      "files": [
+        "custom_components/heatpump_optimizer/__init__.py",
+        "custom_components/heatpump_optimizer/coordinator.py",
+        "custom_components/heatpump_optimizer/strings.json",
+        "custom_components/heatpump_optimizer/translations/en.json",
+        "custom_components/heatpump_optimizer/translations/sv.json"
+      ],
+      "stop_rule_class": "hygiene"
+    },
+    {
+      "id": "D10-10",
+      "title": "Icons are entity state: 64 _attr_icon assignments and no icons.json (icon-translations)",
+      "severity": "low",
+      "claim": "icons.json is absent and the platform files assign _attr_icon 64 times.",
+      "mechanism": "Icon translations need HA >= 2024.2; the hacs.json floor is 2024.1.0, so this is a floor decision, not an oversight. Device-class icons should not be overridden where the class fits.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D10/check_rules.py  # RESULT icons_in_code",
+        "harness_path": "tools/audit/round2/D10/check_rules.py",
+        "value": 64,
+        "unit": "count",
+        "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+        "machine": "Apple M1, 8 GB, macOS Darwin 25.6.0, Python 3.13.1, numpy 2.5.2, scipy 1.18.1, mypy 2.3.1, coverage 7.16.0",
+        "cpu_or_wall": "count",
+        "contention_note": "fan-out: ten other auditors plus this dimension's own coverage run on the box; load1 6.9 at the checker run. The metric is a count and does not depend on load.",
+        "tolerance": "exact",
+        "load1": 6.92,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "heatpump_optimizer.sensor/binary_sensor/button/switch class attributes _attr_icon",
+      "perturbation": {
+        "change": "Delete one `_attr_icon = ...` line (e.g. OptimizationModeSensor) and move it to icons.json; RESULT icons_in_code goes 64 -> 63",
+        "expected_direction": "down"
+      },
+      "metric_definition": "Regex count of `_attr_icon =` assignments across the five platform files; existence of icons.json.",
+      "proposed_fix_scope": "icons.json with 64 entries; raise hacs.json to 2024.2.0.",
+      "files": [
+        "custom_components/heatpump_optimizer/sensor.py",
+        "custom_components/heatpump_optimizer/binary_sensor.py",
+        "custom_components/heatpump_optimizer/button.py",
+        "custom_components/heatpump_optimizer/switch.py",
+        "hacs.json"
+      ],
+      "stop_rule_class": "hygiene"
+    },
+    {
+      "id": "D10-11",
+      "title": "No diagnostics platform (diagnostics)",
+      "severity": "low",
+      "claim": "diagnostics.py does not exist and no async_get_config_entry_diagnostics is defined, for an integration with 149 published keys, thirteen learners and a token that would need redaction.",
+      "mechanism": "Support requests must scrape entity attributes by hand; the sensor docstrings mention 'the diagnostics dump' that does not exist.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D10/check_rules.py  # RESULT diagnostics_defs",
+        "harness_path": "tools/audit/round2/D10/check_rules.py",
+        "value": 0,
+        "unit": "count",
+        "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+        "machine": "Apple M1, 8 GB, macOS Darwin 25.6.0, Python 3.13.1, numpy 2.5.2, scipy 1.18.1, mypy 2.3.1, coverage 7.16.0",
+        "cpu_or_wall": "count",
+        "contention_note": "fan-out: ten other auditors plus this dimension's own coverage run on the box; load1 6.9 at the checker run. The metric is a count and does not depend on load.",
+        "tolerance": "exact",
+        "load1": 6.92,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "custom_components/heatpump_optimizer/diagnostics.py:async_get_config_entry_diagnostics (absent)",
+      "perturbation": {
+        "change": "Add diagnostics.py with async_get_config_entry_diagnostics returning async_redact_data(entry.data, [CONF_TIBBER_TOKEN]) plus coordinator.data; the diagnostics row flips to done (defs 0 -> 1)",
+        "expected_direction": "up"
+      },
+      "metric_definition": "Existence of diagnostics.py and count of async_get_config_entry_diagnostics definitions.",
+      "proposed_fix_scope": "New diagnostics.py (~30 lines): entry data with the token redacted, coordinator.data, learner state, last exception.",
+      "files": [
+        "custom_components/heatpump_optimizer/diagnostics.py"
+      ],
+      "stop_rule_class": "hygiene"
+    },
+    {
+      "id": "D10-12",
+      "title": "Docs gaps: no removal instructions (Bronze), known limitations, blueprints or supported-devices statement",
+      "severity": "low",
+      "claim": "README.md and docs/*.md contain 0 removal-instruction matches, 0 'Known limitations' sections, 0 blueprint mentions or automation examples and 0 supported/unsupported-devices sections.",
+      "mechanism": "The documentation is otherwise unusually complete (every service field, every options page, every entity, troubleshooting, data-update cadence), so these are four missing sections, of which docs-removal-instructions is a Bronze rule.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D10/check_rules.py  # RESULT docs_removal_instructions",
+        "harness_path": "tools/audit/round2/D10/check_rules.py",
+        "value": 0,
+        "unit": "count",
+        "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+        "machine": "Apple M1, 8 GB, macOS Darwin 25.6.0, Python 3.13.1, numpy 2.5.2, scipy 1.18.1, mypy 2.3.1, coverage 7.16.0",
+        "cpu_or_wall": "count",
+        "contention_note": "fan-out: ten other auditors plus this dimension's own coverage run on the box; load1 6.9 at the checker run. The metric is a count and does not depend on load.",
+        "tolerance": "exact",
+        "load1": 6.92,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "README.md (docs-* rule lookups; no code symbol)",
+      "perturbation": {
+        "change": "Add a '## Removing the integration' section to README.md; RESULT docs_removal_instructions goes 0 -> 1",
+        "expected_direction": "up"
+      },
+      "metric_definition": "Case-insensitive regex matches for removal/uninstall instructions, 'Known limitations' headings, 'blueprint', and '(Un)supported devices' headings over README.md, docs/*.md, DISCLAIMER.md.",
+      "proposed_fix_scope": "README.md: 'Removing the integration' (also delete the stored learner files under .storage), 'Known limitations', 'Supported controls' (on/off switch, ECL110 via MQTT, frequency-writable pumps); one or two blueprints (e.g. away mode from a calendar).",
+      "files": [
+        "README.md",
+        "docs/configuration.md"
+      ],
+      "stop_rule_class": "hygiene"
+    },
+    {
+      "id": "D10-13",
+      "title": "mypy --strict reports 722 errors in 37 of 45 modules (strict-typing)",
+      "severity": "low",
+      "claim": "With the test stub on MYPYPATH, mypy --strict finds 722 errors: no-untyped-call 227, type-arg 111, no-untyped-def 106, attr-defined 90, no-any-return 79, union-attr 25.",
+      "mechanism": "no-untyped-def (106: e.g. every sensor's `def __init__(self, coordinator, entry)`) and type-arg (111: bare dict/list) are integration-internal; no-untyped-call is partly the untyped stub, so the true count against real Home Assistant is lower but not near zero. Counted from 'error:' lines under custom_components/ only.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D10/check_rules.py  # RESULT mypy_strict_errors",
+        "harness_path": "tools/audit/round2/D10/check_rules.py",
+        "value": 722,
+        "unit": "count",
+        "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+        "machine": "Apple M1, 8 GB, macOS Darwin 25.6.0, Python 3.13.1, numpy 2.5.2, scipy 1.18.1, mypy 2.3.1, coverage 7.16.0",
+        "cpu_or_wall": "count",
+        "contention_note": "fan-out: ten other auditors plus this dimension's own coverage run on the box; load1 6.9 at the checker run. The metric is a count and does not depend on load.",
+        "tolerance": "exact for mypy 2.3.1; re-take with the pinned mypy if the release differs",
+        "load1": 6.92,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "custom_components/heatpump_optimizer (mypy --strict over the package, MYPYPATH=tests/hastub)",
+      "perturbation": {
+        "change": "Annotate OptimizationModeSensor.__init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None in sensor.py; RESULT mypy_strict_errors goes down by at least 1",
+        "expected_direction": "down"
+      },
+      "metric_definition": "Count of mypy --strict 'error:' lines whose path starts with custom_components/, python-version 3.13, stub on MYPYPATH.",
+      "proposed_fix_scope": "Annotate the 106 untyped defs and the 111 bare generics first (mechanical); attr-defined/union-attr need Optional narrowing in coordinator.py and config_flow.py.",
+      "files": [
+        "custom_components/heatpump_optimizer/coordinator.py",
+        "custom_components/heatpump_optimizer/sensor.py",
+        "custom_components/heatpump_optimizer/config_flow.py",
+        "custom_components/heatpump_optimizer/__init__.py"
+      ],
+      "stop_rule_class": "hygiene"
+    },
+    {
+      "id": "D10-14",
+      "title": "Statement coverage 88.4 % overall, 20 of 45 modules at 95 %; config_flow.py at 86.4 % against a 100 % rule",
+      "severity": "low",
+      "claim": "The default gate's Python scripts, run once under coverage.py, cover 88.4 % of the integration's 12877 statements; 20 of 45 modules reach the 95 % test-coverage bar and config_flow.py reaches 86.4 % against config-flow-test-coverage's 100 %.",
+      "mechanism": "The suite renders the config flow's user form but never submits it (0 tests call async_step_user with input), so the invalid_tibber_token/cannot_connect branches are unexecuted. Lowest modules: climate.py 59 %, open_meteo.py 67 %, diagnosis.py 77 %, coordinator.py 78 %, frontend.py 80 %, curve_learning.py 85 %, config_flow.py 86 %, grid_fee.py 87 %. Caveats: measured once on a shared box (timing provisional); env_drift.py, closure.py (git) and the Node scripts are not in the measured set; tests/entities.py aborted at line 4360/4587 on the export's missing RELEASE_NOTES.md (517 checks passed; the remaining section checks release-notes claims, not integration code); golden.py ran in strict mode and its fixture mismatch on this box does not change which lines execute.",
+      "evidence": {
+        "command": "PYTHON=<venv python> D10_COV_PREFIX=/tmp/d10-cov tools/audit/round2/D10/coverage_suite.sh (then check_rules.py reads coverage/coverage.json)  # RESULT coverage_total_pct",
+        "harness_path": "tools/audit/round2/D10/coverage_suite.sh",
+        "value": 88.4,
+        "unit": "pct",
+        "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+        "machine": "Apple M1, 8 GB, macOS Darwin 25.6.0, Python 3.13.1, numpy 2.5.2, scipy 1.18.1, mypy 2.3.1, coverage 7.16.0",
+        "cpu_or_wall": "count",
+        "contention_note": "single run during the fan-out; scripts wall 1818 s PROVISIONAL; load1 at the end 3.66; the percentage is a count ratio",
+        "tolerance": "±1.0 pt (fixture-dependent branches)",
+        "load1": 6.92,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "custom_components/heatpump_optimizer/*.py (coverage.py source filter; every process the gate scripts start)",
+      "perturbation": {
+        "change": "SLOW=1 tools/audit/round2/D10/coverage_suite.sh adds tests/rolling.py to the measured set; RESULT coverage_total_pct rises (conversely, removing features.py from SCRIPTS drops it by tens of points)",
+        "expected_direction": "up"
+      },
+      "metric_definition": "Executed statements / total statements over custom_components/heatpump_optimizer/*.py, combined across all processes of the gate's Python scripts (coverage.py 7.16, sysmon core).",
+      "reproduction_steps": [
+        "pip install --target /tmp/d10-cov coverage",
+        "PYTHON=<venv python> D10_COV_PREFIX=/tmp/d10-cov tools/audit/round2/D10/coverage_suite.sh",
+        "read coverage/RESULTS.txt and coverage/per_module.tsv"
+      ],
+      "proposed_fix_scope": "tests/entities.py: drive async_step_user with input for all three verdicts and complete one full initial flow; then the lowest modules listed above.",
+      "files": [
+        "tests/entities.py",
+        "custom_components/heatpump_optimizer/config_flow.py"
+      ],
+      "stop_rule_class": "hygiene"
+    },
+    {
+      "id": "D10-15",
+      "title": "Declarative metadata gaps: two kWh sensors without SensorDeviceClass.ENERGY; DeviceInfo without entry_type SERVICE",
+      "severity": "low",
+      "claim": "Of the 55 sensors, 29 carry a device class; solar_surplus_forecast and dhw_heavy_day_demand publish kWh without ENERGY, and the one device is declared without entry_type=DeviceEntryType.SERVICE and with manufacturer 'Custom'.",
+      "mechanism": "The other three flagged sensors (ecl110_displace, ecl110_effective_displace, prediction_accuracy) are degree-Celsius deltas where TEMPERATURE would convert wrongly and are correctly classless. entry_type SERVICE exists since 2021.12 and changes only how the device is presented.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D10/check_rules.py  # RESULT sensors_with_unit_but_no_device_class",
+        "harness_path": "tools/audit/round2/D10/check_rules.py",
+        "value": 5,
+        "unit": "count",
+        "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+        "machine": "Apple M1, 8 GB, macOS Darwin 25.6.0, Python 3.13.1, numpy 2.5.2, scipy 1.18.1, mypy 2.3.1, coverage 7.16.0",
+        "cpu_or_wall": "count",
+        "contention_note": "fan-out: ten other auditors plus this dimension's own coverage run on the box; load1 6.9 at the checker run. The metric is a count and does not depend on load.",
+        "tolerance": "exact",
+        "load1": 6.92,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "heatpump_optimizer.sensor (roster _attr_device_class/_attr_native_unit_of_measurement); heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator.device_info",
+      "perturbation": {
+        "change": "Set `_attr_device_class = SensorDeviceClass.ENERGY` on DHWHeavyDayDemand's sensor class; RESULT sensors_with_unit_but_no_device_class goes 5 -> 4",
+        "expected_direction": "down"
+      },
+      "metric_definition": "Count of sensor entities whose native unit maps to a SensorDeviceClass (°C, W, kW, kWh, W/m², Hz, min, h, L) but whose _attr_device_class is None; count of DeviceInfo with entry_type.",
+      "proposed_fix_scope": "sensor.py: two class attributes; coordinator.py device_info: entry_type=DeviceEntryType.SERVICE, manufacturer=the project name.",
+      "files": [
+        "custom_components/heatpump_optimizer/sensor.py",
+        "custom_components/heatpump_optimizer/coordinator.py"
+      ],
+      "stop_rule_class": "hygiene"
+    }
+  ],
+  "non_findings": [
+    {
+      "claim": "appropriate-polling: the coordinator polls at the configured optimization interval, 30 min by default, 15 min when configured so; iot_class cloud_polling",
+      "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D10/check_rules.py  # RESULT update_interval_default_s",
+      "value": "1800 s"
+    },
+    {
+      "claim": "brands: brands.home-assistant.io serves a real icon for heatpump_optimizer (digest differs from the placeholder served for a nonexistent domain)",
+      "command": "curl https://brands.home-assistant.io/_/heatpump_optimizer/icon.png | shasum -a 256 vs .../_/zz_no_such_domain_d10/icon.png",
+      "value": "distinct=True (curl sha256, 2026-09-02)"
+    },
+    {
+      "claim": "config-flow: manifest config_flow true; every field of the 9 config and 15 options steps has a data_description",
+      "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D10/check_rules.py  # RESULT flow_fields_without_data_description",
+      "value": "0 count"
+    },
+    {
+      "claim": "dependency-transparency: numpy, scipy, threadpoolctl are OSI-licensed (BSD), on PyPI, with GitHub sources and public CI",
+      "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D10/check_rules.py",
+      "value": "3 of 3 (importlib.metadata; PyPI JSON for threadpoolctl 3.6.0)"
+    },
+    {
+      "claim": "docs-actions: all 11 services in services.yaml are in the README table and have field-level detail in docs/configuration.md",
+      "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D10/check_rules.py  # RESULT services_documented_readme",
+      "value": "11 count"
+    },
+    {
+      "claim": "docs-triggers / docs-conditions: no custom triggers or conditions registered (exempt)",
+      "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D10/check_rules.py",
+      "value": "0 registrations"
+    },
+    {
+      "claim": "docs-high-level-description, docs-installation-instructions, docs-troubleshooting, docs-use-cases, docs-data-update: sections present",
+      "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D10/check_rules.py",
+      "value": "What it does=1, Installation/HACS/Manual/Requirements=4/4, Troubleshooting=1 (4 bullets), use-case paragraphs=9, interval statements=5"
+    },
+    {
+      "claim": "docs-configuration-parameters / docs-installation-parameters: all 12 options pages with fields are headings in docs/configuration.md; all 17 user-step labels documented",
+      "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D10/check_rules.py",
+      "value": "12/12 and 17/17"
+    },
+    {
+      "claim": "docs-supported-functions: README entity totals 55+4+4 (+switch, climate) equal the 65-entity roster",
+      "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D10/check_rules.py  # RESULT entities",
+      "value": "65 count"
+    },
+    {
+      "claim": "entity-event-setup: no entity-level subscriptions outside async_added_to_hass; the coordinator's four state/timer subscriptions are released in async_shutdown",
+      "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D10/check_rules.py",
+      "value": "0 entity subscriptions; 4 _unsub_*() calls"
+    },
+    {
+      "claim": "entity-unique-id / has-entity-name: 65 entities through the real platform setups, 65 unique ids, has_entity_name on all",
+      "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D10/check_rules.py  # RESULT entities",
+      "value": "65 count"
+    },
+    {
+      "claim": "test-before-configure: async_step_user maps invalid_auth -> invalid_tibber_token, cannot_connect -> cannot_connect, ok -> temperature step",
+      "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D10/check_rules.py",
+      "value": "3/3 branches"
+    },
+    {
+      "claim": "test-before-setup: async_config_entry_first_refresh is awaited in async_setup_entry (temporary failures raise through it); auth failures are the D10-02 finding",
+      "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D10/check_rules.py",
+      "value": "first refresh in setup=1"
+    },
+    {
+      "claim": "config-entry-unloading: setup registers 11 services, unload removes all 11, pops the coordinator and reaches DataUpdateCoordinator.async_shutdown",
+      "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D10/check_rules.py",
+      "value": "11 -> 0 services; coordinator_left=False; base_shutdown_called=True"
+    },
+    {
+      "claim": "integration-owner: codeowners @tvofi",
+      "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D10/check_rules.py",
+      "value": "['@tvofi']"
+    },
+    {
+      "claim": "devices: one service device per entry with identifiers (DOMAIN, entry_id) shared by all 65 entities",
+      "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D10/check_rules.py",
+      "value": "1 device"
+    },
+    {
+      "claim": "discovery / discovery-update-info / dynamic-devices / stale-devices: cloud API plus the user's own entities, one device per entry (exempt)",
+      "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D10/check_rules.py",
+      "value": "manifest discovery keys=[]"
+    },
+    {
+      "claim": "entity-category: DIAGNOSTIC on 12 entities; 4 uncategorised diagnostic-looking ones are judgement calls (optimization_status and three buttons)",
+      "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D10/check_rules.py  # RESULT entities_with_category",
+      "value": "12 count"
+    },
+    {
+      "claim": "entity-disabled-by-default: 6 noisy/rare sensors disabled by default",
+      "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D10/check_rules.py  # RESULT entities_disabled_by_default",
+      "value": "6 count"
+    },
+    {
+      "claim": "entity-translations: every entity's translation_key exists in strings.json (55/4/4/1) and sv.json ships",
+      "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D10/check_rules.py  # RESULT entities_missing_translation",
+      "value": "0 count"
+    },
+    {
+      "claim": "repair-issues: 11 async_create_issue call sites, every translation_key present in strings.json issues",
+      "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D10/check_rules.py  # RESULT repair_issue_create_calls",
+      "value": "11 count"
+    },
+    {
+      "claim": "async-dependency: requirements are compute libraries; no synchronous HTTP library; solve and diagnostics run through async_add_executor_job (5 sites)",
+      "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D10/check_rules.py",
+      "value": "0 sync HTTP imports; 5 executor offloads"
+    },
+    {
+      "claim": "inject-websession: the three HTTP call sites use async_get_clientsession; no private aiohttp.ClientSession",
+      "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D10/check_rules.py",
+      "value": "3 shared, 0 private"
+    },
+    {
+      "claim": "log-when-unavailable null control: _fetch_tibber_prices alone three times logs exactly one ERROR (the latch works; the surplus in D10-03 is the outer handler)",
+      "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D10/check_rules.py  # RESULT error_records_over_3_failed_fetches_direct",
+      "value": "1 count"
+    }
+  ],
+  "harnesses": [
+    "tools/audit/round2/D10/check_rules.py",
+    "tools/audit/round2/D10/coverage_suite.sh"
+  ]
+}

@@ -1,0 +1,11 @@
+--- a/custom_components/heatpump_optimizer/frontend.py
++++ b/custom_components/heatpump_optimizer/frontend.py
+@@ -153,8 +153,6 @@
+ 
+         for item in existing:
+             item_url = item.get("url") if isinstance(item, dict) else None
+-            if not item_url or item_url.split("?")[0] != base:
+-                continue
+             if item_url == url:
+                 _LOGGER.debug("Card resource already registered: %s", item_url)
+                 return

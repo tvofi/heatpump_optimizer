@@ -1,0 +1,11 @@
+--- a/custom_components/heatpump_optimizer/optimizer.py
++++ b/custom_components/heatpump_optimizer/optimizer.py
+@@ -3368,7 +3368,7 @@
+         if legionella_step is not None and n_steps > 0 and boost_top > float(
+             params.dhw_max_temp
+         ):
+-            ua = max(params.dhw_tank_heat_loss_coefficient, 1e-6)
++            ua = params.dhw_tank_heat_loss_coefficient
+             decay = float(np.clip(1.0 - ua * dt / c_dhw, 0.0, 1.0))
+             gain = ua * DHW_AMBIENT_TEMP * dt / c_dhw
+             everyday = float(params.dhw_max_temp)
