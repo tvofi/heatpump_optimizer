@@ -48,7 +48,23 @@
 # v6.2.17: the config-flow validation and entity-hygiene release. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
-
+#
+# D0-01/D0-02 (the low-energy bang-bang seed and refine-
+# every-candidate): nine plan scenarios find the cheaper
+# basin the audit's price-optimality round measured (net
+# 0.25-1.6 % on the adversarial shapes, comfort parity
+# verified on all 15 harness scenarios, every leave-one-out
+# holds). The moved plans are strictly cheaper or equal,
+# never worse: the multi-start keeps the best refinement.
+capacity_tariff_15min  # cheaper basin reached by the low-energy seed
+cool_rainy_summer  # cheaper basin reached by the low-energy seed
+cycling_cost  # cheaper basin reached by the low-energy seed
+flat_prices  # cheaper basin reached by the low-energy seed
+fuse_guard  # cheaper basin reached by the low-energy seed
+horizon_48h  # cheaper basin reached by the low-energy seed
+narrow_band  # cheaper basin reached by the low-energy seed
+shoulder  # cheaper basin reached by the low-energy seed
+winter_two_zone_dhw  # cheaper basin reached by the low-energy seed
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
