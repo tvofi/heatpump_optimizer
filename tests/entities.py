@@ -1036,6 +1036,33 @@ R.check(
     "a thermometer that died in January reads 48.2 all spring",
 )
 
+# Round-2 audit, D8-01. The gate above protects the temperature sensor and
+# stops there. Mixed Hot Water is the SAME number in shower clothes --
+# V*(T_tank - T_inlet)/(40 - T_inlet) litres -- and it was ungated, so on the
+# install the config flow produces with every form left untouched (no tank
+# thermometer; hot water on with a 200 L tank) it published 270 litres and
+# 33.8 shower minutes, rock-steady across cycles, while DHW Temperature beside
+# it was correctly unavailable and the input-problem binary sensor read "ok".
+#
+# A litre count carries a state_class, so Home Assistant writes long-term
+# statistics for it: the constructor default does not merely show once, it is
+# recorded as history. Availability is the mechanism, exactly as it is for the
+# temperature the litres are computed from.
+_mixed_stale = sensor.MixedHotWaterSensor(FakeCoordinator(_stale), ENTRY)
+R.check(
+    "mixed hot water follows the thermometer it is computed from",
+    not _mixed_stale.available,
+    "270 litres of shower water derived from a tank reading nobody trusts",
+)
+# And the null control: with the reading good, it is available as before, so
+# the gate is not simply switching the entity off.
+_mixed_ok = sensor.MixedHotWaterSensor(FakeCoordinator(DATA), ENTRY)
+R.check(
+    "and it is still available when the tank really is being read",
+    _mixed_ok.available,
+    "the gate must not take the sensor away from installs that have a probe",
+)
+
 # --- hot water that is not configured is not a zero -------------------------
 R.section("Hot water entities exist only where there is hot water")
 
