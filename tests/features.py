@@ -13005,6 +13005,184 @@ R.check(
     f"cycles: {_tib._tibber_outage_cycles}",
 )
 
+# #216 (round-2 D10-B): the latch must OWN the outage's logging. The four
+# in-try failure verdicts (401/403, HTTP != 200, GraphQL errors, no homes)
+# call _tibber_fetch_failed from inside _fetch_tibber_prices's try, so the
+# UpdateFailed it raises was re-caught by that method's own `except
+# Exception` — a second _tibber_fetch_failed entry per poll (latch 10 after
+# 5 polls, "recovered after 10 failed cycle(s)") — and the wrapper in
+# _async_update_data then logged its own ERROR with traceback on EVERY
+# poll. The stub's raising session getter (used above) cannot see this: it
+# lands in the except handler directly, where the raise is not re-caught.
+# So these polls drive a scriptable session, the pattern of the round-2
+# D10-B harness, through the FULL _async_update_data cycle (wrapper
+# included) with the rest of the cycle patched to no-ops on the instance.
+import logging as _logging  # noqa: E402
+
+import aiohttp as _aiohttp  # noqa: E402
+
+from heatpump_optimizer import coordinator as _coord_mod  # noqa: E402
+from heatpump_optimizer.const import MODE_OFF as _MODE_OFF  # noqa: E402
+
+
+class _ScriptedResponse:
+    def __init__(self, status, payload=None):
+        self.status = status
+        self._payload = payload
+
+    async def json(self):
+        return self._payload
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *exc):
+        return False
+
+
+class _ScriptedSession:
+    """One post() per scripted entry: an Exception is raised (connect
+    failure), a (status, payload) pair is returned as the response."""
+
+    def __init__(self, script):
+        self._script = list(script)
+
+    def post(self, *args, **kwargs):
+        entry = self._script.pop(0)
+        if isinstance(entry, Exception):
+            raise entry
+        status, payload = entry
+        return _ScriptedResponse(status, payload)
+
+
+_TIBBER_OK_PAIR = (
+    200,
+    {
+        "data": {"viewer": {"homes": [{"currentSubscription": {"priceInfo": {
+            "today": [{"total": 0.42, "startsAt": "2026-09-02T00:00:00Z",
+                       "level": "NORMAL"}],
+            "tomorrow": [],
+        }}}]}}
+    },
+)
+
+
+class _LogCapture(_logging.Handler):
+    def __init__(self):
+        super().__init__(level=_logging.DEBUG)
+        self.records = []
+
+    def emit(self, record):
+        self.records.append((record.levelno, record.getMessage()))
+
+
+async def _drive_outage_polls(coord, script):
+    """One full update cycle per scripted entry; returns what the
+    integration logged while they ran."""
+    capture = _LogCapture()
+    logger = _logging.getLogger("heatpump_optimizer")
+    real_level, real_session = logger.level, _coord_mod.async_get_clientsession
+    logger.addHandler(capture)
+    logger.setLevel(_logging.DEBUG)
+    _coord_mod.async_get_clientsession = (
+        lambda hass, verify_ssl=True: _ScriptedSession(script)
+    )
+    try:
+        for _ in script:
+            try:
+                await coord._async_update_data()
+            except Exception:  # noqa: BLE001 - UpdateFailed is the verdict
+                pass
+    finally:
+        _coord_mod.async_get_clientsession = real_session
+        logger.setLevel(real_level)
+        logger.removeHandler(capture)
+    return capture.records
+
+
+def _outage_cycle_coord():
+    """A coordinator whose update cycle is the Tibber fetch and its real
+    wrapper, nothing else: every later step patched to a no-op on the
+    instance (the round-2 D10-B harness pattern)."""
+    coord = Coord(_FakeHass(), _FakeEntry(data=_LC_DATA))
+    coord._config[_CONF_TIBBER_TOKEN] = "stub-token"
+
+    async def _noop(*_a, **_k):
+        return None
+
+    for name in (
+        "_update_current_state", "_fetch_weather_forecast",
+        "_fetch_solar_forecast", "_async_learn_price_shape",
+        "_apply_action", "_command_frequency", "_async_drive_pumps",
+        "_async_save_accuracy", "_async_save_energy_totals",
+        "_async_watch_learning_drift",
+    ):
+        setattr(coord, name, _noop)
+    coord._record_accuracy = lambda *a, **k: None
+    coord._track_realised_peak = lambda *a, **k: None
+    coord._mode = _MODE_OFF
+    return coord
+
+
+def _error_count(records):
+    return sum(1 for lvl, _ in records if lvl >= _logging.ERROR)
+
+
+# HTTP 500 for five polls: one ERROR (the latch's first-failure record),
+# five outage cycles, then a recovery that reports the true length.
+_c500 = _outage_cycle_coord()
+_c500_records = _asyncio.run(_drive_outage_polls(_c500, [(500, None)] * 5))
+R.check(
+    "five HTTP-500 polls log exactly one ERROR - the latch owns the transition (#216)",
+    _error_count(_c500_records) == 1,
+    f"ERROR records: {_error_count(_c500_records)} of {len(_c500_records)}",
+)
+R.check(
+    "five HTTP-500 polls count five outage cycles, not ten (#216)",
+    _c500._tibber_outage_cycles == 5,
+    f"cycles: {_c500._tibber_outage_cycles}",
+)
+_c500_recovery = _asyncio.run(_drive_outage_polls(_c500, [_TIBBER_OK_PAIR]))
+_c500_infos = [m for lvl, m in _c500_recovery if lvl == _logging.INFO]
+R.check(
+    "recovery after five failures reports 'after 5 failed cycle(s)' once (#216)",
+    len(_c500_infos) == 1
+    and "recovered after 5 failed cycle(s)" in _c500_infos[0]
+    and _c500._tibber_outage_cycles == 0,
+    f"INFO records: {_c500_infos}",
+)
+
+# The first-refresh path has its own wrapper with the same re-log: a
+# zero-evidence install whose very first poll fails logs once, not twice.
+_cfirst = _outage_cycle_coord()
+_cfirst._skip_solve_once = True  # the setup-time light refresh
+_cfirst_records = _asyncio.run(_drive_outage_polls(_cfirst, [(500, None)]))
+R.check(
+    "a failed first-refresh poll (zero-evidence install) logs one ERROR, once (#216)",
+    _error_count(_cfirst_records) == 1 and _cfirst._tibber_outage_cycles == 1,
+    f"ERROR records: {_error_count(_cfirst_records)}, "
+    f"cycles: {_cfirst._tibber_outage_cycles}",
+)
+
+# Connect failures (aiohttp.ClientError) never re-entered the latch — only
+# the wrapper's per-poll ERROR was wrong there. Both numbers must hold.
+_cconn = _outage_cycle_coord()
+_cconn_records = _asyncio.run(
+    _drive_outage_polls(
+        _cconn, [_aiohttp.ClientError("connection refused")] * 5
+    )
+)
+R.check(
+    "five connect-failure polls also log exactly one ERROR (#216)",
+    _error_count(_cconn_records) == 1,
+    f"ERROR records: {_error_count(_cconn_records)} of {len(_cconn_records)}",
+)
+R.check(
+    "five connect-failure polls count five outage cycles (already single-counted)",
+    _cconn._tibber_outage_cycles == 5,
+    f"cycles: {_cconn._tibber_outage_cycles}",
+)
+
 # D10-06: the override must run the base class's shutdown. Real HA's
 # async_shutdown stops the refresh debouncer and any in-flight refresh; an
 # override that drops super() leaks both on every unload/reload. The stub

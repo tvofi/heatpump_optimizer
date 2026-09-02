@@ -4456,6 +4456,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
             return self._build_data_dict()
 
+        except UpdateFailed:
+            # #216 (D10-09): the raiser — the Tibber outage latch — already
+            # logged this failure once, at the severity its state machine
+            # chose (ERROR on the transition, DEBUG after). Re-logging it
+            # here, with a traceback, on every poll defeated the latch: a
+            # day-long outage printed the same ERROR on every cycle.
+            raise
         except Exception as err:
             _LOGGER.error(
                 "Error updating Heat Pump Optimizer: %s", err, exc_info=True
@@ -4499,6 +4506,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 "follows in the background"
             )
             return self._build_data_dict()
+        except UpdateFailed:
+            # #216, same as _async_update_data's wrapper: this path also
+            # runs _fetch_tibber_prices, whose latch has already logged the
+            # failure once. An install whose first poll fails logs exactly
+            # one ERROR, not two.
+            raise
         except Exception as err:
             _LOGGER.error(
                 "Error updating Heat Pump Optimizer: %s", err, exc_info=True
@@ -5460,6 +5473,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._tibber_fetch_recovered()
             _LOGGER.debug("Fetched %d price entries from Tibber", len(prices))
 
+        except UpdateFailed:
+            # #216 (D10-09): _tibber_fetch_failed already latched, logged
+            # and raised. Re-catching it here entered the latch a SECOND
+            # time per poll (the count doubled; recovery reported twice the
+            # outage's length). Let it propagate.
+            raise
         except aiohttp.ClientError as err:
             self._tibber_fetch_failed(f"Error fetching Tibber prices: {err}")
         except Exception as err:
