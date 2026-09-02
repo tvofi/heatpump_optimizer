@@ -128,6 +128,10 @@ mkdir /tmp/hpo-gate.lock && GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$BASE \
 A full run takes about three minutes on the M1 (CI: 40–90 minutes), so a
 full local gate is never the bottleneck; the shared box is.
 
+## Running the fix wave
+
+One group at a time is `/audit-fix with args {group, issues, repo, baseline, fixerModel, reviewerModel, effort}`; many groups at once, honoring `after`-dependencies between them, is `/audit-wave with args {groups, repo, baseline}`; either way, a reviewed PR is merged with its own `/audit-merge with args {pr, bump, title, repo}` — merges are never batched. `fixerModel` and `reviewerModel` each default to `opus`, `effort` to `high`, and a reviewer whose tier ranks below its fixer's is refused before either agent runs. A session that has no Workflow tool available runs the same fixer and reviewer prompts (see `.claude/workflows/audit-fix.js`) through the Agent tool instead, passing the model explicitly per call.
+
 ## Resource rules on the audit box
 
 8-core Apple M1, 8 GB, numpy on OpenBLAS. Timing is not measurable while
