@@ -50,12 +50,30 @@
 #
 
 #
-# Tests-plus-sysid branch: the estimator and its gates change no
-# solver path and no golden capture; the inherited low-energy-seed
-# list below was the baseline's own diff -- emptied per rule 2.
+# D9-01 (#286): a zero-range bound no longer forfeits the batched jac, and
+# `fuse_guard` is the ONLY one of the 55 scenarios that carries one
+# (`scenarios_with_zero_range_bounds=1`), so it is the only fixture that may
+# move. Its solve leaves scipy's scalar finite differences for the batched
+# jac -- fev_per_jev 94.0 -> 1.00, 1,797,024 simulate_step -> 39,456 -- and
+# the batched jac's fixed-variable entry is an exact 0.0 where scipy's own
+# estimate was 0/0 = NaN.
+#
+# Measured on this branch, both sides captured on one box: ONE field moves,
+# `power_schedule[58]`, by 1.0e-06 at PRECISION=6. njev is identical at 199,
+# status stays `optimal`, `predicted_cost` (30.949929), `predicted_savings`
+# (58.264501) and the `power_cap_breach_c` report are unchanged. The panel
+# measured 177 fields at max 4.5e-05 against the round-2 baseline c398fc8;
+# the tree has moved a long way since, and the direction is what carried
+# over -- this is drift, not a no-op, and it is claimed rather than
+# discovered at gate time.
+#
+# Any OTHER fixture moving here means the change is broader than the
+# finding, and this claim does not cover it.
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_coil -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: valve_upper_direct_slab -- machine-sensitive; the DHW plan can reach it, per local optimum
+
+fuse_guard  # D9-01 (#286): off scipy's scalar finite differences onto the batched jac; power_schedule[58] moves 1.0e-06, nothing else, plan shape and cost unchanged

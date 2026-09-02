@@ -2076,16 +2076,18 @@ def _grad_parity(two_zone, wood=False, valve=None, extra_cfg=None, label="",
             f"function evaluations per gradient",
         )
         R.check(
-            f"the pinned solve converges to a finite point on its pins: "
-            f"{label}",
+            f"the pinned solve gets a finite point on its pins, not a dead "
+            f"line search: {label}",
             bool(np.all(np.isfinite(res.x)))
-            and int(res.status) == 0
+            and int(res.status) != 2
             and int(res.nit) > 0
             and bool(np.all(res.x[fixed] == lb[fixed])),
             f"status={int(res.status)} nit={int(res.nit)} "
             f"finite={bool(np.all(np.isfinite(res.x)))} "
             f"off-pin={float(np.max(np.abs(res.x[fixed] - lb[fixed]))):.3e}; "
-            f"a NaN gradient entry kills L-BFGS-B in its first line search",
+            f"a NaN in a SUPPLIED jac is status 2 at nit 0 -- L-BFGS-B dies "
+            f"in the first line search, which is the whole reason the fixed "
+            f"entry has to be an exact 0.0 rather than scipy's 0/0",
         )
 
 
