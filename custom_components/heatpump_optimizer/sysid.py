@@ -42,6 +42,19 @@ PHASE_RELAX = "relax"
 PHASE_DONE = "done"
 PHASE_ABORTED = "aborted"
 
+#: The comfort allowance a default install gives the experiment, and the
+#: reference the confidence scores the achieved excursion against.
+#:
+#: It is a DESIGN constant on purpose. Scoring the achieved excursion against
+#: the *configured* bound (v6.3.3) made the confidence fall when the bound was
+#: widened: the same finished experiment, having gathered strictly more
+#: information, scored less because its allowance was larger. That inverted
+#: the whole point of the factor and shut the gate on every install that lifts
+#: the bound (D7-01's own positive control went from 4 of 8 admitted to 0 of
+#: 8). Against a fixed reference the factor is monotone in the excursion the
+#: room actually made, which is what identifiability depends on.
+DEFAULT_MAX_EXCURSION_C = 0.8
+
 
 @dataclass
 class SysIdConfig:
@@ -60,7 +73,7 @@ class SysIdConfig:
     end_hour: int = 5
     #: How far the room is allowed to drift during the step, in °C. This is the
     #: comfort constraint, and it is what bounds the achievable accuracy.
-    max_excursion_c: float = 0.8
+    max_excursion_c: float = DEFAULT_MAX_EXCURSION_C
     #: Duration of each phase in hours.
     settle_hours: float = 1.0
     step_hours: float = 2.0
@@ -73,6 +86,18 @@ class SysIdConfig:
     #: gains_prior_kw / thermal_mass_prior instead of toward nothing.
     gains_prior_kw: float = 0.3
     thermal_mass_prior: float = 10.0
+    #: Prior width for the room sensor's own drift, °C/h. The drift column
+    #: is identifiable from a clean window and hopeless from a short noisy
+    #: one, so it gets the same treatment as the intercept: one
+    #: pseudo-observation at ZERO, weighed against the data's own residual
+    #: scatter. A clean night reports the drift it can see; a 0.10 °C-noise
+    #: night at the 30-minute cadence has seven rows and no business
+    #: inventing one, and shrinks back to the undrifted fit. 0.02 °C/h is
+    #: 0.08 °C over the whole window, a tenth of the comfort allowance --
+    #: measured against the alternatives (0.05, 0.1, 0.2) it holds the
+    #: completion rate the release already had while more than halving the
+    #: adopted UA error at every noise level.
+    sensor_drift_prior_c_per_h: float = 0.02
     #: Do not repeat on a house that has already converged.
     min_days_between_runs: float = 30.0
     converged_samples: int = 200
@@ -112,6 +137,12 @@ class SysIdResult:
     #: residual solar), kW. ``None`` when the fit had to run without the
     #: intercept column that identifies it.
     internal_gains_kw: float | None = None
+    #: Linear drift of the ROOM SENSOR over the experiment, °C/h, estimated
+    #: as a nuisance parameter alongside the house. ``None`` when the fit had
+    #: to run without the column that identifies it. A sensor ageing at
+    #: 0.10 °C/h is invisible to any noise statistic built on second
+    #: differences — a straight line has none — and lands squarely in UA.
+    sensor_drift_c_per_h: float | None = None
     #: 0-1; how much the result should be trusted as a prior.
     confidence: float = 0.0
     reason: str = ""
@@ -351,65 +382,44 @@ class SystemIdentification:
 
         rows = []
         targets = []
+        row_dts = []
+        t_zero = usable[0].when
         for previous, current in zip(usable, usable[1:]):
             dt_h = (current.when - previous.when).total_seconds() / 3600.0
             if dt_h <= 1e-3 or dt_h > 2.0:
                 continue
             rate = (current.room_temp - previous.room_temp) / dt_h
             delta = previous.room_temp - previous.outdoor_temp
-            rows.append([-delta, previous.power_kw, 1.0])
+            since = (previous.when - t_zero).total_seconds() / 3600.0
+            # D2-07: the fourth column is elapsed time, and it is there to
+            # catch a drifting ROOM SENSOR. A sensor ageing at d °C/h adds
+            # d·t to every reading, which enters the regression twice — the
+            # rate gains a constant d, the ΔT column gains a ramp d·t — and
+            # the identity
+            #     rate = -(UA/C)·Δ + Q/C + (G/C + d) + (UA/C)·d·t
+            # shows the ramp has nowhere to go in a three-column fit but
+            # into UA. Estimating d as a nuisance parameter costs one degree
+            # of freedom and leaves UA alone. On an undrifting sensor the
+            # column fits zero, so this is inert where there is nothing to
+            # correct.
+            rows.append([-delta, previous.power_kw, 1.0, since])
             targets.append(rate)
+            row_dts.append(dt_h)
 
         if len(rows) < 5:
             return SysIdResult(completed=False, reason="not enough usable intervals")
 
         a = np.asarray(rows, dtype=float)
         b = np.asarray(targets, dtype=float)
+        dts = np.asarray(row_dts, dtype=float)
+        # Centre the drift column: uncentred it is strongly correlated with
+        # the intercept, and the ΔT/intercept pair is already the collinear
+        # one this fit has to survive. The centring is undone in the
+        # coefficient algebra below.
+        t_mean = float(np.mean(a[:, 3]))
+        a[:, 3] -= t_mean
         gains_kw: float | None = None
-        # --- D2-01: errors-in-variables correction -------------------------
-        # ``T_prev`` sits on BOTH sides of the regression -- in the rate
-        # (divided by dt) and in the delta column -- so sensor noise covaries
-        # the two and biases the UA/C slope UPWARD (the audit measured +44 %
-        # at 0.05 °C noise, +108 % at 0.10 °C, and biased fits cleared the
-        # 0.3 adoption gate). The noise variance is estimated from the room
-        # series itself -- the true response is smooth over the cadence, so
-        # the mean squared second difference is 6 sigma^2 plus a small
-        # curvature term -- and the KNOWN bias terms are subtracted from the
-        # normal equations: the delta column's own noise deflates X'X by
-        # n*sigma^2, and the rate/regressor noise covariance shifts X'y by
-        # sigma^2 * sum(1/dt). Clean data estimates sigma^2 ~ 0 and the
-        # correction vanishes; a window whose noise exceeds a third of the
-        # delta column's spread is refused outright -- there is no honest
-        # fit to be had there.
-        dts = np.asarray([
-            (cur.when - prv.when).total_seconds() / 3600.0
-            for prv, cur in zip(usable, usable[1:])
-        ], dtype=float)
-        # sigma^2 from second differences WITHIN a phase only: the step->
-        # relax transition is a genuine kink in the signal (power drops to
-        # zero), and one boundary second difference would swamp a whole
-        # night of sensor noise.
-        sigma2 = 0.0
-        d2_all = []
-        for i in range(1, len(usable) - 1):
-            if usable[i - 1].phase == usable[i].phase == usable[i + 1].phase:
-                d2_all.append(
-                    usable[i + 1].room_temp
-                    - 2.0 * usable[i].room_temp
-                    + usable[i - 1].room_temp
-                )
-        if len(d2_all) >= 3:
-            sigma2 = float(
-                np.sum(np.square(d2_all)) / (6.0 * len(d2_all))
-            )
-        n_rows = float(len(rows))
-        x1_spread2 = float(np.var(a[:, 0])) * n_rows / max(n_rows - 1.0, 1.0)
-        if sigma2 > 0.0 and sigma2 > x1_spread2 / 9.0:
-            return SysIdResult(
-                completed=False,
-                reason="sensor noise dominates the excursion",
-            )
-        # --- end correction; solve via normal equations ---------------------
+        drift_c_per_h: float | None = None
         # The comfort constraint bounds the room's excursion, which keeps the
         # ΔT column nearly constant — near-collinear with the intercept — so
         # with realistic sensor noise the unregularized three-column fit is
@@ -429,51 +439,135 @@ class SystemIdentification:
         # prior and recovers the truth exactly; a noisy night leans on the
         # prior instead of handing the collinear intercept the noise.
         prior_sd = 0.5 / max(self.config.thermal_mass_prior, 0.1)
+        n_cols = a.shape[1]
         try:
             pass1, _res1, rank1, _ = np.linalg.lstsq(a, b, rcond=None)
             resid = b - a @ pass1
-            dof = max(len(rows) - 3, 1)
+            dof = max(len(rows) - n_cols, 1)
             s_noise = float(np.sqrt(np.sum(resid**2) / dof))
         except np.linalg.LinAlgError:
             return SysIdResult(completed=False, reason="fit failed")
-        data_w = 1.0 / max(s_noise, 1e-3)
-        prior_w = 1.0 / prior_sd
-        # Column equilibration before the normal-equation solve: the three
-        # columns live at wildly different scales (delta ~20, power ~10,
-        # constant 1), and an explicit Gram of that is needlessly
+        # --- D2-01: errors-in-variables correction -------------------------
+        # ``T_prev`` sits on BOTH sides of the regression -- in the rate
+        # (divided by dt) and in the delta column -- so sensor noise covaries
+        # the two and biases the UA/C slope UPWARD (the audit measured +44 %
+        # at 0.05 °C noise, +108 % at 0.10 °C, and biased fits cleared the
+        # 0.3 adoption gate). The noise variance is estimated from the room
+        # series itself and the KNOWN bias terms are subtracted from the
+        # normal equations: the delta column's own noise deflates X'X by
+        # n*sigma^2, and the rate/regressor noise covariance shifts X'y by
+        # sigma^2 * sum(1/dt). Clean data estimates sigma^2 ~ 0 and the
+        # correction vanishes; a window whose noise exceeds a third of the
+        # delta column's spread is refused outright -- there is no honest
+        # fit to be had there.
+        #
+        # sigma^2 from second differences WITHIN a phase only: the step->
+        # relax transition is a genuine kink in the signal (power drops to
+        # zero), and one boundary second difference would swamp a whole
+        # night of sensor noise.
+        #
+        # D2-07: the plant's OWN curvature is removed first. A second
+        # difference of a smooth exponential is h^2*T'', not zero, and
+        # within a phase Q is constant so T'' = -(UA/C)*T' -- a quantity the
+        # first pass already estimated. Left in, that curvature is read as
+        # sensor noise: it triggered the errors-in-variables correction on
+        # perfectly clean data (measured: the noise-free UA null moved from
+        # +0.0000 to -0.0002) and, on a house whose response is genuinely
+        # curved, it is what the refusal gate would fire on.
+        k_hat = max(float(pass1[0]), 0.0)
+        sigma2 = 0.0
+        d2_all = []
+        for i in range(1, len(usable) - 1):
+            if usable[i - 1].phase == usable[i].phase == usable[i + 1].phase:
+                h_prev = (
+                    usable[i].when - usable[i - 1].when
+                ).total_seconds() / 3600.0
+                if h_prev <= 1e-6:
+                    continue
+                curvature = (
+                    -k_hat
+                    * h_prev
+                    * (usable[i + 1].room_temp - usable[i - 1].room_temp)
+                    / 2.0
+                )
+                d2_all.append(
+                    usable[i + 1].room_temp
+                    - 2.0 * usable[i].room_temp
+                    + usable[i - 1].room_temp
+                    - curvature
+                )
+        if len(d2_all) >= 3:
+            sigma2 = float(
+                np.sum(np.square(d2_all)) / (6.0 * len(d2_all))
+            )
+        n_rows = float(len(rows))
+        x1_spread2 = float(np.var(a[:, 0])) * n_rows / max(n_rows - 1.0, 1.0)
+        if sigma2 > 0.0 and sigma2 > x1_spread2 / 9.0:
+            return SysIdResult(
+                completed=False,
+                reason="sensor noise dominates the excursion",
+            )
+        # --- end correction; solve via normal equations ---------------------
+        # Column equilibration before the normal-equation solve: the columns
+        # live at wildly different scales (delta ~20, power ~10, constant 1,
+        # elapsed hours ~2), and an explicit Gram of that is needlessly
         # ill-conditioned in float64. Normalising each column by its own
         # norm keeps the solve honest; the correction and prior terms are
         # applied in the SAME scaled units.
+        #
+        # D2-07: the data weight is GONE from this solve, because it only
+        # ever entered as a ratio against the prior's weight and cancels.
+        # v6.3.3 carried it explicitly as 1/max(s_noise, 1e-3) — and that
+        # floor is a bug with teeth: on a clean night s_noise is ~1e-15, the
+        # floor caps the data's weight at 1e3, and the prior it was supposed
+        # to out-weigh instead takes about a fifth of the near-collinear
+        # intercept direction. Measured on the audit's own null control, a
+        # noise-free window's UA went from +0.0000 to -1.58 %. Carrying the
+        # RATIO s_noise/prior_sd restores the documented intent — clean data
+        # out-weighs the prior and recovers the truth exactly — with no
+        # floor and no 1e9 to make the solve singular.
         col_scale = np.maximum(
-            np.sqrt(np.mean(np.square(a * data_w), axis=0)), 1e-12
+            np.sqrt(np.mean(np.square(a), axis=0)), 1e-12
         )
-        a_s = (a * data_w) / col_scale
+        a_s = a / col_scale
         gram = a_s.T @ a_s
-        rhs = a_s.T @ (b * data_w)
+        rhs = a_s.T @ b
         if sigma2 > 0.0:
-            gram[0, 0] -= (
-                n_rows * sigma2 * data_w * data_w / (col_scale[0] ** 2)
-            )
-            rhs[0] -= (
-                sigma2
-                * float(np.sum(1.0 / dts))
-                * data_w
-                * data_w
-                / col_scale[0]
-            )
-        # The prior enters as its own weighted pseudo-observation, exactly
-        # as the stacked row did -- same algebra, normal-equation form.
-        gram[2, 2] += (prior_w / col_scale[2]) ** 2
-        rhs[2] += (prior_w / col_scale[2]) ** 2 * prior_icpt
+            gram[0, 0] -= n_rows * sigma2 / (col_scale[0] ** 2)
+            rhs[0] -= sigma2 * float(np.sum(1.0 / dts)) / col_scale[0]
+        # The prior enters as its own pseudo-observation, exactly as the
+        # stacked row did -- same algebra, normal-equation form, weighed
+        # against the data through prior_rel = prior_w / data_w.
+        #
+        # D2-07: the right-hand side term had one factor of col_scale[2] too
+        # many, which is not a scaling nicety -- it made the prior pull the
+        # intercept toward prior_icpt/col_scale[2], i.e. toward ZERO gains,
+        # the exact thing the comment above says it exists not to do. On the
+        # D7-01 harness's first-order positive control that alone moved the
+        # identified UA from -8.06 % to -16.21 %.
+        prior_rel = s_noise / prior_sd
+        gram[2, 2] += (prior_rel / col_scale[2]) ** 2
+        rhs[2] += (prior_rel / col_scale[2]) * prior_rel * prior_icpt
+        # The drift column's own shrinkage prior, mean zero. Its coefficient
+        # is (UA/C)·d, so the width in coefficient units is the configured
+        # drift width times the slope the first pass already found (clamped
+        # to the plausible time-constant band, because a wild first pass must
+        # shrink the drift harder, never less).
+        k_prior = float(np.clip(k_hat, 1.0 / 200.0, 1.0 / 0.1))
+        drift_sd = k_prior * max(
+            self.config.sensor_drift_prior_c_per_h, 1e-6
+        )
+        drift_rel = s_noise / drift_sd
+        gram[3, 3] += (drift_rel / col_scale[3]) ** 2
         try:
             solution = np.linalg.solve(gram, rhs)
-            rank = 3
+            rank = n_cols
         except np.linalg.LinAlgError:
             solution = None
         if solution is not None:
             # Undo the column scaling on the coefficients.
             solution = solution / col_scale
-        if solution is None or not np.all(np.isfinite(solution)) or rank < 3:
+        if solution is None or not np.all(np.isfinite(solution)) or rank < n_cols:
             # The constant cannot be separated (e.g. ΔT barely moved, so
             # the delta column is itself nearly constant). Fall back to
             # the two-column fit rather than discarding the experiment.
@@ -493,8 +587,7 @@ class SystemIdentification:
                     reason="step gave insufficient excitation",
                 )
             gains_kw = None
-        else:
-            pass
+            drift_c_per_h = None
 
         ua_over_c, one_over_c = float(solution[0]), float(solution[1])
         if one_over_c <= 1e-6 or ua_over_c <= 1e-6:
@@ -503,8 +596,18 @@ class SystemIdentification:
         capacity = 1.0 / one_over_c
         ua = ua_over_c * capacity
         tau = 1.0 / ua_over_c
-        if solution.shape[0] == 3:
-            gains_kw = float(solution[2]) * capacity
+        if solution.shape[0] >= 4:
+            # rate carries (UA/C)·d on the centred elapsed column, so the
+            # sensor's drift falls straight out of the ratio.
+            drift_c_per_h = float(solution[3]) / ua_over_c
+        if solution.shape[0] >= 3:
+            # The intercept holds G/C + d·(1 + (UA/C)·t̄) once the elapsed
+            # column is centred at t̄; the free heat is what is left of it
+            # after the sensor's own drift is taken back out.
+            gains_over_c = float(solution[2])
+            if drift_c_per_h is not None:
+                gains_over_c -= drift_c_per_h * (1.0 + ua_over_c * t_mean)
+            gains_kw = gains_over_c * capacity
             # Sanity bound: a hair of negative gains is regression noise and
             # clips to zero; far outside the band means the "constant" was a
             # drifting contaminant (sun through a window, a door), and a fit
@@ -530,18 +633,28 @@ class SystemIdentification:
         # The intercept's identifiability scales with how far ΔT actually
         # moved; R² cannot see that (a flat fit explains flat data well), so
         # the blend weight is tempered by the achieved excursion directly.
-        # D7-02: normalised by the CONFIGURED excursion bound, not by a
+        # D7-02: normalised by the default comfort allowance, not by a
         # literal 2 °C — the comfort constraint caps the excursion at
         # max_excursion_c (0.8 by default), so the old /2 divisor held every
         # legal experiment at or below 0.4 here, and together with the /20
         # row cap it kept the default protocol's confidence under the 0.3
         # adoption gate on every install: the experiment could never be
-        # adopted at all (inert on target houses). Normalised by the design
-        # bound, a protocol-maximal excursion earns 1.0.
+        # adopted at all (inert on target houses). Against the design
+        # reference, a protocol-maximal excursion earns 1.0 — and, unlike
+        # the configured bound v6.3.3 divided by, it stays monotone: an
+        # install that widens its allowance cannot score lower for the same
+        # room movement (see DEFAULT_MAX_EXCURSION_C).
+        #
+        # D2-07: measured on the room's REAL movement. A drifting sensor
+        # inflates the ΔT range with its own ramp, and crediting that as
+        # identifiability is how a 0.10 °C/h drift came to be adopted at
+        # confidence 1.000.
         deltas = -a[:, 0]
+        if drift_c_per_h is not None and a.shape[1] >= 4:
+            deltas = deltas - drift_c_per_h * a[:, 3]
         excursion = float(np.max(deltas) - np.min(deltas)) if len(deltas) else 0.0
         confidence *= float(np.clip(
-            excursion / max(self.config.max_excursion_c, 0.1), 0.3, 1.0
+            excursion / DEFAULT_MAX_EXCURSION_C, 0.3, 1.0
         ))
         # D2-01's gate half: a fit is only as trustworthy as its residual
         # noise is small against the signal it claims to explain. The rate
@@ -565,6 +678,7 @@ class SystemIdentification:
             heat_loss_kw_per_c=ua,
             thermal_mass_kwh_per_c=capacity,
             internal_gains_kw=gains_kw,
+            sensor_drift_c_per_h=drift_c_per_h,
             confidence=confidence,
             reason="ok",
         )
