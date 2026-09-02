@@ -248,7 +248,7 @@ refine the model and add hardware:
 | Credit disinfection from any heat source | off | on/off | If a wood boiler, solar coil or immersion heater already got the tank hot enough and held it there, count that as a completed cycle. |
 | Let the anti-legionella cycle pick a cheap day | off | on/off | Allows the cycle to run a day or two early when electricity is unusually cheap. The deadline is still always honoured. |
 | Earliest anti-legionella re-run | 5 days | 1–14 | A floor on how close together cycles may run, however cheap the day. |
-| Shower flow rate | 8.0 L/min | 4–20, 0.5 steps | Only used to translate the tank's contents into shower minutes on the Mixed Hot Water sensor. |
+| Shower flow rate | 8.0 L/min | 4–20, 0.5 steps | Only used to translate the tank's contents into shower minutes on the DHW Mixed Water sensor (`sensor.heat_pump_optimizer_dhw_mixed_water`). |
 | Hot water circulation pump switch | none | `switch` / `input_boolean` | When set, the circulation loop pump runs only during your hot water time frames plus the lead time below. |
 | Start circulation before a time frame | 20 min | 0–120, 5 steps | So the loop is already hot when the time frame opens. |
 | Heating circulation pump switch | none | `switch` / `input_boolean` | Paused only in slots that are provably idle and warm — it always runs when heat is planned, when it is freezing outside, or when any room is near its comfort floor. |
