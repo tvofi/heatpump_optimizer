@@ -485,6 +485,25 @@ R.check(
     "and the README badge agrees",
     f"Home%20Assistant-{_hacs_floor}%2B" in readme,
 )
+# issue #227 (hacs.json floor): ConfigEntry.runtime_data (read by every
+# platform since B5, #207) is the only API in this integration with a
+# minimum Home Assistant release established from repo evidence --
+# tests/hastub/homeassistant/config_entries.py's docstring ("Mirrored from
+# Home Assistant 2024.6.0 ... the release that introduced
+# ConfigEntry.runtime_data") and RELEASE_NOTES.md's v6.3.0 entry ("verified
+# against the upstream tags: absent at 2024.5.0, present ... at 2024.6.0").
+# The reconfigure flow (#196), config-flow sections, and icon translations
+# (#189) queued behind #227 have NO minimum release established anywhere in
+# this repository -- nothing here pins, stubs, or documents one -- so they
+# are not factored into the floor pinned below. Whoever lands #196/#189 must
+# establish their own minimum (an upstream lookup, per B5's precedent)
+# before assuming 2024.6.0 already covers it.
+_hacs_floor_tuple = tuple(int(part) for part in _hacs_floor.split("."))
+R.check(
+    "hacs.json's Home Assistant floor is at least 2024.6.0 (ConfigEntry.runtime_data, the one API establishable from repo evidence)",
+    _hacs_floor_tuple >= (2024, 6, 0),
+    f"hacs.json says {_hacs_floor}",
+)
 
 for name in (
     "Measured Power",
