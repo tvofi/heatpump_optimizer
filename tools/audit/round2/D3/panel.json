@@ -1,34 +1,103 @@
 {
- "panel": "D3",
- "seats": 3,
- "seats_reported_at_write": [
-  "verify-1.md",
-  "verify-3.md"
- ],
- "seat1_votes": {
-  "D3-01": "verify(medium)",
-  "D3-02": "verify(medium), mechanism weakened",
-  "D3-03": "verify(medium)",
-  "D3-04": "verify(low)",
-  "D3-05": "verify(low), consequence weakened",
-  "D3-06": "verify(low)",
-  "D3-07": "verify(low), mechanism weakened",
-  "D3-08": "verify",
-  "D3-09": "verify",
-  "D3-10": "verify"
- },
- "quiet_window": "all six top mutants survived the full unscoped gate (16 scripts, ~200 s each); logs in quiet/D3-M*.gate.log",
- "notes": {
-  "rolling_caveat_settled": "Seat 1 checked the quiet window's own caveat (its gate skips rolling.py): rolling.py would have killed NONE of the six. Five sites are never entered at all (rolling builds the coordinator directly with a stateless FakeHass: no InputReader, no entity layer, no _dhw_setpoint_sweep, no _parse_rule, no from_dict, no HTTP parse). The sixth (M19) was RUN with the mutant: 33/33 checks green despite 106 differing evaluations, because next_window_in_hours is published-only and nothing reads it back into a schedule. The nightly SLOW=1 run adds nothing",
-  "two_kinds": "Seat 1 split the seven into kinds the finder did not distinguish, with different fixes: ASSERTION gaps (M31, M19, M15 - the gate executes the differing code and passes: 4, 2 and 13 differing evaluations) and INPUT-COVERAGE gaps (M13, M32, M21, M30 - the enclosing site runs 5/14/11/39 times, never on the input that matters)",
-  "equivalent_mutant_attack_fails": "observable_total = 7 of 7: every mutant is distinguishable by a legal input, so no finding can be refuted as an equivalent mutant",
-  "D3-01": "20 attributes, not 21 (small correction). Zero suite references to the sensor or 8 of its keys; the two generic sweeps that touch it assert only non-finiteness and non-crashing",
-  "D3-02": "mechanism weakened: the branch is NOT dead to the suite - features.py:16663 drives it through the whole optimizer stack (2 differing evaluations in the gate, 106 in rolling) and still passes. That makes HALF THE FINDER'S FIX SCOPE WRONG: no golden scenario starting inside a window will catch this, because the value never reaches an asserted output",
-  "D3-03": "cheapest to close: the assertion that catches it is ALREADY WRITTEN (features.py:7770 'hotter tanks cost more per day') and merely never fed a negative price; profiles.py ships an unused summer_negative. At -0.4 the recommendation flips 48 -> 60 C and every cost_per_day goes negative",
-  "D3-05": "consequence weakened: it does NOT abort coordinator setup - _async_load_accuracy is one of twelve fire-and-forget tasks, so the ValueError kills one task and silently leaves dhw_accuracy, defrost, peaks, mode and the comfort learner unloaded every startup",
-  "D3-07": "mechanism weakened: 'no freshness check uses a future timestamp' is false - 13 differing evaluations in features.py at age = -306705 min, and it passes. Also date-dependent (the box's clock has drifted past the fixture's frozen NOW), so the count may differ on a re-take; the finding does not depend on it",
-  "D3-08": "53 solves reproduced from a different instrument; kill_rate 0/4 for each of solar_alignment, plan_view, manual_plan, validate, optimality against a positive control of 4/4 on features.py",
-  "D3-09": "validate.py executes 8 of 38 closure modules, name-for-name identical forced list; a stricter definition gives 6 of 38, so the finder's number is generous if anything",
-  "D3-10": "MOST CONSEQUENTIAL of the ten per seat 1: reproduced with an INDEPENDENT mutant (thermal_model.py:547 wood-tank standby loss x25) - three SENSITIVE fixtures moved 2111 leaves, wood_coil's baseline_cost -2.08 %, and env_drift still printed 'NO UNCLAIMED DRIFT: 55 scenario(s) checked' with rc 0. env_drift.py:1021-1027 appends to may_drift_hits and never folds it into drifted; no magnitude test exists on that path, and the committed claim file marks all five SENSITIVE fixtures may-drift in a block that by its own header never expires"
- }
+  "panel": "D3",
+  "seats": 3,
+  "votes": {
+    "D3-01": [
+      "verify(medium)",
+      "weaken(low)",
+      "incomplete (Part-1 assertion patch supports the gap; no explicit vote recorded)"
+    ],
+    "D3-02": [
+      "verify(medium), mechanism weakened",
+      "weaken(low)",
+      "incomplete (Part-1 assertion patch supports the gap; no explicit vote recorded)"
+    ],
+    "D3-03": [
+      "verify(medium)",
+      "weaken(low)",
+      "incomplete (Part-1 assertion patch supports the gap; no explicit vote recorded)"
+    ],
+    "D3-04": [
+      "verify(low)",
+      "verify(severity raised low->medium)",
+      "incomplete (Part-1 assertion patch supports the gap; no explicit vote recorded)"
+    ],
+    "D3-05": [
+      "verify(low), consequence weakened",
+      "verify(low), consequence weakened",
+      "incomplete (Part-1 assertion patch supports the gap; no explicit vote recorded)"
+    ],
+    "D3-06": [
+      "verify(low)",
+      "verify(low)",
+      "incomplete (Part-1 assertion patch supports the gap; no explicit vote recorded)"
+    ],
+    "D3-07": [
+      "verify(low), mechanism weakened",
+      "weaken(low), mechanism weakened",
+      "incomplete (Part-1 assertion patch supports the gap; no explicit vote recorded; M15 has no quiet-window gate log)"
+    ],
+    "D3-08": [
+      "verify",
+      "verify(low)",
+      "incomplete (no D3-08 section reached in verify-3.md)"
+    ],
+    "D3-09": [
+      "verify",
+      "verify(low), resource only",
+      "incomplete in prose, but contributes evidence via sampler-audit harness (executed_not_in_closure framing)"
+    ],
+    "D3-10": [
+      "verify",
+      "verify(medium)",
+      "no prose vote, but decisive fix-defect evidence: verify3_projection_clean.json shows the proposed remedy already fails on the clean baseline"
+    ]
+  },
+  "counted": {
+    "D3-01": "2-0 verify (weakened to low by seat 2 on consequence; title corrected 21->20 attributes); seat 3 report incomplete",
+    "D3-02": "2-0 verify (weakened to low by seat 2; mechanism corrected by both seats); seat 3 report incomplete",
+    "D3-03": "2-0 verify (weakened to low by seat 2 on reachability/consequence); seat 3 report incomplete",
+    "D3-04": "2-0 verify (severity RAISED low->medium by seat 2, uncontested); seat 3 report incomplete",
+    "D3-05": "2-0 verify (low; consequence wording corrected by both seats); seat 3 report incomplete",
+    "D3-06": "2-0 verify (low); seat 3 report incomplete",
+    "D3-07": "2-0 verify (low; mechanism corrected by both seats; evidence gap noted by seat 2); seat 3 report incomplete",
+    "D3-08": "2-0 verify (low; finding split by seat 2 into optimality.py [guard holds] vs validate.py [real gap]); seat 3 report incomplete",
+    "D3-09": "2-0 verify (low, resource-only; over-approximation total in one direction, seat 2 flags the proposed lazy-import fix as risk-increasing); seat 3 report incomplete in prose",
+    "D3-10": "2-0 verify (medium) + seat 3 fix-defect evidence (proposed remedy projection already fails on the unmutated baseline)"
+  },
+  "severity": {
+    "D3-01": "low",
+    "D3-02": "low",
+    "D3-03": "low",
+    "D3-04": "medium",
+    "D3-05": "low",
+    "D3-06": "low",
+    "D3-07": "low",
+    "D3-08": "low",
+    "D3-09": "low",
+    "D3-10": "medium"
+  },
+  "voided": [
+    "D3-02's stated fix-scope half, by seat 1 and seat 2: 'one golden scenario whose START lies inside a DHW window' does not discriminate -- the one fixture that already starts inside a window (dhw_schedule_off) has a window spanning the full day (00:00-24:00), so shipping and mutant agree there too (0.0 both sides). The gap survives; that half of the proposed fix is void.",
+    "D3-09's harness-header perturbation, by seat 2: as written it names pump_mode.py, which validate.py already executes, so it is inert (moves nothing). Seat 2 substituted a module genuinely in the forced list (heatpump_optimizer.narrative) and it moved executed_prod 8->9, forced_modules 30->29 -- the finding survives on the substitute, the header's own perturbation is void.",
+    "D3-10's stated perturbation, by seat 2: removing wood_coil from env_drift.SENSITIVE does not reproduce rc=0 as described (wood_coil stays claimed in tests/golden/claimed_drift.txt, so main() should return MAY-DRIFT OUT OF SCOPE and rc=1). Seat 2 substituted deleting the 'may-drift: wood_coil' comment line from claimed_drift.txt, which does flip rc 0->1 on the identical 458-leaf mutant. The finding does not depend on the finder's stated perturbation."
+  ],
+  "notes": {
+    "D3-01": "Title/count correction (both seats): 20 published attributes vanish, not 21 (the patch removes 20 keys). Seat 1: entities.py reaches the branch 4x, builds 20 attributes each time, 538 checks pass, 0 suite references to the sensor or 8 of its 11 unique keys; golden/env_drift never enters it (captures _build_data_dict(), never entity attributes). Seat 2 (weaken to low): consequence_delta 20->0 published attributes, entities.py 5 evaluations / 4 load-bearing (assertion gap, not dead code), but the sensor's *state* (what a user watches) survives the mutant untouched, the shipped card reads 0 of the 20 attributes, and env_drift is blind by construction -- so nothing a user pays for moves. FIX DEFECT: none proposed yet beyond a key-set assertion on the collected entity; both seats agree that is sufficient.",
+    "D3-02": "FIX DEFECT (both seats, load-bearing): the finder's claim 'the branch is dead to the suite' and half its proposed fix scope are WRONG. Seat 1 traced a live stack (dhw_schedule.py:433 <- optimizer.py _build_dhw_requirements <- ... <- features.py:16663) where the mutant's value differs by 12 hours and 1576 features.py checks plus 15 other scripts pass anyway (2 gate evaluations, 106 in rolling.py). The finder's proposed fix ('one golden scenario whose START lies inside a DHW window') does NOT close the gap: the one fixture that already starts inside a window (dhw_schedule_off) has a window spanning the whole day, so mutant and shipping code agree there too. The fix that actually works is the direct unit check both seats independently name: hours_until_next_window(18.0, parse_windows(...)) == 0.0, plus D3-01's attribute assertion. Seat 2 additionally shows the value is published-only (three producers feed sensor attributes; the one behavioural consumer, pump_schedule.vvc_should_run, tests hour_in_windows itself first, so the deleted branch is unreachable from any decision path) -- hence weaken to low.",
+    "D3-03": "Seat 1: the missing assertion is ALREADY WRITTEN (features.py:7770, 'hotter tanks cost more per day') and merely never fed a non-positive mean price; tests/profiles.py ships an unused summer_negative profile. FIX SCOPE CORRECTED: the cheap fix is a fixture addition (feed the sweep a non-positive-price profile), not a new check. Seat 2 (weaken to low): the flip (50 C -> 60 C recommendation, all 7 cost_per_day entries go negative) happens on exactly 1 of 3 price levels tested and the gate evaluates the site 11 times without ever reaching it; the advisor is read-only (never writes a setpoint), so the harm needs a user to act on a one-day artefact -- real and cheap to close, but advisory-only, hence low not medium.",
+    "D3-04": "Seat 2 RAISES severity (low -> medium, uncontested by seat 1): a config-flow text field (the only validator on it) accepts nan/inf/-inf after the mutant, GridFeeSchedule.from_config then yields 24 of 24 non-finite fee-vector entries, the coordinator's implausible-fee audit is blind (worst=0.0, abs(nan)>worst is False), and on a 96-step plan with one NaN price the solver status flips to 'failed (no usable starting point)' while commanded power over the horizon rises 138.54 -> 202.87 (+46.5%) with ZERO non-finite values in the published schedule (so the sensor scrub never sees it either). This is the only D3-01..07 finding where a mutant silently changes a plan, and reachability is the highest of the seven (a legal config-flow string, no corrupt store, no rare market). Seat 1's fix (two more `not is_valid_spec(...)` checks) stands.",
+    "D3-05": "FIX DEFECT / consequence correction (both seats, independently traced the same call chain): the title's claim that a corrupt lead_sigma key 'would abort coordinator setup' is FALSE. coordinator.py:7230 _async_load_accuracy wraps only `await self._accuracy_store.async_load()` in its try/except; AccuracyTracker.from_dict sits OUTSIDE it, and the coroutine is one of twelve fire-and-forget self._spawn(load()) background tasks (coordinator.py:672-690). An unhandled ValueError there kills that one task silently -- it does not abort setup. The real, corrected consequence: dhw_accuracy, defrost derate, peak tracker, stored mode and the comfort learner (five further learners sharing the same launch method) stay at constructor defaults on every restart, with only a task-exception log nobody reads. Fix should target from_dict's key handling AND/OR the fire-and-forget task's error handling, not an 'abort setup' framing.",
+    "D3-06": "Seat 2 traces the consequence further than the finder: nothing catches the ValueError between _parse_block and the coordinator's outer handler (async_refresh's own docstring promises 'Never raises' and does not honor it), so the whole coordinator cycle fails and every entity goes unavailable until the upstream API recovers. That is LOUD failure, not silent -- seat 2 uses this to argue low is still correct (the failure mode this seat weighs heaviest is silent plan corruption, and this is the opposite), not that the finding is wrong.",
+    "D3-07": "FIX DEFECT (both seats): the stated mechanism 'No freshness check uses a future timestamp' is FALSE. features.py already computes a negative age 13 times (of 4642) via FakeState fixtures built without an explicit last_updated (so they carry the real wall clock while the reader's _utcnow() is frozen in the past) and the gate passes because nothing asserts on the resulting value -- an assertion gap, not the coverage gap the finder describes. Both seats flag the 13 as a CALENDAR ARTEFACT, not a stable number: it exists only because the box's clock has drifted past the fixture's frozen NOW (2026-02-01), and a judge re-taking this on a different date, or on a machine before that date, may see 0. Seat 2 additionally flags an evidence gap: M15 is the only one of the seven mutants with NO quiet-window full-gate log (excluded from the 'top six'), so unlike the other six it has never faced stress.py/edge.py/backtest.py.",
+    "D3-08": "Seat 1 reproduces 53 optimize() calls across the six scripts from an independent instrument (sys.setprofile vs the finder's), and runs a positive control (4 mutants features.py demonstrably kills) against the five no-kill Python scripts: kill_rate(features.py)=4/4, kill_rate=0/4 on each of solar_alignment/plan_view/manual_plan/validate/optimality -- 0 kills in 20 script-runs. FIX DEFECT (seat 2 splits the finding): of the seven mutated sites, the four solver scripts (validate/manual_plan/optimality/plan_view) each execute only the M19 site with 0 load-bearing evaluations, so 'killed none of 30' is mostly arithmetic (they never run the other six mutants' code) -- not itself a defect. But a POSITIVE control aimed at what these scripts are FOR (optimizer.py maxiter 200->1, crippling solve quality, not a guard deletion) shows optimality.py DOES catch it (rc=1, FAIL, -21.3% gap) -- the finder's own defence ('they guard solver quality') holds for optimality.py. validate.py does NOT: with the same crippled solver, 2 of its 21 scenarios cost +40.9% and +177.0% more and it still prints 'NO ISSUES' and exits 0. The real resource/coverage gap concentrates in validate.py, not uniformly across all six scripts as the finder's fix scope implies.",
+    "D3-09": "Both seats reproduce the finder's headline (validate.py 8/38 closure modules executed, forced list name-identical) from independent instruments. Seat 1's stricter run-time definition (import-time execution excluded) gives an even lower 6/38 for validate.py, so the finder's number is if anything generous. FIX DEFECT (seat 2, decisive): `executed_not_in_closure = 0` on 7 of 7 scripts measured -- the closure over-approximates in ONE direction only and never under-approximates, so this is CI seconds, not a gate hole; a regression cannot walk through it today. And THE PROPOSED FIX MOVES RISK IN: making the package import lazy (so closures shrink to what actually runs) would replace a guaranteed over-approximation with a RECORDED one, and a closure recorded from a run that did not take the lazy-import code path is exactly the under-approximation the current design structurally cannot produce. Register as hygiene; do not adopt the lazy-import fix without re-deriving and re-checking every closure.",
+    "D3-10": "MOST CONSEQUENTIAL finding in the set per seat 1. Both seat 1 (own independent mutant, thermal_model.py:547 wood-tank standby loss x25) and seat 2 (finder's own M01) reproduce rc=0 ('NO UNCLAIMED DRIFT') with the SENSITIVE wood_coil fixture moving materially (seat 1: 2111 leaves across 3 fixtures, baseline_cost -2.08%/-2.20%; seat 2: 458 leaves, baseline_cost 156.16->677.82 SEK, x4.34). Mechanism confirmed in source: env_drift.py:1021-1027 appends a may-drift hit and never folds it into `drifted`; only `drifted or stale` returns 1. All five SENSITIVE fixtures are committed may-drift in tests/golden/claimed_drift.txt under a block whose own header says it 'does not expire with the stamp' -- a standing condition, not a stale claim. FIX DEFECTS (three, load-bearing for whoever fixes this): (1) the finder's STATED PERTURBATION (remove wood_coil from SENSITIVE) does not reproduce as described -- wood_coil stays claimed in claimed_drift.txt, so main() should return 'MAY-DRIFT OUT OF SCOPE' and rc=1, not the rc=0 the finding reports; seat 2's substitute (delete the 'may-drift: wood_coil' comment line) is what actually flips rc 0->1 on the identical mutant. (2) Seat 3's harness (verify3_sensitive_projection.py / verify3_projection_clean.json) shows the finder's PROPOSED REMEDY -- judge SENSITIVE fixtures on a coarse 5%-relative-tolerance BLAS-stable projection of baseline_cost/predicted_cost/compressor_starts -- ALREADY FAILS on the clean, unmutated baseline: projection_fails=1 of 5 (wood_coil), worst_rel_gap=0.142 (14.2%) against the proposed 5% tolerance, purely from machine-to-machine BLAS variance. The proposed tolerance is too tight to ship as-is; it would false-positive on an unmodified tree. (3) Seat 2 corrects the finder's description of M01 itself: it is an operator-precedence scramble (`draw_kw * max(0.0, dhw_setpoint - t_in) / span` -> `draw_kw * dhw_setpoint - t_in / span`), not merely 'the max(0,...) clamp deleted' -- which is why one fixture moves 4.34x rather than a little. Seat 2 also narrows the blind spot honestly: 3 of the 5 SENSITIVE fixtures share every scenario switch with a judged scenario, so the true escape route is about two config switches wide (dhw_wood_coil_enabled + one topology switch), not all five fixtures independently."
+  },
+  "reports": [
+    "D3/verify-1.md",
+    "D3/verify-2.md",
+    "D3/verify-3.md"
+  ],
+  "contention": "No decisive number in this panel is timing/CPU/RSS. Every number is a call count, boolean, exit code, leaf count or ratio of counts -- both seat 1 (thread_factor=1.000, load1 1.64->3.49) and seat 2 (thread_factor=1.0, load1 2.5-56 across a fan-out) state explicitly that contention cannot move any of their verdicts. Seat 3's numbers (projection_fails, rel gaps, optimize_calls) are the same class. Nothing here should be recorded unresolved on a load ground."
 }
