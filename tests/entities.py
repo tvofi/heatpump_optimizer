@@ -5579,6 +5579,52 @@ R.check(
     "neither is an inherited list",
 )
 
+# The other end of the same rule (v6.3.3). The inherited-claims check fires
+# on whoever forks a main that was stamped with claims still in the file --
+# the wrong person, one commit too late. This one fires on the stamp itself:
+# a tree whose VERSION is strictly ahead of the baseline's is the release
+# commit, a release moves no fixture, so its claim list must be empty. main
+# went red exactly this way after v6.3.2, and the branch that paid for it was
+# a one-line import hotfix.
+R.check(
+    "a stamp that leaves claims behind is refused",
+    (_env_drift.stamp_claims_error(
+        {"wood_coil": "moved by the release being closed"}, "6.3.3", "6.3.2",
+    ) or "").startswith("STAMPED WITH CLAIMS"),
+    "env_drift accepted a version bump that still claimed a fixture",
+)
+R.check(
+    "the stamped-with-claims message names both versions and the fixture",
+    all(part in (_env_drift.stamp_claims_error(
+        {"wood_coil": "r"}, "6.3.3", "6.3.2") or "")
+        for part in ("6.3.2", "6.3.3", "wood_coil")),
+    "the message must say which release it is closing and what it still claims",
+)
+R.check(
+    "a stamp claiming nothing is accepted",
+    _env_drift.stamp_claims_error({}, "6.3.3", "6.3.2") is None,
+    "an empty claim list is the right answer for a release that moves nothing",
+)
+# A branch cut before a stamp is compared against a main that has since
+# stamped: its VERSION is BEHIND the baseline's, and its claims describe its
+# own diff. Firing there would refuse honest work, and every branch open
+# across a release would hit it.
+R.check(
+    "a branch behind the baseline's version may still claim its own drift",
+    _env_drift.stamp_claims_error({"wood_coil": "r"}, "6.3.2", "6.3.3") is None
+    and _env_drift.stamp_claims_error({"wood_coil": "r"}, "6.3.2", "6.3.2")
+    is None,
+    "only a tree strictly ahead of the baseline is the one doing the stamping",
+)
+# Non-version strings reach this from a tree mid-edit; the malformed-VERSION
+# rule owns that complaint, and two errors for one mistake help nobody.
+R.check(
+    "a malformed version is left to the rule that owns it",
+    _env_drift.stamp_claims_error({"wood_coil": "r"}, "next", "6.3.2") is None
+    and _env_drift.stamp_claims_error({"wood_coil": "r"}, "6.3.3", "") is None,
+    "stamp_claims_error must not duplicate the MALFORMED VERSION complaint",
+)
+
 # The may-drift category (v5.1.7). A claim asserts "this release moved this
 # fixture", which is a statement about the diff. For the five fixtures the
 # gate itself declares non-reproducible it is a statement about the runner

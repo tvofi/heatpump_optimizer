@@ -770,6 +770,53 @@ def claim_version_error(repo: str) -> str | None:
     )
 
 
+def stamp_claims_error(
+    claims: dict[str, str], version: str, baseline_version: str
+) -> str | None:
+    """Why a release commit still carries claims — None when it does not.
+
+    A claim describes exactly one diff. A stamp moves no fixture: it bumps
+    VERSION, writes the release notes and re-stamps the claim files, so the
+    list it leaves behind belongs to the release just closed and describes a
+    diff that is now history. Left in place it becomes every later branch's
+    inherited list, and the first branch cut from that main fails
+    ``inherited_claims_error`` for a mistake it did not make. That is not
+    hypothetical: it is how main went red after v6.3.2, and the branch that
+    tripped over it was a one-line import hotfix.
+
+    ``tools/release/stamp.py`` empties the list already. This rule is what
+    makes that non-optional, and it fails on the stamp's OWN gate rather
+    than on the next contributor's, which is the whole point.
+
+    Fires only when this tree's VERSION is strictly ahead of the baseline's,
+    which is what identifies the tree doing the stamping. A branch cut
+    before a stamp and compared against a main that has since stamped has a
+    version BEHIND the baseline, and may claim whatever its diff earns.
+    """
+    if not claims:
+        return None
+    if not (_looks_like_version(version) and _looks_like_version(baseline_version)):
+        return None
+    mine = tuple(int(part) for part in version.split("."))
+    theirs = tuple(int(part) for part in baseline_version.split("."))
+    if mine <= theirs:
+        return None
+    names = ", ".join(sorted(claims))
+    return (
+        f"STAMPED WITH CLAIMS: {VERSION_FILE} moves {baseline_version} ->\n"
+        f"{version}, so this tree is a release stamp, and a stamp moves no\n"
+        f"fixture. {CLAIM_FILE} still claims {names}.\n"
+        "\n"
+        "Those claims describe the diff of the release being closed, not this\n"
+        "commit. Leaving them makes them the next branch's inherited list and\n"
+        "turns main red for whoever forks it next.\n"
+        "\n"
+        f"Empty the claim list (keep the '# {CLAIM_VERSION_MARKER}' line at\n"
+        f"{version} and any '# may-drift:' lines). tools/release/stamp.py does\n"
+        "this for you, and stamping by hand is what this check exists to catch."
+    )
+
+
 def inherited_claims_error(
     claims: dict[str, str], baseline_claims: dict[str, str], ref: str
 ) -> str | None:
@@ -934,6 +981,12 @@ def main() -> int:
             inherited = inherited_claims_error(claims, baseline_claims, ref)
             if inherited:
                 print(inherited)
+                return 1
+            stamped = stamp_claims_error(
+                claims, _repo_version(repo), _repo_version(worktree)
+            )
+            if stamped:
+                print(stamped)
                 return 1
 
         outputs = {}
