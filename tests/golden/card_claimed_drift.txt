@@ -19,14 +19,8 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 6.2.16
+# claims-for: 6.2.17
 #
-# Tests-only branch (stress budgets): no card code touched, every
-# state is byte-identical, and the inherited states below were the
-# baseline's own diff -- emptied per rule 2.
-#
-# #137 and #142: lifecycle cleanups (a card removed mid-gesture takes its
-# window handlers, its auto-pan interval and its pending frame with it) and
-# the lane geometry forgotten on a no-data render. No markup moves; the list
-# is empty.
+# v6.2.17: the config-flow validation and entity-hygiene release. The stamp empties the list; the
+# next branch restates its own footprint, claims included.
 #

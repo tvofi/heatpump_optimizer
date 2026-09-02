@@ -43,16 +43,11 @@
 # does not expire with the stamp and is not part of the inherited-claims
 # comparison.
 #
-# claims-for: 6.2.16
+# claims-for: 6.2.17
 #
-# Audit round 1, fix group B3 (#168-#172): config-flow validation, currency
-# and the services example. The only fixture that moves is the config-flow
-# fingerprint, in two directions at once and in no plan value: the three
-# money fields gain a `unit_of_measurement` in the instance currency
-# (#168), and both day sliders widen on both flows (#170). No solver,
-# sensor or store path is touched, so no coord_* or plan scenario moves.
+# v6.2.17: the config-flow validation and entity-hygiene release. The stamp empties the list; the
+# next branch restates its own footprint, claims included.
 #
-config_flow  # #168: grid_fee_fixed, contract_fixed_price, compressor_replacement_cost gain a currency unit; #170: day_start_hour 0-12 -> 0-23, day_end_hour 18-23 -> 1-24, on the setup temperature page and the options comfort page
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum

@@ -1,5 +1,77 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.2.17
+
+### The config flow validates what it asks for, and money fields say which currency
+
+Audit round-1 fix group B3 (#206; closes #168, #169, #170, #171, #172). Five
+defects the round-1 panel verified in the options and setup flows, each with
+an executed before/after from `tools/audit/round1/B3/harness.py`:
+
+- **Money fields follow the instance currency.** The grid-fee, contract and
+  compressor-cost fields carried a hardcoded "SEK", as did two Repairs
+  notices; they now take the unit from `hass.config.currency` (SEK stays the
+  fallback for an unconfigured instance). Hardcoded strings on an EUR
+  instance: 7 → 0; fields following the instance currency: 0 → 3 of 3.
+- **Grid-fee rules refuse a sign-flipped or implausible rate at the form.**
+  A negative rate (a typo that became a permanent subsidy) or one above the
+  plausible bound is rejected with its own error; stored specs keep loading,
+  with a warn-only Repairs notice for a negative fee already on disk.
+  Negative rule accepted: 1 → 0; implausible accepted: 1 → 0; a valid rule
+  still accepted (null control): 1 → 1.
+- **The day-window sliders no longer forbid valid schedules.** `day_start_hour`
+  ran 0–12 and `day_end_hour` 18–23, so 222 of 300 valid start/end pairs could
+  not be entered on either flow and the real validator behind them was never
+  reached. Both sliders now span the day, and an empty window is the only new
+  rejection: forbidden valid pairs 222 → 0 on both flows.
+- **Hot-water windows shorter than one planning step are refused.** A
+  one-minute window was accepted on both DHW pages and bound nothing; windows
+  under 15 minutes are now rejected, judged per segment and across midnight.
+  One-minute windows accepted: 2 → 0 pages; valid windows: 2 → 2.
+- **Every documented service example passes its own schema.** The
+  `apply_manual_plan` examples were YAML-folded strings that the service's
+  `vol.Any(None, [dict])` rejected; they are structured lists now, and every
+  example in `services.yaml` is fed to its registered schema by the suite.
+  Failing services: 1 → 0.
+
+Mutation-proven: 6/3/7/4/3 named checks fail in `tests/entities.py` when each
+fix's production lines are deleted, and 14 in `tests/features.py` for the
+combined mutant. The `config_flow` golden moves (9 leaves: the three currency
+units and the widened sliders) and was claimed by the measurer; no plan
+fixture moves. Adversarially reviewed with the finder's harness at both ends
+and attacked at 676 slider pairs, every start minute of a wrapping window,
+and all 35 service examples.
+
+### Entities publish plain types, group by family, and say why they wait
+
+Audit round-1 fix group B4 (#205; closes #173, #174, #175, #176, #177, #178,
+#179). Executed before/after from `tools/audit/round1/B4/entity_hygiene.py`
+across the five coordinator captures:
+
+- The schedule sensor published `numpy.float64` in its `solar_gain`
+  attributes; the base-class scrub now unwraps numpy scalars and arrays before
+  the finiteness test. numpy leaves: 100 → 0.
+- The hot-water family lived under three entity-id prefixes; it is one now.
+  **Breaking for new installs and for anyone matching friendly names:**
+  `hot_water_energy` → `dhw_energy`, `hot_water_cost` → `dhw_cost`,
+  `mixed_hot_water` → `dhw_mixed_water` (translation keys and display names;
+  unique ids are unchanged, so existing installs keep their entity ids and
+  history through the registry). DHW prefixes: 3 → 1.
+- The four headline sensors share one category (the plan narrative and the
+  optimization score leave Diagnostic); the machinery sensors (status,
+  next/last optimization, schedule, predictive insight, both ECL110 sensors)
+  are Diagnostic. Diagnostic sensors: 10 → 15; disabled-by-default sensors
+  without a category: 2 → 0.
+- The prediction-accuracy sensor is unavailable, with `waiting_for`, until an
+  interval has been scored, like its siblings.
+- Five dead symbols deleted; the four `CONF_*` keys read through `getattr` are
+  untouched.
+
+Mutation-proven by seven single mutants and one combined mutant against
+`tests/entities.py` (23 new checks); no golden moves; adversarially reviewed
+against every entity in every topology (550 sensor reads, 0 numpy or
+non-finite leaves, 0 JSON failures).
+
 ## v6.2.16
 
 ### Every stress scenario gets its own budget, and the gate sees memory
