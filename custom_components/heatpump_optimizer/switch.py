@@ -12,12 +12,11 @@ from typing import Any
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import MODE_AUTO, MODE_OFF
 from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
+from .entity import HeatPumpOptimizerEntity
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -37,10 +36,9 @@ async def async_setup_entry(
     async_add_entities([OptimizerEnableSwitch(coordinator, entry)])
 
 
-class OptimizerEnableSwitch(CoordinatorEntity, SwitchEntity):
+class OptimizerEnableSwitch(HeatPumpOptimizerEntity, SwitchEntity):
     """Switch to enable/disable the optimizer."""
 
-    _attr_has_entity_name = True
     _attr_translation_key = "optimizer_active"
     def __init__(
         self,
@@ -54,11 +52,6 @@ class OptimizerEnableSwitch(CoordinatorEntity, SwitchEntity):
         # Pin today's English object id for new installs (the integration
         # suggested-object-id mechanism); see the sensor base class.
         self.entity_id = "switch.heat_pump_optimizer_optimizer_active"
-
-    @property
-    def device_info(self) -> DeviceInfo:
-        """Return device info."""
-        return self.coordinator.device_info
 
     @property
     def is_on(self) -> bool:

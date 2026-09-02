@@ -16,11 +16,10 @@ import logging
 from homeassistant.components.button import ButtonEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
+from .entity import HeatPumpOptimizerEntity
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -47,10 +46,8 @@ async def async_setup_entry(
     )
 
 
-class _OptimizerButtonBase(CoordinatorEntity, ButtonEntity):
+class _OptimizerButtonBase(HeatPumpOptimizerEntity, ButtonEntity):
     """Shared plumbing so the buttons land on the existing device."""
-
-    _attr_has_entity_name = True
 
     def __init__(
         self,
@@ -67,11 +64,6 @@ class _OptimizerButtonBase(CoordinatorEntity, ButtonEntity):
         # Pin today's English object id for new installs (the integration
         # suggested-object-id mechanism); see the sensor base class.
         self.entity_id = f"button.heat_pump_optimizer_{translation_key}"
-
-    @property
-    def device_info(self) -> DeviceInfo:
-        """Return device info."""
-        return self.coordinator.device_info
 
 
 class ForceOptimizationButton(_OptimizerButtonBase):

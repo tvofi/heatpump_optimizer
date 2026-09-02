@@ -22,12 +22,12 @@ from homeassistant.const import (
     PERCENTAGE,
 )
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity import DeviceInfo, EntityCategory
+from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DHW_MIN_TEMP_SETPOINT_MARGIN, MANUAL_PLAN_WINDOW_HOURS
 from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
+from .entity import HeatPumpOptimizerEntity
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -178,7 +178,7 @@ async def async_setup_entry(
     async_add_entities(entities)
 
 
-class HeatPumpOptimizerSensorBase(CoordinatorEntity, SensorEntity):
+class HeatPumpOptimizerSensorBase(HeatPumpOptimizerEntity, SensorEntity):
     """Base class for Heat Pump Optimizer sensors.
 
     Display names come from the translation files (``strings.json`` /
@@ -186,8 +186,6 @@ class HeatPumpOptimizerSensorBase(CoordinatorEntity, SensorEntity):
     Home Assistant language while ``unique_id`` — and therefore history and
     statistics — never moves.
     """
-
-    _attr_has_entity_name = True
 
     #: The two properties Home Assistant reads to build a state write. Every
     #: number this integration publishes leaves through one of them, which is
@@ -236,11 +234,6 @@ class HeatPumpOptimizerSensorBase(CoordinatorEntity, SensorEntity):
         self.entity_id = f"sensor.heat_pump_optimizer_{translation_key}"
         self._entry = entry
         self._key = key
-
-    @property
-    def device_info(self) -> DeviceInfo:
-        """Return device info."""
-        return self.coordinator.device_info
 
 
 class _MeasuredTemperatureMixin:
