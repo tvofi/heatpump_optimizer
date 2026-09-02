@@ -323,10 +323,10 @@ for name in (
     "Measured Power",
     "Observed COP",
     "Space Heating Energy (lifetime)",
-    "Hot Water Energy (lifetime)",
+    "DHW Energy (lifetime)",
     "Total Energy (lifetime)",
     "Space Heating Cost (lifetime)",
-    "Hot Water Cost (lifetime)",
+    "DHW Cost (lifetime)",
     "Total Heating Cost (lifetime)",
     "Prediction Accuracy",
     "Monthly Peak Power",
@@ -353,7 +353,7 @@ R.check("observed COP is published", by_name["Observed COP"].native_value == 3.1
 # silently keep every one of these out of it, with no error anywhere.
 for name in (
     "Space Heating Energy (lifetime)",
-    "Hot Water Energy (lifetime)",
+    "DHW Energy (lifetime)",
     "Total Energy (lifetime)",
 ):
     R.check(
@@ -365,7 +365,7 @@ for name in (
 # TOTAL_INCREASING here (as previously pinned) made HA reject the statistics.
 for name in (
     "Space Heating Cost (lifetime)",
-    "Hot Water Cost (lifetime)",
+    "DHW Cost (lifetime)",
     "Total Heating Cost (lifetime)",
 ):
     R.check(
@@ -383,7 +383,7 @@ R.check(
     "the energy split reconciles with the total",
     abs(
         by_name["Space Heating Energy (lifetime)"].native_value
-        + by_name["Hot Water Energy (lifetime)"].native_value
+        + by_name["DHW Energy (lifetime)"].native_value
         - by_name["Total Energy (lifetime)"].native_value
     )
     < 1e-6,
@@ -392,7 +392,7 @@ R.check(
 # period reads as "very high", and the plan sensors' horizon numbers read
 # as the same figure with a different magnitude. Both now say what they
 # are, in the name and in the attributes.
-_hwc = by_name["Hot Water Cost (lifetime)"].extra_state_attributes
+_hwc = by_name["DHW Cost (lifetime)"].extra_state_attributes
 R.check(
     "the accumulators state their period in words",
     "never reset" in _hwc["period"] and "whole history" in _hwc["period"],
@@ -469,8 +469,8 @@ R.check(
 )
 R.check(
     "the tank is translated into shower terms",
-    by_name["Mixed Hot Water"].native_value == 450.0
-    and by_name["Mixed Hot Water"].extra_state_attributes["shower_minutes"]
+    by_name["DHW Mixed Water"].native_value == 450.0
+    and by_name["DHW Mixed Water"].extra_state_attributes["shower_minutes"]
     == 56.3,
 )
 R.check(
@@ -1203,7 +1203,7 @@ R.section("Device classes on the three that were bare")
 
 for _display, _expected in (
     ("DHW Setpoint Advisor", "temperature"),
-    ("Mixed Hot Water", "volume_storage"),
+    ("DHW Mixed Water", "volume_storage"),
     ("Thermal Battery Energy", "energy_storage"),
 ):
     R.check(
@@ -3220,6 +3220,254 @@ R.check(
 
 
 # ===========================================================================
+# Entity organisation and typing hygiene (audit round 1, group B4)
+# ===========================================================================
+R.section("Entity organisation and typing hygiene (audit B4)")
+
+import numpy as _np
+
+from homeassistant.helpers.entity import EntityCategory
+
+# --- D8-01 (#173): a numpy scalar never leaves a sensor --------------------
+#
+# The coordinator hands the entities whatever the optimizer produced, and the
+# solar-gain trajectory is a list of ``numpy.float64``. ``np.float64`` is a
+# float *subclass*, so a scrub that tests ``isinstance(value, float)`` first
+# waves it through untouched. The published boundary has to hand Home
+# Assistant plain Python whatever it was given, so every numeric leaf of DATA
+# is replaced by its numpy twin here and every sensor is read back through
+# the real setup.
+
+
+def _numpy_leaves(value) -> int:
+    """How many leaves of a published value are numpy objects."""
+    if isinstance(value, (_np.generic, _np.ndarray)):
+        return 1
+    if isinstance(value, dict):
+        return sum(_numpy_leaves(v) for v in value.values())
+    if isinstance(value, (list, tuple)):
+        return sum(_numpy_leaves(v) for v in value)
+    return 0
+
+
+def _numpy_twin(value):
+    """The same payload with every int and float leaf as a numpy scalar."""
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, int):
+        return _np.int64(value)
+    if isinstance(value, float):
+        return _np.float64(value)
+    if isinstance(value, dict):
+        return {k: _numpy_twin(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_numpy_twin(v) for v in value]
+    return value
+
+
+_np_data = _numpy_twin(DATA)
+_np_data["schedule"] = [
+    {
+        "time": "2026-01-15T00:00:00",
+        "power": _np.float64(1.5),
+        "setpoint": _np.float32(21.0),
+        "price": _np.float64(0.9),
+        "solar_gain": _np.float64(0.25),
+        "heat_pump_on": _np.bool_(True),
+    }
+]
+# The real model and parameters ride along: Estimated COP and Solar Heat
+# Gain read them off the coordinator, and every sensor is swept here.
+_np_coordinator = FakeCoordinator(
+    _np_data,
+    _thermal_model=_blind_coord._thermal_model,
+    _thermal_params=_blind_coord._thermal_params,
+    _month_totals={"dhw": (41.5, 62.25), "space": (120.0, 180.0)},
+)
+_np_leaks = sorted(
+    s._key
+    for s in collect(sensor, coordinator=_np_coordinator)
+    if _numpy_leaves(s.native_value)
+    or _numpy_leaves(getattr(s, "extra_state_attributes", None))
+)
+R.check(
+    "no numpy scalar leaves any sensor's state or attributes (#173)",
+    not _np_leaks,
+    ", ".join(_np_leaks),
+)
+_np_step = sensor.ScheduleSensor(FakeCoordinator(_np_data), ENTRY).extra_state_attributes[
+    "schedule"
+][0]
+R.check(
+    "the schedule's solar gain is published as a plain float",
+    type(_np_step["solar_gain"]) is float and _np_step["solar_gain"] == 0.25,
+    repr(type(_np_step["solar_gain"])),
+)
+R.check(
+    "np.float64, a float subclass, is converted rather than waved through",
+    type(_np_step["power"]) is float,
+    repr(type(_np_step["power"])),
+)
+R.check(
+    "np.bool_ becomes a plain bool",
+    type(_np_step["heat_pump_on"]) is bool,
+    repr(type(_np_step["heat_pump_on"])),
+)
+
+# --- D8-03 (#174): one object-id prefix for the hot-water domain -----------
+#
+# Membership comes from production, not from a list here: every hot-water
+# sensor's unique-id key already starts with ``dhw``; the suggested object
+# ids did not. Three moved (hot_water_energy, hot_water_cost, mixed_hot_water)
+# for NEW installs only -- the unique ids are untouched, so an existing
+# install keeps its entity ids and its history through the registry.
+_dhw_keyed = [s for s in sensors if s._key.startswith("dhw")]
+R.check(
+    "the hot-water domain is the nine dhw-keyed sensors",
+    len(_dhw_keyed) == 9,
+    str(sorted(s._key for s in _dhw_keyed)),
+)
+_dhw_stray = sorted(
+    f"{s._key}->{s.entity_id}"
+    for s in _dhw_keyed
+    if not s.entity_id.startswith("sensor.heat_pump_optimizer_dhw_")
+)
+R.check(
+    "every hot-water sensor suggests a dhw_ object id (#174)",
+    not _dhw_stray,
+    ", ".join(_dhw_stray),
+)
+for _display, _new_id, _uid in (
+    ("DHW Energy (lifetime)", "sensor.heat_pump_optimizer_dhw_energy", "dhw_energy"),
+    ("DHW Cost (lifetime)", "sensor.heat_pump_optimizer_dhw_cost", "dhw_cost_total"),
+    ("DHW Mixed Water", "sensor.heat_pump_optimizer_dhw_mixed_water", "dhw_mixed_water"),
+):
+    _moved = by_name.get(_display)
+    R.check(
+        f"{_display} suggests {_new_id} on new installs",
+        _moved is not None and _moved.entity_id == _new_id,
+        str(getattr(_moved, "entity_id", None)),
+    )
+    R.check(
+        f"{_display} keeps unique id ..._{_uid}, so existing installs keep their entity id",
+        _moved is not None and _moved._attr_unique_id == f"{ENTRY.entry_id}_{_uid}",
+        str(getattr(_moved, "_attr_unique_id", None)),
+    )
+
+# --- D8-04 (#175): the headline family shares one category -----------------
+_stat_family = {
+    s._key: getattr(s, "_attr_entity_category", None)
+    for s in sensors
+    if (getattr(s, "extra_state_attributes", None) or {}).get("stat_kind")
+}
+R.check(
+    "the stat_kind headline family is four sensors",
+    len(_stat_family) == 4,
+    str(sorted(_stat_family)),
+)
+R.check(
+    "the stat_kind family shares one entity_category (#175)",
+    len(set(_stat_family.values())) == 1,
+    str(_stat_family),
+)
+R.check(
+    "and that category is primary, not Diagnostic: the card's headline is the product",
+    set(_stat_family.values()) == {None},
+    str(_stat_family),
+)
+
+# --- D8-05 (#176): prediction accuracy waits for evidence like its siblings -
+_unscored = sensor.PredictionAccuracySensor(
+    FakeCoordinator(
+        {
+            **DATA,
+            "accuracy": {
+                "samples": 0,
+                "temperature_mae": None,
+                "temperature_bias": None,
+                "trust": 0.0,
+            },
+        }
+    ),
+    ENTRY,
+)
+R.check(
+    "prediction accuracy is unavailable until an interval has been scored (#176)",
+    not _unscored.available,
+)
+R.check(
+    "and names what it is waiting for",
+    _unscored.extra_state_attributes.get("waiting_for") == "first_scored_interval",
+    repr(_unscored.extra_state_attributes.get("waiting_for")),
+)
+R.check(
+    "a real fresh coordinator's accuracy sensor is unavailable, not Unknown",
+    not sensor.PredictionAccuracySensor(_blind_fake, ENTRY).available,
+)
+_scored = by_name["Prediction Accuracy"]
+R.check(
+    "with a scored interval it is available and waits for nothing",
+    _scored.available
+    and _scored.extra_state_attributes.get("waiting_for") is None
+    and _scored.native_value == 0.3,
+)
+
+# --- D8-06 (#177) and D4-10 (#179): the Diagnostic roster, pinned ----------
+#
+# Diagnostic is for the integration's own machinery -- solver status, the
+# cycle timestamps, the raw solve dump, the forecast-analysis factors,
+# learned parameters and opt-in hardware advisories -- not for a quantity
+# about the house, the money or the plan. Pinned literally, like the
+# disabled roster above, so a sensor cannot drift between the two halves of
+# the device page unnoticed.
+_expected_diagnostic = {
+    "optimization_status",
+    "next_optimization",
+    "last_optimization",
+    "schedule",
+    "predictive_insight",
+    "ecl110_displace",
+    "ecl110_effective_displace",
+    "prediction_accuracy",
+    "comfort_weight",
+    "contract_comparison",
+    "dhw_setpoint_advisor",
+    "dhw_heavy_day",
+    "valve_target_recommendation",
+    "compressor_starts",
+    "frequency_advisor",
+}
+_actually_diagnostic = {
+    s._key
+    for s in sensors
+    if getattr(s, "_attr_entity_category", None) == EntityCategory.DIAGNOSTIC
+}
+R.check(
+    "exactly the machinery sensors are Diagnostic (#177, #179)",
+    _actually_diagnostic == _expected_diagnostic,
+    f"unexpected {sorted(_actually_diagnostic ^ _expected_diagnostic)}",
+)
+R.check(
+    "every disabled-by-default sensor is Diagnostic (#177)",
+    _actually_disabled <= _actually_diagnostic,
+    f"not diagnostic: {sorted(_actually_disabled - _actually_diagnostic)}",
+)
+
+# --- D7-06 (#178): the five dead symbols stay deleted ----------------------
+for _module, _name in (
+    (config_flow, "_translated_text"),
+    (const, "ATTR_DHW_COOLING_RATE"),
+    (const, "ATTR_BUFFER_COOLING_RATE"),
+    (presets, "_floor_heated_area"),
+    (topology, "_CONDITIONAL_PLACES"),
+):
+    R.check(
+        f"{_module.__name__.rsplit('.', 1)[-1]}.{_name} stays deleted (#178)",
+        not hasattr(_module, _name),
+    )
+
+
+# ===========================================================================
 # Breaking naming release (v5.0.0)
 # ===========================================================================
 R.section("Naming, translation keys and id stability (v5.0.0)")
@@ -3319,7 +3567,10 @@ for _display, _expected_id in (
     ("Plan Narrative", "sensor.heat_pump_optimizer_plan_narrative"),
     ("Optimal Setpoint", "sensor.heat_pump_optimizer_optimal_setpoint"),
     ("Recommended Power", "sensor.heat_pump_optimizer_recommended_power"),
-    ("Hot Water Cost (lifetime)", "sensor.heat_pump_optimizer_hot_water_cost"),
+    # #174 moved this one deliberately (hot_water_cost -> dhw_cost, new
+    # installs only); the B4 section above pins the old->new pair and the
+    # unchanged unique id.
+    ("DHW Cost (lifetime)", "sensor.heat_pump_optimizer_dhw_cost"),
 ):
     R.check(
         f"{_display} keeps its v4.x entity id on new installs",
@@ -3466,7 +3717,7 @@ for name in ("Predicted Savings", "Predicted Cost", "Baseline Cost", "DHW Heatin
 
 R.check(
     "the mixed hot water sensor uses the volume unit constant",
-    by_name["Mixed Hot Water"]._attr_native_unit_of_measurement == "L",
+    by_name["DHW Mixed Water"]._attr_native_unit_of_measurement == "L",
 )
 _missing_precision = sorted(
     s._key

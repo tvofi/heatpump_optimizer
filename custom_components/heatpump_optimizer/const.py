@@ -1110,10 +1110,6 @@ SERVICE_RUN_OPTIMIZATION: Final = "run_optimization"
 SERVICE_SET_MODE: Final = "set_mode"
 SERVICE_SET_THERMAL_PARAMS: Final = "set_thermal_parameters"
 
-# Attributes
-ATTR_DHW_COOLING_RATE: Final = "dhw_cooling_rate"
-ATTR_BUFFER_COOLING_RATE: Final = "buffer_cooling_rate"
-
 # The buffer tank key is defined after the staleness table above, so its age
 # limit is registered here rather than inline.
 INPUT_MAX_AGE_MINUTES[CONF_BUFFER_TANK_TEMP_ENTITY] = 60.0

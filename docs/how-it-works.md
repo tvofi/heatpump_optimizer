@@ -604,7 +604,7 @@ Everything here is inert until configured or until evidence exists:
   frames: with learned-profile frames there is no stable frame to attach
   statistics to. Watch **DHW Heavy Day Demand** (disabled by default; it needs
   weeks of data).
-- **The tank in shower terms**: **Mixed Hot Water** translates tank temperature
+- **The tank in shower terms**: **DHW Mixed Water** translates tank temperature
   into litres of 40 °C water and minutes of shower, and the **DHW Setpoint
   Advisor** reports the cheapest setpoint that still covers your learned heavy
   days — read-only, the decision stays yours.

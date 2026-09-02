@@ -267,7 +267,7 @@ configured).
 | Sensor | Unit | What it tells you | Notes |
 |---|---|---|---|
 | Optimization Mode | — | Current mode: auto, comfort, economy, boost or off | |
-| Optimization Status | — | Solver result for the current plan | |
+| Optimization Status | — | Solver result for the current plan | Diagnostic |
 | Predicted Savings | CUR | Saving over 24 h against a simulated conventional thermostat following the same comfort schedule | Only the hot-water half of the baseline is always-on |
 | Savings Percentage | % | The same saving as a percentage | |
 | Predicted Cost | CUR | Cost of the optimized 24 h plan | |
@@ -280,10 +280,10 @@ configured).
 | Outdoor Temperature (Optimizer) | °C | Outdoor temperature as the optimizer sees it | |
 | Solar Irradiance | W/m² | The irradiance the plan uses, with the forecast horizon in attributes | Absorbed the former Solar Radiation sensor in v5.0.0 |
 | Slab Temperature (Estimated) | °C | Modelled slab temperature | |
-| Next Optimization | — | When the next run is due | Timestamp |
-| Last Optimization | — | When the last run finished | Timestamp |
+| Next Optimization | — | When the next run is due | Diagnostic; timestamp |
+| Last Optimization | — | When the last run finished | Diagnostic; timestamp |
 | Heat Pump Action | — | What the plan is doing now: `off`, `eco`, `normal`, `pre_heat` or `boost`, and `comfort` while comfort mode holds | |
-| Optimization Schedule | — | The whole 24 h schedule, in attributes | Not recorded |
+| Optimization Schedule | — | The whole 24 h schedule, in attributes | Diagnostic; not recorded |
 | Upper Floor Temperature | °C | The radiator zone | |
 | Lower Floor Temperature | °C | The slab zone | |
 | Floor Heating Return Temperature | °C | The return-water reading the slab estimate uses | |
@@ -292,20 +292,20 @@ configured).
 | DHW Temperature | °C | Tank temperature, with the demand-window state and the learned cooling rate in attributes | |
 | DHW Heating Schedule | — | The planned hot-water heating periods | Not recorded |
 | DHW Heating Cost | CUR | Estimated cost of the planned hot water | |
-| Predictive Optimization Insight | — | What the forecast is making the plan do | |
-| ECL110 Displace | °C | The parallel shift commanded to an ECL110 heat curve | Disabled by default; ECL110 hardware |
-| ECL110 Effective Displace | °C | The shift the controller has actually reached, after its own lag | Disabled by default; ECL110 hardware |
+| Predictive Optimization Insight | — | What the forecast is making the plan do | Diagnostic |
+| ECL110 Displace | °C | The parallel shift commanded to an ECL110 heat curve | Diagnostic; disabled by default; ECL110 hardware |
+| ECL110 Effective Displace | °C | The shift the controller has actually reached, after its own lag | Diagnostic; disabled by default; ECL110 hardware |
 | Space Heating Plan | — | Planned space-heating slots plus the full-horizon forecast | Backs the card; forecast not recorded |
 | DHW Heating Plan | — | Planned hot-water slots plus the full-horizon forecast | Backs the card; forecast not recorded |
 | Measured Power | kW | Real electrical draw, with the commanded power alongside | Unavailable until a power or energy entity is configured |
 | Observed COP | — | Efficiency from measurement rather than the nameplate curve | Needs measured power |
 | Space Heating Energy | kWh | Accumulating, for the Energy dashboard | |
-| Hot Water Energy | kWh | Accumulating, for the Energy dashboard | |
+| DHW Energy | kWh | Accumulating, for the Energy dashboard | Renamed from Hot Water Energy by #174; existing installs keep their entity id |
 | Total Energy | kWh | Accumulating, for the Energy dashboard | |
 | Space Heating Cost | CUR | Accumulating cost | |
-| Hot Water Cost | CUR | Accumulating cost | |
+| DHW Cost | CUR | Accumulating cost | Renamed from Hot Water Cost by #174; existing installs keep their entity id |
 | Total Heating Cost | CUR | Accumulating cost | |
-| Prediction Accuracy | °C | Mean indoor-temperature error, with the signed bias and the last diagnosis in attributes | Diagnostic |
+| Prediction Accuracy | °C | Mean indoor-temperature error, with the signed bias and the last diagnosis in attributes | Diagnostic; unavailable until an interval has been scored |
 | Monthly Peak Power | kW | The peak the capacity tariff is billed on, and the headroom left | Unavailable unless the capacity tariff is enabled |
 | Solar Surplus Forecast | kWh | Forecast PV surplus the heat pump could absorb | Unavailable unless PV is enabled |
 | Thermal Battery Charge | % | State of charge of house and tanks against the comfort band | |
@@ -314,11 +314,11 @@ configured).
 | Contract Comparison | CUR/kWh | How far below the month's flat-consumer average the shifting landed; the three settled totals — hourly spot, monthly-average spot, fixed price — ride in attributes | Diagnostic; disabled by default; needs a configured contract comparison |
 | Power Headroom | kW | What the house can draw right now without new cost — a number an EV charger's dynamic limit can follow | Unavailable until it can be computed |
 | DHW Setpoint Advisor | °C | The cheapest hot-water setpoint that still covers your heavy days | Diagnostic; unavailable until there is a recommendation |
-| Mixed Hot Water | L | Litres of 40 °C water the tank holds now, with shower minutes alongside | Unavailable without mixed-water data |
+| DHW Mixed Water | L | Litres of 40 °C water the tank holds now, with shower minutes alongside | Unavailable without mixed-water data; renamed from Mixed Hot Water by #174 |
 | DHW Heavy Day Demand | kWh | The learned 90th-percentile draw per demand window | Diagnostic; disabled by default; needs weeks of data |
 | Valve Target Recommendation | °C | What to set a manual mixing valve to, and why | Diagnostic; disabled by default; needs a mixing-valve mode |
-| Plan Narrative | — | The plan told in sentences, grouped by reason | Diagnostic |
-| Optimization Score | — | Envelope, machine and operation graded 0–100 | Diagnostic; unavailable until the scores have evidence |
+| Plan Narrative | — | The plan told in sentences, grouped by reason | Card headline |
+| Optimization Score | — | Envelope, machine and operation graded 0–100 | Card headline; unavailable until the scores have evidence |
 | Compressor Starts | — | Realised starts counted from the meter, immersion events excluded | Diagnostic; needs measured power |
 | Compressor Frequency Advisor | Hz | The frequency the plan's power asks for, from the learned kW-per-Hz map | Diagnostic; disabled by default; needs a compressor frequency entity |
 

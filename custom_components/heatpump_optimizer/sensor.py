@@ -6,6 +6,8 @@ import math
 from datetime import datetime
 from typing import Any
 
+import numpy as np
+
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
@@ -31,7 +33,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 def _finite(value):
-    """Replace non-finite floats with ``None``, recursively.
+    """Plain, finite Python for everything a sensor publishes, recursively.
 
     ``inf`` and ``nan`` are not JSON. orjson -- the serializer Home Assistant
     uses for the websocket and the recorder -- writes them as ``null``, so the
@@ -51,7 +53,20 @@ def _finite(value):
     produce it today, because the interesting case is the one nobody
     predicted: the next attribute that divides by a zero sample count is
     covered without anyone remembering to ask.
+
+    The same boundary plains numpy (#173). The optimizer hands the
+    coordinator numpy scalars -- the solar-gain trajectory is one
+    ``numpy.float64`` per step -- and the coordinator converts the fields
+    it remembers to (``predictive_info`` goes through ``_plain_types``) and
+    forgets the rest (``schedule`` did not). Converting here, once, covers
+    every sensor, and the order matters: ``np.float64`` *subclasses*
+    ``float``, so it has to be unwrapped before the finite test or it walks
+    through that test unchanged.
     """
+    if isinstance(value, np.ndarray):
+        return _finite(value.tolist())
+    if isinstance(value, np.generic):
+        value = value.item()
     if isinstance(value, float):
         return value if math.isfinite(value) else None
     if isinstance(value, dict):
@@ -171,7 +186,7 @@ class HeatPumpOptimizerSensorBase(CoordinatorEntity, SensorEntity):
 
     #: The two properties Home Assistant reads to build a state write. Every
     #: number this integration publishes leaves through one of them, which is
-    #: why the non-finite scrub is installed here rather than repeated at each
+    #: why the plain-and-finite scrub is installed here rather than repeated at each
     #: of the fifty-five sensors -- and why a sensor added next year gets it
     #: without anyone remembering to ask for it.
     _PUBLISHED = ("native_value", "extra_state_attributes")
@@ -258,7 +273,7 @@ class _DHWEntityMixin:
     Six entities were offered unconditionally, hot water configured or not.
     Two of them are Energy dashboard sources: with DHW disabled the optimizer
     plans no hot water at all, so ``dhw_energy_kwh`` and ``dhw_cost`` stay at
-    0.0 forever, and a user who wires "Hot Water Energy" into the Energy
+    0.0 forever, and a user who wires "DHW Energy (lifetime)" into the Energy
     dashboard's water-heating slot gets a permanent flat zero that looks like
     a working meter reporting a heat pump that never heats water.
 
@@ -328,6 +343,8 @@ class OptimizationStatusSensor(HeatPumpOptimizerSensorBase):
     """Sensor showing the optimization solver status."""
 
     _attr_icon = "mdi:check-circle-outline"
+    # The solver's own health, not a quantity about the house (#179).
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
 
     def __init__(self, coordinator, entry):
         super().__init__(coordinator, entry, "optimization_status", "optimization_status")
@@ -651,6 +668,8 @@ class SlabTempSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase):
 class NextOptimizationSensor(HeatPumpOptimizerSensorBase):
     _attr_icon = "mdi:clock-outline"
     _attr_device_class = SensorDeviceClass.TIMESTAMP
+    # The integration's own cycle clock (#179).
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
 
     def __init__(self, coordinator, entry):
         super().__init__(coordinator, entry, "next_optimization", "next_optimization")
@@ -665,6 +684,8 @@ class NextOptimizationSensor(HeatPumpOptimizerSensorBase):
 class LastOptimizationSensor(HeatPumpOptimizerSensorBase):
     _attr_icon = "mdi:clock-check-outline"
     _attr_device_class = SensorDeviceClass.TIMESTAMP
+    # The integration's own cycle clock (#179).
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
 
     def __init__(self, coordinator, entry):
         super().__init__(coordinator, entry, "last_optimization", "last_optimization")
@@ -713,6 +734,9 @@ class HeatPumpActionSensor(HeatPumpOptimizerSensorBase):
 
 class ScheduleSensor(HeatPumpOptimizerSensorBase):
     _attr_icon = "mdi:calendar-clock"
+    # The raw solve, step by step; the plan sensors are the product view of
+    # the same answer and stay primary (#179).
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
     # The schedule is re-published every update and superseded history is of
     # no interest; recording it would write kilobytes per cycle, the same
     # reason the plan sensors keep their forecasts out of the recorder.
@@ -1057,6 +1081,8 @@ class PredictiveInsightSensor(HeatPumpOptimizerSensorBase):
     """
 
     _attr_icon = "mdi:crystal-ball"
+    # The forecast analysis's internal factors, not a plan quantity (#179).
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
 
     def __init__(self, coordinator, entry):
         super().__init__(
@@ -1123,6 +1149,10 @@ class ECL110DisplaceSensor(HeatPumpOptimizerSensorBase):
     # heat-curve options page); everyone else gets this disabled, not a
     # forever-unknown entity. Existing registry entries keep their state.
     _attr_entity_registry_enabled_default = False
+    # Diagnostic like every other opt-in hardware advisory here (the
+    # frequency advisor, the valve target): an opt-in path's readout belongs
+    # with the machinery, not the headline (#177).
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
 
     def __init__(self, coordinator, entry):
         super().__init__(coordinator, entry, "ecl110_displace", "ecl110_displace")
@@ -1142,8 +1172,9 @@ class ECL110EffectiveDisplaceSensor(HeatPumpOptimizerSensorBase):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_suggested_display_precision = 1
-    # Same opt-in hardware as ECL110 Displace above.
+    # Same opt-in hardware as ECL110 Displace above, same category.
     _attr_entity_registry_enabled_default = False
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
 
     def __init__(self, coordinator, entry):
         super().__init__(
@@ -1281,7 +1312,7 @@ class _PlanSensorBase(HeatPumpOptimizerSensorBase):
             # Projection, not history: these are what the CURRENT plan is
             # expected to use and cost over the horizon, recomputed on every
             # replan. Stated so the plan sensors and the lifetime
-            # accumulators (Hot Water Cost (lifetime) and friends) cannot be
+            # accumulators (DHW Cost (lifetime) and friends) cannot be
             # read as the same number with different magnitudes.
             "projection": (
                 "planned for the optimization horizon ahead; recomputed on "
@@ -1543,7 +1574,10 @@ class DHWEnergySensor(_DHWEntityMixin, _AccumulatingSensor):
     _ledger_line = "dhw"
 
     def __init__(self, coordinator, entry):
-        super().__init__(coordinator, entry, "dhw_energy", "hot_water_energy")
+        # Translation key (and so the suggested object id on new installs)
+        # moved from hot_water_energy in #174; the unique id did not, so an
+        # existing install keeps sensor.…_hot_water_energy and its history.
+        super().__init__(coordinator, entry, "dhw_energy", "dhw_energy")
 
 
 class TotalEnergySensor(_AccumulatingSensor):
@@ -1588,7 +1622,8 @@ class DHWCostSensor(_DHWEntityMixin, _AccumulatingCostSensor):
     _ledger_line = "dhw"
 
     def __init__(self, coordinator, entry):
-        super().__init__(coordinator, entry, "dhw_cost_total", "hot_water_cost")
+        # Moved from hot_water_cost in #174; see DHWEnergySensor.
+        super().__init__(coordinator, entry, "dhw_cost_total", "dhw_cost")
 
 
 class TotalCostSensor(_AccumulatingCostSensor):
@@ -1604,13 +1639,17 @@ class TotalCostSensor(_AccumulatingCostSensor):
 # ---------------------------------------------------------------------------
 
 
-class PredictionAccuracySensor(HeatPumpOptimizerSensorBase):
+class PredictionAccuracySensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase):
     """Mean absolute error of the predicted indoor temperature.
 
     Publishing the *bias* alongside it matters more than the magnitude: an
     absolute error cannot distinguish random noise from a model that is
     consistently half a degree optimistic, and it is the second that indicates
     drift.
+
+    Unavailable until an interval has been scored, like the observed COP and
+    the contract comparison (#176): a fresh install has nothing to be accurate
+    about yet, and "Unknown" is what a broken sensor shows.
     """
 
     _attr_icon = "mdi:target"
@@ -1625,6 +1664,15 @@ class PredictionAccuracySensor(HeatPumpOptimizerSensorBase):
         )
 
     @property
+    def _waiting_for(self) -> str | None:
+        accuracy = (self.coordinator.data or {}).get("accuracy") or {}
+        if not isinstance(accuracy.get("temperature_mae"), (int, float)):
+            # The tracker scores an interval only once its prediction can be
+            # held against what the room actually did.
+            return "first_scored_interval"
+        return None
+
+    @property
     def native_value(self) -> float | None:
         return (self.coordinator.data or {}).get("accuracy", {}).get(
             "temperature_mae"
@@ -1633,6 +1681,7 @@ class PredictionAccuracySensor(HeatPumpOptimizerSensorBase):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         attrs = dict((self.coordinator.data or {}).get("accuracy", {}) or {})
+        attrs["waiting_for"] = self._waiting_for
         # T6 #52: the last interval's residual, attributed input by input —
         # accuracy's "how wrong" gets its "why" on the same sensor.
         report = ((self.coordinator.data or {}).get("insight") or {}).get(
@@ -2036,8 +2085,9 @@ class MixedHotWaterSensor(HeatPumpOptimizerSensorBase):
     _attr_suggested_display_precision = 0
 
     def __init__(self, coordinator, entry):
+        # Moved from mixed_hot_water in #174; see DHWEnergySensor.
         super().__init__(
-            coordinator, entry, "dhw_mixed_water", "mixed_hot_water"
+            coordinator, entry, "dhw_mixed_water", "dhw_mixed_water"
         )
 
     @property
@@ -2120,7 +2170,10 @@ class PlanNarrativeSensor(HeatPumpOptimizerSensorBase):
     """
 
     _attr_icon = "mdi:text-long"
-    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    # No entity category: this is one of the card's four headline stats
+    # (``stat_kind``), with Predicted Savings and Savings Percentage, and the
+    # family is either all primary or all Diagnostic. Half of it buried on
+    # the device page's Diagnostic side was #175.
 
     def __init__(self, coordinator, entry):
         super().__init__(coordinator, entry, "plan_narrative", "plan_narrative")
@@ -2163,7 +2216,7 @@ class OptimizationScoreSensor(HeatPumpOptimizerSensorBase):
 
     _attr_icon = "mdi:speedometer"
     _attr_state_class = SensorStateClass.MEASUREMENT
-    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    # Primary, not Diagnostic: a headline stat; see PlanNarrativeSensor (#175).
     _attr_suggested_display_precision = 1
 
     def __init__(self, coordinator, entry):

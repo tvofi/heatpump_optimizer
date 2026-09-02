@@ -149,11 +149,6 @@ ASSIGNABLE_KEYS: dict[str, tuple[str, ...]] = {
     key: domains for key, _place, _label, domains, _class in _SLOTS
 }
 
-#: Places that only exist on some topologies, and the flag that brings them.
-_CONDITIONAL_PLACES = ("lower_zone", "floor_loop", "dhw_tank", "mixing_valve",
-                       "wood_tank")
-
-
 # ---------------------------------------------------------------------------
 # The layout catalog (v3.16.0, issue #40)
 # ---------------------------------------------------------------------------

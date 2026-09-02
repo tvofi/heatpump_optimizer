@@ -159,24 +159,6 @@ class BuildingPreset:
         return self
 
 
-def _floor_heated_area(preset: BuildingPreset) -> float:
-    """Heated area served by a floor-heating circuit, m²."""
-    if not preset.two_zone:
-        return (
-            preset.heated_area_m2
-            if preset.lower_emitter == EMITTER_FLOOR
-            else 0.0
-        )
-    upper = preset.heated_area_m2 * preset.upper_area_ratio
-    lower = preset.heated_area_m2 - upper
-    area = 0.0
-    if preset.upper_emitter == EMITTER_FLOOR:
-        area += upper
-    if preset.lower_emitter == EMITTER_FLOOR:
-        area += lower
-    return area
-
-
 def derive(preset: BuildingPreset) -> dict[str, Any]:
     """Turn a preset into starting values for the thermal parameters.
 
