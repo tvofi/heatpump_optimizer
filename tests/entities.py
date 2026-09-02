@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import pathlib
 import sys
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -43,6 +44,7 @@ from harness import (
 from homeassistant.components.sensor import SensorStateClass
 
 import heatpump_optimizer as integration
+from homeassistant import const as ha_const
 from heatpump_optimizer import (
     binary_sensor,
     button,
@@ -83,6 +85,69 @@ R.check(
     sorted(const.PLATFORMS) == sorted(platform_list),
     f"{sorted(const.PLATFORMS)} vs {sorted(platform_list)}",
 )
+# Home Assistant's real ``Platform`` enum, transcribed from
+# homeassistant/const.py. The stub in tests/hastub carries only the members
+# this integration uses, and nothing stops it carrying one Home Assistant
+# does not have -- which is exactly what happened: v6.3.1 added
+# ``DIAGNOSTICS`` to the stub AND to PLATFORM_LIST, every gate stayed green,
+# and the integration failed to import in Home Assistant with
+# ``AttributeError: type object 'Platform' has no attribute 'DIAGNOSTICS'``.
+# A stub may be SMALLER than the real thing; it may never be different.
+_REAL_HA_PLATFORMS = frozenset(
+    {
+        "air_quality", "alarm_control_panel", "assist_satellite",
+        "binary_sensor", "button", "calendar", "camera", "climate",
+        "conversation", "cover", "date", "datetime", "device_tracker",
+        "event", "fan", "geo_location", "humidifier", "image",
+        "image_processing", "lawn_mower", "light", "lock", "media_player",
+        "notify", "number", "remote", "scene", "select", "sensor", "siren",
+        "stt", "switch", "text", "time", "todo", "tts", "update", "vacuum",
+        "valve", "wake_word", "water_heater", "weather",
+    }
+)
+
+_stub_platform_members = {
+    name: value
+    for name, value in vars(ha_const.Platform).items()
+    if not name.startswith("_") and isinstance(value, str)
+}
+_invented = sorted(
+    v for v in _stub_platform_members.values() if v not in _REAL_HA_PLATFORMS
+)
+R.check(
+    "every member of the test stub's Platform exists in Home Assistant's own",
+    not _invented,
+    f"invented by the stub: {_invented}",
+)
+_unreal = sorted(p for p in const.PLATFORMS if p not in _REAL_HA_PLATFORMS)
+R.check(
+    "every entry of PLATFORMS is a real Home Assistant platform",
+    not _unreal,
+    f"not platforms Home Assistant knows: {_unreal}",
+)
+_unreal_list = sorted(p for p in platform_list if p not in _REAL_HA_PLATFORMS)
+R.check(
+    "every entry of PLATFORM_LIST is a real Home Assistant platform",
+    not _unreal_list,
+    f"not platforms Home Assistant knows: {_unreal_list}",
+)
+# Diagnostics is a module Home Assistant discovers by name, never a platform
+# to forward. Forwarding it is what broke setup in v6.3.1.
+R.check(
+    "diagnostics.py exists",
+    (
+        pathlib.Path(__file__).resolve().parents[1]
+        / "custom_components"
+        / "heatpump_optimizer"
+        / "diagnostics.py"
+    ).is_file(),
+)
+R.check(
+    "diagnostics is NOT forwarded as a platform",
+    "diagnostics" not in const.PLATFORMS and "diagnostics" not in platform_list,
+    f"PLATFORMS={const.PLATFORMS} PLATFORM_LIST={platform_list}",
+)
+
 for name in ("binary_sensor", "button"):
     R.check(f"the {name} platform is registered", name in const.PLATFORMS)
     R.check(
