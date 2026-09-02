@@ -254,7 +254,7 @@
       "message": "{entity_id} is a {domain} entity; {key} accepts {domains}"
     },
     "apply_topology_unsupported": {
-      "message": "This system cannot use the '{layout}' layout: it needs {requirement}"
+      "message": "This system cannot use the {layout} layout: it needs {requirement}"
     },
     "apply_schedule_invalid_dhw_windows": {
       "message": "Invalid hot water windows \"{windows}\": {error}"
