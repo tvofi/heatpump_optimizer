@@ -60,15 +60,19 @@ def result(name: str, value, note: str = "") -> None:
         EVIDENCE.append(f"    {name}={value}")
 
 
-def load(path: str):
-    with open(path, encoding="utf-8") as fh:
-        return ast.parse(fh.read(), filename=path)
-
-
 MODULES: dict[str, ast.Module] = {}
+# Files come from os.listdir of the pinned integration root, and each path is
+# confirmed to resolve inside that root before it is read — no caller-supplied
+# paths reach the parser.
+_root = os.path.realpath(INT)
 for fname in sorted(os.listdir(INT)):
-    if fname.endswith(".py"):
-        MODULES[fname[:-3]] = load(os.path.join(INT, fname))
+    if not fname.endswith(".py"):
+        continue
+    _real = os.path.realpath(os.path.join(INT, fname))
+    if os.path.commonpath([_root, _real]) != _root:
+        raise ValueError(f"refusing to read outside the integration root: {fname}")
+    with open(_real, encoding="utf-8") as fh:
+        MODULES[fname[:-3]] = ast.parse(fh.read(), filename=_real)
 
 
 def enclosing_functions(tree: ast.AST, node: ast.AST) -> list[str]:
