@@ -44,6 +44,7 @@ import json
 import logging
 import re
 import subprocess
+import urllib.parse
 import sys
 import tempfile
 import time
@@ -294,6 +295,25 @@ def lifecycle():
 
 
 # --------------------------------------------------------------------------- checks
+def _is_github_host(url: str) -> bool:
+    """Whether a URL's HOST is github.com, rather than merely containing it.
+
+    `"github.com" in url` is the substring test CodeQL flags as
+    py/incomplete-url-substring-sanitization, and it is wrong on its own
+    terms: `https://notgithub.com/x` and `https://evil.example/?q=github.com`
+    both pass it. Nothing here is a security boundary -- this reads locally
+    installed package metadata to report where a dependency's source lives --
+    but a check that answers the wrong question is not evidence, and this
+    harness's output is evidence for the dependency-transparency rule.
+
+    A `Project-URL` entry is `"<label>, <url>"`, so the URL is what follows
+    the first comma when there is one.
+    """
+    candidate = url.split(",", 1)[-1].strip() if "," in url else url.strip()
+    host = (urllib.parse.urlsplit(candidate).hostname or "").lower()
+    return host == "github.com" or host.endswith(".github.com")
+
+
 def check_bronze(ctx):
     init = ast_of("__init__.py")
     setup_defs = [n for n in ast.walk(init) if isinstance(n, ast.AsyncFunctionDef) and n.name == "async_setup"]
@@ -411,9 +431,10 @@ def check_bronze(ctx):
             m = md.metadata(name)
             lic = m.get("License-Expression") or (m.get("License") or "")[:40]
             cls = [c for c in (m.get_all("Classifier") or []) if c.startswith("License ::")]
-            urls = [u for u in (m.get_all("Project-URL") or []) if "github.com" in u]
+            urls = [u for u in (m.get_all("Project-URL") or []) if _is_github_host(u)]
             home = m.get("Home-page") or ""
-            deps.append(f"{name} {m['Version']}: {lic or cls[:1]} src={'github' if urls or 'github' in home else '?'}")
+            src = "github" if urls or _is_github_host(home) else "?"
+            deps.append(f"{name} {m['Version']}: {lic or cls[:1]} src={src}")
         except md.PackageNotFoundError:
             deps.append(f"{name}: not installed locally")
     pypi = "local metadata"
