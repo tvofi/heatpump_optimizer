@@ -1,0 +1,5 @@
+RESULT mode=http_500(in-try) error_records_during_5_polls=6 outage_cycles_after_5_polls=10 recovery_msg='Tibber prices recovered after 10 failed cycle(s)'
+RESULT mode=connect_failure(except-clienterror) error_records_during_5_polls=6 outage_cycles_after_5_polls=5 recovery_msg='Tibber prices recovered after 5 failed cycle(s)'
+RESULT mode=http_401(in-try) error_records_during_5_polls=6 outage_cycles_after_5_polls=10 recovery_msg='Tibber prices recovered after 10 failed cycle(s)'
+RESULT mode=graphql_errors(in-try) error_records_during_5_polls=6 outage_cycles_after_5_polls=10 recovery_msg='Tibber prices recovered after 10 failed cycle(s)'
+RESULT mode=no_homes(in-try) error_records_during_5_polls=6 outage_cycles_after_5_polls=10 recovery_msg='Tibber prices recovered after 10 failed cycle(s)'

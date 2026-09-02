@@ -1,0 +1,75 @@
+DETAIL perturbation corpus file loaded: tools/audit/round2/D10/C/perturb_automation_example.md
+RESULT docs_actions_total=11 actions
+RESULT docs_actions_covered=11 actions
+DETAIL services.yaml actions: run_optimization, set_mode, set_thermal_parameters, simulate_plan, assign_entity, apply_topology, apply_schedule, apply_manual_plan, clear_manual_plan, restore_learned_snapshot, diagnose_interval
+DETAIL uncovered actions: none
+RESULT provided_triggers=0 triggers
+RESULT provided_conditions=0 conditions
+RESULT docs_high_level_description_sections=1 sections
+DETAIL docs_high_level_description: README.md:28 ## What it does
+RESULT docs_installation_instructions_sections=5 sections
+DETAIL docs_installation_instructions: README.md:150 ## Installation
+DETAIL docs_installation_instructions: README.md:152 ### HACS (recommended)
+DETAIL docs_installation_instructions: README.md:160 ### Manual
+DETAIL docs_installation_instructions: docs/dashboard-card.md:378 ## Installation
+DETAIL docs_installation_instructions: docs/dashboard-card.md:398 ### Manual resource registration (fallback)
+RESULT docs_removal_instructions_sections=1 sections
+DETAIL docs_removal_instructions: README.md:167 ### Removal
+RESULT docs_troubleshooting_sections=1 sections
+DETAIL docs_troubleshooting: README.md:601 ## Troubleshooting
+RESULT docs_data_update_sections=3 sections
+DETAIL docs_data_update: README.md:459 ## How it works
+DETAIL docs_data_update: docs/how-it-works.md:45 ## The planning cycle
+DETAIL docs_data_update: docs/how-it-works.md:47 Every optimization interval (30 minutes by default), the coordinator g
+RESULT docs_troubleshooting_entries=6 entries
+RESULT docs_use_case_narratives=9 narratives
+DETAIL use-case: README.md:76 **Plans ahead instead of reacting.** A 24-hour model-predictive plan i
+DETAIL use-case: README.md:82 **Learns your house.** The heat-loss scale, tank cooling rates, the CO
+DETAIL use-case: README.md:89 **Knows what your electricity actually costs.** Tibber spot prices, ti
+DETAIL use-case: README.md:97 **Handles real plumbing.** A mixing valve is what lets a buffer tank s
+DETAIL use-case: README.md:104 **Hot water that fits your household.** Hot water is guaranteed inside
+DETAIL use-case: README.md:113 **Shows its work.** The plan is published as sentences grouped by reas
+DETAIL use-case: README.md:120 **You stay in charge.** The card's editor pins exact run slots for up 
+DETAIL use-case: README.md:126 **Stays out of trouble.** A staleness watchdog treats a sensor that st
+DETAIL use-case: README.md:134 **Fits your Home Assistant.** Since v5.0.0 entity names are translated
+RESULT docs_limitation_sections=2 sections
+RESULT docs_limitation_statements=6 statements
+DETAIL limitation-section: docs/dashboard-card.md:586 ## Behaviour when data is missing
+DETAIL limitation-section: docs/how-it-works.md:895 ### What freezes them
+DETAIL inline caveat statements include README:417 'One hardware caveat that matters' (number-entity echo), how-it-works.md:1010 defrost-resolution caveats, README:288 quantiles 'stay unavailable'
+RESULT docs_automation_examples=1 examples
+RESULT docs_automation_sections=1 sections
+RESULT docs_supported_interfaces_files=6 files
+DETAIL interface mentions in: ['README.md', 'docs/architecture.md', 'docs/configuration.md', 'docs/ecl110.md', 'docs/how-it-works.md', 'docs/plan-v4.0.0-program.md']
+RESULT entities_actual_sensors=55 entities
+RESULT entities_actual_binary=4 entities
+RESULT entities_actual_button=4 entities
+RESULT entities_actual_climate=1 entities
+RESULT entities_actual_switch=1 entities
+RESULT entities_actual_total=65 entities
+RESULT entities_documented_total=65 entities
+RESULT docs_supported_functions_delta=0 entities
+RESULT platforms_actual=5 platforms
+RESULT platforms_documented=5 platforms
+RESULT docs_supported_functions_platform_delta=0 platforms
+DETAIL PLATFORMS=['sensor', 'binary_sensor', 'button', 'climate', 'switch']; instantiated sensors=55, binary=4, button=4, climate=1, switch=1
+RESULT non_persisted_flow_fields=1 fields
+RESULT docs_config_params_schema_total=140 keys
+RESULT docs_config_params_persisted=139 keys
+RESULT docs_config_params_documented=139 keys
+RESULT docs_config_params_by_key_string=95 keys
+RESULT docs_config_params_by_label_alias=44 keys
+RESULT docs_config_params_undocumented=0 keys
+RESULT docs_installation_params_schema_total=65 keys
+RESULT docs_installation_params_persisted=64 keys
+RESULT docs_installation_params_documented=64 keys
+RESULT docs_installation_params_undocumented=0 keys
+DETAIL unresolved constants: none
+DETAIL undocumented config keys: none
+DETAIL undocumented installation-time keys: none
+RESULT integration_owner_codeowners=1 accounts
+DETAIL codeowners=['@tvofi']; account existence checked in dep_transparency.sh
+RESULT thread_factor=1.0 ratio
+RESULT load1=2.5 load
+RESULT swapins=0 pages
+DETAIL results=42
