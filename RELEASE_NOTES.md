@@ -1,5 +1,76 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.3.5
+
+### Mixed Hot Water follows the thermometer it is computed from
+
+Round-2 audit finding D8-01 (#221), verified 3-0 by an adversarial panel with
+three independent methods. `ThermalState()` has constructor defaults and the
+coordinator overwrites a field only when the entity behind it read OK, so an
+install with no tank thermometer published a rock-steady 55.0 degC. The
+`_MeasuredTemperatureMixin` gates the six temperature sensors against exactly
+that. It stopped there — and Mixed Hot Water is the same number in shower
+clothes.
+
+On the install the config flow produces with every form left untouched, it
+published **270.0 litres and 33.8 shower minutes, unchanged over 20 solve
+cycles**, while DHW Temperature beside it was correctly unavailable and the
+input-problem sensor read "ok". A verifier established this is the *default*
+install by driving the real config flow to `create_entry`: it completes with
+zero thermometers configured and hot water on. A litre count carries a
+`state_class`, so Home Assistant was writing that constructor default to
+long-term statistics.
+
+The gate is entity-side, deliberately: the panel measured that a
+coordinator-side gate on `_dhw_mixed_water` fails `tests/features.py:7732`.
+No fixture moves.
+
+### The scoped gate actually scopes
+
+A card-only pull request ran sixteen scripts (#228). Two causes, both measured
+rather than argued.
+
+`env_drift`'s closure is widened to the whole integration because no tracer can
+see what a capture in another worktree depended on — but that cannot include
+the bundled card, and `frontend.py` registers `www/` as a static path without
+ever opening the file. Two captures on the same tree settle it: with the card
+asset edited (`CARD_VERSION` 5.4.19 -> 9.9.99) all 55 scenarios are
+byte-identical, `sha256 1f1dcb966bdf7ae9…` on both sides; with one token
+changed in `thermal_model.py` they differ.
+
+The larger cause was that **ten tracked files were in no closure and on no
+list**, and the gate refuses to skip anything when a changed file is
+unmeasured — correctly. Renaming one identifier in `tests/setup_qa_render.mjs`,
+a script people run by hand, took a gate from five scripts to sixteen. Each of
+the ten is now in exactly one of four places, and `orphan_files()` fails the
+suite while any file is unclassified.
+
+| Change | before | after |
+|---|---|---|
+| the card fix's own file set | 16 scripts | **5** |
+| `DISCLAIMER.md` only | 16 | **0** |
+| a `.claude/workflows` script | 16 | **0** |
+| an integration `.py` | 14 | 14 |
+
+### The fix workflows carry a model per role
+
+`.claude/workflows/audit-fix.js` takes a model and effort per agent, refusing a
+reviewer ranked below its fixer — a reviewer that cannot re-measure what the
+fixer did measures nothing (#231). A new `audit-wave.js` runs groups in
+parallel in chunks of three, honouring declared dependencies between them;
+merges stay a separate invocation so a sign-off sits between fix and merge.
+`audit-verify.js` can start at the judge.
+
+### The Home Assistant floor is where the evidence puts it
+
+The audit deferred icon translations and the reconfigure flow behind a
+`hacs.json` floor bump. There is nothing to bump (#235): the floor already
+reads 2024.6.0, raised in v6.3.0. Icon translations landed in Home Assistant
+2024.2 and the reconfigure flow in 2024.4, both under it, so neither is
+blocked. The floor now carries an executed check pinning it; the previous
+coverage compared `hacs.json` against the README and passed trivially if the
+two drifted together.
+
 ## v6.3.4
 
 ### Expanding the card no longer breaks it

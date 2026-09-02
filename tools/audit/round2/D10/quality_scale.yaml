@@ -1,0 +1,147 @@
+# Draft quality_scale.yaml for custom_components/heatpump_optimizer -- D10, round 2, baseline c398fc8.
+# Custom integrations cannot declare a tier; this records rule-by-rule adherence as executed by
+# tools/audit/round2/D10/check_rules.py. Status values: done / todo / exempt. Comments name the gap
+# and, where the fix needs an API newer than the hacs.json floor (2024.1.0), the minimum release.
+rules:
+  action-setup:
+    status: todo
+    comment: >-
+      11 services are registered in async_setup_entry and removed after the last unload; the rule wants async_setup registration with a loaded-entry check in each handler.
+  appropriate-polling: done
+  brands: done
+  common-modules:
+    status: todo
+    comment: >-
+      coordinator.py exists; the five CoordinatorEntity base classes live in the platform files, not entity.py.
+  config-flow: done
+  config-flow-test-coverage:
+    status: todo
+    comment: >-
+      The rule wants 100 % of the config flow; the suite renders the user form but never submits it.
+  dependency-transparency: done
+  docs-actions: done
+  docs-triggers:
+    status: exempt
+    comment: >-
+      No custom triggers are registered.
+  docs-conditions:
+    status: exempt
+    comment: >-
+      No custom conditions are registered.
+  docs-high-level-description: done
+  docs-installation-instructions: done
+  docs-removal-instructions:
+    status: todo
+    comment: >-
+      No 'Removing the integration' section anywhere in README.md or docs/.
+  entity-event-setup: done
+  entity-unique-id: done
+  has-entity-name: done
+  runtime-data:
+    status: todo
+    comment: >-
+      Coordinator and config stash live in hass.data[DOMAIN][entry_id]; needs HA >= 2024.4 for ConfigEntry.runtime_data.
+  test-before-configure: done
+  test-before-setup:
+    status: done
+    comment: >-
+      Temporary failures surface through async_config_entry_first_refresh; an invalid token is not distinguished (no ConfigEntryAuthFailed), see reauthentication-flow.
+  unique-config-entry:
+    status: todo
+    comment: >-
+      Nothing stops a second entry. Cheapest fix: self._async_abort_entries_match() in async_step_user (any HA), or manifest single_config_entry (HA >= 2024.3).
+  action-exceptions:
+    status: todo
+    comment: >-
+      Validation errors raise; operational failures (no prices, no plan, no snapshot) return silently or as a response dict.
+  config-entry-unloading: done
+  docs-configuration-parameters: done
+  docs-installation-parameters: done
+  entity-unavailable:
+    status: todo
+    comment: >-
+      Two buttons override available() without super().available, so they stay available when the coordinator fails.
+  integration-owner: done
+  log-when-unavailable:
+    status: todo
+    comment: >-
+      _tibber_fetch_failed latches ERROR-once correctly, but _async_update_data's outer except re-logs ERROR with a traceback on every failed cycle.
+  parallel-updates:
+    status: todo
+    comment: >-
+      No platform declares PARALLEL_UPDATES (0 for the coordinator read-only platforms, 1 for button/switch/climate).
+  reauthentication-flow:
+    status: todo
+    comment: >-
+      Tibber token authentication exists, so the rule applies; a 401 is reported as UpdateFailed and no reauth flow is offered.
+  test-coverage:
+    status: todo
+    comment: >-
+      Measured once (PROVISIONAL timing, shared box): 20 of 45 modules reach 95 %.
+  devices:
+    status: done
+    comment: >-
+      One service device per entry; DeviceInfo lacks entry_type=DeviceEntryType.SERVICE (available since HA 2021.12).
+  diagnostics:
+    status: todo
+    comment: >-
+      No diagnostics platform; the token would need redaction.
+  discovery:
+    status: exempt
+    comment: >-
+      A cloud API (Tibber) plus the user's own Home Assistant entities; nothing on the network to discover.
+  discovery-update-info:
+    status: exempt
+    comment: >-
+      Not discoverable (see discovery).
+  docs-data-update: done
+  docs-examples:
+    status: todo
+    comment: >-
+      No blueprints or automation examples; the YAML examples are dashboard-card configs.
+  docs-known-limitations:
+    status: todo
+    comment: >-
+      No 'Known limitations' section; the disclaimer is legal, not a capability list.
+  docs-supported-devices:
+    status: todo
+    comment: >-
+      Drives the pump through Home Assistant entities and one MQTT bridge; no supported/unsupported statement in one place.
+  docs-supported-functions: done
+  docs-troubleshooting: done
+  docs-use-cases: done
+  dynamic-devices:
+    status: exempt
+    comment: >-
+      One service device per config entry; devices never appear at runtime.
+  entity-category:
+    status: done
+    comment: >-
+      Diagnostic category set on the obviously diagnostic entities; the remaining diagnostic-looking ones are a judgement call.
+  entity-device-class:
+    status: todo
+    comment: >-
+      Two kWh sensors lack SensorDeviceClass.ENERGY; the three degree-Celsius ones are deltas (displacement, prediction error) where TEMPERATURE would convert wrongly, so they are correctly classless.
+  entity-disabled-by-default: done
+  entity-translations: done
+  exception-translations:
+    status: todo
+    comment: >-
+      All 15 service exceptions carry literal English messages; no 'exceptions' block in strings.json (API in floor 2024.1).
+  icon-translations:
+    status: todo
+    comment: >-
+      Icons are entity state (_attr_icon) rather than icons.json; icons.json needs HA >= 2024.2 (floor is 2024.1.0).
+  reconfiguration-flow:
+    status: todo
+    comment: >-
+      Settings live in the config flow, so the rule applies; SOURCE_RECONFIGURE needs HA >= 2024.4.
+  repair-issues: done
+  stale-devices:
+    status: exempt
+    comment: >-
+      One device per entry; nothing can go stale.
+  async-dependency: done
+  inject-websession: done
+  strict-typing:
+    status: todo

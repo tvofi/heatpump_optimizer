@@ -140,3 +140,32 @@ evidence counts: call counts, bytes, and CPU-time ratios against the stress
 reference solve. Every wall, CPU or RSS number is re-taken in the quiet
 window before it enters the register. One local full gate at a time, through
 `mkdir /tmp/hpo-gate.lock`; `stress.py` alone is not alone across worktrees.
+
+## Two things the judge's round-2 run proved wrong about this file
+
+**`load1 <= 1.5` is unattainable on this box, and demanding it produced nothing.**
+The ambient desktop floor with zero audit workload is **1.86**; over ten 60-second
+retries the judge's best reading was **1.55**. A quiet window that never comes is
+not a safeguard, it is a stall. What actually protects a timing number here is a
+*ratio* metric and a null control taken under the same load in the same session --
+which is how the D9 numbers were taken, and why they are trustworthy despite a
+`load1` of 2.2-3.7. Quote the real `load1` and the control; do not wait for 1.5.
+
+**The gate lock needs an owner, or it cannot be reclaimed.** A `mkdir` lock records
+that someone holds it, never who. Round 2 lost 113 minutes to a lock created at
+22:33 with no process behind it: the judge could not remove it (rightly -- the rule
+is never remove a lock you did not create) and neither could any fixer, so every
+full gate queued behind a directory that was protecting nothing.
+
+Take the lock with an owner file, and it becomes decidable:
+
+    mkdir /tmp/hpo-gate.lock && printf '%s pid=%s at=%s\n' \
+      "$AGENT_NAME" "$$" "$(date -u +%FT%TZ)" > /tmp/hpo-gate.lock/owner
+
+Before reclaiming one you did not create, prove it is dead -- the owner pid is
+gone AND no `tests/run.sh`, `stress.py` or `env_drift.py` process exists:
+
+    cat /tmp/hpo-gate.lock/owner; ps aux | grep -E "[t]ests/run\.sh|[s]tress\.py|[e]nv_drift\.py"
+
+Only then `rm -rf /tmp/hpo-gate.lock`, and say in your report that you did and why.
+A lock with a live process behind it is never yours to take, however old it looks.

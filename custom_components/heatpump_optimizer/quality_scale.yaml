@@ -1,0 +1,111 @@
+# Home Assistant integration quality scale — rule-by-rule register.
+# Source: audit round 2, dimension D10 (baseline b39fc6f, 2026-09-02; verified
+# by three refutation verifiers and a judge; register: docs/audit-2026-09.md,
+# harnesses: tools/audit/round2/D10/). Updated as fixes land.
+#
+# hassfest skips this file for custom integrations (validate_iqs_file returns
+# early for non-core repos), so nothing here is machine-enforced today — it is
+# the truthful rule-by-rule record in the exact schema home-assistant/core
+# uses, ready if this integration ever migrates to core.
+#
+# The manifest deliberately declares no `quality_scale` tier: one Bronze rule
+# is still todo, so no tier can honestly be declared yet.
+#
+# Totals: 45 done (2 vacuous) · 4 exempt · 5 todo (3 verified findings #216–#218,
+# 4 tracked round-1 issues among them).
+rules:
+  # Bronze
+  action-setup: done
+  appropriate-polling: done
+  brands:
+    status: done
+    comment: adapted check for a custom integration — brand assets shipped in-repo (brand/ 256×256), HACS validate green
+  common-modules: done
+  config-flow: done
+  config-flow-test-coverage:
+    status: todo
+    comment: tracked in issue #194 (round 1, D10-04)
+  dependency-transparency: done
+  docs-actions: done
+  docs-triggers:
+    status: done
+    comment: vacuous — the integration provides 0 triggers
+  docs-conditions:
+    status: done
+    comment: vacuous — the integration provides 0 conditions
+  docs-high-level-description: done
+  docs-installation-instructions: done
+  docs-removal-instructions: done
+  entity-event-setup: done
+  entity-unique-id: done
+  has-entity-name: done
+  runtime-data: done
+  test-before-configure: done
+  test-before-setup: done
+  unique-config-entry: done
+
+  # Silver
+  action-exceptions: done
+  config-entry-unloading: done
+  docs-configuration-parameters: done
+  docs-installation-parameters: done
+  entity-unavailable: done
+  integration-owner: done
+  log-when-unavailable:
+    status: todo
+    comment: issue #216 (round 2, D10-16) — 6 ERRORs per 5 failed polls, latch double-counts
+  parallel-updates: done
+  reauthentication-flow: done
+  test-coverage:
+    status: todo
+    comment: tracked in issue #195 (round 1, D10-11)
+
+  # Gold
+  devices: done
+  diagnostics: done
+  discovery:
+    status: exempt
+    comment: cloud API (Tibber) + user-picked HA entities; 0 discovery-mechanism imports
+  discovery-update-info:
+    status: exempt
+    comment: no network addresses to update; same basis as discovery
+  docs-data-update: done
+  docs-examples:
+    status: todo
+    comment: issue #218 (round 2, D10-18) — 0 automation examples, 0 blueprint links
+  docs-known-limitations: done
+  docs-supported-devices: done
+  docs-supported-functions: done
+  docs-troubleshooting: done
+  docs-use-cases: done
+  dynamic-devices:
+    status: exempt
+    comment: 0 device-registry create sites; single static DeviceInfo
+  entity-category: done
+  entity-device-class: done
+  entity-disabled-by-default: done
+  entity-translations: done
+  exception-translations:
+    status: todo
+    comment: issue #217 (round 2, D10-17) — 13/13 raise sites untranslated, 0 exceptions sections
+  icon-translations:
+    status: done
+    comment: >-
+      issue #189 (round 1, D10-13) — 60 icons in icons.json keyed by
+      translation key, the 4 that duplicated a device-class default removed,
+      zero _attr_icon pins left (tests/entities.py "Entity icons", harness
+      tools/audit/round2/D10/icons_harness.py)
+  reconfiguration-flow:
+    status: todo
+    comment: tracked in issue #196 (round 1, D10-14)
+  repair-issues: done
+  stale-devices:
+    status: exempt
+    comment: device lifetime equals config-entry lifetime; 0 removal sites
+
+  # Platinum
+  async-dependency: done
+  inject-websession: done
+  strict-typing:
+    status: todo
+    comment: tracked in issue #197 (round 1, D10-15)

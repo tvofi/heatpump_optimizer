@@ -1,0 +1,11 @@
+--- a/custom_components/heatpump_optimizer/thermal_model.py
++++ b/custom_components/heatpump_optimizer/thermal_model.py
+@@ -652,7 +652,7 @@
+         cycle it has actually scheduled, and ``dhw_hard_max_temp`` below is
+         the physical rating that bounds even that.
+         """
+-        return min(70.0, self.dhw_setpoint)
++        return self.dhw_setpoint
+ 
+     @property
+     def dhw_hard_max_temp(self) -> float:

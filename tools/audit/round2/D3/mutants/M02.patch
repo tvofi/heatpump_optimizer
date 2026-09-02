@@ -1,0 +1,11 @@
+--- a/custom_components/heatpump_optimizer/optimizer.py
++++ b/custom_components/heatpump_optimizer/optimizer.py
+@@ -1418,7 +1418,7 @@
+                 mass * survival * max(0.0, cap - ends[name])
+                 for mass, name, cap, survival in stores
+             )
+-            return refill_price * deficit / max(cop_end, 1e-6)
++            return refill_price * deficit / cop_end
+ 
+         return cost
+ 

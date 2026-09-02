@@ -1,0 +1,42 @@
+{
+  "panel": "D7",
+  "seats": 3,
+  "votes": {
+    "D7-01": ["verify", "verify", "verify"],
+    "D7-02": ["verify", "weaken(low)", "verify"],
+    "D7-03": ["verify", "verify", "verify"],
+    "D7-04": ["verify", "verify", "verify"],
+    "D7-05": ["verify", "refute", "weaken(low)"],
+    "D7-06": ["weaken(low)", "verify", "weaken(low)"]
+  },
+  "counted": {
+    "D7-01": "3-0 verify",
+    "D7-02": "3-0 verify (severity contested)",
+    "D7-03": "3-0 verify",
+    "D7-04": "3-0 verify",
+    "D7-05": "2-1 survives, heavily weakened",
+    "D7-06": "3-0 verify (scope corrected)"
+  },
+  "severity": {
+    "D7-01": "medium",
+    "D7-02": "medium",
+    "D7-03": "low",
+    "D7-04": "low",
+    "D7-05": "low",
+    "D7-06": "low"
+  },
+  "voided": [
+    "D7-02's stated perturbation, by seat 2: applied to the finder's own defrost_bias() it moves the number by +0.000000000, because any_defrost needs a configured heat_pump_defrost_entity the magnitude harness never sets. The harness itself is not a constant (its null control moves), so the perturbation and the mechanism-to-magnitude link are voided, not the finding.",
+    "D7-05's clustering half, by seat 3: cross_attr_fraction_k10 moves 0.33 -> 0.3851 under the finding's own perturbation, the stated direction being down, and a random-ten-method deletion control moves it +0.0472, putting the seam at +0.35 sigma. The size counts survive; the seam reading does not."
+  ],
+  "notes": {
+    "D7-01": "3-0 verify at medium, and the strongest evidence in the panel. Seat 1 fitted both plants to the production step response by trajectory-simulation least squares, a different estimator from production's finite-difference ordinary least squares: the one-exponential fit leaves 0.53 C rms, 13-17 % of the achieved room excursion, with lag-1 residual autocorrelation +0.998 and 2 sign runs in 301 samples, a single coherent arc rather than noise. The two-exponential fit leaves 0.000000. Seat 3 replaced the finder's 24-cell preset grid with 300 randomised production-reachable cells over the whole preset catalogue: 0 admitted, 0 of 288 cleanly settled, 0 of 35 on an axis sweep with the bound lifted, against 4 of 4 once the second store is collapsed. So the failure is not an artefact of one captured step response. Scope gained: identify() also returns 'not enough samples' at the production-reachable 60 and 120 minute optimization intervals. Corrections: 'every qualifying night' is wrong, the experiment is opt-in behind a button with 30 days minimum between runs; and it SAVES 0.56 SEK rather than wasting energy, the cost being a 1.14 C comfort dip.",
+    "D7-02": "3-0 verify, severity contested between medium and low, and the fix location is wrong. Seat 2's decisive result: the finding's whole mechanism needs the optional heat_pump_defrost_entity. Without it the COP learner freezes the entire 0-5 C band rather than defrost intervals, so the asymmetry the title names does not exist in the stated form and the proposed fix is inert. Where the flag does exist, production's DefrostDerate has already absorbed the bias (1.001429 against a 0.020293 estimator noise floor, +0.12 SEK/day against a 0.84 SEK/day noise floor) and the proposed gate makes it WORSE at the nominal physics, 1.001429 -> 0.928929, a 7.1 % under-estimate. Seat 3: the stated fix location fails tests/features.py, 4 of 1557, the ventilation-detector checks, because that method is what clears the vent freeze; moved below the vent_only return it passes 1557/1557 with the bias still 0.000000. Magnitude is driven by radiator_power_fraction, 0.000 at share 0 and 0.221 at share 1.0, not by 'two zone'. With no defrost flag the gate costs all frost-band learning, 400 samples to 0.",
+    "D7-03": "3-0 verify, low, and the stop-rule class moves to hygiene. Seat 3: 7 of 7 topologies record through open-window and external-heat intervals, 0 of 7 after a one-line guard, with the clean arm still recording; the fix passes features (1557) and entities (538). Seat 2 measured the consequence and it is eight times below the code's own alarm band: +0.060 C bias shift against a 0.5 C band, +0.0131 C margin shift against a 0.8 C cap, on an opt-in that defaults off. Real, cheap to fix, and nothing a user would ever see.",
+    "D7-04": "3-0 verify, low, with the title wrong and the fix scope understated fifteenfold. Seat 1 replaced the finder's hand-picked cell with the 306 trajectories a real solve evaluates: the off-by-one stale read moves terminal cost 4.82 SEK, exactly 0.000000 in the no-valve null, and a runtime write-generation descriptor found 0 stale reads of 923 today. Seat 2 independently found 0 stale reads over 3360 runtime invocations and noted that _solve_snapshot gives each real solve its own model, so real Home Assistant is better protected than the stub. Seat 3 found the range: single-zone buffer-is-store installs are an exact 0, a 500 L tank gives 16.09 SEK (21 %) and summer_negative 35 %, so '5 SEK' is one cell of a 0-16 SEK range and the title must be qualified to two-zone. Fix scope: 4 production unpack sites but 11 test unpack sites and 28 test reads, plus two sibling side channels (last_buffer_refused, last_wood_trajectory) with the same hazard. The flat-price null does not apply here: this is a stored-heat valuation, not a savings claim, so the configuration null is the right control and it is exactly zero.",
+    "D7-05": "SURVIVES 2-1 and is gutted. Seat 2 refuted the seam reading outright: an independent minimum-cut search finds eight distinct sets of at least eight methods at cut 12-18 (grid fee, DHW schedule, ledger, forecast, manual plan, legionella, weather fetch, price fetch) against the finding's 'the only seam with cut cost under 40', and the finder's own table already contradicts it at dhw/profile = 38. Seat 3 voided the discriminating half of the perturbation. What survives, verified with two independent tools: 10269 lines, 256 methods, 174 attributes, 132 multi-writer, and seat 1's separability result that after deleting the 40 highest-fan-in attributes 244 of 256 methods remain one component with every other component a singleton. The finding carries no runtime, money or comfort number at all, so hygiene is its ceiling. Its value is as input to the D7-01 decomposition program, not as a finding.",
+    "D7-06": "3-0 verify, and the count is five rather than six because two seats independently found the same methodology hole. grid_fee.max_abs_component is LIVE PRODUCTION CODE: imported aliased at coordinator.py:351 as grid_fee_max_abs_component and called at coordinator.py:6217 from _audit_grid_fee, itself called at :6199 on every planning cycle of a grid-fee install. The cause is that the finder's census counts ast.Name, ast.Attribute and string tokens, and an ast.alias is none of those, so all 230 aliased imports in the tree are invisible to it. The same hole reports match_layout with zero test references while tests/features.py calls it seven times. EVERY ref_prod and ref_test figure in dead_code.json is a lower bound until the census counts aliases. The five genuinely dead defs survive three independent methods: a whole-tree lexical token census, raising sentinels across all 13 gate scripts with a working positive control, and an identifier census. 46 dead lines, 0.12 % of the package."
+  },
+  "reports": ["D7/verify-1.md", "D7/verify-2.md", "D7/verify-3.md"],
+  "contention": "Every decisive number is a count, a ratio or a deterministic simulation value; thread_factor 1.0 throughout, load1 3-88 under the fan-out, so none is provisional. One gap for the judge: seat 2 could not re-run dead_code.py because the gate lock was held on all five attempts, though its own static census and a sys.monitoring sentinel agree with it."
+}

@@ -91,8 +91,6 @@ class InputHealthBinarySensor(_OptimizerBinarySensorBase):
 
     _attr_device_class = BinarySensorDeviceClass.PROBLEM
     _attr_entity_category = EntityCategory.DIAGNOSTIC
-    _attr_icon = "mdi:alert-decagram-outline"
-
     def __init__(self, coordinator, entry) -> None:
         super().__init__(coordinator, entry, "input_health", "input_problem")
 
@@ -126,7 +124,6 @@ class VentilationBinarySensor(_OptimizerBinarySensorBase):
     """
 
     _attr_device_class = BinarySensorDeviceClass.WINDOW
-    _attr_icon = "mdi:window-open-variant"
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
     def __init__(self, coordinator, entry) -> None:
@@ -154,8 +151,6 @@ class ExternalHeatBinarySensor(_OptimizerBinarySensorBase):
     """
 
     _attr_device_class = BinarySensorDeviceClass.HEAT
-    _attr_icon = "mdi:fire"
-
     def __init__(self, coordinator, entry) -> None:
         super().__init__(coordinator, entry, "external_heat", "external_heat_source")
 
@@ -186,8 +181,6 @@ class AwayModeBinarySensor(_OptimizerBinarySensorBase):
     Deliberately no device class: PRESENCE means on = somebody is home, which
     is the inverse of this sensor, so the UI showed "Home" while away.
     """
-
-    _attr_icon = "mdi:home-export-outline"
 
     def __init__(self, coordinator, entry) -> None:
         super().__init__(coordinator, entry, "away_mode", "away_mode")

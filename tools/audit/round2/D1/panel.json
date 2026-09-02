@@ -1,0 +1,35 @@
+{
+  "panel": "D1",
+  "seats": 3,
+  "votes": {
+    "D1-01": ["verify", "verify", "verify"],
+    "D1-02": ["weaken(low)", "weaken(low)", "verify"],
+    "D1-03": ["verify", "weaken(low)", "verify"],
+    "D1-04": ["verify", "weaken(low)", "weaken(low)"],
+    "D1-05": ["verify", "verify", "verify"]
+  },
+  "counted": {
+    "D1-01": "3-0 verify, escalated",
+    "D1-02": "3-0 verify, severity contested",
+    "D1-03": "3-0 verify",
+    "D1-04": "3-0 verify, weakened on reach",
+    "D1-05": "3-0 verify"
+  },
+  "severity": {
+    "D1-01": "medium",
+    "D1-02": "medium",
+    "D1-03": "medium",
+    "D1-04": "low",
+    "D1-05": "low"
+  },
+  "voided": [],
+  "notes": {
+    "D1-01": "3-0 verify and ESCALATED: the finding under-counts itself by two orders of magnitude. Seat 1's own garbage-collector scan gives a slope of exactly 1.0000 zombie coordinators per ConfigEntryNotReady retry over N = 1, 2, 3, 5, 8, naming the three holders per zombie (two bus listeners and one MQTT subscription), each dragging one optimizer and ten stores; the guards-off perturbation takes it to 0. Seat 2 extended it to a real outage: Home Assistant retries at roughly 45 times an hour, so a routine overnight twelve-hour outage leaks 543 coordinators, 1086 listeners and 17.6 MB, and runs 543 dead handlers per power-meter event. The reported figure of 10 is about one hour's worth. FIX DEFECT, seat 3: the proposed shutdown-on-NotReady fix measures 0 on the eager-task-start arm but leaves the leak UNCHANGED on the lazy arm, which is Home Assistant 2024.1 to 2024.2, the floor hacs.json declares. The two alternatives the finding lists do not have that hole.",
+    "D1-02": "3-0 verify, severity contested, and the determinism question is settled. Seat 3 ran three BLIND fixed-delay arms with no synchronisation to the solve thread and no sleep inside optimize: 60 of 60 hits, against 0 of 20 between solves. It is not a race needing a harness sleep, it is a deterministic window whose width is the whole solve. Seats 1 and 2 weakened it on a different axis: whether the scheduled refresh survives the unload is the sole hinge, and it decides 3 post-shutdown actuations versus 0. Seat 1 built a third arm looking for any window that survives cancellation and found none. No homeassistant package exists on this box, so which way Home Assistant owns that task is UNRESOLVABLE HERE and the judge must settle it. The code property is real either way and the proposed one-liner takes the count to 0 with entities.py still passing.",
+    "D1-03": "3-0 verify. Three independent fuzzing grammars agree on the shape: seat 1's twelve-operator grammar gives 180 of 2000 loader crashes against the finder's 152, seat 3's seedless exhaustive sweep gives 16 of 220 with 16 of 16 repeating on the next load, and every run has an identity control of 0. Setup ALWAYS survives, 2000 of 2000: the install comes up and only learners are lost. Seat 2 knocked down the permanence claim: driven on a tank that actually cools, dhw_profile is rewritten after two cycles and reloads cleanly, so 65 of the 74 supposedly permanent cases self-heal and only thermal_learning is genuinely permanent, at 9 in 2000. When it does happen the user loses 56 weekday and 77 weekend calendar days of day-type learning plus 24 days of hourly reconvergence.",
+    "D1-04": "3-0 verify, WEAKENED HARD on reach. Seat 2's decisive result: the finder's 'while the cycle stays green' is a harness artefact. It set _fetch_tibber_prices to a no-op; with the real fetch restored the scheduled cycle raises UpdateFailed and the dashboard button is closed too, so both automatic paths are shut. The one open door is the run_optimization service, which the finding never names. Seat 3 found the second mitigation: the shipped card renders two full-width 'estimated' rectangles and an 'estimated prices' label whenever every slot is unpriced, so the fabricated price is visibly disclosed. Behind the service door the money is real, +53.19 SEK (+105.9 %) on winter_typical and +112.43 SEK (+128.6 %) on winter_extreme per 24 hours, with the metric's zero floor validated at exactly 0.000. METRIC CORRECTION, seat 3: restate as 'steps with price_known false', not 'price == 0.5' -- on a grid-fee install the fee is added after the fallback so every step prices at 0.850 and the finder's own counter reads 0 while the finding fully holds.",
+    "D1-05": "3-0 verify at low, and the corruption direction is zero. Seats 1 and 3 independently identify the same three shared mutable containers through replace(): dhw_windows, defrost_derate and dhw_hourly_draw_pattern, which a deep copy shares none of. Seat 2 settled what it costs: a user-triggered what-if writes NOTHING to live learner state, zero writes across all twelve override keys against a control of three, and at the real production write rate of one observe per cycle the tear is two display fields with the cost delta moving 0.000. The finder's ten torn fields come from 240 clamped-extreme observes, 240 times production amplitude. Three of the four containers it attributes have no production in-place writer at all. Real aliasing, no measured consequence: hygiene with a cheap deep-copy fix that takes the finder's own number to 0 while the control stays at 10."
+  },
+  "reports": ["D1/verify-1.md", "D1/verify-2.md", "D1/verify-3.md"],
+  "contention": "Every number is a count; load1 ran 16-88 all session and no wall, CPU or resident-memory figure is claimed anywhere. The one memory figure is tracemalloc allocation accounting, not resident set size. Unresolvable here: whether Home Assistant schedules a coordinator's interval refresh as a hass-level task or an entry background task, which decides D1-02's severity."
+}

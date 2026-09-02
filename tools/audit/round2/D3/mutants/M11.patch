@@ -1,0 +1,11 @@
+--- a/custom_components/heatpump_optimizer/optimizer.py
++++ b/custom_components/heatpump_optimizer/optimizer.py
+@@ -2398,7 +2398,7 @@
+                 # Same convention as the space trajectory: index 0 is the
+                 # initial tank temperature, not a planned one.
+                 planned = planned[1:] if planned.size > req.size else planned
+-                steps = min(planned.size, req.size)
++                steps = planned.size
+                 if steps > 0:
+                     shortfall = float(
+                         np.max(np.clip(req[:steps] - planned[:steps], 0.0, None))

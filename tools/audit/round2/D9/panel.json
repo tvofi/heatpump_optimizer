@@ -1,0 +1,57 @@
+{
+ "panel": "D9",
+ "seats": 3,
+ "votes": {
+  "D9-01": [
+   "verify",
+   "verify",
+   "verify"
+  ],
+  "D9-02": [
+   "verify",
+   "verify",
+   "verify"
+  ],
+  "D9-03": [
+   "verify",
+   "verify",
+   "verify"
+  ],
+  "D9-04": [
+   "verify",
+   "verify",
+   "verify"
+  ],
+  "D9-05": [
+   "verify",
+   "verify",
+   "verify"
+  ]
+ },
+ "counted": {
+  "D9-01": "3-0 verify",
+  "D9-02": "3-0 verify",
+  "D9-03": "3-0 verify",
+  "D9-04": "3-0 verify",
+  "D9-05": "3-0 verify"
+ },
+ "severity": {
+  "D9-01": "high",
+  "D9-02": "medium",
+  "D9-03": "low",
+  "D9-04": "low",
+  "D9-05": "medium"
+ },
+ "notes": {
+  "D9-01": "STRENGTHENED on reach, CORRECTED on drift. The trigger is structural, not lucky: optimizer.py:3195 clamps p_dhw_run to min(power_caps_extra) and solve_space subtracts it from the same cap, so headroom is identically zero at every planned DHW step for any uniform cap between 0.1 kW and 0.8*p_max. Reachable without any feature switched on: the fuse ADVISOR runs a capped shadow solve for anyone who merely entered their main fuse size (284,160 vs 18,336 steps, weekly). A 25 A 3-phase house with a 14 kW EV load puts the LIVE solve on the scalar path: 407,616 equivalents, whole cycle 230x reference. Producers are wider than pins and caps: a forced-ON pin at min-on power, and a single exact 0.0 in power_caps_extra. Fix soundness EXECUTED: NaN in the jac kills L-BFGS-B at status 2 nit 0; a 0.0 entry converges identically, so treating lo==hi as fixed works (fuse_guard 94 -> 1 fev/jev). CORRECTION: the finder said fuse_guard drift is 'last-decimal at most, possibly none' - it moves 177 fields at PRECISION=6 (max delta 4.5e-05) and MUST be re-recorded. Seat 1: four shipped routes reach it with nothing injected - a single-phase 16 A fuse guard (3.68 kW cap < the 4.0 kW DHW run power of a default 5 kW pump), a fuse minus a measured house load, the monthly advisor shadow solve, and a ONE-SLOT manual plan (23 forced-off steps). Consequence corrected: 12.2-12.8 s on the M1 (~85-90 s on a Pi at x7), not 18-25 s. Exact arithmetic: batched = 3n, scalar = n^2, ratio n/3 = 32.0",
+  "D9-02": "verified and sharpened: stress.py and optimality.py never pass power_caps_extra or space_pins, so D9-01's 13-40x path is UNSAMPLED, not merely under-budgeted - re-sizing a global constant cannot fix that. A single global ratio can never do better than 'detects exactly the factor it was sized against' (worst cell is 8.4x the median; the box's own run-to-run spread is 2.7 %). The owner's brief premise 'CI sets it 4x looser' is stale - it described the retired STRESS_SOLVE_BUDGET_MS. stress_budgets.json is absent at this baseline (#145 landed later). Seat 1 supplied the named production mutation the contract asks for: optimizer.py:121 _MULTI_START_SOLVES 2 -> 4, worth 1.48x of sweep CPU, passes the gate untouched; an exact 4.04x uniform regression trips 0 of 48 per-scenario checks AND the sweep check",
+  "D9-03": "verified: f0_x_identity = 1.000 (103 of 103 _batch_fd_gradient calls at an x byte-identical to scipy's immediately preceding objective call). The real fix implemented: trajectories per gradient 2.068 -> 1.039, 0 of 49 fixtures change",
+  "D9-04": "verified, framing corrected: lead with planner_over_reference (3.4-4.1, stable) not 'the 63 % share', which is 63 % of the CHEAPEST solve (10.4 % on two-zone). Not a hook artefact (0.6191 with one wrapper vs 0.6266 with seven). Two more per-slot re-simulation loops unnamed: optimizer.py:3996 (range(48)) and :4364 (range(400)). Seat 1 added the missing null control (DHW off -> planner cost exactly zero) and restates the title: 'a near-constant 2-4.4x reference-solve cost per planning call, twice per solve - 10 % of the default two-zone solve, 64 % of a single-zone winter one'",
+  "D9-05": "verified and UNDERSTATED by the finder: longest GIL hold 265-412 ms (reported 39.4), p99 232-338 ms (reported 35.8), across the quiet window and two independent verifiers; stage attribution is dhw_lp_build / scalar_sim, not simulate_trajectory_batch. The STATED PERTURBATION IS VOID (setswitchinterval(0.05) moved the longest hold DOWN in both runs); score it on gap_p50 instead (2.54 -> 17.24 ms). An ordinary Python thread starves as badly as the loop (0.939 share, 403 ms), so this is whole-interpreter GIL starvation - in real HA the recorder thread and every other integration's executor job stop too. That settles the fix in favour of the process route; note coordinator.py:4735 passes a LAMBDA to the executor, so ProcessPoolExecutor needs the call restructured first, and the fix names neither the what-if solve (:10776) nor diagnose_last_interval (:10104). Seat 1 identified the MECHANISM: not 'numpy holds the GIL between ops' - two of the longest holds land in pure-Python frames (_simulate_step_two_zone 204 ms, dataclasses._replace 94 ms). It is GIL hand-off convoy, which also explains why a CONTENDED box showed SMALLER maxima. Cheap mitigation measured: a 10x shorter switch interval takes the longest hold 409 -> 4.6 ms and the share 0.951 -> 0 for +3 % CPU. Also: time.sleep(0) releases nothing (CPython zero-argument fast path, x1.00 on the share) - a real micro-sleep is needed, or the process route"
+ },
+ "reports": [
+  "D9/verify-1.md",
+  "D9/verify-2.md",
+  "D9/verify-3.md"
+ ]
+}

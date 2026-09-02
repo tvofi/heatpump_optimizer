@@ -1,0 +1,16 @@
+== space_plan points 96 slots 2 kWh 34.64 cost 22.44 active True
+  first fc: {"t": "2026-01-15T00:00:00", "price": 0.62, "price_known": true, "outdoor": -10.0, "space_power": 2.0, "room": 20.91, "upper": 20.91, "lower": 20.91, "reason": "cheap_price", "pv_surplus": null}
+  first slot: {"start": "2026-01-15T00:00:00", "end": "2026-01-15T05:00:00", "duration_hours": 5.0, "avg_power_kw": 5.73, "energy_kwh": 28.637, "avg_price": 0.62, "cost": 17.76, "shared_kwh": 1.363, "reason": "cheap_price", "reasons": ["cheap_price"]}
+  last slot : {"start": "2026-01-15T23:00:00", "end": "2026-01-16T00:00:00", "duration_hours": 1.0, "avg_power_kw": 6.0, "energy_kwh": 6.0, "avg_price": 0.78, "cost": 4.68, "reason": "terminal_value", "reasons": ["terminal_value"]}
+== dhw_plan points 96 slots 9 kWh 6.53 cost 8.2 active True
+  first fc: {"t": "2026-01-15T00:00:00", "price": 0.62, "price_known": true, "outdoor": -10.0, "dhw_power": 4.0, "dhw_temp": 55.0, "dhw_temp_lo": 54.6, "dhw_temp_hi": 55.4, "reason": "dhw_preheat"}
+  first slot: {"start": "2026-01-15T00:00:00", "end": "2026-01-15T00:15:00", "duration_hours": 0.25, "avg_power_kw": 4.0, "energy_kwh": 1.0, "avg_price": 0.62, "cost": 0.62, "shared_kwh": 0.5, "reason": "dhw_preheat", "reasons": ["dhw_preheat"]}
+  last slot : {"start": "2026-01-15T21:45:00", "end": "2026-01-15T22:00:00", "duration_hours": 0.25, "avg_power_kw": 0.6, "energy_kwh": 0.15, "avg_price": 1.3, "cost": 0.2, "reason": "dhw_window", "reasons": ["dhw_window"]}
+dhw band width: first 0.80 last 6.00 °C over 96 steps
+space reasons: ['cheap_price', 'idle', 'terminal_value']
+dhw reasons  : ['dhw_preheat', 'dhw_window', 'idle']
+raw space kWh 34.64 raw dhw kWh 6.53
+slot-sum space kWh 34.64
+slot-sum dhw kWh 6.53
+wrote /private/var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/d10-cov-tKrj5g/plandata.json
+plan reason codes, price provenance and slot energy OK

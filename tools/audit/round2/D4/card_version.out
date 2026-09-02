@@ -1,0 +1,6 @@
+card CARD_VERSION=5.4.17 VERSION=6.2.14 manifest=6.2.14
+RESULT card_version_matches=0 flag
+RESULT version_delta=1.-2.-3 tuple
+RESULT thread_factor=1.00
+RESULT load1=4.60
+RESULT swapins=0

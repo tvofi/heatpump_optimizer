@@ -1,0 +1,237 @@
+QUIET_NAME=D0-race_grid
+QUIET_DIR=/Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/audit-r2-D0
+QUIET_CMD=/Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/tvofi-claude/.venv/bin/python tools/audit/round2/D0/race_grid.py --quiet
+QUIET_START=2026-09-02 09:22:32
+QUIET_LOAD_BEFORE={ 1.90 2.02 2.12 }
+QUIET_CPU_BEFORE=CPU usage: 4.25% user, 3.47% sys, 92.27% idle 
+  winter_typical/winter_cold/sz/dhw/24h: obj 68.820 gap +0.0000 (0.00 %) restart +0.0000 pg 0 nit 4 bill 30.64
+  winter_typical/winter_cold/sz/nodhw/24h: obj 60.104 gap +0.0000 (0.00 %) restart +0.0000 pg 0 nit 4 bill 23.28
+  winter_typical/winter_cold/tz/dhw/24h: obj 87.862 gap +1.2239 (1.39 %) restart +0.9541 pg 0.37 nit 22 bill 68.98
+  winter_typical/winter_cold/tz/nodhw/24h: obj 77.988 gap +0.3720 (0.48 %) restart +0.0000 pg 0.065 nit 22 bill 58.30
+  winter_typical/winter_mild/sz/dhw/24h: obj 29.292 gap +0.0107 (0.04 %) restart +0.0000 pg 0.007 nit 19 bill 23.71
+  winter_typical/winter_mild/sz/nodhw/24h: obj 23.442 gap +0.0387 (0.17 %) restart +0.0000 pg 0.1 nit 13 bill 17.85
+  winter_typical/winter_mild/tz/dhw/24h: obj 35.648 gap +0.1171 (0.33 %) restart +0.0000 pg 0.047 nit 25 bill 25.51
+  winter_typical/winter_mild/tz/nodhw/24h: obj 29.799 gap +0.0647 (0.22 %) restart +0.0000 pg 0.086 nit 24 bill 19.61
+  winter_typical/summer_warm/sz/dhw/24h: obj 6440.188 gap +0.0000 (0.00 %) restart +0.0000 pg 0 nit 3 bill 4.57
+  winter_typical/summer_warm/sz/nodhw/24h: obj 6435.620 gap +0.0000 (0.00 %) restart +0.0000 pg 0 nit 0 bill 0.00
+  winter_typical/summer_warm/tz/dhw/24h: obj 10602.536 gap +0.0000 (0.00 %) restart +0.0000 pg 0 nit 1 bill 4.57
+  winter_typical/summer_warm/tz/nodhw/24h: obj 10597.968 gap +0.0000 (0.00 %) restart +0.0000 pg 0 nit 1 bill 0.00
+  winter_typical/summer_cool/sz/dhw/24h: obj 8.560 gap +0.0297 (0.35 %) restart +0.0000 pg 0.047 nit 7 bill 6.98
+  winter_typical/summer_cool/sz/nodhw/24h: obj 3.328 gap +0.0108 (0.32 %) restart +0.0000 pg 0.17 nit 8 bill 1.72
+  winter_typical/summer_cool/tz/dhw/24h: obj 9.042 gap +0.0130 (0.14 %) restart +0.0000 pg 0.02 nit 15 bill 7.36
+  winter_typical/summer_cool/tz/nodhw/24h: obj 3.824 gap +0.0095 (0.25 %) restart +0.0000 pg 0.029 nit 7 bill 2.31
+  winter_typical/shoulder/sz/dhw/24h: obj 12.319 gap +0.0239 (0.19 %) restart +0.0000 pg 0.099 nit 8 bill 10.47
+  winter_typical/shoulder/sz/nodhw/24h: obj 6.743 gap +0.0376 (0.56 %) restart +0.0000 pg 0.021 nit 10 bill 5.23
+  winter_typical/shoulder/tz/dhw/24h: obj 13.896 gap +0.0066 (0.05 %) restart +0.0000 pg 0.045 nit 28 bill 11.66
+  winter_typical/shoulder/tz/nodhw/24h: obj 8.431 gap +0.1128 (1.34 %) restart +0.1037 pg 0.049 nit 16 bill 5.98
+  winter_extreme/winter_cold/sz/dhw/24h: obj 95.784 gap +0.0000 (0.00 %) restart +0.0000 pg 0 nit 2 bill 54.72
+  winter_extreme/winter_cold/sz/nodhw/24h: obj 80.741 gap +0.0000 (0.00 %) restart +0.0000 pg 0 nit 6 bill 41.40
+  winter_extreme/winter_cold/tz/dhw/24h: obj 128.573 gap +0.1857 (0.14 %) restart +0.0000 pg 0.13 nit 36 bill 111.61
+  winter_extreme/winter_cold/tz/nodhw/24h: obj 111.657 gap +0.1467 (0.13 %) restart +0.0000 pg 0.15 nit 47 bill 94.28
+  winter_extreme/winter_mild/sz/dhw/24h: obj 44.203 gap +0.2598 (0.59 %) restart +0.0000 pg 0.022 nit 11 bill 37.03
+  winter_extreme/winter_mild/sz/nodhw/24h: obj 33.303 gap +0.0845 (0.25 %) restart +0.0000 pg 0.28 nit 9 bill 26.41
+  winter_extreme/winter_mild/tz/dhw/24h: obj 52.192 gap +0.1441 (0.28 %) restart +0.0000 pg 0.086 nit 15 bill 35.32
+  winter_extreme/winter_mild/tz/nodhw/24h: obj 41.199 gap -0.3087 (-0.75 %) restart +0.0000 pg 0.13 nit 19 bill 29.59
+  winter_extreme/summer_warm/sz/dhw/24h: obj 6444.338 gap +0.0000 (0.00 %) restart +0.0000 pg 0 nit 3 bill 8.72
+  winter_extreme/summer_warm/sz/nodhw/24h: obj 6435.620 gap +0.0000 (0.00 %) restart +0.0000 pg 0 nit 0 bill 0.00
+  winter_extreme/summer_warm/tz/dhw/24h: obj 10606.685 gap +0.0000 (0.00 %) restart +0.0000 pg 0 nit 1 bill 8.72
+  winter_extreme/summer_warm/tz/nodhw/24h: obj 10597.968 gap +0.0000 (0.00 %) restart +0.0000 pg 0 nit 1 bill 0.00
+  winter_extreme/summer_cool/sz/dhw/24h: obj 14.147 gap +0.0253 (0.18 %) restart +0.0000 pg 0.019 nit 8 bill 12.73
+  winter_extreme/summer_cool/sz/nodhw/24h: obj 4.435 gap +0.0053 (0.12 %) restart +0.0000 pg 0.043 nit 13 bill 2.83
+  winter_extreme/summer_cool/tz/dhw/24h: obj 14.903 gap +0.0308 (0.21 %) restart +0.0209 pg 0.019 nit 8 bill 13.16
+  winter_extreme/summer_cool/tz/nodhw/24h: obj 5.185 gap +0.0134 (0.26 %) restart +0.0000 pg 0.0083 nit 8 bill 3.23
+  winter_extreme/shoulder/sz/dhw/24h: obj 19.741 gap +0.0419 (0.21 %) restart +0.0000 pg 0.064 nit 7 bill 17.24
+  winter_extreme/shoulder/sz/nodhw/24h: obj 9.446 gap +0.0289 (0.31 %) restart +0.0000 pg 0.081 nit 9 bill 7.40
+  winter_extreme/shoulder/tz/dhw/24h: obj 22.070 gap +0.0697 (0.32 %) restart +0.0386 pg 0.02 nit 12 bill 19.39
+  winter_extreme/shoulder/tz/nodhw/24h: obj 11.777 gap +0.0113 (0.10 %) restart +0.0000 pg 0.037 nit 14 bill 9.27
+  summer_typical/winter_cold/sz/dhw/24h: obj 22.190 gap +0.0000 (0.00 %) restart +0.0000 pg 0 nit 19 bill 14.89
+  summer_typical/winter_cold/sz/nodhw/24h: obj 19.511 gap +0.0000 (0.00 %) restart +0.0000 pg 7.1e-11 nit 17 bill 12.56
+  summer_typical/winter_cold/tz/dhw/24h: obj 28.057 gap +0.0854 (0.30 %) restart +0.0000 pg 0.032 nit 9 bill 19.25
+  summer_typical/winter_cold/tz/nodhw/24h: obj 25.121 gap +0.1424 (0.57 %) restart +0.0000 pg 0.032 nit 6 bill 16.27
+  summer_typical/winter_mild/sz/dhw/24h: obj 9.409 gap +0.0043 (0.05 %) restart +0.0000 pg 0.0051 nit 15 bill 7.51
+  summer_typical/winter_mild/sz/nodhw/24h: obj 7.558 gap +0.0077 (0.10 %) restart +0.0000 pg 0.0066 nit 13 bill 5.66
+  summer_typical/winter_mild/tz/dhw/24h: obj 10.550 gap +0.0001 (0.00 %) restart +0.0000 pg 0.00019 nit 36 bill 8.40
+  summer_typical/winter_mild/tz/nodhw/24h: obj 8.671 gap +0.0001 (0.00 %) restart +0.0000 pg 0.00015 nit 40 bill 6.57
+  summer_typical/summer_warm/sz/dhw/24h: obj 6437.132 gap +0.0000 (0.00 %) restart +0.0000 pg 0 nit 2 bill 1.51
+  summer_typical/summer_warm/sz/nodhw/24h: obj 6435.620 gap +0.0000 (0.00 %) restart +0.0000 pg 0 nit 0 bill 0.00
+  summer_typical/summer_warm/tz/dhw/24h: obj 10599.480 gap +0.0000 (0.00 %) restart +0.0000 pg 0 nit 1 bill 1.51
+  summer_typical/summer_warm/tz/nodhw/24h: obj 10597.968 gap +0.0000 (0.00 %) restart +0.0000 pg 0 nit 1 bill 0.00
+  summer_typical/summer_cool/sz/dhw/24h: obj 3.364 gap +0.0027 (0.08 %) restart +0.0027 pg 0.0018 nit 27 bill 2.12
+  summer_typical/summer_cool/sz/nodhw/24h: obj 1.667 gap +0.0041 (0.25 %) restart +0.0010 pg 0.035 nit 17 bill 0.43
+  summer_typical/summer_cool/tz/dhw/24h: obj 3.419 gap +0.0000 (0.00 %) restart +0.0000 pg 7.6e-05 nit 27 bill 2.24
+  summer_typical/summer_cool/tz/nodhw/24h: obj 1.723 gap +0.0001 (0.00 %) restart +0.0000 pg 6.1e-05 nit 33 bill 0.54
+  summer_typical/shoulder/sz/dhw/24h: obj 4.534 gap +0.0406 (0.89 %) restart +0.0306 pg 0.0058 nit 17 bill 2.91
+  summer_typical/shoulder/sz/nodhw/24h: obj 2.713 gap +0.0143 (0.53 %) restart +0.0143 pg 0.0052 nit 16 bill 1.10
+  summer_typical/shoulder/tz/dhw/24h: obj 5.082 gap +0.0000 (0.00 %) restart +0.0000 pg 8.8e-05 nit 35 bill 3.36
+  summer_typical/shoulder/tz/nodhw/24h: obj 3.295 gap +0.0001 (0.00 %) restart +0.0000 pg 0.00011 nit 43 bill 1.58
+  summer_negative/winter_cold/sz/dhw/24h: obj 15.172 gap +0.1095 (0.72 %) restart +0.0000 pg 0.011 nit 8 bill 12.75
+  summer_negative/winter_cold/sz/nodhw/24h: obj 13.144 gap +0.1737 (1.32 %) restart +0.1538 pg 0.025 nit 9 bill 11.34
+  summer_negative/winter_cold/tz/dhw/24h: obj 19.336 gap +0.0137 (0.07 %) restart +0.0000 pg 0.012 nit 10 bill 16.74
+  summer_negative/winter_cold/tz/nodhw/24h: obj 17.214 gap +0.0000 (0.00 %) restart +0.0000 pg 0.0061 nit 23 bill 14.53
+  summer_negative/winter_mild/sz/dhw/24h: obj 2.063 gap +0.0000 (0.00 %) restart +0.0000 pg 0.061 nit 16 bill 0.82
+  summer_negative/winter_mild/sz/nodhw/24h: obj 0.622 gap +0.0000 (0.00 %) restart +0.0000 pg 0.017 nit 20 bill -0.71
+  summer_negative/winter_mild/tz/dhw/24h: obj 3.313 gap +0.0064 (0.19 %) restart +0.0000 pg 0.028 nit 18 bill 1.32
+  summer_negative/winter_mild/tz/nodhw/24h: obj 1.953 gap +0.0251 (1.29 %) restart +0.0041 pg 0.015 nit 31 bill -0.27
+  summer_negative/summer_warm/sz/dhw/24h: obj 6436.454 gap +0.0000 (0.00 %) restart +0.0000 pg 0 nit 2 bill 0.83
+  summer_negative/summer_warm/sz/nodhw/24h: obj 6435.620 gap +0.0000 (0.00 %) restart +0.0000 pg 0 nit 0 bill 0.00
+  summer_negative/summer_warm/tz/dhw/24h: obj 10598.801 gap +0.0000 (0.00 %) restart +0.0000 pg 0 nit 1 bill 0.83
+  summer_negative/summer_warm/tz/nodhw/24h: obj 10597.968 gap +0.0000 (0.00 %) restart +0.0000 pg 0 nit 1 bill 0.00
+  summer_negative/summer_cool/sz/dhw/24h: obj 1.547 gap +0.0147 (0.95 %) restart +0.0000 pg 0.0042 nit 12 bill 0.26
+  summer_negative/summer_cool/sz/nodhw/24h: obj 0.669 gap +0.0091 (1.36 %) restart +0.0000 pg 0.0047 nit 12 bill -0.60
+  summer_negative/summer_cool/tz/dhw/24h: obj 1.338 gap +0.0000 (0.00 %) restart +0.0000 pg 5e-05 nit 46 bill 0.22
+  summer_negative/summer_cool/tz/nodhw/24h: obj 0.465 gap +0.0000 (0.00 %) restart +0.0000 pg 1.7e-05 nit 49 bill -0.65
+  summer_negative/shoulder/sz/dhw/24h: obj 1.132 gap +0.0459 (4.06 %) restart +0.0000 pg 0.07 nit 13 bill -0.75
+  summer_negative/shoulder/sz/nodhw/24h: obj 0.292 gap +0.0378 (12.91 %) restart +0.0059 pg 0.055 nit 6 bill -1.44
+  summer_negative/shoulder/tz/dhw/24h: obj 1.067 gap +0.0173 (1.63 %) restart +0.0000 pg 0.019 nit 20 bill -0.69
+  summer_negative/shoulder/tz/nodhw/24h: obj 0.264 gap +0.0588 (22.24 %) restart +0.0000 pg 0.023 nit 9 bill -1.42
+  shoulder/winter_cold/sz/dhw/24h: obj 54.910 gap +0.3712 (0.68 %) restart +0.0000 pg 0.19 nit 7 bill 45.83
+  shoulder/winter_cold/sz/nodhw/24h: obj 48.825 gap +0.4439 (0.91 %) restart +0.0000 pg 0.041 nit 11 bill 37.95
+  shoulder/winter_cold/tz/dhw/24h: obj 64.997 gap +0.0001 (0.00 %) restart +0.0000 pg 0.032 nit 26 bill 56.90
+  shoulder/winter_cold/tz/nodhw/24h: obj 59.060 gap +0.1326 (0.22 %) restart +0.0015 pg 0.17 nit 12 bill 50.71
+  shoulder/winter_mild/sz/dhw/24h: obj 21.695 gap +0.0029 (0.01 %) restart +0.0000 pg 0.0089 nit 11 bill 18.58
+  shoulder/winter_mild/sz/nodhw/24h: obj 18.004 gap +0.0061 (0.03 %) restart +0.0000 pg 0.0094 nit 10 bill 14.84
+  shoulder/winter_mild/tz/dhw/24h: obj 26.929 gap -0.0510 (-0.19 %) restart +0.0000 pg 0.019 nit 33 bill 22.30
+  shoulder/winter_mild/tz/nodhw/24h: obj 23.324 gap +0.0316 (0.14 %) restart +0.0006 pg 0.036 nit 23 bill 18.60
+  shoulder/summer_warm/sz/dhw/24h: obj 6438.550 gap +0.0000 (0.00 %) restart +0.0000 pg 0 nit 2 bill 2.93
+  shoulder/summer_warm/sz/nodhw/24h: obj 6435.620 gap +0.0000 (0.00 %) restart +0.0000 pg 0 nit 0 bill 0.00
+  shoulder/summer_warm/tz/dhw/24h: obj 10600.897 gap +0.0000 (0.00 %) restart +0.0000 pg 0 nit 1 bill 2.93
+  shoulder/summer_warm/tz/nodhw/24h: obj 10597.968 gap +0.0000 (0.00 %) restart +0.0000 pg 0 nit 1 bill 0.00
+  shoulder/summer_cool/sz/dhw/24h: obj 6.064 gap +0.0694 (1.14 %) restart +0.0000 pg 0.17 nit 15 bill 4.97
+  shoulder/summer_cool/sz/nodhw/24h: obj 2.894 gap +0.0239 (0.82 %) restart +0.0000 pg 0.048 nit 7 bill 1.05
+  shoulder/summer_cool/tz/dhw/24h: obj 6.477 gap +0.0000 (0.00 %) restart +0.0000 pg 0.0074 nit 18 bill 5.28
+  shoulder/summer_cool/tz/nodhw/24h: obj 3.347 gap +0.0107 (0.32 %) restart +0.0000 pg 0.0093 nit 14 bill 2.16
+  shoulder/shoulder/sz/dhw/24h: obj 9.134 gap +0.0859 (0.94 %) restart +0.0000 pg 0.09 nit 8 bill 6.77
+  shoulder/shoulder/sz/nodhw/24h: obj 5.591 gap +0.0022 (0.04 %) restart +0.0000 pg 0.049 nit 17 bill 4.44
+  shoulder/shoulder/tz/dhw/24h: obj 10.281 gap +0.0094 (0.09 %) restart +0.0000 pg 0.029 nit 34 bill 8.79
+  shoulder/shoulder/tz/nodhw/24h: obj 6.923 gap +0.0303 (0.44 %) restart +0.0000 pg 0.017 nit 12 bill 5.39
+  winter_narrow/winter_cold/sz/dhw/24h: obj 113.752 gap +0.0000 (0.00 %) restart +0.0000 pg 7.1e-10 nit 11 bill 80.97
+  winter_narrow/winter_cold/sz/nodhw/24h: obj 103.136 gap +0.0000 (0.00 %) restart +0.0000 pg 0 nit 23 bill 74.92
+  winter_narrow/winter_cold/tz/dhw/24h: obj 137.230 gap +2.5099 (1.83 %) restart +2.1631 pg 0.48 nit 19 bill 123.40
+  winter_narrow/winter_cold/tz/nodhw/24h: obj 124.720 gap +0.5125 (0.41 %) restart +0.0060 pg 0.1 nit 39 bill 111.21
+  winter_narrow/winter_mild/sz/dhw/24h: obj 52.240 gap +0.0756 (0.14 %) restart +0.0000 pg 0.34 nit 17 bill 36.42
+  winter_narrow/winter_mild/sz/nodhw/24h: obj 45.014 gap +0.0374 (0.08 %) restart +0.0000 pg 0.33 nit 29 bill 29.85
+  winter_narrow/winter_mild/tz/dhw/24h: obj 58.032 gap +0.1175 (0.20 %) restart +0.0019 pg 0.11 nit 16 bill 48.59
+  winter_narrow/winter_mild/tz/nodhw/24h: obj 50.751 gap +0.1514 (0.30 %) restart +0.0639 pg 0.015 nit 29 bill 39.59
+  winter_narrow/summer_warm/sz/dhw/24h: obj 6440.854 gap +0.0000 (0.00 %) restart +0.0000 pg 0 nit 2 bill 5.23
+  winter_narrow/summer_warm/sz/nodhw/24h: obj 6435.620 gap +0.0000 (0.00 %) restart +0.0000 pg 0 nit 0 bill 0.00
+  winter_narrow/summer_warm/tz/dhw/24h: obj 10603.202 gap +0.0000 (0.00 %) restart +0.0000 pg 0 nit 1 bill 5.23
+  winter_narrow/summer_warm/tz/nodhw/24h: obj 10597.968 gap +0.0000 (0.00 %) restart +0.0000 pg 0 nit 1 bill 0.00
+  winter_narrow/summer_cool/sz/dhw/24h: obj 11.329 gap +0.0196 (0.17 %) restart +0.0000 pg 0.02 nit 4 bill 8.78
+  winter_narrow/summer_cool/sz/nodhw/24h: obj 5.191 gap +0.0012 (0.02 %) restart +0.0000 pg 0.31 nit 6 bill 2.81
+  winter_narrow/summer_cool/tz/dhw/24h: obj 12.196 gap +0.0000 (0.00 %) restart +0.0000 pg 0.0098 nit 13 bill 9.61
+  winter_narrow/summer_cool/tz/nodhw/24h: obj 6.084 gap +0.0024 (0.04 %) restart +0.0000 pg 0.007 nit 10 bill 3.63
+  winter_narrow/shoulder/sz/dhw/24h: obj 18.173 gap +0.0263 (0.14 %) restart +0.0000 pg 0.17 nit 10 bill 13.70
+  winter_narrow/shoulder/sz/nodhw/24h: obj 11.592 gap +0.1270 (1.10 %) restart +0.0000 pg 0.3 nit 6 bill 7.42
+  winter_narrow/shoulder/tz/dhw/24h: obj 21.472 gap +0.3418 (1.59 %) restart +0.3186 pg 0.051 nit 7 bill 17.79
+  winter_narrow/shoulder/tz/nodhw/24h: obj 14.485 gap +0.0017 (0.01 %) restart +0.0000 pg 0.028 nit 14 bill 8.97
+  winter_moderate/winter_cold/sz/dhw/24h: obj 84.406 gap +0.0000 (0.00 %) restart +0.0000 pg 0 nit 2 bill 48.05
+  winter_moderate/winter_cold/sz/nodhw/24h: obj 75.905 gap +0.0000 (0.00 %) restart +0.0000 pg 0 nit 7 bill 41.10
+  winter_moderate/winter_cold/tz/dhw/24h: obj 104.550 gap +0.4234 (0.40 %) restart +0.0149 pg 0.15 nit 22 bill 90.98
+  winter_moderate/winter_cold/tz/nodhw/24h: obj 95.611 gap +0.0792 (0.08 %) restart +0.3516 pg 0.16 nit 17 bill 81.36
+  winter_moderate/winter_mild/sz/dhw/24h: obj 37.996 gap +0.0000 (0.00 %) restart +0.0000 pg 0.011 nit 25 bill 29.89
+  winter_moderate/winter_mild/sz/nodhw/24h: obj 32.169 gap +0.0719 (0.22 %) restart +0.0019 pg 0.04 nit 7 bill 23.05
+  winter_moderate/winter_mild/tz/dhw/24h: obj 44.155 gap +0.1304 (0.30 %) restart +0.0000 pg 0.028 nit 20 bill 35.93
+  winter_moderate/winter_mild/tz/nodhw/24h: obj 38.122 gap +0.0000 (0.00 %) restart +0.0000 pg 0.17 nit 32 bill 29.99
+  winter_moderate/summer_warm/sz/dhw/24h: obj 6439.988 gap +0.0000 (0.00 %) restart +0.0000 pg 0 nit 3 bill 4.37
+  winter_moderate/summer_warm/sz/nodhw/24h: obj 6435.620 gap +0.0000 (0.00 %) restart +0.0000 pg 0 nit 0 bill 0.00
+  winter_moderate/summer_warm/tz/dhw/24h: obj 10602.335 gap +0.0000 (0.00 %) restart +0.0000 pg 0 nit 1 bill 4.37
+  winter_moderate/summer_warm/tz/nodhw/24h: obj 10597.968 gap +0.0000 (0.00 %) restart +0.0000 pg 0 nit 1 bill 0.00
+  winter_moderate/summer_cool/sz/dhw/24h: obj 9.104 gap +0.0106 (0.12 %) restart +0.0000 pg 0.26 nit 5 bill 6.98
+  winter_moderate/summer_cool/sz/nodhw/24h: obj 3.998 gap +0.0068 (0.17 %) restart +0.0000 pg 0.2 nit 5 bill 2.03
+  winter_moderate/summer_cool/tz/dhw/24h: obj 9.778 gap +0.0194 (0.20 %) restart +0.0000 pg 0.0098 nit 10 bill 7.72
+  winter_moderate/summer_cool/tz/nodhw/24h: obj 4.678 gap +0.0178 (0.38 %) restart +0.0000 pg 0.02 nit 10 bill 2.61
+  winter_moderate/shoulder/sz/dhw/24h: obj 14.127 gap +0.0971 (0.69 %) restart +0.0000 pg 0.08 nit 7 bill 10.81
+  winter_moderate/shoulder/sz/nodhw/24h: obj 8.565 gap +0.0123 (0.14 %) restart +0.0000 pg 0.22 nit 7 bill 5.20
+  winter_moderate/shoulder/tz/dhw/24h: obj 16.547 gap +0.1123 (0.68 %) restart +0.1056 pg 0.042 nit 9 bill 13.79
+  winter_moderate/shoulder/tz/nodhw/24h: obj 10.924 gap +0.0062 (0.06 %) restart +0.0000 pg 0.017 nit 9 bill 7.28
+  flat/winter_cold/sz/dhw/24h: obj 91.214 gap +0.6627 (0.73 %) restart +0.0000 pg 0.056 nit 10 bill 75.81
+  flat/winter_cold/sz/nodhw/24h: obj 82.463 gap +0.0001 (0.00 %) restart +0.0000 pg 0.055 nit 13 bill 68.99
+  flat/winter_cold/tz/dhw/24h: obj 107.869 gap +0.3349 (0.31 %) restart +0.0000 pg 0.047 nit 15 bill 97.72
+  flat/winter_cold/tz/nodhw/24h: obj 100.500 gap +1.1288 (1.12 %) restart +0.0011 pg 0.089 nit 13 bill 90.75
+  flat/winter_mild/sz/dhw/24h: obj 42.835 gap +0.0568 (0.13 %) restart +0.0000 pg 0.3 nit 15 bill 34.08
+  flat/winter_mild/sz/nodhw/24h: obj 37.524 gap +0.0000 (0.00 %) restart +0.0000 pg 0.11 nit 10 bill 30.41
+  flat/winter_mild/tz/dhw/24h: obj 46.771 gap +0.0227 (0.05 %) restart +0.0000 pg 0.13 nit 11 bill 40.61
+  flat/winter_mild/tz/nodhw/24h: obj 41.517 gap +0.0224 (0.05 %) restart +0.0000 pg 0.096 nit 10 bill 35.26
+  flat/summer_warm/sz/dhw/24h: obj 6439.572 gap +0.0000 (0.00 %) restart +0.0000 pg 0 nit 2 bill 3.95
+  flat/summer_warm/sz/nodhw/24h: obj 6435.620 gap +0.0000 (0.00 %) restart +0.0000 pg 0 nit 0 bill 0.00
+  flat/summer_warm/tz/dhw/24h: obj 10601.920 gap +0.0000 (0.00 %) restart +0.0000 pg 0 nit 1 bill 3.95
+  flat/summer_warm/tz/nodhw/24h: obj 10597.968 gap +0.0000 (0.00 %) restart +0.0000 pg 0 nit 1 bill 0.00
+  flat/summer_cool/sz/dhw/24h: obj 8.875 gap +0.0014 (0.02 %) restart +0.0000 pg 0.2 nit 4 bill 6.91
+  flat/summer_cool/sz/nodhw/24h: obj 4.450 gap +0.0040 (0.09 %) restart +0.0000 pg 0.064 nit 6 bill 2.70
+  flat/summer_cool/tz/dhw/24h: obj 9.629 gap +0.0195 (0.20 %) restart +0.0000 pg 0.03 nit 13 bill 7.41
+  flat/summer_cool/tz/nodhw/24h: obj 5.192 gap +0.0011 (0.02 %) restart +0.0000 pg 0.099 nit 18 bill 2.87
+  flat/shoulder/sz/dhw/24h: obj 14.481 gap +0.0167 (0.12 %) restart +0.0000 pg 0.034 nit 6 bill 12.12
+  flat/shoulder/sz/nodhw/24h: obj 9.614 gap +0.0013 (0.01 %) restart +0.0000 pg 0.095 nit 9 bill 6.84
+  flat/shoulder/tz/dhw/24h: obj 17.099 gap +0.0133 (0.08 %) restart +0.0000 pg 0.019 nit 10 bill 13.78
+  flat/shoulder/tz/nodhw/24h: obj 12.232 gap +0.0101 (0.08 %) restart +0.0000 pg 0.11 nit 12 bill 8.63
+
+RESULT cells=160 count
+RESULT cells_sz=80 count
+RESULT cells_with_gap_sz=49 count
+RESULT restart_improves_sz=6 count
+RESULT pg_above_pgtol_sz=54 count
+RESULT mean_gap_sek_sz=0.0412 SEK
+RESULT max_gap_sek_sz=0.6627 SEK
+RESULT mean_gap_pct_sz=0.440 pct_of_objective
+RESULT max_gap_pct_sz=12.912 pct_of_objective
+RESULT mean_energy_gap_pct_bill_sz=-1.757 pct_of_bill
+RESULT mean_restart_gap_sek_sz=0.0026 SEK
+RESULT loo_mean_gap_pct_sz=0.282 pct_of_objective
+RESULT loo_min_gap_pct_sz=0.000 pct_of_objective
+RESULT loo_dropped_sz=summer_negative/shoulder/sz/nodhw/24h cell
+RESULT cells_tz=80 count
+RESULT cells_with_gap_tz=49 count
+RESULT restart_improves_tz=15 count
+RESULT pg_above_pgtol_tz=64 count
+RESULT mean_gap_sek_tz=0.1088 SEK
+RESULT max_gap_sek_tz=2.5099 SEK
+RESULT mean_gap_pct_tz=0.507 pct_of_objective
+RESULT max_gap_pct_tz=22.242 pct_of_objective
+RESULT mean_energy_gap_pct_bill_tz=0.597 pct_of_bill
+RESULT mean_restart_gap_sek_tz=0.0519 SEK
+RESULT loo_mean_gap_pct_tz=0.232 pct_of_objective
+RESULT loo_min_gap_pct_tz=-0.749 pct_of_objective
+RESULT loo_dropped_tz=summer_negative/shoulder/tz/nodhw/24h cell
+RESULT cells_tz_dhw=40 count
+RESULT cells_with_gap_tz_dhw=24 count
+RESULT restart_improves_tz_dhw=8 count
+RESULT pg_above_pgtol_tz_dhw=32 count
+RESULT mean_gap_sek_tz_dhw=0.1479 SEK
+RESULT max_gap_sek_tz_dhw=2.5099 SEK
+RESULT mean_gap_pct_tz_dhw=0.270 pct_of_objective
+RESULT max_gap_pct_tz_dhw=1.829 pct_of_objective
+RESULT mean_energy_gap_pct_bill_tz_dhw=0.543 pct_of_bill
+RESULT mean_restart_gap_sek_tz_dhw=0.0904 SEK
+RESULT loo_mean_gap_pct_tz_dhw=0.230 pct_of_objective
+RESULT loo_min_gap_pct_tz_dhw=-0.189 pct_of_objective
+RESULT loo_dropped_tz_dhw=winter_narrow/winter_cold/tz/dhw/24h cell
+RESULT cells_tz_nodhw=40 count
+RESULT cells_with_gap_tz_nodhw=25 count
+RESULT restart_improves_tz_nodhw=7 count
+RESULT pg_above_pgtol_tz_nodhw=32 count
+RESULT mean_gap_sek_tz_nodhw=0.0697 SEK
+RESULT max_gap_sek_tz_nodhw=1.1288 SEK
+RESULT mean_gap_pct_tz_nodhw=0.745 pct_of_objective
+RESULT max_gap_pct_tz_nodhw=22.242 pct_of_objective
+RESULT mean_energy_gap_pct_bill_tz_nodhw=0.650 pct_of_bill
+RESULT mean_restart_gap_sek_tz_nodhw=0.0133 SEK
+RESULT loo_mean_gap_pct_tz_nodhw=0.194 pct_of_objective
+RESULT loo_min_gap_pct_tz_nodhw=-0.749 pct_of_objective
+RESULT loo_dropped_tz_nodhw=summer_negative/shoulder/tz/nodhw/24h cell
+RESULT null_flat_cells_tz=10 count
+RESULT null_flat_cells_with_gap_tz=8 count
+RESULT null_flat_mean_gap_sek_tz=0.1553 SEK
+RESULT null_flat_mean_gap_pct_tz=0.192 pct_of_objective
+RESULT nonflat_mean_gap_sek_tz=0.1022 SEK
+RESULT step0_differs_among_gap_cells=28 count
+RESULT production_cpu_total=80.34 s
+RESULT wall_total=556.6 s
+RESULT provisional=true flag
+RESULT thread_factor=1.000 ratio
+RESULT load1=1.77 load
+RESULT swapins=0 count
+QUIET_LOAD_AFTER={ 1.77 1.90 1.99 }
+QUIET_CPU_AFTER=CPU usage: 5.81% user, 4.92% sys, 89.26% idle 
+QUIET_EXIT=0
+QUIET_WALL_S=557
+QUIET_END=2026-09-02 09:31:52

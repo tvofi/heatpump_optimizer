@@ -43,9 +43,9 @@
 # does not expire with the stamp and is not part of the inherited-claims
 # comparison.
 #
-# claims-for: 6.3.4
+# claims-for: 6.3.5
 #
-# v6.3.4: the card expand fix. The stamp empties the list; the
+# v6.3.5: the Mixed Hot Water gate and a gate that scopes. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 
