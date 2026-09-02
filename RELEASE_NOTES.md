@@ -1,5 +1,24 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.2.16
+
+### Every stress scenario gets its own budget, and the gate sees memory
+
+The stress gate's single global solve budget (1400x the reference) had
+to clear the dearest scenario in the sweep, so the cheapest could
+regress a thousandfold unnoticed (audit D9-03's executed example:
+2626x). `tests/stress_budgets.json` now records each scenario's own
+clean-run work ratio; a scenario may cost at most 3x its record, an
+unrecorded scenario fails loudly, and a scenario that became 3x
+CHEAPER fails too -- the table cannot outlive the cost structure it
+was recorded against. The gate also gains real memory instrumentation
+(D9-04): tracemalloc alone is blind to numpy's allocator, so the six
+dearest scenarios re-run untimed in subprocesses, each reporting its
+own RSS high-water mark (87-97 MiB) and traced Python peak, both
+budgeted. Recorded clean on an idle box: 48 scenarios, dearest 261x
+(was 662x before the batched gradient). Tests-only: no integration
+code touched.
+
 ## v6.2.15
 
 ### Weekday and weekend hot-water windows, in the card too
