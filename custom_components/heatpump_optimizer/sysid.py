@@ -366,6 +366,50 @@ class SystemIdentification:
         a = np.asarray(rows, dtype=float)
         b = np.asarray(targets, dtype=float)
         gains_kw: float | None = None
+        # --- D2-01: errors-in-variables correction -------------------------
+        # ``T_prev`` sits on BOTH sides of the regression -- in the rate
+        # (divided by dt) and in the delta column -- so sensor noise covaries
+        # the two and biases the UA/C slope UPWARD (the audit measured +44 %
+        # at 0.05 °C noise, +108 % at 0.10 °C, and biased fits cleared the
+        # 0.3 adoption gate). The noise variance is estimated from the room
+        # series itself -- the true response is smooth over the cadence, so
+        # the mean squared second difference is 6 sigma^2 plus a small
+        # curvature term -- and the KNOWN bias terms are subtracted from the
+        # normal equations: the delta column's own noise deflates X'X by
+        # n*sigma^2, and the rate/regressor noise covariance shifts X'y by
+        # sigma^2 * sum(1/dt). Clean data estimates sigma^2 ~ 0 and the
+        # correction vanishes; a window whose noise exceeds a third of the
+        # delta column's spread is refused outright -- there is no honest
+        # fit to be had there.
+        dts = np.asarray([
+            (cur.when - prv.when).total_seconds() / 3600.0
+            for prv, cur in zip(usable, usable[1:])
+        ], dtype=float)
+        # sigma^2 from second differences WITHIN a phase only: the step->
+        # relax transition is a genuine kink in the signal (power drops to
+        # zero), and one boundary second difference would swamp a whole
+        # night of sensor noise.
+        sigma2 = 0.0
+        d2_all = []
+        for i in range(1, len(usable) - 1):
+            if usable[i - 1].phase == usable[i].phase == usable[i + 1].phase:
+                d2_all.append(
+                    usable[i + 1].room_temp
+                    - 2.0 * usable[i].room_temp
+                    + usable[i - 1].room_temp
+                )
+        if len(d2_all) >= 3:
+            sigma2 = float(
+                np.sum(np.square(d2_all)) / (6.0 * len(d2_all))
+            )
+        n_rows = float(len(rows))
+        x1_spread2 = float(np.var(a[:, 0])) * n_rows / max(n_rows - 1.0, 1.0)
+        if sigma2 > 0.0 and sigma2 > x1_spread2 / 9.0:
+            return SysIdResult(
+                completed=False,
+                reason="sensor noise dominates the excursion",
+            )
+        # --- end correction; solve via normal equations ---------------------
         # The comfort constraint bounds the room's excursion, which keeps the
         # ΔT column nearly constant — near-collinear with the intercept — so
         # with realistic sensor noise the unregularized three-column fit is
@@ -392,33 +436,65 @@ class SystemIdentification:
             s_noise = float(np.sqrt(np.sum(resid**2) / dof))
         except np.linalg.LinAlgError:
             return SysIdResult(completed=False, reason="fit failed")
-        data_w = 1.0 / max(s_noise, 1e-9)
+        data_w = 1.0 / max(s_noise, 1e-3)
         prior_w = 1.0 / prior_sd
-        a_fit = np.vstack(
-            [a * data_w, prior_w * np.array([[0.0, 0.0, 1.0]])]
+        # Column equilibration before the normal-equation solve: the three
+        # columns live at wildly different scales (delta ~20, power ~10,
+        # constant 1), and an explicit Gram of that is needlessly
+        # ill-conditioned in float64. Normalising each column by its own
+        # norm keeps the solve honest; the correction and prior terms are
+        # applied in the SAME scaled units.
+        col_scale = np.maximum(
+            np.sqrt(np.mean(np.square(a * data_w), axis=0)), 1e-12
         )
-        b_fit = np.concatenate([b * data_w, [prior_w * prior_icpt]])
-        try:
-            solution, residuals, rank, _ = np.linalg.lstsq(
-                a_fit, b_fit, rcond=None
+        a_s = (a * data_w) / col_scale
+        gram = a_s.T @ a_s
+        rhs = a_s.T @ (b * data_w)
+        if sigma2 > 0.0:
+            gram[0, 0] -= (
+                n_rows * sigma2 * data_w * data_w / (col_scale[0] ** 2)
             )
-            if rank < 3:
-                # The constant cannot be separated (e.g. ΔT barely moved, so
-                # the delta column is itself nearly constant). Fall back to
-                # the two-column fit rather than discarding the experiment.
-                a = a[:, :2]
-                solution, residuals, rank, _ = np.linalg.lstsq(a, b, rcond=None)
-                a_fit, b_fit = a, b
-                if rank < 2:
-                    # Both regressors moved together, so they cannot be
-                    # separated. This is exactly the ambiguity the experiment
-                    # exists to break: the step was too small or too short.
-                    return SysIdResult(
-                        completed=False,
-                        reason="step gave insufficient excitation",
-                    )
+            rhs[0] -= (
+                sigma2
+                * float(np.sum(1.0 / dts))
+                * data_w
+                * data_w
+                / col_scale[0]
+            )
+        # The prior enters as its own weighted pseudo-observation, exactly
+        # as the stacked row did -- same algebra, normal-equation form.
+        gram[2, 2] += (prior_w / col_scale[2]) ** 2
+        rhs[2] += (prior_w / col_scale[2]) ** 2 * prior_icpt
+        try:
+            solution = np.linalg.solve(gram, rhs)
+            rank = 3
         except np.linalg.LinAlgError:
-            return SysIdResult(completed=False, reason="fit failed")
+            solution = None
+        if solution is not None:
+            # Undo the column scaling on the coefficients.
+            solution = solution / col_scale
+        if solution is None or not np.all(np.isfinite(solution)) or rank < 3:
+            # The constant cannot be separated (e.g. ΔT barely moved, so
+            # the delta column is itself nearly constant). Fall back to
+            # the two-column fit rather than discarding the experiment.
+            a = a[:, :2]
+            try:
+                solution, residuals, rank, _ = np.linalg.lstsq(
+                    a, b, rcond=None
+                )
+            except np.linalg.LinAlgError:
+                return SysIdResult(completed=False, reason="fit failed")
+            if rank < 2:
+                # Both regressors moved together, so they cannot be
+                # separated. This is exactly the ambiguity the experiment
+                # exists to break: the step was too small or too short.
+                return SysIdResult(
+                    completed=False,
+                    reason="step gave insufficient excitation",
+                )
+            gains_kw = None
+        else:
+            pass
 
         ua_over_c, one_over_c = float(solution[0]), float(solution[1])
         if one_over_c <= 1e-6 or ua_over_c <= 1e-6:
@@ -450,13 +526,33 @@ class SystemIdentification:
         ss_res = float(np.sum((b - predicted) ** 2))
         ss_tot = float(np.sum((b - np.mean(b)) ** 2))
         r2 = 1.0 - ss_res / ss_tot if ss_tot > 1e-9 else 0.0
-        confidence = float(np.clip(r2, 0.0, 1.0)) * min(1.0, len(rows) / 20.0)
+        confidence = float(np.clip(r2, 0.0, 1.0)) * min(1.0, len(rows) / 12.0)
         # The intercept's identifiability scales with how far ΔT actually
         # moved; R² cannot see that (a flat fit explains flat data well), so
         # the blend weight is tempered by the achieved excursion directly.
+        # D7-02: normalised by the CONFIGURED excursion bound, not by a
+        # literal 2 °C — the comfort constraint caps the excursion at
+        # max_excursion_c (0.8 by default), so the old /2 divisor held every
+        # legal experiment at or below 0.4 here, and together with the /20
+        # row cap it kept the default protocol's confidence under the 0.3
+        # adoption gate on every install: the experiment could never be
+        # adopted at all (inert on target houses). Normalised by the design
+        # bound, a protocol-maximal excursion earns 1.0.
         deltas = -a[:, 0]
         excursion = float(np.max(deltas) - np.min(deltas)) if len(deltas) else 0.0
-        confidence *= float(np.clip(excursion / 2.0, 0.3, 1.0))
+        confidence *= float(np.clip(
+            excursion / max(self.config.max_excursion_c, 0.1), 0.3, 1.0
+        ))
+        # D2-01's gate half: a fit is only as trustworthy as its residual
+        # noise is small against the signal it claims to explain. The rate
+        # signal here is the spread of the target column; the audit showed
+        # biased fits sailing through a pure-R² gate because a noisy window
+        # can still look self-consistent. SNR ≥ 4 earns full weight; SNR ≤ 1
+        # earns none (the EIV-corrected estimator keeps such windows honest,
+        # but they still carry little information).
+        signal_spread = float(np.percentile(b, 90) - np.percentile(b, 10))
+        snr = signal_spread / max(s_noise, 1e-9)
+        confidence *= float(np.clip((snr - 1.0) / 3.0, 0.0, 1.0))
 
         if not (0.1 <= tau <= 200.0) or not (0.01 <= ua <= 5.0):
             return SysIdResult(

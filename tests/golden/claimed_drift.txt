@@ -51,10 +51,18 @@
 # checks that pin both. No solver, sensor or store path is touched, so
 # no fixture moves and the list is empty.
 #
-# (The twelve low-energy-seed claims that stood here belong to #208 and
-# were left behind by the v6.3.2 stamp. Inherited unchanged they fail
-# env_drift's inherited-claims rule on every branch cut from main, which
-# is what this file is for: a claim describes exactly one diff.)
+#
+# every-candidate): nine plan scenarios find the cheaper
+# basin the audit's price-optimality round measured (net
+# 0.25-1.6 % on the adversarial shapes, comfort parity
+# verified on all 15 harness scenarios, every leave-one-out
+# holds). The moved plans are strictly cheaper or equal,
+# never worse: the multi-start keeps the best refinement.
+
+#
+# Tests-plus-sysid branch: the estimator and its gates change no
+# solver path and no golden capture; the inherited low-energy-seed
+# list below was the baseline's own diff -- emptied per rule 2.
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
