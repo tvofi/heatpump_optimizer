@@ -18086,6 +18086,14 @@ _ET_KEYS = {
     "apply_schedule_dhw_min_no_deadband": {"minimum", "setpoint", "ceiling"},
     "manual_plan_invalid_expires_at": {"expires_at"},
     "manual_plan_invalid_slots": {"error"},
+    "run_optimization_no_prices": {"entry_ids"},
+    "run_optimization_solve_failed": {"entry_ids"},
+    "simulate_plan_no_plan": {"entry_ids"},
+    "simulate_plan_no_prices": {"entry_ids"},
+    "simulate_plan_invalid_windows": {"error", "windows"},
+    "simulate_plan_failed": {"error", "entry_ids"},
+    "restore_learned_snapshot_no_snapshot": {"entry_ids"},
+    "set_thermal_params_invalid_dhw_windows": {"error", "windows"},
     "set_temperature_comfort_band_violation": {"violations"},
 }
 

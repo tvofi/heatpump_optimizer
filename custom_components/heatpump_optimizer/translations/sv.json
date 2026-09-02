@@ -274,9 +274,7 @@
     },
     "set_temperature_comfort_band_violation": {
       "message": "{violations}"
-    }
-  },
-  "exceptions": {
+    },
     "run_optimization_no_prices": {
       "message": "Optimeringen kördes inte för {entry_ids}: det fanns färre än fyra elprissteg tillgängliga"
     },

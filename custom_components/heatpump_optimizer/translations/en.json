@@ -274,9 +274,7 @@
     },
     "set_temperature_comfort_band_violation": {
       "message": "{violations}"
-    }
-  },
-  "exceptions": {
+    },
     "run_optimization_no_prices": {
       "message": "The optimization did not run for {entry_ids}: fewer than four electricity price steps were available"
     },
