@@ -443,7 +443,9 @@ that deliver them.
 
 Eleven services are registered under the `heatpump_optimizer` domain. Field-level
 detail for each — including all 28 fields of `set_thermal_parameters` — is in
-[docs/configuration.md](docs/configuration.md).
+[docs/configuration.md](docs/configuration.md). Worked automation examples — an
+EV charger following the Power Headroom sensor, mode switching on price — are in
+[docs/automations.md](docs/automations.md).
 
 | Service | What it does | Returns |
 |---|---|---|
