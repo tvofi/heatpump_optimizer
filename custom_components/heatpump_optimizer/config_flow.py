@@ -308,8 +308,17 @@ from .const import (
     DEFAULT_HEATED_AREA,
 )
 from . import comfort_band, grid_fee, mixing_valve, presets, topology
-from .dhw_schedule import is_valid_spec
+from .currency import resolve_currency
+from .dhw_schedule import (
+    MIN_WINDOW_MINUTES,
+    is_valid_spec,
+    spec_problem as dhw_spec_problem,
+)
 from .freq_control import FREQ_MODE_CONTROL, FREQ_MODE_OBSERVE
+
+# What the hot-water pages' error text quotes (audit D4-08, #171): the
+# shortest time frame the form accepts, which is one planning step.
+_WINDOW_PLACEHOLDERS: Final = {"min_window_minutes": f"{MIN_WINDOW_MINUTES:g}"}
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -1060,10 +1069,10 @@ class HeatPumpOptimizerConfigFlow(
                     ),
                     vol.Required(
                         CONF_DAY_START_HOUR, default=DEFAULT_DAY_START_HOUR
-                    ): _number(0, 12, 1, slider=True),
+                    ): _number(0, 23, 1, slider=True),
                     vol.Required(
                         CONF_DAY_END_HOUR, default=DEFAULT_DAY_END_HOUR
-                    ): _number(18, 23, 1, slider=True),
+                    ): _number(1, 24, 1, slider=True),
                 }
             ),
         )
@@ -1269,8 +1278,9 @@ class HeatPumpOptimizerConfigFlow(
         """Handle DHW (Domestic Hot Water) configuration step."""
         errors: dict[str, str] = {}
         if user_input is not None:
-            if not is_valid_spec(user_input.get(CONF_DHW_WINDOWS, "")):
-                errors[CONF_DHW_WINDOWS] = "invalid_dhw_windows"
+            window_problem = dhw_spec_problem(user_input.get(CONF_DHW_WINDOWS, ""))
+            if window_problem is not None:
+                errors[CONF_DHW_WINDOWS] = window_problem
             elif _dhw_min_too_close(user_input, self._data):
                 errors[CONF_DHW_MIN_TEMP] = "dhw_min_too_close"
             else:
@@ -1296,6 +1306,7 @@ class HeatPumpOptimizerConfigFlow(
         return self.async_show_form(
             step_id="dhw",
             errors=errors,
+            description_placeholders=_WINDOW_PLACEHOLDERS,
             data_schema=vol.Schema(
                 {
                     vol.Optional(
@@ -1769,11 +1780,11 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
                         default=current.get(
                             CONF_DAY_START_HOUR, DEFAULT_DAY_START_HOUR
                         ),
-                    ): _number(0, 12, 1, slider=True),
+                    ): _number(0, 23, 1, slider=True),
                     vol.Required(
                         CONF_DAY_END_HOUR,
                         default=current.get(CONF_DAY_END_HOUR, DEFAULT_DAY_END_HOUR),
-                    ): _number(18, 23, 1, slider=True),
+                    ): _number(1, 24, 1, slider=True),
                     # T5 #54: the mold guard is comfort in the oldest sense
                     # — a floor the house must not coast below. Double-
                     # gated: the flag AND a live indoor humidity sensor.
@@ -1802,8 +1813,9 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         """When hot water is needed and how hot it has to be."""
         errors: dict[str, str] = {}
         if user_input is not None:
-            if not is_valid_spec(user_input.get(CONF_DHW_WINDOWS, "")):
-                errors[CONF_DHW_WINDOWS] = "invalid_dhw_windows"
+            window_problem = dhw_spec_problem(user_input.get(CONF_DHW_WINDOWS, ""))
+            if window_problem is not None:
+                errors[CONF_DHW_WINDOWS] = window_problem
             elif _dhw_min_too_close(user_input, self._current):
                 errors[CONF_DHW_MIN_TEMP] = "dhw_min_too_close"
             else:
@@ -1845,6 +1857,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         return self.async_show_form(
             step_id="hot_water",
             errors=errors,
+            description_placeholders=_WINDOW_PLACEHOLDERS,
             data_schema=_options_schema(
                 {
                     vol.Optional(
@@ -2297,7 +2310,9 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
                             CONF_COMPRESSOR_REPLACEMENT_COST,
                             DEFAULT_COMPRESSOR_REPLACEMENT_COST,
                         ),
-                    ): _number(0, 100000, 100),
+                        # Priced in the instance currency, on the selector
+                        # rather than in the label (audit D4-04, #168).
+                    ): _number(0, 100000, 100, resolve_currency(self.hass)),
                     vol.Optional(
                         CONF_COMPRESSOR_RATED_STARTS,
                         default=current.get(
@@ -2464,10 +2479,16 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         """What the DSO charges: capacity tariff, transfer fees, contracts."""
         errors: dict[str, str] = {}
         if user_input is not None:
-            if not grid_fee.is_valid_spec(
+            # Unreadable, negative or 100× too large, each by name (audit
+            # D4-05, #169): a sign-flip typo used to store as a permanent
+            # fee subsidy on exactly the hours the grid company charges
+            # most for, and the coordinator's magnitude notice only fires
+            # after the save it should have prevented.
+            fee_problem = grid_fee.spec_problem(
                 user_input.get(CONF_GRID_FEE_RULES, "")
-            ):
-                errors[CONF_GRID_FEE_RULES] = "invalid_grid_fee_rules"
+            )
+            if fee_problem is not None:
+                errors[CONF_GRID_FEE_RULES] = fee_problem
             if not _valid_months_spec(
                 user_input.get(CONF_PEAK_TARIFF_MONTHS, "")
             ):
@@ -2508,9 +2529,19 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
                 return vol.Optional(key, default=existing)
             return vol.Optional(key)
 
+        # The money fields are priced in whatever the instance is priced in
+        # (audit D4-04, #168): the unit rides on the selector, and the
+        # descriptions and error texts take it as a placeholder, so no label
+        # has to spell a currency out.
+        currency = resolve_currency(self.hass)
+
         return self.async_show_form(
             step_id="grid",
             errors=errors,
+            description_placeholders={
+                "currency": currency,
+                "fee_bound": f"{grid_fee.IMPLAUSIBLE_FEE_SEK_PER_KWH:g}",
+            },
             data_schema=_options_schema(
                 {
                     vol.Optional(
@@ -2626,7 +2657,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
                         default=current.get(
                             CONF_GRID_FEE_FIXED, DEFAULT_GRID_FEE_FIXED
                         ),
-                    ): _number(0, 5, 0.01),
+                    ): _number(0, 5, 0.01, f"{currency}/kWh"),
                     vol.Optional(
                         CONF_GRID_FEE_RULES,
                         default=current.get(
@@ -2646,7 +2677,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
                             CONF_CONTRACT_FIXED_PRICE,
                             DEFAULT_CONTRACT_FIXED_PRICE,
                         ),
-                    ): _number(0, 10, 0.01),
+                    ): _number(0, 10, 0.01, f"{currency}/kWh"),
                 }
             ),
         )

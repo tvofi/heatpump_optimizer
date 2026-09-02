@@ -142,6 +142,16 @@ def parse_windows(spec: str | list | tuple | None) -> list[Window]:
     Raises:
         DHWWindowError: if the specification is malformed.
     """
+    return _normalize(_raw_windows(spec))
+
+
+def _raw_windows(spec: str | list | tuple | None) -> list[Window]:
+    """The windows exactly as written, one per range, before normalisation.
+
+    ``spec_problem`` judges each range on its own: normalisation merges an
+    overlapping one-minute range into its neighbour, and a range that has
+    been merged away can no longer be refused.
+    """
     if spec is None:
         return []
 
@@ -166,8 +176,7 @@ def parse_windows(spec: str | list | tuple | None) -> list[Window]:
         if not chunk:
             continue
         windows.extend(_parse_one_range(chunk))
-
-    return _normalize(windows)
+    return windows
 
 
 def _parse_one_range(chunk: str) -> list[Window]:
@@ -448,3 +457,45 @@ def is_valid_spec(spec: str) -> bool:
     except DHWWindowError:
         return False
     return True
+
+
+#: The shortest window the config flow accepts, in minutes: one planning
+#: step. The optimizer plans on a 15-minute grid and tests window membership
+#: at each step's start (``hour_in_windows``), so a window shorter than a
+#: step can sit between two starts and bind nothing at all -- "06:05-06:06"
+#: was accepted and then changed no plan (audit D4-08, #171). Kept equal to
+#: ``OptimizationConfig.time_step_minutes``; tests/entities.py pins the two
+#: together, since this module cannot import the optimizer.
+MIN_WINDOW_MINUTES = 15
+
+#: The config flow's error keys, translated in strings.json under both
+#: flows' ``error`` sections. Named here, next to the verdict that returns
+#: them, the way ``comfort_band`` names its codes.
+ERROR_INVALID = "invalid_dhw_windows"
+ERROR_TOO_SHORT = "dhw_window_too_short"
+
+
+def window_minutes(window: Window) -> float:
+    """A window's length in minutes, measured through midnight when it wraps."""
+    start, end = window
+    hours = end - start if end > start else end + 24.0 - start
+    # The grammar is minute-resolution; rounding keeps "06:05-06:20" at
+    # exactly 15 rather than at whatever the float subtraction landed on.
+    return float(round(hours * 60.0))
+
+
+def spec_problem(spec: str) -> str | None:
+    """The config flow's verdict on a window spec: an error key, or None.
+
+    Stricter than ``parse_windows`` on purpose, and separate from it: the
+    parser must stay permissive so a stored spec keeps loading whatever this
+    version thinks of it, while the form is where the typo happens and where
+    it can still be corrected.
+    """
+    try:
+        windows = _raw_windows(spec)
+    except DHWWindowError:
+        return ERROR_INVALID
+    if any(window_minutes(w) < MIN_WINDOW_MINUTES for w in windows):
+        return ERROR_TOO_SHORT
+    return None

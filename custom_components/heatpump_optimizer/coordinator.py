@@ -348,6 +348,7 @@ from .grid_fee import (
     GridFeeError,
     GridFeeSchedule,
     IMPLAUSIBLE_FEE_SEK_PER_KWH,
+    min_component as grid_fee_min_component,
     max_abs_component as grid_fee_max_abs_component,
     parse_month_range as grid_fee_parse_month_range,
 )
@@ -1023,6 +1024,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # refresh the issue's timestamp and bury when the bad value first
         # appeared — the same reason solve_failures raises exactly-at.
         self._grid_fee_issue_value: float | None = None
+        # The sign notice's counterpart (audit D4-05, #169), same contract.
+        self._grid_fee_sign_issue_value: float | None = None
         # Whether the standing "lower_floor_modelled" repair issue is up.
         # Raised once, not per cycle, for the same reason the fee issue is:
         # re-raising refreshes the timestamp and buries when it started.
@@ -6213,6 +6216,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         the settlement paths reading the same schedule — so the only output
         is a repair issue, raised once per offending value and cleared as
         soon as the configured fees are plausible again.
+
+        The sign gets the same treatment (audit D4-05, #169). The config
+        flow refuses a negative rule since that audit, but a store written
+        before it did, a hand-edited one, or a fee sensor publishing a
+        negative value still reaches the plan -- as a subsidy on exactly the
+        hours the grid company charges for. Both notices name the instance
+        currency (audit D4-04, #168) rather than assuming one.
         """
         worst, source = grid_fee_max_abs_component(schedule, entity_value)
         if worst > IMPLAUSIBLE_FEE_SEK_PER_KWH:
@@ -6230,6 +6240,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     translation_placeholders={
                         "rate": f"{worst:.2f}",
                         "source": source,
+                        "currency": self.currency,
                     },
                 )
                 self._grid_fee_issue_value = worst
@@ -6241,6 +6252,28 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             # persistent warning about a value it no longer has.
             ir.async_delete_issue(self.hass, DOMAIN, "grid_fee_magnitude")
             self._grid_fee_issue_value = None
+
+        lowest, sign_source = grid_fee_min_component(schedule, entity_value)
+        if lowest < 0.0:
+            if self._grid_fee_sign_issue_value != lowest:
+                ir.async_create_issue(
+                    self.hass,
+                    DOMAIN,
+                    "grid_fee_sign",
+                    is_fixable=False,
+                    is_persistent=True,
+                    severity=ir.IssueSeverity.WARNING,
+                    translation_key="grid_fee_sign",
+                    translation_placeholders={
+                        "rate": f"{lowest:.2f}",
+                        "source": sign_source,
+                        "currency": self.currency,
+                    },
+                )
+                self._grid_fee_sign_issue_value = lowest
+        else:
+            ir.async_delete_issue(self.hass, DOMAIN, "grid_fee_sign")
+            self._grid_fee_sign_issue_value = None
 
     def _audit_lower_floor_sensor(self) -> None:
         """Tell the user when the lower zone's temperature is not measured.
@@ -8608,12 +8641,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         )
         current = self._last_measured_cop or baseline
         shortfall = max(0.0, (baseline - float(current)) / baseline)
-        sek_month = monthly_kwh * mean_price * shortfall
+        # In the instance currency: the prices are, so the product is
+        # (audit D4-04, #168 -- the placeholder used to be named after SEK).
+        cost_month = monthly_kwh * mean_price * shortfall
         _LOGGER.warning(
             "Compressor efficiency has drifted %.0f%% below its own "
-            "baseline (~%.0f SEK/month at current usage)",
+            "baseline (~%.0f %s/month at current usage)",
             shortfall * 100.0,
-            sek_month,
+            cost_month,
+            self.currency,
         )
         ir.async_create_issue(
             self.hass,
@@ -8627,7 +8663,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             translation_key="cop_degradation",
             translation_placeholders={
                 "shortfall_percent": f"{shortfall * 100.0:.0f}",
-                "sek_month": f"{sek_month:.0f}",
+                "cost_month": f"{cost_month:.0f}",
+                "currency": self.currency,
             },
         )
 

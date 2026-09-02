@@ -37,13 +37,24 @@ from .dhw_schedule import DHWWindowError, Window, hour_in_windows, parse_windows
 
 _LOGGER = logging.getLogger(__name__)
 
-#: Above this a single SEK/kWh fee component is implausible for any Swedish
-#: DSO — real ToU transfer fees run 0.05–1.5 SEK/kWh. 25 in a SEK field is
-#: öre, the classic 100× slip; the coordinator raises a warn-only repair
-#: issue at this bound and never touches the value, because the parser must
-#: stay permissive (a blocked or mutated fee would be worse than a wrong one
-#: the user was told about).
+#: Above this a single per-kWh fee component is implausible for any DSO the
+#: integration can plan against — real ToU transfer fees run 0.05–1.5 per
+#: kWh in every currency Tibber prices in. 25 in a whole-unit field is öre
+#: or cents, the classic 100× slip. Two layers use the bound (audit D4-05,
+#: #169): the config flow refuses a rules text above it (``spec_problem``),
+#: because the form is where the typo happens and can still be corrected;
+#: the coordinator raises a warn-only repair issue for a value that arrived
+#: any other way and never touches it, because the parser must stay
+#: permissive (a stored fee that stopped loading, or was silently capped,
+#: would be worse than a wrong one the user was told about).
 IMPLAUSIBLE_FEE_SEK_PER_KWH = 10.0
+
+#: The config flow's error keys for a rules text, translated in
+#: strings.json under ``options.error``. Named here, next to the verdict
+#: that returns them, the way ``comfort_band`` names its codes.
+ERROR_INVALID = "invalid_grid_fee_rules"
+ERROR_NEGATIVE = "grid_fee_rules_negative"
+ERROR_IMPLAUSIBLE = "grid_fee_rules_implausible"
 
 #: ``grid_fee_mode`` values. "none" is the sentinel default: every vector is
 #: zeros and an untouched install is byte-for-byte what it was.
@@ -193,6 +204,28 @@ def is_valid_spec(spec: str) -> bool:
     return True
 
 
+def spec_problem(spec: str) -> str | None:
+    """The config flow's verdict on a rules text: an error key, or None.
+
+    A transfer fee is a charge, so a negative rate is a sign slip that the
+    parser would otherwise store as a permanent subsidy on exactly the hours
+    the grid company charges most for; a rate above the implausibility bound
+    is öre typed where whole units were meant. The sign is judged first --
+    "= -25" is two mistakes, and the sign is the one that inverts the plan.
+    Stricter than ``parse_rules`` on purpose, and separate from it, for the
+    reason ``IMPLAUSIBLE_FEE_SEK_PER_KWH`` spells out.
+    """
+    try:
+        rules = parse_rules(spec)
+    except GridFeeError:
+        return ERROR_INVALID
+    if any(rule.rate < 0.0 for rule in rules):
+        return ERROR_NEGATIVE
+    if any(rule.rate > IMPLAUSIBLE_FEE_SEK_PER_KWH for rule in rules):
+        return ERROR_IMPLAUSIBLE
+    return None
+
+
 @dataclass
 class GridFeeSchedule:
     """The configured fee layer, evaluated per instant or per step grid."""
@@ -305,3 +338,31 @@ def max_abs_component(
     ):
         worst, source = abs(float(entity_value)), "entity"
     return worst, source
+
+
+def min_component(
+    schedule: GridFeeSchedule, entity_value: float | None = None
+) -> tuple[float, str]:
+    """The most negative per-kWh component in force, and its source.
+
+    The sign counterpart of ``max_abs_component`` (audit D4-05, #169): the
+    config flow refuses a negative rule, but a store written before it did,
+    a hand-edited one, or a fee sensor publishing a negative value still
+    reaches the plan as a subsidy. Same rule about which inputs count: only
+    the ones the active mode prices with. Nothing negative returns the fixed
+    component, so a caller can test ``< 0`` and nothing else.
+    """
+    if schedule.mode == MODE_NONE:
+        return 0.0, "fixed"
+    lowest, source = float(schedule.fixed), "fixed"
+    if schedule.mode == MODE_RULES:
+        for rule in schedule.rules:
+            if rule.rate < lowest:
+                lowest, source = float(rule.rate), "rules"
+    elif (
+        schedule.mode == MODE_ENTITY
+        and entity_value is not None
+        and float(entity_value) < lowest
+    ):
+        lowest, source = float(entity_value), "entity"
+    return lowest, source

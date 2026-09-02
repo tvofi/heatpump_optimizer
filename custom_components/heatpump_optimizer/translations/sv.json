@@ -212,6 +212,7 @@
       "invalid_tibber_token": "Tibber-token accepterades inte. Kontrollera den på developer.tibber.com och försök igen.",
       "cannot_connect": "Kunde inte nå Tibber för att kontrollera token. Kontrollera internetanslutningen och försök igen.",
       "invalid_dhw_windows": "Tiderna kunde inte tolkas. Använd 24-timmarsformat separerat med komma, till exempel \"06:00-08:30, 17:00-22:00\".",
+      "dhw_window_too_short": "En varmvattenperiod är kortare än {min_window_minutes} minuter. Planen görs i steg om {min_window_minutes} minuter, så en kortare period kan hamna mellan två steg och aldrig få någon verkan.",
       "dhw_min_too_close": "Ett varmvattenminimum s\\u00e5 n\\u00e4ra b\\u00f6rv\\u00e4rdet l\\u00e4mnar tanken utan arbetsband; h\\u00e5ll det minst 5 \\u00b0C under b\\u00f6rv\\u00e4rdet.",
       "min_above_target": "Lägsta temperaturen ligger över måltemperaturen.",
       "max_below_target": "Högsta temperaturen ligger under måltemperaturen.",
@@ -439,7 +440,7 @@
           "compressor_cycling_cost": "Kostnad för en kompressorstart",
           "price_risk_lambda": "Försiktighet med gissade priser",
           "confidence_margins_enabled": "Håll säkerhetsmarginal där modellen är osäker",
-          "compressor_replacement_cost": "Kostnad för kompressorbyte (SEK)",
+          "compressor_replacement_cost": "Kostnad för kompressorbyte",
           "compressor_rated_starts": "Kompressorns märkantal starter",
           "wear_autotune_enabled": "Låt faktiskt slitage styra cyklingskostnaden",
           "price_tiles_enabled": "Uppdatera prisplattor efter varje optimering",
@@ -572,10 +573,10 @@
           "peak_tariff_weekdays_only": "Helger är låglast",
           "peak_tariff_offpeak_factor": "Vad låglasttimmar räknas som",
           "grid_fee_mode": "Elnätets överföringsavgift",
-          "grid_fee_fixed": "Fast överföringsavgift (SEK/kWh)",
+          "grid_fee_fixed": "Fast överföringsavgift",
           "grid_fee_rules": "Tidsdifferentierade avgiftsregler",
           "grid_fee_entity": "Sensor för aktuell avgift (valfri)",
-          "contract_fixed_price": "Fastprisavtal att jämföra med (SEK/kWh)",
+          "contract_fixed_price": "Fastprisavtal att jämföra med",
           "main_fuse_amperes": "Huvudsäkringens storlek",
           "main_fuse_phases": "Faser",
           "fuse_guard_enabled": "Håll planen under huvudsäkringen",
@@ -594,8 +595,8 @@
           "grid_fee_mode": "Avgiften ditt elnätsbolag lägger på varje överförd kWh. Tibbers pris innehåller den inte, så med den inställd ser planen äntligen hela marginalpriset. \"Tidsregler\" använder schemat nedan; \"Sensor\" följer en entitet.",
           "grid_fee_fixed": "En fast avgift som läggs på varje timme, utöver eventuella regler. Ta den från din elnätsfaktura.",
           "grid_fee_rules": "En regel per rad, till exempel \"Nov-Mar Mån-Fre 06:00-22:00 = 0.25\". Månads-, veckodags- och tidsdelarna är valfria var för sig; överlappande regler adderas, vilket motsvarar grundavgift plus höglastpåslag.",
-          "grid_fee_entity": "En sensor som anger aktuell avgift i SEK/kWh, för nät med dynamiska avgifter. Värdet läggs på varje planerad timme.",
-          "contract_fixed_price": "Om du kunde ha ett fastprisavtal, dess SEK/kWh. Sensorn Avtalsjämförelse visar då vad denna månad hade kostat med det. 0 utelämnar den kolumnen.",
+          "grid_fee_entity": "En sensor som anger aktuell avgift i {currency}/kWh, för nät med dynamiska avgifter. Värdet läggs på varje planerad timme.",
+          "contract_fixed_price": "Om du kunde ha ett fastprisavtal, dess {currency}/kWh. Sensorn Avtalsjämförelse visar då vad denna månad hade kostat med det. 0 utelämnar den kolumnen.",
           "main_fuse_amperes": "Husets huvudsäkring i ampere, från ditt nätavtal. 0 lämnar den oinställd, vilket håller säkringsrådgivaren, säkringsvakten och utrymmessensorn vilande — det finns inget säkert standardvärde att gissa, och ett felaktigt skulle strypa ett större hus.",
           "main_fuse_phases": "Nästan alla svenska hus har 3 faser.",
           "fuse_guard_enabled": "Begränsar värmepumpens planerade effekt till vad säkringen lämnar efter resten av huset. Om en begränsning skulle göra komfortgolvet onåbart säger planen det på sina sensorer i stället för att tyst bli kall.",
@@ -698,8 +699,11 @@
       "invalid_tibber_token": "Tibber-token accepterades inte. Kontrollera den på developer.tibber.com och försök igen.",
       "cannot_connect": "Kunde inte nå Tibber för att kontrollera token. Kontrollera internetanslutningen och försök igen.",
       "invalid_dhw_windows": "Tiderna kunde inte tolkas. Använd 24-timmarsformat separerat med komma, till exempel \"06:00-08:30, 17:00-22:00\".",
+      "dhw_window_too_short": "En varmvattenperiod är kortare än {min_window_minutes} minuter. Planen görs i steg om {min_window_minutes} minuter, så en kortare period kan hamna mellan två steg och aldrig få någon verkan.",
       "dhw_min_too_close": "Ett varmvattenminimum s\\u00e5 n\\u00e4ra b\\u00f6rv\\u00e4rdet l\\u00e4mnar tanken utan arbetsband; h\\u00e5ll det minst 5 \\u00b0C under b\\u00f6rv\\u00e4rdet.",
       "invalid_grid_fee_rules": "Avgiftsreglerna kunde inte läsas. En regel per rad, som \"Nov-Mar Mån-Fre 06:00-22:00 = 0.25\".",
+      "grid_fee_rules_negative": "En avgiftsregel har en negativ avgift. En överföringsavgift är en kostnad, så varje avgift måste vara noll eller högre – ett minustecken här får planen att behandla de timmarna som subventionerade.",
+      "grid_fee_rules_implausible": "En avgiftsregel har en avgift över {fee_bound} {currency}/kWh. Överföringsavgifter ligger på några tiondelar per kWh, så ett så stort värde är nästan alltid öre inskrivet där hela {currency} avsågs – 25 i stället för 0,25.",
       "invalid_peak_months": "Månaderna kunde inte läsas. Använd intervall som \"Nov-Mar\" eller enstaka månader som \"Jul\".",
       "invalid_peak_hours": "Timmarna kunde inte läsas. Använd 24-timmarsintervall som \"07:00-19:00\".",
       "min_above_target": "Lägsta temperaturen ligger över måltemperaturen.",
@@ -792,7 +796,7 @@
   "issues": {
     "cop_degradation": {
       "title": "Värmepumpens verkningsgrad har sjunkit",
-      "description": "Värmepumpen har levererat ungefär {shortfall_percent} % mindre värme per kWh än den brukade under samma förhållanden, vilket kostar cirka {sek_month} kr per månad med senaste tidens priser. De vanliga misstänkta är ett igensatt filter, låg köldmediefyllning eller ett avfrostningsproblem — värt en titt innan säsongen blir kallare. Meddelandet försvinner av sig självt om verkningsgraden återhämtar sig."
+      "description": "Värmepumpen har levererat ungefär {shortfall_percent} % mindre värme per kWh än den brukade under samma förhållanden, vilket kostar cirka {cost_month} {currency} per månad med senaste tidens priser. De vanliga misstänkta är ett igensatt filter, låg köldmediefyllning eller ett avfrostningsproblem — värt en titt innan säsongen blir kallare. Meddelandet försvinner av sig självt om verkningsgraden återhämtar sig."
     },
     "accuracy_drift": {
       "title": "Den inlärda modellen driver",
@@ -832,7 +836,11 @@
     },
     "grid_fee_magnitude": {
       "title": "En konfigurerad nätavgift ser 100× för stor ut",
-      "description": "Nätavgiftslagret innehåller en avgift på {rate} SEK/kWh (från källan {source}). Svenska nätbolags överföringsavgifter ligger på några tiondels kronor per kWh, så ett så stort värde är nästan alltid öre inskrivet där SEK avsågs — 25 i stället för 0,25. Ingenting ändras eller begränsas: planen fortsätter att prissätta med exakt det värde som konfigurerats. Rätta värdet under alternativen för nätavgifter (eller åtgärda avgiftssensorn) så försvinner meddelandet vid nästa planeringscykel."
+      "description": "Nätavgiftslagret innehåller en avgift på {rate} {currency}/kWh (från källan {source}). Överföringsavgifter ligger på några tiondels {currency} per kWh, så ett så stort värde är nästan alltid öre inskrivet där hela {currency} avsågs — 25 i stället för 0,25. Ingenting ändras eller begränsas: planen fortsätter att prissätta med exakt det värde som konfigurerats. Rätta värdet under alternativen för nätavgifter (eller åtgärda avgiftssensorn) så försvinner meddelandet vid nästa planeringscykel."
+    },
+    "grid_fee_sign": {
+      "title": "En konfigurerad nätavgift är negativ",
+      "description": "Nätavgiftslagret innehåller en avgift på {rate} {currency}/kWh (från källan {source}). En överföringsavgift är en kostnad, så en negativ är nästan alltid ett teckenfel — och planen prissätter varje timme den gäller som subventionerad, och gynnar just de timmar nätbolaget tar betalt för. Ingenting ändras eller begränsas: planen fortsätter att prissätta med exakt det värde som konfigurerats. Rätta värdet under alternativen för nätavgifter (eller åtgärda avgiftssensorn) så försvinner meddelandet vid nästa planeringscykel."
     },
     "lower_floor_modelled": {
       "title": "Temperaturen på nedre plan är modellerad, inte uppmätt",

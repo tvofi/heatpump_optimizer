@@ -2910,6 +2910,40 @@ R.check(
     ],
     "omitting a channel entirely must stay a legal call (leave it automatic)",
 )
+# D6-02 (#172): the documented example is what a user pastes into Developer
+# Tools. Folded into a string it read as JSON and failed the schema's own
+# ``[dict]`` the moment it was submitted.
+_manual_examples = {
+    field: spec["example"]
+    for field, spec in services["apply_manual_plan"]["fields"].items()
+    if "example" in spec
+}
+
+
+def _example_passes(schema, payload) -> tuple[bool, str]:
+    try:
+        schema(dict(payload))
+    except Exception as err:  # noqa: BLE001 - any rejection is the finding
+        return False, f"{type(err).__name__}: {err}"
+    return True, ""
+
+
+_manual_ok, _manual_why = _example_passes(
+    integration.SERVICE_SCHEMA_APPLY_MANUAL_PLAN, _manual_examples
+)
+R.check(
+    "the documented apply_manual_plan example passes the service's own schema",
+    bool(_manual_examples) and _manual_ok,
+    _manual_why,
+)
+R.check(
+    "and its slot examples are structured lists, not folded strings",
+    all(
+        isinstance(_manual_examples.get(f), list) and _manual_examples[f]
+        for f in ("space_slots", "dhw_slots")
+    ),
+    str({f: type(_manual_examples.get(f)).__name__ for f in ("space_slots", "dhw_slots")}),
+)
 
 R.check("clear_manual_plan is documented", "clear_manual_plan" in services)
 R.check(
@@ -3799,6 +3833,334 @@ R.check(
     f"type {_oksaved.get('type')}, updated {_okopt.hass.config_entries.updated}",
 )
 
+
+# ===========================================================================
+# Audit round 1, group B3: the form is where the typo happens (#168-#171)
+# ===========================================================================
+R.section("Config-flow validation and currency (audit B3)")
+
+import re as _b3_re
+
+from heatpump_optimizer import currency as currency_mod
+from heatpump_optimizer import dhw_schedule, grid_fee
+from heatpump_optimizer.optimizer import OptimizationConfig
+
+
+def _b3_options(currency="SEK"):
+    flow = options(FakeEntry(data={const.CONF_TIBBER_TOKEN: "t"}))
+    flow.hass = FakeHass()
+    flow.hass.config.currency = currency
+    return flow
+
+
+def _b3_submit(flow, step, overrides):
+    """Fill a page's defaults, override, validate through the selectors, submit.
+
+    The selectors run first, the way Home Assistant runs them: a payload a
+    slider refuses never reaches the step handler. The two outcomes must not
+    be confused -- D4-07 was a real validator hidden behind a slider that
+    made it unreachable, and a test that bypassed the schema would have
+    called it reachable all along.
+    """
+    handler = getattr(flow, f"async_step_{step}")
+    schema = asyncio.run(handler(None))["data_schema"]
+    try:
+        payload = schema({**schema({}), **overrides})
+    except Exception as err:  # noqa: BLE001 - the rejection is the datum
+        # Reported as a result rather than raised, so a slider that refuses
+        # the payload fails the check by name instead of ending the script.
+        return {"type": "rejected_by_selector", "errors": {"selector": str(err)}}
+    return asyncio.run(handler(payload))
+
+
+def _b3_units(form):
+    return {
+        str(getattr(k, "schema", k)): (getattr(v, "config", None) or {}).get(
+            "unit_of_measurement"
+        )
+        for k, v in form["data_schema"].schema.items()
+    }
+
+
+def _b3_placeholders(text):
+    return set(_b3_re.findall(r"\{(\w+)\}", text))
+
+
+# --- #168: the money fields follow hass.config.currency ----------------------
+_eur = _b3_options("EUR")
+_eur_grid = asyncio.run(_eur.async_step_grid(None))
+_eur_tuning = asyncio.run(_eur.async_step_tuning(None))
+R.check(
+    "the per-kWh money fields carry the instance currency as their unit",
+    _b3_units(_eur_grid).get(const.CONF_GRID_FEE_FIXED) == "EUR/kWh"
+    and _b3_units(_eur_grid).get(const.CONF_CONTRACT_FIXED_PRICE) == "EUR/kWh",
+    str({k: v for k, v in _b3_units(_eur_grid).items() if v}),
+)
+R.check(
+    "and so does the compressor replacement cost",
+    _b3_units(_eur_tuning).get(const.CONF_COMPRESSOR_REPLACEMENT_COST) == "EUR",
+    str({k: v for k, v in _b3_units(_eur_tuning).items() if v}),
+)
+R.check(
+    "the grid page hands the currency to its descriptions as a placeholder",
+    (_eur_grid.get("description_placeholders") or {}).get("currency") == "EUR",
+    str(_eur_grid.get("description_placeholders")),
+)
+_grid_texts = strings["options"]["step"]["grid"]
+_grid_wanted = set().union(
+    *(
+        _b3_placeholders(t)
+        for section in ("data", "data_description")
+        for t in _grid_texts.get(section, {}).values()
+    )
+)
+R.check(
+    "every placeholder the grid page's strings name is supplied by its render",
+    _grid_wanted and _grid_wanted <= set(_eur_grid.get("description_placeholders") or {}),
+    f"strings want {_grid_wanted}, render gives "
+    f"{set(_eur_grid.get('description_placeholders') or {})}",
+)
+_bare = _b3_options(None)
+R.check(
+    "an unconfigured instance keeps the SEK every existing install has shown",
+    _b3_units(asyncio.run(_bare.async_step_grid(None))).get(const.CONF_GRID_FEE_FIXED)
+    == f"{currency_mod.FALLBACK_CURRENCY}/kWh",
+    "a unit that changes under an unconfigured instance breaks statistics",
+)
+_hardcoded = sorted(
+    f"{flow_name}.{step}.{section}.{key}"
+    for flow_name in ("config", "options")
+    for step, texts in strings[flow_name]["step"].items()
+    for section in ("data", "data_description")
+    for key, text in texts.get(section, {}).items()
+    if "SEK" in text
+) + sorted(
+    f"issues.{key}"
+    for key, texts in strings["issues"].items()
+    if "SEK" in texts["description"]
+)
+R.check(
+    "no field label, description or repair notice hardcodes SEK",
+    not _hardcoded,
+    ", ".join(_hardcoded[:8]),
+)
+
+
+def _b3_leaves(node, path=()):
+    if isinstance(node, dict):
+        for k, v in node.items():
+            yield from _b3_leaves(v, path + (k,))
+    elif isinstance(node, str):
+        yield path, node
+
+
+_placeholder_drift = []
+for _lang, _data in files.items():
+    _theirs = dict(_b3_leaves(_data))
+    for _path, _text in _b3_leaves(strings):
+        _want = _b3_placeholders(_text)
+        if _want and _want != _b3_placeholders(_theirs.get(_path, "")):
+            _placeholder_drift.append(f"{_lang}:{'.'.join(_path)}")
+R.check(
+    "every translation names exactly the placeholders strings.json names",
+    not _placeholder_drift,
+    ", ".join(_placeholder_drift[:6]),
+    # A renamed placeholder that one translation missed renders as literal
+    # braces in that language only -- invisible to the key-identity check.
+)
+
+# --- #169: a sign or magnitude slip in the fee rules is refused at the form --
+def _grid_verdict(spec):
+    res = _b3_submit(
+        _b3_options(),
+        "grid",
+        {
+            const.CONF_GRID_FEE_MODE: grid_fee.MODE_RULES,
+            const.CONF_GRID_FEE_RULES: spec,
+        },
+    )
+    return (res.get("errors") or {}).get(const.CONF_GRID_FEE_RULES), res
+
+
+_neg_verdict, _neg_res = _grid_verdict("Nov-Mar Mon-Fri 06:00-22:00 = -0.25")
+R.check(
+    "a negative rule rate is refused with its own error",
+    _neg_verdict == grid_fee.ERROR_NEGATIVE,
+    f"got {_neg_verdict!r}",
+    # A sign-flip typo used to store as a permanent fee subsidy on exactly
+    # the hours the grid company charges most for.
+)
+_big_verdict, _big_res = _grid_verdict("= 25")
+R.check(
+    "a rate above the implausibility bound is refused too",
+    _big_verdict == grid_fee.ERROR_IMPLAUSIBLE,
+    f"got {_big_verdict!r}",
+)
+R.check(
+    "and the error message's bound and currency are supplied to it",
+    _b3_placeholders(strings["options"]["error"][grid_fee.ERROR_IMPLAUSIBLE])
+    <= set(_big_res.get("description_placeholders") or {}),
+    str(_big_res.get("description_placeholders")),
+)
+R.check(
+    "a rate at the bound still saves",
+    _grid_verdict(f"= {grid_fee.IMPLAUSIBLE_FEE_SEK_PER_KWH:g}")[0] is None,
+)
+R.check(
+    "and the rule the grammar documents still saves",
+    _grid_verdict("Nov-Mar Mon-Fri 06:00-22:00 = 0.25")[0] is None,
+)
+R.check(
+    "an unreadable spec keeps its original error",
+    _grid_verdict("Nov-Mar = banana")[0] == grid_fee.ERROR_INVALID,
+)
+R.check(
+    "both new fee errors are translated in every language",
+    all(
+        key in strings["options"]["error"] and key in files[lang]["options"]["error"]
+        for lang in files
+        for key in (grid_fee.ERROR_NEGATIVE, grid_fee.ERROR_IMPLAUSIBLE)
+    ),
+)
+
+# --- #170: the day sliders span the day, and the validator behind them is
+#     reachable ----------------------------------------------------------------
+_valid_days = [(s, e) for s in range(24) for e in range(1, 25) if s < e]
+
+
+def _day_bounds(form):
+    out = {}
+    for k, v in form["data_schema"].schema.items():
+        key = str(getattr(k, "schema", k))
+        if key in (const.CONF_DAY_START_HOUR, const.CONF_DAY_END_HOUR):
+            out[key] = (v.config["min"], v.config["max"])
+    return out
+
+
+for _flow_name, _form in (
+    ("setup", asyncio.run(_fresh_flow().async_step_temperature(None))),
+    ("options", asyncio.run(_b3_options().async_step_comfort(None))),
+):
+    _b = _day_bounds(_form)
+    (_s_lo, _s_hi), (_e_lo, _e_hi) = (
+        _b[const.CONF_DAY_START_HOUR],
+        _b[const.CONF_DAY_END_HOUR],
+    )
+    _forbidden = [
+        (s, e)
+        for s, e in _valid_days
+        if not (_s_lo <= s <= _s_hi and _e_lo <= e <= _e_hi)
+    ]
+    R.check(
+        f"the {_flow_name} day sliders can express every start<end schedule",
+        not _forbidden,
+        f"{len(_forbidden)} of {len(_valid_days)} forbidden, e.g. {_forbidden[:3]}",
+    )
+    R.check(
+        f"and the {_flow_name} sliders stop where no schedule exists",
+        (_s_lo, _s_hi, _e_lo, _e_hi) == (0, 23, 1, 24),
+        f"start {_s_lo}-{_s_hi}, end {_e_lo}-{_e_hi}",
+        # A day ending at 0 or starting at 24 is empty whatever the other
+        # end says; those values would only feed the validator noise.
+    )
+
+_empty_opts = _b3_submit(
+    _b3_options(),
+    "comfort",
+    {const.CONF_DAY_START_HOUR: 10, const.CONF_DAY_END_HOUR: 10},
+)
+R.check(
+    "an empty day reaches comfort_band on the options page as day_window_empty",
+    _empty_opts.get("type") == "form"
+    and _empty_opts.get("errors") == {const.CONF_DAY_END_HOUR: "day_window_empty"},
+    f"type {_empty_opts.get('type')}, errors {_empty_opts.get('errors')}",
+)
+_empty_setup = _b3_submit(
+    _fresh_flow(),
+    "temperature",
+    {const.CONF_DAY_START_HOUR: 10, const.CONF_DAY_END_HOUR: 10},
+)
+R.check(
+    "and on the setup flow",
+    _empty_setup.get("type") == "form"
+    and _empty_setup.get("errors") == {const.CONF_DAY_END_HOUR: "day_window_empty"},
+    f"type {_empty_setup.get('type')}, errors {_empty_setup.get('errors')}",
+)
+_afternoon = _b3_submit(
+    _b3_options(),
+    "comfort",
+    {const.CONF_DAY_START_HOUR: 14, const.CONF_DAY_END_HOUR: 17},
+)
+R.check(
+    "an afternoon-only heating day, impossible before, saves",
+    _afternoon.get("type") == "menu",
+    f"type {_afternoon.get('type')}, errors {_afternoon.get('errors')}",
+)
+
+# --- #171: a hot-water window shorter than a planning step is refused --------
+R.check(
+    "the shortest accepted window is exactly one planning step",
+    dhw_schedule.MIN_WINDOW_MINUTES == OptimizationConfig().time_step_minutes,
+    f"{dhw_schedule.MIN_WINDOW_MINUTES} vs {OptimizationConfig().time_step_minutes}",
+    # Window membership is tested at each step's start, so a window shorter
+    # than a step can sit between two starts and bind nothing at all.
+)
+
+
+def _dhw_verdicts(spec):
+    setup = _b3_submit(_fresh_flow(), "dhw", {const.CONF_DHW_WINDOWS: spec})
+    saved = _b3_submit(_b3_options(), "hot_water", {const.CONF_DHW_WINDOWS: spec})
+    return (
+        (setup.get("errors") or {}).get(const.CONF_DHW_WINDOWS),
+        (saved.get("errors") or {}).get(const.CONF_DHW_WINDOWS),
+        saved,
+    )
+
+
+_one_minute = _dhw_verdicts("06:05-06:06")
+R.check(
+    "a one-minute window is refused on both flows, by name",
+    _one_minute[:2] == (dhw_schedule.ERROR_TOO_SHORT,) * 2,
+    str(_one_minute[:2]),
+)
+R.check(
+    "and the error message's minimum is supplied to it",
+    _b3_placeholders(strings["options"]["error"][dhw_schedule.ERROR_TOO_SHORT])
+    <= set(_one_minute[2].get("description_placeholders") or {}),
+    str(_one_minute[2].get("description_placeholders")),
+)
+R.check(
+    "a window of exactly one step saves on both",
+    _dhw_verdicts("06:00-06:15")[:2] == (None, None),
+    str(_dhw_verdicts("06:00-06:15")[:2]),
+)
+R.check(
+    "a wrapping ten-minute window is measured across midnight, not as 23 hours",
+    _dhw_verdicts("23:55-00:05")[:2] == (dhw_schedule.ERROR_TOO_SHORT,) * 2,
+)
+R.check(
+    "a weekly spec is judged segment by segment",
+    _dhw_verdicts("weekdays 06:00-08:30, weekend 08:00-08:01")[:2]
+    == (dhw_schedule.ERROR_TOO_SHORT,) * 2,
+)
+R.check(
+    "an unreadable spec keeps its original error",
+    _dhw_verdicts("banana")[:2] == (dhw_schedule.ERROR_INVALID,) * 2,
+)
+R.check(
+    "the default windows every install ships with still save",
+    _dhw_verdicts(const.DEFAULT_DHW_WINDOWS)[:2] == (None, None),
+)
+R.check(
+    "the too-short error is translated on both flows in every language",
+    all(
+        dhw_schedule.ERROR_TOO_SHORT in strings[flow_name]["error"]
+        and dhw_schedule.ERROR_TOO_SHORT in files[lang][flow_name]["error"]
+        for lang in files
+        for flow_name in ("config", "options")
+    ),
+)
+
 # The power pair, initial thermal step and options thermal_model page.
 _pf = _fresh_flow()
 _pres = asyncio.run(
@@ -4056,6 +4418,29 @@ _svc_coord = _svc_hass.data[const.DOMAIN][_svc_entry.entry_id]
 R.check(
     "setup produced a live coordinator behind the services",
     isinstance(_svc_coord, HeatPumpOptimizerCoordinator),
+)
+
+# D6-02 (#172), generalised: every ``example:`` in services.yaml, fed as one
+# payload to the schema the service actually registered. The registry is the
+# honest source -- a module constant can be renamed without the registration
+# following, and it is the registered schema Home Assistant dispatches through.
+_bad_examples = []
+for _svc_name, _svc_spec in services.items():
+    _svc_examples = {
+        field: spec["example"]
+        for field, spec in (_svc_spec.get("fields") or {}).items()
+        if "example" in spec
+    }
+    if not _svc_examples:
+        continue
+    _svc_schema = _svc_hass.services._schemas[(const.DOMAIN, _svc_name)]
+    _svc_ok, _svc_why = _example_passes(_svc_schema, _svc_examples)
+    if not _svc_ok:
+        _bad_examples.append(f"{_svc_name}: {_svc_why}")
+R.check(
+    "every documented service example passes the schema its service registered",
+    not _bad_examples,
+    "; ".join(_bad_examples)[:300],
 )
 
 # The heavy machinery is patched per instance; the point here is that every
