@@ -1901,7 +1901,8 @@ R.section("The batched trajectory is the scalar trajectory, bit for bit")
 from datetime import datetime as _dt_grad
 
 def _grad_parity(two_zone, wood=False, valve=None, extra_cfg=None, label="",
-                 weather_p="winter_cold", state_over=None, bounds_over=None):
+                 weather_p="winter_cold", state_over=None, bounds_over=None,
+                 min_substeps=1):
     cfg = _grad_house(two_zone=two_zone)
     extra = dict(extra_cfg or {})
     if valve:
@@ -1925,6 +1926,23 @@ def _grad_parity(two_zone, wood=False, valve=None, extra_cfg=None, label="",
     )
     st_kwargs.update(state_over or {})
     st = ThermalState(**st_kwargs)
+    # D2-01: a cell claiming to cover the Euler sub-step regime has to
+    # actually be in it. The regime is what the batch and the scalar path
+    # disagreed about for as long as this contract has existed, and the one
+    # cell that *said* "stability substeps" ran at n_sub = 1 -- its
+    # `room_thermal_mass` override was not a config key at all, and the
+    # masses that did land left the two-zone ratio at 0.746 against the 1.5
+    # threshold. Assert the count per step, from the production guard, so
+    # the label can never again outrun the configuration.
+    subs = [m._stability_substeps(float(wi[k]), float(ra[k]), 0.25)
+            for k in range(n)]
+    R.check(
+        f"grad-parity cell subdivides as claimed (n_sub >= {min_substeps}): "
+        f"{label}",
+        min(subs) >= min_substeps,
+        f"_stability_substeps gave min={min(subs)} max={max(subs)} "
+        f"over {n} steps, wanted every step >= {min_substeps}",
+    )
     batch = m.simulate_trajectory_batch(
         st, powers, ot, wi, ra, so, 0.25, ext, None, hum, 7.0)
     mism = []
@@ -2011,12 +2029,45 @@ _grad_parity(False, label="single-zone")
 _grad_parity(True, label="two-zone")
 _grad_parity(True, valve="manual", label="two-zone with valve")
 _grad_parity(True, wood=True, valve="manual", label="two-tank")
+# D2-01: the Euler sub-step regime, in both zonings, asserted rather than
+# named. `_stability_substeps` subdivides a step whose worst u*dt/C exceeds
+# EULER_STABILITY_MAX_RATIO, and the batch has to subdivide it the way the
+# scalar path does -- same dt = dt_hours / n_sub, same carried state across
+# sub-steps. Every configuration below sits inside the config flow's own
+# selector ranges: RANGE_SLAB_THERMAL_MASS = (0.1, 60.0),
+# RANGE_SLAB_HEAT_TRANSFER = (0.02, 5.0), RANGE_HOUSE_THERMAL_MASS =
+# (0.5, 80.0), so none of it is a corner the product forbids.
 _grad_parity(
-    True, valve="manual", label="stability substeps",
+    # Was labelled "stability substeps" and ran at n_sub = 1:
+    # `room_thermal_mass` is not a config key (`from_config` reads
+    # CONF_HOUSE_THERMAL_MASS = "house_thermal_mass"), and with only the
+    # three mass overrides that landed the two-zone ratio was 0.746 x dt
+    # against the 1.5 threshold. The key is corrected to the real one at its
+    # selector minimum and the slab loop is opened to its selector maximum,
+    # which puts every step of the horizon at n_sub = 2.
+    True, valve="manual", label="two-zone stability substeps",
     extra_cfg={
-        "room_thermal_mass": 0.3, "slab_thermal_mass": 0.5,
+        "house_thermal_mass": 0.5, "slab_thermal_mass": 0.5,
+        "slab_heat_transfer": 5.0,
         "upper_floor_thermal_mass": 0.3, "lower_floor_thermal_mass": 0.5,
     },
+    min_substeps=2,
+)
+_grad_parity(
+    # The single-zone half of the same contract, which had no coverage at
+    # all: the slab-mass field at its own selector minimum, everything else
+    # stock. One field off the defaults puts the whole horizon at n_sub = 2.
+    False, label="single-zone stability substeps",
+    extra_cfg={"slab_thermal_mass": 0.1},
+    min_substeps=2,
+)
+_grad_parity(
+    # Deeper into the regime (n_sub = 9), where a sub-step the batch
+    # integrates with the full dt_hours diverges without bound rather than
+    # merely differing -- the shape that made this silent.
+    False, label="single-zone deep substeps",
+    extra_cfg={"slab_thermal_mass": 0.1, "slab_heat_transfer": 5.0},
+    min_substeps=9,
 )
 # D9-01/D7-03: broaden to the shapes the batched jac now serves -- more
 # weather, more initial states, and the non-uniform (DHW-pinned and capped)

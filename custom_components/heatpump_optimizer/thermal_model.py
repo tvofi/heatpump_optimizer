@@ -2373,6 +2373,13 @@ class ThermalModel:
         T_slab = slab[:, 0].copy()
         T_buf = buf[:, 0].copy()
         T_wood = wood[:, 0].copy() if wood is not None else None
+        # The single-zone branch carries the room as its own state (the
+        # scalar step sets upper/lower to it rather than the other way
+        # round), so it is seeded here beside the rest. It used to be seeded
+        # lazily inside the step loop under `if i == 0`, which re-seeded it
+        # from the initial state on every sub-step of step 0 and threw away
+        # the sub-steps already taken.
+        T_room = room[:, 0].copy()
 
         for i in range(n_steps):
             out_i = outdoor_temps[i]
@@ -2602,8 +2609,8 @@ class ThermalModel:
                     # scalar step), so it carries its own initial value --
                     # starting it from the upper-floor field is the classic
                     # parity bug when the two differ in the initial state.
-                    if i == 0:
-                        T_room = initial_state.room_temperature
+                    # T_room is seeded with the other states above the step
+                    # loop and carried across sub-steps from there.
                     delta = out_i - p.cop_reference_temp
                     factor = max(0.3, 1.0 + 0.025 * delta)
                     cop = p.cop_nominal * min(factor, 1.5) * p.cop_scale
@@ -2633,8 +2640,12 @@ class ThermalModel:
                     dT_slab = (
                         thermal_power - q_slab_to_room
                     ) / p.slab_thermal_mass
-                    T_room = T_room + dT_room * dt_hours
-                    T_slab = T_slab + dT_slab * dt_hours
+                    # dt, not dt_hours: this is one sub-step of the
+                    # stability subdivision, exactly as _simulate_step_single
+                    # takes it. Integrating n_sub sub-steps at the full step
+                    # length is the divergence the guard exists to prevent.
+                    T_room = T_room + dT_room * dt
+                    T_slab = T_slab + dT_slab * dt
                     room[:, i + 1] = T_room
                     slab[:, i + 1] = T_slab
                     upper[:, i + 1] = T_room
