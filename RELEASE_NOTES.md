@@ -1,5 +1,82 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.3.4
+
+### Expanding the card no longer breaks it
+
+Reported against v6.3.3 and present since v6.2.13 (#220). Expanding the card
+threw `TypeError: undefined is not an object (evaluating 'this.layout.attach')`
+and Home Assistant replaced the card with its "Configuration error" card.
+
+The cause is a name collision. Lovelace's `hui-card` writes its own properties
+straight onto the card element -- `preview`, `editMode` and `layout` among
+them -- and the card kept its layout editor on `this.layout`, which Lovelace
+overwrote. Only the expanded view reads it, because the dialog's `sync`
+returns early when there is no dialog in the shadow root, so a collapsed card
+never touched the clobbered property and looked perfect until it was expanded.
+
+The collaborator is now `layoutEditor`, and the card's host contract records
+the rule: every collaborator is an own property of an element Lovelace also
+writes to, so the name must be one Lovelace will never assign.
+
+The suite could not have caught this -- it handed the card `hass` and `config`
+and nothing else, so no test ever put the card in the state a dashboard puts
+it in. The new check writes `preview`, `editMode` and `layout` exactly as
+`hui-card` does before expanding, and fails with the reported error when the
+collaborator is put back on the old name. All 27 card states stay
+byte-identical.
+
+### The batched gradient integrates its own sub-steps again
+
+Audit round 2, finding D2-01 (#211). `simulate_trajectory_batch` is the
+solver's gradient twin and its contract is bitwise equality with
+`simulate_trajectory`. In the single-zone branch it was not: the sub-step loop
+computes `dt = dt_hours / n_sub` and the two Euler updates integrated with
+`dt_hours` anyway, so a step the stability guard had subdivided into `n_sub`
+pieces was advanced `n_sub` whole steps. The room state was also re-seeded
+from the initial state on every sub-step of the first step. The two-zone
+branch always used `dt`, which is why the parity contract never saw it.
+
+Whenever the guard subdivides, the gradient the solver plans on was computed
+on a diverged model, and it failed silently with `status = optimal`. At the
+one cell one field off the defaults, slab thermal mass at the config flow's
+own selector minimum:
+
+| | plan cost | electricity |
+|---|---|---|
+| batched jacobian, before | 100.79 SEK/day | +54 % |
+| scipy scalar jacobian, same model | 30.94 SEK/day | reference |
+
+Parity error there was 37.9 degC over 48 steps, up to 2.5e74 on stiffer cells
+and non-finite at nine sub-steps. It is now 0.0 exactly on every stiff cell in
+both zonings.
+
+**No golden fixture moves, and that is measured rather than assumed.** All
+501,936 single-zone and 616,608 two-zone sub-step decisions the 49 plan
+scenarios make run at one sub-step, which is exactly why nothing caught this.
+The parity contract had zero sub-step coverage in either zoning; it now
+asserts the sub-step count per step from the production guard.
+
+### A release stamp that keeps its claims fails its own gate
+
+The inherited-claims rule fired one commit too late and at the wrong person:
+it caught whoever forked a `main` that was stamped with claims still in the
+file (#213). v6.3.2 was stamped by hand, left twelve claims behind, and every
+push to `main` was red until the v6.3.1 import hotfix cleaned them up. A tree
+whose VERSION is strictly ahead of the baseline's is the release commit, a
+release moves no fixture, so its claim list must now be empty.
+
+### Audit round 2 and its record
+
+The eleven-dimension audit's second round: the D10 quality-scale pass with its
+54-rule tier table, three verified findings and one refuted candidate, plus the
+round's register and harnesses (#219). Documentation and audit tooling only --
+no behaviour changes ride in it.
+
+The v6.3.3 notes also gain the two sections they shipped without (#215): the
+`Platform.DIAGNOSTICS` import fix that had stopped the integration loading at
+all, and the closure re-record that made `main` green enough to release from.
+
 ## v6.3.3
 
 ### The self-learning experiment becomes trustworthy: noise-gated sysid

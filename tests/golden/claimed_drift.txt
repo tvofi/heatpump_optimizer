@@ -43,21 +43,11 @@
 # does not expire with the stamp and is not part of the inherited-claims
 # comparison.
 #
-# claims-for: 6.3.3
+# claims-for: 6.3.4
 #
-# The v6.3.1 diagnostics-platform hotfix: PLATFORM_LIST and
-# const.PLATFORMS lose an entry that is not a Home Assistant platform,
-# the test stub loses the member it invented, and entities.py gains the
-# checks that pin both. No solver, sensor or store path is touched, so
-# no fixture moves and the list is empty.
+# v6.3.4: the card expand fix. The stamp empties the list; the
+# next branch restates its own footprint, claims included.
 #
-#
-# every-candidate): nine plan scenarios find the cheaper
-# basin the audit's price-optimality round measured (net
-# 0.25-1.6 % on the adversarial shapes, comfort parity
-# verified on all 15 harness scenarios, every leave-one-out
-# holds). The moved plans are strictly cheaper or equal,
-# never worse: the multi-start keeps the best refinement.
 
 #
 # Tests-plus-sysid branch: the estimator and its gates change no
