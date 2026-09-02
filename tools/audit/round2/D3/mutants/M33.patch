@@ -1,0 +1,11 @@
+--- a/custom_components/heatpump_optimizer/defrost.py
++++ b/custom_components/heatpump_optimizer/defrost.py
+@@ -438,7 +438,7 @@
+             # reading them back unchanged would let the old optimistic bound
+             # outlive the fix.
+             instance.factors = [
+-                [min(DERATE_MAX, max(DERATE_MIN, v)) for v in row]
++                [min(DERATE_MAX, DERATE_MIN) for v in row]
+                 for row in factors
+             ]
+         counts = _grid_of("counts", int)

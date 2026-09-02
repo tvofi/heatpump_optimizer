@@ -1,0 +1,11 @@
+--- a/custom_components/heatpump_optimizer/dhw_schedule.py
++++ b/custom_components/heatpump_optimizer/dhw_schedule.py
+@@ -128,8 +128,6 @@
+         raise DHWWindowError(f"Invalid minute in '{token}'")
+     if hour == 24 and minute == 0:
+         return 24.0
+-    if hour > 23:
+-        raise DHWWindowError(f"Invalid hour in '{token}'")
+     return hour + minute / 60.0
+ 
+ 

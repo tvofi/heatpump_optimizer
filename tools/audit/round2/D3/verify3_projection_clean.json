@@ -1,0 +1,106 @@
+{
+ "rel_tol": 0.05,
+ "starts_tol": 2,
+ "projection_fails": 1,
+ "exact_comparison_fails": 5,
+ "worst_rel_gap": 0.142006940059741,
+ "optimize_calls": 5,
+ "load1": 4.71875,
+ "rows": [
+  {
+   "scenario": "valve_storage_smart_write",
+   "committed": {
+    "baseline_cost": 144.765283,
+    "predicted_cost": 42.048349,
+    "compressor_starts": 6
+   },
+   "fresh": {
+    "baseline_cost": 144.765283,
+    "predicted_cost": 42.655409,
+    "compressor_starts": 5
+   },
+   "rel_baseline_cost": 0.0,
+   "rel_predicted_cost": 0.014437189912022396,
+   "d_starts": 1,
+   "projection_passes": true,
+   "exact_identical": false,
+   "n_leaves_differing": 18
+  },
+  {
+   "scenario": "wood_two_tank",
+   "committed": {
+    "baseline_cost": 147.909569,
+    "predicted_cost": 32.392549,
+    "compressor_starts": 3
+   },
+   "fresh": {
+    "baseline_cost": 147.909569,
+    "predicted_cost": 32.471254,
+    "compressor_starts": 4
+   },
+   "rel_baseline_cost": 0.0,
+   "rel_predicted_cost": 0.0024297254285236816,
+   "d_starts": 1,
+   "projection_passes": true,
+   "exact_identical": false,
+   "n_leaves_differing": 18
+  },
+  {
+   "scenario": "wood_two_tank_smart_write",
+   "committed": {
+    "baseline_cost": 147.909569,
+    "predicted_cost": 29.608975,
+    "compressor_starts": 5
+   },
+   "fresh": {
+    "baseline_cost": 147.909569,
+    "predicted_cost": 28.201144,
+    "compressor_starts": 4
+   },
+   "rel_baseline_cost": 0.0,
+   "rel_predicted_cost": 0.04754744127414075,
+   "d_starts": 1,
+   "projection_passes": true,
+   "exact_identical": false,
+   "n_leaves_differing": 19
+  },
+  {
+   "scenario": "wood_coil",
+   "committed": {
+    "baseline_cost": 156.162896,
+    "predicted_cost": 37.285558,
+    "compressor_starts": 6
+   },
+   "fresh": {
+    "baseline_cost": 156.162896,
+    "predicted_cost": 42.580366,
+    "compressor_starts": 5
+   },
+   "rel_baseline_cost": 0.0,
+   "rel_predicted_cost": 0.142006940059741,
+   "d_starts": 1,
+   "projection_passes": false,
+   "exact_identical": false,
+   "n_leaves_differing": 23
+  },
+  {
+   "scenario": "valve_upper_direct_slab",
+   "committed": {
+    "baseline_cost": 124.088833,
+    "predicted_cost": 41.127588,
+    "compressor_starts": 4
+   },
+   "fresh": {
+    "baseline_cost": 124.088833,
+    "predicted_cost": 41.746899,
+    "compressor_starts": 4
+   },
+   "rel_baseline_cost": 0.0,
+   "rel_predicted_cost": 0.015058286423215389,
+   "d_starts": 0,
+   "projection_passes": true,
+   "exact_identical": false,
+   "n_leaves_differing": 16
+  }
+ ]
+}

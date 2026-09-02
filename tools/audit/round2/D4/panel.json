@@ -1,0 +1,58 @@
+{
+  "panel": "D4",
+  "seats": 3,
+  "votes": {
+    "D4-01": ["verify", "verify", "verify"],
+    "D4-02": ["verify", "verify", "weaken(medium)"],
+    "D4-03": ["weaken(low)", "verify", "refute"],
+    "D4-04": ["verify", "verify", "verify"],
+    "D4-05": ["verify", "verify", "weaken(low)"],
+    "D4-06": ["verify", "verify", "weaken(low)"],
+    "D4-07": ["verify", "weaken(low)", "weaken(low)"],
+    "D4-08": ["verify", "verify", "verify"],
+    "D4-09": ["verify", "verify", "verify"],
+    "D4-10": ["verify", "verify", "refute"],
+    "D4-11": ["verify", "verify", "refute"],
+    "D4-12": ["verify", "verify", "verify"]
+  },
+  "counted": {
+    "D4-01": "3-0 verify",
+    "D4-02": "3-0 verify",
+    "D4-03": "2-1 survives, mechanism replaced",
+    "D4-04": "3-0 verify",
+    "D4-05": "3-0 verify",
+    "D4-06": "3-0 verify",
+    "D4-07": "3-0 verify, threshold corrected",
+    "D4-08": "3-0 verify",
+    "D4-09": "3-0 verify",
+    "D4-10": "2-1 survives, proposed fix refuted",
+    "D4-11": "2-1 survives on its first half only",
+    "D4-12": "3-0 verify"
+  },
+  "severity": {
+    "D4-01": "high", "D4-02": "high", "D4-03": "low", "D4-04": "medium",
+    "D4-05": "medium", "D4-06": "medium", "D4-07": "low", "D4-08": "low",
+    "D4-09": "low", "D4-10": "low", "D4-11": "low", "D4-12": "low"
+  },
+  "voided": [
+    "D4-02's stated perturbation, by seat 3: LANE_H 15 -> 40 moves the lane height 5.60 -> 14.9 px but moves every target count by exactly zero (307 -> 307, 146 -> 146, 548 -> 548). Only LANE_H = 70 moves the count. The finding survives on directly measured geometry; its perturbation does not discriminate.",
+    "Three harness header claims, by seat 3: 'exact for this payload' on D4-02 and D4-03 (re-runs give 1871 and 1079), and 'none depends on load' (a real-mouse-drag state gave 17 against 14 on four arms, and ten overlap cells flipped between 0 and 4 at identical recorded geometry)."
+  ],
+  "notes": {
+    "fixed_on_main": "NONE, and all three seats checked it independently. The seat prompts warned that the card was refactored after the baseline; that premise is wrong. The #136 decomposition landed BEFORE the baseline, and only two commits touch the card since (59 added, 36 removed), being per-render pattern identifiers and a geometry accessor plus a CARD_VERSION bump. Seats 1 and 2 both extracted origin/main with git archive and re-ran the finder's harnesses there: identical RESULT lines and identical by-element breakdowns. Every constant the findings rest on is byte-identical.",
+    "D4-01": "3-0 verify, high. Seat 1's own screen-transform metric: axis text renders at 3.70 CSS pixels at the Lovelace mount on a 359 px phone tile, and 7.42 px in the other mount order, so the declared 8 px floor is never reached in EITHER order. Seat 3 added a dwell test, fifteen further state deliveries with zero re-renders, so nothing corrects it later; the plan sensor updates every 30 minutes by default, which bounds how long the tiny text stays. Seat 2 confirmed the same at first paint and on main. The fix moves it to 8.00 px.",
+    "D4-02": "3-0 verify, high, and worse than reported. Seat 2 found that the report's parenthetical is wrong: inline-tile editing is NOT disabled. On the compact tile with stock configuration and no dialog there are 2 lanes at 5.55 px and 6 slots at 2.70 px, every one carrying tabindex zero, and pressing Enter on a 2.70 px slot opens the slot menu. Seat 1 measured 5.60 px lanes and 2.72 px slots in the dialog unconditionally. COUPLING, seat 3: the compact-tile figure is a consequence of D4-01, since D4-01's font fix raises the compact lane to 8.00 px; the dialog's 5.60 px lane is independent.",
+    "D4-03": "SURVIVES 2-1 with its mechanism replaced. Seat 3 refuted the stated claim outright and seat 1 independently weakened it the same way: 'collide' is a layout-box claim, and isolated-glyph ink measurement at four times device scale gives 0.00 to 0.25 px vertical ink overlap for the unit and tick family and a 3.5 px GAP for the time-label family. Seat 3 measured zero ink pairs in all three geometries with every counted pair having negative ink intersection. What IS real, confirmed by eye on the committed screenshots: crowding, and a unit label clipped at the SVG edge where 'kW' and '6' are cut in half. Low, not medium, and the title must say clipped and crowded rather than colliding.",
+    "D4-04": "3-0 verify, medium. Seat 1's ink harness: 47.0 px of the diagnostic sentence is painted outside the card box on a 359 px tile, zero after a one-line overflow-wrap rule. Seat 2 measured 39.95 px outside a 375 px viewport with 40 px of document horizontal scroll. Seat 3 corrected the report's other viewports: tablet and desktop are 31.1 px and 3.1 px, not 26 and 14, and all 48 rows come from ONE state, the empty-plan state, which is what the dashboard card picker previews.",
+    "D4-05": "3-0 verify, medium. Seat 1 ran the strongest available attack and it failed to refute: with every Home Assistant theme token removed, on the card's own authored fallbacks, the three window controls still compute to 2.63:1 against the 4.5:1 AA threshold. Theme-independent. FIX DEFECT, found independently by seats 1, 2 and 3: the finding's own proposed replacement colour reaches only 3.86:1 and still fails AA. AGGREGATE, seat 3: the 891 is 99 per arm times 9 light arms, and 40 of the 99 are D4-06's elements, so 360 boxes are double-counted between the two findings.",
+    "D4-06": "3-0 verify, medium. The empty setup slot is 3.00:1 in light and 4.03:1 in dark, and the off chip 2.43:1 and 3.20:1, against 4.5:1. Setting opacity to 1 gives 4.81:1 and takes the failures to zero. AGGREGATE, seat 3: the 600 is 40 times 15 arms with zero cell-to-cell variation, from only 5 of 26 states and 10 distinct element pairs.",
+    "D4-07": "3-0 verify, low, THRESHOLD CORRECTED. Seat 1: 44 px is Success Criterion 2.5.5 Target Size (Enhanced), level AAA, not AA, and the finder does not say so. The AA line is 24 px, and it is failed too. Seat 2: of the 548, only 342 are under 24 px and only 167 fail the AA spacing exception, of which 130 are the schedule rects already counted as D4-02, leaving an independent residue of 37. Seat 3: the 548 is one arm times 26 states, counting 37 distinct element classes repeatedly, one button class alone 123 times; the worst single page is 42 and the stock compact card is 18. Seat 1's de-nested census gives 58 interactive targets under 44 px across three scenes, 57 of them natively focusable.",
+    "D4-08": "3-0 verify, low, and the cleanest finding in the panel. Three seats computed the same seven contrast ratios from rendered pixels: the solar series is 1.59:1 on white against the 3:1 non-text threshold. The proposed replacement colour works, taking the count from 3 to 2.",
+    "D4-09": "3-0 verify, low. Seventeen fields and thirteen pickers on the first screen, five option pages over fifteen fields, and exactly one field on the wrong page: a heating circulation pump switch living under hot water. Identical on main, whose config flow differs by 182 lines. Two must-know fields on the first screen is what keeps this low.",
+    "D4-10": "SURVIVES 2-1, PROPOSED FIX REFUTED. Seats 1 and 2 confirmed the warning fires on the untouched recommended path, where 55 of 60 values are the shipped defaults, so a default install does log a warning about its own defaults. Seat 2 bounded it: once per install plus once per hot-water save, never per cycle, log only. Seat 3's refute is of the FIX, and it is decisive: applying the proposed exemption turns a shipped assertion in tests/features.py false, one whose own comment reads that the stock defaults are reported too and this is not an exotic pairing. The coordinator's existing exemption covers the Repairs card and says the config flow logs the same fact at save time. So the behaviour is deliberate and the finding must argue against a recorded decision, not around it.",
+    "D4-11": "SURVIVES 2-1 ON ITS FIRST HALF ONLY. The version mismatch is real and unfixed on both trees: the card announces 5.4.17 in a 6.2.14 release at the baseline and 5.4.19 in 6.3.2 on main, and stamp.py never mentions the card version constant. The duplicate-guard half is refuted by seats 2 and 3 together: releases share a card version because the card file is byte-identical between them, 87 % of commits touching the card do bump the constant, and tests/entities.py already states and gates the policy that an integration-only release leaves the card behind, which is legal.",
+    "D4-12": "3-0 verify, low, and slightly worse than reported. Seat 3 read the ungrammatical sentence on the UNEDITED dialog with a delta of 0.00, so it shows every time the editor opens, not only after a cost-neutral edit. Swedish is correct; only English is wrong. A template change takes it to zero."
+  },
+  "reports": ["D4/verify-1.md", "D4/verify-2.md", "D4/verify-3.md"],
+  "contention": "Geometry and contrast are measured from rendered pixels and are contention-immune, but seat 3 disproved the harness's 'none depends on load' claim on the drag state and on ten overlap cells. Structural limit all three seats state: no Home Assistant frontend exists on this box, so tile widths and the card host rules are modelled. Seat 2 tested the sensitivity and found no finding turns on the column width; only D4-04's magnitude is width-sensitive."
+}

@@ -1,0 +1,1904 @@
+External heat override sensor.flue has not reported for 240 min (limit 60); ignoring it until it does. A flue probe that stops reporting would otherwise hold heating back forever
+External heat override sensor.flue has not reported for 600 min (limit 60); ignoring it until it does. A flue probe that stops reporting would otherwise hold heating back forever
+
+=== Feature modules ===
+
+-- Input staleness watchdog (item 12)
+  ok   a fresh sensor reads normally
+  ok   an over-age value is rejected
+  ok   the rejected value is still available for a graceful fallback
+  ok   the age is reported so a user can see why
+  ok   an outdoor reading may be older than an indoor one
+  ok   the watchdog can be switched off entirely
+  ok   the age limit can be relaxed
+  ok   unavailable is distinguished from stale
+  ok   a missing entity is reported as such
+  ok   an unconfigured input is not a problem
+  ok   a non-numeric state does not raise
+  ok   an untimestamped state is used rather than discarded
+  ok   stale inputs are listed
+  ok   missing inputs are listed
+  ok   a healthy snapshot says so
+  ok   the summary is human-readable
+  ok   the evidence names the entity
+  ok   watts are converted to kW
+  ok   kilowatts pass through
+  ok   an unrecognised unit is refused rather than guessed
+  ok   a missing unit is refused
+  ok   a power entity is normalised on read
+  ok   a wrongly-united power entity yields nothing
+
+-- Non-numeric inputs (v5.3.0)
+  ok   a fresh string entity reads as text
+  ok   and carries no number, so numeric callers cannot mistake it for one
+  ok   the same entity through the numeric reader is still not_numeric
+  ok   an unconfigured signal is not_configured, not a problem
+  ok   a configured entity that does not exist is missing_entity
+  ok   a unavailable string entity yields nothing usable
+  ok   a unknown string entity yields nothing usable
+  ok   an over-age string is rejected exactly like an over-age number
+  ok   and keeps its text for a caller that wants last-known-good
+  ok   a defrost flag goes stale sooner than a mode does
+  ok   a state outside the vocabulary is reported, not passed on
+  ok   while a recognised one passes the same gate
+  ok   a plain container of accepted states works too, case-insensitively
+  ok   staleness outranks an unrecognised value
+  ok   a flag reading 'on' is True
+  ok   and 'on' keeps the word it came from
+  ok   a flag reading 'off' is False
+  ok   and 'off' keeps the word it came from
+  ok   a flag reading 'true' is True
+  ok   and 'true' keeps the word it came from
+  ok   a flag reading 'false' is False
+  ok   and 'false' keeps the word it came from
+  ok   a flag reading 'detected' is True
+  ok   and 'detected' keeps the word it came from
+  ok   a flag reading 'clear' is False
+  ok   and 'clear' keeps the word it came from
+  ok   a flag reading '0' is False
+  ok   and '0' keeps the word it came from
+  ok   a flag reading '1' is True
+  ok   and '1' keeps the word it came from
+  ok   a flag reading '3' is True
+  ok   and '3' keeps the word it came from
+  ok   an uninterpretable flag is refused rather than guessed
+  ok   a stale flag is unusable but still reachable
+  ok   parse_bool reads a real bool through
+  ok   parse_bool refuses a word it does not know
+  ok   parse_bool reads any non-zero number as yes
+  ok   a configured-but-unusable signal is visible in the health snapshot
+  ok   a never-configured signal is not held against the install
+  ok   the convenience accessors mirror value()
+
+-- Heat pump operating mode (v5.3.0)
+  ok   cool: space=False dhw=False
+  ok   cool: two duties at once = False
+  ok   heat: space=True dhw=False
+  ok   heat: two duties at once = False
+  ok   DHW: space=False dhw=True
+  ok   DHW: two duties at once = False
+  ok   COOLDHW: space=False dhw=True
+  ok   COOLDHW: two duties at once = True
+  ok   HEATDHW: space=True dhw=True
+  ok   HEATDHW: two duties at once = True
+  ok   the select label 'Cooling' resolves to cool
+  ok   the select label 'Heating' resolves to heat
+  ok   the select label 'DHW (Hot Water)' resolves to DHW
+  ok   the select label 'Cooling + DHW' resolves to COOLDHW
+  ok   the select label 'Heating + DHW' resolves to HEATDHW
+  ok   'heatdhw' is tolerated
+  ok   'HEAT_DHW' is tolerated
+  ok   '  Heating + DHW  ' is tolerated
+  ok   'heating and dhw' is tolerated
+  ok   an unrecognised mode 'turbo' falls back to full capability
+  ok   an unrecognised mode 'auto' falls back to full capability
+  ok   an unrecognised mode '' falls back to full capability
+  ok   an unrecognised mode None falls back to full capability
+  ok   an unrecognised mode 7 falls back to full capability
+  ok   and the unknown fallback does not claim two duties at once
+  ok   suppression is symmetric
+  ok   every mode carries what a future writer would need
+  ok   a lit stove still reads as an override
+  ok   and a cold one still reads as no override
+  ok   a flue PROBE that stopped reporting stops suppressing (v5.3.0)
+  ok   a flag helper is not aged out: input_boolean 'on' at 61 min still suppresses
+  ok   ...and its deliberate 'off' at 61 min still overrules the detector (input_boolean)
+  ok   a flag helper is not aged out: input_boolean 'on' at 600 min still suppresses
+  ok   ...and its deliberate 'off' at 600 min still overrules the detector (input_boolean)
+  ok   a flag helper is not aged out: input_boolean 'on' at 2880 min still suppresses
+  ok   ...and its deliberate 'off' at 2880 min still overrules the detector (input_boolean)
+  ok   a flag helper is not aged out: switch 'on' at 61 min still suppresses
+  ok   ...and its deliberate 'off' at 61 min still overrules the detector (switch)
+  ok   a flag helper is not aged out: switch 'on' at 600 min still suppresses
+  ok   ...and its deliberate 'off' at 600 min still overrules the detector (switch)
+  ok   a flag helper is not aged out: switch 'on' at 2880 min still suppresses
+  ok   ...and its deliberate 'off' at 2880 min still overrules the detector (switch)
+  ok   a flag helper is not aged out: binary_sensor 'on' at 61 min still suppresses
+  ok   ...and its deliberate 'off' at 61 min still overrules the detector (binary_sensor)
+  ok   a flag helper is not aged out: binary_sensor 'on' at 600 min still suppresses
+  ok   ...and its deliberate 'off' at 600 min still overrules the detector (binary_sensor)
+  ok   a flag helper is not aged out: binary_sensor 'on' at 2880 min still suppresses
+  ok   ...and its deliberate 'off' at 2880 min still overrules the detector (binary_sensor)
+  ok   the horizon is scoped to numbers, not to the entity domain
+  ok   a flue probe still uses its own threshold, not the shared numeric rule
+  ok   the shared vocabulary widens what a flag entity may say
+  ok   UNBOUNDED is not the same as 'no key in the table'
+  ok   an unavailable or unconfigured override is simply absent
+
+-- External heat source detection (item 5)
+  ok   a single suspicious interval does not trip it
+  ok   two consecutive intervals do
+  ok   the evidence explains why
+  ok   confidence is full while active
+  ok   it releases once the rise stops
+  ok   but keeps suppressing while it fades
+  ok   the decay eventually clears
+  ok   the heat pump heating its own tank is not external heat
+  ok   a rise beyond the pump's capacity is caught even while it runs
+  ok   sensor drift below the threshold is ignored
+  ok   a user-provided entity takes effect immediately
+  ok   and clears immediately
+  ok   disabled means disabled, whatever the tanks do
+
+-- Wood furnace displacement (item 28)
+  ok   the outlet temperature identifies the mixing fraction
+  ok   and scales to an absolute free-heat figure
+  ok   the wood tank's remaining energy is measured, not assumed
+  ok   displacement is a separate field from confidence
+  ok   no active fire means no displacement, whatever the sensors read
+  ok   too small a margin reads as zero, not as a noisy fraction
+  ok   a missing or stale outlet reading zeroes the displacement
+  ok   the forecast never promises past its hard two-hour cap
+  ok   and fades over that horizon rather than carrying full weight
+  ok   the promise never exceeds what the wood tank measurably holds
+  ok   no fire, no forecast
+  ok   a measurably spent wood tank ends the decay early
+  ok   while without the tank pair the timer stands
+
+-- Unknown price horizon (item 7)
+  ok   a complete day is learned
+  ok   a partial day is rejected
+  ok   the learned shape has a trough at night
+  ok   one day's evidence is heavily damped
+  ok   published prices are preserved exactly
+  ok   the mask marks which steps are real/Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/audit-r2-baseline/custom_components/heatpump_optimizer/optimizer.py:201: RuntimeWarning: invalid value encountered in divide
+  return (f - f0) / dx
+/Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/tvofi-claude/.venv/lib/python3.13/site-packages/scipy/optimize/_numdiff.py:711: RuntimeWarning: invalid value encountered in divide
+  df_dx = [delf / delx for delf, delx in zip(df, dx)]
+
+  ok   the tail is not flat
+  ok   without a model the old flat repeat is used, not an invention
+  ok   a fully published horizon never consults the prior
+  ok   no prices at all falls back rather than crashing
+  ok   complete days are extracted
+  ok   incomplete days are dropped
+  ok   malformed entries do not crash the extractor
+  ok   the guessed tail is scaled by the true daily level
+  ok   and reproduces the known window at its own hours
+  ok   a stale price list is not read as today's prices
+  ok   hourly entries cover their own four quarters
+  ok   quarter-hour entries are not stretched to hours
+  ok   a stale weather forecast still lines up with the clock
+
+-- Capacity tariff (item 8)
+  ok   the marginal price is the tariff divided by the peaks averaged
+  ok   a disabled tariff costs nothing
+  ok   the billed peak averages the highest hours
+  ok   the free-headroom threshold is the lowest billed peak
+  ok   early in the month the threshold is what has actually been seen
+  ok   a new month resets the peaks
+  ok   staying under the threshold costs nothing
+  ok   the peak charge equals the bill it models
+  ok   several high hours cost more than one
+  ok   the peak charge has a gradient the solver can follow
+  ok   a month with no recorded peaks disables the charge
+  ok   a partial month measures against what has actually been seen
+  ok   a 15-minute burst is averaged over the metering window
+  ok   the charge covers exactly the peaks the bill averages
+  ok   a burst inside one billed window is priced as one window
+
+-- PV self-consumption (item 9)
+  ok   darkness produces nothing
+  ok   half irradiance produces half output
+  ok   production is capped at the nameplate
+  ok   a disabled array produces nothing
+  ok   surplus is net of the rest of the house
+  ok   a draw inside the surplus costs the export compensation
+  ok   a draw beyond the surplus pays the import price for the excess
+  ok   an export price above the import price is clamped
+  ok   a hot-water block's price blends by the covered fraction
+  ok   the objective reprices the covered sliver, not the whole step
+  ok   without surplus the cost is the plain import bill
+  ok   hot-water planning ranks a fully covered step at the export price
+  ok   on the replan, space heating takes its surplus share first
+
+-- Away and holiday mode (item 13)
+  ok   a person being not_home means away
+  ok   a person being home does not
+  ok   a named zone still counts as away
+  ok   a holiday toggle being on means away
+  ok   an unknown state means unknown, not away
+  ok   a presence-class binary sensor being on means home
+  ok   a presence-class binary sensor being off means away
+  ok   a class-less binary sensor keeps toggle semantics
+  ok   a template sensor speaking the person vocabulary reads correctly
+  ok   away is detected
+  ok   the deep setback applies while away
+  ok   recovery is not started three days out
+  ok   the recovery estimate is published
+  ok   recovery starts before the stated return
+  ok   the comfort target is restored during recovery
+  ok   without a return time the setback still applies
+  ok   an occupied house is never set back
+  ok   disabled means the feature cannot cost anything
+  ok   a warm house needs no recovery time
+  ok   a pump that cannot reach the target starts as early as allowed
+  ok   a cold house's recovery estimate respects the slab bottleneck
+  ok   a calendar event supplies its own return time
+
+-- Closed-loop accuracy (item 11)
+  ok   the mean absolute error is reported
+  ok   the bias keeps its sign
+  ok   the power ratio is reported
+  ok   the cost error is signed and in percent
+  ok   trust falls as the error grows
+  ok   a perfect model is fully trusted
+  ok   an empty tracker reports nothing rather than zero
+  ok   temperature accuracy works without a power meter
+  ok   the delivered ratio inverts the power ratio
+  ok   an idle interval carries no information
+  ok   history survives a restart
+  ok   corrupt stored history is ignored
+
+-- Defrost derate (item 14)
+  ok   with no evidence the derate changes nothing
+  ok   one observation barely moves it
+  ok   sustained evidence does move it
+  ok   the derate is local to the frosting band
+  ok   dry cold air is a separate bucket
+  ok   an implausible derate is clamped
+  ok   a nonsense ratio is discarded outright
+  ok   the buckets are reportable
+  ok   the derate survives a restart
+  ok   a corrupt stored derate falls back to neutral
+  ok   the learned derate lowers the COP the optimizer uses
+  ok   the measured COP correction also applies
+
+-- Weekly hot-water windows: different days, different times
+  ok   a flat spec carries no weekly structure
+  ok   the weekday/weekend split lands on the right days
+  ok   and renders back to the string the user typed
+  ok   single days and day lists name exactly their own days
+  ok   the rendered form re-parses to the same structure
+  ok   a dayless segment inside a weekly spec applies to every day
+  ok   a wrapping weekly window splits at midnight like the flat one
+  ok   a day with no segment has no windows -- no requirement that day
+  ok   a malformed weekly spec raises, not silently empties ('Mo 25:00-26:00')
+  ok   a malformed weekly spec raises, not silently empties ('weekdays')
+  ok   a malformed weekly spec raises, not silently empties ('Mox 06:00-07:00')
+  ok   the validator accepts the weekly grammar
+  ok   the every-day view of a weekly spec is the merged union of its times
+  ok   a Monday plan requires hot water in the weekday window
+  ok   a Saturday plan requires it in the weekend window instead
+  ok   the two requirement sets do not overlap at all
+  ok   a flat spec solves identically regardless (deterministic)
+
+-- The batched trajectory is the scalar trajectory, bit for bit
+  ok   batched simulation is bitwise-identical: single-zone
+  ok   batched jac == scipy 2-point FD bit-for-bit: single-zone
+  ok   batched simulation is bitwise-identical: two-zone
+  ok   batched jac == scipy 2-point FD bit-for-bit: two-zone
+  ok   batched simulation is bitwise-identical: two-zone with valve
+  ok   batched jac == scipy 2-point FD bit-for-bit: two-zone with valve
+  ok   batched simulation is bitwise-identical: two-tank
+  ok   batched jac == scipy 2-point FD bit-for-bit: two-tank
+  ok   batched simulation is bitwise-identical: stability substeps
+  ok   batched jac == scipy 2-point FD bit-for-bit: stability substeps
+  ok   batched simulation is bitwise-identical: single-zone shoulder mild-start
+  ok   batched jac == scipy 2-point FD bit-for-bit: single-zone shoulder mild-start
+  ok   batched simulation is bitwise-identical: two-zone summer-cool warm-start
+  ok   batched jac == scipy 2-point FD bit-for-bit: two-zone summer-cool warm-start
+  ok   batched simulation is bitwise-identical: single-zone winter-mild
+  ok   batched jac == scipy 2-point FD bit-for-bit: single-zone winter-mild
+  ok   batched simulation is bitwise-identical: two-zone DHW-pinned bounds
+  ok   batched jac == scipy 2-point FD bit-for-bit: two-zone DHW-pinned bounds
+  ok   batched simulation is bitwise-identical: single-zone DHW-pinned bounds shoulder
+  ok   batched jac == scipy 2-point FD bit-for-bit: single-zone DHW-pinned bounds shoulder
+  ok   batched simulation is bitwise-identical: two-zone capped bounds summer-cool
+  ok   batched jac == scipy 2-point FD bit-for-bit: two-zone capped bounds summer-cool
+
+-- Which bounds the batched jac may serve (D9-01)
+  ok   uniform bounds are served
+  ok   per-step caps and DHW-pinned headroom are served
+  ok   a zero-range bound (full DHW block or manual pin) is refused
+  ok   degenerate classes are refused: empty, inverted, non-finite
+
+-- Building presets (item 17)
+  ok   a masonry house has more thermal mass than a timber one
+  ok   an older house loses more heat
+  ok   loss scales with heated area
+  ok   floor heating adds an actively charged store
+  ok   radiators respond faster than floor heating
+  ok   timber-on-slab over a crawl space is the crawl-space house, exactly
+  ok   the subtraction only fires under a crawl-space foundation
+  ok   masonry over a crawl space keeps its walls -- nothing was removed twice
+  ok   a concrete slab over a crawl space loses the slab but keeps the concreteLearned house heat loss scale 1.000 (fitted against 0.0500 kW/°C, 300 samples) cannot be expressed against the newly configured 0.4000 kW/°C: resetting to the configuration
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration True (Invalid window 'True' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration True (Invalid window 'True' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.25 (Invalid window '0.25' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 0.5 (Invalid window '0.5' (expected HH:MM-HH:MM)); falling back to always-available hot water
+Invalid DHW window configuration 'not a time range' (Invalid window 'not a time range' (expected HH:MM-HH:MM)); falling back to always-available hot water
+
+  ok   a heated basement adds both mass and loss
+  ok   the heavy mass lives in the heated slab, and only there
+  ok   the radiator power fraction follows the emitters
+  ok   a radiator loop is a small store, not the building's slab
+  ok   radiators can deliver the design heat load at a sane flow temperature
+  ok   with radiators the heavy floor coasts as part of the room store
+  ok   nonsense options are clamped rather than propagated
+  ok   the derived values are presented as a starting point
+  ok   derived values are accepted by the thermal model
+
+-- Active system identification (item 18)
+  ok   arming works when enabled
+  ok   arming twice is a no-op
+  ok   a disabled experiment cannot be armed
+  ok   mild, cheap, night conditions are accepted
+  ok   a cold night is refused
+  ok   an expensive hour is refused
+  ok   the middle of the afternoon is refused
+  ok   a converged house is not experimented on
+  ok   the experiment injects a step
+  ok   it completes
+  ok   it identifies something
+  ok   the identified heat loss is close to the truth
+  ok   the identified capacity is close to the truth
+  ok   confidence is reported
+  ok   an excursion beyond the comfort limit aborts the experiment
+  ok   the abort is recorded with a reason
+  ok   a fit with no samples fails cleanly
+  ok   a recent run blocks another
+
+-- Revealed-preference comfort tuning (item 19)
+  ok   repeated upward overrides raise the comfort weight
+  ok   one override does not move it
+  ok   a rounding-sized override is ignored entirely
+  ok   a long flat, uncomplained-about profile lowers it
+  ok   a house already using its whole band is not evidence
+  ok   the learned value stays inside sane bounds
+  ok   reset returns to the configured value
+  ok   reset forgets the evidence
+  ok   changing the configured weight discards what was learned against the old one
+  ok   an unchanged configured weight keeps the learning
+  ok   corrupt stored learning falls back to the configured value
+
+-- The house as a virtual battery (item 20)
+  ok   stored energy is positive for a warm house
+  ok   state of charge is a percentage
+  ok   the charge rate is thermal, not electrical
+  ok   autonomy is reported
+  ok   round-trip efficiency is thermal and at most 100%
+  ok   every store is listed
+  ok   a house at its comfort floor is an empty battery
+  ok   a store below its floor never reports negative energy
+
+-- Regressions
+  ok   a confirming sample leaves the learned COP scale alone
+  ok   closed-loop learning converges on the real efficiency
+  ok   and then stays there
+  ok   a persistently broken feedback loop is bounded, not unbounded
+  ok   the commanded total includes hot water
+  ok   a plan with no hot water still works
+  ok   an empty action is zero, not an error
+  ok   a planned hot-water charge is not mistaken for a wood fire
+  ok   a dry cold day does not inherit the humid derate
+  ok   the ambient humidity selects the bucket that was learned
+  ok   an explicit humidity still wins over the ambient default
+  ok   the frosting band covers the frosting temperatures
+  ok   dry deep cold is not frost, and mild air is not frost
+  ok   the COP scale does not learn inside the frosting band
+  ok   outside the band the same sample still teaches the COP scale
+  ok   an extreme COP sample moves cop_scale by at most the clamp's max_step
+  ok   an extreme COP sample moves cop_scale by at most the clamp's max_step
+  ok   an extreme COP sample moves cop_scale by at most the clamp's max_step
+  ok   an extreme COP sample moves cop_scale by at most the clamp's max_step
+  ok   an extreme COP sample moves cop_scale by at most the clamp's max_step
+  ok   an extreme COP sample moves cop_scale by at most the clamp's max_step
+  ok   an extreme COP sample moves cop_scale by at most the clamp's max_step
+  ok   an extreme COP sample moves cop_scale by at most the clamp's max_step
+  ok   an extreme COP sample moves cop_scale by at most the clamp's max_step
+  ok   an extreme COP sample moves cop_scale by at most the clamp's max_step
+  ok   an extreme COP sample moves cop_scale by at most the clamp's max_step
+  ok   an extreme COP sample moves cop_scale by at most the clamp's max_step
+  ok   an extreme COP sample moves cop_scale by at most the clamp's max_step
+  ok   the clamp scenario actually engaged the clamp at least once
+  ok   a pure standby drop teaches no draw
+  ok   a genuine draw still reinforces its hour
+  ok   a stale plan trajectory is not offered as a prediction in boost mode
+  ok   in auto mode the plan is what runs, so it is the prediction
+  ok   the learned COP scale is saved and restored
+
+-- The learned heat-loss scale is re-anchored, not restored verbatim
+  ok   a converged scale is re-anchored onto the new nameplate, not restored
+  ok   which is no longer ~1.94x the UA the learner measured
+  ok   a sub-threshold nameplate edit keeps the stored scale verbatim
+  ok   an unlearned install keeps its configuration edit
+  ok   an inexpressible measurement resets, not clips onto a bound
+  ok   a re-anchor persists exactly once
+  ok   and the persisted anchor is the configuration now in force
+  ok   a second load over the same configuration re-anchors nothing
+  ok   a two-zone edit re-anchors on the zone total, not the upper zone
+  ok   a snapshot restore re-anchors a pre-edit scale, not restores it
+  ok   a night setback lowers the reference, not the reported savings
+  ok   while the schedule agrees, so do the baselines
+  ok   a heated basement scales the slow store once, not twice
+
+-- Configuration mapping
+  ok   every configurable parameter is reachable from a config key
+  ok   the mixing valve mode is reachable from its config key
+  ok   and an unknown mode falls back rather than silently doing nothing
+  ok   the COP flow penalty follows the mode rather than being separate
+  ok   presence still enables two-zone when the mode key is absent
+  ok   mode 'off' disables two-zone even with zone values stored
+  ok   mode 'on' enables two-zone with no zone key present at all
+  ok   mode 'auto' is exactly the presence rule, both ways
+  ok   an unknown mode falls back to the presence rule rather than disabling
+  ok   configured thermal mass arrives
+  ok   configured heat loss arrives
+  ok   configured max power arrives
+  ok   configured DHW setpoint arrives
+  ok   configured wind sensitivity arrives
+  ok   configured displace limit arrives
+  ok   ECL110 effective displace starts at rest
+  ok   one tick of a step command lags strictly behind it, not tracks instantly
+  ok   a second tick keeps closing the gap towards the command, not overshooting
+  ok   enough ticks let the lag converge on the commanded value
+  ok   an empty config yields the documented defaults
+  ok   two-zone is inferred from the presence of its keys
+  ok   hot water is inferred from the presence of its keys
+  ok   a boolean stored as a string is still a boolean
+  ok   an unparseable window spec falls back rather than raising
+
+-- Lower floor temperature sensor (item 30)
+  ok   a floor return sensor never stands in for the lower zone's air temperature
+  ok   and the floor return still does its real job: the slab estimate
+  ok   a real lower-floor sensor takes precedence over the return-temp estimate
+  ok   the estimated path no longer pins slab-to-room at 0.5 K
+  ok   and a real sensor moves it further still, from a measurement
+  ok   the sensor is used even when there is no floor return sensor
+  ok   with neither sensor the lower zone falls back to room temperature
+  ok   a configured but stale floor return still leaves a defensible lower zone
+  ok   an unavailable lower-floor sensor falls back to the room temperature
+  ok   the new sensor has a staleness limit like the other room sensors
+  ok   the reported zone temperatures no longer differ by six degrees
+  ok   an unmeasured lower zone raises the repair issue
+  ok   raised once, not once per cycle
+  ok   a configured thermometer raises nothing
+  ok   a single-zone house is never told about a zone it does not have
+  ok   the notice is up before the sensor is assigned
+  ok   and assigning one clears it across the reload that follows
+  ok   the reloaded coordinator really is reading the sensorValve write entity switch.valve is a switch; smart_write can command number, input_number and climate entities
+
+  ok   correcting a grid fee clears its notice across the reload too
+
+-- The optimizer can see the buffer tank (item 29)
+  ok   the tank has its own settlement ceiling, not the slab's
+  ok   which is the tank's own maximum
+  ok   and without a valve nothing changes, since the tank cannot be charged
+  ok   a charged tank counts as stored energy
+  ok   the objective prices a tank left cold
+  ok   and omitting the tank entirely is treated as the worst case, not ignored
+  ok   a tank's terminal credit survives intact when the house is drawing hard
+  ok   and collapses to nothing when the house needs no bought heat at all
+  ok   with no cliff between the two: the discount is continuous in demand
+  ok   a better-insulated tank is discounted less than a bare one
+  ok   the discount does not depend on the end temperature the solver picks
+  ok   free gains that cover the whole loss leave no hold demand
+  ok   and solar is only counted when the caller asks for it
+  ok   so in summer the tank's terminal credit is switched off entirely
+  ok   while at -5 C the same tank keeps essentially all of it
+  ok   and without a valve the discount is exactly 1.0, changing nothing
+  ok   without a valve the terminal cost ignores the tank
+  ok   a 35 L tank behind a valve is not a store
+  ok   so its settlement cap stays the slab's
+  ok   and the terminal cost ignores it
+  ok   while a real accumulator on the same valve is one
+  ok   the buffer trajectory is available after a simulation
+
+-- Mixing valve and the buffer tank as a store (items 27/29)
+  ok   without a valve the tank ignores the heat pump entirely
+  ok   with a valve, running the pump hard charges the tank
+  ok   and with the pump off the tank discharges into the house
+  ok   charging hard does not overheat the house
+  ok   which is exactly what an unvalved system fails to do
+  ok   the tank cannot be charged past its ceiling
+  ok   an unconfigured valve target throttles at the comfort ceiling
+  ok   and the tank still charges on the default target
+  ok   a tank read above its cap cools physically, not by teleport
+  ok   charging the tank hot costs COP
+  ok   but stays physically plausible rather than collapsing to a floor
+  ok   and the penalty is inert unless it is switched on
+  ok   a dumb valve is recommended the top of the comfort band
+  ok   and the recommendation says what it costs, not just what to set
+
+-- The discharge law: the valve regulates flow temperature (item 29)
+  ok   the flow setpoint is the target plus the standing loss over the emitter UA
+  ok   and collapses to the target when there is nothing to hold against
+  ok   delivery cannot be negative
+  ok   a charged tank survives hours, not steps
+  ok   and while it lasts the tank alone carries the house
+  ok   the trajectory does not depend on the step length
+  ok   below the curve the valve saturates wide open
+  ok   energy is conserved: the tank's loss is the delivery plus standing loss
+  ok   with a price spread the optimizer charges through the cheap night
+  ok   and deliberately lifts the tank to do it
+  ok   and coasts both price peaks on stored heat
+  ok   the null control: flat prices produce no night concentration
+
+-- The valve hold schedule (item 29)
+  ok   a price spread earns a hold schedule
+  ok   and the schedule is fully resolved -- real temperatures, no sentinels
+  ok   it holds the valve down between charging and the peak
+  ok   and it never asks for a house below the comfort floor
+  ok   the null control: flat prices earn no schedule at all
+  ok   a valve the integration cannot command gets no schedule
+  ok   and neither does a tank too small to be a store
+  ok   no candidate is derived where prices are flat
+  ok   nor where the plan never charges
+  ok   a charging plan against a spread does derive one
+  ok   the peak itself is never held down
+  ok   a held valve really does keep heat in the tank
+  ok   and no schedule is byte-for-byte the configured target
+  ok   charging a full tank at full power is refused by the physics
+  ok   the tighten loop cuts the ceiling at the refusing steps
+  ok   even free electricity cannot plan past the tank's ceiling
+  ok   and the trajectory itself respects the cap
+  ok   the valve recommendation reaches the coordinator's data
+  ok   with the reasoning attached, not just a number
+  ok   and stays out of the data entirely without a valve to set
+
+-- smart_write: the optimizer commands the valve (item 29)
+  ok   smart_write is selectable now that it can act
+  ok   a number entity is commanded through set_value
+  ok   and the commanded number is the comfort ceiling, the same value the dumb-valve recommendation gives
+  ok   an unchanged target is not rewritten
+  ok   while a changed comfort band reaches the valve
+  ok   a climate entity is commanded through set_temperature
+  ok   a configured static target wins over the ceiling
+  ok   no entity, another mode, or an uncommandable domain all write nothing
+  ok   a hold schedule is what actually reaches the valve
+  ok   the current action carries the valve target for the step it is about
+
+-- Per-step external heat reaches the model and the plan (item 28)
+  ok   free heat warms the house with the compressor off
+  ok   and it is heat, not electricity: a zero burn is the old model exactly
+  ok   a burn forecast reduces electric heating during the burn
+  ok   an all-zero forecast is byte-identical to no forecast
+
+-- Setup topology: one description for every picture (items 32/33)
+  ok   the topology derives from the model's own inference
+  ok   a full topology shows every place
+  ok   empty slots are shown empty, not omitted
+  ok   a minimal setup does not grow places it does not have
+  ok   every assignable slot carries the domains it accepts
+  ok   a temperature slot does not accept a switch
+  ok   the flow overview is a fenced monospaced block
+  ok   with configured sensors named and empty slots called out
+  ok   and the storage claim matches the model
+  ok   a modelled wood tank is claimed as its own store
+  ok   the wood abstraction is admitted in prose where it still runs
+  ok   a 10 L tank cannot discharge below what it is feeding
+  ok   a 35 L tank cannot discharge below what it is feeding
+  ok   a 750 L tank cannot discharge below what it is feeding
+  ok   ending colder than the reference is charged for
+  ok   and ending warmer is credited by exactly the same amount
+
+-- Buffer tank standby loss scales with the tank (items 27/29)
+  ok   a bigger tank loses more in absolute terms
+  ok   but far less than in proportion to its volume
+  ok   UA grows with surface area, not with volume
+  ok   the prior is no worse than an uninsulated tank
+  ok   the learner may reach a real accumulator's standby loss
+  ok   which the old flat floor would have forbidden
+  ok   an explicitly configured rate is honoured
+  ok   and from_config leaves it unset rather than injecting a 35 L number
+
+-- Two-zone loss split learning (item 31)
+  ok   the split defaults to the configured one
+  ok   and the learned lower loss is then just the configured value
+  ok   without a lower-floor sensor nothing is learned
+  ok   a lower zone colder than predicted raises its share of the loss
+  ok   and a warmer one lowers it
+  ok   a single interval cannot move the split more than the step limit
+  ok   equal residuals either side of the prediction are both learned from
+  ok   and they move the split in opposite directions
+  ok   and by exactly the same amount, or noise still ratchets the split
+  ok   an implausible residual is rejected, not absorbed
+  ok   the split is clamped to a physical range
+  ok   external heat freezes the split learner too
+  ok   the split is persisted alongside the other learned parameters
+  ok   the split learner runs before the one that consumes the baseline
+
+-- Runtime parameter updates
+
+-- Economy mode (audit item 4)
+  ok   economy is a real mode, not a label
+  ok   and it is not a licence to freeze the house
+  ok   the away snapshot carries min_temp, which is what unwinds the widening
+  ok   every mode the service accepts can be persisted and restored
+  ok   a mapped parameter is applied
+  ok   a renamed parameter is applied
+  ok   COP nominal is appliedIgnoring invalid DHW demand windows: Invalid window 'garbage' (expected HH:MM-HH:MM)
+Quarantined 1 malformed ledger month(s) on load; the rest of the ledger was kept
+Quarantined 1 malformed ledger month(s) on load; the rest of the ledger was kept
+Quarantined 1 malformed ledger month(s) on load; the rest of the ledger was kept
+Quarantined 1 malformed ledger month(s) on load; the rest of the ledger was kept
+Quarantined 1 malformed ledger month(s) on load; the rest of the ledger was kept
+
+  ok   a two-zone parameter is applied
+  ok   the model is rebuilt against the new parameters
+  ok   a new nameplate heat loss resets what was learned against the old one
+  ok   the displace limit is mirrored where the publisher clamps against it
+  ok   a valid window spec is parsed
+  ok   an invalid window spec is ignored rather than clearing the schedule
+  ok   the configured windows are answered in the flat grammar
+  ok   and in the weekly grammar when the configuration names days
+  ok   which the plan's flat view could not carry: it merges the two days into one
+  ok   and empty when none are configured
+  ok   an explicit cooling rate restarts the learner from it
+  ok   an unknown parameter is ignored, not fatal
+
+-- Two-tank topology (issue #40)
+  ok   without a valve the layout is the valveless one
+  ok   a valve, two zones and a wood probe resolve to the 4-way layout
+  ok   a valve without a wood probe stays single-tank
+  ok   a flue switch alone does not activate the two-tank model
+  ok   and neither does a wood probe without a second zone
+  ok   one number sizes the one physical tank
+  ok   a gated-on model with no wood reading reduces byte-for-byte
+  ok   and reports no wood trajectory at all
+  ok   the wood tank is drawn while it can meet the curve, hotter tank or not
+  ok   the blend fraction is the one the outlet estimator measures
+  ok   below the curve both tanks fall back to a smooth hotter-source switch
+  ok   sweeping the curve across both boundaries moves the draw smoothly
+  ok   and so does sweeping the wood tank up through the curve
+  ok   a burn charges the wood tank, pointwise
+  ok   and takes no cap headroom from the heat pump's tank
+  ok   the burn moves load off the heat pump's tank rather than into it
+  ok   which is exactly what the single-tank abstraction could not do
+  ok   so wood heat no longer shows up as a heat pump COP penalty
+  ok   the emitters got what the valve outlet says they got
+  ok   and one two-tank step balances to the last bit
+  ok   six hours of two-tank operation does not depend on the step length
+  ok   a 10 L wood tank cannot discharge below what it is feeding
+  ok   and it empties into the house rather than through zero
+  ok   a cold wood tank and no burn is byte-identical to no wood tank
+  ok   and the cold tank only drifts towards the room it stands in
+
+-- DHW refill coil in the wood tank (v3.15.1)
+  ok   coil identity holds at T_w=70
+  ok   coil identity holds at T_w=25
+  ok   coil identity holds at T_w=95
+  ok   mains-temperature wood gives no preheat
+  ok   a 70 C tank at a 55 C setpoint covers two thirds of the draw
+  ok   the coil activates only on the full stack
+  ok   the coil keeps the hot water warmer on the same schedule
+  ok   and the preheat genuinely comes out of the wood tank
+  ok   an unsensed wood tank disables the coil byte-identically
+
+-- Topology catalog and the layout editor's contract (v3.16.0)
+  ok   every two-zone layout signature matches only itself
+  ok   a drawn slab shunt is recognized and refused, with the reason
+  ok   the old drawing is recognized as the layout it always depicted
+  ok   the removed wood-valve chain degrades to a named nearest layout
+  ok   a genuinely unsupported set names the nearest layout and the diff
+  ok   a stored layout wins while it is honest
+  ok   and falls back to the derived default when it stops being honest
+  ok   storing single_tank_valve is the two-tank model's off switch
+  ok   a direct-fed slab takes more heat from a hot tank than a valved one
+  ok   and the tank pays for it
+  ok   no stored layout means byte-identical v3.15.1 behaviour
+  ok   describe_setup ships the active edges and the catalog
+  ok   every catalog entry carries a non-empty requirement
+  ok   4-way + two tanks + hot water, coil off, is valid and matches
+  ok   the heat pump visibly feeds the hot water tank, coil or no coil
+  ok   and no hot-water pipe is drawn for a house without hot water
+  ok   without the probe the entry is invalid and the requirement says why
+  ok   the wood valve is a slot on a real device, not a box of its own
+  ok   positions pass through untouched and default empty
+
+-- T1 — the bill beyond spot (#1 #13 #19 #34 #23)
+  ok   a höglast rule bills winter weekday daytime and nothing else
+  ok   overlapping rules add, matching base fee plus surcharge tariffs
+  ok   Swedish month and weekday spellings parse
+  ok   a wrapping month range covers the wrap and not the middle
+  ok   broken specs are rejected by validation, not stored
+  ok   mode none is a sentinel: zero vector and inactive, whatever else is set
+  ok   entity mode holds the live value flat across the horizon
+  ok   with no masks every hour counts in full, exactly the old model
+  ok   masked months contribute nothing, off-peak hours count at the factor
+  ok   a July window under a Nov-Mar tariff is not recorded at all
+  ok   a half-rate night window is recorded at half its kW
+  ok   unmasked observation is bit-identical to the old tracker
+  ok   the plan's peak term prices a night burst at the off-peak rate
+  ok   free off-peak hours make a night burst cost nothing in capacity
+  ok   the tracker's window factor survives the round trip, and old payloads default to 1.0
+  ok   quarter entries train the hourly shape on the hour's mean, not on :45
+  ok   a full 15-minute day qualifies for quarter learning, an hourly one not
+  ok   with no quarter evidence the 96-bin model collapses onto the 24-bin one
+  ok   learned quarter structure moves the :45 quarter above its siblings
+  ok   and the hour's mean is preserved: the refinement splits, never shifts
+  ok   a clipped quarter still leaves its hour's factors at mean 1.0
+  ok   a pre-v4 store loads into exactly the behaviour it had
+  ok   sigma is zero on every published step
+  ok   a prior that has been wrong carries real sigma on guessed steps
+  ok   the ledger's month adds up to the hand-computed bill
+  ok   the load-profile value is the öre/kWh below the flat average
+  ok   the ledger prunes itself to two years of months
+  ok   a garbage ledger payload loads as empty rather than raising
+  ok   a wrong-shape 'lines' field (str) is quarantined, the healthy month survives
+  ok   a wrong-shape 'lines' field (list) is quarantined, the healthy month survives
+  ok   a wrong-shape 'lines' field (int) is quarantined, the healthy month survives
+  ok   a wrong-shape 'lines' field (NoneType) is quarantined, the healthy month survives
+  ok   a wrong-shape 'meta' field is quarantined too
+  ok   month_summary() never raises on a malformed month, even reached directly
+  ok   λ=0 with a sigma vector present is byte-identical to no sigma at all
+  ok   a risk premium moves energy off the guessed tail, never onto it
+  ok   a flat fee moves no energy INTO either half of the day — the null control
+  ok   …and the hot-water schedule it produces is untouched by one
+  ok   a höglast fee moves energy out of the hours it prices up and into the ones it does not
+
+-- T2 — peak & power (#7 #5 #3 #22)
+  ok   mid-window projection is the bill formula, by hand
+  ok   an empty window projects the current draw itself
+  ok   at the window's end the projection is the realised mean
+  ok   elapsed time is clamped into the window
+  ok   two crossing projections engage suppression
+  ok   a single crossing does nothing — one noisy sample is not a peak
+  ok   sub-margin projections never engage
+  ok   the margin engages early — the guard acts before the money is spent
+  ok   two clear projections release
+  ok   a single clear sample does not release
+  ok   a floor hold refuses engagement outright
+  ok   a floor hold releases an active suppression immediately
+  ok   the window closing releases unconditionally
+  ok   the event throttle holds for the spacing window and then opens
+  ok   uniform spacing: weighted and unweighted folds close the same peak
+  ok   the running window mean is time-weighted, by hand
+  ok   the snapshot reports the true elapsed minutes
+  ok   a snapshot of a window that has no samples reports no mean
+  ok   the closed window's peak is the weighted average
+  ok   space + hot water never exceed the external cap, any step
+  ok   a DHW block genuinely runs under the cap (the check is not vacuous)Peak guard enabled but no power meter configured; the guard stays dormant
+Update gap of 180 minutes reads as an outage; staggered recovery active for 2.0 h (hot water queued 45 min behind space heating)
+Update gap of 180 minutes reads as an outage; staggered recovery active for 2.0 h (hot water queued 45 min behind space heating)
+Could not command pump switch.vvc: entity unavailable
+
+  ok   a feasible cap reports no comfort breach
+  ok   an infeasible cap says so in degrees, not silently
+  ok   without a cap the breach report does not exist at all
+  ok   peak_guard_active suppresses discretionary DHW exactly as external heat
+  ok   and the gate actually bites on this day (the pair is not vacuous)
+  ok   the guard listens on the whole-house meter when there is one
+  ok   without a house meter it falls back to the heat pump's own
+  ok   switched off, no listener is registered at all
+  ok   enabled but meterless, the guard stays dormant instead of crashing
+  ok   two real meter events over the fuse engage the guard
+  ok   the state flag the solver reads follows the guard
+  ok   the evidence trail says what happened and when
+  ok   engaging nudges the ECL displace down by the configured step
+  ok   releasing re-publishes the plan's own action
+  ok   with neither tariff nor fuse configured the event path is a no-op
+  ok   20 A × 3 phases × 230 V is 13.8 kW
+  ok   no fuse configured means no fuse, not a zero-kW one
+  ok   headroom is the fuse minus the live house draw
+  ok   the answer names its baseline source honestly
+  ok   a heat-pump-only meter admits the baseline load is invisible
+  ok   and with no meter at all the answer says it is plan-derived
+  ok   with no limit configured the sensor says unavailable, not zero
+  ok   a three-hour silence reads as an outage and opens recovery
+  ok   hot water is queued behind space heating, then released by the clock
+  ok   a genuinely cold tank overrides the hot-water delay
+  ok   an ordinary restart gap does nothing
+  ok   switched off, even a real gap changes nothing
+  ok   garbage in the stored tick is ignored, never fatal
+  ok   a fresh restart right after a save is not an outage
+  ok   a three-hour-old persisted heartbeat opens recovery on load
+  ok   in billed hours an 8 kW projection over a 5 kW threshold engages
+  ok   the same draw at half-rate night bills 4 kW and does not engage
+  ok   the advisor publishes a verdict for the next-smaller fuse
+  ok   the advisor asked for the candidate's headroom, not the full fuse
+  ok   the card's simulate cache survives an advisor run untouched
+  ok   a second run inside the week is skipped
+  ok   a shortfall the baseline plan shares is not blamed on the fuse
+  ok   a shortfall the cap itself forces still fails the candidate
+  ok   a rate-limited what-if keeps last month's real verdict
+
+-- T3 — hot water (#32 #18 #20 #24 #47 #9 #28 #6)
+  ok   the default inlet reproduces the hard-coded 10.0 draw power bit for bit
+  ok   amplitude zero keeps the inlet constant across the year
+  ok   the seasonal swing bottoms in late February and peaks in late summer
+  ok   a resolved live inlet wins over the configured mean
+  ok   greywater recovery scales the draw chain down by its effectiveness
+  ok   a cleared DHW sensor written back as None does not enable hot water
+  ok   a real DHW key still enables it, and empty windows still count
+  ok   no T3 hot-water key joins the presence trio
+  ok   hours resolve to their window label, outside hours to nothing
+  ok   a midnight-wrapping window resolves on both sides of midnight
+  ok   ticks inside one window merge into a single occurrence
+  ok   a quiet morning records its zero — calm days are evidence too
+  ok   energy outside every window belongs to no statistic
+  ok   below the evidence floor the ready energy leans on the mean
+  ok   at full evidence the ready energy is the quantile itself
+  ok   the statistics survive a store round trip
+  ok   redrawn windows forget their old statistics
+  ok   reservoirs keep the newest forty occurrences and drop the rest
+  ok   a learned heavy morning raises what the tank holds before the window
+  ok   one early outlier moves the target a step, not the whole way
+  ok   an empty table is byte-identical to no table at all
+  ok   58 °C for an hour credits nothing — warm is not disinfected
+  ok   61 °C held past the hold time writes the completion timestamp
+  ok   a blip at temperature between cold readings starts the hold over
+  ok   with the flag off the historical instant credit is untouched
+  ok   a fresh prior has NO opinion on the daily minimum
+  ok   a partially trained prior still defers
+  ok   one untrained day type in the span withholds the whole answer
+  ok   a trained prior expects the minimum at the cheap hours' factor
+  ok   elastic with no ceiling (a young prior) is byte-identical to off
+  ok   a generous ceiling runs the cycle early on a known cheap hour
+  ok   a ceiling no known price beats keeps waiting for a better day
+  ok   inside the minimum interval even a free day does not re-run the cycle
+  ok   with no day-type evidence the blend IS the pooled profile
+  ok   weekend evidence moves the weekend pattern toward late mornings
+  ok   and the blend still budgets the same daily volume
+  ok   weekday evidence does not leak into the weekend answer
+  ok   300 L at 55 °C over a 10 °C inlet is 450 L of 40 °C shower water
+  ok   and 56 minutes of shower at the default 8 L/min
+  ok   with no draw evidence the sweep falls back to the profile mean
+  ok   the recommendation actually covers the heaviest window
+  ok   hotter tanks cost more per day — the trade the sweep exists to show
+  ok   a heavy learned window pushes the recommendation up
+  ok   a tank too small for its heavy days says 'as hot as allowed', honestly
+  ok   the VVC pump runs inside a demand window and rests outside
+  ok   the lead time pre-heats the loop just before a window opens
+  ok   a window shorter than the lead has no hole in its final approach
+  ok   with no windows the loop is simply left on
+  ok   a provably idle warm slot is the only one that switches the space pump off
+  ok   rail: heat planned now forces the space pump on
+  ok   rail: heat planned next step forces the space pump on
+  ok   rail: heat curve driven forces the space pump on
+  ok   rail: a zone near its floor forces the space pump on
+  ok   rail: freezing outside forces the space pump on
+  ok   rail: outdoor unknown forces the space pump on
+  ok   no plan at all reads as heat-wanted, never as off
+  ok   the plan lookup reads this step and the next
+  ok   the pump is commanded on the first tick and not again without a change
+  ok   the command names the configured entity and a real on/off service
+  ok   no configured pump entities means no service call, ever
+  ok   hot water disabled leaves the loop pump ON, never stuck off
+  ok   a failed pump command is retried next tick, not remembered as done
+  ok   elastic opted in with a fresh prior sets NO ceiling
+  ok   a fully trained prior sets a real ceiling at or below the level
+
+-- T3b — shared-step honesty
+  ok   a slot names the other channel's energy in its shared steps, by hand
+  ok   no overlap, no key — captures without sharing are unchanged
+  ok   callers that pass no other channel get the pre-T3b slot, byte for byte
+  ok   the recorded winter day shares steps and every one respects capacity
+
+-- T4a — insurance and detectors (#42 #26 #11 #12)
+  ok   centred noise accumulates nothing
+  ok   a -0.4 °C step trips at exactly the hand-computed fourth sample
+  ok   recovery releases through hysteresis, not at the trip line
+  ok   the wrong-side residual never accumulates
+  ok   the detector's state survives a store round trip
+  ok   a corrupt payload loads as a QUIET detector, not a latched one
+  ok   the statistic is capped, so release lag cannot grow with trip length
+  ok   a tripped detector nothing feeds for hours force-releases as stale
+  ok   an unknown feed history starts the clock instead of releasing blind
+  ok   three cold intervals are not yet a window
+  ok   the fourth trips the detector through the real learner
+  ok   a tripped detector freezes every learner with reason ventilation
+  ok   while frozen, cold residuals feed the detector but never the model
+  ok   closing the window releases the freeze through the same path
+  ok   ten warm intervals never look like a window
+  ok   the per-sample clip is half the trip threshold
+  ok   one glitched -10 °C reading cannot trip the detector alone
+  ok   but a third consecutive one is a window, not a glitchCompressor efficiency has drifted 19% below its own baseline (~0 SEK/month at current usage)
+Compressor efficiency has drifted 1% below its own baseline (~11 SEK/month at current usage)
+Compressor efficiency has drifted 20% below its own baseline (~216 SEK/month at current usage)
+Skipping snapshot taken at 2026-06-01T00:00:00 with a malformed accuracy field; it cannot be evaluated for restore
+Skipping snapshot taken at 2026-06-01T00:00:00 with a malformed accuracy field; it cannot be evaluated for restore
+Skipping snapshot taken at 2026-06-01T00:00:00 with a malformed accuracy field; it cannot be evaluated for restore
+Skipping snapshot taken at 2026-06-01T00:00:00 with a malformed accuracy field; it cannot be evaluated for restore
+Quarantined 3 malformed snapshot(s) on load; the rest of the ring was kept
+Prediction bias out of band for 5 days on healthy inputs; learned state rolled back to the snapshot from 2026-03-01T03:00:00+00:00
+No snapshot qualifies for restore (healthy inputs and in-band accuracy at capture time are required)
+Comfort miss (margin -0.20 °C) with curve bias -0.4 K applied; bias reset to 0
+Comfort miss (margin -0.10 °C) with curve bias -1.0 K applied; bias reset to 0
+
+  ok   a stale sensor outranks the ventilation freeze for the feed path
+  ok   an unavailable sensor outranks the ventilation freeze the same way
+  ok   an unconfigured slot never freezes learning
+  ok   the away snapshot carries min_temp, which is what unwinds the relax
+  ok   the relax is one degree and can never pierce the absolute floor
+  ok   the relax sits behind its flag, after the away snapshot
+  ok   one over-nameplate sample is a spike, not a latch
+  ok   two agreeing samples latch, with evidence and an event on record
+  ok   one clean sample does not release either
+  ok   two clean samples release, and the event history stays
+  ok   a draw just under nameplate x factor never latches
+  ok   no meter, no detection
+  ok   alternating samples never latch: the count demands consecutive evidence
+  ok   an immersion interval never joins the COP learner
+  ok   the identical interval folds once the element is off — the guard is the only difference
+  ok   three rescues in a fortnight ask the plan for two extra degrees
+  ok   two rescues do not
+  ok   old rescues age out of the window
+  ok   with the flag off the margin is always zero — the detector is
+  ok   the margin's inert value IS the default, and an explicit zero solves byte-identically to it
+  ok   two degrees of margin heat the tank higher before the window
+  ok   the immersion kWh are carved out of spot, and the lines sum to the metered energy
+  ok   the contract settlement folds the carved-out kWh back in
+  ok   with the element off the spot line carries everything and no immersion line appears
+  ok   the baseline forms in its outdoor bucket and trips nothing on itself
+  ok   a 20% shortfall trips within a handful of samples and raises the issue
+  ok   the issue prices the shortfall for the user and survives a restart
+  ok   a modest 1% shortfall claims roughly monthly_kwh*price*shortfall, not the full bill
+  ok   the claimed cost scales with the shortfall, not a fixed full-bill number
+  ok   staying degraded keeps exactly one issue, not a pile
+  ok   the baseline stops absorbing samples while tripped
+  ok   recovery releases the watch and deletes the issue
+  ok   spread inside the drift allowance never trips the watch
+  ok   one outlier first sample cannot anchor the young baseline
+  ok   a frost-band interval reaches neither the COP learner nor the baseline
+  ok   snapshots are weekly and the ring keeps eight
+  ok   five consecutive out-of-band days raise the alarm exactly once
+  ok   healthy inputs throughout justify the automatic rollback
+  ok   one unhealthy day keeps the alarm but blocks auto-rollback
+  ok   the alarm counts days, not ticks
+  ok   restore picks the newest healthy, in-band snapshot
+  ok   the ring round-trips its alarm latch and history
+  ok   a malformed 'accuracy' field (str) is skipped by best_restore(), not raised
+  ok   a malformed 'accuracy' field (list) is skipped by best_restore(), not raised
+  ok   a malformed 'accuracy' field (int) is skipped by best_restore(), not raised
+  ok   a corrupted newest snapshot is skipped, falling through to the valid older one
+  ok   malformed snapshot entries are quarantined on load, valid ones kept
+  ok   a snapshot is a copy, never a window into live learner state
+  ok   a snapshot taken during an active alarm never enters the restore pool
+  ok   during an alarm, restore skips snapshots taken inside the drift streak
+  ok   the streak marker rides the store round trip
+  ok   five out-of-band days on healthy inputs roll the learners back
+  ok   and the issue says so, in the rolled-back voice
+  ok   the rollback leaves the accuracy tracker alone — it is evidence
+  ok   one alarm rolls back once — staying alarmed must not re-restore daily
+  ok   the alarm stays latched while the bias stays out of band
+  ok   one unhealthy drift day raises the alarm but leaves the learners alone
+  ok   restore with an empty ring refuses instead of pretending
+  ok   the service applies the newest qualifying snapshot
+  ok   the day-type profiles restore with the pool, samples included
+  ok   the restored defrost derate is rebound where the model reads it
+  ok   the snapshot serialises the DHW profile through the store's own producer
+  ok   no snapshot is taken before the persisted ring has loaded
+  ok   the loader arms the heartbeat even when the store is empty
+  ok   each counted drift day persists the streak, once
+  ok   a tripped window detector survives a restart tripped
+  ok   the COP baseline and the immersion history ride along
+  ok   a pre-T4 payload loads clean and every detector starts quiet
+  ok   cop_residual survives the sample's store round trip
+  ok   an old sample without the key still loads, as None
+
+-- T4b — weather inputs and learners (#21 #30 #17 #36 #53 #2)
+  ok   the forecast humidity selects the derate bucket per step
+  ok   NaN humidity falls back exactly like an absent argument
+  ok   the step simulation carries the humidity into the physics
+  ok   with zero defrost samples the humidity series changes nothing
+  ok   with real defrost evidence a humid forecast reshapes the plan
+  ok   with the flag off the snow memory never engages and never mutates
+  ok   three hours of heavy snowfall cross the trip line and damp the sun
+  ok   the roof is assumed clear again after the holding period
+  ok   the envelope remembers the most heat the bucket has delivered
+  ok   a sampled bucket caps to its envelope at that step's own COP
+  ok   the cap can never starve the house below the nameplate floor
+  ok   an under-sampled bucket caps nothing at all
+  ok   with the flag off the envelope neither learns nor caps
+  ok   partial-load intervals are censored, never envelope evidence
+  ok   the envelope composes through caps_extra, never a second channel
+  ok   the aperture regression converges on the true scale
+  ok   an absurd slope pins at the clamp instead of running away
+  ok   dim steps carry no aperture information and never move the scale
+  ok   with the flag off the aperture learner is inert
+  ok   the aperture scale multiplies the solar gain, and 1.0 is byte-inert
+  ok   the per-hour profile answers its hour, and None answers the constant
+  ok   the evening bump reaches the simulated physics
+  ok   a warm evening hour learns extra gains, tethered under the cap
+  ok   with the evidence gone the ridge pulls the hour back toward the prior
+  ok   sunny intervals are the aperture learner's business, never this one's
+  ok   with the flag off no profile ever forms
+  ok   three comfortable days step the bias down by one notch
+  ok   the weekly rate cap slows further steps below the notch size
+  ok   one comfort miss surrenders the whole bias on the spot
+  ok   days that held with nothing to spare are no evidence either way
+  ok   the curve learner counts days, not ticks
+  ok   the bias and its evidence survive the store round trip
+  ok   the published displace carries the learned bias
+  ok   with the flag off the installer's curve is published untouched
+  ok   the day's evidence is the WORST margin, not the last one
+  ok   touching the floor with the bias applied resets it immediately
+  ok   with the flag off no comfort evidence is even collected
+  ok   every T4b learner survives a restart
+  ok   a pre-T4b payload loads clean and every learner starts inert
+  ok   a rollback restores the envelope and clears what drifted in since
+  ok   the heat-loss replay predicts with the per-hour profile
+  ok   the apply path writes both learned scales onto the shared params
+  ok   an away setback is not a comfort miss — the bias survives vacations
+  ok   an open window's dip is the window's doing, not the curve's
+  ok   the liquid fraction: all snow is 0, all rain is 1, dry is 1
+  ok   a half-snow step splits at one half
+  ok   cross-source disagreement clips instead of going negative
+  ok   the snow accumulator's clock survives a restart with its value
+  ok   restoring a pre-T4b snapshot resets the aperture and the curve bias
+
+-- T5 — comfort floors (#16 #54)
+  ok   no history means sigma zero at every lead
+  ok   a matured promise scores into its own lead bucket
+  ok   between buckets the nearest one with evidence answers
+  ok   sigmas, counts and unmatured promises all ride the store round tripSkipping malformed ledger month 2026-03 while freezing monthly receipts; recording an empty receipt instead
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/audit-r2-baseline/custom_components/heatpump_optimizer/coordinator.py", line 9792, in _roll_month
+    self._month_reports[month] = self._freeze_month_report(month)
+                                 ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^
+  File "/Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/audit-r2-baseline/tests/features.py", line 10695, in _exploding_freeze
+    raise ValueError("D1-01: malformed month wedges the freezer")
+ValueError: D1-01: malformed month wedges the freezer
+Compressor frequency control stood down: number.freq reports 90.0 Hz against a commanded 45.0 Hz for 3 ticks
+Compressor frequency control stood down: number.freq reports 90.0 Hz against a commanded 45.0 Hz for 3 ticks
+
+  ok   a promise that missed its measurement window is discarded unscored
+  ok   each solve files one promise per lead bucket within the horizon
+  ok   a plan that is not running makes no promises worth scoring
+  ok   the margin is the expected error at each step's own lead
+  ok   a trusted model margins nothing however noisy the history
+  ok   the cap holds whatever the history claims
+  ok   a model erring exactly as history claims is a fixed point of the margin
+  ok   a round of perfect predictions shrinks the margin strictly
+  ok   with the flag off no margin exists, whatever the history
+  ok   a fresh install margins nothing — zero history, zero sigma
+  ok   zero margins and a bottomless floor are byte-identical to none at all
+  ok   a real margin lifts the coldest hour of the plan
+  ok   a mold floor holds the coldest hour above it
+  ok   an absurd margin cannot squeeze the band shut
+  ok   the Magnus pair inverts itself
+  ok   colder outside means a higher room floor — the guard's whole physics
+  ok   60% indoor humidity at -15 °C raises the floor to the target cap
+  ok   20% indoor humidity raises nothing — dry air cannot mold
+  ok   the double gate: flag without a sensor, or sensor without the flag, is off
+  ok   an unusable humidity reading disarms the guard instead of guessing
+  ok   a coarse solve cadence widens the window instead of starving buckets
+  ok   an exact tie between buckets answers with the longer one
+  ok   a corrupt store loads what survives and never bricks the score loop
+  ok   leaving auto/economy voids the plan's unmatured promises
+  ok   an active experiment files nothing and voids what the plan had filed
+  ok   a frozen indoor sensor scores nothing; a live one settles the promise
+  ok   the comfort-floor arguments cannot be passed positionally
+  ok   an away setback cannot lower the mold cap
+  ok   a simulated target override caps its own what-if floor
+
+-- T6 — insight (#29 #52 #55 #65 #39 #40)
+  ok   one noisy sample above the threshold books nothing
+  ok   the second consecutive sample confirms the start
+  ok   a falling edge needs two samples too, and books no start
+  ok   the immersion element freezes the machine and resets the streak
+  ok   after the element drops out a full clean edge counts again
+  ok   the counter rides its store round trip, running state included
+  ok   a pre-T6 store (or garbage) loads as an inert counter
+  ok   the wear price: unpriced is 0, priced is cost over rated starts
+  ok   a confirmed start books its wear price on the ledger's wear line
+  ok   the default install books starts but no money
+  ok   the autotune floors the cycling cost only when asked
+  ok   the current action carries this step's reason codes
+  ok   the reason lines partition the spot line, split by the plan's shares
+  ok   the immersion carve-out comes out of the reason lines too
+  ok   an interval without a tag books as untagged, not as nothing
+  ok   an experiment's draw settles untagged, never under the dead plan's reason
+  ok   no receipt exists while the month is still open
+  ok   the first settlement of a new month freezes the old month's receipt
+  ok   the receipt's reason lines reconcile against its spot line
+  ok   the receipt settles the CLOSED month's contracts, not the new month's
+  ok   a frozen receipt never changes after its month closed
+  ok   a 100-hour house grades 100 on the envelope
+  ok   a 20-hour house grades 0 — the learned loss scale keeps it honest
+  ok   the envelope grade follows the house as measured, not as configured
+  ok   no COP evidence means no machine grade, not a failing one
+  ok   a healthy watched machine grades 100
+  ok   a machine at the alarm threshold grades 0
+  ok   buying 20% under the day's mean spot replays to a perfect operation day
+  ok   a day with too little energy teaches nothing and is skipped
+  ok   a fresh install grades only what it has: the configured envelope
+  ok   every template language carries every reason key (en)
+  ok   every template language carries every reason key (sv)
+  ok   en and sv templates use identical placeholders per key
+  ok   the narrative groups both channels and orders by spend
+  ok   the groups are arithmetic over the same steps the plan publishes
+  ok   an unknown reason degrades to a missing sentence, not a crash
+  ok   the coordinator's narrative view renders lines for the current plan
+  ok   a colder realised outdoor explains a colder room
+  ok   an unmeasured input attributes nothing
+  ok   predicted + contributions + unexplained always accounts for actual
+  ok   no settled interval means no diagnosis, not a crash
+  ok   the coordinator's diagnosis runs the settled triple and publishes it
+  ok   with the flag off no tile ever computes, whatever solves happen
+  ok   one solve refreshes exactly one tile, in rotation
+  ok   the card's rate budget wins: a limited answer leaves the rotation alone
+  ok   the tile set is fixed at three perturbations
+  ok   the insight view publishes every T6 surface, inert on a fresh install
+  ok   starts, receipts and the operation score ride the ledger store
+  ok   a pre-T6 ledger store loads with every insight rider inert
+  ok   a corrupt day book is dropped at load and settlement carries on
+  ok   the diagnosis plans with the space channel, not the commanded total
+  ok   the realised power in the settled triple is the space share of the meter
+  ok   the diagnosis never touches the live thermal model
+  ok   a tile run leaves the card's rate budget and cache exactly as found
+  ok   the target tiles follow the live target through an away setback
+  ok   an erroring tile spec advances the rotation instead of stalling it
+  ok   gate off means gone: no stale what-if money outlives the flag
+  ok   a month with no reason lines reconciles to None, not to failure
+  ok   a perfectly partitioned month reconciles whatever the rounding does
+  ok   a crashing month no longer takes _roll_month down with it
+  ok   the crashed month is marked closed with an empty receipt
+  ok   and it is never retried: the second roll freezes nothing
+  ok   a meter outage resets the hysteresis streak
+  ok   signed SEK and a known-price-only baseline score the day correctly
+
+-- T7 — inverter frequency (#61)
+  ok   a stopped compressor, a dead meter and a wild reading all teach nothing
+  ok   readings fold into their own frequency decile
+  ok   a seeded bucket moves by its EWMA step, not to the outlier
+  ok   the recommendation is the LOWEST evidenced frequency that delivers
+  ok   above every bucket's reach the answer is TRUE flat out, and says so
+  ok   no evidence, or nothing to deliver, is None — never a write
+  ok   the map rides its store round trip
+  ok   a corrupt map loads what survives
+  ok   transient divergence during a ramp is not a fault
+  ok   three CONSECUTIVE divergent ticks trip the watchdog, exactly then
+  ok   a missing report is a stale input, never divergence evidence
+  ok   an observed cycle folds (frequency, kW) into the map
+  ok   immersion intervals never teach the map
+  ok   without the entity the stage is unconfigured and the view says so
+  ok   observe is the stage in force unless control is explicitly chosen
+  ok   control writes the recommendation via number.set_value
+  ok   a second write inside five minutes is rate-limited away
+  ok   re-commanding the same value is deduplicated, not re-sent
+  ok   observe mode never writes, however good the map
+  ok   a map with no evidence writes nothing — None is never a frequency
+  ok   persistent divergence stands control down to observe and latches
+  ok   a stood-down controller makes no further writes
+  ok   switching the mode to observe is the acknowledgement that re-arms
+  ok   the map and the stand-down latch both survive a restart
+  ok   a pre-T7 snapshot rolls the map back to inert but keeps the latch
+  ok   overnight idle never trips the watchdog
+  ok   a setpoint change eats no strike on its own command tick
+  ok   with a real feedback sensor the watchdog sees through the echo
+  ok   a configured but missing feedback sensor reads as no reading at all
+  ok   clearing the entity re-arms the latch instead of orphaning it
+  ok   only a stored True is a stand-down; garbage is notOptimization failed: solver exploded
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/audit-r2-baseline/custom_components/heatpump_optimizer/coordinator.py", line 4534, in async_run_optimization
+    horizon = self._forecast_arrays(now)
+  File "/Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/audit-r2-baseline/tests/features.py", line 11303, in _g_boom
+    raise RuntimeError("solver exploded")
+RuntimeError: solver exploded
+Optimization failed: solver exploded
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/audit-r2-baseline/custom_components/heatpump_optimizer/coordinator.py", line 4534, in async_run_optimization
+    horizon = self._forecast_arrays(now)
+  File "/Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/audit-r2-baseline/tests/features.py", line 11303, in _g_boom
+    raise RuntimeError("solver exploded")
+RuntimeError: solver exploded
+Optimization failed: solver exploded
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/audit-r2-baseline/custom_components/heatpump_optimizer/coordinator.py", line 4534, in async_run_optimization
+    horizon = self._forecast_arrays(now)
+  File "/Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/audit-r2-baseline/tests/features.py", line 11303, in _g_boom
+    raise RuntimeError("solver exploded")
+RuntimeError: solver exploded
+Plan is 100 minutes old after 3 failed solves; holding comfort on the pump's own curve instead of actuating it
+
+  ok   the first five minutes after any start write nothing
+  ok   the view says when the recommendation is extrapolation, not evidence
+
+-- v4.0.2 — entry lifecycle, the solve boundary, store writes
+  ok   setup registers the integration's services
+  ok   every registered service is gone after the last entry unloads
+  ok   the snapshot state is a copy, not the live state
+  ok   the snapshot optimizer carries its own parameter copy
+  ok   and its own model, so per-solve scratch stays off the live one
+  ok   a mid-solve write on the live parameters cannot reach the snapshot
+  ok   an unchanged accuracy payload is written exactly once
+  ok   a changed payload is written again
+  ok   a failed save is retried on the next cycle, not skipped as written
+  ok   the price fetch rides the shared aiohttp session
+  ok   token validation rides the shared aiohttp session
+
+-- v4.0.3 — stale-plan guards, billed peaks, boundary clamps
+  ok   a skew within one step length clamps to the FIRST step, not the last
+  ok   beyond one step the plan says nothing about now: idle
+  ok   the pre-horizon idle IS the empty-plan fallback, one shared dict
+  ok   past the horizon the last step still answers, unchanged
+  ok   before any solve the plan has no age and is not stale
+  ok   three consecutive failed solves raise exactly one repair issue
+  ok   the issue carries its translation key and placeholders
+  ok   an hour-old plan is not yet stale (90-minute floor)
+  ok   past three missed cycles the plan is stale
+  ok   the threshold scales with the configured update interval
+  ok   a stale plan's schedule step is not applied
+  ok   a fresh plan actuates exactly as before
+  ok   fixed-rule modes carry no horizon and ignore staleness
+  ok   new snapshots no longer carry the peak tracker at all
+  ok   a learner rollback leaves the month's realised peaks alone
+  ok   an old snapshot still carrying the key is simply ignored
+  ok   from_config clamps zero and negative masses to the physical floor
+  ok   direct construction runs through the same clamp
+  ok   the service-write chokepoint re-clamps after attribute assignment
+  ok   no sane configuration ever subdivides a step
+  ok   the stiff case genuinely exercises the subdivision
+  ok   a 24 h trajectory on the stiff house stays finite and bounded
+  ok   a legacy naive last_fed loads as aware UTC
+  ok   and release_if_starved subtracts it without raising
+  ok   a fresh humidity reading feeds the mold floor
+  ok   a frozen humidity sensor reads as no reading — the mold floor vanishes
+  ok   a live inlet probe still wins
+  ok   a probe frozen for two days degrades to the seasonal model
+  ok   an unreachable Tibber is a connectivity verdict, not an auth one
+
+-- v4.0.4 — DST-day exclusion from price learning
+  ok   a Fri-Mon wrap covers Friday through Monday, inclusive
+  ok   Saturday, Sunday and Monday are all inside a Fri-Mon wrap
+  ok   Tuesday is outside a Fri-Mon wrap
+  ok   a Fri-Mon wrap is not silently empty
+  ok   the synthetic fold day really carries 25 hourly entries
+  ok   a plain 24-hour day trains the hourly shape
+  ok   the 25-hour autumn fold day is excluded — its collapse used to pass the 24-hour gate with a fabricated hour 2
+  ok   the 23-hour spring gap day is excluded by the same predicate
+  ok   quarter learning sees the same exclusion: plain day in, fold day out
+  ok   naive timestamps carry one offset (None) and keep learning
+
+-- v4.0.4 — negative-mean initial guess
+  ok   a positive-mean horizon gets the historical formula bit for bit
+  ok   all-negative prices: the cheapest (most negative) step starts highest
+  ok   and the guess is monotone in price rank, inside the same 0.2-1.0 band
+  ok   the un-guarded formula really did invert on this input
+  ok   a near-zero mean takes the rank path instead of saturating the clip
+
+-- v4.0.4 — grid-fee magnitude repair issue
+  ok   max_abs_component finds the öre-as-SEK rule and names its source
+  ok   an inactive layer has nothing to warn about
+  ok   entity mode inspects the live value, rules mode ignores it
+  ok   a 25 SEK/kWh rule — öre in a SEK field — raises the repair issue
+  ok   warn-only: the plan still prices with exactly what was typed
+  ok   the issue is raised once per offending value, not every cycle
+  ok   a corrected configuration clears the issue on the next cycle
+  ok   0.25 SEK/kWh — the value that was meant — raises nothing
+  ok   a fee sensor publishing öre trips the same issue, attributed to it
+
+-- v4.0.4 — the quarter snap and DST windows, under a real timezone
+
+=== DST / quarter-grid (subprocess, HASTUB_TZ) ===
+
+-- the stub honours HASTUB_TZ
+  ok   dt_util carries the configured zone
+
+-- solve anchor snaps to the quarter grid (coordinator path)
+  ok   12:07:33 floors to 12:00:00 with tz and date intact
+  ok   a boundary instant is its own anchor
+  ok   optimize() receives the snapped anchor, not the raw 12:07 instant
+  ok   every published plan timestamp lands on a :00/:15/:30/:45 boundary
+  ok   step 0's price is the quarter in force at 12:07 — the 12:00 hour's
+  ok   the wall-clock action lookup lands on step 0, no pre-horizon clamp
+  ok   filed lead promises mature on quarter boundaries
+  ok   an override expiring 12:05 still pins the [12:00, 12:15) step at 12:07
+  ok   and frees every step starting at or past the expiry
+  ok   the not-yet-expired override is kept, not dropped eagerly
+
+-- window snap: day-anchored, across both DST transitions
+  ok   15/30/60-minute snaps match the old keys exactly, fold included
+  ok   the 25-hour autumn day meters 25 distinct 60-minute windows
+  ok   120-minute windows advance the hour on the fold day (0,0,2,2,4,4,…)
+  ok   and on the gap day, straight through the missing wall hour
+  ok   a 12:10 and a 13:30 sample share one 120-minute window
+  ok   elapsed inside a 120-minute window can exceed an hour
+  ok   the window closes on the 2-hour boundary, not every wall hour
+  ok   window_factors samples 12:00/14:00/16:00, not 13:00/15:00/17:00
+
+ALL 19 DST / QUARTER-GRID CHECKS PASSED
+  ok   the HASTUB_TZ subprocess suite passed
+
+-- v4.0.5 — one marginal COP per store, shared with the dynamics
+  ok   marginal_cop('buffer') is the simulate step's own conversion
+  ok   marginal_cop('dhw') is compute_cop_dhw
+  ok   building-mass stores heat at the plain curve
+  ok   without the Carnot derate the buffer collapses to the plain curve
+  ok   the terminal credit repays a stored buffer kWh at the flow-derated COP the simulation charged to store it, less what the tank loses first
+  ok   and at -5 C that haircut is small: winter storage is not discouraged
+  ok   which is genuinely dearer than the plain curve the old code paid
+  ok   building-mass deficits keep the plain conversion
+  ok   derate off: the terminal term is the historical single-sum, exactly
+  ok   a DHW deficit settles at compute_cop_dhw of its settlement temperature
+  ok   and a buffer deficit at the flow-derated COP of its settlement ceiling
+
+-- v4.0.5 — settlement caps: the lower zone's slab, a reachable tank
+  ok   two-zone slab cap is sized from the lower zone alone
+  ok   and it moves with the learned split, like the dynamics it settles
+  ok   single-zone keeps the historical formula exactly
+  ok   a strong pump's cap is the rating — mild installs are untouched
+  ok   a weak pump against a cold day cannot reach the rating, and the cap says so
+  ok   the reachable ceiling rises with milder weather, up to the rating
+
+-- v4.0.5 — DHW conservation: a cold tank cannot pour hot water
+  ok   the booked draw never exceeds the nominal demand
+  ok   every step balances: in == out + losses + storage delta
+  ok   the inlet floor fabricated nothing — the scaled draw makes it inert
+  ok   a cold tank delivers less than the nominal demand, not the same
+  ok   and the tank never pins to the inlet pouring imaginary heat
+  ok   a tank at the setpoint is debited exactly the nominal draw
+  ok   charging cannot pass the tank rating, and the excess is booked
+  ok   a tank read above the rating cools at its physical rate, not by fiat
+  ok   coil split at the default inlet is the historical arithmetic
+  ok   a real winter inlet changes the split and keeps the identity exactNo forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+Unexpected error fetching prices: no HTTP session available in the test stub
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/audit-r2-baseline/custom_components/heatpump_optimizer/coordinator.py", line 5394, in _fetch_tibber_prices
+    session = async_get_clientsession(self.hass)
+  File "/Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/audit-r2-baseline/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+    raise RuntimeError("no HTTP session available in the test stub")
+RuntimeError: no HTTP session available in the test stub
+Unexpected error fetching prices: no HTTP session available in the test stub
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/audit-r2-baseline/custom_components/heatpump_optimizer/coordinator.py", line 5394, in _fetch_tibber_prices
+    session = async_get_clientsession(self.hass)
+  File "/Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/audit-r2-baseline/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+    raise RuntimeError("no HTTP session available in the test stub")
+RuntimeError: no HTTP session available in the test stub
+
+
+-- v4.0.5 — sysid: the intercept the relax phase was smuggling
+  ok   known UA, C and gains are recovered together
+  ok   the old no-intercept fit really was biased on this data
+  ok   an implausible fitted gain rejects the experiment instead of adopting it
+
+-- v4.0.5 — learners: tracking error is not efficiency
+  ok   a pure tracking error — pump at half the commanded power — moves cop_scale not at all
+  ok   while a modest, efficiency-shaped gap still teaches
+  ok   without a power entity the commanded space figure is all there is
+  ok   with one, the meter wins, net of the hot-water allocation the meter cannot tell apart
+  ok   a meter far off the commanded total is a tracking gap: the split would land the whole error on the space figure, so no sample
+  ok   a configured-but-stale meter yields no sample rather than a commanded guess
+  ok   an immersion-latched meter is a different appliance's reading — skip
+
+-- v4.0.6 — the floor gets the same physics check the rating has
+  ok   winter_mild's evening window holds the promised minimum
+  ok   neutering the floor repair reopens the breach (mutation check)
+
+-- v4.0.5 — the battery view shares the optimizer's caps
+  ok   the buffer component's ceiling is the tank's configured rating — the same constant the simulation clamps at and the settlement caps read
+  ok   a 40 °C tank no longer reads nearly full
+  ok   the zone losses are the learned ones the dynamics actually run
+  ok   at default learned values the loss figures are the raw configured ones
+
+-- v5.1.1 — reloads that change nothing, and setups that do not solve
+  ok   with the flag set the first refresh completes without invoking the solve
+  ok   the light payload still carries the live-state keys entities read
+  ok   the flag is consumed by the light refresh
+  ok   the second refresh solves normally — the flag never latches
+
+-- Unload lifecycle and Tibber failure semantics (D10-06/07/09)
+  ok   a failed Tibber fetch raises UpdateFailed, failing the update cycle
+  ok   two failed fetches count two outage cycles (the ERROR logged once)
+  ok   a successful fetch clears the outage latch
+  ok   async_shutdown runs the base class's shutdown (timer/debouncer leak)
+  ok   a spawned task is tracked until it lands
+  ok   shutdown lets a pending background save finish
+  ok   an options save with an unchanged effective config reloads nothing
+  ok   the page-merge no-op (options rewritten, config identical) skips too
+  ok   a genuinely changed config reloads exactly once
+  ok   the stash follows the reload, so repeating the same save skips again
+  ok   removing the stash comparison makes the no-op save reload (mutation)
+  ok   unload stashes the last published payload for the next setup
+  ok   setup always pops the handover — it never outlives one reload
+  ok   the reloaded coordinator arrives with the skip-solve flag armed
+  ok   the light refresh returns the handed-over plan itself, fetch-free
+  ok   the handover is single-use on the coordinator too
+
+-- v5.1.3 — an unusable sensor freezes the learners, not just a quiet one
+  ok   a healthy 48 h still moves the house heat-loss scale
+  ok   and nothing reports a freeze reason on that run
+  ok   48 h with an indoor sensor that is stale leaves the scale at 1.0
+  ok   no heat-loss sample is taken at all while stale
+  ok   and the freeze reason names both the condition and the key (stale)
+  ok   48 h with an indoor sensor that is unavailable leaves the scale at 1.0
+  ok   no heat-loss sample is taken at all while unavailable
+  ok   and the freeze reason names both the condition and the key (unavailable)
+  ok   48 h with an indoor sensor that is missing_entity leaves the scale at 1.0
+  ok   no heat-loss sample is taken at all while missing_entity
+  ok   and the freeze reason names both the condition and the key (missing_entity)
+  ok   48 h with an indoor sensor that is not_numeric leaves the scale at 1.0
+  ok   no heat-loss sample is taken at all while not_numeric
+  ok   and the freeze reason names both the condition and the key (not_numeric)
+  ok   the input-health gate on the drift watchdog sees it too
+  ok   the curve comfort tracker's gate sees it
+  ok   the lead-prediction scorer's gate sees it
+  ok   the pinned input is left exactly as it was — this PR bounds the learners only
+
+-- Plan reason codes: the fall-through is neutral (v5.1.7)
+  ok   an ordinary mid-price step is no longer called weather pre-heating
+  ok   it carries the neutral fall-through instead
+  ok   and the cheap steps keep their own, more specific, reason
+  ok   a real high-heat-loss step still says weather pre-heating
+  ok   idle, comfort floor and solar surplus all still outrank it
+  ok   the new reason has a narrative sentence (en)
+  ok   the new reason has a narrative sentence (sv)
+  ok   and a card label in both languages, wired to the code
+
+-- Virtual battery: the slab reports against the optimizer's cap
+  ok   the slab's ceiling is the settlement cap, not comfort + 6
+  ok   which is below the old offset in cold weather, so capacity shrinks
+  ok   a radiator install moves the OTHER way: the cap is above comfort + 6
+  ok   the raw cap is itself bounded at the schema's minimum transfer
+  ok   but the REPORTED ceiling is clamped to the tank's rating
+  ok   and a realistic cap is left alone by that clamp
+  ok   the settlement cap never leaves physical temperatures across derive's span
+  ok   and the sweep really reached derive's own floor
+  ok   a low-temperature plant clamps derive's worst case to its own ceiling
+  ok   the cap the view reads is the one the optimizer settles against
+
+-- Comfort band validation is shared, not per-form
+  ok   the config flow's errors are the shared rules
+  ok   a partial write is judged against what would be stored, not itself
+  ok   a band that agrees with itself raises nothing
+  ok   every violation carries a sentence a service caller can be told
+
+-- v5.3.0 — the four heat-pump signals, resolved
+  ok   with no slots configured the pump can do everything
+  ok   nothing is blocked and nothing is frozen
+  ok   and the three flags are None — no evidence, not False
+  ok   an unconfigured slot never lands in missing_keys
+  ok   Heating + DHW: space blocked=False, hot water blocked=False
+  ok   Heating + DHW: freeze reason None
+  ok   Heating: space blocked=False, hot water blocked=True
+  ok   Heating: freeze reason None
+  ok   DHW (Hot Water): space blocked=True, hot water blocked=False
+  ok   DHW (Hot Water): freeze reason None
+  ok   Cooling: space blocked=True, hot water blocked=True
+  ok   Cooling: freeze reason 'pump_cooling'
+  ok   Cooling + DHW: space blocked=True, hot water blocked=False
+  ok   Cooling + DHW: freeze reason 'pump_cooling'
+  ok   a heating-only pump must not be promised a hot-water slot
+  ok   an unrecognised mode falls back to full capability
+  ok   so nothing is suppressed on the strength of a word nobody recognised
+  ok   but the unrecognised word is visible in the diagnostics
+  ok   a mode entity that goes stale falls back to the last good mode
+  ok   with no last good mode ever seen it falls back to full capability
+  ok   an online pump does not freeze anything
+  ok   a pump reporting offline freezes the learners
+  ok   a stale online flag does NOT freeze
+  ok   an unavailable online flag does not freeze either
+  ok   a fault freezes the learners
+  ok   a healthy fault flag does not
+  ok   the RAW fault code sensor works too: 0 is healthy
+  ok   and any non-zero code is a fault
+  ok   offline outranks fault outranks cooling
+  ok   the defrost flag reads through the same guard
+  ok   a stale defrost flag is no evidence, not 'not defrosting'
+
+-- v5.3.0 — the meter split follows the observed mode
+  ok   with no mode entity the split is exactly what it always was
+  ok   and a 2.0 kW meter against a 3.0 kW command is still discarded as tracking
+  ok   in `heat` the phantom hot-water allocation is dropped from the command
+  ok   so the measured 2.0 kW is recognised as space heating in full
+  ok   in a hot-water-only mode there is no space figure to extract at all
+  ok   and the commanded space allocation is dropped from the command too
+
+-- v5.3.0 — the COP learner uses the curve the mode implies
+  ok   a hot-water interval is judged against the DHW curve
+  ok   and the gap is exactly the model's own DHW penalty, not a fudge
+  ok   the reported COP for a healthy pump on the space curve is unchanged
+  ok   a genuinely concurrent interval is skipped, not guessed at
+  ok   and it teaches the COP scale nothing
+  ok   a trickle of hot water does not disqualify a space-heating interval
+  ok   the premise: a hot-water interval stores a DHW-referenced COP
+  ok   a cycle that produces no COP leaves the stored COP's reference alone
+  ok   and a cycle that does produce one moves the pair together
+
+-- v5.3.0 — defrost: duty is measured, the derate is physics
+  ok   the inferred estimator reads a real defrost as a PERFECT interval
+  ok   an over-1 ratio can no longer park the derate above 1.0
+  ok   five defrosting minutes in thirty is a duty of 1/6
+  ok   and the interval counts as observed
+  ok   a quiet interval is duty zero AND observed — that is real evidence
+  ok   an unreadable flag yields duty zero but NOT observed
+  ok   a defrost spanning an interval boundary keeps its second half
+  ok   zero duty is no derate at all
+  ok   the derate is 1 - duty x the loss multiplier
+  ok   more duty is always a deeper derate, never a shallower one
+  ok   and it is bounded below, so a latched flag cannot zero the pump
+  ok   a measured bucket derates from its counted duty
+  ok   and a measurement is never averaged with an inference of the same thing
+  ok   an untouched bucket still derates nothing
+  ok   the summary says which estimator a bucket rests on, and how many defrosts were actually witnessed
+  ok   a pre-v5.3.0 store loads without raising, and says it was upgraded
+  ok   its learned factors are KEPT, not discarded
+  ok   but the estimator's optimistic tail is clamped away on load
+  ok   a measured duty then overrides the carried-over inference
+  ok   a v2 store round-trips exactly
+  ok   a v2 store still carries factors/counts, so a DOWNGRADE loads too
+  ok   a garbage store loads as empty rather than raising (None)
+  ok   a garbage store loads as empty rather than raising ({})
+  ok   a garbage store loads as empty rather than raising ([])
+  ok   a garbage store loads as empty rather than raising ('nope')
+  ok   a garbage store loads as empty rather than raising ({'factors': 'bad', 'duty': 3})
+  ok   a window whose clock cannot be compared measures nothing, and is refused
+  ok   inside 0-5 °C an interval with NO defrost now teaches the COP scale
+  ok   and an interval that DID contain a defrost is still refused
+  ok   with no defrost evidence the whole band is excluded exactly as before
+
+-- v5.3.0 — offline, fault and cooling freeze the real learners
+  ok   with no heat-pump signals configured the learners run exactly as before
+  ok   and nothing reports a freeze
+  ok   a pump reporting offline freezes the house heat-loss learner
+  ok   and the reason names the pump, not a sensor
+  ok   the freeze is plant-wide: it does not depend on which key is asked about
+  ok   an online pump learns exactly as an unconfigured one does
+  ok   an unavailable online entity does not freeze on its own
+  ok   a fault freezes the learners
+  ok   and the diagnostics say WHY the samples stopped
+  ok   the resolved signals are published too
+  ok   a cooling pump freezes the learners
+  ok   and it suppresses BOTH channels of the plan
+  ok   an unrecognised mode plans and learns exactly as no mode entity does
+  ok   the pump's normal winter mode changes nothing at all
+  ok   a mode entity that drops out holds the last mode the pump reported
+
+-- v5.3.0 — a blocked channel is suppressed, and visibly so
+  ok   the control: a January plan really does heat and really does make hot water
+  ok   a mode that cannot heat rooms plans no space heating at all
+  ok   and hot water is untouched — suppression is per channel
+  ok   every empty space slot says WHY, instead of reading as 'idle'
+  ok   the comfort floor is left visibly unmet, not silently relaxed
+  ok   a heating-only mode plans no hot water at all
+  ok   and space heating is not reduced — the freed capacity stays available
+  ok   the space plan may re-arrange, because the compressor is no longer shared
+  ok   every empty hot-water slot says why
+  ok   the result flags which channel the mode closed
+  ok   and a blocked channel is NOT a manual pin — the two must not be confused
+  ok   a manual force-on pin cannot make the pump heat in a cooling mode
+  ok   and the same on the hot-water channel
+  ok   both flags default off and off is byte-for-byte the previous plan
+
+-- v5.3.0 review — presence is not trust (the defrost derate)
+  ok   the premise: 200 inferred samples at 0.80 apply the whole 0.80
+  ok   ONE zero-duty sample does not discard a fully-trusted inferred derate
+  ok   and it reports the estimator the plan is actually using
+  ok   the summary agrees with the plan, and still shows what has been counted
+  ok   while the measurement is short of full trust the inference is a FLOOR
+  ok   and at full trust the measurement takes over, as from_dict promises
+  ok   the handover never averages the two estimators
+  ok   a measured duty deeper than the inference wins before full trust
+  ok   with no inference to stand on, one measurement still ramps from 1.0
+
+-- v5.3.0 review — DERATE_MAX 1.05 -> 1.0, on a POPULATED bucket
+  ok   a v1 store's above-1 factors are re-clamped on load, not carried
+  ok   the re-clamp is a real change: the OLD bound would have kept 1.05
+  ok   a populated frost-band bucket really does reach the COP the plan prices
+  ok   and the new bound can only ever make the frost band MORE careful
+
+-- v5.3.0 review — an unreadable flag makes no confident claim
+  ok   a readable flag reporting 'not defrosting' IS an observation
+  ok   the first interval after the flag dies is NOT reported as observed
+  ok   and neither is any interval after it
+  ok   legibility comes back with the next reading, within one cycle
+  ok   a defrost spanning the boundary keeps its second half
+
+-- v5.3.0 review — an unrecognised mode never latches suppression
+  ok   an unrecognised word resolves to full capability, not to the last mode
+  ok   so it suppresses nothing, in either channel
+  ok   and it is visible as its own source, not folded into 'absent'
+  ok   a select recovers from an unrecognised state instead of latching
+  ok   an unavailable mode entity still falls back to the last good mode
+  ok   and so does a stale one — staleness is unreadability, not disagreement
+  ok   with nothing ever recognised, an unknown word is simply absent evidence
+
+-- v5.3.0 review — a status sensor is not a mode selector
+  ok   a select still recognises 'heating' — the vocabulary is unchanged there
+  ok   a plain sensor's 'heating' is refused as a mode
+  ok   a select still recognises 'heat' — the vocabulary is unchanged there
+  ok   a plain sensor's 'heat' is refused as a mode
+  ok   a select still recognises 'cooling' — the vocabulary is unchanged there
+  ok   a plain sensor's 'cooling' is refused as a mode
+  ok   a select still recognises 'cool' — the vocabulary is unchanged there
+  ok   a plain sensor's 'cool' is refused as a mode
+  ok   a select still recognises 'hot water' — the vocabulary is unchanged there
+  ok   a plain sensor's 'hot water' is refused as a mode
+  ok   a select still recognises 'DHW' — the vocabulary is unchanged there
+  ok   a plain sensor's 'DHW' is refused as a mode
+  ok   the multi-duty spelling 'Heating + DHW' survives strict mode
+  ok   the multi-duty spelling 'HEATDHW' survives strict mode
+  ok   the multi-duty spelling 'Cooling + DHW' survives strict mode
+  ok   the multi-duty spelling 'COOLDHW' survives strict mode
+  ok   an entity that declares this state among its options is taken at face value
+  ok   one that declares nothing gets the careful vocabulary
+  ok   and so does one reporting a word it never declared
+  ok   a user-built input_select listing the modes is a declaration too
+  ok   so a status sensor reading 'heating' does NOT block hot water
+  ok   while a real select reading 'Heating' still does
+  ok   and a sensor carrying a real mode label is still read as oneThe anti-legionella cycle has been due for 14 day(s) but the heat pump's mode makes no hot water, so it cannot be planned
+Compressor efficiency has drifted 0% below its own baseline (~0 SEK/month at current usage)
+Compressor efficiency has drifted 0% below its own baseline (~0 SEK/month at current usage)
+The heat pump's operating mode entity has been unreadable for over 180 min; the mode it last reported (unknown) has stopped acting and the plan is back to assuming full capability
+
+  ok   a template sensor that also mirrors the OPTIONS gets the full vocabulary
+
+-- v5.3.0 review — the narrative explains a blocked channel
+  ok   pump_mode has a sentence in BOTH languages
+  ok   a blocked channel survives the zero-energy filter, as idle does
+  ok   and it renders a real sentence in en
+  ok   and it renders a real sentence in sv
+  ok   an ordinary zero-energy reason is still filtered out
+
+-- v5.3.0 review — a blocked channel is published, not just recorded
+  ok   a space block reaches predictive_info, where the coordinator can see it
+  ok   a hot-water block gets the numeric trace the space channel already had
+  ok   and an unblocked plan carries none of the new keys at all
+
+-- v5.3.0 review — the experiment obeys the mode gate too
+  ok   the control: with no mode entity the experiment is untouched
+  ok   a cooling mode aborts an armed experiment instead of commanding heat
+  ok   a hot-water-only mode aborts an armed experiment instead of commanding heat
+  ok   a pump that is off the network aborts an armed experiment instead of commanding heat
+  ok   the aborted result carries the cause
+
+-- v5.3.0 review — a mode-blocked tank says so, loudly
+  ok   the premise: the cycle really is overdue
+  ok   an overdue cycle with hot water available raises nothing here
+  ok   an overdue cycle the pump's mode is blocking raises a repair issue
+  ok   and it says how long the tank has gone undisinfected
+  ok   it is not re-raised every cycle while nothing has changed
+  ok   a mode that can make hot water again clears it
+  ok   a user who turned disinfection off is not nagged about it
+  ok   nor is an install with no hot-water tank at all
+  ok   and a block that has not yet outlived the deadline is not an alarm
+  ok   an unknown history is not evidence of an overdue cycle
+  ok   the notice has a title and a description in strings.json
+  ok   the notice has a title and a description in translations/en.json
+  ok   the notice has a title and a description in translations/sv.json
+
+-- v5.3.0 review 2 — the health watch judges like against like
+  ok   the premise: the two curves really are far apart at one outdoor temp
+  ok   a healthy pump alternating space and hot water raises NO fault report
+  ok   and the two curves keep separate baselines rather than one blended one
+  ok   a real 15% loss on the space channel is still caught, and quickly
+  ok   and so is one on the hot-water channel, which had no watch before
+  ok   a pump that is simply healthy never trips on either
+  ok   the COP learner labels each sample with the curve it was judged against
+  ok   a pre-v5.3.0 store's buckets load as SPACE baselines, not discarded
+  ok   and it writes back under the SAME keys, with the DHW curve alongside
+
+-- v5.3.0 review 2 — legibility belongs to the interval
+  ok   one legible read does not vouch for the twenty-five minutes after it
+  ok   and neither does one at the END of a dark interval
+  ok   an interval legible throughout is still observed
+  ok   and a real mid-interval defrost is still measured, at its real duty
+  ok   a defrost spanning the whole interval reads as the whole interval
+  ok   a defrost spanning an interval boundary still keeps its second half
+
+-- v5.3.0 review 2 — a mode nobody can read stops acting
+  ok   a mode read minutes ago still acts, one read hours ago does not
+  ok   and the expiry is visible as its own source, not silence
+  ok   an expired mode suppresses nothing and freezes nothing
+  ok   the bound is longer than the reading's own horizon and shorter than six hours
+  ok   the mode-unreadable notice is translated in strings.json
+  ok   the mode-unreadable notice is translated in translations/en.json
+  ok   the mode-unreadable notice is translated in translations/sv.json
+  ok   a fresh coordinator starts with no pump-mode-unreadable issue and no notice latched
+  ok   an expired pump-mode source actually raises the repair issue end-to-end
+  ok   recovery of the mode source clears the repair issue again
+
+-- v5.3.0 review 2 — a status sensor is not a flag either
+  ok   a status sensor in the online slot reading 'idle' is no evidence: an idle pump is not an offline one
+  ok   a status sensor in the fault slot reading 'heating' is no evidence: a heating pump is not a faulted one
+  ok   a status sensor in the fault slot reading 'running' is no evidence: nor is a running one
+  ok   a status sensor in the defrost slot reading 'heating' is no evidence: heating is not defrosting
+  ok   but an unambiguous 'off' from a sensor still reads as a flag
+  ok   but an unambiguous 'on' from a sensor still reads as a flag
+  ok   but an unambiguous 'on' from a sensor still reads as a flag
+  ok   but an unambiguous '1' from a sensor still reads as a flag
+  ok   but an unambiguous '0' from a sensor still reads as a flag
+  ok   and a real binary_sensor is unaffected by the guard ('idle')
+  ok   and a real binary_sensor is unaffected by the guard ('heating')
+  ok   and a real binary_sensor is unaffected by the guard ('running')
+
+-- v5.3.0 review 2 — the block never actuates
+  ok   the control: with no mode entity an empty plan still switches off
+  ok   and a plan that wants the pump still switches on
+  ok   a cooling mode does NOT switch the pump off
+  ok   nor does a mode that blocks only the other channel
+  ok   but a block never stops the pump being switched ON
+
+-- v5.3.0 review 2 — the what-if and the fuse advisor see the block
+  ok   the shadow solve inherits the block, like every other input it inherits
+  ok   and the advisor declines to answer at all while a channel is blocked
+  ok   the premise: a tight candidate fuse really does breach the floor
+  ok   and a blocked baseline would have called that same fuse feasible
+
+-- v5.3.0 review 2 — the smaller repairs
+  ok   the summary's derate is the one the plan multiplies by
+  ok   and what it has learned is reported alongside, not instead
+  ok   a 24 h horizon blocked on both channels reports 24 h, not 48
+  ok   while energy and money still add, because they are per channel
+  ok   a stable sensor that is still REPORTING is fresh, though it last changed ten hours ago
+  ok   while one that stopped reporting is stale on the same last_changed
+  ok   a configured, healthy tank probe fills the hot-water accuracy record
+  ok   and it does so without touching the room's record's lead buckets
+  ok   the tank record stays out of the one-step sample deque, which is the room's
+  ok   a house with no tank probe records nothing at all
+  ok   and it publishes no band, so the card draws nothing
+  ok   a tank probe that is stale scores nothing into the record
+  ok   and no band is published while the probe is stale
+  ok   a tank probe that is unavailable scores nothing into the record
+  ok   and no band is published while the probe is unavailable
+  ok   a tank probe that is missing_entity scores nothing into the record
+  ok   and no band is published while the probe is missing_entity
+  ok   a tank probe that is not_numeric scores nothing into the record
+  ok   and no band is published while the probe is not_numeric
+  ok   a tank probe pinned at its last good value still reads back, and the record refuses it anyway
+  ok   so a probe that stops updating stops filling the record, while the same run on a live probe keeps filling it
+  ok   and it stays stopped: another 20 h against the dead probe scores nothing more and files nothing more
+  ok   the band it had already earned survives the outage -- a dead probe stops the record, it does not erase it
+  ok   the tank's expected error grows monotonically with how far ahead the promise was made
+  ok   and it lands on the error the plan actually made (0.4 °C per hour of lead, by construction)
+  ok   every DHW forecast step carries both band keys
+  ok   the band brackets the tank curve at every step
+  ok   and it is symmetric about it, to the published rounding
+  ok   the band widens further into the plan, because the record says the model does
+  ok   a tank trajectory that stops early takes its band with it, step for step
+  ok   the band is rounded exactly as `dhw_temp` is: two decimals
+  ok   a fresh record publishes None, not a zero-width bandDHW anti-legionella cycle reached only 54.0 °C against a 60 °C target; the tank is not being disinfected
+DHW anti-legionella cycle commanded but cannot be verified: no tank temperature sensor is configured, so nothing confirms the tank reached 60 °C
+DHW anti-legionella cycle commanded but cannot be verified: no tank temperature sensor is configured, so nothing confirms the tank reached 60 °C
+DHW anti-legionella cycle reached 59.2 °C but the completion could not be confirmed; it will be retried next interval
+DHW anti-legionella boost has been commanded for 12 h without completing; recording what it achieved
+DHW anti-legionella cycle reached only 54.0 °C against a 60 °C target; the tank is not being disinfected
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+Error fetching weather forecast: weather integration broken. Plans continue on the last forecast, marked stale.
+Empty forecast returned for weather.home. Plans continue on the last forecast, marked stale.
+
+  ok   and the tank curve itself is published exactly as before
+  ok   MUTATION: with the tracker feed neutered the record stays empty
+  ok   MUTATION: and the published band vanishes with it
+  ok   MUTATION: while the un-neutered run on identical inputs does publish one — the two differ only in the feed
+  ok   MUTATION: and nothing else about the DHW forecast moved
+  ok   a tank temperature with no tank entity configured is not a measurement, and the probe refuses it
+  ok   and the very same value with the entity configured IS one -- the configuration is the whole difference
+  ok   leaving auto/economy voids the TANK's unmatured promises, not only the room's
+  ok   an active experiment files no tank promises and voids the ones the plan it overrides had filed
+  ok   a plan with no room trajectory still files the tank's promises -- the room's early return must not take the tank down with it
+  ok   the tank record survives a save/load round trip
+  ok   a store written before v5.2.0 loads without error and simply has no tank record
+  ok   and an older build reading a v5.2.0 store still finds its own key untouched
+  ok   a record that scored 40 flawless pairs HAS history, though its sigma is zero
+  ok   a sigma with no counts behind it does not count as history
+
+-- v5.1.10 — the charge limit is the charge limit, every ordinary day
+  ok   the owner's 52/60 pair keeps the tank at or below the 52 °C limit on a day with no cycle due
+  ok   …and the ceiling the parameters publish is the charge limit itself
+  ok   reverting dhw_max_temp reproduces the reported over-charge (mutation check)
+  ok   the stock 55/60 defaults stay at the 55 °C limit too
+  ok   a cycle that IS due is still scheduled
+  ok   …and the boost actually attains the disinfection temperature
+  ok   …while the plan still marks the step it did it in
+  ok   twelve hours after the cycle the tank is back under the limit
+  ok   an overdue cycle is not pinned to step 0 of every plan
+  ok   …and it reaches temperature instead of being re-commanded for ever
+  ok   the tank rating stays above the disinfection temperature
+  ok   with disinfection off the two are the same number, as before
+
+-- v5.1.10 — the disinfection timer cannot latch
+  ok   a tank that never gets hot still completes its cycle rather than latching overdue
+  ok   …and it is recorded as an attempt, not as a successful cycle
+  ok   …and the user is told the water is not being disinfected
+  ok   a cycle that reaches temperature clears the notice and the attempt
+  ok   with no tank sensor a commanded cycle still resets the countdown rather than leaving it counting up for ever
+  ok   an ordinary hot-water step is not mistaken for a disinfection cycle
+
+-- v5.1.10 — the setpoint/disinfection pair warns, and never blocks
+  ok   a 52 °C limit with a 60 °C cycle is reported, with how often
+  ok   the stock defaults are reported too — this is not an exotic pairing
+  ok   a cycle at or below the limit says nothing
+  ok   and disinfection switched off says nothing
+  ok   the stored half of the pair still counts
+  ok   the coordinator raises the notice for a live 52/60 pair
+  ok   …and takes it down again once the pair no longer says anything
+
+-- v5.1.10 — a due cycle actually reaches the disinfection temperature
+  ok   a due cycle reaches the disinfection temperature at every charge limit from 41 to 49 °C
+  ok   …and lands ON it rather than a fraction short
+  ok   the whole-tail bound reproduces the cycle that never reaches temperature (mutation check)
+  ok   …on other tank and pump sizes too
+  ok   the run-up is a ramp, not a day at the ceiling
+
+-- v5.1.10 — the floor repair tops the tank up again
+  ok   the fixture really does breach its floor, with the tail on the limit
+  ok   the whole-tail bound leaves no candidate a runnable block fits in (mutation check)
+  ok   the repair closes the breach
+  ok   …without taking the tank a degree over the charge limit
+  ok   …and publishes no power the hardware cannot run
+  ok   no plan leaves a demand window under the usable minimum
+  ok   …and every one of them still honours the 52 °C charge limit or the 60 °C cycle exactly
+  ok   the whole-tail bound puts the demand-window breach back (mutation check)
+
+-- v5.1.10 — a cycle the tank cannot reach is not parked at the end
+  ok   6 h, 1500 L, 3 kW: the tank provably cannot reach 60 °C in the horizon
+  ok   6 h, 1500 L, 3 kW: the cycle is commanded now, not parked at the last step
+  ok   6 h, 1500 L, 3 kW: …so the boost is the current action and can be observed
+  ok   24 h, 3000 L, 3 kW: the tank provably cannot reach 60 °C in the horizon
+  ok   24 h, 3000 L, 3 kW: the cycle is commanded now, not parked at the last step
+  ok   24 h, 3000 L, 3 kW: …so the boost is the current action and can be observed
+  ok   a reachable cycle is still placed where the pump can do it, not at 0
+
+-- v5.1.10 — a commanded cycle is credited only when something saw it
+  ok   the countdown still resets without a probe — the plan is not wedged
+  ok   …but it is recorded as an attempt, not as a verified cycle
+  ok   …and the user is told the cycle cannot be verified
+  ok   claiming success instead would give an identical countdown (mutation check)
+  ok   an observed cycle clears the cannot-verify notice
+
+-- v5.1.10 — free disinfection cannot latch the timer either
+  ok   the peak sits in the gap the old early return covered (mutation check: any rule that returns on `peak >= target - 1.0` records nothing here)
+  ok   the observer demonstrably did not credit it under the hold rule
+  ok   …and the timer moves anyway, instead of latching at 192 h
+  ok   …recorded as an attempt with its peak, so the retry is spaced
+  ok   …and no 'cannot reach temperature' notice, because it plainly can
+  ok   with the flag off the same peak is a real completion, not an attempt
+  ok   a boost still commanded after the bound is judged rather than waited on
+  ok   …and the user is told the tank is not reaching temperature
+
+-- v5.1.10 — the stock defaults are not a Repairs card
+  ok   a stock install really is on the default pair
+  ok   …and it raises no Repairs card
+  ok   a pair the owner edited to differ still gets it (mutation check)
+  ok   …and so does a raised disinfection temperature on the default limit
+
+-- Weather staleness is surfaced (M2)
+  ok   a failed weather fetch latches the outage and marks the forecast stale
+  ok   a second failed cycle counts the outage but keeps one staleness start
+  ok   the fabricated fallback forecast exists and is stale from birth
+  ok   a successful fetch clears the outage and the staleness
+  ok   an empty result keeps the previous forecast, marked stale
+
+ALL 1557 FEATURE CHECKS PASSED

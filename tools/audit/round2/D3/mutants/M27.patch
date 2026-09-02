@@ -1,0 +1,12 @@
+--- a/custom_components/heatpump_optimizer/snapshots.py
++++ b/custom_components/heatpump_optimizer/snapshots.py
+@@ -137,9 +137,6 @@
+         self._bias_days += 1
+         if not healthy:
+             self._drift_inputs_healthy = False
+-        if not self.alarmed and self._bias_days >= BIAS_TRIP_DAYS:
+-            self.alarmed = True
+-            return True
+         return False
+ 
+     @property

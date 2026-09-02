@@ -77,8 +77,6 @@ class _OptimizerButtonBase(CoordinatorEntity, ButtonEntity):
 class ForceOptimizationButton(_OptimizerButtonBase):
     """Run the optimization now, without waiting for the next interval."""
 
-    _attr_icon = "mdi:play-circle-outline"
-
     def __init__(self, coordinator, entry) -> None:
         super().__init__(coordinator, entry, "force_optimization", "optimize_now")
 
@@ -102,7 +100,6 @@ class SystemIdentificationButton(_OptimizerButtonBase):
     conditions would be both expensive and uncomfortable.
     """
 
-    _attr_icon = "mdi:flask-outline"
     _attr_entity_category = None
 
     def __init__(self, coordinator, entry) -> None:
@@ -125,8 +122,6 @@ class ResetComfortWeightButton(_OptimizerButtonBase):
     learned value is always both visible and revertible.
     """
 
-    _attr_icon = "mdi:restore"
-
     def __init__(self, coordinator, entry) -> None:
         super().__init__(
             coordinator, entry, "reset_comfort_weight", "reset_learned_comfort_weight"
@@ -148,7 +143,6 @@ class DiagnoseIntervalButton(_OptimizerButtonBase):
     fastest way to teach people to ignore them.
     """
 
-    _attr_icon = "mdi:stethoscope"
     _attr_entity_category = None
 
     def __init__(self, coordinator, entry) -> None:

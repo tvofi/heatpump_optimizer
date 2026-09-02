@@ -1,0 +1,14 @@
+ heatpump-optimizer-card  v5.4.17 
+price        #f5a623  light 2.03 <3  dark 8.41
+dhw_slots    #e0544e  light 3.79     dark 4.50
+space_slots  #4a90e2  light 3.29     dark 5.18
+outdoor      #7d8794  light 3.64     dark 4.68
+dhw_temp     #c264d0  light 3.48     dark 4.89
+house_temp   #2fae7a  light 2.82 <3  dark 6.05
+solar        #f2c94c  light 1.59 <3  dark 10.74
+RESULT series=7 count
+RESULT series_below_3_light=3 count
+RESULT series_below_3_dark=0 count
+RESULT thread_factor=1.00
+RESULT load1=3.87
+RESULT swapins=0

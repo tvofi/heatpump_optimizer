@@ -1,0 +1,11 @@
+Another copy of the Heat Pump Optimizer card is registered at /local/heatpump-optimizer-card.js. It may load instead of the bundled card, leaving you on an old version. Remove it under Settings > Dashboards > Resources and keep only /heatpump_optimizer_static/heatpump-optimizer-card.js
+  ok    a missing resource is created
+  ok    a stale cache-busting query is updated in place
+  ok    and no duplicate is created alongside it
+  ok    an up-to-date resource is left alone
+  ok    a shadowing copy does not stop the bundled card registering
+  ok    YAML mode is left to manage its own resources
+  ok    an unusable resource collection does not raise
+  ok    the card is served without long-lived cache headers
+
+ALL FRONTEND CHECKS PASSED

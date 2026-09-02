@@ -1,0 +1,11 @@
+--- a/custom_components/heatpump_optimizer/tariff.py
++++ b/custom_components/heatpump_optimizer/tariff.py
+@@ -521,8 +521,6 @@
+             )
+         windows = windows * factors
+     excess = np.maximum(0.0, windows - threshold_kw)
+-    if not np.any(excess > 0):
+-        return 0.0
+     k = max(1, min(int(peaks_averaged), excess.size))
+     top_k = np.sort(excess)[-k:]
+     return float(price_per_kw * np.sum(top_k))

@@ -1,0 +1,509 @@
+{
+ "dimension": "D4",
+ "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+ "exposure": "",
+ "findings": [
+  {
+   "id": "D4-01",
+   "title": "Chart text is 3.7 px on a phone tile at first paint and 5.6 px in the phone dialog; the 8 px floor never holds",
+   "severity": "high",
+   "claim": "In the order hui-card mounts a card (setConfig, hass, append) the compact chart renders FONT_BASE at 3.70 px on a 359 px tile and nothing re-renders on resize; when the floor does apply it yields 7.42 px because it divides by the host width, and the expanded dialog has no floor (5.6 px on a 375 px phone).",
+   "mechanism": "_maybeRender gates on a signature that omits the measured width; connectedCallback's ResizeObserver only calls _cacheRect(); compactFontUnits(this._measuredCardWidth()) uses the host rect (359) while the svg is 333 px after ha-card's border and padding; renderChart keeps FONT_EXPANDED (15 units) for the dialog regardless of its rendered width.",
+   "evidence": {
+    "command": "HPO_PLANDATA=$SCR/d4/plandata.json NODE_PATH=$PW/node_modules PLAYWRIGHT_BROWSERS_PATH=$HOME/.cache/pw-browsers node tools/audit/round2/D4/first_paint_font.mjs",
+    "harness_path": "tools/audit/round2/D4/first_paint_font.mjs",
+    "value": 3.7,
+    "unit": "px axis font, Lovelace order (RESULT font_px_lovelace); renders_resize=0; font_px_attached=7.42; card_geometry.mjs chart font 5.6 px in every phone expanded state",
+    "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+    "machine": "Apple M1 8 GB, macOS Darwin 25.6.0, Node 20.10.0, Playwright 1.49.0 / Chromium 1148",
+    "cpu_or_wall": "n/a",
+    "contention_note": "fan-out: three other auditors on the box, load1 2.8-8.5; counts and layout-engine pixel sizes only, load-independent",
+    "tolerance": "±0.05 px",
+    "load1": 3.28,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:HeatpumpOptimizerCard._maybeRender / connectedCallback / _measuredCardWidth, compactFontUnits, renderChart",
+   "perturbation": {
+    "change": "In connectedCallback make the ResizeObserver callback call this.render() (or add the measured width to _signature); separately measure the .chartwrap width instead of the host, and floor the expanded font like the compact one",
+    "expected_direction": "up",
+    "observed_value": "font_px_lovelace 3.70 (expected ~7.4 after the change); font_px_attached 7.42 (8.00 after measuring the svg)"
+   },
+   "metric_definition": "On-screen axis font px = the chart <text> font-size attribute (viewBox units) x rendered svg width / 900, after a stated mount/resize/refresh sequence.",
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub python tests/plan_view.py with a private HPO_PLANDATA",
+    "node tools/audit/round2/D4/first_paint_font.mjs",
+    "node tools/audit/round2/D4/card_geometry.mjs; python tools/audit/round2/D4/summarise.py expanded_plan"
+   ],
+   "files": [
+    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+   ],
+   "proposed_fix_scope": "Re-render on the first attached layout and on width change (ResizeObserver -> render, or width in the signature); size the floor from the chart's own width; floor the expanded chart's font and lane height the same way.",
+   "stop_rule_class": "bug"
+  },
+  {
+   "id": "D4-02",
+   "title": "Schedule-editor slots are 1.3-22 px wide and lanes 5.6 px tall on a phone; below 24 px at every viewport",
+   "severity": "high",
+   "claim": "rect.lane is 5.5/5.6/11.8/19.9 px tall (phone tile/phone dialog/tablet/desktop dialog) and this plan's slots 1.3-22 px wide on a phone, so the editor's targets are under 24 px everywhere and under 44 px on every touch device; 1,344 slot and 476 lane targets under 24 px across the 14 fine-pointer arms, 1,711 with no spacing rescue.",
+   "mechanism": "LANE_H = 15 viewBox units scales with the chart and is never floored; slot width is time x pixels-per-ms; the lanes are also rendered focusable in the compact tile where editing is disabled.",
+   "evidence": {
+    "command": "HPO_PLANDATA=$SCR/d4/plandata.json NODE_PATH=$PW/node_modules PLAYWRIGHT_BROWSERS_PATH=$HOME/.cache/pw-browsers node tools/audit/round2/D4/card_geometry.mjs --shots",
+    "harness_path": "tools/audit/round2/D4/card_geometry.mjs",
+    "value": 1883,
+    "unit": "targets under 24 px with no spacing exception across 15 arms (RESULT hit_small_24_nospacing); rect.slot 1344 + rect.lane 367 of them; coarse arm smallest slot 1.3 px, lane 5.5 px",
+    "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+    "machine": "Apple M1 8 GB, macOS Darwin 25.6.0, Node 20.10.0, Playwright 1.49.0 / Chromium 1148",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: three other auditors on the box, load1 2.8-8.5; counts and layout-engine pixel sizes only, load-independent",
+    "tolerance": "exact for this payload",
+    "load1": 3.24,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:LaneEditor.laneGroupInner (LANE_H, LANE_GAP), renderChart",
+   "perturbation": {
+    "change": "LANE_H 15 -> 40 viewBox units (or a px floor on the lane height like the font's)",
+    "expected_direction": "down",
+    "observed_value": 1883
+   },
+   "metric_definition": "min(width,height) of every rect.slot/rect.lane client rect; counted when < 24 px (44 px on the coarse arm) and a 24 px circle on its centre hits another target.",
+   "leave_one_out": {
+    "cells": 15,
+    "min": 104,
+    "max": 186,
+    "drop_most_favourable": 1697
+   },
+   "files": [
+    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+   ],
+   "proposed_fix_scope": "Floor the lane height in px (>= 24, >= 44 coarse) and give slots a minimum hit width; do not render the lanes in the compact tile.",
+   "stop_rule_class": "bug"
+  },
+  {
+   "id": "D4-03",
+   "title": "Axis labels collide at the plot corners at every viewport (unit label on top tick, first time label on bottom tick)",
+   "severity": "medium",
+   "claim": "The value-axis unit label overlaps the top tick label by 1.9 px (phone) to 8.4 px (desktop dialog) in every chart state, and on tiles <= 400 px the first time label overlaps the left axes' bottom tick: 1,039 overlapping text pairs in 390 renders.",
+   "mechanism": "valueAxis draws the unit text at the axis top where the top tick label also sits; timeAxis's first label at plotL meets the value axes' lowest tick; MARGIN.top (16 units) leaves no row for the unit.",
+   "evidence": {
+    "command": "HPO_PLANDATA=$SCR/d4/plandata.json NODE_PATH=$PW/node_modules PLAYWRIGHT_BROWSERS_PATH=$HOME/.cache/pw-browsers node tools/audit/round2/D4/card_geometry.mjs --shots",
+    "harness_path": "tools/audit/round2/D4/card_geometry.mjs",
+    "value": 1039,
+    "unit": "overlapping text-box pairs (RESULT text_overlap_pairs); '60'~'°C' 260, '400'~'W/m²' 245, '6'~'kW' 232, '3'~'SEK/kWh' 53, '06:00 AM'~'-20' 50, '06:00'~'-20' 46",
+    "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+    "machine": "Apple M1 8 GB, macOS Darwin 25.6.0, Node 20.10.0, Playwright 1.49.0 / Chromium 1148",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: three other auditors on the box, load1 2.8-8.5; counts and layout-engine pixel sizes only, load-independent",
+    "tolerance": "exact for this payload",
+    "load1": 3.24,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:valueAxis, timeAxis, renderChart (MARGIN)",
+   "perturbation": {
+    "change": "Draw the unit label above the plot (room in MARGIN.top) or offset it from the top tick",
+    "expected_direction": "to_zero",
+    "observed_value": 1039
+   },
+   "metric_definition": "Pairs of visible text boxes from different, non-nested elements whose intersection is >= 1.5 px on its narrower side; overlay panes excluded.",
+   "leave_one_out": {
+    "cells": 15,
+    "min": 38,
+    "max": 82,
+    "drop_most_favourable": 957
+   },
+   "files": [
+    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+   ],
+   "proposed_fix_scope": "Reserve a row for the unit labels; thin or shift the first time label when it meets a value tick.",
+   "stop_rule_class": "bug"
+  },
+  {
+   "id": "D4-04",
+   "title": "The empty state's entity ids overflow the card on tiles up to 400 px",
+   "severity": "medium",
+   "claim": "In the no_plan state the <code>sensor.heat_pump_optimizer_space_heating_plan</code> id and its sentence spill 31-44 px past the card box on a 359 px tile (26 px at 372, 14 px at 400).",
+   "mechanism": "_noPlanHtml centres prose in .empty with no overflow-wrap; a 45-character monospace id is wider than a phone tile.",
+   "evidence": {
+    "command": "HPO_PLANDATA=$SCR/d4/plandata.json NODE_PATH=$PW/node_modules PLAYWRIGHT_BROWSERS_PATH=$HOME/.cache/pw-browsers node tools/audit/round2/D4/card_geometry.mjs --shots; python tools/audit/round2/D4/summarise.py no_plan",
+    "harness_path": "tools/audit/round2/D4/card_geometry.mjs",
+    "value": 44.1,
+    "unit": "px past the card box (largest, phone-dark-en no_plan); 48 overflow rows of kind code@scope x / div.empty@scope x across the arms",
+    "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+    "machine": "Apple M1 8 GB, macOS Darwin 25.6.0, Node 20.10.0, Playwright 1.49.0 / Chromium 1148",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: three other auditors on the box, load1 2.8-8.5; counts and layout-engine pixel sizes only, load-independent",
+    "tolerance": "±1 px",
+    "load1": 3.24,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:HeatpumpOptimizerCard._noPlanHtml, PlanSource.diagnose, cardStyleBlock (.empty)",
+   "perturbation": {
+    "change": ".empty code { overflow-wrap: anywhere; }",
+    "expected_direction": "to_zero",
+    "observed_value": 44.1
+   },
+   "metric_definition": "Distance a visible text box's edge lies outside the measured scope's (ha-card) box, px, when no clipping/scrolling ancestor intervenes.",
+   "files": [
+    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+   ],
+   "proposed_fix_scope": "Allow the ids to wrap (overflow-wrap) or shorten the diagnostic on narrow hosts.",
+   "stop_rule_class": "bug"
+  },
+  {
+   "id": "D4-05",
+   "title": "Primary-colour text and the Save button render at 2.63:1 in Home Assistant's default light theme",
+   "severity": "medium",
+   "claim": "The what-if actions (Apply this plan, Simulate these slots, show the whole plan, the layout verdict) are 12 px #03a9f4 on white at 2.63:1, and Save as my schedule is white on #03a9f4 at 2.63:1 in both themes; 891 light-theme text boxes fail AA across the matrix.",
+   "mechanism": "cardStyleBlock colours .wi-pin/.wi-apply/.wi-viewreset/.layout-verdict.match and the now/» markers with var(--primary-color), whose HA default is #03a9f4, and fills .wi-save with it under white text.",
+   "evidence": {
+    "command": "HPO_PLANDATA=$SCR/d4/plandata.json NODE_PATH=$PW/node_modules PLAYWRIGHT_BROWSERS_PATH=$HOME/.cache/pw-browsers node tools/audit/round2/D4/card_geometry.mjs --shots",
+    "harness_path": "tools/audit/round2/D4/card_geometry.mjs",
+    "value": 891,
+    "unit": "text boxes below WCAG AA in the light arms (RESULT contrast_fail_light); wi-save 150, wi-pin 90, wi-apply 90, wi-viewreset 18, layout-verdict 9, now/» markers 207, worst 2.63:1",
+    "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+    "machine": "Apple M1 8 GB, macOS Darwin 25.6.0, Node 20.10.0, Playwright 1.49.0 / Chromium 1148",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: three other auditors on the box, load1 2.8-8.5; counts and layout-engine pixel sizes only, load-independent",
+    "tolerance": "exact",
+    "load1": 3.24,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:cardStyleBlock (.wi-pin, .wi-apply, .wi-save, .wi-viewreset, .layout-verdict.match), renderChart (now marker)",
+   "perturbation": {
+    "change": ".wi-pin, .wi-apply, .wi-viewreset { color: var(--primary-text-color) } and .wi-save { background: var(--dark-primary-color, #0288d1) }",
+    "expected_direction": "down",
+    "observed_value": 891
+   },
+   "metric_definition": "WCAG contrast of each visible text box's computed colour (opacity chain applied) over the first opaque ancestor background; fail < 4.5:1 (< 3:1 large text).",
+   "leave_one_out": {
+    "cells": 15,
+    "min": 53,
+    "max": 99,
+    "drop_most_favourable": 1110
+   },
+   "files": [
+    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+   ],
+   "proposed_fix_scope": "Use a text-safe token (dark-primary-color, or primary-text with a primary border) for action labels; keep the accent as border/fill only.",
+   "stop_rule_class": "bug"
+  },
+  {
+   "id": "D4-06",
+   "title": "Opacity-faded text falls below AA: the setup page's 'not configured' rows and switched-off legend chips",
+   "severity": "medium",
+   "claim": ".setup-slot.empty renders the rows that say which sensor is missing at 2.99:1 (light) / 4.04:1 (dark) in 9.3 px on a phone, 600 boxes across the matrix, and .chip.off renders an active toggle's label at 2.43:1 light / 3.19:1 dark (45).",
+   "mechanism": "cardStyleBlock fades .setup-slot.empty to opacity 0.75 on the secondary text colour and .chip.off to opacity 0.4; both are active content (the empty row is the setup page's purpose, the off chip is a toggle).",
+   "evidence": {
+    "command": "HPO_PLANDATA=$SCR/d4/plandata.json NODE_PATH=$PW/node_modules PLAYWRIGHT_BROWSERS_PATH=$HOME/.cache/pw-browsers node tools/audit/round2/D4/card_geometry.mjs --shots",
+    "harness_path": "tools/audit/round2/D4/card_geometry.mjs",
+    "value": 600,
+    "unit": "tspan + tspan.setup-value boxes below AA (300 + 300) across 15 arms; worst 2.99:1 light, 4.04:1 dark; chip.off 45 at 2.43:1 light",
+    "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+    "machine": "Apple M1 8 GB, macOS Darwin 25.6.0, Node 20.10.0, Playwright 1.49.0 / Chromium 1148",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: three other auditors on the box, load1 2.8-8.5; counts and layout-engine pixel sizes only, load-independent",
+    "tolerance": "exact",
+    "load1": 3.24,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:cardStyleBlock (.setup-slot.empty, .chip.off), setupSvgHtml",
+   "perturbation": {
+    "change": ".setup-slot.empty { opacity: 1 } (keep italic); .chip.off { opacity: 0.7 }",
+    "expected_direction": "to_zero",
+    "observed_value": 600
+   },
+   "metric_definition": "As D4-05; inactive controls (.nodata, [disabled], .locked) exempted and counted apart (contrast_fail_inactive=105).",
+   "files": [
+    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+   ],
+   "proposed_fix_scope": "Express 'empty' with italics/colour that stays >= 4.5:1 rather than opacity.",
+   "stop_rule_class": "bug"
+  },
+  {
+   "id": "D4-07",
+   "title": "With a coarse pointer no control grows: 548 targets under 44 px across the 26 states",
+   "severity": "medium",
+   "claim": "On the coarse-pointer arm 548 interactive targets are under 44 px: setup rows 11.7 px, remove buttons 13.2, range inputs 16, zoom buttons 17.3, layout-bar buttons 18.1, chips 22, dialog tabs 23.7, what-if buttons 24.4; only close (31.5) and expand (26) exceed 24 px and none reaches 44.",
+   "mechanism": "The card's only coarse-pointer adaptation is LANE_EDGE_GRAB_COARSE; cardStyleBlock has no (pointer: coarse) sizing and the dialog font scales by width, not by input modality.",
+   "evidence": {
+    "command": "HPO_PLANDATA=$SCR/d4/plandata.json NODE_PATH=$PW/node_modules PLAYWRIGHT_BROWSERS_PATH=$HOME/.cache/pw-browsers node tools/audit/round2/D4/card_geometry.mjs --shots",
+    "harness_path": "tools/audit/round2/D4/card_geometry.mjs",
+    "value": 548,
+    "unit": "targets with min side < 44 px on the coarse arm (RESULT hit_small_44_coarse); coarse_emulated=1",
+    "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+    "machine": "Apple M1 8 GB, macOS Darwin 25.6.0, Node 20.10.0, Playwright 1.49.0 / Chromium 1148",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: three other auditors on the box, load1 2.8-8.5; counts and layout-engine pixel sizes only, load-independent",
+    "tolerance": "exact",
+    "load1": 3.24,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:cardStyleBlock, _coarsePointer, Legend.html, ExpandedDialog.html, SetupPage.pickerHtml",
+   "perturbation": {
+    "change": "@media (pointer: coarse) { .chip, .dlg-tab, .viewctl button, .whatif button, .layout-bar button, .sp-actions button { min-height: 44px } }",
+    "expected_direction": "down",
+    "observed_value": 548
+   },
+   "metric_definition": "min(width,height) of every focusable/clickable target's client rect on the coarse arm; counted when < 44 px.",
+   "files": [
+    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+   ],
+   "proposed_fix_scope": "Coarse-pointer sizing for buttons, chips, tabs, sliders and setup rows.",
+   "stop_rule_class": "bug"
+  },
+  {
+   "id": "D4-08",
+   "title": "Three of seven series colours are below 3:1 on the light card background",
+   "severity": "low",
+   "claim": "price #f5a623 (2.03:1), solar #f2c94c (1.59:1) and house temperature #2fae7a (2.82:1) fall under WCAG 1.4.11's 3:1 against #ffffff; all seven clear it on #1c1c1c.",
+   "mechanism": "SERIES_DEFS colours are fixed hex values shared by both themes.",
+   "evidence": {
+    "command": "node tools/audit/round2/D4/series_contrast.mjs",
+    "harness_path": "tools/audit/round2/D4/series_contrast.mjs",
+    "value": 3,
+    "unit": "series below 3:1 on the light background (RESULT series_below_3_light); dark 0",
+    "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+    "machine": "Apple M1 8 GB, macOS Darwin 25.6.0, Node 20.10.0, Playwright 1.49.0 / Chromium 1148",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: three other auditors on the box, load1 2.8-8.5; counts and layout-engine pixel sizes only, load-independent",
+    "tolerance": "exact",
+    "load1": 3.87,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:SERIES_DEFS",
+   "perturbation": {
+    "change": "solar color '#f2c94c' -> '#b8860b'",
+    "expected_direction": "down",
+    "observed_value": 3
+   },
+   "metric_definition": "WCAG contrast of SERIES_DEFS[i].color against the card background (#ffffff light, #1c1c1c dark); counted when < 3:1.",
+   "files": [
+    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+   ],
+   "proposed_fix_scope": "Theme-aware series colours (light/dark pairs) or darker light-theme values.",
+   "stop_rule_class": "hygiene"
+  },
+  {
+   "id": "D4-09",
+   "title": "Form length and grouping: 17 fields (13 pickers) on the first screen, 5 of 13 options pages over 15 fields",
+   "severity": "low",
+   "claim": "The first setup screen carries 17 fields of which 13 are optional entity pickers; hot_water (23), entities (22), learning (18), grid (18) and thermal_model (16) exceed 15 fields; hot_water's last field space_circulation_pump_entity is a space-heating control.",
+   "mechanism": "async_step_user collects credentials, 13 sensor/telemetry pickers, the solar source and a map on one page; async_step_hot_water appends the space circulation pump beside the VVC pump.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D4/config_flow_ux.py",
+    "harness_path": "tools/audit/round2/D4/config_flow_ux.py",
+    "value": 23,
+    "unit": "fields on the largest options page (RESULT options_max_fields, hot_water); pages_over_15=5; user_page_fields=17; user_page_pickers=13; off_theme_fields=1",
+    "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+    "machine": "Apple M1 8 GB, macOS Darwin 25.6.0, Node 20.10.0, Playwright 1.49.0 / Chromium 1148",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: three other auditors on the box, load1 2.8-8.5; counts and layout-engine pixel sizes only, load-independent",
+    "tolerance": "exact",
+    "load1": 3.58,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.config_flow:HeatPumpOptimizerConfigFlow.async_step_user, HeatPumpOptimizerOptionsFlow.async_step_hot_water (and every async_step_*)",
+   "perturbation": {
+    "change": "Move space_circulation_pump_entity to the building page",
+    "expected_direction": "to_zero",
+    "observed_value": "off_theme_fields=1 (options_max_fields 23 -> 22)"
+   },
+   "metric_definition": "Fields per rendered data_schema (after_save excluded); pickers = EntitySelector fields; off-theme = top-menu keys matching none of the page's theme prefixes (THEMES in the harness).",
+   "files": [
+    "custom_components/heatpump_optimizer/config_flow.py",
+    "custom_components/heatpump_optimizer/strings.json"
+   ],
+   "proposed_fix_scope": "Split the user step (credentials + required sensors, then optional telemetry); split hot_water (schedule/temperatures vs tank/physics vs pumps).",
+   "stop_rule_class": "hygiene"
+  },
+  {
+   "id": "D4-10",
+   "title": "A default install logs a WARNING about its own defaults that the coordinator deliberately suppresses",
+   "severity": "low",
+   "claim": "Submitting the DHW setup step untouched (setpoint 55, anti-legionella 60, enabled) logs one WARNING, while coordinator.py exempts exactly this stock pair from the dhw_legionella_above_setpoint notice.",
+   "mechanism": "_dhw_legionella_warning has no `stock` exemption; the coordinator's has (legionella == DEFAULT_DHW_LEGIONELLA_TEMP and setpoint == DEFAULT_DHW_SETPOINT).",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D4/config_flow_ux.py",
+    "harness_path": "tools/audit/round2/D4/config_flow_ux.py",
+    "value": 1,
+    "unit": "WARNING records on config_flow._LOGGER during the default initial path (RESULT default_submit_warnings)",
+    "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+    "machine": "Apple M1 8 GB, macOS Darwin 25.6.0, Node 20.10.0, Playwright 1.49.0 / Chromium 1148",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: three other auditors on the box, load1 2.8-8.5; counts and layout-engine pixel sizes only, load-independent",
+    "tolerance": "exact",
+    "load1": 3.58,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.config_flow:_dhw_legionella_warning, HeatPumpOptimizerConfigFlow.async_step_dhw",
+   "perturbation": {
+    "change": "Add the coordinator's stock-pair exemption to _dhw_legionella_warning",
+    "expected_direction": "to_zero",
+    "observed_value": 1
+   },
+   "metric_definition": "Count of WARNING log records emitted by config_flow while every form of the initial path is submitted with its own defaults.",
+   "files": [
+    "custom_components/heatpump_optimizer/config_flow.py",
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "proposed_fix_scope": "One rule for both callers (share the stock exemption).",
+   "stop_rule_class": "hygiene"
+  },
+  {
+   "id": "D4-11",
+   "title": "The card announces v5.4.17 in a 6.2.14 release and its duplicate-copy guard keys on that number",
+   "severity": "low",
+   "claim": "CARD_VERSION is 5.4.17 while VERSION and manifest.json say 6.2.14; the console banner misreports the release and customElements.get(CARD_TAG).cardVersion !== CARD_VERSION cannot detect two copies from different 6.x releases.",
+   "mechanism": "CARD_VERSION is a hand-maintained constant that tools/release/stamp.py does not touch.",
+   "evidence": {
+    "command": "node tools/audit/round2/D4/card_version.mjs",
+    "harness_path": "tools/audit/round2/D4/card_version.mjs",
+    "value": 0,
+    "unit": "card_version_matches flag (CARD_VERSION 5.4.17 vs VERSION/manifest 6.2.14)",
+    "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+    "machine": "Apple M1 8 GB, macOS Darwin 25.6.0, Node 20.10.0, Playwright 1.49.0 / Chromium 1148",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: three other auditors on the box, load1 2.8-8.5; counts and layout-engine pixel sizes only, load-independent",
+    "tolerance": "exact",
+    "load1": 4.6,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:CARD_VERSION; VERSION; custom_components/heatpump_optimizer/manifest.json",
+   "perturbation": {
+    "change": "Set CARD_VERSION to the VERSION file's value (or stamp it in tools/release/stamp.py)",
+    "expected_direction": "up",
+    "observed_value": 0
+   },
+   "metric_definition": "1 when CARD_VERSION == VERSION == manifest.version, else 0.",
+   "files": [
+    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+    "tools/release/stamp.py"
+   ],
+   "proposed_fix_scope": "Stamp CARD_VERSION at release.",
+   "stop_rule_class": "hygiene"
+  },
+  {
+   "id": "D4-12",
+   "title": "'the same than the saved plan': the English delta sentence is ungrammatical for a cost-neutral edit",
+   "severity": "low",
+   "claim": "stats.delta_detail '{verdict} than the saved plan' composed with stats.the_same yields 'the same than the saved plan' (1 of 3 verdicts); the Swedish template ('jämfört med') is right for all three.",
+   "mechanism": "WhatIfPanel's delta row interpolates a comparative-only template with a non-comparative verdict.",
+   "evidence": {
+    "command": "node tools/audit/round2/D4/delta_wording.mjs",
+    "harness_path": "tools/audit/round2/D4/delta_wording.mjs",
+    "value": 1,
+    "unit": "ungrammatical English sentences of 3 verdicts (RESULT ungrammatical_en); sv 0",
+    "baseline_sha": "c398fc84eec25fc44b60d74aae05b9a2da205884",
+    "machine": "Apple M1 8 GB, macOS Darwin 25.6.0, Node 20.10.0, Playwright 1.49.0 / Chromium 1148",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: three other auditors on the box, load1 2.8-8.5; counts and layout-engine pixel sizes only, load-independent",
+    "tolerance": "exact",
+    "load1": 8.46,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:L / STRINGS (stats.delta_detail, stats.the_same), WhatIfPanel delta row",
+   "perturbation": {
+    "change": "English template '{verdict} compared with the saved plan'",
+    "expected_direction": "to_zero",
+    "observed_value": 1
+   },
+   "metric_definition": "Count of the three verdicts whose composed English sentence matches /the same than/.",
+   "files": [
+    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+   ],
+   "proposed_fix_scope": "One-line string change.",
+   "stop_rule_class": "hygiene"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "No console errors or uncaught exceptions in any of the 390 renders",
+   "command": "HPO_PLANDATA=$SCR/d4/plandata.json NODE_PATH=$PW/node_modules PLAYWRIGHT_BROWSERS_PATH=$HOME/.cache/pw-browsers node tools/audit/round2/D4/card_geometry.mjs --shots",
+   "value": "console_errors=0"
+  },
+  {
+   "claim": "No layout shift on hovering chips, tabs, buttons or setup rows",
+   "command": "HPO_PLANDATA=$SCR/d4/plandata.json NODE_PATH=$PW/node_modules PLAYWRIGHT_BROWSERS_PATH=$HOME/.cache/pw-browsers node tools/audit/round2/D4/card_geometry.mjs --shots",
+   "value": "hover_shift=0 (14 hover targets per state)"
+  },
+  {
+   "claim": "Every keyboard focus stop shows a visible indicator (outline, box-shadow or SVG stroke)",
+   "command": "HPO_PLANDATA=$SCR/d4/plandata.json NODE_PATH=$PW/node_modules PLAYWRIGHT_BROWSERS_PATH=$HOME/.cache/pw-browsers node tools/audit/round2/D4/card_geometry.mjs --shots",
+   "value": "focus_no_indicator=0 over 390 Tab walks"
+  },
+  {
+   "claim": "Every focusable in a dialog is reached by Tab; the harness's misses are its own start point (the pre-focused active tab / layout toggle)",
+   "command": "HPO_PLANDATA=$SCR/d4/plandata.json NODE_PATH=$PW/node_modules PLAYWRIGHT_BROWSERS_PATH=$HOME/.cache/pw-browsers node tools/audit/round2/D4/card_geometry.mjs --shots; python tools/audit/round2/D4/summarise.py expanded_plan",
+   "value": "expanded_plan: 29 stops, 1 unreached = active tab; whatif_edited: 41 stops, 1 unreached = active tab"
+  },
+  {
+   "claim": "The phone setup diagram scrolls sideways and every assignment row can be brought fully into view",
+   "command": "HPO_PLANDATA=$SCR/d4/plandata.json NODE_PATH=$PW/node_modules PLAYWRIGHT_BROWSERS_PATH=$HOME/.cache/pw-browsers node tools/audit/round2/D4/setup_scroll.mjs",
+   "value": "hits_reachable=6/6, canvas_scroll_px=230"
+  },
+  {
+   "claim": "No HTML text box overflows a nowrap/clipped element (the tooltip's shipped defect stays fixed)",
+   "command": "HPO_PLANDATA=$SCR/d4/plandata.json NODE_PATH=$PW/node_modules PLAYWRIGHT_BROWSERS_PATH=$HOME/.cache/pw-browsers node tools/audit/round2/D4/card_geometry.mjs --shots",
+   "value": "0 scrollWidth overflows; the 792 overflows are the 1.3 px unit-label ascender at the svg top (744) and the empty-state ids (48, D4-04)"
+  },
+  {
+   "claim": "Swedish translation is complete for the card and the integration",
+   "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D4/config_flow_ux.py",
+   "value": "sv_missing=0 (686 leaves); card STRINGS 232/232; sv_identical=4, all legitimately identical"
+  },
+  {
+   "claim": "Every config-flow field has help text",
+   "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D4/config_flow_ux.py",
+   "value": "help_missing=0 (172 fields)"
+  },
+  {
+   "claim": "Every error key the code raises is translated in its flow; every select option and menu label is translated",
+   "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D4/config_flow_ux.py",
+   "value": "error_keys_missing=0 (10 keys), select_options_missing=0, menu_labels_missing=0"
+  },
+  {
+   "claim": "Every NumberSelector default lies inside its range and every page accepts its own defaults",
+   "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D4/config_flow_ux.py",
+   "value": "defaults_out_of_range=0, untouched_submit_fail=0"
+  },
+  {
+   "claim": "No setting is reachable from two options pages; every saving page carries the after-save choice",
+   "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D4/config_flow_ux.py",
+   "value": "duplicate_keys=0, after_save_missing=0"
+  },
+  {
+   "claim": "Install to entry is 7 screens with 2 fields the user must bring (Tibber token, weather entity)",
+   "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D4/config_flow_ux.py",
+   "value": "initial_screens=7, initial_forms=6, initial_fields=46, initial_required=13, initial_must_know=2, initial_entry_created=1"
+  },
+  {
+   "claim": "The two-level options menu partitions the 13 leaf pages 6 + 7 with Advanced settings as the 7th top entry",
+   "command": "PYTHONPATH=tests/hastub python tools/audit/round2/D4/config_flow_ux.py",
+   "value": "top_menu_entries=7, advanced_menu_entries=7, options_pages=13"
+  },
+  {
+   "claim": "Reduced motion drops the only transition (zoom-control fade) and changes nothing else",
+   "command": "HPO_PLANDATA=$SCR/d4/plandata.json NODE_PATH=$PW/node_modules PLAYWRIGHT_BROWSERS_PATH=$HOME/.cache/pw-browsers node tools/audit/round2/D4/card_geometry.mjs --shots",
+   "value": "reduce arm counts equal the phone-light-en arm's (58/54/99/304)"
+  },
+  {
+   "claim": "All seven series colours clear 3:1 on the dark card background",
+   "command": "node tools/audit/round2/D4/series_contrast.mjs",
+   "value": "series_below_3_dark=0"
+  },
+  {
+   "claim": "Setup assignment rows stay >= 8 px and inside their svg at every viewport (card_browser's own bar)",
+   "command": "HPO_PLANDATA=$SCR/d4/plandata.json NODE_PATH=$PW/node_modules PLAYWRIGHT_BROWSERS_PATH=$HOME/.cache/pw-browsers node tools/audit/round2/D4/card_geometry.mjs --shots",
+   "value": "smallest rect.setup-hit 11.7 px (phone)"
+  }
+ ],
+ "harnesses": [
+  "tools/audit/round2/D4/card_geometry.mjs",
+  "tools/audit/round2/D4/first_paint_font.mjs",
+  "tools/audit/round2/D4/setup_scroll.mjs",
+  "tools/audit/round2/D4/config_flow_ux.py",
+  "tools/audit/round2/D4/series_contrast.mjs",
+  "tools/audit/round2/D4/card_version.mjs",
+  "tools/audit/round2/D4/delta_wording.mjs"
+ ],
+ "limits": "No Home Assistant frontend locally: the card ran in Chromium against HA's default theme tokens and a modelled <ha-card>; tile widths are modelled (359/372/400/1200 px); config-flow rendering is inferred from schemas and strings, not drawn; SVG fills under text are not composited for contrast; tab_unreached=330 is a harness start-point artifact, not a defect."
+}

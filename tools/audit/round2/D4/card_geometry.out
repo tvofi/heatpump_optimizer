@@ -1,0 +1,416 @@
+! phone-light-en           no_plan                  boxes= 23 ov=0 of=4 ct=0+7 small=7/7 tab=7/7 unr=0 noind=0 err=0 shift=0 minpx=11.48 chart=-
+! phone-light-en           no_plan_expanded         boxes=  5 ov=0 of=0 ct=0+0 small=2/3 tab=2/3 unr=1 noind=0 err=0 shift=0 minpx=12 chart=-
+! phone-light-en           plan_inline              boxes= 46 ov=0 of=0 ct=1+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=2.96 chart=333x140.6@3.7px lane5.5
+! phone-light-en           plan_inline_sv           boxes= 46 ov=0 of=0 ct=1+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=2.96 chart=333x140.6@3.7px lane5.5
+! phone-light-en           plan_short_window        boxes= 42 ov=0 of=0 ct=3+0 small=10/11 tab=13/11 unr=0 noind=0 err=0 shift=0 minpx=2.96 chart=333x140.6@3.7px lane5.5
+! phone-light-en           custom_title_currency    boxes= 45 ov=0 of=0 ct=1+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=2.96 chart=333x140.6@3.7px lane5.5
+! phone-light-en           hidden_series            boxes= 29 ov=2 of=2 ct=4+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=5.94 chart=333x140.6@7.42px lane7.4
+! phone-light-en           score_open               boxes= 60 ov=3 of=4 ct=1+0 small=16/17 tab=19/17 unr=0 noind=0 err=0 shift=0 minpx=5.94 chart=333x140.6@7.42px lane7.4
+! phone-light-en           expanded_plan            boxes= 78 ov=3 of=4 ct=4+0 small=13/28 tab=29/28 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-light-en           what_if_off              boxes= 42 ov=3 of=4 ct=1+0 small=2/10 tab=11/10 unr=1 noind=0 err=0 shift=0 minpx=5.6 chart=336x141.9@5.6px lanenull
+! phone-light-en           expanded_zoomed          boxes= 83 ov=3 of=4 ct=6+0 small=11/26 tab=28/26 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-light-en           draft_dirty_menu_open    boxes= 84 ov=3 of=4 ct=7+0 small=17/32 tab=31/29 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-light-en           whatif_edited            boxes= 82 ov=3 of=4 ct=4+0 small=19/40 tab=41/40 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-light-en           whatif_weekly            boxes= 80 ov=3 of=4 ct=4+0 small=17/36 tab=37/36 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-light-en           override_active          boxes= 80 ov=3 of=4 ct=4+0 small=13/29 tab=30/29 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-light-en           shared_steps             boxes= 78 ov=3 of=4 ct=4+0 small=14/29 tab=30/29 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-light-en           shared_steps_hover       boxes= 78 ov=3 of=4 ct=4+0 small=14/29 tab=30/29 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-light-en           tooltip_hover            boxes= 78 ov=3 of=4 ct=4+0 small=13/28 tab=29/28 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-light-en           coarse_pointer           boxes= 78 ov=3 of=4 ct=4+0 small=13/28 tab=29/28 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-light-en           reduced_motion           boxes= 46 ov=0 of=0 ct=1+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=2.96 chart=333x140.6@3.7px lane5.5
+! phone-light-en           setup_single_buffer      boxes= 28 ov=0 of=0 ct=6+0 small=8/9 tab=8/9 unr=1 noind=0 err=0 shift=0 minpx=9.33 chart=-
+! phone-light-en           setup_two_tank           boxes= 30 ov=0 of=0 ct=10+0 small=10/11 tab=10/11 unr=1 noind=0 err=0 shift=0 minpx=9.33 chart=-
+! phone-light-en           setup_coil               boxes= 33 ov=0 of=0 ct=12+0 small=11/12 tab=11/12 unr=1 noind=0 err=0 shift=0 minpx=9.33 chart=-
+! phone-light-en           layout_editing_dragged   boxes= 29 ov=0 of=0 ct=7+0 small=11/36 tab=6/12 unr=6 noind=0 err=0 shift=0 minpx=9.33 chart=-
+! phone-light-en           picker_open_filtered     boxes= 33 ov=0 of=0 ct=6+0 small=11/13 tab=12/13 unr=1 noind=0 err=0 shift=0 minpx=9.33 chart=-
+  phone-light-en           editor_schema            boxes=  0 ov=0 of=0 ct=0+0 small=0/0 tab=0/0 unr=0 noind=0 err=0 shift=0 minpx=null chart=-
+! phone-light-sv           no_plan                  boxes= 25 ov=0 of=4 ct=0+7 small=7/7 tab=7/7 unr=0 noind=0 err=0 shift=0 minpx=11.48 chart=-
+! phone-light-sv           no_plan_expanded         boxes=  6 ov=0 of=0 ct=0+0 small=2/3 tab=2/3 unr=1 noind=0 err=0 shift=0 minpx=12 chart=-
+! phone-light-sv           plan_inline              boxes= 46 ov=4 of=0 ct=1+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=2.96 chart=333x140.6@3.7px lane5.5
+! phone-light-sv           plan_inline_sv           boxes= 46 ov=4 of=0 ct=1+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=2.96 chart=333x140.6@3.7px lane5.5
+! phone-light-sv           plan_short_window        boxes= 42 ov=4 of=0 ct=3+0 small=10/11 tab=13/11 unr=0 noind=0 err=0 shift=0 minpx=2.96 chart=333x140.6@3.7px lane5.5
+! phone-light-sv           custom_title_currency    boxes= 50 ov=4 of=0 ct=1+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=2.96 chart=333x140.6@3.7px lane5.5
+! phone-light-sv           hidden_series            boxes= 32 ov=3 of=2 ct=4+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=5.94 chart=333x140.6@7.42px lane7.4
+! phone-light-sv           score_open               boxes= 64 ov=5 of=4 ct=1+0 small=16/17 tab=19/17 unr=0 noind=0 err=0 shift=0 minpx=5.94 chart=333x140.6@7.42px lane7.4
+! phone-light-sv           expanded_plan            boxes= 85 ov=3 of=4 ct=4+0 small=13/28 tab=29/28 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-light-sv           what_if_off              boxes= 46 ov=3 of=4 ct=1+0 small=2/10 tab=11/10 unr=1 noind=0 err=0 shift=0 minpx=5.6 chart=336x141.9@5.6px lanenull
+! phone-light-sv           expanded_zoomed          boxes= 86 ov=3 of=4 ct=6+0 small=11/26 tab=28/26 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-light-sv           draft_dirty_menu_open    boxes= 87 ov=3 of=4 ct=7+0 small=17/32 tab=31/29 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-light-sv           whatif_edited            boxes= 89 ov=3 of=4 ct=4+0 small=19/40 tab=41/40 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-light-sv           whatif_weekly            boxes= 87 ov=3 of=4 ct=4+0 small=17/36 tab=37/36 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-light-sv           override_active          boxes= 87 ov=3 of=4 ct=4+0 small=13/29 tab=30/29 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-light-sv           shared_steps             boxes= 85 ov=3 of=4 ct=4+0 small=14/29 tab=30/29 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-light-sv           shared_steps_hover       boxes= 85 ov=3 of=4 ct=4+0 small=14/29 tab=30/29 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-light-sv           tooltip_hover            boxes= 85 ov=3 of=4 ct=4+0 small=13/28 tab=29/28 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-light-sv           coarse_pointer           boxes= 85 ov=3 of=4 ct=4+0 small=13/28 tab=29/28 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-light-sv           reduced_motion           boxes= 46 ov=4 of=0 ct=1+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=2.96 chart=333x140.6@3.7px lane5.5
+! phone-light-sv           setup_single_buffer      boxes= 29 ov=0 of=0 ct=6+0 small=8/9 tab=8/9 unr=1 noind=0 err=0 shift=0 minpx=9.33 chart=-
+! phone-light-sv           setup_two_tank           boxes= 31 ov=0 of=0 ct=10+0 small=10/11 tab=10/11 unr=1 noind=0 err=0 shift=0 minpx=9.33 chart=-
+! phone-light-sv           setup_coil               boxes= 35 ov=0 of=0 ct=12+0 small=11/12 tab=11/12 unr=1 noind=0 err=0 shift=0 minpx=9.33 chart=-
+! phone-light-sv           layout_editing_dragged   boxes= 29 ov=0 of=0 ct=7+0 small=11/36 tab=6/12 unr=6 noind=0 err=0 shift=0 minpx=9.33 chart=-
+! phone-light-sv           picker_open_filtered     boxes= 34 ov=0 of=0 ct=6+0 small=11/13 tab=12/13 unr=1 noind=0 err=0 shift=0 minpx=9.33 chart=-
+  phone-light-sv           editor_schema            boxes=  0 ov=0 of=0 ct=0+0 small=0/0 tab=0/0 unr=0 noind=0 err=0 shift=0 minpx=null chart=-
+! phone-dark-en            no_plan                  boxes= 23 ov=0 of=4 ct=0+7 small=7/7 tab=7/7 unr=0 noind=0 err=0 shift=0 minpx=11.48 chart=-
+! phone-dark-en            no_plan_expanded         boxes=  5 ov=0 of=0 ct=0+0 small=2/3 tab=2/3 unr=1 noind=0 err=0 shift=0 minpx=12 chart=-
+! phone-dark-en            plan_inline              boxes= 46 ov=4 of=0 ct=0+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=2.96 chart=333x140.6@3.7px lane5.5
+! phone-dark-en            plan_inline_sv           boxes= 46 ov=4 of=0 ct=0+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=2.96 chart=333x140.6@3.7px lane5.5
+! phone-dark-en            plan_short_window        boxes= 42 ov=4 of=0 ct=0+0 small=10/11 tab=13/11 unr=0 noind=0 err=0 shift=0 minpx=2.96 chart=333x140.6@3.7px lane5.5
+! phone-dark-en            custom_title_currency    boxes= 45 ov=4 of=0 ct=0+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=2.96 chart=333x140.6@3.7px lane5.5
+! phone-dark-en            hidden_series            boxes= 29 ov=2 of=2 ct=3+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=5.94 chart=333x140.6@7.42px lane7.4
+! phone-dark-en            score_open               boxes= 60 ov=3 of=4 ct=0+0 small=16/17 tab=19/17 unr=0 noind=0 err=0 shift=0 minpx=5.94 chart=333x140.6@7.42px lane7.4
+! phone-dark-en            expanded_plan            boxes= 78 ov=3 of=4 ct=1+0 small=13/28 tab=29/28 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-dark-en            what_if_off              boxes= 42 ov=3 of=4 ct=0+0 small=2/10 tab=11/10 unr=1 noind=0 err=0 shift=0 minpx=5.6 chart=336x141.9@5.6px lanenull
+! phone-dark-en            expanded_zoomed          boxes= 83 ov=3 of=4 ct=1+0 small=11/26 tab=28/26 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-dark-en            draft_dirty_menu_open    boxes= 84 ov=3 of=4 ct=1+0 small=17/32 tab=31/29 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-dark-en            whatif_edited            boxes= 82 ov=3 of=4 ct=1+0 small=19/40 tab=41/40 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-dark-en            whatif_weekly            boxes= 80 ov=3 of=4 ct=1+0 small=17/36 tab=37/36 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-dark-en            override_active          boxes= 80 ov=3 of=4 ct=1+0 small=13/29 tab=30/29 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-dark-en            shared_steps             boxes= 78 ov=3 of=4 ct=1+0 small=14/29 tab=30/29 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-dark-en            shared_steps_hover       boxes= 78 ov=3 of=4 ct=1+0 small=14/29 tab=30/29 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-dark-en            tooltip_hover            boxes= 78 ov=3 of=4 ct=1+0 small=13/28 tab=29/28 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-dark-en            coarse_pointer           boxes= 78 ov=3 of=4 ct=1+0 small=13/28 tab=29/28 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-dark-en            reduced_motion           boxes= 46 ov=4 of=0 ct=0+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=2.96 chart=333x140.6@3.7px lane5.5
+! phone-dark-en            setup_single_buffer      boxes= 28 ov=0 of=0 ct=6+0 small=8/9 tab=8/9 unr=1 noind=0 err=0 shift=0 minpx=9.33 chart=-
+! phone-dark-en            setup_two_tank           boxes= 30 ov=0 of=0 ct=10+0 small=10/11 tab=10/11 unr=1 noind=0 err=0 shift=0 minpx=9.33 chart=-
+! phone-dark-en            setup_coil               boxes= 33 ov=0 of=0 ct=12+0 small=11/12 tab=11/12 unr=1 noind=0 err=0 shift=0 minpx=9.33 chart=-
+! phone-dark-en            layout_editing_dragged   boxes= 29 ov=0 of=0 ct=6+0 small=11/36 tab=6/12 unr=6 noind=0 err=0 shift=0 minpx=9.33 chart=-
+! phone-dark-en            picker_open_filtered     boxes= 33 ov=0 of=0 ct=6+0 small=11/13 tab=12/13 unr=1 noind=0 err=0 shift=0 minpx=9.33 chart=-
+  phone-dark-en            editor_schema            boxes=  0 ov=0 of=0 ct=0+0 small=0/0 tab=0/0 unr=0 noind=0 err=0 shift=0 minpx=null chart=-
+! phone-dark-sv            no_plan                  boxes= 25 ov=0 of=4 ct=0+7 small=7/7 tab=7/7 unr=0 noind=0 err=0 shift=0 minpx=11.48 chart=-
+! phone-dark-sv            no_plan_expanded         boxes=  6 ov=0 of=0 ct=0+0 small=2/3 tab=2/3 unr=1 noind=0 err=0 shift=0 minpx=12 chart=-
+! phone-dark-sv            plan_inline              boxes= 46 ov=0 of=0 ct=0+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=2.96 chart=333x140.6@3.7px lane5.5
+! phone-dark-sv            plan_inline_sv           boxes= 46 ov=0 of=0 ct=0+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=2.96 chart=333x140.6@3.7px lane5.5
+! phone-dark-sv            plan_short_window        boxes= 42 ov=0 of=0 ct=0+0 small=10/11 tab=13/11 unr=0 noind=0 err=0 shift=0 minpx=2.96 chart=333x140.6@3.7px lane5.5
+! phone-dark-sv            custom_title_currency    boxes= 50 ov=0 of=0 ct=0+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=2.96 chart=333x140.6@3.7px lane5.5
+! phone-dark-sv            hidden_series            boxes= 32 ov=3 of=2 ct=3+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=5.94 chart=333x140.6@7.42px lane7.4
+! phone-dark-sv            score_open               boxes= 64 ov=5 of=4 ct=0+0 small=16/17 tab=19/17 unr=0 noind=0 err=0 shift=0 minpx=5.94 chart=333x140.6@7.42px lane7.4
+! phone-dark-sv            expanded_plan            boxes= 85 ov=3 of=4 ct=1+0 small=13/28 tab=29/28 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-dark-sv            what_if_off              boxes= 46 ov=3 of=4 ct=0+0 small=2/10 tab=11/10 unr=1 noind=0 err=0 shift=0 minpx=5.6 chart=336x141.9@5.6px lanenull
+! phone-dark-sv            expanded_zoomed          boxes= 86 ov=3 of=4 ct=1+0 small=11/26 tab=28/26 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-dark-sv            draft_dirty_menu_open    boxes= 87 ov=3 of=4 ct=1+0 small=17/32 tab=31/29 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-dark-sv            whatif_edited            boxes= 89 ov=3 of=4 ct=1+0 small=19/40 tab=41/40 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-dark-sv            whatif_weekly            boxes= 87 ov=3 of=4 ct=1+0 small=17/36 tab=37/36 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-dark-sv            override_active          boxes= 87 ov=3 of=4 ct=1+0 small=13/29 tab=30/29 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-dark-sv            shared_steps             boxes= 85 ov=3 of=4 ct=1+0 small=14/29 tab=30/29 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-dark-sv            shared_steps_hover       boxes= 85 ov=3 of=4 ct=1+0 small=14/29 tab=30/29 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-dark-sv            tooltip_hover            boxes= 85 ov=3 of=4 ct=1+0 small=13/28 tab=29/28 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-dark-sv            coarse_pointer           boxes= 85 ov=3 of=4 ct=1+0 small=13/28 tab=29/28 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-dark-sv            reduced_motion           boxes= 46 ov=0 of=0 ct=0+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=2.96 chart=333x140.6@3.7px lane5.5
+! phone-dark-sv            setup_single_buffer      boxes= 29 ov=0 of=0 ct=6+0 small=8/9 tab=8/9 unr=1 noind=0 err=0 shift=0 minpx=9.33 chart=-
+! phone-dark-sv            setup_two_tank           boxes= 31 ov=0 of=0 ct=10+0 small=10/11 tab=10/11 unr=1 noind=0 err=0 shift=0 minpx=9.33 chart=-
+! phone-dark-sv            setup_coil               boxes= 35 ov=0 of=0 ct=12+0 small=11/12 tab=11/12 unr=1 noind=0 err=0 shift=0 minpx=9.33 chart=-
+! phone-dark-sv            layout_editing_dragged   boxes= 29 ov=0 of=0 ct=6+0 small=11/36 tab=6/12 unr=6 noind=0 err=0 shift=0 minpx=9.33 chart=-
+! phone-dark-sv            picker_open_filtered     boxes= 34 ov=0 of=0 ct=6+0 small=11/13 tab=12/13 unr=1 noind=0 err=0 shift=0 minpx=9.33 chart=-
+  phone-dark-sv            editor_schema            boxes=  0 ov=0 of=0 ct=0+0 small=0/0 tab=0/0 unr=0 noind=0 err=0 shift=0 minpx=null chart=-
+! tablet-light-en          no_plan                  boxes= 23 ov=0 of=4 ct=0+7 small=7/7 tab=7/7 unr=0 noind=0 err=0 shift=0 minpx=11.48 chart=-
+! tablet-light-en          no_plan_expanded         boxes=  4 ov=0 of=0 ct=0+0 small=2/3 tab=2/3 unr=1 noind=0 err=0 shift=0 minpx=12 chart=-
+! tablet-light-en          plan_inline              boxes= 46 ov=4 of=0 ct=1+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=3.08 chart=346x146.1@3.84px lane5.8
+! tablet-light-en          plan_inline_sv           boxes= 46 ov=4 of=0 ct=1+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=3.08 chart=346x146.1@3.84px lane5.8
+! tablet-light-en          plan_short_window        boxes= 42 ov=4 of=0 ct=3+0 small=10/11 tab=13/11 unr=0 noind=0 err=0 shift=0 minpx=3.08 chart=346x146.1@3.84px lane5.8
+! tablet-light-en          custom_title_currency    boxes= 45 ov=4 of=0 ct=1+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=3.08 chart=346x146.1@3.84px lane5.8
+! tablet-light-en          hidden_series            boxes= 29 ov=2 of=2 ct=4+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=5.95 chart=346x146.1@7.44px lane7.4
+! tablet-light-en          score_open               boxes= 60 ov=3 of=4 ct=1+0 small=15/17 tab=19/17 unr=0 noind=0 err=0 shift=0 minpx=5.95 chart=346x146.1@7.44px lane7.4
+! tablet-light-en          expanded_plan            boxes= 73 ov=5 of=4 ct=4+0 small=20/28 tab=29/28 unr=1 noind=0 err=0 shift=0 minpx=9.4 chart=705.3x297.8@11.75px lane11.8
+! tablet-light-en          what_if_off              boxes= 42 ov=5 of=4 ct=1+0 small=9/10 tab=11/10 unr=1 noind=0 err=0 shift=0 minpx=11.75 chart=705.3x297.8@11.75px lanenull
+! tablet-light-en          expanded_zoomed          boxes= 77 ov=5 of=4 ct=6+0 small=18/26 tab=28/26 unr=1 noind=0 err=0 shift=0 minpx=9.4 chart=705.3x297.8@11.75px lane11.8
+! tablet-light-en          draft_dirty_menu_open    boxes= 78 ov=4 of=4 ct=7+0 small=24/32 tab=31/29 unr=1 noind=0 err=0 shift=0 minpx=9.4 chart=705.3x297.8@11.75px lane11.8
+! tablet-light-en          whatif_edited            boxes= 77 ov=5 of=4 ct=4+0 small=26/40 tab=41/40 unr=1 noind=0 err=0 shift=0 minpx=9.4 chart=705.3x297.8@11.75px lane11.8
+! tablet-light-en          whatif_weekly            boxes= 75 ov=5 of=4 ct=4+0 small=24/36 tab=37/36 unr=1 noind=0 err=0 shift=0 minpx=9.4 chart=705.3x297.8@11.75px lane11.8
+! tablet-light-en          override_active          boxes= 75 ov=5 of=4 ct=4+0 small=20/29 tab=30/29 unr=1 noind=0 err=0 shift=0 minpx=9.4 chart=705.3x297.8@11.75px lane11.8
+! tablet-light-en          shared_steps             boxes= 73 ov=5 of=4 ct=4+0 small=21/29 tab=30/29 unr=1 noind=0 err=0 shift=0 minpx=9.4 chart=705.3x297.8@11.75px lane11.8
+! tablet-light-en          shared_steps_hover       boxes= 84 ov=5 of=4 ct=4+0 small=23/31 tab=30/31 unr=1 noind=0 err=0 shift=0 minpx=9.4 chart=705.3x297.8@11.75px lane11.8
+! tablet-light-en          tooltip_hover            boxes= 84 ov=5 of=4 ct=4+0 small=22/30 tab=29/30 unr=1 noind=0 err=0 shift=0 minpx=9.4 chart=705.3x297.8@11.75px lane11.8
+! tablet-light-en          coarse_pointer           boxes= 73 ov=5 of=4 ct=4+0 small=20/28 tab=29/28 unr=1 noind=0 err=0 shift=0 minpx=9.4 chart=705.3x297.8@11.75px lane11.8
+! tablet-light-en          reduced_motion           boxes= 46 ov=4 of=0 ct=1+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=3.08 chart=346x146.1@3.84px lane5.8
+! tablet-light-en          setup_single_buffer      boxes= 27 ov=0 of=0 ct=6+0 small=8/9 tab=8/9 unr=1 noind=0 err=0 shift=0 minpx=10.2 chart=-
+! tablet-light-en          setup_two_tank           boxes= 29 ov=0 of=0 ct=10+0 small=10/11 tab=10/11 unr=1 noind=0 err=0 shift=0 minpx=10.2 chart=-
+! tablet-light-en          setup_coil               boxes= 32 ov=0 of=0 ct=12+0 small=11/12 tab=11/12 unr=1 noind=0 err=0 shift=0 minpx=10.2 chart=-
+! tablet-light-en          layout_editing_dragged   boxes= 27 ov=0 of=0 ct=7+0 small=11/36 tab=6/12 unr=6 noind=0 err=0 shift=0 minpx=10.2 chart=-
+! tablet-light-en          picker_open_filtered     boxes= 31 ov=0 of=0 ct=6+0 small=11/13 tab=12/13 unr=1 noind=0 err=0 shift=0 minpx=9.6 chart=-
+  tablet-light-en          editor_schema            boxes=  0 ov=0 of=0 ct=0+0 small=0/0 tab=0/0 unr=0 noind=0 err=0 shift=0 minpx=null chart=-
+! tablet-light-sv          no_plan                  boxes= 25 ov=0 of=4 ct=0+7 small=7/7 tab=7/7 unr=0 noind=0 err=0 shift=0 minpx=11.48 chart=-
+! tablet-light-sv          no_plan_expanded         boxes=  4 ov=0 of=0 ct=0+0 small=2/3 tab=2/3 unr=1 noind=0 err=0 shift=0 minpx=12 chart=-
+! tablet-light-sv          plan_inline              boxes= 46 ov=4 of=0 ct=1+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=3.08 chart=346x146.1@3.84px lane5.8
+! tablet-light-sv          plan_inline_sv           boxes= 46 ov=4 of=0 ct=1+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=3.08 chart=346x146.1@3.84px lane5.8
+! tablet-light-sv          plan_short_window        boxes= 42 ov=4 of=0 ct=3+0 small=10/11 tab=13/11 unr=0 noind=0 err=0 shift=0 minpx=3.08 chart=346x146.1@3.84px lane5.8
+! tablet-light-sv          custom_title_currency    boxes= 50 ov=4 of=0 ct=1+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=3.08 chart=346x146.1@3.84px lane5.8
+! tablet-light-sv          hidden_series            boxes= 32 ov=3 of=2 ct=4+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=5.95 chart=346x146.1@7.44px lane7.4
+! tablet-light-sv          score_open               boxes= 63 ov=5 of=4 ct=1+0 small=16/17 tab=19/17 unr=0 noind=0 err=0 shift=0 minpx=5.95 chart=346x146.1@7.44px lane7.4
+! tablet-light-sv          expanded_plan            boxes= 76 ov=5 of=4 ct=4+0 small=20/28 tab=29/28 unr=1 noind=0 err=0 shift=0 minpx=9.4 chart=705.3x297.8@11.75px lane11.8
+! tablet-light-sv          what_if_off              boxes= 46 ov=5 of=4 ct=1+0 small=9/10 tab=11/10 unr=1 noind=0 err=0 shift=0 minpx=11.75 chart=705.3x297.8@11.75px lanenull
+! tablet-light-sv          expanded_zoomed          boxes= 76 ov=5 of=4 ct=6+0 small=18/26 tab=28/26 unr=1 noind=0 err=0 shift=0 minpx=9.4 chart=705.3x297.8@11.75px lane11.8
+! tablet-light-sv          draft_dirty_menu_open    boxes= 77 ov=4 of=4 ct=7+0 small=24/32 tab=31/29 unr=1 noind=0 err=0 shift=0 minpx=9.4 chart=705.3x297.8@11.75px lane11.8
+! tablet-light-sv          whatif_edited            boxes= 80 ov=5 of=4 ct=4+0 small=26/40 tab=41/40 unr=1 noind=0 err=0 shift=0 minpx=9.4 chart=705.3x297.8@11.75px lane11.8
+! tablet-light-sv          whatif_weekly            boxes= 78 ov=5 of=4 ct=4+0 small=24/36 tab=37/36 unr=1 noind=0 err=0 shift=0 minpx=9.4 chart=705.3x297.8@11.75px lane11.8
+! tablet-light-sv          override_active          boxes= 78 ov=5 of=4 ct=4+0 small=20/29 tab=30/29 unr=1 noind=0 err=0 shift=0 minpx=9.4 chart=705.3x297.8@11.75px lane11.8
+! tablet-light-sv          shared_steps             boxes= 76 ov=5 of=4 ct=4+0 small=21/29 tab=30/29 unr=1 noind=0 err=0 shift=0 minpx=9.4 chart=705.3x297.8@11.75px lane11.8
+! tablet-light-sv          shared_steps_hover       boxes= 76 ov=5 of=4 ct=4+0 small=21/29 tab=30/29 unr=1 noind=0 err=0 shift=0 minpx=9.4 chart=705.3x297.8@11.75px lane11.8
+! tablet-light-sv          tooltip_hover            boxes= 76 ov=5 of=4 ct=4+0 small=20/28 tab=29/28 unr=1 noind=0 err=0 shift=0 minpx=9.4 chart=705.3x297.8@11.75px lane11.8
+! tablet-light-sv          coarse_pointer           boxes= 76 ov=5 of=4 ct=4+0 small=20/28 tab=29/28 unr=1 noind=0 err=0 shift=0 minpx=9.4 chart=705.3x297.8@11.75px lane11.8
+! tablet-light-sv          reduced_motion           boxes= 46 ov=4 of=0 ct=1+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=3.08 chart=346x146.1@3.84px lane5.8
+! tablet-light-sv          setup_single_buffer      boxes= 28 ov=0 of=0 ct=6+0 small=8/9 tab=8/9 unr=1 noind=0 err=0 shift=0 minpx=10.2 chart=-
+! tablet-light-sv          setup_two_tank           boxes= 30 ov=0 of=0 ct=10+0 small=10/11 tab=10/11 unr=1 noind=0 err=0 shift=0 minpx=10.2 chart=-
+! tablet-light-sv          setup_coil               boxes= 34 ov=0 of=0 ct=12+0 small=11/12 tab=11/12 unr=1 noind=0 err=0 shift=0 minpx=10.2 chart=-
+! tablet-light-sv          layout_editing_dragged   boxes= 28 ov=0 of=0 ct=7+0 small=11/36 tab=6/12 unr=6 noind=0 err=0 shift=0 minpx=10.2 chart=-
+! tablet-light-sv          picker_open_filtered     boxes= 32 ov=0 of=0 ct=6+0 small=11/13 tab=12/13 unr=1 noind=0 err=0 shift=0 minpx=9.6 chart=-
+  tablet-light-sv          editor_schema            boxes=  0 ov=0 of=0 ct=0+0 small=0/0 tab=0/0 unr=0 noind=0 err=0 shift=0 minpx=null chart=-
+! tablet-dark-en           no_plan                  boxes= 23 ov=0 of=4 ct=0+7 small=7/7 tab=7/7 unr=0 noind=0 err=0 shift=0 minpx=11.48 chart=-
+! tablet-dark-en           no_plan_expanded         boxes=  4 ov=0 of=0 ct=0+0 small=2/3 tab=2/3 unr=1 noind=0 err=0 shift=0 minpx=12 chart=-
+! tablet-dark-en           plan_inline              boxes= 46 ov=4 of=0 ct=0+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=3.08 chart=346x146.1@3.84px lane5.8
+! tablet-dark-en           plan_inline_sv           boxes= 46 ov=4 of=0 ct=0+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=3.08 chart=346x146.1@3.84px lane5.8
+! tablet-dark-en           plan_short_window        boxes= 42 ov=4 of=0 ct=0+0 small=10/11 tab=13/11 unr=0 noind=0 err=0 shift=0 minpx=3.08 chart=346x146.1@3.84px lane5.8
+! tablet-dark-en           custom_title_currency    boxes= 45 ov=4 of=0 ct=0+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=3.08 chart=346x146.1@3.84px lane5.8
+! tablet-dark-en           hidden_series            boxes= 29 ov=2 of=2 ct=3+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=5.95 chart=346x146.1@7.44px lane7.4
+! tablet-dark-en           score_open               boxes= 60 ov=3 of=4 ct=0+0 small=15/17 tab=19/17 unr=0 noind=0 err=0 shift=0 minpx=5.95 chart=346x146.1@7.44px lane7.4
+! tablet-dark-en           expanded_plan            boxes= 73 ov=5 of=4 ct=1+0 small=20/28 tab=29/28 unr=1 noind=0 err=0 shift=0 minpx=9.4 chart=705.3x297.8@11.75px lane11.8
+! tablet-dark-en           what_if_off              boxes= 42 ov=5 of=4 ct=0+0 small=9/10 tab=11/10 unr=1 noind=0 err=0 shift=0 minpx=11.75 chart=705.3x297.8@11.75px lanenull
+! tablet-dark-en           expanded_zoomed          boxes= 77 ov=5 of=4 ct=1+0 small=18/26 tab=28/26 unr=1 noind=0 err=0 shift=0 minpx=9.4 chart=705.3x297.8@11.75px lane11.8
+! tablet-dark-en           draft_dirty_menu_open    boxes= 78 ov=4 of=4 ct=1+0 small=24/32 tab=31/29 unr=1 noind=0 err=0 shift=0 minpx=9.4 chart=705.3x297.8@11.75px lane11.8
+! tablet-dark-en           whatif_edited            boxes= 77 ov=5 of=4 ct=1+0 small=26/40 tab=41/40 unr=1 noind=0 err=0 shift=0 minpx=9.4 chart=705.3x297.8@11.75px lane11.8
+! tablet-dark-en           whatif_weekly            boxes= 75 ov=5 of=4 ct=1+0 small=24/36 tab=37/36 unr=1 noind=0 err=0 shift=0 minpx=9.4 chart=705.3x297.8@11.75px lane11.8
+! tablet-dark-en           override_active          boxes= 75 ov=5 of=4 ct=1+0 small=20/29 tab=30/29 unr=1 noind=0 err=0 shift=0 minpx=9.4 chart=705.3x297.8@11.75px lane11.8
+! tablet-dark-en           shared_steps             boxes= 73 ov=5 of=4 ct=1+0 small=21/29 tab=30/29 unr=1 noind=0 err=0 shift=0 minpx=9.4 chart=705.3x297.8@11.75px lane11.8
+! tablet-dark-en           shared_steps_hover       boxes= 84 ov=5 of=4 ct=1+0 small=23/31 tab=30/31 unr=1 noind=0 err=0 shift=0 minpx=9.4 chart=705.3x297.8@11.75px lane11.8
+! tablet-dark-en           tooltip_hover            boxes= 84 ov=5 of=4 ct=1+0 small=22/30 tab=29/30 unr=1 noind=0 err=0 shift=0 minpx=9.4 chart=705.3x297.8@11.75px lane11.8
+! tablet-dark-en           coarse_pointer           boxes= 73 ov=5 of=4 ct=1+0 small=20/28 tab=29/28 unr=1 noind=0 err=0 shift=0 minpx=9.4 chart=705.3x297.8@11.75px lane11.8
+! tablet-dark-en           reduced_motion           boxes= 46 ov=4 of=0 ct=0+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=3.08 chart=346x146.1@3.84px lane5.8
+! tablet-dark-en           setup_single_buffer      boxes= 27 ov=0 of=0 ct=6+0 small=8/9 tab=8/9 unr=1 noind=0 err=0 shift=0 minpx=10.2 chart=-
+! tablet-dark-en           setup_two_tank           boxes= 29 ov=0 of=0 ct=10+0 small=10/11 tab=10/11 unr=1 noind=0 err=0 shift=0 minpx=10.2 chart=-
+! tablet-dark-en           setup_coil               boxes= 32 ov=0 of=0 ct=12+0 small=11/12 tab=11/12 unr=1 noind=0 err=0 shift=0 minpx=10.2 chart=-
+! tablet-dark-en           layout_editing_dragged   boxes= 27 ov=0 of=0 ct=6+0 small=11/36 tab=6/12 unr=6 noind=0 err=0 shift=0 minpx=10.2 chart=-
+! tablet-dark-en           picker_open_filtered     boxes= 31 ov=0 of=0 ct=6+0 small=11/13 tab=12/13 unr=1 noind=0 err=0 shift=0 minpx=9.6 chart=-
+  tablet-dark-en           editor_schema            boxes=  0 ov=0 of=0 ct=0+0 small=0/0 tab=0/0 unr=0 noind=0 err=0 shift=0 minpx=null chart=-
+! tablet-dark-sv           no_plan                  boxes= 25 ov=0 of=4 ct=0+7 small=7/7 tab=7/7 unr=0 noind=0 err=0 shift=0 minpx=11.48 chart=-
+! tablet-dark-sv           no_plan_expanded         boxes=  4 ov=0 of=0 ct=0+0 small=2/3 tab=2/3 unr=1 noind=0 err=0 shift=0 minpx=12 chart=-
+! tablet-dark-sv           plan_inline              boxes= 46 ov=4 of=0 ct=0+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=3.08 chart=346x146.1@3.84px lane5.8
+! tablet-dark-sv           plan_inline_sv           boxes= 46 ov=4 of=0 ct=0+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=3.08 chart=346x146.1@3.84px lane5.8
+! tablet-dark-sv           plan_short_window        boxes= 42 ov=4 of=0 ct=0+0 small=10/11 tab=13/11 unr=0 noind=0 err=0 shift=0 minpx=3.08 chart=346x146.1@3.84px lane5.8
+! tablet-dark-sv           custom_title_currency    boxes= 50 ov=4 of=0 ct=0+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=3.08 chart=346x146.1@3.84px lane5.8
+! tablet-dark-sv           hidden_series            boxes= 32 ov=3 of=2 ct=3+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=5.95 chart=346x146.1@7.44px lane7.4
+! tablet-dark-sv           score_open               boxes= 63 ov=5 of=4 ct=0+0 small=16/17 tab=19/17 unr=0 noind=0 err=0 shift=0 minpx=5.95 chart=346x146.1@7.44px lane7.4
+! tablet-dark-sv           expanded_plan            boxes= 76 ov=5 of=4 ct=1+0 small=20/28 tab=29/28 unr=1 noind=0 err=0 shift=0 minpx=9.4 chart=705.3x297.8@11.75px lane11.8
+! tablet-dark-sv           what_if_off              boxes= 46 ov=5 of=4 ct=0+0 small=9/10 tab=11/10 unr=1 noind=0 err=0 shift=0 minpx=11.75 chart=705.3x297.8@11.75px lanenull
+! tablet-dark-sv           expanded_zoomed          boxes= 76 ov=5 of=4 ct=1+0 small=18/26 tab=28/26 unr=1 noind=0 err=0 shift=0 minpx=9.4 chart=705.3x297.8@11.75px lane11.8
+! tablet-dark-sv           draft_dirty_menu_open    boxes= 77 ov=4 of=4 ct=1+0 small=24/32 tab=31/29 unr=1 noind=0 err=0 shift=0 minpx=9.4 chart=705.3x297.8@11.75px lane11.8
+! tablet-dark-sv           whatif_edited            boxes= 80 ov=5 of=4 ct=1+0 small=26/40 tab=41/40 unr=1 noind=0 err=0 shift=0 minpx=9.4 chart=705.3x297.8@11.75px lane11.8
+! tablet-dark-sv           whatif_weekly            boxes= 78 ov=5 of=4 ct=1+0 small=24/36 tab=37/36 unr=1 noind=0 err=0 shift=0 minpx=9.4 chart=705.3x297.8@11.75px lane11.8
+! tablet-dark-sv           override_active          boxes= 78 ov=5 of=4 ct=1+0 small=20/29 tab=30/29 unr=1 noind=0 err=0 shift=0 minpx=9.4 chart=705.3x297.8@11.75px lane11.8
+! tablet-dark-sv           shared_steps             boxes= 76 ov=5 of=4 ct=1+0 small=21/29 tab=30/29 unr=1 noind=0 err=0 shift=0 minpx=9.4 chart=705.3x297.8@11.75px lane11.8
+! tablet-dark-sv           shared_steps_hover       boxes= 76 ov=5 of=4 ct=1+0 small=21/29 tab=30/29 unr=1 noind=0 err=0 shift=0 minpx=9.4 chart=705.3x297.8@11.75px lane11.8
+! tablet-dark-sv           tooltip_hover            boxes= 76 ov=5 of=4 ct=1+0 small=20/28 tab=29/28 unr=1 noind=0 err=0 shift=0 minpx=9.4 chart=705.3x297.8@11.75px lane11.8
+! tablet-dark-sv           coarse_pointer           boxes= 76 ov=5 of=4 ct=1+0 small=20/28 tab=29/28 unr=1 noind=0 err=0 shift=0 minpx=9.4 chart=705.3x297.8@11.75px lane11.8
+! tablet-dark-sv           reduced_motion           boxes= 46 ov=4 of=0 ct=0+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=3.08 chart=346x146.1@3.84px lane5.8
+! tablet-dark-sv           setup_single_buffer      boxes= 28 ov=0 of=0 ct=6+0 small=8/9 tab=8/9 unr=1 noind=0 err=0 shift=0 minpx=10.2 chart=-
+! tablet-dark-sv           setup_two_tank           boxes= 30 ov=0 of=0 ct=10+0 small=10/11 tab=10/11 unr=1 noind=0 err=0 shift=0 minpx=10.2 chart=-
+! tablet-dark-sv           setup_coil               boxes= 34 ov=0 of=0 ct=12+0 small=11/12 tab=11/12 unr=1 noind=0 err=0 shift=0 minpx=10.2 chart=-
+! tablet-dark-sv           layout_editing_dragged   boxes= 28 ov=0 of=0 ct=6+0 small=11/36 tab=6/12 unr=6 noind=0 err=0 shift=0 minpx=10.2 chart=-
+! tablet-dark-sv           picker_open_filtered     boxes= 32 ov=0 of=0 ct=6+0 small=11/13 tab=12/13 unr=1 noind=0 err=0 shift=0 minpx=9.6 chart=-
+  tablet-dark-sv           editor_schema            boxes=  0 ov=0 of=0 ct=0+0 small=0/0 tab=0/0 unr=0 noind=0 err=0 shift=0 minpx=null chart=-
+! desktop-light-en         no_plan                  boxes= 21 ov=0 of=2 ct=0+7 small=7/7 tab=7/7 unr=0 noind=0 err=0 shift=0 minpx=11.48 chart=-
+! desktop-light-en         no_plan_expanded         boxes=  4 ov=0 of=0 ct=0+0 small=0/3 tab=2/3 unr=1 noind=0 err=0 shift=0 minpx=12.9 chart=-
+! desktop-light-en         plan_inline              boxes= 46 ov=4 of=0 ct=1+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=3.32 chart=374x157.9@4.16px lane6.2
+! desktop-light-en         plan_inline_sv           boxes= 46 ov=4 of=0 ct=1+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=3.32 chart=374x157.9@4.16px lane6.2
+! desktop-light-en         plan_short_window        boxes= 42 ov=4 of=0 ct=3+0 small=10/11 tab=13/11 unr=0 noind=0 err=0 shift=0 minpx=3.32 chart=374x157.9@4.16px lane6.2
+! desktop-light-en         custom_title_currency    boxes= 45 ov=4 of=0 ct=1+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=3.32 chart=374x157.9@4.16px lane6.2
+! desktop-light-en         hidden_series            boxes= 29 ov=2 of=2 ct=4+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=5.98 chart=374x157.9@7.48px lane7.5
+! desktop-light-en         score_open               boxes= 60 ov=3 of=4 ct=1+0 small=15/17 tab=19/17 unr=0 noind=0 err=0 shift=0 minpx=5.98 chart=374x157.9@7.48px lane7.5
+! desktop-light-en         expanded_plan            boxes= 70 ov=5 of=4 ct=4+0 small=10/28 tab=29/28 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=1196.8x505.3@19.95px lane19.9
+! desktop-light-en         what_if_off              boxes= 42 ov=5 of=4 ct=1+0 small=0/10 tab=11/10 unr=1 noind=0 err=0 shift=0 minpx=12.9 chart=1196.8x505.3@19.95px lanenull
+! desktop-light-en         expanded_zoomed          boxes= 74 ov=5 of=4 ct=6+0 small=8/26 tab=28/26 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=1196.8x505.3@19.95px lane19.9
+! desktop-light-en         draft_dirty_menu_open    boxes= 75 ov=4 of=4 ct=7+0 small=14/32 tab=31/29 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=1196.8x505.3@19.95px lane19.9
+! desktop-light-en         whatif_edited            boxes= 75 ov=5 of=4 ct=4+0 small=16/40 tab=41/40 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=1196.8x505.3@19.95px lane19.9
+! desktop-light-en         whatif_weekly            boxes= 73 ov=5 of=4 ct=4+0 small=14/36 tab=37/36 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=1196.8x505.3@19.95px lane19.9
+! desktop-light-en         override_active          boxes= 72 ov=5 of=4 ct=4+0 small=10/29 tab=30/29 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=1196.8x505.3@19.95px lane19.9
+! desktop-light-en         shared_steps             boxes= 70 ov=5 of=4 ct=4+0 small=11/29 tab=30/29 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=1196.8x505.3@19.95px lane19.9
+! desktop-light-en         shared_steps_hover       boxes= 81 ov=5 of=4 ct=4+0 small=13/31 tab=30/31 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=1196.8x505.3@19.95px lane19.9
+! desktop-light-en         tooltip_hover            boxes= 72 ov=5 of=4 ct=4+0 small=12/30 tab=29/30 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=1196.8x505.3@19.95px lane19.9
+! desktop-light-en         coarse_pointer           boxes= 70 ov=5 of=4 ct=4+0 small=10/28 tab=29/28 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=1196.8x505.3@19.95px lane19.9
+! desktop-light-en         reduced_motion           boxes= 46 ov=4 of=0 ct=1+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=3.32 chart=374x157.9@4.16px lane6.2
+! desktop-light-en         setup_single_buffer      boxes= 27 ov=0 of=0 ct=6+0 small=0/9 tab=8/9 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=-
+! desktop-light-en         setup_two_tank           boxes= 29 ov=0 of=0 ct=10+0 small=0/11 tab=10/11 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=-
+! desktop-light-en         setup_coil               boxes= 32 ov=0 of=0 ct=12+0 small=0/12 tab=11/12 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=-
+! desktop-light-en         layout_editing_dragged   boxes= 27 ov=0 of=0 ct=7+0 small=3/36 tab=6/12 unr=6 noind=0 err=0 shift=0 minpx=10.96 chart=-
+! desktop-light-en         picker_open_filtered     boxes= 31 ov=0 of=0 ct=6+0 small=2/13 tab=12/13 unr=1 noind=0 err=0 shift=0 minpx=10.32 chart=-
+  desktop-light-en         editor_schema            boxes=  0 ov=0 of=0 ct=0+0 small=0/0 tab=0/0 unr=0 noind=0 err=0 shift=0 minpx=null chart=-
+! desktop-light-sv         no_plan                  boxes= 24 ov=0 of=2 ct=0+7 small=7/7 tab=7/7 unr=0 noind=0 err=0 shift=0 minpx=11.48 chart=-
+! desktop-light-sv         no_plan_expanded         boxes=  4 ov=0 of=0 ct=0+0 small=0/3 tab=2/3 unr=1 noind=0 err=0 shift=0 minpx=12.9 chart=-
+! desktop-light-sv         plan_inline              boxes= 46 ov=4 of=0 ct=1+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=3.32 chart=374x157.9@4.16px lane6.2
+! desktop-light-sv         plan_inline_sv           boxes= 46 ov=4 of=0 ct=1+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=3.32 chart=374x157.9@4.16px lane6.2
+! desktop-light-sv         plan_short_window        boxes= 42 ov=4 of=0 ct=3+0 small=10/11 tab=13/11 unr=0 noind=0 err=0 shift=0 minpx=3.32 chart=374x157.9@4.16px lane6.2
+! desktop-light-sv         custom_title_currency    boxes= 50 ov=4 of=0 ct=1+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=3.32 chart=374x157.9@4.16px lane6.2
+! desktop-light-sv         hidden_series            boxes= 32 ov=3 of=2 ct=4+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=5.98 chart=374x157.9@7.48px lane7.5
+! desktop-light-sv         score_open               boxes= 63 ov=5 of=4 ct=1+0 small=15/17 tab=19/17 unr=0 noind=0 err=0 shift=0 minpx=5.98 chart=374x157.9@7.48px lane7.5
+! desktop-light-sv         expanded_plan            boxes= 74 ov=5 of=4 ct=4+0 small=10/28 tab=29/28 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=1196.8x505.3@19.95px lane19.9
+! desktop-light-sv         what_if_off              boxes= 46 ov=5 of=4 ct=1+0 small=0/10 tab=11/10 unr=1 noind=0 err=0 shift=0 minpx=12.9 chart=1196.8x505.3@19.95px lanenull
+! desktop-light-sv         expanded_zoomed          boxes= 74 ov=5 of=4 ct=6+0 small=8/26 tab=28/26 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=1196.8x505.3@19.95px lane19.9
+! desktop-light-sv         draft_dirty_menu_open    boxes= 75 ov=4 of=4 ct=7+0 small=14/32 tab=31/29 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=1196.8x505.3@19.95px lane19.9
+! desktop-light-sv         whatif_edited            boxes= 79 ov=5 of=4 ct=4+0 small=16/40 tab=41/40 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=1196.8x505.3@19.95px lane19.9
+! desktop-light-sv         whatif_weekly            boxes= 77 ov=5 of=4 ct=4+0 small=14/36 tab=37/36 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=1196.8x505.3@19.95px lane19.9
+! desktop-light-sv         override_active          boxes= 76 ov=5 of=4 ct=4+0 small=10/29 tab=30/29 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=1196.8x505.3@19.95px lane19.9
+! desktop-light-sv         shared_steps             boxes= 74 ov=5 of=4 ct=4+0 small=11/29 tab=30/29 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=1196.8x505.3@19.95px lane19.9
+! desktop-light-sv         shared_steps_hover       boxes= 85 ov=5 of=4 ct=4+0 small=13/31 tab=30/31 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=1196.8x505.3@19.95px lane19.9
+! desktop-light-sv         tooltip_hover            boxes= 76 ov=5 of=4 ct=4+0 small=12/30 tab=29/30 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=1196.8x505.3@19.95px lane19.9
+! desktop-light-sv         coarse_pointer           boxes= 74 ov=5 of=4 ct=4+0 small=10/28 tab=29/28 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=1196.8x505.3@19.95px lane19.9
+! desktop-light-sv         reduced_motion           boxes= 46 ov=4 of=0 ct=1+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=3.32 chart=374x157.9@4.16px lane6.2
+! desktop-light-sv         setup_single_buffer      boxes= 27 ov=0 of=0 ct=6+0 small=0/9 tab=8/9 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=-
+! desktop-light-sv         setup_two_tank           boxes= 29 ov=0 of=0 ct=10+0 small=0/11 tab=10/11 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=-
+! desktop-light-sv         setup_coil               boxes= 33 ov=0 of=0 ct=12+0 small=0/12 tab=11/12 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=-
+! desktop-light-sv         layout_editing_dragged   boxes= 27 ov=0 of=0 ct=7+0 small=3/36 tab=6/12 unr=6 noind=0 err=0 shift=0 minpx=10.96 chart=-
+! desktop-light-sv         picker_open_filtered     boxes= 31 ov=0 of=0 ct=6+0 small=2/13 tab=12/13 unr=1 noind=0 err=0 shift=0 minpx=10.32 chart=-
+  desktop-light-sv         editor_schema            boxes=  0 ov=0 of=0 ct=0+0 small=0/0 tab=0/0 unr=0 noind=0 err=0 shift=0 minpx=null chart=-
+! desktop-dark-en          no_plan                  boxes= 21 ov=0 of=2 ct=0+7 small=7/7 tab=7/7 unr=0 noind=0 err=0 shift=0 minpx=11.48 chart=-
+! desktop-dark-en          no_plan_expanded         boxes=  4 ov=0 of=0 ct=0+0 small=0/3 tab=2/3 unr=1 noind=0 err=0 shift=0 minpx=12.9 chart=-
+! desktop-dark-en          plan_inline              boxes= 46 ov=4 of=0 ct=0+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=3.32 chart=374x157.9@4.16px lane6.2
+! desktop-dark-en          plan_inline_sv           boxes= 46 ov=4 of=0 ct=0+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=3.32 chart=374x157.9@4.16px lane6.2
+! desktop-dark-en          plan_short_window        boxes= 42 ov=4 of=0 ct=0+0 small=10/11 tab=13/11 unr=0 noind=0 err=0 shift=0 minpx=3.32 chart=374x157.9@4.16px lane6.2
+! desktop-dark-en          custom_title_currency    boxes= 45 ov=4 of=0 ct=0+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=3.32 chart=374x157.9@4.16px lane6.2
+! desktop-dark-en          hidden_series            boxes= 29 ov=2 of=2 ct=3+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=5.98 chart=374x157.9@7.48px lane7.5
+! desktop-dark-en          score_open               boxes= 60 ov=3 of=4 ct=0+0 small=15/17 tab=19/17 unr=0 noind=0 err=0 shift=0 minpx=5.98 chart=374x157.9@7.48px lane7.5
+! desktop-dark-en          expanded_plan            boxes= 70 ov=5 of=4 ct=1+0 small=10/28 tab=29/28 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=1196.8x505.3@19.95px lane19.9
+! desktop-dark-en          what_if_off              boxes= 42 ov=5 of=4 ct=0+0 small=0/10 tab=11/10 unr=1 noind=0 err=0 shift=0 minpx=12.9 chart=1196.8x505.3@19.95px lanenull
+! desktop-dark-en          expanded_zoomed          boxes= 74 ov=5 of=4 ct=1+0 small=8/26 tab=28/26 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=1196.8x505.3@19.95px lane19.9
+! desktop-dark-en          draft_dirty_menu_open    boxes= 75 ov=4 of=4 ct=1+0 small=14/32 tab=31/29 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=1196.8x505.3@19.95px lane19.9
+! desktop-dark-en          whatif_edited            boxes= 75 ov=5 of=4 ct=1+0 small=16/40 tab=41/40 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=1196.8x505.3@19.95px lane19.9
+! desktop-dark-en          whatif_weekly            boxes= 73 ov=5 of=4 ct=1+0 small=14/36 tab=37/36 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=1196.8x505.3@19.95px lane19.9
+! desktop-dark-en          override_active          boxes= 72 ov=5 of=4 ct=1+0 small=10/29 tab=30/29 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=1196.8x505.3@19.95px lane19.9
+! desktop-dark-en          shared_steps             boxes= 70 ov=5 of=4 ct=1+0 small=11/29 tab=30/29 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=1196.8x505.3@19.95px lane19.9
+! desktop-dark-en          shared_steps_hover       boxes= 81 ov=5 of=4 ct=1+0 small=13/31 tab=30/31 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=1196.8x505.3@19.95px lane19.9
+! desktop-dark-en          tooltip_hover            boxes= 72 ov=5 of=4 ct=1+0 small=12/30 tab=29/30 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=1196.8x505.3@19.95px lane19.9
+! desktop-dark-en          coarse_pointer           boxes= 70 ov=5 of=4 ct=1+0 small=10/28 tab=29/28 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=1196.8x505.3@19.95px lane19.9
+! desktop-dark-en          reduced_motion           boxes= 46 ov=4 of=0 ct=0+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=3.32 chart=374x157.9@4.16px lane6.2
+! desktop-dark-en          setup_single_buffer      boxes= 27 ov=0 of=0 ct=6+0 small=0/9 tab=8/9 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=-
+! desktop-dark-en          setup_two_tank           boxes= 29 ov=0 of=0 ct=10+0 small=0/11 tab=10/11 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=-
+! desktop-dark-en          setup_coil               boxes= 32 ov=0 of=0 ct=12+0 small=0/12 tab=11/12 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=-
+! desktop-dark-en          layout_editing_dragged   boxes= 27 ov=0 of=0 ct=6+0 small=3/36 tab=6/12 unr=6 noind=0 err=0 shift=0 minpx=10.96 chart=-
+! desktop-dark-en          picker_open_filtered     boxes= 31 ov=0 of=0 ct=6+0 small=2/13 tab=12/13 unr=1 noind=0 err=0 shift=0 minpx=10.32 chart=-
+  desktop-dark-en          editor_schema            boxes=  0 ov=0 of=0 ct=0+0 small=0/0 tab=0/0 unr=0 noind=0 err=0 shift=0 minpx=null chart=-
+! desktop-dark-sv          no_plan                  boxes= 24 ov=0 of=2 ct=0+7 small=7/7 tab=7/7 unr=0 noind=0 err=0 shift=0 minpx=11.48 chart=-
+! desktop-dark-sv          no_plan_expanded         boxes=  4 ov=0 of=0 ct=0+0 small=0/3 tab=2/3 unr=1 noind=0 err=0 shift=0 minpx=12.9 chart=-
+! desktop-dark-sv          plan_inline              boxes= 46 ov=4 of=0 ct=0+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=3.32 chart=374x157.9@4.16px lane6.2
+! desktop-dark-sv          plan_inline_sv           boxes= 46 ov=4 of=0 ct=0+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=3.32 chart=374x157.9@4.16px lane6.2
+! desktop-dark-sv          plan_short_window        boxes= 42 ov=4 of=0 ct=0+0 small=10/11 tab=13/11 unr=0 noind=0 err=0 shift=0 minpx=3.32 chart=374x157.9@4.16px lane6.2
+! desktop-dark-sv          custom_title_currency    boxes= 50 ov=4 of=0 ct=0+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=3.32 chart=374x157.9@4.16px lane6.2
+! desktop-dark-sv          hidden_series            boxes= 32 ov=3 of=2 ct=3+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=5.98 chart=374x157.9@7.48px lane7.5
+! desktop-dark-sv          score_open               boxes= 63 ov=5 of=4 ct=0+0 small=15/17 tab=19/17 unr=0 noind=0 err=0 shift=0 minpx=5.98 chart=374x157.9@7.48px lane7.5
+! desktop-dark-sv          expanded_plan            boxes= 74 ov=5 of=4 ct=1+0 small=10/28 tab=29/28 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=1196.8x505.3@19.95px lane19.9
+! desktop-dark-sv          what_if_off              boxes= 46 ov=5 of=4 ct=0+0 small=0/10 tab=11/10 unr=1 noind=0 err=0 shift=0 minpx=12.9 chart=1196.8x505.3@19.95px lanenull
+! desktop-dark-sv          expanded_zoomed          boxes= 74 ov=5 of=4 ct=1+0 small=8/26 tab=28/26 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=1196.8x505.3@19.95px lane19.9
+! desktop-dark-sv          draft_dirty_menu_open    boxes= 75 ov=4 of=4 ct=1+0 small=14/32 tab=31/29 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=1196.8x505.3@19.95px lane19.9
+! desktop-dark-sv          whatif_edited            boxes= 79 ov=5 of=4 ct=1+0 small=16/40 tab=41/40 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=1196.8x505.3@19.95px lane19.9
+! desktop-dark-sv          whatif_weekly            boxes= 77 ov=5 of=4 ct=1+0 small=14/36 tab=37/36 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=1196.8x505.3@19.95px lane19.9
+! desktop-dark-sv          override_active          boxes= 76 ov=5 of=4 ct=1+0 small=10/29 tab=30/29 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=1196.8x505.3@19.95px lane19.9
+! desktop-dark-sv          shared_steps             boxes= 74 ov=5 of=4 ct=1+0 small=11/29 tab=30/29 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=1196.8x505.3@19.95px lane19.9
+! desktop-dark-sv          shared_steps_hover       boxes= 85 ov=5 of=4 ct=1+0 small=13/31 tab=30/31 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=1196.8x505.3@19.95px lane19.9
+! desktop-dark-sv          tooltip_hover            boxes= 76 ov=5 of=4 ct=1+0 small=12/30 tab=29/30 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=1196.8x505.3@19.95px lane19.9
+! desktop-dark-sv          coarse_pointer           boxes= 74 ov=5 of=4 ct=1+0 small=10/28 tab=29/28 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=1196.8x505.3@19.95px lane19.9
+! desktop-dark-sv          reduced_motion           boxes= 46 ov=4 of=0 ct=0+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=3.32 chart=374x157.9@4.16px lane6.2
+! desktop-dark-sv          setup_single_buffer      boxes= 27 ov=0 of=0 ct=6+0 small=0/9 tab=8/9 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=-
+! desktop-dark-sv          setup_two_tank           boxes= 29 ov=0 of=0 ct=10+0 small=0/11 tab=10/11 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=-
+! desktop-dark-sv          setup_coil               boxes= 33 ov=0 of=0 ct=12+0 small=0/12 tab=11/12 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=-
+! desktop-dark-sv          layout_editing_dragged   boxes= 27 ov=0 of=0 ct=6+0 small=3/36 tab=6/12 unr=6 noind=0 err=0 shift=0 minpx=10.96 chart=-
+! desktop-dark-sv          picker_open_filtered     boxes= 31 ov=0 of=0 ct=6+0 small=2/13 tab=12/13 unr=1 noind=0 err=0 shift=0 minpx=10.32 chart=-
+  desktop-dark-sv          editor_schema            boxes=  0 ov=0 of=0 ct=0+0 small=0/0 tab=0/0 unr=0 noind=0 err=0 shift=0 minpx=null chart=-
+! panel-light-en           no_plan                  boxes= 20 ov=0 of=0 ct=0+7 small=7/7 tab=7/7 unr=0 noind=0 err=0 shift=0 minpx=11.48 chart=-
+! panel-light-en           no_plan_expanded         boxes=  4 ov=0 of=0 ct=0+0 small=0/3 tab=2/3 unr=1 noind=0 err=0 shift=0 minpx=12.9 chart=-
+! panel-light-en           plan_inline              boxes= 46 ov=4 of=0 ct=1+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=10.44 chart=1174x495.7@13.04px lane19.6
+! panel-light-en           plan_inline_sv           boxes= 46 ov=4 of=0 ct=1+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=10.44 chart=1174x495.7@13.04px lane19.6
+! panel-light-en           plan_short_window        boxes= 42 ov=4 of=0 ct=3+0 small=10/11 tab=13/11 unr=0 noind=0 err=0 shift=0 minpx=10.44 chart=1174x495.7@13.04px lane19.6
+! panel-light-en           custom_title_currency    boxes= 45 ov=4 of=0 ct=1+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=10.44 chart=1174x495.7@13.04px lane19.6
+! panel-light-en           hidden_series            boxes= 36 ov=2 of=0 ct=4+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=10.44 chart=1174x495.7@13.04px lane19.6
+! panel-light-en           score_open               boxes= 61 ov=4 of=0 ct=1+0 small=15/17 tab=19/17 unr=0 noind=0 err=0 shift=0 minpx=9.76 chart=1174x495.7@13.04px lane19.6
+! panel-light-en           expanded_plan            boxes= 70 ov=5 of=4 ct=4+0 small=10/28 tab=29/28 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=1196.8x505.3@19.95px lane19.9
+! panel-light-en           what_if_off              boxes= 42 ov=5 of=4 ct=1+0 small=0/10 tab=11/10 unr=1 noind=0 err=0 shift=0 minpx=12.9 chart=1196.8x505.3@19.95px lanenull
+! panel-light-en           expanded_zoomed          boxes= 74 ov=5 of=4 ct=6+0 small=8/26 tab=28/26 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=1196.8x505.3@19.95px lane19.9
+! panel-light-en           draft_dirty_menu_open    boxes= 75 ov=4 of=4 ct=7+0 small=14/32 tab=31/32 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=1196.8x505.3@19.95px lane19.9
+! panel-light-en           whatif_edited            boxes= 75 ov=5 of=4 ct=4+0 small=16/40 tab=41/40 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=1196.8x505.3@19.95px lane19.9
+! panel-light-en           whatif_weekly            boxes= 73 ov=5 of=4 ct=4+0 small=14/36 tab=37/36 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=1196.8x505.3@19.95px lane19.9
+! panel-light-en           override_active          boxes= 72 ov=5 of=4 ct=4+0 small=10/29 tab=30/29 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=1196.8x505.3@19.95px lane19.9
+! panel-light-en           shared_steps             boxes= 70 ov=5 of=4 ct=4+0 small=11/29 tab=30/29 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=1196.8x505.3@19.95px lane19.9
+! panel-light-en           shared_steps_hover       boxes= 81 ov=6 of=4 ct=4+0 small=13/31 tab=30/31 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=1196.8x505.3@19.95px lane19.9
+! panel-light-en           tooltip_hover            boxes= 81 ov=5 of=4 ct=4+0 small=12/30 tab=29/30 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=1196.8x505.3@19.95px lane19.9
+! panel-light-en           coarse_pointer           boxes= 70 ov=5 of=4 ct=4+0 small=10/28 tab=29/28 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=1196.8x505.3@19.95px lane19.9
+! panel-light-en           reduced_motion           boxes= 46 ov=4 of=0 ct=1+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=10.44 chart=1174x495.7@13.04px lane19.6
+! panel-light-en           setup_single_buffer      boxes= 27 ov=0 of=0 ct=6+0 small=0/9 tab=8/9 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=-
+! panel-light-en           setup_two_tank           boxes= 29 ov=0 of=0 ct=10+0 small=0/11 tab=10/11 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=-
+! panel-light-en           setup_coil               boxes= 32 ov=0 of=0 ct=12+0 small=0/12 tab=11/12 unr=1 noind=0 err=0 shift=0 minpx=10.96 chart=-
+! panel-light-en           layout_editing_dragged   boxes= 27 ov=0 of=0 ct=7+0 small=3/36 tab=6/12 unr=6 noind=0 err=0 shift=0 minpx=10.96 chart=-
+! panel-light-en           picker_open_filtered     boxes= 31 ov=0 of=0 ct=6+0 small=2/13 tab=12/13 unr=1 noind=0 err=0 shift=0 minpx=10.32 chart=-
+  panel-light-en           editor_schema            boxes=  0 ov=0 of=0 ct=0+0 small=0/0 tab=0/0 unr=0 noind=0 err=0 shift=0 minpx=null chart=-
+! phone-light-en-coarse    no_plan                  boxes= 23 ov=0 of=4 ct=0+7 small=7/7 tab=7/7 unr=0 noind=0 err=0 shift=0 minpx=11.48 chart=-
+! phone-light-en-coarse    no_plan_expanded         boxes=  5 ov=0 of=0 ct=0+0 small=3/3 tab=2/3 unr=1 noind=0 err=0 shift=0 minpx=12 chart=-
+! phone-light-en-coarse    plan_inline              boxes= 48 ov=4 of=0 ct=1+0 small=18/18 tab=18/18 unr=0 noind=0 err=0 shift=0 minpx=2.96 chart=333x140.6@3.7px lane5.5
+! phone-light-en-coarse    plan_inline_sv           boxes= 48 ov=4 of=0 ct=1+0 small=18/18 tab=18/18 unr=0 noind=0 err=0 shift=0 minpx=2.96 chart=333x140.6@3.7px lane5.5
+! phone-light-en-coarse    plan_short_window        boxes= 44 ov=4 of=0 ct=3+0 small=13/13 tab=13/13 unr=0 noind=0 err=0 shift=0 minpx=2.96 chart=333x140.6@3.7px lane5.5
+! phone-light-en-coarse    custom_title_currency    boxes= 47 ov=4 of=0 ct=1+0 small=18/18 tab=18/18 unr=0 noind=0 err=0 shift=0 minpx=2.96 chart=333x140.6@3.7px lane5.5
+! phone-light-en-coarse    hidden_series            boxes= 31 ov=2 of=2 ct=4+0 small=18/18 tab=18/18 unr=0 noind=0 err=0 shift=0 minpx=5.94 chart=333x140.6@7.42px lane7.4
+! phone-light-en-coarse    score_open               boxes= 62 ov=3 of=4 ct=1+0 small=19/19 tab=19/19 unr=0 noind=0 err=0 shift=0 minpx=5.94 chart=333x140.6@7.42px lane7.4
+! phone-light-en-coarse    expanded_plan            boxes= 80 ov=3 of=4 ct=4+0 small=30/30 tab=29/30 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-light-en-coarse    what_if_off              boxes= 44 ov=3 of=4 ct=1+0 small=12/12 tab=11/12 unr=1 noind=0 err=0 shift=0 minpx=5.6 chart=336x141.9@5.6px lanenull
+! phone-light-en-coarse    expanded_zoomed          boxes= 86 ov=3 of=4 ct=6+0 small=29/29 tab=28/29 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-light-en-coarse    draft_dirty_menu_open    boxes= 87 ov=3 of=4 ct=7+0 small=32/32 tab=31/32 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-light-en-coarse    whatif_edited            boxes= 84 ov=3 of=4 ct=4+0 small=42/42 tab=41/42 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-light-en-coarse    whatif_weekly            boxes= 82 ov=3 of=4 ct=4+0 small=38/38 tab=37/38 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-light-en-coarse    override_active          boxes= 82 ov=3 of=4 ct=4+0 small=31/31 tab=30/31 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-light-en-coarse    shared_steps             boxes= 80 ov=3 of=4 ct=4+0 small=31/31 tab=30/31 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-light-en-coarse    shared_steps_hover       boxes= 80 ov=3 of=4 ct=4+0 small=31/31 tab=30/31 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-light-en-coarse    tooltip_hover            boxes= 80 ov=3 of=4 ct=4+0 small=30/30 tab=29/30 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-light-en-coarse    coarse_pointer           boxes= 80 ov=3 of=4 ct=4+0 small=30/30 tab=29/30 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-light-en-coarse    reduced_motion           boxes= 48 ov=4 of=0 ct=1+0 small=18/18 tab=18/18 unr=0 noind=0 err=0 shift=0 minpx=2.96 chart=333x140.6@3.7px lane5.5
+! phone-light-en-coarse    setup_single_buffer      boxes= 28 ov=0 of=0 ct=6+0 small=9/9 tab=8/9 unr=1 noind=0 err=0 shift=0 minpx=9.33 chart=-
+! phone-light-en-coarse    setup_two_tank           boxes= 30 ov=0 of=0 ct=10+0 small=11/11 tab=10/11 unr=1 noind=0 err=0 shift=0 minpx=9.33 chart=-
+! phone-light-en-coarse    setup_coil               boxes= 33 ov=0 of=0 ct=12+0 small=12/12 tab=11/12 unr=1 noind=0 err=0 shift=0 minpx=9.33 chart=-
+! phone-light-en-coarse    layout_editing_dragged   boxes= 29 ov=0 of=0 ct=7+0 small=36/36 tab=6/12 unr=6 noind=0 err=0 shift=0 minpx=9.33 chart=-
+! phone-light-en-coarse    picker_open_filtered     boxes= 33 ov=0 of=0 ct=6+0 small=12/13 tab=12/13 unr=1 noind=0 err=0 shift=0 minpx=9.33 chart=-
+  phone-light-en-coarse    editor_schema            boxes=  0 ov=0 of=0 ct=0+0 small=0/0 tab=0/0 unr=0 noind=0 err=0 shift=0 minpx=null chart=-
+! phone-light-en-reduce    no_plan                  boxes= 23 ov=0 of=4 ct=0+7 small=7/7 tab=7/7 unr=0 noind=0 err=0 shift=0 minpx=11.48 chart=-
+! phone-light-en-reduce    no_plan_expanded         boxes=  5 ov=0 of=0 ct=0+0 small=2/3 tab=2/3 unr=1 noind=0 err=0 shift=0 minpx=12 chart=-
+! phone-light-en-reduce    plan_inline              boxes= 46 ov=4 of=0 ct=1+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=2.96 chart=333x140.6@3.7px lane5.5
+! phone-light-en-reduce    plan_inline_sv           boxes= 46 ov=4 of=0 ct=1+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=2.96 chart=333x140.6@3.7px lane5.5
+! phone-light-en-reduce    plan_short_window        boxes= 42 ov=4 of=0 ct=3+0 small=10/11 tab=13/11 unr=0 noind=0 err=0 shift=0 minpx=2.96 chart=333x140.6@3.7px lane5.5
+! phone-light-en-reduce    custom_title_currency    boxes= 45 ov=4 of=0 ct=1+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=2.96 chart=333x140.6@3.7px lane5.5
+! phone-light-en-reduce    hidden_series            boxes= 29 ov=2 of=2 ct=4+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=5.94 chart=333x140.6@7.42px lane7.4
+! phone-light-en-reduce    score_open               boxes= 60 ov=3 of=4 ct=1+0 small=16/17 tab=19/17 unr=0 noind=0 err=0 shift=0 minpx=5.94 chart=333x140.6@7.42px lane7.4
+! phone-light-en-reduce    expanded_plan            boxes= 78 ov=3 of=4 ct=4+0 small=13/28 tab=29/28 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-light-en-reduce    what_if_off              boxes= 42 ov=3 of=4 ct=1+0 small=2/10 tab=11/10 unr=1 noind=0 err=0 shift=0 minpx=5.6 chart=336x141.9@5.6px lanenull
+! phone-light-en-reduce    expanded_zoomed          boxes= 83 ov=3 of=4 ct=6+0 small=11/26 tab=28/26 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-light-en-reduce    draft_dirty_menu_open    boxes= 84 ov=3 of=4 ct=7+0 small=14/29 tab=31/29 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-light-en-reduce    whatif_edited            boxes= 82 ov=3 of=4 ct=4+0 small=19/40 tab=41/40 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-light-en-reduce    whatif_weekly            boxes= 80 ov=3 of=4 ct=4+0 small=17/36 tab=37/36 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-light-en-reduce    override_active          boxes= 80 ov=3 of=4 ct=4+0 small=13/29 tab=30/29 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-light-en-reduce    shared_steps             boxes= 78 ov=3 of=4 ct=4+0 small=14/29 tab=30/29 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-light-en-reduce    shared_steps_hover       boxes= 78 ov=3 of=4 ct=4+0 small=14/29 tab=30/29 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-light-en-reduce    tooltip_hover            boxes= 78 ov=3 of=4 ct=4+0 small=13/28 tab=29/28 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-light-en-reduce    coarse_pointer           boxes= 78 ov=3 of=4 ct=4+0 small=13/28 tab=29/28 unr=1 noind=0 err=0 shift=0 minpx=4.48 chart=336x141.9@5.6px lane5.6
+! phone-light-en-reduce    reduced_motion           boxes= 46 ov=4 of=0 ct=1+0 small=15/16 tab=18/16 unr=0 noind=0 err=0 shift=0 minpx=2.96 chart=333x140.6@3.7px lane5.5
+! phone-light-en-reduce    setup_single_buffer      boxes= 28 ov=0 of=0 ct=6+0 small=8/9 tab=8/9 unr=1 noind=0 err=0 shift=0 minpx=9.33 chart=-
+! phone-light-en-reduce    setup_two_tank           boxes= 30 ov=0 of=0 ct=10+0 small=10/11 tab=10/11 unr=1 noind=0 err=0 shift=0 minpx=9.33 chart=-
+! phone-light-en-reduce    setup_coil               boxes= 33 ov=0 of=0 ct=12+0 small=11/12 tab=11/12 unr=1 noind=0 err=0 shift=0 minpx=9.33 chart=-
+! phone-light-en-reduce    layout_editing_dragged   boxes= 29 ov=0 of=0 ct=7+0 small=11/36 tab=6/12 unr=6 noind=0 err=0 shift=0 minpx=9.33 chart=-
+! phone-light-en-reduce    picker_open_filtered     boxes= 33 ov=0 of=0 ct=6+0 small=11/13 tab=12/13 unr=1 noind=0 err=0 shift=0 minpx=9.33 chart=-
+  phone-light-en-reduce    editor_schema            boxes=  0 ov=0 of=0 ct=0+0 small=0/0 tab=0/0 unr=0 noind=0 err=0 shift=0 minpx=null chart=-
+
+contrast failures by element: tspan=300; tspan.setup-value=300; text=153; button.wi-save=150; button.wi-pin=90; button.wi-apply=90; text.lane-more=54; button.chip.off=45; button.wi-viewreset=18; span.layout-verdict.match=9
+small targets by element: rect.slot=1344; button.chip=952; rect.lane=476; rect.setup-hit=315; button.dlg-tab=153; button.dlg-tab.active=153; input.wi-temp=140; input.wi-dhw-min=140; button.chip.nodata=98; button.wi-add=90; select.wi-win-days=70; button.wi-remove=70
+RESULT states=26 count
+RESULT arms=15 count
+RESULT renders=390 count
+RESULT coarse_emulated=1 flag
+RESULT text_overlap_pairs=1039 count
+RESULT text_overflow=792 count
+RESULT contrast_fail=1209 count
+RESULT contrast_fail_inactive=105 count
+RESULT slot_handles_small=2880 count
+RESULT contrast_fail_light=891 count
+RESULT contrast_fail_dark=318 count
+RESULT hit_small_24=4224 count
+RESULT hit_small_24_nospacing=1883 count
+RESULT hit_small_44_coarse=548 count
+RESULT tab_unreached=330 count
+RESULT focus_no_indicator=0 count
+RESULT console_errors=0 count
+RESULT hover_shift=0 count
+RESULT min_text_px=2.96 px
+RESULT thread_factor=1.00
+RESULT load1=3.24
+RESULT swapins=0
+exit=0

@@ -1,0 +1,4415 @@
+{
+ "M01": {
+  "closure": [
+   "tests/backtest.py",
+   "tests/card.mjs",
+   "tests/card_drift.mjs",
+   "tests/edge.py",
+   "tests/entities.py",
+   "tests/env_drift.py",
+   "tests/features.py",
+   "tests/golden.py",
+   "tests/manual_plan.py",
+   "tests/optimality.py",
+   "tests/plan_view.py",
+   "tests/solar_alignment.py",
+   "tests/stress.py",
+   "tests/validate.py"
+  ],
+  "commit": "3a5cda7",
+  "done": true,
+  "func": "dhw_coil_draw_reduction",
+  "id": "M01",
+  "killed_by": [
+   "tests/features.py"
+  ],
+  "kind": "clamp",
+  "line": 1187,
+  "module": "thermal_model.py",
+  "scripts": {
+   "tests/card.mjs": {
+    "cpu_s": 5.1,
+    "early_stop": false,
+    "fails": [],
+    "load1": 5.14,
+    "rc": 0,
+    "tail": "  ok    the picker survives the republish\n  ok    Assign on an untouched picker writes the slot's current entity, not a stale memo\n  ok    the card element defines at most 26 members of its own (26)\n  ok    the card markup gate's claim file is stamped for v6.2.14\n\nALL CARD CHECKS PASSED\n",
+    "wall_s": 3.6
+   },
+   "tests/entities.py": {
+    "cpu_s": 2.9,
+    "early_stop": false,
+    "fails": [],
+    "load1": 4.98,
+    "rc": 0,
+    "tail": "  ok   an empty may-drift list is always fine\n  ok   this tree's may-drift entries parse, with reasons\n  ok   and none of them leaks into the claim list\n  ok   this tree's own claim file passes the scope check\n\nALL 538 ENTITY CHECKS PASSED\n",
+    "wall_s": 2.9
+   },
+   "tests/env_drift.py": {
+    "cache_hit": true,
+    "cpu_s": 55.5,
+    "drift": [
+     "MAY-DRIFT wood_coil: 458 leaves moved (machine-sensitive; the DHW plan can reach it, per local optimum)"
+    ],
+    "load1": 4.81,
+    "n_drift": 0,
+    "rc": 0,
+    "tail": "ible\nacross BLAS builds, so a diff in them is not evidence about\nthis branch either way and is printed rather than judged:\n  wood_coil: machine-sensitive; the DHW plan can reach it, per local optimum\nRead the leaf diffs above. Never re-record them on a\nmachine where golden.py already reports them as DIFF.\n\nNO UNCLAIMED DRIFT: 55 scenario(s) checked against c398fc84eec25fc44b60d74aae05b9a2da205884\n",
+    "wall_s": 56.0
+   },
+   "tests/features.py": {
+    "cpu_s": 22.4,
+    "early_stop": true,
+    "fails": [
+     "  FAIL coil identity holds at T_w=70  [reduced 109.11111111111111 + coil -107.11111111111111 != draw 2.0]"
+    ],
+    "load1": 7.47,
+    "rc": 1,
+    "tail": "  ok   and it empties into the house rather than through zero\n  ok   a cold wood tank and no burn is byte-identical to no wood tank\n  ok   and the cold tank only drifts towards the room it stands in\n\n-- DHW refill coil in the wood tank (v3.15.1)\n  FAIL coil identity holds at T_w=70  [reduced 109.11111111111111 + coil -107.11111111111111 != draw 2.0]\n",
+    "wall_s": 22.7
+   },
+   "tests/manual_plan.py": {
+    "cpu_s": 3.9,
+    "early_stop": false,
+    "fails": [],
+    "load1": 5.61,
+    "rc": 0,
+    "tail": "  ok   a stored list payload is discarded, not raised\n  ok   a stored str payload is discarded, not raised\n  ok   a stored int payload is discarded, not raised\n  ok   the data dict omits manual_plan when none is active\n\nALL 71 manual plan checks PASSED\n",
+    "wall_s": 4.2
+   },
+   "tests/optimality.py": {
+    "cpu_s": 30.7,
+    "early_stop": false,
+    "fails": [],
+    "load1": 5.49,
+    "rc": 0,
+    "tail": "\n-- batched-FD jac on DHW-enabled solves (D9-01)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=False)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=True)\n\nALL 11 OPTIMALITY CHECKS PASSED\n",
+    "wall_s": 30.8
+   },
+   "tests/plan_view.py": {
+    "cpu_s": 0.9,
+    "early_stop": false,
+    "fails": [],
+    "load1": 4.98,
+    "rc": 0,
+    "tail": "dhw reasons  : ['dhw_preheat', 'dhw_window', 'idle']\nraw space kWh 34.64 raw dhw kWh 6.53\nslot-sum space kWh 34.64\nslot-sum dhw kWh 6.53\nwrote /private/tmp/claude-501/-Users-timmalmstrom-copilot-worktrees-heatpump-optimizer-tvofi-claude/674d54f9-28e0-459d-9cac-85fee64c0344/scratchpad/plandata-M01.json\nplan reason codes, price provenance and slot energy OK\n",
+    "wall_s": 0.9
+   },
+   "tests/solar_alignment.py": {
+    "cpu_s": 0.8,
+    "early_stop": false,
+    "fails": [],
+    "load1": 4.98,
+    "rc": 0,
+    "tail": "  ok   steps beyond the Open-Meteo horizon keep the weather entity value\n  ok   without Open-Meteo the weather entity is still used\n  ok   an unavailable Open-Meteo client does not zero the irradiance\n  ok   irradiance is never negative\n\nALL SOLAR ALIGNMENT CHECKS PASSED\n",
+    "wall_s": 0.8
+   },
+   "tests/validate.py": {
+    "cpu_s": 13.9,
+    "early_stop": false,
+    "fails": [],
+    "load1": 5.55,
+    "rc": 0,
+    "tail": "=== SPACE HEATING ONLY (DHW disabled) ===\nwinter, no DHW                     optimal  36.00kWh base= 110.03 cost=  23.28 sav= 52.9% room 17.1-20.9 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 2 kW= 6.0    60ms\nsummer, no DHW                     optimal   0.00kWh base=   0.00 cost=   0.00 sav=  0.0% room 21.0-25.7 dhw>=    - peak%=nan dhwpeak%=nan starts= 0 kW= 0.0    22ms\n2zone winter, no DHW               optimal  67.42kWh base= 137.14 cost=  58.30 sav= 47.8% room 17.6-21.5 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 4 kW= 6.0   880ms\n\nNO ISSUES\n",
+    "wall_s": 14.0
+   }
+  },
+  "scripts_not_run": {
+   "tests/card_drift.mjs": "compares the card JavaScript at two git refs; identical for every Python mutant",
+   "tests/golden.py": "strict fixture comparison does not reproduce on this machine; env_drift --all stands in (as in CI drift mode)"
+  },
+  "scripts_quiet_window": [
+   "tests/backtest.py",
+   "tests/edge.py",
+   "tests/stress.py"
+  ],
+  "site": "max(0.0, dhw_setpoint - t_in)",
+  "survived": false,
+  "weight": 15
+ },
+ "M02": {
+  "closure": [
+   "tests/backtest.py",
+   "tests/card.mjs",
+   "tests/card_drift.mjs",
+   "tests/edge.py",
+   "tests/entities.py",
+   "tests/env_drift.py",
+   "tests/features.py",
+   "tests/golden.py",
+   "tests/manual_plan.py",
+   "tests/optimality.py",
+   "tests/plan_view.py",
+   "tests/solar_alignment.py",
+   "tests/stress.py",
+   "tests/validate.py"
+  ],
+  "commit": "1baad19",
+  "done": true,
+  "func": "HeatPumpOptimizer._terminal_cost.cost",
+  "id": "M02",
+  "killed_by": [],
+  "kind": "clamp",
+  "line": 1421,
+  "module": "optimizer.py",
+  "scripts": {
+   "tests/card.mjs": {
+    "cpu_s": 4.8,
+    "early_stop": false,
+    "fails": [],
+    "load1": 7.47,
+    "rc": 0,
+    "tail": "  ok    the picker survives the republish\n  ok    Assign on an untouched picker writes the slot's current entity, not a stale memo\n  ok    the card element defines at most 26 members of its own (26)\n  ok    the card markup gate's claim file is stamped for v6.2.14\n\nALL CARD CHECKS PASSED\n",
+    "wall_s": 3.3
+   },
+   "tests/entities.py": {
+    "cpu_s": 2.6,
+    "early_stop": false,
+    "fails": [],
+    "load1": 7.51,
+    "rc": 0,
+    "tail": "  ok   an empty may-drift list is always fine\n  ok   this tree's may-drift entries parse, with reasons\n  ok   and none of them leaks into the claim list\n  ok   this tree's own claim file passes the scope check\n\nALL 538 ENTITY CHECKS PASSED\n",
+    "wall_s": 2.7
+   },
+   "tests/env_drift.py": {
+    "cache_hit": true,
+    "cpu_s": 59.2,
+    "drift": [],
+    "load1": 5.55,
+    "n_drift": 0,
+    "rc": 0,
+    "tail": "e here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank_smart_write: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n\nNO UNCLAIMED DRIFT: 55 scenario(s) checked against c398fc84eec25fc44b60d74aae05b9a2da205884\n",
+    "wall_s": 59.7
+   },
+   "tests/features.py": {
+    "cpu_s": 41.3,
+    "early_stop": false,
+    "fails": [
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):"
+    ],
+    "load1": 8.16,
+    "rc": 0,
+    "tail": "  ok   a second failed cycle counts the outage but keeps one staleness start\n  ok   the fabricated fallback forecast exists and is stale from birth\n  ok   a successful fetch clears the outage and the staleness\n  ok   an empty result keeps the previous forecast, marked stale\n\nALL 1557 FEATURE CHECKS PASSED\n",
+    "wall_s": 43.3
+   },
+   "tests/manual_plan.py": {
+    "cpu_s": 3.9,
+    "early_stop": false,
+    "fails": [],
+    "load1": 8.89,
+    "rc": 0,
+    "tail": "  ok   a stored list payload is discarded, not raised\n  ok   a stored str payload is discarded, not raised\n  ok   a stored int payload is discarded, not raised\n  ok   the data dict omits manual_plan when none is active\n\nALL 71 manual plan checks PASSED\n",
+    "wall_s": 4.2
+   },
+   "tests/optimality.py": {
+    "cpu_s": 30.4,
+    "early_stop": false,
+    "fails": [],
+    "load1": 9.14,
+    "rc": 0,
+    "tail": "\n-- batched-FD jac on DHW-enabled solves (D9-01)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=False)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=True)\n\nALL 11 OPTIMALITY CHECKS PASSED\n",
+    "wall_s": 30.5
+   },
+   "tests/plan_view.py": {
+    "cpu_s": 0.8,
+    "early_stop": false,
+    "fails": [],
+    "load1": 7.51,
+    "rc": 0,
+    "tail": "dhw reasons  : ['dhw_preheat', 'dhw_window', 'idle']\nraw space kWh 34.64 raw dhw kWh 6.53\nslot-sum space kWh 34.64\nslot-sum dhw kWh 6.53\nwrote /private/tmp/claude-501/-Users-timmalmstrom-copilot-worktrees-heatpump-optimizer-tvofi-claude/674d54f9-28e0-459d-9cac-85fee64c0344/scratchpad/plandata-M02.json\nplan reason codes, price provenance and slot energy OK\n",
+    "wall_s": 0.8
+   },
+   "tests/solar_alignment.py": {
+    "cpu_s": 0.8,
+    "early_stop": false,
+    "fails": [],
+    "load1": 7.51,
+    "rc": 0,
+    "tail": "  ok   steps beyond the Open-Meteo horizon keep the weather entity value\n  ok   without Open-Meteo the weather entity is still used\n  ok   an unavailable Open-Meteo client does not zero the irradiance\n  ok   irradiance is never negative\n\nALL SOLAR ALIGNMENT CHECKS PASSED\n",
+    "wall_s": 0.9
+   },
+   "tests/validate.py": {
+    "cpu_s": 15.1,
+    "early_stop": false,
+    "fails": [],
+    "load1": 8.98,
+    "rc": 0,
+    "tail": "=== SPACE HEATING ONLY (DHW disabled) ===\nwinter, no DHW                     optimal  36.00kWh base= 110.03 cost=  23.28 sav= 52.9% room 17.1-20.9 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 2 kW= 6.0    81ms\nsummer, no DHW                     optimal   0.00kWh base=   0.00 cost=   0.00 sav=  0.0% room 21.0-25.7 dhw>=    - peak%=nan dhwpeak%=nan starts= 0 kW= 0.0    35ms\n2zone winter, no DHW               optimal  67.42kWh base= 137.14 cost=  58.30 sav= 47.8% room 17.6-21.5 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 4 kW= 6.0  1189ms\n\nNO ISSUES\n",
+    "wall_s": 15.9
+   }
+  },
+  "scripts_not_run": {
+   "tests/card_drift.mjs": "compares the card JavaScript at two git refs; identical for every Python mutant",
+   "tests/golden.py": "strict fixture comparison does not reproduce on this machine; env_drift --all stands in (as in CI drift mode)"
+  },
+  "scripts_quiet_window": [
+   "tests/backtest.py",
+   "tests/edge.py",
+   "tests/stress.py"
+  ],
+  "site": "max(cop_end, 1e-6)",
+  "survived": true,
+  "weight": 15
+ },
+ "M03": {
+  "closure": [
+   "tests/backtest.py",
+   "tests/card.mjs",
+   "tests/card_drift.mjs",
+   "tests/edge.py",
+   "tests/entities.py",
+   "tests/env_drift.py",
+   "tests/features.py",
+   "tests/golden.py",
+   "tests/manual_plan.py",
+   "tests/optimality.py",
+   "tests/plan_view.py",
+   "tests/solar_alignment.py",
+   "tests/stress.py",
+   "tests/validate.py"
+  ],
+  "commit": "d548d89",
+  "done": true,
+  "func": "HeatPumpOptimizerCoordinator._dhw_hours_since_legionella",
+  "id": "M03",
+  "killed_by": [
+   "tests/env_drift.py",
+   "tests/entities.py"
+  ],
+  "kind": "guard_return",
+  "line": 3975,
+  "module": "coordinator.py",
+  "scripts": {
+   "tests/card.mjs": {
+    "cpu_s": 5.9,
+    "early_stop": false,
+    "fails": [],
+    "load1": 8.83,
+    "rc": 0,
+    "tail": "  ok    the picker survives the republish\n  ok    Assign on an untouched picker writes the slot's current entity, not a stale memo\n  ok    the card element defines at most 26 members of its own (26)\n  ok    the card markup gate's claim file is stamped for v6.2.14\n\nALL CARD CHECKS PASSED\n",
+    "wall_s": 5.0
+   },
+   "tests/entities.py": {
+    "cpu_s": 0.8,
+    "early_stop": false,
+    "fails": [
+     "Traceback (most recent call last):"
+    ],
+    "load1": 8.82,
+    "rc": 1,
+    "tail": "    self._dhw_hours_since_legionella()\n    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^\n  File \"/private/tmp/claude-501/-Users-timmalmstrom-copilot-worktrees-heatpump-optimizer-tvofi-claude/674d54f9-28e0-459d-9cac-85fee64c0344/scratchpad/tree-M03/custom_components/heatpump_optimizer/coordinator.py\", line 3975, in _dhw_hours_since_legionella\n    delta = (dt_util.now() - last).total_seconds() / 3600.0\n             ~~~~~~~~~~~~~~^~~~~~\nTypeError: unsupported operand type(s) for -: 'datetime.datetime' and 'NoneType'\n",
+    "wall_s": 0.9
+   },
+   "tests/env_drift.py": {
+    "cache_hit": true,
+    "cpu_s": 59.5,
+    "drift": [],
+    "load1": 8.82,
+    "n_drift": 0,
+    "rc": 1,
+    "tail": "rr=stderr)\nsubprocess.CalledProcessError: Command '['/Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/tvofi-claude/.venv/bin/python', '/Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/audit-r2-D3/tests/env_drift.py', '--capture', '/Users/timmalmstrom/copilot-worktrees/heatpump_optimizer/audit-r2-D3', '/tmp/env_drift_gi4rh2sx/branch.json', '--all']' returned non-zero exit status 1.\n",
+    "wall_s": 60.6
+   },
+   "tests/features.py": {
+    "skipped": "mutant already killed"
+   },
+   "tests/manual_plan.py": {
+    "skipped": "mutant already killed"
+   },
+   "tests/optimality.py": {
+    "skipped": "mutant already killed"
+   },
+   "tests/plan_view.py": {
+    "cpu_s": 0.9,
+    "early_stop": false,
+    "fails": [],
+    "load1": 8.82,
+    "rc": 0,
+    "tail": "dhw reasons  : ['dhw_preheat', 'dhw_window', 'idle']\nraw space kWh 34.64 raw dhw kWh 6.53\nslot-sum space kWh 34.64\nslot-sum dhw kWh 6.53\nwrote /private/tmp/claude-501/-Users-timmalmstrom-copilot-worktrees-heatpump-optimizer-tvofi-claude/674d54f9-28e0-459d-9cac-85fee64c0344/scratchpad/plandata-M03.json\nplan reason codes, price provenance and slot energy OK\n",
+    "wall_s": 1.0
+   },
+   "tests/solar_alignment.py": {
+    "cpu_s": 0.9,
+    "early_stop": false,
+    "fails": [],
+    "load1": 8.82,
+    "rc": 0,
+    "tail": "  ok   steps beyond the Open-Meteo horizon keep the weather entity value\n  ok   without Open-Meteo the weather entity is still used\n  ok   an unavailable Open-Meteo client does not zero the irradiance\n  ok   irradiance is never negative\n\nALL SOLAR ALIGNMENT CHECKS PASSED\n",
+    "wall_s": 1.0
+   },
+   "tests/validate.py": {
+    "skipped": "mutant already killed"
+   }
+  },
+  "scripts_not_run": {
+   "tests/card_drift.mjs": "compares the card JavaScript at two git refs; identical for every Python mutant",
+   "tests/golden.py": "strict fixture comparison does not reproduce on this machine; env_drift --all stands in (as in CI drift mode)"
+  },
+  "scripts_quiet_window": [
+   "tests/backtest.py",
+   "tests/edge.py",
+   "tests/stress.py"
+  ],
+  "site": "if last is None:",
+  "survived": false,
+  "weight": 15
+ },
+ "M04": {
+  "closure": [
+   "tests/backtest.py",
+   "tests/card.mjs",
+   "tests/card_drift.mjs",
+   "tests/edge.py",
+   "tests/entities.py",
+   "tests/env_drift.py",
+   "tests/features.py",
+   "tests/golden.py",
+   "tests/manual_plan.py",
+   "tests/optimality.py",
+   "tests/plan_view.py",
+   "tests/solar_alignment.py",
+   "tests/stress.py",
+   "tests/validate.py"
+  ],
+  "commit": "135f0e6",
+  "done": true,
+  "func": "ThermalModel._simulate_step_two_zone",
+  "id": "M04",
+  "killed_by": [],
+  "kind": "clamp",
+  "line": 1943,
+  "module": "thermal_model.py",
+  "scripts": {
+   "tests/card.mjs": {
+    "cpu_s": 4.4,
+    "early_stop": false,
+    "fails": [],
+    "load1": 6.6,
+    "rc": 0,
+    "tail": "  ok    the picker survives the republish\n  ok    Assign on an untouched picker writes the slot's current entity, not a stale memo\n  ok    the card element defines at most 26 members of its own (26)\n  ok    the card markup gate's claim file is stamped for v6.2.14\n\nALL CARD CHECKS PASSED\n",
+    "wall_s": 3.1
+   },
+   "tests/entities.py": {
+    "cpu_s": 2.4,
+    "early_stop": false,
+    "fails": [],
+    "load1": 6.57,
+    "rc": 0,
+    "tail": "  ok   an empty may-drift list is always fine\n  ok   this tree's may-drift entries parse, with reasons\n  ok   and none of them leaks into the claim list\n  ok   this tree's own claim file passes the scope check\n\nALL 538 ENTITY CHECKS PASSED\n",
+    "wall_s": 2.4
+   },
+   "tests/env_drift.py": {
+    "cache_hit": true,
+    "cpu_s": 63.2,
+    "drift": [],
+    "load1": 6.57,
+    "n_drift": 0,
+    "rc": 0,
+    "tail": "e here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank_smart_write: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n\nNO UNCLAIMED DRIFT: 55 scenario(s) checked against c398fc84eec25fc44b60d74aae05b9a2da205884\n",
+    "wall_s": 64.3
+   },
+   "tests/features.py": {
+    "cpu_s": 35.9,
+    "early_stop": false,
+    "fails": [
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):"
+    ],
+    "load1": 5.61,
+    "rc": 0,
+    "tail": "  ok   a second failed cycle counts the outage but keeps one staleness start\n  ok   the fabricated fallback forecast exists and is stale from birth\n  ok   a successful fetch clears the outage and the staleness\n  ok   an empty result keeps the previous forecast, marked stale\n\nALL 1557 FEATURE CHECKS PASSED\n",
+    "wall_s": 36.6
+   },
+   "tests/manual_plan.py": {
+    "cpu_s": 3.8,
+    "early_stop": false,
+    "fails": [],
+    "load1": 5.8,
+    "rc": 0,
+    "tail": "  ok   a stored list payload is discarded, not raised\n  ok   a stored str payload is discarded, not raised\n  ok   a stored int payload is discarded, not raised\n  ok   the data dict omits manual_plan when none is active\n\nALL 71 manual plan checks PASSED\n",
+    "wall_s": 4.1
+   },
+   "tests/optimality.py": {
+    "cpu_s": 30.7,
+    "early_stop": false,
+    "fails": [],
+    "load1": 5.96,
+    "rc": 0,
+    "tail": "\n-- batched-FD jac on DHW-enabled solves (D9-01)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=False)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=True)\n\nALL 11 OPTIMALITY CHECKS PASSED\n",
+    "wall_s": 30.8
+   },
+   "tests/plan_view.py": {
+    "cpu_s": 0.7,
+    "early_stop": false,
+    "fails": [],
+    "load1": 6.57,
+    "rc": 0,
+    "tail": "dhw reasons  : ['dhw_preheat', 'dhw_window', 'idle']\nraw space kWh 34.64 raw dhw kWh 6.53\nslot-sum space kWh 34.64\nslot-sum dhw kWh 6.53\nwrote /private/tmp/claude-501/-Users-timmalmstrom-copilot-worktrees-heatpump-optimizer-tvofi-claude/674d54f9-28e0-459d-9cac-85fee64c0344/scratchpad/plandata-M04.json\nplan reason codes, price provenance and slot energy OK\n",
+    "wall_s": 0.8
+   },
+   "tests/solar_alignment.py": {
+    "cpu_s": 0.7,
+    "early_stop": false,
+    "fails": [],
+    "load1": 6.57,
+    "rc": 0,
+    "tail": "  ok   steps beyond the Open-Meteo horizon keep the weather entity value\n  ok   without Open-Meteo the weather entity is still used\n  ok   an unavailable Open-Meteo client does not zero the irradiance\n  ok   irradiance is never negative\n\nALL SOLAR ALIGNMENT CHECKS PASSED\n",
+    "wall_s": 0.8
+   },
+   "tests/validate.py": {
+    "cpu_s": 14.2,
+    "early_stop": false,
+    "fails": [],
+    "load1": 5.62,
+    "rc": 0,
+    "tail": "=== SPACE HEATING ONLY (DHW disabled) ===\nwinter, no DHW                     optimal  36.00kWh base= 110.03 cost=  23.28 sav= 52.9% room 17.1-20.9 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 2 kW= 6.0    63ms\nsummer, no DHW                     optimal   0.00kWh base=   0.00 cost=   0.00 sav=  0.0% room 21.0-25.7 dhw>=    - peak%=nan dhwpeak%=nan starts= 0 kW= 0.0    23ms\n2zone winter, no DHW               optimal  67.42kWh base= 137.14 cost=  58.30 sav= 47.8% room 17.6-21.5 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 4 kW= 6.0   923ms\n\nNO ISSUES\n",
+    "wall_s": 14.4
+   }
+  },
+  "scripts_not_run": {
+   "tests/card_drift.mjs": "compares the card JavaScript at two git refs; identical for every Python mutant",
+   "tests/golden.py": "strict fixture comparison does not reproduce on this machine; env_drift --all stands in (as in CI drift mode)"
+  },
+  "scripts_quiet_window": [
+   "tests/backtest.py",
+   "tests/edge.py",
+   "tests/stress.py"
+  ],
+  "site": "max(dt_hours, 1e-6)",
+  "survived": true,
+  "weight": 15
+ },
+ "M05": {
+  "closure": [
+   "tests/backtest.py",
+   "tests/card.mjs",
+   "tests/card_drift.mjs",
+   "tests/edge.py",
+   "tests/entities.py",
+   "tests/env_drift.py",
+   "tests/features.py",
+   "tests/golden.py",
+   "tests/manual_plan.py",
+   "tests/optimality.py",
+   "tests/plan_view.py",
+   "tests/solar_alignment.py",
+   "tests/stress.py",
+   "tests/validate.py"
+  ],
+  "commit": "cc2c645",
+  "done": true,
+  "func": "extend_price_series",
+  "id": "M05",
+  "killed_by": [
+   "tests/features.py"
+  ],
+  "kind": "general_if",
+  "line": 402,
+  "module": "price_model.py",
+  "scripts": {
+   "tests/card.mjs": {
+    "cpu_s": 5.1,
+    "early_stop": false,
+    "fails": [],
+    "load1": 5.53,
+    "rc": 0,
+    "tail": "  ok    the picker survives the republish\n  ok    Assign on an untouched picker writes the slot's current entity, not a stale memo\n  ok    the card element defines at most 26 members of its own (26)\n  ok    the card markup gate's claim file is stamped for v6.2.14\n\nALL CARD CHECKS PASSED\n",
+    "wall_s": 3.4
+   },
+   "tests/entities.py": {
+    "cpu_s": 2.6,
+    "early_stop": false,
+    "fails": [],
+    "load1": 5.57,
+    "rc": 0,
+    "tail": "  ok   an empty may-drift list is always fine\n  ok   this tree's may-drift entries parse, with reasons\n  ok   and none of them leaks into the claim list\n  ok   this tree's own claim file passes the scope check\n\nALL 538 ENTITY CHECKS PASSED\n",
+    "wall_s": 2.6
+   },
+   "tests/env_drift.py": {
+    "cache_hit": true,
+    "cpu_s": 57.8,
+    "drift": [],
+    "load1": 5.62,
+    "n_drift": 0,
+    "rc": 0,
+    "tail": "e here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank_smart_write: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n\nNO UNCLAIMED DRIFT: 55 scenario(s) checked against c398fc84eec25fc44b60d74aae05b9a2da205884\n",
+    "wall_s": 58.3
+   },
+   "tests/features.py": {
+    "cpu_s": 1.6,
+    "early_stop": true,
+    "fails": [
+     "  FAIL the guessed tail is scaled by the true daily level  [known 3.0 sits on shape 1.5 \u2192 level 2.0; hour 12 at shape 0.5 must be 1.0, not 1.5, got 1.5]"
+    ],
+    "load1": 5.54,
+    "rc": 1,
+    "tail": "  ok   a fully published horizon never consults the prior\n  ok   no prices at all falls back rather than crashing\n  ok   complete days are extracted\n  ok   incomplete days are dropped\n  ok   malformed entries do not crash the extractor\n  FAIL the guessed tail is scaled by the true daily level  [known 3.0 sits on shape 1.5 \u2192 level 2.0; hour 12 at shape 0.5 must be 1.0, not 1.5, got 1.5]\n",
+    "wall_s": 1.7
+   },
+   "tests/manual_plan.py": {
+    "cpu_s": 4.0,
+    "early_stop": false,
+    "fails": [],
+    "load1": 5.54,
+    "rc": 0,
+    "tail": "  ok   a stored list payload is discarded, not raised\n  ok   a stored str payload is discarded, not raised\n  ok   a stored int payload is discarded, not raised\n  ok   the data dict omits manual_plan when none is active\n\nALL 71 manual plan checks PASSED\n",
+    "wall_s": 4.3
+   },
+   "tests/optimality.py": {
+    "cpu_s": 31.7,
+    "early_stop": false,
+    "fails": [],
+    "load1": 5.59,
+    "rc": 0,
+    "tail": "\n-- batched-FD jac on DHW-enabled solves (D9-01)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=False)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=True)\n\nALL 11 OPTIMALITY CHECKS PASSED\n",
+    "wall_s": 31.9
+   },
+   "tests/plan_view.py": {
+    "cpu_s": 0.8,
+    "early_stop": false,
+    "fails": [],
+    "load1": 5.57,
+    "rc": 0,
+    "tail": "dhw reasons  : ['dhw_preheat', 'dhw_window', 'idle']\nraw space kWh 34.64 raw dhw kWh 6.53\nslot-sum space kWh 34.64\nslot-sum dhw kWh 6.53\nwrote /private/tmp/claude-501/-Users-timmalmstrom-copilot-worktrees-heatpump-optimizer-tvofi-claude/674d54f9-28e0-459d-9cac-85fee64c0344/scratchpad/plandata-M05.json\nplan reason codes, price provenance and slot energy OK\n",
+    "wall_s": 0.8
+   },
+   "tests/solar_alignment.py": {
+    "cpu_s": 0.8,
+    "early_stop": false,
+    "fails": [],
+    "load1": 5.62,
+    "rc": 0,
+    "tail": "  ok   steps beyond the Open-Meteo horizon keep the weather entity value\n  ok   without Open-Meteo the weather entity is still used\n  ok   an unavailable Open-Meteo client does not zero the irradiance\n  ok   irradiance is never negative\n\nALL SOLAR ALIGNMENT CHECKS PASSED\n",
+    "wall_s": 0.9
+   },
+   "tests/validate.py": {
+    "cpu_s": 13.2,
+    "early_stop": false,
+    "fails": [],
+    "load1": 5.44,
+    "rc": 0,
+    "tail": "=== SPACE HEATING ONLY (DHW disabled) ===\nwinter, no DHW                     optimal  36.00kWh base= 110.03 cost=  23.28 sav= 52.9% room 17.1-20.9 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 2 kW= 6.0    56ms\nsummer, no DHW                     optimal   0.00kWh base=   0.00 cost=   0.00 sav=  0.0% room 21.0-25.7 dhw>=    - peak%=nan dhwpeak%=nan starts= 0 kW= 0.0    20ms\n2zone winter, no DHW               optimal  67.42kWh base= 137.14 cost=  58.30 sav= 47.8% room 17.6-21.5 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 4 kW= 6.0   822ms\n\nNO ISSUES\n",
+    "wall_s": 13.4
+   }
+  },
+  "scripts_not_run": {
+   "tests/card_drift.mjs": "compares the card JavaScript at two git refs; identical for every Python mutant",
+   "tests/golden.py": "strict fixture comparison does not reproduce on this machine; env_drift --all stands in (as in CI drift mode)"
+  },
+  "scripts_quiet_window": [
+   "tests/backtest.py",
+   "tests/edge.py",
+   "tests/stress.py"
+  ],
+  "site": "if shape_mean > 1e-6:",
+  "survived": false,
+  "weight": 3
+ },
+ "M06": {
+  "closure": [
+   "tests/backtest.py",
+   "tests/card.mjs",
+   "tests/card_drift.mjs",
+   "tests/edge.py",
+   "tests/entities.py",
+   "tests/env_drift.py",
+   "tests/features.py",
+   "tests/frontend.py",
+   "tests/golden.py",
+   "tests/manual_plan.py",
+   "tests/optimality.py",
+   "tests/plan_view.py",
+   "tests/solar_alignment.py",
+   "tests/stress.py",
+   "tests/validate.py"
+  ],
+  "commit": "cf1acaf",
+  "done": true,
+  "func": "_register_lovelace_resource",
+  "id": "M06",
+  "killed_by": [
+   "tests/frontend.py"
+  ],
+  "kind": "guard_return",
+  "line": 156,
+  "module": "frontend.py",
+  "scripts": {
+   "tests/card.mjs": {
+    "cpu_s": 4.5,
+    "early_stop": false,
+    "fails": [],
+    "load1": 5.6,
+    "rc": 0,
+    "tail": "  ok    the picker survives the republish\n  ok    Assign on an untouched picker writes the slot's current entity, not a stale memo\n  ok    the card element defines at most 26 members of its own (26)\n  ok    the card markup gate's claim file is stamped for v6.2.14\n\nALL CARD CHECKS PASSED\n",
+    "wall_s": 3.4
+   },
+   "tests/entities.py": {
+    "cpu_s": 2.5,
+    "early_stop": false,
+    "fails": [],
+    "load1": 5.56,
+    "rc": 0,
+    "tail": "  ok   an empty may-drift list is always fine\n  ok   this tree's may-drift entries parse, with reasons\n  ok   and none of them leaks into the claim list\n  ok   this tree's own claim file passes the scope check\n\nALL 538 ENTITY CHECKS PASSED\n",
+    "wall_s": 2.5
+   },
+   "tests/env_drift.py": {
+    "cache_hit": true,
+    "cpu_s": 58.6,
+    "drift": [],
+    "load1": 5.44,
+    "n_drift": 0,
+    "rc": 0,
+    "tail": "e here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank_smart_write: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n\nNO UNCLAIMED DRIFT: 55 scenario(s) checked against c398fc84eec25fc44b60d74aae05b9a2da205884\n",
+    "wall_s": 59.2
+   },
+   "tests/features.py": {
+    "skipped": "mutant already killed"
+   },
+   "tests/frontend.py": {
+    "cpu_s": 0.1,
+    "early_stop": false,
+    "fails": [
+     "  FAIL  a shadowing copy does not stop the bundled card registering"
+    ],
+    "load1": 5.44,
+    "rc": 1,
+    "tail": "        created []\n  ok    YAML mode is left to manage its own resources\n  ok    an unusable resource collection does not raise\n  ok    the card is served without long-lived cache headers\n\n1 FRONTEND CHECK(S) FAILED\n",
+    "wall_s": 0.1
+   },
+   "tests/manual_plan.py": {
+    "skipped": "mutant already killed"
+   },
+   "tests/optimality.py": {
+    "skipped": "mutant already killed"
+   },
+   "tests/plan_view.py": {
+    "cpu_s": 0.8,
+    "early_stop": false,
+    "fails": [],
+    "load1": 5.56,
+    "rc": 0,
+    "tail": "dhw reasons  : ['dhw_preheat', 'dhw_window', 'idle']\nraw space kWh 34.64 raw dhw kWh 6.53\nslot-sum space kWh 34.64\nslot-sum dhw kWh 6.53\nwrote /private/tmp/claude-501/-Users-timmalmstrom-copilot-worktrees-heatpump-optimizer-tvofi-claude/674d54f9-28e0-459d-9cac-85fee64c0344/scratchpad/plandata-M06.json\nplan reason codes, price provenance and slot energy OK\n",
+    "wall_s": 0.8
+   },
+   "tests/solar_alignment.py": {
+    "cpu_s": 0.7,
+    "early_stop": false,
+    "fails": [],
+    "load1": 5.44,
+    "rc": 0,
+    "tail": "  ok   steps beyond the Open-Meteo horizon keep the weather entity value\n  ok   without Open-Meteo the weather entity is still used\n  ok   an unavailable Open-Meteo client does not zero the irradiance\n  ok   irradiance is never negative\n\nALL SOLAR ALIGNMENT CHECKS PASSED\n",
+    "wall_s": 0.8
+   },
+   "tests/validate.py": {
+    "skipped": "mutant already killed"
+   }
+  },
+  "scripts_not_run": {
+   "tests/card_drift.mjs": "compares the card JavaScript at two git refs; identical for every Python mutant",
+   "tests/golden.py": "strict fixture comparison does not reproduce on this machine; env_drift --all stands in (as in CI drift mode)"
+  },
+  "scripts_quiet_window": [
+   "tests/backtest.py",
+   "tests/edge.py",
+   "tests/stress.py"
+  ],
+  "site": "if not item_url or item_url.split(\"?\")[0] != base:",
+  "survived": false,
+  "weight": 6
+ },
+ "M07": {
+  "closure": [
+   "tests/backtest.py",
+   "tests/card.mjs",
+   "tests/card_drift.mjs",
+   "tests/edge.py",
+   "tests/entities.py",
+   "tests/env_drift.py",
+   "tests/features.py",
+   "tests/golden.py",
+   "tests/manual_plan.py",
+   "tests/optimality.py",
+   "tests/plan_view.py",
+   "tests/solar_alignment.py",
+   "tests/stress.py",
+   "tests/validate.py"
+  ],
+  "commit": "f891972",
+  "done": true,
+  "func": "_price_guess_weights",
+  "id": "M07",
+  "killed_by": [],
+  "kind": "clamp",
+  "line": 368,
+  "module": "optimizer.py",
+  "scripts": {
+   "tests/card.mjs": {
+    "cpu_s": 4.3,
+    "early_stop": false,
+    "fails": [],
+    "load1": 4.46,
+    "rc": 0,
+    "tail": "  ok    the picker survives the republish\n  ok    Assign on an untouched picker writes the slot's current entity, not a stale memo\n  ok    the card element defines at most 26 members of its own (26)\n  ok    the card markup gate's claim file is stamped for v6.2.14\n\nALL CARD CHECKS PASSED\n",
+    "wall_s": 3.0
+   },
+   "tests/entities.py": {
+    "cpu_s": 2.3,
+    "early_stop": false,
+    "fails": [],
+    "load1": 4.42,
+    "rc": 0,
+    "tail": "  ok   an empty may-drift list is always fine\n  ok   this tree's may-drift entries parse, with reasons\n  ok   and none of them leaks into the claim list\n  ok   this tree's own claim file passes the scope check\n\nALL 538 ENTITY CHECKS PASSED\n",
+    "wall_s": 2.3
+   },
+   "tests/env_drift.py": {
+    "cache_hit": true,
+    "cpu_s": 52.1,
+    "drift": [],
+    "load1": 4.42,
+    "n_drift": 0,
+    "rc": 0,
+    "tail": "e here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank_smart_write: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n\nNO UNCLAIMED DRIFT: 55 scenario(s) checked against c398fc84eec25fc44b60d74aae05b9a2da205884\n",
+    "wall_s": 52.6
+   },
+   "tests/features.py": {
+    "cpu_s": 35.9,
+    "early_stop": false,
+    "fails": [
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):"
+    ],
+    "load1": 5.47,
+    "rc": 0,
+    "tail": "  ok   a second failed cycle counts the outage but keeps one staleness start\n  ok   the fabricated fallback forecast exists and is stale from birth\n  ok   a successful fetch clears the outage and the staleness\n  ok   an empty result keeps the previous forecast, marked stale\n\nALL 1557 FEATURE CHECKS PASSED\n",
+    "wall_s": 36.7
+   },
+   "tests/manual_plan.py": {
+    "cpu_s": 3.9,
+    "early_stop": false,
+    "fails": [],
+    "load1": 4.53,
+    "rc": 0,
+    "tail": "  ok   a stored list payload is discarded, not raised\n  ok   a stored str payload is discarded, not raised\n  ok   a stored int payload is discarded, not raised\n  ok   the data dict omits manual_plan when none is active\n\nALL 71 manual plan checks PASSED\n",
+    "wall_s": 4.2
+   },
+   "tests/optimality.py": {
+    "cpu_s": 30.2,
+    "early_stop": false,
+    "fails": [],
+    "load1": 4.49,
+    "rc": 0,
+    "tail": "\n-- batched-FD jac on DHW-enabled solves (D9-01)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=False)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=True)\n\nALL 11 OPTIMALITY CHECKS PASSED\n",
+    "wall_s": 30.3
+   },
+   "tests/plan_view.py": {
+    "cpu_s": 0.7,
+    "early_stop": false,
+    "fails": [],
+    "load1": 4.42,
+    "rc": 0,
+    "tail": "dhw reasons  : ['dhw_preheat', 'dhw_window', 'idle']\nraw space kWh 34.64 raw dhw kWh 6.53\nslot-sum space kWh 34.64\nslot-sum dhw kWh 6.53\nwrote /private/tmp/claude-501/-Users-timmalmstrom-copilot-worktrees-heatpump-optimizer-tvofi-claude/674d54f9-28e0-459d-9cac-85fee64c0344/scratchpad/plandata-M07.json\nplan reason codes, price provenance and slot energy OK\n",
+    "wall_s": 0.7
+   },
+   "tests/solar_alignment.py": {
+    "cpu_s": 0.7,
+    "early_stop": false,
+    "fails": [],
+    "load1": 4.42,
+    "rc": 0,
+    "tail": "  ok   steps beyond the Open-Meteo horizon keep the weather entity value\n  ok   without Open-Meteo the weather entity is still used\n  ok   an unavailable Open-Meteo client does not zero the irradiance\n  ok   irradiance is never negative\n\nALL SOLAR ALIGNMENT CHECKS PASSED\n",
+    "wall_s": 0.7
+   },
+   "tests/validate.py": {
+    "cpu_s": 14.2,
+    "early_stop": false,
+    "fails": [],
+    "load1": 5.29,
+    "rc": 0,
+    "tail": "=== SPACE HEATING ONLY (DHW disabled) ===\nwinter, no DHW                     optimal  36.00kWh base= 110.03 cost=  23.28 sav= 52.9% room 17.1-20.9 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 2 kW= 6.0    63ms\nsummer, no DHW                     optimal   0.00kWh base=   0.00 cost=   0.00 sav=  0.0% room 21.0-25.7 dhw>=    - peak%=nan dhwpeak%=nan starts= 0 kW= 0.0    23ms\n2zone winter, no DHW               optimal  67.42kWh base= 137.14 cost=  58.30 sav= 47.8% room 17.6-21.5 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 4 kW= 6.0   934ms\n\nNO ISSUES\n",
+    "wall_s": 14.3
+   }
+  },
+  "scripts_not_run": {
+   "tests/card_drift.mjs": "compares the card JavaScript at two git refs; identical for every Python mutant",
+   "tests/golden.py": "strict fixture comparison does not reproduce on this machine; env_drift --all stands in (as in CI drift mode)"
+  },
+  "scripts_quiet_window": [
+   "tests/backtest.py",
+   "tests/edge.py",
+   "tests/stress.py"
+  ],
+  "site": "max(len(prices) - 1, 1)",
+  "survived": true,
+  "weight": 15
+ },
+ "M08": {
+  "closure": [
+   "tests/backtest.py",
+   "tests/card.mjs",
+   "tests/card_drift.mjs",
+   "tests/edge.py",
+   "tests/entities.py",
+   "tests/env_drift.py",
+   "tests/features.py",
+   "tests/golden.py",
+   "tests/manual_plan.py",
+   "tests/optimality.py",
+   "tests/plan_view.py",
+   "tests/solar_alignment.py",
+   "tests/stress.py",
+   "tests/validate.py"
+  ],
+  "commit": "857b9cc",
+  "done": true,
+  "func": "ThermalParameters.wood_tank_heat_loss_coefficient",
+  "id": "M08",
+  "killed_by": [],
+  "kind": "guard_return",
+  "line": 544,
+  "module": "thermal_model.py",
+  "scripts": {
+   "tests/card.mjs": {
+    "cpu_s": 5.1,
+    "early_stop": false,
+    "fails": [],
+    "load1": 5.47,
+    "rc": 0,
+    "tail": "  ok    the picker survives the republish\n  ok    Assign on an untouched picker writes the slot's current entity, not a stale memo\n  ok    the card element defines at most 26 members of its own (26)\n  ok    the card markup gate's claim file is stamped for v6.2.14\n\nALL CARD CHECKS PASSED\n",
+    "wall_s": 3.4
+   },
+   "tests/entities.py": {
+    "cpu_s": 2.6,
+    "early_stop": false,
+    "fails": [],
+    "load1": 5.42,
+    "rc": 0,
+    "tail": "  ok   an empty may-drift list is always fine\n  ok   this tree's may-drift entries parse, with reasons\n  ok   and none of them leaks into the claim list\n  ok   this tree's own claim file passes the scope check\n\nALL 538 ENTITY CHECKS PASSED\n",
+    "wall_s": 2.6
+   },
+   "tests/env_drift.py": {
+    "cache_hit": true,
+    "cpu_s": 57.3,
+    "drift": [],
+    "load1": 5.29,
+    "n_drift": 0,
+    "rc": 0,
+    "tail": "e here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank_smart_write: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n\nNO UNCLAIMED DRIFT: 55 scenario(s) checked against c398fc84eec25fc44b60d74aae05b9a2da205884\n",
+    "wall_s": 57.8
+   },
+   "tests/features.py": {
+    "cpu_s": 36.0,
+    "early_stop": false,
+    "fails": [
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):"
+    ],
+    "load1": 7.26,
+    "rc": 0,
+    "tail": "  ok   a second failed cycle counts the outage but keeps one staleness start\n  ok   the fabricated fallback forecast exists and is stale from birth\n  ok   a successful fetch clears the outage and the staleness\n  ok   an empty result keeps the previous forecast, marked stale\n\nALL 1557 FEATURE CHECKS PASSED\n",
+    "wall_s": 36.8
+   },
+   "tests/manual_plan.py": {
+    "cpu_s": 3.9,
+    "early_stop": false,
+    "fails": [],
+    "load1": 5.42,
+    "rc": 0,
+    "tail": "  ok   a stored list payload is discarded, not raised\n  ok   a stored str payload is discarded, not raised\n  ok   a stored int payload is discarded, not raised\n  ok   the data dict omits manual_plan when none is active\n\nALL 71 manual plan checks PASSED\n",
+    "wall_s": 4.1
+   },
+   "tests/optimality.py": {
+    "cpu_s": 31.7,
+    "early_stop": false,
+    "fails": [],
+    "load1": 5.54,
+    "rc": 0,
+    "tail": "\n-- batched-FD jac on DHW-enabled solves (D9-01)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=False)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=True)\n\nALL 11 OPTIMALITY CHECKS PASSED\n",
+    "wall_s": 31.8
+   },
+   "tests/plan_view.py": {
+    "cpu_s": 0.8,
+    "early_stop": false,
+    "fails": [],
+    "load1": 5.42,
+    "rc": 0,
+    "tail": "dhw reasons  : ['dhw_preheat', 'dhw_window', 'idle']\nraw space kWh 34.64 raw dhw kWh 6.53\nslot-sum space kWh 34.64\nslot-sum dhw kWh 6.53\nwrote /private/tmp/claude-501/-Users-timmalmstrom-copilot-worktrees-heatpump-optimizer-tvofi-claude/674d54f9-28e0-459d-9cac-85fee64c0344/scratchpad/plandata-M08.json\nplan reason codes, price provenance and slot energy OK\n",
+    "wall_s": 0.8
+   },
+   "tests/solar_alignment.py": {
+    "cpu_s": 0.8,
+    "early_stop": false,
+    "fails": [],
+    "load1": 5.29,
+    "rc": 0,
+    "tail": "  ok   steps beyond the Open-Meteo horizon keep the weather entity value\n  ok   without Open-Meteo the weather entity is still used\n  ok   an unavailable Open-Meteo client does not zero the irradiance\n  ok   irradiance is never negative\n\nALL SOLAR ALIGNMENT CHECKS PASSED\n",
+    "wall_s": 0.9
+   },
+   "tests/validate.py": {
+    "cpu_s": 14.2,
+    "early_stop": false,
+    "fails": [],
+    "load1": 5.4,
+    "rc": 0,
+    "tail": "=== SPACE HEATING ONLY (DHW disabled) ===\nwinter, no DHW                     optimal  36.00kWh base= 110.03 cost=  23.28 sav= 52.9% room 17.1-20.9 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 2 kW= 6.0    64ms\nsummer, no DHW                     optimal   0.00kWh base=   0.00 cost=   0.00 sav=  0.0% room 21.0-25.7 dhw>=    - peak%=nan dhwpeak%=nan starts= 0 kW= 0.0    23ms\n2zone winter, no DHW               optimal  67.42kWh base= 137.14 cost=  58.30 sav= 47.8% room 17.6-21.5 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 4 kW= 6.0   919ms\n\nNO ISSUES\n",
+    "wall_s": 14.4
+   }
+  },
+  "scripts_not_run": {
+   "tests/card_drift.mjs": "compares the card JavaScript at two git refs; identical for every Python mutant",
+   "tests/golden.py": "strict fixture comparison does not reproduce on this machine; env_drift --all stands in (as in CI drift mode)"
+  },
+  "scripts_quiet_window": [
+   "tests/backtest.py",
+   "tests/edge.py",
+   "tests/stress.py"
+  ],
+  "site": "if cached is not None and cached[0] == key:",
+  "survived": true,
+  "weight": 15
+ },
+ "M09": {
+  "closure": [
+   "tests/backtest.py",
+   "tests/card.mjs",
+   "tests/card_drift.mjs",
+   "tests/edge.py",
+   "tests/entities.py",
+   "tests/env_drift.py",
+   "tests/features.py",
+   "tests/golden.py",
+   "tests/manual_plan.py",
+   "tests/optimality.py",
+   "tests/plan_view.py",
+   "tests/solar_alignment.py",
+   "tests/stress.py",
+   "tests/validate.py"
+  ],
+  "commit": "dc6a71f",
+  "done": true,
+  "func": "HeatPumpOptimizerCoordinator.async_update_thermal_params",
+  "id": "M09",
+  "killed_by": [
+   "tests/features.py"
+  ],
+  "kind": "general_if",
+  "line": 4926,
+  "module": "coordinator.py",
+  "scripts": {
+   "tests/card.mjs": {
+    "cpu_s": 5.0,
+    "early_stop": false,
+    "fails": [],
+    "load1": 5.5,
+    "rc": 0,
+    "tail": "  ok    the picker survives the republish\n  ok    Assign on an untouched picker writes the slot's current entity, not a stale memo\n  ok    the card element defines at most 26 members of its own (26)\n  ok    the card markup gate's claim file is stamped for v6.2.14\n\nALL CARD CHECKS PASSED\n",
+    "wall_s": 3.4
+   },
+   "tests/entities.py": {
+    "cpu_s": 2.6,
+    "early_stop": false,
+    "fails": [],
+    "load1": 5.36,
+    "rc": 0,
+    "tail": "  ok   an empty may-drift list is always fine\n  ok   this tree's may-drift entries parse, with reasons\n  ok   and none of them leaks into the claim list\n  ok   this tree's own claim file passes the scope check\n\nALL 538 ENTITY CHECKS PASSED\n",
+    "wall_s": 2.6
+   },
+   "tests/env_drift.py": {
+    "cache_hit": true,
+    "cpu_s": 59.9,
+    "drift": [],
+    "load1": 5.4,
+    "n_drift": 0,
+    "rc": 0,
+    "tail": "e here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank_smart_write: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n\nNO UNCLAIMED DRIFT: 55 scenario(s) checked against c398fc84eec25fc44b60d74aae05b9a2da205884\n",
+    "wall_s": 60.4
+   },
+   "tests/features.py": {
+    "cpu_s": 23.1,
+    "early_stop": true,
+    "fails": [
+     "  FAIL an explicit cooling rate restarts the learner from it"
+    ],
+    "load1": 6.0,
+    "rc": 1,
+    "tail": "  ok   an invalid window spec is ignored rather than clearing the schedule\n  ok   the configured windows are answered in the flat grammar\n  ok   and in the weekly grammar when the configuration names days\n  ok   which the plan's flat view could not carry: it merges the two days into one\n  ok   and empty when none are configured\n  FAIL an explicit cooling rate restarts the learner from it\n",
+    "wall_s": 23.3
+   },
+   "tests/manual_plan.py": {
+    "cpu_s": 3.9,
+    "early_stop": false,
+    "fails": [],
+    "load1": 6.29,
+    "rc": 0,
+    "tail": "  ok   a stored list payload is discarded, not raised\n  ok   a stored str payload is discarded, not raised\n  ok   a stored int payload is discarded, not raised\n  ok   the data dict omits manual_plan when none is active\n\nALL 71 manual plan checks PASSED\n",
+    "wall_s": 4.2
+   },
+   "tests/optimality.py": {
+    "cpu_s": 31.8,
+    "early_stop": false,
+    "fails": [],
+    "load1": 6.49,
+    "rc": 0,
+    "tail": "\n-- batched-FD jac on DHW-enabled solves (D9-01)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=False)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=True)\n\nALL 11 OPTIMALITY CHECKS PASSED\n",
+    "wall_s": 31.9
+   },
+   "tests/plan_view.py": {
+    "cpu_s": 0.8,
+    "early_stop": false,
+    "fails": [],
+    "load1": 5.36,
+    "rc": 0,
+    "tail": "dhw reasons  : ['dhw_preheat', 'dhw_window', 'idle']\nraw space kWh 34.64 raw dhw kWh 6.53\nslot-sum space kWh 34.64\nslot-sum dhw kWh 6.53\nwrote /private/tmp/claude-501/-Users-timmalmstrom-copilot-worktrees-heatpump-optimizer-tvofi-claude/674d54f9-28e0-459d-9cac-85fee64c0344/scratchpad/plandata-M09.json\nplan reason codes, price provenance and slot energy OK\n",
+    "wall_s": 0.8
+   },
+   "tests/solar_alignment.py": {
+    "cpu_s": 0.8,
+    "early_stop": false,
+    "fails": [],
+    "load1": 5.4,
+    "rc": 0,
+    "tail": "  ok   steps beyond the Open-Meteo horizon keep the weather entity value\n  ok   without Open-Meteo the weather entity is still used\n  ok   an unavailable Open-Meteo client does not zero the irradiance\n  ok   irradiance is never negative\n\nALL SOLAR ALIGNMENT CHECKS PASSED\n",
+    "wall_s": 0.9
+   },
+   "tests/validate.py": {
+    "cpu_s": 14.4,
+    "early_stop": false,
+    "fails": [],
+    "load1": 6.09,
+    "rc": 0,
+    "tail": "=== SPACE HEATING ONLY (DHW disabled) ===\nwinter, no DHW                     optimal  36.00kWh base= 110.03 cost=  23.28 sav= 52.9% room 17.1-20.9 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 2 kW= 6.0    64ms\nsummer, no DHW                     optimal   0.00kWh base=   0.00 cost=   0.00 sav=  0.0% room 21.0-25.7 dhw>=    - peak%=nan dhwpeak%=nan starts= 0 kW= 0.0    23ms\n2zone winter, no DHW               optimal  67.42kWh base= 137.14 cost=  58.30 sav= 47.8% room 17.6-21.5 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 4 kW= 6.0   924ms\n\nNO ISSUES\n",
+    "wall_s": 14.5
+   }
+  },
+  "scripts_not_run": {
+   "tests/card_drift.mjs": "compares the card JavaScript at two git refs; identical for every Python mutant",
+   "tests/golden.py": "strict fixture comparison does not reproduce on this machine; env_drift --all stands in (as in CI drift mode)"
+  },
+  "scripts_quiet_window": [
+   "tests/backtest.py",
+   "tests/edge.py",
+   "tests/stress.py"
+  ],
+  "site": "if CONF_DHW_COOLING_RATE in params:",
+  "survived": false,
+  "weight": 5
+ },
+ "M10": {
+  "closure": [
+   "tests/backtest.py",
+   "tests/card.mjs",
+   "tests/card_drift.mjs",
+   "tests/edge.py",
+   "tests/entities.py",
+   "tests/env_drift.py",
+   "tests/features.py",
+   "tests/golden.py",
+   "tests/manual_plan.py",
+   "tests/optimality.py",
+   "tests/plan_view.py",
+   "tests/solar_alignment.py",
+   "tests/stress.py",
+   "tests/validate.py"
+  ],
+  "commit": "bbb4c0b",
+  "done": true,
+  "func": "HeatPumpOptimizer._build_dhw_requirements",
+  "id": "M10",
+  "killed_by": [],
+  "kind": "clamp",
+  "line": 3371,
+  "module": "optimizer.py",
+  "scripts": {
+   "tests/card.mjs": {
+    "cpu_s": 4.7,
+    "early_stop": false,
+    "fails": [],
+    "load1": 6.0,
+    "rc": 0,
+    "tail": "  ok    the picker survives the republish\n  ok    Assign on an untouched picker writes the slot's current entity, not a stale memo\n  ok    the card element defines at most 26 members of its own (26)\n  ok    the card markup gate's claim file is stamped for v6.2.14\n\nALL CARD CHECKS PASSED\n",
+    "wall_s": 3.3
+   },
+   "tests/entities.py": {
+    "cpu_s": 2.6,
+    "early_stop": false,
+    "fails": [],
+    "load1": 6.0,
+    "rc": 0,
+    "tail": "  ok   an empty may-drift list is always fine\n  ok   this tree's may-drift entries parse, with reasons\n  ok   and none of them leaks into the claim list\n  ok   this tree's own claim file passes the scope check\n\nALL 538 ENTITY CHECKS PASSED\n",
+    "wall_s": 2.7
+   },
+   "tests/env_drift.py": {
+    "cache_hit": true,
+    "cpu_s": 60.3,
+    "drift": [],
+    "load1": 6.09,
+    "n_drift": 0,
+    "rc": 0,
+    "tail": "e here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank_smart_write: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n\nNO UNCLAIMED DRIFT: 55 scenario(s) checked against c398fc84eec25fc44b60d74aae05b9a2da205884\n",
+    "wall_s": 60.8
+   },
+   "tests/features.py": {
+    "cpu_s": 33.9,
+    "early_stop": false,
+    "fails": [
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):"
+    ],
+    "load1": 5.07,
+    "rc": 0,
+    "tail": "  ok   a second failed cycle counts the outage but keeps one staleness start\n  ok   the fabricated fallback forecast exists and is stale from birth\n  ok   a successful fetch clears the outage and the staleness\n  ok   an empty result keeps the previous forecast, marked stale\n\nALL 1557 FEATURE CHECKS PASSED\n",
+    "wall_s": 34.7
+   },
+   "tests/manual_plan.py": {
+    "cpu_s": 3.9,
+    "early_stop": false,
+    "fails": [],
+    "load1": 5.46,
+    "rc": 0,
+    "tail": "  ok   a stored list payload is discarded, not raised\n  ok   a stored str payload is discarded, not raised\n  ok   a stored int payload is discarded, not raised\n  ok   the data dict omits manual_plan when none is active\n\nALL 71 manual plan checks PASSED\n",
+    "wall_s": 4.2
+   },
+   "tests/optimality.py": {
+    "cpu_s": 31.2,
+    "early_stop": false,
+    "fails": [],
+    "load1": 5.58,
+    "rc": 0,
+    "tail": "\n-- batched-FD jac on DHW-enabled solves (D9-01)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=False)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=True)\n\nALL 11 OPTIMALITY CHECKS PASSED\n",
+    "wall_s": 31.2
+   },
+   "tests/plan_view.py": {
+    "cpu_s": 0.8,
+    "early_stop": false,
+    "fails": [],
+    "load1": 6.0,
+    "rc": 0,
+    "tail": "dhw reasons  : ['dhw_preheat', 'dhw_window', 'idle']\nraw space kWh 34.64 raw dhw kWh 6.53\nslot-sum space kWh 34.64\nslot-sum dhw kWh 6.53\nwrote /private/tmp/claude-501/-Users-timmalmstrom-copilot-worktrees-heatpump-optimizer-tvofi-claude/674d54f9-28e0-459d-9cac-85fee64c0344/scratchpad/plandata-M10.json\nplan reason codes, price provenance and slot energy OK\n",
+    "wall_s": 0.8
+   },
+   "tests/solar_alignment.py": {
+    "cpu_s": 0.8,
+    "early_stop": false,
+    "fails": [],
+    "load1": 6.0,
+    "rc": 0,
+    "tail": "  ok   steps beyond the Open-Meteo horizon keep the weather entity value\n  ok   without Open-Meteo the weather entity is still used\n  ok   an unavailable Open-Meteo client does not zero the irradiance\n  ok   irradiance is never negative\n\nALL SOLAR ALIGNMENT CHECKS PASSED\n",
+    "wall_s": 0.9
+   },
+   "tests/validate.py": {
+    "cpu_s": 13.8,
+    "early_stop": false,
+    "fails": [],
+    "load1": 5.27,
+    "rc": 0,
+    "tail": "=== SPACE HEATING ONLY (DHW disabled) ===\nwinter, no DHW                     optimal  36.00kWh base= 110.03 cost=  23.28 sav= 52.9% room 17.1-20.9 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 2 kW= 6.0    61ms\nsummer, no DHW                     optimal   0.00kWh base=   0.00 cost=   0.00 sav=  0.0% room 21.0-25.7 dhw>=    - peak%=nan dhwpeak%=nan starts= 0 kW= 0.0    23ms\n2zone winter, no DHW               optimal  67.42kWh base= 137.14 cost=  58.30 sav= 47.8% room 17.6-21.5 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 4 kW= 6.0   843ms\n\nNO ISSUES\n",
+    "wall_s": 13.9
+   }
+  },
+  "scripts_not_run": {
+   "tests/card_drift.mjs": "compares the card JavaScript at two git refs; identical for every Python mutant",
+   "tests/golden.py": "strict fixture comparison does not reproduce on this machine; env_drift --all stands in (as in CI drift mode)"
+  },
+  "scripts_quiet_window": [
+   "tests/backtest.py",
+   "tests/edge.py",
+   "tests/stress.py"
+  ],
+  "site": "max(params.dhw_tank_heat_loss_coefficient, 1e-6)",
+  "survived": true,
+  "weight": 15
+ },
+ "M11": {
+  "closure": [
+   "tests/backtest.py",
+   "tests/card.mjs",
+   "tests/card_drift.mjs",
+   "tests/edge.py",
+   "tests/entities.py",
+   "tests/env_drift.py",
+   "tests/features.py",
+   "tests/golden.py",
+   "tests/manual_plan.py",
+   "tests/optimality.py",
+   "tests/plan_view.py",
+   "tests/solar_alignment.py",
+   "tests/stress.py",
+   "tests/validate.py"
+  ],
+  "commit": "97013fb",
+  "done": true,
+  "func": "HeatPumpOptimizer.optimize",
+  "id": "M11",
+  "killed_by": [],
+  "kind": "clamp",
+  "line": 2401,
+  "module": "optimizer.py",
+  "scripts": {
+   "tests/card.mjs": {
+    "cpu_s": 4.4,
+    "early_stop": false,
+    "fails": [],
+    "load1": 5.07,
+    "rc": 0,
+    "tail": "  ok    the picker survives the republish\n  ok    Assign on an untouched picker writes the slot's current entity, not a stale memo\n  ok    the card element defines at most 26 members of its own (26)\n  ok    the card markup gate's claim file is stamped for v6.2.14\n\nALL CARD CHECKS PASSED\n",
+    "wall_s": 3.1
+   },
+   "tests/entities.py": {
+    "cpu_s": 2.5,
+    "early_stop": false,
+    "fails": [],
+    "load1": 5.17,
+    "rc": 0,
+    "tail": "  ok   an empty may-drift list is always fine\n  ok   this tree's may-drift entries parse, with reasons\n  ok   and none of them leaks into the claim list\n  ok   this tree's own claim file passes the scope check\n\nALL 538 ENTITY CHECKS PASSED\n",
+    "wall_s": 2.6
+   },
+   "tests/env_drift.py": {
+    "cache_hit": true,
+    "cpu_s": 58.2,
+    "drift": [],
+    "load1": 5.27,
+    "n_drift": 0,
+    "rc": 0,
+    "tail": "e here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank_smart_write: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n\nNO UNCLAIMED DRIFT: 55 scenario(s) checked against c398fc84eec25fc44b60d74aae05b9a2da205884\n",
+    "wall_s": 58.7
+   },
+   "tests/features.py": {
+    "cpu_s": 35.8,
+    "early_stop": false,
+    "fails": [
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):"
+    ],
+    "load1": 5.72,
+    "rc": 0,
+    "tail": "  ok   a second failed cycle counts the outage but keeps one staleness start\n  ok   the fabricated fallback forecast exists and is stale from birth\n  ok   a successful fetch clears the outage and the staleness\n  ok   an empty result keeps the previous forecast, marked stale\n\nALL 1557 FEATURE CHECKS PASSED\n",
+    "wall_s": 36.9
+   },
+   "tests/manual_plan.py": {
+    "cpu_s": 5.2,
+    "early_stop": false,
+    "fails": [],
+    "load1": 5.25,
+    "rc": 0,
+    "tail": "  ok   a stored list payload is discarded, not raised\n  ok   a stored str payload is discarded, not raised\n  ok   a stored int payload is discarded, not raised\n  ok   the data dict omits manual_plan when none is active\n\nALL 71 manual plan checks PASSED\n",
+    "wall_s": 5.6
+   },
+   "tests/optimality.py": {
+    "cpu_s": 31.1,
+    "early_stop": false,
+    "fails": [],
+    "load1": 5.01,
+    "rc": 0,
+    "tail": "\n-- batched-FD jac on DHW-enabled solves (D9-01)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=False)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=True)\n\nALL 11 OPTIMALITY CHECKS PASSED\n",
+    "wall_s": 31.5
+   },
+   "tests/plan_view.py": {
+    "cpu_s": 0.8,
+    "early_stop": false,
+    "fails": [],
+    "load1": 5.17,
+    "rc": 0,
+    "tail": "dhw reasons  : ['dhw_preheat', 'dhw_window', 'idle']\nraw space kWh 34.64 raw dhw kWh 6.53\nslot-sum space kWh 34.64\nslot-sum dhw kWh 6.53\nwrote /private/tmp/claude-501/-Users-timmalmstrom-copilot-worktrees-heatpump-optimizer-tvofi-claude/674d54f9-28e0-459d-9cac-85fee64c0344/scratchpad/plandata-M11.json\nplan reason codes, price provenance and slot energy OK\n",
+    "wall_s": 0.7
+   },
+   "tests/solar_alignment.py": {
+    "cpu_s": 0.7,
+    "early_stop": false,
+    "fails": [],
+    "load1": 5.27,
+    "rc": 0,
+    "tail": "  ok   steps beyond the Open-Meteo horizon keep the weather entity value\n  ok   without Open-Meteo the weather entity is still used\n  ok   an unavailable Open-Meteo client does not zero the irradiance\n  ok   irradiance is never negative\n\nALL SOLAR ALIGNMENT CHECKS PASSED\n",
+    "wall_s": 0.8
+   },
+   "tests/validate.py": {
+    "cpu_s": 15.3,
+    "early_stop": false,
+    "fails": [],
+    "load1": 6.25,
+    "rc": 0,
+    "tail": "=== SPACE HEATING ONLY (DHW disabled) ===\nwinter, no DHW                     optimal  36.00kWh base= 110.03 cost=  23.28 sav= 52.9% room 17.1-20.9 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 2 kW= 6.0    66ms\nsummer, no DHW                     optimal   0.00kWh base=   0.00 cost=   0.00 sav=  0.0% room 21.0-25.7 dhw>=    - peak%=nan dhwpeak%=nan starts= 0 kW= 0.0    28ms\n2zone winter, no DHW               optimal  67.42kWh base= 137.14 cost=  58.30 sav= 47.8% room 17.6-21.5 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 4 kW= 6.0   950ms\n\nNO ISSUES\n",
+    "wall_s": 15.9
+   }
+  },
+  "scripts_not_run": {
+   "tests/card_drift.mjs": "compares the card JavaScript at two git refs; identical for every Python mutant",
+   "tests/golden.py": "strict fixture comparison does not reproduce on this machine; env_drift --all stands in (as in CI drift mode)"
+  },
+  "scripts_quiet_window": [
+   "tests/backtest.py",
+   "tests/edge.py",
+   "tests/stress.py"
+  ],
+  "site": "min(planned.size, req.size)",
+  "survived": true,
+  "weight": 15
+ },
+ "M12": {
+  "closure": [
+   "tests/backtest.py",
+   "tests/card.mjs",
+   "tests/card_drift.mjs",
+   "tests/edge.py",
+   "tests/entities.py",
+   "tests/env_drift.py",
+   "tests/features.py",
+   "tests/golden.py",
+   "tests/manual_plan.py",
+   "tests/optimality.py",
+   "tests/plan_view.py",
+   "tests/solar_alignment.py",
+   "tests/stress.py",
+   "tests/validate.py"
+  ],
+  "commit": "b2d98e4",
+  "done": true,
+  "func": "HeatPumpOptimizerCoordinator._fetch_tibber_prices",
+  "id": "M12",
+  "killed_by": [],
+  "kind": "general_if",
+  "line": 5401,
+  "module": "coordinator.py",
+  "scripts": {
+   "tests/card.mjs": {
+    "cpu_s": 4.6,
+    "early_stop": false,
+    "fails": [],
+    "load1": 5.75,
+    "rc": 0,
+    "tail": "  ok    the picker survives the republish\n  ok    Assign on an untouched picker writes the slot's current entity, not a stale memo\n  ok    the card element defines at most 26 members of its own (26)\n  ok    the card markup gate's claim file is stamped for v6.2.14\n\nALL CARD CHECKS PASSED\n",
+    "wall_s": 3.2
+   },
+   "tests/entities.py": {
+    "cpu_s": 2.5,
+    "early_stop": false,
+    "fails": [],
+    "load1": 5.99,
+    "rc": 0,
+    "tail": "  ok   an empty may-drift list is always fine\n  ok   this tree's may-drift entries parse, with reasons\n  ok   and none of them leaks into the claim list\n  ok   this tree's own claim file passes the scope check\n\nALL 538 ENTITY CHECKS PASSED\n",
+    "wall_s": 2.5
+   },
+   "tests/env_drift.py": {
+    "cache_hit": true,
+    "cpu_s": 61.1,
+    "drift": [],
+    "load1": 5.99,
+    "n_drift": 0,
+    "rc": 0,
+    "tail": "e here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank_smart_write: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n\nNO UNCLAIMED DRIFT: 55 scenario(s) checked against c398fc84eec25fc44b60d74aae05b9a2da205884\n",
+    "wall_s": 62.4
+   },
+   "tests/features.py": {
+    "cpu_s": 32.6,
+    "early_stop": false,
+    "fails": [
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):"
+    ],
+    "load1": 6.88,
+    "rc": 0,
+    "tail": "  ok   a second failed cycle counts the outage but keeps one staleness start\n  ok   the fabricated fallback forecast exists and is stale from birth\n  ok   a successful fetch clears the outage and the staleness\n  ok   an empty result keeps the previous forecast, marked stale\n\nALL 1557 FEATURE CHECKS PASSED\n",
+    "wall_s": 33.3
+   },
+   "tests/manual_plan.py": {
+    "cpu_s": 3.4,
+    "early_stop": false,
+    "fails": [],
+    "load1": 7.97,
+    "rc": 0,
+    "tail": "  ok   a stored list payload is discarded, not raised\n  ok   a stored str payload is discarded, not raised\n  ok   a stored int payload is discarded, not raised\n  ok   the data dict omits manual_plan when none is active\n\nALL 71 manual plan checks PASSED\n",
+    "wall_s": 3.7
+   },
+   "tests/optimality.py": {
+    "cpu_s": 28.9,
+    "early_stop": false,
+    "fails": [],
+    "load1": 8.23,
+    "rc": 0,
+    "tail": "\n-- batched-FD jac on DHW-enabled solves (D9-01)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=False)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=True)\n\nALL 11 OPTIMALITY CHECKS PASSED\n",
+    "wall_s": 28.9
+   },
+   "tests/plan_view.py": {
+    "cpu_s": 0.8,
+    "early_stop": false,
+    "fails": [],
+    "load1": 5.75,
+    "rc": 0,
+    "tail": "dhw reasons  : ['dhw_preheat', 'dhw_window', 'idle']\nraw space kWh 34.64 raw dhw kWh 6.53\nslot-sum space kWh 34.64\nslot-sum dhw kWh 6.53\nwrote /private/tmp/claude-501/-Users-timmalmstrom-copilot-worktrees-heatpump-optimizer-tvofi-claude/674d54f9-28e0-459d-9cac-85fee64c0344/scratchpad/plandata-M12.json\nplan reason codes, price provenance and slot energy OK\n",
+    "wall_s": 0.7
+   },
+   "tests/solar_alignment.py": {
+    "cpu_s": 0.7,
+    "early_stop": false,
+    "fails": [],
+    "load1": 5.99,
+    "rc": 0,
+    "tail": "  ok   steps beyond the Open-Meteo horizon keep the weather entity value\n  ok   without Open-Meteo the weather entity is still used\n  ok   an unavailable Open-Meteo client does not zero the irradiance\n  ok   irradiance is never negative\n\nALL SOLAR ALIGNMENT CHECKS PASSED\n",
+    "wall_s": 0.8
+   },
+   "tests/validate.py": {
+    "cpu_s": 13.2,
+    "early_stop": false,
+    "fails": [],
+    "load1": 7.59,
+    "rc": 0,
+    "tail": "=== SPACE HEATING ONLY (DHW disabled) ===\nwinter, no DHW                     optimal  36.00kWh base= 110.03 cost=  23.28 sav= 52.9% room 17.1-20.9 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 2 kW= 6.0    58ms\nsummer, no DHW                     optimal   0.00kWh base=   0.00 cost=   0.00 sav=  0.0% room 21.0-25.7 dhw>=    - peak%=nan dhwpeak%=nan starts= 0 kW= 0.0    22ms\n2zone winter, no DHW               optimal  67.42kWh base= 137.14 cost=  58.30 sav= 47.8% room 17.6-21.5 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 4 kW= 6.0   836ms\n\nNO ISSUES\n",
+    "wall_s": 13.3
+   }
+  },
+  "scripts_not_run": {
+   "tests/card_drift.mjs": "compares the card JavaScript at two git refs; identical for every Python mutant",
+   "tests/golden.py": "strict fixture comparison does not reproduce on this machine; env_drift --all stands in (as in CI drift mode)"
+  },
+  "scripts_quiet_window": [
+   "tests/backtest.py",
+   "tests/edge.py",
+   "tests/stress.py"
+  ],
+  "site": "if resp.status != 200:",
+  "survived": true,
+  "weight": 5
+ },
+ "M13": {
+  "closure": [
+   "tests/backtest.py",
+   "tests/card.mjs",
+   "tests/card_drift.mjs",
+   "tests/edge.py",
+   "tests/entities.py",
+   "tests/env_drift.py",
+   "tests/features.py",
+   "tests/golden.py",
+   "tests/manual_plan.py",
+   "tests/optimality.py",
+   "tests/plan_view.py",
+   "tests/solar_alignment.py",
+   "tests/stress.py",
+   "tests/validate.py"
+  ],
+  "commit": "c66e648",
+  "done": true,
+  "func": "HeatPumpOptimizerCoordinator._dhw_setpoint_sweep",
+  "id": "M13",
+  "killed_by": [],
+  "kind": "general_if",
+  "line": 1676,
+  "module": "coordinator.py",
+  "scripts": {
+   "tests/card.mjs": {
+    "cpu_s": 4.3,
+    "early_stop": false,
+    "fails": [],
+    "load1": 7.05,
+    "rc": 0,
+    "tail": "  ok    the picker survives the republish\n  ok    Assign on an untouched picker writes the slot's current entity, not a stale memo\n  ok    the card element defines at most 26 members of its own (26)\n  ok    the card markup gate's claim file is stamped for v6.2.14\n\nALL CARD CHECKS PASSED\n",
+    "wall_s": 3.0
+   },
+   "tests/entities.py": {
+    "cpu_s": 2.3,
+    "early_stop": false,
+    "fails": [],
+    "load1": 7.14,
+    "rc": 0,
+    "tail": "  ok   an empty may-drift list is always fine\n  ok   this tree's may-drift entries parse, with reasons\n  ok   and none of them leaks into the claim list\n  ok   this tree's own claim file passes the scope check\n\nALL 538 ENTITY CHECKS PASSED\n",
+    "wall_s": 2.4
+   },
+   "tests/env_drift.py": {
+    "cache_hit": true,
+    "cpu_s": 54.8,
+    "drift": [],
+    "load1": 7.14,
+    "n_drift": 0,
+    "rc": 0,
+    "tail": "e here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank_smart_write: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n\nNO UNCLAIMED DRIFT: 55 scenario(s) checked against c398fc84eec25fc44b60d74aae05b9a2da205884\n",
+    "wall_s": 55.2
+   },
+   "tests/features.py": {
+    "cpu_s": 32.4,
+    "early_stop": false,
+    "fails": [
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):"
+    ],
+    "load1": 4.96,
+    "rc": 0,
+    "tail": "  ok   a second failed cycle counts the outage but keeps one staleness start\n  ok   the fabricated fallback forecast exists and is stale from birth\n  ok   a successful fetch clears the outage and the staleness\n  ok   an empty result keeps the previous forecast, marked stale\n\nALL 1557 FEATURE CHECKS PASSED\n",
+    "wall_s": 33.1
+   },
+   "tests/manual_plan.py": {
+    "cpu_s": 3.4,
+    "early_stop": false,
+    "fails": [],
+    "load1": 5.56,
+    "rc": 0,
+    "tail": "  ok   a stored list payload is discarded, not raised\n  ok   a stored str payload is discarded, not raised\n  ok   a stored int payload is discarded, not raised\n  ok   the data dict omits manual_plan when none is active\n\nALL 71 manual plan checks PASSED\n",
+    "wall_s": 3.7
+   },
+   "tests/optimality.py": {
+    "cpu_s": 28.3,
+    "early_stop": false,
+    "fails": [],
+    "load1": 5.78,
+    "rc": 0,
+    "tail": "\n-- batched-FD jac on DHW-enabled solves (D9-01)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=False)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=True)\n\nALL 11 OPTIMALITY CHECKS PASSED\n",
+    "wall_s": 28.3
+   },
+   "tests/plan_view.py": {
+    "cpu_s": 0.7,
+    "early_stop": false,
+    "fails": [],
+    "load1": 7.05,
+    "rc": 0,
+    "tail": "dhw reasons  : ['dhw_preheat', 'dhw_window', 'idle']\nraw space kWh 34.64 raw dhw kWh 6.53\nslot-sum space kWh 34.64\nslot-sum dhw kWh 6.53\nwrote /private/tmp/claude-501/-Users-timmalmstrom-copilot-worktrees-heatpump-optimizer-tvofi-claude/674d54f9-28e0-459d-9cac-85fee64c0344/scratchpad/plandata-M13.json\nplan reason codes, price provenance and slot energy OK\n",
+    "wall_s": 0.7
+   },
+   "tests/solar_alignment.py": {
+    "cpu_s": 0.7,
+    "early_stop": false,
+    "fails": [],
+    "load1": 7.14,
+    "rc": 0,
+    "tail": "  ok   steps beyond the Open-Meteo horizon keep the weather entity value\n  ok   without Open-Meteo the weather entity is still used\n  ok   an unavailable Open-Meteo client does not zero the irradiance\n  ok   irradiance is never negative\n\nALL SOLAR ALIGNMENT CHECKS PASSED\n",
+    "wall_s": 0.8
+   },
+   "tests/validate.py": {
+    "cpu_s": 13.0,
+    "early_stop": false,
+    "fails": [],
+    "load1": 5.32,
+    "rc": 0,
+    "tail": "=== SPACE HEATING ONLY (DHW disabled) ===\nwinter, no DHW                     optimal  36.00kWh base= 110.03 cost=  23.28 sav= 52.9% room 17.1-20.9 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 2 kW= 6.0    58ms\nsummer, no DHW                     optimal   0.00kWh base=   0.00 cost=   0.00 sav=  0.0% room 21.0-25.7 dhw>=    - peak%=nan dhwpeak%=nan starts= 0 kW= 0.0    21ms\n2zone winter, no DHW               optimal  67.42kWh base= 137.14 cost=  58.30 sav= 47.8% room 17.6-21.5 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 4 kW= 6.0   829ms\n\nNO ISSUES\n",
+    "wall_s": 13.1
+   }
+  },
+  "scripts_not_run": {
+   "tests/card_drift.mjs": "compares the card JavaScript at two git refs; identical for every Python mutant",
+   "tests/golden.py": "strict fixture comparison does not reproduce on this machine; env_drift --all stands in (as in CI drift mode)"
+  },
+  "scripts_quiet_window": [
+   "tests/backtest.py",
+   "tests/edge.py",
+   "tests/stress.py"
+  ],
+  "site": "if mean_price <= 1e-6:",
+  "survived": true,
+  "weight": 5
+ },
+ "M14": {
+  "closure": [
+   "tests/backtest.py",
+   "tests/card.mjs",
+   "tests/card_drift.mjs",
+   "tests/edge.py",
+   "tests/entities.py",
+   "tests/env_drift.py",
+   "tests/features.py",
+   "tests/golden.py",
+   "tests/manual_plan.py",
+   "tests/optimality.py",
+   "tests/plan_view.py",
+   "tests/solar_alignment.py",
+   "tests/stress.py",
+   "tests/validate.py"
+  ],
+  "commit": "28ea3c3",
+  "done": true,
+  "func": "InputReader.flag",
+  "id": "M14",
+  "killed_by": [
+   "tests/features.py"
+  ],
+  "kind": "guard_return",
+  "line": 565,
+  "module": "inputs.py",
+  "scripts": {
+   "tests/card.mjs": {
+    "cpu_s": 4.4,
+    "early_stop": false,
+    "fails": [],
+    "load1": 5.04,
+    "rc": 0,
+    "tail": "  ok    the picker survives the republish\n  ok    Assign on an untouched picker writes the slot's current entity, not a stale memo\n  ok    the card element defines at most 26 members of its own (26)\n  ok    the card markup gate's claim file is stamped for v6.2.14\n\nALL CARD CHECKS PASSED\n",
+    "wall_s": 3.0
+   },
+   "tests/entities.py": {
+    "cpu_s": 2.4,
+    "early_stop": false,
+    "fails": [],
+    "load1": 5.13,
+    "rc": 0,
+    "tail": "  ok   an empty may-drift list is always fine\n  ok   this tree's may-drift entries parse, with reasons\n  ok   and none of them leaks into the claim list\n  ok   this tree's own claim file passes the scope check\n\nALL 538 ENTITY CHECKS PASSED\n",
+    "wall_s": 2.4
+   },
+   "tests/env_drift.py": {
+    "cache_hit": true,
+    "cpu_s": 53.8,
+    "drift": [],
+    "load1": 5.13,
+    "n_drift": 0,
+    "rc": 0,
+    "tail": "e here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank_smart_write: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n\nNO UNCLAIMED DRIFT: 55 scenario(s) checked against c398fc84eec25fc44b60d74aae05b9a2da205884\n",
+    "wall_s": 54.2
+   },
+   "tests/features.py": {
+    "cpu_s": 1.2,
+    "early_stop": true,
+    "fails": [
+     "  FAIL the convenience accessors mirror value()  [an unusable or unread key falls back to the caller's default]"
+    ],
+    "load1": 4.58,
+    "rc": 1,
+    "tail": "  ok   parse_bool reads a real bool through\n  ok   parse_bool refuses a word it does not know\n  ok   parse_bool reads any non-zero number as yes\n  ok   a configured-but-unusable signal is visible in the health snapshot\n  ok   a never-configured signal is not held against the install\n  FAIL the convenience accessors mirror value()  [an unusable or unread key falls back to the caller's default]\n",
+    "wall_s": 1.2
+   },
+   "tests/manual_plan.py": {
+    "cpu_s": 3.4,
+    "early_stop": false,
+    "fails": [],
+    "load1": 4.55,
+    "rc": 0,
+    "tail": "  ok   a stored list payload is discarded, not raised\n  ok   a stored str payload is discarded, not raised\n  ok   a stored int payload is discarded, not raised\n  ok   the data dict omits manual_plan when none is active\n\nALL 71 manual plan checks PASSED\n",
+    "wall_s": 3.7
+   },
+   "tests/optimality.py": {
+    "cpu_s": 28.3,
+    "early_stop": false,
+    "fails": [],
+    "load1": 4.55,
+    "rc": 0,
+    "tail": "\n-- batched-FD jac on DHW-enabled solves (D9-01)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=False)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=True)\n\nALL 11 OPTIMALITY CHECKS PASSED\n",
+    "wall_s": 28.4
+   },
+   "tests/plan_view.py": {
+    "cpu_s": 0.7,
+    "early_stop": false,
+    "fails": [],
+    "load1": 5.04,
+    "rc": 0,
+    "tail": "dhw reasons  : ['dhw_preheat', 'dhw_window', 'idle']\nraw space kWh 34.64 raw dhw kWh 6.53\nslot-sum space kWh 34.64\nslot-sum dhw kWh 6.53\nwrote /private/tmp/claude-501/-Users-timmalmstrom-copilot-worktrees-heatpump-optimizer-tvofi-claude/674d54f9-28e0-459d-9cac-85fee64c0344/scratchpad/plandata-M14.json\nplan reason codes, price provenance and slot energy OK\n",
+    "wall_s": 0.7
+   },
+   "tests/solar_alignment.py": {
+    "cpu_s": 0.7,
+    "early_stop": false,
+    "fails": [],
+    "load1": 5.13,
+    "rc": 0,
+    "tail": "  ok   steps beyond the Open-Meteo horizon keep the weather entity value\n  ok   without Open-Meteo the weather entity is still used\n  ok   an unavailable Open-Meteo client does not zero the irradiance\n  ok   irradiance is never negative\n\nALL SOLAR ALIGNMENT CHECKS PASSED\n",
+    "wall_s": 0.8
+   },
+   "tests/validate.py": {
+    "cpu_s": 12.0,
+    "early_stop": false,
+    "fails": [],
+    "load1": 4.49,
+    "rc": 0,
+    "tail": "=== SPACE HEATING ONLY (DHW disabled) ===\nwinter, no DHW                     optimal  36.00kWh base= 110.03 cost=  23.28 sav= 52.9% room 17.1-20.9 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 2 kW= 6.0    49ms\nsummer, no DHW                     optimal   0.00kWh base=   0.00 cost=   0.00 sav=  0.0% room 21.0-25.7 dhw>=    - peak%=nan dhwpeak%=nan starts= 0 kW= 0.0    18ms\n2zone winter, no DHW               optimal  67.42kWh base= 137.14 cost=  58.30 sav= 47.8% room 17.6-21.5 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 4 kW= 6.0   716ms\n\nNO ISSUES\n",
+    "wall_s": 12.1
+   }
+  },
+  "scripts_not_run": {
+   "tests/card_drift.mjs": "compares the card JavaScript at two git refs; identical for every Python mutant",
+   "tests/golden.py": "strict fixture comparison does not reproduce on this machine; env_drift --all stands in (as in CI drift mode)"
+  },
+  "scripts_quiet_window": [
+   "tests/backtest.py",
+   "tests/edge.py",
+   "tests/stress.py"
+  ],
+  "site": "if reading is None or not reading.ok or reading.flag is None:",
+  "survived": false,
+  "weight": 12
+ },
+ "M15": {
+  "closure": [
+   "tests/backtest.py",
+   "tests/card.mjs",
+   "tests/card_drift.mjs",
+   "tests/edge.py",
+   "tests/entities.py",
+   "tests/env_drift.py",
+   "tests/features.py",
+   "tests/golden.py",
+   "tests/manual_plan.py",
+   "tests/optimality.py",
+   "tests/plan_view.py",
+   "tests/solar_alignment.py",
+   "tests/stress.py",
+   "tests/validate.py"
+  ],
+  "commit": "8b2ddb8",
+  "done": true,
+  "func": "InputReader._age_minutes",
+  "id": "M15",
+  "killed_by": [],
+  "kind": "clamp",
+  "line": 352,
+  "module": "inputs.py",
+  "scripts": {
+   "tests/card.mjs": {
+    "cpu_s": 3.8,
+    "early_stop": false,
+    "fails": [],
+    "load1": 4.37,
+    "rc": 0,
+    "tail": "  ok    the picker survives the republish\n  ok    Assign on an untouched picker writes the slot's current entity, not a stale memo\n  ok    the card element defines at most 26 members of its own (26)\n  ok    the card markup gate's claim file is stamped for v6.2.14\n\nALL CARD CHECKS PASSED\n",
+    "wall_s": 2.7
+   },
+   "tests/entities.py": {
+    "cpu_s": 2.1,
+    "early_stop": false,
+    "fails": [],
+    "load1": 4.37,
+    "rc": 0,
+    "tail": "  ok   an empty may-drift list is always fine\n  ok   this tree's may-drift entries parse, with reasons\n  ok   and none of them leaks into the claim list\n  ok   this tree's own claim file passes the scope check\n\nALL 538 ENTITY CHECKS PASSED\n",
+    "wall_s": 2.1
+   },
+   "tests/env_drift.py": {
+    "cache_hit": true,
+    "cpu_s": 52.1,
+    "drift": [],
+    "load1": 4.49,
+    "n_drift": 0,
+    "rc": 0,
+    "tail": "e here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank_smart_write: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n\nNO UNCLAIMED DRIFT: 55 scenario(s) checked against c398fc84eec25fc44b60d74aae05b9a2da205884\n",
+    "wall_s": 52.6
+   },
+   "tests/features.py": {
+    "cpu_s": 32.2,
+    "early_stop": false,
+    "fails": [
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):"
+    ],
+    "load1": 4.13,
+    "rc": 0,
+    "tail": "  ok   a second failed cycle counts the outage but keeps one staleness start\n  ok   the fabricated fallback forecast exists and is stale from birth\n  ok   a successful fetch clears the outage and the staleness\n  ok   an empty result keeps the previous forecast, marked stale\n\nALL 1557 FEATURE CHECKS PASSED\n",
+    "wall_s": 32.9
+   },
+   "tests/manual_plan.py": {
+    "cpu_s": 3.4,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.96,
+    "rc": 0,
+    "tail": "  ok   a stored list payload is discarded, not raised\n  ok   a stored str payload is discarded, not raised\n  ok   a stored int payload is discarded, not raised\n  ok   the data dict omits manual_plan when none is active\n\nALL 71 manual plan checks PASSED\n",
+    "wall_s": 3.7
+   },
+   "tests/optimality.py": {
+    "cpu_s": 26.8,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.96,
+    "rc": 0,
+    "tail": "\n-- batched-FD jac on DHW-enabled solves (D9-01)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=False)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=True)\n\nALL 11 OPTIMALITY CHECKS PASSED\n",
+    "wall_s": 26.8
+   },
+   "tests/plan_view.py": {
+    "cpu_s": 0.6,
+    "early_stop": false,
+    "fails": [],
+    "load1": 4.37,
+    "rc": 0,
+    "tail": "dhw reasons  : ['dhw_preheat', 'dhw_window', 'idle']\nraw space kWh 34.64 raw dhw kWh 6.53\nslot-sum space kWh 34.64\nslot-sum dhw kWh 6.53\nwrote /private/tmp/claude-501/-Users-timmalmstrom-copilot-worktrees-heatpump-optimizer-tvofi-claude/674d54f9-28e0-459d-9cac-85fee64c0344/scratchpad/plandata-M15.json\nplan reason codes, price provenance and slot energy OK\n",
+    "wall_s": 0.6
+   },
+   "tests/solar_alignment.py": {
+    "cpu_s": 0.6,
+    "early_stop": false,
+    "fails": [],
+    "load1": 4.49,
+    "rc": 0,
+    "tail": "  ok   steps beyond the Open-Meteo horizon keep the weather entity value\n  ok   without Open-Meteo the weather entity is still used\n  ok   an unavailable Open-Meteo client does not zero the irradiance\n  ok   irradiance is never negative\n\nALL SOLAR ALIGNMENT CHECKS PASSED\n",
+    "wall_s": 0.7
+   },
+   "tests/validate.py": {
+    "cpu_s": 12.9,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.97,
+    "rc": 0,
+    "tail": "=== SPACE HEATING ONLY (DHW disabled) ===\nwinter, no DHW                     optimal  36.00kWh base= 110.03 cost=  23.28 sav= 52.9% room 17.1-20.9 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 2 kW= 6.0    57ms\nsummer, no DHW                     optimal   0.00kWh base=   0.00 cost=   0.00 sav=  0.0% room 21.0-25.7 dhw>=    - peak%=nan dhwpeak%=nan starts= 0 kW= 0.0    21ms\n2zone winter, no DHW               optimal  67.42kWh base= 137.14 cost=  58.30 sav= 47.8% room 17.6-21.5 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 4 kW= 6.0   825ms\n\nNO ISSUES\n",
+    "wall_s": 13.0
+   }
+  },
+  "scripts_not_run": {
+   "tests/card_drift.mjs": "compares the card JavaScript at two git refs; identical for every Python mutant",
+   "tests/golden.py": "strict fixture comparison does not reproduce on this machine; env_drift --all stands in (as in CI drift mode)"
+  },
+  "scripts_quiet_window": [
+   "tests/backtest.py",
+   "tests/edge.py",
+   "tests/stress.py"
+  ],
+  "site": "max(0.0, (now - stamp).total_seconds() / 60.0)",
+  "survived": true,
+  "weight": 12
+ },
+ "M16": {
+  "closure": [
+   "tests/backtest.py",
+   "tests/card.mjs",
+   "tests/card_drift.mjs",
+   "tests/edge.py",
+   "tests/entities.py",
+   "tests/env_drift.py",
+   "tests/features.py",
+   "tests/golden.py",
+   "tests/manual_plan.py",
+   "tests/optimality.py",
+   "tests/plan_view.py",
+   "tests/solar_alignment.py",
+   "tests/stress.py",
+   "tests/validate.py"
+  ],
+  "commit": "9a7dce6",
+  "done": true,
+  "func": "_format_day_selector",
+  "id": "M16",
+  "killed_by": [
+   "tests/features.py"
+  ],
+  "kind": "guard_return",
+  "line": 103,
+  "module": "dhw_schedule.py",
+  "scripts": {
+   "tests/card.mjs": {
+    "cpu_s": 4.3,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.97,
+    "rc": 0,
+    "tail": "  ok    the picker survives the republish\n  ok    Assign on an untouched picker writes the slot's current entity, not a stale memo\n  ok    the card element defines at most 26 members of its own (26)\n  ok    the card markup gate's claim file is stamped for v6.2.14\n\nALL CARD CHECKS PASSED\n",
+    "wall_s": 3.1
+   },
+   "tests/entities.py": {
+    "cpu_s": 2.3,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.97,
+    "rc": 0,
+    "tail": "  ok   an empty may-drift list is always fine\n  ok   this tree's may-drift entries parse, with reasons\n  ok   and none of them leaks into the claim list\n  ok   this tree's own claim file passes the scope check\n\nALL 538 ENTITY CHECKS PASSED\n",
+    "wall_s": 2.3
+   },
+   "tests/env_drift.py": {
+    "cache_hit": true,
+    "cpu_s": 50.9,
+    "drift": [],
+    "load1": 3.97,
+    "n_drift": 0,
+    "rc": 0,
+    "tail": "e here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank_smart_write: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n\nNO UNCLAIMED DRIFT: 55 scenario(s) checked against c398fc84eec25fc44b60d74aae05b9a2da205884\n",
+    "wall_s": 51.4
+   },
+   "tests/features.py": {
+    "cpu_s": 1.4,
+    "early_stop": true,
+    "fails": [
+     "  FAIL and renders back to the string the user typed  [weekdays 06:00-08:30, Sa,Su 08:00-09:30]"
+    ],
+    "load1": 4.05,
+    "rc": 1,
+    "tail": "  ok   the measured COP correction also applies\n\n-- Weekly hot-water windows: different days, different times\n  ok   a flat spec carries no weekly structure\n  ok   the weekday/weekend split lands on the right days\n  FAIL and renders back to the string the user typed  [weekdays 06:00-08:30, Sa,Su 08:00-09:30]\n",
+    "wall_s": 1.4
+   },
+   "tests/manual_plan.py": {
+    "cpu_s": 3.5,
+    "early_stop": false,
+    "fails": [],
+    "load1": 4.06,
+    "rc": 0,
+    "tail": "  ok   a stored list payload is discarded, not raised\n  ok   a stored str payload is discarded, not raised\n  ok   a stored int payload is discarded, not raised\n  ok   the data dict omits manual_plan when none is active\n\nALL 71 manual plan checks PASSED\n",
+    "wall_s": 3.8
+   },
+   "tests/optimality.py": {
+    "cpu_s": 28.3,
+    "early_stop": false,
+    "fails": [],
+    "load1": 4.06,
+    "rc": 0,
+    "tail": "\n-- batched-FD jac on DHW-enabled solves (D9-01)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=False)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=True)\n\nALL 11 OPTIMALITY CHECKS PASSED\n",
+    "wall_s": 28.5
+   },
+   "tests/plan_view.py": {
+    "cpu_s": 0.7,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.97,
+    "rc": 0,
+    "tail": "dhw reasons  : ['dhw_preheat', 'dhw_window', 'idle']\nraw space kWh 34.64 raw dhw kWh 6.53\nslot-sum space kWh 34.64\nslot-sum dhw kWh 6.53\nwrote /private/tmp/claude-501/-Users-timmalmstrom-copilot-worktrees-heatpump-optimizer-tvofi-claude/674d54f9-28e0-459d-9cac-85fee64c0344/scratchpad/plandata-M16.json\nplan reason codes, price provenance and slot energy OK\n",
+    "wall_s": 0.7
+   },
+   "tests/solar_alignment.py": {
+    "cpu_s": 0.7,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.97,
+    "rc": 0,
+    "tail": "  ok   steps beyond the Open-Meteo horizon keep the weather entity value\n  ok   without Open-Meteo the weather entity is still used\n  ok   an unavailable Open-Meteo client does not zero the irradiance\n  ok   irradiance is never negative\n\nALL SOLAR ALIGNMENT CHECKS PASSED\n",
+    "wall_s": 0.8
+   },
+   "tests/validate.py": {
+    "cpu_s": 11.8,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.89,
+    "rc": 0,
+    "tail": "=== SPACE HEATING ONLY (DHW disabled) ===\nwinter, no DHW                     optimal  36.00kWh base= 110.03 cost=  23.28 sav= 52.9% room 17.1-20.9 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 2 kW= 6.0    55ms\nsummer, no DHW                     optimal   0.00kWh base=   0.00 cost=   0.00 sav=  0.0% room 21.0-25.7 dhw>=    - peak%=nan dhwpeak%=nan starts= 0 kW= 0.0    19ms\n2zone winter, no DHW               optimal  67.42kWh base= 137.14 cost=  58.30 sav= 47.8% room 17.6-21.5 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 4 kW= 6.0   747ms\n\nNO ISSUES\n",
+    "wall_s": 11.9
+   }
+  },
+  "scripts_not_run": {
+   "tests/card_drift.mjs": "compares the card JavaScript at two git refs; identical for every Python mutant",
+   "tests/golden.py": "strict fixture comparison does not reproduce on this machine; env_drift --all stands in (as in CI drift mode)"
+  },
+  "scripts_quiet_window": [
+   "tests/backtest.py",
+   "tests/edge.py",
+   "tests/stress.py"
+  ],
+  "site": "if ordered == [5, 6]:",
+  "survived": false,
+  "weight": 12
+ },
+ "M17": {
+  "closure": [
+   "tests/backtest.py",
+   "tests/card.mjs",
+   "tests/card_drift.mjs",
+   "tests/edge.py",
+   "tests/entities.py",
+   "tests/env_drift.py",
+   "tests/features.py",
+   "tests/golden.py",
+   "tests/manual_plan.py",
+   "tests/optimality.py",
+   "tests/plan_view.py",
+   "tests/solar_alignment.py",
+   "tests/stress.py",
+   "tests/validate.py"
+  ],
+  "commit": "be45221",
+  "done": true,
+  "func": "render_text_summary",
+  "id": "M17",
+  "killed_by": [
+   "tests/features.py"
+  ],
+  "kind": "general_if",
+  "line": 598,
+  "module": "topology.py",
+  "scripts": {
+   "tests/card.mjs": {
+    "cpu_s": 3.8,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.82,
+    "rc": 0,
+    "tail": "  ok    the picker survives the republish\n  ok    Assign on an untouched picker writes the slot's current entity, not a stale memo\n  ok    the card element defines at most 26 members of its own (26)\n  ok    the card markup gate's claim file is stamped for v6.2.14\n\nALL CARD CHECKS PASSED\n",
+    "wall_s": 2.7
+   },
+   "tests/entities.py": {
+    "cpu_s": 2.1,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.82,
+    "rc": 0,
+    "tail": "  ok   an empty may-drift list is always fine\n  ok   this tree's may-drift entries parse, with reasons\n  ok   and none of them leaks into the claim list\n  ok   this tree's own claim file passes the scope check\n\nALL 538 ENTITY CHECKS PASSED\n",
+    "wall_s": 2.2
+   },
+   "tests/env_drift.py": {
+    "cache_hit": true,
+    "cpu_s": 52.0,
+    "drift": [],
+    "load1": 3.89,
+    "n_drift": 0,
+    "rc": 0,
+    "tail": "e here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank_smart_write: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n\nNO UNCLAIMED DRIFT: 55 scenario(s) checked against c398fc84eec25fc44b60d74aae05b9a2da205884\n",
+    "wall_s": 52.4
+   },
+   "tests/features.py": {
+    "cpu_s": 10.9,
+    "early_stop": true,
+    "fails": [
+     "  FAIL the wood abstraction is admitted in prose where it still runs  [issue #40: a flue switch without a probe still folds wood heat into the heat-pump tank, and the summary must keep saying so]"
+    ],
+    "load1": 3.8,
+    "rc": 1,
+    "tail": "  ok   a temperature slot does not accept a switch\n  ok   the flow overview is a fenced monospaced block\n  ok   with configured sensors named and empty slots called out\n  ok   and the storage claim matches the model\n  ok   a modelled wood tank is claimed as its own store\n  FAIL the wood abstraction is admitted in prose where it still runs  [issue #40: a flue switch without a probe still folds wood heat into the heat-pump tank, and the summary must keep saying so]\n",
+    "wall_s": 11.0
+   },
+   "tests/manual_plan.py": {
+    "cpu_s": 3.3,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.75,
+    "rc": 0,
+    "tail": "  ok   a stored list payload is discarded, not raised\n  ok   a stored str payload is discarded, not raised\n  ok   a stored int payload is discarded, not raised\n  ok   the data dict omits manual_plan when none is active\n\nALL 71 manual plan checks PASSED\n",
+    "wall_s": 3.6
+   },
+   "tests/optimality.py": {
+    "cpu_s": 26.9,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.75,
+    "rc": 0,
+    "tail": "\n-- batched-FD jac on DHW-enabled solves (D9-01)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=False)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=True)\n\nALL 11 OPTIMALITY CHECKS PASSED\n",
+    "wall_s": 26.9
+   },
+   "tests/plan_view.py": {
+    "cpu_s": 0.6,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.82,
+    "rc": 0,
+    "tail": "dhw reasons  : ['dhw_preheat', 'dhw_window', 'idle']\nraw space kWh 34.64 raw dhw kWh 6.53\nslot-sum space kWh 34.64\nslot-sum dhw kWh 6.53\nwrote /private/tmp/claude-501/-Users-timmalmstrom-copilot-worktrees-heatpump-optimizer-tvofi-claude/674d54f9-28e0-459d-9cac-85fee64c0344/scratchpad/plandata-M17.json\nplan reason codes, price provenance and slot energy OK\n",
+    "wall_s": 0.6
+   },
+   "tests/solar_alignment.py": {
+    "cpu_s": 0.6,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.89,
+    "rc": 0,
+    "tail": "  ok   steps beyond the Open-Meteo horizon keep the weather entity value\n  ok   without Open-Meteo the weather entity is still used\n  ok   an unavailable Open-Meteo client does not zero the irradiance\n  ok   irradiance is never negative\n\nALL SOLAR ALIGNMENT CHECKS PASSED\n",
+    "wall_s": 0.6
+   },
+   "tests/validate.py": {
+    "cpu_s": 12.9,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.8,
+    "rc": 0,
+    "tail": "=== SPACE HEATING ONLY (DHW disabled) ===\nwinter, no DHW                     optimal  36.00kWh base= 110.03 cost=  23.28 sav= 52.9% room 17.1-20.9 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 2 kW= 6.0    54ms\nsummer, no DHW                     optimal   0.00kWh base=   0.00 cost=   0.00 sav=  0.0% room 21.0-25.7 dhw>=    - peak%=nan dhwpeak%=nan starts= 0 kW= 0.0    20ms\n2zone winter, no DHW               optimal  67.42kWh base= 137.14 cost=  58.30 sav= 47.8% room 17.6-21.5 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 4 kW= 6.0   803ms\n\nNO ISSUES\n",
+    "wall_s": 13.1
+   }
+  },
+  "scripts_not_run": {
+   "tests/card_drift.mjs": "compares the card JavaScript at two git refs; identical for every Python mutant",
+   "tests/golden.py": "strict fixture comparison does not reproduce on this machine; env_drift --all stands in (as in CI drift mode)"
+  },
+  "scripts_quiet_window": [
+   "tests/backtest.py",
+   "tests/edge.py",
+   "tests/stress.py"
+  ],
+  "site": "if not two_tank:",
+  "survived": false,
+  "weight": 2
+ },
+ "M18": {
+  "closure": [
+   "tests/backtest.py",
+   "tests/card.mjs",
+   "tests/card_drift.mjs",
+   "tests/edge.py",
+   "tests/entities.py",
+   "tests/env_drift.py",
+   "tests/features.py",
+   "tests/golden.py",
+   "tests/manual_plan.py",
+   "tests/optimality.py",
+   "tests/plan_view.py",
+   "tests/solar_alignment.py",
+   "tests/stress.py",
+   "tests/validate.py"
+  ],
+  "commit": "a51c64b",
+  "done": true,
+  "func": "ThermalParameters.dhw_max_temp",
+  "id": "M18",
+  "killed_by": [],
+  "kind": "clamp",
+  "line": 655,
+  "module": "thermal_model.py",
+  "scripts": {
+   "tests/card.mjs": {
+    "cpu_s": 3.8,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.91,
+    "rc": 0,
+    "tail": "  ok    the picker survives the republish\n  ok    Assign on an untouched picker writes the slot's current entity, not a stale memo\n  ok    the card element defines at most 26 members of its own (26)\n  ok    the card markup gate's claim file is stamped for v6.2.14\n\nALL CARD CHECKS PASSED\n",
+    "wall_s": 2.7
+   },
+   "tests/entities.py": {
+    "cpu_s": 2.1,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.9,
+    "rc": 0,
+    "tail": "  ok   an empty may-drift list is always fine\n  ok   this tree's may-drift entries parse, with reasons\n  ok   and none of them leaks into the claim list\n  ok   this tree's own claim file passes the scope check\n\nALL 538 ENTITY CHECKS PASSED\n",
+    "wall_s": 2.1
+   },
+   "tests/env_drift.py": {
+    "cache_hit": true,
+    "cpu_s": 50.9,
+    "drift": [],
+    "load1": 3.8,
+    "n_drift": 0,
+    "rc": 0,
+    "tail": "e here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank_smart_write: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n\nNO UNCLAIMED DRIFT: 55 scenario(s) checked against c398fc84eec25fc44b60d74aae05b9a2da205884\n",
+    "wall_s": 51.3
+   },
+   "tests/features.py": {
+    "cpu_s": 32.4,
+    "early_stop": false,
+    "fails": [
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):"
+    ],
+    "load1": 3.77,
+    "rc": 0,
+    "tail": "  ok   a second failed cycle counts the outage but keeps one staleness start\n  ok   the fabricated fallback forecast exists and is stale from birth\n  ok   a successful fetch clears the outage and the staleness\n  ok   an empty result keeps the previous forecast, marked stale\n\nALL 1557 FEATURE CHECKS PASSED\n",
+    "wall_s": 33.1
+   },
+   "tests/manual_plan.py": {
+    "cpu_s": 3.3,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.72,
+    "rc": 0,
+    "tail": "  ok   a stored list payload is discarded, not raised\n  ok   a stored str payload is discarded, not raised\n  ok   a stored int payload is discarded, not raised\n  ok   the data dict omits manual_plan when none is active\n\nALL 71 manual plan checks PASSED\n",
+    "wall_s": 3.6
+   },
+   "tests/optimality.py": {
+    "cpu_s": 27.7,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.78,
+    "rc": 0,
+    "tail": "\n-- batched-FD jac on DHW-enabled solves (D9-01)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=False)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=True)\n\nALL 11 OPTIMALITY CHECKS PASSED\n",
+    "wall_s": 27.7
+   },
+   "tests/plan_view.py": {
+    "cpu_s": 0.7,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.9,
+    "rc": 0,
+    "tail": "dhw reasons  : ['dhw_preheat', 'dhw_window', 'idle']\nraw space kWh 34.64 raw dhw kWh 6.53\nslot-sum space kWh 34.64\nslot-sum dhw kWh 6.53\nwrote /private/tmp/claude-501/-Users-timmalmstrom-copilot-worktrees-heatpump-optimizer-tvofi-claude/674d54f9-28e0-459d-9cac-85fee64c0344/scratchpad/plandata-M18.json\nplan reason codes, price provenance and slot energy OK\n",
+    "wall_s": 0.7
+   },
+   "tests/solar_alignment.py": {
+    "cpu_s": 0.6,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.8,
+    "rc": 0,
+    "tail": "  ok   steps beyond the Open-Meteo horizon keep the weather entity value\n  ok   without Open-Meteo the weather entity is still used\n  ok   an unavailable Open-Meteo client does not zero the irradiance\n  ok   irradiance is never negative\n\nALL SOLAR ALIGNMENT CHECKS PASSED\n",
+    "wall_s": 0.7
+   },
+   "tests/validate.py": {
+    "cpu_s": 13.0,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.76,
+    "rc": 0,
+    "tail": "=== SPACE HEATING ONLY (DHW disabled) ===\nwinter, no DHW                     optimal  36.00kWh base= 110.03 cost=  23.28 sav= 52.9% room 17.1-20.9 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 2 kW= 6.0    59ms\nsummer, no DHW                     optimal   0.00kWh base=   0.00 cost=   0.00 sav=  0.0% room 21.0-25.7 dhw>=    - peak%=nan dhwpeak%=nan starts= 0 kW= 0.0    22ms\n2zone winter, no DHW               optimal  67.42kWh base= 137.14 cost=  58.30 sav= 47.8% room 17.6-21.5 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 4 kW= 6.0   877ms\n\nNO ISSUES\n",
+    "wall_s": 13.1
+   }
+  },
+  "scripts_not_run": {
+   "tests/card_drift.mjs": "compares the card JavaScript at two git refs; identical for every Python mutant",
+   "tests/golden.py": "strict fixture comparison does not reproduce on this machine; env_drift --all stands in (as in CI drift mode)"
+  },
+  "scripts_quiet_window": [
+   "tests/backtest.py",
+   "tests/edge.py",
+   "tests/stress.py"
+  ],
+  "site": "min(70.0, self.dhw_setpoint)",
+  "survived": true,
+  "weight": 15
+ },
+ "M19": {
+  "closure": [
+   "tests/backtest.py",
+   "tests/card.mjs",
+   "tests/card_drift.mjs",
+   "tests/edge.py",
+   "tests/entities.py",
+   "tests/env_drift.py",
+   "tests/features.py",
+   "tests/golden.py",
+   "tests/manual_plan.py",
+   "tests/optimality.py",
+   "tests/plan_view.py",
+   "tests/solar_alignment.py",
+   "tests/stress.py",
+   "tests/validate.py"
+  ],
+  "commit": "2f5503d",
+  "done": true,
+  "func": "hours_until_next_window",
+  "id": "M19",
+  "killed_by": [],
+  "kind": "guard_return",
+  "line": 433,
+  "module": "dhw_schedule.py",
+  "scripts": {
+   "tests/card.mjs": {
+    "cpu_s": 4.2,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.73,
+    "rc": 0,
+    "tail": "  ok    the picker survives the republish\n  ok    Assign on an untouched picker writes the slot's current entity, not a stale memo\n  ok    the card element defines at most 26 members of its own (26)\n  ok    the card markup gate's claim file is stamped for v6.2.14\n\nALL CARD CHECKS PASSED\n",
+    "wall_s": 3.0
+   },
+   "tests/entities.py": {
+    "cpu_s": 2.3,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.7,
+    "rc": 0,
+    "tail": "  ok   an empty may-drift list is always fine\n  ok   this tree's may-drift entries parse, with reasons\n  ok   and none of them leaks into the claim list\n  ok   this tree's own claim file passes the scope check\n\nALL 538 ENTITY CHECKS PASSED\n",
+    "wall_s": 2.4
+   },
+   "tests/env_drift.py": {
+    "cache_hit": true,
+    "cpu_s": 52.0,
+    "drift": [],
+    "load1": 3.7,
+    "n_drift": 0,
+    "rc": 0,
+    "tail": "e here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank_smart_write: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n\nNO UNCLAIMED DRIFT: 55 scenario(s) checked against c398fc84eec25fc44b60d74aae05b9a2da205884\n",
+    "wall_s": 52.5
+   },
+   "tests/features.py": {
+    "cpu_s": 32.4,
+    "early_stop": false,
+    "fails": [
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):"
+    ],
+    "load1": 4.51,
+    "rc": 0,
+    "tail": "  ok   a second failed cycle counts the outage but keeps one staleness start\n  ok   the fabricated fallback forecast exists and is stale from birth\n  ok   a successful fetch clears the outage and the staleness\n  ok   an empty result keeps the previous forecast, marked stale\n\nALL 1557 FEATURE CHECKS PASSED\n",
+    "wall_s": 33.1
+   },
+   "tests/manual_plan.py": {
+    "cpu_s": 3.5,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.57,
+    "rc": 0,
+    "tail": "  ok   a stored list payload is discarded, not raised\n  ok   a stored str payload is discarded, not raised\n  ok   a stored int payload is discarded, not raised\n  ok   the data dict omits manual_plan when none is active\n\nALL 71 manual plan checks PASSED\n",
+    "wall_s": 3.8
+   },
+   "tests/optimality.py": {
+    "cpu_s": 28.2,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.62,
+    "rc": 0,
+    "tail": "\n-- batched-FD jac on DHW-enabled solves (D9-01)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=False)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=True)\n\nALL 11 OPTIMALITY CHECKS PASSED\n",
+    "wall_s": 28.2
+   },
+   "tests/plan_view.py": {
+    "cpu_s": 0.7,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.73,
+    "rc": 0,
+    "tail": "dhw reasons  : ['dhw_preheat', 'dhw_window', 'idle']\nraw space kWh 34.64 raw dhw kWh 6.53\nslot-sum space kWh 34.64\nslot-sum dhw kWh 6.53\nwrote /private/tmp/claude-501/-Users-timmalmstrom-copilot-worktrees-heatpump-optimizer-tvofi-claude/674d54f9-28e0-459d-9cac-85fee64c0344/scratchpad/plandata-M19.json\nplan reason codes, price provenance and slot energy OK\n",
+    "wall_s": 0.7
+   },
+   "tests/solar_alignment.py": {
+    "cpu_s": 0.7,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.7,
+    "rc": 0,
+    "tail": "  ok   steps beyond the Open-Meteo horizon keep the weather entity value\n  ok   without Open-Meteo the weather entity is still used\n  ok   an unavailable Open-Meteo client does not zero the irradiance\n  ok   irradiance is never negative\n\nALL SOLAR ALIGNMENT CHECKS PASSED\n",
+    "wall_s": 0.8
+   },
+   "tests/validate.py": {
+    "cpu_s": 12.9,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.63,
+    "rc": 0,
+    "tail": "=== SPACE HEATING ONLY (DHW disabled) ===\nwinter, no DHW                     optimal  36.00kWh base= 110.03 cost=  23.28 sav= 52.9% room 17.1-20.9 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 2 kW= 6.0    57ms\nsummer, no DHW                     optimal   0.00kWh base=   0.00 cost=   0.00 sav=  0.0% room 21.0-25.7 dhw>=    - peak%=nan dhwpeak%=nan starts= 0 kW= 0.0    22ms\n2zone winter, no DHW               optimal  67.42kWh base= 137.14 cost=  58.30 sav= 47.8% room 17.6-21.5 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 4 kW= 6.0   821ms\n\nNO ISSUES\n",
+    "wall_s": 13.0
+   }
+  },
+  "scripts_not_run": {
+   "tests/card_drift.mjs": "compares the card JavaScript at two git refs; identical for every Python mutant",
+   "tests/golden.py": "strict fixture comparison does not reproduce on this machine; env_drift --all stands in (as in CI drift mode)"
+  },
+  "scripts_quiet_window": [
+   "tests/backtest.py",
+   "tests/edge.py",
+   "tests/stress.py"
+  ],
+  "site": "if hour_in_windows(hour, windows):",
+  "survived": true,
+  "weight": 12
+ },
+ "M20": {
+  "closure": [
+   "tests/backtest.py",
+   "tests/card.mjs",
+   "tests/card_drift.mjs",
+   "tests/edge.py",
+   "tests/entities.py",
+   "tests/env_drift.py",
+   "tests/features.py",
+   "tests/golden.py",
+   "tests/manual_plan.py",
+   "tests/optimality.py",
+   "tests/plan_view.py",
+   "tests/solar_alignment.py",
+   "tests/stress.py",
+   "tests/validate.py"
+  ],
+  "commit": "9c4429a",
+  "done": true,
+  "func": "interpret_presence",
+  "id": "M20",
+  "killed_by": [
+   "tests/features.py"
+  ],
+  "kind": "general_if",
+  "line": 141,
+  "module": "away.py",
+  "scripts": {
+   "tests/card.mjs": {
+    "cpu_s": 4.3,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.78,
+    "rc": 0,
+    "tail": "  ok    the picker survives the republish\n  ok    Assign on an untouched picker writes the slot's current entity, not a stale memo\n  ok    the card element defines at most 26 members of its own (26)\n  ok    the card markup gate's claim file is stamped for v6.2.14\n\nALL CARD CHECKS PASSED\n",
+    "wall_s": 3.0
+   },
+   "tests/entities.py": {
+    "cpu_s": 2.3,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.58,
+    "rc": 0,
+    "tail": "  ok   an empty may-drift list is always fine\n  ok   this tree's may-drift entries parse, with reasons\n  ok   and none of them leaks into the claim list\n  ok   this tree's own claim file passes the scope check\n\nALL 538 ENTITY CHECKS PASSED\n",
+    "wall_s": 2.4
+   },
+   "tests/env_drift.py": {
+    "cache_hit": true,
+    "cpu_s": 53.4,
+    "drift": [],
+    "load1": 3.58,
+    "n_drift": 0,
+    "rc": 0,
+    "tail": "e here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank_smart_write: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n\nNO UNCLAIMED DRIFT: 55 scenario(s) checked against c398fc84eec25fc44b60d74aae05b9a2da205884\n",
+    "wall_s": 53.8
+   },
+   "tests/features.py": {
+    "cpu_s": 1.4,
+    "early_stop": true,
+    "fails": [
+     "  FAIL a presence-class binary sensor being on means home  [presence semantics are the inverse of a toggle; reading on as away deep-setbacks an occupied house]"
+    ],
+    "load1": 4.36,
+    "rc": 1,
+    "tail": "  ok   a person being not_home means away\n  ok   a person being home does not\n  ok   a named zone still counts as away\n  ok   a holiday toggle being on means away\n  ok   an unknown state means unknown, not away\n  FAIL a presence-class binary sensor being on means home  [presence semantics are the inverse of a toggle; reading on as away deep-setbacks an occupied house]\n",
+    "wall_s": 1.4
+   },
+   "tests/manual_plan.py": {
+    "cpu_s": 3.3,
+    "early_stop": false,
+    "fails": [],
+    "load1": 4.3,
+    "rc": 0,
+    "tail": "  ok   a stored list payload is discarded, not raised\n  ok   a stored str payload is discarded, not raised\n  ok   a stored int payload is discarded, not raised\n  ok   the data dict omits manual_plan when none is active\n\nALL 71 manual plan checks PASSED\n",
+    "wall_s": 3.6
+   },
+   "tests/optimality.py": {
+    "cpu_s": 28.4,
+    "early_stop": false,
+    "fails": [],
+    "load1": 4.3,
+    "rc": 0,
+    "tail": "\n-- batched-FD jac on DHW-enabled solves (D9-01)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=False)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=True)\n\nALL 11 OPTIMALITY CHECKS PASSED\n",
+    "wall_s": 28.4
+   },
+   "tests/plan_view.py": {
+    "cpu_s": 0.7,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.58,
+    "rc": 0,
+    "tail": "dhw reasons  : ['dhw_preheat', 'dhw_window', 'idle']\nraw space kWh 34.64 raw dhw kWh 6.53\nslot-sum space kWh 34.64\nslot-sum dhw kWh 6.53\nwrote /private/tmp/claude-501/-Users-timmalmstrom-copilot-worktrees-heatpump-optimizer-tvofi-claude/674d54f9-28e0-459d-9cac-85fee64c0344/scratchpad/plandata-M20.json\nplan reason codes, price provenance and slot energy OK\n",
+    "wall_s": 0.7
+   },
+   "tests/solar_alignment.py": {
+    "cpu_s": 0.7,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.58,
+    "rc": 0,
+    "tail": "  ok   steps beyond the Open-Meteo horizon keep the weather entity value\n  ok   without Open-Meteo the weather entity is still used\n  ok   an unavailable Open-Meteo client does not zero the irradiance\n  ok   irradiance is never negative\n\nALL SOLAR ALIGNMENT CHECKS PASSED\n",
+    "wall_s": 0.8
+   },
+   "tests/validate.py": {
+    "cpu_s": 12.0,
+    "early_stop": false,
+    "fails": [],
+    "load1": 4.3,
+    "rc": 0,
+    "tail": "=== SPACE HEATING ONLY (DHW disabled) ===\nwinter, no DHW                     optimal  36.00kWh base= 110.03 cost=  23.28 sav= 52.9% room 17.1-20.9 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 2 kW= 6.0    53ms\nsummer, no DHW                     optimal   0.00kWh base=   0.00 cost=   0.00 sav=  0.0% room 21.0-25.7 dhw>=    - peak%=nan dhwpeak%=nan starts= 0 kW= 0.0    19ms\n2zone winter, no DHW               optimal  67.42kWh base= 137.14 cost=  58.30 sav= 47.8% room 17.6-21.5 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 4 kW= 6.0   742ms\n\nNO ISSUES\n",
+    "wall_s": 12.1
+   }
+  },
+  "scripts_not_run": {
+   "tests/card_drift.mjs": "compares the card JavaScript at two git refs; identical for every Python mutant",
+   "tests/golden.py": "strict fixture comparison does not reproduce on this machine; env_drift --all stands in (as in CI drift mode)"
+  },
+  "scripts_quiet_window": [
+   "tests/backtest.py",
+   "tests/edge.py",
+   "tests/stress.py"
+  ],
+  "site": "if domain == \"binary_sensor\":",
+  "survived": false,
+  "weight": 3
+ },
+ "M21": {
+  "closure": [
+   "tests/backtest.py",
+   "tests/card.mjs",
+   "tests/card_drift.mjs",
+   "tests/edge.py",
+   "tests/entities.py",
+   "tests/env_drift.py",
+   "tests/features.py",
+   "tests/golden.py",
+   "tests/manual_plan.py",
+   "tests/optimality.py",
+   "tests/plan_view.py",
+   "tests/solar_alignment.py",
+   "tests/stress.py",
+   "tests/validate.py"
+  ],
+  "commit": "77e68f2",
+  "done": true,
+  "func": "AccuracyTracker.from_dict",
+  "id": "M21",
+  "killed_by": [],
+  "kind": "except_handler",
+  "line": 382,
+  "module": "accuracy.py",
+  "scripts": {
+   "tests/card.mjs": {
+    "cpu_s": 3.8,
+    "early_stop": false,
+    "fails": [],
+    "load1": 4.2,
+    "rc": 0,
+    "tail": "  ok    the picker survives the republish\n  ok    Assign on an untouched picker writes the slot's current entity, not a stale memo\n  ok    the card element defines at most 26 members of its own (26)\n  ok    the card markup gate's claim file is stamped for v6.2.14\n\nALL CARD CHECKS PASSED\n",
+    "wall_s": 2.7
+   },
+   "tests/entities.py": {
+    "cpu_s": 2.1,
+    "early_stop": false,
+    "fails": [],
+    "load1": 4.2,
+    "rc": 0,
+    "tail": "  ok   an empty may-drift list is always fine\n  ok   this tree's may-drift entries parse, with reasons\n  ok   and none of them leaks into the claim list\n  ok   this tree's own claim file passes the scope check\n\nALL 538 ENTITY CHECKS PASSED\n",
+    "wall_s": 2.1
+   },
+   "tests/env_drift.py": {
+    "cache_hit": true,
+    "cpu_s": 52.2,
+    "drift": [],
+    "load1": 4.3,
+    "n_drift": 0,
+    "rc": 0,
+    "tail": "e here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank_smart_write: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n\nNO UNCLAIMED DRIFT: 55 scenario(s) checked against c398fc84eec25fc44b60d74aae05b9a2da205884\n",
+    "wall_s": 52.6
+   },
+   "tests/features.py": {
+    "cpu_s": 32.4,
+    "early_stop": false,
+    "fails": [
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):"
+    ],
+    "load1": 4.03,
+    "rc": 0,
+    "tail": "  ok   a second failed cycle counts the outage but keeps one staleness start\n  ok   the fabricated fallback forecast exists and is stale from birth\n  ok   a successful fetch clears the outage and the staleness\n  ok   an empty result keeps the previous forecast, marked stale\n\nALL 1557 FEATURE CHECKS PASSED\n",
+    "wall_s": 33.1
+   },
+   "tests/manual_plan.py": {
+    "cpu_s": 3.3,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.81,
+    "rc": 0,
+    "tail": "  ok   a stored list payload is discarded, not raised\n  ok   a stored str payload is discarded, not raised\n  ok   a stored int payload is discarded, not raised\n  ok   the data dict omits manual_plan when none is active\n\nALL 71 manual plan checks PASSED\n",
+    "wall_s": 3.6
+   },
+   "tests/optimality.py": {
+    "cpu_s": 26.7,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.81,
+    "rc": 0,
+    "tail": "\n-- batched-FD jac on DHW-enabled solves (D9-01)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=False)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=True)\n\nALL 11 OPTIMALITY CHECKS PASSED\n",
+    "wall_s": 26.8
+   },
+   "tests/plan_view.py": {
+    "cpu_s": 0.6,
+    "early_stop": false,
+    "fails": [],
+    "load1": 4.2,
+    "rc": 0,
+    "tail": "dhw reasons  : ['dhw_preheat', 'dhw_window', 'idle']\nraw space kWh 34.64 raw dhw kWh 6.53\nslot-sum space kWh 34.64\nslot-sum dhw kWh 6.53\nwrote /private/tmp/claude-501/-Users-timmalmstrom-copilot-worktrees-heatpump-optimizer-tvofi-claude/674d54f9-28e0-459d-9cac-85fee64c0344/scratchpad/plandata-M21.json\nplan reason codes, price provenance and slot energy OK\n",
+    "wall_s": 0.6
+   },
+   "tests/solar_alignment.py": {
+    "cpu_s": 0.6,
+    "early_stop": false,
+    "fails": [],
+    "load1": 4.3,
+    "rc": 0,
+    "tail": "  ok   steps beyond the Open-Meteo horizon keep the weather entity value\n  ok   without Open-Meteo the weather entity is still used\n  ok   an unavailable Open-Meteo client does not zero the irradiance\n  ok   irradiance is never negative\n\nALL SOLAR ALIGNMENT CHECKS PASSED\n",
+    "wall_s": 0.7
+   },
+   "tests/validate.py": {
+    "cpu_s": 13.0,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.85,
+    "rc": 0,
+    "tail": "=== SPACE HEATING ONLY (DHW disabled) ===\nwinter, no DHW                     optimal  36.00kWh base= 110.03 cost=  23.28 sav= 52.9% room 17.1-20.9 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 2 kW= 6.0    58ms\nsummer, no DHW                     optimal   0.00kWh base=   0.00 cost=   0.00 sav=  0.0% room 21.0-25.7 dhw>=    - peak%=nan dhwpeak%=nan starts= 0 kW= 0.0    21ms\n2zone winter, no DHW               optimal  67.42kWh base= 137.14 cost=  58.30 sav= 47.8% room 17.6-21.5 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 4 kW= 6.0   838ms\n\nNO ISSUES\n",
+    "wall_s": 13.1
+   }
+  },
+  "scripts_not_run": {
+   "tests/card_drift.mjs": "compares the card JavaScript at two git refs; identical for every Python mutant",
+   "tests/golden.py": "strict fixture comparison does not reproduce on this machine; env_drift --all stands in (as in CI drift mode)"
+  },
+  "scripts_quiet_window": [
+   "tests/backtest.py",
+   "tests/edge.py",
+   "tests/stress.py"
+  ],
+  "site": "except (TypeError, ValueError):",
+  "survived": true,
+  "weight": 4
+ },
+ "M22": {
+  "closure": [
+   "tests/backtest.py",
+   "tests/card.mjs",
+   "tests/card_drift.mjs",
+   "tests/edge.py",
+   "tests/entities.py",
+   "tests/env_drift.py",
+   "tests/features.py",
+   "tests/golden.py",
+   "tests/manual_plan.py",
+   "tests/optimality.py",
+   "tests/plan_view.py",
+   "tests/solar_alignment.py",
+   "tests/stress.py",
+   "tests/validate.py"
+  ],
+  "commit": "8a70f83",
+  "done": true,
+  "func": "SnapshotRing.best_restore",
+  "id": "M22",
+  "killed_by": [],
+  "kind": "general_if",
+  "line": 185,
+  "module": "snapshots.py",
+  "scripts": {
+   "tests/card.mjs": {
+    "cpu_s": 4.4,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.94,
+    "rc": 0,
+    "tail": "  ok    the picker survives the republish\n  ok    Assign on an untouched picker writes the slot's current entity, not a stale memo\n  ok    the card element defines at most 26 members of its own (26)\n  ok    the card markup gate's claim file is stamped for v6.2.14\n\nALL CARD CHECKS PASSED\n",
+    "wall_s": 3.1
+   },
+   "tests/entities.py": {
+    "cpu_s": 2.3,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.94,
+    "rc": 0,
+    "tail": "  ok   an empty may-drift list is always fine\n  ok   this tree's may-drift entries parse, with reasons\n  ok   and none of them leaks into the claim list\n  ok   this tree's own claim file passes the scope check\n\nALL 538 ENTITY CHECKS PASSED\n",
+    "wall_s": 2.4
+   },
+   "tests/env_drift.py": {
+    "cache_hit": true,
+    "cpu_s": 51.2,
+    "drift": [],
+    "load1": 3.85,
+    "n_drift": 0,
+    "rc": 0,
+    "tail": "e here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank_smart_write: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n\nNO UNCLAIMED DRIFT: 55 scenario(s) checked against c398fc84eec25fc44b60d74aae05b9a2da205884\n",
+    "wall_s": 51.6
+   },
+   "tests/features.py": {
+    "cpu_s": 30.6,
+    "early_stop": false,
+    "fails": [
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):"
+    ],
+    "load1": 3.98,
+    "rc": 0,
+    "tail": "  ok   a second failed cycle counts the outage but keeps one staleness start\n  ok   the fabricated fallback forecast exists and is stale from birth\n  ok   a successful fetch clears the outage and the staleness\n  ok   an empty result keeps the previous forecast, marked stale\n\nALL 1557 FEATURE CHECKS PASSED\n",
+    "wall_s": 31.3
+   },
+   "tests/manual_plan.py": {
+    "cpu_s": 3.3,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.87,
+    "rc": 0,
+    "tail": "  ok   a stored list payload is discarded, not raised\n  ok   a stored str payload is discarded, not raised\n  ok   a stored int payload is discarded, not raised\n  ok   the data dict omits manual_plan when none is active\n\nALL 71 manual plan checks PASSED\n",
+    "wall_s": 3.6
+   },
+   "tests/optimality.py": {
+    "cpu_s": 28.3,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.87,
+    "rc": 0,
+    "tail": "\n-- batched-FD jac on DHW-enabled solves (D9-01)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=False)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=True)\n\nALL 11 OPTIMALITY CHECKS PASSED\n",
+    "wall_s": 28.4
+   },
+   "tests/plan_view.py": {
+    "cpu_s": 0.7,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.94,
+    "rc": 0,
+    "tail": "dhw reasons  : ['dhw_preheat', 'dhw_window', 'idle']\nraw space kWh 34.64 raw dhw kWh 6.53\nslot-sum space kWh 34.64\nslot-sum dhw kWh 6.53\nwrote /private/tmp/claude-501/-Users-timmalmstrom-copilot-worktrees-heatpump-optimizer-tvofi-claude/674d54f9-28e0-459d-9cac-85fee64c0344/scratchpad/plandata-M22.json\nplan reason codes, price provenance and slot energy OK\n",
+    "wall_s": 0.7
+   },
+   "tests/solar_alignment.py": {
+    "cpu_s": 0.7,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.94,
+    "rc": 0,
+    "tail": "  ok   steps beyond the Open-Meteo horizon keep the weather entity value\n  ok   without Open-Meteo the weather entity is still used\n  ok   an unavailable Open-Meteo client does not zero the irradiance\n  ok   irradiance is never negative\n\nALL SOLAR ALIGNMENT CHECKS PASSED\n",
+    "wall_s": 0.8
+   },
+   "tests/validate.py": {
+    "cpu_s": 13.0,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.98,
+    "rc": 0,
+    "tail": "=== SPACE HEATING ONLY (DHW disabled) ===\nwinter, no DHW                     optimal  36.00kWh base= 110.03 cost=  23.28 sav= 52.9% room 17.1-20.9 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 2 kW= 6.0    59ms\nsummer, no DHW                     optimal   0.00kWh base=   0.00 cost=   0.00 sav=  0.0% room 21.0-25.7 dhw>=    - peak%=nan dhwpeak%=nan starts= 0 kW= 0.0    21ms\n2zone winter, no DHW               optimal  67.42kWh base= 137.14 cost=  58.30 sav= 47.8% room 17.6-21.5 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 4 kW= 6.0   828ms\n\nNO ISSUES\n",
+    "wall_s": 13.1
+   }
+  },
+  "scripts_not_run": {
+   "tests/card_drift.mjs": "compares the card JavaScript at two git refs; identical for every Python mutant",
+   "tests/golden.py": "strict fixture comparison does not reproduce on this machine; env_drift --all stands in (as in CI drift mode)"
+  },
+  "scripts_quiet_window": [
+   "tests/backtest.py",
+   "tests/edge.py",
+   "tests/stress.py"
+  ],
+  "site": "if accuracy is not None:",
+  "survived": true,
+  "weight": 2
+ },
+ "M23": {
+  "closure": [
+   "tests/entities.py",
+   "tests/env_drift.py",
+   "tests/golden.py"
+  ],
+  "commit": "76f0356",
+  "done": true,
+  "func": "_AccumulatingSensor.extra_state_attributes",
+  "id": "M23",
+  "killed_by": [
+   "tests/entities.py"
+  ],
+  "kind": "general_if",
+  "line": 1515,
+  "module": "sensor.py",
+  "scripts": {
+   "tests/entities.py": {
+    "cpu_s": 0.7,
+    "early_stop": false,
+    "fails": [
+     "Traceback (most recent call last):"
+    ],
+    "load1": 3.98,
+    "rc": 1,
+    "tail": "  ok   and carry this month's figures next to the lifetime state\nTraceback (most recent call last):\n  File \"/private/tmp/claude-501/-Users-timmalmstrom-copilot-worktrees-heatpump-optimizer-tvofi-claude/674d54f9-28e0-459d-9cac-85fee64c0344/scratchpad/tree-M23/tests/entities.py\", line 408, in <module>\n    _hwc[\"counting_since\"] == \"2026-08-15\",\n    ~~~~^^^^^^^^^^^^^^^^^^\nKeyError: 'counting_since'\n",
+    "wall_s": 0.8
+   },
+   "tests/env_drift.py": {
+    "cache_hit": true,
+    "cpu_s": 53.4,
+    "drift": [],
+    "load1": 3.98,
+    "n_drift": 0,
+    "rc": 0,
+    "tail": "e here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank_smart_write: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n\nNO UNCLAIMED DRIFT: 55 scenario(s) checked against c398fc84eec25fc44b60d74aae05b9a2da205884\n",
+    "wall_s": 53.9
+   }
+  },
+  "scripts_not_run": {
+   "tests/golden.py": "strict fixture comparison does not reproduce on this machine; env_drift --all stands in (as in CI drift mode)"
+  },
+  "scripts_quiet_window": [],
+  "site": "if since:",
+  "survived": false,
+  "weight": 3
+ },
+ "M24": {
+  "closure": [
+   "tests/backtest.py",
+   "tests/card.mjs",
+   "tests/card_drift.mjs",
+   "tests/edge.py",
+   "tests/entities.py",
+   "tests/env_drift.py",
+   "tests/features.py",
+   "tests/golden.py",
+   "tests/manual_plan.py",
+   "tests/optimality.py",
+   "tests/plan_view.py",
+   "tests/solar_alignment.py",
+   "tests/stress.py",
+   "tests/validate.py"
+  ],
+  "commit": "a6eac39",
+  "done": true,
+  "func": "_parse_time",
+  "id": "M24",
+  "killed_by": [
+   "tests/features.py"
+  ],
+  "kind": "guard_return",
+  "line": 131,
+  "module": "dhw_schedule.py",
+  "scripts": {
+   "tests/card.mjs": {
+    "cpu_s": 3.5,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.16,
+    "rc": 0,
+    "tail": "  ok    the picker survives the republish\n  ok    Assign on an untouched picker writes the slot's current entity, not a stale memo\n  ok    the card element defines at most 26 members of its own (26)\n  ok    the card markup gate's claim file is stamped for v6.2.14\n\nALL CARD CHECKS PASSED\n",
+    "wall_s": 2.5
+   },
+   "tests/entities.py": {
+    "cpu_s": 2.0,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.18,
+    "rc": 0,
+    "tail": "  ok   an empty may-drift list is always fine\n  ok   this tree's may-drift entries parse, with reasons\n  ok   and none of them leaks into the claim list\n  ok   this tree's own claim file passes the scope check\n\nALL 538 ENTITY CHECKS PASSED\n",
+    "wall_s": 2.0
+   },
+   "tests/env_drift.py": {
+    "cache_hit": true,
+    "cpu_s": 46.0,
+    "drift": [],
+    "load1": 3.18,
+    "n_drift": 0,
+    "rc": 0,
+    "tail": "e here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank_smart_write: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n\nNO UNCLAIMED DRIFT: 55 scenario(s) checked against c398fc84eec25fc44b60d74aae05b9a2da205884\n",
+    "wall_s": 46.4
+   },
+   "tests/features.py": {
+    "cpu_s": 1.4,
+    "early_stop": true,
+    "fails": [
+     "  FAIL a malformed weekly spec raises, not silently empties ('Mo 25:00-26:00')"
+    ],
+    "load1": 3.48,
+    "rc": 1,
+    "tail": "  ok   single days and day lists name exactly their own days\n  ok   the rendered form re-parses to the same structure\n  ok   a dayless segment inside a weekly spec applies to every day\n  ok   a wrapping weekly window splits at midnight like the flat one\n  ok   a day with no segment has no windows -- no requirement that day\n  FAIL a malformed weekly spec raises, not silently empties ('Mo 25:00-26:00')\n",
+    "wall_s": 1.4
+   },
+   "tests/manual_plan.py": {
+    "cpu_s": 3.3,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.48,
+    "rc": 0,
+    "tail": "  ok   a stored list payload is discarded, not raised\n  ok   a stored str payload is discarded, not raised\n  ok   a stored int payload is discarded, not raised\n  ok   the data dict omits manual_plan when none is active\n\nALL 71 manual plan checks PASSED\n",
+    "wall_s": 3.6
+   },
+   "tests/optimality.py": {
+    "cpu_s": 26.0,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.26,
+    "rc": 0,
+    "tail": "\n-- batched-FD jac on DHW-enabled solves (D9-01)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=False)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=True)\n\nALL 11 OPTIMALITY CHECKS PASSED\n",
+    "wall_s": 26.0
+   },
+   "tests/plan_view.py": {
+    "cpu_s": 0.6,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.18,
+    "rc": 0,
+    "tail": "dhw reasons  : ['dhw_preheat', 'dhw_window', 'idle']\nraw space kWh 34.64 raw dhw kWh 6.53\nslot-sum space kWh 34.64\nslot-sum dhw kWh 6.53\nwrote /private/tmp/claude-501/-Users-timmalmstrom-copilot-worktrees-heatpump-optimizer-tvofi-claude/674d54f9-28e0-459d-9cac-85fee64c0344/scratchpad/plandata-M24.json\nplan reason codes, price provenance and slot energy OK\n",
+    "wall_s": 0.6
+   },
+   "tests/solar_alignment.py": {
+    "cpu_s": 0.6,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.18,
+    "rc": 0,
+    "tail": "  ok   steps beyond the Open-Meteo horizon keep the weather entity value\n  ok   without Open-Meteo the weather entity is still used\n  ok   an unavailable Open-Meteo client does not zero the irradiance\n  ok   irradiance is never negative\n\nALL SOLAR ALIGNMENT CHECKS PASSED\n",
+    "wall_s": 0.7
+   },
+   "tests/validate.py": {
+    "cpu_s": 11.7,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.57,
+    "rc": 0,
+    "tail": "=== SPACE HEATING ONLY (DHW disabled) ===\nwinter, no DHW                     optimal  36.00kWh base= 110.03 cost=  23.28 sav= 52.9% room 17.1-20.9 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 2 kW= 6.0    52ms\nsummer, no DHW                     optimal   0.00kWh base=   0.00 cost=   0.00 sav=  0.0% room 21.0-25.7 dhw>=    - peak%=nan dhwpeak%=nan starts= 0 kW= 0.0    19ms\n2zone winter, no DHW               optimal  67.42kWh base= 137.14 cost=  58.30 sav= 47.8% room 17.6-21.5 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 4 kW= 6.0   716ms\n\nNO ISSUES\n",
+    "wall_s": 11.8
+   }
+  },
+  "scripts_not_run": {
+   "tests/card_drift.mjs": "compares the card JavaScript at two git refs; identical for every Python mutant",
+   "tests/golden.py": "strict fixture comparison does not reproduce on this machine; env_drift --all stands in (as in CI drift mode)"
+  },
+  "scripts_quiet_window": [
+   "tests/backtest.py",
+   "tests/edge.py",
+   "tests/stress.py"
+  ],
+  "site": "if hour > 23:",
+  "survived": false,
+  "weight": 12
+ },
+ "M25": {
+  "closure": [
+   "tests/backtest.py",
+   "tests/card.mjs",
+   "tests/card_drift.mjs",
+   "tests/edge.py",
+   "tests/entities.py",
+   "tests/env_drift.py",
+   "tests/features.py",
+   "tests/golden.py",
+   "tests/manual_plan.py",
+   "tests/optimality.py",
+   "tests/plan_view.py",
+   "tests/solar_alignment.py",
+   "tests/stress.py",
+   "tests/validate.py"
+  ],
+  "commit": "617bac9",
+  "done": true,
+  "func": "parse_weekly_windows",
+  "id": "M25",
+  "killed_by": [
+   "tests/features.py"
+  ],
+  "kind": "general_if",
+  "line": 272,
+  "module": "dhw_schedule.py",
+  "scripts": {
+   "tests/card.mjs": {
+    "cpu_s": 3.8,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.4,
+    "rc": 0,
+    "tail": "  ok    the picker survives the republish\n  ok    Assign on an untouched picker writes the slot's current entity, not a stale memo\n  ok    the card element defines at most 26 members of its own (26)\n  ok    the card markup gate's claim file is stamped for v6.2.14\n\nALL CARD CHECKS PASSED\n",
+    "wall_s": 2.7
+   },
+   "tests/entities.py": {
+    "cpu_s": 2.0,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.44,
+    "rc": 0,
+    "tail": "  ok   an empty may-drift list is always fine\n  ok   this tree's may-drift entries parse, with reasons\n  ok   and none of them leaks into the claim list\n  ok   this tree's own claim file passes the scope check\n\nALL 538 ENTITY CHECKS PASSED\n",
+    "wall_s": 2.0
+   },
+   "tests/env_drift.py": {
+    "cache_hit": true,
+    "cpu_s": 48.7,
+    "drift": [],
+    "load1": 3.44,
+    "n_drift": 0,
+    "rc": 0,
+    "tail": "e here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank_smart_write: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n\nNO UNCLAIMED DRIFT: 55 scenario(s) checked against c398fc84eec25fc44b60d74aae05b9a2da205884\n",
+    "wall_s": 49.1
+   },
+   "tests/features.py": {
+    "cpu_s": 0.6,
+    "early_stop": true,
+    "fails": [
+     "  FAIL the weekday/weekend split lands on the right days  [None]"
+    ],
+    "load1": 3.3,
+    "rc": 1,
+    "tail": "  ok   the learned derate lowers the COP the optimizer uses\n  ok   the measured COP correction also applies\n\n-- Weekly hot-water windows: different days, different times\n  ok   a flat spec carries no weekly structure\n  FAIL the weekday/weekend split lands on the right days  [None]\n",
+    "wall_s": 0.6
+   },
+   "tests/manual_plan.py": {
+    "cpu_s": 3.3,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.3,
+    "rc": 0,
+    "tail": "  ok   a stored list payload is discarded, not raised\n  ok   a stored str payload is discarded, not raised\n  ok   a stored int payload is discarded, not raised\n  ok   the data dict omits manual_plan when none is active\n\nALL 71 manual plan checks PASSED\n",
+    "wall_s": 3.6
+   },
+   "tests/optimality.py": {
+    "cpu_s": 26.7,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.33,
+    "rc": 0,
+    "tail": "\n-- batched-FD jac on DHW-enabled solves (D9-01)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=False)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=True)\n\nALL 11 OPTIMALITY CHECKS PASSED\n",
+    "wall_s": 26.7
+   },
+   "tests/plan_view.py": {
+    "cpu_s": 0.7,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.44,
+    "rc": 0,
+    "tail": "dhw reasons  : ['dhw_preheat', 'dhw_window', 'idle']\nraw space kWh 34.64 raw dhw kWh 6.53\nslot-sum space kWh 34.64\nslot-sum dhw kWh 6.53\nwrote /private/tmp/claude-501/-Users-timmalmstrom-copilot-worktrees-heatpump-optimizer-tvofi-claude/674d54f9-28e0-459d-9cac-85fee64c0344/scratchpad/plandata-M25.json\nplan reason codes, price provenance and slot energy OK\n",
+    "wall_s": 0.6
+   },
+   "tests/solar_alignment.py": {
+    "cpu_s": 0.7,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.44,
+    "rc": 0,
+    "tail": "  ok   steps beyond the Open-Meteo horizon keep the weather entity value\n  ok   without Open-Meteo the weather entity is still used\n  ok   an unavailable Open-Meteo client does not zero the irradiance\n  ok   irradiance is never negative\n\nALL SOLAR ALIGNMENT CHECKS PASSED\n",
+    "wall_s": 0.8
+   },
+   "tests/validate.py": {
+    "cpu_s": 11.7,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.33,
+    "rc": 0,
+    "tail": "=== SPACE HEATING ONLY (DHW disabled) ===\nwinter, no DHW                     optimal  36.00kWh base= 110.03 cost=  23.28 sav= 52.9% room 17.1-20.9 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 2 kW= 6.0    47ms\nsummer, no DHW                     optimal   0.00kWh base=   0.00 cost=   0.00 sav=  0.0% room 21.0-25.7 dhw>=    - peak%=nan dhwpeak%=nan starts= 0 kW= 0.0    18ms\n2zone winter, no DHW               optimal  67.42kWh base= 137.14 cost=  58.30 sav= 47.8% room 17.6-21.5 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 4 kW= 6.0   719ms\n\nNO ISSUES\n",
+    "wall_s": 11.8
+   }
+  },
+  "scripts_not_run": {
+   "tests/card_drift.mjs": "compares the card JavaScript at two git refs; identical for every Python mutant",
+   "tests/golden.py": "strict fixture comparison does not reproduce on this machine; env_drift --all stands in (as in CI drift mode)"
+  },
+  "scripts_quiet_window": [
+   "tests/backtest.py",
+   "tests/edge.py",
+   "tests/stress.py"
+  ],
+  "site": "if m:",
+  "survived": false,
+  "weight": 4
+ },
+ "M26": {
+  "closure": [
+   "tests/backtest.py",
+   "tests/card.mjs",
+   "tests/card_drift.mjs",
+   "tests/edge.py",
+   "tests/entities.py",
+   "tests/env_drift.py",
+   "tests/features.py",
+   "tests/golden.py",
+   "tests/manual_plan.py",
+   "tests/optimality.py",
+   "tests/plan_view.py",
+   "tests/solar_alignment.py",
+   "tests/stress.py",
+   "tests/validate.py"
+  ],
+  "commit": "e870ca2",
+  "done": true,
+  "func": "peak_cost",
+  "id": "M26",
+  "killed_by": [],
+  "kind": "guard_return",
+  "line": 524,
+  "module": "tariff.py",
+  "scripts": {
+   "tests/card.mjs": {
+    "cpu_s": 3.6,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.37,
+    "rc": 0,
+    "tail": "  ok    the picker survives the republish\n  ok    Assign on an untouched picker writes the slot's current entity, not a stale memo\n  ok    the card element defines at most 26 members of its own (26)\n  ok    the card markup gate's claim file is stamped for v6.2.14\n\nALL CARD CHECKS PASSED\n",
+    "wall_s": 2.6
+   },
+   "tests/entities.py": {
+    "cpu_s": 2.1,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.23,
+    "rc": 0,
+    "tail": "  ok   an empty may-drift list is always fine\n  ok   this tree's may-drift entries parse, with reasons\n  ok   and none of them leaks into the claim list\n  ok   this tree's own claim file passes the scope check\n\nALL 538 ENTITY CHECKS PASSED\n",
+    "wall_s": 2.1
+   },
+   "tests/env_drift.py": {
+    "cache_hit": true,
+    "cpu_s": 49.5,
+    "drift": [],
+    "load1": 3.23,
+    "n_drift": 0,
+    "rc": 0,
+    "tail": "e here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank_smart_write: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n\nNO UNCLAIMED DRIFT: 55 scenario(s) checked against c398fc84eec25fc44b60d74aae05b9a2da205884\n",
+    "wall_s": 49.9
+   },
+   "tests/features.py": {
+    "cpu_s": 32.2,
+    "early_stop": false,
+    "fails": [
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):"
+    ],
+    "load1": 3.58,
+    "rc": 0,
+    "tail": "  ok   a second failed cycle counts the outage but keeps one staleness start\n  ok   the fabricated fallback forecast exists and is stale from birth\n  ok   a successful fetch clears the outage and the staleness\n  ok   an empty result keeps the previous forecast, marked stale\n\nALL 1557 FEATURE CHECKS PASSED\n",
+    "wall_s": 32.9
+   },
+   "tests/manual_plan.py": {
+    "cpu_s": 3.3,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.27,
+    "rc": 0,
+    "tail": "  ok   a stored list payload is discarded, not raised\n  ok   a stored str payload is discarded, not raised\n  ok   a stored int payload is discarded, not raised\n  ok   the data dict omits manual_plan when none is active\n\nALL 71 manual plan checks PASSED\n",
+    "wall_s": 3.5
+   },
+   "tests/optimality.py": {
+    "cpu_s": 26.6,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.3,
+    "rc": 0,
+    "tail": "\n-- batched-FD jac on DHW-enabled solves (D9-01)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=False)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=True)\n\nALL 11 OPTIMALITY CHECKS PASSED\n",
+    "wall_s": 26.7
+   },
+   "tests/plan_view.py": {
+    "cpu_s": 0.7,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.23,
+    "rc": 0,
+    "tail": "dhw reasons  : ['dhw_preheat', 'dhw_window', 'idle']\nraw space kWh 34.64 raw dhw kWh 6.53\nslot-sum space kWh 34.64\nslot-sum dhw kWh 6.53\nwrote /private/tmp/claude-501/-Users-timmalmstrom-copilot-worktrees-heatpump-optimizer-tvofi-claude/674d54f9-28e0-459d-9cac-85fee64c0344/scratchpad/plandata-M26.json\nplan reason codes, price provenance and slot energy OK\n",
+    "wall_s": 0.7
+   },
+   "tests/solar_alignment.py": {
+    "cpu_s": 0.6,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.23,
+    "rc": 0,
+    "tail": "  ok   steps beyond the Open-Meteo horizon keep the weather entity value\n  ok   without Open-Meteo the weather entity is still used\n  ok   an unavailable Open-Meteo client does not zero the irradiance\n  ok   irradiance is never negative\n\nALL SOLAR ALIGNMENT CHECKS PASSED\n",
+    "wall_s": 0.7
+   },
+   "tests/validate.py": {
+    "cpu_s": 12.9,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.39,
+    "rc": 0,
+    "tail": "=== SPACE HEATING ONLY (DHW disabled) ===\nwinter, no DHW                     optimal  36.00kWh base= 110.03 cost=  23.28 sav= 52.9% room 17.1-20.9 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 2 kW= 6.0    59ms\nsummer, no DHW                     optimal   0.00kWh base=   0.00 cost=   0.00 sav=  0.0% room 21.0-25.7 dhw>=    - peak%=nan dhwpeak%=nan starts= 0 kW= 0.0    21ms\n2zone winter, no DHW               optimal  67.42kWh base= 137.14 cost=  58.30 sav= 47.8% room 17.6-21.5 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 4 kW= 6.0   824ms\n\nNO ISSUES\n",
+    "wall_s": 13.0
+   }
+  },
+  "scripts_not_run": {
+   "tests/card_drift.mjs": "compares the card JavaScript at two git refs; identical for every Python mutant",
+   "tests/golden.py": "strict fixture comparison does not reproduce on this machine; env_drift --all stands in (as in CI drift mode)"
+  },
+  "scripts_quiet_window": [
+   "tests/backtest.py",
+   "tests/edge.py",
+   "tests/stress.py"
+  ],
+  "site": "if not np.any(excess > 0):",
+  "survived": true,
+  "weight": 12
+ },
+ "M27": {
+  "closure": [
+   "tests/backtest.py",
+   "tests/card.mjs",
+   "tests/card_drift.mjs",
+   "tests/edge.py",
+   "tests/entities.py",
+   "tests/env_drift.py",
+   "tests/features.py",
+   "tests/golden.py",
+   "tests/manual_plan.py",
+   "tests/optimality.py",
+   "tests/plan_view.py",
+   "tests/solar_alignment.py",
+   "tests/stress.py",
+   "tests/validate.py"
+  ],
+  "commit": "18944a8",
+  "done": true,
+  "func": "SnapshotRing.observe_bias",
+  "id": "M27",
+  "killed_by": [
+   "tests/features.py"
+  ],
+  "kind": "general_if",
+  "line": 140,
+  "module": "snapshots.py",
+  "scripts": {
+   "tests/card.mjs": {
+    "cpu_s": 4.3,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.41,
+    "rc": 0,
+    "tail": "  ok    the picker survives the republish\n  ok    Assign on an untouched picker writes the slot's current entity, not a stale memo\n  ok    the card element defines at most 26 members of its own (26)\n  ok    the card markup gate's claim file is stamped for v6.2.14\n\nALL CARD CHECKS PASSED\n",
+    "wall_s": 3.0
+   },
+   "tests/entities.py": {
+    "cpu_s": 2.3,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.35,
+    "rc": 0,
+    "tail": "  ok   an empty may-drift list is always fine\n  ok   this tree's may-drift entries parse, with reasons\n  ok   and none of them leaks into the claim list\n  ok   this tree's own claim file passes the scope check\n\nALL 538 ENTITY CHECKS PASSED\n",
+    "wall_s": 2.3
+   },
+   "tests/env_drift.py": {
+    "cache_hit": true,
+    "cpu_s": 50.5,
+    "drift": [],
+    "load1": 3.35,
+    "n_drift": 0,
+    "rc": 0,
+    "tail": "e here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank_smart_write: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n\nNO UNCLAIMED DRIFT: 55 scenario(s) checked against c398fc84eec25fc44b60d74aae05b9a2da205884\n",
+    "wall_s": 50.9
+   },
+   "tests/features.py": {
+    "cpu_s": 24.0,
+    "early_stop": true,
+    "fails": [
+     "Traceback (most recent call last):",
+     "  FAIL five consecutive out-of-band days raise the alarm exactly once  [flags [False, False, False, False, False, False]]"
+    ],
+    "load1": 3.48,
+    "rc": 1,
+    "tail": "  ok   recovery releases the watch and deletes the issue\n  ok   spread inside the drift allowance never trips the watch\n  ok   one outlier first sample cannot anchor the young baseline\n  ok   a frost-band interval reaches neither the COP learner nor the baseline\n  ok   snapshots are weekly and the ring keeps eight\n  FAIL five consecutive out-of-band days raise the alarm exactly once  [flags [False, False, False, False, False, False]]\n",
+    "wall_s": 24.3
+   },
+   "tests/manual_plan.py": {
+    "cpu_s": 3.5,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.38,
+    "rc": 0,
+    "tail": "  ok   a stored list payload is discarded, not raised\n  ok   a stored str payload is discarded, not raised\n  ok   a stored int payload is discarded, not raised\n  ok   the data dict omits manual_plan when none is active\n\nALL 71 manual plan checks PASSED\n",
+    "wall_s": 3.8
+   },
+   "tests/optimality.py": {
+    "cpu_s": 28.1,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.41,
+    "rc": 0,
+    "tail": "\n-- batched-FD jac on DHW-enabled solves (D9-01)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=False)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=True)\n\nALL 11 OPTIMALITY CHECKS PASSED\n",
+    "wall_s": 28.2
+   },
+   "tests/plan_view.py": {
+    "cpu_s": 0.7,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.41,
+    "rc": 0,
+    "tail": "dhw reasons  : ['dhw_preheat', 'dhw_window', 'idle']\nraw space kWh 34.64 raw dhw kWh 6.53\nslot-sum space kWh 34.64\nslot-sum dhw kWh 6.53\nwrote /private/tmp/claude-501/-Users-timmalmstrom-copilot-worktrees-heatpump-optimizer-tvofi-claude/674d54f9-28e0-459d-9cac-85fee64c0344/scratchpad/plandata-M27.json\nplan reason codes, price provenance and slot energy OK\n",
+    "wall_s": 0.7
+   },
+   "tests/solar_alignment.py": {
+    "cpu_s": 0.7,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.35,
+    "rc": 0,
+    "tail": "  ok   steps beyond the Open-Meteo horizon keep the weather entity value\n  ok   without Open-Meteo the weather entity is still used\n  ok   an unavailable Open-Meteo client does not zero the irradiance\n  ok   irradiance is never negative\n\nALL SOLAR ALIGNMENT CHECKS PASSED\n",
+    "wall_s": 0.8
+   },
+   "tests/validate.py": {
+    "cpu_s": 13.0,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.47,
+    "rc": 0,
+    "tail": "=== SPACE HEATING ONLY (DHW disabled) ===\nwinter, no DHW                     optimal  36.00kWh base= 110.03 cost=  23.28 sav= 52.9% room 17.1-20.9 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 2 kW= 6.0    56ms\nsummer, no DHW                     optimal   0.00kWh base=   0.00 cost=   0.00 sav=  0.0% room 21.0-25.7 dhw>=    - peak%=nan dhwpeak%=nan starts= 0 kW= 0.0    21ms\n2zone winter, no DHW               optimal  67.42kWh base= 137.14 cost=  58.30 sav= 47.8% room 17.6-21.5 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 4 kW= 6.0   830ms\n\nNO ISSUES\n",
+    "wall_s": 13.1
+   }
+  },
+  "scripts_not_run": {
+   "tests/card_drift.mjs": "compares the card JavaScript at two git refs; identical for every Python mutant",
+   "tests/golden.py": "strict fixture comparison does not reproduce on this machine; env_drift --all stands in (as in CI drift mode)"
+  },
+  "scripts_quiet_window": [
+   "tests/backtest.py",
+   "tests/edge.py",
+   "tests/stress.py"
+  ],
+  "site": "if not self.alarmed and self._bias_days >= BIAS_TRIP_DAYS:",
+  "survived": false,
+  "weight": 2
+ },
+ "M28": {
+  "closure": [
+   "tests/backtest.py",
+   "tests/card.mjs",
+   "tests/card_drift.mjs",
+   "tests/edge.py",
+   "tests/entities.py",
+   "tests/env_drift.py",
+   "tests/features.py",
+   "tests/golden.py",
+   "tests/manual_plan.py",
+   "tests/optimality.py",
+   "tests/plan_view.py",
+   "tests/solar_alignment.py",
+   "tests/stress.py",
+   "tests/validate.py"
+  ],
+  "commit": "810cd5e",
+  "done": true,
+  "func": "GridFeeSchedule.current_fee",
+  "id": "M28",
+  "killed_by": [
+   "tests/env_drift.py"
+  ],
+  "kind": "guard_return",
+  "line": 255,
+  "module": "grid_fee.py",
+  "scripts": {
+   "tests/card.mjs": {
+    "cpu_s": 4.4,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.48,
+    "rc": 0,
+    "tail": "  ok    the picker survives the republish\n  ok    Assign on an untouched picker writes the slot's current entity, not a stale memo\n  ok    the card element defines at most 26 members of its own (26)\n  ok    the card markup gate's claim file is stamped for v6.2.14\n\nALL CARD CHECKS PASSED\n",
+    "wall_s": 3.1
+   },
+   "tests/entities.py": {
+    "cpu_s": 2.3,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.44,
+    "rc": 0,
+    "tail": "  ok   an empty may-drift list is always fine\n  ok   this tree's may-drift entries parse, with reasons\n  ok   and none of them leaks into the claim list\n  ok   this tree's own claim file passes the scope check\n\nALL 538 ENTITY CHECKS PASSED\n",
+    "wall_s": 2.3
+   },
+   "tests/env_drift.py": {
+    "cache_hit": true,
+    "cpu_s": 53.2,
+    "drift": [
+     "DRIFT coord_grid_fee: 98 leaves moved vs c398fc84eec25fc44b60d74aae05b9a2da205884"
+    ],
+    "load1": 3.44,
+    "n_drift": 1,
+    "rc": 1,
+    "tail": "e; the DHW plan can reach it, per local optimum)\n\n1 UNCLAIMED DRIFT(S) vs c398fc84eec25fc44b60d74aae05b9a2da205884\nThis branch moved scenarios the baseline does not move in\nthis environment: a regression, or a change that must be\nclaimed in tests/golden/claimed_drift.txt and justified in\nthe PR. Never re-record the five sensitive fixtures on a\nmachine where golden.py already reports them as DIFF.\n",
+    "wall_s": 53.6
+   },
+   "tests/features.py": {
+    "skipped": "mutant already killed"
+   },
+   "tests/manual_plan.py": {
+    "skipped": "mutant already killed"
+   },
+   "tests/optimality.py": {
+    "skipped": "mutant already killed"
+   },
+   "tests/plan_view.py": {
+    "cpu_s": 0.7,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.44,
+    "rc": 0,
+    "tail": "dhw reasons  : ['dhw_preheat', 'dhw_window', 'idle']\nraw space kWh 34.64 raw dhw kWh 6.53\nslot-sum space kWh 34.64\nslot-sum dhw kWh 6.53\nwrote /private/tmp/claude-501/-Users-timmalmstrom-copilot-worktrees-heatpump-optimizer-tvofi-claude/674d54f9-28e0-459d-9cac-85fee64c0344/scratchpad/plandata-M28.json\nplan reason codes, price provenance and slot energy OK\n",
+    "wall_s": 0.7
+   },
+   "tests/solar_alignment.py": {
+    "cpu_s": 0.7,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.44,
+    "rc": 0,
+    "tail": "  ok   steps beyond the Open-Meteo horizon keep the weather entity value\n  ok   without Open-Meteo the weather entity is still used\n  ok   an unavailable Open-Meteo client does not zero the irradiance\n  ok   irradiance is never negative\n\nALL SOLAR ALIGNMENT CHECKS PASSED\n",
+    "wall_s": 0.7
+   },
+   "tests/validate.py": {
+    "skipped": "mutant already killed"
+   }
+  },
+  "scripts_not_run": {
+   "tests/card_drift.mjs": "compares the card JavaScript at two git refs; identical for every Python mutant",
+   "tests/golden.py": "strict fixture comparison does not reproduce on this machine; env_drift --all stands in (as in CI drift mode)"
+  },
+  "scripts_quiet_window": [
+   "tests/backtest.py",
+   "tests/edge.py",
+   "tests/stress.py"
+  ],
+  "site": "if self.mode == MODE_RULES:",
+  "survived": false,
+  "weight": 12
+ },
+ "M29": {
+  "closure": [
+   "tests/entities.py",
+   "tests/env_drift.py",
+   "tests/golden.py"
+  ],
+  "commit": "012e5cd",
+  "done": true,
+  "func": "_AccumulatingSensor.extra_state_attributes",
+  "id": "M29",
+  "killed_by": [
+   "tests/entities.py"
+  ],
+  "kind": "payload_key",
+  "line": 1520,
+  "module": "sensor.py",
+  "scripts": {
+   "tests/entities.py": {
+    "cpu_s": 0.6,
+    "early_stop": false,
+    "fails": [
+     "Traceback (most recent call last):"
+    ],
+    "load1": 3.38,
+    "rc": 1,
+    "tail": "  ok   the accumulators state their period in words\nTraceback (most recent call last):\n  File \"/private/tmp/claude-501/-Users-timmalmstrom-copilot-worktrees-heatpump-optimizer-tvofi-claude/674d54f9-28e0-459d-9cac-85fee64c0344/scratchpad/tree-M29/tests/entities.py\", line 403, in <module>\n    _hwc[\"this_month_kwh\"] == 41.5 and _hwc[\"this_month_cost\"] == 62.25,\n    ~~~~^^^^^^^^^^^^^^^^^^\nKeyError: 'this_month_kwh'\n",
+    "wall_s": 0.8
+   },
+   "tests/env_drift.py": {
+    "cache_hit": true,
+    "cpu_s": 45.9,
+    "drift": [],
+    "load1": 3.38,
+    "n_drift": 0,
+    "rc": 0,
+    "tail": "e here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank_smart_write: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n\nNO UNCLAIMED DRIFT: 55 scenario(s) checked against c398fc84eec25fc44b60d74aae05b9a2da205884\n",
+    "wall_s": 46.3
+   }
+  },
+  "scripts_not_run": {
+   "tests/golden.py": "strict fixture comparison does not reproduce on this machine; env_drift --all stands in (as in CI drift mode)"
+  },
+  "scripts_quiet_window": [],
+  "site": "attrs[\"this_month_kwh\"] = round(month[0], 3)",
+  "survived": false,
+  "weight": 6
+ },
+ "M30": {
+  "closure": [
+   "tests/backtest.py",
+   "tests/card.mjs",
+   "tests/card_drift.mjs",
+   "tests/edge.py",
+   "tests/entities.py",
+   "tests/env_drift.py",
+   "tests/features.py",
+   "tests/golden.py",
+   "tests/manual_plan.py",
+   "tests/open_meteo.py",
+   "tests/optimality.py",
+   "tests/plan_view.py",
+   "tests/solar_alignment.py",
+   "tests/stress.py",
+   "tests/validate.py"
+  ],
+  "commit": "b667798",
+  "done": true,
+  "func": "_parse_block",
+  "id": "M30",
+  "killed_by": [],
+  "kind": "except_handler",
+  "line": 194,
+  "module": "open_meteo.py",
+  "scripts": {
+   "tests/card.mjs": {
+    "cpu_s": 3.5,
+    "early_stop": false,
+    "fails": [],
+    "load1": 2.56,
+    "rc": 0,
+    "tail": "  ok    the picker survives the republish\n  ok    Assign on an untouched picker writes the slot's current entity, not a stale memo\n  ok    the card element defines at most 26 members of its own (26)\n  ok    the card markup gate's claim file is stamped for v6.2.14\n\nALL CARD CHECKS PASSED\n",
+    "wall_s": 2.5
+   },
+   "tests/entities.py": {
+    "cpu_s": 1.9,
+    "early_stop": false,
+    "fails": [],
+    "load1": 2.53,
+    "rc": 0,
+    "tail": "  ok   an empty may-drift list is always fine\n  ok   this tree's may-drift entries parse, with reasons\n  ok   and none of them leaks into the claim list\n  ok   this tree's own claim file passes the scope check\n\nALL 538 ENTITY CHECKS PASSED\n",
+    "wall_s": 1.9
+   },
+   "tests/env_drift.py": {
+    "cache_hit": true,
+    "cpu_s": 43.5,
+    "drift": [],
+    "load1": 2.53,
+    "n_drift": 0,
+    "rc": 0,
+    "tail": "e here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank_smart_write: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n\nNO UNCLAIMED DRIFT: 55 scenario(s) checked against c398fc84eec25fc44b60d74aae05b9a2da205884\n",
+    "wall_s": 43.9
+   },
+   "tests/features.py": {
+    "cpu_s": 29.3,
+    "early_stop": false,
+    "fails": [
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):"
+    ],
+    "load1": 2.98,
+    "rc": 0,
+    "tail": "  ok   a second failed cycle counts the outage but keeps one staleness start\n  ok   the fabricated fallback forecast exists and is stale from birth\n  ok   a successful fetch clears the outage and the staleness\n  ok   an empty result keeps the previous forecast, marked stale\n\nALL 1557 FEATURE CHECKS PASSED\n",
+    "wall_s": 30.0
+   },
+   "tests/manual_plan.py": {
+    "cpu_s": 3.2,
+    "early_stop": false,
+    "fails": [],
+    "load1": 2.58,
+    "rc": 0,
+    "tail": "  ok   a stored list payload is discarded, not raised\n  ok   a stored str payload is discarded, not raised\n  ok   a stored int payload is discarded, not raised\n  ok   the data dict omits manual_plan when none is active\n\nALL 71 manual plan checks PASSED\n",
+    "wall_s": 3.4
+   },
+   "tests/open_meteo.py": {
+    "cpu_s": 0.2,
+    "early_stop": false,
+    "fails": [],
+    "load1": 2.53,
+    "rc": 0,
+    "tail": "  ok   current_irradiance prefers the newest observation\n  ok   coordinate matching tolerates float noise\n  ok   coordinate matching rejects a different place\n  ok   diagnostics report both series\n\nALL OPEN-METEO CHECKS PASSED\n",
+    "wall_s": 0.2
+   },
+   "tests/optimality.py": {
+    "cpu_s": 25.0,
+    "early_stop": false,
+    "fails": [],
+    "load1": 2.58,
+    "rc": 0,
+    "tail": "\n-- batched-FD jac on DHW-enabled solves (D9-01)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=False)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=True)\n\nALL 11 OPTIMALITY CHECKS PASSED\n",
+    "wall_s": 25.0
+   },
+   "tests/plan_view.py": {
+    "cpu_s": 0.6,
+    "early_stop": false,
+    "fails": [],
+    "load1": 2.53,
+    "rc": 0,
+    "tail": "dhw reasons  : ['dhw_preheat', 'dhw_window', 'idle']\nraw space kWh 34.64 raw dhw kWh 6.53\nslot-sum space kWh 34.64\nslot-sum dhw kWh 6.53\nwrote /private/tmp/claude-501/-Users-timmalmstrom-copilot-worktrees-heatpump-optimizer-tvofi-claude/674d54f9-28e0-459d-9cac-85fee64c0344/scratchpad/plandata-M30.json\nplan reason codes, price provenance and slot energy OK\n",
+    "wall_s": 0.6
+   },
+   "tests/solar_alignment.py": {
+    "cpu_s": 0.6,
+    "early_stop": false,
+    "fails": [],
+    "load1": 2.53,
+    "rc": 0,
+    "tail": "  ok   steps beyond the Open-Meteo horizon keep the weather entity value\n  ok   without Open-Meteo the weather entity is still used\n  ok   an unavailable Open-Meteo client does not zero the irradiance\n  ok   irradiance is never negative\n\nALL SOLAR ALIGNMENT CHECKS PASSED\n",
+    "wall_s": 0.6
+   },
+   "tests/validate.py": {
+    "cpu_s": 12.3,
+    "early_stop": false,
+    "fails": [],
+    "load1": 2.89,
+    "rc": 0,
+    "tail": "=== SPACE HEATING ONLY (DHW disabled) ===\nwinter, no DHW                     optimal  36.00kWh base= 110.03 cost=  23.28 sav= 52.9% room 17.1-20.9 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 2 kW= 6.0    56ms\nsummer, no DHW                     optimal   0.00kWh base=   0.00 cost=   0.00 sav=  0.0% room 21.0-25.7 dhw>=    - peak%=nan dhwpeak%=nan starts= 0 kW= 0.0    21ms\n2zone winter, no DHW               optimal  67.42kWh base= 137.14 cost=  58.30 sav= 47.8% room 17.6-21.5 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 4 kW= 6.0   805ms\n\nNO ISSUES\n",
+    "wall_s": 12.4
+   }
+  },
+  "scripts_not_run": {
+   "tests/card_drift.mjs": "compares the card JavaScript at two git refs; identical for every Python mutant",
+   "tests/golden.py": "strict fixture comparison does not reproduce on this machine; env_drift --all stands in (as in CI drift mode)"
+  },
+  "scripts_quiet_window": [
+   "tests/backtest.py",
+   "tests/edge.py",
+   "tests/stress.py"
+  ],
+  "site": "except ValueError:",
+  "survived": true,
+  "weight": 4
+ },
+ "M31": {
+  "closure": [
+   "tests/entities.py",
+   "tests/env_drift.py",
+   "tests/golden.py"
+  ],
+  "commit": "160cd9c",
+  "done": true,
+  "func": "PredictiveInsightSensor.extra_state_attributes",
+  "id": "M31",
+  "killed_by": [],
+  "kind": "general_if",
+  "line": 1086,
+  "module": "sensor.py",
+  "scripts": {
+   "tests/entities.py": {
+    "cpu_s": 2.4,
+    "early_stop": false,
+    "fails": [],
+    "load1": 2.98,
+    "rc": 0,
+    "tail": "  ok   an empty may-drift list is always fine\n  ok   this tree's may-drift entries parse, with reasons\n  ok   and none of them leaks into the claim list\n  ok   this tree's own claim file passes the scope check\n\nALL 538 ENTITY CHECKS PASSED\n",
+    "wall_s": 2.4
+   },
+   "tests/env_drift.py": {
+    "cache_hit": true,
+    "cpu_s": 47.8,
+    "drift": [],
+    "load1": 2.89,
+    "n_drift": 0,
+    "rc": 0,
+    "tail": "e here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank_smart_write: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n\nNO UNCLAIMED DRIFT: 55 scenario(s) checked against c398fc84eec25fc44b60d74aae05b9a2da205884\n",
+    "wall_s": 48.2
+   }
+  },
+  "scripts_not_run": {
+   "tests/golden.py": "strict fixture comparison does not reproduce on this machine; env_drift --all stands in (as in CI drift mode)"
+  },
+  "scripts_quiet_window": [],
+  "site": "if self.coordinator.data:",
+  "survived": true,
+  "weight": 3
+ },
+ "M32": {
+  "closure": [
+   "tests/backtest.py",
+   "tests/card.mjs",
+   "tests/card_drift.mjs",
+   "tests/edge.py",
+   "tests/entities.py",
+   "tests/env_drift.py",
+   "tests/features.py",
+   "tests/golden.py",
+   "tests/manual_plan.py",
+   "tests/optimality.py",
+   "tests/plan_view.py",
+   "tests/solar_alignment.py",
+   "tests/stress.py",
+   "tests/validate.py"
+  ],
+  "commit": "8be6f90",
+  "done": true,
+  "func": "_parse_rule",
+  "id": "M32",
+  "killed_by": [],
+  "kind": "guard_return",
+  "line": 141,
+  "module": "grid_fee.py",
+  "scripts": {
+   "tests/card.mjs": {
+    "cpu_s": 3.5,
+    "early_stop": false,
+    "fails": [],
+    "load1": 2.85,
+    "rc": 0,
+    "tail": "  ok    the picker survives the republish\n  ok    Assign on an untouched picker writes the slot's current entity, not a stale memo\n  ok    the card element defines at most 26 members of its own (26)\n  ok    the card markup gate's claim file is stamped for v6.2.14\n\nALL CARD CHECKS PASSED\n",
+    "wall_s": 2.5
+   },
+   "tests/entities.py": {
+    "cpu_s": 1.9,
+    "early_stop": false,
+    "fails": [],
+    "load1": 2.75,
+    "rc": 0,
+    "tail": "  ok   an empty may-drift list is always fine\n  ok   this tree's may-drift entries parse, with reasons\n  ok   and none of them leaks into the claim list\n  ok   this tree's own claim file passes the scope check\n\nALL 538 ENTITY CHECKS PASSED\n",
+    "wall_s": 1.9
+   },
+   "tests/env_drift.py": {
+    "cache_hit": true,
+    "cpu_s": 45.9,
+    "drift": [],
+    "load1": 2.75,
+    "n_drift": 0,
+    "rc": 0,
+    "tail": "e here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank_smart_write: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n\nNO UNCLAIMED DRIFT: 55 scenario(s) checked against c398fc84eec25fc44b60d74aae05b9a2da205884\n",
+    "wall_s": 46.3
+   },
+   "tests/features.py": {
+    "cpu_s": 31.0,
+    "early_stop": false,
+    "fails": [
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):"
+    ],
+    "load1": 2.93,
+    "rc": 0,
+    "tail": "  ok   a second failed cycle counts the outage but keeps one staleness start\n  ok   the fabricated fallback forecast exists and is stale from birth\n  ok   a successful fetch clears the outage and the staleness\n  ok   an empty result keeps the previous forecast, marked stale\n\nALL 1557 FEATURE CHECKS PASSED\n",
+    "wall_s": 31.7
+   },
+   "tests/manual_plan.py": {
+    "cpu_s": 3.2,
+    "early_stop": false,
+    "fails": [],
+    "load1": 2.64,
+    "rc": 0,
+    "tail": "  ok   a stored list payload is discarded, not raised\n  ok   a stored str payload is discarded, not raised\n  ok   a stored int payload is discarded, not raised\n  ok   the data dict omits manual_plan when none is active\n\nALL 71 manual plan checks PASSED\n",
+    "wall_s": 3.4
+   },
+   "tests/optimality.py": {
+    "cpu_s": 25.5,
+    "early_stop": false,
+    "fails": [],
+    "load1": 2.69,
+    "rc": 0,
+    "tail": "\n-- batched-FD jac on DHW-enabled solves (D9-01)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=False)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=True)\n\nALL 11 OPTIMALITY CHECKS PASSED\n",
+    "wall_s": 25.5
+   },
+   "tests/plan_view.py": {
+    "cpu_s": 0.6,
+    "early_stop": false,
+    "fails": [],
+    "load1": 2.75,
+    "rc": 0,
+    "tail": "dhw reasons  : ['dhw_preheat', 'dhw_window', 'idle']\nraw space kWh 34.64 raw dhw kWh 6.53\nslot-sum space kWh 34.64\nslot-sum dhw kWh 6.53\nwrote /private/tmp/claude-501/-Users-timmalmstrom-copilot-worktrees-heatpump-optimizer-tvofi-claude/674d54f9-28e0-459d-9cac-85fee64c0344/scratchpad/plandata-M32.json\nplan reason codes, price provenance and slot energy OK\n",
+    "wall_s": 0.6
+   },
+   "tests/solar_alignment.py": {
+    "cpu_s": 0.6,
+    "early_stop": false,
+    "fails": [],
+    "load1": 2.75,
+    "rc": 0,
+    "tail": "  ok   steps beyond the Open-Meteo horizon keep the weather entity value\n  ok   without Open-Meteo the weather entity is still used\n  ok   an unavailable Open-Meteo client does not zero the irradiance\n  ok   irradiance is never negative\n\nALL SOLAR ALIGNMENT CHECKS PASSED\n",
+    "wall_s": 0.7
+   },
+   "tests/validate.py": {
+    "cpu_s": 12.4,
+    "early_stop": false,
+    "fails": [],
+    "load1": 2.69,
+    "rc": 0,
+    "tail": "=== SPACE HEATING ONLY (DHW disabled) ===\nwinter, no DHW                     optimal  36.00kWh base= 110.03 cost=  23.28 sav= 52.9% room 17.1-20.9 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 2 kW= 6.0    55ms\nsummer, no DHW                     optimal   0.00kWh base=   0.00 cost=   0.00 sav=  0.0% room 21.0-25.7 dhw>=    - peak%=nan dhwpeak%=nan starts= 0 kW= 0.0    21ms\n2zone winter, no DHW               optimal  67.42kWh base= 137.14 cost=  58.30 sav= 47.8% room 17.6-21.5 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 4 kW= 6.0   810ms\n\nNO ISSUES\n",
+    "wall_s": 12.5
+   }
+  },
+  "scripts_not_run": {
+   "tests/card_drift.mjs": "compares the card JavaScript at two git refs; identical for every Python mutant",
+   "tests/golden.py": "strict fixture comparison does not reproduce on this machine; env_drift --all stands in (as in CI drift mode)"
+  },
+  "scripts_quiet_window": [
+   "tests/backtest.py",
+   "tests/edge.py",
+   "tests/stress.py"
+  ],
+  "site": "if not np.isfinite(rate):",
+  "survived": true,
+  "weight": 12
+ },
+ "M33": {
+  "closure": [
+   "tests/backtest.py",
+   "tests/card.mjs",
+   "tests/card_drift.mjs",
+   "tests/edge.py",
+   "tests/entities.py",
+   "tests/env_drift.py",
+   "tests/features.py",
+   "tests/golden.py",
+   "tests/manual_plan.py",
+   "tests/optimality.py",
+   "tests/plan_view.py",
+   "tests/solar_alignment.py",
+   "tests/stress.py",
+   "tests/validate.py"
+  ],
+  "commit": "40dbe02",
+  "done": true,
+  "func": "DefrostDerate.from_dict",
+  "id": "M33",
+  "killed_by": [
+   "tests/features.py"
+  ],
+  "kind": "clamp",
+  "line": 441,
+  "module": "defrost.py",
+  "scripts": {
+   "tests/card.mjs": {
+    "cpu_s": 4.2,
+    "early_stop": false,
+    "fails": [],
+    "load1": 2.74,
+    "rc": 0,
+    "tail": "  ok    the picker survives the republish\n  ok    Assign on an untouched picker writes the slot's current entity, not a stale memo\n  ok    the card element defines at most 26 members of its own (26)\n  ok    the card markup gate's claim file is stamped for v6.2.14\n\nALL CARD CHECKS PASSED\n",
+    "wall_s": 2.9
+   },
+   "tests/entities.py": {
+    "cpu_s": 2.2,
+    "early_stop": false,
+    "fails": [],
+    "load1": 2.72,
+    "rc": 0,
+    "tail": "  ok   an empty may-drift list is always fine\n  ok   this tree's may-drift entries parse, with reasons\n  ok   and none of them leaks into the claim list\n  ok   this tree's own claim file passes the scope check\n\nALL 538 ENTITY CHECKS PASSED\n",
+    "wall_s": 2.3
+   },
+   "tests/env_drift.py": {
+    "cache_hit": true,
+    "cpu_s": 49.1,
+    "drift": [],
+    "load1": 2.69,
+    "n_drift": 0,
+    "rc": 0,
+    "tail": "e here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank_smart_write: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n\nNO UNCLAIMED DRIFT: 55 scenario(s) checked against c398fc84eec25fc44b60d74aae05b9a2da205884\n",
+    "wall_s": 49.5
+   },
+   "tests/features.py": {
+    "cpu_s": 1.3,
+    "early_stop": true,
+    "fails": [
+     "  FAIL the derate survives a restart"
+    ],
+    "load1": 2.81,
+    "rc": 1,
+    "tail": "  ok   the derate is local to the frosting band\n  ok   dry cold air is a separate bucket\n  ok   an implausible derate is clamped\n  ok   a nonsense ratio is discarded outright\n  ok   the buckets are reportable\n  FAIL the derate survives a restart\n",
+    "wall_s": 1.4
+   },
+   "tests/manual_plan.py": {
+    "cpu_s": 3.3,
+    "early_stop": false,
+    "fails": [],
+    "load1": 2.81,
+    "rc": 0,
+    "tail": "  ok   a stored list payload is discarded, not raised\n  ok   a stored str payload is discarded, not raised\n  ok   a stored int payload is discarded, not raised\n  ok   the data dict omits manual_plan when none is active\n\nALL 71 manual plan checks PASSED\n",
+    "wall_s": 3.6
+   },
+   "tests/optimality.py": {
+    "cpu_s": 27.3,
+    "early_stop": false,
+    "fails": [],
+    "load1": 2.88,
+    "rc": 0,
+    "tail": "\n-- batched-FD jac on DHW-enabled solves (D9-01)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=False)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=True)\n\nALL 11 OPTIMALITY CHECKS PASSED\n",
+    "wall_s": 27.4
+   },
+   "tests/plan_view.py": {
+    "cpu_s": 0.7,
+    "early_stop": false,
+    "fails": [],
+    "load1": 2.72,
+    "rc": 0,
+    "tail": "dhw reasons  : ['dhw_preheat', 'dhw_window', 'idle']\nraw space kWh 34.64 raw dhw kWh 6.53\nslot-sum space kWh 34.64\nslot-sum dhw kWh 6.53\nwrote /private/tmp/claude-501/-Users-timmalmstrom-copilot-worktrees-heatpump-optimizer-tvofi-claude/674d54f9-28e0-459d-9cac-85fee64c0344/scratchpad/plandata-M33.json\nplan reason codes, price provenance and slot energy OK\n",
+    "wall_s": 0.7
+   },
+   "tests/solar_alignment.py": {
+    "cpu_s": 0.6,
+    "early_stop": false,
+    "fails": [],
+    "load1": 2.72,
+    "rc": 0,
+    "tail": "  ok   steps beyond the Open-Meteo horizon keep the weather entity value\n  ok   without Open-Meteo the weather entity is still used\n  ok   an unavailable Open-Meteo client does not zero the irradiance\n  ok   irradiance is never negative\n\nALL SOLAR ALIGNMENT CHECKS PASSED\n",
+    "wall_s": 0.7
+   },
+   "tests/validate.py": {
+    "cpu_s": 11.6,
+    "early_stop": false,
+    "fails": [],
+    "load1": 2.91,
+    "rc": 0,
+    "tail": "=== SPACE HEATING ONLY (DHW disabled) ===\nwinter, no DHW                     optimal  36.00kWh base= 110.03 cost=  23.28 sav= 52.9% room 17.1-20.9 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 2 kW= 6.0    50ms\nsummer, no DHW                     optimal   0.00kWh base=   0.00 cost=   0.00 sav=  0.0% room 21.0-25.7 dhw>=    - peak%=nan dhwpeak%=nan starts= 0 kW= 0.0    19ms\n2zone winter, no DHW               optimal  67.42kWh base= 137.14 cost=  58.30 sav= 47.8% room 17.6-21.5 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 4 kW= 6.0   711ms\n\nNO ISSUES\n",
+    "wall_s": 11.8
+   }
+  },
+  "scripts_not_run": {
+   "tests/card_drift.mjs": "compares the card JavaScript at two git refs; identical for every Python mutant",
+   "tests/golden.py": "strict fixture comparison does not reproduce on this machine; env_drift --all stands in (as in CI drift mode)"
+  },
+  "scripts_quiet_window": [
+   "tests/backtest.py",
+   "tests/edge.py",
+   "tests/stress.py"
+  ],
+  "site": "max(DERATE_MIN, v)",
+  "survived": false,
+  "weight": 9
+ },
+ "M34": {
+  "closure": [
+   "tests/backtest.py",
+   "tests/card.mjs",
+   "tests/card_drift.mjs",
+   "tests/edge.py",
+   "tests/entities.py",
+   "tests/env_drift.py",
+   "tests/features.py",
+   "tests/golden.py",
+   "tests/manual_plan.py",
+   "tests/optimality.py",
+   "tests/plan_view.py",
+   "tests/solar_alignment.py",
+   "tests/stress.py",
+   "tests/validate.py"
+  ],
+  "commit": "b6d7d55",
+  "done": true,
+  "func": "InputReader.read_bool",
+  "id": "M34",
+  "killed_by": [
+   "tests/features.py"
+  ],
+  "kind": "general_if",
+  "line": 516,
+  "module": "inputs.py",
+  "scripts": {
+   "tests/card.mjs": {
+    "cpu_s": 3.6,
+    "early_stop": false,
+    "fails": [],
+    "load1": 2.77,
+    "rc": 0,
+    "tail": "  ok    the picker survives the republish\n  ok    Assign on an untouched picker writes the slot's current entity, not a stale memo\n  ok    the card element defines at most 26 members of its own (26)\n  ok    the card markup gate's claim file is stamped for v6.2.14\n\nALL CARD CHECKS PASSED\n",
+    "wall_s": 2.6
+   },
+   "tests/entities.py": {
+    "cpu_s": 2.1,
+    "early_stop": false,
+    "fails": [],
+    "load1": 2.84,
+    "rc": 0,
+    "tail": "  ok   an empty may-drift list is always fine\n  ok   this tree's may-drift entries parse, with reasons\n  ok   and none of them leaks into the claim list\n  ok   this tree's own claim file passes the scope check\n\nALL 538 ENTITY CHECKS PASSED\n",
+    "wall_s": 2.1
+   },
+   "tests/env_drift.py": {
+    "cache_hit": true,
+    "cpu_s": 50.6,
+    "drift": [],
+    "load1": 2.84,
+    "n_drift": 0,
+    "rc": 0,
+    "tail": "e here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank_smart_write: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n\nNO UNCLAIMED DRIFT: 55 scenario(s) checked against c398fc84eec25fc44b60d74aae05b9a2da205884\n",
+    "wall_s": 50.9
+   },
+   "tests/features.py": {
+    "cpu_s": 1.2,
+    "early_stop": true,
+    "fails": [
+     "  FAIL an uninterpretable flag is refused rather than guessed  [None]"
+    ],
+    "load1": 2.9,
+    "rc": 1,
+    "tail": "  ok   and '0' keeps the word it came from\n  ok   a flag reading '1' is True\n  ok   and '1' keeps the word it came from\n  ok   a flag reading '3' is True\n  ok   and '3' keeps the word it came from\n  FAIL an uninterpretable flag is refused rather than guessed  [None]\n",
+    "wall_s": 1.2
+   },
+   "tests/manual_plan.py": {
+    "cpu_s": 3.2,
+    "early_stop": false,
+    "fails": [],
+    "load1": 2.9,
+    "rc": 0,
+    "tail": "  ok   a stored list payload is discarded, not raised\n  ok   a stored str payload is discarded, not raised\n  ok   a stored int payload is discarded, not raised\n  ok   the data dict omits manual_plan when none is active\n\nALL 71 manual plan checks PASSED\n",
+    "wall_s": 3.4
+   },
+   "tests/optimality.py": {
+    "cpu_s": 26.2,
+    "early_stop": false,
+    "fails": [],
+    "load1": 2.89,
+    "rc": 0,
+    "tail": "\n-- batched-FD jac on DHW-enabled solves (D9-01)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=False)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=True)\n\nALL 11 OPTIMALITY CHECKS PASSED\n",
+    "wall_s": 26.2
+   },
+   "tests/plan_view.py": {
+    "cpu_s": 0.7,
+    "early_stop": false,
+    "fails": [],
+    "load1": 2.84,
+    "rc": 0,
+    "tail": "dhw reasons  : ['dhw_preheat', 'dhw_window', 'idle']\nraw space kWh 34.64 raw dhw kWh 6.53\nslot-sum space kWh 34.64\nslot-sum dhw kWh 6.53\nwrote /private/tmp/claude-501/-Users-timmalmstrom-copilot-worktrees-heatpump-optimizer-tvofi-claude/674d54f9-28e0-459d-9cac-85fee64c0344/scratchpad/plandata-M34.json\nplan reason codes, price provenance and slot energy OK\n",
+    "wall_s": 0.7
+   },
+   "tests/solar_alignment.py": {
+    "cpu_s": 0.6,
+    "early_stop": false,
+    "fails": [],
+    "load1": 2.84,
+    "rc": 0,
+    "tail": "  ok   steps beyond the Open-Meteo horizon keep the weather entity value\n  ok   without Open-Meteo the weather entity is still used\n  ok   an unavailable Open-Meteo client does not zero the irradiance\n  ok   irradiance is never negative\n\nALL SOLAR ALIGNMENT CHECKS PASSED\n",
+    "wall_s": 0.6
+   },
+   "tests/validate.py": {
+    "cpu_s": 11.5,
+    "early_stop": false,
+    "fails": [],
+    "load1": 2.92,
+    "rc": 0,
+    "tail": "=== SPACE HEATING ONLY (DHW disabled) ===\nwinter, no DHW                     optimal  36.00kWh base= 110.03 cost=  23.28 sav= 52.9% room 17.1-20.9 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 2 kW= 6.0    52ms\nsummer, no DHW                     optimal   0.00kWh base=   0.00 cost=   0.00 sav=  0.0% room 21.0-25.7 dhw>=    - peak%=nan dhwpeak%=nan starts= 0 kW= 0.0    19ms\n2zone winter, no DHW               optimal  67.42kWh base= 137.14 cost=  58.30 sav= 47.8% room 17.6-21.5 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 4 kW= 6.0   730ms\n\nNO ISSUES\n",
+    "wall_s": 11.6
+   }
+  },
+  "scripts_not_run": {
+   "tests/card_drift.mjs": "compares the card JavaScript at two git refs; identical for every Python mutant",
+   "tests/golden.py": "strict fixture comparison does not reproduce on this machine; env_drift --all stands in (as in CI drift mode)"
+  },
+  "scripts_quiet_window": [
+   "tests/backtest.py",
+   "tests/edge.py",
+   "tests/stress.py"
+  ],
+  "site": "if flag is None:",
+  "survived": false,
+  "weight": 4
+ },
+ "M35": {
+  "closure": [
+   "tests/backtest.py",
+   "tests/card.mjs",
+   "tests/card_drift.mjs",
+   "tests/edge.py",
+   "tests/entities.py",
+   "tests/env_drift.py",
+   "tests/features.py",
+   "tests/golden.py",
+   "tests/manual_plan.py",
+   "tests/optimality.py",
+   "tests/plan_view.py",
+   "tests/solar_alignment.py",
+   "tests/stress.py",
+   "tests/validate.py"
+  ],
+  "commit": "e41a0e4",
+  "done": true,
+  "func": "parse_rules",
+  "id": "M35",
+  "killed_by": [],
+  "kind": "guard_return",
+  "line": 176,
+  "module": "grid_fee.py",
+  "scripts": {
+   "tests/card.mjs": {
+    "cpu_s": 3.8,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.15,
+    "rc": 0,
+    "tail": "  ok    the picker survives the republish\n  ok    Assign on an untouched picker writes the slot's current entity, not a stale memo\n  ok    the card element defines at most 26 members of its own (26)\n  ok    the card markup gate's claim file is stamped for v6.2.14\n\nALL CARD CHECKS PASSED\n",
+    "wall_s": 2.7
+   },
+   "tests/entities.py": {
+    "cpu_s": 2.1,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.16,
+    "rc": 0,
+    "tail": "  ok   an empty may-drift list is always fine\n  ok   this tree's may-drift entries parse, with reasons\n  ok   and none of them leaks into the claim list\n  ok   this tree's own claim file passes the scope check\n\nALL 538 ENTITY CHECKS PASSED\n",
+    "wall_s": 2.2
+   },
+   "tests/env_drift.py": {
+    "cache_hit": true,
+    "cpu_s": 48.4,
+    "drift": [],
+    "load1": 2.92,
+    "n_drift": 0,
+    "rc": 0,
+    "tail": "e here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank_smart_write: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n\nNO UNCLAIMED DRIFT: 55 scenario(s) checked against c398fc84eec25fc44b60d74aae05b9a2da205884\n",
+    "wall_s": 48.7
+   },
+   "tests/features.py": {
+    "cpu_s": 29.3,
+    "early_stop": false,
+    "fails": [
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):"
+    ],
+    "load1": 3.37,
+    "rc": 0,
+    "tail": "  ok   a second failed cycle counts the outage but keeps one staleness start\n  ok   the fabricated fallback forecast exists and is stale from birth\n  ok   a successful fetch clears the outage and the staleness\n  ok   an empty result keeps the previous forecast, marked stale\n\nALL 1557 FEATURE CHECKS PASSED\n",
+    "wall_s": 29.9
+   },
+   "tests/manual_plan.py": {
+    "cpu_s": 3.2,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.09,
+    "rc": 0,
+    "tail": "  ok   a stored list payload is discarded, not raised\n  ok   a stored str payload is discarded, not raised\n  ok   a stored int payload is discarded, not raised\n  ok   the data dict omits manual_plan when none is active\n\nALL 71 manual plan checks PASSED\n",
+    "wall_s": 3.5
+   },
+   "tests/optimality.py": {
+    "cpu_s": 26.5,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.1,
+    "rc": 0,
+    "tail": "\n-- batched-FD jac on DHW-enabled solves (D9-01)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=False)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=True)\n\nALL 11 OPTIMALITY CHECKS PASSED\n",
+    "wall_s": 26.5
+   },
+   "tests/plan_view.py": {
+    "cpu_s": 0.6,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.16,
+    "rc": 0,
+    "tail": "dhw reasons  : ['dhw_preheat', 'dhw_window', 'idle']\nraw space kWh 34.64 raw dhw kWh 6.53\nslot-sum space kWh 34.64\nslot-sum dhw kWh 6.53\nwrote /private/tmp/claude-501/-Users-timmalmstrom-copilot-worktrees-heatpump-optimizer-tvofi-claude/674d54f9-28e0-459d-9cac-85fee64c0344/scratchpad/plandata-M35.json\nplan reason codes, price provenance and slot energy OK\n",
+    "wall_s": 0.6
+   },
+   "tests/solar_alignment.py": {
+    "cpu_s": 0.6,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.16,
+    "rc": 0,
+    "tail": "  ok   steps beyond the Open-Meteo horizon keep the weather entity value\n  ok   without Open-Meteo the weather entity is still used\n  ok   an unavailable Open-Meteo client does not zero the irradiance\n  ok   irradiance is never negative\n\nALL SOLAR ALIGNMENT CHECKS PASSED\n",
+    "wall_s": 0.7
+   },
+   "tests/validate.py": {
+    "cpu_s": 12.7,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.23,
+    "rc": 0,
+    "tail": "=== SPACE HEATING ONLY (DHW disabled) ===\nwinter, no DHW                     optimal  36.00kWh base= 110.03 cost=  23.28 sav= 52.9% room 17.1-20.9 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 2 kW= 6.0    57ms\nsummer, no DHW                     optimal   0.00kWh base=   0.00 cost=   0.00 sav=  0.0% room 21.0-25.7 dhw>=    - peak%=nan dhwpeak%=nan starts= 0 kW= 0.0    21ms\n2zone winter, no DHW               optimal  67.42kWh base= 137.14 cost=  58.30 sav= 47.8% room 17.6-21.5 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 4 kW= 6.0   819ms\n\nNO ISSUES\n",
+    "wall_s": 12.8
+   }
+  },
+  "scripts_not_run": {
+   "tests/card_drift.mjs": "compares the card JavaScript at two git refs; identical for every Python mutant",
+   "tests/golden.py": "strict fixture comparison does not reproduce on this machine; env_drift --all stands in (as in CI drift mode)"
+  },
+  "scripts_quiet_window": [
+   "tests/backtest.py",
+   "tests/edge.py",
+   "tests/stress.py"
+  ],
+  "site": "if not spec:",
+  "survived": true,
+  "weight": 12
+ },
+ "M36": {
+  "closure": [
+   "tests/backtest.py",
+   "tests/card.mjs",
+   "tests/card_drift.mjs",
+   "tests/edge.py",
+   "tests/entities.py",
+   "tests/env_drift.py",
+   "tests/features.py",
+   "tests/golden.py",
+   "tests/manual_plan.py",
+   "tests/open_meteo.py",
+   "tests/optimality.py",
+   "tests/plan_view.py",
+   "tests/solar_alignment.py",
+   "tests/stress.py",
+   "tests/validate.py"
+  ],
+  "commit": "8ab3e8f",
+  "done": true,
+  "func": "IrradianceSeries.mean_over",
+  "id": "M36",
+  "killed_by": [
+   "tests/open_meteo.py"
+  ],
+  "kind": "guard_return",
+  "line": 145,
+  "module": "open_meteo.py",
+  "scripts": {
+   "tests/card.mjs": {
+    "cpu_s": 3.8,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.27,
+    "rc": 0,
+    "tail": "  ok    the picker survives the republish\n  ok    Assign on an untouched picker writes the slot's current entity, not a stale memo\n  ok    the card element defines at most 26 members of its own (26)\n  ok    the card markup gate's claim file is stamped for v6.2.14\n\nALL CARD CHECKS PASSED\n",
+    "wall_s": 2.7
+   },
+   "tests/entities.py": {
+    "cpu_s": 2.0,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.29,
+    "rc": 0,
+    "tail": "  ok   an empty may-drift list is always fine\n  ok   this tree's may-drift entries parse, with reasons\n  ok   and none of them leaks into the claim list\n  ok   this tree's own claim file passes the scope check\n\nALL 538 ENTITY CHECKS PASSED\n",
+    "wall_s": 2.1
+   },
+   "tests/env_drift.py": {
+    "cache_hit": true,
+    "cpu_s": 50.3,
+    "drift": [],
+    "load1": 3.29,
+    "n_drift": 0,
+    "rc": 0,
+    "tail": "e here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank_smart_write: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n\nNO UNCLAIMED DRIFT: 55 scenario(s) checked against c398fc84eec25fc44b60d74aae05b9a2da205884\n",
+    "wall_s": 50.7
+   },
+   "tests/features.py": {
+    "skipped": "mutant already killed"
+   },
+   "tests/manual_plan.py": {
+    "skipped": "mutant already killed"
+   },
+   "tests/open_meteo.py": {
+    "cpu_s": 0.1,
+    "early_stop": false,
+    "fails": [
+     "  FAIL a barely-overlapping window returns None instead of a misleading value"
+    ],
+    "load1": 3.29,
+    "rc": 1,
+    "tail": "  ok   current_irradiance prefers the newest observation\n  ok   coordinate matching tolerates float noise\n  ok   coordinate matching rejects a different place\n  ok   diagnostics report both series\n\n1 CHECK(S) FAILED\n",
+    "wall_s": 0.2
+   },
+   "tests/optimality.py": {
+    "skipped": "mutant already killed"
+   },
+   "tests/plan_view.py": {
+    "cpu_s": 0.7,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.29,
+    "rc": 0,
+    "tail": "dhw reasons  : ['dhw_preheat', 'dhw_window', 'idle']\nraw space kWh 34.64 raw dhw kWh 6.53\nslot-sum space kWh 34.64\nslot-sum dhw kWh 6.53\nwrote /private/tmp/claude-501/-Users-timmalmstrom-copilot-worktrees-heatpump-optimizer-tvofi-claude/674d54f9-28e0-459d-9cac-85fee64c0344/scratchpad/plandata-M36.json\nplan reason codes, price provenance and slot energy OK\n",
+    "wall_s": 0.7
+   },
+   "tests/solar_alignment.py": {
+    "cpu_s": 0.6,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.29,
+    "rc": 0,
+    "tail": "  ok   steps beyond the Open-Meteo horizon keep the weather entity value\n  ok   without Open-Meteo the weather entity is still used\n  ok   an unavailable Open-Meteo client does not zero the irradiance\n  ok   irradiance is never negative\n\nALL SOLAR ALIGNMENT CHECKS PASSED\n",
+    "wall_s": 0.7
+   },
+   "tests/validate.py": {
+    "skipped": "mutant already killed"
+   }
+  },
+  "scripts_not_run": {
+   "tests/card_drift.mjs": "compares the card JavaScript at two git refs; identical for every Python mutant",
+   "tests/golden.py": "strict fixture comparison does not reproduce on this machine; env_drift --all stands in (as in CI drift mode)"
+  },
+  "scripts_quiet_window": [
+   "tests/backtest.py",
+   "tests/edge.py",
+   "tests/stress.py"
+  ],
+  "site": "if total_weight < 0.5 * requested:",
+  "survived": false,
+  "weight": 6
+ },
+ "NULL": {
+  "closure": [
+   "tests/backtest.py",
+   "tests/card.mjs",
+   "tests/card_drift.mjs",
+   "tests/edge.py",
+   "tests/entities.py",
+   "tests/env_drift.py",
+   "tests/features.py",
+   "tests/golden.py",
+   "tests/manual_plan.py",
+   "tests/optimality.py",
+   "tests/plan_view.py",
+   "tests/solar_alignment.py",
+   "tests/stress.py",
+   "tests/validate.py"
+  ],
+  "commit": "09b2541",
+  "done": true,
+  "func": "-",
+  "id": "NULL",
+  "killed_by": [],
+  "kind": "null",
+  "line": 0,
+  "module": "optimizer.py",
+  "scripts": {
+   "tests/card.mjs": {
+    "cpu_s": 4.1,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.98,
+    "rc": 0,
+    "tail": "  ok    the picker survives the republish\n  ok    Assign on an untouched picker writes the slot's current entity, not a stale memo\n  ok    the card element defines at most 26 members of its own (26)\n  ok    the card markup gate's claim file is stamped for v6.2.14\n\nALL CARD CHECKS PASSED\n",
+    "wall_s": 3.0
+   },
+   "tests/entities.py": {
+    "cpu_s": 2.2,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.63,
+    "rc": 0,
+    "tail": "  ok   an empty may-drift list is always fine\n  ok   this tree's may-drift entries parse, with reasons\n  ok   and none of them leaks into the claim list\n  ok   this tree's own claim file passes the scope check\n\nALL 538 ENTITY CHECKS PASSED\n",
+    "wall_s": 2.2
+   },
+   "tests/env_drift.py": {
+    "cache_hit": true,
+    "cpu_s": 45.5,
+    "drift": [],
+    "load1": 3.34,
+    "n_drift": 0,
+    "rc": 0,
+    "tail": "e here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n  may-drift wood_two_tank_smart_write: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)\n\nNO UNCLAIMED DRIFT: 55 scenario(s) checked against c398fc84eec25fc44b60d74aae05b9a2da205884\n",
+    "wall_s": 46.2
+   },
+   "tests/features.py": {
+    "cpu_s": 36.0,
+    "early_stop": false,
+    "fails": [
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):",
+     "Traceback (most recent call last):"
+    ],
+    "load1": 5.25,
+    "rc": 0,
+    "tail": "  ok   a second failed cycle counts the outage but keeps one staleness start\n  ok   the fabricated fallback forecast exists and is stale from birth\n  ok   a successful fetch clears the outage and the staleness\n  ok   an empty result keeps the previous forecast, marked stale\n\nALL 1557 FEATURE CHECKS PASSED\n",
+    "wall_s": 36.9
+   },
+   "tests/manual_plan.py": {
+    "cpu_s": 3.7,
+    "early_stop": false,
+    "fails": [],
+    "load1": 4.44,
+    "rc": 0,
+    "tail": "  ok   a stored list payload is discarded, not raised\n  ok   a stored str payload is discarded, not raised\n  ok   a stored int payload is discarded, not raised\n  ok   the data dict omits manual_plan when none is active\n\nALL 71 manual plan checks PASSED\n",
+    "wall_s": 3.9
+   },
+   "tests/optimality.py": {
+    "cpu_s": 29.1,
+    "early_stop": false,
+    "fails": [],
+    "load1": 4.4,
+    "rc": 0,
+    "tail": "\n-- batched-FD jac on DHW-enabled solves (D9-01)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=False)\n  ok   DHW-enabled batched-FD jac matches scipy's gradient path (two_zone=True)\n\nALL 11 OPTIMALITY CHECKS PASSED\n",
+    "wall_s": 29.3
+   },
+   "tests/plan_view.py": {
+    "cpu_s": 0.7,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.63,
+    "rc": 0,
+    "tail": "dhw reasons  : ['dhw_preheat', 'dhw_window', 'idle']\nraw space kWh 34.64 raw dhw kWh 6.53\nslot-sum space kWh 34.64\nslot-sum dhw kWh 6.53\nwrote /private/tmp/claude-501/-Users-timmalmstrom-copilot-worktrees-heatpump-optimizer-tvofi-claude/674d54f9-28e0-459d-9cac-85fee64c0344/scratchpad/plandata-NULL.json\nplan reason codes, price provenance and slot energy OK\n",
+    "wall_s": 0.7
+   },
+   "tests/solar_alignment.py": {
+    "cpu_s": 0.6,
+    "early_stop": false,
+    "fails": [],
+    "load1": 3.34,
+    "rc": 0,
+    "tail": "  ok   steps beyond the Open-Meteo horizon keep the weather entity value\n  ok   without Open-Meteo the weather entity is still used\n  ok   an unavailable Open-Meteo client does not zero the irradiance\n  ok   irradiance is never negative\n\nALL SOLAR ALIGNMENT CHECKS PASSED\n",
+    "wall_s": 0.7
+   },
+   "tests/validate.py": {
+    "cpu_s": 14.3,
+    "early_stop": false,
+    "fails": [],
+    "load1": 4.81,
+    "rc": 0,
+    "tail": "=== SPACE HEATING ONLY (DHW disabled) ===\nwinter, no DHW                     optimal  36.00kWh base= 110.03 cost=  23.28 sav= 52.9% room 17.1-20.9 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 2 kW= 6.0    66ms\nsummer, no DHW                     optimal   0.00kWh base=   0.00 cost=   0.00 sav=  0.0% room 21.0-25.7 dhw>=    - peak%=nan dhwpeak%=nan starts= 0 kW= 0.0    28ms\n2zone winter, no DHW               optimal  67.42kWh base= 137.14 cost=  58.30 sav= 47.8% room 17.6-21.5 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 4 kW= 6.0   976ms\n\nNO ISSUES\n",
+    "wall_s": 14.5
+   }
+  },
+  "scripts_not_run": {
+   "tests/card_drift.mjs": "compares the card JavaScript at two git refs; identical for every Python mutant",
+   "tests/golden.py": "strict fixture comparison does not reproduce on this machine; env_drift --all stands in (as in CI drift mode)"
+  },
+  "scripts_quiet_window": [
+   "tests/backtest.py",
+   "tests/edge.py",
+   "tests/stress.py"
+  ],
+  "site": "comment only",
+  "survived": true,
+  "weight": 0
+ }
+}

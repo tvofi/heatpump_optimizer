@@ -1,0 +1,13 @@
+--- a/custom_components/heatpump_optimizer/inputs.py
++++ b/custom_components/heatpump_optimizer/inputs.py
+@@ -513,10 +513,6 @@
+             else bool(strict)
+         )
+         flag = parse_bool(reading.text, strict=strict_now)
+-        if flag is None:
+-            if reading.problem is None:
+-                reading.problem = "not_boolean"
+-            return reading
+         # Set even on a stale reading, mirroring ``read`` keeping ``value``:
+         # ``ok`` is already False, and a caller that deliberately wants the
+         # last known flag must be able to reach it.

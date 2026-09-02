@@ -1,0 +1,11 @@
+--- a/custom_components/heatpump_optimizer/inputs.py
++++ b/custom_components/heatpump_optimizer/inputs.py
+@@ -562,8 +562,6 @@
+     def flag(self, key: str, default: bool | None = None) -> bool | None:
+         """Convenience: the usable flag for a key, or ``default``."""
+         reading = self.health.readings.get(key)
+-        if reading is None or not reading.ok or reading.flag is None:
+-            return default
+         return reading.flag
+ 
+ 

@@ -1,0 +1,11 @@
+--- a/custom_components/heatpump_optimizer/thermal_model.py
++++ b/custom_components/heatpump_optimizer/thermal_model.py
+@@ -1940,7 +1940,7 @@
+                 w = wood_share(T_w, T_buf, flow_set, floor_temp)
+                 avail_wood = ext - q_wood_loss + C_w * max(
+                     0.0, T_w - floor_temp
+-                ) / max(dt_hours, 1e-6)
++                ) / dt_hours
+                 avail_hp = thermal_power - q_buf_loss + C_buf * max(
+                     0.0, T_buf - floor_temp
+                 ) / max(dt_hours, 1e-6)

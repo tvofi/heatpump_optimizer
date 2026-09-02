@@ -26,6 +26,7 @@ from __future__ import annotations
 import asyncio
 import json
 import pathlib
+import re
 import sys
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -3944,6 +3945,143 @@ R.check(
     not _missing_precision,
     ", ".join(_missing_precision),
 )
+
+
+# ===========================================================================
+# Entity icons (icon translations, audit D10-13 / #189)
+# ===========================================================================
+R.section("Entity icons (icon translations, audit D10-13)")
+
+# Gold icon-translations: entity icons live in icons.json, keyed per platform
+# by translation key, and the frontend reads them from there — not as 64
+# hardcoded ``_attr_icon`` pins in the entity classes. The registry is what a
+# user (or a future translation) can override; a class pin wins silently over
+# it and is exactly the thing this section exists to prevent coming back.
+_ic_path = ROOT / "icons.json"
+_ic_exists = _ic_path.is_file()
+R.check(
+    "icons.json exists in the integration root",
+    _ic_exists,
+    str(_ic_path),
+)
+try:
+    _icons = json.loads(_ic_path.read_text()) if _ic_exists else {}
+    R.check("icons.json parses as JSON", True)
+except json.JSONDecodeError as _err:
+    _icons = {}
+    R.check("icons.json parses as JSON", False, str(_err))
+
+# The shape hassfest's icons validator and HA's icon-translation loader read:
+# ``{"entity": {platform: {translation_key: {"default": "mdi:..."}}}}``, with
+# optional per-entry "state"/"range"/"state_attributes" sections and nothing
+# else at any level. Icons are ``mdi:`` slugs, lowercase, digits and dashes.
+_icon_shape_errors = []
+if set(_icons) - {"entity", "services"}:
+    _icon_shape_errors.append(
+        f"unexpected top-level keys {sorted(set(_icons) - {'entity', 'services'})}"
+    )
+_entity_icons = _icons.get("entity")
+if not _entity_icons or not isinstance(_entity_icons, dict):
+    _icon_shape_errors.append("the entity section is missing or not an object")
+    _entity_icons = _entity_icons if isinstance(_entity_icons, dict) else {}
+_MDI_SLUG = re.compile(r"^mdi:[a-z0-9-]+$")
+for _plat, _entries in sorted(_entity_icons.items()):
+    if not isinstance(_entries, dict):
+        _icon_shape_errors.append(f"entity.{_plat} is not an object")
+        continue
+    for _key, _spec in sorted(_entries.items()):
+        _where = f"entity.{_plat}.{_key}"
+        if not isinstance(_spec, dict):
+            _icon_shape_errors.append(f"{_where} is not an object")
+            continue
+        _extra = set(_spec) - {"default", "state", "range", "state_attributes"}
+        if _extra:
+            _icon_shape_errors.append(f"{_where} has unexpected keys {sorted(_extra)}")
+        _default_icon = _spec.get("default")
+        if not isinstance(_default_icon, str) or not _MDI_SLUG.match(_default_icon):
+            _icon_shape_errors.append(
+                f"{_where}.default is not an mdi slug: {_default_icon!r}"
+            )
+        for _skey, _sicon in sorted((_spec.get("state") or {}).items()):
+            if not isinstance(_sicon, str) or not _MDI_SLUG.match(_sicon):
+                _icon_shape_errors.append(
+                    f"{_where}.state.{_skey} is not an mdi slug: {_sicon!r}"
+                )
+R.check(
+    "every icons.json entry is the hassfest shape with a valid mdi slug",
+    not _icon_shape_errors,
+    "; ".join(_icon_shape_errors[:6]),
+)
+
+# No entity class pins _attr_icon any more, on any of the four platforms. A
+# class-level pin overrides the registry silently; an icon that truly must
+# follow state is expressible in the registry as a "state" section.
+_icon_pinned = sorted(
+    f"{plat}:{e._attr_translation_key}"
+    for plat, e in _named_entities
+    if getattr(e, "_attr_icon", None) is not None
+)
+R.check(
+    "no entity class pins _attr_icon any more",
+    not _icon_pinned,
+    ", ".join(_icon_pinned),
+)
+
+# The registry covers every translation key on every platform, with exactly
+# one exception pinned below: an entity whose icon is its device class's own
+# default renders that default anyway, and re-declaring it in the registry
+# would override the device class — the one thing the icon-translations rule
+# says never to do. (Defaults transcribed from Home Assistant's own
+# components/sensor/icons.json at 2026.9.)
+_DC_DEFAULT_KEYS = {
+    "sensor": {
+        "optimal_setpoint",  # temperature renders mdi:thermometer
+        "outdoor_temperature_optimizer",  # temperature renders mdi:thermometer
+        "measured_power",  # power renders mdi:flash
+        "compressor_frequency_advisor",  # frequency renders mdi:sine-wave
+    },
+}
+for _plat in ("sensor", "binary_sensor", "button", "switch"):
+    _expected_keys = (
+        {e._attr_translation_key for _p, e in _named_entities if _p == _plat}
+        - _DC_DEFAULT_KEYS.get(_plat, set())
+    )
+    _registry_keys = set(_entity_icons.get(_plat, {}))
+    _icon_diff = _expected_keys ^ _registry_keys
+    R.check(
+        f"the {_plat} icon registry covers every translation key exactly",
+        not _icon_diff,
+        f"mismatch {sorted(_icon_diff)}",
+    )
+
+# The exceptions stay exceptions only while the device class actually still
+# provides the icon: drop the device class and the entity goes icon-less, so
+# each pinned key is checked against the class it leans on.
+_sensor_by_tk = {s._attr_translation_key: s for s in sensors}
+_dc_pinned_bad = sorted(
+    f"sensor:{_key} has no device class to render an icon from"
+    for _key in sorted(_DC_DEFAULT_KEYS["sensor"])
+    if not getattr(_sensor_by_tk.get(_key), "_attr_device_class", None)
+)
+R.check(
+    "every icon left out of the registry leans on a real device class",
+    not _dc_pinned_bad,
+    "; ".join(_dc_pinned_bad),
+)
+# And spot-pins, written out literally so a renamed translation key cannot
+# silently move which entities the roster check above excludes.
+for _key, _dc in (
+    ("optimal_setpoint", "temperature"),
+    ("outdoor_temperature_optimizer", "temperature"),
+    ("measured_power", "power"),
+    ("compressor_frequency_advisor", "frequency"),
+):
+    _entity = _sensor_by_tk[_key]
+    R.check(
+        f"sensor:{_key} keeps its {_dc} device class for the default icon",
+        getattr(_entity, "_attr_device_class", None) == _dc,
+        str(getattr(_entity, "_attr_device_class", None)),
+    )
 
 
 # ===========================================================================
