@@ -46,10 +46,10 @@ Where this table and a wave body disagree, this table is the truth.
 
 | Wave | Scope | Issues | Release | Status |
 |---|---|---|---|---|
-| 0 | stamp REST fallback (#376); then #367, #368 | #364, #282 | v6.3.10 | fallback **merged** (`0820122`); the two PRs in review |
+| 0 | stamp REST fallback (#376); then #367, #368 | #364, #282 | **v6.3.10** | **done** — all three merged, both reviews `merge`, tag `d7fa97f`, 0 unstamped |
 | triage A | closed or re-scoped on a measured number | #197 #233 closed; #195 #244 #325 #334 re-scoped | — | **done** |
+| 1a | the stress ruler, alone on an idle box | #346 | v6.3.11 | running |
 | triage B | the rest, against the stamped tree | #281 #304 #303 #258 #242 #225 #224 #193; #291 #232 alone | — | pending |
-| 1a | the stress ruler, alone on an idle box | #346 | v6.3.11 | pending |
 | 1b | gate instruments, suite gaps, card, stores | 26 issues in 14 groups | v6.3.11 | prepared |
 | 2 | coordinator lifecycle, learners, options grouping | #236 #237 #240 #239 #243 #283 #284 #279 #278 #277 #244 #325 #280 #198 | v6.3.12 | pending |
 | 3 | solver, DHW planner, GIL process route | #232 #234 #289 #290 #199 #242 | v6.3.13 | pending |
