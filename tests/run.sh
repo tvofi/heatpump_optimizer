@@ -259,6 +259,14 @@ lane_units() {
   # and invalid submissions, the duplicate abort and the reauth round
   # trip, against the real validation code over the fake Tibber session.
   run "$PYTHON" tests/config_flow_steps.py
+  # The structural ratchet of the coordinator decomposition program (#193,
+  # PR-0): AST counts -- god classes, monster methods, attr bags, seam cut
+  # costs -- over the whole integration, each held at or below the budget
+  # table in tests/structure_budgets.json. Pure counts, no runtime, no
+  # timing guard. It reads every integration module, so its measured
+  # closure is the whole integration; that is correct and deliberate: any
+  # structural change puts this lane in scope.
+  run "$PYTHON" tests/structure.py
   run "$PYTHON" tests/manual_plan.py
   run "$PYTHON" tests/open_meteo.py
   run "$PYTHON" tests/solar_alignment.py
