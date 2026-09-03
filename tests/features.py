@@ -1017,7 +1017,6 @@ _pa = type(
     (),
     {
         "_known_prices_for": Coord._known_prices_for,
-        "_comparable_ts": staticmethod(Coord._comparable_ts),
     },
 )()
 _pa_mid = datetime(2026, 1, 6, 0, 0)
@@ -1062,7 +1061,6 @@ _wa = type(
     (),
     {
         "_weather_series": Coord._weather_series,
-        "_comparable_ts": staticmethod(Coord._comparable_ts),
         "_wind_speed_scale": lambda self: 1.0,
     },
 )()

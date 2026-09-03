@@ -25,6 +25,7 @@
    "charge_rate_kw": 16.62,
    "components": [
     {
+     "measured": false,
      "name": "upper_floor",
      "soc_percent": 66.7,
      "standing_loss_kw": 1.28,
@@ -33,6 +34,7 @@
      "usable_capacity_kwh": 18.0
     },
     {
+     "measured": false,
      "name": "lower_floor",
      "soc_percent": 66.7,
      "standing_loss_kw": 1.12,
@@ -41,6 +43,7 @@
      "usable_capacity_kwh": 48.0
     },
     {
+     "measured": false,
      "name": "slab",
      "soc_percent": 95.9,
      "standing_loss_kw": 0.0,
@@ -49,6 +52,7 @@
      "usable_capacity_kwh": 26.062
     },
     {
+     "measured": false,
      "name": "buffer_tank",
      "soc_percent": 43.4,
      "standing_loss_kw": 0.0129,
@@ -59,6 +63,13 @@
    ],
    "discharge_rate_kw": 2.413,
    "hours_of_autonomy": 28.98,
+   "measured_components": [],
+   "modelled_components": [
+    "upper_floor",
+    "lower_floor",
+    "slab",
+    "buffer_tank"
+   ],
    "round_trip_efficiency_6h": 79.3,
    "state_of_charge_percent": 74.2,
    "stored_energy_kwh": 69.93,
@@ -258,6 +269,7 @@
   "mode": "auto",
   "optimization_status": "not_run",
   "outage_recovery_active": false,
+  "outdoor_forecast_temperature": -5.0,
   "outdoor_temperature": 5.0,
   "peak_guard_evidence": [],
   "peak_guard_suppressing": false,
@@ -395,6 +407,7 @@
    "dhw_temperature": false,
    "floor_return_temperature": false,
    "lower_floor_temperature": false,
+   "outdoor_temperature": false,
    "slab_temperature": false,
    "upper_floor_temperature": false
   },

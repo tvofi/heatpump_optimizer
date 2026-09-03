@@ -166,6 +166,41 @@ class HeatPumpOptimizerClimate(HeatPumpOptimizerEntity, ClimateEntity):
             return mode if mode in self._attr_preset_modes else None
         return PRESET_AUTO
 
+    def _measured(self, key: str) -> Any:
+        """A published temperature, or ``None`` where nothing measured it.
+
+        The sensor platform gates six temperature sensors on the
+        coordinator's ``reading_ok`` map, because ``ThermalState`` carries
+        constructor defaults (55/40/22/21 °C) and overwrites a field only
+        when its entity read OK. The identical numbers were left ungated
+        here: an install with no tank probe had DHW Temperature correctly
+        unavailable and ``climate.heat_pump_optimizer``'s ``dhw_temperature``
+        attribute reading 55.0 two rows away in the same dashboard — the same
+        fiction with the gate taken off.
+
+        ``None`` rather than a dropped key: an attribute that disappears
+        breaks every template that reads it, while ``None`` is what Home
+        Assistant renders as unknown and what a template already handles.
+        """
+        data = self.coordinator.data or {}
+        flags = data.get("reading_ok") or {}
+        return data.get(key) if flags.get(key) else None
+
+    @property
+    def _effective_outdoor(self) -> float | None:
+        """The outdoor thermometer, else the forecast step the plan uses.
+
+        Mirrors ``sensor._effective_outdoor``; kept as its own tiny property
+        rather than imported so the climate platform does not depend on the
+        sensor platform. The rule is the one that matters: without a
+        thermometer this attribute used to publish the 5.0 constructor
+        default beside a plan solved at the forecast's −5 °C.
+        """
+        data = self.coordinator.data or {}
+        if (data.get("reading_ok") or {}).get("outdoor_temperature"):
+            return data.get("outdoor_temperature")
+        return data.get("outdoor_forecast_temperature")
+
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return extra state attributes including two-zone info."""
@@ -183,7 +218,7 @@ class HeatPumpOptimizerClimate(HeatPumpOptimizerEntity, ClimateEntity):
             attrs["optimization_status"] = self.coordinator.data.get(
                 "optimization_status"
             )
-            attrs["slab_temperature"] = self.coordinator.data.get("slab_temperature")
+            attrs["slab_temperature"] = self._measured("slab_temperature")
             attrs["heat_pump_on"] = action.get("heat_pump_on")
             attrs["ecl110_displace"] = action.get("displace_value")
             attrs["ecl110_effective_displace"] = self.coordinator.data.get(
@@ -192,21 +227,19 @@ class HeatPumpOptimizerClimate(HeatPumpOptimizerEntity, ClimateEntity):
             attrs["ecl110_command_topic"] = self.coordinator.data.get(
                 "ecl110_command_topic"
             )
-            attrs["outdoor_temperature"] = self.coordinator.data.get(
-                "outdoor_temperature"
-            )
+            attrs["outdoor_temperature"] = self._effective_outdoor
 
             # Two-zone attributes
             attrs["two_zone_enabled"] = self.coordinator.data.get(
                 "two_zone_enabled", False
             )
-            attrs["upper_floor_temperature"] = self.coordinator.data.get(
+            attrs["upper_floor_temperature"] = self._measured(
                 "upper_floor_temperature"
             )
-            attrs["lower_floor_temperature"] = self.coordinator.data.get(
+            attrs["lower_floor_temperature"] = self._measured(
                 "lower_floor_temperature"
             )
-            attrs["floor_return_temperature"] = self.coordinator.data.get(
+            attrs["floor_return_temperature"] = self._measured(
                 "floor_return_temperature"
             )
             attrs["solar_heat_gain_kw"] = self.coordinator.data.get(
@@ -224,7 +257,7 @@ class HeatPumpOptimizerClimate(HeatPumpOptimizerEntity, ClimateEntity):
 
             # DHW status
             attrs["dhw_enabled"] = self.coordinator.data.get("dhw_enabled", False)
-            attrs["dhw_temperature"] = self.coordinator.data.get("dhw_temperature")
+            attrs["dhw_temperature"] = self._measured("dhw_temperature")
             attrs["dhw_setpoint"] = self.coordinator.data.get("dhw_setpoint")
             attrs["dhw_heating_active"] = self.coordinator.data.get(
                 "dhw_heating_active", False

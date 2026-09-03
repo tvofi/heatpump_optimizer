@@ -95,6 +95,66 @@ def _reading_ok(coordinator: Any, key: str) -> bool:
     return bool(flags.get(key))
 
 
+def _effective_outdoor(coordinator: Any) -> tuple[float | None, str | None]:
+    """The best outdoor temperature available, and where it came from.
+
+    Three answers, in the order a user would want them:
+
+    * the outdoor thermometer, while it reads;
+    * otherwise the **forecast's current step** -- the number the plan beside
+      it was actually solved on. `ThermalState.outdoor_temperature`'s 5.0
+      constructor default is never overwritten without a thermometer, so an
+      install with a -5 °C forecast published "5.0 °C outdoors" with a
+      `TEMPERATURE` device class and long-term statistics behind it, and the
+      Estimated COP that reads it followed (3.32 against a real 2.62);
+    * ``None`` when there is neither, which is the one branch where the
+      default also reaches the optimizer's horizon.
+
+    Deliberately not an availability gate: an outdoor temperature the
+    integration is planning against is a real answer, and unavailability
+    would hide it. What changes is that the number is the forecast's rather
+    than a dataclass's, and the sensor says which.
+    """
+    data = getattr(coordinator, "data", None) or {}
+    if _reading_ok(coordinator, "outdoor_temperature"):
+        value = data.get("outdoor_temperature")
+        if value is not None:
+            return float(value), "outdoor_temp_entity"
+    forecast = data.get("outdoor_forecast_temperature")
+    if forecast is not None:
+        return float(forecast), "weather_forecast"
+    return None, None
+
+
+class _MeasuredStoreMixin:
+    """A thermal-battery entity, gated on at least one store being sensed.
+
+    The battery view is assembled entirely from `ThermalState`: the house
+    from the indoor thermometer, the slab from the floor return, the two
+    tanks from their probes. A field there is overwritten only when its
+    entity read OK, so on an install with **no thermometer at all** -- which
+    is what the shipping config flow produces when every form is submitted
+    untouched, all six probe fields being `vol.Optional` -- state of charge
+    and stored energy are computed from 55/40/22/21 °C and published as a
+    `BATTERY` percentage and an `ENERGY_STORAGE` kWh, both `MEASUREMENT`, so
+    Home Assistant writes long-term statistics rows that survive the recorder
+    purge for a number nothing measured.
+
+    The threshold is deliberately "at least one": an install with only an
+    indoor thermometer -- the common one -- keeps the entity and every figure
+    in it unchanged, because the house is the largest store and it is then
+    genuinely sensed. Only the install where nothing at all is measured loses
+    it, and that is exactly the case where there is nothing to report.
+    """
+
+    @property
+    def available(self) -> bool:
+        battery = (getattr(self.coordinator, "data", None) or {}).get(
+            "battery"
+        ) or {}
+        return bool(super().available and battery.get("measured_components"))
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: HeatPumpOptimizerConfigEntry,
@@ -531,7 +591,14 @@ class CurrentCOPSensor(HeatPumpOptimizerSensorBase):
     @property
     def native_value(self) -> float | None:
         if self.coordinator.data:
-            outdoor_temp = self.coordinator.data.get("outdoor_temperature", 5.0)
+            # The same outdoor answer the Outdoor Temperature sensor gives,
+            # for the same reason: this is "modelled COP at the current
+            # outdoor temperature", and without a thermometer the old
+            # `data.get(..., 5.0)` read the constructor default while the
+            # plan being priced beside it was solved at the forecast's −5 °C.
+            outdoor_temp, _source = _effective_outdoor(self.coordinator)
+            if outdoor_temp is None:
+                return None
             cop = self.coordinator._thermal_model.compute_cop(outdoor_temp)
             return round(cop, 2)
         return None
@@ -566,9 +633,19 @@ class OutdoorTempSensor(HeatPumpOptimizerSensorBase):
     @property
     def native_value(self) -> float | None:
         if self.coordinator.data:
-            val = self.coordinator.data.get("outdoor_temperature")
+            val, _source = _effective_outdoor(self.coordinator)
             return round(val, 1) if val is not None else None
         return None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Where the number came from — the same disclosure the upper floor
+        makes, and for the same reason: two entities carrying one number look
+        like corroboration until one owns up. ``weather_forecast`` here means
+        there is no outdoor thermometer and this is the horizon's first step.
+        """
+        _val, source = _effective_outdoor(self.coordinator)
+        return {"source": source}
 
 
 class SolarIrradianceSensor(HeatPumpOptimizerSensorBase):
@@ -1746,7 +1823,7 @@ class PVSurplusSensor(HeatPumpOptimizerSensorBase):
 # ---------------------------------------------------------------------------
 
 
-class ThermalBatterySensor(HeatPumpOptimizerSensorBase):
+class ThermalBatterySensor(_MeasuredStoreMixin, HeatPumpOptimizerSensorBase):
     """State of charge of the building fabric and tanks, as a battery.
 
     Reported against the comfort band rather than against absolute zero:
@@ -1775,7 +1852,7 @@ class ThermalBatterySensor(HeatPumpOptimizerSensorBase):
         return dict((self.coordinator.data or {}).get("battery", {}) or {})
 
 
-class ThermalBatteryEnergySensor(HeatPumpOptimizerSensorBase):
+class ThermalBatteryEnergySensor(_MeasuredStoreMixin, HeatPumpOptimizerSensorBase):
     """Stored thermal energy available above the comfort floor."""
 
     _attr_state_class = SensorStateClass.MEASUREMENT
@@ -1806,6 +1883,12 @@ class ThermalBatteryEnergySensor(HeatPumpOptimizerSensorBase):
             "discharge_rate_kw": battery.get("discharge_rate_kw"),
             "hours_of_autonomy": battery.get("hours_of_autonomy"),
             "round_trip_efficiency_6h": battery.get("round_trip_efficiency_6h"),
+            # Which stores in the figures above are sensed and which are the
+            # thermal model's own estimate. The percentage sensor carries the
+            # whole view, so it gets this from `components[].measured`; here
+            # the attributes are a hand-picked set and the disclosure has to
+            # be picked with them.
+            "modelled_components": battery.get("modelled_components"),
         }
 
 

@@ -360,6 +360,17 @@ DATA = {
         "discharge_rate_kw": 1.2,
         "hours_of_autonomy": 6.75,
         "round_trip_efficiency_6h": 11.0,
+        # Which stores are sensed and which are the model's own estimate.
+        # The two battery entities are available while at least one store is
+        # sensed, so this payload -- the one whose job is to satisfy every
+        # gate -- names a measured store, with the buffer tank standing as
+        # the modelled one.
+        "components": [
+            {"name": "house", "temperature": 21.3, "measured": True},
+            {"name": "buffer_tank", "temperature": 40.0, "measured": False},
+        ],
+        "measured_components": ["house"],
+        "modelled_components": ["buffer_tank"],
     },
     "dhw_inlet_temperature": 8.5,
     "dhw_mixed": {
@@ -888,6 +899,9 @@ R.check(
 # ===========================================================================
 R.section("A published number is a reading or it is nothing")
 
+from homeassistant.util import dt as dt_util
+
+from heatpump_optimizer import coordinator as coordinator_module
 from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator
 from heatpump_optimizer.tariff import CapacityTariff, PeakTracker
 from heatpump_optimizer.thermal_model import ThermalState
@@ -1082,6 +1096,623 @@ R.check(
     "and it is still available when the tank really is being read",
     _mixed_ok.available,
     "the gate must not take the sensor away from installs that have a probe",
+)
+
+# ===========================================================================
+# Round-2 audit, D8-01 remainder: the DEFAULT install, measured causally
+# ===========================================================================
+#
+# Mixed Hot Water above was one of five paths the same defaults escaped
+# through. The other four -- the climate entity's temperature attributes, the
+# thermal battery's components and state of charge, and the Indoor/Outdoor
+# pair -- were still ungated, and the configuration they leak in is not a
+# corner: the panel drove the REAL config flow to `create_entry` submitting
+# every form untouched and it completes with ZERO thermometers and a 200 L
+# tank (all six probe fields are `vol.Optional`), so hot water is on and
+# nothing measures it. Nothing self-corrects either: `__init__.py` awaits
+# `async_config_entry_first_refresh` BEFORE forwarding the platforms, and
+# that refresh takes the `_skip_solve_once` light path, so the first value a
+# user ever sees is already the default and no later cycle moves it.
+#
+# The metric below is CAUSAL, not flag-based: it never reads the coordinator's
+# own `reading_ok` map. It rebinds the seven temperature-bearing
+# `ThermalState` constructor defaults by +7 K, re-runs the identical install,
+# and counts the published leaves that MOVED while their entity was
+# `available`. A fix that only edited the map could not move this number.
+#
+# Counted at CYCLE 1 and at STEADY STATE separately, because the panel's
+# "add the probes and it goes to zero" perturbation is FALSE on the first
+# cycle: the slab integrator still carries a 1.50 °C seed that decays to
+# 0.0000 only by cycle 10, while the tank, buffer, indoor and outdoor cases
+# never decay at all. A check that looked only at steady state would pass a
+# fix that leaves the first day wrong.
+R.section("Constructor defaults on the install the flow actually produces")
+
+
+class _FlowOKSession:
+    """The Tibber probe answers "valid"; nothing else here touches HTTP."""
+
+    class _Resp:
+        status = 200
+
+        async def json(self):
+            return {"data": {"viewer": {"name": "Home"}}}
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *exc):
+            return False
+
+    def post(self, *args, **kwargs):
+        return self._Resp()
+
+
+#: The three fields the first screen marks `vol.Required`. Everything else on
+#: every page is left exactly as the form pre-fills it -- which is what an
+#: untouched browser submits.
+_FLOW_REQUIRED = {
+    "name": "Heat Pump Optimizer",
+    const.CONF_TIBBER_TOKEN: "tok",
+    const.CONF_WEATHER_ENTITY: "weather.home",
+}
+
+
+def _untouched_answers(schema, required):
+    answers = {}
+    for key in schema.schema if schema else ():
+        name = str(key)
+        if name in required:
+            answers[name] = required[name]
+            continue
+        description = getattr(key, "description", None) or {}
+        if isinstance(description, dict) and "suggested_value" in description:
+            answers[name] = description["suggested_value"]
+            continue
+        try:
+            default = key.default()
+        except Exception:
+            default = None
+        # An optional field with no default is simply not submitted, which is
+        # what an untouched entity selector does.
+        if default is not None and type(default).__name__ != "Undefined":
+            answers[name] = default
+    return answers
+
+
+async def _walk_flow_untouched():
+    """Drive the shipping initial flow to create_entry, changing nothing."""
+    real = config_flow.async_get_clientsession
+    config_flow.async_get_clientsession = (
+        lambda hass, verify_ssl=True: _FlowOKSession()
+    )
+    try:
+        flow = config_flow.HeatPumpOptimizerConfigFlow()
+        flow.hass = FakeHass()
+        result = await flow.async_step_user(None)
+        for _ in range(20):
+            if result.get("type") == "create_entry":
+                return dict(result["data"])
+            if result.get("type") == "menu":
+                # An untouched menu is its first option.
+                step = list(result["menu_options"])[0]
+                result = await getattr(flow, f"async_step_{step}")(None)
+                continue
+            step = result["step_id"]
+            result = await getattr(flow, f"async_step_{step}")(
+                _untouched_answers(
+                    result.get("data_schema"),
+                    _FLOW_REQUIRED if step == "user" else {},
+                )
+            )
+        raise AssertionError("the initial flow did not reach create_entry")
+    finally:
+        config_flow.async_get_clientsession = real
+
+
+_FLOW_CONFIG = asyncio.run(_walk_flow_untouched())
+_FLOW_THERMOMETERS = [
+    key
+    for key in (
+        const.CONF_INDOOR_TEMP_ENTITY,
+        const.CONF_OUTDOOR_TEMP_ENTITY,
+        const.CONF_DHW_TEMP_ENTITY,
+        const.CONF_BUFFER_TANK_TEMP_ENTITY,
+        const.CONF_FLOOR_RETURN_TEMP_ENTITY,
+        const.CONF_LOWER_FLOOR_TEMP_ENTITY,
+    )
+    if _FLOW_CONFIG.get(key)
+]
+R.check(
+    "the shipping flow, every form untouched, configures no thermometer at all",
+    not _FLOW_THERMOMETERS,
+    f"configured: {_FLOW_THERMOMETERS}",
+)
+R.check(
+    "and turns hot water on anyway, with the 200 L tank the page pre-fills",
+    _FLOW_CONFIG.get(const.CONF_DHW_TANK_VOLUME) == 200.0,
+    f'{_FLOW_CONFIG.get(const.CONF_DHW_TANK_VOLUME)!r}',
+)
+
+#: A forecast the plan can be solved on, well below the 5.0 °C the outdoor
+#: field defaults to, so "published the default" and "published the forecast"
+#: are never the same number.
+_D801_START = datetime(2026, 1, 15, tzinfo=UTC)
+_D801_FORECAST_FIRST = -5.0
+
+
+def _d801_coordinator(config):
+    hass = FakeHass()
+    entry = FakeEntry(data=dict(config))
+    coord = HeatPumpOptimizerCoordinator(hass, entry)
+    coord._prices = [
+        {
+            "total": round(0.6 + 0.5 * (h % 12) / 12.0, 4),
+            "starts_at": (_D801_START + timedelta(hours=h)).isoformat(),
+            "level": "NORMAL",
+        }
+        for h in range(48)
+    ]
+    coord._weather_forecast = [
+        {
+            "datetime": (_D801_START + timedelta(hours=h)).isoformat(),
+            "temperature": _D801_FORECAST_FIRST + 3.0 * (h % 24) / 24.0,
+            "wind_speed": 3.0,
+            "precipitation": 0.0,
+            "humidity": 85.0,
+        }
+        for h in range(48)
+    ]
+    coord._solar_radiation_forecast = [
+        max(0.0, 200.0 * (1 - abs(12 - (h % 24)) / 12.0)) for h in range(48)
+    ]
+    return hass, entry, coord
+
+
+def _d801_publications(config, cycles):
+    """Every visible leaf every enabled-by-default entity publishes."""
+    hass, entry, coord = _d801_coordinator(config)
+
+    async def run():
+        # Home Assistant's own order: the first refresh takes the
+        # `_skip_solve_once` light path and publishes with no solve.
+        await coord._update_current_state()
+        coord.data = coord._build_data_dict()
+        for _ in range(cycles - 1):
+            await coord._update_current_state()
+            await coord.async_run_optimization()
+            coord.data = coord._build_data_dict()
+
+    asyncio.run(run())
+    entry.runtime_data = coord
+    out = {}
+    for module in (sensor, binary_sensor, _climate_platform, _switch_platform):
+        added = []
+        asyncio.run(module.async_setup_entry(hass, entry, added.extend))
+        for entity in added:
+            if not getattr(entity, "_attr_entity_registry_enabled_default", True):
+                continue
+            if not entity.available:
+                continue
+            label = f"{type(entity).__name__}"
+            state = getattr(entity, "native_value", None)
+            if state is None:
+                state = getattr(entity, "is_on", None)
+            if state is None:
+                state = getattr(entity, "current_temperature", None)
+            if state is not None:
+                out[f"{label}|state"] = state
+            attrs = getattr(entity, "extra_state_attributes", None) or {}
+            for key, value in _d801_leaves(attrs):
+                if value is not None:
+                    out[f"{label}|attrs.{key}"] = value
+    return out
+
+
+def _d801_leaves(obj, prefix=""):
+    if isinstance(obj, dict):
+        for key, value in obj.items():
+            yield from _d801_leaves(value, f"{prefix}{key}.")
+    elif isinstance(obj, (list, tuple)):
+        for index, value in enumerate(obj):
+            yield from _d801_leaves(value, f"{prefix}{index}.")
+    else:
+        yield prefix.rstrip("."), obj
+
+
+#: Exactly the constructor defaults the finding names -- 55/40/22/21/5 °C.
+_D801_TEMPERATURE_DEFAULTS = (
+    "room_temperature",
+    "slab_temperature",
+    "outdoor_temperature",
+    "upper_floor_temperature",
+    "lower_floor_temperature",
+    "buffer_tank_temperature",
+    "dhw_temperature",
+)
+#: The entities D8-01 names. The rest of the payload moves with these defaults
+#: too, because `_solve_snapshot` deep-copies the state as the MPC's initial
+#: condition -- that is a different finding (the optimizer plans against a tank
+#: it has never measured) and it is not what this fix claims to close.
+_D801_IN_SCOPE = {
+    "HeatPumpOptimizerClimate",
+    "IndoorTempSensor",
+    "OutdoorTempSensor",
+    "CurrentCOPSensor",
+    "ThermalBatterySensor",
+    "ThermalBatteryEnergySensor",
+    "MixedHotWaterSensor",
+    "DHWTemperatureSensor",
+    "BufferTankTempSensor",
+    "SlabTempSensor",
+    "LowerFloorTempSensor",
+    "UpperFloorTempSensor",
+    "FloorReturnTempSensor",
+}
+
+
+def _d801_shift_defaults(delta):
+    """Rebind ThermalState's temperature defaults; returns the undo callable.
+
+    Both halves matter: the dataclass FIELD default is what a reader sees,
+    and ``__init__.__defaults__`` is what actually gets assigned at
+    construction. Rebinding only the field moves nothing at runtime, and a
+    perturbation that moves nothing silently passes every check it drives.
+    """
+    fields = ThermalState.__dataclass_fields__
+    init = ThermalState.__init__
+    names = init.__code__.co_varnames[1 : init.__code__.co_argcount]
+    offset = len(names) - len(init.__defaults__)
+    original_fields = {
+        name: fields[name].default for name in _D801_TEMPERATURE_DEFAULTS
+    }
+    original_init = init.__defaults__
+    for name, value in original_fields.items():
+        fields[name].default = value + delta
+    init.__defaults__ = tuple(
+        value + delta if names[offset + index] in original_fields else value
+        for index, value in enumerate(original_init)
+    )
+
+    def undo():
+        init.__defaults__ = original_init
+        for undo_name, undo_value in original_fields.items():
+            fields[undo_name].default = undo_value
+
+    return undo
+
+
+def _d801_default_derived(config, cycles):
+    """Published leaves that move when the constructor defaults move."""
+    dt_util.freeze(_D801_START)
+    undo = None
+    try:
+        base = _d801_publications(config, cycles)
+        undo = _d801_shift_defaults(7.0)
+        shifted = _d801_publications(config, cycles)
+    finally:
+        if undo is not None:
+            undo()
+        dt_util.freeze(None)
+    moved = sorted(
+        key
+        for key, value in base.items()
+        if key in shifted and _d801_differs(value, shifted[key])
+    )
+    return base, moved
+
+
+def _d801_differs(a, b):
+    if isinstance(a, (int, float)) and isinstance(b, (int, float)):
+        return abs(float(a) - float(b)) > 1e-9
+    return a != b
+
+
+# The Indoor sensor is deliberately left in the residual: the decision above
+# ("Indoor Temperature is deliberately left ungated here") is a recorded one
+# and this fix honours it rather than overturning it in passing. The climate
+# entity's own state is the same reading under another name.
+_D801_RETAINED = {
+    "IndoorTempSensor|state",
+    "HeatPumpOptimizerClimate|state",
+}
+# Solve-derived money, which moves because the same defaults are the MPC's
+# initial conditions, not because a temperature is published as a
+# measurement. Out of this finding's five paths, and named here so the
+# residual is a list rather than a tolerance.
+_D801_SOLVE_DERIVED = {
+    "HeatPumpOptimizerClimate|attrs.predicted_savings",
+    "HeatPumpOptimizerClimate|attrs.savings_percentage",
+    "HeatPumpOptimizerClimate|attrs.dhw_heating_cost",
+}
+
+_d801_first, _d801_first_moved = _d801_default_derived(_FLOW_CONFIG, 1)
+_d801_first_scope = {
+    key for key in _d801_first_moved if key.split("|")[0] in _D801_IN_SCOPE
+}
+R.check(
+    "at CYCLE 1 nothing in D8-01's entities publishes a constructor default "
+    "except the Indoor pair the recorded decision keeps",
+    _d801_first_scope == _D801_RETAINED,
+    f"unexpected: {sorted(_d801_first_scope - _D801_RETAINED)}",
+)
+
+_d801_steady, _d801_steady_moved = _d801_default_derived(_FLOW_CONFIG, 10)
+_d801_steady_scope = {
+    key for key in _d801_steady_moved if key.split("|")[0] in _D801_IN_SCOPE
+}
+R.check(
+    "and at STEADY STATE (cycle 10, past the slab seed's decay) the residual "
+    "is the same pair plus the solve-derived money",
+    _d801_steady_scope == _D801_RETAINED | _D801_SOLVE_DERIVED,
+    f"unexpected: {sorted(_d801_steady_scope - _D801_RETAINED - _D801_SOLVE_DERIVED)}",
+)
+
+# --- path by path, so a revert of any one line is named --------------------
+#
+# The same install, one light cycle, read through the REAL coordinator: the
+# COP sensor reads `coordinator._thermal_model`, so a dict stand-in cannot
+# answer whether the modelled COP followed the forecast or the default.
+_d801_blind_hass, _d801_blind_entry, _d801_blind_coord = _d801_coordinator(
+    _FLOW_CONFIG
+)
+dt_util.freeze(_D801_START)
+try:
+    asyncio.run(_d801_blind_coord._update_current_state())
+    _d801_blind_data = _d801_blind_coord._build_data_dict()
+finally:
+    dt_util.freeze(None)
+_d801_blind_coord.data = _d801_blind_data
+_d801_blind = _d801_blind_coord
+_d801_climate = _climate_platform.HeatPumpOptimizerClimate(_d801_blind, ENTRY)
+_d801_attrs = _d801_climate.extra_state_attributes
+for _key in (
+    "dhw_temperature",
+    "slab_temperature",
+    "lower_floor_temperature",
+    "upper_floor_temperature",
+    "floor_return_temperature",
+):
+    R.check(
+        f"the climate entity's {_key} attribute is None where nothing reads it",
+        _d801_attrs.get(_key) is None,
+        f"published {_d801_attrs.get(_key)!r} beside an unavailable sensor",
+    )
+R.check(
+    "the outdoor attribute is the forecast the plan uses, not the 5.0 default",
+    _d801_attrs.get("outdoor_temperature") is not None
+    and abs(_d801_attrs["outdoor_temperature"] - _D801_FORECAST_FIRST) < 0.5,
+    f'{_d801_attrs.get("outdoor_temperature")!r}',
+)
+# ...and it is the entry covering NOW, matched by the entry's own timestamp.
+# A stale forecast list, or one that starts at the next hour, read
+# positionally is the horizon read hours out of phase -- the bug
+# `_weather_series`' own docstring warns about, and the reason this is not
+# `forecast[0]`.
+_d801_shifted_forecast = [
+    {
+        "datetime": (_D801_START - timedelta(hours=6 - h)).isoformat(),
+        "temperature": -20.0 + h,
+    }
+    for h in range(12)
+]
+# Resolved rather than imported so this file still REPORTS on a tree where
+# the production symbol does not exist yet, instead of aborting the run --
+# the resolved object is the production one wherever there is one.
+_d801_forecast_now = getattr(
+    coordinator_module, "forecast_outdoor_now", lambda *args: None
+)
+R.check(
+    "the forecast step is the entry covering now, not the list's first",
+    _d801_forecast_now(_d801_shifted_forecast, _D801_START) == -14.0,
+    str(_d801_forecast_now(_d801_shifted_forecast, _D801_START)),
+)
+R.check(
+    "and a forecast that has not started yet reads its first entry",
+    _d801_forecast_now(
+        _d801_shifted_forecast, _D801_START - timedelta(hours=12)
+    )
+    == -20.0,
+    "before the first entry the first is the best information there is",
+)
+
+_d801_outdoor = sensor.OutdoorTempSensor(_d801_blind, ENTRY)
+R.check(
+    "the Outdoor sensor follows the forecast rather than going unavailable",
+    _d801_outdoor.available
+    and abs(_d801_outdoor.native_value - _D801_FORECAST_FIRST) < 0.5,
+    f"available={_d801_outdoor.available} value={_d801_outdoor.native_value!r}",
+)
+R.check(
+    "and says so, so the number is never mistaken for a thermometer",
+    (getattr(_d801_outdoor, "extra_state_attributes", None) or {}).get("source")
+    == "weather_forecast",
+    str(getattr(_d801_outdoor, "extra_state_attributes", None)),
+)
+_d801_cop = sensor.CurrentCOPSensor(_d801_blind, ENTRY)
+R.check(
+    "Estimated COP is the COP at that forecast, not at the 5.0 default",
+    _d801_cop.native_value
+    == round(
+        _d801_blind._thermal_model.compute_cop(
+            _d801_blind_data.get("outdoor_forecast_temperature", 5.0)
+        ),
+        2,
+    )
+    and _d801_cop.native_value
+    != round(_d801_blind._thermal_model.compute_cop(5.0), 2),
+    f"{_d801_cop.native_value!r}",
+)
+for _cls in (sensor.ThermalBatterySensor, sensor.ThermalBatteryEnergySensor):
+    R.check(
+        f"{_cls.__name__} is unavailable when no store is sensed at all",
+        not _cls(_d801_blind, ENTRY).available,
+        f"published {_cls(_d801_blind, ENTRY).native_value!r} from 55/40/22/21",
+    )
+R.check(
+    "the view names every store it only modelled, rather than dropping them",
+    set((_d801_blind_data.get("battery") or {}).get("modelled_components") or [])
+    == {"house", "slab", "dhw_tank", "buffer_tank"}
+    and not (_d801_blind_data.get("battery") or {}).get("measured_components"),
+    str(_d801_blind_data.get("battery", {}).get("modelled_components")),
+)
+R.check(
+    "and the figures themselves are left alone, so no recorded series is "
+    "silently rescaled",
+    (_d801_blind_data.get("battery") or {}).get("state_of_charge_percent") == 86.8,
+    "dropping a component would change the SOC denominator for every "
+    "partly-probed install",
+)
+R.check(
+    "the energy sensor carries the same disclosure in its own attributes",
+    sensor.ThermalBatteryEnergySensor(
+        FakeCoordinator(_d801_blind_data), ENTRY
+    ).extra_state_attributes.get("modelled_components")
+    == (_d801_blind_data.get("battery") or {}).get("modelled_components"),
+    "its attributes are a hand-picked set, so the disclosure has to be "
+    "picked with them",
+)
+
+# The floor return is the case availability exists for: a sensor that WAS
+# configured and has stopped reporting. The coordinator holds the last good
+# number -- 27.5 all spring -- so only the reading flag can tell the two
+# apart, and the climate attribute has to read the flag rather than test the
+# value for None.
+_d801_stale_hass, _d801_stale_entry, _d801_stale_coord = _d801_coordinator(
+    {**_FLOW_CONFIG, const.CONF_FLOOR_RETURN_TEMP_ENTITY: "sensor.ret"}
+)
+_d801_stale_hass.states.set("sensor.ret", FakeState("27.5"))
+dt_util.freeze(_D801_START)
+try:
+    asyncio.run(_d801_stale_coord._update_current_state())
+    # Older than every INPUT_MAX_AGE_MINUTES limit, relative to the FROZEN
+    # clock: `_STALE_WHEN` is anchored to the wall clock and would read as
+    # the future here, which is fresh.
+    _d801_stale_hass.states.set(
+        "sensor.ret",
+        FakeState("27.5", last_updated=_D801_START - timedelta(hours=10)),
+    )
+    asyncio.run(_d801_stale_coord._update_current_state())
+    _d801_stale_data = _d801_stale_coord._build_data_dict()
+finally:
+    dt_util.freeze(None)
+R.check(
+    "a stale floor return still publishes its last number in the payload",
+    _d801_stale_data.get("floor_return_temperature") == 27.5,
+    f'{_d801_stale_data.get("floor_return_temperature")!r}',
+)
+R.check(
+    "but the climate attribute reports it as unknown, not as current",
+    _climate_platform.HeatPumpOptimizerClimate(
+        FakeCoordinator(_d801_stale_data), ENTRY
+    ).extra_state_attributes.get("floor_return_temperature")
+    is None,
+    "a `is not None` test cannot tell a held reading from a live one",
+)
+
+# --- the null control: a live reading is STILL published --------------------
+#
+# 512 of the finder's 1132 publications were a live thermometer reading merely
+# re-labelled, not a constructor default. A fix scoped to the headline number
+# would have gated those, and gating a real measurement is a worse defect than
+# publishing a modelled one. Every path above is re-checked with all six
+# thermometers wired and reading.
+_D801_LIVE = {
+    "sensor.indoor": 21.4,
+    "sensor.outdoor": -3.0,
+    "sensor.tank": 48.2,
+    "sensor.buffer": 36.5,
+    "sensor.ret": 27.5,
+    "sensor.down": 20.1,
+}
+_d801_probed_config = {
+    **_FLOW_CONFIG,
+    const.CONF_INDOOR_TEMP_ENTITY: "sensor.indoor",
+    const.CONF_OUTDOOR_TEMP_ENTITY: "sensor.outdoor",
+    const.CONF_DHW_TEMP_ENTITY: "sensor.tank",
+    const.CONF_BUFFER_TANK_TEMP_ENTITY: "sensor.buffer",
+    const.CONF_FLOOR_RETURN_TEMP_ENTITY: "sensor.ret",
+    const.CONF_LOWER_FLOOR_TEMP_ENTITY: "sensor.down",
+}
+_d801_probed_hass, _d801_probed_entry, _d801_probed_coord = _d801_coordinator(
+    _d801_probed_config
+)
+for _entity_id, _value in _D801_LIVE.items():
+    _d801_probed_hass.states.set(_entity_id, FakeState(str(_value)))
+dt_util.freeze(_D801_START)
+try:
+    asyncio.run(_d801_probed_coord._update_current_state())
+    _d801_probed = _d801_probed_coord._build_data_dict()
+finally:
+    dt_util.freeze(None)
+_d801_probed_fake = FakeCoordinator(_d801_probed)
+_d801_probed_climate = _climate_platform.HeatPumpOptimizerClimate(
+    _d801_probed_fake, ENTRY
+)
+_d801_probed_attrs = _d801_probed_climate.extra_state_attributes
+for _key, _expected in (
+    ("dhw_temperature", 48.2),
+    ("lower_floor_temperature", 20.1),
+    ("upper_floor_temperature", 21.4),
+    ("floor_return_temperature", 27.5),
+):
+    R.check(
+        f"a configured thermometer's live reading still reaches climate.{_key}",
+        _d801_probed_attrs.get(_key) == _expected,
+        f"{_d801_probed_attrs.get(_key)!r} (gating a real reading is the "
+        f"regression this check exists to catch)",
+    )
+R.check(
+    "the slab estimate still reaches the climate entity while its return reads",
+    _d801_probed_attrs.get("slab_temperature") is not None,
+    "the slab is integrated from the floor return, and that sensor reads here",
+)
+_d801_probed_outdoor = sensor.OutdoorTempSensor(_d801_probed_fake, ENTRY)
+R.check(
+    "the Outdoor sensor prefers its thermometer over the forecast",
+    _d801_probed_outdoor.native_value == -3.0
+    and (
+        getattr(_d801_probed_outdoor, "extra_state_attributes", None) or {}
+    ).get("source")
+    == "outdoor_temp_entity",
+    f"{_d801_probed_outdoor.native_value!r} "
+    f'{getattr(_d801_probed_outdoor, "extra_state_attributes", None)!r}',
+)
+for _cls in (sensor.ThermalBatterySensor, sensor.ThermalBatteryEnergySensor):
+    R.check(
+        f"{_cls.__name__} is available again once a store is sensed",
+        _cls(_d801_probed_fake, ENTRY).available,
+        "the gate must not take the battery away from a probed install",
+    )
+R.check(
+    "and the view reports every store as measured there",
+    not (_d801_probed.get("battery") or {}).get("modelled_components"),
+    str((_d801_probed.get("battery") or {}).get("modelled_components")),
+)
+# The threshold is "at least one store", not "all of them": the common
+# install has an indoor thermometer and nothing else, and the house is both
+# the largest store and genuinely sensed there.
+_d801_indoor_only_hass, _d801_indoor_only_entry, _d801_indoor_only_coord = (
+    _d801_coordinator({**_FLOW_CONFIG, const.CONF_INDOOR_TEMP_ENTITY: "sensor.indoor"})
+)
+_d801_indoor_only_hass.states.set("sensor.indoor", FakeState("21.4"))
+dt_util.freeze(_D801_START)
+try:
+    asyncio.run(_d801_indoor_only_coord._update_current_state())
+    _d801_indoor_only = _d801_indoor_only_coord._build_data_dict()
+finally:
+    dt_util.freeze(None)
+_d801_indoor_only_fake = FakeCoordinator(_d801_indoor_only)
+R.check(
+    "an install with only an indoor thermometer keeps its thermal battery",
+    sensor.ThermalBatterySensor(_d801_indoor_only_fake, ENTRY).available,
+    "the house is the largest store and it is sensed here",
+)
+R.check(
+    "with the stores it only modelled named rather than dropped",
+    set((_d801_indoor_only.get("battery") or {}).get("modelled_components") or [])
+    == {"slab", "dhw_tank", "buffer_tank"},
+    str((_d801_indoor_only.get("battery") or {}).get("modelled_components")),
 )
 
 # --- hot water that is not configured is not a zero -------------------------
