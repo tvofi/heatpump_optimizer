@@ -1128,6 +1128,17 @@ def stale_cheap_verdict(observed: float, recorded: float) -> bool:
     return observed < recorded / SCENARIO_STALE_FACTOR
 
 
+def work_over_verdict(observed: int, recorded: int) -> bool:
+    """Has this scenario's solver work grown past its recorded count?
+
+    The sweep and the checks that prove the sweep can fail both call this
+    one function, so a test cannot pass by re-implementing the comparison it
+    is meant to pin (tests/README.md). Deleting the body's comparison turns
+    four named checks red; the mutation proof is in the PR for #346.
+    """
+    return observed > recorded * SCENARIO_WORK_FACTOR
+
+
 def recorded_objective(table: dict, label: str) -> float | None:
     """The objective value this scenario reached when the table was recorded.
 
@@ -1354,7 +1365,7 @@ if __name__ == "__main__":
         got = int(round(_rec_ev[label] * work_factor))
         if not same_basin(_rec_ob[label] * objective_factor, _rec_ob[label]):
             return False
-        return got > _rec_ev[label] * SCENARIO_WORK_FACTOR
+        return work_over_verdict(got, _rec_ev[label])
 
     _victim = "shoulder/cycle" if "shoulder/cycle" in _rec_ev else sorted(_rec_ev)[0]
 
@@ -1498,8 +1509,8 @@ if __name__ == "__main__":
     R.check(
         "a real 2x on one scenario reaches the rule the sweep applies",
         _probe_rec is not None
-        and _plain["solver_evals"] <= _probe_rec * SCENARIO_WORK_FACTOR
-        and _doubled["solver_evals"] > _probe_rec * SCENARIO_WORK_FACTOR,
+        and not work_over_verdict(_plain["solver_evals"], _probe_rec)
+        and work_over_verdict(_doubled["solver_evals"], _probe_rec),
         f"{_probe_label}: recorded {_probe_rec}, plain "
         f"{_plain['solver_evals']}, doubled {_doubled['solver_evals']}, "
         f"factor {SCENARIO_WORK_FACTOR:.2f}",
@@ -1784,7 +1795,7 @@ if __name__ == "__main__":
                 work_flipped.append(label)
                 continue
             got = observed_evals[label]
-            if got > rec_evals * SCENARIO_WORK_FACTOR:
+            if work_over_verdict(got, rec_evals):
                 work_over.append(
                     f"{label} took {got} solver evaluations against a "
                     f"recorded {rec_evals} = {got / rec_evals:.2f}x, over the "
