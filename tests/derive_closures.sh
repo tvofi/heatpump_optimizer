@@ -98,6 +98,10 @@ p1=$!
   # selectable script the lanes never recorded reads as "no closure" and
   # fails the closures job on main (the card_drift.mjs trap above).
   rec tests/config_flow_steps.py
+  # The structural ratchet (#193 PR-0): same lane-order position as in
+  # run.sh. Reads the whole integration, so its closure is large on
+  # purpose -- a change to any integration file must put it in scope.
+  rec tests/structure.py
   rec tests/edge.py
   rec tests/validate.py
   rec tests/backtest.py
