@@ -13,6 +13,12 @@ claim file turned main red. So every rule below is a refusal, not a warning:
   2. The Tests workflow for HEAD has completed and succeeded (fast + closures),
      so a release never publishes ahead of the unscoped gate. --allow-red
      overrides, loudly, for a red main whose cause is already understood.
+     Read through `gh run list` when gh is installed and through the REST
+     API when it is not; both paths reduce to one verdict, so the refusal
+     is the same sentence with the same override either way. A source that
+     cannot answer at all -- no gh and no network -- is a not-green verdict
+     with its reason, never an exception: rule 2 is a refusal, and a
+     refusal that crashes instead cannot be overridden.
   3. The next version is greater than VERSION and than every existing tag, and
      its tag exists neither locally nor on origin.
   4. RELEASE_NOTES.md opens with a '## v<next>' section whose body mentions
@@ -31,9 +37,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
+import shutil
 import subprocess
 import sys
+import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -46,6 +55,17 @@ CLAIM_FILES = (
 )
 TAG_RE = re.compile(r"^v(\d+)\.(\d+)\.(\d+)$")
 PR_RE = re.compile(r"\(#(\d+)\)")
+# Rule 2's gate. gh answers it when gh is installed; when it is not, the same
+# question goes straight to the REST API, which needs the repository spelled
+# out: a stamp is taken from a checkout of this repository by definition, and
+# reading the slug back off `git remote` would make the gate depend on how the
+# checkout was cloned rather than on which repository it is.
+GITHUB_API = "https://api.github.com"
+REPO = "tvofi/heatpump_optimizer"
+TESTS_WORKFLOW = "Tests"
+TESTS_WORKFLOW_FILE = "tests.yml"
+GATE_RUN_LIMIT = 5
+GATE_TIMEOUT_S = 30.0
 
 
 class Refuse(SystemExit):
@@ -126,6 +146,60 @@ def rewrite_claims(text: str, new_version: str, title: str) -> tuple[str, str | 
         out.append(line)
         i += 1
     return "\n".join(out) + "\n", old_stamp, deleted
+
+
+def runs_url(head: str, repo: str = REPO, api: str = GITHUB_API) -> str:
+    """The REST query rule 2 asks: this commit's push runs, newest first."""
+    return f"{api}/repos/{repo}/actions/runs?head_sha={head}&event=push"
+
+
+def rest_headers(token: str | None) -> dict[str, str]:
+    """The repository is public, so the unauthenticated query works too; a
+    GH_TOKEN only buys the higher rate limit."""
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+        "User-Agent": "heatpump-optimizer-stamp",
+    }
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    return headers
+
+
+def is_tests_run(run: dict) -> bool:
+    """gh selects the gate by workflow name; so do we, and by the workflow
+    file as well, so a renamed `name:` does not silently select nothing."""
+    return ((run.get("name") or "").strip() == TESTS_WORKFLOW
+            or (run.get("path") or "").rsplit("/", 1)[-1] == TESTS_WORKFLOW_FILE)
+
+
+def runs_from_payload(payload: dict, limit: int = GATE_RUN_LIMIT) -> list[dict]:
+    """Reduce a /actions/runs payload to exactly what `gh run list --json
+    status,conclusion,databaseId --limit 5` returns, so the verdict below
+    cannot tell the two paths apart. The API answers newest first."""
+    runs = [{"status": r.get("status"), "conclusion": r.get("conclusion"), "databaseId": r.get("id")}
+            for r in (payload.get("workflow_runs") or []) if is_tests_run(r)]
+    return runs[:limit]
+
+
+def gate_verdict(runs: list[dict]) -> tuple[bool, str]:
+    """(green, why) for rule 2, from either path's runs."""
+    done = [r for r in runs if r["status"] == "completed"]
+    green = any(r["conclusion"] == "success" for r in done)
+    pending = [r for r in runs if r["status"] != "completed"]
+    why = ("no completed Tests run for HEAD yet" if not done else
+           f"Tests for HEAD concluded {[r['conclusion'] for r in done]}")
+    if pending:
+        why += f"; {len(pending)} run(s) still in progress"
+    return green, why
+
+
+def gate_source(which=shutil.which) -> str:
+    """Which path rule 2 takes. gh when it is on PATH, REST when it is not --
+    decided here rather than by a subprocess raising FileNotFoundError from
+    under the check, which is how a missing binary used to outrank
+    --allow-red."""
+    return "gh" if which("gh") else "rest"
 
 
 def self_test() -> int:
@@ -212,6 +286,36 @@ def self_test() -> int:
     return 0 if ok else 1
 
 
+# --- rule 2's two sources ----------------------------------------------------
+
+def fetch_runs_gh(head: str) -> list[dict]:
+    return json.loads(sh("gh", "run", "list", "--workflow", TESTS_WORKFLOW, "--commit", head,
+                         "--event", "push", "--json", "status,conclusion,databaseId",
+                         "--limit", str(GATE_RUN_LIMIT)))
+
+
+def fetch_runs_rest(head: str) -> list[dict]:
+    request = urllib.request.Request(runs_url(head), headers=rest_headers(os.environ.get("GH_TOKEN")))
+    with urllib.request.urlopen(request, timeout=GATE_TIMEOUT_S) as response:
+        payload = json.loads(response.read().decode("utf-8"))
+    return runs_from_payload(payload)
+
+
+def tests_gate(head: str, which=shutil.which, fetchers: dict | None = None) -> tuple[bool, str]:
+    """Rule 2's evidence, from gh or from REST. Never raises: a source that
+    cannot answer is a not-green verdict carrying its reason, so --allow-red
+    governs 'the gate says red' and 'nothing here can read the gate' alike."""
+    source = gate_source(which)
+    fetch = (fetchers or {"gh": fetch_runs_gh, "rest": fetch_runs_rest})[source]
+    try:
+        runs = fetch(head)
+    except Exception as exc:  # every failure to read is a verdict, never a crash
+        stderr = getattr(exc, "stderr", None)  # gh's own complaint, when it is gh
+        detail = stderr.strip().splitlines()[-1] if stderr else f"{type(exc).__name__}: {exc}"
+        return False, f"could not read the Tests gate for HEAD via {source}: {detail}"
+    return gate_verdict(runs)
+
+
 # --- the stamp ---------------------------------------------------------------
 
 def main() -> int:
@@ -238,17 +342,10 @@ def main() -> int:
     if any(not l.endswith("RELEASE_NOTES.md") for l in dirty):
         raise Refuse(1, f"working tree has changes beyond RELEASE_NOTES.md: {dirty}")
 
-    # Rule 2: HEAD's unscoped gate is green.
-    runs = json.loads(sh("gh", "run", "list", "--workflow", "Tests", "--commit", head, "--event", "push",
-                         "--json", "status,conclusion,databaseId", "--limit", "5"))
-    done = [r for r in runs if r["status"] == "completed"]
-    green = any(r["conclusion"] == "success" for r in done)
-    pending = [r for r in runs if r["status"] != "completed"]
+    # Rule 2: HEAD's unscoped gate is green, read through gh or through REST.
+    # One verdict, one refusal, one override, whichever source answered.
+    green, why = tests_gate(head)
     if not green:
-        why = ("no completed Tests run for HEAD yet" if not done else
-               f"Tests for HEAD concluded {[r['conclusion'] for r in done]}")
-        if pending:
-            why += f"; {len(pending)} run(s) still in progress"
         if not args.allow_red:
             raise Refuse(2, why + " (wait, or --allow-red with the cause understood)")
         print(f"WARNING: stamping a main whose gate is not green: {why}")
