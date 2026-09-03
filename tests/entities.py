@@ -6256,7 +6256,7 @@ R.check(
 
 # The machine-independence proof, on real data rather than a toy payload:
 # a committed solver fixture with every float in it moved. That is what
-# another machine's solver does -- 1201 floats in this one -- and level 2
+# another machine's solver does -- 1202 floats in this one -- and level 2
 # must stay silent through all of it or the gate cannot sit in the normal
 # lane at all.
 def _perturb(node):
