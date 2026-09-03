@@ -1018,16 +1018,35 @@ const MIN_AXIS_FONT_PX = 8;
 // floor at the narrowest real tile (~257 px at 8 px), or phones would ride
 // the cap below the floor the constant exists to guarantee.
 const MAX_COMPACT_FONT = 28;
+// What `ha-card` takes off the host before the chart gets it: a 1 px border
+// and 12 px of padding on each side. Only ever a first guess, for the paint
+// that happens before there is a chart to measure -- `_refitCharts` then
+// corrects it against the rendered svg.
+const CARD_CHROME_PX = 26;
+// How far the drawn width may drift from the width a render assumed before
+// that render is redone. Below half a pixel nothing visible moves, and a
+// browser's sub-pixel layout jitter must not start a render.
+const CHART_WIDTH_EPS_PX = 0.5;
 
-/** Compact-chart font in viewBox units for a measured rendered width.
+/** Chart font in viewBox units for the width the chart is actually drawn at.
  *
- * Unmeasured hosts (the DOM stub's constant rect, a first paint before
- * layout) fall back to the historical FONT_BASE.
+ * `baseUnits` is the size the layout is authored for -- FONT_BASE inline,
+ * FONT_EXPANDED in the dialog -- and the floor only ever raises it. The
+ * dialog used to be exempt from the floor entirely, which put its axis text
+ * at 5.60 px on a phone (#256).
+ *
+ * D4-01 (#256): the floor used to be computed from the HOST's width, which
+ * is 26 px wider than the svg inside it (`ha-card`'s 1 px border and 12 px
+ * padding each side), so it landed at 7.42 px on a 359 px phone tile and
+ * never at 8. The caller now measures the chart's own box. Unmeasured hosts
+ * (the DOM stub's constant rect, a paint before layout) still fall back to
+ * `baseUnits`; `_refitCharts` re-renders once a real width is knowable.
  */
-function compactFontUnits(measuredWidthPx) {
-  if (!measuredWidthPx || measuredWidthPx <= 0) return FONT_BASE;
+function chartFontUnits(measuredWidthPx, baseUnits) {
+  const base = baseUnits || FONT_BASE;
+  if (!measuredWidthPx || measuredWidthPx <= 0) return base;
   const floored = (MIN_AXIS_FONT_PX * VIEW_W) / measuredWidthPx;
-  return Math.min(MAX_COMPACT_FONT, Math.max(FONT_BASE, floored));
+  return Math.min(MAX_COMPACT_FONT, Math.max(base, floored));
 }
 
 // Estimating how wide a rendered label will be, so labels can be thinned out
@@ -1045,6 +1064,20 @@ const TIME_LABEL_STEPS = [1, 2, 3, 4, 6, 8, 12, 24];
 const LANE_H = 15;
 const LANE_GAP = 3;
 const LANE_BOTTOM_INSET = 3;
+// D4-02 (#257): a lane and a slot are targets a finger or a mouse has to
+// land on, and a viewBox unit is not a pixel -- 15 units came out 5.5 px
+// tall on a phone. The editor therefore sizes its targets in PIXELS, from
+// the scale the chart is actually drawn at: WCAG 2.2 SC 2.5.8's 24 px
+// minimum, and the 44 px a touch surface wants under a coarse pointer.
+const TARGET_MIN_PX = 24;
+const TARGET_MIN_PX_COARSE = 44;
+// The minimum is a floor, and a target that lands at 23.97 px because the
+// chart moved half a pixel between being measured and being drawn has missed
+// it. Half a pixel of slack costs nothing and makes the floor hold through
+// the sub-pixel layout the browser actually performs.
+const TARGET_SLACK_PX = 0.5;
+const _targetMinPx = () =>
+  (_coarsePointer() ? TARGET_MIN_PX_COARSE : TARGET_MIN_PX) + TARGET_SLACK_PX;
 // How close to an edge a grab counts as a resize rather than a move. Under
 // a coarse pointer (touch) the hit zone widens to something a finger can
 // actually land on; the drawn geometry is unchanged.
@@ -2473,8 +2506,11 @@ function cardStyleBlock() {
       .chip:focus-visible {
         outline: 2px solid var(--primary-color, #03a9f4); outline-offset: 2px;
       }
-      /* The SVG's keyboard-reachable parts: slots and lanes. */
-      .slot:focus-visible, .lane:focus-visible {
+      /* The SVG's keyboard-reachable parts: slot targets and lanes. The
+         ring is drawn on the slot-hit rect, the one that actually takes
+         focus, so it shows the target's real extent, not the ink's
+         (D4-02). */
+      .slot-hit:focus-visible, .lane:focus-visible {
         outline: 2px solid var(--primary-color, #03a9f4); outline-offset: 1px;
       }
       /* The setup rows ring themselves with their own stroke rather than
@@ -2605,6 +2641,14 @@ function cardStyleBlock() {
       .empty {
         padding: 28px 12px; text-align: center;
         color: var(--secondary-text-color); line-height: 1.5em;
+        /* D4-04 (#259): the diagnostic names entity ids, and a 45-character
+           monospace id is wider than a phone tile. Without this it painted
+           up to 47 px outside the card box and gave the document 40 px of
+           horizontal scroll -- in the no-plan state, the one the dashboard
+           card picker previews to someone who has configured nothing yet.
+           "anywhere", not "break-word": only anywhere also shrinks the
+           min-content width, which is what the h-scroll came from. */
+        overflow-wrap: anywhere;
       }
       .empty code { color: var(--primary-text-color); }
       .tooltip {
@@ -2935,7 +2979,7 @@ function cardStyleBlock() {
       }
 
       /* Editable slot lanes */
-      .slot { cursor: grab; }
+      .slot-hit { cursor: grab; }
       .slot.locked { cursor: not-allowed; }
       .slot-handle { cursor: ew-resize; }
       .lane { cursor: context-menu; }
@@ -3750,6 +3794,35 @@ function wrapOf(el, root) {
  * in the markup, so `querySelector("svg")` returns an 18px icon rather than
  * the plot. Every chart is wrapped in a `.chartwrap`; the icon is not.
  */
+/** The width a chart copy of `host` is actually DRAWN at, in px, or 0 before
+ * layout. `expanded` picks the dialog's copy over the tile's.
+ *
+ * D4-01 (#256) floors the rendered font against this. The floor used to
+ * divide by the HOST's rect, which is 26 px wider than the svg inside it
+ * (`ha-card`'s border and padding), so it landed at 7.42 px on a phone tile
+ * and never at 8. The chart's own box is measured instead: the copy still in
+ * the DOM from the previous render, whose CSS box is the one the fresh markup
+ * lands in.
+ *
+ * Before there is any chart -- the very first paint, which in Lovelace's
+ * mount order happens before the card is even placed -- the host rect less
+ * `ha-card`'s chrome is the best estimate available. `_refitCharts` then
+ * corrects it against the real thing, so the constant is a starting guess and
+ * never the answer.
+ */
+function chartWidthPx(host, expanded) {
+  const svgs = host && host.shadowRoot ? chartSvgs(host.shadowRoot) : [];
+  const svg = svgs[expanded ? 1 : 0];
+  if (svg && typeof svg.getBoundingClientRect === "function") {
+    const r = svg.getBoundingClientRect();
+    if (r && r.width) return r.width;
+  }
+  if (expanded || !host || !host.getBoundingClientRect) return 0;
+  const rect = host.getBoundingClientRect();
+  const hostW = rect && rect.width ? rect.width : 0;
+  return hostW > CARD_CHROME_PX ? hostW - CARD_CHROME_PX : 0;
+}
+
 /** The lane geometry of the chart copy `svg` is, for a pointer event on
  * it: a drag on the inline chart must hit-test against the inline chart's
  * margins, not the dialog's (#138). */
@@ -4103,17 +4176,17 @@ function renderChart(frame, opts) {
   const { windowStart, windowEnd, series } = frame;
   const {
     expanded, measuredWidth, priceUnit, estimatedFrom, editing, title, now,
-    overlay, nextPatternId,
+    overlay, nextPatternId, laneCount,
   } = opts;
   const visible = series.filter((s) => s.visible && s.hasData);
-  // D4-01: the compact chart floors its rendered font (see
-  // compactFontUnits); the margins then scale with any boost beyond what
-  // the authored layout already accommodates, so axis labels keep their
-  // relative space instead of colliding.
-  const font = expanded
-    ? FONT_EXPANDED
-    : compactFontUnits(measuredWidth());
-  const marginScale = expanded ? 1 : Math.max(1, font / FONT_EXPANDED);
+  // D4-01: BOTH charts floor their rendered font (see chartFontUnits), each
+  // against the width IT is drawn at -- the dialog is not a wide chart on a
+  // phone. The margins then scale with any boost beyond what the authored
+  // layout already accommodates, so axis labels keep their relative space
+  // instead of colliding.
+  const drawnWidth = measuredWidth();
+  const font = chartFontUnits(drawnWidth, expanded ? FONT_EXPANDED : FONT_BASE);
+  const marginScale = Math.max(1, font / FONT_EXPANDED);
 
   // Axis domains from visible series grouped by axis.
   const groups = { temp: [], power: [], price: [], solar: [] };
@@ -4183,7 +4256,7 @@ function renderChart(frame, opts) {
   // Hourly gridlines. How often they are labelled is worked out from the
   // space available, so a wider chart or a shorter horizon labels more.
   parts.push(
-    timeAxis(scaleX, plotT, plotB, windowStart, windowEnd, font)
+    timeAxis(scaleX, plotT, plotB, windowStart, windowEnd, font, plotL, plotR)
   );
 
   // Value axes. Where two axes share a side, the inner one's title has only
@@ -4273,12 +4346,54 @@ function renderChart(frame, opts) {
   // pointer event needs to turn a screen coordinate back into a time. The lane metrics travel with the
   // geometry (D4-01): a boosted compact font scales the lanes with it, and
   // hit-testing must use the same numbers the drawing used.
+  //
+  // D4-02 (#257): only the EXPANDED chart's lanes are operable. On the
+  // compact tile they are a picture of the schedule -- a tap there opens the
+  // dialog, which is where the editing happens -- so the tile keeps drawing
+  // them at the size the layout gives them, and the dialog sizes them in
+  // real pixels instead. Where that strip would eat the plot (a phone, where
+  // 24 px is a third of the whole chart) it moves BELOW the axis into
+  // viewBox height added for it, so the chart keeps its shape and the room
+  // is found rather than taken -- on a phone the dialog spends about 200 px
+  // of an 812 px screen, so there is room to find.
   let geom = null;
+  let viewH = VIEW_H;
   if (editing) {
+    const lanes = Math.max(1, (laneCount && laneCount()) || 1);
+    const laneGap = LANE_GAP * marginScale;
+    const laneInset = LANE_BOTTOM_INSET * marginScale;
+    let laneH = LANE_H * marginScale;
+    if (expanded) {
+      // Pixels to viewBox units through the scale the chart is drawn at.
+      // preserveAspectRatio is "none", but both wrappers keep the viewBox
+      // ratio (`.chartwrap` from the intrinsic size, `.chartwrap.big` from
+      // the aspect-ratio it is given below), so one scale serves both axes.
+      const unitsPerPx = drawnWidth > 0 ? VIEW_W / drawnWidth : 0;
+      if (unitsPerPx > 0) laneH = Math.max(laneH, _targetMinPx() * unitsPerPx);
+    }
+    const strip = lanes * (laneH + laneGap);
+    // A strip the plot can spare stays where it has always been, inside the
+    // plot: on a wide dialog 24 px is barely more than the authored 15 units
+    // and costs the chart nothing. It is only the narrow hosts, where 24 px
+    // is a third of the whole plot, that get their own band below the axis
+    // -- added height rather than height taken from the chart. A third is
+    // the line: past it the bars stop being readable, which is the failure
+    // the lane floor must not trade itself for.
+    let laneTop = plotB - laneInset - strip;
+    if (strip > (plotB - plotT) / 3) {
+      laneTop = VIEW_H + laneInset;
+      viewH = laneTop + strip;
+    }
     geom = {
       windowStart, windowEnd, plotL, plotW, plotR, plotB, font,
-      laneH: LANE_H * marginScale, laneGap: LANE_GAP * marginScale,
-      laneInset: LANE_BOTTOM_INSET * marginScale,
+      laneH, laneGap, laneInset, laneTop, viewH,
+      // The compact tile's lanes are presentational; the dialog's are the
+      // editor. `laneGroupInner` reads this to decide what carries a
+      // tabindex and a hit target, and what is just ink.
+      interactive: !!expanded,
+      // The pixel floor a slot's hit target has to clear, in viewBox units.
+      minTargetX:
+        expanded && drawnWidth > 0 ? _targetMinPx() * (VIEW_W / drawnWidth) : 0,
     };
     parts.push(`<g class="lanes">${overlay(geom)}</g>`);
   }
@@ -4312,12 +4427,12 @@ function renderChart(frame, opts) {
   // editable chart also takes tabindex="-1": it is the last-resort home
   // for restored focus (`_restoreSlotFocus`), and an svg without a
   // tabindex refuses programmatic focus.
-  const svg = `<svg viewBox="0 0 ${VIEW_W} ${VIEW_H}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" role="${
+  const svg = `<svg viewBox="0 0 ${VIEW_W} ${Number(viewH.toFixed(2))}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" role="${
       editing ? "group" : "img"
     }"${editing ? ' tabindex="-1"' : ""} aria-label="${esc(
       title
     )}">${parts.join("")}</svg>`;
-  return { svg, plot, geom };
+  return { svg, plot, geom, viewH };
 }
 
 /** Hourly gridlines, labelled as often as the width actually allows.
@@ -4328,7 +4443,7 @@ function renderChart(frame, opts) {
  * "13:00" is five characters but "12:00 AM" is eight. Build the labels
  * first, measure the widest, and only then decide how many to show.
  */
-function timeAxis(scaleX, plotT, plotB, windowStart, windowEnd, font) {
+function timeAxis(scaleX, plotT, plotB, windowStart, windowEnd, font, plotL, plotR) {
   const size = font || FONT_BASE;
   const hour = 3600 * 1000;
 
@@ -4373,8 +4488,22 @@ function timeAxis(scaleX, plotT, plotB, windowStart, windowEnd, font) {
         }" opacity="${labelled ? 0.7 : 0.35}"/>`
     );
     if (labelled) {
+      // Kept inside the plot's own span. Centred on its tick, the first
+      // label runs left under the value axis and the last runs off the
+      // chart -- which the boosted compact font (D4-01) makes far more
+      // likely, because the label grows while the tick does not move.
+      const half = (size * tick.label.length * CHAR_WIDTH_EM) / 2;
+      let anchor = "middle";
+      let lx = tick.x;
+      if (plotL !== undefined && tick.x - half < plotL) {
+        anchor = "start";
+        lx = plotL;
+      } else if (plotR !== undefined && tick.x + half > plotR) {
+        anchor = "end";
+        lx = plotR;
+      }
       out.push(
-        `<text x="${tick.x}" y="${plotB + size + 4}" font-size="${size}" text-anchor="middle" fill="var(--secondary-text-color,#888)">${esc(
+        `<text x="${lx}" y="${plotB + size + 4}" font-size="${size}" text-anchor="${anchor}" fill="var(--secondary-text-color,#888)">${esc(
             tick.label
           )}</text>`
       );
@@ -4409,7 +4538,11 @@ function valueAxis(
   // next axis out, the caller flips it to the other side of its own axis
   // line, where the strip above the plot is empty. The gap scales with the
   // font (D4-01) so a boosted compact font does not sit on the frame.
-  const uy = plotT - 4 * (size / FONT_BASE);
+  // Clamped to the svg's own top edge: the strip above the plot is where the
+  // unit belongs, but at a boosted compact font (D4-01) -- and at the
+  // dialog's 15 units, which already did this before the boost -- the
+  // ascender ran off the top of the chart.
+  const uy = Math.max(size * 0.8, plotT - 4 * (size / FONT_BASE));
   const ta = titleAnchor || anchor;
   const ux = ta === "end" ? x - 5 : x + 5;
   out.push(
@@ -5743,6 +5876,12 @@ class LaneEditor {
     const {
       windowStart, windowEnd, plotL, plotW, plotR, plotB, font,
       laneH = LANE_H, laneGap = LANE_GAP, laneInset = LANE_BOTTOM_INSET,
+      // D4-02 (#257): the compact tile draws the schedule but does not offer
+      // to edit it -- a tap there opens the dialog, and a 2.7 px slot
+      // carrying a tabindex was an operable control nobody could operate.
+      // Only the expanded chart's lanes and slots are targets, and only
+      // there does a slot get a hit rect wider than its ink.
+      interactive = true, minTargetX = 0,
     } = geom;
     const span = windowEnd - windowStart || 1;
     const scaleX = (t) => plotL + ((t - windowStart) / span) * plotW;
@@ -5751,16 +5890,27 @@ class LaneEditor {
     const specs = this.host.manual.laneSpecs();
     const out = [];
     const clampX = (t) => Math.max(plotL, Math.min(plotR, scaleX(t)));
+    // Where the strip sits. `renderChart` decides -- inside the plot, or in
+    // its own band below the axis when the pixel floor needs more room than
+    // the plot can spare -- and a redraw during a drag must land in the same
+    // place, so it comes off the recorded geometry.
+    const laneTop =
+      geom.laneTop === undefined
+        ? plotB - laneInset - specs.length * (laneH + laneGap)
+        : geom.laneTop;
 
     specs.forEach((spec, row) => {
-      const y = plotB - laneInset - (specs.length - row) * (laneH + laneGap);
+      const y = laneTop + row * (laneH + laneGap);
       // The track, so an empty lane is still an obvious drop target. Also a
       // tab stop: Enter on it opens the same add-slot menu a right-click
       // does, which is the whole editor without a pointer.
+      const laneKbd = interactive
+        ? ` data-channel="${spec.channel}" tabindex="0" role="button" aria-label="${esc(
+            L("slots.lane_aria", { lane: spec.label })
+          )}"`
+        : ' pointer-events="none"';
       out.push(
-        `<rect class="lane" data-channel="${spec.channel}" tabindex="0" role="button" aria-label="${esc(
-          L("slots.lane_aria", { lane: spec.label })
-        )}" x="${plotL}" y="${y}" width="${
+        `<rect class="lane"${laneKbd} x="${plotL}" y="${y}" width="${
           plotR - plotL
         }" height="${laneH}" rx="2" fill="var(--secondary-text-color,#888)" fill-opacity="0.07"/>`
       );
@@ -5799,42 +5949,91 @@ class LaneEditor {
         );
       }
 
-      (runs[spec.channel] || []).forEach((run, index) => {
+      // The drawn extents of this lane's runs, so a widened hit target can be
+      // stopped at its neighbour rather than swallowing it (below).
+      const drawn = (runs[spec.channel] || []).map((run) => ({
+        run,
+        x1: clampX(run.start),
+        x2: clampX(run.end),
+        shown: !(run.end <= windowStart || run.start >= windowEnd),
+      }));
+
+      drawn.forEach((d, index) => {
         // Zooming can put a run wholly outside the window. Clamping alone would
         // collapse it onto the edge and leave a one-pixel sliver pretending to
         // be a slot, so drop it instead. `index` still refers to its place in
         // the full array, which is what hit-testing and editing use.
-        if (run.end <= windowStart || run.start >= windowEnd) return;
-        const x1 = clampX(run.start);
-        const x2 = clampX(run.end);
+        if (!d.shown) return;
+        const { run, x1, x2 } = d;
         const w = Math.max(1, x2 - x1);
         const locked = run.end <= lo || run.start >= hi;
-        // Editable slots are tab stops with the keyboard menu (Enter) and
-        // removal (Delete) announced; locked ones stay presentational.
+        // The drawn slot is ink: it says WHEN the pump runs, so its width is
+        // the run's real duration and nothing may round it up. What a pointer
+        // or a Tab lands on is the separate `.slot-hit` rect below.
+        out.push(
+          `<rect class="slot${locked ? " locked" : ""}" pointer-events="none" x="${x1}" y="${y}" width="${w}" height="${laneH}" rx="2" fill="${
+            spec.color
+          }" fill-opacity="${locked ? 0.35 : 0.85}"/>`
+        );
+        if (locked || !interactive) return;
+        // D4-02 (#257): a 15-minute slot on a 24-hour axis is 2.7 px of ink
+        // and was its own hit target -- below every target-size minimum
+        // there is. The target is therefore grown to `minTargetX` around the
+        // ink. It may claim the EMPTY lane beside it, up to the next slot's
+        // ink and no further: pressing a slot's target can never activate a
+        // slot the pointer is visibly not on.
+        //
+        // The growth is even where it can be and lopsided where it must be.
+        // Splitting the deficit in half and clipping each half at its own
+        // constraint throws the clipped half away -- a slot against the
+        // plot's left edge came out at (minTargetX + w) / 2 with 86 px of
+        // empty lane to its right. Whatever one side cannot take is offered
+        // to the other, so a target falls short of the floor only when BOTH
+        // sides are genuinely boxed in.
+        let left = x1;
+        let right = x2;
+        if (minTargetX > w) {
+          let limitL = plotL;
+          let limitR = plotR;
+          for (let j = 0; j < drawn.length; j++) {
+            if (j === index || !drawn[j].shown) continue;
+            if (drawn[j].x2 <= x1) limitL = Math.max(limitL, drawn[j].x2);
+            if (drawn[j].x1 >= x2) limitR = Math.min(limitR, drawn[j].x1);
+          }
+          const roomL = Math.max(0, x1 - limitL);
+          const roomR = Math.max(0, limitR - x2);
+          const need = minTargetX - w;
+          let growL = Math.min(need / 2, roomL);
+          let growR = Math.min(need / 2, roomR);
+          let short = need - growL - growR;
+          if (short > 0) {
+            const extraL = Math.min(short, roomL - growL);
+            growL += extraL;
+            short -= extraL;
+            growR += Math.min(short, roomR - growR);
+          }
+          left = x1 - growL;
+          right = x2 + growR;
+        }
+        const hitW = Math.max(1, right - left);
         const fmtT = (t) =>
           new Date(t).toLocaleTimeString(ACTIVE_LANG, {
             hour: "2-digit",
             minute: "2-digit",
           });
-        const kbd = locked
-          ? ""
-          : ` tabindex="0" role="button" aria-label="${esc(
-              L("slots.slot_aria", {
-                lane: spec.label,
-                start: fmtT(run.start),
-                end: fmtT(run.end),
-              })
-            )}"`;
         out.push(
-          `<rect class="slot${locked ? " locked" : ""}" data-channel="${
-            spec.channel
-          }" data-index="${index}"${kbd} x="${x1}" y="${y}" width="${w}" height="${laneH}" rx="2" fill="${
-            spec.color
-          }" fill-opacity="${locked ? 0.35 : 0.85}"/>`
+          `<rect class="slot-hit" data-channel="${spec.channel}" data-index="${index}" tabindex="0" role="button" aria-label="${esc(
+            L("slots.slot_aria", {
+              lane: spec.label,
+              start: fmtT(run.start),
+              end: fmtT(run.end),
+            })
+          )}" x="${left}" y="${y}" width="${hitW}" height="${laneH}" rx="2" fill="#fff" fill-opacity="0.001"/>`
         );
-        if (locked) return;
         // Explicit edge handles: without them a narrow slot is impossible to
-        // resize, because the whole rect reads as "move".
+        // resize, because the whole rect reads as "move". They stay on the
+        // INK's edges, so the margin a widened target adds around a narrow
+        // slot is move area rather than more resize area.
         const grab = _coarsePointer() ? LANE_EDGE_GRAB_COARSE : LANE_EDGE_GRAB;
         for (const edge of ["start", "end"]) {
           const ex = edge === "start" ? x1 : x2 - grab;
@@ -5999,13 +6198,11 @@ class LaneEditor {
     const focus = (el) =>
       !!(el && typeof el.focus === "function" && (el.focus(), true));
     if (index !== null && index !== undefined && index >= 0) {
-      for (const slot of svg.querySelectorAll(".slot")) {
+      // `.slot-hit`, not `.slot`: the drawn slot is ink, and the target that
+      // takes focus is the one sized to be operable (D4-02).
+      for (const slot of svg.querySelectorAll(".slot-hit")) {
         const d = slot.dataset || {};
-        if (
-          d.channel === channel &&
-          Number(d.index) === Number(index) &&
-          !slot.classList.contains("locked")
-        ) {
+        if (d.channel === channel && Number(d.index) === Number(index)) {
           if (focus(slot)) return;
         }
       }
@@ -6291,10 +6488,16 @@ class LaneEditor {
         const vx =
           geom.plotL + ((at - geom.windowStart) / span) * geom.plotW;
         clientX = rect.left + (vx / VIEW_W) * rect.width;
+        // The lane strip is no longer always inside the plot: the expanded
+        // editor gives it its own band below the chart and the viewBox is
+        // taller by that much (D4-02), so both numbers come off the recorded
+        // geometry rather than off the module constants.
+        const laneY =
+          geom.laneTop === undefined
+            ? geom.plotB - (geom.laneH || LANE_H)
+            : geom.laneTop;
         clientY =
-          rect.top +
-          ((geom.plotB - (geom.laneH || LANE_H)) / VIEW_H) *
-            (rect.height || 0);
+          rect.top + (laneY / (geom.viewH || VIEW_H)) * (rect.height || 0);
       }
       this.openMenu(channel, at, clientX, clientY, svg, true);
     };
@@ -8143,6 +8346,10 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // window, which every copy shares.
     this._geoms = [];
     this._geom = null;
+    // The width each chart copy's markup was built for, in the same order,
+    // so a render that guessed can be told from one that measured (D4-01).
+    this._chartWidthUsed = [];
+    this._refitting = false;
     // The chart's last measured rectangle, a hover fallback.
     this._svgRect = null;
     this._onPointerMove = this._onPointerMove.bind(this);
@@ -8209,15 +8416,59 @@ class HeatpumpOptimizerCard extends HTMLElement {
   connectedCallback() {
     if (typeof ResizeObserver !== "undefined" && !this._resizeObserver) {
       this._resizeObserver = new ResizeObserver(() => {
-        // Width changes don't alter the viewBox model, but refreshing the
-        // cached bounding rect keeps hover geometry accurate after layout.
         this._cacheRect();
+        // D4-01 (#256): a width change is a RE-RENDER, not just a cache
+        // refresh. The rendered font is a function of the width the chart is
+        // drawn at, and this callback used to refresh the rect and stop --
+        // so a card whose first paint happened at width 0 kept that paint's
+        // 3.70 px axis text until the plan sensor next updated, which is
+        // half an hour by default.
+        this._refitCharts();
       });
       try {
         this._resizeObserver.observe(this);
       } catch (e) {
         /* ignore */
       }
+    }
+    // Lovelace hands a card its config and its data BEFORE placing it
+    // (`setConfig`, `hass`, append), so the first paint happens with no
+    // width to floor against. Being attached is itself the width change
+    // that fixes it -- and on hosts without a ResizeObserver this is the
+    // only chance to notice.
+    this._refitCharts();
+  }
+
+  /** Re-render when a chart is not drawn at the width its last render
+   * assumed (D4-01, #256).
+   *
+   * The font floor, the margin scale and the lane band are all functions of
+   * the rendered width, and the rendered width is only knowable after the
+   * chart has been laid out -- so one corrective pass follows every render
+   * and every resize. `_refitting` bounds it to exactly one: the corrective
+   * render cannot ask for another, so this can never loop however the host
+   * responds to the new markup.
+   */
+  _refitCharts() {
+    if (this._refitting) return;
+    if (!this._config || !this._hass || !this.shadowRoot) return;
+    // A drag owns the DOM until it lets go; rebuilding under it would drop
+    // the gesture. The drag's own commit re-renders when it ends.
+    if (this.lanes && (this.lanes.drag || this.lanes.gesture)) return;
+    let drifted = false;
+    for (let i = 0; i < this._chartWidthUsed.length && !drifted; i++) {
+      const assumed = this._chartWidthUsed[i];
+      if (assumed === undefined) continue;
+      const actual = chartWidthPx(this, i === 1);
+      if (!actual) continue;
+      drifted = Math.abs(actual - assumed) > CHART_WIDTH_EPS_PX;
+    }
+    if (!drifted) return;
+    this._refitting = true;
+    try {
+      this._render();
+    } finally {
+      this._refitting = false;
     }
   }
 
@@ -8384,6 +8635,10 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // the whole answer.
     const expandable = anyData || anySetup;
 
+    // Each render re-records which width each copy was built for; a closed
+    // dialog must not leave last time's number behind (D4-01).
+    this._chartWidthUsed = [];
+
     let body;
     if (!anyData) {
       body = this._noPlanHtml();
@@ -8498,6 +8753,9 @@ class HeatpumpOptimizerCard extends HTMLElement {
       },
     });
     this._cacheRect();
+    // The width this render assumed is only checkable now that the markup
+    // is in the document (D4-01). One corrective pass, no loop.
+    this._refitCharts();
   }
   /** Chart markup plus the tooltip that belongs to it.
    *
@@ -8507,9 +8765,16 @@ class HeatpumpOptimizerCard extends HTMLElement {
    * a positioned ancestor.
    */
   _chartBlock(built, expanded) {
-    const { svg: chart, plot, geom } = renderChart(built, {
+    const { svg: chart, plot, geom, viewH } = renderChart(built, {
       expanded,
-      measuredWidth: () => this._measuredCardWidth(),
+      // Recorded as it is read, so `_chartWidthDrifted` can compare what
+      // this render assumed against what the browser then did (D4-01).
+      measuredWidth: () => {
+        const w = chartWidthPx(this, expanded);
+        this._chartWidthUsed[expanded ? 1 : 0] = w;
+        return w;
+      },
+      laneCount: () => this.manual.laneSpecs().length,
       priceUnit: this.plan.priceUnit(),
       estimatedFrom: this.plan.estimatedPricesFrom(),
       editing: this.manual.enabled(),
@@ -8536,7 +8801,14 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // dialog budgets its height from a fixed guess at how tall the chrome is
     // (item 26), and a new row of buttons would eat straight into that budget.
     const pannable = this.view.adjustable() ? " pannable" : "";
-    return `<div class="chartwrap${expanded ? " big" : ""}${pannable}">${chart}
+    // `.chartwrap.big` sizes the chart from a fixed aspect ratio, so the
+    // expanded editor's added lane band (D4-02) has to travel with it or the
+    // svg would be squeezed back into the plot's shape.
+    const ratio =
+      expanded && viewH && viewH !== VIEW_H
+        ? ` style="aspect-ratio:${VIEW_W} / ${Number(viewH.toFixed(2))}"`
+        : "";
+    return `<div class="chartwrap${expanded ? " big" : ""}${pannable}"${ratio}>${chart}
       ${this.view.controlsHtml()}
       <div class="tooltip" hidden></div></div>`;
   }
@@ -8615,18 +8887,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
   }
 
 
-  /** The card's current rendered width in px, or 0 before layout.
-   *
-   * D4-01 floors the compact chart's rendered font against this value; the
-   * ResizeObserver re-renders on size change, so a rotated phone picks the
-   * boosted font up on the next frame rather than staying unreadable until
-   * a manual refresh.
-   */
-  _measuredCardWidth() {
-    if (!this.getBoundingClientRect) return 0;
-    const rect = this.getBoundingClientRect();
-    return rect && rect.width ? rect.width : 0;
-  }
 
   // ---- interaction -------------------------------------------------------
 

@@ -24,3 +24,76 @@
 # v6.3.7: the batched jacobian at a pinned step. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
+# --- claude/audit-fix-d4-card: D4-01 (#256), D4-02 (#257), D4-04 (#259) -----
+#
+# Three card-rendering fixes, measured on this branch against
+# origin/main@9ab836e. Every one of the 26 rendering states moves, because
+# all three touch markup every state carries; `editor_schema` renders the
+# config editor and no card, so it is the one state that does not move.
+#
+# The shared cause, in every state below: the card's style block. `.empty`
+# gains `overflow-wrap: anywhere` (#259) and the slot rules move from
+# `.slot` to `.slot-hit`, the rect that now takes the focus and the pointer
+# (#257). Direction: three CSS lines change, nothing else in the state.
+#
+# Additionally, in every state that draws a chart with the editor on, the
+# lane markup: `rect.slot` loses its tabindex, role, aria-label and dataset
+# and gains `pointer-events="none"` -- it is the ink now -- and on the
+# compact tile the lane loses its tabindex too, so the tile draws the
+# schedule and offers nothing to press. Direction: attributes REMOVED from
+# the tile's rects, none added.
+#
+# And in every state that draws a chart at all, two mitigations the font
+# floor made necessary: the time-axis labels are clamped to the plot's own
+# span (centred on its tick, the first ran left under the value axis and the
+# last off the chart -- the boosted font grows the label while the tick stays
+# put), and the axis unit label is clamped to the svg's top edge, which the
+# dialog's 15-unit font already overran before this branch. Direction: a
+# `text-anchor` flip from `middle` to `start`/`end` on the first and last
+# time label -- their `x` does not change, because the first tick already
+# sits on `plotL` and the last on `plotR`; and the unit label's `y` moves
+# DOWN by a few units. Also, at the boosted font `TIME_LABEL_STEPS` thins
+# the labelled ticks (13 to 5 on a phone tile): FEWER `<text>` nodes on the
+# time axis, each of them larger.
+#
+# And in every state with the expanded editor open, the dialog's chart gains
+# a `rect.slot-hit` per editable slot -- the target, floored to 24 px on a
+# fine pointer and 44 px on a coarse one -- and the lane's `height` goes from
+# 15 units to 24.5 (44.5 coarse). Direction: rects ADDED, lane height UP,
+# the plot's own geometry unchanged.
+#
+# What this gate does NOT show: `card_drift.mjs` renders through the DOM
+# stub, whose `getBoundingClientRect` is a constant 900x400, so its dialog
+# chart is 900 units wide and the floored strip still fits inside the plot --
+# the viewBox stays 380 in every state here. On a real narrow host (a 336 px
+# phone dialog) the strip exceeds a third of the plot, moves below the axis,
+# and the viewBox becomes 524.11 with a matching inline `aspect-ratio` on
+# `.chartwrap.big`. That path is measured in tests/card_browser.mjs and by
+# `tools/audit/round2/D4/card_geometry.mjs`, not here.
+#
+no_plan                  # style block only: .empty overflow-wrap, .slot-hit rules
+no_plan_expanded         # style block only: .empty overflow-wrap, .slot-hit rules
+what_if_off              # style block only: the editor is off, so no lane markup
+plan_inline              # + tile lanes inert, slot becomes ink
+plan_inline_sv           # + tile lanes inert, slot becomes ink
+plan_short_window        # + tile lanes inert, slot becomes ink
+custom_title_currency    # + tile lanes inert, slot becomes ink
+hidden_series            # + tile lanes inert, slot becomes ink
+score_open               # + tile lanes inert, slot becomes ink
+reduced_motion           # + tile lanes inert, slot becomes ink
+setup_single_buffer      # + tile lanes inert, slot becomes ink
+setup_two_tank           # + tile lanes inert, slot becomes ink
+setup_coil               # + tile lanes inert, slot becomes ink
+layout_editing_dragged   # + tile lanes inert, slot becomes ink
+picker_open_filtered     # + tile lanes inert, slot becomes ink
+expanded_plan            # + dialog slot-hit targets, lane height 15 -> 24.5 units (44.5 coarse)
+expanded_zoomed          # + dialog slot-hit targets, lane height 15 -> 24.5 units (44.5 coarse)
+draft_dirty_menu_open    # + dialog slot-hit targets, lane height 15 -> 24.5 units (44.5 coarse)
+draft_mid_drag           # + dialog slot-hit targets, lane height 15 -> 24.5 units (44.5 coarse)
+whatif_edited            # + dialog slot-hit targets, lane height 15 -> 24.5 units (44.5 coarse)
+whatif_weekly            # + dialog slot-hit targets, lane height 15 -> 24.5 units (44.5 coarse)
+override_active          # + dialog slot-hit targets, lane height 15 -> 24.5 units (44.5 coarse)
+shared_steps             # + dialog slot-hit targets, lane height 15 -> 24.5 units (44.5 coarse)
+shared_steps_hover       # + dialog slot-hit targets, lane height 15 -> 24.5 units (44.5 coarse)
+tooltip_hover            # + dialog slot-hit targets, lane height 15 -> 24.5 units (44.5 coarse)
+coarse_pointer           # + dialog slot-hit targets, lane height 15 -> 24.5 units (44.5 coarse)

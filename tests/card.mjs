@@ -888,7 +888,20 @@ check("a very wide dialog does not turn the legend into a headline",
 {
   const renderedFontOf = (w) => {
     const c = withAllSeries();
-    c.getBoundingClientRect = () => ({ width: w, height: (w * 380) / 900, left: 0, top: 0 });
+    // The CHART's width, not the host's: the floor divides by the box the
+    // text is actually drawn in, which is 26 px narrower than the host
+    // (D4-01, #256). The stub answers a constant 900x400 for every element,
+    // so the width is injected on the svg the next render measures -- the
+    // copy already in the DOM, which is the production path. The corrective
+    // re-render is stood down for the same reason: it would re-measure the
+    // FRESH svg, which the stub answers 900 for. Its own behaviour is
+    // measured for real in tests/card_browser.mjs.
+    c._refitCharts = () => {};
+    const prior = chartSvgs(c.shadowRoot)[0];
+    if (prior) {
+      prior.getBoundingClientRect =
+        () => ({ width: w, height: (w * 380) / 900, left: 0, top: 0 });
+    }
     c._render();
     const dump = collect(c.shadowRoot).join("\n");
     const cut = dump.indexOf("chartwrap big");
@@ -3431,12 +3444,31 @@ function ctxL(card, key) {
 }
 
 // --- Scenario: keyboard access to the plan slots (v4.2.0) -------------------
+// D4-02 (#257): the editor is the DIALOG's. On the compact tile the lanes
+// are a picture of the schedule -- a tap there opens the dialog -- so the
+// keyboard surface below is driven on the expanded chart, and the checks
+// that the tile offers no targets at all are just after it.
 {
   const kb = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
+  const tileDump = collect(kb.shadowRoot).join("\n");
+  check("the compact tile draws the schedule but offers no slot targets",
+    /class="slot"/.test(tileDump) &&
+    !/<rect class="slot[^"]*"[^>]*tabindex/.test(tileDump) &&
+    !/class="slot-hit"/.test(tileDump),
+    tileDump.match(/<rect class="slot[^>]*>/) || "no slot drawn");
+  check("nor a focusable lane on the tile",
+    /class="lane"/.test(tileDump) &&
+    !/<rect class="lane"[^>]*tabindex/.test(tileDump),
+    (tileDump.match(/<rect class="lane"[^>]*>/) || [""])[0]);
+  kb.dialog.open();
+  const editSvg = () => {
+    const all = chartSvgs(kb.shadowRoot);
+    return all[all.length - 1];
+  };
   const kbDump = collect(kb.shadowRoot).join("\n");
   check("editable slots are focusable buttons with a spoken label",
-    /<rect class="slot" [^>]*tabindex="0"/.test(kbDump) &&
-    /<rect class="slot" [^>]*role="button"/.test(kbDump) &&
+    /<rect class="slot-hit" [^>]*tabindex="0"/.test(kbDump) &&
+    /<rect class="slot-hit" [^>]*role="button"/.test(kbDump) &&
     /Press Enter for actions/.test(kbDump));
   check("the lanes are focusable add targets",
     /<rect class="lane" [^>]*tabindex="0"/.test(kbDump) &&
@@ -3444,8 +3476,8 @@ function ctxL(card, key) {
   check("an svg with focusable children is not role=img",
     /<svg viewBox="0 0 900[^>]*role="group"/.test(kbDump));
 
-  const svg = chartSvgs(kb.shadowRoot)[0];
-  const slot = svg.querySelector(".slot");
+  const svg = editSvg();
+  const slot = svg.querySelector(".slot-hit");
   check("there is a slot to drive", !!slot && slot.dataset.index !== undefined);
   const keydown = (target, key) => svg._listeners.keydown.forEach((f) =>
     f({ key, target, preventDefault(){}, stopPropagation(){} }));
@@ -3463,11 +3495,10 @@ function ctxL(card, key) {
     f({ key: "Escape", stopPropagation(){} }));
   check("Escape dismisses the menu", kb.lanes.menu === null);
   check("and hands focus back to the slot it came from",
-    document.activeElement === chartSvgs(kb.shadowRoot)[0]
-      .querySelector(".slot") ||
+    document.activeElement === editSvg().querySelector(".slot-hit") ||
     (document.activeElement &&
       document.activeElement.classList.contains &&
-      document.activeElement.classList.contains("slot")));
+      document.activeElement.classList.contains("slot-hit")));
   check("closing the menu releases its document Escape listener",
     (docListeners.keydown || []).length === kdBase);
 
@@ -3490,8 +3521,8 @@ function ctxL(card, key) {
   // A MOUSE-opened menu leaves focus on the chart, so the menu element
   // itself never sees the keydown: Escape is caught at the document while
   // the menu is open.
-  const freshSvg = chartSvgs(kb.shadowRoot)[0];
-  const freshSlot = freshSvg.querySelector(".slot");
+  const freshSvg = editSvg();
+  const freshSlot = freshSvg.querySelector(".slot-hit");
   const freshRuns = kb.manual.draft()[freshSlot.dataset.channel] || [];
   const freshRun = freshRuns[Number(freshSlot.dataset.index)];
   kb.lanes.openMenu(freshSlot.dataset.channel,
@@ -3507,10 +3538,10 @@ function ctxL(card, key) {
   check("the document Escape listener is removed with the menu",
     (docListeners.keydown || []).length === kdBase);
 
-  const lane = chartSvgs(kb.shadowRoot)[0].querySelector(".lane");
+  const lane = editSvg().querySelector(".lane");
   const laneChannel = lane.dataset.channel;
   const laneBefore = (kb.manual.draft()[laneChannel] || []).length;
-  chartSvgs(kb.shadowRoot)[0]._listeners.keydown.forEach((f) =>
+  editSvg()._listeners.keydown.forEach((f) =>
     f({ key: "Enter", target: lane, preventDefault(){}, stopPropagation(){} }));
   check("Enter on a lane offers the menu there too", !!kb.lanes.menu);
   // Acting on the menu re-renders; focus must follow to the fresh lane.
@@ -4647,7 +4678,7 @@ const setupBox = (card, place) =>
   // Nobody's outline was hidden wholesale to make the report go away.
   check("no blanket outline suppression was added",
     !/outline:\s*none[^;]*;\s*\}\s*\/\* *hide/i.test(cardSrc) &&
-    /\.slot:focus-visible, \.lane:focus-visible \{[\s\S]{0,80}outline: 2px solid/
+    /\.slot-hit:focus-visible, \.lane:focus-visible \{[\s\S]{0,80}outline: 2px solid/
       .test(cardSrc),
     "the other focusable SVG parts keep their outlines");
 
@@ -5474,9 +5505,12 @@ const setupBox = (card, place) =>
   const kb = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
   const count = () => (docListeners.keydown || []).length;
   const base = count();
+  kb.dialog.open();
   const openMenu = (card) => {
-    const svg = chartSvgs(card.shadowRoot)[0];
-    const slot = svg.querySelector(".slot");
+    // The editor's chart, which is the dialog's (D4-02).
+    const svgs = chartSvgs(card.shadowRoot);
+    const svg = svgs[svgs.length - 1];
+    const slot = svg.querySelector(".slot-hit");
     const runs = card.manual.draft()[slot.dataset.channel] || [];
     const run = runs[Number(slot.dataset.index)];
     card.lanes.openMenu(slot.dataset.channel,
@@ -6037,7 +6071,9 @@ const setupBox = (card, place) =>
   // (D4-01), so the same screen x is a different time on the two copies; the
   // inline chart's own geometry is what a pointer on it must be read with.
   const narrow = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), { what_if: true });
-  narrow._measuredCardWidth = () => 287;
+  narrow._refitCharts = () => {};
+  { const s0 = chartSvgs(narrow.shadowRoot)[0];
+    if (s0) s0.getBoundingClientRect = () => ({ width: 287, height: 121, left: 0, top: 0 }); }
   narrow._onCardClick({});
   const [inl, exp] = chartSvgs(narrow.shadowRoot);
   const gi = geomOfChart(narrow, inl), ge = geomOfChart(narrow, exp);
