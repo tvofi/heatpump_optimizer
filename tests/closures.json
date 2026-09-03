@@ -2,7 +2,7 @@
  "_comment": "MEASURED, not written by hand. Regenerate with tests/derive_closures.sh; the post-merge gate on main re-records these and fails if this file misses anything a real run touched.",
  "recorded": {
   "tests/backtest.py": {
-   "seconds": 29.2,
+   "seconds": 32.0,
    "rc": 0
   },
   "tests/card.mjs": {
@@ -18,19 +18,19 @@
    "rc": 0
   },
   "tests/edge.py": {
-   "seconds": 26.5,
+   "seconds": 37.4,
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 2.8,
+   "seconds": 5.9,
    "rc": 0
   },
   "tests/env_drift.py": {
-   "seconds": 0.5,
+   "seconds": 0.7,
    "rc": 0
   },
   "tests/features.py": {
-   "seconds": 56.9,
+   "seconds": 75.2,
    "rc": 0
   },
   "tests/frontend.py": {
@@ -38,11 +38,11 @@
    "rc": 0
   },
   "tests/golden.py": {
-   "seconds": 0.8,
+   "seconds": 0.9,
    "rc": 0
   },
   "tests/manual_plan.py": {
-   "seconds": 6.2,
+   "seconds": 7.6,
    "rc": 0
   },
   "tests/open_meteo.py": {
@@ -50,27 +50,27 @@
    "rc": 0
   },
   "tests/optimality.py": {
-   "seconds": 51.6,
+   "seconds": 55.5,
    "rc": 0
   },
   "tests/plan_view.py": {
-   "seconds": 0.9,
+   "seconds": 1.6,
    "rc": 0
   },
   "tests/solar_alignment.py": {
-   "seconds": 0.7,
+   "seconds": 0.9,
    "rc": 0
   },
   "tests/stress.py": {
-   "seconds": 804.0,
+   "seconds": 1385.9,
    "rc": 0
   },
   "tests/validate.py": {
-   "seconds": 29.9,
+   "seconds": 27.4,
    "rc": 0
   },
   "tests/config_flow_steps.py": {
-   "seconds": 1.1,
+   "seconds": 1.2,
    "rc": 0
   },
   "tests/structure.py": {
@@ -130,6 +130,7 @@
    "tests/hastub/homeassistant/helpers/__init__.py",
    "tests/hastub/homeassistant/helpers/aiohttp_client.py",
    "tests/hastub/homeassistant/helpers/config_validation.py",
+   "tests/hastub/homeassistant/helpers/device_registry.py",
    "tests/hastub/homeassistant/helpers/entity.py",
    "tests/hastub/homeassistant/helpers/entity_registry.py",
    "tests/hastub/homeassistant/helpers/event.py",
@@ -196,6 +197,7 @@
    "tests/hastub/homeassistant/helpers/__init__.py",
    "tests/hastub/homeassistant/helpers/aiohttp_client.py",
    "tests/hastub/homeassistant/helpers/config_validation.py",
+   "tests/hastub/homeassistant/helpers/device_registry.py",
    "tests/hastub/homeassistant/helpers/entity.py",
    "tests/hastub/homeassistant/helpers/entity_registry.py",
    "tests/hastub/homeassistant/helpers/event.py",
@@ -326,6 +328,7 @@
    "tests/hastub/homeassistant/helpers/__init__.py",
    "tests/hastub/homeassistant/helpers/aiohttp_client.py",
    "tests/hastub/homeassistant/helpers/config_validation.py",
+   "tests/hastub/homeassistant/helpers/device_registry.py",
    "tests/hastub/homeassistant/helpers/entity.py",
    "tests/hastub/homeassistant/helpers/entity_registry.py",
    "tests/hastub/homeassistant/helpers/event.py",
@@ -416,6 +419,7 @@
    "tests/hastub/homeassistant/helpers/__init__.py",
    "tests/hastub/homeassistant/helpers/aiohttp_client.py",
    "tests/hastub/homeassistant/helpers/config_validation.py",
+   "tests/hastub/homeassistant/helpers/device_registry.py",
    "tests/hastub/homeassistant/helpers/entity.py",
    "tests/hastub/homeassistant/helpers/entity_platform.py",
    "tests/hastub/homeassistant/helpers/entity_registry.py",
@@ -564,6 +568,7 @@
    "custom_components/heatpump_optimizer/dhw_schedule.py",
    "custom_components/heatpump_optimizer/diagnosis.py",
    "custom_components/heatpump_optimizer/drift.py",
+   "custom_components/heatpump_optimizer/entity.py",
    "custom_components/heatpump_optimizer/external_heat.py",
    "custom_components/heatpump_optimizer/freq_control.py",
    "custom_components/heatpump_optimizer/frontend.py",
@@ -609,6 +614,7 @@
    "tests/hastub/homeassistant/helpers/__init__.py",
    "tests/hastub/homeassistant/helpers/aiohttp_client.py",
    "tests/hastub/homeassistant/helpers/config_validation.py",
+   "tests/hastub/homeassistant/helpers/device_registry.py",
    "tests/hastub/homeassistant/helpers/entity.py",
    "tests/hastub/homeassistant/helpers/entity_platform.py",
    "tests/hastub/homeassistant/helpers/entity_registry.py",
@@ -757,6 +763,7 @@
    "tests/hastub/homeassistant/helpers/__init__.py",
    "tests/hastub/homeassistant/helpers/aiohttp_client.py",
    "tests/hastub/homeassistant/helpers/config_validation.py",
+   "tests/hastub/homeassistant/helpers/device_registry.py",
    "tests/hastub/homeassistant/helpers/entity.py",
    "tests/hastub/homeassistant/helpers/entity_registry.py",
    "tests/hastub/homeassistant/helpers/event.py",
@@ -818,6 +825,7 @@
    "tests/hastub/homeassistant/helpers/__init__.py",
    "tests/hastub/homeassistant/helpers/aiohttp_client.py",
    "tests/hastub/homeassistant/helpers/config_validation.py",
+   "tests/hastub/homeassistant/helpers/device_registry.py",
    "tests/hastub/homeassistant/helpers/entity.py",
    "tests/hastub/homeassistant/helpers/entity_registry.py",
    "tests/hastub/homeassistant/helpers/event.py",
@@ -885,6 +893,7 @@
    "tests/hastub/homeassistant/helpers/__init__.py",
    "tests/hastub/homeassistant/helpers/aiohttp_client.py",
    "tests/hastub/homeassistant/helpers/config_validation.py",
+   "tests/hastub/homeassistant/helpers/device_registry.py",
    "tests/hastub/homeassistant/helpers/entity.py",
    "tests/hastub/homeassistant/helpers/entity_registry.py",
    "tests/hastub/homeassistant/helpers/event.py",
@@ -946,6 +955,7 @@
    "tests/hastub/homeassistant/helpers/__init__.py",
    "tests/hastub/homeassistant/helpers/aiohttp_client.py",
    "tests/hastub/homeassistant/helpers/config_validation.py",
+   "tests/hastub/homeassistant/helpers/device_registry.py",
    "tests/hastub/homeassistant/helpers/entity.py",
    "tests/hastub/homeassistant/helpers/entity_registry.py",
    "tests/hastub/homeassistant/helpers/event.py",
@@ -1007,6 +1017,7 @@
    "tests/hastub/homeassistant/helpers/__init__.py",
    "tests/hastub/homeassistant/helpers/aiohttp_client.py",
    "tests/hastub/homeassistant/helpers/config_validation.py",
+   "tests/hastub/homeassistant/helpers/device_registry.py",
    "tests/hastub/homeassistant/helpers/entity.py",
    "tests/hastub/homeassistant/helpers/entity_registry.py",
    "tests/hastub/homeassistant/helpers/event.py",
@@ -1069,6 +1080,7 @@
    "tests/hastub/homeassistant/helpers/__init__.py",
    "tests/hastub/homeassistant/helpers/aiohttp_client.py",
    "tests/hastub/homeassistant/helpers/config_validation.py",
+   "tests/hastub/homeassistant/helpers/device_registry.py",
    "tests/hastub/homeassistant/helpers/entity.py",
    "tests/hastub/homeassistant/helpers/entity_registry.py",
    "tests/hastub/homeassistant/helpers/event.py",
@@ -1131,6 +1143,7 @@
    "tests/hastub/homeassistant/helpers/__init__.py",
    "tests/hastub/homeassistant/helpers/aiohttp_client.py",
    "tests/hastub/homeassistant/helpers/config_validation.py",
+   "tests/hastub/homeassistant/helpers/device_registry.py",
    "tests/hastub/homeassistant/helpers/entity.py",
    "tests/hastub/homeassistant/helpers/entity_registry.py",
    "tests/hastub/homeassistant/helpers/event.py",
@@ -1197,6 +1210,7 @@
    "tests/hastub/homeassistant/helpers/__init__.py",
    "tests/hastub/homeassistant/helpers/aiohttp_client.py",
    "tests/hastub/homeassistant/helpers/config_validation.py",
+   "tests/hastub/homeassistant/helpers/device_registry.py",
    "tests/hastub/homeassistant/helpers/entity.py",
    "tests/hastub/homeassistant/helpers/entity_registry.py",
    "tests/hastub/homeassistant/helpers/event.py",

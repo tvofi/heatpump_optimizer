@@ -182,10 +182,24 @@ def _batch_fd_gradient(
     The 97 perturbed schedules are evaluated by ONE call to
     ``batch_objective``: the simulation, which is nearly the whole cost,
     runs vectorized across the batch instead of 97 times sequentially.
+
+    A FIXED variable (``lb == ub``) is the one place this deliberately
+    departs from scipy (D9-01): there the one-sided rule leaves a zero step
+    and scipy's own divided difference is 0/0 = NaN. That NaN is not a
+    derivative, it is an artefact of dividing by a step the bounds forbade,
+    and the true derivative of a variable that cannot move is 0.0 -- which
+    is what this returns. It matters because scipy survives its own NaN
+    only by accident (its first Fortran evaluation lands one ULP off the
+    pin, x=4.44e-16 against a (0, 0) bound, turning 0/0 into -0.0), while a
+    NaN arriving in a SUPPLIED jac kills L-BFGS-B in the first line search
+    at status 2, nit 0. Free variables are untouched: their entries are
+    still bit-for-bit scipy's, asserted per variable by
+    ``tests/features.py::_grad_parity``.
     """
     n = x0.size
     lb = np.array([b[0] for b in bounds], dtype=float)
     ub = np.array([b[1] for b in bounds], dtype=float)
+    free = lb < ub
     h = np.full(n, eps, dtype=float)
     # scipy's zero-step fallback, replicated (issue #97): when x0 + eps
     # lands on the same float -- a zero-range bound, which the with-DHW
@@ -213,7 +227,13 @@ def _batch_fd_gradient(
     perturbed[np.arange(n), np.arange(n)] = x0 + h
     f = batch_objective(perturbed, *args)
     dx = (x0 + h) - x0
-    return (f - f0) / dx
+    # ``where=free`` leaves the fixed entries at the 0.0 they start as and
+    # never performs their division, so no 0/0 is computed and no invalid-
+    # value warning is raised. On an all-free bound set this is elementwise
+    # the same IEEE division as before, bit for bit.
+    grad = np.zeros(n, dtype=float)
+    np.divide(f - f0, dx, out=grad, where=free)
+    return grad
 
 
 def _bounds_supported_by_batch(bounds: list[tuple[float, float]]) -> bool:
@@ -230,21 +250,30 @@ def _bounds_supported_by_batch(bounds: list[tuple[float, float]]) -> bool:
     golden scenarios; the default two-zone DHW solve was 941,472
     simulate_step calls, x40 the batched cost).
 
-    ONE bound class stays on the scalar scipy path: a zero-range entry
-    (``lo == hi``), which the with-DHW solve produces for space heating
-    inside a DHW block that consumes the entire cap, and manual pins produce
-    by definition. At such a variable the one-sided rule takes a zero step,
-    and the divided difference is 0/0 = NaN -- for the batch AND for scipy's
-    own estimate alike. The gradient is then identical but the solver paths
-    are not: L-BFGS-B's behaviour once NaN enters the iterate stream differs
-    between the jac-estimated and jac-supplied paths (executed on the
-    fuse-guard shape -- one pinned step of 96: jac-estimated iterates 5 times
-    to 67.19, jac-supplied dies in the first line search at 78.66, status 2).
-    scipy's own path survives only because its first Fortran evaluation lands
-    one ULP off the pin (x=4.44e-16 against a (0, 0) bound), which turns the
-    0/0 into 0/dx = -0.0; nothing outside scipy guarantees that nudge. This
-    function is the single, documented gate for that decision, so any bound
-    class that ever proves impossible to match bit-for-bit has exactly one
+    A zero-range entry (``lo == hi``) used to be carved out here, and that
+    carve-out was the whole of D9-01: ONE such bound anywhere in the vector
+    put the WHOLE solve back on scipy's scalar finite differences, at 9,220
+    simulate-step equivalents per gradient against 293 batched -- 31.5x, and
+    2.7 M simulate_step calls for a solve that costs 81 k. It is not an
+    exotic shape: a single-phase 16 A fuse guard caps a default 5 kW pump
+    below its own 4.0 kW hot-water run power, so space heating inside a DHW
+    block gets (0, 0); so do fuse-minus-house-load, the monthly fuse
+    advisor's shadow solve, and a one-slot manual plan (23 forced-off steps).
+
+    The carve-out existed because at such a variable the one-sided rule takes
+    a zero step and the divided difference is 0/0 = NaN, and a NaN in a
+    SUPPLIED jac kills L-BFGS-B in its first line search (status 2, nit 0)
+    where scipy's own estimator survives on an accident -- its first Fortran
+    evaluation lands one ULP off the pin (x=4.44e-16 against a (0, 0) bound),
+    turning 0/0 into -0.0. The answer is to remove the NaN rather than the
+    fast path: ``_batch_fd_gradient`` now returns an exact 0.0 at a fixed
+    variable, which is that variable's true derivative, and the solve
+    converges to the same point the scalar path reached (executed on the
+    fuse-guard shape: fev_per_jev 96.0 -> 1.00).
+
+    ``lo > hi`` and non-finite bounds are still refused: L-BFGS-B could not
+    solve those on any path. This function stays the single, documented gate,
+    so any bound class that ever proves impossible to serve has exactly one
     place to be carved out and explained.
     """
     if not bounds:
@@ -252,7 +281,7 @@ def _bounds_supported_by_batch(bounds: list[tuple[float, float]]) -> bool:
     for lo, hi in bounds:
         if not (np.isfinite(lo) and np.isfinite(hi)):
             return False
-        if lo >= hi:
+        if lo > hi:
             return False
     return True
 
@@ -306,7 +335,6 @@ def _multi_start_minimize(
             _time_mod.sleep(0.002)
         try:
             jac = None
-            jac = None
             # The batched jac (#97, widened by D9-01) serves NON-UNIFORM
             # bounds, which is where the cost actually is: DHW is on by
             # default, and any DHW block or per-step power cap pins the space
@@ -322,18 +350,22 @@ def _multi_start_minimize(
             # iterate path does not move: asserted per-variable by
             # tests/features.py::_grad_parity (uniform, capped and
             # DHW-pinned-headroom bounds) and raced end-to-end by
-            # tests/optimality.py on DHW-enabled solves. Zero-range bounds
-            # (lb == ub) are the one carved-out class -- see
-            # ``_bounds_supported_by_batch`` for the executed reason. The CI
-            # drift gate on Linux is the final arbiter.
+            # tests/optimality.py on DHW-enabled solves. A FIXED variable
+            # (lb == ub) is served too, since D9-01: it gets an exact 0.0
+            # rather than scipy's 0/0 NaN, which is the only entry that ever
+            # differs and the only one whose value the bounds already decide.
+            # It used to disqualify the whole vector, which is what put a
+            # fuse-guarded install on the scalar path at 31.5x. The CI drift
+            # gate on Linux is the final arbiter.
             can_batch = _bounds_supported_by_batch(bounds)
             if batch_objective is not None and can_batch:
                 # The batched-FD jac (#97): scipy calls the gradient at
                 # every trial point, so a supplied jac removes 96/97 of
                 # ALL evaluations, not just of the gradient's own. It
                 # reproduces scipy's own 2-point estimate to the bit --
-                # same eps, same bounds rule -- so the iterate path, and
-                # therefore the plan, does not move.
+                # same eps, same bounds rule -- so on bounds with no fixed
+                # variable the iterate path, and therefore the plan, does
+                # not move.
                 def jac(x, *a):
                     return _batch_fd_gradient(
                         batch_objective, a, x,

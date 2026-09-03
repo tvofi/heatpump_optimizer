@@ -162,10 +162,80 @@ Take the lock with an owner file, and it becomes decidable:
     mkdir /tmp/hpo-gate.lock && printf '%s pid=%s at=%s\n' \
       "$AGENT_NAME" "$$" "$(date -u +%FT%TZ)" > /tmp/hpo-gate.lock/owner
 
-Before reclaiming one you did not create, prove it is dead -- the owner pid is
-gone AND no `tests/run.sh`, `stress.py` or `env_drift.py` process exists:
+**`$$` is the SHELL's pid, and that is not always the work's.** A run started
+with `nohup ... &` outlives the shell that launched it, so the owner file then
+names a dead process while the measurement it protects is still going. That
+happened within hours of this section being written: a coverage run held the
+lock correctly for forty minutes with its recorded `pid=98736` already gone.
+Record the work's pid where you can (`nohup cmd & echo $!`).
 
-    cat /tmp/hpo-gate.lock/owner; ps aux | grep -E "[t]ests/run\.sh|[s]tress\.py|[e]nv_drift\.py"
+Before reclaiming one you did not create, prove it is dead -- the owner pid is
+gone AND no test process is running out of the repository at all. The first
+version of this check grepped only for three names, and would have called that
+live coverage lock stale on both counts:
+
+    cat /tmp/hpo-gate.lock/owner
+    ps aux | grep -E "[t]ests/run\.sh|[s]tress\.py|[e]nv_drift\.py|[c]overage|[t]ests/[a-z_]+\.py"
 
 Only then `rm -rf /tmp/hpo-gate.lock`, and say in your report that you did and why.
 A lock with a live process behind it is never yours to take, however old it looks.
+
+## `stress.py` always takes the lock, even run on its own
+
+The advice everywhere else in this file — run the scripts your diff selects
+directly, and take `/tmp/hpo-gate.lock` only for a full `tests/run.sh` — is
+wrong for exactly one script, and following it cost a whole measurement.
+
+`tests/run.sh` runs `stress.py` **alone, after every other lane**, because its
+solve-time guard cannot tolerate a shared box. Running it "directly, without
+the lock" therefore defeats the one arrangement that makes its numbers mean
+anything. On 2026-09-03 three `stress.py` processes ran concurrently at
+load 6.5 — one of them recording the budget table that is the gate's entire
+reference — because three agents had each been told to run their selected
+scripts directly and all three selections included `stress.py`. The lock
+holder had the lock and still did not have the box.
+
+So:
+
+- **Taking the lock is required for `stress.py`**, whether you run it through
+  `run.sh` or on its own.
+- **The lock records intent; it enforces nothing.** It cannot stop a script
+  someone runs directly. Before any timing run, confirm exclusivity by
+  process, not by ownership:
+
+      ps aux | grep -E "[s]tress\.py|[t]ests/run\.sh"
+
+  Proceed only when yours is the sole entry, and print the concurrent-process
+  count beside every timing RESULT so a reader can see the conditions rather
+  than infer them.
+- **Separate ratios from absolutes when contention is possible.** The stress
+  gate's ratio metric cancels load by design — the reference solve is lifted
+  with the scenario, and an injected 2x was measured landing at 1.9967 on a
+  loaded box. Absolute wall and CPU numbers do not cancel and must be re-taken.
+  Say which kind each number is; do not discard sound ratios along with
+  contaminated absolutes.
+
+## A harness at the evidence tag may measure the tag, not your tree
+
+The harnesses under `audit-round2-evidence` do not agree on how they find the
+repository root. `D6/claims.py` uses `ROOT = Path(".")`, so it measures the
+working directory. `D7/sysid_plant.py` resolves from `__file__`, so it measures
+the checkout the *file* lives in. Run the second kind from the tag's own
+worktree and it silently measures the tag's production code instead of the tree
+under review -- with plausible numbers and no error.
+
+**Copy a harness into the tree under test before running it**, and say in your
+report which root rule it used. Three reviewers have been caught by this.
+
+Two harnesses do not run at all against a current tree, for a related reason --
+each reaches into production or test code by structural assumption, and the
+structure moved:
+
+| harness | breaks because |
+|---|---|
+| `D9/d9lib.py` | `tests/stress.py` gained an `if __name__ == "__main__":` guard, so the cut marker it slices at now sits inside it |
+| `D6/claims.py` | production moved to `entry.runtime_data`; the harness still builds `hass.data[DOMAIN]` |
+
+Both were found incidentally, by reviewers who needed them for something else.
+The tag has not been swept, so the other nine dimensions are unmeasured rather
+than clean.

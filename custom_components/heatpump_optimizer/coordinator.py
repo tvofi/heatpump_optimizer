@@ -29,6 +29,7 @@ from homeassistant.const import UnitOfSpeed
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.device_registry import DeviceEntryType
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -1319,6 +1320,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         All three platforms previously declared their own model and version,
         which disagreed with each other and with the manifest; whichever
         entity registered last silently won.
+
+        This integration is a service (a cloud API plus the user's own
+        entities), not a physical device, so the registry entry says so:
+        ``entry_type=DeviceEntryType.SERVICE`` is what the Gold "devices"
+        rule asks for and what makes HA present the entry as a service
+        (#305). It lives in ``helpers.device_registry`` at the 2024.6 floor;
+        ``DeviceInfo`` has no ``config_entry`` field there.
         """
         return DeviceInfo(
             identifiers={(DOMAIN, self.entry.entry_id)},
@@ -1326,6 +1334,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             manufacturer="Custom",
             model="MPC Optimizer",
             sw_version=self.integration_version,
+            entry_type=DeviceEntryType.SERVICE,
         )
 
     @property
