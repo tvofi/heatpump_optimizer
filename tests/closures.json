@@ -30,7 +30,7 @@
    "rc": 0
   },
   "tests/features.py": {
-   "seconds": 75.2,
+   "seconds": 48.4,
    "rc": 0
   },
   "tests/frontend.py": {
@@ -50,7 +50,7 @@
    "rc": 0
   },
   "tests/optimality.py": {
-   "seconds": 55.5,
+   "seconds": 49.4,
    "rc": 0
   },
   "tests/plan_view.py": {
@@ -74,7 +74,7 @@
    "rc": 0
   },
   "tests/structure.py": {
-   "seconds": 1.2,
+   "seconds": 0.9,
    "rc": 0
   }
  },
@@ -140,7 +140,8 @@
    "tests/hastub/homeassistant/loader.py",
    "tests/hastub/homeassistant/util/__init__.py",
    "tests/hastub/homeassistant/util/dt.py",
-   "tests/profiles.py"
+   "tests/profiles.py",
+   "custom_components/heatpump_optimizer/services.py"
   ],
   "tests/card.mjs": [
    "VERSION",
@@ -208,7 +209,8 @@
    "tests/hastub/homeassistant/util/__init__.py",
    "tests/hastub/homeassistant/util/dt.py",
    "tests/plan_view.py",
-   "tests/profiles.py"
+   "tests/profiles.py",
+   "custom_components/heatpump_optimizer/services.py"
   ],
   "tests/card_drift.mjs": [
    "VERSION",
@@ -338,7 +340,8 @@
    "tests/hastub/homeassistant/loader.py",
    "tests/hastub/homeassistant/util/__init__.py",
    "tests/hastub/homeassistant/util/dt.py",
-   "tests/profiles.py"
+   "tests/profiles.py",
+   "custom_components/heatpump_optimizer/services.py"
   ],
   "tests/entities.py": [
    "README.md",
@@ -431,7 +434,8 @@
    "tests/hastub/homeassistant/helpers/update_coordinator.py",
    "tests/hastub/homeassistant/loader.py",
    "tests/hastub/homeassistant/util/__init__.py",
-   "tests/hastub/homeassistant/util/dt.py"
+   "tests/hastub/homeassistant/util/dt.py",
+   "custom_components/heatpump_optimizer/services.py"
   ],
   "tests/env_drift.py": [
    "custom_components/heatpump_optimizer/__init__.py",
@@ -548,7 +552,8 @@
    "tests/golden/winter_two_zone_no_dhw.json",
    "tests/golden/wood_coil.json",
    "tests/golden/wood_two_tank.json",
-   "tests/golden/wood_two_tank_smart_write.json"
+   "tests/golden/wood_two_tank_smart_write.json",
+   "custom_components/heatpump_optimizer/services.py"
   ],
   "tests/features.py": [
    "custom_components/heatpump_optimizer/__init__.py",
@@ -587,6 +592,7 @@
    "custom_components/heatpump_optimizer/pump_schedule.py",
    "custom_components/heatpump_optimizer/pump_signals.py",
    "custom_components/heatpump_optimizer/pv.py",
+   "custom_components/heatpump_optimizer/services.py",
    "custom_components/heatpump_optimizer/snapshots.py",
    "custom_components/heatpump_optimizer/strings.json",
    "custom_components/heatpump_optimizer/sysid.py",
@@ -773,7 +779,8 @@
    "tests/hastub/homeassistant/loader.py",
    "tests/hastub/homeassistant/util/__init__.py",
    "tests/hastub/homeassistant/util/dt.py",
-   "tests/profiles.py"
+   "tests/profiles.py",
+   "custom_components/heatpump_optimizer/services.py"
   ],
   "tests/manual_plan.py": [
    "custom_components/heatpump_optimizer/__init__.py",
@@ -836,7 +843,8 @@
    "tests/hastub/homeassistant/util/__init__.py",
    "tests/hastub/homeassistant/util/dt.py",
    "tests/manual_plan.py",
-   "tests/profiles.py"
+   "tests/profiles.py",
+   "custom_components/heatpump_optimizer/services.py"
   ],
   "tests/open_meteo.py": [
    "custom_components/heatpump_optimizer/const.py",
@@ -876,6 +884,7 @@
    "custom_components/heatpump_optimizer/pump_schedule.py",
    "custom_components/heatpump_optimizer/pump_signals.py",
    "custom_components/heatpump_optimizer/pv.py",
+   "custom_components/heatpump_optimizer/services.py",
    "custom_components/heatpump_optimizer/snapshots.py",
    "custom_components/heatpump_optimizer/sysid.py",
    "custom_components/heatpump_optimizer/tariff.py",
@@ -966,7 +975,8 @@
    "tests/hastub/homeassistant/util/__init__.py",
    "tests/hastub/homeassistant/util/dt.py",
    "tests/plan_view.py",
-   "tests/profiles.py"
+   "tests/profiles.py",
+   "custom_components/heatpump_optimizer/services.py"
   ],
   "tests/solar_alignment.py": [
    "custom_components/heatpump_optimizer/__init__.py",
@@ -1027,7 +1037,8 @@
    "tests/hastub/homeassistant/loader.py",
    "tests/hastub/homeassistant/util/__init__.py",
    "tests/hastub/homeassistant/util/dt.py",
-   "tests/solar_alignment.py"
+   "tests/solar_alignment.py",
+   "custom_components/heatpump_optimizer/services.py"
   ],
   "tests/stress.py": [
    "custom_components/heatpump_optimizer/__init__.py",
@@ -1092,7 +1103,8 @@
    "tests/hastub/homeassistant/util/dt.py",
    "tests/profiles.py",
    "tests/stress.py",
-   "tests/stress_budgets.json"
+   "tests/stress_budgets.json",
+   "custom_components/heatpump_optimizer/services.py"
   ],
   "tests/validate.py": [
    "custom_components/heatpump_optimizer/__init__.py",
@@ -1154,7 +1166,8 @@
    "tests/hastub/homeassistant/util/__init__.py",
    "tests/hastub/homeassistant/util/dt.py",
    "tests/profiles.py",
-   "tests/validate.py"
+   "tests/validate.py",
+   "custom_components/heatpump_optimizer/services.py"
   ],
   "tests/config_flow_steps.py": [
    "custom_components/heatpump_optimizer/__init__.py",
@@ -1221,7 +1234,8 @@
    "tests/hastub/homeassistant/helpers/update_coordinator.py",
    "tests/hastub/homeassistant/loader.py",
    "tests/hastub/homeassistant/util/__init__.py",
-   "tests/hastub/homeassistant/util/dt.py"
+   "tests/hastub/homeassistant/util/dt.py",
+   "custom_components/heatpump_optimizer/services.py"
   ],
   "tests/structure.py": [
    "custom_components/heatpump_optimizer/__init__.py",
@@ -1264,6 +1278,7 @@
    "custom_components/heatpump_optimizer/pump_signals.py",
    "custom_components/heatpump_optimizer/pv.py",
    "custom_components/heatpump_optimizer/sensor.py",
+   "custom_components/heatpump_optimizer/services.py",
    "custom_components/heatpump_optimizer/snapshots.py",
    "custom_components/heatpump_optimizer/switch.py",
    "custom_components/heatpump_optimizer/sysid.py",

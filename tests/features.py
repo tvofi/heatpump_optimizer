@@ -11879,6 +11879,163 @@ R.check(
     "hassfest requires the two files to match",
 )
 
+# #222 (decomposition program, child of #193): the service-handler module in
+# disguise is a module. Everything in this section is structural -- the
+# behavioral sections around it (#294's raises, #321's pre-check, #217's
+# translation kwargs) drive the real registry through the real registration
+# path and are untouched by the move, which is what makes it
+# behavior-invisible. Pinned here: the handlers live in services.py,
+# __init__.py defines none of them, and async_setup's registration path
+# registers the services module's own functions.
+R.section("services.py is the service-handler module (#222)")
+
+import ast as _hpo_ast  # noqa: E402
+
+try:
+    from heatpump_optimizer import services as _hpo_services
+    _hpo_services_err = ""
+except Exception as _hpo_exc:  # noqa: BLE001 - the failure IS the finding
+    _hpo_services = None
+    _hpo_services_err = f"{type(_hpo_exc).__name__}: {_hpo_exc}"
+R.check(
+    "heatpump_optimizer.services exists and imports",
+    _hpo_services is not None,
+    _hpo_services_err or "ok",
+)
+
+# The twelve moved definitions (eleven handle_* plus the _manual_targets
+# helper the manual-plan trio shares) and the two entry resolvers every
+# handler dispatches through.
+_HPO_MOVED = (
+    "handle_run_optimization",
+    "handle_set_mode",
+    "handle_set_thermal_params",
+    "handle_simulate_plan",
+    "handle_assign_entity",
+    "handle_apply_topology",
+    "handle_apply_schedule",
+    "handle_apply_manual_plan",
+    "handle_clear_manual_plan",
+    "handle_restore_snapshot",
+    "handle_diagnose_interval",
+    "_manual_targets",
+    "_loaded_entries",
+    "_loaded_coordinators",
+)
+_hpo_missing = (
+    [
+        _hpo_n
+        for _hpo_n in _HPO_MOVED
+        if not callable(getattr(_hpo_services, _hpo_n, None))
+    ]
+    if _hpo_services is not None
+    else list(_HPO_MOVED)
+)
+R.check(
+    "every service handler and resolver lives at module level in services.py",
+    not _hpo_missing,
+    f"missing: {_hpo_missing}",
+)
+
+_hpo_init_tree = _hpo_ast.parse(
+    _Path("custom_components/heatpump_optimizer/__init__.py").read_text()
+)
+_hpo_defs = {
+    _hpo_n.name
+    for _hpo_n in _hpo_ast.walk(_hpo_init_tree)
+    if isinstance(_hpo_n, (_hpo_ast.FunctionDef, _hpo_ast.AsyncFunctionDef))
+}
+R.check(
+    "__init__.py no longer defines any service handler or resolver",
+    not (_hpo_defs & set(_HPO_MOVED)),
+    f"still defined in __init__.py: {sorted(_hpo_defs & set(_HPO_MOVED))}",
+)
+R.check(
+    "__init__.py keeps the registration path (_async_register_services)",
+    "_async_register_services" in _hpo_defs,
+    "async_setup calls it; it is the seam that delegates to services.py",
+)
+
+_hpo_params = {}
+if _hpo_services is not None:
+    for _hpo_n in _HPO_MOVED:
+        if _hpo_n.startswith("handle_"):
+            _hpo_params[_hpo_n] = list(
+                inspect.signature(getattr(_hpo_services, _hpo_n)).parameters
+            )
+R.check(
+    "each handler takes (hass, call) explicitly, the one sanctioned change",
+    bool(_hpo_params)
+    and all(_hpo_v == ["hass", "call"] for _hpo_v in _hpo_params.values()),
+    "; ".join(f"{k}={v}" for k, v in _hpo_params.items()) or "no module",
+)
+
+# service name -> the handler function that must be behind it. Driving
+# async_setup on a fresh hass and asking the registry for identity (not
+# just presence) proves __init__'s path delegates to the module rather
+# than registering functions of its own.
+_HPO_SERVICE_MAP = {
+    "run_optimization": "handle_run_optimization",
+    "set_mode": "handle_set_mode",
+    "set_thermal_parameters": "handle_set_thermal_params",
+    "simulate_plan": "handle_simulate_plan",
+    "assign_entity": "handle_assign_entity",
+    "apply_topology": "handle_apply_topology",
+    "apply_schedule": "handle_apply_schedule",
+    "apply_manual_plan": "handle_apply_manual_plan",
+    "clear_manual_plan": "handle_clear_manual_plan",
+    "restore_learned_snapshot": "handle_restore_snapshot",
+    "diagnose_interval": "handle_diagnose_interval",
+}
+_hpo_hass = FakeHass()
+_asyncio.run(_ha_setup_component(_integ, _hpo_hass))
+_hpo_registered = _hpo_hass.services.async_services().get(_DOMAIN, {})
+R.check(
+    "async_setup registers all eleven services, unchanged",
+    set(_hpo_registered) == set(_HPO_SERVICE_MAP),
+    f"registered: {sorted(_hpo_registered)}",
+)
+# The registry calls a handler with one argument (the ServiceCall), so the
+# module functions -- which take (hass, call) -- are registered bound to the
+# registering hass via functools.partial. The identity asked for is the
+# function behind the binding, and that the binding carries that same hass.
+_hpo_wrong = []
+for _hpo_svc, _hpo_fn in _HPO_SERVICE_MAP.items():
+    _hpo_obj = _hpo_registered.get(_hpo_svc)
+    if (
+        getattr(_hpo_obj, "func", _hpo_obj)
+        is not getattr(_hpo_services, _hpo_fn, None)
+        or tuple(getattr(_hpo_obj, "args", ())) != (_hpo_hass,)
+    ):
+        _hpo_wrong.append(f"{_hpo_svc}:{_hpo_fn}")
+R.check(
+    "the registration path registers the services module's own functions",
+    _hpo_services is not None and not _hpo_wrong,
+    "; ".join(_hpo_wrong) or "ok",
+)
+
+_hpo_services_path = _Path("custom_components/heatpump_optimizer/services.py")
+_hpo_reg_sites = 0
+if _hpo_services_path.exists():
+    for _hpo_n in _hpo_ast.walk(_hpo_ast.parse(_hpo_services_path.read_text())):
+        if (
+            isinstance(_hpo_n, _hpo_ast.Call)
+            and isinstance(_hpo_n.func, _hpo_ast.Attribute)
+            and _hpo_n.func.attr == "async_register"
+        ):
+            _hpo_reg_sites += 1
+R.check(
+    "the eleven registration sites live in services.py, none in __init__.py",
+    _hpo_reg_sites == 11
+    and not any(
+        isinstance(_hpo_n, _hpo_ast.Call)
+        and isinstance(_hpo_n.func, _hpo_ast.Attribute)
+        and _hpo_n.func.attr == "async_register"
+        for _hpo_n in _hpo_ast.walk(_hpo_init_tree)
+    ),
+    f"services.py: {_hpo_reg_sites} registration site(s)",
+)
+
 R.section("v4.0.3 — stale-plan guards, billed peaks, boundary clamps")
 
 from heatpump_optimizer.config_flow import validate_tibber_token as _g_tibber

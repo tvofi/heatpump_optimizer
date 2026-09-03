@@ -1,0 +1,982 @@
+"""The domain's eleven services: schemas, handlers and registration.
+
+Moved verbatim from ``__init__.py`` (#222, the decomposition program's
+opener; the block used to be ``_async_register_services`` and the module
+constants above it). The handlers were nested closures over ``hass``; as
+module functions they take it explicitly -- the one signature change of the
+move, bodies byte-identical. ``async_register_services`` binds each handler
+to the registering ``hass`` with ``functools.partial``: the registry calls a
+handler with one argument (the ``ServiceCall``), as it did when the same
+functions were closures. Registration happens once, from ``async_setup``
+(through ``__init__._async_register_services``), and nothing is removed at
+unload: the services belong to the domain for the life of the process.
+"""
+from __future__ import annotations
+
+import logging
+from datetime import timedelta
+from functools import partial
+from typing import Any
+
+import voluptuous as vol
+
+from homeassistant.config_entries import ConfigEntryState
+from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
+from homeassistant.helpers import config_validation as cv
+from homeassistant.util import dt as dt_util
+
+from . import comfort_band
+from . import mixing_valve
+from . import topology
+from .const import (
+    DOMAIN,
+    CONF_COMFORT_TEMP_DAY,
+    CONF_DAY_END_HOUR,
+    CONF_DAY_START_HOUR,
+    CONF_DHW_MIN_TEMP,
+    CONF_DHW_SETPOINT,
+    CONF_DHW_WINDOWS,
+    MANUAL_PLAN_WINDOW_HOURS,
+    DEFAULT_DHW_SETPOINT,
+    DHW_MIN_TEMP_SETPOINT_MARGIN,
+    CONF_TOPOLOGY_LAYOUT,
+    CONF_TOPOLOGY_POSITIONS,
+    SERVICE_APPLY_SCHEDULE,
+    SERVICE_APPLY_TOPOLOGY,
+    SERVICE_ASSIGN_ENTITY,
+    SERVICE_APPLY_MANUAL_PLAN,
+    SERVICE_CLEAR_MANUAL_PLAN,
+    SERVICE_DIAGNOSE_INTERVAL,
+    SERVICE_RESTORE_SNAPSHOT,
+    SERVICE_RUN_OPTIMIZATION,
+    SERVICE_SET_MODE,
+    SERVICE_SET_THERMAL_PARAMS,
+    SERVICE_SIMULATE_PLAN,
+    OPERATION_MODES,
+    POSITIVE_PARAM_FLOOR,
+    topology_layout_valid,
+)
+from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
+from .dhw_schedule import (
+    DHWWindowError,
+    format_weekly_windows,
+    format_windows,
+    parse_weekly_windows,
+    parse_windows,
+)
+from .manual_plan import ManualPlanError, build_override
+from .thermal_model import ThermalParameters
+
+_LOGGER = logging.getLogger(__name__)
+
+SERVICE_SCHEMA_RUN_OPTIMIZATION = vol.Schema({})
+
+# What-if simulator (item 21). Every field is optional: the card sends only the
+# one the user is dragging, and anything absent keeps its configured value.
+SERVICE_SCHEMA_SIMULATE_PLAN = vol.Schema(
+    {
+        vol.Optional("target_temp"): vol.Coerce(float),
+        vol.Optional("min_temp"): vol.Coerce(float),
+        vol.Optional("max_temp"): vol.Coerce(float),
+        vol.Optional("comfort_temp_day"): vol.Coerce(float),
+        vol.Optional("comfort_temp_night"): vol.Coerce(float),
+        vol.Optional("comfort_weight"): vol.Coerce(float),
+        # The heating schedule: which hours get the day comfort temperature.
+        vol.Optional("day_start_hour"): vol.All(
+            vol.Coerce(int), vol.Range(min=0, max=23)
+        ),
+        vol.Optional("day_end_hour"): vol.All(
+            vol.Coerce(int), vol.Range(min=0, max=24)
+        ),
+        vol.Optional("dhw_setpoint"): vol.Coerce(float),
+        vol.Optional("dhw_min_temperature"): vol.Coerce(float),
+        # An empty string is meaningful here: it simulates having no demand
+        # windows at all, so it must survive the "drop empty values" filter in
+        # the handler below.
+        vol.Optional("dhw_windows"): cv.string,
+    }
+)
+
+SERVICE_SCHEMA_SET_MODE = vol.Schema(
+    {
+        vol.Required("mode"): vol.In(
+            list(OPERATION_MODES)
+        ),
+    }
+)
+
+# Assign one optional sensor from the card's setup diagram (item 32).
+#
+# One of two services that write to the config entry, and deliberately the
+# narrower: one key, one entity, both checked against the same slot table the
+# diagram is drawn from. ``entity_id`` may be an empty string, which clears
+# the slot -- unassigning has to be possible from the same place assigning is,
+# or the diagram becomes a one-way door.
+SERVICE_SCHEMA_ASSIGN_ENTITY = vol.Schema(
+    {
+        vol.Required("key"): vol.In(sorted(topology.ASSIGNABLE_KEYS)),
+        vol.Required("entity_id"): cv.string,
+        vol.Optional("entry_id"): cv.string,
+    }
+)
+
+# Store the layout the card's editor snapped to (v3.16.0). The schema only
+# admits selectable catalog keys — an unmodelled layout (slab_shunt) is
+# impossible by construction, not by handler vigilance. Positions are
+# cosmetic box coordinates, {place: [x, y]}; free-form edges are never
+# accepted anywhere, which is the whole design.
+SERVICE_SCHEMA_APPLY_TOPOLOGY = vol.Schema(
+    {
+        vol.Required("layout"): vol.In(
+            sorted(k for k, v in topology.LAYOUTS.items() if v.selectable)
+        ),
+        vol.Optional("positions"): vol.Schema(
+            {
+                vol.In(sorted(topology.PLACE_LABELS)): vol.All(
+                    [vol.Coerce(float)], vol.Length(min=2, max=2)
+                ),
+            }
+        ),
+        vol.Optional("entry_id"): cv.string,
+    }
+)
+
+# Persist a schedule the user arrived at in the what-if simulator.
+#
+# Deliberately narrow: it accepts the fields the card can edit and nothing
+# else. Ranges are enforced here rather than in the handler so a bad call is
+# rejected before it can touch stored configuration.
+SERVICE_SCHEMA_APPLY_SCHEDULE = vol.Schema(
+    {
+        vol.Optional("day_start_hour"): vol.All(
+            vol.Coerce(int), vol.Range(min=0, max=23)
+        ),
+        vol.Optional("day_end_hour"): vol.All(
+            vol.Coerce(int), vol.Range(min=0, max=24)
+        ),
+        # An empty string is meaningful: it means "no guaranteed hot water
+        # windows at all", so it must not be filtered out as a blank.
+        vol.Optional("dhw_windows"): cv.string,
+        vol.Optional("comfort_temp_day"): vol.All(
+            vol.Coerce(float), vol.Range(min=5, max=30)
+        ),
+        # The coarse range matches the options flow; the real ceiling depends
+        # on the entry's own ``dhw_setpoint`` and so is checked per entry in
+        # the handler, where that setpoint is in hand.
+        vol.Optional("dhw_min_temperature"): vol.All(
+            vol.Coerce(float), vol.Range(min=35, max=55)
+        ),
+        # Restrict the write to one config entry. Omitted means every entry,
+        # which matches how simulate_plan behaves and is what the card wants
+        # on a single-heat-pump install.
+        vol.Optional("entry_id"): cv.string,
+    }
+)
+
+# A slot is one contiguous run the user pinned; the deep validation (parseable
+# datetimes, end > start, no overlap) lives in ``manual_plan`` so it stays
+# unit-testable, and the schema only guarantees the coarse shape. ``vol.Any``
+# with ``None`` keeps the "omitted / null means automatic" distinction the
+# handler relies on — an explicit empty list still arrives as ``[]``.
+_MANUAL_SLOT_LIST = vol.Any(None, [dict])
+
+SERVICE_SCHEMA_APPLY_MANUAL_PLAN = vol.Schema(
+    {
+        vol.Optional("dhw_slots"): _MANUAL_SLOT_LIST,
+        vol.Optional("space_slots"): _MANUAL_SLOT_LIST,
+        vol.Optional("expires_at"): cv.string,
+        vol.Optional("entry_id"): cv.string,
+    }
+)
+
+SERVICE_SCHEMA_CLEAR_MANUAL_PLAN = vol.Schema(
+    {
+        vol.Optional("entry_id"): cv.string,
+    }
+)
+
+# Same shape, own name: reusing the clear-manual-plan constant for the
+# snapshot restore read as if the two services were related.
+SERVICE_SCHEMA_RESTORE_SNAPSHOT = vol.Schema(
+    {
+        vol.Optional("entry_id"): cv.string,
+    }
+)
+
+SERVICE_SCHEMA_DIAGNOSE_INTERVAL = vol.Schema(
+    {
+        vol.Optional("entry_id"): cv.string,
+    }
+)
+
+# Ranges guard the physics, not just the UI: services.yaml selectors only
+# constrain the Developer Tools form, and an automation calling with a zero
+# thermal mass or a power fraction above 1 would otherwise flow straight into
+# the model as a division by zero or a heat flow with the wrong sign. The
+# floor is POSITIVE_PARAM_FLOOR (D6-03, #274), shared with config_flow.py's
+# NumberSelector minimums and ThermalParameters.clamp() so the same "not
+# zero" line holds on every path a value can arrive by.
+def _positive(upper: float) -> vol.All:
+    return vol.All(vol.Coerce(float), vol.Range(min=POSITIVE_PARAM_FLOOR, max=upper))
+
+
+SERVICE_SCHEMA_SET_THERMAL_PARAMS = vol.Schema(
+    {
+        vol.Optional("house_thermal_mass"): _positive(200),
+        vol.Optional("house_heat_loss_coefficient"): _positive(10),
+        vol.Optional("slab_thermal_mass"): _positive(200),
+        vol.Optional("slab_heat_transfer"): _positive(50),
+        vol.Optional("heat_pump_cop_nominal"): vol.All(
+            vol.Coerce(float), vol.Range(min=1.0, max=8.0)
+        ),
+        vol.Optional("upper_floor_thermal_mass"): _positive(200),
+        vol.Optional("lower_floor_thermal_mass"): _positive(200),
+        vol.Optional("inter_zone_heat_transfer"): _positive(50),
+        vol.Optional("radiator_power_fraction"): vol.All(
+            vol.Coerce(float), vol.Range(min=0.0, max=1.0)
+        ),
+        vol.Optional("window_area"): _positive(500),
+        vol.Optional("solar_heat_gain_coefficient"): vol.All(
+            vol.Coerce(float), vol.Range(min=0.0, max=1.0)
+        ),
+        # DHW parameters
+        vol.Optional("dhw_tank_volume"): _positive(2000),
+        vol.Optional("dhw_setpoint"): vol.All(
+            vol.Coerce(float), vol.Range(min=30, max=75)
+        ),
+        vol.Optional("dhw_min_temperature"): vol.All(
+            vol.Coerce(float), vol.Range(min=10, max=70)
+        ),
+        vol.Optional("dhw_daily_consumption"): _positive(2000),
+        vol.Optional("dhw_cooling_rate"): _positive(5),
+        vol.Optional("buffer_cooling_rate"): _positive(50),
+        vol.Optional("dhw_schedule_enabled"): cv.boolean,
+        vol.Optional("dhw_windows"): cv.string,
+        vol.Optional("dhw_idle_min_temperature"): vol.All(
+            vol.Coerce(float), vol.Range(min=5, max=60)
+        ),
+        vol.Optional("dhw_legionella_enabled"): cv.boolean,
+        vol.Optional("dhw_legionella_temperature"): vol.All(
+            vol.Coerce(float), vol.Range(min=55, max=75)
+        ),
+        vol.Optional("dhw_legionella_interval_days"): _positive(60),
+        # Weather sensitivity parameters
+        vol.Optional("wind_sensitivity_factor"): vol.All(
+            vol.Coerce(float), vol.Range(min=0.0, max=1.0)
+        ),
+        vol.Optional("rain_heat_loss_multiplier"): vol.All(
+            vol.Coerce(float), vol.Range(min=1.0, max=2.0)
+        ),
+        # ECL110 dynamics and displace limits. The coordinator has handled the
+        # two limit keys since the mirrors were added, but the schema never
+        # admitted them, so the handling was unreachable from the service.
+        vol.Optional("ecl110_pid_time_constant_hours"): _positive(24),
+        vol.Optional("ecl110_displace_min"): vol.All(
+            vol.Coerce(float), vol.Range(min=-30, max=0)
+        ),
+        vol.Optional("ecl110_displace_max"): vol.All(
+            vol.Coerce(float), vol.Range(min=0, max=30)
+        ),
+    }
+)
+
+
+def _loaded_entries(
+    hass: HomeAssistant, target_entry: str | None = None
+) -> list[HeatPumpOptimizerConfigEntry]:
+    """The entries a service call acts on, resolved when the call arrives.
+
+    With an ``entry_id``: that entry, which must exist under this domain and
+    be loaded. Without one: every loaded entry, and at least one -- the
+    services exist even when no entry does, so an empty answer is refused
+    rather than acted on silently. ``LOADED`` is the state Home Assistant
+    gives an entry once ``async_setup_entry`` has returned True and takes
+    away again at unload, so ``runtime_data`` is there on every entry this
+    returns.
+    """
+    if target_entry is not None:
+        entry = hass.config_entries.async_get_entry(target_entry)
+        if entry is None or entry.domain != DOMAIN:
+            raise ServiceValidationError(
+                f"No Heat Pump Optimizer config entry has the id "
+                f"{target_entry!r}",
+                translation_domain=DOMAIN,
+                translation_key="config_entry_not_found",
+                translation_placeholders={"entry_id": str(target_entry)},
+            )
+        if entry.state is not ConfigEntryState.LOADED:
+            raise ServiceValidationError(
+                f"Heat Pump Optimizer config entry {target_entry!r} "
+                f"is not loaded",
+                translation_domain=DOMAIN,
+                translation_key="config_entry_not_loaded",
+                translation_placeholders={"entry_id": str(target_entry)},
+            )
+        return [entry]
+    loaded = [
+        entry
+        for entry in hass.config_entries.async_entries(DOMAIN)
+        if entry.state is ConfigEntryState.LOADED
+    ]
+    if not loaded:
+        raise ServiceValidationError(
+            "No loaded Heat Pump Optimizer config entry matched this call",
+            translation_domain=DOMAIN,
+            translation_key="no_loaded_config_entry",
+        )
+    return loaded
+
+
+def _loaded_coordinators(
+    hass: HomeAssistant, target_entry: str | None = None
+) -> list[tuple[str, HeatPumpOptimizerCoordinator]]:
+    """``_loaded_entries`` as (entry id, coordinator) pairs."""
+    return [
+        (entry.entry_id, entry.runtime_data)
+        for entry in _loaded_entries(hass, target_entry)
+    ]
+
+
+async def handle_run_optimization(hass: HomeAssistant, call: ServiceCall) -> None:
+    """Handle the run_optimization service call.
+
+    The coordinator reports a reason code when the solve could not run
+    rather than raising — its own ``except Exception`` fence (which feeds
+    the repair issue) would swallow one — so a run that quietly did not
+    happen is refused here instead of being acknowledged as success
+    (#294, action-exceptions: an automation calling this used to see its
+    call succeed behind a dead price feed).
+    """
+    _LOGGER.info("Manual optimization triggered via service call")
+    not_run: dict[str, str] = {}
+    for entry_id, coord in _loaded_coordinators(hass):
+        reason = await coord.async_run_optimization()
+        if reason is not None:
+            not_run[entry_id] = reason
+    if not_run:
+        entry_ids = ", ".join(not_run)
+        if "no_prices" in not_run.values():
+            raise HomeAssistantError(
+                f"The optimization did not run for {entry_ids}: fewer "
+                "than four electricity price steps were available",
+                translation_domain=DOMAIN,
+                translation_key="run_optimization_no_prices",
+                translation_placeholders={"entry_ids": entry_ids},
+            )
+        raise HomeAssistantError(
+            f"The optimization did not run for {entry_ids}: the solve "
+            "failed; the error is in the integration's log",
+            translation_domain=DOMAIN,
+            translation_key="run_optimization_solve_failed",
+            translation_placeholders={"entry_ids": entry_ids},
+        )
+
+async def handle_set_mode(hass: HomeAssistant, call: ServiceCall) -> None:
+    """Handle the set_mode service call."""
+    mode = call.data["mode"]
+    _LOGGER.info("Setting optimizer mode to: %s", mode)
+    for _entry_id, coord in _loaded_coordinators(hass):
+        await coord.async_set_mode(mode)
+
+async def handle_set_thermal_params(hass: HomeAssistant, call: ServiceCall) -> None:
+    """Handle the set_thermal_parameters service call."""
+    params = dict(call.data)
+    targets = _loaded_coordinators(hass)
+
+    # The hot water windows are parsed before anything is written. The
+    # coordinator used to log a WARNING and silently drop an unparseable
+    # spec while the call reported success — the same swallow class as
+    # #294, found by the handler sweep — and apply_schedule already
+    # refuses the identical input, so this service now does too.
+    # Both parsers, flat one first: that is exactly the pair, in that
+    # order, the write path (async_update_thermal_params) runs, and it
+    # drops the whole write when either raises. Gating a weekly spec on
+    # the weekly parser alone let "Sa,Su 08:00-09:30" through — the
+    # weekly chunker reassembles a selector's comma, the flat parser
+    # splits on it — so the call was acknowledged and the write dropped
+    # with a WARNING (#321).
+    if params.get(CONF_DHW_WINDOWS) is not None:
+        raw_windows = params[CONF_DHW_WINDOWS]
+        try:
+            parse_windows(raw_windows)
+            parse_weekly_windows(raw_windows)
+        except DHWWindowError as err:
+            raise ServiceValidationError(
+                f"Invalid hot water windows {raw_windows!r}: {err}",
+                translation_domain=DOMAIN,
+                translation_key="set_thermal_params_invalid_dhw_windows",
+                translation_placeholders={
+                    "windows": str(raw_windows),
+                    "error": str(err),
+                },
+            ) from err
+
+    # Same deadband rule apply_schedule enforces, checked against the
+    # *effective* pair per coordinator before anything is written — the
+    # schema cannot express a cross-field rule, and a minimum at or above
+    # the setpoint is the one configuration the solver silently cannot
+    # satisfy.
+    wanted_min = params.get("dhw_min_temperature")
+    wanted_set = params.get("dhw_setpoint")
+    if wanted_min is not None or wanted_set is not None:
+        for _entry_id, coord in targets:
+            setpoint = (
+                wanted_set
+                if wanted_set is not None
+                else coord._thermal_params.dhw_setpoint
+            )
+            minimum = (
+                wanted_min
+                if wanted_min is not None
+                else coord._thermal_params.dhw_min_temp
+            )
+            ceiling = float(setpoint) - DHW_MIN_TEMP_SETPOINT_MARGIN
+            if float(minimum) > ceiling:
+                raise ServiceValidationError(
+                    f"A hot water minimum of {float(minimum):g} °C "
+                    f"leaves no deadband below the {float(setpoint):g} °C "
+                    f"setpoint; it must be at most {ceiling:g} °C",
+                    translation_domain=DOMAIN,
+                    translation_key="set_thermal_params_dhw_min_no_deadband",
+                    translation_placeholders={
+                        "minimum": f"{float(minimum):g}",
+                        "setpoint": f"{float(setpoint):g}",
+                        "ceiling": f"{ceiling:g}",
+                    },
+                )
+
+    _LOGGER.info("Updating thermal parameters: %s", params)
+    for _entry_id, coord in targets:
+        await coord.async_update_thermal_params(params)
+
+async def handle_simulate_plan(hass: HomeAssistant, call: ServiceCall) -> dict[str, Any]:
+    """Price a hypothetical comfort choice without disturbing operation.
+
+    Backs the dashboard card's what-if simulator. Returns a response rather
+    than firing an event so the card can await the answer directly, and the
+    coordinator rate-limits the underlying solve so that dragging a slider
+    cannot trigger one solve per pixel.
+
+    ``async_simulate`` reports a what-if that could not run as an
+    ``{"error": ...}`` entry in its response — a contract its internal
+    callers (the fuse advisor, the price tiles) consume — so the raise
+    the action-exceptions rule wants (#294) happens here, where the only
+    consumer is a user. The card's what-if call already wraps
+    ``hass.callService`` in a try/except that renders the same localized
+    "could not simulate" line either way, and Home Assistant surfaces the
+    failed call as a toast.
+    """
+    # ``None`` means "not supplied"; an empty string is a real value that
+    # simulates removing the hot water demand windows entirely.
+    overrides = {k: v for k, v in call.data.items() if v is not None}
+    results: dict[str, Any] = {}
+    for entry_id, coord in _loaded_coordinators(hass):
+        results[entry_id] = await coord.async_simulate(overrides)
+    errors = {
+        entry_id: answer["error"]
+        for entry_id, answer in results.items()
+        if isinstance(answer, dict) and answer.get("error")
+    }
+    if errors:
+        entry_ids = ", ".join(errors)
+        error = next(iter(errors.values()))
+        if error == "no_plan":
+            raise HomeAssistantError(
+                f"The what-if simulation could not run for {entry_ids}: "
+                "no plan exists yet, so there is nothing to compare "
+                "against; wait for the first optimization to complete",
+                translation_domain=DOMAIN,
+                translation_key="simulate_plan_no_plan",
+                translation_placeholders={"entry_ids": entry_ids},
+            )
+        if error == "no_prices":
+            raise HomeAssistantError(
+                f"The what-if simulation could not run for {entry_ids}: "
+                "fewer than four electricity price steps were available",
+                translation_domain=DOMAIN,
+                translation_key="simulate_plan_no_prices",
+                translation_placeholders={"entry_ids": entry_ids},
+            )
+        if error.startswith("invalid_windows:"):
+            windows = str(overrides.get("dhw_windows", ""))
+            raise ServiceValidationError(
+                f"Invalid hot water windows {windows!r}: "
+                f"{error[len('invalid_windows: '):]}",
+                translation_domain=DOMAIN,
+                translation_key="simulate_plan_invalid_windows",
+                translation_placeholders={
+                    "windows": windows,
+                    "error": error[len("invalid_windows: "):],
+                },
+            )
+        raise HomeAssistantError(
+            f"The what-if simulation could not run for {entry_ids}: "
+            f"{error}",
+            translation_domain=DOMAIN,
+            translation_key="simulate_plan_failed",
+            translation_placeholders={"entry_ids": entry_ids, "error": str(error)},
+        )
+    return {"results": results}
+
+async def handle_assign_entity(hass: HomeAssistant, call: ServiceCall) -> dict[str, Any]:
+    """Assign or clear one optional sensor from the setup diagram.
+
+    Item 32's click-to-assign. It writes the same options the config flow
+    writes, through the same reload, so an assignment made on the card and
+    one made in the options pages are indistinguishable afterwards.
+
+    Two checks the schema cannot make. The entity must exist -- a config
+    flow's picker can only offer real entities, and this service is
+    callable directly, so without this a typo would be stored and the
+    model would plan against a sensor that never reports. And its domain
+    must be one the slot accepts: assigning a switch to a temperature slot
+    is the mistake a clickable diagram makes easy, and it produces a model
+    quietly planning against nonsense rather than an error.
+    """
+    key = call.data["key"]
+    raw = str(call.data["entity_id"]).strip()
+    target_entry = call.data.get("entry_id")
+
+    if raw:
+        if hass.states.get(raw) is None:
+            raise ServiceValidationError(
+                f"Entity {raw} does not exist",
+                translation_domain=DOMAIN,
+                translation_key="assign_entity_missing",
+                translation_placeholders={"entity_id": raw},
+            )
+        domains = topology.ASSIGNABLE_KEYS[key]
+        domain = raw.split(".", 1)[0]
+        if domain not in domains:
+            raise ServiceValidationError(
+                f"{raw} is a {domain} entity; {key} accepts "
+                f"{', '.join(domains)}",
+                translation_domain=DOMAIN,
+                translation_key="assign_entity_wrong_domain",
+                translation_placeholders={
+                    "entity_id": raw,
+                    "domain": domain,
+                    "key": key,
+                    "domains": ", ".join(domains),
+                },
+            )
+
+    targets = _loaded_entries(hass, target_entry)
+
+    # ``None`` rather than "" for a cleared slot: that is what the options
+    # flow stores, and what every reader treats as absent.
+    value = raw or None
+    for entry in targets:
+        options = {**dict(entry.options), key: value}
+        hass.config_entries.async_update_entry(entry, options=options)
+
+    _LOGGER.info(
+        "Assigned %s = %s on %d entry(ies)", key, value, len(targets)
+    )
+    return {"key": key, "entity_id": value}
+
+async def handle_apply_topology(hass: HomeAssistant, call: ServiceCall) -> dict[str, Any]:
+    """Store the layout the card's editor snapped to (v3.16.0).
+
+    Mirrors assign_entity's discipline: server-side validation, an
+    options write, the ordinary reload. The schema already restricts
+    the key to selectable catalog entries; what it cannot know is
+    whether THIS configuration can honor it — a two-tank layout needs
+    a wood probe, a valved layout needs a valve — so that is checked
+    per entry here, and the rejection names the requirement so the
+    editor can show it verbatim.
+    """
+    key = call.data["layout"]
+    positions = call.data.get("positions")
+    target_entry = call.data.get("entry_id")
+
+    targets = _loaded_entries(hass, target_entry)
+
+    for entry in targets:
+        merged = {**entry.data, **entry.options}
+        p = ThermalParameters.from_config(merged)
+        if not topology_layout_valid(
+            key,
+            two_zone=p.two_zone_enabled,
+            throttling=mixing_valve.is_throttling(p.mixing_valve_mode),
+            wood_probe=p.wood_tank_configured,
+        ):
+            raise ServiceValidationError(
+                f"This system cannot use the "
+                f"'{topology.LAYOUTS[key].label}' layout: it needs "
+                f"{topology.LAYOUTS[key].requirement}",
+                translation_domain=DOMAIN,
+                translation_key="apply_topology_unsupported",
+                translation_placeholders={
+                    "layout": topology.LAYOUTS[key].label,
+                    "requirement": topology.LAYOUTS[key].requirement,
+                },
+            )
+
+    for entry in targets:
+        options = {**dict(entry.options), CONF_TOPOLOGY_LAYOUT: key}
+        if positions is not None:
+            options[CONF_TOPOLOGY_POSITIONS] = {
+                place: [float(x), float(y)]
+                for place, (x, y) in positions.items()
+            }
+        hass.config_entries.async_update_entry(entry, options=options)
+
+    _LOGGER.info(
+        "Topology layout %s stored on %d entry(ies)", key, len(targets)
+    )
+    return {"layout": key}
+
+async def handle_apply_schedule(hass: HomeAssistant, call: ServiceCall) -> dict[str, Any]:
+    """Persist a schedule the user built in the what-if simulator.
+
+    The simulator deliberately runs against a copy of the configuration, so
+    nothing it does survives. This is the deliberate second step: it writes
+    the same fields into the config entry's options, where they become the
+    schedule the optimizer actually plans against.
+
+    Writing options triggers ``async_update_options``, which reloads the
+    entry — so the next plan is computed from the new schedule without the
+    user restarting anything.
+    """
+    data = dict(call.data)
+    target_entry = data.pop("entry_id", None)
+
+    updates: dict[str, Any] = {}
+    for key in (
+        CONF_DAY_START_HOUR,
+        CONF_DAY_END_HOUR,
+        CONF_COMFORT_TEMP_DAY,
+        CONF_DHW_MIN_TEMP,
+    ):
+        if data.get(key) is not None:
+            updates[key] = data[key]
+
+    # Validate and normalise the windows before storing them. A malformed
+    # spec written to options would fail on every subsequent load, turning
+    # a mistyped time into a broken integration; parsing here converts that
+    # into a rejected service call instead. Round-tripping through the
+    # parser also canonicalises the format, so what is stored is what the
+    # optimizer will read back.
+    if data.get(CONF_DHW_WINDOWS) is not None:
+        raw = data[CONF_DHW_WINDOWS]
+        try:
+            # Weekly specs (#3) normalise through their own round trip;
+            # the flat formatter would silently drop the day selectors
+            # and turn "weekdays 06-07, weekend 08-09" into "06-07,
+            # 08-09" every day -- a behaviour change wearing a
+            # canonicalisation costume.
+            weekly = parse_weekly_windows(raw)
+            updates[CONF_DHW_WINDOWS] = (
+                format_weekly_windows(weekly)
+                if weekly is not None
+                else format_windows(parse_windows(raw))
+            )
+        except DHWWindowError as err:
+            raise ServiceValidationError(
+                f"Invalid hot water windows {raw!r}: {err}",
+                translation_domain=DOMAIN,
+                translation_key="apply_schedule_invalid_dhw_windows",
+                translation_placeholders={
+                    "windows": str(raw),
+                    "error": str(err),
+                },
+            ) from err
+
+    if not updates:
+        return {"updated": {}, "reason": "nothing to apply"}
+
+    targets = _loaded_entries(hass, target_entry)
+
+    # The comfort band's cross-field rules, the same ones the config flow
+    # runs. This service writes `comfort_temp_day` and the day window
+    # straight into the entry options, and the only thing standing between
+    # a call and stored configuration was the schema's 5-30 range: a
+    # daytime temperature below the stored night one, or a day window that
+    # never opens, went in unremarked and left the plan in a contradiction
+    # nothing downstream reports.
+    #
+    # Only violations this call INTRODUCES may refuse it. Judging the
+    # merged result outright would make the service fail on a
+    # contradiction already sitting in the entry's options and untouched
+    # by the call -- and one is genuinely out there, because until v5.1.7
+    # the thermostat slider ran to `max_temp + 1` and wrote it unchecked,
+    # so a single tap on its top notch stored `target 24` against a
+    # `max 23` ceiling. A nightly `dhw_windows` automation would then have
+    # started throwing at 03:00 about a ceiling it never mentioned. The
+    # stored contradiction is real and worth telling the user about, but
+    # a repair issue is where that belongs (`_audit_comfort_band` in the
+    # coordinator), not an unrelated service call's exception.
+    #
+    # The call may still update one half of a pair and collide with the
+    # stored other half, so both sides are evaluated against the
+    # *effective* values, not the call's own.
+    for entry in targets:
+        stored = {**entry.data, **entry.options}
+        already = {
+            (v.field, v.code) for v in comfort_band.violations({}, stored)
+        }
+        introduced = [
+            v
+            for v in comfort_band.violations(updates, stored)
+            if (v.field, v.code) not in already
+        ]
+        if introduced:
+            raise ServiceValidationError(
+                comfort_band.describe(introduced),
+                translation_domain=DOMAIN,
+                translation_key="apply_schedule_comfort_band_violation",
+                translation_placeholders={
+                    "violations": comfort_band.describe(introduced)
+                },
+            )
+
+    # The hot water minimum has to clear a deadband below the setpoint, and
+    # the setpoint is per entry, so this cannot live in the schema. Check
+    # every target before writing to any of them: a call that fails halfway
+    # would leave two heat pumps on different schedules with no indication
+    # of which ones took.
+    #
+    # The solver treats the tank limits as *soft* penalties, so an
+    # impossible minimum is not rejected downstream -- the plan would simply
+    # sit in permanent slight violation, which is close to undiagnosable
+    # from the outside. Hence a hard failure here.
+    if CONF_DHW_MIN_TEMP in updates:
+        wanted = float(updates[CONF_DHW_MIN_TEMP])
+        for entry in targets:
+            setpoint = float(
+                entry.options.get(
+                    CONF_DHW_SETPOINT,
+                    entry.data.get(CONF_DHW_SETPOINT, DEFAULT_DHW_SETPOINT),
+                )
+            )
+            ceiling = setpoint - DHW_MIN_TEMP_SETPOINT_MARGIN
+            if wanted > ceiling:
+                raise ServiceValidationError(
+                    f"A hot water minimum of {wanted:g} °C leaves no "
+                    f"deadband below the {setpoint:g} °C setpoint; it "
+                    f"must be at most {ceiling:g} °C",
+                    translation_domain=DOMAIN,
+                    translation_key="apply_schedule_dhw_min_no_deadband",
+                    translation_placeholders={
+                        "minimum": f"{wanted:g}",
+                        "setpoint": f"{setpoint:g}",
+                        "ceiling": f"{ceiling:g}",
+                    },
+                )
+
+    updated: dict[str, Any] = {}
+    for entry in targets:
+        options = {**dict(entry.options), **updates}
+        hass.config_entries.async_update_entry(entry, options=options)
+        updated[entry.entry_id] = dict(updates)
+
+    _LOGGER.info("Applied schedule to %d entry(ies): %s", len(updated), updates)
+    return {"updated": updated}
+
+def _manual_targets(hass: HomeAssistant, target_entry: str | None):
+    """Loaded coordinators the manual-plan services should act on."""
+    return _loaded_coordinators(hass, target_entry)
+
+async def handle_apply_manual_plan(hass: HomeAssistant, call: ServiceCall) -> dict[str, Any]:
+    """Pin *when* space heating and hot water run for the rest of the day.
+
+    Unlike apply_schedule, which only shifts the envelope the optimizer
+    keeps re-deciding inside, this fixes the actual run slots until
+    ``expires_at`` (20 hours from now by default). The pins are validated
+    in full *before* any coordinator is touched, so a rejected call leaves an
+    existing override completely untouched. Safety still wins: the optimizer
+    releases a forced-off slot if the house or tank would breach a hard
+    floor — see the coordinator and optimizer for how.
+    """
+    data = dict(call.data)
+    target_entry = data.pop("entry_id", None)
+    now = dt_util.now()
+
+    raw_expires = data.get("expires_at")
+    if raw_expires is None:
+        # Measured from this moment, not from the end of the day. A midnight
+        # expiry shrank as the day wore on -- an override applied at 22:00
+        # lasted two hours -- and the card's edit ceiling had to track it,
+        # or slots showed as pinned past the point `channel_pins` frees them.
+        expires_at = now + timedelta(hours=MANUAL_PLAN_WINDOW_HOURS)
+    else:
+        expires_at = dt_util.parse_datetime(raw_expires)
+        if expires_at is None:
+            raise ServiceValidationError(
+                f"Invalid expires_at {raw_expires!r}: "
+                f"not an ISO 8601 datetime",
+                translation_domain=DOMAIN,
+                translation_key="manual_plan_invalid_expires_at",
+                translation_placeholders={"expires_at": str(raw_expires)},
+            )
+
+    # Validate once, up front. build_override raises for a past expiry, an
+    # unparseable slot, an end at or before its start, or overlapping slots.
+    try:
+        override = build_override(
+            dhw_slots=data.get("dhw_slots"),
+            space_slots=data.get("space_slots"),
+            expires_at=expires_at,
+            now=now,
+        )
+    except ManualPlanError as err:
+        raise ServiceValidationError(
+            str(err),
+            translation_domain=DOMAIN,
+            translation_key="manual_plan_invalid_slots",
+            translation_placeholders={"error": str(err)},
+        ) from err
+
+    applied: dict[str, Any] = {}
+    first = True
+    for entry_id, coord in _manual_targets(hass, target_entry):
+        # Reuse the already-validated override for the first (usually only)
+        # entry; give any further entries their own copy so the transient
+        # safety-release annotations of one never bleed into another.
+        this_override = override if first else build_override(
+            dhw_slots=data.get("dhw_slots"),
+            space_slots=data.get("space_slots"),
+            expires_at=expires_at,
+            now=now,
+        )
+        first = False
+        applied[entry_id] = await coord.async_apply_manual_plan(this_override)
+
+    _LOGGER.info("Applied manual plan to %d entry(ies)", len(applied))
+    return {"applied": applied}
+
+async def handle_clear_manual_plan(hass: HomeAssistant, call: ServiceCall) -> dict[str, Any]:
+    """Remove any manual override so planning reverts to fully automatic."""
+    target_entry = dict(call.data).get("entry_id")
+    cleared: list[str] = []
+    for entry_id, coord in _manual_targets(hass, target_entry):
+        await coord.async_clear_manual_plan()
+        cleared.append(entry_id)
+    return {"cleared": cleared}
+
+async def handle_restore_snapshot(hass: HomeAssistant, call: ServiceCall) -> dict[str, Any]:
+    """Roll the learners back to the newest trustworthy snapshot (#42).
+
+    A rollback that found nothing to roll back to is an operational
+    failure, not an empty success: until #294 the call answered
+    ``{"restored": []}`` and an automation could not tell a refused
+    rollback from a completed one. The qualifying-snapshot rule stays in
+    the coordinator; the raise lives here because that is where the
+    caller is.
+    """
+    target_entry = dict(call.data).get("entry_id")
+    restored: list[str] = []
+    unqualified: list[str] = []
+    for entry_id, coord in _manual_targets(hass, target_entry):
+        if await coord.async_restore_learned_snapshot():
+            restored.append(entry_id)
+        else:
+            unqualified.append(entry_id)
+    if unqualified:
+        entry_ids = ", ".join(unqualified)
+        raise HomeAssistantError(
+            f"No learner snapshot qualifies for restore for {entry_ids}: "
+            "a snapshot needs healthy inputs and in-band accuracy at its "
+            "capture time",
+            translation_domain=DOMAIN,
+            translation_key="restore_learned_snapshot_no_snapshot",
+            translation_placeholders={"entry_ids": entry_ids},
+        )
+    return {"restored": restored}
+
+async def handle_diagnose_interval(hass: HomeAssistant, call: ServiceCall) -> dict[str, Any]:
+    """Attribute the last settled interval's residual (T6 #52)."""
+    target_entry = dict(call.data).get("entry_id")
+    reports: dict[str, Any] = {}
+    for entry_id, coord in _manual_targets(hass, target_entry):
+        reports[entry_id] = await hass.async_add_executor_job(
+            coord.diagnose_last_interval
+        )
+        await coord.async_request_refresh()
+    return {"diagnosis": reports}
+
+
+def async_register_services(hass: HomeAssistant) -> None:
+    """The service handlers, registered by ``async_setup``.
+
+    They take ``hass`` explicitly and close over nothing else: which
+    entries a call acts on is decided when the call arrives, from the
+    entries Home Assistant holds and their state, never from anything
+    captured at setup.
+    """
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_RUN_OPTIMIZATION,
+        partial(handle_run_optimization, hass),
+        schema=SERVICE_SCHEMA_RUN_OPTIMIZATION,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_SET_MODE,
+        partial(handle_set_mode, hass),
+        schema=SERVICE_SCHEMA_SET_MODE,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_SET_THERMAL_PARAMS,
+        partial(handle_set_thermal_params, hass),
+        schema=SERVICE_SCHEMA_SET_THERMAL_PARAMS,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_SIMULATE_PLAN,
+        partial(handle_simulate_plan, hass),
+        schema=SERVICE_SCHEMA_SIMULATE_PLAN,
+        supports_response=SupportsResponse.ONLY,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_APPLY_SCHEDULE,
+        partial(handle_apply_schedule, hass),
+        schema=SERVICE_SCHEMA_APPLY_SCHEDULE,
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_ASSIGN_ENTITY,
+        partial(handle_assign_entity, hass),
+        schema=SERVICE_SCHEMA_ASSIGN_ENTITY,
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_APPLY_TOPOLOGY,
+        partial(handle_apply_topology, hass),
+        schema=SERVICE_SCHEMA_APPLY_TOPOLOGY,
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_APPLY_MANUAL_PLAN,
+        partial(handle_apply_manual_plan, hass),
+        schema=SERVICE_SCHEMA_APPLY_MANUAL_PLAN,
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_CLEAR_MANUAL_PLAN,
+        partial(handle_clear_manual_plan, hass),
+        schema=SERVICE_SCHEMA_CLEAR_MANUAL_PLAN,
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_RESTORE_SNAPSHOT,
+        partial(handle_restore_snapshot, hass),
+        schema=SERVICE_SCHEMA_RESTORE_SNAPSHOT,
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_DIAGNOSE_INTERVAL,
+        partial(handle_diagnose_interval, hass),
+        schema=SERVICE_SCHEMA_DIAGNOSE_INTERVAL,
+        supports_response=SupportsResponse.OPTIONAL,
+    )
