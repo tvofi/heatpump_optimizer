@@ -39,6 +39,7 @@ from typing import Any
 
 import numpy as np
 
+from . import const
 from . import mixing_valve
 from .mixing_valve import MODE_NONE as MIXING_VALVE_MODE_NONE
 from .const import (
@@ -711,20 +712,20 @@ class ThermalParameters:
         scale = 24.0 / total
         return [value * scale for value in masked]
 
-    @classmethod
-    def from_config(cls, config: dict[str, Any]) -> ThermalParameters:
-        """Create ThermalParameters from a config dictionary.
+    @staticmethod
+    def _tabled_values(config: dict[str, Any]) -> dict[str, Any]:
+        """The fields a table can express, resolved from ``config``.
 
         The mapping is a table rather than ninety lines of near-identical
         ``config.get(KEY, DEFAULT)`` calls. Adding a parameter is one row, and
         a typo in a key or a default is visible by comparison with its
         neighbours instead of buried in prose.
-        """
-        from . import const
 
-        # field name -> (config key, default). Both are resolved from ``const``
-        # by name so the table stays readable and a missing constant fails
-        # loudly at import rather than silently substituting a default.
+        Split out of ``from_config`` (#225 stage 1) verbatim. What is left
+        there is the other half: the fields the table cannot express, because
+        they need validating, deriving from another field, or defaulting on
+        absence rather than on value.
+        """
         table = {
             # Single-zone / legacy
             "room_thermal_mass": ("HOUSE_THERMAL_MASS", "HOUSE_THERMAL_MASS"),
@@ -853,6 +854,22 @@ class ThermalParameters:
                     getattr(const, f"CONF_{conf}"), getattr(const, f"DEFAULT_{default}")
                 )
             )
+        return values
+
+    @classmethod
+    def from_config(cls, config: dict[str, Any]) -> ThermalParameters:
+        """Create ThermalParameters from a config dictionary.
+
+        Two halves. ``_tabled_values`` resolves everything a field/key/default
+        table can express; what follows here is everything it cannot -- the
+        fields that need validating against a set of legal values, deriving
+        from another field, or defaulting on *absence* rather than on value.
+        """
+        # field name -> (config key, default). Both are resolved from ``const``
+        # by name so the table stays readable and a missing constant fails
+        # loudly at import rather than silently substituting a default.
+        values = cls._tabled_values(config)
+
 
         # The buffer cooling rate has no single right default: it depends on the
         # tank's size. Leave it unset when the user has not configured one, so

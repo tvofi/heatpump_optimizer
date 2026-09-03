@@ -17,9 +17,9 @@
  "functions_cc_over_15": 39,
  "functions_cc_over_25": 11,
  "internal_call_edges": 379,
- "local_imports": 8,
+ "local_imports": 7,
  "max_class_loc": 10394,
- "methods_over_150": 24,
- "methods_over_200": 15,
- "recorded_at": "599f48287021a2b52602e7a78c4ea6386f259290"
+ "methods_over_150": 23,
+ "methods_over_200": 14,
+ "recorded_at": "c8f65de8548367cdd4b344ecbcd7a09d5a781d74"
 }
