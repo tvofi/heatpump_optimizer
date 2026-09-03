@@ -169,3 +169,38 @@ gone AND no `tests/run.sh`, `stress.py` or `env_drift.py` process exists:
 
 Only then `rm -rf /tmp/hpo-gate.lock`, and say in your report that you did and why.
 A lock with a live process behind it is never yours to take, however old it looks.
+
+## `stress.py` always takes the lock, even run on its own
+
+The advice everywhere else in this file — run the scripts your diff selects
+directly, and take `/tmp/hpo-gate.lock` only for a full `tests/run.sh` — is
+wrong for exactly one script, and following it cost a whole measurement.
+
+`tests/run.sh` runs `stress.py` **alone, after every other lane**, because its
+solve-time guard cannot tolerate a shared box. Running it "directly, without
+the lock" therefore defeats the one arrangement that makes its numbers mean
+anything. On 2026-09-03 three `stress.py` processes ran concurrently at
+load 6.5 — one of them recording the budget table that is the gate's entire
+reference — because three agents had each been told to run their selected
+scripts directly and all three selections included `stress.py`. The lock
+holder had the lock and still did not have the box.
+
+So:
+
+- **Taking the lock is required for `stress.py`**, whether you run it through
+  `run.sh` or on its own.
+- **The lock records intent; it enforces nothing.** It cannot stop a script
+  someone runs directly. Before any timing run, confirm exclusivity by
+  process, not by ownership:
+
+      ps aux | grep -E "[s]tress\.py|[t]ests/run\.sh"
+
+  Proceed only when yours is the sole entry, and print the concurrent-process
+  count beside every timing RESULT so a reader can see the conditions rather
+  than infer them.
+- **Separate ratios from absolutes when contention is possible.** The stress
+  gate's ratio metric cancels load by design — the reference solve is lifted
+  with the scenario, and an injected 2x was measured landing at 1.9967 on a
+  loaded box. Absolute wall and CPU numbers do not cancel and must be re-taken.
+  Say which kind each number is; do not discard sound ratios along with
+  contaminated absolutes.
