@@ -839,7 +839,7 @@ class OptimizationConfig:
     # --- PV self-consumption (item 9) -----------------------------------
     #: What an exported kWh earns, in the currency of the import price. With
     #: forecast surplus available, consumption up to it is priced at this
-    #: rather than at the import price; see `pv.piecewise_cost`.
+    #: rather than at the import price; see `_energy_cost_fn` below.
     pv_export_price: float = 0.0
 
     # --- Effekttariff masks (#13) --------------------------------------
@@ -1657,8 +1657,8 @@ class HeatPumpOptimizer:
         0.05 kW of winter sun made 6 kW of grid import look nearly free and
         the plan piled into steps with trivial surplus.
 
-        Inlined rather than delegated to `pv.piecewise_cost` because this
-        runs inside the objective, thousands of times per solve.
+        Written inline (not as a `pv` helper) because this runs inside the
+        objective, thousands of times per solve.
         """
         surplus = self._pv_surplus
         if surplus is None or not np.any(surplus[: len(prices)] > 1e-6):

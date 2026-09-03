@@ -1255,11 +1255,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         return self._mode
 
     @property
-    def optimization_result(self) -> OptimizationResult | None:
-        """Return the latest optimization result."""
-        return self._optimization_result
-
-    @property
     def last_optimization(self) -> datetime | None:
         return self._last_optimization
 
@@ -1380,10 +1375,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self.entry,
             options={**self.entry.options, CONF_TARGET_TEMP: temperature},
         )
-
-    @property
-    def current_state(self) -> ThermalState:
-        return self._current_state
 
     @property
     def prices(self) -> list[dict]:
@@ -5790,12 +5781,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 )
             return 1.0
         return scale
-
-    def _prepare_forecast_data(
-        self,
-    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-        """The five weather/price series, for callers predating the rest."""
-        return self._forecast_arrays()[:5]
 
     def _price_series(
         self, n_steps: int, midnight: datetime, step_offset: int
