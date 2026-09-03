@@ -1737,6 +1737,287 @@ R.check(
     f"{_flat_view}",
 )
 
+
+# --- #329/#321: one grammar, exhaustively ----------------------------------
+# The renderer used to emit what its own first loader rejected. Both issues
+# are that one fact seen from two sides: `_raw_windows` split the spec on
+# every comma before any day selector was recognised, while the weekly
+# parser reassembled a selector's comma -- so the two disagreed on exactly
+# the comma-list selectors `_format_day_selector` PREFERS. A canonicalised
+# weekly schedule (apply_schedule stores `format_weekly_windows` output) came
+# back at the next load as a WARNING and no schedule at all; a service call
+# carrying one was acknowledged and dropped.
+#
+# So the deliverable is a property, not a patch per corner, and it is
+# enumerated over the WHOLE space -- all 127 non-empty day-sets, times chosen
+# to cover one range, several ranges, a range that wraps midnight, one of
+# exactly MIN_WINDOW_MINUTES, and the full day. Sampling would have missed
+# the multi-range half: the second range of a day-group used to be rendered
+# bare, and a bare range in a weekly spec means all seven days, so Wednesday
+# inherited Monday's evening window.
+R.section("The window grammar round-trips: renderer out, every loader in")
+
+import itertools as _rt_it
+from heatpump_optimizer.dhw_schedule import (
+    DHWWindowError as _rt_err,
+    spec_problem as _rt_problem,
+)
+
+_RT_DAYS = ("Mo", "Tu", "We", "Th", "Fr", "Sa", "Su")
+#: Times chosen for what they do to the GRAMMAR, not for realism: a single
+#: range, two ranges in one group, a wrapping range (which normalises to two),
+#: the shortest window the form accepts, the full day, and three ranges.
+_RT_TIMES = (
+    "06:00-07:00",
+    "06:00-08:30, 17:00-22:00",
+    "22:00-06:00",
+    "06:00-06:15",
+    "00:00-00:00",
+    "05:00-06:00, 12:00-13:00, 18:00-19:30",
+)
+
+
+def _rt_day_sets():
+    """Every non-empty subset of the week, all 127 of them. No sampling."""
+    for size in range(1, 8):
+        for combo in _rt_it.combinations(range(7), size):
+            yield list(combo)
+
+
+def _rt_weekly(days, times):
+    """The seven-day structure that puts `times` on `days` and nothing else."""
+    wins = _parse_w(times)
+    return [list(wins) if d in days else [] for d in range(7)]
+
+
+def _rt_effective(spec):
+    """The seven per-day window lists PRODUCTION applies to `spec`.
+
+    Exactly what the optimizer sees: the weekly structure when there is one,
+    the flat every-day view when there is not -- `windows_for_day`'s own
+    contract, so this is behaviour and not representation.
+    """
+    return [_wfd(_pw(spec), d, _parse_w(spec)) for d in range(7)]
+
+
+def _rt_raises(fn, spec):
+    """The DHWWindowError `fn(spec)` raises, or None when it accepts."""
+    try:
+        fn(spec)
+        return None
+    except _rt_err as err:
+        return err
+
+
+_rt_cells = [
+    (days, times, _fw(_rt_weekly(days, times)))
+    for days in _rt_day_sets()
+    for times in _RT_TIMES
+]
+R.check(
+    "the property covers the whole day-set space, not a sample",
+    len(list(_rt_day_sets())) == 127 and len(_rt_cells) == 127 * len(_RT_TIMES),
+    f"{len(list(_rt_day_sets()))} day-sets, {len(_rt_cells)} cells",
+)
+
+# Two behaviours the shared segmenter and the per-range renderer had to carry
+# across unchanged, and that nothing pinned before: the every-day form stays
+# the bare string every existing install has stored (apply_schedule writes
+# this value straight into options, so a gratuitous "daily " prefix would
+# rewrite every one of them), and ";" and a newline separate segments for
+# BOTH parsers, exactly as the module docstring promises.
+R.check(
+    "a schedule identical on all seven days renders as the flat spec it was",
+    _fw([[(6.0, 8.5), (17.0, 22.0)] for _ in range(7)])
+    == "06:00-08:30, 17:00-22:00"
+    and _fw([[(6.0, 7.0)] for _ in range(7)]) == "06:00-07:00",
+    f"{_fw([[(6.0, 8.5), (17.0, 22.0)] for _ in range(7)])!r}",
+)
+def _rt_val(fn, spec):
+    """`fn(spec)`, or the error it raised -- so a check FAILs and never crashes."""
+    try:
+        return fn(spec)
+    except _rt_err as err:
+        return err
+
+
+R.check(
+    "';' and a newline separate segments for both parsers, as documented",
+    _rt_val(_parse_w, "06:00-07:00; 18:00-19:00") == [(6.0, 7.0), (18.0, 19.0)]
+    and _rt_val(_parse_w, "Mo 06:00-07:00\nTu 18:00-19:00")
+    == [(6.0, 7.0), (18.0, 19.0)]
+    and _rt_val(_pw, "Mo 06:00-07:00; Tu 18:00-19:00")
+    == [[(6.0, 7.0)], [(18.0, 19.0)], [], [], [], [], []],
+    f"{_rt_val(_parse_w, '06:00-07:00; 18:00-19:00')!r} / "
+    f"{_rt_val(_pw, 'Mo 06:00-07:00; Tu 18:00-19:00')!r}",
+)
+
+_rt_bad = {k: [] for k in ("flat", "weekly", "valid", "problem", "stable", "fix")}
+for _rt_d, _rt_t, _rt_c in _rt_cells:
+    # Every property is judged on every cell: short-circuiting on the first
+    # failure would have flattered the counts by two thirds.
+    _rt_ef = _rt_raises(_parse_w, _rt_c)
+    _rt_ew = _rt_raises(_pw, _rt_c)
+    if _rt_ef is not None:
+        _rt_bad["flat"].append((_rt_c, str(_rt_ef)))
+    if _rt_ew is not None:
+        _rt_bad["weekly"].append((_rt_c, str(_rt_ew)))
+    if not _ivs(_rt_c):
+        _rt_bad["valid"].append((_rt_c, "is_valid_spec said False"))
+    if _rt_problem(_rt_c) is not None:
+        _rt_bad["problem"].append((_rt_c, f"spec_problem {_rt_problem(_rt_c)!r}"))
+    if _rt_ef is not None or _rt_ew is not None:
+        _rt_bad["stable"].append((_rt_c, "unloadable, so unstable"))
+        _rt_bad["fix"].append((_rt_c, "unloadable, so no fixpoint"))
+        continue
+    _rt_e = _rt_effective(_rt_c)
+    if _rt_e != _rt_weekly(_rt_d, _rt_t):
+        _rt_bad["stable"].append((_rt_c, f"{_rt_e} != {_rt_weekly(_rt_d, _rt_t)}"))
+    if _fw(_rt_e) != _rt_c:
+        _rt_bad["fix"].append((_rt_c, f"{_fw(_rt_e)!r} != {_rt_c!r}"))
+
+
+def _rt_check(name, key):
+    bad = _rt_bad[key]
+    R.check(
+        f"{name} ({len(_rt_cells) - len(bad)}/{len(_rt_cells)})",
+        not bad,
+        f"{len(bad)} failed: "
+        + "; ".join(f"{c!r}: {why}" for c, why in bad[:3]),
+    )
+
+
+# (1) Loadable: every loader production runs on a stored spec.
+_rt_check("parse_windows accepts every string the renderer emits", "flat")
+_rt_check("parse_weekly_windows accepts every string the renderer emits", "weekly")
+_rt_check("is_valid_spec accepts every string the renderer emits", "valid")
+_rt_check("spec_problem finds no problem in one", "problem")
+# (2) Stable: parse -> format -> parse is the same schedule, and a fixpoint.
+_rt_check("the rendered spec re-parses to the days it was rendered from", "stable")
+_rt_check("and rendering it again changes nothing", "fix")
+
+# (3) The two parsers accept the same strings -- the invariant #321 broke on
+# the write side. The corpus is the canonical form plus the two forms a human
+# or the dashboard card would type for the same schedule.
+_rt_corpus = set()
+for _rt_d, _rt_t in ((d, t) for d in _rt_day_sets() for t in _RT_TIMES):
+    _rt_r = [r.strip() for r in _rt_t.split(",")]
+    _rt_corpus.add(_fw(_rt_weekly(_rt_d, _rt_t)))
+    _rt_corpus.add(", ".join(f"{_RT_DAYS[d]} {r}" for d in _rt_d for r in _rt_r))
+    _rt_corpus.add(f"{','.join(_RT_DAYS[d] for d in _rt_d)} {_rt_t}")
+for _rt_t in _RT_TIMES:
+    _rt_corpus.update(
+        (_rt_t, f"daily {_rt_t}", f"weekdays {_rt_t}", f"weekend {_rt_t}")
+    )
+_rt_corpus = sorted(_rt_corpus)
+_rt_split = [
+    (s, f"parse_windows={'accepts' if a is None else a}, "
+        f"parse_weekly_windows={'accepts' if b is None else b}")
+    for s, a, b in (
+        (s, _rt_raises(_parse_w, s), _rt_raises(_pw, s)) for s in _rt_corpus
+    )
+    if (a is None) != (b is None)
+]
+R.check(
+    f"the two parsers accept exactly the same strings "
+    f"({len(_rt_corpus) - len(_rt_split)}/{len(_rt_corpus)} in the corpus)",
+    not _rt_split,
+    f"{len(_rt_split)} disagree: "
+    + "; ".join(f"{s!r}: {why}" for s, why in _rt_split[:3]),
+)
+
+# (4) The single-schedule case: when every day carries the same windows, the
+# every-day view IS those windows -- the two parsers agree on the value, not
+# only on acceptance. (A spec whose days DIFFER keeps the documented merged
+# union, which is a different claim and is checked above.)
+_rt_same = [
+    (s, f"{_parse_w(s)} != {_rt_effective(s)[0]}")
+    for s in _rt_corpus
+    if _rt_raises(_parse_w, s) is None
+    and _rt_raises(_pw, s) is None
+    and all(day == _rt_effective(s)[0] for day in _rt_effective(s))
+    and _parse_w(s) != _rt_effective(s)[0]
+]
+R.check(
+    "on a single-schedule spec the every-day view IS the schedule",
+    not _rt_same,
+    f"{len(_rt_same)} differ: " + "; ".join(f"{s!r}: {w}" for s, w in _rt_same[:3]),
+)
+
+# (5) The guard against the failure mode of this fix: one grammar must not
+# mean a WIDER grammar. Every one of these was refused before and must stay
+# refused, by both parsers and by both of the form's verdicts.
+_RT_MALFORMED = (
+    "banana", "Mo 25:00-26:00", "Mox 06:00-07:00", "weekdays", "Mo-Fr",
+    "Mo,Tu", "Mo,Tu,We", "Mo 06:00-07:00, weekend", "06:00", "Mo 06:00",
+    "Mo 06:00-06:00", "99:00-100:00", "Mo 06:00-07:00, banana",
+    "Mo,banana 06:00-07:00", "weekend 06:00-07:00, Fr", "Mo,,Tu",
+)
+_rt_leaked = [
+    (s, f"parse_windows={'ACCEPTED' if a is None else 'refused'}, "
+        f"parse_weekly_windows={'ACCEPTED' if b is None else 'refused'}, "
+        f"is_valid_spec={_ivs(s)}, spec_problem={_rt_problem(s)!r}")
+    for s, a, b in (
+        (s, _rt_raises(_parse_w, s), _rt_raises(_pw, s)) for s in _RT_MALFORMED
+    )
+    if a is None or b is None or _ivs(s) or _rt_problem(s) is None
+]
+R.check(
+    f"a malformed spec is still refused by both parsers and the form "
+    f"({len(_RT_MALFORMED) - len(_rt_leaked)}/{len(_RT_MALFORMED)})",
+    not _rt_leaked,
+    f"{len(_rt_leaked)} leaked through: "
+    + "; ".join(f"{s!r}: {why}" for s, why in _rt_leaked),
+)
+
+# (6) The grammar the UI PROMISES is the grammar the form accepts. The
+# options-flow help text names its examples in single quotes; every one of
+# them must pass the form's own verdict. This is where the split was visible
+# to a user without reading any code: "Mo 05:30-07:00, Tu-Fr 06:00-08:00,
+# Sa,Su 08:00-09:30" is the string all three language files tell you to type,
+# and spec_problem called it invalid_dhw_windows. Read out of the files so
+# a new example cannot be added without being checked.
+import json as _rt_json  # noqa: E402
+import re as _rt_re  # noqa: E402
+
+_rt_examples = {}
+for _rt_f in ("strings.json", "translations/en.json", "translations/sv.json"):
+    with open(f"custom_components/heatpump_optimizer/{_rt_f}", encoding="utf-8") as _fh:
+        _rt_doc = _rt_json.load(_fh)
+
+    def _rt_walk(node, out):
+        if isinstance(node, dict):
+            for key, value in node.items():
+                if key == "dhw_windows" and isinstance(value, str):
+                    out.update(
+                        q for q in _rt_re.findall(r"'([^']*)'", value)
+                        if _rt_re.search(r"\d", q) and "-" in q
+                    )
+                _rt_walk(value, out)
+        elif isinstance(node, list):
+            for value in node:
+                _rt_walk(value, out)
+
+    _rt_found = set()
+    _rt_walk(_rt_doc, _rt_found)
+    for _rt_ex in _rt_found:
+        _rt_examples.setdefault(_rt_ex, []).append(_rt_f)
+
+_rt_refused = [
+    (ex, f"{files}: spec_problem={_rt_problem(ex)!r}, is_valid_spec={_ivs(ex)}")
+    for ex, files in sorted(_rt_examples.items())
+    if _rt_problem(ex) is not None or not _ivs(ex)
+]
+R.check(
+    f"every window spec the UI text tells the user to type is accepted by the "
+    f"form ({len(_rt_examples) - len(_rt_refused)}/{len(_rt_examples)})",
+    _rt_examples and not _rt_refused,
+    f"{len(_rt_refused)} refused: "
+    + "; ".join(f"{ex!r}: {why}" for ex, why in _rt_refused)
+    if _rt_refused
+    else "no examples found in the language files -- the check asserts nothing",
+)
+
 # End to end: the plan honours the day it is solving for. A Monday-start
 # horizon heats the weekday window; a Saturday-start horizon the weekend
 # one -- the heating hours are the observable, and they must differ.
@@ -11661,44 +11942,60 @@ _svc_check(
     "set_thermal_params_invalid_dhw_windows",
 )
 
-# #321 (the PR #319 review's window-spec battery): the pre-check above gated
-# a weekly spec on the weekly parser alone, but the write path it guards
-# (async_update_thermal_params) parses the FLAT view first and drops the
-# whole write when either parser raises. "Sa,Su 08:00-09:30" passes the
-# weekly parser, whose chunker reassembles the selector comma, while the flat
-# parser splits on that comma and chokes on the bare "Sa" chunk -- so the
-# call was acknowledged and the write silently dropped with a WARNING. Driven
-# on a fresh entry so the drop half can be asserted too.
+# #321 (the PR #319 review's window-spec battery), now closed at the grammar
+# instead of at the handler. The pre-check above once gated a weekly spec on
+# the weekly parser alone, so "Sa,Su 08:00-09:30" was acknowledged and then
+# dropped with a WARNING by the flat parser in the write path. The first fix
+# made the pre-check refuse it -- which stopped the silent drop by refusing a
+# string this module's own docstring documents and its own renderer emits.
+# With ONE segmenter (#329) the flat parser reads the selector's comma too,
+# so the honest outcome is available: the call succeeds and the write LANDS,
+# on Saturday and Sunday and on no other day. Driven on a fresh entry so the
+# write half can be asserted, and the pre-check's refusal is still pinned
+# below on a spec that is genuinely malformed.
 _svc_corner_hass = FakeHass()
 _svc_corner_entry = FakeEntry(data=_LC_DATA, entry_id="corner_windows")
 _asyncio.run(_ha_setup_entry(_integ, _svc_corner_hass, _svc_corner_entry))
 _svc_corner_coord = _svc_corner_entry.runtime_data
-_svc_corner_before = (
-    _svc_corner_coord._thermal_params.dhw_windows,
-    _svc_corner_coord._thermal_params.dhw_weekly_windows,
+_svc_corner_out = _svc_call(
+    _svc_corner_hass,
+    "set_thermal_parameters",
+    {"dhw_windows": "Sa,Su 08:00-09:30"},
 )
+R.check(
+    "set_thermal_parameters accepts a comma-list day selector "
+    "(#321/#329: both parsers now read the selector's comma)",
+    _svc_corner_out[0] == "returned",
+    f"{_svc_corner_out}",
+)
+R.check(
+    "and the write LANDED on Saturday and Sunday only -- not dropped with a "
+    "WARNING, not spread across the week",
+    _svc_corner_coord._thermal_params.dhw_windows == [(8.0, 9.5)]
+    and (_svc_corner_coord._thermal_params.dhw_weekly_windows or [])
+    == [[], [], [], [], [], [(8.0, 9.5)], [(8.0, 9.5)]],
+    f"flat={_svc_corner_coord._thermal_params.dhw_windows} "
+    f"weekly={_svc_corner_coord._thermal_params.dhw_weekly_windows}",
+)
+# The pre-check is still load-bearing: a comma-list selector carrying an
+# unreadable time is refused, so "one grammar" did not become "no grammar".
 _svc_check(
-    "set_thermal_parameters with a comma-split day selector refuses the call "
-    "(#321: the weekly parser accepted what the write path drops)",
+    "set_thermal_parameters still refuses a comma-list selector with a bad time",
     _svc_call(
         _svc_corner_hass,
         "set_thermal_parameters",
-        {"dhw_windows": "Sa,Su 08:00-09:30"},
+        {"dhw_windows": "Sa,Su 25:00-99:00"},
     ),
     "set_thermal_params_invalid_dhw_windows",
 )
 R.check(
-    "and the refused call left both window structures untouched",
-    (
-        _svc_corner_coord._thermal_params.dhw_windows,
-        _svc_corner_coord._thermal_params.dhw_weekly_windows,
-    )
-    == _svc_corner_before,
+    "and that refusal left Saturday and Sunday as the accepted call set them",
+    (_svc_corner_coord._thermal_params.dhw_weekly_windows or [])
+    == [[], [], [], [], [], [(8.0, 9.5)], [(8.0, 9.5)]],
     "a refused call must not apply or half-apply anything",
 )
-# Null control: the tightened pre-check refuses the selector comma, not the
-# weekly grammar -- a single-day spec still parses, the call still returns,
-# and the write reaches BOTH structures the write path builds.
+# Null control: a single-day spec still parses, the call still returns, and
+# the write reaches BOTH structures the write path builds.
 _svc_single_out = _svc_call(
     _svc_corner_hass, "set_thermal_parameters", {"dhw_windows": "Sa 08:00-09:30"}
 )
