@@ -1,255 +1,357 @@
 {
  "flat/1z/dhw": {
+  "evals": 368,
+  "objective": 91.01186627,
   "ratio": 43.9,
   "rss_peak_mb": 96.6,
   "traced_peak_mb": 2.03
  },
  "flat/1z/space": {
+  "evals": 470,
+  "objective": 82.46331416,
   "ratio": 36.37,
   "rss_peak_mb": 91.5,
   "traced_peak_mb": 0.88
  },
  "flat/2z/dhw": {
+  "evals": 550,
+  "objective": 107.8689101,
   "ratio": 87.73,
   "rss_peak_mb": 95.8,
   "traced_peak_mb": 1.83
  },
  "flat/2z/space": {
+  "evals": 756,
+  "objective": 99.7397663,
   "ratio": 82.67,
   "rss_peak_mb": 91.7,
   "traced_peak_mb": 0.89
  },
  "heavy_old/shoulder": {
+  "evals": 596,
+  "objective": 21.1273538,
   "ratio": 64.5,
   "rss_peak_mb": 95.6,
   "traced_peak_mb": 3.46
  },
  "heavy_old/winter": {
+  "evals": 446,
+  "objective": 174.2595657,
   "ratio": 44.52,
   "rss_peak_mb": 95.6,
   "traced_peak_mb": 3.45
  },
  "light_new/shoulder": {
+  "evals": 166,
+  "objective": 1131.228376,
   "ratio": 17.53,
   "rss_peak_mb": 95.8,
   "traced_peak_mb": 1.83
  },
  "light_new/winter": {
+  "evals": 402,
+  "objective": 31.41373442,
   "ratio": 44.81,
   "rss_peak_mb": 97.0,
   "traced_peak_mb": 2.03
  },
  "shoulder/1z/dhw": {
+  "evals": 420,
+  "objective": 9.059220541,
   "ratio": 39.05,
   "rss_peak_mb": 96.4,
   "traced_peak_mb": 1.83
  },
  "shoulder/1z/space": {
+  "evals": 302,
+  "objective": 5.729550187,
   "ratio": 42.08,
   "rss_peak_mb": 91.6,
   "traced_peak_mb": 0.88
  },
  "shoulder/2z/dhw": {
+  "evals": 594,
+  "objective": 10.29215064,
   "ratio": 89.7,
   "rss_peak_mb": 96.0,
   "traced_peak_mb": 1.83
  },
  "shoulder/2z/space": {
+  "evals": 564,
+  "objective": 6.894105887,
   "ratio": 81.23,
   "rss_peak_mb": 91.6,
   "traced_peak_mb": 0.9
  },
  "shoulder/cycle": {
+  "evals": 988,
+  "objective": 12.00722774,
   "ratio": 192.52,
   "rss_peak_mb": 95.8,
   "traced_peak_mb": 1.83
  },
  "shoulder/pv": {
+  "evals": 1120,
+  "objective": 8.00351991,
   "ratio": 175.98,
   "rss_peak_mb": 95.8,
   "traced_peak_mb": 1.83
  },
  "shoulder/pv+cycle": {
+  "evals": 1730,
+  "objective": 9.51497478,
   "ratio": 291.25,
   "rss_peak_mb": 96.2,
   "traced_peak_mb": 1.83
  },
  "shoulder/tariff": {
+  "evals": 1656,
+  "objective": 10.68195625,
   "ratio": 176.87,
   "rss_peak_mb": 95.8,
   "traced_peak_mb": 1.83
  },
  "shoulder/tariff+cycle": {
+  "evals": 1232,
+  "objective": 12.31733517,
   "ratio": 154.41,
   "rss_peak_mb": 95.9,
   "traced_peak_mb": 1.83
  },
  "shoulder/tariff+pv": {
+  "evals": 1990,
+  "objective": 8.133928091,
   "ratio": 491.85,
   "rss_peak_mb": 95.9,
   "traced_peak_mb": 1.83
  },
  "shoulder/tariff+pv+cycle": {
+  "evals": 2090,
+  "objective": 9.761187935,
   "ratio": 546.76,
   "rss_peak_mb": 95.9,
   "traced_peak_mb": 1.83
  },
  "summer/1z/dhw": {
+  "evals": 48,
+  "objective": 6437.132268,
   "ratio": 7.15,
   "rss_peak_mb": 95.9,
   "traced_peak_mb": 1.83
  },
  "summer/1z/dhw/fuse-cap": {
+  "evals": 48,
+  "objective": 6437.216642,
   "ratio": 7.39,
   "rss_peak_mb": 96.0,
   "traced_peak_mb": 1.83
  },
  "summer/1z/space": {
+  "evals": 26,
+  "objective": 6435.620174,
   "ratio": 3.05,
   "rss_peak_mb": 91.5,
   "traced_peak_mb": 0.86
  },
  "summer/2z/dhw": {
+  "evals": 16,
+  "objective": 10599.47965,
   "ratio": 5.52,
   "rss_peak_mb": 96.0,
   "traced_peak_mb": 1.83
  },
  "summer/2z/dhw/pin-off": {
+  "evals": 16,
+  "objective": 10599.47965,
   "ratio": 5.54,
   "rss_peak_mb": 95.9,
   "traced_peak_mb": 1.83
  },
  "summer/2z/space": {
+  "evals": 16,
+  "objective": 10597.96756,
   "ratio": 3.35,
   "rss_peak_mb": 92.2,
   "traced_peak_mb": 0.87
  },
  "summer_negative/1z/dhw": {
+  "evals": 48,
+  "objective": 6436.453614,
   "ratio": 7.51,
   "rss_peak_mb": 96.1,
   "traced_peak_mb": 1.83
  },
  "summer_negative/1z/space": {
+  "evals": 26,
+  "objective": 6435.620174,
   "ratio": 3.1,
   "rss_peak_mb": 91.5,
   "traced_peak_mb": 0.86
  },
  "summer_negative/2z/dhw": {
+  "evals": 16,
+  "objective": 10598.801,
   "ratio": 5.97,
   "rss_peak_mb": 96.0,
   "traced_peak_mb": 1.83
  },
  "summer_negative/2z/space": {
+  "evals": 16,
+  "objective": 10597.96756,
   "ratio": 3.36,
   "rss_peak_mb": 91.6,
   "traced_peak_mb": 0.87
  },
  "typical_slab/shoulder": {
+  "evals": 620,
+  "objective": 10.79607735,
   "ratio": 45.26,
   "rss_peak_mb": 96.3,
   "traced_peak_mb": 1.83
  },
  "typical_slab/winter": {
+  "evals": 46,
+  "objective": 86.78111466,
   "ratio": 8.51,
   "rss_peak_mb": 97.5,
   "traced_peak_mb": 3.44
  },
  "winter/1z/dhw": {
+  "evals": 44,
+  "objective": 68.81957036,
   "ratio": 9.71,
   "rss_peak_mb": 97.5,
   "traced_peak_mb": 3.44
  },
  "winter/1z/space": {
+  "evals": 36,
+  "objective": 60.10427848,
   "ratio": 4.8,
   "rss_peak_mb": 91.5,
   "traced_peak_mb": 0.87
  },
  "winter/1z/space/pin-off": {
+  "evals": 36,
+  "objective": 60.10427848,
   "ratio": 4.3,
   "rss_peak_mb": 91.5,
   "traced_peak_mb": 0.87
  },
  "winter/2z/dhw": {
+  "evals": 708,
+  "objective": 86.77572306,
   "ratio": 87.01,
   "rss_peak_mb": 98.0,
   "traced_peak_mb": 3.46
  },
  "winter/2z/space": {
+  "evals": 432,
+  "objective": 78.82226984,
   "ratio": 64.87,
   "rss_peak_mb": 91.5,
   "traced_peak_mb": 0.89
  },
  "winter/cycle": {
+  "evals": 912,
+  "objective": 89.51195527,
   "ratio": 170.78,
   "rss_peak_mb": 95.8,
   "traced_peak_mb": 3.47
  },
  "winter/pv": {
+  "evals": 708,
+  "objective": 86.77572306,
   "ratio": 86.02,
   "rss_peak_mb": 98.1,
   "traced_peak_mb": 3.46
  },
  "winter/pv+cycle": {
+  "evals": 912,
+  "objective": 89.51195527,
   "ratio": 170.95,
   "rss_peak_mb": 95.8,
   "traced_peak_mb": 3.47
  },
  "winter/tariff": {
+  "evals": 1044,
+  "objective": 216.6138831,
   "ratio": 191.93,
   "rss_peak_mb": 95.6,
   "traced_peak_mb": 1.83
  },
  "winter/tariff+cycle": {
+  "evals": 1450,
+  "objective": 217.8801699,
   "ratio": 263.99,
   "rss_peak_mb": 96.0,
   "traced_peak_mb": 1.83
  },
  "winter/tariff+pv": {
+  "evals": 1044,
+  "objective": 216.6138831,
   "ratio": 192.35,
   "rss_peak_mb": 96.0,
   "traced_peak_mb": 1.83
  },
  "winter/tariff+pv+cycle": {
+  "evals": 1450,
+  "objective": 217.8801699,
   "ratio": 263.93,
   "rss_peak_mb": 95.9,
   "traced_peak_mb": 1.83
  },
  "winter_extreme/1z/dhw": {
+  "evals": 42,
+  "objective": 95.78438707,
   "ratio": 8.35,
   "rss_peak_mb": 97.5,
   "traced_peak_mb": 3.44
  },
  "winter_extreme/1z/space": {
+  "evals": 52,
+  "objective": 80.74055626,
   "ratio": 5.51,
   "rss_peak_mb": 91.7,
   "traced_peak_mb": 0.87
  },
  "winter_extreme/2z/dhw": {
+  "evals": 652,
+  "objective": 128.3677063,
   "ratio": 99.27,
   "rss_peak_mb": 95.8,
   "traced_peak_mb": 3.45
  },
  "winter_extreme/2z/space": {
+  "evals": 790,
+  "objective": 111.5412536,
   "ratio": 126.91,
   "rss_peak_mb": 91.3,
   "traced_peak_mb": 0.9
  },
  "winter_mild/1z/dhw": {
+  "evals": 650,
+  "objective": 29.27865716,
   "ratio": 48.05,
   "rss_peak_mb": 95.8,
   "traced_peak_mb": 3.46
  },
  "winter_mild/1z/space": {
+  "evals": 472,
+  "objective": 23.40309449,
   "ratio": 47.95,
   "rss_peak_mb": 91.5,
   "traced_peak_mb": 0.87
  },
  "winter_mild/2z/dhw": {
+  "evals": 618,
+  "objective": 35.64822403,
   "ratio": 82.24,
   "rss_peak_mb": 95.9,
   "traced_peak_mb": 1.83
  },
  "winter_mild/2z/space": {
+  "evals": 606,
+  "objective": 29.70972741,
   "ratio": 84.46,
   "rss_peak_mb": 91.9,
   "traced_peak_mb": 0.88
