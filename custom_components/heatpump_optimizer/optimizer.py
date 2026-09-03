@@ -43,7 +43,7 @@ import math
 import time as _time_mod
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, NamedTuple
 
 import numpy as np
 from scipy.optimize import linprog, minimize
@@ -1175,6 +1175,17 @@ def slab_settlement_cap(params, target: float, out_mean: float) -> float:
         target + q_demand / max(params.slab_heat_transfer, 1e-6),
         params.buffer_max_temp,
     )
+
+
+class _DhwLegionellaPlan(NamedTuple):
+    """What the anti-legionella stage decides, and the ceilings it sets."""
+
+    due: bool
+    hour: float | None
+    step: int | None
+    max_temp: "np.ndarray"
+    lp_max_temp: "np.ndarray"
+    runup_temps: "np.ndarray"
 
 
 class HeatPumpOptimizer:
@@ -3111,6 +3122,300 @@ class HeatPumpOptimizer:
         learned.append((float(run_start), float(prev + 1)))
         return parse_windows(format_windows(learned)) or [FULL_DAY], True
 
+    def _dhw_legionella_due(
+        self,
+        *,
+        params,
+        initial_state,
+        n_steps: int,
+        dt: float,
+        hours_mod,
+        draw_rates,
+        ready_temps,
+        outdoor_temps,
+        p_dhw_run: float,
+        dhw_prices,
+    ) -> tuple[bool, float | None, int | None]:
+        """Whether the anti-legionella cycle is due, and which step it lands on.
+
+        The decision half of the cycle (#224 stage 1), verbatim. Returns
+        ``(due, hour, step)``; the ceilings the cycle then needs are
+        ``_dhw_legionella_ceilings``.
+        """
+        legionella_due = False
+        legionella_hour: float | None = None
+        legionella_step: int | None = None
+        interval_hours = float(params.dhw_legionella_interval_days) * 24.0
+        hours_since = initial_state.dhw_hours_since_legionella
+        if (
+            params.dhw_legionella_enabled
+            and interval_hours > 0
+            and hours_since is not None
+            and n_steps > 0
+        ):
+            hours_remaining = interval_hours - float(hours_since)
+            deadline_step = int(np.floor(hours_remaining / dt))
+            place_idx: int | None = None
+            # The earliest step the tank can physically be AT the disinfection
+            # temperature by, charging flat out from where it is now. Both
+            # branches below need it: a cycle target the tank cannot reach by
+            # its step is not a plan, it is a constraint the solver quietly
+            # relaxes. (The elastic branch has always applied this; the hard
+            # deadline used not to, which is what let an overdue cycle pin
+            # step 0 — see below.)
+            # Simulated rather than estimated. A closed-form lift ÷ rate
+            # ignores the draws and the standby losses the charge has to pay
+            # for on the way, and one fixed COP ignores how the same pump
+            # slows down as the tank warms. On a big tank with a small pump
+            # that was wrong by hours: it called step 91 of 96 reachable on a
+            # 3000 L tank that actually tops out at 52 °C, so the cycle was
+            # pinned near the end of every plan, never became the current
+            # action, and the shortfall was never observed, never reported
+            # and never retried. This is the same simulation every later
+            # stage runs, so the two cannot disagree about what is reachable.
+            ramp = np.asarray(
+                self.model.simulate_dhw_only(
+                    initial_temp=float(initial_state.dhw_temperature),
+                    dhw_power_schedule=np.full(n_steps, p_dhw_run),
+                    outdoor_temps=outdoor_temps,
+                    draw_rates=draw_rates,
+                    dt_hours=dt,
+                )
+            )
+            hot = np.where(ramp[1:] >= params.dhw_legionella_temp - 1e-6)[0]
+            reach_step = int(hot[0]) if hot.size else n_steps
+            if deadline_step < n_steps:
+                # The hard deadline is inside this horizon: place the cycle
+                # at the cheapest hour before it, elastic or not. Hygiene
+                # never waits for a better price.
+                #
+                # An OVERDUE cycle (a negative deadline, from a timer that
+                # never got its reset) used to collapse this to
+                # ``limit = 1`` and pin the requirement on step 0 of every
+                # single solve. Step 0 is the one step the tank provably
+                # cannot reach 60 °C in, so the requirement was missed, the
+                # timer stayed overdue, and the next solve pinned step 0
+                # again — a latch that never disinfected anything. Overdue
+                # therefore means "at the cheapest step from the moment the
+                # tank can actually be there", not "now".
+                if reach_step >= n_steps:
+                    # The tank cannot be AT the disinfection temperature
+                    # anywhere in this horizon — a big tank, a small pump, or
+                    # simply a cold start. Clamping the placement to the
+                    # last step is the worst of the three options: the
+                    # cycle is then never the current action, so the boost
+                    # is never commanded, the tracker never runs, and the
+                    # "cannot reach temperature" notice can never be
+                    # raised — a permanent latch nobody is told about.
+                    # Starting now is what makes progress: the tank charges,
+                    # the next solve starts warmer, `reach_step` shrinks, and
+                    # if it never does, the shortfall is observed and
+                    # reported.
+                    place_idx = 0
+                else:
+                    first = min(max(reach_step, 0), n_steps - 1)
+                    limit = max(first + 1, min(deadline_step + 1, n_steps))
+                    place_idx = first + int(np.argmin(dhw_prices[first:limit]))
+            elif (
+                params.dhw_elastic_legionella_enabled
+                and params.dhw_legionella_price_ceiling is not None
+                and float(hours_since)
+                >= float(params.dhw_legionella_min_interval_days) * 24.0
+            ):
+                # #47: inside the elastic window the cycle shops. Run it
+                # early only when a *known* price beats what a typical
+                # remaining day is expected to bottom out at (the ceiling,
+                # from the learned prior). Prior-guessed steps never
+                # qualify — a cycle is real money spent on a guess. The
+                # ceiling exists only once the prior is fully trained
+                # (None otherwise ⇒ this branch is inert); both sides of
+                # the comparison are built from the same fee-inclusive
+                # published prices, and any surplus discount inside
+                # dhw_prices only makes a genuinely sunny hour qualify.
+                known = getattr(self, "_price_known", None)
+                if known is not None:
+                    known_mask = np.zeros(n_steps, dtype=bool)
+                    arr = np.asarray(known, dtype=bool)[:n_steps]
+                    known_mask[: arr.size] = arr
+                else:
+                    known_mask = np.ones(n_steps, dtype=bool)
+                # A cycle target the tank cannot physically reach by its
+                # step is not a plan, it is a constraint the solver will
+                # quietly relax. Only steps the pump can actually heat to
+                # the disinfection temperature by are candidates —
+                # `reach_step`, shared with the hard-deadline branch above
+                # so the two can never disagree about what is reachable.
+                known_mask[: min(reach_step, n_steps)] = False
+                candidates = np.where(known_mask)[0]
+                if candidates.size:
+                    idx = int(candidates[np.argmin(dhw_prices[candidates])])
+                    if float(dhw_prices[idx]) <= float(
+                        params.dhw_legionella_price_ceiling
+                    ):
+                        place_idx = idx
+            if place_idx is not None:
+                ready_temps[place_idx] = max(
+                    ready_temps[place_idx], params.dhw_legionella_temp
+                )
+                legionella_due = True
+                legionella_hour = float(hours_mod[place_idx])
+                legionella_step = place_idx
+        return legionella_due, legionella_hour, legionella_step
+
+    def _dhw_legionella_ceilings(
+        self,
+        *,
+        params,
+        n_steps: int,
+        dt: float,
+        c_dhw: float,
+        draw_rates,
+        floor_temps,
+        outdoor_temps,
+        p_dhw_run: float,
+        legionella_due: bool,
+        legionella_hour: float | None,
+        legionella_step: int | None,
+    ) -> tuple:
+        """The tank ceilings and run-up floor the cycle needs, verbatim.
+
+        ``max_temp`` is the everyday ceiling, ``lp_max_temp`` the one the LP
+        may exceed during a boost, ``runup_temps`` the per-step floor the
+        cycle needs beforehand.
+        """
+        max_temp = np.full(max(n_steps, 0), float(params.dhw_max_temp))
+        lp_max_temp = max_temp
+        # The run-up the cycle needs, as a per-step FLOOR. Folded into
+        # ``requirement`` below rather than into ``ready_temps``, so the step
+        # reason codes and the published "required now" keep meaning what
+        # they meant.
+        runup_temps = np.zeros(max(n_steps, 0))
+        boost_top = min(70.0, float(params.dhw_hard_max_temp))
+        if legionella_step is not None and n_steps > 0 and boost_top > float(
+            params.dhw_max_temp
+        ):
+            ua = max(params.dhw_tank_heat_loss_coefficient, 1e-6)
+            decay = float(np.clip(1.0 - ua * dt / c_dhw, 0.0, 1.0))
+            gain = ua * DHW_AMBIENT_TEMP * dt / c_dhw
+            everyday = float(params.dhw_max_temp)
+            max_temp[legionella_step] = boost_top
+
+            # Run-up: walk backwards along the fastest charge the pump can
+            # actually deliver, inverting the same tank recursion the LP
+            # uses. `need` is the coolest the tank may be at the end of a
+            # step and still reach `boost_top` on time, so a ceiling of
+            # `need` grants the cycle exactly the headroom it needs and not
+            # a degree more. Draws are carried, because water taken during
+            # the run-up is heat the charge has to make up as well.
+            #
+            # The ramp is an OBLIGATION, not merely a permission, so each
+            # step of the walk records `need` as a floor too and the walk
+            # runs all the way down to the floor the plan already has to
+            # honour rather than stopping at the charge limit. Raising the
+            # ceiling alone would say the tank MAY climb without anything
+            # making it, which is only safe while something else happens to
+            # leave it at the charge limit when the ramp starts — and with
+            # the limit honoured a summer plan legitimately parks the tank at
+            # ~37 °C. The repair stage does find the ramp from the cycle's
+            # own requirement, so this is belt and braces rather than the
+            # only thing holding the cycle up; it is cheap, it is what the
+            # linear program needs to seed a sensible shape, and it states
+            # the obligation where the ramp is computed instead of leaving it
+            # to be rediscovered.
+            need = boost_top
+            for m in range(legionella_step - 1, -1, -1):
+                # The transition from the END of step m to the END of step
+                # m+1 is step m+1's own weather and draw, not step m's.
+                nxt = m + 1
+                cop = max(
+                    self.model.compute_cop_dhw(float(outdoor_temps[nxt]), need),
+                    0.5,
+                )
+                rise = p_dhw_run * cop * dt / c_dhw
+                drawn = float(draw_rates[nxt]) * dt / c_dhw
+                need = (need + drawn - gain - rise) / max(decay, 1e-6)
+                if need > boost_top:
+                    # Even starting AT the disinfection temperature the pump
+                    # could not carry the ramp from here. Nothing earlier can
+                    # help, and demanding it would only buy heat the cycle
+                    # cannot use.
+                    break
+                if need > everyday:
+                    max_temp[m] = min(boost_top, need)
+                runup_temps[m] = need
+                if need <= floor_temps[m]:
+                    # From here the ordinary availability floor is already at
+                    # least as high as the ramp needs, so the plan is obliged
+                    # to be there anyway.
+                    break
+
+            # Coast-down, LP only: a tank left alone from `boost_top`.
+            # Standby-only, so it is the upper envelope of what the cycle can
+            # leave behind — the linear program needs room for heat that is
+            # genuinely in the tank, and nothing more.
+            lp_max_temp = max_temp.copy()
+            temp = boost_top
+            for m in range(legionella_step + 1, n_steps):
+                temp = decay * temp + gain
+                if temp <= everyday:
+                    break
+                lp_max_temp[m] = max(lp_max_temp[m], temp)
+        return _DhwLegionellaPlan(
+            due=legionella_due,
+            hour=legionella_hour,
+            step=legionella_step,
+            max_temp=max_temp,
+            lp_max_temp=lp_max_temp,
+            runup_temps=runup_temps,
+        )
+    def _dhw_legionella_plan(
+        self,
+        *,
+        params,
+        initial_state,
+        n_steps: int,
+        dt: float,
+        c_dhw: float,
+        hours_mod,
+        draw_rates,
+        ready_temps,
+        floor_temps,
+        outdoor_temps,
+        p_dhw_run: float,
+        dhw_prices,
+    ) -> "_DhwLegionellaPlan":
+        """The anti-legionella stage: when the cycle runs, and its ceilings.
+
+        Two halves, split because the ratchet is right that a 268-line
+        helper is not a decomposition (#224 stage 1).
+        """
+        legionella_due, legionella_hour, legionella_step = self._dhw_legionella_due(
+            params=params,
+            initial_state=initial_state,
+            n_steps=n_steps,
+            dt=dt,
+            hours_mod=hours_mod,
+            draw_rates=draw_rates,
+            ready_temps=ready_temps,
+            outdoor_temps=outdoor_temps,
+            p_dhw_run=p_dhw_run,
+            dhw_prices=dhw_prices,
+        )
+        return self._dhw_legionella_ceilings(
+            params=params,
+            n_steps=n_steps,
+            dt=dt,
+            c_dhw=c_dhw,
+            draw_rates=draw_rates,
+            floor_temps=floor_temps,
+            outdoor_temps=outdoor_temps,
+            p_dhw_run=p_dhw_run,
+            legionella_due=legionella_due,
+            legionella_hour=legionella_hour,
+            legionella_step=legionella_step,
+        )
+
+
     def _build_dhw_requirements(
         self,
         initial_state: ThermalState,
@@ -3259,237 +3564,28 @@ class HeatPumpOptimizer:
         # over a merely cheap night without repricing the whole step.
         dhw_prices = self._dhw_planning_prices(prices, p_dhw_run, space_demand)
 
-        # --- Anti-legionella cycle ---
-        legionella_due = False
-        legionella_hour: float | None = None
-        legionella_step: int | None = None
-        interval_hours = float(params.dhw_legionella_interval_days) * 24.0
-        hours_since = initial_state.dhw_hours_since_legionella
-        if (
-            params.dhw_legionella_enabled
-            and interval_hours > 0
-            and hours_since is not None
-            and n_steps > 0
-        ):
-            hours_remaining = interval_hours - float(hours_since)
-            deadline_step = int(np.floor(hours_remaining / dt))
-            place_idx: int | None = None
-            # The earliest step the tank can physically be AT the disinfection
-            # temperature by, charging flat out from where it is now. Both
-            # branches below need it: a cycle target the tank cannot reach by
-            # its step is not a plan, it is a constraint the solver quietly
-            # relaxes. (The elastic branch has always applied this; the hard
-            # deadline used not to, which is what let an overdue cycle pin
-            # step 0 — see below.)
-            # Simulated rather than estimated. A closed-form lift ÷ rate
-            # ignores the draws and the standby losses the charge has to pay
-            # for on the way, and one fixed COP ignores how the same pump
-            # slows down as the tank warms. On a big tank with a small pump
-            # that was wrong by hours: it called step 91 of 96 reachable on a
-            # 3000 L tank that actually tops out at 52 °C, so the cycle was
-            # pinned near the end of every plan, never became the current
-            # action, and the shortfall was never observed, never reported
-            # and never retried. This is the same simulation every later
-            # stage runs, so the two cannot disagree about what is reachable.
-            ramp = np.asarray(
-                self.model.simulate_dhw_only(
-                    initial_temp=float(initial_state.dhw_temperature),
-                    dhw_power_schedule=np.full(n_steps, p_dhw_run),
-                    outdoor_temps=outdoor_temps,
-                    draw_rates=draw_rates,
-                    dt_hours=dt,
-                )
-            )
-            hot = np.where(ramp[1:] >= params.dhw_legionella_temp - 1e-6)[0]
-            reach_step = int(hot[0]) if hot.size else n_steps
-            if deadline_step < n_steps:
-                # The hard deadline is inside this horizon: place the cycle
-                # at the cheapest hour before it, elastic or not. Hygiene
-                # never waits for a better price.
-                #
-                # An OVERDUE cycle (a negative deadline, from a timer that
-                # never got its reset) used to collapse this to
-                # ``limit = 1`` and pin the requirement on step 0 of every
-                # single solve. Step 0 is the one step the tank provably
-                # cannot reach 60 °C in, so the requirement was missed, the
-                # timer stayed overdue, and the next solve pinned step 0
-                # again — a latch that never disinfected anything. Overdue
-                # therefore means "at the cheapest step from the moment the
-                # tank can actually be there", not "now".
-                if reach_step >= n_steps:
-                    # The tank cannot be AT the disinfection temperature
-                    # anywhere in this horizon — a big tank, a small pump, or
-                    # simply a cold start. Clamping the placement to the
-                    # last step is the worst of the three options: the
-                    # cycle is then never the current action, so the boost
-                    # is never commanded, the tracker never runs, and the
-                    # "cannot reach temperature" notice can never be
-                    # raised — a permanent latch nobody is told about.
-                    # Starting now is what makes progress: the tank charges,
-                    # the next solve starts warmer, `reach_step` shrinks, and
-                    # if it never does, the shortfall is observed and
-                    # reported.
-                    place_idx = 0
-                else:
-                    first = min(max(reach_step, 0), n_steps - 1)
-                    limit = max(first + 1, min(deadline_step + 1, n_steps))
-                    place_idx = first + int(np.argmin(dhw_prices[first:limit]))
-            elif (
-                params.dhw_elastic_legionella_enabled
-                and params.dhw_legionella_price_ceiling is not None
-                and float(hours_since)
-                >= float(params.dhw_legionella_min_interval_days) * 24.0
-            ):
-                # #47: inside the elastic window the cycle shops. Run it
-                # early only when a *known* price beats what a typical
-                # remaining day is expected to bottom out at (the ceiling,
-                # from the learned prior). Prior-guessed steps never
-                # qualify — a cycle is real money spent on a guess. The
-                # ceiling exists only once the prior is fully trained
-                # (None otherwise ⇒ this branch is inert); both sides of
-                # the comparison are built from the same fee-inclusive
-                # published prices, and any surplus discount inside
-                # dhw_prices only makes a genuinely sunny hour qualify.
-                known = getattr(self, "_price_known", None)
-                if known is not None:
-                    known_mask = np.zeros(n_steps, dtype=bool)
-                    arr = np.asarray(known, dtype=bool)[:n_steps]
-                    known_mask[: arr.size] = arr
-                else:
-                    known_mask = np.ones(n_steps, dtype=bool)
-                # A cycle target the tank cannot physically reach by its
-                # step is not a plan, it is a constraint the solver will
-                # quietly relax. Only steps the pump can actually heat to
-                # the disinfection temperature by are candidates —
-                # `reach_step`, shared with the hard-deadline branch above
-                # so the two can never disagree about what is reachable.
-                known_mask[: min(reach_step, n_steps)] = False
-                candidates = np.where(known_mask)[0]
-                if candidates.size:
-                    idx = int(candidates[np.argmin(dhw_prices[candidates])])
-                    if float(dhw_prices[idx]) <= float(
-                        params.dhw_legionella_price_ceiling
-                    ):
-                        place_idx = idx
-            if place_idx is not None:
-                ready_temps[place_idx] = max(
-                    ready_temps[place_idx], params.dhw_legionella_temp
-                )
-                legionella_due = True
-                legionella_hour = float(hours_mod[place_idx])
-                legionella_step = place_idx
-
-        # --- The planning ceiling, per step ---------------------------------
-        #
-        # `dhw_max_temp` is the user's own charge limit ("Highest tank
-        # temperature to charge to"), and every ordinary step gets exactly
-        # that. Until v5.1.10 the disinfection temperature was folded into it
-        # permanently, which made a hygiene setting the everyday ceiling the
-        # cost planner *spends*: pre-buying at the night trough beats heating
-        # at the evening window even after standby losses, so the plan
-        # over-charged right up to whatever number this was. A 52/60 pair ran
-        # the tank to ~58 °C on a day with no cycle due.
-        #
-        # A disinfection cycle is the one thing allowed above the charge
-        # limit, and only around the cycle the planner has actually placed.
-        # `legionella_step` is that step (None when no cycle is due), so the
-        # raise is scoped to three bands:
-        #
-        #   * the run-up, because an 8 °C lift does not happen in one 15-minute
-        #     step; the ceiling rises along the *latest* ramp that still
-        #     arrives on time, so the tank may climb only as fast as it must;
-        #   * the cycle step itself, at the disinfection temperature;
-        #   * the coast-down — and this one is FOR THE LINEAR PROGRAM ONLY.
-        #     The LP's ceiling rows are written against a tank that was never
-        #     boosted, so without a band that decays the way the boost heat
-        #     really does, the row after the cycle contradicts the cycle's own
-        #     floor and the solve answers with expensive shortfall slack
-        #     instead of disinfecting. The four stages that work against the
-        #     SIMULATED trajectory need no such band: they can see the tank is
-        #     already hot, and holding them to the charge limit there is
-        #     exactly right — it forbids re-heating in the hours after a
-        #     cycle, which a shared band would have quietly licensed (the
-        #     tank sat ~1 °C over the limit twelve hours later).
-        #
-        # Each stage below documents whether it wants the per-step value or
-        # the whole array.
-        max_temp = np.full(max(n_steps, 0), float(params.dhw_max_temp))
-        lp_max_temp = max_temp
-        # The run-up the cycle needs, as a per-step FLOOR. Folded into
-        # ``requirement`` below rather than into ``ready_temps``, so the step
-        # reason codes and the published "required now" keep meaning what
-        # they meant.
-        runup_temps = np.zeros(max(n_steps, 0))
-        boost_top = min(70.0, float(params.dhw_hard_max_temp))
-        if legionella_step is not None and n_steps > 0 and boost_top > float(
-            params.dhw_max_temp
-        ):
-            ua = max(params.dhw_tank_heat_loss_coefficient, 1e-6)
-            decay = float(np.clip(1.0 - ua * dt / c_dhw, 0.0, 1.0))
-            gain = ua * DHW_AMBIENT_TEMP * dt / c_dhw
-            everyday = float(params.dhw_max_temp)
-            max_temp[legionella_step] = boost_top
-
-            # Run-up: walk backwards along the fastest charge the pump can
-            # actually deliver, inverting the same tank recursion the LP
-            # uses. `need` is the coolest the tank may be at the end of a
-            # step and still reach `boost_top` on time, so a ceiling of
-            # `need` grants the cycle exactly the headroom it needs and not
-            # a degree more. Draws are carried, because water taken during
-            # the run-up is heat the charge has to make up as well.
-            #
-            # The ramp is an OBLIGATION, not merely a permission, so each
-            # step of the walk records `need` as a floor too and the walk
-            # runs all the way down to the floor the plan already has to
-            # honour rather than stopping at the charge limit. Raising the
-            # ceiling alone would say the tank MAY climb without anything
-            # making it, which is only safe while something else happens to
-            # leave it at the charge limit when the ramp starts — and with
-            # the limit honoured a summer plan legitimately parks the tank at
-            # ~37 °C. The repair stage does find the ramp from the cycle's
-            # own requirement, so this is belt and braces rather than the
-            # only thing holding the cycle up; it is cheap, it is what the
-            # linear program needs to seed a sensible shape, and it states
-            # the obligation where the ramp is computed instead of leaving it
-            # to be rediscovered.
-            need = boost_top
-            for m in range(legionella_step - 1, -1, -1):
-                # The transition from the END of step m to the END of step
-                # m+1 is step m+1's own weather and draw, not step m's.
-                nxt = m + 1
-                cop = max(
-                    self.model.compute_cop_dhw(float(outdoor_temps[nxt]), need),
-                    0.5,
-                )
-                rise = p_dhw_run * cop * dt / c_dhw
-                drawn = float(draw_rates[nxt]) * dt / c_dhw
-                need = (need + drawn - gain - rise) / max(decay, 1e-6)
-                if need > boost_top:
-                    # Even starting AT the disinfection temperature the pump
-                    # could not carry the ramp from here. Nothing earlier can
-                    # help, and demanding it would only buy heat the cycle
-                    # cannot use.
-                    break
-                if need > everyday:
-                    max_temp[m] = min(boost_top, need)
-                runup_temps[m] = need
-                if need <= floor_temps[m]:
-                    # From here the ordinary availability floor is already at
-                    # least as high as the ramp needs, so the plan is obliged
-                    # to be there anyway.
-                    break
-
-            # Coast-down, LP only: a tank left alone from `boost_top`.
-            # Standby-only, so it is the upper envelope of what the cycle can
-            # leave behind — the linear program needs room for heat that is
-            # genuinely in the tank, and nothing more.
-            lp_max_temp = max_temp.copy()
-            temp = boost_top
-            for m in range(legionella_step + 1, n_steps):
-                temp = decay * temp + gain
-                if temp <= everyday:
-                    break
-                lp_max_temp[m] = max(lp_max_temp[m], temp)
+        # --- Anti-legionella cycle (see _dhw_legionella_plan) ---
+        (
+            legionella_due,
+            legionella_hour,
+            legionella_step,
+            max_temp,
+            lp_max_temp,
+            runup_temps,
+        ) = self._dhw_legionella_plan(
+            params=params,
+            initial_state=initial_state,
+            n_steps=n_steps,
+            dt=dt,
+            c_dhw=c_dhw,
+            hours_mod=hours_mod,
+            draw_rates=draw_rates,
+            ready_temps=ready_temps,
+            floor_temps=floor_temps,
+            outdoor_temps=outdoor_temps,
+            p_dhw_run=p_dhw_run,
+            dhw_prices=dhw_prices,
+        )
 
         # How long stored heat actually survives in this tank. The learned
         # cooling rate drives it, so a well-insulated tank is allowed to
