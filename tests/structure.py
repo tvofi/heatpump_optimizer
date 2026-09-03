@@ -620,6 +620,35 @@ def print_report(result: dict) -> None:
 # budget table: record and ratchet
 
 
+def recorded_sha() -> str:
+    """The SHA to stamp into the budget table.
+
+    NOT ``HEAD``. On a branch, ``HEAD`` is a commit that ``--amend`` rewrites
+    and that a squash-merge deletes, so a budget recorded there names a commit
+    which will not exist once the pull request lands -- #352 stamped eeb777a
+    and #360 stamped 99f9970, and both are gone. Two of those were corrected by
+    hand before anyone noticed the tool was at fault, which is why the field
+    looks right on main today (#361).
+
+    The merge base is the newest commit this branch and ``main`` agree on, and
+    it survives the squash, so a reader can always check the table out. Falls
+    back to ``HEAD`` when there is no ``origin/main`` -- a fresh clone, or a
+    first record.
+    """
+    for args in (["git", "merge-base", "HEAD", "origin/main"],
+                 ["git", "rev-parse", "HEAD"]):
+        try:
+            sha = subprocess.run(
+                args, cwd=REPO_ROOT,
+                capture_output=True, text=True, check=True,
+            ).stdout.strip()
+            if sha:
+                return sha
+        except (OSError, subprocess.CalledProcessError):
+            continue
+    return ""
+
+
 def head_sha() -> str:
     try:
         return subprocess.run(
@@ -642,7 +671,7 @@ def record_budgets(result: dict) -> int:
         print("WARNING: the tree is dirty under custom_components/; the numbers")
         print("below describe the working tree, not commit %s." % head_sha()[:12])
     payload = dict(result["metrics"])
-    payload["recorded_at"] = head_sha()
+    payload["recorded_at"] = recorded_sha()
     BUDGET_FILE.write_text(json.dumps(payload, indent=1, sort_keys=True) + "\n")
     print()
     print("########## budget table written to %s ##########" % BUDGET_FILE)
@@ -697,6 +726,23 @@ def ratchet(result: dict) -> int:
                       " the next PR may re-record to lock it in)")
             else:
                 print(f"  ok   {key} {current} <= {budget}")
+    # The table names the tree it describes, so a reader can check it out. A
+    # branch HEAD cannot serve: --amend rewrites it and a squash-merge deletes
+    # it (#361 -- #352 stamped eeb777a, #360 stamped 99f9970, both gone, both
+    # corrected by hand before anyone noticed the tool was at fault). Reported,
+    # not failed: an unreachable SHA makes the provenance uncheckable, it does
+    # not make the numbers wrong, and a fresh clone has no origin/main at all.
+    recorded = budgets.get("recorded_at", "")
+    if recorded:
+        reachable = subprocess.run(
+            ["git", "merge-base", "--is-ancestor", recorded, "origin/main"],
+            cwd=REPO_ROOT, capture_output=True, text=True,
+        ).returncode == 0
+        if not reachable:
+            print()
+            print(f"  note: recorded_at {recorded[:12]} is not on origin/main --")
+            print("    re-record with tests/structure.py --record, which stamps the")
+            print("    merge base. A branch SHA does not survive the squash (#361).")
     print()
     if failures:
         print(f"{failures} STRUCTURE BUDGET(S) BREACHED")
