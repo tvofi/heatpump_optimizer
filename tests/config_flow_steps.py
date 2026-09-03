@@ -54,11 +54,11 @@ Tranche 2 (this file's second half) drives the other two flows:
   had never run.
 
 ``--self-check`` is the mutation-proof mode (tests/README.md): it breaks
-the duplicate guard, the token probe, the options grid validation and
-the reconfigure guard's own-identity exemption in-memory, one at a time,
-and fails unless the checks that are supposed to catch each breakage
-really fail.  Normal mode must pass on an unmodified tree; the
-self-check must fail on the broken one.
+the duplicate guard, the token probe, the options grid month validation,
+the reconfigure guard's own-identity exemption and the grid page's
+peak-hours grammar in-memory, one at a time, and fails unless the checks
+that are supposed to catch each breakage really fail.  Normal mode must
+pass on an unmodified tree; the self-check must fail on the broken one.
 
 Expected (tolerance 0): every RESULT line reads full coverage --
 ``flow_checks_covered=<checks>`` with no failures, every step
@@ -210,13 +210,27 @@ TUNING_ANSWERS = {
     const.CONF_WEAR_AUTOTUNE_ENABLED: True,
     const.CONF_PRICE_TILES_ENABLED: True,
 }
-# The peak-hours field is documented as "07:00-19:00" and consumed by the
-# coordinator in the DHW window grammar, but the options-flow check on it
-# runs the grid-fee RULES grammar (config_flow.py:2658) -- the two accept
-# only the empty string in common. That mismatch is a finding to report,
-# not a behaviour to pin: the happy page carries the default empty spec,
-# and the error probe below uses "garbage", which no grammar accepts, so
-# both checks survive the validator being pointed at the right grammar.
+# The peak-hours field is validated and consumed through ONE grammar. The
+# options page checks it with ``is_valid_spec`` (config_flow.py:2658), bound
+# from ``.dhw_schedule`` and not from ``grid_fee``; that function is
+# ``parse_windows`` succeeding, which is exactly the predicate the
+# coordinator's ``_tariff_hours`` applies to the stored value. So the
+# documented form "07:00-19:00" both saves and takes effect.
+#
+# #327 reported the opposite -- the page validating this field with the
+# grid-fee RULES grammar, leaving every non-empty value unsavable or
+# silently ignored. Driven end to end through ``async_step_grid`` and back
+# through ``_tariff_hours``, that did not reproduce in either direction, at
+# the reported 9ab836e or at main; the issue is closed as not-reproducing.
+# The likely misread is the module import of ``grid_fee`` sitting three
+# lines above the ``.dhw_schedule`` one.
+#
+# The agreement is now pinned rather than assumed. Neither check keyed on
+# the answers below would notice the validator being repointed at
+# ``grid_fee.is_valid_spec``: this happy page carries the default empty
+# spec, and the error probe uses "garbage", which no grammar accepts. The
+# documented-form check in ``options_error_branches`` is the one that dies,
+# and it is what #327's false report bought.
 GRID_ANSWERS = {
     const.CONF_PEAK_TARIFF_ENABLED: True,
     const.CONF_PEAK_TARIFF_PRICE: 60.0,
@@ -1674,6 +1688,45 @@ async def options_error_branches():
             f"got {result.get('errors')}, want {{{field!r}: {expected!r}}}",
         )
 
+    # grid: the documented peak-hours form, saved through the page and then
+    # READ BACK through the coordinator (#327, see the note above
+    # GRID_ANSWERS). Asserting "the page showed no error" would not be
+    # enough -- the failure this pins is a validator that accepts a string
+    # the coordinator then cannot parse, which is silent at the form and
+    # only shows up as an every-hour-peak fallback hours later. So the
+    # check carries all the way to the mask ``_tariff_hours`` returns.
+    #
+    # The coordinator is imported here rather than at module scope: this
+    # driver is about the flow, and pulling the coordinator in at import
+    # time would make every run pay for it.
+    from heatpump_optimizer.coordinator import (  # noqa: PLC0415
+        HeatPumpOptimizerCoordinator,
+    )
+
+    flow, entry, _ = fresh_options()
+    result = await submit(
+        flow,
+        "grid",
+        {**GRID_ANSWERS, const.CONF_PEAK_TARIFF_HOURS: "07:00-19:00"},
+    )
+    stored = entry.options.get(const.CONF_PEAK_TARIFF_HOURS)
+    coordinator = HeatPumpOptimizerCoordinator(
+        FakeHass(),
+        FakeEntry(data={**BASE_ENTRY_DATA, const.CONF_PEAK_TARIFF_HOURS: stored}),
+    )
+    mask = coordinator._tariff_hours()
+    check(
+        "opt_grid",
+        "happy",
+        "the documented peak-hours form saves and reaches the coordinator's mask",
+        shows_menu(result, "init")
+        and not result.get("errors")
+        and stored == "07:00-19:00"
+        and mask == ((7.0, 19.0),),
+        f"errors={result.get('errors')} stored={stored!r} "
+        f"_tariff_hours()={mask!r}, want ((7.0, 19.0),)",
+    )
+
 
 # ---------------------------------------------------------------------------
 # Tranche 2 (#194): the reconfigure flow, end to end through the real
@@ -1978,6 +2031,35 @@ async def self_check():
     finally:
         config_flow.HeatPumpOptimizerConfigFlow.async_step_user = real_user
 
+    # Mutation 5: the peak-hours field validated with the fee-RULES grammar
+    # instead of the window one -- the defect #327 reported, which did not
+    # reproduce (see the note above GRID_ANSWERS). Nothing in this driver
+    # caught this before the documented-form check existed: the happy page
+    # submits the empty default and the error probe submits "garbage", and
+    # both are verdict-identical under either grammar.
+    real_hours = config_flow.is_valid_spec
+    config_flow.is_valid_spec = config_flow.grid_fee.is_valid_spec
+    try:
+        await seed_base_entry()
+        flow, entry, _ = fresh_options()
+        result = await submit(
+            flow,
+            "grid",
+            {**GRID_ANSWERS, const.CONF_PEAK_TARIFF_HOURS: "07:00-19:00"},
+        )
+        stored = entry.options.get(const.CONF_PEAK_TARIFF_HOURS)
+        caught = not (shows_menu(result, "init") and stored == "07:00-19:00")
+        outcomes.append(
+            (
+                "peak hours validated with the fee-rules grammar (#327)",
+                caught,
+                "the documented peak-hours form saves and reaches the coordinator's mask",
+                f"errors={result.get('errors')} stored={stored!r}",
+            )
+        )
+    finally:
+        config_flow.is_valid_spec = real_hours
+
     ok = True
     for mutation, caught, check_name, detail in outcomes:
         print(
@@ -1989,7 +2071,7 @@ async def self_check():
     if not ok:
         print("\na mutation survived: a check that cannot fail pins nothing")
         return 1
-    print("\nall four mutations caught by their named checks")
+    print("\nall five mutations caught by their named checks")
     return 0
 
 
