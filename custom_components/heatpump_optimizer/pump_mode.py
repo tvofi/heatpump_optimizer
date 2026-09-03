@@ -147,9 +147,6 @@ MODES: dict[str, ModeCapability] = {
     )
 }
 
-#: Device enum values in the order the device lists them.
-MODE_KEYS: tuple[str, ...] = tuple(MODES)
-
 
 def _build_aliases() -> dict[str, str]:
     """Folded spelling -> device enum value.

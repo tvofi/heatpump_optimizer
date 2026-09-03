@@ -71,7 +71,6 @@ from heatpump_optimizer.tariff import (
     CapacityTariff,
     PeakTracker,
     peak_cost,
-    peak_penalty,
     realised_peak,
 )
 from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator as Coord
@@ -529,7 +528,7 @@ R.check(
         m.key and m.options and m.label
         for m in pump_mode.MODES.values()
     )
-    and pump_mode.MODE_KEYS == ("cool", "heat", "DHW", "COOLDHW", "HEATDHW"),
+    and tuple(pump_mode.MODES) == ("cool", "heat", "DHW", "COOLDHW", "HEATDHW"),
     "the device enum to put on the wire, and the select option string HA's "
     "select.select_option would have to be given",
 )
@@ -1131,9 +1130,15 @@ R.check(
 tracker.observe(datetime(2026, 4, 1, 0, 0), 1.0, tariff)
 R.check("a new month resets the peaks", tracker.month == "2026-04")
 
+# The plan-side charge is `peak_cost` (what the optimizer's capacity term
+# calls, optimizer.py `_grid_terms`); the former `tariff.peak_penalty`
+# wrapper around it was dead in production (#226) and is gone.
 R.check(
     "staying under the threshold costs nothing",
-    peak_penalty(np.full(8, 2.0), np.full(8, 1.0), 5.0, tariff, 0.25) == 0.0,
+    peak_cost(
+        np.full(8, 2.0), np.full(8, 1.0), 5.0,
+        tariff.marginal_price_per_kw, tariff.window_minutes, 0.25,
+    ) == 0.0,
 )
 
 # The bill is full_price x mean(top-k peaks), which rearranges exactly to
@@ -1197,8 +1202,14 @@ burst = np.zeros(8)
 burst[0] = 8.0
 R.check(
     "a 15-minute burst is averaged over the metering window",
-    peak_penalty(burst, np.zeros(8), 1.0, tariff, 0.25)
-    < peak_penalty(np.full(8, 8.0), np.zeros(8), 1.0, tariff, 0.25),
+    peak_cost(
+        burst, np.zeros(8), 1.0,
+        tariff.marginal_price_per_kw, tariff.window_minutes, 0.25,
+    )
+    < peak_cost(
+        np.full(8, 8.0), np.zeros(8), 1.0,
+        tariff.marginal_price_per_kw, tariff.window_minutes, 0.25,
+    ),
     "penalising the instantaneous step would give away real savings",
 )
 # Not one charge per hour -- that would price a whole month's tariff into
@@ -1207,7 +1218,11 @@ R.check(
 R.check(
     "the charge covers exactly the peaks the bill averages",
     abs(
-        peak_penalty(np.full(8, 7.0), np.zeros(8), 5.0, tariff, 1.0)
+        peak_cost(
+            np.full(8, 7.0), np.zeros(8), 5.0,
+            tariff.marginal_price_per_kw, tariff.window_minutes, 1.0,
+            tariff.peaks_averaged,
+        )
         - tariff.peaks_averaged * 2.0 * tariff.marginal_price_per_kw
     )
     < 1e-6,
@@ -1251,27 +1266,20 @@ R.check(
 surplus = pv.surplus_kw(np.array([0.0, 3.0, 6.0]), np.array([1.0, 1.0, 1.0]))
 R.check("surplus is net of the rest of the house", list(surplus) == [0.0, 2.0, 5.0])
 
-# The cost of a draw is piecewise: surplus-covered energy at the export
-# price, the rest at the import price. The whole-step substitution this
-# replaced made 0.05 kW of sun reprice a full compressor draw.
+# The piecewise cost of a draw (surplus-covered energy at the export price,
+# the rest at the import price) is charged INLINE by the optimizer's
+# `_energy_cost_fn` -- the old `pv.piecewise_cost` delegation target was
+# dead and is gone (#226). The import margin's zero floor -- an export
+# price above the import price can never pay the house to consume -- is
+# pinned on the live `pv.import_margin` here; the objective checks below
+# pin the draw-side piecewise cases on the live inline.
 _pw_prices = np.array([1.5, 1.5, 1.5])
 _pw_surplus = np.array([0.0, 2.0, 5.0])
+_pw_margin = pv.import_margin(_pw_prices, 0.3)
 R.check(
-    "a draw inside the surplus costs the export compensation",
-    abs(pv.piecewise_cost(_pw_prices, _pw_surplus, 0.3, np.array([0.0, 2.0, 4.0]), 1.0)
-        - (2.0 * 0.3 + 4.0 * 0.3)) < 1e-9,
-)
-R.check(
-    "a draw beyond the surplus pays the import price for the excess",
-    abs(pv.piecewise_cost(_pw_prices, _pw_surplus, 0.3, np.array([3.0, 6.0, 5.0]), 1.0)
-        - (3.0 * 1.5 + (2.0 * 0.3 + 4.0 * 1.5) + 5.0 * 0.3)) < 1e-9,
-    "epsilon surplus must not reprice a full compressor draw",
-)
-R.check(
-    "an export price above the import price is clamped",
-    abs(pv.piecewise_cost(np.array([0.2]), np.array([5.0]), 0.9, np.array([2.0]), 1.0)
-        - 2.0 * 0.2) < 1e-9,
-    "otherwise the objective would pay the house to consume",
+    "the import margin floors at zero, never paying the house to consume",
+    list(_pw_margin) == [1.2, 1.2, 1.2]
+    and list(pv.import_margin(np.array([0.2]), 0.9)) == [0.0],
 )
 _blend = pv.blended_block_prices(_pw_prices, _pw_surplus, 0.3, 4.0)
 R.check(
@@ -6235,10 +6243,14 @@ R.check(
 
 R.section("Topology catalog and the layout editor's contract (v3.16.0)")
 
+# The Python-side `match_layout` twin was dead (#226): the editor that
+# snaps a drawing to a catalog key lives in the card's JS (its verdict
+# strings are covered by the Node harnesses). What this side owns is the
+# catalog itself -- `LAYOUTS` and `layout_edges`, published to the card by
+# `describe_setup` -- so that is what is pinned here.
 from heatpump_optimizer.topology import (
     LAYOUTS as _LAYOUTS,
     layout_edges as _layout_edges,
-    match_layout as _match_layout,
 )
 
 # Every layout's composed edge set must match only itself, under every flag
@@ -6264,65 +6276,21 @@ R.check(
     "every two-zone layout signature matches only itself",
     _sig_ok
     and all(
-        _match_layout(
-            _layout_edges(_key, two_zone=True, wood=(
-                _key == "two_tank_4way"
-            )), two_zone=True, wood=(_key == "two_tank_4way"),
-        )[0] == _key
+        frozenset(
+            _layout_edges(_key, two_zone=True, wood=(_key == "two_tank_4way"))
+        )
+        != frozenset(
+            _layout_edges(
+                _other, two_zone=True, wood=(_other == "two_tank_4way")
+            )
+        )
         for _key in _LAYOUTS
         if _LAYOUTS[_key].selectable
+        for _other in _LAYOUTS
+        if _other != _key
     ),
     "the editor stores whichever key the edge set snaps to; a collision "
     "stores the wrong physics",
-)
-_ss_key, _ss_why = _match_layout(
-    _layout_edges("slab_shunt", two_zone=True, wood=False),
-    two_zone=True, wood=False,
-)
-R.check(
-    "a drawn slab shunt is recognized and refused, with the reason",
-    _ss_key is None and "not modelled" in _ss_why,
-    f"got {_ss_key!r}: {_ss_why}",
-)
-# The pre-v3.14.1 drawing (valve to the radiators, slab fed direct from
-# the tank) is not a mistake the catalog rejects -- it is a real layout it
-# recognizes. This is the design working: some houses have it. The wood
-# chain is tank-to-tank since v4.0.0: the separate wood-valve box modelled
-# nothing and was removed (#40 feedback, item 3).
-_old_drawing = [
-    ["heat_pump", "buffer_tank"], ["buffer_tank", "mixing_valve"],
-    ["mixing_valve", "upper_zone"], ["buffer_tank", "lower_zone"],
-    ["wood_tank", "buffer_tank"],
-]
-R.check(
-    "the old drawing is recognized as the layout it always depicted",
-    _match_layout(_old_drawing, two_zone=True, wood=True)[0]
-    == "valve_upper_direct_slab",
-    "valve on the radiators, slab fed direct: a supported layout, not an "
-    "error",
-)
-# A drawing carrying the removed wood-valve hop no longer matches anything,
-# but the rejection must still explain itself rather than crash or claim an
-# empty diff.
-_wv_key, _wv_why = _match_layout(
-    _old_drawing[:-1]
-    + [["wood_tank", "wood_valve"], ["wood_valve", "buffer_tank"]],
-    two_zone=True, wood=True,
-)
-R.check(
-    "the removed wood-valve chain degrades to a named nearest layout",
-    _wv_key is None and "Closest supported layout" in _wv_why,
-    f"got {_wv_key!r}: {_wv_why}",
-)
-_wrong = [["heat_pump", "buffer_tank"], ["buffer_tank", "mixing_valve"],
-          ["mixing_valve", "upper_zone"], ["mixing_valve", "lower_zone"],
-          ["buffer_tank", "lower_zone"]]
-_wk, _wwhy = _match_layout(_wrong, two_zone=True, wood=False)
-R.check(
-    "a genuinely unsupported set names the nearest layout and the diff",
-    _wk is None and "Closest supported layout" in _wwhy
-    and ("Missing" in _wwhy or "Not in it" in _wwhy),
-    f"got {_wk!r}: {_wwhy}",
 )
 
 # 750 L, not the tiny default: the per-step availability bound must not be
@@ -6452,9 +6420,12 @@ R.check(
     "4-way + two tanks + hot water, coil off, is valid and matches",
     _u_entry["valid"]
     and _u["layout"] == "two_tank_4way"
-    and _match_layout(
-        _u["edges"], two_zone=True, wood=True, dhw_coil=False, dhw=True
-    )[0] == "two_tank_4way",
+    and {tuple(e) for e in _u["edges"]}
+    == set(
+        _layout_edges(
+            "two_tank_4way", two_zone=True, wood=True, dhw_coil=False, dhw=True
+        )
+    ),
     "the user's report said this could not be saved; the message was the "
     "bug, the arrangement itself is supported",
 )
@@ -7772,21 +7743,19 @@ R.check(
     "energy outside every window belongs to no statistic",
     "" not in _ds.reservoirs,
 )
-_mean = 1.0
-R.check(
-    "below the evidence floor the ready energy leans on the mean",
-    abs(
-        _ds.ready_energy("17:00-22:00", _mean) - _mean
-    ) < 1e-9,  # zero events -> pure mean
-)
+# The old `DrawStats.ready_energy` blend (p90 ramped toward the mean by
+# evidence) was production-dead and is gone (#226): the optimizer blends
+# INLINE, where the mean it blends against is computed (optimizer.py's
+# ready-temperature loop), and the `_q_solve` mutation pair below pins
+# that live blend end to end. The quantile/count facts here feed it.
 _ds2 = DrawStats()
 for day in range(DHW_QUANTILE_MIN_EVENTS):
     _ds2.fold(_D1 + timedelta(days=day), "06:00-08:30", 3.0)
     _ds2.fold(_D1 + timedelta(days=day, hours=4), "", 0.0)
 R.check(
-    "at full evidence the ready energy is the quantile itself",
-    abs(_ds2.ready_energy("06:00-08:30", 1.0) - 3.0) < 1e-9,
-    f"got {_ds2.ready_energy('06:00-08:30', 1.0)}",
+    "a full week of windows is all evidence and every quantile is finite",
+    _ds2.count("06:00-08:30") == DHW_QUANTILE_MIN_EVENTS
+    and _ds2.quantile("06:00-08:30", 0.9) == 3.0,
 )
 _ds3 = DrawStats.from_dict(_ds2.as_dict())
 R.check(
@@ -10579,7 +10548,7 @@ R.check(
 )
 
 # --- #29 the narrative -----------------------------------------------------------
-for _lang6 in narrative_mod.LANGUAGES:
+for _lang6 in narrative_mod.TEMPLATES:  # the languages the narratives ship
     R.check(
         f"every template language carries every reason key ({_lang6})",
         set(narrative_mod.TEMPLATES[_lang6]) == set(narrative_mod.TEMPLATES["en"]),
@@ -14150,7 +14119,7 @@ R.check(
 
 # Every code the classifier can emit needs a sentence in both languages, or a
 # plan says nothing in Swedish and shows a raw identifier in English.
-for _lang_cl in narrative_mod.LANGUAGES:
+for _lang_cl in narrative_mod.TEMPLATES:  # every shipped language
     R.check(
         f"the new reason has a narrative sentence ({_lang_cl})",
         _R_SCHED in narrative_mod.TEMPLATES[_lang_cl],
@@ -15882,7 +15851,7 @@ R.check(
     "pump_mode has a sentence in BOTH languages",
     all(
         REASON_PUMP_MODE in narrative_mod.TEMPLATES[lang]
-        for lang in narrative_mod.LANGUAGES
+        for lang in narrative_mod.TEMPLATES  # en and sv alike
     ),
     "the en/sv parity test passes when a key is missing from both, so parity "
     "alone could never catch this",
@@ -15899,7 +15868,7 @@ R.check(
     f"{_nb_items} — the blocked slots were relabelled away from 'idle', so "
     f"filtering them out leaves silence where the explanation belongs",
 )
-for _lang in narrative_mod.LANGUAGES:
+for _lang in narrative_mod.TEMPLATES:  # every shipped language renders it
     _nb_lines = narrative_mod.render(_nb_items, _lang)
     R.check(
         f"and it renders a real sentence in {_lang}",
@@ -18581,6 +18550,73 @@ R.check(
     "the exceptions section stays parity-identical between strings.json and en.json",
     _ET_FILES["strings"] == _ET_FILES["en"],
     "hassfest requires the two files to match",
+)
+
+
+# ===========================================================================
+# #226: the verified dead symbols stay deleted
+# ===========================================================================
+# Reachability was re-verified before each deletion (full-repo grep plus a
+# dynamic-use sweep: string keys, getattr, services.yaml, strings.json,
+# translations/, www/). This section pins the verdicts so a symbol cannot
+# quietly come back without its production caller. The hasattr checks import
+# the production modules themselves -- a test that only re-derived the
+# verdict would pin nothing.
+R.section("Dead symbols stay deleted (#226)")
+
+from heatpump_optimizer import tariff as tariff_mod  # noqa: E402
+
+R.check(
+    "the ten #226 symbols no longer exist in production",
+    not hasattr(ComfortLearner, "set_configured")
+    and not hasattr(Coord, "optimization_result")
+    and not hasattr(Coord, "current_state")
+    and not hasattr(Coord, "_prepare_forecast_data")
+    and not hasattr(DrawStats, "ready_energy")
+    and not hasattr(pv, "piecewise_cost")
+    and not hasattr(tariff_mod, "peak_penalty")
+    and not hasattr(_topo, "match_layout")
+    and not hasattr(narrative_mod, "LANGUAGES")
+    and not hasattr(pump_mode, "MODE_KEYS"),
+    "each of these had zero production references (tests do not count); "
+    "if one is needed again, re-add it together with the production caller "
+    "that needs it",
+)
+
+# The two grid_fee helpers PR-0's name-only screen ALSO flagged, which are
+# alive: the coordinator imports them under aliased names
+# (``as grid_fee_max_abs_component`` / ``as grid_fee_min_component``), so a
+# scan keyed on the bare def name misses the reference. They stay.
+R.check(
+    "grid_fee.max_abs_component and grid_fee.min_component stay (aliased imports)",
+    callable(_gf.max_abs_component) and callable(_gf.min_component),
+    "coordinator.py imports them as grid_fee_* and calls them in the fee "
+    "issue checks; a name-only deadness screen cannot see an asname import",
+)
+
+# The four CONF keys look dead to the same name-only scan but are read
+# dynamically: ThermalParameters.from_config resolves them through
+# ``getattr(const, f"CONF_{conf}")`` over its parameter table. The sentinel
+# proves both halves -- the attribute resolves AND from_config actually
+# reads it, because a distinctive value set through the resolved key must
+# arrive on the parameter (it differs from every default).
+_conf4 = {
+    "CONF_BUFFER_TANK_LOSS": ("buffer_tank_heat_loss", 0.75),  # default 0.01
+    "CONF_SOLAR_UPPER_FRACTION": ("solar_upper_fraction", 0.65),  # default 0.4
+    "CONF_HOUSE_HEAT_LOSS_SCALE": ("house_heat_loss_scale", 1.5),  # default 1.0
+    "CONF_LOWER_FLOOR_LOSS_RATIO": ("lower_floor_loss_ratio", 0.42),  # dflt 1.0
+}
+_conf4_params = ThermalParameters.from_config(
+    {getattr(hp_const, _k): _v for _k, (_, _v) in _conf4.items()}
+)
+R.check(
+    "the four getattr-read CONF keys stay live in from_config",
+    all(
+        getattr(_conf4_params, _attr) == _v
+        for _k, (_attr, _v) in _conf4.items()
+    ),
+    "thermal_model.from_config reads these via getattr(const, f'CONF_...'); "
+    "deleting one crashes from_config at import of any config entry",
 )
 
 sys.exit(R.close("FEATURE CHECKS"))

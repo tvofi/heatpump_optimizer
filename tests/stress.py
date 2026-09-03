@@ -621,15 +621,24 @@ def check_invariants(label: str, run: dict) -> list[str]:
     # --- accounting -------------------------------------------------------
     # With PV surplus the cost is piecewise — covered energy at the export
     # compensation, the rest at import — so the plain price-times-power sum
-    # is only the right reference when there is no surplus.
+    # is only the right reference when there is no surplus. Written out on
+    # the live ``pv.import_margin`` helper: the ``pv.piecewise_cost`` wrapper
+    # this oracle used to call was production-dead and removed (#226), and
+    # the point here is to re-derive the figure INDEPENDENTLY of the
+    # optimizer's inline version anyway.
     surplus = run.get("surplus")
     if surplus is not None:
-        recomputed = pv_model.piecewise_cost(
-            np.asarray(result.prices),
-            np.asarray(surplus)[: combined.size],
-            run["config"].pv_export_price,
-            combined,
-            DT,
+        _ref_prices = np.asarray(result.prices)
+        _ref_power = np.asarray(combined, dtype=float)
+        _ref_covered = np.minimum(
+            _ref_power, np.asarray(surplus)[: combined.size]
+        )
+        _ref_margin = pv_model.import_margin(
+            _ref_prices, run["config"].pv_export_price
+        )
+        recomputed = float(
+            (np.sum(_ref_prices * _ref_power) - np.sum(_ref_margin * _ref_covered))
+            * DT
         )
     else:
         recomputed = float(np.sum(np.asarray(result.prices) * combined * DT))

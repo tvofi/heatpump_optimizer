@@ -26,8 +26,6 @@ from __future__ import annotations
 
 from typing import Any
 
-LANGUAGES = ("en", "sv")
-
 #: One sentence per reason code, per language. Placeholders: {kwh} energy
 #: in the group, {sek} its cost, {hours} total duration in hours. Keys and
 #: placeholders MUST stay identical across languages — tests enforce it.

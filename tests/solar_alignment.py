@@ -3,7 +3,9 @@
 This is the seam where the feature can fail silently. Every other part of the
 chain either works or throws, but a timestamp alignment bug just shifts the sun
 by an interval and quietly produces a slightly wrong heating plan. So this
-drives the real ``_prepare_forecast_data`` with a synthetic irradiance series
+drives the real ``_forecast_arrays`` (the five-series seam the optimizer
+reads; the ``_prepare_forecast_data`` back-compat slice over it was
+production-dead and removed, #226) with a synthetic irradiance series
 whose value encodes its own timestamp, making any offset immediately visible.
 
     PYTHONPATH=/tmp/hastub python tests/solar_alignment.py
@@ -108,7 +110,7 @@ client = OpenMeteoSolar(hass=None, latitude=60.0, longitude=17.0)
 coord, now, midnight = make_coordinator(client)
 client._forecast = ramp_series(midnight)
 
-_, _, _, _, solar = coord._prepare_forecast_data()
+_, _, _, _, solar = coord._forecast_arrays()[:5]
 
 # The optimizer's grid is anchored to midnight, so step 0 is the quarter hour
 # containing "now".
@@ -143,7 +145,7 @@ print("\n== resolution independence ==")
 client_h = OpenMeteoSolar(hass=None, latitude=60.0, longitude=17.0)
 coord_h, now_h, midnight_h = make_coordinator(client_h)
 client_h._forecast = ramp_series(midnight_h, minutes=60)
-_, _, _, _, solar_h = coord_h._prepare_forecast_data()
+_, _, _, _, solar_h = coord_h._forecast_arrays()[:5]
 
 hour_offset = int((now_h - midnight_h).total_seconds() / 3600)
 check(
@@ -180,7 +182,7 @@ obs_times = tuple(
 client_o._observed = IrradianceSeries(
     times=obs_times, values=tuple(777.0 for _ in obs_times), resolution=timedelta(minutes=10)
 )
-_, _, _, _, solar_o = coord_o._prepare_forecast_data()
+_, _, _, _, solar_o = coord_o._forecast_arrays()[:5]
 check("observed satellite values replace the forecast", abs(solar_o[0] - 777.0) < 1e-6,
       f"got {solar_o[0]}")
 
@@ -192,7 +194,7 @@ print("\n== fallbacks ==")
 client_s = OpenMeteoSolar(hass=None, latitude=60.0, longitude=17.0)
 coord_s, _, midnight_s = make_coordinator(client_s, weather_solar=123.0)
 client_s._forecast = ramp_series(midnight_s, span_hours=2)
-_, _, _, _, solar_s = coord_s._prepare_forecast_data()
+_, _, _, _, solar_s = coord_s._forecast_arrays()[:5]
 check(
     "steps beyond the Open-Meteo horizon keep the weather entity value",
     abs(float(solar_s[-1]) - 123.0) < 1e-6,
@@ -201,7 +203,7 @@ check(
 
 # With no client at all the previous behaviour must be untouched.
 coord_n, _, _ = make_coordinator(None, weather_solar=456.0)
-_, _, _, _, solar_n = coord_n._prepare_forecast_data()
+_, _, _, _, solar_n = coord_n._forecast_arrays()[:5]
 check(
     "without Open-Meteo the weather entity is still used",
     abs(float(solar_n[0]) - 456.0) < 1e-6,
@@ -211,7 +213,7 @@ check(
 # An empty client must not blank out solar either.
 empty_client = OpenMeteoSolar(hass=None, latitude=60.0, longitude=17.0)
 coord_e, _, _ = make_coordinator(empty_client, weather_solar=456.0)
-_, _, _, _, solar_e = coord_e._prepare_forecast_data()
+_, _, _, _, solar_e = coord_e._forecast_arrays()[:5]
 check(
     "an unavailable Open-Meteo client does not zero the irradiance",
     abs(float(solar_e[0]) - 456.0) < 1e-6,

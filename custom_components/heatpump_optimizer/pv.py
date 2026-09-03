@@ -101,26 +101,6 @@ def import_margin(
     return np.clip(np.asarray(import_prices, dtype=float) - float(export_price), 0.0, None)
 
 
-def piecewise_cost(
-    import_prices: np.ndarray,
-    surplus: np.ndarray,
-    export_price: float,
-    total_power_kw: np.ndarray,
-    dt_hours: float,
-) -> float:
-    """Exact grid cost of a total electrical draw across the horizon.
-
-    Each step's energy up to the forecast surplus displaces an export and
-    costs the export compensation; everything beyond it is imported at the
-    market price.
-    """
-    prices = np.asarray(import_prices, dtype=float)
-    power = np.asarray(total_power_kw, dtype=float)
-    covered = np.minimum(power, np.asarray(surplus, dtype=float))
-    margin = import_margin(prices, export_price)
-    return float((np.sum(prices * power) - np.sum(margin * covered)) * dt_hours)
-
-
 def blended_block_prices(
     import_prices: np.ndarray,
     surplus: np.ndarray,

@@ -436,31 +436,6 @@ def window_factors(
     )
 
 
-def peak_penalty(
-    total_power_kw: np.ndarray,
-    baseline_load_kw: np.ndarray,
-    threshold_kw: float,
-    tariff: CapacityTariff,
-    dt_hours: float,
-    start_time: datetime | None = None,
-) -> float:
-    """Cost of the new monthly peak this plan would create."""
-    house = np.asarray(total_power_kw, dtype=float)
-    windows = metering_windows(house, tariff.window_minutes, dt_hours)
-    return peak_cost(
-        total_power_kw,
-        baseline_load_kw,
-        threshold_kw,
-        tariff.marginal_price_per_kw,
-        tariff.window_minutes,
-        dt_hours,
-        tariff.peaks_averaged,
-        window_factors=window_factors(
-            tariff, start_time, windows.size, dt_hours
-        ),
-    )
-
-
 def peak_cost(
     total_power_kw: np.ndarray,
     baseline_load_kw: np.ndarray,

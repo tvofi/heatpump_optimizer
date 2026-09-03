@@ -43,9 +43,6 @@ _LOGGER = logging.getLogger(__name__)
 #: Occurrence totals kept per window — about six weeks of daily windows.
 MAX_EVENTS_PER_WINDOW = 40
 
-#: Occurrences before the p90 fully replaces the mean (the #20 ramp).
-MIN_EVENTS = 8
-
 
 @dataclass
 class DrawStats:
@@ -104,21 +101,6 @@ class DrawStats:
         if not events:
             return None
         return float(np.quantile(np.asarray(events, dtype=float), q))
-
-    def ready_energy(
-        self, window_label: str, mean_kwh: float, q: float = 0.9
-    ) -> float:
-        """The #20 ready energy: p90 blended toward the mean by evidence.
-
-        ``w = min(1, n / MIN_EVENTS)`` — a ramp, not a gate, so the answer
-        moves smoothly from the profile's mean to the learned quantile and
-        a single early outlier cannot yank the target.
-        """
-        p90 = self.quantile(window_label, q)
-        if p90 is None:
-            return float(mean_kwh)
-        w = min(1.0, self.count(window_label) / float(MIN_EVENTS))
-        return float((1.0 - w) * float(mean_kwh) + w * p90)
 
     # -- persistence -----------------------------------------------------------
 
