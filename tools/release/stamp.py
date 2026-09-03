@@ -160,6 +160,54 @@ def self_test() -> int:
     check("claims: may-drift survives without a blank line", "# may-drift: wood_coil" in new2 and deleted2 == 1)
     check("notes: #16 is not covered by #165", not re.search(r"#16(?!\d)", "fixed in #165"))
     check("tags: pre-release tags are ignored", not TAG_RE.match("v6.2.15-rc1") and bool(TAG_RE.match("v6.2.15")))
+
+    # Rule 2's evidence, on both paths. gh is not installed everywhere a
+    # release is taken from, and rule 2 used to call it before --allow-red
+    # was read -- a missing binary raised FileNotFoundError instead of
+    # refusing. These cover the pure pieces of the fallback: the URL, the
+    # reduction of a runs payload to a verdict, and which path is taken.
+    check("rule 2: the rest query", runs_url("abc123") ==
+          "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/runs?head_sha=abc123&event=push")
+    check("rule 2: a token becomes a bearer header", rest_headers("t123")["Authorization"] == "Bearer t123")
+    check("rule 2: no token, no header (the repository is public)", "Authorization" not in rest_headers(None))
+    payload = {"total_count": 3, "workflow_runs": [
+        {"id": 11, "name": "Tests", "path": ".github/workflows/tests.yml",
+         "status": "completed", "conclusion": "success"},
+        {"id": 12, "name": "Card", "path": ".github/workflows/card.yml",
+         "status": "completed", "conclusion": "failure"},
+        {"id": 13, "name": "Tests", "path": ".github/workflows/tests.yml",
+         "status": "in_progress", "conclusion": None},
+    ]}
+    reduced = runs_from_payload(payload)
+    check("rule 2: the payload reduces to gh's shape", reduced == [
+        {"status": "completed", "conclusion": "success", "databaseId": 11},
+        {"status": "in_progress", "conclusion": None, "databaseId": 13}])
+    check("rule 2: another workflow's run is not the gate", all(r["databaseId"] != 12 for r in reduced))
+    check("rule 2: a completed success is green", gate_verdict(reduced)[0])
+    red = runs_from_payload({"workflow_runs": [
+        {"id": 21, "name": "Tests", "status": "completed", "conclusion": "failure"}]})
+    red_green, red_why = gate_verdict(red)
+    check("rule 2: a red run refuses, naming the conclusion", not red_green and "failure" in red_why)
+    queued = runs_from_payload({"workflow_runs": [
+        {"id": 31, "name": "Tests", "status": "queued", "conclusion": None}]})
+    check("rule 2: a run still going is counted, not awaited", gate_verdict(queued) ==
+          (False, "no completed Tests run for HEAD yet; 1 run(s) still in progress"))
+    check("rule 2: no run at all", gate_verdict([]) == (False, "no completed Tests run for HEAD yet"))
+    check("rule 2: gh's shape and rest's reduce to one verdict",
+          gate_verdict([{"status": "completed", "conclusion": "failure", "databaseId": 21}]) == gate_verdict(red))
+    check("rule 2: the five newest Tests runs, as gh's --limit", len(runs_from_payload(
+        {"workflow_runs": [{"id": i, "name": "Tests", "status": "completed", "conclusion": "success"}
+                           for i in range(9)]})) == 5)
+    check("rule 2: gh is used when it is installed", gate_source(lambda name: "/usr/bin/gh") == "gh")
+    check("rule 2: rest is used when gh is absent", gate_source(lambda name: None) == "rest")
+
+    def _no_gh(head: str) -> list[dict]:
+        raise FileNotFoundError(2, "No such file or directory: 'gh'")
+
+    unreadable = tests_gate("deadbee", which=lambda name: None, fetchers={"rest": _no_gh})
+    check("rule 2: a source that cannot answer refuses, it does not raise",
+          not unreadable[0] and "could not read the Tests gate" in unreadable[1])
+
     print(f"RESULT stamp_self_test={'pass' if ok else 'fail'}")
     return 0 if ok else 1
 
