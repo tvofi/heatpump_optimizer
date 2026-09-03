@@ -43,9 +43,9 @@
 # does not expire with the stamp and is not part of the inherited-claims
 # comparison.
 #
-# claims-for: 6.3.6
+# claims-for: 6.3.7
 #
-# v6.3.6: the round-2 quality pass. The stamp empties the list; the
+# v6.3.7: the batched jacobian at a pinned step. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 
@@ -91,4 +91,3 @@
 # may-drift: wood_coil -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: valve_upper_direct_slab -- machine-sensitive; the DHW plan can reach it, per local optimum
 
-fuse_guard  # D9-01 (#286): off scipy's scalar finite differences onto the batched jac; last-decimal float movement, no change of plan shape, count varies with the BLAS and the baseline (1 leaf to 181 across four takes) -- see the note above

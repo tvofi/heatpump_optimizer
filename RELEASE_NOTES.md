@@ -1,5 +1,37 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.3.7
+
+### A pinned step no longer costs the solver its fast gradient path
+
+Audit round 2, finding D9-01 (#317, closing #286). When any one variable's
+bounds were degenerate — a manually pinned step, a fuse cap biting at a
+hot-water slot, the monthly shadow solve, a one-slot manual plan — the whole
+solve fell off the batched-jacobian path onto scipy's scalar finite
+differences, at **9,220 simulate-step-equivalents per gradient against 292
+batched: 31.6x the work** for an answer that does not change.
+
+The cause was a carve-out with a real reason behind it. A zero-range bound
+made the batched gradient compute `0/0`, and a NaN in a *supplied* jacobian
+kills L-BFGS-B outright, so degenerate bounds were routed to the scalar path
+wholesale. The fix removes the NaN rather than the fast path: a fixed
+variable's gradient entry is now written as an exact `0.0`, and the batch
+serves `lo == hi`.
+
+That entry was proved inert rather than merely argued to be right — at a
+fixed variable whose true derivative is −10.35, injecting `0.0`, the true
+value, ±1e6 and +1e12 all produce a bit-identical optimum, while a NaN
+produces a wrong answer.
+
+Plans are unchanged on every route the batch already served: fingerprinted
+across fifteen configurations, zero differing fields. Of the five routes that
+move, four reach a *cheaper* plan and the fifth is dearer by one part in
+10^9. One golden fixture, `fuse_guard`, moves a single leaf, and it is the
+only one of fifty-five carrying a zero-range bound.
+
+On Pi-class hardware this is the difference between a solve that spends its
+time planning and one that spends it re-deriving a gradient column by column.
+
 ## v6.3.6
 
 The first release out of audit round 2, and mostly about how the integration
